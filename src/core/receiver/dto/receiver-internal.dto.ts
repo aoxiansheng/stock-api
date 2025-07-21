@@ -95,7 +95,7 @@ export class MarketInferenceResultDto {
   dominantMarket: string;
 }
 
-export class PerformanceMetricsDto {
+export class ReceiverPerformanceDto {
   @ApiProperty({ description: '请求ID' })
   @IsString()
   requestId: string;

@@ -59,7 +59,7 @@ export class MappingRuleDto {
   note?: string;
 }
 
-export class PerformanceMetricsDto {
+export class SymbolMapperPerformanceDto {
   @ApiProperty({ description: '处理时间（毫秒）' })
   @IsNumber()
   processingTime: number;

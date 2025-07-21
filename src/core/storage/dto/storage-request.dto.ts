@@ -8,27 +8,7 @@ import {
   IsEnum,
   ValidateNested,
 } from "class-validator";
-
-export enum StorageType {
-  CACHE = "cache",
-  PERSISTENT = "persistent",
-  BOTH = "both",
-}
-
-/**
- * Enum for different classifications of data
- */
-export enum DataClassification {
-  STOCK_QUOTE = "stock_quote",
-  STOCK_CANDLE = "stock_candle",
-  STOCK_TICK = "stock_tick",
-  FINANCIAL_STATEMENT = "financial_statement",
-  COMPANY_PROFILE = "company_profile",
-  MARKET_NEWS = "market_news",
-  TRADING_ORDER = "trading_order",
-  USER_PORTFOLIO = "user_portfolio",
-  GENERAL = "general", // 默认/通用类别
-}
+import { StorageType, DataClassification } from "../enums/storage-type.enum";
 
 export class StorageOptionsDto {
   @ApiPropertyOptional({ description: "Cache TTL in seconds", default: 3600 })

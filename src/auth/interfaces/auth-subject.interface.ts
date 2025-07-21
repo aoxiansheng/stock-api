@@ -1,12 +1,8 @@
 import { Permission, UserRole } from '../enums/user-role.enum';
+import { AuthSubjectType } from '../../common/enums/auth.enum';
 
-/**
- * 认证主体类型枚举
- */
-export enum AuthSubjectType {
-  JWT_USER = 'jwt_user',
-  API_KEY = 'api_key',
-}
+// 重新导出以保持向后兼容
+export { AuthSubjectType };
 
 /**
  * 统一的权限主体接口

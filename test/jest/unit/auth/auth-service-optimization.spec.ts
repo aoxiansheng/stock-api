@@ -12,6 +12,7 @@ import {
   AUTH_MESSAGES,
   AUTH_DEFAULTS,
 } from '../../../../src/auth/constants/auth.constants';
+import { ERROR_MESSAGES } from '../../../../src/common/constants/error-messages.constants';
 
 describe('AuthService Optimization Features', () => {
   let service: AuthService;
@@ -244,11 +245,11 @@ describe('AuthService Optimization Features', () => {
       const warnSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
 
       await expect(service.register(createUserDto)).rejects.toThrow(
-        new ConflictException(AUTH_MESSAGES.USER_EXISTS)
+        new ConflictException(ERROR_MESSAGES.USER_EXISTS)
       );
 
       expect(warnSpy).toHaveBeenCalledWith(
-        AUTH_MESSAGES.USER_EXISTS,
+        ERROR_MESSAGES.USER_EXISTS,
         expect.objectContaining({
           operation: AUTH_OPERATIONS.REGISTER,
           username: 'existinguser',
@@ -323,7 +324,7 @@ describe('AuthService Optimization Features', () => {
       const warnSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
 
       await expect(service.login(loginDto)).rejects.toThrow(
-        new UnauthorizedException(AUTH_MESSAGES.INVALID_CREDENTIALS)
+        new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS)
       );
 
       expect(warnSpy).toHaveBeenCalledWith(
@@ -353,7 +354,7 @@ describe('AuthService Optimization Features', () => {
       const warnSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
 
       await expect(service.login(loginDto)).rejects.toThrow(
-        new UnauthorizedException(AUTH_MESSAGES.INVALID_CREDENTIALS)
+        new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS)
       );
 
       expect(warnSpy).toHaveBeenCalledWith(
@@ -431,8 +432,8 @@ describe('AuthService Optimization Features', () => {
   describe('Error Message Consistency', () => {
     it('should use consistent error messages across methods', () => {
       // Test that all error messages are using constants
-      expect(AUTH_MESSAGES.USER_EXISTS).toBe('用户名或邮箱已存在');
-      expect(AUTH_MESSAGES.INVALID_CREDENTIALS).toBe('用户名或密码错误');
+      expect(ERROR_MESSAGES.USER_EXISTS).toBe('用户名或邮箱已存在');
+      expect(ERROR_MESSAGES.INVALID_CREDENTIALS).toBe('用户名或密码错误');
       expect(AUTH_MESSAGES.PASSWORD_VERIFICATION_FAILED).toBe('密码验证失败');
       expect(AUTH_MESSAGES.USER_NOT_FOUND_OR_INACTIVE).toBe('尝试使用不存在或未激活的用户登录');
     });

@@ -5,7 +5,8 @@ import { StorageRepository } from '../../../../src/core/storage/repositories/sto
 import { getModelToken } from '@nestjs/mongoose';
 import { StoredData, StoredDataDocument } from '../../../../src/core/storage/schemas/storage.schema';
 import { Model } from 'mongoose';
-import { StoreDataDto, RetrieveDataDto, StorageType, DataClassification } from '../../../../src/core/storage/dto/storage-request.dto';
+import { StoreDataDto, RetrieveDataDto } from '../../../../src/core/storage/dto/storage-request.dto';
+import { StorageType, DataClassification } from '../../../../src/core/storage/enums/storage-type.enum';
 import * as zlib from 'zlib';
 
 // Mock createLogger for core modules

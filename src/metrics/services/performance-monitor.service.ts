@@ -313,6 +313,7 @@ export class PerformanceMonitorService {
       const summary = {
         timestamp: new Date().toISOString(),
         healthScore: FormatUtils.roundNumber(healthScore),
+        processingTime: 0, // 可以在这里计算实际的处理时间
         summary: {
           totalRequests: safeEndpointMetrics.reduce((sum, ep) => sum + (ep.totalRequests || 0), 0),
           averageResponseTime: this.calculateOverallAverageResponseTime(safeEndpointMetrics),
@@ -344,6 +345,7 @@ export class PerformanceMonitorService {
       return {
         timestamp: new Date().toISOString(),
         healthScore: 0,
+        processingTime: 0,
         summary: { totalRequests: 0, averageResponseTime: 0, errorRate: 0, systemLoad: 0, memoryUsage: 0, cacheHitRate: 0 },
         endpoints: [],
         database: this.getDefaultDatabaseMetrics(),

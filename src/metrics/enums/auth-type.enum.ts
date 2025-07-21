@@ -1,11 +1,5 @@
-/**
- * 认证类型枚举
- * 用于性能监控中区分不同的认证方式
- */
-export enum AuthType {
-  JWT = 'jwt',
-  API_KEY = 'api_key',
-}
+// 重新导出统一的认证类型
+export { AuthType } from '../../common/enums/auth.enum';
 
 /**
  * 认证状态枚举

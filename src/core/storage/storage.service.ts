@@ -23,14 +23,13 @@ import {
 import {
   StoreDataDto,
   RetrieveDataDto,
-  StorageType,
-  DataClassification,
 } from "./dto/storage-request.dto";
+import { StorageType, DataClassification } from "./enums/storage-type.enum";
 import {
   StorageResponseDto,
-  StorageMetadataDto,
   StorageStatsDto,
 } from "./dto/storage-response.dto";
+import { StorageMetadataDto } from "./dto/storage-metadata.dto";
 import { StorageRepository } from "./repositories/storage.repository";
 import { RedisUtils } from './utils/redis.util';
 

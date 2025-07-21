@@ -39,24 +39,13 @@ export const AUTH_MESSAGES = Object.freeze({
   EMAIL_VERIFIED: '邮箱验证成功',
   PASSWORD_RESET: '密码重置成功',
   
-  // 错误消息
-  USER_EXISTS: '用户名或邮箱已存在',
-  INVALID_CREDENTIALS: '用户名或密码错误',
+  // 错误消息 - 已移至 src/common/constants/error-messages.constants.ts
+  // 保留模块特定的错误消息
   PASSWORD_VERIFICATION_FAILED: '密码验证失败',
   USER_NOT_FOUND_OR_INACTIVE: '尝试使用不存在或未激活的用户登录',
-  USER_NOT_FOUND: '用户不存在',
   USER_ALREADY_ACTIVE: '用户已经是激活状态',
   USER_ALREADY_INACTIVE: '用户已经是停用状态',
-  INVALID_TOKEN: '无效的令牌',
-  TOKEN_EXPIRED: '令牌已过期',
   REFRESH_TOKEN_INVALID: '刷新令牌无效',
-  API_KEY_NOT_FOUND: 'API Key不存在',
-  API_KEY_ALREADY_REVOKED: 'API Key已被撤销',
-  UNAUTHORIZED_ACCESS: '未授权访问',
-  INSUFFICIENT_PERMISSIONS: '权限不足',
-  EMAIL_NOT_VERIFIED: '邮箱未验证',
-  WEAK_PASSWORD: '密码强度不足',
-  PASSWORD_REUSE: '不能使用之前使用过的密码',
   
   // 警告消息
   MULTIPLE_LOGIN_ATTEMPTS: '检测到多次登录尝试',
@@ -110,14 +99,8 @@ export const AUTH_USER_STATUS = Object.freeze({
   DELETED: 'deleted',
 });
 
-// 🔒 权限级别常量
-export const AUTH_PERMISSION_LEVELS = Object.freeze({
-  READ: 'read',
-  WRITE: 'write',
-  DELETE: 'delete',
-  ADMIN: 'admin',
-  SUPER_ADMIN: 'super_admin',
-});
+// 🔒 权限级别常量 - 已移至 src/auth/constants/permission.constants.ts
+// 使用 PERMISSION_LEVELS 替代
 
 // 📊 认证事件类型常量
 export const AUTH_EVENT_TYPES = Object.freeze({

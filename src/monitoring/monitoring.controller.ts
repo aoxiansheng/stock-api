@@ -68,6 +68,11 @@ export class MonitoringController {
         metrics.endpoints = [];
       }
 
+      if (typeof metrics.processingTime === 'undefined') {
+        this.logger.warn('处理时间数据缺失，将使用默认值');
+        metrics.processingTime = 0;
+      }
+
       this.logger.debug('性能指标获取成功', {
         healthScore: metrics.healthScore,
         endpointsCount: metrics.endpoints?.length || 0,
@@ -84,6 +89,7 @@ export class MonitoringController {
     return {
       timestamp: new Date().toISOString(),
       healthScore: 0,
+      processingTime: 0,
       summary: {
         totalRequests: 0,
         averageResponseTime: 0,

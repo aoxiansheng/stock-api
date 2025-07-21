@@ -13,7 +13,7 @@ import { DataChangeDetectorService } from '../shared/services/data-change-detect
 import { DataFetchingService, DataFetchRequest } from '../shared/services/data-fetching.service';
 import { MarketStatusService } from '../shared/services/market-status.service';
 import { StringUtils } from "../shared/utils/string.util";
-import { StorageType } from "../storage/dto/storage-request.dto";
+import { StorageType } from "../storage/enums/storage-type.enum";
 import { StorageService } from "../storage/storage.service";
 
 import {

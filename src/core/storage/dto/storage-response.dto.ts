@@ -1,66 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-import { StorageType, DataClassification } from "./storage-request.dto";
 
-export class StorageMetadataDto {
-  @ApiProperty({ description: "Storage key" })
-  key: string;
-
-  @ApiProperty({ description: "Storage type used", enum: StorageType })
-  storageType: StorageType;
-
-  @ApiProperty({ description: "Data classification", enum: DataClassification })
-  dataClassification: DataClassification;
-
-  @ApiProperty({ description: "Data provider" })
-  provider: string;
-
-  @ApiProperty({ description: "Market identifier" })
-  market: string;
-
-  @ApiProperty({ description: "Data size in bytes" })
-  dataSize: number;
-
-  @ApiProperty({ description: "Storage timestamp" })
-  storedAt: string;
-
-  @ApiPropertyOptional({ description: "Cache expiration time" })
-  expiresAt?: string;
-
-  @ApiPropertyOptional({ description: "Whether data was compressed" })
-  compressed?: boolean;
-
-  @ApiPropertyOptional({ description: "Storage tags" })
-  tags?: Record<string, string>;
-
-  @ApiProperty({ description: "Processing time in milliseconds" })
-  processingTime: number;
-
-  constructor(
-    key: string,
-    storageType: StorageType,
-    dataClassification: DataClassification,
-    provider: string,
-    market: string,
-    dataSize: number,
-    processingTime: number,
-    compressed?: boolean,
-    tags?: Record<string, string>,
-    expiresAt?: string,
-  ) {
-    this.key = key;
-    this.storageType = storageType;
-    this.dataClassification = dataClassification;
-    this.provider = provider;
-    this.market = market;
-    this.dataSize = dataSize;
-    this.storedAt = new Date().toISOString();
-    this.processingTime = processingTime;
-    this.compressed = compressed;
-    this.tags = tags;
-    this.expiresAt = expiresAt;
-  }
-}
+import { StorageMetadataDto } from "./storage-metadata.dto";
 
 /**
  * 存储业务响应DTO

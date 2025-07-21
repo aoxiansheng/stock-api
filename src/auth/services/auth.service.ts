@@ -14,6 +14,7 @@ import {
   AUTH_MESSAGES,
   AUTH_DEFAULTS,
 } from '../constants/auth.constants';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
 import { CreateUserDto, LoginDto } from '../dto/auth.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { ApiKeyDocument } from '../schemas/apikey.schema';
@@ -55,8 +56,8 @@ export class AuthService {
     );
 
     if (existingUser) {
-      this.logger.warn(AUTH_MESSAGES.USER_EXISTS, { operation, username, email });
-      throw new ConflictException(AUTH_MESSAGES.USER_EXISTS);
+      this.logger.warn(ERROR_MESSAGES.USER_EXISTS, { operation, username, email });
+      throw new ConflictException(ERROR_MESSAGES.USER_EXISTS);
     }
 
     const passwordHash = await this.passwordService.hashPassword(password);
@@ -95,7 +96,7 @@ export class AuthService {
     const user = await this.userRepository.findByUsername(username);
     if (!user || !user.isActive) {
       this.logger.warn(AUTH_MESSAGES.USER_NOT_FOUND_OR_INACTIVE, { operation, username });
-      throw new UnauthorizedException(AUTH_MESSAGES.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
     this.logger.debug(AUTH_MESSAGES.PASSWORD_VALIDATION_STARTED, { operation, username });
@@ -105,7 +106,7 @@ export class AuthService {
     );
     if (!isPasswordValid) {
       this.logger.warn(AUTH_MESSAGES.PASSWORD_VERIFICATION_FAILED, { operation, username });
-      throw new UnauthorizedException(AUTH_MESSAGES.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
     const { accessToken, refreshToken } = await this.tokenService.generateTokens(user);

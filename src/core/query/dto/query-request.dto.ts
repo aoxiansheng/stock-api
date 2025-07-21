@@ -20,7 +20,7 @@ import {
 import { QUERY_PERFORMANCE_CONFIG, QUERY_VALIDATION_RULES } from "../constants/query.constants";
 import { SymbolsRequiredForBySymbolsQueryConstraint } from "../validators/symbols-required-for-by-symbols.validator";
 
-import { QueryType } from "./query-types.dto";
+import { QueryType } from "../enums";
 
 export enum SortDirection {
   ASC = "asc",

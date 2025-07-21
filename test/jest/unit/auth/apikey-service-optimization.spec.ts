@@ -9,6 +9,7 @@ import {
   APIKEY_DEFAULTS,
   ApiKeyUtil,
 } from '../../../../src/auth/constants/apikey.constants';
+import { ERROR_MESSAGES } from '../../../../src/common/constants/error-messages.constants';
 import { Permission } from '../../../../src/auth/enums/user-role.enum';
 
 describe('ApiKeyService Optimization Features', () => {
@@ -70,8 +71,8 @@ describe('ApiKeyService Optimization Features', () => {
     it('should use message constants for logging', () => {
       expect(APIKEY_MESSAGES.API_KEY_CREATED).toBe('API Key创建成功');
       expect(APIKEY_MESSAGES.API_KEY_REVOKED).toBe('API Key已撤销');
-      expect(APIKEY_MESSAGES.INVALID_API_CREDENTIALS).toBe('API凭证无效');
-      expect(APIKEY_MESSAGES.API_CREDENTIALS_EXPIRED).toBe('API凭证已过期');
+      expect(ERROR_MESSAGES.API_CREDENTIALS_INVALID).toBe('API凭证无效');
+      expect(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED).toBe('API凭证已过期');
     });
 
     it('should use default constants for API key creation', () => {
@@ -119,10 +120,10 @@ describe('ApiKeyService Optimization Features', () => {
 
       await expect(
         service.validateApiKey('invalid-key', 'invalid-token')
-      ).rejects.toThrow(new UnauthorizedException(APIKEY_MESSAGES.INVALID_API_CREDENTIALS));
+      ).rejects.toThrow(new UnauthorizedException(ERROR_MESSAGES.API_CREDENTIALS_INVALID));
 
       expect(warnSpy).toHaveBeenCalledWith(
-        APIKEY_MESSAGES.INVALID_API_CREDENTIALS,
+        ERROR_MESSAGES.API_CREDENTIALS_INVALID,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.VALIDATE_API_KEY,
           appKey: 'invalid-key',
@@ -149,10 +150,10 @@ describe('ApiKeyService Optimization Features', () => {
 
       await expect(
         service.validateApiKey('sk-test-key', 'test-token')
-      ).rejects.toThrow(new UnauthorizedException(APIKEY_MESSAGES.API_CREDENTIALS_EXPIRED));
+      ).rejects.toThrow(new UnauthorizedException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED));
 
       expect(warnSpy).toHaveBeenCalledWith(
-        APIKEY_MESSAGES.API_CREDENTIALS_EXPIRED,
+        ERROR_MESSAGES.API_CREDENTIALS_EXPIRED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.VALIDATE_API_KEY,
           appKey: 'sk-test-key',
@@ -280,10 +281,10 @@ describe('ApiKeyService Optimization Features', () => {
 
       await expect(
         service.createApiKey('user123', createApiKeyDto)
-      ).rejects.toThrow(new InternalServerErrorException(APIKEY_MESSAGES.CREATE_API_KEY_FAILED));
+      ).rejects.toThrow(new InternalServerErrorException(ERROR_MESSAGES.CREATE_API_KEY_FAILED));
 
       expect(errorSpy).toHaveBeenCalledWith(
-        APIKEY_MESSAGES.CREATE_API_KEY_FAILED,
+        ERROR_MESSAGES.CREATE_API_KEY_FAILED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.CREATE_API_KEY,
           apiKeyName: 'Test API Key',
@@ -339,10 +340,10 @@ describe('ApiKeyService Optimization Features', () => {
 
       await expect(
         service.getUserApiKeys('user123')
-      ).rejects.toThrow(new InternalServerErrorException(APIKEY_MESSAGES.GET_USER_API_KEYS_FAILED));
+      ).rejects.toThrow(new InternalServerErrorException(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED));
 
       expect(errorSpy).toHaveBeenCalledWith(
-        APIKEY_MESSAGES.GET_USER_API_KEYS_FAILED,
+        ERROR_MESSAGES.GET_USER_API_KEYS_FAILED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.GET_USER_API_KEYS,
           userId: 'user123',
@@ -383,7 +384,7 @@ describe('ApiKeyService Optimization Features', () => {
 
       await expect(
         service.revokeApiKey('nonexistent', 'user123')
-      ).rejects.toThrow(new NotFoundException(APIKEY_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION));
+      ).rejects.toThrow(new NotFoundException(ERROR_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION));
     });
 
     it('should use constants for revocation failure error', async () => {
@@ -393,10 +394,10 @@ describe('ApiKeyService Optimization Features', () => {
 
       await expect(
         service.revokeApiKey('apikey123', 'user123')
-      ).rejects.toThrow(new InternalServerErrorException(APIKEY_MESSAGES.REVOKE_API_KEY_FAILED));
+      ).rejects.toThrow(new InternalServerErrorException(ERROR_MESSAGES.REVOKE_API_KEY_FAILED));
 
       expect(errorSpy).toHaveBeenCalledWith(
-        APIKEY_MESSAGES.REVOKE_API_KEY_FAILED,
+        ERROR_MESSAGES.REVOKE_API_KEY_FAILED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.REVOKE_API_KEY,
           apiKeyId: 'apikey123',

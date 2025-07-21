@@ -16,6 +16,7 @@ import {
   APIKEY_DEFAULTS,
   ApiKeyUtil,
 } from '../constants/apikey.constants';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
 import { CreateApiKeyDto } from '../dto/apikey.dto';
 import { ApiKey, ApiKeyDocument } from '../schemas/apikey.schema';
 
@@ -54,19 +55,19 @@ export class ApiKeyService {
       .exec();
 
     if (!apiKey) {
-      this.logger.warn(APIKEY_MESSAGES.INVALID_API_CREDENTIALS, { operation, appKey });
-      throw new UnauthorizedException(APIKEY_MESSAGES.INVALID_API_CREDENTIALS);
+      this.logger.warn(ERROR_MESSAGES.API_CREDENTIALS_INVALID, { operation, appKey });
+      throw new UnauthorizedException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
     }
 
     if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
-      this.logger.warn(APIKEY_MESSAGES.API_CREDENTIALS_EXPIRED, { operation, appKey });
-      throw new UnauthorizedException(APIKEY_MESSAGES.API_CREDENTIALS_EXPIRED);
+      this.logger.warn(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED, { operation, appKey });
+      throw new UnauthorizedException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
     }
 
     // 更新使用统计（异步执行，不影响响应时间）
     this.updateApiKeyUsage(apiKey._id.toString()).catch(error => {
       this.logger.error(
-        APIKEY_MESSAGES.UPDATE_USAGE_FAILED,
+        ERROR_MESSAGES.UPDATE_USAGE_FAILED,
         { operation, apiKeyId: apiKey._id.toString(), error: error.stack },
       );
     });
@@ -102,7 +103,7 @@ export class ApiKeyService {
         apiKeyId,
       });
     } catch (error) {
-      this.logger.error(APIKEY_MESSAGES.UPDATE_USAGE_DB_FAILED, {
+      this.logger.error(ERROR_MESSAGES.UPDATE_USAGE_DB_FAILED, {
         operation,
         apiKeyId,
         error: error.stack
@@ -149,13 +150,13 @@ export class ApiKeyService {
       });
       return apiKey.toJSON();
     } catch (error) {
-      this.logger.error(APIKEY_MESSAGES.CREATE_API_KEY_FAILED, {
+      this.logger.error(ERROR_MESSAGES.CREATE_API_KEY_FAILED, {
         operation,
         apiKeyName: name,
         userId,
         error: error.stack
       });
-      throw new InternalServerErrorException(APIKEY_MESSAGES.CREATE_API_KEY_FAILED);
+      throw new InternalServerErrorException(ERROR_MESSAGES.CREATE_API_KEY_FAILED);
     }
   }
 
@@ -181,12 +182,12 @@ export class ApiKeyService {
 
       return apiKeys.map(apiKey => apiKey.toJSON());
     } catch (error) {
-      this.logger.error(APIKEY_MESSAGES.GET_USER_API_KEYS_FAILED, {
+      this.logger.error(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED, {
         operation,
         userId,
         error: error.stack
       });
-      throw new InternalServerErrorException(APIKEY_MESSAGES.GET_USER_API_KEYS_FAILED);
+      throw new InternalServerErrorException(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED);
     }
   }
 
@@ -209,7 +210,7 @@ export class ApiKeyService {
       );
 
       if (result.matchedCount === 0) {
-        throw new NotFoundException(APIKEY_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION);
+        throw new NotFoundException(ERROR_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION);
       }
 
       this.logger.log(APIKEY_MESSAGES.API_KEY_REVOKED, {
@@ -219,13 +220,13 @@ export class ApiKeyService {
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      this.logger.error(APIKEY_MESSAGES.REVOKE_API_KEY_FAILED, {
+      this.logger.error(ERROR_MESSAGES.REVOKE_API_KEY_FAILED, {
         operation,
         apiKeyId,
         userId,
         error: error.stack
       });
-      throw new InternalServerErrorException(APIKEY_MESSAGES.REVOKE_API_KEY_FAILED);
+      throw new InternalServerErrorException(ERROR_MESSAGES.REVOKE_API_KEY_FAILED);
     }
   }
 } 

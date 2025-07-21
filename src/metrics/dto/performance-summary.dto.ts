@@ -157,6 +157,10 @@ export class PerformanceSummaryDto {
   @IsNumber()
   healthScore: number;
 
+  @ApiProperty({ description: '处理时间（毫秒）' })
+  @IsNumber()
+  processingTime: number;
+
   @ApiProperty({ description: '性能摘要数据', type: PerformanceSummaryDataDto })
   @ValidateNested()
   @Type(() => PerformanceSummaryDataDto)

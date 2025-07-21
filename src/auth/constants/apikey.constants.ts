@@ -33,21 +33,8 @@ export const APIKEY_MESSAGES = Object.freeze({
   API_KEY_STATISTICS_RETRIEVED: 'API Key统计信息获取成功',
   EXPIRED_API_KEYS_CLEANED: '过期API Keys清理完成',
   
-  // 错误消息
-  INVALID_API_CREDENTIALS: 'API凭证无效',
-  API_CREDENTIALS_EXPIRED: 'API凭证已过期',
-  CREATE_API_KEY_FAILED: '创建API Key失败',
-  GET_USER_API_KEYS_FAILED: '获取用户API Keys失败',
-  REVOKE_API_KEY_FAILED: '撤销API Key失败',
-  UPDATE_API_KEY_FAILED: '更新API Key失败',
-  DELETE_API_KEY_FAILED: '删除API Key失败',
-  REGENERATE_API_KEY_FAILED: '重新生成API Key失败',
-  UPDATE_USAGE_FAILED: '更新API Key使用统计失败',
-  UPDATE_USAGE_DB_FAILED: '更新API Key使用统计数据库操作失败',
-  API_KEY_NOT_FOUND_OR_NO_PERMISSION: 'API Key不存在或无权限操作',
-  API_KEY_VALIDATION_FAILED: 'API Key验证失败',
-  API_KEY_PERMISSIONS_INSUFFICIENT: 'API Key权限不足',
-  API_KEY_GENERATION_FAILED: 'API Key生成失败',
+  // 错误消息 - 已移至 src/common/constants/error-messages.constants.ts
+  // 保留模块特定的错误消息
   
   // 警告消息
   API_KEY_NEAR_EXPIRY: 'API Key即将过期',

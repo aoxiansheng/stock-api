@@ -29,8 +29,8 @@ import { Permission } from "../../auth/enums/user-role.enum";
 import {
   StoreDataDto,
   RetrieveDataDto,
-  StorageType,
 } from "./dto/storage-request.dto";
+import { StorageType } from "./enums/storage-type.enum";
 import {
   StorageResponseDto,
   StorageStatsDto,

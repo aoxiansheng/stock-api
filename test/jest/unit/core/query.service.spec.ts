@@ -15,8 +15,9 @@ import {
   SortDirection,
 } from "../../../../src/core/query/dto/query-request.dto";
 import { QueryResponseDto, QueryMetadataDto } from "../../../../src/core/query/dto/query-response.dto";
-import { StorageResponseDto, StorageMetadataDto } from "../../../../src/core/storage/dto/storage-response.dto";
-import { StorageType, DataClassification } from "../../../../src/core/storage/dto/storage-request.dto";
+import { StorageResponseDto } from "../../../../src/core/storage/dto/storage-response.dto";
+import { StorageMetadataDto } from "../../../../src/core/storage/dto/storage-metadata.dto";
+import { StorageType, DataClassification } from "../../../../src/core/storage/enums/storage-type.enum";
 import { DataResponseDto } from '../../../../src/core/receiver/dto/data-response.dto';
 
 describe('QueryService', () => {
