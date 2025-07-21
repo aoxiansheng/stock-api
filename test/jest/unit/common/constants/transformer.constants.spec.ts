@@ -88,7 +88,7 @@ describe('Transformer Constants', () => {
     it('should define all performance thresholds', () => {
       expect(TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS).toBe(5000);
       expect(TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE).toBe(1000);
-      expect(TRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(100);
+      expect(TRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(200); // 更新为统一常量系统中的值
       expect(TRANSFORM_PERFORMANCE_THRESHOLDS.MAX_PROCESSING_TIME_MS).toBe(60000);
     });
 
