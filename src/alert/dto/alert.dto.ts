@@ -23,23 +23,25 @@ export class AlertQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  @Matches(/^[a-zA-Z0-9\-_]+$/, { message: '规则ID只能包含字母、数字、横线和下划线' })
+  @Matches(/^[a-zA-Z0-9\-_]+$/, {
+    message: "规则ID只能包含字母、数字、横线和下划线",
+  })
   ruleId?: string;
 
-  @ApiPropertyOptional({ 
-    description: "告警严重级别", 
-    enum: AlertSeverity
+  @ApiPropertyOptional({
+    description: "告警严重级别",
+    enum: AlertSeverity,
   })
   @IsOptional()
-  @IsEnum(AlertSeverity, { message: '严重级别必须是有效的枚举值' })
+  @IsEnum(AlertSeverity, { message: "严重级别必须是有效的枚举值" })
   severity?: AlertSeverity;
 
-  @ApiPropertyOptional({ 
-    description: "告警状态", 
-    enum: AlertStatus
+  @ApiPropertyOptional({
+    description: "告警状态",
+    enum: AlertStatus,
   })
   @IsOptional()
-  @IsEnum(AlertStatus, { message: '告警状态必须是有效的枚举值' })
+  @IsEnum(AlertStatus, { message: "告警状态必须是有效的枚举值" })
   status?: AlertStatus;
 
   @ApiPropertyOptional({ description: "开始时间" })
@@ -56,7 +58,7 @@ export class AlertQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  @Matches(/^[a-zA-Z0-9\-_.]+$/, { message: '监控指标名称格式无效' })
+  @Matches(/^[a-zA-Z0-9\-_.]+$/, { message: "监控指标名称格式无效" })
   metric?: string;
 
   @ApiPropertyOptional({ description: "页码", default: 1 })
@@ -78,13 +80,13 @@ export class AlertQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(30)
-  @Matches(/^[a-zA-Z0-9_]+$/, { message: '排序字段格式无效' })
+  @Matches(/^[a-zA-Z0-9_]+$/, { message: "排序字段格式无效" })
   sortBy?: string = "startTime";
 
-  @ApiPropertyOptional({ 
-    description: "排序方向", 
+  @ApiPropertyOptional({
+    description: "排序方向",
     enum: ["asc", "desc"],
-    default: "desc"
+    default: "desc",
   })
   @IsOptional()
   @IsEnum(["asc", "desc"])
@@ -160,7 +162,10 @@ class MetricDataDto {
   @IsDateString()
   timestamp: Date;
 
-  @ApiPropertyOptional({ description: "指标的标签（键值对）", example: { host: "server-1", region: "us-east" } })
+  @ApiPropertyOptional({
+    description: "指标的标签（键值对）",
+    example: { host: "server-1", region: "us-east" },
+  })
   @IsOptional()
   @IsObject()
   tags?: Record<string, string>;
@@ -171,7 +176,9 @@ export class TriggerAlertDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  @Matches(/^[a-zA-Z0-9\-_]+$/, { message: '规则ID只能包含字母、数字、横线和下划线' })
+  @Matches(/^[a-zA-Z0-9\-_]+$/, {
+    message: "规则ID只能包含字母、数字、横线和下划线",
+  })
   ruleId?: string;
 
   @ApiProperty({ type: [MetricDataDto], description: "用于评估的指标数据列表" })
@@ -227,10 +234,18 @@ export class AlertResponseDto {
   @ApiPropertyOptional({ description: "解决时间" })
   resolvedAt?: Date;
 
-  @ApiPropertyOptional({ description: "标签", type: "object", additionalProperties: { type: "string" } })
+  @ApiPropertyOptional({
+    description: "标签",
+    type: "object",
+    additionalProperties: { type: "string" },
+  })
   tags?: Record<string, string>;
 
-  @ApiPropertyOptional({ description: "上下文信息", type: "object", additionalProperties: true })
+  @ApiPropertyOptional({
+    description: "上下文信息",
+    type: "object",
+    additionalProperties: true,
+  })
   context?: Record<string, any>;
 
   @ApiProperty({ description: "持续时间（毫秒）" })
@@ -260,7 +275,9 @@ export class AlertResponseDto {
       tags: alert.tags,
       context: alert.context,
       duration: endTime.getTime() - alert.startTime.getTime(),
-      isActive: alert.status === AlertStatus.FIRING || alert.status === AlertStatus.ACKNOWLEDGED,
+      isActive:
+        alert.status === AlertStatus.FIRING ||
+        alert.status === AlertStatus.ACKNOWLEDGED,
     };
   }
 }

@@ -1,14 +1,20 @@
-import * as crypto from 'crypto';
+import * as crypto from "crypto";
 
-import { HttpService } from '@nestjs/axios';
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpService } from "@nestjs/axios";
+import { Injectable, BadRequestException } from "@nestjs/common";
+import { AxiosResponse } from "axios";
+import { firstValueFrom } from "rxjs";
 
-import { createLogger } from '@common/config/logger.config';
-import { URLSecurityValidator } from '@common/utils/url-security-validator.util';
+import { createLogger } from "@common/config/logger.config";
+import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
-import { NotificationType, Alert, AlertRule, NotificationResult, NotificationSender } from '../../types/alert.types';
+import {
+  NotificationType,
+  Alert,
+  AlertRule,
+  NotificationResult,
+  NotificationSender,
+} from "../../types/alert.types";
 
 @Injectable()
 export class DingTalkSender implements NotificationSender {
@@ -26,13 +32,17 @@ export class DingTalkSender implements NotificationSender {
 
     try {
       // SSRF防护检查
-      const urlValidation = URLSecurityValidator.validateURL(config.webhook_url);
+      const urlValidation = URLSecurityValidator.validateURL(
+        config.webhook_url,
+      );
       if (!urlValidation.valid) {
-        throw new BadRequestException(`DingTalk Webhook URL安全检查失败: ${urlValidation.error}`);
+        throw new BadRequestException(
+          `DingTalk Webhook URL安全检查失败: ${urlValidation.error}`,
+        );
       }
 
       const payload = {
-        msgtype: 'markdown',
+        msgtype: "markdown",
         markdown: {
           title: `[${alert.severity.toUpperCase()}] ${rule.name}`,
           text: this.formatDingTalkMessage(alert, rule),
@@ -51,17 +61,17 @@ export class DingTalkSender implements NotificationSender {
 
       return {
         success: response.data?.errcode === 0,
-        channelId: config.id || 'dingtalk',
+        channelId: config.id || "dingtalk",
         channelType: this.type,
-        message: '钉钉消息发送成功',
+        message: "钉钉消息发送成功",
         sentAt: new Date(),
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.logger.error({ error: error.stack }, '钉钉发送失败');
+      this.logger.error({ error: error.stack }, "钉钉发送失败");
       return {
         success: false,
-        channelId: config.id || 'dingtalk',
+        channelId: config.id || "dingtalk",
         channelType: this.type,
         error: error.message,
         sentAt: new Date(),
@@ -75,20 +85,22 @@ export class DingTalkSender implements NotificationSender {
     const urlValidation = URLSecurityValidator.validateURL(config.webhook_url);
     if (!urlValidation.valid) {
       this.logger.warn(`DingTalk测试URL安全检查失败: ${urlValidation.error}`);
-      throw new BadRequestException(`DingTalk Webhook URL安全检查失败: ${urlValidation.error}`);
+      throw new BadRequestException(
+        `DingTalk Webhook URL安全检查失败: ${urlValidation.error}`,
+      );
     }
 
     try {
       const testPayload = {
-        msgtype: 'text',
-        text: { content: '测试消息' },
+        msgtype: "text",
+        text: { content: "测试消息" },
       };
 
       const url = this.getSignedUrl(config.webhook_url, config.secret);
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(url, testPayload),
       );
-      
+
       return response.data?.errcode === 0;
     } catch (error) {
       this.logger.warn(`DingTalk测试连接失败: ${error.message}`);
@@ -96,57 +108,64 @@ export class DingTalkSender implements NotificationSender {
     }
   }
 
-  validateConfig(config: Record<string, any>): { valid: boolean; errors: string[] } {
+  validateConfig(config: Record<string, any>): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!config.webhook_url) {
-      errors.push('Webhook URL is required for DingTalk notification');
-    } else if (typeof config.webhook_url !== 'string') {
-      errors.push('Webhook URL must be a string');
-    } else if (!config.webhook_url.startsWith('https://oapi.dingtalk.com/robot/send')) {
-      errors.push('Webhook URL must be a valid DingTalk webhook URL');
+      errors.push("Webhook URL is required for DingTalk notification");
+    } else if (typeof config.webhook_url !== "string") {
+      errors.push("Webhook URL must be a string");
+    } else if (
+      !config.webhook_url.startsWith("https://oapi.dingtalk.com/robot/send")
+    ) {
+      errors.push("Webhook URL must be a valid DingTalk webhook URL");
     } else {
       // 添加SSRF防护验证
-      const urlValidation = URLSecurityValidator.validateURL(config.webhook_url);
+      const urlValidation = URLSecurityValidator.validateURL(
+        config.webhook_url,
+      );
       if (!urlValidation.valid) {
         errors.push(`Webhook URL安全检查失败: ${urlValidation.error}`);
       }
     }
 
     if (!config.secret) {
-      errors.push('Secret is required for DingTalk notification');
-    } else if (typeof config.secret !== 'string') {
-      errors.push('Secret must be a string');
+      errors.push("Secret is required for DingTalk notification");
+    } else if (typeof config.secret !== "string") {
+      errors.push("Secret must be a string");
     }
 
     if (config.at_mobiles && !Array.isArray(config.at_mobiles)) {
-      errors.push('at_mobiles must be an array');
+      errors.push("at_mobiles must be an array");
     }
 
-    if (config.at_all && typeof config.at_all !== 'boolean') {
-      errors.push('at_all must be a boolean');
+    if (config.at_all && typeof config.at_all !== "boolean") {
+      errors.push("at_all must be a boolean");
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   private getSignedUrl(webhookUrl: string, secret: string): string {
     if (!secret) return webhookUrl;
-    
+
     const timestamp = Date.now();
     const stringToSign = `${timestamp}\n${secret}`;
     const signature = crypto
-      .createHmac('sha256', secret)
+      .createHmac("sha256", secret)
       .update(stringToSign)
-      .digest('base64');
-      
+      .digest("base64");
+
     const signedUrl = new URL(webhookUrl);
-    signedUrl.searchParams.append('timestamp', timestamp.toString());
-    signedUrl.searchParams.append('sign', signature);
-    
+    signedUrl.searchParams.append("timestamp", timestamp.toString());
+    signedUrl.searchParams.append("sign", signature);
+
     return signedUrl.toString();
   }
 
@@ -162,4 +181,4 @@ export class DingTalkSender implements NotificationSender {
 **时间**: ${alert.startTime.toLocaleString()}
     `.trim();
   }
-} 
+}

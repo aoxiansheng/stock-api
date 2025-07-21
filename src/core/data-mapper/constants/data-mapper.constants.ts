@@ -39,7 +39,7 @@ export const DATA_MAPPER_WARNING_MESSAGES = Object.freeze({
  */
 export const DATA_MAPPER_SUCCESS_MESSAGES = Object.freeze({
   RULE_CREATED: "映射规则创建成功",
-  RULE_UPDATED: "映射规则更新成功", 
+  RULE_UPDATED: "映射规则更新成功",
   RULE_DELETED: "映射规则删除成功",
   RULE_ACTIVATED: "映射规则激活成功",
   RULE_DEACTIVATED: "映射规则停用成功",
@@ -51,27 +51,27 @@ export const DATA_MAPPER_SUCCESS_MESSAGES = Object.freeze({
  * 字段建议配置常量
  */
 export const FIELD_SUGGESTION_CONFIG = Object.freeze({
-  SIMILARITY_THRESHOLD: 0.3,                  // 相似度阈值（30%）
-  MAX_SUGGESTIONS: 3,                         // 最大建议数量
-  MIN_FIELD_LENGTH: 1,                        // 最小字段长度
-  MAX_FIELD_LENGTH: 100,                      // 最大字段长度
-  EXACT_MATCH_SCORE: 1.0,                     // 完全匹配分数
-  SUBSTRING_MATCH_SCORE: 0.8,                 // 子字符串匹配分数
-  CASE_INSENSITIVE: true,                     // 忽略大小写
+  SIMILARITY_THRESHOLD: 0.3, // 相似度阈值（30%）
+  MAX_SUGGESTIONS: 3, // 最大建议数量
+  MIN_FIELD_LENGTH: 1, // 最小字段长度
+  MAX_FIELD_LENGTH: 100, // 最大字段长度
+  EXACT_MATCH_SCORE: 1.0, // 完全匹配分数
+  SUBSTRING_MATCH_SCORE: 0.8, // 子字符串匹配分数
+  CASE_INSENSITIVE: true, // 忽略大小写
 } as const);
 
 /**
  * 数据映射配置常量
  */
 export const DATA_MAPPER_CONFIG = Object.freeze({
-  MAX_FIELD_MAPPINGS: 100,                    // 单个规则最大字段映射数
-  MAX_NESTED_DEPTH: 10,                       // 最大嵌套深度
-  MAX_ARRAY_SIZE: 1000,                       // 最大数组大小
-  DEFAULT_PAGE_SIZE: 10,                      // 默认分页大小
-  MAX_PAGE_SIZE: 100,                         // 最大分页大小
-  DEFAULT_TIMEOUT_MS: 30000,                  // 默认超时时间（30秒）
-  MAX_RULE_NAME_LENGTH: 100,                  // 最大规则名称长度
-  MAX_DESCRIPTION_LENGTH: 500,                // 最大描述长度
+  MAX_FIELD_MAPPINGS: 100, // 单个规则最大字段映射数
+  MAX_NESTED_DEPTH: 10, // 最大嵌套深度
+  MAX_ARRAY_SIZE: 1000, // 最大数组大小
+  DEFAULT_PAGE_SIZE: 10, // 默认分页大小
+  MAX_PAGE_SIZE: 100, // 最大分页大小
+  DEFAULT_TIMEOUT_MS: 30000, // 默认超时时间（30秒）
+  MAX_RULE_NAME_LENGTH: 100, // 最大规则名称长度
+  MAX_DESCRIPTION_LENGTH: 500, // 最大描述长度
 } as const);
 
 /**
@@ -80,7 +80,7 @@ export const DATA_MAPPER_CONFIG = Object.freeze({
 export const TRANSFORMATION_TYPES = Object.freeze({
   MULTIPLY: "multiply",
   DIVIDE: "divide",
-  ADD: "add", 
+  ADD: "add",
   SUBTRACT: "subtract",
   FORMAT: "format",
   CUSTOM: "custom",
@@ -103,11 +103,11 @@ export const TRANSFORMATION_DEFAULTS = Object.freeze({
  * 数据映射性能阈值常量
  */
 export const DATA_MAPPER_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_MAPPING_MS: 1000,                      // 慢映射操作阈值（1秒）
-  LARGE_DATASET_SIZE: 1000,                   // 大数据集阈值
-  HIGH_MEMORY_USAGE_MB: 100,                  // 高内存使用阈值（100MB）
-  MAX_PROCESSING_TIME_MS: 60000,              // 最大处理时间（60秒）
-  SIMILARITY_CALCULATION_TIMEOUT_MS: 5000,    // 相似度计算超时（5秒）
+  SLOW_MAPPING_MS: 1000, // 慢映射操作阈值（1秒）
+  LARGE_DATASET_SIZE: 1000, // 大数据集阈值
+  HIGH_MEMORY_USAGE_MB: 100, // 高内存使用阈值（100MB）
+  MAX_PROCESSING_TIME_MS: 60000, // 最大处理时间（60秒）
+  SIMILARITY_CALCULATION_TIMEOUT_MS: 5000, // 相似度计算超时（5秒）
 } as const);
 
 /**
@@ -193,42 +193,42 @@ export const DATA_MAPPER_FIELD_VALIDATION_RULES = Object.freeze({
  * 缓存配置常量
  */
 export const DATA_MAPPER_CACHE_CONFIG = Object.freeze({
-  RULE_CACHE_TTL: 1800,                       // 规则缓存TTL（30分钟）
-  SUGGESTION_CACHE_TTL: 300,                  // 建议缓存TTL（5分钟）
-  TRANSFORMATION_CACHE_TTL: 600,              // 转换缓存TTL（10分钟）
-  MAX_CACHE_SIZE: 1000,                       // 最大缓存条目数
-  CACHE_KEY_PREFIX: "data_mapper:",           // 缓存键前缀
+  RULE_CACHE_TTL: 1800, // 规则缓存TTL（30分钟）
+  SUGGESTION_CACHE_TTL: 300, // 建议缓存TTL（5分钟）
+  TRANSFORMATION_CACHE_TTL: 600, // 转换缓存TTL（10分钟）
+  MAX_CACHE_SIZE: 1000, // 最大缓存条目数
+  CACHE_KEY_PREFIX: "data_mapper:", // 缓存键前缀
 } as const);
 
 /**
  * 统计信息配置常量
  */
 export const DATA_MAPPER_STATS_CONFIG = Object.freeze({
-  STATS_REFRESH_INTERVAL_MS: 60000,           // 统计刷新间隔（1分钟）
-  METRICS_RETENTION_DAYS: 30,                 // 指标保留天数
-  PERFORMANCE_SAMPLE_SIZE: 100,               // 性能样本大小
-  ERROR_TRACKING_WINDOW_HOURS: 24,            // 错误跟踪窗口（24小时）
+  STATS_REFRESH_INTERVAL_MS: 60000, // 统计刷新间隔（1分钟）
+  METRICS_RETENTION_DAYS: 30, // 指标保留天数
+  PERFORMANCE_SAMPLE_SIZE: 100, // 性能样本大小
+  ERROR_TRACKING_WINDOW_HOURS: 24, // 错误跟踪窗口（24小时）
 } as const);
 
 /**
  * 数据映射质量指标常量
  */
 export const DATA_MAPPER_QUALITY_METRICS = Object.freeze({
-  COMPLETENESS: "completeness",                // 完整性
-  ACCURACY: "accuracy",                        // 准确性
-  CONSISTENCY: "consistency",                  // 一致性
-  VALIDITY: "validity",                        // 有效性
-  TIMELINESS: "timeliness",                   // 及时性
-  COVERAGE: "coverage",                        // 覆盖率
+  COMPLETENESS: "completeness", // 完整性
+  ACCURACY: "accuracy", // 准确性
+  CONSISTENCY: "consistency", // 一致性
+  VALIDITY: "validity", // 有效性
+  TIMELINESS: "timeliness", // 及时性
+  COVERAGE: "coverage", // 覆盖率
 } as const);
 
 /**
  * 路径解析配置常量
  */
 export const PATH_RESOLUTION_CONFIG = Object.freeze({
-  MAX_PATH_DEPTH: 10,                         // 最大路径深度
-  ARRAY_INDEX_PATTERN: /^\d+$/,               // 数组索引模式
-  CAMEL_CASE_CONVERSION: true,                // 启用驼峰命名转换
-  CASE_SENSITIVE: false,                      // 路径大小写敏感
-  FALLBACK_TO_ORIGINAL: true,                 // 回退到原始值
+  MAX_PATH_DEPTH: 10, // 最大路径深度
+  ARRAY_INDEX_PATTERN: /^\d+$/, // 数组索引模式
+  CAMEL_CASE_CONVERSION: true, // 启用驼峰命名转换
+  CASE_SENSITIVE: false, // 路径大小写敏感
+  FALLBACK_TO_ORIGINAL: true, // 回退到原始值
 } as const);

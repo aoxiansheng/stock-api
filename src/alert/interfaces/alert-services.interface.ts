@@ -3,21 +3,19 @@
  * 🎯 定义告警系统相关的服务接口
  */
 
-import { 
-  AlertRule, 
-  Alert, 
-  AlertStats, 
- 
-  NotificationChannel, 
-  NotificationResult, 
+import {
+  AlertRule,
+  Alert,
+  AlertStats,
+  NotificationChannel,
+  NotificationResult,
   BatchNotificationResult,
   RuleEvaluationResult,
   MetricData,
-  NotificationType 
-} from '../types/alert.types';
+  NotificationType,
+} from "../types/alert.types";
 
-import { IValidationResult } from './validation.interface';
-
+import { IValidationResult } from "./validation.interface";
 
 /**
  * 告警服务接口
@@ -63,7 +61,10 @@ export interface INotificationService {
  */
 export interface IRuleEngineService {
   evaluateRule(rule: AlertRule, metricData: MetricData[]): RuleEvaluationResult;
-  evaluateRules(rules: AlertRule[], metricData: MetricData[]): RuleEvaluationResult[];
+  evaluateRules(
+    rules: AlertRule[],
+    metricData: MetricData[],
+  ): RuleEvaluationResult[];
   isInCooldown(ruleId: string): Promise<boolean>;
   setCooldown(ruleId: string, cooldownSeconds: number): Promise<void>;
   validateRule(rule: AlertRule): IValidationResult;

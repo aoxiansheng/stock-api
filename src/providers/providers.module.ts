@@ -12,11 +12,7 @@ import { MainController } from "./providers-controller";
 // Provider实例导入
 
 @Module({
-  imports: [
-    AuthModule,
-    LongportModule,
-    LongportSgModule,
-  ],
+  imports: [AuthModule, LongportModule, LongportSgModule],
   controllers: [MainController],
   providers: [CapabilityRegistryService],
   exports: [CapabilityRegistryService],
@@ -36,10 +32,10 @@ export class ProvidersModule implements OnModuleInit {
   private async registerProviders(): Promise<void> {
     // 注册LongPort Provider
     this.capabilityRegistry.registerProvider(this.longportProvider);
-    
+
     // 注册LongPort SG Provider
     this.capabilityRegistry.registerProvider(this.longportSgProvider);
-    
+
     // TODO: 注册其他Provider实例
   }
 }

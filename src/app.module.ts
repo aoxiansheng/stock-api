@@ -7,7 +7,6 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
-
 import { AlertModule } from "./alert/alert.module";
 import { AuthModule } from "./auth/auth.module";
 import { DataMapperModule } from "./core/data-mapper/data-mapper.module";
@@ -16,7 +15,7 @@ import { ReceiverModule } from "./core/receiver/receiver.module";
 import { StorageModule } from "./core/storage/storage.module";
 import { SymbolMapperModule } from "./core/symbol-mapper/symbol-mapper.module";
 import { TransformerModule } from "./core/transformer/transformer.module";
-import { MetricsModule } from './metrics/metrics.module';
+import { MetricsModule } from "./metrics/metrics.module";
 import { MonitoringModule } from "./monitoring/monitoring.module";
 import { ProvidersModule } from "./providers/providers.module";
 import { AutoInitModule } from "./scripts/auto-init-on-startup.module";
@@ -32,17 +31,19 @@ import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
     }),
 
     // 速率限制模块
-    ThrottlerModule.forRoot([{
-      ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
-      limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
+        limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
+      },
+    ]),
 
     // 数据库连接
     MongooseModule.forRoot(
       process.env.MONGODB_URI || "mongodb://localhost:27017/smart-stock-data",
       {
         maxPoolSize: parseInt(process.env.MONGODB_POOL_SIZE) || 100, // 使用正确的连接池大小配置
-      }
+      },
     ),
 
     // Redis连接

@@ -1,5 +1,4 @@
-
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 import {
   IsDateString,
   IsOptional,
@@ -7,9 +6,9 @@ import {
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from 'class-validator';
+} from "class-validator";
 
-@ValidatorConstraint({ name: 'dateRange', async: false })
+@ValidatorConstraint({ name: "dateRange", async: false })
 export class DateRangeValidator implements ValidatorConstraintInterface {
   validate(endDate: string, args: ValidationArguments) {
     const startDate = (args.object as any)[args.constraints[0]];
@@ -22,25 +21,26 @@ export class DateRangeValidator implements ValidatorConstraintInterface {
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
       return false;
     }
-    const diffInDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    const diffInDays =
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
     // 限制查询范围为31天
     return diffInDays <= 31;
   }
 
   defaultMessage() {
-    return 'The date range cannot exceed 31 days, and the start date must be before the end date.';
+    return "The date range cannot exceed 31 days, and the start date must be before the end date.";
   }
 }
 
 export class GetDbPerformanceQueryDto {
-  @ApiProperty({ required: false, description: '起始日期 (ISO 8601)' })
+  @ApiProperty({ required: false, description: "起始日期 (ISO 8601)" })
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
-  @ApiProperty({ required: false, description: '结束日期 (ISO 8601)' })
+  @ApiProperty({ required: false, description: "结束日期 (ISO 8601)" })
   @IsOptional()
   @IsDateString()
-  @Validate(DateRangeValidator, ['startDate'])
+  @Validate(DateRangeValidator, ["startDate"])
   endDate?: string;
-} 
+}

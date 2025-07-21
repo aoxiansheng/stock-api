@@ -2,14 +2,17 @@ import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
-import { QUERY_PERFORMANCE_CONFIG, QUERY_OPERATIONS } from "../constants/query.constants";
+import {
+  QUERY_PERFORMANCE_CONFIG,
+  QUERY_OPERATIONS,
+} from "../constants/query.constants";
 import { QueryExecutionResultDto } from "../dto/query-internal.dto";
 import { QueryRequestDto, SortDirection } from "../dto/query-request.dto";
 import { QueryResponseDto, QueryMetadataDto } from "../dto/query-response.dto";
 
 /**
  * 查询结果后处理器服务
- * 
+ *
  * 负责对从数据源获取的原始查询结果进行最终处理，包括：
  * - 字段选择 (include/exclude)
  * - 排序
@@ -35,7 +38,10 @@ export class QueryResultProcessorService {
     executionTime: number,
   ): QueryResponseDto {
     // 应用后处理（排序、字段选择）
-    const processedResults = this.applyPostProcessing(executionResult.results, request);
+    const processedResults = this.applyPostProcessing(
+      executionResult.results,
+      request,
+    );
 
     // 应用分页
     const totalResults = processedResults.length;
@@ -66,43 +72,49 @@ export class QueryResultProcessorService {
     // 处理错误和警告信息通过日志记录
     if (executionResult.errors && executionResult.errors.length > 0) {
       const errorDetails = executionResult.errors
-        .map(e => `${e.symbol}: ${e.reason}`)
-        .join('; ');
-      this.logger.warn(`部分股票数据获取失败`, sanitizeLogData({
-        queryId,
-        errors: errorDetails,
-        operation: QUERY_OPERATIONS.PROCESS_QUERY_RESULTS,
-      }));
+        .map((e) => `${e.symbol}: ${e.reason}`)
+        .join("; ");
+      this.logger.warn(
+        `部分股票数据获取失败`,
+        sanitizeLogData({
+          queryId,
+          errors: errorDetails,
+          operation: QUERY_OPERATIONS.PROCESS_QUERY_RESULTS,
+        }),
+      );
     }
 
-    this.logger.debug(`查询结果处理完成`, sanitizeLogData({
-      queryId,
-      totalResults,
-      paginatedCount: paginatedResults.length,
-      hasErrors: executionResult.errors && executionResult.errors.length > 0,
-      operation: QUERY_OPERATIONS.PROCESS_QUERY_RESULTS,
-    }));
-
-    return new QueryResponseDto(
-      paginatedResults,
-      metadata,
-      pagination,
+    this.logger.debug(
+      `查询结果处理完成`,
+      sanitizeLogData({
+        queryId,
+        totalResults,
+        paginatedCount: paginatedResults.length,
+        hasErrors: executionResult.errors && executionResult.errors.length > 0,
+        operation: QUERY_OPERATIONS.PROCESS_QUERY_RESULTS,
+      }),
     );
+
+    return new QueryResponseDto(paginatedResults, metadata, pagination);
   }
 
   /**
    * 对查询结果应用后处理（字段选择和排序）
    */
-  public applyPostProcessing<T = any>(results: T[], request: QueryRequestDto): T[] {
+  public applyPostProcessing<T = any>(
+    results: T[],
+    request: QueryRequestDto,
+  ): T[] {
     let processedResults = [...results];
 
     if (request.includeFields || request.excludeFields) {
-      processedResults = processedResults.map((item) =>
-        this.applyFieldSelection(
-          item,
-          request.includeFields,
-          request.excludeFields,
-        ) as T,
+      processedResults = processedResults.map(
+        (item) =>
+          this.applyFieldSelection(
+            item,
+            request.includeFields,
+            request.excludeFields,
+          ) as T,
       );
     }
 
@@ -158,8 +170,8 @@ export class QueryResultProcessorService {
 
       if (aValue < bValue) return sort.direction === SortDirection.ASC ? -1 : 1;
       if (aValue > bValue) return sort.direction === SortDirection.ASC ? 1 : -1;
-      
+
       return 0;
     });
   }
-} 
+}

@@ -17,7 +17,10 @@ import {
   Validate,
 } from "class-validator";
 
-import { QUERY_PERFORMANCE_CONFIG, QUERY_VALIDATION_RULES } from "../constants/query.constants";
+import {
+  QUERY_PERFORMANCE_CONFIG,
+  QUERY_VALIDATION_RULES,
+} from "../constants/query.constants";
 import { SymbolsRequiredForBySymbolsQueryConstraint } from "../validators/symbols-required-for-by-symbols.validator";
 
 import { QueryType } from "../enums";
@@ -99,8 +102,8 @@ export class QueryRequestDto {
   @IsNotEmpty()
   queryType: QueryType;
 
-  @ApiPropertyOptional({ 
-    description: `Stock symbols to query. Max ${QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY} per query. Required for BY_SYMBOLS query type.` 
+  @ApiPropertyOptional({
+    description: `Stock symbols to query. Max ${QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY} per query. Required for BY_SYMBOLS query type.`,
   })
   @IsOptional()
   @IsArray()
@@ -108,7 +111,7 @@ export class QueryRequestDto {
   @ArrayMaxSize(QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  @NotContains(' ', { each: true, message: 'Symbol should not contain spaces' })
+  @NotContains(" ", { each: true, message: "Symbol should not contain spaces" })
   @Validate(SymbolsRequiredForBySymbolsQueryConstraint)
   symbols?: string[];
 
@@ -198,21 +201,21 @@ export class QueryRequestDto {
   useCache?: boolean;
 
   @ApiPropertyOptional({ description: "Fields to include in the response." })
-    @IsOptional()
-    @IsArray()
-    @IsString({ each: true })
-    includeFields?: string[];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  includeFields?: string[];
 
   @ApiPropertyOptional({ description: "Fields to exclude from the response." })
-    @IsOptional()
-    @IsArray()
-    @IsString({ each: true })
-    excludeFields?: string[];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  excludeFields?: string[];
 }
 
 export class BulkQueryRequestDto {
-  @ApiProperty({ 
-    description: `Multiple query requests to execute. Max ${QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES} per request.`
+  @ApiProperty({
+    description: `Multiple query requests to execute. Max ${QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES} per request.`,
   })
   @IsArray()
   @ValidateNested({ each: true })

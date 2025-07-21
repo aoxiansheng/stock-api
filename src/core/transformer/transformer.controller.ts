@@ -1,9 +1,5 @@
 import { Controller, Post, Body, ValidationPipe } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
 import {
@@ -65,7 +61,7 @@ export class TransformerController {
 \`\`\`
     `,
   })
-  @ApiSuccessResponse({ 
+  @ApiSuccessResponse({
     type: TransformResponseDto,
     schema: {
       example: {
@@ -73,25 +69,27 @@ export class TransformerController {
         message: "数据转换成功",
         data: {
           success: true,
-          transformedData: [{
-            symbol: "700.HK",
-            lastPrice: 385.6,
-            change: -4.2,
-            changePercent: -1.08,
-            market: "HK"
-          }],
+          transformedData: [
+            {
+              symbol: "700.HK",
+              lastPrice: 385.6,
+              change: -4.2,
+              changePercent: -1.08,
+              market: "HK",
+            },
+          ],
           metadata: {
             recordsProcessed: 1,
             fieldsTransformed: 4,
             processingTime: 25,
             ruleId: "rule_123",
             ruleName: "LongPort股票行情映射",
-            timestamp: "2024-01-01T12:00:00.000Z"
-          }
+            timestamp: "2024-01-01T12:00:00.000Z",
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiKeyAuthResponses()
   @ApiStandardResponses()
@@ -174,7 +172,7 @@ export class TransformerController {
 \`\`\`
     `,
   })
-  @ApiSuccessResponse({ 
+  @ApiSuccessResponse({
     type: [TransformResponseDto],
     schema: {
       example: {
@@ -183,18 +181,18 @@ export class TransformerController {
         data: [
           {
             success: true,
-            transformedData: [{symbol: "700.HK", lastPrice: 385.6}],
-            metadata: {recordsProcessed: 1, processingTime: 25}
+            transformedData: [{ symbol: "700.HK", lastPrice: 385.6 }],
+            metadata: { recordsProcessed: 1, processingTime: 25 },
           },
           {
             success: true,
-            transformedData: [{symbol: "AAPL.US", lastPrice: 195.89}],
-            metadata: {recordsProcessed: 1, processingTime: 28}
-          }
+            transformedData: [{ symbol: "AAPL.US", lastPrice: 195.89 }],
+            metadata: { recordsProcessed: 1, processingTime: 28 },
+          },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiKeyAuthResponses()
   @ApiStandardResponses()
@@ -207,7 +205,9 @@ export class TransformerController {
     });
 
     try {
-      const results = await this.transformerService.transformBatch({ requests });
+      const results = await this.transformerService.transformBatch({
+        requests,
+      });
 
       const successful = results.length;
       const failed = requests.length - results.length;
@@ -283,28 +283,28 @@ export class TransformerController {
             id: "rule_123",
             name: "LongPort股票行情映射",
             provider: "longport",
-            ruleListType: "stock-quote"
+            ruleListType: "stock-quote",
           },
           fieldMappings: [
             {
               sourceField: "secu_quote[].symbol",
               targetField: "symbol",
-              transformation: "direct"
+              transformation: "direct",
             },
             {
               sourceField: "secu_quote[].last_done",
               targetField: "lastPrice",
-              transformation: "number"
-            }
+              transformation: "number",
+            },
           ],
           previewResult: {
-            input: {"symbol": "700.HK", "last_done": 385.6},
-            output: {"symbol": "700.HK", "lastPrice": 385.6}
-          }
+            input: { symbol: "700.HK", last_done: 385.6 },
+            output: { symbol: "700.HK", lastPrice: 385.6 },
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiKeyAuthResponses()
   @ApiStandardResponses()

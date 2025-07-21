@@ -8,12 +8,7 @@ import {
   Query,
   ValidationPipe,
 } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-  ApiConsumes,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiParam, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
 import {
@@ -26,10 +21,7 @@ import {
 import { ApiKeyAuth } from "../../auth/decorators/auth.decorator";
 import { Permission } from "../../auth/enums/user-role.enum";
 
-import {
-  StoreDataDto,
-  RetrieveDataDto,
-} from "./dto/storage-request.dto";
+import { StoreDataDto, RetrieveDataDto } from "./dto/storage-request.dto";
 import { StorageType } from "./enums/storage-type.enum";
 import {
   StorageResponseDto,
@@ -67,7 +59,7 @@ export class StorageController {
 - BOTH: 同时存储到缓存和数据库
     `,
   })
-  @ApiSuccessResponse({ 
+  @ApiSuccessResponse({
     type: StorageResponseDto,
     description: "数据存储成功",
     schema: {
@@ -83,17 +75,17 @@ export class StorageController {
             processingTime: 45,
             storageType: "BOTH",
             cacheWritten: true,
-            persistentWritten: true
+            persistentWritten: true,
           },
           cacheInfo: {
             hit: false,
             source: "write",
-            ttlSet: 3600
-          }
+            ttlSet: 3600,
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiKeyAuthResponses()
   @ApiStandardResponses()
@@ -155,7 +147,7 @@ export class StorageController {
 - BOTH: 缓存优先，支持降级回退
     `,
   })
-  @ApiSuccessResponse({ 
+  @ApiSuccessResponse({
     type: StorageResponseDto,
     description: "数据检索成功",
     schema: {
@@ -170,25 +162,25 @@ export class StorageController {
             change: 2.31,
             changePercent: 1.19,
             volume: 45678900,
-            timestamp: "2024-01-01T15:30:00.000Z"
+            timestamp: "2024-01-01T15:30:00.000Z",
           },
           metadata: {
             dataSize: 512,
             compressed: false,
             processingTime: 12,
             source: "cache",
-            storedAt: "2024-01-01T15:29:45.000Z"
+            storedAt: "2024-01-01T15:29:45.000Z",
           },
           cacheInfo: {
             hit: true,
             source: "redis",
             ttlRemaining: 3540,
-            key: "stock:AAPL:quote"
-          }
+            key: "stock:AAPL:quote",
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiKeyAuthResponses()
   @ApiStandardResponses()
@@ -246,14 +238,18 @@ export class StorageController {
 - \`updateCache\`: 是否更新缓存 (true/false)
     `,
   })
-  @ApiParam({ name: "key", description: "存储键名", example: "stock:AAPL:quote" })
-  @ApiSuccessResponse({ 
+  @ApiParam({
+    name: "key",
+    description: "存储键名",
+    example: "stock:AAPL:quote",
+  })
+  @ApiSuccessResponse({
     type: StorageResponseDto,
     description: "按键名检索成功",
     schema: {
       example: {
         statusCode: 200,
-        message: "数据检索成功", 
+        message: "数据检索成功",
         data: {
           success: true,
           data: {
@@ -262,25 +258,25 @@ export class StorageController {
             change: -15.2,
             changePercent: -0.55,
             volume: 1234567,
-            timestamp: "2024-01-01T15:30:00.000Z"
+            timestamp: "2024-01-01T15:30:00.000Z",
           },
           metadata: {
             dataSize: 486,
             compressed: false,
             processingTime: 8,
             source: "cache",
-            storedAt: "2024-01-01T15:28:30.000Z"
+            storedAt: "2024-01-01T15:28:30.000Z",
           },
           cacheInfo: {
             hit: true,
             source: "redis",
             ttlRemaining: 2890,
-            key: "stock:GOOGL:quote"
-          }
+            key: "stock:GOOGL:quote",
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   async retrieveDataByKey(
@@ -332,7 +328,11 @@ export class StorageController {
 - 删除缓存数据可能影响系统性能
     `,
   })
-  @ApiParam({ name: "key", description: "要删除的存储键名", example: "stock:AAPL:quote" })
+  @ApiParam({
+    name: "key",
+    description: "要删除的存储键名",
+    example: "stock:AAPL:quote",
+  })
   @ApiSuccessResponse({
     description: "数据删除成功",
     schema: {
@@ -345,12 +345,12 @@ export class StorageController {
           key: "stock:AAPL:quote",
           details: {
             cacheDeleted: 1,
-            persistentDeleted: 1
-          }
+            persistentDeleted: 1,
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   async deleteData(
@@ -409,7 +409,7 @@ export class StorageController {
 - **⚠️ 错误统计**: 错误率和失败原因分析
     `,
   })
-  @ApiSuccessResponse({ 
+  @ApiSuccessResponse({
     type: StorageStatsDto,
     description: "存储统计信息获取成功",
     schema: {
@@ -422,26 +422,26 @@ export class StorageController {
             memoryUsed: "256MB",
             hitRate: 0.87,
             avgResponseTime: 2.3,
-            connectionsActive: 45
+            connectionsActive: 45,
           },
           persistent: {
             totalDocuments: 8934,
             storageSize: "1.2GB",
             indexSize: "128MB",
             avgQueryTime: 15.6,
-            connectionsActive: 12
+            connectionsActive: 12,
           },
           performance: {
             totalOperations: 245680,
             avgStorageTime: 8.9,
             avgRetrievalTime: 3.2,
             errorRate: 0.02,
-            throughput: 156.7
-          }
+            throughput: 156.7,
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiKeyAuthResponses()
   @ApiStandardResponses()
@@ -513,8 +513,8 @@ export class StorageController {
             details: {
               connection: "ok",
               memoryUsage: "67%",
-              responseTime: "12ms"
-            }
+              responseTime: "12ms",
+            },
           },
           persistent: {
             available: true,
@@ -523,18 +523,18 @@ export class StorageController {
             details: {
               connection: "ok",
               diskUsage: "23%",
-              responseTime: "45ms"
-            }
+              responseTime: "45ms",
+            },
           },
           overall: {
             healthy: true,
             score: 98,
-            issues: []
-          }
+            issues: [],
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   async healthCheck() {

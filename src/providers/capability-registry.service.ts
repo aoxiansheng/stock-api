@@ -1,12 +1,12 @@
-import { readdir, stat } from 'fs/promises';
-import { join } from 'path';
+import { readdir, stat } from "fs/promises";
+import { join } from "path";
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from "@nestjs/common";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-import { ICapability } from './interfaces/capability.interface';
-import { ICapabilityRegistration } from './interfaces/provider.interface';
+import { ICapability } from "./interfaces/capability.interface";
+import { ICapabilityRegistration } from "./interfaces/provider.interface";
 
 const toCamelCase = (str: string) =>
   str.replace(/-(\w)/g, (_, c) => c.toUpperCase());
@@ -27,38 +27,39 @@ export class CapabilityRegistryService implements OnModuleInit {
   }
 
   async discoverCapabilities(): Promise<void> {
-    this.logger.log('开始自动发现数据源能力...');
+    this.logger.log("开始自动发现数据源能力...");
 
     const providersPath = __dirname;
     try {
-      const providerDirs = await readdir(providersPath, { withFileTypes: true });
+      const providerDirs = await readdir(providersPath, {
+        withFileTypes: true,
+      });
 
       // 排除系统目录和文件，只扫描可能的提供商目录
-      const excludedDirs = ['node_modules', 'interfaces'];
-      
+      const excludedDirs = ["node_modules", "interfaces"];
+
       for (const dirent of providerDirs) {
-        if (dirent.isDirectory() && 
-            !excludedDirs.includes(dirent.name) &&
-            !dirent.name.startsWith('.')) {
+        if (
+          dirent.isDirectory() &&
+          !excludedDirs.includes(dirent.name) &&
+          !dirent.name.startsWith(".")
+        ) {
           await this.loadProviderCapabilities(dirent.name);
         }
       }
 
       this.logger.log({
-        message: '能力发现完成',
+        message: "能力发现完成",
         totalCapabilities: this.getTotalCapabilitiesCount(),
       });
     } catch (error) {
-      this.logger.error(
-        { error: error.stack },
-        '自动发现能力时发生错误',
-      );
+      this.logger.error({ error: error.stack }, "自动发现能力时发生错误");
     }
   }
 
   private async loadProviderCapabilities(providerName: string): Promise<void> {
     try {
-      const capabilitiesPath = join(__dirname, providerName, 'capabilities');
+      const capabilitiesPath = join(__dirname, providerName, "capabilities");
 
       if (!(await this.directoryExists(capabilitiesPath))) {
         this.logger.warn({
@@ -68,12 +69,12 @@ export class CapabilityRegistryService implements OnModuleInit {
         return;
       }
 
-      const capabilityFiles = (
-        await readdir(capabilitiesPath)
-      ).filter(file => file.endsWith('.ts')); 
+      const capabilityFiles = (await readdir(capabilitiesPath)).filter((file) =>
+        file.endsWith(".ts"),
+      );
 
       for (const file of capabilityFiles) {
-        const capabilityName = file.replace(/\.ts$/, '');
+        const capabilityName = file.replace(/\.ts$/, "");
         await this.loadCapability(providerName, capabilityName);
       }
 
@@ -103,7 +104,7 @@ export class CapabilityRegistryService implements OnModuleInit {
       const capability: ICapability =
         capabilityModule.default || capabilityModule[camelCaseName];
 
-      if (capability && typeof capability.execute === 'function') {
+      if (capability && typeof capability.execute === "function") {
         this.registerCapability(providerName, capability, 1, true);
       } else {
         this.logger.warn(
@@ -178,12 +179,12 @@ export class CapabilityRegistryService implements OnModuleInit {
 
   /**
    * 注册Provider实例
-   * 
+   *
    * @param provider Provider实例
    */
   registerProvider(provider: any): void {
     if (!provider || !provider.name) {
-      this.logger.warn('尝试注册无效的Provider实例');
+      this.logger.warn("尝试注册无效的Provider实例");
       return;
     }
 
@@ -193,7 +194,7 @@ export class CapabilityRegistryService implements OnModuleInit {
 
   /**
    * 获取Provider实例
-   * 
+   *
    * @param providerName Provider名称
    * @returns Provider实例或null
    */
@@ -208,7 +209,7 @@ export class CapabilityRegistryService implements OnModuleInit {
 
   /**
    * 获取所有已注册的Provider实例
-   * 
+   *
    * @returns 所有Provider实例的Map
    */
   getAllProviders(): Map<string, any> {
@@ -217,7 +218,7 @@ export class CapabilityRegistryService implements OnModuleInit {
 
   /**
    * 检查Provider是否已注册
-   * 
+   *
    * @param providerName Provider名称
    * @returns 是否已注册
    */

@@ -9,18 +9,14 @@ import {
   Query,
   ValidationPipe,
 } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
 import {
   ApiSuccessResponse,
   ApiCreatedResponse,
   ApiStandardResponses,
-  ApiPaginatedResponse
+  ApiPaginatedResponse,
 } from "@common/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../../auth/decorators/auth.decorator";
@@ -28,9 +24,7 @@ import { Permission } from "../../auth/enums/user-role.enum";
 
 import { CreateSymbolMappingDto } from "./dto/create-symbol-mapping.dto";
 import { SymbolMappingQueryDto } from "./dto/symbol-mapping-query.dto";
-import {
-  SymbolMappingResponseDto,
-} from "./dto/symbol-mapping-response.dto";
+import { SymbolMappingResponseDto } from "./dto/symbol-mapping-response.dto";
 import {
   UpdateSymbolMappingDto,
   TransformSymbolsDto,
@@ -426,4 +420,3 @@ export class SymbolMapperController {
     }
   }
 }
-

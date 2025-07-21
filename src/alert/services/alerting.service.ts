@@ -3,48 +3,36 @@ import {
   OnModuleInit,
   BadRequestException,
   NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { Cron, CronExpression } from '@nestjs/schedule';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { Cron, CronExpression } from "@nestjs/schedule";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-
-import { CacheService } from '../../cache/cache.service';
+import { CacheService } from "../../cache/cache.service";
 import {
   ALERTING_OPERATIONS,
   ALERTING_MESSAGES,
   ALERTING_DEFAULT_STATS,
   AlertingTemplateUtil,
-} from '../constants/alerting.constants';
-import { CreateAlertRuleDto, UpdateAlertRuleDto } from '../dto';
-import {
-  IAlertRule,
-  IAlert,
-  IAlertStats,
-} from '../interfaces';
+} from "../constants/alerting.constants";
+import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../dto";
+import { IAlertRule, IAlert, IAlertStats } from "../interfaces";
 
 // 🎯 引入仓储层和新配置
-import {
-  IMetricData,
-  IRuleEvaluationResult,
-} from '../interfaces';
+import { IMetricData, IRuleEvaluationResult } from "../interfaces";
 
 // 🎯 引入统一的类型定义
-import { AlertRuleRepository } from '../repositories/alert-rule.repository';
-import { AlertStatus ,
-  Alert,
-} from '../types/alert.types';
-
-
+import { AlertRuleRepository } from "../repositories/alert-rule.repository";
+import { AlertStatus, Alert } from "../types/alert.types";
 
 // 🎯 复用 common 模块的日志配置
 // 🎯 引入告警服务常量
 
-import { AlertHistoryService } from './alert-history.service';
-import { NotificationService } from './notification.service';
-import { RuleEngineService } from './rule-engine.service';
+import { AlertHistoryService } from "./alert-history.service";
+import { NotificationService } from "./notification.service";
+import { RuleEngineService } from "./rule-engine.service";
 
 @Injectable()
 export class AlertingService implements OnModuleInit {
@@ -65,7 +53,7 @@ export class AlertingService implements OnModuleInit {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
   ) {
-    this.config = this.configService.get('alert.cache');
+    this.config = this.configService.get("alert.cache");
   }
 
   async onModuleInit() {
@@ -73,7 +61,9 @@ export class AlertingService implements OnModuleInit {
     try {
       await this.loadActiveAlerts();
     } catch (error) {
-      this.logger.error(ALERTING_MESSAGES.INITIALIZATION_FAILED, { error: error.stack });
+      this.logger.error(ALERTING_MESSAGES.INITIALIZATION_FAILED, {
+        error: error.stack,
+      });
       // 在初始化阶段失败，需要抛出异常以使应用启动失败
       throw error;
     }
@@ -90,12 +80,15 @@ export class AlertingService implements OnModuleInit {
       ruleName: createRuleDto.name,
     });
 
-    const tempRule = { ...createRuleDto, id: 'temp' } as IAlertRule;
+    const tempRule = { ...createRuleDto, id: "temp" } as IAlertRule;
     const validation = this.ruleEngine.validateRule(tempRule);
     if (!validation.valid) {
-      const errorMsg = AlertingTemplateUtil.generateErrorMessage('RULE_VALIDATION_FAILED', {
-        errors: validation.errors.join(', ')
-      });
+      const errorMsg = AlertingTemplateUtil.generateErrorMessage(
+        "RULE_VALIDATION_FAILED",
+        {
+          errors: validation.errors.join(", "),
+        },
+      );
       this.logger.warn(errorMsg, { operation, errors: validation.errors });
       throw new BadRequestException(errorMsg);
     }
@@ -114,7 +107,10 @@ export class AlertingService implements OnModuleInit {
 
       return savedRule;
     } catch (error) {
-      this.logger.error(ALERTING_MESSAGES.CREATE_RULE_DB_FAILED, { operation, error: error.stack });
+      this.logger.error(ALERTING_MESSAGES.CREATE_RULE_DB_FAILED, {
+        operation,
+        error: error.stack,
+      });
       // 🎯 重新抛出原始错误
       throw error;
     }
@@ -136,7 +132,10 @@ export class AlertingService implements OnModuleInit {
     });
 
     try {
-      const updatedRule = await this.alertRuleRepository.update(ruleId, updateRuleDto);
+      const updatedRule = await this.alertRuleRepository.update(
+        ruleId,
+        updateRuleDto,
+      );
 
       this.logger.log(ALERTING_MESSAGES.RULE_UPDATED, {
         operation,
@@ -149,7 +148,7 @@ export class AlertingService implements OnModuleInit {
       this.logger.error(ALERTING_MESSAGES.UPDATE_RULE_FAILED, {
         operation,
         ruleId,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -179,7 +178,7 @@ export class AlertingService implements OnModuleInit {
       this.logger.error(ALERTING_MESSAGES.DELETE_RULE_FAILED, {
         operation,
         ruleId,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -202,7 +201,7 @@ export class AlertingService implements OnModuleInit {
     } catch (error) {
       this.logger.error(ALERTING_MESSAGES.GET_RULES_FAILED, {
         operation,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -217,7 +216,9 @@ export class AlertingService implements OnModuleInit {
       const rule = await this.alertRuleRepository.findById(ruleId);
       if (!rule) {
         throw new NotFoundException(
-          AlertingTemplateUtil.generateErrorMessage('RULE_NOT_FOUND', { ruleId })
+          AlertingTemplateUtil.generateErrorMessage("RULE_NOT_FOUND", {
+            ruleId,
+          }),
         );
       }
       return rule;
@@ -225,7 +226,7 @@ export class AlertingService implements OnModuleInit {
       this.logger.error(ALERTING_MESSAGES.GET_RULE_FAILED, {
         operation,
         ruleId,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -242,13 +243,13 @@ export class AlertingService implements OnModuleInit {
         this.logger.log(ALERTING_MESSAGES.RULE_STATUS_TOGGLED, {
           operation,
           ruleId,
-          enabled
+          enabled,
         });
       } else {
         this.logger.warn(ALERTING_MESSAGES.RULE_STATUS_UNCHANGED, {
           operation,
           ruleId,
-          enabled
+          enabled,
         });
       }
       return success;
@@ -256,7 +257,7 @@ export class AlertingService implements OnModuleInit {
       this.logger.error(ALERTING_MESSAGES.TOGGLE_RULE_FAILED, {
         operation,
         ruleId,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -285,7 +286,10 @@ export class AlertingService implements OnModuleInit {
         return;
       }
 
-      const evaluationResults = this.ruleEngine.evaluateRules(rules, metricData);
+      const evaluationResults = this.ruleEngine.evaluateRules(
+        rules,
+        metricData,
+      );
 
       for (const result of evaluationResults) {
         await this.handleRuleEvaluation(result, rules);
@@ -299,7 +303,7 @@ export class AlertingService implements OnModuleInit {
     } catch (error) {
       this.logger.error(ALERTING_MESSAGES.PROCESS_METRICS_FAILED, {
         operation,
-        error: error.stack
+        error: error.stack,
       });
       // 🎯 重新抛出错误，防止静默失败
       throw error;
@@ -309,7 +313,10 @@ export class AlertingService implements OnModuleInit {
   /**
    * 确认告警
    */
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string): Promise<IAlert> {
+  async acknowledgeAlert(
+    alertId: string,
+    acknowledgedBy: string,
+  ): Promise<IAlert> {
     const operation = ALERTING_OPERATIONS.ACKNOWLEDGE_ALERT;
 
     this.logger.debug(ALERTING_MESSAGES.ALERT_ACKNOWLEDGMENT_STARTED, {
@@ -337,12 +344,11 @@ export class AlertingService implements OnModuleInit {
         throw new NotFoundException(`确认后未能找到ID为 ${alertId} 的告警`);
       }
       return updatedAlert;
-
     } catch (error) {
       this.logger.error(ALERTING_MESSAGES.ACKNOWLEDGE_ALERT_FAILED, {
         operation,
         alertId,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -374,7 +380,10 @@ export class AlertingService implements OnModuleInit {
 
       if (!alert) {
         throw new NotFoundException(
-          AlertingTemplateUtil.generateErrorMessage('ALERT_NOT_FOUND_FOR_RESOLVE', { alertId })
+          AlertingTemplateUtil.generateErrorMessage(
+            "ALERT_NOT_FOUND_FOR_RESOLVE",
+            { alertId },
+          ),
         );
       }
 
@@ -383,7 +392,7 @@ export class AlertingService implements OnModuleInit {
       this.logger.log(ALERTING_MESSAGES.ALERT_RESOLVED, {
         operation,
         alertId,
-        resolvedBy
+        resolvedBy,
       });
 
       return true;
@@ -391,7 +400,7 @@ export class AlertingService implements OnModuleInit {
       this.logger.error(ALERTING_MESSAGES.RESOLVE_ALERT_FAILED, {
         operation,
         alertId,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -433,7 +442,7 @@ export class AlertingService implements OnModuleInit {
     } catch (error) {
       this.logger.error(ALERTING_MESSAGES.GET_STATS_FAILED, {
         operation,
-        error: error.stack
+        error: error.stack,
       });
       throw error;
     }
@@ -442,11 +451,11 @@ export class AlertingService implements OnModuleInit {
   /**
    * 监听系统事件
    */
-  @OnEvent('performance.**')
-  @OnEvent('security.**')
-  @OnEvent('auth.**')
-  @OnEvent('provider.**')
-  @OnEvent('system.**')
+  @OnEvent("performance.**")
+  @OnEvent("security.**")
+  @OnEvent("auth.**")
+  @OnEvent("provider.**")
+  @OnEvent("system.**")
   async handleSystemEvent(event: any): Promise<void> {
     const operation = ALERTING_OPERATIONS.HANDLE_SYSTEM_EVENT;
 
@@ -468,7 +477,7 @@ export class AlertingService implements OnModuleInit {
     } catch (error) {
       this.logger.error(ALERTING_MESSAGES.HANDLE_EVENT_FAILED, {
         operation,
-        error: error.stack
+        error: error.stack,
       });
       // 🎯 不重新抛出，避免单个事件处理失败影响整个事件总线
     }
@@ -479,13 +488,13 @@ export class AlertingService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async evaluateRulesScheduled(): Promise<void> {
-    const operation = 'evaluateRulesScheduled';
-    this.logger.debug('开始定时评估规则', { operation });
+    const operation = "evaluateRulesScheduled";
+    this.logger.debug("开始定时评估规则", { operation });
     try {
       // 实际应集成监控数据源
       await this.processMetrics([]);
     } catch (error) {
-      this.logger.error('定时规则评估失败', { operation, error: error.stack });
+      this.logger.error("定时规则评估失败", { operation, error: error.stack });
       // 🎯 不重新抛出，避免一次定时任务失败导致后续所有任务中断
     }
   }
@@ -497,7 +506,7 @@ export class AlertingService implements OnModuleInit {
     result: IRuleEvaluationResult,
     rules: IAlertRule[],
   ): Promise<void> {
-    const rule = rules.find(r => r.id === result.ruleId);
+    const rule = rules.find((r) => r.id === result.ruleId);
     if (!rule) return;
 
     const existingAlert = await this.cacheService.get<IAlert>(
@@ -505,12 +514,15 @@ export class AlertingService implements OnModuleInit {
     );
 
     if (result.triggered) {
-      if (!existingAlert && !(await this.ruleEngine.isInCooldown(result.ruleId))) {
+      if (
+        !existingAlert &&
+        !(await this.ruleEngine.isInCooldown(result.ruleId))
+      ) {
         await this.createNewAlert(result, rule);
         await this.ruleEngine.setCooldown(result.ruleId, rule.cooldown);
       }
     } else if (existingAlert) {
-      await this.resolveAlert(existingAlert.id, 'system', rule.id);
+      await this.resolveAlert(existingAlert.id, "system", rule.id);
     }
   }
 
@@ -553,19 +565,22 @@ export class AlertingService implements OnModuleInit {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
-      await this.notificationService.sendBatchNotifications(alertForNotification, rule);
+
+      await this.notificationService.sendBatchNotifications(
+        alertForNotification,
+        rule,
+      );
 
       this.logger.warn(ALERTING_MESSAGES.NEW_ALERT_TRIGGERED, {
         operation,
         ruleName: rule.name,
-        message: result.message
+        message: result.message,
       });
     } catch (error) {
       this.logger.error(ALERTING_MESSAGES.CREATE_ALERT_FAILED, {
         operation,
         ruleName: rule.name,
-        error: error.stack
+        error: error.stack,
       });
       // 🎯 重新抛出错误，让上层 handleRuleEvaluation 知道创建失败
       throw error;
@@ -579,7 +594,7 @@ export class AlertingService implements OnModuleInit {
     const activeAlerts = await this.alertHistoryService.getActiveAlerts();
 
     if (activeAlerts.length > 0) {
-      const cachePromises = activeAlerts.map(alert =>
+      const cachePromises = activeAlerts.map((alert) =>
         this.cacheService.set(
           `${this.config.activeAlertPrefix}:${alert.ruleId}`,
           alert,
@@ -590,11 +605,11 @@ export class AlertingService implements OnModuleInit {
     }
 
     this.logger.log(`加载 ${activeAlerts.length} 条活跃告警到缓存`, {
-      operation: 'loadActiveAlerts',
+      operation: "loadActiveAlerts",
       count: activeAlerts.length,
     });
   }
-  
+
   /**
    * 将系统事件转换为指标数据
    */
@@ -602,6 +617,4 @@ export class AlertingService implements OnModuleInit {
     // 实际应该根据事件类型转换为指标
     return null;
   }
-
-
 }

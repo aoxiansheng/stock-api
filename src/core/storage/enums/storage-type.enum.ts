@@ -3,13 +3,13 @@
  */
 export enum StorageType {
   CACHE = "cache",
-  PERSISTENT = "persistent", 
+  PERSISTENT = "persistent",
   BOTH = "both",
 }
 
 /**
  * 数据分类枚举
- * 
+ *
  * 用于标识不同类型的业务数据，便于分类存储和管理
  */
 export enum DataClassification {

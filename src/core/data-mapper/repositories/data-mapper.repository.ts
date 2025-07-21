@@ -135,7 +135,9 @@ export class DataMappingRepository {
   }
 
   async getRuleListTypes(): Promise<string[]> {
-    const results = await this.dataMappingRuleModel.distinct("ruleListType").exec();
+    const results = await this.dataMappingRuleModel
+      .distinct("ruleListType")
+      .exec();
     return results;
   }
 

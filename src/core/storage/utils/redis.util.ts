@@ -16,4 +16,4 @@ export class RedisUtils {
     const match = info.match(regex);
     return match ? match[1].trim() : null;
   }
-} 
+}

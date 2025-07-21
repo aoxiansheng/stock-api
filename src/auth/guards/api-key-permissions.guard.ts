@@ -3,29 +3,29 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Request } from 'express';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Request } from "express";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { Permission } from '../enums/user-role.enum';
-import { AuthSubjectType } from '../interfaces/auth-subject.interface';
-import { PermissionService } from '../services/permission.service';
-import { AuthSubjectFactory } from '../subjects/auth-subject.factory';
+import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
+import { Permission } from "../enums/user-role.enum";
+import { AuthSubjectType } from "../interfaces/auth-subject.interface";
+import { PermissionService } from "../services/permission.service";
+import { AuthSubjectFactory } from "../subjects/auth-subject.factory";
 
 /**
  * API Key权限验证守卫
- * 
+ *
  * 专门处理API Key的权限验证逻辑，确保API Key拥有访问特定端点所需的权限。
  * 只对API Key认证的请求进行权限检查，对JWT认证的请求直接放行。
- * 
+ *
  * 使用场景：
  * - @ApiKeyAuth() 装饰器的端点
  * - @MixedAuth() 装饰器中的API Key认证
  * - 需要特定权限的API端点
- * 
+ *
  * @example
  * ```typescript
  * @ApiKeyAuth()
@@ -47,22 +47,22 @@ export class ApiKeyPermissionsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    
+
     try {
       // 获取认证主体
       const authSubject = AuthSubjectFactory.createFromRequest(request);
-      
+
       // 只处理API Key认证
       if (authSubject.type !== AuthSubjectType.API_KEY) {
-        this.logger.debug('跳过API Key权限检查 - 非API Key认证');
+        this.logger.debug("跳过API Key权限检查 - 非API Key认证");
         return true;
       }
 
       // 获取所需权限
       const requiredPermissions = this.getRequiredPermissions(context);
-      
+
       if (requiredPermissions.length === 0) {
-        this.logger.debug('跳过API Key权限检查 - 无权限要求');
+        this.logger.debug("跳过API Key权限检查 - 无权限要求");
         return true;
       }
 
@@ -73,23 +73,23 @@ export class ApiKeyPermissionsGuard implements CanActivate {
       );
 
       if (!checkResult.allowed) {
-        this.logger.warn('API Key权限验证失败', {
+        this.logger.warn("API Key权限验证失败", {
           apiKey: authSubject.getDisplayName(),
           requiredPermissions,
           grantedPermissions: authSubject.permissions,
           missingPermissions: checkResult.missingPermissions,
           endpoint: request.url,
           method: request.method,
-          userAgent: request.get('User-Agent'),
+          userAgent: request.get("User-Agent"),
           ip: request.ip,
         });
 
         throw new ForbiddenException({
-          message: 'API Key权限不足',
-          error: 'Insufficient Permissions',
+          message: "API Key权限不足",
+          error: "Insufficient Permissions",
           details: {
-            type: 'API_KEY_PERMISSION_DENIED',
-            apiKeyName: authSubject.metadata?.name || 'unknown',
+            type: "API_KEY_PERMISSION_DENIED",
+            apiKeyName: authSubject.metadata?.name || "unknown",
             requiredPermissions,
             grantedPermissions: authSubject.permissions,
             missingPermissions: checkResult.missingPermissions,
@@ -100,7 +100,7 @@ export class ApiKeyPermissionsGuard implements CanActivate {
         });
       }
 
-      this.logger.debug('API Key权限验证通过', {
+      this.logger.debug("API Key权限验证通过", {
         apiKey: authSubject.getDisplayName(),
         requiredPermissions,
         grantedPermissions: authSubject.permissions,
@@ -115,17 +115,17 @@ export class ApiKeyPermissionsGuard implements CanActivate {
         throw error;
       }
 
-      this.logger.error('API Key权限验证异常', {
+      this.logger.error("API Key权限验证异常", {
         error: error.message,
         stack: error.stack,
         endpoint: request.url,
         method: request.method,
-        userAgent: request.get('User-Agent'),
+        userAgent: request.get("User-Agent"),
         ip: request.ip,
       });
 
       // 权限验证异常时拒绝访问，确保安全
-      throw new ForbiddenException('权限验证失败，请稍后重试');
+      throw new ForbiddenException("权限验证失败，请稍后重试");
     }
   }
 
@@ -171,14 +171,14 @@ export class ApiKeyPermissionsGuard implements CanActivate {
     requiredPermissions: Permission[],
     missingPermissions: Permission[],
   ): string {
-    const apiKeyName = authSubject.metadata?.name || 'unknown';
+    const apiKeyName = authSubject.metadata?.name || "unknown";
     const messages = [
       `API Key "${apiKeyName}" 权限不足`,
-      `所需权限: [${requiredPermissions.join(', ')}]`,
-      `缺失权限: [${missingPermissions.join(', ')}]`,
-      `当前权限: [${authSubject.permissions.join(', ')}]`,
+      `所需权限: [${requiredPermissions.join(", ")}]`,
+      `缺失权限: [${missingPermissions.join(", ")}]`,
+      `当前权限: [${authSubject.permissions.join(", ")}]`,
     ];
 
-    return messages.join('; ');
+    return messages.join("; ");
   }
 }

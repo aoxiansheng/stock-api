@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsString, IsEnum, IsBoolean, IsOptional, IsNumber, Min, Max, IsObject } from "class-validator";
+import {
+  IsString,
+  IsEnum,
+  IsBoolean,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsObject,
+} from "class-validator";
 
 import { NotificationType } from "../types/alert.types";
 
@@ -35,7 +44,11 @@ export class WebhookConfigDto {
   @IsString()
   method?: string;
 
-  @ApiPropertyOptional({ description: "请求头", type: "object", additionalProperties: { type: "string" } })
+  @ApiPropertyOptional({
+    description: "请求头",
+    type: "object",
+    additionalProperties: { type: "string" },
+  })
   @IsOptional()
   headers?: Record<string, string>;
 
@@ -93,13 +106,20 @@ export class SmsConfigDto {
   @IsString()
   template: string;
 
-  @ApiPropertyOptional({ description: "模板参数", type: "object", additionalProperties: { type: "string" } })
+  @ApiPropertyOptional({
+    description: "模板参数",
+    type: "object",
+    additionalProperties: { type: "string" },
+  })
   @IsOptional()
   params?: Record<string, string>;
 }
 
 export class LogConfigDto {
-  @ApiProperty({ description: "日志级别", enum: ["error", "warn", "info", "debug"] })
+  @ApiProperty({
+    description: "日志级别",
+    enum: ["error", "warn", "info", "debug"],
+  })
   @IsEnum(["error", "warn", "info", "debug"])
   level: string;
 
@@ -125,15 +145,19 @@ export class NotificationChannelDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ 
-    description: "通知类型", 
+  @ApiProperty({
+    description: "通知类型",
     enum: NotificationType,
-    enumName: "NotificationType"
+    enumName: "NotificationType",
   })
   @IsEnum(NotificationType)
   type: NotificationType;
 
-  @ApiProperty({ description: "通知配置", type: "object", additionalProperties: true })
+  @ApiProperty({
+    description: "通知配置",
+    type: "object",
+    additionalProperties: true,
+  })
   @IsObject()
   config: Record<string, any>;
 
@@ -178,16 +202,20 @@ export class UpdateNotificationChannelDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ 
-    description: "通知类型", 
+  @ApiPropertyOptional({
+    description: "通知类型",
     enum: NotificationType,
-    enumName: "NotificationType"
+    enumName: "NotificationType",
   })
   @IsOptional()
   @IsEnum(NotificationType)
   type?: NotificationType;
 
-  @ApiPropertyOptional({ description: "通知配置", type: "object", additionalProperties: true })
+  @ApiPropertyOptional({
+    description: "通知配置",
+    type: "object",
+    additionalProperties: true,
+  })
   @IsOptional()
   config?: Record<string, any>;
 
@@ -219,7 +247,11 @@ export class TestNotificationChannelDto {
   @IsString()
   message: string;
 
-  @ApiPropertyOptional({ description: "测试数据", type: "object", additionalProperties: true })
+  @ApiPropertyOptional({
+    description: "测试数据",
+    type: "object",
+    additionalProperties: true,
+  })
   @IsOptional()
   testData?: Record<string, any>;
 }
@@ -237,7 +269,11 @@ export class NotificationChannelResponseDto {
   @ApiProperty({ description: "通知类型", enum: NotificationType })
   type: NotificationType;
 
-  @ApiProperty({ description: "通知配置", type: "object", additionalProperties: true })
+  @ApiProperty({
+    description: "通知配置",
+    type: "object",
+    additionalProperties: true,
+  })
   config: Record<string, any>;
 
   @ApiProperty({ description: "是否启用" })

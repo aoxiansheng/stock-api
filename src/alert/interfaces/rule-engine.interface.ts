@@ -30,12 +30,18 @@ export interface IRuleEngine {
   /**
    * 评估单个规则
    */
-  evaluateRule(rule: IAlertRule, metricData: IMetricData[]): IRuleEvaluationResult;
+  evaluateRule(
+    rule: IAlertRule,
+    metricData: IMetricData[],
+  ): IRuleEvaluationResult;
 
   /**
    * 批量评估规则
    */
-  evaluateRules(rules: IAlertRule[], metricData: IMetricData[]): IRuleEvaluationResult[];
+  evaluateRules(
+    rules: IAlertRule[],
+    metricData: IMetricData[],
+  ): IRuleEvaluationResult[];
 
   /**
    * 检查规则是否在冷却期

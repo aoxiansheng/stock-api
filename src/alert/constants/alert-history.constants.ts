@@ -5,76 +5,76 @@
 
 // 📝 操作名称常量
 export const ALERT_HISTORY_OPERATIONS = Object.freeze({
-  CREATE_ALERT: 'createAlert',
-  UPDATE_ALERT_STATUS: 'updateAlertStatus',
-  QUERY_ALERTS: 'queryAlerts',
-  GET_ACTIVE_ALERTS: 'getActiveAlerts',
-  GET_ALERT_STATS: 'getAlertStats',
-  GET_ALERT_BY_ID: 'getAlertById',
-  CLEANUP_EXPIRED_ALERTS: 'cleanupExpiredAlerts',
-  BATCH_UPDATE_ALERT_STATUS: 'batchUpdateAlertStatus',
-  GET_ALERT_COUNT_BY_STATUS: 'getAlertCountByStatus',
-  GET_RECENT_ALERTS: 'getRecentAlerts',
-  GET_SERVICE_STATS: 'getServiceStats',
-  GENERATE_ALERT_ID: 'generateAlertId',
-  CALCULATE_STATISTICS: 'calculateStatistics',
-  VALIDATE_QUERY_PARAMS: 'validateQueryParams',
-  PROCESS_BATCH_RESULTS: 'processBatchResults',
+  CREATE_ALERT: "createAlert",
+  UPDATE_ALERT_STATUS: "updateAlertStatus",
+  QUERY_ALERTS: "queryAlerts",
+  GET_ACTIVE_ALERTS: "getActiveAlerts",
+  GET_ALERT_STATS: "getAlertStats",
+  GET_ALERT_BY_ID: "getAlertById",
+  CLEANUP_EXPIRED_ALERTS: "cleanupExpiredAlerts",
+  BATCH_UPDATE_ALERT_STATUS: "batchUpdateAlertStatus",
+  GET_ALERT_COUNT_BY_STATUS: "getAlertCountByStatus",
+  GET_RECENT_ALERTS: "getRecentAlerts",
+  GET_SERVICE_STATS: "getServiceStats",
+  GENERATE_ALERT_ID: "generateAlertId",
+  CALCULATE_STATISTICS: "calculateStatistics",
+  VALIDATE_QUERY_PARAMS: "validateQueryParams",
+  PROCESS_BATCH_RESULTS: "processBatchResults",
 });
 
 // 📢 消息常量
 export const ALERT_HISTORY_MESSAGES = Object.freeze({
   // 成功消息
-  ALERT_CREATED: '创建告警记录成功',
-  ALERT_STATUS_UPDATED: '更新告警状态成功',
-  ALERTS_QUERIED: '查询告警记录成功',
-  ACTIVE_ALERTS_RETRIEVED: '获取活跃告警成功',
-  ALERT_STATS_RETRIEVED: '获取告警统计成功',
-  ALERT_RETRIEVED: '获取告警记录成功',
-  CLEANUP_COMPLETED: '清理过期告警成功',
-  BATCH_UPDATE_COMPLETED: '批量更新告警状态完成',
-  ALERT_COUNT_STATS_RETRIEVED: '告警数量统计获取完成',
-  RECENT_ALERTS_RETRIEVED: '最近告警记录获取完成',
-  SERVICE_STATS_RETRIEVED: '服务统计信息获取完成',
-  
+  ALERT_CREATED: "创建告警记录成功",
+  ALERT_STATUS_UPDATED: "更新告警状态成功",
+  ALERTS_QUERIED: "查询告警记录成功",
+  ACTIVE_ALERTS_RETRIEVED: "获取活跃告警成功",
+  ALERT_STATS_RETRIEVED: "获取告警统计成功",
+  ALERT_RETRIEVED: "获取告警记录成功",
+  CLEANUP_COMPLETED: "清理过期告警成功",
+  BATCH_UPDATE_COMPLETED: "批量更新告警状态完成",
+  ALERT_COUNT_STATS_RETRIEVED: "告警数量统计获取完成",
+  RECENT_ALERTS_RETRIEVED: "最近告警记录获取完成",
+  SERVICE_STATS_RETRIEVED: "服务统计信息获取完成",
+
   // 错误消息
-  CREATE_ALERT_FAILED: '创建告警记录失败',
-  UPDATE_ALERT_STATUS_FAILED: '更新告警状态失败',
-  QUERY_ALERTS_FAILED: '查询告警记录失败',
-  GET_ACTIVE_ALERTS_FAILED: '获取活跃告警失败',
-  GET_ALERT_STATS_FAILED: '获取告警统计失败',
-  GET_ALERT_FAILED: '获取告警失败',
-  CLEANUP_FAILED: '清理过期告警失败',
-  BATCH_UPDATE_FAILED: '批量更新告警状态失败',
-  GET_ALERT_COUNT_STATS_FAILED: '获取告警数量统计失败',
-  GET_RECENT_ALERTS_FAILED: '获取最近告警记录失败',
-  ALERT_ID_GENERATION_FAILED: '告警ID生成失败',
-  STATISTICS_CALCULATION_FAILED: '统计计算失败',
-  
+  CREATE_ALERT_FAILED: "创建告警记录失败",
+  UPDATE_ALERT_STATUS_FAILED: "更新告警状态失败",
+  QUERY_ALERTS_FAILED: "查询告警记录失败",
+  GET_ACTIVE_ALERTS_FAILED: "获取活跃告警失败",
+  GET_ALERT_STATS_FAILED: "获取告警统计失败",
+  GET_ALERT_FAILED: "获取告警失败",
+  CLEANUP_FAILED: "清理过期告警失败",
+  BATCH_UPDATE_FAILED: "批量更新告警状态失败",
+  GET_ALERT_COUNT_STATS_FAILED: "获取告警数量统计失败",
+  GET_RECENT_ALERTS_FAILED: "获取最近告警记录失败",
+  ALERT_ID_GENERATION_FAILED: "告警ID生成失败",
+  STATISTICS_CALCULATION_FAILED: "统计计算失败",
+
   // 信息消息
-  CLEANUP_STARTED: '开始清理过期告警',
-  BATCH_UPDATE_STARTED: '开始批量更新告警状态',
-  ALERT_COUNT_STATS_CALCULATION_STARTED: '开始获取告警数量统计',
-  RECENT_ALERTS_LOOKUP_STARTED: '开始获取最近的告警记录',
-  SERVICE_STATS_REQUESTED: '获取服务统计信息',
-  ALERT_CREATION_STARTED: '开始创建告警记录',
-  ALERT_STATUS_UPDATE_STARTED: '开始更新告警状态',
-  ALERTS_QUERY_STARTED: '开始查询告警记录',
-  ACTIVE_ALERTS_LOOKUP_STARTED: '开始获取活跃告警',
-  ALERT_STATS_CALCULATION_STARTED: '开始计算告警统计',
-  ALERT_LOOKUP_STARTED: '开始获取告警记录',
-  
+  CLEANUP_STARTED: "开始清理过期告警",
+  BATCH_UPDATE_STARTED: "开始批量更新告警状态",
+  ALERT_COUNT_STATS_CALCULATION_STARTED: "开始获取告警数量统计",
+  RECENT_ALERTS_LOOKUP_STARTED: "开始获取最近的告警记录",
+  SERVICE_STATS_REQUESTED: "获取服务统计信息",
+  ALERT_CREATION_STARTED: "开始创建告警记录",
+  ALERT_STATUS_UPDATE_STARTED: "开始更新告警状态",
+  ALERTS_QUERY_STARTED: "开始查询告警记录",
+  ACTIVE_ALERTS_LOOKUP_STARTED: "开始获取活跃告警",
+  ALERT_STATS_CALCULATION_STARTED: "开始计算告警统计",
+  ALERT_LOOKUP_STARTED: "开始获取告警记录",
+
   // 警告消息
-  NO_ALERTS_FOUND: '未找到告警记录',
-  PARTIAL_BATCH_UPDATE_SUCCESS: '批量更新部分成功',
-  CLEANUP_NO_EXPIRED_ALERTS: '没有过期告警需要清理',
-  STATISTICS_INCOMPLETE: '统计数据不完整',
-  QUERY_LIMIT_EXCEEDED: '查询限制超出范围',
+  NO_ALERTS_FOUND: "未找到告警记录",
+  PARTIAL_BATCH_UPDATE_SUCCESS: "批量更新部分成功",
+  CLEANUP_NO_EXPIRED_ALERTS: "没有过期告警需要清理",
+  STATISTICS_INCOMPLETE: "统计数据不完整",
+  QUERY_LIMIT_EXCEEDED: "查询限制超出范围",
 });
 
 // 🔧 告警历史配置常量
 export const ALERT_HISTORY_CONFIG = Object.freeze({
-  ALERT_ID_PREFIX: 'alrt_',
+  ALERT_ID_PREFIX: "alrt_",
   DEFAULT_CLEANUP_DAYS: 90,
   DEFAULT_PAGE_LIMIT: 20,
   DEFAULT_RECENT_ALERTS_LIMIT: 10,
@@ -82,14 +82,14 @@ export const ALERT_HISTORY_CONFIG = Object.freeze({
   MIN_PAGE_LIMIT: 1,
   MAX_CLEANUP_DAYS: 365,
   MIN_CLEANUP_DAYS: 1,
-  ID_FORMAT_TEMPLATE: 'alrt_{timestamp}_{random}',
+  ID_FORMAT_TEMPLATE: "alrt_{timestamp}_{random}",
   TIMESTAMP_BASE: 36,
   RANDOM_LENGTH: 6,
   RANDOM_START: 2,
   BATCH_SIZE_LIMIT: 1000,
   STATISTICS_CACHE_TTL_SECONDS: 300, // 5分钟
   CLEANUP_CHUNK_SIZE: 1000,
-  BATCH_UPDATE_LIMIT: 1000
+  BATCH_UPDATE_LIMIT: 1000,
 });
 
 // 📊 默认统计值常量
@@ -105,23 +105,23 @@ export const ALERT_HISTORY_DEFAULT_STATS = Object.freeze({
 
 // 🏷️ 告警状态映射常量
 export const ALERT_STATUS_MAPPING = Object.freeze({
-  FIRING: 'firing',
-  ACKNOWLEDGED: 'acknowledged',
-  RESOLVED: 'resolved',
+  FIRING: "firing",
+  ACKNOWLEDGED: "acknowledged",
+  RESOLVED: "resolved",
 });
 
 // 📈 告警历史指标常量
 export const ALERT_HISTORY_METRICS = Object.freeze({
-  ALERT_CREATION_COUNT: 'alert_history_creation_count',
-  ALERT_UPDATE_COUNT: 'alert_history_update_count',
-  ALERT_QUERY_COUNT: 'alert_history_query_count',
-  CLEANUP_EXECUTION_COUNT: 'alert_history_cleanup_count',
-  BATCH_UPDATE_COUNT: 'alert_history_batch_update_count',
-  AVERAGE_QUERY_TIME: 'alert_history_avg_query_time',
-  AVERAGE_UPDATE_TIME: 'alert_history_avg_update_time',
-  AVERAGE_CLEANUP_TIME: 'alert_history_avg_cleanup_time',
-  ACTIVE_ALERTS_COUNT: 'alert_history_active_alerts_count',
-  TOTAL_ALERTS_COUNT: 'alert_history_total_alerts_count',
+  ALERT_CREATION_COUNT: "alert_history_creation_count",
+  ALERT_UPDATE_COUNT: "alert_history_update_count",
+  ALERT_QUERY_COUNT: "alert_history_query_count",
+  CLEANUP_EXECUTION_COUNT: "alert_history_cleanup_count",
+  BATCH_UPDATE_COUNT: "alert_history_batch_update_count",
+  AVERAGE_QUERY_TIME: "alert_history_avg_query_time",
+  AVERAGE_UPDATE_TIME: "alert_history_avg_update_time",
+  AVERAGE_CLEANUP_TIME: "alert_history_avg_cleanup_time",
+  ACTIVE_ALERTS_COUNT: "alert_history_active_alerts_count",
+  TOTAL_ALERTS_COUNT: "alert_history_total_alerts_count",
 });
 
 // 🔍 验证规则常量
@@ -166,7 +166,10 @@ export class AlertHistoryUtil {
     const timestamp = Date.now().toString(ALERT_HISTORY_CONFIG.TIMESTAMP_BASE);
     const random = Math.random()
       .toString(ALERT_HISTORY_CONFIG.TIMESTAMP_BASE)
-      .substring(ALERT_HISTORY_CONFIG.RANDOM_START, ALERT_HISTORY_CONFIG.RANDOM_START + ALERT_HISTORY_CONFIG.RANDOM_LENGTH);
+      .substring(
+        ALERT_HISTORY_CONFIG.RANDOM_START,
+        ALERT_HISTORY_CONFIG.RANDOM_START + ALERT_HISTORY_CONFIG.RANDOM_LENGTH,
+      );
     return `${ALERT_HISTORY_CONFIG.ALERT_ID_PREFIX}${timestamp}_${random}`;
   }
 
@@ -189,14 +192,17 @@ export class AlertHistoryUtil {
    * @param limit 每页数量
    * @returns 验证结果
    */
-  static validatePaginationParams(page: number, limit: number): {
+  static validatePaginationParams(
+    page: number,
+    limit: number,
+  ): {
     isValid: boolean;
     errors: string[];
   } {
     const errors: string[] = [];
 
     if (page < 1) {
-      errors.push('页码必须大于0');
+      errors.push("页码必须大于0");
     }
 
     if (limit < ALERT_HISTORY_CONFIG.MIN_PAGE_LIMIT) {
@@ -277,7 +283,7 @@ export class AlertHistoryUtil {
   static generateBatchResultSummary(
     successCount: number,
     failedCount: number,
-    errors: string[]
+    errors: string[],
   ): {
     totalProcessed: number;
     successRate: number;
@@ -285,13 +291,14 @@ export class AlertHistoryUtil {
     errorSummary: string;
   } {
     const totalProcessed = successCount + failedCount;
-    const successRate = totalProcessed > 0 ? (successCount / totalProcessed) * 100 : 0;
+    const successRate =
+      totalProcessed > 0 ? (successCount / totalProcessed) * 100 : 0;
 
     return {
       totalProcessed,
       successRate: Math.round(successRate * 100) / 100,
       hasErrors: errors.length > 0,
-      errorSummary: errors.length > 0 ? `${errors.length} 个错误` : '无错误',
+      errorSummary: errors.length > 0 ? `${errors.length} 个错误` : "无错误",
     };
   }
 
@@ -330,6 +337,6 @@ export class AlertHistoryUtil {
         return result;
       }, {} as any);
 
-    return `alert_query_${Buffer.from(JSON.stringify(sortedParams)).toString('base64')}`;
+    return `alert_query_${Buffer.from(JSON.stringify(sortedParams)).toString("base64")}`;
   }
 }

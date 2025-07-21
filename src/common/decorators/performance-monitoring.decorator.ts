@@ -1,9 +1,9 @@
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from "@nestjs/common";
 
 /**
  * 性能监控装饰器的元数据键
  */
-export const PERFORMANCE_MONITORING_KEY = 'performance-monitoring';
+export const PERFORMANCE_MONITORING_KEY = "performance-monitoring";
 
 /**
  * 性能监控配置接口
@@ -18,9 +18,9 @@ export interface PerformanceMonitoringConfig {
 
 /**
  * 性能监控装饰器
- * 
+ *
  * 用于标记需要详细性能监控的控制器或方法
- * 
+ *
  * @example
  * ```typescript
  * @PerformanceMonitoring()
@@ -32,14 +32,16 @@ export interface PerformanceMonitoringConfig {
  * }
  * ```
  */
-export function PerformanceMonitoring(config: PerformanceMonitoringConfig = {}): ClassDecorator & MethodDecorator {
+export function PerformanceMonitoring(
+  config: PerformanceMonitoringConfig = {},
+): ClassDecorator & MethodDecorator {
   const defaultConfig: PerformanceMonitoringConfig = {
     enabled: true,
     trackSlowRequests: true,
     slowRequestThreshold: 1000,
     recordMetrics: true,
     sampleRate: 1.0,
-    ...config
+    ...config,
   };
 
   return SetMetadata(PERFORMANCE_MONITORING_KEY, defaultConfig);
@@ -55,7 +57,7 @@ export function LightPerformanceMonitoring(): ClassDecorator & MethodDecorator {
     trackSlowRequests: true,
     slowRequestThreshold: 2000,
     recordMetrics: false,
-    sampleRate: 0.1 // 10%采样率
+    sampleRate: 0.1, // 10%采样率
   });
 }
 
@@ -68,6 +70,6 @@ export function NoPerformanceMonitoring(): ClassDecorator & MethodDecorator {
     enabled: false,
     trackSlowRequests: false,
     recordMetrics: false,
-    sampleRate: 0
+    sampleRate: 0,
   });
 }

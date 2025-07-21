@@ -44,12 +44,12 @@ export const RISK_SCORE_WEIGHTS = {
 export const TAG_GENERATION_RULES = {
   // 条件 -> 标签
   conditions: {
-    isSuspiciousIp: 'suspicious_ip',
-    isIncident: 'security_incident',
-    isAuthFailure: 'auth_failure',
+    isSuspiciousIp: "suspicious_ip",
+    isIncident: "security_incident",
+    isAuthFailure: "auth_failure",
   },
   // 直接从事件属性映射
-  directMap: ['type', 'severity'],
+  directMap: ["type", "severity"],
 };
 
 /**
@@ -73,7 +73,7 @@ export const RECOMMENDATION_THRESHOLDS = {
  * 安全扫描器使用的扫描规则和阈值
  */
 export const SECURITY_SCANNER_RULES = {
-  defaultUsernames: ['admin', 'root', 'test', 'demo', 'user', 'guest'],
+  defaultUsernames: ["admin", "root", "test", "demo", "user", "guest"],
   apiKeyPermissionThreshold: 5, // 超过此数量的权限被认为过于宽泛
   apiKeyRateLimitThreshold: 10000, // 超过此值的速率限制被认为不足
   jwtSecretMinLength: 32,
@@ -88,4 +88,4 @@ export const SECURITY_SCORE_VULNERABILITY_WEIGHTS = {
   medium: 5,
   low: 2,
   info: 1,
-}; 
+};

@@ -7,7 +7,7 @@ import { ApiProperty } from "@nestjs/swagger";
 export interface BasePerformanceMetrics {
   /** 处理时间（毫秒） */
   processingTime: number;
-  
+
   /** 时间戳 */
   timestamp?: string;
 }

@@ -19,7 +19,7 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 import {
   ApiSuccessResponse,
   ApiCreatedResponse,
@@ -30,14 +30,10 @@ import {
 
 import { Auth, ApiKeyAuth } from "./decorators/auth.decorator";
 import { Public } from "./decorators/public.decorator";
-import {
-  CreateApiKeyDto,
-  ApiKeyResponseDto,
-} from "./dto/apikey.dto";
+import { CreateApiKeyDto, ApiKeyResponseDto } from "./dto/apikey.dto";
 import { CreateUserDto, LoginDto, LoginResponseDto } from "./dto/auth.dto";
 import { Permission } from "./enums/user-role.enum";
 import { AuthService } from "./services/auth.service";
-
 
 @ApiTags("🔐 认证管理")
 @Controller("auth")
@@ -320,10 +316,7 @@ export class AuthController {
     },
   })
   @ApiBearerAuth()
-  async getApiKeyUsage(
-    @Request() req,
-    @Param("id") apiKeyId: string,
-  ) {
+  async getApiKeyUsage(@Request() req, @Param("id") apiKeyId: string) {
     this.logger.log(
       `获取API Key使用统计: ${apiKeyId}, 用户: ${req.user.username}`,
     );

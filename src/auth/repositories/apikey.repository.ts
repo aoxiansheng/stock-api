@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
-import { ApiKey, ApiKeyDocument } from '../schemas/apikey.schema';
+import { ApiKey, ApiKeyDocument } from "../schemas/apikey.schema";
 
 @Injectable()
 export class ApiKeyRepository {
   constructor(
-    @InjectModel(ApiKey.name) private readonly apiKeyModel: Model<ApiKeyDocument>,
+    @InjectModel(ApiKey.name)
+    private readonly apiKeyModel: Model<ApiKeyDocument>,
   ) {}
 
   /**
@@ -16,4 +17,4 @@ export class ApiKeyRepository {
   async findAllActive(): Promise<ApiKeyDocument[]> {
     return this.apiKeyModel.find({ isActive: true }).exec();
   }
-} 
+}

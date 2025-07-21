@@ -13,7 +13,10 @@ export function DatabasePerformance(queryType: string) {
         this.performanceMonitor ||
         (global["performanceMonitorService"] as PerformanceMonitorService);
 
-      if (!performanceMonitor || typeof performanceMonitor.wrapWithTiming !== 'function') {
+      if (
+        !performanceMonitor ||
+        typeof performanceMonitor.wrapWithTiming !== "function"
+      ) {
         return method.apply(this, args);
       }
 
@@ -22,7 +25,7 @@ export function DatabasePerformance(queryType: string) {
         () => method.apply(this, args),
         (duration: number, success: boolean) => {
           performanceMonitor.recordDatabaseQuery(queryType, duration, success);
-        }
+        },
       );
     };
   };
@@ -41,7 +44,10 @@ export function CachePerformance(operation: string) {
         this.performanceMonitor ||
         (global["performanceMonitorService"] as PerformanceMonitorService);
 
-      if (!performanceMonitor || typeof performanceMonitor.wrapWithTiming !== 'function') {
+      if (
+        !performanceMonitor ||
+        typeof performanceMonitor.wrapWithTiming !== "function"
+      ) {
         return method.apply(this, args);
       }
 
@@ -50,11 +56,13 @@ export function CachePerformance(operation: string) {
         () => method.apply(this, args),
         (duration: number, success: boolean, result?: any) => {
           // 判断缓存命中情况
-          const hit = success && (operation === "get"
-            ? result !== null && result !== undefined
-            : true);
+          const hit =
+            success &&
+            (operation === "get"
+              ? result !== null && result !== undefined
+              : true);
           performanceMonitor.recordCacheOperation(operation, hit, duration);
-        }
+        },
       );
     };
   };
@@ -73,7 +81,10 @@ export function AuthPerformance(authType: "jwt" | "api_key") {
         this.performanceMonitor ||
         (global["performanceMonitorService"] as PerformanceMonitorService);
 
-      if (!performanceMonitor || typeof performanceMonitor.wrapWithTiming !== 'function') {
+      if (
+        !performanceMonitor ||
+        typeof performanceMonitor.wrapWithTiming !== "function"
+      ) {
         return method.apply(this, args);
       }
 
@@ -82,7 +93,7 @@ export function AuthPerformance(authType: "jwt" | "api_key") {
         () => method.apply(this, args),
         (duration: number, success: boolean) => {
           performanceMonitor.recordAuthentication(authType, success, duration);
-        }
+        },
       );
     };
   };

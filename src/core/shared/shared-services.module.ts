@@ -3,20 +3,17 @@
  * 🎯 提供核心组件间共享的服务，解决循环依赖
  */
 
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { CacheModule } from '../../cache/cache.module';
-import { ProvidersModule } from '../../providers/providers.module';
+import { CacheModule } from "../../cache/cache.module";
+import { ProvidersModule } from "../../providers/providers.module";
 
-import { DataChangeDetectorService } from './services/data-change-detector.service';
-import { DataFetchingService } from './services/data-fetching.service';
-import { MarketStatusService } from './services/market-status.service';
+import { DataChangeDetectorService } from "./services/data-change-detector.service";
+import { DataFetchingService } from "./services/data-fetching.service";
+import { MarketStatusService } from "./services/market-status.service";
 
 @Module({
-  imports: [
-    CacheModule,
-    ProvidersModule,
-  ],
+  imports: [CacheModule, ProvidersModule],
   providers: [
     DataFetchingService,
     DataChangeDetectorService,

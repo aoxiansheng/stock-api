@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException } from "@nestjs/common";
 
 /**
  * URL安全验证工具类 - SSRF防护
@@ -7,41 +7,53 @@ import { BadRequestException } from '@nestjs/common';
 export class URLSecurityValidator {
   // 危险协议黑名单
   private static readonly DANGEROUS_PROTOCOLS = [
-    'file:', 'ftp:', 'gopher:', 'dict:', 'sftp:', 'ldap:', 'ldaps:', 'tftp:', 
-    'jar:', 'netdoc:', 'mailto:', 'news:', 'imap:', 'telnet:'
+    "file:",
+    "ftp:",
+    "gopher:",
+    "dict:",
+    "sftp:",
+    "ldap:",
+    "ldaps:",
+    "tftp:",
+    "jar:",
+    "netdoc:",
+    "mailto:",
+    "news:",
+    "imap:",
+    "telnet:",
   ];
 
   // 内部IP范围
   private static readonly INTERNAL_IP_PATTERNS = [
-    /^127\./,           // 127.0.0.0/8 - Loopback
-    /^10\./,            // 10.0.0.0/8 - Private Class A
-    /^172\.(1[6-9]|2\d|3[01])\./,  // 172.16.0.0/12 - Private Class B
-    /^192\.168\./,      // 192.168.0.0/16 - Private Class C
-    /^169\.254\./,      // 169.254.0.0/16 - Link-local
-    /^0\./,             // 0.0.0.0/8 - Current network
-    /^224\./,           // 224.0.0.0/4 - Multicast
-    /^240\./,           // 240.0.0.0/4 - Reserved
-    /^255\./,           // 255.0.0.0/8 - Broadcast
+    /^127\./, // 127.0.0.0/8 - Loopback
+    /^10\./, // 10.0.0.0/8 - Private Class A
+    /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12 - Private Class B
+    /^192\.168\./, // 192.168.0.0/16 - Private Class C
+    /^169\.254\./, // 169.254.0.0/16 - Link-local
+    /^0\./, // 0.0.0.0/8 - Current network
+    /^224\./, // 224.0.0.0/4 - Multicast
+    /^240\./, // 240.0.0.0/4 - Reserved
+    /^255\./, // 255.0.0.0/8 - Broadcast
   ];
 
   // 危险主机名
   private static readonly DANGEROUS_HOSTNAMES = [
-    'localhost',
-    'metadata.google.internal',
-    'metadata',
-    'instance-data',
-    'checkip.amazonaws.com',
-    'icanhazip.com',
-    'ipinfo.io',
-    'httpbin.org',
-    'requestb.in',
-    'postb.in'
+    "localhost",
+    "metadata.google.internal",
+    "metadata",
+    "instance-data",
+    "checkip.amazonaws.com",
+    "icanhazip.com",
+    "ipinfo.io",
+    "httpbin.org",
+    "requestb.in",
+    "postb.in",
   ];
 
   // 允许的外部域名白名单（可根据需要配置）
   private static readonly ALLOWED_EXTERNAL_DOMAINS = [
-    'hooks.slack.com',
-    'oapi.dingtalk.com',
+    "hooks.slack.com",
+    "oapi.dingtalk.com",
     // 可以根据业务需要添加其他可信域名
   ];
 
@@ -55,33 +67,35 @@ export class URLSecurityValidator {
       const parsedUrl = new URL(url);
 
       // 检查协议
-      if (this.DANGEROUS_PROTOCOLS.some(protocol => 
-        parsedUrl.protocol.toLowerCase().startsWith(protocol)
-      )) {
+      if (
+        this.DANGEROUS_PROTOCOLS.some((protocol) =>
+          parsedUrl.protocol.toLowerCase().startsWith(protocol),
+        )
+      ) {
         return { valid: false, error: `不允许的协议: ${parsedUrl.protocol}` };
       }
 
       // 只允许 HTTP(S)
-      if (!['http:', 'https:'].includes(parsedUrl.protocol.toLowerCase())) {
+      if (!["http:", "https:"].includes(parsedUrl.protocol.toLowerCase())) {
         return { valid: false, error: `仅支持HTTP和HTTPS协议` };
       }
 
       // 检查主机名
       const hostname = parsedUrl.hostname.toLowerCase();
-      
+
       // 检查危险主机名
       if (this.DANGEROUS_HOSTNAMES.includes(hostname)) {
         return { valid: false, error: `不允许访问的主机: ${hostname}` };
       }
 
       // 检查内部IP
-      if (this.INTERNAL_IP_PATTERNS.some(pattern => pattern.test(hostname))) {
+      if (this.INTERNAL_IP_PATTERNS.some((pattern) => pattern.test(hostname))) {
         return { valid: false, error: `不允许访问内部IP地址: ${hostname}` };
       }
 
       // 检查AWS元数据服务
-      if (hostname === '169.254.169.254') {
-        return { valid: false, error: '不允许访问AWS元数据服务' };
+      if (hostname === "169.254.169.254") {
+        return { valid: false, error: "不允许访问AWS元数据服务" };
       }
 
       // 检查是否为IP地址
@@ -90,8 +104,8 @@ export class URLSecurityValidator {
       }
 
       // 检查外部域名白名单
-      const isAllowedDomain = this.ALLOWED_EXTERNAL_DOMAINS.some(domain => 
-        hostname === domain || hostname.endsWith('.' + domain)
+      const isAllowedDomain = this.ALLOWED_EXTERNAL_DOMAINS.some(
+        (domain) => hostname === domain || hostname.endsWith("." + domain),
       );
 
       if (!isAllowedDomain) {
@@ -105,7 +119,7 @@ export class URLSecurityValidator {
         if (portNum < 80 || portNum > 65535) {
           return { valid: false, error: `端口范围无效: ${port}` };
         }
-        
+
         // 只允许标准Web端口
         if (![80, 443, 8080, 8443].includes(portNum)) {
           return { valid: false, error: `不允许的端口: ${port}` };
@@ -115,7 +129,7 @@ export class URLSecurityValidator {
       // 检查URL路径中的可疑模式
       const path = parsedUrl.pathname;
       if (this.containsSuspiciousPatterns(path)) {
-        return { valid: false, error: 'URL路径包含可疑模式' };
+        return { valid: false, error: "URL路径包含可疑模式" };
       }
 
       return { valid: true };
@@ -133,8 +147,8 @@ export class URLSecurityValidator {
     // IPv4 检查
     const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
     if (ipv4Pattern.test(hostname)) {
-      const parts = hostname.split('.').map(part => parseInt(part));
-      return parts.every(part => part >= 0 && part <= 255);
+      const parts = hostname.split(".").map((part) => parseInt(part));
+      return parts.every((part) => part >= 0 && part <= 255);
     }
 
     // IPv6 检查（简化）
@@ -149,18 +163,20 @@ export class URLSecurityValidator {
    */
   private static containsSuspiciousPatterns(path: string): boolean {
     const suspiciousPatterns = [
-      /\.\./,           // 路径遍历
-      /\/etc\//,        // 系统文件
-      /\/proc\//,       // 系统进程
-      /\/dev\//,        // 设备文件
-      /\/var\//,        // 变量文件
-      /\/tmp\//,        // 临时文件
-      /meta-data/,      // 元数据服务
-      /user-data/,      // 用户数据
-      /latest\//,       // AWS元数据路径
+      /\.\./, // 路径遍历
+      /\/etc\//, // 系统文件
+      /\/proc\//, // 系统进程
+      /\/dev\//, // 设备文件
+      /\/var\//, // 变量文件
+      /\/tmp\//, // 临时文件
+      /meta-data/, // 元数据服务
+      /user-data/, // 用户数据
+      /latest\//, // AWS元数据路径
     ];
 
-    return suspiciousPatterns.some(pattern => pattern.test(path.toLowerCase()));
+    return suspiciousPatterns.some((pattern) =>
+      pattern.test(path.toLowerCase()),
+    );
   }
 
   /**
@@ -174,4 +190,4 @@ export class URLSecurityValidator {
       throw new BadRequestException(`URL安全检查失败: ${result.error}`);
     }
   }
-} 
+}

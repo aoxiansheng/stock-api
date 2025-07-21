@@ -1,16 +1,16 @@
 import { PartialType, ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { 
-  IsNotEmpty, 
-  IsString, 
-  IsOptional, 
-  ValidateIf, 
-  IsArray, 
-  ArrayNotEmpty 
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  ValidateIf,
+  IsArray,
+  ArrayNotEmpty,
 } from "class-validator";
 
 import {
   CreateSymbolMappingDto,
-  MappingRuleDto,
+  SymbolMappingRuleDto,
 } from "./create-symbol-mapping.dto";
 
 export class UpdateSymbolMappingDto extends PartialType(
@@ -18,19 +18,30 @@ export class UpdateSymbolMappingDto extends PartialType(
 ) {}
 
 export class TransformSymbolsDto {
-  @ApiPropertyOptional({ description: "映射配置 ID（优先使用）", example: "64e8f7b4b7dcb16f7a1c1234" })
+  @ApiPropertyOptional({
+    description: "映射配置 ID（优先使用）",
+    example: "64e8f7b4b7dcb16f7a1c1234",
+  })
   @IsOptional()
   @IsString()
   mappingInSymbolId?: string;
 
   @ApiProperty({ description: "数据源名称", example: "longport" })
-  @ApiPropertyOptional({ description: "数据源名称（若未传 mappingInSymbolId 时必填）", example: "longport" })
-  @ValidateIf(o => !o.mappingInSymbolId)
-  @IsNotEmpty({ message: "当未提供 mappingInSymbolId 时，dataSourceName 不能为空" })
+  @ApiPropertyOptional({
+    description: "数据源名称（若未传 mappingInSymbolId 时必填）",
+    example: "longport",
+  })
+  @ValidateIf((o) => !o.mappingInSymbolId)
+  @IsNotEmpty({
+    message: "当未提供 mappingInSymbolId 时，dataSourceName 不能为空",
+  })
   @IsString()
   dataSourceName?: string;
 
-  @ApiProperty({ description: "需要转换的股票代码列表", example: ["700.HK", "AAPL.US"] })
+  @ApiProperty({
+    description: "需要转换的股票代码列表",
+    example: ["700.HK", "AAPL.US"],
+  })
   @IsArray()
   @ArrayNotEmpty({ message: "股票代码列表不能为空" })
   @IsString({ each: true })
@@ -58,9 +69,9 @@ export class AddMappingRuleDto {
   @IsString()
   dataSourceName: string;
 
-  @ApiProperty({ description: "映射规则", type: MappingRuleDto })
+  @ApiProperty({ description: "映射规则", type: SymbolMappingRuleDto })
   @IsNotEmpty()
-  mappingRule: MappingRuleDto;
+  mappingRule: SymbolMappingRuleDto;
 }
 
 export class UpdateMappingRuleDto {
@@ -76,5 +87,5 @@ export class UpdateMappingRuleDto {
 
   @ApiProperty({ description: "映射规则更新内容" })
   @IsNotEmpty()
-  mappingRule: Partial<MappingRuleDto>;
+  mappingRule: Partial<SymbolMappingRuleDto>;
 }

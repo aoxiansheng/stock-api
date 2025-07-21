@@ -21,7 +21,7 @@ export class CustomLogger implements LoggerService {
   private createPinoLogger(): PinoLogger {
     const isDevelopment = process.env.NODE_ENV === "development";
     const isProduction = process.env.NODE_ENV === "production";
-    
+
     // 基础配置
     const baseConfig = {
       name: "newstockapi",
@@ -53,7 +53,8 @@ export class CustomLogger implements LoggerService {
             colorize: true,
             translateTime: "yyyy-mm-dd HH:MM:ss.l",
             ignore: "pid,hostname",
-            customColors: "info:green,warn:yellow,error:red,debug:cyan,trace:magenta",
+            customColors:
+              "info:green,warn:yellow,error:red,debug:cyan,trace:magenta",
           },
         },
       });
@@ -97,18 +98,20 @@ export class CustomLogger implements LoggerService {
     return "debug";
   }
 
-
   /**
    * 记录普通日志
    */
   log(message: any, ...optionalParams: any[]): void {
-    const { formattedMessage, context, data } = this.formatLogMessage(message, optionalParams);
+    const { formattedMessage, context, data } = this.formatLogMessage(
+      message,
+      optionalParams,
+    );
     this.pinoLogger.info(
       {
         context: context || this.context || "Application",
         ...data,
       },
-      formattedMessage
+      formattedMessage,
     );
   }
 
@@ -116,16 +119,21 @@ export class CustomLogger implements LoggerService {
    * 记录错误日志
    */
   error(message: any, ...optionalParams: any[]): void {
-    const { formattedMessage, context, data } = this.formatLogMessage(message, optionalParams);
-    const trace = optionalParams.find(p => typeof p === 'string' && p.includes('Error'));
-    
+    const { formattedMessage, context, data } = this.formatLogMessage(
+      message,
+      optionalParams,
+    );
+    const trace = optionalParams.find(
+      (p) => typeof p === "string" && p.includes("Error"),
+    );
+
     this.pinoLogger.error(
       {
         context: context || this.context || "Application",
         ...(trace && { trace }),
         ...data,
       },
-      formattedMessage
+      formattedMessage,
     );
   }
 
@@ -133,13 +141,16 @@ export class CustomLogger implements LoggerService {
    * 记录警告日志
    */
   warn(message: any, ...optionalParams: any[]): void {
-    const { formattedMessage, context, data } = this.formatLogMessage(message, optionalParams);
+    const { formattedMessage, context, data } = this.formatLogMessage(
+      message,
+      optionalParams,
+    );
     this.pinoLogger.warn(
       {
         context: context || this.context || "Application",
         ...data,
       },
-      formattedMessage
+      formattedMessage,
     );
   }
 
@@ -148,13 +159,16 @@ export class CustomLogger implements LoggerService {
    */
   debug(message: any, ...optionalParams: any[]): void {
     if (this.isDebugEnabled()) {
-      const { formattedMessage, context, data } = this.formatLogMessage(message, optionalParams);
+      const { formattedMessage, context, data } = this.formatLogMessage(
+        message,
+        optionalParams,
+      );
       this.pinoLogger.debug(
         {
           context: context || this.context || "Application",
           ...data,
         },
-        formattedMessage
+        formattedMessage,
       );
     }
   }
@@ -164,13 +178,16 @@ export class CustomLogger implements LoggerService {
    */
   verbose(message: any, ...optionalParams: any[]): void {
     if (this.isVerboseEnabled()) {
-      const { formattedMessage, context, data } = this.formatLogMessage(message, optionalParams);
+      const { formattedMessage, context, data } = this.formatLogMessage(
+        message,
+        optionalParams,
+      );
       this.pinoLogger.trace(
         {
           context: context || this.context || "Application",
           ...data,
         },
-        formattedMessage
+        formattedMessage,
       );
     }
   }
@@ -185,7 +202,10 @@ export class CustomLogger implements LoggerService {
   /**
    * 格式化日志消息
    */
-  private formatLogMessage(message: any, optionalParams: any[]): {
+  private formatLogMessage(
+    message: any,
+    optionalParams: any[],
+  ): {
     formattedMessage: string;
     context?: string;
     data?: any;
@@ -201,31 +221,37 @@ export class CustomLogger implements LoggerService {
       if (typeof message === "object") {
         // 清理敏感数据
         const sanitizedMessage = sanitizeLogData(message);
-        formattedMessage = JSON.stringify(sanitizedMessage, this.circularReplacer(), 2);
+        formattedMessage = JSON.stringify(
+          sanitizedMessage,
+          this.circularReplacer(),
+          2,
+        );
         data = sanitizedMessage;
       } else {
         formattedMessage = String(message);
         // 限制消息长度
         if (formattedMessage.length > LoggerConfig.MAX_MESSAGE_LENGTH) {
-          formattedMessage = formattedMessage.substring(0, LoggerConfig.MAX_MESSAGE_LENGTH) + "...";
+          formattedMessage =
+            formattedMessage.substring(0, LoggerConfig.MAX_MESSAGE_LENGTH) +
+            "...";
         }
       }
 
       // 如果上下文是对象，将其添加到数据中
-      if (context && typeof context === 'object') {
+      if (context && typeof context === "object") {
         const sanitizedContext = sanitizeLogData(context);
         data = { ...data, ...sanitizedContext };
       }
 
       return {
         formattedMessage,
-        context: typeof context === 'string' ? context : undefined,
+        context: typeof context === "string" ? context : undefined,
         data: Object.keys(data).length > 0 ? data : undefined,
       };
     } catch {
       return {
         formattedMessage: `[Log Format Error] ${String(message)}`,
-        context: typeof context === 'string' ? context : undefined,
+        context: typeof context === "string" ? context : undefined,
         data: { error: "Failed to format log message" },
       };
     } finally {
@@ -239,9 +265,9 @@ export class CustomLogger implements LoggerService {
    */
   private circularReplacer() {
     return (_key: string, value: any) => {
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         if (this.seen?.has(value)) {
-          return '[Circular]';
+          return "[Circular]";
         }
         this.seen?.add(value);
       }
@@ -261,7 +287,9 @@ export class CustomLogger implements LoggerService {
       return params[0];
     }
     // 如果有多个参数，则返回对象（或最后一个参数，以防万一）
-    return params.find(p => typeof p === 'object') || params[params.length - 1];
+    return (
+      params.find((p) => typeof p === "object") || params[params.length - 1]
+    );
   }
 
   /**

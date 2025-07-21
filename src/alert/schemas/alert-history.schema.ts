@@ -4,7 +4,6 @@ import { Document } from "mongoose";
 import { IAlert } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
 
-
 export type AlertHistoryDocument = AlertHistory & Document;
 
 @Schema({
@@ -30,18 +29,18 @@ export class AlertHistory implements IAlert {
   @Prop({ required: true })
   threshold: number;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     type: String,
-    enum: Object.values(AlertSeverity)
+    enum: Object.values(AlertSeverity),
   })
   severity: AlertSeverity;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     type: String,
     enum: Object.values(AlertStatus),
-    default: AlertStatus.FIRING
+    default: AlertStatus.FIRING,
   })
   status: AlertStatus;
 
@@ -79,7 +78,10 @@ export class AlertHistory implements IAlert {
   }
 
   get isActive(): boolean {
-    return this.status === AlertStatus.FIRING || this.status === AlertStatus.ACKNOWLEDGED;
+    return (
+      this.status === AlertStatus.FIRING ||
+      this.status === AlertStatus.ACKNOWLEDGED
+    );
   }
 }
 
@@ -95,4 +97,7 @@ AlertHistorySchema.index({ "tags.environment": 1 });
 AlertHistorySchema.index({ "tags.service": 1 });
 
 // TTL 索引 - 自动删除90天前的告警历史
-AlertHistorySchema.index({ startTime: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+AlertHistorySchema.index(
+  { startTime: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60 },
+);

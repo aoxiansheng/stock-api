@@ -6,13 +6,13 @@
   - Store results in a simple data structure
   - _Requirements: 1.1, 1.2_
 
-- [-] 2. Add enum scanning functionality
+- [x] 2. Add enum scanning functionality
   - Extend the script to find all .enum.ts files
   - Extract enum names and their values using regex patterns
   - Store enum data alongside constants data
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3. Add DTO scanning functionality
+- [x] 3. Add DTO scanning functionality
   - Extend the script to find all .dto.ts files
   - Extract exported class and interface names using regex patterns
   - Store DTO names alongside other data

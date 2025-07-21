@@ -9,7 +9,7 @@ export class FormatUtils {
    * @returns 格式化后的数字
    */
   public static roundNumber(value: number, decimals: number = 2): number {
-    if (typeof value !== 'number' || isNaN(value)) {
+    if (typeof value !== "number" || isNaN(value)) {
       return 0;
     }
     const factor = Math.pow(10, decimals);
@@ -22,10 +22,10 @@ export class FormatUtils {
    * @returns GB
    */
   public static bytesToGB(bytes: number): number {
-    if (typeof bytes !== 'number' || isNaN(bytes) || bytes === 0) {
+    if (typeof bytes !== "number" || isNaN(bytes) || bytes === 0) {
       return 0;
     }
     const gb = bytes / 1024 / 1024 / 1024;
     return this.roundNumber(gb, 2);
   }
-} 
+}

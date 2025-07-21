@@ -1,9 +1,9 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
 export type SecurityAuditLogDocument = SecurityAuditLog & Document;
 
-@Schema({ collection: 'security_audit_logs', timestamps: true })
+@Schema({ collection: "security_audit_logs", timestamps: true })
 export class SecurityAuditLog {
   @Prop({ required: true, index: true })
   eventId: string;
@@ -40,7 +40,7 @@ export class SecurityAuditLog {
 
   @Prop({ type: Object })
   details: Record<string, any>;
-  
+
   @Prop({ required: true, index: true })
   timestamp: Date;
 
@@ -57,4 +57,5 @@ export class SecurityAuditLog {
   tags: string[];
 }
 
-export const SecurityAuditLogSchema = SchemaFactory.createForClass(SecurityAuditLog); 
+export const SecurityAuditLogSchema =
+  SchemaFactory.createForClass(SecurityAuditLog);

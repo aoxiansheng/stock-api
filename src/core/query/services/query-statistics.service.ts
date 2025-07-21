@@ -14,7 +14,7 @@ import { QueryType } from "../dto/query-types.dto";
 
 /**
  * 查询统计服务
- * 
+ *
  * 负责收集、计算和提供所有与查询相关的性能和使用统计数据。
  */
 @Injectable()
@@ -28,7 +28,7 @@ export class QueryStatisticsService {
     errors: 0,
     queryTypeStats: new Map<string, QueryStatsRecordDto>(),
     // 启动时间，用于计算QPS
-    startTime: Date.now(), 
+    startTime: Date.now(),
   };
 
   /**
@@ -57,12 +57,15 @@ export class QueryStatisticsService {
 
     // 记录慢查询警告
     if (executionTime > QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLD_MS) {
-      this.logger.warn(QUERY_WARNING_MESSAGES.SLOW_QUERY_DETECTED, sanitizeLogData({
-        queryType,
-        executionTime,
-        threshold: QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLD_MS,
-        operation: QUERY_OPERATIONS.RECORD_QUERY_PERFORMANCE,
-      }));
+      this.logger.warn(
+        QUERY_WARNING_MESSAGES.SLOW_QUERY_DETECTED,
+        sanitizeLogData({
+          queryType,
+          executionTime,
+          threshold: QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLD_MS,
+          operation: QUERY_OPERATIONS.RECORD_QUERY_PERFORMANCE,
+        }),
+      );
     }
 
     // 更新按查询类型统计
@@ -94,24 +97,30 @@ export class QueryStatisticsService {
    * 获取当前的查询统计信息
    */
   public async getQueryStats(): Promise<QueryStatsDto> {
-    this.logger.debug(QUERY_SUCCESS_MESSAGES.QUERY_STATS_RETRIEVED, sanitizeLogData({
-      totalQueries: this.queryStats.totalQueries,
-      operation: QUERY_OPERATIONS.GET_QUERY_STATS,
-    }));
+    this.logger.debug(
+      QUERY_SUCCESS_MESSAGES.QUERY_STATS_RETRIEVED,
+      sanitizeLogData({
+        totalQueries: this.queryStats.totalQueries,
+        operation: QUERY_OPERATIONS.GET_QUERY_STATS,
+      }),
+    );
 
     const stats = new QueryStatsDto();
 
     stats.performance = {
       totalQueries: this.queryStats.totalQueries,
-      averageExecutionTime: this.queryStats.totalQueries > 0
-        ? this.queryStats.totalExecutionTime / this.queryStats.totalQueries
-        : 0,
-      cacheHitRate: this.queryStats.totalQueries > 0
-        ? this.queryStats.cacheHits / this.queryStats.totalQueries
-        : 0,
-      errorRate: this.queryStats.totalQueries > 0
-        ? this.queryStats.errors / this.queryStats.totalQueries
-        : 0,
+      averageExecutionTime:
+        this.queryStats.totalQueries > 0
+          ? this.queryStats.totalExecutionTime / this.queryStats.totalQueries
+          : 0,
+      cacheHitRate:
+        this.queryStats.totalQueries > 0
+          ? this.queryStats.cacheHits / this.queryStats.totalQueries
+          : 0,
+      errorRate:
+        this.queryStats.totalQueries > 0
+          ? this.queryStats.errors / this.queryStats.totalQueries
+          : 0,
       queriesPerSecond: this.calculateQueriesPerSecond(),
     };
 
@@ -119,8 +128,10 @@ export class QueryStatisticsService {
     for (const [type, typeStats] of this.queryStats.queryTypeStats) {
       stats.queryTypes[type] = {
         count: typeStats.count,
-        averageTime: typeStats.count > 0 ? typeStats.totalTime / typeStats.count : 0,
-        successRate: typeStats.count > 0 ? 1 - typeStats.errors / typeStats.count : 0,
+        averageTime:
+          typeStats.count > 0 ? typeStats.totalTime / typeStats.count : 0,
+        successRate:
+          typeStats.count > 0 ? 1 - typeStats.errors / typeStats.count : 0,
       };
     }
 
@@ -145,8 +156,8 @@ export class QueryStatisticsService {
   private calculateQueriesPerSecond(): number {
     const uptimeSeconds = (Date.now() - this.queryStats.startTime) / 1000;
     if (uptimeSeconds < 1) {
-        return this.queryStats.totalQueries; // 运行时间太短，直接返回总数
+      return this.queryStats.totalQueries; // 运行时间太短，直接返回总数
     }
     return this.queryStats.totalQueries / uptimeSeconds;
   }
-} 
+}

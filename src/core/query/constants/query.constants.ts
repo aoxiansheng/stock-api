@@ -8,7 +8,8 @@
  */
 export const QUERY_ERROR_MESSAGES = Object.freeze({
   QUERY_TYPE_REQUIRED: "查询类型不能为空",
-  UNSUPPORTED_QUERY_TYPE: "不支持的查询类型: {queryType}。支持的类型: {supportedTypes}",
+  UNSUPPORTED_QUERY_TYPE:
+    "不支持的查询类型: {queryType}。支持的类型: {supportedTypes}",
   SYMBOLS_REQUIRED_FOR_BY_SYMBOLS: "按股票代码查询时，股票代码列表不能为空",
   TOO_MANY_SYMBOLS: "单次查询股票代码数量不能超过{maxCount}个",
   INVALID_SYMBOL_FORMAT: "股票代码不能为空字符串",
@@ -39,7 +40,8 @@ export const QUERY_WARNING_MESSAGES = Object.freeze({
   CACHE_RETRIEVAL_WARNING: "从缓存获取数据失败",
   CACHE_STORAGE_WARNING: "查询结果缓存失败",
   BULK_QUERY_SINGLE_FAILED: "批量查询中的单个查询失败",
-  PARTIAL_RESULTS_WARNING: "部分股票数据获取失败，实际返回 {actualCount} 条记录",
+  PARTIAL_RESULTS_WARNING:
+    "部分股票数据获取失败，实际返回 {actualCount} 条记录",
   SLOW_QUERY_DETECTED: "检测到慢查询",
   LARGE_RESULT_SET_WARNING: "查询结果集较大，可能影响性能",
   CACHE_MISS_WARNING: "缓存未命中，从实时数据源获取",
@@ -66,45 +68,45 @@ export const QUERY_SUCCESS_MESSAGES = Object.freeze({
  * 查询性能配置常量
  */
 export const QUERY_PERFORMANCE_CONFIG = Object.freeze({
-  SLOW_QUERY_THRESHOLD_MS: 1000,              // 慢查询阈值（毫秒）
-  DEFAULT_CACHE_TTL_SECONDS: 3600,            // 默认缓存TTL（1小时）
-  DEFAULT_MAX_CACHE_AGE_SECONDS: 300,         // 默认最大缓存年龄（5分钟）
-  DEFAULT_QUERY_LIMIT: 100,                   // 默认查询限制
-  MAX_SYMBOLS_PER_QUERY: 100,                 // 单次查询最大股票数量
-  LOG_SYMBOLS_LIMIT: 3,                       // 日志中显示的股票数量限制
-  MAX_BULK_QUERIES: 100,                      // 最大批量查询数量
-  QUERY_TIMEOUT_MS: 30000,                    // 查询超时时间（30秒）
-  CACHE_TIMEOUT_MS: 5000,                     // 缓存操作超时时间（5秒）
-  REALTIME_FETCH_TIMEOUT_MS: 15000,           // 实时数据获取超时时间（15秒）
+  SLOW_QUERY_THRESHOLD_MS: 1000, // 慢查询阈值（毫秒）
+  DEFAULT_CACHE_TTL_SECONDS: 3600, // 默认缓存TTL（1小时）
+  DEFAULT_MAX_CACHE_AGE_SECONDS: 300, // 默认最大缓存年龄（5分钟）
+  DEFAULT_QUERY_LIMIT: 100, // 默认查询限制
+  MAX_SYMBOLS_PER_QUERY: 100, // 单次查询最大股票数量
+  LOG_SYMBOLS_LIMIT: 3, // 日志中显示的股票数量限制
+  MAX_BULK_QUERIES: 100, // 最大批量查询数量
+  QUERY_TIMEOUT_MS: 30000, // 查询超时时间（30秒）
+  CACHE_TIMEOUT_MS: 5000, // 缓存操作超时时间（5秒）
+  REALTIME_FETCH_TIMEOUT_MS: 15000, // 实时数据获取超时时间（15秒）
 } as const);
 
 /**
  * 查询配置常量
  */
 export const QUERY_CONFIG = Object.freeze({
-  DEFAULT_STORAGE_KEY_SEPARATOR: ":",         // 默认存储键分隔符
-  QUERY_ID_LENGTH: 8,                         // 查询ID长度
-  MAX_QUERY_LIMIT: 1000,                      // 最大查询限制
-  MIN_QUERY_LIMIT: 1,                         // 最小查询限制
-  DEFAULT_DATA_TYPE: "stock-quote",           // 默认数据类型
-  DEFAULT_PROVIDER: "unknown",                // 默认提供商
-  DEFAULT_MARKET: "unknown",                  // 默认市场
-  CACHE_SOURCE_TAG: "realtime",               // 缓存源标签
-  QPS_CALCULATION_WINDOW_SECONDS: 60,         // QPS计算时间窗口（秒）
+  DEFAULT_STORAGE_KEY_SEPARATOR: ":", // 默认存储键分隔符
+  QUERY_ID_LENGTH: 8, // 查询ID长度
+  MAX_QUERY_LIMIT: 1000, // 最大查询限制
+  MIN_QUERY_LIMIT: 1, // 最小查询限制
+  DEFAULT_DATA_TYPE: "stock-quote", // 默认数据类型
+  DEFAULT_PROVIDER: "unknown", // 默认提供商
+  DEFAULT_MARKET: "unknown", // 默认市场
+  CACHE_SOURCE_TAG: "realtime", // 缓存源标签
+  QPS_CALCULATION_WINDOW_SECONDS: 60, // QPS计算时间窗口（秒）
 } as const);
 
 /**
  * 查询验证规则常量
  */
 export const QUERY_VALIDATION_RULES = Object.freeze({
-  MIN_SYMBOL_LENGTH: 1,                       // 最小股票代码长度
-  MAX_SYMBOL_LENGTH: 20,                      // 最大股票代码长度
-  MIN_QUERY_LIMIT: 1,                         // 最小查询限制
-  MAX_QUERY_LIMIT: 1000,                      // 最大查询限制
-  MIN_QUERY_OFFSET: 0,                        // 最小查询偏移量
-  MAX_BULK_QUERIES: 100,                      // 最大批量查询数量
-  SYMBOL_PATTERN: /^[A-Za-z0-9._-]+$/,        // 股票代码格式模式
-  QUERY_ID_PATTERN: /^[a-zA-Z0-9-]+$/,        // 查询ID格式模式
+  MIN_SYMBOL_LENGTH: 1, // 最小股票代码长度
+  MAX_SYMBOL_LENGTH: 20, // 最大股票代码长度
+  MIN_QUERY_LIMIT: 1, // 最小查询限制
+  MAX_QUERY_LIMIT: 1000, // 最大查询限制
+  MIN_QUERY_OFFSET: 0, // 最小查询偏移量
+  MAX_BULK_QUERIES: 100, // 最大批量查询数量
+  SYMBOL_PATTERN: /^[A-Za-z0-9._-]+$/, // 股票代码格式模式
+  QUERY_ID_PATTERN: /^[a-zA-Z0-9-]+$/, // 查询ID格式模式
 } as const);
 
 /**
@@ -229,24 +231,23 @@ export const QUERY_EVENTS = Object.freeze({
  * 查询缓存配置常量
  */
 export const QUERY_CACHE_CONFIG = Object.freeze({
-  DEFAULT_TTL_SECONDS: 3600,                  // 默认缓存TTL（1小时）
-  MAX_CACHE_AGE_SECONDS: 300,                 // 最大缓存年龄（5分钟）
-  CACHE_KEY_PREFIX: "query:",                 // 缓存键前缀
-  CACHE_TAG_SEPARATOR: ":",                   // 缓存标签分隔符
-  MAX_CACHE_KEY_LENGTH: 250,                  // 最大缓存键长度
-  CACHE_COMPRESSION_THRESHOLD: 1024,          // 缓存压缩阈值（字节）
+  DEFAULT_TTL_SECONDS: 3600, // 默认缓存TTL（1小时）
+  MAX_CACHE_AGE_SECONDS: 300, // 最大缓存年龄（5分钟）
+  CACHE_KEY_PREFIX: "query:", // 缓存键前缀
+  CACHE_TAG_SEPARATOR: ":", // 缓存标签分隔符
+  MAX_CACHE_KEY_LENGTH: 250, // 最大缓存键长度
+  CACHE_COMPRESSION_THRESHOLD: 1024, // 缓存压缩阈值（字节）
 } as const);
 
 /**
  * 查询健康检查配置常量
  */
 export const QUERY_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: 30000,                   // 健康检查间隔（30秒）
-  TIMEOUT_MS: 5000,                           // 健康检查超时（5秒）
-  MAX_FAILURES: 3,                            // 最大失败次数
-  RECOVERY_THRESHOLD: 5,                      // 恢复阈值
-  METRICS_WINDOW_SIZE: 100,                   // 指标窗口大小
-  ERROR_RATE_THRESHOLD: 0.1,                  // 错误率阈值（10%）
-  RESPONSE_TIME_THRESHOLD: 2000,              // 响应时间阈值（2秒）
+  CHECK_INTERVAL_MS: 30000, // 健康检查间隔（30秒）
+  TIMEOUT_MS: 5000, // 健康检查超时（5秒）
+  MAX_FAILURES: 3, // 最大失败次数
+  RECOVERY_THRESHOLD: 5, // 恢复阈值
+  METRICS_WINDOW_SIZE: 100, // 指标窗口大小
+  ERROR_RATE_THRESHOLD: 0.1, // 错误率阈值（10%）
+  RESPONSE_TIME_THRESHOLD: 2000, // 响应时间阈值（2秒）
 } as const);
-

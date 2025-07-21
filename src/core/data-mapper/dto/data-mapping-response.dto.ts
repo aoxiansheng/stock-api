@@ -1,9 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-import { IDataMappingRule, ITransformFunction } from "../interfaces/data-mapping.interface";
 import {
-  DataMappingRuleDocument,
-} from "../schemas/data-mapper.schema";
+  IDataMappingRule,
+  ITransformFunction,
+} from "../interfaces/data-mapping.interface";
+import { DataMappingRuleDocument } from "../schemas/data-mapper.schema";
 // 🎯 引入接口以实现类型安全
 
 // 🎯 使用接口定义，确保类型一致性

@@ -1,23 +1,24 @@
-import { RedisService } from '@liaoliaots/nestjs-redis';
+import { RedisService } from "@liaoliaots/nestjs-redis";
 import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
-} from '@nestjs/common';
-import { Redis } from 'ioredis';
+} from "@nestjs/common";
+import { Redis } from "ioredis";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-import { securityConfig } from '../../common/config/security.config';
+import { securityConfig } from "../../common/config/security.config";
 import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
   RATE_LIMIT_LUA_SCRIPTS,
   RATE_LIMIT_TIME_MULTIPLIERS,
   RateLimitTemplateUtil,
- RateLimitStrategy } from '../../common/constants/rate-limit.constants';
-import { RateLimitResult } from '../interfaces/rate-limit.interface';
-import { ApiKey } from '../schemas/apikey.schema';
+  RateLimitStrategy,
+} from "../../common/constants/rate-limit.constants";
+import { RateLimitResult } from "../interfaces/rate-limit.interface";
+import { ApiKey } from "../schemas/apikey.schema";
 
 // 🎯 复用 common 模块的日志配置
 
@@ -70,29 +71,43 @@ export class RateLimitService {
       strategy !== RateLimitStrategy.SLIDING_WINDOW
     ) {
       throw new BadRequestException(
-        RateLimitTemplateUtil.generateErrorMessage('UNSUPPORTED_STRATEGY', { strategy })
+        RateLimitTemplateUtil.generateErrorMessage("UNSUPPORTED_STRATEGY", {
+          strategy,
+        }),
       );
     }
 
     try {
       switch (strategy) {
         case RateLimitStrategy.FIXED_WINDOW:
-          return await this.checkFixedWindow(key, rateLimit.requests, windowSeconds);
+          return await this.checkFixedWindow(
+            key,
+            rateLimit.requests,
+            windowSeconds,
+          );
         case RateLimitStrategy.SLIDING_WINDOW:
-          return await this.checkSlidingWindow(key, rateLimit.requests, windowSeconds);
+          return await this.checkSlidingWindow(
+            key,
+            rateLimit.requests,
+            windowSeconds,
+          );
       }
     } catch (error) {
-      this.logger.error(
-        RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_FAILED,
-        { operation, appKey, strategy, error: error.stack },
-      );
+      this.logger.error(RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_FAILED, {
+        operation,
+        appKey,
+        strategy,
+        error: error.stack,
+      });
 
       // 🎯 实现故障恢复机制 - fail-open策略
-      this.logger.warn(
-        '限流服务异常，启用fail-open模式允许请求通过',
-        { operation, appKey, strategy, errorType: error.constructor.name }
-      );
-      
+      this.logger.warn("限流服务异常，启用fail-open模式允许请求通过", {
+        operation,
+        appKey,
+        strategy,
+        errorType: error.constructor.name,
+      });
+
       return {
         allowed: true,
         limit: rateLimit.requests,
@@ -123,13 +138,16 @@ export class RateLimitService {
       operation,
       windowKey,
       limit,
-      windowSeconds
+      windowSeconds,
     });
 
     const pipeline = this.redis.pipeline();
     pipeline.incr(windowKey);
     // 🎯 使用集中化配置
-    pipeline.expire(windowKey, windowSeconds + this.config.luaExpireBufferSeconds);
+    pipeline.expire(
+      windowKey,
+      windowSeconds + this.config.luaExpireBufferSeconds,
+    );
 
     const results = await pipeline.exec();
     const current = results[0][1] as number;
@@ -141,7 +159,7 @@ export class RateLimitService {
         operation,
         key,
         current,
-        limit
+        limit,
       });
     }
 
@@ -195,7 +213,7 @@ export class RateLimitService {
         operation,
         key,
         current,
-        limit
+        limit,
       });
     }
 
@@ -225,7 +243,9 @@ export class RateLimitService {
 
     if (!match) {
       throw new BadRequestException(
-        RateLimitTemplateUtil.generateErrorMessage('INVALID_WINDOW_FORMAT', { window })
+        RateLimitTemplateUtil.generateErrorMessage("INVALID_WINDOW_FORMAT", {
+          window,
+        }),
       );
     }
 
@@ -235,7 +255,9 @@ export class RateLimitService {
     const multiplier = RATE_LIMIT_TIME_MULTIPLIERS[unit];
     if (multiplier === undefined) {
       throw new InternalServerErrorException(
-        RateLimitTemplateUtil.generateErrorMessage('UNSUPPORTED_TIME_UNIT', { unit })
+        RateLimitTemplateUtil.generateErrorMessage("UNSUPPORTED_TIME_UNIT", {
+          unit,
+        }),
       );
     }
 
@@ -311,19 +333,22 @@ export class RateLimitService {
     } else if (strategy === RateLimitStrategy.SLIDING_WINDOW) {
       keyToDelete = `${key}:sliding`;
     } else {
-      this.logger.warn(
-        RATE_LIMIT_MESSAGES.UNSUPPORTED_STRATEGY_RESET,
-        { operation, appKey, strategy },
-      );
+      this.logger.warn(RATE_LIMIT_MESSAGES.UNSUPPORTED_STRATEGY_RESET, {
+        operation,
+        appKey,
+        strategy,
+      });
       return;
     }
 
     if (keyToDelete) {
       await this.redis.del(keyToDelete);
-      this.logger.log(
-        RATE_LIMIT_MESSAGES.RATE_LIMIT_RESET,
-        { operation, appKey, strategy, deletedKey: keyToDelete },
-      );
+      this.logger.log(RATE_LIMIT_MESSAGES.RATE_LIMIT_RESET, {
+        operation,
+        appKey,
+        strategy,
+        deletedKey: keyToDelete,
+      });
     }
   }
 
@@ -346,7 +371,10 @@ export class RateLimitService {
     const currentPeriodRequests = currentUsage.current;
 
     const createdAt = apiKey.createdAt;
-    const hoursElapsed = Math.max(1, (Date.now() - createdAt.getTime()) / (1000 * 60 * 60));
+    const hoursElapsed = Math.max(
+      1,
+      (Date.now() - createdAt.getTime()) / (1000 * 60 * 60),
+    );
     const averageRequestsPerHour = totalRequests / hoursElapsed;
 
     return {

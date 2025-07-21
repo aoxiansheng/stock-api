@@ -3,7 +3,7 @@
  */
 export enum AlertSeverity {
   CRITICAL = "critical",
-  WARNING = "warning", 
+  WARNING = "warning",
   INFO = "info",
 }
 

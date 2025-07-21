@@ -1,12 +1,18 @@
-import { HttpService } from '@nestjs/axios';
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpService } from "@nestjs/axios";
+import { Injectable, BadRequestException } from "@nestjs/common";
+import { AxiosResponse } from "axios";
+import { firstValueFrom } from "rxjs";
 
-import { createLogger } from '@common/config/logger.config';
-import { URLSecurityValidator } from '@common/utils/url-security-validator.util';
+import { createLogger } from "@common/config/logger.config";
+import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
-import { NotificationType, Alert, AlertRule, NotificationResult, NotificationSender } from '../../types/alert.types';
+import {
+  NotificationType,
+  Alert,
+  AlertRule,
+  NotificationResult,
+  NotificationSender,
+} from "../../types/alert.types";
 
 @Injectable()
 export class WebhookSender implements NotificationSender {
@@ -26,7 +32,9 @@ export class WebhookSender implements NotificationSender {
       // SSRF防护检查
       const urlValidation = URLSecurityValidator.validateURL(config.url);
       if (!urlValidation.valid) {
-        throw new BadRequestException(`URL安全检查失败: ${urlValidation.error}`);
+        throw new BadRequestException(
+          `URL安全检查失败: ${urlValidation.error}`,
+        );
       }
 
       const payload = {
@@ -49,17 +57,17 @@ export class WebhookSender implements NotificationSender {
 
       return {
         success: response.status >= 200 && response.status < 300,
-        channelId: config.id || 'webhook',
+        channelId: config.id || "webhook",
         channelType: this.type,
         message: `Webhook 调用成功: ${response.status}`,
         sentAt: new Date(),
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.logger.error({ error: error.stack }, 'Webhook 发送失败');
+      this.logger.error({ error: error.stack }, "Webhook 发送失败");
       return {
         success: false,
-        channelId: config.id || 'webhook',
+        channelId: config.id || "webhook",
         channelType: this.type,
         error: error.message,
         sentAt: new Date(),
@@ -77,9 +85,16 @@ export class WebhookSender implements NotificationSender {
     }
 
     // 检查是否存在潜在的敏感头部
-    if (config.headers && Object.keys(config.headers).some(h => h.toLowerCase() === 'authorization')) {
-      this.logger.warn('Webhook测试配置中检测到潜在的敏感头部 (Authorization)');
-      throw new BadRequestException('出于安全原因，测试配置中不允许包含 Authorization 头部');
+    if (
+      config.headers &&
+      Object.keys(config.headers).some(
+        (h) => h.toLowerCase() === "authorization",
+      )
+    ) {
+      this.logger.warn("Webhook测试配置中检测到潜在的敏感头部 (Authorization)");
+      throw new BadRequestException(
+        "出于安全原因，测试配置中不允许包含 Authorization 头部",
+      );
     }
 
     try {
@@ -93,40 +108,51 @@ export class WebhookSender implements NotificationSender {
     }
   }
 
-  validateConfig(config: Record<string, any>): { valid: boolean; errors: string[] } {
+  validateConfig(config: Record<string, any>): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!config.url) {
-      errors.push('URL is required for webhook notification');
-    } else if (typeof config.url !== 'string') {
-      errors.push('URL must be a string');
+      errors.push("URL is required for webhook notification");
+    } else if (typeof config.url !== "string") {
+      errors.push("URL must be a string");
     } else {
       try {
         new URL(config.url);
-        
+
         // 添加SSRF防护验证
         const urlValidation = URLSecurityValidator.validateURL(config.url);
         if (!urlValidation.valid) {
           errors.push(`URL安全检查失败: ${urlValidation.error}`);
         }
       } catch {
-        errors.push('URL must be a valid URL');
+        errors.push("URL must be a valid URL");
       }
     }
 
-    if (config.timeout && (typeof config.timeout !== 'number' || config.timeout <= 0)) {
-      errors.push('Timeout must be a positive number');
+    if (
+      config.timeout &&
+      (typeof config.timeout !== "number" || config.timeout <= 0)
+    ) {
+      errors.push("Timeout must be a positive number");
     }
 
-    if (config.headers && typeof config.headers !== 'object') {
-      errors.push('Headers must be an object');
-    } else if (config.headers && Object.keys(config.headers).some(h => h.toLowerCase() === 'authorization')) {
-      errors.push('出于安全原因，配置中不允许包含 Authorization 头部');
+    if (config.headers && typeof config.headers !== "object") {
+      errors.push("Headers must be an object");
+    } else if (
+      config.headers &&
+      Object.keys(config.headers).some(
+        (h) => h.toLowerCase() === "authorization",
+      )
+    ) {
+      errors.push("出于安全原因，配置中不允许包含 Authorization 头部");
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
-} 
+}

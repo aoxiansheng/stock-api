@@ -6,17 +6,17 @@ export class StorageMetadataDto {
   @ApiProperty({ description: "Storage key" })
   key: string;
 
-  @ApiProperty({ 
-    description: "Storage type used", 
+  @ApiProperty({
+    description: "Storage type used",
     enum: StorageType,
-    enumName: 'StorageType'
+    enumName: "StorageType",
   })
   storageType: StorageType;
 
-  @ApiProperty({ 
-    description: "Data classification", 
+  @ApiProperty({
+    description: "Data classification",
     enum: DataClassification,
-    enumName: 'DataClassification'
+    enumName: "DataClassification",
   })
   dataClassification: DataClassification;
 
@@ -68,4 +68,4 @@ export class StorageMetadataDto {
     this.tags = tags;
     this.expiresAt = expiresAt;
   }
-} 
+}

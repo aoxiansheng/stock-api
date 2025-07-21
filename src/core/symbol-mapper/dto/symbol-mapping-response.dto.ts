@@ -1,8 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-import {
-  SymbolMappingRuleDocument,
-} from "../schemas/symbol-mapping-rule.schema";
+import { SymbolMappingRuleDocument } from "../schemas/symbol-mapping-rule.schema";
 
 export class MappingRuleResponseDto {
   @ApiProperty({ description: "输入股票代码" })

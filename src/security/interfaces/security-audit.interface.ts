@@ -4,12 +4,12 @@
 export interface SecurityEvent {
   id: string;
   type:
-    | 'authentication'
-    | 'authorization'
-    | 'data_access'
-    | 'system'
-    | 'suspicious_activity';
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+    | "authentication"
+    | "authorization"
+    | "data_access"
+    | "system"
+    | "suspicious_activity";
+  severity: "critical" | "high" | "medium" | "low" | "info";
   action: string;
   userId?: string;
   apiKeyId?: string;
@@ -18,7 +18,7 @@ export interface SecurityEvent {
   details: Record<string, any>;
   timestamp: Date;
   source: string;
-  outcome: 'success' | 'failure' | 'blocked';
+  outcome: "success" | "failure" | "blocked";
 }
 
 /**
@@ -74,17 +74,27 @@ export interface AuditReport {
 /**
  * 安全事件类型枚举值
  */
-export type SecurityEventType = 'authentication' | 'authorization' | 'data_access' | 'system' | 'suspicious_activity';
+export type SecurityEventType =
+  | "authentication"
+  | "authorization"
+  | "data_access"
+  | "system"
+  | "suspicious_activity";
 
 /**
  * 安全事件严重程度枚举值
  */
-export type SecurityEventSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type SecurityEventSeverity =
+  | "critical"
+  | "high"
+  | "medium"
+  | "low"
+  | "info";
 
 /**
  * 安全事件结果枚举值
  */
-export type SecurityEventOutcome = 'success' | 'failure' | 'blocked';
+export type SecurityEventOutcome = "success" | "failure" | "blocked";
 
 /**
  * IP 分析结果接口

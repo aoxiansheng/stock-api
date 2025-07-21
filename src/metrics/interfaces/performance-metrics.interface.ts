@@ -44,4 +44,4 @@ export interface SystemMetrics {
   heapTotal: number;
   uptime: number;
   eventLoopLag: number;
-} 
+}

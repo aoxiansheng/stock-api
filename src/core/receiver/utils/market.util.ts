@@ -26,13 +26,15 @@ export class MarketUtils {
 
     // 美国市场 (应在A股市场之前判断，因为纯字母代码是美股的典型特征)
     if (MARKET_RECOGNITION_RULES.US_PATTERNS.ALPHA_PATTERN.test(upperSymbol)) {
-        return Market.US;
+      return Market.US;
     }
 
     // 深圳市场
     if (
       upperSymbol.includes(MARKET_RECOGNITION_RULES.SZ_PATTERNS.SUFFIX) ||
-      MARKET_RECOGNITION_RULES.SZ_PATTERNS.PREFIX_PATTERNS.some(prefix => upperSymbol.startsWith(prefix))
+      MARKET_RECOGNITION_RULES.SZ_PATTERNS.PREFIX_PATTERNS.some((prefix) =>
+        upperSymbol.startsWith(prefix),
+      )
     ) {
       return Market.SZ;
     }
@@ -40,14 +42,16 @@ export class MarketUtils {
     // 上海市场
     if (
       upperSymbol.includes(MARKET_RECOGNITION_RULES.SH_PATTERNS.SUFFIX) ||
-      MARKET_RECOGNITION_RULES.SH_PATTERNS.PREFIX_PATTERNS.some(prefix => upperSymbol.startsWith(prefix))
+      MARKET_RECOGNITION_RULES.SH_PATTERNS.PREFIX_PATTERNS.some((prefix) =>
+        upperSymbol.startsWith(prefix),
+      )
     ) {
       return Market.SH;
     }
-    
+
     // 如果没有明确的后缀，但代码符合美股特征，则识别为美股
     if (upperSymbol.includes(MARKET_RECOGNITION_RULES.US_PATTERNS.SUFFIX)) {
-        return Market.US;
+      return Market.US;
     }
 
     return undefined;
@@ -84,4 +88,4 @@ export class MarketUtils {
 
     return dominantMarket;
   }
-} 
+}

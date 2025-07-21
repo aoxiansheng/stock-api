@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import { Injectable } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
 
-import { securityConfig } from '../../common/config/security.config';
+import { securityConfig } from "../../common/config/security.config";
 
 /**
  * 封装密码处理逻辑的服务
@@ -28,4 +28,4 @@ export class PasswordService {
   async comparePassword(plain: string, hash: string): Promise<boolean> {
     return bcrypt.compare(plain, hash);
   }
-} 
+}

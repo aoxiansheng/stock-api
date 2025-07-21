@@ -1,13 +1,13 @@
 // 🎯 已迁移到 ./types/alert.types.ts
 // 保持向后兼容的重新导出
-import { 
+import {
   NotificationChannel,
   NotificationResult,
   BatchNotificationResult,
   NotificationSender,
   NotificationTemplate,
-  NotificationLog
-} from '../types/alert.types';
+  NotificationLog,
+} from "../types/alert.types";
 
 export type INotificationChannel = NotificationChannel;
 export type INotificationResult = NotificationResult;

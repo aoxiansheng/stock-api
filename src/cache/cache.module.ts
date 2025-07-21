@@ -1,13 +1,11 @@
-import { RedisModule } from '@liaoliaots/nestjs-redis';
-import { Module } from '@nestjs/common';
+import { RedisModule } from "@liaoliaots/nestjs-redis";
+import { Module } from "@nestjs/common";
 
-import { CacheService } from './cache.service';
+import { CacheService } from "./cache.service";
 
 @Module({
-  imports: [
-    RedisModule,
-  ],
+  imports: [RedisModule],
   providers: [CacheService],
   exports: [CacheService],
 })
-export class CacheModule {} 
+export class CacheModule {}

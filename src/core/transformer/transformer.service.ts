@@ -5,22 +5,21 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from '@common/config/logger.config';
-
+import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
 import { DataMapperService } from "../data-mapper/data-mapper.service";
-import { DataMappingResponseDto } from '../data-mapper/dto/data-mapping-response.dto';
-import { ObjectUtils } from '../shared/utils/object.util';
+import { DataMappingResponseDto } from "../data-mapper/dto/data-mapping-response.dto";
+import { ObjectUtils } from "../shared/utils/object.util";
 
 import {
   TRANSFORM_ERROR_MESSAGES,
   TRANSFORM_WARNING_MESSAGES,
   TRANSFORM_CONFIG,
   TRANSFORM_PERFORMANCE_THRESHOLDS,
-} from './constants/transformer.constants';
+} from "./constants/transformer.constants";
 import {
-  MappingRuleDto,
-  ValidationResultDto,
+  DataTransformRuleDto,
+  TransformValidationDto,
   TransformationStatsDto,
 } from "./dto/transform-interfaces.dto";
 import {
@@ -38,7 +37,6 @@ import {
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的转换常量
 
-
 @Injectable()
 export class TransformerService {
   // 🎯 使用 common 模块的日志配置
@@ -53,12 +51,15 @@ export class TransformerService {
     const startTime = Date.now();
 
     // 🎯 使用 common 模块的日志脱敏功能
-    this.logger.log(`开始数据转换`, sanitizeLogData({
-      provider: request.provider,
-      dataType: request.dataType,
-      mappingOutRuleId: request.mappingOutRuleId,
-      hasRawData: !!request.rawData,
-    }));
+    this.logger.log(
+      `开始数据转换`,
+      sanitizeLogData({
+        provider: request.provider,
+        dataType: request.dataType,
+        mappingOutRuleId: request.mappingOutRuleId,
+        hasRawData: !!request.rawData,
+      }),
+    );
 
     try {
       // 1. Find appropriate mapping rule
@@ -117,38 +118,58 @@ export class TransformerService {
       );
 
       // 🎯 使用 common 模块的日志脱敏功能和性能阈值
-      const logLevel = processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS ? 'warn' : 'log';
-      this.logger[logLevel](`数据转换成功完成`, sanitizeLogData({
-        ruleId: mappingRule.id,
-        recordsProcessed: stats.recordsProcessed,
-        fieldsTransformed: stats.fieldsTransformed,
-        processingTime,
-        hasErrors: validationErrors.length > 0,
-        hasWarnings: warnings.length > 0,
-        isSlowTransformation: processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS,
-      }));
+      const logLevel =
+        processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+          ? "warn"
+          : "log";
+      this.logger[logLevel](
+        `数据转换成功完成`,
+        sanitizeLogData({
+          ruleId: mappingRule.id,
+          recordsProcessed: stats.recordsProcessed,
+          fieldsTransformed: stats.fieldsTransformed,
+          processingTime,
+          hasErrors: validationErrors.length > 0,
+          hasWarnings: warnings.length > 0,
+          isSlowTransformation:
+            processingTime >
+            TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS,
+        }),
+      );
 
       // 🎯 性能警告检查
-      if (processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
-        warnings.push(`${TRANSFORM_WARNING_MESSAGES.PERFORMANCE_WARNING}: ${processingTime}ms`);
+      if (
+        processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+      ) {
+        warnings.push(
+          `${TRANSFORM_WARNING_MESSAGES.PERFORMANCE_WARNING}: ${processingTime}ms`,
+        );
       }
-      if (stats.recordsProcessed > TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE) {
-        warnings.push(`${TRANSFORM_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${stats.recordsProcessed} records`);
+      if (
+        stats.recordsProcessed >
+        TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE
+      ) {
+        warnings.push(
+          `${TRANSFORM_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${stats.recordsProcessed} records`,
+        );
       }
 
       if (validationErrors.length > 0) {
         // 抛出异常而不是返回错误响应，符合新的架构设计
-        throw new BadRequestException(validationErrors.join('; '));
+        throw new BadRequestException(validationErrors.join("; "));
       }
 
       // 警告信息通过日志记录，不在响应中返回
       if (warnings.length > 0) {
-        this.logger.warn(`数据转换警告`, sanitizeLogData({
-          provider: request.provider,
-          dataType: request.dataType,
-          warnings,
-          operation: 'transformData'
-        }));
+        this.logger.warn(
+          `数据转换警告`,
+          sanitizeLogData({
+            provider: request.provider,
+            dataType: request.dataType,
+            warnings,
+            operation: "transformData",
+          }),
+        );
       }
 
       return new TransformResponseDto(transformedData, metadata);
@@ -156,17 +177,20 @@ export class TransformerService {
       const processingTime = Date.now() - startTime;
 
       // 🎯 使用 common 模块的日志脱敏功能
-      this.logger.error(`数据转换失败`, sanitizeLogData({
-        provider: request.provider,
-        dataType: request.dataType,
-        error: error.message,
-        stack: error.stack,
-        processingTime,
-      }));
+      this.logger.error(
+        `数据转换失败`,
+        sanitizeLogData({
+          provider: request.provider,
+          dataType: request.dataType,
+          error: error.message,
+          stack: error.stack,
+          processingTime,
+        }),
+      );
 
       // 抛出异常而不是返回错误响应，符合新的架构设计
       throw new InternalServerErrorException(
-        `${TRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED}: ${error.message}`
+        `${TRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED}: ${error.message}`,
       );
     }
   }
@@ -181,26 +205,30 @@ export class TransformerService {
     requests: TransformRequestDto[];
     options?: BatchTransformOptionsDto;
   }): Promise<TransformResponseDto[]> {
-    const operation = 'transformBatch_optimized';
+    const operation = "transformBatch_optimized";
 
     // 🎯 使用 common 模块的配置常量进行批量大小检查
     if (requests.length > TRANSFORM_CONFIG.MAX_BATCH_SIZE) {
       throw new BadRequestException(
-        `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: 批量大小 ${requests.length} 超过最大限制 ${TRANSFORM_CONFIG.MAX_BATCH_SIZE}`
+        `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: 批量大小 ${requests.length} 超过最大限制 ${TRANSFORM_CONFIG.MAX_BATCH_SIZE}`,
       );
     }
 
     this.logger.log(
-      { operation, batchSize: requests.length, options, maxAllowed: TRANSFORM_CONFIG.MAX_BATCH_SIZE },
-      '开始优化批量转换',
+      {
+        operation,
+        batchSize: requests.length,
+        options,
+        maxAllowed: TRANSFORM_CONFIG.MAX_BATCH_SIZE,
+      },
+      "开始优化批量转换",
     );
 
     // Group requests by a unique rule identifier
     const requestsByRule = new Map<string, TransformRequestDto[]>();
     for (const request of requests) {
       const key =
-        request.mappingOutRuleId ||
-        `${request.provider}::${request.dataType}`;
+        request.mappingOutRuleId || `${request.provider}::${request.dataType}`;
       if (!requestsByRule.has(key)) {
         requestsByRule.set(key, []);
       }
@@ -221,13 +249,13 @@ export class TransformerService {
             // Handle case where no rule is found for the group
             // For batch operations, we throw exceptions that will be caught by the batch handler
             throw new NotFoundException(
-              `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: key '${ruleKey}'`
+              `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: key '${ruleKey}'`,
             );
           }
 
           // Apply the single rule to all requests in the group, in parallel
-          const groupPromises = groupedRequests.map(request => 
-            this._executeSingleTransform(request, mappingRule)
+          const groupPromises = groupedRequests.map((request) =>
+            this._executeSingleTransform(request, mappingRule),
           );
 
           return await Promise.all(groupPromises);
@@ -235,7 +263,7 @@ export class TransformerService {
           if (!options.continueOnError) throw error;
           // For batch operations, we throw exceptions that will be caught by the batch handler
           throw new InternalServerErrorException(
-            `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: ${error.message}`
+            `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: ${error.message}`,
           );
         }
       },
@@ -244,14 +272,14 @@ export class TransformerService {
     const resultsNested = await Promise.allSettled(allPromises);
     const finalResponses: TransformResponseDto[] = [];
 
-    resultsNested.forEach(result => {
-      if (result.status === 'fulfilled') {
+    resultsNested.forEach((result) => {
+      if (result.status === "fulfilled") {
         finalResponses.push(...result.value);
       } else {
         // This case should be rare if the inner try/catch is correct
         this.logger.error(
           { operation, error: result.reason.message },
-          'transformBatch中的组Promise被拒绝',
+          "transformBatch中的组Promise被拒绝",
         );
       }
     });
@@ -263,7 +291,7 @@ export class TransformerService {
         successful: finalResponses.length,
         failed: requests.length - finalResponses.length,
       },
-      '优化批量转换完成',
+      "优化批量转换完成",
     );
 
     return finalResponses;
@@ -275,67 +303,96 @@ export class TransformerService {
   ): Promise<TransformResponseDto> {
     const startTime = Date.now();
     try {
-        const transformedData = await this.dataMapperService.applyMappingRule(
-            mappingRule.id,
-            request.rawData,
+      const transformedData = await this.dataMapperService.applyMappingRule(
+        mappingRule.id,
+        request.rawData,
+      );
+
+      const validationErrors: string[] = [];
+      const warnings: string[] = [];
+      if (request.options?.validateOutput) {
+        const validation = this.validateTransformedData(
+          transformedData,
+          mappingRule,
         );
+        validationErrors.push(...validation.errors);
+        warnings.push(...validation.warnings);
+      }
 
-        const validationErrors: string[] = [];
-        const warnings: string[] = [];
-        if (request.options?.validateOutput) {
-            const validation = this.validateTransformedData(transformedData, mappingRule);
-            validationErrors.push(...validation.errors);
-            warnings.push(...validation.warnings);
-        }
+      const stats = this.calculateTransformationStats(
+        transformedData,
+        mappingRule,
+      );
+      const processingTime = Date.now() - startTime;
 
-        const stats = this.calculateTransformationStats(transformedData, mappingRule);
-        const processingTime = Date.now() - startTime;
+      const metadata = new TransformationMetadataDto(
+        mappingRule.id,
+        mappingRule.name,
+        request.provider,
+        request.dataType,
+        stats.recordsProcessed,
+        stats.fieldsTransformed,
+        processingTime,
+        request.options?.includeMetadata
+          ? stats.transformationsApplied
+          : undefined,
+      );
 
-        const metadata = new TransformationMetadataDto(
-            mappingRule.id,
-            mappingRule.name,
-            request.provider,
-            request.dataType,
-            stats.recordsProcessed,
-            stats.fieldsTransformed,
-            processingTime,
-            request.options?.includeMetadata ? stats.transformationsApplied : undefined,
+      const logLevel =
+        processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+          ? "warn"
+          : "log";
+      this.logger[logLevel](
+        `单次数据转换成功完成`,
+        sanitizeLogData({
+          ruleId: mappingRule.id,
+          recordsProcessed: stats.recordsProcessed,
+          processingTime,
+        }),
+      );
+
+      if (
+        processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+      ) {
+        warnings.push(
+          `${TRANSFORM_WARNING_MESSAGES.PERFORMANCE_WARNING}: ${processingTime}ms`,
         );
+      }
+      if (
+        stats.recordsProcessed >
+        TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE
+      ) {
+        warnings.push(
+          `${TRANSFORM_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${stats.recordsProcessed} records`,
+        );
+      }
 
-        const logLevel = processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS ? 'warn' : 'log';
-        this.logger[logLevel](`单次数据转换成功完成`, sanitizeLogData({
-            ruleId: mappingRule.id,
-            recordsProcessed: stats.recordsProcessed,
-            processingTime,
-        }));
+      if (validationErrors.length > 0) {
+        throw new BadRequestException(validationErrors.join("; "));
+      }
 
-        if (processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
-            warnings.push(`${TRANSFORM_WARNING_MESSAGES.PERFORMANCE_WARNING}: ${processingTime}ms`);
-        }
-        if (stats.recordsProcessed > TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE) {
-            warnings.push(`${TRANSFORM_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${stats.recordsProcessed} records`);
-        }
-
-        if (validationErrors.length > 0) {
-          throw new BadRequestException(validationErrors.join('; '));
-        }
-
-        // 警告信息通过日志记录
-        if (warnings.length > 0) {
-          this.logger.warn(`数据转换警告`, sanitizeLogData({
+      // 警告信息通过日志记录
+      if (warnings.length > 0) {
+        this.logger.warn(
+          `数据转换警告`,
+          sanitizeLogData({
             ruleId: mappingRule.id,
             warnings,
-            operation: '_executeSingleTransform'
-          }));
-        }
-        
-        return new TransformResponseDto(transformedData, metadata);
+            operation: "_executeSingleTransform",
+          }),
+        );
+      }
+
+      return new TransformResponseDto(transformedData, metadata);
     } catch (error) {
-        this.logger.error(`单次数据转换失败`, sanitizeLogData({
-            ruleId: mappingRule.id,
-            error: error.message,
-        }));
-        throw new InternalServerErrorException(error.message);
+      this.logger.error(
+        `单次数据转换失败`,
+        sanitizeLogData({
+          ruleId: mappingRule.id,
+          error: error.message,
+        }),
+      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -344,12 +401,17 @@ export class TransformerService {
   /**
    * Preview transformation without applying it
    */
-  async previewTransformation(request: TransformRequestDto): Promise<TransformPreviewDto> {
+  async previewTransformation(
+    request: TransformRequestDto,
+  ): Promise<TransformPreviewDto> {
     // 🎯 使用 common 模块的日志脱敏功能
-    this.logger.log(`预览转换`, sanitizeLogData({
-      provider: request.provider,
-      dataType: request.dataType,
-    }));
+    this.logger.log(
+      `预览转换`,
+      sanitizeLogData({
+        provider: request.provider,
+        dataType: request.dataType,
+      }),
+    );
 
     // Find mapping rule
     const mappingRule = await this.findMappingRule(
@@ -374,24 +436,25 @@ export class TransformerService {
     );
 
     // Build field mapping preview
-    const fieldMappings: FieldMappingPreviewDto[] = mappingRule.fieldMappings.map((mapping) => {
-      const sourceValue = ObjectUtils.getValueFromPath(
-        sampleInput,
-        mapping.sourceField,
-      );
-      const targetValue = ObjectUtils.getValueFromPath(
-        sampleOutput[0] || {},
-        mapping.targetField,
-      );
+    const fieldMappings: FieldMappingPreviewDto[] =
+      mappingRule.fieldMappings.map((mapping) => {
+        const sourceValue = ObjectUtils.getValueFromPath(
+          sampleInput,
+          mapping.sourceField,
+        );
+        const targetValue = ObjectUtils.getValueFromPath(
+          sampleOutput[0] || {},
+          mapping.targetField,
+        );
 
-      return {
-        sourceField: mapping.sourceField,
-        targetField: mapping.targetField,
-        sampleSourceValue: sourceValue,
-        expectedTargetValue: targetValue,
-        transformType: mapping.transform?.type,
-      };
-    });
+        return {
+          sourceField: mapping.sourceField,
+          targetField: mapping.targetField,
+          sampleSourceValue: sourceValue,
+          expectedTargetValue: targetValue,
+          transformType: mapping.transform?.type,
+        };
+      });
 
     const mappingRuleInfo: MappingRuleInfoDto = {
       id: mappingRule.id,
@@ -435,8 +498,8 @@ export class TransformerService {
    */
   private validateTransformedData(
     transformedData: any,
-    mappingRule: MappingRuleDto,
-  ): ValidationResultDto {
+    mappingRule: DataTransformRuleDto,
+  ): TransformValidationDto {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -460,7 +523,8 @@ export class TransformerService {
     const sampleRecord = dataArray[0];
 
     const missingFields = requiredFields.filter(
-      (field: string) => ObjectUtils.getValueFromPath(sampleRecord, field) === undefined,
+      (field: string) =>
+        ObjectUtils.getValueFromPath(sampleRecord, field) === undefined,
     );
 
     if (missingFields.length > 0) {
@@ -489,7 +553,7 @@ export class TransformerService {
    */
   private calculateTransformationStats(
     transformedData: any,
-    mappingRule: MappingRuleDto,
+    mappingRule: DataTransformRuleDto,
   ): TransformationStatsDto {
     const dataArray = Array.isArray(transformedData)
       ? transformedData
@@ -520,7 +584,10 @@ export class TransformerService {
 
     // 🎯 使用 common 模块的配置常量限制样本大小
     if (Array.isArray(rawData)) {
-      const sampleSize = Math.min(rawData.length, TRANSFORM_CONFIG.MAX_SAMPLE_SIZE);
+      const sampleSize = Math.min(
+        rawData.length,
+        TRANSFORM_CONFIG.MAX_SAMPLE_SIZE,
+      );
       return sampleSize > 0 ? rawData[0] : {};
     }
 
@@ -528,7 +595,10 @@ export class TransformerService {
     const sample: any = {};
     for (const [key, value] of Object.entries(rawData)) {
       if (Array.isArray(value) && value.length > 0) {
-        const sampleSize = Math.min(value.length, TRANSFORM_CONFIG.MAX_SAMPLE_SIZE);
+        const sampleSize = Math.min(
+          value.length,
+          TRANSFORM_CONFIG.MAX_SAMPLE_SIZE,
+        );
         sample[key] = value.slice(0, sampleSize);
       } else {
         sample[key] = value;

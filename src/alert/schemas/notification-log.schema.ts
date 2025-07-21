@@ -20,10 +20,10 @@ export class NotificationLog implements INotificationLog {
   @Prop({ required: true })
   channelId: string;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     type: String,
-    enum: Object.values(NotificationType)
+    enum: Object.values(NotificationType),
   })
   channelType: NotificationType;
 
@@ -56,7 +56,8 @@ export class NotificationLog implements INotificationLog {
   ipAddress?: string;
 }
 
-export const NotificationLogSchema = SchemaFactory.createForClass(NotificationLog);
+export const NotificationLogSchema =
+  SchemaFactory.createForClass(NotificationLog);
 
 // 创建索引
 NotificationLogSchema.index({ alertId: 1, sentAt: -1 });
@@ -66,4 +67,7 @@ NotificationLogSchema.index({ success: 1, sentAt: -1 });
 NotificationLogSchema.index({ channelId: 1, sentAt: -1 });
 
 // TTL 索引 - 自动删除30天前的通知日志
-NotificationLogSchema.index({ sentAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+NotificationLogSchema.index(
+  { sentAt: 1 },
+  { expireAfterSeconds: 30 * 24 * 60 * 60 },
+);

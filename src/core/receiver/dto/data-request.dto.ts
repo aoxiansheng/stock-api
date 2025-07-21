@@ -14,7 +14,10 @@ import {
   Matches,
 } from "class-validator";
 
-import { DATA_TYPE_TO_CAPABILITY_MAP, RECEIVER_VALIDATION_RULES } from "../constants/receiver.constants";
+import {
+  DATA_TYPE_TO_CAPABILITY_MAP,
+  RECEIVER_VALIDATION_RULES,
+} from "../constants/receiver.constants";
 
 class RequestOptionsDto {
   @ApiPropertyOptional({ description: "首选数据提供商" })
@@ -52,16 +55,17 @@ export class DataRequestDto {
   })
   @IsString({ each: true, message: "每个股票代码都必须是字符串" })
   @IsNotEmpty({ each: true, message: "股票代码不能为空字符串" })
-  @MaxLength(RECEIVER_VALIDATION_RULES.MAX_SYMBOL_LENGTH, { 
-    each: true, 
+  @MaxLength(RECEIVER_VALIDATION_RULES.MAX_SYMBOL_LENGTH, {
+    each: true,
     message: `每个股票代码的长度不能超过 ${RECEIVER_VALIDATION_RULES.MAX_SYMBOL_LENGTH} 个字符`,
   })
   @Matches(
-    /^(\d{1,6}\.HK|[A-Z]{1,6}\.HK|\d{6}\.(SZ|SH)|[A-Z]{1,5}\.US|[A-Z]{2,6}\/[A-Z]{2,6})$/, 
+    /^(\d{1,6}\.HK|[A-Z]{1,6}\.HK|\d{6}\.(SZ|SH)|[A-Z]{1,5}\.US|[A-Z]{2,6}\/[A-Z]{2,6})$/,
     {
       each: true,
-      message: '股票代码格式不正确。有效格式示例: 700.HK, HSBC.HK, 600000.SH, AAPL.US, BTC/USDT'
-    }
+      message:
+        "股票代码格式不正确。有效格式示例: 700.HK, HSBC.HK, 600000.SH, AAPL.US, BTC/USDT",
+    },
   )
   symbols: string[];
 

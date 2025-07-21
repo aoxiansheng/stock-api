@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
 import {
   SecurityScanResult,
   SecurityScanResultDocument,
-} from '../schemas/security-scan-result.schema';
+} from "../schemas/security-scan-result.schema";
 
 /**
  * 封装安全扫描结果数据访问逻辑的仓储
@@ -42,4 +42,4 @@ export class SecurityScanResultRepository {
       .lean()
       .exec();
   }
-} 
+}

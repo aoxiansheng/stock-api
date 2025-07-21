@@ -1,12 +1,62 @@
 # 重复标识符分析报告
 
-生成时间: 7/22/2025, 12:48:07 AM
+生成时间: 7/22/2025, 1:24:01 AM
 
 ## 📊 统计摘要
 
 - 扫描的常量: 262 (重复: 0)
-- 扫描的枚举: 0 (重复: 0)
-- 扫描的DTO: 0 (重复: 0)
+- 扫描的枚举: 59 (重复: 4)
+- 扫描的DTO: 163 (重复: 0)
+
+## 🔄 重复的枚举
+
+### API_KEY
+
+发现 2 处重复:
+
+- **文件**: `src/common/enums/auth.enum.ts`
+  - **行号**: 7
+  - **值**: `"api_key"`
+
+- **文件**: `src/common/enums/auth.enum.ts`
+  - **行号**: 15
+  - **值**: `"api_key"`
+
+### CACHE
+
+发现 2 处重复:
+
+- **文件**: `src/core/query/enums/data-source-type.enum.ts`
+  - **行号**: 10
+  - **值**: `"cache"`
+
+- **文件**: `src/core/storage/enums/storage-type.enum.ts`
+  - **行号**: 5
+  - **值**: `"cache"`
+
+### PERSISTENT
+
+发现 2 处重复:
+
+- **文件**: `src/core/query/enums/data-source-type.enum.ts`
+  - **行号**: 15
+  - **值**: `"persistent"`
+
+- **文件**: `src/core/storage/enums/storage-type.enum.ts`
+  - **行号**: 6
+  - **值**: `"persistent"`
+
+### SUCCESS
+
+发现 2 处重复:
+
+- **文件**: `src/metrics/enums/auth-type.enum.ts`
+  - **行号**: 9
+  - **值**: `"success"`
+
+- **文件**: `src/metrics/enums/auth-type.enum.ts`
+  - **行号**: 18
+  - **值**: `"success"`
 
 ## 🎯 相似命名模式
 

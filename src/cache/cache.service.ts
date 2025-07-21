@@ -6,7 +6,7 @@ import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
 
-import { createLogger, sanitizeLogData } from '@common/config/logger.config';
+import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
 // 🎯 复用 common 模块的缓存常量
 import { CachePerformance } from "../metrics/decorators/database-performance.decorator";
@@ -20,8 +20,7 @@ import {
   CACHE_KEYS,
   CACHE_OPERATIONS,
   CACHE_PERFORMANCE_CONFIG,
-} from './constants/cache.constants';
-
+} from "./constants/cache.constants";
 
 // 🎯 Gzip 压缩/解压缩
 const gzip = promisify(zlib.gzip);
@@ -33,7 +32,7 @@ import {
   CacheConfigDto,
   CacheStatsDto,
   CacheHealthCheckResultDto,
-} from './dto/cache-internal.dto';
+} from "./dto/cache-internal.dto";
 
 // 🎯 为了向后兼容，保留类型别名
 export type CacheConfig = CacheConfigDto;
@@ -102,9 +101,14 @@ export class CacheService {
 
       return result === "OK";
     } catch (error) {
-      this.logger.error(`${CACHE_ERROR_MESSAGES.SET_FAILED} ${key}:`, sanitizeLogData({ error }));
+      this.logger.error(
+        `${CACHE_ERROR_MESSAGES.SET_FAILED} ${key}:`,
+        sanitizeLogData({ error }),
+      );
       // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.SET_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.SET_FAILED}: ${error.message}`,
+      );
     }
   }
 
@@ -148,10 +152,15 @@ export class CacheService {
 
       return this.deserialize(decompressedValue, deserializer);
     } catch (error) {
-      this.logger.error(`${CACHE_ERROR_MESSAGES.GET_FAILED} ${key}:`, sanitizeLogData({ error }));
+      this.logger.error(
+        `${CACHE_ERROR_MESSAGES.GET_FAILED} ${key}:`,
+        sanitizeLogData({ error }),
+      );
       this.updateCacheMetrics(key, "miss");
       // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.GET_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.GET_FAILED}: ${error.message}`,
+      );
     }
   }
 
@@ -197,7 +206,12 @@ export class CacheService {
         }
       } else {
         // 未获得锁，等待一段时间后重试获取缓存
-        await this.sleep(CACHE_CONFIG.LOCK_RETRY_DELAY_MIN + Math.random() * (CACHE_CONFIG.LOCK_RETRY_DELAY_MAX - CACHE_CONFIG.LOCK_RETRY_DELAY_MIN));
+        await this.sleep(
+          CACHE_CONFIG.LOCK_RETRY_DELAY_MIN +
+            Math.random() *
+              (CACHE_CONFIG.LOCK_RETRY_DELAY_MAX -
+                CACHE_CONFIG.LOCK_RETRY_DELAY_MIN),
+        );
 
         const retryResult = await this.get<T>(key, options.serializer);
         if (retryResult !== null) {
@@ -209,9 +223,14 @@ export class CacheService {
         return await callback();
       }
     } catch (error) {
-      this.logger.error(`${CACHE_ERROR_MESSAGES.GET_OR_SET_FAILED} ${key}:`, sanitizeLogData({ error }));
+      this.logger.error(
+        `${CACHE_ERROR_MESSAGES.GET_OR_SET_FAILED} ${key}:`,
+        sanitizeLogData({ error }),
+      );
       // 🎯 修正: 抛出标准异常，而不是回退到直接调用 callback
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.GET_OR_SET_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.GET_OR_SET_FAILED}: ${error.message}`,
+      );
     }
   }
 
@@ -219,29 +238,42 @@ export class CacheService {
 
   async listPush(key: string, values: string | string[]): Promise<number> {
     try {
-      return await this.redis.lpush(key, ...(Array.isArray(values) ? values : [values]));
-    } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.SET_FAILED, sanitizeLogData({
-        operation: 'listPush',
+      return await this.redis.lpush(
         key,
-        error: error.message,
-      }));
-      throw new ServiceUnavailableException(`List push failed: ${error.message}`);
+        ...(Array.isArray(values) ? values : [values]),
+      );
+    } catch (error) {
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.SET_FAILED,
+        sanitizeLogData({
+          operation: "listPush",
+          key,
+          error: error.message,
+        }),
+      );
+      throw new ServiceUnavailableException(
+        `List push failed: ${error.message}`,
+      );
     }
   }
 
-  async listTrim(key: string, start: number, stop: number): Promise<'OK'> {
+  async listTrim(key: string, start: number, stop: number): Promise<"OK"> {
     try {
       return await this.redis.ltrim(key, start, stop);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.DELETE_FAILED, sanitizeLogData({
-        operation: 'listTrim',
-        key,
-        start,
-        stop,
-        error: error.message,
-      }));
-      throw new ServiceUnavailableException(`List trim failed: ${error.message}`);
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.DELETE_FAILED,
+        sanitizeLogData({
+          operation: "listTrim",
+          key,
+          start,
+          stop,
+          error: error.message,
+        }),
+      );
+      throw new ServiceUnavailableException(
+        `List trim failed: ${error.message}`,
+      );
     }
   }
 
@@ -249,15 +281,18 @@ export class CacheService {
     try {
       return await this.redis.lrange(key, start, stop);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.GET_FAILED, sanitizeLogData({
-        operation: 'listRange',
-        key,
-        start,
-        stop,
-        error: error.message,
-        impact: 'MetricsDataLoss',
-        component: 'CacheService'
-      }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.GET_FAILED,
+        sanitizeLogData({
+          operation: "listRange",
+          key,
+          start,
+          stop,
+          error: error.message,
+          impact: "MetricsDataLoss",
+          component: "CacheService",
+        }),
+      );
       // 性能监控是非关键功能，返回空数组而不是抛异常
       return [];
     }
@@ -267,13 +302,19 @@ export class CacheService {
 
   async setAdd(key: string, members: string | string[]): Promise<number> {
     try {
-      return await this.redis.sadd(key, ...(Array.isArray(members) ? members : [members]));
-    } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.SET_FAILED, sanitizeLogData({
-        operation: 'setAdd',
+      return await this.redis.sadd(
         key,
-        error: error.message,
-      }));
+        ...(Array.isArray(members) ? members : [members]),
+      );
+    } catch (error) {
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.SET_FAILED,
+        sanitizeLogData({
+          operation: "setAdd",
+          key,
+          error: error.message,
+        }),
+      );
       throw new ServiceUnavailableException(`Set add failed: ${error.message}`);
     }
   }
@@ -282,14 +323,17 @@ export class CacheService {
     try {
       return (await this.redis.sismember(key, member)) === 1;
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.GET_FAILED, sanitizeLogData({
-        operation: 'setIsMember',
-        key,
-        member,
-        error: error.message,
-        impact: 'MetricsDataLoss',
-        component: 'CacheService'
-      }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.GET_FAILED,
+        sanitizeLogData({
+          operation: "setIsMember",
+          key,
+          member,
+          error: error.message,
+          impact: "MetricsDataLoss",
+          component: "CacheService",
+        }),
+      );
       // 性能监控是非关键功能，返回false而不是抛异常
       return false;
     }
@@ -299,13 +343,16 @@ export class CacheService {
     try {
       return await this.redis.smembers(key);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.GET_FAILED, sanitizeLogData({
-        operation: 'setMembers',
-        key,
-        error: error.message,
-        impact: 'MetricsDataLoss',
-        component: 'CacheService'
-      }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.GET_FAILED,
+        sanitizeLogData({
+          operation: "setMembers",
+          key,
+          error: error.message,
+          impact: "MetricsDataLoss",
+          component: "CacheService",
+        }),
+      );
       // 性能监控是非关键功能，返回空数组而不是抛异常
       return [];
     }
@@ -313,30 +360,47 @@ export class CacheService {
 
   async setRemove(key: string, members: string | string[]): Promise<number> {
     try {
-      return await this.redis.srem(key, ...(Array.isArray(members) ? members : [members]));
-    } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.DELETE_FAILED, sanitizeLogData({
-        operation: 'setRemove',
+      return await this.redis.srem(
         key,
-        error: error.message,
-      }));
-      throw new ServiceUnavailableException(`Set remove failed: ${error.message}`);
+        ...(Array.isArray(members) ? members : [members]),
+      );
+    } catch (error) {
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.DELETE_FAILED,
+        sanitizeLogData({
+          operation: "setRemove",
+          key,
+          error: error.message,
+        }),
+      );
+      throw new ServiceUnavailableException(
+        `Set remove failed: ${error.message}`,
+      );
     }
   }
 
   // --- Redis Hash Operations ---
 
-  async hashIncrementBy(key: string, field: string, value: number): Promise<number> {
+  async hashIncrementBy(
+    key: string,
+    field: string,
+    value: number,
+  ): Promise<number> {
     try {
       return await this.redis.hincrby(key, field, value);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.SET_FAILED, sanitizeLogData({
-        operation: 'hashIncrement',
-        key,
-        field,
-        error: error.message,
-      }));
-      throw new ServiceUnavailableException(`Hash increment failed: ${error.message}`);
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.SET_FAILED,
+        sanitizeLogData({
+          operation: "hashIncrement",
+          key,
+          field,
+          error: error.message,
+        }),
+      );
+      throw new ServiceUnavailableException(
+        `Hash increment failed: ${error.message}`,
+      );
     }
   }
 
@@ -344,13 +408,18 @@ export class CacheService {
     try {
       return await this.redis.hset(key, field, value);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.SET_FAILED, sanitizeLogData({
-        operation: 'hashSet',
-        key,
-        field,
-        error: error.message,
-      }));
-      throw new ServiceUnavailableException(`Hash set failed: ${error.message}`);
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.SET_FAILED,
+        sanitizeLogData({
+          operation: "hashSet",
+          key,
+          field,
+          error: error.message,
+        }),
+      );
+      throw new ServiceUnavailableException(
+        `Hash set failed: ${error.message}`,
+      );
     }
   }
 
@@ -358,31 +427,39 @@ export class CacheService {
     try {
       return await this.redis.hgetall(key);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.GET_FAILED, sanitizeLogData({
-        operation: 'hashGetAll',
-        key,
-        error: error.message,
-        impact: 'MetricsDataLoss',
-        component: 'CacheService'
-      }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.GET_FAILED,
+        sanitizeLogData({
+          operation: "hashGetAll",
+          key,
+          error: error.message,
+          impact: "MetricsDataLoss",
+          component: "CacheService",
+        }),
+      );
       // 性能监控是非关键功能，返回空对象而不是抛异常
       return {};
     }
   }
-  
+
   // --- Redis Key Operations ---
-  
+
   async expire(key: string, seconds: number): Promise<boolean> {
     try {
       return (await this.redis.expire(key, seconds)) === 1;
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.SET_FAILED, sanitizeLogData({
-        operation: 'expire',
-        key,
-        seconds,
-        error: error.message,
-      }));
-      throw new ServiceUnavailableException(`Expire set failed: ${error.message}`);
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.SET_FAILED,
+        sanitizeLogData({
+          operation: "expire",
+          key,
+          seconds,
+          error: error.message,
+        }),
+      );
+      throw new ServiceUnavailableException(
+        `Expire set failed: ${error.message}`,
+      );
     }
   }
 
@@ -434,10 +511,15 @@ export class CacheService {
         });
       }
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.BATCH_GET_FAILED, sanitizeLogData({ error }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.BATCH_GET_FAILED,
+        sanitizeLogData({ error }),
+      );
       keys.forEach((key) => this.updateCacheMetrics(key, "miss"));
       // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.BATCH_GET_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.BATCH_GET_FAILED}: ${error.message}`,
+      );
     }
 
     return result;
@@ -447,7 +529,10 @@ export class CacheService {
    * 批量设置缓存
    */
   @CachePerformance("mset")
-  async mset<T>(entries: Map<string, T>, ttl: number = CACHE_TTL.DEFAULT): Promise<boolean> {
+  async mset<T>(
+    entries: Map<string, T>,
+    ttl: number = CACHE_TTL.DEFAULT,
+  ): Promise<boolean> {
     if (entries.size === 0) return true;
 
     // 检查批量大小
@@ -484,9 +569,14 @@ export class CacheService {
 
       return results.every((result) => result[1] === "OK");
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.BATCH_SET_FAILED, sanitizeLogData({ error }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.BATCH_SET_FAILED,
+        sanitizeLogData({ error }),
+      );
       // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.BATCH_SET_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.BATCH_SET_FAILED}: ${error.message}`,
+      );
     }
   }
 
@@ -502,9 +592,14 @@ export class CacheService {
         return await this.redis.del(key);
       }
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.DELETE_FAILED, sanitizeLogData({ error }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.DELETE_FAILED,
+        sanitizeLogData({ error }),
+      );
       // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`,
+      );
     }
   }
 
@@ -519,9 +614,14 @@ export class CacheService {
 
       return await this.redis.del(...keys);
     } catch (error) {
-      this.logger.error(`${CACHE_ERROR_MESSAGES.PATTERN_DELETE_FAILED} ${pattern}:`, sanitizeLogData({ error }));
+      this.logger.error(
+        `${CACHE_ERROR_MESSAGES.PATTERN_DELETE_FAILED} ${pattern}:`,
+        sanitizeLogData({ error }),
+      );
       // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(`${CACHE_ERROR_MESSAGES.PATTERN_DELETE_FAILED}: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `${CACHE_ERROR_MESSAGES.PATTERN_DELETE_FAILED}: ${error.message}`,
+      );
     }
   }
 
@@ -532,13 +632,17 @@ export class CacheService {
     warmupData: Map<string, T>,
     options: CacheConfigDto = { ttl: CACHE_TTL.DEFAULT },
   ): Promise<void> {
-    this.logger.log(`${CACHE_SUCCESS_MESSAGES.WARMUP_STARTED}，共 ${warmupData.size} 个项目...`);
+    this.logger.log(
+      `${CACHE_SUCCESS_MESSAGES.WARMUP_STARTED}，共 ${warmupData.size} 个项目...`,
+    );
     const startTime = Date.now();
 
     try {
       await this.mset(warmupData, options.ttl);
       const duration = Date.now() - startTime;
-      this.logger.log(`${CACHE_SUCCESS_MESSAGES.WARMUP_COMPLETED}，耗时 ${duration}ms`);
+      this.logger.log(
+        `${CACHE_SUCCESS_MESSAGES.WARMUP_COMPLETED}，耗时 ${duration}ms`,
+      );
     } catch (error) {
       this.logger.error(CACHE_ERROR_MESSAGES.WARMUP_FAILED, error);
     }
@@ -562,7 +666,7 @@ export class CacheService {
       totalHits += stats.hits;
       totalMisses += stats.misses;
     }
-    
+
     const totalRequests = totalHits + totalMisses;
 
     return {
@@ -580,7 +684,7 @@ export class CacheService {
    */
   async healthCheck(): Promise<CacheHealthCheckResultDto> {
     const errors: string[] = [];
-    let status: 'healthy' | 'warning' | 'unhealthy' = "healthy";
+    let status: "healthy" | "warning" | "unhealthy" = "healthy";
     let latency = 0;
 
     try {
@@ -598,7 +702,10 @@ export class CacheService {
       const memoryUsage = this.parseRedisInfo(info, "used_memory");
       const maxMemory = this.parseRedisInfo(info, "maxmemory");
 
-      if (maxMemory > 0 && memoryUsage / maxMemory > CACHE_CONFIG.MAX_MEMORY_USAGE_RATIO) {
+      if (
+        maxMemory > 0 &&
+        memoryUsage / maxMemory > CACHE_CONFIG.MAX_MEMORY_USAGE_RATIO
+      ) {
         errors.push(CACHE_ERROR_MESSAGES.MEMORY_USAGE_HIGH);
         status = "warning";
       }
@@ -617,18 +724,22 @@ export class CacheService {
   // 私有辅助方法
   private serialize<T>(
     value: T,
-    serializerType: "json" | "msgpack" = CACHE_CONFIG.DEFAULT_SERIALIZER as "json",
+    serializerType:
+      | "json"
+      | "msgpack" = CACHE_CONFIG.DEFAULT_SERIALIZER as "json",
   ): string {
     if (value === undefined) {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
       return null;
     }
     // TODO: support msgpack when serializerType is 'msgpack'
-    const serialized = serializerType === 'json' ? JSON.stringify(value) : JSON.stringify(value);
+    const serialized =
+      serializerType === "json" ? JSON.stringify(value) : JSON.stringify(value);
 
     // 检查序列化后的大小
-    const sizeInBytes = Buffer.byteLength(serialized, 'utf8');
-    const maxSizeBytes = CACHE_PERFORMANCE_CONFIG.MAX_VALUE_SIZE_MB * 1024 * 1024;
+    const sizeInBytes = Buffer.byteLength(serialized, "utf8");
+    const maxSizeBytes =
+      CACHE_PERFORMANCE_CONFIG.MAX_VALUE_SIZE_MB * 1024 * 1024;
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING, {
@@ -644,16 +755,21 @@ export class CacheService {
 
   private deserialize<T>(
     value: string,
-    deserializerType: "json" | "msgpack" = CACHE_CONFIG.DEFAULT_SERIALIZER as "json",
+    deserializerType:
+      | "json"
+      | "msgpack" = CACHE_CONFIG.DEFAULT_SERIALIZER as "json",
   ): T {
     if (value === null) {
       return null;
     }
     // TODO: support msgpack when deserializerType is 'msgpack'
-    return deserializerType === 'json' ? JSON.parse(value) : JSON.parse(value);
+    return deserializerType === "json" ? JSON.parse(value) : JSON.parse(value);
   }
 
-  private shouldCompress(value: string, threshold: number = CACHE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD): boolean {
+  private shouldCompress(
+    value: string,
+    threshold: number = CACHE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD,
+  ): boolean {
     return value.length > threshold;
   }
 
@@ -663,7 +779,10 @@ export class CacheService {
       // 🎯 添加前缀以标识压缩数据
       return COMPRESSION_PREFIX + compressedBuffer.toString("base64");
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.COMPRESSION_FAILED, sanitizeLogData({ error }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.COMPRESSION_FAILED,
+        sanitizeLogData({ error }),
+      );
       // 压缩失败则返回原始值
       return value;
     }
@@ -677,7 +796,10 @@ export class CacheService {
       const decompressedBuffer = await gunzip(buffer);
       return decompressedBuffer.toString("utf8");
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.DECOMPRESSION_FAILED, sanitizeLogData({ error }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.DECOMPRESSION_FAILED,
+        sanitizeLogData({ error }),
+      );
       // 解压失败则返回原始值（可能未被压缩）
       return value;
     }
@@ -700,11 +822,14 @@ export class CacheService {
     try {
       await this.redis.eval(script, 1, lockKey, lockValue);
     } catch (error) {
-      this.logger.error(CACHE_ERROR_MESSAGES.LOCK_RELEASE_FAILED, sanitizeLogData({
-        operation: CACHE_OPERATIONS.RELEASE_LOCK,
-        lockKey,
-        error: error.message,
-      }));
+      this.logger.error(
+        CACHE_ERROR_MESSAGES.LOCK_RELEASE_FAILED,
+        sanitizeLogData({
+          operation: CACHE_OPERATIONS.RELEASE_LOCK,
+          lockKey,
+          error: error.message,
+        }),
+      );
     }
   }
 
@@ -729,7 +854,8 @@ export class CacheService {
 
     // 检查缓存命中率
     const total = stats.hits + stats.misses;
-    if (total > 100) { // 只在有足够样本时检查
+    if (total > 100) {
+      // 只在有足够样本时检查
       const missRate = stats.misses / total;
       if (missRate > CACHE_PERFORMANCE_CONFIG.MISS_RATE_WARNING_THRESHOLD) {
         this.logger.warn(CACHE_WARNING_MESSAGES.HIGH_MISS_RATE, {
@@ -785,7 +911,10 @@ export class CacheService {
     setInterval(() => this.cleanupStats(), CACHE_CONFIG.STATS_CLEANUP_INTERVAL);
 
     // 定期检查缓存健康状况
-    setInterval(() => this.checkAndLogHealth(), CACHE_CONFIG.HEALTH_CHECK_INTERVAL);
+    setInterval(
+      () => this.checkAndLogHealth(),
+      CACHE_CONFIG.HEALTH_CHECK_INTERVAL,
+    );
   }
 
   /**
@@ -793,7 +922,7 @@ export class CacheService {
    */
   private async checkAndLogHealth(): Promise<void> {
     const health = await this.healthCheck();
-    if (health.status !== 'healthy') {
+    if (health.status !== "healthy") {
       this.logger.warn(
         CACHE_WARNING_MESSAGES.HEALTH_CHECK_WARNING,
         sanitizeLogData({
@@ -810,19 +939,25 @@ export class CacheService {
    */
   private cleanupStats(): void {
     const activeKeys = new Set(this.cacheStats.keys());
-    this.logger.log(`开始清理缓存统计`, sanitizeLogData({
-      operation: CACHE_OPERATIONS.CLEANUP_STATS,
-      activeKeysCount: activeKeys.size,
-    }));
+    this.logger.log(
+      `开始清理缓存统计`,
+      sanitizeLogData({
+        operation: CACHE_OPERATIONS.CLEANUP_STATS,
+        activeKeysCount: activeKeys.size,
+      }),
+    );
 
     // 假设长时间未访问的键可以被清理
     // 这里需要更复杂的逻辑来判断键是否“不再使用”
     // 此处为简化实现，不执行清理
 
-    this.logger.log(CACHE_SUCCESS_MESSAGES.STATS_CLEANUP_COMPLETED, sanitizeLogData({
-      operation: CACHE_OPERATIONS.CLEANUP_STATS,
-      activeKeysCount: activeKeys.size,
-    }));
+    this.logger.log(
+      CACHE_SUCCESS_MESSAGES.STATS_CLEANUP_COMPLETED,
+      sanitizeLogData({
+        operation: CACHE_OPERATIONS.CLEANUP_STATS,
+        activeKeysCount: activeKeys.size,
+      }),
+    );
   }
 
   /**
@@ -830,12 +965,15 @@ export class CacheService {
    */
   private validateKeyLength(key: string): void {
     if (key.length > CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH) {
-      this.logger.warn(CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING, sanitizeLogData({
-        operation: 'validateKeyLength',
-        keyLength: key.length,
-        maxLength: CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH,
-        key: key.substring(0, 50) + '...', // 只显示前50个字符
-      }));
+      this.logger.warn(
+        CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
+        sanitizeLogData({
+          operation: "validateKeyLength",
+          keyLength: key.length,
+          maxLength: CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH,
+          key: key.substring(0, 50) + "...", // 只显示前50个字符
+        }),
+      );
     }
   }
 }

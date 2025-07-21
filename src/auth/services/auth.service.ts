@@ -2,27 +2,26 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-
-import { DatabasePerformance } from '../../metrics/decorators/database-performance.decorator';
-import { PerformanceMonitorService } from '../../metrics/services/performance-monitor.service';
+import { DatabasePerformance } from "../../metrics/decorators/database-performance.decorator";
+import { PerformanceMonitorService } from "../../metrics/services/performance-monitor.service";
 import {
   AUTH_OPERATIONS,
   AUTH_MESSAGES,
   AUTH_DEFAULTS,
-} from '../constants/auth.constants';
-import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
-import { CreateUserDto, LoginDto } from '../dto/auth.dto';
-import { UserRepository } from '../repositories/user.repository';
-import { ApiKeyDocument } from '../schemas/apikey.schema';
-import { User } from '../schemas/user.schema';
+} from "../constants/auth.constants";
+import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
+import { CreateUserDto, LoginDto } from "../dto/auth.dto";
+import { UserRepository } from "../repositories/user.repository";
+import { ApiKeyDocument } from "../schemas/apikey.schema";
+import { User } from "../schemas/user.schema";
 
-import { ApiKeyService } from './apikey.service';
-import { PasswordService } from './password.service';
-import { TokenService } from './token.service';
+import { ApiKeyService } from "./apikey.service";
+import { PasswordService } from "./password.service";
+import { TokenService } from "./token.service";
 @Injectable()
 export class AuthService {
   private readonly logger = createLogger(AuthService.name);
@@ -38,7 +37,7 @@ export class AuthService {
   /**
    * 用户注册
    */
-  @DatabasePerformance('user_registration')
+  @DatabasePerformance("user_registration")
   async register(createUserDto: CreateUserDto): Promise<User> {
     const operation = AUTH_OPERATIONS.REGISTER;
     const {
@@ -48,7 +47,11 @@ export class AuthService {
       role = AUTH_DEFAULTS.DEFAULT_USER_ROLE,
     } = createUserDto;
 
-    this.logger.log(AUTH_MESSAGES.REGISTRATION_STARTED, { operation, username, email });
+    this.logger.log(AUTH_MESSAGES.REGISTRATION_STARTED, {
+      operation,
+      username,
+      email,
+    });
 
     const existingUser = await this.userRepository.findByUsernameOrEmail(
       username,
@@ -56,7 +59,11 @@ export class AuthService {
     );
 
     if (existingUser) {
-      this.logger.warn(ERROR_MESSAGES.USER_EXISTS, { operation, username, email });
+      this.logger.warn(ERROR_MESSAGES.USER_EXISTS, {
+        operation,
+        username,
+        email,
+      });
       throw new ConflictException(ERROR_MESSAGES.USER_EXISTS);
     }
 
@@ -76,7 +83,7 @@ export class AuthService {
       role,
       userId: user.id,
     });
-    
+
     // 使用 toJSON() 方法过滤敏感字段
     return user.toJSON() as User;
   }
@@ -84,7 +91,7 @@ export class AuthService {
   /**
    * 用户登录
    */
-  @DatabasePerformance('user_login')
+  @DatabasePerformance("user_login")
   async login(
     loginDto: LoginDto,
   ): Promise<{ user: User; accessToken: string; refreshToken: string }> {
@@ -95,21 +102,31 @@ export class AuthService {
 
     const user = await this.userRepository.findByUsername(username);
     if (!user || !user.isActive) {
-      this.logger.warn(AUTH_MESSAGES.USER_NOT_FOUND_OR_INACTIVE, { operation, username });
+      this.logger.warn(AUTH_MESSAGES.USER_NOT_FOUND_OR_INACTIVE, {
+        operation,
+        username,
+      });
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
-    this.logger.debug(AUTH_MESSAGES.PASSWORD_VALIDATION_STARTED, { operation, username });
+    this.logger.debug(AUTH_MESSAGES.PASSWORD_VALIDATION_STARTED, {
+      operation,
+      username,
+    });
     const isPasswordValid = await this.passwordService.comparePassword(
       password,
       user.passwordHash,
     );
     if (!isPasswordValid) {
-      this.logger.warn(AUTH_MESSAGES.PASSWORD_VERIFICATION_FAILED, { operation, username });
+      this.logger.warn(AUTH_MESSAGES.PASSWORD_VERIFICATION_FAILED, {
+        operation,
+        username,
+      });
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
-    const { accessToken, refreshToken } = await this.tokenService.generateTokens(user);
+    const { accessToken, refreshToken } =
+      await this.tokenService.generateTokens(user);
 
     this.logger.log(AUTH_MESSAGES.USER_LOGIN_SUCCESS, {
       operation,
@@ -176,7 +193,10 @@ export class AuthService {
   /**
    * 验证API Key - 委托给ApiKeyService
    */
-  async validateApiKey(appKey: string, accessToken: string): Promise<ApiKeyDocument> {
+  async validateApiKey(
+    appKey: string,
+    accessToken: string,
+  ): Promise<ApiKeyDocument> {
     return this.apiKeyService.validateApiKey(appKey, accessToken);
   }
 }

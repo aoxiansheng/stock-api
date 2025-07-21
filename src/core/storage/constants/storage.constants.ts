@@ -8,7 +8,7 @@
  */
 export const STORAGE_ERROR_MESSAGES = Object.freeze({
   STORAGE_FAILED: "存储失败",
-  RETRIEVAL_FAILED: "数据检索失败", 
+  RETRIEVAL_FAILED: "数据检索失败",
   DATA_NOT_FOUND: "数据未找到",
   REDIS_NOT_AVAILABLE: "Redis连接不可用",
   COMPRESSION_FAILED: "数据压缩失败",
@@ -44,27 +44,27 @@ export const STORAGE_WARNING_MESSAGES = Object.freeze({
  * 存储配置常量
  */
 export const STORAGE_CONFIG = Object.freeze({
-  DEFAULT_CACHE_TTL: 3600,                    // 默认缓存TTL（1小时）
-  DEFAULT_COMPRESSION_THRESHOLD: 1024,        // 默认压缩阈值（1KB）
-  DEFAULT_COMPRESSION_RATIO: 0.8,             // 默认压缩比例（80%）
-  MAX_KEY_LENGTH: 250,                        // 最大键长度
-  MAX_DATA_SIZE_MB: 16,                       // 最大数据大小（16MB）
-  MAX_BATCH_SIZE: 1000,                       // 最大批量操作大小
-  DEFAULT_RETRY_ATTEMPTS: 3,                  // 默认重试次数
-  DEFAULT_TIMEOUT_MS: 30000,                  // 默认超时时间（30秒）
-  STATS_SAMPLE_SIZE: 100,                     // 统计样本大小
+  DEFAULT_CACHE_TTL: 3600, // 默认缓存TTL（1小时）
+  DEFAULT_COMPRESSION_THRESHOLD: 1024, // 默认压缩阈值（1KB）
+  DEFAULT_COMPRESSION_RATIO: 0.8, // 默认压缩比例（80%）
+  MAX_KEY_LENGTH: 250, // 最大键长度
+  MAX_DATA_SIZE_MB: 16, // 最大数据大小（16MB）
+  MAX_BATCH_SIZE: 1000, // 最大批量操作大小
+  DEFAULT_RETRY_ATTEMPTS: 3, // 默认重试次数
+  DEFAULT_TIMEOUT_MS: 30000, // 默认超时时间（30秒）
+  STATS_SAMPLE_SIZE: 100, // 统计样本大小
 } as const);
 
 /**
  * 存储性能阈值常量
  */
 export const STORAGE_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_STORAGE_MS: 1000,                      // 慢存储操作阈值（1秒）
-  SLOW_RETRIEVAL_MS: 500,                     // 慢检索操作阈值（500毫秒）
-  HIGH_ERROR_RATE: 0.05,                      // 高错误率阈值（5%）
-  LOW_CACHE_HIT_RATE: 0.7,                    // 低缓存命中率阈值（70%）
-  HIGH_MEMORY_USAGE_MB: 1024,                 // 高内存使用阈值（1GB）
-  LARGE_DATA_SIZE_KB: 100,                    // 大数据阈值（100KB）
+  SLOW_STORAGE_MS: 1000, // 慢存储操作阈值（1秒）
+  SLOW_RETRIEVAL_MS: 500, // 慢检索操作阈值（500毫秒）
+  HIGH_ERROR_RATE: 0.05, // 高错误率阈值（5%）
+  LOW_CACHE_HIT_RATE: 0.7, // 低缓存命中率阈值（70%）
+  HIGH_MEMORY_USAGE_MB: 1024, // 高内存使用阈值（1GB）
+  LARGE_DATA_SIZE_KB: 100, // 大数据阈值（100KB）
 } as const);
 
 /**
@@ -73,7 +73,7 @@ export const STORAGE_PERFORMANCE_THRESHOLDS = Object.freeze({
 export const STORAGE_METRICS = Object.freeze({
   STORAGE_OPERATIONS_TOTAL: "storage_operations_total",
   STORAGE_DURATION: "storage_duration",
-  RETRIEVAL_DURATION: "retrieval_duration", 
+  RETRIEVAL_DURATION: "retrieval_duration",
   CACHE_HIT_RATE: "cache_hit_rate",
   CACHE_MISS_RATE: "cache_miss_rate",
   COMPRESSION_RATIO: "compression_ratio",
@@ -148,8 +148,8 @@ export const STORAGE_DEFAULTS = Object.freeze({
   DATA_SIZE: 0,
   PROCESSING_TIME: 0,
   COMPRESSED: false,
-  TTL: 3600,                                  // 1小时
-  CACHE_HIT_RATE: 0.85,                       // 85%默认命中率
+  TTL: 3600, // 1小时
+  CACHE_HIT_RATE: 0.85, // 85%默认命中率
   OPERATIONS_PER_SECOND: 0,
   ERROR_RATE: 0,
   MEMORY_USAGE: 0,
@@ -189,32 +189,31 @@ export const STORAGE_COMPRESSION = Object.freeze({
  * 存储批量操作配置常量
  */
 export const STORAGE_BATCH_CONFIG = Object.freeze({
-  MAX_CONCURRENT_OPERATIONS: 10,              // 最大并发操作数
-  BATCH_TIMEOUT_MS: 60000,                    // 批量操作超时（60秒）
-  RETRY_DELAY_MS: 1000,                       // 重试延迟（1秒）
-  MAX_RETRY_DELAY_MS: 10000,                  // 最大重试延迟（10秒）
-  EXPONENTIAL_BACKOFF_FACTOR: 2,              // 指数退避因子
+  MAX_CONCURRENT_OPERATIONS: 10, // 最大并发操作数
+  BATCH_TIMEOUT_MS: 60000, // 批量操作超时（60秒）
+  RETRY_DELAY_MS: 1000, // 重试延迟（1秒）
+  MAX_RETRY_DELAY_MS: 10000, // 最大重试延迟（10秒）
+  EXPONENTIAL_BACKOFF_FACTOR: 2, // 指数退避因子
 } as const);
 
 /**
  * 存储健康检查配置常量
  */
 export const STORAGE_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: 30000,                   // 健康检查间隔（30秒）
-  TIMEOUT_MS: 5000,                           // 健康检查超时（5秒）
-  MAX_FAILURES: 3,                            // 最大失败次数
-  RECOVERY_THRESHOLD: 5,                      // 恢复阈值
-  METRICS_WINDOW_SIZE: 100,                   // 指标窗口大小
+  CHECK_INTERVAL_MS: 30000, // 健康检查间隔（30秒）
+  TIMEOUT_MS: 5000, // 健康检查超时（5秒）
+  MAX_FAILURES: 3, // 最大失败次数
+  RECOVERY_THRESHOLD: 5, // 恢复阈值
+  METRICS_WINDOW_SIZE: 100, // 指标窗口大小
 } as const);
 
 /**
  * 存储清理配置常量
  */
 export const STORAGE_CLEANUP_CONFIG = Object.freeze({
-  CLEANUP_INTERVAL_MS: 3600000,               // 清理间隔（1小时）
-  EXPIRED_DATA_BATCH_SIZE: 1000,              // 过期数据批量大小
-  MAX_CLEANUP_DURATION_MS: 300000,            // 最大清理时间（5分钟）
-  RETENTION_DAYS: 30,                         // 数据保留天数
-  ARCHIVE_THRESHOLD_DAYS: 7,                  // 归档阈值天数
+  CLEANUP_INTERVAL_MS: 3600000, // 清理间隔（1小时）
+  EXPIRED_DATA_BATCH_SIZE: 1000, // 过期数据批量大小
+  MAX_CLEANUP_DURATION_MS: 300000, // 最大清理时间（5分钟）
+  RETENTION_DAYS: 30, // 数据保留天数
+  ARCHIVE_THRESHOLD_DAYS: 7, // 归档阈值天数
 } as const);
-

@@ -48,7 +48,7 @@ export { Public } from "./public.decorator";
 export function Auth(roles?: UserRole[], permissions?: Permission[]) {
   const decorators = [
     UseGuards(JwtAuthGuard, UnifiedPermissionsGuard),
-    ApiBearerAuth()
+    ApiBearerAuth(),
   ];
 
   if (roles && roles.length > 0) {
@@ -134,7 +134,12 @@ export function ApiKeyAuth(permissions?: Permission[]) {
  */
 export function MixedAuth(roles?: UserRole[], permissions?: Permission[]) {
   const decorators = [
-    UseGuards(JwtAuthGuard, ApiKeyAuthGuard, UnifiedPermissionsGuard, RateLimitGuard),
+    UseGuards(
+      JwtAuthGuard,
+      ApiKeyAuthGuard,
+      UnifiedPermissionsGuard,
+      RateLimitGuard,
+    ),
     ApiBearerAuth(),
     ApiSecurity("ApiKey"),
     ApiSecurity("AccessToken"),

@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
 // --- Sub-documents Schemas ---
 
@@ -42,14 +42,15 @@ class SecurityVulnerability {
   @Prop({ required: true })
   status: string;
 }
-const SecurityVulnerabilitySchema =
-  SchemaFactory.createForClass(SecurityVulnerability);
+const SecurityVulnerabilitySchema = SchemaFactory.createForClass(
+  SecurityVulnerability,
+);
 
 // --- Main Document Schema ---
 
 export type SecurityScanResultDocument = SecurityScanResult & Document;
 
-@Schema({ collection: 'security_scan_results', timestamps: true })
+@Schema({ collection: "security_scan_results", timestamps: true })
 export class SecurityScanResult {
   @Prop({ required: true, index: true })
   scanId: string;
@@ -77,4 +78,4 @@ export class SecurityScanResult {
 }
 
 export const SecurityScanResultSchema =
-  SchemaFactory.createForClass(SecurityScanResult); 
+  SchemaFactory.createForClass(SecurityScanResult);

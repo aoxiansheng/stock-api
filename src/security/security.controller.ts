@@ -17,8 +17,11 @@ import {
 } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 
-import { ApiStandardResponses, ApiSuccessResponse, ApiKeyAuthResponses } from "@common/decorators/swagger-responses.decorator";
-
+import {
+  ApiStandardResponses,
+  ApiSuccessResponse,
+  ApiKeyAuthResponses,
+} from "@common/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../auth/decorators/auth.decorator";
 import { Permission } from "../auth/enums/user-role.enum";
@@ -29,12 +32,9 @@ import {
   GetVulnerabilitiesQueryDto,
   RecordManualEventDto,
 } from "./dto/security-query.dto";
-import {
-  SecurityVulnerability,
-} from "./interfaces/security-scanner.interface";
+import { SecurityVulnerability } from "./interfaces/security-scanner.interface";
 import { SecurityAuditService } from "./security-audit.service";
 import { SecurityScannerService } from "./security-scanner.service";
-
 
 export class SecurityScanResponseDto {
   scanId: string;
@@ -168,7 +168,9 @@ export class SecurityController {
       throw new BadRequestException("limit必须在1-50之间");
     }
 
-    const history = await this.securityScanner.getScanHistory(limitNum as number);
+    const history = await this.securityScanner.getScanHistory(
+      limitNum as number,
+    );
 
     return {
       scans: history.map((scan) => ({
@@ -215,9 +217,7 @@ export class SecurityController {
   })
   @ApiSuccessResponse()
   @ApiStandardResponses()
-  async getVulnerabilities(
-    @Query() query: GetVulnerabilitiesQueryDto,
-  ) {
+  async getVulnerabilities(@Query() query: GetVulnerabilitiesQueryDto) {
     const scanHistory = await this.securityScanner.getScanHistory(1 as number);
     if (scanHistory.length === 0) {
       return {
@@ -232,7 +232,9 @@ export class SecurityController {
 
     // 应用过滤器
     if (query.severity) {
-      vulnerabilities = vulnerabilities.filter((v) => v.severity === query.severity);
+      vulnerabilities = vulnerabilities.filter(
+        (v) => v.severity === query.severity,
+      );
     }
     if (query.type) {
       vulnerabilities = vulnerabilities.filter((v) => v.type === query.type);
@@ -304,9 +306,7 @@ export class SecurityController {
   })
   @ApiSuccessResponse()
   @ApiStandardResponses()
-  async getAuditEvents(
-    @Query() query: GetAuditEventsQueryDto,
-  ) {
+  async getAuditEvents(@Query() query: GetAuditEventsQueryDto) {
     const {
       startDate,
       endDate,
@@ -502,11 +502,12 @@ export class SecurityController {
           failureCount: analysis?.failureCount || 0,
           lastSeen: analysis?.lastSeen?.toISOString() || null,
           failureRate: analysis
-            ? ((analysis.failureCount / analysis.requestCount) * 100).toFixed(2) +
-              "%"
+            ? ((analysis.failureCount / analysis.requestCount) * 100).toFixed(
+                2,
+              ) + "%"
             : "0%",
         };
-      })
+      }),
     );
 
     return {

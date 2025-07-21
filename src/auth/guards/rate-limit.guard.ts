@@ -4,12 +4,11 @@ import {
   ExecutionContext,
   HttpException,
   HttpStatus,
-
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
@@ -104,7 +103,7 @@ export class RateLimitGuard implements CanActivate {
             window: apiKey.rateLimit.window,
             ip: request.ip,
             userAgent: HttpHeadersUtil.getUserAgent(request),
-            endpoint: request.url
+            endpoint: request.url,
           },
         );
 
@@ -121,7 +120,7 @@ export class RateLimitGuard implements CanActivate {
               resetTime: result.resetTime,
               retryAfter: result.retryAfter,
               window: apiKey.rateLimit.window,
-              apiKey: apiKey.appKey
+              apiKey: apiKey.appKey,
             },
             timestamp: new Date().toISOString(),
           },
@@ -157,7 +156,10 @@ export class RateLimitGuard implements CanActivate {
     // 使用API Key专用的响应头名称，避免与IP限速冲突
     response.setHeader("X-API-RateLimit-Limit", result.limit);
     response.setHeader("X-API-RateLimit-Remaining", result.remaining);
-    response.setHeader("X-API-RateLimit-Reset", Math.ceil(result.resetTime / 1000));
+    response.setHeader(
+      "X-API-RateLimit-Reset",
+      Math.ceil(result.resetTime / 1000),
+    );
 
     if (result.retryAfter) {
       response.setHeader("X-API-Retry-After", result.retryAfter);

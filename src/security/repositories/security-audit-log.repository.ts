@@ -1,13 +1,13 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
 import {
   SecurityAuditLog,
   SecurityAuditLogDocument,
-} from '../schemas/security-audit-log.schema';
+} from "../schemas/security-audit-log.schema";
 
 interface AuditLogFilters {
   startDate?: Date;
@@ -29,15 +29,15 @@ export class SecurityAuditLogRepository {
   ) {}
 
   async insertMany(logs: Partial<SecurityAuditLog>[]): Promise<void> {
-    const operation = 'insertMany';
+    const operation = "insertMany";
     try {
       await this.auditLogModel.insertMany(logs);
       this.logger.debug(
         { operation, count: logs.length },
-        '批量保存审计日志成功',
+        "批量保存审计日志成功",
       );
     } catch (error) {
-      this.logger.error({ operation, error: error.stack }, '保存审计日志失败');
+      this.logger.error({ operation, error: error.stack }, "保存审计日志失败");
       // Re-throw the original error to be handled by a global exception filter
       throw error;
     }
@@ -48,7 +48,7 @@ export class SecurityAuditLogRepository {
     limit = 100,
     offset = 0,
   ): Promise<SecurityAuditLogDocument[]> {
-    const operation = 'findWithFilters';
+    const operation = "findWithFilters";
     const query: any = {};
 
     if (filters.startDate || filters.endDate) {
@@ -73,10 +73,10 @@ export class SecurityAuditLogRepository {
     } catch (error) {
       this.logger.error(
         { operation, filters, error: error.stack },
-        '获取审计日志失败',
+        "获取审计日志失败",
       );
       // Re-throw to allow global error handlers to process it
-      throw new InternalServerErrorException('获取审计日志失败');
+      throw new InternalServerErrorException("获取审计日志失败");
     }
   }
-} 
+}

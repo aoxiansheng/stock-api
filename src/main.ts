@@ -10,7 +10,6 @@ import {
   RequestTrackingInterceptor,
 } from "@common/interceptors";
 
-
 import { AppModule } from "./app.module";
 import { PerformanceInterceptor } from "./metrics/interceptors/performance.interceptor";
 import { PerformanceMonitorService } from "./metrics/services/performance-monitor.service";
@@ -36,8 +35,8 @@ async function bootstrap() {
   app.useLogger(new CustomLogger("NestApplication"));
 
   // 配置请求体大小限制，防止DoS攻击
-  app.use('/api', express.json({ limit: '10mb' }));
-  app.use('/api', express.urlencoded({ limit: '10mb', extended: true }));
+  app.use("/api", express.json({ limit: "10mb" }));
+  app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
 
   // 应用全局安全中间件
   const securityMiddleware = new SecurityMiddleware();
@@ -67,8 +66,10 @@ async function bootstrap() {
 
   // 全局性能监控拦截器
   const performanceMonitor = app.get(PerformanceMonitorService);
-  const reflector = app.get('Reflector');
-  app.useGlobalInterceptors(new PerformanceInterceptor(performanceMonitor, reflector));
+  const reflector = app.get("Reflector");
+  app.useGlobalInterceptors(
+    new PerformanceInterceptor(performanceMonitor, reflector),
+  );
 
   // 全局响应格式拦截器（最后执行）
   app.useGlobalInterceptors(new ResponseInterceptor());
@@ -78,20 +79,20 @@ async function bootstrap() {
 
   // CORS 配置
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    origin: process.env.CORS_ORIGIN?.split(",") || true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-App-Key',
-      'X-Access-Token',
-      'X-Requested-With',
-      'Origin',
-      'Accept'
+      "Content-Type",
+      "Authorization",
+      "X-App-Key",
+      "X-Access-Token",
+      "X-Requested-With",
+      "Origin",
+      "Accept",
     ],
     credentials: true,
     maxAge: 86400, // 24小时预检缓存
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
   });
 
   // Swagger 配置 - 智能股票数据系统 API 文档
@@ -169,17 +170,17 @@ async function bootstrap() {
         "🔐 认证管理",
         "用户注册登录、JWT Token 管理、API Key 创建与管理 | 支持三层认证架构",
       )
-      
+
       // === 六组件核心架构 - 强弱时效接口 ===
       .addTag(
         "🚀 强时效接口 - 实时数据接收",
         "专为高频交易设计的1秒级缓存策略，提供毫秒级响应 | 🔑 需要 API Key 认证 | 适合实时交易场景",
       )
       .addTag(
-        "🧠 弱时效接口 - 智能数据查询", 
+        "🧠 弱时效接口 - 智能数据查询",
         "专为数据分析设计的智能变化检测和双存储策略 | 🔑 需要 API Key 认证 | 适合分析决策场景",
       )
-      
+
       // === 六组件核心架构 - 数据处理组件 ===
       .addTag(
         "🔄 符号映射器",
@@ -197,7 +198,7 @@ async function bootstrap() {
         "💾 数据存储",
         "智能缓存管理，Redis + MongoDB 双存储策略 | 🛡️ 需要开发者/管理员权限",
       )
-      
+
       // === 系统管理和监控 ===
       .addTag(
         "📈 性能监控",
@@ -303,7 +304,9 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
     SwaggerModule.setup("docs", app, document);
     logger.log("📚 Swagger API 文档已启用");
   } catch (error) {
-    logger.warn("⚠️ Swagger 配置失败，跳过 API 文档生成", { error: error.message });
+    logger.warn("⚠️ Swagger 配置失败，跳过 API 文档生成", {
+      error: error.message,
+    });
   }
 
   const port = process.env.PORT || 3000;

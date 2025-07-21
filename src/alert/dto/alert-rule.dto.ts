@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsString, IsNumber, IsEnum, IsBoolean, IsOptional, IsArray, ValidateNested, Min, Max } from "class-validator";
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  Min,
+  Max,
+} from "class-validator";
 
 import { AlertSeverity } from "../types/alert.types";
 
@@ -20,10 +30,10 @@ export class CreateAlertRuleDto {
   @IsString()
   metric: string;
 
-  @ApiProperty({ 
-    description: "比较操作符", 
+  @ApiProperty({
+    description: "比较操作符",
     enum: ["gt", "lt", "eq", "gte", "lte", "ne"],
-    default: "gt"
+    default: "gt",
   })
   @IsEnum(["gt", "lt", "eq", "gte", "lte", "ne"])
   operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
@@ -38,10 +48,10 @@ export class CreateAlertRuleDto {
   @Max(3600)
   duration: number;
 
-  @ApiProperty({ 
-    description: "告警严重级别", 
+  @ApiProperty({
+    description: "告警严重级别",
     enum: AlertSeverity,
-    default: AlertSeverity.WARNING
+    default: AlertSeverity.WARNING,
   })
   @IsEnum(AlertSeverity)
   severity: AlertSeverity;
@@ -62,7 +72,11 @@ export class CreateAlertRuleDto {
   @Max(86400)
   cooldown: number;
 
-  @ApiPropertyOptional({ description: "标签", type: "object", additionalProperties: { type: "string" } })
+  @ApiPropertyOptional({
+    description: "标签",
+    type: "object",
+    additionalProperties: { type: "string" },
+  })
   @IsOptional()
   tags?: Record<string, string>;
 }
@@ -83,9 +97,9 @@ export class UpdateAlertRuleDto {
   @IsString()
   metric?: string;
 
-  @ApiPropertyOptional({ 
-    description: "比较操作符", 
-    enum: ["gt", "lt", "eq", "gte", "lte", "ne"]
+  @ApiPropertyOptional({
+    description: "比较操作符",
+    enum: ["gt", "lt", "eq", "gte", "lte", "ne"],
   })
   @IsOptional()
   @IsEnum(["gt", "lt", "eq", "gte", "lte", "ne"])
@@ -103,9 +117,9 @@ export class UpdateAlertRuleDto {
   @Max(3600)
   duration?: number;
 
-  @ApiPropertyOptional({ 
-    description: "告警严重级别", 
-    enum: AlertSeverity
+  @ApiPropertyOptional({
+    description: "告警严重级别",
+    enum: AlertSeverity,
   })
   @IsOptional()
   @IsEnum(AlertSeverity)
@@ -116,7 +130,10 @@ export class UpdateAlertRuleDto {
   @IsBoolean()
   enabled?: boolean;
 
-  @ApiPropertyOptional({ description: "通知渠道列表", type: [NotificationChannelDto] })
+  @ApiPropertyOptional({
+    description: "通知渠道列表",
+    type: [NotificationChannelDto],
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -130,7 +147,11 @@ export class UpdateAlertRuleDto {
   @Max(86400)
   cooldown?: number;
 
-  @ApiPropertyOptional({ description: "标签", type: "object", additionalProperties: { type: "string" } })
+  @ApiPropertyOptional({
+    description: "标签",
+    type: "object",
+    additionalProperties: { type: "string" },
+  })
   @IsOptional()
   tags?: Record<string, string>;
 }

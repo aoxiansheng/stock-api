@@ -1,10 +1,9 @@
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
 
 /**
  * 通用字符串处理工具函数
  */
 export class StringUtils {
-
   /**
    * 计算两个字符串之间的相似度分数（0到1之间）。
    * 综合了精确匹配、子串匹配和 Levenshtein 距离。
@@ -14,7 +13,7 @@ export class StringUtils {
    */
   public static calculateSimilarity(str1: string, str2: string): number {
     if (!str1 || !str2) return 0;
-    
+
     const s1 = str1.toLowerCase();
     const s2 = str2.toLowerCase();
 
@@ -28,7 +27,7 @@ export class StringUtils {
     const distance = this.levenshteinDistance(s1, s2);
     const maxLength = Math.max(s1.length, s2.length);
     if (maxLength === 0) return 1.0; // Both are empty strings
-    
+
     return 1 - distance / maxLength;
   }
 
@@ -69,6 +68,6 @@ export class StringUtils {
    * @returns 8个字符的十六进制哈希字符串
    */
   public static generateSimpleHash(str: string): string {
-    return createHash('sha256').update(str).digest('hex').substring(0, 8);
+    return createHash("sha256").update(str).digest("hex").substring(0, 8);
   }
 }

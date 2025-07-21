@@ -1,4 +1,8 @@
-import { AlertSeverity, AlertStatus, NotificationChannel } from "../types/alert.types";
+import {
+  AlertSeverity,
+  AlertStatus,
+  NotificationChannel,
+} from "../types/alert.types";
 
 /**
  * 告警规则接口

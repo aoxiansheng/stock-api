@@ -106,6 +106,142 @@ class DuplicateAnalyzer {
   }
 
   /**
+   * 扫描枚举文件
+   */
+  scanEnumFiles() {
+    console.log('🔍 扫描枚举文件...');
+    
+    const enumFiles = this.findFiles('./src', /\.enum\.ts$/);
+    console.log(`找到 ${enumFiles.length} 个枚举文件`);
+
+    for (const file of enumFiles) {
+      this.parseEnumFile(file);
+    }
+  }
+
+  /**
+   * 解析枚举文件内容
+   */
+  parseEnumFile(filePath) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineNumber = i + 1;
+
+        // 匹配导出的枚举定义: export enum EnumName {
+        const exportEnumMatch = line.match(/export\s+enum\s+([A-Z][a-zA-Z0-9]*)\s*\{/);
+        if (exportEnumMatch) {
+          const enumName = exportEnumMatch[1];
+          
+          this.addResult('enums', enumName, {
+            file: filePath,
+            value: 'enum',
+            line: lineNumber
+          });
+        }
+
+        // 匹配枚举值: ENUM_VALUE = "value" 或 ENUM_VALUE = 'value'
+        const enumValueMatch = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*["']([^"']+)["']/);
+        if (enumValueMatch) {
+          const enumValueName = enumValueMatch[1];
+          const enumValue = enumValueMatch[2];
+          
+          this.addResult('enums', enumValueName, {
+            file: filePath,
+            value: `"${enumValue}"`,
+            line: lineNumber
+          });
+        }
+
+        // 匹配数字枚举值: ENUM_VALUE = 123
+        const numericEnumValueMatch = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(\d+)/);
+        if (numericEnumValueMatch) {
+          const enumValueName = numericEnumValueMatch[1];
+          const enumValue = numericEnumValueMatch[2];
+          
+          this.addResult('enums', enumValueName, {
+            file: filePath,
+            value: enumValue,
+            line: lineNumber
+          });
+        }
+      }
+    } catch (error) {
+      console.warn(`解析枚举文件失败 ${filePath}: ${error.message}`);
+    }
+  }
+
+  /**
+   * 扫描DTO文件
+   */
+  scanDTOFiles() {
+    console.log('🔍 扫描DTO文件...');
+    
+    const dtoFiles = this.findFiles('./src', /\.dto\.ts$/);
+    console.log(`找到 ${dtoFiles.length} 个DTO文件`);
+
+    for (const file of dtoFiles) {
+      this.parseDTOFile(file);
+    }
+  }
+
+  /**
+   * 解析DTO文件内容
+   */
+  parseDTOFile(filePath) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineNumber = i + 1;
+
+        // 匹配导出的类定义: export class ClassName
+        const exportClassMatch = line.match(/export\s+class\s+([A-Z][a-zA-Z0-9]*)/);
+        if (exportClassMatch) {
+          const className = exportClassMatch[1];
+          
+          this.addResult('dtos', className, {
+            file: filePath,
+            type: 'class',
+            line: lineNumber
+          });
+        }
+
+        // 匹配导出的接口定义: export interface InterfaceName
+        const exportInterfaceMatch = line.match(/export\s+interface\s+([A-Z][a-zA-Z0-9]*)/);
+        if (exportInterfaceMatch) {
+          const interfaceName = exportInterfaceMatch[1];
+          
+          this.addResult('dtos', interfaceName, {
+            file: filePath,
+            type: 'interface',
+            line: lineNumber
+          });
+        }
+
+        // 匹配导出的类型定义: export type TypeName
+        const exportTypeMatch = line.match(/export\s+type\s+([A-Z][a-zA-Z0-9]*)/);
+        if (exportTypeMatch) {
+          const typeName = exportTypeMatch[1];
+          
+          this.addResult('dtos', typeName, {
+            file: filePath,
+            type: 'type',
+            line: lineNumber
+          });
+        }
+      }
+    } catch (error) {
+      console.warn(`解析DTO文件失败 ${filePath}: ${error.message}`);
+    }
+  }
+
+  /**
    * 添加结果到对应的集合中
    */
   addResult(type, name, info) {
@@ -284,6 +420,9 @@ class DuplicateAnalyzer {
 
     // 扫描枚举文件
     this.scanEnumFiles();
+
+    // 扫描DTO文件
+    this.scanDTOFiles();
 
     // 查找重复项
     console.log('\n🔍 查找重复项...');

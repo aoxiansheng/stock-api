@@ -1,4 +1,4 @@
-import { RATE_LIMIT_CONFIG } from '../constants/rate-limit.constants';
+import { RATE_LIMIT_CONFIG } from "../constants/rate-limit.constants";
 
 /**
  * 集中化的安全配置
@@ -16,13 +16,13 @@ export const securityConfig = {
     maxAgeDays: 90,
   },
   session: {
-    jwtDefaultExpiry: '15m',
-    refreshTokenDefaultExpiry: '7d',
+    jwtDefaultExpiry: "15m",
+    refreshTokenDefaultExpiry: "7d",
     maxConcurrent: 5,
   },
   rateLimit: {
     enabled: true, // 原 api.rateLimit
-    redisPrefix: 'rate_limit',
+    redisPrefix: "rate_limit",
     luaExpireBufferSeconds: RATE_LIMIT_CONFIG.REDIS.EXPIRE_BUFFER_SECONDS,
     // 压力测试环境变量支持
     performanceTestMode: RATE_LIMIT_CONFIG.PERFORMANCE.TEST_MODE,
@@ -37,13 +37,13 @@ export const securityConfig = {
     masking: true,
   },
   permission: {
-    cachePrefix: 'perm',
+    cachePrefix: "perm",
     cacheTtlSeconds: 5 * 60, // 5 minutes
   },
   audit: {
-    eventBufferKey: 'security:event_buffer',
-    suspiciousIpSetKey: 'security:suspicious_ips',
-    ipAnalysisHashPrefix: 'security:ip_analysis:',
+    eventBufferKey: "security:event_buffer",
+    suspiciousIpSetKey: "security:suspicious_ips",
+    ipAnalysisHashPrefix: "security:ip_analysis:",
     flushInterval: 30 * 1000, // 30 seconds
     analysisInterval: 60 * 1000, // 1 minute
     cleanupInterval: 60 * 60 * 1000, // 1 hour
@@ -52,4 +52,4 @@ export const securityConfig = {
     highFailureCountThreshold: 10,
     highFailureRateThreshold: 0.5,
   },
-}; 
+};

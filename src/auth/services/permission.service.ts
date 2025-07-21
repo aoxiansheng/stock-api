@@ -1,17 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-
-import { CacheService } from '../../cache/cache.service';
-import { securityConfig } from '../../common/config/security.config';
+import { CacheService } from "../../cache/cache.service";
+import { securityConfig } from "../../common/config/security.config";
 import {
   PERMISSION_OPERATIONS,
   PERMISSION_MESSAGES,
   PermissionTemplateUtil,
-} from '../constants/permission.constants';
-import { Permission, UserRole } from '../enums/user-role.enum';
-import { AuthSubject, PermissionContext } from '../interfaces/auth-subject.interface';
+} from "../constants/permission.constants";
+import { Permission, UserRole } from "../enums/user-role.enum";
+import {
+  AuthSubject,
+  PermissionContext,
+} from "../interfaces/auth-subject.interface";
 
 /**
  * 权限验证结果
@@ -19,16 +21,16 @@ import { AuthSubject, PermissionContext } from '../interfaces/auth-subject.inter
 export interface PermissionCheckResult {
   /** 是否有权限 */
   allowed: boolean;
-  
+
   /** 缺失的权限 */
   missingPermissions: Permission[];
-  
+
   /** 缺失的角色 */
   missingRoles: UserRole[];
-  
+
   /** 检查耗时（毫秒） */
   duration: number;
-  
+
   /** 详细信息 */
   details: string;
 }
@@ -60,48 +62,61 @@ export class PermissionService {
     });
 
     // 生成缓存键
-    const cacheKey = this.generateCacheKey(subject, requiredPermissions, requiredRoles);
-    
+    const cacheKey = this.generateCacheKey(
+      subject,
+      requiredPermissions,
+      requiredRoles,
+    );
+
     try {
       // 检查缓存
-      const cachedResult = await this.cacheService.get<PermissionCheckResult>(cacheKey);
+      const cachedResult =
+        await this.cacheService.get<PermissionCheckResult>(cacheKey);
       if (cachedResult) {
         this.logger.debug(PERMISSION_MESSAGES.CACHE_HIT, {
           operation,
           subject: subject.getDisplayName(),
-          cache: 'hit'
+          cache: "hit",
         });
         return cachedResult;
       } else {
         this.logger.debug(PERMISSION_MESSAGES.CACHE_MISS, {
           operation,
           subject: subject.getDisplayName(),
-          cache: 'miss',
+          cache: "miss",
         });
       }
 
       // 执行权限检查
-      const result = this.performPermissionCheck(subject, requiredPermissions, requiredRoles);
+      const result = this.performPermissionCheck(
+        subject,
+        requiredPermissions,
+        requiredRoles,
+      );
       result.duration = Date.now() - startTime;
 
       // 缓存结果
-      await this.cacheService.set(cacheKey, result, { ttl: this.config.cacheTtlSeconds });
+      await this.cacheService.set(cacheKey, result, {
+        ttl: this.config.cacheTtlSeconds,
+      });
 
       // 记录权限检查日志
-      this.logPermissionCheck(subject, requiredPermissions, requiredRoles, result);
+      this.logPermissionCheck(
+        subject,
+        requiredPermissions,
+        requiredRoles,
+        result,
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(
-        PERMISSION_MESSAGES.CHECK_FAILED,
-        {
-          operation,
-          subject: subject.getDisplayName(),
-          requiredPermissions,
-          requiredRoles,
-          error: error.stack,
-        },
-      );
+      this.logger.error(PERMISSION_MESSAGES.CHECK_FAILED, {
+        operation,
+        subject: subject.getDisplayName(),
+        requiredPermissions,
+        requiredRoles,
+        error: error.stack,
+      });
       // 🎯 重新抛出原始错误
       throw error;
     }
@@ -133,14 +148,24 @@ export class PermissionService {
       }
     }
 
-    const allowed = missingPermissions.length === 0 && missingRoles.length === 0;
+    const allowed =
+      missingPermissions.length === 0 && missingRoles.length === 0;
 
     return {
       allowed,
       missingPermissions,
       missingRoles,
       duration: 0, // 将在调用方设置
-      details: this.generateCheckDetails(subject, { requiredPermissions, requiredRoles, missingPermissions, missingRoles }, allowed),
+      details: this.generateCheckDetails(
+        subject,
+        {
+          requiredPermissions,
+          requiredRoles,
+          missingPermissions,
+          missingRoles,
+        },
+        allowed,
+      ),
     };
   }
 
@@ -167,8 +192,12 @@ export class PermissionService {
     requiredPermissions: Permission[] = [],
     requiredRoles: UserRole[] = [],
   ): Promise<PermissionContext> {
-    const checkResult = await this.checkPermissions(subject, requiredPermissions, requiredRoles);
-    
+    const checkResult = await this.checkPermissions(
+      subject,
+      requiredPermissions,
+      requiredRoles,
+    );
+
     return {
       subject,
       requiredPermissions,
@@ -190,30 +219,32 @@ export class PermissionService {
   async invalidateCacheFor(subject: AuthSubject): Promise<void> {
     const operation = PERMISSION_OPERATIONS.INVALIDATE_CACHE;
     const pattern = `${this.config.cachePrefix}:${subject.type}:${subject.id}:*`;
-    
+
     try {
       // 🎯 修复: 使用 CacheService 中提供的 delByPattern 方法
       const deletedCount = await this.cacheService.delByPattern(pattern);
-      
+
       if (deletedCount > 0) {
         this.logger.log(PERMISSION_MESSAGES.CACHE_INVALIDATED, {
           operation,
           subject: subject.getDisplayName(),
           deletedCount,
-          pattern
+          pattern,
         });
       } else {
         this.logger.debug(PERMISSION_MESSAGES.NO_CACHE_TO_INVALIDATE, {
           operation,
           subject: subject.getDisplayName(),
-          pattern
+          pattern,
         });
       }
     } catch (error) {
-      this.logger.error(
-        PERMISSION_MESSAGES.CACHE_INVALIDATION_FAILED,
-        { operation, subject: subject.getDisplayName(), pattern, error: error.stack }
-      );
+      this.logger.error(PERMISSION_MESSAGES.CACHE_INVALIDATION_FAILED, {
+        operation,
+        subject: subject.getDisplayName(),
+        pattern,
+        error: error.stack,
+      });
       throw error;
     }
   }
@@ -226,8 +257,8 @@ export class PermissionService {
     permissions: Permission[],
     roles: UserRole[],
   ): string {
-    const permissionsStr = permissions.sort().join(',');
-    const rolesStr = roles.sort().join(',');
+    const permissionsStr = permissions.sort().join(",");
+    const rolesStr = roles.sort().join(",");
     return `${this.config.cachePrefix}:${subject.type}:${subject.id}:${permissionsStr}:${rolesStr}`;
   }
 
@@ -245,31 +276,35 @@ export class PermissionService {
     allowed: boolean,
   ): string {
     if (allowed) {
-      return PermissionTemplateUtil.generateDetails('CHECK_PASSED', {
+      return PermissionTemplateUtil.generateDetails("CHECK_PASSED", {
         subjectName: subject.getDisplayName(),
       });
     }
 
     const details: string[] = [
-      PermissionTemplateUtil.generateDetails('CHECK_FAILED', {
+      PermissionTemplateUtil.generateDetails("CHECK_FAILED", {
         subjectName: subject.getDisplayName(),
-      })
+      }),
     ];
 
     if (context.missingPermissions.length > 0) {
-      details.push(PermissionTemplateUtil.generateDetails('MISSING_PERMISSIONS', {
-        permissions: context.missingPermissions,
-      }));
+      details.push(
+        PermissionTemplateUtil.generateDetails("MISSING_PERMISSIONS", {
+          permissions: context.missingPermissions,
+        }),
+      );
     }
 
     if (context.missingRoles.length > 0) {
-      details.push(PermissionTemplateUtil.generateDetails('REQUIRED_ROLES', {
-        requiredRoles: context.requiredRoles,
-        currentRole: subject.role || 'N/A',
-      }));
+      details.push(
+        PermissionTemplateUtil.generateDetails("REQUIRED_ROLES", {
+          requiredRoles: context.requiredRoles,
+          currentRole: subject.role || "N/A",
+        }),
+      );
     }
 
-    return details.join('; ');
+    return details.join("; ");
   }
 
   /**
@@ -281,8 +316,10 @@ export class PermissionService {
     requiredRoles: UserRole[],
     result: PermissionCheckResult,
   ): void {
-    const logLevel = result.allowed ? 'debug' : 'warn';
-    const message = result.allowed ? PERMISSION_MESSAGES.CHECK_PASSED : PERMISSION_MESSAGES.CHECK_FAILED;
+    const logLevel = result.allowed ? "debug" : "warn";
+    const message = result.allowed
+      ? PERMISSION_MESSAGES.CHECK_PASSED
+      : PERMISSION_MESSAGES.CHECK_FAILED;
 
     this.logger[logLevel]({
       subject: subject.getDisplayName(),

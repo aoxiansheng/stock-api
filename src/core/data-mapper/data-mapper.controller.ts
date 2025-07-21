@@ -9,11 +9,7 @@ import {
   Query,
   ValidationPipe,
 } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
 import {

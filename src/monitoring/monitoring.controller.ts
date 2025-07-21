@@ -1,9 +1,11 @@
-import { Controller, Get, Query, BadRequestException, InternalServerErrorException } from "@nestjs/common";
 import {
-  ApiTags,
-  ApiOperation,
-  ApiQuery,
-} from "@nestjs/swagger";
+  Controller,
+  Get,
+  Query,
+  BadRequestException,
+  InternalServerErrorException,
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
 import { NoPerformanceMonitoring } from "@common/decorators/performance-monitoring.decorator";
@@ -44,43 +46,51 @@ export class MonitoringController {
     description:
       "获取系统整体性能指标，包括API响应时间、数据库性能、缓存命中率等",
   })
-  @ApiSuccessResponse({ description: "性能指标获取成功", type: PerformanceMetricsDto })
+  @ApiSuccessResponse({
+    description: "性能指标获取成功",
+    type: PerformanceMetricsDto,
+  })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async getPerformanceMetrics(@Query() query: GetDbPerformanceQueryDto): Promise<PerformanceMetricsDto> {
+  async getPerformanceMetrics(
+    @Query() query: GetDbPerformanceQueryDto,
+  ): Promise<PerformanceMetricsDto> {
     try {
-      const metrics = await this.performanceMonitor.getPerformanceSummary(query.startDate, query.endDate);
-      
+      const metrics = await this.performanceMonitor.getPerformanceSummary(
+        query.startDate,
+        query.endDate,
+      );
+
       // 确保返回数据结构完整
       if (!metrics) {
-        this.logger.warn('性能监控服务返回空数据，将抛出错误');
-        throw new InternalServerErrorException('性能监控服务暂时不可用');
+        this.logger.warn("性能监控服务返回空数据，将抛出错误");
+        throw new InternalServerErrorException("性能监控服务暂时不可用");
       }
 
       // 验证必要字段存在
-      if (typeof metrics.healthScore === 'undefined') {
-        this.logger.warn('健康评分数据缺失，将使用默认值');
+      if (typeof metrics.healthScore === "undefined") {
+        this.logger.warn("健康评分数据缺失，将使用默认值");
         metrics.healthScore = 0;
       }
 
       if (!metrics.endpoints) {
-        this.logger.warn('端点指标数据缺失，将使用空数组');
+        this.logger.warn("端点指标数据缺失，将使用空数组");
         metrics.endpoints = [];
       }
 
-      if (typeof metrics.processingTime === 'undefined') {
-        this.logger.warn('处理时间数据缺失，将使用默认值');
+      if (typeof metrics.processingTime === "undefined") {
+        this.logger.warn("处理时间数据缺失，将使用默认值");
         metrics.processingTime = 0;
       }
 
-      this.logger.debug('性能指标获取成功', {
+      this.logger.debug("性能指标获取成功", {
         healthScore: metrics.healthScore,
         endpointsCount: metrics.endpoints?.length || 0,
       });
 
       return metrics;
     } catch (error) {
-      this.logger.error('获取性能指标失败:', error);
+      this.logger.error("获取性能指标失败:", error);
       throw error;
     }
   }
@@ -160,7 +170,10 @@ export class MonitoringController {
       }
 
       // 新增：提前验证 sortBy 参数
-      if (sortBy && !["totalRequests", "averageResponseTime", "errorRate"].includes(sortBy)) {
+      if (
+        sortBy &&
+        !["totalRequests", "averageResponseTime", "errorRate"].includes(sortBy)
+      ) {
         throw new BadRequestException("无效的排序字段");
       }
 
@@ -168,23 +181,28 @@ export class MonitoringController {
 
       // 确保metrics是数组
       if (!Array.isArray(metrics)) {
-        this.logger.warn('端点指标数据不是数组格式，将抛出错误');
-        throw new InternalServerErrorException('端点指标数据格式错误');
+        this.logger.warn("端点指标数据不是数组格式，将抛出错误");
+        throw new InternalServerErrorException("端点指标数据格式错误");
       }
 
       // 排序
       if (sortBy && metrics.length > 0) {
         switch (sortBy) {
           case "totalRequests":
-            metrics = metrics.sort((a, b) => (b.totalRequests || 0) - (a.totalRequests || 0));
+            metrics = metrics.sort(
+              (a, b) => (b.totalRequests || 0) - (a.totalRequests || 0),
+            );
             break;
           case "averageResponseTime":
             metrics = metrics.sort(
-              (a, b) => (b.averageResponseTime || 0) - (a.averageResponseTime || 0),
+              (a, b) =>
+                (b.averageResponseTime || 0) - (a.averageResponseTime || 0),
             );
             break;
           case "errorRate":
-            metrics = metrics.sort((a, b) => (b.errorRate || 0) - (a.errorRate || 0));
+            metrics = metrics.sort(
+              (a, b) => (b.errorRate || 0) - (a.errorRate || 0),
+            );
             break;
         }
       }
@@ -195,19 +213,19 @@ export class MonitoringController {
         timestamp: new Date().toISOString(),
       };
 
-      this.logger.debug('端点指标获取成功', {
+      this.logger.debug("端点指标获取成功", {
         total: result.total,
         returned: result.metrics.length,
       });
 
       return result;
     } catch (error) {
-      this.logger.error('获取端点指标失败:', error);
+      this.logger.error("获取端点指标失败:", error);
       throw error;
     }
   }
 
-  // 敏感数据 - 需要管理员权限  
+  // 敏感数据 - 需要管理员权限
   @Auth([UserRole.ADMIN])
   @Get("database")
   @ApiOperation({
@@ -219,12 +237,15 @@ export class MonitoringController {
   @JwtAuthResponses()
   async getDatabaseMetrics(@Query() query: GetDbPerformanceQueryDto) {
     try {
-      const metrics = await this.performanceMonitor.getDatabaseMetrics(query.startDate, query.endDate);
-      
+      const metrics = await this.performanceMonitor.getDatabaseMetrics(
+        query.startDate,
+        query.endDate,
+      );
+
       // 确保返回数据结构完整
       if (!metrics) {
-        this.logger.warn('数据库指标数据为空，将抛出错误');
-        throw new InternalServerErrorException('数据库监控服务暂时不可用');
+        this.logger.warn("数据库指标数据为空，将抛出错误");
+        throw new InternalServerErrorException("数据库监控服务暂时不可用");
       }
 
       // 验证必要字段并提供默认值
@@ -238,14 +259,14 @@ export class MonitoringController {
         timestamp: new Date().toISOString(),
       };
 
-      this.logger.debug('数据库指标获取成功', {
+      this.logger.debug("数据库指标获取成功", {
         totalQueries: safeMetrics.totalQueries,
         averageQueryTime: safeMetrics.averageQueryTime,
       });
 
       return safeMetrics;
     } catch (error) {
-      this.logger.error('获取数据库指标失败:', error);
+      this.logger.error("获取数据库指标失败:", error);
       throw error;
     }
   }
@@ -275,11 +296,11 @@ export class MonitoringController {
   async getRedisMetrics() {
     try {
       const metrics = await this.performanceMonitor.getRedisMetrics();
-      
+
       // 确保返回数据结构完整 - 服务应该总是返回有效的默认值
       if (!metrics) {
-        this.logger.warn('Redis指标数据为空，将抛出错误');
-        throw new InternalServerErrorException('Redis 监控服务暂时不可用');
+        this.logger.warn("Redis指标数据为空，将抛出错误");
+        throw new InternalServerErrorException("Redis 监控服务暂时不可用");
       }
 
       // 验证必要字段并提供默认值
@@ -293,14 +314,14 @@ export class MonitoringController {
         timestamp: new Date().toISOString(),
       };
 
-      this.logger.debug('Redis指标获取成功', {
+      this.logger.debug("Redis指标获取成功", {
         memoryUsage: safeMetrics.memoryUsage,
         hitRate: safeMetrics.hitRate,
       });
 
       return safeMetrics;
     } catch (error) {
-      this.logger.error('获取Redis指标失败:', error);
+      this.logger.error("获取Redis指标失败:", error);
       // 返回默认值而不是抛出错误
       throw error;
     }
@@ -331,11 +352,11 @@ export class MonitoringController {
   async getSystemMetrics() {
     try {
       const metrics = this.performanceMonitor.getSystemMetrics();
-      
+
       // 如果没有获取到指标，使用默认值
       if (!metrics) {
-        this.logger.warn('系统指标获取失败，将抛出错误');
-        throw new InternalServerErrorException('系统指标服务暂时不可用');
+        this.logger.warn("系统指标获取失败，将抛出错误");
+        throw new InternalServerErrorException("系统指标服务暂时不可用");
       }
 
       return {
@@ -347,7 +368,7 @@ export class MonitoringController {
         uptimeHours: (metrics.uptime || 0) / 3600,
       };
     } catch (error) {
-      this.logger.error('获取系统指标发生异常:', error);
+      this.logger.error("获取系统指标发生异常:", error);
       // 返回默认值而不是抛出错误
       throw error;
     }
@@ -369,8 +390,8 @@ export class MonitoringController {
 
       // 确保summary存在且有healthScore
       if (!summary) {
-        this.logger.warn('性能摘要数据为空，将抛出错误');
-        throw new InternalServerErrorException('性能摘要服务暂时不可用');
+        this.logger.warn("性能摘要数据为空，将抛出错误");
+        throw new InternalServerErrorException("性能摘要服务暂时不可用");
       }
 
       const healthScore = summary.healthScore || 0;
@@ -387,7 +408,7 @@ export class MonitoringController {
         version: process.env.npm_package_version || "1.0.0",
       };
 
-      this.logger.debug('系统健康状态获取成功', {
+      this.logger.debug("系统健康状态获取成功", {
         status: result.status,
         score: result.score,
         issuesCount: result.issues.length,
@@ -395,23 +416,22 @@ export class MonitoringController {
 
       return result;
     } catch (error) {
-      this.logger.error('获取系统健康状态失败:', error);
+      this.logger.error("获取系统健康状态失败:", error);
       throw error;
     }
   }
 
   private getDefaultHealthStatus() {
     return {
-      status: 'degraded',
+      status: "degraded",
       score: 0,
       timestamp: new Date().toISOString(),
-      issues: ['性能监控服务不可用'],
-      recommendations: ['检查监控服务配置'],
+      issues: ["性能监控服务不可用"],
+      recommendations: ["检查监控服务配置"],
       uptime: process.uptime(),
       version: process.env.npm_package_version || "1.0.0",
     };
   }
-
 
   private determineHealthStatus(score: number): string {
     if (score >= 90) return "healthy";
@@ -461,7 +481,7 @@ export class MonitoringController {
 
       return issues;
     } catch (error) {
-      this.logger.error('识别系统问题时出错:', error);
+      this.logger.error("识别系统问题时出错:", error);
       return ["系统健康检查出现异常"];
     }
   }
@@ -512,11 +532,10 @@ export class MonitoringController {
 
       return recommendations;
     } catch (error) {
-      this.logger.error('生成系统建议时出错:', error);
+      this.logger.error("生成系统建议时出错:", error);
       return ["请联系系统管理员检查监控配置"];
     }
   }
-
 
   // 敏感数据 - 需要管理员权限
   @Auth([UserRole.ADMIN])
@@ -539,9 +558,6 @@ export class MonitoringController {
     };
   }
 
-
-
-
   // 敏感数据 - 需要管理员权限
   @Auth([UserRole.ADMIN])
   @Get("optimization/recommendations")
@@ -555,13 +571,13 @@ export class MonitoringController {
   async getOptimizationRecommendations() {
     try {
       const [performanceSummary, cacheStats] = await Promise.all([
-        this.performanceMonitor.getPerformanceSummary().catch(error => {
-          this.logger.error('获取性能摘要失败:', error);
-          throw new InternalServerErrorException('性能摘要服务暂时不可用');
+        this.performanceMonitor.getPerformanceSummary().catch((error) => {
+          this.logger.error("获取性能摘要失败:", error);
+          throw new InternalServerErrorException("性能摘要服务暂时不可用");
         }),
-        this.cacheOptimization.getStats().catch(error => {
-          this.logger.error('获取缓存统计失败:', error);
-          throw new InternalServerErrorException('缓存统计服务暂时不可用');
+        this.cacheOptimization.getStats().catch((error) => {
+          this.logger.error("获取缓存统计失败:", error);
+          throw new InternalServerErrorException("缓存统计服务暂时不可用");
         }),
       ]);
 
@@ -576,7 +592,7 @@ export class MonitoringController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('获取优化建议失败:', error);
+      this.logger.error("获取优化建议失败:", error);
       throw error;
     }
   }
@@ -762,8 +778,8 @@ export class MonitoringController {
     try {
       return this.metricsHealthService.getDetailedHealthReport();
     } catch (error) {
-      this.logger.error('获取指标系统健康状态失败:', error);
-      throw new InternalServerErrorException('指标系统健康检查失败');
+      this.logger.error("获取指标系统健康状态失败:", error);
+      throw new InternalServerErrorException("指标系统健康检查失败");
     }
   }
 
@@ -783,8 +799,8 @@ export class MonitoringController {
       await this.metricsHealthService.manualHealthCheck();
       return this.metricsHealthService.getHealthStatus();
     } catch (error) {
-      this.logger.error('手动健康检查失败:', error);
-      throw new InternalServerErrorException('手动健康检查执行失败');
+      this.logger.error("手动健康检查失败:", error);
+      throw new InternalServerErrorException("手动健康检查执行失败");
     }
   }
 }

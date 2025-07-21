@@ -36,7 +36,6 @@ import {
 import { QueryType } from "./dto/query-types.dto";
 import { QueryService } from "./query.service";
 
-
 @ApiTags("🧠 弱时效接口 - 智能数据查询")
 @Controller("query")
 export class QueryController {
@@ -148,7 +147,7 @@ export class QueryController {
               changePercent: 1.19,
               volume: 45678900,
               market: "US",
-              dataAge: 45,          // 数据年龄(秒)
+              dataAge: 45, // 数据年龄(秒)
               changeDetected: false, // 变化检测结果
               lastUpdate: "2024-01-01T15:29:15.000Z",
             },
@@ -157,22 +156,23 @@ export class QueryController {
             queryType: "by_symbols",
             totalResults: 1,
             returnedResults: 1,
-            executionTime: 89,      // 相对较慢但智能
+            executionTime: 89, // 相对较慢但智能
             cacheUsed: true,
-            changeDetection: {      // 变化检测信息
+            changeDetection: {
+              // 变化检测信息
               enabled: true,
               fieldsChecked: ["lastPrice", "volume", "change"],
-              significantChanges: 0
+              significantChanges: 0,
             },
             dataSources: {
-              cache: 1,             // 优先使用缓存
-              persistent: 0,        // MongoDB持久化
-              realtime: 0,          // 实时获取
+              cache: 1, // 优先使用缓存
+              persistent: 0, // MongoDB持久化
+              realtime: 0, // 实时获取
             },
             cachingStrategy: {
-              ttl: 60,              // 智能TTL
-              dualStorage: true,    // 双存储
-              marketAware: true,    // 市场感知
+              ttl: 60, // 智能TTL
+              dualStorage: true, // 双存储
+              marketAware: true, // 市场感知
             },
             timestamp: "2024-01-01T12:00:00.000Z",
           },

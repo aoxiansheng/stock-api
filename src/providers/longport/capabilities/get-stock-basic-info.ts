@@ -22,9 +22,11 @@ export const getStockBasicInfo: ICapability = {
     symbols: string[];
     contextService?: any;
   }): Promise<LongportBasicInfo[]> {
-    const logger = createLogger('LongportGetStockBasicInfo');
+    const logger = createLogger("LongportGetStockBasicInfo");
     try {
-      logger.debug("调用 LongPort SDK 获取股票基本信息", { symbols: params.symbols });
+      logger.debug("调用 LongPort SDK 获取股票基本信息", {
+        symbols: params.symbols,
+      });
 
       if (!params.contextService) {
         throw new Error("LongportContextService 未提供");

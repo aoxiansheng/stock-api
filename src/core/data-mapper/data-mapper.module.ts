@@ -11,7 +11,6 @@ import {
   DataMappingRuleSchema,
 } from "./schemas/data-mapper.schema";
 
-
 @Module({
   imports: [
     AuthModule,

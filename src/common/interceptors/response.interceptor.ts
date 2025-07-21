@@ -8,7 +8,7 @@ import { Response } from "express";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
@@ -43,7 +43,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
           {
             statusCode,
             hasData: !!data,
-            requestId: request["requestId"] || 'unknown',
+            requestId: request["requestId"] || "unknown",
           },
         );
 

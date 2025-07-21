@@ -1,13 +1,16 @@
-import { Injectable, InternalServerErrorException, OnModuleDestroy } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { Interval } from '@nestjs/schedule';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  Injectable,
+  InternalServerErrorException,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { Interval } from "@nestjs/schedule";
+import { v4 as uuidv4 } from "uuid";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-
-import { CacheService } from '../cache/cache.service';
-import { securityConfig } from '../common/config/security.config';
+import { CacheService } from "../cache/cache.service";
+import { securityConfig } from "../common/config/security.config";
 
 import {
   SECURITY_AUDIT_CONFIG,
@@ -18,17 +21,20 @@ import {
   SECURITY_AUDIT_RECOMMENDATIONS,
   SECURITY_AUDIT_RECOMMENDATION_THRESHOLDS,
   SECURITY_SEVERITY_ORDER,
-} from './constants/security-audit.constants';
+} from "./constants/security-audit.constants";
 import {
   RISK_SCORE_WEIGHTS,
   TAG_GENERATION_RULES,
-} from './constants/security.constants';
-import { AuditReport, SecurityEvent } from './interfaces/security-audit.interface';
-import { SecurityAuditLogRepository } from './repositories/security-audit-log.repository';
+} from "./constants/security.constants";
+import {
+  AuditReport,
+  SecurityEvent,
+} from "./interfaces/security-audit.interface";
+import { SecurityAuditLogRepository } from "./repositories/security-audit-log.repository";
 import {
   SecurityAuditLog,
   SecurityAuditLogDocument,
-} from './schemas/security-audit-log.schema';
+} from "./schemas/security-audit-log.schema";
 
 @Injectable()
 export class SecurityAuditService implements OnModuleDestroy {
@@ -44,15 +50,17 @@ export class SecurityAuditService implements OnModuleDestroy {
   ) {}
 
   onModuleDestroy() {
-    this.flushAuditLogs().catch(error => {
-      this.logger.error(SECURITY_AUDIT_MESSAGES.MODULE_DESTROY_FLUSH_FAILED, { error });
+    this.flushAuditLogs().catch((error) => {
+      this.logger.error(SECURITY_AUDIT_MESSAGES.MODULE_DESTROY_FLUSH_FAILED, {
+        error,
+      });
     });
   }
 
   // --- Public Methods ---
 
   async logSecurityEvent(
-    event: Omit<SecurityEvent, 'id' | 'timestamp'> & { timestamp?: Date },
+    event: Omit<SecurityEvent, "id" | "timestamp"> & { timestamp?: Date },
   ): Promise<void> {
     const operation = SECURITY_AUDIT_OPERATIONS.LOG_SECURITY_EVENT;
     const securityEvent: SecurityEvent = {
@@ -75,8 +83,8 @@ export class SecurityAuditService implements OnModuleDestroy {
       await this.updateIPAnalysis(securityEvent);
 
       if (
-        securityEvent.severity === 'critical' ||
-        securityEvent.severity === 'high'
+        securityEvent.severity === "critical" ||
+        securityEvent.severity === "high"
       ) {
         this.processHighSeverityEvent(securityEvent);
       }
@@ -110,7 +118,10 @@ export class SecurityAuditService implements OnModuleDestroy {
   ): Promise<void> {
     await this.logSecurityEvent({
       type: "authentication",
-      severity: outcome === "failure" ? SECURITY_AUDIT_EVENT_SEVERITIES.MEDIUM : SECURITY_AUDIT_EVENT_SEVERITIES.INFO,
+      severity:
+        outcome === "failure"
+          ? SECURITY_AUDIT_EVENT_SEVERITIES.MEDIUM
+          : SECURITY_AUDIT_EVENT_SEVERITIES.INFO,
       action,
       userId,
       clientIP,
@@ -167,7 +178,10 @@ export class SecurityAuditService implements OnModuleDestroy {
   ): Promise<void> {
     await this.logSecurityEvent({
       type: "data_access",
-      severity: outcome === "blocked" ? SECURITY_AUDIT_EVENT_SEVERITIES.HIGH : SECURITY_AUDIT_EVENT_SEVERITIES.INFO,
+      severity:
+        outcome === "blocked"
+          ? SECURITY_AUDIT_EVENT_SEVERITIES.HIGH
+          : SECURITY_AUDIT_EVENT_SEVERITIES.INFO,
       action: action, // 保持action语义清晰，不拼接resource
       userId,
       apiKeyId,
@@ -242,9 +256,13 @@ export class SecurityAuditService implements OnModuleDestroy {
 
     try {
       // 🎯 使用仓储层方法
-      const results = await this.auditLogRepository.findWithFilters(filters, limit, offset);
+      const results = await this.auditLogRepository.findWithFilters(
+        filters,
+        limit,
+        offset,
+      );
 
-      this.logger.debug('获取审计日志成功', {
+      this.logger.debug("获取审计日志成功", {
         operation,
         filterCount: Object.keys(filters).length,
         limit,
@@ -274,31 +292,39 @@ export class SecurityAuditService implements OnModuleDestroy {
   ): Promise<AuditReport> {
     const operation = SECURITY_AUDIT_OPERATIONS.GENERATE_AUDIT_REPORT;
     try {
-      const events = await this.getAuditLogs({ startDate, endDate }, SECURITY_AUDIT_CONFIG.REPORT_MAX_EVENTS, 0);
+      const events = await this.getAuditLogs(
+        { startDate, endDate },
+        SECURITY_AUDIT_CONFIG.REPORT_MAX_EVENTS,
+        0,
+      );
 
       const summary = {
         totalEvents: events.length,
-        criticalEvents: events.filter(e => e.severity === 'critical').length,
+        criticalEvents: events.filter((e) => e.severity === "critical").length,
         failedAuthentications: events.filter(
-          e => e.type === 'authentication' && e.outcome === 'failure',
+          (e) => e.type === "authentication" && e.outcome === "failure",
         ).length,
         suspiciousActivities: events.filter(
-          e => e.type === 'suspicious_activity',
+          (e) => e.type === "suspicious_activity",
         ).length,
-        dataAccessEvents: events.filter(e => e.type === 'data_access').length,
-        uniqueIPs: new Set(events.map(e => e.clientIP)).size,
-        uniqueUsers: new Set(events.filter(e => e.userId).map(e => e.userId))
-          .size,
+        dataAccessEvents: events.filter((e) => e.type === "data_access").length,
+        uniqueIPs: new Set(events.map((e) => e.clientIP)).size,
+        uniqueUsers: new Set(
+          events.filter((e) => e.userId).map((e) => e.userId),
+        ).size,
       };
 
       const topRisks = events
-        .filter(e => e.severity === 'critical' || e.severity === 'high')
+        .filter((e) => e.severity === "critical" || e.severity === "high")
         .sort((a, b) => {
-          return SECURITY_SEVERITY_ORDER[b.severity] - SECURITY_SEVERITY_ORDER[a.severity];
+          return (
+            SECURITY_SEVERITY_ORDER[b.severity] -
+            SECURITY_SEVERITY_ORDER[a.severity]
+          );
         })
         .slice(0, SECURITY_AUDIT_CONFIG.TOP_RISKS_LIMIT)
         // Map back to SecurityEvent for consistent reporting interface
-        .map(log => this.mapLogToEvent(log));
+        .map((log) => this.mapLogToEvent(log));
 
       const recommendations = this.generateSecurityRecommendations(summary);
 
@@ -328,7 +354,9 @@ export class SecurityAuditService implements OnModuleDestroy {
         { operation, error: error.stack },
         SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED,
       );
-      throw new InternalServerErrorException(SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED);
+      throw new InternalServerErrorException(
+        SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED,
+      );
     }
   }
 
@@ -362,9 +390,19 @@ export class SecurityAuditService implements OnModuleDestroy {
   }
 
   // --- Event Listeners ---
-  @OnEvent('auth.login.success')
-  async handleLoginSuccess(data: { userId: string; clientIP: string; userAgent: string; }) {
-      await this.logAuthenticationEvent('user_login', 'success', data.clientIP, data.userAgent, data.userId);
+  @OnEvent("auth.login.success")
+  async handleLoginSuccess(data: {
+    userId: string;
+    clientIP: string;
+    userAgent: string;
+  }) {
+    await this.logAuthenticationEvent(
+      "user_login",
+      "success",
+      data.clientIP,
+      data.userAgent,
+      data.userId,
+    );
   }
 
   @OnEvent("auth.login.failure")
@@ -413,16 +451,22 @@ export class SecurityAuditService implements OnModuleDestroy {
         -1,
       );
       if (eventsJson.length === 0) {
-        this.logger.debug(SECURITY_AUDIT_MESSAGES.EVENT_BUFFER_EMPTY, { operation });
+        this.logger.debug(SECURITY_AUDIT_MESSAGES.EVENT_BUFFER_EMPTY, {
+          operation,
+        });
         return;
       }
 
-      await this.cacheService.listTrim(this.config.eventBufferKey, eventsJson.length, -1);
+      await this.cacheService.listTrim(
+        this.config.eventBufferKey,
+        eventsJson.length,
+        -1,
+      );
 
-      const events: SecurityEvent[] = eventsJson.map(e => JSON.parse(e));
+      const events: SecurityEvent[] = eventsJson.map((e) => JSON.parse(e));
 
       const auditLogs: Partial<SecurityAuditLog>[] = await Promise.all(
-        events.map(async event => ({
+        events.map(async (event) => ({
           eventId: event.id,
           type: event.type,
           severity: event.severity,
@@ -448,7 +492,10 @@ export class SecurityAuditService implements OnModuleDestroy {
         logCount: auditLogs.length,
       });
     } catch (error) {
-      this.logger.error(SECURITY_AUDIT_MESSAGES.FLUSH_LOGS_FAILED, { operation, error: error.stack });
+      this.logger.error(SECURITY_AUDIT_MESSAGES.FLUSH_LOGS_FAILED, {
+        operation,
+        error: error.stack,
+      });
       // 🎯 重新抛出错误
       throw error;
     }
@@ -462,10 +509,9 @@ export class SecurityAuditService implements OnModuleDestroy {
   @Interval(securityConfig.audit.cleanupInterval)
   async cleanupOldData(): Promise<void> {
     const operation = SECURITY_AUDIT_OPERATIONS.CLEANUP_OLD_DATA;
-    this.logger.debug(
-      SECURITY_AUDIT_MESSAGES.CLEANUP_AUTO_HANDLED,
-      { operation }
-    );
+    this.logger.debug(SECURITY_AUDIT_MESSAGES.CLEANUP_AUTO_HANDLED, {
+      operation,
+    });
   }
 
   // --- Private Methods ---
@@ -478,19 +524,25 @@ export class SecurityAuditService implements OnModuleDestroy {
       const key = `${this.config.ipAnalysisHashPrefix}${ip}`;
 
       const [reqCount, failCount] = await Promise.all([
-        this.cacheService.hashIncrementBy(key, 'requestCount', 1),
-        event.outcome === 'failure' || event.outcome === 'blocked'
-          ? this.cacheService.hashIncrementBy(key, 'failureCount', 1)
+        this.cacheService.hashIncrementBy(key, "requestCount", 1),
+        event.outcome === "failure" || event.outcome === "blocked"
+          ? this.cacheService.hashIncrementBy(key, "failureCount", 1)
           : this.cacheService
               .hashGetAll(key)
-              .then(res => parseInt(res?.failureCount, 10) || 0),
+              .then((res) => parseInt(res?.failureCount, 10) || 0),
       ]);
-      await this.cacheService.hashSet(key, 'lastSeen', (event.timestamp || new Date()).toISOString());
+      await this.cacheService.hashSet(
+        key,
+        "lastSeen",
+        (event.timestamp || new Date()).toISOString(),
+      );
       await this.cacheService.expire(key, this.config.ipAnalysisTtlSeconds);
 
       // 检查是否需要标记为可疑IP
-      const shouldMarkSuspicious = failCount > this.config.highFailureCountThreshold ||
-        (reqCount > 0 && failCount / reqCount > this.config.highFailureRateThreshold);
+      const shouldMarkSuspicious =
+        failCount > this.config.highFailureCountThreshold ||
+        (reqCount > 0 &&
+          failCount / reqCount > this.config.highFailureRateThreshold);
 
       if (shouldMarkSuspicious) {
         await this.cacheService.setAdd(this.config.suspiciousIpSetKey, ip);
@@ -522,7 +574,7 @@ export class SecurityAuditService implements OnModuleDestroy {
   private processHighSeverityEvent(event: SecurityEvent): void {
     const operation = SECURITY_AUDIT_OPERATIONS.PROCESS_HIGH_SEVERITY_EVENT;
 
-    this.eventEmitter.emit('security.high_severity_event', event);
+    this.eventEmitter.emit("security.high_severity_event", event);
 
     // 记录严重事件检测
     this.logger.warn(SECURITY_AUDIT_MESSAGES.CRITICAL_EVENT_DETECTED, {
@@ -533,7 +585,7 @@ export class SecurityAuditService implements OnModuleDestroy {
       clientIP: event.clientIP,
     });
 
-    if (event.severity === 'critical' && event.type === 'suspicious_activity') {
+    if (event.severity === "critical" && event.type === "suspicious_activity") {
       this.cacheService.setAdd(this.config.suspiciousIpSetKey, event.clientIP);
       this.logger.error(
         SECURITY_AUDIT_MESSAGES.HIGH_SEVERITY_EVENT_AUTO_BLOCK,
@@ -565,7 +617,10 @@ export class SecurityAuditService implements OnModuleDestroy {
 
       // 基于失败频率
       const ipAnalysis = await this.getIPAnalysis(event.clientIP);
-      if (ipAnalysis && ipAnalysis.failureCount > SECURITY_AUDIT_CONFIG.HIGH_FAILURE_THRESHOLD) {
+      if (
+        ipAnalysis &&
+        ipAnalysis.failureCount > SECURITY_AUDIT_CONFIG.HIGH_FAILURE_THRESHOLD
+      ) {
         score += Math.min(
           weights.factors.high_failure_rate,
           ipAnalysis.failureCount,
@@ -603,7 +658,7 @@ export class SecurityAuditService implements OnModuleDestroy {
       const rules = TAG_GENERATION_RULES;
 
       // 直接映射
-      rules.directMap.forEach(prop => {
+      rules.directMap.forEach((prop) => {
         if (event[prop]) {
           tags.push(event[prop]);
         }
@@ -613,10 +668,10 @@ export class SecurityAuditService implements OnModuleDestroy {
       if (await this.isIPSuspicious(event.clientIP)) {
         tags.push(rules.conditions.isSuspiciousIp);
       }
-      if (event.outcome === 'failure' || event.outcome === 'blocked') {
+      if (event.outcome === "failure" || event.outcome === "blocked") {
         tags.push(rules.conditions.isIncident);
       }
-      if (event.type === 'authentication' && event.outcome === 'failure') {
+      if (event.type === "authentication" && event.outcome === "failure") {
         tags.push(rules.conditions.isAuthFailure);
       }
 
@@ -642,56 +697,89 @@ export class SecurityAuditService implements OnModuleDestroy {
   }
 
   private generateSecurityRecommendations(summary: any): string[] {
-    const operation = SECURITY_AUDIT_OPERATIONS.GENERATE_SECURITY_RECOMMENDATIONS;
+    const operation =
+      SECURITY_AUDIT_OPERATIONS.GENERATE_SECURITY_RECOMMENDATIONS;
     const recommendations: string[] = [];
     const thresholds = SECURITY_AUDIT_RECOMMENDATION_THRESHOLDS;
 
     try {
       // 基于失败认证的推荐
       if (summary.failedAuthentications > thresholds.FAILED_AUTHENTICATIONS) {
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.STRICT_ACCOUNT_LOCKOUT);
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.STRICT_ACCOUNT_LOCKOUT,
+        );
         recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.ENABLE_MFA);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_PASSWORD_POLICY);
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_PASSWORD_POLICY,
+        );
         recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_CAPTCHA);
       }
 
       // 基于可疑活动的推荐
       if (summary.suspiciousActivities > thresholds.SUSPICIOUS_ACTIVITIES) {
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_IP_BLACKLIST);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.USE_WAF_DDOS_PROTECTION);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_RATE_LIMITING);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_NETWORK_MONITORING);
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_IP_BLACKLIST,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.USE_WAF_DDOS_PROTECTION,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_RATE_LIMITING,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_NETWORK_MONITORING,
+        );
       }
 
       // 基于严重事件的推荐
       if (summary.criticalEvents > thresholds.CRITICAL_EVENTS) {
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.INVESTIGATE_CRITICAL_EVENTS);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.REVIEW_SECURITY_POLICIES);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_INCIDENT_RESPONSE);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.CONDUCT_SECURITY_TRAINING);
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.INVESTIGATE_CRITICAL_EVENTS,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.REVIEW_SECURITY_POLICIES,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_INCIDENT_RESPONSE,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.CONDUCT_SECURITY_TRAINING,
+        );
       }
 
       // 基于数据访问量的推荐
       if (summary.dataAccessEvents > thresholds.DATA_ACCESS_THRESHOLD) {
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.REVIEW_ACCESS_PERMISSIONS);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_SECURITY_MONITORING);
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.REVIEW_ACCESS_PERMISSIONS,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_SECURITY_MONITORING,
+        );
       }
 
       // 基于唯一IP数量的推荐
       if (summary.uniqueIPs > thresholds.UNIQUE_IP_THRESHOLD) {
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_NETWORK_MONITORING);
-        recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_RATE_LIMITING);
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_NETWORK_MONITORING,
+        );
+        recommendations.push(
+          SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_RATE_LIMITING,
+        );
       }
 
       // 通用推荐
-      recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.UPDATE_SECURITY_PATCHES);
-      recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.CONDUCT_SECURITY_AUDIT);
+      recommendations.push(
+        SECURITY_AUDIT_RECOMMENDATIONS.UPDATE_SECURITY_PATCHES,
+      );
+      recommendations.push(
+        SECURITY_AUDIT_RECOMMENDATIONS.CONDUCT_SECURITY_AUDIT,
+      );
       recommendations.push(SECURITY_AUDIT_RECOMMENDATIONS.BACKUP_SECURITY_LOGS);
 
       // 去重
       const uniqueRecommendations = [...new Set(recommendations)];
 
-      this.logger.debug('安全推荐生成完成', {
+      this.logger.debug("安全推荐生成完成", {
         operation,
         summaryStats: {
           failedAuthentications: summary.failedAuthentications,
@@ -705,7 +793,7 @@ export class SecurityAuditService implements OnModuleDestroy {
 
       return uniqueRecommendations;
     } catch (error) {
-      this.logger.error('安全推荐生成失败', {
+      this.logger.error("安全推荐生成失败", {
         operation,
         error: error.message,
       });

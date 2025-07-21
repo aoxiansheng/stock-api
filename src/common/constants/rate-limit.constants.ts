@@ -7,92 +7,100 @@
  * 频率限制策略枚举
  */
 export enum RateLimitStrategy {
-  FIXED_WINDOW = 'fixed_window',     // 固定窗口
-  SLIDING_WINDOW = 'sliding_window', // 滑动窗口
+  FIXED_WINDOW = "fixed_window", // 固定窗口
+  SLIDING_WINDOW = "sliding_window", // 滑动窗口
 }
 
 /**
  * 频率限制策略描述
  */
-export const RATE_LIMIT_STRATEGY_DESCRIPTIONS: Record<RateLimitStrategy, string> = {
-  [RateLimitStrategy.FIXED_WINDOW]: '固定窗口算法',
-  [RateLimitStrategy.SLIDING_WINDOW]: '滑动窗口算法',
+export const RATE_LIMIT_STRATEGY_DESCRIPTIONS: Record<
+  RateLimitStrategy,
+  string
+> = {
+  [RateLimitStrategy.FIXED_WINDOW]: "固定窗口算法",
+  [RateLimitStrategy.SLIDING_WINDOW]: "滑动窗口算法",
 };
 
 /**
  * 频率限制策略的适用场景
  */
-export const RATE_LIMIT_STRATEGY_USE_CASES: Record<RateLimitStrategy, string> = {
-  [RateLimitStrategy.FIXED_WINDOW]: '适用于简单场景，性能较好，但可能存在突发流量问题',
-  [RateLimitStrategy.SLIDING_WINDOW]: '适用于严格控制场景，流量控制更平滑，但消耗更多资源',
-};
+export const RATE_LIMIT_STRATEGY_USE_CASES: Record<RateLimitStrategy, string> =
+  {
+    [RateLimitStrategy.FIXED_WINDOW]:
+      "适用于简单场景，性能较好，但可能存在突发流量问题",
+    [RateLimitStrategy.SLIDING_WINDOW]:
+      "适用于严格控制场景，流量控制更平滑，但消耗更多资源",
+  };
 
 // 📝 操作名称常量
 export const RATE_LIMIT_OPERATIONS = Object.freeze({
-  CHECK_RATE_LIMIT: 'checkRateLimit',
-  CHECK_FIXED_WINDOW: 'checkFixedWindow',
-  CHECK_SLIDING_WINDOW: 'checkSlidingWindow',
-  RESET_RATE_LIMIT: 'resetRateLimit',
-  GET_CURRENT_USAGE: 'getCurrentUsage',
-  GET_USAGE_STATISTICS: 'getUsageStatistics',
-  GENERATE_REDIS_KEY: 'generateRedisKey',
-  PARSE_WINDOW_TO_SECONDS: 'parseWindowToSeconds',
-  VALIDATE_STRATEGY: 'validateStrategy',
-  VALIDATE_WINDOW_FORMAT: 'validateWindowFormat',
-  EXECUTE_LUA_SCRIPT: 'executeLuaScript',
-  CLEANUP_EXPIRED_KEYS: 'cleanupExpiredKeys',
+  CHECK_RATE_LIMIT: "checkRateLimit",
+  CHECK_FIXED_WINDOW: "checkFixedWindow",
+  CHECK_SLIDING_WINDOW: "checkSlidingWindow",
+  RESET_RATE_LIMIT: "resetRateLimit",
+  GET_CURRENT_USAGE: "getCurrentUsage",
+  GET_USAGE_STATISTICS: "getUsageStatistics",
+  GENERATE_REDIS_KEY: "generateRedisKey",
+  PARSE_WINDOW_TO_SECONDS: "parseWindowToSeconds",
+  VALIDATE_STRATEGY: "validateStrategy",
+  VALIDATE_WINDOW_FORMAT: "validateWindowFormat",
+  EXECUTE_LUA_SCRIPT: "executeLuaScript",
+  CLEANUP_EXPIRED_KEYS: "cleanupExpiredKeys",
 });
 
 // 📢 消息常量
 export const RATE_LIMIT_MESSAGES = Object.freeze({
   // 成功消息
-  RATE_LIMIT_CHECK_STARTED: '检查频率限制',
-  FIXED_WINDOW_CHECK: '固定窗口检查',
-  SLIDING_WINDOW_CHECK: '滑动窗口检查',
-  RATE_LIMIT_RESET: '重置API Key的频率限制计数器',
-  USAGE_STATISTICS_RETRIEVED: '获取API Key使用统计',
-  CURRENT_USAGE_RETRIEVED: '获取当前使用情况',
-  REDIS_KEY_GENERATED: 'Redis键生成成功',
-  WINDOW_PARSED: '时间窗口解析成功',
-  LUA_SCRIPT_EXECUTED: 'Lua脚本执行成功',
-  
+  RATE_LIMIT_CHECK_STARTED: "检查频率限制",
+  FIXED_WINDOW_CHECK: "固定窗口检查",
+  SLIDING_WINDOW_CHECK: "滑动窗口检查",
+  RATE_LIMIT_RESET: "重置API Key的频率限制计数器",
+  USAGE_STATISTICS_RETRIEVED: "获取API Key使用统计",
+  CURRENT_USAGE_RETRIEVED: "获取当前使用情况",
+  REDIS_KEY_GENERATED: "Redis键生成成功",
+  WINDOW_PARSED: "时间窗口解析成功",
+  LUA_SCRIPT_EXECUTED: "Lua脚本执行成功",
+
   // 错误消息
-  RATE_LIMIT_CHECK_FAILED: '频率限制检查失败',
-  FIXED_WINDOW_EXCEEDED: 'API Key 超过固定窗口频率限制',
-  SLIDING_WINDOW_EXCEEDED: 'API Key 超过滑动窗口频率限制',
-  UNSUPPORTED_STRATEGY_RESET: '尝试重置不支持的频率限制策略的计数器',
-  REDIS_OPERATION_FAILED: 'Redis操作失败',
-  LUA_SCRIPT_EXECUTION_FAILED: 'Lua脚本执行失败',
-  WINDOW_PARSING_FAILED: '时间窗口解析失败',
-  USAGE_RETRIEVAL_FAILED: '使用统计获取失败',
-  
+  RATE_LIMIT_CHECK_FAILED: "频率限制检查失败",
+  FIXED_WINDOW_EXCEEDED: "API Key 超过固定窗口频率限制",
+  SLIDING_WINDOW_EXCEEDED: "API Key 超过滑动窗口频率限制",
+  UNSUPPORTED_STRATEGY_RESET: "尝试重置不支持的频率限制策略的计数器",
+  REDIS_OPERATION_FAILED: "Redis操作失败",
+  LUA_SCRIPT_EXECUTION_FAILED: "Lua脚本执行失败",
+  WINDOW_PARSING_FAILED: "时间窗口解析失败",
+  USAGE_RETRIEVAL_FAILED: "使用统计获取失败",
+
   // 警告消息
-  STRATEGY_NOT_SUPPORTED: '不支持的频率限制策略',
-  INVALID_WINDOW_FORMAT: '无效的时间窗口格式',
-  UNSUPPORTED_TIME_UNIT: '不支持的时间单位',
-  HIGH_USAGE_DETECTED: '检测到高频使用',
-  RATE_LIMIT_APPROACHING: '接近频率限制',
-  UNUSUAL_USAGE_PATTERN: '检测到异常使用模式',
-  
+  STRATEGY_NOT_SUPPORTED: "不支持的频率限制策略",
+  INVALID_WINDOW_FORMAT: "无效的时间窗口格式",
+  UNSUPPORTED_TIME_UNIT: "不支持的时间单位",
+  HIGH_USAGE_DETECTED: "检测到高频使用",
+  RATE_LIMIT_APPROACHING: "接近频率限制",
+  UNUSUAL_USAGE_PATTERN: "检测到异常使用模式",
+
   // 信息消息
-  RATE_LIMIT_WITHIN_BOUNDS: '频率限制在正常范围内',
-  CACHE_KEY_EXPIRED: '缓存键已过期',
-  WINDOW_RESET: '时间窗口已重置',
-  STATISTICS_CALCULATED: '统计数据计算完成',
-  REDIS_CONNECTION_ESTABLISHED: 'Redis连接已建立',
-  ALGORITHM_SELECTED: '频率限制算法已选择',
+  RATE_LIMIT_WITHIN_BOUNDS: "频率限制在正常范围内",
+  CACHE_KEY_EXPIRED: "缓存键已过期",
+  WINDOW_RESET: "时间窗口已重置",
+  STATISTICS_CALCULATED: "统计数据计算完成",
+  REDIS_CONNECTION_ESTABLISHED: "Redis连接已建立",
+  ALGORITHM_SELECTED: "频率限制算法已选择",
 });
 
 // 🎯 错误消息模板常量
 export const RATE_LIMIT_ERROR_TEMPLATES = Object.freeze({
-  UNSUPPORTED_STRATEGY: '不支持的频率限制策略: {strategy}',
-  INVALID_WINDOW_FORMAT: '无效的时间窗口格式: {window}，期望格式如: 1s, 5m, 1h, 1d',
-  UNSUPPORTED_TIME_UNIT: '不支持的时间单位: {unit}，支持的单位: s(秒), m(分), h(时), d(天)',
-  RATE_LIMIT_EXCEEDED: 'API Key {appKey} 超过频率限制: {current}/{limit} 请求',
-  REDIS_KEY_CONFLICT: 'Redis键冲突: {key}',
-  INVALID_LIMIT_VALUE: '无效的限制值: {limit}，必须是正整数',
-  WINDOW_TOO_LARGE: '时间窗口过大: {window}，最大支持 {maxWindow}',
-  WINDOW_TOO_SMALL: '时间窗口过小: {window}，最小支持 {minWindow}',
+  UNSUPPORTED_STRATEGY: "不支持的频率限制策略: {strategy}",
+  INVALID_WINDOW_FORMAT:
+    "无效的时间窗口格式: {window}，期望格式如: 1s, 5m, 1h, 1d",
+  UNSUPPORTED_TIME_UNIT:
+    "不支持的时间单位: {unit}，支持的单位: s(秒), m(分), h(时), d(天)",
+  RATE_LIMIT_EXCEEDED: "API Key {appKey} 超过频率限制: {current}/{limit} 请求",
+  REDIS_KEY_CONFLICT: "Redis键冲突: {key}",
+  INVALID_LIMIT_VALUE: "无效的限制值: {limit}，必须是正整数",
+  WINDOW_TOO_LARGE: "时间窗口过大: {window}，最大支持 {maxWindow}",
+  WINDOW_TOO_SMALL: "时间窗口过小: {window}，最小支持 {minWindow}",
 });
 
 // 🔧 Lua 脚本常量
@@ -126,7 +134,7 @@ export const RATE_LIMIT_LUA_SCRIPTS = Object.freeze({
       return {0, current, 0, retry_after}
     end
   `,
-  
+
   SLIDING_WINDOW_COUNT_ONLY: `
     local key = KEYS[1]
     local now = tonumber(ARGV[1])
@@ -139,7 +147,7 @@ export const RATE_LIMIT_LUA_SCRIPTS = Object.freeze({
     -- 返回当前窗口内的请求数
     return redis.call('ZCARD', key)
   `,
-  
+
   BATCH_CLEANUP: `
     local pattern = ARGV[1]
     local batch_size = tonumber(ARGV[2])
@@ -157,12 +165,12 @@ export const RATE_LIMIT_LUA_SCRIPTS = Object.freeze({
 
 // ⏰ 时间单位常量
 export const RATE_LIMIT_TIME_UNITS = Object.freeze({
-  SECOND: 's',
-  MINUTE: 'm',
-  HOUR: 'h',
-  DAY: 'd',
-  WEEK: 'w',
-  MONTH: 'M',
+  SECOND: "s",
+  MINUTE: "m",
+  HOUR: "h",
+  DAY: "d",
+  WEEK: "w",
+  MONTH: "M",
 });
 
 // 🔢 时间倍数常量
@@ -182,11 +190,13 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
     TTL: parseInt(process.env.THROTTLER_TTL) || 60000, // 1分钟
     LIMIT: parseInt(process.env.THROTTLER_LIMIT) || 1000, // 每分钟1000次
   },
-  
+
   // === API Key 级别限流配置 ===
   API_KEY: {
-    DEFAULT_STRATEGY: (process.env.API_RATE_LIMIT_STRATEGY as RateLimitStrategy) || RateLimitStrategy.FIXED_WINDOW,
-    DEFAULT_WINDOW: process.env.API_RATE_LIMIT_DEFAULT_WINDOW || '1m',
+    DEFAULT_STRATEGY:
+      (process.env.API_RATE_LIMIT_STRATEGY as RateLimitStrategy) ||
+      RateLimitStrategy.FIXED_WINDOW,
+    DEFAULT_WINDOW: process.env.API_RATE_LIMIT_DEFAULT_WINDOW || "1m",
     DEFAULT_REQUESTS: getDefaultApiKeyRequests(), // 动态计算
     MIN_REQUESTS: 1,
     MAX_REQUESTS: 1000000,
@@ -197,9 +207,9 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
   WINDOW: {
     MIN_SECONDS: 1,
     MAX_SECONDS: 30 * 24 * 60 * 60, // 30天
-    DEFAULT: process.env.API_RATE_LIMIT_DEFAULT_WINDOW || '1m',
+    DEFAULT: process.env.API_RATE_LIMIT_DEFAULT_WINDOW || "1m",
   },
-  
+
   // === Redis 相关配置 ===
   REDIS: {
     EXPIRE_BUFFER_SECONDS: 10,
@@ -208,25 +218,25 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
     COMMAND_TIMEOUT: 5000,
     MAX_RETRIES: 3,
   },
-  
+
   // === 性能相关配置 ===
   PERFORMANCE: {
     STATISTICS_PRECISION: 2,
-    TEST_MODE: process.env.PERFORMANCE_TEST_MODE === 'true',
+    TEST_MODE: process.env.PERFORMANCE_TEST_MODE === "true",
     MULTIPLIER: parseInt(process.env.RATE_LIMIT_MULTIPLIER) || 1,
   },
-  
+
   // === 端点特定限流配置 ===
   ENDPOINTS: {
     SECURITY_MANUAL_EVENTS: { limit: 20, ttl: 60000 }, // 每分钟20次
-    PROVIDER_CAPABILITIES: { limit: 10, ttl: 60000 },  // 每分钟10次
-    AUTH_LOGIN: { limit: 5, ttl: 300000 },             // 每5分钟5次
-    AUTH_REGISTER: { limit: 3, ttl: 3600000 },         // 每小时3次
+    PROVIDER_CAPABILITIES: { limit: 10, ttl: 60000 }, // 每分钟10次
+    AUTH_LOGIN: { limit: 5, ttl: 300000 }, // 每5分钟5次
+    AUTH_REGISTER: { limit: 3, ttl: 3600000 }, // 每小时3次
   },
-  
+
   // === IP 级别限流配置 ===
   IP_RATE_LIMIT: {
-    ENABLED: process.env.IP_RATE_LIMIT_ENABLED !== 'false',
+    ENABLED: process.env.IP_RATE_LIMIT_ENABLED !== "false",
     MAX_REQUESTS: parseInt(process.env.IP_RATE_LIMIT_MAX) || 1000,
     WINDOW_MS: parseInt(process.env.IP_RATE_LIMIT_WINDOW) || 60000, // 1分钟
   },
@@ -246,7 +256,7 @@ function getDefaultApiKeyRequests(): number {
 
   // 2. 压力测试模式下的动态计算
   const baseRequests = 200; // 基础限制：每分钟200次请求
-  const isPerformanceTest = process.env.PERFORMANCE_TEST_MODE === 'true';
+  const isPerformanceTest = process.env.PERFORMANCE_TEST_MODE === "true";
   const multiplier = parseInt(process.env.RATE_LIMIT_MULTIPLIER) || 1;
 
   if (isPerformanceTest) {
@@ -260,7 +270,7 @@ function getDefaultApiKeyRequests(): number {
 // 🔐 安全中间件相关限制常量
 export const SECURITY_LIMITS = Object.freeze({
   MAX_PAYLOAD_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
-  MAX_PAYLOAD_SIZE_STRING: '10MB',
+  MAX_PAYLOAD_SIZE_STRING: "10MB",
   MAX_STRING_LENGTH_SANITIZE: 10000,
   MAX_OBJECT_DEPTH_COMPLEXITY: 50,
   MAX_OBJECT_FIELDS_COMPLEXITY: 10000,
@@ -273,37 +283,37 @@ export const SECURITY_LIMITS = Object.freeze({
 // 📊 频率限制策略常量
 export const RATE_LIMIT_STRATEGY_INFO = Object.freeze({
   FIXED_WINDOW: {
-    name: 'Fixed Window',
-    description: '固定时间窗口算法',
-    pros: ['简单高效', '内存使用少'],
-    cons: ['可能出现突发流量'],
+    name: "Fixed Window",
+    description: "固定时间窗口算法",
+    pros: ["简单高效", "内存使用少"],
+    cons: ["可能出现突发流量"],
   },
   SLIDING_WINDOW: {
-    name: 'Sliding Window',
-    description: '滑动时间窗口算法',
-    pros: ['流量分布均匀', '更精确的限制'],
-    cons: ['内存使用较多', '计算复杂度高'],
+    name: "Sliding Window",
+    description: "滑动时间窗口算法",
+    pros: ["流量分布均匀", "更精确的限制"],
+    cons: ["内存使用较多", "计算复杂度高"],
   },
 });
 
 // 🏷️ Redis 键模式常量
 export const RATE_LIMIT_REDIS_PATTERNS = Object.freeze({
-  FIXED_WINDOW: '{prefix}:{appKey}:{window}:fixed:{windowStart}',
-  SLIDING_WINDOW: '{prefix}:{appKey}:{window}:sliding',
-  USAGE_STATS: '{prefix}:{appKey}:stats',
-  CLEANUP_PATTERN: '{prefix}:*',
+  FIXED_WINDOW: "{prefix}:{appKey}:{window}:fixed:{windowStart}",
+  SLIDING_WINDOW: "{prefix}:{appKey}:{window}:sliding",
+  USAGE_STATS: "{prefix}:{appKey}:stats",
+  CLEANUP_PATTERN: "{prefix}:*",
 });
 
 // 📈 监控指标常量
 export const RATE_LIMIT_METRICS = Object.freeze({
-  REQUESTS_ALLOWED: 'rate_limit_requests_allowed',
-  REQUESTS_DENIED: 'rate_limit_requests_denied',
-  WINDOW_RESETS: 'rate_limit_window_resets',
-  LUA_SCRIPT_EXECUTIONS: 'rate_limit_lua_executions',
-  REDIS_OPERATIONS: 'rate_limit_redis_operations',
-  AVERAGE_RESPONSE_TIME: 'rate_limit_avg_response_time',
-  CACHE_HIT_RATE: 'rate_limit_cache_hit_rate',
-  ERROR_RATE: 'rate_limit_error_rate',
+  REQUESTS_ALLOWED: "rate_limit_requests_allowed",
+  REQUESTS_DENIED: "rate_limit_requests_denied",
+  WINDOW_RESETS: "rate_limit_window_resets",
+  LUA_SCRIPT_EXECUTIONS: "rate_limit_lua_executions",
+  REDIS_OPERATIONS: "rate_limit_redis_operations",
+  AVERAGE_RESPONSE_TIME: "rate_limit_avg_response_time",
+  CACHE_HIT_RATE: "rate_limit_cache_hit_rate",
+  ERROR_RATE: "rate_limit_error_rate",
 });
 
 // 🎯 验证规则常量
@@ -335,12 +345,12 @@ export const RATE_LIMIT_ALERT_THRESHOLDS = Object.freeze({
 
 // 🎨 日志级别映射常量
 export const RATE_LIMIT_LOG_LEVELS = Object.freeze({
-  ALLOWED: 'debug',
-  DENIED: 'warn',
-  ERROR: 'error',
-  RESET: 'info',
-  STATISTICS: 'debug',
-  CONFIGURATION: 'info',
+  ALLOWED: "debug",
+  DENIED: "warn",
+  ERROR: "error",
+  RESET: "info",
+  STATISTICS: "debug",
+  CONFIGURATION: "info",
 });
 
 /**
@@ -355,7 +365,7 @@ export class RateLimitTemplateUtil {
    */
   static replaceErrorTemplate(
     template: string,
-    params: Record<string, any>
+    params: Record<string, any>,
   ): string {
     return template.replace(/\{(\w+)\}/g, (match, key) => {
       const value = params[key];
@@ -371,7 +381,7 @@ export class RateLimitTemplateUtil {
    */
   static generateErrorMessage(
     templateKey: keyof typeof RATE_LIMIT_ERROR_TEMPLATES,
-    params: Record<string, any>
+    params: Record<string, any>,
   ): string {
     const template = RATE_LIMIT_ERROR_TEMPLATES[templateKey];
     return this.replaceErrorTemplate(template, params);
@@ -405,13 +415,18 @@ export class RateLimitTemplateUtil {
    * @returns 延迟毫秒数
    */
   static calculateRetryDelay(attempt: number): number {
-    const { INITIAL_DELAY_MS, BACKOFF_MULTIPLIER, MAX_DELAY_MS, JITTER_FACTOR } = RATE_LIMIT_RETRY_CONFIG;
-    
+    const {
+      INITIAL_DELAY_MS,
+      BACKOFF_MULTIPLIER,
+      MAX_DELAY_MS,
+      JITTER_FACTOR,
+    } = RATE_LIMIT_RETRY_CONFIG;
+
     const baseDelay = Math.min(
       INITIAL_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, attempt),
-      MAX_DELAY_MS
+      MAX_DELAY_MS,
     );
-    
+
     // 添加抖动
     const jitter = baseDelay * JITTER_FACTOR * Math.random();
     return Math.floor(baseDelay + jitter);
@@ -423,7 +438,12 @@ export class RateLimitTemplateUtil {
    * @param precision 精度
    * @returns 格式化后的数值
    */
-  static formatStatistic(value: number, precision: number = RATE_LIMIT_CONFIG.PERFORMANCE.STATISTICS_PRECISION): number {
-    return Math.round(value * Math.pow(10, precision)) / Math.pow(10, precision);
+  static formatStatistic(
+    value: number,
+    precision: number = RATE_LIMIT_CONFIG.PERFORMANCE.STATISTICS_PRECISION,
+  ): number {
+    return (
+      Math.round(value * Math.pow(10, precision)) / Math.pow(10, precision)
+    );
   }
 }

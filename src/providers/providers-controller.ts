@@ -138,9 +138,7 @@ export class MainController {
     },
   })
   @ApiStandardResponses()
-  getBestProviderWithoutMarket(
-    @Param("capability") capability: string,
-  ) {
+  getBestProviderWithoutMarket(@Param("capability") capability: string) {
     const bestProvider = this.capabilityRegistry.getBestProvider(
       capability,
       undefined,

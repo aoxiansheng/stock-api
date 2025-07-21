@@ -1,23 +1,26 @@
-import { Permission } from '../enums/user-role.enum';
-import { AuthSubject, AuthSubjectType } from '../interfaces/auth-subject.interface';
-import { ApiKey } from '../schemas/apikey.schema';
+import { Permission } from "../enums/user-role.enum";
+import {
+  AuthSubject,
+  AuthSubjectType,
+} from "../interfaces/auth-subject.interface";
+import { ApiKey } from "../schemas/apikey.schema";
 
 /**
  * API Key权限主体
- * 
+ *
  * 基于API Key配置的权限列表提供权限验证功能。
  * 权限来源于API Key的permissions字段。
- * 
+ *
  * @example
  * ```typescript
- * const apiKey = { 
- *   id: '123', 
- *   name: 'Trading Bot', 
+ * const apiKey = {
+ *   id: '123',
+ *   name: 'Trading Bot',
  *   permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
  *   rateLimit: { requests: 1000, window: '1h' }
  * };
  * const subject = new ApiKeySubject(apiKey);
- * 
+ *
  * console.log(subject.hasPermission(Permission.DATA_READ)); // true
  * console.log(subject.getDisplayName()); // "API Key: Trading Bot"
  * ```
@@ -30,7 +33,9 @@ export class ApiKeySubject implements AuthSubject {
 
   constructor(apiKey: ApiKey | any) {
     this.id = apiKey.id || apiKey._id?.toString();
-    this.permissions = Array.isArray(apiKey.permissions) ? apiKey.permissions : [];
+    this.permissions = Array.isArray(apiKey.permissions)
+      ? apiKey.permissions
+      : [];
     this.metadata = {
       name: apiKey.name,
       appKey: apiKey.appKey,
@@ -45,10 +50,10 @@ export class ApiKeySubject implements AuthSubject {
 
     // 验证必要字段
     if (!this.id) {
-      throw new Error('API Key主体缺少必要的ID字段');
+      throw new Error("API Key主体缺少必要的ID字段");
     }
     if (!Array.isArray(this.permissions)) {
-      throw new Error('API Key主体的权限字段必须是数组');
+      throw new Error("API Key主体的权限字段必须是数组");
     }
   }
 
@@ -81,21 +86,21 @@ export class ApiKeySubject implements AuthSubject {
    * 检查是否拥有所有指定权限
    */
   hasAllPermissions(permissions: Permission[]): boolean {
-    return permissions.every(permission => this.hasPermission(permission));
+    return permissions.every((permission) => this.hasPermission(permission));
   }
 
   /**
    * 检查是否拥有任一指定权限
    */
   hasAnyPermission(permissions: Permission[]): boolean {
-    return permissions.some(permission => this.hasPermission(permission));
+    return permissions.some((permission) => this.hasPermission(permission));
   }
 
   /**
    * 获取显示名称
    */
   getDisplayName(): string {
-    const name = this.metadata.name || 'unnamed';
+    const name = this.metadata.name || "unnamed";
     return `API Key: ${name}`;
   }
 
@@ -109,7 +114,10 @@ export class ApiKeySubject implements AuthSubject {
     }
 
     // 检查是否过期
-    if (this.metadata.expiresAt && new Date(this.metadata.expiresAt) < new Date()) {
+    if (
+      this.metadata.expiresAt &&
+      new Date(this.metadata.expiresAt) < new Date()
+    ) {
       return false;
     }
 
@@ -133,7 +141,9 @@ export class ApiKeySubject implements AuthSubject {
   } {
     return {
       usageCount: this.metadata.usageCount || 0,
-      lastUsedAt: this.metadata.lastUsedAt ? new Date(this.metadata.lastUsedAt) : null,
+      lastUsedAt: this.metadata.lastUsedAt
+        ? new Date(this.metadata.lastUsedAt)
+        : null,
       createdAt: new Date(this.metadata.createdAt),
     };
   }

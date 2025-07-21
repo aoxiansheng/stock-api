@@ -1,22 +1,20 @@
-import {
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from '@common/config/logger.config';
+import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
 // 🎯 引入缓存服务用于时序数据存储
-import { CacheService } from '../../cache/cache.service';
+import { CacheService } from "../../cache/cache.service";
 import {
   ALERT_HISTORY_OPERATIONS,
   ALERT_HISTORY_MESSAGES,
   ALERT_HISTORY_CONFIG,
   AlertHistoryUtil,
-} from '../constants/alert-history.constants';
-import { IAlert, IAlertQuery } from '../interfaces';
+} from "../constants/alert-history.constants";
+import { IAlert, IAlertQuery } from "../interfaces";
 
 // 🎯 引入仓储层
-import { AlertHistoryRepository } from '../repositories/alert-history.repository';
-import { AlertStatus } from '../types/alert.types';
+import { AlertHistoryRepository } from "../repositories/alert-history.repository";
+import { AlertStatus } from "../types/alert.types";
 
 // 🎯 复用 common 模块的日志配置
 // 🎯 使用内部 DTO 类型增强功能
@@ -25,7 +23,7 @@ import {
   AlertQueryResultDto,
   AlertStatisticsDto,
   AlertCleanupResultDto,
-} from '../dto/alert-history-internal.dto';
+} from "../dto/alert-history-internal.dto";
 // 🎯 引入告警历史服务常量
 
 @Injectable()
@@ -42,14 +40,19 @@ export class AlertHistoryService {
   /**
    * 创建告警记录
    */
-  async createAlert(alertData: Omit<IAlert, 'id' | 'startTime' | 'status'>): Promise<IAlert> {
+  async createAlert(
+    alertData: Omit<IAlert, "id" | "startTime" | "status">,
+  ): Promise<IAlert> {
     const operation = ALERT_HISTORY_OPERATIONS.CREATE_ALERT;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_CREATION_STARTED, sanitizeLogData({
-      operation,
-      ruleId: alertData.ruleId,
-      severity: alertData.severity,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ALERT_CREATION_STARTED,
+      sanitizeLogData({
+        operation,
+        ruleId: alertData.ruleId,
+        severity: alertData.severity,
+      }),
+    );
 
     try {
       const alertId = AlertHistoryUtil.generateAlertId();
@@ -63,21 +66,27 @@ export class AlertHistoryService {
       // 🎯 缓存告警历史到Redis时序存储
       await this.cacheAlertHistory(alert);
 
-      this.logger.log(ALERT_HISTORY_MESSAGES.ALERT_CREATED, sanitizeLogData({
-        operation,
-        alertId,
-        ruleId: alertData.ruleId,
-        severity: alertData.severity,
-      }));
+      this.logger.log(
+        ALERT_HISTORY_MESSAGES.ALERT_CREATED,
+        sanitizeLogData({
+          operation,
+          alertId,
+          ruleId: alertData.ruleId,
+          severity: alertData.severity,
+        }),
+      );
 
       return alert;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.CREATE_ALERT_FAILED, sanitizeLogData({
-        operation,
-        error: error.message,
-        stack: error.stack,
-        ruleId: alertData.ruleId,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.CREATE_ALERT_FAILED,
+        sanitizeLogData({
+          operation,
+          error: error.message,
+          stack: error.stack,
+          ruleId: alertData.ruleId,
+        }),
+      );
       // 🎯 重新抛出原始错误
       throw error;
     }
@@ -93,12 +102,15 @@ export class AlertHistoryService {
   ): Promise<IAlert | null> {
     const operation = ALERT_HISTORY_OPERATIONS.UPDATE_ALERT_STATUS;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_STATUS_UPDATE_STARTED, sanitizeLogData({
-      operation,
-      alertId,
-      status,
-      updatedBy,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ALERT_STATUS_UPDATE_STARTED,
+      sanitizeLogData({
+        operation,
+        alertId,
+        status,
+        updatedBy,
+      }),
+    );
 
     try {
       const updateData: AlertStatusUpdateDataDto = { status };
@@ -112,29 +124,38 @@ export class AlertHistoryService {
         updateData.endTime = new Date();
       }
 
-      const alert = await this.alertHistoryRepository.update(alertId, updateData);
+      const alert = await this.alertHistoryRepository.update(
+        alertId,
+        updateData,
+      );
 
       if (alert) {
         // 🎯 更新缓存中的告警状态
         await this.updateCachedAlertStatus(alert);
 
-        this.logger.log(ALERT_HISTORY_MESSAGES.ALERT_STATUS_UPDATED, sanitizeLogData({
-          operation,
-          alertId,
-          status,
-          updatedBy,
-        }));
+        this.logger.log(
+          ALERT_HISTORY_MESSAGES.ALERT_STATUS_UPDATED,
+          sanitizeLogData({
+            operation,
+            alertId,
+            status,
+            updatedBy,
+          }),
+        );
       }
 
       return alert;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.UPDATE_ALERT_STATUS_FAILED, sanitizeLogData({
-        operation,
-        alertId,
-        status,
-        error: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.UPDATE_ALERT_STATUS_FAILED,
+        sanitizeLogData({
+          operation,
+          alertId,
+          status,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
       throw error;
     }
   }
@@ -145,10 +166,13 @@ export class AlertHistoryService {
   async queryAlerts(query: IAlertQuery): Promise<AlertQueryResultDto> {
     const operation = ALERT_HISTORY_OPERATIONS.QUERY_ALERTS;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ALERTS_QUERY_STARTED, sanitizeLogData({
-      operation,
-      queryParams: query,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ALERTS_QUERY_STARTED,
+      sanitizeLogData({
+        operation,
+        queryParams: query,
+      }),
+    );
 
     try {
       const { alerts, total } = await this.alertHistoryRepository.find(query);
@@ -156,27 +180,37 @@ export class AlertHistoryService {
       const limit = query.limit || ALERT_HISTORY_CONFIG.DEFAULT_PAGE_LIMIT;
 
       // 使用工具类计算分页信息
-      const pagination = AlertHistoryUtil.calculatePagination(total, page, limit);
-
-      this.logger.debug(ALERT_HISTORY_MESSAGES.ALERTS_QUERIED, sanitizeLogData({
-        operation,
+      const pagination = AlertHistoryUtil.calculatePagination(
         total,
         page,
         limit,
-        alertsCount: alerts.length,
-      }));
+      );
+
+      this.logger.debug(
+        ALERT_HISTORY_MESSAGES.ALERTS_QUERIED,
+        sanitizeLogData({
+          operation,
+          total,
+          page,
+          limit,
+          alertsCount: alerts.length,
+        }),
+      );
 
       return {
         alerts,
         ...pagination,
       };
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.QUERY_ALERTS_FAILED, sanitizeLogData({
-        operation,
-        queryParams: query,
-        error: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.QUERY_ALERTS_FAILED,
+        sanitizeLogData({
+          operation,
+          queryParams: query,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
       throw error;
     }
   }
@@ -188,9 +222,12 @@ export class AlertHistoryService {
   async getActiveAlerts(): Promise<IAlert[]> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_ACTIVE_ALERTS;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ACTIVE_ALERTS_LOOKUP_STARTED, sanitizeLogData({
-      operation,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ACTIVE_ALERTS_LOOKUP_STARTED,
+      sanitizeLogData({
+        operation,
+      }),
+    );
 
     try {
       // 🎯 尝试从缓存获取活跃告警的合并数据
@@ -199,65 +236,86 @@ export class AlertHistoryService {
 
       try {
         // 从缓存获取所有时序数据的键
-        const cacheKeys = await this.cacheService.getClient().keys('alert:history:timeseries:*');
-        
+        const cacheKeys = await this.cacheService
+          .getClient()
+          .keys("alert:history:timeseries:*");
+
         if (cacheKeys.length > 0) {
           // 从每个时序键获取最新的活跃告警
           const cachedPromises = cacheKeys.map(async (key) => {
-            const ruleId = key.replace('alert:history:timeseries:', '');
+            const ruleId = key.replace("alert:history:timeseries:", "");
             const cachedData = await this.getCachedAlertHistory(ruleId, 10); // 获取最近10条
-            return cachedData.filter(alert => 
-              alert.status === AlertStatus.FIRING || alert.status === AlertStatus.ACKNOWLEDGED
+            return cachedData.filter(
+              (alert) =>
+                alert.status === AlertStatus.FIRING ||
+                alert.status === AlertStatus.ACKNOWLEDGED,
             );
           });
 
           const cachedResults = await Promise.all(cachedPromises);
           const cachedAlerts = cachedResults.flat();
-          
+
           if (cachedAlerts.length > 0) {
             activeAlerts = cachedAlerts;
             cacheHitCount = cachedAlerts.length;
-            
-            this.logger.debug('从Redis缓存获取活跃告警成功', sanitizeLogData({
-              operation,
-              cacheHitCount,
-              cacheKeysCount: cacheKeys.length,
-            }));
+
+            this.logger.debug(
+              "从Redis缓存获取活跃告警成功",
+              sanitizeLogData({
+                operation,
+                cacheHitCount,
+                cacheKeysCount: cacheKeys.length,
+              }),
+            );
           }
         }
       } catch (cacheError) {
-        this.logger.debug('从Redis缓存获取活跃告警失败，回退到数据库', sanitizeLogData({
-          operation,
-          cacheError: cacheError.message,
-        }));
+        this.logger.debug(
+          "从Redis缓存获取活跃告警失败，回退到数据库",
+          sanitizeLogData({
+            operation,
+            cacheError: cacheError.message,
+          }),
+        );
       }
 
       // 如果缓存没有数据，从数据库获取
       if (activeAlerts.length === 0) {
         activeAlerts = await this.alertHistoryRepository.findActive();
-        
-        this.logger.debug('从数据库获取活跃告警', sanitizeLogData({
-          operation,
-          databaseCount: activeAlerts.length,
-        }));
+
+        this.logger.debug(
+          "从数据库获取活跃告警",
+          sanitizeLogData({
+            operation,
+            databaseCount: activeAlerts.length,
+          }),
+        );
       }
 
       // 按时间排序（最新的在前）
-      activeAlerts.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+      activeAlerts.sort(
+        (a, b) => b.startTime.getTime() - a.startTime.getTime(),
+      );
 
-      this.logger.debug(ALERT_HISTORY_MESSAGES.ACTIVE_ALERTS_RETRIEVED, sanitizeLogData({
-        operation,
-        count: activeAlerts.length,
-        cacheHitCount,
-      }));
+      this.logger.debug(
+        ALERT_HISTORY_MESSAGES.ACTIVE_ALERTS_RETRIEVED,
+        sanitizeLogData({
+          operation,
+          count: activeAlerts.length,
+          cacheHitCount,
+        }),
+      );
 
       return activeAlerts;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.GET_ACTIVE_ALERTS_FAILED, sanitizeLogData({
-        operation,
-        error: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.GET_ACTIVE_ALERTS_FAILED,
+        sanitizeLogData({
+          operation,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
       throw error;
     }
   }
@@ -268,20 +326,19 @@ export class AlertHistoryService {
   async getAlertStats(): Promise<AlertStatisticsDto> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_ALERT_STATS;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_STATS_CALCULATION_STARTED, sanitizeLogData({
-      operation,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ALERT_STATS_CALCULATION_STARTED,
+      sanitizeLogData({
+        operation,
+      }),
+    );
 
     try {
-      const {
-        activeAlerts,
-        todayAlerts,
-        resolvedToday,
-        avgResolutionTime,
-      } = await this.alertHistoryRepository.getStatistics();
+      const { activeAlerts, todayAlerts, resolvedToday, avgResolutionTime } =
+        await this.alertHistoryRepository.getStatistics();
 
       const activeStats = { total: 0, critical: 0, warning: 0, info: 0 };
-      activeAlerts.forEach(item => {
+      activeAlerts.forEach((item) => {
         if (item._id) activeStats[item._id] = item.count;
         activeStats.total += item.count;
       });
@@ -300,19 +357,25 @@ export class AlertHistoryService {
         averageResolutionTime: avgResolutionMinutes,
       });
 
-      this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_STATS_RETRIEVED, sanitizeLogData({
-        operation,
-        activeAlerts: stats.activeAlerts,
-        totalAlertsToday: stats.totalAlertsToday,
-      }));
+      this.logger.debug(
+        ALERT_HISTORY_MESSAGES.ALERT_STATS_RETRIEVED,
+        sanitizeLogData({
+          operation,
+          activeAlerts: stats.activeAlerts,
+          totalAlertsToday: stats.totalAlertsToday,
+        }),
+      );
 
       return stats;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.GET_ALERT_STATS_FAILED, sanitizeLogData({
-        operation,
-        error: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.GET_ALERT_STATS_FAILED,
+        sanitizeLogData({
+          operation,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
       throw error;
     }
   }
@@ -323,35 +386,47 @@ export class AlertHistoryService {
   async getAlertById(alertId: string): Promise<IAlert | null> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_ALERT_BY_ID;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_LOOKUP_STARTED, sanitizeLogData({
-      operation,
-      alertId,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ALERT_LOOKUP_STARTED,
+      sanitizeLogData({
+        operation,
+        alertId,
+      }),
+    );
 
     try {
       const alert = await this.alertHistoryRepository.findById(alertId);
 
       if (alert) {
-        this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_RETRIEVED, sanitizeLogData({
-          operation,
-          alertId,
-          severity: alert.severity,
-        }));
+        this.logger.debug(
+          ALERT_HISTORY_MESSAGES.ALERT_RETRIEVED,
+          sanitizeLogData({
+            operation,
+            alertId,
+            severity: alert.severity,
+          }),
+        );
       } else {
-        this.logger.debug(ALERT_HISTORY_MESSAGES.NO_ALERTS_FOUND, sanitizeLogData({
-          operation,
-          alertId,
-        }));
+        this.logger.debug(
+          ALERT_HISTORY_MESSAGES.NO_ALERTS_FOUND,
+          sanitizeLogData({
+            operation,
+            alertId,
+          }),
+        );
       }
 
       return alert;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.GET_ALERT_FAILED, sanitizeLogData({
-        operation,
-        alertId,
-        error: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.GET_ALERT_FAILED,
+        sanitizeLogData({
+          operation,
+          alertId,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
       throw error;
     }
   }
@@ -359,7 +434,9 @@ export class AlertHistoryService {
   /**
    * 删除过期告警
    */
-  async cleanupExpiredAlerts(daysToKeep: number = ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS): Promise<AlertCleanupResultDto> {
+  async cleanupExpiredAlerts(
+    daysToKeep: number = ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS,
+  ): Promise<AlertCleanupResultDto> {
     const operation = ALERT_HISTORY_OPERATIONS.CLEANUP_EXPIRED_ALERTS;
     const startTime = new Date();
 
@@ -368,15 +445,22 @@ export class AlertHistoryService {
       daysToKeep = ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS;
     }
 
-    this.logger.log(ALERT_HISTORY_MESSAGES.CLEANUP_STARTED, sanitizeLogData({
-      operation,
-      daysToKeep,
-    }));
+    this.logger.log(
+      ALERT_HISTORY_MESSAGES.CLEANUP_STARTED,
+      sanitizeLogData({
+        operation,
+        daysToKeep,
+      }),
+    );
 
     try {
-      const deletedCount = await this.alertHistoryRepository.cleanup(daysToKeep);
+      const deletedCount =
+        await this.alertHistoryRepository.cleanup(daysToKeep);
       const endTime = new Date();
-      const executionTime = AlertHistoryUtil.calculateExecutionTime(startTime, endTime);
+      const executionTime = AlertHistoryUtil.calculateExecutionTime(
+        startTime,
+        endTime,
+      );
 
       const result: AlertCleanupResultDto = {
         deletedCount,
@@ -385,30 +469,37 @@ export class AlertHistoryService {
         endTime,
       };
 
-      this.logger.log(ALERT_HISTORY_MESSAGES.CLEANUP_COMPLETED, sanitizeLogData({
-        operation,
-        daysToKeep,
-        deletedCount,
-        executionTime,
-      }));
+      this.logger.log(
+        ALERT_HISTORY_MESSAGES.CLEANUP_COMPLETED,
+        sanitizeLogData({
+          operation,
+          daysToKeep,
+          deletedCount,
+          executionTime,
+        }),
+      );
 
       return result;
     } catch (error) {
       const endTime = new Date();
-      const executionTime = AlertHistoryUtil.calculateExecutionTime(startTime, endTime);
+      const executionTime = AlertHistoryUtil.calculateExecutionTime(
+        startTime,
+        endTime,
+      );
 
-      this.logger.error(ALERT_HISTORY_MESSAGES.CLEANUP_FAILED, sanitizeLogData({
-        operation,
-        daysToKeep,
-        executionTime,
-        error: error.message,
-        stack: error.stack,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.CLEANUP_FAILED,
+        sanitizeLogData({
+          operation,
+          daysToKeep,
+          executionTime,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
       throw error;
     }
   }
-
-
 
   /**
    * 批量更新告警状态
@@ -423,15 +514,20 @@ export class AlertHistoryService {
 
     // 验证批量大小
     if (!AlertHistoryUtil.isValidBatchSize(alertIds.length)) {
-      throw new Error(`批量大小超出限制，最大允许 ${ALERT_HISTORY_CONFIG.BATCH_SIZE_LIMIT} 个`);
+      throw new Error(
+        `批量大小超出限制，最大允许 ${ALERT_HISTORY_CONFIG.BATCH_SIZE_LIMIT} 个`,
+      );
     }
 
-    this.logger.log(ALERT_HISTORY_MESSAGES.BATCH_UPDATE_STARTED, sanitizeLogData({
-      operation,
-      alertIdsCount: alertIds.length,
-      status,
-      updatedBy,
-    }));
+    this.logger.log(
+      ALERT_HISTORY_MESSAGES.BATCH_UPDATE_STARTED,
+      sanitizeLogData({
+        operation,
+        alertIdsCount: alertIds.length,
+        status,
+        updatedBy,
+      }),
+    );
 
     let successCount = 0;
     let failedCount = 0;
@@ -451,25 +547,35 @@ export class AlertHistoryService {
       await Promise.all(promises);
 
       const executionTime = Date.now() - startTime;
-      const summary = AlertHistoryUtil.generateBatchResultSummary(successCount, failedCount, errors);
-
-      this.logger.log(ALERT_HISTORY_MESSAGES.BATCH_UPDATE_COMPLETED, sanitizeLogData({
-        operation,
+      const summary = AlertHistoryUtil.generateBatchResultSummary(
         successCount,
         failedCount,
-        executionTime,
-        successRate: summary.successRate,
-      }));
+        errors,
+      );
+
+      this.logger.log(
+        ALERT_HISTORY_MESSAGES.BATCH_UPDATE_COMPLETED,
+        sanitizeLogData({
+          operation,
+          successCount,
+          failedCount,
+          executionTime,
+          successRate: summary.successRate,
+        }),
+      );
 
       return { successCount, failedCount, errors };
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      this.logger.error(ALERT_HISTORY_MESSAGES.BATCH_UPDATE_FAILED, sanitizeLogData({
-        operation,
-        alertIdsCount: alertIds.length,
-        executionTime,
-        error: error.message,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.BATCH_UPDATE_FAILED,
+        sanitizeLogData({
+          operation,
+          alertIdsCount: alertIds.length,
+          executionTime,
+          error: error.message,
+        }),
+      );
       throw error;
     }
   }
@@ -480,9 +586,12 @@ export class AlertHistoryService {
   async getAlertCountByStatus(): Promise<Record<string, number>> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_ALERT_COUNT_BY_STATUS;
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_COUNT_STATS_CALCULATION_STARTED, sanitizeLogData({
-      operation,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.ALERT_COUNT_STATS_CALCULATION_STARTED,
+      sanitizeLogData({
+        operation,
+      }),
+    );
 
     try {
       // 这里需要仓储层支持该方法，暂时返回默认值
@@ -492,18 +601,24 @@ export class AlertHistoryService {
         [AlertStatus.RESOLVED]: 0,
       };
 
-      this.logger.debug(ALERT_HISTORY_MESSAGES.ALERT_COUNT_STATS_RETRIEVED, sanitizeLogData({
-        operation,
-        statusCounts,
-        totalStatuses: Object.keys(statusCounts).length,
-      }));
+      this.logger.debug(
+        ALERT_HISTORY_MESSAGES.ALERT_COUNT_STATS_RETRIEVED,
+        sanitizeLogData({
+          operation,
+          statusCounts,
+          totalStatuses: Object.keys(statusCounts).length,
+        }),
+      );
 
       return statusCounts;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.GET_ALERT_COUNT_STATS_FAILED, sanitizeLogData({
-        operation,
-        error: error.message,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.GET_ALERT_COUNT_STATS_FAILED,
+        sanitizeLogData({
+          operation,
+          error: error.message,
+        }),
+      );
       throw error;
     }
   }
@@ -511,7 +626,9 @@ export class AlertHistoryService {
   /**
    * 获取最近的告警记录
    */
-  async getRecentAlerts(limit: number = ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT): Promise<IAlert[]> {
+  async getRecentAlerts(
+    limit: number = ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT,
+  ): Promise<IAlert[]> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_RECENT_ALERTS;
 
     // 验证限制参数
@@ -519,10 +636,13 @@ export class AlertHistoryService {
       limit = ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT;
     }
 
-    this.logger.debug(ALERT_HISTORY_MESSAGES.RECENT_ALERTS_LOOKUP_STARTED, sanitizeLogData({
-      operation,
-      limit,
-    }));
+    this.logger.debug(
+      ALERT_HISTORY_MESSAGES.RECENT_ALERTS_LOOKUP_STARTED,
+      sanitizeLogData({
+        operation,
+        limit,
+      }),
+    );
 
     try {
       const query: IAlertQuery = {
@@ -532,19 +652,25 @@ export class AlertHistoryService {
 
       const { alerts } = await this.alertHistoryRepository.find(query);
 
-      this.logger.debug(ALERT_HISTORY_MESSAGES.RECENT_ALERTS_RETRIEVED, sanitizeLogData({
-        operation,
-        alertsCount: alerts.length,
-        requestedLimit: limit,
-      }));
+      this.logger.debug(
+        ALERT_HISTORY_MESSAGES.RECENT_ALERTS_RETRIEVED,
+        sanitizeLogData({
+          operation,
+          alertsCount: alerts.length,
+          requestedLimit: limit,
+        }),
+      );
 
       return alerts;
     } catch (error) {
-      this.logger.error(ALERT_HISTORY_MESSAGES.GET_RECENT_ALERTS_FAILED, sanitizeLogData({
-        operation,
-        limit,
-        error: error.message,
-      }));
+      this.logger.error(
+        ALERT_HISTORY_MESSAGES.GET_RECENT_ALERTS_FAILED,
+        sanitizeLogData({
+          operation,
+          limit,
+          error: error.message,
+        }),
+      );
       throw error;
     }
   }
@@ -558,10 +684,13 @@ export class AlertHistoryService {
     idPrefixFormat: string;
     maxBatchUpdateSize: number;
   } {
-    this.logger.debug(`获取服务统计信息`, sanitizeLogData({
-      operation: 'getServiceStats',
-    }));
-    
+    this.logger.debug(
+      `获取服务统计信息`,
+      sanitizeLogData({
+        operation: "getServiceStats",
+      }),
+    );
+
     return {
       supportedStatuses: Object.values(AlertStatus),
       defaultCleanupDays: ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS,
@@ -599,32 +728,45 @@ export class AlertHistoryService {
       // 设置TTL为24小时
       await this.cacheService.expire(timeSeriesKey, 24 * 60 * 60);
 
-      this.logger.debug('告警历史已缓存到Redis时序存储', sanitizeLogData({
-        operation: 'cacheAlertHistory',
-        ruleId: alert.ruleId,
-        alertId: alert.id,
-        timeSeriesKey,
-      }));
+      this.logger.debug(
+        "告警历史已缓存到Redis时序存储",
+        sanitizeLogData({
+          operation: "cacheAlertHistory",
+          ruleId: alert.ruleId,
+          alertId: alert.id,
+          timeSeriesKey,
+        }),
+      );
     } catch (error) {
       // 缓存失败不应影响主要功能，仅记录错误
-      this.logger.warn('缓存告警历史到Redis失败', sanitizeLogData({
-        operation: 'cacheAlertHistory',
-        ruleId: alert.ruleId,
-        alertId: alert.id,
-        error: error.message,
-      }));
+      this.logger.warn(
+        "缓存告警历史到Redis失败",
+        sanitizeLogData({
+          operation: "cacheAlertHistory",
+          ruleId: alert.ruleId,
+          alertId: alert.id,
+          error: error.message,
+        }),
+      );
     }
   }
 
   /**
    * 🎯 私有方法：从Redis时序存储获取告警历史
    */
-  private async getCachedAlertHistory(ruleId: string, limit: number = 100): Promise<IAlert[]> {
+  private async getCachedAlertHistory(
+    ruleId: string,
+    limit: number = 100,
+  ): Promise<IAlert[]> {
     try {
       const timeSeriesKey = `alert:history:timeseries:${ruleId}`;
-      const cachedData = await this.cacheService.listRange(timeSeriesKey, 0, limit - 1);
-      
-      return cachedData.map(data => {
+      const cachedData = await this.cacheService.listRange(
+        timeSeriesKey,
+        0,
+        limit - 1,
+      );
+
+      return cachedData.map((data) => {
         const parsed = JSON.parse(data);
         return {
           ...parsed,
@@ -633,11 +775,14 @@ export class AlertHistoryService {
         };
       });
     } catch (error) {
-      this.logger.debug('从Redis获取缓存的告警历史失败', sanitizeLogData({
-        operation: 'getCachedAlertHistory',
-        ruleId,
-        error: error.message,
-      }));
+      this.logger.debug(
+        "从Redis获取缓存的告警历史失败",
+        sanitizeLogData({
+          operation: "getCachedAlertHistory",
+          ruleId,
+          error: error.message,
+        }),
+      );
       return [];
     }
   }
@@ -648,13 +793,17 @@ export class AlertHistoryService {
   private async updateCachedAlertStatus(updatedAlert: IAlert): Promise<void> {
     try {
       const timeSeriesKey = `alert:history:timeseries:${updatedAlert.ruleId}`;
-      
+
       // 获取当前缓存的数据
-      const cachedData = await this.cacheService.listRange(timeSeriesKey, 0, -1);
-      
+      const cachedData = await this.cacheService.listRange(
+        timeSeriesKey,
+        0,
+        -1,
+      );
+
       // 查找并更新对应的告警记录
       let updated = false;
-      const updatedData = cachedData.map(data => {
+      const updatedData = cachedData.map((data) => {
         const parsed = JSON.parse(data);
         if (parsed.id === updatedAlert.id) {
           updated = true;
@@ -675,28 +824,37 @@ export class AlertHistoryService {
       if (updated) {
         // 删除旧的时序数据
         await this.cacheService.del(timeSeriesKey);
-        
+
         // 重新推入更新后的数据（保持顺序）
         if (updatedData.length > 0) {
-          await this.cacheService.listPush(timeSeriesKey, updatedData.reverse());
+          await this.cacheService.listPush(
+            timeSeriesKey,
+            updatedData.reverse(),
+          );
           await this.cacheService.expire(timeSeriesKey, 24 * 60 * 60);
         }
 
-        this.logger.debug('已更新Redis缓存中的告警状态', sanitizeLogData({
-          operation: 'updateCachedAlertStatus',
-          ruleId: updatedAlert.ruleId,
-          alertId: updatedAlert.id,
-          status: updatedAlert.status,
-        }));
+        this.logger.debug(
+          "已更新Redis缓存中的告警状态",
+          sanitizeLogData({
+            operation: "updateCachedAlertStatus",
+            ruleId: updatedAlert.ruleId,
+            alertId: updatedAlert.id,
+            status: updatedAlert.status,
+          }),
+        );
       }
     } catch (error) {
       // 缓存更新失败不应影响主要功能，仅记录警告
-      this.logger.warn('更新Redis缓存中的告警状态失败', sanitizeLogData({
-        operation: 'updateCachedAlertStatus',
-        ruleId: updatedAlert.ruleId,
-        alertId: updatedAlert.id,
-        error: error.message,
-      }));
+      this.logger.warn(
+        "更新Redis缓存中的告警状态失败",
+        sanitizeLogData({
+          operation: "updateCachedAlertStatus",
+          ruleId: updatedAlert.ruleId,
+          alertId: updatedAlert.id,
+          error: error.message,
+        }),
+      );
     }
   }
 }

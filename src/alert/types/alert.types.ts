@@ -27,45 +27,46 @@ export interface BaseQuery {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 /**
  * 告警严重级别枚举
  */
 export const AlertSeverity = {
-  CRITICAL: 'critical',
-  WARNING: 'warning',
-  INFO: 'info',
+  CRITICAL: "critical",
+  WARNING: "warning",
+  INFO: "info",
 } as const;
 
-export type AlertSeverity = typeof AlertSeverity[keyof typeof AlertSeverity];
+export type AlertSeverity = (typeof AlertSeverity)[keyof typeof AlertSeverity];
 
 /**
  * 告警状态枚举
  */
 export const AlertStatus = {
-  FIRING: 'firing',
-  ACKNOWLEDGED: 'acknowledged',
-  RESOLVED: 'resolved',
-  SUPPRESSED: 'suppressed',
+  FIRING: "firing",
+  ACKNOWLEDGED: "acknowledged",
+  RESOLVED: "resolved",
+  SUPPRESSED: "suppressed",
 } as const;
 
-export type AlertStatus = typeof AlertStatus[keyof typeof AlertStatus];
+export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus];
 
 /**
  * 通知类型枚举 - 统一定义避免循环依赖
  */
 export const NotificationType = {
-  EMAIL: 'email',
-  WEBHOOK: 'webhook',
-  SLACK: 'slack',
-  LOG: 'log',
-  SMS: 'sms',
-  DINGTALK: 'dingtalk',
+  EMAIL: "email",
+  WEBHOOK: "webhook",
+  SLACK: "slack",
+  LOG: "log",
+  SMS: "sms",
+  DINGTALK: "dingtalk",
 } as const;
 
-export type NotificationType = typeof NotificationType[keyof typeof NotificationType];
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
 
 /**
  * 通知渠道接口 - 解决循环依赖的核心接口
@@ -88,7 +89,7 @@ export interface AlertRule extends BaseEntity {
   name: string;
   description?: string;
   metric: string;
-  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'ne';
+  operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
   threshold: number;
   duration: number; // 持续时间（秒）
   severity: AlertSeverity;
@@ -104,9 +105,17 @@ export interface AlertRule extends BaseEntity {
  */
 export interface AlertCondition {
   field: string;
-  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'ne' | 'contains' | 'not_contains';
+  operator:
+    | "gt"
+    | "lt"
+    | "eq"
+    | "gte"
+    | "lte"
+    | "ne"
+    | "contains"
+    | "not_contains";
   value: any;
-  logicalOperator?: 'and' | 'or';
+  logicalOperator?: "and" | "or";
 }
 
 /**
@@ -138,7 +147,7 @@ export interface Alert extends BaseEntity {
 export interface AlertHistory {
   id: string;
   alertId: string;
-  action: 'created' | 'acknowledged' | 'resolved' | 'escalated' | 'cancelled';
+  action: "created" | "acknowledged" | "resolved" | "escalated" | "cancelled";
   performedBy?: string;
   performedAt: Date;
   details?: Record<string, any>;
@@ -175,9 +184,16 @@ export interface BatchNotificationResult {
  */
 export interface NotificationSender {
   type: NotificationType;
-  send(alert: Alert, rule: AlertRule, config: Record<string, any>): Promise<NotificationResult>;
+  send(
+    alert: Alert,
+    rule: AlertRule,
+    config: Record<string, any>,
+  ): Promise<NotificationResult>;
   test(config: Record<string, any>): Promise<boolean>;
-  validateConfig(config: Record<string, any>): { valid: boolean; errors: string[] };
+  validateConfig(config: Record<string, any>): {
+    valid: boolean;
+    errors: string[];
+  };
 }
 
 /**
@@ -187,7 +203,7 @@ export interface NotificationTemplate {
   subject: string;
   body: string;
   variables: Record<string, any>;
-  format?: 'text' | 'html' | 'markdown';
+  format?: "text" | "html" | "markdown";
 }
 
 /**
@@ -279,7 +295,10 @@ export interface MetricData {
  */
 export interface RuleEngine {
   evaluateRule(rule: AlertRule, metricData: MetricData[]): RuleEvaluationResult;
-  evaluateRules(rules: AlertRule[], metricData: MetricData[]): RuleEvaluationResult[];
+  evaluateRules(
+    rules: AlertRule[],
+    metricData: MetricData[],
+  ): RuleEvaluationResult[];
   isInCooldown(ruleId: string): Promise<boolean>;
   setCooldown(ruleId: string, cooldownSeconds: number): Promise<void>;
   validateRule(rule: AlertRule): { valid: boolean; errors: string[] };
@@ -298,4 +317,4 @@ export interface AlertSuppressionRule extends BaseEntity {
   duration: number; // 抑制时间（秒）
   enabled: boolean;
   priority: number;
-} 
+}

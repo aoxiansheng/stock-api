@@ -19,13 +19,8 @@ export const buildStorageKey = (
   dataTypeFilter?: string,
   market?: string,
 ): string => {
-  const parts = [
-    market || '*',
-    provider || '*',
-    dataTypeFilter || '*',
-    symbol,
-  ];
-  return parts.join(':');
+  const parts = [market || "*", provider || "*", dataTypeFilter || "*", symbol];
+  return parts.join(":");
 };
 
 /**
@@ -45,4 +40,4 @@ export const validateDataFreshness = (data: any, maxAge?: number): boolean => {
     return false; // 如果没有时间戳，则认为数据不新鲜
   }
   return Date.now() - new Date(timestamp).getTime() <= maxAge * 1000;
-}; 
+};

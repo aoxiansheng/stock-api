@@ -22,4 +22,4 @@ export const notificationConfig = {
 
   // 邮件主题模板
   emailSubjectTemplate: `[{{severity}}] {{ruleName}} - {{status}}`,
-}; 
+};

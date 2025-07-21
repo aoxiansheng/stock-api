@@ -3,22 +3,22 @@ import {
   UnauthorizedException,
   NotFoundException,
   InternalServerErrorException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+} from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-import { AuthPerformance } from '../../metrics/decorators/database-performance.decorator';
+import { AuthPerformance } from "../../metrics/decorators/database-performance.decorator";
 import {
   APIKEY_OPERATIONS,
   APIKEY_MESSAGES,
   APIKEY_DEFAULTS,
   ApiKeyUtil,
-} from '../constants/apikey.constants';
-import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
-import { CreateApiKeyDto } from '../dto/apikey.dto';
-import { ApiKey, ApiKeyDocument } from '../schemas/apikey.schema';
+} from "../constants/apikey.constants";
+import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
+import { CreateApiKeyDto } from "../dto/apikey.dto";
+import { ApiKey, ApiKeyDocument } from "../schemas/apikey.schema";
 
 // 🎯 引入 API Key 服务常量
 
@@ -33,7 +33,7 @@ export class ApiKeyService {
   /**
    * 验证API Key
    */
-  @AuthPerformance('api_key')
+  @AuthPerformance("api_key")
   async validateApiKey(
     appKey: string,
     accessToken: string,
@@ -55,21 +55,28 @@ export class ApiKeyService {
       .exec();
 
     if (!apiKey) {
-      this.logger.warn(ERROR_MESSAGES.API_CREDENTIALS_INVALID, { operation, appKey });
+      this.logger.warn(ERROR_MESSAGES.API_CREDENTIALS_INVALID, {
+        operation,
+        appKey,
+      });
       throw new UnauthorizedException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
     }
 
     if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
-      this.logger.warn(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED, { operation, appKey });
+      this.logger.warn(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED, {
+        operation,
+        appKey,
+      });
       throw new UnauthorizedException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
     }
 
     // 更新使用统计（异步执行，不影响响应时间）
-    this.updateApiKeyUsage(apiKey._id.toString()).catch(error => {
-      this.logger.error(
-        ERROR_MESSAGES.UPDATE_USAGE_FAILED,
-        { operation, apiKeyId: apiKey._id.toString(), error: error.stack },
-      );
+    this.updateApiKeyUsage(apiKey._id.toString()).catch((error) => {
+      this.logger.error(ERROR_MESSAGES.UPDATE_USAGE_FAILED, {
+        operation,
+        apiKeyId: apiKey._id.toString(),
+        error: error.stack,
+      });
     });
 
     this.logger.debug(APIKEY_MESSAGES.API_KEY_VALIDATED, {
@@ -106,7 +113,7 @@ export class ApiKeyService {
       this.logger.error(ERROR_MESSAGES.UPDATE_USAGE_DB_FAILED, {
         operation,
         apiKeyId,
-        error: error.stack
+        error: error.stack,
       });
       // 不向上抛出错误，因为这是后台操作
     }
@@ -154,9 +161,11 @@ export class ApiKeyService {
         operation,
         apiKeyName: name,
         userId,
-        error: error.stack
+        error: error.stack,
       });
-      throw new InternalServerErrorException(ERROR_MESSAGES.CREATE_API_KEY_FAILED);
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.CREATE_API_KEY_FAILED,
+      );
     }
   }
 
@@ -172,7 +181,9 @@ export class ApiKeyService {
     });
 
     try {
-      const apiKeys = await this.apiKeyModel.find({ userId, isActive: true }).exec();
+      const apiKeys = await this.apiKeyModel
+        .find({ userId, isActive: true })
+        .exec();
 
       this.logger.debug(APIKEY_MESSAGES.USER_API_KEYS_RETRIEVED, {
         operation,
@@ -180,14 +191,16 @@ export class ApiKeyService {
         count: apiKeys.length,
       });
 
-      return apiKeys.map(apiKey => apiKey.toJSON());
+      return apiKeys.map((apiKey) => apiKey.toJSON());
     } catch (error) {
       this.logger.error(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED, {
         operation,
         userId,
-        error: error.stack
+        error: error.stack,
       });
-      throw new InternalServerErrorException(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED);
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.GET_USER_API_KEYS_FAILED,
+      );
     }
   }
 
@@ -210,13 +223,15 @@ export class ApiKeyService {
       );
 
       if (result.matchedCount === 0) {
-        throw new NotFoundException(ERROR_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION);
+        throw new NotFoundException(
+          ERROR_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION,
+        );
       }
 
       this.logger.log(APIKEY_MESSAGES.API_KEY_REVOKED, {
         operation,
         apiKeyId,
-        userId
+        userId,
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -224,9 +239,11 @@ export class ApiKeyService {
         operation,
         apiKeyId,
         userId,
-        error: error.stack
+        error: error.stack,
       });
-      throw new InternalServerErrorException(ERROR_MESSAGES.REVOKE_API_KEY_FAILED);
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.REVOKE_API_KEY_FAILED,
+      );
     }
   }
-} 
+}

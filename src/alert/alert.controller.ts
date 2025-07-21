@@ -11,18 +11,19 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
-import { ApiSuccessResponse, ApiCreatedResponse, JwtAuthResponses, ApiPaginatedResponse, ApiStandardResponses } from "@common/decorators/swagger-responses.decorator";
+import {
+  ApiSuccessResponse,
+  ApiCreatedResponse,
+  JwtAuthResponses,
+  ApiPaginatedResponse,
+  ApiStandardResponses,
+} from "@common/decorators/swagger-responses.decorator";
 import { PaginatedDataDto } from "@common/dto/common-response.dto";
 
 import { Auth } from "../auth/decorators/auth.decorator";
 import { UserRole } from "../auth/enums/user-role.enum";
-
 
 import {
   CreateAlertRuleDto,
@@ -41,7 +42,6 @@ import { AlertingService } from "./services/alerting.service";
 import { NotificationService } from "./services/notification.service";
 import { NotificationType } from "./types/alert.types";
 
-
 // 使用标准化认证装饰器 - 告警管理需要管理员权限
 
 @ApiTags("告警管理")
@@ -49,21 +49,24 @@ import { NotificationType } from "./types/alert.types";
 export class AlertController {
   private readonly logger = new Logger(AlertController.name);
   // 简单的内存频率限制（生产环境应使用Redis）
-  private readonly triggerRateLimit = new Map<string, { count: number; lastReset: number }>();
+  private readonly triggerRateLimit = new Map<
+    string,
+    { count: number; lastReset: number }
+  >();
   private readonly TRIGGER_RATE_LIMIT = 5; // 每分钟最多5次
   private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟窗口
 
   constructor(
     private readonly alertingService: AlertingService,
     private readonly alertHistoryService: AlertHistoryService,
-    private readonly notificationService: NotificationService
+    private readonly notificationService: NotificationService,
   ) {}
 
   // ==================== 告警规则管理 ====================
 
   @Post("rules")
   @Auth([UserRole.ADMIN])
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "🚨 创建告警规则",
     description: `
 ### 功能说明
@@ -91,7 +94,7 @@ export class AlertController {
   "notificationChannels": ["email", "webhook"]
 }
 \`\`\`
-    `
+    `,
   })
   @ApiCreatedResponse({
     schema: {
@@ -106,21 +109,23 @@ export class AlertController {
           threshold: 80,
           severity: "warning",
           enabled: true,
-          createdAt: "2024-01-01T12:00:00.000Z"
+          createdAt: "2024-01-01T12:00:00.000Z",
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async createRule(@Body() createRuleDto: CreateAlertRuleDto): Promise<IAlertRule> {
+  async createRule(
+    @Body() createRuleDto: CreateAlertRuleDto,
+  ): Promise<IAlertRule> {
     return await this.alertingService.createRule(createRuleDto);
   }
 
   @Get("rules")
   @Auth([UserRole.ADMIN])
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "📋 获取所有告警规则",
     description: `
 ### 功能说明
@@ -134,7 +139,7 @@ export class AlertController {
 - 规则状态和配置
 - 最近触发时间
 - 统计信息
-    `
+    `,
   })
   @ApiSuccessResponse({
     schema: {
@@ -151,12 +156,12 @@ export class AlertController {
             severity: "warning",
             enabled: true,
             lastTriggered: "2024-01-01T11:30:00.000Z",
-            triggerCount: 5
-          }
+            triggerCount: 5,
+          },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -170,7 +175,9 @@ export class AlertController {
   @ApiParam({ name: "ruleId", description: "告警规则ID" })
   @ApiSuccessResponse()
   @JwtAuthResponses()
-  async getRuleById(@Param("ruleId") ruleId: string): Promise<IAlertRule | null> {
+  async getRuleById(
+    @Param("ruleId") ruleId: string,
+  ): Promise<IAlertRule | null> {
     return await this.alertingService.getRuleById(ruleId);
   }
 
@@ -182,7 +189,7 @@ export class AlertController {
   @JwtAuthResponses()
   async updateRule(
     @Param("ruleId") ruleId: string,
-    @Body() updateRuleDto: UpdateAlertRuleDto
+    @Body() updateRuleDto: UpdateAlertRuleDto,
   ): Promise<IAlertRule | null> {
     return await this.alertingService.updateRule(ruleId, updateRuleDto);
   }
@@ -205,7 +212,7 @@ export class AlertController {
   @JwtAuthResponses()
   async toggleRule(
     @Param("ruleId") ruleId: string,
-    @Body() body: { enabled: boolean }
+    @Body() body: { enabled: boolean },
   ): Promise<void> {
     await this.alertingService.toggleRule(ruleId, body.enabled);
   }
@@ -214,7 +221,7 @@ export class AlertController {
 
   @Get("active")
   @Auth([UserRole.ADMIN])
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "🔴 获取活跃告警",
     description: `
 ### 功能说明
@@ -233,9 +240,9 @@ export class AlertController {
 - 告警持续时间
 - 确认状态
 - 严重程度排序
-    `
+    `,
   })
-  @ApiSuccessResponse({ 
+  @ApiSuccessResponse({
     type: [AlertResponseDto],
     schema: {
       example: {
@@ -252,23 +259,25 @@ export class AlertController {
             status: "active",
             startTime: "2024-01-01T11:45:00.000Z",
             duration: 900,
-            acknowledged: false
-          }
+            acknowledged: false,
+          },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async getActiveAlerts(@Query() query?: AlertQueryDto): Promise<AlertResponseDto[]> {
+  async getActiveAlerts(
+    @Query() query?: AlertQueryDto,
+  ): Promise<AlertResponseDto[]> {
     // 获取活跃告警，可选择性应用查询过滤
     const alerts = await this.alertHistoryService.getActiveAlerts();
     let filteredAlerts = alerts;
 
     // 如果提供了查询参数，进行过滤
     if (query) {
-      filteredAlerts = alerts.filter(alert => {
+      filteredAlerts = alerts.filter((alert) => {
         if (query.ruleId && alert.ruleId !== query.ruleId) return false;
         if (query.severity && alert.severity !== query.severity) return false;
         if (query.metric && !alert.metric.includes(query.metric)) return false;
@@ -284,7 +293,9 @@ export class AlertController {
   @ApiOperation({ summary: "查询告警历史" })
   @ApiPaginatedResponse(AlertResponseDto)
   @JwtAuthResponses()
-  async getAlertHistory(@Query() query: AlertQueryDto): Promise<PaginatedDataDto<AlertResponseDto>> {
+  async getAlertHistory(
+    @Query() query: AlertQueryDto,
+  ): Promise<PaginatedDataDto<AlertResponseDto>> {
     // 转换字符串日期为 Date 对象
     const convertedQuery = {
       ...query,
@@ -304,7 +315,7 @@ export class AlertController {
         totalPages: Math.ceil(result.total / limit),
         hasNext: page * limit < result.total,
         hasPrev: page > 1,
-      }
+      },
     );
   }
 
@@ -323,7 +334,9 @@ export class AlertController {
   @ApiParam({ name: "alertId", description: "告警ID" })
   @ApiSuccessResponse({ type: AlertResponseDto })
   @JwtAuthResponses()
-  async getAlertById(@Param("alertId") alertId: string): Promise<AlertResponseDto | null> {
+  async getAlertById(
+    @Param("alertId") alertId: string,
+  ): Promise<AlertResponseDto | null> {
     const alert = await this.alertHistoryService.getAlertById(alertId);
     return alert ? AlertResponseDto.fromEntity(alert) : null;
   }
@@ -336,11 +349,11 @@ export class AlertController {
   @JwtAuthResponses()
   async acknowledgeAlert(
     @Param("alertId") alertId: string,
-    @Body() body: AcknowledgeAlertDto
+    @Body() body: AcknowledgeAlertDto,
   ): Promise<AlertResponseDto> {
     const updatedAlert = await this.alertingService.acknowledgeAlert(
       alertId,
-      body.acknowledgedBy
+      body.acknowledgedBy,
     );
     return AlertResponseDto.fromEntity(updatedAlert);
   }
@@ -353,19 +366,22 @@ export class AlertController {
   @JwtAuthResponses()
   async resolveAlert(
     @Param("alertId") alertId: string,
-    @Body() body: ResolveAlertDto
+    @Body() body: ResolveAlertDto,
   ): Promise<void> {
     // 先获取告警信息来获取 ruleId
-    const alerts = await this.alertHistoryService.queryAlerts({ page: 1, limit: 100 });
+    const alerts = await this.alertHistoryService.queryAlerts({
+      page: 1,
+      limit: 100,
+    });
     const alert = alerts.alerts.find((a: any) => a.id === alertId);
     if (!alert) {
       throw new NotFoundException(`未找到ID为 ${alertId} 的告警`);
     }
-    
+
     await this.alertingService.resolveAlert(
       alertId,
       body.resolvedBy,
-      alert.ruleId
+      alert.ruleId,
     );
   }
 
@@ -377,10 +393,11 @@ export class AlertController {
   @ApiSuccessResponse()
   @JwtAuthResponses()
   async testNotificationChannel(
-    @Body() testDto: TestNotificationChannelDto & {
+    @Body()
+    testDto: TestNotificationChannelDto & {
       type: NotificationType;
       config: Record<string, any>;
-    }
+    },
   ): Promise<{ success: boolean }> {
     const success = await this.notificationService.testChannel(
       testDto.type,
@@ -393,7 +410,7 @@ export class AlertController {
 
   @Post("trigger")
   @Auth([UserRole.ADMIN])
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "⚡ 手动触发告警评估",
     description: `
 ### 功能说明
@@ -414,7 +431,7 @@ export class AlertController {
 
 ### 可选参数
 - ruleId: 仅评估指定规则（可选）
-    `
+    `,
   })
   @ApiSuccessResponse({
     schema: {
@@ -424,17 +441,19 @@ export class AlertController {
         data: {
           message: "告警评估已触发",
           triggeredAt: "2024-01-01T12:00:00.000Z",
-          estimatedDuration: "5-10秒"
+          estimatedDuration: "5-10秒",
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async triggerEvaluation(@Body() triggerDto?: TriggerAlertDto): Promise<{ message: string }> {
+  async triggerEvaluation(
+    @Body() triggerDto?: TriggerAlertDto,
+  ): Promise<{ message: string }> {
     // 频率限制检查
-    const clientKey = 'admin'; // 在实际应用中应使用用户ID
+    const clientKey = "admin"; // 在实际应用中应使用用户ID
     const now = Date.now();
     const rateData = this.triggerRateLimit.get(clientKey);
 
@@ -447,7 +466,7 @@ export class AlertController {
 
       // 检查是否超过限制
       if (rateData.count >= this.TRIGGER_RATE_LIMIT) {
-        throw new BadRequestException('手动触发频率过高，请稍后再试');
+        throw new BadRequestException("手动触发频率过高，请稍后再试");
       }
 
       rateData.count++;
@@ -459,25 +478,27 @@ export class AlertController {
     if (triggerDto?.ruleId) {
       const rule = await this.alertingService.getRuleById(triggerDto.ruleId);
       if (!rule) {
-        throw new BadRequestException('指定的告警规则不存在');
+        throw new BadRequestException("指定的告警规则不存在");
       }
     }
 
     // 准备指标数据：如果提供了metrics则使用，否则使用空数组
-    const metricsData: IMetricData[] = triggerDto?.metrics ? triggerDto.metrics.map(metric => ({
-      metric: metric.metric,
-      value: metric.value,
-      timestamp: new Date(metric.timestamp),
-      tags: metric.tags,
-    })) : [];
+    const metricsData: IMetricData[] = triggerDto?.metrics
+      ? triggerDto.metrics.map((metric) => ({
+          metric: metric.metric,
+          value: metric.value,
+          timestamp: new Date(metric.timestamp),
+          tags: metric.tags,
+        }))
+      : [];
 
     // 手动触发告警评估，使用实际的指标数据
     await this.alertingService.processMetrics(metricsData);
-    
+
     return {
-      message: triggerDto?.ruleId 
+      message: triggerDto?.ruleId
         ? `告警规则 ${triggerDto.ruleId} 评估已触发`
-        : triggerDto?.metrics?.length 
+        : triggerDto?.metrics?.length
           ? `告警评估已触发，处理了 ${triggerDto.metrics.length} 个指标`
           : "告警评估已触发",
     };
@@ -491,7 +512,7 @@ export class AlertController {
   @ApiSuccessResponse()
   @JwtAuthResponses()
   async batchAcknowledgeAlerts(
-    @Body() body: { alertIds: string[]; acknowledgedBy: string }
+    @Body() body: { alertIds: string[]; acknowledgedBy: string },
   ): Promise<{ succeeded: string[]; failed: string[] }> {
     const succeeded: string[] = [];
     const failed: string[] = [];
@@ -501,14 +522,14 @@ export class AlertController {
         try {
           await this.alertingService.acknowledgeAlert(
             alertId,
-            body.acknowledgedBy
+            body.acknowledgedBy,
           );
           succeeded.push(alertId);
         } catch (error) {
           this.logger.error(`批量确认告警失败: ${alertId}`, error.stack);
           failed.push(alertId);
         }
-      })
+      }),
     );
 
     return { succeeded, failed };
@@ -520,14 +541,19 @@ export class AlertController {
   @ApiSuccessResponse()
   @JwtAuthResponses()
   async batchResolveAlerts(
-    @Body() body: { alertIds: string[]; resolvedBy: string }
+    @Body() body: { alertIds: string[]; resolvedBy: string },
   ): Promise<{ succeeded: string[]; failed: string[] }> {
     const succeeded: string[] = [];
     const failed: string[] = [];
 
     // 获取所有告警信息
-    const { alerts } = await this.alertHistoryService.queryAlerts({ page: 1, limit: 1000 });
-    const alertMap = new Map<string, IAlert>(alerts.map((a: IAlert) => [a.id, a]));
+    const { alerts } = await this.alertHistoryService.queryAlerts({
+      page: 1,
+      limit: 1000,
+    });
+    const alertMap = new Map<string, IAlert>(
+      alerts.map((a: IAlert) => [a.id, a]),
+    );
 
     await Promise.all(
       body.alertIds.map(async (alertId) => {
@@ -541,14 +567,14 @@ export class AlertController {
           await this.alertingService.resolveAlert(
             alertId,
             body.resolvedBy,
-            alert.ruleId
+            alert.ruleId,
           );
           succeeded.push(alertId);
         } catch (error) {
           this.logger.error(`批量解决告警失败: ${alertId}`, error.stack);
           failed.push(alertId);
         }
-      })
+      }),
     );
 
     return { succeeded, failed };

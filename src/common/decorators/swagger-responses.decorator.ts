@@ -13,13 +13,15 @@ export const ApiSuccessResponse = (options?: Partial<ApiResponseOptions>) =>
       status: HttpStatus.OK,
       description: "操作成功",
       schema: {
-        type: 'object',
+        type: "object",
         properties: {
-          statusCode: { type: 'number', example: 200 },
-          message: { type: 'string', example: '操作成功' },
-          data: (options as any)?.type ? { $ref: `#/components/schemas/${(options as any).type.name}` } : { type: 'object' },
-          timestamp: { type: 'string', format: 'date-time' }
-        }
+          statusCode: { type: "number", example: 200 },
+          message: { type: "string", example: "操作成功" },
+          data: (options as any)?.type
+            ? { $ref: `#/components/schemas/${(options as any).type.name}` }
+            : { type: "object" },
+          timestamp: { type: "string", format: "date-time" },
+        },
       },
       ...options,
     }),
@@ -35,13 +37,15 @@ export const ApiCreatedResponse = (options?: Partial<ApiResponseOptions>) =>
       status: HttpStatus.CREATED,
       description: "创建成功",
       schema: {
-        type: 'object',
+        type: "object",
         properties: {
-          statusCode: { type: 'number', example: 201 },
-          message: { type: 'string', example: '创建成功' },
-          data: (options as any)?.type ? { $ref: `#/components/schemas/${(options as any).type.name}` } : { type: 'object' },
-          timestamp: { type: 'string', format: 'date-time' }
-        }
+          statusCode: { type: "number", example: 201 },
+          message: { type: "string", example: "创建成功" },
+          data: (options as any)?.type
+            ? { $ref: `#/components/schemas/${(options as any).type.name}` }
+            : { type: "object" },
+          timestamp: { type: "string", format: "date-time" },
+        },
       },
       ...options,
     }),
@@ -60,32 +64,34 @@ export const ApiPaginatedResponse = (
       status: HttpStatus.OK,
       description: "分页数据获取成功",
       schema: {
-        type: 'object',
+        type: "object",
         properties: {
-          statusCode: { type: 'number', example: 200 },
-          message: { type: 'string', example: '分页数据获取成功' },
+          statusCode: { type: "number", example: 200 },
+          message: { type: "string", example: "分页数据获取成功" },
           data: {
-            type: 'object',
+            type: "object",
             properties: {
               items: {
-                type: 'array',
-                items: dataType ? { $ref: `#/components/schemas/${(dataType as any).name}` } : { type: 'object' }
+                type: "array",
+                items: dataType
+                  ? { $ref: `#/components/schemas/${(dataType as any).name}` }
+                  : { type: "object" },
               },
               pagination: {
-                type: 'object',
+                type: "object",
                 properties: {
-                  page: { type: 'number' },
-                  limit: { type: 'number' },
-                  total: { type: 'number' },
-                  totalPages: { type: 'number' },
-                  hasNext: { type: 'boolean' },
-                  hasPrev: { type: 'boolean' }
-                }
-              }
-            }
+                  page: { type: "number" },
+                  limit: { type: "number" },
+                  total: { type: "number" },
+                  totalPages: { type: "number" },
+                  hasNext: { type: "boolean" },
+                  hasPrev: { type: "boolean" },
+                },
+              },
+            },
           },
-          timestamp: { type: 'string', format: 'date-time' }
-        }
+          timestamp: { type: "string", format: "date-time" },
+        },
       },
       ...options,
     }),

@@ -11,7 +11,8 @@ export const SYMBOL_MAPPER_ERROR_MESSAGES = Object.freeze({
   MAPPING_CONFIG_NOT_FOUND: "映射配置不存在: {id}",
   DATA_SOURCE_MAPPING_NOT_FOUND: "数据源映射配置不存在: {dataSourceName}",
   DATA_SOURCE_NOT_FOUND: "数据源不存在: {dataSourceName}",
-  MAPPING_RULE_NOT_FOUND: "数据源或映射规则不存在: {dataSourceName} -> {inputSymbol}",
+  MAPPING_RULE_NOT_FOUND:
+    "数据源或映射规则不存在: {dataSourceName} -> {inputSymbol}",
   MAPPING_CONFIG_INACTIVE: "映射配置不存在或已停用: {mappingId}",
   SYMBOL_MAPPING_FAILED: "股票代码映射失败",
   SAVE_MAPPING_FAILED: "保存映射规则失败",
@@ -79,27 +80,27 @@ export const SYMBOL_MAPPER_SUCCESS_MESSAGES = Object.freeze({
  * 股票代码映射性能配置常量
  */
 export const SYMBOL_MAPPER_PERFORMANCE_CONFIG = Object.freeze({
-  SLOW_MAPPING_THRESHOLD_MS: 100,             // 慢映射阈值（毫秒）
-  MAX_SYMBOLS_PER_BATCH: 1000,                // 单批次最大股票数量
-  LOG_SYMBOLS_LIMIT: 5,                       // 日志中显示的股票数量限制
-  MIN_PROCESSING_TIME_MS: 1,                  // 最小处理时间（测试兼容性）
-  LARGE_BATCH_THRESHOLD: 500,                 // 大批量处理阈值
-  PERFORMANCE_SAMPLE_SIZE: 100,               // 性能样本大小
-  MAX_CONCURRENT_MAPPINGS: 10,                // 最大并发映射数
+  SLOW_MAPPING_THRESHOLD_MS: 100, // 慢映射阈值（毫秒）
+  MAX_SYMBOLS_PER_BATCH: 1000, // 单批次最大股票数量
+  LOG_SYMBOLS_LIMIT: 5, // 日志中显示的股票数量限制
+  MIN_PROCESSING_TIME_MS: 1, // 最小处理时间（测试兼容性）
+  LARGE_BATCH_THRESHOLD: 500, // 大批量处理阈值
+  PERFORMANCE_SAMPLE_SIZE: 100, // 性能样本大小
+  MAX_CONCURRENT_MAPPINGS: 10, // 最大并发映射数
 } as const);
 
 /**
  * 股票代码映射配置常量
  */
 export const SYMBOL_MAPPER_CONFIG = Object.freeze({
-  DEFAULT_PAGE_SIZE: 10,                      // 默认分页大小
-  MAX_PAGE_SIZE: 100,                         // 最大分页大小
-  DEFAULT_TIMEOUT_MS: 30000,                  // 默认超时时间（30秒）
-  MAX_RETRY_ATTEMPTS: 3,                      // 最大重试次数
-  RETRY_DELAY_MS: 1000,                       // 重试延迟（1秒）
-  MAX_DATA_SOURCE_NAME_LENGTH: 100,           // 最大数据源名称长度
-  MAX_SYMBOL_LENGTH: 50,                      // 最大股票代码长度
-  MAX_MAPPING_RULES_PER_SOURCE: 10000,        // 每个数据源最大映射规则数
+  DEFAULT_PAGE_SIZE: 10, // 默认分页大小
+  MAX_PAGE_SIZE: 100, // 最大分页大小
+  DEFAULT_TIMEOUT_MS: 30000, // 默认超时时间（30秒）
+  MAX_RETRY_ATTEMPTS: 3, // 最大重试次数
+  RETRY_DELAY_MS: 1000, // 重试延迟（1秒）
+  MAX_DATA_SOURCE_NAME_LENGTH: 100, // 最大数据源名称长度
+  MAX_SYMBOL_LENGTH: 50, // 最大股票代码长度
+  MAX_MAPPING_RULES_PER_SOURCE: 10000, // 每个数据源最大映射规则数
 } as const);
 
 /**
@@ -200,36 +201,36 @@ export const SYMBOL_MAPPER_EVENTS = Object.freeze({
  * 股票代码映射缓存配置常量
  */
 export const SYMBOL_MAPPER_CACHE_CONFIG = Object.freeze({
-  MAPPING_CONFIG_TTL: 1800,                   // 映射配置缓存TTL（30分钟）
-  SYMBOL_MAPPING_TTL: 3600,                   // 股票代码映射缓存TTL（1小时）
-  DATA_SOURCE_LIST_TTL: 600,                  // 数据源列表缓存TTL（10分钟）
-  MARKET_LIST_TTL: 3600,                      // 市场列表缓存TTL（1小时）
-  SYMBOL_TYPE_LIST_TTL: 3600,                 // 股票类型列表缓存TTL（1小时）
-  MAX_CACHE_SIZE: 10000,                      // 最大缓存条目数
-  CACHE_KEY_PREFIX: "symbol_mapper:",         // 缓存键前缀
+  MAPPING_CONFIG_TTL: 1800, // 映射配置缓存TTL（30分钟）
+  SYMBOL_MAPPING_TTL: 3600, // 股票代码映射缓存TTL（1小时）
+  DATA_SOURCE_LIST_TTL: 600, // 数据源列表缓存TTL（10分钟）
+  MARKET_LIST_TTL: 3600, // 市场列表缓存TTL（1小时）
+  SYMBOL_TYPE_LIST_TTL: 3600, // 股票类型列表缓存TTL（1小时）
+  MAX_CACHE_SIZE: 10000, // 最大缓存条目数
+  CACHE_KEY_PREFIX: "symbol_mapper:", // 缓存键前缀
 } as const);
 
 /**
  * 股票代码映射验证规则常量
  */
 export const SYMBOL_MAPPER_VALIDATION_RULES = Object.freeze({
-  MIN_SYMBOL_LENGTH: 1,                       // 最小股票代码长度
-  MAX_SYMBOL_LENGTH: 50,                      // 最大股票代码长度
-  MIN_DATA_SOURCE_NAME_LENGTH: 1,             // 最小数据源名称长度
-  MAX_DATA_SOURCE_NAME_LENGTH: 100,           // 最大数据源名称长度
-  SYMBOL_PATTERN: /^[A-Za-z0-9._-]+$/,        // 股票代码格式模式
-  DATA_SOURCE_PATTERN: /^[A-Za-z0-9_-]+$/,   // 数据源名称格式模式
-  MAX_BATCH_SIZE: 1000,                       // 最大批量大小
-  MIN_BATCH_SIZE: 1,                          // 最小批量大小
+  MIN_SYMBOL_LENGTH: 1, // 最小股票代码长度
+  MAX_SYMBOL_LENGTH: 50, // 最大股票代码长度
+  MIN_DATA_SOURCE_NAME_LENGTH: 1, // 最小数据源名称长度
+  MAX_DATA_SOURCE_NAME_LENGTH: 100, // 最大数据源名称长度
+  SYMBOL_PATTERN: /^[A-Za-z0-9._-]+$/, // 股票代码格式模式
+  DATA_SOURCE_PATTERN: /^[A-Za-z0-9_-]+$/, // 数据源名称格式模式
+  MAX_BATCH_SIZE: 1000, // 最大批量大小
+  MIN_BATCH_SIZE: 1, // 最小批量大小
 } as const);
 
 /**
  * 股票代码映射健康检查配置常量
  */
 export const SYMBOL_MAPPER_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: 60000,                   // 健康检查间隔（1分钟）
-  TIMEOUT_MS: 5000,                           // 健康检查超时（5秒）
-  MAX_FAILURES: 3,                            // 最大失败次数
-  RECOVERY_THRESHOLD: 5,                      // 恢复阈值
-  METRICS_WINDOW_SIZE: 100,                   // 指标窗口大小
+  CHECK_INTERVAL_MS: 60000, // 健康检查间隔（1分钟）
+  TIMEOUT_MS: 5000, // 健康检查超时（5秒）
+  MAX_FAILURES: 3, // 最大失败次数
+  RECOVERY_THRESHOLD: 5, // 恢复阈值
+  METRICS_WINDOW_SIZE: 100, // 指标窗口大小
 } as const);

@@ -1,4 +1,4 @@
-import { PartialType , ApiProperty } from "@nestjs/swagger";
+import { PartialType, ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString, IsOptional } from "class-validator";
 
 import { CreateDataMappingDto } from "./create-data-mapping.dto";

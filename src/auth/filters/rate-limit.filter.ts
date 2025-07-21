@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { Request, Response } from "express";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
 /**
@@ -35,7 +35,7 @@ export class RateLimitExceptionFilter implements ExceptionFilter {
     this.logger.warn(`频率限制触发: ${request.method} ${request.url}`, {
       ip: request.ip,
       userAgent: HttpHeadersUtil.getUserAgent(request),
-      appKey: HttpHeadersUtil.getHeader(request, 'x-app-key'),
+      appKey: HttpHeadersUtil.getHeader(request, "x-app-key"),
       timestamp: new Date().toISOString(),
       details: exceptionResponse.details,
     });

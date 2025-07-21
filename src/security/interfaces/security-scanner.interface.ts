@@ -4,20 +4,20 @@
 export interface SecurityVulnerability {
   id: string;
   type:
-    | 'authentication'
-    | 'authorization'
-    | 'data_exposure'
-    | 'injection'
-    | 'configuration'
-    | 'encryption';
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+    | "authentication"
+    | "authorization"
+    | "data_exposure"
+    | "injection"
+    | "configuration"
+    | "encryption";
+  severity: "critical" | "high" | "medium" | "low" | "info";
   title: string;
   description: string;
   impact: string;
   recommendation: string;
   cve?: string;
   detected: Date;
-  status: 'detected' | 'investigating' | 'mitigated' | 'false_positive';
+  status: "detected" | "investigating" | "mitigated" | "false_positive";
 }
 
 /**
@@ -68,4 +68,4 @@ export interface SecurityConfiguration {
     hashSaltRounds: number;
     sensitiveDataMasking: boolean;
   };
-} 
+}

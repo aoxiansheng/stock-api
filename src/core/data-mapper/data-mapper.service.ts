@@ -5,13 +5,13 @@ import {
 } from "@nestjs/common";
 
 // 🎯 复用 common 模块的日志配置
-import { createLogger, sanitizeLogData } from '@common/config/logger.config';
+import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
 // 🎯 复用 common 模块的通用类型和常量已集成到 data-mapper.constants 中
 // 🎯 复用 common 模块的数据映射常量
 
-import { ObjectUtils } from '../shared/utils/object.util';
-import { StringUtils } from '../shared/utils/string.util';
+import { ObjectUtils } from "../shared/utils/object.util";
+import { StringUtils } from "../shared/utils/string.util";
 
 import {
   DATA_MAPPER_ERROR_MESSAGES,
@@ -21,7 +21,7 @@ import {
   TRANSFORMATION_TYPES,
   TRANSFORMATION_DEFAULTS,
   DATA_MAPPER_PERFORMANCE_THRESHOLDS,
-} from './constants/data-mapper.constants';
+} from "./constants/data-mapper.constants";
 import { CreateDataMappingDto } from "./dto/create-data-mapping.dto";
 import {
   DataMappingTestResultDto,
@@ -54,7 +54,10 @@ export class DataMapperService implements IDataMapper {
   constructor(private readonly repository: DataMappingRepository) {}
 
   // Interface implementation - apply mapping rule
-  async mapData(rawData: Record<string, any>, mappingOutRuleId: string): Promise<Record<string, any>[]> {
+  async mapData(
+    rawData: Record<string, any>,
+    mappingOutRuleId: string,
+  ): Promise<Record<string, any>[]> {
     return this.applyMappingRule(mappingOutRuleId, rawData);
   }
 
@@ -64,7 +67,10 @@ export class DataMapperService implements IDataMapper {
   }
 
   // Interface implementation - get mapping rules
-  async getMappingRules(provider: string, dataType: string): Promise<DataMappingResponseDto[]> {
+  async getMappingRules(
+    provider: string,
+    dataType: string,
+  ): Promise<DataMappingResponseDto[]> {
     const rules = await this.repository.findByProviderAndType(
       provider,
       dataType,
@@ -79,7 +85,9 @@ export class DataMapperService implements IDataMapper {
     this.logger.log(`创建映射规则: ${createDto.name}`);
 
     const created = await this.repository.create(createDto);
-    this.logger.log(`${DATA_MAPPER_SUCCESS_MESSAGES.RULE_CREATED}: ${created.name}`);
+    this.logger.log(
+      `${DATA_MAPPER_SUCCESS_MESSAGES.RULE_CREATED}: ${created.name}`,
+    );
 
     return DataMappingResponseDto.fromDocument(created);
   }
@@ -125,7 +133,9 @@ export class DataMapperService implements IDataMapper {
   async findOne(id: string): Promise<DataMappingResponseDto> {
     const rule = await this.repository.findById(id);
     if (!rule) {
-      throw new NotFoundException(`${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`);
+      throw new NotFoundException(
+        `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`,
+      );
     }
     return DataMappingResponseDto.fromDocument(rule);
   }
@@ -139,10 +149,14 @@ export class DataMapperService implements IDataMapper {
 
     const updated = await this.repository.updateById(id, updateDto);
     if (!updated) {
-      throw new NotFoundException(`${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`);
+      throw new NotFoundException(
+        `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`,
+      );
     }
 
-    this.logger.log(`${DATA_MAPPER_SUCCESS_MESSAGES.RULE_UPDATED}: ${updated.name}`);
+    this.logger.log(
+      `${DATA_MAPPER_SUCCESS_MESSAGES.RULE_UPDATED}: ${updated.name}`,
+    );
     return DataMappingResponseDto.fromDocument(updated);
   }
 
@@ -150,9 +164,13 @@ export class DataMapperService implements IDataMapper {
   async activate(id: string): Promise<DataMappingResponseDto> {
     const rule = await this.repository.activate(id);
     if (!rule) {
-      throw new NotFoundException(`${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`);
+      throw new NotFoundException(
+        `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`,
+      );
     }
-    this.logger.log(`${DATA_MAPPER_SUCCESS_MESSAGES.RULE_ACTIVATED}: ${rule.name}`);
+    this.logger.log(
+      `${DATA_MAPPER_SUCCESS_MESSAGES.RULE_ACTIVATED}: ${rule.name}`,
+    );
     return DataMappingResponseDto.fromDocument(rule);
   }
 
@@ -160,9 +178,13 @@ export class DataMapperService implements IDataMapper {
   async deactivate(id: string): Promise<DataMappingResponseDto> {
     const rule = await this.repository.deactivate(id);
     if (!rule) {
-      throw new NotFoundException(`${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`);
+      throw new NotFoundException(
+        `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`,
+      );
     }
-    this.logger.log(`${DATA_MAPPER_SUCCESS_MESSAGES.RULE_DEACTIVATED}: ${rule.name}`);
+    this.logger.log(
+      `${DATA_MAPPER_SUCCESS_MESSAGES.RULE_DEACTIVATED}: ${rule.name}`,
+    );
     return DataMappingResponseDto.fromDocument(rule);
   }
 
@@ -172,10 +194,14 @@ export class DataMapperService implements IDataMapper {
 
     const deleted = await this.repository.deleteById(id);
     if (!deleted) {
-      throw new NotFoundException(`${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`);
+      throw new NotFoundException(
+        `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${id}`,
+      );
     }
 
-    this.logger.log(`${DATA_MAPPER_SUCCESS_MESSAGES.RULE_DELETED}: ${deleted.name}`);
+    this.logger.log(
+      `${DATA_MAPPER_SUCCESS_MESSAGES.RULE_DELETED}: ${deleted.name}`,
+    );
     return DataMappingResponseDto.fromDocument(deleted);
   }
 
@@ -196,7 +222,9 @@ export class DataMapperService implements IDataMapper {
         );
       }
     } catch {
-      throw new BadRequestException(DATA_MAPPER_ERROR_MESSAGES.INVALID_JSON_FORMAT);
+      throw new BadRequestException(
+        DATA_MAPPER_ERROR_MESSAGES.INVALID_JSON_FORMAT,
+      );
     }
 
     const fields = this.extractFields(jsonData);
@@ -207,7 +235,10 @@ export class DataMapperService implements IDataMapper {
   }
 
   // Extract all fields from JSON object
-  private extractFields(obj: Record<string, any> | any[], prefix = ""): string[] {
+  private extractFields(
+    obj: Record<string, any> | any[],
+    prefix = "",
+  ): string[] {
     const fields: string[] = [];
 
     if (typeof obj === "object" && obj !== null) {
@@ -328,28 +359,40 @@ export class DataMapperService implements IDataMapper {
   /**
    * Apply mapping rule to transform source data
    */
-  async applyMappingRule(ruleId: string, sourceData: Record<string, any>): Promise<Record<string, any>[]> {
+  async applyMappingRule(
+    ruleId: string,
+    sourceData: Record<string, any>,
+  ): Promise<Record<string, any>[]> {
     const startTime = Date.now();
 
     const ruleDoc = await this.repository.findById(ruleId);
     if (!ruleDoc) {
-      throw new NotFoundException(`${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${ruleId}`);
+      throw new NotFoundException(
+        `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${ruleId}`,
+      );
     }
 
     const rule = DataMappingResponseDto.fromDocument(ruleDoc);
 
-    this.logger.debug(`应用映射规则: ${rule.name}`, sanitizeLogData({
-      ruleId,
-      provider: rule.provider,
-      ruleListType: rule.ruleListType,
-    }));
+    this.logger.debug(
+      `应用映射规则: ${rule.name}`,
+      sanitizeLogData({
+        ruleId,
+        provider: rule.provider,
+        ruleListType: rule.ruleListType,
+      }),
+    );
 
     let transformedResult: Record<string, any>[];
 
     // Handle secu_quote or basic_info arrays
     const arrayToProcess = sourceData.secu_quote || sourceData.basic_info;
     if (Array.isArray(arrayToProcess)) {
-      transformedResult = this._transformArray(arrayToProcess, sourceData, rule);
+      transformedResult = this._transformArray(
+        arrayToProcess,
+        sourceData,
+        rule,
+      );
     } else {
       // Handle single object
       // 🎯 调用新的_transformObject方法，消除重复
@@ -363,16 +406,25 @@ export class DataMapperService implements IDataMapper {
 
     // 🎯 性能监控
     const processingTime = Date.now() - startTime;
-    const logLevel = processingTime > DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS ? 'warn' : 'debug';
-    this.logger[logLevel](`映射规则应用完成`, sanitizeLogData({
-      ruleId,
-      ruleName: rule.name,
-      processingTime,
-      isSlowMapping: processingTime > DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS,
-    }));
+    const logLevel =
+      processingTime > DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS
+        ? "warn"
+        : "debug";
+    this.logger[logLevel](
+      `映射规则应用完成`,
+      sanitizeLogData({
+        ruleId,
+        ruleName: rule.name,
+        processingTime,
+        isSlowMapping:
+          processingTime > DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS,
+      }),
+    );
 
     if (processingTime > DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS) {
-      this.logger.warn(`${DATA_MAPPER_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${processingTime}ms`);
+      this.logger.warn(
+        `${DATA_MAPPER_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${processingTime}ms`,
+      );
     }
 
     return transformedResult;
@@ -381,38 +433,58 @@ export class DataMapperService implements IDataMapper {
   /**
    * Apply data transformation
    */
-  private applyTransform(value: any, transform: TransformationInputDto['transform']): any {
+  private applyTransform(
+    value: any,
+    transform: TransformationInputDto["transform"],
+  ): any {
     try {
       switch (transform.type) {
         case TRANSFORMATION_TYPES.MULTIPLY:
-          return Number(value) * Number(transform.value || TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE);
-        case TRANSFORMATION_TYPES.DIVIDE:
-          return Number(value) / Number(transform.value || TRANSFORMATION_DEFAULTS.DIVIDE_VALUE);
-        case TRANSFORMATION_TYPES.ADD:
-          return Number(value) + Number(transform.value || TRANSFORMATION_DEFAULTS.ADD_VALUE);
-        case TRANSFORMATION_TYPES.SUBTRACT:
-          return Number(value) - Number(transform.value || TRANSFORMATION_DEFAULTS.SUBTRACT_VALUE);
-        case TRANSFORMATION_TYPES.FORMAT:
-          return String(transform.value || TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE).replace(
-            TRANSFORMATION_DEFAULTS.VALUE_PLACEHOLDER,
-            String(value),
+          return (
+            Number(value) *
+            Number(transform.value || TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE)
           );
+        case TRANSFORMATION_TYPES.DIVIDE:
+          return (
+            Number(value) /
+            Number(transform.value || TRANSFORMATION_DEFAULTS.DIVIDE_VALUE)
+          );
+        case TRANSFORMATION_TYPES.ADD:
+          return (
+            Number(value) +
+            Number(transform.value || TRANSFORMATION_DEFAULTS.ADD_VALUE)
+          );
+        case TRANSFORMATION_TYPES.SUBTRACT:
+          return (
+            Number(value) -
+            Number(transform.value || TRANSFORMATION_DEFAULTS.SUBTRACT_VALUE)
+          );
+        case TRANSFORMATION_TYPES.FORMAT:
+          return String(
+            transform.value || TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE,
+          ).replace(TRANSFORMATION_DEFAULTS.VALUE_PLACEHOLDER, String(value));
         case TRANSFORMATION_TYPES.CUSTOM:
           // Custom transformations would require dynamic evaluation
           if (transform.customFunction) {
             // For security reasons, custom functions are not executed
-            this.logger.warn(DATA_MAPPER_WARNING_MESSAGES.CUSTOM_TRANSFORMATIONS_NOT_SUPPORTED);
+            this.logger.warn(
+              DATA_MAPPER_WARNING_MESSAGES.CUSTOM_TRANSFORMATIONS_NOT_SUPPORTED,
+            );
           }
           return value;
         default:
           return value;
       }
-    } catch (error) { // 🎯 修正: 捕获所有原生错误
-      this.logger.error(DATA_MAPPER_ERROR_MESSAGES.TRANSFORMATION_FAILED, sanitizeLogData({
-        transform,
-        value,
-        error: error.message,
-      }));
+    } catch (error) {
+      // 🎯 修正: 捕获所有原生错误
+      this.logger.error(
+        DATA_MAPPER_ERROR_MESSAGES.TRANSFORMATION_FAILED,
+        sanitizeLogData({
+          transform,
+          value,
+          error: error.message,
+        }),
+      );
       // 🎯 修正: 抛出标准异常，而不是静默失败
       throw new BadRequestException(
         `${DATA_MAPPER_ERROR_MESSAGES.TRANSFORMATION_FAILED}: on value '${value}' with transform ${transform.type}`,
@@ -421,7 +493,9 @@ export class DataMapperService implements IDataMapper {
   }
 
   // Test mapping rule
-  async testMappingRule(testDto: TestMappingDto): Promise<DataMappingTestResultDto> {
+  async testMappingRule(
+    testDto: TestMappingDto,
+  ): Promise<DataMappingTestResultDto> {
     const rule = await this.findOne(testDto.ruleId);
 
     try {
@@ -441,10 +515,13 @@ export class DataMapperService implements IDataMapper {
         message: DATA_MAPPER_SUCCESS_MESSAGES.MAPPING_TEST_SUCCESSFUL,
       } as DataMappingTestResultDto;
     } catch (error) {
-      this.logger.error(DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED, sanitizeLogData({
-        ruleId: testDto.ruleId,
-        error: error.message,
-      }));
+      this.logger.error(
+        DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED,
+        sanitizeLogData({
+          ruleId: testDto.ruleId,
+          error: error.message,
+        }),
+      );
 
       throw new BadRequestException(
         `${DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED}: ${error.message}`,
@@ -454,14 +531,15 @@ export class DataMapperService implements IDataMapper {
 
   // Get statistics
   async getStatistics(): Promise<DataMappingStatisticsDto> {
-    const [totalRules, activeRules, providers, ruleListTypes] = await Promise.all([
-      this.repository
-        .findAllIncludingDeactivated()
-        .then((rules) => rules.length),
-      this.repository.findAll().then((rules) => rules.length),
-      this.repository.getProviders(),
-      this.repository.getRuleListTypes(),
-    ]);
+    const [totalRules, activeRules, providers, ruleListTypes] =
+      await Promise.all([
+        this.repository
+          .findAllIncludingDeactivated()
+          .then((rules) => rules.length),
+        this.repository.findAll().then((rules) => rules.length),
+        this.repository.getProviders(),
+        this.repository.getRuleListTypes(),
+      ]);
 
     return {
       totalRules,
@@ -479,7 +557,10 @@ export class DataMapperService implements IDataMapper {
     provider: string,
     ruleListType: string,
   ): Promise<DataMappingResponseDto | null> {
-    const rule = await this.repository.findBestMatchingRule(provider, ruleListType);
+    const rule = await this.repository.findBestMatchingRule(
+      provider,
+      ruleListType,
+    );
     return rule ? DataMappingResponseDto.fromDocument(rule) : null;
   }
 }

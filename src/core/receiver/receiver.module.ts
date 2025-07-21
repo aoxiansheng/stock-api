@@ -11,8 +11,8 @@ import { ReceiverService } from "./receiver.service";
 
 @Module({
   imports: [
-    AuthModule, 
-    SymbolMapperModule, 
+    AuthModule,
+    SymbolMapperModule,
     ProvidersModule,
     CacheModule,
     SharedServicesModule,

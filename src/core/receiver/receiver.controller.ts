@@ -1,14 +1,16 @@
-import { Controller, Post, Body, ValidationPipe, HttpCode } from "@nestjs/common";
 import {
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-} from "@nestjs/swagger";
+  Controller,
+  Post,
+  Body,
+  ValidationPipe,
+  HttpCode,
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
 import {
   ApiSuccessResponse,
-  ApiKeyAuthResponses
+  ApiKeyAuthResponses,
 } from "@common/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../../auth/decorators/auth.decorator";
@@ -120,9 +122,9 @@ export class ReceiverController {
             requestId: "req_realtime_1704110400123",
             provider: "longport",
             processingTime: 23, // 超快响应时间
-            cacheUsed: false,   // 强时效优先获取最新数据
-            cacheTTL: 1,        // 1秒缓存
-            marketAware: true,  // 市场感知
+            cacheUsed: false, // 强时效优先获取最新数据
+            cacheTTL: 1, // 1秒缓存
+            marketAware: true, // 市场感知
             timestamp: "2024-01-01T12:00:01.789Z",
           },
         },
@@ -144,7 +146,7 @@ export class ReceiverController {
 
       // 🎯 修改：根据部分失败情况动态判断成功状态
       const isFullySuccessful = !result.metadata.hasPartialFailures;
-      
+
       this.logger.log(`数据请求处理完成`, {
         requestId: result.metadata.requestId,
         success: isFullySuccessful,

@@ -1,18 +1,21 @@
-import { Permission, UserRole, RolePermissions } from '../enums/user-role.enum';
-import { AuthSubject, AuthSubjectType } from '../interfaces/auth-subject.interface';
-import { User } from '../schemas/user.schema';
+import { Permission, UserRole, RolePermissions } from "../enums/user-role.enum";
+import {
+  AuthSubject,
+  AuthSubjectType,
+} from "../interfaces/auth-subject.interface";
+import { User } from "../schemas/user.schema";
 
 /**
  * JWT用户权限主体
- * 
+ *
  * 基于用户角色提供权限验证功能。
  * 权限来源于用户角色对应的权限映射表。
- * 
+ *
  * @example
  * ```typescript
  * const user = { id: '123', role: UserRole.DEVELOPER, username: 'dev01' };
  * const subject = new JwtUserSubject(user);
- * 
+ *
  * console.log(subject.hasPermission(Permission.DATA_READ)); // true
  * console.log(subject.getDisplayName()); // "JWT用户: dev01 (developer)"
  * ```
@@ -37,10 +40,10 @@ export class JwtUserSubject implements AuthSubject {
 
     // 验证必要字段
     if (!this.id) {
-      throw new Error('JWT用户主体缺少必要的ID字段');
+      throw new Error("JWT用户主体缺少必要的ID字段");
     }
     if (!this.role) {
-      throw new Error('JWT用户主体缺少必要的角色字段');
+      throw new Error("JWT用户主体缺少必要的角色字段");
     }
   }
 
@@ -55,21 +58,21 @@ export class JwtUserSubject implements AuthSubject {
    * 检查是否拥有所有指定权限
    */
   hasAllPermissions(permissions: Permission[]): boolean {
-    return permissions.every(permission => this.hasPermission(permission));
+    return permissions.every((permission) => this.hasPermission(permission));
   }
 
   /**
    * 检查是否拥有任一指定权限
    */
   hasAnyPermission(permissions: Permission[]): boolean {
-    return permissions.some(permission => this.hasPermission(permission));
+    return permissions.some((permission) => this.hasPermission(permission));
   }
 
   /**
    * 获取显示名称
    */
   getDisplayName(): string {
-    const username = this.metadata.username || 'unknown';
+    const username = this.metadata.username || "unknown";
     return `JWT用户: ${username} (${this.role})`;
   }
 

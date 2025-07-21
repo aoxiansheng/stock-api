@@ -3,12 +3,12 @@ import { ModuleRef } from "@nestjs/core";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
-import { 
-  getAutoInitConfig, 
-  PRESET_FIELD_DEFINITIONS, 
-  SAMPLE_SYMBOL_MAPPINGS 
-} from '@common/config/auto-init.config';
-import { createLogger } from '@common/config/logger.config';
+import {
+  getAutoInitConfig,
+  PRESET_FIELD_DEFINITIONS,
+  SAMPLE_SYMBOL_MAPPINGS,
+} from "@common/config/auto-init.config";
+import { createLogger } from "@common/config/logger.config";
 
 import {
   DataMappingRule,
@@ -55,8 +55,8 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         enabled: this.config.enabled,
         presetFields: this.config.presetFields,
         sampleData: this.config.sampleData,
-        logLevel: this.config.options.logLevel
-      }
+        logLevel: this.config.options.logLevel,
+      },
     });
 
     try {
@@ -100,7 +100,10 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     dataMapperModel: Model<DataMappingRuleDocument>,
   ) {
     const stockQuoteConfig = PRESET_FIELD_DEFINITIONS.stockQuote;
-    const configId = { provider: stockQuoteConfig.provider, ruleListType: stockQuoteConfig.ruleListType };
+    const configId = {
+      provider: stockQuoteConfig.provider,
+      ruleListType: stockQuoteConfig.ruleListType,
+    };
 
     try {
       const existing = await dataMapperModel.findOne(configId);
@@ -126,16 +129,18 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
           autoCreated: true,
           lastUpdated: new Date().toISOString(),
         },
-        fieldMappings: stockQuoteConfig.fields.map(field => ({
+        fieldMappings: stockQuoteConfig.fields.map((field) => ({
           sourceField: field.source,
           targetField: field.target,
           description: field.desc,
-          ...(field.transform && { transform: field.transform })
+          ...(field.transform && { transform: field.transform }),
         })),
       };
 
       await dataMapperModel.create(stockQuotePresetConfig);
-      this.logger.log(`✅ 股票报价预设字段初始化完成 (${stockQuoteConfig.fields.length}个字段)`);
+      this.logger.log(
+        `✅ 股票报价预设字段初始化完成 (${stockQuoteConfig.fields.length}个字段)`,
+      );
     } catch (error) {
       this.logger.warn("⚠️ 股票报价预设字段初始化失败:", error.message);
     }
@@ -148,7 +153,10 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     dataMapperModel: Model<DataMappingRuleDocument>,
   ) {
     const stockBasicInfoConfig = PRESET_FIELD_DEFINITIONS.stockBasicInfo;
-    const configId = { provider: stockBasicInfoConfig.provider, ruleListType: stockBasicInfoConfig.ruleListType };
+    const configId = {
+      provider: stockBasicInfoConfig.provider,
+      ruleListType: stockBasicInfoConfig.ruleListType,
+    };
 
     try {
       const existing = await dataMapperModel.findOne(configId);
@@ -174,16 +182,18 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
           autoCreated: true,
           lastUpdated: new Date().toISOString(),
         },
-        fieldMappings: stockBasicInfoConfig.fields.map(field => ({
+        fieldMappings: stockBasicInfoConfig.fields.map((field) => ({
           sourceField: field.source,
           targetField: field.target,
           description: field.desc,
-          ...(field.transform && { transform: field.transform })
+          ...(field.transform && { transform: field.transform }),
         })),
       };
 
       await dataMapperModel.create(stockBasicInfoPresetConfig);
-      this.logger.log(`✅ 股票基本信息预设字段初始化完成 (${stockBasicInfoConfig.fields.length}个字段)`);
+      this.logger.log(
+        `✅ 股票基本信息预设字段初始化完成 (${stockBasicInfoConfig.fields.length}个字段)`,
+      );
     } catch (error) {
       this.logger.warn("⚠️ 股票基本信息预设字段初始化失败:", error.message);
     }

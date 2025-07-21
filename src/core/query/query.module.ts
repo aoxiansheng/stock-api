@@ -6,17 +6,17 @@ import { StorageModule } from "../storage/storage.module";
 
 import { QueryController } from "./query.controller";
 import { QueryService } from "./query.service";
-import { QueryResultProcessorService } from './services/query-result-processor.service';
-import { QueryStatisticsService } from './services/query-statistics.service';
+import { QueryResultProcessorService } from "./services/query-result-processor.service";
+import { QueryStatisticsService } from "./services/query-statistics.service";
 
 @Module({
-  imports: [
-    AuthModule, 
-    StorageModule, 
-    SharedServicesModule,
-  ],
+  imports: [AuthModule, StorageModule, SharedServicesModule],
   controllers: [QueryController],
-  providers: [QueryService, QueryStatisticsService, QueryResultProcessorService],
+  providers: [
+    QueryService,
+    QueryStatisticsService,
+    QueryResultProcessorService,
+  ],
   exports: [QueryService, QueryStatisticsService, QueryResultProcessorService],
 })
 export class QueryModule {}

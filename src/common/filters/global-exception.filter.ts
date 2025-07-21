@@ -10,7 +10,10 @@ import { Request, Response } from "express";
 import { MongoError } from "mongodb";
 
 import { createLogger } from "@common/config/logger.config";
-import { AUTH_ERROR_MESSAGES, HTTP_ERROR_MESSAGES } from "@common/constants/error-messages.constants";
+import {
+  AUTH_ERROR_MESSAGES,
+  HTTP_ERROR_MESSAGES,
+} from "@common/constants/error-messages.constants";
 
 import { HttpHeadersUtil } from "../utils/http-headers.util";
 
@@ -43,8 +46,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         errorType = exception.constructor.name;
       } else {
         const responseObj = exceptionResponse as any;
-        const rawMessage = responseObj.message || responseObj.error || "HTTP异常";
-        
+        const rawMessage =
+          responseObj.message || responseObj.error || "HTTP异常";
+
         // 特殊处理验证错误 - 当消息是数组且状态码是400时
         if (status === HttpStatus.BAD_REQUEST && Array.isArray(rawMessage)) {
           // 对于测试，我们返回包含"验证失败"的消息，但保留详细信息到details
@@ -58,7 +62,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           details = responseObj.details;
         }
       }
-      
+
       // 特殊处理401 UnauthorizedException的消息
       if (status === HttpStatus.UNAUTHORIZED) {
         message = this.translateUnauthorizedMessage(message as string);
@@ -86,13 +90,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = HttpStatus.UNAUTHORIZED;
       message = this.getJWTErrorMessage(exception as any);
       errorType = "AuthenticationError";
-      
+
       // 设置JWT错误详情
       const jwtError = exception as any;
       details = {
-        tokenType: 'JWT',
+        tokenType: "JWT",
         errorName: jwtError.name,
-        ...details
+        ...details,
       };
     } else if (this.isDatabaseConnectionError(exception)) {
       // 数据库连接错误
@@ -107,9 +111,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     } else if (this.isValidationError(exception)) {
       // 验证异常
       status = HttpStatus.BAD_REQUEST;
-      message = Array.isArray(exception) && exception.length > 0 
-        ? exception.map(err => Object.values(err.constraints || {}).join(', ')).join(', ')
-        : "数据验证失败";
+      message =
+        Array.isArray(exception) && exception.length > 0
+          ? exception
+              .map((err) => Object.values(err.constraints || {}).join(", "))
+              .join(", ")
+          : "数据验证失败";
       errorType = "ValidationError";
       details = this.formatValidationErrors(exception);
     } else if (this.hasCustomStatusCode(exception)) {
@@ -120,13 +127,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorType = customError.name || "CustomError";
     } else if (exception instanceof Error) {
       // 检查是否是JSON解析错误
-      if (exception.name === 'SyntaxError' && exception.message.includes('JSON')) {
+      if (
+        exception.name === "SyntaxError" &&
+        exception.message.includes("JSON")
+      ) {
         status = HttpStatus.BAD_REQUEST;
         message = "JSON格式错误";
         errorType = "InvalidJSON";
         details = {
           originalMessage: exception.message,
-          position: this.extractJsonErrorPosition(exception.message)
+          position: this.extractJsonErrorPosition(exception.message),
         };
       } else {
         // 普通Error异常
@@ -176,13 +186,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // 获取correlation ID和request ID
-    const correlationId = request?.headers?.['x-correlation-id'] || (request as any)?.correlationId;
-    const requestId = request?.headers?.['x-request-id'] || (request as any)?.requestId;
-    
+    const correlationId =
+      request?.headers?.["x-correlation-id"] || (request as any)?.correlationId;
+    const requestId =
+      request?.headers?.["x-request-id"] || (request as any)?.requestId;
+
     // 确保错误响应也包含追踪头
     if (requestId && response) {
       try {
-        response.setHeader('x-request-id', requestId);
+        response.setHeader("x-request-id", requestId);
       } catch {
         // 忽略设置头部失败的错误
       }
@@ -198,16 +210,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code: this.getErrorCode(errorType, status, exception),
         details: {
           type: errorType,
-          ...(details && (Array.isArray(details) ? { fields: details } : details)),
+          ...(details &&
+            (Array.isArray(details) ? { fields: details } : details)),
           ...(request?.url && { path: this.sanitizePath(request.url) }),
           ...(correlationId && { correlationId }),
           ...(requestId && { requestId }),
           // 为API Key错误添加额外信息
-          ...(status === 401 && request?.headers?.['x-app-key'] && {
-            providedKey: request.headers['x-app-key']
-          })
-        }
-      }
+          ...(status === 401 &&
+            request?.headers?.["x-app-key"] && {
+              providedKey: request.headers["x-app-key"],
+            }),
+        },
+      },
     };
 
     try {
@@ -225,57 +239,64 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   /**
    * 生成标准化的错误代码
    */
-  private getErrorCode(errorType: string, status: number, exception: unknown): string {
+  private getErrorCode(
+    errorType: string,
+    status: number,
+    exception: unknown,
+  ): string {
     // JWT相关错误
     if (this.isJWTError(exception)) {
       const jwtError = exception as any;
       switch (jwtError.name) {
-        case 'JsonWebTokenError':
-          return 'INVALID_TOKEN';
-        case 'TokenExpiredError':
-          return 'TOKEN_EXPIRED';
-        case 'NotBeforeError':
-          return 'TOKEN_NOT_ACTIVE';
+        case "JsonWebTokenError":
+          return "INVALID_TOKEN";
+        case "TokenExpiredError":
+          return "TOKEN_EXPIRED";
+        case "NotBeforeError":
+          return "TOKEN_NOT_ACTIVE";
         default:
-          return 'AUTHENTICATION_FAILED';
+          return "AUTHENTICATION_FAILED";
       }
     }
 
     // HTTP状态码相关错误
     switch (status) {
       case HttpStatus.BAD_REQUEST:
-        if (errorType === 'ValidationError') {
-          return 'VALIDATION_ERROR';
+        if (errorType === "ValidationError") {
+          return "VALIDATION_ERROR";
         }
-        return 'BAD_REQUEST';
+        return "BAD_REQUEST";
       case HttpStatus.UNAUTHORIZED:
         // 根据错误消息内容判断具体的认证错误类型
-        const exceptionMessage = (exception as any)?.message || '';
-        if (exceptionMessage.includes('API') || exceptionMessage.includes('凭证')) {
-          return 'INVALID_API_KEY';
+        const exceptionMessage = (exception as any)?.message || "";
+        if (
+          exceptionMessage.includes("API") ||
+          exceptionMessage.includes("凭证")
+        ) {
+          return "INVALID_API_KEY";
         }
         // 如果已经通过JWT错误检查到这里，说明不是JWT错误
-        return 'UNAUTHORIZED';
+        return "UNAUTHORIZED";
       case HttpStatus.FORBIDDEN:
-        return 'FORBIDDEN';
+        return "FORBIDDEN";
       case HttpStatus.NOT_FOUND:
-        return 'NOT_FOUND';
+        return "NOT_FOUND";
       case HttpStatus.CONFLICT:
-        return 'RESOURCE_CONFLICT';
+        return "RESOURCE_CONFLICT";
       case HttpStatus.REQUEST_TIMEOUT:
-        return 'REQUEST_TIMEOUT';
+        return "REQUEST_TIMEOUT";
       case HttpStatus.PAYLOAD_TOO_LARGE:
-        return 'PAYLOAD_TOO_LARGE';
+        return "PAYLOAD_TOO_LARGE";
       case HttpStatus.TOO_MANY_REQUESTS:
-        return 'RATE_LIMIT_EXCEEDED';
+        return "RATE_LIMIT_EXCEEDED";
       case HttpStatus.INTERNAL_SERVER_ERROR:
-        return 'INTERNAL_SERVER_ERROR';
+        return "INTERNAL_SERVER_ERROR";
       case HttpStatus.SERVICE_UNAVAILABLE:
-        return 'SERVICE_UNAVAILABLE';
+        return "SERVICE_UNAVAILABLE";
       case HttpStatus.GATEWAY_TIMEOUT:
-        return 'GATEWAY_TIMEOUT';
+        return "GATEWAY_TIMEOUT";
       default:
-        return 'UNKNOWN_ERROR';
+        return "UNKNOWN_ERROR";
     }
   }
 
@@ -283,7 +304,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * 检查是否为MongoDB异常
    */
   private isMongoError(exception: unknown): exception is MongoError {
-    if (!exception || typeof exception !== 'object') {
+    if (!exception || typeof exception !== "object") {
       return false;
     }
 
@@ -291,10 +312,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return (
       (exception instanceof Error &&
         (exception.name === "MongoError" ||
-         exception.name === "MongoServerError")) ||
-      (error.name === "MongoError" ||
-       error.name === "MongoServerError") ||
-      (typeof error.code === 'number' && error.code > 0)
+          exception.name === "MongoServerError")) ||
+      error.name === "MongoError" ||
+      error.name === "MongoServerError" ||
+      (typeof error.code === "number" && error.code > 0)
     );
   }
 
@@ -302,15 +323,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * 检查是否为JWT异常
    */
   private isJWTError(exception: unknown): boolean {
-    if (!exception || typeof exception !== 'object') {
+    if (!exception || typeof exception !== "object") {
       return false;
     }
 
     const error = exception as any;
     return (
-      error.name === 'JsonWebTokenError' ||
-      error.name === 'TokenExpiredError' ||
-      error.name === 'NotBeforeError'
+      error.name === "JsonWebTokenError" ||
+      error.name === "TokenExpiredError" ||
+      error.name === "NotBeforeError"
     );
   }
 
@@ -318,16 +339,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * 检查是否为数据库连接错误
    */
   private isDatabaseConnectionError(exception: unknown): boolean {
-    if (!exception || typeof exception !== 'object') {
+    if (!exception || typeof exception !== "object") {
       return false;
     }
 
     const error = exception as any;
     return (
-      error.name === 'DatabaseConnectionError' ||
-      error.code === 'ECONNREFUSED' ||
-      error.code === 'ENOTFOUND' ||
-      (error.message && error.message.includes('connection'))
+      error.name === "DatabaseConnectionError" ||
+      error.code === "ECONNREFUSED" ||
+      error.code === "ENOTFOUND" ||
+      (error.message && error.message.includes("connection"))
     );
   }
 
@@ -335,15 +356,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * 检查是否为超时错误
    */
   private isTimeoutError(exception: unknown): boolean {
-    if (!exception || typeof exception !== 'object') {
+    if (!exception || typeof exception !== "object") {
       return false;
     }
 
     const error = exception as any;
     return (
-      error.name === 'TimeoutError' ||
-      error.code === 'ETIMEDOUT' ||
-      (error.message && error.message.includes('timeout'))
+      error.name === "TimeoutError" ||
+      error.code === "ETIMEDOUT" ||
+      (error.message && error.message.includes("timeout"))
     );
   }
 
@@ -351,13 +372,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * 检查是否有自定义状态码
    */
   private hasCustomStatusCode(exception: unknown): boolean {
-    if (!exception || typeof exception !== 'object') {
+    if (!exception || typeof exception !== "object") {
       return false;
     }
 
     const error = exception as any;
     return (
-      typeof error.statusCode === 'number' &&
+      typeof error.statusCode === "number" &&
       error.statusCode >= 400 &&
       error.statusCode < 600
     );
@@ -381,11 +402,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    */
   private getJWTErrorMessage(error: any): string {
     switch (error.name) {
-      case 'JsonWebTokenError':
+      case "JsonWebTokenError":
         return AUTH_ERROR_MESSAGES.TOKEN_INVALID;
-      case 'TokenExpiredError':
+      case "TokenExpiredError":
         return AUTH_ERROR_MESSAGES.TOKEN_EXPIRED;
-      case 'NotBeforeError':
+      case "NotBeforeError":
         return AUTH_ERROR_MESSAGES.TOKEN_NOT_ACTIVE;
       default:
         return AUTH_ERROR_MESSAGES.JWT_AUTH_FAILED;
@@ -420,36 +441,44 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     message: string;
     code?: string;
   }> {
-    const parsedErrors: Array<{ field: string; message: string; code?: string }> = [];
-    
-    messages.forEach(msg => {
+    const parsedErrors: Array<{
+      field: string;
+      message: string;
+      code?: string;
+    }> = [];
+
+    messages.forEach((msg) => {
       // 尝试解析字段名和消息
-      if (msg.includes('不能为空')) {
+      if (msg.includes("不能为空")) {
         const field = this.extractFieldName(msg);
-        parsedErrors.push({ field, message: msg, code: 'REQUIRED' });
-      } else if (msg.includes('不支持的数据类型')) {
-        parsedErrors.push({ field: 'dataType', message: msg, code: 'INVALID_TYPE' });
-      } else if (msg.includes('必须是')) {
+        parsedErrors.push({ field, message: msg, code: "REQUIRED" });
+      } else if (msg.includes("不支持的数据类型")) {
+        parsedErrors.push({
+          field: "dataType",
+          message: msg,
+          code: "INVALID_TYPE",
+        });
+      } else if (msg.includes("必须是")) {
         const field = this.extractFieldName(msg);
-        parsedErrors.push({ field, message: msg, code: 'INVALID_FORMAT' });
+        parsedErrors.push({ field, message: msg, code: "INVALID_FORMAT" });
       } else {
         // 默认字段错误
-        parsedErrors.push({ field: 'unknown', message: msg });
+        parsedErrors.push({ field: "unknown", message: msg });
       }
     });
-    
+
     return parsedErrors;
   }
-  
+
   /**
    * 从错误消息中提取字段名
    */
   private extractFieldName(message: string): string {
     // 简单的字段名提取逻辑
-    if (message.includes('股票代码')) return 'symbols';
-    if (message.includes('数据类型')) return 'dataType';
-    if (message.includes('提供商')) return 'provider';
-    return 'unknown';
+    if (message.includes("股票代码")) return "symbols";
+    if (message.includes("数据类型")) return "dataType";
+    if (message.includes("提供商")) return "provider";
+    return "unknown";
   }
 
   /**
@@ -525,7 +554,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    */
   private translateUnauthorizedMessage(message: string): string {
     if (!message) return AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS;
-    
+
     // JWT相关错误消息翻译 - 统一为用户友好消息
     if (message.includes("缺少认证token")) {
       return AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS;
@@ -542,7 +571,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (message.includes("token尚未生效")) {
       return AUTH_ERROR_MESSAGES.TOKEN_NOT_ACTIVE;
     }
-    
+
     // API Key相关错误消息翻译
     if (message.includes("缺少API凭证")) {
       return AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING;
@@ -553,12 +582,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (message.includes("API凭证已过期")) {
       return AUTH_ERROR_MESSAGES.API_CREDENTIALS_EXPIRED;
     }
-    
+
     // 用户登录相关错误消息 - 保持原始消息
     if (message.includes("用户名或密码错误")) {
       return AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS;
     }
-    
+
     // 默认返回统一的未授权消息
     return AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS;
   }
@@ -566,10 +595,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   /**
    * 翻译通用错误消息为中文
    */
-  private translateMessage(message: string | string[], errorType?: string): string | string[] {
+  private translateMessage(
+    message: string | string[],
+    errorType?: string,
+  ): string | string[] {
     if (Array.isArray(message)) {
       // 对于验证错误，可以选择返回统一消息或详细消息列表
-      if (errorType === 'ValidationError' && message.length > 0) {
+      if (errorType === "ValidationError" && message.length > 0) {
         // 返回详细的验证错误列表
         return message.map((msg) => this.translateSingleMessage(msg));
       }
@@ -581,8 +613,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private translateSingleMessage(message: string): string {
     const translations: Record<string, string> = {
       "Bad Request": HTTP_ERROR_MESSAGES.BAD_REQUEST,
-      "Unauthorized": HTTP_ERROR_MESSAGES.UNAUTHORIZED,
-      "Forbidden": HTTP_ERROR_MESSAGES.FORBIDDEN,
+      Unauthorized: HTTP_ERROR_MESSAGES.UNAUTHORIZED,
+      Forbidden: HTTP_ERROR_MESSAGES.FORBIDDEN,
       "Not Found": HTTP_ERROR_MESSAGES.NOT_FOUND,
       "Method Not Allowed": HTTP_ERROR_MESSAGES.METHOD_NOT_ALLOWED,
       "Internal Server Error": HTTP_ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
@@ -592,9 +624,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
 
     // 处理路由不存在的错误消息
-    if (message.startsWith("Cannot GET") || message.startsWith("Cannot POST") ||
-        message.startsWith("Cannot PUT") || message.startsWith("Cannot DELETE") ||
-        message.startsWith("Cannot PATCH")) {
+    if (
+      message.startsWith("Cannot GET") ||
+      message.startsWith("Cannot POST") ||
+      message.startsWith("Cannot PUT") ||
+      message.startsWith("Cannot DELETE") ||
+      message.startsWith("Cannot PATCH")
+    ) {
       return "请求的接口不存在";
     }
 
@@ -618,27 +654,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       /onload/gi,
       /onerror/gi,
       /onclick/gi,
-      
+
       // SQL注入模式
       /union\s+select/gi,
       /drop\s+table/gi,
       /insert\s+into/gi,
       /delete\s+from/gi,
-      
+
       // LDAP注入和其他注入
       /jndi:/gi,
       /ldap:/gi,
-      
+
       // 路径遍历
       /\.\.\//g,
       /\.\.\\/g,
-      
+
       // 命令注入
       /;\s*cat\s/gi,
       /;\s*ls\s/gi,
       /;\s*rm\s/gi,
       /\|\s*cat\s/gi,
-      
+
       // 其他敏感内容
       /passwd/gi,
       /etc\/passwd/gi,
@@ -648,13 +684,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let sanitizedPath = path;
 
     // 应用所有过滤模式
-    sensitivePatterns.forEach(pattern => {
-      sanitizedPath = sanitizedPath.replace(pattern, '[FILTERED]');
+    sensitivePatterns.forEach((pattern) => {
+      sanitizedPath = sanitizedPath.replace(pattern, "[FILTERED]");
     });
 
     // 如果路径过长，截断并添加提示
     if (sanitizedPath.length > 200) {
-      sanitizedPath = sanitizedPath.substring(0, 200) + '[TRUNCATED]';
+      sanitizedPath = sanitizedPath.substring(0, 200) + "[TRUNCATED]";
     }
 
     return sanitizedPath;

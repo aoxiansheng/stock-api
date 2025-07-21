@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request } from "express";
 
 /**
  * HTTP Headers 处理工具类
@@ -11,24 +11,24 @@ export class HttpHeadersUtil {
    */
   static getHeader(req: Request, headerName: string): string | undefined {
     // 优先使用 Express 的 req.get() 方法（处理大小写和数组）
-    if (typeof req.get === 'function') {
+    if (typeof req.get === "function") {
       const value = req.get(headerName);
       if (!value) {
         return undefined;
       }
-      return typeof value === 'string' ? value : undefined;
+      return typeof value === "string" ? value : undefined;
     }
-    
+
     // 回退到直接访问 headers（用于测试环境或非标准 request 对象）
     const headers = req.headers;
     if (!headers) {
       return undefined;
     }
-    
+
     // 手动处理大小写不敏感的 header 查找
     const lowerHeaderName = headerName.toLowerCase();
     let value = headers[lowerHeaderName];
-    
+
     // 如果没找到，尝试查找所有可能的大小写变体
     if (value === undefined) {
       for (const [key, val] of Object.entries(headers)) {
@@ -38,35 +38,41 @@ export class HttpHeadersUtil {
         }
       }
     }
-    
+
     if (!value) {
       return undefined;
     }
-    
+
     // 处理数组形式的 header 值，取第一个非空值（不进行trim）
     if (Array.isArray(value)) {
-      const firstValue = value.find(v => typeof v === 'string' && v.length > 0);
+      const firstValue = value.find(
+        (v) => typeof v === "string" && v.length > 0,
+      );
       return firstValue || undefined;
     }
-    
+
     // 处理字符串值（保持原始值，不进行trim）
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return value.length > 0 ? value : undefined;
     }
-    
+
     return undefined;
   }
 
   /**
    * 获取必需的 header 值，如果不存在则抛出错误
    */
-  static getRequiredHeader(req: Request, headerName: string, errorMessage?: string): string {
+  static getRequiredHeader(
+    req: Request,
+    headerName: string,
+    errorMessage?: string,
+  ): string {
     const value = this.getHeader(req, headerName);
-    
+
     if (!value || value.length === 0) {
       throw new Error(errorMessage || `Missing required header: ${headerName}`);
     }
-    
+
     return value;
   }
 
@@ -75,19 +81,21 @@ export class HttpHeadersUtil {
    */
   static getMultipleHeaders(req: Request, headerName: string): string[] {
     const rawValue = req.headers[headerName.toLowerCase()];
-    
+
     if (!rawValue) {
       return [];
     }
-    
+
     if (Array.isArray(rawValue)) {
-      return rawValue.filter(v => typeof v === 'string' && v.trim().length > 0);
+      return rawValue.filter(
+        (v) => typeof v === "string" && v.trim().length > 0,
+      );
     }
-    
-    if (typeof rawValue === 'string' && rawValue.trim().length > 0) {
+
+    if (typeof rawValue === "string" && rawValue.trim().length > 0) {
       return [rawValue.trim()];
     }
-    
+
     return [];
   }
 
@@ -98,21 +106,21 @@ export class HttpHeadersUtil {
   static getClientIP(req: Request): string {
     // 按优先级顺序检查
     const possibleHeaders = [
-      'x-forwarded-for',
-      'x-real-ip', 
-      'x-client-ip',
-      'cf-connecting-ip', // Cloudflare
-      'x-cluster-client-ip',
-      'x-forwarded',
-      'forwarded-for',
-      'forwarded'
+      "x-forwarded-for",
+      "x-real-ip",
+      "x-client-ip",
+      "cf-connecting-ip", // Cloudflare
+      "x-cluster-client-ip",
+      "x-forwarded",
+      "forwarded-for",
+      "forwarded",
     ];
 
     for (const header of possibleHeaders) {
       const value = this.getHeader(req, header);
       if (value) {
         // x-forwarded-for 可能包含多个 IP，取第一个
-        const ip = value.split(',')[0].trim();
+        const ip = value.split(",")[0].trim();
         if (this.isValidIP(ip)) {
           return ip;
         }
@@ -120,10 +128,12 @@ export class HttpHeadersUtil {
     }
 
     // 回退到连接信息
-    return req.connection?.remoteAddress || 
-           req.socket?.remoteAddress || 
-           (req as any).ip || 
-           'unknown';
+    return (
+      req.connection?.remoteAddress ||
+      req.socket?.remoteAddress ||
+      (req as any).ip ||
+      "unknown"
+    );
   }
 
   /**
@@ -132,29 +142,31 @@ export class HttpHeadersUtil {
    */
   static getSecureClientIdentifier(req: Request): string {
     // 获取真实的连接IP（不依赖代理头部）
-    const realIP = req.connection?.remoteAddress || 
-                   req.socket?.remoteAddress || 
-                   (req as any).ip || 
-                   'unknown';
+    const realIP =
+      req.connection?.remoteAddress ||
+      req.socket?.remoteAddress ||
+      (req as any).ip ||
+      "unknown";
 
     // 获取User-Agent作为额外标识
     const userAgent = this.getUserAgent(req);
 
     // 检查是否在可信代理环境中
     // 支持生产环境或明确启用代理信任的测试环境
-    const trustedProxyEnv = (process.env.NODE_ENV === 'production' && 
-                            process.env.TRUSTED_PROXY === 'true') ||
-                           (process.env.TRUSTED_PROXY === 'true') ||
-                           (process.env.NODE_ENV?.startsWith('test') && 
-                            process.env.ALLOW_PROXY_HEADERS_IN_TEST === 'true');
+    const trustedProxyEnv =
+      (process.env.NODE_ENV === "production" &&
+        process.env.TRUSTED_PROXY === "true") ||
+      process.env.TRUSTED_PROXY === "true" ||
+      (process.env.NODE_ENV?.startsWith("test") &&
+        process.env.ALLOW_PROXY_HEADERS_IN_TEST === "true");
 
     let clientIP = realIP;
 
     // 只在可信环境中使用代理头部
     if (trustedProxyEnv) {
-      const forwardedFor = this.getHeader(req, 'x-forwarded-for');
+      const forwardedFor = this.getHeader(req, "x-forwarded-for");
       if (forwardedFor) {
-        const ip = forwardedFor.split(',')[0].trim();
+        const ip = forwardedFor.split(",")[0].trim();
         if (this.isValidIP(ip) && this.isTrustedIP(realIP)) {
           clientIP = ip;
         }
@@ -163,7 +175,7 @@ export class HttpHeadersUtil {
 
     // 组合标识符，增加绕过难度
     const identifier = `${clientIP}:${this.hashUserAgent(userAgent)}`;
-    
+
     return identifier;
   }
 
@@ -172,16 +184,17 @@ export class HttpHeadersUtil {
    */
   private static isTrustedIP(ip: string): boolean {
     // 定义可信代理IP范围（例如：负载均衡器、CDN等）
-    const trustedRanges = (process.env.TRUSTED_PROXY_IPS || '').split(',')
-                          .map(range => range.trim())
-                          .filter(range => range.length > 0);
+    const trustedRanges = (process.env.TRUSTED_PROXY_IPS || "")
+      .split(",")
+      .map((range) => range.trim())
+      .filter((range) => range.length > 0);
 
     if (trustedRanges.length === 0) {
       return false;
     }
 
     // 简单匹配（生产环境应使用更复杂的IP范围匹配）
-    return trustedRanges.some(range => ip.startsWith(range));
+    return trustedRanges.some((range) => ip.startsWith(range));
   }
 
   /**
@@ -192,7 +205,7 @@ export class HttpHeadersUtil {
     let hash = 0;
     for (let i = 0; i < userAgent.length; i++) {
       const char = userAgent.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // 转换为32位整数
     }
     return Math.abs(hash).toString(36);
@@ -201,32 +214,38 @@ export class HttpHeadersUtil {
   /**
    * 获取 API 认证凭证
    */
-  static getApiCredentials(req: Request): { appKey?: string; accessToken?: string } {
+  static getApiCredentials(req: Request): {
+    appKey?: string;
+    accessToken?: string;
+  } {
     return {
-      appKey: this.getHeader(req, 'x-app-key'),
-      accessToken: this.getHeader(req, 'x-access-token')
+      appKey: this.getHeader(req, "x-app-key"),
+      accessToken: this.getHeader(req, "x-access-token"),
     };
   }
 
   /**
    * 验证 API 认证凭证是否完整且格式正确
    */
-  static validateApiCredentials(req: Request): { appKey: string; accessToken: string } {
+  static validateApiCredentials(req: Request): {
+    appKey: string;
+    accessToken: string;
+  } {
     const { appKey, accessToken } = this.getApiCredentials(req);
-    
+
     if (!appKey || !accessToken) {
-      throw new Error('缺少API凭证');
+      throw new Error("缺少API凭证");
     }
-    
+
     // 检测API凭证中的空格或其他无效字符
     if (this.hasInvalidCharacters(appKey)) {
-      throw new Error('API凭证格式无效：App Key包含空格或无效字符');
+      throw new Error("API凭证格式无效：App Key包含空格或无效字符");
     }
-    
+
     if (this.hasInvalidCharacters(accessToken)) {
-      throw new Error('API凭证格式无效：Access Token包含空格或无效字符');
+      throw new Error("API凭证格式无效：Access Token包含空格或无效字符");
     }
-    
+
     return { appKey, accessToken };
   }
 
@@ -245,22 +264,27 @@ export class HttpHeadersUtil {
     // 简单的 IP 格式验证
     const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
     const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-    
-    return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ip === '::1' || ip === 'localhost';
+
+    return (
+      ipv4Regex.test(ip) ||
+      ipv6Regex.test(ip) ||
+      ip === "::1" ||
+      ip === "localhost"
+    );
   }
 
   /**
    * 获取用户代理信息
    */
   static getUserAgent(req: Request): string {
-    return this.getHeader(req, 'user-agent') || 'Unknown';
+    return this.getHeader(req, "user-agent") || "Unknown";
   }
 
   /**
    * 获取内容类型
    */
   static getContentType(req: Request): string | undefined {
-    return this.getHeader(req, 'content-type');
+    return this.getHeader(req, "content-type");
   }
 
   /**
@@ -268,14 +292,14 @@ export class HttpHeadersUtil {
    */
   static isJsonContent(req: Request): boolean {
     const contentType = this.getContentType(req);
-    return contentType?.includes('application/json') || false;
+    return contentType?.includes("application/json") || false;
   }
 
   /**
    * 获取授权 header
    */
   static getAuthorization(req: Request): string | undefined {
-    return this.getHeader(req, 'authorization');
+    return this.getHeader(req, "authorization");
   }
 
   /**
@@ -283,7 +307,7 @@ export class HttpHeadersUtil {
    */
   static getBearerToken(req: Request): string | undefined {
     const auth = this.getAuthorization(req);
-    if (auth?.startsWith('Bearer ')) {
+    if (auth?.startsWith("Bearer ")) {
       return auth.substring(7).trim();
     }
     return undefined;
@@ -294,23 +318,23 @@ export class HttpHeadersUtil {
    */
   static getSafeHeaders(req: Request): Record<string, any> {
     const sensitiveHeaders = [
-      'authorization',
-      'x-access-token', 
-      'x-api-key',
-      'cookie',
-      'set-cookie'
+      "authorization",
+      "x-access-token",
+      "x-api-key",
+      "cookie",
+      "set-cookie",
     ];
-    
+
     const safeHeaders: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(req.headers)) {
       if (sensitiveHeaders.includes(key.toLowerCase())) {
-        safeHeaders[key] = '[FILTERED]';
+        safeHeaders[key] = "[FILTERED]";
       } else {
         safeHeaders[key] = value;
       }
     }
-    
+
     return safeHeaders;
   }
-} 
+}

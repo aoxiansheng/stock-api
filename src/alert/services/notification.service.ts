@@ -1,18 +1,13 @@
-import {
-  Injectable,
-  BadRequestException,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, OnModuleInit } from "@nestjs/common";
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from "@common/config/logger.config";
 
-
-import { notificationConfig } from '../../common/config/notification.config';
+import { notificationConfig } from "../../common/config/notification.config";
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
   NotificationTemplateUtil,
-} from '../constants/notification.constants';
+} from "../constants/notification.constants";
 //import { IAlert, IAlertRule } from '../interfaces/alert.interface';
 import {
   NotificationSender,
@@ -23,11 +18,17 @@ import {
   NotificationType,
   Alert,
   AlertRule,
-} from '../types/alert.types';
+} from "../types/alert.types";
 
 // 🎯 引入新配置和 Senders
 
-import { EmailSender, WebhookSender, SlackSender, LogSender, DingTalkSender } from './notification-senders';
+import {
+  EmailSender,
+  WebhookSender,
+  SlackSender,
+  LogSender,
+  DingTalkSender,
+} from "./notification-senders";
 
 // 🎯 引入通知服务常量
 
@@ -70,7 +71,10 @@ export class NotificationService implements OnModuleInit {
     const sender = this.senders.get(channelType);
 
     if (!sender) {
-      const errorMsg = NotificationTemplateUtil.generateErrorMessage('UNSUPPORTED_TYPE', { channelType });
+      const errorMsg = NotificationTemplateUtil.generateErrorMessage(
+        "UNSUPPORTED_TYPE",
+        { channelType },
+      );
       this.logger.warn(errorMsg, { operation, channelType });
       // 🎯 修复: 抛出标准异常，而不是返回错误对象
       throw new BadRequestException(errorMsg);
@@ -107,14 +111,15 @@ export class NotificationService implements OnModuleInit {
       alertId: alert.id,
       ruleId: rule.id,
       channelCount: rule.channels?.length || 0,
-      enabledChannelCount: rule.channels?.filter(channel => channel.enabled).length || 0,
+      enabledChannelCount:
+        rule.channels?.filter((channel) => channel.enabled).length || 0,
     });
 
     // 🎯 修复: 改造 promise 创建过程，以便在失败时能捕获到对应的渠道信息
     const notificationPromises = rule.channels
-      .filter(channel => channel.enabled)
-      .map(channel =>
-        this.sendNotification(alert, rule, channel).catch(error => {
+      .filter((channel) => channel.enabled)
+      .map((channel) =>
+        this.sendNotification(alert, rule, channel).catch((error) => {
           // 将渠道信息附加到错误上并重新抛出，以便 allSettled 能捕获
           error.channel = channel;
           throw error;
@@ -123,8 +128,8 @@ export class NotificationService implements OnModuleInit {
 
     const settledResults = await Promise.allSettled(notificationPromises);
 
-    settledResults.forEach(res => {
-      if (res.status === 'fulfilled') {
+    settledResults.forEach((res) => {
+      if (res.status === "fulfilled") {
         results.push(res.value);
       } else {
         // 🎯 修复: 从带有渠道信息的 reason 中安全地提取数据
@@ -140,18 +145,21 @@ export class NotificationService implements OnModuleInit {
 
         results.push({
           success: false,
-          channelId: failedChannel.id || 'unknown',
+          channelId: failedChannel.id || "unknown",
           channelType: failedChannel.type as NotificationType,
-          error: NotificationTemplateUtil.generateErrorMessage('SEND_FAILED_WITH_REASON', {
-            error: reason.message
-          }),
+          error: NotificationTemplateUtil.generateErrorMessage(
+            "SEND_FAILED_WITH_REASON",
+            {
+              error: reason.message,
+            },
+          ),
           sentAt: new Date(),
           duration: 0, // Duration is harder to calculate here, but we can accept this trade-off
         });
       }
     });
 
-    const successful = results.filter(r => r.success).length;
+    const successful = results.filter((r) => r.success).length;
     const failed = results.length - successful;
     const duration = Date.now() - startTime;
 
@@ -190,19 +198,23 @@ export class NotificationService implements OnModuleInit {
     const sender = this.senders.get(channelType);
     if (!sender) {
       throw new BadRequestException(
-        NotificationTemplateUtil.generateErrorMessage('UNSUPPORTED_TYPE', { channelType })
+        NotificationTemplateUtil.generateErrorMessage("UNSUPPORTED_TYPE", {
+          channelType,
+        }),
       );
     }
 
     const result = await sender.test(config);
 
     this.logger.debug(
-      result ? NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED : NOTIFICATION_MESSAGES.CHANNEL_TEST_FAILED,
+      result
+        ? NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED
+        : NOTIFICATION_MESSAGES.CHANNEL_TEST_FAILED,
       {
         operation,
         channelType,
         success: result,
-      }
+      },
     );
 
     return result;
@@ -221,16 +233,19 @@ export class NotificationService implements OnModuleInit {
     });
 
     // 使用工具类生成模板变量
-    const variables = NotificationTemplateUtil.generateTemplateVariables(alert, rule);
+    const variables = NotificationTemplateUtil.generateTemplateVariables(
+      alert,
+      rule,
+    );
 
     // 使用工具类格式化模板
     const subject = NotificationTemplateUtil.formatTemplate(
       notificationConfig.emailSubjectTemplate,
-      variables
+      variables,
     );
     const body = NotificationTemplateUtil.formatTemplate(
       notificationConfig.defaultTemplate,
-      variables
+      variables,
     );
 
     this.logger.debug(NOTIFICATION_MESSAGES.TEMPLATE_GENERATED, {
@@ -279,6 +294,4 @@ export class NotificationService implements OnModuleInit {
       availableTypes: Array.from(this.senders.keys()),
     });
   }
-
-
 }

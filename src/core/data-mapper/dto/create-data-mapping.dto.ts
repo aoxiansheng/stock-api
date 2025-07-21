@@ -74,14 +74,24 @@ export class CreateDataMappingDto {
   // basic_info_fields 基本信息字段
   // index_fields 指数字段
   // market_status_fields 市场状态字段
-  
+
   @ApiProperty({
     description: "规则列表类型",
-    enum: ["quote_fields", "basic_info_fields", "index_fields", "market_status_fields"],
+    enum: [
+      "quote_fields",
+      "basic_info_fields",
+      "index_fields",
+      "market_status_fields",
+    ],
     example: "quote_fields",
   })
   @IsNotEmpty()
-  @IsEnum(["quote_fields", "basic_info_fields", "index_fields", "market_status_fields"])
+  @IsEnum([
+    "quote_fields",
+    "basic_info_fields",
+    "index_fields",
+    "market_status_fields",
+  ])
   ruleListType: string;
 
   @ApiProperty({ description: "规则描述", required: false })

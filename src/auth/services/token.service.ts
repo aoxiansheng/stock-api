@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 
-import { securityConfig } from '../../common/config/security.config';
-import { UserRole } from '../enums/user-role.enum';
-import { UserRepository } from '../repositories/user.repository';
-import { User } from '../schemas/user.schema';
+import { securityConfig } from "../../common/config/security.config";
+import { UserRole } from "../enums/user-role.enum";
+import { UserRepository } from "../repositories/user.repository";
+import { User } from "../schemas/user.schema";
 export interface JwtPayload {
   sub: string;
   username: string;
@@ -24,7 +24,9 @@ export class TokenService {
   /**
    * 生成访问令牌和刷新令牌
    */
-  async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokens(
+    user: User,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload: JwtPayload = {
       sub: user.id,
       username: user.username,
@@ -49,7 +51,7 @@ export class TokenService {
   async validateUserFromPayload(payload: JwtPayload): Promise<User> {
     const user = await this.userRepository.findById(payload.sub);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('来自令牌的用户无效或已被禁用');
+      throw new UnauthorizedException("来自令牌的用户无效或已被禁用");
     }
     // 使用 toJSON() 方法过滤敏感字段
     return user.toJSON() as User;
@@ -66,7 +68,7 @@ export class TokenService {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
       return payload;
     } catch {
-      throw new UnauthorizedException('无效或已过期的刷新令牌');
+      throw new UnauthorizedException("无效或已过期的刷新令牌");
     }
   }
-} 
+}

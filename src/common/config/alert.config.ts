@@ -1,6 +1,6 @@
-import { registerAs } from '@nestjs/config';
+import { registerAs } from "@nestjs/config";
 
-export const alertConfig = registerAs('alert', () => ({
+export const alertConfig = registerAs("alert", () => ({
   // Configuration for AlertingService
   evaluationInterval: parseInt(process.env.ALERT_EVALUATION_INTERVAL, 10) || 60, // 默认60秒
 
@@ -16,8 +16,8 @@ export const alertConfig = registerAs('alert', () => ({
     },
   },
   cache: {
-    cooldownPrefix: 'alert:cooldown:',
-    activeAlertPrefix: 'active-alert',
+    cooldownPrefix: "alert:cooldown:",
+    activeAlertPrefix: "active-alert",
     activeAlertTtlSeconds: 24 * 60 * 60, // 24 hours
   },
-})); 
+}));

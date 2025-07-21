@@ -4,7 +4,6 @@ import { Document } from "mongoose";
 import { IAlertRule } from "../interfaces/alert.interface";
 import { AlertSeverity, NotificationType } from "../types/alert.types";
 
-
 // 临时定义避免循环依赖
 interface NotificationChannel {
   id?: string;
@@ -36,10 +35,10 @@ export class AlertRule implements IAlertRule {
   @Prop({ required: true })
   metric: string;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     enum: ["gt", "lt", "eq", "gte", "lte", "ne"],
-    default: "gt"
+    default: "gt",
   })
   operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
 
@@ -49,11 +48,11 @@ export class AlertRule implements IAlertRule {
   @Prop({ required: true, default: 60 })
   duration: number; // 持续时间（秒）
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     type: String,
     enum: Object.values(AlertSeverity),
-    default: AlertSeverity.WARNING
+    default: AlertSeverity.WARNING,
   })
   severity: AlertSeverity;
 

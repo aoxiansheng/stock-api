@@ -4,14 +4,14 @@
  */
 
 // 导入统一常量系统，避免重复定义
-import { PERFORMANCE_CONSTANTS } from '@common/constants/unified';
+import { PERFORMANCE_CONSTANTS } from "@common/constants/unified";
 
 /**
  * 转换操作类型常量
  */
 export const TRANSFORM_TYPES = Object.freeze({
   MULTIPLY: "multiply",
-  DIVIDE: "divide", 
+  DIVIDE: "divide",
   ADD: "add",
   SUBTRACT: "subtract",
   FORMAT: "format",
@@ -51,21 +51,23 @@ export const TRANSFORM_WARNING_MESSAGES = Object.freeze({
  */
 export const TRANSFORM_CONFIG = Object.freeze({
   MAX_BATCH_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE, // 批量转换最大数量
-  MAX_FIELD_MAPPINGS: 100,                 // 单个规则最大字段映射数
-  MAX_SAMPLE_SIZE: 10,                     // 预览样本最大数量
+  MAX_FIELD_MAPPINGS: 100, // 单个规则最大字段映射数
+  MAX_SAMPLE_SIZE: 10, // 预览样本最大数量
   DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS, // 默认转换超时时间
-  MAX_NESTED_DEPTH: 10,                    // 最大嵌套深度
-  MAX_STRING_LENGTH: 10000,                // 最大字符串长度
-  MAX_ARRAY_LENGTH: 10000,                 // 最大数组长度
+  MAX_NESTED_DEPTH: 10, // 最大嵌套深度
+  MAX_STRING_LENGTH: 10000, // 最大字符串长度
+  MAX_ARRAY_LENGTH: 10000, // 最大数组长度
 } as const);
 
 /**
  * 转换性能阈值常量
  */
 export const TRANSFORM_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_TRANSFORMATION_MS: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_TRANSFORMATION_MS, // 慢转换阈值
+  SLOW_TRANSFORMATION_MS:
+    PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_TRANSFORMATION_MS, // 慢转换阈值
   LARGE_DATASET_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE, // 大数据集阈值
-  HIGH_MEMORY_USAGE_MB: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB, // 高内存使用阈值
+  HIGH_MEMORY_USAGE_MB:
+    PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB, // 高内存使用阈值
   MAX_PROCESSING_TIME_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.LONG_TIMEOUT_MS, // 最大处理时间
 } as const);
 
@@ -74,7 +76,7 @@ export const TRANSFORM_PERFORMANCE_THRESHOLDS = Object.freeze({
  */
 export const TRANSFORM_METRICS = Object.freeze({
   RECORDS_PROCESSED: "records_processed",
-  FIELDS_TRANSFORMED: "fields_transformed", 
+  FIELDS_TRANSFORMED: "fields_transformed",
   PROCESSING_TIME_MS: "processing_time_ms",
   SUCCESS_RATE: "success_rate",
   ERROR_RATE: "error_rate",
@@ -150,10 +152,10 @@ export const BATCH_TRANSFORM_OPTIONS = Object.freeze({
  * 转换缓存配置常量
  */
 export const TRANSFORM_CACHE_CONFIG = Object.freeze({
-  RULE_CACHE_TTL: 1800,                    // 规则缓存TTL（30分钟）
-  RESULT_CACHE_TTL: 300,                   // 结果缓存TTL（5分钟）
-  MAX_CACHE_SIZE: 1000,                    // 最大缓存条目数
-  CACHE_KEY_PREFIX: "transform:",          // 缓存键前缀
+  RULE_CACHE_TTL: 1800, // 规则缓存TTL（30分钟）
+  RESULT_CACHE_TTL: 300, // 结果缓存TTL（5分钟）
+  MAX_CACHE_SIZE: 1000, // 最大缓存条目数
+  CACHE_KEY_PREFIX: "transform:", // 缓存键前缀
 } as const);
 
 /**
@@ -161,7 +163,7 @@ export const TRANSFORM_CACHE_CONFIG = Object.freeze({
  */
 export const TRANSFORM_LOG_LEVELS = Object.freeze({
   DEBUG: "debug",
-  INFO: "info", 
+  INFO: "info",
   WARN: "warn",
   ERROR: "error",
   FATAL: "fatal",
@@ -185,14 +187,14 @@ export const TRANSFORM_EVENTS = Object.freeze({
  * 默认转换配置常量
  */
 export const TRANSFORM_DEFAULTS = Object.freeze({
-  BATCH_SIZE: 100,                         // 默认批量大小
-  TIMEOUT_MS: 10000,                       // 默认超时时间（10秒）
-  RETRY_ATTEMPTS: 3,                       // 默认重试次数
-  VALIDATE_OUTPUT: true,                   // 默认启用输出验证
-  INCLUDE_METADATA: false,                 // 默认不包含元数据
-  CONTINUE_ON_ERROR: false,                // 默认遇错停止
-  ENABLE_CACHING: true,                    // 默认启用缓存
-  LOG_LEVEL: TRANSFORM_LOG_LEVELS.INFO,    // 默认日志级别
+  BATCH_SIZE: 100, // 默认批量大小
+  TIMEOUT_MS: 10000, // 默认超时时间（10秒）
+  RETRY_ATTEMPTS: 3, // 默认重试次数
+  VALIDATE_OUTPUT: true, // 默认启用输出验证
+  INCLUDE_METADATA: false, // 默认不包含元数据
+  CONTINUE_ON_ERROR: false, // 默认遇错停止
+  ENABLE_CACHING: true, // 默认启用缓存
+  LOG_LEVEL: TRANSFORM_LOG_LEVELS.INFO, // 默认日志级别
 } as const);
 
 /**
@@ -221,9 +223,9 @@ export const TRANSFORM_RESULT_FORMATS = Object.freeze({
  * 转换质量指标常量
  */
 export const TRANSFORM_QUALITY_METRICS = Object.freeze({
-  COMPLETENESS: "completeness",            // 完整性
-  ACCURACY: "accuracy",                    // 准确性
-  CONSISTENCY: "consistency",              // 一致性
-  VALIDITY: "validity",                    // 有效性
-  TIMELINESS: "timeliness",               // 及时性
+  COMPLETENESS: "completeness", // 完整性
+  ACCURACY: "accuracy", // 准确性
+  CONSISTENCY: "consistency", // 一致性
+  VALIDITY: "validity", // 有效性
+  TIMELINESS: "timeliness", // 及时性
 } as const);

@@ -22,9 +22,11 @@ export const getIndexQuote: ICapability = {
     symbols: string[];
     contextService?: any;
   }): Promise<LongportQuoteResponse> {
-    const logger = createLogger('LongportGetIndexQuote');
+    const logger = createLogger("LongportGetIndexQuote");
     try {
-      logger.debug("调用 LongPort SDK 获取指数报价", { symbols: params.symbols });
+      logger.debug("调用 LongPort SDK 获取指数报价", {
+        symbols: params.symbols,
+      });
 
       if (!params.contextService) {
         throw new Error("LongportContextService 未提供");

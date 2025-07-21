@@ -3,14 +3,14 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
-import { Observable } from 'rxjs';
+} from "@nestjs/common";
+import { Request, Response } from "express";
+import { Observable } from "rxjs";
 
 /**
  * 请求追踪拦截器
  * 负责为每个请求生成唯一的追踪ID，并设置相关的响应头
- * 
+ *
  * 功能：
  * - 生成唯一的请求ID
  * - 处理关联ID (correlation ID)
@@ -52,7 +52,7 @@ export class RequestTrackingInterceptor implements NestInterceptor {
    */
   private getCorrelationId(request: Request, fallback: string): string {
     // 优先使用请求头中的关联ID
-    const headerCorrelationId = request.headers['x-correlation-id'] as string;
+    const headerCorrelationId = request.headers["x-correlation-id"] as string;
     if (headerCorrelationId) {
       return headerCorrelationId;
     }
@@ -64,14 +64,18 @@ export class RequestTrackingInterceptor implements NestInterceptor {
   /**
    * 设置追踪相关的响应头
    */
-  private setTrackingHeaders(response: Response, requestId: string, correlationId: string): void {
+  private setTrackingHeaders(
+    response: Response,
+    requestId: string,
+    correlationId: string,
+  ): void {
     try {
       // 设置请求追踪头
-      response.setHeader('x-request-id', requestId);
-      response.setHeader('x-correlation-id', correlationId);
-      
+      response.setHeader("x-request-id", requestId);
+      response.setHeader("x-correlation-id", correlationId);
+
       // 设置请求时间戳
-      response.setHeader('x-request-timestamp', new Date().toISOString());
+      response.setHeader("x-request-timestamp", new Date().toISOString());
     } catch {
       // 忽略设置头部失败的错误，不影响主要功能
     }
