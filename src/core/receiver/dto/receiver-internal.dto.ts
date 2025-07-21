@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, IsBoolean, IsObject, IsArray } from 'class-validator';
 
 export class RequestOptionsDto {
@@ -22,15 +22,14 @@ export class RequestOptionsDto {
   @IsString()
   market?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '其他动态选项，以键值对形式提供',
     type: 'object',
     additionalProperties: true,
-    required: false
   })
   @IsOptional()
   @IsObject()
-  extra?: { [key: string]: any };
+  extra?: Record<string, unknown>;
 }
 
 export class SymbolTransformationResultDto {

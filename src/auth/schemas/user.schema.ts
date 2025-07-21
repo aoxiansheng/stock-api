@@ -53,9 +53,7 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// 创建索引
-UserSchema.index({ username: 1 });
-UserSchema.index({ email: 1 });
+// 创建索引 (unique字段已通过@Prop装饰器自动创建索引)
 UserSchema.index({ role: 1 });
 UserSchema.index({ isActive: 1 });
 

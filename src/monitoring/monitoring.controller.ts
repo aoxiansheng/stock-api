@@ -12,9 +12,7 @@ import {
   ApiSuccessResponse,
   JwtAuthResponses,
   ApiHealthResponse,
-  ApiPaginatedResponse,
 } from "@common/decorators/swagger-responses.decorator";
-import { PaginatedDataDto } from "@common/dto/common-response.dto";
 
 import { AlertingService } from "../alert/services/alerting.service";
 import { Auth, Public } from "../auth/decorators/auth.decorator";

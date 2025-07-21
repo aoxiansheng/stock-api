@@ -183,7 +183,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (requestId && response) {
       try {
         response.setHeader('x-request-id', requestId);
-      } catch (error) {
+      } catch {
         // 忽略设置头部失败的错误
       }
     }
@@ -425,12 +425,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     messages.forEach(msg => {
       // 尝试解析字段名和消息
       if (msg.includes('不能为空')) {
-        const field = this.extractFieldName(msg, '不能为空');
+        const field = this.extractFieldName(msg);
         parsedErrors.push({ field, message: msg, code: 'REQUIRED' });
       } else if (msg.includes('不支持的数据类型')) {
         parsedErrors.push({ field: 'dataType', message: msg, code: 'INVALID_TYPE' });
       } else if (msg.includes('必须是')) {
-        const field = this.extractFieldName(msg, '必须是');
+        const field = this.extractFieldName(msg);
         parsedErrors.push({ field, message: msg, code: 'INVALID_FORMAT' });
       } else {
         // 默认字段错误
@@ -444,7 +444,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   /**
    * 从错误消息中提取字段名
    */
-  private extractFieldName(message: string, _keyword: string): string {
+  private extractFieldName(message: string): string {
     // 简单的字段名提取逻辑
     if (message.includes('股票代码')) return 'symbols';
     if (message.includes('数据类型')) return 'dataType';

@@ -35,10 +35,6 @@ import {
 import { AlertRuleRepository } from '../repositories/alert-rule.repository';
 import { AlertStatus ,
   Alert,
-  AlertRule,
-  AlertStats,
-  MetricData,
-  RuleEvaluationResult,
 } from '../types/alert.types';
 
 
@@ -460,7 +456,7 @@ export class AlertingService implements OnModuleInit {
     });
 
     try {
-      const metricData = this.convertEventToMetric(event);
+      const metricData = this.convertEventToMetric();
       if (metricData) {
         await this.processMetrics([metricData]);
 
@@ -602,7 +598,7 @@ export class AlertingService implements OnModuleInit {
   /**
    * 将系统事件转换为指标数据
    */
-  private convertEventToMetric(_event: any): IMetricData | null {
+  private convertEventToMetric(): IMetricData | null {
     // 实际应该根据事件类型转换为指标
     return null;
   }

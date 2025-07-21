@@ -27,7 +27,8 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, _info: any) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleRequest(err: any, user: any, _info?: any) {
     if (err || !user) {
       throw err || new UnauthorizedException("JWT认证失败");
     }

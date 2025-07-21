@@ -72,7 +72,7 @@ export class RequestTrackingInterceptor implements NestInterceptor {
       
       // 设置请求时间戳
       response.setHeader('x-request-timestamp', new Date().toISOString());
-    } catch (error) {
+    } catch {
       // 忽略设置头部失败的错误，不影响主要功能
     }
   }

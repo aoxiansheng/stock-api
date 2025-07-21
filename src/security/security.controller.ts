@@ -20,9 +20,8 @@ import { Throttle } from "@nestjs/throttler";
 import { ApiStandardResponses, ApiSuccessResponse, ApiKeyAuthResponses } from "@common/decorators/swagger-responses.decorator";
 
 
-import { Auth, ApiKeyAuth } from "../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../auth/decorators/permissions.decorator";
-import { UserRole, Permission } from "../auth/enums/user-role.enum";
+import { ApiKeyAuth } from "../auth/decorators/auth.decorator";
+import { Permission } from "../auth/enums/user-role.enum";
 import { RATE_LIMIT_CONFIG } from "../common/constants/rate-limit.constants";
 
 import {
@@ -30,10 +29,8 @@ import {
   GetVulnerabilitiesQueryDto,
   RecordManualEventDto,
 } from "./dto/security-query.dto";
-import { SecurityEvent, AuditReport } from "./interfaces/security-audit.interface";
 import {
   SecurityVulnerability,
-  SecurityScanResult,
 } from "./interfaces/security-scanner.interface";
 import { SecurityAuditService } from "./security-audit.service";
 import { SecurityScannerService } from "./security-scanner.service";

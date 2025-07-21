@@ -13,7 +13,7 @@ import {
   TradingSession,
   CACHE_TTL_BY_MARKET_STATUS 
 } from '@common/constants/market-trading-hours.constants';
-import { Market, MARKET_TIMEZONES } from '@common/constants/market.constants';
+import { Market } from '@common/constants/market.constants';
 
 /**
  * 市场状态检测结果

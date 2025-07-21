@@ -37,7 +37,6 @@ import {
 import {
   QueryResponseDto,
   BulkQueryResponseDto,
-  QueryMetadataDto,
 } from "./dto/query-response.dto";
 import { QueryType } from "./dto/query-types.dto";
 import { DataSourceType } from "./enums/data-source-type.enum";
@@ -75,7 +74,7 @@ export class QueryService implements OnModuleInit {
     }));
 
     try {
-      const executionResult = await this.performQueryExecution(request, queryId);
+      const executionResult = await this.performQueryExecution(request);
 
       const finalResult = this.resultProcessorService.process(
         executionResult,
@@ -136,7 +135,6 @@ export class QueryService implements OnModuleInit {
 
   private async performQueryExecution(
     request: QueryRequestDto,
-    _queryId: string,
   ): Promise<QueryExecutionResultDto> {
     if (request.queryType === QueryType.BY_SYMBOLS) {
       return this.executeSymbolBasedQuery(request);

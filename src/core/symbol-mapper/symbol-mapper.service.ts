@@ -30,7 +30,7 @@ import {
   AddMappingRuleDto,
   UpdateMappingRuleDto,
 } from "./dto/update-symbol-mapping.dto";
-import { ISymbolMapper, ISymbolMappingRule, IMappingRule } from "./interfaces/symbol-mapping.interface";
+import { ISymbolMapper, IMappingRule } from "./interfaces/symbol-mapping.interface";
 import { SymbolMappingRepository } from "./repositories/symbol-mapping.repository";
 
 // 🎯 复用 common 模块的日志配置

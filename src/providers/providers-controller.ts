@@ -91,9 +91,72 @@ export class MainController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Get("best-provider/:capability/:market?")
+  @Get("best-provider/:capability")
   @ApiOperation({
     summary: "获取指定能力的最佳提供商",
+    description:
+      "根据指定的能力，返回最适合的数据源提供商，系统会根据优先级、可用性进行智能选择（需要API Key认证）",
+  })
+  @ApiParam({
+    name: "capability",
+    description: "能力名称",
+    example: "get-stock-quote",
+  })
+  @ApiSecurity("ApiKey")
+  @ApiSuccessResponse({
+    description: "获取成功",
+    schema: {
+      example: {
+        statusCode: 200,
+        message: "获取最佳提供商成功",
+        data: {
+          capability: "get-stock-quote",
+          market: null,
+          bestProvider: {
+            name: "longport",
+            priority: 1,
+            isEnabled: true,
+            supportedMarkets: ["HK", "US"],
+            description: "获取股票实时报价",
+          },
+        },
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: "未找到匹配的提供商",
+    schema: {
+      example: {
+        statusCode: 404,
+        message: "未找到支持该能力的提供商",
+        error: "Not Found",
+        timestamp: "2024-01-01T12:00:00.000Z",
+        path: "/providers/best-provider/invalid-capability",
+      },
+    },
+  })
+  @ApiStandardResponses()
+  getBestProviderWithoutMarket(
+    @Param("capability") capability: string,
+  ) {
+    const bestProvider = this.capabilityRegistry.getBestProvider(
+      capability,
+      undefined,
+    );
+    return {
+      capability,
+      market: null,
+      bestProvider,
+    };
+  }
+
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.PROVIDERS_READ)
+  @Get("best-provider/:capability/:market")
+  @ApiOperation({
+    summary: "获取指定能力的最佳提供商（指定市场）",
     description:
       "根据指定的能力和市场，返回最适合的数据源提供商，系统会根据优先级、可用性和市场支持情况进行智能选择（需要API Key认证）",
   })
@@ -144,10 +207,9 @@ export class MainController {
     },
   })
   @ApiStandardResponses()
-  @ApiStandardResponses()
-  getBestProvider(
+  getBestProviderWithMarket(
     @Param("capability") capability: string,
-    @Param("market") market?: string,
+    @Param("market") market: string,
   ) {
     const bestProvider = this.capabilityRegistry.getBestProvider(
       capability,

@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsString, IsEnum, IsBoolean, IsOptional, IsNumber, Min, Max, ValidateNested, IsObject } from "class-validator";
+import { IsString, IsEnum, IsBoolean, IsOptional, IsNumber, Min, Max, IsObject } from "class-validator";
 
 import { NotificationType } from "../types/alert.types";
 
@@ -36,7 +35,7 @@ export class WebhookConfigDto {
   @IsString()
   method?: string;
 
-  @ApiPropertyOptional({ description: "请求头", type: "object" })
+  @ApiPropertyOptional({ description: "请求头", type: "object", additionalProperties: { type: "string" } })
   @IsOptional()
   headers?: Record<string, string>;
 
@@ -94,7 +93,7 @@ export class SmsConfigDto {
   @IsString()
   template: string;
 
-  @ApiPropertyOptional({ description: "模板参数", type: "object" })
+  @ApiPropertyOptional({ description: "模板参数", type: "object", additionalProperties: { type: "string" } })
   @IsOptional()
   params?: Record<string, string>;
 }
@@ -134,7 +133,7 @@ export class NotificationChannelDto {
   @IsEnum(NotificationType)
   type: NotificationType;
 
-  @ApiProperty({ description: "通知配置", type: "object" })
+  @ApiProperty({ description: "通知配置", type: "object", additionalProperties: true })
   @IsObject()
   config: Record<string, any>;
 
@@ -188,7 +187,7 @@ export class UpdateNotificationChannelDto {
   @IsEnum(NotificationType)
   type?: NotificationType;
 
-  @ApiPropertyOptional({ description: "通知配置", type: "object" })
+  @ApiPropertyOptional({ description: "通知配置", type: "object", additionalProperties: true })
   @IsOptional()
   config?: Record<string, any>;
 
@@ -220,7 +219,7 @@ export class TestNotificationChannelDto {
   @IsString()
   message: string;
 
-  @ApiPropertyOptional({ description: "测试数据", type: "object" })
+  @ApiPropertyOptional({ description: "测试数据", type: "object", additionalProperties: true })
   @IsOptional()
   testData?: Record<string, any>;
 }
@@ -238,7 +237,7 @@ export class NotificationChannelResponseDto {
   @ApiProperty({ description: "通知类型", enum: NotificationType })
   type: NotificationType;
 
-  @ApiProperty({ description: "通知配置", type: "object" })
+  @ApiProperty({ description: "通知配置", type: "object", additionalProperties: true })
   config: Record<string, any>;
 
   @ApiProperty({ description: "是否启用" })

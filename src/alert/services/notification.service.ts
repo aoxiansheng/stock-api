@@ -13,7 +13,7 @@ import {
   NOTIFICATION_MESSAGES,
   NotificationTemplateUtil,
 } from '../constants/notification.constants';
-import { IAlert, IAlertRule } from '../interfaces/alert.interface';
+//import { IAlert, IAlertRule } from '../interfaces/alert.interface';
 import {
   NotificationSender,
   NotificationResult,

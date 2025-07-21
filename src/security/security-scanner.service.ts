@@ -199,12 +199,12 @@ export class SecurityScannerService {
       for (const apiKey of apiKeys) {
         if (apiKey.expiresAt && apiKey.expiresAt.getTime() < Date.now()) {
           vulnerabilities.push(
-            VulnerabilityTemplateUtil.createExpiredApiKeyVulnerability(apiKey._id, apiKey.appKey.slice(0, 4))
+            VulnerabilityTemplateUtil.createExpiredApiKeyVulnerability(apiKey._id.toString(), apiKey.appKey.slice(0, 4))
           );
         }
         if (apiKey.permissions.length > SECURITY_SCANNER_RULES.apiKeyPermissionThreshold) {
           vulnerabilities.push(
-            VulnerabilityTemplateUtil.createExcessivePermissionsVulnerability(apiKey._id, apiKey.appKey.slice(0, 4))
+            VulnerabilityTemplateUtil.createExcessivePermissionsVulnerability(apiKey._id.toString(), apiKey.appKey.slice(0, 4))
           );
         }
         if (!apiKey.rateLimit || apiKey.rateLimit.requests > SECURITY_SCANNER_RULES.apiKeyRateLimitThreshold) {

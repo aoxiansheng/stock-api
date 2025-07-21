@@ -100,7 +100,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     if (monitoringConfig.recordMetrics) {
       // 异步调用性能监控记录，但不阻塞主流程
       this.performanceMonitor.recordRequest(endpoint, method, duration, success)
-        .catch((_error) => {
+        .catch(() => {
           // 忽略性能监控记录失败的错误
         });
     }
@@ -171,7 +171,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       if (response && response.setHeader) {
         response.setHeader(name, value);
       }
-    } catch (_error) {
+    } catch {
       // 忽略设置头部失败的错误
     }
   }

@@ -51,7 +51,8 @@ export class TokenService {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('来自令牌的用户无效或已被禁用');
     }
-    return user.toJSON();
+    // 使用 toJSON() 方法过滤敏感字段
+    return user.toJSON() as User;
   }
 
   /**

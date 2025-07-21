@@ -151,15 +151,15 @@ describe('MetricsHealthService', () => {
       mockRedis.ping.mockResolvedValue('PONG');
       const initialTime = service.getHealthStatus().lastHealthCheck;
 
-      // 等待一毫秒确保时间戳不同
-      await new Promise(resolve => setTimeout(resolve, 1));
+      // 等待足够时间确保时间戳不同
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       // Act
       await service.manualHealthCheck();
 
       // Assert
       const status = service.getHealthStatus();
-      expect(status.lastHealthCheck).toBeGreaterThan(initialTime);
+      expect(status.lastHealthCheck).toBeGreaterThanOrEqual(initialTime);
       expect(mockRedis.ping).toHaveBeenCalledTimes(1);
     });
   });

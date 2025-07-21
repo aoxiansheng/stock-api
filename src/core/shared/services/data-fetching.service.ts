@@ -75,7 +75,7 @@ export class DataFetchingService {
       const marketStatus = await this.marketStatusService.getMarketStatus(market);
       
       // 2. 根据模式和市场状态确定缓存TTL
-      const cacheTTL = this.calculateCacheTTL(request.mode, marketStatus.status);
+      const cacheTTL = this.calculateCacheTTL(request.mode);
       
       // 3. 获取数据提供商能力和contextService
       const capabilityInfo = await this.getProviderCapability(request.dataType, request.provider);
@@ -200,7 +200,7 @@ export class DataFetchingService {
   /**
    * 计算缓存TTL
    */
-  private calculateCacheTTL(mode: 'REALTIME' | 'ANALYTICAL', marketStatus: MarketStatus): number {
+  private calculateCacheTTL(mode: 'REALTIME' | 'ANALYTICAL'): number {
     return this.marketStatusService.getRecommendedCacheTTL(Market.US, mode);
   }
 

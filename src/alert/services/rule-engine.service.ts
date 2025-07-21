@@ -1,10 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
 
 import { CacheService } from '../../cache/cache.service';
-import { alertConfig } from '../../common/config/alert.config';
 import {
   VALID_OPERATORS,
   OPERATOR_SYMBOLS,

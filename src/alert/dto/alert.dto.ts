@@ -227,10 +227,10 @@ export class AlertResponseDto {
   @ApiPropertyOptional({ description: "解决时间" })
   resolvedAt?: Date;
 
-  @ApiPropertyOptional({ description: "标签", type: "object" })
+  @ApiPropertyOptional({ description: "标签", type: "object", additionalProperties: { type: "string" } })
   tags?: Record<string, string>;
 
-  @ApiPropertyOptional({ description: "上下文信息", type: "object" })
+  @ApiPropertyOptional({ description: "上下文信息", type: "object", additionalProperties: true })
   context?: Record<string, any>;
 
   @ApiProperty({ description: "持续时间（毫秒）" })

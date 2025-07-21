@@ -53,7 +53,7 @@ export class ApiKey {
   @Prop({ default: true })
   isActive: boolean;
 
-  @Prop()
+  @Prop({ index: true })
   expiresAt?: Date;
 
   @Prop({ default: 0 })
@@ -74,12 +74,9 @@ export class ApiKey {
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);
 
-// 创建索引
-ApiKeySchema.index({ appKey: 1 });
-ApiKeySchema.index({ accessToken: 1 });
+// 创建索引 (unique字段已通过@Prop装饰器自动创建索引)
 ApiKeySchema.index({ userId: 1 });
 ApiKeySchema.index({ isActive: 1 });
-ApiKeySchema.index({ expiresAt: 1 });
 ApiKeySchema.index({ createdAt: 1 });
 
 // 组合索引用于验证

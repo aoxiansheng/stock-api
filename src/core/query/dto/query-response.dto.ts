@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-import { QueryErrorInfoDto } from "./query-internal.dto";
 import { QueryType } from "./query-types.dto";
 
 export class QueryMetadataDto {

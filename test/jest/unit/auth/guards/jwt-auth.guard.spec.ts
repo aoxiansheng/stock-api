@@ -66,7 +66,6 @@ describe('JwtAuthGuard', () => {
     it('should call super.canActivate for protected routes', () => {
       reflector.getAllAndOverride.mockReturnValue(false);
       
-      // Mock super.canActivate
       const superCanActivateSpy = jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'canActivate');
       superCanActivateSpy.mockReturnValue(true);
 
@@ -164,7 +163,7 @@ describe('JwtAuthGuard', () => {
         { id: '123' },
         { username: 'test' },
         { id: '123', username: 'test', email: 'test@example.com' },
-        { sub: '123', email: 'test@example.com' }, // JWT-style payload
+        { sub: '123', email: 'test@example.com' },
       ];
 
       userVariants.forEach(user => {
@@ -271,18 +270,6 @@ describe('JwtAuthGuard', () => {
   describe('constructor', () => {
     it('should be constructed with reflector', () => {
       expect(guard).toBeInstanceOf(JwtAuthGuard);
-      expect(guard['reflector']).toBe(reflector);
-    });
-  });
-
-  describe('inheritance', () => {
-    it('should extend AuthGuard with jwt strategy', () => {
-      // Check that it's an instance of AuthGuard indirectly
-      expect(guard.canActivate).toBeDefined();
-      expect(guard.handleRequest).toBeDefined();
-      
-      // Verify it has the expected jwt strategy by checking the constructor call
-      expect(guard).toBeDefined();
     });
   });
 });

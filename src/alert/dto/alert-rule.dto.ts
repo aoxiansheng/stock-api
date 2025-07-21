@@ -62,7 +62,7 @@ export class CreateAlertRuleDto {
   @Max(86400)
   cooldown: number;
 
-  @ApiPropertyOptional({ description: "标签", type: "object" })
+  @ApiPropertyOptional({ description: "标签", type: "object", additionalProperties: { type: "string" } })
   @IsOptional()
   tags?: Record<string, string>;
 }
@@ -130,7 +130,7 @@ export class UpdateAlertRuleDto {
   @Max(86400)
   cooldown?: number;
 
-  @ApiPropertyOptional({ description: "标签", type: "object" })
+  @ApiPropertyOptional({ description: "标签", type: "object", additionalProperties: { type: "string" } })
   @IsOptional()
   tags?: Record<string, string>;
 }

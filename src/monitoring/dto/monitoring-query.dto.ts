@@ -27,7 +27,7 @@ export class DateRangeValidator implements ValidatorConstraintInterface {
     return diffInDays <= 31;
   }
 
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage() {
     return 'The date range cannot exceed 31 days, and the start date must be before the end date.';
   }
 }

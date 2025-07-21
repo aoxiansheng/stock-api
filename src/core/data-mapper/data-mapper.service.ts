@@ -440,14 +440,14 @@ export class DataMapperService implements IDataMapper {
         success: true,
         message: DATA_MAPPER_SUCCESS_MESSAGES.MAPPING_TEST_SUCCESSFUL,
       } as DataMappingTestResultDto;
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED, sanitizeLogData({
         ruleId: testDto.ruleId,
-        error: _error.message,
+        error: error.message,
       }));
 
       throw new BadRequestException(
-        `${DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED}: ${_error.message}`,
+        `${DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED}: ${error.message}`,
       );
     }
   }

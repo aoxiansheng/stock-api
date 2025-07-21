@@ -323,7 +323,6 @@ export class AuthController {
   async getApiKeyUsage(
     @Request() req,
     @Param("id") apiKeyId: string,
-    @Query() _query: any,
   ) {
     this.logger.log(
       `获取API Key使用统计: ${apiKeyId}, 用户: ${req.user.username}`,

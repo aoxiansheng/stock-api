@@ -75,7 +75,9 @@ export class AuthService {
       role,
       userId: user.id,
     });
-    return user.toJSON();
+    
+    // 使用 toJSON() 方法过滤敏感字段
+    return user.toJSON() as User;
   }
 
   /**
@@ -116,7 +118,7 @@ export class AuthService {
     });
 
     return {
-      user: user.toJSON(),
+      user: user.toJSON() as User,
       accessToken,
       refreshToken,
     };

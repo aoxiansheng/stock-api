@@ -222,7 +222,7 @@ export class CustomLogger implements LoggerService {
         context: typeof context === 'string' ? context : undefined,
         data: Object.keys(data).length > 0 ? data : undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         formattedMessage: `[Log Format Error] ${String(message)}`,
         context: typeof context === 'string' ? context : undefined,

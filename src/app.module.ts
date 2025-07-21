@@ -1,7 +1,7 @@
 import { RedisModule } from "@liaoliaots/nestjs-redis";
 import { BullModule } from "@nestjs/bull";
 import { Module } from "@nestjs/common";
-import { ConfigModule , ConfigService } from "@nestjs/config";
+import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { MongooseModule } from "@nestjs/mongoose";
@@ -32,14 +32,10 @@ import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
     }),
 
     // 速率限制模块
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => [{
-        ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
-        limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
-      }],
-    }),
+    ThrottlerModule.forRoot([{
+      ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
+      limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
+    }]),
 
     // 数据库连接
     MongooseModule.forRoot(

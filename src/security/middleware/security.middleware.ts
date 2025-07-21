@@ -6,7 +6,7 @@ import { createLogger } from "@common/config/logger.config";
 import { RATE_LIMIT_CONFIG, SECURITY_LIMITS } from "@common/constants/rate-limit.constants";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
-const xss = require("xss");
+import xss from "xss";
 
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {
@@ -733,7 +733,7 @@ export class CSRFMiddleware implements NestMiddleware {
       try {
         const originUrl = new URL(origin);
         return originUrl.host === host;
-      } catch (_error) {
+      } catch {
         return false;
       }
     }
@@ -743,7 +743,7 @@ export class CSRFMiddleware implements NestMiddleware {
       try {
         const refererUrl = new URL(referer);
         return refererUrl.host === host;
-      } catch (_error) {
+      } catch {
         return false;
       }
     }

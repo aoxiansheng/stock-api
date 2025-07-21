@@ -2,6 +2,7 @@
  * API Key 服务常量定义
  * 🎯 符合开发规范指南 - 统一常量管理
  */
+import { v4 as uuidv4 } from 'uuid';
 
 // 📝 操作名称常量
 export const APIKEY_OPERATIONS = Object.freeze({
@@ -207,7 +208,7 @@ export class ApiKeyUtil {
    * @returns 应用键字符串
    */
   static generateAppKey(): string {
-    const uuid = require('uuid').v4();
+    const uuid = uuidv4();
     return `${APIKEY_DEFAULTS.APP_KEY_PREFIX}${uuid}`;
   }
 
