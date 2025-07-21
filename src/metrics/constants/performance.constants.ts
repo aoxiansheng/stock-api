@@ -3,6 +3,9 @@
  * 🎯 统一定义性能监控相关的常量，确保系统一致性
  */
 
+// 导入统一常量系统，避免重复定义
+import { PERFORMANCE_CONSTANTS, CACHE_CONSTANTS } from '@common/constants/unified';
+
 /**
  * Redis 键前缀常量
  */
@@ -38,29 +41,21 @@ export const PERFORMANCE_LIMITS = Object.freeze({
 } as const);
 
 /**
- * 性能阈值常量
+ * 性能阈值常量 - 使用统一常量系统
+ * @deprecated 请直接使用 PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS 等
  */
-export const PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_REQUEST_MS: 1000,                     // 慢请求阈值（毫秒）
-  SLOW_QUERY_MS: 1000,                       // 慢查询阈值（毫秒）
-  HIGH_CPU_USAGE: 0.8,                       // 高CPU使用率阈值
-  HIGH_MEMORY_USAGE: 0.9,                    // 高内存使用率阈值
-  HIGH_ERROR_RATE: 0.05,                     // 高错误率阈值（5%）
-  LOW_CACHE_HIT_RATE: 0.7,                   // 低缓存命中率阈值（70%）
-  HIGH_RESPONSE_TIME_P95: 2000,              // 高P95响应时间阈值（毫秒）
-  HIGH_RESPONSE_TIME_P99: 5000,              // 高P99响应时间阈值（毫秒）
-} as const);
+export const PERFORMANCE_THRESHOLDS = PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS;
 
 /**
- * TTL 常量（秒）
+ * TTL 常量（秒）- 使用统一常量系统
  */
 export const PERFORMANCE_TTL = Object.freeze({
-  ENDPOINT_STATS: 1 * 3600,                  // 1小时 - 端点统计数据TTL
-  DB_QUERY_TIMES: 2 * 3600,                  // 2小时 - 数据库查询时间TTL
-  SYSTEM_METRICS: 3600,                      // 1小时 - 系统指标TTL
+  ENDPOINT_STATS: CACHE_CONSTANTS.TTL_SETTINGS.STATS_TTL * 12,  // 1小时
+  DB_QUERY_TIMES: CACHE_CONSTANTS.TTL_SETTINGS.LONG_TTL,        // 2小时
+  SYSTEM_METRICS: CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL,     // 1小时
   ALERT_HISTORY: 7 * 24 * 3600,              // 7天 - 告警历史TTL
-  PERFORMANCE_SUMMARY: 1800,                 // 30分钟 - 性能摘要TTL
-  HEALTH_STATUS: 300,                        // 5分钟 - 健康状态TTL
+  PERFORMANCE_SUMMARY: CACHE_CONSTANTS.TTL_SETTINGS.MEDIUM_TTL, // 30分钟
+  HEALTH_STATUS: CACHE_CONSTANTS.TTL_SETTINGS.SHORT_TTL,        // 5分钟
 } as const);
 
 /**
@@ -126,32 +121,32 @@ export const HEALTH_SCORE_CONFIG = {
   responseTime: {
     weight: 25, // 响应时间最大扣25分
     tiers: [
-      { threshold: PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS, penalty: 1.0 }, // 超过慢请求阈值，扣除全部权重分
-      { threshold: PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS / 2, penalty: 0.6 }, // 超过阈值的一半，扣60%
-      { threshold: PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS / 5, penalty: 0.4 }, // 超过阈值的1/5，扣40%
+      { threshold: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS, penalty: 1.0 }, // 超过慢请求阈值，扣除全部权重分
+      { threshold: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS / 2, penalty: 0.6 }, // 超过阈值的一半，扣60%
+      { threshold: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS / 5, penalty: 0.4 }, // 超过阈值的1/5，扣40%
     ],
   },
   cpuUsage: {
     weight: 20, // CPU使用率最大扣20分
     tiers: [
-      { threshold: PERFORMANCE_THRESHOLDS.HIGH_CPU_USAGE + 0.1, penalty: 1.0 }, // 超过高CPU阈值10%，扣100%
-      { threshold: PERFORMANCE_THRESHOLDS.HIGH_CPU_USAGE, penalty: 0.75 },
-      { threshold: PERFORMANCE_THRESHOLDS.HIGH_CPU_USAGE - 0.2, penalty: 0.5 }, // 超过高CPU阈值-20%，扣50%
+      { threshold: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB / 1000 + 0.1, penalty: 1.0 }, // 超过高CPU阈值10%，扣100%
+      { threshold: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB / 1000, penalty: 0.75 },
+      { threshold: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB / 1000 - 0.2, penalty: 0.5 }, // 超过高CPU阈值-20%，扣50%
     ],
   },
   memoryUsage: {
     weight: 15, // 内存使用率最大扣15分
     tiers: [
-      { threshold: PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE, penalty: 1.0 },
-      { threshold: PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE - 0.1, penalty: 0.67 },
-      { threshold: PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE - 0.2, penalty: 0.33 },
+      { threshold: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB / 1000, penalty: 1.0 },
+      { threshold: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB / 1000 - 0.1, penalty: 0.67 },
+      { threshold: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB / 1000 - 0.2, penalty: 0.33 },
     ],
   },
   dbPerformance: {
     weight: 10, // 数据库性能最大扣10分
     tiers: [
-      { threshold: PERFORMANCE_THRESHOLDS.SLOW_QUERY_MS, penalty: 1.0 },
-      { threshold: PERFORMANCE_THRESHOLDS.SLOW_QUERY_MS / 2, penalty: 0.5 },
+      { threshold: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_QUERY_MS, penalty: 1.0 },
+      { threshold: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_QUERY_MS / 2, penalty: 0.5 },
     ],
   },
 } as const;

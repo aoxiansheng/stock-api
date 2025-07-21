@@ -3,6 +3,9 @@
  * 🎯 统一定义数据转换相关的常量，确保系统一致性
  */
 
+// 导入统一常量系统，避免重复定义
+import { PERFORMANCE_CONSTANTS } from '@common/constants/unified';
+
 /**
  * 转换操作类型常量
  */
@@ -47,10 +50,10 @@ export const TRANSFORM_WARNING_MESSAGES = Object.freeze({
  * 转换配置常量
  */
 export const TRANSFORM_CONFIG = Object.freeze({
-  MAX_BATCH_SIZE: 1000,                    // 批量转换最大数量
+  MAX_BATCH_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE, // 批量转换最大数量
   MAX_FIELD_MAPPINGS: 100,                 // 单个规则最大字段映射数
   MAX_SAMPLE_SIZE: 10,                     // 预览样本最大数量
-  DEFAULT_TIMEOUT_MS: 30000,               // 默认转换超时时间（30秒）
+  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS, // 默认转换超时时间
   MAX_NESTED_DEPTH: 10,                    // 最大嵌套深度
   MAX_STRING_LENGTH: 10000,                // 最大字符串长度
   MAX_ARRAY_LENGTH: 10000,                 // 最大数组长度
@@ -60,10 +63,10 @@ export const TRANSFORM_CONFIG = Object.freeze({
  * 转换性能阈值常量
  */
 export const TRANSFORM_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_TRANSFORMATION_MS: 5000,            // 慢转换阈值（5秒）
-  LARGE_DATASET_SIZE: 1000,                // 大数据集阈值
-  HIGH_MEMORY_USAGE_MB: 100,               // 高内存使用阈值（100MB）
-  MAX_PROCESSING_TIME_MS: 60000,           // 最大处理时间（60秒）
+  SLOW_TRANSFORMATION_MS: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_TRANSFORMATION_MS, // 慢转换阈值
+  LARGE_DATASET_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE, // 大数据集阈值
+  HIGH_MEMORY_USAGE_MB: PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB, // 高内存使用阈值
+  MAX_PROCESSING_TIME_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.LONG_TIMEOUT_MS, // 最大处理时间
 } as const);
 
 /**
