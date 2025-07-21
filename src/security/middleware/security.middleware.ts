@@ -6,7 +6,8 @@ import { createLogger } from "@common/config/logger.config";
 import { RATE_LIMIT_CONFIG, SECURITY_LIMITS } from "@common/constants/rate-limit.constants";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
-import xss from "xss";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const xss = require("xss");
 
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {
@@ -124,19 +125,29 @@ export class SecurityMiddleware implements NestMiddleware {
   }
 
   private sanitizeInput(req: Request) {
-    // 清理查询参数
-    if (req.query) {
-      req.query = this.sanitizeObject(req.query);
-    }
+    try {
+      // 清理查询参数
+      if (req.query && typeof req.query === 'object') {
+        const sanitizedQuery = this.sanitizeObject(req.query);
+        // 使用 Object.assign 而不是直接赋值避免只读问题
+        Object.keys(req.query).forEach(key => delete req.query[key]);
+        Object.assign(req.query, sanitizedQuery);
+      }
 
-    // 清理请求体
-    if (req.body) {
-      req.body = this.sanitizeObject(req.body);
-    }
+      // 清理请求体
+      if (req.body && typeof req.body === 'object') {
+        req.body = this.sanitizeObject(req.body);
+      }
 
-    // 清理路径参数
-    if (req.params) {
-      req.params = this.sanitizeObject(req.params);
+      // 清理路径参数
+      if (req.params && typeof req.params === 'object') {
+        const sanitizedParams = this.sanitizeObject(req.params);
+        Object.keys(req.params).forEach(key => delete req.params[key]);
+        Object.assign(req.params, sanitizedParams);
+      }
+    } catch (error) {
+      // 如果清理过程出错，记录但不阻止请求
+      this.logger.warn('输入清理过程中遇到错误，跳过清理', { error: error.message });
     }
   }
 
