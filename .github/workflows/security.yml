@@ -1,0 +1,328 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # 每天凌晨2点运行安全扫描
+    - cron: '0 2 * * *'
+
+jobs:
+  # 依赖安全扫描
+  dependency-scan:
+    runs-on: ubuntu-latest
+    name: Dependency Security Scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Run dependency audit
+      run: bun audit --audit-level moderate
+      continue-on-error: true
+      
+    - name: Generate dependency report
+      run: |
+        bun audit --json > dependency-audit.json || true
+        echo "Dependency audit completed"
+        
+    - name: Upload dependency scan results
+      uses: actions/upload-artifact@v3
+      with:
+        name: dependency-scan-results
+        path: dependency-audit.json
+
+  # 代码安全扫描
+  code-security-scan:
+    runs-on: ubuntu-latest
+    name: Code Security Analysis
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v2
+      with:
+        languages: typescript
+        
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Build project
+      run: bun run build
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+  # Semgrep静态安全分析
+  semgrep-scan:
+    runs-on: ubuntu-latest
+    name: Semgrep Security Scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Run Semgrep
+      uses: semgrep/semgrep-action@v1
+      with:
+        config: >-
+          p/security-audit
+          p/secrets
+          p/nodejs
+          p/typescript
+        generateSarif: "1"
+        
+    - name: Upload Semgrep results to GitHub
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: semgrep.sarif
+      if: always()
+
+  # 密钥泄露扫描
+  secret-scan:
+    runs-on: ubuntu-latest
+    name: Secret Detection
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Run TruffleHog
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # Docker镜像安全扫描
+  docker-security-scan:
+    runs-on: ubuntu-latest
+    name: Docker Image Security Scan
+    needs: [dependency-scan, code-security-scan]
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Build Docker image
+      run: |
+        docker build -t stockapi:security-test -f docker/Dockerfile.production .
+        
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'stockapi:security-test'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # 应用安全测试
+  application-security-test:
+    runs-on: ubuntu-latest
+    name: Application Security Test
+    needs: [dependency-scan]
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+          
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Start application
+      run: |
+        bun run start:test &
+        APP_PID=$!
+        echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+        sleep 15  # 等待应用启动
+      env:
+        NODE_ENV: test
+        PORT: 3001
+        MONGODB_URI: mongodb://localhost:27017/security-test
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        JWT_SECRET: test-jwt-secret-for-security
+        
+    - name: Wait for application
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:3001/api/v1/monitoring/health; do sleep 2; done'
+        
+    - name: Run OWASP ZAP Baseline Scan
+      uses: zaproxy/action-baseline@v0.7.0
+      with:
+        target: 'http://localhost:3001'
+        rules_file_name: '.zap/rules.tsv'
+        cmd_options: '-a'
+        
+    - name: Run custom security tests
+      run: |
+        # 测试SQL注入防护
+        curl -X POST "http://localhost:3001/api/v1/receiver/data" \
+          -H "Content-Type: application/json" \
+          -H "X-App-Key: test" \
+          -H "X-Access-Token: test" \
+          -d '{"symbols": ["'\''OR 1=1--"], "dataType": "stock-quote"}' || true
+          
+        # 测试XSS防护
+        curl -X POST "http://localhost:3001/api/v1/receiver/data" \
+          -H "Content-Type: application/json" \
+          -H "X-App-Key: test" \
+          -H "X-Access-Token: test" \
+          -d '{"symbols": ["<script>alert(1)</script>"], "dataType": "stock-quote"}' || true
+        
+    - name: Stop application
+      run: kill $APP_PID
+      if: always()
+
+  # 安全配置验证
+  security-config-audit:
+    runs-on: ubuntu-latest
+    name: Security Configuration Audit
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Check for security headers
+      run: |
+        # 检查是否设置了安全头部
+        if grep -r "X-Frame-Options\|X-Content-Type-Options\|X-XSS-Protection" src/; then
+          echo "✅ Security headers found"
+        else
+          echo "⚠️ Security headers not found"
+        fi
+        
+    - name: Check for hardcoded secrets
+      run: |
+        # 检查硬编码密钥
+        if grep -r -i "password\|secret\|key\|token" --include="*.ts" --include="*.js" src/ | grep -v "process.env" | grep -v "interface\|type\|import"; then
+          echo "⚠️ Potential hardcoded secrets found"
+          exit 1
+        else
+          echo "✅ No hardcoded secrets found"
+        fi
+        
+    - name: Check Docker security
+      run: |
+        if [ -f "docker/Dockerfile.production" ]; then
+          # 检查是否使用非root用户
+          if grep -q "USER.*[^0]" docker/Dockerfile.production; then
+            echo "✅ Docker uses non-root user"
+          else
+            echo "⚠️ Docker may be running as root"
+          fi
+          
+          # 检查是否有健康检查
+          if grep -q "HEALTHCHECK" docker/Dockerfile.production; then
+            echo "✅ Docker has health check"
+          else
+            echo "⚠️ Docker missing health check"
+          fi
+        fi
+
+  # 生成安全报告
+  security-report:
+    runs-on: ubuntu-latest
+    name: Generate Security Report
+    needs: [dependency-scan, code-security-scan, semgrep-scan, secret-scan, security-config-audit]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Download scan results
+      uses: actions/download-artifact@v3
+      with:
+        name: dependency-scan-results
+        path: ./security-results/
+      continue-on-error: true
+      
+    - name: Generate security summary
+      run: |
+        mkdir -p security-reports
+        
+        echo "# Security Scan Report" > security-reports/summary.md
+        echo "Generated on: $(date)" >> security-reports/summary.md
+        echo "" >> security-reports/summary.md
+        
+        echo "## Scan Results" >> security-reports/summary.md
+        echo "- Dependency Scan: ${{ needs.dependency-scan.result }}" >> security-reports/summary.md
+        echo "- Code Security Scan: ${{ needs.code-security-scan.result }}" >> security-reports/summary.md
+        echo "- Semgrep Scan: ${{ needs.semgrep-scan.result }}" >> security-reports/summary.md
+        echo "- Secret Scan: ${{ needs.secret-scan.result }}" >> security-reports/summary.md
+        echo "- Config Audit: ${{ needs.security-config-audit.result }}" >> security-reports/summary.md
+        echo "" >> security-reports/summary.md
+        
+        # 检查是否有失败的扫描
+        if [[ "${{ needs.dependency-scan.result }}" == "failure" ]] || \
+           [[ "${{ needs.code-security-scan.result }}" == "failure" ]] || \
+           [[ "${{ needs.semgrep-scan.result }}" == "failure" ]] || \
+           [[ "${{ needs.secret-scan.result }}" == "failure" ]] || \
+           [[ "${{ needs.security-config-audit.result }}" == "failure" ]]; then
+          echo "## ⚠️ Security Issues Found" >> security-reports/summary.md
+          echo "请检查失败的扫描详情并及时修复安全问题。" >> security-reports/summary.md
+        else
+          echo "## ✅ No Critical Security Issues" >> security-reports/summary.md
+          echo "所有安全扫描通过，系统安全状况良好。" >> security-reports/summary.md
+        fi
+        
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-report
+        path: security-reports/
+        
+    - name: Comment PR with security results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('security-reports/summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });

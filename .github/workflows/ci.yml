@@ -1,0 +1,345 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # 代码质量检查
+  lint-and-format:
+    runs-on: ubuntu-latest
+    name: Lint and Format Check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Run linting
+      run: bun run lint
+      
+    - name: Check formatting
+      run: bun run format:check
+
+  # 安全扫描
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Vulnerability Scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Run security audit
+      run: bun audit
+      
+    - name: Run dependency check
+      run: bun run security:deps
+      continue-on-error: true
+
+  # 单元测试
+  unit-tests:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Wait for MongoDB
+      run: |
+        until mongosh --eval "print(\"MongoDB is ready\")"; do
+          echo "Waiting for MongoDB..."
+          sleep 2
+        done
+        
+    - name: Wait for Redis
+      run: |
+        until redis-cli ping; do
+          echo "Waiting for Redis..."
+          sleep 2
+        done
+        
+    - name: Run unit tests
+      run: bun test --coverage
+      env:
+        NODE_ENV: test
+        MONGODB_URI: mongodb://localhost:27017/smart-stock-data-test
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        JWT_SECRET: test-jwt-secret-for-ci-pipeline
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+
+  # 集成测试
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    needs: [lint-and-format, unit-tests]
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Wait for services
+      run: |
+        until mongosh --eval "print(\"MongoDB is ready\")"; do
+          echo "Waiting for MongoDB..."
+          sleep 2
+        done
+        until redis-cli ping; do
+          echo "Waiting for Redis..."
+          sleep 2
+        done
+        
+    - name: Start application
+      run: |
+        bun run start:test &
+        APP_PID=$!
+        echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+        sleep 10  # 等待应用启动
+      env:
+        NODE_ENV: test
+        PORT: 3001
+        MONGODB_URI: mongodb://localhost:27017/smart-stock-data-test
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        JWT_SECRET: test-jwt-secret-for-ci-pipeline
+        
+    - name: Run integration tests
+      run: bun run test:integration
+      env:
+        TEST_API_BASE_URL: http://localhost:3001
+        
+    - name: Stop application
+      run: kill $APP_PID
+      if: always()
+
+  # 性能测试
+  performance-tests:
+    runs-on: ubuntu-latest
+    name: Performance Tests
+    needs: [integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+          
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+        
+    - name: Install dependencies
+      run: bun install
+      
+    - name: Install k6
+      run: |
+        curl https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz -L | tar xvz --strip-components 1
+        sudo mv k6 /usr/local/bin/
+        
+    - name: Start application
+      run: |
+        bun run start:test &
+        APP_PID=$!
+        echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+        sleep 15
+      env:
+        NODE_ENV: test
+        PORT: 3001
+        MONGODB_URI: mongodb://localhost:27017/smart-stock-data-perf
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        JWT_SECRET: test-jwt-secret-for-ci-pipeline
+        
+    - name: Run performance tests
+      run: k6 run tests/performance/api-load-test.js
+      env:
+        API_BASE_URL: http://localhost:3001
+        
+    - name: Stop application
+      run: kill $APP_PID
+      if: always()
+
+  # 构建Docker镜像
+  build-docker:
+    runs-on: ubuntu-latest
+    name: Build Docker Image
+    needs: [integration-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+      if: github.event_name == 'push'
+      
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: stockapi/backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/Dockerfile.production
+        push: ${{ github.event_name == 'push' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # 部署到测试环境
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: [build-docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "部署到测试环境"
+        # 这里可以添加实际的部署脚本
+        # 例如：kubectl apply -f k8s/staging/
+        
+  # 部署到生产环境
+  deploy-production:
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    needs: [build-docker, performance-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "部署到生产环境"
+        # 这里可以添加实际的部署脚本
+        # 例如：kubectl apply -f k8s/production/
+
+  # 通知
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Results
+    needs: [lint-and-format, security-scan, unit-tests, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Notify success
+      if: ${{ needs.lint-and-format.result == 'success' && needs.security-scan.result == 'success' && needs.unit-tests.result == 'success' && needs.integration-tests.result == 'success' }}
+      run: |
+        echo "🎉 所有测试通过！"
+        
+    - name: Notify failure
+      if: ${{ needs.lint-and-format.result == 'failure' || needs.security-scan.result == 'failure' || needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' }}
+      run: |
+        echo "❌ 测试失败，请检查日志"
+        exit 1

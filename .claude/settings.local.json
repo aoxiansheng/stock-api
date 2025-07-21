@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:open.longportapp.com)",
+      "WebFetch(domain:longportapp.github.io)",
+      "Bash(bun run lint:*)",
+      "Bash(bun:*)",
+      "Bash(curl:*)",
+      "Bash(rg:*)",
+      "Bash(mkdir:*)",
+      "Bash(gtimeout:*)",
+      "Bash(NODE_ENV=test DISABLE_AUTO_INIT=true bun test test/e2e/simple-auth.e2e.test.ts --timeout 30000)",
+      "Bash(NODE_ENV=test DISABLE_AUTO_INIT=true bun test --config jest.simple.config.js test/e2e/simple-auth.e2e.test.ts)",
+      "Bash(NODE_ENV=test bun test test/minimal-auth.test.ts --timeout 10000)",
+      "Bash(pkill:*)",
+      "Bash(mongosh:*)",
+      "Bash(redis-cli:*)",
+      "Bash(grep:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(./node_modules/.bin/eslint --print-config test.ts)",
+      "Bash(cat:*)",
+      "Bash(DISABLE_AUTO_INIT=true bun test --coverage)",
+      "Bash(DISABLE_AUTO_INIT=true bun test --coverage --testPathPattern=\"\\.spec\\.ts$\" --verbose)",
+      "Bash(DISABLE_AUTO_INIT=true bun test --coverage --testMatch=\"**/*.spec.ts\" --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true bun test --coverage --testMatch=\"**/src/**/*.spec.ts\" --testPathIgnorePatterns=\"integration\" --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest src/**/*.spec.ts --coverage --testTimeout=30000 --verbose)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest --config=jest.config.js src/**/*.spec.ts --coverage --testTimeout=30000)",
+      "Bash(touch:*)",
+      "Bash(rm:*)",
+      "Bash(od:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": []
+  }
+}

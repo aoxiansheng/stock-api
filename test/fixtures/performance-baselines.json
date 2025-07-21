@@ -1,0 +1,375 @@
+{
+  "performance_baselines": {
+    "version": "1.0.0",
+    "updated": "2024-01-01T00:00:00.000Z",
+    "description": "性能测试基准数据集 - Performance Testing Baseline Dataset",
+    
+    "response_time_targets": {
+      "api_endpoints": {
+        "/api/v1/auth/login": {
+          "p50": 200,
+          "p95": 500,
+          "p99": 1000,
+          "timeout": 5000
+        },
+        "/api/v1/receiver/data": {
+          "p50": 800,
+          "p95": 2000,
+          "p99": 5000,
+          "timeout": 10000
+        },
+        "/api/v1/query/execute": {
+          "p50": 1000,
+          "p95": 3000,
+          "p99": 8000,
+          "timeout": 15000
+        },
+        "/api/v1/symbol-mapper/transform": {
+          "p50": 150,
+          "p95": 400,
+          "p99": 800,
+          "timeout": 3000
+        },
+        "/api/v1/transformer/transform": {
+          "p50": 300,
+          "p95": 800,
+          "p99": 1500,
+          "timeout": 5000
+        },
+        "/api/v1/monitoring/health": {
+          "p50": 50,
+          "p95": 150,
+          "p99": 300,
+          "timeout": 1000
+        },
+        "/api/v1/monitoring/metrics/performance": {
+          "p50": 200,
+          "p95": 600,
+          "p99": 1200,
+          "timeout": 3000
+        }
+      }
+    },
+
+    "throughput_targets": {
+      "concurrent_users": {
+        "light_load": {
+          "users": 10,
+          "rps": 50,
+          "duration": "2m",
+          "expected_success_rate": 0.99
+        },
+        "normal_load": {
+          "users": 50,
+          "rps": 200,
+          "duration": "5m",
+          "expected_success_rate": 0.95
+        },
+        "high_load": {
+          "users": 100,
+          "rps": 500,
+          "duration": "10m",
+          "expected_success_rate": 0.9
+        },
+        "stress_load": {
+          "users": 300,
+          "rps": 1000,
+          "duration": "5m",
+          "expected_success_rate": 0.85
+        },
+        "spike_load": {
+          "users": 500,
+          "rps": 2000,
+          "duration": "2m",
+          "expected_success_rate": 0.75
+        }
+      }
+    },
+
+    "system_resource_limits": {
+      "cpu_usage": {
+        "normal": 60,
+        "warning": 75,
+        "critical": 90,
+        "maximum": 95
+      },
+      "memory_usage": {
+        "normal": 70,
+        "warning": 80,
+        "critical": 90,
+        "maximum": 95
+      },
+      "database_connections": {
+        "normal": 50,
+        "warning": 70,
+        "critical": 85,
+        "maximum": 95
+      },
+      "cache_hit_rate": {
+        "excellent": 0.8,
+        "good": 0.6,
+        "acceptable": 0.4,
+        "poor": 0.2
+      }
+    },
+
+    "error_rate_thresholds": {
+      "authentication": {
+        "excellent": 0.001,
+        "good": 0.005,
+        "acceptable": 0.01,
+        "poor": 0.05
+      },
+      "data_processing": {
+        "excellent": 0.002,
+        "good": 0.01,
+        "acceptable": 0.03,
+        "poor": 0.1
+      },
+      "query_execution": {
+        "excellent": 0.001,
+        "good": 0.005,
+        "acceptable": 0.02,
+        "poor": 0.08
+      },
+      "system_operations": {
+        "excellent": 0.0005,
+        "good": 0.002,
+        "acceptable": 0.01,
+        "poor": 0.05
+      }
+    },
+
+    "data_volume_benchmarks": {
+      "symbols_per_request": {
+        "small": {
+          "min": 1,
+          "max": 5,
+          "typical": 3
+        },
+        "medium": {
+          "min": 5,
+          "max": 20,
+          "typical": 10
+        },
+        "large": {
+          "min": 20,
+          "max": 100,
+          "typical": 50
+        },
+        "bulk": {
+          "min": 100,
+          "max": 500,
+          "typical": 200
+        }
+      },
+      "request_payload_size": {
+        "small": "1KB",
+        "medium": "10KB", 
+        "large": "100KB",
+        "bulk": "1MB"
+      },
+      "response_payload_size": {
+        "small": "5KB",
+        "medium": "50KB",
+        "large": "500KB", 
+        "bulk": "5MB"
+      }
+    },
+
+    "network_performance": {
+      "latency_simulation": {
+        "local": 1,
+        "lan": 10,
+        "wan": 50,
+        "international": 200,
+        "mobile_3g": 300,
+        "mobile_4g": 100,
+        "mobile_5g": 20
+      },
+      "bandwidth_simulation": {
+        "fiber": "1Gbps",
+        "broadband": "100Mbps",
+        "dsl": "10Mbps",
+        "mobile_4g": "50Mbps",
+        "mobile_3g": "5Mbps"
+      }
+    },
+
+    "test_scenarios": {
+      "baseline_verification": {
+        "description": "验证系统基础性能指标",
+        "users": 10,
+        "duration": "3m",
+        "ramp_up": "30s",
+        "success_criteria": {
+          "response_time_p95": 2000,
+          "error_rate": 0.01,
+          "throughput": 50
+        }
+      },
+      "normal_operation": {
+        "description": "模拟正常运营负载",
+        "users": 50,
+        "duration": "10m",
+        "ramp_up": "2m",
+        "success_criteria": {
+          "response_time_p95": 3000,
+          "error_rate": 0.03,
+          "throughput": 200
+        }
+      },
+      "peak_hour": {
+        "description": "模拟高峰时间负载",
+        "users": 150,
+        "duration": "15m",
+        "ramp_up": "3m",
+        "success_criteria": {
+          "response_time_p95": 5000,
+          "error_rate": 0.05,
+          "throughput": 500
+        }
+      },
+      "stress_testing": {
+        "description": "压力测试系统极限",
+        "users": 300,
+        "duration": "10m",
+        "ramp_up": "2m",
+        "success_criteria": {
+          "response_time_p95": 8000,
+          "error_rate": 0.1,
+          "throughput": 800
+        }
+      },
+      "spike_testing": {
+        "description": "突发流量测试",
+        "users": 500,
+        "duration": "5m",
+        "ramp_up": "30s",
+        "success_criteria": {
+          "response_time_p95": 10000,
+          "error_rate": 0.15,
+          "throughput": 1000
+        }
+      },
+      "endurance_testing": {
+        "description": "长时间稳定性测试",
+        "users": 80,
+        "duration": "60m",
+        "ramp_up": "5m",
+        "success_criteria": {
+          "response_time_p95": 3000,
+          "error_rate": 0.02,
+          "memory_leak": false,
+          "stability": true
+        }
+      }
+    },
+
+    "business_scenarios": {
+      "authentication_flow": {
+        "description": "认证流程性能基准",
+        "steps": [
+          {
+            "name": "register",
+            "weight": 0.1,
+            "target_time": 500
+          },
+          {
+            "name": "login", 
+            "weight": 0.8,
+            "target_time": 200
+          },
+          {
+            "name": "token_refresh",
+            "weight": 0.1,
+            "target_time": 150
+          }
+        ]
+      },
+      "data_retrieval_flow": {
+        "description": "数据获取流程性能基准",
+        "steps": [
+          {
+            "name": "symbol_validation",
+            "weight": 0.2,
+            "target_time": 100
+          },
+          {
+            "name": "data_fetch",
+            "weight": 0.6,
+            "target_time": 1500
+          },
+          {
+            "name": "data_transform",
+            "weight": 0.2,
+            "target_time": 300
+          }
+        ]
+      },
+      "query_execution_flow": {
+        "description": "查询执行流程性能基准",
+        "steps": [
+          {
+            "name": "query_parsing",
+            "weight": 0.1,
+            "target_time": 50
+          },
+          {
+            "name": "cache_lookup",
+            "weight": 0.3,
+            "target_time": 100
+          },
+          {
+            "name": "database_query",
+            "weight": 0.5,
+            "target_time": 800
+          },
+          {
+            "name": "result_formatting",
+            "weight": 0.1,
+            "target_time": 200
+          }
+        ]
+      }
+    },
+
+    "monitoring_thresholds": {
+      "alerts": {
+        "response_time_degradation": {
+          "warning": "p95 > baseline * 1.5",
+          "critical": "p95 > baseline * 2.0"
+        },
+        "error_rate_increase": {
+          "warning": "error_rate > baseline * 2.0",
+          "critical": "error_rate > baseline * 5.0"
+        },
+        "throughput_decrease": {
+          "warning": "throughput < baseline * 0.8",
+          "critical": "throughput < baseline * 0.5"
+        },
+        "resource_exhaustion": {
+          "warning": "resource_usage > 80%",
+          "critical": "resource_usage > 95%"
+        }
+      }
+    },
+
+    "sla_targets": {
+      "availability": {
+        "target": 99.9,
+        "measurement_period": "monthly",
+        "downtime_allowance": "43.2m"
+      },
+      "performance": {
+        "response_time_p95": 3000,
+        "error_rate": 0.01,
+        "throughput": 500
+      },
+      "recovery": {
+        "rto": 300,
+        "rpo": 3600
+      }
+    }
+  }
+}

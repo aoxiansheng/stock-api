@@ -1,0 +1,58 @@
+import { createLogger } from "@common/config/logger.config";
+import { MARKETS } from "@common/constants/market.constants";
+
+import { ICapability } from "../../interfaces/capability.interface";
+import { LongportQuoteResponse } from "../types";
+
+/**
+ * LongPort 股票报价获取能力
+ * 注意：此函数需要与 LongportContextService 配合使用
+ */
+export const getStockQuote: ICapability = {
+  name: "get-stock-quote", // capabilityType
+  description: "获取股票实时报价数据",
+  supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
+  supportedSymbolFormats: ["700.HK", "000001.SZ", "600000.SH", "AAPL.US"],
+  rateLimit: {
+    requestsPerSecond: 10,
+    requestsPerDay: 10000,
+  },
+
+  async execute(params: {
+    symbols: string[];
+    contextService?: any;
+  }): Promise<LongportQuoteResponse> {
+    const logger = createLogger('LongportSgGetStockQuote');
+    try {
+      logger.debug("调用 LongPort SDK 获取股票报价", { symbols: params.symbols });
+
+      if (!params.contextService) {
+        throw new Error("LongportContextService 未提供");
+      }
+
+      // 获取共享的 QuoteContext
+      const ctx = await params.contextService.getQuoteContext();
+      const quotes = await ctx.quote(params.symbols);
+
+      // 转换为标准格式
+      const secu_quote = quotes.map((quote) => ({
+        symbol: quote.symbol,
+        last_done: quote.lastDone,
+        prev_close: quote.prevClose,
+        open: quote.open,
+        high: quote.high,
+        low: quote.low,
+        volume: quote.volume,
+        turnover: quote.turnover,
+        timestamp: quote.timestamp,
+        trade_status: quote.tradeStatus,
+      }));
+
+      return { secu_quote };
+    } catch (error) {
+      throw new Error(`LongPort 获取股票报价失败: ${error.message}`);
+    }
+  },
+};
+
+export default getStockQuote;

@@ -1,0 +1,196 @@
+name: Shared Module Compliance Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/src/**/*.ts'
+      - 'backend/src/**/*.js'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/src/**/*.ts'
+      - 'backend/src/**/*.js'
+
+jobs:
+  compliance-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: backend
+      run: npm ci
+      
+    - name: Run ESLint compliance check
+      working-directory: backend
+      run: npm run lint:common
+      continue-on-error: true
+      
+    - name: Run common module compliance check
+      working-directory: backend
+      run: |
+        chmod +x scripts/check-common-compliance.sh
+        ./scripts/check-common-compliance.sh
+      id: compliance-check
+      continue-on-error: true
+      
+    - name: Generate compliance report
+      if: always()
+      working-directory: backend
+      run: |
+        echo "## 🔍 Shared 模块复用合规检查报告" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 检查结果" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # 运行检查并捕获输出
+        if ./scripts/check-common-compliance.sh > compliance_report.txt 2>&1; then
+          echo "✅ **所有检查都通过了！**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **发现合规问题，请查看详细报告**" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 详细报告" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat compliance_report.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 修复指南" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "1. 查看 [Shared 模块复用合规检查清单](./docs/common-module-compliance-checklist.md)" >> $GITHUB_STEP_SUMMARY
+        echo "2. 参考 [开发规范指南](./docs/开发规范指南.md) 第10章" >> $GITHUB_STEP_SUMMARY
+        echo "3. 运行 \`npm run compliance:fix\` 自动修复部分问题" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Comment PR with compliance results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // 读取合规检查结果
+          let complianceReport = '';
+          try {
+            complianceReport = fs.readFileSync('backend/compliance_report.txt', 'utf8');
+          } catch (error) {
+            complianceReport = '无法读取合规检查报告';
+          }
+          
+          const comment = `## 🔍 Shared 模块复用合规检查报告
+          
+### 检查结果
+${complianceReport.includes('所有检查都通过了') ? '✅ **所有检查都通过了！**' : '❌ **发现合规问题**'}
+
+### 详细报告
+\`\`\`
+${complianceReport}
+\`\`\`
+
+### 📋 修复指南
+1. 查看 [Shared 模块复用合规检查清单](./docs/common-module-compliance-checklist.md)
+2. 参考 [开发规范指南](./docs/开发规范指南.md) 第10章  
+3. 运行以下命令修复问题：
+   \`\`\`bash
+   npm run compliance:fix  # 自动修复部分问题
+   npm run lint:fix        # 修复代码格式问题
+   \`\`\`
+
+### 🎯 重点检查项
+- [ ] 使用 \`createLogger\` 而不是 \`new Logger\`
+- [ ] 所有日志调用使用 \`sanitizeLogData()\` 包装敏感数据
+- [ ] 使用 \`@common\` 路径别名导入 common 模块
+- [ ] 复用 common 模块的类型定义和常量
+- [ ] 没有使用 \`console.log/warn/error\`
+
+---
+*此报告由 Shared 模块复用合规检查工作流自动生成*`;
+
+          // 查找现有的合规检查评论
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.find(comment => 
+            comment.body.includes('Shared 模块复用合规检查报告')
+          );
+          
+          if (existingComment) {
+            // 更新现有评论
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: comment
+            });
+          } else {
+            // 创建新评论
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+          }
+          
+    - name: Fail if compliance check failed
+      if: steps.compliance-check.outcome == 'failure'
+      run: |
+        echo "❌ Shared 模块复用合规检查失败"
+        echo "请修复违规项后重新提交"
+        exit 1
+
+  # 可选：自动修复作业
+  auto-fix:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'auto-fix-compliance')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: backend
+      run: npm ci
+      
+    - name: Run auto-fix
+      working-directory: backend
+      run: |
+        npm run compliance:fix
+        npm run format
+        
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🔧 自动修复 Shared 模块复用合规问题"
+          git push
+        fi
