@@ -17,6 +17,10 @@ export class SymbolsRequiredForBySymbolsQueryConstraint
   validate(symbols: string[] | undefined, args: ValidationArguments) {
     const object = args.object as QueryRequestDto;
 
+    if (!object) {
+      return true;
+    }
+
     // 如果是BY_SYMBOLS查询，symbols必须存在且非空
     if (object.queryType === QueryType.BY_SYMBOLS) {
       return (
@@ -30,6 +34,9 @@ export class SymbolsRequiredForBySymbolsQueryConstraint
 
   defaultMessage(args: ValidationArguments) {
     const object = args.object as QueryRequestDto;
+    if (!object) {
+      return "";
+    }
     if (object.queryType === QueryType.BY_SYMBOLS) {
       return "symbols字段对于BY_SYMBOLS查询类型是必需的，且不能为空";
     }

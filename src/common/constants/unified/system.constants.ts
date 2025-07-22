@@ -10,6 +10,7 @@
  */
 
 import { DataState } from './operations.constants';
+import { OperationStatus } from '../../../metrics/enums/auth-type.enum';
 
 export const SYSTEM_CONSTANTS = Object.freeze({
   // 通用操作状态
@@ -45,20 +46,20 @@ export const SYSTEM_CONSTANTS = Object.freeze({
 });
 
 // 导出类型定义
-export type OperationStatus =
-  (typeof SYSTEM_CONSTANTS.OPERATION_STATUS)[keyof typeof SYSTEM_CONSTANTS.OPERATION_STATUS];
 export type LogLevel =
   (typeof SYSTEM_CONSTANTS.LOG_LEVELS)[keyof typeof SYSTEM_CONSTANTS.LOG_LEVELS];
 export type Environment =
   (typeof SYSTEM_CONSTANTS.ENVIRONMENTS)[keyof typeof SYSTEM_CONSTANTS.ENVIRONMENTS];
 // DataState 类型从 operations.constants.ts 导入，不再重复定义
 export { DataState };
+// OperationStatus 现在从 metrics enum 导入
+export { OperationStatus };
 
 /**
  * 获取所有可用的操作状态
  */
 export function getAllOperationStatuses(): OperationStatus[] {
-  return Object.values(SYSTEM_CONSTANTS.OPERATION_STATUS);
+  return Object.values(OperationStatus);
 }
 
 /**
@@ -67,9 +68,7 @@ export function getAllOperationStatuses(): OperationStatus[] {
 export function isValidOperationStatus(
   status: string,
 ): status is OperationStatus {
-  return Object.values(SYSTEM_CONSTANTS.OPERATION_STATUS).includes(
-    status as OperationStatus,
-  );
+  return Object.values(OperationStatus).includes(status as OperationStatus);
 }
 
 /**

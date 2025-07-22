@@ -49,16 +49,20 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
         this.quoteContext = await QuoteContext.new(config);
         this.logger.log("LongPort SDK 连接初始化成功");
       } catch (error) {
+        // 添加防御性检查，确保错误对象存在
+        const errorStack = error?.stack || '未知错误';
+        const errorMessage = error?.message || '未知错误';
+
         this.logger.error(
           {
-            error: error.stack,
+            error: errorStack,
           },
           "LongPort SDK 连接初始化失败",
         );
         this.initializationPromise = null; // 允许下次调用时重试
         throw new InternalServerErrorException(
           "LongPort SDK 连接初始化失败",
-          error.message,
+          errorMessage,
         );
       }
     })();
@@ -100,7 +104,7 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
         this.logger.log("LongPort SDK 连接已成功关闭");
       } catch (error) {
         this.logger.error(
-          { error: error.stack },
+          { error: error?.stack || '未知错误' },
           "关闭 LongPort SDK 连接时发生错误",
         );
       }
@@ -116,14 +120,18 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
       this.logger.log("LongPort 连接测试成功");
       return true;
     } catch (error) {
+      // 防御性检查错误对象
+      const errorStack = error?.stack || '未知错误';
+      const errorMessage = String(error?.message || '');
+      
       // 某些错误（例如代码101004：找不到标的）表明连接本身是通的
-      if (error.message?.includes("101004")) {
+      if (errorMessage.includes("101004")) {
         this.logger.log(
           "LongPort 连接测试成功（API返回标的未找到，但连接正常）",
         );
         return true;
       }
-      this.logger.error({ error: error.stack }, "LongPort 连接测试失败");
+      this.logger.error({ error: errorStack }, "LongPort 连接测试失败");
       return false;
     }
   }

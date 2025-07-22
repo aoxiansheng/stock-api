@@ -146,7 +146,7 @@ describe('SecurityController', () => {
         outcome: undefined,
         limit: 100,
         offset: 0,
-        dateRange: null,
+        SecurityDateRangeValidation: null,
       };
       const result = await controller.getAuditEvents(queryDto);
       expect(result.events).toHaveLength(1);

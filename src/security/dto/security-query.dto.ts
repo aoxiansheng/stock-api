@@ -34,8 +34,8 @@ const ALLOWED_OUTCOMES = ["success", "failure", "blocked"] as const;
 
 const MAX_DATE_RANGE_DAYS = 90;
 
-@ValidatorConstraint({ name: "isValidDateRange", async: false })
-export class IsValidDateRangeConstraint
+@ValidatorConstraint({ name: "securityDateRangeValidator", async: false })
+export class SecurityDateRangeValidator
   implements ValidatorConstraintInterface
 {
   validate(value: any, args: ValidationArguments) {
@@ -47,12 +47,16 @@ export class IsValidDateRangeConstraint
       return true; // If one date is missing, skip validation
     }
 
+    // 标准化日期，移除时间部分
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
     if (startDate >= endDate) {
       return false; // Start date must be before end date
     }
 
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     return diffDays <= MAX_DATE_RANGE_DAYS;
   }
@@ -103,11 +107,11 @@ export class GetAuditEventsQueryDto {
   @IsDateString()
   endDate?: string;
 
-  @Validate(IsValidDateRangeConstraint, {
+  @Validate(SecurityDateRangeValidator, {
     message: "无效的时间范围",
   })
   // This is a virtual property to hang the decorator on
-  dateRange: null;
+  SecurityDateRangeValidation: null;
 
   @ApiProperty({ required: false, description: "按事件类型过滤" })
   @IsOptional()

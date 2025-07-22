@@ -1,13 +1,13 @@
 # 重复标识符分析报告
 
-生成时间: 7/22/2025, 11:28:37 AM
+生成时间: 7/22/2025, 1:53:04 PM
 
 ## 📊 统计摘要
 
 - 扫描的常量: 262 (重复: 0)
 - 扫描的枚举: 48 (重复: 4)
 - 扫描的DTO: 163 (重复: 0)
-- 扫描的Type: 45 (重复: 0)
+- 扫描的Type: 44 (重复: 0)
 
 ## 🔄 重复的枚举
 
@@ -63,37 +63,21 @@
 
 发现以下Type定义与Enum值存在混用，建议统一使用方式:
 
-### OperationStatus
-
-发现在Type和Enum中都有定义:
-
-**Type定义:**
-
-- **文件**: `src/common/constants/unified/system.constants.ts`
-  - **行号**: 48
-  - **定义**: ``
-
-**Enum定义:**
-
-- **文件**: `src/metrics/enums/auth-type.enum.ts`
-  - **行号**: 17
-  - **值**: `enum`
-
-### BLOCKED
+### FAILURE
 
 发现在Type和Enum中都有定义:
 
 **Type定义:**
 
 - **文件**: `src/security/interfaces/security-audit.interface.ts`
-  - **行号**: 97
-  - **定义**: `"blocked"`
+  - **行号**: 99
+  - **定义**: `"failure"`
 
 **Enum定义:**
 
 - **文件**: `src/metrics/enums/auth-type.enum.ts`
-  - **行号**: 21
-  - **值**: `"blocked"`
+  - **行号**: 10
+  - **值**: `"failure"`
 
 ## 🎯 相似命名模式
 
@@ -694,7 +678,7 @@ Constants ending with _CONSTANTS (6 个常量)
 #### SYSTEM_CONSTANTS
 
 - **文件**: `src/common/constants/unified/system.constants.ts`
-  - **行号**: 14
+  - **行号**: 15
   - **值**: `Object.freeze({...})`
 
 #### API_KEY_CONSTANTS

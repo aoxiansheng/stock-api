@@ -1,3 +1,5 @@
+import { OperationStatus } from '../../metrics/enums/auth-type.enum';
+
 /**
  * 安全事件接口
  */
@@ -18,7 +20,7 @@ export interface SecurityEvent {
   details: Record<string, any>;
   timestamp: Date;
   source: string;
-  outcome: "success" | "failure" | "blocked";
+  outcome: "success" | "failure" | `${OperationStatus.BLOCKED}`;
 }
 
 /**
@@ -94,7 +96,7 @@ export type SecurityEventSeverity =
 /**
  * 安全事件结果枚举值
  */
-export type SecurityEventOutcome = "success" | "failure" | "blocked";
+export type SecurityEventOutcome = "success" | "failure" | `${OperationStatus.BLOCKED}`;
 
 /**
  * IP 分析结果接口

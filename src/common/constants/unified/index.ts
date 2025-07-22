@@ -19,7 +19,7 @@
 // 系统级常量
 export {
   SYSTEM_CONSTANTS,
-  type OperationStatus,
+  OperationStatus,
   type LogLevel,
   type Environment,
   getAllOperationStatuses,

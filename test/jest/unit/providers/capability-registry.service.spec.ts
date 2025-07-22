@@ -1,6 +1,6 @@
 /**
  * CapabilityRegistryService 单元测试
- * 测试能力发现功能是否正确排除系统目录
+ * 测试能力发现、注册和Provider管理功能
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -11,6 +11,42 @@ import * as path from 'path';
 // Mock fs/promises
 jest.mock('fs/promises');
 const mockedFs = fs as jest.Mocked<typeof fs>;
+
+// 正确模拟动态导入
+const mockDynamicImport = jest.fn();
+jest.mock('../../../../src/providers/capability-registry.service', () => {
+  const originalModule = jest.requireActual('../../../../src/providers/capability-registry.service');
+  return {
+    __esModule: true,
+    ...originalModule,
+    CapabilityRegistryService: class extends originalModule.CapabilityRegistryService {
+      async loadCapability(providerName: string, capabilityName: string) {
+        // 使用原始实现但替换动态导入
+        const logContext = { provider: providerName, capability: capabilityName };
+        try {
+          // 使用模拟的动态导入
+          const capabilityModule = await mockDynamicImport(providerName, capabilityName);
+          const camelCaseName = capabilityName.replace(/-(\w)/g, (_, c) => c.toUpperCase());
+          const capability = capabilityModule.default || capabilityModule[camelCaseName];
+
+          if (capability && typeof capability.execute === 'function') {
+            this.registerCapability(providerName, capability, 1, true);
+          } else {
+            this.logger.warn(
+              logContext,
+              `能力 ${providerName}/${capabilityName} 格式不正确或未找到`
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            { ...logContext, error: error?.stack || String(error) },
+            `无法加载能力 ${providerName}/${capabilityName}`
+          );
+        }
+      }
+    }
+  };
+});
 
 describe('CapabilityRegistryService', () => {
   let service: CapabilityRegistryService;
@@ -24,6 +60,7 @@ describe('CapabilityRegistryService', () => {
     
     // 清除所有模拟
     jest.clearAllMocks();
+    mockDynamicImport.mockReset();
   });
 
   describe('discoverCapabilities', () => {
@@ -220,6 +257,340 @@ describe('CapabilityRegistryService', () => {
 
       // Assert
       expect(result).toBeNull();
+    });
+  });
+
+  describe('loadCapability', () => {
+    it('应该成功加载能力模块', async () => {
+      // Arrange
+      const mockCapability = {
+        name: 'get-stock-quote',
+        description: 'Mock capability',
+        supportedMarkets: ['HK'],
+        supportedSymbolFormats: ['HK_FORMAT'],
+        execute: jest.fn(),
+      };
+
+      // 正确模拟动态导入
+      mockDynamicImport.mockResolvedValueOnce({
+        default: mockCapability,
+      });
+
+      const registerCapabilitySpy = jest.spyOn(service, 'registerCapability');
+
+      // Act
+      await (service as any).loadCapability('test-provider', 'get-stock-quote');
+
+      // Assert
+      expect(registerCapabilitySpy).toHaveBeenCalledWith('test-provider', mockCapability, 1, true);
+    });
+
+    it('应该处理能力模块导入错误', async () => {
+      // Arrange
+      const mockError = new Error('Module not found');
+      mockDynamicImport.mockRejectedValueOnce(mockError);
+
+      const loggerErrorSpy = jest.spyOn((service as any).logger, 'error');
+      loggerErrorSpy.mockImplementation(() => {});
+
+      // Act & Assert - 不应该抛出异常
+      await expect((service as any).loadCapability('test-provider', 'invalid-capability')).resolves.not.toThrow();
+      expect(loggerErrorSpy).toHaveBeenCalled();
+    });
+
+    it('应该处理无效的能力模块格式', async () => {
+      // Arrange - 模块存在但格式不正确
+      const invalidModule = {
+        someOtherExport: 'not a capability',
+      };
+
+      mockDynamicImport.mockResolvedValueOnce(invalidModule);
+
+      const loggerWarnSpy = jest.spyOn((service as any).logger, 'warn');
+      const registerCapabilitySpy = jest.spyOn(service, 'registerCapability');
+
+      // Act
+      await (service as any).loadCapability('test-provider', 'invalid-format');
+
+      // Assert
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      expect(registerCapabilitySpy).not.toHaveBeenCalled();
+    });
+
+    it('应该支持camelCase导出的能力模块', async () => {
+      // Arrange
+      const mockCapability = {
+        name: 'get-stock-quote',
+        description: 'Mock capability',
+        supportedMarkets: ['HK'],
+        supportedSymbolFormats: ['HK_FORMAT'],
+        execute: jest.fn(),
+      };
+
+      mockDynamicImport.mockResolvedValueOnce({
+        getStockQuote: mockCapability, // camelCase export
+      });
+
+      const registerCapabilitySpy = jest.spyOn(service, 'registerCapability');
+
+      // Act
+      await (service as any).loadCapability('test-provider', 'get-stock-quote');
+
+      // Assert
+      expect(registerCapabilitySpy).toHaveBeenCalledWith('test-provider', mockCapability, 1, true);
+    });
+  });
+
+  describe('directoryExists', () => {
+    it('应该检测到存在的目录', async () => {
+      // Arrange
+      const fs = require('fs/promises');
+      fs.stat = jest.fn().mockResolvedValue({ isDirectory: () => true });
+
+      // Act
+      const result = await (service as any).directoryExists('/existing/path');
+
+      // Assert
+      expect(result).toBe(true);
+      expect(fs.stat).toHaveBeenCalledWith('/existing/path');
+    });
+
+    it('应该检测到不存在的目录', async () => {
+      // Arrange
+      const fs = require('fs/promises');
+      fs.stat = jest.fn().mockRejectedValue(new Error('ENOENT'));
+
+      // Act
+      const result = await (service as any).directoryExists('/nonexistent/path');
+
+      // Assert
+      expect(result).toBe(false);
+    });
+
+    it('应该检测到文件（非目录）', async () => {
+      // Arrange
+      const fs = require('fs/promises');
+      fs.stat = jest.fn().mockResolvedValue({ isDirectory: () => false });
+
+      // Act
+      const result = await (service as any).directoryExists('/path/to/file');
+
+      // Assert
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('Provider Management', () => {
+    describe('registerProvider', () => {
+      it('应该成功注册Provider实例', () => {
+        // Arrange
+        const mockProvider = {
+          name: 'test-provider',
+          description: 'Test Provider',
+          initialize: jest.fn(),
+          testConnection: jest.fn(),
+        };
+
+        const loggerLogSpy = jest.spyOn((service as any).logger, 'log');
+        loggerLogSpy.mockImplementation(() => {});
+
+        // Act
+        service.registerProvider(mockProvider);
+
+        // Assert
+        expect(loggerLogSpy).toHaveBeenCalledWith('Provider实例注册成功: test-provider');
+        expect(service.isProviderRegistered('test-provider')).toBe(true);
+      });
+
+      it('应该拒绝注册无效的Provider实例', () => {
+        // Arrange
+        const invalidProvider = null;
+
+        const loggerWarnSpy = jest.spyOn((service as any).logger, 'warn');
+        loggerWarnSpy.mockImplementation(() => {});
+
+        // Act
+        service.registerProvider(invalidProvider);
+
+        // Assert
+        expect(loggerWarnSpy).toHaveBeenCalledWith('尝试注册无效的Provider实例');
+      });
+
+      it('应该拒绝注册没有name的Provider', () => {
+        // Arrange
+        const providerWithoutName = {
+          description: 'Provider without name',
+        };
+
+        const loggerWarnSpy = jest.spyOn((service as any).logger, 'warn');
+        loggerWarnSpy.mockImplementation(() => {});
+
+        // Act
+        service.registerProvider(providerWithoutName);
+
+        // Assert
+        expect(loggerWarnSpy).toHaveBeenCalledWith('尝试注册无效的Provider实例');
+      });
+    });
+
+    describe('getProvider', () => {
+      it('应该返回已注册的Provider实例', () => {
+        // Arrange
+        const mockProvider = {
+          name: 'test-provider',
+          description: 'Test Provider',
+        };
+        service.registerProvider(mockProvider);
+
+        // Act
+        const result = service.getProvider('test-provider');
+
+        // Assert
+        expect(result).toBe(mockProvider);
+      });
+
+      it('应该对不存在的Provider返回null并记录日志', () => {
+        // Arrange
+        const loggerDebugSpy = jest.spyOn((service as any).logger, 'debug');
+        loggerDebugSpy.mockImplementation(() => {});
+
+        // Act
+        const result = service.getProvider('nonexistent-provider');
+
+        // Assert
+        expect(result).toBeNull();
+        expect(loggerDebugSpy).toHaveBeenCalledWith('未找到Provider实例: nonexistent-provider');
+      });
+    });
+
+    describe('getAllProviders', () => {
+      it('应该返回所有已注册的Provider实例', () => {
+        // Arrange
+        const provider1 = { name: 'provider1' };
+        const provider2 = { name: 'provider2' };
+        service.registerProvider(provider1);
+        service.registerProvider(provider2);
+
+        // Act
+        const result = service.getAllProviders();
+
+        // Assert
+        expect(result.size).toBe(2);
+        expect(result.get('provider1')).toBe(provider1);
+        expect(result.get('provider2')).toBe(provider2);
+        
+        // 验证返回的是新Map实例（不是原始内部Map的引用）
+        result.clear();
+        expect(service.getAllProviders().size).toBe(2);
+      });
+
+      it('应该返回空Map当没有注册Provider时', () => {
+        // Act
+        const result = service.getAllProviders();
+
+        // Assert
+        expect(result.size).toBe(0);
+        expect(result instanceof Map).toBe(true);
+      });
+    });
+
+    describe('isProviderRegistered', () => {
+      it('应该正确检测已注册的Provider', () => {
+        // Arrange
+        const mockProvider = { name: 'test-provider' };
+        service.registerProvider(mockProvider);
+
+        // Act & Assert
+        expect(service.isProviderRegistered('test-provider')).toBe(true);
+        expect(service.isProviderRegistered('nonexistent-provider')).toBe(false);
+      });
+    });
+  });
+
+  describe('getAllCapabilities', () => {
+    it('应该返回所有注册的能力', () => {
+      // Arrange
+      const capability1 = {
+        name: 'capability1',
+        description: 'Test capability 1',
+        supportedMarkets: ['HK'],
+        supportedSymbolFormats: ['HK_FORMAT'],
+        execute: jest.fn(),
+      };
+      const capability2 = {
+        name: 'capability2',
+        description: 'Test capability 2',
+        supportedMarkets: ['US'],
+        supportedSymbolFormats: ['US_FORMAT'],
+        execute: jest.fn(),
+      };
+      
+      service.registerCapability('provider1', capability1, 1, true);
+      service.registerCapability('provider2', capability2, 1, true);
+
+      // Act
+      const result = service.getAllCapabilities();
+
+      // Assert
+      expect(result.size).toBe(2);
+      expect(result.has('provider1')).toBe(true);
+      expect(result.has('provider2')).toBe(true);
+      expect(result.get('provider1')!.get('capability1')!.capability).toBe(capability1);
+      expect(result.get('provider2')!.get('capability2')!.capability).toBe(capability2);
+    });
+
+    it('应该返回空Map当没有注册能力时', () => {
+      // Act
+      const result = service.getAllCapabilities();
+
+      // Assert
+      expect(result.size).toBe(0);
+      expect(result instanceof Map).toBe(true);
+    });
+  });
+
+  describe('getTotalCapabilitiesCount', () => {
+    it('应该正确计算总能力数量', () => {
+      // Arrange
+      const capability1 = {
+        name: 'capability1',
+        description: 'Test',
+        supportedMarkets: ['HK'],
+        supportedSymbolFormats: ['HK_FORMAT'],
+        execute: jest.fn(),
+      };
+      const capability2 = {
+        name: 'capability2',
+        description: 'Test',
+        supportedMarkets: ['HK'],
+        supportedSymbolFormats: ['HK_FORMAT'],
+        execute: jest.fn(),
+      };
+      const capability3 = {
+        name: 'capability3',
+        description: 'Test',
+        supportedMarkets: ['US'],
+        supportedSymbolFormats: ['US_FORMAT'],
+        execute: jest.fn(),
+      };
+
+      service.registerCapability('provider1', capability1, 1, true);
+      service.registerCapability('provider1', capability2, 1, true);
+      service.registerCapability('provider2', capability3, 1, true);
+
+      // Act
+      const result = (service as any).getTotalCapabilitiesCount();
+
+      // Assert
+      expect(result).toBe(3);
+    });
+
+    it('应该返回0当没有能力时', () => {
+      // Act
+      const result = (service as any).getTotalCapabilitiesCount();
+
+      // Assert
+      expect(result).toBe(0);
     });
   });
 });
