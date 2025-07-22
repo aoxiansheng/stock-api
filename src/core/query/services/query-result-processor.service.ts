@@ -161,12 +161,17 @@ export class QueryResultProcessorService {
     results: T[],
     sort: { field: string; direction: SortDirection },
   ): T[] {
-    return results.sort((a, b) => {
+    const sortedResults = [...results]; // 创建一个副本以避免修改原始数组
+    return sortedResults.sort((a, b) => {
       const aValue = (a as any)[sort.field];
       const bValue = (b as any)[sort.field];
 
-      if (aValue === undefined || aValue === null) return 1;
-      if (bValue === undefined || bValue === null) return -1;
+      const aIsNil = aValue === undefined || aValue === null;
+      const bIsNil = bValue === undefined || bValue === null;
+
+      if (aIsNil && bIsNil) return 0;
+      if (aIsNil) return 1;
+      if (bIsNil) return -1;
 
       if (aValue < bValue) return sort.direction === SortDirection.ASC ? -1 : 1;
       if (aValue > bValue) return sort.direction === SortDirection.ASC ? 1 : -1;

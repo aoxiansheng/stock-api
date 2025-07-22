@@ -135,17 +135,13 @@ export class MarketStatusService {
   /**
    * 获取建议的缓存TTL
    */
-  getRecommendedCacheTTL(
+  async getRecommendedCacheTTL(
     market: Market,
     mode: "REALTIME" | "ANALYTICAL",
-  ): number {
+  ): Promise<number> {
     try {
-      const cached = this.getCachedStatus(market);
-      const status = cached
-        ? cached.status
-        : this.calculateLocalMarketStatus(market).status;
-
-      return CACHE_TTL_BY_MARKET_STATUS[mode][status];
+      const statusResult = await this.getMarketStatus(market);
+      return CACHE_TTL_BY_MARKET_STATUS[mode][statusResult.status];
     } catch {
       // 降级到默认值
       return mode === "REALTIME" ? 60 : 3600;
@@ -184,8 +180,7 @@ export class MarketStatusService {
     const now = new Date();
 
     // 转换到市场时区
-    const marketTime = this.convertToMarketTime(now, config);
-    const dayOfWeek = marketTime.getDay();
+    const dayOfWeek = this.getDayOfWeekInTimezone(now, config.timezone);
 
     // 检查是否为交易日
     if (!config.tradingDays.includes(dayOfWeek)) {
@@ -193,14 +188,14 @@ export class MarketStatusService {
         market,
         MarketStatus.WEEKEND,
         now,
-        marketTime,
+        now, // marketTime is not relevant here
         config,
         { confidence: 0.95 },
       );
     }
 
     // 获取当前时间的HH:mm格式
-    const currentTimeStr = this.formatTime(marketTime);
+    const currentTimeStr = this.formatTime(now, config.timezone);
 
     // 检查各个交易时段
     const sessionStatus = this.checkTradingSessions(currentTimeStr, config);
@@ -209,7 +204,7 @@ export class MarketStatusService {
       market,
       sessionStatus.status,
       now,
-      marketTime,
+      now, // marketTime is now the same as currentTime
       config,
       {
         currentSession: sessionStatus.currentSession,
@@ -225,34 +220,37 @@ export class MarketStatusService {
    */
   private convertToMarketTime(date: Date, config: MarketTradingHours): Date {
     try {
-      // 简化实现：基于时区偏移计算
+      // A robust way to convert timezones without external libraries.
+      // 1. Get the target timezone from config.
       const timezone = config.timezone;
 
-      // 使用Intl.DateTimeFormat获取市场时间
+      // 2. Use Intl.DateTimeFormat to break the date into parts in the target timezone.
       const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: timezone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false, // Use 24-hour format
       });
-
+      
       const parts = formatter.formatToParts(date);
-      const partsObj = parts.reduce((acc, part) => {
-        acc[part.type] = part.value;
+      const partsMap = parts.reduce((acc, part) => {
+        acc[part.type] = parseInt(part.value, 10);
         return acc;
-      }, {} as any);
+      }, {} as Record<string, number>);
 
+      // 3. Reconstruct the date using the parts.
+      // Note: month is 0-indexed in JavaScript Dates.
       return new Date(
-        parseInt(partsObj.year),
-        parseInt(partsObj.month) - 1,
-        parseInt(partsObj.day),
-        parseInt(partsObj.hour),
-        parseInt(partsObj.minute),
-        parseInt(partsObj.second),
+        partsMap.year,
+        partsMap.month - 1,
+        partsMap.day,
+        partsMap.hour % 24, // Handle 24h case from Intl
+        partsMap.minute,
+        partsMap.second
       );
     } catch (error) {
       this.logger.warn("时区转换失败，使用UTC时间", {
@@ -261,6 +259,15 @@ export class MarketStatusService {
       });
       return date;
     }
+  }
+
+  /**
+   * 转换到市场时区时间
+   */
+  private getDayOfWeekInTimezone(date: Date, timezone: string): number {
+    const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: timezone }).format(date);
+    const dayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+    return dayMap[dayName] ?? -1;
   }
 
   /**
@@ -391,6 +398,7 @@ export class MarketStatusService {
    * 工具方法：时间字符串转分钟数
    */
   private timeToMinutes(timeStr: string): number {
+    if (!/^\d{2}:\d{2}$/.test(timeStr)) return 0;
     const [hours, minutes] = timeStr.split(":").map(Number);
     return hours * 60 + minutes;
   }
@@ -398,8 +406,15 @@ export class MarketStatusService {
   /**
    * 工具方法：格式化时间为HH:mm
    */
-  private formatTime(date: Date): string {
-    return date.toTimeString().slice(0, 5);
+  private formatTime(date: Date, timezone: string): string {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: timezone,
+        hour12: false,
+    });
+    // Intl can return '24:00' for midnight, which we should handle.
+    return formatter.format(date).replace('24', '00');
   }
 
   /**

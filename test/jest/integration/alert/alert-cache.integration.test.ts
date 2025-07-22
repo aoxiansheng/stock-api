@@ -12,7 +12,7 @@ import { AlertHistoryService } from '../../../../src/alert/services/alert-histor
 import { NotificationService } from '../../../../src/alert/services/notification.service';
 import { RuleEngineService } from '../../../../src/alert/services/rule-engine.service';
 import { CacheService } from '../../../../src/cache/cache.service';
-import { AlertSeverity } from '../../../../src/alert/enums/alert-severity.enum';
+import { AlertSeverity } from '../../../../src/alert/types/alert.types';
 import { AlertStatus } from '../../../../src/alert/types/alert.types';
 import { CreateAlertRuleDto } from '../../../../src/alert/dto/alert-rule.dto';
 

@@ -10,7 +10,7 @@ import {
   IsObject,
 } from "class-validator";
 
-import { NotificationType } from "../types/alert.types";
+import { NotificationChannelType } from "../types/alert.types";
 
 // ==================== 配置相关DTO ====================
 
@@ -147,11 +147,11 @@ export class NotificationChannelDto {
 
   @ApiProperty({
     description: "通知类型",
-    enum: NotificationType,
-    enumName: "NotificationType",
+    enum: NotificationChannelType,
+    enumName: "NotificationChannelType",
   })
-  @IsEnum(NotificationType)
-  type: NotificationType;
+  @IsEnum(NotificationChannelType)
+  type: NotificationChannelType;
 
   @ApiProperty({
     description: "通知配置",
@@ -204,12 +204,12 @@ export class UpdateNotificationChannelDto {
 
   @ApiPropertyOptional({
     description: "通知类型",
-    enum: NotificationType,
-    enumName: "NotificationType",
+    enum: NotificationChannelType,
+    enumName: "NotificationChannelType",
   })
   @IsOptional()
-  @IsEnum(NotificationType)
-  type?: NotificationType;
+  @IsEnum(NotificationChannelType)
+  type?: NotificationChannelType;
 
   @ApiPropertyOptional({
     description: "通知配置",
@@ -266,8 +266,8 @@ export class NotificationChannelResponseDto {
   @ApiProperty({ description: "渠道名称" })
   name: string;
 
-  @ApiProperty({ description: "通知类型", enum: NotificationType })
-  type: NotificationType;
+  @ApiProperty({ description: "通知类型", enum: NotificationChannelType })
+  type: NotificationChannelType;
 
   @ApiProperty({
     description: "通知配置",

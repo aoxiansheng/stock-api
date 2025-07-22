@@ -10,7 +10,7 @@ import { AlertHistoryService } from '../../../../../src/alert/services/alert-his
 import { AlertHistoryRepository } from '../../../../../src/alert/repositories/alert-history.repository';
 import { AlertHistory } from '../../../../../src/alert/schemas/alert-history.schema';
 import { AlertStatus } from '../../../../../src/alert/types/alert.types';
-import { AlertSeverity } from '../../../../../src/alert/enums/alert-severity.enum';
+import { AlertSeverity } from "../../../../../src/alert/types/alert.types";
 import { CacheService } from '../../../../../src/cache/cache.service';
 
 describe('AlertHistoryService', () => {

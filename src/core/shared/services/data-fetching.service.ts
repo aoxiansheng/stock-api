@@ -77,7 +77,7 @@ export class DataFetchingService {
         await this.marketStatusService.getMarketStatus(market);
 
       // 2. 根据模式和市场状态确定缓存TTL
-      const cacheTTL = this.calculateCacheTTL(request.mode);
+      const cacheTTL = await this.calculateCacheTTL(request.mode, market);
 
       // 3. 获取数据提供商能力和contextService
       const capabilityInfo = await this.getProviderCapability(
@@ -190,43 +190,46 @@ export class DataFetchingService {
    * 从股票代码推断市场
    */
   private inferMarketFromSymbol(symbol: string): Market {
-    const upperSymbol = symbol.toUpperCase().trim();
+    const trimmedSymbol = symbol.trim().toUpperCase();
 
     // 香港市场: .HK 后缀或5位数字
-    if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
+    if (trimmedSymbol.includes(".HK") || /^\d{5}$/.test(trimmedSymbol)) {
       return Market.HK;
     }
 
     // 美国市场: 1-5位字母
-    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
+    if (/^[A-Z]{1,5}$/.test(trimmedSymbol)) {
       return Market.US;
     }
 
     // 深圳市场: .SZ 后缀或 00/30 前缀
     if (
-      upperSymbol.includes(".SZ") ||
-      ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
+      trimmedSymbol.includes(".SZ") ||
+      ["00", "30"].some((prefix) => trimmedSymbol.startsWith(prefix))
     ) {
       return Market.SZ;
     }
 
     // 上海市场: .SH 后缀或 60/68 前缀
     if (
-      upperSymbol.includes(".SH") ||
-      ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
+      trimmedSymbol.includes(".SH") ||
+      ["60", "68"].some((prefix) => trimmedSymbol.startsWith(prefix))
     ) {
       return Market.SH;
     }
 
-    // 默认美股
+    // 默认返回美国市场
     return Market.US;
   }
 
   /**
    * 计算缓存TTL
    */
-  private calculateCacheTTL(mode: "REALTIME" | "ANALYTICAL"): number {
-    return this.marketStatusService.getRecommendedCacheTTL(Market.US, mode);
+  private async calculateCacheTTL(
+    mode: "REALTIME" | "ANALYTICAL",
+    market: Market,
+  ): Promise<number> {
+    return this.marketStatusService.getRecommendedCacheTTL(market, mode);
   }
 
   /**

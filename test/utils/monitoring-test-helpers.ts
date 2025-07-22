@@ -8,8 +8,8 @@ import { PerformanceMonitorService } from '../../src/metrics/services/performanc
 import { AlertingService } from '../../src/alert/services/alerting.service';
 import { AlertHistoryService } from '../../src/alert/services/alert-history.service';
 import { RedisService } from '@liaoliaots/nestjs-redis';
-import { AlertSeverity } from '../../src/alert/enums/alert-severity.enum';
-import { NotificationType } from '../../src/alert/types/alert.types';
+import { AlertSeverity } from '../../src/alert/types/alert.types';
+import { NotificationChannelType } from '../../src/alert/types/alert.types';
 import { waitForCondition, smartDelay, TestEnvironment } from './async-test-helpers';
 import * as request from 'supertest';
 
@@ -195,7 +195,7 @@ export class MonitoringTestHelper {
       enabled: true,
       channels: [{ 
         name: 'Test Log Channel',
-        type: NotificationType.LOG, 
+        type: NotificationChannelType.LOG, 
         config: { level: 'info' },
         enabled: true
       }],

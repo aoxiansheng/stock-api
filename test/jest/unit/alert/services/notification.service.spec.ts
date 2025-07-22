@@ -11,7 +11,7 @@ import { WebhookSender } from '../../../../../src/alert/services/notification-se
 import { DingTalkSender } from '../../../../../src/alert/services/notification-senders/dingtalk.sender';
 import { SlackSender } from '../../../../../src/alert/services/notification-senders/slack.sender';
 import { LogSender } from '../../../../../src/alert/services/notification-senders/log.sender';
-import { NotificationType, AlertSeverity, AlertStatus } from '../../../../../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../src/alert/types/alert.types';
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -55,31 +55,31 @@ describe('NotificationService', () => {
   };
 
   const mockEmailSender = {
-    type: NotificationType.EMAIL,
+    type: NotificationChannelType.EMAIL,
     send: jest.fn(),
     test: jest.fn(),
   };
 
   const mockWebhookSender = {
-    type: NotificationType.WEBHOOK,
+    type: NotificationChannelType.WEBHOOK,
     send: jest.fn(),
     test: jest.fn(),
   };
 
   const mockDingTalkSender = {
-    type: NotificationType.DINGTALK,
+    type: NotificationChannelType.DINGTALK,
     send: jest.fn(),
     test: jest.fn(),
   };
 
   const mockSlackSender = {
-    type: NotificationType.SLACK,
+    type: NotificationChannelType.SLACK,
     send: jest.fn(),
     test: jest.fn(),
   };
 
   const mockLogSender = {
-    type: NotificationType.LOG,
+    type: NotificationChannelType.LOG,
     send: jest.fn(),
     test: jest.fn(),
   };
@@ -143,7 +143,7 @@ describe('NotificationService', () => {
       const channel = {
         id: 'email-channel-1',
         name: '邮件通知',
-        type: NotificationType.EMAIL,
+        type: NotificationChannelType.EMAIL,
         config: {
           to: ['admin@example.com'],
           subject: '告警通知',
@@ -163,7 +163,7 @@ describe('NotificationService', () => {
       const channel = {
         id: 'webhook-channel-1',
         name: 'Webhook通知',
-        type: NotificationType.WEBHOOK,
+        type: NotificationChannelType.WEBHOOK,
         config: {
           url: 'https://api.example.com/webhook',
           method: 'POST',
@@ -183,7 +183,7 @@ describe('NotificationService', () => {
       const channel = {
         id: 'dingtalk-channel-1',
         name: '钉钉通知',
-        type: NotificationType.DINGTALK,
+        type: NotificationChannelType.DINGTALK,
         config: {
           webhook: 'https://oapi.dingtalk.com/robot/send?access_token=xxx',
           secret: 'SEC12345',
@@ -203,7 +203,7 @@ describe('NotificationService', () => {
       const channel = {
         id: 'slack-channel-1',
         name: 'Slack通知',
-        type: NotificationType.SLACK,
+        type: NotificationChannelType.SLACK,
         config: {
           webhook: 'https://hooks.slack.com/services/xxx',
           channel: '#alerts',
@@ -223,7 +223,7 @@ describe('NotificationService', () => {
       const channel = {
         id: 'unsupported-channel-1',
         name: '不支持的通知',
-        type: 'UNSUPPORTED' as NotificationType,
+        type: 'UNSUPPORTED' as NotificationChannelType,
         config: {},
         enabled: true,
       };
@@ -237,7 +237,7 @@ describe('NotificationService', () => {
       const channel = {
         id: 'email-channel-1',
         name: '邮件通知',
-        type: NotificationType.EMAIL,
+        type: NotificationChannelType.EMAIL,
         config: {
           to: ['invalid-email'],
         },
@@ -256,14 +256,14 @@ describe('NotificationService', () => {
         {
           id: 'email-channel-1',
           name: '邮件通知',
-          type: NotificationType.EMAIL,
+          type: NotificationChannelType.EMAIL,
           config: { to: ['admin@example.com'] },
           enabled: true,
         },
         {
           id: 'webhook-channel-1',
           name: 'Webhook通知',
-          type: NotificationType.WEBHOOK,
+          type: NotificationChannelType.WEBHOOK,
           config: { url: 'https://api.example.com/webhook' },
           enabled: true,
         },
@@ -274,14 +274,14 @@ describe('NotificationService', () => {
       mockEmailSender.send.mockResolvedValue({ 
         success: true, 
         channelId: 'email-channel-1',
-        channelType: NotificationType.EMAIL,
+        channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 100,
       });
       mockWebhookSender.send.mockResolvedValue({ 
         success: true, 
         channelId: 'webhook-channel-1',
-        channelType: NotificationType.WEBHOOK,
+        channelType: NotificationChannelType.WEBHOOK,
         sentAt: new Date(),
         duration: 150,
       });
@@ -299,14 +299,14 @@ describe('NotificationService', () => {
         {
           id: 'email-channel-1',
           name: '邮件通知',
-          type: NotificationType.EMAIL,
+          type: NotificationChannelType.EMAIL,
           config: { to: ['admin@example.com'] },
           enabled: true,
         },
         {
           id: 'webhook-channel-1',
           name: 'Webhook通知',
-          type: NotificationType.WEBHOOK,
+          type: NotificationChannelType.WEBHOOK,
           config: { url: 'https://api.example.com/webhook' },
           enabled: true,
         },
@@ -317,7 +317,7 @@ describe('NotificationService', () => {
       mockEmailSender.send.mockResolvedValue({ 
         success: true, 
         channelId: 'email-channel-1',
-        channelType: NotificationType.EMAIL,
+        channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 100,
       });
@@ -336,7 +336,7 @@ describe('NotificationService', () => {
         {
           id: 'email-channel-1',
           name: '邮件通知',
-          type: NotificationType.EMAIL,
+          type: NotificationChannelType.EMAIL,
           config: { to: ['admin@example.com'] },
           enabled: false, // 禁用
         },
@@ -355,7 +355,7 @@ describe('NotificationService', () => {
 
   describe('testChannel', () => {
     it('应该成功测试邮件渠道', async () => {
-      const type = NotificationType.EMAIL;
+      const type = NotificationChannelType.EMAIL;
       const config = {
         to: ['test@example.com'],
         subject: '测试通知',
@@ -370,7 +370,7 @@ describe('NotificationService', () => {
     });
 
     it('应该成功测试Webhook渠道', async () => {
-      const type = NotificationType.WEBHOOK;
+      const type = NotificationChannelType.WEBHOOK;
       const config = {
         url: 'https://api.example.com/test-webhook',
         method: 'POST',
@@ -385,7 +385,7 @@ describe('NotificationService', () => {
     });
 
     it('应该在不支持的通知类型时抛出异常', async () => {
-      const type = 'UNSUPPORTED' as NotificationType;
+      const type = 'UNSUPPORTED' as NotificationChannelType;
       const config = {};
 
       await expect(service.testChannel(type, config)).rejects.toThrow(
@@ -394,7 +394,7 @@ describe('NotificationService', () => {
     });
 
     it('应该在测试失败时返回false', async () => {
-      const type = NotificationType.EMAIL;
+      const type = NotificationChannelType.EMAIL;
       const config = {
         to: ['invalid-email'],
       };

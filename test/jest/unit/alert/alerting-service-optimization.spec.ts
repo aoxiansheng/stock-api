@@ -14,7 +14,7 @@ import {
   AlertingTemplateUtil,
 } from '../../../../src/alert/constants/alerting.constants';
 import { CreateAlertRuleDto } from '../../../../src/alert/dto';
-import { AlertSeverity } from '../../../../src/alert/enums/alert-severity.enum';
+import { AlertSeverity } from '../../../../src/alert/types/alert.types';
 import { AlertStatisticsDto } from '../../../../src/alert/dto/alert-history-internal.dto';
 import { ConfigService } from '@nestjs/config';
 import { AlertStatus } from '../../../../src/alert/types/alert.types';

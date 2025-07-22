@@ -9,6 +9,8 @@
  * - 标准化命名：使用 UPPER_SNAKE_CASE 命名规范
  */
 
+import { DataState } from './operations.constants';
+
 export const SYSTEM_CONSTANTS = Object.freeze({
   // 通用操作状态
   OPERATION_STATUS: {
@@ -40,15 +42,6 @@ export const SYSTEM_CONSTANTS = Object.freeze({
     PRODUCTION: "production",
     TEST: "test",
   } as const,
-
-  // 数据状态定义
-  DATA_STATES: {
-    FRESH: "fresh", // 新鲜数据
-    STALE: "stale", // 过期数据
-    DIRTY: "dirty", // 脏数据
-    CACHED: "cached", // 缓存数据
-    PERSISTED: "persisted", // 持久化数据
-  } as const,
 });
 
 // 导出类型定义
@@ -58,8 +51,8 @@ export type LogLevel =
   (typeof SYSTEM_CONSTANTS.LOG_LEVELS)[keyof typeof SYSTEM_CONSTANTS.LOG_LEVELS];
 export type Environment =
   (typeof SYSTEM_CONSTANTS.ENVIRONMENTS)[keyof typeof SYSTEM_CONSTANTS.ENVIRONMENTS];
-export type DataState =
-  (typeof SYSTEM_CONSTANTS.DATA_STATES)[keyof typeof SYSTEM_CONSTANTS.DATA_STATES];
+// DataState 类型从 operations.constants.ts 导入，不再重复定义
+export { DataState };
 
 /**
  * 获取所有可用的操作状态

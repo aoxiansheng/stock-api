@@ -15,7 +15,7 @@ import {
   BatchNotificationResult,
   NotificationTemplate,
   NotificationChannel,
-  NotificationType,
+  NotificationChannelType,
   Alert,
   AlertRule,
 } from "../types/alert.types";
@@ -35,7 +35,7 @@ import {
 @Injectable()
 export class NotificationService implements OnModuleInit {
   private readonly logger = createLogger(NotificationService.name);
-  private readonly senders = new Map<NotificationType, NotificationSender>();
+  private readonly senders = new Map<NotificationChannelType, NotificationSender>();
 
   constructor(
     private readonly emailSender: EmailSender,
@@ -59,7 +59,7 @@ export class NotificationService implements OnModuleInit {
     channelConfig: NotificationChannel,
   ): Promise<NotificationResult> {
     const operation = NOTIFICATION_OPERATIONS.SEND_NOTIFICATION;
-    const channelType = channelConfig.type as NotificationType;
+    const channelType = channelConfig.type as NotificationChannelType;
 
     this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED, {
       operation,
@@ -146,7 +146,7 @@ export class NotificationService implements OnModuleInit {
         results.push({
           success: false,
           channelId: failedChannel.id || "unknown",
-          channelType: failedChannel.type as NotificationType,
+          channelType: failedChannel.type as NotificationChannelType,
           error: NotificationTemplateUtil.generateErrorMessage(
             "SEND_FAILED_WITH_REASON",
             {
@@ -185,7 +185,7 @@ export class NotificationService implements OnModuleInit {
    * 测试通知渠道
    */
   async testChannel(
-    channelType: NotificationType,
+    channelType: NotificationChannelType,
     config: Record<string, any>,
   ): Promise<boolean> {
     const operation = NOTIFICATION_OPERATIONS.TEST_CHANNEL;

@@ -17,8 +17,16 @@ import { PerformanceMetric } from "../interfaces/performance-metrics.interface";
 export class PerformanceMetricsRepository {
   private readonly logger = createLogger(PerformanceMetricsRepository.name);
 
-  private get redis(): Redis {
-    return this.redisService.getOrThrow();
+  private get redis(): Redis | null {
+    try {
+      return this.redisService.getOrThrow();
+    } catch (error) {
+      this.logger.warn("获取Redis实例失败，跳过指标操作", {
+        error: error.message,
+        component: "PerformanceMetricsRepository",
+      });
+      return null;
+    }
   }
 
   constructor(private readonly redisService: RedisService) {}
@@ -154,6 +162,11 @@ export class PerformanceMetricsRepository {
         keys.push(...scanResult[1]);
       } while (cursor !== "0" && keys.length < 500); // 限制最大扫描数量
 
+      // 确保严格遵守数量限制
+      if (keys.length > 500) {
+        keys.length = 500;
+      }
+
       // 过滤掉响应时间键
       const endpointKeys = keys.filter((k) => !k.endsWith(":responseTimes"));
 
@@ -266,10 +279,20 @@ export class PerformanceMetricsRepository {
       try {
         await this.redis.ping();
       } catch (pingError) {
-        this.logger.warn("Redis ping失败，跳过INFO获取", {
-          error: pingError.message,
-          operation: "getRedisInfoPayload",
-        });
+        if (
+          pingError.message.includes("ECONNRESET") ||
+          pingError.message.includes("Connection is closed")
+        ) {
+          this.logger.warn("Redis连接被重置，跳过INFO获取", {
+            operation: "getRedisInfoPayload",
+            error: pingError.message,
+          });
+        } else {
+          this.logger.warn("Redis ping失败，跳过INFO获取", {
+            error: pingError.message,
+            operation: "getRedisInfoPayload",
+          });
+        }
         return null;
       }
 

@@ -467,7 +467,7 @@ export class MonitoringController {
       }
 
       const heapTotal = systemData.heapTotal || 1; // 避免除零
-      if ((systemData.memoryUsage || 0) / heapTotal > 0.9) {
+      if ((systemData.memoryUsage || 0) / heapTotal >= 0.9) {
         issues.push("内存使用率过高");
       }
 
@@ -513,7 +513,7 @@ export class MonitoringController {
       }
 
       const heapTotal = systemData.heapTotal || 1; // 避免除零
-      if ((systemData.memoryUsage || 0) / heapTotal > 0.9) {
+      if ((systemData.memoryUsage || 0) / heapTotal >= 0.9) {
         recommendations.push("检查内存泄漏，考虑增加内存或优化内存使用");
       }
 

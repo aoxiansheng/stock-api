@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { RuleEngineService } from '../../../../../src/alert/services/rule-engine.service';
 import { IAlertRule, IMetricData } from '../../../../../src/alert/interfaces';
-import { AlertSeverity, NotificationType } from '../../../../../src/alert/types/alert.types';
+import { AlertSeverity, NotificationChannelType } from '../../../../../src/alert/types/alert.types';
 import { CacheService } from '../../../../../src/cache/cache.service';
 
 describe('RuleEngineService', () => {
@@ -227,7 +227,7 @@ describe('RuleEngineService', () => {
   describe('Rule Validation', () => {
     it('should validate a correct rule', () => {
       // Arrange
-      const validRule = { ...mockRule, channels: [{ name: 'email-channel', type: NotificationType.EMAIL, config: {}, enabled: true }] };
+      const validRule = { ...mockRule, channels: [{ name: 'email-channel', type: NotificationChannelType.EMAIL, config: {}, enabled: true }] };
 
       // Act
       const result = service.validateRule(validRule);

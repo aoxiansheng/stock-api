@@ -4,9 +4,9 @@ import { AlertingService } from '../../../../src/alert/services/alerting.service
 import { AlertHistoryService } from '../../../../src/alert/services/alert-history.service';
 import { NotificationService } from '../../../../src/alert/services/notification.service';
 import { CreateAlertRuleDto } from '../../../../src/alert/dto/alert-rule.dto';
-import { AlertSeverity } from '../../../../src/alert/enums/alert-severity.enum';
+import { AlertSeverity } from '../../../../src/alert/types/alert.types';
 import { AlertStatus } from '../../../../src/alert/types/alert.types';
-import { NotificationType } from '../../../../src/alert/enums/notification-type.enum';
+import { NotificationChannelType } from '../../../../src/alert/types/alert.types';
 import { PermissionService } from '../../../../src/auth/services/permission.service';
 import { UnifiedPermissionsGuard } from '../../../../src/auth/guards/unified-permissions.guard';
 
@@ -406,7 +406,7 @@ describe('AlertController', () => {
     describe('testNotificationChannel', () => {
       it('应该成功测试邮件通知渠道', async () => {
         const testDto = {
-          type: NotificationType.EMAIL,
+          type: NotificationChannelType.EMAIL,
           message: '测试通知消息',
           config: {
             to: ['test@example.com'],
@@ -427,7 +427,7 @@ describe('AlertController', () => {
 
       it('应该在测试失败时返回失败结果', async () => {
         const testDto = {
-          type: NotificationType.EMAIL,
+          type: NotificationChannelType.EMAIL,
           message: '测试通知消息',
           config: {
             to: ['invalid@email'],
@@ -443,7 +443,7 @@ describe('AlertController', () => {
 
       it('应该在测试异常时抛出异常', async () => {
         const testDto = {
-          type: NotificationType.EMAIL,
+          type: NotificationChannelType.EMAIL,
           message: '测试通知消息',
           config: {},
         };

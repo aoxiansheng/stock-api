@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
 import {
-  NotificationType,
+  NotificationChannelType,
   Alert,
   AlertRule,
   NotificationResult,
@@ -12,7 +12,7 @@ import {
 
 @Injectable()
 export class LogSender implements NotificationSender {
-  type = NotificationType.LOG;
+  type = NotificationChannelType.LOG;
   private readonly logger = createLogger("AlertLog");
 
   async send(

@@ -54,9 +54,9 @@ export const AlertStatus = {
 export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus];
 
 /**
- * 通知类型枚举 - 统一定义避免循环依赖
+ * 通知渠道类型枚举 - 统一定义避免循环依赖
  */
-export const NotificationType = {
+export const NotificationChannelType = {
   EMAIL: "email",
   WEBHOOK: "webhook",
   SLACK: "slack",
@@ -65,8 +65,8 @@ export const NotificationType = {
   DINGTALK: "dingtalk",
 } as const;
 
-export type NotificationType =
-  (typeof NotificationType)[keyof typeof NotificationType];
+export type NotificationChannelType =
+  (typeof NotificationChannelType)[keyof typeof NotificationChannelType];
 
 /**
  * 通知渠道接口 - 解决循环依赖的核心接口
@@ -74,7 +74,7 @@ export type NotificationType =
 export interface NotificationChannel {
   id?: string;
   name: string;
-  type: NotificationType;
+  type: NotificationChannelType;
   config: Record<string, any>;
   enabled: boolean;
   retryCount?: number;
@@ -160,7 +160,7 @@ export interface AlertHistory {
 export interface NotificationResult {
   success: boolean;
   channelId: string;
-  channelType: NotificationType;
+  channelType: NotificationChannelType;
   message?: string;
   error?: string;
   sentAt: Date;
@@ -183,7 +183,7 @@ export interface BatchNotificationResult {
  * 通知发送器接口
  */
 export interface NotificationSender {
-  type: NotificationType;
+  type: NotificationChannelType;
   send(
     alert: Alert,
     rule: AlertRule,
@@ -213,7 +213,7 @@ export interface NotificationLog {
   id: string;
   alertId: string;
   channelId: string;
-  channelType: NotificationType;
+  channelType: NotificationChannelType;
   success: boolean;
   message?: string;
   error?: string;

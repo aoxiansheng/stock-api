@@ -7,7 +7,7 @@ import { createLogger } from "@common/config/logger.config";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
 import {
-  NotificationType,
+  NotificationChannelType,
   AlertSeverity,
   Alert,
   AlertRule,
@@ -17,7 +17,7 @@ import {
 
 @Injectable()
 export class SlackSender implements NotificationSender {
-  type = NotificationType.SLACK;
+  type = NotificationChannelType.SLACK;
   private readonly logger = createLogger(SlackSender.name);
 
   constructor(private readonly httpService: HttpService) {}

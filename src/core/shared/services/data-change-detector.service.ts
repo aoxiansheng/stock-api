@@ -196,14 +196,6 @@ export class DataChangeDetectorService {
         changedFields.push(field);
         if (change.isSignificant) {
           significantChanges.push(field);
-          // 价格显著变化，立即返回（短路评估）
-          return this.createResult(
-            true,
-            changedFields,
-            significantChanges,
-            "价格显著变化",
-            0.95,
-          );
         }
       }
     }
@@ -239,6 +231,32 @@ export class DataChangeDetectorService {
         }
       }
     }
+    
+    // 检查是否有价格相关的显著变化
+    const hasSignificantPriceChange = significantChanges.some(field =>
+      CRITICAL_FIELDS.PRICE_FIELDS.includes(field as any)
+    );
+
+    if (hasSignificantPriceChange) {
+      return this.createResult(
+        true,
+        changedFields,
+        significantChanges,
+        "价格显著变化",
+        0.95,
+      );
+    }
+
+    // 如果有任何显著变化，则报告 (非价格)
+    if (significantChanges.length > 0) {
+      return this.createResult(
+        true,
+        changedFields,
+        significantChanges,
+        "非交易时间-显著变化",
+        0.9, // 置信度略低于价格直接变化
+      );
+    }
 
     // 4. 如果交易时间且有任何字段变化，认为需要更新
     if (marketStatus === MarketStatus.TRADING && changedFields.length > 0) {
@@ -252,14 +270,11 @@ export class DataChangeDetectorService {
     }
 
     // 5. 非交易时间仅在显著变化时更新
-    const hasSignificant = significantChanges.length > 0;
-    const reason = hasSignificant ? "非交易时间-显著变化" : "变化不显著";
-
     return this.createResult(
-      hasSignificant,
+      false,
       changedFields,
       significantChanges,
-      reason,
+      "变化不显著",
       0.7,
     );
   }
@@ -287,7 +302,7 @@ export class DataChangeDetectorService {
     }
 
     const changeRate = Math.abs((newValue - lastValue) / lastValue);
-    const hasChanged = changeRate > 0.00001; // 防止浮点精度问题
+    const hasChanged = changeRate > 1e-7; // 平衡精度和变化检测的阈值
     const isSignificant = changeRate > threshold;
 
     return { hasChanged, isSignificant };
@@ -318,7 +333,8 @@ export class DataChangeDetectorService {
         }
       }
 
-      return typeof value === "number" ? value : parseFloat(value);
+      const numValue = typeof value === "number" ? value : parseFloat(value);
+      return isNaN(numValue) ? null : numValue;
     } catch {
       return null;
     }
@@ -352,12 +368,12 @@ export class DataChangeDetectorService {
         criticalValues: this.extractCriticalValues(data),
       };
 
+      this.snapshotCache.set(symbol, snapshot);
+
       // 内存缓存大小控制
-      if (this.snapshotCache.size >= this.MAX_CACHE_SIZE) {
+      if (this.snapshotCache.size > this.MAX_CACHE_SIZE) {
         this.cleanupOldSnapshots();
       }
-
-      this.snapshotCache.set(symbol, snapshot);
 
       // TODO: 异步保存到Redis
     } catch (error) {
@@ -387,11 +403,15 @@ export class DataChangeDetectorService {
    * 清理旧快照（LRU策略）
    */
   private cleanupOldSnapshots(): void {
+    if (this.snapshotCache.size <= this.MAX_CACHE_SIZE) {
+      return;
+    }
+
     const entries = Array.from(this.snapshotCache.entries());
     entries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
 
-    // 删除最旧的25%
-    const deleteCount = Math.floor(entries.length * 0.25);
+    // 精确删除超出限制数量的条目
+    const deleteCount = entries.length - this.MAX_CACHE_SIZE;
     for (let i = 0; i < deleteCount; i++) {
       this.snapshotCache.delete(entries[i][0]);
     }

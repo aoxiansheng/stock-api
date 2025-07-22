@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { NotificationService } from '../../../../src/alert/services/notification.service';
 import { EmailSender, WebhookSender, SlackSender, LogSender, DingTalkSender } from '../../../../src/alert/services/notification-senders';
-import { NotificationType, AlertSeverity, AlertStatus } from '../../../../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../src/alert/types/alert.types';
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
@@ -30,8 +30,8 @@ describe('NotificationService Optimization Features', () => {
     severity: AlertSeverity.CRITICAL,
     enabled: true,
     channels: [
-      { id: 'channel_1', name: 'email-channel', type: NotificationType.EMAIL, config: { to: 'test1@example.com' }, enabled: true },
-      { id: 'channel_2', name: 'slack-channel', type: NotificationType.SLACK, config: { webhookUrl: 'http://slack.com' }, enabled: true },
+      { id: 'channel_1', name: 'email-channel', type: NotificationChannelType.EMAIL, config: { to: 'test1@example.com' }, enabled: true },
+      { id: 'channel_2', name: 'slack-channel', type: NotificationChannelType.SLACK, config: { webhookUrl: 'http://slack.com' }, enabled: true },
     ],
     cooldown: 300,
     tags: { project: 'test' },
@@ -41,31 +41,31 @@ describe('NotificationService Optimization Features', () => {
 
   beforeEach(async () => {
     const mockEmailSender = {
-      type: NotificationType.EMAIL,
+      type: NotificationChannelType.EMAIL,
       send: jest.fn(),
       test: jest.fn(),
     };
 
     const mockWebhookSender = {
-      type: NotificationType.WEBHOOK,
+      type: NotificationChannelType.WEBHOOK,
       send: jest.fn(),
       test: jest.fn(),
     };
 
     const mockSlackSender = {
-      type: NotificationType.SLACK,
+      type: NotificationChannelType.SLACK,
       send: jest.fn(),
       test: jest.fn(),
     };
 
     const mockLogSender = {
-      type: NotificationType.LOG,
+      type: NotificationChannelType.LOG,
       send: jest.fn(),
       test: jest.fn(),
     };
 
     const mockDingTalkSender = {
-      type: NotificationType.DINGTALK,
+      type: NotificationChannelType.DINGTALK,
       send: jest.fn(),
       test: jest.fn(),
     };
@@ -157,7 +157,7 @@ describe('NotificationService Optimization Features', () => {
       const mockChannelConfig = {
         id: 'channel_123',
         name: 'test-channel',
-        type: NotificationType.EMAIL,
+        type: NotificationChannelType.EMAIL,
         enabled: true,
         config: { to: 'test@example.com' },
       };
@@ -165,7 +165,7 @@ describe('NotificationService Optimization Features', () => {
       emailSender.send.mockResolvedValue({
         success: true,
         channelId: 'channel_123',
-        channelType: NotificationType.EMAIL,
+        channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 100,
       });
@@ -176,7 +176,7 @@ describe('NotificationService Optimization Features', () => {
         NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.SEND_NOTIFICATION,
-          channelType: NotificationType.EMAIL,
+          channelType: NotificationChannelType.EMAIL,
           alertId: 'alert_123',
           ruleId: 'rule_123',
         })
@@ -188,7 +188,7 @@ describe('NotificationService Optimization Features', () => {
       const mockChannelConfig = {
         id: 'channel_123',
         name: 'test-channel',
-        type: 'UNSUPPORTED_TYPE' as NotificationType,
+        type: 'UNSUPPORTED_TYPE' as NotificationChannelType,
         enabled: true,
         config: {},
       };
@@ -223,7 +223,7 @@ describe('NotificationService Optimization Features', () => {
       const mockChannelConfig = {
         id: 'channel_123',
         name: 'test-channel',
-        type: NotificationType.EMAIL,
+        type: NotificationChannelType.EMAIL,
         enabled: true,
         config: { to: 'test@example.com' },
       };
@@ -231,7 +231,7 @@ describe('NotificationService Optimization Features', () => {
       emailSender.send.mockResolvedValue({
         success: true,
         channelId: 'channel_123',
-        channelType: NotificationType.EMAIL,
+        channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 100,
       });
@@ -242,7 +242,7 @@ describe('NotificationService Optimization Features', () => {
         NOTIFICATION_MESSAGES.NOTIFICATION_SENT,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.SEND_NOTIFICATION,
-          channelType: NotificationType.EMAIL,
+          channelType: NotificationChannelType.EMAIL,
           alertId: 'alert_123',
           success: true,
         })
@@ -268,8 +268,8 @@ describe('NotificationService Optimization Features', () => {
       };
 
       const channels = [
-        { id: 'channel_1', type: NotificationType.EMAIL, config: { to: 'test1@example.com' }, enabled: true, name: 'email' },
-        { id: 'channel_2', type: NotificationType.SLACK, config: { webhookUrl: 'http://slack.com' }, enabled: true, name: 'slack' },
+        { id: 'channel_1', type: NotificationChannelType.EMAIL, config: { to: 'test1@example.com' }, enabled: true, name: 'email' },
+        { id: 'channel_2', type: NotificationChannelType.SLACK, config: { webhookUrl: 'http://slack.com' }, enabled: true, name: 'slack' },
       ];
 
       const batchMockRule = { ...mockRule, channels };
@@ -278,14 +278,14 @@ describe('NotificationService Optimization Features', () => {
       emailSender.send.mockResolvedValue({
         success: true,
         channelId: 'channel_1',
-        channelType: NotificationType.EMAIL,
+        channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 50,
       } as any);
       slackSender.send.mockResolvedValue({
         success: true,
         channelId: 'channel_2',
-        channelType: NotificationType.SLACK,
+        channelType: NotificationChannelType.SLACK,
         sentAt: new Date(),
         duration: 60,
       } as any);
@@ -307,8 +307,8 @@ describe('NotificationService Optimization Features', () => {
     it('should handle partial failures in batch notifications', async () => {
       const mockAlert = { id: 'alert_123', ruleId: 'rule_123', ruleName: 'Test Rule' };
       const channels = [
-        { id: 'channel_1', name: 'email-channel', type: NotificationType.EMAIL, config: { to: 'test1@example.com' }, enabled: true },
-        { id: 'channel_2', name: 'slack-channel', type: NotificationType.SLACK, config: { webhookUrl: 'http://slack.com' }, enabled: true },
+        { id: 'channel_1', name: 'email-channel', type: NotificationChannelType.EMAIL, config: { to: 'test1@example.com' }, enabled: true },
+        { id: 'channel_2', name: 'slack-channel', type: NotificationChannelType.SLACK, config: { webhookUrl: 'http://slack.com' }, enabled: true },
       ];
       const batchMockRule = { ...mockRule, channels };
 
@@ -316,7 +316,7 @@ describe('NotificationService Optimization Features', () => {
       emailSender.send.mockResolvedValue({
         success: true,
         channelId: 'channel_1',
-        channelType: NotificationType.EMAIL,
+        channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 50,
       } as any);
@@ -325,8 +325,8 @@ describe('NotificationService Optimization Features', () => {
       const results = await service.sendBatchNotifications(mockAlert as any, batchMockRule);
 
       expect(results.results.length).toBe(2);
-      expect(results.results.find(r => r.channelType === NotificationType.EMAIL).success).toBe(true);
-      expect(results.results.find(r => r.channelType === NotificationType.SLACK).success).toBe(false);
+      expect(results.results.find(r => r.channelType === NotificationChannelType.EMAIL).success).toBe(true);
+      expect(results.results.find(r => r.channelType === NotificationChannelType.SLACK).success).toBe(false);
     });
   });
 
@@ -336,13 +336,13 @@ describe('NotificationService Optimization Features', () => {
 
       emailSender.test.mockResolvedValue(true);
 
-      await service.testChannel(NotificationType.EMAIL, config);
+      await service.testChannel(NotificationChannelType.EMAIL, config);
 
       expect(loggerSpy).toHaveBeenCalledWith(
         NOTIFICATION_MESSAGES.CHANNEL_TEST_STARTED,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.TEST_CHANNEL,
-          channelType: NotificationType.EMAIL,
+          channelType: NotificationChannelType.EMAIL,
         })
       );
 
@@ -350,7 +350,7 @@ describe('NotificationService Optimization Features', () => {
         NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.TEST_CHANNEL,
-          channelType: NotificationType.EMAIL,
+          channelType: NotificationChannelType.EMAIL,
           success: true,
         })
       );

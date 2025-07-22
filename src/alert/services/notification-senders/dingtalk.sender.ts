@@ -9,7 +9,7 @@ import { createLogger } from "@common/config/logger.config";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
 import {
-  NotificationType,
+  NotificationChannelType,
   Alert,
   AlertRule,
   NotificationResult,
@@ -18,7 +18,7 @@ import {
 
 @Injectable()
 export class DingTalkSender implements NotificationSender {
-  type = NotificationType.DINGTALK;
+  type = NotificationChannelType.DINGTALK;
   private readonly logger = createLogger(DingTalkSender.name);
 
   constructor(private readonly httpService: HttpService) {}

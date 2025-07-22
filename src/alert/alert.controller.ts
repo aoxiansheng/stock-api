@@ -40,7 +40,7 @@ import { IAlertRule, IAlert, IAlertStats, IMetricData } from "./interfaces";
 import { AlertHistoryService } from "./services/alert-history.service";
 import { AlertingService } from "./services/alerting.service";
 import { NotificationService } from "./services/notification.service";
-import { NotificationType } from "./types/alert.types";
+import { NotificationChannelType } from "./types/alert.types";
 
 // 使用标准化认证装饰器 - 告警管理需要管理员权限
 
@@ -395,7 +395,7 @@ export class AlertController {
   async testNotificationChannel(
     @Body()
     testDto: TestNotificationChannelDto & {
-      type: NotificationType;
+      type: NotificationChannelType;
       config: Record<string, any>;
     },
   ): Promise<{ success: boolean }> {

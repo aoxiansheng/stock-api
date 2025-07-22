@@ -7,7 +7,7 @@ import { createLogger } from "@common/config/logger.config";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
 import {
-  NotificationType,
+  NotificationChannelType,
   Alert,
   AlertRule,
   NotificationResult,
@@ -16,7 +16,7 @@ import {
 
 @Injectable()
 export class WebhookSender implements NotificationSender {
-  type = NotificationType.WEBHOOK;
+  type = NotificationChannelType.WEBHOOK;
   private readonly logger = createLogger(WebhookSender.name);
 
   constructor(private readonly httpService: HttpService) {}

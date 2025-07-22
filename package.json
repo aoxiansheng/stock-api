@@ -199,6 +199,7 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "@golevelup/ts-jest": "^0.7.0",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",

@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
 import { INotificationLog } from "../interfaces";
-import { NotificationType } from "../types/alert.types";
+import { NotificationChannelType } from "../types/alert.types";
 
 export type NotificationLogDocument = NotificationLog & Document;
 
@@ -23,9 +23,9 @@ export class NotificationLog implements INotificationLog {
   @Prop({
     required: true,
     type: String,
-    enum: Object.values(NotificationType),
+    enum: Object.values(NotificationChannelType),
   })
-  channelType: NotificationType;
+  channelType: NotificationChannelType;
 
   @Prop({ required: true })
   success: boolean;

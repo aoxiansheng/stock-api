@@ -84,7 +84,7 @@ export class StorageRepository {
     const metadata = result[1][1] as string | null;
     const ttl = result[2][1] as number;
 
-    return { data, metadata, ttl: ttl || 0 };
+    return { data, metadata, ttl: Math.max(0, ttl || 0) };
   }
 
   async deleteFromCache(key: string): Promise<boolean> {

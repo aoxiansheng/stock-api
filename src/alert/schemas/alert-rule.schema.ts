@@ -2,13 +2,13 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
 import { IAlertRule } from "../interfaces/alert.interface";
-import { AlertSeverity, NotificationType } from "../types/alert.types";
+import { AlertSeverity, NotificationChannelType } from "../types/alert.types";
 
 // 临时定义避免循环依赖
 interface NotificationChannel {
   id?: string;
   name: string;
-  type: NotificationType;
+  type: NotificationChannelType;
   config: Record<string, any>;
   enabled: boolean;
   retryCount?: number;
