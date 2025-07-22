@@ -93,6 +93,10 @@ module.exports = {
   clearMocks: true,
   restoreMocks: true,
   
+  // 强制退出防止悬挂进程
+  forceExit: true,
+  detectOpenHandles: true,
+  
   // 单元测试环境变量
   setupFiles: ['<rootDir>/test/config/unit.env.ts'],
 };

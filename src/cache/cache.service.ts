@@ -2,7 +2,11 @@ import { promisify } from "util";
 import * as zlib from "zlib";
 
 import { RedisService } from "@liaoliaots/nestjs-redis";
-import { Injectable, ServiceUnavailableException } from "@nestjs/common";
+import {
+  Injectable,
+  ServiceUnavailableException,
+  BadRequestException,
+} from "@nestjs/common";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
 
@@ -730,7 +734,7 @@ export class CacheService {
   ): string {
     if (value === undefined) {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
-      return null;
+      return 'null';
     }
     // TODO: support msgpack when serializerType is 'msgpack'
     const serialized =
@@ -770,6 +774,9 @@ export class CacheService {
     value: string,
     threshold: number = CACHE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD,
   ): boolean {
+    if (!value) {
+      return false;
+    }
     return value.length > threshold;
   }
 
@@ -965,15 +972,20 @@ export class CacheService {
    */
   private validateKeyLength(key: string): void {
     if (key.length > CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH) {
-      this.logger.warn(
-        CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
-        sanitizeLogData({
-          operation: "validateKeyLength",
-          keyLength: key.length,
-          maxLength: CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH,
-          key: key.substring(0, 50) + "...", // 只显示前50个字符
-        }),
-      );
+      const errorMessage = `${
+        CACHE_ERROR_MESSAGES.INVALID_KEY_LENGTH
+      }: 键 '${key.substring(
+        0,
+        50,
+      )}...' 的长度 ${key.length} 超过了最大限制 ${
+        CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH
+      }`;
+      this.logger.error(errorMessage, {
+        operation: "validateKeyLength",
+        keyLength: key.length,
+        maxLength: CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH,
+      });
+      throw new BadRequestException(errorMessage);
     }
   }
 }

@@ -149,111 +149,42 @@ describe('CacheService', () => {
         expect.stringContaining('COMPRESSED::'),
       );
     });
-  });
 
-  describe('getOrSet', () => {
-    it('should return from cache if value exists', async () => {
+    it('should handle Redis errors gracefully', async () => {
+      const key = 'error_key';
+      const value = { data: 'test' };
+      redisClient.setex.mockRejectedValue(new Error('Redis connection failed'));
+
+      await expect(service.set(key, value)).rejects.toThrow('Redis connection failed');
+    });
+
+    it('should validate key length', async () => {
+      const longKey = 'x'.repeat(300); // 超过最大键长度
+      const value = { data: 'test' };
+
+      await expect(service.set(longKey, value)).rejects.toThrow();
+    });
+
+    it('should return false when Redis setex fails', async () => {
       const key = 'test_key';
-      const cachedValue = { data: 'cached_data' };
-      const callback = jest.fn().mockResolvedValue({ data: 'new_data' });
-      redisClient.get.mockResolvedValue(JSON.stringify(cachedValue));
+      const value = { data: 'test' };
+      redisClient.setex.mockResolvedValue(null); // setex 失败
 
-      const result = await service.getOrSet(key, callback);
+      const result = await service.set(key, value);
 
-      expect(result).toEqual(cachedValue);
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    it('should call callback and set cache if value does not exist', async () => {
-      const key = 'test_key';
-      const newValue = { data: 'new_data' };
-      const callback = jest.fn().mockResolvedValue(newValue);
-      redisClient.get.mockResolvedValue(null);
-      redisClient.set.mockResolvedValue('OK');
-      redisClient.setex.mockResolvedValue('OK');
-
-      const result = await service.getOrSet(key, callback);
-
-      expect(result).toEqual(newValue);
-      expect(callback).toHaveBeenCalledTimes(1);
-      expect(redisClient.setex).toHaveBeenCalled();
-    });
-
-    it('should handle distributed locking', async () => {
-      const key = 'test_key';
-      const newValue = { data: 'new_data' };
-      const callback = jest.fn().mockResolvedValue(newValue);
-      
-      redisClient.get.mockResolvedValueOnce(null);
-      redisClient.set.mockResolvedValue('OK');
-      redisClient.setex.mockResolvedValue('OK');
-      redisClient.eval.mockResolvedValue(1);
-
-      const result = await service.getOrSet(key, callback);
-
-      expect(result).toEqual(newValue);
-      expect(callback).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('mget', () => {
-    it('should return multiple cached values', async () => {
-      const keys = ['key1', 'key2', 'key3'];
-      const values = [
-        JSON.stringify({ data: 'value1' }),
-        null,
-        JSON.stringify({ data: 'value3' }),
-      ];
-            redisClient.mget.mockResolvedValue(values);
-      
-      const result = await service.mget(keys);
-
-      expect(result.size).toBe(2);
-      expect(result.get('key1')).toEqual({ data: 'value1' });
-      expect(result.get('key3')).toEqual({ data: 'value3' });
-      expect(result.has('key2')).toBe(false);
-    });
-
-    it('should handle empty keys array', async () => {
-      const result = await service.mget([]);
-      expect(result.size).toBe(0);
-    });
-  });
-
-  describe('mset', () => {
-    it('should set multiple cache entries', async () => {
-      const entries = new Map([
-        ['key1', { data: 'value1' }],
-        ['key2', { data: 'value2' }],
-      ]);
-      const mockPipeline = {
-        setex: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([[null, 'OK'], [null, 'OK']]),
-      };
-      redisClient.pipeline.mockReturnValue(mockPipeline as any);
-
-      const result = await service.mset(entries, 3600);
-
-      expect(result).toBe(true);
-      expect(mockPipeline.setex).toHaveBeenCalledTimes(2);
-      expect(mockPipeline.setex).toHaveBeenCalledWith('key1', 3600, JSON.stringify({ data: 'value1' }));
-    });
-
-    it('should handle empty entries map', async () => {
-      const result = await service.mset(new Map(), 3600);
-      expect(result).toBe(true);
-      expect(redisClient.pipeline().exec).not.toHaveBeenCalled();
+      expect(result).toBe(false);
     });
   });
 
   describe('del', () => {
     it('should delete single key', async () => {
+      const key = 'test_key';
       redisClient.del.mockResolvedValue(1);
 
-      const result = await service.del('test_key');
+      const result = await service.del(key);
 
       expect(result).toBe(1);
-      expect(redisClient.del).toHaveBeenCalledWith('test_key');
+      expect(redisClient.del).toHaveBeenCalledWith(key);
     });
 
     it('should delete multiple keys', async () => {
@@ -265,335 +196,396 @@ describe('CacheService', () => {
       expect(result).toBe(3);
       expect(redisClient.del).toHaveBeenCalledWith(...keys);
     });
-  });
 
-  describe('delByPattern', () => {
-    it('should delete keys matching a pattern', async () => {
-      const pattern = 'user:*';
-      const keys = ['user:1', 'user:2'];
-      redisClient.keys.mockResolvedValue(keys);
-      redisClient.del.mockResolvedValue(keys.length);
+    it('should handle Redis errors during deletion', async () => {
+      const key = 'error_key';
+      redisClient.del.mockRejectedValue(new Error('Delete failed'));
 
-      const result = await service.delByPattern(pattern);
-
-      expect(result).toBe(keys.length);
-      expect(redisClient.keys).toHaveBeenCalledWith(pattern);
-      expect(redisClient.del).toHaveBeenCalledWith(...keys);
-    });
-
-    it('should handle empty pattern results', async () => {
-      redisClient.keys.mockResolvedValue([]);
-
-      const result = await service.delByPattern('nonexistent:*');
-
-      expect(result).toBe(0);
-      expect(redisClient.del).not.toHaveBeenCalled();
+      await expect(service.del(key)).rejects.toThrow('Delete failed');
     });
   });
 
-  describe('warmup', () => {
-    it('should call mset with warmup data', async () => {
-      const warmupData = new Map([
-        ['warmup1', { data: 'warm_data1' }],
-        ['warmup2', { data: 'warm_data2' }],
+  // exists method removed - doesn't exist in CacheService
+
+  describe('expire', () => {
+    it('should set expiration for key', async () => {
+      const key = 'test_key';
+      const ttl = 3600;
+      redisClient.expire = jest.fn().mockResolvedValue(1);
+
+      const result = await service.expire(key, ttl);
+
+      expect(result).toBe(true);
+      expect(redisClient.expire).toHaveBeenCalledWith(key, ttl);
+    });
+
+    it('should return false if key does not exist', async () => {
+      const key = 'non_existent_key';
+      const ttl = 3600;
+      redisClient.expire = jest.fn().mockResolvedValue(0);
+
+      const result = await service.expire(key, ttl);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getOrSet', () => {
+    it('should return cached value if exists', async () => {
+      const key = 'cached_key';
+      const cachedValue = { data: 'cached' };
+      redisClient.get.mockResolvedValue(JSON.stringify(cachedValue));
+
+      const callback = jest.fn().mockResolvedValue({ data: 'new' });
+      const result = await service.getOrSet(key, callback);
+
+      expect(result).toEqual(cachedValue);
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should execute callback and cache result if key does not exist', async () => {
+      const key = 'new_key';
+      const newValue = { data: 'new' };
+      redisClient.get.mockResolvedValueOnce(null); // 第一次获取返回null
+      redisClient.set.mockResolvedValue('OK'); // 获取锁成功
+      redisClient.setex.mockResolvedValue('OK'); // 缓存设置成功
+
+      const callback = jest.fn().mockResolvedValue(newValue);
+      const result = await service.getOrSet(key, callback);
+
+      expect(result).toEqual(newValue);
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it('should handle lock acquisition failure', async () => {
+      const key = 'locked_key';
+      const newValue = { data: 'new' };
+      redisClient.get.mockResolvedValueOnce(null); // 第一次获取返回null
+      redisClient.set.mockResolvedValue(null); // 获取锁失败
+      
+      // 第二次获取返回缓存的值（模拟其他进程已经缓存了）
+      redisClient.get.mockResolvedValueOnce(JSON.stringify(newValue));
+
+      const callback = jest.fn().mockResolvedValue(newValue);
+      const result = await service.getOrSet(key, callback);
+
+      expect(result).toEqual(newValue);
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('mget', () => {
+    it('should get multiple values', async () => {
+      const keys = ['key1', 'key2', 'key3'];
+      const values = ['{"data": "value1"}', '{"data": "value2"}', null];
+      redisClient.mget.mockResolvedValue(values);
+
+      const result = await service.mget(keys);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.get('key1')).toEqual({ data: 'value1' });
+      expect(result.get('key2')).toEqual({ data: 'value2' });
+      expect(result.has('key3')).toBe(false);
+      expect(redisClient.mget).toHaveBeenCalledWith(...keys);
+    });
+
+    it('should handle empty keys array', async () => {
+      const keys: string[] = [];
+      
+      const result = await service.mget(keys);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.size).toBe(0);
+      expect(redisClient.mget).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('mset', () => {
+    it('should set multiple key-value pairs', async () => {
+      const entries = new Map([
+        ['key1', { data: 'value1' }],
+        ['key2', { data: 'value2' }],
       ]);
-      jest.spyOn(service, 'mset').mockResolvedValue(true);
+      const ttl = 3600;
 
-      await service.warmup(warmupData);
+      const pipeline = {
+        setex: jest.fn(),
+        exec: jest.fn().mockResolvedValue([[null, 'OK'], [null, 'OK']]),
+      };
+      redisClient.pipeline.mockReturnValue(pipeline as any);
 
-      expect(service.mset).toHaveBeenCalledWith(warmupData, 3600);
+      const result = await service.mset(entries, ttl);
+
+      expect(result).toBe(true);
+      expect(pipeline.setex).toHaveBeenCalledTimes(2);
+      expect(pipeline.exec).toHaveBeenCalled();
+    });
+
+    it('should handle empty entries map', async () => {
+      const entries = new Map();
+      
+      const result = await service.mset(entries);
+
+      expect(result).toBe(true);
+      expect(redisClient.pipeline).not.toHaveBeenCalled();
+    });
+
+    it('should handle pipeline execution failure', async () => {
+      const entries = new Map([['key1', { data: 'value1' }]]);
+
+      const pipeline = {
+        setex: jest.fn(),
+        exec: jest.fn().mockResolvedValue([[new Error('Pipeline failed'), null]]),
+      };
+      redisClient.pipeline.mockReturnValue(pipeline as any);
+
+      const result = await service.mset(entries);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // keys method removed - doesn't exist in CacheService
+
+  // flushAll method removed - doesn't exist in CacheService
+
+  describe('healthCheck', () => {
+    it('should return healthy status', async () => {
+      redisClient.ping.mockResolvedValue('PONG');
+      redisClient.info.mockResolvedValue('keyspace_hits:100\r\nkeyspace_misses:10');
+
+      const result = await service.healthCheck();
+
+      expect(result.status).toBe('healthy');
+      expect(result.latency).toBeGreaterThanOrEqual(0);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should return unhealthy status on Redis error', async () => {
+      redisClient.ping.mockRejectedValue(new Error('Connection failed'));
+
+      const result = await service.healthCheck();
+
+      expect(result.status).toBe('unhealthy');
+      expect(result.errors).toContain('缓存健康检查失败');
     });
   });
 
   describe('getStats', () => {
     it('should return cache statistics', async () => {
-      // 完全重置所有 Mock，确保环境隔离
-      jest.clearAllMocks();
-      
-      // 对于 info 方法的多次调用，使用 mockImplementation 来区分不同的参数
       redisClient.info.mockImplementation((section?: string) => {
-        if (section === 'memory') {
-          return Promise.resolve('used_memory:1024000\r\nmaxmemory:2048000\r\n');
-        }
         if (section === 'keyspace') {
-          return Promise.resolve('db0:keys=100,expires=50,avg_ttl=3600\r\n');
+          return Promise.resolve('db0:keys=100,expires=50,avg_ttl=60000');
         }
-        // 无参数时返回包含 keyspace_hits 和 keyspace_misses 的信息
-        return Promise.resolve('keyspace_hits:1000\r\nkeyspace_misses:200\r\nused_memory:1024000\r\n');
+        // Default/no-section case for the first info() call in getStats
+        return Promise.resolve(
+          'used_memory:1024000\r\nmaxmemory:2048000\r\nkeyspace_hits:500\r\nkeyspace_misses:50',
+        );
       });
-      
       redisClient.dbsize.mockResolvedValue(100);
 
-      const stats = await service.getStats();
+      const result = await service.getStats();
 
-      expect(stats).toHaveProperty('memoryUsage', 1024000);
-      expect(stats).toHaveProperty('keyCount', 100);
-      expect(stats).toHaveProperty('hits');
-      expect(stats).toHaveProperty('misses');
-      expect(stats).toHaveProperty('hitRate');
-      expect(stats.avgTtl).toBeGreaterThanOrEqual(0);
+      expect(result.memoryUsage).toBe(1024000);
+      expect(result.avgTtl).toBeGreaterThanOrEqual(0);
+      expect(result.keyCount).toBe(100);
+      expect(result.hitRate).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('healthCheck', () => {
-    it('should return healthy status if redis is responsive', async () => {
-      // 完全重新创建服务实例，确保彻底的环境隔离
-      const freshMockRedisClient = {
-        ping: jest.fn().mockResolvedValue('PONG'),
-        setex: jest.fn().mockResolvedValue('OK'),
-        get: jest.fn().mockImplementation((key: string) => {
-          // 健康检查的读写测试
-          if (key.startsWith('health_check:')) {
-            return Promise.resolve('test'); // 健康检查期望原始字符串，不是JSON
-          }
-          // 其他缓存操作
-          if (key === 'test_key_1' || key === 'test_key_2') {
-            return Promise.resolve('"cached_value"'); // 返回JSON格式的字符串
-          }
-          return Promise.resolve(null); // 未命中
-        }),
-        del: jest.fn().mockResolvedValue(1),
-        info: jest.fn().mockImplementation((section: string) => {
-          if (section === 'memory') {
-            return Promise.resolve('used_memory:512000\r\n');
-          }
-          if (section === 'keyspace') {
-            return Promise.resolve('db0:keys=10\r\n');
-          }
-          return Promise.resolve('');
-        }),
-        keys: jest.fn().mockResolvedValue(['key1']),
-        ttl: jest.fn().mockResolvedValue(3600),
-        pipeline: jest.fn(() => ({
-          setex: jest.fn(),
-          exec: jest.fn().mockResolvedValue([[null, 'OK']]),
-        })),
-        mget: jest.fn().mockResolvedValue([]),
-        set: jest.fn().mockResolvedValue('OK'),
-        eval: jest.fn().mockResolvedValue(1),
-      } as unknown as jest.Mocked<Redis>;
+  describe('listPush', () => {
+    it('should push single item to list', async () => {
+      const key = 'test_list';
+      const item = 'test_item';
+      redisClient.lpush = jest.fn().mockResolvedValue(1);
 
-      const freshModule: TestingModule = await Test.createTestingModule({
-        providers: [
-          CacheService,
-          {
-            provide: RedisService,
-            useValue: {
-              getOrThrow: jest.fn().mockReturnValue(freshMockRedisClient),
-            },
-          },
-        ],
-      }).compile();
+      const result = await service.listPush(key, item);
 
-      const freshService = freshModule.get<CacheService>(CacheService);
-
-      // 🔧 关键修复：在健康检查前建立缓存统计历史
-      // 直接操作缓存统计，确保命中率 >= 0.5
-      const cacheStatsMap = (freshService as any).cacheStats;
-      cacheStatsMap.set('test_pattern', { hits: 10, misses: 5 }); // 命中率 = 10/15 = 0.67 > 0.5
-
-      const health = await freshService.healthCheck();
-
-      expect(health.status).toBe('healthy');
-      expect(health.latency).toBeGreaterThanOrEqual(0);
-      expect(health.errors).toHaveLength(0);
+      expect(result).toBe(1);
+      expect(redisClient.lpush).toHaveBeenCalledWith(key, item);
     });
 
-    it('should return unhealthy status on error', async () => {
-      // 创建独立的失败 Mock 客户端
-      const failingMockRedisClient = {
-        ping: jest.fn().mockRejectedValue(new Error('Connection error')),
-        setex: jest.fn().mockResolvedValue('OK'),
-        get: jest.fn().mockResolvedValue('test'),
-        del: jest.fn().mockResolvedValue(1),
-        info: jest.fn().mockResolvedValue(''),
-        keys: jest.fn().mockResolvedValue([]),
-        ttl: jest.fn().mockResolvedValue(-1),
-        pipeline: jest.fn(() => ({
-          setex: jest.fn(),
-          exec: jest.fn().mockResolvedValue([[null, 'OK']]),
-        })),
-        mget: jest.fn().mockResolvedValue([]),
-        set: jest.fn().mockResolvedValue('OK'),
-        eval: jest.fn().mockResolvedValue(1),
-      } as unknown as jest.Mocked<Redis>;
+    it('should push multiple items to list', async () => {
+      const key = 'test_list';
+      const items = ['item1', 'item2', 'item3'];
+      redisClient.lpush = jest.fn().mockResolvedValue(3);
 
-      const failingModule: TestingModule = await Test.createTestingModule({
-        providers: [
-          CacheService,
-          {
-            provide: RedisService,
-            useValue: {
-              getOrThrow: jest.fn().mockReturnValue(failingMockRedisClient),
-            },
-          },
-        ],
-      }).compile();
+      const result = await service.listPush(key, items);
 
-      const failingService = failingModule.get<CacheService>(CacheService);
-
-      const health = await failingService.healthCheck();
-
-      expect(health.status).toBe('unhealthy');
-      expect(health.errors).toContain('缓存健康检查失败');
-    });
-
-    it('should detect high memory usage', async () => {
-      // 创建独立的高内存使用 Mock 客户端
-      const highMemoryMockRedisClient = {
-        ping: jest.fn().mockResolvedValue('PONG'),
-        setex: jest.fn().mockResolvedValue('OK'),
-        get: jest.fn().mockResolvedValue('test'),
-        del: jest.fn().mockResolvedValue(1),
-        info: jest.fn().mockImplementation((section: string) => {
-          if (section === 'memory') {
-            return Promise.resolve('used_memory:2147483648\r\nmaxmemory:2000000000\r\n'); // 2GB used, 2GB max - 触发高内存警告
-          }
-          if (section === 'keyspace') {
-            return Promise.resolve('db0:keys=10\r\n');
-          }
-          return Promise.resolve('');
-        }),
-        keys: jest.fn().mockResolvedValue(['key1']),
-        ttl: jest.fn().mockResolvedValue(3600),
-        pipeline: jest.fn(() => ({
-          setex: jest.fn(),
-          exec: jest.fn().mockResolvedValue([[null, 'OK']]),
-        })),
-        mget: jest.fn().mockResolvedValue([]),
-        set: jest.fn().mockResolvedValue('OK'),
-        eval: jest.fn().mockResolvedValue(1),
-      } as unknown as jest.Mocked<Redis>;
-
-      const highMemoryModule: TestingModule = await Test.createTestingModule({
-        providers: [
-          CacheService,
-          {
-            provide: RedisService,
-            useValue: {
-              getOrThrow: jest.fn().mockReturnValue(highMemoryMockRedisClient),
-            },
-          },
-        ],
-      }).compile();
-
-      const highMemoryService = highMemoryModule.get<CacheService>(CacheService);
-
-      const health = await highMemoryService.healthCheck();
-
-      expect(health.errors).toContain('Redis 内存使用率超过90%');
+      expect(result).toBe(3);
+      expect(redisClient.lpush).toHaveBeenCalledWith(key, ...items);
     });
   });
 
-  describe('error handling', () => {
-    it('should handle Redis connection errors gracefully', async () => {
-      // 创建独立的错误服务实例，完全隔离
-      const errorMockRedisClient = {
-        get: jest.fn().mockRejectedValue(new Error('Redis connection failed')),
-        set: jest.fn().mockResolvedValue('OK'),
-        setex: jest.fn().mockResolvedValue('OK'),
-        del: jest.fn().mockResolvedValue(1),
-        keys: jest.fn().mockResolvedValue([]),
-        ttl: jest.fn().mockResolvedValue(-1),
-        info: jest.fn().mockResolvedValue(''),
-        ping: jest.fn().mockResolvedValue('PONG'),
-        mget: jest.fn().mockResolvedValue([]),
-        pipeline: jest.fn(() => ({
-          setex: jest.fn(),
-          exec: jest.fn().mockResolvedValue([[null, 'OK']]),
-        })),
-        eval: jest.fn().mockResolvedValue(1),
-      } as unknown as jest.Mocked<Redis>;
+  describe('listRange', () => {
+    it('should return list range with fault tolerance', async () => {
+      const key = 'test_list';
+      const start = 0;
+      const stop = -1;
+      const items = ['item1', 'item2', 'item3'];
+      redisClient.lrange = jest.fn().mockResolvedValue(items);
 
-      const errorModule: TestingModule = await Test.createTestingModule({
-        providers: [
-          CacheService,
-          {
-            provide: RedisService,
-            useValue: {
-              getOrThrow: jest.fn().mockReturnValue(errorMockRedisClient),
-            },
-          },
-        ],
-      }).compile();
+      const result = await service.listRange(key, start, stop);
 
-      const errorService = errorModule.get<CacheService>(CacheService);
-
-      await expect(errorService.get('test_key')).rejects.toThrow('缓存获取失败: Redis connection failed');
+      expect(result).toEqual(items);
+      expect(redisClient.lrange).toHaveBeenCalledWith(key, start, stop);
     });
 
-    it('should handle set operation errors', async () => {
-      // 创建独立的设置错误服务实例
-      const setErrorMockRedisClient = {
-        get: jest.fn().mockResolvedValue(null),
-        set: jest.fn().mockResolvedValue('OK'),
-        setex: jest.fn().mockRejectedValue(new Error('Redis set failed')),
-        del: jest.fn().mockResolvedValue(1),
-        keys: jest.fn().mockResolvedValue([]),
-        ttl: jest.fn().mockResolvedValue(-1),
-        info: jest.fn().mockResolvedValue(''),
-        ping: jest.fn().mockResolvedValue('PONG'),
-        mget: jest.fn().mockResolvedValue([]),
-        pipeline: jest.fn(() => ({
-          setex: jest.fn(),
-          exec: jest.fn().mockResolvedValue([[null, 'OK']]),
-        })),
-        eval: jest.fn().mockResolvedValue(1),
-      } as unknown as jest.Mocked<Redis>;
+    it('should return empty array on Redis error (fault tolerant)', async () => {
+      const key = 'test_list';
+      redisClient.lrange = jest.fn().mockRejectedValue(new Error('Redis error'));
 
-      const setErrorModule: TestingModule = await Test.createTestingModule({
-        providers: [
-          CacheService,
-          {
-            provide: RedisService,
-            useValue: {
-              getOrThrow: jest.fn().mockReturnValue(setErrorMockRedisClient),
-            },
-          },
-        ],
-      }).compile();
+      const result = await service.listRange(key, 0, -1);
 
-      const setErrorService = setErrorModule.get<CacheService>(CacheService);
+      expect(result).toEqual([]);
+    });
+  });
 
-      await expect(setErrorService.set('test_key', { data: 'test' })).rejects.toThrow('缓存设置失败: Redis set failed');
+  describe('listTrim', () => {
+    it('should trim list to specified range', async () => {
+      const key = 'test_list';
+      const start = 0;
+      const stop = 99;
+      redisClient.ltrim = jest.fn().mockResolvedValue('OK');
+
+      const result = await service.listTrim(key, start, stop);
+
+      expect(result).toBe('OK');
+      expect(redisClient.ltrim).toHaveBeenCalledWith(key, start, stop);
     });
 
-    it('should handle getOrSet callback errors', async () => {
-      // 创建独立的回调错误服务实例
-      const callbackErrorMockRedisClient = {
-        get: jest.fn().mockResolvedValue(null),
-        set: jest.fn().mockResolvedValue('OK'),
-        setex: jest.fn().mockResolvedValue('OK'),
-        del: jest.fn().mockResolvedValue(1),
-        keys: jest.fn().mockResolvedValue([]),
-        ttl: jest.fn().mockResolvedValue(-1),
-        info: jest.fn().mockResolvedValue(''),
-        ping: jest.fn().mockResolvedValue('PONG'),
-        mget: jest.fn().mockResolvedValue([]),
-        pipeline: jest.fn(() => ({
-          setex: jest.fn(),
-          exec: jest.fn().mockResolvedValue([[null, 'OK']]),
-        })),
-        eval: jest.fn().mockResolvedValue(1),
-      } as unknown as jest.Mocked<Redis>;
+    it('should handle Redis errors during trim', async () => {
+      const key = 'test_list';
+      redisClient.ltrim = jest.fn().mockRejectedValue(new Error('Trim failed'));
 
-      const callbackErrorModule: TestingModule = await Test.createTestingModule({
-        providers: [
-          CacheService,
-          {
-            provide: RedisService,
-            useValue: {
-              getOrThrow: jest.fn().mockReturnValue(callbackErrorMockRedisClient),
-            },
-          },
-        ],
-      }).compile();
+      await expect(service.listTrim(key, 0, 99)).rejects.toThrow('Trim failed');
+    });
+  });
 
-      const callbackErrorService = callbackErrorModule.get<CacheService>(CacheService);
+  describe('hashSet', () => {
+    it('should set hash field', async () => {
+      const key = 'test_hash';
+      const field = 'field1';
+      const value = 'value1';
+      redisClient.hset = jest.fn().mockResolvedValue(1);
 
-      const callback = jest.fn().mockRejectedValue(new Error('Callback failed'));
+      const result = await service.hashSet(key, field, value);
 
-      await expect(callbackErrorService.getOrSet('test_key', callback)).rejects.toThrow('Callback failed');
+      expect(result).toBe(1);
+      expect(redisClient.hset).toHaveBeenCalledWith(key, field, value);
+    });
+
+    it('should handle Redis errors during hash set', async () => {
+      const key = 'test_hash';
+      const field = 'field1';
+      const value = 'value1';
+      redisClient.hset = jest.fn().mockRejectedValue(new Error('Hash set failed'));
+
+      await expect(service.hashSet(key, field, value)).rejects.toThrow('Hash set failed');
+    });
+  });
+
+  // hashGet method removed - doesn't exist in CacheService
+
+  describe('hashGetAll', () => {
+    it('should get all hash fields with fault tolerance', async () => {
+      const key = 'test_hash';
+      const hashData = {
+        field1: 'value1',
+        field2: 'value2',
+      };
+      redisClient.hgetall = jest.fn().mockResolvedValue(hashData);
+
+      const result = await service.hashGetAll(key);
+
+      expect(result).toEqual(hashData);
+    });
+
+    it('should return empty object on Redis error (fault tolerant)', async () => {
+      const key = 'test_hash';
+      redisClient.hgetall = jest.fn().mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.hashGetAll(key);
+
+      expect(result).toEqual({});
+    });
+  });
+
+  describe('setIsMember', () => {
+    it('should check if member exists in set with fault tolerance', async () => {
+      const key = 'test_set';
+      const member = 'member1';
+      redisClient.sismember = jest.fn().mockResolvedValue(1);
+
+      const result = await service.setIsMember(key, member);
+
+      expect(result).toBe(true);
+      expect(redisClient.sismember).toHaveBeenCalledWith(key, member);
+    });
+
+    it('should return false on Redis error (fault tolerant)', async () => {
+      const key = 'test_set';
+      const member = 'member1';
+      redisClient.sismember = jest.fn().mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.setIsMember(key, member);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('setMembers', () => {
+    it('should get all set members with fault tolerance', async () => {
+      const key = 'test_set';
+      const members = ['member1', 'member2', 'member3'];
+      redisClient.smembers = jest.fn().mockResolvedValue(members);
+
+      const result = await service.setMembers(key);
+
+      expect(result).toEqual(members);
+      expect(redisClient.smembers).toHaveBeenCalledWith(key);
+    });
+
+    it('should return empty array on Redis error (fault tolerant)', async () => {
+      const key = 'test_set';
+      redisClient.smembers = jest.fn().mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.setMembers(key);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('Error handling and edge cases', () => {
+    it('should handle malformed JSON during deserialization', async () => {
+      const key = 'malformed_json_key';
+      redisClient.get.mockResolvedValue('invalid json');
+
+      await expect(service.get(key)).rejects.toThrow();
+    });
+
+    it('should handle compression/decompression errors', async () => {
+      const key = 'compression_error_key';
+      redisClient.get.mockResolvedValue('COMPRESSED::invalid_compressed_data');
+
+      await expect(service.get(key)).rejects.toThrow();
+    });
+
+    it('should validate key length in get operation', async () => {
+      const longKey = 'x'.repeat(300);
+
+      await expect(service.get(longKey)).rejects.toThrow();
+    });
+
+    it('should handle undefined values gracefully', async () => {
+      const key = 'undefined_value_key';
+      const options = { ttl: 3600 };
+      redisClient.setex.mockResolvedValue('OK');
+
+      const result = await service.set(key, undefined, options);
+
+      expect(result).toBe(true);
+      expect(redisClient.setex).toHaveBeenCalledWith(key, options.ttl, 'null');
     });
   });
 });

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Model } from 'mongoose';
+import { NotFoundException } from '@nestjs/common';
 
 import { AlertingService } from '../../../../../src/alert/services/alerting.service';
 import { RuleEngineService } from '../../../../../src/alert/services/rule-engine.service';
@@ -324,6 +325,234 @@ describe('AlertingService', () => {
       // Assert
       expect(alertRuleRepository.findAllEnabled).toHaveBeenCalled();
       expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith([mockRule], metricData);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle rule creation validation errors', async () => {
+      const createRuleDto = {
+        name: 'Invalid Rule',
+        metric: 'test.metric',
+        operator: 'gt' as const,
+        threshold: 100,
+        duration: 60,
+        severity: AlertSeverity.WARNING,
+        enabled: true,
+        channels: [],
+        cooldown: 300,
+      };
+
+      ruleEngineService.validateRule.mockReturnValue({ 
+        valid: false, 
+        errors: ['Threshold must be positive'] 
+      });
+
+      await expect(service.createRule(createRuleDto)).rejects.toThrow();
+      expect(ruleEngineService.validateRule).toHaveBeenCalled();
+      expect(alertRuleRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors during rule creation', async () => {
+      const createRuleDto = {
+        name: 'Test Rule',
+        metric: 'test.metric',
+        operator: 'gt' as const,
+        threshold: 100,
+        duration: 60,
+        severity: AlertSeverity.WARNING,
+        enabled: true,
+        channels: [],
+        cooldown: 300,
+      };
+
+      ruleEngineService.validateRule.mockReturnValue({ valid: true, errors: [] });
+      alertRuleRepository.create.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.createRule(createRuleDto)).rejects.toThrow('Database error');
+    });
+
+    it('should handle errors during rule update', async () => {
+      const updateDto = { name: 'Updated Rule' };
+      alertRuleRepository.update.mockRejectedValue(new Error('Update failed'));
+
+      await expect(service.updateRule('test-rule', updateDto)).rejects.toThrow('Update failed');
+    });
+
+    it('should handle errors during rule deletion', async () => {
+      alertRuleRepository.delete.mockRejectedValue(new Error('Delete failed'));
+
+      await expect(service.deleteRule('test-rule')).rejects.toThrow('Delete failed');
+    });
+
+    it('should handle errors during stats retrieval', async () => {
+      alertHistoryService.getAlertStats.mockRejectedValue(new Error('Stats error'));
+
+      await expect(service.getStats()).rejects.toThrow('Stats error');
+    });
+
+    it('should handle errors during rule retrieval', async () => {
+      alertRuleRepository.findAll.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getRules()).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('Module Initialization', () => {
+    it('should initialize successfully and load active alerts', async () => {
+      alertHistoryService.getActiveAlerts.mockResolvedValue([mockAlert]);
+
+      await expect(service.onModuleInit()).resolves.not.toThrow();
+      expect(alertHistoryService.getActiveAlerts).toHaveBeenCalled();
+    });
+
+    it('should handle initialization errors', async () => {
+      alertHistoryService.getActiveAlerts.mockRejectedValue(new Error('Init failed'));
+
+      await expect(service.onModuleInit()).rejects.toThrow('Init failed');
+    });
+  });
+
+  describe('Alert Processing', () => {
+    it('should skip alerts in cooldown period', async () => {
+      const metricData = [{
+        metric: 'test.metric',
+        value: 120,
+        timestamp: new Date(),
+      }];
+
+      const evaluationResult = {
+        ruleId: 'test-rule',
+        triggered: true,
+        value: 120,
+        threshold: 100,
+        message: 'Alert triggered',
+        evaluatedAt: new Date(),
+      };
+
+      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
+      ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
+      ruleEngineService.isInCooldown.mockResolvedValue(true); // In cooldown
+
+      await service.processMetrics(metricData);
+
+      expect(alertHistoryService.createAlert).not.toHaveBeenCalled();
+    });
+
+    it('should handle metric processing errors gracefully', async () => {
+      const metricData = [{
+        metric: 'test.metric',
+        value: 120,
+        timestamp: new Date(),
+      }];
+
+      alertRuleRepository.findAllEnabled.mockRejectedValue(new Error('Rule fetch failed'));
+
+      await expect(service.processMetrics(metricData)).rejects.toThrow('Rule fetch failed');
+    });
+  });
+
+  describe('Alert Resolution', () => {
+    it('should handle alert not found during acknowledgment', async () => {
+      // 模拟底层服务在找不到告警时抛出异常
+      alertHistoryService.updateAlertStatus.mockRejectedValue(new NotFoundException('Alert not found'));
+
+      await expect(service.acknowledgeAlert('non-existent-alert', 'test-user')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle alert not found during resolution', async () => {
+      // 模拟底层服务在找不到告警时抛出异常
+      alertHistoryService.updateAlertStatus.mockRejectedValue(new NotFoundException('Alert not found'));
+
+      await expect(service.resolveAlert('non-existent-alert', 'test-user', 'test-rule')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle errors during alert acknowledgment', async () => {
+      alertHistoryService.updateAlertStatus.mockRejectedValue(new Error('Update failed'));
+
+      await expect(service.acknowledgeAlert('test-alert', 'test-user')).rejects.toThrow('Update failed');
+    });
+
+    it('should handle errors during alert resolution', async () => {
+      alertHistoryService.updateAlertStatus.mockRejectedValue(new Error('Update failed'));
+
+      await expect(service.resolveAlert('test-alert', 'test-user', 'test-rule')).rejects.toThrow('Update failed');
+    });
+  });
+
+  // Batch Operations removed - method doesn't exist in actual service
+
+  // Cron Jobs removed - handlePeriodicEvaluation method doesn't exist
+
+  describe('Rule Validation', () => {
+    it('should validate rule before creation', async () => {
+      const createRuleDto = {
+        name: 'Test Rule',
+        metric: 'test.metric',
+        operator: 'gt' as const,
+        threshold: 100,
+        duration: 60,
+        severity: AlertSeverity.WARNING,
+        enabled: true,
+        channels: [],
+        cooldown: 300,
+      };
+
+      ruleEngineService.validateRule.mockReturnValue({ valid: true, errors: [] });
+      alertRuleRepository.create.mockResolvedValue(mockRule);
+
+      await service.createRule(createRuleDto);
+
+      expect(ruleEngineService.validateRule).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...createRuleDto,
+          id: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe('Toggle Operations', () => {
+    it('should toggle rule enabled status', async () => {
+      alertRuleRepository.toggle.mockResolvedValue(true);
+
+      const result = await service.toggleRule('test-rule', false);
+
+      expect(alertRuleRepository.toggle).toHaveBeenCalledWith('test-rule', false);
+      expect(result).toBe(true);
+    });
+
+    it('should handle toggle errors', async () => {
+      alertRuleRepository.toggle.mockRejectedValue(new Error('Toggle failed'));
+
+      await expect(service.toggleRule('test-rule', true)).rejects.toThrow('Toggle failed');
+    });
+  });
+
+  describe('Event Emission', () => {
+    it('should emit events for alert creation', async () => {
+      const metricData = [{
+        metric: 'test.metric',
+        value: 120,
+        timestamp: new Date(),
+      }];
+
+      const evaluationResult = {
+        ruleId: 'test-rule',
+        triggered: true,
+        value: 120,
+        threshold: 100,
+        message: 'Alert triggered',
+        evaluatedAt: new Date(),
+      };
+
+      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
+      ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
+      ruleEngineService.isInCooldown.mockResolvedValue(false);
+      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
+
+      await service.processMetrics(metricData);
+
+      expect(notificationService.sendBatchNotifications).toHaveBeenCalled();
     });
   });
 });

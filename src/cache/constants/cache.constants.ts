@@ -25,6 +25,7 @@ export const CACHE_ERROR_MESSAGES = Object.freeze({
   REDIS_PING_FAILED: "Redis PING 命令失败",
   MEMORY_USAGE_HIGH: "Redis 内存使用率超过90%",
   STATS_RETRIEVAL_FAILED: "获取缓存统计信息失败",
+  INVALID_KEY_LENGTH: "缓存键长度无效",
 } as const);
 
 /**

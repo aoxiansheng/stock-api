@@ -149,7 +149,7 @@ export class MarketStatusService {
   }
 
   /**
-   * 从Provider获取实时市场状态
+   * 从Provider获取实时市场状态  todo 预留接口
    */
   private async getProviderMarketStatus(
     market: Market,

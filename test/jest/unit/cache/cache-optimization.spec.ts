@@ -6,6 +6,7 @@ import {
   CACHE_WARNING_MESSAGES,
   CACHE_OPERATIONS,
 } from '../../../../src/cache/constants/cache.constants';
+import { BadRequestException } from '@nestjs/common';
 
 describe('CacheService Optimization Features', () => {
   let service: CacheService;
@@ -13,6 +14,8 @@ describe('CacheService Optimization Features', () => {
   let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
+    jest.useFakeTimers();
+
     mockRedis = {
       setex: jest.fn().mockResolvedValue('OK'),
       get: jest.fn().mockResolvedValue(null),
@@ -58,23 +61,15 @@ describe('CacheService Optimization Features', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
   describe('Key Length Validation', () => {
-    it('should warn when key length exceeds maximum', async () => {
+    it('should throw an exception when key length exceeds maximum', async () => {
       const longKey = 'x'.repeat(CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH + 1);
       
-      await service.set(longKey, 'test value');
-      
-      expect(loggerSpy).toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
-        expect.objectContaining({
-          operation: 'validateKeyLength',
-          keyLength: longKey.length,
-          maxLength: CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH,
-        })
-      );
+      await expect(service.set(longKey, 'test value')).rejects.toThrow(BadRequestException);
     });
 
     it('should not warn when key length is within limits', async () => {
@@ -171,7 +166,12 @@ describe('CacheService Optimization Features', () => {
         )
       );
       
-      await service.set('test:key', 'test value');
+      const setPromise = service.set('test:key', 'test value');
+      
+      // Manually advance timers to trigger the setTimeout in the mock
+      jest.advanceTimersByTime(CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS + 10);
+      
+      await setPromise;
       
       expect(loggerSpy).toHaveBeenCalledWith(
         CACHE_WARNING_MESSAGES.SLOW_OPERATION,
