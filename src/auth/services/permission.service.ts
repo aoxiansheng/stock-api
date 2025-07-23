@@ -4,11 +4,15 @@ import { createLogger } from "@common/config/logger.config";
 
 import { CacheService } from "../../cache/cache.service";
 import { securityConfig } from "../../common/config/security.config";
+// 更新导入路径，从utils导入PermissionTemplateUtil
 import {
   PERMISSION_OPERATIONS,
   PERMISSION_MESSAGES,
-  PermissionTemplateUtil,
 } from "../constants/permission.constants";
+
+// 从工具文件导入PermissionTemplateUtil
+import { PermissionTemplateUtil } from "../utils/permission.utils";
+
 import { Permission, UserRole } from "../enums/user-role.enum";
 import {
   AuthSubject,

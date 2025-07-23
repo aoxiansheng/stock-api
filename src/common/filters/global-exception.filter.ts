@@ -613,14 +613,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private translateSingleMessage(message: string): string {
     const translations: Record<string, string> = {
       "Bad Request": HTTP_ERROR_MESSAGES.BAD_REQUEST,
-      Unauthorized: HTTP_ERROR_MESSAGES.UNAUTHORIZED,
+      Unauthorized: HTTP_ERROR_MESSAGES.HTTP_UNAUTHORIZED,
       Forbidden: HTTP_ERROR_MESSAGES.FORBIDDEN,
       "Not Found": HTTP_ERROR_MESSAGES.NOT_FOUND,
       "Method Not Allowed": HTTP_ERROR_MESSAGES.METHOD_NOT_ALLOWED,
-      "Internal Server Error": HTTP_ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      "Service Unavailable": HTTP_ERROR_MESSAGES.SERVICE_UNAVAILABLE,
-      "Gateway Timeout": HTTP_ERROR_MESSAGES.GATEWAY_TIMEOUT,
-      "Too Many Requests": HTTP_ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      "Internal Server Error": HTTP_ERROR_MESSAGES.HTTP_INTERNAL_SERVER_ERROR,
+      "Service Unavailable": HTTP_ERROR_MESSAGES.HTTP_SERVICE_UNAVAILABLE,
+      "Gateway Timeout": HTTP_ERROR_MESSAGES.HTTP_GATEWAY_TIMEOUT,
+      "Too Many Requests": HTTP_ERROR_MESSAGES.HTTP_TOO_MANY_REQUESTS,
     };
 
     // 处理路由不存在的错误消息

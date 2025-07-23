@@ -1,6 +1,6 @@
 /**
- * 缓存相关统一常量
- * 包含TTL配置、缓存键前缀、大小限制等
+ * 统一缓存配置常量
+ * 包含TTL配置、缓存键前缀、大小限制等供全局共享使用的配置
  *
  * 设计原则：
  * - 分层TTL：根据数据特性设置不同的过期时间
@@ -9,7 +9,9 @@
  * - 监控友好：便于缓存性能监控和调试
  */
 
-export const CACHE_CONSTANTS = Object.freeze({
+import { deepFreeze } from '@common/utils/object-immutability.util';
+
+export const CACHE_CONSTANTS = deepFreeze({
   // TTL配置 (秒)
   TTL_SETTINGS: {
     // 通用TTL设置
@@ -37,7 +39,7 @@ export const CACHE_CONSTANTS = Object.freeze({
     METRICS_TTL: 600, // 性能指标：10分钟
     LOG_CACHE_TTL: 300, // 日志缓存：5分钟
     HEALTH_CHECK_TTL: 60, // 健康检查：1分钟
-  } as const,
+  },
 
   // 缓存键前缀
   KEY_PREFIXES: {
@@ -71,7 +73,7 @@ export const CACHE_CONSTANTS = Object.freeze({
     TEMP: "temp:",
     LOCK: "lock:",
     QUEUE: "queue:",
-  } as const,
+  },
 
   // 缓存大小限制
   SIZE_LIMITS: {
@@ -81,7 +83,7 @@ export const CACHE_CONSTANTS = Object.freeze({
     DEFAULT_BATCH_SIZE: 100, // 默认批量操作大小
     MAX_BATCH_SIZE: 500, // 最大批量操作大小
     COMPRESSION_THRESHOLD_KB: 10, // 压缩阈值：10KB
-  } as const,
+  },
 
   // Redis连接配置
   REDIS_CONFIG: {
@@ -92,7 +94,7 @@ export const CACHE_CONSTANTS = Object.freeze({
     KEEPALIVE_MS: 30000, // 保活时间：30秒
     MAX_CONNECTIONS: 20, // 最大连接数
     MIN_CONNECTIONS: 5, // 最小连接数
-  } as const,
+  },
 
   // 缓存策略配置
   STRATEGY_CONFIG: {
@@ -110,7 +112,7 @@ export const CACHE_CONSTANTS = Object.freeze({
     // 序列化配置
     ENABLE_COMPRESSION: true, // 启用压缩
     COMPRESSION_ALGORITHM: "gzip", // 压缩算法
-  } as const,
+  },
 
   // 监控配置
   MONITORING_CONFIG: {
@@ -119,7 +121,7 @@ export const CACHE_CONSTANTS = Object.freeze({
     ALERT_THRESHOLD_PERCENT: 90, // 告警阈值：90%
     LOG_SLOW_OPERATIONS: true, // 记录慢操作
     SLOW_OPERATION_MS: 100, // 慢操作阈值：100毫秒
-  } as const,
+  },
 });
 
 // 导出类型定义
@@ -150,7 +152,11 @@ export function buildCacheKey(
 export function parseCacheKey(
   cacheKey: string,
 ): { prefix: string; identifier: string; suffix?: string } | null {
-  const prefixes = Object.values(CACHE_CONSTANTS.KEY_PREFIXES);
+  if (!cacheKey || typeof cacheKey !== 'string') {
+    return null;
+  }
+
+  const prefixes = [...Object.values(CACHE_CONSTANTS.KEY_PREFIXES), 'cache:'];
   const matchedPrefix = prefixes.find((prefix) => cacheKey.startsWith(prefix));
 
   if (!matchedPrefix) {
@@ -173,8 +179,10 @@ export function parseCacheKey(
  * @param defaultValue 默认值
  */
 export function getTTLFromEnv(key: CacheTTL, defaultValue?: number): number {
+  // 支持两种环境变量格式：CACHE_TTL_KEY 或 直接使用KEY
   const envKey = `CACHE_TTL_${key}`;
-  const envValue = process.env[envKey];
+  const directEnvKey = key;
+  const envValue = process.env[envKey] || process.env[directEnvKey];
 
   if (envValue && !isNaN(Number(envValue))) {
     return Number(envValue);

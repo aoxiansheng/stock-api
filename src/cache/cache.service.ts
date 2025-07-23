@@ -20,10 +20,9 @@ import {
   CACHE_WARNING_MESSAGES,
   CACHE_SUCCESS_MESSAGES,
   CACHE_TTL,
-  CACHE_CONFIG,
   CACHE_KEYS,
   CACHE_OPERATIONS,
-  CACHE_PERFORMANCE_CONFIG,
+  CACHE_CONSTANTS,
 } from "./constants/cache.constants";
 
 // 🎯 Gzip 压缩/解压缩
@@ -94,12 +93,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS) {
+      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
         this.logger.warn(CACHE_WARNING_MESSAGES.SLOW_OPERATION, {
           operation: CACHE_OPERATIONS.SET,
           key,
           duration,
-          threshold: CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
         });
       }
 
@@ -145,12 +144,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS) {
+      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
         this.logger.warn(CACHE_WARNING_MESSAGES.SLOW_OPERATION, {
           operation: CACHE_OPERATIONS.GET,
           key,
           duration,
-          threshold: CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
         });
       }
 
@@ -211,10 +210,9 @@ export class CacheService {
       } else {
         // 未获得锁，等待一段时间后重试获取缓存
         await this.sleep(
-          CACHE_CONFIG.LOCK_RETRY_DELAY_MIN +
+          CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2 +
             Math.random() *
-              (CACHE_CONFIG.LOCK_RETRY_DELAY_MAX -
-                CACHE_CONFIG.LOCK_RETRY_DELAY_MIN),
+              (CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2),
         );
 
         const retryResult = await this.get<T>(key, options.serializer);
@@ -477,11 +475,11 @@ export class CacheService {
     if (keys.length === 0) return result;
 
     // 检查批量大小
-    if (keys.length > CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT) {
+    if (keys.length > CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE) {
       this.logger.warn(CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING, {
         operation: CACHE_OPERATIONS.MGET,
         batchSize: keys.length,
-        limit: CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT,
+        limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
       });
     }
 
@@ -506,12 +504,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS) {
+      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
         this.logger.warn(CACHE_WARNING_MESSAGES.SLOW_OPERATION, {
           operation: CACHE_OPERATIONS.MGET,
           batchSize: keys.length,
           duration,
-          threshold: CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
         });
       }
     } catch (error) {
@@ -540,11 +538,11 @@ export class CacheService {
     if (entries.size === 0) return true;
 
     // 检查批量大小
-    if (entries.size > CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT) {
+    if (entries.size > CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE) {
       this.logger.warn(CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING, {
         operation: CACHE_OPERATIONS.MSET,
         batchSize: entries.size,
-        limit: CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT,
+        limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
       });
     }
 
@@ -562,12 +560,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS) {
+      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
         this.logger.warn(CACHE_WARNING_MESSAGES.SLOW_OPERATION, {
           operation: CACHE_OPERATIONS.MSET,
           batchSize: entries.size,
           duration,
-          threshold: CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
         });
       }
 
@@ -708,7 +706,7 @@ export class CacheService {
 
       if (
         maxMemory > 0 &&
-        memoryUsage / maxMemory > CACHE_CONFIG.MAX_MEMORY_USAGE_RATIO
+        memoryUsage / maxMemory > CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100
       ) {
         errors.push(CACHE_ERROR_MESSAGES.MEMORY_USAGE_HIGH);
         status = "warning";
@@ -730,7 +728,7 @@ export class CacheService {
     value: T,
     serializerType:
       | "json"
-      | "msgpack" = CACHE_CONFIG.DEFAULT_SERIALIZER as "json",
+      | "msgpack" = "json",
   ): string {
     if (value === undefined) {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
@@ -743,7 +741,7 @@ export class CacheService {
     // 检查序列化后的大小
     const sizeInBytes = Buffer.byteLength(serialized, "utf8");
     const maxSizeBytes =
-      CACHE_PERFORMANCE_CONFIG.MAX_VALUE_SIZE_MB * 1024 * 1024;
+      CACHE_CONSTANTS.SIZE_LIMITS.MAX_VALUE_SIZE_MB * 1024 * 1024;
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING, {
@@ -761,7 +759,7 @@ export class CacheService {
     value: string,
     deserializerType:
       | "json"
-      | "msgpack" = CACHE_CONFIG.DEFAULT_SERIALIZER as "json",
+      | "msgpack" = "json",
   ): T {
     if (value === null) {
       return null;
@@ -772,7 +770,7 @@ export class CacheService {
 
   private shouldCompress(
     value: string,
-    threshold: number = CACHE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD,
+    threshold: number = CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB * 1024,
   ): boolean {
     if (!value) {
       return false;
@@ -864,12 +862,12 @@ export class CacheService {
     if (total > 100) {
       // 只在有足够样本时检查
       const missRate = stats.misses / total;
-      if (missRate > CACHE_PERFORMANCE_CONFIG.MISS_RATE_WARNING_THRESHOLD) {
+      if (missRate > CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100) {
         this.logger.warn(CACHE_WARNING_MESSAGES.HIGH_MISS_RATE, {
           operation: CACHE_OPERATIONS.UPDATE_METRICS,
           pattern,
           missRate: Math.round(missRate * 100) / 100,
-          threshold: CACHE_PERFORMANCE_CONFIG.MISS_RATE_WARNING_THRESHOLD,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
           totalRequests: total,
         });
       }
@@ -910,17 +908,17 @@ export class CacheService {
   private startOptimizationTasks(): void {
     this.logger.log(CACHE_SUCCESS_MESSAGES.OPTIMIZATION_TASKS_STARTED, {
       operation: CACHE_OPERATIONS.UPDATE_METRICS,
-      statsCleanupInterval: CACHE_CONFIG.STATS_CLEANUP_INTERVAL,
-      healthCheckInterval: CACHE_CONFIG.HEALTH_CHECK_INTERVAL,
+      statsCleanupInterval: CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10,
+      healthCheckInterval: CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 3,
     });
 
     // 定期清理内存中的统计信息
-    setInterval(() => this.cleanupStats(), CACHE_CONFIG.STATS_CLEANUP_INTERVAL);
+    setInterval(() => this.cleanupStats(), CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10);
 
     // 定期检查缓存健康状况
     setInterval(
       () => this.checkAndLogHealth(),
-      CACHE_CONFIG.HEALTH_CHECK_INTERVAL,
+      CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 3,
     );
   }
 
@@ -971,19 +969,19 @@ export class CacheService {
    * 验证缓存键长度
    */
   private validateKeyLength(key: string): void {
-    if (key.length > CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH) {
+    if (key.length > CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH) {
       const errorMessage = `${
         CACHE_ERROR_MESSAGES.INVALID_KEY_LENGTH
       }: 键 '${key.substring(
         0,
         50,
       )}...' 的长度 ${key.length} 超过了最大限制 ${
-        CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH
+        CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH
       }`;
       this.logger.error(errorMessage, {
         operation: "validateKeyLength",
         keyLength: key.length,
-        maxLength: CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH,
+        maxLength: CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH,
       });
       throw new BadRequestException(errorMessage);
     }

@@ -2,9 +2,9 @@
  * 通知服务常量定义
  * 🎯 符合开发规范指南 - 统一常量管理
  */
-
+import { deepFreeze } from "@common/utils/object-immutability.util";
 // 📝 操作名称常量
-export const NOTIFICATION_OPERATIONS = Object.freeze({
+export const NOTIFICATION_OPERATIONS = deepFreeze({
   SEND_NOTIFICATION: "sendNotification",
   SEND_BATCH_NOTIFICATIONS: "sendBatchNotifications",
   TEST_CHANNEL: "testChannel",
@@ -18,7 +18,7 @@ export const NOTIFICATION_OPERATIONS = Object.freeze({
 });
 
 // 📢 消息常量
-export const NOTIFICATION_MESSAGES = Object.freeze({
+export const NOTIFICATION_MESSAGES = deepFreeze({
   // 成功消息
   NOTIFICATION_SENT: "通知发送成功",
   BATCH_NOTIFICATIONS_COMPLETED: "批量通知发送完成",
@@ -57,7 +57,7 @@ export const NOTIFICATION_MESSAGES = Object.freeze({
 });
 
 // 🎯 错误消息模板常量
-export const NOTIFICATION_ERROR_TEMPLATES = Object.freeze({
+export const NOTIFICATION_ERROR_TEMPLATES = deepFreeze({
   UNSUPPORTED_TYPE: "不支持的通知类型: {channelType}",
   SEND_FAILED_WITH_REASON: "发送失败: {error}",
   CHANNEL_TEST_FAILED_WITH_REASON: "通知渠道测试失败: {reason}",
@@ -70,7 +70,7 @@ export const NOTIFICATION_ERROR_TEMPLATES = Object.freeze({
 });
 
 // 📋 模板变量常量
-export const NOTIFICATION_TEMPLATE_VARIABLES = Object.freeze({
+export const NOTIFICATION_TEMPLATE_VARIABLES = deepFreeze({
   ALERT_ID: "alertId",
   RULE_NAME: "ruleName",
   METRIC: "metric",
@@ -89,17 +89,27 @@ export const NOTIFICATION_TEMPLATE_VARIABLES = Object.freeze({
   DASHBOARD_URL: "dashboardUrl",
 });
 
-// 🎨 模板格式化常量
-export const NOTIFICATION_TEMPLATE_PATTERNS = Object.freeze({
-  VARIABLE_PATTERN: /\{\{(\w+)\}\}/g,
-  IF_BLOCK_PATTERN: /\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
-  UNLESS_BLOCK_PATTERN: /\{\{#unless (\w+)\}\}([\s\S]*?)\{\{\/unless\}\}/g,
-  EACH_BLOCK_PATTERN: /\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
-  COMMENT_PATTERN: /\{\{!--[\s\S]*?--\}\}/g,
+// 🎨 模板格式化常量 - 修改为字符串模式
+export const NOTIFICATION_TEMPLATE_PATTERNS = deepFreeze({
+  // 存储正则模式字符串和标志，而非正则对象
+  VARIABLE_PATTERN_SOURCE: "\\{\\{(\\w+)\\}\\}",
+  VARIABLE_PATTERN_FLAGS: "g",
+  
+  IF_BLOCK_PATTERN_SOURCE: "\\{\\{#if (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/if\\}\\}",
+  IF_BLOCK_PATTERN_FLAGS: "g",
+  
+  UNLESS_BLOCK_PATTERN_SOURCE: "\\{\\{#unless (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/unless\\}\\}",
+  UNLESS_BLOCK_PATTERN_FLAGS: "g",
+  
+  EACH_BLOCK_PATTERN_SOURCE: "\\{\\{#each (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/each\\}\\}",
+  EACH_BLOCK_PATTERN_FLAGS: "g",
+  
+  COMMENT_PATTERN_SOURCE: "\\{\\{!--[\\s\\S]*?--\\}\\}",
+  COMMENT_PATTERN_FLAGS: "g"
 });
 
 // 🔧 通知配置常量
-export const NOTIFICATION_CONFIG = Object.freeze({
+export const NOTIFICATION_CONFIG = deepFreeze({
   DEFAULT_TIMEOUT_MS: 30000,
   MAX_RETRY_ATTEMPTS: 3,
   RETRY_DELAY_MS: 1000,
@@ -111,7 +121,7 @@ export const NOTIFICATION_CONFIG = Object.freeze({
 });
 
 // 📊 通知类型优先级常量
-export const NOTIFICATION_TYPE_PRIORITY = Object.freeze({
+export const NOTIFICATION_TYPE_PRIORITY = deepFreeze({
   EMAIL: 1,
   SLACK: 2,
   WEBHOOK: 3,
@@ -120,7 +130,7 @@ export const NOTIFICATION_TYPE_PRIORITY = Object.freeze({
 });
 
 // 📈 通知指标常量
-export const NOTIFICATION_METRICS = Object.freeze({
+export const NOTIFICATION_METRICS = deepFreeze({
   NOTIFICATION_SENT_COUNT: "notification_sent_count",
   NOTIFICATION_FAILED_COUNT: "notification_failed_count",
   BATCH_PROCESSING_COUNT: "notification_batch_processing_count",
@@ -133,18 +143,21 @@ export const NOTIFICATION_METRICS = Object.freeze({
 });
 
 // 🔍 验证规则常量
-export const NOTIFICATION_VALIDATION_RULES = Object.freeze({
+export const NOTIFICATION_VALIDATION_RULES = deepFreeze({
   MIN_TEMPLATE_LENGTH: 1,
   MAX_TEMPLATE_LENGTH: 10000,
   MIN_VARIABLE_NAME_LENGTH: 1,
   MAX_VARIABLE_NAME_LENGTH: 50,
-  VARIABLE_NAME_PATTERN: /^[a-zA-Z][a-zA-Z0-9_]*$/,
-  EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  URL_PATTERN: /^https?:\/\/.+/,
+  VARIABLE_NAME_PATTERN_SOURCE: "^[a-zA-Z][a-zA-Z0-9_]*$",
+  VARIABLE_NAME_PATTERN_FLAGS: "",
+  EMAIL_PATTERN_SOURCE: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+  EMAIL_PATTERN_FLAGS: "",
+  URL_PATTERN_SOURCE: "^https?:\\/\\/.+",
+  URL_PATTERN_FLAGS: "",
 });
 
 // ⏰ 时间配置常量
-export const NOTIFICATION_TIME_CONFIG = Object.freeze({
+export const NOTIFICATION_TIME_CONFIG = deepFreeze({
   DEFAULT_SEND_TIMEOUT_MS: 10000,
   BATCH_PROCESSING_TIMEOUT_MS: 60000,
   TEMPLATE_GENERATION_TIMEOUT_MS: 5000,
@@ -154,7 +167,7 @@ export const NOTIFICATION_TIME_CONFIG = Object.freeze({
 });
 
 // 🚨 告警阈值常量
-export const NOTIFICATION_ALERT_THRESHOLDS = Object.freeze({
+export const NOTIFICATION_ALERT_THRESHOLDS = deepFreeze({
   MAX_FAILED_PERCENTAGE: 10,
   MAX_RESPONSE_TIME_MS: 5000,
   MIN_SUCCESS_RATE: 0.95,
@@ -163,208 +176,10 @@ export const NOTIFICATION_ALERT_THRESHOLDS = Object.freeze({
 });
 
 // 🔄 重试配置常量
-export const NOTIFICATION_RETRY_CONFIG = Object.freeze({
+export const NOTIFICATION_RETRY_CONFIG = deepFreeze({
   MAX_RETRIES: 3,
   INITIAL_DELAY_MS: 1000,
   BACKOFF_MULTIPLIER: 2,
   MAX_DELAY_MS: 10000,
   JITTER_FACTOR: 0.1,
 });
-
-/**
- * 通知模板工具函数
- */
-export class NotificationTemplateUtil {
-  /**
-   * 替换错误消息模板中的占位符
-   * @param template 模板字符串
-   * @param params 参数对象
-   * @returns 替换后的字符串
-   */
-  static replaceErrorTemplate(
-    template: string,
-    params: Record<string, any>,
-  ): string {
-    return template.replace(/\{(\w+)\}/g, (match, key) => {
-      const value = params[key];
-      return value !== undefined ? String(value) : match;
-    });
-  }
-
-  /**
-   * 生成错误消息
-   * @param templateKey 模板键名
-   * @param params 参数对象
-   * @returns 错误消息字符串
-   */
-  static generateErrorMessage(
-    templateKey: keyof typeof NOTIFICATION_ERROR_TEMPLATES,
-    params: Record<string, any>,
-  ): string {
-    const template = NOTIFICATION_ERROR_TEMPLATES[templateKey];
-    return this.replaceErrorTemplate(template, params);
-  }
-
-  /**
-   * 格式化模板字符串
-   * @param template 模板字符串
-   * @param variables 变量对象
-   * @returns 格式化后的字符串
-   */
-  static formatTemplate(
-    template: string,
-    variables: Record<string, any>,
-  ): string {
-    let result = template;
-
-    // 处理注释
-    result = result.replace(NOTIFICATION_TEMPLATE_PATTERNS.COMMENT_PATTERN, "");
-
-    // 处理变量替换
-    result = result.replace(
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN,
-      (match, key) => {
-        return variables[key] !== undefined ? String(variables[key]) : match;
-      },
-    );
-
-    // 处理 if 块
-    result = result.replace(
-      NOTIFICATION_TEMPLATE_PATTERNS.IF_BLOCK_PATTERN,
-      (match, key, content) => {
-        return variables[key] ? content : "";
-      },
-    );
-
-    // 处理 unless 块
-    result = result.replace(
-      NOTIFICATION_TEMPLATE_PATTERNS.UNLESS_BLOCK_PATTERN,
-      (match, key, content) => {
-        return !variables[key] ? content : "";
-      },
-    );
-
-    return result;
-  }
-
-  /**
-   * 验证模板变量名称
-   * @param variableName 变量名称
-   * @returns 是否有效
-   */
-  static isValidVariableName(variableName: string): boolean {
-    return (
-      NOTIFICATION_VALIDATION_RULES.VARIABLE_NAME_PATTERN.test(variableName) &&
-      variableName.length >=
-        NOTIFICATION_VALIDATION_RULES.MIN_VARIABLE_NAME_LENGTH &&
-      variableName.length <=
-        NOTIFICATION_VALIDATION_RULES.MAX_VARIABLE_NAME_LENGTH
-    );
-  }
-
-  /**
-   * 验证模板长度
-   * @param template 模板字符串
-   * @returns 是否有效
-   */
-  static isValidTemplateLength(template: string): boolean {
-    return (
-      template.length >= NOTIFICATION_VALIDATION_RULES.MIN_TEMPLATE_LENGTH &&
-      template.length <= NOTIFICATION_VALIDATION_RULES.MAX_TEMPLATE_LENGTH
-    );
-  }
-
-  /**
-   * 提取模板中的变量
-   * @param template 模板字符串
-   * @returns 变量名称数组
-   */
-  static extractVariables(template: string): string[] {
-    const variables = new Set<string>();
-    const matches = template.matchAll(
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN,
-    );
-
-    for (const match of matches) {
-      if (match[1]) {
-        variables.add(match[1]);
-      }
-    }
-
-    return Array.from(variables);
-  }
-
-  /**
-   * 验证邮箱地址
-   * @param email 邮箱地址
-   * @returns 是否有效
-   */
-  static isValidEmail(email: string): boolean {
-    return NOTIFICATION_VALIDATION_RULES.EMAIL_PATTERN.test(email);
-  }
-
-  /**
-   * 验证URL
-   * @param url URL地址
-   * @returns 是否有效
-   */
-  static isValidUrl(url: string): boolean {
-    return NOTIFICATION_VALIDATION_RULES.URL_PATTERN.test(url);
-  }
-
-  /**
-   * 计算重试延迟
-   * @param attempt 重试次数
-   * @returns 延迟毫秒数
-   */
-  static calculateRetryDelay(attempt: number): number {
-    const {
-      INITIAL_DELAY_MS,
-      BACKOFF_MULTIPLIER,
-      MAX_DELAY_MS,
-      JITTER_FACTOR,
-    } = NOTIFICATION_RETRY_CONFIG;
-
-    const baseDelay = Math.min(
-      INITIAL_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, attempt),
-      MAX_DELAY_MS,
-    );
-
-    // 添加抖动
-    const jitter = baseDelay * JITTER_FACTOR * Math.random();
-    return Math.floor(baseDelay + jitter);
-  }
-
-  /**
-   * 生成通知模板变量
-   * @param alert 告警对象
-   * @param rule 规则对象
-   * @returns 模板变量对象
-   */
-  static generateTemplateVariables(alert: any, rule: any): Record<string, any> {
-    return {
-      [NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID]: alert.id,
-      [NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME]: rule.name,
-      [NOTIFICATION_TEMPLATE_VARIABLES.METRIC]: alert.metric,
-      [NOTIFICATION_TEMPLATE_VARIABLES.VALUE]: alert.value,
-      [NOTIFICATION_TEMPLATE_VARIABLES.THRESHOLD]: alert.threshold,
-      [NOTIFICATION_TEMPLATE_VARIABLES.SEVERITY]: alert.severity,
-      [NOTIFICATION_TEMPLATE_VARIABLES.STATUS]: alert.status,
-      [NOTIFICATION_TEMPLATE_VARIABLES.MESSAGE]: alert.message,
-      [NOTIFICATION_TEMPLATE_VARIABLES.START_TIME]:
-        alert.startTime?.toLocaleString(),
-      [NOTIFICATION_TEMPLATE_VARIABLES.END_TIME]:
-        alert.endTime?.toLocaleString(),
-      [NOTIFICATION_TEMPLATE_VARIABLES.DURATION]: alert.endTime
-        ? Math.round(
-            (alert.endTime.getTime() - alert.startTime.getTime()) / 1000,
-          )
-        : Math.round((Date.now() - alert.startTime.getTime()) / 1000),
-      [NOTIFICATION_TEMPLATE_VARIABLES.TAGS]: alert.tags
-        ? JSON.stringify(alert.tags, null, 2)
-        : undefined,
-      [NOTIFICATION_TEMPLATE_VARIABLES.RULE_ID]: rule.id,
-      [NOTIFICATION_TEMPLATE_VARIABLES.RULE_DESCRIPTION]: rule.description,
-    };
-  }
-}

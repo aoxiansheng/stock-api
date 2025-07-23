@@ -6,9 +6,13 @@ import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../..
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
+  NOTIFICATION_CONFIG,
   NOTIFICATION_TEMPLATE_VARIABLES,
-  NotificationTemplateUtil,
+  NOTIFICATION_RETRY_CONFIG,
 } from '../../../../src/alert/constants/notification.constants';
+
+// 从工具文件导入NotificationTemplateUtil
+import { NotificationTemplateUtil } from '../../../../src/alert/utils/notification.utils';
 
 describe('NotificationService Optimization Features', () => {
   let service: NotificationService;

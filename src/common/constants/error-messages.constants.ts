@@ -4,9 +4,10 @@
  *
  * 这个文件统一管理所有系统错误消息，避免在多个地方重复定义相同的错误消息
  */
+import { deepFreeze } from "@common/utils/object-immutability.util";
 
 // 📢 认证和授权错误消息
-export const AUTH_ERROR_MESSAGES = Object.freeze({
+export const AUTH_ERROR_MESSAGES = deepFreeze({
   // 通用认证错误
   UNAUTHORIZED_ACCESS: "未授权访问",
   FORBIDDEN_ACCESS: "访问被禁止",
@@ -62,7 +63,7 @@ export const AUTH_ERROR_MESSAGES = Object.freeze({
 });
 
 // 📢 业务逻辑错误消息
-export const BUSINESS_ERROR_MESSAGES = Object.freeze({
+export const BUSINESS_ERROR_MESSAGES = deepFreeze({
   // 数据验证错误
   VALIDATION_FAILED: "数据验证失败",
   REQUIRED_FIELD_MISSING: "必填字段缺失",
@@ -106,7 +107,7 @@ export const BUSINESS_ERROR_MESSAGES = Object.freeze({
 });
 
 // 📢 系统错误消息
-export const SYSTEM_ERROR_MESSAGES = Object.freeze({
+export const SYSTEM_ERROR_MESSAGES = deepFreeze({
   // 服务器错误
   INTERNAL_SERVER_ERROR: "服务器内部错误",
   SERVICE_UNAVAILABLE: "服务暂时不可用",
@@ -132,27 +133,27 @@ export const SYSTEM_ERROR_MESSAGES = Object.freeze({
 });
 
 // 📢 HTTP状态码对应的错误消息
-export const HTTP_ERROR_MESSAGES = Object.freeze({
+export const HTTP_ERROR_MESSAGES = deepFreeze({
   // 4xx 客户端错误
   BAD_REQUEST: "请求参数错误",
-  UNAUTHORIZED: "未授权访问",
+  HTTP_UNAUTHORIZED: "未授权访问", // 重命名，避免与AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS重复
   FORBIDDEN: "访问被禁止",
   NOT_FOUND: "资源不存在",
   METHOD_NOT_ALLOWED: "请求方法不允许",
   CONFLICT: "请求冲突",
   PAYLOAD_TOO_LARGE: "请求体过大",
-  TOO_MANY_REQUESTS: "请求频率超出限制",
+  HTTP_TOO_MANY_REQUESTS: "请求频率超出限制", // 重命名，避免与BUSINESS_ERROR_MESSAGES.TOO_MANY_REQUESTS重复
 
   // 5xx 服务器错误
-  INTERNAL_SERVER_ERROR: "服务器内部错误",
+  HTTP_INTERNAL_SERVER_ERROR: "服务器内部错误", // 重命名，避免与SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR重复
   NOT_IMPLEMENTED: "功能未实现",
   BAD_GATEWAY: "网关错误",
-  SERVICE_UNAVAILABLE: "服务暂时不可用",
-  GATEWAY_TIMEOUT: "网关超时",
+  HTTP_SERVICE_UNAVAILABLE: "服务暂时不可用", // 重命名，避免与SYSTEM_ERROR_MESSAGES.SERVICE_UNAVAILABLE重复
+  HTTP_GATEWAY_TIMEOUT: "网关超时", // 重命名，避免与SYSTEM_ERROR_MESSAGES.GATEWAY_TIMEOUT重复
 });
 
 // 📢 统一的错误消息集合（向后兼容）
-export const ERROR_MESSAGES = Object.freeze({
+export const ERROR_MESSAGES = deepFreeze({
   ...AUTH_ERROR_MESSAGES,
   ...BUSINESS_ERROR_MESSAGES,
   ...SYSTEM_ERROR_MESSAGES,
@@ -190,7 +191,7 @@ export class ErrorMessageUtil {
         );
       case ErrorMessageType.HTTP:
         return (
-          HTTP_ERROR_MESSAGES[key] || HTTP_ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+          HTTP_ERROR_MESSAGES[key] || HTTP_ERROR_MESSAGES.HTTP_INTERNAL_SERVER_ERROR
         );
       default:
         return ERROR_MESSAGES[key] || AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS;

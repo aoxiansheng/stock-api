@@ -10,7 +10,7 @@ import {
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
-import { CACHE_TTL, CACHE_CONFIG } from "../../cache/constants/cache.constants";
+import { CACHE_TTL, CACHE_CONSTANTS } from "../../cache/constants/cache.constants";
 
 import {
   STORAGE_ERROR_MESSAGES,
@@ -559,12 +559,12 @@ export class StorageService {
     let compressed = false;
     let dataSize = Buffer.byteLength(serializedData, "utf8");
 
-    if (compressOption && dataSize > CACHE_CONFIG.COMPRESSION_MIN_SIZE) {
+    if (compressOption && dataSize > CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB * 1024) {
       try {
         const compressedBuffer = await gzip(serializedData);
         if (
           compressedBuffer.length <
-          dataSize * CACHE_CONFIG.COMPRESSION_SAVING_RATIO
+          dataSize * 0.8  // 使用0.8代替CACHE_CONFIG.COMPRESSION_SAVING_RATIO
         ) {
           serializedData = compressedBuffer.toString("base64");
           compressed = true;

@@ -9,7 +9,9 @@
  * - 实用性：基于实际生产环境经验设定合理默认值
  */
 
-export const PERFORMANCE_CONSTANTS = Object.freeze({
+import { deepFreeze } from '@common/utils/object-immutability.util';
+
+export const PERFORMANCE_CONSTANTS = deepFreeze({
   // 响应时间阈值 (毫秒)
   RESPONSE_TIME_THRESHOLDS: {
     // 通用响应时间阈值
@@ -25,7 +27,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     SLOW_TRANSFORMATION_MS: 5000, // 数据转换慢阈值
     SLOW_AUTHENTICATION_MS: 300, // 认证操作慢阈值
     SLOW_CACHE_MS: 50, // 缓存操作慢阈值
-  } as const,
+  },
 
   // 超时配置 (毫秒)
   TIMEOUTS: {
@@ -37,7 +39,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     HTTP_REQUEST_TIMEOUT_MS: 15000, // HTTP请求超时：15秒
     AUTHENTICATION_TIMEOUT_MS: 5000, // 认证超时：5秒
     FILE_UPLOAD_TIMEOUT_MS: 120000, // 文件上传超时：2分钟
-  } as const,
+  },
 
   // 重试配置
   RETRY_SETTINGS: {
@@ -46,7 +48,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     EXPONENTIAL_BACKOFF_BASE: 2, // 指数退避基数
     MAX_RETRY_DELAY_MS: 10000, // 最大重试延迟：10秒
     JITTER_FACTOR: 0.1, // 抖动因子，避免惊群效应
-  } as const,
+  },
 
   // 批量处理限制
   BATCH_LIMITS: {
@@ -56,7 +58,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     MAX_CONCURRENT_OPERATIONS: 10, // 最大并发操作数
     BULK_INSERT_SIZE: 500, // 批量插入大小
     BULK_UPDATE_SIZE: 200, // 批量更新大小
-  } as const,
+  },
 
   // 内存使用阈值 (MB)
   MEMORY_THRESHOLDS: {
@@ -66,7 +68,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     CRITICAL_MEMORY_USAGE_MB: 500, // 严重内存使用阈值
     MAX_OBJECT_SIZE_MB: 10, // 最大对象大小
     MAX_REQUEST_SIZE_MB: 50, // 最大请求大小
-  } as const,
+  },
 
   // 连接池配置
   CONNECTION_POOLS: {
@@ -75,7 +77,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     IDLE_TIMEOUT_MS: 300000, // 空闲连接超时：5分钟
     CONNECTION_TIMEOUT_MS: 5000, // 连接超时：5秒
     ACQUIRE_TIMEOUT_MS: 10000, // 获取连接超时：10秒
-  } as const,
+  },
 
   // 监控和采样配置
   MONITORING: {
@@ -84,7 +86,7 @@ export const PERFORMANCE_CONSTANTS = Object.freeze({
     SAMPLE_RATE: 0.1, // 采样率：10%
     ERROR_SAMPLE_RATE: 1.0, // 错误采样率：100%
     SLOW_REQUEST_SAMPLE_RATE: 1.0, // 慢请求采样率：100%
-  } as const,
+  },
 });
 
 // 导出类型定义
@@ -102,8 +104,10 @@ export function getTimeoutFromEnv(
   key: TimeoutSetting,
   defaultValue?: number,
 ): number {
+  // 支持两种环境变量格式
   const envKey = `TIMEOUT_${key.replace(/_MS$/, "")}`;
-  const envValue = process.env[envKey];
+  const directEnvKey = key;
+  const envValue = process.env[envKey] || process.env[directEnvKey];
 
   if (envValue && !isNaN(Number(envValue))) {
     return Number(envValue);

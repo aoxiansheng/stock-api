@@ -2,10 +2,11 @@
  * API Key 服务常量定义
  * 🎯 符合开发规范指南 - 统一常量管理
  */
-import { v4 as uuidv4 } from "uuid";
+
+import { deepFreeze } from "@common/utils/object-immutability.util";
 
 // 📝 操作名称常量
-export const APIKEY_OPERATIONS = Object.freeze({
+export const APIKEY_OPERATIONS = deepFreeze({
   VALIDATE_API_KEY: "validateApiKey",
   UPDATE_API_KEY_USAGE: "updateApiKeyUsage",
   CREATE_API_KEY: "createApiKey",
@@ -21,7 +22,7 @@ export const APIKEY_OPERATIONS = Object.freeze({
 });
 
 // 📢 消息常量
-export const APIKEY_MESSAGES = Object.freeze({
+export const APIKEY_MESSAGES = deepFreeze({
   // 成功消息
   API_KEY_CREATED: "API Key创建成功",
   API_KEY_REVOKED: "API Key已撤销",
@@ -53,7 +54,7 @@ export const APIKEY_MESSAGES = Object.freeze({
 });
 
 // ⚙️ 默认值常量
-export const APIKEY_DEFAULTS = Object.freeze({
+export const APIKEY_DEFAULTS = deepFreeze({
   APP_KEY_PREFIX: "sk-",
   ACCESS_TOKEN_LENGTH: 32,
   DEFAULT_RATE_LIMIT: {
@@ -67,7 +68,7 @@ export const APIKEY_DEFAULTS = Object.freeze({
 });
 
 // 🔧 API Key 配置常量
-export const APIKEY_CONFIG = Object.freeze({
+export const APIKEY_CONFIG = deepFreeze({
   MIN_NAME_LENGTH: 1,
   MAX_NAME_LENGTH: 100,
   MIN_PERMISSIONS: 0,
@@ -83,7 +84,7 @@ export const APIKEY_CONFIG = Object.freeze({
 });
 
 // 📊 API Key 状态常量
-export const APIKEY_STATUS = Object.freeze({
+export const APIKEY_STATUS = deepFreeze({
   ACTIVE: "active",
   INACTIVE: "inactive",
   EXPIRED: "expired",
@@ -93,7 +94,7 @@ export const APIKEY_STATUS = Object.freeze({
 });
 
 // 🏷️ API Key 类型常量
-export const APIKEY_TYPES = Object.freeze({
+export const APIKEY_TYPES = deepFreeze({
   STANDARD: "standard",
   PREMIUM: "premium",
   ENTERPRISE: "enterprise",
@@ -103,7 +104,7 @@ export const APIKEY_TYPES = Object.freeze({
 });
 
 // 📈 API Key 指标常量
-export const APIKEY_METRICS = Object.freeze({
+export const APIKEY_METRICS = deepFreeze({
   VALIDATION_COUNT: "apikey_validation_count",
   VALIDATION_SUCCESS_COUNT: "apikey_validation_success_count",
   VALIDATION_FAILURE_COUNT: "apikey_validation_failure_count",
@@ -117,7 +118,7 @@ export const APIKEY_METRICS = Object.freeze({
 });
 
 // 🔍 验证规则常量
-export const APIKEY_VALIDATION_RULES = Object.freeze({
+export const APIKEY_VALIDATION_RULES = deepFreeze({
   APP_KEY_PATTERN:
     /^sk-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,
   ACCESS_TOKEN_PATTERN: /^[a-zA-Z0-9]{32}$/,
@@ -126,7 +127,7 @@ export const APIKEY_VALIDATION_RULES = Object.freeze({
 });
 
 // ⏰ 时间相关常量
-export const APIKEY_TIME_CONFIG = Object.freeze({
+export const APIKEY_TIME_CONFIG = deepFreeze({
   EXPIRY_WARNING_DAYS: 7,
   CLEANUP_INTERVAL_HOURS: 24,
   USAGE_UPDATE_TIMEOUT_MS: 5000,
@@ -136,7 +137,7 @@ export const APIKEY_TIME_CONFIG = Object.freeze({
 });
 
 // 🚨 告警阈值常量
-export const APIKEY_ALERT_THRESHOLDS = Object.freeze({
+export const APIKEY_ALERT_THRESHOLDS = deepFreeze({
   HIGH_USAGE_PERCENTAGE: 80,
   CRITICAL_USAGE_PERCENTAGE: 95,
   VALIDATION_FAILURE_RATE: 0.1,
@@ -145,7 +146,7 @@ export const APIKEY_ALERT_THRESHOLDS = Object.freeze({
 });
 
 // 🔄 重试配置常量
-export const APIKEY_RETRY_CONFIG = Object.freeze({
+export const APIKEY_RETRY_CONFIG = deepFreeze({
   MAX_RETRIES: 3,
   INITIAL_DELAY_MS: 100,
   BACKOFF_MULTIPLIER: 2,
@@ -154,7 +155,7 @@ export const APIKEY_RETRY_CONFIG = Object.freeze({
 });
 
 // 📋 错误代码常量
-export const APIKEY_ERROR_CODES = Object.freeze({
+export const APIKEY_ERROR_CODES = deepFreeze({
   INVALID_CREDENTIALS: "APIKEY_001",
   EXPIRED_CREDENTIALS: "APIKEY_002",
   INSUFFICIENT_PERMISSIONS: "APIKEY_003",
@@ -168,7 +169,7 @@ export const APIKEY_ERROR_CODES = Object.freeze({
 });
 
 // 🎯 缓存键常量
-export const APIKEY_CACHE_KEYS = Object.freeze({
+export const APIKEY_CACHE_KEYS = deepFreeze({
   VALIDATION: "apikey:validation:",
   USAGE_STATS: "apikey:usage:",
   USER_KEYS: "apikey:user:",
@@ -178,7 +179,7 @@ export const APIKEY_CACHE_KEYS = Object.freeze({
 });
 
 // 🎨 日志级别映射常量
-export const APIKEY_LOG_LEVELS = Object.freeze({
+export const APIKEY_LOG_LEVELS = deepFreeze({
   VALIDATION_SUCCESS: "debug",
   VALIDATION_FAILURE: "warn",
   CREATION: "info",
@@ -187,120 +188,3 @@ export const APIKEY_LOG_LEVELS = Object.freeze({
   USAGE_UPDATE: "debug",
   STATISTICS: "debug",
 });
-
-/**
- * API Key 工具函数
- */
-export class ApiKeyUtil {
-  /**
-   * 生成应用键
-   * @returns 应用键字符串
-   */
-  static generateAppKey(): string {
-    const uuid = uuidv4();
-    return `${APIKEY_DEFAULTS.APP_KEY_PREFIX}${uuid}`;
-  }
-
-  /**
-   * 生成访问令牌
-   * @param length 令牌长度
-   * @returns 访问令牌字符串
-   */
-  static generateAccessToken(
-    length: number = APIKEY_DEFAULTS.ACCESS_TOKEN_LENGTH,
-  ): string {
-    const charset = APIKEY_CONFIG.ACCESS_TOKEN_CHARSET;
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-    return result;
-  }
-
-  /**
-   * 验证应用键格式
-   * @param appKey 应用键
-   * @returns 是否有效
-   */
-  static isValidAppKey(appKey: string): boolean {
-    return APIKEY_VALIDATION_RULES.APP_KEY_PATTERN.test(appKey);
-  }
-
-  /**
-   * 验证访问令牌格式
-   * @param accessToken 访问令牌
-   * @returns 是否有效
-   */
-  static isValidAccessToken(accessToken: string): boolean {
-    return APIKEY_VALIDATION_RULES.ACCESS_TOKEN_PATTERN.test(accessToken);
-  }
-
-  /**
-   * 验证API Key名称格式
-   * @param name 名称
-   * @returns 是否有效
-   */
-  static isValidName(name: string): boolean {
-    return (
-      APIKEY_VALIDATION_RULES.NAME_PATTERN.test(name) &&
-      name.length >= APIKEY_CONFIG.MIN_NAME_LENGTH &&
-      name.length <= APIKEY_CONFIG.MAX_NAME_LENGTH
-    );
-  }
-
-  /**
-   * 检查API Key是否过期
-   * @param expiresAt 过期时间
-   * @returns 是否过期
-   */
-  static isExpired(expiresAt: Date | null): boolean {
-    if (!expiresAt) return false;
-    return expiresAt < new Date();
-  }
-
-  /**
-   * 检查API Key是否即将过期
-   * @param expiresAt 过期时间
-   * @param warningDays 警告天数
-   * @returns 是否即将过期
-   */
-  static isNearExpiry(
-    expiresAt: Date | null,
-    warningDays: number = APIKEY_TIME_CONFIG.EXPIRY_WARNING_DAYS,
-  ): boolean {
-    if (!expiresAt) return false;
-    const warningDate = new Date();
-    warningDate.setDate(warningDate.getDate() + warningDays);
-    return expiresAt <= warningDate;
-  }
-
-  /**
-   * 计算使用率百分比
-   * @param current 当前使用量
-   * @param limit 限制量
-   * @returns 使用率百分比
-   */
-  static calculateUsagePercentage(current: number, limit: number): number {
-    if (limit <= 0) return 0;
-    return Math.round((current / limit) * 100);
-  }
-
-  /**
-   * 生成默认API Key名称
-   * @param index 索引
-   * @returns 默认名称
-   */
-  static generateDefaultName(index: number = 1): string {
-    return `${APIKEY_DEFAULTS.DEFAULT_NAME_PREFIX} ${index}`;
-  }
-
-  /**
-   * 清理访问令牌（用于日志记录）
-   * @param accessToken 访问令牌
-   * @returns 清理后的令牌
-   */
-  static sanitizeAccessToken(accessToken: string): string {
-    if (accessToken.length <= 8) return "***";
-    return `${accessToken.substring(0, 4)}***${accessToken.substring(accessToken.length - 4)}`;
-  }
-}

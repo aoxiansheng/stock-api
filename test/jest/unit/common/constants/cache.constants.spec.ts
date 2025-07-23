@@ -4,12 +4,10 @@ import {
   CACHE_SUCCESS_MESSAGES,
   CACHE_KEYS,
   CACHE_TTL,
-  CACHE_CONFIG,
-  CACHE_PERFORMANCE_CONFIG,
   CACHE_OPERATIONS,
   CACHE_METRICS,
   CACHE_STATUS,
-  CACHE_DEFAULTS,
+  CACHE_CONSTANTS,
 } from '../../../../../src/cache/constants/cache.constants';
 
 describe('Cache Constants', () => {
@@ -174,6 +172,17 @@ describe('Cache Constants', () => {
       expect(patterns).toContain('market:status:*');
       expect(patterns).toContain('symbol:mapping:*');
       expect(patterns).toContain('data:mapping:*');
+    });
+  });
+
+  describe('CACHE_CONFIG', () => {
+    it('should have correct configuration values', () => {
+      expect(CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB).toBe(10);
+      expect(CACHE_CONSTANTS.STRATEGY_CONFIG.ENABLE_COMPRESSION).toBe(true);
+    });
+    
+    it('should define performance thresholds', () => {
+      expect(CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS).toBe(100);
     });
   });
 });

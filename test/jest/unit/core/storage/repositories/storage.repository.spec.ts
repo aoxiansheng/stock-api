@@ -4,7 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Model } from 'mongoose';
 
-import { CACHE_CONFIG } from '../../../../../../src/cache/constants/cache.constants';
+import { CACHE_CONSTANTS } from '../../../../../../src/cache/constants/cache.constants';
 import { createLogger } from '../../../../../../src/common/config/logger.config';
 import {
   STORAGE_ERROR_MESSAGES,
@@ -133,21 +133,21 @@ describe('StorageRepository', () => {
       it('should generate correct cache key with prefix and separator', () => {
         const key = 'test-key';
         const result = (repository as any).getCacheKey(key);
-        const expected = `${CACHE_CONFIG.KEY_PREFIX}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}${key}`;
+        const expected = `${CACHE_CONSTANTS.KEY_PREFIXES.STORAGE}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}${key}`;
         expect(result).toBe(expected);
       });
 
       it('should handle empty key', () => {
         const key = '';
         const result = (repository as any).getCacheKey(key);
-        const expected = `${CACHE_CONFIG.KEY_PREFIX}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}`;
+        const expected = `${CACHE_CONSTANTS.KEY_PREFIXES.STORAGE}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}`;
         expect(result).toBe(expected);
       });
 
       it('should handle special characters in key', () => {
         const key = 'test:key@with-special_chars';
         const result = (repository as any).getCacheKey(key);
-        const expected = `${CACHE_CONFIG.KEY_PREFIX}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}${key}`;
+        const expected = `${CACHE_CONSTANTS.KEY_PREFIXES.STORAGE}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}${key}`;
         expect(result).toBe(expected);
       });
     });

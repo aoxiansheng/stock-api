@@ -9,7 +9,8 @@
  * - 国际化就绪：为多语言支持预留接口
  */
 
-export const OPERATION_CONSTANTS = Object.freeze({
+import { deepFreeze } from "@common/utils/object-immutability.util";
+export const OPERATION_CONSTANTS = deepFreeze({
   // CRUD操作消息
   CRUD_MESSAGES: {
     // 成功消息

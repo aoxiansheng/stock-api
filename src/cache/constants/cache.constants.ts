@@ -3,6 +3,8 @@
  * 🎯 统一定义缓存相关的常量，确保系统一致性
  */
 
+import { CACHE_CONSTANTS } from '../../common/constants/unified/unified-cache-config.constants';
+
 /**
  * 缓存错误消息常量
  */
@@ -63,6 +65,7 @@ export const CACHE_SUCCESS_MESSAGES = Object.freeze({
 
 /**
  * 缓存键常量
+ * 注：更多通用键前缀请使用 CACHE_CONSTANTS.KEY_PREFIXES
  */
 export const CACHE_KEYS = Object.freeze({
   STOCK_QUOTE: "stock:quote:",
@@ -71,50 +74,22 @@ export const CACHE_KEYS = Object.freeze({
   MARKET_STATUS: "market:status:",
   SYMBOL_MAPPING: "symbol:mapping:",
   DATA_MAPPING: "data:mapping:",
-  LOCK_PREFIX: "lock:",
-  HEALTH_CHECK_PREFIX: "health_check:",
+  LOCK_PREFIX: CACHE_CONSTANTS.KEY_PREFIXES.LOCK,
+  HEALTH_CHECK_PREFIX: CACHE_CONSTANTS.KEY_PREFIXES.HEALTH,
 } as const);
 
 /**
- * 缓存TTL常量
+ * 缓存TTL常量 - 模块特定TTL设置
+ * 注：通用TTL设置请使用 CACHE_CONSTANTS.TTL_SETTINGS
  */
 export const CACHE_TTL = Object.freeze({
-  REALTIME_DATA: 5, // 5秒
-  BASIC_INFO: 3600, // 1小时
+  REALTIME_DATA: CACHE_CONSTANTS.TTL_SETTINGS.REALTIME_DATA_TTL,
+  BASIC_INFO: CACHE_CONSTANTS.TTL_SETTINGS.BASIC_INFO_TTL,
   MARKET_STATUS: 60, // 1分钟
-  MAPPING_RULES: 1800, // 30分钟
-  DEFAULT: 3600, // 1小时
+  MAPPING_RULES: CACHE_CONSTANTS.TTL_SETTINGS.MAPPING_CONFIG_TTL,
+  DEFAULT: CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL,
   LOCK_TTL: 30, // 30秒锁
-  HEALTH_CHECK_TTL: 60, // 健康检查TTL（1分钟）
-} as const);
-
-/**
- * 缓存配置常量
- */
-export const CACHE_CONFIG = Object.freeze({
-  KEY_PREFIX: "stock-data",
-  COMPRESSION_MIN_SIZE: 1024, // 1KB
-  COMPRESSION_SAVING_RATIO: 0.8, // 压缩后大小需小于原大小的80%
-  DEFAULT_COMPRESSION_THRESHOLD: 1024, // 默认压缩阈值
-  DEFAULT_SERIALIZER: "json", // 默认序列化器
-  MAX_MEMORY_USAGE_RATIO: 0.9, // 最大内存使用率（90%）
-  LOCK_RETRY_DELAY_MIN: 50, // 锁重试最小延迟（毫秒）
-  LOCK_RETRY_DELAY_MAX: 150, // 锁重试最大延迟（毫秒）
-  STATS_CLEANUP_INTERVAL: 3600000, // 统计清理间隔（1小时）
-  HEALTH_CHECK_INTERVAL: 300000, // 健康检查间隔（5分钟）
-} as const);
-
-/**
- * 缓存性能配置常量
- */
-export const CACHE_PERFORMANCE_CONFIG = Object.freeze({
-  SLOW_OPERATION_THRESHOLD_MS: 100, // 慢操作阈值（毫秒）
-  BATCH_SIZE_LIMIT: 1000, // 批量操作大小限制
-  MAX_KEY_LENGTH: 250, // 最大键长度
-  MAX_VALUE_SIZE_MB: 16, // 最大值大小（MB）
-  MEMORY_WARNING_THRESHOLD: 0.8, // 内存警告阈值（80%）
-  MISS_RATE_WARNING_THRESHOLD: 0.5, // 未命中率警告阈值（50%）
-  LATENCY_WARNING_THRESHOLD_MS: 50, // 延迟警告阈值（毫秒）
+  HEALTH_CHECK_TTL: CACHE_CONSTANTS.TTL_SETTINGS.HEALTH_CHECK_TTL,
 } as const);
 
 /**
@@ -143,7 +118,19 @@ export const CACHE_OPERATIONS = Object.freeze({
 } as const);
 
 /**
- * 缓存指标常量
+ * 缓存状态常量
+ */
+export const CACHE_STATUS = Object.freeze({
+  HEALTHY: "healthy",
+  WARNING: "warning",
+  UNHEALTHY: "unhealthy",
+  CONNECTED: "connected",
+  DISCONNECTED: "disconnected",
+  DEGRADED: "degraded",
+} as const);
+
+/**
+ * 缓存性能指标常量
  */
 export const CACHE_METRICS = Object.freeze({
   HITS: "cache_hits",
@@ -161,31 +148,5 @@ export const CACHE_METRICS = Object.freeze({
   SLOW_OPERATIONS: "cache_slow_operations",
 } as const);
 
-/**
- * 缓存状态常量
- */
-export const CACHE_STATUS = Object.freeze({
-  HEALTHY: "healthy",
-  WARNING: "warning",
-  UNHEALTHY: "unhealthy",
-  CONNECTED: "connected",
-  DISCONNECTED: "disconnected",
-  DEGRADED: "degraded",
-} as const);
-
-/**
- * 缓存默认值常量
- */
-export const CACHE_DEFAULTS = Object.freeze({
-  TTL: 3600, // 1小时
-  COMPRESSION_THRESHOLD: 1024, // 1KB
-  SERIALIZER: "json",
-  MAX_MEMORY: 0, // 无限制
-  LOCK_TTL: 30, // 30秒
-  RETRY_DELAY: 100, // 100毫秒
-  BATCH_SIZE: 100,
-  TIMEOUT_MS: 5000, // 5秒
-  HIT_RATE: 0.85, // 85%
-  MISS_RATE: 0.15, // 15%
-  LATENCY_MS: 1, // 1毫秒
-} as const);
+// 移除以下重复的常量，改为导出通用配置
+export { CACHE_CONSTANTS };

@@ -1,6 +1,6 @@
 # 重复标识符分析报告
 
-生成时间: 7/22/2025, 1:53:04 PM
+生成时间: 7/22/2025, 11:29:15 PM
 
 ## 📊 统计摘要
 
@@ -126,7 +126,7 @@ Constants ending with _OPERATIONS (14 个常量)
 #### CACHE_OPERATIONS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 122
+  - **行号**: 123
   - **值**: `Object.freeze({...})`
 
 #### RATE_LIMIT_OPERATIONS
@@ -220,13 +220,13 @@ Constants ending with _MESSAGES (33 个常量)
 #### CACHE_WARNING_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 33
+  - **行号**: 34
   - **值**: `Object.freeze({...})`
 
 #### CACHE_SUCCESS_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 49
+  - **行号**: 50
   - **值**: `Object.freeze({...})`
 
 #### AUTH_ERROR_MESSAGES
@@ -464,13 +464,13 @@ Constants ending with _CONFIG (45 个常量)
 #### CACHE_CONFIG
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 93
+  - **行号**: 94
   - **值**: `Object.freeze({...})`
 
 #### CACHE_PERFORMANCE_CONFIG
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 109
+  - **行号**: 110
   - **值**: `Object.freeze({...})`
 
 #### RATE_LIMIT_CONFIG
@@ -660,8 +660,8 @@ Constants ending with _CONSTANTS (6 个常量)
 #### HTTP_CONSTANTS
 
 - **文件**: `src/common/constants/unified/http.constants.ts`
-  - **行号**: 12
-  - **值**: `Object.freeze({...})`
+  - **行号**: 14
+  - **值**: `deepFreeze({`
 
 #### OPERATION_CONSTANTS
 
@@ -672,8 +672,8 @@ Constants ending with _CONSTANTS (6 个常量)
 #### PERFORMANCE_CONSTANTS
 
 - **文件**: `src/common/constants/unified/performance.constants.ts`
-  - **行号**: 12
-  - **值**: `Object.freeze({...})`
+  - **行号**: 14
+  - **值**: `deepFreeze({`
 
 #### SYSTEM_CONSTANTS
 
@@ -706,7 +706,7 @@ Constants ending with _DEFAULTS (11 个常量)
 #### CACHE_DEFAULTS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 178
+  - **行号**: 179
   - **值**: `Object.freeze({...})`
 
 #### TRANSFORMATION_DEFAULTS
@@ -800,7 +800,7 @@ Constants ending with _METRICS (17 个常量)
 #### CACHE_METRICS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 147
+  - **行号**: 148
   - **值**: `Object.freeze({...})`
 
 #### RATE_LIMIT_METRICS
@@ -1016,7 +1016,7 @@ Constants ending with _WARNING_MESSAGES (7 个常量)
 #### CACHE_WARNING_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 33
+  - **行号**: 34
   - **值**: `Object.freeze({...})`
 
 #### DATA_MAPPER_WARNING_MESSAGES
@@ -1062,7 +1062,7 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
 #### CACHE_SUCCESS_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 49
+  - **行号**: 50
   - **值**: `Object.freeze({...})`
 
 #### DATA_MAPPER_SUCCESS_MESSAGES
@@ -1344,13 +1344,13 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
 #### CACHE_STATUS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 166
+  - **行号**: 167
   - **值**: `Object.freeze({...})`
 
 #### CACHE_DEFAULTS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 178
+  - **行号**: 179
   - **值**: `Object.freeze({...})`
 
 #### MARKET_STATUS_CAPABILITY_MAP
@@ -2239,13 +2239,13 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
   - **行号**: 11
   - **类型**: class
 
-#### DateRangeValidator
+#### MonitoringDateRangeValidator
 
 - **文件**: `src/monitoring/dto/monitoring-query.dto.ts`
   - **行号**: 12
   - **类型**: class
 
-#### IsValidDateRangeConstraint
+#### SecurityDateRangeValidator
 
 - **文件**: `src/security/dto/security-query.dto.ts`
   - **行号**: 38

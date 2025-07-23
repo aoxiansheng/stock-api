@@ -6,8 +6,12 @@ import { Permission, UserRole } from '../../../../src/auth/enums/user-role.enum'
 import {
   PERMISSION_OPERATIONS,
   PERMISSION_MESSAGES,
-  PermissionTemplateUtil,
+  PERMISSION_DETAIL_TEMPLATES,
+  PERMISSION_UTILS,
 } from '../../../../src/auth/constants/permission.constants';
+
+// 从工具文件导入PermissionTemplateUtil
+import { PermissionTemplateUtil } from '../../../../src/auth/utils/permission.utils';
 
 describe('PermissionService Optimization Features', () => {
   let service: PermissionService;

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { CacheService } from '../../../../src/cache/cache.service';
 import {
-  CACHE_PERFORMANCE_CONFIG,
+  CACHE_CONSTANTS,
   CACHE_WARNING_MESSAGES,
   CACHE_OPERATIONS,
 } from '../../../../src/cache/constants/cache.constants';
@@ -67,7 +67,7 @@ describe('CacheService Optimization Features', () => {
 
   describe('Key Length Validation', () => {
     it('should throw an exception when key length exceeds maximum', async () => {
-      const longKey = 'x'.repeat(CACHE_PERFORMANCE_CONFIG.MAX_KEY_LENGTH + 1);
+      const longKey = 'x'.repeat(CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH + 1);
       
       await expect(service.set(longKey, 'test value')).rejects.toThrow(BadRequestException);
     });
@@ -88,7 +88,7 @@ describe('CacheService Optimization Features', () => {
 
   describe('Value Size Validation', () => {
     it('should warn when value size exceeds maximum', async () => {
-      const largeValue = 'x'.repeat(CACHE_PERFORMANCE_CONFIG.MAX_VALUE_SIZE_MB * 1024 * 1024 + 1);
+      const largeValue = 'x'.repeat(CACHE_CONSTANTS.SIZE_LIMITS.MAX_VALUE_SIZE_MB * 1024 * 1024 + 1);
       
       await service.set('test:key', largeValue);
       
@@ -117,7 +117,7 @@ describe('CacheService Optimization Features', () => {
   describe('Batch Size Validation', () => {
     it('should warn when batch size exceeds limit for mset', async () => {
       const largeEntries = new Map();
-      for (let i = 0; i < CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT + 1; i++) {
+      for (let i = 0; i < CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE + 1; i++) {
         largeEntries.set(`key:${i}`, `value:${i}`);
       }
       
@@ -128,14 +128,14 @@ describe('CacheService Optimization Features', () => {
         expect.objectContaining({
           operation: CACHE_OPERATIONS.MSET,
           batchSize: largeEntries.size,
-          limit: CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT,
+          limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
         })
       );
     });
 
     it('should warn when batch size exceeds limit for mget', async () => {
       const largeKeys = Array.from(
-        { length: CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT + 1 },
+        { length: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE + 1 },
         (_, i) => `key:${i}`
       );
       
@@ -151,7 +151,7 @@ describe('CacheService Optimization Features', () => {
         expect.objectContaining({
           operation: CACHE_OPERATIONS.MGET,
           batchSize: largeKeys.length,
-          limit: CACHE_PERFORMANCE_CONFIG.BATCH_SIZE_LIMIT,
+          limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
         })
       );
     });
@@ -162,14 +162,14 @@ describe('CacheService Optimization Features', () => {
       // Mock a slow Redis operation
       mockRedis.setex.mockImplementation(() => 
         new Promise(resolve => 
-          setTimeout(() => resolve('OK'), CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS + 10)
+          setTimeout(() => resolve('OK'), CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS + 10)
         )
       );
       
       const setPromise = service.set('test:key', 'test value');
       
       // Manually advance timers to trigger the setTimeout in the mock
-      jest.advanceTimersByTime(CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS + 10);
+      jest.advanceTimersByTime(CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS + 10);
       
       await setPromise;
       
@@ -178,7 +178,7 @@ describe('CacheService Optimization Features', () => {
         expect.objectContaining({
           operation: CACHE_OPERATIONS.SET,
           key: 'test:key',
-          threshold: CACHE_PERFORMANCE_CONFIG.SLOW_OPERATION_THRESHOLD_MS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
         })
       );
     });
@@ -196,7 +196,7 @@ describe('CacheService Optimization Features', () => {
         expect.objectContaining({
           operation: CACHE_OPERATIONS.UPDATE_METRICS,
           pattern: 'miss:*',
-          threshold: CACHE_PERFORMANCE_CONFIG.MISS_RATE_WARNING_THRESHOLD,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
         })
       );
     });

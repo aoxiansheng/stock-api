@@ -7,8 +7,8 @@ import {
   APIKEY_OPERATIONS,
   APIKEY_MESSAGES,
   APIKEY_DEFAULTS,
-  ApiKeyUtil,
 } from '../../../../src/auth/constants/apikey.constants';
+import {ApiKeyUtil } from '../../../../src/auth/utils/apikey.utils';
 import { ERROR_MESSAGES } from '../../../../src/common/constants/error-messages.constants';
 import { Permission } from '../../../../src/auth/enums/user-role.enum';
 

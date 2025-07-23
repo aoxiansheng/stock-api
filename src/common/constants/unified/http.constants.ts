@@ -9,7 +9,9 @@
  * - 统一性：确保整个应用的错误消息风格一致
  */
 
-export const HTTP_CONSTANTS = Object.freeze({
+import { deepFreeze } from '@common/utils/object-immutability.util';
+
+export const HTTP_CONSTANTS = deepFreeze({
   // HTTP状态码
   STATUS_CODES: {
     // 2xx 成功状态码
@@ -34,7 +36,7 @@ export const HTTP_CONSTANTS = Object.freeze({
     BAD_GATEWAY: 502,
     SERVICE_UNAVAILABLE: 503,
     GATEWAY_TIMEOUT: 504,
-  } as const,
+  },
 
   // 统一错误消息（中文）
   ERROR_MESSAGES: {
@@ -84,7 +86,7 @@ export const HTTP_CONSTANTS = Object.freeze({
     DATA_SYNC_FAILED: "数据同步失败",
     CACHE_ERROR: "缓存错误",
     DATABASE_ERROR: "数据库错误",
-  } as const,
+  },
 
   // 成功消息
   SUCCESS_MESSAGES: {
@@ -96,7 +98,7 @@ export const HTTP_CONSTANTS = Object.freeze({
     VALIDATION_SUCCESS: "验证成功",
     PROCESS_SUCCESS: "处理成功",
     SYNC_SUCCESS: "同步成功",
-  } as const,
+  },
 });
 
 // 导出类型定义

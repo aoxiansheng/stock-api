@@ -6,7 +6,7 @@ import { Model } from "mongoose";
 
 import { createLogger } from "@common/config/logger.config";
 
-import { CACHE_CONFIG } from "../../../cache/constants/cache.constants";
+import { CACHE_CONSTANTS } from "../../../cache/constants/cache.constants";
 import {
   STORAGE_ERROR_MESSAGES,
   STORAGE_KEY_PATTERNS,
@@ -34,7 +34,7 @@ export class StorageRepository {
   // --- Cache Methods ---
 
   private getCacheKey(key: string): string {
-    return `${CACHE_CONFIG.KEY_PREFIX}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}${key}`;
+    return `${CACHE_CONSTANTS.KEY_PREFIXES.STORAGE}${STORAGE_KEY_PATTERNS.CACHE_KEY_SEPARATOR}${key}`;
   }
 
   async storeInCache(

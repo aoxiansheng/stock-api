@@ -47,10 +47,12 @@ export class RuleEngineService implements IRuleEngine {
     const operation = ALERTING_OPERATIONS.EVALUATE_RULES_SCHEDULED;
 
     try {
-      // 过滤相关的指标数据
-      const relevantData = metricData.filter(
-        (data) => data.metric === rule.metric,
-      );
+      // 过滤相关的指标数据，并确保数据点有效
+      const relevantData = metricData
+        .filter(
+          (data) =>
+            data && data.metric === rule.metric && data.timestamp && data.value != null,
+        );
 
       if (relevantData.length === 0) {
         const message = AlertingTemplateUtil.formatAlertMessage(
@@ -243,8 +245,8 @@ export class RuleEngineService implements IRuleEngine {
           error: error.message,
         }),
       );
-      // 🎯 默认返回 false，避免因缓存问题阻止告警
-      return false;
+      // 🎯 重新抛出错误，让调用者知道评估失败
+      throw error;
     }
   }
 
@@ -503,6 +505,7 @@ export class RuleEngineService implements IRuleEngine {
   ): Promise<Record<string, boolean>> {
     const operation = ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION;
     const results: Record<string, boolean> = {};
+    let hasErrors = false;
 
     this.logger.debug(
       "批量检查冷却状态",
@@ -512,35 +515,40 @@ export class RuleEngineService implements IRuleEngine {
       }),
     );
 
-    try {
-      const promises = ruleIds.map(async (ruleId) => {
-        const inCooldown = await this.isInCooldown(ruleId);
-        results[ruleId] = inCooldown;
-      });
+    const promises = ruleIds.map((ruleId) => this.isInCooldown(ruleId).catch(error => {
+      hasErrors = true;
+      // 记录单个错误详情但不中断批量操作
+      this.logger.error('批量冷却检查中的单个规则失败', sanitizeLogData({ operation, ruleId, error: error.message }));
+      return false; // 失败时默认为 false
+    }));
 
-      await Promise.all(promises);
+    const cooldownStates = await Promise.all(promises);
 
-      this.logger.debug(
-        "批量冷却检查完成",
-        sanitizeLogData({
-          operation,
-          resultsCount: Object.keys(results).length,
-          inCooldownCount: Object.values(results).filter(Boolean).length,
-        }),
-      );
+    ruleIds.forEach((ruleId, index) => {
+      results[ruleId] = cooldownStates[index];
+    });
 
-      return results;
-    } catch (error) {
+    if (hasErrors) {
       this.logger.error(
         "批量冷却检查失败",
         sanitizeLogData({
           operation,
           ruleIdsCount: ruleIds.length,
-          error: error.message,
+          error: "一个或多个规则的冷却状态检查失败",
         }),
       );
-      throw error;
     }
+
+    this.logger.debug(
+      "批量冷却检查完成",
+      sanitizeLogData({
+        operation,
+        resultsCount: Object.keys(results).length,
+        inCooldownCount: Object.values(results).filter(Boolean).length,
+      }),
+    );
+
+    return results;
   }
 
   /**

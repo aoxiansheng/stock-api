@@ -14,8 +14,8 @@ import {
   APIKEY_OPERATIONS,
   APIKEY_MESSAGES,
   APIKEY_DEFAULTS,
-  ApiKeyUtil,
 } from "../constants/apikey.constants";
+import { ApiKeyUtil } from "../utils/apikey.utils";
 import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
 import { CreateApiKeyDto } from "../dto/apikey.dto";
 import { ApiKey, ApiKeyDocument } from "../schemas/apikey.schema";

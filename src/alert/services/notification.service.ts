@@ -3,11 +3,15 @@ import { Injectable, BadRequestException, OnModuleInit } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
 import { notificationConfig } from "../../common/config/notification.config";
+// 更新导入路径，从utils导入NotificationTemplateUtil
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
-  NotificationTemplateUtil,
 } from "../constants/notification.constants";
+
+// 从工具文件导入NotificationTemplateUtil
+import { NotificationTemplateUtil } from "../utils/notification.utils";
+
 //import { IAlert, IAlertRule } from '../interfaces/alert.interface';
 import {
   NotificationSender,

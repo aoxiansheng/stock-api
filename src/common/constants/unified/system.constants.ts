@@ -11,8 +11,9 @@
 
 import { DataState } from './operations.constants';
 import { OperationStatus } from '../../../metrics/enums/auth-type.enum';
+import { deepFreeze } from '@common/utils/object-immutability.util';
 
-export const SYSTEM_CONSTANTS = Object.freeze({
+export const SYSTEM_CONSTANTS = deepFreeze({
   // 通用操作状态
   OPERATION_STATUS: {
     SUCCESS: "success",

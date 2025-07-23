@@ -2,9 +2,10 @@
  * 权限服务常量定义
  * 🎯 符合开发规范指南 - 统一常量管理
  */
+import { deepFreeze } from "@common/utils/object-immutability.util";
 
 // 📝 操作名称常量
-export const PERMISSION_OPERATIONS = Object.freeze({
+export const PERMISSION_OPERATIONS = deepFreeze({
   CHECK_PERMISSIONS: "checkPermissions",
   INVALIDATE_CACHE: "invalidateCacheFor",
   CREATE_CONTEXT: "createPermissionContext",
@@ -20,7 +21,7 @@ export const PERMISSION_OPERATIONS = Object.freeze({
 });
 
 // 📢 消息常量
-export const PERMISSION_MESSAGES = Object.freeze({
+export const PERMISSION_MESSAGES = deepFreeze({
   // 成功消息
   CHECK_PASSED: "权限检查通过",
   CACHE_HIT: "权限检查命中缓存",
@@ -57,7 +58,7 @@ export const PERMISSION_MESSAGES = Object.freeze({
 });
 
 // 🎯 详情模板常量
-export const PERMISSION_DETAIL_TEMPLATES = Object.freeze({
+export const PERMISSION_DETAIL_TEMPLATES = deepFreeze({
   CHECK_PASSED: "权限检查通过: {subjectName}",
   CHECK_FAILED: "权限检查失败: {subjectName}",
   MISSING_PERMISSIONS: "缺失权限: [{permissions}]",
@@ -71,7 +72,7 @@ export const PERMISSION_DETAIL_TEMPLATES = Object.freeze({
 });
 
 // 🔧 权限配置常量
-export const PERMISSION_CONFIG = Object.freeze({
+export const PERMISSION_CONFIG = deepFreeze({
   DEFAULT_CACHE_TTL_SECONDS: 300, // 5分钟
   MAX_CACHE_KEY_LENGTH: 250,
   SLOW_CHECK_THRESHOLD_MS: 100,
@@ -83,7 +84,7 @@ export const PERMISSION_CONFIG = Object.freeze({
 });
 
 // 📊 权限检查状态常量
-export const PERMISSION_CHECK_STATUS = Object.freeze({
+export const PERMISSION_CHECK_STATUS = deepFreeze({
   ALLOWED: "allowed",
   DENIED: "denied",
   PARTIAL: "partial",
@@ -93,7 +94,7 @@ export const PERMISSION_CHECK_STATUS = Object.freeze({
 });
 
 // 🏷️ 权限主体类型常量
-export const PERMISSION_SUBJECT_TYPES = Object.freeze({
+export const PERMISSION_SUBJECT_TYPES = deepFreeze({
   USER: "user",
   API_KEY: "api_key",
   SERVICE: "service",
@@ -103,7 +104,7 @@ export const PERMISSION_SUBJECT_TYPES = Object.freeze({
 });
 
 // 📈 权限指标常量
-export const PERMISSION_METRICS = Object.freeze({
+export const PERMISSION_METRICS = deepFreeze({
   CHECK_COUNT: "permission_check_count",
   CHECK_DURATION: "permission_check_duration",
   CACHE_HIT_RATE: "permission_cache_hit_rate",
@@ -117,7 +118,7 @@ export const PERMISSION_METRICS = Object.freeze({
 });
 
 // 🎛️ 缓存键前缀常量
-export const PERMISSION_CACHE_KEYS = Object.freeze({
+export const PERMISSION_CACHE_KEYS = deepFreeze({
   PERMISSION_CHECK: "permission:check:",
   EFFECTIVE_PERMISSIONS: "permission:effective:",
   ROLE_PERMISSIONS: "permission:role:",
@@ -127,7 +128,7 @@ export const PERMISSION_CACHE_KEYS = Object.freeze({
 });
 
 // 🔍 权限验证规则常量
-export const PERMISSION_VALIDATION_RULES = Object.freeze({
+export const PERMISSION_VALIDATION_RULES = deepFreeze({
   MIN_SUBJECT_ID_LENGTH: 1,
   MAX_SUBJECT_ID_LENGTH: 100,
   MIN_PERMISSION_NAME_LENGTH: 1,
@@ -140,7 +141,7 @@ export const PERMISSION_VALIDATION_RULES = Object.freeze({
 });
 
 // ⚙️ 权限检查选项常量
-export const PERMISSION_CHECK_OPTIONS = Object.freeze({
+export const PERMISSION_CHECK_OPTIONS = deepFreeze({
   STRICT_MODE: "strict",
   LENIENT_MODE: "lenient",
   CACHE_ENABLED: "cache_enabled",
@@ -152,7 +153,7 @@ export const PERMISSION_CHECK_OPTIONS = Object.freeze({
 });
 
 // 🎯 权限级别常量
-export const PERMISSION_LEVELS = Object.freeze({
+export const PERMISSION_LEVELS = deepFreeze({
   NONE: 0,
   READ: 1,
   WRITE: 2,
@@ -162,7 +163,7 @@ export const PERMISSION_LEVELS = Object.freeze({
 });
 
 // 📋 权限组常量
-export const PERMISSION_GROUPS = Object.freeze({
+export const PERMISSION_GROUPS = deepFreeze({
   STOCK_DATA: "stock_data",
   USER_MANAGEMENT: "user_management",
   API_MANAGEMENT: "api_management",
@@ -174,7 +175,7 @@ export const PERMISSION_GROUPS = Object.freeze({
 });
 
 // 🔄 权限继承规则常量
-export const PERMISSION_INHERITANCE = Object.freeze({
+export const PERMISSION_INHERITANCE = deepFreeze({
   ROLE_BASED: "role_based",
   PERMISSION_BASED: "permission_based",
   HYBRID: "hybrid",
@@ -182,7 +183,7 @@ export const PERMISSION_INHERITANCE = Object.freeze({
 });
 
 // ⏱️ 权限时间配置常量
-export const PERMISSION_TIMING = Object.freeze({
+export const PERMISSION_TIMING = deepFreeze({
   CHECK_TIMEOUT_MS: 5000,
   CACHE_REFRESH_INTERVAL_MS: 60000,
   INVALIDATION_BATCH_SIZE: 100,
@@ -191,7 +192,7 @@ export const PERMISSION_TIMING = Object.freeze({
 });
 
 // 🚨 权限错误代码常量
-export const PERMISSION_ERROR_CODES = Object.freeze({
+export const PERMISSION_ERROR_CODES = deepFreeze({
   PERMISSION_DENIED: "PERM_001",
   ROLE_REQUIRED: "PERM_002",
   INVALID_SUBJECT: "PERM_003",
@@ -205,7 +206,7 @@ export const PERMISSION_ERROR_CODES = Object.freeze({
 });
 
 // 🎨 权限日志级别常量
-export const PERMISSION_LOG_LEVELS = Object.freeze({
+export const PERMISSION_LOG_LEVELS = deepFreeze({
   TRACE: "trace",
   DEBUG: "debug",
   INFO: "info",
@@ -215,7 +216,7 @@ export const PERMISSION_LOG_LEVELS = Object.freeze({
 });
 
 // 📊 权限统计类型常量
-export const PERMISSION_STATS_TYPES = Object.freeze({
+export const PERMISSION_STATS_TYPES = deepFreeze({
   HOURLY: "hourly",
   DAILY: "daily",
   WEEKLY: "weekly",
@@ -224,80 +225,14 @@ export const PERMISSION_STATS_TYPES = Object.freeze({
 });
 
 // 🔧 权限工具函数常量
-export const PERMISSION_UTILS = Object.freeze({
-  TEMPLATE_PLACEHOLDER_PATTERN: /\{(\w+)\}/g,
-  CACHE_KEY_SANITIZE_PATTERN: /[^a-zA-Z0-9_:-]/g,
-  PERMISSION_NAME_NORMALIZE_PATTERN: /[^a-zA-Z0-9_:.-]/g,
-  ROLE_NAME_NORMALIZE_PATTERN: /[^a-zA-Z0-9_-]/g,
+export const PERMISSION_UTILS = deepFreeze({
+  // 存储正则模式字符串和标志，而非正则对象
+  TEMPLATE_PLACEHOLDER_PATTERN_SOURCE: "\\{(\\w+)\\}",
+  TEMPLATE_PLACEHOLDER_PATTERN_FLAGS: "g",
+  CACHE_KEY_SANITIZE_PATTERN_SOURCE: "[^a-zA-Z0-9_:-]",
+  CACHE_KEY_SANITIZE_PATTERN_FLAGS: "g",
+  PERMISSION_NAME_NORMALIZE_PATTERN_SOURCE: "[^a-zA-Z0-9_:.-]",
+  PERMISSION_NAME_NORMALIZE_PATTERN_FLAGS: "g",
+  ROLE_NAME_NORMALIZE_PATTERN_SOURCE: "[^a-zA-Z0-9_-]",
+  ROLE_NAME_NORMALIZE_PATTERN_FLAGS: "g",
 });
-
-/**
- * 权限模板工具函数
- */
-export class PermissionTemplateUtil {
-  /**
-   * 替换模板中的占位符
-   * @param template 模板字符串
-   * @param params 参数对象
-   * @returns 替换后的字符串
-   */
-  static replaceTemplate(
-    template: string,
-    params: Record<string, any>,
-  ): string {
-    return template.replace(
-      PERMISSION_UTILS.TEMPLATE_PLACEHOLDER_PATTERN,
-      (match, key) => {
-        const value = params[key];
-        if (Array.isArray(value)) {
-          return value.join(PERMISSION_CONFIG.PERMISSION_LIST_SEPARATOR + " ");
-        }
-        return value !== undefined ? String(value) : match;
-      },
-    );
-  }
-
-  /**
-   * 生成权限检查详情
-   * @param template 模板键名
-   * @param params 参数对象
-   * @returns 详情字符串
-   */
-  static generateDetails(
-    template: keyof typeof PERMISSION_DETAIL_TEMPLATES,
-    params: Record<string, any>,
-  ): string {
-    const templateString = PERMISSION_DETAIL_TEMPLATES[template];
-    return this.replaceTemplate(templateString, params);
-  }
-
-  /**
-   * 清理缓存键
-   * @param key 原始键
-   * @returns 清理后的键
-   */
-  static sanitizeCacheKey(key: string): string {
-    return key.replace(PERMISSION_UTILS.CACHE_KEY_SANITIZE_PATTERN, "_");
-  }
-
-  /**
-   * 标准化权限名称
-   * @param permission 权限名称
-   * @returns 标准化后的权限名称
-   */
-  static normalizePermissionName(permission: string): string {
-    return permission.replace(
-      PERMISSION_UTILS.PERMISSION_NAME_NORMALIZE_PATTERN,
-      "_",
-    );
-  }
-
-  /**
-   * 标准化角色名称
-   * @param role 角色名称
-   * @returns 标准化后的角色名称
-   */
-  static normalizeRoleName(role: string): string {
-    return role.replace(PERMISSION_UTILS.ROLE_NAME_NORMALIZE_PATTERN, "_");
-  }
-}
