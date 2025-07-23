@@ -24,7 +24,7 @@ import { MetricsHealthService } from "../metrics/services/metrics-health.service
 import { PerformanceMonitorService } from "../metrics/services/performance-monitor.service";
 
 import { GetDbPerformanceQueryDto } from "./dto/monitoring-query.dto";
-import { PerformanceMetricsDto } from "./dto/performance-metrics.dto";
+import { PerformanceMetricsDto } from "../metrics/dto/performance-metrics.dto";
 
 @ApiTags("📈 性能监控")
 @Controller("monitoring")

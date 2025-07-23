@@ -26,6 +26,7 @@ class DuplicateAnalyzer {
     };
     
     this.allFiles = [];           // 所有扫描的文件
+    this.fileNames = new Map();   // 文件名 -> [文件路径列表]
   }
 
   /**
@@ -336,6 +337,33 @@ class DuplicateAnalyzer {
   }
 
   /**
+   * 扫描文件名重复
+   */
+  scanFileNames() {
+    console.log('🔍 扫描文件名重复...');
+    
+    for (const file of this.allFiles) {
+      // 跳过测试文件以避免误报
+      if (file.includes('.spec.') || file.includes('.test.')) {
+        continue;
+      }
+      
+      // 提取基础文件名（不包含路径和扩展名）
+      const baseName = path.basename(file, '.ts');
+      
+      // 将文件按基础名称分组
+      if (!this.fileNames.has(baseName)) {
+        this.fileNames.set(baseName, []);
+      }
+      this.fileNames.get(baseName).push(file);
+    }
+    
+    // 统计重复的文件名数量
+    const duplicateCount = Array.from(this.fileNames.values()).filter(files => files.length > 1).length;
+    console.log(`发现 ${duplicateCount} 个重复的文件名`);
+  }
+
+  /**
    * 分析单个文件的使用情况
    */
   analyzeFileUsage(filePath) {
@@ -632,7 +660,8 @@ class DuplicateAnalyzer {
       constants: [],
       enums: [],
       dtos: [],
-      types: []
+      types: [],
+      filenames: []
     };
 
     // 查找完全相同的名称
@@ -646,6 +675,18 @@ class DuplicateAnalyzer {
             type: 'exact_duplicate'
           });
         }
+      }
+    }
+
+    // 查找重复的文件名
+    for (const [baseName, files] of this.fileNames.entries()) {
+      if (files.length > 1) {
+        duplicates.filenames.push({
+          name: baseName,
+          files: files,
+          count: files.length,
+          type: 'filename_duplicate'
+        });
       }
     }
 
@@ -702,16 +743,19 @@ class DuplicateAnalyzer {
     const totalEnums = this.results.enums.size;
     const totalDtos = this.results.dtos.size;
     const totalTypes = this.results.types.size;
+    const totalFiles = this.allFiles.length;
     const duplicateConstants = duplicates.constants.length;
     const duplicateEnums = duplicates.enums.length;
     const duplicateDtos = duplicates.dtos.length;
     const duplicateTypes = duplicates.types.length;
+    const duplicateFilenames = duplicates.filenames.length;
 
     report += '## 📊 统计摘要\n\n';
     report += `- 扫描的常量: ${totalConstants} (重复: ${duplicateConstants})\n`;
     report += `- 扫描的枚举: ${totalEnums} (重复: ${duplicateEnums})\n`;
     report += `- 扫描的DTO: ${totalDtos} (重复: ${duplicateDtos})\n`;
-    report += `- 扫描的Type: ${totalTypes} (重复: ${duplicateTypes})\n\n`;
+    report += `- 扫描的Type: ${totalTypes} (重复: ${duplicateTypes})\n`;
+    report += `- 扫描的文件: ${totalFiles} (重复文件名: ${duplicateFilenames})\n\n`;
 
     // 常量重复
     if (duplicates.constants.length > 0) {
@@ -769,6 +813,19 @@ class DuplicateAnalyzer {
           report += `- **文件**: \`${occurrence.file}\`\n`;
           report += `  - **行号**: ${occurrence.line}\n`;
           report += `  - **定义**: \`${occurrence.definition}\`\n\n`;
+        }
+      }
+    }
+
+    // 文件名重复
+    if (duplicates.filenames.length > 0) {
+      report += '## 🔄 重复的文件名\n\n';
+      for (const duplicate of duplicates.filenames) {
+        report += `### ${duplicate.name}\n\n`;
+        report += `发现 ${duplicate.count} 个同名文件:\n\n`;
+        
+        for (const file of duplicate.files) {
+          report += `- **文件**: \`${file}\`\n\n`;
         }
       }
     }
@@ -908,6 +965,9 @@ class DuplicateAnalyzer {
     // 扫描所有TypeScript文件以分析使用情况
     this.scanAllFiles();
 
+    // 扫描文件名重复
+    this.scanFileNames();
+
     // 查找重复项
     console.log('\n🔍 查找重复项...');
     const duplicates = this.findDuplicates();
@@ -944,6 +1004,13 @@ class DuplicateAnalyzer {
       console.log(`   - Type: ${duplicates.types.length}`);
     } else {
       console.log('\n✅ 未发现完全重复的标识符');
+    }
+
+    if (duplicates.filenames.length > 0) {
+      console.log(`\n📁 发现 ${duplicates.filenames.length} 个重复的文件名:`);
+      for (const duplicate of duplicates.filenames) {
+        console.log(`   - ${duplicate.name}: ${duplicate.count} 个文件`);
+      }
     }
 
     if (totalPatterns > 0) {

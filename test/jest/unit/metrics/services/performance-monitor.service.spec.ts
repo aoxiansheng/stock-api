@@ -11,7 +11,7 @@ import {
   PERFORMANCE_EVENTS,
   PERFORMANCE_THRESHOLDS,
   PERFORMANCE_DEFAULTS,
-} from '../../../../../src/metrics/constants/performance.constants';
+} from '../../../../../src/metrics/constants/metrics-performance.constants';
 
 describe('PerformanceMonitorService', () => {
   let service: PerformanceMonitorService;
@@ -440,7 +440,7 @@ describe('PerformanceMonitorService', () => {
       it('should return endpoint metrics', async () => {
         const mockStats = [
           {
-            key: 'metrics:endpoint_stats:GET:/api/v1/test',
+            key: 'endpoint_stats:GET:/api/v1/test',
             stats: {
               totalRequests: '100',
               successfulRequests: '95',

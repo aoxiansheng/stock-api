@@ -19,7 +19,7 @@ import {
   PERFORMANCE_EVENTS,
   API_KEY_CONSTANTS,
   REDIS_INFO,
-} from "../constants/performance.constants";
+} from "../constants/metrics-performance.constants";
 import {
   PerformanceSummaryDto,
   EndpointMetricsDto,
@@ -227,8 +227,8 @@ export class PerformanceMonitorService {
       const failedRequests = parseInt(stats.failedRequests || "0", 10);
 
       metrics.push({
-        endpoint: key.split(":").slice(3).join(":"),
-        method: key.split(":")[2],
+        endpoint: key.split(":")[2],
+        method: key.split(":")[1],
         totalRequests,
         successfulRequests: parseInt(stats.successfulRequests || "0", 10),
         failedRequests,

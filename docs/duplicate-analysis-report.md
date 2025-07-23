@@ -1,13 +1,14 @@
 # 重复标识符分析报告
 
-生成时间: 7/22/2025, 11:29:15 PM
+生成时间: 7/23/2025, 3:55:53 PM
 
 ## 📊 统计摘要
 
-- 扫描的常量: 262 (重复: 0)
+- 扫描的常量: 259 (重复: 0)
 - 扫描的枚举: 48 (重复: 4)
 - 扫描的DTO: 163 (重复: 0)
 - 扫描的Type: 44 (重复: 0)
+- 扫描的文件: 235 (重复文件名: 5)
 
 ## 🔄 重复的枚举
 
@@ -59,6 +60,64 @@
   - **行号**: 18
   - **值**: `"success"`
 
+## 🔄 重复的文件名
+
+### index
+
+发现 10 个同名文件:
+
+- **文件**: `src/alert/dto/index.ts`
+
+- **文件**: `src/alert/interfaces/index.ts`
+
+- **文件**: `src/alert/schemas/index.ts`
+
+- **文件**: `src/alert/services/index.ts`
+
+- **文件**: `src/alert/services/notification-senders/index.ts`
+
+- **文件**: `src/common/constants/unified/index.ts`
+
+- **文件**: `src/common/filters/index.ts`
+
+- **文件**: `src/common/interceptors/index.ts`
+
+- **文件**: `src/core/query/enums/index.ts`
+
+- **文件**: `src/metrics/dto/index.ts`
+
+### get-index-quote
+
+发现 2 个同名文件:
+
+- **文件**: `src/providers/longport/capabilities/get-index-quote.ts`
+
+- **文件**: `src/providers/longport-sg/capabilities/get-index-quote.ts`
+
+### get-stock-basic-info
+
+发现 2 个同名文件:
+
+- **文件**: `src/providers/longport/capabilities/get-stock-basic-info.ts`
+
+- **文件**: `src/providers/longport-sg/capabilities/get-stock-basic-info.ts`
+
+### get-stock-quote
+
+发现 2 个同名文件:
+
+- **文件**: `src/providers/longport/capabilities/get-stock-quote.ts`
+
+- **文件**: `src/providers/longport-sg/capabilities/get-stock-quote.ts`
+
+### types
+
+发现 2 个同名文件:
+
+- **文件**: `src/providers/longport/types.ts`
+
+- **文件**: `src/providers/longport-sg/types.ts`
+
 ## ⚠️ Type与Enum混用检测
 
 发现以下Type定义与Enum值存在混用，建议统一使用方式:
@@ -103,13 +162,13 @@ Constants ending with _OPERATIONS (14 个常量)
 
 - **文件**: `src/alert/constants/notification.constants.ts`
   - **行号**: 7
-  - **值**: `Object.freeze({...})`
+  - **值**: `deepFreeze({`
 
 #### APIKEY_OPERATIONS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 8
-  - **值**: `Object.freeze({...})`
+  - **行号**: 9
+  - **值**: `deepFreeze({`
 
 #### AUTH_OPERATIONS
 
@@ -120,13 +179,13 @@ Constants ending with _OPERATIONS (14 个常量)
 #### PERMISSION_OPERATIONS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 7
-  - **值**: `Object.freeze({...})`
+  - **行号**: 8
+  - **值**: `deepFreeze({`
 
 #### CACHE_OPERATIONS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 123
+  - **行号**: 98
   - **值**: `Object.freeze({...})`
 
 #### RATE_LIMIT_OPERATIONS
@@ -191,13 +250,13 @@ Constants ending with _MESSAGES (33 个常量)
 
 - **文件**: `src/alert/constants/notification.constants.ts`
   - **行号**: 21
-  - **值**: `Object.freeze({...})`
+  - **值**: `deepFreeze({`
 
 #### APIKEY_MESSAGES
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 24
-  - **值**: `Object.freeze({...})`
+  - **行号**: 25
+  - **值**: `deepFreeze({`
 
 #### AUTH_MESSAGES
 
@@ -208,56 +267,56 @@ Constants ending with _MESSAGES (33 个常量)
 #### PERMISSION_MESSAGES
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 23
-  - **值**: `Object.freeze({...})`
+  - **行号**: 24
+  - **值**: `deepFreeze({`
 
 #### CACHE_ERROR_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 9
+  - **行号**: 11
   - **值**: `Object.freeze({...})`
 
 #### CACHE_WARNING_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 34
+  - **行号**: 36
   - **值**: `Object.freeze({...})`
 
 #### CACHE_SUCCESS_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 50
+  - **行号**: 52
   - **值**: `Object.freeze({...})`
 
 #### AUTH_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 9
-  - **值**: `Object.freeze({...})`
+  - **行号**: 10
+  - **值**: `deepFreeze({`
 
 #### BUSINESS_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 65
-  - **值**: `Object.freeze({...})`
+  - **行号**: 66
+  - **值**: `deepFreeze({`
 
 #### SYSTEM_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 109
-  - **值**: `Object.freeze({...})`
+  - **行号**: 110
+  - **值**: `deepFreeze({`
 
 #### HTTP_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 135
-  - **值**: `Object.freeze({...})`
+  - **行号**: 136
+  - **值**: `deepFreeze({`
 
 #### ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 155
-  - **值**: `Object.freeze({...})`
+  - **行号**: 156
+  - **值**: `deepFreeze({`
 
 #### RATE_LIMIT_MESSAGES
 
@@ -375,7 +434,7 @@ Constants ending with _MESSAGES (33 个常量)
 
 ### *_CONFIG
 
-Constants ending with _CONFIG (45 个常量)
+Constants ending with _CONFIG (43 个常量)
 
 #### ALERT_HISTORY_CONFIG
 
@@ -410,38 +469,38 @@ Constants ending with _CONFIG (45 个常量)
 #### NOTIFICATION_CONFIG
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 102
-  - **值**: `Object.freeze({...})`
+  - **行号**: 112
+  - **值**: `deepFreeze({`
 
 #### NOTIFICATION_TIME_CONFIG
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 147
-  - **值**: `Object.freeze({...})`
+  - **行号**: 160
+  - **值**: `deepFreeze({`
 
 #### NOTIFICATION_RETRY_CONFIG
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 166
-  - **值**: `Object.freeze({...})`
+  - **行号**: 179
+  - **值**: `deepFreeze({`
 
 #### APIKEY_CONFIG
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 70
-  - **值**: `Object.freeze({...})`
+  - **行号**: 71
+  - **值**: `deepFreeze({`
 
 #### APIKEY_TIME_CONFIG
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 129
-  - **值**: `Object.freeze({...})`
+  - **行号**: 130
+  - **值**: `deepFreeze({`
 
 #### APIKEY_RETRY_CONFIG
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 148
-  - **值**: `Object.freeze({...})`
+  - **行号**: 149
+  - **值**: `deepFreeze({`
 
 #### AUTH_CONFIG
 
@@ -458,20 +517,8 @@ Constants ending with _CONFIG (45 个常量)
 #### PERMISSION_CONFIG
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 74
-  - **值**: `Object.freeze({...})`
-
-#### CACHE_CONFIG
-
-- **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 94
-  - **值**: `Object.freeze({...})`
-
-#### CACHE_PERFORMANCE_CONFIG
-
-- **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 110
-  - **值**: `Object.freeze({...})`
+  - **行号**: 75
+  - **值**: `deepFreeze({`
 
 #### RATE_LIMIT_CONFIG
 
@@ -619,7 +666,7 @@ Constants ending with _CONFIG (45 个常量)
 
 #### HEALTH_SCORE_CONFIG
 
-- **文件**: `src/metrics/constants/performance.constants.ts`
+- **文件**: `src/metrics/constants/metrics-performance.constants.ts`
   - **行号**: 120
   - **值**: `{`
 
@@ -651,12 +698,6 @@ Constants ending with _CONFIG (45 个常量)
 
 Constants ending with _CONSTANTS (6 个常量)
 
-#### CACHE_CONSTANTS
-
-- **文件**: `src/common/constants/unified/cache.constants.ts`
-  - **行号**: 12
-  - **值**: `Object.freeze({...})`
-
 #### HTTP_CONSTANTS
 
 - **文件**: `src/common/constants/unified/http.constants.ts`
@@ -666,8 +707,8 @@ Constants ending with _CONSTANTS (6 个常量)
 #### OPERATION_CONSTANTS
 
 - **文件**: `src/common/constants/unified/operations.constants.ts`
-  - **行号**: 12
-  - **值**: `Object.freeze({...})`
+  - **行号**: 13
+  - **值**: `deepFreeze({`
 
 #### PERFORMANCE_CONSTANTS
 
@@ -678,35 +719,35 @@ Constants ending with _CONSTANTS (6 个常量)
 #### SYSTEM_CONSTANTS
 
 - **文件**: `src/common/constants/unified/system.constants.ts`
-  - **行号**: 15
-  - **值**: `Object.freeze({...})`
+  - **行号**: 16
+  - **值**: `deepFreeze({`
+
+#### CACHE_CONSTANTS
+
+- **文件**: `src/common/constants/unified/unified-cache-config.constants.ts`
+  - **行号**: 14
+  - **值**: `deepFreeze({`
 
 #### API_KEY_CONSTANTS
 
-- **文件**: `src/metrics/constants/performance.constants.ts`
+- **文件**: `src/metrics/constants/metrics-performance.constants.ts`
   - **行号**: 231
   - **值**: `Object.freeze({...})`
 
 ### *_DEFAULTS
 
-Constants ending with _DEFAULTS (11 个常量)
+Constants ending with _DEFAULTS (10 个常量)
 
 #### APIKEY_DEFAULTS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 56
-  - **值**: `Object.freeze({...})`
+  - **行号**: 57
+  - **值**: `deepFreeze({`
 
 #### AUTH_DEFAULTS
 
 - **文件**: `src/auth/constants/auth.constants.ts`
   - **行号**: 68
-  - **值**: `Object.freeze({...})`
-
-#### CACHE_DEFAULTS
-
-- **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 179
   - **值**: `Object.freeze({...})`
 
 #### TRANSFORMATION_DEFAULTS
@@ -753,7 +794,7 @@ Constants ending with _DEFAULTS (11 个常量)
 
 #### PERFORMANCE_DEFAULTS
 
-- **文件**: `src/metrics/constants/performance.constants.ts`
+- **文件**: `src/metrics/constants/metrics-performance.constants.ts`
   - **行号**: 208
   - **值**: `Object.freeze({...})`
 
@@ -776,14 +817,14 @@ Constants ending with _METRICS (17 个常量)
 #### NOTIFICATION_METRICS
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 123
-  - **值**: `Object.freeze({...})`
+  - **行号**: 133
+  - **值**: `deepFreeze({`
 
 #### APIKEY_METRICS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 106
-  - **值**: `Object.freeze({...})`
+  - **行号**: 107
+  - **值**: `deepFreeze({`
 
 #### AUTH_METRICS
 
@@ -794,13 +835,13 @@ Constants ending with _METRICS (17 个常量)
 #### PERMISSION_METRICS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 106
-  - **值**: `Object.freeze({...})`
+  - **行号**: 107
+  - **值**: `deepFreeze({`
 
 #### CACHE_METRICS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 148
+  - **行号**: 135
   - **值**: `Object.freeze({...})`
 
 #### RATE_LIMIT_METRICS
@@ -882,14 +923,14 @@ Constants ending with _VALIDATION_RULES (12 个常量)
 #### NOTIFICATION_VALIDATION_RULES
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 136
-  - **值**: `Object.freeze({...})`
+  - **行号**: 146
+  - **值**: `deepFreeze({`
 
 #### APIKEY_VALIDATION_RULES
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 120
-  - **值**: `Object.freeze({...})`
+  - **行号**: 121
+  - **值**: `deepFreeze({`
 
 #### AUTH_VALIDATION_RULES
 
@@ -900,8 +941,8 @@ Constants ending with _VALIDATION_RULES (12 个常量)
 #### PERMISSION_VALIDATION_RULES
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 130
-  - **值**: `Object.freeze({...})`
+  - **行号**: 131
+  - **值**: `deepFreeze({`
 
 #### RATE_LIMIT_VALIDATION_RULES
 
@@ -946,32 +987,32 @@ Constants ending with _ERROR_MESSAGES (11 个常量)
 #### CACHE_ERROR_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 9
+  - **行号**: 11
   - **值**: `Object.freeze({...})`
 
 #### AUTH_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 9
-  - **值**: `Object.freeze({...})`
+  - **行号**: 10
+  - **值**: `deepFreeze({`
 
 #### BUSINESS_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 65
-  - **值**: `Object.freeze({...})`
+  - **行号**: 66
+  - **值**: `deepFreeze({`
 
 #### SYSTEM_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 109
-  - **值**: `Object.freeze({...})`
+  - **行号**: 110
+  - **值**: `deepFreeze({`
 
 #### HTTP_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 135
-  - **值**: `Object.freeze({...})`
+  - **行号**: 136
+  - **值**: `deepFreeze({`
 
 #### DATA_MAPPER_ERROR_MESSAGES
 
@@ -1016,7 +1057,7 @@ Constants ending with _WARNING_MESSAGES (7 个常量)
 #### CACHE_WARNING_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 34
+  - **行号**: 36
   - **值**: `Object.freeze({...})`
 
 #### DATA_MAPPER_WARNING_MESSAGES
@@ -1062,7 +1103,7 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
 #### CACHE_SUCCESS_MESSAGES
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 50
+  - **行号**: 52
   - **值**: `Object.freeze({...})`
 
 #### DATA_MAPPER_SUCCESS_MESSAGES
@@ -1134,80 +1175,80 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
 #### NOTIFICATION_CONFIG
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 102
-  - **值**: `Object.freeze({...})`
+  - **行号**: 112
+  - **值**: `deepFreeze({`
 
 #### NOTIFICATION_TYPE_PRIORITY
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 114
-  - **值**: `Object.freeze({...})`
+  - **行号**: 124
+  - **值**: `deepFreeze({`
 
 #### NOTIFICATION_METRICS
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 123
-  - **值**: `Object.freeze({...})`
+  - **行号**: 133
+  - **值**: `deepFreeze({`
 
 #### NOTIFICATION_TIME_CONFIG
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 147
-  - **值**: `Object.freeze({...})`
+  - **行号**: 160
+  - **值**: `deepFreeze({`
 
 #### NOTIFICATION_ALERT_THRESHOLDS
 
 - **文件**: `src/alert/constants/notification.constants.ts`
-  - **行号**: 157
-  - **值**: `Object.freeze({...})`
+  - **行号**: 170
+  - **值**: `deepFreeze({`
 
 #### APIKEY_STATUS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 86
-  - **值**: `Object.freeze({...})`
+  - **行号**: 87
+  - **值**: `deepFreeze({`
 
 #### APIKEY_TYPES
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 96
-  - **值**: `Object.freeze({...})`
+  - **行号**: 97
+  - **值**: `deepFreeze({`
 
 #### APIKEY_METRICS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 106
-  - **值**: `Object.freeze({...})`
+  - **行号**: 107
+  - **值**: `deepFreeze({`
 
 #### APIKEY_ALERT_THRESHOLDS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 139
-  - **值**: `Object.freeze({...})`
+  - **行号**: 140
+  - **值**: `deepFreeze({`
 
 #### APIKEY_RETRY_CONFIG
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 148
-  - **值**: `Object.freeze({...})`
+  - **行号**: 149
+  - **值**: `deepFreeze({`
 
 #### APIKEY_ERROR_CODES
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 157
-  - **值**: `Object.freeze({...})`
+  - **行号**: 158
+  - **值**: `deepFreeze({`
 
 #### APIKEY_CACHE_KEYS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 171
-  - **值**: `Object.freeze({...})`
+  - **行号**: 172
+  - **值**: `deepFreeze({`
 
 #### APIKEY_LOG_LEVELS
 
 - **文件**: `src/auth/constants/apikey.constants.ts`
-  - **行号**: 181
-  - **值**: `Object.freeze({...})`
+  - **行号**: 182
+  - **值**: `deepFreeze({`
 
 #### AUTH_CONFIG
 
@@ -1272,85 +1313,79 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
 #### PERMISSION_CHECK_STATUS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 86
-  - **值**: `Object.freeze({...})`
+  - **行号**: 87
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_SUBJECT_TYPES
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 96
-  - **值**: `Object.freeze({...})`
+  - **行号**: 97
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_METRICS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 106
-  - **值**: `Object.freeze({...})`
+  - **行号**: 107
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_CACHE_KEYS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 120
-  - **值**: `Object.freeze({...})`
+  - **行号**: 121
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_VALIDATION_RULES
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 130
-  - **值**: `Object.freeze({...})`
+  - **行号**: 131
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_CHECK_OPTIONS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 143
-  - **值**: `Object.freeze({...})`
+  - **行号**: 144
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_GROUPS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 165
-  - **值**: `Object.freeze({...})`
+  - **行号**: 166
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_INHERITANCE
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 177
-  - **值**: `Object.freeze({...})`
+  - **行号**: 178
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_TIMING
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 185
-  - **值**: `Object.freeze({...})`
+  - **行号**: 186
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_ERROR_CODES
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 194
-  - **值**: `Object.freeze({...})`
+  - **行号**: 195
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_LOG_LEVELS
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 208
-  - **值**: `Object.freeze({...})`
+  - **行号**: 209
+  - **值**: `deepFreeze({`
 
 #### PERMISSION_STATS_TYPES
 
 - **文件**: `src/auth/constants/permission.constants.ts`
-  - **行号**: 218
-  - **值**: `Object.freeze({...})`
+  - **行号**: 219
+  - **值**: `deepFreeze({`
 
 #### CACHE_STATUS
 
 - **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 167
-  - **值**: `Object.freeze({...})`
-
-#### CACHE_DEFAULTS
-
-- **文件**: `src/cache/constants/cache.constants.ts`
-  - **行号**: 179
+  - **行号**: 123
   - **值**: `Object.freeze({...})`
 
 #### MARKET_STATUS_CAPABILITY_MAP

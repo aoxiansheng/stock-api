@@ -10,7 +10,7 @@ import {
   PERFORMANCE_LIMITS,
   PERFORMANCE_TTL,
   PERFORMANCE_INTERVALS,
-} from "../constants/performance.constants";
+} from "../constants/metrics-performance.constants";
 import { PerformanceMetric } from "../interfaces/performance-metrics.interface";
 
 @Injectable()
