@@ -94,18 +94,21 @@ export const NOTIFICATION_TEMPLATE_PATTERNS = deepFreeze({
   // 存储正则模式字符串和标志，而非正则对象
   VARIABLE_PATTERN_SOURCE: "\\{\\{(\\w+)\\}\\}",
   VARIABLE_PATTERN_FLAGS: "g",
-  
-  IF_BLOCK_PATTERN_SOURCE: "\\{\\{#if (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/if\\}\\}",
+
+  IF_BLOCK_PATTERN_SOURCE:
+    "\\{\\{#if (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/if\\}\\}",
   IF_BLOCK_PATTERN_FLAGS: "g",
-  
-  UNLESS_BLOCK_PATTERN_SOURCE: "\\{\\{#unless (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/unless\\}\\}",
+
+  UNLESS_BLOCK_PATTERN_SOURCE:
+    "\\{\\{#unless (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/unless\\}\\}",
   UNLESS_BLOCK_PATTERN_FLAGS: "g",
-  
-  EACH_BLOCK_PATTERN_SOURCE: "\\{\\{#each (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/each\\}\\}",
+
+  EACH_BLOCK_PATTERN_SOURCE:
+    "\\{\\{#each (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/each\\}\\}",
   EACH_BLOCK_PATTERN_FLAGS: "g",
-  
+
   COMMENT_PATTERN_SOURCE: "\\{\\{!--[\\s\\S]*?--\\}\\}",
-  COMMENT_PATTERN_FLAGS: "g"
+  COMMENT_PATTERN_FLAGS: "g",
 });
 
 // 🔧 通知配置常量

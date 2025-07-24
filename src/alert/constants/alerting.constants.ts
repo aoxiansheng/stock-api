@@ -248,7 +248,7 @@ export class AlertingTemplateUtil {
    * @returns 是否有效
    */
   static isValidRuleName(name: string): boolean {
-    if (typeof name !== 'string' || name.trim() === '') return false;
+    if (typeof name !== "string" || name.trim() === "") return false;
     return (
       ALERTING_VALIDATION_RULES.RULE_NAME_PATTERN.test(name) &&
       name.length <= ALERTING_CONFIG.MAX_RULE_NAME_LENGTH
@@ -270,7 +270,7 @@ export class AlertingTemplateUtil {
    * @returns 是否有效
    */
   static isValidMetricName(metric: string): boolean {
-    if (typeof metric !== 'string' || metric.trim() === '') return false;
+    if (typeof metric !== "string" || metric.trim() === "") return false;
     return ALERTING_VALIDATION_RULES.METRIC_NAME_PATTERN.test(metric);
   }
 
@@ -280,7 +280,12 @@ export class AlertingTemplateUtil {
    * @returns 是否有效
    */
   static isValidThreshold(threshold: number): boolean {
-    if (threshold === null || threshold === undefined || !Number.isFinite(threshold)) return false;
+    if (
+      threshold === null ||
+      threshold === undefined ||
+      !Number.isFinite(threshold)
+    )
+      return false;
     return (
       threshold >= ALERTING_VALIDATION_RULES.THRESHOLD_MIN &&
       threshold <= ALERTING_VALIDATION_RULES.THRESHOLD_MAX

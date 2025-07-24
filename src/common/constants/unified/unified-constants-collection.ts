@@ -3,7 +3,7 @@
  * 提供对所有常量模块的集中访问
  */
 
-import { deepFreeze } from '@common/utils/object-immutability.util';
+import { deepFreeze } from "@common/utils/object-immutability.util";
 import { SYSTEM_CONSTANTS } from "./system.constants";
 import { HTTP_CONSTANTS } from "./http.constants";
 import { PERFORMANCE_CONSTANTS } from "./performance.constants";
@@ -20,4 +20,4 @@ export const UNIFIED_CONSTANTS = deepFreeze({
   PERFORMANCE: PERFORMANCE_CONSTANTS,
   CACHE: CACHE_CONSTANTS,
   OPERATIONS: OPERATION_CONSTANTS,
-}); 
+});

@@ -231,10 +231,10 @@ export class DataChangeDetectorService {
         }
       }
     }
-    
+
     // 检查是否有价格相关的显著变化
-    const hasSignificantPriceChange = significantChanges.some(field =>
-      CRITICAL_FIELDS.PRICE_FIELDS.includes(field as any)
+    const hasSignificantPriceChange = significantChanges.some((field) =>
+      CRITICAL_FIELDS.PRICE_FIELDS.includes(field as any),
     );
 
     if (hasSignificantPriceChange) {

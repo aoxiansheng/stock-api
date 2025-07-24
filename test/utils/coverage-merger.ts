@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as nyc from 'nyc';
+import * as fs from "fs";
+import * as path from "path";
+import * as nyc from "nyc";
 
 /**
  * 覆盖率合并工具
@@ -13,7 +13,7 @@ export class CoverageMerger {
   constructor(config?: Partial<CoverageMergerConfig>) {
     this.config = {
       ...DEFAULT_MERGER_CONFIG,
-      ...config
+      ...config,
     };
   }
 
@@ -21,7 +21,7 @@ export class CoverageMerger {
    * 执行覆盖率合并
    */
   async mergeCoverage(): Promise<MergeResult> {
-    console.log('🔗 开始合并覆盖率报告...');
+    console.log("🔗 开始合并覆盖率报告...");
 
     // 1. 加载所有覆盖率报告
     await this.loadCoverageReports();
@@ -48,10 +48,10 @@ export class CoverageMerger {
         lcov: this.config.output.lcov,
       },
       summary: this.calculateMergedSummary(mergedData),
-      comparison: comparisonReport
+      comparison: comparisonReport,
     };
 
-    console.log('✅ 覆盖率合并完成');
+    console.log("✅ 覆盖率合并完成");
     return result;
   }
 
@@ -60,15 +60,15 @@ export class CoverageMerger {
    */
   private async loadCoverageReports(): Promise<void> {
     const reportSources = [
-      { type: 'unit', path: 'coverage/unit/coverage-final.json' },
-      { type: 'integration', path: 'coverage/integration/coverage-final.json' },
-      { type: 'e2e', path: 'coverage/e2e/coverage-final.json' },
+      { type: "unit", path: "coverage/unit/coverage-final.json" },
+      { type: "integration", path: "coverage/integration/coverage-final.json" },
+      { type: "e2e", path: "coverage/e2e/coverage-final.json" },
     ];
 
     for (const source of reportSources) {
       if (fs.existsSync(source.path)) {
         try {
-          const data = JSON.parse(fs.readFileSync(source.path, 'utf8'));
+          const data = JSON.parse(fs.readFileSync(source.path, "utf8"));
           this.coverageData.set(source.type, data);
           console.log(`✅ 加载 ${source.type} 覆盖率: ${source.path}`);
         } catch (error) {
@@ -80,7 +80,7 @@ export class CoverageMerger {
     }
 
     if (this.coverageData.size === 0) {
-      throw new Error('没有找到任何有效的覆盖率报告');
+      throw new Error("没有找到任何有效的覆盖率报告");
     }
   }
 
@@ -88,11 +88,11 @@ export class CoverageMerger {
    * 验证覆盖率数据
    */
   private validateCoverageData(): void {
-    console.log('🔍 验证覆盖率数据完整性...');
+    console.log("🔍 验证覆盖率数据完整性...");
 
     for (const [testType, data] of this.coverageData.entries()) {
       // 检查数据结构
-      if (!data || typeof data !== 'object') {
+      if (!data || typeof data !== "object") {
         throw new Error(`${testType} 覆盖率数据格式无效`);
       }
 
@@ -110,31 +110,31 @@ export class CoverageMerger {
    * 执行覆盖率合并
    */
   private async performMerge(): Promise<MergedCoverageData> {
-    console.log('🔀 执行覆盖率数据合并...');
+    console.log("🔀 执行覆盖率数据合并...");
 
     const mergedData: MergedCoverageData = {
       files: {},
       timestamp: new Date().toISOString(),
       sources: Array.from(this.coverageData.keys()),
-      mergeStrategy: this.config.mergeStrategy
+      mergeStrategy: this.config.mergeStrategy,
     };
 
     // 收集所有文件
     const allFiles = new Set<string>();
     for (const data of this.coverageData.values()) {
-      Object.keys(data).forEach(file => allFiles.add(file));
+      Object.keys(data).forEach((file) => allFiles.add(file));
     }
 
     // 合并每个文件的覆盖率
     for (const filePath of allFiles) {
       const fileCoverageData: FileCoverageData[] = [];
-      
+
       // 收集该文件在各个测试类型中的覆盖率
       for (const [testType, data] of this.coverageData.entries()) {
         if (data[filePath]) {
           fileCoverageData.push({
             testType,
-            coverage: data[filePath]
+            coverage: data[filePath],
           });
         }
       }
@@ -157,17 +157,17 @@ export class CoverageMerger {
     if (fileCoverageData.length === 1) {
       return {
         ...fileCoverageData[0].coverage,
-        testTypes: [fileCoverageData[0].testType]
+        testTypes: [fileCoverageData[0].testType],
       };
     }
 
     // 根据策略合并
     switch (this.config.mergeStrategy) {
-      case 'union':
+      case "union":
         return this.mergeUnion(fileCoverageData);
-      case 'intersection':
+      case "intersection":
         return this.mergeIntersection(fileCoverageData);
-      case 'maximum':
+      case "maximum":
         return this.mergeMaximum(fileCoverageData);
       default:
         return this.mergeUnion(fileCoverageData);
@@ -180,7 +180,7 @@ export class CoverageMerger {
   private mergeUnion(fileCoverageData: FileCoverageData[]): any {
     const result = {
       ...fileCoverageData[0].coverage,
-      testTypes: fileCoverageData.map(f => f.testType)
+      testTypes: fileCoverageData.map((f) => f.testType),
     };
 
     // 合并行覆盖率
@@ -189,8 +189,9 @@ export class CoverageMerger {
 
     for (const { coverage } of fileCoverageData) {
       // 处理行覆盖率数组
-      if (coverage.s) { // 语句覆盖率
-        Object.keys(coverage.s).forEach(key => {
+      if (coverage.s) {
+        // 语句覆盖率
+        Object.keys(coverage.s).forEach((key) => {
           if (coverage.s[key] > 0) {
             allCoveredLines.add(parseInt(key));
           }
@@ -213,7 +214,10 @@ export class CoverageMerger {
     result.lines = {
       total: allExecutableLines.size,
       covered: allCoveredLines.size,
-      pct: allExecutableLines.size > 0 ? (allCoveredLines.size / allExecutableLines.size) * 100 : 0
+      pct:
+        allExecutableLines.size > 0
+          ? (allCoveredLines.size / allExecutableLines.size) * 100
+          : 0,
     };
 
     return result;
@@ -233,12 +237,12 @@ export class CoverageMerger {
   private mergeMaximum(fileCoverageData: FileCoverageData[]): any {
     const result = {
       ...fileCoverageData[0].coverage,
-      testTypes: fileCoverageData.map(f => f.testType)
+      testTypes: fileCoverageData.map((f) => f.testType),
     };
 
     // 取每项指标的最大值
-    const metrics = ['lines', 'statements', 'functions', 'branches'];
-    
+    const metrics = ["lines", "statements", "functions", "branches"];
+
     for (const metric of metrics) {
       let maxTotal = 0;
       let maxCovered = 0;
@@ -255,7 +259,7 @@ export class CoverageMerger {
       result[metric] = {
         total: maxTotal,
         covered: maxCovered,
-        pct: maxPct
+        pct: maxPct,
       };
     }
 
@@ -265,8 +269,10 @@ export class CoverageMerger {
   /**
    * 生成合并后的报告
    */
-  private async generateMergedReports(mergedData: MergedCoverageData): Promise<void> {
-    console.log('📄 生成合并后的覆盖率报告...');
+  private async generateMergedReports(
+    mergedData: MergedCoverageData,
+  ): Promise<void> {
+    console.log("📄 生成合并后的覆盖率报告...");
 
     // 确保输出目录存在
     this.ensureDirectoryExists(path.dirname(this.config.output.json));
@@ -274,7 +280,7 @@ export class CoverageMerger {
     // 生成JSON报告
     fs.writeFileSync(
       this.config.output.json,
-      JSON.stringify(mergedData.files, null, 2)
+      JSON.stringify(mergedData.files, null, 2),
     );
     console.log(`✅ JSON报告: ${this.config.output.json}`);
 
@@ -288,13 +294,15 @@ export class CoverageMerger {
   /**
    * 生成LCOV报告
    */
-  private async generateLcovReport(mergedData: MergedCoverageData): Promise<void> {
+  private async generateLcovReport(
+    mergedData: MergedCoverageData,
+  ): Promise<void> {
     try {
       // 使用nyc生成LCOV报告
       const nycInstance = new nyc({
         cwd: process.cwd(),
         reportDir: path.dirname(this.config.output.lcov),
-        reporter: ['lcov']
+        reporter: ["lcov"],
       });
 
       // 这里需要将合并后的数据转换为nyc可以处理的格式
@@ -310,7 +318,9 @@ export class CoverageMerger {
   /**
    * 生成HTML报告
    */
-  private async generateHtmlReport(mergedData: MergedCoverageData): Promise<void> {
+  private async generateHtmlReport(
+    mergedData: MergedCoverageData,
+  ): Promise<void> {
     try {
       // 生成简单的HTML报告
       const htmlContent = this.generateHtmlContent(mergedData);
@@ -328,7 +338,7 @@ export class CoverageMerger {
     const comparison: ComparisonReport = {
       testTypes: {},
       differences: [],
-      recommendations: []
+      recommendations: [],
     };
 
     // 比较各测试类型的覆盖率
@@ -350,7 +360,12 @@ export class CoverageMerger {
    * 计算覆盖率摘要
    */
   private calculateSummary(data: any): any {
-    const totals = { lines: {total: 0, covered: 0, pct: 0}, statements: {total: 0, covered: 0, pct: 0}, functions: {total: 0, covered: 0, pct: 0}, branches: {total: 0, covered: 0, pct: 0} };
+    const totals = {
+      lines: { total: 0, covered: 0, pct: 0 },
+      statements: { total: 0, covered: 0, pct: 0 },
+      functions: { total: 0, covered: 0, pct: 0 },
+      branches: { total: 0, covered: 0, pct: 0 },
+    };
 
     for (const fileData of Object.values(data) as any[]) {
       if (fileData.lines) {
@@ -365,10 +380,22 @@ export class CoverageMerger {
       }
     }
 
-    totals.lines.pct = totals.lines.total > 0 ? (totals.lines.covered / totals.lines.total) * 100 : 0;
-    totals.statements.pct = totals.statements.total > 0 ? (totals.statements.covered / totals.statements.total) * 100 : 0;
-    totals.functions.pct = totals.functions.total > 0 ? (totals.functions.covered / totals.functions.total) * 100 : 0;
-    totals.branches.pct = totals.branches.total > 0 ? (totals.branches.covered / totals.branches.total) * 100 : 0;
+    totals.lines.pct =
+      totals.lines.total > 0
+        ? (totals.lines.covered / totals.lines.total) * 100
+        : 0;
+    totals.statements.pct =
+      totals.statements.total > 0
+        ? (totals.statements.covered / totals.statements.total) * 100
+        : 0;
+    totals.functions.pct =
+      totals.functions.total > 0
+        ? (totals.functions.covered / totals.functions.total) * 100
+        : 0;
+    totals.branches.pct =
+      totals.branches.total > 0
+        ? (totals.branches.covered / totals.branches.total) * 100
+        : 0;
 
     return totals;
   }
@@ -384,11 +411,11 @@ export class CoverageMerger {
 
   private generateMergeRecommendations(comparison: ComparisonReport): string[] {
     const recommendations: string[] = [];
-    
+
     // 基于对比结果生成建议
     const testTypes = Object.keys(comparison.testTypes);
     if (testTypes.length > 1) {
-      recommendations.push('建议定期检查不同测试类型的覆盖率一致性');
+      recommendations.push("建议定期检查不同测试类型的覆盖率一致性");
     }
 
     return recommendations;
@@ -396,25 +423,25 @@ export class CoverageMerger {
 
   private generateLcovContent(mergedData: MergedCoverageData): string {
     // 生成基本的LCOV格式内容
-    let content = '';
-    
+    let content = "";
+
     for (const [filePath, fileData] of Object.entries(mergedData.files)) {
       content += `SF:${filePath}\n`;
-      
+
       if (fileData.lines) {
         content += `LF:${fileData.lines.total}\n`;
         content += `LH:${fileData.lines.covered}\n`;
       }
-      
-      content += 'end_of_record\n';
+
+      content += "end_of_record\n";
     }
-    
+
     return content;
   }
 
   private generateHtmlContent(mergedData: MergedCoverageData): string {
     const summary = this.calculateMergedSummary(mergedData);
-    
+
     return `
 <!DOCTYPE html>
 <html>
@@ -444,7 +471,7 @@ export class CoverageMerger {
         </div>
     </div>
     <p>生成时间: ${mergedData.timestamp}</p>
-    <p>合并来源: ${mergedData.sources.join(', ')}</p>
+    <p>合并来源: ${mergedData.sources.join(", ")}</p>
 </body>
 </html>`;
   }
@@ -458,18 +485,18 @@ export class CoverageMerger {
 
 // 默认配置
 const DEFAULT_MERGER_CONFIG: CoverageMergerConfig = {
-  mergeStrategy: 'union',
+  mergeStrategy: "union",
   output: {
-    json: 'coverage/merged/coverage-final.json',
-    html: 'coverage/merged/index.html',
-    lcov: 'coverage/merged/lcov.info',
+    json: "coverage/merged/coverage-final.json",
+    html: "coverage/merged/index.html",
+    lcov: "coverage/merged/lcov.info",
   },
   includeComparison: true,
 };
 
 // 类型定义
 export interface CoverageMergerConfig {
-  mergeStrategy: 'union' | 'intersection' | 'maximum';
+  mergeStrategy: "union" | "intersection" | "maximum";
   output: {
     json: string;
     html: string;
@@ -513,13 +540,13 @@ export interface ComparisonReport {
 export async function runCoverageMerge(): Promise<void> {
   const merger = new CoverageMerger();
   const result = await merger.mergeCoverage();
-  
-  console.log('\n📊 合并结果:');
+
+  console.log("\n📊 合并结果:");
   console.log(`✅ 成功合并 ${result.mergedFiles} 个文件`);
-  console.log(`📁 输出路径: ${Object.values(result.outputPaths).join(', ')}`);
-  
+  console.log(`📁 输出路径: ${Object.values(result.outputPaths).join(", ")}`);
+
   if (result.comparison.recommendations.length > 0) {
-    console.log('\n💡 建议:');
+    console.log("\n💡 建议:");
     result.comparison.recommendations.forEach((rec, index) => {
       console.log(`${index + 1}. ${rec}`);
     });

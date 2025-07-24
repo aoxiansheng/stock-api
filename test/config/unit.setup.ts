@@ -3,7 +3,7 @@
  * 设置单元测试环境，Mock外部依赖
  */
 
-import { jest } from '@jest/globals';
+import { jest } from "@jest/globals";
 
 // 设置测试超时
 jest.setTimeout(5000);
@@ -11,10 +11,10 @@ jest.setTimeout(5000);
 // Mock外部依赖 - 单元测试应该完全隔离
 beforeAll(() => {
   // Mock环境变量
-  process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test-jwt-secret';
-  process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
-  process.env.REDIS_URL = 'redis://localhost:6379';
+  process.env.NODE_ENV = "test";
+  process.env.JWT_SECRET = "test-jwt-secret";
+  process.env.MONGODB_URI = "mongodb://localhost:27017/test";
+  process.env.REDIS_URL = "redis://localhost:6379";
 });
 
 // 每个测试前清理
@@ -34,22 +34,22 @@ afterAll(() => {
 
 // 全局测试工具函数
 global.createMockUser = () => ({
-  _id: '507f1f77bcf86cd799439011',
-  username: 'testuser',
-  email: 'test@example.com',
-  role: 'developer',
+  _id: "507f1f77bcf86cd799439011",
+  username: "testuser",
+  email: "test@example.com",
+  role: "developer",
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
 });
 
 global.createMockApiKey = () => ({
-  _id: '507f1f77bcf86cd799439012',
-  appKey: 'test-app-key',
-  accessToken: 'test-access-token',
-  name: 'Test API Key',
-  userId: '507f1f77bcf86cd799439011',
-  permissions: ['data:read', 'query:execute'],
+  _id: "507f1f77bcf86cd799439012",
+  appKey: "test-app-key",
+  accessToken: "test-access-token",
+  name: "Test API Key",
+  userId: "507f1f77bcf86cd799439011",
+  permissions: ["data:read", "query:execute"],
   isActive: true,
   usageCount: 0,
   createdAt: new Date(),

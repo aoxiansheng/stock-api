@@ -1,16 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryController } from '../../../../../src/core/query/query.controller';
-import { QueryService } from '../../../../../src/core/query/query.service';
-import { QueryStatisticsService } from '../../../../../src/core/query/services/query-statistics.service';
-import { QueryType } from '../../../../../src/core/query/dto/query-types.dto';
-import { DataClassification } from '../../../../../src/core/storage/enums/storage-type.enum';
-import { JwtAuthGuard } from '../../../../../src/auth/guards/jwt-auth.guard';
-import { ApiKeyAuthGuard } from '../../../../../src/auth/guards/apikey-auth.guard';
-import { UnifiedPermissionsGuard } from '../../../../../src/auth/guards/unified-permissions.guard';
-import { RateLimitGuard } from '../../../../../src/auth/guards/rate-limit.guard';
-import { CanActivate } from '@nestjs/common';
+import { Test, TestingModule } from "@nestjs/testing";
+import { QueryController } from "../../../../../src/core/query/query.controller";
+import { QueryService } from "../../../../../src/core/query/query.service";
+import { QueryStatisticsService } from "../../../../../src/core/query/services/query-statistics.service";
+import { QueryType } from "../../../../../src/core/query/dto/query-types.dto";
+import { DataClassification } from "../../../../../src/core/storage/enums/storage-type.enum";
+import { JwtAuthGuard } from "../../../../../src/auth/guards/jwt-auth.guard";
+import { ApiKeyAuthGuard } from "../../../../../src/auth/guards/apikey-auth.guard";
+import { UnifiedPermissionsGuard } from "../../../../../src/auth/guards/unified-permissions.guard";
+import { RateLimitGuard } from "../../../../../src/auth/guards/rate-limit.guard";
+import { CanActivate } from "@nestjs/common";
 
-describe('QueryController', () => {
+describe("QueryController", () => {
   let controller: QueryController;
 
   const mockQueryService = {
@@ -60,20 +60,20 @@ describe('QueryController', () => {
     jest.resetAllMocks();
   });
 
-  describe('executeQuery', () => {
-    it('should be defined', () => {
+  describe("executeQuery", () => {
+    it("should be defined", () => {
       expect(controller).toBeDefined();
     });
 
-    it('should execute a basic query', async () => {
+    it("should execute a basic query", async () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ['700.HK', 'AAPL'],
+        symbols: ["700.HK", "AAPL"],
         dataTypeFilter: DataClassification.GENERAL,
       };
 
       const mockResults = {
-        data: [{ symbol: '700.HK', price: 100 }],
+        data: [{ symbol: "700.HK", price: 100 }],
         metadata: {
           totalResults: 1,
           returnedResults: 1,
@@ -81,7 +81,7 @@ describe('QueryController', () => {
           cacheUsed: true,
           dataSources: {},
         },
-        queryId: 'query-123',
+        queryId: "query-123",
       };
 
       mockQueryService.executeQuery.mockResolvedValue(mockResults);
@@ -93,31 +93,35 @@ describe('QueryController', () => {
       expect(mockQueryService.executeQuery).toHaveBeenCalledWith(queryRequest);
     });
 
-    it('should handle query errors', async () => {
+    it("should handle query errors", async () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ['INVALID'],
+        symbols: ["INVALID"],
         dataTypeFilter: DataClassification.GENERAL,
       };
 
-      mockQueryService.executeQuery.mockRejectedValue(new Error('Query failed'));
+      mockQueryService.executeQuery.mockRejectedValue(
+        new Error("Query failed"),
+      );
 
-      await expect(controller.executeQuery(queryRequest)).rejects.toThrow('Query failed');
+      await expect(controller.executeQuery(queryRequest)).rejects.toThrow(
+        "Query failed",
+      );
     });
   });
 
-  describe('executeBulkQuery', () => {
-    it('should execute bulk queries', async () => {
+  describe("executeBulkQuery", () => {
+    it("should execute bulk queries", async () => {
       const bulkRequest = {
         queries: [
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['700.HK'],
+            symbols: ["700.HK"],
             dataTypeFilter: DataClassification.GENERAL,
           },
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['AAPL'],
+            symbols: ["AAPL"],
             dataTypeFilter: DataClassification.GENERAL,
           },
         ],
@@ -128,8 +132,8 @@ describe('QueryController', () => {
 
       const mockResults = {
         results: [
-          { data: [{ symbol: '700.HK', price: 100 }] },
-          { data: [{ symbol: 'AAPL', price: 150 }] },
+          { data: [{ symbol: "700.HK", price: 100 }] },
+          { data: [{ symbol: "AAPL", price: 150 }] },
         ],
         summary: {
           totalQueries: 2,
@@ -145,23 +149,36 @@ describe('QueryController', () => {
       const result = await controller.executeBulkQuery(bulkRequest as any);
 
       expect(result).toBeDefined();
-      expect(mockQueryService.executeBulkQuery).toHaveBeenCalledWith(bulkRequest);
+      expect(mockQueryService.executeBulkQuery).toHaveBeenCalledWith(
+        bulkRequest,
+      );
     });
   });
 
-  describe('queryBySymbols', () => {
-    it('should query data by symbols', async () => {
-      const symbols = ['700.HK', 'AAPL'];
-      const dataType = 'stock-quote';
+  describe("queryBySymbols", () => {
+    it("should query data by symbols", async () => {
+      const symbols = ["700.HK", "AAPL"];
+      const dataType = "stock-quote";
 
       const mockResults = {
-        data: [{ symbol: '700.HK', price: 100 }],
-        metadata: { totalResults: 1, returnedResults: 1, executionTime: 10, cacheUsed: true, dataSources: {} },
+        data: [{ symbol: "700.HK", price: 100 }],
+        metadata: {
+          totalResults: 1,
+          returnedResults: 1,
+          executionTime: 10,
+          cacheUsed: true,
+          dataSources: {},
+        },
       };
 
       mockQueryService.executeQuery.mockResolvedValue(mockResults);
 
-      const result = await controller.queryBySymbols(symbols.join(','), undefined, undefined, dataType);
+      const result = await controller.queryBySymbols(
+        symbols.join(","),
+        undefined,
+        undefined,
+        dataType,
+      );
 
       expect(result).toBeDefined();
       const expectedRequest = expect.objectContaining({
@@ -169,23 +186,35 @@ describe('QueryController', () => {
         symbols: symbols,
         dataTypeFilter: dataType,
       });
-      expect(mockQueryService.executeQuery).toHaveBeenCalledWith(expectedRequest);
+      expect(mockQueryService.executeQuery).toHaveBeenCalledWith(
+        expectedRequest,
+      );
     });
   });
 
-  describe('queryByMarket', () => {
-    it('should query data by market', async () => {
-      const market = 'HK';
-      const dataType = 'stock-quote';
+  describe("queryByMarket", () => {
+    it("should query data by market", async () => {
+      const market = "HK";
+      const dataType = "stock-quote";
 
       const mockResults = {
-        data: [{ symbol: '700.HK', price: 100 }],
-        metadata: { totalResults: 1, returnedResults: 1, executionTime: 10, cacheUsed: true, dataSources: {} },
+        data: [{ symbol: "700.HK", price: 100 }],
+        metadata: {
+          totalResults: 1,
+          returnedResults: 1,
+          executionTime: 10,
+          cacheUsed: true,
+          dataSources: {},
+        },
       };
 
       mockQueryService.executeQuery.mockResolvedValue(mockResults);
 
-      const result = await controller.queryByMarket(market, undefined, dataType);
+      const result = await controller.queryByMarket(
+        market,
+        undefined,
+        dataType,
+      );
 
       expect(result).toBeDefined();
       const expectedRequest = expect.objectContaining({
@@ -193,23 +222,35 @@ describe('QueryController', () => {
         market: market,
         dataTypeFilter: dataType,
       });
-      expect(mockQueryService.executeQuery).toHaveBeenCalledWith(expectedRequest);
+      expect(mockQueryService.executeQuery).toHaveBeenCalledWith(
+        expectedRequest,
+      );
     });
   });
 
-  describe('queryByProvider', () => {
-    it('should query data by provider', async () => {
-      const provider = 'longport';
-      const dataType = 'stock-quote';
+  describe("queryByProvider", () => {
+    it("should query data by provider", async () => {
+      const provider = "longport";
+      const dataType = "stock-quote";
 
       const mockResults = {
-        data: [{ symbol: '700.HK', price: 100 }],
-        metadata: { totalResults: 1, returnedResults: 1, executionTime: 10, cacheUsed: true, dataSources: {} },
+        data: [{ symbol: "700.HK", price: 100 }],
+        metadata: {
+          totalResults: 1,
+          returnedResults: 1,
+          executionTime: 10,
+          cacheUsed: true,
+          dataSources: {},
+        },
       };
 
       mockQueryService.executeQuery.mockResolvedValue(mockResults);
 
-      const result = await controller.queryByProvider(provider, undefined, dataType);
+      const result = await controller.queryByProvider(
+        provider,
+        undefined,
+        dataType,
+      );
 
       expect(result).toBeDefined();
       const expectedRequest = expect.objectContaining({
@@ -217,12 +258,14 @@ describe('QueryController', () => {
         provider: provider,
         dataTypeFilter: dataType,
       });
-      expect(mockQueryService.executeQuery).toHaveBeenCalledWith(expectedRequest);
+      expect(mockQueryService.executeQuery).toHaveBeenCalledWith(
+        expectedRequest,
+      );
     });
   });
 
-  describe('getQueryStats', () => {
-    it('should get query statistics', async () => {
+  describe("getQueryStats", () => {
+    it("should get query statistics", async () => {
       const mockStats = {
         performance: {
           totalQueries: 100,
@@ -241,18 +284,26 @@ describe('QueryController', () => {
       expect(mockQueryService.getQueryStats).toHaveBeenCalled();
     });
 
-    it('should handle statistics errors', async () => {
-      mockQueryService.getQueryStats.mockRejectedValue(new Error('Stats failed'));
+    it("should handle statistics errors", async () => {
+      mockQueryService.getQueryStats.mockRejectedValue(
+        new Error("Stats failed"),
+      );
 
-      await expect(controller.getQueryStats()).rejects.toThrow('Stats failed');
+      await expect(controller.getQueryStats()).rejects.toThrow("Stats failed");
     });
   });
 
-  describe('healthCheck', () => {
-    it('should return health status', async () => {
+  describe("healthCheck", () => {
+    it("should return health status", async () => {
       const mockHealthResult = {
         data: [],
-        metadata: { totalResults: 0, returnedResults: 0, executionTime: 5, cacheUsed: false, dataSources: {} },
+        metadata: {
+          totalResults: 0,
+          returnedResults: 0,
+          executionTime: 5,
+          cacheUsed: false,
+          dataSources: {},
+        },
       };
       mockQueryService.executeQuery.mockResolvedValue(mockHealthResult);
       const result = await controller.healthCheck();
@@ -263,17 +314,21 @@ describe('QueryController', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('should handle service unavailability', async () => {
+  describe("error handling", () => {
+    it("should handle service unavailability", async () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ['700.HK'],
+        symbols: ["700.HK"],
         dataTypeFilter: DataClassification.GENERAL,
       };
 
-      mockQueryService.executeQuery.mockRejectedValue(new Error('Service unavailable'));
+      mockQueryService.executeQuery.mockRejectedValue(
+        new Error("Service unavailable"),
+      );
 
-      await expect(controller.executeQuery(queryRequest)).rejects.toThrow('Service unavailable');
+      await expect(controller.executeQuery(queryRequest)).rejects.toThrow(
+        "Service unavailable",
+      );
     });
   });
 });

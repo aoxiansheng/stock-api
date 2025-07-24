@@ -48,11 +48,13 @@ export class RuleEngineService implements IRuleEngine {
 
     try {
       // 过滤相关的指标数据，并确保数据点有效
-      const relevantData = metricData
-        .filter(
-          (data) =>
-            data && data.metric === rule.metric && data.timestamp && data.value != null,
-        );
+      const relevantData = metricData.filter(
+        (data) =>
+          data &&
+          data.metric === rule.metric &&
+          data.timestamp &&
+          data.value != null,
+      );
 
       if (relevantData.length === 0) {
         const message = AlertingTemplateUtil.formatAlertMessage(
@@ -515,12 +517,17 @@ export class RuleEngineService implements IRuleEngine {
       }),
     );
 
-    const promises = ruleIds.map((ruleId) => this.isInCooldown(ruleId).catch(error => {
-      hasErrors = true;
-      // 记录单个错误详情但不中断批量操作
-      this.logger.error('批量冷却检查中的单个规则失败', sanitizeLogData({ operation, ruleId, error: error.message }));
-      return false; // 失败时默认为 false
-    }));
+    const promises = ruleIds.map((ruleId) =>
+      this.isInCooldown(ruleId).catch((error) => {
+        hasErrors = true;
+        // 记录单个错误详情但不中断批量操作
+        this.logger.error(
+          "批量冷却检查中的单个规则失败",
+          sanitizeLogData({ operation, ruleId, error: error.message }),
+        );
+        return false; // 失败时默认为 false
+      }),
+    );
 
     const cooldownStates = await Promise.all(promises);
 

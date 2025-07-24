@@ -3,21 +3,21 @@
  * 测试认证服务的核心逻辑，所有外部依赖均为Mock
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConflictException, UnauthorizedException } from "@nestjs/common";
 
-import { AuthService } from '../../../../src/auth/services/auth.service';
-import { User } from '../../../../src/auth/schemas/user.schema';
-import { ApiKey } from '../../../../src/auth/schemas/apikey.schema';
-import { UserRole } from '../../../../src/auth/enums/user-role.enum';
-import { UserRepository } from '../../../../src/auth/repositories/user.repository';
-import { ApiKeyService } from '../../../../src/auth/services/apikey.service';
-import { PasswordService } from '../../../../src/auth/services/password.service';
-import { TokenService } from '../../../../src/auth/services/token.service';
-import { PerformanceMonitorService } from '../../../../src/metrics/services/performance-monitor.service';
-import { CreateUserDto, LoginDto } from '../../../../src/auth/dto/auth.dto';
+import { AuthService } from "../../../../src/auth/services/auth.service";
+import { User } from "../../../../src/auth/schemas/user.schema";
+import { ApiKey } from "../../../../src/auth/schemas/apikey.schema";
+import { UserRole } from "../../../../src/auth/enums/user-role.enum";
+import { UserRepository } from "../../../../src/auth/repositories/user.repository";
+import { ApiKeyService } from "../../../../src/auth/services/apikey.service";
+import { PasswordService } from "../../../../src/auth/services/password.service";
+import { TokenService } from "../../../../src/auth/services/token.service";
+import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
+import { CreateUserDto, LoginDto } from "../../../../src/auth/dto/auth.dto";
 
-describe('AuthService', () => {
+describe("AuthService", () => {
   let service: AuthService;
   let userRepository: jest.Mocked<UserRepository>;
   let apiKeyService: jest.Mocked<ApiKeyService>;
@@ -27,17 +27,18 @@ describe('AuthService', () => {
 
   // Mock 数据 - 使用 any 类型来模拟 Mongoose 文档行为
   const mockUser: any = {
-    id: '507f1f77bcf86cd799439011',
-    username: 'testuser',
-    email: 'test@example.com',
-    passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/Mf.z1R2PfQgIaVXAu',
+    id: "507f1f77bcf86cd799439011",
+    username: "testuser",
+    email: "test@example.com",
+    passwordHash:
+      "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/Mf.z1R2PfQgIaVXAu",
     role: UserRole.DEVELOPER,
     isActive: true,
-    lastLoginAt: new Date('2024-01-01T00:00:00.000Z'),
-    createdAt: new Date('2024-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+    lastLoginAt: new Date("2024-01-01T00:00:00.000Z"),
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2024-01-01T00:00:00.000Z"),
     // 添加 toJSON 方法来模拟 Mongoose 文档行为
-    toJSON: function() {
+    toJSON: function () {
       return {
         id: this.id,
         username: this.username,
@@ -52,25 +53,25 @@ describe('AuthService', () => {
   };
 
   const mockTokens = {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
+    accessToken: "mock-access-token",
+    refreshToken: "mock-refresh-token",
   };
 
   const mockApiKey = {
-    id: '507f1f77bcf86cd799439012',
-    name: 'Test API Key',
-    appKey: 'ak_test_12345',
-    accessToken: 'sk_test_secret_token',
-    userId: '507f1f77bcf86cd799439011',
-    permissions: ['data:read', 'query:execute'],
+    id: "507f1f77bcf86cd799439012",
+    name: "Test API Key",
+    appKey: "ak_test_12345",
+    accessToken: "sk_test_secret_token",
+    userId: "507f1f77bcf86cd799439011",
+    permissions: ["data:read", "query:execute"],
     rateLimit: {
       requests: 1000,
-      window: '1h',
+      window: "1h",
     },
     isActive: true,
     usageCount: 0,
-    createdAt: new Date('2024-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2024-01-01T00:00:00.000Z"),
   };
 
   beforeEach(async () => {
@@ -115,7 +116,7 @@ describe('AuthService', () => {
       wrapWithTiming: jest.fn().mockImplementation((operation, onComplete) => {
         try {
           const result = operation();
-          if (result && typeof result.then === 'function') {
+          if (result && typeof result.then === "function") {
             return result.then(
               (res) => {
                 onComplete(0, true, res);
@@ -124,7 +125,7 @@ describe('AuthService', () => {
               (err) => {
                 onComplete(0, false);
                 throw err;
-              }
+              },
             );
           } else {
             onComplete(0, true, result);
@@ -175,22 +176,22 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('register', () => {
+  describe("register", () => {
     const createUserDto: CreateUserDto = {
-      username: 'newuser',
-      email: 'newuser@example.com',
-      password: 'password123',
+      username: "newuser",
+      email: "newuser@example.com",
+      password: "password123",
       role: UserRole.DEVELOPER,
     };
 
-    it('should successfully register a new user', async () => {
+    it("should successfully register a new user", async () => {
       // Arrange
       userRepository.findByUsernameOrEmail.mockResolvedValue(null);
-      passwordService.hashPassword.mockResolvedValue('hashed-password');
+      passwordService.hashPassword.mockResolvedValue("hashed-password");
       userRepository.create.mockResolvedValue(mockUser as any);
 
       // Act
@@ -201,23 +202,27 @@ describe('AuthService', () => {
         createUserDto.username,
         createUserDto.email,
       );
-      expect(passwordService.hashPassword).toHaveBeenCalledWith(createUserDto.password);
+      expect(passwordService.hashPassword).toHaveBeenCalledWith(
+        createUserDto.password,
+      );
       expect(userRepository.create).toHaveBeenCalledWith({
         username: createUserDto.username,
         email: createUserDto.email,
-        passwordHash: 'hashed-password',
+        passwordHash: "hashed-password",
         role: UserRole.DEVELOPER,
         isActive: true,
       });
       expect(result).toEqual(mockUser.toJSON());
     });
 
-    it('should throw ConflictException if username already exists', async () => {
+    it("should throw ConflictException if username already exists", async () => {
       // Arrange
       userRepository.findByUsernameOrEmail.mockResolvedValue(mockUser as any);
 
       // Act & Assert
-      await expect(service.register(createUserDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(createUserDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(userRepository.findByUsernameOrEmail).toHaveBeenCalledWith(
         createUserDto.username,
         createUserDto.email,
@@ -226,28 +231,32 @@ describe('AuthService', () => {
       expect(userRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should throw ConflictException if email already exists', async () => {
+    it("should throw ConflictException if email already exists", async () => {
       // Arrange
       const existingUser = { ...mockUser, email: createUserDto.email };
-      userRepository.findByUsernameOrEmail.mockResolvedValue(existingUser as any);
+      userRepository.findByUsernameOrEmail.mockResolvedValue(
+        existingUser as any,
+      );
 
       // Act & Assert
-      await expect(service.register(createUserDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(createUserDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(userRepository.findByUsernameOrEmail).toHaveBeenCalledWith(
         createUserDto.username,
         createUserDto.email,
       );
     });
 
-    it('should use default role if not provided', async () => {
+    it("should use default role if not provided", async () => {
       // Arrange
       const createUserDtoWithoutRole = {
-        username: 'newuser',
-        email: 'newuser@example.com',
-        password: 'password123',
+        username: "newuser",
+        email: "newuser@example.com",
+        password: "password123",
       };
       userRepository.findByUsernameOrEmail.mockResolvedValue(null);
-      passwordService.hashPassword.mockResolvedValue('hashed-password');
+      passwordService.hashPassword.mockResolvedValue("hashed-password");
       userRepository.create.mockResolvedValue(mockUser as any);
 
       // Act
@@ -257,20 +266,20 @@ describe('AuthService', () => {
       expect(userRepository.create).toHaveBeenCalledWith({
         username: createUserDtoWithoutRole.username,
         email: createUserDtoWithoutRole.email,
-        passwordHash: 'hashed-password',
+        passwordHash: "hashed-password",
         role: UserRole.DEVELOPER, // 默认角色
         isActive: true,
       });
     });
   });
 
-  describe('login', () => {
+  describe("login", () => {
     const loginDto: LoginDto = {
-      username: 'testuser',
-      password: 'password123',
+      username: "testuser",
+      password: "password123",
     };
 
-    it('should successfully login with valid credentials', async () => {
+    it("should successfully login with valid credentials", async () => {
       // Arrange
       userRepository.findByUsername.mockResolvedValue(mockUser as any);
       passwordService.comparePassword.mockResolvedValue(true);
@@ -280,7 +289,9 @@ describe('AuthService', () => {
       const result = await service.login(loginDto);
 
       // Assert
-      expect(userRepository.findByUsername).toHaveBeenCalledWith(loginDto.username);
+      expect(userRepository.findByUsername).toHaveBeenCalledWith(
+        loginDto.username,
+      );
       expect(passwordService.comparePassword).toHaveBeenCalledWith(
         loginDto.password,
         mockUser.passwordHash,
@@ -293,36 +304,48 @@ describe('AuthService', () => {
       });
     });
 
-    it('should throw UnauthorizedException if user not found', async () => {
+    it("should throw UnauthorizedException if user not found", async () => {
       // Arrange
       userRepository.findByUsername.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
-      expect(userRepository.findByUsername).toHaveBeenCalledWith(loginDto.username);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(userRepository.findByUsername).toHaveBeenCalledWith(
+        loginDto.username,
+      );
       expect(passwordService.comparePassword).not.toHaveBeenCalled();
       expect(tokenService.generateTokens).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException if user is inactive', async () => {
+    it("should throw UnauthorizedException if user is inactive", async () => {
       // Arrange
       const inactiveUser = { ...mockUser, isActive: false };
       userRepository.findByUsername.mockResolvedValue(inactiveUser as any);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
-      expect(userRepository.findByUsername).toHaveBeenCalledWith(loginDto.username);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(userRepository.findByUsername).toHaveBeenCalledWith(
+        loginDto.username,
+      );
       expect(passwordService.comparePassword).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException if password is invalid', async () => {
+    it("should throw UnauthorizedException if password is invalid", async () => {
       // Arrange
       userRepository.findByUsername.mockResolvedValue(mockUser as any);
       passwordService.comparePassword.mockResolvedValue(false);
 
       // Act & Assert
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
-      expect(userRepository.findByUsername).toHaveBeenCalledWith(loginDto.username);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(userRepository.findByUsername).toHaveBeenCalledWith(
+        loginDto.username,
+      );
       expect(passwordService.comparePassword).toHaveBeenCalledWith(
         loginDto.password,
         mockUser.passwordHash,
@@ -331,15 +354,15 @@ describe('AuthService', () => {
     });
   });
 
-  describe('refreshToken', () => {
-    const refreshToken = 'mock-refresh-token';
+  describe("refreshToken", () => {
+    const refreshToken = "mock-refresh-token";
     const mockPayload = {
       sub: mockUser.id,
       username: mockUser.username,
       role: mockUser.role,
     };
 
-    it('should successfully refresh token', async () => {
+    it("should successfully refresh token", async () => {
       // Arrange
       tokenService.verifyRefreshToken.mockResolvedValue(mockPayload);
       tokenService.validateUserFromPayload.mockResolvedValue(mockUser);
@@ -349,68 +372,89 @@ describe('AuthService', () => {
       const result = await service.refreshToken(refreshToken);
 
       // Assert
-      expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
-      expect(tokenService.validateUserFromPayload).toHaveBeenCalledWith(mockPayload);
+      expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(
+        refreshToken,
+      );
+      expect(tokenService.validateUserFromPayload).toHaveBeenCalledWith(
+        mockPayload,
+      );
       expect(tokenService.generateTokens).toHaveBeenCalledWith(mockUser);
       expect(result).toEqual(mockTokens);
     });
 
-    it('should throw UnauthorizedException if token is invalid', async () => {
+    it("should throw UnauthorizedException if token is invalid", async () => {
       // Arrange
-      tokenService.verifyRefreshToken.mockRejectedValue(new UnauthorizedException('Invalid token'));
+      tokenService.verifyRefreshToken.mockRejectedValue(
+        new UnauthorizedException("Invalid token"),
+      );
 
       // Act & Assert
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
-      expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
+      await expect(service.refreshToken(refreshToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(
+        refreshToken,
+      );
       expect(tokenService.validateUserFromPayload).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException if user is invalid', async () => {
+    it("should throw UnauthorizedException if user is invalid", async () => {
       // Arrange
       tokenService.verifyRefreshToken.mockResolvedValue(mockPayload);
-      tokenService.validateUserFromPayload.mockRejectedValue(new UnauthorizedException('Invalid user'));
+      tokenService.validateUserFromPayload.mockRejectedValue(
+        new UnauthorizedException("Invalid user"),
+      );
 
       // Act & Assert
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
-      expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
-      expect(tokenService.validateUserFromPayload).toHaveBeenCalledWith(mockPayload);
+      await expect(service.refreshToken(refreshToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(
+        refreshToken,
+      );
+      expect(tokenService.validateUserFromPayload).toHaveBeenCalledWith(
+        mockPayload,
+      );
     });
   });
 
-  describe('API Key methods', () => {
-    const userId = '507f1f77bcf86cd799439011';
-    const apiKeyId = '507f1f77bcf86cd799439012';
+  describe("API Key methods", () => {
+    const userId = "507f1f77bcf86cd799439011";
+    const apiKeyId = "507f1f77bcf86cd799439012";
     const createApiKeyDto = {
-      name: 'Test API Key',
-      permissions: ['data:read', 'query:execute'],
+      name: "Test API Key",
+      permissions: ["data:read", "query:execute"],
     };
 
-         it('should create API key', async () => {
-       // Arrange
-       apiKeyService.createApiKey.mockResolvedValue(mockApiKey as any);
+    it("should create API key", async () => {
+      // Arrange
+      apiKeyService.createApiKey.mockResolvedValue(mockApiKey as any);
 
-       // Act
-       const result = await service.createApiKey(userId, createApiKeyDto);
+      // Act
+      const result = await service.createApiKey(userId, createApiKeyDto);
 
-       // Assert
-       expect(apiKeyService.createApiKey).toHaveBeenCalledWith(userId, createApiKeyDto);
-       expect(result).toEqual(mockApiKey);
-     });
+      // Assert
+      expect(apiKeyService.createApiKey).toHaveBeenCalledWith(
+        userId,
+        createApiKeyDto,
+      );
+      expect(result).toEqual(mockApiKey);
+    });
 
-     it('should get user API keys', async () => {
-       // Arrange
-       const mockApiKeys = [mockApiKey as any];
-       apiKeyService.getUserApiKeys.mockResolvedValue(mockApiKeys);
+    it("should get user API keys", async () => {
+      // Arrange
+      const mockApiKeys = [mockApiKey as any];
+      apiKeyService.getUserApiKeys.mockResolvedValue(mockApiKeys);
 
-       // Act
-       const result = await service.getUserApiKeys(userId);
+      // Act
+      const result = await service.getUserApiKeys(userId);
 
-       // Assert
-       expect(apiKeyService.getUserApiKeys).toHaveBeenCalledWith(userId);
-       expect(result).toEqual(mockApiKeys);
-     });
+      // Assert
+      expect(apiKeyService.getUserApiKeys).toHaveBeenCalledWith(userId);
+      expect(result).toEqual(mockApiKeys);
+    });
 
-    it('should revoke API key', async () => {
+    it("should revoke API key", async () => {
       // Arrange
       apiKeyService.revokeApiKey.mockResolvedValue(undefined);
 
@@ -421,53 +465,62 @@ describe('AuthService', () => {
       expect(apiKeyService.revokeApiKey).toHaveBeenCalledWith(apiKeyId, userId);
     });
 
-    it('should validate API key', async () => {
+    it("should validate API key", async () => {
       // Arrange
-      const appKey = 'ak_test_12345';
-      const accessToken = 'sk_test_secret_token';
+      const appKey = "ak_test_12345";
+      const accessToken = "sk_test_secret_token";
       apiKeyService.validateApiKey.mockResolvedValue(mockApiKey as any);
 
       // Act
       const result = await service.validateApiKey(appKey, accessToken);
 
       // Assert
-      expect(apiKeyService.validateApiKey).toHaveBeenCalledWith(appKey, accessToken);
+      expect(apiKeyService.validateApiKey).toHaveBeenCalledWith(
+        appKey,
+        accessToken,
+      );
       expect(result).toEqual(mockApiKey);
     });
   });
 
-  describe('error handling', () => {
-    it('should handle database errors during registration', async () => {
+  describe("error handling", () => {
+    it("should handle database errors during registration", async () => {
       // Arrange
       const createUserDto: CreateUserDto = {
-        username: 'newuser',
-        email: 'newuser@example.com',
-        password: 'password123',
+        username: "newuser",
+        email: "newuser@example.com",
+        password: "password123",
         role: UserRole.DEVELOPER,
       };
       userRepository.findByUsernameOrEmail.mockResolvedValue(null);
-      passwordService.hashPassword.mockResolvedValue('hashed-password');
-      userRepository.create.mockRejectedValue(new Error('Database error'));
+      passwordService.hashPassword.mockResolvedValue("hashed-password");
+      userRepository.create.mockRejectedValue(new Error("Database error"));
 
       // Act & Assert
-      await expect(service.register(createUserDto)).rejects.toThrow('Database error');
+      await expect(service.register(createUserDto)).rejects.toThrow(
+        "Database error",
+      );
       expect(userRepository.create).toHaveBeenCalled();
     });
 
-    it('should handle password hashing errors', async () => {
+    it("should handle password hashing errors", async () => {
       // Arrange
       const createUserDto: CreateUserDto = {
-        username: 'newuser',
-        email: 'newuser@example.com',
-        password: 'password123',
+        username: "newuser",
+        email: "newuser@example.com",
+        password: "password123",
         role: UserRole.DEVELOPER,
       };
       userRepository.findByUsernameOrEmail.mockResolvedValue(null);
-      passwordService.hashPassword.mockRejectedValue(new Error('Hash error'));
+      passwordService.hashPassword.mockRejectedValue(new Error("Hash error"));
 
       // Act & Assert
-      await expect(service.register(createUserDto)).rejects.toThrow('Hash error');
-      expect(passwordService.hashPassword).toHaveBeenCalledWith(createUserDto.password);
+      await expect(service.register(createUserDto)).rejects.toThrow(
+        "Hash error",
+      );
+      expect(passwordService.hashPassword).toHaveBeenCalledWith(
+        createUserDto.password,
+      );
     });
   });
 });

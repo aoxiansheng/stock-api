@@ -1,13 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReceiverController } from '../../../../../src/core/receiver/receiver.controller';
-import { ReceiverService } from '../../../../../src/core/receiver/receiver.service';
-import { DataRequestDto } from '../../../../../src/core/receiver/dto/data-request.dto';
-import { DataResponseDto, ResponseMetadataDto } from '../../../../../src/core/receiver/dto/data-response.dto';
-import { JwtAuthGuard } from '../../../../../src/auth/guards/jwt-auth.guard';
-import { ApiKeyAuthGuard } from '../../../../../src/auth/guards/apikey-auth.guard';
-import { UnifiedPermissionsGuard } from '../../../../../src/auth/guards/unified-permissions.guard';
-import { RateLimitGuard } from '../../../../../src/auth/guards/rate-limit.guard';
-import { CanActivate } from '@nestjs/common';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ReceiverController } from "../../../../../src/core/receiver/receiver.controller";
+import { ReceiverService } from "../../../../../src/core/receiver/receiver.service";
+import { DataRequestDto } from "../../../../../src/core/receiver/dto/data-request.dto";
+import {
+  DataResponseDto,
+  ResponseMetadataDto,
+} from "../../../../../src/core/receiver/dto/data-response.dto";
+import { JwtAuthGuard } from "../../../../../src/auth/guards/jwt-auth.guard";
+import { ApiKeyAuthGuard } from "../../../../../src/auth/guards/apikey-auth.guard";
+import { UnifiedPermissionsGuard } from "../../../../../src/auth/guards/unified-permissions.guard";
+import { RateLimitGuard } from "../../../../../src/auth/guards/rate-limit.guard";
+import { CanActivate } from "@nestjs/common";
 
 const mockLogger = {
   log: jest.fn(),
@@ -16,12 +19,12 @@ const mockLogger = {
   debug: jest.fn(),
 };
 
-jest.mock('../../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLogger),
-  sanitizeLogData: jest.fn(data => data),
+  sanitizeLogData: jest.fn((data) => data),
 }));
 
-describe('ReceiverController', () => {
+describe("ReceiverController", () => {
   let controller: ReceiverController;
   let receiverService: ReceiverService;
 
@@ -58,19 +61,27 @@ describe('ReceiverController', () => {
     jest.clearAllMocks();
   });
 
-  describe('handleDataRequest', () => {
+  describe("handleDataRequest", () => {
     const mockDataRequest: DataRequestDto = {
-      symbols: ['700.HK', 'AAPL.US'],
-      dataType: 'stock-quote',
+      symbols: ["700.HK", "AAPL.US"],
+      dataType: "stock-quote",
       options: {},
     };
 
-    it('should process data request successfully and log correct info', async () => {
-      const mockMetadata = new ResponseMetadataDto('longport', 'stock-quote', 'req-123', 150, false, 2, 2);
+    it("should process data request successfully and log correct info", async () => {
+      const mockMetadata = new ResponseMetadataDto(
+        "longport",
+        "stock-quote",
+        "req-123",
+        150,
+        false,
+        2,
+        2,
+      );
       const mockResponse = new DataResponseDto(
         {
-          '700.HK': { lastPrice: 300, volume: 1000000 },
-          'AAPL.US': { lastPrice: 150, volume: 500000 },
+          "700.HK": { lastPrice: 300, volume: 1000000 },
+          "AAPL.US": { lastPrice: 150, volume: 500000 },
         },
         mockMetadata,
       );
@@ -80,34 +91,38 @@ describe('ReceiverController', () => {
       const result = await controller.handleDataRequest(mockDataRequest);
 
       expect(result).toEqual(mockResponse);
-      expect(mockReceiverService.handleRequest).toHaveBeenCalledWith(mockDataRequest);
+      expect(mockReceiverService.handleRequest).toHaveBeenCalledWith(
+        mockDataRequest,
+      );
       expect(mockLogger.log).toHaveBeenCalledWith(
-        '接收数据请求',
+        "接收数据请求",
         expect.objectContaining({
           symbols: mockDataRequest.symbols,
           dataType: mockDataRequest.dataType,
         }),
       );
       expect(mockLogger.log).toHaveBeenCalledWith(
-        '数据请求处理完成',
+        "数据请求处理完成",
         expect.objectContaining({
-          requestId: 'req-123',
+          requestId: "req-123",
           success: true,
-          provider: 'longport',
+          provider: "longport",
           processingTime: 150,
           hasPartialFailures: false,
         }),
       );
     });
 
-    it('should handle service errors gracefully and log the error', async () => {
-      const error = new Error('Provider unavailable');
+    it("should handle service errors gracefully and log the error", async () => {
+      const error = new Error("Provider unavailable");
       mockReceiverService.handleRequest.mockRejectedValue(error);
 
-      await expect(controller.handleDataRequest(mockDataRequest)).rejects.toThrow('Provider unavailable');
+      await expect(
+        controller.handleDataRequest(mockDataRequest),
+      ).rejects.toThrow("Provider unavailable");
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        '数据请求处理失败',
+        "数据请求处理失败",
         expect.objectContaining({
           error: error.message,
           symbols: mockDataRequest.symbols,
@@ -115,32 +130,40 @@ describe('ReceiverController', () => {
       );
     });
 
-    it('should handle partial success scenarios and log the details', async () => {
-        const mockMetadata = new ResponseMetadataDto('longport', 'stock-quote', 'req-partial-456', 200, true, 2, 1);
-        const partialResponse = new DataResponseDto(
-          {
-            'AAPL.US': { price: 150 },
-          },
-          mockMetadata,
-        );
+    it("should handle partial success scenarios and log the details", async () => {
+      const mockMetadata = new ResponseMetadataDto(
+        "longport",
+        "stock-quote",
+        "req-partial-456",
+        200,
+        true,
+        2,
+        1,
+      );
+      const partialResponse = new DataResponseDto(
+        {
+          "AAPL.US": { price: 150 },
+        },
+        mockMetadata,
+      );
 
-        mockReceiverService.handleRequest.mockResolvedValue(partialResponse);
+      mockReceiverService.handleRequest.mockResolvedValue(partialResponse);
 
-        const result = await controller.handleDataRequest(mockDataRequest);
+      const result = await controller.handleDataRequest(mockDataRequest);
 
-        expect(result).toEqual(partialResponse);
-        expect(result.metadata.hasPartialFailures).toBe(true);
+      expect(result).toEqual(partialResponse);
+      expect(result.metadata.hasPartialFailures).toBe(true);
 
-        expect(mockLogger.log).toHaveBeenCalledWith(
-          '数据请求处理完成',
-          expect.objectContaining({
-            requestId: 'req-partial-456',
-            success: false, // isFullySuccessful should be false
-            hasPartialFailures: true,
-            successfullyProcessed: 1,
-            totalRequested: 2,
-          }),
-        );
-      });
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        "数据请求处理完成",
+        expect.objectContaining({
+          requestId: "req-partial-456",
+          success: false, // isFullySuccessful should be false
+          hasPartialFailures: true,
+          successfullyProcessed: 1,
+          totalRequested: 2,
+        }),
+      );
+    });
   });
 });

@@ -1,5 +1,9 @@
-import { CustomLogger, sanitizeLogData, TestableLogger } from '../../../../../src/common/config/logger.config';
-import pino from 'pino';
+import {
+  CustomLogger,
+  sanitizeLogData,
+  TestableLogger,
+} from "../../../../../src/common/config/logger.config";
+import pino from "pino";
 
 // Create a stable mock object that can be referenced across tests
 const pinoMock = {
@@ -11,106 +15,115 @@ const pinoMock = {
 };
 
 // Mock the entire pino library to handle ES Module default export
-jest.mock('pino', () => ({
+jest.mock("pino", () => ({
   __esModule: true, // This is important for ES Module mocks
   default: jest.fn(() => pinoMock),
 }));
 
-describe('LoggerConfig', () => {
+describe("LoggerConfig", () => {
   let logger: CustomLogger;
 
   beforeEach(() => {
     // Clear the mock function calls before each test
-    Object.values(pinoMock).forEach(mockFn => mockFn.mockClear());
+    Object.values(pinoMock).forEach((mockFn) => mockFn.mockClear());
     // @ts-ignore - This is a valid mock but TS compiler struggles with the type
     (pino as jest.Mock).mockClear();
   });
 
-  describe('CustomLogger Initialization', () => {
-    it('should create pino logger for development environment with debug level', () => {
+  describe("CustomLogger Initialization", () => {
+    it("should create pino logger for development environment with debug level", () => {
       const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      process.env.NODE_ENV = "development";
       delete process.env.LOG_LEVEL; // Ensure LOG_LEVEL doesn't override
-      
+
       logger = new CustomLogger();
-      expect(pino).toHaveBeenCalledWith(expect.objectContaining({ level: 'debug' }));
-      
+      expect(pino).toHaveBeenCalledWith(
+        expect.objectContaining({ level: "debug" }),
+      );
+
       process.env.NODE_ENV = originalNodeEnv;
     });
 
-    it('should create pino logger for production environment with info level', () => {
+    it("should create pino logger for production environment with info level", () => {
       const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      process.env.NODE_ENV = "production";
       delete process.env.LOG_LEVEL; // Ensure LOG_LEVEL doesn't override
-      
+
       logger = new CustomLogger();
-      expect(pino).toHaveBeenCalledWith(expect.objectContaining({ level: 'info' }));
-      
+      expect(pino).toHaveBeenCalledWith(
+        expect.objectContaining({ level: "info" }),
+      );
+
       process.env.NODE_ENV = originalNodeEnv;
     });
 
-    it('should respect LOG_LEVEL environment variable', () => {
-      process.env.LOG_LEVEL = 'warn';
+    it("should respect LOG_LEVEL environment variable", () => {
+      process.env.LOG_LEVEL = "warn";
       logger = new CustomLogger();
-      expect(pino).toHaveBeenCalledWith(expect.objectContaining({ level: 'warn' }));
-      process.env.LOG_LEVEL = ''; // Reset env var
+      expect(pino).toHaveBeenCalledWith(
+        expect.objectContaining({ level: "warn" }),
+      );
+      process.env.LOG_LEVEL = ""; // Reset env var
     });
   });
 
-  describe('Log formatting and sanitization', () => {
+  describe("Log formatting and sanitization", () => {
     beforeEach(() => {
-        logger = new CustomLogger();
+      logger = new CustomLogger();
     });
-    
-    it('should handle circular references in log messages', () => {
+
+    it("should handle circular references in log messages", () => {
       const circularObj: any = { a: 1 };
       circularObj.b = circularObj;
 
       logger.log(circularObj);
       expect(pinoMock.info).toHaveBeenCalledWith(
-        expect.objectContaining({ context: 'Application', error: 'Failed to format log message' }),
-        '[Log Format Error] [object Object]'
+        expect.objectContaining({
+          context: "Application",
+          error: "Failed to format log message",
+        }),
+        "[Log Format Error] [object Object]",
       );
     });
 
-    it('should sanitize sensitive data', () => {
-        const sensitiveData = {
-          password: 'my-secret-password',
-          token: 'my-secret-token',
-          other: 'value',
-        };
-        const sanitized = sanitizeLogData(sensitiveData);
-        expect(sanitized.password).toBe('my****rd');
-        expect(sanitized.token).toBe('my****en');
-        expect(sanitized.other).toBe('value');
-      });
-  
-      it('should mask short sensitive values', () => {
-          const sensitiveData = { authorization: '123' };
-          const sanitized = sanitizeLogData(sensitiveData);
-          expect(sanitized.authorization).toBe('****');
-      });
+    it("should sanitize sensitive data", () => {
+      const sensitiveData = {
+        password: "my-secret-password",
+        token: "my-secret-token",
+        other: "value",
+      };
+      const sanitized = sanitizeLogData(sensitiveData);
+      expect(sanitized.password).toBe("my****rd");
+      expect(sanitized.token).toBe("my****en");
+      expect(sanitized.other).toBe("value");
+    });
+
+    it("should mask short sensitive values", () => {
+      const sensitiveData = { authorization: "123" };
+      const sanitized = sanitizeLogData(sensitiveData);
+      expect(sanitized.authorization).toBe("****");
+    });
   });
 
-  describe('Log methods', () => {
+  describe("Log methods", () => {
     beforeEach(() => {
-        logger = new CustomLogger('TestContext');
+      logger = new CustomLogger("TestContext");
     });
 
-    it('should log a simple message', () => {
-        logger.log('test message');
-        expect(pinoMock.info).toHaveBeenCalledWith(
-            expect.objectContaining({ context: 'TestContext' }),
-            'test message'
-        );
-    });
-
-    it('should handle non-string context', () => {
-      logger.log("message", { custom: 'context' });
+    it("should log a simple message", () => {
+      logger.log("test message");
       expect(pinoMock.info).toHaveBeenCalledWith(
-        expect.objectContaining({ context: 'TestContext', custom: 'context' }),
-        'message'
+        expect.objectContaining({ context: "TestContext" }),
+        "test message",
+      );
+    });
+
+    it("should handle non-string context", () => {
+      logger.log("message", { custom: "context" });
+      expect(pinoMock.info).toHaveBeenCalledWith(
+        expect.objectContaining({ context: "TestContext", custom: "context" }),
+        "message",
       );
     });
   });
-}); 
+});

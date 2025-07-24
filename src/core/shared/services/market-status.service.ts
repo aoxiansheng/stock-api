@@ -227,20 +227,23 @@ export class MarketStatusService {
       // 2. Use Intl.DateTimeFormat to break the date into parts in the target timezone.
       const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: timezone,
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
         hour12: false, // Use 24-hour format
       });
-      
+
       const parts = formatter.formatToParts(date);
-      const partsMap = parts.reduce((acc, part) => {
-        acc[part.type] = parseInt(part.value, 10);
-        return acc;
-      }, {} as Record<string, number>);
+      const partsMap = parts.reduce(
+        (acc, part) => {
+          acc[part.type] = parseInt(part.value, 10);
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       // 3. Reconstruct the date using the parts.
       // Note: month is 0-indexed in JavaScript Dates.
@@ -250,7 +253,7 @@ export class MarketStatusService {
         partsMap.day,
         partsMap.hour % 24, // Handle 24h case from Intl
         partsMap.minute,
-        partsMap.second
+        partsMap.second,
       );
     } catch (error) {
       this.logger.warn("时区转换失败，使用UTC时间", {
@@ -265,8 +268,11 @@ export class MarketStatusService {
    * 转换到市场时区时间
    */
   private getDayOfWeekInTimezone(date: Date, timezone: string): number {
-    const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: timezone }).format(date);
-    const dayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+    const dayName = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      timeZone: timezone,
+    }).format(date);
+    const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
     return dayMap[dayName] ?? -1;
   }
 
@@ -407,14 +413,14 @@ export class MarketStatusService {
    * 工具方法：格式化时间为HH:mm
    */
   private formatTime(date: Date, timezone: string): string {
-    const formatter = new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: timezone,
-        hour12: false,
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: timezone,
+      hour12: false,
     });
     // Intl can return '24:00' for midnight, which we should handle.
-    return formatter.format(date).replace('24', '00');
+    return formatter.format(date).replace("24", "00");
   }
 
   /**

@@ -1,9 +1,12 @@
-import { PaginatedDataDto } from '../../../../../src/common/dto/common-response.dto';
+import { PaginatedDataDto } from "../../../../../src/common/dto/common-response.dto";
 
-describe('Common Response DTOs', () => {
-  describe('PaginatedDataDto', () => {
-    it('should create instance with items and pagination', () => {
-      const testItems = [{ id: 1, name: 'item1' }, { id: 2, name: 'item2' }];
+describe("Common Response DTOs", () => {
+  describe("PaginatedDataDto", () => {
+    it("should create instance with items and pagination", () => {
+      const testItems = [
+        { id: 1, name: "item1" },
+        { id: 2, name: "item2" },
+      ];
       const pagination = {
         page: 1,
         limit: 10,
@@ -20,7 +23,7 @@ describe('Common Response DTOs', () => {
       expect(dto.items).toHaveLength(2);
     });
 
-    it('should handle empty items array', () => {
+    it("should handle empty items array", () => {
       const pagination = {
         page: 1,
         limit: 10,
@@ -37,8 +40,11 @@ describe('Common Response DTOs', () => {
       expect(dto.items).toHaveLength(0);
     });
 
-    it('should handle pagination with multiple pages', () => {
-      const testItems = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `item${i + 1}` }));
+    it("should handle pagination with multiple pages", () => {
+      const testItems = Array.from({ length: 10 }, (_, i) => ({
+        id: i + 1,
+        name: `item${i + 1}`,
+      }));
       const pagination = {
         page: 2,
         limit: 10,
@@ -59,8 +65,8 @@ describe('Common Response DTOs', () => {
 
   // Note: ApiResponseDto and ErrorResponseDto have been removed as they are
   // now automatically handled by the global ResponseInterceptor
-  describe('Response Format Compliance', () => {
-    it('should rely on ResponseInterceptor for standard response formatting', () => {
+  describe("Response Format Compliance", () => {
+    it("should rely on ResponseInterceptor for standard response formatting", () => {
       // This test validates that we no longer manually create response wrappers
       // ResponseInterceptor automatically provides: { statusCode, message, data, timestamp }
       expect(true).toBe(true); // Placeholder test to ensure compliance direction

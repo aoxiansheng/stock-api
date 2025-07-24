@@ -1,19 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Reflector } from '@nestjs/core';
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { createMock } from '@golevelup/ts-jest';
-import { UnifiedPermissionsGuard } from '../../../../../src/auth/guards/unified-permissions.guard';
-import { PermissionService, PermissionCheckResult } from '../../../../../src/auth/services/permission.service';
-import { AuthSubjectFactory } from '../../../../../src/auth/subjects/auth-subject.factory';
-import { JwtUserSubject } from '../../../../../src/auth/subjects/jwt-user.subject';
-import { ApiKeySubject } from '../../../../../src/auth/subjects/api-key.subject';
-import { Permission, UserRole } from '../../../../../src/auth/enums/user-role.enum';
-import { PERMISSIONS_KEY } from '../../../../../src/auth/decorators/permissions.decorator';
-import { ROLES_KEY } from '../../../../../src/auth/decorators/roles.decorator';
-import { AuthSubjectType } from '../../../../../src/auth/interfaces/auth-subject.interface';
+import { Test, TestingModule } from "@nestjs/testing";
+import { Reflector } from "@nestjs/core";
+import { ExecutionContext, ForbiddenException } from "@nestjs/common";
+import { createMock } from "@golevelup/ts-jest";
+import { UnifiedPermissionsGuard } from "../../../../../src/auth/guards/unified-permissions.guard";
+import {
+  PermissionService,
+  PermissionCheckResult,
+} from "../../../../../src/auth/services/permission.service";
+import { AuthSubjectFactory } from "../../../../../src/auth/subjects/auth-subject.factory";
+import { JwtUserSubject } from "../../../../../src/auth/subjects/jwt-user.subject";
+import { ApiKeySubject } from "../../../../../src/auth/subjects/api-key.subject";
+import {
+  Permission,
+  UserRole,
+} from "../../../../../src/auth/enums/user-role.enum";
+import { PERMISSIONS_KEY } from "../../../../../src/auth/decorators/permissions.decorator";
+import { ROLES_KEY } from "../../../../../src/auth/decorators/roles.decorator";
+import { AuthSubjectType } from "../../../../../src/auth/interfaces/auth-subject.interface";
 
 // Mock the logger to prevent console output during tests
-jest.mock('../../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     warn: jest.fn(),
@@ -22,9 +28,9 @@ jest.mock('../../../../../src/common/config/logger.config', () => ({
 }));
 
 // Mock AuthSubjectFactory
-jest.mock('../../../../../src/auth/subjects/auth-subject.factory');
+jest.mock("../../../../../src/auth/subjects/auth-subject.factory");
 
-describe('UnifiedPermissionsGuard', () => {
+describe("UnifiedPermissionsGuard", () => {
   let guard: UnifiedPermissionsGuard;
   let reflector: Reflector;
   let permissionService: PermissionService;
@@ -56,144 +62,204 @@ describe('UnifiedPermissionsGuard', () => {
   });
 
   // 辅助函数，用于模拟 Reflector 的返回值
-  const mockReflector = (roles: UserRole[] = [], permissions: Permission[] = []) => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key, targets) => {
-      if (key === ROLES_KEY) return roles;
-      if (key === PERMISSIONS_KEY) return permissions;
-      return [];
-    });
+  const mockReflector = (
+    roles: UserRole[] = [],
+    permissions: Permission[] = [],
+  ) => {
+    jest
+      .spyOn(reflector, "getAllAndOverride")
+      .mockImplementation((key, targets) => {
+        if (key === ROLES_KEY) return roles;
+        if (key === PERMISSIONS_KEY) return permissions;
+        return [];
+      });
   };
 
   // 辅助函数，用于模拟 AuthSubjectFactory
   const mockAuthSubject = (subject: any) => {
-    (AuthSubjectFactory.createFromRequest as jest.Mock).mockReturnValue(subject);
+    (AuthSubjectFactory.createFromRequest as jest.Mock).mockReturnValue(
+      subject,
+    );
   };
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(guard).toBeDefined();
   });
 
-  describe('Scenario 1: No permissions required', () => {
-    it('should allow access if no roles or permissions are required', async () => {
+  describe("Scenario 1: No permissions required", () => {
+    it("should allow access if no roles or permissions are required", async () => {
       mockReflector([], []);
       await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
     });
   });
 
-  describe('Scenario 2: JWT User Authentication', () => {
-    const mockJwtUser = new JwtUserSubject(
-        { _id: 'user1', username: 'testuser', role: UserRole.DEVELOPER, permissions: [Permission.DATA_READ] }
-      );
+  describe("Scenario 2: JWT User Authentication", () => {
+    const mockJwtUser = new JwtUserSubject({
+      _id: "user1",
+      username: "testuser",
+      role: UserRole.DEVELOPER,
+      permissions: [Permission.DATA_READ],
+    });
 
-    it('should allow access if user has required roles and permissions', async () => {
+    it("should allow access if user has required roles and permissions", async () => {
       mockReflector([UserRole.DEVELOPER], [Permission.DATA_READ]);
       mockAuthSubject(mockJwtUser);
-      jest.spyOn(permissionService, 'checkPermissions').mockResolvedValue({ allowed: true, duration: 10, missingPermissions: [], missingRoles: [], details: 'all good' });
-      
+      jest.spyOn(permissionService, "checkPermissions").mockResolvedValue({
+        allowed: true,
+        duration: 10,
+        missingPermissions: [],
+        missingRoles: [],
+        details: "all good",
+      });
+
       await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
     });
 
-    it('should deny access if user is missing required roles', async () => {
+    it("should deny access if user is missing required roles", async () => {
       mockReflector([UserRole.ADMIN], []);
       mockAuthSubject(mockJwtUser);
-      jest.spyOn(permissionService, 'checkPermissions').mockResolvedValue({
+      jest.spyOn(permissionService, "checkPermissions").mockResolvedValue({
         allowed: false,
         missingRoles: [UserRole.ADMIN],
         missingPermissions: [],
         duration: 5,
-        details: 'missing role'
+        details: "missing role",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(ForbiddenException);
-    });
-    
-    it('should deny access if user is missing required permissions', async () => {
-        mockReflector([], [Permission.USER_MANAGE]);
-        mockAuthSubject(mockJwtUser);
-        jest.spyOn(permissionService, 'checkPermissions').mockResolvedValue({
-          allowed: false,
-          missingRoles: [],
-          missingPermissions: [Permission.USER_MANAGE],
-          duration: 6,
-          details: 'missing permission'
-        });
-  
-        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(ForbiddenException);
-        try {
-          await guard.canActivate(mockExecutionContext);
-        } catch (e) {
-          expect(e.getResponse().details.missingPermissions).toEqual([Permission.USER_MANAGE]);
-        }
-    });
-  });
-
-  describe('Scenario 3: API Key Authentication', () => {
-    const mockApiKey = new ApiKeySubject(
-        { _id: 'key1', owner: 'test-app', permissions: [Permission.DATA_READ] },
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        ForbiddenException,
       );
-
-    it('should allow access if API key has required permissions', async () => {
-        mockReflector([], [Permission.DATA_READ]);
-        mockAuthSubject(mockApiKey);
-        jest.spyOn(permissionService, 'checkPermissions').mockResolvedValue({ allowed: true, duration: 8, missingPermissions: [], missingRoles: [], details: 'all good' });
-  
-        await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
     });
 
-    it('should deny access if API key is missing required permissions', async () => {
-        mockReflector([], [Permission.USER_MANAGE]);
-        mockAuthSubject(mockApiKey);
-        jest.spyOn(permissionService, 'checkPermissions').mockResolvedValue({
-          allowed: false,
-          missingRoles: [],
-          missingPermissions: [Permission.USER_MANAGE],
-          duration: 7,
-          details: 'missing perm'
-        });
-  
-        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(ForbiddenException);
-        try {
-            await guard.canActivate(mockExecutionContext);
-          } catch (e) {
-            expect(e.getResponse().details.subjectType).toEqual(AuthSubjectType.API_KEY);
-            expect(e.getResponse().details.missingPermissions).toEqual([Permission.USER_MANAGE]);
-          }
-    });
-
-    it('should deny access if roles are required (API keys do not support roles)', async () => {
-        mockReflector([UserRole.ADMIN], []);
-        mockAuthSubject(mockApiKey);
-        jest.spyOn(permissionService, 'checkPermissions').mockResolvedValue({
-          allowed: false,
-          missingRoles: [UserRole.ADMIN],
-          missingPermissions: [],
-          duration: 4,
-          details: 'no roles for api key'
-        });
-  
-        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(ForbiddenException);
+    it("should deny access if user is missing required permissions", async () => {
+      mockReflector([], [Permission.USER_MANAGE]);
+      mockAuthSubject(mockJwtUser);
+      jest.spyOn(permissionService, "checkPermissions").mockResolvedValue({
+        allowed: false,
+        missingRoles: [],
+        missingPermissions: [Permission.USER_MANAGE],
+        duration: 6,
+        details: "missing permission",
       });
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        ForbiddenException,
+      );
+      try {
+        await guard.canActivate(mockExecutionContext);
+      } catch (e) {
+        expect(e.getResponse().details.missingPermissions).toEqual([
+          Permission.USER_MANAGE,
+        ]);
+      }
+    });
   });
 
-  describe('Scenario 4: Exception Handling', () => {
-    it('should throw ForbiddenException if permissionService throws an error', async () => {
-        const mockJwtUser = new JwtUserSubject({ _id: 'user1', username: 'testuser', role: UserRole.DEVELOPER, permissions: [] });
-        mockReflector([UserRole.DEVELOPER], []);
-        mockAuthSubject(mockJwtUser);
-        jest.spyOn(permissionService, 'checkPermissions').mockRejectedValue(new Error('Database error'));
-  
-        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(ForbiddenException);
-        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow('权限验证失败，请稍后重试');
+  describe("Scenario 3: API Key Authentication", () => {
+    const mockApiKey = new ApiKeySubject({
+      _id: "key1",
+      owner: "test-app",
+      permissions: [Permission.DATA_READ],
     });
 
-    it('should rethrow ForbiddenException if it is thrown by permissionService', async () => {
-        const mockJwtUser = new JwtUserSubject({ _id: 'user1', username: 'testuser', role: UserRole.DEVELOPER, permissions: [] });
-        mockReflector([UserRole.DEVELOPER], []);
-        mockAuthSubject(mockJwtUser);
-        const customException = new ForbiddenException('Custom forbidden message');
-        jest.spyOn(permissionService, 'checkPermissions').mockRejectedValue(customException);
-  
-        await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(customException);
+    it("should allow access if API key has required permissions", async () => {
+      mockReflector([], [Permission.DATA_READ]);
+      mockAuthSubject(mockApiKey);
+      jest.spyOn(permissionService, "checkPermissions").mockResolvedValue({
+        allowed: true,
+        duration: 8,
+        missingPermissions: [],
+        missingRoles: [],
+        details: "all good",
       });
+
+      await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+    });
+
+    it("should deny access if API key is missing required permissions", async () => {
+      mockReflector([], [Permission.USER_MANAGE]);
+      mockAuthSubject(mockApiKey);
+      jest.spyOn(permissionService, "checkPermissions").mockResolvedValue({
+        allowed: false,
+        missingRoles: [],
+        missingPermissions: [Permission.USER_MANAGE],
+        duration: 7,
+        details: "missing perm",
+      });
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        ForbiddenException,
+      );
+      try {
+        await guard.canActivate(mockExecutionContext);
+      } catch (e) {
+        expect(e.getResponse().details.subjectType).toEqual(
+          AuthSubjectType.API_KEY,
+        );
+        expect(e.getResponse().details.missingPermissions).toEqual([
+          Permission.USER_MANAGE,
+        ]);
+      }
+    });
+
+    it("should deny access if roles are required (API keys do not support roles)", async () => {
+      mockReflector([UserRole.ADMIN], []);
+      mockAuthSubject(mockApiKey);
+      jest.spyOn(permissionService, "checkPermissions").mockResolvedValue({
+        allowed: false,
+        missingRoles: [UserRole.ADMIN],
+        missingPermissions: [],
+        duration: 4,
+        details: "no roles for api key",
+      });
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
   });
-}); 
+
+  describe("Scenario 4: Exception Handling", () => {
+    it("should throw ForbiddenException if permissionService throws an error", async () => {
+      const mockJwtUser = new JwtUserSubject({
+        _id: "user1",
+        username: "testuser",
+        role: UserRole.DEVELOPER,
+        permissions: [],
+      });
+      mockReflector([UserRole.DEVELOPER], []);
+      mockAuthSubject(mockJwtUser);
+      jest
+        .spyOn(permissionService, "checkPermissions")
+        .mockRejectedValue(new Error("Database error"));
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        "权限验证失败，请稍后重试",
+      );
+    });
+
+    it("should rethrow ForbiddenException if it is thrown by permissionService", async () => {
+      const mockJwtUser = new JwtUserSubject({
+        _id: "user1",
+        username: "testuser",
+        role: UserRole.DEVELOPER,
+        permissions: [],
+      });
+      mockReflector([UserRole.DEVELOPER], []);
+      mockAuthSubject(mockJwtUser);
+      const customException = new ForbiddenException(
+        "Custom forbidden message",
+      );
+      jest
+        .spyOn(permissionService, "checkPermissions")
+        .mockRejectedValue(customException);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        customException,
+      );
+    });
+  });
+});

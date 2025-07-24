@@ -15,7 +15,10 @@ import {
 } from "../shared/services/data-fetching.service";
 import { MarketStatusService } from "../shared/services/market-status.service";
 import { StringUtils } from "../shared/utils/string.util";
-import { StorageType, DataClassification } from "../storage/enums/storage-type.enum";
+import {
+  StorageType,
+  DataClassification,
+} from "../storage/enums/storage-type.enum";
 import { StorageService } from "../storage/storage.service";
 
 import {
@@ -211,8 +214,10 @@ export class QueryService implements OnModuleInit {
     const errors: QueryErrorInfoDto[] = [];
 
     // 过滤掉undefined或null的符号
-    const validSymbols = request.symbols.filter(s => s !== undefined && s !== null);
-    
+    const validSymbols = request.symbols.filter(
+      (s) => s !== undefined && s !== null,
+    );
+
     if (validSymbols.length < request.symbols.length) {
       this.logger.warn(
         `查询包含无效的symbols`,
@@ -224,7 +229,10 @@ export class QueryService implements OnModuleInit {
       // 记录无效符号的错误
       request.symbols.forEach((s, idx) => {
         if (s === undefined || s === null) {
-          errors.push({ symbol: `at index ${idx}`, reason: "Invalid symbol (undefined or null)" });
+          errors.push({
+            symbol: `at index ${idx}`,
+            reason: "Invalid symbol (undefined or null)",
+          });
         }
       });
     }
@@ -255,9 +263,9 @@ export class QueryService implements OnModuleInit {
       }
     };
 
-    const results = (
-      await Promise.all(validSymbols.map(processSymbol))
-    ).filter((r): r is SymbolDataResultDto => r !== null);
+    const results = (await Promise.all(validSymbols.map(processSymbol))).filter(
+      (r): r is SymbolDataResultDto => r !== null,
+    );
 
     const combinedData = results.map((r) => r.data).flat();
     const cacheUsed = results.some((r) => r.source === DataSourceType.CACHE);
@@ -313,7 +321,12 @@ export class QueryService implements OnModuleInit {
     // 3. 将新获取的数据异步存入缓存
     if (request.useCache) {
       this.backgroundTaskService.run(
-        () => this.storeRealtimeData(storageKey, realtimeResult, request.dataTypeFilter),
+        () =>
+          this.storeRealtimeData(
+            storageKey,
+            realtimeResult,
+            request.dataTypeFilter,
+          ),
         `Store data for symbol ${symbol}`,
       );
     }
@@ -480,7 +493,11 @@ export class QueryService implements OnModuleInit {
           queryId,
           changes: changeResult.significantChanges,
         });
-        await this.storeRealtimeData(storageKey, freshData, request.dataTypeFilter);
+        await this.storeRealtimeData(
+          storageKey,
+          freshData,
+          request.dataTypeFilter,
+        );
       } else {
         this.logger.debug(`数据无显著变化，无需更新: ${symbol}`, { queryId });
       }
@@ -567,11 +584,14 @@ export class QueryService implements OnModuleInit {
     const promises = request.queries.map(async (query) => {
       try {
         const result = await this.executeQuery(query);
-        const hasErrors = result.metadata.errors && result.metadata.errors.length > 0;
+        const hasErrors =
+          result.metadata.errors && result.metadata.errors.length > 0;
 
         if (hasErrors && !request.continueOnError) {
           const firstError = result.metadata.errors[0];
-          throw new Error(`Query for symbol ${firstError.symbol} failed: ${firstError.reason}`);
+          throw new Error(
+            `Query for symbol ${firstError.symbol} failed: ${firstError.reason}`,
+          );
         }
 
         return result;
@@ -584,31 +604,49 @@ export class QueryService implements OnModuleInit {
         const executionResult = {
           results: [],
           cacheUsed: false,
-          dataSources: { cache: { hits: 0, misses: 1 }, realtime: { hits: 0, misses: 1 } },
-          errors: [{ symbol: query.symbols?.join(",") || 'unknown', reason: error.message }],
+          dataSources: {
+            cache: { hits: 0, misses: 1 },
+            realtime: { hits: 0, misses: 1 },
+          },
+          errors: [
+            {
+              symbol: query.symbols?.join(",") || "unknown",
+              reason: error.message,
+            },
+          ],
         };
-        return this.resultProcessorService.process(executionResult, query, queryId, 0);
+        return this.resultProcessorService.process(
+          executionResult,
+          query,
+          queryId,
+          0,
+        );
       }
     });
 
     const allResults = await Promise.all(promises);
-    return allResults.filter((result): result is QueryResponseDto => result !== null);
+    return allResults.filter(
+      (result): result is QueryResponseDto => result !== null,
+    );
   }
 
   private async executeBulkQueriesSequentially(
     request: BulkQueryRequestDto,
   ): Promise<QueryResponseDto[]> {
     const results: QueryResponseDto[] = [];
-    
+
     for (const query of request.queries) {
       try {
         const result = await this.executeQuery(query);
-        const hasErrors = result.metadata.errors && result.metadata.errors.length > 0;
+        const hasErrors =
+          result.metadata.errors && result.metadata.errors.length > 0;
 
         if (hasErrors) {
           if (!request.continueOnError) {
             const firstError = result.metadata.errors[0];
-            throw new Error(`Query for symbol ${firstError.symbol} failed: ${firstError.reason}`);
+            throw new Error(
+              `Query for symbol ${firstError.symbol} failed: ${firstError.reason}`,
+            );
           }
           this.logger.warn(`Bulk query item failed, continuing`, {
             queryType: query.queryType,
@@ -628,14 +666,27 @@ export class QueryService implements OnModuleInit {
         const executionResult = {
           results: [],
           cacheUsed: false,
-          dataSources: { cache: { hits: 0, misses: 1 }, realtime: { hits: 0, misses: 1 } },
-          errors: [{ symbol: query.symbols?.join(",") || 'unknown', reason: error.message }],
+          dataSources: {
+            cache: { hits: 0, misses: 1 },
+            realtime: { hits: 0, misses: 1 },
+          },
+          errors: [
+            {
+              symbol: query.symbols?.join(",") || "unknown",
+              reason: error.message,
+            },
+          ],
         };
-        const errorResult = this.resultProcessorService.process(executionResult, query, queryId, 0);
+        const errorResult = this.resultProcessorService.process(
+          executionResult,
+          query,
+          queryId,
+          0,
+        );
         results.push(errorResult);
       }
     }
-    
+
     return results;
   }
 

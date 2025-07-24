@@ -40,16 +40,16 @@ export class SecurityDateRangeValidator
 {
   validate(value: any, args: ValidationArguments) {
     const obj = args.object as GetAuditEventsQueryDto;
-    
+
     // 先检查日期格式是否有效
     if (obj.startDate && isNaN(Date.parse(obj.startDate))) {
       return true; // 如果开始日期格式无效，跳过此验证器
     }
-    
+
     if (obj.endDate && isNaN(Date.parse(obj.endDate))) {
       return true; // 如果结束日期格式无效，跳过此验证器
     }
-    
+
     const startDate = obj.startDate ? new Date(obj.startDate) : null;
     const endDate = obj.endDate ? new Date(obj.endDate) : null;
 

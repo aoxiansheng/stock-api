@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * 覆盖率质量门禁检查器
@@ -12,7 +12,7 @@ export class CoverageGateChecker {
   constructor(config?: Partial<CoverageGateConfig>) {
     this.config = {
       ...DEFAULT_GATE_CONFIG,
-      ...config
+      ...config,
     };
   }
 
@@ -20,25 +20,25 @@ export class CoverageGateChecker {
    * 执行质量门禁检查
    */
   async checkQualityGates(): Promise<GateCheckResult> {
-    console.log('🚦 执行覆盖率质量门禁检查...');
+    console.log("🚦 执行覆盖率质量门禁检查...");
 
     const coverageData = await this.loadCoverageData();
     if (!coverageData) {
-      throw new Error('无法加载覆盖率数据');
+      throw new Error("无法加载覆盖率数据");
     }
 
     // 检查全局阈值
     await this.checkGlobalThresholds(coverageData);
-    
+
     // 检查模块特定阈值
     await this.checkModuleThresholds(coverageData);
-    
+
     // 检查文件特定阈值
     await this.checkFileThresholds(coverageData);
-    
+
     // 检查趋势要求
     await this.checkTrendRequirements(coverageData);
-    
+
     // 检查增量覆盖率
     await this.checkDeltaCoverage(coverageData);
 
@@ -47,7 +47,7 @@ export class CoverageGateChecker {
       violations: this.violations,
       summary: this.generateSummary(coverageData),
       recommendations: this.generateRecommendations(),
-      exitCode: this.violations.some(v => v.severity === 'blocking') ? 1 : 0
+      exitCode: this.violations.some((v) => v.severity === "blocking") ? 1 : 0,
     };
 
     await this.saveGateReport(result);
@@ -61,20 +61,20 @@ export class CoverageGateChecker {
    */
   private async loadCoverageData(): Promise<CoverageData | null> {
     const reportPaths = [
-      'coverage/merged/coverage-final.json',
-      'coverage/lcov-report/coverage-final.json',
-      'coverage/coverage-final.json',
+      "coverage/merged/coverage-final.json",
+      "coverage/lcov-report/coverage-final.json",
+      "coverage/coverage-final.json",
     ];
 
     for (const reportPath of reportPaths) {
       if (fs.existsSync(reportPath)) {
         try {
-          const data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const data = JSON.parse(fs.readFileSync(reportPath, "utf8"));
           console.log(`✅ 加载覆盖率数据: ${reportPath}`);
           return {
             summary: this.extractSummary(data),
             files: data,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
         } catch (error) {
           console.warn(`⚠️ 无法解析覆盖率数据: ${reportPath}`);
@@ -82,7 +82,7 @@ export class CoverageGateChecker {
       }
     }
 
-    console.error('❌ 未找到有效的覆盖率数据');
+    console.error("❌ 未找到有效的覆盖率数据");
     return null;
   }
 
@@ -94,22 +94,34 @@ export class CoverageGateChecker {
     const { global } = this.config.thresholds;
 
     const checks = [
-      { metric: 'lines', actual: summary.lines.pct, required: global.lines },
-      { metric: 'statements', actual: summary.statements.pct, required: global.statements },
-      { metric: 'functions', actual: summary.functions.pct, required: global.functions },
-      { metric: 'branches', actual: summary.branches.pct, required: global.branches },
+      { metric: "lines", actual: summary.lines.pct, required: global.lines },
+      {
+        metric: "statements",
+        actual: summary.statements.pct,
+        required: global.statements,
+      },
+      {
+        metric: "functions",
+        actual: summary.functions.pct,
+        required: global.functions,
+      },
+      {
+        metric: "branches",
+        actual: summary.branches.pct,
+        required: global.branches,
+      },
     ];
 
     for (const check of checks) {
       if (check.actual < check.required) {
         this.violations.push({
-          type: 'global_threshold',
-          severity: 'blocking',
+          type: "global_threshold",
+          severity: "blocking",
           metric: check.metric,
           actual: check.actual,
           required: check.required,
           message: `全局${check.metric}覆盖率 ${check.actual.toFixed(1)}% 低于要求的 ${check.required}%`,
-          suggestion: `需要提升 ${(check.required - check.actual).toFixed(1)}% 的${check.metric}覆盖率`
+          suggestion: `需要提升 ${(check.required - check.actual).toFixed(1)}% 的${check.metric}覆盖率`,
         });
       }
     }
@@ -121,38 +133,56 @@ export class CoverageGateChecker {
   private async checkModuleThresholds(data: CoverageData): Promise<void> {
     const moduleData = this.groupFilesByModule(data.files);
 
-    for (const [modulePath, threshold] of Object.entries(this.config.thresholds.modules)) {
+    for (const [modulePath, threshold] of Object.entries(
+      this.config.thresholds.modules,
+    )) {
       const moduleFiles = moduleData[modulePath];
       if (!moduleFiles || Object.keys(moduleFiles).length === 0) {
         this.violations.push({
-          type: 'module_missing',
-          severity: 'warning',
+          type: "module_missing",
+          severity: "warning",
           message: `模块 ${modulePath} 没有找到覆盖率数据`,
-          suggestion: '确保模块存在且有对应的测试'
+          suggestion: "确保模块存在且有对应的测试",
         });
         continue;
       }
 
       const moduleSummary = this.calculateModuleSummary(moduleFiles);
-      
+
       const checks = [
-        { metric: 'lines', actual: moduleSummary.lines.pct, required: threshold.lines },
-        { metric: 'statements', actual: moduleSummary.statements.pct, required: threshold.statements },
-        { metric: 'functions', actual: moduleSummary.functions.pct, required: threshold.functions },
-        { metric: 'branches', actual: moduleSummary.branches.pct, required: threshold.branches },
+        {
+          metric: "lines",
+          actual: moduleSummary.lines.pct,
+          required: threshold.lines,
+        },
+        {
+          metric: "statements",
+          actual: moduleSummary.statements.pct,
+          required: threshold.statements,
+        },
+        {
+          metric: "functions",
+          actual: moduleSummary.functions.pct,
+          required: threshold.functions,
+        },
+        {
+          metric: "branches",
+          actual: moduleSummary.branches.pct,
+          required: threshold.branches,
+        },
       ];
 
       for (const check of checks) {
         if (check.actual < check.required) {
           this.violations.push({
-            type: 'module_threshold',
+            type: "module_threshold",
             severity: this.getModuleSeverity(modulePath),
             metric: check.metric,
             module: modulePath,
             actual: check.actual,
             required: check.required,
             message: `模块 ${modulePath} 的${check.metric}覆盖率 ${check.actual.toFixed(1)}% 低于要求的 ${check.required}%`,
-            suggestion: `重点关注模块 ${modulePath} 的测试覆盖`
+            suggestion: `重点关注模块 ${modulePath} 的测试覆盖`,
           });
         }
       }
@@ -173,23 +203,39 @@ export class CoverageGateChecker {
       if (!threshold) continue;
 
       const checks = [
-        { metric: 'lines', actual: fileData.lines?.pct || 0, required: threshold.lines },
-        { metric: 'statements', actual: fileData.statements?.pct || 0, required: threshold.statements },
-        { metric: 'functions', actual: fileData.functions?.pct || 0, required: threshold.functions },
-        { metric: 'branches', actual: fileData.branches?.pct || 0, required: threshold.branches },
+        {
+          metric: "lines",
+          actual: fileData.lines?.pct || 0,
+          required: threshold.lines,
+        },
+        {
+          metric: "statements",
+          actual: fileData.statements?.pct || 0,
+          required: threshold.statements,
+        },
+        {
+          metric: "functions",
+          actual: fileData.functions?.pct || 0,
+          required: threshold.functions,
+        },
+        {
+          metric: "branches",
+          actual: fileData.branches?.pct || 0,
+          required: threshold.branches,
+        },
       ];
 
       for (const check of checks) {
         if (check.actual < check.required) {
           this.violations.push({
-            type: 'file_threshold',
+            type: "file_threshold",
             severity: this.getFileSeverity(filePath),
             metric: check.metric,
             file: filePath,
             actual: check.actual,
             required: check.required,
             message: `文件 ${filePath} 的${check.metric}覆盖率 ${check.actual.toFixed(1)}% 低于要求的 ${check.required}%`,
-            suggestion: `为文件 ${filePath} 增加${check.metric}测试`
+            suggestion: `为文件 ${filePath} 增加${check.metric}测试`,
           });
         }
       }
@@ -220,13 +266,13 @@ export class CoverageGateChecker {
     for (const [metric, change] of Object.entries(changes)) {
       if (change < -maxDecrease) {
         this.violations.push({
-          type: 'trend_decline',
-          severity: 'blocking',
+          type: "trend_decline",
+          severity: "blocking",
           metric,
           actual: change,
           required: -maxDecrease,
           message: `${metric}覆盖率下降 ${Math.abs(change).toFixed(1)}%，超过允许的最大下降 ${maxDecrease}%`,
-          suggestion: '检查最近的代码更改，确保新代码有足够的测试覆盖'
+          suggestion: "检查最近的代码更改，确保新代码有足够的测试覆盖",
         });
       }
     }
@@ -254,14 +300,14 @@ export class CoverageGateChecker {
       if (fileData.lines.pct < newCode.lines) {
         insufficientCoverageCount++;
         this.violations.push({
-          type: 'delta_coverage',
-          severity: 'warning',
-          metric: 'lines',
+          type: "delta_coverage",
+          severity: "warning",
+          metric: "lines",
           file: file,
           actual: fileData.lines.pct,
           required: newCode.lines,
           message: `新增/修改文件 ${file} 的覆盖率 ${fileData.lines.pct.toFixed(1)}% 低于新代码要求的 ${newCode.lines}%`,
-          suggestion: '为新增的代码编写足够的测试'
+          suggestion: "为新增的代码编写足够的测试",
         });
       }
     }
@@ -269,10 +315,10 @@ export class CoverageGateChecker {
     // 如果太多文件覆盖率不足，提升为阻塞性问题
     if (insufficientCoverageCount > changedFiles.length * 0.5) {
       this.violations.push({
-        type: 'delta_coverage_overall',
-        severity: 'blocking',
+        type: "delta_coverage_overall",
+        severity: "blocking",
         message: `超过50%的变更文件覆盖率不足`,
-        suggestion: '提升新代码的整体测试覆盖率'
+        suggestion: "提升新代码的整体测试覆盖率",
       });
     }
   }
@@ -295,8 +341,13 @@ export class CoverageGateChecker {
       return data.summary;
     } else {
       // 计算总和
-      const totals = { lines: {total: 0, covered: 0, pct: 0}, statements: {total: 0, covered: 0, pct: 0}, functions: {total: 0, covered: 0, pct: 0}, branches: {total: 0, covered: 0, pct: 0} };
-      
+      const totals = {
+        lines: { total: 0, covered: 0, pct: 0 },
+        statements: { total: 0, covered: 0, pct: 0 },
+        functions: { total: 0, covered: 0, pct: 0 },
+        branches: { total: 0, covered: 0, pct: 0 },
+      };
+
       for (const fileData of Object.values(data) as any[]) {
         if (fileData.lines) {
           totals.lines.total += fileData.lines.total;
@@ -311,10 +362,22 @@ export class CoverageGateChecker {
       }
 
       // 计算百分比
-      totals.lines.pct = totals.lines.total > 0 ? (totals.lines.covered / totals.lines.total) * 100 : 0;
-      totals.statements.pct = totals.statements.total > 0 ? (totals.statements.covered / totals.statements.total) * 100 : 0;
-      totals.functions.pct = totals.functions.total > 0 ? (totals.functions.covered / totals.functions.total) * 100 : 0;
-      totals.branches.pct = totals.branches.total > 0 ? (totals.branches.covered / totals.branches.total) * 100 : 0;
+      totals.lines.pct =
+        totals.lines.total > 0
+          ? (totals.lines.covered / totals.lines.total) * 100
+          : 0;
+      totals.statements.pct =
+        totals.statements.total > 0
+          ? (totals.statements.covered / totals.statements.total) * 100
+          : 0;
+      totals.functions.pct =
+        totals.functions.total > 0
+          ? (totals.functions.covered / totals.functions.total) * 100
+          : 0;
+      totals.branches.pct =
+        totals.branches.total > 0
+          ? (totals.branches.covered / totals.branches.total) * 100
+          : 0;
 
       return totals;
     }
@@ -327,11 +390,11 @@ export class CoverageGateChecker {
     const modules: { [module: string]: any } = {};
 
     for (const [filePath, fileData] of Object.entries(files)) {
-      let modulePath = 'unknown';
-      
+      let modulePath = "unknown";
+
       // 提取模块路径
-      if (filePath.startsWith('src/')) {
-        const parts = filePath.split('/');
+      if (filePath.startsWith("src/")) {
+        const parts = filePath.split("/");
         if (parts.length >= 2) {
           modulePath = `src/${parts[1]}`;
         }
@@ -350,7 +413,12 @@ export class CoverageGateChecker {
    * 计算模块覆盖率摘要
    */
   private calculateModuleSummary(files: any): CoverageSummary {
-    const totals = { lines: {total: 0, covered: 0, pct: 0}, statements: {total: 0, covered: 0, pct: 0}, functions: {total: 0, covered: 0, pct: 0}, branches: {total: 0, covered: 0, pct: 0} };
+    const totals = {
+      lines: { total: 0, covered: 0, pct: 0 },
+      statements: { total: 0, covered: 0, pct: 0 },
+      functions: { total: 0, covered: 0, pct: 0 },
+      branches: { total: 0, covered: 0, pct: 0 },
+    };
 
     for (const fileData of Object.values(files) as any[]) {
       if (fileData.lines) {
@@ -365,38 +433,50 @@ export class CoverageGateChecker {
       }
     }
 
-    totals.lines.pct = totals.lines.total > 0 ? (totals.lines.covered / totals.lines.total) * 100 : 0;
-    totals.statements.pct = totals.statements.total > 0 ? (totals.statements.covered / totals.statements.total) * 100 : 0;
-    totals.functions.pct = totals.functions.total > 0 ? (totals.functions.covered / totals.functions.total) * 100 : 0;
-    totals.branches.pct = totals.branches.total > 0 ? (totals.branches.covered / totals.branches.total) * 100 : 0;
+    totals.lines.pct =
+      totals.lines.total > 0
+        ? (totals.lines.covered / totals.lines.total) * 100
+        : 0;
+    totals.statements.pct =
+      totals.statements.total > 0
+        ? (totals.statements.covered / totals.statements.total) * 100
+        : 0;
+    totals.functions.pct =
+      totals.functions.total > 0
+        ? (totals.functions.covered / totals.functions.total) * 100
+        : 0;
+    totals.branches.pct =
+      totals.branches.total > 0
+        ? (totals.branches.covered / totals.branches.total) * 100
+        : 0;
 
     return totals;
   }
 
   // 其他辅助方法
-  private getModuleSeverity(modulePath: string): 'blocking' | 'warning' {
-    const criticalModules = ['src/core', 'src/auth'];
-    return criticalModules.includes(modulePath) ? 'blocking' : 'warning';
+  private getModuleSeverity(modulePath: string): "blocking" | "warning" {
+    const criticalModules = ["src/core", "src/auth"];
+    return criticalModules.includes(modulePath) ? "blocking" : "warning";
   }
 
-  private getFileSeverity(filePath: string): 'blocking' | 'warning' {
-    if (filePath.includes('controller') || filePath.includes('service')) {
-      return 'blocking';
+  private getFileSeverity(filePath: string): "blocking" | "warning" {
+    if (filePath.includes("controller") || filePath.includes("service")) {
+      return "blocking";
     }
-    return 'warning';
+    return "warning";
   }
 
   private shouldSkipFile(filePath: string): boolean {
-    const skipPatterns = ['.d.ts', '.interface.ts', '.enum.ts', '.constant.ts'];
-    return skipPatterns.some(pattern => filePath.includes(pattern));
+    const skipPatterns = [".d.ts", ".interface.ts", ".enum.ts", ".constant.ts"];
+    return skipPatterns.some((pattern) => filePath.includes(pattern));
   }
 
   private getFileThreshold(filePath: string): any {
     // 根据文件类型返回不同的阈值
-    if (filePath.includes('controller')) {
+    if (filePath.includes("controller")) {
       return this.config.thresholds.fileTypes.controllers;
     }
-    if (filePath.includes('service')) {
+    if (filePath.includes("service")) {
       return this.config.thresholds.fileTypes.services;
     }
     return null;
@@ -405,12 +485,12 @@ export class CoverageGateChecker {
   private async loadHistoricalData(): Promise<any[]> {
     // 从文件或数据库加载历史覆盖率数据
     try {
-      const historyPath = 'coverage/history/coverage-history.json';
+      const historyPath = "coverage/history/coverage-history.json";
       if (fs.existsSync(historyPath)) {
-        return JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+        return JSON.parse(fs.readFileSync(historyPath, "utf8"));
       }
     } catch (error) {
-      console.warn('无法加载历史覆盖率数据');
+      console.warn("无法加载历史覆盖率数据");
     }
     return [];
   }
@@ -428,54 +508,62 @@ export class CoverageGateChecker {
 
   private generateRecommendations(): string[] {
     const recommendations: string[] = [];
-    
-    const blockingViolations = this.violations.filter(v => v.severity === 'blocking');
+
+    const blockingViolations = this.violations.filter(
+      (v) => v.severity === "blocking",
+    );
     if (blockingViolations.length > 0) {
-      recommendations.push('优先解决阻塞性覆盖率问题');
-      
-      const moduleIssues = blockingViolations.filter(v => v.type === 'module_threshold');
+      recommendations.push("优先解决阻塞性覆盖率问题");
+
+      const moduleIssues = blockingViolations.filter(
+        (v) => v.type === "module_threshold",
+      );
       if (moduleIssues.length > 0) {
-        recommendations.push('重点关注核心模块的测试覆盖率');
+        recommendations.push("重点关注核心模块的测试覆盖率");
       }
     }
 
-    const trendIssues = this.violations.filter(v => v.type === 'trend_decline');
+    const trendIssues = this.violations.filter(
+      (v) => v.type === "trend_decline",
+    );
     if (trendIssues.length > 0) {
-      recommendations.push('检查最近的代码变更，确保新功能有足够的测试');
+      recommendations.push("检查最近的代码变更，确保新功能有足够的测试");
     }
 
     return recommendations;
   }
 
   private async saveGateReport(result: GateCheckResult): Promise<void> {
-    const reportPath = 'test-results/coverage-gate-report.json';
+    const reportPath = "test-results/coverage-gate-report.json";
     fs.writeFileSync(reportPath, JSON.stringify(result, null, 2));
     console.log(`📄 质量门禁报告已保存: ${reportPath}`);
   }
 
   private printGateResult(result: GateCheckResult): void {
-    console.log('\n🚦 覆盖率质量门禁结果');
-    console.log('='.repeat(50));
-    
+    console.log("\n🚦 覆盖率质量门禁结果");
+    console.log("=".repeat(50));
+
     if (result.passed) {
-      console.log('✅ 所有质量门禁检查通过');
+      console.log("✅ 所有质量门禁检查通过");
     } else {
-      console.log('❌ 质量门禁检查失败');
+      console.log("❌ 质量门禁检查失败");
       console.log(`\n发现 ${result.violations.length} 个违规项:`);
-      
+
       result.violations.forEach((violation, index) => {
-        const icon = violation.severity === 'blocking' ? '🚫' : '⚠️';
-        console.log(`\n${index + 1}. ${icon} [${violation.severity.toUpperCase()}] ${violation.message}`);
+        const icon = violation.severity === "blocking" ? "🚫" : "⚠️";
+        console.log(
+          `\n${index + 1}. ${icon} [${violation.severity.toUpperCase()}] ${violation.message}`,
+        );
         if (violation.suggestion) {
           console.log(`   💡 建议: ${violation.suggestion}`);
         }
       });
     }
-    
+
     console.log(`\n📊 ${result.summary}`);
-    
+
     if (result.recommendations.length > 0) {
-      console.log('\n💡 改进建议:');
+      console.log("\n💡 改进建议:");
       result.recommendations.forEach((rec, index) => {
         console.log(`${index + 1}. ${rec}`);
       });
@@ -493,9 +581,9 @@ const DEFAULT_GATE_CONFIG: CoverageGateConfig = {
       branches: 75,
     },
     modules: {
-      'src/core': { lines: 90, statements: 90, functions: 95, branches: 85 },
-      'src/auth': { lines: 90, statements: 90, functions: 95, branches: 85 },
-      'src/common': { lines: 80, statements: 80, functions: 85, branches: 75 },
+      "src/core": { lines: 90, statements: 90, functions: 95, branches: 85 },
+      "src/auth": { lines: 90, statements: 90, functions: 95, branches: 85 },
+      "src/common": { lines: 80, statements: 80, functions: 85, branches: 75 },
     },
     fileTypes: {
       controllers: { lines: 85, statements: 85, functions: 90, branches: 80 },
@@ -555,7 +643,7 @@ export interface CoverageSummary {
 
 export interface GateViolation {
   type: string;
-  severity: 'blocking' | 'warning';
+  severity: "blocking" | "warning";
   metric?: string;
   module?: string;
   file?: string;
@@ -577,7 +665,7 @@ export interface GateCheckResult {
 export async function runCoverageGateCheck(): Promise<void> {
   const checker = new CoverageGateChecker();
   const result = await checker.checkQualityGates();
-  
+
   if (!result.passed) {
     process.exit(result.exitCode);
   }

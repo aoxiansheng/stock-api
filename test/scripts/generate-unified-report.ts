@@ -5,8 +5,8 @@
  * 整合所有测试类型的报告到一个统一的报告中
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 interface ReportSummary {
   type: string;
@@ -32,7 +32,7 @@ class UnifiedReportGenerator {
   }
 
   private ensureReportDir() {
-    const reportDir = path.join(process.cwd(), 'test-results');
+    const reportDir = path.join(process.cwd(), "test-results");
     if (!fs.existsSync(reportDir)) {
       fs.mkdirSync(reportDir, { recursive: true });
     }
@@ -44,12 +44,16 @@ class UnifiedReportGenerator {
 
   generateUnifiedReport() {
     const html = this.generateHTML();
-    const reportPath = path.join(process.cwd(), 'test-results', 'unified-test-report.html');
-    
-    fs.writeFileSync(reportPath, html, 'utf8');
-    
+    const reportPath = path.join(
+      process.cwd(),
+      "test-results",
+      "unified-test-report.html",
+    );
+
+    fs.writeFileSync(reportPath, html, "utf8");
+
     console.log(`📊 统一测试报告已生成: ${reportPath}`);
-    
+
     // 生成报告摘要
     this.generateSummary();
   }
@@ -59,25 +63,43 @@ class UnifiedReportGenerator {
     const totalPassed = this.reports.reduce((sum, r) => sum + r.passed, 0);
     const totalFailed = this.reports.reduce((sum, r) => sum + r.failed, 0);
     const totalSkipped = this.reports.reduce((sum, r) => sum + r.skipped, 0);
-    
-    console.log('\n📈 测试执行摘要:');
+
+    console.log("\n📈 测试执行摘要:");
     console.log(`   总测试数: ${totalTests}`);
     console.log(`   ✅ 通过: ${totalPassed}`);
     console.log(`   ❌ 失败: ${totalFailed}`);
     console.log(`   ⏭️  跳过: ${totalSkipped}`);
-    console.log(`   📊 成功率: ${((totalPassed / totalTests) * 100).toFixed(2)}%`);
-    
+    console.log(
+      `   📊 成功率: ${((totalPassed / totalTests) * 100).toFixed(2)}%`,
+    );
+
     // 覆盖率摘要
-    const coverageReports = this.reports.filter(r => r.coverage);
+    const coverageReports = this.reports.filter((r) => r.coverage);
     if (coverageReports.length > 0) {
       const avgCoverage = {
-        lines: coverageReports.reduce((sum, r) => sum + (r.coverage?.lines || 0), 0) / coverageReports.length,
-        branches: coverageReports.reduce((sum, r) => sum + (r.coverage?.branches || 0), 0) / coverageReports.length,
-        functions: coverageReports.reduce((sum, r) => sum + (r.coverage?.functions || 0), 0) / coverageReports.length,
-        statements: coverageReports.reduce((sum, r) => sum + (r.coverage?.statements || 0), 0) / coverageReports.length,
+        lines:
+          coverageReports.reduce(
+            (sum, r) => sum + (r.coverage?.lines || 0),
+            0,
+          ) / coverageReports.length,
+        branches:
+          coverageReports.reduce(
+            (sum, r) => sum + (r.coverage?.branches || 0),
+            0,
+          ) / coverageReports.length,
+        functions:
+          coverageReports.reduce(
+            (sum, r) => sum + (r.coverage?.functions || 0),
+            0,
+          ) / coverageReports.length,
+        statements:
+          coverageReports.reduce(
+            (sum, r) => sum + (r.coverage?.statements || 0),
+            0,
+          ) / coverageReports.length,
       };
-      
-      console.log('\n📊 覆盖率摘要:');
+
+      console.log("\n📊 覆盖率摘要:");
       console.log(`   行覆盖率: ${avgCoverage.lines.toFixed(2)}%`);
       console.log(`   分支覆盖率: ${avgCoverage.branches.toFixed(2)}%`);
       console.log(`   函数覆盖率: ${avgCoverage.functions.toFixed(2)}%`);
@@ -90,7 +112,8 @@ class UnifiedReportGenerator {
     const totalPassed = this.reports.reduce((sum, r) => sum + r.passed, 0);
     const totalFailed = this.reports.reduce((sum, r) => sum + r.failed, 0);
     const totalSkipped = this.reports.reduce((sum, r) => sum + r.skipped, 0);
-    const successRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(2) : '0';
+    const successRate =
+      totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(2) : "0";
 
     return `
 <!DOCTYPE html>
@@ -159,7 +182,9 @@ class UnifiedReportGenerator {
         </div>
         
         <div class="reports">
-            ${this.reports.map(report => `
+            ${this.reports
+              .map(
+                (report) => `
                 <div class="report-card">
                     <div class="report-header">
                         <h3 class="report-title">${this.getReportIcon(report.type)} ${report.type}</h3>
@@ -184,7 +209,9 @@ class UnifiedReportGenerator {
                             </div>
                         </div>
                         
-                        ${report.coverage ? `
+                        ${
+                          report.coverage
+                            ? `
                         <div class="coverage-bars">
                             <div class="coverage-bar">
                                 <div class="coverage-label">
@@ -214,20 +241,24 @@ class UnifiedReportGenerator {
                                 </div>
                             </div>
                         </div>
-                        ` : ''}
+                        `
+                            : ""
+                        }
                         
-                        ${report.reportPath ? `<a href="${report.reportPath}" class="report-link">查看详细报告</a>` : ''}
+                        ${report.reportPath ? `<a href="${report.reportPath}" class="report-link">查看详细报告</a>` : ""}
                         
                         <div style="margin-top: 15px; font-size: 0.8em; color: #999;">
-                            最后运行: ${new Date(report.lastRun).toLocaleString('zh-CN')}
+                            最后运行: ${new Date(report.lastRun).toLocaleString("zh-CN")}
                         </div>
                     </div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
         
         <div class="footer">
-            <p>报告生成时间: ${new Date().toLocaleString('zh-CN')} | New Stock API 测试质量报告</p>
+            <p>报告生成时间: ${new Date().toLocaleString("zh-CN")} | New Stock API 测试质量报告</p>
         </div>
     </div>
 </body>
@@ -236,67 +267,87 @@ class UnifiedReportGenerator {
 
   private getReportIcon(type: string): string {
     const icons: { [key: string]: string } = {
-      '单元测试': '🧪',
-      '集成测试': '🔗',
-      'E2E测试': '🌐',
-      '安全测试': '🛡️',
-      '性能测试': '⚡',
-      '测试工具': '🔧',
-      '覆盖率': '📊'
+      单元测试: "🧪",
+      集成测试: "🔗",
+      E2E测试: "🌐",
+      安全测试: "🛡️",
+      性能测试: "⚡",
+      测试工具: "🔧",
+      覆盖率: "📊",
     };
-    return icons[type] || '📋';
+    return icons[type] || "📋";
   }
 }
 
 // 示例用法
 if (require.main === module) {
   const generator = new UnifiedReportGenerator();
-  
+
   // 示例报告数据
   generator.addReport({
-    type: '单元测试',
+    type: "单元测试",
     totalTests: 150,
     passed: 145,
     failed: 5,
     skipped: 0,
-    coverage: { lines: 88.5, branches: 85.2, functions: 92.1, statements: 87.8 },
-    reportPath: './unit-test-report.html',
-    lastRun: new Date().toISOString()
+    coverage: {
+      lines: 88.5,
+      branches: 85.2,
+      functions: 92.1,
+      statements: 87.8,
+    },
+    reportPath: "./unit-test-report.html",
+    lastRun: new Date().toISOString(),
   });
-  
+
   generator.addReport({
-    type: '集成测试',
+    type: "集成测试",
     totalTests: 85,
     passed: 80,
     failed: 3,
     skipped: 2,
-    coverage: { lines: 75.2, branches: 72.8, functions: 78.5, statements: 76.1 },
-    reportPath: './integration-test-report.html',
-    lastRun: new Date().toISOString()
+    coverage: {
+      lines: 75.2,
+      branches: 72.8,
+      functions: 78.5,
+      statements: 76.1,
+    },
+    reportPath: "./integration-test-report.html",
+    lastRun: new Date().toISOString(),
   });
-  
+
   generator.addReport({
-    type: 'E2E测试',
+    type: "E2E测试",
     totalTests: 45,
     passed: 42,
     failed: 2,
     skipped: 1,
-    coverage: { lines: 65.8, branches: 62.3, functions: 68.9, statements: 64.2 },
-    reportPath: './e2e-test-report.html',
-    lastRun: new Date().toISOString()
+    coverage: {
+      lines: 65.8,
+      branches: 62.3,
+      functions: 68.9,
+      statements: 64.2,
+    },
+    reportPath: "./e2e-test-report.html",
+    lastRun: new Date().toISOString(),
   });
-  
+
   generator.addReport({
-    type: '安全测试',
+    type: "安全测试",
     totalTests: 35,
     passed: 33,
     failed: 1,
     skipped: 1,
-    coverage: { lines: 82.1, branches: 78.5, functions: 85.3, statements: 80.7 },
-    reportPath: './security-test-report.html',
-    lastRun: new Date().toISOString()
+    coverage: {
+      lines: 82.1,
+      branches: 78.5,
+      functions: 85.3,
+      statements: 80.7,
+    },
+    reportPath: "./security-test-report.html",
+    lastRun: new Date().toISOString(),
   });
-  
+
   generator.generateUnifiedReport();
 }
 

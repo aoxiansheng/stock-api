@@ -1,19 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
-import { PerformanceMonitorService } from '../../../../../src/metrics/services/performance-monitor.service';
-import { PerformanceMetricsRepository } from '../../../../../src/metrics/repositories/performance-metrics.repository';
-import { AuthType, AuthStatus, OperationStatus } from '../../../../../src/metrics/enums/auth-type.enum';
+import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
+import { PerformanceMetricsRepository } from "../../../../../src/metrics/repositories/performance-metrics.repository";
+import {
+  AuthType,
+  AuthStatus,
+  OperationStatus,
+} from "../../../../../src/metrics/enums/auth-type.enum";
 import {
   METRIC_NAMES,
   METRIC_UNITS,
   PERFORMANCE_EVENTS,
   PERFORMANCE_THRESHOLDS,
   PERFORMANCE_DEFAULTS,
-} from '../../../../../src/metrics/constants/metrics-performance.constants';
+} from "../../../../../src/metrics/constants/metrics-performance.constants";
 
-describe('PerformanceMonitorService', () => {
+describe("PerformanceMonitorService", () => {
   let service: PerformanceMonitorService;
   let eventEmitter: jest.Mocked<EventEmitter2>;
   let configService: jest.Mocked<ConfigService>;
@@ -28,7 +32,7 @@ describe('PerformanceMonitorService', () => {
       get: jest.fn((key: string, defaultValue?: any) => {
         const config = {
           DB_POOL_SIZE: 10,
-          NODE_ENV: 'test',
+          NODE_ENV: "test",
         };
         return config[key] || defaultValue;
       }),
@@ -71,23 +75,23 @@ describe('PerformanceMonitorService', () => {
     jest.clearAllMocks();
   });
 
-  describe('PerformanceMonitorService - Definition', () => {
-    it('should be defined', () => {
+  describe("PerformanceMonitorService - Definition", () => {
+    it("should be defined", () => {
       expect(service).toBeDefined();
     });
 
-    it('should have all required dependencies', () => {
+    it("should have all required dependencies", () => {
       expect(eventEmitter).toBeDefined();
       expect(configService).toBeDefined();
       expect(performanceMetricsRepository).toBeDefined();
     });
   });
 
-  describe('Request Monitoring', () => {
-    describe('recordRequest', () => {
-      it('should record API request metrics successfully', async () => {
-        const endpoint = '/api/v1/test';
-        const method = 'GET';
+  describe("Request Monitoring", () => {
+    describe("recordRequest", () => {
+      it("should record API request metrics successfully", async () => {
+        const endpoint = "/api/v1/test";
+        const method = "GET";
         const responseTime = 150;
         const success = true;
 
@@ -99,20 +103,20 @@ describe('PerformanceMonitorService', () => {
           endpoint,
           method,
           responseTime,
-          success
+          success,
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.API_REQUEST_DURATION,
             value: responseTime,
-          })
+          }),
         );
       });
 
-      it('should handle failed requests', async () => {
-        const endpoint = '/api/v1/error';
-        const method = 'POST';
+      it("should handle failed requests", async () => {
+        const endpoint = "/api/v1/error";
+        const method = "POST";
         const responseTime = 5000;
         const success = false;
 
@@ -124,99 +128,111 @@ describe('PerformanceMonitorService', () => {
           endpoint,
           method,
           responseTime,
-          false
+          false,
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.API_REQUEST_DURATION,
             value: responseTime,
-          })
+          }),
         );
       });
 
-      it('should handle repository errors', async () => {
-        const endpoint = '/api/v1/test';
-        const method = 'GET';
+      it("should handle repository errors", async () => {
+        const endpoint = "/api/v1/test";
+        const method = "GET";
         const responseTime = 150;
         const success = true;
 
         performanceMetricsRepository.recordRequest.mockRejectedValue(
-          new Error('Repository error')
+          new Error("Repository error"),
         );
 
         await expect(
-          service.recordRequest(endpoint, method, responseTime, success)
-        ).rejects.toThrow('Repository error');
+          service.recordRequest(endpoint, method, responseTime, success),
+        ).rejects.toThrow("Repository error");
       });
     });
   });
 
-  describe('Database Monitoring', () => {
-    describe('recordDatabaseQuery', () => {
-      it('should record database query metrics', async () => {
-        const queryType = 'SELECT';
+  describe("Database Monitoring", () => {
+    describe("recordDatabaseQuery", () => {
+      it("should record database query metrics", async () => {
+        const queryType = "SELECT";
         const duration = 25;
         const success = true;
 
-        performanceMetricsRepository.recordDatabaseQuery.mockResolvedValue(undefined);
+        performanceMetricsRepository.recordDatabaseQuery.mockResolvedValue(
+          undefined,
+        );
 
         await service.recordDatabaseQuery(queryType, duration, success);
 
-        expect(performanceMetricsRepository.recordDatabaseQuery).toHaveBeenCalledWith(duration);
+        expect(
+          performanceMetricsRepository.recordDatabaseQuery,
+        ).toHaveBeenCalledWith(duration);
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.DB_QUERY_DURATION,
             value: duration,
-          })
+          }),
         );
       });
 
-      it('should handle slow database queries', async () => {
-        const queryType = 'COMPLEX_JOIN';
+      it("should handle slow database queries", async () => {
+        const queryType = "COMPLEX_JOIN";
         const duration = PERFORMANCE_THRESHOLDS.SLOW_QUERY_MS + 100;
         const success = true;
 
-        performanceMetricsRepository.recordDatabaseQuery.mockResolvedValue(undefined);
+        performanceMetricsRepository.recordDatabaseQuery.mockResolvedValue(
+          undefined,
+        );
 
         await service.recordDatabaseQuery(queryType, duration, success);
 
-        expect(performanceMetricsRepository.recordDatabaseQuery).toHaveBeenCalledWith(duration);
+        expect(
+          performanceMetricsRepository.recordDatabaseQuery,
+        ).toHaveBeenCalledWith(duration);
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.DB_QUERY_DURATION,
             value: duration,
-          })
+          }),
         );
       });
 
-      it('should handle failed database queries', async () => {
-        const queryType = 'INSERT';
+      it("should handle failed database queries", async () => {
+        const queryType = "INSERT";
         const duration = 50;
         const success = false;
 
-        performanceMetricsRepository.recordDatabaseQuery.mockResolvedValue(undefined);
+        performanceMetricsRepository.recordDatabaseQuery.mockResolvedValue(
+          undefined,
+        );
 
         await service.recordDatabaseQuery(queryType, duration, success);
 
-        expect(performanceMetricsRepository.recordDatabaseQuery).toHaveBeenCalledWith(duration);
+        expect(
+          performanceMetricsRepository.recordDatabaseQuery,
+        ).toHaveBeenCalledWith(duration);
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.DB_QUERY_DURATION,
             value: duration,
-          })
+          }),
         );
       });
     });
   });
 
-  describe('Cache Monitoring', () => {
-    describe('recordCacheOperation', () => {
-      it('should record cache hit operation', () => {
-        const operation = 'GET';
+  describe("Cache Monitoring", () => {
+    describe("recordCacheOperation", () => {
+      it("should record cache hit operation", () => {
+        const operation = "GET";
         const hit = true;
         const duration = 5;
 
@@ -227,19 +243,19 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.CACHE_OPERATION_TOTAL,
             value: 1,
-          })
+          }),
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.CACHE_OPERATION_DURATION,
             value: duration,
-          })
+          }),
         );
       });
 
-      it('should record cache miss operation', () => {
-        const operation = 'GET';
+      it("should record cache miss operation", () => {
+        const operation = "GET";
         const hit = false;
 
         service.recordCacheOperation(operation, hit);
@@ -249,14 +265,14 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.CACHE_OPERATION_TOTAL,
             value: 1,
-          })
+          }),
         );
         // Duration 不应该被记录，因为没有提供
         expect(eventEmitter.emit).toHaveBeenCalledTimes(1);
       });
 
-      it('should record cache operation without duration', () => {
-        const operation = 'SET';
+      it("should record cache operation without duration", () => {
+        const operation = "SET";
         const hit = true;
 
         service.recordCacheOperation(operation, hit);
@@ -266,16 +282,16 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.CACHE_OPERATION_TOTAL,
             value: 1,
-          })
+          }),
         );
         expect(eventEmitter.emit).toHaveBeenCalledTimes(1);
       });
     });
   });
 
-  describe('Authentication Monitoring', () => {
-    describe('recordAuthentication', () => {
-      it('should record successful JWT authentication', () => {
+  describe("Authentication Monitoring", () => {
+    describe("recordAuthentication", () => {
+      it("should record successful JWT authentication", () => {
         const type = AuthType.JWT;
         const success = true;
         const duration = 50;
@@ -287,18 +303,18 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.AUTH_DURATION,
             value: duration,
-          })
+          }),
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.AUTH_TOTAL,
             value: 1,
-          })
+          }),
         );
       });
 
-      it('should record failed API key authentication', () => {
+      it("should record failed API key authentication", () => {
         const type = AuthType.API_KEY;
         const success = false;
         const duration = 75;
@@ -310,23 +326,23 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.AUTH_DURATION,
             value: duration,
-          })
+          }),
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.AUTH_TOTAL,
             value: 1,
-          })
+          }),
         );
       });
     });
   });
 
-  describe('Rate Limiting Monitoring', () => {
-    describe('recordRateLimit', () => {
-      it('should record allowed rate limit check', () => {
-        const apiKey = 'ak_test_1234567890';
+  describe("Rate Limiting Monitoring", () => {
+    describe("recordRateLimit", () => {
+      it("should record allowed rate limit check", () => {
+        const apiKey = "ak_test_1234567890";
         const allowed = true;
         const remaining = 95;
 
@@ -337,19 +353,19 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.RATE_LIMIT_CHECK,
             value: 1,
-          })
+          }),
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.RATE_LIMIT_REMAINING,
             value: remaining,
-          })
+          }),
         );
       });
 
-      it('should record blocked rate limit check', () => {
-        const apiKey = 'ak_test_9876543210';
+      it("should record blocked rate limit check", () => {
+        const apiKey = "ak_test_9876543210";
         const allowed = false;
         const remaining = 0;
 
@@ -360,104 +376,104 @@ describe('PerformanceMonitorService', () => {
           expect.objectContaining({
             metric: METRIC_NAMES.RATE_LIMIT_CHECK,
             value: 1,
-          })
+          }),
         );
         expect(eventEmitter.emit).toHaveBeenCalledWith(
           PERFORMANCE_EVENTS.METRIC_RECORDED,
           expect.objectContaining({
             metric: METRIC_NAMES.RATE_LIMIT_REMAINING,
             value: remaining,
-          })
+          }),
         );
       });
     });
   });
 
-  describe('Performance Wrapper', () => {
-    describe('wrapWithTiming', () => {
-      it('should wrap synchronous operations', () => {
-        const operation = jest.fn().mockReturnValue('success');
+  describe("Performance Wrapper", () => {
+    describe("wrapWithTiming", () => {
+      it("should wrap synchronous operations", () => {
+        const operation = jest.fn().mockReturnValue("success");
         const onComplete = jest.fn();
 
         const result = service.wrapWithTiming(operation, onComplete);
 
-        expect(result).toBe('success');
+        expect(result).toBe("success");
         expect(operation).toHaveBeenCalledTimes(1);
         expect(onComplete).toHaveBeenCalledWith(
           expect.any(Number),
           true,
-          'success'
+          "success",
         );
       });
 
-      it('should wrap asynchronous operations', async () => {
-        const operation = jest.fn().mockResolvedValue('async success');
+      it("should wrap asynchronous operations", async () => {
+        const operation = jest.fn().mockResolvedValue("async success");
         const onComplete = jest.fn();
 
         const result = await service.wrapWithTiming(operation, onComplete);
 
-        expect(result).toBe('async success');
+        expect(result).toBe("async success");
         expect(operation).toHaveBeenCalledTimes(1);
         expect(onComplete).toHaveBeenCalledWith(
           expect.any(Number),
           true,
-          'async success'
+          "async success",
         );
       });
 
-      it('should handle synchronous operation errors', () => {
-        const error = new Error('Sync operation failed');
+      it("should handle synchronous operation errors", () => {
+        const error = new Error("Sync operation failed");
         const operation = jest.fn().mockImplementation(() => {
           throw error;
         });
         const onComplete = jest.fn();
 
-        expect(() => service.wrapWithTiming(operation, onComplete)).toThrow(error);
-        expect(operation).toHaveBeenCalledTimes(1);
-        expect(onComplete).toHaveBeenCalledWith(
-          expect.any(Number),
-          false
+        expect(() => service.wrapWithTiming(operation, onComplete)).toThrow(
+          error,
         );
+        expect(operation).toHaveBeenCalledTimes(1);
+        expect(onComplete).toHaveBeenCalledWith(expect.any(Number), false);
       });
 
-      it('should handle asynchronous operation errors', async () => {
-        const error = new Error('Async operation failed');
+      it("should handle asynchronous operation errors", async () => {
+        const error = new Error("Async operation failed");
         const operation = jest.fn().mockRejectedValue(error);
         const onComplete = jest.fn();
 
-        await expect(service.wrapWithTiming(operation, onComplete)).rejects.toThrow(error);
+        await expect(
+          service.wrapWithTiming(operation, onComplete),
+        ).rejects.toThrow(error);
         expect(operation).toHaveBeenCalledTimes(1);
-        expect(onComplete).toHaveBeenCalledWith(
-          expect.any(Number),
-          false
-        );
+        expect(onComplete).toHaveBeenCalledWith(expect.any(Number), false);
       });
     });
   });
 
-  describe('Metrics Retrieval', () => {
-    describe('getEndpointMetrics', () => {
-      it('should return endpoint metrics', async () => {
+  describe("Metrics Retrieval", () => {
+    describe("getEndpointMetrics", () => {
+      it("should return endpoint metrics", async () => {
         const mockStats = [
           {
-            key: 'endpoint_stats:GET:/api/v1/test',
+            key: "endpoint_stats:GET:/api/v1/test",
             stats: {
-              totalRequests: '100',
-              successfulRequests: '95',
-              failedRequests: '5',
+              totalRequests: "100",
+              successfulRequests: "95",
+              failedRequests: "5",
             },
-            responseTimes: ['100', '150', '200', '300', '250'],
+            responseTimes: ["100", "150", "200", "300", "250"],
           },
         ];
 
-        performanceMetricsRepository.getEndpointStats.mockResolvedValue(mockStats);
+        performanceMetricsRepository.getEndpointStats.mockResolvedValue(
+          mockStats,
+        );
 
         const result = await service.getEndpointMetrics();
 
         expect(result).toHaveLength(1);
         expect(result[0]).toMatchObject({
-          endpoint: '/api/v1/test',
-          method: 'GET',
+          endpoint: "/api/v1/test",
+          method: "GET",
           totalRequests: 100,
           successfulRequests: 95,
           failedRequests: 5,
@@ -466,7 +482,7 @@ describe('PerformanceMonitorService', () => {
         expect(result[0].averageResponseTime).toBeCloseTo(200, 0);
       });
 
-      it('should return empty array when no stats available', async () => {
+      it("should return empty array when no stats available", async () => {
         performanceMetricsRepository.getEndpointStats.mockResolvedValue([]);
 
         const result = await service.getEndpointMetrics();
@@ -474,19 +490,23 @@ describe('PerformanceMonitorService', () => {
         expect(result).toEqual([]);
       });
 
-      it('should handle repository errors', async () => {
+      it("should handle repository errors", async () => {
         performanceMetricsRepository.getEndpointStats.mockRejectedValue(
-          new Error('Repository error')
+          new Error("Repository error"),
         );
 
-        await expect(service.getEndpointMetrics()).rejects.toThrow('Repository error');
+        await expect(service.getEndpointMetrics()).rejects.toThrow(
+          "Repository error",
+        );
       });
     });
 
-    describe('getDatabaseMetrics', () => {
-      it('should return database metrics', async () => {
-        const mockQueryTimes = ['25', '50', '75', '100', '200'];
-        performanceMetricsRepository.getDatabaseQueryTimes.mockResolvedValue(mockQueryTimes);
+    describe("getDatabaseMetrics", () => {
+      it("should return database metrics", async () => {
+        const mockQueryTimes = ["25", "50", "75", "100", "200"];
+        performanceMetricsRepository.getDatabaseQueryTimes.mockResolvedValue(
+          mockQueryTimes,
+        );
         configService.get.mockReturnValue(10);
 
         const result = await service.getDatabaseMetrics();
@@ -500,8 +520,10 @@ describe('PerformanceMonitorService', () => {
         expect(result.averageQueryTime).toBeCloseTo(90, 0);
       });
 
-      it('should return default metrics when no data available', async () => {
-        performanceMetricsRepository.getDatabaseQueryTimes.mockResolvedValue(null);
+      it("should return default metrics when no data available", async () => {
+        performanceMetricsRepository.getDatabaseQueryTimes.mockResolvedValue(
+          null,
+        );
 
         const result = await service.getDatabaseMetrics();
 
@@ -516,15 +538,18 @@ describe('PerformanceMonitorService', () => {
       });
     });
 
-    describe('getRedisMetrics', () => {
-      it('should return Redis metrics', async () => {
+    describe("getRedisMetrics", () => {
+      it("should return Redis metrics", async () => {
         const mockRedisInfo = {
-          info: 'used_memory:1048576\r\n',
-          stats: 'total_commands_processed:1000\r\nkeyspace_hits:800\r\nkeyspace_misses:200\r\nevicted_keys:5\r\nexpired_keys:10\r\n',
-          clients: 'connected_clients:5\r\n',
+          info: "used_memory:1048576\r\n",
+          stats:
+            "total_commands_processed:1000\r\nkeyspace_hits:800\r\nkeyspace_misses:200\r\nevicted_keys:5\r\nexpired_keys:10\r\n",
+          clients: "connected_clients:5\r\n",
         };
 
-        performanceMetricsRepository.getRedisInfoPayload.mockResolvedValue(mockRedisInfo);
+        performanceMetricsRepository.getRedisInfoPayload.mockResolvedValue(
+          mockRedisInfo,
+        );
 
         const result = await service.getRedisMetrics();
 
@@ -538,8 +563,10 @@ describe('PerformanceMonitorService', () => {
         });
       });
 
-      it('should return default metrics when Redis info unavailable', async () => {
-        performanceMetricsRepository.getRedisInfoPayload.mockResolvedValue(null);
+      it("should return default metrics when Redis info unavailable", async () => {
+        performanceMetricsRepository.getRedisInfoPayload.mockResolvedValue(
+          null,
+        );
 
         const result = await service.getRedisMetrics();
 
@@ -554,65 +581,83 @@ describe('PerformanceMonitorService', () => {
       });
     });
 
-    describe('getSystemMetrics', () => {
-      it('should return system metrics', () => {
+    describe("getSystemMetrics", () => {
+      it("should return system metrics", () => {
         const result = service.getSystemMetrics();
 
-        expect(result).toHaveProperty('cpuUsage');
-        expect(result).toHaveProperty('memoryUsage');
-        expect(result).toHaveProperty('heapUsed');
-        expect(result).toHaveProperty('heapTotal');
-        expect(result).toHaveProperty('uptime');
-        expect(result).toHaveProperty('eventLoopLag');
-        expect(typeof result.cpuUsage).toBe('number');
-        expect(typeof result.memoryUsage).toBe('number');
-        expect(typeof result.uptime).toBe('number');
+        expect(result).toHaveProperty("cpuUsage");
+        expect(result).toHaveProperty("memoryUsage");
+        expect(result).toHaveProperty("heapUsed");
+        expect(result).toHaveProperty("heapTotal");
+        expect(result).toHaveProperty("uptime");
+        expect(result).toHaveProperty("eventLoopLag");
+        expect(typeof result.cpuUsage).toBe("number");
+        expect(typeof result.memoryUsage).toBe("number");
+        expect(typeof result.uptime).toBe("number");
       });
     });
 
-    describe('getPerformanceSummary', () => {
-      it('should return comprehensive performance summary', async () => {
+    describe("getPerformanceSummary", () => {
+      it("should return comprehensive performance summary", async () => {
         // Mock all dependencies
-        const mockEndpointStats = [{
-          key: 'metrics:endpoint_stats:GET:/api/v1/test',
-          stats: { totalRequests: '100', successfulRequests: '95', failedRequests: '5' },
-          responseTimes: ['100', '150', '200'],
-        }];
-        const mockQueryTimes = ['25', '50', '75'];
+        const mockEndpointStats = [
+          {
+            key: "metrics:endpoint_stats:GET:/api/v1/test",
+            stats: {
+              totalRequests: "100",
+              successfulRequests: "95",
+              failedRequests: "5",
+            },
+            responseTimes: ["100", "150", "200"],
+          },
+        ];
+        const mockQueryTimes = ["25", "50", "75"];
         const mockRedisInfo = {
-          info: 'used_memory:1048576\r\n',
-          stats: 'keyspace_hits:800\r\nkeyspace_misses:200\r\n',
-          clients: 'connected_clients:5\r\n',
+          info: "used_memory:1048576\r\n",
+          stats: "keyspace_hits:800\r\nkeyspace_misses:200\r\n",
+          clients: "connected_clients:5\r\n",
         };
 
-        performanceMetricsRepository.getEndpointStats.mockResolvedValue(mockEndpointStats);
-        performanceMetricsRepository.getDatabaseQueryTimes.mockResolvedValue(mockQueryTimes);
-        performanceMetricsRepository.getRedisInfoPayload.mockResolvedValue(mockRedisInfo);
+        performanceMetricsRepository.getEndpointStats.mockResolvedValue(
+          mockEndpointStats,
+        );
+        performanceMetricsRepository.getDatabaseQueryTimes.mockResolvedValue(
+          mockQueryTimes,
+        );
+        performanceMetricsRepository.getRedisInfoPayload.mockResolvedValue(
+          mockRedisInfo,
+        );
 
         const result = await service.getPerformanceSummary();
 
-        expect(result).toHaveProperty('timestamp');
-        expect(result).toHaveProperty('healthScore');
-        expect(result).toHaveProperty('summary');
-        expect(result).toHaveProperty('endpoints');
-        expect(result).toHaveProperty('database');
-        expect(result).toHaveProperty('redis');
-        expect(result).toHaveProperty('system');
+        expect(result).toHaveProperty("timestamp");
+        expect(result).toHaveProperty("healthScore");
+        expect(result).toHaveProperty("summary");
+        expect(result).toHaveProperty("endpoints");
+        expect(result).toHaveProperty("database");
+        expect(result).toHaveProperty("redis");
+        expect(result).toHaveProperty("system");
         expect(result.summary.totalRequests).toBe(100);
         expect(result.endpoints).toHaveLength(1);
-        expect(typeof result.healthScore).toBe('number');
+        expect(typeof result.healthScore).toBe("number");
       });
 
-      it('should handle errors gracefully', async () => {
-        performanceMetricsRepository.getEndpointStats.mockRejectedValue(new Error('DB error'));
-        performanceMetricsRepository.getDatabaseQueryTimes.mockRejectedValue(new Error('DB error'));
-        performanceMetricsRepository.getRedisInfoPayload.mockRejectedValue(new Error('Redis error'));
+      it("should handle errors gracefully", async () => {
+        performanceMetricsRepository.getEndpointStats.mockRejectedValue(
+          new Error("DB error"),
+        );
+        performanceMetricsRepository.getDatabaseQueryTimes.mockRejectedValue(
+          new Error("DB error"),
+        );
+        performanceMetricsRepository.getRedisInfoPayload.mockRejectedValue(
+          new Error("Redis error"),
+        );
 
         const result = await service.getPerformanceSummary();
 
-        expect(result).toHaveProperty('timestamp');
-        expect(result).toHaveProperty('healthScore', 0);
-        expect(result).toHaveProperty('summary');
+        expect(result).toHaveProperty("timestamp");
+        expect(result).toHaveProperty("healthScore", 0);
+        expect(result).toHaveProperty("summary");
         expect(result.summary.totalRequests).toBe(0);
         expect(result.endpoints).toEqual([]);
       });

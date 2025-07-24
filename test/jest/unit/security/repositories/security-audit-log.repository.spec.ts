@@ -1,10 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { SecurityAuditLogRepository } from '../../../../../src/security/repositories/security-audit-log.repository';
-import { SecurityAuditLog, SecurityAuditLogDocument } from '../../../../../src/security/schemas/security-audit-log.schema';
+import { Test, TestingModule } from "@nestjs/testing";
+import { getModelToken } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { SecurityAuditLogRepository } from "../../../../../src/security/repositories/security-audit-log.repository";
+import {
+  SecurityAuditLog,
+  SecurityAuditLogDocument,
+} from "../../../../../src/security/schemas/security-audit-log.schema";
 
-describe('SecurityAuditLogRepository', () => {
+describe("SecurityAuditLogRepository", () => {
   let repository: SecurityAuditLogRepository;
   let model: Model<SecurityAuditLogDocument>;
 
@@ -29,8 +32,12 @@ describe('SecurityAuditLogRepository', () => {
       ],
     }).compile();
 
-    repository = module.get<SecurityAuditLogRepository>(SecurityAuditLogRepository);
-    model = module.get<Model<SecurityAuditLogDocument>>(getModelToken(SecurityAuditLog.name));
+    repository = module.get<SecurityAuditLogRepository>(
+      SecurityAuditLogRepository,
+    );
+    model = module.get<Model<SecurityAuditLogDocument>>(
+      getModelToken(SecurityAuditLog.name),
+    );
 
     // Chain mock setup for findWithFilters
     mockAuditLogModel.find.mockReturnThis();
@@ -40,42 +47,42 @@ describe('SecurityAuditLogRepository', () => {
     mockAuditLogModel.lean.mockReturnThis();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(repository).toBeDefined();
   });
 
-  describe('insertMany', () => {
-    it('should insert logs successfully', async () => {
-      const logs = [{ type: 'login', userId: 'user1' }];
+  describe("insertMany", () => {
+    it("should insert logs successfully", async () => {
+      const logs = [{ type: "login", userId: "user1" }];
       await repository.insertMany(logs as any);
       expect(model.insertMany).toHaveBeenCalledWith(logs);
     });
 
-    it('should throw an error if insertion fails', async () => {
-      const logs = [{ type: 'login', userId: 'user1' }];
-      const error = new Error('Insert failed');
+    it("should throw an error if insertion fails", async () => {
+      const logs = [{ type: "login", userId: "user1" }];
+      const error = new Error("Insert failed");
       mockAuditLogModel.insertMany.mockRejectedValue(error);
       await expect(repository.insertMany(logs as any)).rejects.toThrow(error);
     });
   });
 
-  describe('findWithFilters', () => {
-    it('should find logs with no filters', async () => {
+  describe("findWithFilters", () => {
+    it("should find logs with no filters", async () => {
       mockAuditLogModel.exec.mockResolvedValue([]);
       await repository.findWithFilters();
       expect(mockAuditLogModel.find).toHaveBeenCalledWith({});
       expect(mockAuditLogModel.exec).toHaveBeenCalled();
     });
 
-    it('should apply all filters correctly', async () => {
+    it("should apply all filters correctly", async () => {
       const filters = {
-        startDate: new Date('2023-01-01'),
-        endDate: new Date('2023-01-31'),
-        type: 'login',
-        severity: 'high',
-        clientIP: '127.0.0.1',
-        userId: 'user-1',
-        outcome: 'success',
+        startDate: new Date("2023-01-01"),
+        endDate: new Date("2023-01-31"),
+        type: "login",
+        severity: "high",
+        clientIP: "127.0.0.1",
+        userId: "user-1",
+        outcome: "success",
       };
       mockAuditLogModel.exec.mockResolvedValue([]);
       await repository.findWithFilters(filters);
@@ -89,10 +96,10 @@ describe('SecurityAuditLogRepository', () => {
       });
     });
 
-    it('should handle pagination correctly', async () => {
-        await repository.findWithFilters({}, 50, 10);
-        expect(mockAuditLogModel.limit).toHaveBeenCalledWith(50);
-        expect(mockAuditLogModel.skip).toHaveBeenCalledWith(10);
+    it("should handle pagination correctly", async () => {
+      await repository.findWithFilters({}, 50, 10);
+      expect(mockAuditLogModel.limit).toHaveBeenCalledWith(50);
+      expect(mockAuditLogModel.skip).toHaveBeenCalledWith(10);
     });
   });
 });

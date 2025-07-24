@@ -1,16 +1,16 @@
-import { Model } from 'mongoose';
-import { getModelToken } from '@nestjs/mongoose';
-import { Test, TestingModule } from '@nestjs/testing';
-import { MongooseModule } from '@nestjs/mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { 
-  DataMappingRule, 
-  DataMappingRuleDocument, 
-  DataMappingRuleSchema, 
-  FieldMapping 
-} from '../../../../../../src/core/data-mapper/schemas/data-mapper.schema';
+import { Model } from "mongoose";
+import { getModelToken } from "@nestjs/mongoose";
+import { Test, TestingModule } from "@nestjs/testing";
+import { MongooseModule } from "@nestjs/mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import {
+  DataMappingRule,
+  DataMappingRuleDocument,
+  DataMappingRuleSchema,
+  FieldMapping,
+} from "../../../../../../src/core/data-mapper/schemas/data-mapper.schema";
 
-describe('DataMappingRule Schema', () => {
+describe("DataMappingRule Schema", () => {
   let mongoServer: MongoMemoryServer;
   let dataMappingRuleModel: Model<DataMappingRuleDocument>;
   let moduleRef: TestingModule;
@@ -22,11 +22,15 @@ describe('DataMappingRule Schema', () => {
     moduleRef = await Test.createTestingModule({
       imports: [
         MongooseModule.forRoot(uri),
-        MongooseModule.forFeature([{ name: DataMappingRule.name, schema: DataMappingRuleSchema }])
+        MongooseModule.forFeature([
+          { name: DataMappingRule.name, schema: DataMappingRuleSchema },
+        ]),
       ],
     }).compile();
 
-    dataMappingRuleModel = moduleRef.get<Model<DataMappingRuleDocument>>(getModelToken(DataMappingRule.name));
+    dataMappingRuleModel = moduleRef.get<Model<DataMappingRuleDocument>>(
+      getModelToken(DataMappingRule.name),
+    );
   });
 
   afterAll(async () => {
@@ -38,26 +42,26 @@ describe('DataMappingRule Schema', () => {
     await dataMappingRuleModel.deleteMany({});
   });
 
-  it('应该成功创建数据映射规则', async () => {
+  it("应该成功创建数据映射规则", async () => {
     const fieldMappings: FieldMapping[] = [
       {
-        sourceField: 'secu_quote[].last_done',
-        targetField: 'lastPrice',
+        sourceField: "secu_quote[].last_done",
+        targetField: "lastPrice",
         transform: {
-          type: 'multiply',
+          type: "multiply",
           value: 1,
         },
-        description: '最新价格'
-      }
+        description: "最新价格",
+      },
     ];
 
     const ruleData = {
-      name: 'LongPort Stock Quote Mapping',
-      description: 'LongPort股票报价字段映射规则',
-      provider: 'longport',
-      ruleListType: 'stock-quote',
+      name: "LongPort Stock Quote Mapping",
+      description: "LongPort股票报价字段映射规则",
+      provider: "longport",
+      ruleListType: "stock-quote",
       fieldMappings,
-      version: '1.0.0'
+      version: "1.0.0",
     };
 
     const rule = new dataMappingRuleModel(ruleData);
@@ -69,41 +73,47 @@ describe('DataMappingRule Schema', () => {
     expect(savedRule.provider).toBe(ruleData.provider);
     expect(savedRule.ruleListType).toBe(ruleData.ruleListType);
     expect(savedRule.fieldMappings).toHaveLength(1);
-    expect(savedRule.fieldMappings[0].sourceField).toBe(fieldMappings[0].sourceField);
+    expect(savedRule.fieldMappings[0].sourceField).toBe(
+      fieldMappings[0].sourceField,
+    );
     expect(savedRule.isActive).toBe(true); // 默认值
     expect(savedRule.version).toBe(ruleData.version);
     expect(savedRule.createdAt).toBeDefined();
     expect(savedRule.updatedAt).toBeDefined();
   });
 
-  it('应该正确应用默认值', async () => {
+  it("应该正确应用默认值", async () => {
     const minimalRuleData = {
-      name: 'Minimal Rule',
-      provider: 'test-provider',
-      ruleListType: 'test-type',
-      fieldMappings: [{
-        sourceField: 'source',
-        targetField: 'target'
-      }]
+      name: "Minimal Rule",
+      provider: "test-provider",
+      ruleListType: "test-type",
+      fieldMappings: [
+        {
+          sourceField: "source",
+          targetField: "target",
+        },
+      ],
     };
 
     const rule = new dataMappingRuleModel(minimalRuleData);
     const savedRule = await rule.save();
 
     expect(savedRule.isActive).toBe(true); // 默认值
-    expect(savedRule.version).toBe('1.0.0'); // 默认值
+    expect(savedRule.version).toBe("1.0.0"); // 默认值
   });
 
-  it('应该正确序列化对象（toJSON方法）', async () => {
+  it("应该正确序列化对象（toJSON方法）", async () => {
     const ruleData = {
-      name: 'JSON Test Rule',
-      provider: 'json-provider',
-      ruleListType: 'json-type',
-      fieldMappings: [{
-        sourceField: 'json_source',
-        targetField: 'json_target'
-      }],
-      metadata: { test: 'value' }
+      name: "JSON Test Rule",
+      provider: "json-provider",
+      ruleListType: "json-type",
+      fieldMappings: [
+        {
+          sourceField: "json_source",
+          targetField: "json_target",
+        },
+      ],
+      metadata: { test: "value" },
     };
 
     const rule = new dataMappingRuleModel(ruleData);
@@ -118,11 +128,11 @@ describe('DataMappingRule Schema', () => {
     expect(jsonRule.metadata).toEqual(ruleData.metadata);
   });
 
-  it('应该验证必填字段', async () => {
+  it("应该验证必填字段", async () => {
     const incompleteRule = new dataMappingRuleModel({});
     try {
       await incompleteRule.validate();
-      fail('应该抛出验证错误');
+      fail("应该抛出验证错误");
     } catch (error) {
       expect(error.errors.name).toBeDefined();
       expect(error.errors.provider).toBeDefined();
@@ -133,25 +143,33 @@ describe('DataMappingRule Schema', () => {
     }
   });
 
-  it('应该支持所有转换类型', async () => {
-    const transformTypes = ['multiply', 'divide', 'add', 'subtract', 'format', 'custom'];
-    
+  it("应该支持所有转换类型", async () => {
+    const transformTypes = [
+      "multiply",
+      "divide",
+      "add",
+      "subtract",
+      "format",
+      "custom",
+    ];
+
     for (const transformType of transformTypes) {
       const fieldMapping: FieldMapping = {
         sourceField: `source_${transformType}`,
         targetField: `target_${transformType}`,
         transform: {
           type: transformType as any,
-          value: transformType === 'custom' ? undefined : 100,
-          customFunction: transformType === 'custom' ? 'customTransform' : undefined
-        }
+          value: transformType === "custom" ? undefined : 100,
+          customFunction:
+            transformType === "custom" ? "customTransform" : undefined,
+        },
       };
 
       const ruleData = {
         name: `Rule with ${transformType} transform`,
-        provider: 'test-provider',
-        ruleListType: 'test-type',
-        fieldMappings: [fieldMapping]
+        provider: "test-provider",
+        ruleListType: "test-type",
+        fieldMappings: [fieldMapping],
       };
 
       const rule = new dataMappingRuleModel(ruleData);
@@ -161,60 +179,62 @@ describe('DataMappingRule Schema', () => {
     }
   });
 
-  it('应该支持复杂的字段映射配置', async () => {
+  it("应该支持复杂的字段映射配置", async () => {
     const complexFieldMappings: FieldMapping[] = [
       {
-        sourceField: 'secu_quote[].last_done',
-        targetField: 'lastPrice',
+        sourceField: "secu_quote[].last_done",
+        targetField: "lastPrice",
         transform: {
-          type: 'multiply',
+          type: "multiply",
           value: 1,
         },
-        description: '最新价格'
+        description: "最新价格",
       },
       {
-        sourceField: 'secu_quote[].volume',
-        targetField: 'volume',
-        description: '成交量'
+        sourceField: "secu_quote[].volume",
+        targetField: "volume",
+        description: "成交量",
       },
       {
-        sourceField: 'secu_quote[].formatted_price',
-        targetField: 'displayPrice',
+        sourceField: "secu_quote[].formatted_price",
+        targetField: "displayPrice",
         transform: {
-          type: 'format',
-          value: '%.2f',
+          type: "format",
+          value: "%.2f",
         },
-        description: '格式化价格'
+        description: "格式化价格",
       },
       {
-        sourceField: 'custom_field',
-        targetField: 'processedField',
+        sourceField: "custom_field",
+        targetField: "processedField",
         transform: {
-          type: 'custom',
-          customFunction: 'processCustomField',
+          type: "custom",
+          customFunction: "processCustomField",
         },
-        description: '自定义处理字段'
-      }
+        description: "自定义处理字段",
+      },
     ];
 
     const ruleData = {
-      name: 'Complex Mapping Rule',
-      description: '复杂的字段映射规则',
-      provider: 'longport',
-      ruleListType: 'stock-quote',
+      name: "Complex Mapping Rule",
+      description: "复杂的字段映射规则",
+      provider: "longport",
+      ruleListType: "stock-quote",
       fieldMappings: complexFieldMappings,
       metadata: {
-        version: '2.0.0',
+        version: "2.0.0",
         lastUpdated: new Date().toISOString(),
-        tags: ['stock', 'quote', 'longport']
+        tags: ["stock", "quote", "longport"],
       },
       sampleData: {
-        secu_quote: [{
-          last_done: 100.50,
-          volume: 1000000,
-          formatted_price: '100.50'
-        }]
-      }
+        secu_quote: [
+          {
+            last_done: 100.5,
+            volume: 1000000,
+            formatted_price: "100.50",
+          },
+        ],
+      },
     };
 
     const rule = new dataMappingRuleModel(ruleData);
@@ -223,89 +243,111 @@ describe('DataMappingRule Schema', () => {
     expect(savedRule.fieldMappings).toHaveLength(4);
     expect(savedRule.metadata).toEqual(ruleData.metadata);
     expect(savedRule.sampleData).toEqual(ruleData.sampleData);
-    
+
     // 验证不同类型的转换
-    const multiplyTransform = savedRule.fieldMappings.find(f => f.sourceField === 'secu_quote[].last_done');
-    expect(multiplyTransform?.transform?.type).toBe('multiply');
+    const multiplyTransform = savedRule.fieldMappings.find(
+      (f) => f.sourceField === "secu_quote[].last_done",
+    );
+    expect(multiplyTransform?.transform?.type).toBe("multiply");
     expect(multiplyTransform?.transform?.value).toBe(1);
 
-    const formatTransform = savedRule.fieldMappings.find(f => f.sourceField === 'secu_quote[].formatted_price');
-    expect(formatTransform?.transform?.type).toBe('format');
-    expect(formatTransform?.transform?.value).toBe('%.2f');
+    const formatTransform = savedRule.fieldMappings.find(
+      (f) => f.sourceField === "secu_quote[].formatted_price",
+    );
+    expect(formatTransform?.transform?.type).toBe("format");
+    expect(formatTransform?.transform?.value).toBe("%.2f");
 
-    const customTransform = savedRule.fieldMappings.find(f => f.sourceField === 'custom_field');
-    expect(customTransform?.transform?.type).toBe('custom');
-    expect(customTransform?.transform?.customFunction).toBe('processCustomField');
+    const customTransform = savedRule.fieldMappings.find(
+      (f) => f.sourceField === "custom_field",
+    );
+    expect(customTransform?.transform?.type).toBe("custom");
+    expect(customTransform?.transform?.customFunction).toBe(
+      "processCustomField",
+    );
 
-    const noTransform = savedRule.fieldMappings.find(f => f.sourceField === 'secu_quote[].volume');
+    const noTransform = savedRule.fieldMappings.find(
+      (f) => f.sourceField === "secu_quote[].volume",
+    );
     // 由于上面的检查会失败，我们只需保留对具体属性的检查
     expect(noTransform?.transform?.type).toBeUndefined();
     expect(noTransform?.transform?.value).toBeUndefined();
     expect(noTransform?.transform?.customFunction).toBeUndefined();
   });
 
-  it('应该创建索引', async () => {
+  it("应该创建索引", async () => {
     // 先创建一些数据以确保索引被建立
     const rule = new dataMappingRuleModel({
-      name: 'Index Test Rule',
-      provider: 'test-provider',
-      ruleListType: 'test-type',
-      fieldMappings: [{
-        sourceField: 'source',
-        targetField: 'target'
-      }]
+      name: "Index Test Rule",
+      provider: "test-provider",
+      ruleListType: "test-type",
+      fieldMappings: [
+        {
+          sourceField: "source",
+          targetField: "target",
+        },
+      ],
     });
     await rule.save();
 
     const indexes = await dataMappingRuleModel.collection.indexes();
-    
+
     // 查找复合索引 (provider, ruleListType)
-    const providerRuleTypeIndex = indexes.find(index => 
-      index.key && 
-      Object.keys(index.key).includes('provider') && 
-      Object.keys(index.key).includes('ruleListType'));
+    const providerRuleTypeIndex = indexes.find(
+      (index) =>
+        index.key &&
+        Object.keys(index.key).includes("provider") &&
+        Object.keys(index.key).includes("ruleListType"),
+    );
     expect(providerRuleTypeIndex).toBeDefined();
-    
+
     // 查找活跃状态索引
-    const activeIndex = indexes.find(index => 
-      index.key && Object.keys(index.key).includes('isActive'));
+    const activeIndex = indexes.find(
+      (index) => index.key && Object.keys(index.key).includes("isActive"),
+    );
     expect(activeIndex).toBeDefined();
-    
+
     // 查找创建时间索引
-    const createdAtIndex = indexes.find(index => 
-      index.key && Object.keys(index.key).includes('createdAt'));
+    const createdAtIndex = indexes.find(
+      (index) => index.key && Object.keys(index.key).includes("createdAt"),
+    );
     expect(createdAtIndex).toBeDefined();
   });
 
-  it('应该支持更新操作', async () => {
+  it("应该支持更新操作", async () => {
     const ruleData = {
-      name: 'Update Test Rule',
-      provider: 'update-provider',
-      ruleListType: 'update-type',
-      fieldMappings: [{
-        sourceField: 'old_source',
-        targetField: 'old_target'
-      }]
+      name: "Update Test Rule",
+      provider: "update-provider",
+      ruleListType: "update-type",
+      fieldMappings: [
+        {
+          sourceField: "old_source",
+          targetField: "old_target",
+        },
+      ],
     };
 
     const rule = new dataMappingRuleModel(ruleData);
     const savedRule = await rule.save();
 
     // 更新规则
-    savedRule.name = 'Updated Rule Name';
-    savedRule.fieldMappings = [{
-      sourceField: 'new_source',
-      targetField: 'new_target',
-      description: 'Updated mapping'
-    }];
+    savedRule.name = "Updated Rule Name";
+    savedRule.fieldMappings = [
+      {
+        sourceField: "new_source",
+        targetField: "new_target",
+        description: "Updated mapping",
+      },
+    ];
     savedRule.isActive = false;
 
     const updatedRule = await savedRule.save();
 
-    expect(updatedRule.name).toBe('Updated Rule Name');
-    expect(updatedRule.fieldMappings[0].sourceField).toBe('new_source');
-    expect(updatedRule.fieldMappings[0].description).toBe('Updated mapping');
+    expect(updatedRule.name).toBe("Updated Rule Name");
+    expect(updatedRule.fieldMappings[0].sourceField).toBe("new_source");
+    expect(updatedRule.fieldMappings[0].description).toBe("Updated mapping");
     expect(updatedRule.isActive).toBe(false);
-    expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(updatedRule.createdAt.getTime());
+    expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(
+      updatedRule.createdAt.getTime(),
+    );
   });
 });

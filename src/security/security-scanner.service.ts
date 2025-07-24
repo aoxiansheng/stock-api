@@ -465,18 +465,18 @@ export class SecurityScannerService {
 
   private isJwtExpiryTooLong(expiry: string): boolean {
     // 安全检查：如果不是字符串或为空，视为不安全返回true
-    if (typeof expiry !== 'string' || !expiry) {
+    if (typeof expiry !== "string" || !expiry) {
       return true;
     }
-    
+
     // 只接受严格的格式：数字+单位（d/h/m/s）
     const match = expiry.match(/^(\d+)([dhms])$/);
-    
+
     // 如果格式无效，视为潜在安全风险，返回true
     if (!match) {
       return true;
     }
-    
+
     const value = parseInt(match[1], 10);
     const unit = match[2];
     const expiryInHours = {

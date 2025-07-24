@@ -69,9 +69,9 @@ export class LongportSgContextService implements OnModuleInit, OnModuleDestroy {
         this.logger.log("LongPort SG SDK 连接初始化成功");
       } catch (error) {
         // 添加防御性检查，确保错误对象存在
-        const errorStack = error?.stack || '未知错误';
-        const errorMessage = error?.message || '未知错误';
-        
+        const errorStack = error?.stack || "未知错误";
+        const errorMessage = error?.message || "未知错误";
+
         this.logger.error(
           {
             error: errorStack,
@@ -123,7 +123,7 @@ export class LongportSgContextService implements OnModuleInit, OnModuleDestroy {
         this.logger.log("LongPort SDK 连接已成功关闭");
       } catch (error) {
         this.logger.error(
-          { error: error?.stack || '未知错误' },
+          { error: error?.stack || "未知错误" },
           "关闭 LongPort SDK 连接时发生错误",
         );
       }
@@ -140,9 +140,9 @@ export class LongportSgContextService implements OnModuleInit, OnModuleDestroy {
       return true;
     } catch (error) {
       // 防御性检查错误对象
-      const errorStack = error?.stack || '未知错误';
-      const errorMessage = String(error?.message || '');
-      
+      const errorStack = error?.stack || "未知错误";
+      const errorMessage = String(error?.message || "");
+
       // 某些错误（例如代码101004：找不到标的）表明连接本身是通的
       if (errorMessage.includes("101004")) {
         this.logger.log(

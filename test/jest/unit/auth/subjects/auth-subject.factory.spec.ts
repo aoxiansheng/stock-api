@@ -1,30 +1,33 @@
-import { ForbiddenException } from '@nestjs/common';
-import { Permission, UserRole } from '../../../../../src/auth/enums/user-role.enum';
-import { AuthSubjectType } from '../../../../../src/auth/interfaces/auth-subject.interface';
-import { ApiKeySubject } from '../../../../../src/auth/subjects/api-key.subject';
-import { AuthSubjectFactory } from '../../../../../src/auth/subjects/auth-subject.factory';
-import { JwtUserSubject } from '../../../../../src/auth/subjects/jwt-user.subject';
+import { ForbiddenException } from "@nestjs/common";
+import {
+  Permission,
+  UserRole,
+} from "../../../../../src/auth/enums/user-role.enum";
+import { AuthSubjectType } from "../../../../../src/auth/interfaces/auth-subject.interface";
+import { ApiKeySubject } from "../../../../../src/auth/subjects/api-key.subject";
+import { AuthSubjectFactory } from "../../../../../src/auth/subjects/auth-subject.factory";
+import { JwtUserSubject } from "../../../../../src/auth/subjects/jwt-user.subject";
 
-describe('AuthSubjectFactory', () => {
+describe("AuthSubjectFactory", () => {
   const mockUser = {
-    id: 'user-123',
-    username: 'testuser',
-    email: 'test@example.com',
+    id: "user-123",
+    username: "testuser",
+    email: "test@example.com",
     role: UserRole.DEVELOPER,
     isActive: true,
   };
 
   const mockApiKey = {
-    id: 'apikey-123',
-    name: 'Test API Key',
-    appKey: 'test-app-key',
+    id: "apikey-123",
+    name: "Test API Key",
+    appKey: "test-app-key",
     permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
     isActive: true,
-    rateLimit: { requests: 1000, window: '1h' },
+    rateLimit: { requests: 1000, window: "1h" },
   };
 
-  describe('createFromRequest()', () => {
-    it('should create JwtUserSubject when request has user with role', () => {
+  describe("createFromRequest()", () => {
+    it("should create JwtUserSubject when request has user with role", () => {
       const mockRequest = {
         user: mockUser,
       };
@@ -36,7 +39,7 @@ describe('AuthSubjectFactory', () => {
       expect(subject.id).toBe(mockUser.id);
     });
 
-    it('should create ApiKeySubject when request has user with permissions array', () => {
+    it("should create ApiKeySubject when request has user with permissions array", () => {
       const mockRequest = {
         user: mockApiKey,
       };
@@ -48,18 +51,18 @@ describe('AuthSubjectFactory', () => {
       expect(subject.id).toBe(mockApiKey.id);
     });
 
-    it('should throw ForbiddenException when request has no user', () => {
+    it("should throw ForbiddenException when request has no user", () => {
       const mockRequest = {};
 
       expect(() => AuthSubjectFactory.createFromRequest(mockRequest)).toThrow(
         ForbiddenException,
       );
       expect(() => AuthSubjectFactory.createFromRequest(mockRequest)).toThrow(
-        '请求中缺少认证信息',
+        "请求中缺少认证信息",
       );
     });
 
-    it('should throw ForbiddenException when request user is null', () => {
+    it("should throw ForbiddenException when request user is null", () => {
       const mockRequest = {
         user: null,
       };
@@ -69,10 +72,10 @@ describe('AuthSubjectFactory', () => {
       );
     });
 
-    it('should throw ForbiddenException when user type cannot be determined', () => {
+    it("should throw ForbiddenException when user type cannot be determined", () => {
       const mockRequest = {
         user: {
-          id: 'unknown-user',
+          id: "unknown-user",
           // No role or permissions
         },
       };
@@ -81,11 +84,11 @@ describe('AuthSubjectFactory', () => {
         ForbiddenException,
       );
       expect(() => AuthSubjectFactory.createFromRequest(mockRequest)).toThrow(
-        '无法识别的认证主体类型',
+        "无法识别的认证主体类型",
       );
     });
 
-    it('should prioritize role over permissions when both exist', () => {
+    it("should prioritize role over permissions when both exist", () => {
       const mockRequest = {
         user: {
           ...mockUser,
@@ -99,10 +102,10 @@ describe('AuthSubjectFactory', () => {
       expect(subject.type).toBe(AuthSubjectType.JWT_USER);
     });
 
-    it('should handle user with empty permissions array as API key', () => {
+    it("should handle user with empty permissions array as API key", () => {
       const mockRequest = {
         user: {
-          id: 'apikey-empty',
+          id: "apikey-empty",
           permissions: [],
         },
       };
@@ -113,11 +116,11 @@ describe('AuthSubjectFactory', () => {
       expect(subject.type).toBe(AuthSubjectType.API_KEY);
     });
 
-    it('should reject user with non-array permissions', () => {
+    it("should reject user with non-array permissions", () => {
       const mockRequest = {
         user: {
-          id: 'invalid-user',
-          permissions: 'invalid-permissions',
+          id: "invalid-user",
+          permissions: "invalid-permissions",
         },
       };
 
@@ -127,8 +130,8 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('createJwtUserSubject()', () => {
-    it('should create JwtUserSubject successfully with valid user data', () => {
+  describe("createJwtUserSubject()", () => {
+    it("should create JwtUserSubject successfully with valid user data", () => {
       const subject = AuthSubjectFactory.createJwtUserSubject(mockUser);
 
       expect(subject).toBeInstanceOf(JwtUserSubject);
@@ -137,34 +140,34 @@ describe('AuthSubjectFactory', () => {
       expect(subject.role).toBe(mockUser.role);
     });
 
-    it('should throw ForbiddenException when user data is invalid', () => {
+    it("should throw ForbiddenException when user data is invalid", () => {
       const invalidUser = {
         // Missing required fields
-        username: 'invalid',
+        username: "invalid",
       };
 
-      expect(() => AuthSubjectFactory.createJwtUserSubject(invalidUser)).toThrow(
-        ForbiddenException,
-      );
-      expect(() => AuthSubjectFactory.createJwtUserSubject(invalidUser)).toThrow(
-        /创建JWT用户权限主体失败:/,
-      );
+      expect(() =>
+        AuthSubjectFactory.createJwtUserSubject(invalidUser),
+      ).toThrow(ForbiddenException);
+      expect(() =>
+        AuthSubjectFactory.createJwtUserSubject(invalidUser),
+      ).toThrow(/创建JWT用户权限主体失败:/);
     });
 
-    it('should handle MongoDB ObjectId format', () => {
+    it("should handle MongoDB ObjectId format", () => {
       const mongoUser = {
-        _id: { toString: () => 'mongo-id' },
-        username: 'mongouser',
+        _id: { toString: () => "mongo-id" },
+        username: "mongouser",
         role: UserRole.ADMIN,
       };
 
       const subject = AuthSubjectFactory.createJwtUserSubject(mongoUser);
 
-      expect(subject.id).toBe('mongo-id');
+      expect(subject.id).toBe("mongo-id");
       expect(subject.role).toBe(UserRole.ADMIN);
     });
 
-    it('should preserve all user metadata', () => {
+    it("should preserve all user metadata", () => {
       const userWithMetadata = {
         ...mockUser,
         lastLoginAt: new Date(),
@@ -179,8 +182,8 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('createApiKeySubject()', () => {
-    it('should create ApiKeySubject successfully with valid API key data', () => {
+  describe("createApiKeySubject()", () => {
+    it("should create ApiKeySubject successfully with valid API key data", () => {
       const subject = AuthSubjectFactory.createApiKeySubject(mockApiKey);
 
       expect(subject).toBeInstanceOf(ApiKeySubject);
@@ -189,45 +192,45 @@ describe('AuthSubjectFactory', () => {
       expect(subject.permissions).toEqual(mockApiKey.permissions);
     });
 
-    it('should throw ForbiddenException when API key data is invalid', () => {
+    it("should throw ForbiddenException when API key data is invalid", () => {
       const invalidApiKey = {
         // Missing required fields
-        name: 'invalid-key',
+        name: "invalid-key",
       };
 
-      expect(() => AuthSubjectFactory.createApiKeySubject(invalidApiKey)).toThrow(
-        ForbiddenException,
-      );
-      expect(() => AuthSubjectFactory.createApiKeySubject(invalidApiKey)).toThrow(
-        /创建API Key权限主体失败:/,
-      );
+      expect(() =>
+        AuthSubjectFactory.createApiKeySubject(invalidApiKey),
+      ).toThrow(ForbiddenException);
+      expect(() =>
+        AuthSubjectFactory.createApiKeySubject(invalidApiKey),
+      ).toThrow(/创建API Key权限主体失败:/);
     });
 
-    it('should handle minimal API key data', () => {
+    it("should handle minimal API key data", () => {
       const minimalApiKey = {
-        id: 'minimal-key',
+        id: "minimal-key",
         permissions: [Permission.DATA_READ],
       };
 
       const subject = AuthSubjectFactory.createApiKeySubject(minimalApiKey);
 
-      expect(subject.id).toBe('minimal-key');
+      expect(subject.id).toBe("minimal-key");
       expect(subject.permissions).toEqual([Permission.DATA_READ]);
     });
 
-    it('should handle MongoDB ObjectId format', () => {
+    it("should handle MongoDB ObjectId format", () => {
       const mongoApiKey = {
-        _id: { toString: () => 'mongo-apikey-id' },
-        name: 'Mongo API Key',
+        _id: { toString: () => "mongo-apikey-id" },
+        name: "Mongo API Key",
         permissions: [Permission.DATA_READ],
       };
 
       const subject = AuthSubjectFactory.createApiKeySubject(mongoApiKey);
 
-      expect(subject.id).toBe('mongo-apikey-id');
+      expect(subject.id).toBe("mongo-apikey-id");
     });
 
-    it('should preserve all API key metadata', () => {
+    it("should preserve all API key metadata", () => {
       const apiKeyWithMetadata = {
         ...mockApiKey,
         expiresAt: new Date(),
@@ -235,7 +238,8 @@ describe('AuthSubjectFactory', () => {
         lastUsedAt: new Date(),
       };
 
-      const subject = AuthSubjectFactory.createApiKeySubject(apiKeyWithMetadata);
+      const subject =
+        AuthSubjectFactory.createApiKeySubject(apiKeyWithMetadata);
 
       expect(subject.metadata.name).toBe(apiKeyWithMetadata.name);
       expect(subject.metadata.rateLimit).toEqual(apiKeyWithMetadata.rateLimit);
@@ -243,8 +247,8 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('isValidSubject()', () => {
-    it('should return true for valid JWT user subject', () => {
+  describe("isValidSubject()", () => {
+    it("should return true for valid JWT user subject", () => {
       const subject = new JwtUserSubject(mockUser);
 
       const isValid = AuthSubjectFactory.isValidSubject(subject);
@@ -252,7 +256,7 @@ describe('AuthSubjectFactory', () => {
       expect(isValid).toBe(true);
     });
 
-    it('should return true for valid and active API key subject', () => {
+    it("should return true for valid and active API key subject", () => {
       const subject = new ApiKeySubject(mockApiKey);
 
       const isValid = AuthSubjectFactory.isValidSubject(subject);
@@ -260,7 +264,7 @@ describe('AuthSubjectFactory', () => {
       expect(isValid).toBe(true);
     });
 
-    it('should return false for inactive API key subject', () => {
+    it("should return false for inactive API key subject", () => {
       const inactiveApiKey = {
         ...mockApiKey,
         isActive: false,
@@ -272,7 +276,7 @@ describe('AuthSubjectFactory', () => {
       expect(isValid).toBe(false);
     });
 
-    it('should return false for expired API key subject', () => {
+    it("should return false for expired API key subject", () => {
       const expiredApiKey = {
         ...mockApiKey,
         expiresAt: new Date(Date.now() - 86400000), // 24 hours ago
@@ -284,24 +288,24 @@ describe('AuthSubjectFactory', () => {
       expect(isValid).toBe(false);
     });
 
-    it('should return false for null subject', () => {
+    it("should return false for null subject", () => {
       const isValid = AuthSubjectFactory.isValidSubject(null as any);
 
       expect(isValid).toBe(false);
     });
 
-    it('should return false for undefined subject', () => {
+    it("should return false for undefined subject", () => {
       const isValid = AuthSubjectFactory.isValidSubject(undefined as any);
 
       expect(isValid).toBe(false);
     });
 
-    it('should return false for subject without id', () => {
+    it("should return false for subject without id", () => {
       const subjectWithoutId = {
         type: AuthSubjectType.JWT_USER,
         permissions: [],
         metadata: {},
-        getDisplayName: () => 'test',
+        getDisplayName: () => "test",
       } as any;
 
       const isValid = AuthSubjectFactory.isValidSubject(subjectWithoutId);
@@ -309,13 +313,13 @@ describe('AuthSubjectFactory', () => {
       expect(isValid).toBe(false);
     });
 
-    it('should handle non-ApiKeySubject with API_KEY type gracefully', () => {
+    it("should handle non-ApiKeySubject with API_KEY type gracefully", () => {
       const mockSubject = {
         type: AuthSubjectType.API_KEY,
-        id: 'mock-id',
+        id: "mock-id",
         permissions: [],
         metadata: {},
-        getDisplayName: () => 'mock',
+        getDisplayName: () => "mock",
       } as any;
 
       const isValid = AuthSubjectFactory.isValidSubject(mockSubject);
@@ -324,8 +328,8 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('getDebugInfo()', () => {
-    it('should return complete debug info for JWT user subject', () => {
+  describe("getDebugInfo()", () => {
+    it("should return complete debug info for JWT user subject", () => {
       const subject = new JwtUserSubject(mockUser);
 
       const debugInfo = AuthSubjectFactory.getDebugInfo(subject);
@@ -341,7 +345,7 @@ describe('AuthSubjectFactory', () => {
       });
     });
 
-    it('should return complete debug info for API key subject', () => {
+    it("should return complete debug info for API key subject", () => {
       const subject = new ApiKeySubject(mockApiKey);
 
       const debugInfo = AuthSubjectFactory.getDebugInfo(subject);
@@ -357,7 +361,7 @@ describe('AuthSubjectFactory', () => {
       });
     });
 
-    it('should include validity status in debug info', () => {
+    it("should include validity status in debug info", () => {
       const inactiveApiKey = {
         ...mockApiKey,
         isActive: false,
@@ -369,9 +373,9 @@ describe('AuthSubjectFactory', () => {
       expect(debugInfo.isValid).toBe(false);
     });
 
-    it('should handle subject with empty permissions', () => {
+    it("should handle subject with empty permissions", () => {
       const emptyPermissionsApiKey = {
-        id: 'empty-key',
+        id: "empty-key",
         permissions: [],
       };
       const subject = new ApiKeySubject(emptyPermissionsApiKey);
@@ -383,8 +387,8 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('areEqual()', () => {
-    it('should return true for same JWT user subjects', () => {
+  describe("areEqual()", () => {
+    it("should return true for same JWT user subjects", () => {
       const subject1 = new JwtUserSubject(mockUser);
       const subject2 = new JwtUserSubject(mockUser);
 
@@ -393,7 +397,7 @@ describe('AuthSubjectFactory', () => {
       expect(areEqual).toBe(true);
     });
 
-    it('should return true for same API key subjects', () => {
+    it("should return true for same API key subjects", () => {
       const subject1 = new ApiKeySubject(mockApiKey);
       const subject2 = new ApiKeySubject(mockApiKey);
 
@@ -402,14 +406,14 @@ describe('AuthSubjectFactory', () => {
       expect(areEqual).toBe(true);
     });
 
-    it('should return false for different types with same id', () => {
+    it("should return false for different types with same id", () => {
       const userSubject = new JwtUserSubject({
         ...mockUser,
-        id: 'same-id',
+        id: "same-id",
       });
       const apiKeySubject = new ApiKeySubject({
         ...mockApiKey,
-        id: 'same-id',
+        id: "same-id",
       });
 
       const areEqual = AuthSubjectFactory.areEqual(userSubject, apiKeySubject);
@@ -417,14 +421,14 @@ describe('AuthSubjectFactory', () => {
       expect(areEqual).toBe(false);
     });
 
-    it('should return false for same type with different ids', () => {
+    it("should return false for same type with different ids", () => {
       const subject1 = new JwtUserSubject({
         ...mockUser,
-        id: 'id-1',
+        id: "id-1",
       });
       const subject2 = new JwtUserSubject({
         ...mockUser,
-        id: 'id-2',
+        id: "id-2",
       });
 
       const areEqual = AuthSubjectFactory.areEqual(subject1, subject2);
@@ -432,7 +436,7 @@ describe('AuthSubjectFactory', () => {
       expect(areEqual).toBe(false);
     });
 
-    it('should return false for completely different subjects', () => {
+    it("should return false for completely different subjects", () => {
       const userSubject = new JwtUserSubject(mockUser);
       const apiKeySubject = new ApiKeySubject(mockApiKey);
 
@@ -441,7 +445,7 @@ describe('AuthSubjectFactory', () => {
       expect(areEqual).toBe(false);
     });
 
-    it('should handle subjects with identical structure but different instances', () => {
+    it("should handle subjects with identical structure but different instances", () => {
       const user1 = { ...mockUser };
       const user2 = { ...mockUser };
       const subject1 = new JwtUserSubject(user1);
@@ -453,10 +457,10 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('Edge Cases and Error Handling', () => {
-    it('should handle malformed request objects gracefully', () => {
+  describe("Edge Cases and Error Handling", () => {
+    it("should handle malformed request objects gracefully", () => {
       const malformedRequests = [
-        { user: 'not-an-object' },
+        { user: "not-an-object" },
         { user: 123 },
         { user: [] },
         { user: true },
@@ -469,7 +473,7 @@ describe('AuthSubjectFactory', () => {
       });
     });
 
-    it('should handle subjects with circular references in metadata', () => {
+    it("should handle subjects with circular references in metadata", () => {
       const circularUser: any = { ...mockUser, metadata: {} };
       circularUser.metadata.circularRef = circularUser; // Circular reference
 
@@ -478,20 +482,24 @@ describe('AuthSubjectFactory', () => {
       expect(() => AuthSubjectFactory.getDebugInfo(subject)).not.toThrow();
     });
 
-    it('should handle very large permission arrays', () => {
+    it("should handle very large permission arrays", () => {
       const allPermissions = Object.values(Permission);
       const largePermissionsApiKey = {
         ...mockApiKey,
         permissions: [...allPermissions, ...allPermissions], // Duplicate permissions
       };
 
-      const subject = AuthSubjectFactory.createApiKeySubject(largePermissionsApiKey);
+      const subject = AuthSubjectFactory.createApiKeySubject(
+        largePermissionsApiKey,
+      );
       const debugInfo = AuthSubjectFactory.getDebugInfo(subject);
 
-      expect(debugInfo.permissionCount).toBe(largePermissionsApiKey.permissions.length);
+      expect(debugInfo.permissionCount).toBe(
+        largePermissionsApiKey.permissions.length,
+      );
     });
 
-    it('should handle concurrent factory operations', async () => {
+    it("should handle concurrent factory operations", async () => {
       const promises = Array.from({ length: 100 }, (_, i) => {
         const user = { ...mockUser, id: `user-${i}` };
         return Promise.resolve(AuthSubjectFactory.createJwtUserSubject(user));
@@ -505,7 +513,7 @@ describe('AuthSubjectFactory', () => {
       });
     });
 
-    it('should maintain immutability of input data', () => {
+    it("should maintain immutability of input data", () => {
       const originalUser = { ...mockUser };
       const originalApiKey = { ...mockApiKey };
 
@@ -517,15 +525,15 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('Integration Scenarios', () => {
-    it('should work with real request-like objects', () => {
+  describe("Integration Scenarios", () => {
+    it("should work with real request-like objects", () => {
       const mockExpressRequest = {
         user: mockUser,
         headers: {
-          authorization: 'Bearer token',
+          authorization: "Bearer token",
         },
-        method: 'GET',
-        url: '/api/test',
+        method: "GET",
+        url: "/api/test",
       };
 
       const subject = AuthSubjectFactory.createFromRequest(mockExpressRequest);
@@ -534,11 +542,13 @@ describe('AuthSubjectFactory', () => {
       expect(subject.id).toBe(mockUser.id);
     });
 
-    it('should work with Passport.js-style user objects', () => {
+    it("should work with Passport.js-style user objects", () => {
       const passportUser = {
         ...mockUser,
-        _json: { /* OAuth provider data */ },
-        provider: 'oauth',
+        _json: {
+          /* OAuth provider data */
+        },
+        provider: "oauth",
       };
 
       const subject = AuthSubjectFactory.createJwtUserSubject(passportUser);
@@ -547,11 +557,11 @@ describe('AuthSubjectFactory', () => {
       expect(subject.role).toBe(passportUser.role);
     });
 
-    it('should handle database-style API key objects', () => {
+    it("should handle database-style API key objects", () => {
       const dbApiKey = {
-        _id: 'db-key-id',
-        app_key: 'app-key-value',
-        permissions: ['data:read', 'query:execute'],
+        _id: "db-key-id",
+        app_key: "app-key-value",
+        permissions: ["data:read", "query:execute"],
         is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
@@ -572,8 +582,8 @@ describe('AuthSubjectFactory', () => {
     });
   });
 
-  describe('Performance Considerations', () => {
-    it('should create subjects efficiently', () => {
+  describe("Performance Considerations", () => {
+    it("should create subjects efficiently", () => {
       const start = performance.now();
 
       // Create many subjects
@@ -589,7 +599,7 @@ describe('AuthSubjectFactory', () => {
       expect(duration).toBeLessThan(100); // 100ms for 1000 operations
     });
 
-    it('should efficiently compare subjects', () => {
+    it("should efficiently compare subjects", () => {
       const subject1 = new JwtUserSubject(mockUser);
       const subject2 = new JwtUserSubject(mockUser);
 

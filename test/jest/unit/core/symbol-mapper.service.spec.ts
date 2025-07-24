@@ -1,27 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
-import { SymbolMapperService } from '../../../../src/core/symbol-mapper/symbol-mapper.service';
-import { SymbolMappingRepository } from '../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository';
-import { CreateSymbolMappingDto } from '../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto';
-import { UpdateSymbolMappingDto, AddMappingRuleDto, UpdateMappingRuleDto } from '../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto';
-import { SymbolMappingQueryDto } from '../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto';
-import { MappingRule } from '../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema';
-import { SymbolMappingRuleDocument } from '../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConflictException, NotFoundException } from "@nestjs/common";
+import { SymbolMapperService } from "../../../../src/core/symbol-mapper/symbol-mapper.service";
+import { SymbolMappingRepository } from "../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
+import { CreateSymbolMappingDto } from "../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
+import {
+  UpdateSymbolMappingDto,
+  AddMappingRuleDto,
+  UpdateMappingRuleDto,
+} from "../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
+import { SymbolMappingQueryDto } from "../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto";
+import { MappingRule } from "../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
+import { SymbolMappingRuleDocument } from "../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
-describe('SymbolMapperService', () => {
+describe("SymbolMapperService", () => {
   let service: SymbolMapperService;
   let repository: jest.Mocked<SymbolMappingRepository>;
 
   const mockSymbolMappingDocument = {
-    _id: '507f1f77bcf86cd799439011',
-    dataSourceName: 'test-provider',
+    _id: "507f1f77bcf86cd799439011",
+    dataSourceName: "test-provider",
     isActive: true,
     mappingRules: [
       {
-        inputSymbol: 'AAPL',
-        outputSymbol: 'AAPL.US',
-        market: 'US',
-        symbolType: 'stock',
+        inputSymbol: "AAPL",
+        outputSymbol: "AAPL.US",
+        market: "US",
+        symbolType: "stock",
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -65,37 +69,49 @@ describe('SymbolMapperService', () => {
     repository = module.get(SymbolMappingRepository);
   });
 
-  describe('mapSymbol', () => {
-    it('should map symbol successfully when mapping rule exists', async () => {
+  describe("mapSymbol", () => {
+    it("should map symbol successfully when mapping rule exists", async () => {
       repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.mapSymbol('AAPL', 'standard', 'test-provider');
+      const result = await service.mapSymbol(
+        "AAPL",
+        "standard",
+        "test-provider",
+      );
 
-      expect(result).toBe('AAPL.US');
-      expect(repository.findByDataSource).toHaveBeenCalledWith('test-provider');
+      expect(result).toBe("AAPL.US");
+      expect(repository.findByDataSource).toHaveBeenCalledWith("test-provider");
     });
 
-    it('should return original symbol when mapping rule not found', async () => {
+    it("should return original symbol when mapping rule not found", async () => {
       repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.mapSymbol('GOOGL', 'standard', 'test-provider');
+      const result = await service.mapSymbol(
+        "GOOGL",
+        "standard",
+        "test-provider",
+      );
 
-      expect(result).toBe('GOOGL');
+      expect(result).toBe("GOOGL");
     });
 
-    it('should return original symbol when mapping config not found', async () => {
+    it("should return original symbol when mapping config not found", async () => {
       repository.findByDataSource.mockResolvedValue(null);
 
-      const result = await service.mapSymbol('AAPL', 'standard', 'nonexistent-provider');
+      const result = await service.mapSymbol(
+        "AAPL",
+        "standard",
+        "nonexistent-provider",
+      );
 
-      expect(result).toBe('AAPL');
+      expect(result).toBe("AAPL");
     });
   });
 
-  describe('createDataSourceMapping', () => {
-    it('should create mapping successfully', async () => {
+  describe("createDataSourceMapping", () => {
+    it("should create mapping successfully", async () => {
       const createDto: CreateSymbolMappingDto = {
-        dataSourceName: 'new-provider',
+        dataSourceName: "new-provider",
         mappingRules: [],
       };
 
@@ -105,13 +121,13 @@ describe('SymbolMapperService', () => {
       const result = await service.createDataSourceMapping(createDto);
 
       expect(result).toBeDefined();
-      expect(repository.exists).toHaveBeenCalledWith('new-provider');
+      expect(repository.exists).toHaveBeenCalledWith("new-provider");
       expect(repository.create).toHaveBeenCalledWith(createDto);
     });
 
-    it('should throw ConflictException when mapping already exists', async () => {
+    it("should throw ConflictException when mapping already exists", async () => {
       const createDto: CreateSymbolMappingDto = {
-        dataSourceName: 'existing-provider',
+        dataSourceName: "existing-provider",
         mappingRules: [],
       };
 
@@ -123,46 +139,48 @@ describe('SymbolMapperService', () => {
     });
   });
 
-  describe('getMappingById', () => {
-    it('should return mapping when found', async () => {
+  describe("getMappingById", () => {
+    it("should return mapping when found", async () => {
       repository.findById.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.getMappingById('507f1f77bcf86cd799439011');
+      const result = await service.getMappingById("507f1f77bcf86cd799439011");
 
       expect(result).toBeDefined();
-      expect(repository.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+      expect(repository.findById).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+      );
     });
 
-    it('should throw NotFoundException when mapping not found', async () => {
+    it("should throw NotFoundException when mapping not found", async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.getMappingById('nonexistent-id')).rejects.toThrow(
+      await expect(service.getMappingById("nonexistent-id")).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe('getMappingByDataSource', () => {
-    it('should return mapping when found', async () => {
+  describe("getMappingByDataSource", () => {
+    it("should return mapping when found", async () => {
       repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.getMappingByDataSource('test-provider');
+      const result = await service.getMappingByDataSource("test-provider");
 
       expect(result).toBeDefined();
-      expect(repository.findByDataSource).toHaveBeenCalledWith('test-provider');
+      expect(repository.findByDataSource).toHaveBeenCalledWith("test-provider");
     });
 
-    it('should throw NotFoundException when mapping not found', async () => {
+    it("should throw NotFoundException when mapping not found", async () => {
       repository.findByDataSource.mockResolvedValue(null);
 
-      await expect(service.getMappingByDataSource('nonexistent-provider')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getMappingByDataSource("nonexistent-provider"),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('getMappingsPaginated', () => {
-    it('should return paginated results', async () => {
+  describe("getMappingsPaginated", () => {
+    it("should return paginated results", async () => {
       const query: SymbolMappingQueryDto = {
         page: 1,
         limit: 10,
@@ -187,138 +205,142 @@ describe('SymbolMapperService', () => {
     });
   });
 
-  describe('updateMapping', () => {
-    it('should update mapping successfully', async () => {
+  describe("updateMapping", () => {
+    it("should update mapping successfully", async () => {
       const updateDto: UpdateSymbolMappingDto = {
-        description: 'Updated description',
+        description: "Updated description",
       };
 
       repository.updateById.mockResolvedValue(mockSymbolMappingDocument);
 
       const result = await service.updateMapping(
-        '507f1f77bcf86cd799439011',
+        "507f1f77bcf86cd799439011",
         updateDto,
       );
 
       expect(result).toBeDefined();
       expect(repository.updateById).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        "507f1f77bcf86cd799439011",
         updateDto,
       );
     });
 
-    it('should throw NotFoundException when mapping not found', async () => {
+    it("should throw NotFoundException when mapping not found", async () => {
       const updateDto: UpdateSymbolMappingDto = {
-        description: 'Updated description',
+        description: "Updated description",
       };
 
       repository.updateById.mockResolvedValue(null);
 
       await expect(
-        service.updateMapping('nonexistent-id', updateDto),
+        service.updateMapping("nonexistent-id", updateDto),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('deleteMapping', () => {
-    it('should delete mapping successfully', async () => {
+  describe("deleteMapping", () => {
+    it("should delete mapping successfully", async () => {
       repository.deleteById.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.deleteMapping('507f1f77bcf86cd799439011');
+      const result = await service.deleteMapping("507f1f77bcf86cd799439011");
 
       expect(result).toBeDefined();
       expect(repository.deleteById).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+        "507f1f77bcf86cd799439011",
       );
     });
 
-    it('should throw NotFoundException when mapping not found', async () => {
+    it("should throw NotFoundException when mapping not found", async () => {
       repository.deleteById.mockResolvedValue(null);
 
-      await expect(service.deleteMapping('nonexistent-id')).rejects.toThrow(
+      await expect(service.deleteMapping("nonexistent-id")).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe('transformSymbols', () => {
-    it('should transform symbols successfully', async () => {
+  describe("transformSymbols", () => {
+    it("should transform symbols successfully", async () => {
       const mappingRules = [
         {
-          inputSymbol: 'AAPL',
-          outputSymbol: 'AAPL.US',
-          market: 'US',
-          symbolType: 'stock',
+          inputSymbol: "AAPL",
+          outputSymbol: "AAPL.US",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       ];
 
-      repository.findAllMappingsForSymbols.mockResolvedValue(mappingRules as any);
+      repository.findAllMappingsForSymbols.mockResolvedValue(
+        mappingRules as any,
+      );
 
-      const result = await service.transformSymbols('test-provider', [
-        'AAPL',
-        'GOOGL',
+      const result = await service.transformSymbols("test-provider", [
+        "AAPL",
+        "GOOGL",
       ]);
 
       expect(result.transformedSymbols).toEqual({
-        AAPL: 'AAPL.US',
-        GOOGL: 'GOOGL',
+        AAPL: "AAPL.US",
+        GOOGL: "GOOGL",
       });
-      expect(result.dataSourceName).toBe('test-provider');
+      expect(result.dataSourceName).toBe("test-provider");
       expect(result.processingTimeMs).toBeGreaterThan(0);
     });
   });
 
-  describe('getTransformedSymbolList', () => {
-    it('should return transformed symbol list', async () => {
+  describe("getTransformedSymbolList", () => {
+    it("should return transformed symbol list", async () => {
       const mappingRules = [
         {
-          inputSymbol: 'AAPL',
-          outputSymbol: 'AAPL.US',
-          market: 'US',
-          symbolType: 'stock',
+          inputSymbol: "AAPL",
+          outputSymbol: "AAPL.US",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       ];
 
-      repository.findAllMappingsForSymbols.mockResolvedValue(mappingRules as any);
+      repository.findAllMappingsForSymbols.mockResolvedValue(
+        mappingRules as any,
+      );
 
-      const result = await service.getTransformedSymbolList('test-provider', [
-        'AAPL',
-        'GOOGL',
+      const result = await service.getTransformedSymbolList("test-provider", [
+        "AAPL",
+        "GOOGL",
       ]);
 
-      expect(result).toEqual(['AAPL.US', 'GOOGL']);
+      expect(result).toEqual(["AAPL.US", "GOOGL"]);
     });
   });
 
-  describe('getMappingRules', () => {
-    it('should return mapping rules when provider exists', async () => {
+  describe("getMappingRules", () => {
+    it("should return mapping rules when provider exists", async () => {
       repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.getMappingRules('test-provider');
+      const result = await service.getMappingRules("test-provider");
 
       expect(result).toEqual(mockSymbolMappingDocument.mappingRules);
     });
 
-    it('should return empty array when provider not found', async () => {
+    it("should return empty array when provider not found", async () => {
       repository.findByDataSource.mockResolvedValue(null);
 
-      const result = await service.getMappingRules('nonexistent-provider');
+      const result = await service.getMappingRules("nonexistent-provider");
 
       expect(result).toEqual([]);
     });
   });
 
-  describe('addMappingRule', () => {
-    it('should add mapping rule successfully', async () => {
+  describe("addMappingRule", () => {
+    it("should add mapping rule successfully", async () => {
       const addDto: AddMappingRuleDto = {
-        dataSourceName: 'test-provider',
+        dataSourceName: "test-provider",
         mappingRule: {
-          inputSymbol: 'GOOGL',
-          outputSymbol: 'GOOGL.US',
-          market: 'US',
-          symbolType: 'stock',
+          inputSymbol: "GOOGL",
+          outputSymbol: "GOOGL.US",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       };
@@ -329,19 +351,19 @@ describe('SymbolMapperService', () => {
 
       expect(result).toBeDefined();
       expect(repository.addMappingRule).toHaveBeenCalledWith(
-        'test-provider',
+        "test-provider",
         addDto.mappingRule,
       );
     });
 
-    it('should throw NotFoundException when data source not found', async () => {
+    it("should throw NotFoundException when data source not found", async () => {
       const addDto: AddMappingRuleDto = {
-        dataSourceName: 'nonexistent-provider',
+        dataSourceName: "nonexistent-provider",
         mappingRule: {
-          inputSymbol: 'GOOGL',
-          outputSymbol: 'GOOGL.US',
-          market: 'US',
-          symbolType: 'stock',
+          inputSymbol: "GOOGL",
+          outputSymbol: "GOOGL.US",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       };
@@ -354,15 +376,15 @@ describe('SymbolMapperService', () => {
     });
   });
 
-  describe('updateMappingRule', () => {
-    it('should update mapping rule successfully', async () => {
+  describe("updateMappingRule", () => {
+    it("should update mapping rule successfully", async () => {
       const updateDto: UpdateMappingRuleDto = {
-        dataSourceName: 'test-provider',
-        inputSymbol: 'AAPL',
+        dataSourceName: "test-provider",
+        inputSymbol: "AAPL",
         mappingRule: {
-          outputSymbol: 'AAPL.NASDAQ',
-          market: 'US',
-          symbolType: 'stock',
+          outputSymbol: "AAPL.NASDAQ",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       };
@@ -373,20 +395,20 @@ describe('SymbolMapperService', () => {
 
       expect(result).toBeDefined();
       expect(repository.updateMappingRule).toHaveBeenCalledWith(
-        'test-provider',
-        'AAPL',
+        "test-provider",
+        "AAPL",
         updateDto.mappingRule,
       );
     });
 
-    it('should throw NotFoundException when mapping rule not found', async () => {
+    it("should throw NotFoundException when mapping rule not found", async () => {
       const updateDto: UpdateMappingRuleDto = {
-        dataSourceName: 'test-provider',
-        inputSymbol: 'NONEXISTENT',
+        dataSourceName: "test-provider",
+        inputSymbol: "NONEXISTENT",
         mappingRule: {
-          outputSymbol: 'NONEXISTENT.US',
-          market: 'US',
-          symbolType: 'stock',
+          outputSymbol: "NONEXISTENT.US",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       };
@@ -399,101 +421,114 @@ describe('SymbolMapperService', () => {
     });
   });
 
-  describe('removeMappingRule', () => {
-    it('should remove mapping rule successfully', async () => {
+  describe("removeMappingRule", () => {
+    it("should remove mapping rule successfully", async () => {
       repository.removeMappingRule.mockResolvedValue(mockSymbolMappingDocument);
 
-      const result = await service.removeMappingRule('test-provider', 'AAPL');
+      const result = await service.removeMappingRule("test-provider", "AAPL");
 
       expect(result).toBeDefined();
-      expect(repository.removeMappingRule).toHaveBeenCalledWith('test-provider', 'AAPL');
+      expect(repository.removeMappingRule).toHaveBeenCalledWith(
+        "test-provider",
+        "AAPL",
+      );
     });
 
-    it('should throw NotFoundException when data source not found', async () => {
+    it("should throw NotFoundException when data source not found", async () => {
       repository.removeMappingRule.mockResolvedValue(null);
 
-      await expect(service.removeMappingRule('nonexistent-provider', 'AAPL')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.removeMappingRule("nonexistent-provider", "AAPL"),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('replaceMappingRules', () => {
-    it('should replace mapping rules successfully', async () => {
+  describe("replaceMappingRules", () => {
+    it("should replace mapping rules successfully", async () => {
       const newMappingRules: MappingRule[] = [
         {
-          inputSymbol: 'TSLA',
-          outputSymbol: 'TSLA.US',
-          market: 'US',
-          symbolType: 'stock',
+          inputSymbol: "TSLA",
+          outputSymbol: "TSLA.US",
+          market: "US",
+          symbolType: "stock",
           isActive: true,
         },
       ];
 
-      repository.replaceMappingRules.mockResolvedValue(mockSymbolMappingDocument);
+      repository.replaceMappingRules.mockResolvedValue(
+        mockSymbolMappingDocument,
+      );
 
-      const result = await service.replaceMappingRules('test-provider', newMappingRules);
+      const result = await service.replaceMappingRules(
+        "test-provider",
+        newMappingRules,
+      );
 
       expect(result).toBeDefined();
-      expect(repository.replaceMappingRules).toHaveBeenCalledWith('test-provider', newMappingRules);
+      expect(repository.replaceMappingRules).toHaveBeenCalledWith(
+        "test-provider",
+        newMappingRules,
+      );
     });
 
-    it('should throw NotFoundException when data source not found', async () => {
+    it("should throw NotFoundException when data source not found", async () => {
       const newMappingRules: MappingRule[] = [];
 
       repository.replaceMappingRules.mockResolvedValue(null);
 
-      await expect(service.replaceMappingRules('nonexistent-provider', newMappingRules)).rejects.toThrow(
-        NotFoundException,
+      await expect(
+        service.replaceMappingRules("nonexistent-provider", newMappingRules),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe("getDataSources", () => {
+    it("should return data sources", async () => {
+      repository.getDataSources.mockResolvedValue(["provider1", "provider2"]);
+
+      const result = await service.getDataSources();
+
+      expect(result).toEqual(["provider1", "provider2"]);
+    });
+  });
+
+  describe("getMarkets", () => {
+    it("should return markets", async () => {
+      repository.getMarkets.mockResolvedValue(["US", "HK"]);
+
+      const result = await service.getMarkets();
+
+      expect(result).toEqual(["US", "HK"]);
+    });
+  });
+
+  describe("getSymbolTypes", () => {
+    it("should return symbol types", async () => {
+      repository.getSymbolTypes.mockResolvedValue(["stock", "etf"]);
+
+      const result = await service.getSymbolTypes();
+
+      expect(result).toEqual(["stock", "etf"]);
+    });
+  });
+
+  describe("deleteMappingsByDataSource", () => {
+    it("should delete mappings by data source", async () => {
+      repository.deleteByDataSource.mockResolvedValue({ deletedCount: 1 });
+
+      const result = await service.deleteMappingsByDataSource("test-provider");
+
+      expect(result.deletedCount).toBe(1);
+      expect(repository.deleteByDataSource).toHaveBeenCalledWith(
+        "test-provider",
       );
     });
   });
 
-  describe('getDataSources', () => {
-    it('should return data sources', async () => {
-      repository.getDataSources.mockResolvedValue(['provider1', 'provider2']);
-
-      const result = await service.getDataSources();
-
-      expect(result).toEqual(['provider1', 'provider2']);
-    });
-  });
-
-  describe('getMarkets', () => {
-    it('should return markets', async () => {
-      repository.getMarkets.mockResolvedValue(['US', 'HK']);
-
-      const result = await service.getMarkets();
-
-      expect(result).toEqual(['US', 'HK']);
-    });
-  });
-
-  describe('getSymbolTypes', () => {
-    it('should return symbol types', async () => {
-      repository.getSymbolTypes.mockResolvedValue(['stock', 'etf']);
-
-      const result = await service.getSymbolTypes();
-
-      expect(result).toEqual(['stock', 'etf']);
-    });
-  });
-
-  describe('deleteMappingsByDataSource', () => {
-    it('should delete mappings by data source', async () => {
-      repository.deleteByDataSource.mockResolvedValue({ deletedCount: 1 });
-
-      const result = await service.deleteMappingsByDataSource('test-provider');
-
-      expect(result.deletedCount).toBe(1);
-      expect(repository.deleteByDataSource).toHaveBeenCalledWith('test-provider');
-    });
-  });
-
-  describe('saveMapping', () => {
-    it('should save mapping successfully', async () => {
+  describe("saveMapping", () => {
+    it("should save mapping successfully", async () => {
       const mappingRule = {
-        dataSourceName: 'test-provider',
+        dataSourceName: "test-provider",
         mappingRules: [],
       };
 

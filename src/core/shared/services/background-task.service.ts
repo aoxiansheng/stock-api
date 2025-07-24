@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger, sanitizeLogData } from '@common/config/logger.config';
+import { Injectable } from "@nestjs/common";
+import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
 @Injectable()
 export class BackgroundTaskService {
@@ -13,7 +13,7 @@ export class BackgroundTaskService {
    */
   run(task: () => Promise<any>, description: string): void {
     this.logger.debug(`Executing background task: ${description}`);
-    
+
     // Use setImmediate to ensure the task runs on the next I/O cycle,
     // completely detaching it from the current request-response cycle.
     setImmediate(() => {
@@ -30,4 +30,4 @@ export class BackgroundTaskService {
         });
     });
   }
-} 
+}

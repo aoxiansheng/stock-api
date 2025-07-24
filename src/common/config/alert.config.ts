@@ -1,10 +1,11 @@
 import { registerAs } from "@nestjs/config";
 
 export const alertConfig = registerAs("alert", () => {
-  const parsedInterval = process.env.ALERT_EVALUATION_INTERVAL !== undefined 
-    ? parseInt(process.env.ALERT_EVALUATION_INTERVAL, 10) 
-    : 60;
-    
+  const parsedInterval =
+    process.env.ALERT_EVALUATION_INTERVAL !== undefined
+      ? parseInt(process.env.ALERT_EVALUATION_INTERVAL, 10)
+      : 60;
+
   return {
     // Configuration for AlertingService
     evaluationInterval: isNaN(parsedInterval) ? NaN : parsedInterval,

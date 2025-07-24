@@ -1,34 +1,39 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { QueryService } from '../../../../src/core/query/query.service';
-import { QueryStatisticsService } from '../../../../src/core/query/services/query-statistics.service';
-import { QueryResultProcessorService } from '../../../../src/core/query/services/query-result-processor.service';
-import { StorageService } from '../../../../src/core/storage/storage.service';
-import { QueryType } from '../../../../src/core/query/dto/query-types.dto';
-import { DataFetchingService } from '../../../../src/core/shared/services/data-fetching.service';
-import { DataChangeDetectorService } from '../../../../src/core/shared/services/data-change-detector.service';
-import { MarketStatusService } from '../../../../src/core/shared/services/market-status.service';
-import { Market } from '../../../../src/common/constants/market.constants';
-import { MarketStatus } from '../../../../src/common/constants/market-trading-hours.constants';
+import { Test, TestingModule } from "@nestjs/testing";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { QueryService } from "../../../../src/core/query/query.service";
+import { QueryStatisticsService } from "../../../../src/core/query/services/query-statistics.service";
+import { QueryResultProcessorService } from "../../../../src/core/query/services/query-result-processor.service";
+import { StorageService } from "../../../../src/core/storage/storage.service";
+import { QueryType } from "../../../../src/core/query/dto/query-types.dto";
+import { DataFetchingService } from "../../../../src/core/shared/services/data-fetching.service";
+import { DataChangeDetectorService } from "../../../../src/core/shared/services/data-change-detector.service";
+import { MarketStatusService } from "../../../../src/core/shared/services/market-status.service";
+import { Market } from "../../../../src/common/constants/market.constants";
+import { MarketStatus } from "../../../../src/common/constants/market-trading-hours.constants";
 import {
   QueryRequestDto,
   SortDirection,
 } from "../../../../src/core/query/dto/query-request.dto";
-import { QueryResponseDto, QueryMetadataDto } from "../../../../src/core/query/dto/query-response.dto";
+import {
+  QueryResponseDto,
+  QueryMetadataDto,
+} from "../../../../src/core/query/dto/query-response.dto";
 import { StorageResponseDto } from "../../../../src/core/storage/dto/storage-response.dto";
 import { StorageMetadataDto } from "../../../../src/core/storage/dto/storage-metadata.dto";
-import { StorageType, DataClassification } from "../../../../src/core/storage/enums/storage-type.enum";
-import { DataResponseDto } from '../../../../src/core/receiver/dto/data-response.dto';
-import { BackgroundTaskService } from '../../../../src/core/shared/services/background-task.service';
+import {
+  StorageType,
+  DataClassification,
+} from "../../../../src/core/storage/enums/storage-type.enum";
+import { DataResponseDto } from "../../../../src/core/receiver/dto/data-response.dto";
+import { BackgroundTaskService } from "../../../../src/core/shared/services/background-task.service";
 
-describe('QueryService', () => {
+describe("QueryService", () => {
   let service: QueryService;
   let storageService: jest.Mocked<StorageService>;
   let dataFetchingService: jest.Mocked<DataFetchingService>;
   let dataChangeDetector: jest.Mocked<DataChangeDetectorService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
   let queryResultProcessorService: jest.Mocked<QueryResultProcessorService>;
-
 
   const mockStockData = {
     "US:longport:get-stock-quote:AAPL": {
@@ -55,7 +60,10 @@ describe('QueryService', () => {
   };
 
   // Helper function to create proper StorageResponseDto mock
-  const createStorageSuccessResponse = (data: any, source: "cache" | "persistent" = "cache") => {
+  const createStorageSuccessResponse = (
+    data: any,
+    source: "cache" | "persistent" = "cache",
+  ) => {
     const metadata = new StorageMetadataDto(
       `${data.market}:${data.provider}:get-stock-quote:${data.symbol}`,
       StorageType.CACHE,
@@ -68,16 +76,16 @@ describe('QueryService', () => {
       {}, // tags
       new Date(Date.now() + 3600000).toISOString(), // expiresAt
     );
-    
+
     // 添加存储时间
     metadata.storedAt = new Date().toISOString();
-    
+
     const cacheInfo = {
       hit: true,
       source,
       ttlRemaining: 3600,
     };
-    
+
     return new StorageResponseDto(data, metadata, cacheInfo);
   };
 
@@ -91,7 +99,7 @@ describe('QueryService', () => {
         .fn()
         .mockImplementation(
           (symbol, provider, category, market) =>
-            `${market || '*'}:${provider || '*'}:${category || '*'}:${symbol}`,
+            `${market || "*"}:${provider || "*"}:${category || "*"}:${symbol}`,
         ),
     };
 
@@ -105,13 +113,13 @@ describe('QueryService', () => {
         hasChanged: false,
         changedFields: [],
         significantChanges: [],
-        changeReason: 'no change',
-        confidence: 1.0
+        changeReason: "no change",
+        confidence: 1.0,
       }),
     };
 
     const mockMarketStatusService = {
-      getMarketStatus: jest.fn().mockResolvedValue({ status: 'OPEN' }),
+      getMarketStatus: jest.fn().mockResolvedValue({ status: "OPEN" }),
       getMarketStatuses: jest.fn().mockResolvedValue({}),
       getRecommendedCacheTTL: jest.fn().mockReturnValue(60),
     };
@@ -121,22 +129,23 @@ describe('QueryService', () => {
     };
 
     const mockQueryResultProcessorService = {
-      process: jest.fn().mockImplementation((executionResult, request, queryId, executionTime) => {
-        const metadata = new QueryMetadataDto(
-          request.queryType,
-          executionResult.results.length,
-          executionResult.results.length,
-          executionTime,
-          executionResult.cacheUsed,
-          executionResult.dataSources,
-          executionResult.errors,
-        );
-        
-        return new QueryResponseDto(
-          executionResult.results,
-          metadata
-        );
-      }),
+      process: jest
+        .fn()
+        .mockImplementation(
+          (executionResult, request, queryId, executionTime) => {
+            const metadata = new QueryMetadataDto(
+              request.queryType,
+              executionResult.results.length,
+              executionResult.results.length,
+              executionTime,
+              executionResult.cacheUsed,
+              executionResult.dataSources,
+              executionResult.errors,
+            );
+
+            return new QueryResponseDto(executionResult.results, metadata);
+          },
+        ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -144,9 +153,15 @@ describe('QueryService', () => {
         QueryService,
         { provide: StorageService, useValue: mockStorageService },
         { provide: DataFetchingService, useValue: mockDataFetchingService },
-        { provide: DataChangeDetectorService, useValue: mockDataChangeDetectorService },
+        {
+          provide: DataChangeDetectorService,
+          useValue: mockDataChangeDetectorService,
+        },
         { provide: MarketStatusService, useValue: mockMarketStatusService },
-        { provide: QueryResultProcessorService, useValue: mockQueryResultProcessorService },
+        {
+          provide: QueryResultProcessorService,
+          useValue: mockQueryResultProcessorService,
+        },
         { provide: BackgroundTaskService, useValue: mockBackgroundTaskService },
         QueryStatisticsService,
       ],
@@ -161,8 +176,8 @@ describe('QueryService', () => {
     service.onModuleInit();
   });
 
-  describe('executeQuery', () => {
-    it('should execute BY_SYMBOLS query successfully from cache', async () => {
+  describe("executeQuery", () => {
+    it("should execute BY_SYMBOLS query successfully from cache", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL"],
@@ -173,15 +188,21 @@ describe('QueryService', () => {
       };
 
       // 更明确地设置模拟行为，按照后端代码调用顺序
-      const appleCacheResponse = createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:AAPL"], "cache");
-      const googleCacheResponse = createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:GOOGL"], "cache");
-      
+      const appleCacheResponse = createStorageSuccessResponse(
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
+      );
+      const googleCacheResponse = createStorageSuccessResponse(
+        mockStockData["US:longport:get-stock-quote:GOOGL"],
+        "cache",
+      );
+
       // 确保前三次调用都能返回正确的模拟数据
       storageService.retrieveData
         .mockResolvedValueOnce(appleCacheResponse) // 第一个股票的缓存
         .mockResolvedValueOnce(googleCacheResponse) // 第二个股票的缓存
         .mockResolvedValueOnce(appleCacheResponse) // 可能的额外调用
-        .mockResolvedValue(googleCacheResponse);   // 其他任何调用
+        .mockResolvedValue(googleCacheResponse); // 其他任何调用
 
       const result = await service.executeQuery(queryDto);
 
@@ -192,7 +213,7 @@ describe('QueryService', () => {
       expect(result.metadata.dataSources.cache.hits).toBe(2);
     });
 
-    it('should handle partial cache hit and fetch remaining from realtime', async () => {
+    it("should handle partial cache hit and fetch remaining from realtime", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "MSFT"],
@@ -204,13 +225,13 @@ describe('QueryService', () => {
 
       // AAPL 的缓存数据
       const appleCacheResponse = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:AAPL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
       );
-      
+
       // MSFT 缓存未命中的响应
       const msftEmptyResponse = new StorageResponseDto(
-        null, 
+        null,
         new StorageMetadataDto(
           "US:longport:get-stock-quote:MSFT",
           StorageType.CACHE,
@@ -218,33 +239,33 @@ describe('QueryService', () => {
           "longport",
           "US",
           0,
-          10
-        )
+          10,
+        ),
       );
-      
+
       // 分析后端代码，为可能的调用顺序提供正确的模拟响应
       storageService.retrieveData
-        .mockResolvedValueOnce(appleCacheResponse)  // AAPL 的第一次缓存查询
-        .mockResolvedValueOnce(msftEmptyResponse)   // MSFT 的缓存查询（未命中）
-        .mockResolvedValue(appleCacheResponse);     // 任何后续查询
+        .mockResolvedValueOnce(appleCacheResponse) // AAPL 的第一次缓存查询
+        .mockResolvedValueOnce(msftEmptyResponse) // MSFT 的缓存查询（未命中）
+        .mockResolvedValue(appleCacheResponse); // 任何后续查询
 
       // 模拟 MSFT 的实时数据获取
       const msftRealtimeData = {
-        data: { 
-          symbol: 'MSFT', 
+        data: {
+          symbol: "MSFT",
           price: 300,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         metadata: {
-          source: 'PROVIDER' as 'PROVIDER',
+          source: "PROVIDER" as "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       };
-      
+
       dataFetchingService.fetchSingleData.mockResolvedValue(msftRealtimeData);
 
       const result = await service.executeQuery(queryDto);
@@ -256,7 +277,7 @@ describe('QueryService', () => {
       expect(result.metadata.dataSources.cache.hits).toBe(1);
     });
 
-    it('should handle validation errors gracefully at service level', async () => {
+    it("should handle validation errors gracefully at service level", async () => {
       const invalidQueryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [], // Invalid: empty symbols
@@ -266,26 +287,30 @@ describe('QueryService', () => {
       };
 
       const result = await service.executeQuery(invalidQueryDto);
-      
+
       expect(result.data).toHaveLength(0);
       expect((result.metadata as any).errors).toBeDefined();
-      expect((result.metadata as any).errors[0].reason).toContain("symbols字段是必需的");
+      expect((result.metadata as any).errors[0].reason).toContain(
+        "symbols字段是必需的",
+      );
       expect(result.metadata.cacheUsed).toBe(false);
     });
 
-    it('should handle unsupported query type', async () => {
+    it("should handle unsupported query type", async () => {
       const unsupportedQueryDto: QueryRequestDto = {
-        queryType: 'BY_MARKET' as any, // Unsupported query type
+        queryType: "BY_MARKET" as any, // Unsupported query type
         symbols: ["AAPL"],
         dataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
 
-      await expect(service.executeQuery(unsupportedQueryDto)).rejects.toThrow(BadRequestException);
+      await expect(service.executeQuery(unsupportedQueryDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
-    it('should handle storage service errors', async () => {
+    it("should handle storage service errors", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -294,7 +319,7 @@ describe('QueryService', () => {
         market: "US",
       };
 
-      storageService.retrieveData.mockRejectedValue(new Error('Storage error'));
+      storageService.retrieveData.mockRejectedValue(new Error("Storage error"));
 
       const result = await service.executeQuery(queryDto);
 
@@ -302,10 +327,10 @@ describe('QueryService', () => {
       expect(result.data).toHaveLength(0);
       expect((result.metadata as any).errors).toBeDefined();
       expect((result.metadata as any).errors.length).toBeGreaterThan(0);
-      expect((result.metadata as any).errors[0].symbol).toBe('AAPL');
+      expect((result.metadata as any).errors[0].symbol).toBe("AAPL");
     });
 
-    it('should handle data fetching service errors', async () => {
+    it("should handle data fetching service errors", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["MSFT"],
@@ -317,28 +342,35 @@ describe('QueryService', () => {
 
       // Mock cache miss
       storageService.retrieveData.mockResolvedValue(
-        new StorageResponseDto(null, new StorageMetadataDto(
-          "US:longport:get-stock-quote:MSFT",
-          StorageType.CACHE,
-          DataClassification.STOCK_QUOTE,
-          "longport",
-          "US",
-          0,
-          10
-        ))
+        new StorageResponseDto(
+          null,
+          new StorageMetadataDto(
+            "US:longport:get-stock-quote:MSFT",
+            StorageType.CACHE,
+            DataClassification.STOCK_QUOTE,
+            "longport",
+            "US",
+            0,
+            10,
+          ),
+        ),
       );
 
-      dataFetchingService.fetchSingleData.mockRejectedValue(new Error('Data fetching failed'));
+      dataFetchingService.fetchSingleData.mockRejectedValue(
+        new Error("Data fetching failed"),
+      );
 
       const result = await service.executeQuery(queryDto);
 
       // The service should catch the error and return it in the metadata, not throw.
       expect(result.data).toHaveLength(0);
       expect((result.metadata as any).errors).toBeDefined();
-      expect((result.metadata as any).errors[0].reason).toBe('Data fetching failed');
+      expect((result.metadata as any).errors[0].reason).toBe(
+        "Data fetching failed",
+      );
     });
 
-    it('should handle cache bypass when useCache is false', async () => {
+    it("should handle cache bypass when useCache is false", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -349,15 +381,15 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'AAPL', price: 150 },
+        data: { symbol: "AAPL", price: 150 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
@@ -371,7 +403,7 @@ describe('QueryService', () => {
       expect(result.metadata.cacheUsed).toBe(false);
     });
 
-    it('should handle data change detection triggering cache update', async () => {
+    it("should handle data change detection triggering cache update", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -383,29 +415,29 @@ describe('QueryService', () => {
 
       // 缓存命中响应
       const appleCacheResponse = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:AAPL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
       );
       storageService.retrieveData.mockResolvedValue(appleCacheResponse);
 
       // 后端实现会先获取缓存数据，然后尝试获取新数据进行变化检测
       // 这里我们需要模拟新数据的返回，这是符合后端实际逻辑的
       const updatedAppleData = {
-        data: { 
-          symbol: 'AAPL', 
+        data: {
+          symbol: "AAPL",
           price: 155, // 更新的价格
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         metadata: {
-          source: 'PROVIDER' as 'PROVIDER',
+          source: "PROVIDER" as "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       };
-      
+
       dataFetchingService.fetchSingleData.mockResolvedValue(updatedAppleData);
 
       // 由于后端实现会调用变化检测，我们需要模拟此行为
@@ -413,8 +445,8 @@ describe('QueryService', () => {
         hasChanged: false, // 指示数据没有显著变化
         changedFields: [],
         significantChanges: [],
-        changeReason: 'no change',
-        confidence: 1.0
+        changeReason: "no change",
+        confidence: 1.0,
       });
 
       const result = await service.executeQuery(queryDto);
@@ -426,8 +458,8 @@ describe('QueryService', () => {
       expect(dataChangeDetector.detectSignificantChange).toHaveBeenCalled();
       expect(result.metadata.cacheUsed).toBe(true);
     });
-    
-    it('should handle stale data with fallback to cache', async () => {
+
+    it("should handle stale data with fallback to cache", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -439,16 +471,22 @@ describe('QueryService', () => {
 
       // 创建过期的缓存数据
       const staleData = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:AAPL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
       );
-      staleData.metadata.expiresAt = new Date(Date.now() - 3600000).toISOString(); // 一小时前过期
-      staleData.metadata.storedAt = new Date(Date.now() - 7200000).toISOString(); // 两小时前存储
+      staleData.metadata.expiresAt = new Date(
+        Date.now() - 3600000,
+      ).toISOString(); // 一小时前过期
+      staleData.metadata.storedAt = new Date(
+        Date.now() - 7200000,
+      ).toISOString(); // 两小时前存储
 
       storageService.retrieveData.mockResolvedValue(staleData);
-      
+
       // 模拟实时数据获取失败
-      dataFetchingService.fetchSingleData.mockRejectedValue(new Error('Provider unavailable'));
+      dataFetchingService.fetchSingleData.mockRejectedValue(
+        new Error("Provider unavailable"),
+      );
 
       const result = await service.executeQuery(queryDto);
 
@@ -459,8 +497,8 @@ describe('QueryService', () => {
     });
   });
 
-  describe('executeBulkQuery', () => {
-    it('should execute bulk queries in parallel', async () => {
+  describe("executeBulkQuery", () => {
+    it("should execute bulk queries in parallel", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -486,8 +524,18 @@ describe('QueryService', () => {
 
       // 确保所有查询都能成功
       storageService.retrieveData
-        .mockResolvedValueOnce(createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:AAPL"], "cache"))
-        .mockResolvedValueOnce(createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:GOOGL"], "cache"));
+        .mockResolvedValueOnce(
+          createStorageSuccessResponse(
+            mockStockData["US:longport:get-stock-quote:AAPL"],
+            "cache",
+          ),
+        )
+        .mockResolvedValueOnce(
+          createStorageSuccessResponse(
+            mockStockData["US:longport:get-stock-quote:GOOGL"],
+            "cache",
+          ),
+        );
 
       const result = await service.executeBulkQuery(bulkQueryDto);
 
@@ -495,7 +543,7 @@ describe('QueryService', () => {
       expect(result.summary.totalQueries).toBe(2);
     });
 
-    it('should execute bulk queries sequentially', async () => {
+    it("should execute bulk queries sequentially", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -521,8 +569,18 @@ describe('QueryService', () => {
 
       // 确保所有查询都能成功
       storageService.retrieveData
-        .mockResolvedValueOnce(createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:AAPL"], "cache"))
-        .mockResolvedValueOnce(createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:GOOGL"], "cache"));
+        .mockResolvedValueOnce(
+          createStorageSuccessResponse(
+            mockStockData["US:longport:get-stock-quote:AAPL"],
+            "cache",
+          ),
+        )
+        .mockResolvedValueOnce(
+          createStorageSuccessResponse(
+            mockStockData["US:longport:get-stock-quote:GOOGL"],
+            "cache",
+          ),
+        );
 
       const result = await service.executeBulkQuery(bulkQueryDto);
 
@@ -530,7 +588,7 @@ describe('QueryService', () => {
       expect(result.summary.totalQueries).toBe(2);
     });
 
-    it('should handle partial failures in bulk queries', async () => {
+    it("should handle partial failures in bulk queries", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -556,18 +614,29 @@ describe('QueryService', () => {
 
       // 第一个查询成功，第二个失败
       storageService.retrieveData
-        .mockResolvedValueOnce(createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:AAPL"], "cache"))
-        .mockRejectedValueOnce(new Error('Invalid symbol'));
+        .mockResolvedValueOnce(
+          createStorageSuccessResponse(
+            mockStockData["US:longport:get-stock-quote:AAPL"],
+            "cache",
+          ),
+        )
+        .mockRejectedValueOnce(new Error("Invalid symbol"));
 
       const result = await service.executeBulkQuery(bulkQueryDto);
 
       expect(result.summary.totalQueries).toBe(2);
       expect(result.results).toHaveLength(2);
-      expect(result.results.filter(r => r.data.length > 0)).toHaveLength(1);
-      expect((result.results.find(r => r.data.length > 0).data[0] as { symbol: string }).symbol).toBe("AAPL");
+      expect(result.results.filter((r) => r.data.length > 0)).toHaveLength(1);
+      expect(
+        (
+          result.results.find((r) => r.data.length > 0).data[0] as {
+            symbol: string;
+          }
+        ).symbol,
+      ).toBe("AAPL");
     });
 
-    it('should handle bulk query execution failure', async () => {
+    it("should handle bulk query execution failure", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -584,7 +653,9 @@ describe('QueryService', () => {
       };
 
       // 模拟存储服务失败
-      storageService.retrieveData.mockRejectedValue(new Error('Critical storage failure'));
+      storageService.retrieveData.mockRejectedValue(
+        new Error("Critical storage failure"),
+      );
 
       const result = await service.executeBulkQuery(bulkQueryDto);
 
@@ -594,8 +665,8 @@ describe('QueryService', () => {
     });
   });
 
-  describe('Market inference from symbol', () => {
-    it('should infer HK market from .HK suffix', async () => {
+  describe("Market inference from symbol", () => {
+    it("should infer HK market from .HK suffix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["700.HK"],
@@ -606,25 +677,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '700.HK', price: 500 },
+        data: { symbol: "700.HK", price: 500 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.HK,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.HK })
+        expect.objectContaining({ market: Market.HK }),
       );
     });
 
-    it('should infer HK market from 5-digit numeric symbol', async () => {
+    it("should infer HK market from 5-digit numeric symbol", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["00700"],
@@ -634,25 +705,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '00700', price: 500 },
+        data: { symbol: "00700", price: 500 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.HK,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.HK })
+        expect.objectContaining({ market: Market.HK }),
       );
     });
 
-    it('should infer US market from alphabetic symbol', async () => {
+    it("should infer US market from alphabetic symbol", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -662,25 +733,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'AAPL', price: 150 },
+        data: { symbol: "AAPL", price: 150 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.US })
+        expect.objectContaining({ market: Market.US }),
       );
     });
 
-    it('should infer SZ market from .SZ suffix', async () => {
+    it("should infer SZ market from .SZ suffix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["000001.SZ"],
@@ -690,25 +761,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '000001.SZ', price: 12.5 },
+        data: { symbol: "000001.SZ", price: 12.5 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.SZ,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.SZ })
+        expect.objectContaining({ market: Market.SZ }),
       );
     });
 
-    it('should infer SZ market from 00 prefix', async () => {
+    it("should infer SZ market from 00 prefix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["000001"],
@@ -718,25 +789,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '000001', price: 12.5 },
+        data: { symbol: "000001", price: 12.5 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.SZ,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.SZ })
+        expect.objectContaining({ market: Market.SZ }),
       );
     });
 
-    it('should infer SZ market from 30 prefix', async () => {
+    it("should infer SZ market from 30 prefix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["300001"],
@@ -746,25 +817,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '300001', price: 25.5 },
+        data: { symbol: "300001", price: 25.5 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.SZ,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.SZ })
+        expect.objectContaining({ market: Market.SZ }),
       );
     });
 
-    it('should infer SH market from .SH suffix', async () => {
+    it("should infer SH market from .SH suffix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["600000.SH"],
@@ -774,25 +845,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '600000.SH', price: 8.5 },
+        data: { symbol: "600000.SH", price: 8.5 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.SH,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.SH })
+        expect.objectContaining({ market: Market.SH }),
       );
     });
 
-    it('should infer SH market from 60 prefix', async () => {
+    it("should infer SH market from 60 prefix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["600000"],
@@ -802,25 +873,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '600000', price: 8.5 },
+        data: { symbol: "600000", price: 8.5 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.SH,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.SH })
+        expect.objectContaining({ market: Market.SH }),
       );
     });
 
-    it('should infer SH market from 68 prefix', async () => {
+    it("should infer SH market from 68 prefix", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["688001"],
@@ -830,25 +901,25 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: '688001', price: 45.5 },
+        data: { symbol: "688001", price: 45.5 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.SH,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.SH })
+        expect.objectContaining({ market: Market.SH }),
       );
     });
 
-    it('should default to US market for unrecognized symbol patterns', async () => {
+    it("should default to US market for unrecognized symbol patterns", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["UNKNOWN123"],
@@ -858,27 +929,27 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'UNKNOWN123', price: 10 },
+        data: { symbol: "UNKNOWN123", price: 10 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.US })
+        expect.objectContaining({ market: Market.US }),
       );
     });
   });
 
-  describe('Bulk query error handling', () => {
-    it('should continue on error when continueOnError is true (parallel)', async () => {
+  describe("Bulk query error handling", () => {
+    it("should continue on error when continueOnError is true (parallel)", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -904,18 +975,20 @@ describe('QueryService', () => {
 
       // 成功获取AAPL数据
       const appleCacheResponse = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:AAPL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
       );
-      
+
       // 第一次调用成功，后续调用失败
       storageService.retrieveData
         .mockResolvedValueOnce(appleCacheResponse)
-        .mockRejectedValue(new Error('Real-time data not found for symbol: INVALID'));
+        .mockRejectedValue(
+          new Error("Real-time data not found for symbol: INVALID"),
+        );
 
       // 实时数据获取失败
       dataFetchingService.fetchSingleData.mockRejectedValue(
-        new Error('Real-time data not found for symbol: INVALID')
+        new Error("Real-time data not found for symbol: INVALID"),
       );
 
       const result = await service.executeBulkQuery(bulkQueryDto);
@@ -923,17 +996,21 @@ describe('QueryService', () => {
       // continueOnError=true时，结果中应该包含所有查询，无论成功与否
       expect(result.summary.totalQueries).toBe(2);
       expect(result.results).toHaveLength(2);
-      
-      const successfulResult = result.results.find(r => r.data.length > 0);
-      const failedResult = result.results.find(r => r.metadata.errors.length > 0);
+
+      const successfulResult = result.results.find((r) => r.data.length > 0);
+      const failedResult = result.results.find(
+        (r) => r.metadata.errors.length > 0,
+      );
 
       expect(successfulResult).toBeDefined();
       expect(failedResult).toBeDefined();
-      expect((successfulResult.data[0] as { symbol: string }).symbol).toBe("AAPL");
+      expect((successfulResult.data[0] as { symbol: string }).symbol).toBe(
+        "AAPL",
+      );
       expect(failedResult.metadata.errors[0].symbol).toContain("INVALID");
     });
-    
-    it('should throw error immediately when continueOnError is false (parallel)', async () => {
+
+    it("should throw error immediately when continueOnError is false (parallel)", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -958,19 +1035,21 @@ describe('QueryService', () => {
       };
 
       // 从日志中观察到的实际错误消息
-      const actualErrorMessage = "Query for symbol AAPL failed: Real-time data not found for symbol: AAPL";
-      
+      const actualErrorMessage =
+        "Query for symbol AAPL failed: Real-time data not found for symbol: AAPL";
+
       // 模拟第一个查询失败的情况
-      storageService.retrieveData
-        .mockRejectedValueOnce(new Error('Real-time data not found for symbol: AAPL'));
+      storageService.retrieveData.mockRejectedValueOnce(
+        new Error("Real-time data not found for symbol: AAPL"),
+      );
 
       // 根据后端实现，当continueOnError=false时，会在第一个错误就抛出异常
       await expect(service.executeBulkQuery(bulkQueryDto)).rejects.toThrow(
-        actualErrorMessage
+        actualErrorMessage,
       );
     });
 
-    it('should throw error immediately when continueOnError is false (sequential)', async () => {
+    it("should throw error immediately when continueOnError is false (sequential)", async () => {
       const bulkQueryDto = {
         queries: [
           {
@@ -995,21 +1074,23 @@ describe('QueryService', () => {
       };
 
       // 从日志中观察到的实际错误消息
-      const actualErrorMessage = "Query for symbol AAPL failed: Real-time data not found for symbol: AAPL";
-      
+      const actualErrorMessage =
+        "Query for symbol AAPL failed: Real-time data not found for symbol: AAPL";
+
       // 模拟第一个查询失败的情况
-      storageService.retrieveData
-        .mockRejectedValueOnce(new Error('Real-time data not found for symbol: AAPL'));
+      storageService.retrieveData.mockRejectedValueOnce(
+        new Error("Real-time data not found for symbol: AAPL"),
+      );
 
       // 根据后端实现，当continueOnError=false时，会在第一个错误就抛出异常
       await expect(service.executeBulkQuery(bulkQueryDto)).rejects.toThrow(
-        actualErrorMessage
+        actualErrorMessage,
       );
     });
   });
 
-  describe('Data change detection and caching', () => {
-    it('should use cached data when change detection indicates no update needed', async () => {
+  describe("Data change detection and caching", () => {
+    it("should use cached data when change detection indicates no update needed", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1021,8 +1102,8 @@ describe('QueryService', () => {
 
       // Mock fresh cache data
       const cachedResponse = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:AAPL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
       );
       storageService.retrieveData.mockResolvedValue(cachedResponse);
 
@@ -1031,21 +1112,21 @@ describe('QueryService', () => {
         hasChanged: false,
         changedFields: [],
         significantChanges: [],
-        changeReason: 'no change',
-        confidence: 1.0
+        changeReason: "no change",
+        confidence: 1.0,
       });
 
       // Mock fresh data fetch for change detection
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'AAPL', price: 150.75 }, // Same as cached
+        data: { symbol: "AAPL", price: 150.75 }, // Same as cached
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
@@ -1058,7 +1139,7 @@ describe('QueryService', () => {
       expect(dataChangeDetector.detectSignificantChange).toHaveBeenCalled();
     });
 
-    it('should handle failure to fetch fresh data during change detection', async () => {
+    it("should handle failure to fetch fresh data during change detection", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1070,30 +1151,34 @@ describe('QueryService', () => {
 
       // Mock fresh cache data
       storageService.retrieveData.mockResolvedValue(
-        createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:AAPL"], "cache")
+        createStorageSuccessResponse(
+          mockStockData["US:longport:get-stock-quote:AAPL"],
+          "cache",
+        ),
       );
 
       // Mock data fetching failure during change detection
-      dataFetchingService.fetchSingleData
-        .mockRejectedValueOnce(new Error('Provider unavailable'));
-        
+      dataFetchingService.fetchSingleData.mockRejectedValueOnce(
+        new Error("Provider unavailable"),
+      );
+
       const result = await service.executeQuery(queryDto);
 
       expect(result.data).toHaveLength(1);
       // In the new architecture, if cache is hit, cacheUsed should be true
       // regardless of background update failures.
-      expect(result.metadata.cacheUsed).toBe(true); 
+      expect(result.metadata.cacheUsed).toBe(true);
     });
   });
 
-  describe('Query statistics and utility methods', () => {
-    it('should return query statistics', () => {
+  describe("Query statistics and utility methods", () => {
+    it("should return query statistics", () => {
       const mockStats = {
         totalQueries: 100,
         successfulQueries: 95,
         failedQueries: 5,
         averageResponseTime: 250,
-        cacheHitRate: 0.75
+        cacheHitRate: 0.75,
       };
 
       const statisticsService = {
@@ -1101,15 +1186,15 @@ describe('QueryService', () => {
         recordQueryPerformance: jest.fn(),
       };
 
-      (service as any)['statisticsService'] = statisticsService;
-      
+      (service as any)["statisticsService"] = statisticsService;
+
       const result = service.getQueryStats();
-      
+
       expect(result).toEqual(mockStats);
       expect(statisticsService.getQueryStats).toHaveBeenCalled();
     });
 
-    it('should generate consistent query IDs for same requests', () => {
+    it("should generate consistent query IDs for same requests", () => {
       const request1: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL"],
@@ -1126,14 +1211,14 @@ describe('QueryService', () => {
         market: "US",
       };
 
-      const queryId1 = service['generateQueryId'](request1);
-      const queryId2 = service['generateQueryId'](request2);
+      const queryId1 = service["generateQueryId"](request1);
+      const queryId2 = service["generateQueryId"](request2);
 
       // Should generate same ID regardless of symbol order
       expect(queryId1).toBe(queryId2);
     });
 
-    it('should generate different query IDs for different requests', () => {
+    it("should generate different query IDs for different requests", () => {
       const request1: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1150,15 +1235,15 @@ describe('QueryService', () => {
         market: "US",
       };
 
-      const queryId1 = service['generateQueryId'](request1);
-      const queryId2 = service['generateQueryId'](request2);
+      const queryId1 = service["generateQueryId"](request1);
+      const queryId2 = service["generateQueryId"](request2);
 
       expect(queryId1).not.toBe(queryId2);
     });
   });
 
-  describe('Edge cases and error handling', () => {
-    it('should handle null symbols in request', async () => {
+  describe("Edge cases and error handling", () => {
+    it("should handle null symbols in request", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: null as any,
@@ -1168,13 +1253,15 @@ describe('QueryService', () => {
       };
 
       const result = await service.executeQuery(queryDto);
-      
+
       expect(result.data).toHaveLength(0);
       expect((result.metadata as any).errors).toBeDefined();
-      expect((result.metadata as any).errors[0].reason).toContain("symbols字段是必需的");
+      expect((result.metadata as any).errors[0].reason).toContain(
+        "symbols字段是必需的",
+      );
     });
 
-    it('should handle undefined symbols in request', async () => {
+    it("should handle undefined symbols in request", async () => {
       const queryDto = {
         queryType: QueryType.BY_SYMBOLS,
         dataTypeFilter: "get-stock-quote",
@@ -1184,12 +1271,12 @@ describe('QueryService', () => {
       } as QueryRequestDto;
 
       const result = await service.executeQuery(queryDto);
-      
+
       expect(result.data).toHaveLength(0);
       expect((result.metadata as any).errors).toBeDefined();
     });
 
-    it('should handle market status service errors gracefully', async () => {
+    it("should handle market status service errors gracefully", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1199,18 +1286,20 @@ describe('QueryService', () => {
         useCache: false,
       };
 
-      marketStatusService.getMarketStatus.mockRejectedValue(new Error('Market status unavailable'));
-      
+      marketStatusService.getMarketStatus.mockRejectedValue(
+        new Error("Market status unavailable"),
+      );
+
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'AAPL', price: 150 },
+        data: { symbol: "AAPL", price: 150 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
@@ -1221,7 +1310,7 @@ describe('QueryService', () => {
       expect(result.metadata.errors).toHaveLength(0);
     });
 
-    it('should handle result processor service errors', async () => {
+    it("should handle result processor service errors", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1231,17 +1320,22 @@ describe('QueryService', () => {
       };
 
       storageService.retrieveData.mockResolvedValue(
-        createStorageSuccessResponse(mockStockData["US:longport:get-stock-quote:AAPL"], "cache")
+        createStorageSuccessResponse(
+          mockStockData["US:longport:get-stock-quote:AAPL"],
+          "cache",
+        ),
       );
 
       queryResultProcessorService.process.mockImplementation(() => {
-        throw new Error('Result processing failed');
+        throw new Error("Result processing failed");
       });
 
-      await expect(service.executeQuery(queryDto)).rejects.toThrow('Result processing failed');
+      await expect(service.executeQuery(queryDto)).rejects.toThrow(
+        "Result processing failed",
+      );
     });
 
-    it('should handle storage failures during data caching', async () => {
+    it("should handle storage failures during data caching", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1253,32 +1347,37 @@ describe('QueryService', () => {
 
       // Mock cache miss
       storageService.retrieveData.mockResolvedValue(
-        new StorageResponseDto(null, new StorageMetadataDto(
-          "US:longport:get-stock-quote:AAPL",
-          StorageType.CACHE,
-          DataClassification.STOCK_QUOTE,
-          "longport",
-          "US",
-          0,
-          10
-        ))
+        new StorageResponseDto(
+          null,
+          new StorageMetadataDto(
+            "US:longport:get-stock-quote:AAPL",
+            StorageType.CACHE,
+            DataClassification.STOCK_QUOTE,
+            "longport",
+            "US",
+            0,
+            10,
+          ),
+        ),
       );
 
       // Mock successful data fetch
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'AAPL', price: 150 },
+        data: { symbol: "AAPL", price: 150 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       // Mock storage failure
-      storageService.storeData.mockRejectedValue(new Error('Storage write failed'));
+      storageService.storeData.mockRejectedValue(
+        new Error("Storage write failed"),
+      );
 
       const result = await service.executeQuery(queryDto);
 
@@ -1288,7 +1387,7 @@ describe('QueryService', () => {
       expect(result.metadata.cacheUsed).toBe(false);
     });
 
-    it('should handle NotFoundException from data fetching service', async () => {
+    it("should handle NotFoundException from data fetching service", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["NOTFOUND"],
@@ -1301,23 +1400,25 @@ describe('QueryService', () => {
       dataFetchingService.fetchSingleData.mockResolvedValue({
         data: null, // No data found
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
 
       expect(result.data).toHaveLength(0);
       expect((result.metadata as any).errors).toBeDefined();
-      expect((result.metadata as any).errors[0].reason).toContain('Real-time data not found');
+      expect((result.metadata as any).errors[0].reason).toContain(
+        "Real-time data not found",
+      );
     });
 
-    it('should handle maxAge parameter for cache validation', async () => {
+    it("should handle maxAge parameter for cache validation", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
@@ -1336,29 +1437,29 @@ describe('QueryService', () => {
       };
 
       const expiredResponse = createStorageSuccessResponse(
-        expiredDataPayload, 
-        "cache"
+        expiredDataPayload,
+        "cache",
       );
-      
+
       storageService.retrieveData.mockResolvedValue(expiredResponse);
 
       // Mock fresh data fetch for this specific test
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { 
-          symbol: 'AAPL', 
+        data: {
+          symbol: "AAPL",
           price: 155,
-          timestamp: new Date().toISOString() 
+          timestamp: new Date().toISOString(),
         },
         metadata: {
-          source: 'PROVIDER' as 'PROVIDER',
+          source: "PROVIDER" as "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
-      
+
       const result = await service.executeQuery(queryDto);
 
       expect(result.data).toHaveLength(1);
@@ -1366,7 +1467,7 @@ describe('QueryService', () => {
       expect(result.metadata.cacheUsed).toBe(false);
     });
 
-    it('should handle whitespace and case variations in symbols for market inference', async () => {
+    it("should handle whitespace and case variations in symbols for market inference", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["  aapl  "], // Lowercase with whitespace
@@ -1376,26 +1477,26 @@ describe('QueryService', () => {
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
-        data: { symbol: 'AAPL', price: 150 },
+        data: { symbol: "AAPL", price: 150 },
         metadata: {
-          source: 'PROVIDER',
+          source: "PROVIDER",
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
           cacheTTL: 60,
-          provider: 'longport'
-        }
+          provider: "longport",
+        },
       });
 
       const result = await service.executeQuery(queryDto);
 
       expect(result.data).toHaveLength(1);
       expect(dataFetchingService.fetchSingleData).toHaveBeenCalledWith(
-        expect.objectContaining({ market: Market.US })
+        expect.objectContaining({ market: Market.US }),
       );
     });
 
-    it('should handle symbols array with undefined elements', async () => {
+    it("should handle symbols array with undefined elements", async () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", undefined, "GOOGL"] as any,
@@ -1407,25 +1508,29 @@ describe('QueryService', () => {
 
       // 只为有效的股票模拟成功响应
       const appleCacheResponse = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:AAPL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:AAPL"],
+        "cache",
       );
       const googleCacheResponse = createStorageSuccessResponse(
-        mockStockData["US:longport:get-stock-quote:GOOGL"], 
-        "cache"
+        mockStockData["US:longport:get-stock-quote:GOOGL"],
+        "cache",
       );
-      
+
       // 模拟只有有效符号的响应
       storageService.retrieveData
         .mockResolvedValueOnce(appleCacheResponse) // AAPL的响应
-        .mockResolvedValue(googleCacheResponse);   // GOOGL的响应
-      
+        .mockResolvedValue(googleCacheResponse); // GOOGL的响应
+
       const result = await service.executeQuery(queryDto);
 
       // Should handle undefined symbols correctly and filter them out
       expect(result.data).toHaveLength(2); // Only process valid symbols
       expect((result.metadata as any).errors).toBeDefined();
-      expect((result.metadata as any).errors.some(e => e.reason.includes('Invalid symbol'))).toBe(true);
+      expect(
+        (result.metadata as any).errors.some((e) =>
+          e.reason.includes("Invalid symbol"),
+        ),
+      ).toBe(true);
     });
   });
 });

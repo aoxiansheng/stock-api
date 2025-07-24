@@ -3,30 +3,33 @@
  * 测试用户数据访问层的所有方法
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Test, TestingModule } from "@nestjs/testing";
+import { getModelToken } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
-import { UserRepository } from '../../../../../src/auth/repositories/user.repository';
-import { User, UserDocument } from '../../../../../src/auth/schemas/user.schema';
-import { UserRole } from '../../../../../src/auth/enums/user-role.enum';
+import { UserRepository } from "../../../../../src/auth/repositories/user.repository";
+import {
+  User,
+  UserDocument,
+} from "../../../../../src/auth/schemas/user.schema";
+import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
 
-describe('UserRepository', () => {
+describe("UserRepository", () => {
   let repository: UserRepository;
   let userModel: any;
 
   const mockUser = {
-    id: '507f1f77bcf86cd799439011',
-    username: 'testuser',
-    email: 'test@example.com',
-    passwordHash: 'hashedPassword123',
+    id: "507f1f77bcf86cd799439011",
+    username: "testuser",
+    email: "test@example.com",
+    passwordHash: "hashedPassword123",
     role: UserRole.DEVELOPER,
     isActive: true,
   };
 
   const mockUserDocument = {
     ...mockUser,
-    _id: '507f1f77bcf86cd799439011',
+    _id: "507f1f77bcf86cd799439011",
     save: jest.fn(),
     exec: jest.fn(),
   } as any;
@@ -41,7 +44,9 @@ describe('UserRepository', () => {
       exec: jest.Mock;
     };
 
-    const mockUserModel = jest.fn(() => mockUserDocument) as unknown as MockModel;
+    const mockUserModel = jest.fn(
+      () => mockUserDocument,
+    ) as unknown as MockModel;
     // 添加模型所需的方法
     mockUserModel.find = jest.fn();
     mockUserModel.findById = jest.fn();
@@ -66,8 +71,8 @@ describe('UserRepository', () => {
     jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('应该成功创建用户', async () => {
+  describe("create", () => {
+    it("应该成功创建用户", async () => {
       // Arrange
       const userDto = {
         username: mockUser.username,
@@ -79,7 +84,7 @@ describe('UserRepository', () => {
 
       mockUserDocument.save.mockResolvedValue(mockUserDocument);
       // 直接使用模拟函数，无需 mockImplementation
-      
+
       // Act
       const result = await repository.create(userDto);
 
@@ -89,19 +94,19 @@ describe('UserRepository', () => {
       expect(userModel).toHaveBeenCalledWith(userDto);
     });
 
-    it('应该使用提供的所有必需字段创建用户', async () => {
+    it("应该使用提供的所有必需字段创建用户", async () => {
       // Arrange
       const userDto = {
-        username: 'newuser',
-        email: 'newuser@example.com',
-        passwordHash: 'newHashedPassword',
+        username: "newuser",
+        email: "newuser@example.com",
+        passwordHash: "newHashedPassword",
         role: UserRole.ADMIN,
         isActive: false,
       };
 
       mockUserDocument.save.mockResolvedValue(mockUserDocument);
       // 无需 mockImplementation，直接验证调用参数
-      
+
       // Act
       await repository.create(userDto);
 
@@ -110,12 +115,12 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('findById', () => {
-    it('应该根据ID查找用户', async () => {
+  describe("findById", () => {
+    it("应该根据ID查找用户", async () => {
       // Arrange
-      const userId = '507f1f77bcf86cd799439011';
+      const userId = "507f1f77bcf86cd799439011";
       const mockExec = jest.fn().mockResolvedValue(mockUserDocument);
-      
+
       userModel.findById = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -127,11 +132,11 @@ describe('UserRepository', () => {
       expect(result).toBe(mockUserDocument);
     });
 
-    it('应该在用户不存在时返回null', async () => {
+    it("应该在用户不存在时返回null", async () => {
       // Arrange
-      const userId = '507f1f77bcf86cd799439012';
+      const userId = "507f1f77bcf86cd799439012";
       const mockExec = jest.fn().mockResolvedValue(null);
-      
+
       userModel.findById = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -142,12 +147,12 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('findByUsername', () => {
-    it('应该根据用户名查找用户', async () => {
+  describe("findByUsername", () => {
+    it("应该根据用户名查找用户", async () => {
       // Arrange
-      const username = 'testuser';
+      const username = "testuser";
       const mockExec = jest.fn().mockResolvedValue(mockUserDocument);
-      
+
       userModel.findOne = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -159,11 +164,11 @@ describe('UserRepository', () => {
       expect(result).toBe(mockUserDocument);
     });
 
-    it('应该在用户名不存在时返回null', async () => {
+    it("应该在用户名不存在时返回null", async () => {
       // Arrange
-      const username = 'nonexistent';
+      const username = "nonexistent";
       const mockExec = jest.fn().mockResolvedValue(null);
-      
+
       userModel.findOne = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -174,13 +179,13 @@ describe('UserRepository', () => {
     });
   });
 
-  describe('findByUsernameOrEmail', () => {
-    it('应该根据用户名或邮箱查找用户', async () => {
+  describe("findByUsernameOrEmail", () => {
+    it("应该根据用户名或邮箱查找用户", async () => {
       // Arrange
-      const username = 'testuser';
-      const email = 'test@example.com';
+      const username = "testuser";
+      const email = "test@example.com";
       const mockExec = jest.fn().mockResolvedValue(mockUserDocument);
-      
+
       userModel.findOne = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -194,12 +199,12 @@ describe('UserRepository', () => {
       expect(result).toBe(mockUserDocument);
     });
 
-    it('应该在用户名和邮箱都不存在时返回null', async () => {
+    it("应该在用户名和邮箱都不存在时返回null", async () => {
       // Arrange
-      const username = 'nonexistent';
-      const email = 'nonexistent@example.com';
+      const username = "nonexistent";
+      const email = "nonexistent@example.com";
       const mockExec = jest.fn().mockResolvedValue(null);
-      
+
       userModel.findOne = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -209,12 +214,12 @@ describe('UserRepository', () => {
       expect(result).toBeNull();
     });
 
-    it('应该使用正确的$or查询语法', async () => {
+    it("应该使用正确的$or查询语法", async () => {
       // Arrange
-      const username = 'user1';
-      const email = 'user1@test.com';
+      const username = "user1";
+      const email = "user1@test.com";
       const mockExec = jest.fn().mockResolvedValue(mockUserDocument);
-      
+
       userModel.findOne = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -222,25 +227,22 @@ describe('UserRepository', () => {
 
       // Assert
       expect(userModel.findOne).toHaveBeenCalledWith({
-        $or: [
-          { username: 'user1' },
-          { email: 'user1@test.com' },
-        ],
+        $or: [{ username: "user1" }, { email: "user1@test.com" }],
       });
     });
   });
 
-  describe('findByUsernames', () => {
-    it('应该根据用户名列表查找多个用户', async () => {
+  describe("findByUsernames", () => {
+    it("应该根据用户名列表查找多个用户", async () => {
       // Arrange
-      const usernames = ['user1', 'user2', 'user3'];
+      const usernames = ["user1", "user2", "user3"];
       const mockUsers = [
-        { ...mockUserDocument, username: 'user1' },
-        { ...mockUserDocument, username: 'user2' },
-        { ...mockUserDocument, username: 'user3' },
+        { ...mockUserDocument, username: "user1" },
+        { ...mockUserDocument, username: "user2" },
+        { ...mockUserDocument, username: "user3" },
       ];
       const mockExec = jest.fn().mockResolvedValue(mockUsers);
-      
+
       userModel.find = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -255,11 +257,11 @@ describe('UserRepository', () => {
       expect(result).toHaveLength(3);
     });
 
-    it('应该在没有匹配用户名时返回空数组', async () => {
+    it("应该在没有匹配用户名时返回空数组", async () => {
       // Arrange
-      const usernames = ['nonexistent1', 'nonexistent2'];
+      const usernames = ["nonexistent1", "nonexistent2"];
       const mockExec = jest.fn().mockResolvedValue([]);
-      
+
       userModel.find = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -270,11 +272,11 @@ describe('UserRepository', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('应该使用正确的$in查询语法', async () => {
+    it("应该使用正确的$in查询语法", async () => {
       // Arrange
-      const usernames = ['admin', 'developer'];
+      const usernames = ["admin", "developer"];
       const mockExec = jest.fn().mockResolvedValue([]);
-      
+
       userModel.find = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
@@ -282,15 +284,15 @@ describe('UserRepository', () => {
 
       // Assert
       expect(userModel.find).toHaveBeenCalledWith({
-        username: { $in: ['admin', 'developer'] },
+        username: { $in: ["admin", "developer"] },
       });
     });
 
-    it('应该处理空用户名列表', async () => {
+    it("应该处理空用户名列表", async () => {
       // Arrange
       const usernames: string[] = [];
       const mockExec = jest.fn().mockResolvedValue([]);
-      
+
       userModel.find = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act

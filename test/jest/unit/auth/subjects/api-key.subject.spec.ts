@@ -1,15 +1,15 @@
-import { Permission } from '../../../../../src/auth/enums/user-role.enum';
-import { AuthSubjectType } from '../../../../../src/auth/interfaces/auth-subject.interface';
-import { ApiKeySubject } from '../../../../../src/auth/subjects/api-key.subject';
+import { Permission } from "../../../../../src/auth/enums/user-role.enum";
+import { AuthSubjectType } from "../../../../../src/auth/interfaces/auth-subject.interface";
+import { ApiKeySubject } from "../../../../../src/auth/subjects/api-key.subject";
 
-describe('ApiKeySubject', () => {
+describe("ApiKeySubject", () => {
   const mockApiKeyData = {
-    id: 'test-api-key-id',
-    name: 'Test API Key',
-    appKey: 'test-app-key',
-    userId: 'user-123',
+    id: "test-api-key-id",
+    name: "Test API Key",
+    appKey: "test-app-key",
+    userId: "user-123",
     permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
-    rateLimit: { requests: 1000, window: '1h' },
+    rateLimit: { requests: 1000, window: "1h" },
     isActive: true,
     expiresAt: new Date(Date.now() + 86400000), // 24 hours from now
     usageCount: 42,
@@ -17,8 +17,8 @@ describe('ApiKeySubject', () => {
     createdAt: new Date(),
   };
 
-  describe('Constructor', () => {
-    it('should create ApiKeySubject with valid API key data', () => {
+  describe("Constructor", () => {
+    it("should create ApiKeySubject with valid API key data", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       expect(subject.id).toBe(mockApiKeyData.id);
@@ -31,21 +31,21 @@ describe('ApiKeySubject', () => {
       expect(subject.metadata.isActive).toBe(mockApiKeyData.isActive);
     });
 
-    it('should handle API key data with MongoDB ObjectId format', () => {
+    it("should handle API key data with MongoDB ObjectId format", () => {
       const mongoApiKey = {
-        _id: { toString: () => 'mongo-object-id' },
-        name: 'Mongo API Key',
+        _id: { toString: () => "mongo-object-id" },
+        name: "Mongo API Key",
         permissions: [Permission.DATA_READ],
         isActive: true,
       };
 
       const subject = new ApiKeySubject(mongoApiKey);
 
-      expect(subject.id).toBe('mongo-object-id');
-      expect(subject.metadata.name).toBe('Mongo API Key');
+      expect(subject.id).toBe("mongo-object-id");
+      expect(subject.metadata.name).toBe("Mongo API Key");
     });
 
-    it('should handle empty permissions array', () => {
+    it("should handle empty permissions array", () => {
       const apiKeyWithEmptyPermissions = {
         ...mockApiKeyData,
         permissions: [],
@@ -56,45 +56,45 @@ describe('ApiKeySubject', () => {
       expect(subject.permissions).toEqual([]);
     });
 
-    it('should handle missing optional fields', () => {
+    it("should handle missing optional fields", () => {
       const minimalApiKey = {
-        id: 'minimal-key',
+        id: "minimal-key",
         permissions: [Permission.DATA_READ],
       };
 
       const subject = new ApiKeySubject(minimalApiKey);
 
-      expect(subject.id).toBe('minimal-key');
+      expect(subject.id).toBe("minimal-key");
       expect(subject.permissions).toEqual([Permission.DATA_READ]);
       expect(subject.metadata.name).toBeUndefined();
       expect(subject.metadata.appKey).toBeUndefined();
       expect(subject.metadata.rateLimit).toBeUndefined();
     });
 
-    it('should throw error when ID is missing', () => {
+    it("should throw error when ID is missing", () => {
       const apiKeyWithoutId = {
-        name: 'Key without ID',
+        name: "Key without ID",
         permissions: [Permission.DATA_READ],
       };
 
       expect(() => new ApiKeySubject(apiKeyWithoutId)).toThrow(
-        'API Key主体缺少必要的ID字段',
+        "API Key主体缺少必要的ID字段",
       );
     });
 
-    it('should handle non-array permissions by converting to empty array', () => {
+    it("should handle non-array permissions by converting to empty array", () => {
       const apiKeyWithInvalidPermissions = {
-        id: 'test-id',
-        permissions: 'invalid-permissions',
+        id: "test-id",
+        permissions: "invalid-permissions",
       };
 
       const subject = new ApiKeySubject(apiKeyWithInvalidPermissions);
       expect(subject.permissions).toEqual([]);
     });
 
-    it('should handle null permissions gracefully', () => {
+    it("should handle null permissions gracefully", () => {
       const apiKeyWithNullPermissions = {
-        id: 'test-id',
+        id: "test-id",
         permissions: null,
       };
 
@@ -103,9 +103,9 @@ describe('ApiKeySubject', () => {
       expect(subject.permissions).toEqual([]);
     });
 
-    it('should handle undefined permissions gracefully', () => {
+    it("should handle undefined permissions gracefully", () => {
       const apiKeyWithUndefinedPermissions = {
-        id: 'test-id',
+        id: "test-id",
       };
 
       const subject = new ApiKeySubject(apiKeyWithUndefinedPermissions);
@@ -114,24 +114,24 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('hasPermission()', () => {
+  describe("hasPermission()", () => {
     let subject: ApiKeySubject;
 
     beforeEach(() => {
       subject = new ApiKeySubject(mockApiKeyData);
     });
 
-    it('should return true for permissions the API key has', () => {
+    it("should return true for permissions the API key has", () => {
       expect(subject.hasPermission(Permission.DATA_READ)).toBe(true);
       expect(subject.hasPermission(Permission.QUERY_EXECUTE)).toBe(true);
     });
 
-    it('should return false for permissions the API key does not have', () => {
+    it("should return false for permissions the API key does not have", () => {
       expect(subject.hasPermission(Permission.USER_MANAGE)).toBe(false);
       expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(false);
     });
 
-    it('should handle system admin hierarchical permissions', () => {
+    it("should handle system admin hierarchical permissions", () => {
       const adminApiKey = {
         ...mockApiKeyData,
         permissions: [Permission.SYSTEM_ADMIN],
@@ -145,7 +145,7 @@ describe('ApiKeySubject', () => {
       expect(adminSubject.hasPermission(Permission.DATA_READ)).toBe(false);
     });
 
-    it('should not grant non-system permissions to system admin', () => {
+    it("should not grant non-system permissions to system admin", () => {
       const adminApiKey = {
         ...mockApiKeyData,
         permissions: [Permission.SYSTEM_ADMIN],
@@ -157,14 +157,14 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('hasAllPermissions()', () => {
+  describe("hasAllPermissions()", () => {
     let subject: ApiKeySubject;
 
     beforeEach(() => {
       subject = new ApiKeySubject(mockApiKeyData);
     });
 
-    it('should return true when API key has all specified permissions', () => {
+    it("should return true when API key has all specified permissions", () => {
       const result = subject.hasAllPermissions([
         Permission.DATA_READ,
         Permission.QUERY_EXECUTE,
@@ -173,7 +173,7 @@ describe('ApiKeySubject', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false when API key is missing any permission', () => {
+    it("should return false when API key is missing any permission", () => {
       const result = subject.hasAllPermissions([
         Permission.DATA_READ,
         Permission.USER_MANAGE,
@@ -182,13 +182,13 @@ describe('ApiKeySubject', () => {
       expect(result).toBe(false);
     });
 
-    it('should return true for empty permissions array', () => {
+    it("should return true for empty permissions array", () => {
       const result = subject.hasAllPermissions([]);
 
       expect(result).toBe(true);
     });
 
-    it('should work with hierarchical permissions', () => {
+    it("should work with hierarchical permissions", () => {
       const adminApiKey = {
         ...mockApiKeyData,
         permissions: [Permission.SYSTEM_ADMIN],
@@ -204,14 +204,14 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('hasAnyPermission()', () => {
+  describe("hasAnyPermission()", () => {
     let subject: ApiKeySubject;
 
     beforeEach(() => {
       subject = new ApiKeySubject(mockApiKeyData);
     });
 
-    it('should return true when API key has at least one specified permission', () => {
+    it("should return true when API key has at least one specified permission", () => {
       const result = subject.hasAnyPermission([
         Permission.DATA_READ,
         Permission.USER_MANAGE,
@@ -220,7 +220,7 @@ describe('ApiKeySubject', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false when API key has none of the specified permissions', () => {
+    it("should return false when API key has none of the specified permissions", () => {
       const result = subject.hasAnyPermission([
         Permission.USER_MANAGE,
         Permission.SYSTEM_ADMIN,
@@ -229,13 +229,13 @@ describe('ApiKeySubject', () => {
       expect(result).toBe(false);
     });
 
-    it('should return false for empty permissions array', () => {
+    it("should return false for empty permissions array", () => {
       const result = subject.hasAnyPermission([]);
 
       expect(result).toBe(false);
     });
 
-    it('should work with hierarchical permissions', () => {
+    it("should work with hierarchical permissions", () => {
       const adminApiKey = {
         ...mockApiKeyData,
         permissions: [Permission.SYSTEM_ADMIN],
@@ -251,42 +251,42 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('getDisplayName()', () => {
-    it('should return formatted display name with API key name', () => {
+  describe("getDisplayName()", () => {
+    it("should return formatted display name with API key name", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
-      expect(subject.getDisplayName()).toBe('API Key: Test API Key');
+      expect(subject.getDisplayName()).toBe("API Key: Test API Key");
     });
 
-    it('should handle unnamed API keys', () => {
+    it("should handle unnamed API keys", () => {
       const unnamedApiKey = {
         ...mockApiKeyData,
         name: undefined,
       };
       const subject = new ApiKeySubject(unnamedApiKey);
 
-      expect(subject.getDisplayName()).toBe('API Key: unnamed');
+      expect(subject.getDisplayName()).toBe("API Key: unnamed");
     });
 
-    it('should handle empty string names', () => {
+    it("should handle empty string names", () => {
       const emptyNameApiKey = {
         ...mockApiKeyData,
-        name: '',
+        name: "",
       };
       const subject = new ApiKeySubject(emptyNameApiKey);
 
-      expect(subject.getDisplayName()).toBe('API Key: unnamed');
+      expect(subject.getDisplayName()).toBe("API Key: unnamed");
     });
   });
 
-  describe('isValid()', () => {
-    it('should return true for active and non-expired API key', () => {
+  describe("isValid()", () => {
+    it("should return true for active and non-expired API key", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       expect(subject.isValid()).toBe(true);
     });
 
-    it('should return false for inactive API key', () => {
+    it("should return false for inactive API key", () => {
       const inactiveApiKey = {
         ...mockApiKeyData,
         isActive: false,
@@ -296,7 +296,7 @@ describe('ApiKeySubject', () => {
       expect(subject.isValid()).toBe(false);
     });
 
-    it('should return false for expired API key', () => {
+    it("should return false for expired API key", () => {
       const expiredApiKey = {
         ...mockApiKeyData,
         expiresAt: new Date(Date.now() - 86400000), // 24 hours ago
@@ -306,7 +306,7 @@ describe('ApiKeySubject', () => {
       expect(subject.isValid()).toBe(false);
     });
 
-    it('should return true when expiresAt is null or undefined', () => {
+    it("should return true when expiresAt is null or undefined", () => {
       const neverExpiresApiKey = {
         ...mockApiKeyData,
         expiresAt: null,
@@ -316,7 +316,7 @@ describe('ApiKeySubject', () => {
       expect(subject.isValid()).toBe(true);
     });
 
-    it('should handle edge case where expiresAt equals current time', () => {
+    it("should handle edge case where expiresAt equals current time", () => {
       // Set a time slightly in the past to ensure it fails validation
       const pastTime = new Date(Date.now() - 1);
       const edgeCaseApiKey = {
@@ -329,16 +329,16 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('getRateLimit()', () => {
-    it('should return rate limit configuration when present', () => {
+  describe("getRateLimit()", () => {
+    it("should return rate limit configuration when present", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       const rateLimit = subject.getRateLimit();
 
-      expect(rateLimit).toEqual({ requests: 1000, window: '1h' });
+      expect(rateLimit).toEqual({ requests: 1000, window: "1h" });
     });
 
-    it('should return null when rate limit is not configured', () => {
+    it("should return null when rate limit is not configured", () => {
       const noRateLimitApiKey = {
         ...mockApiKeyData,
         rateLimit: null,
@@ -350,7 +350,7 @@ describe('ApiKeySubject', () => {
       expect(rateLimit).toBeNull();
     });
 
-    it('should return null when rate limit is undefined', () => {
+    it("should return null when rate limit is undefined", () => {
       const { rateLimit, ...apiKeyWithoutRateLimit } = mockApiKeyData;
       const subject = new ApiKeySubject(apiKeyWithoutRateLimit);
 
@@ -360,8 +360,8 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('getUsageStats()', () => {
-    it('should return usage statistics with all fields', () => {
+  describe("getUsageStats()", () => {
+    it("should return usage statistics with all fields", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       const stats = subject.getUsageStats();
@@ -371,7 +371,7 @@ describe('ApiKeySubject', () => {
       expect(stats.createdAt).toEqual(mockApiKeyData.createdAt);
     });
 
-    it('should handle missing usage count', () => {
+    it("should handle missing usage count", () => {
       const { usageCount, ...apiKeyWithoutUsageCount } = mockApiKeyData;
       const subject = new ApiKeySubject(apiKeyWithoutUsageCount);
 
@@ -380,7 +380,7 @@ describe('ApiKeySubject', () => {
       expect(stats.usageCount).toBe(0);
     });
 
-    it('should handle missing lastUsedAt', () => {
+    it("should handle missing lastUsedAt", () => {
       const { lastUsedAt, ...apiKeyWithoutLastUsed } = mockApiKeyData;
       const subject = new ApiKeySubject(apiKeyWithoutLastUsed);
 
@@ -389,11 +389,11 @@ describe('ApiKeySubject', () => {
       expect(stats.lastUsedAt).toBeNull();
     });
 
-    it('should convert date strings to Date objects', () => {
+    it("should convert date strings to Date objects", () => {
       const apiKeyWithStringDates = {
         ...mockApiKeyData,
-        lastUsedAt: '2023-01-01T00:00:00.000Z',
-        createdAt: '2023-01-01T00:00:00.000Z',
+        lastUsedAt: "2023-01-01T00:00:00.000Z",
+        createdAt: "2023-01-01T00:00:00.000Z",
       };
       const subject = new ApiKeySubject(apiKeyWithStringDates);
 
@@ -404,52 +404,52 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('belongsToUser()', () => {
+  describe("belongsToUser()", () => {
     let subject: ApiKeySubject;
 
     beforeEach(() => {
       subject = new ApiKeySubject(mockApiKeyData);
     });
 
-    it('should return true when API key belongs to specified user', () => {
-      const result = subject.belongsToUser('user-123');
+    it("should return true when API key belongs to specified user", () => {
+      const result = subject.belongsToUser("user-123");
 
       expect(result).toBe(true);
     });
 
-    it('should return false when API key belongs to different user', () => {
-      const result = subject.belongsToUser('user-456');
+    it("should return false when API key belongs to different user", () => {
+      const result = subject.belongsToUser("user-456");
 
       expect(result).toBe(false);
     });
 
-    it('should return false when userId is undefined', () => {
+    it("should return false when userId is undefined", () => {
       const noUserApiKey = {
         ...mockApiKeyData,
         userId: undefined,
       };
       const noUserSubject = new ApiKeySubject(noUserApiKey);
 
-      const result = noUserSubject.belongsToUser('user-123');
+      const result = noUserSubject.belongsToUser("user-123");
 
       expect(result).toBe(false);
     });
 
-    it('should handle userId as ObjectId toString conversion', () => {
+    it("should handle userId as ObjectId toString conversion", () => {
       const objectIdApiKey = {
         ...mockApiKeyData,
-        userId: { toString: () => 'object-id-user' },
+        userId: { toString: () => "object-id-user" },
       };
       const objectIdSubject = new ApiKeySubject(objectIdApiKey);
 
-      const result = objectIdSubject.belongsToUser('object-id-user');
+      const result = objectIdSubject.belongsToUser("object-id-user");
 
       expect(result).toBe(true);
     });
   });
 
-  describe('toJSON()', () => {
-    it('should return JSON representation with all required fields', () => {
+  describe("toJSON()", () => {
+    it("should return JSON representation with all required fields", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       const json = subject.toJSON();
@@ -469,19 +469,19 @@ describe('ApiKeySubject', () => {
       });
     });
 
-    it('should exclude sensitive or internal fields from JSON', () => {
+    it("should exclude sensitive or internal fields from JSON", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       const json = subject.toJSON();
 
-      expect(json.metadata).not.toHaveProperty('usageCount');
-      expect(json.metadata).not.toHaveProperty('lastUsedAt');
-      expect(json.metadata).not.toHaveProperty('createdAt');
+      expect(json.metadata).not.toHaveProperty("usageCount");
+      expect(json.metadata).not.toHaveProperty("lastUsedAt");
+      expect(json.metadata).not.toHaveProperty("createdAt");
     });
 
-    it('should handle missing optional metadata fields', () => {
+    it("should handle missing optional metadata fields", () => {
       const minimalApiKey = {
-        id: 'minimal-key',
+        id: "minimal-key",
         permissions: [Permission.DATA_READ],
       };
       const subject = new ApiKeySubject(minimalApiKey);
@@ -495,26 +495,26 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('Edge Cases and Error Handling', () => {
-    it('should handle malformed API key data gracefully', () => {
+  describe("Edge Cases and Error Handling", () => {
+    it("should handle malformed API key data gracefully", () => {
       const malformedApiKey = {
-        id: 'test-id',
+        id: "test-id",
         permissions: [Permission.DATA_READ],
-        expiresAt: 'invalid-date',
-        rateLimit: 'invalid-rate-limit',
+        expiresAt: "invalid-date",
+        rateLimit: "invalid-rate-limit",
       };
 
       expect(() => new ApiKeySubject(malformedApiKey)).not.toThrow();
 
       const subject = new ApiKeySubject(malformedApiKey);
-      expect(subject.id).toBe('test-id');
+      expect(subject.id).toBe("test-id");
       expect(subject.permissions).toEqual([Permission.DATA_READ]);
     });
 
-    it('should handle extremely large permission arrays', () => {
+    it("should handle extremely large permission arrays", () => {
       const allPermissions = Object.values(Permission);
       const largePermissionsApiKey = {
-        id: 'large-permissions-key',
+        id: "large-permissions-key",
         permissions: allPermissions,
       };
 
@@ -524,12 +524,12 @@ describe('ApiKeySubject', () => {
       expect(subject.hasAllPermissions(allPermissions)).toBe(true);
     });
 
-    it('should handle concurrent access patterns', () => {
+    it("should handle concurrent access patterns", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       // Simulate concurrent permission checks
       const promises = Array.from({ length: 100 }, () =>
-        Promise.resolve(subject.hasPermission(Permission.DATA_READ))
+        Promise.resolve(subject.hasPermission(Permission.DATA_READ)),
       );
 
       return Promise.all(promises).then((results) => {
@@ -538,8 +538,8 @@ describe('ApiKeySubject', () => {
     });
   });
 
-  describe('Performance Considerations', () => {
-    it('should efficiently handle permission lookups', () => {
+  describe("Performance Considerations", () => {
+    it("should efficiently handle permission lookups", () => {
       const start = performance.now();
       const subject = new ApiKeySubject(mockApiKeyData);
 
@@ -555,7 +555,7 @@ describe('ApiKeySubject', () => {
       expect(duration).toBeLessThan(100); // 100ms for 1000 operations
     });
 
-    it('should not modify original API key data', () => {
+    it("should not modify original API key data", () => {
       const originalData = { ...mockApiKeyData };
       const subject = new ApiKeySubject(mockApiKeyData);
 

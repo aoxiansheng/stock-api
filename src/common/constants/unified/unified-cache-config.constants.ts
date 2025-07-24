@@ -9,7 +9,7 @@
  * - 监控友好：便于缓存性能监控和调试
  */
 
-import { deepFreeze } from '@common/utils/object-immutability.util';
+import { deepFreeze } from "@common/utils/object-immutability.util";
 
 export const CACHE_CONSTANTS = deepFreeze({
   // TTL配置 (秒)
@@ -152,11 +152,11 @@ export function buildCacheKey(
 export function parseCacheKey(
   cacheKey: string,
 ): { prefix: string; identifier: string; suffix?: string } | null {
-  if (!cacheKey || typeof cacheKey !== 'string') {
+  if (!cacheKey || typeof cacheKey !== "string") {
     return null;
   }
 
-  const prefixes = [...Object.values(CACHE_CONSTANTS.KEY_PREFIXES), 'cache:'];
+  const prefixes = [...Object.values(CACHE_CONSTANTS.KEY_PREFIXES), "cache:"];
   const matchedPrefix = prefixes.find((prefix) => cacheKey.startsWith(prefix));
 
   if (!matchedPrefix) {

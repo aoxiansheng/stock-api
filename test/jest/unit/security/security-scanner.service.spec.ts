@@ -1,24 +1,24 @@
-import { getModelToken } from '@nestjs/mongoose';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
+import { getModelToken } from "@nestjs/mongoose";
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
 
-import { SecurityScannerService } from '../../../../src/security/security-scanner.service';
-import { UserRepository } from '../../../../src/auth/repositories/user.repository';
-import { ApiKeyRepository } from '../../../../src/auth/repositories/apikey.repository';
-import { SecurityScanResultRepository } from '../../../../src/security/repositories/security-scan-result.repository';
-import { User } from '../../../../src/auth/schemas/user.schema';
-import { ApiKey } from '../../../../src/auth/schemas/apikey.schema';
+import { SecurityScannerService } from "../../../../src/security/security-scanner.service";
+import { UserRepository } from "../../../../src/auth/repositories/user.repository";
+import { ApiKeyRepository } from "../../../../src/auth/repositories/apikey.repository";
+import { SecurityScanResultRepository } from "../../../../src/security/repositories/security-scan-result.repository";
+import { User } from "../../../../src/auth/schemas/user.schema";
+import { ApiKey } from "../../../../src/auth/schemas/apikey.schema";
 import {
   SecurityVulnerability,
   SecurityScanResult,
-} from '../../../../src/security/interfaces/security-scanner.interface';
-import { Logger } from '@nestjs/common';
-import { 
-  SECURITY_SCANNER_OPERATIONS, 
-  SECURITY_SCANNER_MESSAGES 
-} from '../../../../src/security/constants/security-scanner.constants';
+} from "../../../../src/security/interfaces/security-scanner.interface";
+import { Logger } from "@nestjs/common";
+import {
+  SECURITY_SCANNER_OPERATIONS,
+  SECURITY_SCANNER_MESSAGES,
+} from "../../../../src/security/constants/security-scanner.constants";
 
-describe('SecurityScannerService', () => {
+describe("SecurityScannerService", () => {
   let service: SecurityScannerService;
   let mockUserRepository: jest.Mocked<UserRepository>;
   let mockApiKeyRepository: jest.Mocked<ApiKeyRepository>;
@@ -28,26 +28,26 @@ describe('SecurityScannerService', () => {
   let scanHistory: SecurityScanResult[] = [];
 
   const mockUser = {
-    _id: 'user-123',
-    username: 'admin',
-    email: 'admin@test.com',
-    password: 'hashedPassword',
-    role: 'admin',
+    _id: "user-123",
+    username: "admin",
+    email: "admin@test.com",
+    password: "hashedPassword",
+    role: "admin",
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   const mockApiKey = {
-    _id: 'apikey-123',
-    appKey: 'test-app-key-12345',
-    accessToken: 'test-access-token',
-    name: 'Test API Key',
-    userId: 'user-123',
-    permissions: ['data:read', 'query:execute', 'providers:read'],
+    _id: "apikey-123",
+    appKey: "test-app-key-12345",
+    accessToken: "test-access-token",
+    name: "Test API Key",
+    userId: "user-123",
+    permissions: ["data:read", "query:execute", "providers:read"],
     rateLimit: {
       requests: 1000,
-      period: 'hour',
+      period: "hour",
     },
     isActive: true,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
@@ -91,9 +91,11 @@ describe('SecurityScannerService', () => {
               }
               return Promise.resolve(dto as any);
             }),
-            findMostRecent: jest.fn().mockImplementation((limit: number = 10) => {
-              return Promise.resolve(scanHistory.slice(0, limit) as any);
-            }),
+            findMostRecent: jest
+              .fn()
+              .mockImplementation((limit: number = 10) => {
+                return Promise.resolve(scanHistory.slice(0, limit) as any);
+              }),
           },
         },
         {
@@ -121,22 +123,24 @@ describe('SecurityScannerService', () => {
     // 🎯 将默认的干净 mock 状态移至顶层 beforeEach
     mockUserRepository.findByUsernames.mockResolvedValue([]);
     mockApiKeyRepository.findAllActive.mockResolvedValue([]);
-    mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-      if (key === 'JWT_SECRET') {
-        return process.env.JWT_SECRET; // 缺失时返回 undefined，模拟缺失
-      }
-      if (key === 'NODE_ENV') {
-        return process.env.NODE_ENV || 'test';
-      }
-      if (key === 'JWT_EXPIRES_IN') {
-        return process.env.JWT_EXPIRES_IN;
-      }
-      if (key === 'MONGODB_URI') {
-        // 缺失时返回空字符串，防止 includes 报错
-        return process.env.MONGODB_URI || '';
-      }
-      return defaultValue;
-    });
+    mockConfigService.get.mockImplementation(
+      (key: string, defaultValue?: any) => {
+        if (key === "JWT_SECRET") {
+          return process.env.JWT_SECRET; // 缺失时返回 undefined，模拟缺失
+        }
+        if (key === "NODE_ENV") {
+          return process.env.NODE_ENV || "test";
+        }
+        if (key === "JWT_EXPIRES_IN") {
+          return process.env.JWT_EXPIRES_IN;
+        }
+        if (key === "MONGODB_URI") {
+          // 缺失时返回空字符串，防止 includes 报错
+          return process.env.MONGODB_URI || "";
+        }
+        return defaultValue;
+      },
+    );
   });
 
   afterEach(() => {
@@ -148,8 +152,8 @@ describe('SecurityScannerService', () => {
     delete process.env.JWT_SECRET;
   });
 
-  describe('performSecurityScan', () => {
-    it('should perform a complete security scan', async () => {
+  describe("performSecurityScan", () => {
+    it("should perform a complete security scan", async () => {
       // Add a small delay to ensure duration > 0
       const originalDateNow = Date.now;
       let callCount = 0;
@@ -175,87 +179,97 @@ describe('SecurityScannerService', () => {
       Date.now = originalDateNow;
     });
 
-    it('should identify default credential vulnerabilities', async () => {
+    it("should identify default credential vulnerabilities", async () => {
       mockUserRepository.findByUsernames.mockResolvedValue([mockUser as any]);
 
       const result = await service.performSecurityScan();
 
       const defaultCredVuln = result.vulnerabilities.find(
-        v => v.id === 'default_credentials'
+        (v) => v.id === "default_credentials",
       );
       expect(defaultCredVuln).toBeDefined();
-      expect(defaultCredVuln?.severity).toBe('critical');
-      expect(defaultCredVuln?.type).toBe('authentication');
+      expect(defaultCredVuln?.severity).toBe("critical");
+      expect(defaultCredVuln?.type).toBe("authentication");
     });
 
-    it('should identify expired API key vulnerabilities', async () => {
+    it("should identify expired API key vulnerabilities", async () => {
       const expiredApiKey = {
         ...mockApiKey,
         expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
       };
-      mockApiKeyRepository.findAllActive.mockResolvedValue([expiredApiKey as any]);
+      mockApiKeyRepository.findAllActive.mockResolvedValue([
+        expiredApiKey as any,
+      ]);
 
       const result = await service.performSecurityScan();
 
       const expiredKeyVuln = result.vulnerabilities.find(
-        v => v.id === `expired_api_key_${expiredApiKey._id}`
+        (v) => v.id === `expired_api_key_${expiredApiKey._id}`,
       );
       expect(expiredKeyVuln).toBeDefined();
-      expect(expiredKeyVuln?.severity).toBe('high');
-      expect(expiredKeyVuln?.type).toBe('authentication');
+      expect(expiredKeyVuln?.severity).toBe("high");
+      expect(expiredKeyVuln?.type).toBe("authentication");
     });
 
-    it('should identify excessive API key permissions', async () => {
+    it("should identify excessive API key permissions", async () => {
       const overPermissionedKey = {
         ...mockApiKey,
-        permissions: ['perm1', 'perm2', 'perm3', 'perm4', 'perm5', 'perm6'],
+        permissions: ["perm1", "perm2", "perm3", "perm4", "perm5", "perm6"],
       };
-      mockApiKeyRepository.findAllActive.mockResolvedValue([overPermissionedKey as any]);
+      mockApiKeyRepository.findAllActive.mockResolvedValue([
+        overPermissionedKey as any,
+      ]);
 
       const result = await service.performSecurityScan();
 
       const excessivePermVuln = result.vulnerabilities.find(
-        v => v.id === `excessive_permissions_${overPermissionedKey._id}`
+        (v) => v.id === `excessive_permissions_${overPermissionedKey._id}`,
       );
       expect(excessivePermVuln).toBeDefined();
-      expect(excessivePermVuln?.severity).toBe('medium');
-      expect(excessivePermVuln?.type).toBe('authorization');
+      expect(excessivePermVuln?.severity).toBe("medium");
+      expect(excessivePermVuln?.type).toBe("authorization");
     });
 
-    it('should identify insufficient rate limiting', async () => {
+    it("should identify insufficient rate limiting", async () => {
       const noRateLimitKey = {
         ...mockApiKey,
         rateLimit: {
           requests: 20000,
-          period: 'hour',
+          period: "hour",
         },
       };
-      mockApiKeyRepository.findAllActive.mockResolvedValue([noRateLimitKey as any]);
+      mockApiKeyRepository.findAllActive.mockResolvedValue([
+        noRateLimitKey as any,
+      ]);
 
       const result = await service.performSecurityScan();
 
       const rateLimitVuln = result.vulnerabilities.find(
-        v => v.id === 'insufficient_rate_limiting'
+        (v) => v.id === "insufficient_rate_limiting",
       );
       expect(rateLimitVuln).toBeDefined();
-      expect(rateLimitVuln?.severity).toBe('medium');
-      expect(rateLimitVuln?.type).toBe('configuration');
+      expect(rateLimitVuln?.severity).toBe("medium");
+      expect(rateLimitVuln?.type).toBe("configuration");
     });
 
-    it('should include standard security recommendations', async () => {
+    it("should include standard security recommendations", async () => {
       // 模拟一个漏洞以触发推荐
       mockUserRepository.findByUsernames.mockResolvedValue([mockUser as any]);
       const result = await service.performSecurityScan();
 
       expect(result.vulnerabilities.length).toBeGreaterThan(0);
       // 🎯 修复：使用代码中定义的准确文本
-      expect(result.recommendations).toContain('定期进行安全审计和漏洞评估');
-      expect(result.recommendations).toContain('保持所有依赖包为最新版本以修复已知漏洞');
-      expect(result.recommendations).toContain('为开发团队提供安全编码培训');
+      expect(result.recommendations).toContain("定期进行安全审计和漏洞评估");
+      expect(result.recommendations).toContain(
+        "保持所有依赖包为最新版本以修复已知漏洞",
+      );
+      expect(result.recommendations).toContain("为开发团队提供安全编码培训");
     });
 
-    it('should handle scan errors gracefully', async () => {
-      mockUserRepository.findByUsernames.mockRejectedValue(new Error('Database error'));
+    it("should handle scan errors gracefully", async () => {
+      mockUserRepository.findByUsernames.mockRejectedValue(
+        new Error("Database error"),
+      );
 
       const result = await service.performSecurityScan();
 
@@ -264,11 +278,16 @@ describe('SecurityScannerService', () => {
       expect(result.scanId).toBeDefined();
     });
 
-    it('should calculate security score based on vulnerabilities', async () => {
+    it("should calculate security score based on vulnerabilities", async () => {
       // Mock a scenario with multiple vulnerabilities
       mockUserRepository.findByUsernames.mockResolvedValue([mockUser as any]);
-      const expiredApiKey = { ...mockApiKey, expiresAt: new Date('2020-01-01') };
-      mockApiKeyRepository.findAllActive.mockResolvedValue([expiredApiKey as any]);
+      const expiredApiKey = {
+        ...mockApiKey,
+        expiresAt: new Date("2020-01-01"),
+      };
+      mockApiKeyRepository.findAllActive.mockResolvedValue([
+        expiredApiKey as any,
+      ]);
 
       const result = await service.performSecurityScan();
 
@@ -279,8 +298,8 @@ describe('SecurityScannerService', () => {
     });
   });
 
-  describe('getScanHistory', () => {
-    it('should return scan history with default limit', async () => {
+  describe("getScanHistory", () => {
+    it("should return scan history with default limit", async () => {
       // Perform a scan to create history
       await service.performSecurityScan();
 
@@ -288,10 +307,10 @@ describe('SecurityScannerService', () => {
 
       expect(history).toBeInstanceOf(Array);
       expect(history.length).toBe(1);
-      expect(history[0]).toHaveProperty('scanId');
+      expect(history[0]).toHaveProperty("scanId");
     });
 
-    it('should return scan history with custom limit', async () => {
+    it("should return scan history with custom limit", async () => {
       // Perform multiple scans
       await service.performSecurityScan();
       await service.performSecurityScan();
@@ -302,7 +321,7 @@ describe('SecurityScannerService', () => {
       expect(history.length).toBe(2);
     });
 
-    it('should maintain maximum of 50 scans in history', async () => {
+    it("should maintain maximum of 50 scans in history", async () => {
       // 模拟 55 次扫描
       for (let i = 0; i < 55; i++) {
         await service.performSecurityScan();
@@ -313,8 +332,8 @@ describe('SecurityScannerService', () => {
     });
   });
 
-  describe('getCurrentSecurityConfiguration', () => {
-    it('should return current security configuration', () => {
+  describe("getCurrentSecurityConfiguration", () => {
+    it("should return current security configuration", () => {
       const config = service.getCurrentSecurityConfiguration();
 
       expect(config).toBeDefined();
@@ -328,13 +347,13 @@ describe('SecurityScannerService', () => {
       expect(config.dataSecurity.hashSaltRounds).toBe(12);
     });
 
-    it('should use environment variables when available', () => {
-      process.env.JWT_EXPIRES_IN = '2h';
-      process.env.NODE_ENV = 'production';
+    it("should use environment variables when available", () => {
+      process.env.JWT_EXPIRES_IN = "2h";
+      process.env.NODE_ENV = "production";
 
       const config = service.getCurrentSecurityConfiguration();
 
-      expect(config.sessionSecurity.jwtExpiry).toBe('2h');
+      expect(config.sessionSecurity.jwtExpiry).toBe("2h");
       expect(config.apiSecurity.httpsOnly).toBe(true);
 
       // Cleanup
@@ -343,15 +362,15 @@ describe('SecurityScannerService', () => {
     });
   });
 
-  describe('security configuration validation', () => {
+  describe("security configuration validation", () => {
     afterEach(() => {
       jest.restoreAllMocks();
       delete process.env.NODE_ENV;
     });
 
-    it('should detect weak password policy during scan', async () => {
+    it("should detect weak password policy during scan", async () => {
       // Mock weak password policy
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+      jest.spyOn(service, "getCurrentSecurityConfiguration").mockReturnValue({
         passwordPolicy: {
           minLength: 6, // Weak
           requireUppercase: true,
@@ -361,8 +380,8 @@ describe('SecurityScannerService', () => {
           maxAge: 90,
         },
         sessionSecurity: {
-          jwtExpiry: '1h',
-          refreshTokenExpiry: '7d',
+          jwtExpiry: "1h",
+          refreshTokenExpiry: "7d",
           maxConcurrentSessions: 5,
         },
         apiSecurity: {
@@ -380,16 +399,18 @@ describe('SecurityScannerService', () => {
 
       const result = await service.performSecurityScan();
 
-      const weakPasswordVuln = result.vulnerabilities.find(v => v.id === 'weak_password_policy');
+      const weakPasswordVuln = result.vulnerabilities.find(
+        (v) => v.id === "weak_password_policy",
+      );
       expect(weakPasswordVuln).toBeDefined();
-      expect(weakPasswordVuln?.severity).toBe('high');
+      expect(weakPasswordVuln?.severity).toBe("high");
     });
 
-    it('should detect long JWT expiry in production', async () => {
-      process.env.JWT_EXPIRES_IN = '72h'; // 设置为超过 48 小时的阈值
+    it("should detect long JWT expiry in production", async () => {
+      process.env.JWT_EXPIRES_IN = "72h"; // 设置为超过 48 小时的阈值
 
       // 模拟生产环境配置而不是直接修改 NODE_ENV
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+      jest.spyOn(service, "getCurrentSecurityConfiguration").mockReturnValue({
         passwordPolicy: {
           minLength: 8,
           requireUppercase: true,
@@ -399,8 +420,8 @@ describe('SecurityScannerService', () => {
           maxAge: 90,
         },
         sessionSecurity: {
-          jwtExpiry: '72h',
-          refreshTokenExpiry: '7d',
+          jwtExpiry: "72h",
+          refreshTokenExpiry: "7d",
           maxConcurrentSessions: 5,
         },
         apiSecurity: {
@@ -417,16 +438,18 @@ describe('SecurityScannerService', () => {
       });
 
       const result = await service.performSecurityScan();
-      const longJwtVuln = result.vulnerabilities.find(v => v.id === 'long_jwt_expiry');
+      const longJwtVuln = result.vulnerabilities.find(
+        (v) => v.id === "long_jwt_expiry",
+      );
       expect(longJwtVuln).toBeDefined();
-      expect(longJwtVuln?.severity).toBe('medium');
+      expect(longJwtVuln?.severity).toBe("medium");
 
       delete process.env.JWT_EXPIRES_IN;
     });
 
-    it('should detect missing HTTPS enforcement in production', async () => {
+    it("should detect missing HTTPS enforcement in production", async () => {
       // 模拟生产环境配置，但 httpsOnly 为 false
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+      jest.spyOn(service, "getCurrentSecurityConfiguration").mockReturnValue({
         passwordPolicy: {
           minLength: 8,
           requireUppercase: true,
@@ -436,8 +459,8 @@ describe('SecurityScannerService', () => {
           maxAge: 90,
         },
         sessionSecurity: {
-          jwtExpiry: '1h',
-          refreshTokenExpiry: '7d',
+          jwtExpiry: "1h",
+          refreshTokenExpiry: "7d",
           maxConcurrentSessions: 5,
         },
         apiSecurity: {
@@ -454,19 +477,21 @@ describe('SecurityScannerService', () => {
       });
 
       // 模拟生产环境
-      process.env.NODE_ENV = 'production';
+      process.env.NODE_ENV = "production";
 
       const result = await service.performSecurityScan();
 
-      const httpsVuln = result.vulnerabilities.find(v => v.id === 'http_not_enforced');
+      const httpsVuln = result.vulnerabilities.find(
+        (v) => v.id === "http_not_enforced",
+      );
       expect(httpsVuln).toBeDefined();
-      expect(httpsVuln?.severity).toBe('critical');
+      expect(httpsVuln?.severity).toBe("critical");
 
       delete process.env.NODE_ENV;
     });
   });
 
-  describe('private method integration tests', () => {
+  describe("private method integration tests", () => {
     afterEach(() => {
       // Restore environment variables
       delete process.env.JWT_EXPIRES_IN;
@@ -475,11 +500,11 @@ describe('SecurityScannerService', () => {
       delete process.env.MONGODB_URI;
     });
 
-    it('should detect multiple authentication vulnerabilities', async () => {
-      process.env.JWT_EXPIRES_IN = '72h'; // 设置超过 48 小时的阈值
+    it("should detect multiple authentication vulnerabilities", async () => {
+      process.env.JWT_EXPIRES_IN = "72h"; // 设置超过 48 小时的阈值
 
       // 模拟生产环境配置而不是直接修改 NODE_ENV
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+      jest.spyOn(service, "getCurrentSecurityConfiguration").mockReturnValue({
         passwordPolicy: {
           minLength: 8,
           requireUppercase: true,
@@ -489,8 +514,8 @@ describe('SecurityScannerService', () => {
           maxAge: 90,
         },
         sessionSecurity: {
-          jwtExpiry: '72h',
-          refreshTokenExpiry: '7d',
+          jwtExpiry: "72h",
+          refreshTokenExpiry: "7d",
           maxConcurrentSessions: 5,
         },
         apiSecurity: {
@@ -508,11 +533,13 @@ describe('SecurityScannerService', () => {
 
       const result = await service.performSecurityScan();
 
-      const authVulns = result.vulnerabilities.filter(v => v.type === 'authentication');
+      const authVulns = result.vulnerabilities.filter(
+        (v) => v.type === "authentication",
+      );
       expect(authVulns.length).toBeGreaterThan(0);
 
-      const longJwtVuln = authVulns.find(v => v.id === 'long_jwt_expiry');
-      const noMfaVuln = authVulns.find(v => v.id === 'no_mfa');
+      const longJwtVuln = authVulns.find((v) => v.id === "long_jwt_expiry");
+      const noMfaVuln = authVulns.find((v) => v.id === "no_mfa");
 
       expect(longJwtVuln).toBeDefined();
       expect(noMfaVuln).toBeDefined();
@@ -520,35 +547,41 @@ describe('SecurityScannerService', () => {
       delete process.env.JWT_EXPIRES_IN;
     });
 
-    it('should detect configuration vulnerabilities with missing env vars', async () => {
+    it("should detect configuration vulnerabilities with missing env vars", async () => {
       delete process.env.JWT_SECRET; // 修复：使用 delete 而不是设置为 undefined
 
       const result = await service.performSecurityScan();
 
-      const configVulns = result.vulnerabilities.filter(v => v.type === 'configuration');
-      const missingJwtSecretVuln = configVulns.find(v => v.id === 'missing_env_var_JWT_SECRET'); // 修复：使用正确的大写 ID
+      const configVulns = result.vulnerabilities.filter(
+        (v) => v.type === "configuration",
+      );
+      const missingJwtSecretVuln = configVulns.find(
+        (v) => v.id === "missing_env_var_JWT_SECRET",
+      ); // 修复：使用正确的大写 ID
 
       expect(missingJwtSecretVuln).toBeDefined();
-      expect(missingJwtSecretVuln?.severity).toBe('high');
+      expect(missingJwtSecretVuln?.severity).toBe("high");
     });
 
-    it('should detect weak JWT secret', async () => {
-      process.env.JWT_SECRET = 'weak'; // Too short
+    it("should detect weak JWT secret", async () => {
+      process.env.JWT_SECRET = "weak"; // Too short
 
       const result = await service.performSecurityScan();
 
-      const weakJwtVuln = result.vulnerabilities.find(v => v.id === 'weak_jwt_secret');
+      const weakJwtVuln = result.vulnerabilities.find(
+        (v) => v.id === "weak_jwt_secret",
+      );
       expect(weakJwtVuln).toBeDefined();
-      expect(weakJwtVuln?.severity).toBe('critical');
+      expect(weakJwtVuln?.severity).toBe("critical");
 
       delete process.env.JWT_SECRET;
     });
 
-    it('should detect localhost database in production', async () => {
-      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+    it("should detect localhost database in production", async () => {
+      process.env.MONGODB_URI = "mongodb://localhost:27017/test";
 
       // 模拟生产环境配置
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+      jest.spyOn(service, "getCurrentSecurityConfiguration").mockReturnValue({
         passwordPolicy: {
           minLength: 8,
           requireUppercase: true,
@@ -558,8 +591,8 @@ describe('SecurityScannerService', () => {
           maxAge: 90,
         },
         sessionSecurity: {
-          jwtExpiry: '1h',
-          refreshTokenExpiry: '7d',
+          jwtExpiry: "1h",
+          refreshTokenExpiry: "7d",
           maxConcurrentSessions: 5,
         },
         apiSecurity: {
@@ -577,66 +610,76 @@ describe('SecurityScannerService', () => {
 
       const result = await service.performSecurityScan();
 
-      const localhostDbVuln = result.vulnerabilities.find(v => v.id === 'localhost_db_in_production');
+      const localhostDbVuln = result.vulnerabilities.find(
+        (v) => v.id === "localhost_db_in_production",
+      );
       expect(localhostDbVuln).toBeDefined();
-      expect(localhostDbVuln?.severity).toBe('high');
+      expect(localhostDbVuln?.severity).toBe("high");
 
       delete process.env.MONGODB_URI;
     });
 
-    it('should include standard data exposure and injection vulnerabilities', async () => {
+    it("should include standard data exposure and injection vulnerabilities", async () => {
       // No specific data needed, just run the scan
       const result = await service.performSecurityScan();
 
-      const dataExposureVulns = result.vulnerabilities.filter(v => v.type === 'data_exposure');
-      const injectionVulns = result.vulnerabilities.filter(v => v.type === 'injection');
+      const dataExposureVulns = result.vulnerabilities.filter(
+        (v) => v.type === "data_exposure",
+      );
+      const injectionVulns = result.vulnerabilities.filter(
+        (v) => v.type === "injection",
+      );
 
       expect(dataExposureVulns.length).toBeGreaterThan(0);
       expect(injectionVulns.length).toBeGreaterThan(0);
 
-      const potentialDataExposure = dataExposureVulns.find(v => v.id === 'potential_data_exposure');
-      const nosqlInjectionRisk = injectionVulns.find(v => v.id === 'nosql_injection_risk');
+      const potentialDataExposure = dataExposureVulns.find(
+        (v) => v.id === "potential_data_exposure",
+      );
+      const nosqlInjectionRisk = injectionVulns.find(
+        (v) => v.id === "nosql_injection_risk",
+      );
 
       expect(potentialDataExposure).toBeDefined();
       expect(nosqlInjectionRisk).toBeDefined();
     });
   });
 
-  describe('calculateSecurityScore', () => {
-    it('should calculate score correctly based on vulnerability severities', () => {
+  describe("calculateSecurityScore", () => {
+    it("should calculate score correctly based on vulnerability severities", () => {
       const vulnerabilities: SecurityVulnerability[] = [
         {
-          id: 'test-critical',
-          type: 'authentication',
-          severity: 'critical',
-          title: 'Critical Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Test',
+          id: "test-critical",
+          type: "authentication",
+          severity: "critical",
+          title: "Critical Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Test",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
         {
-          id: 'test-high',
-          type: 'authentication',
-          severity: 'high',
-          title: 'High Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Test',
+          id: "test-high",
+          type: "authentication",
+          severity: "high",
+          title: "High Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Test",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
         {
-          id: 'test-medium',
-          type: 'authentication',
-          severity: 'medium',
-          title: 'Medium Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Test',
+          id: "test-medium",
+          type: "authentication",
+          severity: "medium",
+          title: "Medium Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Test",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
       ];
 
@@ -646,18 +689,21 @@ describe('SecurityScannerService', () => {
       expect(score).toBe(65);
     });
 
-    it('should not go below zero', () => {
-      const vulnerabilities: SecurityVulnerability[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `test-critical-${i}`,
-        type: 'authentication' as const,
-        severity: 'critical' as const,
-        title: 'Critical Issue',
-        description: 'Test',
-        impact: 'Test',
-        recommendation: 'Test',
-        detected: new Date(),
-        status: 'detected' as const,
-      }));
+    it("should not go below zero", () => {
+      const vulnerabilities: SecurityVulnerability[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          id: `test-critical-${i}`,
+          type: "authentication" as const,
+          severity: "critical" as const,
+          title: "Critical Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Test",
+          detected: new Date(),
+          status: "detected" as const,
+        }),
+      );
 
       const score = (service as any).calculateSecurityScore(vulnerabilities);
 
@@ -665,178 +711,196 @@ describe('SecurityScannerService', () => {
     });
   });
 
-  describe('generateRecommendations', () => {
-    it('should include high and critical vulnerability recommendations', () => {
+  describe("generateRecommendations", () => {
+    it("should include high and critical vulnerability recommendations", () => {
       const vulnerabilities: SecurityVulnerability[] = [
         {
-          id: 'test-critical',
-          type: 'authentication',
-          severity: 'critical',
-          title: 'Critical Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Fix critical issue immediately',
+          id: "test-critical",
+          type: "authentication",
+          severity: "critical",
+          title: "Critical Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Fix critical issue immediately",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
         {
-          id: 'test-medium',
-          type: 'authentication',
-          severity: 'medium',
-          title: 'Medium Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Fix medium issue when possible',
+          id: "test-medium",
+          type: "authentication",
+          severity: "medium",
+          title: "Medium Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Fix medium issue when possible",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
       ];
 
-      const recommendations = (service as any).generateRecommendations(vulnerabilities);
+      const recommendations = (service as any).generateRecommendations(
+        vulnerabilities,
+      );
 
-      expect(recommendations).toContain('Fix critical issue immediately');
-      expect(recommendations).not.toContain('Fix medium issue when possible');
+      expect(recommendations).toContain("Fix critical issue immediately");
+      expect(recommendations).not.toContain("Fix medium issue when possible");
       // 🎯 修复：使用代码中定义的准确文本
-      expect(recommendations).toContain('定期进行安全审计和漏洞评估');
+      expect(recommendations).toContain("定期进行安全审计和漏洞评估");
     });
 
-    it('should include authentication-specific recommendations', () => {
+    it("should include authentication-specific recommendations", () => {
       const authVulnerabilities: SecurityVulnerability[] = [
         {
-          id: 'auth-issue',
-          type: 'authentication',
-          severity: 'high',
-          title: 'Auth Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Fix auth issue',
+          id: "auth-issue",
+          type: "authentication",
+          severity: "high",
+          title: "Auth Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Fix auth issue",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
       ];
 
-      const recommendations = (service as any).generateRecommendations(authVulnerabilities);
+      const recommendations = (service as any).generateRecommendations(
+        authVulnerabilities,
+      );
 
-      expect(recommendations).toContain('为管理员账户启用双因素认证');
-      expect(recommendations).toContain('定期更换密码和API密钥');
+      expect(recommendations).toContain("为管理员账户启用双因素认证");
+      expect(recommendations).toContain("定期更换密码和API密钥");
     });
 
-    it('should include configuration-specific recommendations', () => {
+    it("should include configuration-specific recommendations", () => {
       const configVulnerabilities: SecurityVulnerability[] = [
         {
-          id: 'config-issue',
-          type: 'configuration',
-          severity: 'high',
-          title: 'Config Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Fix config issue',
+          id: "config-issue",
+          type: "configuration",
+          severity: "high",
+          title: "Config Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Fix config issue",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
       ];
 
-      const recommendations = (service as any).generateRecommendations(configVulnerabilities);
+      const recommendations = (service as any).generateRecommendations(
+        configVulnerabilities,
+      );
 
-      expect(recommendations).toContain('实施实时安全监控和告警');
-      expect(recommendations).toContain('确保符合相关安全合规要求');
+      expect(recommendations).toContain("实施实时安全监控和告警");
+      expect(recommendations).toContain("确保符合相关安全合规要求");
     });
 
-    it('should include penetration testing for critical vulnerabilities', () => {
+    it("should include penetration testing for critical vulnerabilities", () => {
       const criticalVulnerabilities: SecurityVulnerability[] = [
         {
-          id: 'critical-issue',
-          type: 'authentication',
-          severity: 'critical',
-          title: 'Critical Issue',
-          description: 'Test',
-          impact: 'Test',
-          recommendation: 'Fix critical issue',
+          id: "critical-issue",
+          type: "authentication",
+          severity: "critical",
+          title: "Critical Issue",
+          description: "Test",
+          impact: "Test",
+          recommendation: "Fix critical issue",
           detected: new Date(),
-          status: 'detected',
+          status: "detected",
         },
       ];
 
-      const recommendations = (service as any).generateRecommendations(criticalVulnerabilities);
+      const recommendations = (service as any).generateRecommendations(
+        criticalVulnerabilities,
+      );
 
-      expect(recommendations).toContain('定期进行渗透测试');
+      expect(recommendations).toContain("定期进行渗透测试");
     });
 
-    it('should handle generateRecommendations errors gracefully', () => {
+    it("should handle generateRecommendations errors gracefully", () => {
       // Simulate an error in recommendations generation
       const mockVulnerabilities = [
         {
           get type() {
-            throw new Error('Property access error');
+            throw new Error("Property access error");
           },
-          severity: 'high',
-        } as any
+          severity: "high",
+        } as any,
       ];
 
       expect(() => {
         (service as any).generateRecommendations(mockVulnerabilities);
-      }).toThrow('Property access error');
+      }).toThrow("Property access error");
     });
   });
 
-  describe('isJwtExpiryTooLong - edge cases', () => {
-    it('should return true for non-string inputs', () => {
+  describe("isJwtExpiryTooLong - edge cases", () => {
+    it("should return true for non-string inputs", () => {
       expect((service as any).isJwtExpiryTooLong(null)).toBe(true);
       expect((service as any).isJwtExpiryTooLong(undefined)).toBe(true);
       expect((service as any).isJwtExpiryTooLong(123)).toBe(true);
       expect((service as any).isJwtExpiryTooLong({})).toBe(true);
     });
 
-    it('should return true for empty string', () => {
-      expect((service as any).isJwtExpiryTooLong('')).toBe(true);
+    it("should return true for empty string", () => {
+      expect((service as any).isJwtExpiryTooLong("")).toBe(true);
     });
 
-    it('should return true for invalid formats', () => {
-      expect((service as any).isJwtExpiryTooLong('invalid')).toBe(true);
-      expect((service as any).isJwtExpiryTooLong('24hours')).toBe(true);
-      expect((service as any).isJwtExpiryTooLong('24x')).toBe(true);
-      expect((service as any).isJwtExpiryTooLong('h24')).toBe(true);
-      expect((service as any).isJwtExpiryTooLong('24')).toBe(true);
+    it("should return true for invalid formats", () => {
+      expect((service as any).isJwtExpiryTooLong("invalid")).toBe(true);
+      expect((service as any).isJwtExpiryTooLong("24hours")).toBe(true);
+      expect((service as any).isJwtExpiryTooLong("24x")).toBe(true);
+      expect((service as any).isJwtExpiryTooLong("h24")).toBe(true);
+      expect((service as any).isJwtExpiryTooLong("24")).toBe(true);
     });
 
-    it('should handle valid formats correctly', () => {
+    it("should handle valid formats correctly", () => {
       // Less than 48 hours
-      expect((service as any).isJwtExpiryTooLong('24h')).toBe(false);
-      expect((service as any).isJwtExpiryTooLong('1d')).toBe(false);
-      expect((service as any).isJwtExpiryTooLong('2880m')).toBe(false); // 48 hours in minutes
-      expect((service as any).isJwtExpiryTooLong('172800s')).toBe(false); // 48 hours in seconds
+      expect((service as any).isJwtExpiryTooLong("24h")).toBe(false);
+      expect((service as any).isJwtExpiryTooLong("1d")).toBe(false);
+      expect((service as any).isJwtExpiryTooLong("2880m")).toBe(false); // 48 hours in minutes
+      expect((service as any).isJwtExpiryTooLong("172800s")).toBe(false); // 48 hours in seconds
 
       // More than 48 hours
-      expect((service as any).isJwtExpiryTooLong('72h')).toBe(true);
-      expect((service as any).isJwtExpiryTooLong('3d')).toBe(true);
-      expect((service as any).isJwtExpiryTooLong('4320m')).toBe(true); // 72 hours in minutes
-      expect((service as any).isJwtExpiryTooLong('259200s')).toBe(true); // 72 hours in seconds
+      expect((service as any).isJwtExpiryTooLong("72h")).toBe(true);
+      expect((service as any).isJwtExpiryTooLong("3d")).toBe(true);
+      expect((service as any).isJwtExpiryTooLong("4320m")).toBe(true); // 72 hours in minutes
+      expect((service as any).isJwtExpiryTooLong("259200s")).toBe(true); // 72 hours in seconds
     });
 
-    it('should handle edge case of exactly 48 hours', () => {
-      expect((service as any).isJwtExpiryTooLong('48h')).toBe(false);
-      expect((service as any).isJwtExpiryTooLong('2d')).toBe(false);
+    it("should handle edge case of exactly 48 hours", () => {
+      expect((service as any).isJwtExpiryTooLong("48h")).toBe(false);
+      expect((service as any).isJwtExpiryTooLong("2d")).toBe(false);
     });
   });
 
-  describe('error handling and edge cases', () => {
-    it('should handle repository errors in getScanHistory', async () => {
-      mockScanResultRepository.findMostRecent.mockRejectedValue(new Error('Database connection failed'));
+  describe("error handling and edge cases", () => {
+    it("should handle repository errors in getScanHistory", async () => {
+      mockScanResultRepository.findMostRecent.mockRejectedValue(
+        new Error("Database connection failed"),
+      );
 
-      await expect(service.getScanHistory()).rejects.toThrow('Database connection failed');
+      await expect(service.getScanHistory()).rejects.toThrow(
+        "Database connection failed",
+      );
     });
 
-    it('should handle errors in getCurrentSecurityConfiguration', () => {
+    it("should handle errors in getCurrentSecurityConfiguration", () => {
       mockConfigService.get.mockImplementation(() => {
-        throw new Error('Config service error');
+        throw new Error("Config service error");
       });
 
-      expect(() => service.getCurrentSecurityConfiguration()).toThrow('Config service error');
+      expect(() => service.getCurrentSecurityConfiguration()).toThrow(
+        "Config service error",
+      );
     });
 
-    it('should handle specific check method errors', async () => {
-      mockUserRepository.findByUsernames.mockRejectedValue(new Error('User repository error'));
-      mockApiKeyRepository.findAllActive.mockRejectedValue(new Error('API key repository error'));
+    it("should handle specific check method errors", async () => {
+      mockUserRepository.findByUsernames.mockRejectedValue(
+        new Error("User repository error"),
+      );
+      mockApiKeyRepository.findAllActive.mockRejectedValue(
+        new Error("API key repository error"),
+      );
 
       const result = await service.performSecurityScan();
 
@@ -845,47 +909,59 @@ describe('SecurityScannerService', () => {
       expect(result.scanId).toBeDefined();
     });
 
-    it('should handle checkEncryptionSecurity errors', async () => {
+    it("should handle checkEncryptionSecurity errors", async () => {
       // Mock getCurrentSecurityConfiguration to return invalid data for encryption check
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockImplementation(() => {
-        throw new Error('Configuration error');
-      });
+      jest
+        .spyOn(service, "getCurrentSecurityConfiguration")
+        .mockImplementation(() => {
+          throw new Error("Configuration error");
+        });
 
       // Scan should still complete despite errors in individual checks
-      await expect(service.performSecurityScan()).rejects.toThrow('Configuration error');
-      
+      await expect(service.performSecurityScan()).rejects.toThrow(
+        "Configuration error",
+      );
+
       // 由于logger是通过createLogger创建的，不是直接注入的，所以不验证logger调用
     });
 
-    it('should handle API keys without rateLimit property', async () => {
+    it("should handle API keys without rateLimit property", async () => {
       const apiKeyWithoutRateLimit = {
         ...mockApiKey,
         rateLimit: undefined,
       };
-      mockApiKeyRepository.findAllActive.mockResolvedValue([apiKeyWithoutRateLimit as any]);
+      mockApiKeyRepository.findAllActive.mockResolvedValue([
+        apiKeyWithoutRateLimit as any,
+      ]);
 
       const result = await service.performSecurityScan();
 
-      const rateLimitVuln = result.vulnerabilities.find(v => v.id === 'insufficient_rate_limiting');
+      const rateLimitVuln = result.vulnerabilities.find(
+        (v) => v.id === "insufficient_rate_limiting",
+      );
       expect(rateLimitVuln).toBeDefined();
     });
 
-    it('should handle API keys with null expiresAt', async () => {
+    it("should handle API keys with null expiresAt", async () => {
       const apiKeyWithNullExpiry = {
         ...mockApiKey,
         expiresAt: null,
       };
-      mockApiKeyRepository.findAllActive.mockResolvedValue([apiKeyWithNullExpiry as any]);
+      mockApiKeyRepository.findAllActive.mockResolvedValue([
+        apiKeyWithNullExpiry as any,
+      ]);
 
       const result = await service.performSecurityScan();
 
       // Should not find expired API key vulnerability
-      const expiredVuln = result.vulnerabilities.find(v => v.id.startsWith('expired_api_key'));
+      const expiredVuln = result.vulnerabilities.find((v) =>
+        v.id.startsWith("expired_api_key"),
+      );
       expect(expiredVuln).toBeUndefined();
     });
 
-    it('should handle very weak bcrypt salt rounds', async () => {
-      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+    it("should handle very weak bcrypt salt rounds", async () => {
+      jest.spyOn(service, "getCurrentSecurityConfiguration").mockReturnValue({
         passwordPolicy: {
           minLength: 8,
           requireUppercase: true,
@@ -895,8 +971,8 @@ describe('SecurityScannerService', () => {
           maxAge: 90,
         },
         sessionSecurity: {
-          jwtExpiry: '1h',
-          refreshTokenExpiry: '7d',
+          jwtExpiry: "1h",
+          refreshTokenExpiry: "7d",
           maxConcurrentSessions: 5,
         },
         apiSecurity: {
@@ -914,21 +990,25 @@ describe('SecurityScannerService', () => {
 
       const result = await service.performSecurityScan();
 
-      const weakHashingVuln = result.vulnerabilities.find(v => v.id === 'weak_password_hashing');
+      const weakHashingVuln = result.vulnerabilities.find(
+        (v) => v.id === "weak_password_hashing",
+      );
       expect(weakHashingVuln).toBeDefined();
-      expect(weakHashingVuln?.severity).toBe('high');
+      expect(weakHashingVuln?.severity).toBe("high");
     });
 
-    it('should handle missing JWT_SECRET in checkEncryptionSecurity', async () => {
+    it("should handle missing JWT_SECRET in checkEncryptionSecurity", async () => {
       delete process.env.JWT_SECRET;
       mockConfigService.get.mockImplementation((key: string) => {
-        if (key === 'JWT_SECRET') return undefined;
-        return 'default-value';
+        if (key === "JWT_SECRET") return undefined;
+        return "default-value";
       });
 
       const result = await service.performSecurityScan();
 
-      const weakJwtVuln = result.vulnerabilities.find(v => v.id === 'weak_jwt_secret');
+      const weakJwtVuln = result.vulnerabilities.find(
+        (v) => v.id === "weak_jwt_secret",
+      );
       expect(weakJwtVuln).toBeDefined();
     });
   });

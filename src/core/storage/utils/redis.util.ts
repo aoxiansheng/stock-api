@@ -13,7 +13,7 @@ export class RedisUtils {
       return null;
     }
     // 转义正则表达式特殊字符，确保可以匹配包含特殊字符的键
-    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`^${escapedKey}:(.*)$`, "m");
     const match = info.match(regex);
     return match ? match[1].trim() : null;

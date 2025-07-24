@@ -1,11 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { RuleEngineService } from '../../../../../src/alert/services/rule-engine.service';
-import { IAlertRule, IMetricData } from '../../../../../src/alert/interfaces';
-import { AlertSeverity, NotificationChannelType } from '../../../../../src/alert/types/alert.types';
-import { CacheService } from '../../../../../src/cache/cache.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
+import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
+import { IAlertRule, IMetricData } from "../../../../../src/alert/interfaces";
+import {
+  AlertSeverity,
+  NotificationChannelType,
+} from "../../../../../src/alert/types/alert.types";
+import { CacheService } from "../../../../../src/cache/cache.service";
 
-describe('RuleEngineService', () => {
+describe("RuleEngineService", () => {
   let service: RuleEngineService;
 
   const mockCacheService = {
@@ -16,14 +19,14 @@ describe('RuleEngineService', () => {
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      if (key === 'alert') {
+      if (key === "alert") {
         return {
           validation: {
             duration: { min: 1, max: 3600 },
             cooldown: { min: 0, max: 86400 },
           },
           cache: {
-            cooldownPrefix: 'alert:cooldown:',
+            cooldownPrefix: "alert:cooldown:",
           },
         };
       }
@@ -32,10 +35,10 @@ describe('RuleEngineService', () => {
   };
 
   const mockRule: IAlertRule = {
-    id: 'test-rule',
-    name: 'Test Rule',
-    metric: 'cpu_usage',
-    operator: 'gt',
+    id: "test-rule",
+    name: "Test Rule",
+    metric: "cpu_usage",
+    operator: "gt",
     threshold: 80,
     duration: 60,
     severity: AlertSeverity.WARNING,
@@ -48,16 +51,16 @@ describe('RuleEngineService', () => {
 
   const mockMetricData: IMetricData[] = [
     {
-      metric: 'cpu_usage',
+      metric: "cpu_usage",
       value: 85,
       timestamp: new Date(),
-      tags: { host: 'server1' },
+      tags: { host: "server1" },
     },
     {
-      metric: 'memory_usage',
+      metric: "memory_usage",
       value: 70,
       timestamp: new Date(),
-      tags: { host: 'server1' },
+      tags: { host: "server1" },
     },
   ];
 
@@ -83,28 +86,28 @@ describe('RuleEngineService', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('Rule Evaluation', () => {
-    it('should evaluate a rule and trigger alert when threshold exceeded', () => {
+  describe("Rule Evaluation", () => {
+    it("should evaluate a rule and trigger alert when threshold exceeded", () => {
       // Act
       const result = service.evaluateRule(mockRule, mockMetricData);
 
       // Assert
-      expect(result.ruleId).toBe('test-rule');
+      expect(result.ruleId).toBe("test-rule");
       expect(result.triggered).toBe(true);
       expect(result.value).toBe(85);
       expect(result.threshold).toBe(80);
-      expect(result.message).toContain('告警触发');
+      expect(result.message).toContain("告警触发");
     });
 
-    it('should not trigger alert when threshold not exceeded', () => {
+    it("should not trigger alert when threshold not exceeded", () => {
       // Arrange
       const lowValueMetric: IMetricData[] = [
         {
-          metric: 'cpu_usage',
+          metric: "cpu_usage",
           value: 75,
           timestamp: new Date(),
         },
@@ -116,10 +119,10 @@ describe('RuleEngineService', () => {
       // Assert
       expect(result.triggered).toBe(false);
       expect(result.value).toBe(75);
-      expect(result.message).toContain('正常');
+      expect(result.message).toContain("正常");
     });
 
-    it('should handle missing metric data', () => {
+    it("should handle missing metric data", () => {
       // Arrange
       const emptyMetrics: IMetricData[] = [];
 
@@ -129,17 +132,17 @@ describe('RuleEngineService', () => {
       // Assert
       expect(result.triggered).toBe(false);
       expect(result.value).toBe(0);
-      expect(result.message).toContain('没有找到指标');
+      expect(result.message).toContain("没有找到指标");
     });
 
-    it('should evaluate multiple rules', () => {
+    it("should evaluate multiple rules", () => {
       // Arrange
       const rules = [
         mockRule,
         {
           ...mockRule,
-          id: 'rule-2',
-          metric: 'memory_usage',
+          id: "rule-2",
+          metric: "memory_usage",
           threshold: 75,
         },
       ];
@@ -154,16 +157,16 @@ describe('RuleEngineService', () => {
     });
   });
 
-  describe('Operator Testing', () => {
+  describe("Operator Testing", () => {
     const testCases = [
-      { operator: 'gt', value: 85, threshold: 80, expected: true },
-      { operator: 'gt', value: 75, threshold: 80, expected: false },
-      { operator: 'gte', value: 80, threshold: 80, expected: true },
-      { operator: 'lt', value: 75, threshold: 80, expected: true },
-      { operator: 'lt', value: 85, threshold: 80, expected: false },
-      { operator: 'lte', value: 80, threshold: 80, expected: true },
-      { operator: 'eq', value: 80, threshold: 80, expected: true },
-      { operator: 'ne', value: 85, threshold: 80, expected: true },
+      { operator: "gt", value: 85, threshold: 80, expected: true },
+      { operator: "gt", value: 75, threshold: 80, expected: false },
+      { operator: "gte", value: 80, threshold: 80, expected: true },
+      { operator: "lt", value: 75, threshold: 80, expected: true },
+      { operator: "lt", value: 85, threshold: 80, expected: false },
+      { operator: "lte", value: 80, threshold: 80, expected: true },
+      { operator: "eq", value: 80, threshold: 80, expected: true },
+      { operator: "ne", value: 85, threshold: 80, expected: true },
     ];
 
     testCases.forEach(({ operator, value, threshold, expected }) => {
@@ -181,10 +184,10 @@ describe('RuleEngineService', () => {
     });
   });
 
-  describe('Cooldown Management', () => {
-    it('should set and check cooldown', async () => {
+  describe("Cooldown Management", () => {
+    it("should set and check cooldown", async () => {
       // Arrange
-      const ruleId = 'test-rule';
+      const ruleId = "test-rule";
       mockCacheService.get.mockResolvedValue(true);
 
       // Act
@@ -193,27 +196,27 @@ describe('RuleEngineService', () => {
 
       // Assert
       expect(mockCacheService.set).toHaveBeenCalledWith(
-        'alert:cooldown:test-rule',
+        "alert:cooldown:test-rule",
         true,
-        { ttl: 60 }
+        { ttl: 60 },
       );
       expect(isInCooldown).toBe(true);
     });
 
-    it('should return false for non-existent cooldown', async () => {
+    it("should return false for non-existent cooldown", async () => {
       // Arrange
       mockCacheService.get.mockResolvedValue(null);
 
       // Act
-      const isInCooldown = await service.isInCooldown('non-existent-rule');
+      const isInCooldown = await service.isInCooldown("non-existent-rule");
 
       // Assert
       expect(isInCooldown).toBe(false);
     });
 
-    it('should get cooldown status', async () => {
+    it("should get cooldown status", async () => {
       // Arrange
-      const ruleId = 'rule-1';
+      const ruleId = "rule-1";
       mockCacheService.get.mockResolvedValue(true);
 
       // Act
@@ -224,10 +227,20 @@ describe('RuleEngineService', () => {
     });
   });
 
-  describe('Rule Validation', () => {
-    it('should validate a correct rule', () => {
+  describe("Rule Validation", () => {
+    it("should validate a correct rule", () => {
       // Arrange
-      const validRule = { ...mockRule, channels: [{ name: 'email-channel', type: NotificationChannelType.EMAIL, config: {}, enabled: true }] };
+      const validRule = {
+        ...mockRule,
+        channels: [
+          {
+            name: "email-channel",
+            type: NotificationChannelType.EMAIL,
+            config: {},
+            enabled: true,
+          },
+        ],
+      };
 
       // Act
       const result = service.validateRule(validRule);
@@ -237,43 +250,47 @@ describe('RuleEngineService', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should detect invalid rule name', () => {
+    it("should detect invalid rule name", () => {
       // Arrange
-      const invalidRule = { ...mockRule, name: '' };
+      const invalidRule = { ...mockRule, name: "" };
 
       // Act
       const result = service.validateRule(invalidRule);
 
       // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('规则验证失败: 规则名称格式无效或为空');
+      expect(result.errors).toContain("规则验证失败: 规则名称格式无效或为空");
     });
 
-    it('should detect invalid metric', () => {
+    it("should detect invalid metric", () => {
       // Arrange
-      const invalidRule = { ...mockRule, metric: '' };
+      const invalidRule = { ...mockRule, metric: "" };
 
       // Act
       const result = service.validateRule(invalidRule);
 
       // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('规则验证失败: 监控指标名称格式无效或为空');
+      expect(result.errors).toContain(
+        "规则验证失败: 监控指标名称格式无效或为空",
+      );
     });
 
-    it('should detect invalid operator', () => {
+    it("should detect invalid operator", () => {
       // Arrange
-      const invalidRule = { ...mockRule, operator: 'invalid' as any };
+      const invalidRule = { ...mockRule, operator: "invalid" as any };
 
       // Act
       const result = service.validateRule(invalidRule);
 
       // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('规则验证失败: 无效的比较操作符: invalid');
+      expect(result.errors).toContain(
+        "规则验证失败: 无效的比较操作符: invalid",
+      );
     });
 
-    it('should detect invalid threshold', () => {
+    it("should detect invalid threshold", () => {
       // Arrange
       const invalidRule = { ...mockRule, threshold: NaN };
 
@@ -282,10 +299,10 @@ describe('RuleEngineService', () => {
 
       // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('规则验证失败: 阈值必须是有效数字');
+      expect(result.errors).toContain("规则验证失败: 阈值必须是有效数字");
     });
 
-    it('should detect invalid duration', () => {
+    it("should detect invalid duration", () => {
       // Arrange
       const invalidRule = { ...mockRule, duration: 0 };
 
@@ -294,10 +311,10 @@ describe('RuleEngineService', () => {
 
       // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('持续时间必须在1-3600秒之间');
+      expect(result.errors).toContain("持续时间必须在1-3600秒之间");
     });
 
-    it('should detect missing channels', () => {
+    it("should detect missing channels", () => {
       // Arrange
       const invalidRule = { ...mockRule, channels: [] };
 
@@ -306,7 +323,7 @@ describe('RuleEngineService', () => {
 
       // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('至少需要配置一个通知渠道');
+      expect(result.errors).toContain("至少需要配置一个通知渠道");
     });
   });
 });

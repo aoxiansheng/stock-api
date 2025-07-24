@@ -1,15 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ReceiverController } from '../../../../src/core/receiver/receiver.controller';
-import { ReceiverService } from '../../../../src/core/receiver/receiver.service';
-import { DataRequestDto } from '../../../../src/core/receiver/dto/data-request.dto';
-import { DataResponseDto } from '../../../../src/core/receiver/dto/data-response.dto';
-import { RateLimitService } from '../../../../src/auth/services/rate-limit.service';
-import { PermissionService } from '../../../../src/auth/services/permission.service';
-import { UnifiedPermissionsGuard } from '../../../../src/auth/guards/unified-permissions.guard';
-import { getModelToken } from '@nestjs/mongoose';
-import { RedisService } from '@liaoliaots/nestjs-redis';
+import { Test, TestingModule } from "@nestjs/testing";
+import { Logger } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { ReceiverController } from "../../../../src/core/receiver/receiver.controller";
+import { ReceiverService } from "../../../../src/core/receiver/receiver.service";
+import { DataRequestDto } from "../../../../src/core/receiver/dto/data-request.dto";
+import { DataResponseDto } from "../../../../src/core/receiver/dto/data-response.dto";
+import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
+import { PermissionService } from "../../../../src/auth/services/permission.service";
+import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-permissions.guard";
+import { getModelToken } from "@nestjs/mongoose";
+import { RedisService } from "@liaoliaots/nestjs-redis";
 
 // Mock createLogger for core modules
 const mockLoggerInstance = {
@@ -20,42 +20,42 @@ const mockLoggerInstance = {
   verbose: jest.fn(),
 };
 
-jest.mock('../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
   sanitizeLogData: jest.fn((data) => data),
 }));
 
-describe('ReceiverController', () => {
+describe("ReceiverController", () => {
   let controller: ReceiverController;
   let receiverService: jest.Mocked<ReceiverService>;
 
   const mockDataResponse: DataResponseDto = {
     data: [
       {
-        symbol: 'AAPL',
+        symbol: "AAPL",
         lastPrice: 195.89,
         change: 2.31,
         changePercent: 1.19,
         volume: 45678900,
-        market: 'US',
-        timestamp: '2024-01-01T15:30:00.000Z',
+        market: "US",
+        timestamp: "2024-01-01T15:30:00.000Z",
       },
       {
-        symbol: '700.HK',
+        symbol: "700.HK",
         lastPrice: 385.6,
         change: -4.2,
         changePercent: -1.08,
         volume: 12345600,
-        market: 'HK',
-        timestamp: '2024-01-01T08:00:00.000Z',
+        market: "HK",
+        timestamp: "2024-01-01T08:00:00.000Z",
       },
     ],
     metadata: {
-      requestId: 'req_1704110400000_abc123',
-      provider: 'longport',
-      capability: 'get-stock-quote',
+      requestId: "req_1704110400000_abc123",
+      provider: "longport",
+      capability: "get-stock-quote",
       processingTime: 156,
-      timestamp: '2024-01-01T12:00:00.000Z',
+      timestamp: "2024-01-01T12:00:00.000Z",
     },
   };
 
@@ -99,7 +99,7 @@ describe('ReceiverController', () => {
           useValue: mockReflector,
         },
         {
-          provide: getModelToken('ApiKey'),
+          provide: getModelToken("ApiKey"),
           useValue: {},
         },
         {
@@ -130,17 +130,17 @@ describe('ReceiverController', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 
-  describe('handleDataRequest', () => {
-    it('should handle data request successfully', async () => {
+  describe("handleDataRequest", () => {
+    it("should handle data request successfully", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['AAPL', '700.HK'],
-        dataType: 'stock-quote',
+        symbols: ["AAPL", "700.HK"],
+        dataType: "stock-quote",
         options: {
-          preferredProvider: 'longport',
+          preferredProvider: "longport",
           realtime: true,
         },
       };
@@ -151,48 +151,42 @@ describe('ReceiverController', () => {
 
       expect(result).toBe(mockDataResponse);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '接收数据请求',
-        {
-          symbols: ['AAPL', '700.HK'],
-          dataType: 'stock-quote',
-          options: {
-            preferredProvider: 'longport',
-            realtime: true,
-          },
-        }
-      );
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '数据请求处理完成',
-        {
-          requestId: 'req_1704110400000_abc123',
-          success: true,
-          provider: 'longport',
-          processingTime: 156,
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
+        symbols: ["AAPL", "700.HK"],
+        dataType: "stock-quote",
+        options: {
+          preferredProvider: "longport",
+          realtime: true,
+        },
+      });
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
+        requestId: "req_1704110400000_abc123",
+        success: true,
+        provider: "longport",
+        processingTime: 156,
+      });
     });
 
-    it('should handle data request with minimal options', async () => {
+    it("should handle data request with minimal options", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['MSFT'],
-        dataType: 'stock-basic-info',
+        symbols: ["MSFT"],
+        dataType: "stock-basic-info",
       };
 
       const simpleResponse: DataResponseDto = {
         data: [
           {
-            symbol: 'MSFT',
-            companyName: 'Microsoft Corporation',
-            market: 'US',
+            symbol: "MSFT",
+            companyName: "Microsoft Corporation",
+            market: "US",
           },
         ],
         metadata: {
-          requestId: 'req_1704110400001_def456',
-          provider: 'longport',
-          capability: 'stock-basic-info',
+          requestId: "req_1704110400001_def456",
+          provider: "longport",
+          capability: "stock-basic-info",
           processingTime: 89,
-          timestamp: '2024-01-01T12:01:00.000Z',
+          timestamp: "2024-01-01T12:01:00.000Z",
         },
       };
 
@@ -202,56 +196,53 @@ describe('ReceiverController', () => {
 
       expect(result).toBe(simpleResponse);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '接收数据请求',
-        {
-          symbols: ['MSFT'],
-          dataType: 'stock-basic-info',
-          options: undefined,
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
+        symbols: ["MSFT"],
+        dataType: "stock-basic-info",
+        options: undefined,
+      });
     });
 
-    it('should handle multiple symbols of different markets', async () => {
+    it("should handle multiple symbols of different markets", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['AAPL', '700.HK', '000001.SZ', '600036.SH'],
-        dataType: 'stock-quote',
+        symbols: ["AAPL", "700.HK", "000001.SZ", "600036.SH"],
+        dataType: "stock-quote",
         options: {
-          preferredProvider: 'longport',
+          preferredProvider: "longport",
           realtime: false,
-          market: 'ALL',
+          market: "ALL",
         },
       };
 
       const multiMarketResponse: DataResponseDto = {
         data: [
           {
-            symbol: 'AAPL',
+            symbol: "AAPL",
             lastPrice: 195.89,
-            market: 'US',
+            market: "US",
           },
           {
-            symbol: '700.HK',
+            symbol: "700.HK",
             lastPrice: 385.6,
-            market: 'HK',
+            market: "HK",
           },
           {
-            symbol: '000001.SZ',
+            symbol: "000001.SZ",
             lastPrice: 12.45,
-            market: 'SZ',
+            market: "SZ",
           },
           {
-            symbol: '600036.SH',
+            symbol: "600036.SH",
             lastPrice: 45.67,
-            market: 'SH',
+            market: "SH",
           },
         ],
         metadata: {
-          requestId: 'req_1704110400002_ghi789',
-          provider: 'longport',
-          capability: 'get-stock-quote',
+          requestId: "req_1704110400002_ghi789",
+          provider: "longport",
+          capability: "get-stock-quote",
           processingTime: 234,
-          timestamp: '2024-01-01T12:02:00.000Z',
+          timestamp: "2024-01-01T12:02:00.000Z",
         },
       };
 
@@ -261,23 +252,20 @@ describe('ReceiverController', () => {
 
       expect(result).toBe(multiMarketResponse);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '数据请求处理完成',
-        {
-          requestId: 'req_1704110400002_ghi789',
-          success: true,
-          provider: 'longport',
-          processingTime: 234,
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
+        requestId: "req_1704110400002_ghi789",
+        success: true,
+        provider: "longport",
+        processingTime: 234,
+      });
     });
 
-    it('should handle index quote requests', async () => {
+    it("should handle index quote requests", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['HSI.HK', 'SPX.US'],
-        dataType: 'index-quote',
+        symbols: ["HSI.HK", "SPX.US"],
+        dataType: "index-quote",
         options: {
-          preferredProvider: 'longport',
+          preferredProvider: "longport",
           realtime: true,
         },
       };
@@ -285,26 +273,26 @@ describe('ReceiverController', () => {
       const indexResponse: DataResponseDto = {
         data: [
           {
-            symbol: 'HSI.HK',
+            symbol: "HSI.HK",
             lastPrice: 17456.78,
             change: 123.45,
             changePercent: 0.71,
-            market: 'HK',
+            market: "HK",
           },
           {
-            symbol: 'SPX.US',
+            symbol: "SPX.US",
             lastPrice: 4567.89,
             change: -12.34,
             changePercent: -0.27,
-            market: 'US',
+            market: "US",
           },
         ],
         metadata: {
-          requestId: 'req_1704110400003_jkl012',
-          provider: 'longport',
-          capability: 'get-index-quote',
+          requestId: "req_1704110400003_jkl012",
+          provider: "longport",
+          capability: "get-index-quote",
           processingTime: 178,
-          timestamp: '2024-01-01T12:03:00.000Z',
+          timestamp: "2024-01-01T12:03:00.000Z",
         },
       };
 
@@ -316,84 +304,90 @@ describe('ReceiverController', () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
     });
 
-    it('should handle request errors gracefully', async () => {
+    it("should handle request errors gracefully", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['INVALID_SYMBOL'],
-        dataType: 'stock-quote',
+        symbols: ["INVALID_SYMBOL"],
+        dataType: "stock-quote",
       };
 
-      const error = new Error('Failed to fetch data from provider');
+      const error = new Error("Failed to fetch data from provider");
       receiverService.handleRequest.mockRejectedValue(error);
 
-      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow('Failed to fetch data from provider');
+      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow(
+        "Failed to fetch data from provider",
+      );
 
       expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        '数据请求处理失败',
+        "数据请求处理失败",
         {
-          error: 'Failed to fetch data from provider',
+          error: "Failed to fetch data from provider",
           stack: expect.any(String),
-          symbols: ['INVALID_SYMBOL'],
-          dataType: 'stock-quote',
-        }
+          symbols: ["INVALID_SYMBOL"],
+          dataType: "stock-quote",
+        },
       );
     });
 
-    it('should handle network timeout errors', async () => {
+    it("should handle network timeout errors", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['AAPL'],
-        dataType: 'stock-quote',
+        symbols: ["AAPL"],
+        dataType: "stock-quote",
         options: {
-          preferredProvider: 'longport',
+          preferredProvider: "longport",
         },
       };
 
-      const timeoutError = new Error('Request timeout');
-      timeoutError.name = 'TimeoutError';
+      const timeoutError = new Error("Request timeout");
+      timeoutError.name = "TimeoutError";
       receiverService.handleRequest.mockRejectedValue(timeoutError);
 
-      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow('Request timeout');
+      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow(
+        "Request timeout",
+      );
 
       expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        '数据请求处理失败',
+        "数据请求处理失败",
         expect.objectContaining({
-          error: 'Request timeout',
-          symbols: ['AAPL'],
-          dataType: 'stock-quote',
-        })
+          error: "Request timeout",
+          symbols: ["AAPL"],
+          dataType: "stock-quote",
+        }),
       );
     });
 
-    it('should handle service unavailable errors', async () => {
+    it("should handle service unavailable errors", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['700.HK'],
-        dataType: 'stock-basic-info',
+        symbols: ["700.HK"],
+        dataType: "stock-basic-info",
       };
 
-      const serviceError = new Error('Provider service unavailable');
-      serviceError.name = 'ServiceUnavailableError';
+      const serviceError = new Error("Provider service unavailable");
+      serviceError.name = "ServiceUnavailableError";
       receiverService.handleRequest.mockRejectedValue(serviceError);
 
-      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow('Provider service unavailable');
+      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow(
+        "Provider service unavailable",
+      );
 
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        '数据请求处理失败',
+        "数据请求处理失败",
         expect.objectContaining({
-          error: 'Provider service unavailable',
-          symbols: ['700.HK'],
-          dataType: 'stock-basic-info',
-        })
+          error: "Provider service unavailable",
+          symbols: ["700.HK"],
+          dataType: "stock-basic-info",
+        }),
       );
     });
 
-    it('should handle large symbol lists', async () => {
+    it("should handle large symbol lists", async () => {
       const manySymbols = Array.from({ length: 50 }, (_, i) => `STOCK${i}`);
       const dataRequest: DataRequestDto = {
         symbols: manySymbols,
-        dataType: 'stock-quote',
+        dataType: "stock-quote",
         options: {
-          preferredProvider: 'longport',
-          fields: ['lastPrice', 'market'],
+          preferredProvider: "longport",
+          fields: ["lastPrice", "market"],
         },
       };
 
@@ -401,14 +395,14 @@ describe('ReceiverController', () => {
         data: manySymbols.map((symbol, index) => ({
           symbol,
           lastPrice: 100 + index,
-          market: 'US',
+          market: "US",
         })),
         metadata: {
-          requestId: 'req_1704110400004_mno345',
-          provider: 'longport',
-          capability: 'get-stock-quote',
+          requestId: "req_1704110400004_mno345",
+          provider: "longport",
+          capability: "get-stock-quote",
           processingTime: 567,
-          timestamp: '2024-01-01T12:04:00.000Z',
+          timestamp: "2024-01-01T12:04:00.000Z",
         },
       };
 
@@ -418,44 +412,41 @@ describe('ReceiverController', () => {
 
       expect(result).toBe(batchResponse);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '接收数据请求',
-        {
-          symbols: manySymbols,
-          dataType: 'stock-quote',
-          options: {
-            preferredProvider: 'longport',
-            fields: ['lastPrice', 'market'],
-          },
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
+        symbols: manySymbols,
+        dataType: "stock-quote",
+        options: {
+          preferredProvider: "longport",
+          fields: ["lastPrice", "market"],
+        },
+      });
     });
 
-    it('should handle partial success responses', async () => {
+    it("should handle partial success responses", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['AAPL', 'INVALID', 'MSFT'],
-        dataType: 'stock-quote',
+        symbols: ["AAPL", "INVALID", "MSFT"],
+        dataType: "stock-quote",
       };
 
       const partialResponse: DataResponseDto = {
         data: [
           {
-            symbol: 'AAPL',
+            symbol: "AAPL",
             lastPrice: 195.89,
-            market: 'US',
+            market: "US",
           },
           {
-            symbol: 'MSFT',
+            symbol: "MSFT",
             lastPrice: 378.45,
-            market: 'US',
+            market: "US",
           },
         ],
         metadata: {
-          requestId: 'req_1704110400005_pqr678',
-          provider: 'longport',
-          capability: 'get-stock-quote',
+          requestId: "req_1704110400005_pqr678",
+          provider: "longport",
+          capability: "get-stock-quote",
           processingTime: 298,
-          timestamp: '2024-01-01T12:05:00.000Z',
+          timestamp: "2024-01-01T12:05:00.000Z",
           hasPartialFailures: true,
           totalRequested: 3,
           successfullyProcessed: 2,
@@ -467,42 +458,39 @@ describe('ReceiverController', () => {
       const result = await controller.handleDataRequest(dataRequest);
 
       expect(result).toBe(partialResponse);
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '数据请求处理完成',
-        {
-          requestId: 'req_1704110400005_pqr678',
-          success: false,
-          provider: 'longport',
-          processingTime: 298,
-          totalRequested: 3,
-          successfullyProcessed: 2,
-          hasPartialFailures: true,
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
+        requestId: "req_1704110400005_pqr678",
+        success: false,
+        provider: "longport",
+        processingTime: 298,
+        totalRequested: 3,
+        successfullyProcessed: 2,
+        hasPartialFailures: true,
+      });
     });
 
-    it('should handle requests with different data types', async () => {
+    it("should handle requests with different data types", async () => {
       const stockQuoteRequest: DataRequestDto = {
-        symbols: ['AAPL'],
-        dataType: 'stock-quote',
+        symbols: ["AAPL"],
+        dataType: "stock-quote",
       };
 
       const basicInfoRequest: DataRequestDto = {
-        symbols: ['700.HK'],
-        dataType: 'stock-basic-info',
+        symbols: ["700.HK"],
+        dataType: "stock-basic-info",
       };
 
       const indexQuoteRequest: DataRequestDto = {
-        symbols: ['HSI.HK'],
-        dataType: 'index-quote',
+        symbols: ["HSI.HK"],
+        dataType: "index-quote",
       };
 
       receiverService.handleRequest.mockImplementation((request) => {
         // 映射 dataType 到正确的 capability 名称
         const dataTypeToCapabilityMap: Record<string, string> = {
-          'stock-quote': 'get-stock-quote',
-          'stock-basic-info': 'get-stock-basic-info',
-          'index-quote': 'get-index-quote',
+          "stock-quote": "get-stock-quote",
+          "stock-basic-info": "get-stock-basic-info",
+          "index-quote": "get-index-quote",
         };
 
         return Promise.resolve({
@@ -510,8 +498,9 @@ describe('ReceiverController', () => {
           data: [{ symbol: request.symbols[0], dataType: request.dataType }],
           metadata: {
             requestId: `req_${Date.now()}`,
-            provider: 'longport',
-            capability: dataTypeToCapabilityMap[request.dataType] || request.dataType,
+            provider: "longport",
+            capability:
+              dataTypeToCapabilityMap[request.dataType] || request.dataType,
             processingTime: 100,
             timestamp: new Date().toISOString(),
           },
@@ -520,40 +509,46 @@ describe('ReceiverController', () => {
 
       // Test stock quote
       await controller.handleDataRequest(stockQuoteRequest);
-      expect(receiverService.handleRequest).toHaveBeenCalledWith(stockQuoteRequest);
+      expect(receiverService.handleRequest).toHaveBeenCalledWith(
+        stockQuoteRequest,
+      );
 
       // Test basic info
       await controller.handleDataRequest(basicInfoRequest);
-      expect(receiverService.handleRequest).toHaveBeenCalledWith(basicInfoRequest);
+      expect(receiverService.handleRequest).toHaveBeenCalledWith(
+        basicInfoRequest,
+      );
 
       // Test index quote
       await controller.handleDataRequest(indexQuoteRequest);
-      expect(receiverService.handleRequest).toHaveBeenCalledWith(indexQuoteRequest);
+      expect(receiverService.handleRequest).toHaveBeenCalledWith(
+        indexQuoteRequest,
+      );
 
       expect(receiverService.handleRequest).toHaveBeenCalledTimes(3);
     });
 
-    it('should handle requests with various options configurations', async () => {
+    it("should handle requests with various options configurations", async () => {
       const requestConfigs = [
         {
-          symbols: ['AAPL'],
-          dataType: 'stock-quote' as const,
-          options: { preferredProvider: 'longport' },
+          symbols: ["AAPL"],
+          dataType: "stock-quote" as const,
+          options: { preferredProvider: "longport" },
         },
         {
-          symbols: ['MSFT'],
-          dataType: 'stock-quote' as const,
-          options: { preferredProvider: 'futu', realtime: true },
+          symbols: ["MSFT"],
+          dataType: "stock-quote" as const,
+          options: { preferredProvider: "futu", realtime: true },
         },
         {
-          symbols: ['GOOGL'],
-          dataType: 'stock-quote' as const,
-          options: { market: 'US', realtime: false },
+          symbols: ["GOOGL"],
+          dataType: "stock-quote" as const,
+          options: { market: "US", realtime: false },
         },
         {
-          symbols: ['TSLA'],
-          dataType: 'stock-quote' as const,
-          options: { fields: ['lastPrice', 'volume'], realtime: true },
+          symbols: ["TSLA"],
+          dataType: "stock-quote" as const,
+          options: { fields: ["lastPrice", "volume"], realtime: true },
         },
       ];
 
@@ -562,13 +557,13 @@ describe('ReceiverController', () => {
           success: true,
           data: [],
           metadata: {
-            requestId: 'test',
-            provider: 'longport',
-            capability: 'get-stock-quote',
+            requestId: "test",
+            provider: "longport",
+            capability: "get-stock-quote",
             processingTime: 100,
             timestamp: new Date().toISOString(),
           },
-        })
+        }),
       );
 
       for (const config of requestConfigs) {
@@ -576,16 +571,18 @@ describe('ReceiverController', () => {
         expect(receiverService.handleRequest).toHaveBeenCalledWith(config);
       }
 
-      expect(receiverService.handleRequest).toHaveBeenCalledTimes(requestConfigs.length);
+      expect(receiverService.handleRequest).toHaveBeenCalledTimes(
+        requestConfigs.length,
+      );
     });
   });
 
-  describe('logging behavior', () => {
-    it('should log request and response details correctly', async () => {
+  describe("logging behavior", () => {
+    it("should log request and response details correctly", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['TEST'],
-        dataType: 'stock-quote',
-        options: { preferredProvider: 'longport' },
+        symbols: ["TEST"],
+        dataType: "stock-quote",
+        options: { preferredProvider: "longport" },
       };
 
       receiverService.handleRequest.mockResolvedValue(mockDataResponse);
@@ -593,47 +590,43 @@ describe('ReceiverController', () => {
       await controller.handleDataRequest(dataRequest);
 
       // Verify request logging
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '接收数据请求',
-        {
-          symbols: ['TEST'],
-          dataType: 'stock-quote',
-          options: { preferredProvider: 'longport' },
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
+        symbols: ["TEST"],
+        dataType: "stock-quote",
+        options: { preferredProvider: "longport" },
+      });
 
       // Verify success logging
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        '数据请求处理完成',
-        {
-          requestId: mockDataResponse.metadata.requestId,
-          success: true,
-          provider: mockDataResponse.metadata.provider,
-          processingTime: mockDataResponse.metadata.processingTime,
-        }
-      );
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
+        requestId: mockDataResponse.metadata.requestId,
+        success: true,
+        provider: mockDataResponse.metadata.provider,
+        processingTime: mockDataResponse.metadata.processingTime,
+      });
     });
 
-    it('should log error details correctly', async () => {
+    it("should log error details correctly", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ['ERROR_TEST'],
-        dataType: 'stock-quote',
+        symbols: ["ERROR_TEST"],
+        dataType: "stock-quote",
       };
 
-      const testError = new Error('Test error message');
-      testError.stack = 'Error stack trace';
+      const testError = new Error("Test error message");
+      testError.stack = "Error stack trace";
       receiverService.handleRequest.mockRejectedValue(testError);
 
-      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow('Test error message');
+      await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow(
+        "Test error message",
+      );
 
       expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        '数据请求处理失败',
+        "数据请求处理失败",
         {
-          error: 'Test error message',
-          stack: 'Error stack trace',
-          symbols: ['ERROR_TEST'],
-          dataType: 'stock-quote',
-        }
+          error: "Test error message",
+          stack: "Error stack trace",
+          symbols: ["ERROR_TEST"],
+          dataType: "stock-quote",
+        },
       );
     });
   });

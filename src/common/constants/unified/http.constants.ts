@@ -9,7 +9,7 @@
  * - 统一性：确保整个应用的错误消息风格一致
  */
 
-import { deepFreeze } from '@common/utils/object-immutability.util';
+import { deepFreeze } from "@common/utils/object-immutability.util";
 
 export const HTTP_CONSTANTS = deepFreeze({
   // HTTP状态码

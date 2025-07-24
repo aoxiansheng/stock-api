@@ -1,21 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Test, TestingModule } from "@nestjs/testing";
+import { getModelToken } from "@nestjs/mongoose";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from "@nestjs/common";
 
-import { AlertingService } from '../../../../../src/alert/services/alerting.service';
-import { RuleEngineService } from '../../../../../src/alert/services/rule-engine.service';
-import { NotificationService } from '../../../../../src/alert/services/notification.service';
-import { AlertHistoryService } from '../../../../../src/alert/services/alert-history.service';
-import { AlertRuleRepository } from '../../../../../src/alert/repositories/alert-rule.repository';
-import { AlertRule } from '../../../../../src/alert/schemas/alert-rule.schema';
-import { CacheService } from '../../../../../src/cache/cache.service';
-import { IAlertRule, IAlert } from '../../../../../src/alert/interfaces';
-import { AlertSeverity, AlertStatus, NotificationChannelType } from '../../../../../src/alert/types/alert.types';
-import { ConfigService } from '@nestjs/config';
+import { AlertingService } from "../../../../../src/alert/services/alerting.service";
+import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
+import { NotificationService } from "../../../../../src/alert/services/notification.service";
+import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
+import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
+import { AlertRule } from "../../../../../src/alert/schemas/alert-rule.schema";
+import { CacheService } from "../../../../../src/cache/cache.service";
+import { IAlertRule, IAlert } from "../../../../../src/alert/interfaces";
+import {
+  AlertSeverity,
+  AlertStatus,
+  NotificationChannelType,
+} from "../../../../../src/alert/types/alert.types";
+import { ConfigService } from "@nestjs/config";
 
-describe('AlertingService Enhanced Coverage', () => {
+describe("AlertingService Enhanced Coverage", () => {
   let service: AlertingService;
   let ruleEngineService: jest.Mocked<RuleEngineService>;
   let notificationService: jest.Mocked<NotificationService>;
@@ -25,36 +29,38 @@ describe('AlertingService Enhanced Coverage', () => {
   let cacheService: jest.Mocked<CacheService>;
 
   const mockRule: IAlertRule = {
-    id: 'test-rule',
-    name: 'Test Rule',
-    metric: 'test.metric',
-    operator: 'gt',
+    id: "test-rule",
+    name: "Test Rule",
+    metric: "test.metric",
+    operator: "gt",
     threshold: 100,
     duration: 60,
     severity: AlertSeverity.WARNING,
     enabled: true,
-    channels: [{ 
-      id: 'channel-1',
-      name: 'Test Channel',
-      type: NotificationChannelType.LOG, 
-      config: { level: 'warn' },
-      enabled: true
-    }],
+    channels: [
+      {
+        id: "channel-1",
+        name: "Test Channel",
+        type: NotificationChannelType.LOG,
+        config: { level: "warn" },
+        enabled: true,
+      },
+    ],
     cooldown: 300,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   const mockAlert: IAlert = {
-    id: 'test-alert',
-    ruleId: 'test-rule',
-    ruleName: 'Test Rule',
-    metric: 'test.metric',
+    id: "test-alert",
+    ruleId: "test-rule",
+    ruleName: "Test Rule",
+    metric: "test.metric",
     value: 120,
     threshold: 100,
     severity: AlertSeverity.WARNING,
     status: AlertStatus.FIRING,
-    message: 'Test alert message',
+    message: "Test alert message",
     startTime: new Date(),
   };
 
@@ -143,18 +149,18 @@ describe('AlertingService Enhanced Coverage', () => {
     const mockConfigService = {
       get: jest.fn().mockImplementation((key: string) => {
         const configs = {
-          'alert.cache': {
-            activeAlertPrefix: 'test_active_alert',
+          "alert.cache": {
+            activeAlertPrefix: "test_active_alert",
             activeAlertTtlSeconds: 3600,
-            cooldownPrefix: 'test_cooldown',
+            cooldownPrefix: "test_cooldown",
           },
-          'alert.processing': {
+          "alert.processing": {
             batchSize: 100,
             maxConcurrency: 10,
             retryAttempts: 3,
             retryDelay: 1000,
           },
-          'alert.notification': {
+          "alert.notification": {
             timeout: 5000,
             maxRetries: 3,
             backoffMultiplier: 2,
@@ -167,7 +173,10 @@ describe('AlertingService Enhanced Coverage', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AlertingService,
-        { provide: getModelToken(AlertRule.name), useValue: mockAlertRuleModel },
+        {
+          provide: getModelToken(AlertRule.name),
+          useValue: mockAlertRuleModel,
+        },
         { provide: AlertRuleRepository, useValue: mockAlertRuleRepository },
         { provide: RuleEngineService, useValue: mockRuleEngineService },
         { provide: NotificationService, useValue: mockNotificationService },
@@ -191,12 +200,12 @@ describe('AlertingService Enhanced Coverage', () => {
     jest.clearAllMocks();
   });
 
-  describe('Advanced Rule Management', () => {
-    it('should handle duplicate rule names', async () => {
+  describe("Advanced Rule Management", () => {
+    it("should handle duplicate rule names", async () => {
       const createRuleDto = {
-        name: 'Duplicate Rule',
-        metric: 'test.metric',
-        operator: 'gt' as const,
+        name: "Duplicate Rule",
+        metric: "test.metric",
+        operator: "gt" as const,
         threshold: 100,
         duration: 60,
         severity: AlertSeverity.WARNING,
@@ -205,17 +214,24 @@ describe('AlertingService Enhanced Coverage', () => {
         cooldown: 300,
       };
 
-      ruleEngineService.validateRule.mockReturnValue({ valid: true, errors: [] });
-      alertRuleRepository.create.mockRejectedValue(new ConflictException('Rule with this name already exists'));
+      ruleEngineService.validateRule.mockReturnValue({
+        valid: true,
+        errors: [],
+      });
+      alertRuleRepository.create.mockRejectedValue(
+        new ConflictException("Rule with this name already exists"),
+      );
 
-      await expect(service.createRule(createRuleDto)).rejects.toThrow(ConflictException);
+      await expect(service.createRule(createRuleDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
-    it('should validate rule thresholds', async () => {
+    it("should validate rule thresholds", async () => {
       const createRuleDto = {
-        name: 'Invalid Threshold Rule',
-        metric: 'test.metric',
-        operator: 'gt' as const,
+        name: "Invalid Threshold Rule",
+        metric: "test.metric",
+        operator: "gt" as const,
         threshold: -100, // Invalid negative threshold
         duration: 60,
         severity: AlertSeverity.WARNING,
@@ -224,15 +240,17 @@ describe('AlertingService Enhanced Coverage', () => {
         cooldown: 300,
       };
 
-      ruleEngineService.validateRule.mockReturnValue({ 
-        valid: false, 
-        errors: ['Threshold cannot be negative'] 
+      ruleEngineService.validateRule.mockReturnValue({
+        valid: false,
+        errors: ["Threshold cannot be negative"],
       });
 
-      await expect(service.createRule(createRuleDto)).rejects.toThrow(BadRequestException);
+      await expect(service.createRule(createRuleDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
-    it('should handle batch rule operations', async () => {
+    it("should handle batch rule operations", async () => {
       // Mock bulk update functionality (this would be implementation-specific)
       const updateData = { enabled: false };
       const result = { modifiedCount: 3 };
@@ -240,11 +258,11 @@ describe('AlertingService Enhanced Coverage', () => {
       expect(result.modifiedCount).toBe(3);
     });
 
-    it('should find rules by metric pattern', async () => {
-      const metricPattern = 'cpu.*';
+    it("should find rules by metric pattern", async () => {
+      const metricPattern = "cpu.*";
       const matchingRules = [
-        { ...mockRule, metric: 'cpu.usage' },
-        { ...mockRule, metric: 'cpu.load' },
+        { ...mockRule, metric: "cpu.usage" },
+        { ...mockRule, metric: "cpu.load" },
       ];
 
       // Mock finding rules by metric pattern (this would be implementation-specific)
@@ -253,17 +271,20 @@ describe('AlertingService Enhanced Coverage', () => {
       expect(result).toEqual(matchingRules);
     });
 
-    it('should handle complex rule conditions', async () => {
+    it("should handle complex rule conditions", async () => {
       const complexRule = {
         ...mockRule,
         conditions: [
-          { metric: 'cpu.usage', operator: 'gt', threshold: 80 },
-          { metric: 'memory.usage', operator: 'gt', threshold: 90 },
+          { metric: "cpu.usage", operator: "gt", threshold: 80 },
+          { metric: "memory.usage", operator: "gt", threshold: 90 },
         ],
-        logic: 'AND',
+        logic: "AND",
       };
 
-      ruleEngineService.validateRule.mockReturnValue({ valid: true, errors: [] });
+      ruleEngineService.validateRule.mockReturnValue({
+        valid: true,
+        errors: [],
+      });
       alertRuleRepository.create.mockResolvedValue(complexRule);
 
       const result = await service.createRule(complexRule);
@@ -274,8 +295,8 @@ describe('AlertingService Enhanced Coverage', () => {
     });
   });
 
-  describe('Advanced Alert Processing', () => {
-    it('should handle concurrent metric processing', async () => {
+  describe("Advanced Alert Processing", () => {
+    it("should handle concurrent metric processing", async () => {
       const concurrentMetrics = Array.from({ length: 50 }, (_, i) => ({
         metric: `test.metric.${i}`,
         value: 120 + i,
@@ -301,22 +322,25 @@ describe('AlertingService Enhanced Coverage', () => {
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(5000); // Should complete within 5 seconds
-      expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith([mockRule], concurrentMetrics);
+      expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith(
+        [mockRule],
+        concurrentMetrics,
+      );
     });
 
-    it('should handle alert deduplication', async () => {
+    it("should handle alert deduplication", async () => {
       const duplicateMetrics = [
-        { metric: 'test.metric', value: 120, timestamp: new Date() },
-        { metric: 'test.metric', value: 120, timestamp: new Date() },
-        { metric: 'test.metric', value: 120, timestamp: new Date() },
+        { metric: "test.metric", value: 120, timestamp: new Date() },
+        { metric: "test.metric", value: 120, timestamp: new Date() },
+        { metric: "test.metric", value: 120, timestamp: new Date() },
       ];
 
       const evaluationResult = {
-        ruleId: 'test-rule',
+        ruleId: "test-rule",
         triggered: true,
         value: 120,
         threshold: 100,
-        message: 'Alert triggered',
+        message: "Alert triggered",
         evaluatedAt: new Date(),
       };
 
@@ -332,7 +356,7 @@ describe('AlertingService Enhanced Coverage', () => {
       expect(alertHistoryService.createAlert).toHaveBeenCalledTimes(1);
     });
 
-    it.skip('should handle alert escalation', async () => {
+    it.skip("should handle alert escalation", async () => {
       const escalatingAlert = {
         ...mockAlert,
         severity: AlertSeverity.WARNING,
@@ -363,23 +387,48 @@ describe('AlertingService Enhanced Coverage', () => {
       };
 
       expect(result.severity).toBe(AlertSeverity.CRITICAL);
-      expect(eventEmitter.emit).toHaveBeenCalledWith('alert.escalated', expect.any(Object));
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        "alert.escalated",
+        expect.any(Object),
+      );
     });
 
-    it.skip('should handle alert grouping', async () => {
+    it.skip("should handle alert grouping", async () => {
       const groupedMetrics = [
-        { metric: 'server1.cpu.usage', value: 95, timestamp: new Date(), host: 'server1' },
-        { metric: 'server1.memory.usage', value: 90, timestamp: new Date(), host: 'server1' },
-        { metric: 'server2.cpu.usage', value: 85, timestamp: new Date(), host: 'server2' },
+        {
+          metric: "server1.cpu.usage",
+          value: 95,
+          timestamp: new Date(),
+          host: "server1",
+        },
+        {
+          metric: "server1.memory.usage",
+          value: 90,
+          timestamp: new Date(),
+          host: "server1",
+        },
+        {
+          metric: "server2.cpu.usage",
+          value: 85,
+          timestamp: new Date(),
+          host: "server2",
+        },
       ];
 
       const groupingRules = [
-        { ...mockRule, groupBy: ['host'], groupWindow: 300 },
+        { ...mockRule, groupBy: ["host"], groupWindow: 300 },
       ];
 
       alertRuleRepository.findAllEnabled.mockResolvedValue(groupingRules);
       ruleEngineService.evaluateRules.mockReturnValue([
-        { ruleId: 'test-rule', triggered: true, value: 95, threshold: 80, message: 'Server1 alerts', evaluatedAt: new Date() },
+        {
+          ruleId: "test-rule",
+          triggered: true,
+          value: 95,
+          threshold: 80,
+          message: "Server1 alerts",
+          evaluatedAt: new Date(),
+        },
       ]);
       alertHistoryService.createAlert.mockResolvedValue(mockAlert);
 
@@ -387,29 +436,31 @@ describe('AlertingService Enhanced Coverage', () => {
 
       expect(alertHistoryService.createAlert).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining('Server1'),
+          message: expect.stringContaining("Server1"),
           groupedAlerts: expect.arrayContaining([
-            expect.objectContaining({ host: 'server1' }),
+            expect.objectContaining({ host: "server1" }),
           ]),
-        })
+        }),
       );
     });
   });
 
-  describe('Advanced Notification Handling', () => {
-    it.skip('should handle notification failures with retry', async () => {
-      const metricData = [{
-        metric: 'test.metric',
-        value: 120,
-        timestamp: new Date(),
-      }];
+  describe("Advanced Notification Handling", () => {
+    it.skip("should handle notification failures with retry", async () => {
+      const metricData = [
+        {
+          metric: "test.metric",
+          value: 120,
+          timestamp: new Date(),
+        },
+      ];
 
       const evaluationResult = {
-        ruleId: 'test-rule',
+        ruleId: "test-rule",
         triggered: true,
         value: 120,
         threshold: 100,
-        message: 'Alert triggered',
+        message: "Alert triggered",
         evaluatedAt: new Date(),
       };
 
@@ -417,32 +468,42 @@ describe('AlertingService Enhanced Coverage', () => {
       ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
       ruleEngineService.isInCooldown.mockResolvedValue(false);
       alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-      
+
       // Mock notification failure then success
       notificationService.sendBatchNotifications
-        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockRejectedValueOnce(new Error("Network timeout"))
         .mockResolvedValueOnce({
           total: 1,
           successful: 1,
           failed: 0,
-          results: [{ success: true, channelId: 'channel-1', channelType: NotificationChannelType.LOG, sentAt: new Date(), duration: 100 }],
+          results: [
+            {
+              success: true,
+              channelId: "channel-1",
+              channelType: NotificationChannelType.LOG,
+              sentAt: new Date(),
+              duration: 100,
+            },
+          ],
           duration: 100,
         });
 
       await service.processMetrics(metricData);
 
-      expect(notificationService.sendBatchNotifications).toHaveBeenCalledTimes(2);
+      expect(notificationService.sendBatchNotifications).toHaveBeenCalledTimes(
+        2,
+      );
     });
 
-    it.skip('should handle notification rate limiting', async () => {
+    it.skip("should handle notification rate limiting", async () => {
       const rapidMetrics = Array.from({ length: 100 }, (_, i) => ({
-        metric: 'test.metric',
+        metric: "test.metric",
         value: 120 + i,
         timestamp: new Date(Date.now() + i * 1000),
       }));
 
       const evaluationResults = rapidMetrics.map((_, i) => ({
-        ruleId: 'test-rule',
+        ruleId: "test-rule",
         triggered: true,
         value: 120 + i,
         threshold: 100,
@@ -457,13 +518,21 @@ describe('AlertingService Enhanced Coverage', () => {
 
       // Mock rate limiting after 10 notifications
       let notificationCount = 0;
-      notificationService.sendBatchNotifications.mockImplementation(async () => {
-        notificationCount++;
-        if (notificationCount > 10) {
-          throw new Error('Rate limit exceeded');
-        }
-        return { total: 1, successful: 1, failed: 0, results: [], duration: 100 };
-      });
+      notificationService.sendBatchNotifications.mockImplementation(
+        async () => {
+          notificationCount++;
+          if (notificationCount > 10) {
+            throw new Error("Rate limit exceeded");
+          }
+          return {
+            total: 1,
+            successful: 1,
+            failed: 0,
+            results: [],
+            duration: 100,
+          };
+        },
+      );
 
       await service.processMetrics(rapidMetrics);
 
@@ -472,24 +541,29 @@ describe('AlertingService Enhanced Coverage', () => {
       expect(notificationCount).toBeGreaterThan(10);
     });
 
-    it('should handle channel health monitoring', async () => {
+    it("should handle channel health monitoring", async () => {
       const channelHealth = [
-        { channelId: 'channel-1', isHealthy: true, lastCheck: new Date() },
-        { channelId: 'channel-2', isHealthy: false, lastCheck: new Date(), error: 'Connection timeout' },
-        { channelId: 'channel-3', isHealthy: true, lastCheck: new Date() },
+        { channelId: "channel-1", isHealthy: true, lastCheck: new Date() },
+        {
+          channelId: "channel-2",
+          isHealthy: false,
+          lastCheck: new Date(),
+          error: "Connection timeout",
+        },
+        { channelId: "channel-3", isHealthy: true, lastCheck: new Date() },
       ];
 
       // Mock channel health status (this would be implementation-specific)
       const result = channelHealth;
 
       expect(result).toEqual(channelHealth);
-      expect(result.filter(ch => ch.isHealthy)).toHaveLength(2);
-      expect(result.filter(ch => !ch.isHealthy)).toHaveLength(1);
+      expect(result.filter((ch) => ch.isHealthy)).toHaveLength(2);
+      expect(result.filter((ch) => !ch.isHealthy)).toHaveLength(1);
     });
   });
 
-  describe('Performance and Optimization', () => {
-    it('should handle memory-intensive operations', async () => {
+  describe("Performance and Optimization", () => {
+    it("should handle memory-intensive operations", async () => {
       const largeMetricSet = Array.from({ length: 10000 }, (_, i) => ({
         metric: `metric.${i % 100}`,
         value: Math.random() * 1000,
@@ -497,7 +571,7 @@ describe('AlertingService Enhanced Coverage', () => {
         tags: {
           host: `server-${i % 50}`,
           service: `service-${i % 20}`,
-          environment: i % 2 === 0 ? 'prod' : 'staging',
+          environment: i % 2 === 0 ? "prod" : "staging",
         },
       }));
 
@@ -528,16 +602,16 @@ describe('AlertingService Enhanced Coverage', () => {
       expect(memAfter - memBefore).toBeLessThan(100 * 1024 * 1024); // Less than 100MB increase
     });
 
-    it('should handle high-frequency rule evaluations', async () => {
+    it("should handle high-frequency rule evaluations", async () => {
       const highFrequencyMetrics = Array.from({ length: 1000 }, (_, i) => ({
-        metric: 'high.frequency.metric',
+        metric: "high.frequency.metric",
         value: 50 + Math.sin(i / 10) * 50, // Oscillating values
         timestamp: new Date(Date.now() + i * 10), // Every 10ms
       }));
 
       const highFrequencyRule = {
         ...mockRule,
-        metric: 'high.frequency.metric',
+        metric: "high.frequency.metric",
         threshold: 75,
         duration: 1, // 1 second duration
       };
@@ -545,13 +619,13 @@ describe('AlertingService Enhanced Coverage', () => {
       alertRuleRepository.findAllEnabled.mockResolvedValue([highFrequencyRule]);
       ruleEngineService.evaluateRules.mockImplementation((rules, metrics) => {
         return metrics
-          .filter(m => m.value > 75)
-          .map(metric => ({
-            ruleId: 'test-rule',
+          .filter((m) => m.value > 75)
+          .map((metric) => ({
+            ruleId: "test-rule",
             triggered: true,
             value: metric.value,
             threshold: 75,
-            message: 'High frequency alert',
+            message: "High frequency alert",
             evaluatedAt: new Date(),
           }));
       });
@@ -565,27 +639,36 @@ describe('AlertingService Enhanced Coverage', () => {
     });
   });
 
-  describe('Error Recovery and Resilience', () => {
-    it.skip('should handle database connection failures', async () => {
-      const metricData = [{
-        metric: 'test.metric',
-        value: 120,
-        timestamp: new Date(),
-      }];
+  describe("Error Recovery and Resilience", () => {
+    it.skip("should handle database connection failures", async () => {
+      const metricData = [
+        {
+          metric: "test.metric",
+          value: 120,
+          timestamp: new Date(),
+        },
+      ];
 
-      alertRuleRepository.findAllEnabled.mockRejectedValue(new Error('Database connection lost'));
+      alertRuleRepository.findAllEnabled.mockRejectedValue(
+        new Error("Database connection lost"),
+      );
 
       // Should not throw error, but should log it
-      await expect(service.processMetrics(metricData)).rejects.toThrow('Database connection lost');
-      
+      await expect(service.processMetrics(metricData)).rejects.toThrow(
+        "Database connection lost",
+      );
+
       // Verify error was handled gracefully
-      expect(eventEmitter.emit).toHaveBeenCalledWith('alert.error', expect.objectContaining({
-        error: expect.any(Error),
-        context: 'processMetrics',
-      }));
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        "alert.error",
+        expect.objectContaining({
+          error: expect.any(Error),
+          context: "processMetrics",
+        }),
+      );
     });
 
-    it.skip('should handle corrupted rule data', async () => {
+    it.skip("should handle corrupted rule data", async () => {
       const corruptedRule = {
         ...mockRule,
         threshold: null, // Corrupted threshold
@@ -593,60 +676,72 @@ describe('AlertingService Enhanced Coverage', () => {
       };
 
       alertRuleRepository.findAllEnabled.mockResolvedValue([corruptedRule]);
-      ruleEngineService.validateRule.mockReturnValue({ 
-        valid: false, 
-        errors: ['Invalid threshold', 'Missing operator'] 
+      ruleEngineService.validateRule.mockReturnValue({
+        valid: false,
+        errors: ["Invalid threshold", "Missing operator"],
       });
 
-      const metricData = [{
-        metric: 'test.metric',
-        value: 120,
-        timestamp: new Date(),
-      }];
+      const metricData = [
+        {
+          metric: "test.metric",
+          value: 120,
+          timestamp: new Date(),
+        },
+      ];
 
       await service.processMetrics(metricData);
 
       // Should skip corrupted rules and continue processing
-      expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith([], metricData);
+      expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith(
+        [],
+        metricData,
+      );
     });
 
-    it.skip('should handle partial system failures', async () => {
-      const metricData = [{
-        metric: 'test.metric',
-        value: 120,
-        timestamp: new Date(),
-      }];
+    it.skip("should handle partial system failures", async () => {
+      const metricData = [
+        {
+          metric: "test.metric",
+          value: 120,
+          timestamp: new Date(),
+        },
+      ];
 
       const evaluationResult = {
-        ruleId: 'test-rule',
+        ruleId: "test-rule",
         triggered: true,
         value: 120,
         threshold: 100,
-        message: 'Alert triggered',
+        message: "Alert triggered",
         evaluatedAt: new Date(),
       };
 
       alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
       ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
       ruleEngineService.isInCooldown.mockResolvedValue(false);
-      
+
       // Alert creation succeeds
       alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-      
+
       // But notification fails
-      notificationService.sendBatchNotifications.mockRejectedValue(new Error('Notification service down'));
+      notificationService.sendBatchNotifications.mockRejectedValue(
+        new Error("Notification service down"),
+      );
 
       await service.processMetrics(metricData);
 
       // Alert should still be created even if notification fails
       expect(alertHistoryService.createAlert).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith('alert.notification.failed', expect.any(Object));
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        "alert.notification.failed",
+        expect.any(Object),
+      );
     });
   });
 
-  describe('Cache Management', () => {
-    it.skip('should manage alert cache effectively', async () => {
-      const cacheKey = 'active_alert:test-rule';
+  describe("Cache Management", () => {
+    it.skip("should manage alert cache effectively", async () => {
+      const cacheKey = "active_alert:test-rule";
       const cachedAlert = { ...mockAlert, cached: true };
 
       cacheService.get.mockResolvedValue(JSON.stringify(cachedAlert));
@@ -658,27 +753,27 @@ describe('AlertingService Enhanced Coverage', () => {
       expect(result).toEqual(cachedAlert);
     });
 
-    it.skip('should handle cache eviction policies', async () => {
+    it.skip("should handle cache eviction policies", async () => {
       const expiredKeys = [
-        'active_alert:rule-1',
-        'active_alert:rule-2',
-        'active_alert:rule-3',
+        "active_alert:rule-1",
+        "active_alert:rule-2",
+        "active_alert:rule-3",
       ];
 
       // Mock cache cleanup (this would be implementation-specific)
       const expiredCount = 1;
-      
+
       expect(expiredCount).toBe(1);
 
-      expect(cacheService.del).toHaveBeenCalledWith('active_alert:rule-1');
+      expect(cacheService.del).toHaveBeenCalledWith("active_alert:rule-1");
       expect(cacheService.del).toHaveBeenCalledTimes(1); // Only expired key
     });
 
-    it('should handle cache warming', async () => {
+    it("should handle cache warming", async () => {
       const activeAlerts = [
-        { ...mockAlert, id: 'alert-1', ruleId: 'rule-1' },
-        { ...mockAlert, id: 'alert-2', ruleId: 'rule-2' },
-        { ...mockAlert, id: 'alert-3', ruleId: 'rule-3' },
+        { ...mockAlert, id: "alert-1", ruleId: "rule-1" },
+        { ...mockAlert, id: "alert-2", ruleId: "rule-2" },
+        { ...mockAlert, id: "alert-3", ruleId: "rule-3" },
       ];
 
       alertHistoryService.getActiveAlerts.mockResolvedValue(activeAlerts);
@@ -690,8 +785,8 @@ describe('AlertingService Enhanced Coverage', () => {
     });
   });
 
-  describe('Metrics and Monitoring', () => {
-    it.skip('should track processing metrics', async () => {
+  describe("Metrics and Monitoring", () => {
+    it.skip("should track processing metrics", async () => {
       const metricData = Array.from({ length: 100 }, (_, i) => ({
         metric: `test.metric.${i}`,
         value: 120,
@@ -707,24 +802,27 @@ describe('AlertingService Enhanced Coverage', () => {
 
       const processingTime = endTime - startTime;
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith('alert.metrics.processed', {
-        metricCount: 100,
-        processingTime,
-        rulesEvaluated: 1,
-        alertsTriggered: 0,
-      });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        "alert.metrics.processed",
+        {
+          metricCount: 100,
+          processingTime,
+          rulesEvaluated: 1,
+          alertsTriggered: 0,
+        },
+      );
     });
 
-    it.skip('should monitor rule performance', async () => {
+    it.skip("should monitor rule performance", async () => {
       const performanceRule = {
         ...mockRule,
-        id: 'performance-rule',
-        metric: 'response.time',
+        id: "performance-rule",
+        metric: "response.time",
         threshold: 1000,
       };
 
       const slowMetrics = Array.from({ length: 50 }, (_, i) => ({
-        metric: 'response.time',
+        metric: "response.time",
         value: 1500 + i * 10, // All above threshold
         timestamp: new Date(Date.now() + i * 1000),
       }));
@@ -732,7 +830,7 @@ describe('AlertingService Enhanced Coverage', () => {
       alertRuleRepository.findAllEnabled.mockResolvedValue([performanceRule]);
       ruleEngineService.evaluateRules.mockImplementation((rules, metrics) => {
         return metrics.map((metric, i) => ({
-          ruleId: 'performance-rule',
+          ruleId: "performance-rule",
           triggered: metric.value > 1000,
           value: metric.value,
           threshold: 1000,
@@ -745,8 +843,8 @@ describe('AlertingService Enhanced Coverage', () => {
 
       await service.processMetrics(slowMetrics);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith('alert.rule.performance', {
-        ruleId: 'performance-rule',
+      expect(eventEmitter.emit).toHaveBeenCalledWith("alert.rule.performance", {
+        ruleId: "performance-rule",
         averageEvaluationTime: expect.any(Number),
         maxEvaluationTime: expect.any(Number),
         totalEvaluations: 50,
@@ -754,7 +852,7 @@ describe('AlertingService Enhanced Coverage', () => {
     });
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

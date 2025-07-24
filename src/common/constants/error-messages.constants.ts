@@ -235,7 +235,8 @@ export class ErrorMessageUtil {
         );
       case ErrorMessageType.HTTP:
         return (
-          HTTP_ERROR_MESSAGES[key] || HTTP_ERROR_MESSAGES.HTTP_INTERNAL_SERVER_ERROR
+          HTTP_ERROR_MESSAGES[key] ||
+          HTTP_ERROR_MESSAGES.HTTP_INTERNAL_SERVER_ERROR
         );
       default:
         return ERROR_MESSAGES[key] || AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS;

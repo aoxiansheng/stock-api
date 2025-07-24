@@ -1,14 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Request, Response } from 'express';
-import { RateLimitGuard, RATE_LIMIT_KEY } from '../../../../../src/auth/guards/rate-limit.guard';
-import { RateLimitService } from '../../../../../src/auth/services/rate-limit.service';
-import { RateLimitStrategy } from '../../../../../src/common/constants/rate-limit.constants';
-import { RateLimitConfig } from '../../../../../src/auth/interfaces/rate-limit.interface';
-import { ApiKeyDocument, ApiKey } from '../../../../../src/auth/schemas/apikey.schema';
-import { Permission } from '../../../../../src/auth/enums/user-role.enum';
-import { Types } from 'mongoose';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Request, Response } from "express";
+import {
+  RateLimitGuard,
+  RATE_LIMIT_KEY,
+} from "../../../../../src/auth/guards/rate-limit.guard";
+import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
+import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
+import { RateLimitConfig } from "../../../../../src/auth/interfaces/rate-limit.interface";
+import {
+  ApiKeyDocument,
+  ApiKey,
+} from "../../../../../src/auth/schemas/apikey.schema";
+import { Permission } from "../../../../../src/auth/enums/user-role.enum";
+import { Types } from "mongoose";
 
 // Mock createLogger
 const mockLoggerInstance = {
@@ -19,11 +30,11 @@ const mockLoggerInstance = {
   verbose: jest.fn(),
 };
 
-jest.mock('../../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
 }));
 
-describe('RateLimitGuard', () => {
+describe("RateLimitGuard", () => {
   let guard: RateLimitGuard;
   let rateLimitService: jest.Mocked<RateLimitService>;
   let reflector: jest.Mocked<Reflector>;
@@ -33,15 +44,15 @@ describe('RateLimitGuard', () => {
   let mockLogger: any;
 
   const mockApiKey = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
-    appKey: 'test-app-key',
-    accessToken: 'test-access-token',
-    name: 'Test API Key',
-    userId: new Types.ObjectId('607f1f77bcf86cd799439011'),
+    _id: new Types.ObjectId("507f1f77bcf86cd799439011"),
+    appKey: "test-app-key",
+    accessToken: "test-access-token",
+    name: "Test API Key",
+    userId: new Types.ObjectId("607f1f77bcf86cd799439011"),
     permissions: [Permission.DATA_READ],
     rateLimit: {
       requests: 100,
-      window: '1h',
+      window: "1h",
     },
     isActive: true,
     usageCount: 10,
@@ -82,8 +93,8 @@ describe('RateLimitGuard', () => {
         { provide: Reflector, useValue: mockReflector },
       ],
     })
-    .setLogger(new Logger())
-    .compile();
+      .setLogger(new Logger())
+      .compile();
 
     guard = module.get<RateLimitGuard>(RateLimitGuard);
     rateLimitService = module.get(RateLimitService);
@@ -92,8 +103,8 @@ describe('RateLimitGuard', () => {
     // Mock execution context
     request = {
       user: mockApiKey,
-      ip: '127.0.0.1',
-      get: jest.fn().mockReturnValue('test-user-agent'),
+      ip: "127.0.0.1",
+      get: jest.fn().mockReturnValue("test-user-agent"),
     } as any;
 
     response = {
@@ -124,12 +135,12 @@ describe('RateLimitGuard', () => {
     }
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(guard).toBeDefined();
   });
 
-  describe('canActivate', () => {
-    it('should allow request when rate limit check passes', async () => {
+  describe("canActivate", () => {
+    it("should allow request when rate limit check passes", async () => {
       rateLimitService.checkRateLimit.mockResolvedValue(mockRateLimitResult);
       reflector.getAllAndOverride.mockReturnValue({});
 
@@ -138,14 +149,23 @@ describe('RateLimitGuard', () => {
       expect(result).toBe(true);
       expect(rateLimitService.checkRateLimit).toHaveBeenCalledWith(
         mockApiKey,
-        RateLimitStrategy.FIXED_WINDOW
+        RateLimitStrategy.FIXED_WINDOW,
       );
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Limit', 100);
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Remaining', 90);
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Reset', expect.any(Number));
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Limit",
+        100,
+      );
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Remaining",
+        90,
+      );
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Reset",
+        expect.any(Number),
+      );
     });
 
-    it('should allow request when API key is not present', async () => {
+    it("should allow request when API key is not present", async () => {
       request.user = null;
 
       const result = await guard.canActivate(executionContext);
@@ -154,7 +174,7 @@ describe('RateLimitGuard', () => {
       expect(rateLimitService.checkRateLimit).not.toHaveBeenCalled();
     });
 
-    it('should allow request when API key has no rate limit configuration', async () => {
+    it("should allow request when API key has no rate limit configuration", async () => {
       const apiKeyWithoutRateLimit = { ...mockApiKey, rateLimit: undefined };
       request.user = apiKeyWithoutRateLimit;
 
@@ -164,7 +184,7 @@ describe('RateLimitGuard', () => {
       expect(rateLimitService.checkRateLimit).not.toHaveBeenCalled();
     });
 
-    it('should throw HttpException when rate limit is exceeded', async () => {
+    it("should throw HttpException when rate limit is exceeded", async () => {
       const rateLimitExceeded = {
         ...mockRateLimitResult,
         allowed: false,
@@ -176,8 +196,12 @@ describe('RateLimitGuard', () => {
       rateLimitService.checkRateLimit.mockResolvedValue(rateLimitExceeded);
       reflector.getAllAndOverride.mockReturnValue({});
 
-      await expect(guard.canActivate(executionContext)).rejects.toThrow(HttpException);
-      await expect(guard.canActivate(executionContext)).rejects.toThrow('API Key请求频率超出限制');
+      await expect(guard.canActivate(executionContext)).rejects.toThrow(
+        HttpException,
+      );
+      await expect(guard.canActivate(executionContext)).rejects.toThrow(
+        "API Key请求频率超出限制",
+      );
 
       try {
         await guard.canActivate(executionContext);
@@ -185,8 +209,8 @@ describe('RateLimitGuard', () => {
         expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
         expect(error.getResponse()).toMatchObject({
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: 'API Key请求频率超出限制',
-          error: 'Too Many Requests',
+          message: "API Key请求频率超出限制",
+          error: "Too Many Requests",
           details: {
             limit: 100,
             current: 101,
@@ -198,7 +222,7 @@ describe('RateLimitGuard', () => {
       }
     });
 
-    it('should use custom rate limit strategy from decorator', async () => {
+    it("should use custom rate limit strategy from decorator", async () => {
       const config: RateLimitConfig = {
         strategy: RateLimitStrategy.SLIDING_WINDOW,
       };
@@ -210,11 +234,11 @@ describe('RateLimitGuard', () => {
 
       expect(rateLimitService.checkRateLimit).toHaveBeenCalledWith(
         mockApiKey,
-        RateLimitStrategy.SLIDING_WINDOW
+        RateLimitStrategy.SLIDING_WINDOW,
       );
     });
 
-    it('should set Retry-After header when rate limit is exceeded and retryAfter is provided', async () => {
+    it("should set Retry-After header when rate limit is exceeded and retryAfter is provided", async () => {
       const rateLimitExceeded = {
         ...mockRateLimitResult,
         allowed: false,
@@ -230,35 +254,42 @@ describe('RateLimitGuard', () => {
         // The exception should be thrown, but headers should still be set
       }
 
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-Retry-After', 300);
+      expect(response.setHeader).toHaveBeenCalledWith("X-API-Retry-After", 300);
     });
 
-    it('should allow request when rate limit service throws an error', async () => {
-      rateLimitService.checkRateLimit.mockRejectedValue(new Error('Redis connection failed'));
+    it("should allow request when rate limit service throws an error", async () => {
+      rateLimitService.checkRateLimit.mockRejectedValue(
+        new Error("Redis connection failed"),
+      );
       reflector.getAllAndOverride.mockReturnValue({});
 
       const result = await guard.canActivate(executionContext);
 
       expect(result).toBe(true);
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('频率限制检查失败'),
+        expect.stringContaining("频率限制检查失败"),
         expect.any(String),
         expect.objectContaining({
-          appKey: 'test-app-key',
-          ip: '127.0.0.1',
+          appKey: "test-app-key",
+          ip: "127.0.0.1",
         }),
       );
     });
 
-    it('should re-throw HttpException when rate limit service throws HttpException', async () => {
-      const httpException = new HttpException('Rate limit error', HttpStatus.INTERNAL_SERVER_ERROR);
+    it("should re-throw HttpException when rate limit service throws HttpException", async () => {
+      const httpException = new HttpException(
+        "Rate limit error",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
       rateLimitService.checkRateLimit.mockRejectedValue(httpException);
       reflector.getAllAndOverride.mockReturnValue({});
 
-      await expect(guard.canActivate(executionContext)).rejects.toThrow(httpException);
+      await expect(guard.canActivate(executionContext)).rejects.toThrow(
+        httpException,
+      );
     });
 
-    it('should get rate limit configuration from method and class decorators', async () => {
+    it("should get rate limit configuration from method and class decorators", async () => {
       const mockConfig: RateLimitConfig = {
         strategy: RateLimitStrategy.SLIDING_WINDOW,
         skipSuccessfulRequests: true,
@@ -275,11 +306,11 @@ describe('RateLimitGuard', () => {
       ]);
       expect(rateLimitService.checkRateLimit).toHaveBeenCalledWith(
         mockApiKey,
-        RateLimitStrategy.SLIDING_WINDOW
+        RateLimitStrategy.SLIDING_WINDOW,
       );
     });
 
-    it('should handle missing reflector configuration gracefully', async () => {
+    it("should handle missing reflector configuration gracefully", async () => {
       reflector.getAllAndOverride.mockReturnValue(null);
       rateLimitService.checkRateLimit.mockResolvedValue(mockRateLimitResult);
 
@@ -288,11 +319,11 @@ describe('RateLimitGuard', () => {
       expect(result).toBe(true);
       expect(rateLimitService.checkRateLimit).toHaveBeenCalledWith(
         mockApiKey,
-        RateLimitStrategy.FIXED_WINDOW
+        RateLimitStrategy.FIXED_WINDOW,
       );
     });
 
-    it('should log appropriate debug and warning messages', async () => {
+    it("should log appropriate debug and warning messages", async () => {
       const rateLimitExceeded = {
         ...mockRateLimitResult,
         allowed: false,
@@ -309,21 +340,21 @@ describe('RateLimitGuard', () => {
         // Expected to throw
       }
 
-      expect(mockLogger.log).toHaveBeenCalledWith('频率限制守卫被调用');
+      expect(mockLogger.log).toHaveBeenCalledWith("频率限制守卫被调用");
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('频率限制守卫 - API Key')
+        expect.stringContaining("频率限制守卫 - API Key"),
       );
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('频率限制超出'),
+        expect.stringContaining("频率限制超出"),
         expect.objectContaining({
-          appKey: 'test-app-key',
+          appKey: "test-app-key",
           limit: 100,
           current: 101,
-        })
+        }),
       );
     });
 
-    it('should handle case when API key has empty rate limit object', async () => {
+    it("should handle case when API key has empty rate limit object", async () => {
       const apiKeyWithEmptyRateLimit = { ...mockApiKey, rateLimit: {} as any };
       request.user = apiKeyWithEmptyRateLimit;
       rateLimitService.checkRateLimit.mockResolvedValue(mockRateLimitResult);
@@ -336,9 +367,10 @@ describe('RateLimitGuard', () => {
       expect(rateLimitService.checkRateLimit).toHaveBeenCalled();
     });
 
-    it('should handle different user agent headers', async () => {
+    it("should handle different user agent headers", async () => {
       request.get = jest.fn().mockImplementation((header: string) => {
-        if (header.toLowerCase() === 'user-agent') return 'Custom-User-Agent/1.0';
+        if (header.toLowerCase() === "user-agent")
+          return "Custom-User-Agent/1.0";
         return undefined;
       });
 
@@ -359,31 +391,38 @@ describe('RateLimitGuard', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          userAgent: 'Custom-User-Agent/1.0',
-        })
+          userAgent: "Custom-User-Agent/1.0",
+        }),
       );
     });
 
-    it('should handle rate limit result without retryAfter', async () => {
+    it("should handle rate limit result without retryAfter", async () => {
       const resultWithoutRetryAfter = {
         ...mockRateLimitResult,
         retryAfter: undefined,
       };
 
-      rateLimitService.checkRateLimit.mockResolvedValue(resultWithoutRetryAfter);
+      rateLimitService.checkRateLimit.mockResolvedValue(
+        resultWithoutRetryAfter,
+      );
       reflector.getAllAndOverride.mockReturnValue({});
 
       await guard.canActivate(executionContext);
 
-      expect(response.setHeader).not.toHaveBeenCalledWith('X-API-Retry-After', expect.anything());
+      expect(response.setHeader).not.toHaveBeenCalledWith(
+        "X-API-Retry-After",
+        expect.anything(),
+      );
     });
 
-    it('should handle missing request IP', async () => {
+    it("should handle missing request IP", async () => {
       const requestWithoutIp = {
         ...request,
         ip: undefined,
       };
-      (executionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue(requestWithoutIp);
+      (executionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue(
+        requestWithoutIp,
+      );
 
       const rateLimitExceeded = {
         ...mockRateLimitResult,
@@ -408,8 +447,8 @@ describe('RateLimitGuard', () => {
     });
   });
 
-  describe('setRateLimitHeaders', () => {
-    it('should set all required rate limit headers', () => {
+  describe("setRateLimitHeaders", () => {
+    it("should set all required rate limit headers", () => {
       const result = {
         limit: 100,
         remaining: 50,
@@ -420,13 +459,25 @@ describe('RateLimitGuard', () => {
       // Access private method for testing
       (guard as any).setRateLimitHeaders(response, result);
 
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Limit', 100);
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Remaining', 50);
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Reset', 1640995200);
-      expect(response.setHeader).not.toHaveBeenCalledWith('X-API-Retry-After', expect.anything());
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Limit",
+        100,
+      );
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Remaining",
+        50,
+      );
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Reset",
+        1640995200,
+      );
+      expect(response.setHeader).not.toHaveBeenCalledWith(
+        "X-API-Retry-After",
+        expect.anything(),
+      );
     });
 
-    it('should set Retry-After header when retryAfter is provided', () => {
+    it("should set Retry-After header when retryAfter is provided", () => {
       const result = {
         limit: 100,
         remaining: 0,
@@ -436,10 +487,10 @@ describe('RateLimitGuard', () => {
 
       (guard as any).setRateLimitHeaders(response, result);
 
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-Retry-After', 300);
+      expect(response.setHeader).toHaveBeenCalledWith("X-API-Retry-After", 300);
     });
 
-    it('should handle fractional reset time correctly', () => {
+    it("should handle fractional reset time correctly", () => {
       const result = {
         limit: 100,
         remaining: 25,
@@ -449,23 +500,26 @@ describe('RateLimitGuard', () => {
 
       (guard as any).setRateLimitHeaders(response, result);
 
-      expect(response.setHeader).toHaveBeenCalledWith('X-API-RateLimit-Reset', 1640995201); // Ceil to next second
+      expect(response.setHeader).toHaveBeenCalledWith(
+        "X-API-RateLimit-Reset",
+        1640995201,
+      ); // Ceil to next second
     });
   });
 
-  describe('constructor logging', () => {
-    it('should log construction message', () => {
+  describe("constructor logging", () => {
+    it("should log construction message", () => {
       // Clear previous calls
       jest.clearAllMocks();
-      
+
       const testGuard = new RateLimitGuard(rateLimitService, reflector);
-      
-      expect(mockLogger.log).toHaveBeenCalledWith('RateLimitGuard 已实例化');
+
+      expect(mockLogger.log).toHaveBeenCalledWith("RateLimitGuard 已实例化");
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle undefined API key gracefully', async () => {
+  describe("edge cases", () => {
+    it("should handle undefined API key gracefully", async () => {
       request.user = undefined;
 
       const result = await guard.canActivate(executionContext);
@@ -474,8 +528,8 @@ describe('RateLimitGuard', () => {
       expect(rateLimitService.checkRateLimit).not.toHaveBeenCalled();
     });
 
-    it('should handle API key without required properties', async () => {
-      request.user = { appKey: 'test-key' } as any;
+    it("should handle API key without required properties", async () => {
+      request.user = { appKey: "test-key" } as any;
 
       const result = await guard.canActivate(executionContext);
 

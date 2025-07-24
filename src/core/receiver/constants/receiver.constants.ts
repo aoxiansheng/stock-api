@@ -36,7 +36,8 @@ export const RECEIVER_WARNING_MESSAGES = Object.freeze({
   DUPLICATE_SYMBOLS: "请求中包含重复的股票代码",
   SYMBOLS_WITH_WHITESPACE: "部分股票代码包含前后空白字符，已自动去除",
   PREFERRED_PROVIDER_NOT_SUPPORT: "首选提供商不支持请求的能力",
-  PREFERRED_PROVIDER_NOT_SUPPORT_MARKET: "提供商 '{provider}' 不支持市场 '{market}'",
+  PREFERRED_PROVIDER_NOT_SUPPORT_MARKET:
+    "提供商 '{provider}' 不支持市场 '{market}'",
   SYMBOL_TRANSFORMATION_FALLBACK: "股票代码转换失败，使用原始代码",
   SLOW_REQUEST_DETECTED: "检测到慢请求",
   LARGE_SYMBOL_COUNT: "请求的股票代码数量较多，可能影响性能",

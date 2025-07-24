@@ -1,16 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Logger, ValidationPipe } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { QueryController } from '../../../../src/core/query/query.controller';
-import { QueryService } from '../../../../src/core/query/query.service';
-import { QueryRequestDto, BulkQueryRequestDto } from '../../../../src/core/query/dto/query-request.dto';
-import { QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '../../../../src/core/query/dto/query-response.dto';
-import { QueryType } from '../../../../src/core/query/dto/query-types.dto';
-import { RateLimitService } from '../../../../src/auth/services/rate-limit.service';
-import { PermissionService } from '../../../../src/auth/services/permission.service';
-import { UnifiedPermissionsGuard } from '../../../../src/auth/guards/unified-permissions.guard';
-import { getModelToken } from '@nestjs/mongoose';
-import { RedisService } from '@liaoliaots/nestjs-redis';
+import { Test, TestingModule } from "@nestjs/testing";
+import { Logger, ValidationPipe } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { QueryController } from "../../../../src/core/query/query.controller";
+import { QueryService } from "../../../../src/core/query/query.service";
+import {
+  QueryRequestDto,
+  BulkQueryRequestDto,
+} from "../../../../src/core/query/dto/query-request.dto";
+import {
+  QueryResponseDto,
+  BulkQueryResponseDto,
+  QueryStatsDto,
+} from "../../../../src/core/query/dto/query-response.dto";
+import { QueryType } from "../../../../src/core/query/dto/query-types.dto";
+import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
+import { PermissionService } from "../../../../src/auth/services/permission.service";
+import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-permissions.guard";
+import { getModelToken } from "@nestjs/mongoose";
+import { RedisService } from "@liaoliaots/nestjs-redis";
 
 // Mock createLogger for core modules
 const mockLoggerInstance = {
@@ -21,12 +28,12 @@ const mockLoggerInstance = {
   verbose: jest.fn(),
 };
 
-jest.mock('../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
   sanitizeLogData: jest.fn((data) => data),
 }));
 
-describe('QueryController', () => {
+describe("QueryController", () => {
   let controller: QueryController;
   let queryService: jest.Mocked<QueryService>;
   let mockLogger: any;
@@ -34,12 +41,12 @@ describe('QueryController', () => {
   const mockQueryResponse: QueryResponseDto = {
     data: [
       {
-        symbol: 'AAPL',
+        symbol: "AAPL",
         price: 150.25,
         change: 2.15,
         changePercent: 1.45,
         volume: 5234567,
-        market: 'US',
+        market: "US",
       },
     ],
     metadata: {
@@ -52,7 +59,7 @@ describe('QueryController', () => {
         cache: { hits: 1, misses: 0 },
         realtime: { hits: 0, misses: 0 },
       },
-      timestamp: '2024-01-01T12:00:00.000Z',
+      timestamp: "2024-01-01T12:00:00.000Z",
     },
   };
 
@@ -63,7 +70,7 @@ describe('QueryController', () => {
       totalExecutionTime: 156,
       averageExecutionTime: 156,
     },
-    timestamp: '2024-01-01T12:00:00.000Z',
+    timestamp: "2024-01-01T12:00:00.000Z",
   };
 
   const mockQueryStats: QueryStatsDto = {
@@ -93,13 +100,13 @@ describe('QueryController', () => {
     },
     popularQueries: [
       {
-        pattern: 'AAPL,GOOGL,MSFT',
+        pattern: "AAPL,GOOGL,MSFT",
         count: 156,
         averageTime: 89,
-        lastExecuted: '2024-01-01T11:55:00.000Z',
+        lastExecuted: "2024-01-01T11:55:00.000Z",
       },
     ],
-    timestamp: '2024-01-01T12:00:00.000Z',
+    timestamp: "2024-01-01T12:00:00.000Z",
   };
 
   beforeEach(async () => {
@@ -144,7 +151,7 @@ describe('QueryController', () => {
           useValue: mockReflector,
         },
         {
-          provide: getModelToken('ApiKey'),
+          provide: getModelToken("ApiKey"),
           useValue: {},
         },
         {
@@ -176,16 +183,16 @@ describe('QueryController', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 
-  describe('executeQuery', () => {
-    it('should execute query successfully', async () => {
+  describe("executeQuery", () => {
+    it("should execute query successfully", async () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ['AAPL.US', 'MSFT.US'],
-        dataTypeFilter: 'stock-quote',
+        symbols: ["AAPL.US", "MSFT.US"],
+        dataTypeFilter: "stock-quote",
         options: {
           useCache: true,
           updateCache: true,
@@ -200,48 +207,50 @@ describe('QueryController', () => {
       expect(result).toBe(mockQueryResponse);
       expect(queryService.executeQuery).toHaveBeenCalledWith(queryRequest);
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Request: Execute query',
+        "API Request: Execute query",
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
-          symbols: ['AAPL.US', 'MSFT.US'],
-          dataTypeFilter: 'stock-quote',
-        })
+          symbols: ["AAPL.US", "MSFT.US"],
+          dataTypeFilter: "stock-quote",
+        }),
       );
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Success: Query executed successfully',
+        "API Success: Query executed successfully",
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           totalResults: 1,
-        })
+        }),
       );
     });
 
-    it('should handle query execution errors', async () => {
+    it("should handle query execution errors", async () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ['INVALID.US'],
-        dataTypeFilter: 'stock-quote',
+        symbols: ["INVALID.US"],
+        dataTypeFilter: "stock-quote",
       };
 
-      const error = new Error('Query execution failed');
+      const error = new Error("Query execution failed");
       queryService.executeQuery.mockRejectedValue(error);
 
-      await expect(controller.executeQuery(queryRequest)).rejects.toThrow('Query execution failed');
+      await expect(controller.executeQuery(queryRequest)).rejects.toThrow(
+        "Query execution failed",
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'API Error: Query execution failed',
+        "API Error: Query execution failed",
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
-          error: 'Query execution failed',
-          errorType: 'Error',
-        })
+          error: "Query execution failed",
+          errorType: "Error",
+        }),
       );
     });
 
-    it('should log properly with limited symbols array', async () => {
+    it("should log properly with limited symbols array", async () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ['AAPL.US', 'MSFT.US', 'GOOGL.US', 'TSLA.US', 'AMZN.US'],
-        dataTypeFilter: 'stock-quote',
+        symbols: ["AAPL.US", "MSFT.US", "GOOGL.US", "TSLA.US", "AMZN.US"],
+        dataTypeFilter: "stock-quote",
       };
 
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
@@ -249,27 +258,27 @@ describe('QueryController', () => {
       await controller.executeQuery(queryRequest);
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Request: Execute query',
+        "API Request: Execute query",
         expect.objectContaining({
-          symbols: ['AAPL.US', 'MSFT.US', 'GOOGL.US'],
-        })
+          symbols: ["AAPL.US", "MSFT.US", "GOOGL.US"],
+        }),
       );
     });
   });
 
-  describe('executeBulkQuery', () => {
-    it('should execute bulk query successfully', async () => {
+  describe("executeBulkQuery", () => {
+    it("should execute bulk query successfully", async () => {
       const bulkRequest: BulkQueryRequestDto = {
         queries: [
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['AAPL.US'],
-            dataTypeFilter: 'stock-quote',
+            symbols: ["AAPL.US"],
+            dataTypeFilter: "stock-quote",
           },
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['MSFT.US'],
-            dataTypeFilter: 'stock-quote',
+            symbols: ["MSFT.US"],
+            dataTypeFilter: "stock-quote",
           },
         ],
         parallel: true,
@@ -283,56 +292,58 @@ describe('QueryController', () => {
       expect(result).toBe(mockBulkQueryResponse);
       expect(queryService.executeBulkQuery).toHaveBeenCalledWith(bulkRequest);
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Request: Execute bulk query',
+        "API Request: Execute bulk query",
         expect.objectContaining({
           queriesCount: 2,
           parallel: true,
           continueOnError: true,
-        })
+        }),
       );
     });
 
-    it('should handle bulk query execution errors', async () => {
+    it("should handle bulk query execution errors", async () => {
       const bulkRequest: BulkQueryRequestDto = {
         queries: [
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['INVALID.US'],
-            dataTypeFilter: 'stock-quote',
+            symbols: ["INVALID.US"],
+            dataTypeFilter: "stock-quote",
           },
         ],
         parallel: false,
         continueOnError: false,
       };
 
-      const error = new Error('Bulk query execution failed');
+      const error = new Error("Bulk query execution failed");
       queryService.executeBulkQuery.mockRejectedValue(error);
 
-      await expect(controller.executeBulkQuery(bulkRequest)).rejects.toThrow('Bulk query execution failed');
+      await expect(controller.executeBulkQuery(bulkRequest)).rejects.toThrow(
+        "Bulk query execution failed",
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'API Error: Bulk query execution failed',
+        "API Error: Bulk query execution failed",
         expect.objectContaining({
           queriesCount: 1,
-          error: 'Bulk query execution failed',
-          errorType: 'Error',
-        })
+          error: "Bulk query execution failed",
+          errorType: "Error",
+        }),
       );
     });
 
-    it('should log unique query types correctly', async () => {
+    it("should log unique query types correctly", async () => {
       const bulkRequest: BulkQueryRequestDto = {
         queries: [
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['AAPL.US'],
+            symbols: ["AAPL.US"],
           },
           {
             queryType: QueryType.BY_SYMBOLS,
-            symbols: ['MSFT.US'],
+            symbols: ["MSFT.US"],
           },
           {
             queryType: QueryType.BY_MARKET,
-            market: 'US',
+            market: "US",
           },
         ],
         parallel: true,
@@ -343,28 +354,36 @@ describe('QueryController', () => {
       await controller.executeBulkQuery(bulkRequest);
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Request: Execute bulk query',
+        "API Request: Execute bulk query",
         expect.objectContaining({
           queryTypes: [QueryType.BY_SYMBOLS, QueryType.BY_MARKET],
-        })
+        }),
       );
     });
   });
 
-  describe('queryBySymbols', () => {
-    it('should execute symbols query successfully', async () => {
+  describe("queryBySymbols", () => {
+    it("should execute symbols query successfully", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryBySymbols('AAPL,MSFT,GOOGL', 'longport', 'US', 'quote', 10, 0, true);
+      const result = await controller.queryBySymbols(
+        "AAPL,MSFT,GOOGL",
+        "longport",
+        "US",
+        "quote",
+        10,
+        0,
+        true,
+      );
 
       expect(result).toBe(mockQueryResponse);
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
-          symbols: ['AAPL', 'MSFT', 'GOOGL'],
-          provider: 'longport',
-          market: 'US',
-          dataTypeFilter: 'quote',
+          symbols: ["AAPL", "MSFT", "GOOGL"],
+          provider: "longport",
+          market: "US",
+          dataTypeFilter: "quote",
           limit: 10,
           offset: 0,
           options: {
@@ -372,30 +391,32 @@ describe('QueryController', () => {
             updateCache: true,
             includeMetadata: false,
           },
-        })
+        }),
       );
     });
 
-    it('should throw error when symbols parameter is missing', async () => {
-      await expect(controller.queryBySymbols('')).rejects.toThrow('Symbols parameter is required');
+    it("should throw error when symbols parameter is missing", async () => {
+      await expect(controller.queryBySymbols("")).rejects.toThrow(
+        "Symbols parameter is required",
+      );
     });
 
-    it('should handle symbols with whitespace and empty values', async () => {
+    it("should handle symbols with whitespace and empty values", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols(' AAPL , MSFT , , GOOGL ');
+      await controller.queryBySymbols(" AAPL , MSFT , , GOOGL ");
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
-          symbols: ['AAPL', 'MSFT', 'GOOGL'],
-        })
+          symbols: ["AAPL", "MSFT", "GOOGL"],
+        }),
       );
     });
 
-    it('should use default values for optional parameters', async () => {
+    it("should use default values for optional parameters", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols('AAPL');
+      await controller.queryBySymbols("AAPL");
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -406,14 +427,22 @@ describe('QueryController', () => {
             updateCache: true,
             includeMetadata: false,
           },
-        })
+        }),
       );
     });
 
-    it('should handle useCache false parameter correctly', async () => {
+    it("should handle useCache false parameter correctly", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols('AAPL', undefined, undefined, undefined, undefined, undefined, false);
+      await controller.queryBySymbols(
+        "AAPL",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        false,
+      );
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -422,37 +451,43 @@ describe('QueryController', () => {
             updateCache: true,
             includeMetadata: false,
           },
-        })
+        }),
       );
     });
 
-    it('should log limited symbols in request log', async () => {
+    it("should log limited symbols in request log", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols('AAPL,MSFT,GOOGL,TSLA,AMZN');
+      await controller.queryBySymbols("AAPL,MSFT,GOOGL,TSLA,AMZN");
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Request: Quick query by symbols',
+        "API Request: Quick query by symbols",
         expect.objectContaining({
-          symbols: ['AAPL', 'MSFT', 'GOOGL'],
-        })
+          symbols: ["AAPL", "MSFT", "GOOGL"],
+        }),
       );
     });
   });
 
-  describe('queryByMarket', () => {
-    it('should execute market query successfully', async () => {
+  describe("queryByMarket", () => {
+    it("should execute market query successfully", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryByMarket('US', 'longport', 'quote', 50, 10);
+      const result = await controller.queryByMarket(
+        "US",
+        "longport",
+        "quote",
+        50,
+        10,
+      );
 
       expect(result).toBe(mockQueryResponse);
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_MARKET,
-          market: 'US',
-          provider: 'longport',
-          dataTypeFilter: 'quote',
+          market: "US",
+          provider: "longport",
+          dataTypeFilter: "quote",
           limit: 50,
           offset: 10,
           options: {
@@ -460,41 +495,49 @@ describe('QueryController', () => {
             updateCache: true,
             includeMetadata: true,
           },
-        })
+        }),
       );
     });
 
-    it('should throw error when market parameter is missing', async () => {
-      await expect(controller.queryByMarket('')).rejects.toThrow('Market parameter is required');
+    it("should throw error when market parameter is missing", async () => {
+      await expect(controller.queryByMarket("")).rejects.toThrow(
+        "Market parameter is required",
+      );
     });
 
-    it('should use default values for optional parameters', async () => {
+    it("should use default values for optional parameters", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryByMarket('HK');
+      await controller.queryByMarket("HK");
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           limit: 100,
           offset: 0,
-        })
+        }),
       );
     });
   });
 
-  describe('queryByProvider', () => {
-    it('should execute provider query successfully', async () => {
+  describe("queryByProvider", () => {
+    it("should execute provider query successfully", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryByProvider('longport', 'US', 'quote', 25, 5);
+      const result = await controller.queryByProvider(
+        "longport",
+        "US",
+        "quote",
+        25,
+        5,
+      );
 
       expect(result).toBe(mockQueryResponse);
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_PROVIDER,
-          provider: 'longport',
-          market: 'US',
-          dataTypeFilter: 'quote',
+          provider: "longport",
+          market: "US",
+          dataTypeFilter: "quote",
           limit: 25,
           offset: 5,
           options: {
@@ -502,66 +545,72 @@ describe('QueryController', () => {
             updateCache: true,
             includeMetadata: true,
           },
-        })
+        }),
       );
     });
 
-    it('should throw error when provider parameter is missing', async () => {
-      await expect(controller.queryByProvider('')).rejects.toThrow('Provider parameter is required');
+    it("should throw error when provider parameter is missing", async () => {
+      await expect(controller.queryByProvider("")).rejects.toThrow(
+        "Provider parameter is required",
+      );
     });
 
-    it('should use default values for optional parameters', async () => {
+    it("should use default values for optional parameters", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryByProvider('futu');
+      await controller.queryByProvider("futu");
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           limit: 100,
           offset: 0,
-        })
+        }),
       );
     });
   });
 
-  describe('getQueryStats', () => {
-    it('should return query statistics successfully', async () => {
+  describe("getQueryStats", () => {
+    it("should return query statistics successfully", async () => {
       queryService.getQueryStats.mockResolvedValue(mockQueryStats);
 
       const result = await controller.getQueryStats();
 
       expect(result).toBe(mockQueryStats);
       expect(queryService.getQueryStats).toHaveBeenCalled();
-      expect(mockLogger.log).toHaveBeenCalledWith('API Request: Get query statistics');
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Success: Query statistics generated',
+        "API Request: Get query statistics",
+      );
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        "API Success: Query statistics generated",
         expect.objectContaining({
           totalQueries: 15420,
           averageExecutionTime: 127,
           cacheHitRate: 0.82,
           errorRate: 0.03,
           queryTypesCount: 2,
-        })
+        }),
       );
     });
 
-    it('should handle query stats errors', async () => {
-      const error = new Error('Failed to generate statistics');
+    it("should handle query stats errors", async () => {
+      const error = new Error("Failed to generate statistics");
       queryService.getQueryStats.mockRejectedValue(error);
 
-      await expect(controller.getQueryStats()).rejects.toThrow('Failed to generate statistics');
+      await expect(controller.getQueryStats()).rejects.toThrow(
+        "Failed to generate statistics",
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'API Error: Failed to get query statistics',
+        "API Error: Failed to get query statistics",
         expect.objectContaining({
-          error: 'Failed to generate statistics',
-          errorType: 'Error',
-        })
+          error: "Failed to generate statistics",
+          errorType: "Error",
+        }),
       );
     });
   });
 
-  describe('healthCheck', () => {
-    it('should return healthy status when query service works', async () => {
+  describe("healthCheck", () => {
+    it("should return healthy status when query service works", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
       const result = await controller.healthCheck();
@@ -584,34 +633,36 @@ describe('QueryController', () => {
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
-          symbols: ['TEST'],
-          dataTypeFilter: 'stock-quote',
+          symbols: ["TEST"],
+          dataTypeFilter: "stock-quote",
           options: {
             useCache: false,
             updateCache: false,
           },
-        })
+        }),
       );
-      expect(mockLogger.log).toHaveBeenCalledWith('API Request: Query service health check');
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'API Success: Query service health check completed',
+        "API Request: Query service health check",
+      );
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        "API Success: Query service health check completed",
         expect.objectContaining({
           queryServiceHealthy: true,
           latency: expect.any(Number),
           overallHealthy: true,
-        })
+        }),
       );
     });
 
-    it('should return unhealthy status and throw error when query service fails', async () => {
-      const error = new Error('Query service unavailable');
+    it("should return unhealthy status and throw error when query service fails", async () => {
+      const error = new Error("Query service unavailable");
       queryService.executeQuery.mockRejectedValue(error);
 
       try {
         await controller.healthCheck();
-        fail('Expected method to throw');
+        fail("Expected method to throw");
       } catch (thrown) {
-        expect(thrown.message).toBe('查询服务健康检查失败');
+        expect(thrown.message).toBe("查询服务健康检查失败");
         expect(thrown.statusCode).toBe(503);
         expect(thrown.data).toEqual({
           queryService: {
@@ -630,15 +681,15 @@ describe('QueryController', () => {
       }
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'API Error: Query service health check failed',
+        "API Error: Query service health check failed",
         expect.objectContaining({
-          error: 'Query service unavailable',
+          error: "Query service unavailable",
           latency: expect.any(Number),
-        })
+        }),
       );
     });
 
-    it('should handle null response from query service', async () => {
+    it("should handle null response from query service", async () => {
       queryService.executeQuery.mockResolvedValue(null);
 
       const result = await controller.healthCheck();
@@ -660,87 +711,99 @@ describe('QueryController', () => {
     });
   });
 
-  describe('controller methods integration', () => {
-    it('should call executeQuery internally from queryBySymbols', async () => {
-      jest.spyOn(controller, 'executeQuery').mockResolvedValue(mockQueryResponse);
+  describe("controller methods integration", () => {
+    it("should call executeQuery internally from queryBySymbols", async () => {
+      jest
+        .spyOn(controller, "executeQuery")
+        .mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryBySymbols('AAPL,MSFT');
+      const result = await controller.queryBySymbols("AAPL,MSFT");
 
       expect(result).toBe(mockQueryResponse);
       expect(controller.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
-          symbols: ['AAPL', 'MSFT'],
-        })
+          symbols: ["AAPL", "MSFT"],
+        }),
       );
     });
 
-    it('should call executeQuery internally from queryByMarket', async () => {
-      jest.spyOn(controller, 'executeQuery').mockResolvedValue(mockQueryResponse);
+    it("should call executeQuery internally from queryByMarket", async () => {
+      jest
+        .spyOn(controller, "executeQuery")
+        .mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryByMarket('US');
+      const result = await controller.queryByMarket("US");
 
       expect(result).toBe(mockQueryResponse);
       expect(controller.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_MARKET,
-          market: 'US',
-        })
+          market: "US",
+        }),
       );
     });
 
-    it('should call executeQuery internally from queryByProvider', async () => {
-      jest.spyOn(controller, 'executeQuery').mockResolvedValue(mockQueryResponse);
+    it("should call executeQuery internally from queryByProvider", async () => {
+      jest
+        .spyOn(controller, "executeQuery")
+        .mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryByProvider('longport');
+      const result = await controller.queryByProvider("longport");
 
       expect(result).toBe(mockQueryResponse);
       expect(controller.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_PROVIDER,
-          provider: 'longport',
-        })
+          provider: "longport",
+        }),
       );
     });
   });
 
-  describe('edge cases and parameter validation', () => {
-    it('should handle undefined symbols parameter', async () => {
-      await expect(controller.queryBySymbols(undefined as any)).rejects.toThrow('Symbols parameter is required');
-    });
-
-    it('should handle null market parameter', async () => {
-      await expect(controller.queryByMarket(null as any)).rejects.toThrow('Market parameter is required');
-    });
-
-    it('should handle null provider parameter', async () => {
-      await expect(controller.queryByProvider(null as any)).rejects.toThrow('Provider parameter is required');
-    });
-
-    it('should filter out empty symbols after splitting', async () => {
-      queryService.executeQuery.mockResolvedValue(mockQueryResponse);
-
-      await controller.queryBySymbols('AAPL,,MSFT,,,GOOGL,');
-
-      expect(queryService.executeQuery).toHaveBeenCalledWith(
-        expect.objectContaining({
-          symbols: ['AAPL', 'MSFT', 'GOOGL'],
-        })
+  describe("edge cases and parameter validation", () => {
+    it("should handle undefined symbols parameter", async () => {
+      await expect(controller.queryBySymbols(undefined as any)).rejects.toThrow(
+        "Symbols parameter is required",
       );
     });
 
-    it('should handle symbols with only commas and spaces', async () => {
+    it("should handle null market parameter", async () => {
+      await expect(controller.queryByMarket(null as any)).rejects.toThrow(
+        "Market parameter is required",
+      );
+    });
+
+    it("should handle null provider parameter", async () => {
+      await expect(controller.queryByProvider(null as any)).rejects.toThrow(
+        "Provider parameter is required",
+      );
+    });
+
+    it("should filter out empty symbols after splitting", async () => {
+      queryService.executeQuery.mockResolvedValue(mockQueryResponse);
+
+      await controller.queryBySymbols("AAPL,,MSFT,,,GOOGL,");
+
+      expect(queryService.executeQuery).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbols: ["AAPL", "MSFT", "GOOGL"],
+        }),
+      );
+    });
+
+    it("should handle symbols with only commas and spaces", async () => {
       // When symbols array becomes empty after filtering, it should be treated as empty symbols
       // The current implementation will call executeQuery with empty array, which may succeed
       // Let's test that it behaves gracefully
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
-      
-      await controller.queryBySymbols(', , ,');
-      
+
+      await controller.queryBySymbols(", , ,");
+
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           symbols: [],
-        })
+        }),
       );
     });
   });

@@ -7,7 +7,7 @@ import {
   NOTIFICATION_TEMPLATE_PATTERNS,
   NOTIFICATION_VALIDATION_RULES,
   NOTIFICATION_TEMPLATE_VARIABLES,
-  NOTIFICATION_RETRY_CONFIG
+  NOTIFICATION_RETRY_CONFIG,
 } from "../constants/notification.constants";
 
 /**
@@ -60,45 +60,36 @@ export class NotificationTemplateUtil {
     // 处理注释
     const commentPattern = new RegExp(
       NOTIFICATION_TEMPLATE_PATTERNS.COMMENT_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.COMMENT_PATTERN_FLAGS
+      NOTIFICATION_TEMPLATE_PATTERNS.COMMENT_PATTERN_FLAGS,
     );
     result = result.replace(commentPattern, "");
 
     // 处理变量替换
     const variablePattern = new RegExp(
       NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS
+      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS,
     );
-    result = result.replace(
-      variablePattern,
-      (match, key) => {
-        return variables[key] !== undefined ? String(variables[key]) : match;
-      },
-    );
+    result = result.replace(variablePattern, (match, key) => {
+      return variables[key] !== undefined ? String(variables[key]) : match;
+    });
 
     // 处理 if 块
     const ifBlockPattern = new RegExp(
       NOTIFICATION_TEMPLATE_PATTERNS.IF_BLOCK_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.IF_BLOCK_PATTERN_FLAGS
+      NOTIFICATION_TEMPLATE_PATTERNS.IF_BLOCK_PATTERN_FLAGS,
     );
-    result = result.replace(
-      ifBlockPattern,
-      (match, key, content) => {
-        return variables[key] ? content : "";
-      },
-    );
+    result = result.replace(ifBlockPattern, (match, key, content) => {
+      return variables[key] ? content : "";
+    });
 
     // 处理 unless 块
     const unlessBlockPattern = new RegExp(
       NOTIFICATION_TEMPLATE_PATTERNS.UNLESS_BLOCK_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.UNLESS_BLOCK_PATTERN_FLAGS
+      NOTIFICATION_TEMPLATE_PATTERNS.UNLESS_BLOCK_PATTERN_FLAGS,
     );
-    result = result.replace(
-      unlessBlockPattern,
-      (match, key, content) => {
-        return !variables[key] ? content : "";
-      },
-    );
+    result = result.replace(unlessBlockPattern, (match, key, content) => {
+      return !variables[key] ? content : "";
+    });
 
     return result;
   }
@@ -111,7 +102,7 @@ export class NotificationTemplateUtil {
   static isValidVariableName(variableName: string): boolean {
     const variableNamePattern = new RegExp(
       NOTIFICATION_VALIDATION_RULES.VARIABLE_NAME_PATTERN_SOURCE,
-      NOTIFICATION_VALIDATION_RULES.VARIABLE_NAME_PATTERN_FLAGS
+      NOTIFICATION_VALIDATION_RULES.VARIABLE_NAME_PATTERN_FLAGS,
     );
     return (
       variableNamePattern.test(variableName) &&
@@ -143,7 +134,7 @@ export class NotificationTemplateUtil {
     const variables = new Set<string>();
     const variablePattern = new RegExp(
       NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS
+      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS,
     );
     const matches = template.matchAll(variablePattern);
 
@@ -164,7 +155,7 @@ export class NotificationTemplateUtil {
   static isValidEmail(email: string): boolean {
     const emailPattern = new RegExp(
       NOTIFICATION_VALIDATION_RULES.EMAIL_PATTERN_SOURCE,
-      NOTIFICATION_VALIDATION_RULES.EMAIL_PATTERN_FLAGS
+      NOTIFICATION_VALIDATION_RULES.EMAIL_PATTERN_FLAGS,
     );
     return emailPattern.test(email);
   }
@@ -177,7 +168,7 @@ export class NotificationTemplateUtil {
   static isValidUrl(url: string): boolean {
     const urlPattern = new RegExp(
       NOTIFICATION_VALIDATION_RULES.URL_PATTERN_SOURCE,
-      NOTIFICATION_VALIDATION_RULES.URL_PATTERN_FLAGS
+      NOTIFICATION_VALIDATION_RULES.URL_PATTERN_FLAGS,
     );
     return urlPattern.test(url);
   }
@@ -202,7 +193,7 @@ export class NotificationTemplateUtil {
 
     // 添加抖动
     const jitter = baseDelay * JITTER_FACTOR * Math.random();
-    
+
     // 确保总延迟不超过最大值
     return Math.min(Math.floor(baseDelay + jitter), MAX_DELAY_MS);
   }
@@ -242,4 +233,4 @@ export class NotificationTemplateUtil {
     // 合并上下文变量，基础变量优先
     return { ...contextVariables, ...baseVariables };
   }
-} 
+}

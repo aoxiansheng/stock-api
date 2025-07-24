@@ -7,8 +7,8 @@
  * 等待条件满足的选项
  */
 interface WaitForConditionOptions {
-  timeout?: number;       // 最大等待时间（毫秒）
-  interval?: number;      // 检查间隔（毫秒）
+  timeout?: number; // 最大等待时间（毫秒）
+  interval?: number; // 检查间隔（毫秒）
   timeoutMessage?: string; // 超时错误消息
 }
 
@@ -24,7 +24,7 @@ export async function waitForCondition(
   const {
     timeout = 5000,
     interval = 50,
-    timeoutMessage = 'Condition not met within timeout',
+    timeoutMessage = "Condition not met within timeout",
   } = options;
 
   const startTime = Date.now();
@@ -37,10 +37,10 @@ export async function waitForCondition(
       }
     } catch (error) {
       // 如果条件函数抛出错误，继续等待
-      console.debug('Condition check failed:', error.message);
+      console.debug("Condition check failed:", error.message);
     }
 
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
 
   throw new Error(`${timeoutMessage} (waited ${timeout}ms)`);
@@ -56,13 +56,16 @@ export async function waitForArrayLength<T>(
 ): Promise<T[]> {
   let finalArray: T[] = [];
 
-  await waitForCondition(async () => {
-    finalArray = await getArray();
-    return finalArray.length === expectedLength;
-  }, {
-    ...options,
-    timeoutMessage: `Array length did not reach ${expectedLength} within timeout (current: ${finalArray.length})`,
-  });
+  await waitForCondition(
+    async () => {
+      finalArray = await getArray();
+      return finalArray.length === expectedLength;
+    },
+    {
+      ...options,
+      timeoutMessage: `Array length did not reach ${expectedLength} within timeout (current: ${finalArray.length})`,
+    },
+  );
 
   return finalArray;
 }
@@ -78,19 +81,22 @@ export async function waitForProperty<T, K extends keyof T>(
 ): Promise<T> {
   let finalObject: T;
 
-  await waitForCondition(async () => {
-    finalObject = await getObject();
-    const actualValue = finalObject[property];
-    
-    if (typeof expectedValue === 'function') {
-      return (expectedValue as (value: T[K]) => boolean)(actualValue);
-    } else {
-      return actualValue === expectedValue;
-    }
-  }, {
-    ...options,
-    timeoutMessage: `Property '${String(property)}' did not match expected value within timeout`,
-  });
+  await waitForCondition(
+    async () => {
+      finalObject = await getObject();
+      const actualValue = finalObject[property];
+
+      if (typeof expectedValue === "function") {
+        return (expectedValue as (value: T[K]) => boolean)(actualValue);
+      } else {
+        return actualValue === expectedValue;
+      }
+    },
+    {
+      ...options,
+      timeoutMessage: `Property '${String(property)}' did not match expected value within timeout`,
+    },
+  );
 
   return finalObject!;
 }
@@ -99,7 +105,9 @@ export async function waitForProperty<T, K extends keyof T>(
  * 等待事件发射
  */
 export async function waitForEvent(
-  eventEmitter: { once: (event: string, listener: (...args: any[]) => void) => void },
+  eventEmitter: {
+    once: (event: string, listener: (...args: any[]) => void) => void;
+  },
   eventName: string,
   options: { timeout?: number } = {},
 ): Promise<any[]> {
@@ -128,23 +136,26 @@ export async function waitForHttpRequest(
   let lastResponse: any;
   let lastError: Error | null = null;
 
-  await waitForCondition(async () => {
-    try {
-      lastResponse = await makeRequest();
-      
-      if (successCondition) {
-        return successCondition(lastResponse);
-      } else {
-        return lastResponse.status >= 200 && lastResponse.status < 300;
+  await waitForCondition(
+    async () => {
+      try {
+        lastResponse = await makeRequest();
+
+        if (successCondition) {
+          return successCondition(lastResponse);
+        } else {
+          return lastResponse.status >= 200 && lastResponse.status < 300;
+        }
+      } catch (error) {
+        lastError = error;
+        return false;
       }
-    } catch (error) {
-      lastError = error;
-      return false;
-    }
-  }, {
-    ...options,
-    timeoutMessage: `HTTP request did not succeed within timeout. Last error: ${lastError?.message}`,
-  });
+    },
+    {
+      ...options,
+      timeoutMessage: `HTTP request did not succeed within timeout. Last error: ${lastError?.message}`,
+    },
+  );
 
   return lastResponse;
 }
@@ -160,23 +171,26 @@ export async function waitForDatabaseOperation<T>(
   let result: T;
   let lastError: Error | null = null;
 
-  await waitForCondition(async () => {
-    try {
-      result = await operation();
-      
-      if (validator) {
-        return validator(result);
-      } else {
-        return result !== null && result !== undefined;
+  await waitForCondition(
+    async () => {
+      try {
+        result = await operation();
+
+        if (validator) {
+          return validator(result);
+        } else {
+          return result !== null && result !== undefined;
+        }
+      } catch (error) {
+        lastError = error;
+        return false;
       }
-    } catch (error) {
-      lastError = error;
-      return false;
-    }
-  }, {
-    ...options,
-    timeoutMessage: `Database operation did not complete successfully within timeout. Last error: ${lastError?.message}`,
-  });
+    },
+    {
+      ...options,
+      timeoutMessage: `Database operation did not complete successfully within timeout. Last error: ${lastError?.message}`,
+    },
+  );
 
   return result!;
 }
@@ -193,35 +207,44 @@ export async function waitForRedisOperation<T>(
 ): Promise<T> {
   let result: T;
 
-  await waitForCondition(async () => {
-    try {
-      switch (operation) {
-        case 'exists':
-          result = await redisClient.exists(key) as T;
-          return expectedValue !== undefined ? result === expectedValue : !!result;
-        
-        case 'get':
-          result = await redisClient.get(key) as T;
-          return expectedValue !== undefined ? result === expectedValue : result !== null;
-        
-        case 'keys':
-          result = await redisClient.keys(key) as T;
-          return expectedValue !== undefined ? 
-            (result as unknown as any[]).length === expectedValue : 
-            (result as unknown as any[]).length > 0;
-        
-        default:
-          result = await redisClient[operation](key) as T;
-          return expectedValue !== undefined ? result === expectedValue : !!result;
+  await waitForCondition(
+    async () => {
+      try {
+        switch (operation) {
+          case "exists":
+            result = (await redisClient.exists(key)) as T;
+            return expectedValue !== undefined
+              ? result === expectedValue
+              : !!result;
+
+          case "get":
+            result = (await redisClient.get(key)) as T;
+            return expectedValue !== undefined
+              ? result === expectedValue
+              : result !== null;
+
+          case "keys":
+            result = (await redisClient.keys(key)) as T;
+            return expectedValue !== undefined
+              ? (result as unknown as any[]).length === expectedValue
+              : (result as unknown as any[]).length > 0;
+
+          default:
+            result = (await redisClient[operation](key)) as T;
+            return expectedValue !== undefined
+              ? result === expectedValue
+              : !!result;
+        }
+      } catch (error) {
+        console.debug(`Redis ${operation} operation failed:`, error.message);
+        return false;
       }
-    } catch (error) {
-      console.debug(`Redis ${operation} operation failed:`, error.message);
-      return false;
-    }
-  }, {
-    ...options,
-    timeoutMessage: `Redis ${operation} operation on key '${key}' did not complete within timeout`,
-  });
+    },
+    {
+      ...options,
+      timeoutMessage: `Redis ${operation} operation on key '${key}' did not complete within timeout`,
+    },
+  );
 
   return result!;
 }
@@ -235,21 +258,28 @@ export async function waitForAll<T>(
 ): Promise<T[]> {
   let results: (T | Error)[] = [];
 
-  await waitForCondition(async () => {
-    results = await Promise.allSettled(operations.map(op => op())).then(results =>
-      results.map(result => result.status === 'fulfilled' ? result.value : result.reason)
-    );
+  await waitForCondition(
+    async () => {
+      results = await Promise.allSettled(operations.map((op) => op())).then(
+        (results) =>
+          results.map((result) =>
+            result.status === "fulfilled" ? result.value : result.reason,
+          ),
+      );
 
-    // 检查是否所有操作都成功
-    return results.every(result => !(result instanceof Error));
-  }, {
-    ...options,
-    timeoutMessage: `Not all operations completed successfully within timeout. Errors: ${
-      results.filter(r => r instanceof Error).map(e => (e as Error).message).join(', ')
-    }`,
-  });
+      // 检查是否所有操作都成功
+      return results.every((result) => !(result instanceof Error));
+    },
+    {
+      ...options,
+      timeoutMessage: `Not all operations completed successfully within timeout. Errors: ${results
+        .filter((r) => r instanceof Error)
+        .map((e) => (e as Error).message)
+        .join(", ")}`,
+    },
+  );
 
-  return results.filter(r => !(r instanceof Error)) as T[];
+  return results.filter((r) => !(r instanceof Error)) as T[];
 }
 
 /**
@@ -257,18 +287,18 @@ export async function waitForAll<T>(
  * 在CI环境中使用更长的延迟
  */
 export async function smartDelay(baseMs: number = 100): Promise<void> {
-  const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'ci';
-  const isDebug = process.env.NODE_ENV === 'debug';
-  
+  const isCI = process.env.CI === "true" || process.env.NODE_ENV === "ci";
+  const isDebug = process.env.NODE_ENV === "debug";
+
   let actualDelay = baseMs;
-  
+
   if (isCI) {
     actualDelay *= 3; // CI环境延迟3倍
   } else if (isDebug) {
     actualDelay *= 2; // 调试环境延迟2倍
   }
-  
-  await new Promise(resolve => setTimeout(resolve, actualDelay));
+
+  await new Promise((resolve) => setTimeout(resolve, actualDelay));
 }
 
 /**
@@ -291,22 +321,22 @@ export async function retry<T>(
   } = options;
 
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error;
-      
+
       if (attempt === maxAttempts || !condition(error)) {
         throw error;
       }
-      
+
       const waitTime = backoff ? delay * attempt : delay;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -316,12 +346,12 @@ export async function retry<T>(
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
-  timeoutMessage: string = 'Operation timed out',
+  timeoutMessage: string = "Operation timed out",
 ): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
+      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs),
     ),
   ]);
 }
@@ -341,7 +371,7 @@ export class EventWaiter {
    * 开始监听事件
    */
   startListening(eventNames: string[]): void {
-    eventNames.forEach(eventName => {
+    eventNames.forEach((eventName) => {
       this.events.set(eventName, []);
       this.eventEmitter.on(eventName, (...args: any[]) => {
         const events = this.events.get(eventName) || [];
@@ -359,13 +389,16 @@ export class EventWaiter {
     expectedCount: number,
     options: WaitForConditionOptions = {},
   ): Promise<any[][]> {
-    await waitForCondition(() => {
-      const events = this.events.get(eventName) || [];
-      return events.length >= expectedCount;
-    }, {
-      ...options,
-      timeoutMessage: `Event '${eventName}' did not occur ${expectedCount} times within timeout`,
-    });
+    await waitForCondition(
+      () => {
+        const events = this.events.get(eventName) || [];
+        return events.length >= expectedCount;
+      },
+      {
+        ...options,
+        timeoutMessage: `Event '${eventName}' did not occur ${expectedCount} times within timeout`,
+      },
+    );
 
     return this.events.get(eventName) || [];
   }
@@ -394,11 +427,11 @@ export class EventWaiter {
  * 测试环境检测
  */
 export const TestEnvironment = {
-  isCI: () => process.env.CI === 'true' || process.env.NODE_ENV === 'ci',
-  isDebug: () => process.env.NODE_ENV === 'debug',
-  isIntegration: () => process.env.TEST_TYPE === 'integration',
-  isE2E: () => process.env.TEST_TYPE === 'e2e',
-  
+  isCI: () => process.env.CI === "true" || process.env.NODE_ENV === "ci",
+  isDebug: () => process.env.NODE_ENV === "debug",
+  isIntegration: () => process.env.TEST_TYPE === "integration",
+  isE2E: () => process.env.TEST_TYPE === "e2e",
+
   /**
    * 获取适合当前环境的超时时间
    */
@@ -408,7 +441,7 @@ export const TestEnvironment = {
     if (this.isE2E()) return baseTimeout * 2;
     return baseTimeout;
   },
-  
+
   /**
    * 获取适合当前环境的延迟时间
    */

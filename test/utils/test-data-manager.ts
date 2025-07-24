@@ -3,14 +3,14 @@
  * 提供测试数据的创建、隔离和清理功能
  */
 
-import { Model } from 'mongoose';
-import { getModelToken } from '@nestjs/mongoose';
-import { INestApplication } from '@nestjs/common';
-import { RedisService } from '@liaoliaots/nestjs-redis';
-import { AuthService } from '../../src/auth/services/auth.service';
-import { JwtService } from '@nestjs/jwt';
-import { UserRole, Permission } from '../../src/auth/enums/user-role.enum';
-import * as request from 'supertest';
+import { Model } from "mongoose";
+import { getModelToken } from "@nestjs/mongoose";
+import { INestApplication } from "@nestjs/common";
+import { RedisService } from "@liaoliaots/nestjs-redis";
+import { AuthService } from "../../src/auth/services/auth.service";
+import { JwtService } from "@nestjs/jwt";
+import { UserRole, Permission } from "../../src/auth/enums/user-role.enum";
+import * as request from "supertest";
 
 export interface TestUser {
   id: string;
@@ -38,7 +38,9 @@ export class TestDataManager {
     private readonly app: INestApplication,
     private readonly testPrefix?: string,
   ) {
-    this.testDataPrefix = testPrefix || `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.testDataPrefix =
+      testPrefix ||
+      `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
@@ -58,7 +60,7 @@ export class TestDataManager {
     const userDefaults = {
       username: `${this.testDataPrefix}_user_${this.createdUsers.length + 1}`,
       email: `${this.testDataPrefix}_user_${this.createdUsers.length + 1}@test.com`,
-      password: 'password123',
+      password: "password123",
       role: UserRole.DEVELOPER,
     };
 
@@ -96,7 +98,9 @@ export class TestDataManager {
   /**
    * 创建开发者用户
    */
-  async createDeveloperUser(userData: Partial<TestUser> = {}): Promise<TestUser> {
+  async createDeveloperUser(
+    userData: Partial<TestUser> = {},
+  ): Promise<TestUser> {
     return this.createTestUser({
       ...userData,
       role: UserRole.DEVELOPER,
@@ -156,8 +160,8 @@ export class TestDataManager {
     const apiKeyInfo = { ...apiKeyDefaults, ...apiKeyData };
 
     const response = await request(httpServer)
-      .post('/api/v1/auth/api-keys')
-      .set('Authorization', `Bearer ${userToken}`)
+      .post("/api/v1/auth/api-keys")
+      .set("Authorization", `Bearer ${userToken}`)
       .send(apiKeyInfo);
 
     if (response.status !== 201) {
@@ -186,8 +190,8 @@ export class TestDataManager {
       const redisClient = redisService.getOrThrow();
 
       const testKey = `${this.testDataPrefix}:${key}`;
-      
-      if (typeof value === 'object') {
+
+      if (typeof value === "object") {
         await redisClient.set(testKey, JSON.stringify(value));
       } else {
         await redisClient.set(testKey, value);
@@ -199,7 +203,7 @@ export class TestDataManager {
 
       this.createdRedisKeys.push(testKey);
     } catch (error) {
-      console.warn('设置Redis测试数据失败:', error.message);
+      console.warn("设置Redis测试数据失败:", error.message);
     }
   }
 
@@ -222,7 +226,7 @@ export class TestDataManager {
         return value;
       }
     } catch (error) {
-      console.warn('获取Redis测试数据失败:', error.message);
+      console.warn("获取Redis测试数据失败:", error.message);
       return null;
     }
   }
@@ -253,7 +257,7 @@ export class TestDataManager {
     this.createdRedisKeys.length = 0;
 
     if (errors.length > 0) {
-      console.error('测试数据清理时出现错误:', errors);
+      console.error("测试数据清理时出现错误:", errors);
     }
   }
 
@@ -261,44 +265,63 @@ export class TestDataManager {
    * 清理数据库数据
    */
   private async cleanupDatabaseData(): Promise<void> {
-    const userModel = this.app.get(getModelToken('User'), { strict: false });
-    const apiKeyModel = this.app.get(getModelToken('ApiKey'), { strict: false });
-    const symbolMappingModel = this.app.get(getModelToken('SymbolMappingRule'), { strict: false });
-    const dataMappingModel = this.app.get(getModelToken('DataMappingRule'), { strict: false });
-    const storageModel = this.app.get(getModelToken('StoredData'), { strict: false });
+    const userModel = this.app.get(getModelToken("User"), { strict: false });
+    const apiKeyModel = this.app.get(getModelToken("ApiKey"), {
+      strict: false,
+    });
+    const symbolMappingModel = this.app.get(
+      getModelToken("SymbolMappingRule"),
+      { strict: false },
+    );
+    const dataMappingModel = this.app.get(getModelToken("DataMappingRule"), {
+      strict: false,
+    });
+    const storageModel = this.app.get(getModelToken("StoredData"), {
+      strict: false,
+    });
 
     const cleanupTasks = [];
 
     // 清理用户数据
     if (userModel) {
       cleanupTasks.push(
-        userModel.deleteMany({ username: { $regex: `^${this.testDataPrefix}_` } })
+        userModel.deleteMany({
+          username: { $regex: `^${this.testDataPrefix}_` },
+        }),
       );
     }
 
     // 清理API Key数据
     if (apiKeyModel) {
       cleanupTasks.push(
-        apiKeyModel.deleteMany({ name: { $regex: `^${this.testDataPrefix}_` } })
+        apiKeyModel.deleteMany({
+          name: { $regex: `^${this.testDataPrefix}_` },
+        }),
       );
     }
 
     // 清理其他测试数据
     if (symbolMappingModel) {
       cleanupTasks.push(
-        symbolMappingModel.deleteMany({ dataSourceName: { $regex: `^${this.testDataPrefix}_` } })
+        symbolMappingModel.deleteMany({
+          dataSourceName: { $regex: `^${this.testDataPrefix}_` },
+        }),
       );
     }
 
     if (dataMappingModel) {
       cleanupTasks.push(
-        dataMappingModel.deleteMany({ name: { $regex: `^${this.testDataPrefix}_` } })
+        dataMappingModel.deleteMany({
+          name: { $regex: `^${this.testDataPrefix}_` },
+        }),
       );
     }
 
     if (storageModel) {
       cleanupTasks.push(
-        storageModel.deleteMany({ requestId: { $regex: `^${this.testDataPrefix}_` } })
+        storageModel.deleteMany({
+          requestId: { $regex: `^${this.testDataPrefix}_` },
+        }),
       );
     }
 
@@ -323,7 +346,7 @@ export class TestDataManager {
         await redisClient.del(...testKeys);
       }
     } catch (error) {
-      console.warn('清理Redis测试数据失败:', error.message);
+      console.warn("清理Redis测试数据失败:", error.message);
     }
   }
 
@@ -369,7 +392,7 @@ export class TestDataManager {
    * 等待异步操作完成
    */
   async waitForAsyncOperations(timeout: number = 100): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, timeout));
+    await new Promise((resolve) => setTimeout(resolve, timeout));
   }
 }
 
@@ -388,19 +411,19 @@ export function createTestDataManager(
  */
 export const GlobalTestDataManager = {
   current: null as TestDataManager | null,
-  
+
   initialize(app: INestApplication, testPrefix?: string): TestDataManager {
     this.current = new TestDataManager(app, testPrefix);
     return this.current;
   },
-  
+
   async cleanup(): Promise<void> {
     if (this.current) {
       await this.current.cleanup();
       this.current = null;
     }
   },
-  
+
   getInstance(): TestDataManager | null {
     return this.current;
   },

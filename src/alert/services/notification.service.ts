@@ -39,7 +39,10 @@ import {
 @Injectable()
 export class NotificationService implements OnModuleInit {
   private readonly logger = createLogger(NotificationService.name);
-  private readonly senders = new Map<NotificationChannelType, NotificationSender>();
+  private readonly senders = new Map<
+    NotificationChannelType,
+    NotificationSender
+  >();
 
   constructor(
     private readonly emailSender: EmailSender,

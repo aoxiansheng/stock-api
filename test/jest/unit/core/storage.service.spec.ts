@@ -1,13 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
-import { StorageService } from '../../../../src/core/storage/storage.service';
-import { StorageRepository } from '../../../../src/core/storage/repositories/storage.repository';
-import { getModelToken } from '@nestjs/mongoose';
-import { StoredData, StoredDataDocument } from '../../../../src/core/storage/schemas/storage.schema';
-import { Model } from 'mongoose';
-import { StoreDataDto, RetrieveDataDto } from '../../../../src/core/storage/dto/storage-request.dto';
-import { StorageType, DataClassification } from '../../../../src/core/storage/enums/storage-type.enum';
-import * as zlib from 'zlib';
+import { Test, TestingModule } from "@nestjs/testing";
+import { Logger } from "@nestjs/common";
+import { StorageService } from "../../../../src/core/storage/storage.service";
+import { StorageRepository } from "../../../../src/core/storage/repositories/storage.repository";
+import { getModelToken } from "@nestjs/mongoose";
+import {
+  StoredData,
+  StoredDataDocument,
+} from "../../../../src/core/storage/schemas/storage.schema";
+import { Model } from "mongoose";
+import {
+  StoreDataDto,
+  RetrieveDataDto,
+} from "../../../../src/core/storage/dto/storage-request.dto";
+import {
+  StorageType,
+  DataClassification,
+} from "../../../../src/core/storage/enums/storage-type.enum";
+import * as zlib from "zlib";
 
 // Mock createLogger for core modules
 const mockLoggerInstance = {
@@ -18,62 +27,70 @@ const mockLoggerInstance = {
   verbose: jest.fn(),
 };
 
-jest.mock('../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
   sanitizeLogData: jest.fn((data) => data),
 }));
 
 // Mock zlib functions using jest.spyOn
 const mockZlib = {
-  gzip: jest.spyOn(zlib, 'gzip').mockImplementation((data: any, callback: any) => {
-    // Mock successful compression
-    const compressed = Buffer.from('compressed-' + data);
-    if (callback) callback(null, compressed);
-    return compressed;
-  }),
-  gunzip: jest.spyOn(zlib, 'gunzip').mockImplementation((data: any, callback: any) => {
-    // Mock successful decompression
-    const decompressed = data.toString().replace('compressed-', '');
-    if (callback) callback(null, Buffer.from(decompressed));
-    return Buffer.from(decompressed);
-  }),
+  gzip: jest
+    .spyOn(zlib, "gzip")
+    .mockImplementation((data: any, callback: any) => {
+      // Mock successful compression
+      const compressed = Buffer.from("compressed-" + data);
+      if (callback) callback(null, compressed);
+      return compressed;
+    }),
+  gunzip: jest
+    .spyOn(zlib, "gunzip")
+    .mockImplementation((data: any, callback: any) => {
+      // Mock successful decompression
+      const decompressed = data.toString().replace("compressed-", "");
+      if (callback) callback(null, Buffer.from(decompressed));
+      return Buffer.from(decompressed);
+    }),
 };
 
 // Mock Redis
 const mockRedis = {
-  ping: jest.fn().mockResolvedValue('PONG'),
+  ping: jest.fn().mockResolvedValue("PONG"),
   on: jest.fn(),
   get: jest.fn().mockResolvedValue(null),
   del: jest.fn().mockResolvedValue(1),
   ttl: jest.fn().mockResolvedValue(-2),
-  setex: jest.fn().mockResolvedValue('OK'),
-  info: jest.fn().mockResolvedValue('used_memory:1024000\\nkeyspace_hits:100\\nkeyspace_misses:50'),
+  setex: jest.fn().mockResolvedValue("OK"),
+  info: jest
+    .fn()
+    .mockResolvedValue(
+      "used_memory:1024000\\nkeyspace_hits:100\\nkeyspace_misses:50",
+    ),
   dbsize: jest.fn().mockResolvedValue(10),
-  randomkey: jest.fn().mockResolvedValue('test-key'),
+  randomkey: jest.fn().mockResolvedValue("test-key"),
   pipeline: jest.fn().mockReturnValue({
     setex: jest.fn().mockReturnThis(),
     get: jest.fn().mockReturnThis(),
     ttl: jest.fn().mockReturnThis(),
-    exec: jest.fn().mockResolvedValue([['OK'], ['OK']]),
+    exec: jest.fn().mockResolvedValue([["OK"], ["OK"]]),
   }),
 };
 
-describe('StorageService', () => {
+describe("StorageService", () => {
   let service: StorageService;
   let storageRepository: any;
   let storedDataModel: jest.Mocked<Model<StoredDataDocument>>;
   let mockStorageRepository: any;
 
   const mockStoredData = {
-    _id: '507f1f77bcf86cd799439011',
-    key: 'test-key',
-    data: { symbol: 'AAPL', price: 150.75 },
+    _id: "507f1f77bcf86cd799439011",
+    key: "test-key",
+    data: { symbol: "AAPL", price: 150.75 },
     dataClassification: DataClassification.STOCK_QUOTE,
-    provider: 'test-provider',
-    market: 'US',
+    provider: "test-provider",
+    market: "US",
     dataSize: 100,
     compressed: false,
-    tags: { category: 'test', environment: 'unit-test' },
+    tags: { category: "test", environment: "unit-test" },
     expiresAt: new Date(Date.now() + 3600000),
     storedAt: new Date(),
     createdAt: new Date(),
@@ -93,7 +110,9 @@ describe('StorageService', () => {
     // Mock StorageRepository
     mockStorageRepository = {
       storeInCache: jest.fn().mockResolvedValue(true),
-      retrieveFromCache: jest.fn().mockResolvedValue({ data: null, metadata: null, ttl: -2 }),
+      retrieveFromCache: jest
+        .fn()
+        .mockResolvedValue({ data: null, metadata: null, ttl: -2 }),
       deleteFromCache: jest.fn().mockResolvedValue(1),
       upsert: jest.fn().mockResolvedValue(mockStoredData),
       findByKey: jest.fn().mockResolvedValue(null),
@@ -124,7 +143,6 @@ describe('StorageService', () => {
     storageRepository = module.get(StorageRepository);
     storedDataModel = module.get(getModelToken(StoredData.name));
 
-    
     // Clear all previous calls
     jest.clearAllMocks();
 
@@ -140,33 +158,33 @@ describe('StorageService', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('service initialization', () => {
-    it('should be properly initialized', () => {
+  describe("service initialization", () => {
+    it("should be properly initialized", () => {
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(StorageService);
     });
   });
 
-  describe('storeData', () => {
+  describe("storeData", () => {
     const storeRequest: StoreDataDto = {
-      key: 'test-key',
-      data: { symbol: 'AAPL', price: 150.75 },
+      key: "test-key",
+      data: { symbol: "AAPL", price: 150.75 },
       dataClassification: DataClassification.STOCK_QUOTE,
-      provider: 'test-provider',
-      market: 'US',
+      provider: "test-provider",
+      market: "US",
       storageType: StorageType.CACHE,
       options: {
-        tags: { category: 'test', environment: 'unit-test' },
+        tags: { category: "test", environment: "unit-test" },
         cacheTtl: 3600,
         compress: false,
       },
     };
 
-    it('should store data in cache successfully', async () => {
+    it("should store data in cache successfully", async () => {
       const result = await service.storeData(storeRequest);
 
       expect(result.data).toEqual(storeRequest.data);
@@ -174,8 +192,11 @@ describe('StorageService', () => {
       expect(storageRepository.storeInCache).toHaveBeenCalled();
     });
 
-    it('should store data in persistent storage successfully', async () => {
-      const persistentRequest = { ...storeRequest, storageType: StorageType.PERSISTENT };
+    it("should store data in persistent storage successfully", async () => {
+      const persistentRequest = {
+        ...storeRequest,
+        storageType: StorageType.PERSISTENT,
+      };
       storageRepository.upsert.mockResolvedValue(mockStoredData as any);
 
       const result = await service.storeData(persistentRequest);
@@ -184,18 +205,18 @@ describe('StorageService', () => {
       expect(result.metadata).toBeDefined();
       expect(storageRepository.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          key: 'test-key',
+          key: "test-key",
           dataTypeFilter: DataClassification.STOCK_QUOTE,
-          provider: 'test-provider',
-          market: 'US',
-        })
+          provider: "test-provider",
+          market: "US",
+        }),
       );
     });
 
-    it('should handle compression option without error', async () => {
-      const compressRequest = { 
-        ...storeRequest, 
-        options: { ...storeRequest.options, compress: true }
+    it("should handle compression option without error", async () => {
+      const compressRequest = {
+        ...storeRequest,
+        options: { ...storeRequest.options, compress: true },
       };
 
       const result = await service.storeData(compressRequest);
@@ -205,87 +226,100 @@ describe('StorageService', () => {
       // Note: Compression won't trigger for small data
     });
 
-    it('should handle storage errors gracefully', async () => {
-      storageRepository.storeInCache.mockRejectedValue(new Error('Storage failed'));
+    it("should handle storage errors gracefully", async () => {
+      storageRepository.storeInCache.mockRejectedValue(
+        new Error("Storage failed"),
+      );
 
-      await expect(service.storeData(storeRequest)).rejects.toThrow('Storage failed');
+      await expect(service.storeData(storeRequest)).rejects.toThrow(
+        "Storage failed",
+      );
     });
   });
 
-  describe('retrieveData', () => {
-    it('should retrieve data from cache successfully', async () => {
-      const retrieveDto: RetrieveDataDto = { key: 'test-key' };
-      const cachedData = JSON.stringify({ symbol: 'AAPL', price: 150.75 });
-      const metadata = JSON.stringify({ compressed: false, storedAt: new Date().toISOString() });
-      
+  describe("retrieveData", () => {
+    it("should retrieve data from cache successfully", async () => {
+      const retrieveDto: RetrieveDataDto = { key: "test-key" };
+      const cachedData = JSON.stringify({ symbol: "AAPL", price: 150.75 });
+      const metadata = JSON.stringify({
+        compressed: false,
+        storedAt: new Date().toISOString(),
+      });
+
       // Mock StorageRepository methods
       mockStorageRepository.retrieveFromCache.mockResolvedValue({
         data: cachedData,
         metadata: metadata,
-        ttl: 300
+        ttl: 300,
       });
 
       const result = await service.retrieveData(retrieveDto);
 
-      expect(result.data).toEqual({ symbol: 'AAPL', price: 150.75 });
+      expect(result.data).toEqual({ symbol: "AAPL", price: 150.75 });
       expect(result.cacheInfo.hit).toBe(true);
-      expect(result.cacheInfo.source).toBe('cache');
+      expect(result.cacheInfo.source).toBe("cache");
     });
 
-    it('should retrieve data from persistent storage when not in cache', async () => {
-      const retrieveDto: RetrieveDataDto = { key: 'test-key' };
-      
+    it("should retrieve data from persistent storage when not in cache", async () => {
+      const retrieveDto: RetrieveDataDto = { key: "test-key" };
+
       // Mock cache miss
       mockStorageRepository.retrieveFromCache.mockResolvedValue({
         data: null,
         metadata: null,
-        ttl: -2
+        ttl: -2,
       });
-      
+
       // Mock persistent storage hit
       mockStorageRepository.findByKey.mockResolvedValue(mockStoredData);
 
       const result = await service.retrieveData(retrieveDto);
 
       expect(result.data).toEqual(mockStoredData.data);
-      expect(result.cacheInfo.source).toBe('persistent');
+      expect(result.cacheInfo.source).toBe("persistent");
     });
 
-    it('should handle data not found', async () => {
-      const retrieveDto: RetrieveDataDto = { key: 'non-existent-key' };
-      
+    it("should handle data not found", async () => {
+      const retrieveDto: RetrieveDataDto = { key: "non-existent-key" };
+
       // Mock cache miss
       mockStorageRepository.retrieveFromCache.mockResolvedValue({
         data: null,
         metadata: null,
-        ttl: -2
+        ttl: -2,
       });
-      
+
       // Mock persistent storage miss
       mockStorageRepository.findByKey.mockResolvedValue(null);
 
       // Should throw NotFoundException
-      await expect(service.retrieveData(retrieveDto)).rejects.toThrow('数据未找到: non-existent-key');
+      await expect(service.retrieveData(retrieveDto)).rejects.toThrow(
+        "数据未找到: non-existent-key",
+      );
     });
 
-    it('should handle retrieval errors gracefully', async () => {
-      const retrieveDto: RetrieveDataDto = { key: 'test-key' };
-      
+    it("should handle retrieval errors gracefully", async () => {
+      const retrieveDto: RetrieveDataDto = { key: "test-key" };
+
       // Mock cache error
-      mockStorageRepository.retrieveFromCache.mockRejectedValue(new Error('Cache error'));
-      
+      mockStorageRepository.retrieveFromCache.mockRejectedValue(
+        new Error("Cache error"),
+      );
+
       // Mock persistent storage miss
       mockStorageRepository.findByKey.mockResolvedValue(null);
 
       // Should throw InternalServerErrorException
-      await expect(service.retrieveData(retrieveDto)).rejects.toThrow('数据检索失败: Cache error');
+      await expect(service.retrieveData(retrieveDto)).rejects.toThrow(
+        "数据检索失败: Cache error",
+      );
     });
   });
 
-  describe('deleteData', () => {
-    it('should delete data from both cache and persistent storage', async () => {
-      const key = 'test-key';
-      
+  describe("deleteData", () => {
+    it("should delete data from both cache and persistent storage", async () => {
+      const key = "test-key";
+
       mockStorageRepository.deleteFromCache.mockResolvedValue(true);
       mockStorageRepository.deleteByKey.mockResolvedValue({ deletedCount: 1 });
 
@@ -296,9 +330,9 @@ describe('StorageService', () => {
       expect(mockStorageRepository.deleteByKey).toHaveBeenCalledWith(key);
     });
 
-    it('should handle cache-only deletion', async () => {
-      const key = 'test-key';
-      
+    it("should handle cache-only deletion", async () => {
+      const key = "test-key";
+
       mockStorageRepository.deleteFromCache.mockResolvedValue(true);
 
       const result = await service.deleteData(key, StorageType.CACHE);
@@ -308,10 +342,12 @@ describe('StorageService', () => {
       expect(mockStorageRepository.deleteByKey).not.toHaveBeenCalled();
     });
 
-    it('should handle deletion errors gracefully', async () => {
-      const key = 'test-key';
-      
-      mockStorageRepository.deleteFromCache.mockRejectedValue(new Error('Redis deletion failed'));
+    it("should handle deletion errors gracefully", async () => {
+      const key = "test-key";
+
+      mockStorageRepository.deleteFromCache.mockRejectedValue(
+        new Error("Redis deletion failed"),
+      );
 
       const result = await service.deleteData(key);
 
@@ -320,27 +356,27 @@ describe('StorageService', () => {
     });
   });
 
-  describe('getStorageStats', () => {
-    it('should return comprehensive storage statistics', async () => {
+  describe("getStorageStats", () => {
+    it("should return comprehensive storage statistics", async () => {
       // Mock cache stats
       mockStorageRepository.getCacheStats.mockResolvedValue({
-        info: 'used_memory:2048000\\nother_info:value',
-        dbSize: 25
+        info: "used_memory:2048000\\nother_info:value",
+        dbSize: 25,
       });
       mockStorageRepository.getAverageTtl.mockResolvedValue(1800);
-      
+
       // Mock persistent stats
       mockStorageRepository.countAll.mockResolvedValue(15);
       mockStorageRepository.getDataTypeFilterStats.mockResolvedValue([
-        { _id: 'STOCK_QUOTE', count: 10 },
-        { _id: 'INDEX_QUOTE', count: 5 }
+        { _id: "STOCK_QUOTE", count: 10 },
+        { _id: "INDEX_QUOTE", count: 5 },
       ]);
       mockStorageRepository.getProviderStats.mockResolvedValue([
-        { _id: 'longport', count: 12 }, 
-        { _id: 'futu', count: 3 }
+        { _id: "longport", count: 12 },
+        { _id: "futu", count: 3 },
       ]);
       mockStorageRepository.getSizeStats.mockResolvedValue([
-        { totalSize: 1024000 }
+        { totalSize: 1024000 },
       ]);
 
       const stats = await service.getStorageStats();
@@ -351,23 +387,23 @@ describe('StorageService', () => {
       expect(stats.persistent.totalDocuments).toBe(15);
       expect(stats.persistent.totalSizeBytes).toBe(1024000);
       expect(stats.persistent.categoriesCounts).toEqual({
-        'STOCK_QUOTE': 10,
-        'INDEX_QUOTE': 5
+        STOCK_QUOTE: 10,
+        INDEX_QUOTE: 5,
       });
       expect(stats.persistent.providerCounts).toEqual({
-        'longport': 12,
-        'futu': 3
+        longport: 12,
+        futu: 3,
       });
     });
 
-    it('should handle Redis unavailable', async () => {
+    it("should handle Redis unavailable", async () => {
       // Mock Redis unavailable
       mockStorageRepository.getCacheStats.mockResolvedValue({
         info: null,
-        dbSize: 0
+        dbSize: 0,
       });
       mockStorageRepository.getAverageTtl.mockResolvedValue(0);
-      
+
       // Mock persistent stats
       mockStorageRepository.countAll.mockResolvedValue(5);
       mockStorageRepository.getDataTypeFilterStats.mockResolvedValue([]);
@@ -382,18 +418,22 @@ describe('StorageService', () => {
       expect(stats.persistent.totalDocuments).toBe(5);
     });
 
-    it('should handle database errors', async () => {
+    it("should handle database errors", async () => {
       // Mock cache stats success
       mockStorageRepository.getCacheStats.mockResolvedValue({
-        info: 'used_memory:1024000',
-        dbSize: 10
+        info: "used_memory:1024000",
+        dbSize: 10,
       });
       mockStorageRepository.getAverageTtl.mockResolvedValue(0);
-      
-      // Mock database error
-      mockStorageRepository.countAll.mockRejectedValue(new Error('Database error'));
 
-      await expect(service.getStorageStats()).rejects.toThrow('生成存储统计信息失败: Database error');
+      // Mock database error
+      mockStorageRepository.countAll.mockRejectedValue(
+        new Error("Database error"),
+      );
+
+      await expect(service.getStorageStats()).rejects.toThrow(
+        "生成存储统计信息失败: Database error",
+      );
     });
   });
 

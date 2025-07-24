@@ -1,26 +1,26 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertController } from '../../../../src/alert/alert.controller';
-import { AlertingService } from '../../../../src/alert/services/alerting.service';
-import { AlertHistoryService } from '../../../../src/alert/services/alert-history.service';
-import { NotificationService } from '../../../../src/alert/services/notification.service';
-import { CreateAlertRuleDto } from '../../../../src/alert/dto/alert-rule.dto';
-import { AlertSeverity } from '../../../../src/alert/types/alert.types';
-import { AlertStatus } from '../../../../src/alert/types/alert.types';
-import { NotificationChannelType } from '../../../../src/alert/types/alert.types';
-import { PermissionService } from '../../../../src/auth/services/permission.service';
-import { UnifiedPermissionsGuard } from '../../../../src/auth/guards/unified-permissions.guard';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AlertController } from "../../../../src/alert/alert.controller";
+import { AlertingService } from "../../../../src/alert/services/alerting.service";
+import { AlertHistoryService } from "../../../../src/alert/services/alert-history.service";
+import { NotificationService } from "../../../../src/alert/services/notification.service";
+import { CreateAlertRuleDto } from "../../../../src/alert/dto/alert-rule.dto";
+import { AlertSeverity } from "../../../../src/alert/types/alert.types";
+import { AlertStatus } from "../../../../src/alert/types/alert.types";
+import { NotificationChannelType } from "../../../../src/alert/types/alert.types";
+import { PermissionService } from "../../../../src/auth/services/permission.service";
+import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-permissions.guard";
 
-describe('AlertController', () => {
+describe("AlertController", () => {
   let controller: AlertController;
   let alertingService: AlertingService;
   let alertHistoryService: AlertHistoryService;
   let notificationService: NotificationService;
 
   const mockAlertRule = {
-    id: 'rule-123',
-    name: '测试告警规则',
-    metric: 'cpu_usage',
-    operator: 'gt',
+    id: "rule-123",
+    name: "测试告警规则",
+    metric: "cpu_usage",
+    operator: "gt",
     threshold: 80,
     duration: 300,
     severity: AlertSeverity.CRITICAL,
@@ -32,19 +32,19 @@ describe('AlertController', () => {
   };
 
   const mockAlert = {
-    id: 'alert-123',
-    ruleId: 'rule-123',
-    ruleName: '测试告警规则',
+    id: "alert-123",
+    ruleId: "rule-123",
+    ruleName: "测试告警规则",
     severity: AlertSeverity.CRITICAL,
     status: AlertStatus.FIRING,
-    message: '测试告警消息',
+    message: "测试告警消息",
     startTime: new Date(),
     endTime: null,
     // 修正: 移除旧的 'details' 字段，使用根级字段
-    metric: 'cpu_usage',
+    metric: "cpu_usage",
     value: 85,
     threshold: 80, // 添加阈值字段
-    context: {}, 
+    context: {},
   };
 
   const mockAlertingService = {
@@ -95,9 +95,9 @@ describe('AlertController', () => {
         },
       ],
     })
-    .overrideGuard(UnifiedPermissionsGuard)
-    .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-    .compile();
+      .overrideGuard(UnifiedPermissionsGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
 
     controller = module.get<AlertController>(AlertController);
     alertingService = module.get<AlertingService>(AlertingService);
@@ -109,17 +109,17 @@ describe('AlertController', () => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 
-  describe('告警规则管理', () => {
-    describe('createRule', () => {
-      it('应该成功创建告警规则', async () => {
+  describe("告警规则管理", () => {
+    describe("createRule", () => {
+      it("应该成功创建告警规则", async () => {
         const createRuleDto: CreateAlertRuleDto = {
-          name: '测试告警规则',
-          metric: 'cpu_usage',
-          operator: 'gt',
+          name: "测试告警规则",
+          metric: "cpu_usage",
+          operator: "gt",
           threshold: 80,
           duration: 300,
           severity: AlertSeverity.CRITICAL,
@@ -136,11 +136,11 @@ describe('AlertController', () => {
         expect(result).toEqual(mockAlertRule);
       });
 
-      it('应该在创建失败时抛出异常', async () => {
+      it("应该在创建失败时抛出异常", async () => {
         const createRuleDto: CreateAlertRuleDto = {
-          name: '无效规则',
-          metric: 'invalid_metric',
-          operator: 'gt',
+          name: "无效规则",
+          metric: "invalid_metric",
+          operator: "gt",
           threshold: -1,
           duration: 300,
           severity: AlertSeverity.CRITICAL,
@@ -149,14 +149,18 @@ describe('AlertController', () => {
           cooldown: 600,
         };
 
-        mockAlertingService.createRule.mockRejectedValue(new Error('创建告警规则失败'));
+        mockAlertingService.createRule.mockRejectedValue(
+          new Error("创建告警规则失败"),
+        );
 
-        await expect(controller.createRule(createRuleDto)).rejects.toThrow('创建告警规则失败');
+        await expect(controller.createRule(createRuleDto)).rejects.toThrow(
+          "创建告警规则失败",
+        );
       });
     });
 
-    describe('getRules', () => {
-      it('应该成功获取所有告警规则', async () => {
+    describe("getRules", () => {
+      it("应该成功获取所有告警规则", async () => {
         const mockRules = [mockAlertRule];
         mockAlertingService.getRules.mockResolvedValue(mockRules);
 
@@ -166,7 +170,7 @@ describe('AlertController', () => {
         expect(result).toEqual(mockRules);
       });
 
-      it('应该在没有规则时返回空数组', async () => {
+      it("应该在没有规则时返回空数组", async () => {
         mockAlertingService.getRules.mockResolvedValue([]);
 
         const result = await controller.getRules();
@@ -176,9 +180,9 @@ describe('AlertController', () => {
       });
     });
 
-    describe('getRuleById', () => {
-      it('应该成功根据ID获取告警规则', async () => {
-        const ruleId = 'rule-123';
+    describe("getRuleById", () => {
+      it("应该成功根据ID获取告警规则", async () => {
+        const ruleId = "rule-123";
         mockAlertingService.getRuleById.mockResolvedValue(mockAlertRule);
 
         const result = await controller.getRuleById(ruleId);
@@ -187,8 +191,8 @@ describe('AlertController', () => {
         expect(result).toEqual(mockAlertRule);
       });
 
-      it('应该在规则不存在时返回null', async () => {
-        const ruleId = 'nonexistent-rule';
+      it("应该在规则不存在时返回null", async () => {
+        const ruleId = "nonexistent-rule";
         mockAlertingService.getRuleById.mockResolvedValue(null);
 
         const result = await controller.getRuleById(ruleId);
@@ -198,11 +202,11 @@ describe('AlertController', () => {
       });
     });
 
-    describe('updateRule', () => {
-      it('应该成功更新告警规则', async () => {
-        const ruleId = 'rule-123';
+    describe("updateRule", () => {
+      it("应该成功更新告警规则", async () => {
+        const ruleId = "rule-123";
         const updateDto = {
-          name: '更新后的告警规则',
+          name: "更新后的告警规则",
           threshold: 90,
         };
         const updatedRule = { ...mockAlertRule, ...updateDto };
@@ -211,14 +215,17 @@ describe('AlertController', () => {
 
         const result = await controller.updateRule(ruleId, updateDto);
 
-        expect(alertingService.updateRule).toHaveBeenCalledWith(ruleId, updateDto);
+        expect(alertingService.updateRule).toHaveBeenCalledWith(
+          ruleId,
+          updateDto,
+        );
         expect(result).toEqual(updatedRule);
       });
     });
 
-    describe('deleteRule', () => {
-      it('应该成功删除告警规则', async () => {
-        const ruleId = 'rule-123';
+    describe("deleteRule", () => {
+      it("应该成功删除告警规则", async () => {
+        const ruleId = "rule-123";
         mockAlertingService.deleteRule.mockResolvedValue(true);
 
         await controller.deleteRule(ruleId);
@@ -227,9 +234,9 @@ describe('AlertController', () => {
       });
     });
 
-    describe('toggleRule', () => {
-      it('应该成功切换告警规则状态', async () => {
-        const ruleId = 'rule-123';
+    describe("toggleRule", () => {
+      it("应该成功切换告警规则状态", async () => {
+        const ruleId = "rule-123";
         const body = { enabled: false };
         mockAlertingService.toggleRule.mockResolvedValue(true);
 
@@ -240,11 +247,13 @@ describe('AlertController', () => {
     });
   });
 
-  describe('告警管理', () => {
-    describe('getActiveAlerts', () => {
-      it('应该成功获取活跃告警', async () => {
+  describe("告警管理", () => {
+    describe("getActiveAlerts", () => {
+      it("应该成功获取活跃告警", async () => {
         const mockActiveAlerts = [mockAlert];
-        mockAlertHistoryService.getActiveAlerts.mockResolvedValue(mockActiveAlerts);
+        mockAlertHistoryService.getActiveAlerts.mockResolvedValue(
+          mockActiveAlerts,
+        );
 
         const result = await controller.getActiveAlerts();
 
@@ -253,36 +262,52 @@ describe('AlertController', () => {
         expect(result.length).toBe(1);
       });
 
-      it('应该根据查询参数过滤活跃告警', async () => {
+      it("应该根据查询参数过滤活跃告警", async () => {
         const mockActiveAlerts = [
-          { ...mockAlert, ruleId: 'rule-1', severity: AlertSeverity.CRITICAL, metric: 'cpu_usage' },
-          { ...mockAlert, ruleId: 'rule-2', severity: AlertSeverity.WARNING, metric: 'memory_usage' },
+          {
+            ...mockAlert,
+            ruleId: "rule-1",
+            severity: AlertSeverity.CRITICAL,
+            metric: "cpu_usage",
+          },
+          {
+            ...mockAlert,
+            ruleId: "rule-2",
+            severity: AlertSeverity.WARNING,
+            metric: "memory_usage",
+          },
         ];
-        mockAlertHistoryService.getActiveAlerts.mockResolvedValue(mockActiveAlerts);
+        mockAlertHistoryService.getActiveAlerts.mockResolvedValue(
+          mockActiveAlerts,
+        );
 
         // 按 ruleId 过滤
-        let result = await controller.getActiveAlerts({ ruleId: 'rule-1' });
+        let result = await controller.getActiveAlerts({ ruleId: "rule-1" });
         expect(result.length).toBe(1);
-        expect(result[0].ruleId).toBe('rule-1');
+        expect(result[0].ruleId).toBe("rule-1");
 
         // 按 severity 过滤
-        result = await controller.getActiveAlerts({ severity: AlertSeverity.WARNING });
+        result = await controller.getActiveAlerts({
+          severity: AlertSeverity.WARNING,
+        });
         expect(result.length).toBe(1);
         expect(result[0].severity).toBe(AlertSeverity.WARNING);
-        
+
         // 按 metric 过滤
-        result = await controller.getActiveAlerts({ metric: 'memory' });
+        result = await controller.getActiveAlerts({ metric: "memory" });
         expect(result.length).toBe(1);
-        expect(result[0].metric).toBe('memory_usage');
+        expect(result[0].metric).toBe("memory_usage");
 
         // 无匹配
-        result = await controller.getActiveAlerts({ ruleId: 'rule-nonexistent' });
+        result = await controller.getActiveAlerts({
+          ruleId: "rule-nonexistent",
+        });
         expect(result.length).toBe(0);
       });
     });
 
-    describe('getAlertHistory', () => {
-      it('应该成功查询告警历史', async () => {
+    describe("getAlertHistory", () => {
+      it("应该成功查询告警历史", async () => {
         const query = {
           page: 1,
           limit: 10,
@@ -309,10 +334,10 @@ describe('AlertController', () => {
         expect(result.items.length).toBe(1);
       });
 
-      it('应该正确转换日期参数', async () => {
+      it("应该正确转换日期参数", async () => {
         const query = {
-          startTime: '2023-01-01T00:00:00.000Z',
-          endTime: '2023-12-31T23:59:59.999Z',
+          startTime: "2023-01-01T00:00:00.000Z",
+          endTime: "2023-12-31T23:59:59.999Z",
         };
 
         const mockQueryResult = {
@@ -328,14 +353,14 @@ describe('AlertController', () => {
 
         expect(alertHistoryService.queryAlerts).toHaveBeenCalledWith({
           ...query,
-          startTime: new Date('2023-01-01T00:00:00.000Z'),
-          endTime: new Date('2023-12-31T23:59:59.999Z'),
+          startTime: new Date("2023-01-01T00:00:00.000Z"),
+          endTime: new Date("2023-12-31T23:59:59.999Z"),
         });
       });
     });
 
-    describe('getAlertStats', () => {
-      it('应该成功获取告警统计', async () => {
+    describe("getAlertStats", () => {
+      it("应该成功获取告警统计", async () => {
         const mockStats = {
           total: 100,
           firing: 10,
@@ -353,9 +378,9 @@ describe('AlertController', () => {
       });
     });
 
-    describe('getAlertById', () => {
-      it('应该成功根据ID获取告警详情', async () => {
-        const alertId = 'alert-123';
+    describe("getAlertById", () => {
+      it("应该成功根据ID获取告警详情", async () => {
+        const alertId = "alert-123";
         mockAlertHistoryService.getAlertById.mockResolvedValue(mockAlert);
 
         const result = await controller.getAlertById(alertId);
@@ -365,25 +390,25 @@ describe('AlertController', () => {
         expect(result.id).toBe(alertId);
       });
 
-      it('应该在告警不存在时返回null', async () => {
-        const alertId = 'nonexistent-alert';
+      it("应该在告警不存在时返回null", async () => {
+        const alertId = "nonexistent-alert";
         mockAlertHistoryService.getAlertById.mockResolvedValue(null);
 
         const result = await controller.getAlertById(alertId);
-        
+
         expect(alertHistoryService.getAlertById).toHaveBeenCalledWith(alertId);
         expect(result).toBeNull();
       });
     });
 
-    describe('acknowledgeAlert', () => {
-      it('应该成功确认告警', async () => {
-        const alertId = 'alert-123';
-        const body = { acknowledgedBy: 'user-123' };
+    describe("acknowledgeAlert", () => {
+      it("应该成功确认告警", async () => {
+        const alertId = "alert-123";
+        const body = { acknowledgedBy: "user-123" };
         const acknowledgedAlert = {
           ...mockAlert,
           status: AlertStatus.ACKNOWLEDGED,
-          acknowledgedBy: 'user-123',
+          acknowledgedBy: "user-123",
           acknowledgedAt: new Date(),
           // 添加缺失的字段以匹配AlertResponseDto.fromEntity的输出
           threshold: mockAlert.threshold || 80,
@@ -391,26 +416,33 @@ describe('AlertController', () => {
           resolvedBy: undefined,
           resolvedAt: undefined,
         };
-        mockAlertingService.acknowledgeAlert.mockResolvedValue(acknowledgedAlert);
+        mockAlertingService.acknowledgeAlert.mockResolvedValue(
+          acknowledgedAlert,
+        );
 
-        const result = await controller.acknowledgeAlert(alertId, { acknowledgedBy: 'user-123' });
+        const result = await controller.acknowledgeAlert(alertId, {
+          acknowledgedBy: "user-123",
+        });
 
-        expect(alertingService.acknowledgeAlert).toHaveBeenCalledWith(alertId, 'user-123');
+        expect(alertingService.acknowledgeAlert).toHaveBeenCalledWith(
+          alertId,
+          "user-123",
+        );
         expect(result).toEqual({
           ...acknowledgedAlert,
           duration: expect.any(Number),
-          isActive: true,  // ACKNOWLEDGED状态被视为活跃状态
+          isActive: true, // ACKNOWLEDGED状态被视为活跃状态
         });
       });
     });
 
-    describe('resolveAlert', () => {
-      it('应该成功解决告警', async () => {
-        const alertId = 'alert-123';
-        const body = { resolvedBy: 'user-123' };
-        
+    describe("resolveAlert", () => {
+      it("应该成功解决告警", async () => {
+        const alertId = "alert-123";
+        const body = { resolvedBy: "user-123" };
+
         const mockQueryResult = {
-          alerts: [{ ...mockAlert, id: alertId, ruleId: 'rule-123' }],
+          alerts: [{ ...mockAlert, id: alertId, ruleId: "rule-123" }],
           total: 1,
           page: 1,
           limit: 100,
@@ -421,13 +453,17 @@ describe('AlertController', () => {
 
         const result = await controller.resolveAlert(alertId, body);
 
-        expect(alertingService.resolveAlert).toHaveBeenCalledWith(alertId, 'user-123', 'rule-123');
+        expect(alertingService.resolveAlert).toHaveBeenCalledWith(
+          alertId,
+          "user-123",
+          "rule-123",
+        );
       });
 
-      it('应该在告警不存在时抛出异常', async () => {
-        const alertId = 'nonexistent-alert';
-        const body = { resolvedBy: 'user-123' };
-        
+      it("应该在告警不存在时抛出异常", async () => {
+        const alertId = "nonexistent-alert";
+        const body = { resolvedBy: "user-123" };
+
         const mockQueryResult = {
           alerts: [],
           total: 0,
@@ -438,21 +474,21 @@ describe('AlertController', () => {
         mockAlertHistoryService.queryAlerts.mockResolvedValue(mockQueryResult);
 
         await expect(controller.resolveAlert(alertId, body)).rejects.toThrow(
-          `未找到ID为 ${alertId} 的告警`
+          `未找到ID为 ${alertId} 的告警`,
         );
       });
     });
   });
 
-  describe('通知渠道测试', () => {
-    describe('testNotificationChannel', () => {
-      it('应该成功测试邮件通知渠道', async () => {
+  describe("通知渠道测试", () => {
+    describe("testNotificationChannel", () => {
+      it("应该成功测试邮件通知渠道", async () => {
         const testDto = {
           type: NotificationChannelType.EMAIL,
-          message: '测试通知消息',
+          message: "测试通知消息",
           config: {
-            to: ['test@example.com'],
-            subject: '测试通知',
+            to: ["test@example.com"],
+            subject: "测试通知",
           },
         };
 
@@ -462,17 +498,17 @@ describe('AlertController', () => {
 
         expect(notificationService.testChannel).toHaveBeenCalledWith(
           testDto.type,
-          testDto.config
+          testDto.config,
         );
         expect(result.success).toBe(true);
       });
 
-      it('应该在测试失败时返回失败结果', async () => {
+      it("应该在测试失败时返回失败结果", async () => {
         const testDto = {
           type: NotificationChannelType.EMAIL,
-          message: '测试通知消息',
+          message: "测试通知消息",
           config: {
-            to: ['invalid@email'],
+            to: ["invalid@email"],
           },
         };
 
@@ -483,103 +519,124 @@ describe('AlertController', () => {
         expect(result.success).toBe(false);
       });
 
-      it('应该在测试异常时抛出异常', async () => {
+      it("应该在测试异常时抛出异常", async () => {
         const testDto = {
           type: NotificationChannelType.EMAIL,
-          message: '测试通知消息',
+          message: "测试通知消息",
           config: {},
         };
 
-        mockNotificationService.testChannel.mockRejectedValue(new Error('配置错误'));
+        mockNotificationService.testChannel.mockRejectedValue(
+          new Error("配置错误"),
+        );
 
-        await expect(controller.testNotificationChannel(testDto)).rejects.toThrow('配置错误');
+        await expect(
+          controller.testNotificationChannel(testDto),
+        ).rejects.toThrow("配置错误");
       });
     });
   });
 
-  describe('手动触发', () => {
-    describe('triggerEvaluation', () => {
+  describe("手动触发", () => {
+    describe("triggerEvaluation", () => {
       // 在每个测试开始前重置mock
       beforeEach(() => {
         mockAlertingService.processMetrics.mockReset();
         mockAlertingService.processMetrics.mockResolvedValue(undefined);
       });
 
-      it('应该成功触发告警评估', async () => {
+      it("应该成功触发告警评估", async () => {
         const result = await controller.triggerEvaluation();
 
         expect(alertingService.processMetrics).toHaveBeenCalledWith([]);
-        expect(result.message).toBe('告警评估已触发');
+        expect(result.message).toBe("告警评估已触发");
       });
 
-      it('应该在触发失败时抛出异常', async () => {
-        mockAlertingService.processMetrics.mockRejectedValue(new Error('评估失败'));
+      it("应该在触发失败时抛出异常", async () => {
+        mockAlertingService.processMetrics.mockRejectedValue(
+          new Error("评估失败"),
+        );
 
-        await expect(controller.triggerEvaluation()).rejects.toThrow('评估失败');
+        await expect(controller.triggerEvaluation()).rejects.toThrow(
+          "评估失败",
+        );
       });
 
-      it('应该在达到频率限制时抛出异常', async () => {
+      it("应该在达到频率限制时抛出异常", async () => {
         const triggerLimit = 5;
         // 首次调用
-        (controller as any).triggerRateLimit.set('admin', { count: 1, lastReset: Date.now() });
+        (controller as any).triggerRateLimit.set("admin", {
+          count: 1,
+          lastReset: Date.now(),
+        });
         for (let i = 1; i < triggerLimit; i++) {
-            await controller.triggerEvaluation();
+          await controller.triggerEvaluation();
         }
-        await expect(controller.triggerEvaluation()).rejects.toThrow('手动触发频率过高，请稍后再试');
-      });
-      
-      it('应该在指定了不存在的规则ID时抛出异常', async () => {
-        const triggerDto = { ruleId: 'nonexistent-rule', metrics: [] };
-        mockAlertingService.getRuleById.mockResolvedValue(null);
-        
-        await expect(controller.triggerEvaluation(triggerDto)).rejects.toThrow('指定的告警规则不存在');
+        await expect(controller.triggerEvaluation()).rejects.toThrow(
+          "手动触发频率过高，请稍后再试",
+        );
       });
 
-      it('应该成功触发指定规则的评估', async () => {
+      it("应该在指定了不存在的规则ID时抛出异常", async () => {
+        const triggerDto = { ruleId: "nonexistent-rule", metrics: [] };
+        mockAlertingService.getRuleById.mockResolvedValue(null);
+
+        await expect(controller.triggerEvaluation(triggerDto)).rejects.toThrow(
+          "指定的告警规则不存在",
+        );
+      });
+
+      it("应该成功触发指定规则的评估", async () => {
         // 确保这个测试用例使用新的mock
         mockAlertingService.processMetrics.mockReset();
         mockAlertingService.processMetrics.mockResolvedValue(undefined);
-        
-        const triggerDto = { ruleId: 'rule-123', metrics: [] };
+
+        const triggerDto = { ruleId: "rule-123", metrics: [] };
         mockAlertingService.getRuleById.mockResolvedValue(mockAlertRule);
-        
+
         const result = await controller.triggerEvaluation(triggerDto);
 
         expect(result.message).toBe(`告警规则 ${triggerDto.ruleId} 评估已触发`);
       });
 
-      it('应该使用提供的指标数据触发评估', async () => {
+      it("应该使用提供的指标数据触发评估", async () => {
         // 确保这个测试用例使用新的mock
         mockAlertingService.processMetrics.mockReset();
         mockAlertingService.processMetrics.mockResolvedValue(undefined);
-        
-        const metrics = [{ metric: 'cpu_usage', value: 99, timestamp: new Date(), tags: {} }];
+
+        const metrics = [
+          { metric: "cpu_usage", value: 99, timestamp: new Date(), tags: {} },
+        ];
         const triggerDto = { metrics };
-        
+
         await controller.triggerEvaluation(triggerDto);
-        
-        expect(alertingService.processMetrics).toHaveBeenCalledWith(expect.arrayContaining([
-          expect.objectContaining({ metric: 'cpu_usage', value: 99 })
-        ]));
+
+        expect(alertingService.processMetrics).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ metric: "cpu_usage", value: 99 }),
+          ]),
+        );
       });
     });
   });
 
-  describe('批量操作', () => {
-    describe('batchAcknowledgeAlerts', () => {
-      it('应该成功批量确认告警', async () => {
+  describe("批量操作", () => {
+    describe("batchAcknowledgeAlerts", () => {
+      it("应该成功批量确认告警", async () => {
         const body = {
-          alertIds: ['alert-1', 'alert-2', 'alert-3'],
-          acknowledgedBy: 'user-123',
+          alertIds: ["alert-1", "alert-2", "alert-3"],
+          acknowledgedBy: "user-123",
         };
 
         const acknowledgedAlert = {
           ...mockAlert,
           status: AlertStatus.ACKNOWLEDGED,
-          acknowledgedBy: 'user-123',
+          acknowledgedBy: "user-123",
           acknowledgedAt: new Date(),
         };
-        mockAlertingService.acknowledgeAlert.mockResolvedValue(acknowledgedAlert);
+        mockAlertingService.acknowledgeAlert.mockResolvedValue(
+          acknowledgedAlert,
+        );
 
         const result = await controller.batchAcknowledgeAlerts(body);
 
@@ -588,21 +645,21 @@ describe('AlertController', () => {
         expect(result.failed.length).toBe(0);
       });
 
-      it('应该处理批量确认中的部分失败', async () => {
+      it("应该处理批量确认中的部分失败", async () => {
         const body = {
-          alertIds: ['alert-1', 'alert-2'],
-          acknowledgedBy: 'user-123',
+          alertIds: ["alert-1", "alert-2"],
+          acknowledgedBy: "user-123",
         };
 
         const acknowledgedAlert = {
           ...mockAlert,
           status: AlertStatus.ACKNOWLEDGED,
-          acknowledgedBy: 'user-123',
+          acknowledgedBy: "user-123",
           acknowledgedAt: new Date(),
         };
         mockAlertingService.acknowledgeAlert
           .mockResolvedValueOnce(acknowledgedAlert)
-          .mockRejectedValueOnce(new Error('确认失败'));
+          .mockRejectedValueOnce(new Error("确认失败"));
 
         const result = await controller.batchAcknowledgeAlerts(body);
 
@@ -611,17 +668,17 @@ describe('AlertController', () => {
       });
     });
 
-    describe('batchResolveAlerts', () => {
-      it('应该成功批量解决告警', async () => {
+    describe("batchResolveAlerts", () => {
+      it("应该成功批量解决告警", async () => {
         const body = {
-          alertIds: ['alert-1', 'alert-2'],
-          resolvedBy: 'user-123',
+          alertIds: ["alert-1", "alert-2"],
+          resolvedBy: "user-123",
         };
 
         const mockQueryResult = {
           alerts: [
-            { id: 'alert-1', ruleId: 'rule-1' },
-            { id: 'alert-2', ruleId: 'rule-2' },
+            { id: "alert-1", ruleId: "rule-1" },
+            { id: "alert-2", ruleId: "rule-2" },
           ],
           total: 2,
           page: 1,
@@ -638,13 +695,13 @@ describe('AlertController', () => {
         expect(result.failed.length).toBe(0);
       });
 
-      it('应该处理部分失败的情况', async () => {
+      it("应该处理部分失败的情况", async () => {
         const body = {
-          alertIds: ['alert-1', 'alert-2'],
-          resolvedBy: 'user-123',
+          alertIds: ["alert-1", "alert-2"],
+          resolvedBy: "user-123",
         };
         const mockQueryResult = {
-          alerts: [ { id: 'alert-1', ruleId: 'rule-1' } ],
+          alerts: [{ id: "alert-1", ruleId: "rule-1" }],
           total: 1,
           page: 1,
           limit: 1000,
@@ -656,7 +713,7 @@ describe('AlertController', () => {
 
         expect(result.succeeded.length).toBe(1);
         expect(result.failed.length).toBe(1);
-        expect(result.failed[0]).toBe('alert-2');
+        expect(result.failed[0]).toBe("alert-2");
       });
     });
   });

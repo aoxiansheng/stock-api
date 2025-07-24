@@ -1,12 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CallHandler, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
-import { Observable, of, throwError } from 'rxjs';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  CallHandler,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
+import { Observable, of, throwError } from "rxjs";
 
-import { PerformanceInterceptor } from '../../../../../src/metrics/interceptors/performance.interceptor';
-import { PerformanceMonitorService } from '../../../../../src/metrics/services/performance-monitor.service';
-import { Reflector } from '@nestjs/core';
+import { PerformanceInterceptor } from "../../../../../src/metrics/interceptors/performance.interceptor";
+import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
+import { Reflector } from "@nestjs/core";
 
-describe('PerformanceInterceptor', () => {
+describe("PerformanceInterceptor", () => {
   let interceptor: PerformanceInterceptor;
   let performanceMonitorService: jest.Mocked<PerformanceMonitorService>;
 
@@ -35,17 +40,17 @@ describe('PerformanceInterceptor', () => {
     jest.clearAllMocks();
   });
 
-  describe('PerformanceInterceptor - Definition', () => {
-    it('should be defined', () => {
+  describe("PerformanceInterceptor - Definition", () => {
+    it("should be defined", () => {
       expect(interceptor).toBeDefined();
     });
 
-    it('should have PerformanceMonitorService dependency', () => {
+    it("should have PerformanceMonitorService dependency", () => {
       expect(performanceMonitorService).toBeDefined();
     });
   });
 
-  describe('intercept', () => {
+  describe("intercept", () => {
     let mockExecutionContext: jest.Mocked<ExecutionContext>;
     let mockCallHandler: jest.Mocked<CallHandler>;
     let mockGetRequest: jest.Mock;
@@ -56,9 +61,9 @@ describe('PerformanceInterceptor', () => {
 
     beforeEach(() => {
       mockGetRequest = jest.fn().mockReturnValue({
-        method: 'GET',
-        url: '/api/v1/test',
-        route: { path: '/api/v1/test' },
+        method: "GET",
+        url: "/api/v1/test",
+        route: { path: "/api/v1/test" },
       });
 
       const mockGetResponse = jest.fn().mockReturnValue({
@@ -84,10 +89,10 @@ describe('PerformanceInterceptor', () => {
       };
     });
 
-    it('should record successful request performance', (done) => {
-      const responseData = { message: 'success' };
+    it("should record successful request performance", (done) => {
+      const responseData = { message: "success" };
       const startTime = Date.now();
-      
+
       mockCallHandler.handle.mockReturnValue(of(responseData));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
@@ -99,7 +104,10 @@ describe('PerformanceInterceptor', () => {
         return callCount === 1 ? startTime : startTime + 150; // 150ms duration
       });
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         next: (data) => {
@@ -107,10 +115,10 @@ describe('PerformanceInterceptor', () => {
         },
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/test',
-            'GET',
+            "/api/v1/test",
+            "GET",
             150,
-            true
+            true,
           );
           Date.now = originalDateNow;
           done();
@@ -118,10 +126,13 @@ describe('PerformanceInterceptor', () => {
       });
     });
 
-    it('should record failed request performance on HTTP exception', (done) => {
-      const httpException = new HttpException('Bad Request', HttpStatus.BAD_REQUEST);
+    it("should record failed request performance on HTTP exception", (done) => {
+      const httpException = new HttpException(
+        "Bad Request",
+        HttpStatus.BAD_REQUEST,
+      );
       const startTime = Date.now();
-      
+
       mockCallHandler.handle.mockReturnValue(throwError(() => httpException));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
@@ -133,16 +144,19 @@ describe('PerformanceInterceptor', () => {
         return callCount === 1 ? startTime : startTime + 250; // 250ms duration
       });
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         error: (error) => {
           expect(error).toBe(httpException);
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/test',
-            'GET',
+            "/api/v1/test",
+            "GET",
             250,
-            false
+            false,
           );
           Date.now = originalDateNow;
           done();
@@ -150,10 +164,10 @@ describe('PerformanceInterceptor', () => {
       });
     });
 
-    it('should record failed request performance on general error', (done) => {
-      const generalError = new Error('Internal Server Error');
+    it("should record failed request performance on general error", (done) => {
+      const generalError = new Error("Internal Server Error");
       const startTime = Date.now();
-      
+
       mockCallHandler.handle.mockReturnValue(throwError(() => generalError));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
@@ -165,16 +179,19 @@ describe('PerformanceInterceptor', () => {
         return callCount === 1 ? startTime : startTime + 300; // 300ms duration
       });
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         error: (error) => {
           expect(error).toBe(generalError);
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/test',
-            'GET',
+            "/api/v1/test",
+            "GET",
             300,
-            false
+            false,
           );
           Date.now = originalDateNow;
           done();
@@ -182,110 +199,122 @@ describe('PerformanceInterceptor', () => {
       });
     });
 
-    it('should handle different HTTP methods', (done) => {
+    it("should handle different HTTP methods", (done) => {
       mockGetRequest.mockReturnValue({
-        method: 'POST',
-        url: '/api/v1/data',
-        route: { path: '/api/v1/data' },
+        method: "POST",
+        url: "/api/v1/data",
+        route: { path: "/api/v1/data" },
       });
 
       mockCallHandler.handle.mockReturnValue(of({ created: true }));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/data',
-            'POST',
+            "/api/v1/data",
+            "POST",
             expect.any(Number),
-            true
+            true,
           );
           done();
         },
       });
     });
 
-    it('should use request URL when route path is not available', (done) => {
+    it("should use request URL when route path is not available", (done) => {
       mockGetRequest.mockReturnValue({
-        method: 'GET',
-        url: '/api/v1/custom',
+        method: "GET",
+        url: "/api/v1/custom",
         route: undefined, // No route information
       });
 
-      mockCallHandler.handle.mockReturnValue(of({ data: 'test' }));
+      mockCallHandler.handle.mockReturnValue(of({ data: "test" }));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/custom',
-            'GET',
+            "/api/v1/custom",
+            "GET",
             expect.any(Number),
-            true
+            true,
           );
           done();
         },
       });
     });
 
-    it('should handle route path with parameters', (done) => {
+    it("should handle route path with parameters", (done) => {
       mockGetRequest.mockReturnValue({
-        method: 'GET',
-        url: '/api/v1/users/123',
-        route: { path: '/api/v1/users/:id' },
+        method: "GET",
+        url: "/api/v1/users/123",
+        route: { path: "/api/v1/users/:id" },
       });
 
       mockCallHandler.handle.mockReturnValue(of({ userId: 123 }));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/users/:id',
-            'GET',
+            "/api/v1/users/:id",
+            "GET",
             expect.any(Number),
-            true
+            true,
           );
           done();
         },
       });
     });
 
-    it('should handle missing request information gracefully', (done) => {
+    it("should handle missing request information gracefully", (done) => {
       mockGetRequest.mockReturnValue({
         // Missing method and url
-        route: { path: '/unknown' },
+        route: { path: "/unknown" },
       });
 
-      mockCallHandler.handle.mockReturnValue(of({ result: 'ok' }));
+      mockCallHandler.handle.mockReturnValue(of({ result: "ok" }));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/unknown',
+            "/unknown",
             undefined,
             expect.any(Number),
-            true
+            true,
           );
           done();
         },
       });
     });
 
-    it('should measure timing accurately for slow requests', (done) => {
+    it("should measure timing accurately for slow requests", (done) => {
       const startTime = Date.now();
       const slowDuration = 2000; // 2 seconds
-      
-      mockCallHandler.handle.mockReturnValue(of({ slow: 'response' }));
+
+      mockCallHandler.handle.mockReturnValue(of({ slow: "response" }));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
       // Mock Date.now to simulate slow request
@@ -296,15 +325,18 @@ describe('PerformanceInterceptor', () => {
         return callCount === 1 ? startTime : startTime + slowDuration;
       });
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/test',
-            'GET',
+            "/api/v1/test",
+            "GET",
             slowDuration,
-            true
+            true,
           );
           Date.now = originalDateNow;
           done();
@@ -312,42 +344,48 @@ describe('PerformanceInterceptor', () => {
       });
     });
 
-    it('should handle zero duration requests', (done) => {
+    it("should handle zero duration requests", (done) => {
       const sameTime = Date.now();
-      
-      mockCallHandler.handle.mockReturnValue(of({ fast: 'response' }));
+
+      mockCallHandler.handle.mockReturnValue(of({ fast: "response" }));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
       // Mock Date.now to return same time (0ms duration)
       Date.now = jest.fn(() => sameTime);
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         complete: () => {
           expect(performanceMonitorService.recordRequest).toHaveBeenCalledWith(
-            '/api/v1/test',
-            'GET',
+            "/api/v1/test",
+            "GET",
             0,
-            true
+            true,
           );
           done();
         },
       });
     });
 
-    it('should not affect the original response data', (done) => {
-      const originalResponseData = { 
-        id: 123, 
-        name: 'test', 
-        nested: { value: 'nested' },
-        array: [1, 2, 3]
+    it("should not affect the original response data", (done) => {
+      const originalResponseData = {
+        id: 123,
+        name: "test",
+        nested: { value: "nested" },
+        array: [1, 2, 3],
       };
-      
+
       mockCallHandler.handle.mockReturnValue(of(originalResponseData));
       performanceMonitorService.recordRequest.mockResolvedValue();
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         next: (data) => {
@@ -360,13 +398,18 @@ describe('PerformanceInterceptor', () => {
       });
     });
 
-    it('should handle performance monitoring service errors gracefully', (done) => {
-      const responseData = { message: 'success' };
-      
-      mockCallHandler.handle.mockReturnValue(of(responseData));
-      performanceMonitorService.recordRequest.mockRejectedValue(new Error('Monitoring service error'));
+    it("should handle performance monitoring service errors gracefully", (done) => {
+      const responseData = { message: "success" };
 
-      const result$ = interceptor.intercept(mockExecutionContext, mockCallHandler);
+      mockCallHandler.handle.mockReturnValue(of(responseData));
+      performanceMonitorService.recordRequest.mockRejectedValue(
+        new Error("Monitoring service error"),
+      );
+
+      const result$ = interceptor.intercept(
+        mockExecutionContext,
+        mockCallHandler,
+      );
 
       result$.subscribe({
         next: (data) => {

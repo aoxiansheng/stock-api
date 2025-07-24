@@ -3,11 +3,11 @@
  * 用于控制HTTP连接数量和批量执行请求
  */
 
-import * as request from 'supertest';
+import * as request from "supertest";
 
 export interface BatchRequestConfig {
   endpoint: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   headers?: Record<string, string>;
   body?: any;
   expectedStatus?: number;
@@ -21,7 +21,7 @@ export interface BatchOptions {
 
 export class BatchRequestHelper {
   private agent: any;
-  
+
   constructor(private httpServer: any) {
     // 使用Agent复用连接
     this.agent = request.agent(httpServer);
@@ -32,26 +32,28 @@ export class BatchRequestHelper {
    */
   async executeBatchRequests(
     configs: BatchRequestConfig[],
-    options: Partial<BatchOptions> = {}
+    options: Partial<BatchOptions> = {},
   ): Promise<any[]> {
     const {
       batchSize = 5,
       delayBetweenBatches = 100,
-      maxConcurrency = 3
+      maxConcurrency = 3,
     } = options;
 
     const results: any[] = [];
-    
+
     // 将请求分批处理
     for (let i = 0; i < configs.length; i += batchSize) {
       const batch = configs.slice(i, i + batchSize);
-      
+
       // 限制并发数量
-      const batchPromises = batch.map(config => this.createSingleRequest(config));
+      const batchPromises = batch.map((config) =>
+        this.createSingleRequest(config),
+      );
       const batchResults = await Promise.all(batchPromises);
-      
+
       results.push(...batchResults);
-      
+
       // 批次间延时，避免连接池耗尽
       if (i + batchSize < configs.length) {
         await this.delay(delayBetweenBatches);
@@ -67,27 +69,27 @@ export class BatchRequestHelper {
   async simulateLoad(
     config: BatchRequestConfig,
     targetRequestCount: number,
-    options: Partial<BatchOptions> = {}
+    options: Partial<BatchOptions> = {},
   ): Promise<{
     responses: any[];
     totalTime: number;
     averageResponseTime: number;
   }> {
     const startTime = Date.now();
-    
+
     // 使用较少的实际请求数量
     const actualRequestCount = Math.min(targetRequestCount, 10);
-    
+
     const configs = Array(actualRequestCount).fill(config);
     const responses = await this.executeBatchRequests(configs, options);
-    
+
     const totalTime = Date.now() - startTime;
     const averageResponseTime = totalTime / actualRequestCount;
 
     return {
       responses,
       totalTime,
-      averageResponseTime
+      averageResponseTime,
     };
   }
 
@@ -95,21 +97,21 @@ export class BatchRequestHelper {
    * 创建单个请求
    */
   private async createSingleRequest(config: BatchRequestConfig): Promise<any> {
-    const { endpoint, method = 'GET', headers, body, expectedStatus } = config;
-    
+    const { endpoint, method = "GET", headers, body, expectedStatus } = config;
+
     let requestBuilder: request.Test;
-    
+
     switch (method) {
-      case 'GET':
+      case "GET":
         requestBuilder = this.agent.get(endpoint);
         break;
-      case 'POST':
+      case "POST":
         requestBuilder = this.agent.post(endpoint);
         break;
-      case 'PUT':
+      case "PUT":
         requestBuilder = this.agent.put(endpoint);
         break;
-      case 'DELETE':
+      case "DELETE":
         requestBuilder = this.agent.delete(endpoint);
         break;
       default:
@@ -140,7 +142,7 @@ export class BatchRequestHelper {
    * 延时函数
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -149,4 +151,4 @@ export class BatchRequestHelper {
   cleanup(): void {
     // supertest agent 会自动清理连接
   }
-} 
+}

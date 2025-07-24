@@ -9,7 +9,7 @@
  * - 实用性：基于实际生产环境经验设定合理默认值
  */
 
-import { deepFreeze } from '@common/utils/object-immutability.util';
+import { deepFreeze } from "@common/utils/object-immutability.util";
 
 export const PERFORMANCE_CONSTANTS = deepFreeze({
   // 响应时间阈值 (毫秒)

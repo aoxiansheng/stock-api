@@ -474,7 +474,9 @@ export class DataMapperService implements IDataMapper {
             Number(transform.value || TRANSFORMATION_DEFAULTS.SUBTRACT_VALUE)
           );
         case TRANSFORMATION_TYPES.FORMAT:
-          const template = String(transform.value || TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE);
+          const template = String(
+            transform.value || TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE,
+          );
           // 兼容 {value} 和 %v 两种占位符
           return template.replace(/\{value\}|%v/g, String(value));
         case TRANSFORMATION_TYPES.CUSTOM:

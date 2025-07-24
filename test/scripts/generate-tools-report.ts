@@ -5,12 +5,12 @@
  * 为测试工具命令生成统一的HTML报告
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 interface ToolResult {
   name: string;
-  status: 'success' | 'failed' | 'skipped';
+  status: "success" | "failed" | "skipped";
   message?: string;
   duration?: number;
   timestamp: string;
@@ -25,42 +25,63 @@ class ToolsReportGenerator {
   }
 
   private ensureReportDir() {
-    const reportDir = path.join(process.cwd(), 'test-results');
+    const reportDir = path.join(process.cwd(), "test-results");
     if (!fs.existsSync(reportDir)) {
       fs.mkdirSync(reportDir, { recursive: true });
     }
   }
 
-  addResult(name: string, status: 'success' | 'failed' | 'skipped', message?: string, duration?: number) {
+  addResult(
+    name: string,
+    status: "success" | "failed" | "skipped",
+    message?: string,
+    duration?: number,
+  ) {
     this.results.push({
       name,
       status,
       message,
       duration,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   generateReport() {
     const endTime = Date.now();
     const totalDuration = endTime - this.startTime;
-    
+
     const html = this.generateHTML(totalDuration);
-    const reportPath = path.join(process.cwd(), 'test-results', 'tools-execution-report.html');
-    
-    fs.writeFileSync(reportPath, html, 'utf8');
-    
+    const reportPath = path.join(
+      process.cwd(),
+      "test-results",
+      "tools-execution-report.html",
+    );
+
+    fs.writeFileSync(reportPath, html, "utf8");
+
     console.log(`📊 测试工具执行报告已生成: ${reportPath}`);
     console.log(`⏱️  总执行时间: ${totalDuration}ms`);
-    console.log(`✅ 成功: ${this.results.filter(r => r.status === 'success').length}个`);
-    console.log(`❌ 失败: ${this.results.filter(r => r.status === 'failed').length}个`);
-    console.log(`⏭️  跳过: ${this.results.filter(r => r.status === 'skipped').length}个`);
+    console.log(
+      `✅ 成功: ${this.results.filter((r) => r.status === "success").length}个`,
+    );
+    console.log(
+      `❌ 失败: ${this.results.filter((r) => r.status === "failed").length}个`,
+    );
+    console.log(
+      `⏭️  跳过: ${this.results.filter((r) => r.status === "skipped").length}个`,
+    );
   }
 
   private generateHTML(totalDuration: number): string {
-    const successCount = this.results.filter(r => r.status === 'success').length;
-    const failedCount = this.results.filter(r => r.status === 'failed').length;
-    const skippedCount = this.results.filter(r => r.status === 'skipped').length;
+    const successCount = this.results.filter(
+      (r) => r.status === "success",
+    ).length;
+    const failedCount = this.results.filter(
+      (r) => r.status === "failed",
+    ).length;
+    const skippedCount = this.results.filter(
+      (r) => r.status === "skipped",
+    ).length;
 
     return `
 <!DOCTYPE html>
@@ -123,25 +144,29 @@ class ToolsReportGenerator {
         
         <div class="results">
             <h2>执行详情</h2>
-            ${this.results.map(result => `
+            ${this.results
+              .map(
+                (result) => `
                 <div class="result-item ${result.status}">
                     <div class="result-icon">
-                        ${result.status === 'success' ? '✅' : result.status === 'failed' ? '❌' : '⏭️'}
+                        ${result.status === "success" ? "✅" : result.status === "failed" ? "❌" : "⏭️"}
                     </div>
                     <div class="result-content">
                         <div class="result-name">${result.name}</div>
-                        ${result.message ? `<div class="result-message">${result.message}</div>` : ''}
+                        ${result.message ? `<div class="result-message">${result.message}</div>` : ""}
                     </div>
                     <div class="result-meta">
-                        <div>${new Date(result.timestamp).toLocaleString('zh-CN')}</div>
-                        ${result.duration ? `<div>${result.duration}ms</div>` : ''}
+                        <div>${new Date(result.timestamp).toLocaleString("zh-CN")}</div>
+                        ${result.duration ? `<div>${result.duration}ms</div>` : ""}
                     </div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
         
         <div class="footer">
-            <p>报告生成时间: ${new Date().toLocaleString('zh-CN')} | New Stock API 测试工具执行报告</p>
+            <p>报告生成时间: ${new Date().toLocaleString("zh-CN")} | New Stock API 测试工具执行报告</p>
         </div>
     </div>
 </body>
@@ -152,16 +177,51 @@ class ToolsReportGenerator {
 // 示例用法 - 可以被其他脚本调用
 if (require.main === module) {
   const generator = new ToolsReportGenerator();
-  
+
   // 示例工具执行结果
-  generator.addResult('API响应助手', 'success', 'API响应格式化工具执行成功', 150);
-  generator.addResult('异步测试助手', 'success', '异步测试辅助工具执行成功', 200);
-  generator.addResult('批量请求助手', 'success', '批量请求测试工具执行成功', 300);
-  generator.addResult('并发请求助手', 'success', '并发请求测试工具执行成功', 250);
-  generator.addResult('监控测试助手', 'success', '监控测试辅助工具执行成功', 180);
-  generator.addResult('测试数据管理器', 'success', '测试数据管理工具执行成功', 120);
-  generator.addResult('JS结构验证器', 'success', 'JavaScript结构验证工具执行成功', 100);
-  
+  generator.addResult(
+    "API响应助手",
+    "success",
+    "API响应格式化工具执行成功",
+    150,
+  );
+  generator.addResult(
+    "异步测试助手",
+    "success",
+    "异步测试辅助工具执行成功",
+    200,
+  );
+  generator.addResult(
+    "批量请求助手",
+    "success",
+    "批量请求测试工具执行成功",
+    300,
+  );
+  generator.addResult(
+    "并发请求助手",
+    "success",
+    "并发请求测试工具执行成功",
+    250,
+  );
+  generator.addResult(
+    "监控测试助手",
+    "success",
+    "监控测试辅助工具执行成功",
+    180,
+  );
+  generator.addResult(
+    "测试数据管理器",
+    "success",
+    "测试数据管理工具执行成功",
+    120,
+  );
+  generator.addResult(
+    "JS结构验证器",
+    "success",
+    "JavaScript结构验证工具执行成功",
+    100,
+  );
+
   generator.generateReport();
 }
 

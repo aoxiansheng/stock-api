@@ -52,12 +52,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else {
         const responseObj = exceptionResponse as any;
         const rawMessage =
-          responseObj.message || responseObj.error || HTTP_ERROR_MESSAGES.DEFAULT_ERROR;
+          responseObj.message ||
+          responseObj.error ||
+          HTTP_ERROR_MESSAGES.DEFAULT_ERROR;
 
         // 特殊处理验证错误 - 当消息是数组且状态码是400时
         if (status === HttpStatus.BAD_REQUEST && Array.isArray(rawMessage)) {
           // 对于测试，我们返回包含"验证失败"的消息，但保留详细信息到details
-          message = VALIDATION_MESSAGES.VALIDATION_PREFIX + rawMessage.join(", ");
+          message =
+            VALIDATION_MESSAGES.VALIDATION_PREFIX + rawMessage.join(", ");
           errorType = "ValidationError";
           // 提供简化的验证错误信息
           details = this.parseValidationErrors(rawMessage);
@@ -72,7 +75,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (status === HttpStatus.UNAUTHORIZED) {
         message = this.translateUnauthorizedMessage(message as string);
         errorType = "AuthenticationError";
-      } 
+      }
       // 特殊处理403 ForbiddenException的消息
       else if (status === HttpStatus.FORBIDDEN) {
         message = HTTP_ERROR_MESSAGES.FORBIDDEN;
@@ -141,7 +144,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       // 自定义状态码错误
       const customError = exception as any;
       status = customError.statusCode;
-      message = customError.message || BUSINESS_ERROR_MESSAGES.OPERATION_DEFAULT_FAILURE;
+      message =
+        customError.message ||
+        BUSINESS_ERROR_MESSAGES.OPERATION_DEFAULT_FAILURE;
       errorType = customError.name || "CustomError";
     } else if (exception instanceof Error) {
       // 检查是否是JSON解析错误
@@ -414,26 +419,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (!Array.isArray(exception)) {
       return false;
     }
-    
+
     // 如果数组为空，不是有效的ValidationError数组
     if (exception.length === 0) {
       return false;
     }
-    
+
     // 检查第一个元素是否具有ValidationError的特征
     const firstItem = exception[0];
-    
+
     // 检查是否有典型的ValidationError属性
-    const hasValidationErrorProps = 
-      firstItem && 
-      typeof firstItem === 'object' &&
-      (
-        // 检查常见的ValidationError属性
-        ('property' in firstItem) ||
-        ('constraints' in firstItem) ||
-        ('children' in firstItem && Array.isArray((firstItem as any).children))
-      );
-    
+    const hasValidationErrorProps =
+      firstItem &&
+      typeof firstItem === "object" &&
+      // 检查常见的ValidationError属性
+      ("property" in firstItem ||
+        "constraints" in firstItem ||
+        ("children" in firstItem &&
+          Array.isArray((firstItem as any).children)));
+
     // 检查是否为ValidationError实例或具有ValidationError特征的对象
     return hasValidationErrorProps || firstItem instanceof ValidationError;
   }
@@ -492,7 +496,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       // 尝试解析字段名和消息
       if (msg.includes(VALIDATION_MESSAGES.IS_NOT_EMPTY)) {
         const field = this.extractFieldName(msg);
-        parsedErrors.push({ field, message: VALIDATION_MESSAGES.IS_NOT_EMPTY, code: "REQUIRED" });
+        parsedErrors.push({
+          field,
+          message: VALIDATION_MESSAGES.IS_NOT_EMPTY,
+          code: "REQUIRED",
+        });
       } else if (msg.includes(VALIDATION_MESSAGES.UNSUPPORTED_DATA_TYPE)) {
         parsedErrors.push({
           field: "dataType",
@@ -504,7 +512,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         parsedErrors.push({ field, message: msg, code: "INVALID_FORMAT" });
       } else {
         // 默认字段错误
-        parsedErrors.push({ field: VALIDATION_MESSAGES.UNKNOWN_FIELD, message: msg });
+        parsedErrors.push({
+          field: VALIDATION_MESSAGES.UNKNOWN_FIELD,
+          message: msg,
+        });
       }
     });
 
@@ -540,7 +551,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (error.constraints) {
         Object.entries(error.constraints).forEach(([code, message]) => {
           // 去掉字段名前缀，使消息格式与测试期望一致
-          const cleanMessage = message.replace(`${error.property} `, '');
+          const cleanMessage = message.replace(`${error.property} `, "");
           details.push({
             field,
             code,
@@ -588,17 +599,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // 精确匹配消息
     const exactMatches: Record<string, string> = {
-      "Unauthorized": AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS,
-      "缺少认证token": AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS,
-      "JWT认证失败": AUTH_ERROR_MESSAGES.JWT_AUTH_FAILED,
-      "无效的token": AUTH_ERROR_MESSAGES.TOKEN_INVALID,
-      "token已过期": AUTH_ERROR_MESSAGES.TOKEN_EXPIRED,
-      "token尚未生效": AUTH_ERROR_MESSAGES.TOKEN_NOT_ACTIVE,
-      "缺少API凭证": AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING,
-      "API凭证无效": AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID,
-      "无效的API凭证": AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID,
-      "API凭证已过期": AUTH_ERROR_MESSAGES.API_CREDENTIALS_EXPIRED,
-      "用户名或密码错误": AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
+      Unauthorized: AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS,
+      缺少认证token: AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS,
+      JWT认证失败: AUTH_ERROR_MESSAGES.JWT_AUTH_FAILED,
+      无效的token: AUTH_ERROR_MESSAGES.TOKEN_INVALID,
+      token已过期: AUTH_ERROR_MESSAGES.TOKEN_EXPIRED,
+      token尚未生效: AUTH_ERROR_MESSAGES.TOKEN_NOT_ACTIVE,
+      缺少API凭证: AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING,
+      API凭证无效: AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID,
+      无效的API凭证: AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID,
+      API凭证已过期: AUTH_ERROR_MESSAGES.API_CREDENTIALS_EXPIRED,
+      用户名或密码错误: AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
     };
 
     // 检查精确匹配
@@ -607,10 +618,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // 部分匹配检查
-    if (message.includes("缺少认证token") || message.includes("missing token")) {
+    if (
+      message.includes("缺少认证token") ||
+      message.includes("missing token")
+    ) {
       return AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS;
     }
-    if (message.includes("JWT认证失败") || message.includes("JWT authentication failed")) {
+    if (
+      message.includes("JWT认证失败") ||
+      message.includes("JWT authentication failed")
+    ) {
       return AUTH_ERROR_MESSAGES.JWT_AUTH_FAILED;
     }
     if (message.includes("无效的token") || message.includes("invalid token")) {
@@ -619,23 +636,38 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (message.includes("token已过期") || message.includes("token expired")) {
       return AUTH_ERROR_MESSAGES.TOKEN_EXPIRED;
     }
-    if (message.includes("token尚未生效") || message.includes("token not active")) {
+    if (
+      message.includes("token尚未生效") ||
+      message.includes("token not active")
+    ) {
       return AUTH_ERROR_MESSAGES.TOKEN_NOT_ACTIVE;
     }
 
     // API Key相关错误消息翻译
-    if (message.includes("缺少API凭证") || message.includes("missing API credentials")) {
+    if (
+      message.includes("缺少API凭证") ||
+      message.includes("missing API credentials")
+    ) {
       return AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING;
     }
-    if (message.includes("API凭证无效") || message.includes("invalid API credentials")) {
+    if (
+      message.includes("API凭证无效") ||
+      message.includes("invalid API credentials")
+    ) {
       return AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID;
     }
-    if (message.includes("API凭证已过期") || message.includes("API credentials expired")) {
+    if (
+      message.includes("API凭证已过期") ||
+      message.includes("API credentials expired")
+    ) {
       return AUTH_ERROR_MESSAGES.API_CREDENTIALS_EXPIRED;
     }
 
     // 用户登录相关错误消息 - 保持原始消息
-    if (message.includes("用户名或密码错误") || message.includes("invalid credentials")) {
+    if (
+      message.includes("用户名或密码错误") ||
+      message.includes("invalid credentials")
+    ) {
       return AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS;
     }
 
@@ -676,8 +708,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // 精确匹配的HTTP错误消息映射
     const translations: Record<string, string> = {
       "Bad Request": HTTP_ERROR_MESSAGES.BAD_REQUEST,
-      "Unauthorized": HTTP_ERROR_MESSAGES.HTTP_UNAUTHORIZED,
-      "Forbidden": HTTP_ERROR_MESSAGES.FORBIDDEN,
+      Unauthorized: HTTP_ERROR_MESSAGES.HTTP_UNAUTHORIZED,
+      Forbidden: HTTP_ERROR_MESSAGES.FORBIDDEN,
       "Not Found": HTTP_ERROR_MESSAGES.NOT_FOUND,
       "Method Not Allowed": HTTP_ERROR_MESSAGES.METHOD_NOT_ALLOWED,
       "Internal Server Error": HTTP_ERROR_MESSAGES.HTTP_INTERNAL_SERVER_ERROR,
@@ -685,10 +717,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       "Gateway Timeout": HTTP_ERROR_MESSAGES.HTTP_GATEWAY_TIMEOUT,
       "Too Many Requests": HTTP_ERROR_MESSAGES.HTTP_TOO_MANY_REQUESTS,
       // 添加API凭证相关消息的精确匹配
-      "缺少API凭证": AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING,
-      "API凭证缺失": AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING,
-      "API凭证无效": AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID,
-      "API凭证已过期": AUTH_ERROR_MESSAGES.API_CREDENTIALS_EXPIRED,
+      缺少API凭证: AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING,
+      API凭证缺失: AUTH_ERROR_MESSAGES.API_CREDENTIALS_MISSING,
+      API凭证无效: AUTH_ERROR_MESSAGES.API_CREDENTIALS_INVALID,
+      API凭证已过期: AUTH_ERROR_MESSAGES.API_CREDENTIALS_EXPIRED,
     };
 
     // 先尝试精确匹配
@@ -710,74 +742,74 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // 定义需要过滤的敏感字符串模式
     const sensitivePatterns = [
       // XSS攻击模式
-      { pattern: /<script[^>]*>.*?<\/script>/gi, replacement: '[FILTERED]' },
-      { pattern: /<script[^>]*>/gi, replacement: '[FILTERED]' },
-      { pattern: /<\/script>/gi, replacement: '[FILTERED]' },
-      { pattern: /javascript:/gi, replacement: '[FILTERED]' },
-      { pattern: /vbscript:/gi, replacement: '[FILTERED]' },
-      { pattern: /on\w+\s*=/gi, replacement: '[FILTERED]' }, // 匹配所有事件处理程序
+      { pattern: /<script[^>]*>.*?<\/script>/gi, replacement: "[FILTERED]" },
+      { pattern: /<script[^>]*>/gi, replacement: "[FILTERED]" },
+      { pattern: /<\/script>/gi, replacement: "[FILTERED]" },
+      { pattern: /javascript:/gi, replacement: "[FILTERED]" },
+      { pattern: /vbscript:/gi, replacement: "[FILTERED]" },
+      { pattern: /on\w+\s*=/gi, replacement: "[FILTERED]" }, // 匹配所有事件处理程序
 
       // SQL注入模式
-      { pattern: /union\s+select/gi, replacement: '[FILTERED]' },
-      { pattern: /drop\s+table/gi, replacement: '[FILTERED]' },
-      { pattern: /insert\s+into/gi, replacement: '[FILTERED]' },
-      { pattern: /delete\s+from/gi, replacement: '[FILTERED]' },
-      { pattern: /select\s+.*?\s+from/gi, replacement: '[FILTERED]' },
+      { pattern: /union\s+select/gi, replacement: "[FILTERED]" },
+      { pattern: /drop\s+table/gi, replacement: "[FILTERED]" },
+      { pattern: /insert\s+into/gi, replacement: "[FILTERED]" },
+      { pattern: /delete\s+from/gi, replacement: "[FILTERED]" },
+      { pattern: /select\s+.*?\s+from/gi, replacement: "[FILTERED]" },
 
       // LDAP注入和其他注入
-      { pattern: /jndi:/gi, replacement: '[FILTERED]' },
-      { pattern: /ldap:/gi, replacement: '[FILTERED]' },
+      { pattern: /jndi:/gi, replacement: "[FILTERED]" },
+      { pattern: /ldap:/gi, replacement: "[FILTERED]" },
 
       // 路径遍历
-      { pattern: /\.\.\//g, replacement: '[FILTERED]' },
-      { pattern: /\.\.\\/g, replacement: '[FILTERED]' },
+      { pattern: /\.\.\//g, replacement: "[FILTERED]" },
+      { pattern: /\.\.\\/g, replacement: "[FILTERED]" },
 
       // 命令注入
-      { pattern: /;\s*cat\s/gi, replacement: '[FILTERED]' },
-      { pattern: /;\s*ls\s/gi, replacement: '[FILTERED]' },
-      { pattern: /;\s*rm\s/gi, replacement: '[FILTERED]' },
-      { pattern: /\|\s*cat\s/gi, replacement: '[FILTERED]' },
+      { pattern: /;\s*cat\s/gi, replacement: "[FILTERED]" },
+      { pattern: /;\s*ls\s/gi, replacement: "[FILTERED]" },
+      { pattern: /;\s*rm\s/gi, replacement: "[FILTERED]" },
+      { pattern: /\|\s*cat\s/gi, replacement: "[FILTERED]" },
 
       // 其他敏感内容
-      { pattern: /passwd/gi, replacement: '[FILTERED]' },
-      { pattern: /etc\/passwd/gi, replacement: '[FILTERED]' },
-      { pattern: /proc\/self/gi, replacement: '[FILTERED]' },
+      { pattern: /passwd/gi, replacement: "[FILTERED]" },
+      { pattern: /etc\/passwd/gi, replacement: "[FILTERED]" },
+      { pattern: /proc\/self/gi, replacement: "[FILTERED]" },
     ];
 
     // 使用简单的字符串替换方法，确保不会进行URL编码
-    if (path.includes('<script') || path.includes('UNION SELECT')) {
+    if (path.includes("<script") || path.includes("UNION SELECT")) {
       // 针对XSS和SQL注入的特殊处理
-      const urlParts = path.split('?');
+      const urlParts = path.split("?");
       if (urlParts.length > 1) {
         // 如果有查询参数，只替换查询部分
         const pathname = urlParts[0];
         const query = urlParts[1];
-        
+
         // 对于XSS攻击
-        if (query.includes('<script')) {
+        if (query.includes("<script")) {
           return `${pathname}?param=[FILTERED]`;
         }
-        
+
         // 对于SQL注入
-        if (query.includes('UNION SELECT')) {
+        if (query.includes("UNION SELECT")) {
           return `${pathname}?id=1 [FILTERED]`;
         }
       }
     }
-    
+
     // 通用处理
     let sanitizedPath = path;
-    
+
     // 应用所有过滤模式
     for (const { pattern, replacement } of sensitivePatterns) {
       sanitizedPath = sanitizedPath.replace(pattern, replacement);
     }
-    
+
     // 如果路径过长，截断并添加提示
     if (sanitizedPath.length > 200) {
       sanitizedPath = sanitizedPath.substring(0, 200) + "[TRUNCATED]";
     }
-    
+
     return sanitizedPath;
   }
 }

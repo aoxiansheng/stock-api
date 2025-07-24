@@ -3,11 +3,11 @@
  * 提供API Key相关的工具方法和辅助函数
  */
 import { v4 as uuidv4 } from "uuid";
-import { 
-  APIKEY_DEFAULTS, 
-  APIKEY_CONFIG, 
-  APIKEY_VALIDATION_RULES, 
-  APIKEY_TIME_CONFIG 
+import {
+  APIKEY_DEFAULTS,
+  APIKEY_CONFIG,
+  APIKEY_VALIDATION_RULES,
+  APIKEY_TIME_CONFIG,
 } from "../constants/apikey.constants";
 
 /**
@@ -65,8 +65,8 @@ export class ApiKeyUtil {
    */
   static isValidName(name: string): boolean {
     return (
-      name !== null && 
-      name !== undefined && 
+      name !== null &&
+      name !== undefined &&
       APIKEY_VALIDATION_RULES.NAME_PATTERN.test(name) &&
       name.length >= APIKEY_CONFIG.MIN_NAME_LENGTH &&
       name.length <= APIKEY_CONFIG.MAX_NAME_LENGTH
@@ -128,4 +128,4 @@ export class ApiKeyUtil {
     if (accessToken.length <= 8) return "***";
     return `${accessToken.substring(0, 4)}***${accessToken.substring(accessToken.length - 4)}`;
   }
-} 
+}

@@ -1,13 +1,13 @@
-import { INestApplication } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AlertingService } from '../../../../src/alert/services/alerting.service';
-import { PerformanceMonitorService } from '../../../../src/metrics/services/performance-monitor.service';
-import { IAlertRule, IAlert } from '../../../../src/alert/interfaces';
-import { NotificationChannel } from '../../../../src/alert/types/alert.types';
-import { CreateAlertRuleDto } from '../../../../src/alert/dto';
-import { AlertSeverity } from '../../../../src/alert/types/alert.types';
+import { INestApplication } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { AlertingService } from "../../../../src/alert/services/alerting.service";
+import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
+import { IAlertRule, IAlert } from "../../../../src/alert/interfaces";
+import { NotificationChannel } from "../../../../src/alert/types/alert.types";
+import { CreateAlertRuleDto } from "../../../../src/alert/dto";
+import { AlertSeverity } from "../../../../src/alert/types/alert.types";
 
-describe('Monitoring Alerting Integration Tests', () => {
+describe("Monitoring Alerting Integration Tests", () => {
   let app: INestApplication;
   let alertingService: AlertingService;
   let performanceMonitorService: PerformanceMonitorService;
@@ -17,7 +17,9 @@ describe('Monitoring Alerting Integration Tests', () => {
     app = (global as any).testApp;
 
     alertingService = app.get<AlertingService>(AlertingService);
-    performanceMonitorService = app.get<PerformanceMonitorService>(PerformanceMonitorService);
+    performanceMonitorService = app.get<PerformanceMonitorService>(
+      PerformanceMonitorService,
+    );
     eventEmitter = app.get<EventEmitter2>(EventEmitter2);
   });
 
@@ -31,26 +33,26 @@ describe('Monitoring Alerting Integration Tests', () => {
     }
   });
 
-  describe('Alert Rule Management', () => {
-    it('should create and store alert rules in MongoDB', async () => {
+  describe("Alert Rule Management", () => {
+    it("should create and store alert rules in MongoDB", async () => {
       // Arrange
       const alertRuleDto: CreateAlertRuleDto = {
-        name: 'High API Response Time Alert',
-        metric: 'api_response_time',
-        operator: 'gt',
+        name: "High API Response Time Alert",
+        metric: "api_response_time",
+        operator: "gt",
         threshold: 1000,
         duration: 60,
         severity: AlertSeverity.WARNING,
         enabled: true,
         channels: [
           {
-            name: 'test-log',
-            type: 'log',
-            config: { level: 'warn' },
+            name: "test-log",
+            type: "log",
+            config: { level: "warn" },
             enabled: true,
-          }
+          },
         ],
-        cooldown: 300
+        cooldown: 300,
       };
 
       // Act
@@ -60,30 +62,30 @@ describe('Monitoring Alerting Integration Tests', () => {
       expect(createdRule).toBeDefined();
       expect(createdRule.id).toBeDefined();
       expect(createdRule.name).toBe(alertRuleDto.name);
-      
+
       const rules = await alertingService.getRules();
-      expect(rules.some(r => r.id === createdRule.id)).toBe(true);
+      expect(rules.some((r) => r.id === createdRule.id)).toBe(true);
     });
 
-    it('should enable and disable alert rules', async () => {
+    it("should enable and disable alert rules", async () => {
       // Arrange
-      const ruleDto: CreateAlertRuleDto = { 
-        name: 'Test Rule', 
-        metric: 'cpu', 
-        operator: 'gt', 
-        threshold: 1, 
-        duration: 1, 
-        severity: AlertSeverity.INFO, 
-        enabled: true, 
+      const ruleDto: CreateAlertRuleDto = {
+        name: "Test Rule",
+        metric: "cpu",
+        operator: "gt",
+        threshold: 1,
+        duration: 1,
+        severity: AlertSeverity.INFO,
+        enabled: true,
         channels: [
           {
-            name: 'test-log',
-            type: 'log',
-            config: { level: 'info' },
+            name: "test-log",
+            type: "log",
+            config: { level: "info" },
             enabled: true,
-          }
-        ], 
-        cooldown: 300 
+          },
+        ],
+        cooldown: 300,
       };
       const createdRule = await alertingService.createRule(ruleDto);
 
@@ -97,49 +99,55 @@ describe('Monitoring Alerting Integration Tests', () => {
       // Act - 启用规则
       await alertingService.toggleRule(createdRule.id, true);
       rule = await alertingService.getRuleById(createdRule.id);
-      
+
       // Assert
       expect(rule.enabled).toBe(true);
     });
   });
 
-  describe('Alert Triggering and Processing', () => {
-    it('should trigger alert when metric exceeds threshold', async () => {
+  describe("Alert Triggering and Processing", () => {
+    it("should trigger alert when metric exceeds threshold", async () => {
       // Arrange
       const alertRuleDto: CreateAlertRuleDto = {
-        name: 'High CPU Usage Alert',
-        metric: 'cpu_usage',
-        operator: 'gt',
+        name: "High CPU Usage Alert",
+        metric: "cpu_usage",
+        operator: "gt",
         threshold: 80,
         duration: 30,
         severity: AlertSeverity.CRITICAL,
         enabled: true,
         channels: [
           {
-            name: 'test-log',
-            type: 'log',
-            config: { level: 'error' },
+            name: "test-log",
+            type: "log",
+            config: { level: "error" },
             enabled: true,
-          }
+          },
         ],
-        cooldown: 600
+        cooldown: 600,
       };
 
       await alertingService.createRule(alertRuleDto);
-      const createAlertSpy = jest.spyOn(alertingService as any, 'createNewAlert').mockResolvedValue(undefined);
+      const createAlertSpy = jest
+        .spyOn(alertingService as any, "createNewAlert")
+        .mockResolvedValue(undefined);
 
       // Act - 提交超过阈值的指标
-      await alertingService.processMetrics([{ metric: 'cpu_usage', value: 85, timestamp: new Date() }]);
+      await alertingService.processMetrics([
+        { metric: "cpu_usage", value: 85, timestamp: new Date() },
+      ]);
 
       // Assert
-      // 检查评估逻辑，而不是直接创建告警  
+      // 检查评估逻辑，而不是直接创建告警
       const rules = await alertingService.getRules();
-      const testRule = rules.find(r => r.name === 'High CPU Usage Alert');
+      const testRule = rules.find((r) => r.name === "High CPU Usage Alert");
       expect(testRule).toBeDefined();
-      
-      const evaluationResults = (alertingService as any).ruleEngine.evaluateRules(
-        [testRule], 
-        [{ metric: 'cpu_usage', value: 85, timestamp: new Date() }]
+
+      const evaluationResults = (
+        alertingService as any
+      ).ruleEngine.evaluateRules(
+        [testRule],
+        [{ metric: "cpu_usage", value: 85, timestamp: new Date() }],
       );
       expect(evaluationResults.length).toBeGreaterThan(0);
       expect(evaluationResults[0].triggered).toBe(true);

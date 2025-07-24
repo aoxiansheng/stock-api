@@ -2,32 +2,32 @@
  * AlertHistoryService 单元测试
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Test, TestingModule } from "@nestjs/testing";
+import { getModelToken } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
-import { AlertHistoryService } from '../../../../../src/alert/services/alert-history.service';
-import { AlertHistoryRepository } from '../../../../../src/alert/repositories/alert-history.repository';
-import { AlertHistory } from '../../../../../src/alert/schemas/alert-history.schema';
-import { AlertStatus } from '../../../../../src/alert/types/alert.types';
+import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
+import { AlertHistoryRepository } from "../../../../../src/alert/repositories/alert-history.repository";
+import { AlertHistory } from "../../../../../src/alert/schemas/alert-history.schema";
+import { AlertStatus } from "../../../../../src/alert/types/alert.types";
 import { AlertSeverity } from "../../../../../src/alert/types/alert.types";
-import { CacheService } from '../../../../../src/cache/cache.service';
+import { CacheService } from "../../../../../src/cache/cache.service";
 
-describe('AlertHistoryService', () => {
+describe("AlertHistoryService", () => {
   let service: AlertHistoryService;
   let repository: AlertHistoryRepository;
   let model: Model<AlertHistory>;
   let cacheService: jest.Mocked<CacheService>;
 
   const mockAlertHistory = {
-    _id: 'alert-history-123',
-    id: 'alert-123',
-    ruleId: 'rule-123',
-    ruleName: '测试告警规则',
+    _id: "alert-history-123",
+    id: "alert-123",
+    ruleId: "rule-123",
+    ruleName: "测试告警规则",
     severity: AlertSeverity.CRITICAL,
     status: AlertStatus.FIRING,
-    message: '测试告警消息',
-    metric: 'cpu_usage',
+    message: "测试告警消息",
+    metric: "cpu_usage",
     value: 95,
     threshold: 80,
     startTime: new Date(),
@@ -41,8 +41,6 @@ describe('AlertHistoryService', () => {
     notificationsSent: [],
     save: jest.fn().mockResolvedValue(this),
   };
-
-
 
   // 创建完整的 Mongoose Model mock，包含链式调用
   const mockModel: any = jest.fn().mockImplementation(() => ({
@@ -72,7 +70,7 @@ describe('AlertHistoryService', () => {
       getClient: jest.fn().mockReturnValue({
         keys: jest.fn().mockResolvedValue([]),
         get: jest.fn().mockResolvedValue(null),
-        set: jest.fn().mockResolvedValue('OK'),
+        set: jest.fn().mockResolvedValue("OK"),
         ts: {
           add: jest.fn().mockResolvedValue(1),
           revrange: jest.fn().mockResolvedValue([]),
@@ -108,16 +106,16 @@ describe('AlertHistoryService', () => {
     jest.clearAllMocks();
   });
 
-  describe('createAlert', () => {
-    it('应该成功创建告警记录', async () => {
+  describe("createAlert", () => {
+    it("应该成功创建告警记录", async () => {
       const createDto = {
-        ruleId: 'rule-123',
-        ruleName: '测试规则',
-        metric: 'cpu_usage',
+        ruleId: "rule-123",
+        ruleName: "测试规则",
+        metric: "cpu_usage",
         value: 95,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: '测试告警',
+        message: "测试告警",
         context: {},
       };
 
@@ -136,39 +134,41 @@ describe('AlertHistoryService', () => {
 
       const result = await service.createAlert(createDto);
 
-      expect(mockModel).toHaveBeenCalledWith(expect.objectContaining({
-        ...createDto,
-        id: expect.any(String),
-        startTime: expect.any(Date),
-        status: AlertStatus.FIRING,
-      }));
+      expect(mockModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...createDto,
+          id: expect.any(String),
+          startTime: expect.any(Date),
+          status: AlertStatus.FIRING,
+        }),
+      );
       expect(result).toEqual(expectedEntry);
     });
 
-    it('应该在创建失败时抛出异常', async () => {
+    it("应该在创建失败时抛出异常", async () => {
       const createDto = {
-        ruleId: 'rule-123',
-        ruleName: '测试规则',
-        metric: 'cpu_usage',
+        ruleId: "rule-123",
+        ruleName: "测试规则",
+        metric: "cpu_usage",
         value: 95,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: '测试告警',
+        message: "测试告警",
         context: {},
       };
 
       const mockInstance = {
-        save: jest.fn().mockRejectedValue(new Error('创建失败')),
+        save: jest.fn().mockRejectedValue(new Error("创建失败")),
       };
       mockModel.mockImplementation(() => mockInstance);
 
-      await expect(service.createAlert(createDto)).rejects.toThrow('创建失败');
+      await expect(service.createAlert(createDto)).rejects.toThrow("创建失败");
     });
   });
 
-  describe('getAlertById', () => {
-    it('应该成功根据ID获取告警', async () => {
-      const alertId = 'alert-123';
+  describe("getAlertById", () => {
+    it("应该成功根据ID获取告警", async () => {
+      const alertId = "alert-123";
       mockModel.findOne.mockReturnValue({
         lean: jest.fn().mockReturnValue({
           exec: jest.fn().mockResolvedValue(mockAlertHistory),
@@ -181,8 +181,8 @@ describe('AlertHistoryService', () => {
       expect(result).toEqual(mockAlertHistory);
     });
 
-    it('应该在告警不存在时返回null', async () => {
-      const alertId = 'nonexistent-alert';
+    it("应该在告警不存在时返回null", async () => {
+      const alertId = "nonexistent-alert";
       mockModel.findOne.mockReturnValue({
         lean: jest.fn().mockReturnValue({
           exec: jest.fn().mockResolvedValue(null),
@@ -196,16 +196,16 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('queryAlerts', () => {
-    it('应该成功查询告警记录', async () => {
+  describe("queryAlerts", () => {
+    it("应该成功查询告警记录", async () => {
       const query = {
         page: 1,
         limit: 10,
         severity: AlertSeverity.CRITICAL,
       };
-      
+
       const mockAlerts = [mockAlertHistory];
-      
+
       // Mock the chain: find().sort().skip().limit().lean().exec()
       mockModel.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
@@ -218,7 +218,7 @@ describe('AlertHistoryService', () => {
           }),
         }),
       });
-      
+
       mockModel.countDocuments.mockReturnValue({
         exec: jest.fn().mockResolvedValue(1),
       });
@@ -229,9 +229,9 @@ describe('AlertHistoryService', () => {
       expect(result.total).toBe(1);
     });
 
-    it('应该在没有记录时返回空数组', async () => {
+    it("应该在没有记录时返回空数组", async () => {
       const query = { page: 1, limit: 10 };
-      
+
       // Mock the chain: find().sort().skip().limit().lean().exec()
       mockModel.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
@@ -244,7 +244,7 @@ describe('AlertHistoryService', () => {
           }),
         }),
       });
-      
+
       mockModel.countDocuments.mockReturnValue({
         exec: jest.fn().mockResolvedValue(0),
       });
@@ -256,11 +256,15 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('getActiveAlerts', () => {
-    it('应该成功获取所有活跃告警', async () => {
+  describe("getActiveAlerts", () => {
+    it("应该成功获取所有活跃告警", async () => {
       const mockActiveAlerts = [
         { ...mockAlertHistory, status: AlertStatus.FIRING },
-        { ...mockAlertHistory, _id: 'alert-456', status: AlertStatus.ACKNOWLEDGED },
+        {
+          ...mockAlertHistory,
+          _id: "alert-456",
+          status: AlertStatus.ACKNOWLEDGED,
+        },
       ];
 
       // Mock the chain: find().sort().lean().exec()
@@ -280,7 +284,7 @@ describe('AlertHistoryService', () => {
       expect(result).toEqual(mockActiveAlerts);
     });
 
-    it('应该在没有活跃告警时返回空数组', async () => {
+    it("应该在没有活跃告警时返回空数组", async () => {
       // Mock the chain: find().sort().lean().exec()
       mockModel.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
@@ -299,9 +303,9 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('updateAlertStatus', () => {
-    it('应该成功更新告警状态', async () => {
-      const alertId = 'alert-123';
+  describe("updateAlertStatus", () => {
+    it("应该成功更新告警状态", async () => {
+      const alertId = "alert-123";
       const newStatus = AlertStatus.RESOLVED;
       const updatedAlert = { ...mockAlertHistory, status: newStatus };
 
@@ -318,13 +322,13 @@ describe('AlertHistoryService', () => {
         expect.objectContaining({
           status: newStatus,
         }),
-        { new: true }
+        { new: true },
       );
       expect(result).toEqual(updatedAlert);
     });
 
-    it('应该在更新不存在的告警时返回null', async () => {
-      const alertId = 'nonexistent-alert';
+    it("应该在更新不存在的告警时返回null", async () => {
+      const alertId = "nonexistent-alert";
       const newStatus = AlertStatus.RESOLVED;
 
       mockModel.findOneAndUpdate.mockReturnValue({
@@ -338,17 +342,17 @@ describe('AlertHistoryService', () => {
         expect.objectContaining({
           status: newStatus,
         }),
-        { new: true }
+        { new: true },
       );
       expect(result).toBeNull();
     });
   });
 
-  describe('getAlertStats', () => {
-    it('应该成功获取告警统计信息', async () => {
+  describe("getAlertStats", () => {
+    it("应该成功获取告警统计信息", async () => {
       const mockActiveAlerts = [
-        { _id: 'critical', count: 5 },
-        { _id: 'warning', count: 10 },
+        { _id: "critical", count: 5 },
+        { _id: "warning", count: 10 },
       ];
       const mockAvgResolutionTime = [{ avgTime: 300000 }]; // 5 minutes in milliseconds
 
@@ -370,7 +374,7 @@ describe('AlertHistoryService', () => {
       expect(result.averageResolutionTime).toBe(5); // 5 minutes
     });
 
-    it('应该在统计数据不可用时返回空统计', async () => {
+    it("应该在统计数据不可用时返回空统计", async () => {
       // Mock aggregate calls for getStatistics()
       mockModel.aggregate
         .mockResolvedValueOnce([]) // First call for active alerts
@@ -390,12 +394,11 @@ describe('AlertHistoryService', () => {
     });
   });
 
-
-  describe('cleanupExpiredAlerts', () => {
-    it('应该成功删除过期告警', async () => {
+  describe("cleanupExpiredAlerts", () => {
+    it("应该成功删除过期告警", async () => {
       const daysToKeep = 90;
       const deletedCount = 10;
-      jest.spyOn(repository, 'cleanup').mockResolvedValue(deletedCount);
+      jest.spyOn(repository, "cleanup").mockResolvedValue(deletedCount);
 
       const result = await service.cleanupExpiredAlerts(daysToKeep);
 
@@ -406,52 +409,59 @@ describe('AlertHistoryService', () => {
       expect(result.endTime).toBeInstanceOf(Date);
     });
 
-    it('应该使用默认清理天数', async () => {
+    it("应该使用默认清理天数", async () => {
       const deletedCount = 5;
-      jest.spyOn(repository, 'cleanup').mockResolvedValue(deletedCount);
+      jest.spyOn(repository, "cleanup").mockResolvedValue(deletedCount);
 
       await service.cleanupExpiredAlerts();
 
       expect(repository.cleanup).toHaveBeenCalledWith(90); // 修正默认值
     });
 
-    it('在清理失败时应该抛出异常', async () => {
+    it("在清理失败时应该抛出异常", async () => {
       const daysToKeep = 30;
-      jest.spyOn(repository, 'cleanup').mockRejectedValue(new Error('清理失败'));
+      jest
+        .spyOn(repository, "cleanup")
+        .mockRejectedValue(new Error("清理失败"));
 
       await expect(service.cleanupExpiredAlerts(daysToKeep)).rejects.toThrow(
-        '清理失败',
+        "清理失败",
       );
     });
   });
 
-  describe('batchUpdateAlertStatus', () => {
-    it('应该成功批量更新告警状态', async () => {
-      const alertIds = ['alert-1', 'alert-2', 'alert-3'];
+  describe("batchUpdateAlertStatus", () => {
+    it("应该成功批量更新告警状态", async () => {
+      const alertIds = ["alert-1", "alert-2", "alert-3"];
       const status = AlertStatus.ACKNOWLEDGED;
-      const updatedBy = 'admin';
+      const updatedBy = "admin";
 
       // Mock updateAlertStatus to succeed for all alerts
-      jest.spyOn(service, 'updateAlertStatus').mockResolvedValue({
+      jest.spyOn(service, "updateAlertStatus").mockResolvedValue({
         ...mockAlertHistory,
         status,
       });
 
-      const result = await service.batchUpdateAlertStatus(alertIds, status, updatedBy);
+      const result = await service.batchUpdateAlertStatus(
+        alertIds,
+        status,
+        updatedBy,
+      );
 
       expect(result.successCount).toBe(3);
       expect(result.failedCount).toBe(0);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('应该处理部分成功的批量更新', async () => {
-      const alertIds = ['alert-1', 'alert-2', 'alert-3'];
+    it("应该处理部分成功的批量更新", async () => {
+      const alertIds = ["alert-1", "alert-2", "alert-3"];
       const status = AlertStatus.RESOLVED;
 
       // Mock updateAlertStatus to fail for the second alert
-      jest.spyOn(service, 'updateAlertStatus')
+      jest
+        .spyOn(service, "updateAlertStatus")
         .mockResolvedValueOnce({ ...mockAlertHistory, status }) // alert-1 success
-        .mockRejectedValueOnce(new Error('更新失败')) // alert-2 failure
+        .mockRejectedValueOnce(new Error("更新失败")) // alert-2 failure
         .mockResolvedValueOnce({ ...mockAlertHistory, status }); // alert-3 success
 
       const result = await service.batchUpdateAlertStatus(alertIds, status);
@@ -459,20 +469,21 @@ describe('AlertHistoryService', () => {
       expect(result.successCount).toBe(2);
       expect(result.failedCount).toBe(1);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain('alert-2');
+      expect(result.errors[0]).toContain("alert-2");
     });
 
-    it('应该拒绝过大的批量操作', async () => {
-      const alertIds = new Array(1001).fill('alert-id'); // 超过限制
+    it("应该拒绝过大的批量操作", async () => {
+      const alertIds = new Array(1001).fill("alert-id"); // 超过限制
       const status = AlertStatus.RESOLVED;
 
-      await expect(service.batchUpdateAlertStatus(alertIds, status))
-        .rejects.toThrow('批量大小超出限制');
+      await expect(
+        service.batchUpdateAlertStatus(alertIds, status),
+      ).rejects.toThrow("批量大小超出限制");
     });
   });
 
-  describe('getAlertCountByStatus', () => {
-    it('应该返回按状态分组的告警数量', async () => {
+  describe("getAlertCountByStatus", () => {
+    it("应该返回按状态分组的告警数量", async () => {
       const result = await service.getAlertCountByStatus();
 
       expect(result).toEqual({
@@ -483,9 +494,11 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('getRecentAlerts', () => {
-    it('应该使用默认限制获取最近告警', async () => {
-      jest.spyOn(repository, 'find').mockResolvedValue({ alerts: [], total: 0 });
+  describe("getRecentAlerts", () => {
+    it("应该使用默认限制获取最近告警", async () => {
+      jest
+        .spyOn(repository, "find")
+        .mockResolvedValue({ alerts: [], total: 0 });
       await service.getRecentAlerts();
       expect(repository.find).toHaveBeenCalledWith({
         page: 1,
@@ -493,8 +506,10 @@ describe('AlertHistoryService', () => {
       });
     });
 
-    it('应该修正无效的限制参数为默认值', async () => {
-      jest.spyOn(repository, 'find').mockResolvedValue({ alerts: [], total: 0 });
+    it("应该修正无效的限制参数为默认值", async () => {
+      jest
+        .spyOn(repository, "find")
+        .mockResolvedValue({ alerts: [], total: 0 });
 
       // 测试负数限制
       await service.getRecentAlerts(-1);
@@ -511,8 +526,10 @@ describe('AlertHistoryService', () => {
       });
     });
 
-    it('应该允许有效的限制参数', async () => {
-      jest.spyOn(repository, 'find').mockResolvedValue({ alerts: [], total: 0 });
+    it("应该允许有效的限制参数", async () => {
+      jest
+        .spyOn(repository, "find")
+        .mockResolvedValue({ alerts: [], total: 0 });
       const validLimit = 25;
       await service.getRecentAlerts(validLimit);
       expect(repository.find).toHaveBeenCalledWith({
@@ -522,8 +539,8 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('getServiceStats', () => {
-    it('应该返回服务统计信息', () => {
+  describe("getServiceStats", () => {
+    it("应该返回服务统计信息", () => {
       const result = service.getServiceStats();
 
       expect(result).toEqual({
@@ -535,16 +552,16 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('缓存相关方法', () => {
-    it('应该在创建告警时尝试缓存', async () => {
+  describe("缓存相关方法", () => {
+    it("应该在创建告警时尝试缓存", async () => {
       const createDto = {
-        ruleId: 'rule-123',
-        ruleName: '测试规则',
-        metric: 'cpu_usage',
+        ruleId: "rule-123",
+        ruleName: "测试规则",
+        metric: "cpu_usage",
         value: 95,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: '测试告警',
+        message: "测试告警",
         context: {},
       };
 
@@ -560,7 +577,7 @@ describe('AlertHistoryService', () => {
 
       // Mock cache methods
       cacheService.listPush = jest.fn().mockResolvedValue(1);
-      cacheService.listTrim = jest.fn().mockResolvedValue('OK');
+      cacheService.listTrim = jest.fn().mockResolvedValue("OK");
       cacheService.expire = jest.fn().mockResolvedValue(1);
 
       await service.createAlert(createDto);
@@ -570,15 +587,15 @@ describe('AlertHistoryService', () => {
       expect(cacheService.expire).toHaveBeenCalled();
     });
 
-    it('应该在缓存失败时继续执行（告警创建）', async () => {
+    it("应该在缓存失败时继续执行（告警创建）", async () => {
       const createDto = {
-        ruleId: 'rule-123',
-        ruleName: '测试规则',
-        metric: 'cpu_usage',
+        ruleId: "rule-123",
+        ruleName: "测试规则",
+        metric: "cpu_usage",
         value: 95,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: '测试告警',
+        message: "测试告警",
         context: {},
       };
 
@@ -595,23 +612,27 @@ describe('AlertHistoryService', () => {
       mockModel.mockImplementation(() => mockInstance);
 
       // Mock cache failure
-      cacheService.listPush = jest.fn().mockRejectedValue(new Error('缓存失败'));
+      cacheService.listPush = jest
+        .fn()
+        .mockRejectedValue(new Error("缓存失败"));
 
       const result = await service.createAlert(createDto);
 
       expect(result).toEqual(expectedResult);
     });
 
-    it('应该从缓存获取活跃告警（缓存命中）', async () => {
+    it("应该从缓存获取活跃告警（缓存命中）", async () => {
       const mockCachedAlert = JSON.stringify({
-        id: 'alert-123',
+        id: "alert-123",
         status: AlertStatus.FIRING,
         severity: AlertSeverity.CRITICAL,
         startTime: new Date().toISOString(),
       });
 
       cacheService.getClient = jest.fn().mockReturnValue({
-        keys: jest.fn().mockResolvedValue(['alert:history:timeseries:rule-123']),
+        keys: jest
+          .fn()
+          .mockResolvedValue(["alert:history:timeseries:rule-123"]),
       });
       cacheService.listRange = jest.fn().mockResolvedValue([mockCachedAlert]);
 
@@ -621,14 +642,14 @@ describe('AlertHistoryService', () => {
       expect(result).toBeInstanceOf(Array);
     });
 
-    it('应该在缓存失败时回退到数据库', async () => {
+    it("应该在缓存失败时回退到数据库", async () => {
       const mockActiveAlerts = [mockAlertHistory];
 
       cacheService.getClient = jest.fn().mockReturnValue({
-        keys: jest.fn().mockRejectedValue(new Error('Redis连接失败')),
+        keys: jest.fn().mockRejectedValue(new Error("Redis连接失败")),
       });
 
-      jest.spyOn(repository, 'findActive').mockResolvedValue(mockActiveAlerts);
+      jest.spyOn(repository, "findActive").mockResolvedValue(mockActiveAlerts);
 
       const result = await service.getActiveAlerts();
 
@@ -637,106 +658,126 @@ describe('AlertHistoryService', () => {
     });
   });
 
-  describe('updateAlertStatus with different statuses', () => {
-    it('应该正确处理ACKNOWLEDGED状态更新', async () => {
-      const alertId = 'alert-123';
+  describe("updateAlertStatus with different statuses", () => {
+    it("应该正确处理ACKNOWLEDGED状态更新", async () => {
+      const alertId = "alert-123";
       const status = AlertStatus.ACKNOWLEDGED;
-      const updatedBy = 'admin';
-      const updatedAlert = { 
-        ...mockAlertHistory, 
+      const updatedBy = "admin";
+      const updatedAlert = {
+        ...mockAlertHistory,
         status,
         acknowledgedBy: updatedBy,
         acknowledgedAt: expect.any(Date),
       };
 
-      jest.spyOn(repository, 'update').mockResolvedValue(updatedAlert);
+      jest.spyOn(repository, "update").mockResolvedValue(updatedAlert);
 
       // Mock cache update
       cacheService.listRange = jest.fn().mockResolvedValue([]);
       cacheService.del = jest.fn().mockResolvedValue(1);
 
-      const result = await service.updateAlertStatus(alertId, status, updatedBy);
-
-      expect(repository.update).toHaveBeenCalledWith(alertId, expect.objectContaining({
+      const result = await service.updateAlertStatus(
+        alertId,
         status,
-        acknowledgedBy: updatedBy,
-        acknowledgedAt: expect.any(Date),
-      }));
+        updatedBy,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(
+        alertId,
+        expect.objectContaining({
+          status,
+          acknowledgedBy: updatedBy,
+          acknowledgedAt: expect.any(Date),
+        }),
+      );
       expect(result).toEqual(updatedAlert);
     });
 
-    it('应该正确处理RESOLVED状态更新', async () => {
-      const alertId = 'alert-123';
+    it("应该正确处理RESOLVED状态更新", async () => {
+      const alertId = "alert-123";
       const status = AlertStatus.RESOLVED;
-      const updatedBy = 'admin';
-      const updatedAlert = { 
-        ...mockAlertHistory, 
+      const updatedBy = "admin";
+      const updatedAlert = {
+        ...mockAlertHistory,
         status,
         resolvedBy: updatedBy,
         resolvedAt: expect.any(Date),
         endTime: expect.any(Date),
       };
 
-      jest.spyOn(repository, 'update').mockResolvedValue(updatedAlert);
+      jest.spyOn(repository, "update").mockResolvedValue(updatedAlert);
 
       // Mock cache update
       cacheService.listRange = jest.fn().mockResolvedValue([]);
       cacheService.del = jest.fn().mockResolvedValue(1);
 
-      const result = await service.updateAlertStatus(alertId, status, updatedBy);
-
-      expect(repository.update).toHaveBeenCalledWith(alertId, expect.objectContaining({
+      const result = await service.updateAlertStatus(
+        alertId,
         status,
-        resolvedBy: updatedBy,
-        resolvedAt: expect.any(Date),
-        endTime: expect.any(Date),
-      }));
+        updatedBy,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(
+        alertId,
+        expect.objectContaining({
+          status,
+          resolvedBy: updatedBy,
+          resolvedAt: expect.any(Date),
+          endTime: expect.any(Date),
+        }),
+      );
       expect(result).toEqual(updatedAlert);
     });
   });
 
-  describe('错误处理', () => {
-    it('应该在数据库错误时正确抛出异常', async () => {
-      const alertId = 'alert-123';
+  describe("错误处理", () => {
+    it("应该在数据库错误时正确抛出异常", async () => {
+      const alertId = "alert-123";
       mockModel.findOne.mockReturnValue({
         lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockRejectedValue(new Error('数据库连接失败')),
+          exec: jest.fn().mockRejectedValue(new Error("数据库连接失败")),
         }),
       });
 
-      await expect(service.getAlertById(alertId)).rejects.toThrow('数据库连接失败');
+      await expect(service.getAlertById(alertId)).rejects.toThrow(
+        "数据库连接失败",
+      );
     });
 
-    it('应该在查询参数无效时处理异常', async () => {
+    it("应该在查询参数无效时处理异常", async () => {
       const invalidQuery = { page: -1, limit: 0 };
       mockModel.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
           skip: jest.fn().mockReturnValue({
             limit: jest.fn().mockReturnValue({
               lean: jest.fn().mockReturnValue({
-                exec: jest.fn().mockRejectedValue(new Error('无效查询参数')),
+                exec: jest.fn().mockRejectedValue(new Error("无效查询参数")),
               }),
             }),
           }),
         }),
       });
 
-      await expect(service.queryAlerts(invalidQuery)).rejects.toThrow('无效查询参数');
+      await expect(service.queryAlerts(invalidQuery)).rejects.toThrow(
+        "无效查询参数",
+      );
     });
 
-    it('应该在统计查询失败时抛出异常', async () => {
-      jest.spyOn(repository, 'getStatistics').mockRejectedValue(new Error('统计查询失败'));
+    it("应该在统计查询失败时抛出异常", async () => {
+      jest
+        .spyOn(repository, "getStatistics")
+        .mockRejectedValue(new Error("统计查询失败"));
 
-      await expect(service.getAlertStats()).rejects.toThrow('统计查询失败');
+      await expect(service.getAlertStats()).rejects.toThrow("统计查询失败");
     });
 
-    it('应该在最近告警查询失败时抛出异常', async () => {
-      jest.spyOn(repository, 'find').mockRejectedValue(new Error('查询失败'));
+    it("应该在最近告警查询失败时抛出异常", async () => {
+      jest.spyOn(repository, "find").mockRejectedValue(new Error("查询失败"));
 
-      await expect(service.getRecentAlerts()).rejects.toThrow('查询失败');
+      await expect(service.getRecentAlerts()).rejects.toThrow("查询失败");
     });
 
-    it('应该在告警数量统计查询失败时抛出异常', async () => {
+    it("应该在告警数量统计查询失败时抛出异常", async () => {
       // Mock方法暂时返回默认值，但测试异常路径
       await expect(service.getAlertCountByStatus()).resolves.toEqual({
         [AlertStatus.FIRING]: 0,

@@ -5,7 +5,7 @@
 import {
   PERMISSION_DETAIL_TEMPLATES,
   PERMISSION_CONFIG,
-  PERMISSION_UTILS
+  PERMISSION_UTILS,
 } from "../constants/permission.constants";
 
 /**
@@ -25,19 +25,16 @@ export class PermissionTemplateUtil {
   ): string {
     const placeholderPattern = new RegExp(
       PERMISSION_UTILS.TEMPLATE_PLACEHOLDER_PATTERN_SOURCE,
-      PERMISSION_UTILS.TEMPLATE_PLACEHOLDER_PATTERN_FLAGS
+      PERMISSION_UTILS.TEMPLATE_PLACEHOLDER_PATTERN_FLAGS,
     );
-    
-    return template.replace(
-      placeholderPattern,
-      (match, key) => {
-        const value = params[key];
-        if (Array.isArray(value)) {
-          return value.join(PERMISSION_CONFIG.PERMISSION_LIST_SEPARATOR + " ");
-        }
-        return value !== undefined ? String(value) : match;
-      },
-    );
+
+    return template.replace(placeholderPattern, (match, key) => {
+      const value = params[key];
+      if (Array.isArray(value)) {
+        return value.join(PERMISSION_CONFIG.PERMISSION_LIST_SEPARATOR + " ");
+      }
+      return value !== undefined ? String(value) : match;
+    });
   }
 
   /**
@@ -62,9 +59,9 @@ export class PermissionTemplateUtil {
   static sanitizeCacheKey(key: string): string {
     const sanitizePattern = new RegExp(
       PERMISSION_UTILS.CACHE_KEY_SANITIZE_PATTERN_SOURCE,
-      PERMISSION_UTILS.CACHE_KEY_SANITIZE_PATTERN_FLAGS
+      PERMISSION_UTILS.CACHE_KEY_SANITIZE_PATTERN_FLAGS,
     );
-    
+
     return key.replace(sanitizePattern, "_");
   }
 
@@ -76,9 +73,9 @@ export class PermissionTemplateUtil {
   static normalizePermissionName(permission: string): string {
     const normalizePattern = new RegExp(
       PERMISSION_UTILS.PERMISSION_NAME_NORMALIZE_PATTERN_SOURCE,
-      PERMISSION_UTILS.PERMISSION_NAME_NORMALIZE_PATTERN_FLAGS
+      PERMISSION_UTILS.PERMISSION_NAME_NORMALIZE_PATTERN_FLAGS,
     );
-    
+
     return permission.replace(normalizePattern, "_");
   }
 
@@ -90,9 +87,9 @@ export class PermissionTemplateUtil {
   static normalizeRoleName(role: string): string {
     const normalizePattern = new RegExp(
       PERMISSION_UTILS.ROLE_NAME_NORMALIZE_PATTERN_SOURCE,
-      PERMISSION_UTILS.ROLE_NAME_NORMALIZE_PATTERN_FLAGS
+      PERMISSION_UTILS.ROLE_NAME_NORMALIZE_PATTERN_FLAGS,
     );
-    
+
     return role.replace(normalizePattern, "_");
   }
-} 
+}

@@ -1,14 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MonitoringController } from '../../../../src/monitoring/monitoring.controller';
-import { PerformanceMonitorService } from '../../../../src/metrics/services/performance-monitor.service';
-import { CacheService } from '../../../../src/cache/cache.service';
-import { MetricsHealthService } from '../../../../src/metrics/services/metrics-health.service';
-import { PermissionService } from '../../../../src/auth/services/permission.service';
-import { RateLimitService } from '../../../../src/auth/services/rate-limit.service';
-import { UnifiedPermissionsGuard } from '../../../../src/auth/guards/unified-permissions.guard';
-import { BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
-import { AlertingService } from '../../../../src/alert/services/alerting.service';
-import { createLogger } from '../../../../src/common/config/logger.config';
+import { Test, TestingModule } from "@nestjs/testing";
+import { MonitoringController } from "../../../../src/monitoring/monitoring.controller";
+import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
+import { CacheService } from "../../../../src/cache/cache.service";
+import { MetricsHealthService } from "../../../../src/metrics/services/metrics-health.service";
+import { PermissionService } from "../../../../src/auth/services/permission.service";
+import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
+import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-permissions.guard";
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from "@nestjs/common";
+import { AlertingService } from "../../../../src/alert/services/alerting.service";
+import { createLogger } from "../../../../src/common/config/logger.config";
 import {
   PerformanceSummaryDto,
   EndpointMetricsDto,
@@ -17,7 +21,7 @@ import { CacheStatsDto } from "../../../../src/cache/dto/cache-internal.dto";
 import { IAlertStats } from "../../../../src/alert/interfaces/alert.interface";
 
 // Mock the logger
-jest.mock('../../../../src/common/config/logger.config', () => ({
+jest.mock("../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     info: jest.fn(),
@@ -27,7 +31,7 @@ jest.mock('../../../../src/common/config/logger.config', () => ({
   sanitizeLogData: jest.fn((data) => data),
 }));
 
-describe('MonitoringController', () => {
+describe("MonitoringController", () => {
   let controller: MonitoringController;
   let performanceMonitor: jest.Mocked<PerformanceMonitorService>;
   let cacheOptimization: jest.Mocked<CacheService>;
@@ -113,16 +117,23 @@ describe('MonitoringController', () => {
 
   beforeEach(async () => {
     const mockPerformanceMonitorProvider = {
-      getPerformanceSummary: jest.fn().mockResolvedValue(mockPerformanceSummary),
+      getPerformanceSummary: jest
+        .fn()
+        .mockResolvedValue(mockPerformanceSummary),
       getEndpointMetrics: jest.fn().mockResolvedValue(mockEndpointMetrics),
-      getDatabaseMetrics: jest.fn().mockResolvedValue(mockPerformanceSummary.database),
-      getRedisMetrics: jest.fn().mockResolvedValue(mockPerformanceSummary.redis),
-      getSystemMetrics: jest.fn().mockReturnValue(mockPerformanceSummary.system),
+      getDatabaseMetrics: jest
+        .fn()
+        .mockResolvedValue(mockPerformanceSummary.database),
+      getRedisMetrics: jest
+        .fn()
+        .mockResolvedValue(mockPerformanceSummary.redis),
+      getSystemMetrics: jest
+        .fn()
+        .mockReturnValue(mockPerformanceSummary.system),
     };
 
     // Mock process.uptime to return a fixed value for stable tests
-    jest.spyOn(process, 'uptime').mockReturnValue(MOCK_UPTIME);
-
+    jest.spyOn(process, "uptime").mockReturnValue(MOCK_UPTIME);
 
     const mockCacheOptimizationProvider = {
       getStats: jest.fn().mockResolvedValue(mockCacheStats),
@@ -144,39 +155,45 @@ describe('MonitoringController', () => {
         lastHealthCheck: Date.now(),
         lastHealthCheckTime: new Date().toISOString(),
         consecutiveFailures: 0,
-        status: 'healthy',
-        description: '指标系统运行正常',
+        status: "healthy",
+        description: "指标系统运行正常",
         metrics: {
           healthCheckInterval: 30000,
           maxConsecutiveFailures: 3,
-          timeSinceLastCheck: 1000
+          timeSinceLastCheck: 1000,
         },
-        recommendations: []
+        recommendations: [],
       }),
       getHealthStatus: jest.fn().mockReturnValue({
         redisHealthy: true,
         lastHealthCheck: Date.now(),
         lastHealthCheckTime: new Date().toISOString(),
         consecutiveFailures: 0,
-        status: 'healthy',
-        description: '指标系统运行正常'
+        status: "healthy",
+        description: "指标系统运行正常",
       }),
       manualHealthCheck: jest.fn().mockResolvedValue({
         redisHealthy: true,
         lastHealthCheck: Date.now(),
         lastHealthCheckTime: new Date().toISOString(),
         consecutiveFailures: 0,
-        status: 'healthy',
-        description: '指标系统运行正常'
+        status: "healthy",
+        description: "指标系统运行正常",
       }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MonitoringController],
       providers: [
-        { provide: PerformanceMonitorService, useValue: mockPerformanceMonitorProvider },
+        {
+          provide: PerformanceMonitorService,
+          useValue: mockPerformanceMonitorProvider,
+        },
         { provide: CacheService, useValue: mockCacheOptimizationProvider },
-        { provide: MetricsHealthService, useValue: mockMetricsHealthServiceProvider },
+        {
+          provide: MetricsHealthService,
+          useValue: mockMetricsHealthServiceProvider,
+        },
         {
           provide: AlertingService,
           useValue: {
@@ -222,60 +239,64 @@ describe('MonitoringController', () => {
     mockLogger = createLogger("MonitoringControllerSpec");
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 
-  describe('getPerformanceMetrics', () => {
-    it('should return performance metrics successfully', async () => {
-      const queryDto = { startDate: '2024-01-01', endDate: '2024-01-02' };
+  describe("getPerformanceMetrics", () => {
+    it("should return performance metrics successfully", async () => {
+      const queryDto = { startDate: "2024-01-01", endDate: "2024-01-02" };
       const result = await controller.getPerformanceMetrics(queryDto);
       expect(result).toEqual(mockPerformanceSummary);
-      expect(performanceMonitor.getPerformanceSummary).toHaveBeenCalledWith(queryDto.startDate, queryDto.endDate);
-    });
-  });
-
-  describe('getEndpointMetrics', () => {
-    it('should return endpoint metrics sorted by totalRequests', async () => {
-      const result = await controller.getEndpointMetrics(undefined, 'totalRequests');
-      expect(result.metrics[0].totalRequests).toBe(1500);
-      expect(performanceMonitor.getEndpointMetrics).toHaveBeenCalledTimes(1);
-    });
-
-    it('should throw BadRequestException for invalid sortBy parameter', async () => {
-      await expect(controller.getEndpointMetrics(undefined, 'invalidSort')).rejects.toThrow(
-        new BadRequestException('无效的排序字段'),
+      expect(performanceMonitor.getPerformanceSummary).toHaveBeenCalledWith(
+        queryDto.startDate,
+        queryDto.endDate,
       );
     });
   });
 
-  describe('getHealthStatus', () => {
-    it('should return health status', async () => {
+  describe("getEndpointMetrics", () => {
+    it("should return endpoint metrics sorted by totalRequests", async () => {
+      const result = await controller.getEndpointMetrics(
+        undefined,
+        "totalRequests",
+      );
+      expect(result.metrics[0].totalRequests).toBe(1500);
+      expect(performanceMonitor.getEndpointMetrics).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw BadRequestException for invalid sortBy parameter", async () => {
+      await expect(
+        controller.getEndpointMetrics(undefined, "invalidSort"),
+      ).rejects.toThrow(new BadRequestException("无效的排序字段"));
+    });
+  });
+
+  describe("getHealthStatus", () => {
+    it("should return health status", async () => {
       const result = await controller.getHealthStatus();
-      expect(result.status).toBe('healthy');
+      expect(result.status).toBe("healthy");
       expect(result.score).toBe(95);
     });
   });
 
-
-  describe('getCacheMetrics', () => {
-    it('should return cache metrics', async () => {
+  describe("getCacheMetrics", () => {
+    it("should return cache metrics", async () => {
       const result = await controller.getCacheMetrics();
       expect(result.hitRate).toBe(0.85);
       expect(cacheOptimization.getStats).toHaveBeenCalledTimes(1);
     });
   });
 
-
-  describe('getOptimizationRecommendations', () => {
-    it('should return optimization recommendations', async () => {
+  describe("getOptimizationRecommendations", () => {
+    it("should return optimization recommendations", async () => {
       const result = await controller.getOptimizationRecommendations();
       expect(result.recommendations).toBeInstanceOf(Array);
     });
   });
 
-  describe('getDashboardData', () => {
-    it('should return dashboard data', async () => {
+  describe("getDashboardData", () => {
+    it("should return dashboard data", async () => {
       const result = await controller.getDashboardData();
       expect(result.overview.healthScore).toBe(95);
       expect(result.performance).toEqual(mockPerformanceSummary);
@@ -283,47 +304,51 @@ describe('MonitoringController', () => {
     });
   });
 
-  describe('getMetricsHealth', () => {
-    it('should return metrics health status', async () => {
+  describe("getMetricsHealth", () => {
+    it("should return metrics health status", async () => {
       const result = await controller.getMetricsHealth();
-      expect(result).toHaveProperty('redisHealthy', true);
-      expect(result).toHaveProperty('status', 'healthy');
-      expect(result).toHaveProperty('metrics');
-      expect(result).toHaveProperty('recommendations');
-      expect(metricsHealthService.getDetailedHealthReport).toHaveBeenCalledTimes(1);
+      expect(result).toHaveProperty("redisHealthy", true);
+      expect(result).toHaveProperty("status", "healthy");
+      expect(result).toHaveProperty("metrics");
+      expect(result).toHaveProperty("recommendations");
+      expect(
+        metricsHealthService.getDetailedHealthReport,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('GET metrics-health/check endpoint', () => {
-    it('should trigger manual health check and return status', async () => {
+  describe("GET metrics-health/check endpoint", () => {
+    it("should trigger manual health check and return status", async () => {
       const result = await controller.triggerMetricsHealthCheck();
-      
-      expect(result).toHaveProperty('redisHealthy', true);
-      expect(result).toHaveProperty('status', 'healthy');
+
+      expect(result).toHaveProperty("redisHealthy", true);
+      expect(result).toHaveProperty("status", "healthy");
       expect(metricsHealthService.manualHealthCheck).toHaveBeenCalledTimes(1);
       expect(metricsHealthService.getHealthStatus).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle manual health check errors', async () => {
-      metricsHealthService.manualHealthCheck.mockRejectedValue(new Error('Health check failed'));
+    it("should handle manual health check errors", async () => {
+      metricsHealthService.manualHealthCheck.mockRejectedValue(
+        new Error("Health check failed"),
+      );
 
       await expect(controller.triggerMetricsHealthCheck()).rejects.toThrow(
-        InternalServerErrorException
+        InternalServerErrorException,
       );
     });
   });
 
-  describe('Error Handling and Edge Cases', () => {
-    describe('getPerformanceMetrics', () => {
-      it('should throw error when performance monitor returns null', async () => {
+  describe("Error Handling and Edge Cases", () => {
+    describe("getPerformanceMetrics", () => {
+      it("should throw error when performance monitor returns null", async () => {
         performanceMonitor.getPerformanceSummary.mockResolvedValue(null);
 
         await expect(controller.getPerformanceMetrics({})).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
 
-      it('should handle missing healthScore and set default', async () => {
+      it("should handle missing healthScore and set default", async () => {
         const incompleteMetrics = { ...mockPerformanceSummary };
         delete (incompleteMetrics as any).healthScore;
         performanceMonitor.getPerformanceSummary.mockResolvedValue(
@@ -335,7 +360,7 @@ describe('MonitoringController', () => {
         expect(result.healthScore).toBe(0);
       });
 
-      it('should handle missing endpoints and set empty array', async () => {
+      it("should handle missing endpoints and set empty array", async () => {
         const incompleteMetrics = { ...mockPerformanceSummary };
         delete (incompleteMetrics as any).endpoints;
         performanceMonitor.getPerformanceSummary.mockResolvedValue(
@@ -347,7 +372,7 @@ describe('MonitoringController', () => {
         expect(result.endpoints).toEqual([]);
       });
 
-      it('should handle missing processingTime and set default', async () => {
+      it("should handle missing processingTime and set default", async () => {
         const incompleteMetrics = { ...mockPerformanceSummary };
         delete (incompleteMetrics as any).processingTime;
         performanceMonitor.getPerformanceSummary.mockResolvedValue(
@@ -359,38 +384,42 @@ describe('MonitoringController', () => {
         expect(result.processingTime).toBe(0);
       });
 
-      it('should handle service errors and re-throw', async () => {
-        const error = new Error('Service error');
+      it("should handle service errors and re-throw", async () => {
+        const error = new Error("Service error");
         performanceMonitor.getPerformanceSummary.mockRejectedValue(error);
 
-        await expect(controller.getPerformanceMetrics({})).rejects.toThrow(error);
+        await expect(controller.getPerformanceMetrics({})).rejects.toThrow(
+          error,
+        );
       });
     });
 
-    describe('getEndpointMetrics', () => {
-      it('should validate limit parameter range', async () => {
-        await expect(controller.getEndpointMetrics('0', undefined)).rejects.toThrow(
-          BadRequestException
-        );
-        await expect(controller.getEndpointMetrics('101', undefined)).rejects.toThrow(
-          BadRequestException
-        );
+    describe("getEndpointMetrics", () => {
+      it("should validate limit parameter range", async () => {
+        await expect(
+          controller.getEndpointMetrics("0", undefined),
+        ).rejects.toThrow(BadRequestException);
+        await expect(
+          controller.getEndpointMetrics("101", undefined),
+        ).rejects.toThrow(BadRequestException);
       });
 
-      it('should handle non-array response from performance monitor', async () => {
+      it("should handle non-array response from performance monitor", async () => {
         performanceMonitor.getEndpointMetrics.mockResolvedValue({} as any);
 
         await expect(controller.getEndpointMetrics()).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
 
-      it('should sort by averageResponseTime', async () => {
+      it("should sort by averageResponseTime", async () => {
         const unsortedMetrics: EndpointMetricsDto[] = [
           { ...mockEndpointMetrics[0], averageResponseTime: 100 },
           { ...mockEndpointMetrics[1], averageResponseTime: 300 },
         ];
-        performanceMonitor.getEndpointMetrics.mockResolvedValue(unsortedMetrics);
+        performanceMonitor.getEndpointMetrics.mockResolvedValue(
+          unsortedMetrics,
+        );
 
         const result = await controller.getEndpointMetrics(
           undefined,
@@ -401,20 +430,25 @@ describe('MonitoringController', () => {
         expect(result.metrics[1].averageResponseTime).toBe(100);
       });
 
-      it('should sort by errorRate', async () => {
+      it("should sort by errorRate", async () => {
         const unsortedMetrics: EndpointMetricsDto[] = [
           { ...mockEndpointMetrics[0], errorRate: 0.01 },
           { ...mockEndpointMetrics[1], errorRate: 0.05 },
         ];
-        performanceMonitor.getEndpointMetrics.mockResolvedValue(unsortedMetrics);
+        performanceMonitor.getEndpointMetrics.mockResolvedValue(
+          unsortedMetrics,
+        );
 
-        const result = await controller.getEndpointMetrics(undefined, "errorRate");
+        const result = await controller.getEndpointMetrics(
+          undefined,
+          "errorRate",
+        );
 
         expect(result.metrics[0].errorRate).toBe(0.05);
         expect(result.metrics[1].errorRate).toBe(0.01);
       });
 
-      it('should handle empty metrics array', async () => {
+      it("should handle empty metrics array", async () => {
         performanceMonitor.getEndpointMetrics.mockResolvedValue([]);
 
         const result = await controller.getEndpointMetrics();
@@ -423,8 +457,10 @@ describe('MonitoringController', () => {
         expect(result.total).toBe(0);
       });
 
-      it('should apply limit correctly', async () => {
-        performanceMonitor.getEndpointMetrics.mockResolvedValue(mockEndpointMetrics);
+      it("should apply limit correctly", async () => {
+        performanceMonitor.getEndpointMetrics.mockResolvedValue(
+          mockEndpointMetrics,
+        );
 
         const result = await controller.getEndpointMetrics("1", undefined);
 
@@ -432,24 +468,24 @@ describe('MonitoringController', () => {
         expect(result.total).toBe(2);
       });
 
-      it('should handle service errors', async () => {
-        const error = new Error('Endpoint metrics error');
+      it("should handle service errors", async () => {
+        const error = new Error("Endpoint metrics error");
         performanceMonitor.getEndpointMetrics.mockRejectedValue(error);
 
         await expect(controller.getEndpointMetrics()).rejects.toThrow(error);
       });
     });
 
-    describe('getDatabaseMetrics', () => {
-      it('should throw error when database metrics are null', async () => {
+    describe("getDatabaseMetrics", () => {
+      it("should throw error when database metrics are null", async () => {
         performanceMonitor.getDatabaseMetrics.mockResolvedValue(null);
 
         await expect(controller.getDatabaseMetrics({})).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
 
-      it('should provide default values for missing fields', async () => {
+      it("should provide default values for missing fields", async () => {
         const incompleteMetrics = { connectionPoolSize: 5 };
         performanceMonitor.getDatabaseMetrics.mockResolvedValue(
           incompleteMetrics as any,
@@ -466,24 +502,24 @@ describe('MonitoringController', () => {
         expect(result.timestamp).toBeDefined();
       });
 
-      it('should handle service errors', async () => {
-        const error = new Error('Database metrics error');
+      it("should handle service errors", async () => {
+        const error = new Error("Database metrics error");
         performanceMonitor.getDatabaseMetrics.mockRejectedValue(error);
 
         await expect(controller.getDatabaseMetrics({})).rejects.toThrow(error);
       });
     });
 
-    describe('getRedisMetrics', () => {
-      it('should throw error when Redis metrics are null', async () => {
+    describe("getRedisMetrics", () => {
+      it("should throw error when Redis metrics are null", async () => {
         performanceMonitor.getRedisMetrics.mockResolvedValue(null);
 
         await expect(controller.getRedisMetrics()).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
 
-      it('should provide default values for missing fields', async () => {
+      it("should provide default values for missing fields", async () => {
         const incompleteMetrics = { memoryUsage: 1024 };
         performanceMonitor.getRedisMetrics.mockResolvedValue(
           incompleteMetrics as any,
@@ -500,24 +536,24 @@ describe('MonitoringController', () => {
         expect(result.timestamp).toBeDefined();
       });
 
-      it('should handle service errors', async () => {
-        const error = new Error('Redis metrics error');
+      it("should handle service errors", async () => {
+        const error = new Error("Redis metrics error");
         performanceMonitor.getRedisMetrics.mockRejectedValue(error);
 
         await expect(controller.getRedisMetrics()).rejects.toThrow(error);
       });
     });
 
-    describe('getSystemMetrics', () => {
-      it('should throw error when system metrics are null', async () => {
+    describe("getSystemMetrics", () => {
+      it("should throw error when system metrics are null", async () => {
         performanceMonitor.getSystemMetrics.mockReturnValue(null);
 
         await expect(controller.getSystemMetrics()).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
 
-      it('should add computed fields', async () => {
+      it("should add computed fields", async () => {
         const systemMetrics = {
           cpuUsage: 0.5,
           memoryUsage: 1073741824, // 1GB in bytes
@@ -537,8 +573,8 @@ describe('MonitoringController', () => {
         expect(result.timestamp).toBeDefined();
       });
 
-      it('should handle service errors', async () => {
-        const error = new Error('System metrics error');
+      it("should handle service errors", async () => {
+        const error = new Error("System metrics error");
         performanceMonitor.getSystemMetrics.mockImplementation(() => {
           throw error;
         });
@@ -547,21 +583,21 @@ describe('MonitoringController', () => {
       });
     });
 
-    describe('getHealthStatus', () => {
-      it('should handle null performance summary', async () => {
+    describe("getHealthStatus", () => {
+      it("should handle null performance summary", async () => {
         performanceMonitor.getPerformanceSummary.mockResolvedValue(null);
 
         await expect(controller.getHealthStatus()).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
 
-      it('should determine health status correctly', async () => {
+      it("should determine health status correctly", async () => {
         const testCases = [
-          { score: 95, expectedStatus: 'healthy' },
-          { score: 85, expectedStatus: 'warning' },
-          { score: 65, expectedStatus: 'degraded' },
-          { score: 40, expectedStatus: 'unhealthy' },
+          { score: 95, expectedStatus: "healthy" },
+          { score: 85, expectedStatus: "warning" },
+          { score: 65, expectedStatus: "degraded" },
+          { score: 40, expectedStatus: "unhealthy" },
         ];
 
         for (const { score, expectedStatus } of testCases) {
@@ -578,7 +614,7 @@ describe('MonitoringController', () => {
         }
       });
 
-      it('should identify various issues', async () => {
+      it("should identify various issues", async () => {
         const problematicSummary = {
           ...mockPerformanceSummary,
           healthScore: 30,
@@ -605,15 +641,15 @@ describe('MonitoringController', () => {
 
         const result = await controller.getHealthStatus();
 
-        expect(result.issues).toContain('错误率过高');
-        expect(result.issues).toContain('平均响应时间过长');
-        expect(result.issues).toContain('CPU使用率过高');
-        expect(result.issues).toContain('内存使用率过高');
-        expect(result.issues).toContain('缓存命中率过低');
-        expect(result.issues).toContain('数据库查询过慢');
+        expect(result.issues).toContain("错误率过高");
+        expect(result.issues).toContain("平均响应时间过长");
+        expect(result.issues).toContain("CPU使用率过高");
+        expect(result.issues).toContain("内存使用率过高");
+        expect(result.issues).toContain("缓存命中率过低");
+        expect(result.issues).toContain("数据库查询过慢");
       });
 
-      it('should generate recommendations', async () => {
+      it("should generate recommendations", async () => {
         const problematicSummary = {
           ...mockPerformanceSummary,
           summary: {
@@ -627,14 +663,16 @@ describe('MonitoringController', () => {
 
         const result = await controller.getHealthStatus();
 
-        expect(result.recommendations).toContain('检查错误日志，修复频繁出现的错误');
+        expect(result.recommendations).toContain(
+          "检查错误日志，修复频繁出现的错误",
+        );
       });
 
-      it('should handle errors in issue identification', async () => {
+      it("should handle errors in issue identification", async () => {
         // 使用一个会实际抛出错误的 getter 来模拟
         const problematicSummary = {
           get summary() {
-            throw new Error('Property access error');
+            throw new Error("Property access error");
           },
         };
         performanceMonitor.getPerformanceSummary.mockResolvedValue(
@@ -643,35 +681,37 @@ describe('MonitoringController', () => {
 
         const result = await controller.getHealthStatus();
 
-        expect(result.issues).toContain('系统健康检查出现异常');
+        expect(result.issues).toContain("系统健康检查出现异常");
       });
 
-      it('should handle service errors', async () => {
-        const error = new Error('Health status error');
+      it("should handle service errors", async () => {
+        const error = new Error("Health status error");
         performanceMonitor.getPerformanceSummary.mockRejectedValue(error);
 
         await expect(controller.getHealthStatus()).rejects.toThrow(error);
       });
     });
 
-    describe('getOptimizationRecommendations', () => {
-      it('should handle performance monitor errors', async () => {
-        performanceMonitor.getPerformanceSummary.mockRejectedValue(new Error('Performance error'));
-
-        await expect(controller.getOptimizationRecommendations()).rejects.toThrow(
-          InternalServerErrorException
+    describe("getOptimizationRecommendations", () => {
+      it("should handle performance monitor errors", async () => {
+        performanceMonitor.getPerformanceSummary.mockRejectedValue(
+          new Error("Performance error"),
         );
+
+        await expect(
+          controller.getOptimizationRecommendations(),
+        ).rejects.toThrow(InternalServerErrorException);
       });
 
-      it('should handle cache service errors', async () => {
-        cacheOptimization.getStats.mockRejectedValue(new Error('Cache error'));
+      it("should handle cache service errors", async () => {
+        cacheOptimization.getStats.mockRejectedValue(new Error("Cache error"));
 
-        await expect(controller.getOptimizationRecommendations()).rejects.toThrow(
-          InternalServerErrorException
-        );
+        await expect(
+          controller.getOptimizationRecommendations(),
+        ).rejects.toThrow(InternalServerErrorException);
       });
 
-      it('should generate comprehensive recommendations', async () => {
+      it("should generate comprehensive recommendations", async () => {
         const problematicPerformance = {
           ...mockPerformanceSummary,
           summary: {
@@ -705,8 +745,8 @@ describe('MonitoringController', () => {
       });
     });
 
-    describe('getDashboardData', () => {
-      it('should aggregate data from all services', async () => {
+    describe("getDashboardData", () => {
+      it("should aggregate data from all services", async () => {
         const mockAlertStats: IAlertStats = {
           activeAlerts: 5,
           criticalAlerts: 2,
@@ -732,54 +772,56 @@ describe('MonitoringController', () => {
         expect(result.alerts).toEqual(mockAlertStats);
       });
 
-      it('should handle service errors', async () => {
-        performanceMonitor.getPerformanceSummary.mockRejectedValue(new Error('Dashboard error'));
+      it("should handle service errors", async () => {
+        performanceMonitor.getPerformanceSummary.mockRejectedValue(
+          new Error("Dashboard error"),
+        );
 
         await expect(controller.getDashboardData()).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
     });
 
-    describe('getMetricsHealth', () => {
-      it('should handle service errors', async () => {
+    describe("getMetricsHealth", () => {
+      it("should handle service errors", async () => {
         metricsHealthService.getDetailedHealthReport.mockImplementation(() => {
-          throw new Error('Metrics health error');
+          throw new Error("Metrics health error");
         });
 
         await expect(controller.getMetricsHealth()).rejects.toThrow(
-          InternalServerErrorException
+          InternalServerErrorException,
         );
       });
     });
   });
 
-  describe('Private Helper Methods', () => {
-    describe('determineHealthStatus', () => {
-      it('should determine health status correctly for all ranges', () => {
-        expect((controller as any).determineHealthStatus(95)).toBe('healthy');
-        expect((controller as any).determineHealthStatus(85)).toBe('warning');
-        expect((controller as any).determineHealthStatus(65)).toBe('degraded');
-        expect((controller as any).determineHealthStatus(40)).toBe('unhealthy');
-        expect((controller as any).determineHealthStatus(90)).toBe('healthy');
-        expect((controller as any).determineHealthStatus(70)).toBe('warning');
-        expect((controller as any).determineHealthStatus(50)).toBe('degraded');
+  describe("Private Helper Methods", () => {
+    describe("determineHealthStatus", () => {
+      it("should determine health status correctly for all ranges", () => {
+        expect((controller as any).determineHealthStatus(95)).toBe("healthy");
+        expect((controller as any).determineHealthStatus(85)).toBe("warning");
+        expect((controller as any).determineHealthStatus(65)).toBe("degraded");
+        expect((controller as any).determineHealthStatus(40)).toBe("unhealthy");
+        expect((controller as any).determineHealthStatus(90)).toBe("healthy");
+        expect((controller as any).determineHealthStatus(70)).toBe("warning");
+        expect((controller as any).determineHealthStatus(50)).toBe("degraded");
       });
     });
 
-    describe('identifyIssues', () => {
-      it('should handle null summary', () => {
+    describe("identifyIssues", () => {
+      it("should handle null summary", () => {
         const issues = (controller as any).identifyIssues(null);
-        expect(issues).toContain('系统监控数据不可用');
+        expect(issues).toContain("系统监控数据不可用");
       });
 
-      it('should handle missing nested objects', () => {
+      it("should handle missing nested objects", () => {
         const summary = {};
         const issues = (controller as any).identifyIssues(summary);
         expect(issues).toBeInstanceOf(Array);
       });
 
-      it('should identify all types of issues', () => {
+      it("should identify all types of issues", () => {
         const problematicSummary = {
           summary: {
             errorRate: 0.1,
@@ -798,34 +840,36 @@ describe('MonitoringController', () => {
 
         const issues = (controller as any).identifyIssues(problematicSummary);
 
-        expect(issues).toContain('错误率过高');
-        expect(issues).toContain('平均响应时间过长');
-        expect(issues).toContain('CPU使用率过高');
-        expect(issues).toContain('内存使用率过高');
-        expect(issues).toContain('缓存命中率过低');
-        expect(issues).toContain('数据库查询过慢');
+        expect(issues).toContain("错误率过高");
+        expect(issues).toContain("平均响应时间过长");
+        expect(issues).toContain("CPU使用率过高");
+        expect(issues).toContain("内存使用率过高");
+        expect(issues).toContain("缓存命中率过低");
+        expect(issues).toContain("数据库查询过慢");
       });
 
-      it('should handle errors gracefully', () => {
+      it("should handle errors gracefully", () => {
         // Mock a problematic object that might throw errors
         const problematicSummary = {
           get summary() {
-            throw new Error('Property access error');
+            throw new Error("Property access error");
           },
         };
 
         const issues = (controller as any).identifyIssues(problematicSummary);
-        expect(issues).toContain('系统健康检查出现异常');
+        expect(issues).toContain("系统健康检查出现异常");
       });
     });
 
-    describe('generateRecommendations', () => {
-      it('should handle null summary', () => {
-        const recommendations = (controller as any).generateRecommendations(null);
-        expect(recommendations).toContain('请检查系统监控配置');
+    describe("generateRecommendations", () => {
+      it("should handle null summary", () => {
+        const recommendations = (controller as any).generateRecommendations(
+          null,
+        );
+        expect(recommendations).toContain("请检查系统监控配置");
       });
 
-      it('should generate specific recommendations for issues', () => {
+      it("should generate specific recommendations for issues", () => {
         const problematicSummary = {
           summary: {
             errorRate: 0.1,
@@ -842,17 +886,23 @@ describe('MonitoringController', () => {
           },
         };
 
-        const recommendations = (controller as any).generateRecommendations(problematicSummary);
+        const recommendations = (controller as any).generateRecommendations(
+          problematicSummary,
+        );
 
-        expect(recommendations).toContain('检查错误日志，修复频繁出现的错误');
-        expect(recommendations).toContain('优化API响应时间，考虑增加缓存或优化数据库查询');
-        expect(recommendations).toContain('考虑水平扩容或优化CPU密集型操作');
-        expect(recommendations).toContain('检查内存泄漏，考虑增加内存或优化内存使用');
-        expect(recommendations).toContain('优化缓存策略，增加缓存命中率');
-        expect(recommendations).toContain('优化数据库索引，检查慢查询');
+        expect(recommendations).toContain("检查错误日志，修复频繁出现的错误");
+        expect(recommendations).toContain(
+          "优化API响应时间，考虑增加缓存或优化数据库查询",
+        );
+        expect(recommendations).toContain("考虑水平扩容或优化CPU密集型操作");
+        expect(recommendations).toContain(
+          "检查内存泄漏，考虑增加内存或优化内存使用",
+        );
+        expect(recommendations).toContain("优化缓存策略，增加缓存命中率");
+        expect(recommendations).toContain("优化数据库索引，检查慢查询");
       });
 
-      it('should provide default recommendation when no issues', () => {
+      it("should provide default recommendation when no issues", () => {
         const healthySummary = {
           summary: {
             errorRate: 0.01,
@@ -869,24 +919,28 @@ describe('MonitoringController', () => {
           },
         };
 
-        const recommendations = (controller as any).generateRecommendations(healthySummary);
-        expect(recommendations).toContain('系统运行正常，继续保持当前配置');
+        const recommendations = (controller as any).generateRecommendations(
+          healthySummary,
+        );
+        expect(recommendations).toContain("系统运行正常，继续保持当前配置");
       });
 
-      it('should handle errors gracefully', () => {
+      it("should handle errors gracefully", () => {
         const problematicSummary = {
           get summary() {
-            throw new Error('Property access error');
+            throw new Error("Property access error");
           },
         };
 
-        const recommendations = (controller as any).generateRecommendations(problematicSummary);
-        expect(recommendations).toContain('请联系系统管理员检查监控配置');
+        const recommendations = (controller as any).generateRecommendations(
+          problematicSummary,
+        );
+        expect(recommendations).toContain("请联系系统管理员检查监控配置");
       });
     });
 
-    describe('generateOptimizationRecommendations', () => {
-      it('should generate recommendations based on performance data', () => {
+    describe("generateOptimizationRecommendations", () => {
+      it("should generate recommendations based on performance data", () => {
         const performance = {
           summary: {
             errorRate: 0.1,
@@ -919,19 +973,19 @@ describe('MonitoringController', () => {
         expect(recommendations.some((r) => r.type === "cpu_optimization")).toBe(
           true,
         );
-        expect(recommendations.some((r) => r.type === "cache_optimization")).toBe(
-          true,
-        );
-        expect(recommendations.some((r) => r.type === "database_optimization")).toBe(
-          true,
-        );
+        expect(
+          recommendations.some((r) => r.type === "cache_optimization"),
+        ).toBe(true);
+        expect(
+          recommendations.some((r) => r.type === "database_optimization"),
+        ).toBe(true);
         // 增加对 cache_memory 类型的断言
         expect(recommendations.some((r) => r.type === "cache_memory")).toBe(
           true,
         );
       });
 
-      it('should return empty array for healthy system', () => {
+      it("should return empty array for healthy system", () => {
         const performance = {
           summary: {
             errorRate: 0.01,
@@ -957,16 +1011,18 @@ describe('MonitoringController', () => {
       });
     });
 
-    describe('categorizePriority', () => {
-      it('should categorize recommendations by priority', () => {
+    describe("categorizePriority", () => {
+      it("should categorize recommendations by priority", () => {
         const recommendations = [
-          { priority: 'high', type: 'error' },
-          { priority: 'medium', type: 'performance' },
-          { priority: 'low', type: 'optimization' },
-          { priority: 'high', type: 'security' },
+          { priority: "high", type: "error" },
+          { priority: "medium", type: "performance" },
+          { priority: "low", type: "optimization" },
+          { priority: "high", type: "security" },
         ];
 
-        const categorized = (controller as any).categorizePriority(recommendations);
+        const categorized = (controller as any).categorizePriority(
+          recommendations,
+        );
 
         expect(categorized.high.count).toBe(2);
         expect(categorized.medium.count).toBe(1);
@@ -975,22 +1031,22 @@ describe('MonitoringController', () => {
       });
     });
 
-    describe('calculateTrends', () => {
-      it('should return trend data', async () => {
+    describe("calculateTrends", () => {
+      it("should return trend data", async () => {
         const trends = await (controller as any).calculateTrends();
 
-        expect(trends).toHaveProperty('responseTime');
-        expect(trends).toHaveProperty('errorRate');
-        expect(trends).toHaveProperty('throughput');
-        expect(trends).toHaveProperty('cacheHitRate');
-        expect(trends.responseTime.trend).toBe('improving');
-        expect(trends.errorRate.trend).toBe('stable');
+        expect(trends).toHaveProperty("responseTime");
+        expect(trends).toHaveProperty("errorRate");
+        expect(trends).toHaveProperty("throughput");
+        expect(trends).toHaveProperty("cacheHitRate");
+        expect(trends.responseTime.trend).toBe("improving");
+        expect(trends.errorRate.trend).toBe("stable");
       });
     });
   });
 
-  describe('Default Methods Coverage', () => {
-    it('should cover getDefaultPerformanceMetrics', () => {
+  describe("Default Methods Coverage", () => {
+    it("should cover getDefaultPerformanceMetrics", () => {
       const defaultMetrics = (controller as any).getDefaultPerformanceMetrics();
 
       expect(defaultMetrics.healthScore).toBe(0);
@@ -998,7 +1054,7 @@ describe('MonitoringController', () => {
       expect(defaultMetrics.system.uptime).toBe(MOCK_UPTIME);
     });
 
-    it('should cover getDefaultDatabaseMetrics', () => {
+    it("should cover getDefaultDatabaseMetrics", () => {
       const defaultMetrics = (controller as any).getDefaultDatabaseMetrics();
 
       expect(defaultMetrics.connectionPoolSize).toBe(10);
@@ -1006,7 +1062,7 @@ describe('MonitoringController', () => {
       expect(defaultMetrics.timestamp).toBeDefined();
     });
 
-    it('should cover getDefaultRedisMetrics', () => {
+    it("should cover getDefaultRedisMetrics", () => {
       const defaultMetrics = (controller as any).getDefaultRedisMetrics();
 
       expect(defaultMetrics.memoryUsage).toBe(0);
@@ -1014,12 +1070,12 @@ describe('MonitoringController', () => {
       expect(defaultMetrics.timestamp).toBeDefined();
     });
 
-    it('should cover getDefaultHealthStatus', () => {
+    it("should cover getDefaultHealthStatus", () => {
       const defaultStatus = (controller as any).getDefaultHealthStatus();
 
-      expect(defaultStatus.status).toBe('degraded');
+      expect(defaultStatus.status).toBe("degraded");
       expect(defaultStatus.score).toBe(0);
-      expect(defaultStatus.issues).toContain('性能监控服务不可用');
+      expect(defaultStatus.issues).toContain("性能监控服务不可用");
       expect(defaultStatus.uptime).toBe(MOCK_UPTIME);
     });
   });

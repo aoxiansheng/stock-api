@@ -3,59 +3,59 @@
  * 测试认证控制器的API端点，所有依赖服务均为Mock
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Request } from 'express';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ValidationPipe, Logger } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Request } from "express";
 
-import { AuthController } from '../../../../src/auth/auth.controller';
-import { AuthService } from '../../../../src/auth/services/auth.service';
-import { CreateUserDto, LoginDto } from '../../../../src/auth/dto/auth.dto';
-import { CreateApiKeyDto } from '../../../../src/auth/dto/apikey.dto';
-import { UserRole } from '../../../../src/auth/enums/user-role.enum';
-import { Permission } from '../../../../src/auth/enums/user-role.enum';
-import { PermissionService } from '../../../../src/auth/services/permission.service';
-import { RateLimitService } from '../../../../src/auth/services/rate-limit.service';
-import { User } from '../../../../src/auth/schemas/user.schema';
+import { AuthController } from "../../../../src/auth/auth.controller";
+import { AuthService } from "../../../../src/auth/services/auth.service";
+import { CreateUserDto, LoginDto } from "../../../../src/auth/dto/auth.dto";
+import { CreateApiKeyDto } from "../../../../src/auth/dto/apikey.dto";
+import { UserRole } from "../../../../src/auth/enums/user-role.enum";
+import { Permission } from "../../../../src/auth/enums/user-role.enum";
+import { PermissionService } from "../../../../src/auth/services/permission.service";
+import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
+import { User } from "../../../../src/auth/schemas/user.schema";
 
-describe('AuthController', () => {
+describe("AuthController", () => {
   let controller: AuthController;
   let authService: jest.Mocked<AuthService>;
 
   // Mock 数据 - 不包含敏感字段，模拟toJSON()方法的输出
   const mockUser = {
-    id: '507f1f77bcf86cd799439011',
-    username: 'testuser',
-    email: 'test@example.com',
+    id: "507f1f77bcf86cd799439011",
+    username: "testuser",
+    email: "test@example.com",
     role: UserRole.DEVELOPER,
     isActive: true,
-    lastLoginAt: new Date('2024-01-01T11:30:00.000Z'),
-    createdAt: new Date('2024-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+    lastLoginAt: new Date("2024-01-01T11:30:00.000Z"),
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2024-01-01T00:00:00.000Z"),
   } as any;
 
   const mockLoginResponse = {
     user: mockUser,
-    accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-    refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   };
 
   const mockApiKey = {
-    id: '507f1f77bcf86cd799439012',
-    name: 'Test API Key',
-    appKey: 'ak_test_12345',
-    accessToken: 'sk_test_secret_token',
-    userId: '507f1f77bcf86cd799439011',
+    id: "507f1f77bcf86cd799439012",
+    name: "Test API Key",
+    appKey: "ak_test_12345",
+    accessToken: "sk_test_secret_token",
+    userId: "507f1f77bcf86cd799439011",
     permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
     rateLimit: {
       requests: 1000,
-      window: '1h',
+      window: "1h",
     },
     isActive: true,
     usageCount: 100,
-    lastUsedAt: new Date('2024-01-01T11:00:00.000Z'),
-    createdAt: new Date('2024-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+    lastUsedAt: new Date("2024-01-01T11:00:00.000Z"),
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2024-01-01T00:00:00.000Z"),
   };
 
   const mockRequest = {
@@ -81,9 +81,11 @@ describe('AuthController', () => {
         missingPermissions: [],
         missingRoles: [],
         duration: 10,
-        details: 'Access granted',
+        details: "Access granted",
       }),
-      getEffectivePermissions: jest.fn().mockReturnValue([Permission.DATA_READ, Permission.QUERY_EXECUTE]),
+      getEffectivePermissions: jest
+        .fn()
+        .mockReturnValue([Permission.DATA_READ, Permission.QUERY_EXECUTE]),
       combinePermissions: jest.fn().mockReturnValue([Permission.DATA_READ]),
       createPermissionContext: jest.fn().mockResolvedValue({
         subject: mockUser,
@@ -91,7 +93,11 @@ describe('AuthController', () => {
         requiredRoles: [],
         grantedPermissions: [Permission.DATA_READ],
         hasAccess: true,
-        details: { missingPermissions: [], timestamp: new Date(), duration: 10 },
+        details: {
+          missingPermissions: [],
+          timestamp: new Date(),
+          duration: 10,
+        },
       }),
       invalidateCacheFor: jest.fn().mockResolvedValue(undefined),
     };
@@ -155,28 +161,28 @@ describe('AuthController', () => {
     authService = module.get(AuthService);
 
     // Mock Logger to avoid console output in tests
-    jest.spyOn(Logger.prototype, 'log').mockImplementation();
-    jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    jest.spyOn(Logger.prototype, "log").mockImplementation();
+    jest.spyOn(Logger.prototype, "error").mockImplementation();
+    jest.spyOn(Logger.prototype, "warn").mockImplementation();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 
-  describe('register', () => {
+  describe("register", () => {
     const createUserDto: CreateUserDto = {
-      username: 'newuser',
-      email: 'newuser@example.com',
-      password: 'password123',
+      username: "newuser",
+      email: "newuser@example.com",
+      password: "password123",
       role: UserRole.DEVELOPER,
     };
 
-    it('should register a new user successfully', async () => {
+    it("should register a new user successfully", async () => {
       // Arrange
       authService.register.mockResolvedValue(mockUser);
 
@@ -188,24 +194,30 @@ describe('AuthController', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('should handle registration errors', async () => {
+    it("should handle registration errors", async () => {
       // Arrange
-      const error = new Error('用户名已存在');
+      const error = new Error("用户名已存在");
       authService.register.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.register(createUserDto)).rejects.toThrow('用户名已存在');
+      await expect(controller.register(createUserDto)).rejects.toThrow(
+        "用户名已存在",
+      );
       expect(authService.register).toHaveBeenCalledWith(createUserDto);
     });
 
-    it('should register user with minimum required fields', async () => {
+    it("should register user with minimum required fields", async () => {
       // Arrange
       const minimalUserDto = {
-        username: 'minimaluser',
-        email: 'minimal@example.com',
-        password: 'password123',
+        username: "minimaluser",
+        email: "minimal@example.com",
+        password: "password123",
       };
-      const createdUser = { ...mockUser, username: 'minimaluser', email: 'minimal@example.com' } as any;
+      const createdUser = {
+        ...mockUser,
+        username: "minimaluser",
+        email: "minimal@example.com",
+      } as any;
       authService.register.mockResolvedValue(createdUser);
 
       // Act
@@ -217,13 +229,13 @@ describe('AuthController', () => {
     });
   });
 
-  describe('login', () => {
+  describe("login", () => {
     const loginDto: LoginDto = {
-      username: 'testuser',
-      password: 'password123',
+      username: "testuser",
+      password: "password123",
     };
 
-    it('should login user successfully', async () => {
+    it("should login user successfully", async () => {
       // Arrange
       authService.login.mockResolvedValue(mockLoginResponse);
 
@@ -233,33 +245,37 @@ describe('AuthController', () => {
       // Assert
       expect(authService.login).toHaveBeenCalledWith(loginDto);
       expect(result).toEqual(mockLoginResponse);
-      expect(result).toHaveProperty('user');
-      expect(result).toHaveProperty('accessToken');
-      expect(result).toHaveProperty('refreshToken');
+      expect(result).toHaveProperty("user");
+      expect(result).toHaveProperty("accessToken");
+      expect(result).toHaveProperty("refreshToken");
     });
 
-    it('should handle invalid credentials', async () => {
+    it("should handle invalid credentials", async () => {
       // Arrange
-      const error = new Error('用户名或密码错误');
+      const error = new Error("用户名或密码错误");
       authService.login.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.login(loginDto)).rejects.toThrow('用户名或密码错误');
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        "用户名或密码错误",
+      );
       expect(authService.login).toHaveBeenCalledWith(loginDto);
     });
 
-    it('should handle inactive user login attempt', async () => {
+    it("should handle inactive user login attempt", async () => {
       // Arrange
-      const error = new Error('用户账号已被禁用');
+      const error = new Error("用户账号已被禁用");
       authService.login.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.login(loginDto)).rejects.toThrow('用户账号已被禁用');
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        "用户账号已被禁用",
+      );
     });
   });
 
-  describe('getProfile', () => {
-    it('should return current user profile', async () => {
+  describe("getProfile", () => {
+    it("should return current user profile", async () => {
       // Act
       const result = await controller.getProfile(mockRequest);
 
@@ -267,7 +283,7 @@ describe('AuthController', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('should handle request without user', async () => {
+    it("should handle request without user", async () => {
       // Arrange
       const requestWithoutUser = {} as any as Request;
 
@@ -279,77 +295,107 @@ describe('AuthController', () => {
     });
   });
 
-  describe('createApiKey', () => {
+  describe("createApiKey", () => {
     const createApiKeyDto: CreateApiKeyDto = {
-      name: 'My API Key',
+      name: "My API Key",
       permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
       rateLimit: {
         requests: 1000,
-        window: '1h',
+        window: "1h",
       },
     };
 
-    it('should create API key successfully', async () => {
+    it("should create API key successfully", async () => {
       // Arrange
       authService.createApiKey.mockResolvedValue(mockApiKey);
 
       // Act
-      const result = await controller.createApiKey(mockRequest, createApiKeyDto);
+      const result = await controller.createApiKey(
+        mockRequest,
+        createApiKeyDto,
+      );
 
       // Assert
-      expect(authService.createApiKey).toHaveBeenCalledWith(mockUser.id, createApiKeyDto);
+      expect(authService.createApiKey).toHaveBeenCalledWith(
+        mockUser.id,
+        createApiKeyDto,
+      );
       expect(result).toEqual(mockApiKey);
     });
 
-    it('should create API key with minimal permissions', async () => {
+    it("should create API key with minimal permissions", async () => {
       // Arrange
       const minimalApiKeyDto: CreateApiKeyDto = {
-        name: 'Read Only Key',
+        name: "Read Only Key",
         permissions: [Permission.DATA_READ],
       };
-      const readOnlyApiKey = { ...mockApiKey, name: 'Read Only Key', permissions: [Permission.DATA_READ] };
+      const readOnlyApiKey = {
+        ...mockApiKey,
+        name: "Read Only Key",
+        permissions: [Permission.DATA_READ],
+      };
       authService.createApiKey.mockResolvedValue(readOnlyApiKey);
 
       // Act
-      const result = await controller.createApiKey(mockRequest, minimalApiKeyDto);
+      const result = await controller.createApiKey(
+        mockRequest,
+        minimalApiKeyDto,
+      );
 
       // Assert
-      expect(authService.createApiKey).toHaveBeenCalledWith(mockUser.id, minimalApiKeyDto);
+      expect(authService.createApiKey).toHaveBeenCalledWith(
+        mockUser.id,
+        minimalApiKeyDto,
+      );
       expect(result).toEqual(readOnlyApiKey);
     });
 
-    it('should handle API key creation failure', async () => {
+    it("should handle API key creation failure", async () => {
       // Arrange
-      const error = new Error('API Key 创建失败');
+      const error = new Error("API Key 创建失败");
       authService.createApiKey.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.createApiKey(mockRequest, createApiKeyDto)).rejects.toThrow('API Key 创建失败');
+      await expect(
+        controller.createApiKey(mockRequest, createApiKeyDto),
+      ).rejects.toThrow("API Key 创建失败");
     });
 
-    it('should create API key with custom expiration', async () => {
+    it("should create API key with custom expiration", async () => {
       // Arrange
       const expiringApiKeyDto: CreateApiKeyDto = {
-        name: 'Expiring Key',
+        name: "Expiring Key",
         permissions: [Permission.DATA_READ],
-        expiresAt: new Date('2024-12-31T23:59:59.000Z'),
+        expiresAt: new Date("2024-12-31T23:59:59.000Z"),
       };
-      const expiringApiKey = { ...mockApiKey, expiresAt: new Date('2024-12-31T23:59:59.000Z') };
+      const expiringApiKey = {
+        ...mockApiKey,
+        expiresAt: new Date("2024-12-31T23:59:59.000Z"),
+      };
       authService.createApiKey.mockResolvedValue(expiringApiKey);
 
       // Act
-      const result = await controller.createApiKey(mockRequest, expiringApiKeyDto);
+      const result = await controller.createApiKey(
+        mockRequest,
+        expiringApiKeyDto,
+      );
 
       // Assert
-      expect(authService.createApiKey).toHaveBeenCalledWith(mockUser.id, expiringApiKeyDto);
+      expect(authService.createApiKey).toHaveBeenCalledWith(
+        mockUser.id,
+        expiringApiKeyDto,
+      );
       expect(result).toEqual(expiringApiKey);
     });
   });
 
-  describe('getUserApiKeys', () => {
-    it('should return user API keys', async () => {
+  describe("getUserApiKeys", () => {
+    it("should return user API keys", async () => {
       // Arrange
-      const apiKeys = [mockApiKey, { ...mockApiKey, id: 'another-id', name: 'Another Key' }];
+      const apiKeys = [
+        mockApiKey,
+        { ...mockApiKey, id: "another-id", name: "Another Key" },
+      ];
       authService.getUserApiKeys.mockResolvedValue(apiKeys);
 
       // Act
@@ -361,7 +407,7 @@ describe('AuthController', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should return empty array when user has no API keys', async () => {
+    it("should return empty array when user has no API keys", async () => {
       // Arrange
       authService.getUserApiKeys.mockResolvedValue([]);
 
@@ -373,20 +419,22 @@ describe('AuthController', () => {
       expect(result).toEqual([]);
     });
 
-    it('should handle error when fetching API keys', async () => {
+    it("should handle error when fetching API keys", async () => {
       // Arrange
-      const error = new Error('获取API Keys失败');
+      const error = new Error("获取API Keys失败");
       authService.getUserApiKeys.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.getUserApiKeys(mockRequest)).rejects.toThrow('获取API Keys失败');
+      await expect(controller.getUserApiKeys(mockRequest)).rejects.toThrow(
+        "获取API Keys失败",
+      );
     });
   });
 
-  describe('revokeApiKey', () => {
-    const apiKeyId = '507f1f77bcf86cd799439012';
+  describe("revokeApiKey", () => {
+    const apiKeyId = "507f1f77bcf86cd799439012";
 
-    it('should revoke API key successfully', async () => {
+    it("should revoke API key successfully", async () => {
       // Arrange
       authService.revokeApiKey.mockResolvedValue(undefined);
 
@@ -394,87 +442,107 @@ describe('AuthController', () => {
       const result = await controller.revokeApiKey(mockRequest, apiKeyId);
 
       // Assert
-      expect(authService.revokeApiKey).toHaveBeenCalledWith(apiKeyId, mockUser.id);
+      expect(authService.revokeApiKey).toHaveBeenCalledWith(
+        apiKeyId,
+        mockUser.id,
+      );
       expect(result).toEqual({ success: true });
     });
 
-    it('should handle non-existent API key', async () => {
+    it("should handle non-existent API key", async () => {
       // Arrange
-      const error = new Error('API Key 不存在或无权限操作');
+      const error = new Error("API Key 不存在或无权限操作");
       authService.revokeApiKey.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.revokeApiKey(mockRequest, 'non-existent-id')).rejects.toThrow('API Key 不存在或无权限操作');
+      await expect(
+        controller.revokeApiKey(mockRequest, "non-existent-id"),
+      ).rejects.toThrow("API Key 不存在或无权限操作");
     });
 
-    it('should handle revocation of already revoked key', async () => {
+    it("should handle revocation of already revoked key", async () => {
       // Arrange
-      const error = new Error('API Key 已被撤销');
+      const error = new Error("API Key 已被撤销");
       authService.revokeApiKey.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.revokeApiKey(mockRequest, apiKeyId)).rejects.toThrow('API Key 已被撤销');
+      await expect(
+        controller.revokeApiKey(mockRequest, apiKeyId),
+      ).rejects.toThrow("API Key 已被撤销");
     });
   });
 
-  describe('error handling and edge cases', () => {
-    it('should handle validation errors gracefully', async () => {
+  describe("error handling and edge cases", () => {
+    it("should handle validation errors gracefully", async () => {
       // Arrange
       const invalidUserDto = {
-        username: '', // 空用户名应该失败
-        email: 'invalid-email', // 无效邮箱格式
-        password: '123', // 密码太短
+        username: "", // 空用户名应该失败
+        email: "invalid-email", // 无效邮箱格式
+        password: "123", // 密码太短
       };
 
       // Note: ValidationPipe会在实际应用中处理这些错误
       // 这里我们测试控制器对验证错误的响应
-      const validationError = new Error('验证失败');
+      const validationError = new Error("验证失败");
       authService.register.mockRejectedValue(validationError);
 
       // Act & Assert
-      await expect(controller.register(invalidUserDto as any)).rejects.toThrow('验证失败');
+      await expect(controller.register(invalidUserDto as any)).rejects.toThrow(
+        "验证失败",
+      );
     });
 
-    it('should handle service unavailable errors', async () => {
+    it("should handle service unavailable errors", async () => {
       // Arrange
-      const serviceError = new Error('服务暂时不可用');
+      const serviceError = new Error("服务暂时不可用");
       authService.login.mockRejectedValue(serviceError);
 
       // Act & Assert
-      await expect(controller.login({ username: 'test', password: 'test' })).rejects.toThrow('服务暂时不可用');
+      await expect(
+        controller.login({ username: "test", password: "test" }),
+      ).rejects.toThrow("服务暂时不可用");
     });
 
-    it('should handle malformed request data', async () => {
+    it("should handle malformed request data", async () => {
       // Arrange
-      const malformedData = { invalidField: 'value' };
-      const error = new Error('请求数据格式错误');
+      const malformedData = { invalidField: "value" };
+      const error = new Error("请求数据格式错误");
       authService.register.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(controller.register(malformedData as any)).rejects.toThrow('请求数据格式错误');
+      await expect(controller.register(malformedData as any)).rejects.toThrow(
+        "请求数据格式错误",
+      );
     });
   });
 
-  describe('integration scenarios', () => {
-    it('should handle complete user workflow', async () => {
+  describe("integration scenarios", () => {
+    it("should handle complete user workflow", async () => {
       // Arrange
       const userDto: CreateUserDto = {
-        username: 'workflowuser',
-        email: 'workflow@example.com',
-        password: 'securepassword',
+        username: "workflowuser",
+        email: "workflow@example.com",
+        password: "securepassword",
         role: UserRole.DEVELOPER,
       };
       const loginDto: LoginDto = {
-        username: 'workflowuser',
-        password: 'securepassword',
+        username: "workflowuser",
+        password: "securepassword",
       };
       const apiKeyDto: CreateApiKeyDto = {
-        name: 'Workflow API Key',
+        name: "Workflow API Key",
         permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
       };
 
-      const workflowUser = { ...mockUser, username: 'workflowuser', email: 'workflow@example.com' } as any;
-      const workflowLoginResponse = { ...mockLoginResponse, user: workflowUser } as any;
+      const workflowUser = {
+        ...mockUser,
+        username: "workflowuser",
+        email: "workflow@example.com",
+      } as any;
+      const workflowLoginResponse = {
+        ...mockLoginResponse,
+        user: workflowUser,
+      } as any;
       const workflowRequest = { user: workflowUser } as any as Request;
 
       authService.register.mockResolvedValue(workflowUser);
@@ -504,14 +572,18 @@ describe('AuthController', () => {
       expect(apiKeys).toContain(mockApiKey);
     });
 
-    it('should handle concurrent API key operations', async () => {
+    it("should handle concurrent API key operations", async () => {
       // Arrange
       const apiKeyPromises = Array.from({ length: 3 }, (_, i) => {
         const dto: CreateApiKeyDto = {
           name: `Concurrent Key ${i + 1}`,
           permissions: [Permission.DATA_READ],
         };
-        const apiKey = { ...mockApiKey, id: `key-${i + 1}`, name: `Concurrent Key ${i + 1}` };
+        const apiKey = {
+          ...mockApiKey,
+          id: `key-${i + 1}`,
+          name: `Concurrent Key ${i + 1}`,
+        };
         authService.createApiKey.mockResolvedValueOnce(apiKey);
         return controller.createApiKey(mockRequest, dto);
       });
@@ -528,8 +600,8 @@ describe('AuthController', () => {
     });
   });
 
-  describe('getAllUsers', () => {
-    it('should return paginated user list with default parameters', async () => {
+  describe("getAllUsers", () => {
+    it("should return paginated user list with default parameters", async () => {
       // Act
       const result = await controller.getAllUsers();
 
@@ -542,7 +614,7 @@ describe('AuthController', () => {
       });
     });
 
-    it('should return paginated user list with custom parameters', async () => {
+    it("should return paginated user list with custom parameters", async () => {
       // Act
       const result = await controller.getAllUsers(2, 20);
 
@@ -555,7 +627,7 @@ describe('AuthController', () => {
       });
     });
 
-    it('should handle page parameter as undefined', async () => {
+    it("should handle page parameter as undefined", async () => {
       // Act
       const result = await controller.getAllUsers(undefined, 15);
 
@@ -568,7 +640,7 @@ describe('AuthController', () => {
       });
     });
 
-    it('should handle limit parameter as undefined', async () => {
+    it("should handle limit parameter as undefined", async () => {
       // Act
       const result = await controller.getAllUsers(3, undefined);
 
@@ -581,7 +653,7 @@ describe('AuthController', () => {
       });
     });
 
-    it('should handle both parameters as undefined', async () => {
+    it("should handle both parameters as undefined", async () => {
       // Act
       const result = await controller.getAllUsers(undefined, undefined);
 
@@ -595,45 +667,54 @@ describe('AuthController', () => {
     });
   });
 
-  describe('getApiKeyUsage', () => {
-    const apiKeyId = '507f1f77bcf86cd799439012';
+  describe("getApiKeyUsage", () => {
+    const apiKeyId = "507f1f77bcf86cd799439012";
 
-    it('should return usage message for existing API key', async () => {
+    it("should return usage message for existing API key", async () => {
       // Act
       const result = await controller.getApiKeyUsage(mockRequest, apiKeyId);
 
       // Assert
       expect(result).toEqual({
-        message: '功能开发中，即将上线',
+        message: "功能开发中，即将上线",
       });
     });
 
-    it('should handle different API key IDs', async () => {
+    it("should handle different API key IDs", async () => {
       // Act
-      const result1 = await controller.getApiKeyUsage(mockRequest, 'key1');
-      const result2 = await controller.getApiKeyUsage(mockRequest, 'key2');
+      const result1 = await controller.getApiKeyUsage(mockRequest, "key1");
+      const result2 = await controller.getApiKeyUsage(mockRequest, "key2");
 
       // Assert
-      expect(result1).toEqual({ message: '功能开发中，即将上线' });
-      expect(result2).toEqual({ message: '功能开发中，即将上线' });
+      expect(result1).toEqual({ message: "功能开发中，即将上线" });
+      expect(result2).toEqual({ message: "功能开发中，即将上线" });
     });
   });
 
-  describe('resetApiKeyRateLimit', () => {
-    const apiKeyId = '507f1f77bcf86cd799439012';
+  describe("resetApiKeyRateLimit", () => {
+    const apiKeyId = "507f1f77bcf86cd799439012";
 
-    it('should reset rate limit successfully', async () => {
+    it("should reset rate limit successfully", async () => {
       // Act
-      const result = await controller.resetApiKeyRateLimit(mockRequest, apiKeyId);
+      const result = await controller.resetApiKeyRateLimit(
+        mockRequest,
+        apiKeyId,
+      );
 
       // Assert
       expect(result).toEqual({ success: true });
     });
 
-    it('should handle different API key IDs for rate limit reset', async () => {
+    it("should handle different API key IDs for rate limit reset", async () => {
       // Act
-      const result1 = await controller.resetApiKeyRateLimit(mockRequest, 'key1');
-      const result2 = await controller.resetApiKeyRateLimit(mockRequest, 'key2');
+      const result1 = await controller.resetApiKeyRateLimit(
+        mockRequest,
+        "key1",
+      );
+      const result2 = await controller.resetApiKeyRateLimit(
+        mockRequest,
+        "key2",
+      );
 
       // Assert
       expect(result1).toEqual({ success: true });
@@ -641,8 +722,8 @@ describe('AuthController', () => {
     });
   });
 
-  describe('security considerations', () => {
-    it('should not expose sensitive data in responses', async () => {
+  describe("security considerations", () => {
+    it("should not expose sensitive data in responses", async () => {
       // Arrange
       // 模拟User schema的toJSON方法行为，返回不包含敏感字段的用户对象
       const safeUserData = {
@@ -653,40 +734,51 @@ describe('AuthController', () => {
 
       // Act
       const result = await controller.register({
-        username: 'testuser',
-        email: 'test@example.com',
-        password: 'password123',
+        username: "testuser",
+        email: "test@example.com",
+        password: "password123",
       });
 
       // Assert
-      expect(result).not.toHaveProperty('passwordHash');
-      expect(result).not.toHaveProperty('refreshToken');
+      expect(result).not.toHaveProperty("passwordHash");
+      expect(result).not.toHaveProperty("refreshToken");
     });
 
-    it('should handle rate limiting scenarios', async () => {
+    it("should handle rate limiting scenarios", async () => {
       // Arrange
-      const rateLimitError = new Error('请求过于频繁，请稍后再试');
+      const rateLimitError = new Error("请求过于频繁，请稍后再试");
       authService.login.mockRejectedValue(rateLimitError);
 
       // Act & Assert
-      await expect(controller.login({ username: 'test', password: 'test' })).rejects.toThrow('请求过于频繁，请稍后再试');
+      await expect(
+        controller.login({ username: "test", password: "test" }),
+      ).rejects.toThrow("请求过于频繁，请稍后再试");
     });
 
-    it('should validate API key permissions properly', async () => {
+    it("should validate API key permissions properly", async () => {
       // Arrange
       const restrictedApiKeyDto: CreateApiKeyDto = {
-        name: 'Restricted Key',
+        name: "Restricted Key",
         permissions: [], // 空权限应该使用默认权限
       };
-      const restrictedApiKey = { ...mockApiKey, permissions: [Permission.DATA_READ] };
+      const restrictedApiKey = {
+        ...mockApiKey,
+        permissions: [Permission.DATA_READ],
+      };
       authService.createApiKey.mockResolvedValue(restrictedApiKey);
 
       // Act
-      const result = await controller.createApiKey(mockRequest, restrictedApiKeyDto);
+      const result = await controller.createApiKey(
+        mockRequest,
+        restrictedApiKeyDto,
+      );
 
       // Assert
       expect(result.permissions).toContain(Permission.DATA_READ);
-      expect(authService.createApiKey).toHaveBeenCalledWith(mockUser.id, restrictedApiKeyDto);
+      expect(authService.createApiKey).toHaveBeenCalledWith(
+        mockUser.id,
+        restrictedApiKeyDto,
+      );
     });
   });
 });

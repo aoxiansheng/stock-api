@@ -9,11 +9,10 @@ on:
     # 每天凌晨2点运行安全扫描
     - cron: '0 2 * * *'
 
-# 添加全局权限配置
 permissions:
   contents: read
   security-events: write
-  actions: read
+  pull-requests: write
 
 jobs:
   # 依赖安全扫描
@@ -52,19 +51,15 @@ jobs:
   code-security-scan:
     runs-on: ubuntu-latest
     name: Code Security Analysis
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Initialize CodeQL
+    - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
       with:
-        languages: typescript,javascript
+        languages: typescript
         
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1
@@ -76,28 +71,21 @@ jobs:
       
     - name: Build project
       run: bun run build
-      continue-on-error: true
       
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:typescript"
 
   # Semgrep静态安全分析
   semgrep-scan:
     runs-on: ubuntu-latest
     name: Semgrep Security Scan
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
     - name: Run Semgrep
-      uses: semgrep/semgrep-action@v1
+      uses: semgrep/semgrep-action@v2
       with:
         config: >-
           p/security-audit
@@ -135,10 +123,6 @@ jobs:
     name: Docker Image Security Scan
     needs: [dependency-scan, code-security-scan]
     if: github.event_name == 'push'
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
     
     steps:
     - name: Checkout code
@@ -147,21 +131,18 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t stockapi:security-test -f docker/Dockerfile.production .
-      continue-on-error: true
         
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.20.0
       with:
         image-ref: 'stockapi:security-test'
         format: 'sarif'
         output: 'trivy-results.sarif'
-      continue-on-error: true
         
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
-      if: always()
 
   # 应用安全测试
   application-security-test:
@@ -211,7 +192,7 @@ jobs:
         timeout 60 bash -c 'until curl -f http://localhost:3001/api/v1/monitoring/health; do sleep 2; done'
         
     - name: Run OWASP ZAP Baseline Scan
-      uses: zaproxy/action-baseline@v0.7.0
+      uses: zaproxy/action-baseline@v0.11.0
       with:
         target: 'http://localhost:3001'
         rules_file_name: '.zap/rules.tsv'
@@ -353,7 +334,7 @@ jobs:
         
     - name: Comment PR with security results
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');

@@ -211,8 +211,7 @@ export class CacheService {
         // 未获得锁，等待一段时间后重试获取缓存
         await this.sleep(
           CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2 +
-            Math.random() *
-              (CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2),
+            Math.random() * (CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2),
         );
 
         const retryResult = await this.get<T>(key, options.serializer);
@@ -706,7 +705,8 @@ export class CacheService {
 
       if (
         maxMemory > 0 &&
-        memoryUsage / maxMemory > CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100
+        memoryUsage / maxMemory >
+          CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100
       ) {
         errors.push(CACHE_ERROR_MESSAGES.MEMORY_USAGE_HIGH);
         status = "warning";
@@ -726,13 +726,11 @@ export class CacheService {
   // 私有辅助方法
   private serialize<T>(
     value: T,
-    serializerType:
-      | "json"
-      | "msgpack" = "json",
+    serializerType: "json" | "msgpack" = "json",
   ): string {
     if (value === undefined) {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
-      return 'null';
+      return "null";
     }
     // TODO: support msgpack when serializerType is 'msgpack'
     const serialized =
@@ -757,9 +755,7 @@ export class CacheService {
 
   private deserialize<T>(
     value: string,
-    deserializerType:
-      | "json"
-      | "msgpack" = "json",
+    deserializerType: "json" | "msgpack" = "json",
   ): T {
     if (value === null) {
       return null;
@@ -770,7 +766,8 @@ export class CacheService {
 
   private shouldCompress(
     value: string,
-    threshold: number = CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB * 1024,
+    threshold: number = CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB *
+      1024,
   ): boolean {
     if (!value) {
       return false;
@@ -862,12 +859,16 @@ export class CacheService {
     if (total > 100) {
       // 只在有足够样本时检查
       const missRate = stats.misses / total;
-      if (missRate > CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100) {
+      if (
+        missRate >
+        CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100
+      ) {
         this.logger.warn(CACHE_WARNING_MESSAGES.HIGH_MISS_RATE, {
           operation: CACHE_OPERATIONS.UPDATE_METRICS,
           pattern,
           missRate: Math.round(missRate * 100) / 100,
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
+          threshold:
+            CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
           totalRequests: total,
         });
       }
@@ -908,12 +909,17 @@ export class CacheService {
   private startOptimizationTasks(): void {
     this.logger.log(CACHE_SUCCESS_MESSAGES.OPTIMIZATION_TASKS_STARTED, {
       operation: CACHE_OPERATIONS.UPDATE_METRICS,
-      statsCleanupInterval: CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10,
-      healthCheckInterval: CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 3,
+      statsCleanupInterval:
+        CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10,
+      healthCheckInterval:
+        CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 3,
     });
 
     // 定期清理内存中的统计信息
-    setInterval(() => this.cleanupStats(), CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10);
+    setInterval(
+      () => this.cleanupStats(),
+      CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10,
+    );
 
     // 定期检查缓存健康状况
     setInterval(
@@ -972,10 +978,7 @@ export class CacheService {
     if (key.length > CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH) {
       const errorMessage = `${
         CACHE_ERROR_MESSAGES.INVALID_KEY_LENGTH
-      }: 键 '${key.substring(
-        0,
-        50,
-      )}...' 的长度 ${key.length} 超过了最大限制 ${
+      }: 键 '${key.substring(0, 50)}...' 的长度 ${key.length} 超过了最大限制 ${
         CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH
       }`;
       this.logger.error(errorMessage, {
