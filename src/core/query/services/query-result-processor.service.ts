@@ -59,6 +59,7 @@ export class QueryResultProcessorService {
       executionTime,
       executionResult.cacheUsed,
       executionResult.dataSources,
+      executionResult.errors,
     );
 
     // 构建分页信息

@@ -21,7 +21,6 @@ module.exports = {
     '!src/main.ts',
     '!src/**/*.interface.ts',
     '!src/**/*.enum.ts',
-    '!src/**/*.constant.ts',
     '!src/**/*.module.ts'
   ],
   

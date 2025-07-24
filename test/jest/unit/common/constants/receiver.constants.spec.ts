@@ -45,7 +45,7 @@ describe('Receiver Constants', () => {
       expect(RECEIVER_WARNING_MESSAGES.DUPLICATE_SYMBOLS).toBe('请求中包含重复的股票代码');
       expect(RECEIVER_WARNING_MESSAGES.SYMBOLS_WITH_WHITESPACE).toBe('部分股票代码包含前后空白字符，已自动去除');
       expect(RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORT).toBe('首选提供商不支持请求的能力');
-      expect(RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORT_MARKET).toBe('首选提供商不支持指定市场');
+      expect(RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORT_MARKET).toBe('提供商 \'{provider}\' 不支持市场 \'{market}\'');
       expect(RECEIVER_WARNING_MESSAGES.SYMBOL_TRANSFORMATION_FALLBACK).toBe('股票代码转换失败，使用原始代码');
       expect(RECEIVER_WARNING_MESSAGES.SLOW_REQUEST_DETECTED).toBe('检测到慢请求');
       expect(RECEIVER_WARNING_MESSAGES.LARGE_SYMBOL_COUNT).toBe('请求的股票代码数量较多，可能影响性能');

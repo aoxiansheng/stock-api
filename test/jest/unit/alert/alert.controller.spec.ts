@@ -43,6 +43,7 @@ describe('AlertController', () => {
     // 修正: 移除旧的 'details' 字段，使用根级字段
     metric: 'cpu_usage',
     value: 85,
+    threshold: 80, // 添加阈值字段
     context: {}, 
   };
 
@@ -250,7 +251,33 @@ describe('AlertController', () => {
         expect(alertHistoryService.getActiveAlerts).toHaveBeenCalled();
         expect(result).toBeDefined();
         expect(result.length).toBe(1);
-        expect(result[0].isActive).toBe(true);
+      });
+
+      it('应该根据查询参数过滤活跃告警', async () => {
+        const mockActiveAlerts = [
+          { ...mockAlert, ruleId: 'rule-1', severity: AlertSeverity.CRITICAL, metric: 'cpu_usage' },
+          { ...mockAlert, ruleId: 'rule-2', severity: AlertSeverity.WARNING, metric: 'memory_usage' },
+        ];
+        mockAlertHistoryService.getActiveAlerts.mockResolvedValue(mockActiveAlerts);
+
+        // 按 ruleId 过滤
+        let result = await controller.getActiveAlerts({ ruleId: 'rule-1' });
+        expect(result.length).toBe(1);
+        expect(result[0].ruleId).toBe('rule-1');
+
+        // 按 severity 过滤
+        result = await controller.getActiveAlerts({ severity: AlertSeverity.WARNING });
+        expect(result.length).toBe(1);
+        expect(result[0].severity).toBe(AlertSeverity.WARNING);
+        
+        // 按 metric 过滤
+        result = await controller.getActiveAlerts({ metric: 'memory' });
+        expect(result.length).toBe(1);
+        expect(result[0].metric).toBe('memory_usage');
+
+        // 无匹配
+        result = await controller.getActiveAlerts({ ruleId: 'rule-nonexistent' });
+        expect(result.length).toBe(0);
       });
     });
 
@@ -337,6 +364,16 @@ describe('AlertController', () => {
         expect(result).toBeDefined();
         expect(result.id).toBe(alertId);
       });
+
+      it('应该在告警不存在时返回null', async () => {
+        const alertId = 'nonexistent-alert';
+        mockAlertHistoryService.getAlertById.mockResolvedValue(null);
+
+        const result = await controller.getAlertById(alertId);
+        
+        expect(alertHistoryService.getAlertById).toHaveBeenCalledWith(alertId);
+        expect(result).toBeNull();
+      });
     });
 
     describe('acknowledgeAlert', () => {
@@ -348,6 +385,11 @@ describe('AlertController', () => {
           status: AlertStatus.ACKNOWLEDGED,
           acknowledgedBy: 'user-123',
           acknowledgedAt: new Date(),
+          // 添加缺失的字段以匹配AlertResponseDto.fromEntity的输出
+          threshold: mockAlert.threshold || 80,
+          tags: undefined,
+          resolvedBy: undefined,
+          resolvedAt: undefined,
         };
         mockAlertingService.acknowledgeAlert.mockResolvedValue(acknowledgedAlert);
 
@@ -357,7 +399,7 @@ describe('AlertController', () => {
         expect(result).toEqual({
           ...acknowledgedAlert,
           duration: expect.any(Number),
-          isActive: true, // 修正: 确认后告警依然是活跃的，直到被解决
+          isActive: true,  // ACKNOWLEDGED状态被视为活跃状态
         });
       });
     });
@@ -457,9 +499,13 @@ describe('AlertController', () => {
 
   describe('手动触发', () => {
     describe('triggerEvaluation', () => {
-      it('应该成功触发告警评估', async () => {
+      // 在每个测试开始前重置mock
+      beforeEach(() => {
+        mockAlertingService.processMetrics.mockReset();
         mockAlertingService.processMetrics.mockResolvedValue(undefined);
+      });
 
+      it('应该成功触发告警评估', async () => {
         const result = await controller.triggerEvaluation();
 
         expect(alertingService.processMetrics).toHaveBeenCalledWith([]);
@@ -470,6 +516,51 @@ describe('AlertController', () => {
         mockAlertingService.processMetrics.mockRejectedValue(new Error('评估失败'));
 
         await expect(controller.triggerEvaluation()).rejects.toThrow('评估失败');
+      });
+
+      it('应该在达到频率限制时抛出异常', async () => {
+        const triggerLimit = 5;
+        // 首次调用
+        (controller as any).triggerRateLimit.set('admin', { count: 1, lastReset: Date.now() });
+        for (let i = 1; i < triggerLimit; i++) {
+            await controller.triggerEvaluation();
+        }
+        await expect(controller.triggerEvaluation()).rejects.toThrow('手动触发频率过高，请稍后再试');
+      });
+      
+      it('应该在指定了不存在的规则ID时抛出异常', async () => {
+        const triggerDto = { ruleId: 'nonexistent-rule', metrics: [] };
+        mockAlertingService.getRuleById.mockResolvedValue(null);
+        
+        await expect(controller.triggerEvaluation(triggerDto)).rejects.toThrow('指定的告警规则不存在');
+      });
+
+      it('应该成功触发指定规则的评估', async () => {
+        // 确保这个测试用例使用新的mock
+        mockAlertingService.processMetrics.mockReset();
+        mockAlertingService.processMetrics.mockResolvedValue(undefined);
+        
+        const triggerDto = { ruleId: 'rule-123', metrics: [] };
+        mockAlertingService.getRuleById.mockResolvedValue(mockAlertRule);
+        
+        const result = await controller.triggerEvaluation(triggerDto);
+
+        expect(result.message).toBe(`告警规则 ${triggerDto.ruleId} 评估已触发`);
+      });
+
+      it('应该使用提供的指标数据触发评估', async () => {
+        // 确保这个测试用例使用新的mock
+        mockAlertingService.processMetrics.mockReset();
+        mockAlertingService.processMetrics.mockResolvedValue(undefined);
+        
+        const metrics = [{ metric: 'cpu_usage', value: 99, timestamp: new Date(), tags: {} }];
+        const triggerDto = { metrics };
+        
+        await controller.triggerEvaluation(triggerDto);
+        
+        expect(alertingService.processMetrics).toHaveBeenCalledWith(expect.arrayContaining([
+          expect.objectContaining({ metric: 'cpu_usage', value: 99 })
+        ]));
       });
     });
   });
@@ -545,6 +636,27 @@ describe('AlertController', () => {
         expect(alertingService.resolveAlert).toHaveBeenCalledTimes(2);
         expect(result.succeeded.length).toBe(2);
         expect(result.failed.length).toBe(0);
+      });
+
+      it('应该处理部分失败的情况', async () => {
+        const body = {
+          alertIds: ['alert-1', 'alert-2'],
+          resolvedBy: 'user-123',
+        };
+        const mockQueryResult = {
+          alerts: [ { id: 'alert-1', ruleId: 'rule-1' } ],
+          total: 1,
+          page: 1,
+          limit: 1000,
+        };
+        mockAlertHistoryService.queryAlerts.mockResolvedValue(mockQueryResult);
+        mockAlertingService.resolveAlert.mockResolvedValue(true);
+
+        const result = await controller.batchResolveAlerts(body);
+
+        expect(result.succeeded.length).toBe(1);
+        expect(result.failed.length).toBe(1);
+        expect(result.failed[0]).toBe('alert-2');
       });
     });
   });

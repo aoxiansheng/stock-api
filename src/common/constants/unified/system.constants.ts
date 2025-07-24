@@ -9,7 +9,7 @@
  * - 标准化命名：使用 UPPER_SNAKE_CASE 命名规范
  */
 
-import { DataState } from './operations.constants';
+import type { DataState } from './operations.constants';
 import { OperationStatus } from '../../../metrics/enums/auth-type.enum';
 import { deepFreeze } from '@common/utils/object-immutability.util';
 
@@ -52,7 +52,7 @@ export type LogLevel =
 export type Environment =
   (typeof SYSTEM_CONSTANTS.ENVIRONMENTS)[keyof typeof SYSTEM_CONSTANTS.ENVIRONMENTS];
 // DataState 类型从 operations.constants.ts 导入，不再重复定义
-export { DataState };
+export type { DataState };
 // OperationStatus 现在从 metrics enum 导入
 export { OperationStatus };
 

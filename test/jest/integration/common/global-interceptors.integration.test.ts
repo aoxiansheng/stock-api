@@ -337,7 +337,7 @@ describe('Global Interceptors Integration', () => {
         error: {
           code: 'FORBIDDEN',
           details: {
-            type: 'HttpException',
+            type: 'ForbiddenException',
             path: '/test-global-interceptors/forbidden',
           },
         },

@@ -1,14 +1,14 @@
 # 重复标识符分析报告
 
-生成时间: 7/23/2025, 3:55:53 PM
+生成时间: 7/24/2025, 10:04:55 PM
 
 ## 📊 统计摘要
 
-- 扫描的常量: 259 (重复: 0)
+- 扫描的常量: 262 (重复: 0)
 - 扫描的枚举: 48 (重复: 4)
 - 扫描的DTO: 163 (重复: 0)
 - 扫描的Type: 44 (重复: 0)
-- 扫描的文件: 235 (重复文件名: 5)
+- 扫描的文件: 236 (重复文件名: 5)
 
 ## 🔄 重复的枚举
 
@@ -232,7 +232,7 @@ Constants ending with _OPERATIONS (14 个常量)
 
 ### *_MESSAGES
 
-Constants ending with _MESSAGES (33 个常量)
+Constants ending with _MESSAGES (35 个常量)
 
 #### ALERT_HISTORY_MESSAGES
 
@@ -294,28 +294,40 @@ Constants ending with _MESSAGES (33 个常量)
   - **行号**: 10
   - **值**: `deepFreeze({`
 
-#### BUSINESS_ERROR_MESSAGES
+#### DB_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
   - **行号**: 66
   - **值**: `deepFreeze({`
 
+#### VALIDATION_MESSAGES
+
+- **文件**: `src/common/constants/error-messages.constants.ts`
+  - **行号**: 75
+  - **值**: `deepFreeze({`
+
+#### BUSINESS_ERROR_MESSAGES
+
+- **文件**: `src/common/constants/error-messages.constants.ts`
+  - **行号**: 103
+  - **值**: `deepFreeze({`
+
 #### SYSTEM_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 110
+  - **行号**: 148
   - **值**: `deepFreeze({`
 
 #### HTTP_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 136
+  - **行号**: 176
   - **值**: `deepFreeze({`
 
 #### ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 156
+  - **行号**: 198
   - **值**: `deepFreeze({`
 
 #### RATE_LIMIT_MESSAGES
@@ -982,7 +994,7 @@ Constants ending with _VALIDATION_RULES (12 个常量)
 
 ### *_ERROR_MESSAGES
 
-Constants ending with _ERROR_MESSAGES (11 个常量)
+Constants ending with _ERROR_MESSAGES (12 个常量)
 
 #### CACHE_ERROR_MESSAGES
 
@@ -996,22 +1008,28 @@ Constants ending with _ERROR_MESSAGES (11 个常量)
   - **行号**: 10
   - **值**: `deepFreeze({`
 
-#### BUSINESS_ERROR_MESSAGES
+#### DB_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
   - **行号**: 66
   - **值**: `deepFreeze({`
 
+#### BUSINESS_ERROR_MESSAGES
+
+- **文件**: `src/common/constants/error-messages.constants.ts`
+  - **行号**: 103
+  - **值**: `deepFreeze({`
+
 #### SYSTEM_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 110
+  - **行号**: 148
   - **值**: `deepFreeze({`
 
 #### HTTP_ERROR_MESSAGES
 
 - **文件**: `src/common/constants/error-messages.constants.ts`
-  - **行号**: 136
+  - **行号**: 176
   - **值**: `deepFreeze({`
 
 #### DATA_MAPPER_ERROR_MESSAGES
@@ -2121,43 +2139,43 @@ Constants ending with _SUCCESS_MESSAGES (5 个常量)
 #### FieldSelectionDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 174
+  - **行号**: 196
   - **类型**: class
 
 #### SortConfigDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 191
+  - **行号**: 213
   - **类型**: class
 
 #### PostProcessingConfigDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 204
+  - **行号**: 226
   - **类型**: class
 
 #### QueryPerformanceMetricsDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 229
+  - **行号**: 251
   - **类型**: class
 
 #### StorageKeyParamsDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 258
+  - **行号**: 280
   - **类型**: class
 
 #### BulkQueryExecutionConfigDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 282
+  - **行号**: 304
   - **类型**: class
 
 #### QueryLogContextDto
 
 - **文件**: `src/core/query/dto/query-internal.dto.ts`
-  - **行号**: 305
+  - **行号**: 327
   - **类型**: class
 
 #### MarketInferenceResultDto

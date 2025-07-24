@@ -1,56 +1,49 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { DataMapperService } from '../../../../src/core/data-mapper/data-mapper.service';
 import { DataMappingRepository } from '../../../../src/core/data-mapper/repositories/data-mapper.repository';
-import { CreateDataMappingDto } from '../../../../src/core/data-mapper/dto/create-data-mapping.dto';
-import { UpdateDataMappingDto, ParseJsonDto, FieldSuggestionDto } from '../../../../src/core/data-mapper/dto/update-data-mapping.dto';
-import { DataMappingQueryDto } from '../../../../src/core/data-mapper/dto/data-mapping-query.dto';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { TRANSFORMATION_TYPES } from '../../../../src/core/data-mapper/constants/data-mapper.constants';
+import { ObjectUtils } from '../../../../src/core/shared/utils/object.util';
+import { StringUtils } from '../../../../src/core/shared/utils/string.util';
 
 describe('DataMapperService', () => {
   let service: DataMapperService;
-  let repository: jest.Mocked<DataMappingRepository>;
+  let repository: DataMappingRepository;
 
-  const mockDataMappingDocument = {
-    _id: '507f1f77bcf86cd799439011',
-    name: 'LongPort Stock Quote Mapping',
-    provider: 'longport',
-    ruleListType: 'quote_fields',
-    description: 'Maps LongPort stock quote data to standard format',
-    fieldMappings: [
-      {
-        sourceField: 'last_done',
-        targetField: 'lastPrice',
-        description: 'Last traded price',
-      },
-      {
-        sourceField: 'volume',
-        targetField: 'volume',
-        description: 'Trading volume',
-      },
-    ],
+  // 使用 as any 类型断言绕过 DataMappingRuleDocument 的严格类型检查
+  const mockRule = {
+    _id: 'rule-id',
+    name: 'Test Rule',
+    provider: 'test-provider',
+    ruleListType: 'test-type',
+    fieldMappings: [{ sourceField: 'a', targetField: 'b' }],
     isActive: true,
-    version: '1.0.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    version: '1',
+    severity: 'medium',
+    save: jest.fn().mockResolvedValue(this),
   } as any;
 
-  beforeEach(async () => {
-    const mockRepository = {
-      create: jest.fn(),
-      findAll: jest.fn(),
-      findAllIncludingDeactivated: jest.fn(),
-      findByProvider: jest.fn(),
-      findPaginated: jest.fn(),
-      findById: jest.fn(),
-      findByProviderAndType: jest.fn(),
-      updateById: jest.fn(),
-      deleteById: jest.fn(),
-      activate: jest.fn(),
-      deactivate: jest.fn(),
-      activateById: jest.fn(),
-      deactivateById: jest.fn(),
-    };
+  const mockRepository = {
+    create: jest.fn().mockResolvedValue(mockRule),
+    findAll: jest.fn().mockResolvedValue([mockRule]),
+    findAllIncludingDeactivated: jest.fn().mockResolvedValue([mockRule, {...mockRule, isActive: false}]),
+    findById: jest.fn().mockResolvedValue(mockRule),
+    updateById: jest.fn().mockResolvedValue(mockRule),
+    findByProvider: jest.fn().mockResolvedValue([mockRule]),
+    findByProviderAndType: jest.fn().mockResolvedValue([mockRule]),
+    findPaginated: jest.fn().mockResolvedValue({
+      items: [{...mockRule}] as any,
+      total: 1
+    }),
+    activate: jest.fn().mockResolvedValue(mockRule),
+    deactivate: jest.fn().mockResolvedValue(mockRule),
+    deleteById: jest.fn().mockResolvedValue(mockRule),
+    findBestMatchingRule: jest.fn().mockResolvedValue(mockRule),
+    getProviders: jest.fn().mockResolvedValue(['test-provider']),
+    getRuleListTypes: jest.fn().mockResolvedValue(['test-type']),
+  };
 
+  beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DataMapperService,
@@ -62,418 +55,601 @@ describe('DataMapperService', () => {
     }).compile();
 
     service = module.get<DataMapperService>(DataMapperService);
-    repository = module.get(DataMappingRepository);
+    repository = module.get<DataMappingRepository>(DataMappingRepository);
+
+    // 模拟 ObjectUtils 和 StringUtils
+    jest.spyOn(ObjectUtils, 'getValueFromPath').mockImplementation((obj, path) => {
+      if (path === 'a') return obj.a;
+      if (path === 'c') return obj.c;
+      if (path === 'secu_quote[0].s') return 'mockValue';
+      return undefined;
+    });
+    
+    jest.spyOn(StringUtils, 'calculateSimilarity').mockImplementation(() => 0.5);
+  });
+  
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('should create mapping rule successfully', async () => {
-      const createDto: CreateDataMappingDto = {
-        name: 'Test Mapping',
-        provider: 'test-provider',
-        ruleListType: 'quote_fields',
-        description: 'Test mapping rule',
-        fieldMappings: [
-          {
-            sourceField: 'price',
-            targetField: 'lastPrice',
-          },
-        ],
-      };
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+  
+  // 接口实现方法测试
+  describe('Interface implementation methods', () => {
+    it('mapData should call applyMappingRule', async () => {
+      const spy = jest.spyOn(service, 'applyMappingRule');
+      await service.mapData({a: 1}, 'rule-id');
+      expect(spy).toHaveBeenCalledWith('rule-id', {a: 1});
+    });
 
-      repository.create.mockResolvedValue(mockDataMappingDocument);
+    it('saveMappingRule should call create', async () => {
+      const spy = jest.spyOn(service, 'create');
+      const createDto = { name: 'Test Rule', provider: 'test-provider', ruleListType: 'test-type', fieldMappings: [] };
+      await service.saveMappingRule(createDto);
+      expect(spy).toHaveBeenCalledWith(createDto);
+    });
 
-      const result = await service.create(createDto);
-
-      expect(result).toBeDefined();
-      expect(repository.create).toHaveBeenCalledWith(createDto);
+    it('getMappingRules should return rules', async () => {
+      const result = await service.getMappingRules('test-provider', 'test-type');
+      expect(repository.findByProviderAndType).toHaveBeenCalledWith('test-provider', 'test-type');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Test Rule');
     });
   });
-
-  describe('findAll', () => {
-    it('should return all active mapping rules', async () => {
-      repository.findAll.mockResolvedValue([mockDataMappingDocument]);
-
+  
+  // 基本方法测试
+  describe('Basic repository methods', () => {
+    it('findAll should return all active rules', async () => {
       const result = await service.findAll();
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toBeDefined();
       expect(repository.findAll).toHaveBeenCalled();
-    });
-  });
-
-  describe('findAllIncludingDeactivated', () => {
-    it('should return all mapping rules including deactivated ones', async () => {
-      const deactivatedRule = { ...mockDataMappingDocument, isActive: false };
-      repository.findAllIncludingDeactivated.mockResolvedValue([
-        mockDataMappingDocument,
-        deactivatedRule,
-      ]);
-
-      const result = await service.findAllIncludingDeactivated();
-
-      expect(result).toHaveLength(2);
-      expect(repository.findAllIncludingDeactivated).toHaveBeenCalled();
-    });
-  });
-
-  describe('findByProvider', () => {
-    it('should return mapping rules for specific provider', async () => {
-      repository.findByProvider.mockResolvedValue([mockDataMappingDocument]);
-
-      const result = await service.findByProvider('longport');
-
       expect(result).toHaveLength(1);
-      expect(repository.findByProvider).toHaveBeenCalledWith('longport');
     });
-  });
 
-  describe('findPaginated', () => {
-    it('should return paginated mapping rules', async () => {
-      const query: DataMappingQueryDto = {
-        page: 1,
-        limit: 10,
-        provider: 'longport',
-      };
+    it('findAllIncludingDeactivated should return all rules', async () => {
+      const result = await service.findAllIncludingDeactivated();
+      expect(repository.findAllIncludingDeactivated).toHaveBeenCalled();
+      expect(result).toHaveLength(2);
+    });
 
-      repository.findPaginated.mockResolvedValue({
-        items: [mockDataMappingDocument],
-        total: 1,
-      });
+    it('findByProvider should return provider rules', async () => {
+      const result = await service.findByProvider('test-provider');
+      expect(repository.findByProvider).toHaveBeenCalledWith('test-provider');
+      expect(result).toHaveLength(1);
+    });
 
+    it('findPaginated should return paginated results', async () => {
+      const query = { page: 1, limit: 10 };
       const result = await service.findPaginated(query);
-
+      expect(repository.findPaginated).toHaveBeenCalledWith(query);
       expect(result.items).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
       expect(result.limit).toBe(10);
     });
   });
-
-  describe('findOne', () => {
-    it('should return mapping rule when found', async () => {
-      repository.findById.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await service.findOne('507f1f77bcf86cd799439011');
-
-      expect(result).toBeDefined();
-      expect(repository.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+  
+  describe('Error Handling for repository methods', () => {
+    it('findOne should throw NotFoundException if rule not found', async () => {
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(null);
+      await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
+    });
+    
+    it('update should throw NotFoundException if rule not found', async () => {
+      jest.spyOn(repository, 'updateById').mockResolvedValueOnce(null);
+      await expect(service.update('non-existent', {})).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw NotFoundException when mapping rule not found', async () => {
-      repository.findById.mockResolvedValue(null);
-
-      await expect(service.findOne('nonexistent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+    it('activate should throw NotFoundException if rule not found', async () => {
+      jest.spyOn(repository, 'activate').mockResolvedValueOnce(null);
+      await expect(service.activate('non-existent')).rejects.toThrow(NotFoundException);
     });
-  });
 
-  describe('getMappingRules', () => {
-    it('should return mapping rules for provider and data type', async () => {
-      repository.findByProviderAndType.mockResolvedValue([mockDataMappingDocument]);
+    it('deactivate should throw NotFoundException if rule not found', async () => {
+        jest.spyOn(repository, 'deactivate').mockResolvedValueOnce(null);
+        await expect(service.deactivate('non-existent')).rejects.toThrow(NotFoundException);
+    });
 
-      const result = await service.getMappingRules('longport', 'get-stock-quote');
+    it('remove should throw NotFoundException if rule not found', async () => {
+        jest.spyOn(repository, 'deleteById').mockResolvedValueOnce(null);
+        await expect(service.remove('non-existent')).rejects.toThrow(NotFoundException);
+    });
 
-      expect(result).toHaveLength(1);
-      expect(repository.findByProviderAndType).toHaveBeenCalledWith('longport', 'get-stock-quote');
+    it('applyMappingRule should throw NotFoundException if rule not found', async () => {
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(null);
+        await expect(service.applyMappingRule('non-existent', {})).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('parseJson', () => {
-    it('should parse valid JSON string successfully', async () => {
-      const parseDto: ParseJsonDto = {
-        jsonString: '{"price": 100.50, "volume": 1000, "nested": {"value": "test"}}',
-      };
+    it('should parse from jsonString', async () => {
+      const result = await service.parseJson({ jsonString: '{"a": 1}' });
+      expect(result.fields).toContain('a');
+    });
+    
+    it('should parse from jsonData', async () => {
+      const result = await service.parseJson({ jsonData: { a: 1 } });
+      expect(result.fields).toContain('a');
+    });
 
-      const result = await service.parseJson(parseDto);
+    it('should throw BadRequestException if no data provided', async () => {
+      await expect(service.parseJson({})).rejects.toThrow(BadRequestException);
+    });
 
-      expect(result.fields).toContain('price');
-      expect(result.fields).toContain('volume');
-      expect(result.fields).toContain('nested.value');
-      expect(result.structure).toEqual({
-        price: 100.50,
-        volume: 1000,
-        nested: { value: 'test' },
+    it('should throw BadRequestException for invalid JSON string', async () => {
+      await expect(service.parseJson({ jsonString: 'invalid-json' })).rejects.toThrow(BadRequestException);
+    });
+    
+    it('should extract nested fields', async () => {
+      const result = await service.parseJson({ jsonData: { a: { b: 1 } } });
+      expect(result.fields).toContain('a');
+      expect(result.fields).toContain('a.b');
+    });
+    
+    it('should extract array fields', async () => {
+      const result = await service.parseJson({ jsonData: { arr: [{ item: 1 }] } });
+      expect(result.fields).toContain('arr');
+      expect(result.fields).toContain('arr[0].item');
+    });
+  });
+
+  describe('extractFields', () => {
+    it('should handle empty array', () => {
+      const fields = (service as any).extractFields([]);
+      expect(fields).toEqual([]);
+    });
+
+    it('should handle non-object', () => {
+        const fields = (service as any).extractFields(null);
+        expect(fields).toEqual([]);
+    });
+    
+    it('should extract fields from nested object', () => {
+      const fields = (service as any).extractFields({ a: { b: { c: 1 } } });
+      expect(fields).toContain('a');
+      expect(fields).toContain('a.b');
+      expect(fields).toContain('a.b.c');
+    });
+    
+    it('should extract fields from object with array', () => {
+      const fields = (service as any).extractFields({ a: [{ b: 1 }] });
+      expect(fields).toContain('a');
+      expect(fields).toContain('a[0].b');
+    });
+  });
+  
+  describe('getFieldSuggestions', () => {
+    it('should return empty suggestions if no fields provided', async () => {
+        const result = await service.getFieldSuggestions({ sourceFields: [], targetFields: [] });
+        expect(result.suggestions).toEqual([]);
+    });
+    
+    it('should return suggestions with similarity scores', async () => {
+      const sourceFields = ['price'];
+      const targetFields = ['cost', 'value', 'priceValue'];
+      
+      const result = await service.getFieldSuggestions({ 
+        sourceFields, 
+        targetFields 
       });
+      
+      expect(result.suggestions).toHaveLength(1);
+      expect(result.suggestions[0].sourceField).toBe('price');
+      expect(result.suggestions[0].suggestions).toHaveLength(3);
+      expect(result.suggestions[0].suggestions[0].score).toBe(0.5);
     });
-
-    it('should parse valid JSON data successfully', async () => {
-      const parseDto: ParseJsonDto = {
-        jsonData: {
-          price: 100.50,
-          volume: 1000,
-          nested: { value: 'test' },
-        },
-      };
-
-      const result = await service.parseJson(parseDto);
-
-      expect(result.fields).toContain('price');
-      expect(result.fields).toContain('volume');
-      expect(result.fields).toContain('nested.value');
-    });
-
-    it('should handle invalid JSON string', async () => {
-      const parseDto: ParseJsonDto = {
-        jsonString: '{"invalid": json}',
-      };
-
-      await expect(service.parseJson(parseDto)).rejects.toThrow(
-        BadRequestException
-      );
-    });
-
-    it('should handle missing both jsonData and jsonString', async () => {
-      const parseDto: ParseJsonDto = {};
-
-      await expect(service.parseJson(parseDto)).rejects.toThrow(
-        BadRequestException
-      );
-    });
-  });
-
-  describe('update', () => {
-    it('should update mapping rule successfully', async () => {
-      const updateDto: UpdateDataMappingDto = {
-        description: 'Updated description',
-      };
-
-      repository.updateById.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await service.update('507f1f77bcf86cd799439011', updateDto);
-
-      expect(result).toBeDefined();
-      expect(repository.updateById).toHaveBeenCalledWith('507f1f77bcf86cd799439011', updateDto);
-    });
-
-    it('should throw NotFoundException when mapping rule not found', async () => {
-      const updateDto: UpdateDataMappingDto = {
-        description: 'Updated description',
-      };
-
-      repository.updateById.mockResolvedValue(null);
-
-      await expect(service.update('nonexistent-id', updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe('activate', () => {
-    it('should activate mapping rule successfully', async () => {
-      repository.activate.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await service.activate('507f1f77bcf86cd799439011');
-
-      expect(result).toBeDefined();
-      expect(repository.activate).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
-    });
-  });
-
-  describe('deactivate', () => {
-    it('should deactivate mapping rule successfully', async () => {
-      repository.deactivate.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await service.deactivate('507f1f77bcf86cd799439011');
-
-      expect(result).toBeDefined();
-      expect(repository.deactivate).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
-    });
-  });
-
-  describe('remove', () => {
-    it('should remove mapping rule successfully', async () => {
-      repository.deleteById.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await service.remove('507f1f77bcf86cd799439011');
-
-      expect(result).toBeDefined();
-      expect(repository.deleteById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
-    });
-
-    it('should throw NotFoundException when mapping rule not found', async () => {
-      repository.deleteById.mockResolvedValue(null);
-
-      await expect(service.remove('nonexistent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+    
+    it('should find best matches for fields', async () => {
+      const findBestMatches = (service as any).findBestMatches.bind(service);
+      const result = findBestMatches('sourceField', ['targetField1', 'targetField2']);
+      
+      expect(result).toHaveLength(2);
+      expect(result[0].field).toBe('targetField1');
+      expect(result[0].score).toBe(0.5);
     });
   });
 
   describe('applyMappingRule', () => {
-    beforeEach(() => {
-      repository.findById.mockResolvedValue(mockDataMappingDocument);
+    it('should handle single object transformation', async () => {
+        const singleObjectRule = { ...mockRule, fieldMappings: [{ sourceField: 'a', targetField: 'b' }] };
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(singleObjectRule as any);
+        const result = await service.applyMappingRule('rule-id', { a: 123 });
+        expect(result).toEqual([{ b: 123 }]);
     });
 
-    it('should apply mapping rule to transform secu_quote array data', async () => {
-      const rawData = {
-        secu_quote: [
-          {
-            last_done: 150.75,
-            volume: 5000,
-            extra_field: 'ignored',
-          },
-        ],
+    it('should log a warning for slow mappings', async () => {
+        const loggerSpy = jest.spyOn((service as any).logger, 'warn');
+        const originalThreshold = jest.requireActual('../../../../src/core/data-mapper/constants/data-mapper.constants').DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS;
+        
+        // Temporarily set a low threshold to trigger the warning
+        jest.spyOn(Date, 'now').mockReturnValueOnce(0).mockReturnValueOnce(originalThreshold + 1);
+
+        await service.applyMappingRule('rule-id', { secu_quote: [{ a: 1 }] });
+        expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('数据集较大，可能影响性能'));
+    });
+    
+    it('should handle secu_quote array data', async () => {
+        const arrayRule = { ...mockRule };
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(arrayRule as any);
+        
+        const result = await service.applyMappingRule('rule-id', { 
+          secu_quote: [
+            { a: 1 }, 
+            { a: 2 }
+          ] 
+        });
+        
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ b: 1 });
+        expect(result[1]).toEqual({ b: 2 });
+    });
+    
+    it('should handle basic_info array data', async () => {
+        const arrayRule = { ...mockRule };
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(arrayRule as any);
+        
+        const result = await service.applyMappingRule('rule-id', { 
+          basic_info: [
+            { a: 1 }, 
+            { a: 2 }
+          ] 
+        });
+        
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ b: 1 });
+        expect(result[1]).toEqual({ b: 2 });
+    });
+    
+    it('should apply transformations during mapping', async () => {
+        const ruleWithTransform = { 
+          ...mockRule, 
+          fieldMappings: [
+            { 
+              sourceField: 'a', 
+              targetField: 'b',
+              transform: {
+                type: TRANSFORMATION_TYPES.MULTIPLY,
+                value: 2
+              }
+            }
+          ] 
+        };
+        
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithTransform as any);
+        const result = await service.applyMappingRule('rule-id', { a: 10 });
+        expect(result).toEqual([{ b: 20 }]);
+    });
+    
+    it('should transform array elements with transformations', async () => {
+        const ruleWithTransform = { 
+          ...mockRule, 
+          fieldMappings: [
+            { 
+              sourceField: 'a', 
+              targetField: 'b',
+              transform: {
+                type: TRANSFORMATION_TYPES.MULTIPLY,
+                value: 2
+              }
+            }
+          ] 
+        };
+        
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithTransform as any);
+        
+        const result = await service.applyMappingRule('rule-id', { 
+          secu_quote: [
+            { a: 10 }, 
+            { a: 20 }
+          ] 
+        });
+        
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ b: 20 });
+        expect(result[1]).toEqual({ b: 40 });
+    });
+    
+    it('should handle special path patterns', async () => {
+        const ruleWithSpecialPath = { 
+          ...mockRule, 
+          fieldMappings: [
+            { 
+              sourceField: 'secu_quote[0].s', 
+              targetField: 'symbol'
+            }
+          ] 
+        };
+        
+        jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithSpecialPath as any);
+        
+        const result = await service.applyMappingRule('rule-id', { 
+          secu_quote: [{ s: 'AAPL' }]
+        });
+        
+        expect(result).toEqual([{ symbol: 'mockValue' }]);
+    });
+  });
+
+  // 对变换功能进行间接测试
+  describe('Transform functionality', () => {
+    // 由于applyTransform是私有方法，我们通过公共方法applyMappingRule来测试
+    it('should apply MULTIPLY transformation', async () => {
+      const ruleWithMultiply = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.MULTIPLY,
+            value: 3
+          } 
+        }]
       };
-
-      const result = await service.applyMappingRule('507f1f77bcf86cd799439011', rawData);
-
-      expect(result).toEqual([
-        {
-          lastPrice: 150.75,
-          volume: 5000,
-        },
-      ]);
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithMultiply as any);
+      const result = await service.applyMappingRule('rule-id', { a: 10 });
+      expect(result).toEqual([{ b: 30 }]);
     });
-
-    it('should apply mapping rule to transform basic_info array data', async () => {
-      const rawData = {
-        basic_info: [
-          {
-            last_done: 150.75,
-            volume: 5000,
-          },
-        ],
+    
+    it('should apply DIVIDE transformation', async () => {
+      const ruleWithDivide = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.DIVIDE,
+            value: 2
+          } 
+        }]
       };
-
-      const result = await service.applyMappingRule('507f1f77bcf86cd799439011', rawData);
-
-      expect(result).toEqual([
-        {
-          lastPrice: 150.75,
-          volume: 5000,
-        },
-      ]);
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithDivide as any);
+      const result = await service.applyMappingRule('rule-id', { a: 10 });
+      expect(result).toEqual([{ b: 5 }]);
     });
-
-    it('should handle single object data transformation', async () => {
-      const rawData = {
-        last_done: 150.75,
-        volume: 5000,
-        extra_field: 'ignored',
+    
+    it('should apply ADD transformation', async () => {
+      const ruleWithAdd = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.ADD,
+            value: 5
+          } 
+        }]
       };
-
-      const result = await service.applyMappingRule('507f1f77bcf86cd799439011', rawData);
-
-      // For single object, the service returns an array with one item
-      expect(result).toEqual([{
-        lastPrice: 150.75,
-        volume: 5000,
-      }]);
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithAdd as any);
+      const result = await service.applyMappingRule('rule-id', { a: 10 });
+      expect(result).toEqual([{ b: 15 }]);
     });
-
-    it('should handle invalid mapping rule ID', async () => {
-      repository.findById.mockResolvedValue(null);
-
-      const rawData = { test: 'data' };
-
-      await expect(
-        service.applyMappingRule('invalid-id', rawData)
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should handle missing source fields gracefully', async () => {
-      const rawData = {
-        volume: 5000,
-        // missing last_done
+    
+    it('should apply SUBTRACT transformation', async () => {
+      const ruleWithSubtract = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.SUBTRACT,
+            value: 3
+          } 
+        }]
       };
-
-      const result = await service.applyMappingRule('507f1f77bcf86cd799439011', rawData);
-
-      // For single object, the service returns an array with one item
-      expect(result).toEqual([{
-        volume: 5000,
-        // lastPrice should be undefined/missing since source field is missing
-      }]);
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithSubtract as any);
+      const result = await service.applyMappingRule('rule-id', { a: 10 });
+      expect(result).toEqual([{ b: 7 }]);
+    });
+    
+    it('should apply FORMAT transformation', async () => {
+      const ruleWithFormat = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.FORMAT,
+            value: 'Hello, %v!'
+          } 
+        }]
+      };
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithFormat as any);
+      const result = await service.applyMappingRule('rule-id', { a: 'world' });
+      expect(result).toEqual([{ b: 'Hello, world!' }]);
+    });
+    
+    it('should handle CUSTOM transformation and log warning', async () => {
+      const ruleWithCustom = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.CUSTOM,
+            customFunction: 'x => x * 2'
+          } 
+        }]
+      };
+      
+      const loggerSpy = jest.spyOn((service as any).logger, 'warn');
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithCustom as any);
+      
+      const result = await service.applyMappingRule('rule-id', { a: 'test' });
+      expect(loggerSpy).toHaveBeenCalled();
+      expect(result).toEqual([{ b: 'test' }]);
+    });
+    
+    it('should handle unknown transformation type', async () => {
+      const ruleWithUnknown = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: 'UNKNOWN_TYPE' as any
+          } 
+        }]
+      };
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithUnknown as any);
+      const result = await service.applyMappingRule('rule-id', { a: 123 });
+      expect(result).toEqual([{ b: 123 }]);
+    });
+    
+    it('should throw BadRequestException on transformation failure', async () => {
+      const ruleWithMultiply = { 
+        ...mockRule, 
+        fieldMappings: [{ 
+          sourceField: 'a', 
+          targetField: 'b',
+          transform: {
+            type: TRANSFORMATION_TYPES.MULTIPLY,
+            value: 2
+          } 
+        }]
+      };
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(ruleWithMultiply as any);
+      await expect(service.applyMappingRule('rule-id', { a: 'not-a-number' }))
+        .rejects.toThrow(BadRequestException);
     });
   });
 
   describe('testMappingRule', () => {
-    it('should test mapping rule by applying it to test data', async () => {
-      const testDto = {
-        ruleId: '507f1f77bcf86cd799439011',
-        testData: {
-          last_done: 100.50,
-          volume: 1000,
-        },
-      };
-
-      // Mock findOne method to return rule
-      repository.findById.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await service.testMappingRule(testDto);
-
-      expect(result.ruleId).toBe('507f1f77bcf86cd799439011');
-      expect(result.ruleName).toBe('LongPort Stock Quote Mapping');
-      expect(result).toHaveProperty('transformedData');
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('映射规则测试成功');
+    it('should return success result for a valid test', async () => {
+        const result = await service.testMappingRule({ ruleId: 'rule-id', testData: { a: 1 } });
+        expect(result.success).toBe(true);
+        expect(result.transformedData).toEqual([{ b: 1 }]);
     });
-  });
 
-  describe('mapData', () => {
-    it('should apply mapping using interface method', async () => {
-      repository.findById.mockResolvedValue(mockDataMappingDocument);
-
-      const rawData = {
-        last_done: 150.75,
-        volume: 5000,
-      };
-
-      const result = await service.mapData(rawData, '507f1f77bcf86cd799439011');
-
-      // mapData 方法实际上是调用 applyMappingRule，返回的是数组
-      expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        lastPrice: 150.75,
-        volume: 5000,
+    it('should throw BadRequestException if mapping test fails', async () => {
+      jest.spyOn(service, 'applyMappingRule').mockRejectedValueOnce(new Error('Test Fail'));
+      await expect(service.testMappingRule({ ruleId: 'rule-id', testData: {} })).rejects.toThrow(BadRequestException);
+    });
+    
+    it('should include rule details in the response', async () => {
+      const result = await service.testMappingRule({ ruleId: 'rule-id', testData: { a: 1 } });
+      expect(result).toMatchObject({
+        ruleId: 'rule-id',
+        ruleName: 'Test Rule',
+        provider: 'test-provider',
+        ruleListType: 'test-type'
       });
     });
+    
+    it('should include original data in the response', async () => {
+      const testData = { a: 123, extraField: 'value' };
+      const result = await service.testMappingRule({ ruleId: 'rule-id', testData });
+      expect(result.originalData).toEqual(testData);
+    });
+    
+    it('should include success message in the response', async () => {
+      const result = await service.testMappingRule({ ruleId: 'rule-id', testData: { a: 1 } });
+      expect(result.message).toBeTruthy();
+    });
   });
 
-  describe('saveMappingRule', () => {
-    it('should save mapping rule using interface method', async () => {
+  describe('findBestMatchingRule', () => {
+    it('should return null if no matching rule found', async () => {
+      jest.spyOn(repository, 'findBestMatchingRule').mockResolvedValueOnce(null);
+      const result = await service.findBestMatchingRule('provider', 'type');
+      expect(result).toBeNull();
+    });
+    
+    it('should return matching rule if found', async () => {
+      const result = await service.findBestMatchingRule('test-provider', 'test-type');
+      expect(result).toBeDefined();
+      expect(result.name).toBe('Test Rule');
+    });
+  });
+  
+  describe('getStatistics', () => {
+    it('should collect statistics from repository', async () => {
+      const result = await service.getStatistics();
+      
+      expect(result.totalRules).toBe(2);
+      expect(result.activeRules).toBe(1);
+      expect(result.inactiveRules).toBe(1);
+      expect(result.providers).toBe(1);
+      expect(result.ruleListTypes).toBe(1);
+      expect(result.providerList).toContain('test-provider');
+      expect(result.ruleListTypeList).toContain('test-type');
+    });
+    
+    it('should calculate inactive rules correctly', async () => {
+      jest.spyOn(repository, 'findAllIncludingDeactivated').mockResolvedValueOnce([
+        mockRule, 
+        {...mockRule, isActive: false},
+        {...mockRule, isActive: false}
+      ]);
+      
+      const result = await service.getStatistics();
+      expect(result.totalRules).toBe(3);
+      expect(result.activeRules).toBe(1);
+      expect(result.inactiveRules).toBe(2);
+    });
+  });
+  
+  describe('Array and object transformations', () => {
+    // 通过applyMappingRule间接测试私有方法的功能
+    it('should transform each item in array', async () => {
       const rule = {
-        name: 'Test Rule',
-        provider: 'test',
-        ruleListType: 'quote_fields',
-        fieldMappings: [],
+        ...mockRule,
+        fieldMappings: [{ sourceField: 'a', targetField: 'b' }]
       };
-
-      repository.create.mockResolvedValue(mockDataMappingDocument);
-
-      await service.saveMappingRule(rule);
-
-      expect(repository.create).toHaveBeenCalledWith(rule);
-    });
-  });
-
-  describe('private helper methods', () => {
-    describe('extractFields', () => {
-      it('should extract nested field paths correctly', () => {
-        const data = {
-          simple: 'value',
-          nested: {
-            level1: 'value1',
-            level2: {
-              deep: 'deepValue',
-            },
-          },
-          array: [{ item: 'arrayValue' }],
-        };
-
-        const paths = (service as any).extractFields(data);
-
-        expect(paths).toContain('simple');
-        expect(paths).toContain('nested.level1');
-        expect(paths).toContain('nested.level2.deep');
-        expect(paths).toContain('array[0].item');
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(rule as any);
+      
+      const result = await service.applyMappingRule('rule-id', { 
+        secu_quote: [
+          { a: 1 }, 
+          { a: 2 }, 
+          { a: 3 }
+        ] 
       });
+      
+      expect(result).toHaveLength(3);
+      expect(result).toEqual([
+        { b: 1 },
+        { b: 2 },
+        { b: 3 }
+      ]);
     });
-
-    // Note: 私有方法 getValueFromPath 的功能已经通过公共方法测试得到验证
-    // 如 applyMappingRule、testMappingRule 等测试都在正常工作
-    // 按照最佳实践，不应该直接测试私有方法
+    
+    it('should transform multiple fields according to mappings', async () => {
+      const multiFieldRule = { 
+        ...mockRule,
+        fieldMappings: [
+          { sourceField: 'a', targetField: 'b' },
+          { sourceField: 'c', targetField: 'd' }
+        ] 
+      };
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(multiFieldRule as any);
+      
+      const result = await service.applyMappingRule('rule-id', { a: 1, c: 2, e: 3 });
+      expect(result[0]).toEqual({ b: 1, d: 2 });
+      expect(result[0].e).toBeUndefined();
+    });
+    
+    it('should ignore undefined source values', async () => {
+      const nonexistentRule = { 
+        ...mockRule,
+        fieldMappings: [
+          { sourceField: 'nonexistent', targetField: 'target' }
+        ] 
+      };
+      
+      jest.spyOn(repository, 'findById').mockResolvedValueOnce(nonexistentRule as any);
+      
+      const result = await service.applyMappingRule('rule-id', { a: 1 });
+      expect(result).toEqual([{}]);
+    });
   });
-});
+}); 

@@ -214,7 +214,8 @@ export class NotificationTemplateUtil {
    * @returns 模板变量对象
    */
   static generateTemplateVariables(alert: any, rule: any): Record<string, any> {
-    return {
+    const contextVariables = alert.context || {};
+    const baseVariables = {
       [NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID]: alert.id,
       [NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME]: rule.name,
       [NOTIFICATION_TEMPLATE_VARIABLES.METRIC]: alert.metric,
@@ -238,5 +239,7 @@ export class NotificationTemplateUtil {
       [NOTIFICATION_TEMPLATE_VARIABLES.RULE_ID]: rule.id,
       [NOTIFICATION_TEMPLATE_VARIABLES.RULE_DESCRIPTION]: rule.description,
     };
+    // 合并上下文变量，基础变量优先
+    return { ...contextVariables, ...baseVariables };
   }
 } 

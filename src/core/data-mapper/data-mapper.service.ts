@@ -438,31 +438,45 @@ export class DataMapperService implements IDataMapper {
     transform: TransformationInputDto["transform"],
   ): any {
     try {
+      const numericValue = Number(value);
+
       switch (transform.type) {
         case TRANSFORMATION_TYPES.MULTIPLY:
+          if (isNaN(numericValue)) {
+            throw new Error("Invalid number for MULTIPLY");
+          }
           return (
-            Number(value) *
+            numericValue *
             Number(transform.value || TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE)
           );
         case TRANSFORMATION_TYPES.DIVIDE:
+          if (isNaN(numericValue)) {
+            throw new Error("Invalid number for DIVIDE");
+          }
           return (
-            Number(value) /
+            numericValue /
             Number(transform.value || TRANSFORMATION_DEFAULTS.DIVIDE_VALUE)
           );
         case TRANSFORMATION_TYPES.ADD:
+          if (isNaN(numericValue)) {
+            throw new Error("Invalid number for ADD");
+          }
           return (
-            Number(value) +
+            numericValue +
             Number(transform.value || TRANSFORMATION_DEFAULTS.ADD_VALUE)
           );
         case TRANSFORMATION_TYPES.SUBTRACT:
+          if (isNaN(numericValue)) {
+            throw new Error("Invalid number for SUBTRACT");
+          }
           return (
-            Number(value) -
+            numericValue -
             Number(transform.value || TRANSFORMATION_DEFAULTS.SUBTRACT_VALUE)
           );
         case TRANSFORMATION_TYPES.FORMAT:
-          return String(
-            transform.value || TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE,
-          ).replace(TRANSFORMATION_DEFAULTS.VALUE_PLACEHOLDER, String(value));
+          const template = String(transform.value || TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE);
+          // 兼容 {value} 和 %v 两种占位符
+          return template.replace(/\{value\}|%v/g, String(value));
         case TRANSFORMATION_TYPES.CUSTOM:
           // Custom transformations would require dynamic evaluation
           if (transform.customFunction) {

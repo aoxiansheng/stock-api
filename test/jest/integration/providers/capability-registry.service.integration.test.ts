@@ -9,6 +9,7 @@ describe('CapabilityRegistryService - Integration', () => {
   let service: CapabilityRegistryService;
   let testDir: string;
   let loggerSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
 
   // Mock capabilities for testing
   const mockCapability1: ICapability = {
@@ -66,7 +67,7 @@ export default {
 
     // Spy on logger methods
     loggerSpy = jest.spyOn((service as any).logger, 'log').mockImplementation();
-    jest.spyOn((service as any).logger, 'warn').mockImplementation();
+    warnSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
     jest.spyOn((service as any).logger, 'error').mockImplementation();
     jest.spyOn((service as any).logger, 'debug').mockImplementation();
 
@@ -179,7 +180,7 @@ export default {
       service.registerProvider({ /* no name */ });
       service.registerProvider('invalid-provider' as any);
 
-      expect(loggerSpy).toHaveBeenCalledWith(
+      expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('尝试注册无效的Provider实例')
       );
     });

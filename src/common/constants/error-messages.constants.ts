@@ -62,6 +62,43 @@ export const AUTH_ERROR_MESSAGES = deepFreeze({
   TWO_FACTOR_EXPIRED: "双因素认证码已过期",
 });
 
+// 📢 数据库错误消息 (MongoDB)
+export const DB_ERROR_MESSAGES = deepFreeze({
+  DUPLICATE_KEY: "数据已存在，无法重复创建",
+  VALIDATION_FAILED: "数据格式不符合要求",
+  BAD_QUERY: "数据库查询条件错误",
+  INSUFFICIENT_PERMISSIONS: "数据库权限不足",
+  OPERATION_FAILED: "数据库操作失败",
+});
+
+// 📢 验证相关错误消息
+export const VALIDATION_MESSAGES = deepFreeze({
+  VALIDATION_FAILED: "数据验证失败",
+  VALIDATION_PREFIX: "验证失败:",
+  IS_NOT_EMPTY: "不能为空",
+  UNSUPPORTED_DATA_TYPE: "不支持的数据类型",
+  DATA_TYPE_PREFIX: "数据类型",
+  MUST_BE: "必须是",
+  UNKNOWN_FIELD: "unknown",
+  DEFAULT_FIELD_ERROR: "字段错误",
+});
+
+// 📢 验证消息翻译
+export const VALIDATION_TRANSLATIONS = deepFreeze({
+  "must be a string": "必须是字符串",
+  "must be a number": "必须是数字",
+  "must be a boolean": "必须是布尔值",
+  "must be an array": "必须是数组",
+  "must be a date": "必须是日期",
+  "should not be empty": "不能为空",
+  "must be defined": "必须定义",
+  "must be an email": "必须是有效的邮箱地址",
+  "must be longer than": "长度不能少于",
+  "must be shorter than": "长度不能超过",
+  "must be a valid": "必须是有效的",
+  "name should not be empty": "不能为空",
+});
+
 // 📢 业务逻辑错误消息
 export const BUSINESS_ERROR_MESSAGES = deepFreeze({
   // 数据验证错误
@@ -85,6 +122,7 @@ export const BUSINESS_ERROR_MESSAGES = deepFreeze({
   DELETE_FAILED: "删除失败",
   REVOKE_FAILED: "撤销失败",
   REGENERATE_FAILED: "重新生成失败",
+  OPERATION_DEFAULT_FAILURE: "业务处理失败",
 
   // API Key 特定操作错误
   CREATE_API_KEY_FAILED: "创建API Key失败",
@@ -117,11 +155,12 @@ export const SYSTEM_ERROR_MESSAGES = deepFreeze({
   DATABASE_ERROR: "数据库错误",
   DATABASE_CONNECTION_ERROR: "数据库连接错误",
   DATABASE_TIMEOUT: "数据库操作超时",
+  DB_UNAVAILABLE: "数据库服务暂时不可用，请稍后重试",
 
   // 网络错误
   NETWORK_ERROR: "网络错误",
   CONNECTION_TIMEOUT: "连接超时",
-  REQUEST_TIMEOUT: "请求超时",
+  REQUEST_TIMEOUT: "请求超时，请稍后重试",
 
   // 第三方服务错误
   EXTERNAL_SERVICE_ERROR: "外部服务错误",
@@ -130,6 +169,7 @@ export const SYSTEM_ERROR_MESSAGES = deepFreeze({
   // 配置错误
   CONFIGURATION_ERROR: "配置错误",
   ENVIRONMENT_ERROR: "环境配置错误",
+  INVALID_JSON: "JSON格式错误",
 });
 
 // 📢 HTTP状态码对应的错误消息
@@ -143,6 +183,8 @@ export const HTTP_ERROR_MESSAGES = deepFreeze({
   CONFLICT: "请求冲突",
   PAYLOAD_TOO_LARGE: "请求体过大",
   HTTP_TOO_MANY_REQUESTS: "请求频率超出限制", // 重命名，避免与BUSINESS_ERROR_MESSAGES.TOO_MANY_REQUESTS重复
+  ROUTE_NOT_FOUND: "请求的接口不存在",
+  DEFAULT_ERROR: "HTTP异常",
 
   // 5xx 服务器错误
   HTTP_INTERNAL_SERVER_ERROR: "服务器内部错误", // 重命名，避免与SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR重复
@@ -158,6 +200,8 @@ export const ERROR_MESSAGES = deepFreeze({
   ...BUSINESS_ERROR_MESSAGES,
   ...SYSTEM_ERROR_MESSAGES,
   ...HTTP_ERROR_MESSAGES,
+  ...DB_ERROR_MESSAGES,
+  ...VALIDATION_MESSAGES,
 });
 
 // 📢 错误消息类型枚举

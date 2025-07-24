@@ -221,11 +221,18 @@ export class CustomLogger implements LoggerService {
       if (typeof message === "object") {
         // 清理敏感数据
         const sanitizedMessage = sanitizeLogData(message);
-        formattedMessage = JSON.stringify(
-          sanitizedMessage,
-          this.circularReplacer(),
-          2,
-        );
+        
+        // 安全处理循环引用
+        try {
+          formattedMessage = JSON.stringify(
+            sanitizedMessage,
+            this.circularReplacer(),
+            2,
+          );
+        } catch {
+          // 如果JSON.stringify失败，使用更安全的字符串表示
+          formattedMessage = `[Object with circular references: ${Object.keys(sanitizedMessage).join(', ')}]`;
+        }
         data = sanitizedMessage;
       } else {
         formattedMessage = String(message);

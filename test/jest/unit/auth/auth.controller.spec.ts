@@ -528,6 +528,119 @@ describe('AuthController', () => {
     });
   });
 
+  describe('getAllUsers', () => {
+    it('should return paginated user list with default parameters', async () => {
+      // Act
+      const result = await controller.getAllUsers();
+
+      // Assert
+      expect(result).toEqual({
+        users: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      });
+    });
+
+    it('should return paginated user list with custom parameters', async () => {
+      // Act
+      const result = await controller.getAllUsers(2, 20);
+
+      // Assert
+      expect(result).toEqual({
+        users: [],
+        total: 0,
+        page: 2,
+        limit: 20,
+      });
+    });
+
+    it('should handle page parameter as undefined', async () => {
+      // Act
+      const result = await controller.getAllUsers(undefined, 15);
+
+      // Assert
+      expect(result).toEqual({
+        users: [],
+        total: 0,
+        page: 1,
+        limit: 15,
+      });
+    });
+
+    it('should handle limit parameter as undefined', async () => {
+      // Act
+      const result = await controller.getAllUsers(3, undefined);
+
+      // Assert
+      expect(result).toEqual({
+        users: [],
+        total: 0,
+        page: 3,
+        limit: 10,
+      });
+    });
+
+    it('should handle both parameters as undefined', async () => {
+      // Act
+      const result = await controller.getAllUsers(undefined, undefined);
+
+      // Assert
+      expect(result).toEqual({
+        users: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      });
+    });
+  });
+
+  describe('getApiKeyUsage', () => {
+    const apiKeyId = '507f1f77bcf86cd799439012';
+
+    it('should return usage message for existing API key', async () => {
+      // Act
+      const result = await controller.getApiKeyUsage(mockRequest, apiKeyId);
+
+      // Assert
+      expect(result).toEqual({
+        message: '功能开发中，即将上线',
+      });
+    });
+
+    it('should handle different API key IDs', async () => {
+      // Act
+      const result1 = await controller.getApiKeyUsage(mockRequest, 'key1');
+      const result2 = await controller.getApiKeyUsage(mockRequest, 'key2');
+
+      // Assert
+      expect(result1).toEqual({ message: '功能开发中，即将上线' });
+      expect(result2).toEqual({ message: '功能开发中，即将上线' });
+    });
+  });
+
+  describe('resetApiKeyRateLimit', () => {
+    const apiKeyId = '507f1f77bcf86cd799439012';
+
+    it('should reset rate limit successfully', async () => {
+      // Act
+      const result = await controller.resetApiKeyRateLimit(mockRequest, apiKeyId);
+
+      // Assert
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should handle different API key IDs for rate limit reset', async () => {
+      // Act
+      const result1 = await controller.resetApiKeyRateLimit(mockRequest, 'key1');
+      const result2 = await controller.resetApiKeyRateLimit(mockRequest, 'key2');
+
+      // Assert
+      expect(result1).toEqual({ success: true });
+      expect(result2).toEqual({ success: true });
+    });
+  });
+
   describe('security considerations', () => {
     it('should not expose sensitive data in responses', async () => {
       // Arrange

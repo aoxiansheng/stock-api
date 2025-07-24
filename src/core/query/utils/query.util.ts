@@ -19,7 +19,7 @@ export const buildStorageKey = (
   dataTypeFilter?: string,
   market?: string,
 ): string => {
-  const parts = [market || "*", provider || "*", dataTypeFilter || "*", symbol];
+  const parts = [market ?? "*", provider ?? "*", dataTypeFilter ?? "*", symbol];
   return parts.join(":");
 };
 

@@ -562,7 +562,7 @@ describe('Enhanced Authentication Integration Tests', () => {
         .expect(400);
 
       expect(response.body.statusCode).toBe(400);
-      expect(response.body.message).toContain('验证失败: 用户名只能包含字母、数字、下划线和连字符');
+      expect(response.body.message).toContain('验证失败:用户名只能包含字母、数字、下划线和连字符');
     });
 
     it('should handle XSS attempts in user data', async () => {
@@ -577,7 +577,7 @@ describe('Enhanced Authentication Integration Tests', () => {
         .expect(400);
 
       expect(response.body.statusCode).toBe(400);
-      expect(response.body.message).toContain('验证失败: 用户名只能包含字母、数字、下划线和连字符');
+      expect(response.body.message).toContain('验证失败:用户名只能包含字母、数字、下划线和连字符');
     });
 
     it('should prevent concurrent API key creation', async () => {

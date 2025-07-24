@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
+import { QueryErrorInfoDto } from "./query-internal.dto";
 import { QueryType } from "./query-types.dto";
 
 export class QueryMetadataDto {
@@ -45,6 +46,12 @@ export class QueryMetadataDto {
     dataProcessingTime: number;
   };
 
+  @ApiPropertyOptional({
+    description: "Errors that occurred during the query for specific symbols",
+    type: [QueryErrorInfoDto],
+  })
+  errors?: QueryErrorInfoDto[];
+
   constructor(
     queryType: QueryType,
     totalResults: number,
@@ -55,6 +62,7 @@ export class QueryMetadataDto {
       cache: { hits: number; misses: number };
       realtime: { hits: number; misses: number };
     },
+    errors?: QueryErrorInfoDto[],
   ) {
     this.queryType = queryType;
     this.totalResults = totalResults;
@@ -63,6 +71,7 @@ export class QueryMetadataDto {
     this.cacheUsed = cacheUsed;
     this.dataSources = dataSources;
     this.timestamp = new Date().toISOString();
+    this.errors = errors;
   }
 }
 
@@ -123,7 +132,7 @@ export class BulkQueryResponseDto {
   @ApiProperty({ description: "批量操作时间戳" })
   timestamp: string;
 
-  constructor(results: QueryResponseDto[]) {
+  constructor(results: QueryResponseDto[], totalQueriesAttempted: number) {
     this.results = results;
     this.timestamp = new Date().toISOString();
 
@@ -133,7 +142,7 @@ export class BulkQueryResponseDto {
     );
 
     this.summary = {
-      totalQueries: results.length,
+      totalQueries: totalQueriesAttempted,
       totalExecutionTime: totalTime,
       averageExecutionTime: results.length > 0 ? totalTime / results.length : 0,
     };

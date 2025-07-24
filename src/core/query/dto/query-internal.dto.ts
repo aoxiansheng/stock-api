@@ -156,16 +156,38 @@ export class CacheQueryResultDto<T = any> {
 }
 
 /**
+ * 实时数据元数据DTO
+ */
+class RealtimeQueryResultMetadataDto extends CacheResultMetadataDto {
+  @ApiProperty({ description: "数据提供商" })
+  provider: string;
+
+  @ApiProperty({ description: "市场" })
+  market: string;
+
+  @ApiProperty({ description: "建议的缓存TTL（秒）", required: false })
+  @IsOptional()
+  cacheTTL?: number;
+
+  @ApiProperty({ description: "数据类型", required: false })
+  @IsOptional()
+  dataType?: string;
+}
+
+/**
  * 实时数据查询结果DTO
  */
 export class RealtimeQueryResultDto<T = any> {
   @ApiProperty({ description: "实时数据" })
   data: T;
 
-  @ApiProperty({ description: "查询元数据", type: CacheResultMetadataDto })
+  @ApiProperty({
+    description: "查询元数据",
+    type: RealtimeQueryResultMetadataDto,
+  })
   @ValidateNested()
-  @Type(() => CacheResultMetadataDto)
-  metadata: CacheResultMetadataDto;
+  @Type(() => RealtimeQueryResultMetadataDto)
+  metadata: RealtimeQueryResultMetadataDto;
 }
 
 /**

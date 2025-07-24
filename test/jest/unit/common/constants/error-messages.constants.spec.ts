@@ -3,6 +3,8 @@ import {
   BUSINESS_ERROR_MESSAGES,
   SYSTEM_ERROR_MESSAGES,
   HTTP_ERROR_MESSAGES,
+  DB_ERROR_MESSAGES,
+  VALIDATION_MESSAGES,
   ERROR_MESSAGES,
   ErrorMessageType,
   ErrorMessageUtil,
@@ -258,7 +260,7 @@ describe('Error Messages Constants', () => {
         
         // Check some business messages
         expect(allMessages.VALIDATION_FAILED).toBe('数据验证失败');
-        expect(allMessages.OPERATION_FAILED).toBe('操作失败');
+        expect(allMessages.OPERATION_FAILED).toBe('数据库操作失败');
         
         // Check some system messages
         expect(allMessages.DATABASE_ERROR).toBe('数据库错误');
@@ -281,12 +283,18 @@ describe('Error Messages Constants', () => {
       it('should have expected number of messages', () => {
         const allMessages = ErrorMessageUtil.getAll();
         const messageCount = Object.keys(allMessages).length;
-        
-        const expectedCount = 
-          Object.keys(AUTH_ERROR_MESSAGES).length +
-          Object.keys(BUSINESS_ERROR_MESSAGES).length +
-          Object.keys(SYSTEM_ERROR_MESSAGES).length +
-          Object.keys(HTTP_ERROR_MESSAGES).length;
+
+        // Correctly calculate the expected count by finding unique keys
+        const allKeys = [
+          ...Object.keys(AUTH_ERROR_MESSAGES),
+          ...Object.keys(BUSINESS_ERROR_MESSAGES),
+          ...Object.keys(SYSTEM_ERROR_MESSAGES),
+          ...Object.keys(HTTP_ERROR_MESSAGES),
+          ...Object.keys(DB_ERROR_MESSAGES),
+          ...Object.keys(VALIDATION_MESSAGES),
+        ];
+        const uniqueKeys = new Set(allKeys);
+        const expectedCount = uniqueKeys.size;
         
         expect(messageCount).toBe(expectedCount);
       });
