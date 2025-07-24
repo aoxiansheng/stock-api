@@ -90,12 +90,16 @@ describe('SecurityAuditService', () => {
     mockCacheService = module.get(CacheService);
 
     // Clear timers to prevent interference
-    jest.clearAllTimers();
+    if (jest.clearAllTimers) {
+      jest.clearAllTimers();
+    }
     jest.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.clearAllTimers();
+    if (jest.clearAllTimers) {
+      jest.clearAllTimers();
+    }
     jest.useRealTimers();
     jest.clearAllMocks();
   });
@@ -528,6 +532,193 @@ describe('SecurityAuditService', () => {
     });
   });
 
+  describe('onModuleDestroy', () => {
+    it('should flush audit logs on module destroy', async () => {
+      const flushSpy = jest.spyOn(service, 'flushAuditLogs').mockResolvedValue();
+      
+      await service.onModuleDestroy();
+      
+      expect(flushSpy).toHaveBeenCalled();
+    }, 10000);
+
+    it('should handle flush errors during module destroy', async () => {
+      const flushSpy = jest.spyOn(service, 'flushAuditLogs').mockRejectedValue(new Error('Flush failed'));
+      
+      await service.onModuleDestroy();
+      
+      expect(flushSpy).toHaveBeenCalled();
+    }, 10000);
+  });
+
+  describe('flushAuditLogs - enhanced coverage', () => {
+    it('should handle successful flush with events', async () => {
+      const mockEvents = [
+        JSON.stringify({
+          id: 'event-1',
+          type: 'authentication',
+          severity: 'medium',
+          action: 'login',
+          clientIP: '192.168.1.1',
+          userAgent: 'test',
+          details: {},
+          timestamp: new Date(),
+          source: 'test',
+          outcome: 'success'
+        })
+      ];
+      
+      mockCacheService.listRange.mockResolvedValue(mockEvents);
+      mockCacheService.hashGetAll.mockResolvedValue({ failureCount: '0' });
+      mockCacheService.setIsMember.mockResolvedValue(false);
+      mockAuditLogRepository.insertMany.mockResolvedValue(undefined);
+
+      await service.flushAuditLogs();
+
+      expect(mockCacheService.listRange).toHaveBeenCalled();
+      expect(mockCacheService.listTrim).toHaveBeenCalled();
+      expect(mockAuditLogRepository.insertMany).toHaveBeenCalled();
+    });
+
+    it('should handle empty event buffer', async () => {
+      mockCacheService.listRange.mockResolvedValue([]);
+
+      await service.flushAuditLogs();
+
+      expect(mockCacheService.listRange).toHaveBeenCalled();
+      expect(mockAuditLogRepository.insertMany).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors during flush', async () => {
+      const mockEvents = [JSON.stringify({ id: 'test', type: 'test' })];
+      mockCacheService.listRange.mockResolvedValue(mockEvents);
+      mockAuditLogRepository.insertMany.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.flushAuditLogs()).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('getIPAnalysis - enhanced coverage', () => {
+    it('should return correct analysis when data exists', async () => {
+      mockCacheService.hashGetAll.mockResolvedValue({
+        requestCount: '10',
+        failureCount: '3',
+        lastSeen: '2023-01-01T00:00:00.000Z'
+      });
+
+      const analysis = await service.getIPAnalysis('192.168.1.1');
+
+      expect(analysis).toEqual({
+        requestCount: 10,
+        failureCount: 3,
+        lastSeen: new Date('2023-01-01T00:00:00.000Z')
+      });
+    });
+
+    it('should handle invalid numeric values gracefully', async () => {
+      mockCacheService.hashGetAll.mockResolvedValue({
+        requestCount: 'invalid',
+        failureCount: 'also-invalid',
+        lastSeen: '2023-01-01T00:00:00.000Z'
+      });
+
+      const analysis = await service.getIPAnalysis('192.168.1.1');
+
+      expect(analysis).toEqual({
+        requestCount: 0,
+        failureCount: 0,
+        lastSeen: new Date('2023-01-01T00:00:00.000Z')
+      });
+    });
+  });
+
+  describe('private method testing - mapLogToEvent', () => {
+    it('should correctly map audit log to security event', () => {
+      const mockLog = {
+        eventId: 'event-123',
+        type: 'authentication',
+        severity: 'high',
+        action: 'login_failed',
+        userId: 'user-123',
+        apiKeyId: 'key-123',
+        clientIP: '192.168.1.1',
+        userAgent: 'test-agent',
+        details: { reason: 'invalid_password' },
+        timestamp: new Date('2023-01-01'),
+        source: 'auth',
+        outcome: 'failure',
+        riskScore: 75,
+        tags: ['authentication', 'failure']
+      } as any;
+
+      const event = (service as any).mapLogToEvent(mockLog);
+
+      expect(event).toEqual({
+        id: 'event-123',
+        type: 'authentication',
+        severity: 'high',
+        action: 'login_failed',
+        userId: 'user-123',
+        apiKeyId: 'key-123',
+        clientIP: '192.168.1.1',
+        userAgent: 'test-agent',
+        details: { reason: 'invalid_password' },
+        timestamp: new Date('2023-01-01'),
+        source: 'auth',
+        outcome: 'failure'
+      });
+    });
+  });
+
+  describe('generateSecurityRecommendations - comprehensive testing', () => {
+    it('should generate recommendations for multiple threat scenarios', () => {
+      const summary = {
+        failedAuthentications: 100,
+        suspiciousActivities: 15,
+        criticalEvents: 3,
+        dataAccessEvents: 1000,
+        uniqueIPs: 200
+      };
+
+      const recommendations = (service as any).generateSecurityRecommendations(summary);
+      
+      console.log('Generated recommendations:', recommendations);
+
+      expect(recommendations).toContain('考虑实施更严格的账户锁定策略');
+      expect(recommendations).toContain('启用多因素认证以增强安全性');
+      expect(recommendations).toContain('加强IP黑名单管理');
+      expect(recommendations).toContain('立即调查所有严重安全事件');
+      // 我们直接检查特定的推荐项是否存在
+      expect(recommendations).toContain('审查和更新安全策略');
+      expect(recommendations.length).toBeGreaterThan(5);
+    });
+
+    it('should return default recommendations on error', () => {
+      const invalidSummary = null;
+
+      const recommendations = (service as any).generateSecurityRecommendations(invalidSummary);
+
+      expect(recommendations).toContain('进行定期安全审计');
+      expect(recommendations).toContain('及时更新安全补丁');
+      expect(recommendations).toContain('审查和更新安全策略');
+      expect(recommendations.length).toBe(3);
+    });
+
+    it('should not duplicate recommendations', () => {
+      const summary = {
+        failedAuthentications: 200,
+        suspiciousActivities: 20,
+        criticalEvents: 0,
+        dataAccessEvents: 500,
+        uniqueIPs: 100
+      };
+
+      const recommendations = (service as any).generateSecurityRecommendations(summary);
+      const uniqueRecommendations = [...new Set(recommendations)];
+
+      expect(recommendations.length).toBe(uniqueRecommendations.length);
+    });
+  });
+
   describe('error handling', () => {
     it('should handle flushAuditLogs errors gracefully', async () => {
       mockCacheService.listRange.mockResolvedValue([]);
@@ -551,6 +742,24 @@ describe('SecurityAuditService', () => {
       const analysis = await service.getIPAnalysis('1.2.3.4');
       expect(analysis).not.toBeNull();
       expect(analysis.requestCount).toBe(0);
+    });
+
+    it('should handle logSecurityEvent cache errors', async () => {
+      mockCacheService.listPush.mockRejectedValue(new Error('Cache unavailable'));
+
+      await expect(service.logSecurityEvent(mockSecurityEvent)).rejects.toThrow('Cache unavailable');
+    });
+
+    it('should handle getAuditLogs repository errors', async () => {
+      mockAuditLogRepository.findWithFilters.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(service.getAuditLogs()).rejects.toThrow('Database connection failed');
+    });
+
+    it('should handle generateAuditReport errors', async () => {
+      mockAuditLogRepository.findWithFilters.mockRejectedValue(new Error('Query failed'));
+
+      await expect(service.generateAuditReport(new Date(), new Date())).rejects.toThrow('生成审计报告失败');
     });
   });
 

@@ -12,6 +12,11 @@ import {
   SecurityVulnerability,
   SecurityScanResult,
 } from '../../../../src/security/interfaces/security-scanner.interface';
+import { Logger } from '@nestjs/common';
+import { 
+  SECURITY_SCANNER_OPERATIONS, 
+  SECURITY_SCANNER_MESSAGES 
+} from '../../../../src/security/constants/security-scanner.constants';
 
 describe('SecurityScannerService', () => {
   let service: SecurityScannerService;
@@ -19,6 +24,7 @@ describe('SecurityScannerService', () => {
   let mockApiKeyRepository: jest.Mocked<ApiKeyRepository>;
   let mockScanResultRepository: jest.Mocked<SecurityScanResultRepository>;
   let mockConfigService: jest.Mocked<ConfigService>;
+  let mockLogger: jest.Mocked<Logger>;
   let scanHistory: SecurityScanResult[] = [];
 
   const mockUser = {
@@ -96,6 +102,12 @@ describe('SecurityScannerService', () => {
             get: jest.fn(),
           },
         },
+        {
+          provide: Logger,
+          useValue: {
+            error: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -104,6 +116,7 @@ describe('SecurityScannerService', () => {
     mockApiKeyRepository = module.get(ApiKeyRepository);
     mockScanResultRepository = module.get(SecurityScanResultRepository);
     mockConfigService = module.get(ConfigService);
+    mockLogger = module.get(Logger);
 
     // 🎯 将默认的干净 mock 状态移至顶层 beforeEach
     mockUserRepository.findByUsernames.mockResolvedValue([]);
@@ -685,6 +698,238 @@ describe('SecurityScannerService', () => {
       expect(recommendations).not.toContain('Fix medium issue when possible');
       // 🎯 修复：使用代码中定义的准确文本
       expect(recommendations).toContain('定期进行安全审计和漏洞评估');
+    });
+
+    it('should include authentication-specific recommendations', () => {
+      const authVulnerabilities: SecurityVulnerability[] = [
+        {
+          id: 'auth-issue',
+          type: 'authentication',
+          severity: 'high',
+          title: 'Auth Issue',
+          description: 'Test',
+          impact: 'Test',
+          recommendation: 'Fix auth issue',
+          detected: new Date(),
+          status: 'detected',
+        },
+      ];
+
+      const recommendations = (service as any).generateRecommendations(authVulnerabilities);
+
+      expect(recommendations).toContain('为管理员账户启用双因素认证');
+      expect(recommendations).toContain('定期更换密码和API密钥');
+    });
+
+    it('should include configuration-specific recommendations', () => {
+      const configVulnerabilities: SecurityVulnerability[] = [
+        {
+          id: 'config-issue',
+          type: 'configuration',
+          severity: 'high',
+          title: 'Config Issue',
+          description: 'Test',
+          impact: 'Test',
+          recommendation: 'Fix config issue',
+          detected: new Date(),
+          status: 'detected',
+        },
+      ];
+
+      const recommendations = (service as any).generateRecommendations(configVulnerabilities);
+
+      expect(recommendations).toContain('实施实时安全监控和告警');
+      expect(recommendations).toContain('确保符合相关安全合规要求');
+    });
+
+    it('should include penetration testing for critical vulnerabilities', () => {
+      const criticalVulnerabilities: SecurityVulnerability[] = [
+        {
+          id: 'critical-issue',
+          type: 'authentication',
+          severity: 'critical',
+          title: 'Critical Issue',
+          description: 'Test',
+          impact: 'Test',
+          recommendation: 'Fix critical issue',
+          detected: new Date(),
+          status: 'detected',
+        },
+      ];
+
+      const recommendations = (service as any).generateRecommendations(criticalVulnerabilities);
+
+      expect(recommendations).toContain('定期进行渗透测试');
+    });
+
+    it('should handle generateRecommendations errors gracefully', () => {
+      // Simulate an error in recommendations generation
+      const mockVulnerabilities = [
+        {
+          get type() {
+            throw new Error('Property access error');
+          },
+          severity: 'high',
+        } as any
+      ];
+
+      expect(() => {
+        (service as any).generateRecommendations(mockVulnerabilities);
+      }).toThrow('Property access error');
+    });
+  });
+
+  describe('isJwtExpiryTooLong - edge cases', () => {
+    it('should return true for non-string inputs', () => {
+      expect((service as any).isJwtExpiryTooLong(null)).toBe(true);
+      expect((service as any).isJwtExpiryTooLong(undefined)).toBe(true);
+      expect((service as any).isJwtExpiryTooLong(123)).toBe(true);
+      expect((service as any).isJwtExpiryTooLong({})).toBe(true);
+    });
+
+    it('should return true for empty string', () => {
+      expect((service as any).isJwtExpiryTooLong('')).toBe(true);
+    });
+
+    it('should return true for invalid formats', () => {
+      expect((service as any).isJwtExpiryTooLong('invalid')).toBe(true);
+      expect((service as any).isJwtExpiryTooLong('24hours')).toBe(true);
+      expect((service as any).isJwtExpiryTooLong('24x')).toBe(true);
+      expect((service as any).isJwtExpiryTooLong('h24')).toBe(true);
+      expect((service as any).isJwtExpiryTooLong('24')).toBe(true);
+    });
+
+    it('should handle valid formats correctly', () => {
+      // Less than 48 hours
+      expect((service as any).isJwtExpiryTooLong('24h')).toBe(false);
+      expect((service as any).isJwtExpiryTooLong('1d')).toBe(false);
+      expect((service as any).isJwtExpiryTooLong('2880m')).toBe(false); // 48 hours in minutes
+      expect((service as any).isJwtExpiryTooLong('172800s')).toBe(false); // 48 hours in seconds
+
+      // More than 48 hours
+      expect((service as any).isJwtExpiryTooLong('72h')).toBe(true);
+      expect((service as any).isJwtExpiryTooLong('3d')).toBe(true);
+      expect((service as any).isJwtExpiryTooLong('4320m')).toBe(true); // 72 hours in minutes
+      expect((service as any).isJwtExpiryTooLong('259200s')).toBe(true); // 72 hours in seconds
+    });
+
+    it('should handle edge case of exactly 48 hours', () => {
+      expect((service as any).isJwtExpiryTooLong('48h')).toBe(false);
+      expect((service as any).isJwtExpiryTooLong('2d')).toBe(false);
+    });
+  });
+
+  describe('error handling and edge cases', () => {
+    it('should handle repository errors in getScanHistory', async () => {
+      mockScanResultRepository.findMostRecent.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(service.getScanHistory()).rejects.toThrow('Database connection failed');
+    });
+
+    it('should handle errors in getCurrentSecurityConfiguration', () => {
+      mockConfigService.get.mockImplementation(() => {
+        throw new Error('Config service error');
+      });
+
+      expect(() => service.getCurrentSecurityConfiguration()).toThrow('Config service error');
+    });
+
+    it('should handle specific check method errors', async () => {
+      mockUserRepository.findByUsernames.mockRejectedValue(new Error('User repository error'));
+      mockApiKeyRepository.findAllActive.mockRejectedValue(new Error('API key repository error'));
+
+      const result = await service.performSecurityScan();
+
+      // Should still complete scan despite individual check failures
+      expect(result).toBeDefined();
+      expect(result.scanId).toBeDefined();
+    });
+
+    it('should handle checkEncryptionSecurity errors', async () => {
+      // Mock getCurrentSecurityConfiguration to return invalid data for encryption check
+      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockImplementation(() => {
+        throw new Error('Configuration error');
+      });
+
+      // Scan should still complete despite errors in individual checks
+      await expect(service.performSecurityScan()).rejects.toThrow('Configuration error');
+      
+      // 由于logger是通过createLogger创建的，不是直接注入的，所以不验证logger调用
+    });
+
+    it('should handle API keys without rateLimit property', async () => {
+      const apiKeyWithoutRateLimit = {
+        ...mockApiKey,
+        rateLimit: undefined,
+      };
+      mockApiKeyRepository.findAllActive.mockResolvedValue([apiKeyWithoutRateLimit as any]);
+
+      const result = await service.performSecurityScan();
+
+      const rateLimitVuln = result.vulnerabilities.find(v => v.id === 'insufficient_rate_limiting');
+      expect(rateLimitVuln).toBeDefined();
+    });
+
+    it('should handle API keys with null expiresAt', async () => {
+      const apiKeyWithNullExpiry = {
+        ...mockApiKey,
+        expiresAt: null,
+      };
+      mockApiKeyRepository.findAllActive.mockResolvedValue([apiKeyWithNullExpiry as any]);
+
+      const result = await service.performSecurityScan();
+
+      // Should not find expired API key vulnerability
+      const expiredVuln = result.vulnerabilities.find(v => v.id.startsWith('expired_api_key'));
+      expect(expiredVuln).toBeUndefined();
+    });
+
+    it('should handle very weak bcrypt salt rounds', async () => {
+      jest.spyOn(service, 'getCurrentSecurityConfiguration').mockReturnValue({
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: true,
+          requireLowercase: true,
+          requireNumbers: true,
+          requireSpecialChars: true,
+          maxAge: 90,
+        },
+        sessionSecurity: {
+          jwtExpiry: '1h',
+          refreshTokenExpiry: '7d',
+          maxConcurrentSessions: 5,
+        },
+        apiSecurity: {
+          rateLimitEnabled: true,
+          ipWhitelistEnabled: false,
+          corsEnabled: true,
+          httpsOnly: true,
+        },
+        dataSecurity: {
+          encryptionEnabled: true,
+          hashSaltRounds: 8, // Below the minimum of 12
+          sensitiveDataMasking: true,
+        },
+      });
+
+      const result = await service.performSecurityScan();
+
+      const weakHashingVuln = result.vulnerabilities.find(v => v.id === 'weak_password_hashing');
+      expect(weakHashingVuln).toBeDefined();
+      expect(weakHashingVuln?.severity).toBe('high');
+    });
+
+    it('should handle missing JWT_SECRET in checkEncryptionSecurity', async () => {
+      delete process.env.JWT_SECRET;
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'JWT_SECRET') return undefined;
+        return 'default-value';
+      });
+
+      const result = await service.performSecurityScan();
+
+      const weakJwtVuln = result.vulnerabilities.find(v => v.id === 'weak_jwt_secret');
+      expect(weakJwtVuln).toBeDefined();
     });
   });
 });

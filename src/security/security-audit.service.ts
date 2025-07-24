@@ -50,7 +50,7 @@ export class SecurityAuditService implements OnModuleDestroy {
   ) {}
 
   onModuleDestroy() {
-    this.flushAuditLogs().catch((error) => {
+    return this.flushAuditLogs().catch((error) => {
       this.logger.error(SECURITY_AUDIT_MESSAGES.MODULE_DESTROY_FLUSH_FAILED, {
         error,
       });
