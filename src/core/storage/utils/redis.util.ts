@@ -12,7 +12,9 @@ export class RedisUtils {
     if (!info || !key) {
       return null;
     }
-    const regex = new RegExp(`^${key}:(.*)$`, "m");
+    // 转义正则表达式特殊字符，确保可以匹配包含特殊字符的键
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`^${escapedKey}:(.*)$`, "m");
     const match = info.match(regex);
     return match ? match[1].trim() : null;
   }
