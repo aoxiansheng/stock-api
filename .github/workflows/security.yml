@@ -173,6 +173,36 @@ jobs:
     - name: Install dependencies
       run: bun install
       
+    - name: Wait for MongoDB
+      run: |
+        echo "Waiting for MongoDB to start..."
+        i=0
+        until nc -z localhost 27017; do
+          if [ $i -ge 30 ]; then
+            echo "Timed out waiting for MongoDB."
+            exit 1
+          fi
+          echo "Waiting for MongoDB..."
+          sleep 2
+          i=$((i+1))
+        done
+        echo "MongoDB started."
+
+    - name: Wait for Redis
+      run: |
+        echo "Waiting for Redis to start..."
+        i=0
+        until nc -z localhost 6379; do
+          if [ $i -ge 30 ]; then
+            echo "Timed out waiting for Redis."
+            exit 1
+          fi
+          echo "Waiting for Redis..."
+          sleep 2
+          i=$((i+1))
+        done
+        echo "Redis started."
+        
     - name: Start application
       run: |
         bun run start:test &
