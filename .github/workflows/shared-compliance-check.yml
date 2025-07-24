@@ -1,4 +1,4 @@
-name: Shared Module Compliance Check
+name: Common Module Compliance Check
 
 on:
   pull_request:
@@ -48,7 +48,7 @@ jobs:
       if: always()
       working-directory: backend
       run: |
-        echo "## 🔍 Shared 模块复用合规检查报告" >> $GITHUB_STEP_SUMMARY
+        echo "## 🔍 Common 模块复用合规检查报告" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 检查结果" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -70,7 +70,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 修复指南" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "1. 查看 [Shared 模块复用合规检查清单](./docs/common-module-compliance-checklist.md)" >> $GITHUB_STEP_SUMMARY
+        echo "1. 查看 [Common 模块复用合规检查清单](./docs/common-module-compliance-checklist.md)" >> $GITHUB_STEP_SUMMARY
         echo "2. 参考 [开发规范指南](./docs/开发规范指南.md) 第10章" >> $GITHUB_STEP_SUMMARY
         echo "3. 运行 \`npm run compliance:fix\` 自动修复部分问题" >> $GITHUB_STEP_SUMMARY
         
@@ -90,34 +90,42 @@ jobs:
             complianceReport = '无法读取合规检查报告';
           }
           
-          const comment = `## 🔍 Shared 模块复用合规检查报告
+          // 预处理结果状态
+          const resultStatus = complianceReport.includes('所有检查都通过了') 
+            ? '✅ **所有检查都通过了！**' 
+            : '❌ **发现合规问题**';
           
-### 检查结果
-${complianceReport.includes('所有检查都通过了') ? '✅ **所有检查都通过了！**' : '❌ **发现合规问题**'}
-
-### 详细报告
-\`\`\`
-${complianceReport}
-\`\`\`
-
-### 📋 修复指南
-1. 查看 [Shared 模块复用合规检查清单](./docs/common-module-compliance-checklist.md)
-2. 参考 [开发规范指南](./docs/开发规范指南.md) 第10章  
-3. 运行以下命令修复问题：
-   \`\`\`bash
-   npm run compliance:fix  # 自动修复部分问题
-   npm run lint:fix        # 修复代码格式问题
-   \`\`\`
-
-### 🎯 重点检查项
-- [ ] 使用 \`createLogger\` 而不是 \`new Logger\`
-- [ ] 所有日志调用使用 \`sanitizeLogData()\` 包装敏感数据
-- [ ] 使用 \`@common\` 路径别名导入 common 模块
-- [ ] 复用 common 模块的类型定义和常量
-- [ ] 没有使用 \`console.log/warn/error\`
-
----
-*此报告由 Shared 模块复用合规检查工作流自动生成*`;
+          // 构建评论内容
+          const comment = [
+            '## 🔍 Common 模块复用合规检查报告',
+            '',
+            '### 检查结果',
+            resultStatus,
+            '',
+            '### 详细报告',
+            '```',
+            complianceReport,
+            '```',
+            '',
+            '### 📋 修复指南',
+            '1. 查看 [Common 模块复用合规检查清单](./docs/common-module-compliance-checklist.md)',
+            '2. 参考 [开发规范指南](./docs/开发规范指南.md) 第10章',  
+            '3. 运行以下命令修复问题：',
+            '   ```bash',
+            '   npm run compliance:fix  # 自动修复部分问题',
+            '   npm run lint:fix        # 修复代码格式问题',
+            '   ```',
+            '',
+            '### 🎯 重点检查项',
+            '- [ ] 使用 `createLogger` 而不是 `new Logger`',
+            '- [ ] 所有日志调用使用 `sanitizeLogData()` 包装敏感数据',
+            '- [ ] 使用 `@common` 路径别名导入 common 模块',
+            '- [ ] 复用 common 模块的类型定义和常量',
+            '- [ ] 没有使用 `console.log/warn/error`',
+            '',
+            '---',
+            '*此报告由 Common 模块复用合规检查工作流自动生成*'
+          ].join('\n');
 
           // 查找现有的合规检查评论
           const { data: comments } = await github.rest.issues.listComments({
@@ -127,7 +135,7 @@ ${complianceReport}
           });
           
           const existingComment = comments.find(comment => 
-            comment.body.includes('Shared 模块复用合规检查报告')
+            comment.body.includes('Common 模块复用合规检查报告')
           );
           
           if (existingComment) {
@@ -151,7 +159,7 @@ ${complianceReport}
     - name: Fail if compliance check failed
       if: steps.compliance-check.outcome == 'failure'
       run: |
-        echo "❌ Shared 模块复用合规检查失败"
+        echo "❌ Common 模块复用合规检查失败"
         echo "请修复违规项后重新提交"
         exit 1
 
@@ -191,6 +199,6 @@ ${complianceReport}
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "🔧 自动修复 Shared 模块复用合规问题"
+          git commit -m "🔧 自动修复 Common 模块复用合规问题"
           git push
         fi
