@@ -4,14 +4,11 @@
  */
 
 describe("Authentication E2E Flow", () => {
-  let app: any;
   let request: any;
-  let testUser: any;
   let jwtToken: string;
   let apiKey: any;
 
   beforeAll(async () => {
-    app = global.getApp();
     request = global.createTestRequest();
   });
 
@@ -40,7 +37,7 @@ describe("Authentication E2E Flow", () => {
       expect(userResult).toHaveProperty("isActive", true);
       expect(userResult).not.toHaveProperty("passwordHash");
 
-      testUser = response.body.data || response.body;
+      const testUser = response.body.data || response.body;
     });
 
     it("应该在重复用户名时返回冲突错误", async () => {

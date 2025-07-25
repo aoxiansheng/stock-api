@@ -13,7 +13,6 @@ import * as express from "express";
 import { AppModule } from "../../src/app.module";
 import {
   CustomLogger,
-  getLogLevels,
 } from "../../src/common/config/logger.config";
 import { GlobalExceptionFilter } from "../../src/common/filters";
 import {
@@ -23,13 +22,13 @@ import {
 import { SecurityMiddleware } from "../../src/security/middleware/security.middleware";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
 import { PerformanceMonitorService } from "../../src/metrics/services/performance-monitor.service";
-import { AuthService } from "../../src/auth/services/auth.service";
 import { UserRepository } from "../../src/auth/repositories/user.repository";
 import { PasswordService } from "../../src/auth/services/password.service";
 import { UserRole, Permission } from "../../src/auth/enums/user-role.enum";
 import { ApiKeyService } from "../../src/auth/services/apikey.service";
 import { JwtService } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
+import mongoose from "mongoose";
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;
@@ -153,7 +152,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   try {
     // 清理数据库数据
-    const mongoose = require("mongoose");
     if (mongoose.connection.readyState === 1) {
       const collections = mongoose.connection.collections;
 
@@ -208,7 +206,6 @@ afterAll(async () => {
       // 2. 清理数据库连接
       console.log("🔄 [清理] 关闭数据库连接...");
       try {
-        const mongoose = require("mongoose");
         if (mongoose.connection.readyState === 1) {
           await Promise.race([
             mongoose.connection.close(),
@@ -418,7 +415,6 @@ global.testXSS = async (
 global.testRateLimiting = async (
   endpoint: string,
   requests: number = 100,
-  timeWindow: number = 1000,
 ) => {
   const results = [];
   const startTime = Date.now();
@@ -515,7 +511,7 @@ global.createTestJWTToken = async (payload: {
   const jwtService = app.get(JwtService);
   const finalPayload = {
     sub:
-      payload.sub || new (require("mongoose").Types.ObjectId)().toHexString(),
+      payload.sub || new mongoose.Types.ObjectId().toHexString(),
     username: payload.username || "test-user",
     ...payload,
   };
@@ -535,7 +531,7 @@ global.createTestApiKey = async (options?: { permissions?: Permission[] }) => {
   const adminPayload = {
     username: "temp_admin_for_key_creation",
     role: UserRole.ADMIN,
-    sub: new (require("mongoose").Types.ObjectId)().toHexString(),
+    sub: new mongoose.Types.ObjectId().toHexString(),
   };
   const adminToken = await jwtService.signAsync(adminPayload);
   const { sub } = jwtService.decode(adminToken) as { sub: string };

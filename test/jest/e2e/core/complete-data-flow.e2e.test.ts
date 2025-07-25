@@ -3,7 +3,6 @@ import * as request from "supertest";
 describe("Complete Data Flow E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
-  let testUser: any;
   let jwtToken: string;
 
   beforeAll(async () => {
@@ -26,7 +25,7 @@ describe("Complete Data Flow E2E Tests", () => {
       .post("/api/v1/auth/register")
       .send(userData);
 
-    testUser = registerResponse.body.data || registerResponse.body;
+    const testUser = registerResponse.body.data || registerResponse.body;
 
     // 2. 登录获取JWT token
     const loginResponse = await httpServer.post("/api/v1/auth/login").send({
@@ -249,7 +248,6 @@ describe("Complete Data Flow E2E Tests", () => {
         .expect(200);
 
       global.expectSuccessResponse(response, 200);
-      const result = response.body.data.data || {};
 
       // 验证基本响应结构
       expect(response.body.data).toHaveProperty("data");

@@ -3,7 +3,6 @@ import * as request from "supertest";
 describe("Data Mapper E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
-  let testUser: any;
   let jwtToken: string;
 
   beforeAll(async () => {
@@ -26,7 +25,7 @@ describe("Data Mapper E2E Tests", () => {
       .post("/api/v1/auth/register")
       .send(userData);
 
-    testUser = registerResponse.body.data || registerResponse.body;
+    const testUser = registerResponse.body.data || registerResponse.body;
 
     // 2. 登录获取JWT token
     const loginResponse = await httpServer.post("/api/v1/auth/login").send({

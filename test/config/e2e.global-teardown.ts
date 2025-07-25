@@ -3,12 +3,16 @@
  * 在所有E2E测试完成后执行的全局清理
  */
 
+import mongoose from "mongoose";
+import Redis from "ioredis";
+import fs from "fs";
+import path from "path";
+
 export default async function globalTeardown() {
   console.log("🧹 开始E2E测试全局清理...");
 
   try {
     // 清理MongoDB连接
-    const mongoose = require("mongoose");
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
       console.log("✅ E2E MongoDB连接已断开");
@@ -24,7 +28,6 @@ export default async function globalTeardown() {
 
     // 清理Redis连接
     try {
-      const Redis = require("ioredis");
       const redis = new Redis(process.env.REDIS_URL);
       await redis.flushdb();
       await redis.quit();
@@ -37,9 +40,6 @@ export default async function globalTeardown() {
     delete process.env.E2E_MONGO_SERVER_URI;
 
     // 清理临时文件
-    const fs = require("fs");
-    const path = require("path");
-
     const tempDir = path.join(process.cwd(), "temp");
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });

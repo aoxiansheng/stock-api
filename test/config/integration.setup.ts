@@ -5,14 +5,14 @@
 
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Test, TestingModule } from "@nestjs/testing";
-import { INestApplication } from "@nestjs/common";
-import { Connection } from "mongoose";
+import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { jest } from "@jest/globals";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule, getModelToken } from "@nestjs/mongoose";
-import { RedisModule } from "@liaoliaots/nestjs-redis";
+import { RedisModule, RedisService } from "@liaoliaots/nestjs-redis";
 import { EventEmitterModule, EventEmitter2 } from "@nestjs/event-emitter";
 import { JwtModule } from "@nestjs/jwt";
+import { TestEnvironment, smartDelay } from "../utils/async-test-helpers";
 
 // Import modules needed for integration tests
 import { AuthModule } from "../../src/auth/auth.module";
@@ -41,7 +41,6 @@ import {
 } from "../../src/common/interceptors";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
 import { GlobalExceptionFilter } from "../../src/common/filters";
-import { ValidationPipe } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 
 // 全局类型声明
@@ -53,22 +52,6 @@ let mongoServer: MongoMemoryServer;
 let mongoUri: string;
 let testApp: INestApplication;
 let testModule: TestingModule;
-
-// 创建Mock的PerformanceMonitorService
-function createMockPerformanceMonitor() {
-  return {
-    recordDatabaseQuery: jest.fn(),
-    recordCacheOperation: jest.fn(),
-    recordAuthentication: jest.fn(),
-    recordRequest: jest.fn(), // 稍后会被重新配置
-    recordRateLimit: jest.fn(),
-    getEndpointMetrics: jest.fn(),
-    getDatabaseMetrics: jest.fn(),
-    getRedisMetrics: jest.fn(),
-    getSystemMetrics: jest.fn(),
-    getPerformanceSummary: jest.fn(),
-  } as any;
-}
 
 // 创建测试应用
 async function createTestApplication(): Promise<void> {
@@ -132,7 +115,6 @@ async function createTestApplication(): Promise<void> {
         _endpoint: string,
         _method: string,
         responseTime: number,
-        _success: boolean,
       ) => {
         if (eventEmitter) {
           eventEmitter.emit("performance.metric", {
@@ -191,7 +173,6 @@ async function createTestApplication(): Promise<void> {
 }
 
 // 设置集成测试超时（根据环境调整）
-const { TestEnvironment } = require("../utils/async-test-helpers");
 jest.setTimeout(TestEnvironment.getTimeout(60000));
 
 // 全局设置 - 启动测试数据库和应用
@@ -212,7 +193,6 @@ beforeAll(async () => {
     console.log(`✅ MongoDB内存服务器启动: ${mongoUri}`);
 
     // 等待数据库连接稳定
-    const { smartDelay } = require("../utils/async-test-helpers");
     await smartDelay(1000);
 
     // 创建测试应用
@@ -294,7 +274,6 @@ afterEach(async () => {
     delete (global as any).testRequestId;
 
     // 等待异步操作完成
-    const { smartDelay } = require("../utils/async-test-helpers");
     await smartDelay(10);
   } catch (error) {
     console.error("❌ 测试清理失败:", error);
@@ -593,7 +572,6 @@ async function cleanupRedisData(): Promise<void> {
     const app = (global as any).testApp;
     if (!app) return;
 
-    const { RedisService } = require("@liaoliaots/nestjs-redis");
     const redisService = app.get(RedisService);
     if (redisService) {
       const redisClient = redisService.getOrThrow();
@@ -676,9 +654,9 @@ global.createLongportMock = () => ({
     }),
   },
   QuoteContext: {
-    // @ts-ignore - Jest mock type inference issue in test setup
+    // @ts-expect-error - Jest mock type inference issue in test setup
     new: jest.fn().mockResolvedValue({
-      // @ts-ignore
+      // @ts-expect-error
       quote: jest.fn().mockResolvedValue([
         {
           symbol: "700.HK",
@@ -689,7 +667,7 @@ global.createLongportMock = () => ({
           volume: 1000000,
         },
       ]),
-      // @ts-ignore
+      // @ts-expect-error
       close: jest.fn().mockResolvedValue(undefined),
     }),
   },
@@ -706,7 +684,6 @@ global.getRedisClient = (): any | null => {
     const app = (global as any).testApp;
     if (!app) return null;
 
-    const { RedisService } = require("@liaoliaots/nestjs-redis");
     const redisService = app.get(RedisService);
     const redis = redisService.getOrThrow();
 

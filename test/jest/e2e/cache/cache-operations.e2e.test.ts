@@ -3,7 +3,6 @@ import * as request from "supertest";
 describe("Cache Operations E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
-  let testUser: any;
   let jwtToken: string;
 
   beforeAll(async () => {
@@ -26,7 +25,7 @@ describe("Cache Operations E2E Tests", () => {
       .post("/api/v1/auth/register")
       .send(userData);
 
-    testUser = registerResponse.body.data || registerResponse.body;
+    const testUser = registerResponse.body.data || registerResponse.body;
 
     // 2. 登录获取JWT token
     const loginResponse = await httpServer.post("/api/v1/auth/login").send({
@@ -132,7 +131,7 @@ describe("Cache Operations E2E Tests", () => {
         },
       };
 
-      const storeResponse = await httpServer
+      await httpServer
         .post("/api/v1/storage/store")
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
@@ -187,7 +186,7 @@ describe("Cache Operations E2E Tests", () => {
         options: { cacheTtl: 1 }, // 1秒过期
       };
 
-      const storeResponse = await httpServer
+      await httpServer
         .post("/api/v1/storage/store")
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)

@@ -7,7 +7,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { Connection } from "mongoose";
+import mongoose from "mongoose";
 import * as request from "supertest";
 import { jest } from "@jest/globals";
 import { RedisService } from "@liaoliaots/nestjs-redis";
@@ -123,7 +123,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   try {
     // 清理数据库数据
-    const mongoose = require("mongoose");
     if (mongoose.connection.readyState === 1) {
       const collections = mongoose.connection.collections;
 
@@ -139,8 +138,8 @@ beforeEach(async () => {
       await redisClient.flushdb();
       await redisClient.config("RESETSTAT");
     }
-  } catch (error) {
-    console.warn("⚠️ E2E测试数据清理失败:", error.message);
+  } catch (_error) {
+    console.warn("⚠️ E2E测试数据清理失败:", (_error as Error).message);
   }
 });
 
@@ -248,7 +247,7 @@ global.waitForApplication = async (timeoutMs: number = 5000) => {
       if (response.status === 200) {
         return true;
       }
-    } catch (error) {
+    } catch (_error) {
       // 继续等待
     }
 

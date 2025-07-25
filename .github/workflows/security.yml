@@ -108,13 +108,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Fetches all history for TruffleHog to scan
       
     - name: Run TruffleHog
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: main
-        head: HEAD
+        # By removing base and head, TruffleHog scans the entire repository history
         extra_args: --debug --only-verified
 
   # Docker镜像安全扫描
@@ -224,8 +225,7 @@ jobs:
     - name: Run OWASP ZAP Baseline Scan
       uses: zaproxy/action-baseline@v0.11.0
       with:
-        target: 'http://localhost:3001'
-        rules_file_name: '.zap/rules.tsv'
+        target: 'http://localhost:3001/api/v1/'
         cmd_options: '-a'
         
     - name: Run custom security tests

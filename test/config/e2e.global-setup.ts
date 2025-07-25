@@ -4,6 +4,9 @@
  */
 
 import { MongoMemoryServer } from "mongodb-memory-server";
+import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
 
 let mongoServer: MongoMemoryServer;
 
@@ -28,11 +31,7 @@ export default async function globalSetup() {
     console.log(`✅ E2E全局MongoDB服务器启动: ${mongoUri}`);
 
     // 验证数据库连接
-    const mongoose = require("mongoose");
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(mongoUri);
 
     console.log("✅ E2E数据库连接验证成功");
 
@@ -42,9 +41,6 @@ export default async function globalSetup() {
     process.env.REDIS_URL = "redis://localhost:6379/4";
 
     // 创建必要的目录
-    const fs = require("fs");
-    const path = require("path");
-
     const testResultsDir = path.join(process.cwd(), "test-results");
     if (!fs.existsSync(testResultsDir)) {
       fs.mkdirSync(testResultsDir, { recursive: true });

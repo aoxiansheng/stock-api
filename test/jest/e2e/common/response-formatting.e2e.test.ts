@@ -1,9 +1,7 @@
-import * as request from "supertest";
 
 describe("Response Formatting E2E Tests", () => {
   let httpServer: any;
   let adminToken: string;
-  let developerToken: string;
   let userApiKey: string;
   let userAccessToken: string;
 
@@ -12,14 +10,14 @@ describe("Response Formatting E2E Tests", () => {
     httpServer = global.createTestRequest();
 
     // 创建不同角色的测试用户
-    const adminUser = await global.registerTestUser({
+    await global.registerTestUser({
       username: "format-admin",
       email: "format-admin@test.com",
       password: "password123",
       role: "admin",
     });
 
-    const developerUser = await global.registerTestUser({
+    await global.registerTestUser({
       username: "format-dev",
       email: "format-dev@test.com",
       password: "password123",
@@ -38,7 +36,7 @@ describe("Response Formatting E2E Tests", () => {
     });
 
     adminToken = adminLogin.accessToken;
-    developerToken = developerLogin.accessToken;
+    const developerToken = developerLogin.accessToken;
 
     // 创建API Key用于测试
     const apiKeyResponse = await httpServer
@@ -341,13 +339,11 @@ describe("Response Formatting E2E Tests", () => {
         ],
         cooldown: 0,
       };
-      const createRuleResponse = await httpServer
+      await httpServer
         .post("/api/v1/alerts/rules")
         .set("Authorization", `Bearer ${adminToken}`)
         .send(alertRule)
         .expect(201);
-
-      const ruleId = createRuleResponse.body.data.id;
 
       // 触发告警以生成历史记录
       for (let i = 0; i < 25; i++) {
