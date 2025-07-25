@@ -5,8 +5,7 @@
 
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-// 使用require替代import
-const fs = require('fs');
+import * as fs from "fs";
 
 let mongoServer: MongoMemoryServer;
 
