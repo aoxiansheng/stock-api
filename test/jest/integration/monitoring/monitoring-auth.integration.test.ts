@@ -10,9 +10,7 @@ import * as request from "supertest";
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
-import {
-  smartDelay,
-} from "../../../utils/async-test-helpers";
+import { smartDelay } from "../../../utils/async-test-helpers";
 import {
   ApiResponseTestHelper,
   validateEndpointMetricsResponse,
@@ -240,7 +238,6 @@ describe("Monitoring Auth Integration", () => {
     });
 
     it("无效API Key应该被拒绝访问管理员接口", async () => {
-  
       const invalidApiKey = "invalid-app-key";
       const invalidApiSecret = "invalid-api-secret";
 

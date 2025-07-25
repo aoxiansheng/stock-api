@@ -180,9 +180,7 @@ jest.mock(
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { RedisService } from "@liaoliaots/nestjs-redis";
-import {
-  BadRequestException,
-} from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 import { CacheService } from "../../../../src/cache/cache.service";
 import {
   CACHE_CONSTANTS,

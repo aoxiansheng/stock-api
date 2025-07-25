@@ -10,9 +10,7 @@ import { DataChangeDetectorService } from "../../../../src/core/shared/services/
 import { MarketStatusService } from "../../../../src/core/shared/services/market-status.service";
 import { Market } from "../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../src/common/constants/market-trading-hours.constants";
-import {
-  QueryRequestDto,
-} from "../../../../src/core/query/dto/query-request.dto";
+import { QueryRequestDto } from "../../../../src/core/query/dto/query-request.dto";
 import {
   QueryResponseDto,
   QueryMetadataDto,

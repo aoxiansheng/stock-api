@@ -34,10 +34,7 @@ export class BatchRequestHelper {
     configs: BatchRequestConfig[],
     options: Partial<BatchOptions> = {},
   ): Promise<any[]> {
-    const {
-      batchSize = 5,
-      delayBetweenBatches = 100,
-    } = options;
+    const { batchSize = 5, delayBetweenBatches = 100 } = options;
 
     const results: any[] = [];
 

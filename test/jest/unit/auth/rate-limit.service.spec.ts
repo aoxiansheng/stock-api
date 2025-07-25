@@ -9,9 +9,7 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 
 import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
 import { RateLimitStrategy } from "../../../../src/common/constants/rate-limit.constants";
-import {
-  ApiKey,
-} from "../../../../src/auth/schemas/apikey.schema";
+import { ApiKey } from "../../../../src/auth/schemas/apikey.schema";
 
 describe("RateLimitService", () => {
   let service: RateLimitService;

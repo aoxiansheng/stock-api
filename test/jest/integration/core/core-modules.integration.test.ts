@@ -768,26 +768,24 @@ describe("Core Modules Integration Tests", () => {
       uniqueDataSourceName = `longport-q-${Date.now()}`; // 'q' for query
 
       // 获取DataFetchingService实例以便Mock
-      const {
-        DataFetchingService,
-      } = await import("../../../../src/core/shared/services/data-fetching.service");
+      const { DataFetchingService } = await import(
+        "../../../../src/core/shared/services/data-fetching.service"
+      );
       dataFetchingService = app.get(DataFetchingService);
 
       // 关键修复：直接Mock DataFetchingService.fetchSingleData方法
       // 注意：fetchSingleData返回单个数据项，不是数组
-      jest
-        .spyOn(dataFetchingService, "fetchSingleData")
-        .mockResolvedValue({
-          data: { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
-          metadata: {
-            source: "PROVIDER",
-            timestamp: new Date(),
-            market: "HK",
-            marketStatus: "TRADING",
-            cacheTTL: 300,
-            provider: uniqueDataSourceName,
-          },
-        });
+      jest.spyOn(dataFetchingService, "fetchSingleData").mockResolvedValue({
+        data: { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
+        metadata: {
+          source: "PROVIDER",
+          timestamp: new Date(),
+          market: "HK",
+          marketStatus: "TRADING",
+          cacheTTL: 300,
+          provider: uniqueDataSourceName,
+        },
+      });
 
       // 保留原有的CapabilityRegistryService Mock作为备用
       jest

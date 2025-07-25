@@ -59,7 +59,7 @@ describe("Query Utils", () => {
 
   describe("validateDataFreshness", () => {
     // 移除未使用的变量
-    
+
     beforeEach(() => {
       // 模拟当前时间为固定值以便于测试
       jest

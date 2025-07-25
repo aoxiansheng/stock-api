@@ -8,9 +8,7 @@ import { RuleEngineService } from "../../../../../src/alert/services/rule-engine
 import { NotificationService } from "../../../../../src/alert/services/notification.service";
 import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
 import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
-import {
-  AlertRule,
-} from "../../../../../src/alert/schemas/alert-rule.schema";
+import { AlertRule } from "../../../../../src/alert/schemas/alert-rule.schema";
 import { CacheService } from "../../../../../src/cache/cache.service";
 import { IAlertRule, IAlert } from "../../../../../src/alert/interfaces";
 import {

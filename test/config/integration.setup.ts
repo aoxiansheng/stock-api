@@ -111,11 +111,7 @@ async function createTestApplication(): Promise<void> {
   mockPerformanceMonitor.recordRequest = jest
     .fn()
     .mockImplementation(
-      async (
-        _endpoint: string,
-        _method: string,
-        responseTime: number,
-      ) => {
+      async (_endpoint: string, _method: string, responseTime: number) => {
         if (eventEmitter) {
           eventEmitter.emit("performance.metric", {
             metric: "api_request_duration",

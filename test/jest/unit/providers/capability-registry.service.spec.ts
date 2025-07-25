@@ -7,7 +7,6 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { CapabilityRegistryService } from "../../../../src/providers/capability-registry.service";
 import * as fs from "fs/promises";
 
-
 // Mock fs/promises
 jest.mock("fs/promises");
 const mockedFs = fs as jest.Mocked<typeof fs>;
@@ -995,15 +994,13 @@ describe("CapabilityRegistryService", () => {
         execute: jest.fn(),
       };
 
-      mockDynamicImport.mockImplementation(
-        async (providerName: string) => {
-          if (providerName === "working-provider") {
-            return { default: workingCapability };
-          } else {
-            throw new Error("Module load failed");
-          }
-        },
-      );
+      mockDynamicImport.mockImplementation(async (providerName: string) => {
+        if (providerName === "working-provider") {
+          return { default: workingCapability };
+        } else {
+          throw new Error("Module load failed");
+        }
+      });
 
       const loggerErrorSpy = jest.spyOn((service as any).logger, "error");
       loggerErrorSpy.mockImplementation(() => {});

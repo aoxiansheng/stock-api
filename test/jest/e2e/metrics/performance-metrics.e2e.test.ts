@@ -1,4 +1,3 @@
-
 describe("Performance Metrics E2E Tests", () => {
   let httpServer: any;
   let jwtToken: string;
@@ -203,7 +202,9 @@ describe("Performance Metrics E2E Tests", () => {
             const systemEndpoint = response.body.data.metrics.find(
               (ep) => ep.endpoint === "/api/v1/monitoring/system",
             );
-            const currentCount = systemEndpoint ? systemEndpoint.totalRequests : 0;
+            const currentCount = systemEndpoint
+              ? systemEndpoint.totalRequests
+              : 0;
             if (currentCount > initialSystemCount) {
               return response; // 指标已更新，返回最终响应
             }

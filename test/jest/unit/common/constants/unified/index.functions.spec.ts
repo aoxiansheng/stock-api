@@ -365,7 +365,7 @@ describe("Unified Constants Index - Function Coverage", () => {
 
     it("should be immutable (readonly)", () => {
       expect(Object.isFrozen(UNIFIED_CONSTANTS)).toBe(true);
-      
+
       // 测试赋值到一个已存在的键
       const originalSystem = UNIFIED_CONSTANTS.SYSTEM;
       try {
@@ -417,7 +417,7 @@ describe("Unified Constants Index - Function Coverage", () => {
     it("should be immutable", () => {
       expect(Object.isFrozen(CONSTANTS_VERSION)).toBe(true);
       const originalValue = CONSTANTS_VERSION.MAJOR;
-      
+
       try {
         CONSTANTS_VERSION.MAJOR = 999;
         // 确认值没有改变
@@ -462,7 +462,7 @@ describe("Unified Constants Index - Function Coverage", () => {
     it("should be immutable", () => {
       expect(Object.isFrozen(CONSTANTS_META)).toBe(true);
       const originalDescription = CONSTANTS_META.DESCRIPTION;
-      
+
       try {
         CONSTANTS_META.DESCRIPTION = "Modified";
         // 确认值没有改变

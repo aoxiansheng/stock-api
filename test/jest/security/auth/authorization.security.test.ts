@@ -6,7 +6,6 @@
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 
 describe("Authorization Security Tests", () => {
-
   let request: any;
 
   beforeAll(async () => {

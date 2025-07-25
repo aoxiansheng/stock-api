@@ -1,6 +1,4 @@
-import {
-  AlertRuleSchema,
-} from "../../../../../src/alert/schemas/alert-rule.schema";
+import { AlertRuleSchema } from "../../../../../src/alert/schemas/alert-rule.schema";
 import { AlertSeverity } from "../../../../../src/alert/types/alert.types";
 
 describe("AlertRuleSchema", () => {

@@ -10,25 +10,36 @@ import {
 describe("Performance Constants", () => {
   describe("RESPONSE_TIME_THRESHOLDS", () => {
     it("should define correct threshold values", () => {
-      expect(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS).toBeLessThan(
+      expect(
+        PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS,
+      ).toBeLessThan(
         PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.NORMAL_REQUEST_MS,
       );
-      expect(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.NORMAL_REQUEST_MS).toBeLessThan(
+      expect(
+        PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.NORMAL_REQUEST_MS,
+      ).toBeLessThan(
         PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS,
       );
-      expect(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS).toBeLessThan(
+      expect(
+        PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS,
+      ).toBeLessThan(
         PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.CRITICAL_SLOW_MS,
       );
     });
 
     it("should be immutable", () => {
-      expect(Object.isFrozen(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS)).toBe(true);
-      const originalValue = PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS;
-      
+      expect(
+        Object.isFrozen(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS),
+      ).toBe(true);
+      const originalValue =
+        PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS;
+
       try {
         PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS = 200;
         // 确认值没有改变
-        expect(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS).toBe(originalValue);
+        expect(
+          PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS,
+        ).toBe(originalValue);
       } catch (e) {
         // 在严格模式下抛出错误是预期的
         expect(e).toBeDefined();
@@ -38,11 +49,13 @@ describe("Performance Constants", () => {
     it("should be immutable", () => {
       expect(Object.isFrozen(PERFORMANCE_CONSTANTS.TIMEOUTS)).toBe(true);
       const originalValue = PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS;
-      
+
       try {
         PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS = 60000;
         // 确认值没有改变
-        expect(PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS).toBe(originalValue);
+        expect(PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS).toBe(
+          originalValue,
+        );
       } catch (e) {
         // 在严格模式下抛出错误是预期的
         expect(e).toBeDefined();
@@ -68,11 +81,13 @@ describe("Performance Constants", () => {
     it("should be immutable", () => {
       expect(Object.isFrozen(PERFORMANCE_CONSTANTS.TIMEOUTS)).toBe(true);
       const originalValue = PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS;
-      
+
       try {
         PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS = 60000;
         // 确认值没有改变
-        expect(PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS).toBe(originalValue);
+        expect(PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS).toBe(
+          originalValue,
+        );
       } catch (e) {
         // 在严格模式下抛出错误是预期的
         expect(e).toBeDefined();

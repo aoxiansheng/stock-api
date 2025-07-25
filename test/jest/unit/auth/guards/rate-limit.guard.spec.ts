@@ -14,9 +14,7 @@ import {
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
 import { RateLimitConfig } from "../../../../../src/auth/interfaces/rate-limit.interface";
-import {
-  ApiKeyDocument,
-} from "../../../../../src/auth/schemas/apikey.schema";
+import { ApiKeyDocument } from "../../../../../src/auth/schemas/apikey.schema";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 import { Types } from "mongoose";
 

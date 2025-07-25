@@ -13,7 +13,6 @@ describe("CapabilityRegistryService - Integration", () => {
   let loggerSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
 
-
   // Mock capabilities for testing
   const mockCapability1: ICapability = {
     name: "get-stock-quote",
@@ -30,8 +29,6 @@ describe("CapabilityRegistryService - Integration", () => {
     supportedSymbolFormats: ["TICKER.EXCHANGE"],
     execute: jest.fn(),
   };
-
-
 
   beforeAll(async () => {
     // Create temporary test directory structure

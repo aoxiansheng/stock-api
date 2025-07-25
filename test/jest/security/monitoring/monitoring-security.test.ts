@@ -6,7 +6,6 @@
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 
 describe("Monitoring Security Tests", () => {
-
   let request: any;
   let adminToken: string;
   let userToken: string;

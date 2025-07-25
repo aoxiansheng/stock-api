@@ -4,9 +4,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
 import { PerformanceMetricsRepository } from "../../../../../src/metrics/repositories/performance-metrics.repository";
-import {
-  AuthType,
-} from "../../../../../src/metrics/enums/auth-type.enum";
+import { AuthType } from "../../../../../src/metrics/enums/auth-type.enum";
 import {
   METRIC_NAMES,
   PERFORMANCE_EVENTS,

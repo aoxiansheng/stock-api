@@ -117,7 +117,7 @@ describe("Health Checks E2E Tests", () => {
 
       const [healthResponse] = await Promise.all([
         healthPromise,
-        ...otherRequests
+        ...otherRequests,
       ]);
 
       // Assert - Health check should succeed regardless of other activity

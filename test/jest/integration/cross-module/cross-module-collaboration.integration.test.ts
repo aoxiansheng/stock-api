@@ -14,9 +14,7 @@ import { PerformanceMetricsRepository } from "../../../../src/metrics/repositori
 import { SecurityAuditService } from "../../../../src/security/security-audit.service";
 import { CacheService } from "../../../../src/cache/cache.service";
 
-import {
-  AlertSeverity,
-} from "../../../../src/alert/types/alert.types";
+import { AlertSeverity } from "../../../../src/alert/types/alert.types";
 import { CreateAlertRuleDto } from "../../../../src/alert/dto/alert-rule.dto";
 import { NotificationChannelDto } from "../../../../src/alert/dto/notification-channel.dto";
 
@@ -29,8 +27,6 @@ interface CachedAggregation {
   successRate?: number;
 }
 
-
-
 // 类型守卫函数
 function isCachedAggregation(obj: any): obj is CachedAggregation {
   return (
@@ -41,8 +37,6 @@ function isCachedAggregation(obj: any): obj is CachedAggregation {
     typeof obj.failedRequests === "number"
   );
 }
-
-
 
 // 自定义数据类型用于测试（使用实际的 SecurityEvent 类型值）
 const SecurityEventType = {
@@ -80,8 +74,6 @@ describe("Cross Module Collaboration Integration", () => {
     config: {},
     enabled: true,
   };
-
-
 
   beforeAll(async () => {
     app = (global as any).testApp;

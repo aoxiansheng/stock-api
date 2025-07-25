@@ -2,9 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/symbol-mapper.service";
 import { SymbolMappingRepository } from "../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
 import { CreateSymbolMappingDto } from "../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
-import {
-  MappingRule,
-} from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
+import { MappingRule } from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 import { ConflictException, NotFoundException } from "@nestjs/common";
 import { UpdateMappingRuleDto } from "../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
 

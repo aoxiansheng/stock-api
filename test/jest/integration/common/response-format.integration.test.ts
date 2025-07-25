@@ -144,8 +144,6 @@ describe("Response Format Standardization Integration", () => {
 
         // 验证中文消息
         expect(response.body.message).toMatch(/创建|注册|成功/);
-
-
       });
 
       it("登录响应应该符合标准格式", async () => {

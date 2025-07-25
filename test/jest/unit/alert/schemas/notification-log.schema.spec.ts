@@ -1,6 +1,4 @@
-import {
-  NotificationLogSchema,
-} from "../../../../../src/alert/schemas/notification-log.schema";
+import { NotificationLogSchema } from "../../../../../src/alert/schemas/notification-log.schema";
 
 describe("NotificationLogSchema", () => {
   it("should create a valid NotificationLog model", () => {

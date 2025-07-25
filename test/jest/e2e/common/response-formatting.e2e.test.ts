@@ -1,4 +1,3 @@
-
 describe("Response Formatting E2E Tests", () => {
   let httpServer: any;
   let adminToken: string;

@@ -21,7 +21,7 @@ describe("Cache Constants", () => {
     it("should be immutable", () => {
       expect(Object.isFrozen(CACHE_CONSTANTS.TTL_SETTINGS)).toBe(true);
       const originalValue = CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL;
-      
+
       try {
         CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL = 1000;
         // 确认值没有改变
@@ -35,7 +35,7 @@ describe("Cache Constants", () => {
     it("should be immutable for key prefixes", () => {
       expect(Object.isFrozen(CACHE_CONSTANTS.KEY_PREFIXES)).toBe(true);
       const originalValue = CACHE_CONSTANTS.KEY_PREFIXES.AUTH;
-      
+
       try {
         CACHE_CONSTANTS.KEY_PREFIXES.AUTH = "changed:";
         // 确认值没有改变

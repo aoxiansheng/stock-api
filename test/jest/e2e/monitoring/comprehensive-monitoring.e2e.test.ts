@@ -1,4 +1,3 @@
-
 describe("Comprehensive Monitoring E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -20,10 +19,7 @@ describe("Comprehensive Monitoring E2E Tests", () => {
       role: "admin", // 需要admin权限访问监控端点
     };
 
-    await httpServer
-      .post("/api/v1/auth/register")
-      .send(userData);
-
+    await httpServer.post("/api/v1/auth/register").send(userData);
 
     // 2. 登录获取JWT token
     const loginResponse = await httpServer.post("/api/v1/auth/login").send({

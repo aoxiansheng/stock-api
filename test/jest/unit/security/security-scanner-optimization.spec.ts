@@ -74,7 +74,6 @@ describe("SecurityScannerService Optimization Features", () => {
     apiKeyRepository = module.get(ApiKeyRepository);
     _scanResultRepository = module.get(SecurityScanResultRepository);
     _configService = module.get(ConfigService);
-  
 
     // Spy on logger
     loggerSpy = jest.spyOn((service as any).logger, "log").mockImplementation();

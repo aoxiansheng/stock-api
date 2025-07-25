@@ -527,7 +527,7 @@ export class CoverageAnalyzer {
   // 其他辅助方法...
   private generateSummary(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    report: CoverageReport
+    report: CoverageReport,
   ): any {
     return {};
   }
@@ -536,21 +536,21 @@ export class CoverageAnalyzer {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     qualityAnalysis: QualityAnalysis,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    gapAnalysis: GapAnalysis
+    gapAnalysis: GapAnalysis,
   ): string[] {
     return [];
   }
 
   private saveReport(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    report: CoverageAnalysisReport
+    report: CoverageAnalysisReport,
   ): Promise<void> {
     return Promise.resolve();
   }
 
   private updateHistory(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    report: CoverageReport
+    report: CoverageReport,
   ): Promise<void> {
     return Promise.resolve();
   }
@@ -582,7 +582,9 @@ export class CoverageAnalyzer {
     }
 
     if (analysis.criticalIssues.length > 0) {
-      recommendations.push(`发现 ${analysis.criticalIssues.length} 个关键问题，需要立即处理`);
+      recommendations.push(
+        `发现 ${analysis.criticalIssues.length} 个关键问题，需要立即处理`,
+      );
     }
 
     return recommendations;

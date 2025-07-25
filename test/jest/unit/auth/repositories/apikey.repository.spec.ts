@@ -7,9 +7,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 
 import { ApiKeyRepository } from "../../../../../src/auth/repositories/apikey.repository";
-import {
-  ApiKey,
-} from "../../../../../src/auth/schemas/apikey.schema";
+import { ApiKey } from "../../../../../src/auth/schemas/apikey.schema";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 
 describe("ApiKeyRepository", () => {
@@ -32,7 +30,6 @@ describe("ApiKeyRepository", () => {
     createdAt: new Date("2024-01-01T00:00:00Z"),
     updatedAt: new Date("2024-01-15T10:00:00Z"),
   };
-
 
   beforeEach(async () => {
     const mockApiKeyModel = {

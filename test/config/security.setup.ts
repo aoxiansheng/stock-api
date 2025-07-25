@@ -11,9 +11,7 @@ import * as express from "express";
 
 // 动态导入AppModule
 import { AppModule } from "../../src/app.module";
-import {
-  CustomLogger,
-} from "../../src/common/config/logger.config";
+import { CustomLogger } from "../../src/common/config/logger.config";
 import { GlobalExceptionFilter } from "../../src/common/filters";
 import {
   ResponseInterceptor,
@@ -412,10 +410,7 @@ global.testXSS = async (
   return results;
 };
 
-global.testRateLimiting = async (
-  endpoint: string,
-  requests: number = 100,
-) => {
+global.testRateLimiting = async (endpoint: string, requests: number = 100) => {
   const results = [];
   const startTime = Date.now();
 
@@ -510,8 +505,7 @@ global.createTestJWTToken = async (payload: {
 }) => {
   const jwtService = app.get(JwtService);
   const finalPayload = {
-    sub:
-      payload.sub || new mongoose.Types.ObjectId().toHexString(),
+    sub: payload.sub || new mongoose.Types.ObjectId().toHexString(),
     username: payload.username || "test-user",
     ...payload,
   };

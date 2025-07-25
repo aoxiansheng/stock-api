@@ -8,9 +8,7 @@ import { ConfigService } from "@nestjs/config";
 import { UnauthorizedException } from "@nestjs/common";
 
 import { JwtStrategy } from "../../../../src/auth/strategies/jwt.strategy";
-import {
-  TokenService,
-} from "../../../../src/auth/services/token.service";
+import { TokenService } from "../../../../src/auth/services/token.service";
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 
 describe("JwtStrategy", () => {

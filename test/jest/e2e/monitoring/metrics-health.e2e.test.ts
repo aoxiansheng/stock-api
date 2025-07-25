@@ -27,10 +27,7 @@ describe("MetricsHealth E2E Tests", () => {
     };
 
     // 注册管理员用户
-    await request
-      .post("/api/v1/auth/register")
-      .send(adminUserData)
-      .expect(201);
+    await request.post("/api/v1/auth/register").send(adminUserData).expect(201);
 
     // 登录获取token
     const loginResponse = await request

@@ -1,5 +1,3 @@
-
-
 describe("Comprehensive Alerting E2E Tests", () => {
   let httpServer: any;
   let jwtToken: string;
@@ -20,10 +18,7 @@ describe("Comprehensive Alerting E2E Tests", () => {
       role: "admin", // 需要admin权限访问监控端点
     };
 
-    await httpServer
-      .post("/api/v1/auth/register")
-      .send(userData);
-
+    await httpServer.post("/api/v1/auth/register").send(userData);
 
     // 2. 登录获取JWT token
     const loginResponse = await httpServer.post("/api/v1/auth/login").send({
@@ -48,7 +43,6 @@ describe("Comprehensive Alerting E2E Tests", () => {
       .post("/api/v1/auth/api-keys")
       .set("Authorization", `Bearer ${jwtToken}`)
       .send(apiKeyData);
-
   }
 
   describe("Alert System Monitoring", () => {

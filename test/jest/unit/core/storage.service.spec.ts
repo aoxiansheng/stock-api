@@ -2,9 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { StorageService } from "../../../../src/core/storage/storage.service";
 import { StorageRepository } from "../../../../src/core/storage/repositories/storage.repository";
 import { getModelToken } from "@nestjs/mongoose";
-import {
-  StoredData,
-} from "../../../../src/core/storage/schemas/storage.schema";
+import { StoredData } from "../../../../src/core/storage/schemas/storage.schema";
 import {
   StoreDataDto,
   RetrieveDataDto,
@@ -401,9 +399,7 @@ describe("StorageService", () => {
       storageRepository.getAverageTtl.mockResolvedValue(0);
 
       // Mock database error
-      storageRepository.countAll.mockRejectedValue(
-        new Error("Database error"),
-      );
+      storageRepository.countAll.mockRejectedValue(new Error("Database error"));
 
       await expect(service.getStorageStats()).rejects.toThrow(
         "生成存储统计信息失败: Database error",

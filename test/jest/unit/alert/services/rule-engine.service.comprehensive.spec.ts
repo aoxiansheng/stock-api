@@ -654,7 +654,6 @@ describe("RuleEngineService Comprehensive Coverage", () => {
         };
       });
 
-
       // Mock timeout result (this would be implementation-specific)
       const result = {
         ruleId: slowRule.id,
@@ -738,7 +737,7 @@ describe("RuleEngineService Comprehensive Coverage", () => {
     });
 
     it.skip("should support rule templating", () => {
-      void ({
+      void {
         ...mockRule,
         template: "high_cpu_usage",
         templateParams: {
@@ -746,7 +745,7 @@ describe("RuleEngineService Comprehensive Coverage", () => {
           duration: 600,
           severity: AlertSeverity.CRITICAL,
         },
-      });
+      };
 
       // Mock expanded rule (this would be implementation-specific)
       const expandedRule = {

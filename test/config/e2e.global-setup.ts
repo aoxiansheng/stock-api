@@ -47,7 +47,7 @@ export default async function globalSetup() {
         fs.mkdirSync(testResultsDir, { recursive: true });
         console.log("✅ 测试结果目录已创建");
       }
-  
+
       const coverageDir = "./coverage";
       if (!fs.existsSync(coverageDir)) {
         fs.mkdirSync(coverageDir, { recursive: true });

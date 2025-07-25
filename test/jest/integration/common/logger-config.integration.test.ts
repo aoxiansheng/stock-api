@@ -15,7 +15,6 @@ import {
   TestableLogger,
 } from "../../../../src/common/config/logger.config";
 
-
 // 模拟控制台输出以便测试
 interface LogOutput {
   level: "log" | "error" | "warn" | "debug" | "verbose";

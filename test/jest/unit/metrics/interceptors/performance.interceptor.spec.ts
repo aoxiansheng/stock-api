@@ -56,8 +56,8 @@ describe("PerformanceInterceptor", () => {
     let mockGetRequest: jest.Mock;
 
     // 创建一个模拟的类和方法，为 Reflector 提供目标
-    class MockController { }
-    const mockHandler = () => { };
+    class MockController {}
+    const mockHandler = () => {};
 
     beforeEach(() => {
       mockGetRequest = jest.fn().mockReturnValue({

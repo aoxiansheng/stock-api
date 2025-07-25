@@ -1,9 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { SecurityScanResultRepository } from "../../../../../src/security/repositories/security-scan-result.repository";
-import {
-  SecurityScanResult,
-} from "../../../../../src/security/schemas/security-scan-result.schema";
+import { SecurityScanResult } from "../../../../../src/security/schemas/security-scan-result.schema";
 
 // Mock class for the Mongoose model
 class MockScanResultModel {

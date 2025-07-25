@@ -3,9 +3,7 @@ import { Reflector } from "@nestjs/core";
 import { ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { createMock } from "@golevelup/ts-jest";
 import { UnifiedPermissionsGuard } from "../../../../../src/auth/guards/unified-permissions.guard";
-import {
-  PermissionService,
-} from "../../../../../src/auth/services/permission.service";
+import { PermissionService } from "../../../../../src/auth/services/permission.service";
 import { AuthSubjectFactory } from "../../../../../src/auth/subjects/auth-subject.factory";
 import { JwtUserSubject } from "../../../../../src/auth/subjects/jwt-user.subject";
 import { ApiKeySubject } from "../../../../../src/auth/subjects/api-key.subject";
@@ -65,13 +63,11 @@ describe("UnifiedPermissionsGuard", () => {
     roles: UserRole[] = [],
     permissions: Permission[] = [],
   ) => {
-    jest
-      .spyOn(reflector, "getAllAndOverride")
-      .mockImplementation((key) => {
-        if (key === ROLES_KEY) return roles;
-        if (key === PERMISSIONS_KEY) return permissions;
-        return [];
-      });
+    jest.spyOn(reflector, "getAllAndOverride").mockImplementation((key) => {
+      if (key === ROLES_KEY) return roles;
+      if (key === PERMISSIONS_KEY) return permissions;
+      return [];
+    });
   };
 
   // 辅助函数，用于模拟 AuthSubjectFactory
