@@ -299,7 +299,7 @@ export class CoverageMerger {
   ): Promise<void> {
     try {
       // 使用nyc生成LCOV报告
-      const nycInstance = new nyc({
+      new nyc({
         cwd: process.cwd(),
         reportDir: path.dirname(this.config.output.lcov),
         reporter: ["lcov"],

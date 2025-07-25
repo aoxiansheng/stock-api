@@ -1,7 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { NotFoundException } from "@nestjs/common";
-import { Model } from "mongoose";
 
 import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
 import { AlertRule } from "../../../../../src/alert/schemas";

@@ -6,12 +6,11 @@
 import { INestApplication } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-const request = require("supertest");
+import * as request from "supertest";
 import { TestDataHelper } from "../../../../test/config/integration.setup";
 
 // 导入核心服务以便直接测试
-import { ReceiverService } from "../../../../src/core/receiver/receiver.service";
-import { SymbolMapperService } from "../../../../src/core/symbol-mapper/symbol-mapper.service";
+
 import { DataMapperService } from "../../../../src/core/data-mapper/data-mapper.service";
 import { CapabilityRegistryService } from "../../../../src/providers/capability-registry.service";
 // 其他服务按需导入
@@ -26,8 +25,6 @@ describe("Core Modules Integration Tests", () => {
   let testApiKey: any;
 
   // 核心服务实例
-  let receiverService: ReceiverService;
-  let symbolMapperService: SymbolMapperService;
   let dataMapperService: DataMapperService;
   let capabilityRegistryService: CapabilityRegistryService;
 
@@ -40,8 +37,6 @@ describe("Core Modules Integration Tests", () => {
     dataMappingModel = app.get(getModelToken("DataMappingRule"));
 
     // 获取核心服务实例用于内部测试
-    receiverService = app.get<ReceiverService>(ReceiverService);
-    symbolMapperService = app.get<SymbolMapperService>(SymbolMapperService);
     dataMapperService = app.get<DataMapperService>(DataMapperService);
     capabilityRegistryService = app.get<CapabilityRegistryService>(
       CapabilityRegistryService,
@@ -768,7 +763,6 @@ describe("Core Modules Integration Tests", () => {
   describe("Query Module", () => {
     let uniqueDataSourceName: string;
     let dataFetchingService: any;
-    let mockFetchSingleData: any;
 
     beforeEach(async () => {
       uniqueDataSourceName = `longport-q-${Date.now()}`; // 'q' for query
@@ -776,12 +770,12 @@ describe("Core Modules Integration Tests", () => {
       // 获取DataFetchingService实例以便Mock
       const {
         DataFetchingService,
-      } = require("../../../../src/core/shared/services/data-fetching.service");
+      } = await import("../../../../src/core/shared/services/data-fetching.service");
       dataFetchingService = app.get(DataFetchingService);
 
       // 关键修复：直接Mock DataFetchingService.fetchSingleData方法
       // 注意：fetchSingleData返回单个数据项，不是数组
-      mockFetchSingleData = jest
+      jest
         .spyOn(dataFetchingService, "fetchSingleData")
         .mockResolvedValue({
           data: { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
@@ -1073,7 +1067,7 @@ describe("Core Modules Integration Tests", () => {
       // 关键修复：Mock CapabilityRegistryService
       jest
         .spyOn(capabilityRegistryService, "getCapability")
-        .mockImplementation((provider, capabilityName) => {
+        .mockImplementation((provider) => {
           if (provider === uniqueDataSourceName) {
             // 这里只处理已知的测试provider
             return {

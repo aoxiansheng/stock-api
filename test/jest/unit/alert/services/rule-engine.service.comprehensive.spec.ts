@@ -464,7 +464,6 @@ describe("RuleEngineService Comprehensive Coverage", () => {
     });
 
     it.skip("should get cooldown information", async () => {
-      const ruleId = "test-rule";
       const remainingTtl = 300; // 5 minutes remaining
 
       // Mock cooldown info (this would be implementation-specific)
@@ -484,15 +483,14 @@ describe("RuleEngineService Comprehensive Coverage", () => {
 
       cacheService.del.mockResolvedValue(1);
 
-      const result = await service.clearCooldown(ruleId);
+      await service.clearCooldown(ruleId);
 
       expect(cacheService.del).toHaveBeenCalledWith(`alert:cooldown:${ruleId}`);
       // 实际实现返回void，不检查返回值
     });
 
     it.skip("should handle adaptive cooldown based on alert frequency", async () => {
-      const ruleId = "frequent-rule";
-      const alertHistory = [
+      void [
         { timestamp: new Date(Date.now() - 300000) }, // 5 minutes ago
         { timestamp: new Date(Date.now() - 240000) }, // 4 minutes ago
         { timestamp: new Date(Date.now() - 180000) }, // 3 minutes ago
@@ -553,12 +551,12 @@ describe("RuleEngineService Comprehensive Coverage", () => {
         threshold: 70 + i * 2, // Slightly different thresholds
       }));
 
-      const metrics = [
+      const _metrics = [
         { metric: "cpu.usage", value: 85, timestamp: new Date() },
       ];
 
       const startTime = Date.now();
-      const result = service.evaluateRules(similarRules, metrics);
+      const result = service.evaluateRules(similarRules, _metrics);
       const endTime = Date.now();
 
       expect(result).toHaveLength(10);
@@ -656,9 +654,6 @@ describe("RuleEngineService Comprehensive Coverage", () => {
         };
       });
 
-      const metrics = [
-        { metric: "cpu.usage", value: 90, timestamp: new Date() },
-      ];
 
       // Mock timeout result (this would be implementation-specific)
       const result = {
@@ -743,7 +738,7 @@ describe("RuleEngineService Comprehensive Coverage", () => {
     });
 
     it.skip("should support rule templating", () => {
-      const templateRule = {
+      void ({
         ...mockRule,
         template: "high_cpu_usage",
         templateParams: {
@@ -751,7 +746,7 @@ describe("RuleEngineService Comprehensive Coverage", () => {
           duration: 600,
           severity: AlertSeverity.CRITICAL,
         },
-      };
+      });
 
       // Mock expanded rule (this would be implementation-specific)
       const expandedRule = {

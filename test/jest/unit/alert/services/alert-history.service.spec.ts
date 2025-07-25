@@ -16,7 +16,8 @@ import { CacheService } from "../../../../../src/cache/cache.service";
 describe("AlertHistoryService", () => {
   let service: AlertHistoryService;
   let repository: AlertHistoryRepository;
-  let model: Model<AlertHistory>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _model: any;
   let cacheService: jest.Mocked<CacheService>;
 
   const mockAlertHistory = {
@@ -98,7 +99,7 @@ describe("AlertHistoryService", () => {
 
     service = module.get<AlertHistoryService>(AlertHistoryService);
     repository = module.get<AlertHistoryRepository>(AlertHistoryRepository);
-    model = module.get<Model<AlertHistory>>(getModelToken(AlertHistory.name));
+    _model = module.get<Model<AlertHistory>>(getModelToken(AlertHistory.name));
     cacheService = module.get(CacheService);
   });
 

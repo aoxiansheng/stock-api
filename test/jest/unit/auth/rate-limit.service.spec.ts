@@ -11,13 +11,13 @@ import { RateLimitService } from "../../../../src/auth/services/rate-limit.servi
 import { RateLimitStrategy } from "../../../../src/common/constants/rate-limit.constants";
 import {
   ApiKey,
-  ApiKeyDocument,
 } from "../../../../src/auth/schemas/apikey.schema";
 
 describe("RateLimitService", () => {
   let service: RateLimitService;
-  let apiKeyModel: any;
   let mockRedis: any;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let apiKeyModel: any;
 
   const mockApiKey = {
     _id: "507f1f77bcf86cd799439012",
@@ -131,8 +131,6 @@ describe("RateLimitService", () => {
     });
 
     it("应该在不支持的时间单位时抛出错误", () => {
-      const parseWindow = (service as any).parseWindowToSeconds.bind(service);
-
       // 这个测试可能不会触发，因为正则表达式只匹配 s|m|h|d
       // 但保留以防代码逻辑变化
     });

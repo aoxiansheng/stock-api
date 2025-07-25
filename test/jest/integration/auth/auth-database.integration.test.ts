@@ -78,7 +78,7 @@ describe("Auth Database Integration", () => {
 
     it("应该成功验证JWT令牌", async () => {
       // Arrange: 先登录获取令牌
-      const loginResult = await authService.login({
+      await authService.login({
         username: testUser.username,
         password: "securepassword123",
       });

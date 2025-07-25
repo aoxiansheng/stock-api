@@ -1,6 +1,4 @@
-import { SchemaFactory } from "@nestjs/mongoose";
 import {
-  NotificationLog,
   NotificationLogSchema,
 } from "../../../../../src/alert/schemas/notification-log.schema";
 

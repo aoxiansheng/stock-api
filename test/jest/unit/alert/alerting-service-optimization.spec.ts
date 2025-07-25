@@ -24,7 +24,7 @@ describe("AlertingService Optimization Features", () => {
   let service: AlertingService;
   let alertRuleRepository: jest.Mocked<AlertRuleRepository>;
   let ruleEngine: jest.Mocked<RuleEngineService>;
-  let notificationService: jest.Mocked<NotificationService>;
+
   let alertHistoryService: jest.Mocked<AlertHistoryService>;
   let cacheService: jest.Mocked<CacheService>;
   let loggerSpy: jest.SpyInstance;
@@ -121,7 +121,7 @@ describe("AlertingService Optimization Features", () => {
     service = module.get<AlertingService>(AlertingService);
     alertRuleRepository = module.get(AlertRuleRepository);
     ruleEngine = module.get(RuleEngineService);
-    notificationService = module.get(NotificationService);
+    module.get(NotificationService);
     alertHistoryService = module.get(AlertHistoryService);
     cacheService = module.get(CacheService);
 

@@ -16,8 +16,10 @@ describe("SecurityScannerService Optimization Features", () => {
   let service: SecurityScannerService;
   let userRepository: jest.Mocked<UserRepository>;
   let apiKeyRepository: jest.Mocked<ApiKeyRepository>;
-  let scanResultRepository: jest.Mocked<SecurityScanResultRepository>;
-  let configService: jest.Mocked<ConfigService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _scanResultRepository: jest.Mocked<SecurityScanResultRepository>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _configService: jest.Mocked<ConfigService>;
   let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
@@ -70,8 +72,9 @@ describe("SecurityScannerService Optimization Features", () => {
     service = module.get<SecurityScannerService>(SecurityScannerService);
     userRepository = module.get(UserRepository);
     apiKeyRepository = module.get(ApiKeyRepository);
-    scanResultRepository = module.get(SecurityScanResultRepository);
-    configService = module.get(ConfigService);
+    _scanResultRepository = module.get(SecurityScanResultRepository);
+    _configService = module.get(ConfigService);
+  
 
     // Spy on logger
     loggerSpy = jest.spyOn((service as any).logger, "log").mockImplementation();

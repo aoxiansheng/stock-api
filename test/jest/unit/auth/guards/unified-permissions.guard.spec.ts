@@ -5,7 +5,6 @@ import { createMock } from "@golevelup/ts-jest";
 import { UnifiedPermissionsGuard } from "../../../../../src/auth/guards/unified-permissions.guard";
 import {
   PermissionService,
-  PermissionCheckResult,
 } from "../../../../../src/auth/services/permission.service";
 import { AuthSubjectFactory } from "../../../../../src/auth/subjects/auth-subject.factory";
 import { JwtUserSubject } from "../../../../../src/auth/subjects/jwt-user.subject";
@@ -68,7 +67,7 @@ describe("UnifiedPermissionsGuard", () => {
   ) => {
     jest
       .spyOn(reflector, "getAllAndOverride")
-      .mockImplementation((key, targets) => {
+      .mockImplementation((key) => {
         if (key === ROLES_KEY) return roles;
         if (key === PERMISSIONS_KEY) return permissions;
         return [];

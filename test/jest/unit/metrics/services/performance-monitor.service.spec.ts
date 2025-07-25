@@ -6,12 +6,9 @@ import { PerformanceMonitorService } from "../../../../../src/metrics/services/p
 import { PerformanceMetricsRepository } from "../../../../../src/metrics/repositories/performance-metrics.repository";
 import {
   AuthType,
-  AuthStatus,
-  OperationStatus,
 } from "../../../../../src/metrics/enums/auth-type.enum";
 import {
   METRIC_NAMES,
-  METRIC_UNITS,
   PERFORMANCE_EVENTS,
   PERFORMANCE_THRESHOLDS,
   PERFORMANCE_DEFAULTS,

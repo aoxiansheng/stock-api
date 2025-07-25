@@ -26,7 +26,7 @@ describe("CacheService 容错机制集成测试", () => {
     try {
       await redisClient.ping();
       await redisClient.flushall();
-    } catch (error) {
+    } catch {
       console.log("Redis连接异常，跳过清理");
     }
   });
@@ -36,56 +36,56 @@ describe("CacheService 容错机制集成测试", () => {
       // 确保Redis连接正常
       try {
         await redisClient.connect();
-      } catch (error) {
+      } catch {
         // 如果已经连接，忽略错误
       }
     });
 
     it("应该正常执行哈希操作", async () => {
       // Arrange
-      const key = "test:hash";
-      const field = "field1";
-      const value = "value1";
+      const _testKey = "test:hash";
+      const _hashField = "field1";
+      const _hashValue = "value1";
 
       // Act - 写入数据
-      await cacheService.hashSet(key, field, value);
+      await cacheService.hashSet(_testKey, _hashField, _hashValue);
 
       // Act & Assert - 读取数据
-      const allFields = await cacheService.hashGetAll(key);
-      expect(allFields[field]).toBe(value);
-      expect(allFields).toEqual({ [field]: value });
+      const allFields = await cacheService.hashGetAll(_testKey);
+      expect(allFields[_hashField]).toBe(_hashValue);
+      expect(allFields).toEqual({ [_hashField]: _hashValue });
     });
 
     it("应该正常执行列表操作", async () => {
       // Arrange
-      const key = "test:list";
+      const _listKey = "test:list";
       const values = ["item1", "item2", "item3"];
 
       // Act - 写入数据
       for (const value of values) {
-        await cacheService.listPush(key, value);
+        await cacheService.listPush(_listKey, value);
       }
 
       // Act & Assert - 读取数据
-      const retrievedValues = await cacheService.listRange(key, 0, -1);
+      const retrievedValues = await cacheService.listRange(_listKey, 0, -1);
       expect(retrievedValues).toEqual(values.reverse()); // LPUSH会反转顺序
     });
 
     it("应该正常执行集合操作", async () => {
       // Arrange
-      const key = "test:set";
+      const _setKey = "test:set";
       const members = ["member1", "member2", "member3"];
 
       // Act - 写入数据
       for (const member of members) {
-        await cacheService.setAdd(key, member);
+        await cacheService.setAdd(_setKey, member);
       }
 
       // Act & Assert - 读取数据
-      const isMember = await cacheService.setIsMember(key, "member1");
+      const isMember = await cacheService.setIsMember(_setKey, "member1");
       expect(isMember).toBe(true);
 
-      const allMembers = await cacheService.setMembers(key);
+      const allMembers = await cacheService.setMembers(_setKey);
       expect(allMembers.sort()).toEqual(members.sort());
     });
   });
@@ -95,7 +95,7 @@ describe("CacheService 容错机制集成测试", () => {
       // 断开Redis连接模拟故障情况
       try {
         await redisClient.disconnect();
-      } catch (error) {
+      } catch {
         // 如果连接已断开，忽略错误
       }
     });
@@ -104,7 +104,7 @@ describe("CacheService 容错机制集成测试", () => {
       // 每个测试后重新连接，避免影响其他测试
       try {
         await redisClient.connect();
-      } catch (error) {
+      } catch {
         // 如果连接失败，不影响测试结果
       }
     });
@@ -187,7 +187,7 @@ describe("CacheService 容错机制集成测试", () => {
       // Arrange - 先断开连接
       try {
         await redisClient.disconnect();
-      } catch (error) {
+      } catch {
         // 忽略断开失败
       }
 
@@ -199,7 +199,7 @@ describe("CacheService 容错机制集成测试", () => {
         await redisClient.connect();
         // 等待连接稳定
         await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (error) {
+      } catch {
         // 如果连接失败，跳过这个测试
         console.log("Redis重连失败，跳过测试");
         return;
@@ -228,7 +228,7 @@ describe("CacheService 容错机制集成测试", () => {
       // Arrange - 断开Redis连接
       try {
         await redisClient.disconnect();
-      } catch (error) {
+      } catch {
         // 忽略断开失败
       }
 
@@ -247,7 +247,7 @@ describe("CacheService 容错机制集成测试", () => {
       // Arrange - 断开Redis连接
       try {
         await redisClient.disconnect();
-      } catch (error) {
+      } catch {
         // 忽略断开失败
       }
 
@@ -282,7 +282,7 @@ describe("CacheService 容错机制集成测试", () => {
       // Arrange - 断开Redis连接
       try {
         await redisClient.disconnect();
-      } catch (error) {
+      } catch {
         // 忽略断开失败
       }
 

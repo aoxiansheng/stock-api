@@ -6,9 +6,7 @@ import {
   PERFORMANCE_REDIS_KEYS,
   PERFORMANCE_LIMITS,
   PERFORMANCE_TTL,
-  PERFORMANCE_INTERVALS,
 } from "../../../../../src/metrics/constants/metrics-performance.constants";
-import { createLogger } from "../../../../../src/common/config/logger.config";
 
 // Create a single, reusable mock logger instance
 const mockLoggerInstance = {

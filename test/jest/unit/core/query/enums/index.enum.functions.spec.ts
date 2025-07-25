@@ -219,8 +219,8 @@ describe("Query Enums Index - Function Coverage", () => {
       // Attempt to modify the enum (should not affect the original)
       try {
         (QueryType as any).NEW_TYPE = "new_type";
-      } catch (error) {
-        // Some environments might throw an error
+      } catch {
+        // Some environments might throw an error, we ignore it
       }
 
       // Check that original keys are still there

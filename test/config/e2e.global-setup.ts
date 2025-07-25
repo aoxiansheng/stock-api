@@ -5,8 +5,8 @@
 
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import fs from "fs";
-import path from "path";
+// 使用require替代import
+const fs = require('fs');
 
 let mongoServer: MongoMemoryServer;
 
@@ -40,17 +40,23 @@ export default async function globalSetup() {
     // 设置Redis配置
     process.env.REDIS_URL = "redis://localhost:6379/4";
 
-    // 创建必要的目录
-    const testResultsDir = path.join(process.cwd(), "test-results");
-    if (!fs.existsSync(testResultsDir)) {
-      fs.mkdirSync(testResultsDir, { recursive: true });
-      console.log("✅ 测试结果目录已创建");
-    }
-
-    const coverageDir = path.join(process.cwd(), "coverage");
-    if (!fs.existsSync(coverageDir)) {
-      fs.mkdirSync(coverageDir, { recursive: true });
-      console.log("✅ 覆盖率目录已创建");
+    // 使用try-catch包裹目录创建逻辑，避免因此中断测试
+    try {
+      // 创建必要的目录，使用require方式导入的fs
+      const testResultsDir = "./test-results";
+      if (!fs.existsSync(testResultsDir)) {
+        fs.mkdirSync(testResultsDir, { recursive: true });
+        console.log("✅ 测试结果目录已创建");
+      }
+  
+      const coverageDir = "./coverage";
+      if (!fs.existsSync(coverageDir)) {
+        fs.mkdirSync(coverageDir, { recursive: true });
+        console.log("✅ 覆盖率目录已创建");
+      }
+    } catch (dirError) {
+      console.warn("⚠️ 创建目录时出错，但测试将继续:", dirError);
+      // 不抛出错误，避免中断测试
     }
 
     console.log("✅ E2E测试全局设置完成");

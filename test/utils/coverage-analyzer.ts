@@ -52,6 +52,7 @@ export class CoverageAnalyzer {
     await this.saveReport(report);
     await this.updateHistory(mergedReport);
 
+    console.log("✅ 覆盖率分析完成");
     return report;
   }
 
@@ -157,6 +158,9 @@ export class CoverageAnalyzer {
       report,
       analysis.moduleGrades,
     );
+
+    // 生成质量建议
+    analysis.recommendations = this.generateQualityRecommendations(analysis);
 
     return analysis;
   }
@@ -521,29 +525,67 @@ export class CoverageAnalyzer {
   }
 
   // 其他辅助方法...
-  private generateSummary(_report: CoverageReport): any {
+  private generateSummary(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    report: CoverageReport
+  ): any {
     return {};
   }
+
   private generateRecommendations(
-    _quality: QualityAnalysis,
-    _gaps: GapAnalysis,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    qualityAnalysis: QualityAnalysis,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    gapAnalysis: GapAnalysis
   ): string[] {
     return [];
   }
-  private saveReport(_report: CoverageAnalysisReport): Promise<void> {
+
+  private saveReport(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    report: CoverageAnalysisReport
+  ): Promise<void> {
     return Promise.resolve();
   }
-  private updateHistory(_report: CoverageReport): Promise<void> {
+
+  private updateHistory(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    report: CoverageReport
+  ): Promise<void> {
     return Promise.resolve();
   }
+
   private loadHistoricalData(): Promise<void> {
     return Promise.resolve();
   }
+
   private calculateLongTermTrend(): number {
     return 0;
   }
-  private calculateModuleCoverage(_files: any): CoverageSummary {
-    return {} as any;
+
+  private calculateModuleCoverage(files: any): CoverageSummary {
+    return this.calculateOverallCoverage(files);
+  }
+
+  /**
+   * 生成质量建议
+   */
+  private generateQualityRecommendations(analysis: QualityAnalysis): string[] {
+    const recommendations: string[] = [];
+
+    if (analysis.overallGrade === "F" || analysis.overallGrade === "D") {
+      recommendations.push("总体覆盖率过低，需要大幅增加测试用例");
+    }
+
+    if (analysis.qualityScore < 60) {
+      recommendations.push("建议优先提升核心模块的测试覆盖率");
+    }
+
+    if (analysis.criticalIssues.length > 0) {
+      recommendations.push(`发现 ${analysis.criticalIssues.length} 个关键问题，需要立即处理`);
+    }
+
+    return recommendations;
   }
 }
 

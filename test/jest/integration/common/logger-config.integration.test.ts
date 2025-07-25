@@ -3,8 +3,7 @@
  * 测试 common/config/logger.config.ts 的日志功能
  */
 
-import { INestApplication, ValidationPipe } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
+import { INestApplication } from "@nestjs/common";
 import * as request from "supertest";
 
 import {
@@ -15,9 +14,7 @@ import {
   LoggerConfig,
   TestableLogger,
 } from "../../../../src/common/config/logger.config";
-import { AppModule } from "../../../../src/app.module";
-import { GlobalExceptionFilter } from "../../../../src/common/filters/global-exception.filter";
-import { ResponseInterceptor } from "../../../../src/common/interceptors/response.interceptor";
+
 
 // 模拟控制台输出以便测试
 interface LogOutput {
@@ -36,7 +33,7 @@ class TestLoggerForIntegration extends TestableLogger {
 
     try {
       return JSON.stringify(obj);
-    } catch (error) {
+    } catch {
       // 处理循环引用
       return JSON.stringify(obj, (key, value) => {
         if (typeof value === "object" && value !== null) {

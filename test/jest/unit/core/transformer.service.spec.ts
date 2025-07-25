@@ -9,8 +9,6 @@ import { DataMapperService } from "../../../../src/core/data-mapper/data-mapper.
 import { TransformRequestDto } from "../../../../src/core/transformer/dto/transform-request.dto";
 import { DataMappingResponseDto } from "../../../../src/core/data-mapper/dto/data-mapping-response.dto";
 import { TransformResponseDto } from "../../../../src/core/transformer/dto/transform-response.dto";
-import { TransformPreviewDto } from "../../../../src/core/transformer/dto/transform-preview.dto";
-import { createLogger } from "../../../../src/common/config/logger.config";
 import {
   TRANSFORM_ERROR_MESSAGES,
   TRANSFORM_WARNING_MESSAGES,

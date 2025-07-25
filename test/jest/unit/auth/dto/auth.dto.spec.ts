@@ -1,4 +1,4 @@
-import { validate, ValidationError } from "class-validator";
+import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import {
   CreateUserDto,

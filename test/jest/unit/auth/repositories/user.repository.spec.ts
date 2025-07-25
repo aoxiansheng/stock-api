@@ -5,12 +5,10 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
-import { Model } from "mongoose";
 
 import { UserRepository } from "../../../../../src/auth/repositories/user.repository";
 import {
   User,
-  UserDocument,
 } from "../../../../../src/auth/schemas/user.schema";
 import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
 

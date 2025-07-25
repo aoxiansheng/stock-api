@@ -44,12 +44,11 @@ describe("Comprehensive Alerting E2E Tests", () => {
       },
     };
 
-    const apiKeyResponse = await httpServer
+    await httpServer
       .post("/api/v1/auth/api-keys")
       .set("Authorization", `Bearer ${jwtToken}`)
       .send(apiKeyData);
 
-    const apiKeyResult = apiKeyResponse.body.data;
   }
 
   describe("Alert System Monitoring", () => {

@@ -3,7 +3,6 @@ import { NotFoundException } from "@nestjs/common";
 import {
   DataFetchingService,
   DataFetchRequest,
-  DataFetchResponse,
 } from "../../../../../../src/core/shared/services/data-fetching.service";
 import { CapabilityRegistryService } from "../../../../../../src/providers/capability-registry.service";
 import { MarketStatusService } from "../../../../../../src/core/shared/services/market-status.service";
@@ -28,7 +27,6 @@ describe("DataFetchingService", () => {
   let service: DataFetchingService;
   let mockCapabilityRegistry: jest.Mocked<CapabilityRegistryService>;
   let mockMarketStatusService: jest.Mocked<MarketStatusService>;
-  let mockDataChangeDetector: jest.Mocked<DataChangeDetectorService>;
 
   const mockCapability = {
     name: "get-stock-quote",

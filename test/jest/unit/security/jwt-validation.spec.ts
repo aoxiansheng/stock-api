@@ -8,7 +8,8 @@ import { ApiKeyRepository } from "../../../../src/auth/repositories/apikey.repos
 
 describe("SecurityScannerService - JWT Validation", () => {
   let service: SecurityScannerService;
-  let mockConfigService: jest.Mocked<ConfigService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _mockConfigService: any;
 
   beforeEach(async () => {
     const mockConfig = {
@@ -60,7 +61,7 @@ describe("SecurityScannerService - JWT Validation", () => {
     }).compile();
 
     service = module.get<SecurityScannerService>(SecurityScannerService);
-    mockConfigService = module.get(ConfigService);
+    _mockConfigService = module.get(ConfigService);
   });
 
   afterEach(() => {

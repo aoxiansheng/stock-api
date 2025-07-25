@@ -59,7 +59,7 @@ describe("Response Format Standardization Integration", () => {
     accessToken = apiKeyResponse.body.data.accessToken;
 
     // 4. 创建符号映射规则 - 解决接收器模块测试中的400错误
-    const { getModelToken } = require("@nestjs/mongoose");
+    const { getModelToken } = await import("@nestjs/mongoose");
     const symbolMappingModel = app.get(getModelToken("SymbolMappingRule"), {
       strict: false,
     });
@@ -111,7 +111,6 @@ describe("Response Format Standardization Integration", () => {
   describe("核心模块响应格式", () => {
     describe("认证模块 (/api/v1/auth)", () => {
       // 认证模块的测试不依赖于顶层的 beforeEach，它们自己处理用户创建
-      let userId: string;
 
       it("注册响应应该符合标准格式", async () => {
         const registerData = {
@@ -146,8 +145,7 @@ describe("Response Format Standardization Integration", () => {
         // 验证中文消息
         expect(response.body.message).toMatch(/创建|注册|成功/);
 
-        // 保存用于后续测试
-        userId = response.body.data.id;
+
       });
 
       it("登录响应应该符合标准格式", async () => {
@@ -577,7 +575,7 @@ describe("Response Format Standardization Integration", () => {
       const responses = await Promise.all(promises);
 
       // 验证所有响应都符合标准格式
-      responses.forEach((response, index) => {
+      responses.forEach((response) => {
         expect(response.body).toMatchObject({
           statusCode: 201,
           message: expect.any(String),

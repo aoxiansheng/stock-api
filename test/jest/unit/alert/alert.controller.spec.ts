@@ -404,7 +404,6 @@ describe("AlertController", () => {
     describe("acknowledgeAlert", () => {
       it("应该成功确认告警", async () => {
         const alertId = "alert-123";
-        const body = { acknowledgedBy: "user-123" };
         const acknowledgedAlert = {
           ...mockAlert,
           status: AlertStatus.ACKNOWLEDGED,
@@ -451,7 +450,7 @@ describe("AlertController", () => {
         mockAlertHistoryService.queryAlerts.mockResolvedValue(mockQueryResult);
         mockAlertingService.resolveAlert.mockResolvedValue(true);
 
-        const result = await controller.resolveAlert(alertId, body);
+        await controller.resolveAlert(alertId, body);
 
         expect(alertingService.resolveAlert).toHaveBeenCalledWith(
           alertId,

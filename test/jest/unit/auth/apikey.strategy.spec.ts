@@ -5,7 +5,6 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { UnauthorizedException } from "@nestjs/common";
-import { Request } from "express";
 
 import { ApiKeyStrategy } from "../../../../src/auth/strategies/apikey.strategy";
 import { AuthService } from "../../../../src/auth/services/auth.service";

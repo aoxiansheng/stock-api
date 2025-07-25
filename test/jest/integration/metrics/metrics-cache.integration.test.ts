@@ -52,7 +52,7 @@ describe("Metrics Cache Integration", () => {
       // 确保Redis连接正常
       try {
         await redisClient.ping();
-      } catch (error) {
+      } catch {
         console.log("Redis不可用，跳过测试");
         return;
       }
@@ -132,7 +132,7 @@ describe("Metrics Cache Integration", () => {
       // 重新连接Redis供后续测试使用
       try {
         await redisClient.connect();
-      } catch (error) {
+      } catch {
         // 如果重连失败，不影响容错测试的结果
         console.log("Redis重连失败，但容错测试已通过");
       }

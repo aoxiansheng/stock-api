@@ -111,7 +111,6 @@ class UnifiedReportGenerator {
     const totalTests = this.reports.reduce((sum, r) => sum + r.totalTests, 0);
     const totalPassed = this.reports.reduce((sum, r) => sum + r.passed, 0);
     const totalFailed = this.reports.reduce((sum, r) => sum + r.failed, 0);
-    const totalSkipped = this.reports.reduce((sum, r) => sum + r.skipped, 0);
     const successRate =
       totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(2) : "0";
 

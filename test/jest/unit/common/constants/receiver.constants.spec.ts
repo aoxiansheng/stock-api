@@ -9,7 +9,6 @@ import {
   RECEIVER_CONFIG,
   RECEIVER_METRICS,
   RECEIVER_STATUS,
-  RECEIVER_DEFAULTS,
   RECEIVER_OPERATIONS,
 } from "../../../../../src/core/receiver/constants/receiver.constants";
 

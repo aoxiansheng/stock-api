@@ -16,7 +16,6 @@ import { CacheService } from "../../../../src/cache/cache.service";
 
 import {
   AlertSeverity,
-  AlertStatus,
 } from "../../../../src/alert/types/alert.types";
 import { CreateAlertRuleDto } from "../../../../src/alert/dto/alert-rule.dto";
 import { NotificationChannelDto } from "../../../../src/alert/dto/notification-channel.dto";
@@ -30,17 +29,7 @@ interface CachedAggregation {
   successRate?: number;
 }
 
-interface CachedThreat {
-  threatLevel: number;
-  ipAddress: string;
-  reason: string;
-  detectedAt: Date;
-}
 
-interface CachedSystemStatus {
-  threatLevel: number;
-  activeThreats: number;
-}
 
 // 类型守卫函数
 function isCachedAggregation(obj: any): obj is CachedAggregation {
@@ -53,18 +42,7 @@ function isCachedAggregation(obj: any): obj is CachedAggregation {
   );
 }
 
-function isCachedThreat(obj: any): obj is CachedThreat {
-  return obj && typeof obj === "object" && typeof obj.threatLevel === "number";
-}
 
-function isCachedSystemStatus(obj: any): obj is CachedSystemStatus {
-  return (
-    obj &&
-    typeof obj === "object" &&
-    typeof obj.threatLevel === "number" &&
-    typeof obj.activeThreats === "number"
-  );
-}
 
 // 自定义数据类型用于测试（使用实际的 SecurityEvent 类型值）
 const SecurityEventType = {
@@ -103,16 +81,7 @@ describe("Cross Module Collaboration Integration", () => {
     enabled: true,
   };
 
-  // 辅助方法：手动触发安全审计日志刷新（用于测试）
-  const flushSecurityAuditLogs = async (): Promise<void> => {
-    try {
-      // 直接调用SecurityAuditService的刷新方法
-      await securityAuditService.flushAuditLogs();
-    } catch (error) {
-      // 忽略刷新错误，因为测试环境中Redis连接可能不稳定
-      console.warn("安全审计日志刷新失败（测试环境正常）:", error.message);
-    }
-  };
+
 
   beforeAll(async () => {
     app = (global as any).testApp;
@@ -537,7 +506,6 @@ describe("Cross Module Collaboration Integration", () => {
       await alertingService.createRule(cacheFailureAlertRule);
 
       // Act - 模拟缓存服务故障
-      const beforeFailure = Date.now();
 
       // 1. 正常操作
       await performanceMonitorService.recordRequest(

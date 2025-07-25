@@ -181,7 +181,6 @@ jest.mock(
 import { Test, TestingModule } from "@nestjs/testing";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import {
-  ServiceUnavailableException,
   BadRequestException,
 } from "@nestjs/common";
 import { CacheService } from "../../../../src/cache/cache.service";
@@ -192,7 +191,6 @@ import {
   CACHE_SUCCESS_MESSAGES,
   CACHE_OPERATIONS,
   CACHE_TTL,
-  CACHE_KEYS,
 } from "../../../../src/cache/constants/cache.constants";
 
 describe("CacheService - Comprehensive Coverage", () => {
@@ -330,7 +328,8 @@ describe("CacheService - Comprehensive Coverage", () => {
       const decompress = (service as any).decompress.bind(service);
 
       // 模拟一个失败的解压缩场景
-      jest.spyOn(require("util"), "promisify").mockReturnValue(() => {
+      const util = await import("util");
+      jest.spyOn(util, "promisify").mockReturnValue(() => {
         throw new Error("Decompression failed");
       });
 
@@ -371,7 +370,7 @@ describe("CacheService - Comprehensive Coverage", () => {
     });
 
     it("should handle null deserialization", async () => {
-      const deserializeSpy = jest.spyOn(service as any, "deserialize");
+      jest.spyOn(service as any, "deserialize");
 
       const result = (service as any).deserialize(null);
       expect(result).toBeNull();
@@ -414,7 +413,7 @@ describe("CacheService - Comprehensive Coverage", () => {
     });
 
     it("should handle lock release failures", async () => {
-      const releaseLockSpy = jest.spyOn(service as any, "releaseLock");
+      jest.spyOn(service as any, "releaseLock");
       mockRedis.eval.mockRejectedValue(new Error("Lock release failed"));
 
       await (service as any).releaseLock("lock:key", "lock:value");

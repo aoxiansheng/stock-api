@@ -6,14 +6,14 @@
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 
 describe("Monitoring Security Tests", () => {
-  let app: any;
+
   let request: any;
   let adminToken: string;
   let userToken: string;
   let adminApiKey: { appKey: string; accessToken: string };
 
   beforeEach(async () => {
-    app = global.getSecurityApp();
+    global.getSecurityApp();
     request = global.createSecurityRequest();
 
     // 为每个测试创建认证过的用户和API Key，确保测试隔离

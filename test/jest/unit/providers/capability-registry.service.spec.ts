@@ -6,7 +6,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { CapabilityRegistryService } from "../../../../src/providers/capability-registry.service";
 import * as fs from "fs/promises";
-import * as path from "path";
+
 
 // Mock fs/promises
 jest.mock("fs/promises");
@@ -383,6 +383,7 @@ describe("CapabilityRegistryService", () => {
   describe("directoryExists", () => {
     it("应该检测到存在的目录", async () => {
       // Arrange
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require("fs/promises");
       fs.stat = jest.fn().mockResolvedValue({ isDirectory: () => true });
 
@@ -396,6 +397,7 @@ describe("CapabilityRegistryService", () => {
 
     it("应该检测到不存在的目录", async () => {
       // Arrange
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require("fs/promises");
       fs.stat = jest.fn().mockRejectedValue(new Error("ENOENT"));
 
@@ -410,6 +412,7 @@ describe("CapabilityRegistryService", () => {
 
     it("应该检测到文件（非目录）", async () => {
       // Arrange
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require("fs/promises");
       fs.stat = jest.fn().mockResolvedValue({ isDirectory: () => false });
 
@@ -993,7 +996,7 @@ describe("CapabilityRegistryService", () => {
       };
 
       mockDynamicImport.mockImplementation(
-        async (providerName: string, capabilityName: string) => {
+        async (providerName: string) => {
           if (providerName === "working-provider") {
             return { default: workingCapability };
           } else {

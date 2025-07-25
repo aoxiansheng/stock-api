@@ -5,12 +5,10 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
-import { Model } from "mongoose";
 
 import { ApiKeyRepository } from "../../../../../src/auth/repositories/apikey.repository";
 import {
   ApiKey,
-  ApiKeyDocument,
 } from "../../../../../src/auth/schemas/apikey.schema";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 
@@ -35,14 +33,6 @@ describe("ApiKeyRepository", () => {
     updatedAt: new Date("2024-01-15T10:00:00Z"),
   };
 
-  const mockInactiveApiKey = {
-    ...mockApiKey,
-    id: "507f1f77bcf86cd799439012",
-    appKey: "inactive-app-key-123",
-    accessToken: "inactive-access-token-456",
-    name: "Inactive API Key",
-    isActive: false,
-  };
 
   beforeEach(async () => {
     const mockApiKeyModel = {

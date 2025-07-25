@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import * as path from "path";
 
 /**
  * 覆盖率质量门禁检查器
@@ -76,7 +75,7 @@ export class CoverageGateChecker {
             files: data,
             timestamp: new Date().toISOString(),
           };
-        } catch (error) {
+        } catch {
           console.warn(`⚠️ 无法解析覆盖率数据: ${reportPath}`);
         }
       }
@@ -489,7 +488,7 @@ export class CoverageGateChecker {
       if (fs.existsSync(historyPath)) {
         return JSON.parse(fs.readFileSync(historyPath, "utf8"));
       }
-    } catch (error) {
+    } catch {
       console.warn("无法加载历史覆盖率数据");
     }
     return [];

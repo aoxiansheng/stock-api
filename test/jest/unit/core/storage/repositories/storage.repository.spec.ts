@@ -482,7 +482,6 @@ describe("StorageRepository", () => {
 
     describe("getAverageTtl()", () => {
       it("should calculate average TTL successfully", async () => {
-        const mockKeys = ["key1", "key2", "key3", "key4", "key5"];
         const mockTtls = [3600, 1800, 7200, 600, 900]; // Average: 2820
 
         mockRedis.randomkey

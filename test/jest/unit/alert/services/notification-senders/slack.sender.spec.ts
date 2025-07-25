@@ -1,6 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { HttpService } from "@nestjs/axios";
-import { BadRequestException } from "@nestjs/common";
 import { of, throwError } from "rxjs";
 import { AxiosResponse } from "axios";
 

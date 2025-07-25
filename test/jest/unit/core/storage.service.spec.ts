@@ -1,13 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { Logger } from "@nestjs/common";
 import { StorageService } from "../../../../src/core/storage/storage.service";
 import { StorageRepository } from "../../../../src/core/storage/repositories/storage.repository";
 import { getModelToken } from "@nestjs/mongoose";
 import {
   StoredData,
-  StoredDataDocument,
 } from "../../../../src/core/storage/schemas/storage.schema";
-import { Model } from "mongoose";
 import {
   StoreDataDto,
   RetrieveDataDto,
@@ -52,34 +49,12 @@ const mockZlib = {
     }),
 };
 
-// Mock Redis
-const mockRedis = {
-  ping: jest.fn().mockResolvedValue("PONG"),
-  on: jest.fn(),
-  get: jest.fn().mockResolvedValue(null),
-  del: jest.fn().mockResolvedValue(1),
-  ttl: jest.fn().mockResolvedValue(-2),
-  setex: jest.fn().mockResolvedValue("OK"),
-  info: jest
-    .fn()
-    .mockResolvedValue(
-      "used_memory:1024000\\nkeyspace_hits:100\\nkeyspace_misses:50",
-    ),
-  dbsize: jest.fn().mockResolvedValue(10),
-  randomkey: jest.fn().mockResolvedValue("test-key"),
-  pipeline: jest.fn().mockReturnValue({
-    setex: jest.fn().mockReturnThis(),
-    get: jest.fn().mockReturnThis(),
-    ttl: jest.fn().mockReturnThis(),
-    exec: jest.fn().mockResolvedValue([["OK"], ["OK"]]),
-  }),
-};
+// Redis mock is defined but not directly used in this test file
+// We keep it as a reference for future usage
 
 describe("StorageService", () => {
   let service: StorageService;
   let storageRepository: any;
-  let storedDataModel: jest.Mocked<Model<StoredDataDocument>>;
-  let mockStorageRepository: any;
 
   const mockStoredData = {
     _id: "507f1f77bcf86cd799439011",
@@ -108,7 +83,7 @@ describe("StorageService", () => {
     };
 
     // Mock StorageRepository
-    mockStorageRepository = {
+    storageRepository = {
       storeInCache: jest.fn().mockResolvedValue(true),
       retrieveFromCache: jest
         .fn()
@@ -134,14 +109,13 @@ describe("StorageService", () => {
         },
         {
           provide: StorageRepository,
-          useValue: mockStorageRepository,
+          useValue: storageRepository,
         },
       ],
     }).compile();
 
     service = module.get<StorageService>(StorageService);
     storageRepository = module.get(StorageRepository);
-    storedDataModel = module.get(getModelToken(StoredData.name));
 
     // Clear all previous calls
     jest.clearAllMocks();
@@ -247,7 +221,7 @@ describe("StorageService", () => {
       });
 
       // Mock StorageRepository methods
-      mockStorageRepository.retrieveFromCache.mockResolvedValue({
+      storageRepository.retrieveFromCache.mockResolvedValue({
         data: cachedData,
         metadata: metadata,
         ttl: 300,
@@ -264,14 +238,14 @@ describe("StorageService", () => {
       const retrieveDto: RetrieveDataDto = { key: "test-key" };
 
       // Mock cache miss
-      mockStorageRepository.retrieveFromCache.mockResolvedValue({
+      storageRepository.retrieveFromCache.mockResolvedValue({
         data: null,
         metadata: null,
         ttl: -2,
       });
 
       // Mock persistent storage hit
-      mockStorageRepository.findByKey.mockResolvedValue(mockStoredData);
+      storageRepository.findByKey.mockResolvedValue(mockStoredData);
 
       const result = await service.retrieveData(retrieveDto);
 
@@ -283,14 +257,14 @@ describe("StorageService", () => {
       const retrieveDto: RetrieveDataDto = { key: "non-existent-key" };
 
       // Mock cache miss
-      mockStorageRepository.retrieveFromCache.mockResolvedValue({
+      storageRepository.retrieveFromCache.mockResolvedValue({
         data: null,
         metadata: null,
         ttl: -2,
       });
 
       // Mock persistent storage miss
-      mockStorageRepository.findByKey.mockResolvedValue(null);
+      storageRepository.findByKey.mockResolvedValue(null);
 
       // Should throw NotFoundException
       await expect(service.retrieveData(retrieveDto)).rejects.toThrow(
@@ -302,12 +276,12 @@ describe("StorageService", () => {
       const retrieveDto: RetrieveDataDto = { key: "test-key" };
 
       // Mock cache error
-      mockStorageRepository.retrieveFromCache.mockRejectedValue(
+      storageRepository.retrieveFromCache.mockRejectedValue(
         new Error("Cache error"),
       );
 
       // Mock persistent storage miss
-      mockStorageRepository.findByKey.mockResolvedValue(null);
+      storageRepository.findByKey.mockResolvedValue(null);
 
       // Should throw InternalServerErrorException
       await expect(service.retrieveData(retrieveDto)).rejects.toThrow(
@@ -320,32 +294,32 @@ describe("StorageService", () => {
     it("should delete data from both cache and persistent storage", async () => {
       const key = "test-key";
 
-      mockStorageRepository.deleteFromCache.mockResolvedValue(true);
-      mockStorageRepository.deleteByKey.mockResolvedValue({ deletedCount: 1 });
+      storageRepository.deleteFromCache.mockResolvedValue(true);
+      storageRepository.deleteByKey.mockResolvedValue({ deletedCount: 1 });
 
       const result = await service.deleteData(key);
 
       expect(result).toBe(true);
-      expect(mockStorageRepository.deleteFromCache).toHaveBeenCalledWith(key);
-      expect(mockStorageRepository.deleteByKey).toHaveBeenCalledWith(key);
+      expect(storageRepository.deleteFromCache).toHaveBeenCalledWith(key);
+      expect(storageRepository.deleteByKey).toHaveBeenCalledWith(key);
     });
 
     it("should handle cache-only deletion", async () => {
       const key = "test-key";
 
-      mockStorageRepository.deleteFromCache.mockResolvedValue(true);
+      storageRepository.deleteFromCache.mockResolvedValue(true);
 
       const result = await service.deleteData(key, StorageType.CACHE);
 
       expect(result).toBe(true);
-      expect(mockStorageRepository.deleteFromCache).toHaveBeenCalledWith(key);
-      expect(mockStorageRepository.deleteByKey).not.toHaveBeenCalled();
+      expect(storageRepository.deleteFromCache).toHaveBeenCalledWith(key);
+      expect(storageRepository.deleteByKey).not.toHaveBeenCalled();
     });
 
     it("should handle deletion errors gracefully", async () => {
       const key = "test-key";
 
-      mockStorageRepository.deleteFromCache.mockRejectedValue(
+      storageRepository.deleteFromCache.mockRejectedValue(
         new Error("Redis deletion failed"),
       );
 
@@ -359,23 +333,23 @@ describe("StorageService", () => {
   describe("getStorageStats", () => {
     it("should return comprehensive storage statistics", async () => {
       // Mock cache stats
-      mockStorageRepository.getCacheStats.mockResolvedValue({
+      storageRepository.getCacheStats.mockResolvedValue({
         info: "used_memory:2048000\\nother_info:value",
         dbSize: 25,
       });
-      mockStorageRepository.getAverageTtl.mockResolvedValue(1800);
+      storageRepository.getAverageTtl.mockResolvedValue(1800);
 
       // Mock persistent stats
-      mockStorageRepository.countAll.mockResolvedValue(15);
-      mockStorageRepository.getDataTypeFilterStats.mockResolvedValue([
+      storageRepository.countAll.mockResolvedValue(15);
+      storageRepository.getDataTypeFilterStats.mockResolvedValue([
         { _id: "STOCK_QUOTE", count: 10 },
         { _id: "INDEX_QUOTE", count: 5 },
       ]);
-      mockStorageRepository.getProviderStats.mockResolvedValue([
+      storageRepository.getProviderStats.mockResolvedValue([
         { _id: "longport", count: 12 },
         { _id: "futu", count: 3 },
       ]);
-      mockStorageRepository.getSizeStats.mockResolvedValue([
+      storageRepository.getSizeStats.mockResolvedValue([
         { totalSize: 1024000 },
       ]);
 
@@ -398,17 +372,17 @@ describe("StorageService", () => {
 
     it("should handle Redis unavailable", async () => {
       // Mock Redis unavailable
-      mockStorageRepository.getCacheStats.mockResolvedValue({
+      storageRepository.getCacheStats.mockResolvedValue({
         info: null,
         dbSize: 0,
       });
-      mockStorageRepository.getAverageTtl.mockResolvedValue(0);
+      storageRepository.getAverageTtl.mockResolvedValue(0);
 
       // Mock persistent stats
-      mockStorageRepository.countAll.mockResolvedValue(5);
-      mockStorageRepository.getDataTypeFilterStats.mockResolvedValue([]);
-      mockStorageRepository.getProviderStats.mockResolvedValue([]);
-      mockStorageRepository.getSizeStats.mockResolvedValue([]);
+      storageRepository.countAll.mockResolvedValue(5);
+      storageRepository.getDataTypeFilterStats.mockResolvedValue([]);
+      storageRepository.getProviderStats.mockResolvedValue([]);
+      storageRepository.getSizeStats.mockResolvedValue([]);
 
       const stats = await service.getStorageStats();
 
@@ -420,14 +394,14 @@ describe("StorageService", () => {
 
     it("should handle database errors", async () => {
       // Mock cache stats success
-      mockStorageRepository.getCacheStats.mockResolvedValue({
+      storageRepository.getCacheStats.mockResolvedValue({
         info: "used_memory:1024000",
         dbSize: 10,
       });
-      mockStorageRepository.getAverageTtl.mockResolvedValue(0);
+      storageRepository.getAverageTtl.mockResolvedValue(0);
 
       // Mock database error
-      mockStorageRepository.countAll.mockRejectedValue(
+      storageRepository.countAll.mockRejectedValue(
         new Error("Database error"),
       );
 

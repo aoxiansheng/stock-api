@@ -7,8 +7,6 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 
 import { AuthService } from "../../../../src/auth/services/auth.service";
-import { User } from "../../../../src/auth/schemas/user.schema";
-import { ApiKey } from "../../../../src/auth/schemas/apikey.schema";
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { UserRepository } from "../../../../src/auth/repositories/user.repository";
 import { ApiKeyService } from "../../../../src/auth/services/apikey.service";
@@ -23,6 +21,7 @@ describe("AuthService", () => {
   let apiKeyService: jest.Mocked<ApiKeyService>;
   let passwordService: jest.Mocked<PasswordService>;
   let tokenService: jest.Mocked<TokenService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let performanceMonitorService: jest.Mocked<PerformanceMonitorService>;
 
   // Mock 数据 - 使用 any 类型来模拟 Mongoose 文档行为

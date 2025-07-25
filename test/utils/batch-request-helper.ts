@@ -37,7 +37,6 @@ export class BatchRequestHelper {
     const {
       batchSize = 5,
       delayBetweenBatches = 100,
-      maxConcurrency = 3,
     } = options;
 
     const results: any[] = [];

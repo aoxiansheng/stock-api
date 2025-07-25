@@ -352,6 +352,7 @@ describe("ApiKeySubject", () => {
 
     it("should return null when rate limit is undefined", () => {
       const { rateLimit, ...apiKeyWithoutRateLimit } = mockApiKeyData;
+      void rateLimit;
       const subject = new ApiKeySubject(apiKeyWithoutRateLimit);
 
       const rateLimitResult = subject.getRateLimit();
@@ -373,6 +374,7 @@ describe("ApiKeySubject", () => {
 
     it("should handle missing usage count", () => {
       const { usageCount, ...apiKeyWithoutUsageCount } = mockApiKeyData;
+      void usageCount;
       const subject = new ApiKeySubject(apiKeyWithoutUsageCount);
 
       const stats = subject.getUsageStats();
@@ -382,6 +384,7 @@ describe("ApiKeySubject", () => {
 
     it("should handle missing lastUsedAt", () => {
       const { lastUsedAt, ...apiKeyWithoutLastUsed } = mockApiKeyData;
+      void lastUsedAt;
       const subject = new ApiKeySubject(apiKeyWithoutLastUsed);
 
       const stats = subject.getUsageStats();

@@ -4,7 +4,7 @@
  */
 
 import { Test, TestingModule } from "@nestjs/testing";
-import { ValidationPipe, Logger } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request } from "express";
 
@@ -16,7 +16,6 @@ import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
 import { PermissionService } from "../../../../src/auth/services/permission.service";
 import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
-import { User } from "../../../../src/auth/schemas/user.schema";
 
 describe("AuthController", () => {
   let controller: AuthController;

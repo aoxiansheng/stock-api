@@ -1,7 +1,7 @@
 import { INestApplication } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-const request = require("supertest");
+import * as request from "supertest";
 import { TestDataHelper } from "../../../config/integration.setup";
 
 describe("Enhanced Authentication Integration Tests", () => {
@@ -206,7 +206,6 @@ describe("Enhanced Authentication Integration Tests", () => {
 
   describe("JWT Token Management", () => {
     let userToken: string;
-    let testUser: any;
     let userData: any;
 
     beforeEach(async () => {
@@ -232,7 +231,6 @@ describe("Enhanced Authentication Integration Tests", () => {
         .expect(200);
 
       userToken = loginResponse.body.data.accessToken;
-      testUser = loginResponse.body.data.user;
     });
 
     it("should access protected routes with valid JWT token", async () => {
@@ -242,8 +240,8 @@ describe("Enhanced Authentication Integration Tests", () => {
         .expect(200);
 
       expect(response.body.statusCode).toBe(200);
-      expect(response.body.data).toHaveProperty("username", testUser.username);
-      expect(response.body.data).toHaveProperty("email", testUser.email);
+      expect(response.body.data).toHaveProperty("username", userData.username);
+      expect(response.body.data).toHaveProperty("email", userData.email);
     });
 
     it("should reject access without token", async () => {
@@ -274,7 +272,6 @@ describe("Enhanced Authentication Integration Tests", () => {
   });
 
   describe("API Key Authentication", () => {
-    let testUser: any;
     let userToken: string;
     let testApiKey: any;
     let userData: any;
@@ -288,7 +285,7 @@ describe("Enhanced Authentication Integration Tests", () => {
         role: "admin",
       };
 
-      const registerResponse = await request(httpServer)
+      await request(httpServer)
         .post("/api/v1/auth/register")
         .send(userData)
         .expect(201);
@@ -301,7 +298,6 @@ describe("Enhanced Authentication Integration Tests", () => {
         })
         .expect(200);
 
-      testUser = loginResponse.body.data.user;
       userToken = loginResponse.body.data.accessToken;
 
       // Create API key
@@ -475,11 +471,10 @@ describe("Enhanced Authentication Integration Tests", () => {
   });
 
   describe("Permission System", () => {
-    let testUser: any;
-    let userToken: string;
     let readOnlyApiKey: any;
     let fullAccessApiKey: any;
     let userData: any;
+    let userToken: string;
 
     beforeEach(async () => {
       userData = {
@@ -517,7 +512,6 @@ describe("Enhanced Authentication Integration Tests", () => {
         .expect(200);
 
       userToken = loginResponse.body.data.accessToken;
-      testUser = loginResponse.body.data.user;
     });
 
     it("should allow access with sufficient permissions", async () => {
@@ -557,6 +551,16 @@ describe("Enhanced Authentication Integration Tests", () => {
         .expect(201);
 
       expect(response.body.statusCode).toBe(201);
+    });
+
+    it("should allow JWT token access to user profile", async () => {
+      const response = await request(httpServer)
+        .get("/api/v1/auth/profile")
+        .set("Authorization", `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body.statusCode).toBe(200);
+      expect(response.body.data.username).toBe(userData.username);
     });
   });
 

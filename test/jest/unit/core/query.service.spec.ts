@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 import { QueryService } from "../../../../src/core/query/query.service";
 import { QueryStatisticsService } from "../../../../src/core/query/services/query-statistics.service";
 import { QueryResultProcessorService } from "../../../../src/core/query/services/query-result-processor.service";
@@ -12,7 +12,6 @@ import { Market } from "../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../src/common/constants/market-trading-hours.constants";
 import {
   QueryRequestDto,
-  SortDirection,
 } from "../../../../src/core/query/dto/query-request.dto";
 import {
   QueryResponseDto,
@@ -24,7 +23,6 @@ import {
   StorageType,
   DataClassification,
 } from "../../../../src/core/storage/enums/storage-type.enum";
-import { DataResponseDto } from "../../../../src/core/receiver/dto/data-response.dto";
 import { BackgroundTaskService } from "../../../../src/core/shared/services/background-task.service";
 
 describe("QueryService", () => {
@@ -257,7 +255,7 @@ describe("QueryService", () => {
           timestamp: new Date().toISOString(),
         },
         metadata: {
-          source: "PROVIDER" as "PROVIDER",
+          source: "PROVIDER" as const,
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
@@ -429,7 +427,7 @@ describe("QueryService", () => {
           timestamp: new Date().toISOString(),
         },
         metadata: {
-          source: "PROVIDER" as "PROVIDER",
+          source: "PROVIDER" as const,
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,
@@ -1451,7 +1449,7 @@ describe("QueryService", () => {
           timestamp: new Date().toISOString(),
         },
         metadata: {
-          source: "PROVIDER" as "PROVIDER",
+          source: "PROVIDER" as const,
           timestamp: new Date(),
           market: Market.US,
           marketStatus: MarketStatus.TRADING,

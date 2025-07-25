@@ -26,6 +26,7 @@ jest.mock("../../../../../src/common/config/logger.config", () => ({
 
 describe("ReceiverController", () => {
   let controller: ReceiverController;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let receiverService: ReceiverService;
 
   const mockReceiverService = {

@@ -9,10 +9,6 @@ import {
   STORAGE_STATUS,
   STORAGE_DEFAULTS,
   STORAGE_KEY_PATTERNS,
-  STORAGE_COMPRESSION,
-  STORAGE_BATCH_CONFIG,
-  STORAGE_HEALTH_CONFIG,
-  STORAGE_CLEANUP_CONFIG,
 } from "../../../../../src/core/storage/constants/storage.constants";
 
 describe("Storage Constants", () => {

@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   HTTP_CONSTANTS,
   isSuccessStatusCode,
   isClientErrorStatusCode,
   isServerErrorStatusCode,
   getErrorTypeByStatusCode,
-} from "@common/constants/unified/http.constants";
+} from "../../../../../../src/common/constants/unified/http.constants";
 
 describe("HTTP_CONSTANTS", () => {
   describe("STATUS_CODES", () => {
@@ -35,10 +36,19 @@ describe("HTTP_CONSTANTS", () => {
     });
 
     it("should be immutable", () => {
-      expect(() => {
-        // @ts-ignore
+      // 使用Object.freeze是否被正确应用的方式来测试
+      expect(Object.isFrozen(HTTP_CONSTANTS.STATUS_CODES)).toBe(true);
+      const originalOK = HTTP_CONSTANTS.STATUS_CODES.OK;
+      
+      // 尝试修改并验证是否失败
+      try {
         HTTP_CONSTANTS.STATUS_CODES.OK = 201;
-      }).toThrow();
+        // 如果没有抛出错误，确认值没有改变
+        expect(HTTP_CONSTANTS.STATUS_CODES.OK).toBe(originalOK);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
   });
 
@@ -98,10 +108,18 @@ describe("HTTP_CONSTANTS", () => {
     });
 
     it("should be immutable", () => {
-      expect(() => {
-        // @ts-ignore
+      expect(Object.isFrozen(HTTP_CONSTANTS.ERROR_MESSAGES)).toBe(true);
+      const originalBadRequest = HTTP_CONSTANTS.ERROR_MESSAGES.BAD_REQUEST;
+      
+      // 尝试修改并验证是否失败
+      try {
         HTTP_CONSTANTS.ERROR_MESSAGES.BAD_REQUEST = "修改的消息";
-      }).toThrow();
+        // 如果没有抛出错误，确认值没有改变
+        expect(HTTP_CONSTANTS.ERROR_MESSAGES.BAD_REQUEST).toBe(originalBadRequest);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
   });
 
@@ -122,10 +140,18 @@ describe("HTTP_CONSTANTS", () => {
     });
 
     it("should be immutable", () => {
-      expect(() => {
-        // @ts-ignore
+      expect(Object.isFrozen(HTTP_CONSTANTS.SUCCESS_MESSAGES)).toBe(true);
+      const originalSuccess = HTTP_CONSTANTS.SUCCESS_MESSAGES.OPERATION_SUCCESS;
+      
+      // 尝试修改并验证是否失败
+      try {
         HTTP_CONSTANTS.SUCCESS_MESSAGES.OPERATION_SUCCESS = "修改的消息";
-      }).toThrow();
+        // 如果没有抛出错误，确认值没有改变
+        expect(HTTP_CONSTANTS.SUCCESS_MESSAGES.OPERATION_SUCCESS).toBe(originalSuccess);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
   });
 });

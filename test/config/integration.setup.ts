@@ -656,7 +656,7 @@ global.createLongportMock = () => ({
   QuoteContext: {
     // @ts-expect-error - Jest mock type inference issue in test setup
     new: jest.fn().mockResolvedValue({
-      // @ts-expect-error
+      // @ts-expect-error - Jest mock return type not matching expected interface
       quote: jest.fn().mockResolvedValue([
         {
           symbol: "700.HK",
@@ -667,7 +667,7 @@ global.createLongportMock = () => ({
           volume: 1000000,
         },
       ]),
-      // @ts-expect-error
+      // @ts-expect-error - Jest mock void return type mismatch
       close: jest.fn().mockResolvedValue(undefined),
     }),
   },

@@ -4,16 +4,13 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
 import { PerformanceMetricsRepository } from "../../../../src/metrics/repositories/performance-metrics.repository";
 import {
-  PERFORMANCE_INTERVALS,
   PERFORMANCE_LIMITS,
   PERFORMANCE_THRESHOLDS,
   METRIC_NAMES,
   METRIC_UNITS,
-  HEALTH_SCORE_CONFIG,
   PERFORMANCE_DEFAULTS,
   PERFORMANCE_EVENTS,
   API_KEY_CONSTANTS,
-  REDIS_INFO,
 } from "../../../../src/metrics/constants/metrics-performance.constants";
 import {
   AuthType,

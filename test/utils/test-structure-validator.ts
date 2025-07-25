@@ -206,6 +206,7 @@ export class TestStructureValidator {
 
       try {
         if (configFile.endsWith(".js")) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           require(path.resolve(configFile));
         } else if (configFile.endsWith(".json")) {
           JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -228,7 +229,7 @@ export class TestStructureValidator {
   private async findTestFiles(dirPath: string): Promise<string[]> {
     try {
       return await glob(`${dirPath}/**/*.{ts,js}`);
-    } catch (error) {
+    } catch {
       return [];
     }
   }

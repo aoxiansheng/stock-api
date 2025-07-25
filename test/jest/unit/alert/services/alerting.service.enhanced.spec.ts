@@ -252,14 +252,12 @@ describe("AlertingService Enhanced Coverage", () => {
 
     it("should handle batch rule operations", async () => {
       // Mock bulk update functionality (this would be implementation-specific)
-      const updateData = { enabled: false };
       const result = { modifiedCount: 3 };
 
       expect(result.modifiedCount).toBe(3);
     });
 
     it("should find rules by metric pattern", async () => {
-      const metricPattern = "cpu.*";
       const matchingRules = [
         { ...mockRule, metric: "cpu.usage" },
         { ...mockRule, metric: "cpu.load" },
@@ -754,7 +752,7 @@ describe("AlertingService Enhanced Coverage", () => {
     });
 
     it.skip("should handle cache eviction policies", async () => {
-      const expiredKeys = [
+      void [
         "active_alert:rule-1",
         "active_alert:rule-2",
         "active_alert:rule-3",

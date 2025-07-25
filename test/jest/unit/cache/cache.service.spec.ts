@@ -1,7 +1,8 @@
 import { CacheService } from "../../../../src/cache/cache.service";
 import { Test, TestingModule } from "@nestjs/testing";
-import { RedisService, RedisModule } from "@liaoliaots/nestjs-redis";
+import { RedisService } from "@liaoliaots/nestjs-redis";
 import Redis from "ioredis";
+import * as zlib from "zlib";
 
 describe("CacheService", () => {
   let service: CacheService;
@@ -113,7 +114,6 @@ describe("CacheService", () => {
       const key = "compressed_key";
       const value = { data: "test_data" };
       // 修复：使用真正的 gzip 压缩数据
-      const zlib = require("zlib");
       const compressedBuffer = zlib.gzipSync(JSON.stringify(value));
       const compressedData = compressedBuffer.toString("base64");
       redisClient.get.mockResolvedValue(`COMPRESSED::${compressedData}`);

@@ -9,8 +9,8 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 
 import { AlertingService } from "../../../../src/alert/services/alerting.service";
 import { AlertHistoryService } from "../../../../src/alert/services/alert-history.service";
-import { NotificationService } from "../../../../src/alert/services/notification.service";
-import { RuleEngineService } from "../../../../src/alert/services/rule-engine.service";
+// import { NotificationService } from "../../../../src/alert/services/notification.service";
+// import { RuleEngineService } from "../../../../src/alert/services/rule-engine.service";
 import { CacheService } from "../../../../src/cache/cache.service";
 import { AlertSeverity } from "../../../../src/alert/types/alert.types";
 import { AlertStatus } from "../../../../src/alert/types/alert.types";
@@ -20,8 +20,9 @@ describe("Alert Cache Integration", () => {
   let app: INestApplication;
   let alertingService: AlertingService;
   let alertHistoryService: AlertHistoryService;
-  let notificationService: NotificationService;
-  let ruleEngineService: RuleEngineService;
+  // Services not used in integration tests
+  // let _notificationService: NotificationService;
+  // let _ruleEngineService: RuleEngineService;
   let cacheService: CacheService;
   let redisClient: Redis;
 
@@ -30,8 +31,8 @@ describe("Alert Cache Integration", () => {
 
     alertingService = app.get<AlertingService>(AlertingService);
     alertHistoryService = app.get<AlertHistoryService>(AlertHistoryService);
-    notificationService = app.get<NotificationService>(NotificationService);
-    ruleEngineService = app.get<RuleEngineService>(RuleEngineService);
+    // _notificationService = app.get<NotificationService>(NotificationService);
+    // _ruleEngineService = app.get<RuleEngineService>(RuleEngineService);
     cacheService = app.get<CacheService>(CacheService);
     const redisService = app.get<RedisService>(RedisService);
     redisClient = redisService.getOrThrow();
@@ -117,7 +118,7 @@ describe("Alert Cache Integration", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Act - 更新规则
-      const updatedRule = await alertingService.updateRule(createdRule.id, {
+      await alertingService.updateRule(createdRule.id, {
         name: "Updated Alert Rule Memory",
         severity: AlertSeverity.CRITICAL,
         enabled: false,
@@ -206,7 +207,7 @@ describe("Alert Cache Integration", () => {
       };
 
       // Act - 创建告警历史
-      const historyEntry = await alertHistoryService.createAlert(alertData);
+      await alertHistoryService.createAlert(alertData);
 
       // 等待缓存写入
       await new Promise((resolve) => setTimeout(resolve, 100));

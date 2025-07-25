@@ -16,7 +16,6 @@ import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limi
 import { RateLimitConfig } from "../../../../../src/auth/interfaces/rate-limit.interface";
 import {
   ApiKeyDocument,
-  ApiKey,
 } from "../../../../../src/auth/schemas/apikey.schema";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 import { Types } from "mongoose";
@@ -205,7 +204,7 @@ describe("RateLimitGuard", () => {
 
       try {
         await guard.canActivate(executionContext);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
         expect(error.getResponse()).toMatchObject({
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
@@ -250,7 +249,7 @@ describe("RateLimitGuard", () => {
 
       try {
         await guard.canActivate(executionContext);
-      } catch (error) {
+      } catch {
         // The exception should be thrown, but headers should still be set
       }
 
@@ -336,7 +335,7 @@ describe("RateLimitGuard", () => {
 
       try {
         await guard.canActivate(executionContext);
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
@@ -384,7 +383,7 @@ describe("RateLimitGuard", () => {
 
       try {
         await guard.canActivate(executionContext);
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
@@ -434,7 +433,7 @@ describe("RateLimitGuard", () => {
 
       try {
         await guard.canActivate(executionContext);
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 
@@ -512,7 +511,7 @@ describe("RateLimitGuard", () => {
       // Clear previous calls
       jest.clearAllMocks();
 
-      const testGuard = new RateLimitGuard(rateLimitService, reflector);
+      new RateLimitGuard(rateLimitService, reflector);
 
       expect(mockLogger.log).toHaveBeenCalledWith("RateLimitGuard 已实例化");
     });

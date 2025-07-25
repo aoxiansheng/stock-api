@@ -12,7 +12,6 @@ import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
 import { CacheService } from "../../../../src/cache/cache.service";
-import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
 import { smartDelay } from "../../../utils/async-test-helpers";
 import { validateRedisMetricsResponse } from "../../../utils/api-response-helpers";
 
@@ -20,7 +19,7 @@ describe("Monitoring Redis Integration", () => {
   let app: INestApplication;
   let authService: AuthService;
   let cacheService: CacheService;
-  let performanceMonitor: PerformanceMonitorService;
+
   let httpServer: any;
   let userModel: Model<any>;
   let apiKeyModel: Model<any>;
@@ -33,9 +32,7 @@ describe("Monitoring Redis Integration", () => {
     httpServer = app.getHttpServer();
     authService = app.get<AuthService>(AuthService);
     cacheService = app.get<CacheService>(CacheService);
-    performanceMonitor = app.get<PerformanceMonitorService>(
-      PerformanceMonitorService,
-    );
+
     userModel = app.get(getModelToken("User"));
     apiKeyModel = app.get(getModelToken("ApiKey"));
   });

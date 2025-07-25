@@ -11,9 +11,6 @@ import {
   DATA_MAPPER_STATUS,
   DATA_MAPPER_DEFAULTS,
   DATA_TYPE_HANDLERS,
-  DATA_MAPPER_FIELD_VALIDATION_RULES,
-  DATA_MAPPER_CACHE_CONFIG,
-  PATH_RESOLUTION_CONFIG,
 } from "../../../../../src/core/data-mapper/constants/data-mapper.constants";
 
 describe("Data Mapper Constants", () => {

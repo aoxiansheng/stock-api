@@ -1,5 +1,4 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { Logger, ValidationPipe } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { QueryController } from "../../../../src/core/query/query.controller";
 import { QueryService } from "../../../../src/core/query/query.service";

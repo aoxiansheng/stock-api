@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { readdir, stat, mkdir, writeFile, rmdir } from "fs/promises";
+import { mkdir, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { CapabilityRegistryService } from "@providers/capability-registry.service";
@@ -8,8 +8,11 @@ import { ICapability } from "@providers/interfaces/capability.interface";
 describe("CapabilityRegistryService - Integration", () => {
   let service: CapabilityRegistryService;
   let testDir: string;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let loggerSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
+
 
   // Mock capabilities for testing
   const mockCapability1: ICapability = {
@@ -28,23 +31,7 @@ describe("CapabilityRegistryService - Integration", () => {
     execute: jest.fn(),
   };
 
-  // Helper function to create a mock capability file
-  const createMockCapabilityFile = (
-    capabilityName: string,
-    capability: ICapability,
-  ): string => {
-    return `
-// Mock capability file for testing
-export default {
-  name: '${capability.name}',
-  description: '${capability.description}',
-  supportedMarkets: ${JSON.stringify(capability.supportedMarkets)},
-  execute: async (params) => {
-    return { success: true, data: 'mock-data' };
-  }
-};
-    `;
-  };
+
 
   beforeAll(async () => {
     // Create temporary test directory structure
@@ -56,7 +43,7 @@ export default {
     // Clean up test directory
     try {
       await rmdir(testDir, { recursive: true });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });
@@ -330,14 +317,11 @@ export default {
   describe("File System Discovery Simulation", () => {
     it("should handle directory existence checks", async () => {
       // Test the private directoryExists method indirectly
-      const existingDir = tmpdir(); // Should exist
-      const nonExistentDir = join(tmpdir(), "non-existent-dir-123456789");
 
       // We can't directly test private methods, but we can test the overall behavior
       // that relies on directory existence checks during discovery
 
       // Mock the internal __dirname to point to our test directory
-      const originalDirname = (service as any).__dirname || __dirname;
 
       // This would normally be tested by setting up actual file structure
       // and calling discoverCapabilities, but that's complex for unit tests

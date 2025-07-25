@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   AUTH_ERROR_MESSAGES,
   BUSINESS_ERROR_MESSAGES,
@@ -21,7 +22,7 @@ describe("Error Messages Constants", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore - Testing immutability
         AUTH_ERROR_MESSAGES.NEW_ERROR = "新错误";
       }).toThrow();
     });
@@ -36,7 +37,7 @@ describe("Error Messages Constants", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore - Testing immutability
         BUSINESS_ERROR_MESSAGES.NEW_ERROR = "新错误";
       }).toThrow();
     });
@@ -53,7 +54,7 @@ describe("Error Messages Constants", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore - Testing immutability
         SYSTEM_ERROR_MESSAGES.NEW_ERROR = "新错误";
       }).toThrow();
     });
@@ -71,7 +72,7 @@ describe("Error Messages Constants", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore - Testing immutability
         HTTP_ERROR_MESSAGES.NEW_ERROR = "新错误";
       }).toThrow();
     });
@@ -94,7 +95,7 @@ describe("Error Messages Constants", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore - Testing immutability
         ERROR_MESSAGES.NEW_ERROR = "新错误";
       }).toThrow();
     });
@@ -317,7 +318,7 @@ describe("Error Messages Constants", () => {
         const allMessages = ErrorMessageUtil.getAll();
 
         expect(() => {
-          // @ts-ignore
+          // @ts-ignore - Testing immutability
           allMessages.NEW_ERROR = "新错误";
         }).toThrow();
       });
@@ -338,7 +339,7 @@ describe("Error Messages Constants", () => {
         const uniqueKeys = new Set(allKeys);
         const expectedCount = uniqueKeys.size;
 
-        expect(messageCount).toBe(expectedCount);
+        expect(messageCount).toBe(expectedCount); // Added comment for testing
       });
     });
 

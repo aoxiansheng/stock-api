@@ -92,7 +92,7 @@ export class MonitoringTestHelper {
     validator?: (result: any) => boolean,
     options: { timeout?: number; retries?: number } = {},
   ): Promise<any> {
-    const { timeout = TestEnvironment.getTimeout(1000), retries = 3 } = options;
+    const { timeout = TestEnvironment.getTimeout(1000) } = options;
 
     let result: any;
     let lastError: Error | null = null;

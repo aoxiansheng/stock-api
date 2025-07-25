@@ -16,9 +16,7 @@ import {
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
-  NOTIFICATION_CONFIG,
   NOTIFICATION_TEMPLATE_VARIABLES,
-  NOTIFICATION_RETRY_CONFIG,
 } from "../../../../src/alert/constants/notification.constants";
 
 // 从工具文件导入NotificationTemplateUtil
@@ -27,10 +25,8 @@ import { NotificationTemplateUtil } from "../../../../src/alert/utils/notificati
 describe("NotificationService Optimization Features", () => {
   let service: NotificationService;
   let emailSender: jest.Mocked<EmailSender>;
-  let webhookSender: jest.Mocked<WebhookSender>;
   let slackSender: jest.Mocked<SlackSender>;
-  let logSender: jest.Mocked<LogSender>;
-  let dingtalkSender: jest.Mocked<DingTalkSender>;
+
   let loggerSpy: jest.SpyInstance;
 
   const mockRule = {
@@ -124,12 +120,7 @@ describe("NotificationService Optimization Features", () => {
 
     service = module.get<NotificationService>(NotificationService);
     emailSender = module.get(EmailSender);
-    webhookSender = module.get(WebhookSender);
     slackSender = module.get(SlackSender);
-    logSender = module.get(LogSender);
-    dingtalkSender = module.get(DingTalkSender);
-
-    // Spy on logger
     loggerSpy = jest
       .spyOn((service as any).logger, "debug")
       .mockImplementation();

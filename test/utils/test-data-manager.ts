@@ -3,7 +3,6 @@
  * 提供测试数据的创建、隔离和清理功能
  */
 
-import { Model } from "mongoose";
 import { getModelToken } from "@nestjs/mongoose";
 import { INestApplication } from "@nestjs/common";
 import { RedisService } from "@liaoliaots/nestjs-redis";

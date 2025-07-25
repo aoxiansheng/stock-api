@@ -5,30 +5,19 @@
 
 import { INestApplication } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import { JwtService } from "@nestjs/jwt";
-const request = require("supertest");
+import * as request from "supertest";
 
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
 import {
-  waitForCondition,
-  waitForArrayLength,
-  waitForHttpRequest,
   smartDelay,
-  retry,
-  TestEnvironment,
 } from "../../../utils/async-test-helpers";
 import {
   ApiResponseTestHelper,
-  ResponseValidators,
   validateEndpointMetricsResponse,
   validatePerformanceMetricsResponse,
-  validateDatabaseMetricsResponse,
-  validateRedisMetricsResponse,
   validateSystemMetricsResponse,
-  validateHealthStatusResponse,
   validateApiKeyCreationResponse,
 } from "../../../utils/api-response-helpers";
 
@@ -37,20 +26,17 @@ describe("Monitoring Auth Integration", () => {
   let app: INestApplication;
   let httpServer: any;
   let authService: AuthService;
-  let jwtService: JwtService;
   let userModel: any;
   let apiKeyModel: any;
   let adminToken: string;
   let developerToken: string;
   let adminUser: any;
   let developerUser: any;
-  let testDataPrefix: string;
 
   beforeAll(async () => {
     app = (global as any).testApp;
     httpServer = app.getHttpServer();
     authService = app.get<AuthService>(AuthService);
-    jwtService = app.get<JwtService>(JwtService);
     userModel = app.get(getModelToken("User"));
     apiKeyModel = app.get(getModelToken("ApiKey"));
   });
@@ -149,7 +135,7 @@ describe("Monitoring Auth Integration", () => {
       } else {
         console.warn("⚠️ 测试API Key创建失败，状态码:", response.status);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ 测试API Key创建异常:", error.message);
       throw error; // 重新抛出错误，让测试失败而不是静默跳过
     }
@@ -254,7 +240,8 @@ describe("Monitoring Auth Integration", () => {
     });
 
     it("无效API Key应该被拒绝访问管理员接口", async () => {
-      const invalidApiKey = "invalid-api-key";
+  
+      const invalidApiKey = "invalid-app-key";
       const invalidApiSecret = "invalid-api-secret";
 
       // 测试部分管理员接口（避免测试所有接口）
@@ -303,7 +290,6 @@ describe("Monitoring Auth Integration", () => {
   describe("API Key验证集成测试", () => {
     it("应该正确验证API Key格式", async () => {
       // 测试无效格式的API Key
-      const invalidApiKey = "invalid-format-key";
       const response = await request(httpServer)
         .get("/api/v1/monitoring/performance")
         .set("Authorization", `Bearer ${adminToken}`)
@@ -326,7 +312,7 @@ describe("Monitoring Auth Integration", () => {
 
     it("应该正确验证API Key的权限", async () => {
       // 测试开发者用户访问管理员接口应该被拒绝
-      const response = await request(httpServer)
+      await request(httpServer)
         .get("/api/v1/monitoring/performance")
         .set("Authorization", `Bearer ${developerToken}`)
         .expect(403); // 禁止访问—权限不足
@@ -643,14 +629,6 @@ describe("Monitoring Auth Integration", () => {
   afterAll(async () => {
     try {
       // 清理测试数据
-      if (testDataPrefix) {
-        await userModel.deleteMany({
-          username: { $regex: `^${testDataPrefix}_` },
-        });
-        await apiKeyModel.deleteMany({
-          name: { $regex: `^${testDataPrefix}_` },
-        });
-      }
 
       // 清理全局变量
       delete (global as any).testApiKey;

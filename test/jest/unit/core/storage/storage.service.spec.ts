@@ -6,7 +6,7 @@ import {
   StorageType,
   DataClassification,
 } from "../../../../../src/core/storage/enums/storage-type.enum";
-import { ServiceUnavailableException } from "@nestjs/common";
+
 import { BullModule } from "@nestjs/bull";
 import {
   StoreDataDto,

@@ -48,7 +48,7 @@ describe("OPERATION_CONSTANTS", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-expect-error Testing immutability
         OPERATION_CONSTANTS.CRUD_MESSAGES.CREATE_SUCCESS = "修改的消息";
       }).toThrow();
     });
@@ -155,7 +155,7 @@ describe("getSuccessMessage", () => {
   });
 
   it("should return default message for unknown operations", () => {
-    // @ts-ignore - Testing runtime behavior
+    // @ts-expect-error - Testing runtime behavior
     expect(getSuccessMessage("unknown_operation")).toBe("处理已完成");
   });
 
@@ -186,7 +186,7 @@ describe("getFailureMessage", () => {
   });
 
   it("should return default message for unknown operations", () => {
-    // @ts-ignore - Testing runtime behavior
+    // @ts-expect-error - Testing runtime behavior
     expect(getFailureMessage("unknown_operation")).toBe("处理失败");
   });
 });
@@ -208,7 +208,7 @@ describe("isQueryOperation", () => {
   });
 
   it("should handle unknown operations", () => {
-    // @ts-ignore - Testing runtime behavior
+    // @ts-expect-error - Testing runtime behavior
     expect(isQueryOperation("unknown_operation")).toBe(false);
   });
 });

@@ -1,8 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { QueryStatisticsService } from "../../../../../../src/core/query/services/query-statistics.service";
-import { QueryType } from "../../../../../../src/core/query/dto/query-types.dto";
 import { QUERY_PERFORMANCE_CONFIG } from "../../../../../../src/core/query/constants/query.constants";
-import { QueryStatsDto } from "../../../../../../src/core/query/dto/query-response.dto";
 
 describe("QueryStatisticsService", () => {
   let service: QueryStatisticsService;

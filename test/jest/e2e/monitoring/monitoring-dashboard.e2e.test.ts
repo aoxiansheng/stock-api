@@ -3,7 +3,7 @@ import { INestApplication } from "@nestjs/common";
 
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
-import { AlertHistoryService } from "../../../../src/alert/services/alert-history.service";
+// import { AlertHistoryService } from "../../../../src/alert/services/alert-history.service";
 import { UserRepository } from "../../../../src/auth/repositories/user.repository";
 import { PasswordService } from "../../../../src/auth/services/password.service";
 

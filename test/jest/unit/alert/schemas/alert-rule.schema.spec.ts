@@ -1,6 +1,4 @@
-import { SchemaFactory } from "@nestjs/mongoose";
 import {
-  AlertRule,
   AlertRuleSchema,
 } from "../../../../../src/alert/schemas/alert-rule.schema";
 import { AlertSeverity } from "../../../../../src/alert/types/alert.types";

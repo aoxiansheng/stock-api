@@ -19,12 +19,14 @@ import {
 
 describe("NotificationService", () => {
   let service: NotificationService;
-  let eventEmitter: EventEmitter2;
   let emailSender: EmailSender;
   let webhookSender: WebhookSender;
   let dingTalkSender: DingTalkSender;
   let slackSender: SlackSender;
-  let logSender: LogSender;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _eventEmitter: EventEmitter2;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _logSender: LogSender;
 
   const mockAlert = {
     id: "alert-123",
@@ -127,12 +129,12 @@ describe("NotificationService", () => {
     }).compile();
 
     service = module.get<NotificationService>(NotificationService);
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
+    _eventEmitter = module.get<EventEmitter2>(EventEmitter2);
     emailSender = module.get<EmailSender>(EmailSender);
     webhookSender = module.get<WebhookSender>(WebhookSender);
     dingTalkSender = module.get<DingTalkSender>(DingTalkSender);
     slackSender = module.get<SlackSender>(SlackSender);
-    logSender = module.get<LogSender>(LogSender);
+    _logSender = module.get<LogSender>(LogSender);
 
     // 手动调用 onModuleInit 来初始化 senders
     service.onModuleInit();

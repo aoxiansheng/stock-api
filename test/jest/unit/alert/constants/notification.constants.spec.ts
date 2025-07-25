@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
@@ -6,10 +7,7 @@ import {
   NOTIFICATION_TEMPLATE_PATTERNS,
   NOTIFICATION_CONFIG,
   NOTIFICATION_TYPE_PRIORITY,
-  NOTIFICATION_METRICS,
   NOTIFICATION_VALIDATION_RULES,
-  NOTIFICATION_TIME_CONFIG,
-  NOTIFICATION_ALERT_THRESHOLDS,
   NOTIFICATION_RETRY_CONFIG,
 } from "../../../../../src/alert/constants/notification.constants";
 
@@ -32,7 +30,7 @@ describe("Notification Constants", () => {
 
     it("should be immutable", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore 这是有意为之，测试常量对象是否真正不可变
         NOTIFICATION_OPERATIONS.SEND_NOTIFICATION = "modified";
       }).toThrow();
     });

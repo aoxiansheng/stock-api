@@ -6,11 +6,11 @@
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 
 describe("Authorization Security Tests", () => {
-  let app: any;
+
   let request: any;
 
   beforeAll(async () => {
-    app = global.getSecurityApp();
+    global.getSecurityApp();
     request = global.createSecurityRequest();
   });
 

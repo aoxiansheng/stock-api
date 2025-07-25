@@ -13,10 +13,6 @@ import {
   SecurityScanResult,
 } from "../../../../src/security/interfaces/security-scanner.interface";
 import { Logger } from "@nestjs/common";
-import {
-  SECURITY_SCANNER_OPERATIONS,
-  SECURITY_SCANNER_MESSAGES,
-} from "../../../../src/security/constants/security-scanner.constants";
 
 describe("SecurityScannerService", () => {
   let service: SecurityScannerService;
@@ -24,7 +20,6 @@ describe("SecurityScannerService", () => {
   let mockApiKeyRepository: jest.Mocked<ApiKeyRepository>;
   let mockScanResultRepository: jest.Mocked<SecurityScanResultRepository>;
   let mockConfigService: jest.Mocked<ConfigService>;
-  let mockLogger: jest.Mocked<Logger>;
   let scanHistory: SecurityScanResult[] = [];
 
   const mockUser = {
@@ -118,7 +113,8 @@ describe("SecurityScannerService", () => {
     mockApiKeyRepository = module.get(ApiKeyRepository);
     mockScanResultRepository = module.get(SecurityScanResultRepository);
     mockConfigService = module.get(ConfigService);
-    mockLogger = module.get(Logger);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let _mockLogger = module.get(Logger);
 
     // 🎯 将默认的干净 mock 状态移至顶层 beforeEach
     mockUserRepository.findByUsernames.mockResolvedValue([]);

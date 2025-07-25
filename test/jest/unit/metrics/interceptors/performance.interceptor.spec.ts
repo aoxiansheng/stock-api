@@ -5,7 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
-import { Observable, of, throwError } from "rxjs";
+import { of, throwError } from "rxjs";
 
 import { PerformanceInterceptor } from "../../../../../src/metrics/interceptors/performance.interceptor";
 import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
@@ -56,8 +56,8 @@ describe("PerformanceInterceptor", () => {
     let mockGetRequest: jest.Mock;
 
     // 创建一个模拟的类和方法，为 Reflector 提供目标
-    class MockController {}
-    const mockHandler = () => {};
+    class MockController { }
+    const mockHandler = () => { };
 
     beforeEach(() => {
       mockGetRequest = jest.fn().mockReturnValue({

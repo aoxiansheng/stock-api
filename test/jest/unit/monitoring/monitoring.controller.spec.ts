@@ -9,7 +9,6 @@ import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-per
 import {
   BadRequestException,
   InternalServerErrorException,
-  Logger,
 } from "@nestjs/common";
 import { AlertingService } from "../../../../src/alert/services/alerting.service";
 import { createLogger } from "../../../../src/common/config/logger.config";
@@ -37,7 +36,8 @@ describe("MonitoringController", () => {
   let cacheOptimization: jest.Mocked<CacheService>;
   let metricsHealthService: jest.Mocked<MetricsHealthService>;
   let alertingService: jest.Mocked<AlertingService>;
-  let mockLogger: any;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _mockLogger: any; // Declare _mockLogger
   const MOCK_UPTIME = 12345.678;
 
   const mockPerformanceSummary: PerformanceSummaryDto = {
@@ -236,7 +236,7 @@ describe("MonitoringController", () => {
     cacheOptimization = module.get(CacheService);
     metricsHealthService = module.get(MetricsHealthService);
     alertingService = module.get(AlertingService);
-    mockLogger = createLogger("MonitoringControllerSpec");
+    _mockLogger = createLogger("MonitoringControllerSpec");
   });
 
   it("should be defined", () => {

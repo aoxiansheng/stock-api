@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   // 顶层常量对象（从索引导入）
   SYSTEM_CONSTANTS,
@@ -363,10 +364,19 @@ describe("Unified Constants Index - Function Coverage", () => {
     });
 
     it("should be immutable (readonly)", () => {
-      expect(() => {
-        // @ts-ignore
-        UNIFIED_CONSTANTS.NEW_CATEGORY = {};
-      }).toThrow();
+      expect(Object.isFrozen(UNIFIED_CONSTANTS)).toBe(true);
+      
+      // 测试赋值到一个已存在的键
+      const originalSystem = UNIFIED_CONSTANTS.SYSTEM;
+      try {
+        // @ts-ignore 我们需要忽略这个错误，因为这是测试的一部分
+        UNIFIED_CONSTANTS.SYSTEM = {};
+        // 确认值没有改变
+        expect(UNIFIED_CONSTANTS.SYSTEM).toBe(originalSystem);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
 
     it("should allow property enumeration", () => {
@@ -405,10 +415,17 @@ describe("Unified Constants Index - Function Coverage", () => {
     });
 
     it("should be immutable", () => {
-      expect(() => {
-        // @ts-ignore
+      expect(Object.isFrozen(CONSTANTS_VERSION)).toBe(true);
+      const originalValue = CONSTANTS_VERSION.MAJOR;
+      
+      try {
         CONSTANTS_VERSION.MAJOR = 999;
-      }).toThrow();
+        // 确认值没有改变
+        expect(CONSTANTS_VERSION.MAJOR).toBe(originalValue);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
   });
 
@@ -443,10 +460,17 @@ describe("Unified Constants Index - Function Coverage", () => {
     });
 
     it("should be immutable", () => {
-      expect(() => {
-        // @ts-ignore
+      expect(Object.isFrozen(CONSTANTS_META)).toBe(true);
+      const originalDescription = CONSTANTS_META.DESCRIPTION;
+      
+      try {
         CONSTANTS_META.DESCRIPTION = "Modified";
-      }).toThrow();
+        // 确认值没有改变
+        expect(CONSTANTS_META.DESCRIPTION).toBe(originalDescription);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
   });
 

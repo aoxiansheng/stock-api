@@ -5,7 +5,6 @@ import {
 } from "../../../../../../src/core/shared/services/market-status.service";
 import { Market } from "../../../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../../../src/common/constants/market-trading-hours.constants";
-import { createLogger } from "../../../../../../src/common/config/logger.config";
 
 // Create a single, reusable mock logger instance
 const mockLoggerInstance = {

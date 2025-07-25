@@ -8,7 +8,6 @@ import {
 } from "../../../../../src/auth/decorators/auth.decorator";
 import { JwtAuthGuard } from "../../../../../src/auth/guards/jwt-auth.guard";
 import { ApiKeyAuthGuard } from "../../../../../src/auth/guards/apikey-auth.guard";
-import { RolesGuard } from "../../../../../src/auth/guards/roles.guard";
 import { RateLimitGuard } from "../../../../../src/auth/guards/rate-limit.guard";
 import {
   UserRole,

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import {
   BadRequestException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";

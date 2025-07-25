@@ -15,7 +15,6 @@ import {
 describe("SecurityAuditService Optimization Features", () => {
   let service: SecurityAuditService;
   let auditLogRepository: jest.Mocked<SecurityAuditLogRepository>;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
   let cacheService: jest.Mocked<CacheService>;
   let loggerSpy: jest.SpyInstance;
 
@@ -63,7 +62,6 @@ describe("SecurityAuditService Optimization Features", () => {
 
     service = module.get<SecurityAuditService>(SecurityAuditService);
     auditLogRepository = module.get(SecurityAuditLogRepository);
-    eventEmitter = module.get(EventEmitter2);
     cacheService = module.get(CacheService);
 
     // Spy on logger
@@ -261,7 +259,6 @@ describe("SecurityAuditService Optimization Features", () => {
       );
     });
   });
-
   describe("Enhanced Error Handling", () => {
     it("should handle audit log retrieval errors gracefully", async () => {
       const errorSpy = jest

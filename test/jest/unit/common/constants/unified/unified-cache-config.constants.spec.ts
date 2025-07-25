@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   CACHE_CONSTANTS,
   buildCacheKey,
@@ -5,22 +6,44 @@ import {
   getTTLFromEnv,
   getRecommendedTTL,
   shouldCompress,
-} from "@common/constants/unified/unified-cache-config.constants";
+} from "../../../../../../src/common/constants/unified/unified-cache-config.constants";
 
-describe("CACHE_CONSTANTS", () => {
+describe("Cache Constants", () => {
   describe("TTL_SETTINGS", () => {
-    it("should have all required TTL configurations", () => {
+    it("should have all required TTL settings", () => {
       expect(CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL).toBe(3600);
       expect(CACHE_CONSTANTS.TTL_SETTINGS.SHORT_TTL).toBe(300);
+      expect(CACHE_CONSTANTS.TTL_SETTINGS.LONG_TTL).toBe(7200);
       expect(CACHE_CONSTANTS.TTL_SETTINGS.REALTIME_DATA_TTL).toBe(5);
       expect(CACHE_CONSTANTS.TTL_SETTINGS.AUTH_TOKEN_TTL).toBe(1800);
     });
 
     it("should be immutable", () => {
-      expect(() => {
-        // @ts-ignore
+      expect(Object.isFrozen(CACHE_CONSTANTS.TTL_SETTINGS)).toBe(true);
+      const originalValue = CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL;
+      
+      try {
         CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL = 1000;
-      }).toThrow();
+        // 确认值没有改变
+        expect(CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL).toBe(originalValue);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
+    });
+
+    it("should be immutable for key prefixes", () => {
+      expect(Object.isFrozen(CACHE_CONSTANTS.KEY_PREFIXES)).toBe(true);
+      const originalValue = CACHE_CONSTANTS.KEY_PREFIXES.AUTH;
+      
+      try {
+        CACHE_CONSTANTS.KEY_PREFIXES.AUTH = "changed:";
+        // 确认值没有改变
+        expect(CACHE_CONSTANTS.KEY_PREFIXES.AUTH).toBe(originalValue);
+      } catch (e) {
+        // 在严格模式下抛出错误是预期的
+        expect(e).toBeDefined();
+      }
     });
   });
 
@@ -31,10 +54,10 @@ describe("CACHE_CONSTANTS", () => {
       expect(CACHE_CONSTANTS.KEY_PREFIXES.METRICS).toBe("metrics:");
     });
 
-    it("should be immutable", () => {
+    it("should be immutable for key prefixes", () => {
       expect(() => {
-        // @ts-ignore
-        CACHE_CONSTANTS.KEY_PREFIXES.QUERY = "modified:";
+        // @ts-expect-error Testing immutability
+        CACHE_CONSTANTS.KEY_PREFIXES.USER = "changed:";
       }).toThrow();
     });
   });
@@ -200,7 +223,7 @@ describe("getRecommendedTTL", () => {
   });
 
   it("should return default TTL for unknown data type", () => {
-    // @ts-ignore - Testing runtime behavior
+    // @ts-expect-error - Testing runtime behavior
     const ttl = getRecommendedTTL("unknown");
     expect(ttl).toBe(CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL);
   });

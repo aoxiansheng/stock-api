@@ -1,7 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { Model } from "mongoose";
 import { NotFoundException } from "@nestjs/common";
 
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
@@ -11,7 +10,6 @@ import { AlertHistoryService } from "../../../../../src/alert/services/alert-his
 import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
 import {
   AlertRule,
-  AlertRuleDocument,
 } from "../../../../../src/alert/schemas/alert-rule.schema";
 import { CacheService } from "../../../../../src/cache/cache.service";
 import { IAlertRule, IAlert } from "../../../../../src/alert/interfaces";
@@ -27,8 +25,6 @@ describe("AlertingService", () => {
   let notificationService: jest.Mocked<NotificationService>;
   let alertHistoryService: jest.Mocked<AlertHistoryService>;
   let alertRuleRepository: jest.Mocked<AlertRuleRepository>;
-  let alertRuleModel: jest.Mocked<Model<AlertRuleDocument>>;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockRule: IAlertRule = {
     id: "test-rule",
@@ -157,11 +153,9 @@ describe("AlertingService", () => {
 
     service = module.get<AlertingService>(AlertingService);
     alertRuleRepository = module.get(AlertRuleRepository);
-    alertRuleModel = module.get(getModelToken(AlertRule.name));
     ruleEngineService = module.get(RuleEngineService);
     notificationService = module.get(NotificationService);
     alertHistoryService = module.get(AlertHistoryService);
-    eventEmitter = module.get(EventEmitter2);
   });
 
   afterEach(() => {

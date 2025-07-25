@@ -247,7 +247,7 @@ global.waitForApplication = async (timeoutMs: number = 5000) => {
       if (response.status === 200) {
         return true;
       }
-    } catch (_error) {
+    } catch {
       // 继续等待
     }
 

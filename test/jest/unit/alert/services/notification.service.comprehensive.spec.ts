@@ -1,5 +1,4 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
 

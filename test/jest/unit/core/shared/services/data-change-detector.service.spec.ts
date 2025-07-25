@@ -1,11 +1,9 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import {
   DataChangeDetectorService,
-  ChangeDetectionResult,
 } from "../../../../../../src/core/shared/services/data-change-detector.service";
 import { Market } from "../../../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../../../src/common/constants/market-trading-hours.constants";
-import { createLogger } from "../../../../../../src/common/config/logger.config";
 
 // Create a single, reusable mock logger instance
 const mockLoggerInstance = {
@@ -747,9 +745,9 @@ describe("DataChangeDetectorService", () => {
 
       // Add snapshots with different timestamps
       const timestamps = [1000, 2000, 3000, 4000, 5000];
-      timestamps.forEach((timestamp, index) => {
-        (service as any).snapshotCache.set(`SYMBOL_${index}`, {
-          symbol: `SYMBOL_${index}`,
+      timestamps.forEach((timestamp, i) => {
+        (service as any).snapshotCache.set(`SYMBOL_${i}`, {
+          symbol: `SYMBOL_${i}`,
           timestamp,
           checksum: "test",
           criticalValues: {},
@@ -844,7 +842,7 @@ describe("DataChangeDetectorService", () => {
       const results = await Promise.all(promises);
 
       expect(results).toHaveLength(20);
-      results.forEach((result, index) => {
+      results.forEach((result) => {
         expect(result).toBeDefined();
         expect(result.hasChanged).toBe(true); // All first-time data
       });

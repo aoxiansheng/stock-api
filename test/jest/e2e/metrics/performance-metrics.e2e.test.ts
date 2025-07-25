@@ -192,14 +192,28 @@ describe("Performance Metrics E2E Tests", () => {
         .set("Authorization", `Bearer ${jwtToken}`)
         .expect(200);
 
-      // Add a brief delay to allow async metrics to be updated
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // 3. 使用轮询代替固定延迟，等待指标更新
+      const pollUntilUpdated = async (retries = 10, interval = 200) => {
+        for (let i = 0; i < retries; i++) {
+          const response = await httpServer
+            .get("/api/v1/monitoring/endpoints")
+            .set("Authorization", `Bearer ${jwtToken}`);
 
-      // 3. Get updated metrics
-      const finalResponse = await httpServer
-        .get("/api/v1/monitoring/endpoints")
-        .set("Authorization", `Bearer ${jwtToken}`)
-        .expect(200);
+          if (response.status === 200 && response.body.data.metrics) {
+            const systemEndpoint = response.body.data.metrics.find(
+              (ep) => ep.endpoint === "/api/v1/monitoring/system",
+            );
+            const currentCount = systemEndpoint ? systemEndpoint.totalRequests : 0;
+            if (currentCount > initialSystemCount) {
+              return response; // 指标已更新，返回最终响应
+            }
+          }
+          await new Promise((resolve) => setTimeout(resolve, interval));
+        }
+        throw new Error("Metrics did not update within the polling period.");
+      };
+
+      const finalResponse = await pollUntilUpdated();
 
       // 4. Verify the metrics were updated
       if (finalResponse.status === 200 && finalResponse.body.data.metrics) {

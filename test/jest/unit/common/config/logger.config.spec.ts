@@ -1,7 +1,6 @@
 import {
   CustomLogger,
   sanitizeLogData,
-  TestableLogger,
 } from "../../../../../src/common/config/logger.config";
 import pino from "pino";
 
@@ -26,7 +25,7 @@ describe("LoggerConfig", () => {
   beforeEach(() => {
     // Clear the mock function calls before each test
     Object.values(pinoMock).forEach((mockFn) => mockFn.mockClear());
-    // @ts-ignore - This is a valid mock but TS compiler struggles with the type
+    // @ts-expect-error - This is a valid mock but TS compiler struggles with the type
     (pino as jest.Mock).mockClear();
   });
 

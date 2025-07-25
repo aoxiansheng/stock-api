@@ -22,7 +22,9 @@ describe("AuthService Optimization Features", () => {
   let userRepository: jest.Mocked<UserRepository>;
   let passwordService: jest.Mocked<PasswordService>;
   let tokenService: jest.Mocked<TokenService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let apiKeyService: jest.Mocked<ApiKeyService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let performanceMonitorService: jest.Mocked<PerformanceMonitorService>;
   let loggerSpy: jest.SpyInstance;
 

@@ -14,7 +14,6 @@ import {
   QUERY_PERFORMANCE_CONFIG,
   QUERY_OPERATIONS,
 } from "../../../../../../src/core/query/constants/query.constants";
-import { createLogger } from "../../../../../../src/common/config/logger.config";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({

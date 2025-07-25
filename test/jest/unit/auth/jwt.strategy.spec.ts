@@ -10,7 +10,6 @@ import { UnauthorizedException } from "@nestjs/common";
 import { JwtStrategy } from "../../../../src/auth/strategies/jwt.strategy";
 import {
   TokenService,
-  JwtPayload,
 } from "../../../../src/auth/services/token.service";
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 
@@ -62,7 +61,7 @@ describe("JwtStrategy", () => {
       configService.get = jest.fn().mockReturnValue(mockSecret);
 
       // Act
-      const newStrategy = new JwtStrategy(tokenService, configService);
+      new JwtStrategy(tokenService, configService);
 
       // Assert
       expect(configService.get).toHaveBeenCalledWith("JWT_SECRET");
@@ -75,7 +74,7 @@ describe("JwtStrategy", () => {
       configService.get = jest.fn().mockReturnValue(null);
 
       // Act
-      const newStrategy = new JwtStrategy(tokenService, configService);
+      new JwtStrategy(tokenService, configService);
 
       // Assert
       expect(configService.get).toHaveBeenCalledWith("JWT_SECRET");

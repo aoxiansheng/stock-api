@@ -58,9 +58,8 @@ describe("Query Utils", () => {
   });
 
   describe("validateDataFreshness", () => {
-    // 保存并恢复 Date.now
-    const originalDateNow = Date.now;
-
+    // 移除未使用的变量
+    
     beforeEach(() => {
       // 模拟当前时间为固定值以便于测试
       jest

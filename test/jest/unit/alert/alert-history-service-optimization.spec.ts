@@ -18,7 +18,9 @@ import { IAlertQuery, IAlert } from "../../../../src/alert/interfaces";
 describe("AlertHistoryService Optimization Features", () => {
   let service: AlertHistoryService;
   let alertHistoryRepository: jest.Mocked<AlertHistoryRepository>;
-  let cacheService: jest.Mocked<CacheService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _cacheService: CacheService;
+
   let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
@@ -60,7 +62,7 @@ describe("AlertHistoryService Optimization Features", () => {
 
     service = module.get<AlertHistoryService>(AlertHistoryService);
     alertHistoryRepository = module.get(AlertHistoryRepository);
-    cacheService = module.get(CacheService);
+    _cacheService = module.get(CacheService);
 
     // Spy on logger
     loggerSpy = jest

@@ -2,7 +2,6 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { CacheService } from "../../../../src/cache/cache.service";
 import { RedisService } from "@liaoliaots/nestjs-redis";
-import Redis from "ioredis";
 import { ServiceUnavailableException } from "@nestjs/common";
 import { CACHE_ERROR_MESSAGES } from "../../../../src/cache/constants/cache.constants";
 
@@ -78,7 +77,6 @@ describe("CacheService - Error Handling Branch Coverage", () => {
   let loggerSpy: jest.SpyInstance;
   let originalValidateKeyLength: any;
   let shouldCompressSpy: jest.SpyInstance;
-  let serializeSpy: jest.SpyInstance;
   let compressSpy: jest.SpyInstance;
 
   beforeEach(async () => {
@@ -149,7 +147,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
     jest
       .spyOn(service as any, "isCompressed")
       .mockImplementation((val: string) => val?.startsWith(COMPRESSION_PREFIX));
-    serializeSpy = jest
+    jest
       .spyOn(service as any, "serialize")
       .mockImplementation((val) => JSON.stringify(val));
     jest

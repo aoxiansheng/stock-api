@@ -3,7 +3,6 @@ import {
   DatabasePerformance,
   AuthPerformance,
 } from "../../../../../src/metrics/decorators/database-performance.decorator";
-import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
 
 describe("Performance Decorators", () => {
   let mockPerformanceMonitor: any;
@@ -56,7 +55,9 @@ describe("Performance Decorators", () => {
     it("应该包装同步方法并测量性能", () => {
       class TestClass {
         @DatabasePerformance("find_query")
-        findItems(filter: any): any[] {
+        findItems(query: any): any[] {
+          // 使用查询参数
+          console.log(`Processing query: ${JSON.stringify(query)}`);
           return [{ id: 1, name: "Test" }];
         }
       }
@@ -159,6 +160,8 @@ describe("Performance Decorators", () => {
       class TestClass {
         @AuthPerformance("jwt")
         async validateJwtToken(token: string): Promise<any> {
+          // 使用令牌参数
+          console.log(`Validating token: ${token}`);
           return Promise.resolve({ userId: "123", username: "testuser" });
         }
       }
@@ -273,6 +276,8 @@ describe("Performance Decorators", () => {
       class TestClass {
         @CachePerformance("get")
         async getFromCache(key: string): Promise<any> {
+          // 使用键名参数
+          console.log(`Getting from cache: ${key}`);
           return { data: "cached_value" };
         }
       }
@@ -293,6 +298,8 @@ describe("Performance Decorators", () => {
       class TestClass {
         @CachePerformance("get")
         async getCacheMiss(key: string): Promise<any> {
+          // 使用键名参数
+          console.log(`Cache miss for key: ${key}`);
           return null; // 缓存未命中返回null
         }
       }
@@ -312,6 +319,8 @@ describe("Performance Decorators", () => {
       class TestClass {
         @CachePerformance("set")
         setToCache(key: string, value: any): boolean {
+          // 使用键名和值参数
+          console.log(`Setting to cache: ${key} = ${JSON.stringify(value)}`);
           return true; // 成功设置缓存
         }
       }

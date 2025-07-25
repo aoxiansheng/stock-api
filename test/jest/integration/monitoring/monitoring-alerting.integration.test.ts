@@ -1,26 +1,17 @@
 import { INestApplication } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import { AlertingService } from "../../../../src/alert/services/alerting.service";
-import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
-import { IAlertRule, IAlert } from "../../../../src/alert/interfaces";
-import { NotificationChannel } from "../../../../src/alert/types/alert.types";
+
 import { CreateAlertRuleDto } from "../../../../src/alert/dto";
 import { AlertSeverity } from "../../../../src/alert/types/alert.types";
 
 describe("Monitoring Alerting Integration Tests", () => {
   let app: INestApplication;
   let alertingService: AlertingService;
-  let performanceMonitorService: PerformanceMonitorService;
-  let eventEmitter: EventEmitter2;
 
   beforeAll(() => {
     app = (global as any).testApp;
 
     alertingService = app.get<AlertingService>(AlertingService);
-    performanceMonitorService = app.get<PerformanceMonitorService>(
-      PerformanceMonitorService,
-    );
-    eventEmitter = app.get<EventEmitter2>(EventEmitter2);
   });
 
   beforeEach(async () => {
@@ -128,9 +119,6 @@ describe("Monitoring Alerting Integration Tests", () => {
       };
 
       await alertingService.createRule(alertRuleDto);
-      const createAlertSpy = jest
-        .spyOn(alertingService as any, "createNewAlert")
-        .mockResolvedValue(undefined);
 
       // Act - 提交超过阈值的指标
       await alertingService.processMetrics([

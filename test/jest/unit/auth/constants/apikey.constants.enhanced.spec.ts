@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   APIKEY_OPERATIONS,
   APIKEY_MESSAGES,
@@ -333,28 +334,28 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
   describe("Constants immutability", () => {
     it("should have immutable APIKEY_OPERATIONS", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-expect-error Testing immutability by trying to assign new property
         APIKEY_OPERATIONS.NEW_OPERATION = "newOperation";
       }).toThrow();
     });
 
     it("should have immutable APIKEY_MESSAGES", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-expect-error Testing immutability by trying to assign new property
         APIKEY_MESSAGES.NEW_MESSAGE = "New Message";
       }).toThrow();
     });
 
     it("should have immutable APIKEY_DEFAULTS", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-expect-error Testing immutability by trying to assign new property
         APIKEY_DEFAULTS.NEW_DEFAULT = "New Default";
       }).toThrow();
     });
 
     it("should have immutable nested objects", () => {
       expect(() => {
-        // @ts-ignore
+        // @ts-ignore 这是有意为之，测试常量对象的嵌套属性是否真正不可变
         APIKEY_DEFAULTS.DEFAULT_RATE_LIMIT.requests = 999;
       }).toThrow();
     });

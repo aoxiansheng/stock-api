@@ -1,10 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
-import { Model } from "mongoose";
 import { SecurityScanResultRepository } from "../../../../../src/security/repositories/security-scan-result.repository";
 import {
   SecurityScanResult,
-  SecurityScanResultDocument,
 } from "../../../../../src/security/schemas/security-scan-result.schema";
 
 // Mock class for the Mongoose model
@@ -26,7 +24,8 @@ MockScanResultModel.lean.mockReturnThis();
 
 describe("SecurityScanResultRepository", () => {
   let repository: SecurityScanResultRepository;
-  let model: typeof MockScanResultModel;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _model: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,7 +41,7 @@ describe("SecurityScanResultRepository", () => {
     repository = module.get<SecurityScanResultRepository>(
       SecurityScanResultRepository,
     );
-    model = module.get(getModelToken(SecurityScanResult.name));
+    _model = module.get(getModelToken(SecurityScanResult.name));
   });
 
   afterEach(() => {

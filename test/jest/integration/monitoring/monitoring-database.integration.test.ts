@@ -12,7 +12,7 @@ import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
 import { CacheService } from "../../../../src/cache/cache.service";
-import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
+
 import { smartDelay } from "../../../utils/async-test-helpers";
 import { validateDatabaseMetricsResponse } from "../../../utils/api-response-helpers";
 
@@ -20,11 +20,10 @@ describe("Monitoring Database Integration", () => {
   let app: INestApplication;
   let authService: AuthService;
   let cacheService: CacheService;
-  let performanceMonitor: PerformanceMonitorService;
   let httpServer: any;
   let userModel: Model<any>;
   let apiKeyModel: Model<any>;
-  let testApiKey: any;
+
   let testUser: any;
   let jwtToken: string;
 
@@ -33,9 +32,6 @@ describe("Monitoring Database Integration", () => {
     httpServer = app.getHttpServer();
     authService = app.get<AuthService>(AuthService);
     cacheService = app.get<CacheService>(CacheService);
-    performanceMonitor = app.get<PerformanceMonitorService>(
-      PerformanceMonitorService,
-    );
     userModel = app.get(getModelToken("User"));
     apiKeyModel = app.get(getModelToken("ApiKey"));
   });
@@ -62,7 +58,7 @@ describe("Monitoring Database Integration", () => {
     jwtToken = loginResponse.accessToken;
 
     // 创建API Key - 这部分保留，以防其他测试需要
-    testApiKey = await authService.createApiKey(testUser.id, {
+    await authService.createApiKey(testUser.id, {
       name: "Database Test API Key",
       permissions: [Permission.SYSTEM_ADMIN, Permission.SYSTEM_HEALTH],
     });
@@ -431,7 +427,7 @@ describe("Monitoring Database Integration", () => {
       await clearPerformanceMetrics();
 
       console.log("✅ 监控数据库测试清理完成");
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ 监控数据库测试清理失败:", error);
     }
   });

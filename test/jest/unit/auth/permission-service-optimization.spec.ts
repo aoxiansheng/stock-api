@@ -12,8 +12,6 @@ import {
 import {
   PERMISSION_OPERATIONS,
   PERMISSION_MESSAGES,
-  PERMISSION_DETAIL_TEMPLATES,
-  PERMISSION_UTILS,
 } from "../../../../src/auth/constants/permission.constants";
 
 // 从工具文件导入PermissionTemplateUtil
@@ -160,7 +158,7 @@ describe("PermissionService Optimization Features", () => {
 
       try {
         await service.checkPermissions(mockSubject, [Permission.DATA_READ]);
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
 

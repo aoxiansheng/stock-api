@@ -1,5 +1,5 @@
-import { validate, ValidationError } from "class-validator";
-import { plainToClass, Transform } from "class-transformer";
+import { validate } from "class-validator";
+import { plainToClass } from "class-transformer";
 import {
   CreateApiKeyDto,
   UpdateApiKeyDto,

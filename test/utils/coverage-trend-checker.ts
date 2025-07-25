@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { execSync } from "child_process";
 
 /**
  * 覆盖率趋势检查器
@@ -74,7 +75,7 @@ export class CoverageTrendChecker {
       const history = JSON.parse(data);
       console.log(`📊 加载了 ${history.length} 条历史记录`);
       return history;
-    } catch (error) {
+    } catch {
       console.warn("⚠️ 无法解析历史数据文件，创建新的历史记录");
       return [];
     }
@@ -98,7 +99,7 @@ export class CoverageTrendChecker {
 
           // 转换为标准格式
           return this.normalizeCoverageData(coverage);
-        } catch (error) {
+        } catch {
           console.warn(`⚠️ 无法解析覆盖率文件: ${coveragePath}`);
         }
       }
@@ -458,7 +459,6 @@ export class CoverageTrendChecker {
    */
   private async getCurrentCommit(): Promise<string> {
     try {
-      const { execSync } = require("child_process");
       return execSync("git rev-parse --short HEAD", {
         encoding: "utf8",
       }).trim();
