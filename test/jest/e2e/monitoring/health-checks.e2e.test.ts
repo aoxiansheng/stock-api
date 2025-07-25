@@ -115,9 +115,9 @@ describe("Health Checks E2E Tests", () => {
         httpServer.get("/api/v1/monitoring/health").expect(200),
       ];
 
-      const [healthResponse, ...otherResponses] = await Promise.all([
+      const [healthResponse] = await Promise.all([
         healthPromise,
-        ...otherRequests,
+        ...otherRequests
       ]);
 
       // Assert - Health check should succeed regardless of other activity

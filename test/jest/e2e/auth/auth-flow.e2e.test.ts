@@ -37,7 +37,6 @@ describe("Authentication E2E Flow", () => {
       expect(userResult).toHaveProperty("isActive", true);
       expect(userResult).not.toHaveProperty("passwordHash");
 
-      const testUser = response.body.data || response.body;
     });
 
     it("应该在重复用户名时返回冲突错误", async () => {

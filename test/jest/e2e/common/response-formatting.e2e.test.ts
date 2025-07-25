@@ -30,13 +30,12 @@ describe("Response Formatting E2E Tests", () => {
       password: "password123",
     });
 
-    const developerLogin = await global.loginTestUser({
+    await global.loginTestUser({
       username: "format-dev",
       password: "password123",
     });
 
     adminToken = adminLogin.accessToken;
-    const developerToken = developerLogin.accessToken;
 
     // 创建API Key用于测试
     const apiKeyResponse = await httpServer

@@ -27,7 +27,7 @@ describe("MetricsHealth E2E Tests", () => {
     };
 
     // 注册管理员用户
-    const registerResponse = await request
+    await request
       .post("/api/v1/auth/register")
       .send(adminUserData)
       .expect(201);
@@ -47,7 +47,7 @@ describe("MetricsHealth E2E Tests", () => {
     try {
       const redisService = app.get("RedisService");
       redisClient = redisService.getOrThrow();
-    } catch (error) {
+    } catch (_error) {
       console.log("Redis不可用，将跳过相关测试");
       redisClient = null;
     }
@@ -58,7 +58,7 @@ describe("MetricsHealth E2E Tests", () => {
     if (redisClient) {
       try {
         await redisClient.ping();
-      } catch (error) {
+      } catch (_error) {
         console.log("Redis连接异常");
       }
     }
@@ -265,7 +265,7 @@ describe("MetricsHealth E2E Tests", () => {
       // Arrange - 确保Redis连接正常
       try {
         await redisClient.ping();
-      } catch (error) {
+      } catch (_error) {
         console.log("Redis不可用，跳过测试");
         return;
       }

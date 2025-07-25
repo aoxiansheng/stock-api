@@ -1,4 +1,3 @@
-import * as request from "supertest";
 
 describe("Performance Metrics E2E Tests", () => {
   let httpServer: any;
