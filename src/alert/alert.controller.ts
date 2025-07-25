@@ -10,6 +10,7 @@ import {
   BadRequestException,
   Logger,
   NotFoundException,
+  Req,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
@@ -451,9 +452,10 @@ export class AlertController {
   @JwtAuthResponses()
   async triggerEvaluation(
     @Body() triggerDto?: TriggerAlertDto,
+    @Req() req?: any,
   ): Promise<{ message: string }> {
     // 频率限制检查
-    const clientKey = "admin"; // 在实际应用中应使用用户ID
+    const clientKey = req.user?.id || "anonymous";
     const now = Date.now();
     const rateData = this.triggerRateLimit.get(clientKey);
 
