@@ -400,7 +400,7 @@ describe("Enhanced Authentication Integration Tests", () => {
 
     it("should revoke API key", async () => {
       const response = await request(httpServer)
-        .delete(`/api/v1/auth/api-keys/${testApiKey.id}`)
+        .delete(`/api/v1/auth/api-keys/${testApiKey.appKey}`)
         .set("Authorization", `Bearer ${userToken}`)
         .expect(200);
 

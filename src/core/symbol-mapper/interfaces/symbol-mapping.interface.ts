@@ -7,14 +7,14 @@ export interface ISymbolMapper {
     fromProvider: string,
     toProvider: string,
   ): Promise<string>;
-  saveMapping(rule: ISymbolMappingRule): Promise<void>;
-  getMappingRules(provider: string): Promise<IMappingRule[]>;
+  saveMapping(rule: ISymbolMappingRuleList): Promise<void>;
+  getSymbolMappingRule(provider: string): Promise<ISymbolMappingRule[]>;
 }
 
 /**
  * 单个映射规则
  */
-export interface IMappingRule {
+export interface ISymbolMappingRule {
   inputSymbol: string;
   outputSymbol: string;
   market?: string;
@@ -24,12 +24,12 @@ export interface IMappingRule {
 }
 
 /**
- * 股票代码映射规则 - 与API响应格式一致
+ * 股票代码映射规则集合 - 与API响应格式一致
  */
-export interface ISymbolMappingRule {
+export interface ISymbolMappingRuleList {
   id?: string; // 统一使用id字段，与API响应格式一致
   dataSourceName: string;
-  mappingRules: IMappingRule[];
+  SymbolMappingRule: ISymbolMappingRule[];
   description?: string;
   version?: string;
   isActive: boolean;

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { QueryResultProcessorService } from "../../../../../../src/core/query/services/query-result-processor.service";
+import { QueryResultProcessorService } from "../../../../../../src/core/query/service/query-result-processor.service";
 import { QueryExecutionResultDto } from "../../../../../../src/core/query/dto/query-internal.dto";
 import {
   QueryRequestDto,
@@ -9,9 +9,9 @@ import {
   QueryResponseDto,
   QueryMetadataDto,
 } from "../../../../../../src/core/query/dto/query-response.dto";
-import { QueryType } from "../../../../../../src/core/query/enums";
+import { QueryType } from "../../../../../../src/core/query/dto/query-types.dto";
 import {
-  QUERY_PERFORMANCE_CONFIG,
+ // QUERY_PERFORMANCE_CONFIG,
   QUERY_OPERATIONS,
 } from "../../../../../../src/core/query/constants/query.constants";
 
@@ -93,19 +93,18 @@ describe("QueryResultProcessorService", () => {
         realtime: { hits: 3, misses: 0 },
       });
 
-      expect(result.pagination.limit).toBe(
-        QUERY_PERFORMANCE_CONFIG.DEFAULT_QUERY_LIMIT,
+      expect(result.data.pagination.limit).toBe(
+        mockBasicRequest.limit || 10,
       );
-      expect(result.pagination.offset).toBe(0);
-      expect(result.pagination.hasMore).toBe(false);
-      expect(result.pagination.nextOffset).toBeUndefined();
+      expect(result.data.pagination.page).toBe(1); // 默认页码为1
+      expect(result.data.pagination.hasNext).toBe(false);
     });
 
     it("should apply custom pagination correctly", () => {
       const requestWithPagination: QueryRequestDto = {
         ...mockBasicRequest,
         limit: 2,
-        offset: 1,
+        page: 1,
       };
 
       const result = service.process(
@@ -118,17 +117,16 @@ describe("QueryResultProcessorService", () => {
       expect(result.data).toHaveLength(2);
       expect(result.metadata.totalResults).toBe(3);
       expect(result.metadata.returnedResults).toBe(2);
-      expect(result.pagination.limit).toBe(2);
-      expect(result.pagination.offset).toBe(1);
-      expect(result.pagination.hasMore).toBe(false);
-      expect(result.pagination.nextOffset).toBeUndefined();
+      expect(result.data.pagination.limit).toBe(2);
+      expect(result.data.pagination.page).toBe(1);
+      expect(result.data.pagination.hasNext).toBe(false);
     });
 
     it("should handle pagination with hasMore flag correctly", () => {
       const requestWithSmallLimit: QueryRequestDto = {
         ...mockBasicRequest,
         limit: 2,
-        offset: 0,
+        page: 1,
       };
 
       const result = service.process(
@@ -141,8 +139,7 @@ describe("QueryResultProcessorService", () => {
       expect(result.data).toHaveLength(2);
       expect(result.metadata.totalResults).toBe(3);
       expect(result.metadata.returnedResults).toBe(2);
-      expect(result.pagination.hasMore).toBe(true);
-      expect(result.pagination.nextOffset).toBe(2);
+      expect(result.data.pagination.hasNext).toBe(true);
     });
 
     it("should handle empty results gracefully", () => {
@@ -171,7 +168,7 @@ describe("QueryResultProcessorService", () => {
         cache: { hits: 0, misses: 0 },
         realtime: { hits: 0, misses: 0 },
       });
-      expect(result.pagination.hasMore).toBe(false);
+      expect(result.data.pagination.hasNext).toBe(false);
     });
 
     it("should log warnings for execution errors", () => {
@@ -210,7 +207,9 @@ describe("QueryResultProcessorService", () => {
     it("should apply post-processing when field selection is specified", () => {
       const requestWithFieldSelection: QueryRequestDto = {
         ...mockBasicRequest,
-        includeFields: ["symbol", "price"],
+        options: {
+          includeFields: ["symbol", "price"],
+        },
       };
 
       const result = service.process(
@@ -229,7 +228,7 @@ describe("QueryResultProcessorService", () => {
     it("should apply post-processing when sorting is specified", () => {
       const requestWithSort: QueryRequestDto = {
         ...mockBasicRequest,
-        sort: { field: "price", direction: SortDirection.DESC },
+        querySort: { field: "price", direction: SortDirection.DESC },
       };
 
       const result = service.process(
@@ -248,8 +247,10 @@ describe("QueryResultProcessorService", () => {
     it("should apply both field selection and sorting", () => {
       const requestWithBoth: QueryRequestDto = {
         ...mockBasicRequest,
-        includeFields: ["symbol", "volume"],
-        sort: { field: "volume", direction: SortDirection.ASC },
+        options: {
+          includeFields: ["symbol", "volume"],
+        },
+        querySort: { field: "volume", direction: SortDirection.ASC },
       };
 
       const result = service.process(
@@ -315,7 +316,9 @@ describe("QueryResultProcessorService", () => {
     it("should apply field inclusion", () => {
       const requestWithIncludes: QueryRequestDto = {
         ...mockBasicRequest,
-        includeFields: ["name", "age"],
+        options: {
+          includeFields: ["name", "age"],
+        },
       };
 
       const result = service.applyPostProcessing(
@@ -331,7 +334,9 @@ describe("QueryResultProcessorService", () => {
     it("should apply field exclusion", () => {
       const requestWithExcludes: QueryRequestDto = {
         ...mockBasicRequest,
-        excludeFields: ["city"],
+        options: {
+          excludeFields: ["city"],
+        },
       };
 
       const result = service.applyPostProcessing(
@@ -347,7 +352,7 @@ describe("QueryResultProcessorService", () => {
     it("should apply sorting", () => {
       const requestWithSort: QueryRequestDto = {
         ...mockBasicRequest,
-        sort: { field: "age", direction: SortDirection.DESC },
+        querySort: { field: "age", direction: SortDirection.DESC },
       };
 
       const result = service.applyPostProcessing(
@@ -364,8 +369,10 @@ describe("QueryResultProcessorService", () => {
     it("should apply both field selection and sorting", () => {
       const requestWithBoth: QueryRequestDto = {
         ...mockBasicRequest,
-        includeFields: ["name", "age"],
-        sort: { field: "age", direction: SortDirection.ASC },
+        options: {
+          includeFields: ["name", "age"],
+        },
+        querySort: { field: "age", direction: SortDirection.ASC },
       };
 
       const result = service.applyPostProcessing(
@@ -665,8 +672,8 @@ describe("QueryResultProcessorService", () => {
       const request: QueryRequestDto = {
         ...mockBasicRequest,
         limit: 50,
-        offset: 100,
-        sort: { field: "value", direction: SortDirection.DESC },
+        page: 100,
+        querySort: { field: "value", direction: SortDirection.DESC },
       };
 
       const result = service.process(
@@ -678,14 +685,14 @@ describe("QueryResultProcessorService", () => {
 
       expect(result.data).toHaveLength(50);
       expect(result.metadata.totalResults).toBe(10000);
-      expect(result.pagination.hasMore).toBe(true);
+      expect(result.data.pagination.hasNext).toBe(true);
     });
 
     it("should handle offset beyond result set size", () => {
       const request: QueryRequestDto = {
         ...mockBasicRequest,
         limit: 10,
-        offset: 100, // Beyond the 3 available results
+        page: 100, // Beyond the 3 available results
       };
 
       const result = service.process(
@@ -698,7 +705,7 @@ describe("QueryResultProcessorService", () => {
       expect(result.data).toHaveLength(0);
       expect(result.metadata.totalResults).toBe(3);
       expect(result.metadata.returnedResults).toBe(0);
-      expect(result.pagination.hasMore).toBe(false);
+      expect(result.data.pagination.hasNext).toBe(false);
     });
 
     it("should handle concurrent processing correctly", async () => {
@@ -758,7 +765,9 @@ describe("QueryResultProcessorService", () => {
 
       const request: QueryRequestDto = {
         ...mockBasicRequest,
-        includeFields: ["symbol", "quote"],
+        options: {
+          includeFields: ["symbol", "quote"],
+        },
       };
 
       const result = service.process(
@@ -798,8 +807,10 @@ describe("QueryResultProcessorService", () => {
 
       const request: QueryRequestDto = {
         ...mockBasicRequest,
-        sort: { field: "value", direction: SortDirection.DESC },
-        includeFields: ["id", "value"],
+        querySort: { field: "value", direction: SortDirection.DESC },
+        options: {
+          includeFields: ["id", "value"],
+        },
         limit: 100,
       };
 
@@ -832,7 +843,9 @@ describe("QueryResultProcessorService", () => {
 
       const request: QueryRequestDto = {
         ...mockBasicRequest,
-        includeFields: ["id", "smallField"], // Exclude large fields
+        options: {
+          includeFields: ["id", "smallField"], // Exclude large fields
+        },
         limit: 50,
       };
 

@@ -61,7 +61,7 @@ const STOCK_SYMBOLS = {
   SH: ['600519.SH', '600036.SH', '600276.SH', '600000.SH', '601318.SH', '600028.SH', '601166.SH', '600887.SH']
 };
 
-const DATA_TYPES = ['stock-quote', 'stock-basic-info', 'index-quote'];
+const DATA_TYPES = ['get-stock-quote', 'stock-basic-info', 'index-quote'];
 const QUERY_TYPES = ['by_symbols', 'by_market', 'by_provider'];
 
 // API Key和用户数据
@@ -468,7 +468,7 @@ function endToEndDataFlow(data) {
     const symbols = getRandomSymbols(3);
     const dataRequest = {
       symbols: symbols,
-      dataType: 'stock-quote',
+      dataType: 'get-stock-quote',
       options: {
         includeCache: false, // 强制从源获取新数据
         storeInCache: true,
@@ -566,7 +566,7 @@ export function highFrequencyDataFlow(data) {
       const symbols = getRandomSymbols(2);
       return http.post(`${BASE_URL}${API_VERSION}/receiver/data`, JSON.stringify({
         symbols: symbols,
-        dataType: 'stock-quote',
+        dataType: 'get-stock-quote',
         options: { timeout: 3000 }
       }), {
         headers: {

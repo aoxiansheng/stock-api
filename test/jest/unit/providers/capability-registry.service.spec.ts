@@ -82,7 +82,7 @@ describe("CapabilityRegistryService", () => {
         { name: "interfaces", isDirectory: () => true }, // 应该被排除
         { name: "node_modules", isDirectory: () => true }, // 应该被排除
         { name: ".hidden", isDirectory: () => true }, // 应该被排除
-        { name: "main-controller.ts", isDirectory: () => false },
+        { name: "providers-controller.ts", isDirectory: () => false },
       ];
 
       mockedFs.readdir.mockResolvedValue(mockDirents as any);

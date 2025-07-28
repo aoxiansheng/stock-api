@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { QueryStatisticsService } from "../../../../../../src/core/query/services/query-statistics.service";
+import { QueryStatisticsService } from "../../../../../../src/core/query/service/query-statistics.service";
 import { QUERY_PERFORMANCE_CONFIG } from "../../../../../../src/core/query/constants/query.constants";
 
 describe("QueryStatisticsService", () => {

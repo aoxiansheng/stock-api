@@ -240,7 +240,7 @@ describe("AutoInitConfig", () => {
     it("should contain stockQuote definition", () => {
       expect(PRESET_FIELD_DEFINITIONS.stockQuote).toBeDefined();
       expect(PRESET_FIELD_DEFINITIONS.stockQuote.provider).toBe("preset");
-      expect(PRESET_FIELD_DEFINITIONS.stockQuote.ruleListType).toBe(
+      expect(PRESET_FIELD_DEFINITIONS.stockQuote.dataRuleListType).toBe(
         "quote_fields",
       );
       expect(Array.isArray(PRESET_FIELD_DEFINITIONS.stockQuote.fields)).toBe(
@@ -251,7 +251,7 @@ describe("AutoInitConfig", () => {
     it("should contain stockBasicInfo definition", () => {
       expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo).toBeDefined();
       expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo.provider).toBe("preset");
-      expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo.ruleListType).toBe(
+      expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo.dataRuleListType).toBe(
         "basic_info_fields",
       );
       expect(
@@ -283,7 +283,7 @@ describe("AutoInitConfig", () => {
         expect(definition).toHaveProperty("name");
         expect(definition).toHaveProperty("description");
         expect(definition).toHaveProperty("provider");
-        expect(definition).toHaveProperty("ruleListType");
+        expect(definition).toHaveProperty("dataRuleListType");
         expect(definition).toHaveProperty("fields");
         expect(typeof definition.name).toBe("string");
         expect(typeof definition.description).toBe("string");

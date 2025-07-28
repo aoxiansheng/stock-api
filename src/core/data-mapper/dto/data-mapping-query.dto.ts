@@ -18,7 +18,7 @@ export class DataMappingQueryDto {
   @ApiProperty({ description: "规则列表类型", required: false })
   @IsOptional()
   @IsString()
-  ruleListType?: string;
+  dataRuleListType?: string;
 
   @ApiProperty({ description: "是否激活", required: false })
   @IsOptional()

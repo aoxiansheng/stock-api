@@ -334,7 +334,7 @@ describe("ApiKeyAuthGuard", () => {
         );
 
         expect(() => guard.handleRequest(null, null)).toThrow(
-          "API Key认证失败",
+          "API凭证验证失败",
         );
       });
 
@@ -344,7 +344,7 @@ describe("ApiKeyAuthGuard", () => {
         );
 
         expect(() => guard.handleRequest(null, undefined)).toThrow(
-          "API Key认证失败",
+          "API凭证验证失败",
         );
       });
 
@@ -414,7 +414,7 @@ describe("ApiKeyAuthGuard", () => {
         const info = { error: "Detailed error info" };
 
         expect(() => guard.handleRequest(null, null, info)).toThrow(
-          "API Key认证失败",
+          "API凭证验证失败",
         );
       });
     });

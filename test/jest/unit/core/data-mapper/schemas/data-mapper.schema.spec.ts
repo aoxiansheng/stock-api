@@ -7,7 +7,7 @@ import {
   DataMappingRule,
   DataMappingRuleDocument,
   DataMappingRuleSchema,
-  FieldMapping,
+  DataFieldMapping,
 } from "../../../../../../src/core/data-mapper/schemas/data-mapper.schema";
 
 describe("DataMappingRule Schema", () => {
@@ -43,7 +43,7 @@ describe("DataMappingRule Schema", () => {
   });
 
   it("应该成功创建数据映射规则", async () => {
-    const fieldMappings: FieldMapping[] = [
+    const sharedDataFieldMappings: DataFieldMapping[] = [
       {
         sourceField: "secu_quote[].last_done",
         targetField: "lastPrice",
@@ -59,8 +59,8 @@ describe("DataMappingRule Schema", () => {
       name: "LongPort Stock Quote Mapping",
       description: "LongPort股票报价字段映射规则",
       provider: "longport",
-      ruleListType: "stock-quote",
-      fieldMappings,
+      dataRuleListType: "stock-quote",
+      sharedDataFieldMappings,
       version: "1.0.0",
     };
 
@@ -71,10 +71,10 @@ describe("DataMappingRule Schema", () => {
     expect(savedRule.name).toBe(ruleData.name);
     expect(savedRule.description).toBe(ruleData.description);
     expect(savedRule.provider).toBe(ruleData.provider);
-    expect(savedRule.ruleListType).toBe(ruleData.ruleListType);
-    expect(savedRule.fieldMappings).toHaveLength(1);
-    expect(savedRule.fieldMappings[0].sourceField).toBe(
-      fieldMappings[0].sourceField,
+    expect(savedRule.dataRuleListType).toBe(ruleData.dataRuleListType);
+    expect(savedRule.sharedDataFieldMappings).toHaveLength(1);
+    expect(savedRule.sharedDataFieldMappings[0].sourceField).toBe(
+      sharedDataFieldMappings[0].sourceField,
     );
     expect(savedRule.isActive).toBe(true); // 默认值
     expect(savedRule.version).toBe(ruleData.version);
@@ -86,8 +86,8 @@ describe("DataMappingRule Schema", () => {
     const minimalRuleData = {
       name: "Minimal Rule",
       provider: "test-provider",
-      ruleListType: "test-type",
-      fieldMappings: [
+      dataRuleListType: "test-type",
+      sharedDataFieldMappings: [
         {
           sourceField: "source",
           targetField: "target",
@@ -106,8 +106,8 @@ describe("DataMappingRule Schema", () => {
     const ruleData = {
       name: "JSON Test Rule",
       provider: "json-provider",
-      ruleListType: "json-type",
-      fieldMappings: [
+      dataRuleListType: "json-type",
+      sharedDataFieldMappings: [
         {
           sourceField: "json_source",
           targetField: "json_target",
@@ -136,8 +136,8 @@ describe("DataMappingRule Schema", () => {
     } catch (error) {
       expect(error.errors.name).toBeDefined();
       expect(error.errors.provider).toBeDefined();
-      expect(error.errors.ruleListType).toBeDefined();
-      // 不检查fieldMappings，因为Mongoose可能不会为数组类型的必填字段生成错误
+      expect(error.errors.dataRuleListType).toBeDefined();
+      // 不检查dataFieldMappings，因为Mongoose可能不会为数组类型的必填字段生成错误
       // 或者使用其他方式验证，例如：
       expect(Object.keys(error.errors).length).toBeGreaterThanOrEqual(3); // 至少有3个错误字段
     }
@@ -154,7 +154,7 @@ describe("DataMappingRule Schema", () => {
     ];
 
     for (const transformType of transformTypes) {
-      const fieldMapping: FieldMapping = {
+      const DatafieldMapping: DataFieldMapping = {
         sourceField: `source_${transformType}`,
         targetField: `target_${transformType}`,
         transform: {
@@ -168,19 +168,19 @@ describe("DataMappingRule Schema", () => {
       const ruleData = {
         name: `Rule with ${transformType} transform`,
         provider: "test-provider",
-        ruleListType: "test-type",
-        fieldMappings: [fieldMapping],
+        dataRuleListType: "test-type",
+        sharedDataFieldMappings: [DatafieldMapping],
       };
 
       const rule = new dataMappingRuleModel(ruleData);
       const savedRule = await rule.save();
 
-      expect(savedRule.fieldMappings[0].transform?.type).toBe(transformType);
+      expect(savedRule.sharedDataFieldMappings[0].transform?.type).toBe(transformType);
     }
   });
 
   it("应该支持复杂的字段映射配置", async () => {
-    const complexFieldMappings: FieldMapping[] = [
+    const complexFieldMappings: DataFieldMapping[] = [
       {
         sourceField: "secu_quote[].last_done",
         targetField: "lastPrice",
@@ -219,8 +219,8 @@ describe("DataMappingRule Schema", () => {
       name: "Complex Mapping Rule",
       description: "复杂的字段映射规则",
       provider: "longport",
-      ruleListType: "stock-quote",
-      fieldMappings: complexFieldMappings,
+      dataRuleListType: "stock-quote",
+      sharedDataFieldMappings: complexFieldMappings,
       metadata: {
         version: "2.0.0",
         lastUpdated: new Date().toISOString(),
@@ -240,24 +240,24 @@ describe("DataMappingRule Schema", () => {
     const rule = new dataMappingRuleModel(ruleData);
     const savedRule = await rule.save();
 
-    expect(savedRule.fieldMappings).toHaveLength(4);
+    expect(savedRule.sharedDataFieldMappings).toHaveLength(4);
     expect(savedRule.metadata).toEqual(ruleData.metadata);
     expect(savedRule.sampleData).toEqual(ruleData.sampleData);
 
     // 验证不同类型的转换
-    const multiplyTransform = savedRule.fieldMappings.find(
+    const multiplyTransform = savedRule.sharedDataFieldMappings.find(
       (f) => f.sourceField === "secu_quote[].last_done",
     );
     expect(multiplyTransform?.transform?.type).toBe("multiply");
     expect(multiplyTransform?.transform?.value).toBe(1);
 
-    const formatTransform = savedRule.fieldMappings.find(
+    const formatTransform = savedRule.sharedDataFieldMappings.find(
       (f) => f.sourceField === "secu_quote[].formatted_price",
     );
     expect(formatTransform?.transform?.type).toBe("format");
     expect(formatTransform?.transform?.value).toBe("%.2f");
 
-    const customTransform = savedRule.fieldMappings.find(
+    const customTransform = savedRule.sharedDataFieldMappings.find(
       (f) => f.sourceField === "custom_field",
     );
     expect(customTransform?.transform?.type).toBe("custom");
@@ -265,7 +265,7 @@ describe("DataMappingRule Schema", () => {
       "processCustomField",
     );
 
-    const noTransform = savedRule.fieldMappings.find(
+    const noTransform = savedRule.sharedDataFieldMappings.find(
       (f) => f.sourceField === "secu_quote[].volume",
     );
     // 由于上面的检查会失败，我们只需保留对具体属性的检查
@@ -279,8 +279,8 @@ describe("DataMappingRule Schema", () => {
     const rule = new dataMappingRuleModel({
       name: "Index Test Rule",
       provider: "test-provider",
-      ruleListType: "test-type",
-      fieldMappings: [
+      dataRuleListType: "test-type",
+      sharedDataFieldMappings: [
         {
           sourceField: "source",
           targetField: "target",
@@ -291,12 +291,12 @@ describe("DataMappingRule Schema", () => {
 
     const indexes = await dataMappingRuleModel.collection.indexes();
 
-    // 查找复合索引 (provider, ruleListType)
+    // 查找复合索引 (provider, dataRuleListType)
     const providerRuleTypeIndex = indexes.find(
       (index) =>
         index.key &&
         Object.keys(index.key).includes("provider") &&
-        Object.keys(index.key).includes("ruleListType"),
+        Object.keys(index.key).includes("dataRuleListType"),
     );
     expect(providerRuleTypeIndex).toBeDefined();
 
@@ -317,8 +317,8 @@ describe("DataMappingRule Schema", () => {
     const ruleData = {
       name: "Update Test Rule",
       provider: "update-provider",
-      ruleListType: "update-type",
-      fieldMappings: [
+      dataRuleListType: "update-type",
+      sharedDataFieldMappings: [
         {
           sourceField: "old_source",
           targetField: "old_target",
@@ -331,7 +331,7 @@ describe("DataMappingRule Schema", () => {
 
     // 更新规则
     savedRule.name = "Updated Rule Name";
-    savedRule.fieldMappings = [
+    savedRule.sharedDataFieldMappings = [
       {
         sourceField: "new_source",
         targetField: "new_target",
@@ -343,8 +343,8 @@ describe("DataMappingRule Schema", () => {
     const updatedRule = await savedRule.save();
 
     expect(updatedRule.name).toBe("Updated Rule Name");
-    expect(updatedRule.fieldMappings[0].sourceField).toBe("new_source");
-    expect(updatedRule.fieldMappings[0].description).toBe("Updated mapping");
+    expect(updatedRule.sharedDataFieldMappings[0].sourceField).toBe("new_source");
+    expect(updatedRule.sharedDataFieldMappings[0].description).toBe("Updated mapping");
     expect(updatedRule.isActive).toBe(false);
     expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(
       updatedRule.createdAt.getTime(),

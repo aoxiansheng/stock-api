@@ -1,69 +1,58 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsString,
-  IsArray,
   IsOptional,
-  IsNumber,
   IsEnum,
+  IsArray,
   ValidateNested,
-  IsBoolean,
-  IsNotEmpty,
-  ArrayNotEmpty,
-  ArrayMaxSize,
+  IsNumber,
   Min,
   Max,
-  NotContains,
-  Validate,
-} from "class-validator";
+  IsNotEmpty,
+  IsBoolean,
+  IsObject,
+} from 'class-validator';
 
-import {
-  QUERY_PERFORMANCE_CONFIG,
-  QUERY_VALIDATION_RULES,
-} from "../constants/query.constants";
-import { SymbolsRequiredForBySymbolsQueryConstraint } from "../validators/symbols-required-for-by-symbols.validator";
+import { QueryType } from './query-types.dto';
 
-import { QueryType } from "../enums";
-
+/**
+ * 排序方向
+ */
 export enum SortDirection {
-  ASC = "asc",
-  DESC = "desc",
+  ASC = 'asc',
+  DESC = 'desc',
 }
 
+/**
+ * 排序选项
+ */
 class SortOptionsDto {
-  @ApiProperty({ description: "Field to sort by" })
+  @ApiProperty({ description: '排序字段' })
   @IsString()
   field: string;
 
-  @ApiProperty({ description: "Sort direction", enum: SortDirection })
+  @ApiProperty({ description: '排序方向', enum: SortDirection })
   @IsEnum(SortDirection)
   direction: SortDirection;
 }
 
-class FilterConditionDto {
-  @ApiProperty({ description: "Field to filter" })
-  @IsString()
-  field: string;
-
-  @ApiProperty({
-    description: "Filter operator",
-    enum: ["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin", "regex"],
+/**
+ * 查询选项
+ */
+export class QueryOptionsDto {
+  @ApiPropertyOptional({
+    description: '是否使用缓存',
+    example: true,
+    default: true,
   })
-  @IsEnum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin", "regex"])
-  operator: "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "nin" | "regex";
-
-  @ApiProperty({ description: "Filter value" })
-  value: any;
-}
-
-class QueryOptionsDto {
-  @ApiPropertyOptional({ description: "Use cache if available", default: true })
   @IsOptional()
   @IsBoolean()
   useCache?: boolean;
 
   @ApiPropertyOptional({
-    description: "Update cache with results",
+    description: '是否更新缓存',
+    example: true,
     default: true,
   })
   @IsOptional()
@@ -71,113 +60,100 @@ class QueryOptionsDto {
   updateCache?: boolean;
 
   @ApiPropertyOptional({
-    description: "Include metadata in response",
+    description: '是否包含元数据',
+    example: false,
     default: false,
   })
   @IsOptional()
   @IsBoolean()
   includeMetadata?: boolean;
 
-  @ApiPropertyOptional({ description: "Maximum age of cached data in seconds" })
-  @IsOptional()
-  @IsNumber()
-  maxCacheAge?: number;
-
-  @ApiPropertyOptional({ description: "Fields to include in response" })
+  @ApiPropertyOptional({ description: '要包含在响应中的字段' })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  fields?: string[];
+  includeFields?: string[];
 
-  @ApiPropertyOptional({ description: "Fields to exclude from response" })
+  @ApiPropertyOptional({ description: '要从响应中排除的字段' })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   excludeFields?: string[];
 }
 
+/**
+ * 单个查询请求的数据传输对象
+ */
 export class QueryRequestDto {
-  @ApiProperty({ description: "Query type", enum: QueryType })
+  @ApiProperty({
+    description: '查询类型',
+    enum: QueryType,
+    example: QueryType.BY_SYMBOLS,
+  })
   @IsEnum(QueryType)
   @IsNotEmpty()
   queryType: QueryType;
 
   @ApiPropertyOptional({
-    description: `Stock symbols to query. Max ${QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY} per query. Required for BY_SYMBOLS query type.`,
+    description: '股票代码列表，当queryType为by_symbols时必需',
+    example: ['AAPL', 'GOOGL'],
   })
   @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
-  @ArrayMaxSize(QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY)
   @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  @NotContains(" ", { each: true, message: "Symbol should not contain spaces" })
-  @Validate(SymbolsRequiredForBySymbolsQueryConstraint)
   symbols?: string[];
 
-  @ApiPropertyOptional({ description: "Market to query" })
+  @ApiPropertyOptional({
+    description: '市场，当queryType为by_market时必需',
+    example: 'US',
+  })
   @IsOptional()
   @IsString()
   market?: string;
 
-  @ApiPropertyOptional({ description: "Data provider to query" })
+  @ApiPropertyOptional({
+    description: '数据提供商',
+    example: 'longport',
+  })
   @IsOptional()
   @IsString()
   provider?: string;
 
-  @ApiPropertyOptional({ description: "Data type filter to query" })
+  @ApiPropertyOptional({
+    description: '标签，当queryType为by_tag时必需',
+    example: 'AI',
+  })
   @IsOptional()
   @IsString()
-  dataTypeFilter?: string;
+  tag?: string;
 
-  @ApiPropertyOptional({ description: "Start time for time range queries" })
+  @ApiPropertyOptional({
+    description: '开始时间，当queryType为by_time_range时必需',
+    example: '2023-01-01T00:00:00Z',
+  })
   @IsOptional()
   @IsString()
   startTime?: string;
 
-  @ApiPropertyOptional({ description: "End time for time range queries" })
+  @ApiPropertyOptional({
+    description: '结束时间，当queryType为by_time_range时必需',
+    example: '2023-01-31T23:59:59Z',
+  })
   @IsOptional()
   @IsString()
   endTime?: string;
 
-  @ApiPropertyOptional({ description: "Advanced filter conditions" })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => FilterConditionDto)
-  filters?: FilterConditionDto[];
-
-  @ApiPropertyOptional({ description: "Sort options" })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => SortOptionsDto)
-  sort?: SortOptionsDto;
-
   @ApiPropertyOptional({
-    description: `Number of results to return. Min 1, Max ${QUERY_VALIDATION_RULES.MAX_QUERY_LIMIT}.`,
-    default: 100,
+    description: '高级查询参数，当queryType为advanced时必需',
+    type: 'object',
   })
   @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(QUERY_VALIDATION_RULES.MAX_QUERY_LIMIT)
-  limit?: number;
+  @IsObject()
+  advancedQuery?: Record<string, any>;
 
-  @ApiPropertyOptional({ description: "Number of results to skip", default: 0 })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  offset?: number;
-
-  @ApiPropertyOptional({ description: "Query options" })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => QueryOptionsDto)
-  options?: QueryOptionsDto;
-
-  // Manually added properties from service that should be in DTO
   @ApiPropertyOptional({
-    description: "Maximum age of data in seconds to be considered fresh.",
+    description: '缓存最大年龄（秒）',
+    example: 300,
   })
   @IsOptional()
   @IsNumber()
@@ -185,58 +161,78 @@ export class QueryRequestDto {
   maxAge?: number;
 
   @ApiPropertyOptional({
-    description: "Time-to-live for cached data in seconds.",
+    description: '返回结果数量限制',
+    example: 100,
+    default: 100,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
-  @Min(0)
-  cacheTTL?: number;
+  @Min(1)
+  @Max(1000)
+  limit?: number;
 
   @ApiPropertyOptional({
-    description: "Whether to use cache for the query.",
-    default: true,
+    description: '页码，用于分页',
+    example: 1,
+    default: 1,
   })
   @IsOptional()
-  @IsBoolean()
-  useCache?: boolean;
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
 
-  @ApiPropertyOptional({ description: "Fields to include in the response." })
+  @ApiPropertyOptional({
+    description: '查询的数据分类，如：行情、财务等',
+    example: 'get-stock-quote',
+  })
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  includeFields?: string[];
+  @IsString()
+  queryDataTypeFilter?: string;
 
-  @ApiPropertyOptional({ description: "Fields to exclude from the response." })
+  @ApiPropertyOptional({
+    description: '查询选项',
+    type: QueryOptionsDto,
+  })
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  excludeFields?: string[];
+  @ValidateNested()
+  @Type(() => QueryOptionsDto)
+  options?: QueryOptionsDto;
+
+  @ApiPropertyOptional({ description: '排序选项' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SortOptionsDto)
+  querySort?: SortOptionsDto;
 }
 
+/**
+ * 批量查询请求的数据传输对象
+ */
 export class BulkQueryRequestDto {
   @ApiProperty({
-    description: `Multiple query requests to execute. Max ${QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES} per request.`,
+    description: '查询请求列表',
+    type: [QueryRequestDto],
   })
   @IsArray()
   @ValidateNested({ each: true })
-  @ArrayNotEmpty()
-  @ArrayMaxSize(QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES)
   @Type(() => QueryRequestDto)
   queries: QueryRequestDto[];
 
   @ApiPropertyOptional({
-    description: "Execute queries in parallel",
+    description: '是否并行执行',
     default: true,
   })
   @IsOptional()
   @IsBoolean()
-  parallel?: boolean;
+  parallel?: boolean = true;
 
   @ApiPropertyOptional({
-    description: "Continue on individual query errors",
-    default: true,
+    description: '出错时是否继续执行',
+    default: false,
   })
   @IsOptional()
   @IsBoolean()
-  continueOnError?: boolean;
+  continueOnError?: boolean = false;
 }

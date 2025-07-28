@@ -282,7 +282,7 @@ async transformData(data: any): Promise<any> {
 
 - **/api/v1/monitoring/health**: 系统整体健康状态
 - **/api/v1/query/health**: 查询服务健康状态
-- **/api/v1/storage/health**: 存储服务健康状态
+- **/api/v1/storage/health-check**: 存储服务健康状态
 
 健康检查结果包括组件可用性、响应延迟和资源使用情况。
 
@@ -1029,7 +1029,7 @@ curl -X POST http://localhost:3000/api/v1/query/execute \
   -d '{
     "queryType": "by_symbols",
     "symbols": ["AAPL.US", "MSFT.US", "700.HK"],
-    "dataTypeFilter": "stock-quote",
+    "queryDataTypeFilter": "stock-quote",
     "options": {
       "useCache": true,
       "updateCache": true,
@@ -1173,12 +1173,12 @@ curl -X POST http://localhost:3000/api/v1/query/bulk \
       {
         "queryType": "by_symbols",
         "symbols": ["AAPL.US", "MSFT.US"],
-        "dataTypeFilter": "stock-quote"
+        "queryDataTypeFilter": "stock-quote"
       },
       {
         "queryType": "by_symbols",
         "symbols": ["700.HK", "9988.HK"],
-        "dataTypeFilter": "stock-quote"
+        "queryDataTypeFilter": "stock-quote"
       }
     ],
     "parallel": true,

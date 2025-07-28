@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   InternalServerErrorException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -19,6 +20,8 @@ import { ApiKeyUtil } from "../utils/apikey.utils";
 import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
 import { CreateApiKeyDto } from "../dto/apikey.dto";
 import { ApiKey, ApiKeyDocument } from "../schemas/apikey.schema";
+import { UserRepository } from "../repositories/user.repository";
+import { RolePermissions, Permission } from "../enums/user-role.enum";
 
 // 🎯 引入 API Key 服务常量
 
@@ -28,6 +31,7 @@ export class ApiKeyService {
 
   constructor(
     @InjectModel(ApiKey.name) private apiKeyModel: Model<ApiKeyDocument>,
+    private readonly userRepository: UserRepository,
   ) {}
 
   /**
@@ -135,6 +139,9 @@ export class ApiKeyService {
       name,
     });
 
+    // 验证用户权限范围
+    await this.validatePermissionScope(userId, permissions);
+
     const apiKey = new this.apiKeyModel({
       appKey: ApiKeyUtil.generateAppKey(),
       accessToken: ApiKeyUtil.generateAccessToken(),
@@ -166,6 +173,81 @@ export class ApiKeyService {
       throw new InternalServerErrorException(
         ERROR_MESSAGES.CREATE_API_KEY_FAILED,
       );
+    }
+  }
+
+  /**
+   * 验证用户是否有权限创建具有指定权限的API Key
+   */
+  private async validatePermissionScope(
+    userId: string,
+    requestedPermissions: Permission[],
+  ): Promise<void> {
+    const operation = APIKEY_OPERATIONS.VALIDATE_PERMISSION_SCOPE;
+
+    this.logger.debug("开始验证API Key权限范围", {
+      operation,
+      userId,
+      requestedPermissions,
+    });
+
+    try {
+      // 获取用户信息
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        this.logger.error("用户不存在", { operation, userId });
+        throw new ForbiddenException("用户不存在");
+      }
+
+      // 获取用户角色对应的权限
+      const userPermissions = RolePermissions[user.role] || [];
+
+      this.logger.debug("用户权限信息", {
+        operation,
+        userId,
+        userRole: user.role,
+        userPermissions,
+      });
+
+      // 检查请求的权限是否都在用户权限范围内
+      const invalidPermissions = requestedPermissions.filter(
+        (permission) => !userPermissions.includes(permission),
+      );
+
+      if (invalidPermissions.length > 0) {
+        this.logger.warn("用户尝试创建超出权限范围的API Key", {
+          operation,
+          userId,
+          userRole: user.role,
+          userPermissions,
+          requestedPermissions,
+          invalidPermissions,
+        });
+
+        throw new ForbiddenException(
+          `无权限创建包含以下权限的API Key: ${invalidPermissions.join(", ")}`,
+        );
+      }
+
+      this.logger.debug("API Key权限范围验证通过", {
+        operation,
+        userId,
+        userRole: user.role,
+        requestedPermissions,
+      });
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+
+      this.logger.error("权限范围验证失败", {
+        operation,
+        userId,
+        requestedPermissions,
+        error: error.stack,
+      });
+
+      throw new InternalServerErrorException("权限验证失败");
     }
   }
 
@@ -207,18 +289,18 @@ export class ApiKeyService {
   /**
    * 撤销API Key
    */
-  async revokeApiKey(apiKeyId: string, userId: string): Promise<void> {
+  async revokeApiKey(appKey: string, userId: string): Promise<void> {
     const operation = APIKEY_OPERATIONS.REVOKE_API_KEY;
 
     this.logger.debug(APIKEY_MESSAGES.API_KEY_REVOCATION_STARTED, {
       operation,
-      apiKeyId,
+      appKey,
       userId,
     });
 
     try {
       const result = await this.apiKeyModel.updateOne(
-        { _id: apiKeyId, userId },
+        { appKey: appKey, userId },
         { isActive: false },
       );
 
@@ -230,14 +312,14 @@ export class ApiKeyService {
 
       this.logger.log(APIKEY_MESSAGES.API_KEY_REVOKED, {
         operation,
-        apiKeyId,
+        appKey,
         userId,
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       this.logger.error(ERROR_MESSAGES.REVOKE_API_KEY_FAILED, {
         operation,
-        apiKeyId,
+        appKey,
         userId,
         error: error.stack,
       });

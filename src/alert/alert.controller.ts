@@ -21,7 +21,8 @@ import {
   ApiPaginatedResponse,
   ApiStandardResponses,
 } from "@common/decorators/swagger-responses.decorator";
-import { PaginatedDataDto } from "@common/dto/common-response.dto";
+import { PaginatedDataDto } from "@common/pagination/dto/paginated-data";
+import { PaginationService } from "@common/pagination/services/pagination.service";
 
 import { Auth } from "../auth/decorators/auth.decorator";
 import { UserRole } from "../auth/enums/user-role.enum";
@@ -61,6 +62,7 @@ export class AlertController {
     private readonly alertingService: AlertingService,
     private readonly alertHistoryService: AlertHistoryService,
     private readonly notificationService: NotificationService,
+    private readonly paginationService: PaginationService,
   ) {}
 
   // ==================== 告警规则管理 ====================
@@ -307,16 +309,11 @@ export class AlertController {
     const page = query.page || 1;
     const limit = query.limit || 20;
 
-    return new PaginatedDataDto(
+    return this.paginationService.createPaginatedResponse(
       result.alerts.map(AlertResponseDto.fromEntity),
-      {
-        page,
-        limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
-        hasNext: page * limit < result.total,
-        hasPrev: page > 1,
-      },
+      page,
+      limit,
+      result.total
     );
   }
 

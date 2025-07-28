@@ -102,7 +102,7 @@ export const TEST_DATA = {
     cn_sh: ['600036.SH', '600519.SH', '601318.SH']
   },
   
-  dataTypes: ['stock-quote', 'stock-basic-info', 'index-quote'],
+  dataTypes: ['get-stock-quote', 'get-stock-basic-info', 'get-index-quote'],
   
   providers: ['longport', 'futu', 'twelvedata']
 };

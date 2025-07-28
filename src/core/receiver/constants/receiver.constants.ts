@@ -58,22 +58,22 @@ export const RECEIVER_SUCCESS_MESSAGES = Object.freeze({
 } as const);
 
 /**
- * 数据类型到能力映射常量
+ * 支持的数据类型常量（已统一使用能力命名格式）
  */
-export const DATA_TYPE_TO_CAPABILITY_MAP = Object.freeze({
-  "stock-quote": "get-stock-quote",
-  "stock-basic-info": "get-stock-basic-info",
-  "index-quote": "get-index-quote",
-  "market-status": "get-market-status",
-  "trading-days": "get-trading-days",
-  "global-state": "get-global-state",
-  "crypto-quote": "get-crypto-quote",
-  "crypto-basic-info": "get-crypto-basic-info",
-  "stock-logo": "get-stock-logo",
-  "crypto-logo": "get-crypto-logo",
-  "stock-news": "get-stock-news",
-  "crypto-news": "get-crypto-news",
-} as const);
+export const SUPPORTED_DATA_TYPES = Object.freeze([
+  "get-stock-quote",
+  "get-stock-basic-info",
+  "get-index-quote",
+  "get-market-status",
+  "get-trading-days",
+  "get-global-state",
+  "get-crypto-quote",
+  "get-crypto-basic-info",
+  "get-stock-logo",
+  "get-crypto-logo",
+  "get-stock-news",
+  "get-crypto-news",
+] as const);
 
 /**
  * 数据接收性能阈值常量

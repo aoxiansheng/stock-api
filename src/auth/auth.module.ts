@@ -14,7 +14,7 @@ import { RateLimitExceptionFilter } from "./filters/rate-limit.filter";
 import { ApiKeyAuthGuard } from "./guards/apikey-auth.guard";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RateLimitGuard } from "./guards/rate-limit.guard";
-import { RolesGuard } from "./guards/roles.guard";
+
 import { UnifiedPermissionsGuard } from "./guards/unified-permissions.guard";
 import { ApiKeyRepository } from "./repositories/apikey.repository";
 import { UserRepository } from "./repositories/user.repository";
@@ -62,7 +62,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     ApiKeyStrategy,
     JwtAuthGuard,
     ApiKeyAuthGuard,
-    RolesGuard,
+    
     UnifiedPermissionsGuard,
     RateLimitGuard,
     RateLimitExceptionFilter,
@@ -79,7 +79,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     TokenService,
     JwtAuthGuard,
     ApiKeyAuthGuard,
-    RolesGuard,
+    
     UnifiedPermissionsGuard,
     RateLimitGuard,
     RateLimitExceptionFilter,

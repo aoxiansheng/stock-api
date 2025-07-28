@@ -10,6 +10,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
+import { ThrottlerGuard } from "@nestjs/throttler";
 import { AlertingService } from "../../../../src/alert/services/alerting.service";
 import { createLogger } from "../../../../src/common/config/logger.config";
 import {
@@ -26,6 +27,8 @@ jest.mock("../../../../src/common/config/logger.config", () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
+    log: jest.fn(),  // 添加缺少的log方法
+    verbose: jest.fn(), // 添加verbose方法以完善接口
   })),
   sanitizeLogData: jest.fn((data) => data),
 }));
@@ -229,7 +232,12 @@ describe("MonitoringController", () => {
           useValue: mockRateLimitService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({
+        canActivate: jest.fn().mockReturnValue(true),
+      })
+      .compile();
 
     controller = module.get<MonitoringController>(MonitoringController);
     performanceMonitor = module.get(PerformanceMonitorService);
@@ -275,8 +283,11 @@ describe("MonitoringController", () => {
   describe("getHealthStatus", () => {
     it("should return health status", async () => {
       const result = await controller.getHealthStatus();
-      expect(result.status).toBe("healthy");
-      expect(result.score).toBe(95);
+      expect(result.status).toBe("operational");
+      expect(result.timestamp).toBeDefined();
+      expect(result.uptime).toBeDefined();
+      expect(result.version).toBeDefined();
+      expect(result.message).toBe("系统运行正常");
     });
   });
 
@@ -584,10 +595,29 @@ describe("MonitoringController", () => {
     });
 
     describe("getHealthStatus", () => {
+      // This method returns basic health status without detailed analysis
+      it("should return basic health status", async () => {
+        const result = await controller.getHealthStatus();
+        expect(result.status).toBe("operational");
+        expect(result.timestamp).toBeDefined();
+        expect(result.uptime).toBe(MOCK_UPTIME);
+        expect(result.version).toBeDefined();
+        expect(result.message).toBe("系统运行正常");
+      });
+
+      it("should handle errors gracefully", async () => {
+        // Test that basic health status doesn't depend on external services
+        const result = await controller.getHealthStatus();
+        expect(result.status).toBe("operational");
+        expect(result.message).toBe("系统运行正常");
+      });
+    });
+
+    describe("getDetailedHealthStatus", () => {
       it("should handle null performance summary", async () => {
         performanceMonitor.getPerformanceSummary.mockResolvedValue(null);
 
-        await expect(controller.getHealthStatus()).rejects.toThrow(
+        await expect(controller.getDetailedHealthStatus()).rejects.toThrow(
           InternalServerErrorException,
         );
       });
@@ -609,7 +639,7 @@ describe("MonitoringController", () => {
             summaryWithScore,
           );
 
-          const result = await controller.getHealthStatus();
+          const result = await controller.getDetailedHealthStatus();
           expect(result.status).toBe(expectedStatus);
         }
       });
@@ -639,7 +669,7 @@ describe("MonitoringController", () => {
           problematicSummary as any,
         );
 
-        const result = await controller.getHealthStatus();
+        const result = await controller.getDetailedHealthStatus();
 
         expect(result.issues).toContain("错误率过高");
         expect(result.issues).toContain("平均响应时间过长");
@@ -661,7 +691,7 @@ describe("MonitoringController", () => {
           problematicSummary as any,
         );
 
-        const result = await controller.getHealthStatus();
+        const result = await controller.getDetailedHealthStatus();
 
         expect(result.recommendations).toContain(
           "检查错误日志，修复频繁出现的错误",
@@ -679,7 +709,7 @@ describe("MonitoringController", () => {
           problematicSummary as any,
         );
 
-        const result = await controller.getHealthStatus();
+        const result = await controller.getDetailedHealthStatus();
 
         expect(result.issues).toContain("系统健康检查出现异常");
       });
@@ -688,7 +718,7 @@ describe("MonitoringController", () => {
         const error = new Error("Health status error");
         performanceMonitor.getPerformanceSummary.mockRejectedValue(error);
 
-        await expect(controller.getHealthStatus()).rejects.toThrow(error);
+        await expect(controller.getDetailedHealthStatus()).rejects.toThrow(error);
       });
     });
 

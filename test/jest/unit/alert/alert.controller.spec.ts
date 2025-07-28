@@ -545,7 +545,10 @@ describe("AlertController", () => {
       });
 
       it("应该成功触发告警评估", async () => {
-        const result = await controller.triggerEvaluation();
+        // 创建模拟请求对象
+        const mockReq = { user: { id: 'test-user' } };
+        
+        const result = await controller.triggerEvaluation(undefined, mockReq);
 
         expect(alertingService.processMetrics).toHaveBeenCalledWith([]);
         expect(result.message).toBe("告警评估已触发");
@@ -555,32 +558,38 @@ describe("AlertController", () => {
         mockAlertingService.processMetrics.mockRejectedValue(
           new Error("评估失败"),
         );
+        
+        // 创建模拟请求对象
+        const mockReq = { user: { id: 'test-user' } };
 
-        await expect(controller.triggerEvaluation()).rejects.toThrow(
+        await expect(controller.triggerEvaluation(undefined, mockReq)).rejects.toThrow(
           "评估失败",
         );
       });
 
       it("应该在达到频率限制时抛出异常", async () => {
         const triggerLimit = 5;
+        const mockReq = { user: { id: 'admin' } };
+        
         // 首次调用
         (controller as any).triggerRateLimit.set("admin", {
           count: 1,
           lastReset: Date.now(),
         });
         for (let i = 1; i < triggerLimit; i++) {
-          await controller.triggerEvaluation();
+          await controller.triggerEvaluation(undefined, mockReq);
         }
-        await expect(controller.triggerEvaluation()).rejects.toThrow(
+        await expect(controller.triggerEvaluation(undefined, mockReq)).rejects.toThrow(
           "手动触发频率过高，请稍后再试",
         );
       });
 
       it("应该在指定了不存在的规则ID时抛出异常", async () => {
         const triggerDto = { ruleId: "nonexistent-rule", metrics: [] };
+        const mockReq = { user: { id: 'test-user' } };
         mockAlertingService.getRuleById.mockResolvedValue(null);
 
-        await expect(controller.triggerEvaluation(triggerDto)).rejects.toThrow(
+        await expect(controller.triggerEvaluation(triggerDto, mockReq)).rejects.toThrow(
           "指定的告警规则不存在",
         );
       });
@@ -591,9 +600,10 @@ describe("AlertController", () => {
         mockAlertingService.processMetrics.mockResolvedValue(undefined);
 
         const triggerDto = { ruleId: "rule-123", metrics: [] };
+        const mockReq = { user: { id: 'test-user' } };
         mockAlertingService.getRuleById.mockResolvedValue(mockAlertRule);
 
-        const result = await controller.triggerEvaluation(triggerDto);
+        const result = await controller.triggerEvaluation(triggerDto, mockReq);
 
         expect(result.message).toBe(`告警规则 ${triggerDto.ruleId} 评估已触发`);
       });
@@ -607,8 +617,10 @@ describe("AlertController", () => {
           { metric: "cpu_usage", value: 99, timestamp: new Date(), tags: {} },
         ];
         const triggerDto = { metrics };
+        // 添加模拟请求对象
+        const mockReq = { user: { id: 'test-user' } };
 
-        await controller.triggerEvaluation(triggerDto);
+        await controller.triggerEvaluation(triggerDto, mockReq);
 
         expect(alertingService.processMetrics).toHaveBeenCalledWith(
           expect.arrayContaining([

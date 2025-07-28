@@ -9,18 +9,23 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { AlertModule } from "./alert/alert.module";
 import { AuthModule } from "./auth/auth.module";
-import { DataMapperModule } from "./core/data-mapper/data-mapper.module";
-import { QueryModule } from "./core/query/query.module";
-import { ReceiverModule } from "./core/receiver/receiver.module";
-import { StorageModule } from "./core/storage/storage.module";
-import { SymbolMapperModule } from "./core/symbol-mapper/symbol-mapper.module";
-import { TransformerModule } from "./core/transformer/transformer.module";
+import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
+import { ApiKeyAuthGuard } from "./auth/guards/apikey-auth.guard";
+import { UnifiedPermissionsGuard } from "./auth/guards/unified-permissions.guard";
+import { DataMapperModule } from "./core/data-mapper/module/data-mapper.module";
+import { QueryModule } from "./core/query/module/query.module";
+import { ReceiverModule } from "./core/receiver/module/receiver.module";
+import { StorageModule } from "./core/storage/module/storage.module";
+import { SymbolMapperModule } from "./core/symbol-mapper/module/symbol-mapper.module";
+import { TransformerModule } from "./core/transformer/module/transformer.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { MonitoringModule } from "./monitoring/monitoring.module";
 import { ProvidersModule } from "./providers/providers.module";
 import { AutoInitModule } from "./scripts/auto-init-on-startup.module";
 import { SecurityModule } from "./security/security.module";
 import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
+import { PermissionValidationModule } from "./common/permission/modules/permission-validation.module";
+import { PaginationModule } from "./common/pagination/modules/pagination.module";
 
 @Module({
   imports: [
@@ -72,6 +77,9 @@ import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
     // 事件发射器
     EventEmitterModule.forRoot(),
 
+    // 通用模块
+    PaginationModule,
+
     // 核心模块
     ReceiverModule,
     SymbolMapperModule,
@@ -100,11 +108,26 @@ import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
 
     // 指标模块
     MetricsModule,
+
+    // 权限验证模块
+    PermissionValidationModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ApiKeyAuthGuard, // 确保API Key认证先执行
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // JWT认证后执行
+    },
+    {
+      provide: APP_GUARD,
+      useClass: UnifiedPermissionsGuard, // 权限检查最后执行
     },
   ],
 })

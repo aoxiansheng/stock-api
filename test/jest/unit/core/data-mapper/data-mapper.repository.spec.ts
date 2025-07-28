@@ -14,8 +14,8 @@ describe("DataMappingRepository", () => {
     _id: "507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
     provider: "test-provider",
-    ruleListType: "test-type",
-    fieldMappings: [{ sourceField: "source", targetField: "target" }],
+    dataRuleListType: "test-type",
+    sharedDataFieldMappings: [{ sourceField: "source", targetField: "target" }],
     isActive: true,
     version: "1.0.0",
     createdAt: new Date(),
@@ -74,9 +74,9 @@ describe("DataMappingRepository", () => {
       const createDto: CreateDataMappingDto = {
         name: "Test Mapping",
         provider: "test-provider",
-        ruleListType: "quote_fields",
+        dataRuleListType: "quote_fields",
         description: "Test mapping rule",
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "price",
             targetField: "lastPrice",
@@ -109,9 +109,9 @@ describe("DataMappingRepository", () => {
       const createDto: CreateDataMappingDto = {
         name: "Test Mapping",
         provider: "test-provider",
-        ruleListType: "quote_fields",
+        dataRuleListType: "quote_fields",
         description: "Test mapping rule",
-        fieldMappings: [{ sourceField: "price", targetField: "lastPrice" }],
+        sharedDataFieldMappings: [{ sourceField: "price", targetField: "lastPrice" }],
         isActive: false,
         version: "2.0.0",
       };
@@ -185,7 +185,7 @@ describe("DataMappingRepository", () => {
 
       expect(model.find).toHaveBeenCalledWith({
         provider: "test-provider",
-        ruleListType: "test-type",
+        dataRuleListType: "test-type",
         isActive: true,
       });
       expect(result).toEqual([mockDataMappingDocument]);
@@ -203,7 +203,7 @@ describe("DataMappingRepository", () => {
 
       expect(model.findOne).toHaveBeenCalledWith({
         provider: "test-provider",
-        ruleListType: "test-type",
+        dataRuleListType: "test-type",
         isActive: true,
       });
       expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: -1 });

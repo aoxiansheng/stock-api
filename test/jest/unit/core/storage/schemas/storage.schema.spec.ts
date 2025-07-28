@@ -51,7 +51,7 @@ describe("StoredData Schema", () => {
         change: 2.5,
         changePercent: 1.69,
       },
-      dataTypeFilter: "stock-quote",
+      queryDataTypeFilter: "stock-quote",
       provider: "longport",
       market: "US",
       dataSize: 256,
@@ -68,7 +68,7 @@ describe("StoredData Schema", () => {
 
     expect(savedData.key).toBe(storedDataInfo.key);
     expect(savedData.data).toEqual(storedDataInfo.data);
-    expect(savedData.dataTypeFilter).toBe(storedDataInfo.dataTypeFilter);
+    expect(savedData.queryDataTypeFilter).toBe(storedDataInfo.queryDataTypeFilter);
     expect(savedData.provider).toBe(storedDataInfo.provider);
     expect(savedData.market).toBe(storedDataInfo.market);
     expect(savedData.dataSize).toBe(storedDataInfo.dataSize);
@@ -84,7 +84,7 @@ describe("StoredData Schema", () => {
     const minimalDataInfo = {
       key: "minimal:data:key",
       data: { test: "value" },
-      dataTypeFilter: "test-data",
+      queryDataTypeFilter: "test-data",
       provider: "test-provider",
       market: "TEST",
     };
@@ -100,7 +100,7 @@ describe("StoredData Schema", () => {
     const storedDataInfo = {
       key: "json:test:key",
       data: { jsonTest: true },
-      dataTypeFilter: "json-test",
+      queryDataTypeFilter: "json-test",
       provider: "json-provider",
       market: "JSON",
       tags: { format: "json" },
@@ -127,7 +127,7 @@ describe("StoredData Schema", () => {
     } catch (error) {
       expect(error.errors.key).toBeDefined();
       expect(error.errors.data).toBeDefined();
-      expect(error.errors.dataTypeFilter).toBeDefined();
+      expect(error.errors.queryDataTypeFilter).toBeDefined();
       expect(error.errors.provider).toBeDefined();
       expect(error.errors.market).toBeDefined();
     }
@@ -181,7 +181,7 @@ describe("StoredData Schema", () => {
           },
         },
       },
-      dataTypeFilter: "stock-quote-detailed",
+      queryDataTypeFilter: "stock-quote-detailed",
       provider: "longport",
       market: "HK",
       dataSize: 1024,
@@ -213,7 +213,7 @@ describe("StoredData Schema", () => {
       const dataInfo = {
         key: `market:${market}:data:${i}`,
         data: { market: market, index: i },
-        dataTypeFilter: "market-data",
+        queryDataTypeFilter: "market-data",
         provider: "multi-provider",
         market: market,
       };
@@ -239,7 +239,7 @@ describe("StoredData Schema", () => {
       const dataInfo = {
         key: `datatype:${dataType}:${i}`,
         data: { type: dataType, index: i },
-        dataTypeFilter: dataType,
+        queryDataTypeFilter: dataType,
         provider: "type-provider",
         market: "TEST",
       };
@@ -247,7 +247,7 @@ describe("StoredData Schema", () => {
       const storedData = new storedDataModel(dataInfo);
       const savedData = await storedData.save();
 
-      expect(savedData.dataTypeFilter).toBe(dataType);
+      expect(savedData.queryDataTypeFilter).toBe(dataType);
     }
   });
 
@@ -256,7 +256,7 @@ describe("StoredData Schema", () => {
     const storedData = new storedDataModel({
       key: "index:test:key",
       data: { test: "index" },
-      dataTypeFilter: "index-test",
+      queryDataTypeFilter: "index-test",
       provider: "index-provider",
       market: "INDEX",
       tags: { purpose: "indexing" },
@@ -272,11 +272,11 @@ describe("StoredData Schema", () => {
     );
     expect(keyIndex).toBeDefined();
 
-    // 查找dataTypeFilter索引
-    const dataTypeFilterIndex = indexes.find(
-      (index) => index.key && Object.keys(index.key).includes("dataTypeFilter"),
+    // 查找queryDataTypeFilter索引
+    const queryDataTypeFilterIndex = indexes.find(
+      (index) => index.key && Object.keys(index.key).includes("queryDataTypeFilter"),
     );
-    expect(dataTypeFilterIndex).toBeDefined();
+    expect(queryDataTypeFilterIndex).toBeDefined();
 
     // 查找provider索引
     const providerIndex = indexes.find(
@@ -303,11 +303,11 @@ describe("StoredData Schema", () => {
     );
     expect(storedAtIndex).toBeDefined();
 
-    // 查找复合索引 (dataTypeFilter, provider, market)
+    // 查找复合索引 (queryDataTypeFilter, provider, market)
     const compoundIndex = indexes.find(
       (index) =>
         index.key &&
-        Object.keys(index.key).includes("dataTypeFilter") &&
+        Object.keys(index.key).includes("queryDataTypeFilter") &&
         Object.keys(index.key).includes("provider") &&
         Object.keys(index.key).includes("market"),
     );
@@ -327,7 +327,7 @@ describe("StoredData Schema", () => {
     const dataInfo = {
       key: "duplicate:key:test",
       data: { first: true },
-      dataTypeFilter: "duplicate-test",
+      queryDataTypeFilter: "duplicate-test",
       provider: "duplicate-provider",
       market: "DUP",
     };
@@ -355,7 +355,7 @@ describe("StoredData Schema", () => {
     const originalData = {
       key: "update:test:key",
       data: { version: 1, value: "original" },
-      dataTypeFilter: "update-test",
+      queryDataTypeFilter: "update-test",
       provider: "update-provider",
       market: "UPDATE",
       dataSize: 128,
@@ -389,7 +389,7 @@ describe("StoredData Schema", () => {
     const dataInfo = {
       key: "expire:test:key",
       data: { willExpire: true },
-      dataTypeFilter: "expire-test",
+      queryDataTypeFilter: "expire-test",
       provider: "expire-provider",
       market: "EXPIRE",
       expiresAt: expireTime,

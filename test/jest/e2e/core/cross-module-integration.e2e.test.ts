@@ -61,9 +61,9 @@ describe("Cross-Module Integration E2E Tests", () => {
     const mappingRuleData = {
       name: "E2E Cross-Module Longport Stock Quote Mapping",
       provider: "longport",
-      ruleListType: "quote_fields",
+      dataRuleListType: "quote_fields",
       description: "Rule created for E2E cross-module testing",
-      fieldMappings: [
+      sharedDataFieldMappings: [
         { sourceField: "symbol", targetField: "symbol" },
         { sourceField: "last_done", targetField: "lastPrice" },
         { sourceField: "volume", targetField: "volume" },
@@ -90,7 +90,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols,
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(200);
 
@@ -102,7 +102,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols,
-          dataTypeFilter: "stock-quote",
+          queryDataTypeFilter: "stock-quote",
         })
         .expect(201);
 
@@ -143,7 +143,7 @@ describe("Cross-Module Integration E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: ["700.HK"],
-            dataType: "stock-quote",
+            dataType: "get-stock-quote",
             options: {
               preferredProvider: "longport",
             },
@@ -166,7 +166,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: [testSymbol],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(200);
 
@@ -200,7 +200,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: [testSymbol],
-          dataTypeFilter: "stock-quote",
+          queryDataTypeFilter: "stock-quote",
         })
         .expect(201);
 

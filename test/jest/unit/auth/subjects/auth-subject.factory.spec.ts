@@ -2,6 +2,7 @@ import { ForbiddenException } from "@nestjs/common";
 import {
   Permission,
   UserRole,
+  RolePermissions,
 } from "../../../../../src/auth/enums/user-role.enum";
 import { AuthSubjectType } from "../../../../../src/auth/interfaces/auth-subject.interface";
 import { ApiKeySubject } from "../../../../../src/auth/subjects/api-key.subject";
@@ -24,6 +25,50 @@ describe("AuthSubjectFactory", () => {
     permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
     isActive: true,
     rateLimit: { requests: 1000, window: "1h" },
+  };
+
+  // 补充更多权限测试的API Key模拟数据
+  const systemAdminApiKey = {
+    id: "admin-apikey-123",
+    name: "System Admin API Key",
+    appKey: "admin-app-key",
+    permissions: [Permission.SYSTEM_ADMIN, Permission.SYSTEM_MONITOR, Permission.SYSTEM_METRICS],
+    isActive: true,
+    rateLimit: { requests: 2000, window: "1h" },
+  };
+
+  const configManagerApiKey = {
+    id: "config-apikey-123", 
+    name: "Config Manager API Key",
+    appKey: "config-app-key",
+    permissions: [Permission.CONFIG_READ, Permission.MAPPING_WRITE, Permission.CONFIG_WRITE],
+    isActive: true,
+    rateLimit: { requests: 1500, window: "1h" },
+  };
+
+  const developerApiKey = {
+    id: "dev-apikey-123",
+    name: "Developer API Key", 
+    appKey: "dev-app-key",
+    permissions: [
+      Permission.DATA_READ,
+      Permission.QUERY_EXECUTE,
+      Permission.PROVIDERS_READ,
+      Permission.TRANSFORMER_PREVIEW,
+      Permission.SYSTEM_MONITOR,
+      Permission.DEBUG_ACCESS,
+    ],
+    isActive: true,
+    rateLimit: { requests: 1000, window: "1h" },
+  };
+
+  const limitedApiKey = {
+    id: "limited-apikey-123",
+    name: "Limited API Key",
+    appKey: "limited-app-key", 
+    permissions: [Permission.PROVIDERS_READ],
+    isActive: true,
+    rateLimit: { requests: 500, window: "1h" },
   };
 
   describe("createFromRequest()", () => {
@@ -579,6 +624,423 @@ describe("AuthSubjectFactory", () => {
 
       expect(subject.id).toBe(dbApiKey._id);
       expect(subject.permissions).toEqual(dbApiKey.permissions);
+    });
+  });
+
+  describe("Permission Coverage and Hierarchy Tests", () => {
+    describe("System Admin Permission Hierarchy", () => {
+      it("should validate SYSTEM_ADMIN includes all system-level permissions", () => {
+        const subject = new ApiKeySubject(systemAdminApiKey);
+
+        // SYSTEM_ADMIN应该包含其他system权限
+        expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
+        expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+        expect(subject.hasPermission(Permission.SYSTEM_METRICS)).toBe(true);
+        expect(subject.hasPermission(Permission.SYSTEM_HEALTH)).toBe(true);
+      });
+
+      it("should validate SYSTEM_ADMIN does not grant non-system permissions", () => {
+        const pureSystemAdminKey = {
+          id: "pure-admin-key",
+          permissions: [Permission.SYSTEM_ADMIN],
+        };
+        const subject = new ApiKeySubject(pureSystemAdminKey);
+
+        // SYSTEM_ADMIN不应该包含非system权限
+        expect(subject.hasPermission(Permission.DATA_READ)).toBe(false);
+        expect(subject.hasPermission(Permission.CONFIG_WRITE)).toBe(false);
+        expect(subject.hasPermission(Permission.MAPPING_WRITE)).toBe(false);
+      });
+    });
+
+    describe("Configuration Management Permissions", () => {
+      it("should validate CONFIG_READ and MAPPING_WRITE permissions", () => {
+        const subject = new ApiKeySubject(configManagerApiKey);
+
+        expect(subject.hasPermission(Permission.CONFIG_READ)).toBe(true);
+        expect(subject.hasPermission(Permission.MAPPING_WRITE)).toBe(true);
+        expect(subject.hasPermission(Permission.CONFIG_WRITE)).toBe(true);
+        
+        // 不应该有其他权限
+        expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(false);
+        expect(subject.hasPermission(Permission.DATA_WRITE)).toBe(false);
+      });
+    });
+
+    describe("Developer Permission Set", () => {
+      it("should validate complete developer permission set", () => {
+        const subject = new ApiKeySubject(developerApiKey);
+
+        // 基础数据权限
+        expect(subject.hasPermission(Permission.DATA_READ)).toBe(true);
+        expect(subject.hasPermission(Permission.QUERY_EXECUTE)).toBe(true);
+        expect(subject.hasPermission(Permission.PROVIDERS_READ)).toBe(true);
+
+        // 开发者权限
+        expect(subject.hasPermission(Permission.TRANSFORMER_PREVIEW)).toBe(true);
+        expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+        expect(subject.hasPermission(Permission.DEBUG_ACCESS)).toBe(true);
+
+        // 不应该有管理员权限
+        expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(false);
+        expect(subject.hasPermission(Permission.USER_MANAGE)).toBe(false);
+        expect(subject.hasPermission(Permission.CONFIG_WRITE)).toBe(false);
+      });
+    });
+
+    describe("Limited Permission Scenarios", () => {
+      it("should validate single permission API key", () => {
+        const subject = new ApiKeySubject(limitedApiKey);
+
+        expect(subject.hasPermission(Permission.PROVIDERS_READ)).toBe(true);
+        
+        // 不应该有其他权限
+        expect(subject.hasPermission(Permission.DATA_READ)).toBe(false);
+        expect(subject.hasPermission(Permission.QUERY_EXECUTE)).toBe(false);
+        expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(false);
+      });
+
+      it("should handle empty permissions array", () => {
+        const emptyPermissionsKey = {
+          id: "empty-key",
+          permissions: [],
+        };
+        const subject = new ApiKeySubject(emptyPermissionsKey);
+
+        // 所有权限检查都应该返回false
+        Object.values(Permission).forEach(permission => {
+          expect(subject.hasPermission(permission)).toBe(false);
+        });
+      });
+    });
+
+    describe("Multiple Permission Validation", () => {
+      it("should validate hasAllPermissions method", () => {
+        const subject = new ApiKeySubject(developerApiKey);
+
+        expect(subject.hasAllPermissions([
+          Permission.DATA_READ,
+          Permission.QUERY_EXECUTE,
+          Permission.PROVIDERS_READ,
+        ])).toBe(true);
+
+        expect(subject.hasAllPermissions([
+          Permission.DATA_READ,
+          Permission.SYSTEM_ADMIN, // 没有这个权限
+        ])).toBe(false);
+      });
+
+      it("should validate hasAnyPermission method", () => {
+        const subject = new ApiKeySubject(limitedApiKey);
+
+        expect(subject.hasAnyPermission([
+          Permission.PROVIDERS_READ,
+          Permission.DATA_READ,
+        ])).toBe(true);
+
+        expect(subject.hasAnyPermission([
+          Permission.SYSTEM_ADMIN,
+          Permission.CONFIG_WRITE,
+        ])).toBe(false);
+      });
+    });
+  });
+
+  describe("Role-based Permission Inheritance", () => {
+    it("should validate admin user inherits all developer permissions", () => {
+      const adminUser = { 
+        ...mockUser, 
+        role: UserRole.ADMIN,
+        id: "admin-user-123",
+      };
+      const subject = new JwtUserSubject(adminUser);
+
+      // 管理员应该包含所有开发者权限
+      const developerPermissions = RolePermissions[UserRole.DEVELOPER];
+      
+      developerPermissions.forEach(permission => {
+        expect(subject.hasPermission(permission)).toBe(true);
+      });
+
+      // 管理员还应该有专有权限
+      expect(subject.hasPermission(Permission.USER_MANAGE)).toBe(true);
+      expect(subject.hasPermission(Permission.APIKEY_MANAGE)).toBe(true);
+      expect(subject.hasPermission(Permission.CONFIG_WRITE)).toBe(true);
+      expect(subject.hasPermission(Permission.MAPPING_WRITE)).toBe(true);
+      expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
+    });
+
+    it("should validate developer user has correct permissions", () => {
+      const subject = new JwtUserSubject(mockUser);
+
+      // 开发者权限
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(true);
+      expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+      expect(subject.hasPermission(Permission.CONFIG_READ)).toBe(true);
+
+      // 不应该有管理员专有权限
+      expect(subject.hasPermission(Permission.USER_MANAGE)).toBe(false);
+      expect(subject.hasPermission(Permission.APIKEY_MANAGE)).toBe(false);
+      expect(subject.hasPermission(Permission.CONFIG_WRITE)).toBe(false);
+    });
+  });
+
+  describe("Permission Edge Cases and Security", () => {
+    it("should reject invalid permission values", () => {
+      const invalidPermissionsKey = {
+        id: "invalid-key",
+        permissions: ["invalid:permission", "fake:access"],
+      };
+      const subject = new ApiKeySubject(invalidPermissionsKey);
+
+      // 无效权限不应该被认可
+      expect(subject.hasPermission("invalid:permission" as Permission)).toBe(false);
+      expect(subject.hasPermission("fake:access" as Permission)).toBe(false);
+      
+      // 有效权限检查应该正常工作
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(false);
+    });
+
+    it("should handle case-sensitive permission checks", () => {
+      const subject = new ApiKeySubject(mockApiKey);
+
+      // 权限应该是大小写敏感的
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(true);
+      expect(subject.hasPermission("DATA:READ" as Permission)).toBe(false);
+      expect(subject.hasPermission("data:READ" as Permission)).toBe(false);
+    });
+
+    it("should validate permission consistency across different subjects", () => {
+      const apiKeySubject = new ApiKeySubject({
+        id: "api-key",
+        permissions: [Permission.DATA_READ, Permission.SYSTEM_MONITOR],
+      });
+
+      const userSubject = new JwtUserSubject({
+        id: "user",
+        role: UserRole.DEVELOPER,
+        username: "testuser",
+      });
+
+      // 两个主体都应该有开发者权限
+      expect(apiKeySubject.hasPermission(Permission.DATA_READ)).toBe(true);
+      expect(userSubject.hasPermission(Permission.DATA_READ)).toBe(true);
+      expect(apiKeySubject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+      expect(userSubject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+    });
+  });
+
+  describe("Business Scenario Permission Tests", () => {
+    it("should validate monitoring endpoint permissions", () => {
+      const monitoringApiKey = {
+        id: "monitoring-key",
+        permissions: [Permission.SYSTEM_MONITOR, Permission.SYSTEM_HEALTH],
+      };
+      const subject = new ApiKeySubject(monitoringApiKey);
+
+      // 监控相关权限
+      expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+      expect(subject.hasPermission(Permission.SYSTEM_HEALTH)).toBe(true);
+      
+      // 不应该有数据访问权限
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(false);
+      expect(subject.hasPermission(Permission.QUERY_EXECUTE)).toBe(false);
+    });
+
+    it("should validate data provider access permissions", () => {
+      const providerApiKey = {
+        id: "provider-key",
+        permissions: [Permission.PROVIDERS_READ, Permission.DATA_READ],
+      };
+      const subject = new ApiKeySubject(providerApiKey);
+
+      // 数据提供商相关权限
+      expect(subject.hasPermission(Permission.PROVIDERS_READ)).toBe(true);
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(true);
+      
+      // 不应该有配置写入权限
+      expect(subject.hasPermission(Permission.CONFIG_WRITE)).toBe(false);
+      expect(subject.hasPermission(Permission.MAPPING_WRITE)).toBe(false);
+    });
+
+    it("should validate transformer preview permissions", () => {
+      const transformerApiKey = {
+        id: "transformer-key", 
+        permissions: [Permission.TRANSFORMER_PREVIEW, Permission.DATA_READ],
+      };
+      const subject = new ApiKeySubject(transformerApiKey);
+
+      // 数据转换预览权限
+      expect(subject.hasPermission(Permission.TRANSFORMER_PREVIEW)).toBe(true);
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(true);
+      
+      // 不应该有系统管理权限
+      expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(false);
+      expect(subject.hasPermission(Permission.USER_MANAGE)).toBe(false);
+    });
+  });
+
+  describe("Documentation Compliance Tests", () => {
+    it("should validate all 18 permissions defined in enum", () => {
+      const allPermissions = Object.values(Permission);
+      
+      // 根据权限优化文档，应该有18个细粒度权限
+      expect(allPermissions).toHaveLength(18);
+      
+      // 验证关键权限存在
+      const criticalPermissions = [
+        Permission.SYSTEM_ADMIN,    // 文档显示占28.2%端点
+        Permission.CONFIG_READ,     // 文档显示占12.8%端点  
+        Permission.MAPPING_WRITE,   // 文档显示占12.8%端点
+        Permission.DATA_READ,       // 文档显示占11.5%端点
+        Permission.QUERY_EXECUTE,   // 文档显示占7.7%端点
+        Permission.PROVIDERS_READ,  // 文档显示占5.1%端点
+        Permission.TRANSFORMER_PREVIEW, // 文档显示占3.8%端点
+        Permission.SYSTEM_MONITOR,  // 文档显示占3.8%端点
+        Permission.SYSTEM_HEALTH,   // 文档显示占1.3%端点
+      ];
+      
+      criticalPermissions.forEach(permission => {
+        expect(allPermissions).toContain(permission);
+      });
+    });
+
+    it("should validate role permission inheritance matches documentation", () => {
+      const adminPermissions = RolePermissions[UserRole.ADMIN];
+      const developerPermissions = RolePermissions[UserRole.DEVELOPER];
+      
+      // 管理员应该包含所有开发者权限
+      developerPermissions.forEach(permission => {
+        expect(adminPermissions).toContain(permission);
+      });
+      
+      // 管理员应该有额外的专有权限
+      const adminExclusivePermissions = [
+        Permission.USER_MANAGE,
+        Permission.APIKEY_MANAGE,
+        Permission.CONFIG_WRITE,
+        Permission.MAPPING_WRITE,
+        Permission.SYSTEM_ADMIN,
+      ];
+      
+      adminExclusivePermissions.forEach(permission => {
+        expect(adminPermissions).toContain(permission);
+        expect(developerPermissions).not.toContain(permission);
+      });
+    });
+
+    it("should validate permission hierarchy as documented", () => {
+      // 测试SYSTEM_ADMIN权限层级（文档提到的权限继承）
+      const systemAdminSubject = new ApiKeySubject({
+        id: "system-admin",
+        permissions: [Permission.SYSTEM_ADMIN],
+      });
+
+      // 根据ApiKeySubject的实现，SYSTEM_ADMIN应该包含其他system权限
+      const systemPermissions = [
+        Permission.SYSTEM_MONITOR,
+        Permission.SYSTEM_METRICS, 
+        Permission.SYSTEM_HEALTH,
+      ];
+
+      systemPermissions.forEach(permission => {
+        expect(systemAdminSubject.hasPermission(permission)).toBe(true);
+      });
+    });
+
+    it("should validate business scenario permissions match endpoint requirements", () => {
+      // 监控健康检查场景（文档提到的monitoring/health端点）
+      const healthMonitorKey = {
+        id: "health-monitor",
+        permissions: [Permission.SYSTEM_HEALTH],
+      };
+      const healthSubject = new ApiKeySubject(healthMonitorKey);
+      
+      expect(healthSubject.hasPermission(Permission.SYSTEM_HEALTH)).toBe(true);
+      expect(healthSubject.hasPermission(Permission.DATA_READ)).toBe(false);
+
+      // 数据访问场景
+      const dataAccessKey = {
+        id: "data-access",
+        permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
+      };
+      const dataSubject = new ApiKeySubject(dataAccessKey);
+      
+      expect(dataSubject.hasPermission(Permission.DATA_READ)).toBe(true);
+      expect(dataSubject.hasPermission(Permission.QUERY_EXECUTE)).toBe(true);
+      expect(dataSubject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(false);
+    });
+
+    it("should handle permission validation edge cases from documentation", () => {
+      // 测试空权限的情况（文档提到的权限装饰器不完整问题）
+      const noPermissionsKey = {
+        id: "no-permissions",
+        permissions: [],
+      };
+      const noPermSubject = new ApiKeySubject(noPermissionsKey);
+      
+      // 没有权限应该全部返回false
+      Object.values(Permission).forEach(permission => {
+        expect(noPermSubject.hasPermission(permission)).toBe(false);
+      });
+
+      // 测试单一权限的精确性
+      const singlePermKey = {
+        id: "single-perm",
+        permissions: [Permission.PROVIDERS_READ],
+      };
+      const singleSubject = new ApiKeySubject(singlePermKey);
+      
+      expect(singleSubject.hasPermission(Permission.PROVIDERS_READ)).toBe(true);
+      // 确保没有权限泄露
+      const otherPermissions = Object.values(Permission).filter(
+        p => p !== Permission.PROVIDERS_READ
+      );
+      otherPermissions.forEach(permission => {
+        expect(singleSubject.hasPermission(permission)).toBe(false);
+      });
+    });
+  });
+
+  describe("Permission Validation Performance", () => {
+    it("should efficiently validate permissions for large permission sets", () => {
+      const allPermissions = Object.values(Permission);
+      const fullAccessKey = {
+        id: "full-access-key",
+        permissions: allPermissions,
+      };
+      const subject = new ApiKeySubject(fullAccessKey);
+
+      const start = performance.now();
+
+      // 测试所有权限检查
+      allPermissions.forEach(permission => {
+        expect(subject.hasPermission(permission)).toBe(true);
+      });
+
+      const end = performance.now();
+      const duration = end - start;
+
+      // 权限检查应该很快
+      expect(duration).toBeLessThan(10); // 10ms for all permissions
+    });
+
+    it("should efficiently validate multiple permission combinations", () => {
+      const subject = new ApiKeySubject(systemAdminApiKey);
+
+      const start = performance.now();
+
+      // 测试多种权限组合
+      for (let i = 0; i < 1000; i++) {
+        subject.hasAllPermissions([Permission.SYSTEM_ADMIN, Permission.SYSTEM_MONITOR]);
+        subject.hasAnyPermission([Permission.DATA_READ, Permission.SYSTEM_ADMIN]);
+      }
+
+      const end = performance.now(); 
+      const duration = end - start;
+
+      // 批量权限检查应该高效
+      expect(duration).toBeLessThan(50); // 50ms for 2000 operations
     });
   });
 

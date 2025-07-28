@@ -1,16 +1,16 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/symbol-mapper.service";
+import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/service/symbol-mapper.service";
 import { SymbolMappingRepository } from "../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
 import { CreateSymbolMappingDto } from "../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
-import { MappingRule } from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
+import { SymbolMappingRule } from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 import { ConflictException, NotFoundException } from "@nestjs/common";
-import { UpdateMappingRuleDto } from "../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
+import { UpdateSymbolMappingRuleDto } from "../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
 
 describe("SymbolMapperService", () => {
   let service: SymbolMapperService;
   let mockRepository: jest.Mocked<SymbolMappingRepository>;
 
-  const mockMappingRule: MappingRule = {
+  const mockMappingRule: SymbolMappingRule = {
     inputSymbol: "700.HK",
     outputSymbol: "00700",
     market: "HK",
@@ -22,7 +22,7 @@ describe("SymbolMapperService", () => {
     _id: "mapping-id",
     dataSourceName: "longport",
     description: "LongPort Mapping",
-    mappingRules: [mockMappingRule],
+    SymbolMappingRule: [mockMappingRule],
     isActive: true,
   } as unknown as any;
 
@@ -41,9 +41,9 @@ describe("SymbolMapperService", () => {
             updateById: jest.fn(),
             deleteById: jest.fn(),
             getDataSources: jest.fn(),
-            addMappingRule: jest.fn(),
-            updateMappingRule: jest.fn(),
-            removeMappingRule: jest.fn(),
+            addSymbolMappingRule: jest.fn(),
+            updateSymbolMappingRule: jest.fn(),
+            removeSymbolMappingRule: jest.fn(),
             deleteByDataSource: jest.fn(),
           }),
         },
@@ -93,10 +93,10 @@ describe("SymbolMapperService", () => {
     });
   });
 
-  describe("getMappingRules", () => {
+  describe("getSymbolMappingRule", () => {
     it("should get mapping rules for a provider", async () => {
       mockRepository.findByDataSource.mockResolvedValue(mockSymbolMapping);
-      const result = await service.getMappingRules("longport");
+      const result = await service.getSymbolMappingRule("longport");
       expect(result).toEqual([mockMappingRule]);
       expect(mockRepository.findByDataSource).toHaveBeenCalledWith("longport");
     });
@@ -106,7 +106,7 @@ describe("SymbolMapperService", () => {
     it("should create new data source mapping", async () => {
       const createDto: CreateSymbolMappingDto = {
         dataSourceName: "new-provider",
-        mappingRules: [],
+        SymbolMappingRule: [],
       };
       mockRepository.exists.mockResolvedValue(false);
       mockRepository.create.mockResolvedValue(mockSymbolMapping);
@@ -120,7 +120,7 @@ describe("SymbolMapperService", () => {
     it("should throw ConflictException if mapping config exists", async () => {
       const createDto: CreateSymbolMappingDto = {
         dataSourceName: "existing-provider",
-        mappingRules: [],
+        SymbolMappingRule: [],
       };
       mockRepository.exists.mockResolvedValue(true);
       await expect(service.createDataSourceMapping(createDto)).rejects.toThrow(
@@ -129,18 +129,18 @@ describe("SymbolMapperService", () => {
     });
   });
 
-  describe("updateMappingRule", () => {
+  describe("updateSymbolMappingRule", () => {
     it("should update a mapping rule", async () => {
-      const updateDto: UpdateMappingRuleDto = {
+      const updateDto: UpdateSymbolMappingRuleDto = {
         dataSourceName: "longport",
         inputSymbol: "700.HK",
-        mappingRule: { outputSymbol: "TCEHY" },
+        symbolMappingRule: { outputSymbol: "TCEHY" },
       };
-      mockRepository.updateMappingRule.mockResolvedValue(mockSymbolMapping);
+      mockRepository.updateSymbolMappingRule.mockResolvedValue(mockSymbolMapping);
 
-      const result = await service.updateMappingRule(updateDto);
+      const result = await service.updateSymbolMappingRule(updateDto);
       expect(result.dataSourceName).toEqual("longport");
-      expect(mockRepository.updateMappingRule).toHaveBeenCalledWith(
+      expect(mockRepository.updateSymbolMappingRule).toHaveBeenCalledWith(
         "longport",
         "700.HK",
         { outputSymbol: "TCEHY" },
@@ -148,29 +148,29 @@ describe("SymbolMapperService", () => {
     });
 
     it("should throw NotFoundException if rule does not exist", async () => {
-      const updateDto: UpdateMappingRuleDto = {
+      const updateDto: UpdateSymbolMappingRuleDto = {
         dataSourceName: "longport",
         inputSymbol: "NONEXISTENT.HK",
-        mappingRule: { outputSymbol: "TCEHY" },
+        symbolMappingRule: { outputSymbol: "TCEHY" },
       };
-      mockRepository.updateMappingRule.mockResolvedValue(null);
-      await expect(service.updateMappingRule(updateDto)).rejects.toThrow(
+      mockRepository.updateSymbolMappingRule.mockResolvedValue(null);
+      await expect(service.updateSymbolMappingRule(updateDto)).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe("deleteMapping", () => {
+  describe("deleteSymbolMapping", () => {
     it("should delete a mapping by ID", async () => {
       mockRepository.deleteById.mockResolvedValue(mockSymbolMapping);
-      const result = await service.deleteMapping("mapping-id");
+      const result = await service.deleteSymbolMapping("mapping-id");
       expect(result.id).toBe("mapping-id");
       expect(mockRepository.deleteById).toHaveBeenCalledWith("mapping-id");
     });
 
     it("should throw NotFoundException if mapping ID does not exist", async () => {
       mockRepository.deleteById.mockResolvedValue(null);
-      await expect(service.deleteMapping("non-existent-id")).rejects.toThrow(
+      await expect(service.deleteSymbolMapping("non-existent-id")).rejects.toThrow(
         NotFoundException,
       );
     });

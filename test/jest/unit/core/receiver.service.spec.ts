@@ -1,9 +1,9 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ReceiverService } from "../../../../src/core/receiver/receiver.service";
-import { SymbolMapperService } from "../../../../src/core/symbol-mapper/symbol-mapper.service";
+import { ReceiverService } from "../../../../src/core/receiver/service/receiver.service";
+import { SymbolMapperService } from "../../../../src/core/symbol-mapper/service/symbol-mapper.service";
 import { CapabilityRegistryService } from "../../../../src/providers/capability-registry.service";
 import { LongportContextService } from "../../../../src/providers/longport/longport-context.service";
-import { MarketStatusService } from "../../../../src/core/shared/services/market-status.service";
+import { MarketStatusService } from "../../../../src/core/shared/service/market-status.service";
 import { CacheService } from "../../../../src/cache/cache.service";
 import { DataRequestDto } from "../../../../src/core/receiver/dto/data-request.dto";
 import { TransformSymbolsResponseDto } from "../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
@@ -112,7 +112,7 @@ describe("ReceiverService", () => {
   describe("handleRequest", () => {
     const validRequest: DataRequestDto = {
       symbols: ["AAPL.US", "GOOGL.US"],
-      dataType: "stock-quote",
+      dataType: "get-stock-quote",
       options: {
         preferredProvider: "longport",
         realtime: true,
@@ -161,7 +161,7 @@ describe("ReceiverService", () => {
       // 创建一个不包含preferredProvider的请求，让它走自动选择提供商的逻辑
       const requestWithoutPreferredProvider: DataRequestDto = {
         symbols: ["AAPL.US", "GOOGL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           realtime: true,
         },
@@ -172,7 +172,7 @@ describe("ReceiverService", () => {
       await expect(
         service.handleRequest(requestWithoutPreferredProvider),
       ).rejects.toThrow(
-        "无法找到支持数据类型 'stock-quote' 和市场 'US' 的数据提供商",
+        "无法找到支持数据类型 'get-stock-quote' 和市场 'US' 的数据提供商",
       );
     });
 
@@ -180,7 +180,7 @@ describe("ReceiverService", () => {
       // 创建一个不包含preferredProvider的请求，让它走自动选择提供商的逻辑
       const requestWithoutPreferredProvider: DataRequestDto = {
         symbols: ["AAPL.US", "GOOGL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           realtime: true,
         },
@@ -245,7 +245,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
         },
@@ -291,7 +291,7 @@ describe("ReceiverService", () => {
 
       const requestWithDuplicates: DataRequestDto = {
         symbols: ["AAPL.US", "GOOGL.US", "AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const result = await service.handleRequest(requestWithDuplicates);
@@ -322,7 +322,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["700.HK", "0005.HK"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -355,7 +355,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL", "GOOGL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -387,7 +387,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -422,7 +422,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL", "GOOGL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -441,7 +441,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL", "GOOGL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await expect(service.handleRequest(validRequest)).rejects.toThrow(
@@ -468,7 +468,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL", "INVALID"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const result = await service.handleRequest(validRequest);
@@ -491,7 +491,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["INVALID1", "INVALID2"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await expect(service.handleRequest(validRequest)).rejects.toThrow(
@@ -521,7 +521,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL", "GOOGL.US"], // Mixed: needs transform and standard
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const result = await service.handleRequest(validRequest);
@@ -539,7 +539,7 @@ describe("ReceiverService", () => {
 
       const requestWithInvalidPreferredProvider: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "unsupported-provider",
         },
@@ -548,7 +548,7 @@ describe("ReceiverService", () => {
       await expect(
         service.handleRequest(requestWithInvalidPreferredProvider),
       ).rejects.toThrow(
-        "无法找到支持数据类型 'stock-quote' 和市场 'any' 的数据提供商",
+        "无法找到支持数据类型 'get-stock-quote' 和市场 'any' 的数据提供商",
       );
     });
 
@@ -563,7 +563,7 @@ describe("ReceiverService", () => {
 
       const requestWithUnsupportedMarket: DataRequestDto = {
         symbols: ["700.HK"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           market: "HK",
@@ -618,7 +618,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       // Should not throw error, should use fallback market status
@@ -646,7 +646,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const result = await service.handleRequest(validRequest);
@@ -680,7 +680,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       // Should fall back to normal data fetching
@@ -712,7 +712,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       // Should complete successfully despite cache storage failure
@@ -744,7 +744,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["000001.SZ", "300001"], // SZ market symbols
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -777,7 +777,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["600000.SH", "688001"], // SH market symbols
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -806,7 +806,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["00700"], // 5-digit HK symbol
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -839,7 +839,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           fields: ["price", "volume"],
           realtime: true,
@@ -878,7 +878,7 @@ describe("ReceiverService", () => {
 
       const requestWithWhitespace: DataRequestDto = {
         symbols: [" AAPL.US ", "\tGOOGL.US\n"], // Symbols with whitespace
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       // Should still complete successfully with warnings
@@ -908,7 +908,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -950,7 +950,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -1017,7 +1017,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       await service.handleRequest(validRequest);
@@ -1046,7 +1046,7 @@ describe("ReceiverService", () => {
 
       const validRequest: DataRequestDto = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const result = await service.handleRequest(validRequest);

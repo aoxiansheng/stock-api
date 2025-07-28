@@ -337,14 +337,14 @@ export const PRESET_FIELD_DEFINITIONS = {
    *
    * 🔧 配置说明：
    * - provider: "preset" 表示这是系统预设的映射规则
-   * - ruleListType: "quote_fields" 标识这是报价字段类型
+   * - dataRuleListType: "quote_fields" 标识这是报价字段类型
    * - fields: 具体的字段映射规则数组
    */
   stockQuote: {
     name: "Stock Quote Preset Fields",
     description: "股票报价数据的标准字段映射配置",
     provider: "preset",
-    ruleListType: "quote_fields",
+    dataRuleListType: "quote_fields",
     fields: [
       // 主要报价字段
       { source: "secu_quote[].symbol", target: "symbol", desc: "标的代码" },
@@ -467,7 +467,7 @@ export const PRESET_FIELD_DEFINITIONS = {
    *
    * 🔧 配置说明：
    * - provider: "preset" 表示这是系统预设的映射规则
-   * - ruleListType: "basic_info_fields" 标识这是基本信息字段类型
+   * - dataRuleListType: "basic_info_fields" 标识这是基本信息字段类型
    * - fields: 具体的字段映射规则数组
    *
    * 💡 应用场景：
@@ -479,7 +479,7 @@ export const PRESET_FIELD_DEFINITIONS = {
     name: "Stock Basic Info Preset Fields",
     description: "股票基本信息数据的标准字段映射配置",
     provider: "preset",
-    ruleListType: "basic_info_fields",
+    dataRuleListType: "basic_info_fields",
     fields: [
       // 基础信息字段
       {
@@ -608,7 +608,7 @@ export const PRESET_FIELD_DEFINITIONS = {
  * - description: 数据源描述
  * - version: 版本号（便于升级管理）
  * - isActive: 是否启用该数据源
- * - mappingRules: 具体的映射规则数组
+ * - SymbolMappingRule: 具体的映射规则数组
  *   * inputSymbol: 输入的符号格式
  *   * outputSymbol: 该数据源需要的格式
  *   * market: 市场标识（HK, US, SZ, SH）
@@ -640,7 +640,7 @@ export const SAMPLE_SYMBOL_MAPPINGS = [
     description: "LongPort 符号映射配置",
     version: "1.0.0",
     isActive: true,
-    mappingRules: [
+    SymbolMappingRule: [
       {
         inputSymbol: "700.HK",
         outputSymbol: "00700.HK",
@@ -698,7 +698,7 @@ export const SAMPLE_SYMBOL_MAPPINGS = [
     description: "示例 Futu 符号映射配置",
     version: "1.0.0",
     isActive: true,
-    mappingRules: [
+    SymbolMappingRule: [
       {
         inputSymbol: "700.HK",
         outputSymbol: "HK.00700",

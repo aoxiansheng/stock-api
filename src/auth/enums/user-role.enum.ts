@@ -7,15 +7,15 @@ export enum UserRole {
 }
 
 /**
- * 权限枚举
+ * 权限枚举 - 18个细粒度权限
  */
 export enum Permission {
-  // 数据访问权限
+  // 基础数据权限 (3个)
   DATA_READ = "data:read",
   QUERY_EXECUTE = "query:execute",
   PROVIDERS_READ = "providers:read",
 
-  // 开发者权限
+  // 开发者权限 (6个)
   TRANSFORMER_PREVIEW = "transformer:preview",
   SYSTEM_MONITOR = "system:monitor",
   SYSTEM_METRICS = "system:metrics",
@@ -23,12 +23,18 @@ export enum Permission {
   DEBUG_ACCESS = "debug:access",
   CONFIG_READ = "config:read",
 
-  // 管理员权限
+  // 管理员权限 (5个)
   USER_MANAGE = "user:manage",
   APIKEY_MANAGE = "apikey:manage",
   CONFIG_WRITE = "config:write",
   MAPPING_WRITE = "mapping:write",
   SYSTEM_ADMIN = "system:admin",
+
+  // 扩展功能权限 (4个)
+  DATA_WRITE = "data:write",
+  QUERY_STATS = "query:stats",
+  QUERY_HEALTH = "query:health",
+  PROVIDERS_MANAGE = "providers:manage",
 }
 
 /**
@@ -60,5 +66,8 @@ export const RolePermissions = {
     Permission.CONFIG_WRITE,
     Permission.MAPPING_WRITE,
     Permission.SYSTEM_ADMIN,
+    // 部分扩展功能权限
+    Permission.DATA_WRITE,
+    Permission.PROVIDERS_MANAGE,
   ],
 };

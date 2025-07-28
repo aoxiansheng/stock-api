@@ -37,7 +37,7 @@ const STRESS_SYMBOLS = [
   // 不同市场的大量符号
   Array.from({ length: 20 }, (_, i) => `${700 + i}.HK`),  // 港股
   Array.from({ length: 20 }, (_, i) => `STOCK${i}.US`),   // 美股
-  Array.from({ length: 20 }, (_, i) => `${000001 + i}.SZ`), // 深股
+  Array.from({ length: 20 }, (_, i) => `${String(1 + i).padStart(6, '0')}.SZ`), // 深股
   Array.from({ length: 20 }, (_, i) => `${600000 + i}.SH`), // 沪股
 ].flat();
 
@@ -78,7 +78,7 @@ function stressTestBulkRequests() {
   
   const payload = {
     symbols: symbols,
-    dataType: 'stock-quote',
+    dataType: 'get-stock-quote',
     options: {
       timeout: 10000, // 较长的超时时间
       retries: 0,     // 不重试，测试真实性能
@@ -148,7 +148,7 @@ function stressTestConcurrentConnections() {
     
     const payload = {
       symbols: symbols,
-      dataType: 'stock-quote',
+      dataType: 'get-stock-quote',
     };
     
     // 模拟并发请求（k6中每个虚拟用户本身就是并发的）
@@ -196,7 +196,7 @@ function stressTestResourceExhaustion() {
   
   const payload = {
     symbols: massiveSymbolList,
-    dataType: 'stock-quote',
+    dataType: 'get-stock-quote',
     options: {
       includeMetadata: true,
       includeDebugInfo: true,

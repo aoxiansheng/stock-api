@@ -205,7 +205,7 @@ function testInputValidationSecurity(testUsers) {
   } else if (target.endpoint === '/api/v1/receiver/data') {
     requestBody = {
       symbols: target.field === 'symbols' ? [payload] : ['AAPL.US'],
-      dataType: target.field === 'dataType' ? payload : 'stock-quote',
+      dataType: target.field === 'dataType' ? payload : 'get-stock-quote',
     };
   }
   

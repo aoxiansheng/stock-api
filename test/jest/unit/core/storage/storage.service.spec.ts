@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { StorageService } from "../../../../../src/core/storage/storage.service";
+import { StorageService } from "../../../../../src/core/storage/service/storage.service";
 import { StorageRepository } from "../../../../../src/core/storage/repositories/storage.repository";
 import { CacheService } from "../../../../../src/cache/cache.service";
 import {
@@ -32,7 +32,7 @@ describe("StorageService", () => {
       findByKey: jest.fn().mockResolvedValue({
         key: "test-key",
         data: { value: "test" },
-        dataTypeFilter: DataClassification.GENERAL,
+        queryDataTypeFilter: DataClassification.GENERAL,
         provider: "test",
         market: "US",
         dataSize: 100,

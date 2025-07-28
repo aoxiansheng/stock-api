@@ -6,13 +6,13 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import {
   SymbolMappingRule,
   SymbolMappingRuleDocument,
-  SymbolMappingRuleSchema,
-  MappingRule,
+  SymbolMappingRuleDocumentType,
+  SymbolMappingRuleDocumentSchema
 } from "../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
 describe("SymbolMappingRule Schema", () => {
   let mongoServer: MongoMemoryServer;
-  let symbolMappingRuleModel: Model<SymbolMappingRuleDocument>;
+  let symbolMappingRuleModel: Model<SymbolMappingRuleDocumentType>;
   let moduleRef: TestingModule;
 
   beforeAll(async () => {
@@ -23,13 +23,13 @@ describe("SymbolMappingRule Schema", () => {
       imports: [
         MongooseModule.forRoot(uri),
         MongooseModule.forFeature([
-          { name: SymbolMappingRule.name, schema: SymbolMappingRuleSchema },
+          { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
         ]),
       ],
     }).compile();
 
-    symbolMappingRuleModel = moduleRef.get<Model<SymbolMappingRuleDocument>>(
-      getModelToken(SymbolMappingRule.name),
+    symbolMappingRuleModel = moduleRef.get<Model<SymbolMappingRuleDocumentType>>(
+      getModelToken(SymbolMappingRuleDocument.name),
     );
   });
 
@@ -43,7 +43,7 @@ describe("SymbolMappingRule Schema", () => {
   });
 
   it("应该成功创建符号映射规则", async () => {
-    const mappingRules: MappingRule[] = [
+    const SymbolMappingRule: SymbolMappingRule[] = [
       {
         inputSymbol: "700.HK",
         outputSymbol: "00700",
@@ -64,7 +64,7 @@ describe("SymbolMappingRule Schema", () => {
 
     const ruleData = {
       dataSourceName: "longport",
-      mappingRules,
+      SymbolMappingRule,
       description: "LongPort数据源符号映射规则",
       version: "1.0.0",
       isActive: true,
@@ -75,11 +75,11 @@ describe("SymbolMappingRule Schema", () => {
     const savedRule = await rule.save();
 
     expect(savedRule.dataSourceName).toBe(ruleData.dataSourceName);
-    expect(savedRule.mappingRules).toHaveLength(2);
-    expect(savedRule.mappingRules[0].inputSymbol).toBe("700.HK");
-    expect(savedRule.mappingRules[0].outputSymbol).toBe("00700");
-    expect(savedRule.mappingRules[1].inputSymbol).toBe("AAPL.US");
-    expect(savedRule.mappingRules[1].outputSymbol).toBe("AAPL");
+    expect(savedRule.SymbolMappingRule).toHaveLength(2);
+    expect(savedRule.SymbolMappingRule[0].inputSymbol).toBe("700.HK");
+    expect(savedRule.SymbolMappingRule[0].outputSymbol).toBe("00700");
+    expect(savedRule.SymbolMappingRule[1].inputSymbol).toBe("AAPL.US");
+    expect(savedRule.SymbolMappingRule[1].outputSymbol).toBe("AAPL");
     expect(savedRule.description).toBe(ruleData.description);
     expect(savedRule.version).toBe(ruleData.version);
     expect(savedRule.isActive).toBe(true);
@@ -96,14 +96,14 @@ describe("SymbolMappingRule Schema", () => {
     const rule = new symbolMappingRuleModel(minimalRuleData);
     const savedRule = await rule.save();
 
-    expect(savedRule.mappingRules).toEqual([]); // 默认空数组
+    expect(savedRule.SymbolMappingRule).toEqual([]); // 默认空数组
     expect(savedRule.isActive).toBe(true); // 默认值
   });
 
   it("应该正确序列化对象（toJSON方法）", async () => {
     const ruleData = {
       dataSourceName: "json-test-provider",
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "TEST.HK",
           outputSymbol: "TEST",
@@ -116,19 +116,19 @@ describe("SymbolMappingRule Schema", () => {
 
     const rule = new symbolMappingRuleModel(ruleData);
     const savedRule = await rule.save();
-    const jsonRule = savedRule.toJSON();
+    const jsonRule = savedRule.toJSON() as any;
 
     expect(jsonRule.id).toBeDefined();
     expect(jsonRule._id).toBeUndefined(); // 被移除
     expect(jsonRule.__v).toBeUndefined(); // 被移除
     expect(jsonRule.dataSourceName).toBe(ruleData.dataSourceName);
 
-    // 验证嵌套的 mappingRules，并考虑默认值
-    const expectedMappingRules = ruleData.mappingRules.map((rule) => ({
+    // 验证嵌套的 SymbolMappingRule，并考虑默认值
+    const expectedMappingRule = ruleData.SymbolMappingRule.map((rule) => ({
       ...rule,
       isActive: true, // 验证默认值是否已应用
     }));
-    expect(jsonRule.mappingRules).toEqual(expectedMappingRules);
+    expect(jsonRule.SymbolMappingRule).toEqual(expectedMappingRule);
   });
 
   it("应该验证必填字段", async () => {
@@ -145,7 +145,7 @@ describe("SymbolMappingRule Schema", () => {
   it("应该支持MappingRule的默认值", async () => {
     const ruleData = {
       dataSourceName: "mapping-rule-defaults",
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "DEFAULT.TEST",
           outputSymbol: "DEFAULT",
@@ -157,15 +157,15 @@ describe("SymbolMappingRule Schema", () => {
     const rule = new symbolMappingRuleModel(ruleData);
     const savedRule = await rule.save();
 
-    const mappingRule = savedRule.mappingRules[0];
-    expect(mappingRule.isActive).toBe(true); // 默认值
-    expect(mappingRule.market).toBeUndefined(); // 可选字段
-    expect(mappingRule.symbolType).toBeUndefined(); // 可选字段
-    expect(mappingRule.description).toBeUndefined(); // 可选字段
+    const transformMappingRule = savedRule.SymbolMappingRule[0];
+    expect(transformMappingRule.isActive).toBe(true); // 默认值
+    expect(transformMappingRule.market).toBeUndefined(); // 可选字段
+    expect(transformMappingRule.symbolType).toBeUndefined(); // 可选字段
+    expect(transformMappingRule.description).toBeUndefined(); // 可选字段
   });
 
   it("应该支持复杂的映射规则配置", async () => {
-    const complexMappingRules: MappingRule[] = [
+    const complexMappingRule: SymbolMappingRule[] = [
       // 港股映射
       {
         inputSymbol: "700.HK",
@@ -248,7 +248,7 @@ describe("SymbolMappingRule Schema", () => {
 
     const ruleData = {
       dataSourceName: "complex-provider",
-      mappingRules: complexMappingRules,
+      SymbolMappingRule: complexMappingRule,
       description: "复杂的多市场符号映射规则",
       version: "2.1.0",
       isActive: true,
@@ -258,10 +258,10 @@ describe("SymbolMappingRule Schema", () => {
     const rule = new symbolMappingRuleModel(ruleData);
     const savedRule = await rule.save();
 
-    expect(savedRule.mappingRules).toHaveLength(9);
+    expect(savedRule.SymbolMappingRule).toHaveLength(9);
 
     // 验证港股映射
-    const hkStocks = savedRule.mappingRules.filter(
+    const hkStocks = savedRule.SymbolMappingRule.filter(
       (r) => r.market === "HK" && r.symbolType === "stock",
     );
     expect(hkStocks).toHaveLength(2);
@@ -270,7 +270,7 @@ describe("SymbolMappingRule Schema", () => {
     );
 
     // 验证美股映射
-    const usStocks = savedRule.mappingRules.filter(
+    const usStocks = savedRule.SymbolMappingRule.filter(
       (r) => r.market === "US" && r.symbolType === "stock",
     );
     expect(usStocks).toHaveLength(2);
@@ -279,26 +279,26 @@ describe("SymbolMappingRule Schema", () => {
     ).toBe("AAPL");
 
     // 验证A股映射
-    const cnStocks = savedRule.mappingRules.filter((r) => r.market === "CN");
+    const cnStocks = savedRule.SymbolMappingRule.filter((r) => r.market === "CN");
     expect(cnStocks).toHaveLength(2);
     expect(
       cnStocks.find((s) => s.inputSymbol === "000001.SZ")?.outputSymbol,
     ).toBe("000001");
 
     // 验证ETF映射
-    const etfs = savedRule.mappingRules.filter((r) => r.symbolType === "etf");
+    const etfs = savedRule.SymbolMappingRule.filter((r) => r.symbolType === "etf");
     expect(etfs).toHaveLength(1);
     expect(etfs[0].inputSymbol).toBe("SPY.US");
 
     // 验证指数映射
-    const indexes = savedRule.mappingRules.filter(
+    const indexes = savedRule.SymbolMappingRule.filter(
       (r) => r.symbolType === "index",
     );
     expect(indexes).toHaveLength(1);
     expect(indexes[0].inputSymbol).toBe("HSI.HK");
 
     // 验证禁用的映射
-    const inactiveRules = savedRule.mappingRules.filter((r) => !r.isActive);
+    const inactiveRules = savedRule.SymbolMappingRule.filter((r) => !r.isActive);
     expect(inactiveRules).toHaveLength(1);
     expect(inactiveRules[0].inputSymbol).toBe("DEPRECATED.TEST");
   });
@@ -307,7 +307,7 @@ describe("SymbolMappingRule Schema", () => {
     // 先创建一些数据以确保索引被建立
     const rule = new symbolMappingRuleModel({
       dataSourceName: "index-test-provider",
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "INDEX.TEST",
           outputSymbol: "INDEX",
@@ -334,18 +334,18 @@ describe("SymbolMappingRule Schema", () => {
     );
     expect(isActiveIndex).toBeDefined();
 
-    // 查找mappingRules.inputSymbol索引
+    // 查找symbolMappingRule.inputSymbol索引
     const inputSymbolIndex = indexes.find(
       (index) =>
         index.key &&
-        Object.keys(index.key).includes("mappingRules.inputSymbol"),
+        Object.keys(index.key).includes("SymbolMappingRule.inputSymbol"),
     );
     expect(inputSymbolIndex).toBeDefined();
 
-    // 查找mappingRules.market索引
+    // 查找symbolMappingRule.market索引
     const marketIndex = indexes.find(
       (index) =>
-        index.key && Object.keys(index.key).includes("mappingRules.market"),
+        index.key && Object.keys(index.key).includes("SymbolMappingRule.market"),
     );
     expect(marketIndex).toBeDefined();
 
@@ -359,7 +359,7 @@ describe("SymbolMappingRule Schema", () => {
   it("应该验证dataSourceName的唯一性", async () => {
     const ruleData = {
       dataSourceName: "duplicate-provider",
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "FIRST.TEST",
           outputSymbol: "FIRST",
@@ -374,7 +374,7 @@ describe("SymbolMappingRule Schema", () => {
     // 尝试创建具有相同dataSourceName的规则
     const duplicateRule = new symbolMappingRuleModel({
       ...ruleData,
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "SECOND.TEST",
           outputSymbol: "SECOND",
@@ -394,7 +394,7 @@ describe("SymbolMappingRule Schema", () => {
   it("应该支持映射规则的动态更新", async () => {
     const initialData = {
       dataSourceName: "dynamic-update-provider",
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "OLD.SYMBOL",
           outputSymbol: "OLD",
@@ -410,7 +410,7 @@ describe("SymbolMappingRule Schema", () => {
     const savedRule = await rule.save();
 
     // 更新映射规则
-    savedRule.mappingRules = [
+    savedRule.SymbolMappingRule = [
       {
         inputSymbol: "NEW.SYMBOL",
         outputSymbol: "NEW",
@@ -433,20 +433,22 @@ describe("SymbolMappingRule Schema", () => {
 
     const updatedRule = await savedRule.save();
 
-    expect(updatedRule.mappingRules).toHaveLength(2);
-    expect(updatedRule.mappingRules[0].inputSymbol).toBe("NEW.SYMBOL");
-    expect(updatedRule.mappingRules[1].inputSymbol).toBe("ANOTHER.SYMBOL");
+    expect(updatedRule.SymbolMappingRule).toHaveLength(2);
+    expect(updatedRule.SymbolMappingRule[0].inputSymbol).toBe("NEW.SYMBOL");
+    expect(updatedRule.SymbolMappingRule[1].inputSymbol).toBe("ANOTHER.SYMBOL");
     expect(updatedRule.version).toBe("2.0.0");
     expect(updatedRule.description).toBe("更新后的映射规则");
-    expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(
-      updatedRule.createdAt.getTime(),
-    );
+    
+    // 使用正确的类型比较时间戳
+    const createdAt = updatedRule.createdAt as Date;
+    const updatedAt = updatedRule.updatedAt as Date;
+    expect(updatedAt.getTime()).toBeGreaterThan(createdAt.getTime());
   });
 
   it("应该支持不同符号类型", async () => {
     const symbolTypes = ["stock", "etf", "index", "crypto", "forex"];
 
-    const mappingRules: MappingRule[] = symbolTypes.map((type) => ({
+    const SymbolMappingRule: SymbolMappingRule[] = symbolTypes.map((type) => ({
       inputSymbol: `${type.toUpperCase()}.TEST`,
       outputSymbol: type.toUpperCase(),
       market: "TEST",
@@ -457,17 +459,17 @@ describe("SymbolMappingRule Schema", () => {
 
     const ruleData = {
       dataSourceName: "symbol-types-provider",
-      mappingRules,
+      SymbolMappingRule,
       description: "不同符号类型测试",
     };
 
     const rule = new symbolMappingRuleModel(ruleData);
     const savedRule = await rule.save();
 
-    expect(savedRule.mappingRules).toHaveLength(symbolTypes.length);
+    expect(savedRule.SymbolMappingRule).toHaveLength(symbolTypes.length);
 
     symbolTypes.forEach((type) => {
-      const matchingRule = savedRule.mappingRules.find(
+      const matchingRule = savedRule.SymbolMappingRule.find(
         (r) => r.symbolType === type,
       );
       expect(matchingRule).toBeDefined();
@@ -483,7 +485,7 @@ describe("SymbolMappingRule Schema", () => {
       providers.map(async (provider) => {
         const ruleData = {
           dataSourceName: provider,
-          mappingRules: [
+          SymbolMappingRule: [
             {
               inputSymbol: `SYMBOL.TEST`,
               outputSymbol: `OUTPUT`,
@@ -503,7 +505,7 @@ describe("SymbolMappingRule Schema", () => {
     expect(rules).toHaveLength(3);
     rules.forEach((rule) => {
       expect(rule.dataSourceName).toBeDefined();
-      expect(rule.mappingRules[0].inputSymbol).toBe(`SYMBOL.TEST`);
+      expect(rule.SymbolMappingRule[0].inputSymbol).toBe(`SYMBOL.TEST`);
     });
 
     // 验证查询能力
@@ -514,6 +516,6 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "provider-a",
     });
     expect(providerARule).toBeDefined();
-    expect(providerARule?.mappingRules[0].outputSymbol).toBe("OUTPUT");
+    expect(providerARule?.SymbolMappingRule[0].outputSymbol).toBe("OUTPUT");
   });
 });

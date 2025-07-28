@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { DataMapperService } from "../../../../src/core/data-mapper/data-mapper.service";
+import { DataMapperService } from "../../../../src/core/data-mapper/service/data-mapper.service";
 import { DataMappingRepository } from "../../../../src/core/data-mapper/repositories/data-mapper.repository";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { TRANSFORMATION_TYPES } from "../../../../src/core/data-mapper/constants/data-mapper.constants";
@@ -15,8 +15,8 @@ describe("DataMapperService", () => {
     _id: "rule-id",
     name: "Test Rule",
     provider: "test-provider",
-    ruleListType: "test-type",
-    fieldMappings: [{ sourceField: "a", targetField: "b" }],
+    dataRuleListType: "test-type",
+    sharedDataFieldMappings: [{ sourceField: "a", targetField: "b" }],
     isActive: true,
     version: "1",
     severity: "medium",
@@ -95,15 +95,15 @@ describe("DataMapperService", () => {
       const createDto = {
         name: "Test Rule",
         provider: "test-provider",
-        ruleListType: "test-type",
-        fieldMappings: [],
+        dataRuleListType: "test-type",
+        sharedDataFieldMappings: [],
       };
       await service.saveMappingRule(createDto);
       expect(spy).toHaveBeenCalledWith(createDto);
     });
 
-    it("getMappingRules should return rules", async () => {
-      const result = await service.getMappingRules(
+    it("getMappingRule should return rules", async () => {
+      const result = await service.getMappingRule(
         "test-provider",
         "test-type",
       );
@@ -141,9 +141,9 @@ describe("DataMapperService", () => {
       const result = await service.findPaginated(query);
       expect(repository.findPaginated).toHaveBeenCalledWith(query);
       expect(result.items).toHaveLength(1);
-      expect(result.total).toBe(1);
-      expect(result.page).toBe(1);
-      expect(result.limit).toBe(10);
+      expect(result.pagination.total).toBe(1);
+      expect(result.pagination.page).toBe(1);
+      expect(result.pagination.limit).toBe(10);
     });
   });
 
@@ -293,7 +293,7 @@ describe("DataMapperService", () => {
     it("should handle single object transformation", async () => {
       const singleObjectRule = {
         ...mockRule,
-        fieldMappings: [{ sourceField: "a", targetField: "b" }],
+        sharedDataFieldMappings: [{ sourceField: "a", targetField: "b" }],
       };
       jest
         .spyOn(repository, "findById")
@@ -353,7 +353,7 @@ describe("DataMapperService", () => {
     it("should apply transformations during mapping", async () => {
       const ruleWithTransform = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -375,7 +375,7 @@ describe("DataMapperService", () => {
     it("should transform array elements with transformations", async () => {
       const ruleWithTransform = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -403,7 +403,7 @@ describe("DataMapperService", () => {
     it("should handle special path patterns", async () => {
       const ruleWithSpecialPath = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "secu_quote[0].s",
             targetField: "symbol",
@@ -429,7 +429,7 @@ describe("DataMapperService", () => {
     it("should apply MULTIPLY transformation", async () => {
       const ruleWithMultiply = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -451,7 +451,7 @@ describe("DataMapperService", () => {
     it("should apply DIVIDE transformation", async () => {
       const ruleWithDivide = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -473,7 +473,7 @@ describe("DataMapperService", () => {
     it("should apply ADD transformation", async () => {
       const ruleWithAdd = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -495,7 +495,7 @@ describe("DataMapperService", () => {
     it("should apply SUBTRACT transformation", async () => {
       const ruleWithSubtract = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -517,7 +517,7 @@ describe("DataMapperService", () => {
     it("should apply FORMAT transformation", async () => {
       const ruleWithFormat = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -539,7 +539,7 @@ describe("DataMapperService", () => {
     it("should handle CUSTOM transformation and log warning", async () => {
       const ruleWithCustom = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -564,7 +564,7 @@ describe("DataMapperService", () => {
     it("should handle unknown transformation type", async () => {
       const ruleWithUnknown = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -585,7 +585,7 @@ describe("DataMapperService", () => {
     it("should throw BadRequestException on transformation failure", async () => {
       const ruleWithMultiply = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "a",
             targetField: "b",
@@ -634,7 +634,7 @@ describe("DataMapperService", () => {
         ruleId: "rule-id",
         ruleName: "Test Rule",
         provider: "test-provider",
-        ruleListType: "test-type",
+        dataRuleListType: "test-type",
       });
     });
 
@@ -683,9 +683,9 @@ describe("DataMapperService", () => {
       expect(result.activeRules).toBe(1);
       expect(result.inactiveRules).toBe(1);
       expect(result.providers).toBe(1);
-      expect(result.ruleListTypes).toBe(1);
+      expect(result.dataRuleListTypesNum).toBe(1);
       expect(result.providerList).toContain("test-provider");
-      expect(result.ruleListTypeList).toContain("test-type");
+      expect(result.dataRuleListTypeList).toContain("test-type");
     });
 
     it("should calculate inactive rules correctly", async () => {
@@ -709,7 +709,7 @@ describe("DataMapperService", () => {
     it("should transform each item in array", async () => {
       const rule = {
         ...mockRule,
-        fieldMappings: [{ sourceField: "a", targetField: "b" }],
+        sharedDataFieldMappings: [{ sourceField: "a", targetField: "b" }],
       };
 
       jest.spyOn(repository, "findById").mockResolvedValueOnce(rule as any);
@@ -725,7 +725,7 @@ describe("DataMapperService", () => {
     it("should transform multiple fields according to mappings", async () => {
       const multiFieldRule = {
         ...mockRule,
-        fieldMappings: [
+        sharedDataFieldMappings: [
           { sourceField: "a", targetField: "b" },
           { sourceField: "c", targetField: "d" },
         ],
@@ -747,7 +747,7 @@ describe("DataMapperService", () => {
     it("should ignore undefined source values", async () => {
       const nonexistentRule = {
         ...mockRule,
-        fieldMappings: [{ sourceField: "nonexistent", targetField: "target" }],
+        sharedDataFieldMappings: [{ sourceField: "nonexistent", targetField: "target" }],
       };
 
       jest

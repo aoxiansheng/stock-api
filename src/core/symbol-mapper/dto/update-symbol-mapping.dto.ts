@@ -63,7 +63,7 @@ export class TransformSymbolsResponseDto {
   processingTimeMs: number;
 }
 
-export class AddMappingRuleDto {
+export class AddSymbolMappingRuleDto {
   @ApiProperty({ description: "数据源名称", example: "longport" })
   @IsNotEmpty()
   @IsString()
@@ -71,10 +71,10 @@ export class AddMappingRuleDto {
 
   @ApiProperty({ description: "映射规则", type: SymbolMappingRuleDto })
   @IsNotEmpty()
-  mappingRule: SymbolMappingRuleDto;
+  symbolMappingRule: SymbolMappingRuleDto;
 }
 
-export class UpdateMappingRuleDto {
+export class UpdateSymbolMappingRuleDto {
   @ApiProperty({ description: "数据源名称", example: "longport" })
   @IsNotEmpty()
   @IsString()
@@ -87,5 +87,5 @@ export class UpdateMappingRuleDto {
 
   @ApiProperty({ description: "映射规则更新内容" })
   @IsNotEmpty()
-  mappingRule: Partial<SymbolMappingRuleDto>;
+  symbolMappingRule: Partial<SymbolMappingRuleDto>;
 }

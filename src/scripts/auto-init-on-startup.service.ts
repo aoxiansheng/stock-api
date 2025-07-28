@@ -102,7 +102,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     const stockQuoteConfig = PRESET_FIELD_DEFINITIONS.stockQuote;
     const configId = {
       provider: stockQuoteConfig.provider,
-      ruleListType: stockQuoteConfig.ruleListType,
+      dataRuleListType: stockQuoteConfig.dataRuleListType,
     };
 
     try {
@@ -118,18 +118,18 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         name: stockQuoteConfig.name,
         description: stockQuoteConfig.description,
         provider: stockQuoteConfig.provider,
-        ruleListType: stockQuoteConfig.ruleListType,
+        dataRuleListType: stockQuoteConfig.dataRuleListType,
         version: "1.0.0",
         createdBy: "auto-init",
         isActive: true,
         metadata: {
           source: "LongPort API secu_quote response",
-          dataTypeFilter: "stock-quote",
+          queryDataTypeFilter: "stock-quote",
           usage: "target_field_suggestions",
           autoCreated: true,
           lastUpdated: new Date().toISOString(),
         },
-        fieldMappings: stockQuoteConfig.fields.map((field) => ({
+        sharedDataFieldMappings: stockQuoteConfig.fields.map((field) => ({
           sourceField: field.source,
           targetField: field.target,
           description: field.desc,
@@ -155,7 +155,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     const stockBasicInfoConfig = PRESET_FIELD_DEFINITIONS.stockBasicInfo;
     const configId = {
       provider: stockBasicInfoConfig.provider,
-      ruleListType: stockBasicInfoConfig.ruleListType,
+      dataRuleListType: stockBasicInfoConfig.dataRuleListType,
     };
 
     try {
@@ -171,18 +171,18 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         name: stockBasicInfoConfig.name,
         description: stockBasicInfoConfig.description,
         provider: stockBasicInfoConfig.provider,
-        ruleListType: stockBasicInfoConfig.ruleListType,
+        dataRuleListType: stockBasicInfoConfig.dataRuleListType,
         version: "1.0.0",
         createdBy: "auto-init",
         isActive: true,
         metadata: {
           source: "LongPort API secu_static_info response",
-          dataTypeFilter: "stock-basic-info",
+          queryDataTypeFilter: "stock-basic-info",
           usage: "target_field_suggestions",
           autoCreated: true,
           lastUpdated: new Date().toISOString(),
         },
-        fieldMappings: stockBasicInfoConfig.fields.map((field) => ({
+        sharedDataFieldMappings: stockBasicInfoConfig.fields.map((field) => ({
           sourceField: field.source,
           targetField: field.target,
           description: field.desc,

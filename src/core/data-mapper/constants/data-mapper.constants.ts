@@ -181,7 +181,7 @@ export const DATA_TYPE_HANDLERS = Object.freeze({
  * 数据映射字段验证规则常量
  */
 export const DATA_MAPPER_FIELD_VALIDATION_RULES = Object.freeze({
-  REQUIRED_FIELDS: ["name", "provider", "ruleListType"],
+  REQUIRED_FIELDS: ["name", "provider", "dataRuleListType"],
   OPTIONAL_FIELDS: ["description", "tags", "metadata"],
   FIELD_NAME_PATTERN: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
   PATH_PATTERN: /^[a-zA-Z_][a-zA-Z0-9_.\[\]]*$/,

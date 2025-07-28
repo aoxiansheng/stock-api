@@ -251,17 +251,17 @@ describe("Symbol Mapper Constants", () => {
       );
       expect(SYMBOL_MAPPER_OPERATIONS.SAVE_MAPPING).toBe("saveMapping");
       expect(SYMBOL_MAPPER_OPERATIONS.GET_MAPPING_RULES).toBe(
-        "getMappingRules",
+        "getSymbolMappingRule",
       );
-      expect(SYMBOL_MAPPER_OPERATIONS.GET_MAPPING_BY_ID).toBe("getMappingById");
+      expect(SYMBOL_MAPPER_OPERATIONS.GET_MAPPING_BY_ID).toBe("getSymbolMappingById");
       expect(SYMBOL_MAPPER_OPERATIONS.GET_MAPPING_BY_DATA_SOURCE).toBe(
-        "getMappingByDataSource",
+        "getSymbolMappingByDataSource",
       );
       expect(SYMBOL_MAPPER_OPERATIONS.GET_MAPPINGS_PAGINATED).toBe(
-        "getMappingsPaginated",
+        "getSymbolMappingsPaginated",
       );
-      expect(SYMBOL_MAPPER_OPERATIONS.UPDATE_MAPPING).toBe("updateMapping");
-      expect(SYMBOL_MAPPER_OPERATIONS.DELETE_MAPPING).toBe("deleteMapping");
+      expect(SYMBOL_MAPPER_OPERATIONS.UPDATE_MAPPING).toBe("updateSymbolMapping");
+      expect(SYMBOL_MAPPER_OPERATIONS.DELETE_MAPPING).toBe("deleteSymbolMapping");
       expect(SYMBOL_MAPPER_OPERATIONS.TRANSFORM_SYMBOLS).toBe(
         "transformSymbols",
       );

@@ -109,7 +109,7 @@ export class CreateSymbolMappingDto {
   @ArrayMaxSize(10000, { message: "映射规则数量不能超过10000个" })
   @ValidateNested({ each: true })
   @Type(() => SymbolMappingRuleDto)
-  mappingRules: SymbolMappingRuleDto[];
+  SymbolMappingRule: SymbolMappingRuleDto[];
 
   @ApiProperty({
     description: "数据源映射描述",

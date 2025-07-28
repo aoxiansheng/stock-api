@@ -2,7 +2,7 @@ import {
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,
   RECEIVER_SUCCESS_MESSAGES,
-  DATA_TYPE_TO_CAPABILITY_MAP,
+  SUPPORTED_DATA_TYPES,
   RECEIVER_PERFORMANCE_THRESHOLDS,
   RECEIVER_VALIDATION_RULES,
   MARKET_RECOGNITION_RULES,
@@ -106,47 +106,33 @@ describe("Receiver Constants", () => {
     });
   });
 
-  describe("DATA_TYPE_TO_CAPABILITY_MAP", () => {
-    it("should define all data type mappings", () => {
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["stock-quote"]).toBe(
-        "get-stock-quote",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["stock-basic-info"]).toBe(
-        "get-stock-basic-info",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["index-quote"]).toBe(
-        "get-index-quote",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["market-status"]).toBe(
-        "get-market-status",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["trading-days"]).toBe(
-        "get-trading-days",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["global-state"]).toBe(
-        "get-global-state",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["crypto-quote"]).toBe(
-        "get-crypto-quote",
-      );
-      expect(DATA_TYPE_TO_CAPABILITY_MAP["stock-logo"]).toBe("get-stock-logo");
+  describe("SUPPORTED_DATA_TYPES", () => {
+    it("should define all supported data types", () => {
+      expect(SUPPORTED_DATA_TYPES).toContain("get-stock-quote");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-stock-basic-info");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-index-quote");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-market-status");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-trading-days");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-global-state");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-crypto-quote");
+      expect(SUPPORTED_DATA_TYPES).toContain("get-stock-logo");
     });
 
     it("should use consistent naming convention", () => {
-      const dataTypes = Object.keys(DATA_TYPE_TO_CAPABILITY_MAP);
-      const capabilities = Object.values(DATA_TYPE_TO_CAPABILITY_MAP);
-
-      dataTypes.forEach((dataType) => {
-        expect(dataType).toMatch(/^[a-z-]+$/); // kebab-case
-      });
-
-      capabilities.forEach((capability) => {
-        expect(capability).toMatch(/^get-[a-z-]+$/); // get-* pattern
+      SUPPORTED_DATA_TYPES.forEach((dataType) => {
+        expect(dataType).toMatch(/^get-[a-z-]+$/); // get-* pattern with kebab-case
+        expect(dataType).not.toContain("_"); // no underscores
+        expect(dataType).not.toContain(" "); // no spaces
       });
     });
 
     it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_TYPE_TO_CAPABILITY_MAP)).toBe(true);
+      expect(Object.isFrozen(SUPPORTED_DATA_TYPES)).toBe(true);
+    });
+
+    it("should be an array", () => {
+      expect(Array.isArray(SUPPORTED_DATA_TYPES)).toBe(true);
+      expect(SUPPORTED_DATA_TYPES.length).toBeGreaterThan(0);
     });
   });
 
@@ -396,10 +382,14 @@ describe("Receiver Constants", () => {
       expect(isSlowRequest).toBe(true);
     });
 
-    it("should support data type to capability mapping", () => {
-      const dataType = "stock-quote";
-      const capability = DATA_TYPE_TO_CAPABILITY_MAP[dataType];
-      expect(capability).toBe("get-stock-quote");
+    it("should support data type validation", () => {
+      const dataType = "get-stock-quote";
+      const isSupported = SUPPORTED_DATA_TYPES.includes(dataType);
+      expect(isSupported).toBe(true);
+      
+      const invalidDataType = "stock-quote" as any; // old format
+      const isUnsupported = SUPPORTED_DATA_TYPES.includes(invalidDataType);
+      expect(isUnsupported).toBe(false);
     });
 
     it("should support symbol validation", () => {

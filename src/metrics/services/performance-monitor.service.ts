@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
+import * as os from "os";
+import * as v8 from "v8";
 
 // 🎯 复用 common 模块的日志配置
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
@@ -35,6 +37,8 @@ import { FormatUtils } from "../utils/format.util";
 @Injectable()
 export class PerformanceMonitorService {
   private readonly logger = createLogger(PerformanceMonitorService.name);
+  private lastCpuUsageData: { user: number; system: number; timestamp: number } | null =
+    null;
   private readonly metricBuffer: PerformanceMetric[] = [];
   private isFlushingMetrics = false;
 
@@ -342,17 +346,59 @@ export class PerformanceMonitorService {
   // 获取系统指标
   getSystemMetrics(): SystemMetricsDto {
     try {
+      // 使用 Node 内置 v8 模块获取更精确的堆统计数据，
+      // 其中 `total_heap_size` 一定 >= `used_heap_size`，可避免出现
+      // heapUsed > heapTotal 的不符合逻辑的情况（见 E2E 监控测试）。
       const memUsage = process.memoryUsage();
-      const cpuUsage = process.cpuUsage();
-      const metrics: SystemMetricsDto = {
-        cpuUsage: cpuUsage.user / 1000000, // 转换为秒
-        memoryUsage: memUsage.rss,
-        heapUsed: memUsage.heapUsed,
-        heapTotal: memUsage.heapTotal,
-        uptime: process.uptime(),
-        eventLoopLag: 0,
+      const heapStats = v8.getHeapStatistics();
+
+      // v8.getHeapStatistics() 返回的单位同样为字节，与 process.memoryUsage() 一致
+      const heapUsed = heapStats.used_heap_size;
+      // 使用 V8 报告的堆大小上限（heap_size_limit）作为 total，
+      // 通常 ~1.5GB，在任何时刻都 ≥ used_heap_size，符合“总堆大小”语义。
+      const heapTotal = heapStats.heap_size_limit;
+
+      const numCpus = os.cpus().length || 1; // 至少为1，避免除以0
+
+      const currentTimestamp = Date.now();
+      const currentCpuUsage = process.cpuUsage();
+      let cpuUsageFraction = 0;
+
+      if (this.lastCpuUsageData) {
+        const elapsedMs = currentTimestamp - this.lastCpuUsageData.timestamp;
+        const elapsedUsageUs =
+          currentCpuUsage.user -
+          this.lastCpuUsageData.user +
+          (currentCpuUsage.system - this.lastCpuUsageData.system);
+
+        if (elapsedMs > 0) {
+          // elapsedUsageUs: 进程在所有核心上使用的CPU时间 (微秒)
+          // elapsedMs * 1000: 经过的真实时间 (微秒)
+          // (elapsedMs * 1000 * numCpus): 所有核心总共可用的CPU时间
+          // 此计算得出的是进程使用的CPU占总可用CPU的比例
+          const totalAvailableTimeUs = elapsedMs * 1000 * numCpus;
+          cpuUsageFraction = elapsedUsageUs / totalAvailableTimeUs;
+        }
+      }
+
+      // 保存当前读数，用于下一次计算
+      this.lastCpuUsageData = {
+        user: currentCpuUsage.user,
+        system: currentCpuUsage.system,
+        timestamp: currentTimestamp,
       };
-      this.logger.debug({ metrics }, "系统指标:");
+
+      const metrics: SystemMetricsDto = {
+        // 确保值在 0 和 1 之间
+        cpuUsage: Math.max(0, Math.min(1, cpuUsageFraction)),
+        memoryUsage: memUsage.rss,
+        heapUsed,
+        heapTotal,
+        uptime: process.uptime(),
+        eventLoopLag: 0, // TODO: 实现事件循环延迟的精确测量
+      };
+
+      this.logger.debug({ metrics }, "系统指标获取成功");
       return metrics;
     } catch (error) {
       this.logger.error(

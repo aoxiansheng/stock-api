@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
 
 // Field mapping interface
-export interface FieldMapping {
+export interface DataFieldMapping {
   sourceField: string;
   targetField: string;
   transform?: {
@@ -28,7 +28,7 @@ export class DataMappingRule {
   provider: string;
 
   @Prop({ required: true, trim: true })
-  ruleListType: string;
+  dataRuleListType: string;
 
   @Prop({
     type: [
@@ -48,7 +48,7 @@ export class DataMappingRule {
     ],
     required: true,
   })
-  fieldMappings: FieldMapping[];
+  sharedDataFieldMappings: DataFieldMapping[];
 
   @Prop({ default: true })
   isActive: boolean;
@@ -85,6 +85,6 @@ DataMappingRuleSchema.methods.toJSON = function () {
 };
 
 // Add indexes for better performance
-DataMappingRuleSchema.index({ provider: 1, ruleListType: 1 });
+DataMappingRuleSchema.index({ provider: 1, dataRuleListType: 1 });
 DataMappingRuleSchema.index({ isActive: 1 });
 DataMappingRuleSchema.index({ createdAt: -1 });

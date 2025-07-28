@@ -3,10 +3,10 @@ import { NotFoundException } from "@nestjs/common";
 import {
   DataFetchingService,
   DataFetchRequest,
-} from "../../../../../../src/core/shared/services/data-fetching.service";
+} from "../../../../../../src/core/shared/service/data-fetching.service";
 import { CapabilityRegistryService } from "../../../../../../src/providers/capability-registry.service";
-import { MarketStatusService } from "../../../../../../src/core/shared/services/market-status.service";
-import { DataChangeDetectorService } from "../../../../../../src/core/shared/services/data-change-detector.service";
+import { MarketStatusService } from "../../../../../../src/core/shared/service/market-status.service";
+import { DataChangeDetectorService } from "../../../../../../src/core/shared/service/data-change-detector.service";
 import { Market } from "../../../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../../../src/common/constants/market-trading-hours.constants";
 import { createLogger } from "../../../../../../src/common/config/logger.config";
@@ -110,7 +110,7 @@ describe("DataFetchingService", () => {
   describe("fetchSingleData", () => {
     const basicRequest: DataFetchRequest = {
       symbol: "AAPL.US",
-      dataType: "stock-quote",
+      dataType: "get-stock-quote",
       market: Market.US,
       mode: "REALTIME",
     };
@@ -151,7 +151,7 @@ describe("DataFetchingService", () => {
     it("should infer market from symbol when market is not provided", async () => {
       const requestWithoutMarket: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         mode: "REALTIME",
       };
 
@@ -359,19 +359,19 @@ describe("DataFetchingService", () => {
     const batchRequests: DataFetchRequest[] = [
       {
         symbol: "AAPL.US",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
       {
         symbol: "GOOGL.US",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
       {
         symbol: "TSLA.US",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
@@ -605,7 +605,7 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
 
       const testCases = [
-        { dataType: "stock-quote", expectedCapability: "get-stock-quote" },
+        { dataType: "get-stock-quote", expectedCapability: "get-stock-quote" },
         {
           dataType: "stock-basic-info",
           expectedCapability: "get-stock-basic-info",
@@ -692,7 +692,7 @@ describe("DataFetchingService", () => {
     it("should handle concurrent requests efficiently", async () => {
       const concurrentRequests = Array.from({ length: 10 }, (_, i) => ({
         symbol: `STOCK${i}`,
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME" as const,
       }));
@@ -722,7 +722,7 @@ describe("DataFetchingService", () => {
     it("should handle market status service failures gracefully", async () => {
       const request: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       };
@@ -742,7 +742,7 @@ describe("DataFetchingService", () => {
     it("should preserve request options and pass them through", async () => {
       const requestWithComplexOptions: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         market: Market.US,
         mode: "ANALYTICAL",
         options: {
@@ -783,19 +783,19 @@ describe("DataFetchingService", () => {
       const mixedMarketRequests: DataFetchRequest[] = [
         {
           symbol: "AAPL.US",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           market: Market.US,
           mode: "REALTIME",
         },
         {
           symbol: "0700.HK",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           market: Market.HK,
           mode: "REALTIME",
         },
         {
           symbol: "600000.SH",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           market: Market.SH,
           mode: "REALTIME",
         },
@@ -825,7 +825,7 @@ describe("DataFetchingService", () => {
       const mixedDataTypeRequests: DataFetchRequest[] = [
         {
           symbol: "AAPL.US",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           market: Market.US,
           mode: "REALTIME",
         },

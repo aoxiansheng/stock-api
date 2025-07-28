@@ -186,8 +186,8 @@ export class AuthService {
   /**
    * 撤销API Key - 委托给ApiKeyService
    */
-  async revokeApiKey(apiKeyId: string, userId: string): Promise<void> {
-    return this.apiKeyService.revokeApiKey(apiKeyId, userId);
+  async revokeApiKey(appKey: string, userId: string): Promise<void> {
+    return this.apiKeyService.revokeApiKey(appKey, userId);
   }
 
   /**
@@ -198,5 +198,64 @@ export class AuthService {
     accessToken: string,
   ): Promise<ApiKeyDocument> {
     return this.apiKeyService.validateApiKey(appKey, accessToken);
+  }
+
+  /**
+   * 分页获取所有用户（管理员功能）
+   * @param page - 页码
+   * @param limit - 每页数量
+   * @param includeInactive - 是否包含非活跃用户
+   */
+  @DatabasePerformance("get_all_users")
+  async getAllUsers(page: number = 1, limit: number = 10, includeInactive: boolean = false) {
+    const operation = 'GET_ALL_USERS';
+
+    this.logger.log(`${operation}: 开始获取用户列表`, {
+      page,
+      limit,
+      includeInactive,
+    });
+
+    try {
+      // 验证参数
+      const validatedPage = Math.max(1, Math.floor(page));
+      const validatedLimit = Math.min(100, Math.max(1, Math.floor(limit))); // 限制最大100条/页
+
+      const result = await this.userRepository.findAllPaginated(
+        validatedPage,
+        validatedLimit,
+        includeInactive
+      );
+
+      // 获取用户统计信息
+      const stats = await this.userRepository.getUserStats();
+
+      this.logger.log(`${operation}: 用户列表获取成功`, {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+        userCount: result.users.length,
+        stats: {
+          totalUsers: stats.totalUsers,
+          activeUsers: stats.activeUsers,
+          roleDistribution: stats.roleDistribution,
+        },
+      });
+
+      return {
+        ...result,
+        stats,
+      };
+    } catch (error: any) {
+      this.logger.error(`${operation}: 获取用户列表失败`, {
+        page,
+        limit,
+        includeInactive,
+        error: error.message,
+        errorType: error.constructor.name,
+      });
+      throw error;
+    }
   }
 }

@@ -24,6 +24,7 @@ import {
 } from "@common/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../auth/decorators/auth.decorator";
+import { RequirePermissions } from "../auth/decorators/permissions.decorator";
 import { Permission } from "../auth/enums/user-role.enum";
 import { RATE_LIMIT_CONFIG } from "../common/constants/rate-limit.constants";
 
@@ -95,7 +96,8 @@ export class SecurityController {
     private readonly securityAudit: SecurityAuditService,
   ) {}
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Post("scan")
   @ApiOperation({
     summary: "🔍 执行安全扫描",
@@ -143,7 +145,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("scan/history")
   @ApiOperation({
     summary: "获取安全扫描历史",
@@ -186,7 +189,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("vulnerabilities")
   @ApiOperation({
     summary: "获取安全漏洞列表",
@@ -252,7 +256,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("configuration")
   @ApiOperation({
     summary: "获取安全配置",
@@ -278,7 +283,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("audit/events")
   @ApiOperation({
     summary: "获取安全审计事件",
@@ -356,7 +362,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Post("manual-events")
   @Throttle({ default: RATE_LIMIT_CONFIG.ENDPOINTS.SECURITY_MANUAL_EVENTS })
   @ApiOperation({
@@ -410,7 +417,8 @@ export class SecurityController {
     });
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("audit/report")
   @ApiOperation({
     summary: "生成安全审计报告",
@@ -478,7 +486,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("suspicious-ips")
   @ApiOperation({
     summary: "获取可疑IP列表",
@@ -517,7 +526,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Post("suspicious-ips/:ip/clear")
   @ApiOperation({
     summary: "清除可疑IP标记",
@@ -546,7 +556,8 @@ export class SecurityController {
     };
   }
 
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_ADMIN)
   @Get("dashboard")
   @ApiOperation({
     summary: "获取安全仪表板数据",

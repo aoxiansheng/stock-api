@@ -45,4 +45,68 @@ export class UserRepository {
   async findByUsernames(usernames: string[]): Promise<UserDocument[]> {
     return this.userModel.find({ username: { $in: usernames } }).exec();
   }
+
+  /**
+   * 分页查询所有用户
+   * @param page - 页码（从1开始）
+   * @param limit - 每页数量
+   * @param includeInactive - 是否包含非活跃用户
+   * @returns 分页结果
+   */
+  async findAllPaginated(page: number = 1, limit: number = 10, includeInactive: boolean = false) {
+    const skip = (page - 1) * limit;
+    const filter = includeInactive ? {} : { isActive: true };
+
+    const [users, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .select('-passwordHash') // 排除密码哈希
+        .sort({ createdAt: -1 }) // 按创建时间倒序
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.userModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1,
+    };
+  }
+
+  /**
+   * 获取用户统计信息
+   * @returns 用户统计数据
+   */
+  async getUserStats() {
+    const [totalUsers, activeUsers, usersByRole] = await Promise.all([
+      this.userModel.countDocuments().exec(),
+      this.userModel.countDocuments({ isActive: true }).exec(),
+      this.userModel.aggregate([
+        {
+          $group: {
+            _id: '$role',
+            count: { $sum: 1 },
+          },
+        },
+      ]).exec(),
+    ]);
+
+    const roleStats = usersByRole.reduce((acc, item) => {
+      acc[item._id] = item.count;
+      return acc;
+    }, {});
+
+    return {
+      totalUsers,
+      activeUsers,
+      inactiveUsers: totalUsers - activeUsers,
+      roleDistribution: roleStats,
+    };
+  }
 }

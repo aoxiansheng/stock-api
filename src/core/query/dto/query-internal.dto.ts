@@ -82,6 +82,21 @@ export class QueryExecutionResultDto<T = any> {
   @IsOptional()
   @IsArray()
   errors?: QueryErrorInfoDto[];
+
+  @ApiProperty({
+    description: "分页信息",
+    required: false,
+  })
+  @IsOptional()
+  @IsObject()
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 /**
@@ -290,7 +305,7 @@ export class StorageKeyParamsDto {
   @ApiProperty({ description: "数据类型过滤器", required: false })
   @IsOptional()
   @IsString()
-  dataTypeFilter?: string;
+  queryDataTypeFilter?: string;
 
   @ApiProperty({ description: "市场代码", required: false })
   @IsOptional()

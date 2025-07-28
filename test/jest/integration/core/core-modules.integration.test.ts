@@ -11,7 +11,7 @@ import { TestDataHelper } from "../../../../test/config/integration.setup";
 
 // 导入核心服务以便直接测试
 
-import { DataMapperService } from "../../../../src/core/data-mapper/data-mapper.service";
+import { DataMapperService } from "../../../../src/core/data-mapper/service/data-mapper.service";
 import { CapabilityRegistryService } from "../../../../src/providers/capability-registry.service";
 // 其他服务按需导入
 
@@ -106,7 +106,7 @@ describe("Core Modules Integration Tests", () => {
       // 创建符号映射规则
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        mappingRules: [
+        SymbolMappingRule: [
           { inputSymbol: "700.HK", outputSymbol: "00700", market: "HK" },
           { inputSymbol: "AAPL.US", outputSymbol: "AAPL", market: "US" },
           { inputSymbol: "AMD.US", outputSymbol: "AMD", market: "US" },
@@ -117,7 +117,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该处理完整的股票数据请求流程", async () => {
       const dataRequest = {
         symbols: ["700.HK", "AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -136,7 +136,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确识别混合市场股票代码", async () => {
       const mixedMarketRequest = {
         symbols: ["700.HK", "AAPL.US", "AMD.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -189,7 +189,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确处理空股票代码列表", async () => {
       const emptySymbolsRequest = {
         symbols: [],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const response = await request(httpServer)
@@ -209,7 +209,7 @@ describe("Core Modules Integration Tests", () => {
       const mappingData = {
         dataSourceName: "test-provider",
         description: "Test mapping configuration",
-        mappingRules: [
+        SymbolMappingRule: [
           {
             inputSymbol: "700.HK",
             outputSymbol: "00700.HK",
@@ -239,21 +239,21 @@ describe("Core Modules Integration Tests", () => {
       expect(response.body.data.dataSourceName).toBe(
         mappingData.dataSourceName,
       );
-      expect(response.body.data.mappingRules).toHaveLength(2);
+      expect(response.body.data.SymbolMappingRule).toHaveLength(2);
 
       // Verify in database
       const savedMapping = await symbolMappingModel.findById(
         response.body.data.id,
       );
       expect(savedMapping).toBeTruthy();
-      expect(savedMapping.mappingRules).toHaveLength(2);
+      expect(savedMapping.SymbolMappingRule).toHaveLength(2);
     });
 
     it("should transform symbols using mapping rules", async () => {
       // Create symbol mapping first
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: "longport",
-        mappingRules: [
+        SymbolMappingRule: [
           {
             inputSymbol: "700.HK",
             outputSymbol: "00700",
@@ -343,9 +343,9 @@ describe("Core Modules Integration Tests", () => {
       const mappingData = {
         name: "LongPort Stock Quote Mapping",
         provider: "longport",
-        ruleListType: "quote_fields",
+        dataRuleListType: "quote_fields",
         description: "Maps LongPort stock quote data to standard format",
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "last_done",
             targetField: "lastPrice",
@@ -367,21 +367,21 @@ describe("Core Modules Integration Tests", () => {
       expect(response.body.statusCode).toBe(201);
       expect(response.body.data).toHaveProperty("id");
       expect(response.body.data.name).toBe(mappingData.name);
-      expect(response.body.data.fieldMappings).toHaveLength(2);
+      expect(response.body.data.sharedDataFieldMappings).toHaveLength(2);
 
       // Verify in database
       const savedMapping = await dataMappingModel.findById(
         response.body.data.id,
       );
       expect(savedMapping).toBeTruthy();
-      expect(savedMapping.fieldMappings).toHaveLength(2);
+      expect(savedMapping.sharedDataFieldMappings).toHaveLength(2);
     });
 
     it("should retrieve mapping rules by provider and type", async () => {
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: "longport",
-        ruleListType: "quote_fields",
-        fieldMappings: [],
+        dataRuleListType: "quote_fields",
+        sharedDataFieldMappings: [],
       });
 
       const response = await request(httpServer)
@@ -392,7 +392,7 @@ describe("Core Modules Integration Tests", () => {
 
       expect(response.body.statusCode).toBe(200);
       expect(response.body.data).toHaveProperty("provider", "longport");
-      expect(response.body.data).toHaveProperty("ruleListType", "quote_fields");
+      expect(response.body.data).toHaveProperty("dataRuleListType", "quote_fields");
       expect(response.body.data).toHaveProperty("id");
       expect(response.body.data).toHaveProperty("name");
     });
@@ -507,7 +507,7 @@ describe("Core Modules Integration Tests", () => {
       // 为Symbol Mapper创建规则
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        mappingRules: [
+        SymbolMappingRule: [
           { inputSymbol: "AAPL.US", outputSymbol: "AAPL-LP" },
           { inputSymbol: "700.HK", outputSymbol: "700-LP" },
         ],
@@ -516,8 +516,8 @@ describe("Core Modules Integration Tests", () => {
       // 为Data Mapper创建规则 - 为transformer兼容创建两种映射规则
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: uniqueDataSourceName,
-        ruleListType: TestDataHelper.mapDataTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
-        fieldMappings: [
+        dataRuleListType: TestDataHelper.mapDataTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
+        sharedDataFieldMappings: [
           { sourceField: "price", targetField: "lastPrice" },
           { sourceField: "size", targetField: "volume" },
         ],
@@ -528,10 +528,10 @@ describe("Core Modules Integration Tests", () => {
         dataMapperService.findBestMatchingRule;
       jest
         .spyOn(dataMapperService, "findBestMatchingRule")
-        .mockImplementation(async (provider: string, ruleListType: string) => {
+        .mockImplementation(async (provider: string, dataRuleListType: string) => {
           // 如果请求的是dataType格式，转换为正确的ruleListType
           const mappedRuleListType =
-            TestDataHelper.mapDataTypeToRuleListType(ruleListType);
+            TestDataHelper.mapDataTypeToRuleListType(dataRuleListType);
           return await originalFindBestMatchingRule.call(
             dataMapperService,
             provider,
@@ -543,7 +543,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该完成完整的数据请求生命周期", async () => {
       const dataRequest = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -564,7 +564,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在Symbol Mapper和Data Mapper之间保持数据一致性", async () => {
       const transformRequest = {
         provider: uniqueDataSourceName,
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { price: 503.0, size: 1000000, symbol: "AAPL-LP" },
       };
 
@@ -590,7 +590,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在高并发情况下保持数据一致性", async () => {
       const dataRequest = {
         symbols: ["AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -623,12 +623,12 @@ describe("Core Modules Integration Tests", () => {
 
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        mappingRules: [{ inputSymbol: "700.HK", outputSymbol: "700-LP" }],
+        SymbolMappingRule: [{ inputSymbol: "700.HK", outputSymbol: "700-LP" }],
       });
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: uniqueDataSourceName,
-        ruleListType: TestDataHelper.mapDataTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
-        fieldMappings: [
+        dataRuleListType: TestDataHelper.mapDataTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
+        sharedDataFieldMappings: [
           { sourceField: "last_price", targetField: "lastPrice" },
           { sourceField: "vol", targetField: "volume" },
         ],
@@ -639,10 +639,10 @@ describe("Core Modules Integration Tests", () => {
         dataMapperService.findBestMatchingRule;
       jest
         .spyOn(dataMapperService, "findBestMatchingRule")
-        .mockImplementation(async (provider: string, ruleListType: string) => {
+        .mockImplementation(async (provider: string, dataRuleListType: string) => {
           // 如果请求的是dataType格式，转换为正确的ruleListType
           const mappedRuleListType =
-            TestDataHelper.mapDataTypeToRuleListType(ruleListType);
+            TestDataHelper.mapDataTypeToRuleListType(dataRuleListType);
           return await originalFindBestMatchingRule.call(
             dataMapperService,
             provider,
@@ -654,7 +654,7 @@ describe("Core Modules Integration Tests", () => {
     it("should transform data using mapping rules", async () => {
       const transformRequest = {
         provider: uniqueDataSourceName,
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_price: 503.0, vol: 1000000, symbol: "700.HK" },
       };
 
@@ -675,12 +675,12 @@ describe("Core Modules Integration Tests", () => {
       const batchRequest = [
         {
           provider: uniqueDataSourceName,
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { symbol: "700.HK", last_price: 503.0 },
         },
         {
           provider: uniqueDataSourceName,
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { symbol: "AAPL.US", last_price: 150.0 },
         },
       ];
@@ -701,7 +701,7 @@ describe("Core Modules Integration Tests", () => {
       // 创建预览请求
       const previewRequest = {
         provider: uniqueDataSourceName,
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: {
           last_price: 503.0,
           vol: 1000000,
@@ -719,36 +719,36 @@ describe("Core Modules Integration Tests", () => {
 
       // 验证响应结构
       expect(response.body.statusCode).toBe(201);
-      expect(response.body.data).toHaveProperty("mappingRule");
+      expect(response.body.data).toHaveProperty("transformMappingRule");
       expect(response.body.data).toHaveProperty("sampleInput");
       expect(response.body.data).toHaveProperty("expectedOutput");
-      expect(response.body.data).toHaveProperty("fieldMappings");
+      expect(response.body.data).toHaveProperty("sharedDataFieldMappings");
 
       // 验证映射规则信息
-      const mappingRule = response.body.data.mappingRule;
-      expect(mappingRule).toHaveProperty("id");
-      expect(mappingRule).toHaveProperty("name");
-      expect(mappingRule.provider).toBe(uniqueDataSourceName);
-      expect(mappingRule.ruleListType).toBe("quote_fields");
-      expect(mappingRule.fieldMappingsCount).toBeGreaterThan(0);
+      const transformMappingRule = response.body.data.transformMappingRule;
+      expect(transformMappingRule).toHaveProperty("id");
+      expect(transformMappingRule).toHaveProperty("name");
+      expect(transformMappingRule.provider).toBe(uniqueDataSourceName);
+      expect(transformMappingRule.dataRuleListType).toBe("quote_fields");
+      expect(transformMappingRule.dataFieldMappingsCount).toBeGreaterThan(0);
 
       // 验证样本输入数据
       expect(response.body.data.sampleInput).toEqual(previewRequest.rawData);
 
       // 验证字段映射预览
-      const fieldMappings = response.body.data.fieldMappings;
-      expect(Array.isArray(fieldMappings)).toBe(true);
-      expect(fieldMappings.length).toBeGreaterThan(0);
+      const sharedDataFieldMappings = response.body.data.sharedDataFieldMappings;
+      expect(Array.isArray(sharedDataFieldMappings)).toBe(true);
+      expect(sharedDataFieldMappings.length).toBeGreaterThan(0);
 
       // 验证字段映射包含我们创建的字段
-      const lastPriceMapping = fieldMappings.find(
+      const lastPriceMapping = sharedDataFieldMappings.find(
         (m) => m.sourceField === "last_price",
       );
       expect(lastPriceMapping).toBeDefined();
       expect(lastPriceMapping.targetField).toBe("lastPrice");
       expect(lastPriceMapping.sampleSourceValue).toBe(503.0);
 
-      const volumeMapping = fieldMappings.find((m) => m.sourceField === "vol");
+      const volumeMapping = sharedDataFieldMappings.find((m) => m.sourceField === "vol");
       expect(volumeMapping).toBeDefined();
       expect(volumeMapping.targetField).toBe("volume");
       expect(volumeMapping.sampleSourceValue).toBe(1000000);
@@ -769,7 +769,7 @@ describe("Core Modules Integration Tests", () => {
 
       // 获取DataFetchingService实例以便Mock
       const { DataFetchingService } = await import(
-        "../../../../src/core/shared/services/data-fetching.service"
+        "../../../../src/core/shared/service/data-fetching.service"
       );
       dataFetchingService = app.get(DataFetchingService);
 
@@ -819,7 +819,7 @@ describe("Core Modules Integration Tests", () => {
 
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        mappingRules: [{ inputSymbol: "700.HK", outputSymbol: "700-LP" }],
+        SymbolMappingRule: [{ inputSymbol: "700.HK", outputSymbol: "700-LP" }],
       });
     });
 
@@ -827,7 +827,7 @@ describe("Core Modules Integration Tests", () => {
       const queryRequest = {
         queryType: "by_symbols",
         symbols: ["700.HK"],
-        dataTypeFilter: "stock-quote",
+        queryDataTypeFilter: "stock-quote",
         provider: uniqueDataSourceName,
       };
 
@@ -873,7 +873,7 @@ describe("Core Modules Integration Tests", () => {
     it.skip("should handle query with filters and sorting", async () => {
       const queryRequest = {
         queryType: "advanced",
-        dataTypeFilter: "stock-quote",
+        queryDataTypeFilter: "stock-quote",
         filters: [{ field: "market", operator: "eq", value: "HK" }],
         provider: uniqueDataSourceName,
       };
@@ -896,7 +896,7 @@ describe("Core Modules Integration Tests", () => {
     beforeEach(async () => {
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: "test",
-        mappingRules: [{ inputSymbol: "AAPL.US", outputSymbol: "AAPL" }],
+        SymbolMappingRule: [{ inputSymbol: "AAPL.US", outputSymbol: "AAPL" }],
       });
     });
 
@@ -1044,7 +1044,7 @@ describe("Core Modules Integration Tests", () => {
       uniqueDataSourceName = `longport-e-${Date.now()}`;
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        mappingRules: [
+        SymbolMappingRule: [
           {
             inputSymbol: "700.HK",
             outputSymbol: "00700",
@@ -1085,7 +1085,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确处理数据源超时", async () => {
       const timeoutRequest = {
         symbols: ["MSFT.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -1106,7 +1106,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确处理无效股票代码", async () => {
       const invalidSymbolRequest = {
         symbols: ["INVALID-CODE"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -1124,7 +1124,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在映射规则缺失时提供默认处理", async () => {
       const noMappingRequest = {
         symbols: ["NO-MAPPING"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: "non-existent-provider" },
       };
 
@@ -1162,7 +1162,7 @@ describe("Core Modules Integration Tests", () => {
           .set("X-Access-Token", testApiKey.accessToken)
           .send({
             symbols: ["700.HK"],
-            dataType: "stock-quote",
+            dataType: "get-stock-quote",
             options: { preferredProvider: uniqueDataSourceName },
           }),
         request(httpServer)
@@ -1171,7 +1171,7 @@ describe("Core Modules Integration Tests", () => {
           .set("X-Access-Token", testApiKey.accessToken)
           .send({
             symbols: ["INVALID-CODE"],
-            dataType: "stock-quote",
+            dataType: "get-stock-quote",
             options: { preferredProvider: uniqueDataSourceName },
           }),
       ];

@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-import { SymbolMappingRuleDocument } from "../schemas/symbol-mapping-rule.schema";
+import { SymbolMappingRuleDocumentType } from "../schemas/symbol-mapping-rule.schema";
 
 export class MappingRuleResponseDto {
   @ApiProperty({ description: "输入股票代码" })
@@ -30,7 +30,7 @@ export class SymbolMappingResponseDto {
   dataSourceName: string;
 
   @ApiProperty({ description: "映射规则列表", type: [MappingRuleResponseDto] })
-  mappingRules: MappingRuleResponseDto[];
+  SymbolMappingRule: MappingRuleResponseDto[];
 
   @ApiProperty({ description: "数据源映射描述" })
   description?: string;
@@ -51,12 +51,12 @@ export class SymbolMappingResponseDto {
   updatedAt: Date;
 
   static fromDocument(
-    document: SymbolMappingRuleDocument,
+    document: SymbolMappingRuleDocumentType,
   ): SymbolMappingResponseDto {
     return {
       id: document._id.toString(),
       dataSourceName: document.dataSourceName,
-      mappingRules: document.mappingRules || [],
+      SymbolMappingRule: document.SymbolMappingRule || [],
       description: document.description,
       version: document.version,
       isActive: document.isActive,
@@ -73,7 +73,7 @@ export class SymbolMappingResponseDto {
     dto.description = leanObject.description;
     dto.version = leanObject.version;
     dto.isActive = leanObject.isActive;
-    dto.mappingRules = leanObject.mappingRules;
+    dto.SymbolMappingRule = leanObject.SymbolMappingRule;
     dto.createdBy = leanObject.createdBy;
     dto.createdAt = leanObject.createdAt?.toISOString();
     dto.updatedAt = leanObject.updatedAt?.toISOString();
@@ -81,27 +81,3 @@ export class SymbolMappingResponseDto {
   }
 }
 
-export class PaginatedResultDto<T> {
-  @ApiProperty({ description: "数据列表" })
-  items: T[];
-
-  @ApiProperty({ description: "总数量" })
-  total: number;
-
-  @ApiProperty({ description: "当前页码" })
-  page: number;
-
-  @ApiProperty({ description: "每页数量" })
-  limit: number;
-
-  @ApiProperty({ description: "总页数" })
-  totalPages: number;
-
-  constructor(items: T[], total: number, page: number, limit: number) {
-    this.items = items;
-    this.total = total;
-    this.page = page;
-    this.limit = limit;
-    this.totalPages = Math.ceil(total / limit);
-  }
-}

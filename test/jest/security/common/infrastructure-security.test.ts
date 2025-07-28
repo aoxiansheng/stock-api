@@ -497,7 +497,7 @@ describe("Infrastructure Security Tests", () => {
           .set("X-Access-Token", global.securityTestApiToken)
           .send({
             symbols: [payload],
-            dataType: "stock-quote",
+            dataType: "get-stock-quote",
           });
 
         // 应该安全处理Unicode字符

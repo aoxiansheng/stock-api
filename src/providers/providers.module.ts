@@ -7,13 +7,13 @@ import { LongportModule } from "./longport/longport.module";
 import { LongportProvider } from "./longport/longport.provider";
 import { LongportSgModule } from "./longport-sg/longport-sg.module";
 import { LongportSgProvider } from "./longport-sg/longport-sg.provider";
-import { MainController } from "./providers-controller";
+import { ProvidersController } from "./providers-controller";
 
 // Provider实例导入
 
 @Module({
   imports: [AuthModule, LongportModule, LongportSgModule],
-  controllers: [MainController],
+  controllers: [ProvidersController],
   providers: [CapabilityRegistryService],
   exports: [CapabilityRegistryService],
 })

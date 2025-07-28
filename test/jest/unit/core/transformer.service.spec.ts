@@ -4,8 +4,8 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { TransformerService } from "../../../../src/core/transformer/transformer.service";
-import { DataMapperService } from "../../../../src/core/data-mapper/data-mapper.service";
+import { TransformerService } from "../../../../src/core/transformer/service/transformer.service";
+import { DataMapperService } from "../../../../src/core/data-mapper/service/data-mapper.service";
 import { TransformRequestDto } from "../../../../src/core/transformer/dto/transform-request.dto";
 import { DataMappingResponseDto } from "../../../../src/core/data-mapper/dto/data-mapping-response.dto";
 import { TransformResponseDto } from "../../../../src/core/transformer/dto/transform-response.dto";
@@ -38,8 +38,8 @@ describe("TransformerService", () => {
     id: "507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
     provider: "longport",
-    ruleListType: "quote_fields",
-    fieldMappings: [
+    dataRuleListType: "quote_fields",
+    sharedDataFieldMappings: [
       {
         sourceField: "last_done",
         targetField: "lastPrice",
@@ -67,8 +67,8 @@ describe("TransformerService", () => {
     id: "507f1f77bcf86cd799439012",
     name: "Complex Mapping Rule",
     provider: "longport",
-    ruleListType: "complex_fields",
-    fieldMappings: [
+    dataRuleListType: "complex_fields",
+    sharedDataFieldMappings: [
       {
         sourceField: "nested.data.price",
         targetField: "price",
@@ -94,7 +94,7 @@ describe("TransformerService", () => {
 
   const validRequest: TransformRequestDto = {
     provider: "longport",
-    dataType: "stock-quote",
+    dataType: "get-stock-quote",
     rawData: {
       last_done: 150.5,
       volume: 100000,
@@ -198,12 +198,12 @@ describe("TransformerService", () => {
       const batchRequest: TransformRequestDto[] = [
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 150.75, volume: 5000 },
         },
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 75.25, volume: 3000 },
         },
       ];
@@ -225,7 +225,7 @@ describe("TransformerService", () => {
       const batchRequest: TransformRequestDto[] = [
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 150.75 },
         },
         {
@@ -263,7 +263,7 @@ describe("TransformerService", () => {
         },
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 150.75 },
         },
       ];
@@ -436,7 +436,7 @@ describe("TransformerService", () => {
   describe("transform - Error Scenarios", () => {
     const validRequest: TransformRequestDto = {
       provider: "longport",
-      dataType: "stock-quote",
+      dataType: "get-stock-quote",
       rawData: { last_done: 150.75, volume: 5000 },
     };
 
@@ -499,7 +499,7 @@ describe("TransformerService", () => {
         { length: TRANSFORM_CONFIG.MAX_BATCH_SIZE + 1 },
         (_, i) => ({
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 150 + i, volume: 5000 },
         }),
       );
@@ -516,12 +516,12 @@ describe("TransformerService", () => {
       const mixedBatch: TransformRequestDto[] = [
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 150 },
         },
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 151 },
         },
         {
@@ -572,13 +572,13 @@ describe("TransformerService", () => {
       const batch: TransformRequestDto[] = [
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 150 },
         },
         { provider: "unknown", dataType: "unknown-type", rawData: {} },
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           rawData: { last_done: 151 },
         },
       ];
@@ -605,13 +605,13 @@ describe("TransformerService", () => {
       const batch: TransformRequestDto[] = [
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           mappingOutRuleId: "507f1f77bcf86cd799439011",
           rawData: { last_done: 150 },
         },
         {
           provider: "longport",
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           mappingOutRuleId: "507f1f77bcf86cd799439012",
           rawData: { last_done: 151 },
         },
@@ -635,7 +635,7 @@ describe("TransformerService", () => {
   describe("previewTransformation", () => {
     const previewRequest: TransformRequestDto = {
       provider: "longport",
-      dataType: "stock-quote",
+      dataType: "get-stock-quote",
       rawData: {
         last_done: 150.75,
         volume: 5000,
@@ -657,15 +657,15 @@ describe("TransformerService", () => {
 
       const result = await service.previewTransformation(previewRequest);
 
-      expect(result.mappingRule).toBeDefined();
-      expect(result.mappingRule.id).toBe(mockMappingRule.id);
-      expect(result.mappingRule.name).toBe(mockMappingRule.name);
+      expect(result.transformMappingRule).toBeDefined();
+      expect(result.transformMappingRule.id).toBe(mockMappingRule.id);
+      expect(result.transformMappingRule.name).toBe(mockMappingRule.name);
       expect(result.sampleInput).toBeDefined();
       expect(result.expectedOutput).toBeDefined();
-      expect(result.fieldMappings).toHaveLength(3);
-      expect(result.fieldMappings[0].sourceField).toBe("last_done");
-      expect(result.fieldMappings[0].targetField).toBe("lastPrice");
-      expect(result.fieldMappings[0].transformType).toBe("multiply");
+      expect(result.sharedDataFieldMappings).toHaveLength(3);
+      expect(result.sharedDataFieldMappings[0].sourceField).toBe("last_done");
+      expect(result.sharedDataFieldMappings[0].targetField).toBe("lastPrice");
+      expect(result.sharedDataFieldMappings[0].transformType).toBe("multiply");
     });
 
     it("should throw NotFoundException when no mapping rule found for preview", async () => {
@@ -692,11 +692,11 @@ describe("TransformerService", () => {
 
       const result = await service.previewTransformation(previewRequest);
 
-      expect(result.fieldMappings).toHaveLength(2);
-      expect(result.fieldMappings[0].sourceField).toBe("nested.data.price");
-      expect(result.fieldMappings[0].targetField).toBe("price");
-      expect(result.fieldMappings[1].sourceField).toBe("metadata.timestamp");
-      expect(result.fieldMappings[1].targetField).toBe("lastUpdate");
+      expect(result.sharedDataFieldMappings).toHaveLength(2);
+      expect(result.sharedDataFieldMappings[0].sourceField).toBe("nested.data.price");
+      expect(result.sharedDataFieldMappings[0].targetField).toBe("price");
+      expect(result.sharedDataFieldMappings[1].sourceField).toBe("metadata.timestamp");
+      expect(result.sharedDataFieldMappings[1].targetField).toBe("lastUpdate");
     });
 
     it("should handle array data in preview sample extraction", async () => {
@@ -914,7 +914,7 @@ describe("TransformerService", () => {
     it("should execute single transformation successfully", async () => {
       const request: TransformRequestDto = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150.5 },
         options: { validateOutput: false, includeMetadata: false },
       };
@@ -939,7 +939,7 @@ describe("TransformerService", () => {
     it("should handle validation errors in single transformation", async () => {
       const request: TransformRequestDto = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150.75 },
         options: { validateOutput: true },
       };
@@ -953,7 +953,7 @@ describe("TransformerService", () => {
     it("should handle transformation errors in single execution", async () => {
       const request: TransformRequestDto = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150.5 },
       };
 
@@ -970,7 +970,7 @@ describe("TransformerService", () => {
       jest.useFakeTimers();
       const request: TransformRequestDto = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150.5 },
       };
 
@@ -1007,7 +1007,7 @@ describe("TransformerService", () => {
     it("should handle concurrent transformation requests", async () => {
       const requests = Array.from({ length: 5 }, (_, i) => ({
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150 + i, volume: 5000 + i },
       }));
 
@@ -1031,7 +1031,7 @@ describe("TransformerService", () => {
     it("should handle transformation with metadata options correctly", async () => {
       const request: TransformRequestDto = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150.75, volume: 5000 },
         options: {
           validateOutput: true,
@@ -1097,7 +1097,7 @@ describe("TransformerService", () => {
       jest.useFakeTimers();
       const request: TransformRequestDto = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         rawData: { last_done: 150.75 },
       };
 

@@ -19,6 +19,7 @@ export const APIKEY_OPERATIONS = deepFreeze({
   GET_API_KEY_STATISTICS: "getApiKeyStatistics",
   VALIDATE_API_KEY_PERMISSIONS: "validateApiKeyPermissions",
   CLEANUP_EXPIRED_API_KEYS: "cleanupExpiredApiKeys",
+  VALIDATE_PERMISSION_SCOPE: "validatePermissionScope",
 });
 
 // 📢 消息常量

@@ -16,9 +16,9 @@ describe("DataMappingRepository", () => {
     _id: "507f1f77bcf86cd799439011",
     name: "LongPort Stock Quote Mapping",
     provider: "longport",
-    ruleListType: "quote_fields",
+    dataRuleListType: "quote_fields",
     description: "Maps LongPort stock quote data to standard format",
-    fieldMappings: [
+    sharedDataFieldMappings: [
       {
         sourceField: "last_done",
         targetField: "lastPrice",
@@ -81,9 +81,9 @@ describe("DataMappingRepository", () => {
       const createDto: CreateDataMappingDto = {
         name: "Test Mapping",
         provider: "test-provider",
-        ruleListType: "quote_fields",
+        dataRuleListType: "quote_fields",
         description: "Test mapping rule",
-        fieldMappings: [
+        sharedDataFieldMappings: [
           {
             sourceField: "price",
             targetField: "lastPrice",
@@ -116,8 +116,8 @@ describe("DataMappingRepository", () => {
       const createDto: CreateDataMappingDto = {
         name: "Test Mapping",
         provider: "test-provider",
-        ruleListType: "quote_fields",
-        fieldMappings: [],
+        dataRuleListType: "quote_fields",
+        sharedDataFieldMappings: [],
       };
 
       await repository.create(createDto);
@@ -215,7 +215,7 @@ describe("DataMappingRepository", () => {
     it("should apply filters correctly", async () => {
       const query: DataMappingQueryDto = {
         provider: "longport",
-        ruleListType: "quote_fields",
+        dataRuleListType: "quote_fields",
         search: "price",
         isActive: true,
       };
@@ -227,7 +227,7 @@ describe("DataMappingRepository", () => {
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
           provider: { $regex: "longport", $options: "i" },
-          ruleListType: "quote_fields",
+          dataRuleListType: "quote_fields",
           isActive: true,
           $or: [
             { name: { $regex: "price", $options: "i" } },
@@ -353,7 +353,7 @@ describe("DataMappingRepository", () => {
 
       const result = await repository.getRuleListTypes();
 
-      expect(model.distinct).toHaveBeenCalledWith("ruleListType");
+      expect(model.distinct).toHaveBeenCalledWith("dataRuleListType");
       expect(result).toEqual([
         "quote_fields",
         "basic_info_fields",

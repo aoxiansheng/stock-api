@@ -28,11 +28,11 @@ import {
   JwtAuthResponses,
 } from "@common/decorators/swagger-responses.decorator";
 
-import { Auth, ApiKeyAuth } from "./decorators/auth.decorator";
+import { Auth } from "./decorators/auth.decorator";
 import { Public } from "./decorators/public.decorator";
 import { CreateApiKeyDto, ApiKeyResponseDto } from "./dto/apikey.dto";
 import { CreateUserDto, LoginDto, LoginResponseDto } from "./dto/auth.dto";
-import { Permission } from "./enums/user-role.enum";
+import { UserRole } from "./enums/user-role.enum";
 import { AuthService } from "./services/auth.service";
 
 @ApiTags("🔐 认证管理")
@@ -273,9 +273,9 @@ export class AuthController {
    * 撤销API Key
    */
   @Auth()
-  @Delete("api-keys/:id")
+  @Delete("api-keys/:appKey")
   @ApiOperation({ summary: "撤销API Key" })
-  @ApiParam({ name: "id", description: "API Key ID" })
+  @ApiParam({ name: "appKey", description: "API Key 的 AppKey" })
   @ApiSuccessResponse({
     description: "撤销成功",
     schema: {
@@ -288,9 +288,9 @@ export class AuthController {
     },
   })
   @ApiBearerAuth()
-  async revokeApiKey(@Request() req, @Param("id") apiKeyId: string) {
-    this.logger.log(`撤销API Key请求: ${apiKeyId}, 用户: ${req.user.username}`);
-    await this.authService.revokeApiKey(apiKeyId, req.user.id);
+  async revokeApiKey(@Request() req, @Param("appKey") appKey: string) {
+    this.logger.log(`撤销API Key请求: ${appKey}, 用户: ${req.user.username}`);
+    await this.authService.revokeApiKey(appKey, req.user.id);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return { success: true };
   }
@@ -299,9 +299,9 @@ export class AuthController {
    * 获取API Key使用统计
    */
   @Auth()
-  @Get("api-keys/:id/usage")
+  @Get("api-keys/:appKey/usage")
   @ApiOperation({ summary: "获取API Key使用统计" })
-  @ApiParam({ name: "id", description: "API Key ID" })
+  @ApiParam({ name: "appKey", description: "API Key 的 AppKey" })
   @ApiSuccessResponse({
     description: "获取成功",
     schema: {
@@ -316,9 +316,9 @@ export class AuthController {
     },
   })
   @ApiBearerAuth()
-  async getApiKeyUsage(@Request() req, @Param("id") apiKeyId: string) {
+  async getApiKeyUsage(@Request() req, @Param("appKey") appKey: string) {
     this.logger.log(
-      `获取API Key使用统计: ${apiKeyId}, 用户: ${req.user.username}`,
+      `获取API Key使用统计: ${appKey}, 用户: ${req.user.username}`,
     );
 
     // 这里需要注入RateLimitService，稍后会处理
@@ -332,9 +332,9 @@ export class AuthController {
    * 重置API Key频率限制
    */
   @Auth()
-  @Post("api-keys/:id/reset-rate-limit")
+  @Post("api-keys/:appKey/reset-rate-limit")
   @ApiOperation({ summary: "重置API Key频率限制" })
-  @ApiParam({ name: "id", description: "API Key ID" })
+  @ApiParam({ name: "appKey", description: "API Key 的 AppKey" })
   @ApiSuccessResponse({
     description: "重置成功",
     schema: {
@@ -347,9 +347,9 @@ export class AuthController {
     },
   })
   @ApiBearerAuth()
-  async resetApiKeyRateLimit(@Request() req, @Param("id") apiKeyId: string) {
+  async resetApiKeyRateLimit(@Request() req, @Param("appKey") appKey: string) {
     this.logger.log(
-      `重置API Key频率限制: ${apiKeyId}, 用户: ${req.user.username}`,
+      `重置API Key频率限制: ${appKey}, 用户: ${req.user.username}`,
     );
 
     // 这里需要注入RateLimitService，稍后会处理
@@ -360,28 +360,91 @@ export class AuthController {
   /**
    * 管理员：获取所有用户（仅管理员）
    */
-  @ApiKeyAuth([Permission.SYSTEM_ADMIN])
+  @Auth([UserRole.ADMIN])
   @Get("users")
-  @ApiOperation({ summary: "获取所有用户（仅管理员）" })
+  @ApiOperation({
+    summary: "获取所有用户（仅管理员）",
+    description: `
+### 功能说明
+管理员专用接口，用于获取系统中所有用户的列表信息，支持分页查询。
+
+### 权限要求
+需要管理员角色（ADMIN）权限，使用JWT认证。
+
+### 查询参数
+- **page**: 页码（默认1）
+- **limit**: 每页数量（默认10，最大100）  
+- **includeInactive**: 是否包含非活跃用户（默认false）
+
+### 返回信息
+- 用户基本信息（排除密码）
+- 分页元数据
+- 用户统计信息
+- 角色分布统计
+
+### 使用场景
+- 用户管理和监控
+- 系统管理员查看用户状态
+- 用户统计分析
+    `,
+  })
   @ApiStandardResponses()
   @ApiQuery({ name: "page", required: false, description: "页码", example: 1 })
   @ApiQuery({
     name: "limit",
     required: false,
-    description: "每页数量",
+    description: "每页数量（最大100）",
     example: 10,
+  })
+  @ApiQuery({
+    name: "includeInactive",
+    required: false,
+    description: "是否包含非活跃用户",
+    example: false,
   })
   @ApiPaginatedResponse({
     description: "获取成功",
     schema: {
       example: {
         statusCode: 200,
-        message: "获取成功",
+        message: "获取用户列表成功",
         data: {
-          users: [],
-          total: 0,
+          users: [
+            {
+              id: "507f1f77bcf86cd799439011",
+              username: "developer01",
+              email: "developer@example.com",
+              role: "developer",
+              isActive: true,
+              createdAt: "2024-01-01T12:00:00.000Z",
+              lastLoginAt: "2024-01-01T11:30:00.000Z",
+            },
+            {
+              id: "507f1f77bcf86cd799439012",
+              username: "admin",
+              email: "admin@example.com",
+              role: "admin",
+              isActive: true,
+              createdAt: "2024-01-01T10:00:00.000Z",
+              lastLoginAt: "2024-01-01T12:00:00.000Z",
+            },
+          ],
+          total: 25,
           page: 1,
           limit: 10,
+          totalPages: 3,
+          hasNextPage: true,
+          hasPrevPage: false,
+          stats: {
+            totalUsers: 25,
+            activeUsers: 23,
+            inactiveUsers: 2,
+            roleDistribution: {
+              admin: 2,
+              developer: 18,
+              user: 5,
+            },
+          },
         },
         timestamp: "2024-01-01T12:00:00.000Z",
       },
@@ -391,14 +454,37 @@ export class AuthController {
   async getAllUsers(
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 10,
+    @Query("includeInactive") includeInactive: boolean = false,
   ) {
-    // TODO: 实现用户列表查询
-    // 遵循控制器编写规范：让拦截器自动处理响应格式化
-    return {
-      users: [],
-      total: 0,
+    this.logger.log(`管理员获取用户列表请求`, {
       page,
       limit,
-    };
+      includeInactive,
+    });
+
+    try {
+      const result = await this.authService.getAllUsers(page, limit, includeInactive);
+
+      this.logger.log(`用户列表获取成功`, {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        userCount: result.users.length,
+        totalUsers: result.stats.totalUsers,
+        activeUsers: result.stats.activeUsers,
+      });
+
+      // 遵循控制器编写规范：让拦截器自动处理响应格式化
+      return result;
+    } catch (error: any) {
+      this.logger.error(`获取用户列表失败`, {
+        page,
+        limit,
+        includeInactive,
+        error: error.message,
+        errorType: error.constructor.name,
+      });
+      throw error;
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { StorageService } from "../../../../src/core/storage/storage.service";
+import { StorageService } from "../../../../src/core/storage/service/storage.service";
 import { StorageRepository } from "../../../../src/core/storage/repositories/storage.repository";
 import { getModelToken } from "@nestjs/mongoose";
 import { StoredData } from "../../../../src/core/storage/schemas/storage.schema";
@@ -178,7 +178,7 @@ describe("StorageService", () => {
       expect(storageRepository.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           key: "test-key",
-          dataTypeFilter: DataClassification.STOCK_QUOTE,
+          queryDataTypeFilter: DataClassification.STOCK_QUOTE,
           provider: "test-provider",
           market: "US",
         }),

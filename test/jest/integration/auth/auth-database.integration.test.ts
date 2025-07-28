@@ -224,7 +224,7 @@ describe("Auth Database Integration", () => {
 
     it("应该成功撤销API Key", async () => {
       // Act
-      await authService.revokeApiKey(apiKey.id, testUser.id);
+      await authService.revokeApiKey(apiKey.appKey, testUser.id);
 
       // Assert: 验证API Key已被撤销
       await expect(
@@ -425,7 +425,7 @@ describe("Auth Database Integration", () => {
 
       // Act & Assert
       await expect(
-        authService.revokeApiKey(apiKey.id, "wrong-user-id"),
+        authService.revokeApiKey(apiKey.appKey, "wrong-user-id"),
       ).rejects.toThrow("API Key不存在或无权限操作");
     });
   });

@@ -77,7 +77,7 @@ describe("Data Mapper E2E Tests", () => {
       // Arrange
       const sampleData = {
         provider: "longport",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         sampleData: {
           symbol: "700.HK",
           last_done: "503.000",
@@ -148,7 +148,7 @@ describe("Data Mapper E2E Tests", () => {
       // Arrange
       const validationRequest = {
         provider: "test",
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         mappingRules: {
           last_done: "lastPrice",
           open: "openPrice",
@@ -193,7 +193,7 @@ describe("Data Mapper E2E Tests", () => {
       const dataTypes = ["stock-quote", "futures-contract"];
       for (const dataType of dataTypes) {
         const response = await httpServer
-          .get(`/api/v1/data-mapper?ruleListType=${dataType}`) // 修正：移除 /rules 并使用正确的查询参数
+          .get(`/api/v1/data-mapper?dataRuleListType=${dataType}`) // 修正：移除 /rules 并使用正确的查询参数
           .set("X-App-Key", authTokens.apiKey)
           .set("X-Access-Token", authTokens.accessToken)
           .expect(200);

@@ -23,7 +23,7 @@ export class DataMappingTestResultDto {
 
   @ApiProperty({ description: "规则列表类型" })
   @IsString()
-  ruleListType: string;
+  dataRuleListType: string;
 
   @ApiProperty({ description: "原始数据" })
   originalData: Record<string, any>;
@@ -59,7 +59,7 @@ export class DataMappingStatisticsDto {
 
   @ApiProperty({ description: "规则列表类型数量" })
   @IsNumber()
-  ruleListTypes: number;
+  dataRuleListTypesNum: number;
 
   @ApiProperty({ description: "数据提供商列表" })
   @IsArray()
@@ -67,7 +67,7 @@ export class DataMappingStatisticsDto {
 
   @ApiProperty({ description: "规则列表类型列表" })
   @IsArray()
-  ruleListTypeList: string[];
+  dataRuleListTypeList: string[];
 }
 
 export class FieldExtractionResultDto {

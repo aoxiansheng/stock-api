@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ReceiverController } from "../../../../../src/core/receiver/receiver.controller";
-import { ReceiverService } from "../../../../../src/core/receiver/receiver.service";
+import { ReceiverController } from "../../../../../src/core/receiver/controller/receiver.controller";
+import { ReceiverService } from "../../../../../src/core/receiver/service/receiver.service";
 import { DataRequestDto } from "../../../../../src/core/receiver/dto/data-request.dto";
 import {
   DataResponseDto,
@@ -65,7 +65,7 @@ describe("ReceiverController", () => {
   describe("handleDataRequest", () => {
     const mockDataRequest: DataRequestDto = {
       symbols: ["700.HK", "AAPL.US"],
-      dataType: "stock-quote",
+      dataType: "get-stock-quote",
       options: {},
     };
 

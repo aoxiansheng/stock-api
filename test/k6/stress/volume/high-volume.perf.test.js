@@ -103,7 +103,7 @@ function generateVolumeDataRequest(size = 'large') {
   
   return {
     symbols: selectedSymbols,
-    dataType: 'stock-quote',
+    dataType: 'get-stock-quote',
     options: {
       bulkMode: true,
       batchSize: Math.min(symbolCount, 25),
@@ -508,7 +508,7 @@ export function extremeVolumeStress(data) {
         ...LARGE_SYMBOL_SETS.HK_LARGE.slice(0, 15), // 重复一些以达到500+
         ...LARGE_SYMBOL_SETS.US_LARGE.slice(0, 15)
       ].slice(0, 500), // 限制在500个符号
-      dataType: 'stock-quote',
+      dataType: 'get-stock-quote',
       options: {
         bulkMode: true,
         batchSize: 50,

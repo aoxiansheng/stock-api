@@ -1,11 +1,15 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
+
 import { SymbolMappingRepository } from "../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
-import { SymbolMappingRule } from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 import { CreateSymbolMappingDto } from "../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
 import { UpdateSymbolMappingDto } from "../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
 import { SymbolMappingQueryDto } from "../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto";
+import {
+  SymbolMappingRule,
+  SymbolMappingRuleDocument,
+} from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
 type MockModel<T = any> = Model<T> & {
   [key: string]: jest.Mock;
@@ -19,7 +23,7 @@ describe("SymbolMappingRepository", () => {
     _id: "507f1f77bcf86cd799439011",
     dataSourceName: "longport",
     description: "LongPort symbol mappings",
-    mappingRules: [
+    SymbolMappingRule: [
       {
         inputSymbol: "AAPL",
         outputSymbol: "AAPL.US",
@@ -76,14 +80,14 @@ describe("SymbolMappingRepository", () => {
       providers: [
         SymbolMappingRepository,
         {
-          provide: getModelToken(SymbolMappingRule.name),
+          provide: getModelToken(SymbolMappingRuleDocument.name),
           useValue: mockModel,
         },
       ],
     }).compile();
 
     repository = module.get<SymbolMappingRepository>(SymbolMappingRepository);
-    model = module.get(getModelToken(SymbolMappingRule.name));
+    model = module.get(getModelToken(SymbolMappingRuleDocument.name));
   });
 
   describe("create", () => {
@@ -96,7 +100,7 @@ describe("SymbolMappingRepository", () => {
       const createDto: CreateSymbolMappingDto = {
         dataSourceName: "test-provider",
         description: "Test mappings",
-        mappingRules: [
+        SymbolMappingRule: [
           {
             inputSymbol: "GOOGL",
             outputSymbol: "GOOGL.US",
@@ -122,7 +126,7 @@ describe("SymbolMappingRepository", () => {
     it("should set isActive to true by default", async () => {
       const createDto: CreateSymbolMappingDto = {
         dataSourceName: "test-provider",
-        mappingRules: [],
+        SymbolMappingRule: [],
       };
 
       await repository.create(createDto);
@@ -139,7 +143,7 @@ describe("SymbolMappingRepository", () => {
     it("should preserve explicit isActive value", async () => {
       const createDto: CreateSymbolMappingDto = {
         dataSourceName: "test-provider",
-        mappingRules: [],
+        SymbolMappingRule: [],
         isActive: false,
       };
 
@@ -256,13 +260,13 @@ describe("SymbolMappingRepository", () => {
       const expectedFilter = {
         dataSourceName: { $regex: "longport", $options: "i" },
         isActive: true,
-        "mappingRules.market": "US",
-        "mappingRules.symbolType": "stock",
+        "SymbolMappingRule.market": "US",
+        "SymbolMappingRule.symbolType": "stock",
         $or: [
           { dataSourceName: { $regex: "AAPL", $options: "i" } },
           { description: { $regex: "AAPL", $options: "i" } },
-          { "mappingRules.inputSymbol": { $regex: "AAPL", $options: "i" } },
-          { "mappingRules.outputSymbol": { $regex: "AAPL", $options: "i" } },
+          { "SymbolMappingRule.inputSymbol": { $regex: "AAPL", $options: "i" } },
+          { "SymbolMappingRule.outputSymbol": { $regex: "AAPL", $options: "i" } },
         ],
       };
       expect(model.find).toHaveBeenCalledWith(expectedFilter);
@@ -400,7 +404,7 @@ describe("SymbolMappingRepository", () => {
   describe("findAllMappingsForSymbols", () => {
     it("should find all mappings for given symbols", async () => {
       const symbols = ["AAPL", "GOOGL"];
-      const mappingRules = [
+      const SymbolMappingRule = [
         {
           inputSymbol: "AAPL",
           outputSymbol: "AAPL.US",
@@ -418,21 +422,21 @@ describe("SymbolMappingRepository", () => {
           },
         },
         {
-          $unwind: "$mappingRules",
+          $unwind: "$SymbolMappingRule",
         },
         {
           $match: {
-            "mappingRules.inputSymbol": { $in: symbols },
-            "mappingRules.isActive": { $ne: false },
+            "SymbolMappingRule.inputSymbol": { $in: symbols },
+            "SymbolMappingRule.isActive": { $ne: false },
           },
         },
         {
-          $replaceRoot: { newRoot: "$mappingRules" },
+          $replaceRoot: { newRoot: "$SymbolMappingRule" },
         },
       ];
 
       (model.aggregate as jest.Mock).mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mappingRules),
+        exec: jest.fn().mockResolvedValue(SymbolMappingRule),
       });
 
       const result = await repository.findAllMappingsForSymbols(
@@ -441,7 +445,7 @@ describe("SymbolMappingRepository", () => {
       );
 
       expect(model.aggregate).toHaveBeenCalledWith(expectedPipeline);
-      expect(result).toEqual(mappingRules);
+      expect(result).toEqual(SymbolMappingRule);
     });
 
     it("should return empty array if no mappings found", async () => {
@@ -454,16 +458,16 @@ describe("SymbolMappingRepository", () => {
           },
         },
         {
-          $unwind: "$mappingRules",
+          $unwind: "$SymbolMappingRule",
         },
         {
           $match: {
-            "mappingRules.inputSymbol": { $in: symbols },
-            "mappingRules.isActive": { $ne: false },
+            "SymbolMappingRule.inputSymbol": { $in: symbols },
+            "SymbolMappingRule.isActive": { $ne: false },
           },
         },
         {
-          $replaceRoot: { newRoot: "$mappingRules" },
+          $replaceRoot: { newRoot: "$SymbolMappingRule" },
         },
       ];
 
@@ -500,7 +504,7 @@ describe("SymbolMappingRepository", () => {
       });
       const result = await repository.getMarkets();
 
-      expect(model.distinct).toHaveBeenCalledWith("mappingRules.market");
+      expect(model.distinct).toHaveBeenCalledWith("SymbolMappingRule.market");
       expect(result).toEqual(["US", "HK", "SZ", "SH"]);
     });
   });
@@ -512,7 +516,7 @@ describe("SymbolMappingRepository", () => {
       });
       const result = await repository.getSymbolTypes();
 
-      expect(model.distinct).toHaveBeenCalledWith("mappingRules.symbolType");
+      expect(model.distinct).toHaveBeenCalledWith("SymbolMappingRule.symbolType");
       expect(result).toEqual(["stock", "etf", "index"]);
     });
   });
@@ -532,7 +536,7 @@ describe("SymbolMappingRepository", () => {
     });
   });
 
-  describe("addMappingRule", () => {
+  describe("addSymbolMappingRule", () => {
     it("should add a mapping rule to existing data source", async () => {
       const newRule = {
         inputSymbol: "TSLA",
@@ -546,18 +550,18 @@ describe("SymbolMappingRepository", () => {
         exec: jest.fn().mockResolvedValue(mockSymbolMappingDocument),
       });
 
-      const result = await repository.addMappingRule("longport", newRule);
+      const result = await repository.addSymbolMappingRule("longport", newRule);
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { dataSourceName: "longport" },
-        { $push: { mappingRules: newRule } },
+        { $push: { SymbolMappingRule: newRule } },
         { new: true },
       );
       expect(result).toEqual(mockSymbolMappingDocument);
     });
   });
 
-  describe("updateMappingRule", () => {
+  describe("updateSymbolMappingRule", () => {
     it("should update a specific mapping rule", async () => {
       const updatedRule = {
         outputSymbol: "AAPL.NASDAQ",
@@ -570,7 +574,7 @@ describe("SymbolMappingRepository", () => {
         exec: jest.fn().mockResolvedValue(mockSymbolMappingDocument),
       });
 
-      const result = await repository.updateMappingRule(
+      const result = await repository.updateSymbolMappingRule(
         "longport",
         "AAPL",
         updatedRule,
@@ -579,14 +583,14 @@ describe("SymbolMappingRepository", () => {
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         {
           dataSourceName: "longport",
-          "mappingRules.inputSymbol": "AAPL",
+          "SymbolMappingRule.inputSymbol": "AAPL",
         },
         {
           $set: {
-            "mappingRules.$.outputSymbol": updatedRule.outputSymbol,
-            "mappingRules.$.market": updatedRule.market,
-            "mappingRules.$.symbolType": updatedRule.symbolType,
-            "mappingRules.$.isActive": updatedRule.isActive,
+            "SymbolMappingRule.$.outputSymbol": updatedRule.outputSymbol,
+            "SymbolMappingRule.$.market": updatedRule.market,
+            "SymbolMappingRule.$.symbolType": updatedRule.symbolType,
+            "SymbolMappingRule.$.isActive": updatedRule.isActive,
           },
         },
         { new: true },
@@ -595,24 +599,24 @@ describe("SymbolMappingRepository", () => {
     });
   });
 
-  describe("removeMappingRule", () => {
+  describe("removeSymbolMappingRule", () => {
     it("should remove a specific mapping rule", async () => {
       (model.findOneAndUpdate as jest.Mock).mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockSymbolMappingDocument),
       });
 
-      const result = await repository.removeMappingRule("longport", "AAPL");
+      const result = await repository.removeSymbolMappingRule("longport", "AAPL");
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { dataSourceName: "longport" },
-        { $pull: { mappingRules: { inputSymbol: "AAPL" } } },
+        { $pull: { SymbolMappingRule: { inputSymbol: "AAPL" } } },
         { new: true },
       );
       expect(result).toEqual(mockSymbolMappingDocument);
     });
   });
 
-  describe("replaceMappingRules", () => {
+  describe("replaceSymbolMappingRule", () => {
     it("should replace all mapping rules for a data source", async () => {
       const newRules = [
         {
@@ -628,11 +632,11 @@ describe("SymbolMappingRepository", () => {
         exec: jest.fn().mockResolvedValue(mockSymbolMappingDocument),
       });
 
-      const result = await repository.replaceMappingRules("longport", newRules);
+      const result = await repository.replaceSymbolMappingRule("longport", newRules);
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { dataSourceName: "longport" },
-        { $set: { mappingRules: newRules } },
+        { $set: { SymbolMappingRule: newRules } },
         { new: true },
       );
       expect(result).toEqual(mockSymbolMappingDocument);

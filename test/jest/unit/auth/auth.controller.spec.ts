@@ -71,6 +71,20 @@ describe("AuthController", () => {
       revokeApiKey: jest.fn(),
       validateApiKey: jest.fn(),
       refreshToken: jest.fn(),
+      getAllUsers: jest.fn().mockImplementation((page = 1, limit = 10) => {
+        return {
+          users: [],
+          total: 0,
+          page: page || 1,
+          limit: limit || 10,
+          stats: {
+            totalUsers: 0,
+            activeUsers: 0,
+            inactiveUsers: 0,
+            roleDistribution: {}
+          }
+        };
+      }),
     };
 
     // Mock PermissionService

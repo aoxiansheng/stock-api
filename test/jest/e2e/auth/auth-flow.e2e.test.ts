@@ -255,7 +255,7 @@ describe("Authentication E2E Flow", () => {
       // Arrange
       const dataRequest = {
         symbols: ["700.HK", "AAPL.US"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           realtime: false,
         },
@@ -305,7 +305,7 @@ describe("Authentication E2E Flow", () => {
     it("应该成功撤销API Key", async () => {
       // Act
       const response = await request
-        .delete(`/api/v1/auth/api-keys/${apiKey.id}`)
+        .delete(`/api/v1/auth/api-keys/${apiKey.appKey}`)
         .set("Authorization", `Bearer ${jwtToken}`)
         .expect(200);
 
@@ -454,7 +454,7 @@ describe("Authentication E2E Flow", () => {
     afterAll(async () => {
       // 清理测试API Key
       await request
-        .delete(`/api/v1/auth/api-keys/${rateLimitApiKey.id}`)
+        .delete(`/api/v1/auth/api-keys/${rateLimitApiKey.appKey}`)
         .set("Authorization", `Bearer ${jwtToken}`)
         .expect(200);
     });

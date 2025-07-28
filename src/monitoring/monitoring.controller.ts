@@ -4,8 +4,10 @@ import {
   Query,
   BadRequestException,
   InternalServerErrorException,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
+import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 
 import { createLogger } from "@common/config/logger.config";
 import { NoPerformanceMonitoring } from "@common/decorators/performance-monitoring.decorator";
@@ -17,8 +19,9 @@ import {
 } from "@common/decorators/swagger-responses.decorator";
 
 import { AlertingService } from "../alert/services/alerting.service";
-import { Auth, Public } from "../auth/decorators/auth.decorator";
-import { UserRole } from "../auth/enums/user-role.enum";
+import { Auth, Public, ApiKeyAuth } from "../auth/decorators/auth.decorator";
+import { RequirePermissions } from "../auth/decorators/permissions.decorator";
+import { UserRole, Permission } from "../auth/enums/user-role.enum";
 import { CacheService } from "../cache/cache.service";
 import { MetricsHealthService } from "../metrics/services/metrics-health.service";
 import { PerformanceMonitorService } from "../metrics/services/performance-monitor.service";
@@ -374,17 +377,57 @@ export class MonitoringController {
     }
   }
 
-  // 公共数据 - 可公开访问（健康检查，运维需要）
-  @Public()
   @NoPerformanceMonitoring()
+  @Public()
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @Get("health")
   @ApiOperation({
-    summary: "获取系统健康状态",
-    description: "获取系统整体健康评分和状态",
+    summary: "获取系统健康状态 (公开访问)",
+    description: "获取系统基本健康状态，用于服务可用性检查，限制每分钟60次请求",
   })
   @ApiHealthResponse()
   @ApiStandardResponses()
   async getHealthStatus() {
+    try {
+      // 简化的健康检查，只显示基本状态
+      const result = {
+        status: "operational",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: process.env.npm_package_version || "1.0.0",
+        message: "系统运行正常",
+      };
+
+      this.logger.debug("基本健康状态获取成功", {
+        status: result.status,
+        uptime: result.uptime,
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error("获取基本健康状态失败:", error);
+      return {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: process.env.npm_package_version || "1.0.0",
+        message: "系统健康检查失败",
+      };
+    }
+  }
+
+  @NoPerformanceMonitoring()
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.SYSTEM_MONITOR)
+  @Get("health/detailed")
+  @ApiOperation({
+    summary: "获取详细系统健康状态",
+    description: "获取系统详细健康评分和状态 (需要SYSTEM_MONITOR权限)",
+  })
+  @ApiHealthResponse()
+  @ApiStandardResponses()
+  async getDetailedHealthStatus() {
     try {
       const summary = await this.performanceMonitor.getPerformanceSummary();
 
@@ -408,7 +451,7 @@ export class MonitoringController {
         version: process.env.npm_package_version || "1.0.0",
       };
 
-      this.logger.debug("系统健康状态获取成功", {
+      this.logger.debug("详细健康状态获取成功", {
         status: result.status,
         score: result.score,
         issuesCount: result.issues.length,
@@ -416,7 +459,7 @@ export class MonitoringController {
 
       return result;
     } catch (error) {
-      this.logger.error("获取系统健康状态失败:", error);
+      this.logger.error("获取详细健康状态失败:", error);
       throw error;
     }
   }

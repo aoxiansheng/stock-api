@@ -2,25 +2,27 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
+import { PaginationService } from "@common/pagination/services/pagination.service";
 import { CreateSymbolMappingDto } from "../dto/create-symbol-mapping.dto";
 import { SymbolMappingQueryDto } from "../dto/symbol-mapping-query.dto";
 import { UpdateSymbolMappingDto } from "../dto/update-symbol-mapping.dto";
 import {
-  SymbolMappingRule,
   SymbolMappingRuleDocument,
-  MappingRule,
+  SymbolMappingRuleDocumentType,
+  SymbolMappingRule,
 } from "../schemas/symbol-mapping-rule.schema";
 
 @Injectable()
 export class SymbolMappingRepository {
   constructor(
-    @InjectModel(SymbolMappingRule.name)
-    private symbolMappingRuleModel: Model<SymbolMappingRuleDocument>,
+    @InjectModel(SymbolMappingRuleDocument.name)
+    private symbolMappingRuleModel: Model<SymbolMappingRuleDocumentType>,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async create(
     createDto: CreateSymbolMappingDto,
-  ): Promise<SymbolMappingRuleDocument> {
+  ): Promise<SymbolMappingRuleDocumentType> {
     const created = new this.symbolMappingRuleModel({
       ...createDto,
       isActive: createDto.isActive ?? true,
@@ -28,13 +30,13 @@ export class SymbolMappingRepository {
     return created.save();
   }
 
-  async findById(id: string): Promise<SymbolMappingRuleDocument | null> {
+  async findById(id: string): Promise<SymbolMappingRuleDocumentType | null> {
     return this.symbolMappingRuleModel.findById(id).exec();
   }
 
   async findByDataSource(
     dataSourceName: string,
-  ): Promise<SymbolMappingRuleDocument | null> {
+  ): Promise<SymbolMappingRuleDocumentType | null> {
     return this.symbolMappingRuleModel
       .findOne({ dataSourceName, isActive: true })
       .exec();
@@ -58,25 +60,24 @@ export class SymbolMappingRepository {
       filter.$or = [
         { dataSourceName: { $regex: query.search, $options: "i" } },
         { description: { $regex: query.search, $options: "i" } },
-        { "mappingRules.inputSymbol": { $regex: query.search, $options: "i" } },
+        { "SymbolMappingRule.inputSymbol": { $regex: query.search, $options: "i" } },
         {
-          "mappingRules.outputSymbol": { $regex: query.search, $options: "i" },
+          "SymbolMappingRule.outputSymbol": { $regex: query.search, $options: "i" },
         },
       ];
     }
 
     // 市场和股票类型过滤
     if (query.market) {
-      filter["mappingRules.market"] = query.market;
+      filter["SymbolMappingRule.market"] = query.market;
     }
 
     if (query.symbolType) {
-      filter["mappingRules.symbolType"] = query.symbolType;
+      filter["SymbolMappingRule.symbolType"] = query.symbolType;
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+    const skip = this.paginationService.calculateSkip(page, limit);
 
     const [items, total] = await Promise.all([
       this.symbolMappingRuleModel
@@ -121,14 +122,14 @@ export class SymbolMappingRepository {
 
   async getMarkets(): Promise<string[]> {
     const results = await this.symbolMappingRuleModel
-      .distinct("mappingRules.market")
+      .distinct("SymbolMappingRule.market")
       .exec();
     return results.filter((market) => market); // 过滤掉null值
   }
 
   async getSymbolTypes(): Promise<string[]> {
     const results = await this.symbolMappingRuleModel
-      .distinct("mappingRules.symbolType")
+      .distinct("SymbolMappingRule.symbolType")
       .exec();
     return results.filter((type) => type); // 过滤掉null值
   }
@@ -137,23 +138,23 @@ export class SymbolMappingRepository {
   async findMappingsForSymbols(
     dataSourceName: string,
     inputSymbols: string[],
-  ): Promise<MappingRule[]> {
+  ): Promise<SymbolMappingRule[]> {
     const result = await this.symbolMappingRuleModel
       .findOne(
         {
           dataSourceName,
           isActive: true,
-          "mappingRules.inputSymbol": { $in: inputSymbols },
-          "mappingRules.isActive": { $ne: false },
+          "SymbolMappingRule.inputSymbol": { $in: inputSymbols },
+          "SymbolMappingRule.isActive": { $ne: false },
         },
-        { "mappingRules.$": 1 },
+        { "SymbolMappingRule.$": 1 },
       )
       .exec();
 
     if (!result) return [];
 
     // 过滤匹配的映射规则
-    return result.mappingRules.filter(
+    return result.SymbolMappingRule.filter(
       (rule) =>
         inputSymbols.includes(rule.inputSymbol) && rule.isActive !== false,
     );
@@ -163,7 +164,7 @@ export class SymbolMappingRepository {
   async findAllMappingsForSymbols(
     dataSourceName: string,
     inputSymbols: string[],
-  ): Promise<MappingRule[]> {
+  ): Promise<SymbolMappingRule[]> {
     const pipeline = [
       {
         $match: {
@@ -172,16 +173,16 @@ export class SymbolMappingRepository {
         },
       },
       {
-        $unwind: "$mappingRules",
+        $unwind: "$SymbolMappingRule",
       },
       {
         $match: {
-          "mappingRules.inputSymbol": { $in: inputSymbols },
-          "mappingRules.isActive": { $ne: false },
+          "SymbolMappingRule.inputSymbol": { $in: inputSymbols },
+          "SymbolMappingRule.isActive": { $ne: false },
         },
       },
       {
-        $replaceRoot: { newRoot: "$mappingRules" },
+        $replaceRoot: { newRoot: "$SymbolMappingRule" },
       },
     ];
 
@@ -198,34 +199,34 @@ export class SymbolMappingRepository {
   }
 
   // 添加映射规则到现有数据源
-  async addMappingRule(
+  async addSymbolMappingRule(
     dataSourceName: string,
-    mappingRule: MappingRule,
+    symbolMappingRule: SymbolMappingRule,
   ): Promise<SymbolMappingRuleDocument | null> {
     return this.symbolMappingRuleModel
       .findOneAndUpdate(
         { dataSourceName },
-        { $push: { mappingRules: mappingRule } },
+        { $push: { SymbolMappingRule: symbolMappingRule } },
         { new: true },
       )
       .exec();
   }
 
   // 更新特定的映射规则
-  async updateMappingRule(
+  async updateSymbolMappingRule(
     dataSourceName: string,
     inputSymbol: string,
-    updateData: Partial<MappingRule>,
+    updateData: Partial<SymbolMappingRule>,
   ): Promise<SymbolMappingRuleDocument | null> {
     return this.symbolMappingRuleModel
       .findOneAndUpdate(
         {
           dataSourceName,
-          "mappingRules.inputSymbol": inputSymbol,
+          "SymbolMappingRule.inputSymbol": inputSymbol,
         },
         {
           $set: Object.keys(updateData).reduce((acc, key) => {
-            acc[`mappingRules.$.${key}`] = updateData[key];
+            acc[`SymbolMappingRule.$.${key}`] = updateData[key];
             return acc;
           }, {}),
         },
@@ -235,30 +236,35 @@ export class SymbolMappingRepository {
   }
 
   // 删除特定的映射规则
-  async removeMappingRule(
+  async removeSymbolMappingRule(
     dataSourceName: string,
     inputSymbol: string,
   ): Promise<SymbolMappingRuleDocument | null> {
     return this.symbolMappingRuleModel
       .findOneAndUpdate(
         { dataSourceName },
-        { $pull: { mappingRules: { inputSymbol } } },
+        { $pull: { SymbolMappingRule: { inputSymbol } } },
         { new: true },
       )
       .exec();
   }
 
   // 批量替换映射规则
-  async replaceMappingRules(
+  async replaceSymbolMappingRule(
     dataSourceName: string,
-    mappingRules: MappingRule[],
+    SymbolMappingRule: SymbolMappingRule[],
   ): Promise<SymbolMappingRuleDocument | null> {
     return this.symbolMappingRuleModel
       .findOneAndUpdate(
         { dataSourceName },
-        { $set: { mappingRules } },
+        { $set: { SymbolMappingRule } },
         { new: true },
       )
       .exec();
+  }
+
+  // 获取所有映射规则
+  async findAll(): Promise<SymbolMappingRuleDocument[]> {
+    return this.symbolMappingRuleModel.find({ isActive: true }).exec();
   }
 }

@@ -60,7 +60,7 @@
   ruleType: 'get-stock-quote-fields',
   version: '1.0.0',
   isActive: true,
-  fieldMappings: [ ... ] // 33个字段映射
+  sharedDataFieldMappings: [ ... ] // 33个字段映射
 }
 ```
 
@@ -106,7 +106,7 @@ POST /api/v1/data-mapper/rules
   "name": "LongPort Stock Quote Mapping",
   "provider": "longport",
   "ruleType": "get-stock-quote",
-  "fieldMappings": [
+  "sharedDataFieldMappings": [
     {
       "sourceField": "secu_quote[0].last_done",
       "targetField": "lastPrice",
@@ -149,7 +149,7 @@ Content-Type: application/json
   "name": "Provider Specific Stock Quote Mapping",
   "provider": "your-provider",
   "ruleType": "get-stock-quote",
-  "fieldMappings": [...]
+  "sharedDataFieldMappings": [...]
 }
 ```
 
@@ -195,7 +195,7 @@ Content-Type: application/json
 
 ### 添加新字段
 1. 修改 `init-stock-quote-preset-fields.ts` 脚本
-2. 在 `fieldMappings` 数组中添加新的字段映射
+2. 在 `sharedDataFieldMappings` 数组中添加新的字段映射
 3. 重新运行初始化脚本
 
 ### 字段重命名

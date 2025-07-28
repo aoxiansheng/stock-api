@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from "class-validator";
 
-export class MappingRuleInfoDto {
+export class TransformMappingRuleInfoDto {
   @ApiProperty({ description: "映射规则ID" })
   @IsString()
   id: string;
@@ -24,14 +24,14 @@ export class MappingRuleInfoDto {
 
   @ApiProperty({ description: "规则列表类型" })
   @IsString()
-  ruleListType: string;
+  dataRuleListType: string;
 
   @ApiProperty({ description: "字段映射数量" })
   @IsNumber()
-  fieldMappingsCount: number;
+  dataFieldMappingsCount: number;
 }
 
-export class FieldMappingPreviewDto {
+export class TransformFieldMappingPreviewDto {
   @ApiProperty({ description: "源字段路径" })
   @IsString()
   sourceField: string;
@@ -55,11 +55,11 @@ export class FieldMappingPreviewDto {
 }
 
 export class TransformPreviewDto {
-  @ApiProperty({ description: "映射规则信息", type: MappingRuleInfoDto })
+  @ApiProperty({ description: "映射规则信息", type: TransformMappingRuleInfoDto })
   @ValidateNested()
-  @Type(() => MappingRuleInfoDto)
+  @Type(() => TransformMappingRuleInfoDto)
   @IsObject()
-  mappingRule: MappingRuleInfoDto;
+  transformMappingRule: TransformMappingRuleInfoDto;
 
   @ApiProperty({ description: "输入数据示例" })
   @IsObject()
@@ -71,12 +71,12 @@ export class TransformPreviewDto {
 
   @ApiProperty({
     description: "字段映射预览列表",
-    type: [FieldMappingPreviewDto],
+    type: [TransformFieldMappingPreviewDto],
   })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => FieldMappingPreviewDto)
-  fieldMappings: FieldMappingPreviewDto[];
+  @Type(() => TransformFieldMappingPreviewDto)
+  sharedDataFieldMappings: TransformFieldMappingPreviewDto[];
 }
 
 export class BatchTransformOptionsDto {

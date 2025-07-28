@@ -11,6 +11,7 @@ import {
   STORAGE_ERROR_MESSAGES,
   STORAGE_KEY_PATTERNS,
 } from "../constants/storage.constants";
+import { StorageQueryDto } from "../dto/storage-query.dto";
 import { StoredData, StoredDataDocument } from "../schemas/storage.schema";
 
 @Injectable()
@@ -162,13 +163,81 @@ export class StorageRepository {
     return result;
   }
 
+  async findPaginated(query: StorageQueryDto): Promise<{
+    items: StoredDataDocument[];
+    total: number;
+  }> {
+    this.logger.debug(`分页查询存储数据`, {
+      page: query.page,
+      limit: query.limit,
+      keySearch: query.keySearch,
+      operation: "findPaginated",
+    });
+
+    // 构建查询条件
+    const filter: any = {};
+
+    if (query.keySearch) {
+      filter.key = { $regex: query.keySearch, $options: 'i' };
+    }
+
+    if (query.provider) {
+      filter.provider = query.provider;
+    }
+
+    if (query.market) {
+      filter.market = query.market;
+    }
+
+    if (query.dataClassification) {
+      filter.queryDataTypeFilter = query.dataClassification.toString();
+    }
+
+    if (query.tags && query.tags.length > 0) {
+      filter.tags = { $in: query.tags };
+    }
+
+    if (query.startDate || query.endDate) {
+      filter.storedAt = {};
+      if (query.startDate) {
+        filter.storedAt.$gte = query.startDate;
+      }
+      if (query.endDate) {
+        filter.storedAt.$lte = query.endDate;
+      }
+    }
+
+    // 执行查询
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.storedDataModel
+        .find(filter)
+        .sort({ storedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.storedDataModel.countDocuments(filter),
+    ]);
+
+    this.logger.debug(`分页查询结果`, {
+      total,
+      pageSize: items.length,
+      operation: "findPaginated",
+    });
+
+    return { items, total };
+  }
+
   async upsert(
     document: Partial<StoredDataDocument>,
   ): Promise<StoredDataDocument> {
     this.logger.debug(`MongoDB upsert 开始`, {
       key: document.key,
       hasData: !!document.data,
-      dataTypeFilter: document.dataTypeFilter,
+      queryDataTypeFilter: document.queryDataTypeFilter,
       operation: "upsert",
     });
 
@@ -199,7 +268,7 @@ export class StorageRepository {
 
   async getDataTypeFilterStats(): Promise<{ _id: string; count: number }[]> {
     return this.storedDataModel.aggregate([
-      { $group: { _id: "$dataTypeFilter", count: { $sum: 1 } } },
+      { $group: { _id: "$queryDataTypeFilter", count: { $sum: 1 } } },
     ]);
   }
 

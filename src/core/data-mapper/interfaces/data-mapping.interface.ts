@@ -4,7 +4,7 @@
 export interface IDataMapper {
   mapData(rawData: any, mappingOutRuleId: string): Promise<any>;
   saveMappingRule(rule: IDataMappingRule): Promise<void>;
-  getMappingRules(
+  getMappingRule(
     provider: string,
     dataType: string,
   ): Promise<IDataMappingRule[]>;
@@ -28,8 +28,8 @@ export interface IDataMappingRule {
   name: string;
   description?: string;
   provider: string;
-  ruleListType: string;
-  fieldMappings: IFieldMapping[];
+  dataRuleListType: string;
+  sharedDataFieldMappings: IFieldMapping[];
   isActive: boolean;
   version: string;
   metadata?: Record<string, any>;

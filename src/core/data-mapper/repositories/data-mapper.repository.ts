@@ -9,12 +9,14 @@ import {
   DataMappingRule,
   DataMappingRuleDocument,
 } from "../schemas/data-mapper.schema";
+import { PaginationService } from "@common/pagination/services/pagination.service";
 
 @Injectable()
 export class DataMappingRepository {
   constructor(
     @InjectModel(DataMappingRule.name)
     private dataMappingRuleModel: Model<DataMappingRuleDocument>,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async create(
@@ -52,10 +54,10 @@ export class DataMappingRepository {
 
   async findByProviderAndType(
     provider: string,
-    ruleListType: string,
+    dataRuleListType: string,
   ): Promise<DataMappingRuleDocument[]> {
     return this.dataMappingRuleModel
-      .find({ provider, ruleListType, isActive: true })
+      .find({ provider, dataRuleListType, isActive: true })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -70,8 +72,8 @@ export class DataMappingRepository {
       filter.provider = { $regex: query.provider, $options: "i" };
     }
 
-    if (query.ruleListType) {
-      filter.ruleListType = query.ruleListType;
+    if (query.dataRuleListType) {
+      filter.dataRuleListType = query.dataRuleListType;
     }
 
     if (query.isActive !== undefined) {
@@ -86,9 +88,8 @@ export class DataMappingRepository {
       ];
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+    const skip = this.paginationService.calculateSkip(page, limit);
 
     const [items, total] = await Promise.all([
       this.dataMappingRuleModel
@@ -136,7 +137,7 @@ export class DataMappingRepository {
 
   async getRuleListTypes(): Promise<string[]> {
     const results = await this.dataMappingRuleModel
-      .distinct("ruleListType")
+      .distinct("dataRuleListType")
       .exec();
     return results;
   }
@@ -147,19 +148,19 @@ export class DataMappingRepository {
       .exec();
   }
 
-  async countByRuleListType(ruleListType: string): Promise<number> {
+  async countByRuleListType(dataRuleListType: string): Promise<number> {
     return this.dataMappingRuleModel
-      .countDocuments({ ruleListType, isActive: true })
+      .countDocuments({ dataRuleListType, isActive: true })
       .exec();
   }
 
   // 查找最佳匹配的映射规则
   async findBestMatchingRule(
     provider: string,
-    ruleListType: string,
+    dataRuleListType: string,
   ): Promise<DataMappingRuleDocument | null> {
     return this.dataMappingRuleModel
-      .findOne({ provider, ruleListType, isActive: true })
+      .findOne({ provider, dataRuleListType, isActive: true })
       .sort({ createdAt: -1 }) // 最新创建的优先
       .exec();
   }

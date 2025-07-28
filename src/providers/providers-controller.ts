@@ -23,8 +23,8 @@ import { CapabilityRegistryService } from "./capability-registry.service";
 
 @ApiTags("数据源提供商")
 @Controller("providers")
-export class MainController {
-  private readonly logger = createLogger(MainController.name);
+export class ProvidersController {
+  private readonly logger = createLogger(ProvidersController.name);
 
   constructor(private readonly capabilityRegistry: CapabilityRegistryService) {}
 

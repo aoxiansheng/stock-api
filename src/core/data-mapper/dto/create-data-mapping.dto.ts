@@ -92,7 +92,7 @@ export class CreateDataMappingDto {
     "index_fields",
     "market_status_fields",
   ])
-  ruleListType: string;
+  dataRuleListType: string;
 
   @ApiProperty({ description: "规则描述", required: false })
   @IsOptional()
@@ -103,7 +103,7 @@ export class CreateDataMappingDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FieldMappingDto)
-  fieldMappings: FieldMappingDto[];
+  sharedDataFieldMappings: FieldMappingDto[];
 
   @ApiProperty({ description: "示例数据", required: false })
   @IsOptional()

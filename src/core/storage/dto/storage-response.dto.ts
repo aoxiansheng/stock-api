@@ -68,3 +68,21 @@ export class StorageStatsDto {
     this.timestamp = new Date().toISOString();
   }
 }
+
+/**
+ * 存储项目分页列表DTO
+ * 
+ * 这是每个存储项目的简化表示，用于分页列表显示
+ */
+export class PaginatedStorageItemDto {
+  id: string;
+  key: string;
+  provider: string;
+  market: string;
+  dataClassification: string;
+  compressed: boolean;
+  dataSize: number;
+  tags?: string[];
+  storedAt?: string;
+  expiresAt?: string;
+}

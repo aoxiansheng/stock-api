@@ -188,7 +188,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", "invalid-token")
         .send({
           symbols: ["AAPL.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(401);
 
@@ -253,7 +253,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["AAPL.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         });
       // Assert - 正常请求应该成功或者返回业务错误
       expect([200, 400, 503]).toContain(response.body.statusCode);
@@ -271,7 +271,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: largeSymbolArray,
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         });
       // Assert - 大量数据可能导致验证错误而不是请求体过大
       expect(response.body.statusCode).toBe(400);
@@ -289,7 +289,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["AAAAA.US"], // 修复：使用格式有效但逻辑上不存在的 symbol
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           options: {
             preferredProvider: "unavailable-provider",
           },
@@ -396,7 +396,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .timeout(1000) // 设置1秒超时
         .send({
           symbols: ["TIMEOUT.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           options: {
             timeout: 5000, // 请求5秒超时
           },
@@ -424,7 +424,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["INVALID.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(400);
 

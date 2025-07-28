@@ -74,7 +74,7 @@ function testBulkDataRequests() {
 
   const payload = {
     symbols: symbols,
-    dataType: 'stock-quote',
+    dataType: 'get-stock-quote',
     options: {
       preferredProvider: 'longport'
     }
@@ -116,7 +116,7 @@ function testConcurrentRequests() {
   
   const payload = {
     symbols: symbols,
-    dataType: 'stock-quote'
+    dataType: 'get-stock-quote'
   };
 
   const params = {
@@ -156,7 +156,7 @@ function testScalabilityLimits() {
   
   const payload = {
     symbols: largeSymbolList,
-    dataType: 'stock-quote'
+    dataType: 'get-stock-quote'
   };
 
   const params = {

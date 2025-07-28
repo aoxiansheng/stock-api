@@ -65,7 +65,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["AAPLL.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
           },
@@ -95,7 +95,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
       const invalidRequests = [
         {
           endpoint: "/api/v1/receiver/data",
-          body: { symbols: [], dataType: "stock-quote" },
+          body: { symbols: [], dataType: "get-stock-quote" },
         },
         {
           endpoint: "/api/v1/symbol-mapper/transform",
@@ -125,7 +125,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .post("/api/v1/receiver/data")
         .send({
           symbols: ["700.HK"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(401);
 
@@ -139,7 +139,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", "invalid-token")
         .send({
           symbols: ["700.HK"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(401);
 
@@ -150,7 +150,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
       const invalidRequests = [
         {
           description: "missing symbols",
-          body: { dataType: "stock-quote" },
+          body: { dataType: "get-stock-quote" },
         },
         {
           description: "invalid data type",
@@ -158,7 +158,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         },
         {
           description: "empty symbols array",
-          body: { symbols: [], dataType: "stock-quote" },
+          body: { symbols: [], dataType: "get-stock-quote" },
         },
       ];
 
@@ -219,7 +219,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["AAPL.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
             // 移除 useCache 选项，使用默认行为
@@ -266,7 +266,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["AMDD.US"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         })
         .expect(200); // 系统可能返回200但包含错误信息
 

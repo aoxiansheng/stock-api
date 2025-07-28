@@ -171,7 +171,7 @@ async manageUsers(@Body() dto: UserManagementDto) {
 
 **Three different field purposes** - Don't confuse these:
 
-1. **Query Layer**: `dataTypeFilter` (QueryRequestDto) - for filtering
+1. **Query Layer**: `queryDataTypeFilter` (QueryRequestDto) - for filtering
 2. **Storage Layer**: `dataClassification` (DataClassification enum) - for categorization  
 3. **Receiver Layer**: `dataType` (capability mapping) - for provider routing
 

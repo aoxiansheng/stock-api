@@ -1,13 +1,13 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
-import { QueryService } from "../../../../src/core/query/query.service";
-import { QueryStatisticsService } from "../../../../src/core/query/services/query-statistics.service";
-import { QueryResultProcessorService } from "../../../../src/core/query/services/query-result-processor.service";
-import { StorageService } from "../../../../src/core/storage/storage.service";
+import { QueryService } from "../../../../src/core/query/service/query.service";
+import { QueryStatisticsService } from "../../../../src/core/query/service/query-statistics.service";
+import { QueryResultProcessorService } from "../../../../src/core/query/service/query-result-processor.service";
+import { StorageService } from "../../../../src/core/storage/service/storage.service";
 import { QueryType } from "../../../../src/core/query/dto/query-types.dto";
-import { DataFetchingService } from "../../../../src/core/shared/services/data-fetching.service";
-import { DataChangeDetectorService } from "../../../../src/core/shared/services/data-change-detector.service";
-import { MarketStatusService } from "../../../../src/core/shared/services/market-status.service";
+import { DataFetchingService } from "../../../../src/core/shared/service/data-fetching.service";
+import { DataChangeDetectorService } from "../../../../src/core/shared/service/data-change-detector.service";
+import { MarketStatusService } from "../../../../src/core/shared/service/market-status.service";
 import { Market } from "../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../src/common/constants/market-trading-hours.constants";
 import { QueryRequestDto } from "../../../../src/core/query/dto/query-request.dto";
@@ -21,7 +21,7 @@ import {
   StorageType,
   DataClassification,
 } from "../../../../src/core/storage/enums/storage-type.enum";
-import { BackgroundTaskService } from "../../../../src/core/shared/services/background-task.service";
+import { BackgroundTaskService } from "../../../../src/core/shared/service/background-task.service";
 
 describe("QueryService", () => {
   let service: QueryService;
@@ -177,10 +177,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US", // Simulate standardized request after Symbol Mapper
-        useCache: true,
+        options: { useCache: true },
       };
 
       // 更明确地设置模拟行为，按照后端代码调用顺序
@@ -213,10 +213,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "MSFT"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US", // Simulate standardized request after Symbol Mapper
-        useCache: true,
+        options: { useCache: true },
       };
 
       // AAPL 的缓存数据
@@ -277,7 +277,7 @@ describe("QueryService", () => {
       const invalidQueryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [], // Invalid: empty symbols
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -296,7 +296,7 @@ describe("QueryService", () => {
       const unsupportedQueryDto: QueryRequestDto = {
         queryType: "BY_MARKET" as any, // Unsupported query type
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -310,7 +310,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -330,10 +330,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["MSFT"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // Mock cache miss
@@ -370,10 +370,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: false, // Bypass cache
+        options: { useCache: false },// Bypass cache
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -403,10 +403,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // 缓存命中响应
@@ -459,10 +459,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // 创建过期的缓存数据
@@ -500,18 +500,18 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["GOOGL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: true,
@@ -545,18 +545,18 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["GOOGL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: false, // 顺序执行
@@ -590,18 +590,18 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: true,
@@ -622,10 +622,10 @@ describe("QueryService", () => {
 
       expect(result.summary.totalQueries).toBe(2);
       expect(result.results).toHaveLength(2);
-      expect(result.results.filter((r) => r.data.length > 0)).toHaveLength(1);
+      expect(result.results.filter((r) => r.data.items.length > 0)).toHaveLength(1);
       expect(
         (
-          result.results.find((r) => r.data.length > 0).data[0] as {
+          result.results.find((r) => r.data.items.length > 0).data.items[0] as {
             symbol: string;
           }
         ).symbol,
@@ -638,10 +638,10 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: true,
@@ -666,10 +666,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["700.HK"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         // market intentionally omitted to test inference
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -695,9 +695,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["00700"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -723,9 +723,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -751,9 +751,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["000001.SZ"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -779,9 +779,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["000001"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -807,9 +807,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["300001"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -835,9 +835,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["600000.SH"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -863,9 +863,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["600000"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -891,9 +891,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["688001"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -919,9 +919,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["UNKNOWN123"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -951,18 +951,18 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: true,
@@ -993,7 +993,7 @@ describe("QueryService", () => {
       expect(result.summary.totalQueries).toBe(2);
       expect(result.results).toHaveLength(2);
 
-      const successfulResult = result.results.find((r) => r.data.length > 0);
+      const successfulResult = result.results.find((r) => r.data.items.length > 0);
       const failedResult = result.results.find(
         (r) => r.metadata.errors.length > 0,
       );
@@ -1012,18 +1012,18 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: true,
@@ -1051,18 +1051,18 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryDataTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
-            useCache: true,
+            options: { useCache: true },
           },
         ],
         parallel: false,
@@ -1090,10 +1090,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // Mock fresh cache data
@@ -1139,10 +1139,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // Mock fresh cache data
@@ -1194,7 +1194,7 @@ describe("QueryService", () => {
       const request1: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1202,7 +1202,7 @@ describe("QueryService", () => {
       const request2: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["GOOGL", "AAPL"], // Different order
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1218,7 +1218,7 @@ describe("QueryService", () => {
       const request1: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1226,7 +1226,7 @@ describe("QueryService", () => {
       const request2: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["GOOGL"], // Different symbol
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1243,7 +1243,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: null as any,
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1260,7 +1260,7 @@ describe("QueryService", () => {
     it("should handle undefined symbols in request", async () => {
       const queryDto = {
         queryType: QueryType.BY_SYMBOLS,
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         // symbols intentionally omitted
@@ -1276,10 +1276,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: false,
+        options: { useCache: false },
       };
 
       marketStatusService.getMarketStatus.mockRejectedValue(
@@ -1310,7 +1310,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1335,10 +1335,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // Mock cache miss
@@ -1387,10 +1387,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["NOTFOUND"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -1418,10 +1418,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
         maxAge: 30, // 30秒，单位是秒
       };
 
@@ -1467,9 +1467,9 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["  aapl  "], // Lowercase with whitespace
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
-        useCache: false,
+        options: { useCache: false },
       };
 
       dataFetchingService.fetchSingleData.mockResolvedValue({
@@ -1496,10 +1496,10 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", undefined, "GOOGL"] as any,
-        dataTypeFilter: "get-stock-quote",
+        queryDataTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
-        useCache: true,
+        options: { useCache: true },
       };
 
       // 只为有效的股票模拟成功响应

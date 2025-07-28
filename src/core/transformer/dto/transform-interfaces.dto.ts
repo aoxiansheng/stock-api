@@ -40,11 +40,11 @@ export class DataTransformRuleDto {
 
   @ApiProperty({ description: "规则列表类型" })
   @IsString()
-  ruleListType: string;
+  dataRuleListType: string;
 
   @ApiProperty({ description: "字段映射列表", type: [FieldTransformDto] })
   @IsArray()
-  fieldMappings: FieldTransformDto[];
+  sharedDataFieldMappings: FieldTransformDto[];
 }
 
 export class TransformValidationDto {

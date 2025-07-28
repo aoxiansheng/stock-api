@@ -67,7 +67,7 @@ describe("Response Format Standardization Integration", () => {
       await symbolMappingModel.create({
         dataSourceName: "longport",
         description: "长桥证券数据源映射配置",
-        mappingRules: [
+        SymbolMappingRule: [
           {
             inputSymbol: "700.HK",
             outputSymbol: "00700.HK",
@@ -218,7 +218,7 @@ describe("Response Format Standardization Integration", () => {
           .set("x-access-token", accessToken)
           .send({
             symbols: ["700.HK"], // 使用系统中配置的映射格式
-            dataType: "stock-quote",
+            dataType: "get-stock-quote",
           })
           .expect(200);
 
@@ -245,7 +245,7 @@ describe("Response Format Standardization Integration", () => {
           .set("X-App-Key", "invalid-key")
           .send({
             symbols: ["700.HK"],
-            dataType: "stock-quote",
+            dataType: "get-stock-quote",
           })
           .expect(401);
 

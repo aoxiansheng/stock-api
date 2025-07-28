@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
+import { PaginatedDataDto } from "@common/pagination/dto/paginated-data";
 import { QueryErrorInfoDto } from "./query-internal.dto";
 import { QueryType } from "./query-types.dto";
 
@@ -33,9 +34,9 @@ export class QueryMetadataDto {
     symbols?: string[];
     market?: string;
     provider?: string;
-    dataTypeFilter?: string;
+    queryDataTypeFilter?: string;
     timeRange?: { start: string; end: string };
-    filtersCount?: number;
+    queryFiltersCount?: number;
   };
 
   @ApiPropertyOptional({ description: "Performance breakdown" })
@@ -81,33 +82,18 @@ export class QueryMetadataDto {
  * 错误和警告信息应该通过抛出异常或记录日志来处理
  */
 export class QueryResponseDto<T = unknown> {
-  @ApiProperty({ description: "查询结果数据" })
-  data: T[];
+  @ApiProperty({ description: "查询结果数据", type: () => PaginatedDataDto })
+  data: PaginatedDataDto<T>;
 
   @ApiProperty({ description: "查询元信息", type: () => QueryMetadataDto })
   metadata: QueryMetadataDto;
 
-  @ApiPropertyOptional({ description: "分页信息" })
-  pagination?: {
-    limit: number;
-    offset: number;
-    hasMore: boolean;
-    nextOffset?: number;
-  };
-
   constructor(
-    data: T[],
+    data: PaginatedDataDto<T>,
     metadata: QueryMetadataDto,
-    pagination?: {
-      limit: number;
-      offset: number;
-      hasMore: boolean;
-      nextOffset?: number;
-    },
   ) {
     this.data = data;
     this.metadata = metadata;
-    this.pagination = pagination;
   }
 }
 

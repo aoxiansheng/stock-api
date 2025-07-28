@@ -15,7 +15,7 @@ import {
 } from "class-validator";
 
 import {
-  DATA_TYPE_TO_CAPABILITY_MAP,
+  SUPPORTED_DATA_TYPES,
   RECEIVER_VALIDATION_RULES,
 } from "../constants/receiver.constants";
 
@@ -71,27 +71,14 @@ export class DataRequestDto {
 
   @ApiProperty({
     description: "数据类型",
-    example: "stock-quote",
-    enum: [
-      "stock-quote",
-      "stock-basic-info",
-      "index-quote",
-      "market-status",
-      "trading-days",
-      "global-state",
-      "crypto-quote",
-      "crypto-basic-info",
-      "stock-logo",
-      "crypto-logo",
-      "stock-news",
-      "crypto-news",
-    ],
+    example: "get-stock-quote",
+    enum: SUPPORTED_DATA_TYPES,
   })
   @IsString({ message: "数据类型必须是字符串" })
   @IsNotEmpty({ message: "数据类型不能为空" })
-  @IsIn(Object.keys(DATA_TYPE_TO_CAPABILITY_MAP), {
+  @IsIn(SUPPORTED_DATA_TYPES, {
     message: (args) =>
-      `不支持的数据类型: ${args.value}。支持的类型包括: ${Object.keys(DATA_TYPE_TO_CAPABILITY_MAP).join(", ")}`,
+      `不支持的数据类型: ${args.value}。支持的类型包括: ${SUPPORTED_DATA_TYPES.join(", ")}`,
   })
   dataType: string;
 

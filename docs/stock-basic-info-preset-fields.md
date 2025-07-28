@@ -49,7 +49,7 @@
   ruleType: 'get-stock-basic-info-fields',
   version: '1.0.0',
   isActive: true,
-  fieldMappings: [ ... ] // 21个字段映射
+  sharedDataFieldMappings: [ ... ] // 21个字段映射
 }
 ```
 
@@ -116,7 +116,7 @@ POST /api/v1/data-mapper/rules
   "name": "LongPort Stock Basic Info Mapping",
   "provider": "longport",
   "ruleType": "get-stock-basic-info",
-  "fieldMappings": [
+  "sharedDataFieldMappings": [
     {
       "sourceField": "secu_static_info[0].symbol",
       "targetField": "symbol",
@@ -164,7 +164,7 @@ Content-Type: application/json
   "name": "Provider Specific Stock Basic Info Mapping",
   "provider": "your-provider",
   "ruleType": "get-stock-basic-info",
-  "fieldMappings": [...]
+  "sharedDataFieldMappings": [...]
 }
 ```
 
@@ -314,7 +314,7 @@ Content-Type: application/json
 
 ### 添加新字段
 1. 修改 `init-stock-basic-info-preset-fields.ts` 脚本
-2. 在 `fieldMappings` 数组中添加新的字段映射
+2. 在 `sharedDataFieldMappings` 数组中添加新的字段映射
 3. 重新运行初始化脚本
 
 ### 字段重命名

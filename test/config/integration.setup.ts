@@ -25,12 +25,12 @@ import { alertConfig } from "../../src/common/config/alert.config";
 import { ProvidersModule } from "../../src/providers/providers.module";
 
 // Core modules - 添加缺失的核心模块导入
-import { SymbolMapperModule } from "../../src/core/symbol-mapper/symbol-mapper.module";
-import { DataMapperModule } from "../../src/core/data-mapper/data-mapper.module";
-import { StorageModule } from "../../src/core/storage/storage.module";
-import { QueryModule } from "../../src/core/query/query.module";
-import { TransformerModule } from "../../src/core/transformer/transformer.module";
-import { ReceiverModule } from "../../src/core/receiver/receiver.module";
+import { SymbolMapperModule } from "../../src/core/symbol-mapper/module/symbol-mapper.module";
+import { DataMapperModule } from "../../src/core/data-mapper/module/data-mapper.module";
+import { StorageModule } from "../../src/core/storage/module/storage.module";
+import { QueryModule } from "../../src/core/query/module/query.module";
+import { TransformerModule } from "../../src/core/transformer/module/transformer.module";
+import { ReceiverModule } from "../../src/core/receiver/module/receiver.module";
 
 import { PerformanceMonitorService } from "../../src/metrics/services/performance-monitor.service";
 
@@ -491,7 +491,7 @@ export class TestDataHelper {
     const defaultMapping = {
       dataSourceName: `test-provider-${Date.now()}`,
       description: "Test symbol mapping",
-      mappingRules: [
+      SymbolMappingRule: [
         {
           inputSymbol: "A",
           outputSymbol: "B",
@@ -506,21 +506,21 @@ export class TestDataHelper {
     return await mapping.save();
   }
 
-  // dataType 到 ruleListType 的映射
+  // dataType 到 dataRuleListType 的映射（统一使用get-前缀格式）
   static mapDataTypeToRuleListType(dataType: string): string {
     const mapping = {
-      "stock-quote": "quote_fields",
-      "stock-basic-info": "basic_info_fields",
-      "index-quote": "index_fields",
-      "market-status": "market_status_fields",
-      "trading-days": "basic_info_fields",
-      "global-state": "basic_info_fields",
-      "crypto-quote": "quote_fields",
-      "crypto-basic-info": "basic_info_fields",
-      "stock-logo": "basic_info_fields",
-      "crypto-logo": "basic_info_fields",
-      "stock-news": "basic_info_fields",
-      "crypto-news": "basic_info_fields",
+      "get-stock-quote": "quote_fields",
+      "get-stock-basic-info": "basic_info_fields",
+      "get-index-quote": "index_fields",
+      "get-market-status": "market_status_fields",
+      "get-trading-days": "basic_info_fields",
+      "get-global-state": "basic_info_fields",
+      "get-crypto-quote": "quote_fields",
+      "get-crypto-basic-info": "basic_info_fields",
+      "get-stock-logo": "basic_info_fields",
+      "get-crypto-logo": "basic_info_fields",
+      "get-stock-news": "basic_info_fields",
+      "get-crypto-news": "basic_info_fields",
     };
     return mapping[dataType] || "quote_fields";
   }
@@ -532,9 +532,9 @@ export class TestDataHelper {
     const defaultMapping = {
       name: `Test Data Mapping ${Date.now()}`,
       provider: "test-provider",
-      ruleListType: "quote_fields",
+      dataRuleListType: "quote_fields",
       description: "Test data mapping rule",
-      fieldMappings: [
+      sharedDataFieldMappings: [
         {
           sourceField: "last_price",
           targetField: "lastPrice",

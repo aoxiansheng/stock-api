@@ -8,16 +8,16 @@ import {
   IsArray,
 } from "class-validator";
 
-import { MappingRule } from "../schemas/symbol-mapping-rule.schema";
+import { SymbolMappingRule } from "../schemas/symbol-mapping-rule.schema";
 
 export class MappingConfigResultDto {
   @ApiProperty({ description: "是否找到映射配置" })
   @IsBoolean()
   found: boolean;
 
-  @ApiProperty({ description: "映射规则列表", type: [MappingRule] })
+  @ApiProperty({ description: "映射规则列表", type: [SymbolMappingRule] })
   @IsArray()
-  mappingRules: MappingRule[];
+  SymbolMappingRule: SymbolMappingRule[];
 
   @ApiProperty({ description: "数据源名称", required: false })
   @IsOptional()
@@ -25,7 +25,7 @@ export class MappingConfigResultDto {
   dataSourceName?: string;
 }
 
-export class MappingRuleContextDto {
+export class SymbolMappingRuleContextDto {
   @ApiProperty({ description: "数据源名称" })
   @IsString()
   source: string;
@@ -88,7 +88,7 @@ export class SymbolMapperPerformanceDto {
   avgTimePerSymbol: number;
 }
 
-export class MappingApplicationResultDto {
+export class SymbolMapperApplicationResultDto {
   @ApiProperty({ description: "转换后的股票代码映射" })
   @IsObject()
   transformedSymbols: Record<string, string>;
@@ -115,7 +115,7 @@ export class MappingApplicationResultDto {
   mappingInSymbolId?: string;
 }
 
-export class SymbolTransformationLogDto {
+export class SymbolMapperTransformationLogDto {
   @ApiProperty({ description: "原始股票代码" })
   @IsString()
   originalSymbol: string;
@@ -145,7 +145,7 @@ export class SymbolTransformationLogDto {
   operation: string;
 }
 
-export class DataSourceMappingLogDto {
+export class SymbolMapperDataSourceMappingLogDto {
   @ApiProperty({ description: "数据源名称" })
   @IsString()
   dataSourceName: string;
@@ -174,7 +174,7 @@ export class DataSourceMappingLogDto {
   error?: string;
 }
 
-export class BatchTransformationLogDto {
+export class SymbolMapperBatchTransformationLogDto {
   @ApiProperty({ description: "数据源名称" })
   @IsString()
   dataSourceName: string;

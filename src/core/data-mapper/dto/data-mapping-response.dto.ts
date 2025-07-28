@@ -45,13 +45,13 @@ export class DataMappingResponseDto implements IDataMappingRule {
   provider: string;
 
   @ApiProperty({ description: "规则列表类型" })
-  ruleListType: string;
+  dataRuleListType: string;
 
   @ApiProperty({ description: "规则描述" })
   description?: string;
 
   @ApiProperty({ description: "字段映射列表", type: [FieldMappingResponseDto] })
-  fieldMappings: FieldMappingResponseDto[];
+  sharedDataFieldMappings: FieldMappingResponseDto[];
 
   @ApiProperty({ description: "示例数据" })
   sampleData?: Record<string, any>;
@@ -78,9 +78,9 @@ export class DataMappingResponseDto implements IDataMappingRule {
       id: document._id.toString(),
       name: document.name,
       provider: document.provider,
-      ruleListType: document.ruleListType,
+      dataRuleListType: document.dataRuleListType,
       description: document.description,
-      fieldMappings: document.fieldMappings || [],
+      sharedDataFieldMappings: document.sharedDataFieldMappings || [],
       sampleData: document.sampleData,
       isActive: document.isActive,
       version: document.version,
@@ -95,9 +95,9 @@ export class DataMappingResponseDto implements IDataMappingRule {
       id: obj._id.toString(),
       name: obj.name,
       provider: obj.provider,
-      ruleListType: obj.ruleListType,
+      dataRuleListType: obj.dataRuleListType,
       description: obj.description,
-      fieldMappings: obj.fieldMappings || [],
+      sharedDataFieldMappings: obj.sharedDataFieldMappings || [],
       sampleData: obj.sampleData,
       isActive: obj.isActive,
       version: obj.version,
@@ -127,32 +127,3 @@ export class FieldSuggestionResponseDto {
   }>;
 }
 
-export class PaginatedDataMappingResultDto {
-  @ApiProperty({ description: "数据列表" })
-  items: DataMappingResponseDto[];
-
-  @ApiProperty({ description: "总数量" })
-  total: number;
-
-  @ApiProperty({ description: "当前页码" })
-  page: number;
-
-  @ApiProperty({ description: "每页数量" })
-  limit: number;
-
-  @ApiProperty({ description: "总页数" })
-  totalPages: number;
-
-  constructor(
-    items: DataMappingResponseDto[],
-    total: number,
-    page: number,
-    limit: number,
-  ) {
-    this.items = items;
-    this.total = total;
-    this.page = page;
-    this.limit = limit;
-    this.totalPages = Math.ceil(total / limit);
-  }
-}

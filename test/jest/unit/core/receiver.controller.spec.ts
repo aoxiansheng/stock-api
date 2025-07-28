@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
-import { ReceiverController } from "../../../../src/core/receiver/receiver.controller";
-import { ReceiverService } from "../../../../src/core/receiver/receiver.service";
+import { ReceiverController } from "../../../../src/core/receiver/controller/receiver.controller";
+import { ReceiverService } from "../../../../src/core/receiver/service/receiver.service";
 import { DataRequestDto } from "../../../../src/core/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../../src/core/receiver/dto/data-response.dto";
 import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
@@ -137,7 +137,7 @@ describe("ReceiverController", () => {
     it("should handle data request successfully", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "700.HK"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           realtime: true,
@@ -152,7 +152,7 @@ describe("ReceiverController", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: ["AAPL", "700.HK"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           realtime: true,
@@ -205,7 +205,7 @@ describe("ReceiverController", () => {
     it("should handle multiple symbols of different markets", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "700.HK", "000001.SZ", "600036.SH"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           realtime: false,
@@ -306,7 +306,7 @@ describe("ReceiverController", () => {
     it("should handle request errors gracefully", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["INVALID_SYMBOL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const error = new Error("Failed to fetch data from provider");
@@ -322,7 +322,7 @@ describe("ReceiverController", () => {
           error: "Failed to fetch data from provider",
           stack: expect.any(String),
           symbols: ["INVALID_SYMBOL"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         },
       );
     });
@@ -330,7 +330,7 @@ describe("ReceiverController", () => {
     it("should handle network timeout errors", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
         },
@@ -349,7 +349,7 @@ describe("ReceiverController", () => {
         expect.objectContaining({
           error: "Request timeout",
           symbols: ["AAPL"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         }),
       );
     });
@@ -383,7 +383,7 @@ describe("ReceiverController", () => {
       const manySymbols = Array.from({ length: 50 }, (_, i) => `STOCK${i}`);
       const dataRequest: DataRequestDto = {
         symbols: manySymbols,
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           fields: ["lastPrice", "market"],
@@ -413,7 +413,7 @@ describe("ReceiverController", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: manySymbols,
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           fields: ["lastPrice", "market"],
@@ -424,7 +424,7 @@ describe("ReceiverController", () => {
     it("should handle partial success responses", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "INVALID", "MSFT"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const partialResponse: DataResponseDto = {
@@ -471,7 +471,7 @@ describe("ReceiverController", () => {
     it("should handle requests with different data types", async () => {
       const stockQuoteRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const basicInfoRequest: DataRequestDto = {
@@ -531,22 +531,22 @@ describe("ReceiverController", () => {
       const requestConfigs = [
         {
           symbols: ["AAPL"],
-          dataType: "stock-quote" as const,
+          dataType: "get-stock-quote" as const,
           options: { preferredProvider: "longport" },
         },
         {
           symbols: ["MSFT"],
-          dataType: "stock-quote" as const,
+          dataType: "get-stock-quote" as const,
           options: { preferredProvider: "futu", realtime: true },
         },
         {
           symbols: ["GOOGL"],
-          dataType: "stock-quote" as const,
+          dataType: "get-stock-quote" as const,
           options: { market: "US", realtime: false },
         },
         {
           symbols: ["TSLA"],
-          dataType: "stock-quote" as const,
+          dataType: "get-stock-quote" as const,
           options: { fields: ["lastPrice", "volume"], realtime: true },
         },
       ];
@@ -580,7 +580,7 @@ describe("ReceiverController", () => {
     it("should log request and response details correctly", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["TEST"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: "longport" },
       };
 
@@ -591,7 +591,7 @@ describe("ReceiverController", () => {
       // Verify request logging
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: ["TEST"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
         options: { preferredProvider: "longport" },
       });
 
@@ -607,7 +607,7 @@ describe("ReceiverController", () => {
     it("should log error details correctly", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["ERROR_TEST"],
-        dataType: "stock-quote",
+        dataType: "get-stock-quote",
       };
 
       const testError = new Error("Test error message");
@@ -624,7 +624,7 @@ describe("ReceiverController", () => {
           error: "Test error message",
           stack: "Error stack trace",
           symbols: ["ERROR_TEST"],
-          dataType: "stock-quote",
+          dataType: "get-stock-quote",
         },
       );
     });

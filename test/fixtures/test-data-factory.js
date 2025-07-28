@@ -30,12 +30,12 @@ export class TestDataFactory {
     }
   };
 
-  // 数据类型定义
+  // 数据类型定义（统一使用get-前缀格式）
   static DATA_TYPES = {
-    primary: ['stock-quote', 'stock-basic-info', 'index-quote'],
-    extended: ['market-status', 'trading-days', 'global-state'],
-    crypto: ['crypto-quote'],
-    metadata: ['stock-logo']
+    primary: ['get-stock-quote', 'get-stock-basic-info', 'get-index-quote'],
+    extended: ['get-market-status', 'get-trading-days', 'get-global-state'],
+    crypto: ['get-crypto-quote'],
+    metadata: ['get-stock-logo']
   };
 
   // 性能测试基准配置
@@ -163,7 +163,7 @@ export class TestDataFactory {
   static generateDataRequest(options = {}) {
     const defaults = {
       symbolCount: 5,
-      dataType: 'stock-quote',
+      dataType: 'get-stock-quote',
       includeOptions: true
     };
     const config = { ...defaults, ...options };
