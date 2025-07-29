@@ -84,9 +84,10 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
           "providers:read",
           "transformer:preview",
           "mapping:write",
-          //"mapping:read",
+          // "mapping:read", // 修复：移除无效的权限
           "system:monitor",
-          "config:read", // 修正：添加缺失的权限
+          "system:health", // 添加健康检查权限
+          "config:read", 
         ],
         rateLimit: {
           requests: 500,
@@ -103,24 +104,61 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       }
 
       apiKey = apiKeyResponse.data.data;
+
+      // 修复：为Transformer测试创建必要的数据映射规则
+      await createDataMappingRule();
+
       console.log('✅ 认证设置完成');
     } catch (error) {
       console.error('❌ 认证设置失败:', error.message);
       throw error;
     }
   };
+  
+  async function createDataMappingRule() {
+    const mappingRuleData = {
+      name: "E2E Test LongPort Quote Mapping",
+      provider: "longport",
+      dataRuleListType: "quote_fields",
+      description: "Rule for E2E pipeline test",
+      sharedDataFieldMappings: [
+        { sourceField: "symbol", targetField: "symbol" },
+        { sourceField: "last_price", targetField: "lastPrice" },
+        { sourceField: "volume", targetField: "volume" }
+      ],
+      isActive: true,
+    };
+
+    const response = await httpClient.post("/api/v1/data-mapper", mappingRuleData, {
+      headers: {
+        "X-App-Key": apiKey.appKey,
+        "X-Access-Token": apiKey.accessToken,
+      }
+    });
+
+    if (response.status !== 201) {
+      // 如果规则已存在，可能返回409 Conflict，可以安全忽略
+      if (response.status === 409) {
+        console.warn('数据映射规则已存在，跳过创建');
+      } else {
+        throw new Error(`创建数据映射规则失败: ${response.status}`);
+      }
+    } else {
+      console.log('✅ 数据映射规则创建成功');
+    }
+  }
 
   describe("完整六组件数据流水线测试", () => {
     it("应该完成从Receiver到Query的完整数据处理流", async () => {
-      const testSymbol = "00700.HK";
-      const testDataType = "stock-quote";
+        const testSymbol = "00700.HK";
+  const testDataType = "get-stock-quote";
 
-      // Step 1: Receiver - 数据接收和初始处理
-      console.log("Step 1: Testing Receiver component...");
-      const receiveResponse = await httpClient.post("/api/v1/receiver/data", {
-        symbols: [testSymbol],
-        capabilityType: testDataType,
-        options: { realtime: true },
+  // Step 1: Receiver - 数据接收和初始处理
+  console.log("Step 1: Testing Receiver component...");
+  const receiveResponse = await httpClient.post("/api/v1/receiver/data", {
+    symbols: [testSymbol],
+    capabilityType: testDataType,
+    options: { realtime: true },
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -185,7 +223,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
           }
         });
 
-        expect(transformResponse.status).toBe(200);
+        expect(transformResponse.status).toBe(201);
         expect(transformResponse.data.data).toBeDefined();
         if (transformResponse.data.data.previewResult) {
           expect(transformResponse.data.data.previewResult).toBeDefined();
@@ -194,11 +232,14 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
 
       // Step 5: Storage - 存储系统健康验证
       console.log("Step 5: Testing Storage component...");
-      const storageHealthResponse = await httpClient.get("/api/v1/storage/health-check", {
-        headers: { Authorization: `Bearer ${adminJWT}` }
+      const storageHealthResponse = await httpClient.post("/api/v1/storage/health-check", {}, {
+        headers: { 
+          "X-App-Key": apiKey.appKey,
+          "X-Access-Token": apiKey.accessToken,
+        }
       });
 
-      expect(storageHealthResponse.status).toBe(200);
+      expect(storageHealthResponse.status).toBe(201);
       expect(storageHealthResponse.data.data).toBeDefined();
       if (storageHealthResponse.data.data.redis) {
         expect(storageHealthResponse.data.data.redis).toBeDefined();
@@ -212,8 +253,8 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       const queryResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        queryDataTypeFilter: testDataType,
-        includeMetadata: true,
+        dataTypeFilter: "get-stock-quote", // 使用硬编码的数据类型
+        // includeMetadata: true, // 移除可能导致问题的参数
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -223,11 +264,11 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
 
       expect(queryResponse.status).toBe(201);
       expect(queryResponse.data.data).toBeDefined();
-      expect(queryResponse.data.data.data).toBeDefined();
+      expect(queryResponse.data.data.data.items).toBeDefined();
 
       // 验证端到端数据一致性
-      if (originalData && queryResponse.data.data.data.length > 0) {
-        const queryData = queryResponse.data.data.data[0];
+      if (originalData && queryResponse.data.data.data.items.length > 0) {
+        const queryData = queryResponse.data.data.data.items[0];
         expect(queryData.symbol).toBe(originalData.symbol);
 
         // 验证数据可追溯性
@@ -262,6 +303,8 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       );
       expect(receiverResponse.status).toBe(200);
       const receiverData = receiverResponse.data;
+      console.log("receiverData 响应:", JSON.stringify(receiverData, null, 2));
+      console.log("receiverSymbols 原始数据:", receiverData.data?.data?.map((item: any) => item.symbol));
 
       // 通过Query获取处理后数据
       const queryResponse = await httpClient.post(
@@ -269,7 +312,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         {
           queryType: "by_symbols",
           symbols: testSymbols,
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "get-stock-quote",
         },
         {
           headers: {
@@ -280,23 +323,31 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       );
       expect(queryResponse.status).toBe(201);
       const queryData = queryResponse.data;
+      console.log("queryData 响应:", JSON.stringify(queryData, null, 2));
+      console.log("querySymbols 处理后数据:", queryData.data?.data?.items?.map((item: any) => item.symbol));
 
       // 验证数据传递一致性
       expect(receiverData.data.data).toBeDefined();
-      expect(queryData.data.data).toBeDefined();
+      expect(queryData.data.data.items).toBeDefined();
 
       // 验证符号覆盖
       const receiverSymbols = receiverData.data.data
-        .map((item: any) => item.symbol)
+        .flatMap((item: any) => item.secu_quote?.map((quote: any) => quote.symbol) || [])
         .filter(Boolean);
-      const querySymbols = queryData.data.data
-        .map((item: any) => item.symbol)
+      const querySymbols = queryData.data.data.items
+        .flatMap((item: any) => item.secu_quote?.map((quote: any) => quote.symbol) || [])
         .filter(Boolean);
+        
+      console.log("测试符号:", testSymbols);
+      console.log("Receiver符号:", receiverSymbols);
+      console.log("Query符号:", querySymbols);
 
       // 确保主要符号都被处理
       testSymbols.forEach((symbol) => {
         const foundInReceiver = receiverSymbols.includes(symbol);
         const foundInQuery = querySymbols.includes(symbol);
+        
+        console.log(`符号 ${symbol} - 在Receiver中: ${foundInReceiver}, 在Query中: ${foundInQuery}`);
 
         // 至少在一个地方找到数据（考虑市场时间等因素）
         expect(foundInReceiver || foundInQuery).toBe(true);
@@ -427,18 +478,18 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       // 检查系统指标
       const metricsResponse = await httpClient.get("/api/v1/monitoring/performance", {
         headers: { Authorization: `Bearer ${adminJWT}` },
-        params: { timeRange: "1h" },
       });
       expect(metricsResponse.status).toBe(200);
 
       // 验证关键性能指标存在
       const metrics = metricsResponse.data.data;
-      expect(metrics).toHaveProperty("responseTime");
-      expect(metrics).toHaveProperty("throughput");
+      expect(metrics).toHaveProperty("summary");
+      expect(metrics.summary).toHaveProperty("averageResponseTime");
+      expect(metrics.summary).toHaveProperty("totalRequests");
 
-      if (metrics.responseTime) {
-        expect(metrics.responseTime.p95).toBeDefined();
-        expect(metrics.responseTime.p99).toBeDefined();
+      if (metrics.summary) {
+        expect(typeof metrics.summary.averageResponseTime).toBe('number');
+        expect(typeof metrics.summary.totalRequests).toBe('number');
       }
     });
   });

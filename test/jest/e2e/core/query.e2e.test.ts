@@ -55,7 +55,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US"],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -80,7 +80,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_market",
           market: "HK",
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -96,7 +96,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_provider",
           provider: "longport",
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -111,7 +111,7 @@ describe("Query E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           queryType: "by_data_type",
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -129,7 +129,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US"],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
           filters: [{ field: "lastPrice", operator: "gt", value: 100 }],
         })
         .expect(201);
@@ -145,8 +145,8 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US", "BABA.US"],
-          queryDataTypeFilter: "stock-quote",
-          sort: { field: "lastPrice", direction: "desc" },
+          dataTypeFilter: "stock-quote",
+          querySort: { field: "lastPrice", direction: "desc" },
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -161,14 +161,17 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US", "BABA.US"],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
           limit: 1,
-          offset: 1,
+          page: 2,
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
       expect(response.body.data).toHaveProperty("data");
-      expect(response.body.data.data).toHaveLength(1);
+      expect(response.body.data.data).toHaveProperty("items");
+      expect(response.body.data.data).toHaveProperty("pagination");
+      expect(response.body.data.data.pagination).toHaveProperty("page", 2);
+      expect(response.body.data.data.pagination).toHaveProperty("limit", 1);
     });
   });
 
@@ -221,7 +224,7 @@ describe("Query E2E Tests", () => {
         .map((_, i) => ({
           queryType: "by_symbols",
           symbols: [`test-${i}.HK`],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         }));
 
       const startTime = Date.now();

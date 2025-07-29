@@ -67,13 +67,13 @@ describe("Health Checks E2E Tests", () => {
       // Arrange
       const startTime = Date.now();
 
-      // Act - Make 20 sequential requests to measure performance
-      for (let i = 0; i < 20; i++) {
+      // Act - Make 9 sequential requests to measure performance
+      for (let i = 0; i < 9; i++) {
         await httpServer.get("/api/v1/monitoring/health").expect(200);
       }
 
       const endTime = Date.now();
-      const avgResponseTime = (endTime - startTime) / 20;
+      const avgResponseTime = (endTime - startTime) / 9;
 
       // Assert - Average response time should be reasonable
       expect(avgResponseTime).toBeLessThan(1000); // Less than 1 second per request

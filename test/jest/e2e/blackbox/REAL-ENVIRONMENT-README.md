@@ -78,11 +78,11 @@ test:blackbox
 
 npx jest --config test/config/jest.blackbox.config.js  authentication-security.e2e.test.ts
 npx jest --config test/config/jest.blackbox.config.js  dual-interface-system.e2e.test.ts
-npx jest --config test/config/jest.blackbox.config.js  market-awareness-caching.e2e.test.ts
-npx jest --config test/config/jest.blackbox.config.js  monitoring-performance.e2e.test.ts
+npx jest --config test/config/jest.blackbox.config.js  market-awareness-caching.e2e.test.ts //未测试
+npx jest --config test/config/jest.blackbox.config.js  monitoring-performance.e2e.test.ts ok
 npx jest --config test/config/jest.blackbox.config.js  provider-integration.e2e.test.ts
-npx jest --config test/config/jest.blackbox.config.js  real-environment-test.e2e.test.ts
-npx jest --config test/config/jest.blackbox.config.js  six-component-pipeline.e2e.test.ts
+npx jest --config test/config/jest.blackbox.config.js  real-environment-test.e2e.test.ts ok
+npx jest --config test/config/jest.blackbox.config.js  six-component-pipeline.e2e.test.tsok
 
 
 ## 📋 测试内容

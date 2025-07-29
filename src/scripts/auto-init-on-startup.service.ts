@@ -177,7 +177,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         isActive: true,
         metadata: {
           source: "LongPort API secu_static_info response",
-          queryDataTypeFilter: "stock-basic-info",
+          queryDataTypeFilter: "get-stock-basic-info",
           usage: "target_field_suggestions",
           autoCreated: true,
           lastUpdated: new Date().toISOString(),

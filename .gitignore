@@ -200,3 +200,7 @@ $RECYCLE.BIN/
 .directory
 .Trash-*
 .nfs*
+
+.claude
+.kiro
+.docker

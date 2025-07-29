@@ -10,27 +10,55 @@ describe("Enhanced Authentication Integration Tests", () => {
   let userModel: Model<any>;
   let apiKeyModel: Model<any>;
 
-  beforeAll(() => {
+  // 在所有测试之前获取全局应用实例
+  beforeAll(async () => {
+    console.log("准备测试环境，获取全局应用实例...");
+    
+    // 等待全局环境初始化完成
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // 只使用全局测试应用
     app = (global as any).testApp;
-    console.log("BeforeAll - testApp:", !!app);
-
+    
     if (!app) {
-      throw new Error("testApp is not available in global context");
+      throw new Error("全局测试应用不可用，请先正确初始化测试环境");
     }
-
+    
+    console.log("成功获取全局测试应用");
+    
     httpServer = app.getHttpServer();
-    userModel = app.get(getModelToken("User"));
-    apiKeyModel = app.get(getModelToken("ApiKey"));
-
-    console.log("BeforeAll - httpServer:", !!httpServer);
-    console.log("BeforeAll - userModel:", !!userModel);
-    console.log("BeforeAll - apiKeyModel:", !!apiKeyModel);
+    
+    try {
+      userModel = app.get(getModelToken("User"));
+      apiKeyModel = app.get(getModelToken("ApiKey"));
+      
+      console.log("模型初始化状态：");
+      console.log("- httpServer:", !!httpServer);
+      console.log("- userModel:", !!userModel);
+      console.log("- apiKeyModel:", !!apiKeyModel);
+      
+      if (!userModel || !apiKeyModel) {
+        throw new Error("MongoDB 模型初始化失败");
+      }
+    } catch (error) {
+      console.error("获取测试模型失败:", error);
+      throw error;
+    }
   });
 
+  // afterAll已不再需要，删除
   afterEach(async () => {
     // Clean up database after each test
-    await userModel.deleteMany({});
-    await apiKeyModel.deleteMany({});
+    try {
+      if (userModel) {
+        await userModel.deleteMany({});
+      }
+      if (apiKeyModel) {
+        await apiKeyModel.deleteMany({});
+      }
+    } catch (error) {
+      console.warn("Failed to clean up test data:", error);
+    }
   });
 
   describe("User Registration and Login", () => {

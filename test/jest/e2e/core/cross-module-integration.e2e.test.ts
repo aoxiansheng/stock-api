@@ -102,7 +102,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols,
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
 
@@ -200,7 +200,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: [testSymbol],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
 

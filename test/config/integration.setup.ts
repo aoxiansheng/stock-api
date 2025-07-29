@@ -23,6 +23,8 @@ import { SecurityModule } from "../../src/security/security.module";
 import { alertConfig } from "../../src/common/config/alert.config";
 // 临时禁用LongPort模块以避免资源泄露
 import { ProvidersModule } from "../../src/providers/providers.module";
+// 添加节流模块导入
+import { ThrottlerModule } from "@nestjs/throttler";
 
 // Core modules - 添加缺失的核心模块导入
 import { SymbolMapperModule } from "../../src/core/symbol-mapper/module/symbol-mapper.module";
@@ -31,6 +33,8 @@ import { StorageModule } from "../../src/core/storage/module/storage.module";
 import { QueryModule } from "../../src/core/query/module/query.module";
 import { TransformerModule } from "../../src/core/transformer/module/transformer.module";
 import { ReceiverModule } from "../../src/core/receiver/module/receiver.module";
+// 添加分页模块导入
+import { PaginationModule } from "../../src/common/modules/pagination/modules/pagination.module";
 
 import { PerformanceMonitorService } from "../../src/metrics/services/performance-monitor.service";
 
@@ -100,6 +104,13 @@ async function createTestApplication(): Promise<void> {
       QueryModule,
       TransformerModule,
       ReceiverModule,
+      PaginationModule,
+      ThrottlerModule.forRoot([
+        {
+          ttl: 60,
+          limit: 10,
+        },
+      ]),
     ],
   }).compile();
 
@@ -171,6 +182,10 @@ async function createTestApplication(): Promise<void> {
 // 设置集成测试超时（根据环境调整）
 jest.setTimeout(TestEnvironment.getTimeout(60000));
 
+// 确保设置必要的环境变量
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-for-integration-tests';
+process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+
 // 全局设置 - 启动测试数据库和应用
 beforeAll(async () => {
   console.log("🚀 启动集成测试环境...");
@@ -209,7 +224,7 @@ beforeEach(async () => {
     // 通过应用实例获取所有注册的模型，确保上下文一致
     const userModel = app.get(getModelToken("User"), { strict: false });
     const apiKeyModel = app.get(getModelToken("ApiKey"), { strict: false });
-    const symbolMappingModel = app.get(getModelToken("SymbolMappingRule"), {
+    const symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"), {
       strict: false,
     });
     const dataMappingModel = app.get(getModelToken("DataMappingRule"), {
@@ -604,7 +619,7 @@ async function cleanupAllTestData(): Promise<void> {
     // 获取所有数据库模型
     const userModel = app.get(getModelToken("User"), { strict: false });
     const apiKeyModel = app.get(getModelToken("ApiKey"), { strict: false });
-    const symbolMappingModel = app.get(getModelToken("SymbolMappingRule"), {
+    const symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"), {
       strict: false,
     });
     const dataMappingModel = app.get(getModelToken("DataMappingRule"), {

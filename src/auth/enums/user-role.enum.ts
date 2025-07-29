@@ -50,6 +50,7 @@ const DEVELOPER_PERMISSIONS = [
   Permission.SYSTEM_HEALTH,
   Permission.DEBUG_ACCESS,
   Permission.CONFIG_READ,
+  Permission.MAPPING_WRITE,
 ];
 
 /**

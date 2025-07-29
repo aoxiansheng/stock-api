@@ -229,7 +229,7 @@ describe("StoredData Schema", () => {
   it("应该支持不同数据类型过滤器", async () => {
     const dataTypes = [
       "stock-quote",
-      "stock-basic-info",
+      "get-stock-basic-info",
       "market-summary",
       "trading-hours",
     ];

@@ -33,7 +33,7 @@ describe("Core Modules Integration Tests", () => {
     httpServer = app.getHttpServer();
     userModel = app.get(getModelToken("User"));
     apiKeyModel = app.get(getModelToken("ApiKey"));
-    symbolMappingModel = app.get(getModelToken("SymbolMappingRule"));
+    symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"));
     dataMappingModel = app.get(getModelToken("DataMappingRule"));
 
     // 获取核心服务实例用于内部测试
@@ -154,7 +154,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该处理基本信息数据请求", async () => {
       const basicInfoRequest = {
         symbols: ["700.HK"],
-        capabilityType: "stock-basic-info",
+        capabilityType: "get-stock-basic-info",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -183,7 +183,7 @@ describe("Core Modules Integration Tests", () => {
         .expect(400);
 
       expect(response.body.statusCode).toBe(400);
-      expect(response.body.message).toContain("不支持的数据类型");
+      expect(response.body.message).toContain("不支持的能力类型");
     });
 
     it("应该正确处理空股票代码列表", async () => {
@@ -564,7 +564,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在Symbol Mapper和Data Mapper之间保持数据一致性", async () => {
       const transformRequest = {
         provider: uniqueDataSourceName,
-        capabilityType: "get-stock-quote",
+        dataRuleListType: "quote_fields",
         rawData: { price: 503.0, size: 1000000, symbol: "AAPL-LP" },
       };
 
@@ -654,7 +654,7 @@ describe("Core Modules Integration Tests", () => {
     it("should transform data using mapping rules", async () => {
       const transformRequest = {
         provider: uniqueDataSourceName,
-        capabilityType: "get-stock-quote",
+        dataRuleListType: "quote_fields",
         rawData: { last_price: 503.0, vol: 1000000, symbol: "700.HK" },
       };
 
@@ -675,12 +675,12 @@ describe("Core Modules Integration Tests", () => {
       const batchRequest = [
         {
           provider: uniqueDataSourceName,
-          capabilityType: "get-stock-quote",
+          dataRuleListType: "quote_fields",
           rawData: { symbol: "700.HK", last_price: 503.0 },
         },
         {
           provider: uniqueDataSourceName,
-          capabilityType: "get-stock-quote",
+          dataRuleListType: "quote_fields",
           rawData: { symbol: "AAPL.US", last_price: 150.0 },
         },
       ];
@@ -701,7 +701,7 @@ describe("Core Modules Integration Tests", () => {
       // 创建预览请求
       const previewRequest = {
         provider: uniqueDataSourceName,
-        capabilityType: "get-stock-quote",
+        dataRuleListType: "quote_fields",
         rawData: {
           last_price: 503.0,
           vol: 1000000,
@@ -827,7 +827,7 @@ describe("Core Modules Integration Tests", () => {
       const queryRequest = {
         queryType: "by_symbols",
         symbols: ["700.HK"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
         provider: uniqueDataSourceName,
       };
 
@@ -839,9 +839,19 @@ describe("Core Modules Integration Tests", () => {
         .expect(201);
 
       expect(response.body.statusCode).toBe(201);
-      expect(response.body.data.data).toEqual([
-        { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
-      ]);
+      expect(response.body.data.data).toEqual({
+        items: [
+          { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
+        ],
+        pagination: {
+          hasNext: false,
+          hasPrev: false,
+          limit: 1,
+          page: 1,
+          total: 1,
+          totalPages: 1
+        }
+      });
     });
 
     it("should handle bulk query execution", async () => {
@@ -865,15 +875,25 @@ describe("Core Modules Integration Tests", () => {
 
       expect(response.body.statusCode).toBe(201);
       expect(response.body.data.results).toHaveLength(1);
-      expect(response.body.data.results[0].data).toEqual([
-        { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
-      ]);
+      expect(response.body.data.results[0].data).toEqual({
+        items: [
+          { symbol: "700.HK", name: "Tencent", lastPrice: 503.0 },
+        ],
+        pagination: {
+          hasNext: false,
+          hasPrev: false,
+          limit: 1,
+          page: 1,
+          total: 1,
+          totalPages: 1
+        }
+      });
     });
 
     it.skip("should handle query with filters and sorting", async () => {
       const queryRequest = {
         queryType: "advanced",
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
         filters: [{ field: "market", operator: "eq", value: "HK" }],
         provider: uniqueDataSourceName,
       };

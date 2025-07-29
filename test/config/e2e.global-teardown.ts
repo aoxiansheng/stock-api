@@ -40,24 +40,34 @@ export default async function globalTeardown() {
     delete process.env.E2E_MONGO_SERVER_URI;
 
     // 清理临时文件
-    const tempDir = path.join(process.cwd(), "temp");
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-      console.log("✅ 临时文件已清理");
+    try {
+      const tempDir = path.join(process.cwd(), "temp");
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        console.log("✅ 临时文件已清理");
+      }
+    } catch (error) {
+      console.warn("⚠️ 临时文件清理失败:", error.message);
     }
 
     // 生成测试报告摘要
-    const testResultsDir = path.join(process.cwd(), "test-results");
-    if (fs.existsSync(testResultsDir)) {
-      const files = fs.readdirSync(testResultsDir);
-      const htmlReports = files.filter((f) => f.endsWith(".html"));
+    try {
+      const testResultsDir = path.join(process.cwd(), "test-results");
+      if (fs.existsSync(testResultsDir)) {
+        const files = fs.readdirSync(testResultsDir);
+        if (files && Array.isArray(files)) {
+          const htmlReports = files.filter((f) => f && f.endsWith(".html"));
 
-      if (htmlReports.length > 0) {
-        console.log(`📊 生成了 ${htmlReports.length} 个测试报告:`);
-        htmlReports.forEach((report) => {
-          console.log(`   - ${report}`);
-        });
+          if (htmlReports.length > 0) {
+            console.log(`📊 生成了 ${htmlReports.length} 个测试报告:`);
+            htmlReports.forEach((report) => {
+              console.log(`   - ${report}`);
+            });
+          }
+        }
       }
+    } catch (error) {
+      console.warn("⚠️ 生成测试报告摘要失败:", error.message);
     }
 
     console.log("✅ E2E测试全局清理完成");

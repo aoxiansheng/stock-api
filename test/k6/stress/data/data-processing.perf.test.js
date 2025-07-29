@@ -61,7 +61,7 @@ const STOCK_SYMBOLS = {
   SH: ['600519.SH', '600036.SH', '600276.SH', '600000.SH', '601318.SH', '600028.SH', '601166.SH', '600887.SH']
 };
 
-const CAPABILITY_TYPES = ['get-stock-quote', 'stock-basic-info', 'index-quote'];
+const CAPABILITY_TYPES = ['get-stock-quote', 'get-stock-basic-info', 'index-quote'];
 const QUERY_TYPES = ['by_symbols', 'by_market', 'by_provider'];
 
 // API Key和用户数据

@@ -192,13 +192,13 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
       },
       {
         capability: "get-stock-basic-info",
-        capabilityType: "stock-basic-info",
+        capabilityType: "get-stock-basic-info",
         testSymbols: ["00700.HK", "AAPL.US"],
         description: "股票基本信息",
       },
       {
         capability: "get-index-quote",
-        capabilityType: "index-quote",
+        capabilityType: "get-index-quote",
         testSymbols: ["HSI.HK", "SPX.US"],
         description: "指数报价数据",
       },
@@ -260,7 +260,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
               }
               break;
               
-            case "stock-basic-info":
+            case "get-stock-basic-info":
               // 股票基本信息适应不同结构
               if (Array.isArray(responseData)) {
                 if (responseData.length > 0) {
@@ -279,7 +279,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
               }
               break;
               
-            case "index-quote":
+            case "get-index-quote":
               // 指数报价适应不同结构
               if (Array.isArray(responseData)) {
                 if (responseData.length > 0) {
@@ -589,7 +589,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
       const queryResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,

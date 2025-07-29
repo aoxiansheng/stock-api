@@ -16,7 +16,7 @@ describe("Complete Data Flow E2E Tests", () => {
       username: "dataflowuser",
       email: "dataflow@example.com",
       password: "password123",
-      role: "developer",
+      role: "admin",
     };
 
     await httpServer.post("/api/v1/auth/register").send(userData);
@@ -107,7 +107,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US"],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         })
         .expect(201);
 

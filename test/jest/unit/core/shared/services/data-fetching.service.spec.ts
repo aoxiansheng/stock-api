@@ -607,8 +607,8 @@ describe("DataFetchingService", () => {
       const testCases = [
         { dataTypeFilter: "get-stock-quote", expectedCapability: "get-stock-quote" },
         {
-          dataTypeFilter: "stock-basic-info",
-          expectedCapability: "stock-basic-info",
+          dataTypeFilter: "get-stock-basic-info",
+          expectedCapability: "get-stock-basic-info",
         },
         { dataTypeFilter: "index-quote", expectedCapability: "index-quote" },
         { dataTypeFilter: "market-status", expectedCapability: "market-status" },
@@ -831,7 +831,7 @@ describe("DataFetchingService", () => {
         },
         {
           symbol: "GOOGL.US",
-          dataTypeFilter: "stock-basic-info",
+          dataTypeFilter: "get-stock-basic-info",
           market: Market.US,
           mode: "ANALYTICAL",
         },
@@ -844,7 +844,7 @@ describe("DataFetchingService", () => {
       };
       const mockInfoCapability = {
         ...mockCapability,
-        name: "stock-basic-info",
+        name: "get-stock-basic-info",
         execute: jest.fn(),
       };
 
@@ -862,7 +862,7 @@ describe("DataFetchingService", () => {
         (capabilityName) => {
           if (
             capabilityName === "get-stock-quote" ||
-            capabilityName === "stock-basic-info"
+            capabilityName === "get-stock-basic-info"
           ) {
             return "longport";
           }
@@ -875,7 +875,7 @@ describe("DataFetchingService", () => {
           if (capabilityName === "get-stock-quote") {
             return mockQuoteCapability;
           }
-          if (capabilityName === "stock-basic-info") {
+          if (capabilityName === "get-stock-basic-info") {
             return mockInfoCapability;
           }
           return null;

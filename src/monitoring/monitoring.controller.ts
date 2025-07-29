@@ -418,15 +418,15 @@ export class MonitoringController {
   }
 
   @NoPerformanceMonitoring()
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_MONITOR)
+  @Auth([UserRole.ADMIN])
   @Get("health/detailed")
   @ApiOperation({
     summary: "获取详细系统健康状态",
-    description: "获取系统详细健康评分和状态 (需要SYSTEM_MONITOR权限)",
+    description: "获取系统详细健康评分和状态 (需要管理员权限)",
   })
   @ApiHealthResponse()
   @ApiStandardResponses()
+  @JwtAuthResponses()
   async getDetailedHealthStatus() {
     try {
       const summary = await this.performanceMonitor.getPerformanceSummary();

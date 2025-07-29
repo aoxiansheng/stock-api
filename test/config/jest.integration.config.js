@@ -56,6 +56,7 @@ module.exports = {
     '^@cache/(.*)$': '<rootDir>/src/cache/$1',
     '^@metrics/(.*)$': '<rootDir>/src/metrics/$1',
     '^@security/(.*)$': '<rootDir>/src/security/$1',
+    '^@providers/(.*)$': '<rootDir>/src/providers/$1',
   },
   
   // TypeScript 转换

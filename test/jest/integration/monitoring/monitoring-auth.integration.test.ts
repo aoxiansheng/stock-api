@@ -171,10 +171,10 @@ describe("Monitoring Auth Integration", () => {
         if (endpoint === "/api/v1/monitoring/health") {
           expect(response.body.data).toMatchObject({
             status: expect.any(String),
-            score: expect.any(Number),
             timestamp: expect.any(String),
             uptime: expect.any(Number),
             version: expect.any(String),
+            message: expect.any(String),
           });
         }
       }
@@ -247,7 +247,7 @@ describe("Monitoring Auth Integration", () => {
           .get(endpoint)
           .set("X-App-Key", invalidApiKey)
           .set("X-Access-Token", invalidApiSecret)
-          .expect(401); // Unauthorized
+          .expect(403); // Forbidden，因为这些端点仅允许JWT认证而不允许API Key认证
       }
     });
 

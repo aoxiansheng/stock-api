@@ -60,7 +60,7 @@ describe("Response Format Standardization Integration", () => {
 
     // 4. 创建符号映射规则 - 解决接收器模块测试中的400错误
     const { getModelToken } = await import("@nestjs/mongoose");
-    const symbolMappingModel = app.get(getModelToken("SymbolMappingRule"), {
+    const symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"), {
       strict: false,
     });
     if (symbolMappingModel) {
@@ -287,7 +287,8 @@ describe("Response Format Standardization Integration", () => {
         // 验证数据结构 - 查询响应的格式
         // 移除对success字段的检查，新架构中ResponseInterceptor统一处理
         expect(response.body.data.data).toBeDefined();
-        expect(Array.isArray(response.body.data.data)).toBe(true);
+        expect(response.body.data.data.items).toBeDefined();
+        expect(Array.isArray(response.body.data.data.items)).toBe(true);
         expect(response.body.data.metadata).toBeDefined();
         expect(response.body.data.metadata.queryType).toBe("by_symbols");
         expect(response.body.data.metadata.totalResults).toBeGreaterThanOrEqual(
@@ -331,12 +332,10 @@ describe("Response Format Standardization Integration", () => {
         message: expect.any(String),
         data: expect.objectContaining({
           status: expect.any(String),
-          score: expect.any(Number),
           timestamp: expect.any(String),
-          issues: expect.any(Array),
-          recommendations: expect.any(Array),
           uptime: expect.any(Number),
           version: expect.any(String),
+          message: expect.any(String),
         }),
         timestamp: expect.any(String),
       });

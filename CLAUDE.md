@@ -169,11 +169,30 @@ async manageUsers(@Body() dto: UserManagementDto) {
 
 ### Field Naming Convention Critical Pattern
 
-**Three different field purposes** - Don't confuse these:
+**IMPORTANT**: The system uses a **four-layer field architecture** to eliminate ambiguous `dataType` fields:
 
-1. **Query Layer**: `queryDataTypeFilter` (QueryRequestDto) - for filtering
-2. **Storage Layer**: `dataClassification` (DataClassification enum) - for categorization  
-3. **Receiver Layer**: `dataType` (capability mapping) - for provider routing
+```typescript
+// 🎯 Four-Layer Field Architecture (eliminates dataType confusion)
+{
+  // 1. Receiver Layer - Capability routing
+  capabilityType: "get-stock-quote",     // Provider capability routing
+
+  // 2. Data Mapper/Transformer Layer - Mapping rule types  
+  dataRuleListType: "quote_fields",     // Field mapping rule classification
+
+  // 3. Storage Layer - Data classification
+  dataClassification: "stock_quote",    // Storage categorization
+
+  // 4. Query Layer - Data filtering
+  dataTypeFilter: "get-stock-quote",    // Query filtering
+}
+```
+
+**Naming Format Conventions**:
+- **Capability routing** (`capabilityType`): `kebab-case` - "get-stock-quote"
+- **Mapping rules** (`dataRuleListType`): `snake_case` - "quote_fields"  
+- **Storage classification** (`dataClassification`): `snake_case` - "stock_quote"
+- **Query filtering** (`dataTypeFilter`): `kebab-case` - "get-stock-quote"
 
 ### Shared Module Usage
 
@@ -264,7 +283,7 @@ curl -X POST http://localhost:3000/api/v1/auth/api-keys \
 curl -X POST http://localhost:3000/api/v1/receiver/data \
   -H "X-App-Key: YOUR_APP_KEY" \
   -H "X-Access-Token: YOUR_ACCESS_TOKEN" \
-  -d '{"symbols": ["700.HK", "AAPL.US"], "dataType": "stock-quote"}'
+  -d '{"symbols": ["700.HK", "AAPL.US"], "capabilityType": "get-stock-quote"}'
 ```
 
 ### Key Endpoints

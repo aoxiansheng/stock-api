@@ -233,7 +233,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const response = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: ["700.HK", "AAPL.US"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "get-stock-quote",
         options: {
           includeMetadata: true,
           // 移除不支持的includeChangeDetection参数
@@ -255,7 +255,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       // 适应ResponseInterceptor包装
       expect(response.data.data).toBeDefined();
       if (response.data.data) {
-        expect(response.data.data.data).toBeDefined();
+        expect(response.data.data.data.items).toBeDefined();
         expect(response.data.data.metadata).toBeDefined();
       }
 
@@ -275,8 +275,8 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       }
 
       // 验证数据一致性
-      if (response.data.data?.data) {
-        expect(Array.isArray(response.data.data.data)).toBe(true);
+      if (response.data.data?.data?.items) {
+        expect(Array.isArray(response.data.data.data.items)).toBe(true);
       }
     });
 
@@ -284,7 +284,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const response = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: ["700.HK", "AAPL.US", "000001.SZ", "600000.SH"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "get-stock-quote",
         // 移除不支持的batchSize参数
       }, {
         headers: {
@@ -309,8 +309,8 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
         expect(response.data.data.metadata.totalResults).toBeGreaterThan(0);
         
         // 或者验证返回的数据长度
-        if (response.data.data.data && Array.isArray(response.data.data.data)) {
-          expect(response.data.data.data.length).toBeGreaterThan(0);
+        if (response.data.data.data.items && Array.isArray(response.data.data.data.items)) {
+          expect(response.data.data.data.items.length).toBeGreaterThan(0);
         }
       }
 
@@ -348,7 +348,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const analyticalResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -364,7 +364,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
 
       // 验证数据结构一致性
       expect(realtimeResponse.data.data?.data).toBeDefined();
-      expect(analyticalResponse.data.data?.data).toBeDefined();
+      expect(analyticalResponse.data.data?.data?.items).toBeDefined();
 
       // 提取嵌套的数据项
       let realtimeQuote;
@@ -376,8 +376,8 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       }
       
       // 安全地提取弱时效数据中的行情信息
-      if (analyticalResponse.data.data?.data?.[0]?.secu_quote?.[0]) {
-        analyticalQuote = analyticalResponse.data.data.data[0].secu_quote[0];
+      if (analyticalResponse.data.data?.data?.items?.[0]?.secu_quote?.[0]) {
+        analyticalQuote = analyticalResponse.data.data.data.items[0].secu_quote[0];
       }
       
       if (realtimeQuote && analyticalQuote) {
@@ -446,7 +446,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const response = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: ["700.HK", "AAPL.US", "000001.SZ", "600000.SH", "00175.HK"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -470,10 +470,10 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       // 验证批量处理统计信息，安全访问响应数据
       if (response.data.data?.metadata?.totalRequested !== undefined) {
         expect(response.data.data.metadata.totalRequested).toBeGreaterThan(0);
-      } else if (response.data.data?.data) {
+      } else if (response.data.data?.data?.items) {
         // 或者至少验证返回了一些数据
-        expect(Array.isArray(response.data.data.data)).toBe(true);
-        expect(response.data.data.data.length).toBeGreaterThan(0);
+        expect(Array.isArray(response.data.data.data.items)).toBe(true);
+        expect(response.data.data.data.items.length).toBeGreaterThan(0);
       }
       
       if (response.data.data?.metadata?.processingTime !== undefined) {

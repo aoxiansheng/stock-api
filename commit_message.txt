@@ -1,0 +1,9 @@
+修复: 市场感知缓存黑盒测试中的API参数问题
+
+- 修复了测试用例中使用的错误API参数格式
+- 将不支持的`queryDataTypeFilter`替换为正确的`dataTypeFilter`参数
+- 将`includeChangeDetection`和`includeMetadata`参数移入options对象
+- 优化了测试中的数据结构验证，提高了适应性
+- 增加了防御性检查和调试日志，确保测试更加健壮
+
+此修改确保测试代码符合API的实际参数格式和响应结构，解决了400错误。

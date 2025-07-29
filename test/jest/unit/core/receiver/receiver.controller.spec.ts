@@ -168,14 +168,14 @@ describe("ReceiverController", () => {
 
     it("should handle data request with minimal options", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ["MSFT"],
-        capabilityType: "stock-basic-info",
+        symbols: ["AAPL"],
+        capabilityType: "get-stock-basic-info",
       };
 
       const simpleResponse: DataResponseDto = {
         data: [
           {
-            symbol: "MSFT",
+            symbol: "AAPL",
             companyName: "Microsoft Corporation",
             market: "US",
           },
@@ -183,7 +183,7 @@ describe("ReceiverController", () => {
         metadata: {
           requestId: "req_1704110400001_def456",
           provider: "longport",
-          capability: "stock-basic-info",
+          capability: "get-stock-basic-info",
           processingTime: 89,
           timestamp: "2024-01-01T12:01:00.000Z",
         },
@@ -196,8 +196,8 @@ describe("ReceiverController", () => {
       expect(result).toBe(simpleResponse);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
-        symbols: ["MSFT"],
-        capabilityType: "stock-basic-info",
+        symbols: ["AAPL"],
+        capabilityType: "get-stock-basic-info",
         options: undefined,
       });
     });
@@ -357,7 +357,7 @@ describe("ReceiverController", () => {
     it("should handle service unavailable errors", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["700.HK"],
-        capabilityType: "stock-basic-info",
+        capabilityType: "get-stock-basic-info",
       };
 
       const serviceError = new Error("Provider service unavailable");
@@ -374,7 +374,7 @@ describe("ReceiverController", () => {
         expect.objectContaining({
           error: "Provider service unavailable",
           symbols: ["700.HK"],
-          capabilityType: "stock-basic-info",
+          capabilityType: "get-stock-basic-info",
         }),
       );
     });
@@ -476,7 +476,7 @@ describe("ReceiverController", () => {
 
       const basicInfoRequest: DataRequestDto = {
         symbols: ["700.HK"],
-        capabilityType: "stock-basic-info",
+        capabilityType: "get-stock-basic-info",
       };
 
       const indexQuoteRequest: DataRequestDto = {
@@ -487,8 +487,8 @@ describe("ReceiverController", () => {
       receiverService.handleRequest.mockImplementation((request) => {
         // 映射 capabilityType 到正确的 capability 名称
         const dataTypeToCapabilityMap: Record<string, string> = {
-          "stock-quote": "get-stock-quote",
-          "stock-basic-info": "get-stock-basic-info",
+          "get-stock-quote": "get-stock-quote",
+          "get-stock-basic-info": "get-stock-basic-info",
           "index-quote": "get-index-quote",
         };
 
