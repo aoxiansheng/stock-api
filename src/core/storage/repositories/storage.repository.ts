@@ -190,7 +190,7 @@ export class StorageRepository {
     }
 
     if (query.dataClassification) {
-      filter.queryDataTypeFilter = query.dataClassification.toString();
+      filter.dataClassification = query.dataClassification.toString();
     }
 
     if (query.tags && query.tags.length > 0) {
@@ -237,7 +237,7 @@ export class StorageRepository {
     this.logger.debug(`MongoDB upsert 开始`, {
       key: document.key,
       hasData: !!document.data,
-      queryDataTypeFilter: document.queryDataTypeFilter,
+      dataClassification: document.dataClassification,
       operation: "upsert",
     });
 
@@ -268,7 +268,12 @@ export class StorageRepository {
 
   async getDataTypeFilterStats(): Promise<{ _id: string; count: number }[]> {
     return this.storedDataModel.aggregate([
-      { $group: { _id: "$queryDataTypeFilter", count: { $sum: 1 } } },
+      { 
+        $group: { 
+          _id: "$dataClassification", 
+          count: { $sum: 1 } 
+        } 
+      },
     ]);
   }
 

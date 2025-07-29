@@ -14,13 +14,13 @@ export const RECEIVER_ERROR_MESSAGES = Object.freeze({
     "股票代码格式无效，代码不能为空且长度不能超过{maxLength}个字符",
   TOO_MANY_SYMBOLS: "单次请求股票代码数量不能超过{maxCount}个",
   UNSUPPORTED_DATA_TYPE:
-    "不支持的数据类型: {dataType}。支持的类型: {supportedTypes}",
+    "不支持的数据类型: {capabilityType}。支持的类型: {supportedTypes}",
   PREFERRED_PROVIDER_INVALID: "首选提供商参数必须为字符串类型",
   REALTIME_PARAM_INVALID: "实时数据参数必须为布尔类型",
   FIELDS_PARAM_INVALID: "字段列表参数必须为字符串数组",
   MARKET_PARAM_INVALID: "市场参数必须为字符串类型",
   NO_PROVIDER_FOUND:
-    "无法找到支持数据类型 '{dataType}' 和市场 '{market}' 的数据提供商",
+    "无法找到支持数据类型 '{capabilityType}' 和市场 '{market}' 的数据提供商",
   PROVIDER_SELECTION_FAILED: "数据提供商选择过程中发生内部错误",
   PROVIDER_NOT_SUPPORT_CAPABILITY:
     "提供商 '{provider}' 不支持 '{capability}' 能力",
@@ -58,9 +58,11 @@ export const RECEIVER_SUCCESS_MESSAGES = Object.freeze({
 } as const);
 
 /**
- * 支持的数据类型常量（已统一使用能力命名格式）
+ * 支持的能力类型常量（用于数据提供商路由和能力匹配）
+ * 重构说明：从 SUPPORTED_DATA_TYPES 重命名为 SUPPORTED_CAPABILITY_TYPES
+ * 以更准确地反映其在能力映射中的作用
  */
-export const SUPPORTED_DATA_TYPES = Object.freeze([
+export const SUPPORTED_CAPABILITY_TYPES = Object.freeze([
   "get-stock-quote",
   "get-stock-basic-info",
   "get-index-quote",

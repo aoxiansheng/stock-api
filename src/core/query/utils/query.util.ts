@@ -4,22 +4,22 @@
 
 /**
  * 为给定的参数构建一个唯一的、确定性的存储键。
- * 键的格式为：<market>:<provider>:<queryDataTypeFilter>:<symbol>
+ * 键的格式为：<market>:<provider>:<dataTypeFilter>:<symbol>
  * 如果部分参数未提供，则使用通配符 '*'。
  *
  * @param symbol 股票代码
  * @param provider 数据源
- * @param queryDataTypeFilter 数据类型过滤器
+ * @param dataTypeFilter 数据类型
  * @param market 市场
  * @returns 格式化的存储键
  */
 export const buildStorageKey = (
   symbol: string,
   provider?: string,
-  queryDataTypeFilter?: string,
+  dataTypeFilter?: string,
   market?: string,
 ): string => {
-  const parts = [market ?? "*", provider ?? "*", queryDataTypeFilter ?? "*", symbol];
+  const parts = [market ?? "*", provider ?? "*", dataTypeFilter ?? "*", symbol];
   return parts.join(":");
 };
 

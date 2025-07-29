@@ -11,7 +11,7 @@ import { createLogger } from "@common/config/logger.config";
 import {
   ApiSuccessResponse,
   ApiKeyAuthResponses,
-} from "@common/decorators/swagger-responses.decorator";
+} from "@common/core/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../../auth/decorators/permissions.decorator";
@@ -70,7 +70,7 @@ export class ReceiverController {
 \`\`\`json
 {
   "symbols": ["AAPL", "700.HK", "000001.SZ"],
-  "dataType": "get-stock-quote",
+  "capabilityType": "get-stock-quote",
   "options": {
     "realtime": true,
     "timeout": 3000
@@ -137,7 +137,7 @@ export class ReceiverController {
   async handleDataRequest(@Body(ValidationPipe) request: DataRequestDto) {
     this.logger.log(`接收数据请求`, {
       symbols: request.symbols,
-      dataType: request.dataType,
+      capabilityType: request.capabilityType,
       options: request.options,
     });
 
@@ -164,7 +164,7 @@ export class ReceiverController {
         error: error.message,
         stack: error.stack,
         symbols: request.symbols,
-        dataType: request.dataType,
+        capabilityType: request.capabilityType,
       });
       throw error;
     }

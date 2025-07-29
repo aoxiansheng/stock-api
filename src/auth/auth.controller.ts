@@ -26,7 +26,7 @@ import {
   ApiPaginatedResponse,
   ApiStandardResponses,
   JwtAuthResponses,
-} from "@common/decorators/swagger-responses.decorator";
+} from "@common/core/decorators/swagger-responses.decorator";
 
 import { Auth } from "./decorators/auth.decorator";
 import { Public } from "./decorators/public.decorator";

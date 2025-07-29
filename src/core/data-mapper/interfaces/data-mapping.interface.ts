@@ -6,7 +6,7 @@ export interface IDataMapper {
   saveMappingRule(rule: IDataMappingRule): Promise<void>;
   getMappingRule(
     provider: string,
-    dataType: string,
+    dataRuleListType: string,
   ): Promise<IDataMappingRule[]>;
 }
 

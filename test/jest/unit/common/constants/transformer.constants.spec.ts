@@ -270,10 +270,10 @@ describe("Transformer Constants", () => {
   describe("Integration with transformer service", () => {
     it("should support error message construction", () => {
       const provider = "test-provider";
-      const dataType = "test-type";
-      const errorMessage = `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${provider}', dataType '${dataType}'`;
+      const dataRuleListType = "test-type";
+      const errorMessage = `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${provider}', dataRuleListType '${dataRuleListType}'`;
       expect(errorMessage).toBe(
-        "未找到匹配的映射规则: provider 'test-provider', dataType 'test-type'",
+        "未找到匹配的映射规则: provider 'test-provider', dataRuleListType 'test-type'",
       );
     });
 

@@ -2,7 +2,7 @@ import {
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,
   RECEIVER_SUCCESS_MESSAGES,
-  SUPPORTED_DATA_TYPES,
+  SUPPORTED_CAPABILITY_TYPES,
   RECEIVER_PERFORMANCE_THRESHOLDS,
   RECEIVER_VALIDATION_RULES,
   MARKET_RECOGNITION_RULES,
@@ -29,9 +29,9 @@ describe("Receiver Constants", () => {
       );
       expect(RECEIVER_ERROR_MESSAGES.TOO_MANY_SYMBOLS).toContain("{maxCount}");
       expect(RECEIVER_ERROR_MESSAGES.UNSUPPORTED_DATA_TYPE).toContain(
-        "{dataType}",
+        "{capabilityType}",
       );
-      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain("{dataType}");
+      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain("{capabilityType}");
       expect(RECEIVER_ERROR_MESSAGES.PROVIDER_NOT_SUPPORT_CAPABILITY).toContain(
         "{provider}",
       );
@@ -106,33 +106,33 @@ describe("Receiver Constants", () => {
     });
   });
 
-  describe("SUPPORTED_DATA_TYPES", () => {
+  describe("SUPPORTED_CAPABILITY_TYPES", () => {
     it("should define all supported data types", () => {
-      expect(SUPPORTED_DATA_TYPES).toContain("get-stock-quote");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-stock-basic-info");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-index-quote");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-market-status");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-trading-days");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-global-state");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-crypto-quote");
-      expect(SUPPORTED_DATA_TYPES).toContain("get-stock-logo");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-stock-quote");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-stock-basic-info");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-index-quote");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-market-status");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-trading-days");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-global-state");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-crypto-quote");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-stock-logo");
     });
 
     it("should use consistent naming convention", () => {
-      SUPPORTED_DATA_TYPES.forEach((dataType) => {
-        expect(dataType).toMatch(/^get-[a-z-]+$/); // get-* pattern with kebab-case
-        expect(dataType).not.toContain("_"); // no underscores
-        expect(dataType).not.toContain(" "); // no spaces
+      SUPPORTED_CAPABILITY_TYPES.forEach((capabilityType) => {
+        expect(capabilityType).toMatch(/^get-[a-z-]+$/); // get-* pattern with kebab-case
+        expect(capabilityType).not.toContain("_"); // no underscores
+        expect(capabilityType).not.toContain(" "); // no spaces
       });
     });
 
     it("should be frozen", () => {
-      expect(Object.isFrozen(SUPPORTED_DATA_TYPES)).toBe(true);
+      expect(Object.isFrozen(SUPPORTED_CAPABILITY_TYPES)).toBe(true);
     });
 
     it("should be an array", () => {
-      expect(Array.isArray(SUPPORTED_DATA_TYPES)).toBe(true);
-      expect(SUPPORTED_DATA_TYPES.length).toBeGreaterThan(0);
+      expect(Array.isArray(SUPPORTED_CAPABILITY_TYPES)).toBe(true);
+      expect(SUPPORTED_CAPABILITY_TYPES.length).toBeGreaterThan(0);
     });
   });
 
@@ -383,12 +383,12 @@ describe("Receiver Constants", () => {
     });
 
     it("should support data type validation", () => {
-      const dataType = "get-stock-quote";
-      const isSupported = SUPPORTED_DATA_TYPES.includes(dataType);
+      const capabilityType = "get-stock-quote";
+      const isSupported = SUPPORTED_CAPABILITY_TYPES.includes(capabilityType);
       expect(isSupported).toBe(true);
       
       const invalidDataType = "stock-quote" as any; // old format
-      const isUnsupported = SUPPORTED_DATA_TYPES.includes(invalidDataType);
+      const isUnsupported = SUPPORTED_CAPABILITY_TYPES.includes(invalidDataType);
       expect(isUnsupported).toBe(false);
     });
 

@@ -55,7 +55,7 @@ export class TransformerService {
       `开始数据转换`,
       sanitizeLogData({
         provider: request.provider,
-        dataType: request.dataType,
+        dataRuleListType: request.dataRuleListType,
         mappingOutRuleId: request.mappingOutRuleId,
         hasRawData: !!request.rawData,
       }),
@@ -65,14 +65,14 @@ export class TransformerService {
       // 1. Find appropriate mapping rule
       const transformMappingRule = await this.findMappingRule(
         request.provider,
-        request.dataType,
+        request.dataRuleListType,
         request.mappingOutRuleId,
       );
 
       if (!transformMappingRule) {
         // 抛出异常而不是返回错误响应，符合新的架构设计
         throw new NotFoundException(
-          `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', dataType '${request.dataType}'`,
+          `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', dataRuleListType '${request.dataRuleListType}'`,
         );
       }
 
@@ -108,7 +108,7 @@ export class TransformerService {
         transformMappingRule.id,
         transformMappingRule.name,
         request.provider,
-        request.dataType,
+        request.dataRuleListType,
         stats.recordsProcessed,
         stats.fieldsTransformed,
         processingTime,
@@ -165,7 +165,7 @@ export class TransformerService {
           `数据转换警告`,
           sanitizeLogData({
             provider: request.provider,
-            dataType: request.dataType,
+            dataRuleListType: request.dataRuleListType,
             warnings,
             operation: "transformData",
           }),
@@ -181,7 +181,7 @@ export class TransformerService {
         `数据转换失败`,
         sanitizeLogData({
           provider: request.provider,
-          dataType: request.dataType,
+          dataRuleListType: request.dataRuleListType,
           error: error.message,
           stack: error.stack,
           processingTime,
@@ -228,7 +228,7 @@ export class TransformerService {
     const requestsByRule = new Map<string, TransformRequestDto[]>();
     for (const request of requests) {
       const key =
-        request.mappingOutRuleId || `${request.provider}::${request.dataType}`;
+        request.mappingOutRuleId || `${request.provider}::${request.dataRuleListType}`;
       if (!requestsByRule.has(key)) {
         requestsByRule.set(key, []);
       }
@@ -241,7 +241,7 @@ export class TransformerService {
           const firstReq = groupedRequests[0];
           const transformMappingRule = await this.findMappingRule(
             firstReq.provider,
-            firstReq.dataType,
+            firstReq.dataRuleListType,
             firstReq.mappingOutRuleId,
           );
 
@@ -329,7 +329,7 @@ export class TransformerService {
         transformMappingRule.id,
         transformMappingRule.name,
         request.provider,
-        request.dataType,
+        request.dataRuleListType,
         stats.recordsProcessed,
         stats.fieldsTransformed,
         processingTime,
@@ -409,20 +409,20 @@ export class TransformerService {
       `预览转换`,
       sanitizeLogData({
         provider: request.provider,
-        dataType: request.dataType,
+        dataRuleListType: request.dataRuleListType,
       }),
     );
 
     // Find mapping rule
     const transformMappingRule = await this.findMappingRule(
       request.provider,
-      request.dataType,
+      request.dataRuleListType,
       request.mappingOutRuleId,
     );
 
     if (!transformMappingRule) {
       throw new NotFoundException(
-        `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', dataType '${request.dataType}'`,
+        `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', dataRuleListType '${request.dataRuleListType}'`,
       );
     }
 
@@ -477,7 +477,7 @@ export class TransformerService {
    */
   private async findMappingRule(
     provider: string,
-    dataType: string,
+    dataRuleListType: string,
     ruleId?: string,
   ): Promise<DataMappingResponseDto | null> {
     if (ruleId) {
@@ -488,7 +488,7 @@ export class TransformerService {
       // 返回 null 是正常的业务逻辑（没找到匹配规则）
       return await this.dataMapperService.findBestMatchingRule(
         provider,
-        dataType,
+        dataRuleListType,
       );
     }
   }

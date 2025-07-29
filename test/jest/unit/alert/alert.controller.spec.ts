@@ -9,12 +9,15 @@ import { AlertStatus } from "../../../../src/alert/types/alert.types";
 import { NotificationChannelType } from "../../../../src/alert/types/alert.types";
 import { PermissionService } from "../../../../src/auth/services/permission.service";
 import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-permissions.guard";
+import { PaginationService } from "../../../../src/common/modules/pagination/services/pagination.service";
+import { PaginatedDataDto } from "../../../../src/common/modules/pagination/dto/paginated-data";
 
 describe("AlertController", () => {
   let controller: AlertController;
   let alertingService: AlertingService;
   let alertHistoryService: AlertHistoryService;
   let notificationService: NotificationService;
+  let paginationService: PaginationService;
 
   const mockAlertRule = {
     id: "rule-123",
@@ -71,6 +74,24 @@ describe("AlertController", () => {
     testChannel: jest.fn(),
   };
 
+  const mockPaginationService = {
+    createPaginatedResponse: jest.fn((items, page, limit, total) => {
+      return new PaginatedDataDto(items, {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
+      });
+    }),
+    normalizePaginationQuery: jest.fn((query) => {
+      const page = Math.max(1, query.page || 1);
+      const limit = Math.min(100, Math.max(1, query.limit || 10));
+      return { page, limit };
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AlertController],
@@ -93,6 +114,10 @@ describe("AlertController", () => {
             checkPermissions: jest.fn().mockResolvedValue({ allowed: true }),
           },
         },
+        {
+          provide: PaginationService,
+          useValue: mockPaginationService,
+        },
       ],
     })
       .overrideGuard(UnifiedPermissionsGuard)
@@ -103,6 +128,7 @@ describe("AlertController", () => {
     alertingService = module.get<AlertingService>(AlertingService);
     alertHistoryService = module.get<AlertHistoryService>(AlertHistoryService);
     notificationService = module.get<NotificationService>(NotificationService);
+    paginationService = module.get<PaginationService>(PaginationService);
   });
 
   afterEach(() => {

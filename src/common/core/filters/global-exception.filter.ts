@@ -20,7 +20,7 @@ import {
   BUSINESS_ERROR_MESSAGES,
 } from "@common/constants/error-messages.constants";
 
-import { HttpHeadersUtil } from "../utils/http-headers.util";
+import { HttpHeadersUtil } from "../../utils/http-headers.util";
 
 /**
  * 全局异常过滤器
@@ -503,7 +503,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         });
       } else if (msg.includes(VALIDATION_MESSAGES.UNSUPPORTED_DATA_TYPE)) {
         parsedErrors.push({
-          field: "dataType",
+          field: "dataTypeRelated",
           message: `${VALIDATION_MESSAGES.DATA_TYPE_PREFIX}${VALIDATION_MESSAGES.UNSUPPORTED_DATA_TYPE}`,
           code: "INVALID_TYPE",
         });
@@ -528,7 +528,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private extractFieldName(message: string): string {
     // 简单的字段名提取逻辑
     if (message.includes("股票代码")) return "symbols";
-    if (message.includes("数据类型")) return "dataType";
+    if (message.includes("数据类型")) return "dataTypeRelated";
     if (message.includes("提供商")) return "provider";
     return VALIDATION_MESSAGES.UNKNOWN_FIELD;
   }

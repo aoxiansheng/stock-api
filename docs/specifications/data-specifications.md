@@ -492,7 +492,7 @@ interface CacheMetadataData {
   namespace: string;                 // 命名空间
   
   // 缓存内容
-  dataType: DataClassification;      // 缓存数据类型
+  dataClassification: DataClassification;      // 缓存数据类型
   contentSize: number;               // 内容大小 (字节)
   compressionRatio?: number;         // 压缩比例
   
@@ -1087,7 +1087,7 @@ interface CacheMetadataData {
   keyPattern: string;                // 键模式 (例如: "stock-quote:*")
   
   // 数据信息
-  dataType: string;                  // 数据类型
+  dataClassification: string;                  // 数据类型
   dataSize: number;                  // 数据大小 (字节)
   compressed: boolean;               // 是否压缩
   compressionRatio?: number;         // 压缩比率
@@ -1213,7 +1213,7 @@ interface DataFieldMapping {
   // 映射身份
   mappingId: string;               // 唯一映射标识符
   provider: string;                // 提供商标识符
-  dataType: DataClassification;    // 正在映射的数据类型
+  dataClassification: DataClassification;    // 正在映射的数据类型
 
   // 字段转换
   sourceField: string;             // 源字段路径 (例如, "data.securities[0].last_price")
@@ -1221,7 +1221,6 @@ interface DataFieldMapping {
 
   // 转换规则
   transformation: FieldTransformation; // 转换方法
-  dataType: FieldDataType;         // 预期数据类型
 
   // 验证规则
   validation?: FieldValidation;    // 验证标准
@@ -1289,31 +1288,26 @@ interface StockQuotePresetFields {
   // 价格字段
   lastPrice: {
     description: "最新成交价";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
   openPrice: {
     description: "开盘价";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
   closePrice: {
     description: "收盘价";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
   highPrice: {
     description: "最高价";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
   lowPrice: {
     description: "最低价";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
@@ -1321,25 +1315,21 @@ interface StockQuotePresetFields {
   // 买/卖字段
   bidPrice: {
     description: "买一价";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   askPrice: {
     description: "卖一价";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   bidSize: {
     description: "买一量";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   askSize: {
     description: "卖一量";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
@@ -1347,12 +1337,10 @@ interface StockQuotePresetFields {
   // 变化字段
   changeAmount: {
     description: "涨跌额";
-    dataType: FieldDataType.NUMBER;
     required: true;
   };
   changePercent: {
     description: "涨跌幅";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: -1, max: 1 };
   };
@@ -1360,19 +1348,16 @@ interface StockQuotePresetFields {
   // 交易量字段
   volume: {
     description: "成交量";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
   turnover: {
     description: "成交额";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 0 };
   };
   avgVolume: {
     description: "平均成交量";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
@@ -1380,13 +1365,11 @@ interface StockQuotePresetFields {
   // 会话字段
   preMarketPrice: {
     description: "盘前价格";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   afterMarketPrice: {
     description: "盘后价格";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
@@ -1394,37 +1377,31 @@ interface StockQuotePresetFields {
   // 市场数据字段
   marketCap: {
     description: "市值";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   peRatio: {
     description: "市盈率";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   pbRatio: {
     description: "市净率";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
   eps: {
     description: "每股收益";
-    dataType: FieldDataType.NUMBER;
     required: false;
   };
 
   // 元数据字段
   timestamp: {
     description: "数据时间戳";
-    dataType: FieldDataType.DATE;
     required: true;
   };
   currency: {
     description: "货币代码";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { pattern: "^[A-Z]{3}$" };
   };
@@ -1437,19 +1414,16 @@ interface StockBasicInfoPresetFields {
   // 公司信息
   companyName: {
     description: "公司名称";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { maxLength: 200 };
   };
   shortName: {
     description: "简称";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { maxLength: 50 };
   };
   description: {
     description: "公司描述";
-    dataType: FieldDataType.STRING;
     required: false;
     validation: { maxLength: 2000 };
   };
@@ -1457,13 +1431,11 @@ interface StockBasicInfoPresetFields {
   // 分类
   sector: {
     description: "行业板块";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { maxLength: 100 };
   };
   industry: {
     description: "具体行业";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { maxLength: 100 };
   };
@@ -1471,19 +1443,16 @@ interface StockBasicInfoPresetFields {
   // 公司详情
   foundedYear: {
     description: "成立年份";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 1800, max: new Date().getFullYear() };
   };
   headquarters: {
     description: "总部地址";
-    dataType: FieldDataType.STRING;
     required: false;
     validation: { maxLength: 200 };
   };
   website: {
     description: "公司网站";
-    dataType: FieldDataType.STRING;
     required: false;
     validation: { pattern: "^https?://.+" };
   };
@@ -1491,18 +1460,15 @@ interface StockBasicInfoPresetFields {
   // 交易信息
   listingDate: {
     description: "上市日期";
-    dataType: FieldDataType.DATE;
     required: true;
   };
   tradingCurrency: {
     description: "交易货币";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { pattern: "^[A-Z]{3}$" };
   };
   lotSize: {
     description: "每手股数";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 1 };
   };
@@ -1510,13 +1476,11 @@ interface StockBasicInfoPresetFields {
   // 财务指标
   totalShares: {
     description: "总股本";
-    dataType: FieldDataType.NUMBER;
     required: true;
     validation: { min: 1 };
   };
   floatShares: {
     description: "流通股本";
-    dataType: FieldDataType.NUMBER;
     required: false;
     validation: { min: 0 };
   };
@@ -1524,13 +1488,11 @@ interface StockBasicInfoPresetFields {
   // 交易所信息
   exchange: {
     description: "交易所";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { maxLength: 100 };
   };
   exchangeCode: {
     description: "交易所代码";
-    dataType: FieldDataType.STRING;
     required: true;
     validation: { maxLength: 10 };
   };
@@ -1549,7 +1511,7 @@ interface InputValidationRules {
     sanitization: '大写，去除空白字符';
   };
 
-  dataTypes: {
+  dataClassifications: {
     allowedValues: Object.values(DataClassification);
     validation: '枚举值检查';
     caseSensitive: true;
@@ -1725,7 +1687,7 @@ interface FieldMappingDocument {
 
   // 映射身份
   provider: string;                // 提供商标识符 (已索引)
-  dataType: DataClassification;    // 数据类型 (已索引)
+  dataClassification: DataClassification;    // 数据类型 (已索引)
 
   // 字段信息
   sourceField: string;             // 源字段路径
@@ -1733,7 +1695,6 @@ interface FieldMappingDocument {
 
   // 转换规则
   transformation: FieldTransformation;
-  dataType: FieldDataType;
   validation?: FieldValidation;
 
   // 配置

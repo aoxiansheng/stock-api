@@ -186,30 +186,30 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
     const testCapabilities = [
       {
         capability: "get-stock-quote",
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         testSymbols: ["00700.HK", "AAPL.US", "000001.SZ"],
         description: "实时股票报价",
       },
       {
         capability: "get-stock-basic-info",
-        dataType: "stock-basic-info",
+        capabilityType: "stock-basic-info",
         testSymbols: ["00700.HK", "AAPL.US"],
         description: "股票基本信息",
       },
       {
         capability: "get-index-quote",
-        dataType: "index-quote",
+        capabilityType: "index-quote",
         testSymbols: ["HSI.HK", "SPX.US"],
         description: "指数报价数据",
       },
     ];
 
     testCapabilities.forEach(
-      ({ capability, dataType, testSymbols, description }) => {
+      ({ capability, capabilityType, testSymbols, description }) => {
         it(`应该通过LongPort获取真实的${description}`, async () => {
           const response = await httpClient.post("/api/v1/receiver/data", {
             symbols: testSymbols,
-            dataType: dataType,
+            capabilityType: capabilityType,
             options: {
               preferredProvider: "longport",
               realtime: true,
@@ -236,7 +236,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
           // 修改: 适应secu_quote结构
           const responseData = response.data.data;
           
-          switch (dataType) {
+          switch (capabilityType) {
 
             case "get-stock-quote":
               // 不再强制要求secu_quote字段
@@ -323,7 +323,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
 
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: manySymbols,
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
          // timeout: 10000,
@@ -379,7 +379,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
       for (const testCase of marketTestCases) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: testCase.symbols,
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           options: {
             realtime: true,
           },
@@ -415,7 +415,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
     it("应该支持Provider故障转移机制", async () => {
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: ["00700.HK"],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: {
           realtime: true,
         },
@@ -481,7 +481,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
       // 先执行一些请求生成指标
       await httpClient.post("/api/v1/receiver/data", {
         symbols: ["00700.HK"],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: { realtime: true },
       }, {
         headers: {
@@ -526,7 +526,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
 
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: mixedMarketSymbols,
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: {
           realtime: true,
         },
@@ -575,7 +575,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
       // 通过不同方式获取相同符号的数据
       const directResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: { realtime: true },
       }, {
         headers: {

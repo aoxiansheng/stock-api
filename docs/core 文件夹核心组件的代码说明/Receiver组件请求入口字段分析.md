@@ -21,7 +21,7 @@ Receiver组件请求入口字段分析
     - 上海: 600000.SH (6位数字 + .SH，前缀60/68)
     - 加密货币: BTC/USDT (币种对格式)
 
-  dataType (数据类型)
+  capabilityType (数据类型)
 
   - 类型: string
   - 必填: 是
@@ -71,11 +71,11 @@ Receiver组件请求入口字段分析
   - 描述: 明确指定市场代码
   - 示例: "HK"
 
-  完整请求示例
+  完整请求示例：
 
   {
     "symbols": ["700.HK", "AAPL.US", "000001.SZ"],
-    "dataType": "get-stock-quote",
+    "capabilityType": "get-stock-quote",
     "options": {
       "preferredProvider": "longport",
       "realtime": true,
@@ -90,7 +90,7 @@ Receiver组件请求入口字段分析
   |---------------------------|----------|-----|---------|---------|
   | symbols                   | string[] | ✅   | 100个    | 正则格式验证  |
   | symbols[i]                | string   | ✅   | 20字符    | 非空，格式匹配 |
-  | dataType                  | string   | ✅   | 50字符    | 枚举值验证   |
+  | capabilityType                  | string   | ✅   | 50字符    | 枚举值验证   |
   | options.preferredProvider | string   | ❌   | 50字符    | 字符串类型   |
   | options.realtime          | boolean  | ❌   | -       | 布尔类型    |
   | options.fields            | string[] | ❌   | 50个     | 字符串数组   |

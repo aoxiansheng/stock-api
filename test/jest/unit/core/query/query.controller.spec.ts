@@ -11,7 +11,7 @@ import {
   BulkQueryResponseDto,
   QueryStatsDto,
 } from "../../../../../src/core/query/dto/query-response.dto";
-import { PaginatedDataDto } from "../../../../../src/common/pagination/dto/paginated-data";
+import { PaginatedDataDto } from "../../../../../src//common/modules/pagination/dto/paginated-data";
 import { QueryType } from "../../../../../src/core/query/dto/query-types.dto";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { PermissionService } from "../../../../../src/auth/services/permission.service";
@@ -215,7 +215,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "MSFT.US"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
         options: {
           useCache: true,
           updateCache: true,
@@ -234,7 +234,7 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["AAPL.US", "MSFT.US"],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
         }),
       );
       expect(mockLogger.log).toHaveBeenCalledWith(
@@ -250,7 +250,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["INVALID.US"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
       };
 
       const error = new Error("Query execution failed");
@@ -273,7 +273,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "MSFT.US", "GOOGL.US", "TSLA.US", "AMZN.US"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
       };
 
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
@@ -296,12 +296,12 @@ describe("QueryController", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL.US"],
-            queryDataTypeFilter: "stock-quote",
+            dataTypeFilter: "stock-quote",
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["MSFT.US"],
-            queryDataTypeFilter: "stock-quote",
+            dataTypeFilter: "stock-quote",
           },
         ],
         parallel: true,
@@ -330,7 +330,7 @@ describe("QueryController", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID.US"],
-            queryDataTypeFilter: "stock-quote",
+            dataTypeFilter: "stock-quote",
           },
         ],
         parallel: false,
@@ -406,7 +406,7 @@ describe("QueryController", () => {
           symbols: ["AAPL", "MSFT", "GOOGL"],
           provider: "longport",
           market: "US",
-          queryDataTypeFilter: "quote",
+          dataTypeFilter: "quote",
           limit: 10,
           page: 1,
           options: {
@@ -510,7 +510,7 @@ describe("QueryController", () => {
           queryType: QueryType.BY_MARKET,
           market: "US",
           provider: "longport",
-          queryDataTypeFilter: "quote",
+          dataTypeFilter: "quote",
           limit: 50,
           page: 10,
           options: {
@@ -536,7 +536,7 @@ describe("QueryController", () => {
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           limit: 100,
-          page: 0,
+          page: 1,
         }),
       );
     });
@@ -560,7 +560,7 @@ describe("QueryController", () => {
           queryType: QueryType.BY_PROVIDER,
           provider: "longport",
           market: "US",
-          queryDataTypeFilter: "quote",
+          dataTypeFilter: "quote",
           limit: 25,
           page: 5,
           options: {
@@ -586,7 +586,7 @@ describe("QueryController", () => {
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           limit: 100,
-          page: 0,
+          page: 1,
         }),
       );
     });
@@ -643,13 +643,9 @@ describe("QueryController", () => {
           available: true,
           latency: expect.any(Number),
         },
-        dataSources: {
-          cache: true,
-          persistent: true,
-          realtime: true,
-        },
         overallHealth: {
           healthy: true,
+          timestamp: expect.any(String),
         },
       });
 
@@ -657,7 +653,7 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["TEST"],
-          queryDataTypeFilter: "stock-quote",
+          dataTypeFilter: "stock-quote",
           options: {
             useCache: false,
             updateCache: false,
@@ -692,13 +688,9 @@ describe("QueryController", () => {
             available: false,
             latency: expect.any(Number),
           },
-          dataSources: {
-            cache: false,
-            persistent: false,
-            realtime: false,
-          },
           overallHealth: {
             healthy: false,
+            timestamp: expect.any(String),
           },
         });
       }

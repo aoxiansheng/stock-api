@@ -60,6 +60,7 @@ export class ReceiverService {
     private readonly cacheService: CacheService,
   ) {}
 
+
   /**
    * 处理数据请求的主入口方法 - 强时效接口
    * 🚀 1秒级缓存策略，面向实时交易场景
@@ -80,7 +81,7 @@ export class ReceiverService {
           0,
           RECEIVER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT,
         ),
-        dataType: request.dataType,
+        capabilityType: request.capabilityType,
         symbolsCount: request.symbols?.length || 0,
         operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
       }),
@@ -93,7 +94,7 @@ export class ReceiverService {
       // 2. 确定数据提供商
       const provider = await this.determineOptimalProvider(
         request.symbols,
-        request.dataType,
+        request.capabilityType,
         request.options?.preferredProvider,
         request.options?.market,
         requestId,
@@ -183,7 +184,7 @@ export class ReceiverService {
           operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
           inputData: {
             symbolsCount: request.symbols?.length || 0,
-            dataType: request.dataType,
+            capabilityType: request.capabilityType,
           },
         }),
       );
@@ -342,7 +343,7 @@ export class ReceiverService {
    * 确定最优数据提供商
    *
    * @param symbols 股票代码列表
-   * @param dataType 数据类型
+   * @param capabilityType 数据类型
    * @param preferredProvider 首选提供商
    * @param market 指定市场
    * @param requestId 请求ID
@@ -350,7 +351,7 @@ export class ReceiverService {
    */
   private async determineOptimalProvider(
     symbols: string[],
-    dataType: string,
+    capabilityType: string,
     preferredProvider?: string,
     market?: string,
     requestId?: string,
@@ -360,7 +361,7 @@ export class ReceiverService {
       if (preferredProvider) {
         const provider = await this.validatePreferredProvider(
           preferredProvider,
-          dataType,
+          capabilityType,
           market,
           requestId,
         );
@@ -370,7 +371,7 @@ export class ReceiverService {
       // 自动选择最佳提供商
       const inferredMarket =
         market || MarketUtils.inferMarketFromSymbols(symbols);
-      const capabilityName = dataType;
+      const capabilityName = capabilityType;
       const bestProvider = this.capabilityRegistryService.getBestProvider(
         capabilityName,
         inferredMarket,
@@ -382,7 +383,7 @@ export class ReceiverService {
           sanitizeLogData({
             requestId,
             provider: bestProvider,
-            dataType,
+            capabilityType,
             market: inferredMarket,
             symbolsCount: symbols.length,
             operation: "determineOptimalProvider",
@@ -393,8 +394,8 @@ export class ReceiverService {
 
       throw new NotFoundException(
         RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND.replace(
-          "{dataType}",
-          dataType,
+          "{capabilityType}",
+          capabilityType,
         ).replace("{market}", inferredMarket),
       );
     } catch (error) {
@@ -403,7 +404,7 @@ export class ReceiverService {
         sanitizeLogData({
           requestId,
           error: error.message,
-          dataType,
+          capabilityType,
           market,
           symbols: symbols.slice(0, 3),
           operation: "determineOptimalProvider",
@@ -425,11 +426,11 @@ export class ReceiverService {
    */
   private async validatePreferredProvider(
     preferredProvider: string,
-    dataType: string,
+    capabilityType: string,
     market?: string,
     requestId?: string,
   ): Promise<string | null> {
-    const capabilityName = dataType;
+    const capabilityName = capabilityType;
     const capability = this.capabilityRegistryService.getCapability(
       preferredProvider,
       capabilityName,
@@ -448,8 +449,8 @@ export class ReceiverService {
       // 关键修复：当找不到首选提供商时，直接抛出404异常
       throw new NotFoundException(
         RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND.replace(
-          "{dataType}",
-          dataType,
+          "{capabilityType}",
+          capabilityType,
         ).replace("{market}", market || "any"),
       );
     }
@@ -480,7 +481,7 @@ export class ReceiverService {
       sanitizeLogData({
         requestId,
         provider: preferredProvider,
-        dataType,
+        capabilityType,
         market,
         operation: "validatePreferredProvider",
       }),
@@ -629,7 +630,7 @@ export class ReceiverService {
     requestId: string,
   ): Promise<DataResponseDto> {
     const startTime = Date.now();
-    const capabilityName = request.dataType;
+    const capabilityName = request.capabilityType;
     const capability = this.capabilityRegistryService.getCapability(
       provider,
       capabilityName,
@@ -786,7 +787,7 @@ export class ReceiverService {
       }
 
       const processingTime = 0; // 从缓存获取，处理时间计为0
-      const capability = request.dataType;
+      const capability = request.capabilityType;
 
       // 关键修复：使用当前请求的元数据重新构建响应
       const metadata = new ResponseMetadataDto(
@@ -880,7 +881,7 @@ export class ReceiverService {
   ): string {
     const symbolsKey = request.symbols.sort().join(",");
     const optionsKey = request.options ? JSON.stringify(request.options) : "";
-    return `receiver:realtime:${provider}:${request.dataType}:${symbolsKey}:${optionsKey}`;
+    return `receiver:realtime:${provider}:${request.capabilityType}:${symbolsKey}:${optionsKey}`;
   }
 
   /**

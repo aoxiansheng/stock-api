@@ -125,7 +125,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       it(`应该正确识别 ${testCase.description}: ${testCase.symbol}`, async () => {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [testCase.symbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -157,7 +157,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
 
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: mixedSymbols,
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -195,7 +195,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       for (const testCase of testCases) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [testCase.symbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -232,7 +232,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       for (let i = 0; i < 3; i++) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [testSymbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -276,7 +276,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       // 第一次查询
       const firstResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -378,7 +378,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       const startTime1 = Date.now();
       const firstResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -398,7 +398,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       const startTime2 = Date.now();
       const secondResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -440,7 +440,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         // 第一次查询
         const firstResponse = await httpClient.post("/api/v1/receiver/data", {
           symbols: [test.symbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -453,7 +453,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         // 立即重复查询
         const secondResponse = await httpClient.post("/api/v1/receiver/data", {
           symbols: [test.symbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,

@@ -62,6 +62,12 @@ export class ApiKeySubject implements AuthSubject {
    * 支持权限层级：system:admin 包含所有 system:* 权限
    */
   hasPermission(permission: Permission): boolean {
+    // 检查权限的有效性（确保它是 Permission 枚举中的有效值）
+    const validPermissions = Object.values(Permission);
+    if (!validPermissions.includes(permission)) {
+      return false;
+    }
+    
     // 直接匹配
     if (this.permissions.includes(permission)) {
       return true;

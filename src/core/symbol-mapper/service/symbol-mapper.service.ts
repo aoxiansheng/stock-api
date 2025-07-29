@@ -5,8 +5,8 @@ import {
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { PaginatedDataDto } from "@common/pagination/dto/paginated-data";
-import { PaginationService } from "@common/pagination/services/pagination.service";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
 import {
   SYMBOL_MAPPER_ERROR_MESSAGES,

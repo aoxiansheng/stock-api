@@ -38,9 +38,9 @@ import { PerformanceMonitorService } from "../../src/metrics/services/performanc
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
-} from "../../src/common/interceptors";
+} from "../../src/common/core/interceptors";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
-import { GlobalExceptionFilter } from "../../src/common/filters";
+import { GlobalExceptionFilter } from "../../src/common/core/filters";
 import { Reflector } from "@nestjs/core";
 
 // 全局类型声明
@@ -506,8 +506,8 @@ export class TestDataHelper {
     return await mapping.save();
   }
 
-  // dataType 到 dataRuleListType 的映射（统一使用get-前缀格式）
-  static mapDataTypeToRuleListType(dataType: string): string {
+  // capabilityType 到 dataRuleListType 的映射（统一使用get-前缀格式）
+  static mapCapabilityTypeToRuleListType(capabilityType: string): string {
     const mapping = {
       "get-stock-quote": "quote_fields",
       "get-stock-basic-info": "basic_info_fields",
@@ -522,7 +522,7 @@ export class TestDataHelper {
       "get-stock-news": "basic_info_fields",
       "get-crypto-news": "basic_info_fields",
     };
-    return mapping[dataType] || "quote_fields";
+    return mapping[capabilityType] || "quote_fields";
   }
 
   static async createTestDataMapping(
@@ -538,9 +538,8 @@ export class TestDataHelper {
         {
           sourceField: "last_price",
           targetField: "lastPrice",
-          dataType: "number",
         },
-        { sourceField: "vol", targetField: "volume", dataType: "number" },
+        { sourceField: "vol", targetField: "volume" },
       ],
       ...data,
     };

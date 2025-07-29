@@ -12,6 +12,8 @@ import {
   IsNotEmpty,
   IsBoolean,
   IsObject,
+  ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
 
 import { QueryType } from './query-types.dto';
@@ -101,6 +103,7 @@ export class QueryRequestDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   symbols?: string[];
 
   @ApiPropertyOptional({
@@ -157,7 +160,7 @@ export class QueryRequestDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(1)
   maxAge?: number;
 
   @ApiPropertyOptional({
@@ -184,12 +187,12 @@ export class QueryRequestDto {
   page?: number;
 
   @ApiPropertyOptional({
-    description: '查询的数据分类，如：行情、财务等',
+    description: '数据类型过滤器（用于过滤特定类型的数据）',
     example: 'get-stock-quote',
   })
   @IsOptional()
   @IsString()
-  queryDataTypeFilter?: string;
+  dataTypeFilter?: string;
 
   @ApiPropertyOptional({
     description: '查询选项',
@@ -216,6 +219,8 @@ export class BulkQueryRequestDto {
     type: [QueryRequestDto],
   })
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100) // 添加此行
   @ValidateNested({ each: true })
   @Type(() => QueryRequestDto)
   queries: QueryRequestDto[];

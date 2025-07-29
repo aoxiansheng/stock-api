@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PaginatedDataDto } from '@common/pagination/dto/paginated-data';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 
 export interface PaginationInfo {
   page: number;

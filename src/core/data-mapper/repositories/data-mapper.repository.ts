@@ -9,7 +9,7 @@ import {
   DataMappingRule,
   DataMappingRuleDocument,
 } from "../schemas/data-mapper.schema";
-import { PaginationService } from "@common/pagination/services/pagination.service";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
 @Injectable()
 export class DataMappingRepository {

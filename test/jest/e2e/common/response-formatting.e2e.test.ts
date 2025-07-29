@@ -225,7 +225,7 @@ describe("Response Formatting E2E Tests", () => {
         .set("X-Access-Token", userAccessToken)
         .send({
           symbols: ["NONEXISTENT.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         });
 
       // Assert - 验证null值处理
@@ -246,7 +246,7 @@ describe("Response Formatting E2E Tests", () => {
         .set("X-Access-Token", userAccessToken)
         .send({
           symbols: ["AAPL.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         });
 
       // Assert - 验证数值格式化
@@ -277,7 +277,7 @@ describe("Response Formatting E2E Tests", () => {
         {
           path: "/api/v1/receiver/data",
           method: "POST",
-          body: { symbols: ["AAPL.US"], dataType: "get-stock-quote" },
+          body: { symbols: ["AAPL.US"], capabilityType: "get-stock-quote" },
           headers: {
             "X-App-Key": userApiKey,
             "X-Access-Token": userAccessToken,

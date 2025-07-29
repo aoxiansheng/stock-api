@@ -255,7 +255,7 @@ describe("Authentication E2E Flow", () => {
       // Arrange
       const dataRequest = {
         symbols: ["700.HK", "AAPL.US"],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: {
           realtime: false,
         },

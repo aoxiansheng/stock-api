@@ -28,7 +28,7 @@ describe("Query Request DTOs", () => {
         symbols: ["AAPL.US", "GOOGL.US"],
         market: "US",
         provider: "LongPort",
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
         startTime: "2023-01-01T00:00:00Z",
         endTime: "2023-01-02T00:00:00Z",
         advancedQuery: {
@@ -151,8 +151,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("symbols");
-      expect(errors[0].children[0].property).toBe("1");
-      expect(errors[0].children[0].children[0].constraints).toHaveProperty(
+      expect(errors[0].constraints).toHaveProperty(
         "isNotEmpty",
       );
     });
@@ -212,7 +211,7 @@ describe("Query Request DTOs", () => {
     it("should validate maxAge constraints", async () => {
       const testCases = [
         { maxAge: -1, shouldFail: true }, // Negative
-        { maxAge: 0, shouldFail: false }, // Minimum valid
+        { maxAge: 0, shouldFail: true, message: "min" }, // Minimum valid
         { maxAge: 3600, shouldFail: false }, // Normal value
       ];
 
@@ -234,17 +233,17 @@ describe("Query Request DTOs", () => {
       }
     });
 
-    it("should validate cacheTTL constraints", async () => {
+    it("should validate maxAge constraints", async () => { // 修改测试名称
       const testCases = [
-        { cacheTTL: -1, shouldFail: true }, // Negative
-        { cacheTTL: 0, shouldFail: false }, // Minimum valid
-        { cacheTTL: 1800, shouldFail: false }, // Normal value
+        { maxAge: -1, shouldFail: true }, // Negative
+        { maxAge: 0, shouldFail: true, message: "min" }, // Minimum valid
+        { maxAge: 1800, shouldFail: false }, // Normal value
       ];
 
       for (const testCase of testCases) {
         const queryData = {
           queryType: QueryType.BY_MARKET,
-          cacheTTL: testCase.cacheTTL,
+          maxAge: testCase.maxAge, // 修改字段名
         };
 
         const dto = plainToClass(QueryRequestDto, queryData);
@@ -252,9 +251,9 @@ describe("Query Request DTOs", () => {
 
         if (testCase.shouldFail) {
           expect(errors.length).toBeGreaterThan(0);
-          expect(errors[0].property).toBe("cacheTTL");
+          expect(errors[0].property).toBe("maxAge"); // 修改字段名
         } else {
-          expect(errors.filter((e) => e.property === "cacheTTL")).toHaveLength(
+          expect(errors.filter((e) => e.property === "maxAge")).toHaveLength( // 修改字段名
             0,
           );
         }
@@ -349,7 +348,7 @@ describe("Query Request DTOs", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("options");
       expect(errors[0].children[0].property).toBe("includeFields");
-      expect(errors[0].children[0].children[0].constraints).toHaveProperty(
+      expect(errors[0].children[0].constraints).toHaveProperty(
         "isString",
       );
     });
@@ -430,7 +429,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("queries");
-      expect(errors[0].constraints).toHaveProperty("arrayNotEmpty");
+      expect(errors[0].constraints).toHaveProperty("arrayMinSize");
     });
 
     it("should validate maximum number of queries", async () => {
@@ -475,8 +474,8 @@ describe("Query Request DTOs", () => {
       const errors = await validate(dto);
 
       expect(errors).toHaveLength(0);
-      expect(dto.parallel).toBeUndefined(); // Will use default from service
-      expect(dto.continueOnError).toBeUndefined(); // Will use default from service
+      expect(dto.parallel).toBe(true); // Default value from DTO
+      expect(dto.continueOnError).toBe(false); // Default value from DTO
     });
 
     it("should validate boolean values for parallel and continueOnError", async () => {

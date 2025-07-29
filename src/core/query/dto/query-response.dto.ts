@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-import { PaginatedDataDto } from "@common/pagination/dto/paginated-data";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { QueryErrorInfoDto } from "./query-internal.dto";
 import { QueryType } from "./query-types.dto";
 
@@ -34,7 +34,7 @@ export class QueryMetadataDto {
     symbols?: string[];
     market?: string;
     provider?: string;
-    queryDataTypeFilter?: string;
+    dataTypeFilter?: string;
     timeRange?: { start: string; end: string };
     queryFiltersCount?: number;
   };

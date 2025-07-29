@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PaginationService } from '@common/pagination/services/pagination.service';
-import { PaginatedDataDto } from '@common/pagination/dto/paginated-data';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 
 describe('PaginationService', () => {
   let service: PaginationService;

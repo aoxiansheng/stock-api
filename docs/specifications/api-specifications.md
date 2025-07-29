@@ -74,7 +74,7 @@ Content-Type: application/json
 
 {
   "symbols": ["700.HK", "AAPL.US"],
-  "dataType": "stock-quote"
+  "capabilityType": "stock-quote"
 }
 ```
 
@@ -184,7 +184,7 @@ POST /api/v1/receiver/data
 ```typescript
 interface DataRequestDto {
   symbols: string[];              // 股票代码 (最多 100 个)
-  dataType: DataType;            // 能力类型
+  capabilityType: CapabilityType;            // 能力类型
   providerPreference?: string;    // 可选的提供商偏好
   metadata?: {
     includeTimestamp?: boolean;
@@ -194,7 +194,7 @@ interface DataRequestDto {
   };
 }
 
-enum DataType {
+enum CapabilityType {
   STOCK_QUOTE = "stock-quote",
   STOCK_BASIC_INFO = "stock-basic-info", 
   MARKET_STATUS = "market-status",
@@ -314,7 +314,7 @@ Content-Type: application/json
 Request:
 {
   "symbols": ["700.HK", "BABA.US"],
-  "queryDataTypeFilter": ["stock-quote", "stock-basic-info"],
+  "dataTypeFilter": ["stock-quote", "stock-basic-info"],
   "includeMetadata": true,
   "changeThreshold": {
     "priceChangePercent": 0.05,
@@ -359,7 +359,7 @@ Authorization: X-App-Key + X-Access-Token (query:execute)
 Request:
 {
   "market": "HK",
-  "queryDataTypeFilter": ["stock-quote"],
+  "dataTypeFilter": ["stock-quote"],
   "limit": 50,
   "sortBy": "changePercent",
   "sortOrder": "desc",
@@ -504,13 +504,14 @@ Authorization: Bearer JWT_TOKEN (mapping:create)
 Request:
 {
   "provider": "custom-provider",
-  "dataType": "stock-quote",
+  "dataRuleListType": "stock-quote",
   "mappings": [
     {
       "sourceField": "data.securities[0].last_price",
       "targetField": "lastPrice",
-      "transformation": "direct",
-      "dataType": "number"
+      "transform": {
+        "type": "direct"
+      }
     },
     {
       "sourceField": "data.securities[0].change_rate",
@@ -530,7 +531,7 @@ Authorization: Bearer JWT_TOKEN (mapping:read)
 Request:
 {
   "provider": "longport",
-  "dataType": "stock-quote",
+  "dataRuleListType": "stock-quote",
   "sampleData": {
     "data": {
       "securities": [
@@ -573,7 +574,7 @@ Authorization: X-App-Key + X-Access-Token (data:read)
 Request:
 {
   "provider": "longport",
-  "dataType": "stock-quote",
+  "dataRuleListType": "stock-quote",
   "rawData": {
     "data": {
       "securities": [...]
@@ -597,7 +598,7 @@ Request:
   "transformations": [
     {
       "provider": "longport",
-      "dataType": "stock-quote",
+      "dataRuleListType": "stock-quote",
       "rawData": {...},
       "symbols": ["700.HK"]
     }

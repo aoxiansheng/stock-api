@@ -1,14 +1,20 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { DataMapperService } from "../../../../src/core/data-mapper/service/data-mapper.service";
-import { DataMappingRepository } from "../../../../src/core/data-mapper/repositories/data-mapper.repository";
+import { DataMapperService } from "../../../../../src/core/data-mapper/service/data-mapper.service";
+import { DataMappingRepository } from "../../../../../src/core/data-mapper/repositories/data-mapper.repository";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
-import { TRANSFORMATION_TYPES } from "../../../../src/core/data-mapper/constants/data-mapper.constants";
-import { ObjectUtils } from "../../../../src/core/shared/utils/object.util";
-import { StringUtils } from "../../../../src/core/shared/utils/string.util";
+import { TRANSFORMATION_TYPES } from "../../../../../src/core/data-mapper/constants/data-mapper.constants";
+import { ObjectUtils } from "../../../../../src/core/shared/utils/object.util";
+import { StringUtils } from "../../../../../src/core/shared/utils/string.util";
+import { CreateDataMappingDto } from "../../../../../src/core/data-mapper/dto/create-data-mapping.dto";
+import { UpdateDataMappingDto } from "../../../../../src/core/data-mapper/dto/update-data-mapping.dto";
+import { DataMappingQueryDto } from "../../../../../src/core/data-mapper/dto/data-mapping-query.dto";
+import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
+import { PaginatedDataDto } from "../../../../../src/common/modules/pagination/dto/paginated-data";
 
 describe("DataMapperService", () => {
   let service: DataMapperService;
   let repository: DataMappingRepository;
+  let paginationService: PaginationService;
 
   // 使用 as any 类型断言绕过 DataMappingRuleDocument 的严格类型检查
   const mockRule = {
@@ -45,6 +51,46 @@ describe("DataMapperService", () => {
     getRuleListTypes: jest.fn().mockResolvedValue(["test-type"]),
   };
 
+  const mockPaginationService = {
+    calculateSkip: jest.fn(),
+    normalizePaginationQuery: jest.fn(),
+    createPagination: jest.fn(),
+    createPaginatedResponse: jest.fn((data, total, query) => {
+      const page = query?.page || 1;
+      const limit = query?.limit || 10;
+      const totalPages = Math.ceil(total / limit);
+      
+      return {
+        items: data,
+        pagination: {
+          page: page,
+          limit: limit,
+          total: total,
+          totalPages: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      } as PaginatedDataDto<any>;
+    }),
+    createPaginatedResponseFromQuery: jest.fn((items, query, total) => {
+      const page = query?.page || 1;
+      const limit = query?.limit || 10;
+      const totalPages = Math.ceil(total / limit);
+      
+      return {
+        items: items,
+        pagination: {
+          page: page,
+          limit: limit,
+          total: total,
+          totalPages: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      } as PaginatedDataDto<any>;
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -53,11 +99,16 @@ describe("DataMapperService", () => {
           provide: DataMappingRepository,
           useValue: mockRepository,
         },
+        {
+          provide: PaginationService,
+          useValue: mockPaginationService,
+        },
       ],
     }).compile();
 
     service = module.get<DataMapperService>(DataMapperService);
     repository = module.get<DataMappingRepository>(DataMappingRepository);
+    paginationService = module.get<PaginationService>(PaginationService);
 
     // 模拟 ObjectUtils 和 StringUtils
     jest
@@ -305,7 +356,7 @@ describe("DataMapperService", () => {
     it("should log a warning for slow mappings", async () => {
       const loggerSpy = jest.spyOn((service as any).logger, "warn");
       const originalThreshold = jest.requireActual(
-        "../../../../src/core/data-mapper/constants/data-mapper.constants",
+        "../../../../../src/core/data-mapper/constants/data-mapper.constants",
       ).DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS;
 
       // Temporarily set a low threshold to trigger the warning

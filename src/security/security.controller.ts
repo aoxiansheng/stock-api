@@ -21,7 +21,7 @@ import {
   ApiStandardResponses,
   ApiSuccessResponse,
   ApiKeyAuthResponses,
-} from "@common/decorators/swagger-responses.decorator";
+} from "@common/core/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";

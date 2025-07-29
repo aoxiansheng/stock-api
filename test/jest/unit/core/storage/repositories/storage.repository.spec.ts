@@ -35,7 +35,7 @@ describe("StorageRepository", () => {
   const mockStoredData = {
     key: "test-key",
     data: { symbol: "AAPL", price: 150.25 },
-    queryDataTypeFilter: "stock-quote",
+    dataClassification: "stock-quote",
     provider: "test-provider",
     market: "US",
     dataSize: 1024,
@@ -641,7 +641,7 @@ describe("StorageRepository", () => {
         const document = {
           key: "test-key",
           data: { test: "data" },
-          queryDataTypeFilter: "test-type",
+          dataClassification: "test-type",
           provider: "test-provider",
           market: "US",
         };
@@ -698,7 +698,7 @@ describe("StorageRepository", () => {
             },
             timestamp: new Date(),
           },
-          queryDataTypeFilter: "complex-type",
+          dataClassification: "complex-type",
         };
 
         const mockResult = { ...mockStoredData, ...document };
@@ -789,7 +789,7 @@ describe("StorageRepository", () => {
 
         expect(result).toEqual(mockStats);
         expect(mockStoredDataModel.aggregate).toHaveBeenCalledWith([
-          { $group: { _id: "$queryDataTypeFilter", count: { $sum: 1 } } },
+          { $group: { _id: "$dataClassification", count: { $sum: 1 } } },
         ]);
       });
 
@@ -908,7 +908,7 @@ describe("StorageRepository", () => {
       const documents = Array.from({ length: 5 }, (_, i) => ({
         key: `key-${i}`,
         data: { index: i },
-        queryDataTypeFilter: "test",
+        dataClassification: "test",
         provider: "test",
         market: "US",
       }));
@@ -993,7 +993,7 @@ describe("StorageRepository", () => {
           value: `large-data-value-${i}`,
           timestamp: new Date(),
         })),
-        queryDataTypeFilter: "large-dataset",
+        dataClassification: "large-dataset",
         provider: "test-provider",
         market: "US",
       };
@@ -1023,7 +1023,7 @@ describe("StorageRepository", () => {
       const document = {
         key,
         data,
-        queryDataTypeFilter: "test",
+        dataClassification: "test",
         provider: "test",
         market: "US",
       };

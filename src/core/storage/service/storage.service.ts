@@ -9,8 +9,8 @@ import {
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { PaginatedDataDto } from '@common/pagination/dto/paginated-data';
-import { PaginationService } from '@common/pagination/services/pagination.service';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
 import {
   CACHE_TTL,
@@ -105,7 +105,7 @@ export class StorageService {
           data: compressed
             ? { compressed: true, data: serializedData }
             : JSON.parse(serializedData),
-          queryDataTypeFilter: request.dataClassification.toString(),
+          dataClassification: request.dataClassification.toString(),
           provider: request.provider,
           market: request.market,
           dataSize,
@@ -118,7 +118,7 @@ export class StorageService {
         this.logger.debug(`准备存储到数据库`, {
           key: request.key,
           hasData: !!documentToStore.data,
-          queryDataTypeFilter: documentToStore.queryDataTypeFilter,
+          dataClassification: documentToStore.dataClassification,
           dataSize: documentToStore.dataSize,
         });
 
@@ -390,7 +390,7 @@ export class StorageService {
           key: item.key,
           provider: item.provider,
           market: item.market,
-          dataClassification: item.queryDataTypeFilter,
+          dataClassification: item.dataClassification,
           compressed: item.compressed,
           dataSize: item.dataSize,
           tags: item.tags || [],
@@ -556,7 +556,7 @@ export class StorageService {
     const responseMetadata = new StorageMetadataDto(
       document.key,
       StorageType.PERSISTENT,
-      document.queryDataTypeFilter as any,
+      document.dataClassification as any,
       document.provider,
       document.market,
       document.dataSize,

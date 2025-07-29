@@ -36,8 +36,8 @@ import {
   ParsedFieldsResponseDto,
   FieldSuggestionResponseDto,
 } from "../dto/data-mapping-response.dto";
-import { PaginatedDataDto } from '@common/pagination/dto/paginated-data';
-import { PaginationService } from '@common/pagination/services/pagination.service';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import {
   UpdateDataMappingDto,
   ParseJsonDto,
@@ -73,11 +73,11 @@ export class DataMapperService implements IDataMapper {
   // Interface implementation - get mapping rules
   async getMappingRule(
     provider: string,
-    dataType: string,
+    dataRuleListType: string,
   ): Promise<DataMappingResponseDto[]> {
     const rules = await this.repository.findByProviderAndType(
       provider,
-      dataType,
+      dataRuleListType,
     );
     return rules.map((rule) => DataMappingResponseDto.fromDocument(rule));
   }

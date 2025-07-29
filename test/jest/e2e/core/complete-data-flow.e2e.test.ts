@@ -88,7 +88,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK", "AAPL.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
           },
@@ -156,7 +156,7 @@ describe("Complete Data Flow E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: validSymbols,
-            dataType: "get-stock-quote",
+            capabilityType: "get-stock-quote",
           })
           .expect(200);
 
@@ -173,7 +173,7 @@ describe("Complete Data Flow E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: ["00700.HK"],
-            dataType: "get-stock-quote",
+            capabilityType: "get-stock-quote",
           })
           .expect(200);
 
@@ -190,7 +190,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(200);
 
@@ -219,7 +219,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           provider: "longport",
-          dataType: "quote_fields", // 修正：与创建的规则保持一致
+          dataRuleListType: "quote_fields", // 修正：与创建的规则保持一致
           rawData: sampleRawData,
         })
         .expect(201);
@@ -237,7 +237,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(200);
 
@@ -260,7 +260,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(200);
 

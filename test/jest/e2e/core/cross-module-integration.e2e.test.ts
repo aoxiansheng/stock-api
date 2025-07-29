@@ -90,7 +90,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols,
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(200);
 
@@ -143,7 +143,7 @@ describe("Cross-Module Integration E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: ["700.HK"],
-            dataType: "get-stock-quote",
+            capabilityType: "get-stock-quote",
             options: {
               preferredProvider: "longport",
             },
@@ -166,7 +166,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: [testSymbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(200);
 
@@ -184,7 +184,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           provider: "longport",
-          dataType: "quote_fields",
+          dataRuleListType: "quote_fields",
           rawData: receivedRawData,
         })
         .expect(201);

@@ -4,11 +4,11 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import * as express from "express";
 
 import { CustomLogger, getLogLevels } from "@common/config/logger.config";
-import { GlobalExceptionFilter } from "@common/filters";
+import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
-} from "@common/interceptors";
+} from "@common/core/interceptors";
 
 import { AppModule } from "./app.module";
 import { PerformanceInterceptor } from "./metrics/interceptors/performance.interceptor";

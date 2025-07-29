@@ -51,6 +51,12 @@ export class JwtUserSubject implements AuthSubject {
    * 检查是否拥有指定权限
    */
   hasPermission(permission: Permission): boolean {
+    // 检查权限的有效性（确保它是 Permission 枚举中的有效值）
+    const validPermissions = Object.values(Permission);
+    if (!validPermissions.includes(permission)) {
+      return false;
+    }
+
     return this.permissions.includes(permission);
   }
 

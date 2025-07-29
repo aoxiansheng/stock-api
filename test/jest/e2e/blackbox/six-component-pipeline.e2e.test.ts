@@ -119,7 +119,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       console.log("Step 1: Testing Receiver component...");
       const receiveResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        dataType: testDataType,
+        capabilityType: testDataType,
         options: { realtime: true },
       }, {
         headers: {
@@ -175,7 +175,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       if (originalData) {
         const transformResponse = await httpClient.post("/api/v1/transformer/preview", {
           provider: "longport",
-          dataType: "quote_fields",
+          dataRuleListType: "quote_fields",
           rawData: originalData,
          // previewOnly: true,
         }, {
@@ -251,7 +251,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: testSymbols,
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         },
         {
           headers: {
@@ -316,7 +316,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
             "/api/v1/receiver/data",
             {
               symbols: [`00700.HK`], // 使用合法的股票代码
-              dataType: "get-stock-quote",
+              capabilityType: "get-stock-quote",
             },
             {
               headers: {
@@ -356,7 +356,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["INVALID_SYMBOL_TEST_123"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         },
         {
           headers: {
@@ -388,7 +388,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["00700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         },
         {
           headers: {
@@ -414,7 +414,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["00700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         },
         {
           headers: {

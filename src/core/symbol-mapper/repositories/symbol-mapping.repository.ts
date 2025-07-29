@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
-import { PaginationService } from "@common/pagination/services/pagination.service";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { CreateSymbolMappingDto } from "../dto/create-symbol-mapping.dto";
 import { SymbolMappingQueryDto } from "../dto/symbol-mapping-query.dto";
 import { UpdateSymbolMappingDto } from "../dto/update-symbol-mapping.dto";

@@ -18,6 +18,7 @@ import {
   OperationStatus,
 } from "../../../../src/metrics/enums/auth-type.enum";
 import { FormatUtils } from "../../../../src/metrics/utils/format.util";
+import * as v8 from "v8";
 
 // Mock FormatUtils
 jest.mock("../../../../src/metrics/utils/format.util", () => ({
@@ -684,18 +685,45 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       });
 
       jest.spyOn(process, "cpuUsage").mockReturnValue({
-        user: 100000,
-        system: 50000,
+        user: 600000,   // 增加 user CPU 时间，使总计算结果为 0.1
+        system: 400000, // 系统 CPU 时间也增加
       });
 
       jest.spyOn(process, "uptime").mockReturnValue(3600);
+      
+      // Mock v8 heap statistics - 这是服务实际使用的堆内存数据来源
+      jest.spyOn(v8, "getHeapStatistics").mockReturnValue({
+        total_heap_size: 30000000,
+        used_heap_size: 20000000,
+        heap_size_limit: 30000000,
+        total_available_size: 1000000000,
+        total_physical_size: 30000000,
+        total_heap_size_executable: 5000000,
+        does_zap_garbage: 0,
+        malloced_memory: 0,
+        peak_malloced_memory: 0,
+        number_of_native_contexts: 1,
+        number_of_detached_contexts: 0,
+        // 添加缺失的必需属性
+        total_global_handles_size: 1000000,
+        used_global_handles_size: 500000,
+        external_memory: 2000000
+      });
+      
+      // 设置 lastCpuUsageData 初始状态，使 CPU 使用率计算正确
+      // 模拟 1 秒前的 CPU 使用数据
+      (service as any).lastCpuUsageData = {
+        user: 0,
+        system: 0,
+        timestamp: Date.now() - 1000
+      };
     });
 
     it("should get system metrics", () => {
       const result = service.getSystemMetrics();
 
       expect(result).toEqual({
-        cpuUsage: 0.1, // 100000/1000000
+        cpuUsage: 0.1, // (600000+400000)/(1000*1000*10)=0.1 (总CPU使用微秒/总可用CPU微秒)
         memoryUsage: 50000000,
         heapUsed: 20000000,
         heapTotal: 30000000,
@@ -705,7 +733,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
 
       expect(loggerSpy.debug).toHaveBeenCalledWith(
         expect.objectContaining({ metrics: result }),
-        "系统指标:",
+        "系统指标获取成功",
       );
     });
 

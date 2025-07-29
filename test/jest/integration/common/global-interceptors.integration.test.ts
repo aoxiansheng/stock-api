@@ -16,8 +16,8 @@ import {
 import { Test, TestingModule } from "@nestjs/testing";
 import * as request from "supertest";
 
-import { ResponseInterceptor } from "../../../../src/common/interceptors/response.interceptor";
-import { GlobalExceptionFilter } from "../../../../src/common/filters/global-exception.filter";
+import { ResponseInterceptor } from "../../../../src/common/core/interceptors/response.interceptor";
+import { GlobalExceptionFilter } from "../../../../src/common/core/filters/global-exception.filter";
 import { RateLimitGuard } from "../../../../src/auth/guards/rate-limit.guard";
 
 // 测试用的控制器

@@ -16,11 +16,11 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 import "./e2e.env";
 
 import { CustomLogger, getLogLevels } from "@common/config/logger.config";
-import { GlobalExceptionFilter } from "@common/filters";
+import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
-} from "@common/interceptors";
+} from "@common/core/interceptors";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
 import { PerformanceMonitorService } from "../../src/metrics/services/performance-monitor.service";
 

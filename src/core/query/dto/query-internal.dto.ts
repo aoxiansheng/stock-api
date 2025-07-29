@@ -186,7 +186,7 @@ class RealtimeQueryResultMetadataDto extends CacheResultMetadataDto {
 
   @ApiProperty({ description: "数据类型", required: false })
   @IsOptional()
-  dataType?: string;
+  dataTypeFilter?: string;
 }
 
 /**
@@ -305,7 +305,7 @@ export class StorageKeyParamsDto {
   @ApiProperty({ description: "数据类型过滤器", required: false })
   @IsOptional()
   @IsString()
-  queryDataTypeFilter?: string;
+  dataTypeFilter?: string;
 
   @ApiProperty({ description: "市场代码", required: false })
   @IsOptional()

@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 
-import { REQUIRE_API_KEY } from '../../../auth/decorators/require-apikey.decorator';
-import { PERMISSIONS_KEY } from '../../../auth/decorators/permissions.decorator';
-import { Permission } from '../../../auth/enums/user-role.enum';
+import { REQUIRE_API_KEY } from '../../../../auth/decorators/require-apikey.decorator';
+import { PERMISSIONS_KEY } from '../../../../auth/decorators/permissions.decorator';
+import { Permission } from '../../../../auth/enums/user-role.enum';
 
 /**
  * 权限装饰器验证结果

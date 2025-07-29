@@ -65,7 +65,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["AAPLL.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
           },
@@ -95,7 +95,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
       const invalidRequests = [
         {
           endpoint: "/api/v1/receiver/data",
-          body: { symbols: [], dataType: "get-stock-quote" },
+          body: { symbols: [], capabilityType: "get-stock-quote" },
         },
         {
           endpoint: "/api/v1/symbol-mapper/transform",
@@ -125,7 +125,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .post("/api/v1/receiver/data")
         .send({
           symbols: ["700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(401);
 
@@ -139,7 +139,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", "invalid-token")
         .send({
           symbols: ["700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(401);
 
@@ -150,15 +150,15 @@ describe("Error Handling and Recovery E2E Tests", () => {
       const invalidRequests = [
         {
           description: "missing symbols",
-          body: { dataType: "get-stock-quote" },
+          body: { capabilityType: "get-stock-quote" },
         },
         {
           description: "invalid data type",
-          body: { symbols: ["700.HK"], dataType: "invalid-type" },
+          body: { symbols: ["700.HK"], capabilityType: "invalid-type" },
         },
         {
           description: "empty symbols array",
-          body: { symbols: [], dataType: "get-stock-quote" },
+          body: { symbols: [], capabilityType: "get-stock-quote" },
         },
       ];
 
@@ -219,7 +219,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["AAPL.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
             // 移除 useCache 选项，使用默认行为
@@ -266,7 +266,7 @@ describe("Error Handling and Recovery E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["AMDD.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(200); // 系统可能返回200但包含错误信息
 

@@ -110,7 +110,7 @@ describe("DataFetchingService", () => {
   describe("fetchSingleData", () => {
     const basicRequest: DataFetchRequest = {
       symbol: "AAPL.US",
-      dataType: "get-stock-quote",
+      dataTypeFilter: "get-stock-quote",
       market: Market.US,
       mode: "REALTIME",
     };
@@ -151,7 +151,7 @@ describe("DataFetchingService", () => {
     it("should infer market from symbol when market is not provided", async () => {
       const requestWithoutMarket: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         mode: "REALTIME",
       };
 
@@ -310,7 +310,7 @@ describe("DataFetchingService", () => {
     it("should throw NotFoundException for unsupported data type", async () => {
       const requestWithInvalidDataType: DataFetchRequest = {
         ...basicRequest,
-        dataType: "unsupported-data-type",
+        dataTypeFilter: "unsupported-data-type",
       };
 
       await expect(
@@ -318,7 +318,7 @@ describe("DataFetchingService", () => {
       ).rejects.toThrow(NotFoundException);
       await expect(
         service.fetchSingleData(requestWithInvalidDataType),
-      ).rejects.toThrow("不支持的数据类型: unsupported-data-type");
+      ).rejects.toThrow("获取 AAPL.US 数据失败: 未找到可用的 unsupported-data-type 能力");
     });
 
     it("should throw NotFoundException when no capability found", async () => {
@@ -359,19 +359,19 @@ describe("DataFetchingService", () => {
     const batchRequests: DataFetchRequest[] = [
       {
         symbol: "AAPL.US",
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
       {
         symbol: "GOOGL.US",
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
       {
         symbol: "TSLA.US",
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
@@ -605,17 +605,17 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
 
       const testCases = [
-        { dataType: "get-stock-quote", expectedCapability: "get-stock-quote" },
+        { dataTypeFilter: "get-stock-quote", expectedCapability: "get-stock-quote" },
         {
-          dataType: "stock-basic-info",
-          expectedCapability: "get-stock-basic-info",
+          dataTypeFilter: "stock-basic-info",
+          expectedCapability: "stock-basic-info",
         },
-        { dataType: "index-quote", expectedCapability: "get-index-quote" },
-        { dataType: "market-status", expectedCapability: "get-market-status" },
+        { dataTypeFilter: "index-quote", expectedCapability: "index-quote" },
+        { dataTypeFilter: "market-status", expectedCapability: "market-status" },
       ];
 
-      for (const { dataType, expectedCapability } of testCases) {
-        await (service as any).getProviderCapability(dataType, "longport");
+      for (const { dataTypeFilter, expectedCapability } of testCases) {
+        await (service as any).getProviderCapability(dataTypeFilter, "longport");
         expect(mockCapabilityRegistry.getCapability).toHaveBeenCalledWith(
           "longport",
           expectedCapability,
@@ -627,7 +627,7 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
 
       const result = await (service as any).getProviderCapability(
-        "stock-quote",
+        "get-stock-quote",
         "preferred-provider",
       );
 
@@ -645,7 +645,7 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getBestProvider.mockReturnValue("best-provider");
 
       const result = await (service as any).getProviderCapability(
-        "stock-quote",
+        "get-stock-quote",
         "unavailable-provider",
       );
 
@@ -659,10 +659,10 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getBestProvider.mockReturnValue(null);
 
       await expect(
-        (service as any).getProviderCapability("stock-quote"),
+        (service as any).getProviderCapability("get-stock-quote"),
       ).rejects.toThrow(NotFoundException);
       await expect(
-        (service as any).getProviderCapability("stock-quote"),
+        (service as any).getProviderCapability("get-stock-quote"),
       ).rejects.toThrow("未找到可用的 get-stock-quote 能力");
     });
 
@@ -671,10 +671,10 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getCapability.mockReturnValue(null);
 
       await expect(
-        (service as any).getProviderCapability("stock-quote"),
+        (service as any).getProviderCapability("get-stock-quote"),
       ).rejects.toThrow(NotFoundException);
       await expect(
-        (service as any).getProviderCapability("stock-quote"),
+        (service as any).getProviderCapability("get-stock-quote"),
       ).rejects.toThrow("未找到可用的 get-stock-quote 能力");
     });
 
@@ -684,7 +684,7 @@ describe("DataFetchingService", () => {
       ).rejects.toThrow(NotFoundException);
       await expect(
         (service as any).getProviderCapability("unsupported-type"),
-      ).rejects.toThrow("不支持的数据类型: unsupported-type");
+      ).rejects.toThrow("未找到可用的 unsupported-type 能力");
     });
   });
 
@@ -692,7 +692,7 @@ describe("DataFetchingService", () => {
     it("should handle concurrent requests efficiently", async () => {
       const concurrentRequests = Array.from({ length: 10 }, (_, i) => ({
         symbol: `STOCK${i}`,
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME" as const,
       }));
@@ -722,7 +722,7 @@ describe("DataFetchingService", () => {
     it("should handle market status service failures gracefully", async () => {
       const request: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       };
@@ -742,7 +742,7 @@ describe("DataFetchingService", () => {
     it("should preserve request options and pass them through", async () => {
       const requestWithComplexOptions: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataType: "get-stock-quote",
+        dataTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "ANALYTICAL",
         options: {
@@ -783,19 +783,19 @@ describe("DataFetchingService", () => {
       const mixedMarketRequests: DataFetchRequest[] = [
         {
           symbol: "AAPL.US",
-          dataType: "get-stock-quote",
+          dataTypeFilter: "get-stock-quote",
           market: Market.US,
           mode: "REALTIME",
         },
         {
           symbol: "0700.HK",
-          dataType: "get-stock-quote",
+          dataTypeFilter: "get-stock-quote",
           market: Market.HK,
           mode: "REALTIME",
         },
         {
           symbol: "600000.SH",
-          dataType: "get-stock-quote",
+          dataTypeFilter: "get-stock-quote",
           market: Market.SH,
           mode: "REALTIME",
         },
@@ -825,13 +825,13 @@ describe("DataFetchingService", () => {
       const mixedDataTypeRequests: DataFetchRequest[] = [
         {
           symbol: "AAPL.US",
-          dataType: "get-stock-quote",
+          dataTypeFilter: "get-stock-quote",
           market: Market.US,
           mode: "REALTIME",
         },
         {
           symbol: "GOOGL.US",
-          dataType: "stock-basic-info",
+          dataTypeFilter: "stock-basic-info",
           market: Market.US,
           mode: "ANALYTICAL",
         },
@@ -844,9 +844,12 @@ describe("DataFetchingService", () => {
       };
       const mockInfoCapability = {
         ...mockCapability,
-        name: "get-stock-basic-info",
+        name: "stock-basic-info",
         execute: jest.fn(),
       };
+
+      
+      
 
       mockMarketStatusService.getMarketStatus.mockResolvedValue(
         mockMarketStatusResponse,
@@ -859,7 +862,7 @@ describe("DataFetchingService", () => {
         (capabilityName) => {
           if (
             capabilityName === "get-stock-quote" ||
-            capabilityName === "get-stock-basic-info"
+            capabilityName === "stock-basic-info"
           ) {
             return "longport";
           }
@@ -872,7 +875,7 @@ describe("DataFetchingService", () => {
           if (capabilityName === "get-stock-quote") {
             return mockQuoteCapability;
           }
-          if (capabilityName === "get-stock-basic-info") {
+          if (capabilityName === "stock-basic-info") {
             return mockInfoCapability;
           }
           return null;

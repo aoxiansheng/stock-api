@@ -12,11 +12,11 @@ import * as express from "express";
 // 动态导入AppModule
 import { AppModule } from "../../src/app.module";
 import { CustomLogger } from "../../src/common/config/logger.config";
-import { GlobalExceptionFilter } from "../../src/common/filters";
+import { GlobalExceptionFilter } from "../../src/common/core/filters";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
-} from "../../src/common/interceptors";
+} from "../../src/common/core/interceptors";
 import { SecurityMiddleware } from "../../src/security/middleware/security.middleware";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
 import { PerformanceMonitorService } from "../../src/metrics/services/performance-monitor.service";

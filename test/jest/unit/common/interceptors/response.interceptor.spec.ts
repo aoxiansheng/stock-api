@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ExecutionContext, CallHandler } from "@nestjs/common";
 import { of } from "rxjs";
-import { ResponseInterceptor } from "../../../../../src/common/interceptors/response.interceptor";
+import { ResponseInterceptor } from "../../../../../src/common/core/interceptors/response.interceptor";
 import { CustomLogger } from "../../../../../src/common/config/logger.config";
 
 describe("ResponseInterceptor", () => {

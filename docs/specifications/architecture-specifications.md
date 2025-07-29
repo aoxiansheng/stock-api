@@ -262,7 +262,7 @@ interface CacheArchitecture {
 ```
 
 #### 3.2.5 分页服务架构 (Pagination)
-**位置**：`src/common/pagination/`
+**位置**：`src/common/modules/pagination/`
 **核心功能**：标准化数据分页处理
 
 ```typescript

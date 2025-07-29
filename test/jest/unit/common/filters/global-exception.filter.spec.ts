@@ -1,4 +1,4 @@
-import { GlobalExceptionFilter } from "../../../../../src/common/filters/global-exception.filter";
+import { GlobalExceptionFilter } from "../../../../../src/common/core/filters/global-exception.filter";
 import {
   ArgumentsHost,
   HttpException,
@@ -1056,7 +1056,7 @@ describe("GlobalExceptionFilter", () => {
               fields: [
                 { field: "symbols", message: "不能为空", code: "REQUIRED" },
                 {
-                  field: "dataType",
+                  field: "dataTypeRelated",
                   message: "数据类型不支持的数据类型",
                   code: "INVALID_TYPE",
                 },

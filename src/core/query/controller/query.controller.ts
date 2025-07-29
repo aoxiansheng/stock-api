@@ -23,7 +23,7 @@ import {
   ApiSuccessResponse,
   ApiStandardResponses,
   ApiHealthResponse,
-} from "@common/decorators/swagger-responses.decorator";
+} from "@common/core/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../../auth/decorators/permissions.decorator";
@@ -115,7 +115,7 @@ export class QueryController {
 {
   "queryType": "by_symbols",
   "symbols": ["AAPL", "MSFT", "700.HK"],
-  "queryDataTypeFilter": "stock-quote",
+  "dataTypeFilter": "stock-quote",
   "maxAge": 300,
   "options": {
     "useCache": true,
@@ -211,7 +211,7 @@ export class QueryController {
       symbols: request.symbols?.slice(0, 3),
       market: request.market,
       provider: request.provider,
-      queryDataTypeFilter: request.queryDataTypeFilter,
+      dataTypeFilter: request.dataTypeFilter,
       limit: request.limit,
     });
 
@@ -308,9 +308,9 @@ export class QueryController {
     required: false,
   })
   @ApiQuery({
-    name: "queryDataTypeFilter",
+    name: "dataTypeFilter",
     description: "数据类别（可选）",
-    example: "quote",
+    example: "get-stock-quote",
     required: false,
   })
   @ApiQuery({
@@ -389,7 +389,7 @@ export class QueryController {
     @QueryParam("symbols") symbols: string,
     @QueryParam("provider") provider?: string,
     @QueryParam("market") market?: string,
-    @QueryParam("queryDataTypeFilter") queryDataTypeFilter?: string,
+    @QueryParam("dataTypeFilter") dataTypeFilter?: string,
     @QueryParam("limit") limit?: number,
     @QueryParam("page") page?: number,
     @QueryParam("useCache") useCache?: boolean,
@@ -407,7 +407,7 @@ export class QueryController {
       symbols: symbolArray.slice(0, 3),
       provider,
       market,
-      queryDataTypeFilter,
+      dataTypeFilter,
       limit,
     });
 
@@ -416,7 +416,7 @@ export class QueryController {
       symbols: symbolArray,
       provider,
       market,
-      queryDataTypeFilter,
+      dataTypeFilter: dataTypeFilter,
       limit: limit || 100,
       page: page || 1,
       options: {
@@ -441,7 +441,7 @@ export class QueryController {
   async queryByMarket(
     @QueryParam("market") market: string,
     @QueryParam("provider") provider?: string,
-    @QueryParam("queryDataTypeFilter") queryDataTypeFilter?: string,
+    @QueryParam("dataTypeFilter") dataTypeFilter?: string,
     @QueryParam("limit") limit?: number,
     @QueryParam("page") page?: number,
   ) {
@@ -452,7 +452,7 @@ export class QueryController {
     this.logger.log(`API Request: Query by market`, {
       market,
       provider,
-      queryDataTypeFilter,
+      dataTypeFilter,
       limit,
     });
 
@@ -460,7 +460,7 @@ export class QueryController {
       queryType: QueryType.BY_MARKET,
       market,
       provider,
-      queryDataTypeFilter,
+      dataTypeFilter,
       limit: limit || 100,
       page: page || 1,
       options: {
@@ -485,7 +485,7 @@ export class QueryController {
   async queryByProvider(
     @QueryParam("provider") provider: string,
     @QueryParam("market") market?: string,
-    @QueryParam("queryDataTypeFilter") queryDataTypeFilter?: string,
+    @QueryParam("dataTypeFilter") dataTypeFilter?: string,
     @QueryParam("limit") limit?: number,
     @QueryParam("page") page?: number,
   ) {
@@ -496,7 +496,7 @@ export class QueryController {
     this.logger.log(`API Request: Query by provider`, {
       provider,
       market,
-      queryDataTypeFilter,
+      dataTypeFilter,
       limit,
     });
 
@@ -504,7 +504,7 @@ export class QueryController {
       queryType: QueryType.BY_PROVIDER,
       provider,
       market,
-      queryDataTypeFilter,
+      dataTypeFilter,
       limit: limit || 100,
       page: page || 1,
       options: {
@@ -616,7 +616,7 @@ export class QueryController {
       const testQuery: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["TEST"],
-        queryDataTypeFilter: "stock-quote",
+        dataTypeFilter: "stock-quote",
         options: {
           useCache: false,
           updateCache: false,

@@ -24,8 +24,8 @@ import { ProvidersModule } from "./providers/providers.module";
 import { AutoInitModule } from "./scripts/auto-init-on-startup.module";
 import { SecurityModule } from "./security/security.module";
 import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
-import { PermissionValidationModule } from "./common/permission/modules/permission-validation.module";
-import { PaginationModule } from "./common/pagination/modules/pagination.module";
+import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
+import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
 
 @Module({
   imports: [

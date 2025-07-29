@@ -18,7 +18,7 @@ import {
   ApiSuccessResponse,
   ApiCreatedResponse,
   ApiStandardResponses,
-} from "@common/decorators/swagger-responses.decorator";
+} from "@common/core/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../../auth/decorators/permissions.decorator";
@@ -32,7 +32,7 @@ import {
   ParsedFieldsResponseDto,
   FieldSuggestionResponseDto,
 } from "../dto/data-mapping-response.dto";
-import { PaginatedDataDto } from '@common/pagination/dto/paginated-data';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import {
   UpdateDataMappingDto,
   ParseJsonDto,

@@ -8,10 +8,10 @@ describe("Query Utils", () => {
     it("应该使用所有提供的参数构建存储键", () => {
       const symbol = "AAPL.US";
       const provider = "longport";
-      const queryDataTypeFilter = "stock-quote";
+      const dataTypeFilter = "stock-quote";
       const market = "US";
 
-      const key = buildStorageKey(symbol, provider, queryDataTypeFilter, market);
+      const key = buildStorageKey(symbol, provider, dataTypeFilter, market);
 
       expect(key).toBe("US:longport:stock-quote:AAPL.US");
     });
@@ -36,10 +36,10 @@ describe("Query Utils", () => {
     it("应该正确处理包含冒号的符号", () => {
       const symbol = "700:HK";
       const provider = "longport";
-      const queryDataTypeFilter = "stock-quote";
+      const dataTypeFilter = "stock-quote";
       const market = "HK";
 
-      const key = buildStorageKey(symbol, provider, queryDataTypeFilter, market);
+      const key = buildStorageKey(symbol, provider, dataTypeFilter, market);
 
       expect(key).toBe("HK:longport:stock-quote:700:HK");
     });
@@ -47,10 +47,10 @@ describe("Query Utils", () => {
     it("应该处理空字符串参数", () => {
       const symbol = "AAPL.US";
       const provider = "";
-      const queryDataTypeFilter = "";
+      const dataTypeFilter = "";
       const market = "";
 
-      const key = buildStorageKey(symbol, provider, queryDataTypeFilter, market);
+      const key = buildStorageKey(symbol, provider, dataTypeFilter, market);
 
       // 空字符串被视为提供的值，而不是使用通配符
       expect(key).toBe(":::AAPL.US");

@@ -124,7 +124,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
 
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: ["700.HK", "AAPL.US", "000001.SZ"],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
         options: {
           realtime: true,
           // 移除不支持的timeout参数
@@ -202,7 +202,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       for (const test of marketTests) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [test.symbol],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -328,7 +328,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       // 通过强时效接口获取数据
       const realtimeResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        dataType: "get-stock-quote",
+        capabilityType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -414,7 +414,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
 
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: ["700.HK"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,

@@ -9,46 +9,46 @@ import {
 } from "class-validator";
 
 class TransformOptionsDto {
-  @ApiPropertyOptional({ description: "Whether to validate output data" })
+  @ApiPropertyOptional({ description: "是否验证输出数据" })
   @IsOptional()
   @IsBoolean()
   validateOutput?: boolean;
 
   @ApiPropertyOptional({
-    description: "Whether to include transformation metadata",
+    description: "是否包含转换元数据",
   })
   @IsOptional()
   @IsBoolean()
   includeMetadata?: boolean;
 
-  @ApiPropertyOptional({ description: "Custom transformation context" })
+  @ApiPropertyOptional({ description: "自定义转换上下文" })
   @IsOptional()
   @IsObject()
   context?: Record<string, any>;
 }
 
 export class TransformRequestDto {
-  @ApiProperty({ description: "Data provider name", example: "longport" })
+  @ApiProperty({ description: "数据提供商名称", example: "longport" })
   @IsString()
   provider: string;
 
   @ApiProperty({
-    description: "Data type to transform",
-    example: "stock-quote",
+    description: "数据映射规则列表类型（用于查找对应的映射规则）",
+    example: "quote_fields",
   })
   @IsString()
-  dataType: string;
+  dataRuleListType: string;
 
-  @ApiProperty({ description: "Raw data to transform" })
+  @ApiProperty({ description: "要转换的原始数据" })
   @IsObject()
   rawData: any;
 
-  @ApiPropertyOptional({ description: "Specific mapping rule ID to use" })
+  @ApiPropertyOptional({ description: "要使用的特定映射规则ID" })
   @IsOptional()
   @IsString()
   mappingOutRuleId?: string;
 
-  @ApiPropertyOptional({ description: "Transformation options" })
+  @ApiPropertyOptional({ description: "转换选项" })
   @IsOptional()
   @ValidateNested()
   @Type(() => TransformOptionsDto)

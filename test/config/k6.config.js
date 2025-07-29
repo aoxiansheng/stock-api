@@ -102,7 +102,7 @@ export const TEST_DATA = {
     cn_sh: ['600036.SH', '600519.SH', '601318.SH']
   },
   
-  dataTypes: ['get-stock-quote', 'get-stock-basic-info', 'get-index-quote'],
+  capabilityTypes: ['get-stock-quote', 'get-stock-basic-info', 'get-index-quote'],
   
   providers: ['longport', 'futu', 'twelvedata']
 };
@@ -208,7 +208,7 @@ export function getRandomSymbols(market, count = 1) {
   return shuffled.slice(0, count);
 }
 
-export function getRandomDataType() {
-  const types = TEST_DATA.dataTypes;
+export function getRandomCapabilityType() {
+  const types = TEST_DATA.capabilityTypes;
   return types[Math.floor(Math.random() * types.length)];
 }

@@ -20,9 +20,9 @@ import {
   JwtAuthResponses,
   ApiPaginatedResponse,
   ApiStandardResponses,
-} from "@common/decorators/swagger-responses.decorator";
-import { PaginatedDataDto } from "@common/pagination/dto/paginated-data";
-import { PaginationService } from "@common/pagination/services/pagination.service";
+} from "@common/core/decorators/swagger-responses.decorator";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
 import { Auth } from "../auth/decorators/auth.decorator";
 import { UserRole } from "../auth/enums/user-role.enum";

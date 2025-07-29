@@ -1,4 +1,4 @@
-import { PaginatedDataDto } from "@common/pagination/dto/paginated-data";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { QueryMetadataDto } from "./query-response.dto";
 
 /**

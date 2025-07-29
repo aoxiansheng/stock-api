@@ -7,7 +7,7 @@ import {
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { Market } from "@common/constants/market.constants";
-import { PaginationService } from '@common/pagination/services/pagination.service';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
 import { DataChangeDetectorService } from "../../shared/service/data-change-detector.service";
 import {
@@ -62,6 +62,7 @@ export class QueryService implements OnModuleInit {
     private readonly backgroundTaskService: BackgroundTaskService,
     private readonly paginationService: PaginationService,
   ) {}
+
 
   async onModuleInit(): Promise<void> {
     this.logger.log(
@@ -282,7 +283,7 @@ export class QueryService implements OnModuleInit {
     const storageKey = buildStorageKey(
       symbol,
       request.provider,
-      request.queryDataTypeFilter,
+      request.dataTypeFilter,
       request.market,
     );
 
@@ -326,7 +327,7 @@ export class QueryService implements OnModuleInit {
           this.storeRealtimeData(
             storageKey,
             realtimeResult,
-            request.queryDataTypeFilter,
+            request.dataTypeFilter,
           ),
         `Store data for symbol ${symbol}`,
       );
@@ -392,7 +393,7 @@ export class QueryService implements OnModuleInit {
 
       const fetchRequest: DataFetchRequest = {
         symbol,
-        dataType: request.queryDataTypeFilter,
+        dataTypeFilter: request.dataTypeFilter,
         market: market as Market,
         provider: request.provider,
         useCache: false, // 强制不使用缓存来获取最新数据
@@ -497,7 +498,7 @@ export class QueryService implements OnModuleInit {
         await this.storeRealtimeData(
           storageKey,
           freshData,
-          request.queryDataTypeFilter,
+          request.dataTypeFilter,
         );
       } else {
         this.logger.debug(`数据无显著变化，无需更新: ${symbol}`, { queryId });
@@ -513,7 +514,7 @@ export class QueryService implements OnModuleInit {
   private async storeRealtimeData(
     storageKey: string,
     realtimeResult: RealtimeQueryResultDto,
-    dataType: string,
+    dataTypeFilter: string,
   ): Promise<void> {
     const { data, metadata } = realtimeResult;
     if (!data) return;
@@ -525,7 +526,7 @@ export class QueryService implements OnModuleInit {
           key: storageKey,
           data: data,
           storageType: StorageType.CACHE,
-          dataClassification: dataType as DataClassification,
+          dataClassification: dataTypeFilter as DataClassification,
           provider: metadata.provider,
           market: metadata.market,
           options: { cacheTtl: metadata.cacheTTL || 300 },
@@ -535,7 +536,7 @@ export class QueryService implements OnModuleInit {
           key: storageKey + ":persistent",
           data: data,
           storageType: StorageType.PERSISTENT,
-          dataClassification: dataType as DataClassification,
+          dataClassification: dataTypeFilter as DataClassification,
           provider: metadata.provider,
           market: metadata.market,
           options: { cacheTtl: 0 }, // MongoDB不过期

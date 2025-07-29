@@ -1,5 +1,5 @@
 // 重新导出统一的认证类型
-export { AuthType } from "../../common/enums/auth.enum";
+export { AuthType } from "../../common/types/enums/auth.enum";
 
 /**
  * 认证状态枚举

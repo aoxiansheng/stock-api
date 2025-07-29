@@ -13,7 +13,7 @@ import { createLogger } from "@common/config/logger.config";
 import {
   PERFORMANCE_MONITORING_KEY,
   PerformanceMonitoringConfig,
-} from "@common/decorators/performance-monitoring.decorator";
+} from "@common/core/decorators/performance-monitoring.decorator";
 
 import { PerformanceMonitorService } from "../services/performance-monitor.service";
 

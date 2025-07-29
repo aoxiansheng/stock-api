@@ -113,7 +113,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
         permission: "data:read",
         endpoint: "/api/v1/receiver/data",
         method: "post",
-        testData: { symbols: ["700.HK"], dataType: "get-stock-quote" },
+        testData: { symbols: ["700.HK"], capabilityType: "get-stock-quote" },
       },
       {
         permission: "query:execute",
@@ -135,7 +135,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
         method: "post",
         testData: {
           provider: "longport",
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           rawData: {
             secu_quote: [{
               symbol: "700.HK",
@@ -292,7 +292,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
     it("应该在缺少API凭证时拒绝访问", async () => {
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: ["700.HK"], 
-        dataType: "get-stock-quote"
+        capabilityType: "get-stock-quote"
       });
 
       expect(response.status).toBe(401);
@@ -302,7 +302,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
     it("应该在无效API凭证时拒绝访问", async () => {
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: ["700.HK"], 
-        dataType: "get-stock-quote"
+        capabilityType: "get-stock-quote"
       }, {
         headers: {
           "X-App-Key": "invalid-app-key",
@@ -520,10 +520,10 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
 
       // 测试恶意负载
       const maliciousPayloads = [
-        { symbols: null, dataType: "get-stock-quote" }, // null values
-        { symbols: [""], dataType: "" }, // empty strings
-        { symbols: ['<script>alert("xss")</script>'], dataType: "get-stock-quote" }, // XSS attempt
-        { symbols: [{}], dataType: "get-stock-quote" }, // wrong data types
+        { symbols: null, capabilityType: "get-stock-quote" }, // null values
+        { symbols: [""], capabilityType: "" }, // empty strings
+        { symbols: ['<script>alert("xss")</script>'], capabilityType: "get-stock-quote" }, // XSS attempt
+        { symbols: [{}], capabilityType: "get-stock-quote" }, // wrong data types
       ];
 
       for (const payload of maliciousPayloads) {

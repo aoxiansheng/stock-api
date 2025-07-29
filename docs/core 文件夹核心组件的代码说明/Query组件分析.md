@@ -47,7 +47,7 @@ Query 是6-component架构中的最后一个组件，作为整个数据处理流
   symbols?: string[]             // 股票代码列表 (BY_SYMBOLS查询必填)
   market?: string               // 市场代码 (HK, US, SZ, SH等)
   provider?: string             // 数据提供商 (longport, itick等)
-  queryDataTypeFilter?: string       // 数据类型过滤器 (stock-quote, basic-info等)
+  dataTypeFilter?: string       // 数据类型过滤器 (stock-quote, basic-info等)
 
   时间范围字段
 
@@ -122,7 +122,7 @@ Query 是6-component架构中的最后一个组件，作为整个数据处理流
     symbols?: string[]         // 查询的股票代码
     market?: string           // 市场
     provider?: string         // 提供商
-    queryDataTypeFilter?: string   // 数据类型
+    dataTypeFilter?: string   // 数据类型
     timeRange?: { start: string; end: string } // 时间范围
     filtersCount?: number     // 过滤器数量
   }
@@ -152,7 +152,7 @@ Query 是6-component架构中的最后一个组件，作为整个数据处理流
   {
     "queryType": "by_symbols",
     "symbols": ["AAPL", "MSFT", "700.HK", "000001.SZ"],
-    "queryDataTypeFilter": "stock-quote",
+    "dataTypeFilter": "stock-quote",
     "options": { "useCache": true }
   }
   适用场景: 投资组合监控、特定股票分析
@@ -162,7 +162,7 @@ Query 是6-component架构中的最后一个组件，作为整个数据处理流
   {
     "queryType": "by_market",
     "market": "US",
-    "queryDataTypeFilter": "stock-quote",
+    "dataTypeFilter": "stock-quote",
     "limit": 50
   }
   适用场景: 市场趋势分析、板块表现对比
@@ -260,7 +260,7 @@ Query 是6-component架构中的最后一个组件，作为整个数据处理流
 
   缓存键生成策略 (query.service.ts:281-286)
 
-  buildStorageKey(symbol, provider, queryDataTypeFilter, market)
+  buildStorageKey(symbol, provider, dataTypeFilter, market)
   // 示例: "AAPL:longport:stock-quote:US"
 
   🎛️ 与其他组件的集成
@@ -286,7 +286,7 @@ Query 是6-component架构中的最后一个组件，作为整个数据处理流
     key: storageKey,
     data: data,
     storageType: StorageType.BOTH,  // 同时存储到Redis和MongoDB
-    dataClassification: dataType as DataClassification
+    dataClassification: dataTypeFilter as DataClassification
   })
 
   🎯 在6-Component架构中的定位

@@ -6,10 +6,12 @@ import { DataMappingRule } from "../../../../../src/core/data-mapper/schemas/dat
 import { CreateDataMappingDto } from "../../../../../src/core/data-mapper/dto/create-data-mapping.dto";
 import { UpdateDataMappingDto } from "../../../../../src/core/data-mapper/dto/update-data-mapping.dto";
 import { DataMappingQueryDto } from "../../../../../src/core/data-mapper/dto/data-mapping-query.dto";
+import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
 
 describe("DataMappingRepository", () => {
   let repository: DataMappingRepository;
   let model: Model<DataMappingRule>;
+  let paginationService: PaginationService;
   let mockQuery;
 
   const mockDataMappingDocument = {
@@ -58,6 +60,19 @@ describe("DataMappingRepository", () => {
       distinct: jest.fn().mockReturnValue(mockQuery),
     });
 
+    // 创建 PaginationService 的模拟实现
+    const mockPaginationService = {
+      calculateSkip: jest.fn((page, limit) => (page - 1) * limit),
+      normalizePaginationQuery: jest.fn((query) => ({
+        page: query.page || 1,
+        limit: query.limit || 10,
+      })),
+      createPagination: jest.fn(),
+      createPaginatedResponse: jest.fn(),
+      createPaginatedResponseFromQuery: jest.fn(),
+      validatePaginationParams: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DataMappingRepository,
@@ -65,11 +80,16 @@ describe("DataMappingRepository", () => {
           provide: getModelToken(DataMappingRule.name),
           useValue: mockModel,
         },
+        {
+          provide: PaginationService,
+          useValue: mockPaginationService,
+        },
       ],
     }).compile();
 
     repository = module.get<DataMappingRepository>(DataMappingRepository);
     model = module.get(getModelToken(DataMappingRule.name));
+    paginationService = module.get<PaginationService>(PaginationService);
   });
 
   afterEach(() => {

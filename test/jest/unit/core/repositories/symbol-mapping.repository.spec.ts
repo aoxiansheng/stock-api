@@ -10,6 +10,7 @@ import {
   SymbolMappingRule,
   SymbolMappingRuleDocument,
 } from "../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
+import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
 
 type MockModel<T = any> = Model<T> & {
   [key: string]: jest.Mock;
@@ -18,6 +19,7 @@ type MockModel<T = any> = Model<T> & {
 describe("SymbolMappingRepository", () => {
   let repository: SymbolMappingRepository;
   let model: MockModel<SymbolMappingRule>;
+  let paginationService: PaginationService;
 
   const mockSymbolMappingDocument = {
     _id: "507f1f77bcf86cd799439011",
@@ -76,6 +78,19 @@ describe("SymbolMappingRepository", () => {
       },
     );
 
+    // 创建 PaginationService 的模拟实现
+    const mockPaginationService = {
+      calculateSkip: jest.fn((page, limit) => (page - 1) * limit),
+      normalizePaginationQuery: jest.fn((query) => ({
+        page: query.page || 1,
+        limit: query.limit || 10,
+      })),
+      createPagination: jest.fn(),
+      createPaginatedResponse: jest.fn(),
+      createPaginatedResponseFromQuery: jest.fn(),
+      validatePaginationParams: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SymbolMappingRepository,
@@ -83,11 +98,16 @@ describe("SymbolMappingRepository", () => {
           provide: getModelToken(SymbolMappingRuleDocument.name),
           useValue: mockModel,
         },
+        {
+          provide: PaginationService,
+          useValue: mockPaginationService,
+        },
       ],
     }).compile();
 
     repository = module.get<SymbolMappingRepository>(SymbolMappingRepository);
     model = module.get(getModelToken(SymbolMappingRuleDocument.name));
+    paginationService = module.get<PaginationService>(PaginationService);
   });
 
   describe("create", () => {

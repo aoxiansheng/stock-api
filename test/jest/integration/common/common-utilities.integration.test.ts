@@ -19,9 +19,9 @@ import { HttpHeadersUtil } from "../../../../src/common/utils/http-headers.util"
 import {
   ApiSuccessResponse,
   ApiStandardResponses,
-} from "../../../../src/common/decorators/swagger-responses.decorator";
-import { ResponseInterceptor } from "../../../../src/common/interceptors/response.interceptor";
-import { GlobalExceptionFilter } from "../../../../src/common/filters/global-exception.filter";
+} from "../../../../src/common/core/decorators/swagger-responses.decorator";
+import { ResponseInterceptor } from "../../../../src/common/core/interceptors/response.interceptor";
+import { GlobalExceptionFilter } from "../../../../src/common/core/filters/global-exception.filter";
 
 // 测试控制器
 @Controller("test-common-utilities")

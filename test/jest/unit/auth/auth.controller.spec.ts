@@ -624,6 +624,12 @@ describe("AuthController", () => {
         total: 0,
         page: 1,
         limit: 10,
+        stats: {
+          activeUsers: 0,
+          inactiveUsers: 0,
+          roleDistribution: {},
+          totalUsers: 0,
+        },
       });
     });
 
@@ -637,6 +643,12 @@ describe("AuthController", () => {
         total: 0,
         page: 2,
         limit: 20,
+        stats: {
+          activeUsers: 0,
+          inactiveUsers: 0,
+          roleDistribution: {},
+          totalUsers: 0,
+        },
       });
     });
 
@@ -650,6 +662,12 @@ describe("AuthController", () => {
         total: 0,
         page: 1,
         limit: 15,
+        stats: {
+          activeUsers: 0,
+          inactiveUsers: 0,
+          roleDistribution: {},
+          totalUsers: 0,
+        },
       });
     });
 
@@ -663,6 +681,12 @@ describe("AuthController", () => {
         total: 0,
         page: 3,
         limit: 10,
+        stats: {
+          activeUsers: 0,
+          inactiveUsers: 0,
+          roleDistribution: {},
+          totalUsers: 0,
+        },
       });
     });
 
@@ -676,6 +700,12 @@ describe("AuthController", () => {
         total: 0,
         page: 1,
         limit: 10,
+        stats: {
+          activeUsers: 0,
+          inactiveUsers: 0,
+          roleDistribution: {},
+          totalUsers: 0,
+        },
       });
     });
   });

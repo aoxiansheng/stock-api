@@ -192,11 +192,11 @@ export function getTTLFromEnv(key: CacheTTL, defaultValue?: number): number {
 }
 
 /**
- * 根据数据类型获取推荐的TTL
- * @param dataType 数据类型
+ * 根据缓存数据性质获取推荐的TTL
+ * @param cacheDataNature 缓存数据性质（实时、静态、配置、会话、指标等）
  */
 export function getRecommendedTTL(
-  dataType: "realtime" | "static" | "config" | "session" | "metrics",
+  cacheDataNature: "realtime" | "static" | "config" | "session" | "metrics",
 ): number {
   const ttlMap = {
     realtime: CACHE_CONSTANTS.TTL_SETTINGS.REALTIME_DATA_TTL,
@@ -206,7 +206,7 @@ export function getRecommendedTTL(
     metrics: CACHE_CONSTANTS.TTL_SETTINGS.METRICS_TTL,
   };
 
-  return ttlMap[dataType] || CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL;
+  return ttlMap[cacheDataNature] || CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL;
 }
 
 /**

@@ -8,13 +8,13 @@ import {
   Permission,
   UserRole,
 } from "../../../../src/auth/enums/user-role.enum";
-import { GlobalExceptionFilter } from "../../../../src/common/filters";
+import { GlobalExceptionFilter } from "../../../../src/common/core/filters";
 import { PerformanceInterceptor } from "../../../../src/metrics/interceptors/performance.interceptor";
 import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
-} from "../../../../src/common/interceptors";
+} from "../../../../src/common/core/interceptors";
 import { ApiKeyService } from "../../../../src/auth/services/apikey.service";
 import { CreateApiKeyDto } from "../../../../src/auth/dto/apikey.dto";
 
@@ -188,7 +188,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", "invalid-token")
         .send({
           symbols: ["AAPL.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(401);
 
@@ -209,7 +209,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: [], // 空数组应该无效
-          dataType: "invalid-type", // 无效的数据类型
+          capabilityType: "invalid-type", // 无效的数据类型
           options: {
             invalidOption: "value",
           },
@@ -253,7 +253,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["AAPL.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         });
       // Assert - 正常请求应该成功或者返回业务错误
       expect([200, 400, 503]).toContain(response.body.statusCode);
@@ -271,7 +271,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: largeSymbolArray,
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         });
       // Assert - 大量数据可能导致验证错误而不是请求体过大
       expect(response.body.statusCode).toBe(400);
@@ -289,7 +289,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["AAAAA.US"], // 修复：使用格式有效但逻辑上不存在的 symbol
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           options: {
             preferredProvider: "unavailable-provider",
           },
@@ -396,7 +396,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .timeout(1000) // 设置1秒超时
         .send({
           symbols: ["TIMEOUT.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
           options: {
             timeout: 5000, // 请求5秒超时
           },
@@ -424,7 +424,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["INVALID.US"],
-          dataType: "get-stock-quote",
+          capabilityType: "get-stock-quote",
         })
         .expect(400);
 
@@ -448,7 +448,7 @@ describe("Error Handling Flow E2E Tests", () => {
             .set("X-Access-Token", validApiKey.accessToken)
             .send({
               symbols: ["ERROR.US"],
-              dataType: "invalid-type",
+              capabilityType: "invalid-type",
             }),
         );
 
@@ -546,7 +546,7 @@ describe("Error Handling Flow E2E Tests", () => {
         .post("/api/v1/receiver/data")
         .set("X-App-Key", validApiKey.appKey)
         .set("X-Access-Token", validApiKey.accessToken)
-        .send({ symbols: [], dataType: "invalid" })
+        .send({ symbols: [], capabilityType: "invalid" })
         .expect(400);
 
       // 等待指标收集

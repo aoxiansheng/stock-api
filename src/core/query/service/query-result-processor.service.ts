@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { PaginationService } from '@common/pagination/services/pagination.service';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
 import {
   QUERY_OPERATIONS,

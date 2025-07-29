@@ -56,7 +56,7 @@ export const ApiCreatedResponse = (options?: Partial<ApiResponseOptions>) =>
  * 使用ResponseInterceptor提供的标准格式，数据部分使用PaginatedDataDto结构
  */
 export const ApiPaginatedResponse = (
-  dataType?: unknown,
+  itemSchemaType?: unknown,
   options?: Partial<ApiResponseOptions>,
 ) =>
   applyDecorators(
@@ -73,8 +73,8 @@ export const ApiPaginatedResponse = (
             properties: {
               items: {
                 type: "array",
-                items: dataType
-                  ? { $ref: `#/components/schemas/${(dataType as any).name}` }
+                items: itemSchemaType
+                  ? { $ref: `#/components/schemas/${(itemSchemaType as any).name}` }
                   : { type: "object" },
               },
               pagination: {

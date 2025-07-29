@@ -1,4 +1,4 @@
-import { PaginatedDataDto } from "../../../../../src/common/pagination/dto/paginated-data";
+import { PaginatedDataDto } from "../../../../../src/common/modules/pagination/dto/paginated-data";
 
 describe("Common Response DTOs", () => {
   describe("PaginatedDataDto", () => {

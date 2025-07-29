@@ -10,13 +10,13 @@ import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 
 import { createLogger } from "@common/config/logger.config";
-import { NoPerformanceMonitoring } from "@common/decorators/performance-monitoring.decorator";
+import { NoPerformanceMonitoring } from "@common/core/decorators/performance-monitoring.decorator";
 import {
   ApiStandardResponses,
   ApiSuccessResponse,
   JwtAuthResponses,
   ApiHealthResponse,
-} from "@common/decorators/swagger-responses.decorator";
+} from "@common/core/decorators/swagger-responses.decorator";
 
 import { AlertingService } from "../alert/services/alerting.service";
 import { Auth, Public, ApiKeyAuth } from "../auth/decorators/auth.decorator";

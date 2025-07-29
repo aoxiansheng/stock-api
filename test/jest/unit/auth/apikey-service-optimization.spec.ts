@@ -15,10 +15,12 @@ import {
 import { ApiKeyUtil } from "../../../../src/auth/utils/apikey.utils";
 import { ERROR_MESSAGES } from "../../../../src/common/constants/error-messages.constants";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
+import { UserRepository } from "../../../../src/auth/repositories/user.repository";
 
 describe("ApiKeyService Optimization Features", () => {
   let service: ApiKeyService;
   let mockApiKeyModel: any;
+  let mockUserRepository: any;
   let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
@@ -44,12 +46,27 @@ describe("ApiKeyService Optimization Features", () => {
     });
     mockApiKeyModel.updateOne = jest.fn();
 
+    // 创建 UserRepository 的模拟实现
+    mockUserRepository = {
+      findById: jest.fn().mockImplementation((id) => {
+        return Promise.resolve({
+          _id: id,
+          username: 'testuser',
+          role: 'admin',
+        });
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ApiKeyService,
         {
           provide: getModelToken(ApiKey.name),
           useValue: mockApiKeyModel,
+        },
+        {
+          provide: UserRepository,
+          useValue: mockUserRepository,
         },
       ],
     }).compile();
@@ -392,7 +409,7 @@ describe("ApiKeyService Optimization Features", () => {
         APIKEY_MESSAGES.API_KEY_REVOCATION_STARTED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.REVOKE_API_KEY,
-          apiKeyId: "apikey123",
+          appKey: "apikey123",
           userId: "user123",
         }),
       );
@@ -401,7 +418,7 @@ describe("ApiKeyService Optimization Features", () => {
         APIKEY_MESSAGES.API_KEY_REVOKED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.REVOKE_API_KEY,
-          apiKeyId: "apikey123",
+          appKey: "apikey123",
           userId: "user123",
         }),
       );
@@ -436,7 +453,7 @@ describe("ApiKeyService Optimization Features", () => {
         ERROR_MESSAGES.REVOKE_API_KEY_FAILED,
         expect.objectContaining({
           operation: APIKEY_OPERATIONS.REVOKE_API_KEY,
-          apiKeyId: "apikey123",
+          appKey: "apikey123",
           userId: "user123",
         }),
       );
