@@ -21,7 +21,7 @@ import { FormatUtils } from "../../../../../src/metrics/utils/format.util";
 import * as v8 from "v8";
 
 // Mock FormatUtils
-jest.mock("../../../../src/metrics/utils/format.util", () => ({
+jest.mock("../../../../../src/metrics/utils/format.util", () => ({
   FormatUtils: {
     roundNumber: jest.fn((num) => Math.round(num * 100) / 100),
     bytesToGB: jest.fn((bytes) => bytes / (1024 * 1024 * 1024)),

@@ -13,9 +13,9 @@ const mockedFs = fs as jest.Mocked<typeof fs>;
 
 // 正确模拟动态导入
 const mockDynamicImport = jest.fn();
-jest.mock("../../../../src/providers/capability-registry.service", () => {
+jest.mock("../../../../src/providers/services/capability-registry.service", () => {
   const originalModule = jest.requireActual(
-    "../../../../src/providers/capability-registry.service",
+    "../../../../src/providers/services/capability-registry.service",
   );
   return {
     __esModule: true,
