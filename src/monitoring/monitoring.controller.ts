@@ -19,9 +19,8 @@ import {
 } from "@common/core/decorators/swagger-responses.decorator";
 
 import { AlertingService } from "../alert/services/alerting.service";
-import { Auth, Public, ApiKeyAuth } from "../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../auth/decorators/permissions.decorator";
-import { UserRole, Permission } from "../auth/enums/user-role.enum";
+import { Auth, Public } from "../auth/decorators/auth.decorator";
+import { UserRole } from "../auth/enums/user-role.enum";
 import { CacheService } from "../cache/cache.service";
 import { MetricsHealthService } from "../metrics/services/metrics-health.service";
 import { PerformanceMonitorService } from "../metrics/services/performance-monitor.service";

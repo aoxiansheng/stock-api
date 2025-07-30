@@ -11,7 +11,7 @@ export class TransformationMetadataDto {
   provider: string;
 
   @ApiProperty({ description: "Data rule list type" })
-  dataRuleListType: string;
+  transDataRuleListType: string;
 
   @ApiProperty({ description: "Number of records processed" })
   recordsProcessed: number;
@@ -39,7 +39,7 @@ export class TransformationMetadataDto {
     ruleId: string,
     ruleName: string,
     provider: string,
-    dataRuleListType: string,
+    transDataRuleListType: string,
     recordsProcessed: number,
     fieldsTransformed: number,
     processingTime: number,
@@ -53,7 +53,7 @@ export class TransformationMetadataDto {
     this.ruleId = ruleId;
     this.ruleName = ruleName;
     this.provider = provider;
-    this.dataRuleListType = dataRuleListType;
+    this.transDataRuleListType = transDataRuleListType;
     this.recordsProcessed = recordsProcessed;
     this.fieldsTransformed = fieldsTransformed;
     this.processingTime = processingTime;

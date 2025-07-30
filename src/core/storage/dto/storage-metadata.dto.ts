@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-import { DataClassification, StorageType } from "../enums/storage-type.enum";
+import { StorageClassification, StorageType } from "../enums/storage-type.enum";
 
 export class StorageMetadataDto {
   @ApiProperty({ description: "Storage key" })
@@ -15,10 +15,10 @@ export class StorageMetadataDto {
 
   @ApiProperty({
     description: "Data classification",
-    enum: DataClassification,
-    enumName: "DataClassification",
+    enum: StorageClassification,
+    enumName: "StorageClassification",
   })
-  dataClassification: DataClassification;
+  storageClassification: StorageClassification;
 
   @ApiProperty({ description: "Data provider" })
   provider: string;
@@ -47,7 +47,7 @@ export class StorageMetadataDto {
   constructor(
     key: string,
     storageType: StorageType,
-    dataClassification: DataClassification,
+    storageClassification: StorageClassification,
     provider: string,
     market: string,
     dataSize: number,
@@ -58,7 +58,7 @@ export class StorageMetadataDto {
   ) {
     this.key = key;
     this.storageType = storageType;
-    this.dataClassification = dataClassification;
+    this.storageClassification = storageClassification;
     this.provider = provider;
     this.market = market;
     this.dataSize = dataSize;

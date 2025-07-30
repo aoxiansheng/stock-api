@@ -59,7 +59,7 @@ describe("DataMappingRule Schema", () => {
       name: "LongPort Stock Quote Mapping",
       description: "LongPort股票报价字段映射规则",
       provider: "longport",
-      dataRuleListType: "stock-quote",
+      transDataRuleListType: "stock-quote",
       sharedDataFieldMappings,
       version: "1.0.0",
     };
@@ -71,7 +71,7 @@ describe("DataMappingRule Schema", () => {
     expect(savedRule.name).toBe(ruleData.name);
     expect(savedRule.description).toBe(ruleData.description);
     expect(savedRule.provider).toBe(ruleData.provider);
-    expect(savedRule.dataRuleListType).toBe(ruleData.dataRuleListType);
+    expect(savedRule.transDataRuleListType).toBe(ruleData.transDataRuleListType);
     expect(savedRule.sharedDataFieldMappings).toHaveLength(1);
     expect(savedRule.sharedDataFieldMappings[0].sourceField).toBe(
       sharedDataFieldMappings[0].sourceField,
@@ -86,7 +86,7 @@ describe("DataMappingRule Schema", () => {
     const minimalRuleData = {
       name: "Minimal Rule",
       provider: "test-provider",
-      dataRuleListType: "test-type",
+      transDataRuleListType: "test-type",
       sharedDataFieldMappings: [
         {
           sourceField: "source",
@@ -106,7 +106,7 @@ describe("DataMappingRule Schema", () => {
     const ruleData = {
       name: "JSON Test Rule",
       provider: "json-provider",
-      dataRuleListType: "json-type",
+      transDataRuleListType: "json-type",
       sharedDataFieldMappings: [
         {
           sourceField: "json_source",
@@ -136,7 +136,7 @@ describe("DataMappingRule Schema", () => {
     } catch (error) {
       expect(error.errors.name).toBeDefined();
       expect(error.errors.provider).toBeDefined();
-      expect(error.errors.dataRuleListType).toBeDefined();
+      expect(error.errors.transDataRuleListType).toBeDefined();
       // 不检查dataFieldMappings，因为Mongoose可能不会为数组类型的必填字段生成错误
       // 或者使用其他方式验证，例如：
       expect(Object.keys(error.errors).length).toBeGreaterThanOrEqual(3); // 至少有3个错误字段
@@ -168,7 +168,7 @@ describe("DataMappingRule Schema", () => {
       const ruleData = {
         name: `Rule with ${transformType} transform`,
         provider: "test-provider",
-        dataRuleListType: "test-type",
+        transDataRuleListType: "test-type",
         sharedDataFieldMappings: [DatafieldMapping],
       };
 
@@ -219,7 +219,7 @@ describe("DataMappingRule Schema", () => {
       name: "Complex Mapping Rule",
       description: "复杂的字段映射规则",
       provider: "longport",
-      dataRuleListType: "stock-quote",
+      transDataRuleListType: "stock-quote",
       sharedDataFieldMappings: complexFieldMappings,
       metadata: {
         version: "2.0.0",
@@ -279,7 +279,7 @@ describe("DataMappingRule Schema", () => {
     const rule = new dataMappingRuleModel({
       name: "Index Test Rule",
       provider: "test-provider",
-      dataRuleListType: "test-type",
+      transDataRuleListType: "test-type",
       sharedDataFieldMappings: [
         {
           sourceField: "source",
@@ -291,12 +291,12 @@ describe("DataMappingRule Schema", () => {
 
     const indexes = await dataMappingRuleModel.collection.indexes();
 
-    // 查找复合索引 (provider, dataRuleListType)
+    // 查找复合索引 (provider, transDataRuleListType)
     const providerRuleTypeIndex = indexes.find(
       (index) =>
         index.key &&
         Object.keys(index.key).includes("provider") &&
-        Object.keys(index.key).includes("dataRuleListType"),
+        Object.keys(index.key).includes("transDataRuleListType"),
     );
     expect(providerRuleTypeIndex).toBeDefined();
 
@@ -317,7 +317,7 @@ describe("DataMappingRule Schema", () => {
     const ruleData = {
       name: "Update Test Rule",
       provider: "update-provider",
-      dataRuleListType: "update-type",
+      transDataRuleListType: "update-type",
       sharedDataFieldMappings: [
         {
           sourceField: "old_source",

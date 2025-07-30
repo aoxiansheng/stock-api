@@ -45,7 +45,7 @@ export class TransformerController {
 \`\`\`json
 {
   "provider": "longport",
-  "dataRuleListType": "get-stock-quote",
+  "transDataRuleListType": "get-stock-quote",
   "mappingOutRuleId": "rule_123",
   "rawData": {
     "secu_quote": [{
@@ -99,7 +99,7 @@ export class TransformerController {
   async transform(@Body(ValidationPipe) request: TransformRequestDto) {
     this.logger.log(`API Request: Transform data`, {
       provider: request.provider,
-      dataRuleListType: request.dataRuleListType,
+      transDataRuleListType: request.transDataRuleListType,
       mappingOutRuleId: request.mappingOutRuleId,
       hasRawData: !!request.rawData,
       options: request.options,
@@ -110,7 +110,7 @@ export class TransformerController {
 
       this.logger.log(`API Success: Data transformation completed`, {
         provider: request.provider,
-        dataRuleListType: request.dataRuleListType,
+        transDataRuleListType: request.transDataRuleListType,
         success: true,
         recordsProcessed: result.metadata.recordsProcessed,
         fieldsTransformed: result.metadata.fieldsTransformed,
@@ -124,7 +124,7 @@ export class TransformerController {
     } catch (error: any) {
       this.logger.error(`API Error: Data transformation failed`, {
         provider: request.provider,
-        dataRuleListType: request.dataRuleListType,
+        transDataRuleListType: request.transDataRuleListType,
         error: error.message,
         errorType: error.constructor.name,
       });
@@ -161,13 +161,13 @@ export class TransformerController {
 [
   {
     "provider": "longport",
-    "dataRuleListType": "get-stock-quote",
+    "transDataRuleListType": "get-stock-quote",
     "mappingOutRuleId": "rule_123",
     "rawData": {"secu_quote": [{"symbol": "700.HK"}]}
   },
   {
     "provider": "longport",
-    "dataRuleListType": "get-stock-quote", 
+    "transDataRuleListType": "get-stock-quote", 
     "mappingOutRuleId": "rule_123",
     "rawData": {"secu_quote": [{"symbol": "AAPL.US"}]}
   }
@@ -204,7 +204,7 @@ export class TransformerController {
     this.logger.log(`API Request: Batch transform data`, {
       batchSize: requests.length,
       providers: [...new Set(requests.map((r) => r.provider))],
-      dataRuleListTypes: [...new Set(requests.map((r) => r.dataRuleListType))],
+      transDataRuleListTypes: [...new Set(requests.map((r) => r.transDataRuleListType))],
     });
 
     try {
@@ -265,7 +265,7 @@ export class TransformerController {
 \`\`\`json
 {
   "provider": "longport",
-  "dataRuleListType": "get-stock-quote",
+  "transDataRuleListType": "get-stock-quote",
   "mappingOutRuleId": "rule_123",
   "rawData": {
     "secu_quote": [{
@@ -287,7 +287,7 @@ export class TransformerController {
             id: "rule_123",
             name: "LongPort股票行情映射",
             provider: "longport",
-            dataRuleListType: "get-stock-quote",
+            transDataRuleListType: "get-stock-quote",
           },
           sharedDataFieldMappings: [
             {
@@ -316,7 +316,7 @@ export class TransformerController {
   async preview(@Body(ValidationPipe) request: TransformRequestDto) {
     this.logger.log(`API Request: Preview transformation`, {
       provider: request.provider,
-      dataRuleListType: request.dataRuleListType,
+      transDataRuleListType: request.transDataRuleListType,
       mappingOutRuleId: request.mappingOutRuleId,
     });
 
@@ -326,7 +326,7 @@ export class TransformerController {
 
       this.logger.log(`API Success: Transformation preview generated`, {
         provider: request.provider,
-        dataRuleListType: request.dataRuleListType,
+        transDataRuleListType: request.transDataRuleListType,
         ruleId: result.transformMappingRule.id,
         dataFieldMappingsCount: result.sharedDataFieldMappings.length,
       });
@@ -336,7 +336,7 @@ export class TransformerController {
     } catch (error: any) {
       this.logger.error(`API Error: Transformation preview failed`, {
         provider: request.provider,
-        dataRuleListType: request.dataRuleListType,
+        transDataRuleListType: request.transDataRuleListType,
         error: error.message,
         errorType: error.constructor.name,
       });

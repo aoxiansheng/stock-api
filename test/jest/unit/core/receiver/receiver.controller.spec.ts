@@ -137,7 +137,7 @@ describe("ReceiverController", () => {
     it("should handle data request successfully", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "700.HK"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           realtime: true,
@@ -152,7 +152,7 @@ describe("ReceiverController", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: ["AAPL", "700.HK"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           realtime: true,
@@ -169,7 +169,7 @@ describe("ReceiverController", () => {
     it("should handle data request with minimal options", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        capabilityType: "get-stock-basic-info",
+        receiverType: "get-stock-basic-info",
       };
 
       const simpleResponse: DataResponseDto = {
@@ -197,7 +197,7 @@ describe("ReceiverController", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: ["AAPL"],
-        capabilityType: "get-stock-basic-info",
+        receiverType: "get-stock-basic-info",
         options: undefined,
       });
     });
@@ -205,7 +205,7 @@ describe("ReceiverController", () => {
     it("should handle multiple symbols of different markets", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "700.HK", "000001.SZ", "600036.SH"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           realtime: false,
@@ -262,7 +262,7 @@ describe("ReceiverController", () => {
     it("should handle index quote requests", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["HSI.HK", "SPX.US"],
-        capabilityType: "index-quote",
+        receiverType: "index-quote",
         options: {
           preferredProvider: "longport",
           realtime: true,
@@ -306,7 +306,7 @@ describe("ReceiverController", () => {
     it("should handle request errors gracefully", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["INVALID_SYMBOL"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       };
 
       const error = new Error("Failed to fetch data from provider");
@@ -322,7 +322,7 @@ describe("ReceiverController", () => {
           error: "Failed to fetch data from provider",
           stack: expect.any(String),
           symbols: ["INVALID_SYMBOL"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
       );
     });
@@ -330,7 +330,7 @@ describe("ReceiverController", () => {
     it("should handle network timeout errors", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
         },
@@ -349,7 +349,7 @@ describe("ReceiverController", () => {
         expect.objectContaining({
           error: "Request timeout",
           symbols: ["AAPL"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }),
       );
     });
@@ -357,7 +357,7 @@ describe("ReceiverController", () => {
     it("should handle service unavailable errors", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["700.HK"],
-        capabilityType: "get-stock-basic-info",
+        receiverType: "get-stock-basic-info",
       };
 
       const serviceError = new Error("Provider service unavailable");
@@ -374,7 +374,7 @@ describe("ReceiverController", () => {
         expect.objectContaining({
           error: "Provider service unavailable",
           symbols: ["700.HK"],
-          capabilityType: "get-stock-basic-info",
+          receiverType: "get-stock-basic-info",
         }),
       );
     });
@@ -383,7 +383,7 @@ describe("ReceiverController", () => {
       const manySymbols = Array.from({ length: 50 }, (_, i) => `STOCK${i}`);
       const dataRequest: DataRequestDto = {
         symbols: manySymbols,
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           fields: ["lastPrice", "market"],
@@ -413,7 +413,7 @@ describe("ReceiverController", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: manySymbols,
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           preferredProvider: "longport",
           fields: ["lastPrice", "market"],
@@ -424,7 +424,7 @@ describe("ReceiverController", () => {
     it("should handle partial success responses", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "INVALID", "MSFT"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       };
 
       const partialResponse: DataResponseDto = {
@@ -471,21 +471,21 @@ describe("ReceiverController", () => {
     it("should handle requests with different data types", async () => {
       const stockQuoteRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       };
 
       const basicInfoRequest: DataRequestDto = {
         symbols: ["700.HK"],
-        capabilityType: "get-stock-basic-info",
+        receiverType: "get-stock-basic-info",
       };
 
       const indexQuoteRequest: DataRequestDto = {
         symbols: ["HSI.HK"],
-        capabilityType: "index-quote",
+        receiverType: "index-quote",
       };
 
       receiverService.handleRequest.mockImplementation((request) => {
-        // 映射 capabilityType 到正确的 capability 名称
+        // 映射 receiverType 到正确的 capability 名称
         const dataTypeToCapabilityMap: Record<string, string> = {
           "get-stock-quote": "get-stock-quote",
           "get-stock-basic-info": "get-stock-basic-info",
@@ -494,12 +494,12 @@ describe("ReceiverController", () => {
 
         return Promise.resolve({
           success: true,
-          data: [{ symbol: request.symbols[0], capabilityType: request.capabilityType }],
+          data: [{ symbol: request.symbols[0], receiverType: request.receiverType }],
           metadata: {
             requestId: `req_${Date.now()}`,
             provider: "longport",
             capability:
-              dataTypeToCapabilityMap[request.capabilityType] || request.capabilityType,
+              dataTypeToCapabilityMap[request.receiverType] || request.receiverType,
             processingTime: 100,
             timestamp: new Date().toISOString(),
           },
@@ -531,22 +531,22 @@ describe("ReceiverController", () => {
       const requestConfigs = [
         {
           symbols: ["AAPL"],
-          capabilityType: "get-stock-quote" as const,
+          receiverType: "get-stock-quote" as const,
           options: { preferredProvider: "longport" },
         },
         {
           symbols: ["MSFT"],
-          capabilityType: "get-stock-quote" as const,
+          receiverType: "get-stock-quote" as const,
           options: { preferredProvider: "futu", realtime: true },
         },
         {
           symbols: ["GOOGL"],
-          capabilityType: "get-stock-quote" as const,
+          receiverType: "get-stock-quote" as const,
           options: { market: "US", realtime: false },
         },
         {
           symbols: ["TSLA"],
-          capabilityType: "get-stock-quote" as const,
+          receiverType: "get-stock-quote" as const,
           options: { fields: ["lastPrice", "volume"], realtime: true },
         },
       ];
@@ -580,7 +580,7 @@ describe("ReceiverController", () => {
     it("should log request and response details correctly", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["TEST"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: "longport" },
       };
 
@@ -591,7 +591,7 @@ describe("ReceiverController", () => {
       // Verify request logging
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: ["TEST"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: "longport" },
       });
 
@@ -607,7 +607,7 @@ describe("ReceiverController", () => {
     it("should log error details correctly", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["ERROR_TEST"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       };
 
       const testError = new Error("Test error message");
@@ -624,7 +624,7 @@ describe("ReceiverController", () => {
           error: "Test error message",
           stack: "Error stack trace",
           symbols: ["ERROR_TEST"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
       );
     });

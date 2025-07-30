@@ -31,7 +31,7 @@ export class PersistentResultDto {
   @ApiProperty({ description: "元数据信息" })
   @IsObject()
   metadata: {
-    dataClassification?: string;
+    storageClassification?: string;
     provider?: string;
     market?: string;
     dataSize?: number;

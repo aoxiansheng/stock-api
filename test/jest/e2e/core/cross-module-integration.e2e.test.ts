@@ -61,7 +61,7 @@ describe("Cross-Module Integration E2E Tests", () => {
     const mappingRuleData = {
       name: "E2E Cross-Module Longport Stock Quote Mapping",
       provider: "longport",
-      dataRuleListType: "quote_fields",
+      transDataRuleListType: "quote_fields",
       description: "Rule created for E2E cross-module testing",
       sharedDataFieldMappings: [
         { sourceField: "symbol", targetField: "symbol" },
@@ -90,7 +90,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols,
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         })
         .expect(200);
 
@@ -102,7 +102,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols,
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
 
@@ -143,7 +143,7 @@ describe("Cross-Module Integration E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: ["700.HK"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
             options: {
               preferredProvider: "longport",
             },
@@ -166,7 +166,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: [testSymbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         })
         .expect(200);
 
@@ -184,7 +184,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           provider: "longport",
-          dataRuleListType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           rawData: receivedRawData,
         })
         .expect(201);
@@ -200,7 +200,7 @@ describe("Cross-Module Integration E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: [testSymbol],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
 

@@ -54,10 +54,10 @@ export class DataMappingRepository {
 
   async findByProviderAndType(
     provider: string,
-    dataRuleListType: string,
+    transDataRuleListType: string,
   ): Promise<DataMappingRuleDocument[]> {
     return this.dataMappingRuleModel
-      .find({ provider, dataRuleListType, isActive: true })
+      .find({ provider, transDataRuleListType, isActive: true })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -72,8 +72,8 @@ export class DataMappingRepository {
       filter.provider = { $regex: query.provider, $options: "i" };
     }
 
-    if (query.dataRuleListType) {
-      filter.dataRuleListType = query.dataRuleListType;
+    if (query.transDataRuleListType) {
+      filter.transDataRuleListType = query.transDataRuleListType;
     }
 
     if (query.isActive !== undefined) {
@@ -137,7 +137,7 @@ export class DataMappingRepository {
 
   async getRuleListTypes(): Promise<string[]> {
     const results = await this.dataMappingRuleModel
-      .distinct("dataRuleListType")
+      .distinct("transDataRuleListType")
       .exec();
     return results;
   }
@@ -148,19 +148,19 @@ export class DataMappingRepository {
       .exec();
   }
 
-  async countByRuleListType(dataRuleListType: string): Promise<number> {
+  async countByRuleListType(transDataRuleListType: string): Promise<number> {
     return this.dataMappingRuleModel
-      .countDocuments({ dataRuleListType, isActive: true })
+      .countDocuments({ transDataRuleListType, isActive: true })
       .exec();
   }
 
   // 查找最佳匹配的映射规则
   async findBestMatchingRule(
     provider: string,
-    dataRuleListType: string,
+    transDataRuleListType: string,
   ): Promise<DataMappingRuleDocument | null> {
     return this.dataMappingRuleModel
-      .findOne({ provider, dataRuleListType, isActive: true })
+      .findOne({ provider, transDataRuleListType, isActive: true })
       .sort({ createdAt: -1 }) // 最新创建的优先
       .exec();
   }

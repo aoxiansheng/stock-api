@@ -25,15 +25,15 @@
 
 | 组件 | 原字段名 | 新字段名 | 语义说明 |
 |------|----------|----------|----------|
-| Receiver | `dataType` | `capabilityType` | 表示能力类型，用于提供商路由 |
-| Query | `dataType` | `dataTypeFilter` | 表示数据类型过滤器，用于查询筛选 |
-| Storage | `dataType` | `dataClassification` | 表示数据分类，用于存储管理 |
+| Receiver | `dataType` | `receiverType` | 表示能力类型，用于提供商路由 |
+| Query | `dataType` | `queryTypeFilter` | 表示数据类型过滤器，用于查询筛选 |
+| Storage | `dataType` | `storageClassification` | 表示数据分类，用于存储管理 |
 
-  - Receiver组件: capabilityType - 用于能力路由
-  - Query组件: dataTypeFilter - 用于数据过滤
-  - Storage组件: dataClassification - 用于数据分类
-  - Transformer组件: dataRuleListType - 用于映射规则匹配
-  - Data Mapper组件: dataRuleListType - 用于映射规则匹配 与 Transformer组件 是一样的
+  - Receiver组件: receiverType - 用于能力路由
+  - Query组件: queryTypeFilter - 用于数据过滤
+  - Storage组件: storageClassification - 用于数据分类
+  - Transformer组件: transDataRuleListType - 用于映射规则匹配
+  - Data Mapper组件: transDataRuleListType - 用于映射规则匹配 与 Transformer组件 是一样的
 
 
 
@@ -48,21 +48,22 @@
 #### 关键类型
 ```typescript
 // Receiver 组件的能力类型
-export type CapabilityType = 
+export type ReceiverType = 
   | "get-stock-quote"
   | "get-stock-basic-info"
   | "get-index-quote"
   // ... 更多类型
 
 // Storage 组件的数据分类
-export enum DataClassification {
+export enum StorageClassification {
   STOCK_QUOTE = "stock_quote",
   COMPANY_PROFILE = "company_profile",
   // ... 更多分类
 }
 
 // Query 组件的过滤器类型
-export type DataTypeFilter = string;
+export type QueryTypeFilter = string;
+// `QueryTypeFilter` 的枚举值（或者说，有效值列表）就是所有已定义的 `receiverType` 的集合。
 ```
 
 #### 映射配置
@@ -70,8 +71,8 @@ export type DataTypeFilter = string;
 export const FIELD_MAPPING_CONFIG = {
   // Receiver 能力类型到 Storage 数据分类的映射
   CAPABILITY_TO_CLASSIFICATION: {
-    "get-stock-quote": DataClassification.STOCK_QUOTE,
-    "get-stock-basic-info": DataClassification.COMPANY_PROFILE,
+    "get-stock-quote": StorageClassification.STOCK_QUOTE,
+    "get-stock-basic-info": StorageClassification.COMPANY_PROFILE,
     // ... 更多映射
   },
   // 反向映射

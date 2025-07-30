@@ -18,7 +18,7 @@ describe("DataMappingRepository", () => {
     _id: "507f1f77bcf86cd799439011",
     name: "LongPort Stock Quote Mapping",
     provider: "longport",
-    dataRuleListType: "quote_fields",
+    transDataRuleListType: "quote_fields",
     description: "Maps LongPort stock quote data to standard format",
     sharedDataFieldMappings: [
       {
@@ -101,7 +101,7 @@ describe("DataMappingRepository", () => {
       const createDto: CreateDataMappingDto = {
         name: "Test Mapping",
         provider: "test-provider",
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         description: "Test mapping rule",
         sharedDataFieldMappings: [
           {
@@ -136,7 +136,7 @@ describe("DataMappingRepository", () => {
       const createDto: CreateDataMappingDto = {
         name: "Test Mapping",
         provider: "test-provider",
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         sharedDataFieldMappings: [],
       };
 
@@ -235,7 +235,7 @@ describe("DataMappingRepository", () => {
     it("should apply filters correctly", async () => {
       const query: DataMappingQueryDto = {
         provider: "longport",
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         search: "price",
         isActive: true,
       };
@@ -247,7 +247,7 @@ describe("DataMappingRepository", () => {
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
           provider: { $regex: "longport", $options: "i" },
-          dataRuleListType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           isActive: true,
           $or: [
             { name: { $regex: "price", $options: "i" } },
@@ -373,7 +373,7 @@ describe("DataMappingRepository", () => {
 
       const result = await repository.getRuleListTypes();
 
-      expect(model.distinct).toHaveBeenCalledWith("dataRuleListType");
+      expect(model.distinct).toHaveBeenCalledWith("transDataRuleListType");
       expect(result).toEqual([
         "quote_fields",
         "basic_info_fields",

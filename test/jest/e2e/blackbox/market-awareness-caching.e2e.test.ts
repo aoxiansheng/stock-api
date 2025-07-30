@@ -125,7 +125,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       it(`应该正确识别 ${testCase.description}: ${testCase.symbol}`, async () => {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [testCase.symbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -157,7 +157,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
 
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: mixedSymbols,
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -195,7 +195,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       for (const testCase of testCases) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [testCase.symbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -232,7 +232,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       for (let i = 0; i < 3; i++) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [testSymbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -276,7 +276,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       // 第一次查询
       const firstResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -292,7 +292,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       const secondResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        dataTypeFilter: "stock-quote",
+        queryTypeFilter: "stock-quote",
         options: {
           includeMetadata: true
         }
@@ -334,7 +334,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         queryType: "by_symbols",
 
         symbols: testSymbols,
-        dataTypeFilter: "stock-quote",
+        queryTypeFilter: "stock-quote",
         options: {
           includeMetadata: true
         }
@@ -390,7 +390,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       const startTime1 = Date.now();
       const firstResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -410,7 +410,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       const startTime2 = Date.now();
       const secondResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -452,7 +452,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         // 第一次查询
         const firstResponse = await httpClient.post("/api/v1/receiver/data", {
           symbols: [test.symbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -465,7 +465,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         // 立即重复查询
         const secondResponse = await httpClient.post("/api/v1/receiver/data", {
           symbols: [test.symbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,

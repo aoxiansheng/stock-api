@@ -139,7 +139,7 @@ export class ProviderValidationResultDto {
 
   @ApiProperty({ description: "数据类型" })
   @IsString()
-  capabilityType: string;
+  receiverType: string;
 
   @ApiProperty({ description: "市场代码", required: false })
   @IsOptional()

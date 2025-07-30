@@ -235,14 +235,14 @@ jobs:
           -H "Content-Type: application/json" \
           -H "X-App-Key: test" \
           -H "X-Access-Token: test" \
-          -d '{"symbols": ["'\''OR 1=1--"], "capabilityType": "get-stock-quote"}' || true
+          -d '{"symbols": ["'\''OR 1=1--"], "receiverType": "get-stock-quote"}' || true
           
         # 测试XSS防护
         curl -X POST "http://localhost:3001/api/v1/receiver/data" \
           -H "Content-Type: application/json" \
           -H "X-App-Key: test" \
           -H "X-Access-Token: test" \
-          -d '{"symbols": ["<script>alert(1)</script>"], "capabilityType": "get-stock-quote"}' || true
+          -d '{"symbols": ["<script>alert(1)</script>"], "receiverType": "get-stock-quote"}' || true
         
     - name: Stop application
       run: kill $APP_PID

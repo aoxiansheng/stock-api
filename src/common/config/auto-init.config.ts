@@ -337,14 +337,14 @@ export const PRESET_FIELD_DEFINITIONS = {
    *
    * 🔧 配置说明：
    * - provider: "preset" 表示这是系统预设的映射规则
-   * - dataRuleListType: "quote_fields" 标识这是报价字段类型
+   * - transDataRuleListType: "quote_fields" 标识这是报价字段类型
    * - fields: 具体的字段映射规则数组
    */
   stockQuote: {
     name: "Stock Quote Preset Fields",
     description: "股票报价数据的标准字段映射配置",
     provider: "preset",
-    dataRuleListType: "quote_fields",
+    transDataRuleListType: "quote_fields",
     fields: [
       // 主要报价字段
       { source: "secu_quote[].symbol", target: "symbol", desc: "标的代码" },
@@ -467,7 +467,7 @@ export const PRESET_FIELD_DEFINITIONS = {
    *
    * 🔧 配置说明：
    * - provider: "preset" 表示这是系统预设的映射规则
-   * - dataRuleListType: "basic_info_fields" 标识这是基本信息字段类型
+   * - transDataRuleListType: "basic_info_fields" 标识这是基本信息字段类型
    * - fields: 具体的字段映射规则数组
    *
    * 💡 应用场景：
@@ -479,7 +479,7 @@ export const PRESET_FIELD_DEFINITIONS = {
     name: "Stock Basic Info Preset Fields",
     description: "股票基本信息数据的标准字段映射配置",
     provider: "preset",
-    dataRuleListType: "basic_info_fields",
+    transDataRuleListType: "basic_info_fields",
     fields: [
       // 基础信息字段
       {

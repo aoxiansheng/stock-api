@@ -70,7 +70,7 @@ export class ReceiverController {
 \`\`\`json
 {
   "symbols": ["AAPL", "700.HK", "000001.SZ"],
-  "capabilityType": "get-stock-quote",
+  "receiverType": "get-stock-quote",
   "options": {
     "realtime": true,
     "timeout": 3000
@@ -137,7 +137,7 @@ export class ReceiverController {
   async handleDataRequest(@Body(ValidationPipe) request: DataRequestDto) {
     this.logger.log(`接收数据请求`, {
       symbols: request.symbols,
-      capabilityType: request.capabilityType,
+      receiverType: request.receiverType,
       options: request.options,
     });
 
@@ -164,7 +164,7 @@ export class ReceiverController {
         error: error.message,
         stack: error.stack,
         symbols: request.symbols,
-        capabilityType: request.capabilityType,
+        receiverType: request.receiverType,
       });
       throw error;
     }

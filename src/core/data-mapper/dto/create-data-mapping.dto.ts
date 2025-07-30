@@ -92,7 +92,7 @@ export class CreateDataMappingDto {
     "index_fields",
     "market_status_fields",
   ])
-  dataRuleListType: string;
+  transDataRuleListType: string;
 
   @ApiProperty({ description: "规则描述", required: false })
   @IsOptional()

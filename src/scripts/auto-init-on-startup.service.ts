@@ -102,7 +102,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     const stockQuoteConfig = PRESET_FIELD_DEFINITIONS.stockQuote;
     const configId = {
       provider: stockQuoteConfig.provider,
-      dataRuleListType: stockQuoteConfig.dataRuleListType,
+      transDataRuleListType: stockQuoteConfig.transDataRuleListType,
     };
 
     try {
@@ -118,13 +118,13 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         name: stockQuoteConfig.name,
         description: stockQuoteConfig.description,
         provider: stockQuoteConfig.provider,
-        dataRuleListType: stockQuoteConfig.dataRuleListType,
+        transDataRuleListType: stockQuoteConfig.transDataRuleListType,
         version: "1.0.0",
         createdBy: "auto-init",
         isActive: true,
         metadata: {
           source: "LongPort API secu_quote response",
-          queryDataTypeFilter: "stock-quote",
+          querytransDataRuleListType: "stock-quote",
           usage: "target_field_suggestions",
           autoCreated: true,
           lastUpdated: new Date().toISOString(),
@@ -155,7 +155,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     const stockBasicInfoConfig = PRESET_FIELD_DEFINITIONS.stockBasicInfo;
     const configId = {
       provider: stockBasicInfoConfig.provider,
-      dataRuleListType: stockBasicInfoConfig.dataRuleListType,
+      transDataRuleListType: stockBasicInfoConfig.transDataRuleListType,
     };
 
     try {
@@ -171,13 +171,13 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         name: stockBasicInfoConfig.name,
         description: stockBasicInfoConfig.description,
         provider: stockBasicInfoConfig.provider,
-        dataRuleListType: stockBasicInfoConfig.dataRuleListType,
+        transDataRuleListType: stockBasicInfoConfig.transDataRuleListType,
         version: "1.0.0",
         createdBy: "auto-init",
         isActive: true,
         metadata: {
           source: "LongPort API secu_static_info response",
-          queryDataTypeFilter: "get-stock-basic-info",
+          querytransDataRuleListType: "get-stock-basic-info",
           usage: "target_field_suggestions",
           autoCreated: true,
           lastUpdated: new Date().toISOString(),

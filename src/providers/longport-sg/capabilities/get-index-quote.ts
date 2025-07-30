@@ -9,7 +9,7 @@ import { LongportQuoteResponse } from "../types";
  * 注意：此函数需要与 LongportContextService 配合使用
  */
 export const getIndexQuote: ICapability = {
-  name: "get-index-quote", // capabilityType
+  name: "get-index-quote", // receiverType
   description: "获取指数实时报价数据",
   supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH],
   supportedSymbolFormats: ["HSI.HI", "000001.SH", "399001.SZ"],

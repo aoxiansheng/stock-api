@@ -270,7 +270,7 @@ function apiKeyAuthenticationStress(data) {
         method: 'POST',
         body: {
           symbols: ['AAPL.US', 'GOOGL.US'],
-          capabilityType: 'get-stock-quote'
+          receiverType: 'get-stock-quote'
         }
       },
       {

@@ -28,7 +28,7 @@ export class DataMappingRule {
   provider: string;
 
   @Prop({ required: true, trim: true })
-  dataRuleListType: string;
+  transDataRuleListType: string;
 
   @Prop({
     type: [
@@ -85,6 +85,6 @@ DataMappingRuleSchema.methods.toJSON = function () {
 };
 
 // Add indexes for better performance
-DataMappingRuleSchema.index({ provider: 1, dataRuleListType: 1 });
+DataMappingRuleSchema.index({ provider: 1, transDataRuleListType: 1 });
 DataMappingRuleSchema.index({ isActive: 1 });
 DataMappingRuleSchema.index({ createdAt: -1 });

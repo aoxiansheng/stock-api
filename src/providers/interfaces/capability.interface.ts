@@ -2,7 +2,7 @@
  * 数据源能力接口
  */
 export interface ICapability {
-  name: string; // 原 ruleType，现改为 capabilityType 的值存储在 name 字段
+  name: string; // 原 ruleType，现改为 receiverType 的值存储在 name 字段
   description: string;
   supportedMarkets: string[];
   supportedSymbolFormats: string[];

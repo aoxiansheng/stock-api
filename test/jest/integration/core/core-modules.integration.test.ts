@@ -117,7 +117,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该处理完整的股票数据请求流程", async () => {
       const dataRequest = {
         symbols: ["700.HK", "AAPL.US"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -136,7 +136,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确识别混合市场股票代码", async () => {
       const mixedMarketRequest = {
         symbols: ["700.HK", "AAPL.US", "AMD.US"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -154,7 +154,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该处理基本信息数据请求", async () => {
       const basicInfoRequest = {
         symbols: ["700.HK"],
-        capabilityType: "get-stock-basic-info",
+        receiverType: "get-stock-basic-info",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -170,16 +170,16 @@ describe("Core Modules Integration Tests", () => {
     });
 
     it("应该正确处理无效的数据类型请求", async () => {
-      const invalidCapabilityTypeRequest = {
+      const invalidReceiverTypeRequest = {
         symbols: ["700.HK"],
-        capabilityType: "invalid-capability-type",
+        receiverType: "invalid-capability-type",
       };
 
       const response = await request(httpServer)
         .post("/api/v1/receiver/data")
         .set("X-App-Key", testApiKey.appKey)
         .set("X-Access-Token", testApiKey.accessToken)
-        .send(invalidCapabilityTypeRequest)
+        .send(invalidReceiverTypeRequest)
         .expect(400);
 
       expect(response.body.statusCode).toBe(400);
@@ -189,7 +189,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确处理空股票代码列表", async () => {
       const emptySymbolsRequest = {
         symbols: [],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       };
 
       const response = await request(httpServer)
@@ -343,7 +343,7 @@ describe("Core Modules Integration Tests", () => {
       const mappingData = {
         name: "LongPort Stock Quote Mapping",
         provider: "longport",
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         description: "Maps LongPort stock quote data to standard format",
         sharedDataFieldMappings: [
           {
@@ -380,7 +380,7 @@ describe("Core Modules Integration Tests", () => {
     it("should retrieve mapping rules by provider and type", async () => {
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: "longport",
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         sharedDataFieldMappings: [],
       });
 
@@ -392,7 +392,7 @@ describe("Core Modules Integration Tests", () => {
 
       expect(response.body.statusCode).toBe(200);
       expect(response.body.data).toHaveProperty("provider", "longport");
-      expect(response.body.data).toHaveProperty("dataRuleListType", "quote_fields");
+      expect(response.body.data).toHaveProperty("transDataRuleListType", "quote_fields");
       expect(response.body.data).toHaveProperty("id");
       expect(response.body.data).toHaveProperty("name");
     });
@@ -516,22 +516,22 @@ describe("Core Modules Integration Tests", () => {
       // 为Data Mapper创建规则 - 为transformer兼容创建两种映射规则
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: uniqueDataSourceName,
-        dataRuleListType: TestDataHelper.mapCapabilityTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
+        transDataRuleListType: TestDataHelper.mapReceiverTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
         sharedDataFieldMappings: [
           { sourceField: "price", targetField: "lastPrice" },
           { sourceField: "size", targetField: "volume" },
         ],
       });
 
-      // 模拟dataMapperService.findBestMatchingRule以处理capabilityType到ruleListType的映射
+      // 模拟dataMapperService.findBestMatchingRule以处理 receiverType 到ruleListType的映射
       const originalFindBestMatchingRule =
         dataMapperService.findBestMatchingRule;
       jest
         .spyOn(dataMapperService, "findBestMatchingRule")
-        .mockImplementation(async (provider: string, dataRuleListType: string) => {
-          // 如果请求的是capabilityType格式，转换为正确的ruleListType
+        .mockImplementation(async (provider: string, transDataRuleListType: string) => {
+          // 如果请求的是 receiverType 格式，转换为正确的ruleListType
           const mappedRuleListType =
-            TestDataHelper.mapCapabilityTypeToRuleListType(dataRuleListType);
+            TestDataHelper.mapReceiverTypeToRuleListType(transDataRuleListType);
           return await originalFindBestMatchingRule.call(
             dataMapperService,
             provider,
@@ -543,7 +543,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该完成完整的数据请求生命周期", async () => {
       const dataRequest = {
         symbols: ["AAPL.US"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -564,7 +564,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在Symbol Mapper和Data Mapper之间保持数据一致性", async () => {
       const transformRequest = {
         provider: uniqueDataSourceName,
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         rawData: { price: 503.0, size: 1000000, symbol: "AAPL-LP" },
       };
 
@@ -590,7 +590,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在高并发情况下保持数据一致性", async () => {
       const dataRequest = {
         symbols: ["AAPL.US"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -627,22 +627,22 @@ describe("Core Modules Integration Tests", () => {
       });
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: uniqueDataSourceName,
-        dataRuleListType: TestDataHelper.mapCapabilityTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
+        transDataRuleListType: TestDataHelper.mapReceiverTypeToRuleListType("stock-quote"), // 正确的值: quote_fields
         sharedDataFieldMappings: [
           { sourceField: "last_price", targetField: "lastPrice" },
           { sourceField: "vol", targetField: "volume" },
         ],
       });
 
-      // 模拟dataMapperService.findBestMatchingRule以处理capabilityType到ruleListType的映射
+      // 模拟dataMapperService.findBestMatchingRule以处理 receiverType 到ruleListType的映射
       const originalFindBestMatchingRule =
         dataMapperService.findBestMatchingRule;
       jest
         .spyOn(dataMapperService, "findBestMatchingRule")
-        .mockImplementation(async (provider: string, dataRuleListType: string) => {
-          // 如果请求的是capabilityType格式，转换为正确的ruleListType
+        .mockImplementation(async (provider: string, transDataRuleListType: string) => {
+          // 如果请求的是 receiverType 格式，转换为正确的ruleListType
           const mappedRuleListType =
-            TestDataHelper.mapCapabilityTypeToRuleListType(dataRuleListType);
+            TestDataHelper.mapReceiverTypeToRuleListType(transDataRuleListType);
           return await originalFindBestMatchingRule.call(
             dataMapperService,
             provider,
@@ -654,7 +654,7 @@ describe("Core Modules Integration Tests", () => {
     it("should transform data using mapping rules", async () => {
       const transformRequest = {
         provider: uniqueDataSourceName,
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         rawData: { last_price: 503.0, vol: 1000000, symbol: "700.HK" },
       };
 
@@ -675,12 +675,12 @@ describe("Core Modules Integration Tests", () => {
       const batchRequest = [
         {
           provider: uniqueDataSourceName,
-          dataRuleListType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           rawData: { symbol: "700.HK", last_price: 503.0 },
         },
         {
           provider: uniqueDataSourceName,
-          dataRuleListType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           rawData: { symbol: "AAPL.US", last_price: 150.0 },
         },
       ];
@@ -701,7 +701,7 @@ describe("Core Modules Integration Tests", () => {
       // 创建预览请求
       const previewRequest = {
         provider: uniqueDataSourceName,
-        dataRuleListType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         rawData: {
           last_price: 503.0,
           vol: 1000000,
@@ -729,7 +729,7 @@ describe("Core Modules Integration Tests", () => {
       expect(transformMappingRule).toHaveProperty("id");
       expect(transformMappingRule).toHaveProperty("name");
       expect(transformMappingRule.provider).toBe(uniqueDataSourceName);
-      expect(transformMappingRule.dataRuleListType).toBe("quote_fields");
+      expect(transformMappingRule.transDataRuleListType).toBe("quote_fields");
       expect(transformMappingRule.dataFieldMappingsCount).toBeGreaterThan(0);
 
       // 验证样本输入数据
@@ -827,7 +827,7 @@ describe("Core Modules Integration Tests", () => {
       const queryRequest = {
         queryType: "by_symbols",
         symbols: ["700.HK"],
-        dataTypeFilter: "stock-quote",
+        queryTypeFilter: "stock-quote",
         provider: uniqueDataSourceName,
       };
 
@@ -893,7 +893,7 @@ describe("Core Modules Integration Tests", () => {
     it.skip("should handle query with filters and sorting", async () => {
       const queryRequest = {
         queryType: "advanced",
-        dataTypeFilter: "stock-quote",
+        queryTypeFilter: "stock-quote",
         filters: [{ field: "market", operator: "eq", value: "HK" }],
         provider: uniqueDataSourceName,
       };
@@ -925,7 +925,7 @@ describe("Core Modules Integration Tests", () => {
         key: `cache-test-${Date.now()}`,
         data: { symbol: "700.HK", price: 503.0 },
         storageType: "cache",
-        dataClassification: "stock_quote" as any,
+        storageClassification: "stock_quote" as any,
         provider: "test",
         market: "test",
         options: { cacheTtl: 3600 },
@@ -958,7 +958,7 @@ describe("Core Modules Integration Tests", () => {
           key: "cache-miss-test-key",
           data: { test: "data" },
           storageType: "persistent", // 存储到数据库
-          dataClassification: "general" as any,
+          storageClassification: "general" as any,
           provider: "test",
           market: "test",
         })
@@ -1044,7 +1044,7 @@ describe("Core Modules Integration Tests", () => {
         key: `large-data-test-${Date.now()}`,
         data: { largeArray: new Array(1000).fill("test-data") },
         storageType: "cache",
-        dataClassification: "general" as any,
+        storageClassification: "general" as any,
         provider: "test",
         market: "test",
       };
@@ -1105,7 +1105,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确处理数据源超时", async () => {
       const timeoutRequest = {
         symbols: ["MSFT.US"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -1126,7 +1126,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该正确处理无效股票代码", async () => {
       const invalidSymbolRequest = {
         symbols: ["INVALID-CODE"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: uniqueDataSourceName },
       };
 
@@ -1144,7 +1144,7 @@ describe("Core Modules Integration Tests", () => {
     it("应该在映射规则缺失时提供默认处理", async () => {
       const noMappingRequest = {
         symbols: ["NO-MAPPING"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: { preferredProvider: "non-existent-provider" },
       };
 
@@ -1182,7 +1182,7 @@ describe("Core Modules Integration Tests", () => {
           .set("X-Access-Token", testApiKey.accessToken)
           .send({
             symbols: ["700.HK"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
             options: { preferredProvider: uniqueDataSourceName },
           }),
         request(httpServer)
@@ -1191,7 +1191,7 @@ describe("Core Modules Integration Tests", () => {
           .set("X-Access-Token", testApiKey.accessToken)
           .send({
             symbols: ["INVALID-CODE"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
             options: { preferredProvider: uniqueDataSourceName },
           }),
       ];

@@ -61,7 +61,7 @@ describe("Complete Data Flow E2E Tests", () => {
     const mappingRuleData = {
       name: "E2E Test Longport Stock Quote Mapping",
       provider: "longport",
-      dataRuleListType: "quote_fields", // 修正：使用DTO中定义的合法枚举值
+      transDataRuleListType: "quote_fields", // 修正：使用DTO中定义的合法枚举值
       description: "Rule created for E2E testing",
       sharedDataFieldMappings: [
         { sourceField: "symbol", targetField: "symbol" },
@@ -88,7 +88,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK", "AAPL.US"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
           },
@@ -107,7 +107,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US"],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
 
@@ -156,7 +156,7 @@ describe("Complete Data Flow E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: validSymbols,
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           })
           .expect(200);
 
@@ -173,7 +173,7 @@ describe("Complete Data Flow E2E Tests", () => {
           .set("X-Access-Token", authTokens.accessToken)
           .send({
             symbols: ["00700.HK"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           })
           .expect(200);
 
@@ -190,7 +190,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         })
         .expect(200);
 
@@ -219,7 +219,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           provider: "longport",
-          dataRuleListType: "quote_fields", // 修正：与创建的规则保持一致
+          transDataRuleListType: "quote_fields", // 修正：与创建的规则保持一致
           rawData: sampleRawData,
         })
         .expect(201);
@@ -237,7 +237,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         })
         .expect(200);
 
@@ -260,7 +260,7 @@ describe("Complete Data Flow E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: ["700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         })
         .expect(200);
 

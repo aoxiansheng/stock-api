@@ -66,7 +66,7 @@ describe("Storage E2E Tests", () => {
       const storeRequest = {
         key: "test-e2e-storage-key",
         storageType: "both",
-        dataClassification: "stock_quote",
+        storageClassification: "stock_quote",
         provider: "test-provider",
         market: "HK",
         data: {
@@ -103,7 +103,7 @@ describe("Storage E2E Tests", () => {
         .send({
           key,
           storageType: "both",
-          dataClassification: "stock_quote",
+          storageClassification: "stock_quote",
           provider: "test-provider",
           market: "test-market",
           data: { info: "for retrieval test" },
@@ -157,7 +157,7 @@ describe("Storage E2E Tests", () => {
         .map((_, i) => ({
           key: `test-cache-${i}`,
           storageType: "cache",
-          dataClassification: "general",
+          storageClassification: "general",
           provider: "test-provider",
           market: "test-market",
           data: { value: i, timestamp: Date.now() },
@@ -208,7 +208,7 @@ describe("Storage E2E Tests", () => {
       const ttlRequest = {
         key: "test-ttl-key",
         storageType: "cache",
-        dataClassification: "general",
+        storageClassification: "general",
         provider: "test-provider",
         market: "test-market",
         data: { test: "data with ttl" },
@@ -295,7 +295,7 @@ describe("Storage E2E Tests with Admin Role", () => {
     const storeRequest = {
       key,
       storageType: "both" as const,
-      dataClassification: "stock_quote",
+      storageClassification: "stock_quote",
       provider: "test-provider",
       market: "HK",
       data: {

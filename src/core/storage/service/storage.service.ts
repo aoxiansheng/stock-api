@@ -31,7 +31,7 @@ import {
 } from "../dto/storage-internal.dto";
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
 import { StorageQueryDto } from "../dto/storage-query.dto";
-import { StorageType, DataClassification } from "../enums/storage-type.enum";
+import { StorageType, StorageClassification } from "../enums/storage-type.enum";
 import {
   StorageResponseDto,
   StorageStatsDto,
@@ -67,7 +67,7 @@ export class StorageService {
       sanitizeLogData({
         key: request.key,
         storageType: request.storageType,
-        dataClassification: request.dataClassification,
+        storageClassification: request.storageClassification,
       }),
     );
 
@@ -105,7 +105,7 @@ export class StorageService {
           data: compressed
             ? { compressed: true, data: serializedData }
             : JSON.parse(serializedData),
-          dataClassification: request.dataClassification.toString(),
+          storageClassification: request.storageClassification.toString(),
           provider: request.provider,
           market: request.market,
           dataSize,
@@ -118,7 +118,7 @@ export class StorageService {
         this.logger.debug(`准备存储到数据库`, {
           key: request.key,
           hasData: !!documentToStore.data,
-          dataClassification: documentToStore.dataClassification,
+          storageClassification: documentToStore.storageClassification,
           dataSize: documentToStore.dataSize,
         });
 
@@ -139,7 +139,7 @@ export class StorageService {
       const metadata = new StorageMetadataDto(
         request.key,
         request.storageType,
-        request.dataClassification,
+        request.storageClassification,
         request.provider,
         request.market,
         dataSize,
@@ -390,7 +390,7 @@ export class StorageService {
           key: item.key,
           provider: item.provider,
           market: item.market,
-          dataClassification: item.dataClassification,
+          storageClassification: item.storageClassification,
           compressed: item.compressed,
           dataSize: item.dataSize,
           tags: item.tags || [],
@@ -481,7 +481,7 @@ export class StorageService {
     const responseMetadata = new StorageMetadataDto(
       request.key,
       StorageType.CACHE,
-      DataClassification.GENERAL,
+      StorageClassification.GENERAL,
       STORAGE_DEFAULTS.PROVIDER,
       STORAGE_DEFAULTS.MARKET,
       Buffer.byteLength(data),
@@ -556,7 +556,7 @@ export class StorageService {
     const responseMetadata = new StorageMetadataDto(
       document.key,
       StorageType.PERSISTENT,
-      document.dataClassification as any,
+      document.storageClassification as any,
       document.provider,
       document.market,
       document.dataSize,
@@ -587,7 +587,7 @@ export class StorageService {
     const [totalDocs, categoryStats, providerStats, sizeStats] =
       await Promise.all([
         this.storageRepository.countAll(),
-        this.storageRepository.getDataTypeFilterStats(),
+        this.storageRepository.getStorageClassificationStats(),
         this.storageRepository.getProviderStats(),
         this.storageRepository.getSizeStats(),
       ]);

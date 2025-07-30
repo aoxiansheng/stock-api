@@ -106,7 +106,7 @@ function testBaseline() {
   
   const payload = {
     symbols: symbols,
-    capabilityType: 'get-stock-quote',
+    receiverType: 'get-stock-quote',
   };
   
   const startTime = Date.now();
@@ -147,7 +147,7 @@ function testSpikeLoad() {
   
   const payload = {
     symbols: symbols,
-    capabilityType: 'get-stock-quote',
+    receiverType: 'get-stock-quote',
     options: {
       priority: 'high', // 模拟高优先级请求
     },
@@ -190,7 +190,7 @@ function testExtremeLoad() {
   
   const payload = {
     symbols: symbols,
-    capabilityType: 'get-stock-quote',
+    receiverType: 'get-stock-quote',
     options: {
       timeout: 5000,
       retries: 0,
@@ -236,7 +236,7 @@ function testRecovery() {
   
   const payload = {
     symbols: symbols,
-    capabilityType: 'get-stock-quote',
+    receiverType: 'get-stock-quote',
   };
   
   const startTime = Date.now();

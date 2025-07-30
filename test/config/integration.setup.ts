@@ -521,8 +521,8 @@ export class TestDataHelper {
     return await mapping.save();
   }
 
-  // capabilityType 到 dataRuleListType 的映射（统一使用get-前缀格式）
-  static mapCapabilityTypeToRuleListType(capabilityType: string): string {
+  // receiverType 到 transDataRuleListType 的映射（统一使用get-前缀格式）
+  static mapReceiverTypeToRuleListType(receiverType: string): string {
     const mapping = {
       "get-stock-quote": "quote_fields",
       "get-stock-basic-info": "basic_info_fields",
@@ -537,7 +537,7 @@ export class TestDataHelper {
       "get-stock-news": "basic_info_fields",
       "get-crypto-news": "basic_info_fields",
     };
-    return mapping[capabilityType] || "quote_fields";
+    return mapping[receiverType] || "quote_fields";
   }
 
   static async createTestDataMapping(
@@ -547,7 +547,7 @@ export class TestDataHelper {
     const defaultMapping = {
       name: `Test Data Mapping ${Date.now()}`,
       provider: "test-provider",
-      dataRuleListType: "quote_fields",
+      transDataRuleListType: "quote_fields",
       description: "Test data mapping rule",
       sharedDataFieldMappings: [
         {

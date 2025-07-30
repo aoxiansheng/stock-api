@@ -190,7 +190,7 @@ function testInputValidationSecurity(testUsers) {
     { endpoint: '/api/v1/auth/register', field: 'username', method: 'POST' },
     { endpoint: '/api/v1/auth/register', field: 'email', method: 'POST' },
     { endpoint: '/api/v1/receiver/data', field: 'symbols', method: 'POST' },
-    { endpoint: '/api/v1/receiver/data', field: 'capabilityType', method: 'POST' },
+    { endpoint: '/api/v1/receiver/data', field: 'receiverType', method: 'POST' },
   ];
   
   const target = injectionTargets[Math.floor(Math.random() * injectionTargets.length)];
@@ -205,7 +205,7 @@ function testInputValidationSecurity(testUsers) {
   } else if (target.endpoint === '/api/v1/receiver/data') {
     requestBody = {
       symbols: target.field === 'symbols' ? [payload] : ['AAPL.US'],
-      capabilityType: target.field === 'capabilityType' ? payload : 'get-stock-quote',
+      receiverType: target.field === 'receiverType' ? payload : 'get-stock-quote',
     };
   }
   

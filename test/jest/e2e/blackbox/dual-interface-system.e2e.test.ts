@@ -124,7 +124,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
 
       const response = await httpClient.post("/api/v1/receiver/data", {
         symbols: ["700.HK", "AAPL.US", "000001.SZ"],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         options: {
           realtime: true,
           // 移除不支持的timeout参数
@@ -202,7 +202,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       for (const test of marketTests) {
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: [test.symbol],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -233,7 +233,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const response = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: ["700.HK", "AAPL.US"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         options: {
           includeMetadata: true,
           // 移除不支持的includeChangeDetection参数
@@ -284,7 +284,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const response = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: ["700.HK", "AAPL.US", "000001.SZ", "600000.SH"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         // 移除不支持的batchSize参数
       }, {
         headers: {
@@ -328,7 +328,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       // 通过强时效接口获取数据
       const realtimeResponse = await httpClient.post("/api/v1/receiver/data", {
         symbols: [testSymbol],
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -348,7 +348,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const analyticalResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,
@@ -414,7 +414,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
 
         const response = await httpClient.post("/api/v1/receiver/data", {
           symbols: ["700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -446,7 +446,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       const response = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: ["700.HK", "AAPL.US", "000001.SZ", "600000.SH", "00175.HK"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
       }, {
         headers: {
           "X-App-Key": apiKey.appKey,

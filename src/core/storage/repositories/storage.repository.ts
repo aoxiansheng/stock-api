@@ -189,8 +189,8 @@ export class StorageRepository {
       filter.market = query.market;
     }
 
-    if (query.dataClassification) {
-      filter.dataClassification = query.dataClassification.toString();
+    if (query.storageClassification) {
+      filter.storageClassification = query.storageClassification.toString();
     }
 
     if (query.tags && query.tags.length > 0) {
@@ -237,7 +237,7 @@ export class StorageRepository {
     this.logger.debug(`MongoDB upsert 开始`, {
       key: document.key,
       hasData: !!document.data,
-      dataClassification: document.dataClassification,
+      storageClassification: document.storageClassification,
       operation: "upsert",
     });
 
@@ -266,11 +266,11 @@ export class StorageRepository {
     return this.storedDataModel.countDocuments();
   }
 
-  async getDataTypeFilterStats(): Promise<{ _id: string; count: number }[]> {
+  async getStorageClassificationStats(): Promise<{ _id: string; count: number }[]> {
     return this.storedDataModel.aggregate([
       { 
         $group: { 
-          _id: "$dataClassification", 
+          _id: "$storageClassification", 
           count: { $sum: 1 } 
         } 
       },

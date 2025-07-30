@@ -3,8 +3,8 @@
  * 验证新的字段命名系统是否正常工作
  */
 
-import { FieldMappingService } from '../../src/common/modules/field-mapping/services/field-mapping.service';
-import { DataClassification } from '../../src/common/modules/field-mapping/types/field-naming.types';
+import { FieldMappingService } from '../../src/core/shared/service/field-mapping.service';
+import { StorageClassification } from '../../src/core/shared/types/field-naming.types';
 
 describe('字段命名重构集成测试', () => {
   let fieldMappingService: FieldMappingService;
@@ -16,33 +16,33 @@ describe('字段命名重构集成测试', () => {
   describe('能力类型到数据分类的映射', () => {
     it('应该能够将股票报价能力类型映射到数据分类', () => {
       const result = fieldMappingService.capabilityToClassification('get-stock-quote');
-      expect(result).toBe(DataClassification.STOCK_QUOTE);
+      expect(result).toBe(StorageClassification.STOCK_QUOTE);
     });
 
     it('应该能够将基本信息能力类型映射到数据分类', () => {
       const result = fieldMappingService.capabilityToClassification('get-stock-basic-info');
-      expect(result).toBe(DataClassification.COMPANY_PROFILE);
+      expect(result).toBe(StorageClassification.COMPANY_PROFILE);
     });
 
     it('对于未知的能力类型应该返回 GENERAL', () => {
       const result = fieldMappingService.capabilityToClassification('unknown-capability' as any);
-      expect(result).toBe(DataClassification.GENERAL);
+      expect(result).toBe(StorageClassification.GENERAL);
     });
   });
 
   describe('数据分类到能力类型的映射', () => {
     it('应该能够将股票报价数据分类映射到能力类型', () => {
-      const result = fieldMappingService.classificationToCapability(DataClassification.STOCK_QUOTE);
+      const result = fieldMappingService.classificationToCapability(StorageClassification.STOCK_QUOTE);
       expect(result).toBe('get-stock-quote');
     });
 
     it('应该能够将公司概况数据分类映射到能力类型', () => {
-      const result = fieldMappingService.classificationToCapability(DataClassification.COMPANY_PROFILE);
+      const result = fieldMappingService.classificationToCapability(StorageClassification.COMPANY_PROFILE);
       expect(result).toBe('get-stock-basic-info');
     });
 
     it('对于未映射的数据分类应该返回 null', () => {
-      const result = fieldMappingService.classificationToCapability(DataClassification.TRADING_ORDER);
+      const result = fieldMappingService.classificationToCapability(StorageClassification.TRADING_ORDER);
       expect(result).toBe(null);
     });
   });
@@ -50,12 +50,12 @@ describe('字段命名重构集成测试', () => {
   describe('过滤器到分类的映射', () => {
     it('应该能够将能力类型过滤器映射到数据分类', () => {
       const result = fieldMappingService.filterToClassification('get-stock-quote');
-      expect(result).toBe(DataClassification.STOCK_QUOTE);
+      expect(result).toBe(StorageClassification.STOCK_QUOTE);
     });
 
     it('应该能够直接匹配数据分类枚举值', () => {
       const result = fieldMappingService.filterToClassification('stock_quote');
-      expect(result).toBe(DataClassification.STOCK_QUOTE);
+      expect(result).toBe(StorageClassification.STOCK_QUOTE);
     });
 
     it('对于无效的过滤器应该返回 null', () => {
@@ -69,13 +69,13 @@ describe('字段命名重构集成测试', () => {
       const capabilities = ['get-stock-quote', 'get-stock-basic-info'] as any[];
       const result = fieldMappingService.batchCapabilityToClassification(capabilities);
       expect(result).toEqual([
-        DataClassification.STOCK_QUOTE,
-        DataClassification.COMPANY_PROFILE
+        StorageClassification.STOCK_QUOTE,
+        StorageClassification.COMPANY_PROFILE
       ]);
     });
 
     it('应该能够批量转换数据分类到能力类型', () => {
-      const classifications = [DataClassification.STOCK_QUOTE, DataClassification.COMPANY_PROFILE];
+      const classifications = [StorageClassification.STOCK_QUOTE, StorageClassification.COMPANY_PROFILE];
       const result = fieldMappingService.batchClassificationToCapability(classifications);
       expect(result).toEqual(['get-stock-quote', 'get-stock-basic-info']);
     });
@@ -110,7 +110,7 @@ describe('字段命名重构集成测试', () => {
       const oldResult = fieldMappingService.capabilityToClassification(oldFieldValue as any);
       
       expect(newResult).toBe(oldResult);
-      expect(newResult).toBe(DataClassification.STOCK_QUOTE);
+      expect(newResult).toBe(StorageClassification.STOCK_QUOTE);
     });
   });
 });

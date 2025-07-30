@@ -192,7 +192,7 @@ export class QueryRequestDto {
   })
   @IsOptional()
   @IsString()
-  dataTypeFilter?: string;
+  queryTypeFilter?: string;
 
   @ApiPropertyOptional({
     description: '查询选项',

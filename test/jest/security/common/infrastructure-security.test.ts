@@ -497,7 +497,7 @@ describe("Infrastructure Security Tests", () => {
           .set("X-Access-Token", global.securityTestApiToken)
           .send({
             symbols: [payload],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           });
 
         // 应该安全处理Unicode字符
@@ -554,7 +554,7 @@ describe("Infrastructure Security Tests", () => {
           .set("Content-Type", contentType)
           .set("X-App-Key", global.securityTestApiKey)
           .set("X-Access-Token", global.securityTestApiToken)
-          .send('{"symbols":["AAPL.US"],"capabilityType":"stock-quote"}');
+          .send('{"symbols":["AAPL.US"],"receiverType":"stock-quote"}');
 
         // 应该拒绝或安全处理非预期的内容类型
         if (contentType !== "application/json") {

@@ -80,7 +80,7 @@ export class DataRequestDto {
     message: (args) =>
       `不支持的能力类型: ${args.value}。支持的类型包括: ${SUPPORTED_CAPABILITY_TYPES.join(", ")}`,
   })
-  capabilityType: string;
+  receiverType: string;
 
   @ApiPropertyOptional({ description: "请求选项" })
   @IsOptional()

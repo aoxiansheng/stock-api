@@ -35,7 +35,7 @@ describe("StorageRepository", () => {
   const mockStoredData = {
     key: "test-key",
     data: { symbol: "AAPL", price: 150.25 },
-    dataClassification: "stock-quote",
+    storageClassification: "stock-quote",
     provider: "test-provider",
     market: "US",
     dataSize: 1024,
@@ -641,7 +641,7 @@ describe("StorageRepository", () => {
         const document = {
           key: "test-key",
           data: { test: "data" },
-          dataClassification: "test-type",
+          storageClassification: "test-type",
           provider: "test-provider",
           market: "US",
         };
@@ -698,7 +698,7 @@ describe("StorageRepository", () => {
             },
             timestamp: new Date(),
           },
-          dataClassification: "complex-type",
+          storageClassification: "complex-type",
         };
 
         const mockResult = { ...mockStoredData, ...document };
@@ -776,7 +776,7 @@ describe("StorageRepository", () => {
       });
     });
 
-    describe("getDataTypeFilterStats()", () => {
+    describe("getStorageClassificationStats()", () => {
       it("should return data type filter statistics", async () => {
         const mockStats = [
           { _id: "stock-quote", count: 500 },
@@ -785,18 +785,18 @@ describe("StorageRepository", () => {
         ];
         mockStoredDataModel.aggregate.mockResolvedValue(mockStats);
 
-        const result = await repository.getDataTypeFilterStats();
+        const result = await repository.getStorageClassificationStats();
 
         expect(result).toEqual(mockStats);
         expect(mockStoredDataModel.aggregate).toHaveBeenCalledWith([
-          { $group: { _id: "$dataClassification", count: { $sum: 1 } } },
+          { $group: { _id: "$storageClassification", count: { $sum: 1 } } },
         ]);
       });
 
       it("should return empty array when no data exists", async () => {
         mockStoredDataModel.aggregate.mockResolvedValue([]);
 
-        const result = await repository.getDataTypeFilterStats();
+        const result = await repository.getStorageClassificationStats();
 
         expect(result).toEqual([]);
       });
@@ -806,7 +806,7 @@ describe("StorageRepository", () => {
           new Error("Aggregation failed"),
         );
 
-        await expect(repository.getDataTypeFilterStats()).rejects.toThrow(
+        await expect(repository.getStorageClassificationStats()).rejects.toThrow(
           "Aggregation failed",
         );
       });
@@ -908,7 +908,7 @@ describe("StorageRepository", () => {
       const documents = Array.from({ length: 5 }, (_, i) => ({
         key: `key-${i}`,
         data: { index: i },
-        dataClassification: "test",
+        storageClassification: "test",
         provider: "test",
         market: "US",
       }));
@@ -993,7 +993,7 @@ describe("StorageRepository", () => {
           value: `large-data-value-${i}`,
           timestamp: new Date(),
         })),
-        dataClassification: "large-dataset",
+        storageClassification: "large-dataset",
         provider: "test-provider",
         market: "US",
       };
@@ -1023,7 +1023,7 @@ describe("StorageRepository", () => {
       const document = {
         key,
         data,
-        dataClassification: "test",
+        storageClassification: "test",
         provider: "test",
         market: "US",
       };

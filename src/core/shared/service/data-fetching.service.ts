@@ -19,7 +19,7 @@ import { MarketStatusService } from "./market-status.service";
  */
 export interface DataFetchRequest {
   symbol: string;
-  dataTypeFilter?: string;
+  queryTypeFilter?: string;
   market?: Market;
   provider?: string;
 
@@ -81,7 +81,7 @@ export class DataFetchingService {
 
       // 3. 获取数据提供商能力和contextService
       const capabilityInfo = await this.getProviderCapability(
-        request.dataTypeFilter,
+        request.queryTypeFilter,
         request.provider,
       );
       const capability = capabilityInfo;
@@ -107,7 +107,7 @@ export class DataFetchingService {
         "数据获取完成",
         sanitizeLogData({
           symbol: request.symbol,
-          dataTypeFilter: request.dataTypeFilter,
+          queryTypeFilter: request.queryTypeFilter,
           market,
           marketStatus: marketStatus.status,
           mode: request.mode,
@@ -132,7 +132,7 @@ export class DataFetchingService {
         "数据获取失败",
         sanitizeLogData({
           symbol: request.symbol,
-          dataTypeFilter: request.dataTypeFilter,
+          queryTypeFilter: request.queryTypeFilter,
           error: error.message,
         }),
       );
@@ -236,11 +236,11 @@ export class DataFetchingService {
    * 获取数据提供商能力
    */
   private async getProviderCapability(
-    dataTypeFilter: string,
+    queryTypeFilter: string,
     preferredProvider?: string,
   ) {
-    // 直接使用dataTypeFilter作为能力名称（已统一为get-前缀格式）
-    const capabilityName = dataTypeFilter;
+    // 直接使用 queryTypeFilter 作为能力名称（已统一为get-前缀格式）
+    const capabilityName = queryTypeFilter;
 
     // 如果指定了首选提供商，优先使用
     if (preferredProvider) {

@@ -36,7 +36,7 @@ describe("Core Data Security Tests", () => {
           .set("X-Access-Token", validApiKey.accessToken)
           .send({
             symbols: [symbol],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           });
 
         // 应该返回错误或安全地处理，不应该执行恶意代码
@@ -66,15 +66,15 @@ describe("Core Data Security Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: massiveSymbolList,
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         });
 
       // 应该拒绝或限制大批量请求
       expect([400, 413, 429]).toContain(response.status);
     });
 
-    it("应该验证capabilityType参数防止路径遍历", async () => {
-      const maliciousCapabilityTypes = [
+    it("应该验证 receiverType 参数防止路径遍历", async () => {
+      const maliciousReceiverTypes = [
         "../../../etc/passwd",
         "..\\..\\..\\windows\\system32\\config\\sam",
         "file:///etc/passwd",
@@ -83,14 +83,14 @@ describe("Core Data Security Tests", () => {
         "stock-quote\x00admin",
       ];
 
-      for (const capabilityType of maliciousCapabilityTypes) {
+      for (const receiverType of maliciousReceiverTypes) {
         const response = await request
           .post("/api/v1/receiver/data")
           .set("X-App-Key", validApiKey.appKey)
           .set("X-Access-Token", validApiKey.accessToken)
           .send({
             symbols: ["AAPL.US"],
-            capabilityType: capabilityType,
+            receiverType: receiverType,
           });
 
         // 应该拒绝路径遍历攻击
@@ -116,12 +116,12 @@ describe("Core Data Security Tests", () => {
       const maliciousPayloads: any[] = [
         {
           symbols: ["AAPL.US"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
           __proto__: { admin: true },
         },
         {
           symbols: ["AAPL.US"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
           constructor: { prototype: { admin: true } },
         },
       ];
@@ -150,7 +150,7 @@ describe("Core Data Security Tests", () => {
       const maliciousRules: any[] = [
         {
           provider: "test",
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
           rawData: {
             // 尝试代码注入
             maliciousCode: 'require("child_process").exec("rm -rf /")',
@@ -158,7 +158,7 @@ describe("Core Data Security Tests", () => {
         },
         {
           provider: "test",
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
           rawData: {
             // 尝试原型污染
             __proto__: { admin: true },
@@ -182,7 +182,7 @@ describe("Core Data Security Tests", () => {
     it("应该限制数据大小防止内存耗尽", async () => {
       const largeData = {
         provider: "test",
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         rawData: {
           // 创建大量数据
           data: Array.from({ length: 100000 }, (_, i) => ({
@@ -218,7 +218,7 @@ describe("Core Data Security Tests", () => {
           .set("X-Access-Token", validApiKey.accessToken)
           .send({
             provider: "test",
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
             rawData: nestedObject,
           });
 
@@ -390,7 +390,7 @@ describe("Core Data Security Tests", () => {
           .set("X-Access-Token", validApiKey.accessToken)
           .send({
             symbols: ["AAPL.US"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
             attachment: file,
           });
 
@@ -440,7 +440,7 @@ describe("Core Data Security Tests", () => {
               .timeout(10000) // 增加超时时间
               .send({
                 symbols: ["00700.HK"], // 使用有效的港股代码格式
-                capabilityType: "get-stock-quote",
+                receiverType: "get-stock-quote",
               });
           } catch (error) {
             // 返回错误信息而不是抛出异常
@@ -486,7 +486,7 @@ describe("Core Data Security Tests", () => {
         .set("X-Access-Token", validApiKey.accessToken)
         .send({
           symbols: ["NONEXISTENT_SYMBOL.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         });
 
       const endTime = Date.now();
@@ -510,7 +510,7 @@ describe("Core Data Security Tests", () => {
                 { length: 150 },
                 (_, i) => `${String(i).padStart(6, "0")}.HK`,
               ), // 超出100个限制
-              capabilityType: "get-stock-quote",
+              receiverType: "get-stock-quote",
             });
 
           return response;

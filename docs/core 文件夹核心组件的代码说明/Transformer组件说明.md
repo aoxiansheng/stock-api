@@ -7,7 +7,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
 
   1. 智能转换引擎 (TransformerService:50-196)
 
-  - 映射规则查找: 根据provider和dataRuleListType自动匹配或使用指定规则ID
+  - 映射规则查找: 根据provider和transDataRuleListType自动匹配或使用指定规则ID
   - 批量处理优化: 相同规则的请求分组并行处理，提升性能
   - 输出验证: 可选的转换后数据完整性验证
   - 性能监控: 详细的转换时间和统计指标
@@ -28,7 +28,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
   TransformRequestDto (transform-request.dto.ts:30-56)
 
   provider: string              // 数据提供商 (longport, itick等)
-  dataRuleListType: string      // 数据规则列表类型 (对应Data Mapper中的规则分类)
+  transDataRuleListType: string      // 数据规则列表类型 (对应Data Mapper中的规则分类)
   rawData: any                 // 原始业务数据 (任意JSON结构)
   mappingOutRuleId?: string    // 指定映射规则ID (可选，否则自动匹配)
   options?: {
@@ -47,7 +47,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
   ruleId: string              // 应用的映射规则ID
   ruleName: string            // 映射规则名称
   provider: string            // 数据提供商
-  dataRuleListType: string    // 数据规则列表类型
+  transDataRuleListType: string    // 数据规则列表类型
   recordsProcessed: number    // 处理的记录数量
   fieldsTransformed: number   // 转换的字段数量
   processingTime: number      // 处理时间毫秒数
@@ -141,7 +141,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
   // LongPort股票报价转换
   {
     "provider": "longport",
-    "dataRuleListType": "get-stock-quote",
+    "transDataRuleListType": "get-stock-quote",
     "rawData": {
       "secu_quote": [{
         "symbol": "700.HK",
@@ -156,8 +156,8 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
   适用于历史数据迁移、多股票同时处理:
   // 多股票批量转换
   [
-    {provider: "longport", dataRuleListType: "get-stock-quote", rawData: {...}},
-    {provider: "longport", dataRuleListType: "get-stock-quote", rawData: {...}},
+    {provider: "longport", transDataRuleListType: "get-stock-quote", rawData: {...}},
+    {provider: "longport", transDataRuleListType: "get-stock-quote", rawData: {...}},
     // ...最多1000条
   ]
 
@@ -167,7 +167,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
   // 预览转换效果
   {
     "provider": "longport",
-    "dataRuleListType": "get-stock-quote",
+    "transDataRuleListType": "get-stock-quote",
     "rawData": {...}
   }
   // 返回字段映射关系和预期输出，不实际执行
@@ -213,12 +213,12 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
 
    * 接收转换请求:
        * 它的主要入口是 transform 方法，接收一个 TransformRequestDto 对象。
-       * 这个请求对象中包含了关键信息：provider (数据源), dataRuleListType (数据类型), 和 rawData (原始数据)。
+       * 这个请求对象中包含了关键信息：provider (数据源), transDataRuleListType (数据类型), 和 rawData (原始数据)。
 
 
    * 智能规则查找:
        * transformer 的一个核心职责是 自动寻找最合适的映射规则。
-       * 它会调用 findMappingRule 方法，根据请求中的 provider 和 dataRuleListType，去 data-mapper
+       * 它会调用 findMappingRule 方法，根据请求中的 provider 和 transDataRuleListType，去 data-mapper
          中查找一个最匹配的、当前处于激活状态的规则。
        * 当然，也可以通过在请求中直接指定 mappingOutRuleId 来强制使用某一个特定规则。
 

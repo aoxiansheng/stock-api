@@ -175,24 +175,24 @@ async manageUsers(@Body() dto: UserManagementDto) {
 // 🎯 Four-Layer Field Architecture (eliminates dataType confusion)
 {
   // 1. Receiver Layer - Capability routing
-  capabilityType: "get-stock-quote",     // Provider capability routing
+  receiverType: "get-stock-quote",     // Provider capability routing
 
   // 2. Data Mapper/Transformer Layer - Mapping rule types  
-  dataRuleListType: "quote_fields",     // Field mapping rule classification
+  transDataRuleListType: "quote_fields",     // Field mapping rule classification
 
   // 3. Storage Layer - Data classification
-  dataClassification: "stock_quote",    // Storage categorization
+  storageClassification: "stock_quote",    // Storage categorization
 
   // 4. Query Layer - Data filtering
-  dataTypeFilter: "get-stock-quote",    // Query filtering
+  queryTypeFilter: "get-stock-quote",    // Query filtering
 }
 ```
 
 **Naming Format Conventions**:
-- **Capability routing** (`capabilityType`): `kebab-case` - "get-stock-quote"
-- **Mapping rules** (`dataRuleListType`): `snake_case` - "quote_fields"  
-- **Storage classification** (`dataClassification`): `snake_case` - "stock_quote"
-- **Query filtering** (`dataTypeFilter`): `kebab-case` - "get-stock-quote"
+- **Capability routing** (`receiverType`): `kebab-case` - "get-stock-quote"
+- **Mapping rules** (`transDataRuleListType`): `snake_case` - "quote_fields"  
+- **Storage classification** (`storageClassification`): `snake_case` - "stock_quote"
+- **Query filtering** (`queryTypeFilter`): `kebab-case` - "get-stock-quote"
 
 ### Shared Module Usage
 
@@ -283,7 +283,7 @@ curl -X POST http://localhost:3000/api/v1/auth/api-keys \
 curl -X POST http://localhost:3000/api/v1/receiver/data \
   -H "X-App-Key: YOUR_APP_KEY" \
   -H "X-Access-Token: YOUR_ACCESS_TOKEN" \
-  -d '{"symbols": ["700.HK", "AAPL.US"], "capabilityType": "get-stock-quote"}'
+  -d '{"symbols": ["700.HK", "AAPL.US"], "receiverType": "get-stock-quote"}'
 ```
 
 ### Key Endpoints

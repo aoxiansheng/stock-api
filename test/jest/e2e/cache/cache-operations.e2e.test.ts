@@ -117,7 +117,7 @@ describe("Cache Operations E2E Tests", () => {
           timestamp: new Date().toISOString(),
         },
         storageType: "both",
-        dataClassification: "stock_quote",
+        storageClassification: "stock_quote",
         provider: "longport",
         market: "HK",
         options: {
@@ -175,7 +175,7 @@ describe("Cache Operations E2E Tests", () => {
         key: "cache-ttl-test-key",
         data: { test: "ttl data" },
         storageType: "cache",
-        dataClassification: "general",
+        storageClassification: "general",
         provider: "e2e-test",
         market: "NA",
         options: { cacheTtl: 1 }, // 1秒过期

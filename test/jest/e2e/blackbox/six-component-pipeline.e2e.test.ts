@@ -119,7 +119,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
     const mappingRuleData = {
       name: "E2E Test LongPort Quote Mapping",
       provider: "longport",
-      dataRuleListType: "quote_fields",
+      transDataRuleListType: "quote_fields",
       description: "Rule for E2E pipeline test",
       sharedDataFieldMappings: [
         { sourceField: "symbol", targetField: "symbol" },
@@ -157,7 +157,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
   console.log("Step 1: Testing Receiver component...");
   const receiveResponse = await httpClient.post("/api/v1/receiver/data", {
     symbols: [testSymbol],
-    capabilityType: testDataType,
+    receiverType: testDataType,
     options: { realtime: true },
       }, {
         headers: {
@@ -198,7 +198,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         },
         params: {
           provider: "longport",
-          dataRuleListType: "quote_fields",
+          transDataRuleListType: "quote_fields",
         }
       });
 
@@ -213,7 +213,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       if (originalData) {
         const transformResponse = await httpClient.post("/api/v1/transformer/preview", {
           provider: "longport",
-          dataRuleListType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           rawData: originalData,
          // previewOnly: true,
         }, {
@@ -253,7 +253,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       const queryResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        dataTypeFilter: "get-stock-quote", // 使用硬编码的数据类型
+        queryTypeFilter: "get-stock-quote", // 使用硬编码的数据类型
         // includeMetadata: true, // 移除可能导致问题的参数
       }, {
         headers: {
@@ -292,7 +292,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: testSymbols,
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
         {
           headers: {
@@ -312,7 +312,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         {
           queryType: "by_symbols",
           symbols: testSymbols,
-          dataTypeFilter: "get-stock-quote",
+          queryTypeFilter: "get-stock-quote",
         },
         {
           headers: {
@@ -367,7 +367,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
             "/api/v1/receiver/data",
             {
               symbols: [`00700.HK`], // 使用合法的股票代码
-              capabilityType: "get-stock-quote",
+              receiverType: "get-stock-quote",
             },
             {
               headers: {
@@ -407,7 +407,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["INVALID_SYMBOL_TEST_123"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
         {
           headers: {
@@ -439,7 +439,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["00700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
         {
           headers: {
@@ -465,7 +465,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["00700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
         {
           headers: {

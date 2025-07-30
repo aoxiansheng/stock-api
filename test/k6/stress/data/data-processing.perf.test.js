@@ -85,7 +85,7 @@ function getRandomSymbols(count = 5) {
 function generateBatchDataRequest() {
   return {
     symbols: getRandomSymbols(Math.floor(Math.random() * 10) + 1),
-    capabilityType: CAPABILITY_TYPES[Math.floor(Math.random() * CAPABILITY_TYPES.length)],
+    receiverType: CAPABILITY_TYPES[Math.floor(Math.random() * CAPABILITY_TYPES.length)],
     options: {
       includeCache: Math.random() > 0.3, // 70%使用缓存
       validateSymbols: Math.random() > 0.5, // 50%验证符号
@@ -122,7 +122,7 @@ function generateComplexQuery() {
       return {
         queryType: 'by_provider',
         provider: 'longport',
-        capabilityType: CAPABILITY_TYPES[Math.floor(Math.random() * CAPABILITY_TYPES.length)],
+        receiverType: CAPABILITY_TYPES[Math.floor(Math.random() * CAPABILITY_TYPES.length)],
         symbols: getRandomSymbols(3)
       };
     default:
@@ -333,7 +333,7 @@ function dataTransformationWorkflow(data) {
     const transformStart = Date.now();
     const transformResponse = http.post(`${BASE_URL}${API_VERSION}/transformer/transform`, JSON.stringify({
       provider: 'preset',
-      capabilityType: 'get-stock-quote-fields',
+      receiverType: 'get-stock-quote-fields',
       rawData: rawData
     }), {
       headers: {
@@ -369,12 +369,12 @@ function dataTransformationWorkflow(data) {
       transformations: [
         {
           provider: 'preset',
-          capabilityType: 'get-stock-quote-fields',
+          receiverType: 'get-stock-quote-fields',
           rawData: rawData
         },
         {
           provider: 'preset', 
-          capabilityType: 'get-stock-quote-fields',
+          receiverType: 'get-stock-quote-fields',
           rawData: {
             secu_quote: [
               {
@@ -468,7 +468,7 @@ function endToEndDataFlow(data) {
     const symbols = getRandomSymbols(3);
     const dataRequest = {
       symbols: symbols,
-      capabilityType: 'get-stock-quote',
+      receiverType: 'get-stock-quote',
       options: {
         includeCache: false, // 强制从源获取新数据
         storeInCache: true,
@@ -566,7 +566,7 @@ export function highFrequencyDataFlow(data) {
       const symbols = getRandomSymbols(2);
       return http.post(`${BASE_URL}${API_VERSION}/receiver/data`, JSON.stringify({
         symbols: symbols,
-        capabilityType: 'get-stock-quote',
+        receiverType: 'get-stock-quote',
         options: { timeout: 3000 }
       }), {
         headers: {

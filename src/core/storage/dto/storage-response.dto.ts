@@ -79,7 +79,7 @@ export class PaginatedStorageItemDto {
   key: string;
   provider: string;
   market: string;
-  dataClassification: string;
+  storageClassification: string;
   compressed: boolean;
   dataSize: number;
   tags?: string[];

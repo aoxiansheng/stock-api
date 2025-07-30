@@ -18,7 +18,7 @@ import { MarketStatusService } from "../../shared/service/market-status.service"
 import { StringUtils } from "../../shared/utils/string.util";
 import {
   StorageType,
-  DataClassification,
+  StorageClassification,
 } from "../../storage/enums/storage-type.enum";
 import { StorageService } from "../../storage/service/storage.service";
 
@@ -283,7 +283,7 @@ export class QueryService implements OnModuleInit {
     const storageKey = buildStorageKey(
       symbol,
       request.provider,
-      request.dataTypeFilter,
+      request.queryTypeFilter,
       request.market,
     );
 
@@ -327,7 +327,7 @@ export class QueryService implements OnModuleInit {
           this.storeRealtimeData(
             storageKey,
             realtimeResult,
-            request.dataTypeFilter,
+            request.queryTypeFilter,
           ),
         `Store data for symbol ${symbol}`,
       );
@@ -393,7 +393,7 @@ export class QueryService implements OnModuleInit {
 
       const fetchRequest: DataFetchRequest = {
         symbol,
-        dataTypeFilter: request.dataTypeFilter,
+        queryTypeFilter: request.queryTypeFilter,
         market: market as Market,
         provider: request.provider,
         useCache: false, // 强制不使用缓存来获取最新数据
@@ -498,7 +498,7 @@ export class QueryService implements OnModuleInit {
         await this.storeRealtimeData(
           storageKey,
           freshData,
-          request.dataTypeFilter,
+          request.queryTypeFilter,
         );
       } else {
         this.logger.debug(`数据无显著变化，无需更新: ${symbol}`, { queryId });
@@ -514,7 +514,7 @@ export class QueryService implements OnModuleInit {
   private async storeRealtimeData(
     storageKey: string,
     realtimeResult: RealtimeQueryResultDto,
-    dataTypeFilter: string,
+    queryTypeFilter: string,
   ): Promise<void> {
     const { data, metadata } = realtimeResult;
     if (!data) return;
@@ -526,7 +526,7 @@ export class QueryService implements OnModuleInit {
           key: storageKey,
           data: data,
           storageType: StorageType.CACHE,
-          dataClassification: dataTypeFilter as DataClassification,
+          storageClassification: queryTypeFilter as StorageClassification,
           provider: metadata.provider,
           market: metadata.market,
           options: { cacheTtl: metadata.cacheTTL || 300 },
@@ -536,7 +536,7 @@ export class QueryService implements OnModuleInit {
           key: storageKey + ":persistent",
           data: data,
           storageType: StorageType.PERSISTENT,
-          dataClassification: dataTypeFilter as DataClassification,
+          storageClassification: queryTypeFilter as StorageClassification,
           provider: metadata.provider,
           market: metadata.market,
           options: { cacheTtl: 0 }, // MongoDB不过期

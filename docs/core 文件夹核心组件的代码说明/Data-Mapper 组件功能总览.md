@@ -19,7 +19,7 @@
   class DataMappingRule {
     name: string;                    // 映射规则名称
     provider: string;                // 数据提供商 (如: "longport")
-    dataRuleListType: string;           // 规则类型 (quote_fields, basic_info_fields)
+    transDataRuleListType: string;           // 规则类型 (quote_fields, basic_info_fields)
     sharedDataFieldMappings: DataFieldMapping[];   // 字段映射数组
     isActive: boolean;              // 是否激活
     version: string;                // 版本号 (默认"1.0.0")
@@ -180,7 +180,7 @@
 
   - 慢映射阈值: 1秒
   - 批量处理: 支持大数据量映射
-  - 索引优化: {provider: 1, dataRuleListType: 1}
+  - 索引优化: {provider: 1, transDataRuleListType: 1}
 
   🔄 数据转换流程
 
@@ -197,7 +197,7 @@
 
   📝 字段命名规范
 
-  规则类型 (dataRuleListType)
+  规则类型 (transDataRuleListType)
 
   - quote_fields - 股票报价字段
   - basic_info_fields - 基本信息字段
@@ -224,7 +224,7 @@ data-mapper 专注于数据映射这一纯粹的技术任务。
 
    * name: 规则的名称。
    * provider: 规则适用的数据提供商 (e.g., "longport")。
-   * dataRuleListType: 规则的类型 (e.g., "quote_fields")。
+   * transDataRuleListType: 规则的类型 (e.g., "quote_fields")。
    * sharedDataFieldMappings: 最核心的部分，一个定义了所有源字段到目标字段映射关系的数组。
 
 

@@ -298,7 +298,7 @@ function apiKeyAuthenticationBurst(data) {
         method: 'POST',
         body: {
           symbols: ['AAPL.US', 'GOOGL.US', 'TSLA.US'],
-          capabilityType: 'get-stock-quote'
+          receiverType: 'get-stock-quote'
         }
       },
       {

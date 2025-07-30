@@ -115,7 +115,7 @@ export class QueryController {
 {
   "queryType": "by_symbols",
   "symbols": ["AAPL", "MSFT", "700.HK"],
-  "dataTypeFilter": "stock-quote",
+  "queryTypeFilter": "stock-quote",
   "maxAge": 300,
   "options": {
     "useCache": true,
@@ -211,7 +211,7 @@ export class QueryController {
       symbols: request.symbols?.slice(0, 3),
       market: request.market,
       provider: request.provider,
-      dataTypeFilter: request.dataTypeFilter,
+      queryTypeFilter: request.queryTypeFilter,
       limit: request.limit,
     });
 
@@ -308,7 +308,7 @@ export class QueryController {
     required: false,
   })
   @ApiQuery({
-    name: "dataTypeFilter",
+    name: "queryTypeFilter",
     description: "数据类别（可选）",
     example: "get-stock-quote",
     required: false,
@@ -389,7 +389,7 @@ export class QueryController {
     @QueryParam("symbols") symbols: string,
     @QueryParam("provider") provider?: string,
     @QueryParam("market") market?: string,
-    @QueryParam("dataTypeFilter") dataTypeFilter?: string,
+    @QueryParam("queryTypeFilter") queryTypeFilter?: string,
     @QueryParam("limit") limit?: number,
     @QueryParam("page") page?: number,
     @QueryParam("useCache") useCache?: boolean,
@@ -407,7 +407,7 @@ export class QueryController {
       symbols: symbolArray.slice(0, 3),
       provider,
       market,
-      dataTypeFilter,
+      queryTypeFilter,
       limit,
     });
 
@@ -416,7 +416,7 @@ export class QueryController {
       symbols: symbolArray,
       provider,
       market,
-      dataTypeFilter: dataTypeFilter,
+      queryTypeFilter: queryTypeFilter,
       limit: limit || 100,
       page: page || 1,
       options: {
@@ -441,7 +441,7 @@ export class QueryController {
   async queryByMarket(
     @QueryParam("market") market: string,
     @QueryParam("provider") provider?: string,
-    @QueryParam("dataTypeFilter") dataTypeFilter?: string,
+    @QueryParam("queryTypeFilter") queryTypeFilter?: string,
     @QueryParam("limit") limit?: number,
     @QueryParam("page") page?: number,
   ) {
@@ -452,7 +452,7 @@ export class QueryController {
     this.logger.log(`API Request: Query by market`, {
       market,
       provider,
-      dataTypeFilter,
+      queryTypeFilter,
       limit,
     });
 
@@ -460,7 +460,7 @@ export class QueryController {
       queryType: QueryType.BY_MARKET,
       market,
       provider,
-      dataTypeFilter,
+      queryTypeFilter,
       limit: limit || 100,
       page: page || 1,
       options: {
@@ -485,7 +485,7 @@ export class QueryController {
   async queryByProvider(
     @QueryParam("provider") provider: string,
     @QueryParam("market") market?: string,
-    @QueryParam("dataTypeFilter") dataTypeFilter?: string,
+    @QueryParam("queryTypeFilter") queryTypeFilter?: string,
     @QueryParam("limit") limit?: number,
     @QueryParam("page") page?: number,
   ) {
@@ -496,7 +496,7 @@ export class QueryController {
     this.logger.log(`API Request: Query by provider`, {
       provider,
       market,
-      dataTypeFilter,
+      queryTypeFilter,
       limit,
     });
 
@@ -504,7 +504,7 @@ export class QueryController {
       queryType: QueryType.BY_PROVIDER,
       provider,
       market,
-      dataTypeFilter,
+      queryTypeFilter,
       limit: limit || 100,
       page: page || 1,
       options: {
@@ -616,7 +616,7 @@ export class QueryController {
       const testQuery: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["TEST"],
-        dataTypeFilter: "stock-quote",
+        queryTypeFilter: "stock-quote",
         options: {
           useCache: false,
           updateCache: false,

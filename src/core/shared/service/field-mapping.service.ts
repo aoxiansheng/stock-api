@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  CapabilityType,
-  DataClassification,
-  DataTypeFilter,
+  ReceiverType,
+  StorageClassification,
+  QueryTypeFilter,
   FIELD_MAPPING_CONFIG,
 } from '../types/field-naming.types';
 
@@ -16,15 +16,15 @@ export class FieldMappingService {
 
   /**
    * 将 Receiver 的能力类型转换为 Storage 的数据分类
-   * @param capabilityType - Receiver 组件的能力类型
+   * @param receiverType - Receiver 组件的能力类型
    * @returns Storage 组件的数据分类
    */
-  capabilityToClassification(capabilityType: CapabilityType): DataClassification {
-    const classification = FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION[capabilityType];
+  capabilityToClassification(receiverType: ReceiverType): StorageClassification {
+    const classification = FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION[receiverType];
     
     if (!classification) {
-      this.logger.warn(`未知的能力类型: ${capabilityType}，使用默认分类 GENERAL`);
-      return DataClassification.GENERAL;
+      this.logger.warn(`未知的能力类型: ${receiverType}，使用默认分类 GENERAL`);
+      return StorageClassification.GENERAL;
     }
 
     return classification;
@@ -35,7 +35,7 @@ export class FieldMappingService {
    * @param classification - Storage 组件的数据分类
    * @returns Receiver 组件的能力类型
    */
-  classificationToCapability(classification: DataClassification): CapabilityType | null {
+  classificationToCapability(classification: StorageClassification): ReceiverType | null {
     const capability = FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY[classification];
     
     if (!capability) {
@@ -43,18 +43,18 @@ export class FieldMappingService {
       return null;
     }
 
-    return capability as CapabilityType;
+    return capability as ReceiverType;
   }
 
   /**
    * 将 Query 的数据类型过滤器转换为 Storage 的数据分类
-   * @param dataTypeFilter - Query 组件的数据类型过滤器
+   * @param queryTypeFilter - Query 组件的数据类型过滤器
    * @returns Storage 组件的数据分类，如果无法映射则返回 null
    */
-  filterToClassification(dataTypeFilter: DataTypeFilter): DataClassification | null {
+  filterToClassification(queryTypeFilter: QueryTypeFilter): StorageClassification | null {
     // 首先尝试直接匹配数据分类枚举值
-    const directMatch = Object.values(DataClassification).find(
-      classification => classification === dataTypeFilter
+    const directMatch = Object.values(StorageClassification).find(
+      classification => classification === queryTypeFilter
     );
     
     if (directMatch) {
@@ -62,11 +62,11 @@ export class FieldMappingService {
     }
 
     // 然后尝试将其视为能力类型进行转换
-    if (this.isValidCapabilityType(dataTypeFilter)) {
-      return this.capabilityToClassification(dataTypeFilter as CapabilityType);
+    if (this.isValidReceiverType(queryTypeFilter)) {
+      return this.capabilityToClassification(queryTypeFilter as ReceiverType);
     }
 
-    this.logger.warn(`无法将数据类型过滤器转换为数据分类: ${dataTypeFilter}`);
+    this.logger.warn(`无法将数据类型过滤器转换为数据分类: ${queryTypeFilter}`);
     return null;
   }
 
@@ -75,7 +75,7 @@ export class FieldMappingService {
    * @param classification - Storage 组件的数据分类
    * @returns Query 组件可用的数据类型过滤器
    */
-  classificationToFilter(classification: DataClassification): DataTypeFilter {
+  classificationToFilter(classification: StorageClassification): QueryTypeFilter {
     return classification.toString();
   }
 
@@ -84,7 +84,7 @@ export class FieldMappingService {
    * @param value - 要检查的字符串
    * @returns 是否为有效的能力类型
    */
-  private isValidCapabilityType(value: string): boolean {
+  private isValidReceiverType(value: string): boolean {
     const validCapabilities = Object.keys(FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION);
     return validCapabilities.includes(value);
   }
@@ -93,25 +93,25 @@ export class FieldMappingService {
    * 获取所有支持的能力类型
    * @returns 所有支持的能力类型数组
    */
-  getSupportedCapabilityTypes(): CapabilityType[] {
-    return Object.keys(FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION) as CapabilityType[];
+  getSupportedReceiverTypes(): ReceiverType[] {
+    return Object.keys(FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION) as ReceiverType[];
   }
 
   /**
    * 获取所有支持的数据分类
    * @returns 所有支持的数据分类数组
    */
-  getSupportedDataClassifications(): DataClassification[] {
-    return Object.values(DataClassification);
+  getSupportedStorageClassifications(): StorageClassification[] {
+    return Object.values(StorageClassification);
   }
 
   /**
    * 批量转换能力类型到数据分类
-   * @param capabilityTypes - 能力类型数组
+   * @param receiverTypes - 能力类型数组
    * @returns 数据分类数组
    */
-  batchCapabilityToClassification(capabilityTypes: CapabilityType[]): DataClassification[] {
-    return capabilityTypes.map(type => this.capabilityToClassification(type));
+  batchCapabilityToClassification(receiverTypes: ReceiverType[]): StorageClassification[] {
+    return receiverTypes.map(type => this.capabilityToClassification(type));
   }
 
   /**
@@ -119,10 +119,10 @@ export class FieldMappingService {
    * @param classifications - 数据分类数组
    * @returns 能力类型数组（过滤掉无法映射的）
    */
-  batchClassificationToCapability(classifications: DataClassification[]): CapabilityType[] {
+  batchClassificationToCapability(classifications: StorageClassification[]): ReceiverType[] {
     return classifications
       .map(classification => this.classificationToCapability(classification))
-      .filter((capability): capability is CapabilityType => capability !== null);
+      .filter((capability): capability is ReceiverType => capability !== null);
   }
 
   /**
@@ -134,8 +134,8 @@ export class FieldMappingService {
     missingMappings: string[];
     redundantMappings: string[];
   } {
-    const capabilities = this.getSupportedCapabilityTypes();
-    const classifications = this.getSupportedDataClassifications();
+    const capabilities = this.getSupportedReceiverTypes();
+    const classifications = this.getSupportedStorageClassifications();
     
     const capabilityToClassKeys = Object.keys(FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION);
     const classToCapabilityKeys = Object.keys(FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY);

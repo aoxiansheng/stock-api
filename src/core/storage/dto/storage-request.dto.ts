@@ -8,7 +8,7 @@ import {
   IsEnum,
   ValidateNested,
 } from "class-validator";
-import { StorageType, DataClassification } from "../enums/storage-type.enum";
+import { StorageType, StorageClassification } from "../enums/storage-type.enum";
 
 export class StorageOptionsDto {
   @ApiPropertyOptional({ description: "Cache TTL in seconds", default: 3600 })
@@ -56,11 +56,11 @@ export class StoreDataDto {
 
   @ApiProperty({
     description: "Data classification",
-    enum: DataClassification,
-    example: DataClassification.STOCK_QUOTE,
+    enum: StorageClassification,
+    example: StorageClassification.STOCK_QUOTE,
   })
-  @IsEnum(DataClassification)
-  dataClassification: DataClassification;
+  @IsEnum(StorageClassification)
+  storageClassification: StorageClassification;
 
   @ApiProperty({ description: "Data provider source" })
   @IsString()

@@ -77,7 +77,7 @@ describe("Data Mapper E2E Tests", () => {
       // Arrange
       const sampleData = {
         provider: "longport",
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         sampleData: {
           symbol: "700.HK",
           last_done: "503.000",
@@ -117,7 +117,7 @@ describe("Data Mapper E2E Tests", () => {
       // Arrange
       const previewRequest = {
         provider: "preset",
-        dataRuleListType: "get-stock-quote-fields",
+        transDataRuleListType: "get-stock-quote-fields",
         sampleData: {
           secu_quote: [
             {
@@ -148,7 +148,7 @@ describe("Data Mapper E2E Tests", () => {
       // Arrange
       const validationRequest = {
         provider: "test",
-        capabilityType: "get-stock-quote",
+        receiverType: "get-stock-quote",
         mappingRules: {
           last_done: "lastPrice",
           open: "openPrice",
@@ -193,7 +193,7 @@ describe("Data Mapper E2E Tests", () => {
       const ruleListTypes = ["stock-quote", "futures-contract"];
       for (const ruleListType of ruleListTypes) {
         const response = await httpServer
-          .get(`/api/v1/data-mapper?dataRuleListType=${ruleListType}`) // 修正：移除 /rules 并使用正确的查询参数
+          .get(`/api/v1/data-mapper?transDataRuleListType=${ruleListType}`) // 修正：移除 /rules 并使用正确的查询参数
           .set("X-App-Key", authTokens.apiKey)
           .set("X-Access-Token", authTokens.accessToken)
           .expect(200);

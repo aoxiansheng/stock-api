@@ -6,7 +6,7 @@ export interface IDataMapper {
   saveMappingRule(rule: IDataMappingRule): Promise<void>;
   getMappingRule(
     provider: string,
-    dataRuleListType: string,
+    transDataRuleListType: string,
   ): Promise<IDataMappingRule[]>;
 }
 
@@ -28,7 +28,7 @@ export interface IDataMappingRule {
   name: string;
   description?: string;
   provider: string;
-  dataRuleListType: string;
+  transDataRuleListType: string;
   sharedDataFieldMappings: IFieldMapping[];
   isActive: boolean;
   version: string;

@@ -110,7 +110,7 @@ describe("DataFetchingService", () => {
   describe("fetchSingleData", () => {
     const basicRequest: DataFetchRequest = {
       symbol: "AAPL.US",
-      dataTypeFilter: "get-stock-quote",
+      queryTypeFilter: "get-stock-quote",
       market: Market.US,
       mode: "REALTIME",
     };
@@ -151,7 +151,7 @@ describe("DataFetchingService", () => {
     it("should infer market from symbol when market is not provided", async () => {
       const requestWithoutMarket: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         mode: "REALTIME",
       };
 
@@ -310,7 +310,7 @@ describe("DataFetchingService", () => {
     it("should throw NotFoundException for unsupported data type", async () => {
       const requestWithInvalidDataType: DataFetchRequest = {
         ...basicRequest,
-        dataTypeFilter: "unsupported-data-type",
+        queryTypeFilter: "unsupported-data-type",
       };
 
       await expect(
@@ -359,19 +359,19 @@ describe("DataFetchingService", () => {
     const batchRequests: DataFetchRequest[] = [
       {
         symbol: "AAPL.US",
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
       {
         symbol: "GOOGL.US",
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
       {
         symbol: "TSLA.US",
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       },
@@ -605,17 +605,17 @@ describe("DataFetchingService", () => {
       mockCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
 
       const testCases = [
-        { dataTypeFilter: "get-stock-quote", expectedCapability: "get-stock-quote" },
+        { queryTypeFilter: "get-stock-quote", expectedCapability: "get-stock-quote" },
         {
-          dataTypeFilter: "get-stock-basic-info",
+          queryTypeFilter: "get-stock-basic-info",
           expectedCapability: "get-stock-basic-info",
         },
-        { dataTypeFilter: "index-quote", expectedCapability: "index-quote" },
-        { dataTypeFilter: "market-status", expectedCapability: "market-status" },
+        { queryTypeFilter: "index-quote", expectedCapability: "index-quote" },
+        { queryTypeFilter: "market-status", expectedCapability: "market-status" },
       ];
 
-      for (const { dataTypeFilter, expectedCapability } of testCases) {
-        await (service as any).getProviderCapability(dataTypeFilter, "longport");
+      for (const { queryTypeFilter, expectedCapability } of testCases) {
+        await (service as any).getProviderCapability(queryTypeFilter, "longport");
         expect(mockCapabilityRegistry.getCapability).toHaveBeenCalledWith(
           "longport",
           expectedCapability,
@@ -692,7 +692,7 @@ describe("DataFetchingService", () => {
     it("should handle concurrent requests efficiently", async () => {
       const concurrentRequests = Array.from({ length: 10 }, (_, i) => ({
         symbol: `STOCK${i}`,
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME" as const,
       }));
@@ -722,7 +722,7 @@ describe("DataFetchingService", () => {
     it("should handle market status service failures gracefully", async () => {
       const request: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "REALTIME",
       };
@@ -742,7 +742,7 @@ describe("DataFetchingService", () => {
     it("should preserve request options and pass them through", async () => {
       const requestWithComplexOptions: DataFetchRequest = {
         symbol: "AAPL.US",
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         market: Market.US,
         mode: "ANALYTICAL",
         options: {
@@ -783,19 +783,19 @@ describe("DataFetchingService", () => {
       const mixedMarketRequests: DataFetchRequest[] = [
         {
           symbol: "AAPL.US",
-          dataTypeFilter: "get-stock-quote",
+          queryTypeFilter: "get-stock-quote",
           market: Market.US,
           mode: "REALTIME",
         },
         {
           symbol: "0700.HK",
-          dataTypeFilter: "get-stock-quote",
+          queryTypeFilter: "get-stock-quote",
           market: Market.HK,
           mode: "REALTIME",
         },
         {
           symbol: "600000.SH",
-          dataTypeFilter: "get-stock-quote",
+          queryTypeFilter: "get-stock-quote",
           market: Market.SH,
           mode: "REALTIME",
         },
@@ -825,13 +825,13 @@ describe("DataFetchingService", () => {
       const mixedDataTypeRequests: DataFetchRequest[] = [
         {
           symbol: "AAPL.US",
-          dataTypeFilter: "get-stock-quote",
+          queryTypeFilter: "get-stock-quote",
           market: Market.US,
           mode: "REALTIME",
         },
         {
           symbol: "GOOGL.US",
-          dataTypeFilter: "get-stock-basic-info",
+          queryTypeFilter: "get-stock-basic-info",
           market: Market.US,
           mode: "ANALYTICAL",
         },

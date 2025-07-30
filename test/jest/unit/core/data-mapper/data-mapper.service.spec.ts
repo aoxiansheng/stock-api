@@ -21,7 +21,7 @@ describe("DataMapperService", () => {
     _id: "rule-id",
     name: "Test Rule",
     provider: "test-provider",
-    dataRuleListType: "test-type",
+    transDataRuleListType: "test-type",
     sharedDataFieldMappings: [{ sourceField: "a", targetField: "b" }],
     isActive: true,
     version: "1",
@@ -146,7 +146,7 @@ describe("DataMapperService", () => {
       const createDto = {
         name: "Test Rule",
         provider: "test-provider",
-        dataRuleListType: "test-type",
+        transDataRuleListType: "test-type",
         sharedDataFieldMappings: [],
       };
       await service.saveMappingRule(createDto);
@@ -685,7 +685,7 @@ describe("DataMapperService", () => {
         ruleId: "rule-id",
         ruleName: "Test Rule",
         provider: "test-provider",
-        dataRuleListType: "test-type",
+        transDataRuleListType: "test-type",
       });
     });
 
@@ -734,9 +734,9 @@ describe("DataMapperService", () => {
       expect(result.activeRules).toBe(1);
       expect(result.inactiveRules).toBe(1);
       expect(result.providers).toBe(1);
-      expect(result.dataRuleListTypesNum).toBe(1);
+      expect(result.transDataRuleListTypesNum).toBe(1);
       expect(result.providerList).toContain("test-provider");
-      expect(result.dataRuleListTypeList).toContain("test-type");
+      expect(result.transDataRuleListTypeList).toContain("test-type");
     });
 
     it("should calculate inactive rules correctly", async () => {

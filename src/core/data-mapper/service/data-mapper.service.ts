@@ -73,11 +73,11 @@ export class DataMapperService implements IDataMapper {
   // Interface implementation - get mapping rules
   async getMappingRule(
     provider: string,
-    dataRuleListType: string,
+    transDataRuleListType: string,
   ): Promise<DataMappingResponseDto[]> {
     const rules = await this.repository.findByProviderAndType(
       provider,
-      dataRuleListType,
+      transDataRuleListType,
     );
     return rules.map((rule) => DataMappingResponseDto.fromDocument(rule));
   }
@@ -382,7 +382,7 @@ export class DataMapperService implements IDataMapper {
       sanitizeLogData({
         ruleId,
         provider: rule.provider,
-        dataRuleListType: rule.dataRuleListType,
+        transDataRuleListType: rule.transDataRuleListType,
       }),
     );
 
@@ -527,7 +527,7 @@ export class DataMapperService implements IDataMapper {
         ruleId: testDto.ruleId,
         ruleName: rule.name,
         provider: rule.provider,
-        dataRuleListType: rule.dataRuleListType,
+        transDataRuleListType: rule.transDataRuleListType,
         originalData: testDto.testData,
         transformedData,
         success: true,
@@ -550,7 +550,7 @@ export class DataMapperService implements IDataMapper {
 
   // Get statistics
   async getStatistics(): Promise<DataMappingStatisticsDto> {
-    const [totalRules, activeRules, providers, dataRuleListTypesNum] =
+    const [totalRules, activeRules, providers, transDataRuleListTypesNum] =
       await Promise.all([
         this.repository
           .findAllIncludingDeactivated()
@@ -565,20 +565,20 @@ export class DataMapperService implements IDataMapper {
       activeRules,
       inactiveRules: totalRules - activeRules,
       providers: providers.length,
-      dataRuleListTypesNum: dataRuleListTypesNum.length,
+      transDataRuleListTypesNum: transDataRuleListTypesNum.length,
       providerList: providers,
-      dataRuleListTypeList: dataRuleListTypesNum,
+      transDataRuleListTypeList: transDataRuleListTypesNum,
     } as DataMappingStatisticsDto;
   }
 
   // Find best matching rule by provider and rule type
   async findBestMatchingRule(
     provider: string,
-    dataRuleListType: string,
+    transDataRuleListType: string,
   ): Promise<DataMappingResponseDto | null> {
     const rule = await this.repository.findBestMatchingRule(
       provider,
-      dataRuleListType,
+      transDataRuleListType,
     );
     return rule ? DataMappingResponseDto.fromDocument(rule) : null;
   }

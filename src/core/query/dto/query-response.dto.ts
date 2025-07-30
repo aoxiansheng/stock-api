@@ -34,7 +34,7 @@ export class QueryMetadataDto {
     symbols?: string[];
     market?: string;
     provider?: string;
-    dataTypeFilter?: string;
+    queryTypeFilter?: string;
     timeRange?: { start: string; end: string };
     queryFiltersCount?: number;
   };

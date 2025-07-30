@@ -218,7 +218,7 @@ describe("Response Format Standardization Integration", () => {
           .set("x-access-token", accessToken)
           .send({
             symbols: ["700.HK"], // 使用系统中配置的映射格式
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           })
           .expect(200);
 
@@ -245,7 +245,7 @@ describe("Response Format Standardization Integration", () => {
           .set("X-App-Key", "invalid-key")
           .send({
             symbols: ["700.HK"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           })
           .expect(401);
 

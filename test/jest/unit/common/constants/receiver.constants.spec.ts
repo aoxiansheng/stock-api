@@ -29,9 +29,9 @@ describe("Receiver Constants", () => {
       );
       expect(RECEIVER_ERROR_MESSAGES.TOO_MANY_SYMBOLS).toContain("{maxCount}");
       expect(RECEIVER_ERROR_MESSAGES.UNSUPPORTED_DATA_TYPE).toContain(
-        "{capabilityType}",
+        "{receiverType}",
       );
-      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain("{capabilityType}");
+      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain("{receiverType}");
       expect(RECEIVER_ERROR_MESSAGES.PROVIDER_NOT_SUPPORT_CAPABILITY).toContain(
         "{provider}",
       );
@@ -119,10 +119,10 @@ describe("Receiver Constants", () => {
     });
 
     it("should use consistent naming convention", () => {
-      SUPPORTED_CAPABILITY_TYPES.forEach((capabilityType) => {
-        expect(capabilityType).toMatch(/^get-[a-z-]+$/); // get-* pattern with kebab-case
-        expect(capabilityType).not.toContain("_"); // no underscores
-        expect(capabilityType).not.toContain(" "); // no spaces
+      SUPPORTED_CAPABILITY_TYPES.forEach((receiverType) => {
+        expect(receiverType).toMatch(/^get-[a-z-]+$/); // get-* pattern with kebab-case
+        expect(receiverType).not.toContain("_"); // no underscores
+        expect(receiverType).not.toContain(" "); // no spaces
       });
     });
 
@@ -383,8 +383,8 @@ describe("Receiver Constants", () => {
     });
 
     it("should support data type validation", () => {
-      const capabilityType = "get-stock-quote";
-      const isSupported = SUPPORTED_CAPABILITY_TYPES.includes(capabilityType);
+      const receiverType = "get-stock-quote";
+      const isSupported = SUPPORTED_CAPABILITY_TYPES.includes(receiverType);
       expect(isSupported).toBe(true);
       
       const invalidDataType = "stock-quote" as any; // old format

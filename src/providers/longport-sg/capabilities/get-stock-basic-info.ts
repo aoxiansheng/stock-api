@@ -9,7 +9,7 @@ import { LongportBasicInfo } from "../types";
  * 注意：此函数需要与 LongportContextService 配合使用
  */
 export const getStockBasicInfo: ICapability = {
-  name: "get-stock-basic-info", // capabilityType
+  name: "get-stock-basic-info", // receiverType
   description: "获取股票基本信息",
   supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
   supportedSymbolFormats: ["700.HK", "000001.SZ", "600000.SH", "AAPL.US"],

@@ -10,7 +10,7 @@ import {
   IsDate
 } from 'class-validator';
 
-import { StorageType, DataClassification } from '../enums/storage-type.enum';
+import { StorageType, StorageClassification } from '../enums/storage-type.enum';
 
 export class StorageQueryDto {
   @ApiPropertyOptional({ 
@@ -50,11 +50,11 @@ export class StorageQueryDto {
 
   @ApiPropertyOptional({ 
     description: '按数据分类筛选',
-    enum: DataClassification 
+    enum: StorageClassification 
   })
   @IsOptional()
-  @IsEnum(DataClassification)
-  dataClassification?: DataClassification;
+  @IsEnum(StorageClassification)
+  storageClassification?: StorageClassification;
 
   @ApiPropertyOptional({ 
     description: '按提供商筛选' 

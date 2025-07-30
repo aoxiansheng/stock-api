@@ -178,7 +178,7 @@ describe("Real Environment Black-box E2E Tests", () => {
         "/api/v1/receiver/data",
         {
           symbols: testSymbols,
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
           options: {
             preferredProvider: "longport",
             realtime: true,
@@ -258,7 +258,7 @@ describe("Real Environment Black-box E2E Tests", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
         {
           headers: {
@@ -282,7 +282,7 @@ describe("Real Environment Black-box E2E Tests", () => {
         "/api/v1/receiver/data",
         {
           symbols: ["700.HK"],
-          capabilityType: "get-stock-quote",
+          receiverType: "get-stock-quote",
         },
       );
 
@@ -356,7 +356,7 @@ describe("Real Environment Black-box E2E Tests", () => {
           "/api/v1/receiver/data",
           {
             symbols: ["700.HK"],
-            capabilityType: "get-stock-quote",
+            receiverType: "get-stock-quote",
           },
           {
             headers: {

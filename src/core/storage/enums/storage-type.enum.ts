@@ -12,7 +12,7 @@ export enum StorageType {
  *
  * 用于标识不同类型的业务数据，便于分类存储和管理
  */
-export enum DataClassification {
+export enum StorageClassification {
   STOCK_QUOTE = "stock_quote",
   STOCK_CANDLE = "stock_candle",
   STOCK_TICK = "stock_tick",

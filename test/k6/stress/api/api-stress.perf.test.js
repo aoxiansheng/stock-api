@@ -78,7 +78,7 @@ function stressTestBulkRequests() {
   
   const payload = {
     symbols: symbols,
-    capabilityType: 'get-stock-quote',
+    receiverType: 'get-stock-quote',
     options: {
       timeout: 10000, // 较长的超时时间
       retries: 0,     // 不重试，测试真实性能
@@ -148,7 +148,7 @@ function stressTestConcurrentConnections() {
     
     const payload = {
       symbols: symbols,
-      capabilityType: 'get-stock-quote',
+      receiverType: 'get-stock-quote',
     };
     
     // 模拟并发请求（k6中每个虚拟用户本身就是并发的）
@@ -196,7 +196,7 @@ function stressTestResourceExhaustion() {
   
   const payload = {
     symbols: massiveSymbolList,
-    capabilityType: 'get-stock-quote',
+    receiverType: 'get-stock-quote',
     options: {
       includeMetadata: true,
       includeDebugInfo: true,

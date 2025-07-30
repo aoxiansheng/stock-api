@@ -37,7 +37,7 @@ export class TransformRequestDto {
     example: "quote_fields",
   })
   @IsString()
-  dataRuleListType: string;
+  transDataRuleListType: string;
 
   @ApiProperty({ description: "要转换的原始数据" })
   @IsObject()

@@ -96,7 +96,7 @@ export class StorageController {
     this.logger.log(`API Request: Store data`, {
       key: request.key,
       storageType: request.storageType,
-      dataClassification: request.dataClassification,
+      storageClassification: request.storageClassification,
       provider: request.provider,
       market: request.market,
       hasData: !!request.data,
@@ -561,7 +561,7 @@ export class StorageController {
           key: testKey,
           data: testData,
           storageType: StorageType.CACHE,
-          dataClassification: "get-stock-quote" as any,
+          storageClassification: "get-stock-quote" as any,
           provider: "health-test",
           market: "test",
           options: { cacheTtl: 60 },
@@ -591,7 +591,7 @@ export class StorageController {
           key: `${testKey}-persistent`,
           data: testData,
           storageType: StorageType.PERSISTENT,
-          dataClassification: "get-stock-quote" as any,
+          storageClassification: "get-stock-quote" as any,
           provider: "health-test",
           market: "test",
         });

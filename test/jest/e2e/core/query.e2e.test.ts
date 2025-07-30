@@ -55,7 +55,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US"],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -80,7 +80,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_market",
           market: "HK",
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -96,7 +96,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_provider",
           provider: "longport",
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -111,7 +111,7 @@ describe("Query E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           queryType: "by_data_type",
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         })
         .expect(201);
       global.expectSuccessResponse(response, 201);
@@ -129,7 +129,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US"],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
           filters: [{ field: "lastPrice", operator: "gt", value: 100 }],
         })
         .expect(201);
@@ -145,7 +145,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US", "BABA.US"],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
           querySort: { field: "lastPrice", direction: "desc" },
         })
         .expect(201);
@@ -161,7 +161,7 @@ describe("Query E2E Tests", () => {
         .send({
           queryType: "by_symbols",
           symbols: ["700.HK", "AAPL.US", "BABA.US"],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
           limit: 1,
           page: 2,
         })
@@ -224,7 +224,7 @@ describe("Query E2E Tests", () => {
         .map((_, i) => ({
           queryType: "by_symbols",
           symbols: [`test-${i}.HK`],
-          dataTypeFilter: "stock-quote",
+          queryTypeFilter: "stock-quote",
         }));
 
       const startTime = Date.now();

@@ -31,7 +31,7 @@ Storage 是6-component架构中的第5个组件，负责双层存储策略：Red
   key: string                    // 唯一存储键 (支持命名空间如"stock:AAPL:quote")
   data: any                     // 业务数据 (任意JSON格式)
   storageType: StorageType      // 存储类型 (CACHE/PERSISTENT/BOTH)
-  dataClassification: DataClassification // 数据分类 (STOCK_QUOTE等9种类型)
+  storageClassification: StorageClassification // 数据分类 (STOCK_QUOTE等9种类型)
   provider: string              // 数据提供商 (longport, itick等)
   market: string               // 市场标识 (HK, US, SH, SZ等)
   options?: {
@@ -74,7 +74,7 @@ Storage 是6-component架构中的第5个组件，负责双层存储策略：Red
 
   key: string          // 唯一键 (有索引)
   data: Mixed          // 业务数据 (支持压缩存储)
-  dataClassification: string // 数据分类 (有索引)
+  storageClassification: string // 数据分类 (有索引)
   provider: string     // 提供商 (有索引) 
   market: string       // 市场 (有索引)
   dataSize: number     // 数据大小字节
@@ -88,7 +88,7 @@ Storage 是6-component架构中的第5个组件，负责双层存储策略：Red
   1. 复合索引优化
 
   // 查询性能优化索引
-  { dataClassification: 1, provider: 1, market: 1 }  // 业务查询
+  { storageClassification: 1, provider: 1, market: 1 }  // 业务查询
   { storedAt: -1 }                               // 时间排序
   { expiresAt: 1 }                              // TTL过期
   { key: "text" }                               // 文本搜索

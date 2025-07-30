@@ -72,7 +72,7 @@ export class DataMapperController {
     this.logger.log(`API Request: Create data mapping rule`, {
       name: createDto.name,
       provider: createDto.provider,
-      dataRuleListType: createDto.dataRuleListType,
+      transDataRuleListType: createDto.transDataRuleListType,
       dataFieldMappingsCount: createDto.sharedDataFieldMappings.length,
     });
 
@@ -343,7 +343,7 @@ export class DataMapperController {
             name: "Stock Quote Preset Fields",
             description: "股票报价数据的标准字段映射配置",
             provider: "preset",
-            dataRuleListType: "quote_fields",
+            transDataRuleListType: "quote_fields",
             fields: [
               {
                 source: "secu_quote[].last_done",
@@ -356,7 +356,7 @@ export class DataMapperController {
             name: "Stock Basic Info Preset Fields",
             description: "股票基本信息的标准字段映射配置",
             provider: "preset", 
-            dataRuleListType: "basic_info_fields",
+            transDataRuleListType: "basic_info_fields",
             fields: []
           },
           availablePresets: ["stockQuote", "stockBasicInfo"],
@@ -394,19 +394,19 @@ export class DataMapperController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.CONFIG_READ)
-  @Get("best-match/:provider/:dataRuleListType")
+  @Get("best-match/:provider/:transDataRuleListType")
   @ApiOperation({ summary: "Get best matching mapping rule" })
   @ApiParam({ name: "provider", description: "Provider name" })
-  @ApiParam({ name: "dataRuleListType", description: "Rule list type" })
+  @ApiParam({ name: "transDataRuleListType", description: "Rule list type" })
   @ApiSuccessResponse({ type: DataMappingResponseDto })
   @ApiStandardResponses()
   async findBestMatchingRule(
     @Param("provider") provider: string,
-    @Param("dataRuleListType") dataRuleListType: string,
+    @Param("transDataRuleListType") transDataRuleListType: string,
   ) {
     const result = await this.dataMapperService.findBestMatchingRule(
       provider,
-      dataRuleListType,
+      transDataRuleListType,
     );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;

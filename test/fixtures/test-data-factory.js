@@ -163,7 +163,7 @@ export class TestDataFactory {
   static generateDataRequest(options = {}) {
     const defaults = {
       symbolCount: 5,
-      capabilityType: 'get-stock-quote',
+      receiverType: 'get-stock-quote',
       includeOptions: true
     };
     const config = { ...defaults, ...options };
@@ -175,7 +175,7 @@ export class TestDataFactory {
     
     const request = {
       symbols: symbols,
-      capabilityType: config.capabilityType
+      receiverType: config.receiverType
     };
     
     if (config.includeOptions) {
@@ -225,7 +225,7 @@ export class TestDataFactory {
       by_provider: () => ({
         queryType: 'by_provider',
         provider: 'longport',
-        dataTypeFilter: this.DATA_TYPES.primary[Math.floor(Math.random() * this.DATA_TYPES.primary.length)],
+        queryTypeFilter: this.DATA_TYPES.primary[Math.floor(Math.random() * this.DATA_TYPES.primary.length)],
         symbols: this.generateSymbols({ count: 3 })
       }),
       

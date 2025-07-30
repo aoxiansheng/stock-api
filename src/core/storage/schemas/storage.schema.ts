@@ -13,7 +13,7 @@ export class StoredData {
   data: any;
 
   @Prop({ required: true, index: true })
-  dataClassification: string;
+  storageClassification: string;
 
   @Prop({ required: true, index: true })
   provider: string;
@@ -57,7 +57,7 @@ StoredDataSchema.methods.toJSON = function () {
 };
 
 // Add compound indexes for better query performance
-StoredDataSchema.index({ dataClassification: 1, provider: 1, market: 1 });
+StoredDataSchema.index({ storageClassification: 1, provider: 1, market: 1 });
 StoredDataSchema.index({ storedAt: -1 });
 StoredDataSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 

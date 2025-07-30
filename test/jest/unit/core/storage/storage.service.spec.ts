@@ -9,7 +9,7 @@ import {
 } from "../../../../../src/core/storage/dto/storage-request.dto";
 import {
   StorageType,
-  DataClassification,
+  StorageClassification,
 } from "../../../../../src/core/storage/enums/storage-type.enum";
 import * as zlib from "zlib";
 import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
@@ -61,7 +61,7 @@ describe("StorageService", () => {
     _id: "507f1f77bcf86cd799439011",
     key: "test-key",
     data: { symbol: "AAPL", price: 150.75 },
-    dataClassification: DataClassification.STOCK_QUOTE,
+    storageClassification: StorageClassification.STOCK_QUOTE,
     provider: "test-provider",
     market: "US",
     dataSize: 100,
@@ -96,7 +96,7 @@ describe("StorageService", () => {
       countAll: jest.fn().mockResolvedValue(0),
       getCacheStats: jest.fn().mockResolvedValue({ info: null, dbSize: 0 }),
       getAverageTtl: jest.fn().mockResolvedValue(0),
-      getDataTypeFilterStats: jest.fn().mockResolvedValue([]),
+      getStorageClassificationStats: jest.fn().mockResolvedValue([]),
       getProviderStats: jest.fn().mockResolvedValue([]),
       getSizeStats: jest.fn().mockResolvedValue([]),
       findPaginated: jest.fn().mockResolvedValue({ items: [], total: 0 }),
@@ -177,7 +177,7 @@ describe("StorageService", () => {
     const storeRequest: StoreDataDto = {
       key: "test-key",
       data: { symbol: "AAPL", price: 150.75 },
-      dataClassification: DataClassification.STOCK_QUOTE,
+      storageClassification: StorageClassification.STOCK_QUOTE,
       provider: "test-provider",
       market: "US",
       storageType: StorageType.CACHE,
@@ -210,7 +210,7 @@ describe("StorageService", () => {
       expect(storageRepository.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           key: "test-key",
-          dataClassification: DataClassification.STOCK_QUOTE,
+          storageClassification: StorageClassification.STOCK_QUOTE,
           provider: "test-provider",
           market: "US",
         }),
@@ -371,7 +371,7 @@ describe("StorageService", () => {
 
       // Mock persistent stats
       storageRepository.countAll.mockResolvedValue(15);
-      storageRepository.getDataTypeFilterStats.mockResolvedValue([
+      storageRepository.getStorageClassificationStats.mockResolvedValue([
         { _id: "STOCK_QUOTE", count: 10 },
         { _id: "INDEX_QUOTE", count: 5 },
       ]);
@@ -410,7 +410,7 @@ describe("StorageService", () => {
 
       // Mock persistent stats
       storageRepository.countAll.mockResolvedValue(5);
-      storageRepository.getDataTypeFilterStats.mockResolvedValue([]);
+      storageRepository.getStorageClassificationStats.mockResolvedValue([]);
       storageRepository.getProviderStats.mockResolvedValue([]);
       storageRepository.getSizeStats.mockResolvedValue([]);
 

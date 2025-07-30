@@ -19,7 +19,7 @@ import { StorageResponseDto } from "../../../../../src/core/storage/dto/storage-
 import { StorageMetadataDto } from "../../../../../src/core/storage/dto/storage-metadata.dto";
 import {
   StorageType,
-  DataClassification,
+  StorageClassification,
 } from "../../../../../src/core/storage/enums/storage-type.enum";
 import { BackgroundTaskService } from "../../../../../src/core/shared/service/background-task.service";
 import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
@@ -78,7 +78,7 @@ describe("QueryService", () => {
       new StorageMetadataDto(
         `${data.symbol}:key`,
         source === "cache" ? StorageType.CACHE : StorageType.PERSISTENT,
-        DataClassification.STOCK_QUOTE,
+        StorageClassification.STOCK_QUOTE,
         "longport",
         "US",
         Date.now(),
@@ -214,7 +214,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US", // Simulate standardized request after Symbol Mapper
         options: { useCache: true },
@@ -250,7 +250,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "MSFT"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US", // Simulate standardized request after Symbol Mapper
         options: { useCache: true },
@@ -268,7 +268,7 @@ describe("QueryService", () => {
         new StorageMetadataDto(
           "US:longport:get-stock-quote:MSFT",
           StorageType.CACHE,
-          DataClassification.STOCK_QUOTE,
+          StorageClassification.STOCK_QUOTE,
           "longport",
           "US",
           0,
@@ -314,7 +314,7 @@ describe("QueryService", () => {
       const invalidQueryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [], // Invalid: empty symbols
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -333,7 +333,7 @@ describe("QueryService", () => {
       const unsupportedQueryDto: QueryRequestDto = {
         queryType: "BY_MARKET" as any, // Unsupported query type
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -347,7 +347,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -367,7 +367,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["MSFT"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -380,7 +380,7 @@ describe("QueryService", () => {
           new StorageMetadataDto(
             "US:longport:get-stock-quote:MSFT",
             StorageType.CACHE,
-            DataClassification.STOCK_QUOTE,
+            StorageClassification.STOCK_QUOTE,
             "longport",
             "US",
             0,
@@ -407,7 +407,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: false },// Bypass cache
@@ -440,7 +440,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -478,7 +478,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -519,7 +519,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -527,7 +527,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["GOOGL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -564,7 +564,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -572,7 +572,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["GOOGL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -609,7 +609,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -617,7 +617,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -696,7 +696,7 @@ describe("QueryService", () => {
             {
               queryType: QueryType.BY_SYMBOLS,
               symbols: ["AAPL"],
-              dataTypeFilter: "get-stock-quote",
+              queryTypeFilter: "get-stock-quote",
               provider: "longport",
               market: "US",
               options: { useCache: true },
@@ -704,7 +704,7 @@ describe("QueryService", () => {
             {
               queryType: QueryType.BY_SYMBOLS,
               symbols: ["INVALID"],
-              dataTypeFilter: "get-stock-quote",
+              queryTypeFilter: "get-stock-quote",
               provider: "longport",
               market: "US",
               options: { useCache: true },
@@ -787,7 +787,7 @@ describe("QueryService", () => {
             {
               queryType: QueryType.BY_SYMBOLS,
               symbols: ["AAPL"],
-              dataTypeFilter: "get-stock-quote",
+              queryTypeFilter: "get-stock-quote",
               provider: "longport",
               market: "US",
               options: { useCache: true },
@@ -795,7 +795,7 @@ describe("QueryService", () => {
             {
               queryType: QueryType.BY_SYMBOLS,
               symbols: ["INVALID"],
-              dataTypeFilter: "get-stock-quote",
+              queryTypeFilter: "get-stock-quote",
               provider: "longport",
               market: "US",
               options: { useCache: true },
@@ -824,7 +824,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["700.HK"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         // market intentionally omitted to test inference
         options: { useCache: false },
@@ -853,7 +853,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["00700"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -881,7 +881,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -909,7 +909,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["000001.SZ"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -937,7 +937,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["000001"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -965,7 +965,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["300001"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -993,7 +993,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["600000.SH"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -1021,7 +1021,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["600000"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -1049,7 +1049,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["688001"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -1077,7 +1077,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["UNKNOWN123"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -1109,7 +1109,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -1117,7 +1117,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -1185,7 +1185,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -1193,7 +1193,7 @@ describe("QueryService", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID"],
-            dataTypeFilter: "get-stock-quote",
+            queryTypeFilter: "get-stock-quote",
             provider: "longport",
             market: "US",
             options: { useCache: true },
@@ -1222,7 +1222,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -1252,7 +1252,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -1307,7 +1307,7 @@ describe("QueryService", () => {
       const request1: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1315,7 +1315,7 @@ describe("QueryService", () => {
       const request2: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["GOOGL", "AAPL"], // Different order
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1331,7 +1331,7 @@ describe("QueryService", () => {
       const request1: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1339,7 +1339,7 @@ describe("QueryService", () => {
       const request2: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["GOOGL"], // Different symbol
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1356,7 +1356,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: null as any,
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1373,7 +1373,7 @@ describe("QueryService", () => {
     it("should handle undefined symbols in request", async () => {
       const queryDto = {
         queryType: QueryType.BY_SYMBOLS,
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         // symbols intentionally omitted
@@ -1389,7 +1389,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: false },
@@ -1423,7 +1423,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
       };
@@ -1448,7 +1448,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -1461,7 +1461,7 @@ describe("QueryService", () => {
           new StorageMetadataDto(
             "US:longport:get-stock-quote:AAPL",
             StorageType.CACHE,
-            DataClassification.STOCK_QUOTE,
+            StorageClassification.STOCK_QUOTE,
             "longport",
             "US",
             0,
@@ -1500,7 +1500,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["NOTFOUND"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: false },
@@ -1531,7 +1531,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
@@ -1580,7 +1580,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["  aapl  "], // Lowercase with whitespace
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         options: { useCache: false },
       };
@@ -1609,7 +1609,7 @@ describe("QueryService", () => {
       const queryDto: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", undefined, "GOOGL"] as any,
-        dataTypeFilter: "get-stock-quote",
+        queryTypeFilter: "get-stock-quote",
         provider: "longport",
         market: "US",
         options: { useCache: true },
