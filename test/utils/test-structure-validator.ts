@@ -18,8 +18,54 @@ export class TestStructureValidator {
     orphanedTestFiles: [],
     missingTestFiles: [],
     potentialMatches: [],
-    repairPlan: null
+    repairPlan: null,
+    directoryComparison: null
   };
+
+  /**
+   * 9. 对比 src 和 test 子目录结构
+   * 检查test/jest/{category}下的目录结构是否与src目录结构对应
+   */
+  async compareDirectoryStructures(): Promise<DirectoryComparisonResult> {
+    console.log("🔍 步骤9: 对比目录结构...");
+    if (!this.projectStructure) {
+      await this.scanProjectDirectory();
+    }
+
+    const srcDirs = new Set(this.projectStructure.srcDirectories);
+    const testCategories = ['unit', 'integration', 'e2e', 'security'];
+    const comparisonResult: DirectoryComparisonResult = {};
+
+    for (const category of testCategories) {
+      const testSubRoot = path.join(this.testRoot, 'jest', category);
+      
+      // 获取该测试类别下的所有目录
+      const testDirsRaw = await glob(`${testSubRoot}/**/`);
+      const testDirs = new Set(
+        testDirsRaw
+          .map(dir => path.relative(testSubRoot, dir))
+          .filter(dir => dir !== '' && !dir.startsWith('.')) // 过滤空目录和隐藏目录
+          .map(dir => dir.replace(/\/$/, '')) // 移除末尾斜杠
+      );
+
+      // 正向验证：src中存在但test中缺失的目录
+      const missingInTest = [...srcDirs].filter(dir => !testDirs.has(dir));
+      
+      // 反向验证：test中存在但src中不存在的目录（孤立目录）
+      const orphanedInTest = [...testDirs].filter(dir => !srcDirs.has(dir));
+
+      comparisonResult[category] = {
+        missing: missingInTest.sort(),
+        orphaned: orphanedInTest.sort(),
+      };
+
+      console.log(`  📂 ${category}: 缺失${missingInTest.length}个, 多余${orphanedInTest.length}个目录`);
+    }
+
+    this.validationResults.directoryComparison = comparisonResult;
+    console.log("✅ 目录结构对比完成。");
+    return comparisonResult;
+  }
 
   /**
    * 1. 扫描项目目录,确认现有文件目录树和子文件
@@ -135,19 +181,30 @@ export class TestStructureValidator {
    */
   async detectDirectoryMismatches(): Promise<DirectoryMismatch[]> {
     console.log("🔍 步骤4: 检测目录结构不一致...");
-    
     if (!this.projectStructure || !this.testStructure) {
       throw new Error("请先执行扫描步骤");
     }
 
     const mismatches: DirectoryMismatch[] = [];
 
-    // 主要检查单元测试的目录对应关系
-    for (const testFile of this.testStructure.unitTestFiles) {
+    const testFilesToCheck = [
+      ...this.testStructure.unitTestFiles,
+      ...this.testStructure.integrationTestFiles,
+      ...this.testStructure.e2eTestFiles,
+      ...this.testStructure.securityTestFiles,
+    ];
+
+    for (const testFile of testFilesToCheck) {
       const correspondingSrcFile = this.findCorrespondingSourceFile(testFile);
-      
+
       if (correspondingSrcFile) {
-        const testRelDir = this.getRelativeDirectory(testFile, this.testRoot + "/jest/unit");
+        const testCategory = this.determineTestCategory(testFile);
+        if (testCategory === 'unknown' || testCategory === 'k6') {
+          continue;
+        }
+
+        const testTypePath = path.join(this.testRoot, 'jest', testCategory);
+        const testRelDir = this.getRelativeDirectory(testFile, testTypePath);
         const srcRelDir = this.getRelativeDirectory(correspondingSrcFile, this.srcRoot);
 
         if (!this.isValidDirectoryMapping(srcRelDir, testRelDir)) {
@@ -156,17 +213,15 @@ export class TestStructureValidator {
             sourceFile: correspondingSrcFile,
             testDirectory: testRelDir,
             sourceDirectory: srcRelDir,
-            expectedTestPath: this.generateExpectedTestPath(correspondingSrcFile),
-            severity: 'warning'
+            expectedTestPath: this.generateExpectedTestPathWithCategory(correspondingSrcFile, testCategory),
+            severity: 'warning',
           });
         }
       }
     }
 
     this.validationResults.directoryMismatches = mismatches;
-    
     console.log(`✅ 目录结构检查完成: ${mismatches.length} 个不一致项`);
-    
     return mismatches;
   }
 
@@ -298,6 +353,14 @@ export class TestStructureValidator {
   async createRepairPlan(): Promise<RepairPlan> {
     console.log("🔍 步骤7: 制定修复计划...");
     
+    // 计算目录结构问题数量
+    let directoryStructureIssues = 0;
+    if (this.validationResults.directoryComparison) {
+      for (const comparison of Object.values(this.validationResults.directoryComparison)) {
+        directoryStructureIssues += comparison.missing.length + comparison.orphaned.length;
+      }
+    }
+
     const plan: RepairPlan = {
       summary: {
         fileNamingIssues: this.validationResults.fileNamingIssues.length,
@@ -305,6 +368,7 @@ export class TestStructureValidator {
         orphanedTestFiles: this.validationResults.orphanedTestFiles.length,
         potentialMatches: this.validationResults.potentialMatches?.length || 0,
         missingTestFiles: this.validationResults.missingTestFiles.length,
+        directoryStructureIssues: directoryStructureIssues,
         totalIssues: 0
       },
       actions: [],
@@ -312,36 +376,61 @@ export class TestStructureValidator {
       estimatedTime: "5-15分钟"
     };
 
-    // 只将真正的孤立文件计入总问题
+    // 计入所有问题类型
     plan.summary.totalIssues = plan.summary.fileNamingIssues + 
                               plan.summary.directoryMismatches + 
                               plan.summary.orphanedTestFiles + 
-                              plan.summary.missingTestFiles;
+                              plan.summary.missingTestFiles + 
+                              directoryStructureIssues;
 
-    // 1. 文件重命名操作
+    // 阶段1: 创建缺失的目录结构 (必须最先执行)
+    if (this.validationResults.directoryComparison) {
+      for (const [category, comparison] of Object.entries(this.validationResults.directoryComparison)) {
+        // 创建缺失的目录
+        for (const missingDir of comparison.missing) {
+          const targetPath = path.join(this.testRoot, 'jest', category, missingDir);
+          plan.actions.push({
+            type: "create",
+            description: `[阶段1] 创建缺失的测试目录: test/jest/${category}/${missingDir}`,
+            command: `mkdir -p "${targetPath}"`,
+            priority: "high", // 提升优先级，确保最先执行
+            risk: "low",
+            phase: "1-create-dirs" // 添加阶段标识
+          });
+          plan.commands.push(`# 阶段1: 创建缺失目录`);
+          plan.commands.push(`mkdir -p "${targetPath}"`);
+        }
+      }
+    }
+
+    // 阶段2: 文件重命名操作
     const namingResult = await this.validateAndRenameTestFiles();
     for (const renameCmd of namingResult.renameCommands) {
       plan.actions.push({
         type: "rename",
-        description: `重命名文件: ${path.basename(renameCmd.originalPath)} → ${path.basename(renameCmd.suggestedPath)}`,
+        description: `[阶段2] 重命名文件: ${path.basename(renameCmd.originalPath)} → ${path.basename(renameCmd.suggestedPath)}`,
         command: renameCmd.command,
         priority: "high",
-        risk: "low"
+        risk: "low",
+        phase: "2-rename-files"
       });
+      plan.commands.push(`# 阶段2: 文件重命名`);
       plan.commands.push(renameCmd.command);
     }
 
-    // 2. 目录结构调整
+    // 阶段3: 目录结构调整 - 移动测试文件
     for (const mismatch of this.validationResults.directoryMismatches) {
       const targetDir = path.dirname(mismatch.expectedTestPath);
       plan.actions.push({
         type: "move",
-        description: `移动测试文件到正确目录: ${mismatch.testFile} → ${mismatch.expectedTestPath}`,
+        description: `[阶段3] 移动测试文件到正确目录: ${mismatch.testFile} → ${mismatch.expectedTestPath}`,
         command: `mkdir -p "${targetDir}" && mv "${mismatch.testFile}" "${mismatch.expectedTestPath}"`,
         priority: "medium",
-        risk: "low"
+        risk: "low",
+        phase: "3-move-files"
       });
       // 使用独立命令，更安全的方式
+      plan.commands.push(`# 阶段3: 移动测试文件`);
       plan.commands.push(`mkdir -p "${targetDir}"`);
       plan.commands.push(`if [ -f "${mismatch.testFile}" ]; then`);
       plan.commands.push(`  if [ -f "${mismatch.expectedTestPath}" ]; then`);
@@ -355,7 +444,7 @@ export class TestStructureValidator {
       plan.commands.push(`fi`);
     }
 
-    // 3. 处理潜在匹配的文件 - 严格遵循测试类别边界约束
+    // 阶段4: 处理潜在匹配的文件 - 智能移动
     if (this.validationResults.potentialMatches) {
       // 按照置信度排序
       const sortedMatches = [...this.validationResults.potentialMatches].sort((a, b) => b.confidence - a.confidence);
@@ -404,12 +493,13 @@ export class TestStructureValidator {
           
           plan.actions.push({
             type: "move",
-            description: `智能匹配修复: ${path.basename(match.testFile)} → ${path.basename(targetPath)} (置信度: ${(match.confidence * 100).toFixed(1)}%, 严格保持在${category}类别)`,
+            description: `[阶段4] 智能匹配修复: ${path.basename(match.testFile)} → ${path.basename(targetPath)} (置信度: ${(match.confidence * 100).toFixed(1)}%, 严格保持在${category}类别)`,
             command: `mkdir -p "${targetDir}" && mv "${match.testFile}" "${targetPath}"`,
             priority,
-            risk
+            risk,
+            phase: "4-intelligent-move"
           });
-          plan.commands.push(`# 潜在匹配 (置信度: ${(match.confidence * 100).toFixed(1)}%, 类别: ${category})`);
+          plan.commands.push(`# 阶段4: 智能匹配移动 (置信度: ${(match.confidence * 100).toFixed(1)}%, 类别: ${category})`);
           plan.commands.push(`mkdir -p "${targetDir}"`);
           
           // 使用更安全的方式处理文件移动
@@ -427,32 +517,61 @@ export class TestStructureValidator {
       }
     }
 
-    // 4. 删除真正多余的文件
-    for (const orphaned of this.validationResults.orphanedTestFiles) {
-      plan.actions.push({
-        type: "delete",
-        description: `删除孤立测试文件: ${orphaned.testFile} (${orphaned.reason})`,
-        command: `# 真正孤立文件\nrm "${orphaned.testFile}"`,
-        priority: "low",
-        risk: "medium"
-      });
-      plan.commands.push(`# 真正孤立文件`);
-      plan.commands.push(`rm "${orphaned.testFile}"`);
-    }
-
-    // 5. 创建缺失的测试文件
+    // 阶段5: 创建缺失的测试文件
     for (const missing of this.validationResults.missingTestFiles) {
       if (missing.priority === "high") {
         const targetDir = path.dirname(missing.expectedTestPath);
         plan.actions.push({
           type: "create",
-          description: `创建测试文件: ${missing.expectedTestPath}`,
+          description: `[阶段5] 创建测试文件: ${missing.expectedTestPath}`,
           command: `mkdir -p "${targetDir}" && touch "${missing.expectedTestPath}"`,
           priority: "high",
-          risk: "low"
+          risk: "low",
+          phase: "5-create-files"
         });
+        plan.commands.push(`# 阶段5: 创建缺失测试文件`);
         plan.commands.push(`mkdir -p "${targetDir}"`);
         plan.commands.push(`touch "${missing.expectedTestPath}"`);
+      }
+    }
+
+    // 阶段6: 删除真正孤立的测试文件
+    for (const orphaned of this.validationResults.orphanedTestFiles) {
+      plan.actions.push({
+        type: "delete",
+        description: `[阶段6] 删除孤立测试文件: ${orphaned.testFile} (${orphaned.reason})`,
+        command: `rm "${orphaned.testFile}"`,
+        priority: "low",
+        risk: "medium",
+        phase: "6-delete-orphaned-files"
+      });
+      plan.commands.push(`# 阶段6: 删除孤立文件`);
+      plan.commands.push(`rm "${orphaned.testFile}"`);
+    }
+
+    // 阶段7: 检测并删除空的冗余目录 (在所有文件移动完成后)
+    if (this.validationResults.directoryComparison) {
+      for (const [category, comparison] of Object.entries(this.validationResults.directoryComparison)) {
+        // 处理可能为空的冗余目录
+        for (const orphanedDir of comparison.orphaned) {
+          const orphanedPath = path.join(this.testRoot, 'jest', category, orphanedDir);
+          plan.actions.push({
+            type: "delete",
+            description: `[阶段7] 检查并删除空的冗余目录: test/jest/${category}/${orphanedDir} (src/中无对应目录)`,
+            command: `# 检查目录是否为空并删除\nif [ -d "${orphanedPath}" ] && [ -z "$(ls -A "${orphanedPath}")" ]; then\n  rmdir "${orphanedPath}"\n  echo "已删除空目录: ${orphanedPath}"\nelse\n  echo "目录非空或不存在，跳过: ${orphanedPath}"\nfi`,
+            priority: "low",
+            risk: "low", // 降低风险，因为只删除空目录
+            phase: "7-cleanup-empty-dirs"
+          });
+          plan.commands.push(`# 阶段7: 清理空的冗余目录`);
+          plan.commands.push(`# 检查并删除空目录: ${orphanedPath}`);
+          plan.commands.push(`if [ -d "${orphanedPath}" ] && [ -z "$(ls -A "${orphanedPath}")" ]; then`);
+          plan.commands.push(`  rmdir "${orphanedPath}"`);
+          plan.commands.push(`  echo "✅ 已删除空目录: ${orphanedPath}"`);
+          plan.commands.push(`else`);
+          plan.commands.push(`  echo "⚠️  目录非空或不存在，跳过: ${orphanedPath}"`);
+          plan.commands.push(`fi`);
+        }
       }
     }
 
@@ -505,6 +624,7 @@ export class TestStructureValidator {
       const directoryMismatches = await this.detectDirectoryMismatches();
       const orphanedFiles = await this.detectOrphanedTestFiles();
       const missingFiles = await this.detectMissingTestFiles();
+      const directoryComparisonResult = await this.compareDirectoryStructures();
       const repairPlan = await this.createRepairPlan();
 
       const endTime = Date.now();
@@ -519,7 +639,8 @@ export class TestStructureValidator {
         orphanedFiles,
         missingFiles,
         repairPlan,
-        recommendations: this.generateRecommendations()
+        recommendations: this.generateRecommendations(),
+        directoryComparisonResult
       };
 
       this.printSummaryReport(summary);
@@ -572,6 +693,10 @@ export class TestStructureValidator {
       recommendations.push(`✨ 创建 ${plan.summary.missingTestFiles} 个缺失的测试文件`);
     }
 
+    if (plan.summary.directoryStructureIssues > 0) {
+      recommendations.push(`📁 修复 ${plan.summary.directoryStructureIssues} 个目录结构问题 (创建缺失目录/处理多余目录)`);
+    }
+
     if (plan.summary.totalIssues === 0 && plan.summary.potentialMatches === 0) {
       recommendations.push("✅ 测试结构完全符合规范，无需修复");
     } else {
@@ -619,6 +744,51 @@ export class TestStructureValidator {
 
     // 打印详细的文件列表
     this.printDetailedFileLists();
+
+    console.log("\n📁 目录结构对比 (test/jest/{category} vs src):");
+    if (summary.directoryComparisonResult) {
+      for (const [category, result] of Object.entries(summary.directoryComparisonResult)) {
+        console.log(`\n  📂 ${category} 测试类别:`);
+        const missingCount = result.missing.length;
+        const orphanedCount = result.orphaned.length;
+
+        if (missingCount === 0 && orphanedCount === 0) {
+          console.log("      ✅ 目录结构完全对应src目录");
+        } else {
+          if (missingCount > 0) {
+            console.log(`      ❌ 缺失的目录 (${missingCount}个) - 需要在test/jest/${category}/下创建:`);
+            // 只显示前5个，如果太多则折叠
+            result.missing.slice(0, 5).forEach(dir => console.log(`        📁 ${dir}`));
+            if (missingCount > 5) {
+              console.log(`        ... (还有 ${missingCount - 5} 个)`);
+            }
+          }
+          if (orphanedCount > 0) {
+            console.log(`      🗑️  多余的目录 (${orphanedCount}个) - src/中不存在对应目录:`);
+            result.orphaned.slice(0, 5).forEach(dir => console.log(`        📁 ${dir}`));
+            if (orphanedCount > 5) {
+              console.log(`        ... (还有 ${orphanedCount - 5} 个)`);
+            }
+          }
+        }
+      }
+      
+      // 添加修复建议
+      const totalMissing = Object.values(summary.directoryComparisonResult)
+        .reduce((sum, result) => sum + result.missing.length, 0);
+      const totalOrphaned = Object.values(summary.directoryComparisonResult)
+        .reduce((sum, result) => sum + result.orphaned.length, 0);
+        
+      if (totalMissing > 0 || totalOrphaned > 0) {
+        console.log(`\n  💡 目录结构修复建议:`);
+        if (totalMissing > 0) {
+          console.log(`      - 共需创建 ${totalMissing} 个缺失目录以保持结构对应`);
+        }
+        if (totalOrphaned > 0) {
+          console.log(`      - 共有 ${totalOrphaned} 个多余目录可能需要重命名或删除`);
+        }
+      }
+    }
 
     console.log("\n🚀 后续操作:");
     console.log("  1. 查看详细列表: bun run test:validate-structure:list");
@@ -756,12 +926,16 @@ export class TestStructureValidator {
       const dirPath = path.dirname(relativePath);
       
       if (dirPath !== ".") {
+        // 添加当前目录
         dirs.add(dirPath);
         
-        // 添加所有父目录
-        const parts = dirPath.split("/");
-        for (let i = 1; i < parts.length; i++) {
-          dirs.add(parts.slice(0, i + 1).join("/"));
+        // 添加所有父目录层级
+        const parts = dirPath.split("/").filter(part => part !== '');
+        for (let i = 0; i < parts.length; i++) {
+          const currentPath = parts.slice(0, i + 1).join("/");
+          if (currentPath) {
+            dirs.add(currentPath);
+          }
         }
       }
     }
@@ -1136,14 +1310,6 @@ export class TestStructureValidator {
     if (srcDir.includes('/core/') && testDir === srcDir.replace('/core/', '/')) return true;
     if (testDir.includes('/core/') && srcDir === testDir.replace('/core/', '/')) return true;
     
-    // 模块级别匹配
-    const srcParts = srcDir.split('/');
-    const testParts = testDir.split('/');
-    
-    if (srcParts.length > 0 && testParts.length > 0 && srcParts[0] === testParts[0]) {
-      return true;
-    }
-    
     return false;
   }
 
@@ -1300,7 +1466,7 @@ export class TestStructureValidator {
   private buildRepairScript(plan: RepairPlan): string {
     const script = [
       "#!/bin/bash",
-      "# 测试结构自动修复脚本",
+      "# 测试结构自动修复脚本 - 按阶段执行",
       "# 由 TestStructureValidator 自动生成",
       "",
       "set -e  # 遇到错误时停止执行",
@@ -1313,6 +1479,7 @@ export class TestStructureValidator {
       `echo '   - 真正孤立文件: ${plan.summary.orphanedTestFiles} 个'`, 
       `echo '   - 潜在匹配文件: ${plan.summary.potentialMatches} 个'`,
       `echo '   - 缺失测试文件: ${plan.summary.missingTestFiles} 个'`,
+      `echo '   - 目录结构问题: ${plan.summary.directoryStructureIssues} 个'`,
       `echo '   - 总计需修复问题: ${plan.summary.totalIssues} 个'`,
       "",
       "# 确认是否执行修复",
@@ -1329,261 +1496,174 @@ export class TestStructureValidator {
       ""
     ];
 
-    // 按操作类型分组
-    const fileRenames = plan.actions.filter(a => a.type === 'rename');
-    const directoryMoves = plan.actions.filter(a => a.type === 'move' && !a.description.includes('智能匹配'));
-    const intelligentMatches = plan.actions.filter(a => a.type === 'move' && a.description.includes('智能匹配'));
-    const orphanedFiles = plan.actions.filter(a => a.type === 'delete');
-    const missingFiles = plan.actions.filter(a => a.type === 'create');
+    // 按阶段分组操作
+    const phase1CreateDirs = plan.actions.filter(a => a.phase === '1-create-dirs');
+    const phase2RenameFiles = plan.actions.filter(a => a.phase === '2-rename-files');
+    const phase3MoveFiles = plan.actions.filter(a => a.phase === '3-move-files');
+    const phase4IntelligentMove = plan.actions.filter(a => a.phase === '4-intelligent-move');
+    const phase5CreateFiles = plan.actions.filter(a => a.phase === '5-create-files');
+    const phase6DeleteOrphanedFiles = plan.actions.filter(a => a.phase === '6-delete-orphaned-files');
+    const phase7CleanupEmptyDirs = plan.actions.filter(a => a.phase === '7-cleanup-empty-dirs');
 
-    // 1. 文件重命名
-    if (fileRenames.length > 0) {
-      script.push("echo '🏷️  执行文件重命名操作...'");
-      script.push("mkdir -p \"${backup_dir}/renames\"");
+    // 阶段1: 创建缺失的目录结构
+    if (phase1CreateDirs.length > 0) {
+      script.push("echo '📁 [阶段1] 创建缺失的目录结构...'");
+      phase1CreateDirs.forEach(action => {
+        script.push(`echo '  ${action.description}'`);
+        script.push(action.command);
+      });
+      script.push("echo '✅ 阶段1 完成: 目录结构已创建'");
+      script.push("");
+    }
+
+    // 阶段2: 文件重命名
+    if (phase2RenameFiles.length > 0) {
+      script.push("echo '🏷️  [阶段2] 执行文件重命名操作...'");
+      script.push("mkdir -p \"${backup_dir}/phase2-renames\"");
       
-      fileRenames.forEach(action => {
-        // 安全处理命令解析，避免索引错误
+      phase2RenameFiles.forEach(action => {
         const cmdParts = action.command.split(' ');
-        const origPath = cmdParts.length > 3 ? cmdParts[3].replace(/"/g, '') : action.description.split(' → ')[0];
-        const fileName = path.basename(origPath);
+        const origPath = cmdParts.length > 1 ? cmdParts[1].replace(/"/g, '') : '';
+        const fileName = path.basename(origPath || 'unknown');
         
         script.push(`echo '  ${action.description}'`);
-        script.push(`cp "${origPath}" "\${backup_dir}/renames/${fileName}" 2>/dev/null || true`);
+        if (origPath) {
+          script.push(`cp "${origPath}" "\${backup_dir}/phase2-renames/${fileName}" 2>/dev/null || true`);
+        }
         script.push(action.command);
       });
+      script.push("echo '✅ 阶段2 完成: 文件重命名完成'");
       script.push("");
     }
 
-    // 2. 目录结构调整
-    if (directoryMoves.length > 0) {
-      script.push("echo '📁 执行目录结构调整...'");
-      script.push("mkdir -p \"${backup_dir}/moves\"");
+    // 阶段3: 移动测试文件到正确目录
+    if (phase3MoveFiles.length > 0) {
+      script.push("echo '📂 [阶段3] 移动测试文件到正确目录...'");
+      script.push("mkdir -p \"${backup_dir}/phase3-moves\"");
       
-      directoryMoves.forEach(action => {
+      phase3MoveFiles.forEach(action => {
         script.push(`echo '  ${action.description}'`);
-        // 安全处理命令解析
-        const cmdSplit = action.command.split(' && mv ');
-        const origPath = cmdSplit.length > 1 ? 
-          cmdSplit[1].split(' ')[0].replace(/"/g, '') : 
-          action.description.split(' → ')[0];
-        const fileName = path.basename(origPath);
-        script.push(`cp "${origPath}" "\${backup_dir}/moves/${fileName}" 2>/dev/null || true`);
+        // 提取原始路径进行备份
+        const origPathMatch = action.description.match(/移动测试文件到正确目录: (.+?) →/);
+        if (origPathMatch) {
+          const origPath = origPathMatch[1];
+          const fileName = path.basename(origPath);
+          script.push(`cp "${origPath}" "\${backup_dir}/phase3-moves/${fileName}" 2>/dev/null || true`);
+        }
         script.push(action.command);
       });
+      script.push("echo '✅ 阶段3 完成: 测试文件移动完成'");
       script.push("");
     }
 
-    // 3. 智能匹配处理 - 严格遵守测试类别边界
-    if (intelligentMatches.length > 0) {
-      script.push("echo '🔄 执行智能匹配处理 (严格遵守测试类别边界)...'");
-      script.push("mkdir -p \"${backup_dir}/intelligent_matches\"");
+    // 阶段4: 智能匹配处理
+    if (phase4IntelligentMove.length > 0) {
+      script.push("echo '🔄 [阶段4] 执行智能匹配处理...'");
+      script.push("mkdir -p \"${backup_dir}/phase4-intelligent-matches\"");
       
-      // 首先按测试类别分组
-      const categoryGroups = new Map<string, typeof intelligentMatches>();
-      intelligentMatches.forEach(action => {
-        // 从描述中提取类别信息
-        const categoryMatch = action.description.match(/严格保持在(\w+)类别/);
-        const category = categoryMatch ? categoryMatch[1] : 'unknown';
-        
-        // 如果无法确定类别，跳过
-        if (category === 'unknown') return;
-        
-        if (!categoryGroups.has(category)) {
-          categoryGroups.set(category, []);
-        }
-        categoryGroups.get(category)!.push(action);
-      });
+      const highConfidence = phase4IntelligentMove.filter(a => a.priority === 'high');
+      const mediumConfidence = phase4IntelligentMove.filter(a => a.priority === 'medium');
+      const lowConfidence = phase4IntelligentMove.filter(a => a.priority === 'low');
       
-      // 然后在每个类别内按置信度分组
-      for (const [category, actions] of categoryGroups.entries()) {
-        script.push(`echo '  📂 ${category} 类别测试文件 (不跨类别):'`);
-        script.push(`  echo '    📌 注意: 只在 ${category} 测试类别内部移动文件，不进行跨类别移动'`);
-        
-        // 按置信度分组
-        const highConfidence = actions.filter(a => a.priority === 'high');
-        const mediumConfidence = actions.filter(a => a.priority === 'medium');
-        const lowConfidence = actions.filter(a => a.priority === 'low');
-        
-        if (highConfidence.length > 0) {
-          script.push("  echo '    ⭐ 高置信度匹配 (>80%)...'");
-          highConfidence.forEach(action => {
-            // 验证源文件和目标路径在同一个测试类别
-            // 安全处理命令解析
-            const cmdParts = action.command.split(' && mv ');
-            let origPath = '', destPath = '';
-            
-            if (cmdParts.length > 1) {
-              const parts = cmdParts[1].split(' ');
-              if (parts.length > 0) origPath = parts[0].replace(/"/g, '');
-              if (parts.length > 1) destPath = parts[1].replace(/"/g, '');
-            } else {
-              // 回退到从描述中提取
-              const descParts = action.description.split(' → ');
-              if (descParts.length > 0) origPath = descParts[0];
-              if (descParts.length > 1) destPath = descParts[1].split(' (')[0];
-            }
-            
-            const fileName = path.basename(origPath);
-            
-            // 确认操作前再次验证不会跨越类别边界
-            script.push(`  # 验证类别一致性: ${category}`);
-            script.push(`  echo '      ${action.description}'`);
-            script.push(`  cp "${origPath}" "\${backup_dir}/intelligent_matches/${category}_high_${fileName}" 2>/dev/null || true`);
-            
-            // 使用安全移动命令替代原始命令
-            const moveCommands = this.createSafeMoveCommand(origPath, destPath, '  ');
-            moveCommands.forEach(cmd => script.push(cmd));
-          });
-        }
-        
-        if (mediumConfidence.length > 0) {
-          script.push("  echo '    ✓ 中置信度匹配 (50-80%)...'");
-          mediumConfidence.forEach(action => {
-            // 安全处理命令解析
-            const medCmdParts = action.command.split(' && mv ');
-            const origPath = medCmdParts.length > 1 && medCmdParts[1].split(' ').length > 0 ? 
-              medCmdParts[1].split(' ')[0].replace(/"/g, '') : 
-              action.description.split(' → ')[0];
-            const fileName = path.basename(origPath);
-            script.push(`  echo '      ${action.description}'`);
-            script.push(`  cp "${origPath}" "\${backup_dir}/intelligent_matches/${category}_medium_${fileName}" 2>/dev/null || true`);
-            
-            // 解析目标路径
-            let destPath = '';
-            const moveCmdParts = action.command.split(' && mv ');
-            if (moveCmdParts.length > 1) {
-              const parts = moveCmdParts[1].split(' ');
-              if (parts.length > 1) {
-                destPath = parts[1].replace(/"/g, '');
-              }
-            }
-            
-            // 使用安全移动命令
-            if (destPath) {
-              const moveCommands = this.createSafeMoveCommand(origPath, destPath, '  ');
-              moveCommands.forEach(cmd => script.push(cmd));
-            } else {
-              script.push(`  # 无法解析目标路径，使用原始命令`);
-              script.push(`  ${action.command}`);
-            }
-          });
-        }
-        
-        if (lowConfidence.length > 0) {
-          script.push("  echo '    ❓ 低置信度匹配 (<50%)...'");
-          script.push(`  read -p "是否处理${category}类别的低置信度匹配? (y/n): " process_low_${category.replace(/[^a-z0-9]/gi, '_')}`);
-          script.push(`  if [[ $process_low_${category.replace(/[^a-z0-9]/gi, '_')} == "y" ]]; then`);
-          lowConfidence.forEach(action => {
-            // 安全处理命令解析
-            const lowCmdParts = action.command.split(' && mv ');
-            const origPath = lowCmdParts.length > 1 && lowCmdParts[1].split(' ').length > 0 ? 
-              lowCmdParts[1].split(' ')[0].replace(/"/g, '') : 
-              action.description.split(' → ')[0];
-            const fileName = path.basename(origPath);
-            script.push(`    echo '      ${action.description}'`);
-            script.push(`    cp "${origPath}" "\${backup_dir}/intelligent_matches/${category}_low_${fileName}" 2>/dev/null || true`);
-            
-            // 解析目标路径
-            let lowDestPath = '';
-            const lowMoveParts = action.command.split(' && mv ');
-            if (lowMoveParts.length > 1) {
-              const parts = lowMoveParts[1].split(' ');
-              if (parts.length > 1) {
-                lowDestPath = parts[1].replace(/"/g, '');
-              }
-            }
-            
-            // 使用安全移动命令
-            if (lowDestPath) {
-              const moveCommands = this.createSafeMoveCommand(origPath, lowDestPath, '    ');
-              moveCommands.forEach(cmd => script.push(cmd));
-            } else {
-              script.push(`    # 无法解析目标路径，使用原始命令`);
-              script.push(`    ${action.command}`);
-            }
-          });
-          script.push("  else");
-          script.push(`    echo '    跳过${category}类别的低置信度匹配'`);
-          script.push("  fi");
-        }
+      if (highConfidence.length > 0) {
+        script.push("echo '  ⭐ 高置信度匹配 (>80%)...'");
+        highConfidence.forEach(action => {
+          script.push(`echo '    ${action.description}'`);
+          script.push(action.command);
+        });
       }
       
+      if (mediumConfidence.length > 0) {
+        script.push("echo '  ✓ 中置信度匹配 (50-80%)...'");
+        mediumConfidence.forEach(action => {
+          script.push(`echo '    ${action.description}'`);
+          script.push(action.command);
+        });
+      }
+      
+      if (lowConfidence.length > 0) {
+        script.push("echo '  ❓ 低置信度匹配 (<50%)...'");
+        script.push("read -p \"是否处理低置信度匹配? (y/n): \" process_low");
+        script.push("if [[ $process_low == \"y\" ]]; then");
+        lowConfidence.forEach(action => {
+          script.push(`  echo '    ${action.description}'`);
+          script.push(`  ${action.command}`);
+        });
+        script.push("else");
+        script.push("  echo '  跳过低置信度匹配'");
+        script.push("fi");
+      }
+      
+      script.push("echo '✅ 阶段4 完成: 智能匹配处理完成'");
       script.push("");
     }
 
-    // 4. 删除孤立文件
-    if (orphanedFiles.length > 0) {
-      script.push("echo '🗑️  处理孤立测试文件...'");
-      script.push("mkdir -p \"${backup_dir}/orphaned\"");
+    // 阶段5: 创建缺失测试文件
+    if (phase5CreateFiles.length > 0) {
+      script.push("echo '✨ [阶段5] 创建缺失测试文件...'");
+      phase5CreateFiles.forEach(action => {
+        script.push(`echo '  ${action.description}'`);
+        script.push(action.command);
+      });
+      script.push("echo '✅ 阶段5 完成: 缺失测试文件已创建'");
+      script.push("");
+    }
+
+    // 阶段6: 删除孤立测试文件
+    if (phase6DeleteOrphanedFiles.length > 0) {
+      script.push("echo '🗑️  [阶段6] 处理孤立测试文件...'");
+      script.push("mkdir -p \"${backup_dir}/phase6-orphaned\"");
       script.push("read -p \"确认删除孤立测试文件? (y/n): \" delete_orphaned");
       script.push("if [[ $delete_orphaned == \"y\" ]]; then");
       
-      orphanedFiles.forEach(action => {
-        // 安全处理命令解析
-        let filePath = '';
-        try {
-          const cmdLines = action.command.split('\n');
-          if (cmdLines.length > 1) {
-            const parts = cmdLines[1].split(' ');
-            if (parts.length > 1) {
-              filePath = parts[1].replace(/"/g, '');
-            }
-          }
-        } catch (e) {
-          // 回退到从描述中提取
-          filePath = action.description.split(' (')[0];
-        }
-        
-        // 确保有一个有效的路径
-        if (!filePath && action.description) {
-          filePath = action.description.replace(/删除孤立测试文件: /g, '').split(' ')[0];
-        }
-        
-        const fileName = path.basename(filePath || 'unknown_file');
-        script.push(`  echo '  ${action.description}'`);
-        
-        if (filePath) {
-          script.push(`  cp "${filePath}" "\${backup_dir}/orphaned/${fileName}" 2>/dev/null || true`);
-          script.push(`  rm "${filePath}"`);
-        } else {
-          script.push(`  echo "  ⚠️ 无法解析文件路径，跳过此项"`);
+      phase6DeleteOrphanedFiles.forEach(action => {
+        const filePathMatch = action.description.match(/删除孤立测试文件: (.+?) \(/);
+        if (filePathMatch) {
+          const filePath = filePathMatch[1];
+          const fileName = path.basename(filePath);
+          script.push(`  echo '  ${action.description}'`);
+          script.push(`  cp "${filePath}" "\${backup_dir}/phase6-orphaned/${fileName}" 2>/dev/null || true`);
+          script.push(`  ${action.command}`);
         }
       });
       
       script.push("else");
       script.push("  echo '  跳过删除孤立文件'");
       script.push("fi");
+      script.push("echo '✅ 阶段6 完成: 孤立文件处理完成'");
       script.push("");
     }
 
-    // 5. 创建缺失文件
-    if (missingFiles.length > 0) {
-      script.push("echo '✨ 创建缺失测试文件...'");
-      
-      missingFiles.forEach(action => {
+    // 阶段7: 清理空的冗余目录
+    if (phase7CleanupEmptyDirs.length > 0) {
+      script.push("echo '🧹 [阶段7] 清理空的冗余目录...'");
+      phase7CleanupEmptyDirs.forEach(action => {
         script.push(`echo '  ${action.description}'`);
-        script.push(action.command);
+        // 执行安全的空目录检查和删除
+        const commands = action.command.split('\\n');
+        commands.forEach(cmd => {
+          if (cmd.trim()) {
+            script.push(cmd);
+          }
+        });
       });
+      script.push("echo '✅ 阶段7 完成: 空目录清理完成'");
       script.push("");
     }
 
-    script.push("echo '✅ 测试结构修复完成!'");
+    script.push("echo '🎉 所有阶段修复完成!'");
     script.push("echo '💡 备份已保存到 ${backup_dir} 目录'");
     script.push("echo '🔍 建议运行验证确认修复结果：bun run test:validate-structure'");
     script.push("");
     
-    // 添加询问是否删除脚本的部分
-    script.push("# 询问是否删除此脚本");
+    // 询问是否删除脚本
     script.push("read -p \"是否删除此修复脚本? (y/n): \" delete_script");
     script.push("if [[ $delete_script == \"y\" ]]; then");
-    script.push("  script_path=\"$(readlink -f \"$0\")\"");
-    script.push("  echo \"删除脚本: ${script_path}\"");
-    script.push("  rm \"${script_path}\"");
+    script.push("  rm \"$0\"");
     script.push("  echo \"脚本已删除\"");
     script.push("else");
     script.push("  echo \"保留脚本文件\"");
     script.push("fi");
-    script.push("");
 
     return script.join("\n");
   }
@@ -1710,6 +1790,7 @@ interface RepairAction {
   command: string;
   priority: 'high' | 'medium' | 'low';
   risk: 'low' | 'medium' | 'high';
+  phase?: string; // 修复阶段标识
 }
 
 interface RepairPlan {
@@ -1719,6 +1800,7 @@ interface RepairPlan {
     orphanedTestFiles: number;
     potentialMatches: number;
     missingTestFiles: number;
+    directoryStructureIssues: number;
     totalIssues: number;
   };
   actions: RepairAction[];
@@ -1733,6 +1815,7 @@ interface ValidationResults {
   missingTestFiles: MissingTestFile[];
   potentialMatches: PotentialMatch[];
   repairPlan: RepairPlan | null;
+  directoryComparison: DirectoryComparisonResult | null;
 }
 
 interface PotentialMatch {
@@ -1761,6 +1844,11 @@ interface ValidationSummary {
   missingFiles: MissingTestFile[];
   repairPlan: RepairPlan;
   recommendations: string[];
+  directoryComparisonResult: DirectoryComparisonResult;
+}
+
+interface DirectoryComparisonResult {
+  [key: string]: { missing: string[]; orphaned: string[] };
 }
 
 // ========== 便捷函数 ==========
@@ -1823,6 +1911,22 @@ if (require.main === module) {
         console.log(`✨ 缺失测试文件: ${summary.repairPlan.summary.missingTestFiles} 个`);
         console.log("\n生成修复脚本，执行下面的命令:");
         console.log("bun run node -e \"require('./test/utils/test-structure-validator').generateQuickRepairScript()\"");
+      }
+      
+      if (summary.directoryComparisonResult) {
+        console.log("\n\n📁 目录结构对比:");
+        for (const [category, result] of Object.entries(summary.directoryComparisonResult)) {
+          console.log(`\n--- ${category} ---`);
+          if (result.missing.length > 0) {
+            console.log(`  ❌ test中缺失的目录: \n    - ${result.missing.join('\n    - ')}`);
+          }
+          if (result.orphaned.length > 0) {
+            console.log(`  🗑️ test中多余的目录: \n    - ${result.orphaned.join('\n    - ')}`);
+          }
+          if (result.missing.length === 0 && result.orphaned.length === 0) {
+            console.log("  ✅ 目录结构与src完全一致");
+          }
+        }
       }
     })
     .catch(console.error);
