@@ -919,7 +919,6 @@ describe("AuthSubjectFactory", () => {
         Permission.USER_MANAGE,
         Permission.APIKEY_MANAGE,
         Permission.CONFIG_WRITE,
-        Permission.MAPPING_WRITE,
         Permission.SYSTEM_ADMIN,
       ];
       

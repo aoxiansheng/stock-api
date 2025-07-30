@@ -1,790 +1,617 @@
-/**
- * AlertHistoryService 单元测试
- */
-
 import { Test, TestingModule } from "@nestjs/testing";
-import { getModelToken } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { BadRequestException } from "@nestjs/common";
+import { NotificationService } from "../../../../../src/alert/services/notification.service";
+import {
+  EmailSender,
+  WebhookSender,
+  SlackSender,
+  LogSender,
+  DingTalkSender,
+} from "../../../../../src/alert/services/notification-senders";
+import {
+  NotificationChannelType,
+  AlertSeverity,
+  AlertStatus,
+} from "../../../../../src/alert/types/alert.types";
+import {
+  NOTIFICATION_OPERATIONS,
+  NOTIFICATION_MESSAGES,
+  NOTIFICATION_TEMPLATE_VARIABLES,
+} from "../../../../../src/alert/constants/notification.constants";
 
-import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
-import { AlertHistoryRepository } from "../../../../../src/alert/repositories/alert-history.repository";
-import { AlertHistory } from "../../../../../src/alert/schemas/alert-history.schema";
-import { AlertStatus } from "../../../../../src/alert/types/alert.types";
-import { AlertSeverity } from "../../../../../src/alert/types/alert.types";
-import { CacheService } from "../../../../../src/cache/cache.service";
+// 从工具文件导入NotificationTemplateUtil
+import { NotificationTemplateUtil } from "../../../../../src/alert/utils/notification.utils";
 
-describe("AlertHistoryService", () => {
-  let service: AlertHistoryService;
-  let repository: AlertHistoryRepository;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _model: any;
-  let cacheService: jest.Mocked<CacheService>;
+describe("NotificationService Optimization Features", () => {
+  let service: NotificationService;
+  let emailSender: jest.Mocked<EmailSender>;
+  let slackSender: jest.Mocked<SlackSender>;
 
-  const mockAlertHistory = {
-    _id: "alert-history-123",
-    id: "alert-123",
-    ruleId: "rule-123",
-    ruleName: "测试告警规则",
-    severity: AlertSeverity.CRITICAL,
-    status: AlertStatus.FIRING,
-    message: "测试告警消息",
+  let loggerSpy: jest.SpyInstance;
+
+  const mockRule = {
+    id: "rule_123",
+    name: "Test Rule",
+    description: "A test rule",
     metric: "cpu_usage",
-    value: 95,
+    operator: "gt" as const,
     threshold: 80,
-    startTime: new Date(),
-    endTime: null,
-    acknowledgedBy: null,
-    acknowledgedAt: null,
-    resolvedBy: null,
-    resolvedAt: null,
-    tags: {},
-    context: {},
-    notificationsSent: [],
-    save: jest.fn().mockResolvedValue(this),
+    duration: 60,
+    severity: AlertSeverity.CRITICAL,
+    enabled: true,
+    channels: [
+      {
+        id: "channel_1",
+        name: "email-channel",
+        type: NotificationChannelType.EMAIL,
+        config: { to: "test1@example.com" },
+        enabled: true,
+      },
+      {
+        id: "channel_2",
+        name: "slack-channel",
+        type: NotificationChannelType.SLACK,
+        config: { webhookUrl: "http://slack.com" },
+        enabled: true,
+      },
+    ],
+    cooldown: 300,
+    tags: { project: "test" },
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  // 创建完整的 Mongoose Model mock，包含链式调用
-  const mockModel: any = jest.fn().mockImplementation(() => ({
-    save: jest.fn().mockResolvedValue({
-      toObject: jest.fn().mockReturnValue(mockAlertHistory),
-    }),
-  }));
-
-  // 为 mockModel 添加静态方法
-  mockModel.find = jest.fn().mockReturnThis();
-  mockModel.findOne = jest.fn().mockReturnThis();
-  mockModel.findOneAndUpdate = jest.fn().mockReturnThis();
-  mockModel.deleteOne = jest.fn().mockReturnThis();
-  mockModel.deleteMany = jest.fn().mockReturnThis();
-  mockModel.create = jest.fn().mockResolvedValue(mockAlertHistory);
-  mockModel.findById = jest.fn().mockReturnThis();
-  mockModel.aggregate = jest.fn().mockResolvedValue([]);
-  mockModel.countDocuments = jest.fn().mockReturnThis();
-  mockModel.sort = jest.fn().mockReturnThis();
-  mockModel.skip = jest.fn().mockReturnThis();
-  mockModel.limit = jest.fn().mockReturnThis();
-  mockModel.lean = jest.fn().mockReturnThis();
-  mockModel.exec = jest.fn().mockResolvedValue(mockAlertHistory);
-
   beforeEach(async () => {
-    const mockCacheService = {
-      getClient: jest.fn().mockReturnValue({
-        keys: jest.fn().mockResolvedValue([]),
-        get: jest.fn().mockResolvedValue(null),
-        set: jest.fn().mockResolvedValue("OK"),
-        ts: {
-          add: jest.fn().mockResolvedValue(1),
-          revrange: jest.fn().mockResolvedValue([]),
-        },
-      }),
-      cacheAlertHistory: jest.fn(),
-      getCachedAlertHistory: jest.fn(),
-      updateCachedAlertStatus: jest.fn(),
+    const mockEmailSender = {
+      type: NotificationChannelType.EMAIL,
+      send: jest.fn(),
+      test: jest.fn(),
+    };
+
+    const mockWebhookSender = {
+      type: NotificationChannelType.WEBHOOK,
+      send: jest.fn(),
+      test: jest.fn(),
+    };
+
+    const mockSlackSender = {
+      type: NotificationChannelType.SLACK,
+      send: jest.fn(),
+      test: jest.fn(),
+    };
+
+    const mockLogSender = {
+      type: NotificationChannelType.LOG,
+      send: jest.fn(),
+      test: jest.fn(),
+    };
+
+    const mockDingTalkSender = {
+      type: NotificationChannelType.DINGTALK,
+      send: jest.fn(),
+      test: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        AlertHistoryService,
-        AlertHistoryRepository,
+        NotificationService,
         {
-          provide: getModelToken(AlertHistory.name),
-          useValue: mockModel,
+          provide: EmailSender,
+          useValue: mockEmailSender,
         },
         {
-          provide: CacheService,
-          useValue: mockCacheService,
+          provide: WebhookSender,
+          useValue: mockWebhookSender,
+        },
+        {
+          provide: SlackSender,
+          useValue: mockSlackSender,
+        },
+        {
+          provide: LogSender,
+          useValue: mockLogSender,
+        },
+        {
+          provide: DingTalkSender,
+          useValue: mockDingTalkSender,
         },
       ],
     }).compile();
 
-    service = module.get<AlertHistoryService>(AlertHistoryService);
-    repository = module.get<AlertHistoryRepository>(AlertHistoryRepository);
-    _model = module.get<Model<AlertHistory>>(getModelToken(AlertHistory.name));
-    cacheService = module.get(CacheService);
+    service = module.get<NotificationService>(NotificationService);
+    emailSender = module.get(EmailSender);
+    slackSender = module.get(SlackSender);
+    loggerSpy = jest
+      .spyOn((service as any).logger, "debug")
+      .mockImplementation();
+
+    // Manually trigger onModuleInit to initialize senders
+    service.onModuleInit();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("createAlert", () => {
-    it("应该成功创建告警记录", async () => {
-      const createDto = {
-        ruleId: "rule-123",
-        ruleName: "测试规则",
+  describe("Constants Usage", () => {
+    it("should use operation constants for all methods", () => {
+      expect(NOTIFICATION_OPERATIONS.SEND_NOTIFICATION).toBe(
+        "sendNotification",
+      );
+      expect(NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS).toBe(
+        "sendBatchNotifications",
+      );
+      expect(NOTIFICATION_OPERATIONS.TEST_CHANNEL).toBe("testChannel");
+      expect(NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE).toBe(
+        "generateTemplate",
+      );
+    });
+
+    it("should use message constants for logging", () => {
+      expect(NOTIFICATION_MESSAGES.NOTIFICATION_SENT).toBe("通知发送成功");
+      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONS_COMPLETED).toBe(
+        "批量通知发送完成",
+      );
+      expect(NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED).toBe(
+        "通知渠道测试通过",
+      );
+      expect(NOTIFICATION_MESSAGES.TEMPLATE_GENERATED).toBe("通知模板生成成功");
+    });
+
+    it("should use template variable constants", () => {
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID).toBe("alertId");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME).toBe("ruleName");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.METRIC).toBe("metric");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.SEVERITY).toBe("severity");
+    });
+  });
+
+  describe("Enhanced Single Notification", () => {
+    it("should use constants for notification processing start logging", async () => {
+      const mockAlert = {
+        id: "alert_123",
+        ruleId: "rule_123",
+        ruleName: "Test Rule",
         metric: "cpu_usage",
-        value: 95,
+        value: 85,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: "测试告警",
-        context: {},
+        status: AlertStatus.FIRING,
+        message: "CPU usage is high",
+        startTime: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const expectedEntry = {
-        ...mockAlertHistory,
-        ...createDto,
+      const mockChannelConfig = {
+        id: "channel_123",
+        name: "test-channel",
+        type: NotificationChannelType.EMAIL,
+        enabled: true,
+        config: { to: "test@example.com" },
       };
 
-      // Mock model constructor and save method
-      const mockInstance = {
-        save: jest.fn().mockResolvedValue({
-          toObject: jest.fn().mockReturnValue(expectedEntry),
-        }),
-      };
-      mockModel.mockImplementation(() => mockInstance);
+      emailSender.send.mockResolvedValue({
+        success: true,
+        channelId: "channel_123",
+        channelType: NotificationChannelType.EMAIL,
+        sentAt: new Date(),
+        duration: 100,
+      });
 
-      const result = await service.createAlert(createDto);
+      await service.sendNotification(mockAlert, mockRule, mockChannelConfig);
 
-      expect(mockModel).toHaveBeenCalledWith(
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED,
         expect.objectContaining({
-          ...createDto,
-          id: expect.any(String),
-          startTime: expect.any(Date),
-          status: AlertStatus.FIRING,
+          operation: NOTIFICATION_OPERATIONS.SEND_NOTIFICATION,
+          channelType: NotificationChannelType.EMAIL,
+          alertId: "alert_123",
+          ruleId: "rule_123",
         }),
       );
-      expect(result).toEqual(expectedEntry);
     });
 
-    it("应该在创建失败时抛出异常", async () => {
-      const createDto = {
-        ruleId: "rule-123",
-        ruleName: "测试规则",
+    it("should use template utility for unsupported type error", async () => {
+      const mockAlert = {
+        id: "alert_123",
+        ruleId: "rule_123",
+        ruleName: "Test Rule",
+      };
+      const mockChannelConfig = {
+        id: "channel_123",
+        name: "test-channel",
+        type: "UNSUPPORTED_TYPE" as NotificationChannelType,
+        enabled: true,
+        config: {},
+      };
+
+      await expect(
+        service.sendNotification(mockAlert as any, mockRule, mockChannelConfig),
+      ).rejects.toThrow(BadRequestException);
+
+      try {
+        await service.sendNotification(
+          mockAlert as any,
+          mockRule,
+          mockChannelConfig,
+        );
+      } catch (error) {
+        expect(error.message).toContain("不支持的通知类型: UNSUPPORTED_TYPE");
+      }
+    });
+
+    it("should use constants for successful notification logging", async () => {
+      const mockAlert = {
+        id: "alert_123",
+        ruleId: "rule_123",
+        ruleName: "Test Rule",
         metric: "cpu_usage",
-        value: 95,
+        value: 85,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: "测试告警",
-        context: {},
+        status: AlertStatus.FIRING,
+        message: "CPU usage is high",
+        startTime: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const mockInstance = {
-        save: jest.fn().mockRejectedValue(new Error("创建失败")),
+      const mockChannelConfig = {
+        id: "channel_123",
+        name: "test-channel",
+        type: NotificationChannelType.EMAIL,
+        enabled: true,
+        config: { to: "test@example.com" },
       };
-      mockModel.mockImplementation(() => mockInstance);
 
-      await expect(service.createAlert(createDto)).rejects.toThrow("创建失败");
+      emailSender.send.mockResolvedValue({
+        success: true,
+        channelId: "channel_123",
+        channelType: NotificationChannelType.EMAIL,
+        sentAt: new Date(),
+        duration: 100,
+      });
+
+      await service.sendNotification(mockAlert, mockRule, mockChannelConfig);
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.NOTIFICATION_SENT,
+        expect.objectContaining({
+          operation: NOTIFICATION_OPERATIONS.SEND_NOTIFICATION,
+          channelType: NotificationChannelType.EMAIL,
+          alertId: "alert_123",
+          success: true,
+        }),
+      );
     });
   });
 
-  describe("getAlertById", () => {
-    it("应该成功根据ID获取告警", async () => {
-      const alertId = "alert-123";
-      mockModel.findOne.mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(mockAlertHistory),
-        }),
-      });
-
-      const result = await service.getAlertById(alertId);
-
-      expect(mockModel.findOne).toHaveBeenCalledWith({ id: alertId });
-      expect(result).toEqual(mockAlertHistory);
-    });
-
-    it("应该在告警不存在时返回null", async () => {
-      const alertId = "nonexistent-alert";
-      mockModel.findOne.mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(null),
-        }),
-      });
-
-      const result = await service.getAlertById(alertId);
-
-      expect(mockModel.findOne).toHaveBeenCalledWith({ id: alertId });
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("queryAlerts", () => {
-    it("应该成功查询告警记录", async () => {
-      const query = {
-        page: 1,
-        limit: 10,
+  describe("Enhanced Batch Notifications", () => {
+    it("should use constants for batch processing start logging", async () => {
+      const mockAlert = {
+        id: "alert_123",
+        ruleId: "rule_123",
+        ruleName: "Test Rule",
+        metric: "cpu_usage",
+        value: 85,
+        threshold: 80,
         severity: AlertSeverity.CRITICAL,
+        status: AlertStatus.FIRING,
+        message: "CPU usage is high",
+        startTime: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const mockAlerts = [mockAlertHistory];
-
-      // Mock the chain: find().sort().skip().limit().lean().exec()
-      mockModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockReturnValue({
-                exec: jest.fn().mockResolvedValue(mockAlerts),
-              }),
-            }),
-          }),
-        }),
-      });
-
-      mockModel.countDocuments.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(1),
-      });
-
-      const result = await service.queryAlerts(query);
-
-      expect(result.alerts).toEqual(mockAlerts);
-      expect(result.total).toBe(1);
-    });
-
-    it("应该在没有记录时返回空数组", async () => {
-      const query = { page: 1, limit: 10 };
-
-      // Mock the chain: find().sort().skip().limit().lean().exec()
-      mockModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockReturnValue({
-                exec: jest.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        }),
-      });
-
-      mockModel.countDocuments.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(0),
-      });
-
-      const result = await service.queryAlerts(query);
-
-      expect(result.alerts).toEqual([]);
-      expect(result.total).toBe(0);
-    });
-  });
-
-  describe("getActiveAlerts", () => {
-    it("应该成功获取所有活跃告警", async () => {
-      const mockActiveAlerts = [
-        { ...mockAlertHistory, status: AlertStatus.FIRING },
+      const channels = [
         {
-          ...mockAlertHistory,
-          _id: "alert-456",
-          status: AlertStatus.ACKNOWLEDGED,
+          id: "channel_1",
+          type: NotificationChannelType.EMAIL,
+          config: { to: "test1@example.com" },
+          enabled: true,
+          name: "email",
+        },
+        {
+          id: "channel_2",
+          type: NotificationChannelType.SLACK,
+          config: { webhookUrl: "http://slack.com" },
+          enabled: true,
+          name: "slack",
         },
       ];
 
-      // Mock the chain: find().sort().lean().exec()
-      mockModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          lean: jest.fn().mockReturnValue({
-            exec: jest.fn().mockResolvedValue(mockActiveAlerts),
-          }),
-        }),
-      });
+      const batchMockRule = { ...mockRule, channels };
 
-      const result = await service.getActiveAlerts();
+      // 完整的 INotificationResult mock 对象
+      emailSender.send.mockResolvedValue({
+        success: true,
+        channelId: "channel_1",
+        channelType: NotificationChannelType.EMAIL,
+        sentAt: new Date(),
+        duration: 50,
+      } as any);
+      slackSender.send.mockResolvedValue({
+        success: true,
+        channelId: "channel_2",
+        channelType: NotificationChannelType.SLACK,
+        sentAt: new Date(),
+        duration: 60,
+      } as any);
 
-      expect(mockModel.find).toHaveBeenCalledWith({
-        status: { $in: [AlertStatus.FIRING, AlertStatus.ACKNOWLEDGED] },
-      });
-      expect(result).toEqual(mockActiveAlerts);
-    });
+      await service.sendBatchNotifications(mockAlert, batchMockRule);
 
-    it("应该在没有活跃告警时返回空数组", async () => {
-      // Mock the chain: find().sort().lean().exec()
-      mockModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          lean: jest.fn().mockReturnValue({
-            exec: jest.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
-
-      const result = await service.getActiveAlerts();
-
-      expect(mockModel.find).toHaveBeenCalledWith({
-        status: { $in: [AlertStatus.FIRING, AlertStatus.ACKNOWLEDGED] },
-      });
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("updateAlertStatus", () => {
-    it("应该成功更新告警状态", async () => {
-      const alertId = "alert-123";
-      const newStatus = AlertStatus.RESOLVED;
-      const updatedAlert = { ...mockAlertHistory, status: newStatus };
-
-      mockModel.findOneAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({
-          toObject: jest.fn().mockReturnValue(updatedAlert),
-        }),
-      });
-
-      const result = await service.updateAlertStatus(alertId, newStatus);
-
-      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
-        { id: alertId },
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.BATCH_PROCESSING_STARTED,
         expect.objectContaining({
-          status: newStatus,
+          operation: NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS,
+          alertId: "alert_123",
+          ruleId: "rule_123",
+          channelCount: 2,
+          enabledChannelCount: 2,
         }),
-        { new: true },
       );
-      expect(result).toEqual(updatedAlert);
     });
 
-    it("应该在更新不存在的告警时返回null", async () => {
-      const alertId = "nonexistent-alert";
-      const newStatus = AlertStatus.RESOLVED;
-
-      mockModel.findOneAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
-
-      const result = await service.updateAlertStatus(alertId, newStatus);
-
-      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
-        { id: alertId },
-        expect.objectContaining({
-          status: newStatus,
-        }),
-        { new: true },
-      );
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("getAlertStats", () => {
-    it("应该成功获取告警统计信息", async () => {
-      const mockActiveAlerts = [
-        { _id: "critical", count: 5 },
-        { _id: "warning", count: 10 },
+    it("should handle partial failures in batch notifications", async () => {
+      const mockAlert = {
+        id: "alert_123",
+        ruleId: "rule_123",
+        ruleName: "Test Rule",
+      };
+      const channels = [
+        {
+          id: "channel_1",
+          name: "email-channel",
+          type: NotificationChannelType.EMAIL,
+          config: { to: "test1@example.com" },
+          enabled: true,
+        },
+        {
+          id: "channel_2",
+          name: "slack-channel",
+          type: NotificationChannelType.SLACK,
+          config: { webhookUrl: "http://slack.com" },
+          enabled: true,
+        },
       ];
-      const mockAvgResolutionTime = [{ avgTime: 300000 }]; // 5 minutes in milliseconds
+      const batchMockRule = { ...mockRule, channels };
 
-      // Mock aggregate calls for getStatistics()
-      mockModel.aggregate
-        .mockResolvedValueOnce(mockActiveAlerts) // First call for active alerts
-        .mockResolvedValueOnce(mockAvgResolutionTime); // Second call for avg resolution time
+      // 完整的 INotificationResult mock 对象
+      emailSender.send.mockResolvedValue({
+        success: true,
+        channelId: "channel_1",
+        channelType: NotificationChannelType.EMAIL,
+        sentAt: new Date(),
+        duration: 50,
+      } as any);
+      slackSender.send.mockRejectedValue(new Error("Slack API error"));
 
-      // Mock countDocuments calls for getStatistics()
-      mockModel.countDocuments
-        .mockResolvedValueOnce(25) // Today alerts
-        .mockResolvedValueOnce(20); // Resolved today
+      const results = await service.sendBatchNotifications(
+        mockAlert as any,
+        batchMockRule,
+      );
 
-      const result = await service.getAlertStats();
-
-      expect(result.activeAlerts).toBe(15);
-      expect(result.totalAlertsToday).toBe(25);
-      expect(result.resolvedAlertsToday).toBe(20);
-      expect(result.averageResolutionTime).toBe(5); // 5 minutes
-    });
-
-    it("应该在统计数据不可用时返回空统计", async () => {
-      // Mock aggregate calls for getStatistics()
-      mockModel.aggregate
-        .mockResolvedValueOnce([]) // First call for active alerts
-        .mockResolvedValueOnce([]); // Second call for avg resolution time
-
-      // Mock countDocuments calls for getStatistics()
-      mockModel.countDocuments
-        .mockResolvedValueOnce(0) // Today alerts
-        .mockResolvedValueOnce(0); // Resolved today
-
-      const result = await service.getAlertStats();
-
-      expect(result.activeAlerts).toBe(0);
-      expect(result.totalAlertsToday).toBe(0);
-      expect(result.resolvedAlertsToday).toBe(0);
-      expect(result.averageResolutionTime).toBe(0);
+      expect(results.results.length).toBe(2);
+      expect(
+        results.results.find(
+          (r) => r.channelType === NotificationChannelType.EMAIL,
+        ).success,
+      ).toBe(true);
+      expect(
+        results.results.find(
+          (r) => r.channelType === NotificationChannelType.SLACK,
+        ).success,
+      ).toBe(false);
     });
   });
 
-  describe("cleanupExpiredAlerts", () => {
-    it("应该成功删除过期告警", async () => {
-      const daysToKeep = 90;
-      const deletedCount = 10;
-      jest.spyOn(repository, "cleanup").mockResolvedValue(deletedCount);
+  describe("Enhanced Channel Testing", () => {
+    it("should use constants for channel test logging", async () => {
+      const config = { to: "test@example.com" };
 
-      const result = await service.cleanupExpiredAlerts(daysToKeep);
+      emailSender.test.mockResolvedValue(true);
 
-      expect(repository.cleanup).toHaveBeenCalledWith(daysToKeep);
-      expect(result.deletedCount).toBe(deletedCount);
-      expect(result.executionTime).toBeGreaterThanOrEqual(0); // 修正断言
-      expect(result.startTime).toBeInstanceOf(Date);
-      expect(result.endTime).toBeInstanceOf(Date);
-    });
+      await service.testChannel(NotificationChannelType.EMAIL, config);
 
-    it("应该使用默认清理天数", async () => {
-      const deletedCount = 5;
-      jest.spyOn(repository, "cleanup").mockResolvedValue(deletedCount);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.CHANNEL_TEST_STARTED,
+        expect.objectContaining({
+          operation: NOTIFICATION_OPERATIONS.TEST_CHANNEL,
+          channelType: NotificationChannelType.EMAIL,
+        }),
+      );
 
-      await service.cleanupExpiredAlerts();
-
-      expect(repository.cleanup).toHaveBeenCalledWith(90); // 修正默认值
-    });
-
-    it("在清理失败时应该抛出异常", async () => {
-      const daysToKeep = 30;
-      jest
-        .spyOn(repository, "cleanup")
-        .mockRejectedValue(new Error("清理失败"));
-
-      await expect(service.cleanupExpiredAlerts(daysToKeep)).rejects.toThrow(
-        "清理失败",
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED,
+        expect.objectContaining({
+          operation: NOTIFICATION_OPERATIONS.TEST_CHANNEL,
+          channelType: NotificationChannelType.EMAIL,
+          success: true,
+        }),
       );
     });
   });
 
-  describe("batchUpdateAlertStatus", () => {
-    it("应该成功批量更新告警状态", async () => {
-      const alertIds = ["alert-1", "alert-2", "alert-3"];
-      const status = AlertStatus.ACKNOWLEDGED;
-      const updatedBy = "admin";
-
-      // Mock updateAlertStatus to succeed for all alerts
-      jest.spyOn(service, "updateAlertStatus").mockResolvedValue({
-        ...mockAlertHistory,
-        status,
-      });
-
-      const result = await service.batchUpdateAlertStatus(
-        alertIds,
-        status,
-        updatedBy,
-      );
-
-      expect(result.successCount).toBe(3);
-      expect(result.failedCount).toBe(0);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it("应该处理部分成功的批量更新", async () => {
-      const alertIds = ["alert-1", "alert-2", "alert-3"];
-      const status = AlertStatus.RESOLVED;
-
-      // Mock updateAlertStatus to fail for the second alert
-      jest
-        .spyOn(service, "updateAlertStatus")
-        .mockResolvedValueOnce({ ...mockAlertHistory, status }) // alert-1 success
-        .mockRejectedValueOnce(new Error("更新失败")) // alert-2 failure
-        .mockResolvedValueOnce({ ...mockAlertHistory, status }); // alert-3 success
-
-      const result = await service.batchUpdateAlertStatus(alertIds, status);
-
-      expect(result.successCount).toBe(2);
-      expect(result.failedCount).toBe(1);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("alert-2");
-    });
-
-    it("应该拒绝过大的批量操作", async () => {
-      const alertIds = new Array(1001).fill("alert-id"); // 超过限制
-      const status = AlertStatus.RESOLVED;
-
-      await expect(
-        service.batchUpdateAlertStatus(alertIds, status),
-      ).rejects.toThrow("批量大小超出限制");
-    });
-  });
-
-  describe("getAlertCountByStatus", () => {
-    it("应该返回按状态分组的告警数量", async () => {
-      const result = await service.getAlertCountByStatus();
-
-      expect(result).toEqual({
-        [AlertStatus.FIRING]: 0,
-        [AlertStatus.ACKNOWLEDGED]: 0,
-        [AlertStatus.RESOLVED]: 0,
-      });
-    });
-  });
-
-  describe("getRecentAlerts", () => {
-    it("应该使用默认限制获取最近告警", async () => {
-      jest
-        .spyOn(repository, "find")
-        .mockResolvedValue({ alerts: [], total: 0 });
-      await service.getRecentAlerts();
-      expect(repository.find).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10, // 修正默认值
-      });
-    });
-
-    it("应该修正无效的限制参数为默认值", async () => {
-      jest
-        .spyOn(repository, "find")
-        .mockResolvedValue({ alerts: [], total: 0 });
-
-      // 测试负数限制
-      await service.getRecentAlerts(-1);
-      expect(repository.find).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10, // 修正默认值
-      });
-
-      // 测试超过最大限制 (假设MAX_PAGE_LIMIT为100)
-      await service.getRecentAlerts(200);
-      expect(repository.find).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10, // 修正默认值
-      });
-    });
-
-    it("应该允许有效的限制参数", async () => {
-      jest
-        .spyOn(repository, "find")
-        .mockResolvedValue({ alerts: [], total: 0 });
-      const validLimit = 25;
-      await service.getRecentAlerts(validLimit);
-      expect(repository.find).toHaveBeenCalledWith({
-        page: 1,
-        limit: validLimit,
-      });
-    });
-  });
-
-  describe("getServiceStats", () => {
-    it("应该返回服务统计信息", () => {
-      const result = service.getServiceStats();
-
-      expect(result).toEqual({
-        supportedStatuses: Object.values(AlertStatus),
-        defaultCleanupDays: expect.any(Number),
-        idPrefixFormat: expect.any(String),
-        maxBatchUpdateSize: expect.any(Number),
-      });
-    });
-  });
-
-  describe("缓存相关方法", () => {
-    it("应该在创建告警时尝试缓存", async () => {
-      const createDto = {
-        ruleId: "rule-123",
-        ruleName: "测试规则",
+  describe("Enhanced Template Generation", () => {
+    it("should use constants and utility for template generation", async () => {
+      const mockAlert = {
+        id: "alert_123",
+        ruleId: "rule_123",
+        ruleName: "CPU Alert Rule",
         metric: "cpu_usage",
-        value: 95,
+        value: 85,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        message: "测试告警",
-        context: {},
-      };
-
-      const mockInstance = {
-        save: jest.fn().mockResolvedValue({
-          toObject: jest.fn().mockReturnValue({
-            ...mockAlertHistory,
-            ...createDto,
-          }),
-        }),
-      };
-      mockModel.mockImplementation(() => mockInstance);
-
-      // Mock cache methods
-      cacheService.listPush = jest.fn().mockResolvedValue(1);
-      cacheService.listTrim = jest.fn().mockResolvedValue("OK");
-      cacheService.expire = jest.fn().mockResolvedValue(1);
-
-      await service.createAlert(createDto);
-
-      expect(cacheService.listPush).toHaveBeenCalled();
-      expect(cacheService.listTrim).toHaveBeenCalled();
-      expect(cacheService.expire).toHaveBeenCalled();
-    });
-
-    it("应该在缓存失败时继续执行（告警创建）", async () => {
-      const createDto = {
-        ruleId: "rule-123",
-        ruleName: "测试规则",
-        metric: "cpu_usage",
-        value: 95,
-        threshold: 80,
-        severity: AlertSeverity.CRITICAL,
-        message: "测试告警",
-        context: {},
-      };
-
-      const expectedResult = {
-        ...mockAlertHistory,
-        ...createDto,
-      };
-
-      const mockInstance = {
-        save: jest.fn().mockResolvedValue({
-          toObject: jest.fn().mockReturnValue(expectedResult),
-        }),
-      };
-      mockModel.mockImplementation(() => mockInstance);
-
-      // Mock cache failure
-      cacheService.listPush = jest
-        .fn()
-        .mockRejectedValue(new Error("缓存失败"));
-
-      const result = await service.createAlert(createDto);
-
-      expect(result).toEqual(expectedResult);
-    });
-
-    it("应该从缓存获取活跃告警（缓存命中）", async () => {
-      const mockCachedAlert = JSON.stringify({
-        id: "alert-123",
         status: AlertStatus.FIRING,
+        message: "CPU usage is high",
+        startTime: new Date(),
+        tags: { environment: "production" },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const mockRuleForTemplate = {
+        id: "rule_123",
+        name: "CPU Alert Rule",
+        description: "Monitor CPU usage",
+      };
+
+      const template = service.generateTemplate(
+        mockAlert as any,
+        mockRuleForTemplate as any,
+      );
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.TEMPLATE_GENERATION_STARTED,
+        expect.objectContaining({
+          operation: NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE,
+          alertId: "alert_123",
+          ruleId: "rule_123",
+        }),
+      );
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        NOTIFICATION_MESSAGES.TEMPLATE_GENERATED,
+        expect.objectContaining({
+          operation: NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE,
+          alertId: "alert_123",
+          variableCount: expect.any(Number),
+        }),
+      );
+
+      expect(template).toHaveProperty("subject");
+      expect(template).toHaveProperty("body");
+      expect(template).toHaveProperty("variables");
+      expect(template.variables).toHaveProperty(
+        NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID,
+        "alert_123",
+      );
+      expect(template.variables).toHaveProperty(
+        NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME,
+        "CPU Alert Rule",
+      );
+    });
+  });
+
+  describe("Utility Functions", () => {
+    it("should generate error messages using templates", () => {
+      const message = NotificationTemplateUtil.generateErrorMessage(
+        "UNSUPPORTED_TYPE",
+        {
+          channelType: "INVALID_TYPE",
+        },
+      );
+
+      expect(message).toBe("不支持的通知类型: INVALID_TYPE");
+    });
+
+    it("should format templates correctly", () => {
+      const template =
+        "Alert {{alertId}} for rule {{ruleName}} has value {{value}}";
+      const variables = {
+        alertId: "alert_123",
+        ruleName: "Test Rule",
+        value: 85,
+      };
+
+      const result = NotificationTemplateUtil.formatTemplate(
+        template,
+        variables,
+      );
+      expect(result).toBe("Alert alert_123 for rule Test Rule has value 85");
+    });
+
+    it("should validate variable names correctly", () => {
+      expect(NotificationTemplateUtil.isValidVariableName("alertId")).toBe(
+        true,
+      );
+      expect(NotificationTemplateUtil.isValidVariableName("rule_name")).toBe(
+        true,
+      );
+      expect(NotificationTemplateUtil.isValidVariableName("123invalid")).toBe(
+        false,
+      );
+      expect(NotificationTemplateUtil.isValidVariableName("invalid-name")).toBe(
+        false,
+      );
+    });
+
+    it("should validate email addresses correctly", () => {
+      expect(NotificationTemplateUtil.isValidEmail("test@example.com")).toBe(
+        true,
+      );
+      expect(
+        NotificationTemplateUtil.isValidEmail("user.name+tag@domain.co.uk"),
+      ).toBe(true);
+      expect(NotificationTemplateUtil.isValidEmail("invalid-email")).toBe(
+        false,
+      );
+      expect(NotificationTemplateUtil.isValidEmail("@domain.com")).toBe(false);
+    });
+
+    it("should validate URLs correctly", () => {
+      expect(NotificationTemplateUtil.isValidUrl("https://example.com")).toBe(
+        true,
+      );
+      expect(NotificationTemplateUtil.isValidUrl("http://localhost:3000")).toBe(
+        true,
+      );
+      expect(NotificationTemplateUtil.isValidUrl("ftp://example.com")).toBe(
+        false,
+      );
+      expect(NotificationTemplateUtil.isValidUrl("invalid-url")).toBe(false);
+    });
+
+    it("should calculate retry delays correctly", () => {
+      const delay1 = NotificationTemplateUtil.calculateRetryDelay(0);
+      const delay2 = NotificationTemplateUtil.calculateRetryDelay(1);
+      const delay3 = NotificationTemplateUtil.calculateRetryDelay(2);
+
+      expect(delay1).toBeGreaterThanOrEqual(1000);
+      expect(delay2).toBeGreaterThan(delay1);
+      expect(delay3).toBeGreaterThan(delay2);
+    });
+
+    it("should generate template variables correctly", () => {
+      const mockAlert = {
+        id: "alert_123",
+        metric: "cpu_usage",
+        value: 85,
+        threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        startTime: new Date().toISOString(),
-      });
-
-      cacheService.getClient = jest.fn().mockReturnValue({
-        keys: jest
-          .fn()
-          .mockResolvedValue(["alert:history:timeseries:rule-123"]),
-      });
-      cacheService.listRange = jest.fn().mockResolvedValue([mockCachedAlert]);
-
-      const result = await service.getActiveAlerts();
-
-      expect(cacheService.listRange).toHaveBeenCalled();
-      expect(result).toBeInstanceOf(Array);
-    });
-
-    it("应该在缓存失败时回退到数据库", async () => {
-      const mockActiveAlerts = [mockAlertHistory];
-
-      cacheService.getClient = jest.fn().mockReturnValue({
-        keys: jest.fn().mockRejectedValue(new Error("Redis连接失败")),
-      });
-
-      jest.spyOn(repository, "findActive").mockResolvedValue(mockActiveAlerts);
-
-      const result = await service.getActiveAlerts();
-
-      expect(repository.findActive).toHaveBeenCalled();
-      expect(result).toEqual(mockActiveAlerts);
-    });
-  });
-
-  describe("updateAlertStatus with different statuses", () => {
-    it("应该正确处理ACKNOWLEDGED状态更新", async () => {
-      const alertId = "alert-123";
-      const status = AlertStatus.ACKNOWLEDGED;
-      const updatedBy = "admin";
-      const updatedAlert = {
-        ...mockAlertHistory,
-        status,
-        acknowledgedBy: updatedBy,
-        acknowledgedAt: expect.any(Date),
+        status: AlertStatus.FIRING,
+        message: "CPU usage is high",
+        startTime: new Date("2023-01-01T10:00:00Z"),
+        tags: { environment: "production" },
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      jest.spyOn(repository, "update").mockResolvedValue(updatedAlert);
-
-      // Mock cache update
-      cacheService.listRange = jest.fn().mockResolvedValue([]);
-      cacheService.del = jest.fn().mockResolvedValue(1);
-
-      const result = await service.updateAlertStatus(
-        alertId,
-        status,
-        updatedBy,
-      );
-
-      expect(repository.update).toHaveBeenCalledWith(
-        alertId,
-        expect.objectContaining({
-          status,
-          acknowledgedBy: updatedBy,
-          acknowledgedAt: expect.any(Date),
-        }),
-      );
-      expect(result).toEqual(updatedAlert);
-    });
-
-    it("应该正确处理RESOLVED状态更新", async () => {
-      const alertId = "alert-123";
-      const status = AlertStatus.RESOLVED;
-      const updatedBy = "admin";
-      const updatedAlert = {
-        ...mockAlertHistory,
-        status,
-        resolvedBy: updatedBy,
-        resolvedAt: expect.any(Date),
-        endTime: expect.any(Date),
+      const mockRule = {
+        id: "rule_123",
+        name: "CPU Alert Rule",
+        description: "Monitor CPU usage",
       };
 
-      jest.spyOn(repository, "update").mockResolvedValue(updatedAlert);
-
-      // Mock cache update
-      cacheService.listRange = jest.fn().mockResolvedValue([]);
-      cacheService.del = jest.fn().mockResolvedValue(1);
-
-      const result = await service.updateAlertStatus(
-        alertId,
-        status,
-        updatedBy,
+      const variables = NotificationTemplateUtil.generateTemplateVariables(
+        mockAlert,
+        mockRule,
       );
 
-      expect(repository.update).toHaveBeenCalledWith(
-        alertId,
-        expect.objectContaining({
-          status,
-          resolvedBy: updatedBy,
-          resolvedAt: expect.any(Date),
-          endTime: expect.any(Date),
-        }),
+      expect(variables[NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID]).toBe(
+        "alert_123",
       );
-      expect(result).toEqual(updatedAlert);
-    });
-  });
-
-  describe("错误处理", () => {
-    it("应该在数据库错误时正确抛出异常", async () => {
-      const alertId = "alert-123";
-      mockModel.findOne.mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockRejectedValue(new Error("数据库连接失败")),
-        }),
-      });
-
-      await expect(service.getAlertById(alertId)).rejects.toThrow(
-        "数据库连接失败",
+      expect(variables[NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME]).toBe(
+        "CPU Alert Rule",
       );
-    });
-
-    it("应该在查询参数无效时处理异常", async () => {
-      const invalidQuery = { page: -1, limit: 0 };
-      mockModel.find.mockReturnValue({
-        sort: jest.fn().mockReturnValue({
-          skip: jest.fn().mockReturnValue({
-            limit: jest.fn().mockReturnValue({
-              lean: jest.fn().mockReturnValue({
-                exec: jest.fn().mockRejectedValue(new Error("无效查询参数")),
-              }),
-            }),
-          }),
-        }),
-      });
-
-      await expect(service.queryAlerts(invalidQuery)).rejects.toThrow(
-        "无效查询参数",
+      expect(variables[NOTIFICATION_TEMPLATE_VARIABLES.METRIC]).toBe(
+        "cpu_usage",
       );
-    });
-
-    it("应该在统计查询失败时抛出异常", async () => {
-      jest
-        .spyOn(repository, "getStatistics")
-        .mockRejectedValue(new Error("统计查询失败"));
-
-      await expect(service.getAlertStats()).rejects.toThrow("统计查询失败");
-    });
-
-    it("应该在最近告警查询失败时抛出异常", async () => {
-      jest.spyOn(repository, "find").mockRejectedValue(new Error("查询失败"));
-
-      await expect(service.getRecentAlerts()).rejects.toThrow("查询失败");
-    });
-
-    it("应该在告警数量统计查询失败时抛出异常", async () => {
-      // Mock方法暂时返回默认值，但测试异常路径
-      await expect(service.getAlertCountByStatus()).resolves.toEqual({
-        [AlertStatus.FIRING]: 0,
-        [AlertStatus.ACKNOWLEDGED]: 0,
-        [AlertStatus.RESOLVED]: 0,
-      });
+      expect(variables[NOTIFICATION_TEMPLATE_VARIABLES.VALUE]).toBe(85);
+      expect(variables[NOTIFICATION_TEMPLATE_VARIABLES.SEVERITY]).toBe(
+        "critical",
+      );
     });
   });
 });

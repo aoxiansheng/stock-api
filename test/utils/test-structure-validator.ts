@@ -341,8 +341,18 @@ export class TestStructureValidator {
         priority: "medium",
         risk: "low"
       });
+      // 使用独立命令，更安全的方式
       plan.commands.push(`mkdir -p "${targetDir}"`);
-      plan.commands.push(`mv "${mismatch.testFile}" "${mismatch.expectedTestPath}"`);
+      plan.commands.push(`if [ -f "${mismatch.testFile}" ]; then`);
+      plan.commands.push(`  if [ -f "${mismatch.expectedTestPath}" ]; then`);
+      plan.commands.push(`    echo "⚠️  目标文件已存在，将使用备份名称"`);
+      plan.commands.push(`    mv "${mismatch.testFile}" "${mismatch.expectedTestPath}.bak-$(date +%s)"`);
+      plan.commands.push(`  else`);
+      plan.commands.push(`    mv "${mismatch.testFile}" "${mismatch.expectedTestPath}"`);
+      plan.commands.push(`  fi`);
+      plan.commands.push(`else`);
+      plan.commands.push(`  echo "❌ 源文件不存在: ${mismatch.testFile}"`);
+      plan.commands.push(`fi`);
     }
 
     // 3. 处理潜在匹配的文件 - 严格遵循测试类别边界约束
@@ -401,7 +411,18 @@ export class TestStructureValidator {
           });
           plan.commands.push(`# 潜在匹配 (置信度: ${(match.confidence * 100).toFixed(1)}%, 类别: ${category})`);
           plan.commands.push(`mkdir -p "${targetDir}"`);
-          plan.commands.push(`mv "${match.testFile}" "${targetPath}"`);
+          
+          // 使用更安全的方式处理文件移动
+          plan.commands.push(`if [ -f "${match.testFile}" ]; then`);
+          plan.commands.push(`  if [ -f "${targetPath}" ]; then`);
+          plan.commands.push(`    echo "⚠️  目标文件已存在: ${targetPath}，将使用备份名称"`);
+          plan.commands.push(`    mv "${match.testFile}" "${targetPath}.bak-$(date +%s)"`);
+          plan.commands.push(`  else`);
+          plan.commands.push(`    mv "${match.testFile}" "${targetPath}"`);
+          plan.commands.push(`  fi`);
+          plan.commands.push(`else`);
+          plan.commands.push(`  echo "❌ 源文件不存在: ${match.testFile}"`);
+          plan.commands.push(`fi`);
         }
       }
     }
@@ -1321,7 +1342,9 @@ export class TestStructureValidator {
       script.push("mkdir -p \"${backup_dir}/renames\"");
       
       fileRenames.forEach(action => {
-        const origPath = action.command.split(' ')[3].replace(/"/g, '');
+        // 安全处理命令解析，避免索引错误
+        const cmdParts = action.command.split(' ');
+        const origPath = cmdParts.length > 3 ? cmdParts[3].replace(/"/g, '') : action.description.split(' → ')[0];
         const fileName = path.basename(origPath);
         
         script.push(`echo '  ${action.description}'`);
@@ -1338,7 +1361,11 @@ export class TestStructureValidator {
       
       directoryMoves.forEach(action => {
         script.push(`echo '  ${action.description}'`);
-        const origPath = action.command.split(' && mv ')[1].split(' ')[0].replace(/"/g, '');
+        // 安全处理命令解析
+        const cmdSplit = action.command.split(' && mv ');
+        const origPath = cmdSplit.length > 1 ? 
+          cmdSplit[1].split(' ')[0].replace(/"/g, '') : 
+          action.description.split(' → ')[0];
         const fileName = path.basename(origPath);
         script.push(`cp "${origPath}" "\${backup_dir}/moves/${fileName}" 2>/dev/null || true`);
         script.push(action.command);
@@ -1381,26 +1408,64 @@ export class TestStructureValidator {
           script.push("  echo '    ⭐ 高置信度匹配 (>80%)...'");
           highConfidence.forEach(action => {
             // 验证源文件和目标路径在同一个测试类别
-            const origPath = action.command.split(' && mv ')[1].split(' ')[0].replace(/"/g, '');
-            const destPath = action.command.split(' && mv ')[1].split(' ')[1].replace(/"/g, '');
+            // 安全处理命令解析
+            const cmdParts = action.command.split(' && mv ');
+            let origPath = '', destPath = '';
+            
+            if (cmdParts.length > 1) {
+              const parts = cmdParts[1].split(' ');
+              if (parts.length > 0) origPath = parts[0].replace(/"/g, '');
+              if (parts.length > 1) destPath = parts[1].replace(/"/g, '');
+            } else {
+              // 回退到从描述中提取
+              const descParts = action.description.split(' → ');
+              if (descParts.length > 0) origPath = descParts[0];
+              if (descParts.length > 1) destPath = descParts[1].split(' (')[0];
+            }
+            
             const fileName = path.basename(origPath);
             
             // 确认操作前再次验证不会跨越类别边界
             script.push(`  # 验证类别一致性: ${category}`);
             script.push(`  echo '      ${action.description}'`);
             script.push(`  cp "${origPath}" "\${backup_dir}/intelligent_matches/${category}_high_${fileName}" 2>/dev/null || true`);
-            script.push(`  ${action.command}`);
+            
+            // 使用安全移动命令替代原始命令
+            const moveCommands = this.createSafeMoveCommand(origPath, destPath, '  ');
+            moveCommands.forEach(cmd => script.push(cmd));
           });
         }
         
         if (mediumConfidence.length > 0) {
           script.push("  echo '    ✓ 中置信度匹配 (50-80%)...'");
           mediumConfidence.forEach(action => {
-            const origPath = action.command.split(' && mv ')[1].split(' ')[0].replace(/"/g, '');
+            // 安全处理命令解析
+            const medCmdParts = action.command.split(' && mv ');
+            const origPath = medCmdParts.length > 1 && medCmdParts[1].split(' ').length > 0 ? 
+              medCmdParts[1].split(' ')[0].replace(/"/g, '') : 
+              action.description.split(' → ')[0];
             const fileName = path.basename(origPath);
             script.push(`  echo '      ${action.description}'`);
             script.push(`  cp "${origPath}" "\${backup_dir}/intelligent_matches/${category}_medium_${fileName}" 2>/dev/null || true`);
-            script.push(`  ${action.command}`);
+            
+            // 解析目标路径
+            let destPath = '';
+            const moveCmdParts = action.command.split(' && mv ');
+            if (moveCmdParts.length > 1) {
+              const parts = moveCmdParts[1].split(' ');
+              if (parts.length > 1) {
+                destPath = parts[1].replace(/"/g, '');
+              }
+            }
+            
+            // 使用安全移动命令
+            if (destPath) {
+              const moveCommands = this.createSafeMoveCommand(origPath, destPath, '  ');
+              moveCommands.forEach(cmd => script.push(cmd));
+            } else {
+              script.push(`  # 无法解析目标路径，使用原始命令`);
+              script.push(`  ${action.command}`);
+            }
           });
         }
         
@@ -1409,11 +1474,33 @@ export class TestStructureValidator {
           script.push(`  read -p "是否处理${category}类别的低置信度匹配? (y/n): " process_low_${category.replace(/[^a-z0-9]/gi, '_')}`);
           script.push(`  if [[ $process_low_${category.replace(/[^a-z0-9]/gi, '_')} == "y" ]]; then`);
           lowConfidence.forEach(action => {
-            const origPath = action.command.split(' && mv ')[1].split(' ')[0].replace(/"/g, '');
+            // 安全处理命令解析
+            const lowCmdParts = action.command.split(' && mv ');
+            const origPath = lowCmdParts.length > 1 && lowCmdParts[1].split(' ').length > 0 ? 
+              lowCmdParts[1].split(' ')[0].replace(/"/g, '') : 
+              action.description.split(' → ')[0];
             const fileName = path.basename(origPath);
             script.push(`    echo '      ${action.description}'`);
             script.push(`    cp "${origPath}" "\${backup_dir}/intelligent_matches/${category}_low_${fileName}" 2>/dev/null || true`);
-            script.push(`    ${action.command}`);
+            
+            // 解析目标路径
+            let lowDestPath = '';
+            const lowMoveParts = action.command.split(' && mv ');
+            if (lowMoveParts.length > 1) {
+              const parts = lowMoveParts[1].split(' ');
+              if (parts.length > 1) {
+                lowDestPath = parts[1].replace(/"/g, '');
+              }
+            }
+            
+            // 使用安全移动命令
+            if (lowDestPath) {
+              const moveCommands = this.createSafeMoveCommand(origPath, lowDestPath, '    ');
+              moveCommands.forEach(cmd => script.push(cmd));
+            } else {
+              script.push(`    # 无法解析目标路径，使用原始命令`);
+              script.push(`    ${action.command}`);
+            }
           });
           script.push("  else");
           script.push(`    echo '    跳过${category}类别的低置信度匹配'`);
@@ -1432,11 +1519,35 @@ export class TestStructureValidator {
       script.push("if [[ $delete_orphaned == \"y\" ]]; then");
       
       orphanedFiles.forEach(action => {
-        const filePath = action.command.split('\n')[1].split(' ')[1].replace(/"/g, '');
-        const fileName = path.basename(filePath);
+        // 安全处理命令解析
+        let filePath = '';
+        try {
+          const cmdLines = action.command.split('\n');
+          if (cmdLines.length > 1) {
+            const parts = cmdLines[1].split(' ');
+            if (parts.length > 1) {
+              filePath = parts[1].replace(/"/g, '');
+            }
+          }
+        } catch (e) {
+          // 回退到从描述中提取
+          filePath = action.description.split(' (')[0];
+        }
+        
+        // 确保有一个有效的路径
+        if (!filePath && action.description) {
+          filePath = action.description.replace(/删除孤立测试文件: /g, '').split(' ')[0];
+        }
+        
+        const fileName = path.basename(filePath || 'unknown_file');
         script.push(`  echo '  ${action.description}'`);
-        script.push(`  cp "${filePath}" "\${backup_dir}/orphaned/${fileName}" 2>/dev/null || true`);
-        script.push(`  rm "${filePath}"`);
+        
+        if (filePath) {
+          script.push(`  cp "${filePath}" "\${backup_dir}/orphaned/${fileName}" 2>/dev/null || true`);
+          script.push(`  rm "${filePath}"`);
+        } else {
+          script.push(`  echo "  ⚠️ 无法解析文件路径，跳过此项"`);
+        }
       });
       
       script.push("else");
@@ -1475,6 +1586,38 @@ export class TestStructureValidator {
     script.push("");
 
     return script.join("\n");
+  }
+
+  /**
+   * 创建安全的移动命令，确保目标目录存在
+   * @param origPath 源文件路径
+   * @param destPath 目标文件路径
+   * @param indentation 缩进字符串
+   * @returns 安全的shell命令数组
+   */
+  private createSafeMoveCommand(origPath: string, destPath: string, indentation: string = ''): string[] {
+    const commands: string[] = [];
+    const destDir = path.dirname(destPath);
+    
+    // 创建目录命令
+    commands.push(`${indentation}# 确保目标目录存在`);
+    commands.push(`${indentation}mkdir -p "${destDir}"`);
+    
+    // 检查源文件是否存在
+    commands.push(`${indentation}if [ -f "${origPath}" ]; then`);
+    
+    // 检查目标文件是否已经存在
+    commands.push(`${indentation}  if [ -f "${destPath}" ]; then`);
+    commands.push(`${indentation}    echo "⚠️  目标文件已存在: ${destPath}，将源文件重命名为备用名称"`);
+    commands.push(`${indentation}    mv "${origPath}" "${destPath}.bak-$(date +%s)"`);
+    commands.push(`${indentation}  else`);
+    commands.push(`${indentation}    mv "${origPath}" "${destPath}"`);
+    commands.push(`${indentation}  fi`);
+    commands.push(`${indentation}else`);
+    commands.push(`${indentation}  echo "❌ 源文件不存在: ${origPath}"`);
+    commands.push(`${indentation}fi`);
+    
+    return commands;
   }
 
   /**
