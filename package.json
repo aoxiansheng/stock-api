@@ -128,6 +128,8 @@
     "coverage:report:lcov": "nyc report --reporter=lcov --temp-dir=coverage/merged --report-dir=coverage/lcov",
     "coverage:clean": "rimraf coverage/*",
     "test:detect-conflicts": "ts-node test/utils/test-conflict-detector.ts",
+    "test:src-validate-structure": "ts-node test/utils/src-structure-validator.ts",
+    "test:src-fix-structure": "chmod +x test/utils/fix-structure.sh && test/utils/fix-structure.sh",
     "test:validate-structure": "ts-node test/utils/test-structure-validator.ts",
     "test:validate-structure:repair": "ts-node -e \"require('./test/utils/test-structure-validator').generateQuickRepairScript()\"",
     "test:validate-structure:list": "ts-node -e \"require('./test/utils/test-structure-validator').printDetailedLists()\"",
