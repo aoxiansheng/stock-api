@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
-import { CacheService } from "../../cache/cache.service";
+import { CacheService } from "../../cache/services/cache.service";
 import {
   VALID_OPERATORS,
   OPERATOR_SYMBOLS,

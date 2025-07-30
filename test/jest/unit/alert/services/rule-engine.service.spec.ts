@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { CacheService } from "../../../../../src/cache/cache.service";
+import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { ConfigService } from "@nestjs/config";
 import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
 import {

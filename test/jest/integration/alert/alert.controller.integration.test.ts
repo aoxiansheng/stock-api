@@ -11,7 +11,7 @@ import { AlertingService } from "../../../../src/alert/services/alerting.service
 import { AlertHistoryService } from "../../../../src/alert/services/alert-history.service";
 // import { NotificationService } from "../../../../src/alert/services/notification.service";
 // import { RuleEngineService } from "../../../../src/alert/services/rule-engine.service";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 import { AlertSeverity } from "../../../../src/alert/types/alert.types";
 import { AlertStatus } from "../../../../src/alert/types/alert.types";
 import { CreateAlertRuleDto } from "../../../../src/alert/dto/alert-rule.dto";

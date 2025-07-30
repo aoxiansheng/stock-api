@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
 // 🎯 引入缓存服务用于时序数据存储
-import { CacheService } from "../../cache/cache.service";
+import { CacheService } from "../../cache/services/cache.service";
 import {
   ALERT_HISTORY_OPERATIONS,
   ALERT_HISTORY_MESSAGES,

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { PermissionService } from "../../../../../src/auth/services/permission.service";
-import { CacheService } from "../../../../../src/cache/cache.service";
+import { CacheService } from "../../../../../src/cache/services/cache.service";
 import {
   AuthSubject,
   AuthSubjectType,

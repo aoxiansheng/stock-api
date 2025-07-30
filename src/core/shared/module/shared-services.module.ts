@@ -5,14 +5,14 @@
 
 import { Module, Global } from "@nestjs/common";
 
-import { CacheModule } from "../../../cache/cache.module";
-import { ProvidersModule } from "../../../providers/providers.module";
+import { CacheModule } from "../../../cache/module/cache.module";
+import { ProvidersModule } from "../../../providers/module/providers.module";
 
-import { DataChangeDetectorService } from "../service/data-change-detector.service";
-import { DataFetchingService } from "../service/data-fetching.service";
-import { MarketStatusService } from "../service/market-status.service";
+import { DataChangeDetectorService } from "../services/data-change-detector.service";
+import { DataFetchingService } from "../services/data-fetching.service";
+import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
-import { BackgroundTaskService } from "../service/background-task.service";
+import { BackgroundTaskService } from "../services/background-task.service";
 
 /**
  * A global module that provides shared services for data fetching,

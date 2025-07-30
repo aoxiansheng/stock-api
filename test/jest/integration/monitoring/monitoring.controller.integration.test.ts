@@ -11,7 +11,7 @@ import * as request from "supertest";
 import { UserRole } from "../../../../src/auth/enums/user-role.enum";
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../src/auth/enums/user-role.enum";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 
 import { smartDelay } from "../../../utils/async-test-helpers";
 import { validateDatabaseMetricsResponse } from "../../../utils/api-response-helpers";

@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
-import { AuthModule } from "../../../auth/auth.module";
+import { AuthModule } from "../../../auth/module/auth.module";
 
 import { SymbolMappingRepository } from '../repositories/symbol-mapping.repository';
 import {
@@ -9,7 +9,7 @@ import {
   SymbolMappingRuleDocumentSchema,
 } from '../schemas/symbol-mapping-rule.schema';
 import { SymbolMapperController } from "../controller/symbol-mapper.controller";
-import { SymbolMapperService } from '../service/symbol-mapper.service';
+import { SymbolMapperService } from '../services/symbol-mapper.service';
 
 @Module({
   imports: [

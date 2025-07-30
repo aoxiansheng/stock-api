@@ -10,7 +10,7 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 
 import { createLogger } from "@common/config/logger.config";
 
-import { CacheService } from "../../cache/cache.service";
+import { CacheService } from "../../cache/services/cache.service";
 import {
   ALERTING_OPERATIONS,
   ALERTING_MESSAGES,

@@ -36,7 +36,7 @@ import {
   QueryStatsDto,
 } from "../dto/query-response.dto";
 import { QueryType } from "../dto/query-types.dto";
-import { QueryService } from "../service/query.service";
+import { QueryService } from "../services/query.service";
 
 @ApiTags("🧠 弱时效接口 - 智能数据查询")
 @Controller("query")

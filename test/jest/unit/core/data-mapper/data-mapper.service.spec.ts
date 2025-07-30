@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { DataMapperService } from "../../../../../src/core/data-mapper/service/data-mapper.service";
+import { DataMapperService } from "../../../../../src/core/data-mapper/services/data-mapper.service";
 import { DataMappingRepository } from "../../../../../src/core/data-mapper/repositories/data-mapper.repository";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { TRANSFORMATION_TYPES } from "../../../../../src/core/data-mapper/constants/data-mapper.constants";

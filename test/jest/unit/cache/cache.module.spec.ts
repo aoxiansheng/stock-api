@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { RedisService } from "@liaoliaots/nestjs-redis";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 import {
   CACHE_CONSTANTS,
   CACHE_WARNING_MESSAGES,

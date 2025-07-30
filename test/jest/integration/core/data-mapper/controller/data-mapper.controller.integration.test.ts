@@ -11,8 +11,8 @@ import { TestDataHelper } from "../../../../../../test/config/integration.setup"
 
 // 导入核心服务以便直接测试
 
-import { DataMapperService } from "../../../../../../src/core/data-mapper/service/data-mapper.service";
-import { CapabilityRegistryService } from "../../../../../../src/providers/capability-registry.service";
+import { DataMapperService } from "../../../../../../src/core/data-mapper/services/data-mapper.service";
+import { CapabilityRegistryService } from "../../../../../../src/providers/services/capability-registry.service";
 // 其他服务按需导入
 
 describe("Core Modules Integration Tests", () => {
@@ -769,7 +769,7 @@ describe("Core Modules Integration Tests", () => {
 
       // 获取DataFetchingService实例以便Mock
       const { DataFetchingService } = await import(
-        "../../../../../../src/core/shared/service/data-fetching.service"
+        "../../../../../../src/core/shared/services/data-fetching.service"
       );
       dataFetchingService = app.get(DataFetchingService);
 

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { ServiceUnavailableException } from "@nestjs/common";
 import { CACHE_ERROR_MESSAGES } from "../../../../src/cache/constants/cache.constants";

@@ -33,7 +33,7 @@ import {
   AddSymbolMappingRuleDto,
   UpdateSymbolMappingRuleDto,
 } from '../dto/update-symbol-mapping.dto';
-import { SymbolMapperService } from '../service/symbol-mapper.service';
+import { SymbolMapperService } from '../services/symbol-mapper.service';
 
 @ApiTags("🔄 符号映射器")
 @Controller("symbol-mapper")

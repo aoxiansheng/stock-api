@@ -1,13 +1,13 @@
 import { Module } from "@nestjs/common";
 
-import { AuthModule } from "../../../auth/auth.module";
+import { AuthModule } from "../../../auth/module/auth.module";
 import { SharedServicesModule } from "../../shared/module/shared-services.module";
 import { StorageModule } from "../../storage/module/storage.module";
 
 import { QueryController } from "../controller/query.controller";
-import { QueryService } from "../service/query.service";
-import { QueryResultProcessorService } from "../service/query-result-processor.service";
-import { QueryStatisticsService } from "../service/query-statistics.service";
+import { QueryService } from "../services/query.service";
+import { QueryResultProcessorService } from "../services/query-result-processor.service";
+import { QueryStatisticsService } from "../services/query-statistics.service";
 
 @Module({
   imports: [AuthModule, StorageModule, SharedServicesModule],

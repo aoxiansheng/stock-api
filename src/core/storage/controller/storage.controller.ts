@@ -28,7 +28,7 @@ import {
   StorageResponseDto,
   StorageStatsDto,
 } from "../dto/storage-response.dto";
-import { StorageService } from "../service/storage.service";
+import { StorageService } from "../services/storage.service";
 
 @ApiTags("💾 数据存储")
 @Controller("storage")

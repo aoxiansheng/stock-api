@@ -1,9 +1,9 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SecurityAuditService } from "../../../../src/security/security-audit.service";
+import { SecurityAuditService } from "../../../../src/security/services/security-audit.service";
 import { SecurityAuditLogRepository } from "../../../../src/security/repositories/security-audit-log.repository";
-import { CacheService } from "../../../../src/cache/cache.service";
-import {
+import { CacheService } from "../../../../src/cache/services/cache.service";
+import {  
   SECURITY_AUDIT_CONFIG,
   SECURITY_AUDIT_OPERATIONS,
   SECURITY_AUDIT_MESSAGES,

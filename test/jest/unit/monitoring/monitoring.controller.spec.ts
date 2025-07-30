@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { MonitoringController } from "../../../../src/monitoring/monitoring.controller";
+import { MonitoringController } from "../../../../src/monitoring/controller/monitoring.controller";
 import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 import { MetricsHealthService } from "../../../../src/metrics/services/metrics-health.service";
 import { PermissionService } from "../../../../src/auth/services/permission.service";
 import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";

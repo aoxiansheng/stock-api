@@ -1,13 +1,13 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { QueryService } from "../../../../../src/core/query/service/query.service";
-import { QueryStatisticsService } from "../../../../../src/core/query/service/query-statistics.service";
-import { QueryResultProcessorService } from "../../../../../src/core/query/service/query-result-processor.service";
-import { StorageService } from "../../../../../src/core/storage/service/storage.service";
+import { QueryService } from "../../../../../src/core/query/services/query.service";
+import { QueryStatisticsService } from "../../../../../src/core/query/services/query-statistics.service";
+import { QueryResultProcessorService } from "../../../../../src/core/query/services/query-result-processor.service";
+import { StorageService } from "../../../../../src/core/storage/services/storage.service";
 import { QueryType } from "../../../../../src/core/query/dto/query-types.dto";
-import { DataFetchingService } from "../../../../../src/core/shared/service/data-fetching.service";
-import { DataChangeDetectorService } from "../../../../../src/core/shared/service/data-change-detector.service";
-import { MarketStatusService } from "../../../../../src/core/shared/service/market-status.service";
+import { DataFetchingService } from "../../../../../src/core/shared/services/data-fetching.service";
+import { DataChangeDetectorService } from "../../../../../src/core/shared/services/data-change-detector.service";
+import { MarketStatusService } from "../../../../../src/core/shared/services/market-status.service";
 import { Market } from "../../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../../src/common/constants/market-trading-hours.constants";
 import { QueryRequestDto, BulkQueryRequestDto } from "../../../../../src/core/query/dto/query-request.dto";
@@ -21,7 +21,7 @@ import {
   StorageType,
   StorageClassification,
 } from "../../../../../src/core/storage/enums/storage-type.enum";
-import { BackgroundTaskService } from "../../../../../src/core/shared/service/background-task.service";
+import { BackgroundTaskService } from "../../../../../src/core/shared/services/background-task.service";
 import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "../../../../../src/common/modules/pagination/dto/paginated-data";
 

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
 import { QueryController } from "../../../../../src/core/query/controller/query.controller";
-import { QueryService } from "../../../../../src/core/query/service/query.service";
+import { QueryService } from "../../../../../src/core/query/services/query.service";
 import {
   QueryRequestDto,
   BulkQueryRequestDto,

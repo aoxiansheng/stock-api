@@ -7,8 +7,8 @@ import { INestApplication } from "@nestjs/common";
 import Redis from "ioredis";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 
-import { SecurityAuditService } from "../../../../src/security/security-audit.service";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { SecurityAuditService } from "../../../../src/security/services/security-audit.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 import { SecurityEvent } from "../../../../src/security/interfaces/security-audit.interface";
 
 describe("Security Cache Integration", () => {

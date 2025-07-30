@@ -2,8 +2,8 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { mkdir, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { CapabilityRegistryService } from "@providers/capability-registry.service";
-import { ICapability } from "@providers/interfaces/capability.interface";
+import { CapabilityRegistryService } from "../../../../src/providers/services/capability-registry.service";
+import { ICapability } from "../../../../src/providers/interfaces/capability.interface";
 
 describe("CapabilityRegistryService - Integration", () => {
   let service: CapabilityRegistryService;

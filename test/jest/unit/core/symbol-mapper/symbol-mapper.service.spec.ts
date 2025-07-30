@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConflictException, NotFoundException } from "@nestjs/common";
-import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/service/symbol-mapper.service";
+import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/services/symbol-mapper.service";
 import { SymbolMappingRepository } from "../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
 import { CreateSymbolMappingDto } from "../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
 import {

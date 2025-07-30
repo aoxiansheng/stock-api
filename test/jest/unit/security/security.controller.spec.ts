@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { SecurityController } from "../../../../src/security/security.controller";
-import { SecurityScannerService } from "../../../../src/security/security-scanner.service";
-import { SecurityAuditService } from "../../../../src/security/security-audit.service";
+import { SecurityController } from "../../../../src/security/controller/security.controller";
+import { SecurityScannerService } from "../../../../src/security/services/security-scanner.service";
+import { SecurityAuditService } from "../../../../src/security/services/security-audit.service";
 import { PermissionService } from "../../../../src/auth/services/permission.service";
 import { RateLimitService } from "../../../../src/auth/services/rate-limit.service";
 import { UnifiedPermissionsGuard } from "../../../../src/auth/guards/unified-permissions.guard";

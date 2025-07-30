@@ -8,7 +8,7 @@ import { Logger } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request } from "express";
 
-import { AuthController } from "../../../../src/auth/auth.controller";
+import { AuthController } from "../../../../src/auth/controller/auth.controller";
 import { AuthService } from "../../../../src/auth/services/auth.service";
 import { CreateUserDto, LoginDto } from "../../../../src/auth/dto/auth.dto";
 import { CreateApiKeyDto } from "../../../../src/auth/dto/apikey.dto";

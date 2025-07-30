@@ -24,7 +24,7 @@ import { ApiKeyAuth } from "../../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../../auth/decorators/permissions.decorator";
 import { Permission } from "../../../auth/enums/user-role.enum";
 
-import { DataMapperService } from "../service/data-mapper.service";
+import { DataMapperService } from "../services/data-mapper.service";
 import { CreateDataMappingDto } from "../dto/create-data-mapping.dto";
 import { DataMappingQueryDto } from "../dto/data-mapping-query.dto";
 import {

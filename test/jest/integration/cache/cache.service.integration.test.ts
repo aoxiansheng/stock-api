@@ -7,7 +7,7 @@ import { INestApplication } from "@nestjs/common";
 import Redis from "ioredis";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 
 describe("CacheService 容错机制集成测试", () => {
   let app: INestApplication;

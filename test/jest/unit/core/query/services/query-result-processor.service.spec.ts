@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { QueryResultProcessorService } from "../../../../../../src/core/query/service/query-result-processor.service";
+import { QueryResultProcessorService } from "../../../../../../src/core/query/services/query-result-processor.service";
 import { QueryExecutionResultDto } from "../../../../../../src/core/query/dto/query-internal.dto";
 import {
   QueryRequestDto,

@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
-import { AuthModule } from "../../../auth/auth.module";
+import { AuthModule } from "../../../auth/module/auth.module";
 
 import { StorageRepository } from "../repositories/storage.repository";
 import { StoredData, StoredDataSchema } from "../schemas/storage.schema";
 import { StorageController } from "../controller/storage.controller";
-import { StorageService } from "../service/storage.service";
+import { StorageService } from "../services/storage.service";
 
 @Module({
   imports: [

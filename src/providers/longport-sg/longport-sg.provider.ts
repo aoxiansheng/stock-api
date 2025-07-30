@@ -9,7 +9,7 @@ import { IDataProvider } from "../interfaces/provider.interface";
 import { getIndexQuote } from "./capabilities/get-index-quote";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getStockQuote } from "./capabilities/get-stock-quote";
-import { LongportSgContextService } from "./longport-sg-context.service";
+import { LongportSgContextService } from "./services/longport-sg-context.service";
 
 @Injectable()
 export class LongportSgProvider implements IDataProvider {

@@ -2,7 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { InternalServerErrorException } from "@nestjs/common";
 import { Config, QuoteContext } from "longport";
 
-import { LongportContextService } from "../../../../../src/providers/longport/longport-context.service";
+import { LongportContextService } from "../../../../../src/providers/longport/services/longport-context.service";
 
 // Mock longport SDK
 jest.mock("longport", () => ({

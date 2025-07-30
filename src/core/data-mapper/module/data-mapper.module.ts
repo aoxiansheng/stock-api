@@ -1,10 +1,10 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
-import { AuthModule } from "../../../auth/auth.module";
+import { AuthModule } from "../../../auth/module/auth.module";
 
 import { DataMapperController } from "../controller/data-mapper.controller";
-import { DataMapperService } from "../service/data-mapper.service";
+import { DataMapperService } from "../services/data-mapper.service";
 import { DataMappingRepository } from "../repositories/data-mapper.repository";
 import {
   DataMappingRule,

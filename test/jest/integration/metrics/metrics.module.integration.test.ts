@@ -9,7 +9,7 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 
 import { PerformanceMonitorService } from "../../../../src/metrics/services/performance-monitor.service";
 import { PerformanceMetricsRepository } from "../../../../src/metrics/repositories/performance-metrics.repository";
-import { CacheService } from "../../../../src/cache/cache.service";
+import { CacheService } from "../../../../src/cache/services/cache.service";
 
 describe("Metrics Cache Integration", () => {
   let app: INestApplication;

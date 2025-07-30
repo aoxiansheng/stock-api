@@ -3,10 +3,10 @@ import { NotFoundException } from "@nestjs/common";
 import {
   DataFetchingService,
   DataFetchRequest,
-} from "../../../../../../src/core/shared/service/data-fetching.service";
-import { CapabilityRegistryService } from "../../../../../../src/providers/capability-registry.service";
-import { MarketStatusService } from "../../../../../../src/core/shared/service/market-status.service";
-import { DataChangeDetectorService } from "../../../../../../src/core/shared/service/data-change-detector.service";
+} from "../../../../../../src/core/shared/services/data-fetching.service";
+import { CapabilityRegistryService } from "../../../../../../src/providers/services/capability-registry.service";
+import { MarketStatusService } from "../../../../../../src/core/shared/services/market-status.service";
+import { DataChangeDetectorService } from "../../../../../../src/core/shared/services/data-change-detector.service";
 import { Market } from "../../../../../../src/common/constants/market.constants";
 import { MarketStatus } from "../../../../../../src/common/constants/market-trading-hours.constants";
 import { createLogger } from "../../../../../../src/common/config/logger.config";

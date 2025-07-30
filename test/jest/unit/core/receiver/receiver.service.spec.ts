@@ -1,10 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ReceiverService } from "../../../../../src/core/receiver/service/receiver.service";
-import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/service/symbol-mapper.service";
-import { CapabilityRegistryService } from "../../../../../src/providers/capability-registry.service";
-import { LongportContextService } from "../../../../../src/providers/longport/longport-context.service";
-import { MarketStatusService } from "../../../../../src/core/shared/service/market-status.service";
-import { CacheService } from "../../../../../src/cache/cache.service";
+import { ReceiverService } from "../../../../../src/core/receiver/services/receiver.service";
+import { SymbolMapperService } from "../../../../../src/core/symbol-mapper/services/symbol-mapper.service";
+import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
+import { LongportContextService } from "../../../../../src/providers/longport/services/longport-context.service";
+import { MarketStatusService } from "../../../../../src/core/shared/services/market-status.service";
+import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { DataRequestDto } from "../../../../../src/core/receiver/dto/data-request.dto";
 import { TransformSymbolsResponseDto } from "../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
 import { Market } from "../../../../../src/common/constants/market.constants";

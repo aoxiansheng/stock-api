@@ -14,7 +14,7 @@ import { Permission } from "../../../auth/enums/user-role.enum";
 
 import { TransformRequestDto } from "../dto/transform-request.dto";
 import { TransformResponseDto } from "../dto/transform-response.dto";
-import { TransformerService } from "../service/transformer.service";
+import { TransformerService } from "../services/transformer.service";
 
 @ApiTags("⚡ 数据转换")
 @Controller("transformer")

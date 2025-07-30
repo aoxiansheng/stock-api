@@ -19,7 +19,7 @@ import { Permission } from "../../../auth/enums/user-role.enum";
 
 import { DataRequestDto } from "../dto/data-request.dto";
 import { DataResponseDto } from "../dto/data-response.dto";
-import { ReceiverService } from "../service/receiver.service";
+import { ReceiverService } from "../services/receiver.service";
 
 @ApiTags("🚀 强时效接口 - 实时数据接收")
 @Controller("receiver")

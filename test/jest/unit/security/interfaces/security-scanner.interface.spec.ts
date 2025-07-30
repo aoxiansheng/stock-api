@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
-import { SecurityScannerService } from "../../../../../src/security/security-scanner.service";
+import { SecurityScannerService } from "../../../../../src/security/services/security-scanner.service";
 import { UserRepository } from "../../../../../src/auth/repositories/user.repository";
 import { ApiKeyRepository } from "../../../../../src/auth/repositories/apikey.repository";
 import { SecurityScanResultRepository } from "../../../../../src/security/repositories/security-scan-result.repository";

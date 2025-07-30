@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
 import { ReceiverController } from "../../../../../src/core/receiver/controller/receiver.controller";
-import { ReceiverService } from "../../../../../src/core/receiver/service/receiver.service";
+import { ReceiverService } from "../../../../../src/core/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../../../src/core/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../../../src/core/receiver/dto/data-response.dto";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";

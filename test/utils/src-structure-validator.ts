@@ -45,8 +45,8 @@ class SrcStructureValidator {
       },
       {
         pattern: 'service.ts',
-        expectedDirectory: 'service',
-        description: '服务文件应保存在 service 文件夹中'
+        expectedDirectory: 'services',
+        description: '服务文件应保存在 services 文件夹中'
       },
       {
         pattern: '.dto.ts',
@@ -181,10 +181,128 @@ class SrcStructureValidator {
 
     // 检查文件是否在正确的目录中
     const dirParts = currentDir.split(path.sep);
-    const hasCorrectDirectory = dirParts.includes(matchedRule.expectedDirectory);
+    
+    // 特殊处理服务文件的检测逻辑
+    if (matchedRule.expectedDirectory === 'services') {
+      const hasServicesDir = dirParts.includes('services');
+      const hasServiceDir = dirParts.includes('service');
+      
+      // 情况1: 同时包含service和services (如 service/services/ 或 services/service/)
+      if (hasServicesDir && hasServiceDir) {
+        // 移除所有service目录，只保留services
+        const cleanedDirParts = dirParts.filter(part => part !== 'service');
+        const expectedPath = path.join(...cleanedDirParts, fileName);
+        
+        return {
+          file: fileName,
+          currentPath: relativePath,
+          expectedPath,
+          fileType: matchedRule.expectedDirectory,
+          description: matchedRule.description + ' (检测到service/services嵌套结构)'
+        };
+      }
+      
+      // 情况2: 只包含services，检查是否有嵌套的service
+      if (hasServicesDir) {
+        const servicesIndex = dirParts.indexOf('services');
+        const hasNestedServiceDir = dirParts.slice(servicesIndex + 1).includes('service');
+        
+        if (hasNestedServiceDir) {
+          // 在services/service嵌套结构中，需要移到services直接目录下
+          const newDirParts = [...dirParts];
+          const serviceIndex = newDirParts.lastIndexOf('service');
+          newDirParts.splice(serviceIndex, 1); // 移除service目录
+          const expectedPath = path.join(...newDirParts, fileName);
+          
+          return {
+            file: fileName,
+            currentPath: relativePath,
+            expectedPath,
+            fileType: matchedRule.expectedDirectory,
+            description: matchedRule.description + ' (检测到services/service嵌套结构)'
+          };
+        }
+        
+        return null; // 已经在正确的services目录中
+      }
+      
+      // 情况3: 只包含service，需要移动到services
+      if (hasServiceDir) {
+        const newDirParts = dirParts.map(part => part === 'service' ? 'services' : part);
+        const expectedPath = path.join(...newDirParts, fileName);
+        
+        return {
+          file: fileName,
+          currentPath: relativePath,
+          expectedPath,
+          fileType: matchedRule.expectedDirectory,
+          description: matchedRule.description
+        };
+      }
+      
+      // 情况4: 不在任何service相关目录中，按原逻辑处理
+      const moduleDir = this.getModuleDirectory(relativePath);
+      const expectedPath = path.join(moduleDir, fileName);
+      
+      return {
+        file: fileName,
+        currentPath: relativePath,
+        expectedPath,
+        fileType: matchedRule.expectedDirectory,
+        description: matchedRule.description
+      };
+    }
 
+    // 其他文件类型的检测逻辑
+    const hasCorrectDirectory = dirParts.includes(matchedRule.expectedDirectory);
+    
+    // 检查是否有重复的目录名（如 modules/module 或 controller/controller）
+    const expectedDirName = matchedRule.expectedDirectory;
+    const pluralForm = expectedDirName + 's';
+    const singularForm = expectedDirName.endsWith('s') ? expectedDirName.slice(0, -1) : expectedDirName;
+    
+    const hasPluralDir = dirParts.includes(pluralForm);
+    const hasSingularDir = dirParts.includes(singularForm);
+    
+    // 特殊处理：如果是模块文件，且路径中已经包含 "modules" 目录，则认为它已经在正确的位置
+    if (matchedRule.expectedDirectory === 'module' && dirParts.includes('modules')) {
+      // 检查路径是否包含 common/modules 模式
+      if (dirParts.length >= 2 && dirParts[0] === 'common' && dirParts[1] === 'modules') {
+        return null; // 已经在正确位置，不需要移动
+      }
+    }
+    
+    // 如果同时包含复数和单数形式（如 modules/module），需要修复
+    if (hasPluralDir && hasSingularDir && pluralForm !== singularForm) {
+      // 移除重复的复数形式目录，保留单数形式
+      const cleanedDirParts = dirParts.filter(part => part !== pluralForm);
+      const expectedPath = path.join(...cleanedDirParts, fileName);
+      
+      return {
+        file: fileName,
+        currentPath: relativePath,
+        expectedPath,
+        fileType: matchedRule.expectedDirectory,
+        description: matchedRule.description + ` (检测到${pluralForm}/${singularForm}嵌套结构)`
+      };
+    }
+    
     if (!hasCorrectDirectory) {
-      // 构建期望的路径
+      // 对于服务文件，使用特殊的路径构建逻辑
+      if (matchedRule.expectedDirectory === 'services') {
+        const moduleDir = this.getModuleDirectory(relativePath);
+        const expectedPath = path.join(moduleDir, fileName);
+        
+        return {
+          file: fileName,
+          currentPath: relativePath,
+          expectedPath,
+          fileType: matchedRule.expectedDirectory,
+          description: matchedRule.description
+        };
+      }
+      
+      // 其他文件类型的标准逻辑
       const moduleDir = this.getModuleDirectory(relativePath);
       const expectedPath = path.join(moduleDir, matchedRule.expectedDirectory, fileName);
 
@@ -209,18 +327,21 @@ class SrcStructureValidator {
     // 移除文件名，获取目录部分
     const dirParts = parts.slice(0, -1);
     
+    // 特殊处理服务文件：将 service 目录替换为 services
+    const adjustedDirParts = dirParts.map(part => {
+      if (part === 'service') {
+        return 'services';
+      }
+      return part;
+    });
+    
     // 如果在 common 目录下，保持原有结构（除了文件名）
-    if (dirParts[0] === 'common') {
-      return dirParts.join(path.sep);
+    if (adjustedDirParts[0] === 'common') {
+      return adjustedDirParts.join(path.sep);
     }
     
-    // 对于其他模块，如果文件直接在模块根目录，返回模块名
-    if (dirParts.length === 1) {
-      return dirParts[0];
-    }
-    
-    // 如果文件在子目录中，返回到子目录级别
-    return dirParts.join(path.sep);
+    // 对于其他模块，返回调整后的目录路径
+    return adjustedDirParts.join(path.sep);
   }
 
   /**
@@ -318,6 +439,10 @@ class SrcStructureValidator {
       let script = '#!/bin/bash\n\n';
       script += '# 所有文件都符合规范，无需修复\n';
       script += 'echo "✅ 所有文件都符合目录结构规范，无需修复"\n';
+      script += 'echo "正在清理空的 service 目录..."\n';
+      script += '\n# 清理空的 service 目录\n';
+      script += 'find src -type d -name "service" -empty -delete 2>/dev/null || true\n';
+      script += 'echo "已清理空的 service 目录"\n';
       script += 'echo "正在清理修复脚本..."\n';
       script += '\n# 自焚命令 - 删除自己\n';
       script += 'SCRIPT_PATH="$0"\n';
@@ -361,6 +486,10 @@ class SrcStructureValidator {
     if (safeViolations.length === 0) {
       script += 'echo "所有文件都存在冲突，无法自动修复"\n';
       script += 'echo "请手动解决文件冲突后重新运行验证脚本"\n';
+      script += 'echo "正在清理空的 service 目录..."\n';
+      script += '\n# 清理空的 service 目录\n';
+      script += 'find src -type d -name "service" -empty -delete 2>/dev/null || true\n';
+      script += 'echo "已清理空的 service 目录"\n';
       script += 'echo "正在清理修复脚本..."\n';
       script += '\n# 自焚命令 - 删除自己\n';
       script += 'SCRIPT_PATH="$0"\n';
@@ -390,6 +519,10 @@ class SrcStructureValidator {
     });
 
     script += '\necho "目录结构修复完成！"\n';
+    script += 'echo "正在清理空的 service 目录..."\n';
+    script += '\n# 清理空的 service 目录\n';
+    script += 'find src -type d -name "service" -empty -delete 2>/dev/null || true\n';
+    script += 'echo "已清理空的 service 目录"\n';
     
     if (conflicts.length > 0) {
       script += `echo "⚠️  ${conflicts.length} 个文件因冲突被跳过，请手动处理"\n`;

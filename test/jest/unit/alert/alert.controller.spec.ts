@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { AlertController } from "../../../../src/alert/alert.controller";
+import { AlertController } from "../../../../src/alert/controller/alert.controller";
 import { AlertingService } from "../../../../src/alert/services/alerting.service";
 import { AlertHistoryService } from "../../../../src/alert/services/alert-history.service";
 import { NotificationService } from "../../../../src/alert/services/notification.service";

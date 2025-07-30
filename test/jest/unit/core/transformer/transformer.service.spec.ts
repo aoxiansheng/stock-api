@@ -4,8 +4,8 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { TransformerService } from "../../../../../src/core/transformer/service/transformer.service";
-import { DataMapperService } from "../../../../../src/core/data-mapper/service/data-mapper.service";
+import { TransformerService } from "../../../../../src/core/transformer/services/transformer.service";
+import { DataMapperService } from "../../../../../src/core/data-mapper/services/data-mapper.service";
 import { TransformRequestDto } from "../../../../../src/core/transformer/dto/transform-request.dto";
 import { DataMappingResponseDto } from "../../../../../src/core/data-mapper/dto/data-mapping-response.dto";
 import { TransformResponseDto } from "../../../../../src/core/transformer/dto/transform-response.dto";

@@ -15,14 +15,14 @@ import { JwtModule } from "@nestjs/jwt";
 import { TestEnvironment, smartDelay } from "../utils/async-test-helpers";
 
 // Import modules needed for integration tests
-import { AuthModule } from "../../src/auth/auth.module";
-import { MonitoringModule } from "../../src/monitoring/monitoring.module";
-import { AlertModule } from "../../src/alert/alert.module";
-import { CacheModule } from "../../src/cache/cache.module";
-import { SecurityModule } from "../../src/security/security.module";
+import { AuthModule } from "../../src/auth/module/auth.module";
+import { MonitoringModule } from "../../src/monitoring/module/monitoring.module";
+import { AlertModule } from "../../src/alert/module/alert.module";
+import { CacheModule } from "../../src/cache/module/cache.module";
+import { SecurityModule } from "../../src/security/module/security.module";
 import { alertConfig } from "../../src/common/config/alert.config";
 // 临时禁用LongPort模块以避免资源泄露
-import { ProvidersModule } from "../../src/providers/providers.module";
+import { ProvidersModule } from "../../src/providers/module/providers.module";
 // 添加节流模块导入
 import { ThrottlerModule } from "@nestjs/throttler";
 

@@ -4,7 +4,7 @@
  */
 
 import { Test, TestingModule } from "@nestjs/testing";
-import { CapabilityRegistryService } from "../../../../src/providers/capability-registry.service";
+import { CapabilityRegistryService } from "../../../../src/providers/services/capability-registry.service";
 import * as fs from "fs/promises";
 
 // Mock fs/promises
