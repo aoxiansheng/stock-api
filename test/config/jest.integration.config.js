@@ -78,6 +78,7 @@ module.exports = {
         includeFailureMsg: true,
         includeSuiteFailure: true,
         includeConsoleLog: true, // 包含控制台日志以便调试
+        sort: 'status:failed,pending,passed'
       },
     ],
   ],

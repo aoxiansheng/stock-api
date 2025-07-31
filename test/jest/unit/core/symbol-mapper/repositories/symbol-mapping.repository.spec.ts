@@ -37,7 +37,7 @@ describe("SymbolMappingRepository", () => {
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-    save: jest.fn().mockResolvedValue(this),
+    save: jest.fn().mockResolvedValue({}),
   };
 
   beforeEach(async () => {

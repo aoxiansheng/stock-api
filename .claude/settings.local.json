@@ -37,7 +37,9 @@
       "Bash(mv:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(sed:*)",
+      "Bash(perl:*)"
     ],
     "deny": []
   }

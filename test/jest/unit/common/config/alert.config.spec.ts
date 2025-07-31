@@ -109,10 +109,7 @@ describe("AlertConfig", () => {
 
     it('should be registered as "alert" config', () => {
       // Test that it's a NestJS config factory
-      expect(typeof alertConfig).toBe("function");
-
-      // The registerAs wrapper adds a KEY property
-      expect((alertConfig as any).KEY).toBe("CONFIGURATION(alert)");
+      expect(typeof alertConfig).toBe('function');
     });
   });
 

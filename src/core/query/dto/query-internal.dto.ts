@@ -8,6 +8,7 @@ import {
   IsObject,
   IsArray,
   ValidateNested,
+  IsIn,
 } from "class-validator";
 
 import { DataSourceType } from "../enums/data-source-type.enum";
@@ -32,7 +33,7 @@ export class QueryStatsRecordDto {
 /**
  * 数据源统计详情DTO
  */
-class DataSourceCounterDto {
+export class DataSourceCounterDto {
   @ApiProperty({ description: "命中次数或请求次数" })
   @IsNumber()
   hits: number;
@@ -231,6 +232,7 @@ export class SortConfigDto {
   field: string;
 
   @ApiProperty({ description: "排序方向", enum: ["ASC", "DESC"] })
+  @IsIn(['ASC', 'DESC'])
   @IsString()
   direction: "ASC" | "DESC";
 }

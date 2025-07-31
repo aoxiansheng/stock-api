@@ -58,7 +58,7 @@ describe("UnifiedPermissionsGuard", () => {
     jest.clearAllMocks();
   });
 
-  // 辅助函数，用于模拟 Reflector 的返回值
+  // Helper function to mock Reflector's return value
   const mockReflector = (
     roles: UserRole[] = [],
     permissions: Permission[] = [],
@@ -70,7 +70,7 @@ describe("UnifiedPermissionsGuard", () => {
     });
   };
 
-  // 辅助函数，用于模拟 AuthSubjectFactory
+  // Helper function to mock AuthSubjectFactory
   const mockAuthSubject = (subject: any) => {
     (AuthSubjectFactory.createFromRequest as jest.Mock).mockReturnValue(
       subject,
@@ -232,7 +232,7 @@ describe("UnifiedPermissionsGuard", () => {
         ForbiddenException,
       );
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
-        "权限验证失败，请稍后重试",
+        '权限验证失败，请稍后重试',
       );
     });
 

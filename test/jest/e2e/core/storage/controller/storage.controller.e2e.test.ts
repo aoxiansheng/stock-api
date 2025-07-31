@@ -81,7 +81,7 @@ describe("Storage E2E Tests", () => {
       };
 
       // Act
-      const response = await httpServer
+      await httpServer
         .post("/api/v1/storage/store")
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
@@ -218,7 +218,7 @@ describe("Storage E2E Tests", () => {
       };
 
       // Act
-      const storeResponse = await httpServer
+      await httpServer
         .post("/api/v1/storage/store")
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
@@ -305,6 +305,7 @@ describe("Storage E2E Tests with Admin Role", () => {
     };
 
     // Act 1: Store data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const storeResponse = await httpServer
       .post("/api/v1/storage/store")
       .set("X-App-Key", adminAuthTokens.apiKey)

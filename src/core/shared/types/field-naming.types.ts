@@ -78,6 +78,14 @@ export const FIELD_MAPPING_CONFIG = {
     [StorageClassification.CRYPTO_LOGO]: "get-crypto-logo",
     [StorageClassification.STOCK_NEWS]: "get-stock-news",
     [StorageClassification.CRYPTO_NEWS]: "get-crypto-news",
+    // Add missing mappings
+    [StorageClassification.STOCK_CANDLE]: "get-stock-quote",
+    [StorageClassification.STOCK_TICK]: "get-stock-quote",
+    [StorageClassification.FINANCIAL_STATEMENT]: "get-stock-basic-info",
+    [StorageClassification.MARKET_NEWS]: "get-stock-news",
+    [StorageClassification.TRADING_ORDER]: "get-global-state",
+    [StorageClassification.USER_PORTFOLIO]: "get-global-state",
+    [StorageClassification.GENERAL]: "get-global-state",
   } as const,
 } as const;
 

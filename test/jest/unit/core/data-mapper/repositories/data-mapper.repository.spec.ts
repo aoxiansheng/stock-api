@@ -12,6 +12,7 @@ describe("DataMappingRepository", () => {
   let repository: DataMappingRepository;
   let model: Model<DataMappingRule>;
   let paginationService: PaginationService;
+  
   let mockQuery;
 
   const mockDataMappingDocument = {

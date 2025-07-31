@@ -45,4 +45,7 @@ process.env.CACHE_TTL = "60";
 process.env.RATE_LIMIT_ENABLED = "false";
 process.env.CORS_ENABLED = "true";
 
+// 抑制Mongoose警告
+process.env.SUPPRESS_JEST_WARNINGS = "true";
+
 console.log("单元测试环境变量已加载");

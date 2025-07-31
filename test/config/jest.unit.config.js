@@ -42,8 +42,13 @@ module.exports = {
     '<rootDir>/test/config/unit.setup.ts'
   ],
   
-  // 单元测试超时设置 - 应该很快
-  testTimeout: 5000,
+  // 单元测试超时设置 - MongoDB Memory Server需要更多时间
+  testTimeout: 60000,
+  
+  // 禁用计时器模拟以兼容Mongoose
+  fakeTimers: {
+    enableGlobally: false,
+  },
   
   // 模块名映射
   moduleNameMapper: {
@@ -56,19 +61,18 @@ module.exports = {
     '^@cache/(.*)$': '<rootDir>/src/cache/$1',
     '^@metrics/(.*)$': '<rootDir>/src/metrics/$1',
     '^@security/(.*)$': '<rootDir>/src/security/$1',
+    '^@providers/(.*)$': '<rootDir>/src/providers/$1',
   },
   
-  // TypeScript 转换
+  // TypeScript 转换 - 更新配置方式
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+    }],
   },
   
-  // Jest 全局配置
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
+  // Jest 全局配置 - 移除已弃用的 ts-jest 配置
+  globals: {},
   
   // 单元测试报告
   reporters: [
@@ -80,6 +84,7 @@ module.exports = {
         outputPath: 'test-results/unit-test-report.html',
         includeFailureMsg: true,
         includeSuiteFailure: true,
+        sort: 'status:failed,pending,passed'
       },
     ],
   ],

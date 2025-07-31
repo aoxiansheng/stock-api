@@ -148,7 +148,7 @@ describe("StorageService", () => {
 
     service = module.get<StorageService>(StorageService);
     storageRepository = module.get(StorageRepository);
-    paginationService = module.get(PaginationService);
+    
 
     // Clear all previous calls
     jest.clearAllMocks();

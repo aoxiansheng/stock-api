@@ -553,23 +553,43 @@ export class AlertingService implements OnModuleInit {
         context: result.context,
       });
 
-      await this.cacheService.set(
-        `${this.config.activeAlertPrefix}:${alert.ruleId}`,
-        alert,
-        { ttl: this.config.activeAlertTtlSeconds },
-      );
+      // 缓存设置 - 错误时记录但不中断流程
+      try {
+        await this.cacheService.set(
+          `${this.config.activeAlertPrefix}:${alert.ruleId}`,
+          alert,
+          { ttl: this.config.activeAlertTtlSeconds },
+        );
+      } catch (cacheError) {
+        this.logger.error('告警缓存设置失败', {
+          operation,
+          ruleName: rule.name,
+          alertId: alert.id,
+          error: cacheError.message,
+        });
+      }
 
-      // 将IAlert转换为Alert类型
-      const alertForNotification: Alert = {
-        ...alert,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      // 通知发送 - 错误时记录但不中断流程
+      try {
+        // 将IAlert转换为Alert类型
+        const alertForNotification: Alert = {
+          ...alert,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-      await this.notificationService.sendBatchNotifications(
-        alertForNotification,
-        rule,
-      );
+        await this.notificationService.sendBatchNotifications(
+          alertForNotification,
+          rule,
+        );
+      } catch (notificationError) {
+        this.logger.error('告警通知发送失败', {
+          operation,
+          ruleName: rule.name,
+          alertId: alert.id,
+          error: notificationError.message,
+        });
+      }
 
       this.logger.warn(ALERTING_MESSAGES.NEW_ALERT_TRIGGERED, {
         operation,
@@ -582,7 +602,7 @@ export class AlertingService implements OnModuleInit {
         ruleName: rule.name,
         error: error.stack,
       });
-      // 🎯 重新抛出错误，让上层 handleRuleEvaluation 知道创建失败
+      // 🎯 只有告警创建失败时才抛出错误，缓存和通知错误不中断流程
       throw error;
     }
   }
@@ -594,20 +614,45 @@ export class AlertingService implements OnModuleInit {
     const activeAlerts = await this.alertHistoryService.getActiveAlerts();
 
     if (activeAlerts.length > 0) {
-      const cachePromises = activeAlerts.map((alert) =>
-        this.cacheService.set(
-          `${this.config.activeAlertPrefix}:${alert.ruleId}`,
-          alert,
-          { ttl: this.config.activeAlertTtlSeconds },
-        ),
+      // 为每个告警单独处理缓存设置，避免单个失败影响整体
+      const cacheResults = await Promise.allSettled(
+        activeAlerts.map(async (alert) => {
+          try {
+            await this.cacheService.set(
+              `${this.config.activeAlertPrefix}:${alert.ruleId}`,
+              alert,
+              { ttl: this.config.activeAlertTtlSeconds },
+            );
+            return { success: true, alertId: alert.id };
+          } catch (error) {
+            this.logger.error('活跃告警缓存设置失败', {
+              operation: 'loadActiveAlerts',
+              alertId: alert.id,
+              ruleId: alert.ruleId,
+              error: error.message,
+            });
+            return { success: false, alertId: alert.id, error: error.message };
+          }
+        })
       );
-      await Promise.all(cachePromises);
-    }
 
-    this.logger.log(`加载 ${activeAlerts.length} 条活跃告警到缓存`, {
-      operation: "loadActiveAlerts",
-      count: activeAlerts.length,
-    });
+      const successCount = cacheResults.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      ).length;
+      const failureCount = activeAlerts.length - successCount;
+
+      this.logger.log(`加载活跃告警到缓存完成`, {
+        operation: "loadActiveAlerts",
+        total: activeAlerts.length,
+        success: successCount,
+        failed: failureCount,
+      });
+    } else {
+      this.logger.log('没有活跃告警需要加载到缓存', {
+        operation: "loadActiveAlerts",
+        count: 0,
+      });
+    }
   }
 
   /**

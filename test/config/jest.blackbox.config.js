@@ -59,6 +59,7 @@ module.exports = {
         includeFailureMsg: true,
         includeSuiteFailure: true,
         includeConsoleLog: true,
+        sort: 'status:failed,pending,passed'
       },
     ],
   ],

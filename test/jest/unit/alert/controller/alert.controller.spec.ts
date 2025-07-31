@@ -17,7 +17,7 @@ describe("AlertController", () => {
   let alertingService: AlertingService;
   let alertHistoryService: AlertHistoryService;
   let notificationService: NotificationService;
-  let paginationService: PaginationService;
+  
 
   const mockAlertRule = {
     id: "rule-123",
@@ -128,7 +128,7 @@ describe("AlertController", () => {
     alertingService = module.get<AlertingService>(AlertingService);
     alertHistoryService = module.get<AlertHistoryService>(AlertHistoryService);
     notificationService = module.get<NotificationService>(NotificationService);
-    paginationService = module.get<PaginationService>(PaginationService);
+    
   });
 
   afterEach(() => {

@@ -1,856 +1,631 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { getModelToken } from "@nestjs/mongoose";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-
-import { BadRequestException, ConflictException } from "@nestjs/common";
-
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
+import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
 import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
 import { NotificationService } from "../../../../../src/alert/services/notification.service";
 import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
-import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
-import { AlertRule } from "../../../../../src/alert/schemas/alert-rule.schema";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
-import { IAlertRule, IAlert } from "../../../../../src/alert/interfaces";
-import {
-  AlertSeverity,
-  AlertStatus,
-  NotificationChannelType,
-} from "../../../../../src/alert/types/alert.types";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ConfigService } from "@nestjs/config";
+import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../../../../../src/alert/dto";
+import { IAlertRule, IMetricData, IRuleEvaluationResult } from "../../../../../src/alert/interfaces";
+import { AlertStatus, AlertSeverity } from "../../../../../src/alert/types/alert.types";
+import { BadRequestException, NotFoundException, InternalServerErrorException } from "@nestjs/common";
+import { ALERTING_MESSAGES, AlertingTemplateUtil } from "../../../../../src/alert/constants/alerting.constants";
 
-describe("AlertingService Enhanced Coverage", () => {
+describe("AlertingService", () => {
   let service: AlertingService;
-  let ruleEngineService: jest.Mocked<RuleEngineService>;
+  let alertRuleRepository: jest.Mocked<AlertRuleRepository>;
+  let ruleEngine: jest.Mocked<RuleEngineService>;
   let notificationService: jest.Mocked<NotificationService>;
   let alertHistoryService: jest.Mocked<AlertHistoryService>;
-  let alertRuleRepository: jest.Mocked<AlertRuleRepository>;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
   let cacheService: jest.Mocked<CacheService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
+  let configService: jest.Mocked<ConfigService>;
 
-  const mockRule: IAlertRule = {
-    id: "test-rule",
+  const mockAlertRule: IAlertRule = {
+    id: "rule-1",
     name: "Test Rule",
-    metric: "test.metric",
+    metric: "cpu_usage",
     operator: "gt",
-    threshold: 100,
+    threshold: 80,
     duration: 60,
-    severity: AlertSeverity.WARNING,
+    severity: AlertSeverity.CRITICAL,
     enabled: true,
-    channels: [
-      {
-        id: "channel-1",
-        name: "Test Channel",
-        type: NotificationChannelType.LOG,
-        config: { level: "warn" },
-        enabled: true,
-      },
-    ],
+    channels: [],
     cooldown: 300,
+    tags: { env: "test" },
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  const mockAlert: IAlert = {
-    id: "test-alert",
-    ruleId: "test-rule",
-    ruleName: "Test Rule",
-    metric: "test.metric",
-    value: 120,
-    threshold: 100,
-    severity: AlertSeverity.WARNING,
+  const mockAlert = {
+    id: "alert-123",
+    ruleId: "rule-abc",
+    ruleName: "Test Rule", // 添加缺失的ruleName属性
     status: AlertStatus.FIRING,
-    message: "Test alert message",
+    severity: AlertSeverity.CRITICAL,
+    message: "Test Alert",
+    value: 100,
+    threshold: 90,
+    metric: "cpu_usage",
     startTime: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {
-    const mockAlertRuleModel = {
-      find: jest.fn().mockReturnThis(),
-      findOne: jest.fn().mockReturnThis(),
-      findOneAndUpdate: jest.fn().mockReturnThis(),
-      updateOne: jest.fn().mockReturnThis(),
-      deleteOne: jest.fn().mockReturnThis(),
-      countDocuments: jest.fn().mockReturnThis(),
-      save: jest.fn(),
-      exec: jest.fn(),
-      sort: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
-      lean: jest.fn().mockReturnThis(),
-    };
-
-    const mockRuleEngineService = {
-      evaluateRule: jest.fn(),
-      evaluateRules: jest.fn(),
-      isInCooldown: jest.fn(),
-      setCooldown: jest.fn(),
-      validateRule: jest.fn(),
-      clearCooldown: jest.fn(),
-      getCooldownInfo: jest.fn(),
-      // evaluateBatchRules doesn't exist, using evaluateRules instead
-    };
-
-    const mockNotificationService = {
-      sendBatchNotifications: jest.fn(),
-      sendNotification: jest.fn(),
-      testChannel: jest.fn(),
-      formatNotificationMessage: jest.fn(),
-      getChannelHealth: jest.fn(),
-    };
-
-    const mockAlertHistoryService = {
-      createAlert: jest.fn(),
-      updateAlertStatus: jest.fn(),
-      getActiveAlerts: jest.fn(),
-      getAlertStats: jest.fn(),
-      queryAlerts: jest.fn(),
-      getAlertById: jest.fn(),
-      deleteAlert: jest.fn(),
-      bulkUpdateAlerts: jest.fn(),
-      getAlertTimeline: jest.fn(),
-    };
-
-    const mockEventEmitter = {
-      emit: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
-      removeAllListeners: jest.fn(),
-    };
-
-    const mockAlertRuleRepository = {
-      create: jest.fn(),
-      findById: jest.fn(),
-      findAll: jest.fn(),
-      findAllEnabled: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      toggle: jest.fn(),
-      countAll: jest.fn(),
-      countEnabled: jest.fn(),
-      findByMetric: jest.fn(),
-      bulkUpdate: jest.fn(),
-      findExpiring: jest.fn(),
-    };
-
-    const mockCacheService = {
-      get: jest.fn(),
-      set: jest.fn(),
-      del: jest.fn(),
-      mget: jest.fn(),
-      getOrSet: jest.fn(),
-      setex: jest.fn(),
-      exists: jest.fn(),
-      ttl: jest.fn(),
-      keys: jest.fn(),
-      flushdb: jest.fn(),
-    };
-
-    const mockConfigService = {
-      get: jest.fn().mockImplementation((key: string) => {
-        const configs = {
-          "alert.cache": {
-            activeAlertPrefix: "test_active_alert",
-            activeAlertTtlSeconds: 3600,
-            cooldownPrefix: "test_cooldown",
-          },
-          "alert.processing": {
-            batchSize: 100,
-            maxConcurrency: 10,
-            retryAttempts: 3,
-            retryDelay: 1000,
-          },
-          "alert.notification": {
-            timeout: 5000,
-            maxRetries: 3,
-            backoffMultiplier: 2,
-          },
-        };
-        return configs[key] || null;
-      }),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AlertingService,
         {
-          provide: getModelToken(AlertRule.name),
-          useValue: mockAlertRuleModel,
+          provide: AlertRuleRepository,
+          useValue: {
+            create: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            toggle: jest.fn(),
+            findAllEnabled: jest.fn(),
+            countAll: jest.fn(),
+            countEnabled: jest.fn(),
+          },
         },
-        { provide: AlertRuleRepository, useValue: mockAlertRuleRepository },
-        { provide: RuleEngineService, useValue: mockRuleEngineService },
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: AlertHistoryService, useValue: mockAlertHistoryService },
-        { provide: EventEmitter2, useValue: mockEventEmitter },
-        { provide: CacheService, useValue: mockCacheService },
-        { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: RuleEngineService,
+          useValue: {
+            validateRule: jest.fn(),
+            evaluateRules: jest.fn(),
+            isInCooldown: jest.fn(),
+            setCooldown: jest.fn(),
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: {
+            sendBatchNotifications: jest.fn(),
+          },
+        },
+        {
+          provide: AlertHistoryService,
+          useValue: {
+            createAlert: jest.fn(),
+            updateAlertStatus: jest.fn(),
+            getAlertStats: jest.fn(),
+            getActiveAlerts: jest.fn(),
+            getAlertById: jest.fn(),
+          },
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue({
+              activeAlertPrefix: "active-alert",
+              activeAlertTtlSeconds: 3600,
+              cooldownPrefix: "cooldown:",
+            }),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AlertingService>(AlertingService);
     alertRuleRepository = module.get(AlertRuleRepository);
-    ruleEngineService = module.get(RuleEngineService);
+    ruleEngine = module.get(RuleEngineService);
     notificationService = module.get(NotificationService);
     alertHistoryService = module.get(AlertHistoryService);
-    eventEmitter = module.get(EventEmitter2);
     cacheService = module.get(CacheService);
+    eventEmitter = module.get(EventEmitter2);
+    configService = module.get(ConfigService);
+
+    // Mock logger to prevent console output during tests
+    jest.spyOn((service as any).logger, "log").mockImplementation(() => {});
+    jest.spyOn((service as any).logger, "debug").mockImplementation(() => {});
+    jest.spyOn((service as any).logger, "warn").mockImplementation(() => {});
+    jest.spyOn((service as any).logger, "error").mockImplementation(() => {});
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe("Advanced Rule Management", () => {
-    it("should handle duplicate rule names", async () => {
-      const createRuleDto = {
-        name: "Duplicate Rule",
-        metric: "test.metric",
-        operator: "gt" as const,
-        threshold: 100,
-        duration: 60,
-        severity: AlertSeverity.WARNING,
-        enabled: true,
-        channels: [],
-        cooldown: 300,
-      };
-
-      ruleEngineService.validateRule.mockReturnValue({
-        valid: true,
-        errors: [],
-      });
-      alertRuleRepository.create.mockRejectedValue(
-        new ConflictException("Rule with this name already exists"),
-      );
-
-      await expect(service.createRule(createRuleDto)).rejects.toThrow(
-        ConflictException,
+  describe("onModuleInit", () => {
+    it("should load active alerts on module initialization", async () => {
+      alertHistoryService.getActiveAlerts.mockResolvedValue([mockAlert]);
+      cacheService.set.mockResolvedValue(true);
+      await service.onModuleInit();
+      expect(alertHistoryService.getActiveAlerts).toHaveBeenCalled();
+      expect(cacheService.set).toHaveBeenCalledWith(
+        `active-alert:${mockAlert.ruleId}`,
+        mockAlert,
+        { ttl: 3600 },
       );
     });
 
-    it("should validate rule thresholds", async () => {
-      const createRuleDto = {
-        name: "Invalid Threshold Rule",
-        metric: "test.metric",
-        operator: "gt" as const,
-        threshold: -100, // Invalid negative threshold
-        duration: 60,
-        severity: AlertSeverity.WARNING,
-        enabled: true,
-        channels: [],
-        cooldown: 300,
-      };
-
-      ruleEngineService.validateRule.mockReturnValue({
-        valid: false,
-        errors: ["Threshold cannot be negative"],
-      });
-
-      await expect(service.createRule(createRuleDto)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it("should handle batch rule operations", async () => {
-      // Mock bulk update functionality (this would be implementation-specific)
-      const result = { modifiedCount: 3 };
-
-      expect(result.modifiedCount).toBe(3);
-    });
-
-    it("should find rules by metric pattern", async () => {
-      const matchingRules = [
-        { ...mockRule, metric: "cpu.usage" },
-        { ...mockRule, metric: "cpu.load" },
-      ];
-
-      // Mock finding rules by metric pattern (this would be implementation-specific)
-      const result = matchingRules;
-
-      expect(result).toEqual(matchingRules);
-    });
-
-    it("should handle complex rule conditions", async () => {
-      const complexRule = {
-        ...mockRule,
-        conditions: [
-          { metric: "cpu.usage", operator: "gt", threshold: 80 },
-          { metric: "memory.usage", operator: "gt", threshold: 90 },
-        ],
-        logic: "AND",
-      };
-
-      ruleEngineService.validateRule.mockReturnValue({
-        valid: true,
-        errors: [],
-      });
-      alertRuleRepository.create.mockResolvedValue(complexRule);
-
-      const result = await service.createRule(complexRule);
-
-      // conditions and logic properties don't exist in IAlertRule interface
-      expect(result.id).toBeDefined();
-      expect(result.name).toBe(complexRule.name);
+    it("should handle errors during loadActiveAlerts", async () => {
+      alertHistoryService.getActiveAlerts.mockRejectedValue(new Error("DB error"));
+      await expect(service.onModuleInit()).rejects.toThrow("DB error");
     });
   });
 
-  describe("Advanced Alert Processing", () => {
-    it("should handle concurrent metric processing", async () => {
-      const concurrentMetrics = Array.from({ length: 50 }, (_, i) => ({
-        metric: `test.metric.${i}`,
-        value: 120 + i,
-        timestamp: new Date(),
-      }));
+  describe("createRule", () => {
+    const createDto: CreateAlertRuleDto = {
+      name: "New Rule",
+      metric: "memory_usage",
+      operator: "lt",
+      threshold: 10,
+      duration: 30,
+      severity: AlertSeverity.INFO,
+      enabled: true,
+      channels: [],
+      cooldown: 60,
+      tags: { app: "backend" },
+    };
 
-      const evaluationResults = concurrentMetrics.map((metric, i) => ({
-        ruleId: `rule-${i}`,
-        triggered: true,
-        value: metric.value,
-        threshold: 100,
-        message: `Alert for ${metric.metric}`,
-        evaluatedAt: new Date(),
-      }));
+    it("should create a rule successfully", async () => {
+      ruleEngine.validateRule.mockReturnValue({ valid: true, errors: [] });
+      alertRuleRepository.create.mockResolvedValue(mockAlertRule);
+      jest.spyOn(AlertingTemplateUtil, "generateRuleId").mockReturnValue("rule-1");
 
-      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
-      ruleEngineService.evaluateRules.mockReturnValue(evaluationResults);
-      ruleEngineService.isInCooldown.mockResolvedValue(false);
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-
-      const startTime = Date.now();
-      await service.processMetrics(concurrentMetrics);
-      const endTime = Date.now();
-
-      expect(endTime - startTime).toBeLessThan(5000); // Should complete within 5 seconds
-      expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith(
-        [mockRule],
-        concurrentMetrics,
-      );
+      const result = await service.createRule(createDto);
+      expect(ruleEngine.validateRule).toHaveBeenCalledWith(expect.objectContaining({ name: "New Rule" }));
+      expect(alertRuleRepository.create).toHaveBeenCalledWith(expect.objectContaining({ name: "New Rule" }));
+      expect(result).toEqual(mockAlertRule);
     });
 
-    it("should handle alert deduplication", async () => {
-      const duplicateMetrics = [
-        { metric: "test.metric", value: 120, timestamp: new Date() },
-        { metric: "test.metric", value: 120, timestamp: new Date() },
-        { metric: "test.metric", value: 120, timestamp: new Date() },
-      ];
+    it("should throw BadRequestException if rule validation fails", async () => {
+      ruleEngine.validateRule.mockReturnValue({ valid: false, errors: ["Invalid threshold"] });
+      await expect(service.createRule(createDto)).rejects.toThrow(BadRequestException);
+    });
 
-      const evaluationResult = {
-        ruleId: "test-rule",
-        triggered: true,
-        value: 120,
-        threshold: 100,
-        message: "Alert triggered",
-        evaluatedAt: new Date(),
-      };
+    it("should throw error if repository creation fails", async () => {
+      ruleEngine.validateRule.mockReturnValue({ valid: true, errors: [] });
+      alertRuleRepository.create.mockRejectedValue(new Error("DB error"));
+      await expect(service.createRule(createDto)).rejects.toThrow("DB error");
+    });
+  });
 
-      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
-      ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
-      ruleEngineService.isInCooldown.mockResolvedValue(false);
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
+  describe("updateRule", () => {
+    const updateDto: UpdateAlertRuleDto = { enabled: false };
+
+    it("should update a rule successfully", async () => {
+      alertRuleRepository.update.mockResolvedValue({ ...mockAlertRule, enabled: false });
+      const result = await service.updateRule("rule-1", updateDto);
+      expect(alertRuleRepository.update).toHaveBeenCalledWith("rule-1", updateDto);
+      expect(result.enabled).toBe(false);
+    });
+
+    it("should throw error if repository update fails", async () => {
+      alertRuleRepository.update.mockRejectedValue(new Error("DB error"));
+      await expect(service.updateRule("rule-1", updateDto)).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("deleteRule", () => {
+    it("should delete a rule successfully", async () => {
+      alertRuleRepository.delete.mockResolvedValue(true);
+      const result = await service.deleteRule("rule-1");
+      expect(alertRuleRepository.delete).toHaveBeenCalledWith("rule-1");
+      expect(result).toBe(true);
+    });
+
+    it("should throw error if repository deletion fails", async () => {
+      alertRuleRepository.delete.mockRejectedValue(new Error("DB error"));
+      await expect(service.deleteRule("rule-1")).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("getRules", () => {
+    it("should return all rules", async () => {
+      alertRuleRepository.findAll.mockResolvedValue([mockAlertRule]);
+      const result = await service.getRules();
+      expect(alertRuleRepository.findAll).toHaveBeenCalled();
+      expect(result).toEqual([mockAlertRule]);
+    });
+
+    it("should throw error if repository find fails", async () => {
+      alertRuleRepository.findAll.mockRejectedValue(new Error("DB error"));
+      await expect(service.getRules()).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("getRuleById", () => {
+    it("should return a rule by ID", async () => {
+      alertRuleRepository.findById.mockResolvedValue(mockAlertRule);
+      const result = await service.getRuleById("rule-1");
+      expect(alertRuleRepository.findById).toHaveBeenCalledWith("rule-1");
+      expect(result).toEqual(mockAlertRule);
+    });
+
+    it("should throw NotFoundException if rule not found", async () => {
+      alertRuleRepository.findById.mockResolvedValue(null);
+      await expect(service.getRuleById("non-existent-rule")).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw error if repository findById fails", async () => {
+      alertRuleRepository.findById.mockRejectedValue(new Error("DB error"));
+      await expect(service.getRuleById("rule-1")).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("toggleRule", () => {
+    it("should toggle rule status successfully", async () => {
+      alertRuleRepository.toggle.mockResolvedValue(true);
+      const result = await service.toggleRule("rule-1", false);
+      expect(alertRuleRepository.toggle).toHaveBeenCalledWith("rule-1", false);
+      expect(result).toBe(true);
+    });
+
+    it("should throw error if repository toggle fails", async () => {
+      alertRuleRepository.toggle.mockRejectedValue(new Error("DB error"));
+      await expect(service.toggleRule("rule-1", true)).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("processMetrics", () => {
+    const metricData: IMetricData[] = [{ metric: "cpu_usage", value: 90, timestamp: new Date() }];
+
+    it("should do nothing if no metrics are provided", async () => {
+      await service.processMetrics([]);
+      expect(alertRuleRepository.findAllEnabled).not.toHaveBeenCalled();
+    });
+
+    it("should do nothing if no enabled rules are found", async () => {
+      alertRuleRepository.findAllEnabled.mockResolvedValue([]);
+      await service.processMetrics(metricData);
+      expect(ruleEngine.evaluateRules).not.toHaveBeenCalled();
+    });
+
+    it("should process metrics and handle rule evaluation", async () => {
+      alertRuleRepository.findAllEnabled.mockResolvedValue([mockAlertRule]);
+      ruleEngine.evaluateRules.mockReturnValue([{ 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      }]);
+      jest.spyOn(service as any, "handleRuleEvaluation").mockResolvedValue(undefined);
+
+      await service.processMetrics(metricData);
+      expect(alertRuleRepository.findAllEnabled).toHaveBeenCalled();
+      expect(ruleEngine.evaluateRules).toHaveBeenCalledWith([mockAlertRule], metricData);
+      expect(service["handleRuleEvaluation"]).toHaveBeenCalled();
+    });
+
+    it("should throw error if rule evaluation fails", async () => {
+      alertRuleRepository.findAllEnabled.mockResolvedValue([mockAlertRule]);
+      ruleEngine.evaluateRules.mockImplementation(() => { throw new Error("Evaluation error"); });
+      await expect(service.processMetrics(metricData)).rejects.toThrow("Evaluation error");
+    });
+  });
+
+  describe("acknowledgeAlert", () => {
+    it("should acknowledge an alert successfully", async () => {
+      alertHistoryService.updateAlertStatus.mockResolvedValue(mockAlert);
+      alertHistoryService.getAlertById.mockResolvedValue(mockAlert);
+
+      const result = await service.acknowledgeAlert("alert-1", "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.ACKNOWLEDGED, "user1");
+      expect(result).toEqual(mockAlert);
+    });
+
+    it("should throw NotFoundException if alert not found after acknowledgment", async () => {
+      alertHistoryService.updateAlertStatus.mockResolvedValue(mockAlert);
+      alertHistoryService.getAlertById.mockResolvedValue(null);
+
+      await expect(service.acknowledgeAlert("alert-1", "user1")).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw error if alert history update fails", async () => {
+      alertHistoryService.updateAlertStatus.mockRejectedValue(new Error("DB error"));
+      await expect(service.acknowledgeAlert("alert-1", "user1")).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("resolveAlert", () => {
+    it("should resolve an alert successfully", async () => {
+      alertHistoryService.updateAlertStatus.mockResolvedValue(mockAlert);
+      cacheService.del.mockResolvedValue(1);
+
+      const result = await service.resolveAlert("alert-1", "user1", "rule-1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.RESOLVED, "user1");
+      expect(cacheService.del).toHaveBeenCalledWith("active-alert:rule-1");
+      expect(result).toBe(true);
+    });
+
+    it("should throw NotFoundException if alert not found for resolution", async () => {
+      alertHistoryService.updateAlertStatus.mockResolvedValue(null);
+      await expect(service.resolveAlert("non-existent-alert", "user1", "rule-1")).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw error if alert history update fails", async () => {
+      alertHistoryService.updateAlertStatus.mockRejectedValue(new Error("DB error"));
+      await expect(service.resolveAlert("alert-1", "user1", "rule-1")).rejects.toThrow("DB error");
+    });
+  });
+
+  describe("getStats", () => {
+    it("should return alert statistics", async () => {
+      alertHistoryService.getAlertStats.mockResolvedValue({
+        activeAlerts: 1,
+        totalAlertsToday: 2,
+        resolvedAlertsToday: 1,
+        averageResolutionTime: 30,
+        criticalAlerts: 1,
+        warningAlerts: 0,
+        infoAlerts: 0,
+        statisticsTime: new Date() // 添加statisticsTime字段
+      });
+      alertRuleRepository.countAll.mockResolvedValue(5);
+      alertRuleRepository.countEnabled.mockResolvedValue(3);
+
+      const result = await service.getStats();
+      expect(result.activeAlerts).toBe(1);
+      expect(result.totalRules).toBe(5);
+      expect(result.enabledRules).toBe(3);
+    });
+
+    it("should handle errors during stats retrieval", async () => {
+      alertHistoryService.getAlertStats.mockRejectedValue(new Error("Stats error"));
+      await expect(service.getStats()).rejects.toThrow("Stats error");
+    });
+  });
+
+  describe("handleSystemEvent", () => {
+    it("should process metrics if event converts to metric data", async () => {
+      jest.spyOn(service as any, "convertEventToMetric").mockReturnValue({ name: "test", value: 10, timestamp: new Date() });
+      jest.spyOn(service, "processMetrics").mockResolvedValue(undefined);
+
+      await service.handleSystemEvent({ type: "test.event" });
+      expect(service["convertEventToMetric"]).toHaveBeenCalled();
+      expect(service.processMetrics).toHaveBeenCalled();
+    });
+
+    it("should not process metrics if event does not convert to metric data", async () => {
+      jest.spyOn(service as any, "convertEventToMetric").mockReturnValue(null);
+      jest.spyOn(service, "processMetrics").mockResolvedValue(undefined);
+
+      await service.handleSystemEvent({ type: "test.event" });
+      expect(service["convertEventToMetric"]).toHaveBeenCalled();
+      expect(service.processMetrics).not.toHaveBeenCalled();
+    });
+
+    it("should log error but not rethrow if processMetrics fails", async () => {
+      jest.spyOn(service as any, "convertEventToMetric").mockReturnValue({ name: "test", value: 10, timestamp: new Date() });
+      jest.spyOn(service, "processMetrics").mockRejectedValue(new Error("Process metrics error"));
+      const errorSpy = jest.spyOn((service as any).logger, "error");
+
+      await service.handleSystemEvent({ type: "test.event" });
+      expect(errorSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("evaluateRulesScheduled", () => {
+    it("should call processMetrics", async () => {
+      jest.spyOn(service, "processMetrics").mockResolvedValue(undefined);
+      await service.evaluateRulesScheduled();
+      expect(service.processMetrics).toHaveBeenCalledWith([]);
+    });
+
+    it("should log error but not rethrow if processMetrics fails", async () => {
+      jest.spyOn(service, "processMetrics").mockRejectedValue(new Error("Scheduled evaluation error"));
+      const errorSpy = jest.spyOn((service as any).logger, "error");
+
+      await service.evaluateRulesScheduled();
+      expect(errorSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("handleRuleEvaluation (private)", () => {
+    const rules = [mockAlertRule];
+
+    it("should create new alert if rule triggered and not in cooldown", async () => {
       cacheService.get.mockResolvedValue(null); // No existing alert
+      ruleEngine.isInCooldown.mockResolvedValue(false);
+      jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
+      jest.spyOn(service as any, "resolveAlert").mockResolvedValue(undefined);
 
-      await service.processMetrics(duplicateMetrics);
+      const result: IRuleEvaluationResult = { 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      };
+      await service["handleRuleEvaluation"](result, rules);
 
-      // Should only create one alert despite duplicate metrics
-      expect(alertHistoryService.createAlert).toHaveBeenCalledTimes(1);
+      expect(service["createNewAlert"]).toHaveBeenCalledWith(result, mockAlertRule);
+      expect(ruleEngine.setCooldown).toHaveBeenCalledWith("rule-1", 300);
+      expect(service["resolveAlert"]).not.toHaveBeenCalled();
     });
 
-    it.skip("should handle alert escalation", async () => {
-      const escalatingAlert = {
-        ...mockAlert,
-        severity: AlertSeverity.WARNING,
-        escalateAfter: 300, // 5 minutes
-        escalateToSeverity: AlertSeverity.CRITICAL,
+    it("should resolve existing alert if rule not triggered but alert exists", async () => {
+      cacheService.get.mockResolvedValue(mockAlert); // Existing alert
+      jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
+      jest.spyOn(service as any, "resolveAlert").mockResolvedValue(true);
+
+      const result: IRuleEvaluationResult = { 
+        ruleId: "rule-1", 
+        triggered: false, 
+        value: 70, 
+        threshold: 80, 
+        message: "Not Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
       };
+      await service["handleRuleEvaluation"](result, rules);
 
-      const escalatedRule = {
-        ...mockRule,
-        escalation: {
-          enabled: true,
-          escalateAfter: 300,
-          escalateToSeverity: AlertSeverity.CRITICAL,
-        },
-      };
-
-      alertHistoryService.getAlertById.mockResolvedValue(escalatingAlert);
-      alertRuleRepository.findById.mockResolvedValue(escalatedRule);
-      alertHistoryService.updateAlertStatus.mockResolvedValue({
-        ...escalatingAlert,
-        severity: AlertSeverity.CRITICAL,
-      });
-
-      // Mock escalation result (this would be implementation-specific)
-      const result = {
-        ...escalatingAlert,
-        severity: AlertSeverity.CRITICAL,
-      };
-
-      expect(result.severity).toBe(AlertSeverity.CRITICAL);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        "alert.escalated",
-        expect.any(Object),
-      );
+      expect(service["createNewAlert"]).not.toHaveBeenCalled();
+      expect(service["resolveAlert"]).toHaveBeenCalledWith(mockAlert.id, "system", mockAlertRule.id);
     });
 
-    it.skip("should handle alert grouping", async () => {
-      const groupedMetrics = [
-        {
-          metric: "server1.cpu.usage",
-          value: 95,
-          timestamp: new Date(),
-          host: "server1",
-        },
-        {
-          metric: "server1.memory.usage",
-          value: 90,
-          timestamp: new Date(),
-          host: "server1",
-        },
-        {
-          metric: "server2.cpu.usage",
-          value: 85,
-          timestamp: new Date(),
-          host: "server2",
-        },
-      ];
+    it("should do nothing if rule not triggered and no existing alert", async () => {
+      cacheService.get.mockResolvedValue(null); // No existing alert
+      jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
+      jest.spyOn(service as any, "resolveAlert").mockResolvedValue(undefined);
 
-      const groupingRules = [
-        { ...mockRule, groupBy: ["host"], groupWindow: 300 },
-      ];
+      const result: IRuleEvaluationResult = { 
+        ruleId: "rule-1", 
+        triggered: false, 
+        value: 70, 
+        threshold: 80, 
+        message: "Not Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      };
+      await service["handleRuleEvaluation"](result, rules);
 
-      alertRuleRepository.findAllEnabled.mockResolvedValue(groupingRules);
-      ruleEngineService.evaluateRules.mockReturnValue([
-        {
-          ruleId: "test-rule",
-          triggered: true,
-          value: 95,
-          threshold: 80,
-          message: "Server1 alerts",
-          evaluatedAt: new Date(),
-        },
-      ]);
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
+      expect(service["createNewAlert"]).not.toHaveBeenCalled();
+      expect(service["resolveAlert"]).not.toHaveBeenCalled();
+    });
 
-      await service.processMetrics(groupedMetrics);
+    it("should do nothing if rule triggered but in cooldown", async () => {
+      cacheService.get.mockResolvedValue(null); // No existing alert
+      ruleEngine.isInCooldown.mockResolvedValue(true);
+      jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
 
-      expect(alertHistoryService.createAlert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining("Server1"),
-          groupedAlerts: expect.arrayContaining([
-            expect.objectContaining({ host: "server1" }),
-          ]),
-        }),
-      );
+      const result: IRuleEvaluationResult = { 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      };
+      await service["handleRuleEvaluation"](result, rules);
+
+      expect(service["createNewAlert"]).not.toHaveBeenCalled();
+      expect(ruleEngine.setCooldown).not.toHaveBeenCalled();
     });
   });
 
-  describe("Advanced Notification Handling", () => {
-    it.skip("should handle notification failures with retry", async () => {
-      const metricData = [
-        {
-          metric: "test.metric",
-          value: 120,
-          timestamp: new Date(),
-        },
-      ];
-
-      const evaluationResult = {
-        ruleId: "test-rule",
-        triggered: true,
-        value: 120,
-        threshold: 100,
-        message: "Alert triggered",
-        evaluatedAt: new Date(),
-      };
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
-      ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
-      ruleEngineService.isInCooldown.mockResolvedValue(false);
+  describe("createNewAlert (private)", () => {
+    it("should create alert, cache it, and send notifications", async () => {
       alertHistoryService.createAlert.mockResolvedValue(mockAlert);
+      cacheService.set.mockResolvedValue(true);
+      notificationService.sendBatchNotifications.mockResolvedValue(undefined);
 
-      // Mock notification failure then success
-      notificationService.sendBatchNotifications
-        .mockRejectedValueOnce(new Error("Network timeout"))
-        .mockResolvedValueOnce({
-          total: 1,
-          successful: 1,
-          failed: 0,
-          results: [
-            {
-              success: true,
-              channelId: "channel-1",
-              channelType: NotificationChannelType.LOG,
-              sentAt: new Date(),
-              duration: 100,
-            },
-          ],
-          duration: 100,
-        });
+      await service["createNewAlert"]({ 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      }, mockAlertRule);
 
-      await service.processMetrics(metricData);
-
-      expect(notificationService.sendBatchNotifications).toHaveBeenCalledTimes(
-        2,
-      );
-    });
-
-    it.skip("should handle notification rate limiting", async () => {
-      const rapidMetrics = Array.from({ length: 100 }, (_, i) => ({
-        metric: "test.metric",
-        value: 120 + i,
-        timestamp: new Date(Date.now() + i * 1000),
-      }));
-
-      const evaluationResults = rapidMetrics.map((_, i) => ({
-        ruleId: "test-rule",
-        triggered: true,
-        value: 120 + i,
-        threshold: 100,
-        message: `Alert ${i}`,
-        evaluatedAt: new Date(),
-      }));
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
-      ruleEngineService.evaluateRules.mockReturnValue(evaluationResults);
-      ruleEngineService.isInCooldown.mockResolvedValue(false);
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-
-      // Mock rate limiting after 10 notifications
-      let notificationCount = 0;
-      notificationService.sendBatchNotifications.mockImplementation(
-        async () => {
-          notificationCount++;
-          if (notificationCount > 10) {
-            throw new Error("Rate limit exceeded");
-          }
-          return {
-            total: 1,
-            successful: 1,
-            failed: 0,
-            results: [],
-            duration: 100,
-          };
-        },
-      );
-
-      await service.processMetrics(rapidMetrics);
-
-      expect(notificationService.sendBatchNotifications).toHaveBeenCalled();
-      // Should have hit rate limit
-      expect(notificationCount).toBeGreaterThan(10);
-    });
-
-    it("should handle channel health monitoring", async () => {
-      const channelHealth = [
-        { channelId: "channel-1", isHealthy: true, lastCheck: new Date() },
-        {
-          channelId: "channel-2",
-          isHealthy: false,
-          lastCheck: new Date(),
-          error: "Connection timeout",
-        },
-        { channelId: "channel-3", isHealthy: true, lastCheck: new Date() },
-      ];
-
-      // Mock channel health status (this would be implementation-specific)
-      const result = channelHealth;
-
-      expect(result).toEqual(channelHealth);
-      expect(result.filter((ch) => ch.isHealthy)).toHaveLength(2);
-      expect(result.filter((ch) => !ch.isHealthy)).toHaveLength(1);
-    });
-  });
-
-  describe("Performance and Optimization", () => {
-    it("should handle memory-intensive operations", async () => {
-      const largeMetricSet = Array.from({ length: 10000 }, (_, i) => ({
-        metric: `metric.${i % 100}`,
-        value: Math.random() * 1000,
-        timestamp: new Date(Date.now() + i * 100),
-        tags: {
-          host: `server-${i % 50}`,
-          service: `service-${i % 20}`,
-          environment: i % 2 === 0 ? "prod" : "staging",
-        },
-      }));
-
-      const rules = Array.from({ length: 100 }, (_, i) => ({
-        ...mockRule,
-        id: `rule-${i}`,
-        metric: `metric.${i}`,
-      }));
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue(rules);
-      ruleEngineService.evaluateRules.mockImplementation((rules, metrics) => {
-        return metrics.slice(0, 50).map((metric, i) => ({
-          ruleId: `rule-${i}`,
-          triggered: metric.value > 500,
-          value: metric.value,
-          threshold: 500,
-          message: `Alert for ${metric.metric}`,
-          evaluatedAt: new Date(),
-        }));
-      });
-
-      const memBefore = process.memoryUsage().heapUsed;
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-      await service.processMetrics(largeMetricSet);
-      const memAfter = process.memoryUsage().heapUsed;
-
-      // Memory usage should not increase dramatically
-      expect(memAfter - memBefore).toBeLessThan(100 * 1024 * 1024); // Less than 100MB increase
-    });
-
-    it("should handle high-frequency rule evaluations", async () => {
-      const highFrequencyMetrics = Array.from({ length: 1000 }, (_, i) => ({
-        metric: "high.frequency.metric",
-        value: 50 + Math.sin(i / 10) * 50, // Oscillating values
-        timestamp: new Date(Date.now() + i * 10), // Every 10ms
-      }));
-
-      const highFrequencyRule = {
-        ...mockRule,
-        metric: "high.frequency.metric",
-        threshold: 75,
-        duration: 1, // 1 second duration
-      };
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([highFrequencyRule]);
-      ruleEngineService.evaluateRules.mockImplementation((rules, metrics) => {
-        return metrics
-          .filter((m) => m.value > 75)
-          .map((metric) => ({
-            ruleId: "test-rule",
-            triggered: true,
-            value: metric.value,
-            threshold: 75,
-            message: "High frequency alert",
-            evaluatedAt: new Date(),
-          }));
-      });
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-
-      const startTime = Date.now();
-      await service.processMetrics(highFrequencyMetrics);
-      const endTime = Date.now();
-
-      expect(endTime - startTime).toBeLessThan(2000); // Should complete within 2 seconds
-    });
-  });
-
-  describe("Error Recovery and Resilience", () => {
-    it.skip("should handle database connection failures", async () => {
-      const metricData = [
-        {
-          metric: "test.metric",
-          value: 120,
-          timestamp: new Date(),
-        },
-      ];
-
-      alertRuleRepository.findAllEnabled.mockRejectedValue(
-        new Error("Database connection lost"),
-      );
-
-      // Should not throw error, but should log it
-      await expect(service.processMetrics(metricData)).rejects.toThrow(
-        "Database connection lost",
-      );
-
-      // Verify error was handled gracefully
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        "alert.error",
-        expect.objectContaining({
-          error: expect.any(Error),
-          context: "processMetrics",
-        }),
-      );
-    });
-
-    it.skip("should handle corrupted rule data", async () => {
-      const corruptedRule = {
-        ...mockRule,
-        threshold: null, // Corrupted threshold
-        operator: undefined, // Missing operator
-      };
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([corruptedRule]);
-      ruleEngineService.validateRule.mockReturnValue({
-        valid: false,
-        errors: ["Invalid threshold", "Missing operator"],
-      });
-
-      const metricData = [
-        {
-          metric: "test.metric",
-          value: 120,
-          timestamp: new Date(),
-        },
-      ];
-
-      await service.processMetrics(metricData);
-
-      // Should skip corrupted rules and continue processing
-      expect(ruleEngineService.evaluateRules).toHaveBeenCalledWith(
-        [],
-        metricData,
-      );
-    });
-
-    it.skip("should handle partial system failures", async () => {
-      const metricData = [
-        {
-          metric: "test.metric",
-          value: 120,
-          timestamp: new Date(),
-        },
-      ];
-
-      const evaluationResult = {
-        ruleId: "test-rule",
-        triggered: true,
-        value: 120,
-        threshold: 100,
-        message: "Alert triggered",
-        evaluatedAt: new Date(),
-      };
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
-      ruleEngineService.evaluateRules.mockReturnValue([evaluationResult]);
-      ruleEngineService.isInCooldown.mockResolvedValue(false);
-
-      // Alert creation succeeds
-      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
-
-      // But notification fails
-      notificationService.sendBatchNotifications.mockRejectedValue(
-        new Error("Notification service down"),
-      );
-
-      await service.processMetrics(metricData);
-
-      // Alert should still be created even if notification fails
       expect(alertHistoryService.createAlert).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        "alert.notification.failed",
-        expect.any(Object),
+      expect(cacheService.set).toHaveBeenCalledWith(
+        `active-alert:${mockAlert.ruleId}`,
+        expect.objectContaining({ id: mockAlert.id }),
+        { ttl: 3600 },
       );
-    });
-  });
-
-  describe("Cache Management", () => {
-    it.skip("should manage alert cache effectively", async () => {
-      const cacheKey = "active_alert:test-rule";
-      const cachedAlert = { ...mockAlert, cached: true };
-
-      cacheService.get.mockResolvedValue(JSON.stringify(cachedAlert));
-      cacheService.set.mockResolvedValue(true);
-      // Mock cached alert result (this would be implementation-specific)
-      const result = cachedAlert;
-
-      expect(cacheService.get).toHaveBeenCalledWith(cacheKey);
-      expect(result).toEqual(cachedAlert);
+      expect(notificationService.sendBatchNotifications).toHaveBeenCalled();
     });
 
-    it.skip("should handle cache eviction policies", async () => {
-      void [
-        "active_alert:rule-1",
-        "active_alert:rule-2",
-        "active_alert:rule-3",
-      ];
-
-      // Mock cache cleanup (this would be implementation-specific)
-      const expiredCount = 1;
-
-      expect(expiredCount).toBe(1);
-
-      expect(cacheService.del).toHaveBeenCalledWith("active_alert:rule-1");
-      expect(cacheService.del).toHaveBeenCalledTimes(1); // Only expired key
+    it("should throw error if alert creation fails", async () => {
+      alertHistoryService.createAlert.mockRejectedValue(new Error("Alert creation failed"));
+      await expect(service["createNewAlert"]({ 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      }, mockAlertRule)).rejects.toThrow("Alert creation failed");
     });
 
-    it("should handle cache warming", async () => {
-      const activeAlerts = [
-        { ...mockAlert, id: "alert-1", ruleId: "rule-1" },
-        { ...mockAlert, id: "alert-2", ruleId: "rule-2" },
-        { ...mockAlert, id: "alert-3", ruleId: "rule-3" },
-      ];
-
-      alertHistoryService.getActiveAlerts.mockResolvedValue(activeAlerts);
-      cacheService.set.mockResolvedValue(true);
-
-      // Mock warmup functionality (this would be implementation-specific)
-      expect(activeAlerts).toHaveLength(3);
-      expect(cacheService.set).toHaveBeenCalledTimes(0); // Not called in this mock
-    });
-  });
-
-  describe("Metrics and Monitoring", () => {
-    it.skip("should track processing metrics", async () => {
-      const metricData = Array.from({ length: 100 }, (_, i) => ({
-        metric: `test.metric.${i}`,
-        value: 120,
-        timestamp: new Date(),
-      }));
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([mockRule]);
-      ruleEngineService.evaluateRules.mockReturnValue([]);
-
-      const startTime = Date.now();
-      await service.processMetrics(metricData);
-      const endTime = Date.now();
-
-      const processingTime = endTime - startTime;
-
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        "alert.metrics.processed",
-        {
-          metricCount: 100,
-          processingTime,
-          rulesEvaluated: 1,
-          alertsTriggered: 0,
-        },
-      );
-    });
-
-    it.skip("should monitor rule performance", async () => {
-      const performanceRule = {
-        ...mockRule,
-        id: "performance-rule",
-        metric: "response.time",
-        threshold: 1000,
-      };
-
-      const slowMetrics = Array.from({ length: 50 }, (_, i) => ({
-        metric: "response.time",
-        value: 1500 + i * 10, // All above threshold
-        timestamp: new Date(Date.now() + i * 1000),
-      }));
-
-      alertRuleRepository.findAllEnabled.mockResolvedValue([performanceRule]);
-      ruleEngineService.evaluateRules.mockImplementation((rules, metrics) => {
-        return metrics.map((metric, i) => ({
-          ruleId: "performance-rule",
-          triggered: metric.value > 1000,
-          value: metric.value,
-          threshold: 1000,
-          message: `Slow response: ${metric.value}ms`,
-          evaluatedAt: new Date(),
-          evaluationTime: 5 + i, // Increasing evaluation time
-        }));
-      });
+    it("should log error but not rethrow if cache set fails", async () => {
       alertHistoryService.createAlert.mockResolvedValue(mockAlert);
+      cacheService.set.mockRejectedValue(new Error("Cache error"));
+      notificationService.sendBatchNotifications.mockResolvedValue(undefined);
+      const errorSpy = jest.spyOn((service as any).logger, "error");
 
-      await service.processMetrics(slowMetrics);
+      await service["createNewAlert"]({ 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      }, mockAlertRule);
+      expect(errorSpy).toHaveBeenCalled();
+    });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith("alert.rule.performance", {
-        ruleId: "performance-rule",
-        averageEvaluationTime: expect.any(Number),
-        maxEvaluationTime: expect.any(Number),
-        totalEvaluations: 50,
-      });
+    it("should log error but not rethrow if notification fails", async () => {
+      alertHistoryService.createAlert.mockResolvedValue(mockAlert);
+      cacheService.set.mockResolvedValue(true);
+      notificationService.sendBatchNotifications.mockRejectedValue(new Error("Notification error"));
+      const errorSpy = jest.spyOn((service as any).logger, "error");
+
+      await service["createNewAlert"]({ 
+        ruleId: "rule-1", 
+        triggered: true, 
+        value: 90, 
+        threshold: 80, 
+        message: "Triggered", 
+        context: {},
+        evaluatedAt: new Date() // 添加evaluatedAt字段
+      }, mockAlertRule);
+      expect(errorSpy).toHaveBeenCalled();
     });
   });
 
-  it("should be defined", () => {
-    expect(service).toBeDefined();
+  describe("loadActiveAlerts (private)", () => {
+    it("should load active alerts into cache", async () => {
+      alertHistoryService.getActiveAlerts.mockResolvedValue([mockAlert]);
+      cacheService.set.mockResolvedValue(true);
+
+      await service["loadActiveAlerts"]();
+      expect(alertHistoryService.getActiveAlerts).toHaveBeenCalled();
+      expect(cacheService.set).toHaveBeenCalledWith(
+        `active-alert:${mockAlert.ruleId}`,
+        mockAlert,
+        { ttl: 3600 },
+      );
+    });
+
+    it("should not set cache if no active alerts", async () => {
+      alertHistoryService.getActiveAlerts.mockResolvedValue([]);
+      await service["loadActiveAlerts"]();
+      expect(alertHistoryService.getActiveAlerts).toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
+    });
+
+    it("should log error but not rethrow if cache set fails", async () => {
+      alertHistoryService.getActiveAlerts.mockResolvedValue([mockAlert]);
+      cacheService.set.mockRejectedValue(new Error("Cache error"));
+      const errorSpy = jest.spyOn((service as any).logger, "log");
+
+      await service["loadActiveAlerts"]();
+      expect(errorSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("convertEventToMetric (private)", () => {
+    it("should return null", () => {
+      const result = service["convertEventToMetric"]();
+      expect(result).toBeNull();
+    });
   });
 });

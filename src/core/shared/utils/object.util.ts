@@ -16,10 +16,10 @@ export class ObjectUtils {
    * @returns 路径对应的值，如果找不到则返回 undefined
    */
   public static getValueFromPath(obj: any, path: string): any {
-    if (!obj || !path) return undefined;
+    if (obj === null || obj === undefined || !path) return undefined;
 
     try {
-      const keys = path.split(/[.\\[\\]]/).filter((key) => key !== "");
+      const keys = path.split(/[.\[\]]/).filter((key) => key !== "");
 
       if (keys.length > TRANSFORM_CONFIG.MAX_NESTED_DEPTH) {
         logger.warn(
@@ -28,32 +28,48 @@ export class ObjectUtils {
         return undefined;
       }
 
-      let result = obj;
+      let result: any = obj;
 
       for (const key of keys) {
         if (result === null || result === undefined) {
           return undefined;
         }
 
-        if (/^\\d+$/.test(key)) {
+        let found = false;
+        // Case 1: Current result is an array and key is a numeric index
+        if (Array.isArray(result) && /^\d+$/.test(key)) {
           const index = parseInt(key, 10);
-          result = Array.isArray(result) ? result[index] : undefined;
-        } else {
-          // 尝试精确匹配
-          if (result[key] !== undefined) {
-            result = result[key];
+          if (index >= 0 && index < result.length) {
+            result = result[index];
+            found = true;
           } else {
-            // 尝试驼峰式匹配以兼容不同数据源
+            result = undefined; // Index out of bounds
+            found = true; // Mark as found to prevent further checks for this key
+          }
+        }
+
+        // Case 2: Current result is an object (or not an array) and key is a property name
+        if (!found) {
+          // Try exact match
+          if (typeof result === 'object' && result !== null && Object.prototype.hasOwnProperty.call(result, key)) {
+            result = result[key];
+            found = true;
+          } else {
+            // Try camelCase match
             const toCamelCase = (s: string) =>
               s.replace(/([-_][a-z])/gi, ($1) =>
                 $1.toUpperCase().replace("-", "").replace("_", ""),
               );
             const camelCaseKey = toCamelCase(key);
-            result =
-              result[camelCaseKey] !== undefined
-                ? result[camelCaseKey]
-                : result[key]; // 如果驼峰式也找不到，则返回原始键的undefined值
+            if (typeof result === 'object' && result !== null && Object.prototype.hasOwnProperty.call(result, camelCaseKey)) {
+              result = result[camelCaseKey];
+              found = true;
+            }
           }
+        }
+
+        if (!found) {
+          return undefined; // Key not found in current level
         }
       }
 

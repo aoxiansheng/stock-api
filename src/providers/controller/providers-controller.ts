@@ -139,10 +139,27 @@ export class ProvidersController {
   })
   @ApiStandardResponses()
   getBestProviderWithoutMarket(@Param("capability") capability: string) {
-    const bestProvider = this.capabilityRegistry.getBestProvider(
+    const bestProviderName = this.capabilityRegistry.getBestProvider(
       capability,
       undefined,
     );
+    
+    let bestProvider = null;
+    if (bestProviderName) {
+      const providerCapabilities = this.capabilityRegistry.getAllCapabilities().get(bestProviderName);
+      const registration = providerCapabilities?.get(capability);
+      
+      if (registration) {
+        bestProvider = {
+          name: registration.capability.name,
+          description: registration.capability.description,
+          supportedMarkets: registration.capability.supportedMarkets,
+          priority: registration.priority,
+          isEnabled: registration.isEnabled,
+        };
+      }
+    }
+    
     return {
       capability,
       market: null,
@@ -209,10 +226,27 @@ export class ProvidersController {
     @Param("capability") capability: string,
     @Param("market") market: string,
   ) {
-    const bestProvider = this.capabilityRegistry.getBestProvider(
+    const bestProviderName = this.capabilityRegistry.getBestProvider(
       capability,
       market,
     );
+    
+    let bestProvider = null;
+    if (bestProviderName) {
+      const providerCapabilities = this.capabilityRegistry.getAllCapabilities().get(bestProviderName);
+      const registration = providerCapabilities?.get(capability);
+      
+      if (registration) {
+        bestProvider = {
+          name: registration.capability.name,
+          description: registration.capability.description,
+          supportedMarkets: registration.capability.supportedMarkets,
+          priority: registration.priority,
+          isEnabled: registration.isEnabled,
+        };
+      }
+    }
+    
     return {
       capability,
       market,

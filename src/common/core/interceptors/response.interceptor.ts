@@ -26,7 +26,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         const statusCode = response.statusCode;
 
         // 如果数据已经是标准格式，直接返回
-        if (data && typeof data === "object" && "statusCode" in data) {
+        if (data && typeof data === "object" && "statusCode" in data && typeof data.statusCode === "number") {
           return data;
         }
 

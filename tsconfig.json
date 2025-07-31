@@ -16,7 +16,9 @@
       "@providers/*": ["src/providers/*"],
       "@common/*": ["src/common/*"],
       "@api/*": ["src/api/*"],
-      "@config/*": ["src/config/*"]
+      "@config/*": ["src/config/*"],
+      "@alert/*": ["src/alert/*"],
+      "@cache/*": ["src/cache/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

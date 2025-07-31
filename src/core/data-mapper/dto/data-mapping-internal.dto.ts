@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsString,
   IsNumber,
@@ -6,6 +7,7 @@ import {
   IsBoolean,
   IsObject,
   IsArray,
+  ValidateNested,
 } from "class-validator";
 
 export class DataMappingTestResultDto {
@@ -131,6 +133,8 @@ export class FieldSuggestionItemDto {
 
   @ApiProperty({ description: "建议字段列表", type: [FieldMatchDto] })
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FieldMatchDto)
   suggestions: FieldMatchDto[];
 }
 
