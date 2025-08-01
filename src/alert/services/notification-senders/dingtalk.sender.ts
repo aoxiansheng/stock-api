@@ -30,17 +30,17 @@ export class DingTalkSender implements NotificationSender {
   ): Promise<NotificationResult> {
     const startTime = Date.now();
 
-    try {
-      // SSRF防护检查
-      const urlValidation = URLSecurityValidator.validateURL(
-        config.webhook_url,
+    // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
+    const urlValidation = URLSecurityValidator.validateURL(
+      config.webhook_url,
+    );
+    if (!urlValidation.valid) {
+      throw new BadRequestException(
+        `DingTalk Webhook URL安全检查失败: ${urlValidation.error}`,
       );
-      if (!urlValidation.valid) {
-        throw new BadRequestException(
-          `DingTalk Webhook URL安全检查失败: ${urlValidation.error}`,
-        );
-      }
+    }
 
+    try {
       const payload = {
         msgtype: "markdown",
         markdown: {
@@ -59,14 +59,26 @@ export class DingTalkSender implements NotificationSender {
         this.httpService.post(url, payload),
       );
 
-      return {
-        success: response.data?.errcode === 0,
-        channelId: config.id || "dingtalk",
-        channelType: this.type,
-        message: "钉钉消息发送成功",
-        sentAt: new Date(),
-        duration: Date.now() - startTime,
-      };
+      // 与其他Sender保持一致：API错误码时success为false，但不包含error字段
+      if (response.data?.errcode === 0) {
+        return {
+          success: true,
+          channelId: config.id || "dingtalk",
+          channelType: this.type,
+          message: "钉钉消息发送成功",
+          sentAt: new Date(),
+          duration: Date.now() - startTime,
+        };
+      } else {
+        return {
+          success: false,
+          channelId: config.id || "dingtalk",
+          channelType: this.type,
+          message: `钉钉API返回错误码: ${response.data?.errcode || 'unknown'}`,
+          sentAt: new Date(),
+          duration: Date.now() - startTime,
+        };
+      }
     } catch (error) {
       this.logger.error({ error: error.stack }, "钉钉发送失败");
       return {

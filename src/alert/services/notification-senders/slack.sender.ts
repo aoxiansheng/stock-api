@@ -29,17 +29,17 @@ export class SlackSender implements NotificationSender {
   ): Promise<NotificationResult> {
     const startTime = Date.now();
 
-    try {
-      // SSRF防护检查
-      const urlValidation = URLSecurityValidator.validateURL(
-        config.webhook_url,
+    // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
+    const urlValidation = URLSecurityValidator.validateURL(
+      config.webhook_url,
+    );
+    if (!urlValidation.valid) {
+      throw new BadRequestException(
+        `Slack Webhook URL安全检查失败: ${urlValidation.error}`,
       );
-      if (!urlValidation.valid) {
-        throw new BadRequestException(
-          `Slack Webhook URL安全检查失败: ${urlValidation.error}`,
-        );
-      }
+    }
 
+    try {
       const payload = {
         channel: config.channel,
         username: config.username || "AlertBot",
@@ -64,14 +64,26 @@ export class SlackSender implements NotificationSender {
         this.httpService.post(config.webhook_url, payload),
       );
 
-      return {
-        success: response.status === 200,
-        channelId: config.id || "slack",
-        channelType: this.type,
-        message: "Slack 消息发送成功",
-        sentAt: new Date(),
-        duration: Date.now() - startTime,
-      };
+      // 与其他Sender保持一致：非200状态时success为false，但不包含error字段
+      if (response.status === 200) {
+        return {
+          success: true,
+          channelId: config.id || "slack",
+          channelType: this.type,
+          message: "Slack 消息发送成功",
+          sentAt: new Date(),
+          duration: Date.now() - startTime,
+        };
+      } else {
+        return {
+          success: false,
+          channelId: config.id || "slack",
+          channelType: this.type,
+          message: `Slack API 返回状态码: ${response.status}`,
+          sentAt: new Date(),
+          duration: Date.now() - startTime,
+        };
+      }
     } catch (error) {
       this.logger.error({ error: error.stack }, "Slack 发送失败");
       return {

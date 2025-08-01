@@ -1,73 +1,120 @@
 import { getStockQuote } from '../../../../../../src/providers/longport/capabilities/get-stock-quote';
+import { MARKETS } from '../../../../../../src/common/constants/market.constants';
 
-describe('getStockQuote Capability', () => {
-  // 测试当 contextService 未提供时的情况
+describe('getStockQuote', () => {
+  const mockQuoteContext = {
+    quote: jest.fn(),
+  };
+
+  const mockContextService = {
+    getQuoteContext: jest.fn().mockResolvedValue(mockQuoteContext),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should have correct name, description, and supported markets/formats', () => {
+    expect(getStockQuote.name).toBe('get-stock-quote');
+    expect(getStockQuote.description).toBe('获取股票实时报价数据');
+    expect(getStockQuote.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US]);
+    expect(getStockQuote.supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
+    expect(getStockQuote.rateLimit).toEqual({
+      requestsPerSecond: 10,
+      requestsPerDay: 10000,
+    });
+  });
+
+  it('should successfully fetch and format stock quotes', async () => {
+    const symbols = ['700.HK', 'AAPL.US'];
+    const mockLongportQuotes = [
+      {
+        symbol: '700.HK',
+        lastDone: 300,
+        prevClose: 290,
+        open: 295,
+        high: 305,
+        low: 285,
+        volume: 10000000,
+        turnover: 3000000000,
+        timestamp: 1678886400,
+        tradeStatus: 'TRADING',
+      },
+      {
+        symbol: 'AAPL.US',
+        lastDone: 170,
+        prevClose: 168,
+        open: 169,
+        high: 172,
+        low: 167,
+        volume: 50000000,
+        turnover: 8500000000,
+        timestamp: 1678886400,
+        tradeStatus: 'TRADING',
+      },
+    ];
+
+    mockQuoteContext.quote.mockResolvedValue(mockLongportQuotes);
+
+    const result = await getStockQuote.execute({
+      symbols,
+      contextService: mockContextService,
+    });
+
+    expect(mockContextService.getQuoteContext).toHaveBeenCalledTimes(1);
+    expect(mockQuoteContext.quote).toHaveBeenCalledWith(symbols);
+    expect(result).toEqual({
+      secu_quote: [
+        {
+          symbol: '700.HK',
+          last_done: 300,
+          prev_close: 290,
+          open: 295,
+          high: 305,
+          low: 285,
+          volume: 10000000,
+          turnover: 3000000000,
+          timestamp: 1678886400,
+          trade_status: 'TRADING',
+        },
+        {
+          symbol: 'AAPL.US',
+          last_done: 170,
+          prev_close: 168,
+          open: 169,
+          high: 172,
+          low: 167,
+          volume: 50000000,
+          turnover: 8500000000,
+          timestamp: 1678886400,
+          trade_status: 'TRADING',
+        },
+      ],
+    });
+  });
+
   it('should throw an error if contextService is not provided', async () => {
-    // 调用 execute 方法，期望捕获到错误
-    await expect(getStockQuote.execute({ symbols: ['700.HK'] })).rejects.toThrow(
+    const symbols = ['700.HK'];
+    await expect(getStockQuote.execute({ symbols })).rejects.toThrow(
       'LongportContextService 未提供',
     );
   });
 
-  // 测试当 contextService.getQuoteContext 抛出错误时的情况
   it('should throw an error if getQuoteContext fails', async () => {
-    // 创建一个模拟的 contextService
-    const mockContextService = {
-      getQuoteContext: jest.fn().mockRejectedValue(new Error('Failed to get context')),
-    };
-    // 调用 execute 方法，期望捕获到错误
+    const symbols = ['700.HK'];
+    mockContextService.getQuoteContext.mockRejectedValue(new Error('Quote API error'));
+
     await expect(
-      getStockQuote.execute({ symbols: ['700.HK'], contextService: mockContextService }),
-    ).rejects.toThrow('LongPort 获取股票报价失败: Failed to get context');
+      getStockQuote.execute({ symbols, contextService: mockContextService }),
+    ).rejects.toThrow('LongPort 获取股票报价失败: Quote API error');
   });
 
-  // 测试当 ctx.quote 抛出错误时的情况
-  it('should throw an error if quote fails', async () => {
-    // 创建一个模拟的 quote context
-    const mockQuoteContext = {
-      quote: jest.fn().mockRejectedValue(new Error('Failed to get quote')),
-    };
-    // 创建一个模拟的 contextService
-    const mockContextService = {
-      getQuoteContext: jest.fn().mockResolvedValue(mockQuoteContext),
-    };
-    // 调用 execute 方法，期望捕获到错误
+  it('should throw an error if quote call fails', async () => {
+    const symbols = ['700.HK'];
+    mockQuoteContext.quote.mockRejectedValue(new Error('Quote API error'));
+
     await expect(
-      getStockQuote.execute({ symbols: ['700.HK'], contextService: mockContextService }),
-    ).rejects.toThrow('LongPort 获取股票报价失败: Failed to get quote');
-  });
-
-  // 测试成功获取报价时的情况
-  it('should return quotes successfully', async () => {
-    // 创建一个模拟的报价数据
-    const mockQuotes = [
-      {
-        symbol: '700.HK',
-        lastDone: 100,
-        prevClose: 99,
-        open: 99.5,
-        high: 101,
-        low: 99,
-        volume: 10000,
-        turnover: 1000000,
-        timestamp: new Date(),
-        tradeStatus: 'TRADING',
-      },
-    ];
-    // 创建一个模拟的 quote context
-    const mockQuoteContext = {
-      quote: jest.fn().mockResolvedValue(mockQuotes),
-    };
-    // 创建一个模拟的 contextService
-    const mockContextService = {
-      getQuoteContext: jest.fn().mockResolvedValue(mockQuoteContext),
-    };
-
-    // 调用 execute 方法
-    const result = await getStockQuote.execute({ symbols: ['700.HK'], contextService: mockContextService });
-
-    // 断言返回的结果是否正确
-    expect(result.secu_quote).toHaveLength(1);
-    expect(result.secu_quote[0].symbol).toBe('700.HK');
+      getStockQuote.execute({ symbols, contextService: mockContextService }),
+    ).rejects.toThrow('LongPort 获取股票报价失败: Quote API error');
   });
 });

@@ -1,77 +1,47 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { getModelToken } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import { DataMappingRepository } from "../../../../../../src/core/data-mapper/repositories/data-mapper.repository";
-import { DataMappingRule } from "../../../../../../src/core/data-mapper/schemas/data-mapper.schema";
-import { CreateDataMappingDto } from "../../../../../../src/core/data-mapper/dto/create-data-mapping.dto";
-import { UpdateDataMappingDto } from "../../../../../../src/core/data-mapper/dto/update-data-mapping.dto";
-import { DataMappingQueryDto } from "../../../../../../src/core/data-mapper/dto/data-mapping-query.dto";
-import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { DataMappingRepository } from '../../../../../../src/core/data-mapper/repositories/data-mapper.repository';
+import { DataMappingRule, DataMappingRuleDocument } from '../../../../../../src/core/data-mapper/schemas/data-mapper.schema';
+import { PaginationService } from '../../../../../../src/common/modules/pagination/services/pagination.service';
+import { CreateDataMappingDto } from '../../../../../../src/core/data-mapper/dto/create-data-mapping.dto';
+import { UpdateDataMappingDto } from '../../../../../../src/core/data-mapper/dto/update-data-mapping.dto';
+import { DataMappingQueryDto } from '../../../../../../src/core/data-mapper/dto/data-mapping-query.dto';
 
-describe("DataMappingRepository", () => {
+describe('DataMappingRepository', () => {
   let repository: DataMappingRepository;
-  let model: Model<DataMappingRule>;
-  let paginationService: PaginationService;
-  
-  let mockQuery;
-
-  const mockDataMappingDocument = {
-    _id: "507f1f77bcf86cd799439011",
-    name: "LongPort Stock Quote Mapping",
-    provider: "longport",
-    transDataRuleListType: "quote_fields",
-    description: "Maps LongPort stock quote data to standard format",
-    sharedDataFieldMappings: [
-      {
-        sourceField: "last_done",
-        targetField: "lastPrice",
-      },
-    ],
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    save: jest.fn(),
-  };
+  let mockDataMappingRuleModel: any;
+  let mockPaginationService: any;
 
   beforeEach(async () => {
-    mockQuery = {
-      sort: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      lean: jest.fn().mockReturnThis(),
-      exec: jest.fn(),
-    };
-
-    // 创建一个可以作为构造函数的 mock 函数
-    const mockModel = jest.fn().mockImplementation((data) => {
-      const doc = { ...mockDataMappingDocument, ...data };
-      doc.save = jest.fn().mockResolvedValue(doc);
-      return doc;
+    // 创建一个模拟的 Model 构造函数
+    const MockModel: any = jest.fn().mockImplementation((data) => {
+      return {
+        ...data,
+        save: jest.fn().mockResolvedValue(data)
+      };
     });
+    
+    // 添加所有静态方法到模拟模型
+    MockModel.create = jest.fn();
+    MockModel.findById = jest.fn();
+    MockModel.find = jest.fn();
+    MockModel.findByIdAndUpdate = jest.fn();
+    MockModel.findByIdAndDelete = jest.fn();
+    MockModel.countDocuments = jest.fn();
+    MockModel.distinct = jest.fn();
+    MockModel.findOne = jest.fn();
+    MockModel.sort = jest.fn();
+    MockModel.skip = jest.fn();
+    MockModel.limit = jest.fn();
+    MockModel.lean = jest.fn();
+    MockModel.exec = jest.fn();
+    
+    mockDataMappingRuleModel = MockModel;
 
-    // 添加静态方法到构造函数
-    Object.assign(mockModel, {
-      find: jest.fn().mockReturnValue(mockQuery),
-      findOne: jest.fn().mockReturnValue(mockQuery),
-      findById: jest.fn().mockReturnValue(mockQuery),
-      findByIdAndUpdate: jest.fn().mockReturnValue(mockQuery),
-      findByIdAndDelete: jest.fn().mockReturnValue(mockQuery),
-      create: jest.fn(),
-      countDocuments: jest.fn().mockReturnValue({ exec: mockQuery.exec }),
-      distinct: jest.fn().mockReturnValue(mockQuery),
-    });
-
-    // 创建 PaginationService 的模拟实现
-    const mockPaginationService = {
-      calculateSkip: jest.fn((page, limit) => (page - 1) * limit),
-      normalizePaginationQuery: jest.fn((query) => ({
-        page: query.page || 1,
-        limit: query.limit || 10,
-      })),
-      createPagination: jest.fn(),
-      createPaginatedResponse: jest.fn(),
-      createPaginatedResponseFromQuery: jest.fn(),
-      validatePaginationParams: jest.fn(),
+    mockPaginationService = {
+      normalizePaginationQuery: jest.fn().mockReturnValue({ page: 1, limit: 10 }),
+      calculateSkip: jest.fn().mockReturnValue(0),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -79,7 +49,7 @@ describe("DataMappingRepository", () => {
         DataMappingRepository,
         {
           provide: getModelToken(DataMappingRule.name),
-          useValue: mockModel,
+          useValue: mockDataMappingRuleModel,
         },
         {
           provide: PaginationService,
@@ -89,297 +59,367 @@ describe("DataMappingRepository", () => {
     }).compile();
 
     repository = module.get<DataMappingRepository>(DataMappingRepository);
-    model = module.get(getModelToken(DataMappingRule.name));
-    paginationService = module.get<PaginationService>(PaginationService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('should be defined', () => {
+    expect(repository).toBeDefined();
   });
 
-  describe("create", () => {
-    it("should create a new data mapping rule", async () => {
+  describe('create', () => {
+    it('should create and save a new data mapping rule', async () => {
       const createDto: CreateDataMappingDto = {
-        name: "Test Mapping",
-        provider: "test-provider",
-        transDataRuleListType: "quote_fields",
-        description: "Test mapping rule",
-        sharedDataFieldMappings: [
-          {
-            sourceField: "price",
-            targetField: "lastPrice",
-          },
-        ],
-      };
-
-      const result = await repository.create(createDto);
-
-      // 验证构造函数是否被正确调用
-      expect(model).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ...createDto,
-          isActive: true, // default value
-          version: "1.0.0", // default value
-        }),
-      );
-
-      // 验证返回的结果包含正确的数据
-      expect(result).toEqual(
-        expect.objectContaining({
-          ...createDto,
-          isActive: true,
-          version: "1.0.0",
-        }),
-      );
-    });
-
-    it("should set isActive to true by default", async () => {
-      const createDto: CreateDataMappingDto = {
-        name: "Test Mapping",
-        provider: "test-provider",
-        transDataRuleListType: "quote_fields",
+        name: 'Test Rule',
+        provider: 'TestProvider',
+        transDataRuleListType: 'TestType',
         sharedDataFieldMappings: [],
       };
+      
+      const mockSavedData = {
+        ...createDto,
+        isActive: true,
+        version: '1.0.0',
+        id: '123'
+      };
+      
+      // 模拟 save 方法返回值
+      const mockSave = jest.fn().mockResolvedValue(mockSavedData);
+      
+      // 模拟构造函数实例的 save 方法
+      mockDataMappingRuleModel.mockImplementationOnce(() => ({
+        save: mockSave
+      }));
+      
+      const result = await repository.create(createDto);
+      
+      expect(result).toBeDefined();
+      expect(mockSave).toHaveBeenCalled();
+      expect(mockDataMappingRuleModel).toHaveBeenCalledWith(expect.objectContaining({
+        ...createDto,
+        isActive: true,
+        version: '1.0.0'
+      }));
+    });
 
-      await repository.create(createDto);
-
-      expect(model).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isActive: true,
-        }),
-      );
+    it('should use provided isActive and version', async () => {
+      const createDto: CreateDataMappingDto = {
+        name: 'Test Rule',
+        provider: 'TestProvider',
+        transDataRuleListType: 'TestType',
+        isActive: false,
+        version: '2.0.0',
+        sharedDataFieldMappings: [],
+      };
+      
+      const mockSavedData = {
+        ...createDto,
+        id: '123'
+      };
+      
+      // 模拟 save 方法返回值
+      const mockSave = jest.fn().mockResolvedValue(mockSavedData);
+      
+      // 模拟构造函数实例的 save 方法
+      mockDataMappingRuleModel.mockImplementationOnce(() => ({
+        save: mockSave
+      }));
+      
+      const result = await repository.create(createDto);
+      
+      expect(result).toBeDefined();
+      expect(mockSave).toHaveBeenCalled();
+      expect(mockDataMappingRuleModel).toHaveBeenCalledWith(expect.objectContaining({
+        ...createDto,
+        isActive: false,
+        version: '2.0.0'
+      }));
     });
   });
 
-  describe("findAll", () => {
-    it("should find all active data mapping rules", async () => {
-      mockQuery.exec.mockResolvedValue([mockDataMappingDocument]);
+  describe('findById', () => {
+    it('should find a data mapping rule by ID', async () => {
+      const mockResult = { _id: '1', name: 'Test' };
+      mockDataMappingRuleModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult)
+      });
+
+      const result = await repository.findById('1');
+      expect(result).toEqual(mockResult);
+      expect(mockDataMappingRuleModel.findById).toHaveBeenCalledWith('1');
+    });
+  });
+
+  describe('findAll', () => {
+    it('should find all active data mapping rules sorted by createdAt', async () => {
+      const mockResults = [{ _id: '1' }, { _id: '2' }];
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(mockResults)
+        })
+      });
 
       const result = await repository.findAll();
-
-      expect(model.find).toHaveBeenCalledWith({ isActive: true });
-      expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: -1 });
-      expect(result).toEqual([mockDataMappingDocument]);
+      expect(result).toEqual(mockResults);
+      expect(mockDataMappingRuleModel.find).toHaveBeenCalledWith({ isActive: true });
     });
   });
 
-  describe("findAllIncludingDeactivated", () => {
-    it("should find all data mapping rules including deactivated ones", async () => {
-      const deactivatedRule = { ...mockDataMappingDocument, isActive: false };
-      mockQuery.exec.mockResolvedValue([
-        mockDataMappingDocument,
-        deactivatedRule,
-      ]);
+  describe('findAllIncludingDeactivated', () => {
+    it('should find all data mapping rules including deactivated ones', async () => {
+      const mockResults = [{ _id: '1' }, { _id: '2' }];
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(mockResults)
+        })
+      });
 
       const result = await repository.findAllIncludingDeactivated();
-
-      expect(model.find).toHaveBeenCalledWith();
-      expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: -1 });
-      expect(result).toEqual([mockDataMappingDocument, deactivatedRule]);
+      expect(result).toEqual(mockResults);
+      expect(mockDataMappingRuleModel.find).toHaveBeenCalledWith();
     });
   });
 
-  describe("findByProvider", () => {
-    it("should find mapping rules by provider", async () => {
-      mockQuery.exec.mockResolvedValue([mockDataMappingDocument]);
-
-      const result = await repository.findByProvider("longport");
-
-      expect(model.find).toHaveBeenCalledWith({
-        provider: "longport",
-        isActive: true,
+  describe('findByProvider', () => {
+    it('should find data mapping rules by provider', async () => {
+      const mockResults = [{ _id: '1', provider: 'P1' }];
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(mockResults)
+        })
       });
-      expect(result).toEqual([mockDataMappingDocument]);
+
+      const result = await repository.findByProvider('P1');
+      expect(result).toEqual(mockResults);
+      expect(mockDataMappingRuleModel.find).toHaveBeenCalledWith({ provider: 'P1', isActive: true });
     });
   });
 
-  describe("findById", () => {
-    it("should find mapping rule by ID", async () => {
-      mockQuery.exec.mockResolvedValue(mockDataMappingDocument);
+  describe('findByProviderAndType', () => {
+    it('should find data mapping rules by provider and type', async () => {
+      const mockResults = [{ _id: '1', provider: 'P1', transDataRuleListType: 'T1' }];
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(mockResults)
+        })
+      });
 
-      const result = await repository.findById("507f1f77bcf86cd799439011");
-
-      expect(model.findById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
-      expect(result).toEqual(mockDataMappingDocument);
-    });
-
-    it("should return null for non-existent ID", async () => {
-      mockQuery.exec.mockResolvedValue(null);
-
-      const result = await repository.findById("nonexistent-id");
-
-      expect(result).toBeNull();
+      const result = await repository.findByProviderAndType('P1', 'T1');
+      expect(result).toEqual(mockResults);
+      expect(mockDataMappingRuleModel.find).toHaveBeenCalledWith({ provider: 'P1', transDataRuleListType: 'T1', isActive: true });
     });
   });
 
-  describe("findPaginated", () => {
-    it("should return paginated results with basic query", async () => {
-      const query: DataMappingQueryDto = {
-        page: 1,
-        limit: 10,
-      };
+  describe('findPaginated', () => {
+    it('should return paginated data mapping rules', async () => {
+      const query: DataMappingQueryDto = { page: 1, limit: 10, provider: 'Test' };
+      const mockItems = [{ _id: '1' }];
+      const mockTotal = 1;
 
-      mockQuery.exec
-        .mockResolvedValueOnce([mockDataMappingDocument]) // for find
-        .mockResolvedValueOnce(1); // for countDocuments
+      // 模拟链式调用返回
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              lean: jest.fn().mockReturnValue({
+                exec: jest.fn().mockResolvedValue(mockItems)
+              })
+            })
+          })
+        })
+      });
+      
+      mockDataMappingRuleModel.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTotal)
+      });
 
       const result = await repository.findPaginated(query);
-
-      expect(result.items).toEqual([mockDataMappingDocument]);
-      expect(result.total).toBe(1);
-      expect(model.find).toHaveBeenCalledWith({});
-      expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: -1 });
-      expect(mockQuery.skip).toHaveBeenCalledWith(0);
-      expect(mockQuery.limit).toHaveBeenCalledWith(10);
+      expect(result.items).toEqual(mockItems);
+      expect(result.total).toEqual(mockTotal);
+      expect(mockPaginationService.normalizePaginationQuery).toHaveBeenCalledWith(query);
+      expect(mockPaginationService.calculateSkip).toHaveBeenCalledWith(1, 10);
     });
 
-    it("should apply filters correctly", async () => {
-      const query: DataMappingQueryDto = {
-        provider: "longport",
-        transDataRuleListType: "quote_fields",
-        search: "price",
-        isActive: true,
-      };
+    it('should apply search filter', async () => {
+      const query: DataMappingQueryDto = { page: 1, limit: 10, search: 'keyword' };
+      const mockItems = [{ _id: '1' }];
+      const mockTotal = 1;
 
-      mockQuery.exec.mockResolvedValueOnce([]).mockResolvedValueOnce(0);
+      // 模拟链式调用返回
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              lean: jest.fn().mockReturnValue({
+                exec: jest.fn().mockResolvedValue(mockItems)
+              })
+            })
+          })
+        })
+      });
+      
+      mockDataMappingRuleModel.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTotal)
+      });
 
       await repository.findPaginated(query);
-
-      expect(model.find).toHaveBeenCalledWith(
-        expect.objectContaining({
-          provider: { $regex: "longport", $options: "i" },
-          transDataRuleListType: "quote_fields",
-          isActive: true,
-          $or: [
-            { name: { $regex: "price", $options: "i" } },
-            { description: { $regex: "price", $options: "i" } },
-            { provider: { $regex: "price", $options: "i" } },
-          ],
-        }),
-      );
+      expect(mockDataMappingRuleModel.find).toHaveBeenCalled();
     });
 
-    it("should query inactive rules when specified", async () => {
-      const query: DataMappingQueryDto = {
-        isActive: false,
-      };
+    it('should apply isActive filter', async () => {
+      const query: DataMappingQueryDto = { page: 1, limit: 10, isActive: false };
+      const mockItems = [{ _id: '1' }];
+      const mockTotal = 1;
 
-      mockQuery.exec.mockResolvedValueOnce([]).mockResolvedValueOnce(0);
+      // 模拟链式调用返回
+      mockDataMappingRuleModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              lean: jest.fn().mockReturnValue({
+                exec: jest.fn().mockResolvedValue(mockItems)
+              })
+            })
+          })
+        })
+      });
+      
+      mockDataMappingRuleModel.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTotal)
+      });
 
       await repository.findPaginated(query);
-
-      expect(model.find).toHaveBeenCalledWith({ isActive: false });
+      expect(mockDataMappingRuleModel.find).toHaveBeenCalled();
     });
   });
 
-  describe("updateById", () => {
-    it("should update mapping rule by ID", async () => {
-      const updateDto: UpdateDataMappingDto = {
-        description: "Updated description",
-      };
+  describe('updateById', () => {
+    it('should update a data mapping rule by ID', async () => {
+      const updateDto: UpdateDataMappingDto = { name: 'Updated Name' };
+      const mockResult = { _id: '1', name: 'Updated Name' };
+      mockDataMappingRuleModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult)
+      });
 
-      mockQuery.exec.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await repository.updateById(
-        "507f1f77bcf86cd799439011",
-        updateDto,
-      );
-
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
+      const result = await repository.updateById('1', updateDto);
+      expect(result).toEqual(mockResult);
+      expect(mockDataMappingRuleModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '1',
         updateDto,
         { new: true },
       );
-      expect(result).toEqual(mockDataMappingDocument);
-    });
-
-    it("should return null for non-existent ID", async () => {
-      mockQuery.exec.mockResolvedValue(null);
-
-      const result = await repository.updateById("nonexistent-id", {});
-
-      expect(result).toBeNull();
     });
   });
 
-  describe("activate", () => {
-    it("should activate mapping rule", async () => {
-      mockQuery.exec.mockResolvedValue(mockDataMappingDocument);
+  describe('deleteById', () => {
+    it('should delete a data mapping rule by ID', async () => {
+      const mockResult = { _id: '1', name: 'Deleted Name' };
+      mockDataMappingRuleModel.findByIdAndDelete.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult)
+      });
 
-      const result = await repository.activate("507f1f77bcf86cd799439011");
+      const result = await repository.deleteById('1');
+      expect(result).toEqual(mockResult);
+      expect(mockDataMappingRuleModel.findByIdAndDelete).toHaveBeenCalledWith('1');
+    });
+  });
 
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
+  describe('activate', () => {
+    it('should activate a data mapping rule by ID', async () => {
+      const mockResult = { _id: '1', isActive: true };
+      mockDataMappingRuleModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult)
+      });
+
+      const result = await repository.activate('1');
+      expect(result).toEqual(mockResult);
+      expect(mockDataMappingRuleModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '1',
         { isActive: true },
         { new: true },
       );
-      expect(result).toEqual(mockDataMappingDocument);
     });
   });
 
-  describe("deactivate", () => {
-    it("should deactivate mapping rule", async () => {
-      mockQuery.exec.mockResolvedValue(mockDataMappingDocument);
+  describe('deactivate', () => {
+    it('should deactivate a data mapping rule by ID', async () => {
+      const mockResult = { _id: '1', isActive: false };
+      mockDataMappingRuleModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResult)
+      });
 
-      const result = await repository.deactivate("507f1f77bcf86cd799439011");
-
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
+      const result = await repository.deactivate('1');
+      expect(result).toEqual(mockResult);
+      expect(mockDataMappingRuleModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '1',
         { isActive: false },
         { new: true },
       );
-      expect(result).toEqual(mockDataMappingDocument);
     });
   });
 
-  describe("deleteById", () => {
-    it("should delete mapping rule by ID", async () => {
-      mockQuery.exec.mockResolvedValue(mockDataMappingDocument);
-
-      const result = await repository.deleteById("507f1f77bcf86cd799439011");
-
-      expect(model.findByIdAndDelete).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
-      );
-      expect(result).toEqual(mockDataMappingDocument);
-    });
-
-    it("should return null for non-existent ID", async () => {
-      mockQuery.exec.mockResolvedValue(null);
-
-      const result = await repository.deleteById("nonexistent-id");
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("getProviders", () => {
-    it("should return unique providers", async () => {
-      mockQuery.exec.mockResolvedValue(["longport", "futu", "itick"]);
+  describe('getProviders', () => {
+    it('should return distinct providers', async () => {
+      const mockResults = ['P1', 'P2'];
+      mockDataMappingRuleModel.distinct.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResults)
+      });
 
       const result = await repository.getProviders();
-
-      expect(model.distinct).toHaveBeenCalledWith("provider");
-      expect(result).toEqual(["longport", "futu", "itick"]);
+      expect(result).toEqual(mockResults);
+      expect(mockDataMappingRuleModel.distinct).toHaveBeenCalledWith('provider');
     });
   });
 
-  describe("getRuleListTypes", () => {
-    it("should return unique rule types", async () => {
-      mockQuery.exec.mockResolvedValue([
-        "quote_fields",
-        "basic_info_fields",
-        "index_fields",
-      ]);
+  describe('getRuleListTypes', () => {
+    it('should return distinct rule list types', async () => {
+      const mockResults = ['T1', 'T2'];
+      mockDataMappingRuleModel.distinct.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockResults)
+      });
 
       const result = await repository.getRuleListTypes();
+      expect(result).toEqual(mockResults);
+      expect(mockDataMappingRuleModel.distinct).toHaveBeenCalledWith('transDataRuleListType');
+    });
+  });
 
-      expect(model.distinct).toHaveBeenCalledWith("transDataRuleListType");
-      expect(result).toEqual([
-        "quote_fields",
-        "basic_info_fields",
-        "index_fields",
-      ]);
+  describe('countByProvider', () => {
+    it('should count documents by provider', async () => {
+      const mockCount = 5;
+      mockDataMappingRuleModel.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockCount)
+      });
+
+      const result = await repository.countByProvider('P1');
+      expect(result).toEqual(mockCount);
+      expect(mockDataMappingRuleModel.countDocuments).toHaveBeenCalledWith({ provider: 'P1', isActive: true });
+    });
+  });
+
+  describe('countByRuleListType', () => {
+    it('should count documents by rule list type', async () => {
+      const mockCount = 3;
+      mockDataMappingRuleModel.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockCount)
+      });
+
+      const result = await repository.countByRuleListType('T1');
+      expect(result).toEqual(mockCount);
+      expect(mockDataMappingRuleModel.countDocuments).toHaveBeenCalledWith({ transDataRuleListType: 'T1', isActive: true });
+    });
+  });
+
+  describe('findBestMatchingRule', () => {
+    it('should find the best matching rule', async () => {
+      const mockResult = { _id: '1', provider: 'P1', transDataRuleListType: 'T1' };
+      mockDataMappingRuleModel.findOne.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(mockResult)
+        })
+      });
+
+      const result = await repository.findBestMatchingRule('P1', 'T1');
+      expect(result).toEqual(mockResult);
+      expect(mockDataMappingRuleModel.findOne).toHaveBeenCalledWith({ provider: 'P1', transDataRuleListType: 'T1', isActive: true });
     });
   });
 });

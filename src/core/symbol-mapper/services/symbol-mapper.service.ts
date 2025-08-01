@@ -1098,29 +1098,17 @@ export class SymbolMapperService implements ISymbolMapper {
   private async getMappingConfigForProvider(
     provider: string,
   ): Promise<MappingConfigResultDto> {
-    try {
-      const mapping = await this.repository.findByDataSource(provider);
+    const mapping = await this.repository.findByDataSource(provider);
 
-      if (!mapping) {
-        return { found: false, SymbolMappingRule: [] } as MappingConfigResultDto;
-      }
-
-      return {
-        found: true,
-        SymbolMappingRule: mapping.SymbolMappingRule,
-        dataSourceName: mapping.dataSourceName,
-      } as MappingConfigResultDto;
-    } catch (error) {
-      this.logger.warn(
-        `获取映射配置失败`,
-        sanitizeLogData({
-          provider,
-          error: error.message,
-          operation: "getMappingConfigForProvider",
-        }),
-      );
-      return { found: false, SymbolMappingRule: [] } as MappingConfigResultDto;
+    if (!mapping) {
+      return { found: false, SymbolMappingRule: [] };
     }
+
+    return {
+      found: true,
+      SymbolMappingRule: mapping.SymbolMappingRule,
+      dataSourceName: mapping.dataSourceName,
+    };
   }
 
   /**

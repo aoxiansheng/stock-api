@@ -53,17 +53,17 @@ export class SymbolMappingResponseDto {
   static fromDocument(
     document: SymbolMappingRuleDocumentType,
   ): SymbolMappingResponseDto {
-    return {
-      id: document._id.toString(),
-      dataSourceName: document.dataSourceName,
-      SymbolMappingRule: document.SymbolMappingRule || [],
-      description: document.description,
-      version: document.version,
-      isActive: document.isActive,
-      createdBy: document.createdBy,
-      createdAt: document.createdAt,
-      updatedAt: document.updatedAt,
-    };
+    const dto = new SymbolMappingResponseDto();
+    dto.id = document._id.toString();
+    dto.dataSourceName = document.dataSourceName;
+    dto.SymbolMappingRule = document.SymbolMappingRule || [];
+    dto.description = document.description;
+    dto.version = document.version;
+    dto.isActive = document.isActive;
+    dto.createdBy = document.createdBy;
+    dto.createdAt = document.createdAt;
+    dto.updatedAt = document.updatedAt;
+    return dto;
   }
 
   static fromLeanObject(leanObject: any): SymbolMappingResponseDto {

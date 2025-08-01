@@ -39,7 +39,12 @@
       "Bash(git commit:*)",
       "Bash(npx eslint:*)",
       "Bash(sed:*)",
-      "Bash(perl:*)"
+      "Bash(perl:*)",
+      "Bash(npx jest test:*)",
+      "Bash(npx jest:*)",
+      "Bash(test:*)",
+      "Bash(# 检查一些重要但可能缺少测试的文件\necho \"\"=== 检查重要模块的测试覆盖情况 ===\"\"\n\necho \"\"1. 检查config文件的测试:\"\"\nfind test/jest/unit -name \"\"*config*.spec.ts\"\" | wc -l\necho \"\"   config测试文件数量: $(find test/jest/unit -name \"\"*config*.spec.ts\"\" | wc -l)\"\"\n\necho \"\"2. 检查constants文件的测试:\"\"\nfind test/jest/unit -name \"\"*constants*.spec.ts\"\" | wc -l\necho \"\"   constants测试文件数量: $(find test/jest/unit -name \"\"*constants*.spec.ts\"\" | wc -l)\"\"\n\necho \"\"3. 检查utils文件的测试:\"\"\nfind test/jest/unit -name \"\"*util*.spec.ts\"\" | wc -l\necho \"\"   utils测试文件数量: $(find test/jest/unit -name \"\"*util*.spec.ts\"\" | wc -l)\"\"\n\necho \"\"4. 检查validators文件的测试:\"\"\nfind test/jest/unit -name \"\"*validator*.spec.ts\"\" | wc -l\necho \"\"   validators测试文件数量: $(find test/jest/unit -name \"\"*validator*.spec.ts\"\" | wc -l )\"\"\n\necho \"\"5. 检查decorators文件的测试:\"\"\nfind test/jest/unit -name \"\"*decorator*.spec.ts\"\" | wc -l\necho \"\"   decorators测试文件数量: $(find test/jest/unit -name \"\"*decorator*.spec.ts\"\" | wc -l)\"\")",
+      "Bash(# 查找可能缺少测试的重要源文件\necho \"\"=== 查找重要但可能缺少测试的文件 ===\"\"\n\necho \"\"1. 检查scripts模块的源文件和测试:\"\"\necho \"\"   源文件:\"\"\nfind src/scripts -name \"\"*.ts\"\" ! -name \"\"*.spec.ts\"\" | head -5\necho \"\"   测试文件:\"\"\nfind test/jest/unit/scripts -name \"\"*.spec.ts\"\" 2>/dev/null | head -5\n\necho \"\"2. 检查cache模块的源文件和测试:\"\"\necho \"\"   源文件:\"\"\nfind src/cache -name \"\"*.ts\"\" ! -name \"\"*.spec.ts\"\" | head -5\necho \"\"   测试文件:\"\"\nfind test/jest/unit/cache -name \"\"*.spec.ts\"\" 2>/dev/null | head -5\n\necho \"\"3. 检查providers模块中缺少测试的文件:\"\"\necho \"\"   longport provider源文件:\"\"\nfind src/providers/longport -name \"\"*.ts\"\" ! -name \"\"*.spec.ts\"\" | head -3\necho \"\"   longport provider测试文件:\"\"\nfind test/jest/unit/providers/longport -name \"\"*.spec.ts\"\" 2>/dev/null | head -3)"
     ],
     "deny": []
   }

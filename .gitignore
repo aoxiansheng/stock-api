@@ -204,3 +204,6 @@ $RECYCLE.BIN/
 .claude
 .kiro
 .docker
+# Serena 开发工具目录
+serena/
+.serena/

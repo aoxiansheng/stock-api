@@ -43,6 +43,11 @@ export function deepFreeze<T>(
 
   // 在冻结对象本身之前，递归冻结所有属性
   for (const name of propNames) {
+    // RegExp 对象的 lastIndex 属性需要保持可变，以支持 test() 和 exec() 方法
+    if (object instanceof RegExp && name === 'lastIndex') {
+      continue;
+    }
+
     const value = (object as any)[name];
 
     // 如果值是对象、函数且不是null，则递归冻结
@@ -53,6 +58,26 @@ export function deepFreeze<T>(
     ) {
       deepFreeze(value, visited);
     }
+  }
+
+  // 对于 RegExp 对象，需要特殊处理以保持 lastIndex 属性可变
+  if (object instanceof RegExp) {
+    // 冻结除了 lastIndex 之外的所有属性
+    const propNames = Object.getOwnPropertyNames(object);
+    for (const name of propNames) {
+      if (name !== 'lastIndex') {
+        const descriptor = Object.getOwnPropertyDescriptor(object, name);
+        if (descriptor && descriptor.configurable) {
+          Object.defineProperty(object, name, {
+            ...descriptor,
+            writable: false,
+            configurable: false,
+          });
+        }
+      }
+    }
+    // 使用 Object.seal 而不是 Object.freeze，这样 lastIndex 仍可修改
+    return Object.seal(object);
   }
 
   // 冻结对象本身
@@ -78,9 +103,15 @@ export function isDeepFrozen(
     return true;
   }
 
-  // 检查对象本身是否被冻结
-  if (!Object.isFrozen(object)) {
-    return false;
+  // 检查对象本身是否被冻结（RegExp 对象使用 sealed 状态）
+  if (object instanceof RegExp) {
+    if (!Object.isSealed(object)) {
+      return false;
+    }
+  } else {
+    if (!Object.isFrozen(object)) {
+      return false;
+    }
   }
 
   // 检查循环引用
@@ -91,16 +122,22 @@ export function isDeepFrozen(
   // 添加当前对象到已访问集合
   visited.add(object as object);
 
-  // 如果是函数对象，且已被冻结，无需进一步检查属性
-  // 因为函数对象的内部属性通常不重要，只要函数本身被冻结即可
-  if (typeof object === "function") {
-    return true;
-  }
-
-  // 递归检查所有属性
+  // 递归检查所有属性（包括函数的自定义属性）
   const propNames = Object.getOwnPropertyNames(object);
 
   return propNames.every((name) => {
+    // RegExp 对象的 lastIndex 属性允许保持可变状态
+    if (object instanceof RegExp && name === 'lastIndex') {
+      return true;
+    }
+
+    // 函数对象的内置属性不需要深度检查
+    if (typeof object === 'function' && 
+        (name === 'prototype' || name === 'length' || name === 'name' || 
+         name === 'arguments' || name === 'caller')) {
+      return true;
+    }
+
     const value = (object as any)[name];
     // 如果值是对象或函数，则递归检查
     if (value && (typeof value === "object" || typeof value === "function")) {

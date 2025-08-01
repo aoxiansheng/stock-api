@@ -1,73 +1,120 @@
 import { getIndexQuote } from '../../../../../../src/providers/longport/capabilities/get-index-quote';
+import { MARKETS } from '../../../../../../src/common/constants/market.constants';
 
-describe('getIndexQuote Capability', () => {
-  // 测试当 contextService 未提供时的情况
+describe('getIndexQuote', () => {
+  const mockQuoteContext = {
+    quote: jest.fn(),
+  };
+
+  const mockContextService = {
+    getQuoteContext: jest.fn().mockResolvedValue(mockQuoteContext),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should have correct name, description, and supported markets/formats', () => {
+    expect(getIndexQuote.name).toBe('get-index-quote');
+    expect(getIndexQuote.description).toBe('获取指数实时报价数据');
+    expect(getIndexQuote.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH]);
+    expect(getIndexQuote.supportedSymbolFormats).toEqual(['HSI.HI', '000001.SH', '399001.SZ']);
+    expect(getIndexQuote.rateLimit).toEqual({
+      requestsPerSecond: 10,
+      requestsPerDay: 5000,
+    });
+  });
+
+  it('should successfully fetch and format index quotes', async () => {
+    const symbols = ['HSI.HI', '000001.SH'];
+    const mockLongportQuotes = [
+      {
+        symbol: 'HSI.HI',
+        lastDone: 25000,
+        prevClose: 24900,
+        open: 24950,
+        high: 25100,
+        low: 24800,
+        volume: 1000000,
+        turnover: 25000000000,
+        timestamp: 1678886400,
+        tradeStatus: 'TRADING',
+      },
+      {
+        symbol: '000001.SH',
+        lastDone: 3200,
+        prevClose: 3190,
+        open: 3195,
+        high: 3210,
+        low: 3180,
+        volume: 5000000,
+        turnover: 16000000000,
+        timestamp: 1678886400,
+        tradeStatus: 'TRADING',
+      },
+    ];
+
+    mockQuoteContext.quote.mockResolvedValue(mockLongportQuotes);
+
+    const result = await getIndexQuote.execute({
+      symbols,
+      contextService: mockContextService,
+    });
+
+    expect(mockContextService.getQuoteContext).toHaveBeenCalledTimes(1);
+    expect(mockQuoteContext.quote).toHaveBeenCalledWith(symbols);
+    expect(result).toEqual({
+      secu_quote: [
+        {
+          symbol: 'HSI.HI',
+          last_done: 25000,
+          prev_close: 24900,
+          open: 24950,
+          high: 25100,
+          low: 24800,
+          volume: 1000000,
+          turnover: 25000000000,
+          timestamp: 1678886400,
+          trade_status: 'TRADING',
+        },
+        {
+          symbol: '000001.SH',
+          last_done: 3200,
+          prev_close: 3190,
+          open: 3195,
+          high: 3210,
+          low: 3180,
+          volume: 5000000,
+          turnover: 16000000000,
+          timestamp: 1678886400,
+          trade_status: 'TRADING',
+        },
+      ],
+    });
+  });
+
   it('should throw an error if contextService is not provided', async () => {
-    // 调用 execute 方法，期望捕获到错误
-    await expect(getIndexQuote.execute({ symbols: ['HSI.HI'] })).rejects.toThrow(
+    const symbols = ['HSI.HI'];
+    await expect(getIndexQuote.execute({ symbols })).rejects.toThrow(
       'LongportContextService 未提供',
     );
   });
 
-  // 测试当 contextService.getQuoteContext 抛出错误时的情况
   it('should throw an error if getQuoteContext fails', async () => {
-    // 创建一个模拟的 contextService
-    const mockContextService = {
-      getQuoteContext: jest.fn().mockRejectedValue(new Error('Failed to get context')),
-    };
-    // 调用 execute 方法，期望捕获到错误
+    const symbols = ['HSI.HI'];
+    mockContextService.getQuoteContext.mockRejectedValue(new Error('Quote API error'));
+
     await expect(
-      getIndexQuote.execute({ symbols: ['HSI.HI'], contextService: mockContextService }),
-    ).rejects.toThrow('LongPort 获取指数报价失败: Failed to get context');
+      getIndexQuote.execute({ symbols, contextService: mockContextService }),
+    ).rejects.toThrow('LongPort 获取指数报价失败: Quote API error');
   });
 
-  // 测试当 ctx.quote 抛出错误时的情况
-  it('should throw an error if quote fails', async () => {
-    // 创建一个模拟的 quote context
-    const mockQuoteContext = {
-      quote: jest.fn().mockRejectedValue(new Error('Failed to get quote')),
-    };
-    // 创建一个模拟的 contextService
-    const mockContextService = {
-      getQuoteContext: jest.fn().mockResolvedValue(mockQuoteContext),
-    };
-    // 调用 execute 方法，期望捕获到错误
+  it('should throw an error if quote call fails', async () => {
+    const symbols = ['HSI.HI'];
+    mockQuoteContext.quote.mockRejectedValue(new Error('Quote API error'));
+
     await expect(
-      getIndexQuote.execute({ symbols: ['HSI.HI'], contextService: mockContextService }),
-    ).rejects.toThrow('LongPort 获取指数报价失败: Failed to get quote');
-  });
-
-  // 测试成功获取报价时的情况
-  it('should return quotes successfully', async () => {
-    // 创建一个模拟的报价数据
-    const mockQuotes = [
-      {
-        symbol: 'HSI.HI',
-        lastDone: 20000,
-        prevClose: 19900,
-        open: 19950,
-        high: 20100,
-        low: 19800,
-        volume: 1000000,
-        turnover: 20000000000,
-        timestamp: new Date(),
-        tradeStatus: 'TRADING',
-      },
-    ];
-    // 创建一个模拟的 quote context
-    const mockQuoteContext = {
-      quote: jest.fn().mockResolvedValue(mockQuotes),
-    };
-    // 创建一个模拟的 contextService
-    const mockContextService = {
-      getQuoteContext: jest.fn().mockResolvedValue(mockQuoteContext),
-    };
-
-    // 调用 execute 方法
-    const result = await getIndexQuote.execute({ symbols: ['HSI.HI'], contextService: mockContextService });
-
-    // 断言返回的结果是否正确
-    expect(result.secu_quote).toHaveLength(1);
-    expect(result.secu_quote[0].symbol).toBe('HSI.HI');
+      getIndexQuote.execute({ symbols, contextService: mockContextService }),
+    ).rejects.toThrow('LongPort 获取指数报价失败: Quote API error');
   });
 });

@@ -1,613 +1,933 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ConflictException, NotFoundException } from "@nestjs/common";
-import { SymbolMapperService } from "../../../../../../src/core/symbol-mapper/services/symbol-mapper.service";
-import { SymbolMappingRepository } from "../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
-import { CreateSymbolMappingDto } from "../../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
+import { Test, TestingModule } from '@nestjs/testing';
+import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
+import { SymbolMappingRepository } from '../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository';
+import { PaginationService } from '../../../../../../src/common/modules/pagination/services/pagination.service';
 import {
-  UpdateSymbolMappingDto,
-  AddSymbolMappingRuleDto,
-  UpdateSymbolMappingRuleDto,
-} from "../../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
-import { SymbolMappingQueryDto } from "../../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto";
-import { SymbolMappingRule } from "../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
-import { SymbolMappingRuleDocumentType } from "../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
-import { ISymbolMappingRuleList } from "../../../../../../src/core/symbol-mapper/interfaces/symbol-mapping.interface";
-import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
-import { PaginatedDataDto } from "../../../../../../src/common/modules/pagination/dto/paginated-data";
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateSymbolMappingDto } from '../../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto';
+import { SymbolMappingResponseDto } from '../../../../../../src/core/symbol-mapper/dto/symbol-mapping-response.dto';
+import { SYMBOL_MAPPER_ERROR_MESSAGES } from '../../../../../../src/core/symbol-mapper/constants/symbol-mapper.constants';
+import { UpdateSymbolMappingDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '../../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto';
+import { SymbolMappingRule } from '../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema';
+import { SymbolMappingQueryDto } from '../../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto';
+import { PaginatedDataDto } from '../../../../../../src/common/modules/pagination/dto/paginated-data';
 
-describe("SymbolMapperService", () => {
+const mockSymbolMappingRepository = () => ({
+  exists: jest.fn(),
+  create: jest.fn(),
+  findByDataSource: jest.fn(),
+  findById: jest.fn(),
+  findPaginated: jest.fn(),
+  updateById: jest.fn(),
+  deleteById: jest.fn(),
+  findAllMappingsForSymbols: jest.fn(),
+  getDataSources: jest.fn(),
+  getMarkets: jest.fn(),
+  getSymbolTypes: jest.fn(),
+  deleteByDataSource: jest.fn(),
+  addSymbolMappingRule: jest.fn(),
+  updateSymbolMappingRule: jest.fn(),
+  removeSymbolMappingRule: jest.fn(),
+  replaceSymbolMappingRule: jest.fn(),
+  findAll: jest.fn(),
+});
+
+const mockPaginationService = () => ({
+  createPaginatedResponseFromQuery: jest.fn(),
+});
+
+describe('SymbolMapperService', () => {
   let service: SymbolMapperService;
-  let repository: jest.Mocked<SymbolMappingRepository>;
-  let paginationService: PaginationService;
-
-  // 修改为正确的类型
-  const mockSymbolMappingDocument = {
-    _id: "507f1f77bcf86cd799439011",
-    dataSourceName: "test-provider",
-    isActive: true,
-    SymbolMappingRule: [
-      {
-        inputSymbol: "AAPL",
-        outputSymbol: "AAPL.US",
-        market: "US",
-        symbolType: "stock",
-        isActive: true,
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    // 添加Document类型所需的方法
-    $assertPopulated: jest.fn(),
-    $clone: jest.fn(),
-    $getAllSubdocs: jest.fn(),
-    $ignore: jest.fn(),
-    $isDefault: jest.fn(),
-    $isDeleted: jest.fn(),
-    $isEmpty: jest.fn(),
-    $isValid: jest.fn(),
-    $locals: {},
-    $markValid: jest.fn(),
-    $session: jest.fn(),
-    $set: jest.fn(),
-    get: jest.fn(),
-    id: "507f1f77bcf86cd799439011",
-    equals: jest.fn(),
-    isModified: jest.fn(),
-    isDirectModified: jest.fn(),
-    isNew: false,
-    isSelected: jest.fn(),
-    markModified: jest.fn(),
-    modifiedPaths: jest.fn(),
-    populate: jest.fn(),
-    populated: jest.fn(),
-    toJSON: jest.fn(),
-    toObject: jest.fn().mockReturnValue({
-      _id: "507f1f77bcf86cd799439011",
-      dataSourceName: "test-provider",
-      isActive: true,
-      SymbolMappingRule: [
-        {
-          inputSymbol: "AAPL",
-          outputSymbol: "AAPL.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
-    validate: jest.fn(),
-    save: jest.fn(),
-  } as unknown as SymbolMappingRuleDocumentType;
+  let repository: jest.Mocked<ReturnType<typeof mockSymbolMappingRepository>>;
+  let paginationService: jest.Mocked<ReturnType<typeof mockPaginationService>>;
 
   beforeEach(async () => {
-    const mockRepository = {
-      findByDataSource: jest.fn(),
-      create: jest.fn(),
-      exists: jest.fn(),
-      findById: jest.fn(),
-      findPaginated: jest.fn(),
-      updateById: jest.fn(),
-      deleteById: jest.fn(),
-      findAllMappingsForSymbols: jest.fn(),
-      getDataSources: jest.fn(),
-      getMarkets: jest.fn(),
-      getSymbolTypes: jest.fn(),
-      deleteByDataSource: jest.fn(),
-      addSymbolMappingRule: jest.fn(),
-      updateSymbolMappingRule: jest.fn(),
-      removeSymbolMappingRule: jest.fn(),
-      replaceSymbolMappingRule: jest.fn(),
-    };
-
-    const mockPaginationService = {
-      createPaginatedResponse: jest.fn(),
-      getPaginationOptions: jest.fn(),
-      createPaginatedResponseFromQuery: jest.fn((items, query, total) => {
-        return new PaginatedDataDto(items, {
-          page: query.page || 1,
-          limit: query.limit || 10,
-          total: total,
-          totalPages: Math.ceil(total / (query.limit || 10)),
-          hasNext: (query.page || 1) < Math.ceil(total / (query.limit || 10)),
-          hasPrev: (query.page || 1) > 1
-        });
-      })
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SymbolMapperService,
         {
           provide: SymbolMappingRepository,
-          useValue: mockRepository,
+          useFactory: mockSymbolMappingRepository,
         },
         {
           provide: PaginationService,
-          useValue: mockPaginationService,
+          useFactory: mockPaginationService,
         },
       ],
     }).compile();
 
     service = module.get<SymbolMapperService>(SymbolMapperService);
     repository = module.get(SymbolMappingRepository);
-    paginationService = module.get<PaginationService>(PaginationService);
+    paginationService = module.get(PaginationService);
   });
 
-  describe("mapSymbol", () => {
-    it("should map symbol successfully when mapping rule exists", async () => {
-      repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('mapSymbol', () => {
+    it('should map a symbol successfully', async () => {
+      const originalSymbol = 'AAPL.US';
+      const fromProvider = 'Standard';
+      const toProvider = 'LongPort';
+      const mockMappingRule = [
+        { inputSymbol: 'AAPL.US', outputSymbol: '700.HK', isActive: true },
+      ];
+      repository.findByDataSource.mockResolvedValueOnce({
+        dataSourceName: toProvider,
+        SymbolMappingRule: mockMappingRule,
+      });
 
       const result = await service.mapSymbol(
-        "AAPL",
-        "standard",
-        "test-provider",
+        originalSymbol,
+        fromProvider,
+        toProvider,
       );
-
-      expect(result).toBe("AAPL.US");
-      expect(repository.findByDataSource).toHaveBeenCalledWith("test-provider");
+      expect(result).toEqual('700.HK');
+      expect(repository.findByDataSource).toHaveBeenCalledWith(toProvider);
     });
 
-    it("should return original symbol when mapping rule not found", async () => {
-      repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
+    it('should return original symbol if mapping config not found', async () => {
+      const originalSymbol = 'AAPL.US';
+      const fromProvider = 'Standard';
+      const toProvider = 'LongPort';
+      repository.findByDataSource.mockResolvedValueOnce(null);
 
       const result = await service.mapSymbol(
-        "GOOGL",
-        "standard",
-        "test-provider",
+        originalSymbol,
+        fromProvider,
+        toProvider,
       );
-
-      expect(result).toBe("GOOGL");
+      expect(result).toEqual(originalSymbol);
     });
 
-    it("should return original symbol when mapping config not found", async () => {
-      repository.findByDataSource.mockResolvedValue(null);
+    it('should return original symbol if no matching rule found', async () => {
+      const originalSymbol = 'GOOG.US';
+      const fromProvider = 'Standard';
+      const toProvider = 'LongPort';
+      const mockMappingRule = [
+        { inputSymbol: 'AAPL.US', outputSymbol: '700.HK', isActive: true },
+      ];
+      repository.findByDataSource.mockResolvedValueOnce({
+        dataSourceName: toProvider,
+        SymbolMappingRule: mockMappingRule,
+      });
 
       const result = await service.mapSymbol(
-        "AAPL",
-        "standard",
-        "nonexistent-provider",
+        originalSymbol,
+        fromProvider,
+        toProvider,
       );
+      expect(result).toEqual(originalSymbol);
+    });
 
-      expect(result).toBe("AAPL");
+    it('should throw error if repository call fails', async () => {
+      const originalSymbol = 'AAPL.US';
+      const fromProvider = 'Standard';
+      const toProvider = 'LongPort';
+      repository.findByDataSource.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(
+        service.mapSymbol(originalSymbol, fromProvider, toProvider),
+      ).rejects.toThrow('DB Error');
     });
   });
 
-  describe("createDataSourceMapping", () => {
-    it("should create mapping successfully", async () => {
-      const createDto: CreateSymbolMappingDto = {
-        dataSourceName: "new-provider",
-        SymbolMappingRule: [],
-      };
+  describe('createDataSourceMapping', () => {
+    const createDto: CreateSymbolMappingDto = {
+      dataSourceName: 'TestDataSource',
+      SymbolMappingRule: [
+        { inputSymbol: 'A', outputSymbol: 'B', isActive: true },
+      ],
+    };
+    const mockCreatedDoc = {
+      _id: 'someId',
+      ...createDto,
+      SymbolMappingRule: createDto.SymbolMappingRule,
+    };
 
-      repository.exists.mockResolvedValue(false);
-      repository.create.mockResolvedValue(mockSymbolMappingDocument);
+    it('should create a new data source mapping', async () => {
+      repository.exists.mockResolvedValueOnce(false);
+      repository.create.mockResolvedValueOnce(mockCreatedDoc);
 
       const result = await service.createDataSourceMapping(createDto);
-
-      expect(result).toBeDefined();
-      expect(repository.exists).toHaveBeenCalledWith("new-provider");
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(createDto.dataSourceName);
+      expect(repository.exists).toHaveBeenCalledWith(createDto.dataSourceName);
       expect(repository.create).toHaveBeenCalledWith(createDto);
     });
 
-    it("should throw ConflictException when mapping already exists", async () => {
-      const createDto: CreateSymbolMappingDto = {
-        dataSourceName: "existing-provider",
-        SymbolMappingRule: [],
-      };
+    it('should throw ConflictException if data source already exists', async () => {
+      repository.exists.mockResolvedValueOnce(true);
 
-      repository.exists.mockResolvedValue(true);
+      await expect(
+        service.createDataSourceMapping(createDto),
+      ).rejects.toThrow(ConflictException);
+      expect(repository.exists).toHaveBeenCalledWith(createDto.dataSourceName);
+      expect(repository.create).not.toHaveBeenCalled();
+    });
 
-      await expect(service.createDataSourceMapping(createDto)).rejects.toThrow(
+    it('should throw error if repository create fails', async () => {
+      repository.exists.mockResolvedValueOnce(false);
+      repository.create.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(
+        service.createDataSourceMapping(createDto),
+      ).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('saveMapping', () => {
+    const mockRuleList = {
+      dataSourceName: 'TestSave',
+      SymbolMappingRule: [
+        { inputSymbol: 'S1', outputSymbol: 'T1', isActive: true },
+      ],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should successfully save a new mapping', async () => {
+      repository.exists.mockResolvedValue(false);
+      repository.create.mockResolvedValue({
+        _id: 'newId',
+        ...mockRuleList,
+        SymbolMappingRule: mockRuleList.SymbolMappingRule,
+      });
+
+      await expect(service.saveMapping(mockRuleList)).resolves.toBeUndefined();
+      expect(repository.create).toHaveBeenCalledWith(mockRuleList);
+    });
+
+    it('should throw an error if createDataSourceMapping fails', async () => {
+      repository.exists.mockResolvedValue(true); // Simulate conflict
+      await expect(service.saveMapping(mockRuleList)).rejects.toThrow(
         ConflictException,
       );
     });
   });
 
-  describe("getSymbolMappingById", () => {
-    it("should return mapping when found", async () => {
-      repository.findById.mockResolvedValue(mockSymbolMappingDocument);
+  describe('getSymbolMappingRule', () => {
+    const provider = 'TestProvider';
+    const mockMapping = {
+      dataSourceName: provider,
+      SymbolMappingRule: [
+        { inputSymbol: 'A', outputSymbol: 'B', isActive: true },
+      ],
+    };
 
-      const result = await service.getSymbolMappingById("507f1f77bcf86cd799439011");
+    it('should return symbol mapping rules for a given provider', async () => {
+      repository.findByDataSource.mockResolvedValueOnce(mockMapping);
 
-      expect(result).toBeDefined();
-      expect(repository.findById).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
-      );
+      const result = await service.getSymbolMappingRule(provider);
+      expect(result).toEqual(mockMapping.SymbolMappingRule);
+      expect(repository.findByDataSource).toHaveBeenCalledWith(provider);
     });
 
-    it("should throw NotFoundException when mapping not found", async () => {
-      repository.findById.mockResolvedValue(null);
+    it('should return empty array if no mapping found for provider', async () => {
+      repository.findByDataSource.mockResolvedValueOnce(null);
 
-      await expect(service.getSymbolMappingById("nonexistent-id")).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe("getSymbolMappingByDataSource", () => {
-    it("should return mapping when found", async () => {
-      repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
-
-      const result = await service.getSymbolMappingByDataSource("test-provider");
-
-      expect(result).toBeDefined();
-      expect(repository.findByDataSource).toHaveBeenCalledWith("test-provider");
-    });
-
-    it("should throw NotFoundException when mapping not found", async () => {
-      repository.findByDataSource.mockResolvedValue(null);
-
-      await expect(
-        service.getSymbolMappingByDataSource("nonexistent-provider"),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe("getSymbolMappingsPaginated", () => {
-    it("should return paginated results", async () => {
-      const query: SymbolMappingQueryDto = {
-        page: 1,
-        limit: 10,
-      };
-
-      const paginatedResult = {
-        items: [mockSymbolMappingDocument],
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      };
-
-      repository.findPaginated.mockResolvedValue(paginatedResult as any);
-
-      const result = await service.getSymbolMappingsPaginated(query);
-
-      expect(result.items).toHaveLength(1);
-      expect(result.pagination.total).toBe(1);
-      expect(result.pagination.page).toBe(1);
-      expect(result.pagination.limit).toBe(10);
-    });
-  });
-
-  describe("updateSymbolMapping", () => {
-    it("should update mapping successfully", async () => {
-      const updateDto: UpdateSymbolMappingDto = {
-        description: "Updated description",
-      };
-
-      repository.updateById.mockResolvedValue(mockSymbolMappingDocument);
-
-      const result = await service.updateSymbolMapping(
-        "507f1f77bcf86cd799439011",
-        updateDto,
-      );
-
-      expect(result).toBeDefined();
-      expect(repository.updateById).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
-        updateDto,
-      );
-    });
-
-    it("should throw NotFoundException when mapping not found", async () => {
-      const updateDto: UpdateSymbolMappingDto = {
-        description: "Updated description",
-      };
-
-      repository.updateById.mockResolvedValue(null);
-
-      await expect(
-        service.updateSymbolMapping("nonexistent-id", updateDto),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe("deleteSymbolMapping", () => {
-    it("should delete mapping successfully", async () => {
-      repository.deleteById.mockResolvedValue(mockSymbolMappingDocument);
-
-      const result = await service.deleteSymbolMapping("507f1f77bcf86cd799439011");
-
-      expect(result).toBeDefined();
-      expect(repository.deleteById).toHaveBeenCalledWith(
-        "507f1f77bcf86cd799439011",
-      );
-    });
-
-    it("should throw NotFoundException when mapping not found", async () => {
-      repository.deleteById.mockResolvedValue(null);
-
-      await expect(service.deleteSymbolMapping("nonexistent-id")).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe("transformSymbols", () => {
-    it("should transform symbols successfully", async () => {
-      const SymbolMappingRule = [
-        {
-          inputSymbol: "AAPL",
-          outputSymbol: "AAPL.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      ];
-
-      repository.findAllMappingsForSymbols.mockResolvedValue(
-        SymbolMappingRule as any,
-      );
-
-      const result = await service.transformSymbols("test-provider", [
-        "AAPL",
-        "GOOGL",
-      ]);
-
-      expect(result.transformedSymbols).toEqual({
-        AAPL: "AAPL.US",
-        GOOGL: "GOOGL",
-      });
-      expect(result.dataSourceName).toBe("test-provider");
-      expect(result.processingTimeMs).toBeGreaterThan(0);
-    });
-  });
-
-  describe("getTransformedSymbolList", () => {
-    it("should return transformed symbol list", async () => {
-      const SymbolMappingRule = [
-        {
-          inputSymbol: "AAPL",
-          outputSymbol: "AAPL.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      ];
-
-      repository.findAllMappingsForSymbols.mockResolvedValue(
-        SymbolMappingRule as any,
-      );
-
-      const result = await service.getTransformedSymbolList("test-provider", [
-        "AAPL",
-        "GOOGL",
-      ]);
-
-      expect(result).toEqual(["AAPL.US", "GOOGL"]);
-    });
-  });
-
-  describe("getSymbolMappingRule", () => {
-    it("should return mapping rules when provider exists", async () => {
-      repository.findByDataSource.mockResolvedValue(mockSymbolMappingDocument);
-
-      const result = await service.getSymbolMappingRule("test-provider");
-
-      expect(result).toEqual(mockSymbolMappingDocument.SymbolMappingRule);
-    });
-
-    it("should return empty array when provider not found", async () => {
-      repository.findByDataSource.mockResolvedValue(null);
-
-      const result = await service.getSymbolMappingRule("nonexistent-provider");
-
+      const result = await service.getSymbolMappingRule(provider);
       expect(result).toEqual([]);
     });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findByDataSource.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getSymbolMappingRule(provider)).rejects.toThrow(
+        'DB Error',
+      );
+    });
   });
 
-  describe("addSymbolMappingRule", () => {
-    it("should add mapping rule successfully", async () => {
-      const addDto: AddSymbolMappingRuleDto = {
-        dataSourceName: "test-provider",
-        symbolMappingRule: {
-          inputSymbol: "GOOGL",
-          outputSymbol: "GOOGL.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      };
+  describe('getSymbolMappingById', () => {
+    const id = 'someId';
+    const mockMapping = {
+      _id: id,
+      dataSourceName: 'TestDataSource',
+      SymbolMappingRule: [],
+    };
 
-      repository.addSymbolMappingRule.mockResolvedValue(mockSymbolMappingDocument);
+    it('should return symbol mapping by ID', async () => {
+      repository.findById.mockResolvedValueOnce(mockMapping);
+
+      const result = await service.getSymbolMappingById(id);
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.id).toEqual(id);
+      expect(repository.findById).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw NotFoundException if mapping not found by ID', async () => {
+      repository.findById.mockResolvedValueOnce(null);
+
+      await expect(service.getSymbolMappingById(id)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.findById).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findById.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getSymbolMappingById(id)).rejects.toThrow(
+        'DB Error',
+      );
+    });
+  });
+
+  describe('getSymbolMappingByDataSource', () => {
+    const dataSourceName = 'TestDataSource';
+    const mockMapping = {
+      _id: 'someId',
+      dataSourceName: dataSourceName,
+      SymbolMappingRule: [],
+    };
+
+    it('should return symbol mapping by data source name', async () => {
+      repository.findByDataSource.mockResolvedValueOnce(mockMapping);
+
+      const result = await service.getSymbolMappingByDataSource(dataSourceName);
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(dataSourceName);
+      expect(repository.findByDataSource).toHaveBeenCalledWith(dataSourceName);
+    });
+
+    it('should throw NotFoundException if mapping not found by data source name', async () => {
+      repository.findByDataSource.mockResolvedValueOnce(null);
+
+      await expect(
+        service.getSymbolMappingByDataSource(dataSourceName),
+      ).rejects.toThrow(NotFoundException);
+      expect(repository.findByDataSource).toHaveBeenCalledWith(dataSourceName);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findByDataSource.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(
+        service.getSymbolMappingByDataSource(dataSourceName),
+      ).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('getSymbolMappingsPaginated', () => {
+    const query: SymbolMappingQueryDto = {
+      page: 1,
+      limit: 10,
+      dataSourceName: 'Test',
+    };
+    const mockItems = [
+      {
+        _id: 'id1',
+        dataSourceName: 'Test',
+        SymbolMappingRule: [{ inputSymbol: 'A', outputSymbol: 'B' }],
+      },
+    ];
+    const mockPaginatedResponse: PaginatedDataDto<SymbolMappingResponseDto> = {
+      items: [
+        SymbolMappingResponseDto.fromLeanObject(mockItems[0] as any),
+      ],
+      pagination: {
+        total: 1,
+        totalPages: 1,
+        page: 1,
+        limit: 10,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+
+    it('should return paginated symbol mappings', async () => {
+      repository.findPaginated.mockResolvedValueOnce({
+        items: mockItems,
+        total: 1,
+      });
+      paginationService.createPaginatedResponseFromQuery.mockReturnValueOnce(
+        mockPaginatedResponse,
+      );
+
+      const result = await service.getSymbolMappingsPaginated(query);
+      expect(result).toEqual(mockPaginatedResponse);
+      expect(repository.findPaginated).toHaveBeenCalledWith(query);
+      expect(
+        paginationService.createPaginatedResponseFromQuery,
+      ).toHaveBeenCalledWith(
+        expect.any(Array),
+        query,
+        1,
+      );
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findPaginated.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getSymbolMappingsPaginated(query)).rejects.toThrow(
+        'DB Error',
+      );
+    });
+  });
+
+  describe('updateSymbolMapping', () => {
+    const id = 'someId';
+    const updateDto: UpdateSymbolMappingDto = {
+      dataSourceName: 'UpdatedDataSource',
+      SymbolMappingRule: [
+        { inputSymbol: 'C', outputSymbol: 'D', isActive: true },
+      ],
+    };
+    const mockUpdatedDoc = {
+      _id: id,
+      ...updateDto,
+      SymbolMappingRule: updateDto.SymbolMappingRule,
+    };
+
+    it('should update a symbol mapping successfully', async () => {
+      repository.updateById.mockResolvedValueOnce(mockUpdatedDoc);
+
+      const result = await service.updateSymbolMapping(id, updateDto);
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(updateDto.dataSourceName);
+      expect(repository.updateById).toHaveBeenCalledWith(id, updateDto);
+    });
+
+    it('should throw NotFoundException if mapping not found', async () => {
+      repository.updateById.mockResolvedValueOnce(null);
+
+      await expect(service.updateSymbolMapping(id, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.updateById).toHaveBeenCalledWith(id, updateDto);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.updateById.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.updateSymbolMapping(id, updateDto)).rejects.toThrow(
+        'DB Error',
+      );
+    });
+  });
+
+  describe('deleteSymbolMapping', () => {
+    const id = 'someId';
+    const mockDeletedDoc = {
+      _id: id,
+      dataSourceName: 'DeletedDataSource',
+      SymbolMappingRule: [],
+    };
+
+    it('should delete a symbol mapping successfully', async () => {
+      repository.deleteById.mockResolvedValueOnce(mockDeletedDoc);
+
+      const result = await service.deleteSymbolMapping(id);
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.id).toEqual(id);
+      expect(repository.deleteById).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw NotFoundException if mapping not found', async () => {
+      repository.deleteById.mockResolvedValueOnce(null);
+
+      await expect(service.deleteSymbolMapping(id)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.deleteById).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.deleteById.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.deleteSymbolMapping(id)).rejects.toThrow(
+        'DB Error',
+      );
+    });
+  });
+
+  describe('transformSymbols', () => {
+    const dataSourceName = 'TestDataSource';
+    const inputSymbols = ['AAPL.US', 'GOOG.US'];
+    const mockMappingRules = [
+      { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
+      { inputSymbol: 'GOOG.US', outputSymbol: 'GOOG.US', isActive: true },
+    ];
+    const mockFindAllMappingsResult = {
+      rules: mockMappingRules,
+      dataSourceName: dataSourceName,
+    };
+
+    it('should transform symbols by data source name', async () => {
+      repository.findAllMappingsForSymbols.mockResolvedValueOnce(
+        mockFindAllMappingsResult,
+      );
+
+      const result = await service.transformSymbols(dataSourceName, inputSymbols);
+      expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
+      expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US');
+      expect(result.failedSymbols).toEqual([]);
+      expect(repository.findAllMappingsForSymbols).toHaveBeenCalledWith(
+        dataSourceName,
+        inputSymbols,
+      );
+    });
+
+    it('should handle untransformed symbols', async () => {
+      const partialMappingRules = [
+        { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
+      ];
+      repository.findAllMappingsForSymbols.mockResolvedValueOnce({
+        rules: partialMappingRules,
+        dataSourceName: dataSourceName,
+      });
+
+      const result = await service.transformSymbols(dataSourceName, inputSymbols);
+      expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
+      expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US'); // Untransformed
+      expect(result.failedSymbols).toEqual(['GOOG.US']);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findAllMappingsForSymbols.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(
+        service.transformSymbols(dataSourceName, inputSymbols),
+      ).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('transformSymbolsById', () => {
+    const mappingInSymbolId = 'someMappingId';
+    const inputSymbols = ['AAPL.US', 'GOOG.US'];
+    const mockMappingDoc = {
+      _id: mappingInSymbolId,
+      dataSourceName: 'TestDataSource',
+      isActive: true,
+      SymbolMappingRule: [
+        { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
+        { inputSymbol: 'GOOG.US', outputSymbol: 'GOOG.US', isActive: true },
+        { inputSymbol: 'MSFT', outputSymbol: 'MSFT.US', isActive: false }, // Inactive rule
+      ],
+    };
+
+    it('should transform symbols by mapping ID', async () => {
+      repository.findById.mockResolvedValueOnce(mockMappingDoc);
+
+      const result = await service.transformSymbolsById(
+        mappingInSymbolId,
+        inputSymbols,
+      );
+      expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
+      expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US');
+      expect(result.failedSymbols).toEqual([]);
+      expect(repository.findById).toHaveBeenCalledWith(mappingInSymbolId);
+    });
+
+    it('should throw NotFoundException if mapping doc not found', async () => {
+      repository.findById.mockResolvedValueOnce(null);
+
+      await expect(
+        service.transformSymbolsById(mappingInSymbolId, inputSymbols),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if mapping doc is inactive', async () => {
+      repository.findById.mockResolvedValueOnce({
+        ...mockMappingDoc,
+        isActive: false,
+      });
+
+      await expect(
+        service.transformSymbolsById(mappingInSymbolId, inputSymbols),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle untransformed symbols and inactive rules', async () => {
+      repository.findById.mockResolvedValueOnce({
+        ...mockMappingDoc,
+        SymbolMappingRule: [
+          { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
+          { inputSymbol: 'MSFT', outputSymbol: 'MSFT.US', isActive: false },
+        ],
+      });
+
+      const result = await service.transformSymbolsById(
+        mappingInSymbolId,
+        inputSymbols,
+      );
+      expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
+      expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US'); // GOOG not in rules
+      expect(result.failedSymbols).toEqual(['GOOG.US']);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findById.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(
+        service.transformSymbolsById(mappingInSymbolId, inputSymbols),
+      ).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('getTransformedSymbolList', () => {
+    const dataSourceName = 'TestDataSource';
+    const inputSymbols = ['AAPL', 'GOOG'];
+    const mockTransformResult = {
+      transformedSymbols: { AAPL: 'APPL.US', GOOG: 'GOOG.US' },
+      failedSymbols: [],
+      processingTimeMs: 10,
+    };
+
+    it('should return a list of transformed symbols', async () => {
+      jest
+        .spyOn(service, 'transformSymbols' as any)
+        .mockResolvedValueOnce(mockTransformResult);
+
+      const result = await service.getTransformedSymbolList(
+        dataSourceName,
+        inputSymbols,
+      );
+      expect(result).toEqual(['APPL.US', 'GOOG.US']);
+      expect(service['transformSymbols']).toHaveBeenCalledWith(
+        dataSourceName,
+        inputSymbols,
+      );
+    });
+
+    it('should return original symbol for untransformed ones', async () => {
+      jest.spyOn(service, 'transformSymbols' as any).mockResolvedValueOnce({
+        transformedSymbols: { AAPL: 'APPL.US', GOOG: 'GOOG.US' },
+        failedSymbols: ['GOOG'],
+        processingTimeMs: 10,
+      });
+
+      const result = await service.getTransformedSymbolList(
+        dataSourceName,
+        inputSymbols,
+      );
+      expect(result).toEqual(['APPL.US', 'GOOG.US']);
+    });
+
+    it('should throw error if transformSymbols fails', async () => {
+      jest
+        .spyOn(service, 'transformSymbols' as any)
+        .mockRejectedValueOnce(new Error('Transform Error'));
+
+      await expect(
+        service.getTransformedSymbolList(dataSourceName, inputSymbols),
+      ).rejects.toThrow('Transform Error');
+    });
+  });
+
+  describe('getDataSources', () => {
+    it('should return a list of data sources', async () => {
+      const mockDataSources = ['SourceA', 'SourceB'];
+      repository.getDataSources.mockResolvedValueOnce(mockDataSources);
+
+      const result = await service.getDataSources();
+      expect(result).toEqual(mockDataSources);
+      expect(repository.getDataSources).toHaveBeenCalled();
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.getDataSources.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getDataSources()).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('getMarkets', () => {
+    it('should return a list of markets', async () => {
+      const mockMarkets = ['MarketA', 'MarketB'];
+      repository.getMarkets.mockResolvedValueOnce(mockMarkets);
+
+      const result = await service.getMarkets();
+      expect(result).toEqual(mockMarkets);
+      expect(repository.getMarkets).toHaveBeenCalled();
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.getMarkets.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getMarkets()).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('getSymbolTypes', () => {
+    it('should return a list of symbol types', async () => {
+      const mockSymbolTypes = ['TypeA', 'TypeB'];
+      repository.getSymbolTypes.mockResolvedValueOnce(mockSymbolTypes);
+
+      const result = await service.getSymbolTypes();
+      expect(result).toEqual(mockSymbolTypes);
+      expect(repository.getSymbolTypes).toHaveBeenCalled();
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.getSymbolTypes.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getSymbolTypes()).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('deleteSymbolMappingsByDataSource', () => {
+    const dataSourceName = 'TestDataSource';
+    it('should delete mappings by data source name', async () => {
+      repository.deleteByDataSource.mockResolvedValueOnce({ deletedCount: 5 });
+
+      const result = await service.deleteSymbolMappingsByDataSource(
+        dataSourceName,
+      );
+      expect(result).toEqual({ deletedCount: 5 });
+      expect(repository.deleteByDataSource).toHaveBeenCalledWith(dataSourceName);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.deleteByDataSource.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(
+        service.deleteSymbolMappingsByDataSource(dataSourceName),
+      ).rejects.toThrow('DB Error');
+    });
+  });
+
+  describe('addSymbolMappingRule', () => {
+    const addDto: AddSymbolMappingRuleDto = {
+      dataSourceName: 'TestDataSource',
+      symbolMappingRule: { inputSymbol: 'NEW', outputSymbol: 'NEW_OUT', isActive: true },
+    };
+    const mockUpdatedDoc = {
+      _id: 'someId',
+      dataSourceName: addDto.dataSourceName,
+      SymbolMappingRule: [addDto.symbolMappingRule],
+    };
+
+    it('should add a symbol mapping rule successfully', async () => {
+      repository.addSymbolMappingRule.mockResolvedValueOnce(mockUpdatedDoc);
 
       const result = await service.addSymbolMappingRule(addDto);
-
-      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(addDto.dataSourceName);
       expect(repository.addSymbolMappingRule).toHaveBeenCalledWith(
-        "test-provider",
+        addDto.dataSourceName,
         addDto.symbolMappingRule,
       );
     });
 
-    it("should throw NotFoundException when data source not found", async () => {
-      const addDto: AddSymbolMappingRuleDto = {
-        dataSourceName: "nonexistent-provider",
-        symbolMappingRule: {
-          inputSymbol: "GOOGL",
-          outputSymbol: "GOOGL.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      };
-
-      repository.addSymbolMappingRule.mockResolvedValue(null);
+    it('should throw NotFoundException if data source not found', async () => {
+      repository.addSymbolMappingRule.mockResolvedValueOnce(null);
 
       await expect(service.addSymbolMappingRule(addDto)).rejects.toThrow(
         NotFoundException,
       );
     });
+
+    it('should throw error if repository call fails', async () => {
+      repository.addSymbolMappingRule.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(service.addSymbolMappingRule(addDto)).rejects.toThrow(
+        'DB Error',
+      );
+    });
   });
 
-  describe("updateSymbolMappingRule", () => {
-    it("should update mapping rule successfully", async () => {
-      const updateDto: UpdateSymbolMappingRuleDto = {
-        dataSourceName: "test-provider",
-        inputSymbol: "AAPL",
-        symbolMappingRule: {
-          outputSymbol: "AAPL.NASDAQ",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      };
+  describe('updateSymbolMappingRule', () => {
+    const updateDto: UpdateSymbolMappingRuleDto = {
+      dataSourceName: 'TestDataSource',
+      inputSymbol: 'OLD',
+      symbolMappingRule: { inputSymbol: 'OLD', outputSymbol: 'UPDATED', isActive: true },
+    };
+    const mockUpdatedDoc = {
+      _id: 'someId',
+      dataSourceName: updateDto.dataSourceName,
+      SymbolMappingRule: [updateDto.symbolMappingRule],
+    };
 
-      repository.updateSymbolMappingRule.mockResolvedValue(mockSymbolMappingDocument);
+    it('should update a symbol mapping rule successfully', async () => {
+      repository.updateSymbolMappingRule.mockResolvedValueOnce(mockUpdatedDoc);
 
       const result = await service.updateSymbolMappingRule(updateDto);
-
-      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(updateDto.dataSourceName);
       expect(repository.updateSymbolMappingRule).toHaveBeenCalledWith(
-        "test-provider",
-        "AAPL",
+        updateDto.dataSourceName,
+        updateDto.inputSymbol,
         updateDto.symbolMappingRule,
       );
     });
 
-    it("should throw NotFoundException when mapping rule not found", async () => {
-      const updateDto: UpdateSymbolMappingRuleDto = {
-        dataSourceName: "test-provider",
-        inputSymbol: "NONEXISTENT",
-        symbolMappingRule: {
-          outputSymbol: "NONEXISTENT.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      };
-
-      repository.updateSymbolMappingRule.mockResolvedValue(null);
+    it('should throw NotFoundException if rule not found', async () => {
+      repository.updateSymbolMappingRule.mockResolvedValueOnce(null);
 
       await expect(service.updateSymbolMappingRule(updateDto)).rejects.toThrow(
         NotFoundException,
       );
     });
+
+    it('should throw error if repository call fails', async () => {
+      repository.updateSymbolMappingRule.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(service.updateSymbolMappingRule(updateDto)).rejects.toThrow(
+        'DB Error',
+      );
+    });
   });
 
-  describe("removeSymbolMappingRule", () => {
-    it("should remove mapping rule successfully", async () => {
-      repository.removeSymbolMappingRule.mockResolvedValue(mockSymbolMappingDocument);
+  describe('removeSymbolMappingRule', () => {
+    const dataSourceName = 'TestDataSource';
+    const inputSymbol = 'TO_REMOVE';
+    const mockUpdatedDoc = {
+      _id: 'someId',
+      dataSourceName: dataSourceName,
+      SymbolMappingRule: [],
+    };
 
-      const result = await service.removeSymbolMappingRule("test-provider", "AAPL");
+    it('should remove a symbol mapping rule successfully', async () => {
+      repository.removeSymbolMappingRule.mockResolvedValueOnce(mockUpdatedDoc);
 
-      expect(result).toBeDefined();
+      const result = await service.removeSymbolMappingRule(
+        dataSourceName,
+        inputSymbol,
+      );
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(dataSourceName);
       expect(repository.removeSymbolMappingRule).toHaveBeenCalledWith(
-        "test-provider",
-        "AAPL",
+        dataSourceName,
+        inputSymbol,
       );
     });
 
-    it("should throw NotFoundException when data source not found", async () => {
-      repository.removeSymbolMappingRule.mockResolvedValue(null);
+    it('should throw NotFoundException if data source not found', async () => {
+      repository.removeSymbolMappingRule.mockResolvedValueOnce(null);
 
       await expect(
-        service.removeSymbolMappingRule("nonexistent-provider", "AAPL"),
+        service.removeSymbolMappingRule(dataSourceName, inputSymbol),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.removeSymbolMappingRule.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(
+        service.removeSymbolMappingRule(dataSourceName, inputSymbol),
+      ).rejects.toThrow('DB Error');
     });
   });
 
-  describe("replaceSymbolMappingRule", () => {
-    it("should replace mapping rules successfully", async () => {
-      const newMappingRule: SymbolMappingRule[] = [
-        {
-          inputSymbol: "TSLA",
-          outputSymbol: "TSLA.US",
-          market: "US",
-          symbolType: "stock",
-          isActive: true,
-        },
-      ];
+  describe('replaceSymbolMappingRule', () => {
+    const dataSourceName = 'TestDataSource';
+    const newRules: SymbolMappingRule[] = [
+      { inputSymbol: 'R1', outputSymbol: 'O1', isActive: true },
+    ];
+    const mockUpdatedDoc = {
+      _id: 'someId',
+      dataSourceName: dataSourceName,
+      SymbolMappingRule: newRules,
+    };
 
-      repository.replaceSymbolMappingRule.mockResolvedValue(
-        mockSymbolMappingDocument,
-      );
+    it('should replace symbol mapping rules successfully', async () => {
+      repository.replaceSymbolMappingRule.mockResolvedValueOnce(mockUpdatedDoc);
 
       const result = await service.replaceSymbolMappingRule(
-        "test-provider",
-        newMappingRule,
+        dataSourceName,
+        newRules,
       );
-
-      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(SymbolMappingResponseDto);
+      expect(result.dataSourceName).toEqual(dataSourceName);
+      expect(result.SymbolMappingRule).toEqual(newRules);
       expect(repository.replaceSymbolMappingRule).toHaveBeenCalledWith(
-        "test-provider",
-        newMappingRule,
+        dataSourceName,
+        newRules,
       );
     });
 
-    it("should throw NotFoundException when data source not found", async () => {
-      const newMappingRule: SymbolMappingRule[] = [];
-
-      repository.replaceSymbolMappingRule.mockResolvedValue(null);
+    it('should throw NotFoundException if data source not found', async () => {
+      repository.replaceSymbolMappingRule.mockResolvedValueOnce(null);
 
       await expect(
-        service.replaceSymbolMappingRule("nonexistent-provider", newMappingRule),
+        service.replaceSymbolMappingRule(dataSourceName, newRules),
       ).rejects.toThrow(NotFoundException);
     });
-  });
 
-  describe("getDataSources", () => {
-    it("should return data sources", async () => {
-      repository.getDataSources.mockResolvedValue(["provider1", "provider2"]);
-
-      const result = await service.getDataSources();
-
-      expect(result).toEqual(["provider1", "provider2"]);
-    });
-  });
-
-  describe("getMarkets", () => {
-    it("should return markets", async () => {
-      repository.getMarkets.mockResolvedValue(["US", "HK"]);
-
-      const result = await service.getMarkets();
-
-      expect(result).toEqual(["US", "HK"]);
-    });
-  });
-
-  describe("getSymbolTypes", () => {
-    it("should return symbol types", async () => {
-      repository.getSymbolTypes.mockResolvedValue(["stock", "etf"]);
-
-      const result = await service.getSymbolTypes();
-
-      expect(result).toEqual(["stock", "etf"]);
-    });
-  });
-
-  describe("deleteSymbolMappingsByDataSource", () => {
-    it("should delete mappings by data source", async () => {
-      repository.deleteByDataSource.mockResolvedValue({ deletedCount: 1 });
-
-      const result = await service.deleteSymbolMappingsByDataSource("test-provider");
-
-      expect(result.deletedCount).toBe(1);
-      expect(repository.deleteByDataSource).toHaveBeenCalledWith(
-        "test-provider",
+    it('should throw error if repository call fails', async () => {
+      repository.replaceSymbolMappingRule.mockRejectedValueOnce(
+        new Error('DB Error'),
       );
+
+      await expect(
+        service.replaceSymbolMappingRule(dataSourceName, newRules),
+      ).rejects.toThrow('DB Error');
     });
   });
 
-  describe("saveMapping", () => {
-    it("should save mapping successfully", async () => {
-      const mappingSymbolRule: ISymbolMappingRuleList = {
-        dataSourceName: "test-provider",
-        SymbolMappingRule: [],
-        // 添加缺失的必要属性
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+  describe('getAllSymbolMappingRule', () => {
+    it('should return all symbol mapping rules grouped by provider', async () => {
+      const mockAllMappings = [
+        {
+          dataSourceName: 'ProviderA',
+          description: 'Desc A',
+          SymbolMappingRule: [
+            { inputSymbol: 'A1', outputSymbol: 'B1' },
+            { inputSymbol: 'A2', outputSymbol: 'B2' },
+          ],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          dataSourceName: 'ProviderB',
+          description: 'Desc B',
+          SymbolMappingRule: [{ inputSymbol: 'B1', outputSymbol: 'C1' }],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          dataSourceName: 'ProviderA', // Same provider as first
+          description: 'Desc A',
+          SymbolMappingRule: [{ inputSymbol: 'A3', outputSymbol: 'B3' }],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      repository.findAll.mockResolvedValueOnce(mockAllMappings);
 
-      repository.exists.mockResolvedValue(false);
-      repository.create.mockResolvedValue(mockSymbolMappingDocument);
+      const result = await service.getAllSymbolMappingRule();
 
-      await service.saveMapping(mappingSymbolRule);
+      expect(result.totalProviders).toBe(2);
+      expect(result.totalRules).toBe(4); // 2 from A1 + 1 from B + 1 from A2
+      expect(result.providers).toEqual(expect.arrayContaining(['ProviderA', 'ProviderB']));
+      expect(result.rulesByProvider['ProviderA'].SymbolMappingRule).toHaveLength(3);
+      expect(result.rulesByProvider['ProviderB'].SymbolMappingRule).toHaveLength(1);
+      expect(result.summary.mostRulesProvider).toBe('ProviderA');
+      expect(result.summary.averageRulesPerProvider).toBe(2);
+    });
 
-      expect(repository.create).toHaveBeenCalledWith(mappingSymbolRule);
+    it('should handle no mappings found', async () => {
+      repository.findAll.mockResolvedValueOnce([]);
+
+      const result = await service.getAllSymbolMappingRule();
+      expect(result.totalProviders).toBe(0);
+      expect(result.totalRules).toBe(0);
+      expect(result.providers).toEqual([]);
+      expect(result.rulesByProvider).toEqual({});
+      expect(result.summary.mostRulesProvider).toBeNull();
+      expect(result.summary.averageRulesPerProvider).toBe(0);
+    });
+
+    it('should throw error if repository call fails', async () => {
+      repository.findAll.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(service.getAllSymbolMappingRule()).rejects.toThrow('DB Error');
     });
   });
 });

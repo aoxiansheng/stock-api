@@ -35,6 +35,154 @@ bun run test:perf:auth          # Auth performance tests
 bun run test:perf:data          # Data processing performance
 ```
 
+## Serena MCP Integration
+
+### Serena MCP Server Status
+The project has **Serena MCP server integrated** and running with:
+- **Context**: `ide-assistant` (optimized for IDE integration)
+- **Language**: TypeScript support with LSP integration
+- **Project**: Auto-configured for this NestJS backend
+- **Status**: ✅ Active and available via MCP protocol
+
+### Available Serena Tools via MCP
+
+#### 🔍 **Code Analysis & Navigation**
+```bash
+# Symbol search and analysis
+find_symbol <symbol_name>                    # Search for functions, classes, variables
+find_referencing_symbols <file> <line> <col> # Find all references to a symbol
+find_referencing_code_snippets <file> <line> <col> # Get code snippets using symbol
+get_symbols_overview <directory_path>        # Overview of symbols in files/directories
+```
+
+#### 📝 **Precise Code Editing**
+```bash
+# Symbol-based editing (LSP-powered)
+replace_symbol_body <file> <line> <col> <new_content>  # Replace entire symbol definitions
+insert_before_symbol <file> <line> <col> <content>     # Insert before symbol start
+insert_after_symbol <file> <line> <col> <content>      # Insert after symbol end
+
+# Line-based editing
+replace_lines <file> <start_line> <end_line> <content> # Replace line ranges
+delete_lines <file> <start_line> <end_line>            # Delete line ranges
+insert_at_line <file> <line_number> <content>          # Insert at specific line
+```
+
+#### 📁 **File & Project Operations**
+```bash
+# File operations
+read_file <file_path>                        # Read project files
+create_text_file <file_path> <content>       # Create/overwrite files
+list_dir <directory_path> [--recursive]     # Directory listings
+search_for_pattern <pattern> [--file-pattern] # Pattern search across codebase
+
+# Project management
+onboarding                                   # Analyze project structure and essential tasks
+execute_shell_command <command>              # Run shell commands in project context
+restart_language_server                     # Restart LSP when needed
+```
+
+#### 🧠 **Project Memory & Knowledge**
+```bash
+# Persistent knowledge storage
+write_memory <memory_name> <content>         # Store project insights
+read_memory <memory_name>                    # Retrieve stored memories  
+list_memories                                # View all stored memories
+delete_memory <memory_name>                  # Remove specific memory
+```
+
+#### ⚙️ **Configuration & Workflow**
+```bash
+# Configuration management
+get_current_config                           # Show current agent configuration
+switch_modes <mode_names>                    # Change operational modes
+activate_project <project_name>              # Switch between projects
+
+# Workflow assistance
+check_onboarding_performed                   # Check if project was analyzed
+prepare_for_new_conversation                 # Context for continuing sessions
+summarize_changes                            # Summarize codebase modifications
+```
+
+#### 🤔 **AI Thinking Tools**
+```bash
+# Reflection and planning tools
+think_about_collected_information            # Ponder completeness of gathered info
+think_about_task_adherence                   # Check if still on track with task
+think_about_whether_you_are_done            # Determine if task is complete
+```
+
+### Serena MCP Usage Examples
+
+#### **Project Onboarding**
+```bash
+# Get familiar with the codebase structure
+onboarding
+
+# Store key architectural insights
+write_memory "architecture_notes" "6-component core: Receiver->SymbolMapper->DataMapper->Transformer->Storage->Query"
+```
+
+#### **Code Navigation & Analysis**
+```bash
+# Find the main data processing service
+find_symbol DataMapperService
+
+# Get overview of core components
+get_symbols_overview src/core/
+
+# Find all usages of a specific authentication decorator
+find_referencing_symbols src/auth/decorators/auth.decorator.ts 15 0
+```
+
+#### **Precise Code Editing**
+```bash
+# Add a new method to a service class
+insert_after_symbol src/core/receiver/receiver.service.ts 25 0 "
+  async processAdvancedQuery(query: AdvancedQueryDto) {
+    // Implementation here
+  }
+"
+
+# Replace an entire method implementation
+replace_symbol_body src/core/transformer/transformer.service.ts 45 2 "
+  async transformData(data: any, rules: MappingRule[]): Promise<any> {
+    // New optimized implementation
+    return this.applyOptimizedRules(data, rules);
+  }
+"
+```
+
+#### **Debugging & Analysis**
+```bash
+# Search for potential performance issues
+search_for_pattern "await.*await" --file-pattern "*.ts"
+
+# Find all error handling patterns
+search_for_pattern "catch|throw|Error"
+
+# Get overview of test files
+get_symbols_overview test/jest/unit/
+```
+
+### Integration with Development Workflow
+
+The Serena MCP integration enhances the existing development commands:
+
+1. **Before Development**: Use `onboarding` to understand project context
+2. **During Development**: Use symbol navigation and precise editing tools
+3. **Code Review**: Use pattern search and reference finding
+4. **Knowledge Building**: Store insights with `write_memory`
+5. **Debugging**: Use comprehensive search and analysis tools
+
+### Best Practices
+
+1. **Start with Onboarding**: Always run `onboarding` for new areas of the codebase
+2. **Use Memory System**: Store important architectural decisions and patterns
+3. **Leverage LSP Integration**: Prefer symbol-based editing over line-based when possible
+4. **Combine with Testing**: Use Serena tools alongside the existing test commands
+5. **Project Context**: All Serena tools are project-aware and respect `.gitignore`
+
 ## Architecture Overview
 
 This is a **NestJS-based intelligent stock data processing system** with a **6-component core architecture**:

@@ -1,12 +1,8 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { LogSender } from "../../../../../../src/alert/services/notification-senders/log.sender";
-import {
-  Alert,
-  AlertRule,
-  NotificationChannelType,
-} from "../../../../../../src/alert/types/alert.types";
+import { Test, TestingModule } from '@nestjs/testing';
+import { LogSender } from '../../../../../../src/alert/services/notification-senders/log.sender';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
 
-// Mock the logger factory to control logger instances
+// Mock the createLogger function
 const mockLogger = {
   log: jest.fn(),
   error: jest.fn(),
@@ -14,39 +10,42 @@ const mockLogger = {
   debug: jest.fn(),
 };
 
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock('../../../../../../src/common/config/logger.config', () => ({
   createLogger: jest.fn(() => mockLogger),
 }));
 
-describe("LogSender", () => {
+describe('LogSender', () => {
   let sender: LogSender;
 
-  const mockRule: AlertRule = {
-    id: "rule-1",
-    name: "High CPU Rule",
-    metric: "cpu_usage",
-    operator: "gt",
+  const mockAlert = {
+    id: 'alert123',
+    ruleId: 'rule123',
+    severity: AlertSeverity.CRITICAL,
+    metric: 'CPU Usage',
+    value: 95,
     threshold: 90,
-    duration: 60,
-    severity: "critical",
-    enabled: true,
-    channels: [],
-    cooldown: 300,
+    status: AlertStatus.FIRING,
+    startTime: new Date('2023-01-01T10:00:00Z'),
+    endTime: null,
+    message: 'CPU usage is too high',
+    ruleName: 'Test Rule',
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  const mockAlert: Alert = {
-    id: "alert-1",
-    ruleId: mockRule.id,
-    ruleName: mockRule.name,
-    message: "CPU usage is high",
-    metric: "cpu_usage",
-    value: 95,
+  const mockRule = {
+    id: 'rule123',
+    name: 'High CPU Alert',
+    description: 'Alert when CPU usage exceeds 90%',
+    metric: 'cpu_usage',
+    operator: 'gt' as const,
     threshold: 90,
-    severity: "critical",
-    status: "firing",
-    startTime: new Date(),
+    duration: 60,
+    severity: AlertSeverity.CRITICAL,
+    enabled: true,
+    channels: [],
+    cooldown: 300,
+    tags: {},
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -57,87 +56,127 @@ describe("LogSender", () => {
     }).compile();
 
     sender = module.get<LogSender>(LogSender);
-    jest.clearAllMocks();
+    // Clear mock calls before each test
+    mockLogger.log.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.debug.mockClear();
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(sender).toBeDefined();
-    expect(sender.type).toBe(NotificationChannelType.LOG);
   });
 
-  describe("send", () => {
-    it("should call logger.log for default/info level", async () => {
-      const result = await sender.send(mockAlert, mockRule, { level: "info" });
-      expect(mockLogger.log).toHaveBeenCalled();
+  it('should have the correct type', () => {
+    expect(sender.type).toEqual(NotificationChannelType.LOG);
+  });
+
+  describe('send', () => {
+    it('should log with default level (log) if config.level is not specified', async () => {
+      const config = { id: 'log-channel-1' };
+      const result = await sender.send(mockAlert, mockRule, config);
+
       expect(result.success).toBe(true);
+      expect(result.channelType).toEqual(NotificationChannelType.LOG);
+      expect(result.message).toEqual('日志记录成功');
+      expect(mockLogger.log).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+      expect(mockLogger.debug).not.toHaveBeenCalled();
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alertId: mockAlert.id,
+          ruleId: mockRule.id,
+        }),
+        `[ALERT] ${mockRule.name}: ${mockAlert.message}`,
+      );
     });
 
-    it("should call logger.error for error level", async () => {
-      await sender.send(mockAlert, mockRule, { level: "error" });
-      expect(mockLogger.error).toHaveBeenCalled();
+    it('should log with error level', async () => {
+      const config = { id: 'log-channel-1', level: 'error' };
+      await sender.send(mockAlert, mockRule, config);
+      expect(mockLogger.error).toHaveBeenCalledTimes(1);
+      expect(mockLogger.log).not.toHaveBeenCalled();
     });
 
-    it("should call logger.warn for warn level", async () => {
-      await sender.send(mockAlert, mockRule, { level: "warn" });
-      expect(mockLogger.warn).toHaveBeenCalled();
+    it('should log with warn level', async () => {
+      const config = { id: 'log-channel-1', level: 'warn' };
+      await sender.send(mockAlert, mockRule, config);
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockLogger.log).not.toHaveBeenCalled();
     });
 
-    it("should call logger.debug for debug level", async () => {
-      await sender.send(mockAlert, mockRule, { level: "debug" });
-      expect(mockLogger.debug).toHaveBeenCalled();
+    it('should log with debug level', async () => {
+      const config = { id: 'log-channel-1', level: 'debug' };
+      await sender.send(mockAlert, mockRule, config);
+      expect(mockLogger.debug).toHaveBeenCalledTimes(1);
+      expect(mockLogger.log).not.toHaveBeenCalled();
     });
 
-    it("should handle exceptions and return a failed result", async () => {
-      const error = new Error("Logging system failed");
-      mockLogger.log.mockImplementation(() => {
-        throw error;
+    it('should return success: false if an error occurs during logging', async () => {
+      mockLogger.log.mockImplementationOnce(() => {
+        throw new Error('Logging failed');
       });
-      const result = await sender.send(mockAlert, mockRule, { level: "info" });
+
+      const config = { id: 'log-channel-1' };
+      const result = await sender.send(mockAlert, mockRule, config);
+
       expect(result.success).toBe(false);
-      expect(result.error).toBe(error.message);
+      expect(result.error).toEqual('Logging failed');
+      expect(mockLogger.error).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("test", () => {
-    it("should return true for valid levels", async () => {
-      await expect(sender.test({ level: "error" })).resolves.toBe(true);
-      await expect(sender.test({ level: "info" })).resolves.toBe(true);
+  describe('test', () => {
+    it('should return true if config.level is a valid log level', async () => {
+      expect(await sender.test({ level: 'info' })).toBe(true);
+      expect(await sender.test({ level: 'error' })).toBe(true);
+      expect(await sender.test({ level: 'warn' })).toBe(true);
+      expect(await sender.test({ level: 'debug' })).toBe(true);
+      expect(await sender.test({ level: 'log' })).toBe(true);
     });
 
-    it("should return false for invalid levels", async () => {
-      await expect(sender.test({ level: "invalid" })).resolves.toBe(false);
+    it('should return false if config.level is an invalid log level', async () => {
+      expect(await sender.test({ level: 'invalid' })).toBe(false);
+      expect(await sender.test({})).toBe(false);
+      expect(await sender.test({ level: 123 })).toBe(false);
     });
   });
 
-  describe("validateConfig", () => {
-    it("should return valid for a correct config", () => {
-      const result = sender.validateConfig({ level: "warn" });
+  describe('validateConfig', () => {
+    it('should return valid: true for a valid configuration', () => {
+      const config = { level: 'info', id: 'my-log-channel' };
+      const result = sender.validateConfig(config);
       expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.errors).toEqual([]);
     });
 
-    it("should return invalid if level is missing", () => {
-      const result = sender.validateConfig({});
+    it('should return valid: false if level is missing', () => {
+      const config = {};
+      const result = sender.validateConfig(config);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Log level is required");
+      expect(result.errors).toContain('Log level is required');
     });
 
-    it("should return invalid if level is not a string", () => {
-      const result = sender.validateConfig({ level: 123 });
+    it('should return valid: false if level is not a string', () => {
+      const config = { level: 123 };
+      const result = sender.validateConfig(config);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Log level must be a string");
+      expect(result.errors).toContain('Log level must be a string');
     });
 
-    it("should return invalid if level is not a valid choice", () => {
-      const result = sender.validateConfig({ level: "critical" });
+    it('should return valid: false if level is not a valid log level', () => {
+      const config = { level: 'unknown' };
+      const result = sender.validateConfig(config);
       expect(result.valid).toBe(false);
-      expect(result.errors[0]).toMatch(/Log level must be one of/);
+      expect(result.errors).toContain('Log level must be one of: error, warn, info, debug, log');
     });
 
-    it("should return invalid if id is not a string", () => {
-      const result = sender.validateConfig({ level: "info", id: 123 });
+    it('should return valid: false if id is present but not a string', () => {
+      const config = { level: 'info', id: 123 };
+      const result = sender.validateConfig(config);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Channel ID must be a string");
+      expect(result.errors).toContain('Channel ID must be a string');
     });
   });
 });

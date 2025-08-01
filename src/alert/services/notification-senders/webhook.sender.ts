@@ -28,15 +28,15 @@ export class WebhookSender implements NotificationSender {
   ): Promise<NotificationResult> {
     const startTime = Date.now();
 
-    try {
-      // SSRF防护检查
-      const urlValidation = URLSecurityValidator.validateURL(config.url);
-      if (!urlValidation.valid) {
-        throw new BadRequestException(
-          `URL安全检查失败: ${urlValidation.error}`,
-        );
-      }
+    // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
+    const urlValidation = URLSecurityValidator.validateURL(config.url);
+    if (!urlValidation.valid) {
+      throw new BadRequestException(
+        `URL安全检查失败: ${urlValidation.error}`,
+      );
+    }
 
+    try {
       const payload = {
         alert,
         rule: {
@@ -55,14 +55,26 @@ export class WebhookSender implements NotificationSender {
         }),
       );
 
-      return {
-        success: response.status >= 200 && response.status < 300,
-        channelId: config.id || "webhook",
-        channelType: this.type,
-        message: `Webhook 调用成功: ${response.status}`,
-        sentAt: new Date(),
-        duration: Date.now() - startTime,
-      };
+      // 与其他Sender保持一致：非2xx状态时success为false，但不包含error字段
+      if (response.status >= 200 && response.status < 300) {
+        return {
+          success: true,
+          channelId: config.id || "webhook",
+          channelType: this.type,
+          message: `Webhook 调用成功: ${response.status}`,
+          sentAt: new Date(),
+          duration: Date.now() - startTime,
+        };
+      } else {
+        return {
+          success: false,
+          channelId: config.id || "webhook",
+          channelType: this.type,
+          message: `Webhook 返回状态码: ${response.status}`,
+          sentAt: new Date(),
+          duration: Date.now() - startTime,
+        };
+      }
     } catch (error) {
       this.logger.error({ error: error.stack }, "Webhook 发送失败");
       return {

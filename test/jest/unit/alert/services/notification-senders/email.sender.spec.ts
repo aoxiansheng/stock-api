@@ -1,51 +1,48 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { EmailSender } from "../../../../../../src/alert/services/notification-senders/email.sender";
-import {
-  Alert,
-  AlertRule,
-  NotificationChannelType,
-} from "../../../../../../src/alert/types/alert.types";
+import { Test, TestingModule } from '@nestjs/testing';
+import { EmailSender } from '../../../../../../src/alert/services/notification-senders/email.sender';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
 
-const mockLogger = {
-  log: jest.fn(),
-  error: jest.fn(),
-};
-
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
-  createLogger: jest.fn(() => mockLogger),
-}));
-
-describe("EmailSender", () => {
+describe('EmailSender', () => {
   let sender: EmailSender;
 
-  const mockRule: AlertRule = {
-    id: "rule-1",
-    name: "Test Rule",
-    metric: "cpu",
-    operator: "gt",
-    threshold: 80,
-    duration: 60,
-    severity: "critical",
-    enabled: true,
-    channels: [],
-    cooldown: 300,
+  const mockAlert = {
+    id: 'alert123',
+    ruleId: 'rule123',
+    severity: AlertSeverity.CRITICAL,
+    metric: 'CPU Usage',
+    value: 95,
+    threshold: 90,
+    status: AlertStatus.FIRING,
+    startTime: new Date('2023-01-01T10:00:00Z'),
+    endTime: null,
+    message: 'CPU usage is too high',
+    ruleName: 'Test Rule',
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  const mockAlert: Alert = {
-    id: "alert-1",
-    ruleId: "rule-1",
-    ruleName: "Test Rule",
-    message: "Test alert message",
-    metric: "cpu",
-    value: 90,
-    threshold: 80,
-    severity: "critical",
-    status: "firing",
-    startTime: new Date(),
+  const mockRule = {
+    id: 'rule123',
+    name: 'High CPU Alert',
+    description: 'Alert when CPU usage exceeds 90%',
+    metric: 'cpu_usage',
+    operator: 'gt' as const,
+    threshold: 90,
+    duration: 60,
+    severity: AlertSeverity.CRITICAL,
+    enabled: true,
+    channels: [],
+    cooldown: 300,
+    tags: {},
     createdAt: new Date(),
     updatedAt: new Date(),
+  };
+
+  const mockConfig = {
+    id: 'email-channel-1',
+    to: 'test@example.com',
+    subject: 'Test Subject',
+    from: 'sender@example.com',
   };
 
   beforeEach(async () => {
@@ -54,113 +51,135 @@ describe("EmailSender", () => {
     }).compile();
 
     sender = module.get<EmailSender>(EmailSender);
-    jest.clearAllMocks();
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(sender).toBeDefined();
-    expect(sender.type).toBe(NotificationChannelType.EMAIL);
   });
 
-  describe("send", () => {
-    it("should log the simulated email and return success", async () => {
-      const config = { to: "test@example.com", subject: "Test Alert" };
-      const result = await sender.send(mockAlert, mockRule, config);
+  it('should have the correct type', () => {
+    expect(sender.type).toEqual(NotificationChannelType.EMAIL);
+  });
 
-      expect(mockLogger.log).toHaveBeenCalledWith(
-        `模拟发送邮件到: ${config.to}`,
-      );
+  describe('send', () => {
+    it('should return success: true for a simulated successful email send', async () => {
+      const result = await sender.send(mockAlert, mockRule, mockConfig);
+
       expect(result.success).toBe(true);
-      expect(result.message).toContain(config.to);
+      expect(result.channelType).toEqual(NotificationChannelType.EMAIL);
+      expect(result.message).toEqual(`邮件已发送到 ${mockConfig.to}`);
+      expect(result.sentAt).toBeInstanceOf(Date);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
-    it("should handle exceptions gracefully", async () => {
-      const error = new Error("SMTP server down");
-      mockLogger.log.mockImplementation(() => {
-        throw error;
+    it('should return success: false if an error occurs during send', async () => {
+      // 模拟在模拟邮件服务过程中发生异常
+      // 通过模拟 logger.log 方法抛出异常来触发 catch 块
+      jest.spyOn(sender['logger'], 'log').mockImplementationOnce(() => { 
+        throw new Error('邮件发送失败'); 
       });
-      const config = { to: "test@example.com", subject: "Test Alert" };
-      const result = await sender.send(mockAlert, mockRule, config);
+
+      const result = await sender.send(mockAlert, mockRule, mockConfig);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe(error.message);
-      expect(mockLogger.error).toHaveBeenCalled();
+      expect(result.error).toBeDefined();
+      expect(result.error).toEqual('邮件发送失败');
     });
   });
 
-  describe("test", () => {
-    it("should return true if to and subject are provided", async () => {
-      await expect(
-        sender.test({ to: "test@example.com", subject: "Hi" }),
-      ).resolves.toBe(true);
+  describe('test', () => {
+    it('should return true if to and subject are provided', async () => {
+      const config = { to: 'test@example.com', subject: 'Test' };
+      const result = await sender.test(config);
+      expect(result).toBe(true);
     });
 
-    it("should return false if to is missing", async () => {
-      await expect(sender.test({ subject: "Hi" })).resolves.toBe(false);
+    it('should return false if to is missing', async () => {
+      const config = { subject: 'Test' };
+      const result = await sender.test(config);
+      expect(result).toBe(false);
     });
 
-    it("should return false if subject is missing", async () => {
-      await expect(sender.test({ to: "test@example.com" })).resolves.toBe(
-        false,
-      );
+    it('should return false if subject is missing', async () => {
+      const config = { to: 'test@example.com' };
+      const result = await sender.test(config);
+      expect(result).toBe(false);
+    });
+
+    it('should return false if both to and subject are missing', async () => {
+      const config = {};
+      const result = await sender.test(config);
+      expect(result).toBe(false);
     });
   });
 
-  describe("validateConfig", () => {
-    it("should be valid for a correct configuration", () => {
-      const { valid, errors } = sender.validateConfig({
-        to: "test@example.com",
-        subject: "Alert",
-      });
-      expect(valid).toBe(true);
-      expect(errors).toHaveLength(0);
+  describe('validateConfig', () => {
+    it('should return valid: true for a valid configuration', () => {
+      const config = {
+        to: 'test@example.com',
+        subject: 'Test Subject',
+        from: 'sender@example.com',
+      };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
     });
 
-    it("should be valid with an optional from address", () => {
-      const { valid, errors } = sender.validateConfig({
-        to: "test@example.com",
-        from: "sender@example.com",
-        subject: "Alert",
-      });
-      expect(valid).toBe(true);
-      expect(errors).toHaveLength(0);
+    it('should return valid: false if to is missing', () => {
+      const config = { subject: 'Test Subject' };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email recipient (to) is required');
     });
 
-    it('should be invalid if "to" is missing', () => {
-      const { valid, errors } = sender.validateConfig({ subject: "Alert" });
-      expect(valid).toBe(false);
-      expect(errors).toContain("Email recipient (to) is required");
+    it('should return valid: false if to is not a string', () => {
+      const config = { to: 123, subject: 'Test Subject' };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email recipient (to) must be a string');
     });
 
-    it('should be invalid if "to" is not a valid email', () => {
-      const { valid, errors } = sender.validateConfig({
-        to: "not-an-email",
-        subject: "Alert",
-      });
-      expect(valid).toBe(false);
-      expect(errors).toContain(
-        "Email recipient (to) must be a valid email address",
-      );
+    it('should return valid: false if to is not a valid email address', () => {
+      const config = { to: 'invalid-email', subject: 'Test Subject' };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email recipient (to) must be a valid email address');
     });
 
-    it('should be invalid if "subject" is missing', () => {
-      const { valid, errors } = sender.validateConfig({
-        to: "test@example.com",
-      });
-      expect(valid).toBe(false);
-      expect(errors).toContain("Email subject is required");
+    it('should return valid: false if subject is missing', () => {
+      const config = { to: 'test@example.com' };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email subject is required');
     });
 
-    it('should be invalid if "from" is not a valid email', () => {
-      const { valid, errors } = sender.validateConfig({
-        to: "test@example.com",
-        from: "invalid",
-        subject: "Alert",
-      });
-      expect(valid).toBe(false);
-      expect(errors).toContain(
-        "Email sender (from) must be a valid email address",
-      );
+    it('should return valid: false if subject is not a string', () => {
+      const config = { to: 'test@example.com', subject: 123 };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email subject must be a string');
+    });
+
+    it('should return valid: false if from is not a string', () => {
+      const config = {
+        to: 'test@example.com',
+        subject: 'Test Subject',
+        from: 123,
+      };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email sender (from) must be a string');
+    });
+
+    it('should return valid: false if from is not a valid email address', () => {
+      const config = {
+        to: 'test@example.com',
+        subject: 'Test Subject',
+        from: 'invalid-from',
+      };
+      const result = sender.validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Email sender (from) must be a valid email address');
     });
   });
 });
