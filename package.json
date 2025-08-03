@@ -217,6 +217,7 @@
   "devDependencies": {
     "@golevelup/ts-jest": "^0.7.0",
     "@nestjs/cli": "^10.4.9",
+    "@nestjs/platform-socket.io": "^11.1.5",
     "@nestjs/schematics": "^10.2.3",
     "@nestjs/testing": "^10.4.20",
     "@types/axios": "^0.14.4",
@@ -247,6 +248,7 @@
     "prettier": "^3.6.2",
     "redis-memory-server": "^0.12.1",
     "rimraf": "^5.0.10",
+    "socket.io-client": "^4.8.1",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",

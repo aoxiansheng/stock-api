@@ -7,7 +7,7 @@ export enum UserRole {
 }
 
 /**
- * 权限枚举 - 18个细粒度权限
+ * 权限枚举 - 21个细粒度权限
  */
 export enum Permission {
   // 基础数据权限 (3个)
@@ -30,11 +30,16 @@ export enum Permission {
   MAPPING_WRITE = "mapping:write",
   SYSTEM_ADMIN = "system:admin",
 
-  // 扩展功能权限 (4个)
+  // 扩展功能权限 (7个)
   DATA_WRITE = "data:write",
   QUERY_STATS = "query:stats",
   QUERY_HEALTH = "query:health",
   PROVIDERS_MANAGE = "providers:manage",
+
+  // WebSocket流权限
+  STREAM_READ = "stream:read",
+  STREAM_WRITE = "stream:write",
+  STREAM_SUBSCRIBE = "stream:subscribe",
 }
 
 /**
@@ -51,6 +56,8 @@ const DEVELOPER_PERMISSIONS = [
   Permission.DEBUG_ACCESS,
   Permission.CONFIG_READ,
   Permission.MAPPING_WRITE,
+  Permission.STREAM_READ,
+  Permission.STREAM_SUBSCRIBE,
 ];
 
 /**
@@ -70,5 +77,6 @@ export const RolePermissions = {
     // 部分扩展功能权限
     Permission.DATA_WRITE,
     Permission.PROVIDERS_MANAGE,
+    Permission.STREAM_WRITE,
   ],
 };

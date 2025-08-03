@@ -317,6 +317,9 @@ describe("SymbolMappingRule Schema", () => {
     });
     await rule.save();
 
+    // 等待索引创建完成，MongoDB Memory Server可能需要额外时间
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const indexes = await symbolMappingRuleModel.collection.indexes();
 
     // 查找dataSourceName的唯一索引

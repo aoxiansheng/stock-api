@@ -881,11 +881,11 @@ describe("AuthSubjectFactory", () => {
   });
 
   describe("Documentation Compliance Tests", () => {
-    it("should validate all 18 permissions defined in enum", () => {
+    it("should validate all 21 permissions defined in enum", () => {
       const allPermissions = Object.values(Permission);
       
-      // 根据权限优化文档，应该有18个细粒度权限
-      expect(allPermissions).toHaveLength(18);
+      // 根据权限枚举定义，应该有21个细粒度权限
+      expect(allPermissions).toHaveLength(21);
       
       // 验证关键权限存在
       const criticalPermissions = [

@@ -6,7 +6,7 @@ import { SymbolValidationUtils } from '@common/utils/symbol-validation.util';
  * 使用统一的符号验证逻辑
  */
 export function IsValidSymbolFormat(validationOptions?: ValidationOptions) {
-  return function(object: Object, propertyName: string) {
+  return function(object: object, propertyName: string) {
     registerDecorator({
       name: 'isValidSymbolFormat',
       target: object.constructor,
@@ -45,7 +45,7 @@ export function IsValidSymbolFormat(validationOptions?: ValidationOptions) {
  * 股票代码数量限制验证装饰器
  */
 export function IsSymbolCountValid(maxCount?: number, validationOptions?: ValidationOptions) {
-  return function(object: Object, propertyName: string) {
+  return function(object: object, propertyName: string) {
     registerDecorator({
       name: 'isSymbolCountValid',
       target: object.constructor,
