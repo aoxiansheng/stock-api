@@ -7,6 +7,7 @@ import { createLogger } from "@common/config/logger.config";
 
 import { ICapability } from "../interfaces/capability.interface";
 import { ICapabilityRegistration } from "../interfaces/provider.interface";
+import { IStreamCapability, IStreamCapabilityRegistration } from "../interfaces/stream-capability.interface";
 
 const toCamelCase = (str: string) =>
   str.replace(/-(\w)/g, (_, c) => c.toUpperCase());
@@ -17,6 +18,10 @@ export class CapabilityRegistryService implements OnModuleInit {
   private readonly capabilities = new Map<
     string,
     Map<string, ICapabilityRegistration>
+  >();
+  private readonly streamCapabilities = new Map<
+    string,
+    Map<string, IStreamCapabilityRegistration>
   >();
   private readonly providers = new Map<string, any>();
 
@@ -101,21 +106,70 @@ export class CapabilityRegistryService implements OnModuleInit {
         `./${providerName}/capabilities/${capabilityName}`
       );
       const camelCaseName = toCamelCase(capabilityName);
-      const capability: ICapability =
-        capabilityModule.default || capabilityModule[camelCaseName];
+      const capability = capabilityModule.default || capabilityModule[camelCaseName];
 
-      if (capability && typeof capability.execute === "function") {
-        this.registerCapability(providerName, capability, 1, true);
-      } else {
+      if (!capability) {
         this.logger.warn(
           logContext,
-          `能力 ${providerName}/${capabilityName} 格式不正确或未找到`,
+          `能力 ${providerName}/${capabilityName} 未找到`,
         );
+        return;
+      }
+
+      // 检查是否为 WebSocket 流能力
+      if (capabilityName.startsWith('stream-')) {
+        await this.loadStreamCapability(providerName, capabilityName, capability);
+      } else {
+        // 传统 REST 能力
+        if (typeof capability.execute === "function") {
+          this.registerCapability(providerName, capability, 1, true);
+        } else {
+          this.logger.warn(
+            logContext,
+            `REST 能力 ${providerName}/${capabilityName} 格式不正确`,
+          );
+        }
       }
     } catch (error) {
       this.logger.error(
         { ...logContext, error: error.stack },
         `无法加载能力 ${providerName}/${capabilityName}`,
+      );
+    }
+  }
+
+  private async loadStreamCapability(
+    providerName: string,
+    capabilityName: string,
+    capability: IStreamCapability,
+  ): Promise<void> {
+    const logContext = { provider: providerName, capability: capabilityName, type: 'stream' };
+    
+    try {
+      // 验证流能力接口
+      if (
+        typeof capability.initialize === "function" &&
+        typeof capability.subscribe === "function" &&
+        typeof capability.unsubscribe === "function" &&
+        typeof capability.onMessage === "function" &&
+        typeof capability.cleanup === "function" &&
+        typeof capability.isConnected === "function"
+      ) {
+        this.registerStreamCapability(providerName, capability, 1, true);
+        this.logger.log(
+          logContext,
+          `流能力 ${providerName}/${capabilityName} 注册成功`,
+        );
+      } else {
+        this.logger.warn(
+          logContext,
+          `流能力 ${providerName}/${capabilityName} 接口不完整`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        { ...logContext, error: error.stack },
+        `注册流能力 ${providerName}/${capabilityName} 失败`,
       );
     }
   }
@@ -226,6 +280,117 @@ export class CapabilityRegistryService implements OnModuleInit {
     return this.providers.has(providerName);
   }
 
+  /**
+   * 注册流能力
+   */
+  registerStreamCapability(
+    providerName: string,
+    capability: IStreamCapability,
+    priority: number,
+    isEnabled: boolean,
+  ): void {
+    if (!this.streamCapabilities.has(providerName)) {
+      this.streamCapabilities.set(providerName, new Map());
+    }
+
+    const registration: IStreamCapabilityRegistration = {
+      providerName,
+      capability,
+      priority,
+      isEnabled,
+      connectionStatus: 'disconnected',
+      errorCount: 0,
+    };
+
+    this.streamCapabilities.get(providerName)!.set(capability.name, registration);
+    
+    this.logger.log({
+      message: '流能力注册成功',
+      provider: providerName,
+      capability: capability.name,
+      priority,
+    });
+  }
+
+  /**
+   * 获取流能力
+   */
+  getStreamCapability(
+    providerName: string,
+    capabilityName: string,
+  ): IStreamCapability | null {
+    const registration = this.streamCapabilities
+      .get(providerName)
+      ?.get(capabilityName);
+    return registration?.isEnabled ? registration.capability : null;
+  }
+
+  /**
+   * 获取最佳流提供商
+   */
+  getBestStreamProvider(capabilityName: string, market?: string): string | null {
+    const candidates: { provider: string; priority: number }[] = [];
+
+    for (const [providerName, capabilities] of this.streamCapabilities) {
+      const registration = capabilities.get(capabilityName);
+      if (registration?.isEnabled && registration.connectionStatus !== 'error') {
+        const capability = registration.capability;
+        if (!market || capability.supportedMarkets.includes(market)) {
+          candidates.push({
+            provider: providerName,
+            priority: registration.priority,
+          });
+        }
+      }
+    }
+
+    if (candidates.length === 0) return null;
+
+    // 按优先级排序，优先级数字越小越优先
+    candidates.sort((a, b) => a.priority - b.priority);
+    return candidates[0].provider;
+  }
+
+  /**
+   * 获取所有流能力
+   */
+  getAllStreamCapabilities(): Map<string, Map<string, IStreamCapabilityRegistration>> {
+    return this.streamCapabilities;
+  }
+
+  /**
+   * 更新流能力连接状态
+   */
+  updateStreamCapabilityStatus(
+    providerName: string,
+    capabilityName: string,
+    status: 'disconnected' | 'connecting' | 'connected' | 'error',
+    error?: string,
+  ): void {
+    const registration = this.streamCapabilities
+      .get(providerName)
+      ?.get(capabilityName);
+    
+    if (registration) {
+      registration.connectionStatus = status;
+      
+      if (status === 'connected') {
+        registration.lastConnectedAt = new Date();
+        registration.errorCount = 0;
+      } else if (status === 'error') {
+        registration.errorCount++;
+      }
+
+      this.logger.log({
+        message: '流能力状态更新',
+        provider: providerName,
+        capability: capabilityName,
+        status,
+        errorCount: registration.errorCount,
+      });
+    }
+  }
+
   private async directoryExists(path: string): Promise<boolean> {
     try {
       return (await stat(path)).isDirectory();
@@ -238,6 +403,9 @@ export class CapabilityRegistryService implements OnModuleInit {
     let count = 0;
     for (const capabilities of this.capabilities.values()) {
       count += capabilities.size;
+    }
+    for (const streamCapabilities of this.streamCapabilities.values()) {
+      count += streamCapabilities.size;
     }
     return count;
   }

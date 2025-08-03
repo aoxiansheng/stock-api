@@ -10,6 +10,7 @@ import { getIndexQuote } from "./capabilities/get-index-quote";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getStockQuote } from "./capabilities/get-stock-quote";
 import { LongportContextService } from "./services/longport-context.service";
+import { LongportStreamContextService } from "./services/longport-stream-context.service";
 
 @Injectable()
 export class LongportProvider implements IDataProvider {
@@ -26,6 +27,7 @@ export class LongportProvider implements IDataProvider {
   constructor(
     private configService: ConfigService,
     private contextService: LongportContextService,
+    private streamContextService: LongportStreamContextService,
   ) {}
 
   async initialize(): Promise<void> {
@@ -44,5 +46,9 @@ export class LongportProvider implements IDataProvider {
 
   getContextService(): LongportContextService {
     return this.contextService;
+  }
+
+  getStreamContextService(): LongportStreamContextService {
+    return this.streamContextService;
   }
 }

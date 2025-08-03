@@ -46,7 +46,7 @@ describe('DataRequestDto', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('symbols');
-      expect(errors[0].constraints).toHaveProperty('matches');
+      expect(errors[0].constraints).toHaveProperty('isValidSymbolFormat');
     });
 
     it('当 symbols 列表过长时应无法通过验证', async () => {

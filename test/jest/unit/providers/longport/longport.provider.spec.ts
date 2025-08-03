@@ -3,16 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import { createMock } from '@golevelup/ts-jest';
 import { LongportProvider } from '../../../../../src/providers/longport/longport.provider';
 import { LongportContextService } from '../../../../../src/providers/longport/services/longport-context.service';
+import { LongportStreamContextService } from '../../../../../src/providers/longport/services/longport-stream-context.service';
 
 
 describe('LongportProvider', () => {
   let provider: LongportProvider;
   let configService: jest.Mocked<ConfigService>;
   let contextService: jest.Mocked<LongportContextService>;
+  let streamContextService: jest.Mocked<LongportStreamContextService>;
 
   beforeEach(async () => {
     const mockConfigService = createMock<ConfigService>();
     const mockContextService = createMock<LongportContextService>();
+    const mockStreamContextService = createMock<LongportStreamContextService>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -25,12 +28,17 @@ describe('LongportProvider', () => {
           provide: LongportContextService,
           useValue: mockContextService,
         },
+        {
+          provide: LongportStreamContextService,
+          useValue: mockStreamContextService,
+        },
       ],
     }).compile();
 
     provider = module.get<LongportProvider>(LongportProvider);
     configService = module.get(ConfigService);
     contextService = module.get(LongportContextService);
+    streamContextService = module.get(LongportStreamContextService);
   });
 
   afterEach(() => {

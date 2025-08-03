@@ -15,6 +15,7 @@ import { UnifiedPermissionsGuard } from "./auth/guards/unified-permissions.guard
 import { DataMapperModule } from "./core/data-mapper/module/data-mapper.module";
 import { QueryModule } from "./core/query/module/query.module";
 import { ReceiverModule } from "./core/receiver/module/receiver.module";
+import { StreamReceiverModule } from "./core/stream-receiver/stream-receiver.module";
 import { StorageModule } from "./core/storage/module/storage.module";
 import { SymbolMapperModule } from "./core/symbol-mapper/module/symbol-mapper.module";
 import { TransformerModule } from "./core/transformer/module/transformer.module";
@@ -82,6 +83,7 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
 
     // 核心模块
     ReceiverModule,
+    StreamReceiverModule,  // WebSocket 流接收器
     SymbolMapperModule,
     DataMapperModule,
     TransformerModule,
