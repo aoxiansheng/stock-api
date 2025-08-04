@@ -104,27 +104,52 @@ export const RECEIVER_VALIDATION_RULES = Object.freeze({
 } as const);
 
 /**
- * 市场识别规则常量
+ * 市场识别规则常量 - 消除重复的配置结构
  */
 export const MARKET_RECOGNITION_RULES = Object.freeze({
+  // 统一的市场配置，消除重复的结构定义
+  MARKETS: Object.freeze({
+    HK: Object.freeze({
+      SUFFIX: ".HK",
+      NUMERIC_PATTERN: /^\d{5}$/, // 5位数字（如：00700）
+      MARKET_CODE: "HK",
+    }),
+    US: Object.freeze({
+      SUFFIX: ".US",
+      ALPHA_PATTERN: /^[A-Z]{1,5}$/, // 1-5位字母（如：AAPL）
+      MARKET_CODE: "US",
+    }),
+    SZ: Object.freeze({
+      SUFFIX: ".SZ",
+      PREFIX_PATTERNS: Object.freeze(["00", "30"]), // 深圳市场前缀
+      MARKET_CODE: "SZ",
+    }),
+    SH: Object.freeze({
+      SUFFIX: ".SH",
+      PREFIX_PATTERNS: Object.freeze(["60", "68"]), // 上海市场前缀
+      MARKET_CODE: "SH",
+    }),
+  }),
+  
+  // 向后兼容的别名（已弃用，建议使用MARKETS）
   HK_PATTERNS: Object.freeze({
     SUFFIX: ".HK",
-    NUMERIC_PATTERN: /^\d{5}$/, // 5位数字（如：00700）
+    NUMERIC_PATTERN: /^\d{5}$/,
     MARKET_CODE: "HK",
   }),
   US_PATTERNS: Object.freeze({
     SUFFIX: ".US",
-    ALPHA_PATTERN: /^[A-Z]{1,5}$/, // 1-5位字母（如：AAPL）
+    ALPHA_PATTERN: /^[A-Z]{1,5}$/,
     MARKET_CODE: "US",
   }),
   SZ_PATTERNS: Object.freeze({
     SUFFIX: ".SZ",
-    PREFIX_PATTERNS: Object.freeze(["00", "30"]), // 深圳市场前缀
+    PREFIX_PATTERNS: Object.freeze(["00", "30"]),
     MARKET_CODE: "SZ",
   }),
   SH_PATTERNS: Object.freeze({
     SUFFIX: ".SH",
-    PREFIX_PATTERNS: Object.freeze(["60", "68"]), // 上海市场前缀
+    PREFIX_PATTERNS: Object.freeze(["60", "68"]),
     MARKET_CODE: "SH",
   }),
 } as const);

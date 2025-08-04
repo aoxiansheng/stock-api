@@ -378,7 +378,6 @@ export class MonitoringController {
 
   @NoPerformanceMonitoring()
   @Public()
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 60, ttl: 60000 } })
   @Get("health")
   @ApiOperation({

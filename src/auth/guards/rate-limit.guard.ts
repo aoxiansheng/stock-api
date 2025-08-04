@@ -40,35 +40,25 @@ export class RateLimitGuard implements CanActivate {
     private readonly rateLimitService: RateLimitService,
     private readonly reflector: Reflector,
   ) {
-    this.logger.debug("RateLimitGuard 构造函数被调用");
-    this.logger.log("RateLimitGuard 已实例化");
+    this.logger.debug("RateLimitGuard 已实例化");
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    this.logger.debug("RateLimitGuard.canActivate() 被调用");
-    this.logger.log("频率限制守卫被调用");
-
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
     // 获取API Key对象（由API Key认证守卫设置）
     const apiKey = request.user as ApiKeyDocument;
 
-    this.logger.debug(`API Key 对象:`, {
-      appKey: apiKey?.appKey,
-      hasRateLimit: !!apiKey?.rateLimit,
-      rateLimit: apiKey?.rateLimit,
-    });
-
-    this.logger.debug(
-      `频率限制守卫 - API Key: ${apiKey?.appKey || "null"}, 有率限制配置: ${!!apiKey?.rateLimit}`,
-    );
-
     // 如果没有API Key，跳过频率限制检查
     if (!apiKey || !apiKey.rateLimit) {
-      this.logger.debug("跳过频率限制检查 - 没有API Key或率限制配置");
       return true;
     }
+
+    this.logger.debug('执行API Key频率限制检查', {
+      appKey: apiKey.appKey,
+      endpoint: request.url
+    });
 
     // 获取控制器和方法级别的频率限制配置
     const config =
@@ -78,17 +68,11 @@ export class RateLimitGuard implements CanActivate {
       ]) || {};
 
     try {
-      this.logger.debug(
-        `开始执行频率限制检查 - 策略: ${config.strategy || RATE_LIMIT_CONFIG.API_KEY.DEFAULT_STRATEGY}`,
-      );
-
       // 执行频率限制检查
       const result = await this.rateLimitService.checkRateLimit(
         apiKey,
         config.strategy || RATE_LIMIT_CONFIG.API_KEY.DEFAULT_STRATEGY,
       );
-
-      this.logger.debug(`频率限制检查结果: ${JSON.stringify(result)}`);
 
       // 设置响应头
       this.setRateLimitHeaders(response, result);
@@ -127,11 +111,6 @@ export class RateLimitGuard implements CanActivate {
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-
-      // 记录成功的请求
-      this.logger.debug(
-        `API Key ${apiKey.appKey} 请求通过频率限制检查: ${result.current}/${result.limit}`,
-      );
 
       return true;
     } catch (error) {

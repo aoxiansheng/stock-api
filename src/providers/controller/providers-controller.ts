@@ -28,6 +28,31 @@ export class ProvidersController {
 
   constructor(private readonly capabilityRegistry: CapabilityRegistryService) {}
 
+  /**
+   * 格式化能力注册信息为统一的返回格式
+   * 消除重复的数据转换代码
+   */
+  private formatCapabilityRegistration(registration: any) {
+    return {
+      name: registration.capability.name,
+      description: registration.capability.description,
+      supportedMarkets: registration.capability.supportedMarkets,
+      priority: registration.priority,
+      isEnabled: registration.isEnabled,
+    };
+  }
+
+  /**
+   * 获取格式化的提供商信息
+   * 统一处理不存在的提供商场景
+   */
+  private getFormattedProviderInfo(providerName: string, capability: string) {
+    const providerCapabilities = this.capabilityRegistry.getAllCapabilities().get(providerName);
+    const registration = providerCapabilities?.get(capability);
+    
+    return registration ? this.formatCapabilityRegistration(registration) : null;
+  }
+
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
   @Throttle({ default: RATE_LIMIT_CONFIG.ENDPOINTS.PROVIDER_CAPABILITIES })
@@ -76,13 +101,7 @@ export class ProvidersController {
 
     for (const [providerName, providerCapabilities] of capabilities) {
       result[providerName] = Array.from(providerCapabilities.values()).map(
-        (reg) => ({
-          name: reg.capability.name,
-          description: reg.capability.description,
-          supportedMarkets: reg.capability.supportedMarkets,
-          priority: reg.priority,
-          isEnabled: reg.isEnabled,
-        }),
+        (reg) => this.formatCapabilityRegistration(reg)
       );
     }
 
@@ -144,21 +163,9 @@ export class ProvidersController {
       undefined,
     );
     
-    let bestProvider = null;
-    if (bestProviderName) {
-      const providerCapabilities = this.capabilityRegistry.getAllCapabilities().get(bestProviderName);
-      const registration = providerCapabilities?.get(capability);
-      
-      if (registration) {
-        bestProvider = {
-          name: registration.capability.name,
-          description: registration.capability.description,
-          supportedMarkets: registration.capability.supportedMarkets,
-          priority: registration.priority,
-          isEnabled: registration.isEnabled,
-        };
-      }
-    }
+    const bestProvider = bestProviderName 
+      ? this.getFormattedProviderInfo(bestProviderName, capability)
+      : null;
     
     return {
       capability,
@@ -231,21 +238,9 @@ export class ProvidersController {
       market,
     );
     
-    let bestProvider = null;
-    if (bestProviderName) {
-      const providerCapabilities = this.capabilityRegistry.getAllCapabilities().get(bestProviderName);
-      const registration = providerCapabilities?.get(capability);
-      
-      if (registration) {
-        bestProvider = {
-          name: registration.capability.name,
-          description: registration.capability.description,
-          supportedMarkets: registration.capability.supportedMarkets,
-          priority: registration.priority,
-          isEnabled: registration.isEnabled,
-        };
-      }
-    }
+    const bestProvider = bestProviderName 
+      ? this.getFormattedProviderInfo(bestProviderName, capability)
+      : null;
     
     return {
       capability,
@@ -321,13 +316,9 @@ export class ProvidersController {
 
     return {
       provider,
-      capabilities: Array.from(providerCapabilities.values()).map((reg) => ({
-        name: reg.capability.name,
-        description: reg.capability.description,
-        supportedMarkets: reg.capability.supportedMarkets,
-        priority: reg.priority,
-        isEnabled: reg.isEnabled,
-      })),
+      capabilities: Array.from(providerCapabilities.values()).map(
+        (reg) => this.formatCapabilityRegistration(reg)
+      ),
     };
   }
 }

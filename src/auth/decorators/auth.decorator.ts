@@ -4,7 +4,6 @@ import { ApiBearerAuth, ApiSecurity } from "@nestjs/swagger";
 import { UserRole, Permission } from "../enums/user-role.enum";
 import { ApiKeyAuthGuard } from "../guards/apikey-auth.guard";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
-import { RateLimitGuard } from "../guards/rate-limit.guard";
 import { UnifiedPermissionsGuard } from "../guards/unified-permissions.guard";
 
 import { RequirePermissions } from "./permissions.decorator";
@@ -91,7 +90,8 @@ export function Auth(roles?: UserRole[], permissions?: Permission[]) {
  */
 export function ApiKeyAuth(permissions?: Permission[]) {
   const decorators = [
-    UseGuards(ApiKeyAuthGuard, UnifiedPermissionsGuard, RateLimitGuard),
+    // RateLimitGuard 现在是全局守卫，不需要在这里重复使用
+    UseGuards(ApiKeyAuthGuard, UnifiedPermissionsGuard),
     RequireApiKey(),
     ApiSecurity("ApiKey"),
     ApiSecurity("AccessToken"),
@@ -134,11 +134,11 @@ export function ApiKeyAuth(permissions?: Permission[]) {
  */
 export function MixedAuth(roles?: UserRole[], permissions?: Permission[]) {
   const decorators = [
+    // RateLimitGuard 现在是全局守卫，不需要在这里重复使用
     UseGuards(
       JwtAuthGuard,
       ApiKeyAuthGuard,
       UnifiedPermissionsGuard,
-      RateLimitGuard,
     ),
     ApiBearerAuth(),
     ApiSecurity("ApiKey"),

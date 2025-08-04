@@ -144,7 +144,6 @@ export class DataMapperController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.CONFIG_READ)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post("field-suggestions")
   @ApiOperation({

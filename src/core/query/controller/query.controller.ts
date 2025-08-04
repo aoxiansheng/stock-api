@@ -597,7 +597,6 @@ export class QueryController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.SYSTEM_HEALTH)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 60, ttl: 60000 } })
   @Get("health")
   @ApiOperation({

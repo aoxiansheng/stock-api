@@ -12,6 +12,7 @@ import { AuthModule } from "./auth/module/auth.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { ApiKeyAuthGuard } from "./auth/guards/apikey-auth.guard";
 import { UnifiedPermissionsGuard } from "./auth/guards/unified-permissions.guard";
+import { RateLimitGuard } from "./auth/guards/rate-limit.guard";
 import { DataMapperModule } from "./core/data-mapper/module/data-mapper.module";
 import { QueryModule } from "./core/query/module/query.module";
 import { ReceiverModule } from "./core/receiver/module/receiver.module";
@@ -126,6 +127,10 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, // JWT认证后执行
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard, // API Key频率限制
     },
     {
       provide: APP_GUARD,

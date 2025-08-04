@@ -8,6 +8,7 @@ import { createLogger } from "@common/config/logger.config";
 import { ICapability } from "../interfaces/capability.interface";
 import { ICapabilityRegistration } from "../interfaces/provider.interface";
 import { IStreamCapability, IStreamCapabilityRegistration } from "../interfaces/stream-capability.interface";
+import { getProviderScanConfig, shouldExcludeDirectory } from "../config/provider-scan.config";
 
 const toCamelCase = (str: string) =>
   str.replace(/-(\w)/g, (_, c) => c.toUpperCase());
@@ -24,47 +25,69 @@ export class CapabilityRegistryService implements OnModuleInit {
     Map<string, IStreamCapabilityRegistration>
   >();
   private readonly providers = new Map<string, any>();
+  private initialized = false;
+  private static discoveryPromise: Promise<void> | null = null;
 
   constructor() {}
 
   async onModuleInit() {
-    await this.discoverCapabilities();
+    // 防止重复初始化 - 使用单例模式
+    if (CapabilityRegistryService.discoveryPromise) {
+      this.logger.debug('等待现有能力发现完成...');
+      await CapabilityRegistryService.discoveryPromise;
+      return;
+    }
+
+    if (this.initialized) {
+      this.logger.debug('能力注册表已初始化，跳过重复初始化');
+      return;
+    }
+
+    CapabilityRegistryService.discoveryPromise = this.discoverCapabilities();
+    try {
+      await CapabilityRegistryService.discoveryPromise;
+    } finally {
+      CapabilityRegistryService.discoveryPromise = null;
+    }
   }
 
   async discoverCapabilities(): Promise<void> {
     this.logger.log("开始自动发现数据源能力...");
 
-    const providersPath = __dirname;
+    // 修复路径：从 services/ 目录上升到 providers/ 目录
+    const providersPath = join(__dirname, "..");
     try {
       const providerDirs = await readdir(providersPath, {
         withFileTypes: true,
       });
 
-      // 排除系统目录和文件，只扫描可能的提供商目录
-      const excludedDirs = ["node_modules", "interfaces"];
+      // 使用统一的扫描配置
+      const scanConfig = getProviderScanConfig();
 
       for (const dirent of providerDirs) {
         if (
           dirent.isDirectory() &&
-          !excludedDirs.includes(dirent.name) &&
-          !dirent.name.startsWith(".")
+          !shouldExcludeDirectory(dirent.name, scanConfig)
         ) {
           await this.loadProviderCapabilities(dirent.name);
         }
       }
 
+      this.initialized = true;
       this.logger.log({
         message: "能力发现完成",
         totalCapabilities: this.getTotalCapabilitiesCount(),
       });
     } catch (error) {
       this.logger.error({ error: error.stack }, "自动发现能力时发生错误");
+      throw error;
     }
   }
 
   private async loadProviderCapabilities(providerName: string): Promise<void> {
     try {
-      const capabilitiesPath = join(__dirname, providerName, "capabilities");
+      // 修复路径：从 services/ 目录上升到 providers/ 目录，然后进入提供商目录
+      const capabilitiesPath = join(__dirname, "..", providerName, "capabilities");
 
       if (!(await this.directoryExists(capabilitiesPath))) {
         this.logger.warn({
@@ -103,7 +126,7 @@ export class CapabilityRegistryService implements OnModuleInit {
     const logContext = { provider: providerName, capability: capabilityName };
     try {
       const capabilityModule = await import(
-        `./${providerName}/capabilities/${capabilityName}`
+        `../${providerName}/capabilities/${capabilityName}`
       );
       const camelCaseName = toCamelCase(capabilityName);
       const capability = capabilityModule.default || capabilityModule[camelCaseName];
@@ -379,6 +402,9 @@ export class CapabilityRegistryService implements OnModuleInit {
         registration.errorCount = 0;
       } else if (status === 'error') {
         registration.errorCount++;
+        if (error) {
+          registration.lastError = error;
+        }
       }
 
       this.logger.log({
