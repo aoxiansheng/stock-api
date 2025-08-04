@@ -15,7 +15,6 @@ import {
   DataMappingRuleDocument,
 } from "../../core/data-mapper/schemas/data-mapper.schema";
 import {
-  SymbolMappingRule,
   SymbolMappingRuleDocument,
 } from "../../core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
@@ -69,7 +68,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
 
       const symbolMapperModel = this.moduleRef.get<
         Model<SymbolMappingRuleDocument>
-      >(getModelToken(SymbolMappingRule.name), { strict: false });
+      >(getModelToken(SymbolMappingRuleDocument.name), { strict: false });
 
       // 1. 初始化股票报价预设字段（根据配置）
       if (this.config.presetFields.stockQuote) {

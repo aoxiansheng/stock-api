@@ -6,10 +6,8 @@
 import { Module, Global } from "@nestjs/common";
 
 import { CacheModule } from "../../../cache/module/cache.module";
-import { ProvidersModule } from "../../../providers/module/providers.module";
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
-import { DataFetchingService } from "../services/data-fetching.service";
 import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
 import { BackgroundTaskService } from "../services/background-task.service";
@@ -24,19 +22,22 @@ import { BackgroundTaskService } from "../services/background-task.service";
  * behavior and state management across different parts of the application.
  * Using `@Global()` simplifies dependency injection by eliminating the need
  * to import `SharedServicesModule` in every feature module.
+ * 
+ * Note: ProvidersModule removed to prevent circular dependency and duplicate initialization.
+ * Services requiring provider capabilities should import ProvidersModule directly.
  */
 @Global()
 @Module({
-  imports: [CacheModule, ProvidersModule],
+  imports: [CacheModule],
   providers: [
-    DataFetchingService,
+    // DataFetchingService, // 移动到需要的模块中，因为它依赖CapabilityRegistryService
     DataChangeDetectorService,
     MarketStatusService,
     StringUtils,
     BackgroundTaskService,
   ],
   exports: [
-    DataFetchingService,
+    // DataFetchingService, // 移动到需要的模块中
     DataChangeDetectorService,
     MarketStatusService,
     StringUtils,

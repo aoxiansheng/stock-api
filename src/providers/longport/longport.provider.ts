@@ -1,10 +1,10 @@
-import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { createLogger } from "@common/config/logger.config";
 
 import { ICapability } from "../interfaces/capability.interface";
 import { IDataProvider } from "../interfaces/provider.interface";
+import { Provider } from "../decorators/provider.decorator";
 
 import { getIndexQuote } from "./capabilities/get-index-quote";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
@@ -12,7 +12,13 @@ import { getStockQuote } from "./capabilities/get-stock-quote";
 import { LongportContextService } from "./services/longport-context.service";
 import { LongportStreamContextService } from "./services/longport-stream-context.service";
 
-@Injectable()
+@Provider({
+  name: "longport",
+  description: "LongPort 长桥证券数据提供商",
+  autoRegister: true,
+  healthCheck: true,
+  initPriority: 1
+})
 export class LongportProvider implements IDataProvider {
   private readonly logger = createLogger(LongportProvider.name);
 

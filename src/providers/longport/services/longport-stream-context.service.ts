@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createLogger } from '@common/config/logger.config';
 
 // LongPort SDK 导入
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Config, QuoteContext, SubType } = require('longport');
 
 /**
@@ -57,20 +58,10 @@ export class LongportStreamContextService implements OnModuleDestroy {
         this.handleQuoteUpdate(event);
       });
 
-      // 设置连接状态回调
-      this.quoteContext.setOnConnected(() => {
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.logger.log('LongPort WebSocket 连接成功');
-      });
-
-      this.quoteContext.setOnDisconnected(() => {
-        this.isConnected = false;
-        this.logger.warn('LongPort WebSocket 连接断开');
-        this.handleReconnect();
-      });
-
+      // LongPort SDK 不提供连接状态监听方法
+      // 假设连接成功，使用其他方式检测连接状态
       this.isConnected = true;
+      this.reconnectAttempts = 0;
       this.logger.log('LongPort WebSocket 初始化成功');
 
     } catch (error) {
@@ -94,13 +85,13 @@ export class LongportStreamContextService implements OnModuleDestroy {
     isFirstPush: boolean = true
   ): Promise<void> {
     try {
-      if (!this.isConnected || !this.quoteContext) {
-        throw new Error('LongPort WebSocket 未连接');
-      }
-
       // 检查符号数量限制（文档显示最多500个）
       if (symbols.length > 500) {
         throw new Error(`符号数量超过限制，最多支持500个，当前：${symbols.length}`);
+      }
+
+      if (!this.isConnected || !this.quoteContext) {
+        throw new Error('LongPort WebSocket 未连接');
       }
 
       // 过滤已订阅的符号
@@ -205,9 +196,10 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
   /**
    * 获取连接状态
+   * 由于LongPort SDK不提供直接的连接状态检查，我们基于QuoteContext是否存在来判断
    */
   isWebSocketConnected(): boolean {
-    return this.isConnected;
+    return this.isConnected && this.quoteContext !== null;
   }
 
   /**
@@ -307,16 +299,17 @@ export class LongportStreamContextService implements OnModuleDestroy {
   }
 
   /**
-   * 处理重连逻辑
+   * 手动重连方法
+   * 由于LongPort SDK不提供连接状态监听，需要外部触发重连
    */
-  private async handleReconnect(): Promise<void> {
+  async reconnect(): Promise<void> {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.logger.error('LongPort WebSocket 重连次数超限，停止重连');
-      return;
+      throw new Error('重连次数超限');
     }
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // 指数退避
+    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
     this.logger.log({
       message: 'LongPort WebSocket 准备重连',
@@ -324,26 +317,34 @@ export class LongportStreamContextService implements OnModuleDestroy {
       delay,
     });
 
-    setTimeout(async () => {
-      try {
-        await this.initializeWebSocket();
-        
-        // 重新订阅之前的符号
-        if (this.subscribedSymbols.size > 0) {
-          const symbolsToResubscribe = Array.from(this.subscribedSymbols);
-          this.subscribedSymbols.clear(); // 清空，让 subscribe 方法重新添加
-          await this.subscribe(symbolsToResubscribe);
-        }
-
-      } catch (error) {
-        this.logger.error({
-          message: 'LongPort WebSocket 重连失败',
-          attempt: this.reconnectAttempts,
-          error: error.message,
-        });
-        await this.handleReconnect(); // 继续重连
+    try {
+      // 清理当前连接
+      this.isConnected = false;
+      this.quoteContext = null;
+      
+      // 等待重连延迟
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // 重新初始化
+      await this.initializeWebSocket();
+      
+      // 重新订阅之前的符号
+      if (this.subscribedSymbols.size > 0) {
+        const symbolsToResubscribe = Array.from(this.subscribedSymbols);
+        this.subscribedSymbols.clear();
+        await this.subscribe(symbolsToResubscribe);
       }
-    }, delay);
+
+      this.logger.log('LongPort WebSocket 重连成功');
+      
+    } catch (error) {
+      this.logger.error({
+        message: 'LongPort WebSocket 重连失败',
+        attempt: this.reconnectAttempts,
+        error: error.message,
+      });
+      throw error;
+    }
   }
 
   /**

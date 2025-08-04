@@ -143,8 +143,6 @@ describe('LongportStreamContextService Integration', () => {
         
         const mockQuoteContext = {
           setOnQuote: jest.fn(),
-          setOnConnected: jest.fn(),
-          setOnDisconnected: jest.fn(),
         };
         QuoteContext.new.mockResolvedValue(mockQuoteContext);
 
@@ -153,8 +151,6 @@ describe('LongportStreamContextService Integration', () => {
         expect(Config.fromEnv).toHaveBeenCalled();
         expect(QuoteContext.new).toHaveBeenCalled();
         expect(mockQuoteContext.setOnQuote).toHaveBeenCalled();
-        expect(mockQuoteContext.setOnConnected).toHaveBeenCalled();
-        expect(mockQuoteContext.setOnDisconnected).toHaveBeenCalled();
         expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 初始化成功');
       } else {
         // 真实LongPort SDK环境
@@ -190,8 +186,6 @@ describe('LongportStreamContextService Integration', () => {
         Config.fromEnv.mockReturnValue({ test: 'config' });
         QuoteContext.new.mockResolvedValue({
           setOnQuote: jest.fn(),
-          setOnConnected: jest.fn(),
-          setOnDisconnected: jest.fn(),
         });
 
         // 第一次初始化
@@ -214,8 +208,6 @@ describe('LongportStreamContextService Integration', () => {
         
         const mockQuoteContext = {
           setOnQuote: jest.fn(),
-          setOnConnected: jest.fn(),
-          setOnDisconnected: jest.fn(),
           subscribe: jest.fn().mockResolvedValue(undefined),
           unsubscribe: jest.fn().mockResolvedValue(undefined),
         };
@@ -291,8 +283,13 @@ describe('LongportStreamContextService Integration', () => {
     });
 
     it('should handle unsubscription of non-subscribed symbols', async () => {
-      await service.unsubscribe(['NONEXISTENT.HK']);
-      expect(mockLogger.log).toHaveBeenCalledWith('没有符号需要取消订阅');
+      if (!isLongPortAvailable) {
+        await service.unsubscribe(['NONEXISTENT.HK']);
+        expect(mockLogger.log).toHaveBeenCalledWith('没有符号需要取消订阅');
+      } else {
+        // 在真实环境中，取消订阅不存在的符号不会报错
+        await service.unsubscribe(['NONEXISTENT.HK']);
+      }
     });
   });
 

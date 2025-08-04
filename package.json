@@ -63,6 +63,7 @@
     "test:e2e:common": "jest --config test/config/jest.e2e.config.js test/jest/e2e/common",
     "test:e2e:alert": "jest --config test/config/jest.e2e.config.js test/jest/e2e/alert",
     "test:blackbox": "jest --config test/config/jest.blackbox.config.js",
+    "test:blackbox:stream": "jest --config test/config/jest.blackbox.config.js test/jest/e2e/blackbox/stream-receiver-real-time.e2e.test.ts",
     "test:security": "jest --config test/config/jest.security.config.js",
     "test:security:all": "npm-run-all --parallel test:security:auth test:security:core test:security:common test:security:alert test:security:cache test:security:metrics test:security:monitoring",
     "test:security:watch": "jest --config test/config/jest.security.config.js --watch",
@@ -167,7 +168,8 @@
     "test:regression": "npm run test:all && npm run test:perf:load",
     "test:database": "npm run test:integration:auth && npm run test:integration:monitoring && npm run test:integration:alert",
     "test:cache": "npm run test:unit:cache && npm run test:integration && npm run test:e2e:cache",
-    "test:api": "npm run test:e2e:core && npm run test:perf:api:all"
+    "test:api": "npm run test:e2e:core && npm run test:perf:api:all",
+    "cli": "bun src/providers/cli/index.ts"
   },
   "overrides": {
     "form-data": "^4.0.0"
@@ -195,6 +197,7 @@
     "bull": "^4.16.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "commander": "^14.0.0",
     "glob": "^11.0.3",
     "helmet": "^8.1.0",
     "ioredis": "^5.6.1",

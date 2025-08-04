@@ -6,8 +6,8 @@ import {
   DataMappingRuleSchema,
 } from "../../core/data-mapper/schemas/data-mapper.schema";
 import {
-  SymbolMappingRule,
-  SymbolMappingRuleSchema,
+  SymbolMappingRuleDocument,
+  SymbolMappingRuleDocumentSchema,
 } from "../../core/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
 import { AutoInitOnStartupService } from "../services/auto-init-on-startup.service";
@@ -19,7 +19,7 @@ import { AutoInitOnStartupService } from "../services/auto-init-on-startup.servi
   imports: [
     MongooseModule.forFeature([
       { name: DataMappingRule.name, schema: DataMappingRuleSchema },
-      { name: SymbolMappingRule.name, schema: SymbolMappingRuleSchema },
+      { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),
   ],
   providers: [AutoInitOnStartupService],

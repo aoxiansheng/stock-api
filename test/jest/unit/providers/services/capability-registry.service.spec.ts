@@ -74,12 +74,15 @@ describe("CapabilityRegistryService", () => {
   });
 
   describe("discoverCapabilities", () => {
-    it("应该排除 interfaces 目录", async () => {
+    it("应该排除系统目录（interfaces, services, controller, module）", async () => {
       // Arrange - 模拟目录结构
       const mockDirents = [
         { name: "longport", isDirectory: () => true },
         { name: "longport-sg", isDirectory: () => true },
         { name: "interfaces", isDirectory: () => true }, // 应该被排除
+        { name: "services", isDirectory: () => true }, // 应该被排除  
+        { name: "controller", isDirectory: () => true }, // 应该被排除
+        { name: "module", isDirectory: () => true }, // 应该被排除
         { name: "node_modules", isDirectory: () => true }, // 应该被排除
         { name: ".hidden", isDirectory: () => true }, // 应该被排除
         { name: "providers-controller.ts", isDirectory: () => false },
@@ -126,6 +129,15 @@ describe("CapabilityRegistryService", () => {
       // 验证系统目录没有被处理
       expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
         "interfaces",
+      );
+      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
+        "services",
+      );
+      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
+        "controller",
+      );
+      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
+        "module",
       );
       expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
         "node_modules",

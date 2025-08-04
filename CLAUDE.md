@@ -120,7 +120,7 @@ think_about_whether_you_are_done            # Determine if task is complete
 onboarding
 
 # Store key architectural insights
-write_memory "architecture_notes" "6-component core: Receiver->SymbolMapper->DataMapper->Transformer->Storage->Query"
+write_memory "architecture_notes" "7-component core: Receiver->StreamReceiver->SymbolMapper->DataMapper->Transformer->Storage->Query with WebSocket streaming support"
 ```
 
 #### **Code Navigation & Analysis**
@@ -185,7 +185,7 @@ The Serena MCP integration enhances the existing development commands:
 
 ## Architecture Overview
 
-This is a **NestJS-based intelligent stock data processing system** with a **6-component core architecture**:
+This is a **NestJS-based intelligent stock data processing system** with a **7-component core architecture**:
 
 ### Core Components (Request → Response Flow)
 1. **Receiver** (`src/core/receiver/`) - Entry point with intelligent routing
@@ -193,27 +193,33 @@ This is a **NestJS-based intelligent stock data processing system** with a **6-c
    - Provider selection based on capability matrix
    - Main endpoint: `POST /api/v1/receiver/data`
 
-2. **Symbol Mapper** (`src/core/symbol-mapper/`) - Stock symbol format conversion
+2. **Stream Receiver** (`src/core/stream-receiver/`) - **NEW**: Real-time WebSocket streaming
+   - WebSocket connection management and real-time data streaming
+   - Stream capability discovery and intelligent routing
+   - Automatic reconnection and connection health monitoring
+   - Main endpoint: `WebSocket /api/v1/stream-receiver/connect`
+
+3. **Symbol Mapper** (`src/core/symbol-mapper/`) - Stock symbol format conversion
    - Transforms between provider formats (e.g., "700.HK" ↔ "00700")
    - MongoDB-based mapping rules with optimized indexes
    - Bulk transformation support
 
-3. **Data Mapper** (`src/core/data-mapper/`) - Field mapping rules engine
+4. **Data Mapper** (`src/core/data-mapper/`) - Field mapping rules engine
    - 37 preset fields: 22 stock quote + 15 basic info
    - Nested object path transformation (`secu_quote[].last_done` → `lastPrice`)
    - JSON structure analysis and intelligent field suggestions
 
-4. **Transformer** (`src/core/transformer/`) - Real-time data transformation
+5. **Transformer** (`src/core/transformer/`) - Real-time data transformation
    - Applies mapping rules to raw provider data
    - Batch processing and preview capabilities
    - Custom transformation functions support
 
-5. **Storage** (`src/core/storage/`) - Dual storage strategy
+6. **Storage** (`src/core/storage/`) - Dual storage strategy
    - Redis-first caching with MongoDB persistence
    - Automatic compression and performance metrics
    - Intelligent cache invalidation
 
-6. **Query** (`src/core/query/`) - Unified data retrieval
+7. **Query** (`src/core/query/`) - Unified data retrieval
    - Multiple query types: `by_symbols`, `by_market`, `by_provider`
    - Intelligent caching with configurable TTL
    - Bulk operations and metadata inclusion
@@ -248,9 +254,65 @@ This is a **NestJS-based intelligent stock data processing system** with a **6-c
 - **Example**: `get-stock-quote.ts`, `get-stock-basic-info.ts`
 
 **Current Status**:
-- **LongPort**: ✅ Production ready (3 capabilities)
+- **LongPort**: ✅ Production ready (3 REST capabilities + 1 WebSocket stream capability)
 - **LongPort SG**: ✅ Production ready (Singapore markets)
 - **Others**: 🚧 Stub implementations ready for extension
+
+### WebSocket Stream Capabilities
+
+**NEW**: The system now supports real-time WebSocket streaming capabilities alongside traditional REST endpoints:
+
+#### Stream Capability Structure
+- **Location**: `src/providers/{provider}/capabilities/stream-*.ts`
+- **Registry**: Auto-discovered by `CapabilityRegistryService` during module initialization
+- **Interface**: All stream capabilities implement `IStreamCapability` interface
+
+#### Key Stream Methods
+```typescript
+interface IStreamCapability {
+  initialize(context: any): Promise<void>;    // Initialize WebSocket connection
+  subscribe(symbols: string[], context: any): Promise<void>;  // Subscribe to symbols
+  unsubscribe(symbols: string[], context: any): Promise<void>; // Unsubscribe from symbols
+  onMessage(callback: (data: StreamDataCallbackParams) => void): void; // Set message callback
+  cleanup(): Promise<void>;                   // Clean up resources
+  isConnected(): boolean;                     // Check connection status
+}
+```
+
+#### Stream Capability Implementation Example
+```typescript
+// src/providers/longport/capabilities/stream-stock-quote.ts
+export default {
+  name: 'stream-stock-quote',
+  description: 'LongPort实时股票报价流',
+  supportedMarkets: ['HK', 'US', 'SZ', 'SH'],
+  supportedSymbolFormats: ['{symbol}.{market}', '{symbol}'],
+  
+  async initialize(context: LongportStreamContextService): Promise<void> {
+    await context.initializeWebSocket();
+  },
+  
+  async subscribe(symbols: string[], context: LongportStreamContextService): Promise<void> {
+    await context.subscribe(symbols, 'quote');
+  },
+  
+  async unsubscribe(symbols: string[], context: LongportStreamContextService): Promise<void> {
+    await context.unsubscribe(symbols);
+  },
+  
+  onMessage(callback: (data: StreamDataCallbackParams) => void): void {
+    this._messageCallback = callback;
+  },
+  
+  async cleanup(): Promise<void> {
+    this._messageCallback = null;
+  },
+  
+  isConnected(): boolean {
+    return this._context?.isConnected() || false;
+  }
+};
+```
 
 ### Auto-Initialization System
 
@@ -470,16 +532,19 @@ curl -X POST http://localhost:3000/api/v1/receiver/data \
 
 ### System Health
 - 🟢 All critical bugs resolved
-- 🟢 LongPort SDK production ready
+- 🟢 LongPort SDK production ready with WebSocket streaming support
 - 🟢 100% TypeScript type safety
 - 🟢 Comprehensive test suite (75+ test files)
 - 🟢 Auto-initialization system working correctly
 - 🟢 Fault-tolerant performance monitoring system implemented
 - 🟢 Health monitoring with degradation detection
+- 🟢 WebSocket stream capabilities fully integrated and tested
 
 ### Architectural Insights
 
-**Data Flow**: Request → Receiver → Symbol Mapper → Data Mapper → Transformer → Storage → Query
+**Data Flow**: 
+- **REST**: Request → Receiver → Symbol Mapper → Data Mapper → Transformer → Storage → Query
+- **WebSocket**: Stream Receiver → Symbol Mapper → Data Mapper → Transformer → Storage → Real-time Push
 
 **Provider Integration**: File-based auto-discovery with capability registration
 
@@ -586,4 +651,170 @@ npx jest test/jest/unit/metrics/metrics-health.service.spec.ts
 
 # Run comprehensive monitoring tests
 npx jest test/jest/e2e/monitoring/metrics-health.e2e.test.ts
+
+# Run WebSocket stream capability tests
+npx jest test/jest/integration/providers/capabilities/stream-stock-quote.integration.test.ts
 ```
+
+## WebSocket Stream Integration Testing
+
+### Critical Testing Pattern for Stream Capabilities
+
+When testing WebSocket stream capabilities, **proper module initialization timing** is essential:
+
+#### Essential Stream Test Setup
+```typescript
+describe('StreamStockQuote Capability Integration', () => {
+  let module: TestingModule;
+  let capabilityRegistryService: CapabilityRegistryService;
+  let streamCapability: IStreamCapability;
+  
+  beforeAll(async () => {
+    // Create test module
+    module = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    
+    // CRITICAL: Ensure complete module initialization
+    await module.init();
+    
+    // Get services
+    capabilityRegistryService = module.get<CapabilityRegistryService>(CapabilityRegistryService);
+    
+    // CRITICAL: Wait for stream capability registration to complete
+    let retryCount = 0;
+    const maxRetries = 10;
+    
+    while (retryCount < maxRetries) {
+      const allStreamCaps = capabilityRegistryService.getAllStreamCapabilities();
+      const longportCaps = allStreamCaps.get('longport');
+      const streamQuoteCap = longportCaps?.get('stream-stock-quote');
+      
+      if (streamQuoteCap) {
+        break;
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      retryCount++;
+    }
+    
+    // Get stream capability
+    const provider = capabilityRegistryService.getBestStreamProvider('stream-stock-quote');
+    streamCapability = capabilityRegistryService.getStreamCapability(provider, 'stream-stock-quote');
+    
+  }, 30000); // Extended timeout for initialization
+  
+  afterAll(async () => {
+    await module.close();
+  });
+});
+```
+
+#### Key Testing Issues and Solutions
+
+**1. Module Initialization Timing Issue**
+- **Problem**: Tests try to access stream capabilities before they're registered
+- **Solution**: Use `await module.init()` + retry mechanism with timeout
+
+**2. LongPort SDK API Limitations**
+- **Problem**: SDK doesn't provide connection state listeners (`setOnConnected`, `setOnDisconnected`)
+- **Solution**: Mock SDK properly and handle connection state without callbacks
+
+**3. Stream Capability Registration Timing**
+- **Problem**: `getBestStreamProvider()` returns null due to capability not yet registered
+- **Solution**: Implement retry loop waiting for capability registration completion
+
+#### Stream Capability Test Examples
+```typescript
+describe('Stream Capability Integration', () => {
+  it('should initialize WebSocket connection', async () => {
+    await streamCapability.initialize(longportStreamService);
+    
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      expect.stringContaining('LongPort WebSocket 流连接初始化成功')
+    );
+  });
+  
+  it('should subscribe to symbols', async () => {
+    const symbols = ['700.HK', 'AAPL.US'];
+    await streamCapability.subscribe(symbols, longportStreamService);
+    
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'LongPort WebSocket 股票报价流订阅成功',
+        symbols,
+        count: 2,
+      })
+    );
+  });
+  
+  it('should handle symbol validation', async () => {
+    const symbols = ['700.HK', 'INVALID_FORMAT', '09988.HK'];
+    
+    await streamCapability.subscribe(symbols, longportStreamService);
+    
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      '发现无效符号格式',
+      expect.objectContaining({
+        invalidSymbols: ['INVALID_FORMAT'],
+      })
+    );
+  });
+});
+```
+
+#### Mock LongPort SDK for Testing
+```typescript
+// Proper LongPort SDK mocking
+jest.mock('longport', () => {
+  const createMockQuoteContext = () => ({
+    subscribe: jest.fn().mockImplementation(() => Promise.resolve()),
+    unsubscribe: jest.fn().mockImplementation(() => Promise.resolve()),
+    setOnQuote: jest.fn(),
+    setOnDepth: jest.fn(),
+    // Note: setOnConnected and setOnDisconnected are NOT available in real SDK
+  });
+
+  return {
+    Config: class MockConfig {
+      static fromEnv() { return new MockConfig(); }
+    },
+    QuoteContext: {
+      new: jest.fn().mockImplementation(() => Promise.resolve(createMockQuoteContext()))
+    },
+    SubType: {
+      Quote: 'quote',
+      Depth: 'depth',
+      Trade: 'trade'
+    }
+  };
+});
+```
+
+### Stream Capability Debugging
+
+#### Common Issues and Solutions
+
+**1. `getBestStreamProvider` returns null**
+- **Cause**: Stream capabilities not yet registered when test runs
+- **Fix**: Add retry mechanism waiting for capability registration
+
+**2. Stream capability not found**
+- **Cause**: File naming doesn't match pattern `stream-*.ts`
+- **Fix**: Ensure stream capability files start with `stream-` prefix
+
+**3. SDK method not found errors**
+- **Cause**: Calling non-existent SDK methods like `setOnConnected`
+- **Fix**: Only use methods actually provided by LongPort SDK
+
+**4. Connection state management**
+- **Cause**: SDK doesn't provide connection callbacks
+- **Fix**: Implement connection state management without SDK callbacks
+
+### Performance Considerations
+
+#### Stream Capability Optimization
+- **Symbol Limits**: LongPort has 500 symbol subscription limit
+- **Connection Pooling**: Reuse WebSocket connections when possible
+- **Error Recovery**: Implement automatic reconnection with exponential backoff
+- **Memory Management**: Clean up callbacks and subscriptions properly

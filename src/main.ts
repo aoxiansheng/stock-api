@@ -319,7 +319,8 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
   📍 服务地址: http://localhost:${port}
   📚 API 文档: http://localhost:${port}/docs
   
-  🎯 六组件核心架构已就绪：
+  🎯 七组件核心架构已就绪：
+  ├── 🚀 实时流数据接口：WebSocket /api/v1/stream-receiver/connect  (无缓存)
   ├── 🚀 强时效接口: /api/v1/receiver/* (1秒缓存)
   ├── 🧠 弱时效接口: /api/v1/query/* (智能检测)
   ├── 🔄 符号映射器: /api/v1/symbol-mapper/*

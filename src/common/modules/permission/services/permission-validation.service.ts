@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 import { PermissionDecoratorValidator, ValidationResult } from '../validators/permission-decorator.validator';
 
@@ -8,7 +8,7 @@ import { PermissionDecoratorValidator, ValidationResult } from '../validators/pe
  * 在应用启动时自动验证权限装饰器，并提供手动验证接口
  */
 @Injectable()
-export class PermissionValidationService implements OnModuleInit {
+export class PermissionValidationService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PermissionValidationService.name);
   private lastValidationResult: ValidationResult[] = [];
 
@@ -17,11 +17,11 @@ export class PermissionValidationService implements OnModuleInit {
   ) {}
 
   /**
-   * 模块初始化时自动验证
+   * 应用启动完成后自动验证（此时所有路由已注册）
    */
-  async onModuleInit() {
+  async onApplicationBootstrap() {
     try {
-      this.logger.log('应用启动时进行权限装饰器验证...');
+      this.logger.log('应用启动完成后进行权限装饰器验证...');
       await this.validatePermissions();
     } catch (error: any) {
       this.logger.error('权限装饰器验证失败', {

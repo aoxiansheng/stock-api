@@ -83,6 +83,10 @@ npx jest --config test/config/jest.blackbox.config.js  monitoring-performance.e2
 npx jest --config test/config/jest.blackbox.config.js  provider-integration.e2e.test.ts
 npx jest --config test/config/jest.blackbox.config.js  real-environment-test.e2e.test.ts ok
 npx jest --config test/config/jest.blackbox.config.js  six-component-pipeline.e2e.test.tsok
+npx jest --config test/config/jest.blackbox.config.js  stream-receiver-real-time.e2e.test.ts  
+
+# 快速运行Stream Receiver专项测试
+bun run test:blackbox:stream
 
 
 ## 📋 测试内容
@@ -110,6 +114,13 @@ npx jest --config test/config/jest.blackbox.config.js  six-component-pipeline.e2
 ### 🏥 真实系统监控验证
 - 验证监控系统在真实环境中的数据
 - 检查健康评分和性能指标的准确性
+
+### 🌊 Stream Receiver实时流验证 (NEW)
+- 验证WebSocket连接管理和认证
+- 测试实时数据流订阅和推送
+- 检查连接健康监控和故障恢复
+- 验证多符号并发订阅性能
+- 测试错误处理和边界情况
 
 ## ⚠️ 注意事项
 
