@@ -6,6 +6,7 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { createLogger } from '@common/config/logger.config';
@@ -13,6 +14,7 @@ import { StreamReceiverService } from './stream-receiver.service';
 import { StreamSubscribeDto, StreamUnsubscribeDto } from './dto';
 import { WsAuth, WsPublic } from './decorators/ws-auth.decorator';
 import { Permission } from '../../auth/enums/user-role.enum';
+import { ApiKeyService } from '../../auth/services/apikey.service';
 
 @WebSocketGateway({
   cors: {
@@ -20,10 +22,10 @@ import { Permission } from '../../auth/enums/user-role.enum';
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  namespace: '/stream',
+  path: '/api/v1/stream-receiver/connect',
   transports: ['websocket'],
 })
-export class StreamReceiverGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -31,17 +33,58 @@ export class StreamReceiverGateway implements OnGatewayConnection, OnGatewayDisc
 
   constructor(
     private readonly streamReceiverService: StreamReceiverService,
+    private readonly apiKeyService: ApiKeyService,
   ) {}
+
+  afterInit(server: Server) {
+    // 添加认证中间件，在连接建立前进行认证检查
+    server.use(async (socket, next) => {
+      try {
+        const authResult = await this.authenticateConnection(socket);
+        
+        if (!authResult.success) {
+          this.logger.warn({
+            message: 'WebSocket 连接认证失败（中间件）',
+            clientId: socket.id,
+            reason: authResult.reason,
+          });
+          
+          // 创建认证错误并阻止连接
+          const error = new Error(authResult.reason);
+          error.name = 'AuthenticationError';
+          return next(error);
+        }
+
+        this.logger.log({
+          message: 'WebSocket 连接认证成功（中间件）',
+          clientId: socket.id,
+          apiKeyName: authResult.apiKey?.name,
+        });
+
+        next();
+      } catch (error) {
+        this.logger.error({
+          message: 'WebSocket 认证中间件处理失败',
+          clientId: socket.id,
+          error: error.message,
+        });
+        
+        const authError = new Error('连接认证失败');
+        authError.name = 'AuthenticationError';
+        next(authError);
+      }
+    });
+  }
 
   /**
    * 客户端连接处理
+   * 认证已在中间件中完成，这里只处理连接成功后的逻辑
    */
   async handleConnection(client: Socket) {
     this.logger.log({
       message: 'WebSocket 客户端连接',
       clientId: client.id,
       remoteAddress: client.handshake.address,
-      userAgent: client.handshake.headers['user-agent'],
     });
 
     // 发送连接成功消息
@@ -234,5 +277,110 @@ export class StreamReceiverGateway implements OnGatewayConnection, OnGatewayDisc
       authType: authInfo?.authType || 'none',
       timestamp: Date.now(),
     });
+  }
+
+  /**
+   * 连接级别的认证检查
+   */
+  private async authenticateConnection(client: Socket): Promise<{
+    success: boolean;
+    reason?: string;
+    apiKey?: any;
+  }> {
+    try {
+      // 从连接认证信息中获取API Key
+      const authData = this.extractAuthFromConnection(client);
+
+      if (!authData.apiKey || !authData.accessToken) {
+        return {
+          success: false,
+          reason: 'Missing API Key or Access Token',
+        };
+      }
+
+      // 验证API Key
+      const apiKeyDoc = await this.apiKeyService.validateApiKey(
+        authData.apiKey,
+        authData.accessToken
+      );
+
+      if (!apiKeyDoc) {
+        return {
+          success: false,
+          reason: 'Invalid API Key or Access Token',
+        };
+      }
+
+      // 检查流权限
+      const hasStreamPermission = this.checkStreamPermissions(apiKeyDoc.permissions);
+      if (!hasStreamPermission) {
+        return {
+          success: false,
+          reason: 'Insufficient stream permissions',
+        };
+      }
+
+      // 将认证信息附加到客户端
+      client.data.apiKey = {
+        id: apiKeyDoc._id,
+        name: apiKeyDoc.name,
+        permissions: apiKeyDoc.permissions,
+        authType: 'apikey',
+      };
+
+      return {
+        success: true,
+        apiKey: apiKeyDoc,
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        reason: `Authentication error: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 从连接信息中提取认证数据
+   */
+  private extractAuthFromConnection(client: Socket) {
+    const handshake = client.handshake;
+    
+    // 从auth字段获取（Socket.IO标准方式）
+    if (handshake.auth?.appKey && handshake.auth?.accessToken) {
+      return {
+        apiKey: handshake.auth.appKey,
+        accessToken: handshake.auth.accessToken,
+      };
+    }
+
+    // 从查询参数获取
+    if (handshake.query?.appKey && handshake.query?.accessToken) {
+      return {
+        apiKey: handshake.query.appKey,
+        accessToken: handshake.query.accessToken,
+      };
+    }
+
+    // 从头部获取
+    return {
+      apiKey: handshake.headers['x-app-key'],
+      accessToken: handshake.headers['x-access-token'],
+    };
+  }
+
+  /**
+   * 检查流权限
+   */
+  private checkStreamPermissions(permissions: string[]): boolean {
+    const requiredStreamPermissions = [
+      Permission.STREAM_READ,
+      Permission.STREAM_SUBSCRIBE,
+    ];
+
+    return permissions.some(permission => 
+      requiredStreamPermissions.includes(permission as Permission)
+    );
   }
 }

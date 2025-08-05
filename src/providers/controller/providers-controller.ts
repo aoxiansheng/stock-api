@@ -43,6 +43,20 @@ export class ProvidersController {
   }
 
   /**
+   * 格式化流能力注册信息为统一的返回格式
+   */
+  private formatStreamCapabilityRegistration(registration: any) {
+    return {
+      name: registration.capability.name,
+      description: registration.capability.description,
+      supportedMarkets: registration.capability.supportedMarkets,
+      supportedSymbolFormats: registration.capability.supportedSymbolFormats,
+      priority: registration.priority,
+      isEnabled: registration.isEnabled,
+    };
+  }
+
+  /**
    * 获取格式化的提供商信息
    * 统一处理不存在的提供商场景
    */
@@ -102,6 +116,53 @@ export class ProvidersController {
     for (const [providerName, providerCapabilities] of capabilities) {
       result[providerName] = Array.from(providerCapabilities.values()).map(
         (reg) => this.formatCapabilityRegistration(reg)
+      );
+    }
+
+    return result;
+  }
+
+  @ApiKeyAuth()
+  @RequirePermissions(Permission.PROVIDERS_READ)
+  @Throttle({ default: RATE_LIMIT_CONFIG.ENDPOINTS.PROVIDER_CAPABILITIES })
+  @Get("stream-capabilities")
+  @ApiOperation({
+    summary: "获取所有可用流能力",
+    description:
+      "获取系统中所有注册的WebSocket流数据源提供商及其能力信息，包括支持的市场、符号格式、优先级等详细信息（需要API Key认证）",
+  })
+  @ApiSecurity("ApiKey")
+  @ApiSuccessResponse({
+    description: "获取成功",
+    schema: {
+      example: {
+        statusCode: 200,
+        message: "获取所有可用流能力成功",
+        data: {
+          longport: [
+            {
+              name: "stream-stock-quote",
+              description: "LongPort实时股票报价流",
+              supportedMarkets: ["HK", "US", "SZ", "SH"],
+              supportedSymbolFormats: ["{symbol}.{market}", "{symbol}"],
+              priority: 1,
+              isEnabled: true,
+            },
+          ],
+        },
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
+  })
+  @ApiStandardResponses()
+  getAllStreamCapabilities() {
+    this.logger.debug("getAllStreamCapabilities 方法被调用");
+    const streamCapabilities = this.capabilityRegistry.getAllStreamCapabilities();
+    const result = {};
+
+    for (const [providerName, providerStreamCapabilities] of streamCapabilities) {
+      result[providerName] = Array.from(providerStreamCapabilities.values()).map(
+        (reg) => this.formatStreamCapabilityRegistration(reg)
       );
     }
 
