@@ -12,7 +12,6 @@ import { Server, Socket } from 'socket.io';
 import { createLogger } from '@common/config/logger.config';
 import { StreamReceiverService } from './stream-receiver.service';
 import { StreamSubscribeDto, StreamUnsubscribeDto } from './dto';
-import { WsAuth, WsPublic } from './decorators/ws-auth.decorator';
 import { Permission } from '../../auth/enums/user-role.enum';
 import { ApiKeyService } from '../../auth/services/apikey.service';
 
@@ -118,20 +117,21 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
   /**
    * 订阅股票数据流
-   * 复用现有认证系统，需要DATA_READ权限
+   * 使用连接级别认证，无需重复验证
    */
   @SubscribeMessage('subscribe')
-  @WsAuth([Permission.DATA_READ])
   async handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamSubscribeDto,
   ) {
     try {
+      // 连接级别认证已完成，直接使用已验证的信息
       this.logger.log({
         message: '收到 WebSocket 订阅请求',
         clientId: client.id,
         symbols: data.symbols,
         capabilityType: data.capabilityType,
+        apiKeyName: client.data?.apiKey?.name || '未知',
       });
 
       // 执行订阅
@@ -172,10 +172,9 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
   /**
    * 取消订阅股票数据流
-   * 复用现有认证系统，需要DATA_READ权限
+   * 使用连接级别认证，无需重复验证
    */
   @SubscribeMessage('unsubscribe')
-  @WsAuth([Permission.DATA_READ])
   async handleUnsubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamUnsubscribeDto,
@@ -185,6 +184,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         message: '收到 WebSocket 取消订阅请求',
         clientId: client.id,
         symbols: data.symbols,
+        apiKeyName: client.data?.apiKey?.name || '未知',
       });
 
       // 执行取消订阅
@@ -217,10 +217,9 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
   /**
    * 获取订阅状态
-   * 复用现有认证系统，需要DATA_READ权限
+   * 使用连接级别认证，无需重复验证
    */
   @SubscribeMessage('get-subscription')
-  @WsAuth([Permission.DATA_READ])
   async handleGetSubscription(@ConnectedSocket() client: Socket) {
     try {
       const subscription = this.streamReceiverService.getClientSubscription(client.id);
@@ -252,10 +251,9 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
   /**
    * 心跳检测
-   * 公共端点，无需认证
+   * 连接级别已认证，无需额外验证
    */
   @SubscribeMessage('ping')
-  @WsPublic()
   async handlePing(@ConnectedSocket() client: Socket) {
     client.emit('pong', {
       timestamp: Date.now(),
@@ -264,17 +262,17 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
   /**
    * 获取连接信息
-   * 公共端点，无需认证
+   * 连接级别已认证，无需额外验证
    */
   @SubscribeMessage('get-info')
-  @WsPublic()
   async handleGetInfo(@ConnectedSocket() client: Socket) {
-    const authInfo = client.data?.user || client.data?.apiKey || null;
+    const authInfo = client.data?.apiKey || null;
     
     client.emit('connection-info', {
       clientId: client.id,
       connected: true,
-      authType: authInfo?.authType || 'none',
+      authType: authInfo?.authType || 'apikey',
+      apiKeyName: authInfo?.name || '未知',
       timestamp: Date.now(),
     });
   }

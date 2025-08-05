@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { StreamReceiverGateway } from './stream-receiver.gateway';
 import { StreamReceiverService } from './stream-receiver.service';
-import { WsAuthGuard } from './guards/ws-auth.guard';
 
 // 导入依赖模块
 import { AuthModule } from '../../auth/module/auth.module';
@@ -19,7 +18,6 @@ import { TransformerModule } from '../transformer/module/transformer.module';
   providers: [
     StreamReceiverGateway,
     StreamReceiverService,
-    WsAuthGuard,
   ],
   exports: [
     StreamReceiverGateway,

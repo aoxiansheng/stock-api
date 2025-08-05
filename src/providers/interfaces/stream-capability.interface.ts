@@ -42,8 +42,9 @@ export interface IStreamCapability {
 
   /**
    * 检查 WebSocket 连接状态
+   * @param contextService 提供商特定的上下文服务（可选）
    */
-  isConnected(): boolean;
+  isConnected(contextService?: any): boolean;
 }
 
 /**

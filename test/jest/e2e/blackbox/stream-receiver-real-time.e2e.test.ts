@@ -293,6 +293,14 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           console.log("✅ 认证错误被正确处理:", error.message || error);
           resolve(true);
         });
+
+        wsClient.on("disconnect", (reason) => {
+          if (reason === 'io server disconnect') {
+            clearTimeout(timeout);
+            console.log("✅ 无效认证被服务器断开连接:", reason);
+            resolve(true);
+          }
+        });
       });
     });
   });
@@ -335,7 +343,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     });
 
     it("应该能够订阅单个股票符号的实时数据流", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = "00700.HK";
       
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -343,19 +351,25 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         }, 30000);
 
         // 监听实时数据
-        wsClient.on("quote_update", (data) => {
+        wsClient.on("data", (data) => {
           console.log("📊 收到实时报价数据:", data);
           receivedMessages.push(data);
           
           // 验证数据格式
           expect(data).toBeDefined();
-          expect(data.symbol || data.code).toBeDefined();
+          // 数据结构: { data: [...], symbols: [...], timestamp, provider, capability }
+          expect(data.symbols || data.data).toBeDefined();
+          if (data.symbols && data.symbols.length > 0) {
+            expect(data.symbols[0]).toBeDefined();
+          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            expect(data.data[0].symbol || data.data[0].code).toBeDefined();
+          }
           
           clearTimeout(timeout);
           resolve(data);
         });
 
-        wsClient.on("subscription_confirmed", (data) => {
+        wsClient.on("subscribe-ack", (data) => {
           console.log("✅ 订阅确认:", data);
           expect(data.symbols).toContain(testSymbol);
         });
@@ -368,7 +382,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          dataType: "stream-stock-quote",
+          capabilityType: "stream-stock-quote",
         });
 
         console.log(`📡 发送订阅请求: ${testSymbol}`);
@@ -376,7 +390,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     }, 35000);
 
     it("应该能够订阅多个股票符号的实时数据流", async () => {
-      const testSymbols = ["700.HK", "AAPL.US", "000001.SZ"];
+      const testSymbols = ["00700.HK", "AAPL.US", "000001.SZ"];
       const receivedSymbols = new Set();
       
       return new Promise((resolve, reject) => {
@@ -390,7 +404,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         }, 45000);
 
         // 监听实时数据
-        wsClient.on("quote_update", (data) => {
+        wsClient.on("data", (data) => {
           const symbol = data.symbol || data.code;
           if (symbol && testSymbols.includes(symbol)) {
             receivedSymbols.add(symbol);
@@ -404,7 +418,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           }
         });
 
-        wsClient.on("subscription_confirmed", (data) => {
+        wsClient.on("subscribe-ack", (data) => {
           console.log("✅ 多符号订阅确认:", data);
           expect(Array.isArray(data.symbols)).toBe(true);
           expect(data.symbols.length).toBeGreaterThan(0);
@@ -418,7 +432,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送多符号订阅请求
         wsClient.emit("subscribe", {
           symbols: testSymbols,
-          dataType: "stream-stock-quote",
+          capabilityType: "stream-stock-quote",
         });
 
         console.log(`📡 发送多符号订阅请求: ${testSymbols.join(", ")}`);
@@ -426,7 +440,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     }, 50000);
 
     it("应该能够取消订阅股票符号", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = "00700.HK";
       let subscriptionActive = false;
       let dataReceivedAfterUnsubscribe = false;
       
@@ -441,7 +455,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         }, 20000);
 
         // 监听实时数据
-        wsClient.on("quote_update", (data) => {
+        wsClient.on("data", (data) => {
           const symbol = data.symbol || data.code;
           if (symbol === testSymbol) {
             if (subscriptionActive) {
@@ -458,7 +472,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           }
         });
 
-        wsClient.on("subscription_confirmed", (data) => {
+        wsClient.on("subscribe-ack", (data) => {
           console.log("✅ 订阅确认，准备取消订阅");
           subscriptionActive = true;
           
@@ -491,7 +505,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          dataType: "stream-stock-quote",
+          capabilityType: "stream-stock-quote",
         });
 
         console.log(`📡 测试取消订阅: ${testSymbol}`);
@@ -638,7 +652,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           reject(new Error("性能测试超时"));
         }, 60000);
 
-        const testSymbol = "700.HK";
+        const testSymbol = "00700.HK";
         const measurements: number[] = [];
         const latencyMeasurements: number[] = [];
         let messageCount = 0;
@@ -659,11 +673,11 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 订阅测试符号
           performanceClient.emit("subscribe", {
             symbols: [testSymbol],
-            dataType: "stream-stock-quote",
+            capabilityType: "stream-stock-quote",
           });
         });
 
-        performanceClient.on("quote_update", (data) => {
+        performanceClient.on("data", (data) => {
           const receiveTime = Date.now();
           messageCount++;
           
@@ -712,7 +726,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           }
         });
 
-        performanceClient.on("subscription_confirmed", (data) => {
+        performanceClient.on("subscribe-ack", (data) => {
           console.log("✅ 性能测试订阅确认");
         });
 
@@ -750,7 +764,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 订阅无效符号
           wsClient.emit("subscribe", {
             symbols: ["INVALID_SYMBOL", "ANOTHER_INVALID"],
-            dataType: "stream-stock-quote",
+            capabilityType: "stream-stock-quote",
           });
         });
 
@@ -797,7 +811,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           
           wsClient.emit("subscribe", {
             symbols: manySymbols,
-            dataType: "stream-stock-quote",
+            capabilityType: "stream-stock-quote",
           });
         });
 

@@ -74,8 +74,26 @@ export class StreamReceiverService {
       );
 
       // 6. 初始化连接（如果尚未连接）
-      if (!capability.isConnected()) {
+      if (!capability.isConnected(contextService)) {
+        this.logger.debug({
+          message: '开始初始化流能力连接',
+          provider: providerName,
+          capability: capabilityType,
+          clientId,
+        });
         await capability.initialize(contextService);
+        
+        // 验证初始化是否成功
+        if (!capability.isConnected(contextService)) {
+          throw new Error(`流能力初始化失败：${providerName}/${capabilityType} 连接状态仍为未连接`);
+        }
+        
+        this.logger.log({
+          message: '流能力连接初始化成功',
+          provider: providerName,
+          capability: capabilityType,
+          clientId,
+        });
       }
 
       // 7. 设置消息回调（通过上下文服务）

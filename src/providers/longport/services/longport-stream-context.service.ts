@@ -52,17 +52,33 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       // 创建 QuoteContext
       this.quoteContext = await QuoteContext.new(this.config);
+      this.logger.debug('LongPort QuoteContext 创建成功');
 
       // 设置报价数据回调
-      this.quoteContext.setOnQuote((_, event) => {
+      this.quoteContext.setOnQuote((symbol, event) => {
+        this.logger.debug({
+          message: 'LongPort SDK WebSocket 原始报价数据',
+          symbol,
+          event: typeof event === 'object' ? event : event?.toString(),
+          eventType: typeof event,
+          timestamp: Date.now(),
+        });
         this.handleQuoteUpdate(event);
       });
 
       // LongPort SDK 不提供连接状态监听方法
       // 假设连接成功，使用其他方式检测连接状态
+      const wasConnected = this.isConnected;
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      this.logger.log('LongPort WebSocket 初始化成功');
+      
+      this.logger.log({
+        message: 'LongPort WebSocket 初始化成功',
+        connectionStateChange: `${wasConnected} -> ${this.isConnected}`,
+        quotContextCreated: !!this.quoteContext,
+        configCreated: !!this.config,
+        messageCallbacksCount: this.messageCallbacks.length,
+      });
 
     } catch (error) {
       this.logger.error({
@@ -103,7 +119,22 @@ export class LongportStreamContextService implements OnModuleDestroy {
       }
 
       // 执行订阅，严格按照文档参数格式
+      this.logger.debug({
+        message: 'LongPort SDK 开始执行订阅',
+        symbols: newSymbols,
+        subTypes: subTypes.map(type => type.toString()),
+        isFirstPush,
+        quotContextStatus: this.quoteContext ? 'available' : 'null',
+      });
+
       await this.quoteContext.subscribe(newSymbols, subTypes, isFirstPush);
+
+      this.logger.debug({
+        message: 'LongPort SDK 订阅调用完成',
+        symbols: newSymbols,
+        subTypesUsed: subTypes.map(type => type.toString()),
+        isFirstPushUsed: isFirstPush,
+      });
 
       // 记录已订阅符号
       newSymbols.forEach(symbol => this.subscribedSymbols.add(symbol));
@@ -114,6 +145,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
         subTypes: subTypes.map(type => type.toString()),
         isFirstPush,
         totalSubscribed: this.subscribedSymbols.size,
+        subscribedSymbolsList: Array.from(this.subscribedSymbols),
       });
 
     } catch (error) {
@@ -191,7 +223,16 @@ export class LongportStreamContextService implements OnModuleDestroy {
    * 添加消息回调
    */
   onQuoteUpdate(callback: (data: any) => void): void {
+    const callbackIndex = this.messageCallbacks.length;
     this.messageCallbacks.push(callback);
+    
+    this.logger.debug({
+      message: 'LongPort 报价回调注册',
+      callbackIndex,
+      totalCallbacks: this.messageCallbacks.length,
+      callbackType: typeof callback,
+      isFunction: typeof callback === 'function',
+    });
   }
 
   /**
@@ -214,25 +255,57 @@ export class LongportStreamContextService implements OnModuleDestroy {
    */
   private handleQuoteUpdate(event: any): void {
     try {
+      this.logger.debug({
+        message: 'LongPort SDK 原始事件处理开始',
+        eventType: typeof event,
+        eventConstructor: event?.constructor?.name,
+        eventString: event?.toString ? event.toString() : 'N/A',
+        eventKeys: typeof event === 'object' && event ? Object.keys(event) : 'N/A',
+      });
+
       // 解析 LongPort 报价事件
       const eventData = this.parseLongportQuoteEvent(event);
       
+      this.logger.debug({
+        message: 'LongPort 报价事件解析完成',
+        parsedData: eventData,
+        hasSymbol: !!eventData.symbol,
+        hasPrice: !!eventData.last_done,
+        hasTimestamp: !!eventData.timestamp,
+      });
+      
       // 通知所有回调
-      this.messageCallbacks.forEach(callback => {
+      this.messageCallbacks.forEach((callback, index) => {
         try {
+          this.logger.debug({
+            message: `调用报价回调 #${index}`,
+            callbackIndex: index,
+            totalCallbacks: this.messageCallbacks.length,
+            symbol: eventData.symbol,
+          });
           callback(eventData);
         } catch (error) {
           this.logger.error({
             message: '报价回调处理失败',
+            callbackIndex: index,
             error: error.message,
+            eventData,
           });
         }
+      });
+
+      this.logger.debug({
+        message: 'LongPort 报价更新处理完成',
+        symbol: eventData.symbol,
+        callbacksNotified: this.messageCallbacks.length,
       });
 
     } catch (error) {
       this.logger.error({
         message: '处理报价更新失败',
         error: error.message,
+        errorStack: error.stack,
+        originalEvent: event,
       });
     }
   }
@@ -243,14 +316,36 @@ export class LongportStreamContextService implements OnModuleDestroy {
    */
   private parseLongportQuoteEvent(event: any): any {
     try {
+      this.logger.debug({
+        message: 'LongPort 报价事件解析开始',
+        eventType: typeof event,
+        isNull: event === null,
+        isUndefined: event === undefined,
+        hasToString: typeof event?.toString === 'function',
+      });
+
       // LongPort SDK可能直接返回对象或需要toString()解析
       let parsedEvent: any;
       
       if (typeof event === 'object' && event !== null) {
         parsedEvent = event;
+        this.logger.debug({
+          message: 'LongPort 事件类型：对象',
+          eventKeys: Object.keys(event),
+          eventValues: Object.values(event).map(v => typeof v),
+        });
       } else {
         const eventStr = event.toString();
+        this.logger.debug({
+          message: 'LongPort 事件类型：非对象，尝试解析字符串',
+          eventString: eventStr,
+          eventStringLength: eventStr.length,
+        });
         parsedEvent = JSON.parse(eventStr || '{}');
+        this.logger.debug({
+          message: 'LongPort 字符串解析成功',
+          parsedKeys: Object.keys(parsedEvent),
+        });
       }
 
       // 标准化字段名，确保与文档一致

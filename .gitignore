@@ -207,3 +207,4 @@ $RECYCLE.BIN/
 # Serena 开发工具目录
 serena/
 .serena/
+\n# Serena AI cache\n.serena/cache/

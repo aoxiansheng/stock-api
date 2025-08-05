@@ -79,8 +79,15 @@ export class SymbolValidationUtils {
     const upperSymbol = symbol.toUpperCase();
     
     // .HK 后缀格式：700.HK, 00700.HK, 09618.HK（支持1-5位数字，包含前导零）
+    // 特殊支持：HSI.HK（恒生指数）
     if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.HK_PATTERNS.SUFFIX)) {
       const prefix = upperSymbol.slice(0, -3); // 去掉 .HK
+      
+      // 特殊处理指数代码
+      if (prefix === 'HSI') {
+        return true; // 恒生指数
+      }
+      
       return /^\d{1,5}$/.test(prefix); // 1-5位数字，支持前导零
     }
 
@@ -103,13 +110,24 @@ export class SymbolValidationUtils {
   public static isValidUSSymbol(symbol: string): boolean {
     const upperSymbol = symbol.toUpperCase();
     
-    // .US 后缀格式：AAPL.US, BRK.A.US
+    // .US 后缀格式：AAPL.US, BRK.A.US, SPY.US
     if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.US_PATTERNS.SUFFIX)) {
       const prefix = upperSymbol.slice(0, -3); // 去掉 .US
+      
+      // 特殊处理ETF和指数代码
+      if (['SPY', 'QQQ', 'IWM', 'VTI', 'VOO'].includes(prefix)) {
+        return true; // 常见ETF代码
+      }
+      
       return /^[A-Z]{1,5}(\.[A-Z])?$/.test(prefix); // 支持 BRK.A 格式
     }
 
-    // 纯字母格式：AAPL, BRK.A
+    // 纯字母格式：AAPL, BRK.A, SPY
+    // 特殊处理ETF和指数代码
+    if (['SPY', 'QQQ', 'IWM', 'VTI', 'VOO'].includes(upperSymbol)) {
+      return true; // 常见ETF代码
+    }
+    
     return /^[A-Z]{1,5}(\.[A-Z])?$/.test(upperSymbol);
   }
 
@@ -254,8 +272,8 @@ export class SymbolValidationUtils {
    */
   public static getSupportedFormatExamples(): Record<string, string[]> {
     return {
-      HK: ['700.HK', '00700.HK', '09618.HK', '00700', '09618', '9988'],
-      US: ['AAPL.US', 'AAPL', 'BRK.A', 'BRK.A.US'],
+      HK: ['700.HK', '00700.HK', '09618.HK', 'HSI.HK', '00700', '09618', '9988'],
+      US: ['AAPL.US', 'AAPL', 'SPY.US', 'SPY', 'BRK.A', 'BRK.A.US'],
       SZ: ['000001.SZ', '000001', '300001.SZ', '300001'],
       SH: ['600000.SH', '600000', '688001.SH', '688001'],
       Others: ['D05.SG', 'TSM.TW', '7203.JP']

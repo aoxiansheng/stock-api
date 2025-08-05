@@ -186,10 +186,14 @@ export const streamStockQuote: IStreamCapability = {
   /**
    * 检查 WebSocket 连接状态
    */
-  isConnected(): boolean {
-    // 连接状态检查由 contextService 提供
-    // 这里返回一个默认值，实际状态在 StreamReceiverService 中通过 contextService 检查
-    return true;
+  isConnected(contextService?: LongportStreamContextService): boolean {
+    // 如果没有提供 contextService，返回 false 确保会触发初始化
+    if (!contextService) {
+      return false;
+    }
+    
+    // 检查实际的连接状态
+    return contextService.isWebSocketConnected();
   },
 };
 
