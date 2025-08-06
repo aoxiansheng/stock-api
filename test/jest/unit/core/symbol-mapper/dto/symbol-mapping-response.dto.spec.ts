@@ -12,8 +12,8 @@ describe('SymbolMappingResponseDto', () => {
         dataSourceName: 'test-source',
         SymbolMappingRule: [
           {
-            inputSymbol: 'AAPL.US',
-            outputSymbol: 'AAPL',
+            standardSymbol: 'AAPL.US',
+            sdkSymbol: 'AAPL',
             market: 'US',
             symbolType: 'Stock',
             isActive: true,
@@ -35,7 +35,7 @@ describe('SymbolMappingResponseDto', () => {
       expect(dto.id).toBe('some-id');
       expect(dto.dataSourceName).toBe('test-source');
       expect(dto.SymbolMappingRule).toHaveLength(1);
-      expect(dto.SymbolMappingRule[0].inputSymbol).toBe('AAPL.US');
+      expect(dto.SymbolMappingRule[0].standardSymbol).toBe('AAPL.US');
       expect(dto.description).toBe('Test mapping');
       expect(dto.version).toBe('1.0.0');
       expect(dto.isActive).toBe(true);
@@ -55,8 +55,8 @@ describe('SymbolMappingResponseDto', () => {
         dataSourceName: 'test-source',
         SymbolMappingRule: [
           {
-            inputSymbol: 'AAPL.US',
-            outputSymbol: 'AAPL',
+            standardSymbol: 'AAPL.US',
+            sdkSymbol: 'AAPL',
           },
         ],
         description: 'Test mapping',
@@ -74,7 +74,7 @@ describe('SymbolMappingResponseDto', () => {
       expect(dto.id).toBe('some-id');
       expect(dto.dataSourceName).toBe('test-source');
       expect(dto.SymbolMappingRule).toHaveLength(1);
-      expect(dto.SymbolMappingRule[0].inputSymbol).toBe('AAPL.US');
+      expect(dto.SymbolMappingRule[0].standardSymbol).toBe('AAPL.US');
       expect(dto.description).toBe('Test mapping');
       expect(dto.version).toBe('1.0.0');
       expect(dto.isActive).toBe(true);

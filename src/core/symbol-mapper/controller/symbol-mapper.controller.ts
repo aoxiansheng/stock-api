@@ -192,8 +192,8 @@ export class SymbolMapperController {
   async addSymbolMappingRule(@Body(ValidationPipe) addDto: AddSymbolMappingRuleDto) {
     this.logger.log(`API请求: 添加映射规则`, {
       dataSourceName: addDto.dataSourceName,
-      inputSymbol: addDto.symbolMappingRule.inputSymbol,
-      outputSymbol: addDto.symbolMappingRule.outputSymbol,
+      standardSymbol: addDto.symbolMappingRule.standardSymbol,
+      sdkSymbol: addDto.symbolMappingRule.sdkSymbol,
     });
 
     try {
@@ -402,21 +402,21 @@ export class SymbolMapperController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.MAPPING_WRITE)
-  @Patch("rules/:dataSourceName/:inputSymbol")
+  @Patch("rules/:dataSourceName/:standardSymbol")
   @ApiOperation({ summary: "更新特定的映射规则" })
   @ApiParam({ name: "dataSourceName", description: "数据源名称" })
-  @ApiParam({ name: "inputSymbol", description: "输入代码" })
+  @ApiParam({ name: "standardSymbol", description: "输入代码" })
   @ApiSuccessResponse({ type: SymbolMappingResponseDto })
   @ApiStandardResponses()
   async updateSymbolMappingRule(
     @Param("dataSourceName") dataSourceName: string,
-    @Param("inputSymbol") inputSymbol: string,
+    @Param("standardSymbol") standardSymbol: string,
     @Body(ValidationPipe)
     symbolMappingRule: Partial<UpdateSymbolMappingRuleDto["symbolMappingRule"]>,
   ) {
     const updateDto: UpdateSymbolMappingRuleDto = {
       dataSourceName,
-      inputSymbol,
+      standardSymbol,
       symbolMappingRule,
     };
     const result = await this.symbolMapperService.updateSymbolMappingRule(updateDto);
@@ -476,30 +476,30 @@ export class SymbolMapperController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.MAPPING_WRITE)
-  @Delete("rules/:dataSourceName/:inputSymbol")
+  @Delete("rules/:dataSourceName/:standardSymbol")
   @ApiOperation({ summary: "删除特定的映射规则" })
   @ApiParam({ name: "dataSourceName", description: "数据源名称" })
-  @ApiParam({ name: "inputSymbol", description: "输入代码" })
+  @ApiParam({ name: "standardSymbol", description: "输入代码" })
   @ApiSuccessResponse({ type: SymbolMappingResponseDto })
   @ApiStandardResponses()
   async removeSymbolMappingRule(
     @Param("dataSourceName") dataSourceName: string,
-    @Param("inputSymbol") inputSymbol: string,
+    @Param("standardSymbol") standardSymbol: string,
   ) {
     this.logger.log(`API请求: 删除映射规则`, {
       dataSourceName,
-      inputSymbol,
+      standardSymbol,
     });
 
     try {
       const result = await this.symbolMapperService.removeSymbolMappingRule(
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
       );
 
       this.logger.log(`API响应: 映射规则删除成功`, {
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
         remainingRules: result.SymbolMappingRule.length,
       });
 
@@ -508,7 +508,7 @@ export class SymbolMapperController {
     } catch (error: any) {
       this.logger.error(`API错误: 映射规则删除失败`, {
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
         error: error.message,
         errorType: error.constructor.name,
       });

@@ -107,9 +107,9 @@ describe("Core Modules Integration Tests", () => {
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
         SymbolMappingRule: [
-          { inputSymbol: "700.HK", outputSymbol: "00700", market: "HK" },
-          { inputSymbol: "AAPL.US", outputSymbol: "AAPL", market: "US" },
-          { inputSymbol: "AMD.US", outputSymbol: "AMD", market: "US" },
+          { standardSymbol: "700.HK", sdkSymbol: "00700", market: "HK" },
+          { standardSymbol: "AAPL.US", sdkSymbol: "AAPL", market: "US" },
+          { standardSymbol: "AMD.US", sdkSymbol: "AMD", market: "US" },
         ],
       });
     });
@@ -211,15 +211,15 @@ describe("Core Modules Integration Tests", () => {
         description: "Test mapping configuration",
         SymbolMappingRule: [
           {
-            inputSymbol: "700.HK",
-            outputSymbol: "00700.HK",
+            standardSymbol: "700.HK",
+            sdkSymbol: "00700.HK",
             market: "HK",
             symbolType: "stock",
             isActive: true,
           },
           {
-            inputSymbol: "AAPL",
-            outputSymbol: "AAPL.US",
+            standardSymbol: "AAPL",
+            sdkSymbol: "AAPL.US",
             market: "US",
             symbolType: "stock",
             isActive: true,
@@ -255,15 +255,15 @@ describe("Core Modules Integration Tests", () => {
         dataSourceName: "longport",
         SymbolMappingRule: [
           {
-            inputSymbol: "700.HK",
-            outputSymbol: "00700",
+            standardSymbol: "700.HK",
+            sdkSymbol: "00700",
             market: "HK",
             symbolType: "stock",
             isActive: true,
           },
           {
-            inputSymbol: "AAPL.US",
-            outputSymbol: "AAPL",
+            standardSymbol: "AAPL.US",
+            sdkSymbol: "AAPL",
             market: "US",
             symbolType: "stock",
             isActive: true,
@@ -508,8 +508,8 @@ describe("Core Modules Integration Tests", () => {
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
         SymbolMappingRule: [
-          { inputSymbol: "AAPL.US", outputSymbol: "AAPL-LP" },
-          { inputSymbol: "700.HK", outputSymbol: "700-LP" },
+          { standardSymbol: "AAPL.US", sdkSymbol: "AAPL-LP" },
+          { standardSymbol: "700.HK", sdkSymbol: "700-LP" },
         ],
       });
 
@@ -623,7 +623,7 @@ describe("Core Modules Integration Tests", () => {
 
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        SymbolMappingRule: [{ inputSymbol: "700.HK", outputSymbol: "700-LP" }],
+        SymbolMappingRule: [{ standardSymbol: "700.HK", sdkSymbol: "700-LP" }],
       });
       await TestDataHelper.createTestDataMapping(dataMappingModel, {
         provider: uniqueDataSourceName,
@@ -819,7 +819,7 @@ describe("Core Modules Integration Tests", () => {
 
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: uniqueDataSourceName,
-        SymbolMappingRule: [{ inputSymbol: "700.HK", outputSymbol: "700-LP" }],
+        SymbolMappingRule: [{ standardSymbol: "700.HK", sdkSymbol: "700-LP" }],
       });
     });
 
@@ -916,7 +916,7 @@ describe("Core Modules Integration Tests", () => {
     beforeEach(async () => {
       await TestDataHelper.createTestSymbolMapping(symbolMappingModel, {
         dataSourceName: "test",
-        SymbolMappingRule: [{ inputSymbol: "AAPL.US", outputSymbol: "AAPL" }],
+        SymbolMappingRule: [{ standardSymbol: "AAPL.US", sdkSymbol: "AAPL" }],
       });
     });
 
@@ -1066,15 +1066,15 @@ describe("Core Modules Integration Tests", () => {
         dataSourceName: uniqueDataSourceName,
         SymbolMappingRule: [
           {
-            inputSymbol: "700.HK",
-            outputSymbol: "00700",
+            standardSymbol: "700.HK",
+            sdkSymbol: "00700",
             market: "HK",
             symbolType: "stock",
             isActive: true,
           },
           {
-            inputSymbol: "MSFT.US",
-            outputSymbol: "MSFT",
+            standardSymbol: "MSFT.US",
+            sdkSymbol: "MSFT",
             market: "US",
             symbolType: "stock",
             isActive: true,

@@ -138,16 +138,16 @@ describe('Symbol Mapper Internal DTOs', () => {
     describe('Valid Data', () => {
       it('should create instance with complete mapping data', () => {
         // Arrange
-        dto.inputSymbol = '00700.HK';
-        dto.outputSymbol = '00700';
+        dto.standardSymbol = '00700.HK';
+        dto.sdkSymbol = '00700';
         dto.isActive = true;
         dto.market = 'HK';
         dto.symbolType = 'stock';
         dto.note = 'Tencent Holdings Ltd';
 
         // Assert
-        expect(dto.inputSymbol).toBe('00700.HK');
-        expect(dto.outputSymbol).toBe('00700');
+        expect(dto.standardSymbol).toBe('00700.HK');
+        expect(dto.sdkSymbol).toBe('00700');
         expect(dto.isActive).toBe(true);
         expect(dto.market).toBe('HK');
         expect(dto.symbolType).toBe('stock');
@@ -156,12 +156,12 @@ describe('Symbol Mapper Internal DTOs', () => {
 
       it('should create instance with minimal required data', () => {
         // Arrange
-        dto.inputSymbol = 'AAPL.US';
-        dto.outputSymbol = 'AAPL';
+        dto.standardSymbol = 'AAPL.US';
+        dto.sdkSymbol = 'AAPL';
 
         // Assert
-        expect(dto.inputSymbol).toBe('AAPL.US');
-        expect(dto.outputSymbol).toBe('AAPL');
+        expect(dto.standardSymbol).toBe('AAPL.US');
+        expect(dto.sdkSymbol).toBe('AAPL');
         expect(dto.isActive).toBeUndefined();
         expect(dto.market).toBeUndefined();
         expect(dto.symbolType).toBeUndefined();
@@ -170,8 +170,8 @@ describe('Symbol Mapper Internal DTOs', () => {
 
       it('should validate successfully', async () => {
         // Arrange
-        dto.inputSymbol = 'GOOGL.US';
-        dto.outputSymbol = 'GOOGL';
+        dto.standardSymbol = 'GOOGL.US';
+        dto.sdkSymbol = 'GOOGL';
         dto.isActive = false;
 
         // Act
@@ -190,35 +190,35 @@ describe('Symbol Mapper Internal DTOs', () => {
         // Assert
         expect(errors.length).toBe(2);
         const properties = errors.map(error => error.property);
-        expect(properties).toContain('inputSymbol');
-        expect(properties).toContain('outputSymbol');
+        expect(properties).toContain('standardSymbol');
+        expect(properties).toContain('sdkSymbol');
       });
     });
 
     describe('Symbol Mapping Logic', () => {
       it('should handle HK stock mapping', () => {
         // Arrange
-        dto.inputSymbol = '00700.HK';
-        dto.outputSymbol = '00700';
+        dto.standardSymbol = '00700.HK';
+        dto.sdkSymbol = '00700';
         dto.market = 'HK';
         dto.symbolType = 'stock';
 
         // Assert
-        expect(dto.inputSymbol).toContain('.HK');
-        expect(dto.outputSymbol).not.toContain('.HK');
+        expect(dto.standardSymbol).toContain('.HK');
+        expect(dto.sdkSymbol).not.toContain('.HK');
         expect(dto.market).toBe('HK');
       });
 
       it('should handle US stock mapping', () => {
         // Arrange
-        dto.inputSymbol = 'AAPL.US';
-        dto.outputSymbol = 'AAPL';
+        dto.standardSymbol = 'AAPL.US';
+        dto.sdkSymbol = 'AAPL';
         dto.market = 'US';
         dto.symbolType = 'stock';
 
         // Assert
-        expect(dto.inputSymbol).toContain('.US');
-        expect(dto.outputSymbol).not.toContain('.US');
+        expect(dto.standardSymbol).toContain('.US');
+        expect(dto.sdkSymbol).not.toContain('.US');
         expect(dto.market).toBe('US');
       });
     });
@@ -631,8 +631,8 @@ describe('Symbol Mapper Internal DTOs', () => {
       it('should handle HK stock symbol transformation', () => {
         // Arrange
         const internalMapping = new InternalSymbolMappingDto();
-        internalMapping.inputSymbol = '00700.HK';
-        internalMapping.outputSymbol = '00700';
+        internalMapping.standardSymbol = '00700.HK';
+        internalMapping.sdkSymbol = '00700';
         internalMapping.isActive = true;
         internalMapping.market = 'HK';
         internalMapping.symbolType = 'stock';
@@ -648,8 +648,8 @@ describe('Symbol Mapper Internal DTOs', () => {
         transformationLog.operation = 'hk_suffix_removal';
 
         // Assert
-        expect(internalMapping.inputSymbol).toBe('00700.HK');
-        expect(internalMapping.outputSymbol).toBe('00700');
+        expect(internalMapping.standardSymbol).toBe('00700.HK');
+        expect(internalMapping.sdkSymbol).toBe('00700');
         expect(internalMapping.market).toBe('HK');
         expect(transformationLog.success).toBe(true);
         expect(transformationLog.processingTime).toBeLessThan(20);

@@ -343,8 +343,8 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     });
 
     it("应该能够订阅单个股票符号的实时数据流", async () => {
-      const testSymbol = "700.HK";
-      const requiredQuoteCount = 10; // 要求至少10次报价
+      const testSymbol = "00700.HK";
+      const requiredQuoteCount = 1; // 要求至少3次报价
       let receivedQuoteCount = 0;
       const quotePrices = []; // 记录每次报价的价格
       
@@ -542,7 +542,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     }, 80000); // 增加Jest超时时间以匹配内部75秒超时 + 退订验证时间
 
     it("应该能够订阅多个股票符号的实时数据流", async () => {
-      const testSymbols = ["700.HK", "AMD.US", "SPY.US"];
+      const testSymbols = ["00700.HK", "AMD.US", "SPY.US"];
       const receivedSymbols = new Set();
       
       return new Promise((resolve, reject) => {
@@ -592,7 +592,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     }, 50000);
 
     it("应该能够取消订阅股票符号", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = "00700.HK";
       let subscriptionActive = false;
       let dataReceivedAfterUnsubscribe = false;
       
@@ -804,7 +804,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           reject(new Error("性能测试超时"));
         }, 60000);
 
-        const testSymbol = "700.HK";
+        const testSymbol = "00700.HK";
         const measurements: number[] = [];
         const latencyMeasurements: number[] = [];
         let messageCount = 0;

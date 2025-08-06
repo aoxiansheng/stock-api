@@ -15,8 +15,8 @@ describe('SymbolMappingRuleDto', () => {
   it('应该在所有字段都有效时验证通过', async () => {
     // 创建一个有效的 DTO 实例
     const dto = plainToClass(SymbolMappingRuleDto, {
-      inputSymbol: 'AAPL.US',
-      outputSymbol: 'AAPL',
+      standardSymbol: 'AAPL.US',
+      sdkSymbol: 'AAPL',
       market: 'US',
       symbolType: 'Stock',
       isActive: true,
@@ -28,22 +28,22 @@ describe('SymbolMappingRuleDto', () => {
     expect(errors).toEqual(dto);
   });
 
-  // 测试当缺少必需字段 inputSymbol 时的情况
-  it('当缺少必需字段 inputSymbol 时，应该验证失败', async () => {
-    // 创建一个缺少 inputSymbol 字段的 DTO 实例
+  // 测试当缺少必需字段 standardSymbol 时的情况
+  it('当缺少必需字段 standardSymbol 时，应该验证失败', async () => {
+    // 创建一个缺少 standardSymbol 字段的 DTO 实例
     const dto = plainToClass(SymbolMappingRuleDto, {
-      outputSymbol: 'AAPL',
+      sdkSymbol: 'AAPL',
     });
     // 使用验证管道进行验证，期望捕获到错误
     await expect(validator.transform(dto, { metatype: SymbolMappingRuleDto, type: 'body' })).rejects.toThrow();
   });
 
-  // 测试当 inputSymbol 长度过长时的情况
-  it('当 inputSymbol 长度过长时，应该验证失败', async () => {
-    // 创建一个 inputSymbol 长度过长的 DTO 实例
+  // 测试当 standardSymbol 长度过长时的情况
+  it('当 standardSymbol 长度过长时，应该验证失败', async () => {
+    // 创建一个 standardSymbol 长度过长的 DTO 实例
     const dto = plainToClass(SymbolMappingRuleDto, {
-      inputSymbol: 'A'.repeat(21),
-      outputSymbol: 'AAPL',
+      standardSymbol: 'A'.repeat(21),
+      sdkSymbol: 'AAPL',
     });
     // 使用验证管道进行验证，期望捕获到错误
     await expect(validator.transform(dto, { metatype: SymbolMappingRuleDto, type: 'body' })).rejects.toThrow();
@@ -65,8 +65,8 @@ describe('CreateSymbolMappingDto', () => {
       dataSourceName: 'test-source',
       SymbolMappingRule: [
         {
-          inputSymbol: 'AAPL.US',
-          outputSymbol: 'AAPL',
+          standardSymbol: 'AAPL.US',
+          sdkSymbol: 'AAPL',
         },
       ],
       description: 'Test mapping',
@@ -87,8 +87,8 @@ describe('CreateSymbolMappingDto', () => {
       dataSourceName: 'invalid name',
       SymbolMappingRule: [
         {
-          inputSymbol: 'AAPL.US',
-          outputSymbol: 'AAPL',
+          standardSymbol: 'AAPL.US',
+          sdkSymbol: 'AAPL',
         },
       ],
     });
@@ -114,8 +114,8 @@ describe('CreateSymbolMappingDto', () => {
       dataSourceName: 'test-source',
       SymbolMappingRule: [
         {
-          inputSymbol: 'AAPL.US',
-          outputSymbol: 'AAPL',
+          standardSymbol: 'AAPL.US',
+          sdkSymbol: 'AAPL',
         },
       ],
       version: '1.0',

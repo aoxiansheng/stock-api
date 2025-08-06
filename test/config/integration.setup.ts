@@ -508,8 +508,8 @@ export class TestDataHelper {
       description: "Test symbol mapping",
       SymbolMappingRule: [
         {
-          inputSymbol: "A",
-          outputSymbol: "B",
+          standardSymbol: "A",
+          sdkSymbol: "B",
           market: "US",
           symbolType: "stock",
           isActive: true,

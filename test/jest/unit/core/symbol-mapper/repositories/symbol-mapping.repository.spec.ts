@@ -27,8 +27,8 @@ describe("SymbolMappingRepository", () => {
     description: "LongPort symbol mappings",
     SymbolMappingRule: [
       {
-        inputSymbol: "AAPL",
-        outputSymbol: "AAPL.US",
+        standardSymbol: "AAPL",
+        sdkSymbol: "AAPL.US",
         market: "US",
         symbolType: "stock",
         isActive: true,
@@ -122,8 +122,8 @@ describe("SymbolMappingRepository", () => {
         description: "Test mappings",
         SymbolMappingRule: [
           {
-            inputSymbol: "GOOGL",
-            outputSymbol: "GOOGL.US",
+            standardSymbol: "GOOGL",
+            sdkSymbol: "GOOGL.US",
             market: "US",
             symbolType: "stock",
             isActive: true,
@@ -285,8 +285,8 @@ describe("SymbolMappingRepository", () => {
         $or: [
           { dataSourceName: { $regex: "AAPL", $options: "i" } },
           { description: { $regex: "AAPL", $options: "i" } },
-          { "SymbolMappingRule.inputSymbol": { $regex: "AAPL", $options: "i" } },
-          { "SymbolMappingRule.outputSymbol": { $regex: "AAPL", $options: "i" } },
+          { "SymbolMappingRule.standardSymbol": { $regex: "AAPL", $options: "i" } },
+          { "SymbolMappingRule.sdkSymbol": { $regex: "AAPL", $options: "i" } },
         ],
       };
       expect(model.find).toHaveBeenCalledWith(expectedFilter);
@@ -426,8 +426,8 @@ describe("SymbolMappingRepository", () => {
       const symbols = ["AAPL", "GOOGL"];
       const SymbolMappingRule = [
         {
-          inputSymbol: "AAPL",
-          outputSymbol: "AAPL.US",
+          standardSymbol: "AAPL",
+          sdkSymbol: "AAPL.US",
           market: "US",
           symbolType: "stock",
           isActive: true,
@@ -446,7 +446,7 @@ describe("SymbolMappingRepository", () => {
         },
         {
           $match: {
-            "SymbolMappingRule.inputSymbol": { $in: symbols },
+            "SymbolMappingRule.standardSymbol": { $in: symbols },
             "SymbolMappingRule.isActive": { $ne: false },
           },
         },
@@ -482,7 +482,7 @@ describe("SymbolMappingRepository", () => {
         },
         {
           $match: {
-            "SymbolMappingRule.inputSymbol": { $in: symbols },
+            "SymbolMappingRule.standardSymbol": { $in: symbols },
             "SymbolMappingRule.isActive": { $ne: false },
           },
         },
@@ -559,8 +559,8 @@ describe("SymbolMappingRepository", () => {
   describe("addSymbolMappingRule", () => {
     it("should add a mapping rule to existing data source", async () => {
       const newRule = {
-        inputSymbol: "TSLA",
-        outputSymbol: "TSLA.US",
+        standardSymbol: "TSLA",
+        sdkSymbol: "TSLA.US",
         market: "US",
         symbolType: "stock",
         isActive: true,
@@ -584,7 +584,7 @@ describe("SymbolMappingRepository", () => {
   describe("updateSymbolMappingRule", () => {
     it("should update a specific mapping rule", async () => {
       const updatedRule = {
-        outputSymbol: "AAPL.NASDAQ",
+        sdkSymbol: "AAPL.NASDAQ",
         market: "US",
         symbolType: "stock",
         isActive: true,
@@ -603,11 +603,11 @@ describe("SymbolMappingRepository", () => {
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         {
           dataSourceName: "longport",
-          "SymbolMappingRule.inputSymbol": "AAPL",
+          "SymbolMappingRule.standardSymbol": "AAPL",
         },
         {
           $set: {
-            "SymbolMappingRule.$.outputSymbol": updatedRule.outputSymbol,
+            "SymbolMappingRule.$.sdkSymbol": updatedRule.sdkSymbol,
             "SymbolMappingRule.$.market": updatedRule.market,
             "SymbolMappingRule.$.symbolType": updatedRule.symbolType,
             "SymbolMappingRule.$.isActive": updatedRule.isActive,
@@ -629,7 +629,7 @@ describe("SymbolMappingRepository", () => {
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { dataSourceName: "longport" },
-        { $pull: { SymbolMappingRule: { inputSymbol: "AAPL" } } },
+        { $pull: { SymbolMappingRule: { standardSymbol: "AAPL" } } },
         { new: true },
       );
       expect(result).toEqual(mockSymbolMappingDocument);
@@ -640,8 +640,8 @@ describe("SymbolMappingRepository", () => {
     it("should replace all mapping rules for a data source", async () => {
       const newRules = [
         {
-          inputSymbol: "NVDA",
-          outputSymbol: "NVDA.US",
+          standardSymbol: "NVDA",
+          sdkSymbol: "NVDA.US",
           market: "US",
           symbolType: "stock",
           isActive: true,

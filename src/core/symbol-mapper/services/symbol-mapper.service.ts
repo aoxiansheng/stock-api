@@ -84,14 +84,25 @@ export class SymbolMapperService implements ISymbolMapper {
     );
 
     try {
-      // 获取目标数据源的映射配置
-      const mappingResult = await this.getMappingConfigForProvider(toProvider);
+      // 根据转换方向确定查找策略
+      let mappingResult: MappingConfigResultDto;
+      let isReverseLookup = false;
 
-      if (!mappingResult.found) {
+      if (toProvider === 'standard') {
+        // 从提供商格式转换为标准格式，查找fromProvider的配置，反向查找
+        mappingResult = await this.getMappingConfigForProvider(fromProvider);
+        isReverseLookup = true; // sdkSymbol -> standardSymbol (SDK格式→标准格式)
+      } else if (fromProvider === 'standard') {
+        // 从标准格式转换为提供商格式，查找toProvider的配置，正向查找
+        mappingResult = await this.getMappingConfigForProvider(toProvider);
+        isReverseLookup = false; // standardSymbol -> sdkSymbol (标准格式→SDK格式)
+      } else {
+        // 两个提供商之间的转换，暂不支持
         this.logger.warn(
-          SYMBOL_MAPPER_WARNING_MESSAGES.MAPPING_CONFIG_NOT_FOUND,
+          `不支持提供商间直接转换: ${fromProvider} -> ${toProvider}`,
           sanitizeLogData({
             originalSymbol,
+            fromProvider,
             toProvider,
             operation: SYMBOL_MAPPER_OPERATIONS.MAP_SYMBOL,
           }),
@@ -99,10 +110,25 @@ export class SymbolMapperService implements ISymbolMapper {
         return originalSymbol;
       }
 
-      // 查找匹配的映射规则
+      if (!mappingResult.found) {
+        this.logger.warn(
+          SYMBOL_MAPPER_WARNING_MESSAGES.MAPPING_CONFIG_NOT_FOUND,
+          sanitizeLogData({
+            originalSymbol,
+            fromProvider,
+            toProvider,
+            provider: isReverseLookup ? toProvider : fromProvider,
+            operation: SYMBOL_MAPPER_OPERATIONS.MAP_SYMBOL,
+          }),
+        );
+        return originalSymbol;
+      }
+
+      // 查找匹配的映射规则（支持双向查找）
       const mappedSymbol = this.findMatchingSymbolMappingRule(
         originalSymbol,
         mappingResult.SymbolMappingRule,
+        isReverseLookup,
       );
 
       const processingTime = Date.now() - startTime;
@@ -517,19 +543,19 @@ export class SymbolMapperService implements ISymbolMapper {
    * 批量转换股票代码
    *
    * @param dataSourceName 数据源名称
-   * @param inputSymbols 输入股票代码列表
+   * @param standardSymbols 输入股票代码列表
    * @returns 转换响应DTO
    */
   async transformSymbols(
     dataSourceName: string,
-    inputSymbols: string[],
+    standardSymbols: string[],
   ): Promise<TransformSymbolsResponseDto> {
     const operation = SYMBOL_MAPPER_OPERATIONS.TRANSFORM_BY_NAME;
     const ruleFetcher = () =>
-      this.repository.findAllMappingsForSymbols(dataSourceName, inputSymbols);
+      this.repository.findAllMappingsForSymbols(dataSourceName, standardSymbols);
 
     return this._executeSymbolTransformation(
-      inputSymbols,
+      standardSymbols,
       { dataSourceName, operation },
       ruleFetcher,
     );
@@ -539,12 +565,12 @@ export class SymbolMapperService implements ISymbolMapper {
    * 通过映射配置ID批量转换股票代码
    *
    * @param mappingInSymbolId 映射配置ID
-   * @param inputSymbols 输入股票代码列表
+   * @param standardSymbols 输入股票代码列表
    * @returns 转换响应DTO
    */
   async transformSymbolsById(
     mappingInSymbolId: string,
-    inputSymbols: string[],
+    standardSymbols: string[],
   ): Promise<TransformSymbolsResponseDto> {
     const operation = SYMBOL_MAPPER_OPERATIONS.TRANSFORM_BY_ID;
 
@@ -562,14 +588,14 @@ export class SymbolMapperService implements ISymbolMapper {
       return {
         rules: mappingDoc.SymbolMappingRule.filter(
           (rule) =>
-            inputSymbols.includes(rule.inputSymbol) && rule.isActive !== false,
+            standardSymbols.includes(rule.standardSymbol) && rule.isActive !== false,
         ),
         dataSourceName: mappingDoc.dataSourceName,
       };
     };
 
     return this._executeSymbolTransformation(
-      inputSymbols,
+      standardSymbols,
       { mappingInSymbolId, operation },
       ruleFetcher,
     );
@@ -579,22 +605,22 @@ export class SymbolMapperService implements ISymbolMapper {
    * 获取转换后的代码列表（用于数据提供商调用）
    *
    * @param dataSourceName 数据源名称
-   * @param inputSymbols 输入股票代码列表
+   * @param standardSymbols 输入股票代码列表
    * @returns 转换后的股票代码列表
    */
   async getTransformedSymbolList(
     dataSourceName: string,
-    inputSymbols: string[],
+    standardSymbols: string[],
   ): Promise<string[]> {
     this.logger.debug(`获取转换后的代码列表`, {
       dataSourceName,
-      symbolsCount: inputSymbols.length,
+      symbolsCount: standardSymbols.length,
       operation: "getTransformedSymbolList",
     });
 
     try {
-      const result = await this.transformSymbols(dataSourceName, inputSymbols);
-      return inputSymbols.map((symbol) => result.transformedSymbols[symbol]);
+      const result = await this.transformSymbols(dataSourceName, standardSymbols);
+      return standardSymbols.map((symbol) => result.transformedSymbols[symbol]);
     } catch (error) {
       this.logger.error(`获取转换后代码列表失败`, {
         dataSourceName,
@@ -742,8 +768,8 @@ export class SymbolMapperService implements ISymbolMapper {
       `开始添加映射规则`,
       sanitizeLogData({
         dataSourceName: addDto.dataSourceName,
-        inputSymbol: addDto.symbolMappingRule.inputSymbol,
-        outputSymbol: addDto.symbolMappingRule.outputSymbol,
+        standardSymbol: addDto.symbolMappingRule.standardSymbol,
+        sdkSymbol: addDto.symbolMappingRule.sdkSymbol,
         operation: "addSymbolMappingRule",
       }),
     );
@@ -799,7 +825,7 @@ export class SymbolMapperService implements ISymbolMapper {
       `开始更新映射规则`,
       sanitizeLogData({
         dataSourceName: updateDto.dataSourceName,
-        inputSymbol: updateDto.inputSymbol,
+        standardSymbol: updateDto.standardSymbol,
         operation: "updateSymbolMappingRule",
       }),
     );
@@ -807,7 +833,7 @@ export class SymbolMapperService implements ISymbolMapper {
     try {
       const updated = await this.repository.updateSymbolMappingRule(
         updateDto.dataSourceName,
-        updateDto.inputSymbol,
+        updateDto.standardSymbol,
         updateDto.symbolMappingRule,
       );
 
@@ -816,7 +842,7 @@ export class SymbolMapperService implements ISymbolMapper {
           SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_RULE_NOT_FOUND.replace(
             "{dataSourceName}",
             updateDto.dataSourceName,
-          ).replace("{inputSymbol}", updateDto.inputSymbol),
+          ).replace("{standardSymbol}", updateDto.standardSymbol),
         );
       }
 
@@ -824,7 +850,7 @@ export class SymbolMapperService implements ISymbolMapper {
         `映射规则更新成功`,
         sanitizeLogData({
           dataSourceName: updateDto.dataSourceName,
-          inputSymbol: updateDto.inputSymbol,
+          standardSymbol: updateDto.standardSymbol,
           operation: "updateSymbolMappingRule",
         }),
       );
@@ -835,7 +861,7 @@ export class SymbolMapperService implements ISymbolMapper {
         `更新映射规则失败`,
         sanitizeLogData({
           dataSourceName: updateDto.dataSourceName,
-          inputSymbol: updateDto.inputSymbol,
+          standardSymbol: updateDto.standardSymbol,
           error: error.message,
           operation: "updateSymbolMappingRule",
         }),
@@ -848,18 +874,18 @@ export class SymbolMapperService implements ISymbolMapper {
    * 删除特定的映射规则
    *
    * @param dataSourceName 数据源名称
-   * @param inputSymbol 输入股票代码
+   * @param standardSymbol 标准股票代码
    * @returns 更新后的映射配置响应DTO
    */
   async removeSymbolMappingRule(
     dataSourceName: string,
-    inputSymbol: string,
+    standardSymbol: string,
   ): Promise<SymbolMappingResponseDto> {
     this.logger.log(
       `开始删除映射规则`,
       sanitizeLogData({
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
         operation: "removeSymbolMappingRule",
       }),
     );
@@ -867,7 +893,7 @@ export class SymbolMapperService implements ISymbolMapper {
     try {
       const updated = await this.repository.removeSymbolMappingRule(
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
       );
 
       if (!updated) {
@@ -883,7 +909,7 @@ export class SymbolMapperService implements ISymbolMapper {
         `映射规则删除成功`,
         sanitizeLogData({
           dataSourceName,
-          inputSymbol,
+          standardSymbol,
           remainingRules: updated.SymbolMappingRule.length,
           operation: "removeSymbolMappingRule",
         }),
@@ -895,7 +921,7 @@ export class SymbolMapperService implements ISymbolMapper {
         `删除映射规则失败`,
         sanitizeLogData({
           dataSourceName,
-          inputSymbol,
+          standardSymbol,
           error: error.message,
           operation: "removeSymbolMappingRule",
         }),
@@ -970,7 +996,7 @@ export class SymbolMapperService implements ISymbolMapper {
    * 🎯 新增: 封装核心转换流程以消除重复
    */
   private async _executeSymbolTransformation(
-    inputSymbols: string[],
+    standardSymbols: string[],
     context: {
       dataSourceName?: string;
       mappingInSymbolId?: string;
@@ -983,7 +1009,7 @@ export class SymbolMapperService implements ISymbolMapper {
     const startTime = process.hrtime.bigint();
     this.logger.log(
       `开始批量转换: ${context.operation}`,
-      sanitizeLogData({ ...context, symbolsCount: inputSymbols.length }),
+      sanitizeLogData({ ...context, symbolsCount: standardSymbols.length }),
     );
 
     try {
@@ -1000,20 +1026,20 @@ export class SymbolMapperService implements ISymbolMapper {
         dataSourceName = fetchResult.dataSourceName;
       }
 
-      const result = this.applySymbolMappingRule(inputSymbols, SymbolMappingRule, {
+      const result = this.applySymbolMappingRule(standardSymbols, SymbolMappingRule, {
         source: dataSourceName,
         mappingInSymbolId: context.mappingInSymbolId,
       });
 
       const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6; // 纳秒转毫秒
-      this.recordTransformationPerformance(processingTime, inputSymbols.length);
+      this.recordTransformationPerformance(processingTime, standardSymbols.length);
 
       this.logger.log(
         `批量转换完成: ${context.operation}`,
         sanitizeLogData({
           ...context,
-          totalInput: inputSymbols.length,
-          mappedCount: inputSymbols.length - result.failedSymbols.length,
+          totalInput: standardSymbols.length,
+          mappedCount: standardSymbols.length - result.failedSymbols.length,
           unmappedCount: result.failedSymbols.length,
           processingTime,
         }),
@@ -1026,7 +1052,7 @@ export class SymbolMapperService implements ISymbolMapper {
         `批量转换失败: ${context.operation}`,
         sanitizeLogData({
           ...context,
-          symbolsCount: inputSymbols.length,
+          symbolsCount: standardSymbols.length,
           error: error.message,
           processingTime,
         }),
@@ -1039,7 +1065,7 @@ export class SymbolMapperService implements ISymbolMapper {
    * 应用映射规则进行股票代码转换
    */
   private applySymbolMappingRule(
-    inputSymbols: string[],
+    standardSymbols: string[],
     SymbolMappingRule: SymbolMappingRule[],
     context: SymbolMappingRuleContextDto,
   ): Omit<TransformSymbolsResponseDto, "processingTimeMs"> {
@@ -1047,21 +1073,21 @@ export class SymbolMapperService implements ISymbolMapper {
     // 创建映射字典以提高查找性能
     const mappingDict = new Map<string, string>();
     SymbolMappingRule.forEach((rule) => {
-      mappingDict.set(rule.inputSymbol, rule.outputSymbol);
+      mappingDict.set(rule.standardSymbol, rule.sdkSymbol);
     });
 
     const transformedSymbols: Record<string, string> = {};
     const failedSymbols: string[] = []; // 🎯 新增: 用于收集转换失败的代码
 
-    inputSymbols.forEach((inputSymbol) => {
-      if (mappingDict.has(inputSymbol)) {
+    standardSymbols.forEach((standardSymbol) => {
+      if (mappingDict.has(standardSymbol)) {
         // 🎯 修正: 只在成功时进行映射
-        transformedSymbols[inputSymbol] = mappingDict.get(inputSymbol);
+        transformedSymbols[standardSymbol] = mappingDict.get(standardSymbol);
       } else {
         // 🎯 修正: 记录失败的股票代码
-        failedSymbols.push(inputSymbol);
+        failedSymbols.push(standardSymbol);
         // 保留原始映射行为，以便调用方能找到key
-        transformedSymbols[inputSymbol] = inputSymbol;
+        transformedSymbols[standardSymbol] = standardSymbol;
       }
     });
 
@@ -1077,8 +1103,8 @@ export class SymbolMapperService implements ISymbolMapper {
       sanitizeLogData({
         source: context.source,
         mappingInSymbolId: context.mappingInSymbolId,
-        totalInput: inputSymbols.length,
-        mappedCount: inputSymbols.length - failedSymbols.length,
+        totalInput: standardSymbols.length,
+        mappedCount: standardSymbols.length - failedSymbols.length,
         unmappedCount: failedSymbols.length,
         operation: "applySymbolMappingRule",
       }),
@@ -1112,32 +1138,49 @@ export class SymbolMapperService implements ISymbolMapper {
   }
 
   /**
-   * 查找匹配的映射规则
+   * 查找匹配的映射规则（支持双向查找）
    */
   private findMatchingSymbolMappingRule(
     originalSymbol: string,
     SymbolMappingRule: SymbolMappingRule[],
+    isReverseLookup: boolean = false,
   ): string {
-    const rule = SymbolMappingRule.find(
-      (rule) => rule.inputSymbol === originalSymbol && rule.isActive !== false,
-    );
+    let rule: SymbolMappingRule | undefined;
+    let mappedSymbol: string;
+
+    if (isReverseLookup) {
+      // 反向查找：sdkSymbol -> standardSymbol（SDK格式转标准格式）
+      rule = SymbolMappingRule.find(
+        (rule) => rule.sdkSymbol === originalSymbol && rule.isActive !== false,
+      );
+      mappedSymbol = rule?.standardSymbol || originalSymbol;
+    } else {
+      // 正向查找：standardSymbol -> sdkSymbol（标准格式转SDK格式）
+      rule = SymbolMappingRule.find(
+        (rule) => rule.standardSymbol === originalSymbol && rule.isActive !== false,
+      );
+      mappedSymbol = rule?.sdkSymbol || originalSymbol;
+    }
 
     if (rule) {
       this.logger.debug(
         `找到匹配的映射规则`,
         sanitizeLogData({
           originalSymbol,
-          mappedSymbol: rule.outputSymbol,
+          mappedSymbol,
+          direction: isReverseLookup ? 'reverse' : 'forward',
+          ruleType: isReverseLookup ? 'sdkSymbol->standardSymbol' : 'standardSymbol->sdkSymbol',
           operation: "findMatchingSymbolMappingRule",
         }),
       );
-      return rule.outputSymbol;
+      return mappedSymbol;
     }
 
     this.logger.debug(
       `未找到匹配的映射规则，返回原始代码`,
       sanitizeLogData({
         originalSymbol,
+        direction: isReverseLookup ? 'reverse' : 'forward',
         operation: "findMatchingSymbolMappingRule",
       }),
     );

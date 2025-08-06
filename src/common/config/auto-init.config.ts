@@ -609,8 +609,8 @@ export const PRESET_FIELD_DEFINITIONS = {
  * - version: 版本号（便于升级管理）
  * - isActive: 是否启用该数据源
  * - SymbolMappingRule: 具体的映射规则数组
- *   * inputSymbol: 输入的符号格式
- *   * outputSymbol: 该数据源需要的格式
+ *   * standardSymbol: 输入的符号格式
+ *   * sdkSymbol: 该数据源需要的格式
  *   * market: 市场标识（HK, US, SZ, SH）
  *   * symbolType: 证券类型（stock, etf, index）
  *   * description: 证券描述
@@ -642,36 +642,36 @@ export const SAMPLE_SYMBOL_MAPPINGS = [
     isActive: true,
     SymbolMappingRule: [
       {
-        inputSymbol: "700.HK",
-        outputSymbol: "00700.HK",
+        standardSymbol: "00700.HK",
+        sdkSymbol: "700.HK",
         market: "HK",
         symbolType: "stock",
         description: "腾讯控股",
       },
       {
-        inputSymbol: "700",
-        outputSymbol: "00700.HK",
+        standardSymbol: "700",
+        sdkSymbol: "700.HK",
         market: "HK",
         symbolType: "stock",
         description: "腾讯控股",
       },
       {
-        inputSymbol: "AAPL",
-        outputSymbol: "AAPL.US",
+        standardSymbol: "AAPL",
+        sdkSymbol: "AAPL.US",
         market: "US",
         symbolType: "stock",
         description: "苹果公司",
       },
       {
-        inputSymbol: "000001",
-        outputSymbol: "000001.SZ",
+        standardSymbol: "000001",
+        sdkSymbol: "000001.SZ",
         market: "SZ",
         symbolType: "stock",
         description: "平安银行",
       },
       {
-        inputSymbol: "600036",
-        outputSymbol: "600036.SH",
+        standardSymbol: "600036",
+        sdkSymbol: "600036.SH",
         market: "SH",
         symbolType: "stock",
         description: "招商银行",
@@ -700,15 +700,15 @@ export const SAMPLE_SYMBOL_MAPPINGS = [
     isActive: true,
     SymbolMappingRule: [
       {
-        inputSymbol: "700.HK",
-        outputSymbol: "HK.00700",
+        standardSymbol: "700.HK",
+        sdkSymbol: "HK.00700",
         market: "HK",
         symbolType: "stock",
         description: "腾讯控股",
       },
       {
-        inputSymbol: "AAPL.US",
-        outputSymbol: "US.AAPL",
+        standardSymbol: "AAPL.US",
+        sdkSymbol: "US.AAPL",
         market: "US",
         symbolType: "stock",
         description: "苹果公司",

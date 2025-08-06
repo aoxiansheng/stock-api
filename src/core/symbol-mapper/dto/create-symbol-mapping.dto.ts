@@ -16,28 +16,28 @@ import {
 
 export class SymbolMappingRuleDto {
   @ApiProperty({
-    description: "输入股票代码",
+    description: "系统标准格式代码",
     example: "700.HK",
     minLength: 1,
     maxLength: 20,
   })
-  @IsNotEmpty({ message: "输入股票代码不能为空" })
-  @IsString({ message: "输入股票代码必须为字符串" })
-  @MinLength(1, { message: "输入股票代码长度不能小于1个字符" })
-  @MaxLength(20, { message: "输入股票代码长度不能超过20个字符" })
-  inputSymbol: string;
+  @IsNotEmpty({ message: "系统标准格式代码不能为空" })
+  @IsString({ message: "系统标准格式代码必须为字符串" })
+  @MinLength(1, { message: "系统标准格式代码长度不能小于1个字符" })
+  @MaxLength(20, { message: "系统标准格式代码长度不能超过20个字符" })
+  standardSymbol: string;
 
   @ApiProperty({
-    description: "输出股票代码",
+    description: "厂商SDK格式代码",
     example: "00700",
     minLength: 1,
     maxLength: 20,
   })
-  @IsNotEmpty({ message: "输出股票代码不能为空" })
-  @IsString({ message: "输出股票代码必须为字符串" })
-  @MinLength(1, { message: "输出股票代码长度不能小于1个字符" })
-  @MaxLength(20, { message: "输出股票代码长度不能超过20个字符" })
-  outputSymbol: string;
+  @IsNotEmpty({ message: "厂商SDK格式代码不能为空" })
+  @IsString({ message: "厂商SDK格式代码必须为字符串" })
+  @MinLength(1, { message: "厂商SDK格式代码长度不能小于1个字符" })
+  @MaxLength(20, { message: "厂商SDK格式代码长度不能超过20个字符" })
+  sdkSymbol: string;
 
   @ApiProperty({
     description: "市场标识",

@@ -19,8 +19,8 @@
 
   // 核心映射规则
   class SymbolMappingRule {
-    inputSymbol: string;     // 标准格式: "700.HK"
-    outputSymbol: string;    // 数据源格式: "00700"
+    standardSymbol: string;     // 标准格式: "00700.HK"
+    sdkSymbol: string;    // SDK 要求的数据源格式: "700.Hk"
     market?: string;         // 市场: "HK", "US"
     symbolType?: string;     // 类型: "stock", "etf"
     isActive?: boolean;      // 启用状态
@@ -87,8 +87,8 @@
 
   // auto-init.config.ts中的实际使用示例
   {
-    inputSymbol: "700.HK",
-    outputSymbol: "00700.HK",
+    standardSymbol: "700.HK",
+    sdkSymbol: "00700.HK",
     market: "HK",
     symbolType: "stock",    // 目前所有示例都使用"stock"
     isActive: true
@@ -132,15 +132,15 @@
     "dataSourceName": "longport",
     "SymbolMappingRule": [
       {
-        "inputSymbol": "700.HK",
-        "outputSymbol": "00700.HK",
+        "standardSymbol": "700.HK",
+        "sdkSymbol": "00700.HK",
         "market": "HK",
         "symbolType": "stock",
         "isActive": true
       },
       {
-        "inputSymbol": "HSI.HK",
-        "outputSymbol": "HSI",
+        "standardSymbol": "HSI.HK",
+        "sdkSymbol": "HSI",
         "market": "HK",
         "symbolType": "index",
         "isActive": true
@@ -164,16 +164,16 @@
   // O(1)时间复杂度的映射字典
   const mappingDict = new Map<string, string>();
   mappingRules.forEach(rule => {
-    mappingDict.set(rule.inputSymbol, rule.outputSymbol);
+    mappingDict.set(rule.standardSymbol, rule.sdkSymbol);
   });
 
   // 批量转换处理
-  inputSymbols.forEach(inputSymbol => {
-    if (mappingDict.has(inputSymbol)) {
-      transformedSymbols[inputSymbol] = mappingDict.get(inputSymbol);
+  standardSymbols.forEach(standardSymbol => {
+    if (mappingDict.has(standardSymbol)) {
+      transformedSymbols[standardSymbol] = mappingDict.get(standardSymbol);
     } else {
-      failedSymbols.push(inputSymbol);
-      transformedSymbols[inputSymbol] = inputSymbol; // 容错保留原值
+      failedSymbols.push(standardSymbol);
+      transformedSymbols[standardSymbol] = standardSymbol; // 容错保留原值
     }
   });
 
@@ -182,7 +182,7 @@
   API层字段
 
   - dataSourceName - 数据源标识符
-  - inputSymbol/outputSymbol - 输入输出代码对
+  - standardSymbol/sdkSymbol - 输入输出代码对
   - transformedSymbols - 转换结果映射
   - failedSymbols - 转换失败的代码列表
 
@@ -208,7 +208,7 @@
   const pipeline = [
     { $match: { dataSourceName, isActive: true } },
     { $unwind: "$SymbolMappingRule" },
-    { $match: { "SymbolMappingRule.inputSymbol": { $in: inputSymbols } } },
+    { $match: { "SymbolMappingRule.standardSymbol": { $in: standardSymbols } } },
     { $replaceRoot: { newRoot: "$SymbolMappingRule" } }
   ];
 

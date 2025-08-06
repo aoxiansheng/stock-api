@@ -60,9 +60,9 @@ export class SymbolMappingRepository {
       filter.$or = [
         { dataSourceName: { $regex: query.search, $options: "i" } },
         { description: { $regex: query.search, $options: "i" } },
-        { "SymbolMappingRule.inputSymbol": { $regex: query.search, $options: "i" } },
+        { "SymbolMappingRule.standardSymbol": { $regex: query.search, $options: "i" } },
         {
-          "SymbolMappingRule.outputSymbol": { $regex: query.search, $options: "i" },
+          "SymbolMappingRule.sdkSymbol": { $regex: query.search, $options: "i" },
         },
       ];
     }
@@ -137,14 +137,14 @@ export class SymbolMappingRepository {
   // 核心映射查询方法
   async findMappingsForSymbols(
     dataSourceName: string,
-    inputSymbols: string[],
+    standardSymbols: string[],
   ): Promise<SymbolMappingRule[]> {
     const result = await this.symbolMappingRuleModel
       .findOne(
         {
           dataSourceName,
           isActive: true,
-          "SymbolMappingRule.inputSymbol": { $in: inputSymbols },
+          "SymbolMappingRule.standardSymbol": { $in: standardSymbols },
           "SymbolMappingRule.isActive": { $ne: false },
         },
         { "SymbolMappingRule.$": 1 },
@@ -156,14 +156,14 @@ export class SymbolMappingRepository {
     // 过滤匹配的映射规则
     return result.SymbolMappingRule.filter(
       (rule) =>
-        inputSymbols.includes(rule.inputSymbol) && rule.isActive !== false,
+        standardSymbols.includes(rule.standardSymbol) && rule.isActive !== false,
     );
   }
 
   // 批量查询优化版本
   async findAllMappingsForSymbols(
     dataSourceName: string,
-    inputSymbols: string[],
+    standardSymbols: string[],
   ): Promise<SymbolMappingRule[]> {
     const pipeline = [
       {
@@ -177,7 +177,7 @@ export class SymbolMappingRepository {
       },
       {
         $match: {
-          "SymbolMappingRule.inputSymbol": { $in: inputSymbols },
+          "SymbolMappingRule.standardSymbol": { $in: standardSymbols },
           "SymbolMappingRule.isActive": { $ne: false },
         },
       },
@@ -215,14 +215,14 @@ export class SymbolMappingRepository {
   // 更新特定的映射规则
   async updateSymbolMappingRule(
     dataSourceName: string,
-    inputSymbol: string,
+    standardSymbol: string,
     updateData: Partial<SymbolMappingRule>,
   ): Promise<SymbolMappingRuleDocument | null> {
     return this.symbolMappingRuleModel
       .findOneAndUpdate(
         {
           dataSourceName,
-          "SymbolMappingRule.inputSymbol": inputSymbol,
+          "SymbolMappingRule.standardSymbol": standardSymbol,
         },
         {
           $set: Object.keys(updateData).reduce((acc, key) => {
@@ -238,12 +238,12 @@ export class SymbolMappingRepository {
   // 删除特定的映射规则
   async removeSymbolMappingRule(
     dataSourceName: string,
-    inputSymbol: string,
+    standardSymbol: string,
   ): Promise<SymbolMappingRuleDocument | null> {
     return this.symbolMappingRuleModel
       .findOneAndUpdate(
         { dataSourceName },
-        { $pull: { SymbolMappingRule: { inputSymbol } } },
+        { $pull: { SymbolMappingRule: { standardSymbol } } },
         { new: true },
       )
       .exec();

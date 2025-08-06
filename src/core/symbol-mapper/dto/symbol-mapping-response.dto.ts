@@ -3,11 +3,11 @@ import { ApiProperty } from "@nestjs/swagger";
 import { SymbolMappingRuleDocumentType } from "../schemas/symbol-mapping-rule.schema";
 
 export class MappingRuleResponseDto {
-  @ApiProperty({ description: "输入股票代码" })
-  inputSymbol: string;
+  @ApiProperty({ description: "系统标准格式代码" })
+  standardSymbol: string;
 
-  @ApiProperty({ description: "输出股票代码" })
-  outputSymbol: string;
+  @ApiProperty({ description: "厂商SDK格式代码" })
+  sdkSymbol: string;
 
   @ApiProperty({ description: "市场标识" })
   market?: string;

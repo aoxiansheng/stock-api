@@ -45,16 +45,16 @@ describe("SymbolMappingRule Schema", () => {
   it("应该成功创建符号映射规则", async () => {
     const SymbolMappingRule: SymbolMappingRule[] = [
       {
-        inputSymbol: "700.HK",
-        outputSymbol: "00700",
+        standardSymbol: "700.HK",
+        sdkSymbol: "00700",
         market: "HK",
         symbolType: "stock",
         isActive: true,
         description: "腾讯控股港股映射",
       },
       {
-        inputSymbol: "AAPL.US",
-        outputSymbol: "AAPL",
+        standardSymbol: "AAPL.US",
+        sdkSymbol: "AAPL",
         market: "US",
         symbolType: "stock",
         isActive: true,
@@ -76,10 +76,10 @@ describe("SymbolMappingRule Schema", () => {
 
     expect(savedRule.dataSourceName).toBe(ruleData.dataSourceName);
     expect(savedRule.SymbolMappingRule).toHaveLength(2);
-    expect(savedRule.SymbolMappingRule[0].inputSymbol).toBe("700.HK");
-    expect(savedRule.SymbolMappingRule[0].outputSymbol).toBe("00700");
-    expect(savedRule.SymbolMappingRule[1].inputSymbol).toBe("AAPL.US");
-    expect(savedRule.SymbolMappingRule[1].outputSymbol).toBe("AAPL");
+    expect(savedRule.SymbolMappingRule[0].standardSymbol).toBe("700.HK");
+    expect(savedRule.SymbolMappingRule[0].sdkSymbol).toBe("00700");
+    expect(savedRule.SymbolMappingRule[1].standardSymbol).toBe("AAPL.US");
+    expect(savedRule.SymbolMappingRule[1].sdkSymbol).toBe("AAPL");
     expect(savedRule.description).toBe(ruleData.description);
     expect(savedRule.version).toBe(ruleData.version);
     expect(savedRule.isActive).toBe(true);
@@ -105,8 +105,8 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "json-test-provider",
       SymbolMappingRule: [
         {
-          inputSymbol: "TEST.HK",
-          outputSymbol: "TEST",
+          standardSymbol: "TEST.HK",
+          sdkSymbol: "TEST",
           market: "HK",
           symbolType: "stock",
         },
@@ -147,8 +147,8 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "mapping-rule-defaults",
       SymbolMappingRule: [
         {
-          inputSymbol: "DEFAULT.TEST",
-          outputSymbol: "DEFAULT",
+          standardSymbol: "DEFAULT.TEST",
+          sdkSymbol: "DEFAULT",
           // 其他字段使用默认值
         },
       ],
@@ -168,16 +168,16 @@ describe("SymbolMappingRule Schema", () => {
     const complexMappingRule: SymbolMappingRule[] = [
       // 港股映射
       {
-        inputSymbol: "700.HK",
-        outputSymbol: "00700",
+        standardSymbol: "700.HK",
+        sdkSymbol: "00700",
         market: "HK",
         symbolType: "stock",
         isActive: true,
         description: "腾讯控股",
       },
       {
-        inputSymbol: "941.HK",
-        outputSymbol: "00941",
+        standardSymbol: "941.HK",
+        sdkSymbol: "00941",
         market: "HK",
         symbolType: "stock",
         isActive: true,
@@ -185,16 +185,16 @@ describe("SymbolMappingRule Schema", () => {
       },
       // 美股映射
       {
-        inputSymbol: "AAPL.US",
-        outputSymbol: "AAPL",
+        standardSymbol: "AAPL.US",
+        sdkSymbol: "AAPL",
         market: "US",
         symbolType: "stock",
         isActive: true,
         description: "苹果公司",
       },
       {
-        inputSymbol: "MSFT.US",
-        outputSymbol: "MSFT",
+        standardSymbol: "MSFT.US",
+        sdkSymbol: "MSFT",
         market: "US",
         symbolType: "stock",
         isActive: true,
@@ -202,16 +202,16 @@ describe("SymbolMappingRule Schema", () => {
       },
       // A股映射
       {
-        inputSymbol: "000001.SZ",
-        outputSymbol: "000001",
+        standardSymbol: "000001.SZ",
+        sdkSymbol: "000001",
         market: "CN",
         symbolType: "stock",
         isActive: true,
         description: "平安银行",
       },
       {
-        inputSymbol: "600036.SH",
-        outputSymbol: "600036",
+        standardSymbol: "600036.SH",
+        sdkSymbol: "600036",
         market: "CN",
         symbolType: "stock",
         isActive: true,
@@ -219,8 +219,8 @@ describe("SymbolMappingRule Schema", () => {
       },
       // ETF映射
       {
-        inputSymbol: "SPY.US",
-        outputSymbol: "SPY",
+        standardSymbol: "SPY.US",
+        sdkSymbol: "SPY",
         market: "US",
         symbolType: "etf",
         isActive: true,
@@ -228,8 +228,8 @@ describe("SymbolMappingRule Schema", () => {
       },
       // 指数映射
       {
-        inputSymbol: "HSI.HK",
-        outputSymbol: "HSI",
+        standardSymbol: "HSI.HK",
+        sdkSymbol: "HSI",
         market: "HK",
         symbolType: "index",
         isActive: true,
@@ -237,8 +237,8 @@ describe("SymbolMappingRule Schema", () => {
       },
       // 禁用的映射
       {
-        inputSymbol: "DEPRECATED.TEST",
-        outputSymbol: "DEPRECATED",
+        standardSymbol: "DEPRECATED.TEST",
+        sdkSymbol: "DEPRECATED",
         market: "TEST",
         symbolType: "stock",
         isActive: false,
@@ -265,7 +265,7 @@ describe("SymbolMappingRule Schema", () => {
       (r) => r.market === "HK" && r.symbolType === "stock",
     );
     expect(hkStocks).toHaveLength(2);
-    expect(hkStocks.find((s) => s.inputSymbol === "700.HK")?.outputSymbol).toBe(
+    expect(hkStocks.find((s) => s.standardSymbol === "700.HK")?.sdkSymbol).toBe(
       "00700",
     );
 
@@ -275,32 +275,32 @@ describe("SymbolMappingRule Schema", () => {
     );
     expect(usStocks).toHaveLength(2);
     expect(
-      usStocks.find((s) => s.inputSymbol === "AAPL.US")?.outputSymbol,
+      usStocks.find((s) => s.standardSymbol === "AAPL.US")?.sdkSymbol,
     ).toBe("AAPL");
 
     // 验证A股映射
     const cnStocks = savedRule.SymbolMappingRule.filter((r) => r.market === "CN");
     expect(cnStocks).toHaveLength(2);
     expect(
-      cnStocks.find((s) => s.inputSymbol === "000001.SZ")?.outputSymbol,
+      cnStocks.find((s) => s.standardSymbol === "000001.SZ")?.sdkSymbol,
     ).toBe("000001");
 
     // 验证ETF映射
     const etfs = savedRule.SymbolMappingRule.filter((r) => r.symbolType === "etf");
     expect(etfs).toHaveLength(1);
-    expect(etfs[0].inputSymbol).toBe("SPY.US");
+    expect(etfs[0].standardSymbol).toBe("SPY.US");
 
     // 验证指数映射
     const indexes = savedRule.SymbolMappingRule.filter(
       (r) => r.symbolType === "index",
     );
     expect(indexes).toHaveLength(1);
-    expect(indexes[0].inputSymbol).toBe("HSI.HK");
+    expect(indexes[0].standardSymbol).toBe("HSI.HK");
 
     // 验证禁用的映射
     const inactiveRules = savedRule.SymbolMappingRule.filter((r) => !r.isActive);
     expect(inactiveRules).toHaveLength(1);
-    expect(inactiveRules[0].inputSymbol).toBe("DEPRECATED.TEST");
+    expect(inactiveRules[0].standardSymbol).toBe("DEPRECATED.TEST");
   });
 
   it("应该创建索引", async () => {
@@ -309,8 +309,8 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "index-test-provider",
       SymbolMappingRule: [
         {
-          inputSymbol: "INDEX.TEST",
-          outputSymbol: "INDEX",
+          standardSymbol: "INDEX.TEST",
+          sdkSymbol: "INDEX",
           market: "TEST",
         },
       ],
@@ -337,13 +337,13 @@ describe("SymbolMappingRule Schema", () => {
     );
     expect(isActiveIndex).toBeDefined();
 
-    // 查找symbolMappingRule.inputSymbol索引
-    const inputSymbolIndex = indexes.find(
+    // 查找symbolMappingRule.standardSymbol索引
+    const standardSymbolIndex = indexes.find(
       (index) =>
         index.key &&
-        Object.keys(index.key).includes("SymbolMappingRule.inputSymbol"),
+        Object.keys(index.key).includes("SymbolMappingRule.standardSymbol"),
     );
-    expect(inputSymbolIndex).toBeDefined();
+    expect(standardSymbolIndex).toBeDefined();
 
     // 查找symbolMappingRule.market索引
     const marketIndex = indexes.find(
@@ -364,8 +364,8 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "duplicate-provider",
       SymbolMappingRule: [
         {
-          inputSymbol: "FIRST.TEST",
-          outputSymbol: "FIRST",
+          standardSymbol: "FIRST.TEST",
+          sdkSymbol: "FIRST",
         },
       ],
     };
@@ -379,8 +379,8 @@ describe("SymbolMappingRule Schema", () => {
       ...ruleData,
       SymbolMappingRule: [
         {
-          inputSymbol: "SECOND.TEST",
-          outputSymbol: "SECOND",
+          standardSymbol: "SECOND.TEST",
+          sdkSymbol: "SECOND",
         },
       ],
     });
@@ -399,8 +399,8 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "dynamic-update-provider",
       SymbolMappingRule: [
         {
-          inputSymbol: "OLD.SYMBOL",
-          outputSymbol: "OLD",
+          standardSymbol: "OLD.SYMBOL",
+          sdkSymbol: "OLD",
           market: "TEST",
           symbolType: "stock",
           isActive: true,
@@ -415,16 +415,16 @@ describe("SymbolMappingRule Schema", () => {
     // 更新映射规则
     savedRule.SymbolMappingRule = [
       {
-        inputSymbol: "NEW.SYMBOL",
-        outputSymbol: "NEW",
+        standardSymbol: "NEW.SYMBOL",
+        sdkSymbol: "NEW",
         market: "TEST",
         symbolType: "stock",
         isActive: true,
         description: "更新后的符号",
       },
       {
-        inputSymbol: "ANOTHER.SYMBOL",
-        outputSymbol: "ANOTHER",
+        standardSymbol: "ANOTHER.SYMBOL",
+        sdkSymbol: "ANOTHER",
         market: "TEST",
         symbolType: "etf",
         isActive: true,
@@ -437,8 +437,8 @@ describe("SymbolMappingRule Schema", () => {
     const updatedRule = await savedRule.save();
 
     expect(updatedRule.SymbolMappingRule).toHaveLength(2);
-    expect(updatedRule.SymbolMappingRule[0].inputSymbol).toBe("NEW.SYMBOL");
-    expect(updatedRule.SymbolMappingRule[1].inputSymbol).toBe("ANOTHER.SYMBOL");
+    expect(updatedRule.SymbolMappingRule[0].standardSymbol).toBe("NEW.SYMBOL");
+    expect(updatedRule.SymbolMappingRule[1].standardSymbol).toBe("ANOTHER.SYMBOL");
     expect(updatedRule.version).toBe("2.0.0");
     expect(updatedRule.description).toBe("更新后的映射规则");
     
@@ -452,8 +452,8 @@ describe("SymbolMappingRule Schema", () => {
     const symbolTypes = ["stock", "etf", "index", "crypto", "forex"];
 
     const SymbolMappingRule: SymbolMappingRule[] = symbolTypes.map((type) => ({
-      inputSymbol: `${type.toUpperCase()}.TEST`,
-      outputSymbol: type.toUpperCase(),
+      standardSymbol: `${type.toUpperCase()}.TEST`,
+      sdkSymbol: type.toUpperCase(),
       market: "TEST",
       symbolType: type,
       isActive: true,
@@ -476,7 +476,7 @@ describe("SymbolMappingRule Schema", () => {
         (r) => r.symbolType === type,
       );
       expect(matchingRule).toBeDefined();
-      expect(matchingRule?.inputSymbol).toBe(`${type.toUpperCase()}.TEST`);
+      expect(matchingRule?.standardSymbol).toBe(`${type.toUpperCase()}.TEST`);
     });
   });
 
@@ -490,8 +490,8 @@ describe("SymbolMappingRule Schema", () => {
           dataSourceName: provider,
           SymbolMappingRule: [
             {
-              inputSymbol: `SYMBOL.TEST`,
-              outputSymbol: `OUTPUT`,
+              standardSymbol: `SYMBOL.TEST`,
+              sdkSymbol: `OUTPUT`,
               market: "TEST",
               symbolType: "stock",
               isActive: true,
@@ -508,7 +508,7 @@ describe("SymbolMappingRule Schema", () => {
     expect(rules).toHaveLength(3);
     rules.forEach((rule) => {
       expect(rule.dataSourceName).toBeDefined();
-      expect(rule.SymbolMappingRule[0].inputSymbol).toBe(`SYMBOL.TEST`);
+      expect(rule.SymbolMappingRule[0].standardSymbol).toBe(`SYMBOL.TEST`);
     });
 
     // 验证查询能力
@@ -519,6 +519,6 @@ describe("SymbolMappingRule Schema", () => {
       dataSourceName: "provider-a",
     });
     expect(providerARule).toBeDefined();
-    expect(providerARule?.SymbolMappingRule[0].outputSymbol).toBe("OUTPUT");
+    expect(providerARule?.SymbolMappingRule[0].sdkSymbol).toBe("OUTPUT");
   });
 });

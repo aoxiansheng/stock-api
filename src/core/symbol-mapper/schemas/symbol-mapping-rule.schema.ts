@@ -5,10 +5,10 @@ import { Document } from "mongoose";
 @Schema({ _id: false })
 export class SymbolMappingRule {
   @Prop({ type: String, required: true })
-  inputSymbol: string; // 输入的标准代码，如：700.HK, AAPL.US
+  standardSymbol: string; // 系统标准格式，如：00700.HK, AAPL.US
 
   @Prop({ type: String, required: true })
-  outputSymbol: string; // 该数据源需要的格式，如：00700, AAPL
+  sdkSymbol: string; // 厂商SDK格式，如：9618.HK(LongPort), AAPL(某些SDK)
 
   @Prop({ type: String })
   market?: string; // 市场标识，如：HK, US, CN
@@ -73,6 +73,6 @@ SymbolMappingRuleDocumentSchema.methods.toJSON = function () {
 // 索引优化
 // 注意：dataSourceName 已在 @Prop 中定义为 unique，这里无需重复定义
 SymbolMappingRuleDocumentSchema.index({ isActive: 1 }); // 查询索引：是否启用
-SymbolMappingRuleDocumentSchema.index({ "SymbolMappingRule.inputSymbol": 1 }); // 查询索引：输入代码
+SymbolMappingRuleDocumentSchema.index({ "SymbolMappingRule.standardSymbol": 1 }); // 查询索引：标准格式代码
 SymbolMappingRuleDocumentSchema.index({ "SymbolMappingRule.market": 1 }); // 查询索引：市场
 SymbolMappingRuleDocumentSchema.index({ createdAt: -1 }); // 排序索引：创建时间

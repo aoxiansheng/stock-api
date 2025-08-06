@@ -15,8 +15,8 @@ export interface ISymbolMapper {
  * 单个映射规则
  */
 export interface ISymbolMappingRule {
-  inputSymbol: string;
-  outputSymbol: string;
+  standardSymbol: string;
+  sdkSymbol: string;
   market?: string;
   symbolType?: string;
   isActive?: boolean;

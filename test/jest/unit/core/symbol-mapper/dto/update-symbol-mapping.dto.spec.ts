@@ -27,7 +27,7 @@ describe("UpdateSymbolMappingDto", () => {
     // 创建一个有效的 DTO 实例
     const dto = plainToClass(UpdateSymbolMappingDto, {
       dataSourceName: "test_source",
-      SymbolMappingRule: [{ inputSymbol: "APPL", outputSymbol: "Apple" }],
+      SymbolMappingRule: [{ standardSymbol: "APPL", sdkSymbol: "Apple" }],
     });
     // 使用验证管道进行验证，期望没有错误
     const errors = await validator.transform(dto, {
@@ -140,8 +140,8 @@ describe("AddSymbolMappingRuleDto", () => {
     const dto = plainToClass(AddSymbolMappingRuleDto, {
       dataSourceName: "test_source",
       symbolMappingRule: {
-        inputSymbol: "APPL",
-        outputSymbol: "Apple",
+        standardSymbol: "APPL",
+        sdkSymbol: "Apple",
         matchRule: "exact",
       },
     });
@@ -159,8 +159,8 @@ describe("AddSymbolMappingRuleDto", () => {
     // 创建一个无效的 DTO 实例
     const dto = plainToClass(AddSymbolMappingRuleDto, {
       symbolMappingRule: {
-        inputSymbol: "APPL",
-        outputSymbol: "Apple",
+        standardSymbol: "APPL",
+        sdkSymbol: "Apple",
         matchRule: "exact",
       },
     });
@@ -188,8 +188,8 @@ describe("UpdateSymbolMappingRuleDto", () => {
     // 创建一个有效的 DTO 实例
     const dto = plainToClass(UpdateSymbolMappingRuleDto, {
       dataSourceName: "test_source",
-      inputSymbol: "APPL",
-      symbolMappingRule: { outputSymbol: "NewApple" },
+      standardSymbol: "APPL",
+      symbolMappingRule: { sdkSymbol: "NewApple" },
     });
     // 使用验证管道进行验证，期望没有错误
     const errors = await validator.transform(dto, {
@@ -204,8 +204,8 @@ describe("UpdateSymbolMappingRuleDto", () => {
   it("当 dataSourceName 为空时，应该验证失败", async () => {
     // 创建一个无效的 DTO 实例
     const dto = plainToClass(UpdateSymbolMappingRuleDto, {
-      inputSymbol: "APPL",
-      symbolMappingRule: { outputSymbol: "NewApple" },
+      standardSymbol: "APPL",
+      symbolMappingRule: { sdkSymbol: "NewApple" },
     });
     // 使用验证管道进行验证，期望捕获到错误
     await expect(
@@ -216,12 +216,12 @@ describe("UpdateSymbolMappingRuleDto", () => {
     ).rejects.toThrow();
   });
 
-  // 测试当 inputSymbol 为空时的情况
-  it("当 inputSymbol 为空时，应该验证失败", async () => {
+  // 测试当 standardSymbol 为空时的情况
+  it("当 standardSymbol 为空时，应该验证失败", async () => {
     // 创建一个无效的 DTO 实例
     const dto = plainToClass(UpdateSymbolMappingRuleDto, {
       dataSourceName: "test_source",
-      symbolMappingRule: { outputSymbol: "NewApple" },
+      symbolMappingRule: { sdkSymbol: "NewApple" },
     });
     // 使用验证管道进行验证，期望捕获到错误
     await expect(

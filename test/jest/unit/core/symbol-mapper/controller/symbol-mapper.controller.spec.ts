@@ -201,7 +201,7 @@ describe('SymbolMapperController', () => {
   describe('addSymbolMappingRule', () => {
     const addRuleDto: AddSymbolMappingRuleDto = {
       dataSourceName: 'longport',
-      symbolMappingRule: { inputSymbol: '700', outputSymbol: '00700.HK' },
+      symbolMappingRule: { standardSymbol: '700', sdkSymbol: '00700.HK' },
     };
 
     it('should add a symbol mapping rule', async () => {
@@ -300,8 +300,8 @@ describe('SymbolMapperController', () => {
   describe('getSymbolMappingRule', () => {
     it('should get mapping rule by ID', async () => {
       const mockMappingRules = [{ 
-        inputSymbol: '700', 
-        outputSymbol: '00700.HK',
+        standardSymbol: '700', 
+        sdkSymbol: '00700.HK',
         market: 'HK',
         symbolType: 'STOCK',
         isActive: true,
@@ -337,15 +337,15 @@ describe('SymbolMapperController', () => {
   describe('updateSymbolMappingRule', () => {
     const updateRuleDto: UpdateSymbolMappingRuleDto = {
       dataSourceName: 'longport',
-      inputSymbol: '700',
-      symbolMappingRule: { outputSymbol: '00700.HK' },
+      standardSymbol: '700',
+      symbolMappingRule: { sdkSymbol: '00700.HK' },
     };
 
     it('should update a specific symbol mapping rule', async () => {
       service.updateSymbolMappingRule.mockResolvedValue(mockSymbolMappingResponse);
       const result = await controller.updateSymbolMappingRule(
         updateRuleDto.dataSourceName,
-        updateRuleDto.inputSymbol,
+        updateRuleDto.standardSymbol,
         updateRuleDto.symbolMappingRule,
       );
       expect(service.updateSymbolMappingRule).toHaveBeenCalledWith(updateRuleDto);

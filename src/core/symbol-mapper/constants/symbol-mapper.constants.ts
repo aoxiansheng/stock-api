@@ -12,7 +12,7 @@ export const SYMBOL_MAPPER_ERROR_MESSAGES = Object.freeze({
   DATA_SOURCE_MAPPING_NOT_FOUND: "数据源映射配置不存在: {dataSourceName}",
   DATA_SOURCE_NOT_FOUND: "数据源不存在: {dataSourceName}",
   MAPPING_RULE_NOT_FOUND:
-    "数据源或映射规则不存在: {dataSourceName} -> {inputSymbol}",
+    "数据源或映射规则不存在: {dataSourceName} -> {standardSymbol}",
   MAPPING_CONFIG_INACTIVE: "映射配置不存在或已停用: {mappingId}",
   SYMBOL_MAPPING_FAILED: "股票代码映射失败",
   SAVE_MAPPING_FAILED: "保存映射规则失败",

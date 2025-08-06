@@ -80,10 +80,10 @@ export class UpdateSymbolMappingRuleDto {
   @IsString()
   dataSourceName: string;
 
-  @ApiProperty({ description: "输入股票代码", example: "700.HK" })
+  @ApiProperty({ description: "系统标准格式代码", example: "700.HK" })
   @IsNotEmpty()
   @IsString()
-  inputSymbol: string;
+  standardSymbol: string;
 
   @ApiProperty({ description: "映射规则更新内容" })
   @IsNotEmpty()

@@ -73,7 +73,7 @@ describe('SymbolMapperService', () => {
       const fromProvider = 'Standard';
       const toProvider = 'LongPort';
       const mockMappingRule = [
-        { inputSymbol: 'AAPL.US', outputSymbol: '700.HK', isActive: true },
+        { standardSymbol: 'AAPL.US', sdkSymbol: '700.HK', isActive: true },
       ];
       repository.findByDataSource.mockResolvedValueOnce({
         dataSourceName: toProvider,
@@ -108,7 +108,7 @@ describe('SymbolMapperService', () => {
       const fromProvider = 'Standard';
       const toProvider = 'LongPort';
       const mockMappingRule = [
-        { inputSymbol: 'AAPL.US', outputSymbol: '700.HK', isActive: true },
+        { standardSymbol: 'AAPL.US', sdkSymbol: '700.HK', isActive: true },
       ];
       repository.findByDataSource.mockResolvedValueOnce({
         dataSourceName: toProvider,
@@ -139,7 +139,7 @@ describe('SymbolMapperService', () => {
     const createDto: CreateSymbolMappingDto = {
       dataSourceName: 'TestDataSource',
       SymbolMappingRule: [
-        { inputSymbol: 'A', outputSymbol: 'B', isActive: true },
+        { standardSymbol: 'A', sdkSymbol: 'B', isActive: true },
       ],
     };
     const mockCreatedDoc = {
@@ -183,7 +183,7 @@ describe('SymbolMapperService', () => {
     const mockRuleList = {
       dataSourceName: 'TestSave',
       SymbolMappingRule: [
-        { inputSymbol: 'S1', outputSymbol: 'T1', isActive: true },
+        { standardSymbol: 'S1', sdkSymbol: 'T1', isActive: true },
       ],
       isActive: true,
       createdAt: new Date(),
@@ -215,7 +215,7 @@ describe('SymbolMapperService', () => {
     const mockMapping = {
       dataSourceName: provider,
       SymbolMappingRule: [
-        { inputSymbol: 'A', outputSymbol: 'B', isActive: true },
+        { standardSymbol: 'A', sdkSymbol: 'B', isActive: true },
       ],
     };
 
@@ -323,7 +323,7 @@ describe('SymbolMapperService', () => {
       {
         _id: 'id1',
         dataSourceName: 'Test',
-        SymbolMappingRule: [{ inputSymbol: 'A', outputSymbol: 'B' }],
+        SymbolMappingRule: [{ standardSymbol: 'A', sdkSymbol: 'B' }],
       },
     ];
     const mockPaginatedResponse: PaginatedDataDto<SymbolMappingResponseDto> = {
@@ -375,7 +375,7 @@ describe('SymbolMapperService', () => {
     const updateDto: UpdateSymbolMappingDto = {
       dataSourceName: 'UpdatedDataSource',
       SymbolMappingRule: [
-        { inputSymbol: 'C', outputSymbol: 'D', isActive: true },
+        { standardSymbol: 'C', sdkSymbol: 'D', isActive: true },
       ],
     };
     const mockUpdatedDoc = {
@@ -448,10 +448,10 @@ describe('SymbolMapperService', () => {
 
   describe('transformSymbols', () => {
     const dataSourceName = 'TestDataSource';
-    const inputSymbols = ['AAPL.US', 'GOOG.US'];
+    const standardSymbols = ['AAPL.US', 'GOOG.US'];
     const mockMappingRules = [
-      { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
-      { inputSymbol: 'GOOG.US', outputSymbol: 'GOOG.US', isActive: true },
+      { standardSymbol: 'AAPL.US', sdkSymbol: 'APPL.US', isActive: true },
+      { standardSymbol: 'GOOG.US', sdkSymbol: 'GOOG.US', isActive: true },
     ];
     const mockFindAllMappingsResult = {
       rules: mockMappingRules,
@@ -463,26 +463,26 @@ describe('SymbolMapperService', () => {
         mockFindAllMappingsResult,
       );
 
-      const result = await service.transformSymbols(dataSourceName, inputSymbols);
+      const result = await service.transformSymbols(dataSourceName, standardSymbols);
       expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
       expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US');
       expect(result.failedSymbols).toEqual([]);
       expect(repository.findAllMappingsForSymbols).toHaveBeenCalledWith(
         dataSourceName,
-        inputSymbols,
+        standardSymbols,
       );
     });
 
     it('should handle untransformed symbols', async () => {
       const partialMappingRules = [
-        { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
+        { standardSymbol: 'AAPL.US', sdkSymbol: 'APPL.US', isActive: true },
       ];
       repository.findAllMappingsForSymbols.mockResolvedValueOnce({
         rules: partialMappingRules,
         dataSourceName: dataSourceName,
       });
 
-      const result = await service.transformSymbols(dataSourceName, inputSymbols);
+      const result = await service.transformSymbols(dataSourceName, standardSymbols);
       expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
       expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US'); // Untransformed
       expect(result.failedSymbols).toEqual(['GOOG.US']);
@@ -494,22 +494,22 @@ describe('SymbolMapperService', () => {
       );
 
       await expect(
-        service.transformSymbols(dataSourceName, inputSymbols),
+        service.transformSymbols(dataSourceName, standardSymbols),
       ).rejects.toThrow('DB Error');
     });
   });
 
   describe('transformSymbolsById', () => {
     const mappingInSymbolId = 'someMappingId';
-    const inputSymbols = ['AAPL.US', 'GOOG.US'];
+    const standardSymbols = ['AAPL.US', 'GOOG.US'];
     const mockMappingDoc = {
       _id: mappingInSymbolId,
       dataSourceName: 'TestDataSource',
       isActive: true,
       SymbolMappingRule: [
-        { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
-        { inputSymbol: 'GOOG.US', outputSymbol: 'GOOG.US', isActive: true },
-        { inputSymbol: 'MSFT', outputSymbol: 'MSFT.US', isActive: false }, // Inactive rule
+        { standardSymbol: 'AAPL.US', sdkSymbol: 'APPL.US', isActive: true },
+        { standardSymbol: 'GOOG.US', sdkSymbol: 'GOOG.US', isActive: true },
+        { standardSymbol: 'MSFT', sdkSymbol: 'MSFT.US', isActive: false }, // Inactive rule
       ],
     };
 
@@ -518,7 +518,7 @@ describe('SymbolMapperService', () => {
 
       const result = await service.transformSymbolsById(
         mappingInSymbolId,
-        inputSymbols,
+        standardSymbols,
       );
       expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
       expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US');
@@ -530,7 +530,7 @@ describe('SymbolMapperService', () => {
       repository.findById.mockResolvedValueOnce(null);
 
       await expect(
-        service.transformSymbolsById(mappingInSymbolId, inputSymbols),
+        service.transformSymbolsById(mappingInSymbolId, standardSymbols),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -541,7 +541,7 @@ describe('SymbolMapperService', () => {
       });
 
       await expect(
-        service.transformSymbolsById(mappingInSymbolId, inputSymbols),
+        service.transformSymbolsById(mappingInSymbolId, standardSymbols),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -549,14 +549,14 @@ describe('SymbolMapperService', () => {
       repository.findById.mockResolvedValueOnce({
         ...mockMappingDoc,
         SymbolMappingRule: [
-          { inputSymbol: 'AAPL.US', outputSymbol: 'APPL.US', isActive: true },
-          { inputSymbol: 'MSFT', outputSymbol: 'MSFT.US', isActive: false },
+          { standardSymbol: 'AAPL.US', sdkSymbol: 'APPL.US', isActive: true },
+          { standardSymbol: 'MSFT', sdkSymbol: 'MSFT.US', isActive: false },
         ],
       });
 
       const result = await service.transformSymbolsById(
         mappingInSymbolId,
-        inputSymbols,
+        standardSymbols,
       );
       expect(result.transformedSymbols['AAPL.US']).toEqual('APPL.US');
       expect(result.transformedSymbols['GOOG.US']).toEqual('GOOG.US'); // GOOG not in rules
@@ -567,14 +567,14 @@ describe('SymbolMapperService', () => {
       repository.findById.mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(
-        service.transformSymbolsById(mappingInSymbolId, inputSymbols),
+        service.transformSymbolsById(mappingInSymbolId, standardSymbols),
       ).rejects.toThrow('DB Error');
     });
   });
 
   describe('getTransformedSymbolList', () => {
     const dataSourceName = 'TestDataSource';
-    const inputSymbols = ['AAPL', 'GOOG'];
+    const standardSymbols = ['AAPL', 'GOOG'];
     const mockTransformResult = {
       transformedSymbols: { AAPL: 'APPL.US', GOOG: 'GOOG.US' },
       failedSymbols: [],
@@ -588,12 +588,12 @@ describe('SymbolMapperService', () => {
 
       const result = await service.getTransformedSymbolList(
         dataSourceName,
-        inputSymbols,
+        standardSymbols,
       );
       expect(result).toEqual(['APPL.US', 'GOOG.US']);
       expect(service['transformSymbols']).toHaveBeenCalledWith(
         dataSourceName,
-        inputSymbols,
+        standardSymbols,
       );
     });
 
@@ -606,7 +606,7 @@ describe('SymbolMapperService', () => {
 
       const result = await service.getTransformedSymbolList(
         dataSourceName,
-        inputSymbols,
+        standardSymbols,
       );
       expect(result).toEqual(['APPL.US', 'GOOG.US']);
     });
@@ -617,7 +617,7 @@ describe('SymbolMapperService', () => {
         .mockRejectedValueOnce(new Error('Transform Error'));
 
       await expect(
-        service.getTransformedSymbolList(dataSourceName, inputSymbols),
+        service.getTransformedSymbolList(dataSourceName, standardSymbols),
       ).rejects.toThrow('Transform Error');
     });
   });
@@ -699,7 +699,7 @@ describe('SymbolMapperService', () => {
   describe('addSymbolMappingRule', () => {
     const addDto: AddSymbolMappingRuleDto = {
       dataSourceName: 'TestDataSource',
-      symbolMappingRule: { inputSymbol: 'NEW', outputSymbol: 'NEW_OUT', isActive: true },
+      symbolMappingRule: { standardSymbol: 'NEW', sdkSymbol: 'NEW_OUT', isActive: true },
     };
     const mockUpdatedDoc = {
       _id: 'someId',
@@ -741,8 +741,8 @@ describe('SymbolMapperService', () => {
   describe('updateSymbolMappingRule', () => {
     const updateDto: UpdateSymbolMappingRuleDto = {
       dataSourceName: 'TestDataSource',
-      inputSymbol: 'OLD',
-      symbolMappingRule: { inputSymbol: 'OLD', outputSymbol: 'UPDATED', isActive: true },
+      standardSymbol: 'OLD',
+      symbolMappingRule: { standardSymbol: 'OLD', sdkSymbol: 'UPDATED', isActive: true },
     };
     const mockUpdatedDoc = {
       _id: 'someId',
@@ -758,7 +758,7 @@ describe('SymbolMapperService', () => {
       expect(result.dataSourceName).toEqual(updateDto.dataSourceName);
       expect(repository.updateSymbolMappingRule).toHaveBeenCalledWith(
         updateDto.dataSourceName,
-        updateDto.inputSymbol,
+        updateDto.standardSymbol,
         updateDto.symbolMappingRule,
       );
     });
@@ -784,7 +784,7 @@ describe('SymbolMapperService', () => {
 
   describe('removeSymbolMappingRule', () => {
     const dataSourceName = 'TestDataSource';
-    const inputSymbol = 'TO_REMOVE';
+    const standardSymbol = 'TO_REMOVE';
     const mockUpdatedDoc = {
       _id: 'someId',
       dataSourceName: dataSourceName,
@@ -796,13 +796,13 @@ describe('SymbolMapperService', () => {
 
       const result = await service.removeSymbolMappingRule(
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
       );
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
       expect(result.dataSourceName).toEqual(dataSourceName);
       expect(repository.removeSymbolMappingRule).toHaveBeenCalledWith(
         dataSourceName,
-        inputSymbol,
+        standardSymbol,
       );
     });
 
@@ -810,7 +810,7 @@ describe('SymbolMapperService', () => {
       repository.removeSymbolMappingRule.mockResolvedValueOnce(null);
 
       await expect(
-        service.removeSymbolMappingRule(dataSourceName, inputSymbol),
+        service.removeSymbolMappingRule(dataSourceName, standardSymbol),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -820,7 +820,7 @@ describe('SymbolMapperService', () => {
       );
 
       await expect(
-        service.removeSymbolMappingRule(dataSourceName, inputSymbol),
+        service.removeSymbolMappingRule(dataSourceName, standardSymbol),
       ).rejects.toThrow('DB Error');
     });
   });
@@ -828,7 +828,7 @@ describe('SymbolMapperService', () => {
   describe('replaceSymbolMappingRule', () => {
     const dataSourceName = 'TestDataSource';
     const newRules: SymbolMappingRule[] = [
-      { inputSymbol: 'R1', outputSymbol: 'O1', isActive: true },
+      { standardSymbol: 'R1', sdkSymbol: 'O1', isActive: true },
     ];
     const mockUpdatedDoc = {
       _id: 'someId',
@@ -878,8 +878,8 @@ describe('SymbolMapperService', () => {
           dataSourceName: 'ProviderA',
           description: 'Desc A',
           SymbolMappingRule: [
-            { inputSymbol: 'A1', outputSymbol: 'B1' },
-            { inputSymbol: 'A2', outputSymbol: 'B2' },
+            { standardSymbol: 'A1', sdkSymbol: 'B1' },
+            { standardSymbol: 'A2', sdkSymbol: 'B2' },
           ],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -887,14 +887,14 @@ describe('SymbolMapperService', () => {
         {
           dataSourceName: 'ProviderB',
           description: 'Desc B',
-          SymbolMappingRule: [{ inputSymbol: 'B1', outputSymbol: 'C1' }],
+          SymbolMappingRule: [{ standardSymbol: 'B1', sdkSymbol: 'C1' }],
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
           dataSourceName: 'ProviderA', // Same provider as first
           description: 'Desc A',
-          SymbolMappingRule: [{ inputSymbol: 'A3', outputSymbol: 'B3' }],
+          SymbolMappingRule: [{ standardSymbol: 'A3', sdkSymbol: 'B3' }],
           createdAt: new Date(),
           updatedAt: new Date(),
         },

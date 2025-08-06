@@ -37,13 +37,13 @@ export class SymbolMappingRuleContextDto {
 }
 
 export class InternalSymbolMappingDto {
-  @ApiProperty({ description: "输入股票代码" })
+  @ApiProperty({ description: "系统标准格式代码" })
   @IsString()
-  inputSymbol: string;
+  standardSymbol: string;
 
-  @ApiProperty({ description: "输出股票代码" })
+  @ApiProperty({ description: "厂商SDK格式代码" })
   @IsString()
-  outputSymbol: string;
+  sdkSymbol: string;
 
   @ApiProperty({ description: "规则是否激活", required: false })
   @IsOptional()
