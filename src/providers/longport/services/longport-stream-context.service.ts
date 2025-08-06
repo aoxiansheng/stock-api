@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createLogger } from '@common/config/logger.config';
 
@@ -7,32 +7,151 @@ import { createLogger } from '@common/config/logger.config';
 const { Config, QuoteContext, SubType } = require('longport');
 
 /**
- * LongPort WebSocket 流上下文服务
- * 管理 LongPort WebSocket 连接和订阅
+ * 连接状态枚举
  */
-@Injectable()
+export enum ConnectionStatus {
+  NOT_STARTED = 'not_started',
+  INITIALIZING = 'initializing',
+  CONNECTED = 'connected',
+  DISCONNECTED = 'disconnected',
+  FAILED = 'failed'
+}
+
+/**
+ * 连接状态接口
+ */
+export interface IConnectionState {
+  status: ConnectionStatus;
+  isInitialized: boolean;
+  lastConnectionTime: number | null;
+  subscriptionCount: number;
+  connectionId: string | null;
+  healthStatus: 'healthy' | 'degraded' | 'failed';
+}
+
+/**
+ * LongPort WebSocket 流上下文服务
+ * 使用严格单例模式管理 LongPort WebSocket 连接和订阅
+ * 
+ * 遵循NestJS最佳实践：
+ * - 使用@Injectable装饰器
+ * - 实现OnModuleDestroy接口进行资源清理
+ * - 使用静态单例模式确保全局唯一实例
+ * - 线程安全的初始化机制
+ */
+@Injectable({ scope: Scope.DEFAULT }) // 明确声明为默认作用域（单例）
 export class LongportStreamContextService implements OnModuleDestroy {
   private readonly logger = createLogger(LongportStreamContextService.name);
-  private quoteContext: any; // LongPort QuoteContext
-  private config: any; // LongPort Config
-  private isConnected = false;
+  
+  // === 单例模式实现 ===
+  private static instance: LongportStreamContextService | null = null;
+  private static initializationLock = false;
+  private static readonly lockTimeout = 10000; // 10秒初始化超时
+  
+  // === 连接管理 ===
+  private quoteContext: any | null = null; // LongPort QuoteContext
+  private config: any | null = null; // LongPort Config
+  private connectionState: IConnectionState = {
+    status: ConnectionStatus.NOT_STARTED,
+    isInitialized: false,
+    lastConnectionTime: null,
+    subscriptionCount: 0,
+    connectionId: null,
+    healthStatus: 'healthy'
+  };
+  
+  // === 重连机制 ===
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000; // 1秒
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectDelay = 1000; // 1秒
+  
+  // === 回调和订阅管理 ===
   private messageCallbacks: ((data: any) => void)[] = [];
-  private subscribedSymbols = new Set<string>();
+  private subscribedSymbols = new Set<string>(); // 当前连接下已订阅的符号
+  
+  constructor(private readonly configService: ConfigService) {
+    this.logger.log('LongportStreamContextService 构造函数调用');
+  }
 
-  constructor(private readonly configService: ConfigService) {}
+  /**
+   * 获取单例实例
+   * 遵循NestJS依赖注入原则，通过工厂方法提供单例实例
+   */
+  public static async getInstance(configService: ConfigService): Promise<LongportStreamContextService> {
+    if (LongportStreamContextService.instance) {
+      return LongportStreamContextService.instance;
+    }
+
+    // 实现线程安全的单例初始化
+    if (LongportStreamContextService.initializationLock) {
+      // 等待其他线程完成初始化
+      await LongportStreamContextService.waitForInitialization();
+      if (LongportStreamContextService.instance) {
+        return LongportStreamContextService.instance;
+      }
+    }
+
+    LongportStreamContextService.initializationLock = true;
+    
+    try {
+      if (!LongportStreamContextService.instance) {
+        LongportStreamContextService.instance = new LongportStreamContextService(configService);
+        const logger = createLogger('LongportStreamContextService.getInstance');
+        logger.log('单例实例创建成功');
+      }
+      return LongportStreamContextService.instance;
+    } finally {
+      LongportStreamContextService.initializationLock = false;
+    }
+  }
+
+  /**
+   * 等待初始化完成（线程安全）
+   */
+  private static async waitForInitialization(): Promise<void> {
+    const startTime = Date.now();
+    while (LongportStreamContextService.initializationLock) {
+      if (Date.now() - startTime > LongportStreamContextService.lockTimeout) {
+        throw new Error('LongportStreamContextService 初始化超时');
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  /**
+   * 重置单例实例（主要用于测试环境）
+   * 遵循测试最佳实践，提供清理机制
+   */
+  public static async resetInstance(): Promise<void> {
+    if (LongportStreamContextService.instance) {
+      await LongportStreamContextService.instance.cleanup();
+      LongportStreamContextService.instance = null;
+    }
+    LongportStreamContextService.initializationLock = false;
+  }
+
+  /**
+   * 获取当前连接状态
+   */
+  public getConnectionState(): IConnectionState {
+    return { ...this.connectionState };
+  }
 
   /**
    * 初始化 WebSocket 连接
+   * 实现连接状态管理和联动清理机制
    */
   async initializeWebSocket(): Promise<void> {
     try {
-      if (this.isConnected && this.quoteContext) {
-        this.logger.log('LongPort WebSocket 已连接');
+      // 检查是否已经连接
+      if (this.connectionState.status === ConnectionStatus.CONNECTED && this.quoteContext) {
+        this.logger.log('LongPort WebSocket 已连接，跳过初始化');
         return;
       }
+
+      // 设置初始化状态
+      this.connectionState.status = ConnectionStatus.INITIALIZING;
+      this.logger.log('开始初始化 LongPort WebSocket 连接');
 
       // 创建 LongPort 配置
       this.config = Config.fromEnv();
@@ -46,6 +165,8 @@ export class LongportStreamContextService implements OnModuleDestroy {
         if (appKey && appSecret && accessToken) {
           this.config = new Config(appKey, appSecret, accessToken);
         } else {
+          this.connectionState.status = ConnectionStatus.FAILED;
+          this.connectionState.healthStatus = 'failed';
           throw new Error('LongPort 配置不完整：缺少 APP_KEY、APP_SECRET 或 ACCESS_TOKEN');
         }
       }
@@ -66,31 +187,88 @@ export class LongportStreamContextService implements OnModuleDestroy {
         this.handleQuoteUpdate(event);
       });
 
-      // LongPort SDK 不提供连接状态监听方法
-      // 假设连接成功，使用其他方式检测连接状态
-      const wasConnected = this.isConnected;
-      this.isConnected = true;
+      // 更新连接状态
+      const currentTime = Date.now();
+      this.connectionState = {
+        status: ConnectionStatus.CONNECTED,
+        isInitialized: true,
+        lastConnectionTime: currentTime,
+        subscriptionCount: this.subscribedSymbols.size,
+        connectionId: `longport_${currentTime}`, // 生成连接ID
+        healthStatus: 'healthy'
+      };
+      
       this.reconnectAttempts = 0;
       
       this.logger.log({
         message: 'LongPort WebSocket 初始化成功',
-        connectionStateChange: `${wasConnected} -> ${this.isConnected}`,
+        connectionId: this.connectionState.connectionId,
+        status: this.connectionState.status,
         quotContextCreated: !!this.quoteContext,
         configCreated: !!this.config,
         messageCallbacksCount: this.messageCallbacks.length,
       });
 
     } catch (error) {
+      // 更新失败状态
+      this.connectionState.status = ConnectionStatus.FAILED;
+      this.connectionState.healthStatus = 'failed';
+      
       this.logger.error({
         message: 'LongPort WebSocket 初始化失败',
         error: error.message,
+        connectionState: this.connectionState,
       });
       throw new Error(`LongPort WebSocket 初始化失败: ${error.message}`);
     }
   }
 
   /**
+   * 处理连接断开事件
+   * 实现连接状态与订阅状态联动清理
+   */
+  private handleConnectionLost(): void {
+    this.logger.warn('LongPort WebSocket 连接断开，清理订阅状态');
+    
+    // 清理订阅状态（因为SDK连接断开后所有订阅都会失效）
+    this.subscribedSymbols.clear();
+    
+    // 更新连接状态
+    this.connectionState.status = ConnectionStatus.DISCONNECTED;
+    this.connectionState.subscriptionCount = 0;
+    this.connectionState.healthStatus = 'degraded';
+    this.connectionState.connectionId = null;
+    
+    this.logger.log({
+      message: '连接断开处理完成',
+      subscribedSymbolsCleared: true,
+      connectionState: this.connectionState,
+    });
+  }
+
+  /**
+   * 处理连接恢复事件
+   */
+  private handleConnectionRestored(): void {
+    this.logger.log('LongPort WebSocket 连接恢复');
+    
+    // 连接恢复时重置连接ID，订阅状态已在连接断开时清理
+    const currentTime = Date.now();
+    this.connectionState.connectionId = `longport_${currentTime}`;
+    this.connectionState.lastConnectionTime = currentTime;
+    this.connectionState.status = ConnectionStatus.CONNECTED;
+    this.connectionState.healthStatus = 'healthy';
+    
+    this.logger.log({
+      message: '连接恢复处理完成',
+      newConnectionId: this.connectionState.connectionId,
+      waitingForNewSubscriptions: true,
+    });
+  }
+
+  /**
    * 订阅符号数据
+   * 基于连接状态的智能订阅逻辑
    * @param symbols 股票符号数组（最多500个）
    * @param subTypes 订阅类型（默认：Quote）
    * @param isFirstPush 是否首次推送（默认：true）
@@ -106,21 +284,29 @@ export class LongportStreamContextService implements OnModuleDestroy {
         throw new Error(`符号数量超过限制，最多支持500个，当前：${symbols.length}`);
       }
 
-      if (!this.isConnected || !this.quoteContext) {
-        throw new Error('LongPort WebSocket 未连接');
+      // 检查连接状态
+      if (this.connectionState.status !== ConnectionStatus.CONNECTED || !this.quoteContext) {
+        throw new Error(`LongPort WebSocket 未连接，当前状态: ${this.connectionState.status}`);
       }
 
-      // 过滤已订阅的符号
+      // 基于当前连接状态过滤已订阅的符号
+      // 只有在当前连接下未向SDK发起过订阅的符号才需要订阅
       const newSymbols = symbols.filter(symbol => !this.subscribedSymbols.has(symbol));
       
       if (newSymbols.length === 0) {
-        this.logger.log('所有符号已订阅，跳过');
+        this.logger.log({
+          message: '当前连接下所有符号已订阅，跳过',
+          connectionId: this.connectionState.connectionId,
+          requestedSymbols: symbols,
+          alreadySubscribed: symbols.length,
+        });
         return;
       }
 
       // 执行订阅，严格按照文档参数格式
       this.logger.debug({
         message: 'LongPort SDK 开始执行订阅',
+        connectionId: this.connectionState.connectionId,
         symbols: newSymbols,
         subTypes: subTypes.map(type => type.toString()),
         isFirstPush,
@@ -131,16 +317,21 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       this.logger.debug({
         message: 'LongPort SDK 订阅调用完成',
+        connectionId: this.connectionState.connectionId,
         symbols: newSymbols,
         subTypesUsed: subTypes.map(type => type.toString()),
         isFirstPushUsed: isFirstPush,
       });
 
-      // 记录已订阅符号
+      // 记录已订阅符号（仅限当前连接）
       newSymbols.forEach(symbol => this.subscribedSymbols.add(symbol));
+      
+      // 更新连接状态中的订阅计数
+      this.connectionState.subscriptionCount = this.subscribedSymbols.size;
 
       this.logger.log({
         message: 'LongPort WebSocket 订阅成功',
+        connectionId: this.connectionState.connectionId,
         symbols: newSymbols,
         subTypes: subTypes.map(type => type.toString()),
         isFirstPush,
@@ -149,11 +340,16 @@ export class LongportStreamContextService implements OnModuleDestroy {
       });
 
     } catch (error) {
+      // 更新健康状态
+      this.connectionState.healthStatus = 'degraded';
+      
       this.logger.error({
         message: 'LongPort WebSocket 订阅失败',
+        connectionId: this.connectionState.connectionId,
         symbols,
         error: error.message,
         errorCode: this.parseErrorCode(error),
+        connectionState: this.connectionState,
       });
       throw new Error(`LongPort WebSocket 订阅失败: ${error.message}`);
     }
@@ -182,7 +378,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
    */
   async unsubscribe(symbols: string[], subTypes: any[] = [SubType.Quote]): Promise<void> {
     try {
-      if (!this.isConnected || !this.quoteContext) {
+      if (!this.isWebSocketConnected() || !this.quoteContext) {
         this.logger.warn('LongPort WebSocket 未连接，无法取消订阅');
         return;
       }
@@ -236,11 +432,13 @@ export class LongportStreamContextService implements OnModuleDestroy {
   }
 
   /**
-   * 获取连接状态
-   * 由于LongPort SDK不提供直接的连接状态检查，我们基于QuoteContext是否存在来判断
+   * 获取WebSocket连接状态
+   * 基于新的连接状态管理系统
    */
   isWebSocketConnected(): boolean {
-    return this.isConnected && this.quoteContext !== null;
+    return this.connectionState.status === ConnectionStatus.CONNECTED && 
+           this.quoteContext !== null && 
+           this.connectionState.isInitialized;
   }
 
   /**
@@ -312,7 +510,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
   /**
    * 解析 LongPort 报价事件
-   * 根据文档，LongPort返回的数据格式需要正确解析
+   * 根据SDK实际返回格式，从PushQuoteEvent对象中提取数据
    */
   private parseLongportQuoteEvent(event: any): any {
     try {
@@ -322,56 +520,125 @@ export class LongportStreamContextService implements OnModuleDestroy {
         isNull: event === null,
         isUndefined: event === undefined,
         hasToString: typeof event?.toString === 'function',
+        constructor: event?.constructor?.name,
       });
 
-      // LongPort SDK可能直接返回对象或需要toString()解析
-      let parsedEvent: any;
-      
-      if (typeof event === 'object' && event !== null) {
-        parsedEvent = event;
-        this.logger.debug({
-          message: 'LongPort 事件类型：对象',
-          eventKeys: Object.keys(event),
-          eventValues: Object.values(event).map(v => typeof v),
-        });
-      } else {
-        const eventStr = event.toString();
-        this.logger.debug({
-          message: 'LongPort 事件类型：非对象，尝试解析字符串',
-          eventString: eventStr,
-          eventStringLength: eventStr.length,
-        });
-        parsedEvent = JSON.parse(eventStr || '{}');
-        this.logger.debug({
-          message: 'LongPort 字符串解析成功',
-          parsedKeys: Object.keys(parsedEvent),
-        });
+      let symbol: string | null = null;
+      let quoteData: any = null;
+
+      // 从日志分析可知，LongPort返回的是特殊对象（PushQuoteEvent）
+      // 需要通过toString()解析或访问特定属性
+      if (event && typeof event === 'object') {
+        // 尝试从toString()解析数据
+        try {
+          const eventString = event.toString();
+          this.logger.debug({
+            message: 'LongPort 事件字符串解析',
+            eventString,
+            stringLength: eventString.length,
+          });
+
+          // 解析格式: PushQuoteEvent { symbol: "AAPL.US", data: PushQuote { ... } }
+          const symbolMatch = eventString.match(/symbol:\s*"([^"]+)"/);
+          if (symbolMatch) {
+            symbol = symbolMatch[1];
+          }
+
+          // 解析报价数据
+          const dataMatch = eventString.match(/data:\s*PushQuote\s*\{([^}]+)\}/);
+          if (dataMatch) {
+            const dataStr = dataMatch[1];
+            
+            // 解析各个字段
+            const parseField = (fieldName: string): any => {
+              const regex = new RegExp(`${fieldName}:\\s*([^,}]+)`);
+              const match = dataStr.match(regex);
+              if (match) {
+                const value = match[1].trim();
+                // 尝试解析为数字
+                if (!isNaN(Number(value))) {
+                  return Number(value);
+                }
+                // 移除引号
+                return value.replace(/^"(.*)"$/, '$1');
+              }
+              return null;
+            };
+
+            quoteData = {
+              last_done: parseField('last_done'),
+              open: parseField('open'),
+              high: parseField('high'),
+              low: parseField('low'),
+              volume: parseField('volume'),
+              turnover: parseField('turnover'),
+              trade_status: parseField('trade_status'),
+              trade_session: parseField('trade_session'),
+              current_volume: parseField('current_volume'),
+              current_turnover: parseField('current_turnover'),
+              timestamp: parseField('timestamp'),
+            };
+
+            this.logger.debug({
+              message: 'LongPort 报价数据解析成功',
+              symbol,
+              quoteData,
+              fieldsExtracted: Object.keys(quoteData).filter(k => quoteData[k] !== null).length,
+            });
+          }
+        } catch (parseError) {
+          this.logger.warn(`toString()解析失败: ${parseError.message}`);
+        }
+
+        // 尝试直接访问属性（如果SDK提供）
+        if (!symbol && event.symbol) {
+          symbol = event.symbol;
+        }
+        if (!quoteData && event.data) {
+          quoteData = event.data;
+        }
       }
 
-      // 标准化字段名，确保与文档一致
+      // 构建标准化事件数据
       const standardizedEvent = {
-        symbol: parsedEvent.symbol || parsedEvent.code,
-        last_done: parsedEvent.last_done || parsedEvent.lastPrice || parsedEvent.price,
-        prev_close: parsedEvent.prev_close || parsedEvent.prevClose,
-        open: parsedEvent.open || parsedEvent.openPrice,
-        high: parsedEvent.high || parsedEvent.highPrice,
-        low: parsedEvent.low || parsedEvent.lowPrice,
-        volume: parsedEvent.volume || parsedEvent.totalVolume,
-        turnover: parsedEvent.turnover || parsedEvent.totalTurnover,
-        timestamp: parsedEvent.timestamp || parsedEvent.time || Date.now(),
-        trade_status: parsedEvent.trade_status || parsedEvent.tradeStatus,
+        symbol: symbol || 'UNKNOWN',
+        last_done: quoteData?.last_done,
+        prev_close: quoteData?.prev_close,
+        open: quoteData?.open,
+        high: quoteData?.high,
+        low: quoteData?.low,
+        volume: quoteData?.volume,
+        turnover: quoteData?.turnover,
+        timestamp: quoteData?.timestamp || Date.now(),
+        trade_status: quoteData?.trade_status,
+        trade_session: quoteData?.trade_session,
         // LongPort特有字段
-        current_volume: parsedEvent.current_volume,
-        current_turnover: parsedEvent.current_turnover,
+        current_volume: quoteData?.current_volume,
+        current_turnover: quoteData?.current_turnover,
         // 保留原始数据用于调试
-        _raw: parsedEvent,
+        _raw: {
+          originalEvent: event,
+          parsedQuoteData: quoteData,
+          extractedSymbol: symbol,
+        },
         _provider: 'longport',
       };
 
       // 验证必要字段
-      if (!standardizedEvent.symbol) {
-        this.logger.warn('LongPort 报价事件缺少symbol字段', { event: parsedEvent });
+      if (!standardizedEvent.symbol || standardizedEvent.symbol === 'UNKNOWN') {
+        this.logger.warn('LongPort 报价事件缺少symbol字段', { 
+          event: event?.toString?.() || event,
+          extractedSymbol: symbol,
+        });
       }
+
+      this.logger.debug({
+        message: 'LongPort 报价事件解析完成',
+        symbol: standardizedEvent.symbol,
+        hasPrice: !!standardizedEvent.last_done,
+        hasVolume: !!standardizedEvent.volume,
+        timestamp: standardizedEvent.timestamp,
+      });
 
       return standardizedEvent;
 
@@ -379,14 +646,18 @@ export class LongportStreamContextService implements OnModuleDestroy {
       this.logger.error({
         message: '解析 LongPort 报价事件失败',
         error: error.message,
-        event: typeof event === 'object' ? JSON.stringify(event) : event.toString(),
+        errorStack: error.stack,
+        event: event?.toString?.() || event,
       });
       
       // 返回基础数据结构
       return {
-        symbol: 'UNKNOWN',
+        symbol: 'PARSE_ERROR',
         timestamp: Date.now(),
-        _raw: event,
+        _raw: { 
+          originalEvent: event,
+          error: error.message,
+        },
         _provider: 'longport',
         _error: 'parse_failed',
       };
@@ -414,7 +685,8 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
     try {
       // 清理当前连接
-      this.isConnected = false;
+      // 更新连接状态
+      this.connectionState.status = ConnectionStatus.DISCONNECTED;
       this.quoteContext = null;
       
       // 等待重连延迟
@@ -443,29 +715,60 @@ export class LongportStreamContextService implements OnModuleDestroy {
   }
 
   /**
-   * 清理资源
+   * 彻底清理资源
+   * 遵循NestJS最佳实践的资源清理
    */
   async cleanup(): Promise<void> {
     try {
-      if (this.quoteContext) {
-        // 取消所有订阅
-        if (this.subscribedSymbols.size > 0) {
+      this.logger.log('开始清理 LongPort WebSocket 资源');
+
+      // 1. 取消所有订阅
+      if (this.quoteContext && this.subscribedSymbols.size > 0) {
+        try {
           await this.unsubscribe(Array.from(this.subscribedSymbols));
+        } catch (error) {
+          this.logger.warn(`取消订阅时出错: ${error.message}`);
         }
-
-        // 关闭连接
-        this.quoteContext = null;
-        this.isConnected = false;
-        this.messageCallbacks = [];
-        this.subscribedSymbols.clear();
-
-        this.logger.log('LongPort WebSocket 资源清理完成');
       }
+
+      // 2. 清理SDK资源
+      this.quoteContext = null;
+      this.config = null;
+
+      // 3. 重置所有状态
+      this.connectionState = {
+        status: ConnectionStatus.NOT_STARTED,
+        isInitialized: false,
+        lastConnectionTime: null,
+        subscriptionCount: 0,
+        connectionId: null,
+        healthStatus: 'healthy'
+      };
+
+      // 4. 清理回调和订阅记录
+      this.messageCallbacks = [];
+      this.subscribedSymbols.clear();
+
+      // 5. 重置重连计数
+      this.reconnectAttempts = 0;
+
+      this.logger.log({
+        message: 'LongPort WebSocket 资源清理完成',
+        connectionState: this.connectionState,
+        callbacksCleared: true,
+        subscriptionsCleared: true,
+      });
+
     } catch (error) {
       this.logger.error({
         message: 'LongPort WebSocket 资源清理失败',
         error: error.message,
+        errorStack: error.stack,
       });
+      
+      // 即使清理失败，也要重置基本状态
+      this.connectionState.status = ConnectionStatus.FAILED;
+      this.connectionState.healthStatus = 'failed';
     }
   }
 

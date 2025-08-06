@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { CapabilityRegistryService } from '../../providers/services/capability-registry.service';
 import { SymbolMapperService } from '../symbol-mapper/services/symbol-mapper.service';
+import { DataMapperService } from '../data-mapper/services/data-mapper.service';
 import { TransformerService } from '../transformer/services/transformer.service';
 import { IStreamCapability } from '../../providers/interfaces/stream-capability.interface';
 import { StreamSubscribeDto, StreamUnsubscribeDto } from './dto';
@@ -27,8 +28,11 @@ export class StreamReceiverService {
   constructor(
     private readonly capabilityRegistry: CapabilityRegistryService,
     private readonly symbolMapperService: SymbolMapperService,
+    private readonly dataMapperService: DataMapperService,
     private readonly transformerService: TransformerService,
-  ) {}
+  ) {
+    this.logger.log('StreamReceiverService 初始化，集成7组件架构');
+  }
 
   /**
    * 订阅符号数据流
@@ -195,7 +199,8 @@ export class StreamReceiverService {
   }
 
   /**
-   * 处理提供商消息
+   * 处理提供商消息 - 遵循7组件架构的合规数据处理流程
+   * 数据流向：符号转换 → 数据映射 → 转换 → 直接输出（跳过Storage保证实时性）
    */
   private async handleProviderMessage(
     clientId: string,
@@ -205,38 +210,144 @@ export class StreamReceiverService {
     messageCallback: (data: any) => void,
   ): Promise<void> {
     try {
-      // 1. 数据转换（复用现有 Transformer）
-      const dataRuleListType = this.getDataRuleListType(capabilityType);
-      const transformRequest: TransformRequestDto = {
-        rawData,
+      this.logger.debug({
+        message: '开始处理实时流数据',
+        clientId,
         provider: providerName,
-        transDataRuleListType: dataRuleListType,
-      };
-      const transformResponse = await this.transformerService.transform(transformRequest);
-      const transformedData = transformResponse.transformedData;
+        capability: capabilityType,
+        hasSymbol: !!rawData.symbol,
+      });
 
-      // 2. 构造响应数据
+      // 1. 符号格式转换（SymbolMapper）
+      let standardSymbol = rawData.symbol;
+      if (rawData.symbol) {
+        try {
+          // 使用正确的方法名称：mapSymbol(originalSymbol, fromProvider, toProvider)
+          // 这里我们从provider格式转换为标准格式，所以toProvider使用'standard'
+          const mappedSymbol = await this.symbolMapperService.mapSymbol(rawData.symbol, providerName, 'standard');
+          standardSymbol = mappedSymbol || rawData.symbol;
+          
+          this.logger.debug({
+            message: '符号转换完成',
+            originalSymbol: rawData.symbol,
+            standardSymbol,
+            provider: providerName,
+          });
+        } catch (error) {
+          this.logger.warn(`符号转换失败，使用原始符号: ${error.message}`);
+        }
+      }
+
+      // 2. 获取数据映射规则（DataMapper）
+      const dataRuleListType = this.getDataRuleListType(capabilityType);
+      let mappingRules = null;
+      
+      try {
+        mappingRules = await this.dataMapperService.getMappingRule(providerName, dataRuleListType);
+        
+        this.logger.debug({
+          message: '数据映射规则获取完成',
+          provider: providerName,
+          ruleType: dataRuleListType,
+          rulesCount: mappingRules?.length || 0,
+        });
+      } catch (error) {
+        this.logger.warn(`获取映射规则失败，使用默认转换: ${error.message}`);
+      }
+
+      // 3. 数据转换和标准化（Transformer）
+      let transformedData;
+      
+      if (mappingRules && mappingRules.length > 0) {
+        // 使用映射规则进行精确转换
+        const transformRequest: TransformRequestDto = {
+          rawData,
+          provider: providerName,
+          transDataRuleListType: dataRuleListType,
+        };
+        const transformResponse = await this.transformerService.transform(transformRequest);
+        transformedData = transformResponse.transformedData;
+      } else {
+        // 备用：基础数据结构标准化
+        transformedData = this.standardizeBasicData(rawData, standardSymbol);
+      }
+
+      this.logger.debug({
+        message: '数据转换完成',
+        hasTransformedData: !!transformedData,
+        dataType: typeof transformedData,
+        isArray: Array.isArray(transformedData),
+      });
+
+      // 4. 直接输出标准化数据（跳过Storage，保证实时性）
       const responseData = {
         symbols: Array.isArray(transformedData) 
-          ? transformedData.map(item => item.symbol).filter(Boolean)
-          : [rawData.symbol].filter(Boolean),
+          ? transformedData.map(item => item.symbol || standardSymbol).filter(Boolean)
+          : [standardSymbol].filter(Boolean),
         data: transformedData,
         timestamp: Date.now(),
         provider: providerName,
         capability: capabilityType,
+        // 添加处理链路信息用于调试
+        processingChain: {
+          symbolMapped: standardSymbol !== rawData.symbol,
+          mappingRulesUsed: !!mappingRules,
+          dataTransformed: true,
+        },
       };
 
-      // 3. 推送给客户端（无缓存，直接推送）
+      // 5. 推送给客户端（实时推送，无持久化）
       messageCallback(responseData);
+
+      this.logger.debug({
+        message: '实时流数据处理完成',
+        clientId,
+        provider: providerName,
+        processingTime: Date.now() - (responseData.timestamp - 5), // 估算处理时间
+        symbolsCount: responseData.symbols.length,
+      });
 
     } catch (error) {
       this.logger.error({
-        message: '处理流数据失败',
+        message: '处理实时流数据失败',
         clientId,
         provider: providerName,
+        capability: capabilityType,
         error: error.message,
+        errorStack: error.stack,
       });
+      
+      // 错误情况下推送基础数据结构
+      const fallbackData = {
+        symbols: [rawData.symbol].filter(Boolean),
+        data: this.standardizeBasicData(rawData, rawData.symbol),
+        timestamp: Date.now(),
+        provider: providerName,
+        capability: capabilityType,
+        error: '数据处理部分失败，返回基础格式',
+      };
+      
+      messageCallback(fallbackData);
     }
+  }
+
+  /**
+   * 基础数据结构标准化（备用方案）
+   */
+  private standardizeBasicData(rawData: any, symbol: string): any {
+    return {
+      symbol,
+      lastPrice: rawData.last_done || rawData.lastPrice || rawData.price,
+      prevClose: rawData.prev_close || rawData.prevClose,
+      open: rawData.open || rawData.openPrice,
+      high: rawData.high || rawData.highPrice, 
+      low: rawData.low || rawData.lowPrice,
+      volume: rawData.volume || rawData.totalVolume,
+      turnover: rawData.turnover || rawData.totalTurnover,
+      timestamp: rawData.timestamp || Date.now(),
+      _provider: rawData._provider || 'unknown',
+      _raw: rawData, // 保留原始数据用于调试
+    };
   }
 
   /**

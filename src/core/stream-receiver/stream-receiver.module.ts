@@ -6,6 +6,7 @@ import { StreamReceiverService } from './stream-receiver.service';
 import { AuthModule } from '../../auth/module/auth.module';
 import { ProvidersModule } from '../../providers/module/providers.module';
 import { SymbolMapperModule } from '../symbol-mapper/module/symbol-mapper.module';
+import { DataMapperModule } from '../data-mapper/module/data-mapper.module';
 import { TransformerModule } from '../transformer/module/transformer.module';
 
 @Module({
@@ -13,6 +14,7 @@ import { TransformerModule } from '../transformer/module/transformer.module';
     AuthModule,        // 认证服务
     ProvidersModule,   // 提供商能力注册
     SymbolMapperModule, // 符号映射服务
+    DataMapperModule,  // 数据映射规则服务
     TransformerModule,  // 数据转换服务
   ],
   providers: [

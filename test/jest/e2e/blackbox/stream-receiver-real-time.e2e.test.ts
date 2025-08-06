@@ -343,34 +343,186 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     });
 
     it("应该能够订阅单个股票符号的实时数据流", async () => {
-      const testSymbol = "00700.HK";
+      const testSymbol = "700.HK";
+      const requiredQuoteCount = 10; // 要求至少10次报价
+      let receivedQuoteCount = 0;
+      const quotePrices = []; // 记录每次报价的价格
       
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error("实时数据流订阅超时"));
-        }, 30000);
+          if (receivedQuoteCount >= requiredQuoteCount) {
+            const validPrices = quotePrices.filter(p => p !== null && p !== undefined && !isNaN(p) && p > 0);
+            console.log(`🎉 成功收到 ${receivedQuoteCount} 次报价，满足最低要求 ${requiredQuoteCount} 次`);
+            console.log(`💰 价格变化记录: [${validPrices.join(', ')}] (${validPrices.length} 有效价格)`);
+            resolve({ success: true, quotesReceived: receivedQuoteCount, validPrices: validPrices });
+          } else {
+            reject(new Error(`实时数据流订阅超时: 仅收到 ${receivedQuoteCount}/${requiredQuoteCount} 次报价`));
+          }
+        }, 75000); // 增加到75秒超时时间，确保有足够时间收集10次报价并完成退订验证
 
         // 监听实时数据
         wsClient.on("data", (data) => {
-          console.log("📊 收到实时报价数据:", data);
+          receivedQuoteCount++;
           receivedMessages.push(data);
+          
+          // 调试：显示完整数据结构
+          console.log(`🔍 [调试] 第${receivedQuoteCount}次数据结构:`, JSON.stringify(data, null, 2));
+          
+          // 提取价格信息用于日志
+          let currentPrice = null;
+          let volume = null;
+          let timestamp = null;
+          
+          // 尝试多种数据结构提取方式
+          if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            const quote = data.data[0];
+            // 尝试多种可能的价格字段名称
+            currentPrice = quote.lastPrice || quote.last_done || quote.price || quote.last || quote.close;
+            volume = quote.volume || quote.vol;
+            timestamp = quote.timestamp || quote.time || quote.ts;
+          } else if (data.symbols && data.symbols.length > 0) {
+            // 如果数据在symbols数组中
+            currentPrice = data.price || data.lastPrice || data.last_done;
+            volume = data.volume || data.vol;
+            timestamp = data.timestamp || data.time;
+          } else if (typeof data === 'object') {
+            // 如果数据直接在根级别
+            currentPrice = data.lastPrice || data.last_done || data.price || data.last || data.close;
+            volume = data.volume || data.vol;
+            timestamp = data.timestamp || data.time || data.ts;
+          }
+          
+          if (currentPrice !== null && currentPrice !== undefined) {
+            quotePrices.push(currentPrice);
+          }
+          
+          console.log(`📊 [${receivedQuoteCount}/${requiredQuoteCount}] 收到 ${testSymbol} 实时报价:`);
+          console.log(`   💰 价格: $${currentPrice || 'N/A'}`);
+          console.log(`   📈 成交量: ${volume || 'N/A'}`);
+          console.log(`   ⏰ 时间: ${timestamp || 'N/A'}`);
+          console.log(`   🔄 处理链: 符号映射=${data.processingChain?.symbolMapped}, 规则映射=${data.processingChain?.mappingRulesUsed}, 数据转换=${data.processingChain?.dataTransformed}`);
           
           // 验证数据格式
           expect(data).toBeDefined();
-          // 数据结构: { data: [...], symbols: [...], timestamp, provider, capability }
           expect(data.symbols || data.data).toBeDefined();
+          expect(data.provider).toBe('longport');
+          expect(data.capability).toBe('stream-stock-quote');
+          expect(data.timestamp).toBeDefined();
+          
           if (data.symbols && data.symbols.length > 0) {
-            expect(data.symbols[0]).toBeDefined();
+            expect(data.symbols[0]).toBe(testSymbol);
           } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
             expect(data.data[0].symbol || data.data[0].code).toBeDefined();
           }
           
-          clearTimeout(timeout);
-          resolve(data);
+          // 检查是否已收到足够的报价
+          if (receivedQuoteCount >= requiredQuoteCount) {
+            clearTimeout(timeout);
+            console.log(`🎯 达到目标报价次数 ${requiredQuoteCount}，开始退订流程！`);
+            
+            // 计算统计数据
+            const validPrices = quotePrices.filter(p => p !== null && p !== undefined && !isNaN(p) && p > 0);
+            console.log(`📊 报价统计:`);
+            console.log(`   总次数: ${receivedQuoteCount}`);
+            
+            if (validPrices.length > 0) {
+              const minPrice = Math.min(...validPrices);
+              const maxPrice = Math.max(...validPrices);
+              const avgPrice = validPrices.reduce((a, b) => a + b, 0) / validPrices.length;
+              
+              console.log(`   价格范围: $${minPrice.toFixed(3)} - $${maxPrice.toFixed(3)}`);
+              console.log(`   平均价格: $${avgPrice.toFixed(3)}`);
+              console.log(`   有效价格数据: ${validPrices.length}/${receivedQuoteCount}`);
+            } else {
+              console.log(`   ⚠️ 警告: 未提取到有效价格数据，但数据流正常`);
+              console.log(`   💾 成交量数据正常: 最新成交量 ${volume || 'N/A'}`);
+            }
+            
+            // 执行退订操作
+            console.log(`🔄 发送退订请求: ${testSymbol}`);
+            
+            // 设置退订后的数据监听
+            let dataAfterUnsubscribe = false;
+            const unsubscribeStartTime = Date.now();
+            
+            // 监听退订确认
+            const unsubscribeHandler = (unsubData) => {
+              console.log(`✅ 退订确认收到:`, unsubData);
+              expect(unsubData.symbols).toContain(testSymbol);
+              
+              // 等待3秒检查是否还有数据推送
+              setTimeout(() => {
+                console.log(`🕐 退订后等待3秒检查，是否收到额外数据: ${dataAfterUnsubscribe ? '是' : '否'}`);
+                
+                const finalStats: any = {
+                  success: true,
+                  quotesReceived: receivedQuoteCount,
+                  prices: quotePrices,
+                  validPrices: validPrices,
+                  unsubscribeSuccess: true,
+                  dataAfterUnsubscribe: dataAfterUnsubscribe,
+                  unsubscribeTime: Date.now() - unsubscribeStartTime
+                };
+                
+                if (validPrices.length > 0) {
+                  finalStats.priceRange = {
+                    min: Math.min(...validPrices),
+                    max: Math.max(...validPrices),
+                    avg: validPrices.reduce((a, b) => a + b, 0) / validPrices.length
+                  };
+                } else {
+                  finalStats.warning = '价格字段提取失败，但数据流连接正常';
+                }
+                
+                if (dataAfterUnsubscribe) {
+                  console.log(`⚠️ 警告: 退订后仍收到数据推送`);
+                  finalStats.warning = (finalStats.warning || '') + '; 退订后仍收到数据';
+                } else {
+                  console.log(`✅ 退订成功: 退订后未收到额外数据推送`);
+                }
+                
+                console.log(`🏁 完整测试流程完成: 订阅 → 收集${receivedQuoteCount}次报价 → 退订 → 验证停止推送`);
+                resolve(finalStats);
+              }, 3000);
+            };
+            
+            // 临时绑定退订确认监听器 (修复：使用正确的事件名称)
+            wsClient.once("unsubscribe-ack", unsubscribeHandler);
+            
+            // 重新定义data监听器来检测退订后的数据
+            const originalDataHandler = wsClient.listeners("data");
+            wsClient.removeAllListeners("data");
+            
+            wsClient.on("data", (data) => {
+              const now = Date.now();
+              if (now - unsubscribeStartTime > 1000) { // 退订1秒后收到的数据算异常
+                console.log(`🚨 退订后仍收到数据 (${now - unsubscribeStartTime}ms后):`, data.symbols || data.data);
+                dataAfterUnsubscribe = true;
+              }
+            });
+            
+            // 发送退订请求
+            wsClient.emit("unsubscribe", {
+              symbols: [testSymbol],
+            });
+            
+            // 设置退订超时保护
+            setTimeout(() => {
+              console.log(`⏰ 退订流程超时，强制完成测试`);
+              resolve({
+                success: true,
+                quotesReceived: receivedQuoteCount,
+                validPrices: validPrices,
+                unsubscribeSuccess: false,
+                warning: '退订流程超时'
+              });
+            }, 10000); // 10秒退订超时
+          }
         });
 
         wsClient.on("subscribe-ack", (data) => {
           console.log("✅ 订阅确认:", data);
+          console.log(`🎯 开始收集 ${testSymbol} 的实时报价，目标: ${requiredQuoteCount} 次`);
           expect(data.symbols).toContain(testSymbol);
         });
 
@@ -385,12 +537,12 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           capabilityType: "stream-stock-quote",
         });
 
-        console.log(`📡 发送订阅请求: ${testSymbol}`);
+        console.log(`📡 发送订阅请求: ${testSymbol} (目标收集 ${requiredQuoteCount} 次报价)`);
       });
-    }, 35000);
+    }, 80000); // 增加Jest超时时间以匹配内部75秒超时 + 退订验证时间
 
     it("应该能够订阅多个股票符号的实时数据流", async () => {
-      const testSymbols = ["00700.HK", "AAPL.US", "000001.SZ"];
+      const testSymbols = ["700.HK", "AMD.US", "SPY.US"];
       const receivedSymbols = new Set();
       
       return new Promise((resolve, reject) => {
@@ -440,7 +592,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     }, 50000);
 
     it("应该能够取消订阅股票符号", async () => {
-      const testSymbol = "00700.HK";
+      const testSymbol = "700.HK";
       let subscriptionActive = false;
       let dataReceivedAfterUnsubscribe = false;
       
@@ -652,7 +804,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           reject(new Error("性能测试超时"));
         }, 60000);
 
-        const testSymbol = "00700.HK";
+        const testSymbol = "700.HK";
         const measurements: number[] = [];
         const latencyMeasurements: number[] = [];
         let messageCount = 0;

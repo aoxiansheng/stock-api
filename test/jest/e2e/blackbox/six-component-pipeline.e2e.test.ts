@@ -123,7 +123,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
       description: "Rule for E2E pipeline test",
       sharedDataFieldMappings: [
         { sourceField: "symbol", targetField: "symbol" },
-        { sourceField: "last_price", targetField: "lastPrice" },
+        { sourceField: "last_done", targetField: "lastPrice" },
         { sourceField: "volume", targetField: "volume" }
       ],
       isActive: true,
