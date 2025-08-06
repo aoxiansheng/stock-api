@@ -14,7 +14,7 @@ import { TransformRequestDto } from '../transformer/dto/transform-request.dto';
 interface ClientSubscription {
   clientId: string;
   symbols: Set<string>;
-  capabilityType: string;
+  wsCapabilityType: string;
   providerName: string;
   capability: IStreamCapability;
   contextService: any;
@@ -44,20 +44,20 @@ export class StreamReceiverService {
     subscribeDto: StreamSubscribeDto,
     messageCallback: (data: any) => void,
   ): Promise<void> {
-    const { symbols, capabilityType, preferredProvider } = subscribeDto;
+    const { symbols, wsCapabilityType, preferredProvider } = subscribeDto;
 
     try {
       const markets = this.inferMarkets(symbols);
       const primaryMarket = markets[0];
-      const providerName = preferredProvider || this.capabilityRegistry.getBestStreamProvider(capabilityType, primaryMarket);
+      const providerName = preferredProvider || this.capabilityRegistry.getBestStreamProvider(wsCapabilityType, primaryMarket);
 
       if (!providerName) {
-        throw new Error(`未找到支持 ${capabilityType} 能力的数据提供商`);
+        throw new Error(`未找到支持 ${wsCapabilityType} 能力的数据提供商`);
       }
 
-      const capability = this.capabilityRegistry.getStreamCapability(providerName, capabilityType);
+      const capability = this.capabilityRegistry.getStreamCapability(providerName, wsCapabilityType);
       if (!capability) {
-        throw new Error(`提供商 ${providerName} 不支持 ${capabilityType} 流能力`);
+        throw new Error(`提供商 ${providerName} 不支持 ${wsCapabilityType} 流能力`);
       }
 
       const provider = this.capabilityRegistry.getProvider(providerName);
@@ -78,18 +78,18 @@ export class StreamReceiverService {
       if (!capability.isConnected(contextService)) {
         await capability.initialize(contextService);
         if (!capability.isConnected(contextService)) {
-          throw new Error(`流能力初始化失败：${providerName}/${capabilityType}`);
+          throw new Error(`流能力初始化失败：${providerName}/${wsCapabilityType}`);
         }
-        this.logger.log(`流能力连接初始化成功: ${providerName}/${capabilityType}`);
+        this.logger.log(`流能力连接初始化成功: ${providerName}/${wsCapabilityType}`);
       }
 
-      const listenerKey = `${providerName}:${capabilityType}`;
+      const listenerKey = `${providerName}:${wsCapabilityType}`;
       if (!this.providerStreamListeners.has(listenerKey)) {
         contextService.onQuoteUpdate(async (rawData: any) => {
-          const processedData = await this.processAndCacheProviderData(rawData, providerName, capabilityType);
+          const processedData = await this.processAndCacheProviderData(rawData, providerName, wsCapabilityType);
           if (processedData) {
             this.clientSubscriptions.forEach(sub => {
-              if (sub.providerName === providerName && sub.capabilityType === capabilityType && sub.symbols.has(processedData.symbols[0])) {
+              if (sub.providerName === providerName && sub.wsCapabilityType === wsCapabilityType && sub.symbols.has(processedData.symbols[0])) {
                 this.handleProviderMessage(sub.clientId, processedData, messageCallback);
               }
             });
@@ -105,7 +105,7 @@ export class StreamReceiverService {
       this.clientSubscriptions.set(clientId, {
         clientId,
         symbols: new Set(symbols),
-        capabilityType,
+        wsCapabilityType,
         providerName,
         capability,
         contextService,
@@ -116,7 +116,7 @@ export class StreamReceiverService {
         clientId,
         symbols,
         provider: providerName,
-        capability: capabilityType,
+        capability: wsCapabilityType,
       });
     } catch (error) {
       this.logger.error({
@@ -246,9 +246,9 @@ export class StreamReceiverService {
   private async processAndCacheProviderData(
     rawData: any,
     providerName: string,
-    capabilityType: string,
+    wsCapabilityType: string,
   ): Promise<any> {
-    const cacheKey = `${providerName}:${capabilityType}:${rawData.symbol}`;
+    const cacheKey = `${providerName}:${wsCapabilityType}:${rawData.symbol}`;
     if (this.processedDataCache.has(cacheKey)) {
       return this.processedDataCache.get(cacheKey);
     }
@@ -272,7 +272,7 @@ export class StreamReceiverService {
       }
 
       // 2. 获取数据映射规则
-      const dataRuleListType = this.getDataRuleListType(capabilityType);
+      const dataRuleListType = this.getDataRuleListType(wsCapabilityType);
       let mappingRules = null;
       try {
         mappingRules = await this.dataMapperService.getMappingRule(providerName, dataRuleListType);
@@ -308,7 +308,7 @@ export class StreamReceiverService {
         data: transformedData,
         timestamp: Date.now(),
         provider: providerName,
-        capability: capabilityType,
+        capability: wsCapabilityType,
         processingChain: {
           symbolMapped: standardSymbol !== rawData.symbol,
           mappingRulesUsed: !!mappingRules,
@@ -337,14 +337,14 @@ export class StreamReceiverService {
       try {
         this.clientSubscriptions.delete(clientId);
 
-        const listenerKey = `${subscription.providerName}:${subscription.capabilityType}`;
+        const listenerKey = `${subscription.providerName}:${subscription.wsCapabilityType}`;
         const remainingSubscriptions = Array.from(this.clientSubscriptions.values())
-          .some(s => s.providerName === subscription.providerName && s.capabilityType === subscription.capabilityType);
+          .some(s => s.providerName === subscription.providerName && s.wsCapabilityType === subscription.wsCapabilityType);
 
         if (!remainingSubscriptions) {
           await subscription.capability.cleanup();
           this.providerStreamListeners.delete(listenerKey);
-          this.logger.log(`已清理提供商 ${subscription.providerName} 的 ${subscription.capabilityType} 监听器`);
+          this.logger.log(`已清理提供商 ${subscription.providerName} 的 ${subscription.wsCapabilityType} 监听器`);
         }
         
         this.logger.log(`已清理客户端 ${clientId} 的订阅`);
@@ -382,13 +382,13 @@ export class StreamReceiverService {
   /**
    * 获取数据规则列表类型
    */
-  private getDataRuleListType(capabilityType: string): string {
+  private getDataRuleListType(wsCapabilityType: string): string {
     const typeMapping: Record<string, string> = {
       'stream-stock-quote': 'quote_fields',
       'stream-stock-basic-info': 'basic_info_fields',
       'stream-index-quote': 'index_fields',
     };
     
-    return typeMapping[capabilityType] || 'quote_fields';
+    return typeMapping[wsCapabilityType] || 'quote_fields';
   }
 }

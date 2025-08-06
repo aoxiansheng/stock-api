@@ -23,7 +23,7 @@ export class StreamSubscribeDto {
   })
   @IsString()
   @IsOptional()
-  capabilityType: string = 'stream-stock-quote';
+  wsCapabilityType: string = 'stream-stock-quote';
 
   @ApiProperty({
     description: '认证令牌（JWT Token 或 API Key）',

@@ -137,7 +137,7 @@ describe('StreamReceiverGateway', () => {
   describe('handleSubscribe()', () => {
     const subscribeDto: StreamSubscribeDto = {
       symbols: ['700.HK', 'AAPL.US'],
-      capabilityType: 'stream-stock-quote',
+      wsCapabilityType: 'stream-stock-quote',
     };
 
     it('should handle subscription request successfully', async () => {
@@ -163,7 +163,7 @@ describe('StreamReceiverGateway', () => {
         message: '收到 WebSocket 订阅请求',
         clientId: client.id,
         symbols: subscribeDto.symbols,
-        capabilityType: subscribeDto.capabilityType,
+        wsCapabilityType: subscribeDto.wsCapabilityType,
       });
       expect(mockStreamReceiverService.subscribeSymbols).toHaveBeenCalledWith(
         client.id,
@@ -174,7 +174,7 @@ describe('StreamReceiverGateway', () => {
         success: true,
         message: '订阅成功',
         symbols: subscribeDto.symbols,
-        capabilityType: subscribeDto.capabilityType,
+        wsCapabilityType: subscribeDto.wsCapabilityType,
         timestamp: expect.any(Number),
       });
       // Should also emit data from callback
@@ -240,7 +240,7 @@ describe('StreamReceiverGateway', () => {
   describe('handleUnsubscribe()', () => {
     const unsubscribeDto: StreamUnsubscribeDto = {
       symbols: ['700.HK', 'AAPL.US'],
-      capabilityType: 'stream-stock-quote',
+      wsCapabilityType: 'stream-stock-quote',
     };
 
     it('should handle unsubscription request successfully', async () => {
@@ -300,7 +300,7 @@ describe('StreamReceiverGateway', () => {
       const mockSubscription = {
         clientId: client.id,
         symbols: new Set(['700.HK', 'AAPL.US']),
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
         providerName: 'longport',
         capability: {},
         contextService: {},
@@ -316,7 +316,7 @@ describe('StreamReceiverGateway', () => {
         success: true,
         data: {
           symbols: ['700.HK', 'AAPL.US'],
-          capabilityType: 'stream-stock-quote',
+          wsCapabilityType: 'stream-stock-quote',
           providerName: 'longport',
         },
         timestamp: expect.any(Number),
@@ -543,7 +543,7 @@ describe('StreamReceiverGateway', () => {
 
       const validDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
         preferredProvider: 'longport',
       };
 
@@ -565,7 +565,7 @@ describe('StreamReceiverGateway', () => {
 
       const validDto: StreamUnsubscribeDto = {
         symbols: ['700.HK', 'AAPL.US'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       // Execute
@@ -585,7 +585,7 @@ describe('StreamReceiverGateway', () => {
       const client = createMockSocket();
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       // Mock synchronous error

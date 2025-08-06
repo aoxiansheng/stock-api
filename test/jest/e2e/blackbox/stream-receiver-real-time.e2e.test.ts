@@ -534,7 +534,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          capabilityType: "stream-stock-quote",
+          wsCapabilityType: "stream-stock-quote",
         });
 
         console.log(`📡 发送订阅请求: ${testSymbol} (目标收集 ${requiredQuoteCount} 次报价)`);
@@ -584,7 +584,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送多符号订阅请求
         wsClient.emit("subscribe", {
           symbols: testSymbols,
-          capabilityType: "stream-stock-quote",
+          wsCapabilityType: "stream-stock-quote",
         });
 
         console.log(`📡 发送多符号订阅请求: ${testSymbols.join(", ")}`);
@@ -657,7 +657,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          capabilityType: "stream-stock-quote",
+          wsCapabilityType: "stream-stock-quote",
         });
 
         console.log(`📡 测试取消订阅: ${testSymbol}`);
@@ -825,7 +825,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 订阅测试符号
           performanceClient.emit("subscribe", {
             symbols: [testSymbol],
-            capabilityType: "stream-stock-quote",
+            wsCapabilityType: "stream-stock-quote",
           });
         });
 
@@ -916,7 +916,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 订阅无效符号
           wsClient.emit("subscribe", {
             symbols: ["INVALID_SYMBOL", "ANOTHER_INVALID"],
-            capabilityType: "stream-stock-quote",
+            wsCapabilityType: "stream-stock-quote",
           });
         });
 
@@ -963,7 +963,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           
           wsClient.emit("subscribe", {
             symbols: manySymbols,
-            capabilityType: "stream-stock-quote",
+            wsCapabilityType: "stream-stock-quote",
           });
         });
 

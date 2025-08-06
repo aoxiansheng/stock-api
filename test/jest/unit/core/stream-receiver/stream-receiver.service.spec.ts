@@ -82,7 +82,7 @@ describe('StreamReceiverService', () => {
     const clientId = 'test-client-123';
     const subscribeDto: StreamSubscribeDto = {
       symbols: ['700.HK', 'AAPL.US'],
-      capabilityType: 'stream-stock-quote',
+      wsCapabilityType: 'stream-stock-quote',
     };
     const messageCallback = jest.fn();
 
@@ -266,7 +266,7 @@ describe('StreamReceiverService', () => {
 
         const dto: StreamSubscribeDto = {
           symbols: testCase.symbols,
-          capabilityType: 'stream-stock-quote',
+          wsCapabilityType: 'stream-stock-quote',
         };
 
         await service.subscribeSymbols(clientId + testCase.expectedMarket, dto, messageCallback);
@@ -283,14 +283,14 @@ describe('StreamReceiverService', () => {
     const clientId = 'test-client-123';
     const unsubscribeDto: StreamUnsubscribeDto = {
       symbols: ['700.HK', 'AAPL.US'],
-      capabilityType: 'stream-stock-quote',
+      wsCapabilityType: 'stream-stock-quote',
     };
 
     beforeEach(async () => {
       // Setup initial subscription
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK', 'AAPL.US', 'TSLA.US'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
@@ -339,7 +339,7 @@ describe('StreamReceiverService', () => {
       // Setup - unsubscribe all symbols
       const unsubscribeAllDto: StreamUnsubscribeDto = {
         symbols: ['700.HK', 'AAPL.US', 'TSLA.US'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
       mockSymbolMapperService.transformSymbols.mockResolvedValue({
         transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL', 'TSLA.US': 'TSLA' },
@@ -408,7 +408,7 @@ describe('StreamReceiverService', () => {
       // Setup initial subscription
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
@@ -477,7 +477,7 @@ describe('StreamReceiverService', () => {
       const clientId = 'test-client-123';
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
@@ -502,7 +502,7 @@ describe('StreamReceiverService', () => {
       // Verify
       expect(subscription).toBeDefined();
       expect(subscription?.clientId).toBe(clientId);
-      expect(subscription?.capabilityType).toBe('stream-stock-quote');
+      expect(subscription?.wsCapabilityType).toBe('stream-stock-quote');
       expect(subscription?.providerName).toBe('longport');
     });
   });
@@ -514,7 +514,7 @@ describe('StreamReceiverService', () => {
       // Setup
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
       const messageCallback = jest.fn();
 
@@ -567,7 +567,7 @@ describe('StreamReceiverService', () => {
       // Setup
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
       const messageCallback = jest.fn();
 
@@ -604,7 +604,7 @@ describe('StreamReceiverService', () => {
       // Setup
       const subscribeDto: StreamSubscribeDto = {
         symbols: ['700.HK', 'AAPL.US'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
       const messageCallback = jest.fn();
 
@@ -650,18 +650,18 @@ describe('StreamReceiverService', () => {
   describe('Data Rule Type Mapping', () => {
     it('should map capability types to data rule list types correctly', async () => {
       const testCases = [
-        { capabilityType: 'stream-stock-quote', expectedRuleType: 'quote_fields' },
-        { capabilityType: 'stream-stock-basic-info', expectedRuleType: 'basic_info_fields' },
-        { capabilityType: 'stream-index-quote', expectedRuleType: 'index_fields' },
-        { capabilityType: 'unknown-capability', expectedRuleType: 'quote_fields' }, // default
+        { wsCapabilityType: 'stream-stock-quote', expectedRuleType: 'quote_fields' },
+        { wsCapabilityType: 'stream-stock-basic-info', expectedRuleType: 'basic_info_fields' },
+        { wsCapabilityType: 'stream-index-quote', expectedRuleType: 'index_fields' },
+        { wsCapabilityType: 'unknown-capability', expectedRuleType: 'quote_fields' }, // default
       ];
 
       for (const testCase of testCases) {
         // Setup
-        const clientId = `test-client-${testCase.capabilityType}`;
+        const clientId = `test-client-${testCase.wsCapabilityType}`;
         const subscribeDto: StreamSubscribeDto = {
           symbols: ['700.HK'],
-          capabilityType: testCase.capabilityType,
+          wsCapabilityType: testCase.wsCapabilityType,
         };
         const messageCallback = jest.fn();
 

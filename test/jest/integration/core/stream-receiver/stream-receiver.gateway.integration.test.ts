@@ -288,7 +288,7 @@ describe('StreamReceiverGateway Integration', () => {
 
       clientSocket.on('connect', () => {
         // 触发需要认证的事件
-        clientSocket.emit('subscribe', { symbols: ['700.HK'], capabilityType: 'stream-stock-quote' });
+        clientSocket.emit('subscribe', { symbols: ['700.HK'], wsCapabilityType: 'stream-stock-quote' });
       });
 
       clientSocket.on('subscribe-ack', () => {
@@ -351,7 +351,7 @@ describe('StreamReceiverGateway Integration', () => {
       
       const subscribeData = {
         symbols: ['700.HK', 'AAPL.US', 'INVALID_SYMBOL'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       clientSocket.emit('subscribe', subscribeData);
@@ -389,7 +389,7 @@ describe('StreamReceiverGateway Integration', () => {
 
       const subscribeData = {
         symbols: symbolsToTest,
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       clientSocket.emit('subscribe', subscribeData);
@@ -445,7 +445,7 @@ describe('StreamReceiverGateway Integration', () => {
       
       const malformedData = {
         symbols: null,
-        capabilityType: 'invalid-type',
+        wsCapabilityType: 'invalid-type',
       };
 
       clientSocket.emit('subscribe', malformedData);
@@ -470,7 +470,7 @@ describe('StreamReceiverGateway Integration', () => {
       
       const subscribeData = {
         symbols: ['NONEXISTENT.XX', 'FAKE.SYMBOL'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       clientSocket.emit('subscribe', subscribeData);
@@ -499,7 +499,7 @@ describe('StreamReceiverGateway Integration', () => {
       
       const subscribeData = {
         symbols: ['700.HK'],
-        capabilityType: 'stream-stock-quote',
+        wsCapabilityType: 'stream-stock-quote',
       };
 
       let subscriptionConfirmed = false;
@@ -612,7 +612,7 @@ describe('StreamReceiverGateway Integration', () => {
         const isSubscribe = operationCount % 2 === 0;
         const data = {
           symbols: ['700.HK'],
-          capabilityType: 'stream-stock-quote',
+          wsCapabilityType: 'stream-stock-quote',
         };
 
         if (isSubscribe) {

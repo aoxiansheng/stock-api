@@ -130,7 +130,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         message: '收到 WebSocket 订阅请求',
         clientId: client.id,
         symbols: data.symbols,
-        capabilityType: data.capabilityType,
+        wsCapabilityType: data.wsCapabilityType,
         apiKeyName: client.data?.apiKey?.name || '未知',
       });
 
@@ -149,7 +149,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         success: true,
         message: '订阅成功',
         symbols: data.symbols,
-        capabilityType: data.capabilityType,
+        wsCapabilityType: data.wsCapabilityType,
         timestamp: Date.now(),
       });
 
@@ -228,7 +228,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         success: true,
         data: subscription ? {
           symbols: Array.from(subscription.symbols),
-          capabilityType: subscription.capabilityType,
+          wsCapabilityType: subscription.wsCapabilityType,
           providerName: subscription.providerName,
         } : null,
         timestamp: Date.now(),

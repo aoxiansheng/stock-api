@@ -22,7 +22,7 @@ export class StreamUnsubscribeDto {
   })
   @IsString()
   @IsOptional()
-  capabilityType: string = 'stream-stock-quote';
+  wsCapabilityType: string = 'stream-stock-quote';
 
   @ApiProperty({
     description: '首选数据提供商',
