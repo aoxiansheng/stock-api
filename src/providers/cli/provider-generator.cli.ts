@@ -135,7 +135,7 @@ export class ProviderGeneratorCLI {
     try {
       console.log(`🔍 开始验证提供商: ${name}`);
 
-      const scanner = new ConventionScanner();
+      const scanner = ConventionScanner.getInstance();
       const { capabilities, violations } = await scanner.scanProviderCapabilities(name);
 
       console.log(`📊 验证结果:`);
@@ -193,7 +193,7 @@ export class ProviderGeneratorCLI {
     try {
       console.log(`📋 扫描提供商...`);
 
-      const scanner = new ConventionScanner();
+      const scanner = ConventionScanner.getInstance();
       const { providers, stats } = await scanner.scanProviders();
 
       console.log(`\n📊 统计信息:`);
@@ -235,7 +235,7 @@ export class ProviderGeneratorCLI {
     try {
       console.log(`🔍 开始扫描提供商...`);
 
-      const scanner = new ConventionScanner();
+      const scanner = ConventionScanner.getInstance();
       const { providers, violations, stats } = await scanner.scanProviders({
         validateConventions: options.validate
       });
@@ -296,7 +296,7 @@ export class ProviderGeneratorCLI {
       console.log(`🔧 开始修复提供商: ${name}`);
 
       // 首先验证提供商
-      const scanner = new ConventionScanner();
+      const scanner = ConventionScanner.getInstance();
       const { violations } = await scanner.scanProviderCapabilities(name);
 
       if (violations.length === 0) {

@@ -24,6 +24,8 @@ interface ClientSubscription {
 export class StreamReceiverService {
   private readonly logger = createLogger(StreamReceiverService.name);
   private readonly clientSubscriptions = new Map<string, ClientSubscription>();
+  private readonly processedDataCache = new Map<string, any>();
+  private readonly providerStreamListeners = new Map<string, boolean>();
 
   constructor(
     private readonly capabilityRegistry: CapabilityRegistryService,
@@ -45,78 +47,61 @@ export class StreamReceiverService {
     const { symbols, capabilityType, preferredProvider } = subscribeDto;
 
     try {
-      // 1. 智能市场推断（复用现有逻辑）
       const markets = this.inferMarkets(symbols);
       const primaryMarket = markets[0];
-
-      // 2. 获取最佳提供商（使用流能力注册表）
-      const providerName = preferredProvider || 
-        this.capabilityRegistry.getBestStreamProvider(capabilityType, primaryMarket);
+      const providerName = preferredProvider || this.capabilityRegistry.getBestStreamProvider(capabilityType, primaryMarket);
 
       if (!providerName) {
         throw new Error(`未找到支持 ${capabilityType} 能力的数据提供商`);
       }
 
-      // 3. 获取流能力
       const capability = this.capabilityRegistry.getStreamCapability(providerName, capabilityType);
       if (!capability) {
         throw new Error(`提供商 ${providerName} 不支持 ${capabilityType} 流能力`);
       }
 
-      // 4. 获取提供商上下文服务
       const provider = this.capabilityRegistry.getProvider(providerName);
       const contextService = provider?.getStreamContextService?.();
-
       if (!contextService) {
         throw new Error(`提供商 ${providerName} 未提供流上下文服务`);
       }
 
-      // 5. 符号映射转换（复用现有组件）
-      const mappedSymbols = await this.symbolMapperService.transformSymbols(
-        providerName,
-        symbols,
-      );
+      const mappedSymbols = await this.symbolMapperService.transformSymbols(providerName, symbols);
 
-      // 6. 初始化连接（如果尚未连接）
-      if (!capability.isConnected(contextService)) {
-        this.logger.debug({
-          message: '开始初始化流能力连接',
-          provider: providerName,
-          capability: capabilityType,
-          clientId,
-        });
-        await capability.initialize(contextService);
-        
-        // 验证初始化是否成功
-        if (!capability.isConnected(contextService)) {
-          throw new Error(`流能力初始化失败：${providerName}/${capabilityType} 连接状态仍为未连接`);
-        }
-        
-        this.logger.log({
-          message: '流能力连接初始化成功',
-          provider: providerName,
-          capability: capabilityType,
-          clientId,
-        });
-      }
-
-      // 7. 设置消息回调（通过上下文服务）
-      contextService.onQuoteUpdate(async (rawData: any) => {
-        await this.handleProviderMessage(
-          clientId,
-          rawData,
-          providerName,
-          capabilityType,
-          messageCallback,
-        );
+      this.logger.debug({
+        message: '订阅时符号转换为提供商格式',
+        provider: providerName,
+        originalSymbols: symbols,
+        transformedSymbols: mappedSymbols.transformedSymbols,
       });
 
-      // 8. 执行订阅 - 使用转换后的符号
+      if (!capability.isConnected(contextService)) {
+        await capability.initialize(contextService);
+        if (!capability.isConnected(contextService)) {
+          throw new Error(`流能力初始化失败：${providerName}/${capabilityType}`);
+        }
+        this.logger.log(`流能力连接初始化成功: ${providerName}/${capabilityType}`);
+      }
+
+      const listenerKey = `${providerName}:${capabilityType}`;
+      if (!this.providerStreamListeners.has(listenerKey)) {
+        contextService.onQuoteUpdate(async (rawData: any) => {
+          const processedData = await this.processAndCacheProviderData(rawData, providerName, capabilityType);
+          if (processedData) {
+            this.clientSubscriptions.forEach(sub => {
+              if (sub.providerName === providerName && sub.capabilityType === capabilityType && sub.symbols.has(processedData.symbols[0])) {
+                this.handleProviderMessage(sub.clientId, processedData, messageCallback);
+              }
+            });
+          }
+        });
+        this.providerStreamListeners.set(listenerKey, true);
+      }
+
       const transformedSymbols = Object.values(mappedSymbols.transformedSymbols || {});
       const symbolsToSubscribe = transformedSymbols.length > 0 ? transformedSymbols : symbols;
       await capability.subscribe(symbolsToSubscribe, contextService);
 
-      // 9. 记录客户端订阅信息
       this.clientSubscriptions.set(clientId, {
         clientId,
         symbols: new Set(symbols),
@@ -133,7 +118,6 @@ export class StreamReceiverService {
         provider: providerName,
         capability: capabilityType,
       });
-
     } catch (error) {
       this.logger.error({
         message: 'WebSocket 订阅失败',
@@ -162,21 +146,17 @@ export class StreamReceiverService {
     try {
       const { symbols } = unsubscribeDto;
       
-      // 符号映射转换
       const mappedSymbols = await this.symbolMapperService.transformSymbols(
         subscription.providerName,
         symbols,
       );
 
-      // 执行取消订阅 - 使用转换后的符号
       const transformedSymbols = Object.values(mappedSymbols.transformedSymbols || {});
       const symbolsToUnsubscribe = transformedSymbols.length > 0 ? transformedSymbols : symbols;
       await subscription.capability.unsubscribe(symbolsToUnsubscribe, subscription.contextService);
 
-      // 更新订阅状态
       symbols.forEach(symbol => subscription.symbols.delete(symbol));
 
-      // 如果没有更多订阅，清理客户端信息
       if (subscription.symbols.size === 0) {
         await this.cleanupClientSubscription(clientId);
       }
@@ -204,141 +184,36 @@ export class StreamReceiverService {
    */
   private async handleProviderMessage(
     clientId: string,
-    rawData: any,
-    providerName: string,
-    capabilityType: string,
+    processedData: any,
     messageCallback: (data: any) => void,
   ): Promise<void> {
     try {
-      this.logger.debug({
-        message: '开始处理实时流数据',
-        clientId,
-        provider: providerName,
-        capability: capabilityType,
-        hasSymbol: !!rawData.symbol,
-      });
-
-      // 1. 符号格式转换（SymbolMapper）- 将SDK返回的格式转换回标准格式
-      let standardSymbol = rawData.symbol;
-      if (rawData.symbol) {
-        try {
-          // SDK返回的是厂商格式，需要反向映射回标准格式
-          // 这里我们从厂商格式转换为标准格式
-          const mappedSymbol = await this.symbolMapperService.mapSymbol(rawData.symbol, providerName, 'standard');
-          standardSymbol = mappedSymbol || rawData.symbol;
-          
-          this.logger.debug({
-            message: '符号转换完成-将SDK返回的格式转换回标准格式-StreamReceiverService',
-            originalSymbol: rawData.symbol,
-            standardSymbol,
-            provider: providerName,
-          });
-        } catch (error) {
-          this.logger.warn(`符号转换失败，使用原始符号: ${error.message}`);
-        }
-      }
-
-      // 2. 获取数据映射规则（DataMapper）
-      const dataRuleListType = this.getDataRuleListType(capabilityType);
-      let mappingRules = null;
-      
-      try {
-        mappingRules = await this.dataMapperService.getMappingRule(providerName, dataRuleListType);
-        
-        this.logger.debug({
-          message: '数据映射规则获取完成',
-          provider: providerName,
-          ruleType: dataRuleListType,
-          rulesCount: mappingRules?.length || 0,
-        });
-      } catch (error) {
-        this.logger.warn(`获取映射规则失败，使用默认转换: ${error.message}`);
-      }
-
-      // 3. 数据转换和标准化（Transformer）
-      let transformedData;
-      
-      if (mappingRules && mappingRules.length > 0) {
-        // 使用映射规则进行精确转换
-        const transformRequest: TransformRequestDto = {
-          rawData,
-          provider: providerName,
-          transDataRuleListType: dataRuleListType,
-        };
-        const transformResponse = await this.transformerService.transform(transformRequest);
-        transformedData = transformResponse.transformedData;
-      } else {
-        // 备用：基础数据结构标准化
-        transformedData = this.standardizeBasicData(rawData, standardSymbol);
-      }
-
-      this.logger.debug({
-        message: '数据转换完成',
-        hasTransformedData: !!transformedData,
-        dataType: typeof transformedData,
-        isArray: Array.isArray(transformedData),
-      });
-
-      // 修复: 确保转换后的数据使用标准格式的符号
-      if (Array.isArray(transformedData)) {
-        // 如果是数组，更新每个元素的 symbol 字段
-        transformedData = transformedData.map(item => ({
-          ...item,
-          symbol: standardSymbol // 使用转换后的标准格式符号
-        }));
-      } else if (transformedData && typeof transformedData === 'object') {
-        // 如果是单个对象，直接更新其 symbol 字段
-        transformedData = {
-          ...transformedData,
-          symbol: standardSymbol // 使用转换后的标准格式符号
-        };
-      }
-
-      // 4. 直接输出标准化数据（跳过Storage，保证实时性）
-      const responseData = {
-        symbols: Array.isArray(transformedData) 
-          ? transformedData.map(item => item.symbol || standardSymbol).filter(Boolean)
-          : [standardSymbol].filter(Boolean),
-        data: transformedData,
-        timestamp: Date.now(),
-        provider: providerName,
-        capability: capabilityType,
-        // 添加处理链路信息用于调试
-        processingChain: {
-          symbolMapped: standardSymbol !== rawData.symbol,
-          mappingRulesUsed: !!mappingRules,
-          dataTransformed: true,
-        },
-      };
-
-      // 5. 推送给客户端（实时推送，无持久化）
-      messageCallback(responseData);
+      messageCallback(processedData);
 
       this.logger.debug({
         message: '实时流数据处理完成',
         clientId,
-        provider: providerName,
-        processingTime: Date.now() - (responseData.timestamp - 5), // 估算处理时间
-        symbolsCount: responseData.symbols.length,
+        provider: processedData.provider,
+        processingTime: Date.now() - (processedData.timestamp - 5), // 估算处理时间
+        symbolsCount: processedData.symbols.length,
       });
 
     } catch (error) {
       this.logger.error({
         message: '处理实时流数据失败',
         clientId,
-        provider: providerName,
-        capability: capabilityType,
+        provider: processedData.provider,
+        capability: processedData.capability,
         error: error.message,
         errorStack: error.stack,
       });
       
-      // 错误情况下推送基础数据结构
       const fallbackData = {
-        symbols: [rawData.symbol].filter(Boolean),
-        data: this.standardizeBasicData(rawData, rawData.symbol),
+        symbols: [processedData.symbol].filter(Boolean),
+        data: this.standardizeBasicData(processedData.data, processedData.symbol),
         timestamp: Date.now(),
-        provider: providerName,
-        capability: capabilityType,
+        provider: processedData.provider,
+        capability: processedData.capability,
         error: '数据处理部分失败，返回基础格式',
       };
       
@@ -366,6 +241,93 @@ export class StreamReceiverService {
   }
 
   /**
+   * 优化：处理和缓存来自提供商的数据
+   */
+  private async processAndCacheProviderData(
+    rawData: any,
+    providerName: string,
+    capabilityType: string,
+  ): Promise<any> {
+    const cacheKey = `${providerName}:${capabilityType}:${rawData.symbol}`;
+    if (this.processedDataCache.has(cacheKey)) {
+      return this.processedDataCache.get(cacheKey);
+    }
+
+    try {
+      // 1. 符号格式转换
+      let standardSymbol = rawData.symbol;
+      if (rawData.symbol) {
+        try {
+          const mappedSymbol = await this.symbolMapperService.mapSymbol(rawData.symbol, providerName, 'standard');
+          standardSymbol = mappedSymbol || rawData.symbol;
+          this.logger.debug({
+            message: '接收数据时符号转换为标准格式',
+            provider: providerName,
+            originalSymbol: rawData.symbol,
+            standardSymbol,
+          });
+        } catch (error) {
+          this.logger.warn(`符号转换失败: ${error.message}`);
+        }
+      }
+
+      // 2. 获取数据映射规则
+      const dataRuleListType = this.getDataRuleListType(capabilityType);
+      let mappingRules = null;
+      try {
+        mappingRules = await this.dataMapperService.getMappingRule(providerName, dataRuleListType);
+      } catch (error) {
+        this.logger.warn(`获取映射规则失败: ${error.message}`);
+      }
+
+      // 3. 数据转换和标准化
+      let transformedData;
+      if (mappingRules && mappingRules.length > 0) {
+        const transformRequest: TransformRequestDto = {
+          rawData,
+          provider: providerName,
+          transDataRuleListType: dataRuleListType,
+        };
+        const transformResponse = await this.transformerService.transform(transformRequest);
+        transformedData = transformResponse.transformedData;
+      } else {
+        transformedData = this.standardizeBasicData(rawData, standardSymbol);
+      }
+
+      if (Array.isArray(transformedData)) {
+        transformedData = transformedData.map(item => ({ ...item, symbol: standardSymbol }));
+      } else if (transformedData && typeof transformedData === 'object') {
+        transformedData = { ...transformedData, symbol: standardSymbol };
+      }
+
+      // 4. 构建响应数据
+      const responseData = {
+        symbols: Array.isArray(transformedData)
+          ? transformedData.map(item => item.symbol || standardSymbol).filter(Boolean)
+          : [standardSymbol].filter(Boolean),
+        data: transformedData,
+        timestamp: Date.now(),
+        provider: providerName,
+        capability: capabilityType,
+        processingChain: {
+          symbolMapped: standardSymbol !== rawData.symbol,
+          mappingRulesUsed: !!mappingRules,
+          dataTransformed: true,
+        },
+      };
+
+      this.processedDataCache.set(cacheKey, responseData);
+      // 设置缓存过期时间，例如500毫秒
+      setTimeout(() => this.processedDataCache.delete(cacheKey), 500);
+
+      return responseData;
+    } catch (error) {
+      this.logger.error(`处理提供商数据失败: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
    * 清理客户端订阅
    */
   async cleanupClientSubscription(clientId: string): Promise<void> {
@@ -373,11 +335,17 @@ export class StreamReceiverService {
     
     if (subscription) {
       try {
-        // 清理能力资源
-        await subscription.capability.cleanup();
-        
-        // 移除订阅记录
         this.clientSubscriptions.delete(clientId);
+
+        const listenerKey = `${subscription.providerName}:${subscription.capabilityType}`;
+        const remainingSubscriptions = Array.from(this.clientSubscriptions.values())
+          .some(s => s.providerName === subscription.providerName && s.capabilityType === subscription.capabilityType);
+
+        if (!remainingSubscriptions) {
+          await subscription.capability.cleanup();
+          this.providerStreamListeners.delete(listenerKey);
+          this.logger.log(`已清理提供商 ${subscription.providerName} 的 ${subscription.capabilityType} 监听器`);
+        }
         
         this.logger.log(`已清理客户端 ${clientId} 的订阅`);
       } catch (error) {

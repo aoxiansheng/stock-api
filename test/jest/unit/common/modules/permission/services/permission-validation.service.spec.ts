@@ -35,7 +35,7 @@ describe('PermissionValidationService', () => {
     // 模拟 validateAllControllers 返回空数组
     (mockPermissionValidator.validateAllControllers as jest.Mock).mockResolvedValue([]);
 
-    await service.onModuleInit();
+    await service.onApplicationBootstrap();
 
     // 断言 validatePermissions 方法被调用
     expect(validatePermissionsSpy).toHaveBeenCalled();
