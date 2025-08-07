@@ -72,6 +72,8 @@ export const streamStockQuote: IStreamCapability = {
           validSymbols: validSymbols.length,
           totalSymbols: symbols.length 
         });
+        // 修改：当有无效符号时，抛出错误并拒绝订阅
+        throw new Error(`无效的股票符号格式，拒绝订阅: ${invalidSymbols.join(', ')}`);
       }
 
       // 检查符号数量限制（LongPort最大500个）
