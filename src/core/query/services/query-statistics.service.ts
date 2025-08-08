@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
+import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   QUERY_WARNING_MESSAGES,
@@ -20,16 +22,10 @@ import { QueryType } from "../dto/query-types.dto";
 @Injectable()
 export class QueryStatisticsService {
   private readonly logger = createLogger(QueryStatisticsService.name);
+  
+  constructor(private readonly metricsRegistry: MetricsRegistryService) {}
 
-  private readonly queryStats = {
-    totalQueries: 0,
-    totalExecutionTime: 0,
-    cacheHits: 0,
-    errors: 0,
-    queryTypeStats: new Map<string, QueryStatsRecordDto>(),
-    // 启动时间，用于计算QPS
-    startTime: Date.now(),
-  };
+  // 旧版内存统计已废弃，所有数据直接从 Prometheus 获取
 
   /**
    * 记录一次查询的性能指标
@@ -44,15 +40,56 @@ export class QueryStatisticsService {
     success: boolean,
     cacheUsed: boolean,
   ): void {
-    this.queryStats.totalQueries++;
-    this.queryStats.totalExecutionTime += executionTime;
+    // 使用 Metrics 助手记录查询总数
+    Metrics.inc(
+      this.metricsRegistry,
+      'streamThroughputPerSecond',
+      { stream_type: 'query' },
+      1
+    );
+    
+    // 使用 Metrics 助手记录执行时间
+    Metrics.observe(
+      this.metricsRegistry,
+      'streamProcessingTimeMs',
+      executionTime,
+      { operation_type: 'query' }
+    );
 
     if (cacheUsed) {
-      this.queryStats.cacheHits++;
+      // 使用 Metrics 助手记录缓存命中
+      Metrics.inc(
+        this.metricsRegistry,
+        'streamCacheHitRate',
+        { cache_type: 'query' },
+        100
+      );
+    } else {
+      // 使用 Metrics 助手记录缓存未命中
+      Metrics.inc(
+        this.metricsRegistry,
+        'streamCacheHitRate',
+        { cache_type: 'query' },
+        0
+      );
     }
 
     if (!success) {
-      this.queryStats.errors++;
+      // 使用 Metrics 助手记录错误
+      Metrics.inc(
+        this.metricsRegistry,
+        'streamErrorRate',
+        { error_type: 'query' },
+        100
+      );
+    } else {
+      // 使用 Metrics 助手记录成功
+      Metrics.inc(
+        this.metricsRegistry,
+        'streamErrorRate',
+        { error_type: 'query' },
+        0
+      );
     }
 
     // 记录慢查询警告
@@ -68,96 +105,99 @@ export class QueryStatisticsService {
       );
     }
 
-    // 更新按查询类型统计
-    const typeKey = queryType.toString();
-    if (!this.queryStats.queryTypeStats.has(typeKey)) {
-      this.queryStats.queryTypeStats.set(typeKey, {
-        count: 0,
-        totalTime: 0,
-        errors: 0,
-      });
-    }
-
-    const typeStats = this.queryStats.queryTypeStats.get(typeKey)!;
-    typeStats.count++;
-    typeStats.totalTime += executionTime;
-    if (!success) {
-      typeStats.errors++;
-    }
+    // 不再维护本地 query type 统计，改由 Prometheus label 分析
   }
 
   /**
    * 增加缓存命中计数
    */
   public incrementCacheHits(): void {
-    this.queryStats.cacheHits++;
+    // 使用 Metrics 助手记录缓存命中
+    Metrics.inc(
+      this.metricsRegistry,
+      'streamCacheHitRate',
+      { cache_type: 'query' },
+      100
+    );
   }
 
   /**
    * 获取当前的查询统计信息
    */
   public async getQueryStats(): Promise<QueryStatsDto> {
-    this.logger.debug(
-      QUERY_SUCCESS_MESSAGES.QUERY_STATS_RETRIEVED,
-      sanitizeLogData({
-        totalQueries: this.queryStats.totalQueries,
-        operation: QUERY_OPERATIONS.GET_QUERY_STATS,
-      }),
-    );
-
     const stats = new QueryStatsDto();
 
-    stats.performance = {
-      totalQueries: this.queryStats.totalQueries,
-      averageExecutionTime:
-        this.queryStats.totalQueries > 0
-          ? this.queryStats.totalExecutionTime / this.queryStats.totalQueries
-          : 0,
-      cacheHitRate:
-        this.queryStats.totalQueries > 0
-          ? this.queryStats.cacheHits / this.queryStats.totalQueries
-          : 0,
-      errorRate:
-        this.queryStats.totalQueries > 0
-          ? this.queryStats.errors / this.queryStats.totalQueries
-          : 0,
-      queriesPerSecond: this.calculateQueriesPerSecond(),
-    };
+    try {
+      const [
+        avgExecTime,
+        cacheHitRate,
+        errorRate,
+        qps,
+      ] = await Promise.all([
+        this.metricsRegistry.getMetricValue('newstock_stream_processing_time_ms'),
+        this.metricsRegistry.getMetricValue('newstock_stream_cache_hit_rate'),
+        this.metricsRegistry.getMetricValue('newstock_stream_error_rate'),
+        this.metricsRegistry.getMetricValue('newstock_stream_throughput_per_second'),
+      ]);
 
-    stats.queryTypes = {};
-    for (const [type, typeStats] of this.queryStats.queryTypeStats) {
-      stats.queryTypes[type] = {
-        count: typeStats.count,
-        averageTime:
-          typeStats.count > 0 ? typeStats.totalTime / typeStats.count : 0,
-        successRate:
-          typeStats.count > 0 ? 1 - typeStats.errors / typeStats.count : 0,
+      stats.performance = {
+        totalQueries: 0,
+        averageExecutionTime: Number(avgExecTime ?? 0),
+        cacheHitRate: Number(cacheHitRate ?? 0),
+        errorRate: Number(errorRate ?? 0),
+        queriesPerSecond: Number(qps ?? 0),
+      };
+    } catch (error) {
+      this.logger.error('获取查询指标失败', { error: error.message });
+      stats.performance = {
+        totalQueries: 0,
+        averageExecutionTime: 0,
+        cacheHitRate: 0,
+        errorRate: 0,
+        queriesPerSecond: 0,
       };
     }
 
+    // 其余字段保持空结构或默认值
+    stats.queryTypes = {};
     stats.dataSources = {
-      cache: { queries: this.queryStats.cacheHits, avgTime: 0, successRate: 1 },
+      cache: { queries: 0, avgTime: 0, successRate: 1 },
       persistent: { queries: 0, avgTime: 0, successRate: 1 },
-      realtime: {
-        queries: this.queryStats.totalQueries - this.queryStats.cacheHits,
-        avgTime: 0,
-        successRate: 1,
-      },
+      realtime: { queries: 0, avgTime: 0, successRate: 1 },
     };
-
-    stats.popularQueries = []; // 实际实现中需要跟踪热门查询
+    stats.popularQueries = [];
 
     return stats;
   }
 
+  // 已弃用 calculateQueriesPerSecond - 由 Prometheus 直取
+  
   /**
-   * 计算每秒查询数（QPS）
+   * 重置查询统计
    */
-  private calculateQueriesPerSecond(): number {
-    const uptimeSeconds = (Date.now() - this.queryStats.startTime) / 1000;
-    if (uptimeSeconds < 1) {
-      return this.queryStats.totalQueries; // 运行时间太短，直接返回总数
-    }
-    return this.queryStats.totalQueries / uptimeSeconds;
+  public resetQueryStats(): void {
+    // 仅重置 Prometheus 指标
+    Metrics.setGauge(
+      this.metricsRegistry,
+      'streamThroughputPerSecond',
+      0,
+      { stream_type: 'query' }
+    );
+    
+    Metrics.setGauge(
+      this.metricsRegistry,
+      'streamCacheHitRate',
+      0,
+      { cache_type: 'query' }
+    );
+    
+    Metrics.setGauge(
+      this.metricsRegistry,
+      'streamErrorRate',
+      0,
+      { error_type: 'query' }
+    );
+    
+    this.logger.log('查询统计已重置');
   }
 }

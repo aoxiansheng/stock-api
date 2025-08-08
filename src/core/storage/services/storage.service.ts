@@ -11,6 +11,8 @@ import {
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
+import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   CACHE_TTL,
@@ -47,21 +49,26 @@ const gunzip = promisify(zlib.gunzip);
 @Injectable()
 export class StorageService {
   private readonly logger = createLogger(StorageService.name);
-  private readonly performanceMetrics = {
-    operations: 0,
-    totalStorageTime: 0,
-    totalRetrievalTime: 0,
-    totalDeleteTime: 0,
-    errors: 0,
-  };
 
   constructor(
     private readonly storageRepository: StorageRepository,
     private readonly paginationService: PaginationService,
+    private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
   async storeData(request: StoreDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
+    
+    // 🎯 记录存储操作指标
+    Metrics.inc(
+      this.metricsRegistry,
+      'storageOperationsTotal',
+      { 
+        operation: 'store',
+        storage_type: request.storageType || 'unknown'
+      }
+    );
+    
     this.logger.log(
       `存储数据，键: ${request.key}`,
       sanitizeLogData({
@@ -134,7 +141,28 @@ export class StorageService {
       }
 
       const processingTime = Date.now() - startTime;
-      this.updatePerformanceMetrics("store", processingTime, true);
+      
+      // 🎯 记录查询持续时间指标
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'store',
+          storage_type: request.storageType || 'unknown'
+        }
+      );
+      
+      // 🎯 记录数据量指标
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'storageDataVolume',
+        dataSize,
+        { 
+          data_type: request.storageClassification || 'unknown',
+          storage_type: request.storageType || 'unknown'
+        }
+      );
 
       const metadata = new StorageMetadataDto(
         request.key,
@@ -153,7 +181,6 @@ export class StorageService {
       return new StorageResponseDto(request.data, metadata);
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
-      this.updatePerformanceMetrics("store", processingTime, false);
       this.logger.error(
         `数据存储失败: ${request.key}`,
         sanitizeLogData({
@@ -170,6 +197,17 @@ export class StorageService {
 
   async retrieveData(request: RetrieveDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
+    
+    // 🎯 记录检索操作指标
+    Metrics.inc(
+      this.metricsRegistry,
+      'storageOperationsTotal',
+      { 
+        operation: 'retrieve',
+        storage_type: request.preferredType || 'both'
+      }
+    );
+    
     this.logger.log(
       `检索数据，键: ${request.key}`,
       sanitizeLogData({
@@ -224,7 +262,18 @@ export class StorageService {
       );
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
-      this.updatePerformanceMetrics("retrieve", processingTime, false);
+      
+      // 🎯 记录检索失败的查询持续时间指标
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'retrieve_failed',
+          storage_type: request.preferredType || 'both'
+        }
+      );
+      
       this.logger.error(
         `数据检索失败: ${request.key}`,
         sanitizeLogData({
@@ -251,6 +300,17 @@ export class StorageService {
     storageType: StorageType = StorageType.BOTH,
   ): Promise<boolean> {
     const startTime = Date.now();
+    
+    // 🎯 记录删除操作指标
+    Metrics.inc(
+      this.metricsRegistry,
+      'storageOperationsTotal',
+      { 
+        operation: 'delete',
+        storage_type: storageType || 'both'
+      }
+    );
+    
     this.logger.log(`删除数据，键: ${key}`, { storageType });
 
     let deleted = false;
@@ -312,7 +372,17 @@ export class StorageService {
       }
 
       const processingTime = Date.now() - startTime;
-      this.updatePerformanceMetrics("delete", processingTime, !hasErrors);
+      
+      // 🎯 记录删除查询持续时间指标
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'delete',
+          storage_type: storageType || 'both'
+        }
+      );
 
       this.logger.log(`数据删除完成: ${key}`, {
         deleted,
@@ -324,7 +394,18 @@ export class StorageService {
       return deleted;
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
-      this.updatePerformanceMetrics("delete", processingTime, false);
+      
+      // 🎯 记录删除失败的查询持续时间
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'delete_failed',
+          storage_type: storageType || 'both'
+        }
+      );
+      
       this.logger.error(
         `数据删除失败: ${key}`,
         sanitizeLogData({
@@ -371,6 +452,17 @@ export class StorageService {
     query: StorageQueryDto
   ): Promise<PaginatedDataDto<PaginatedStorageItemDto>> {
     const startTime = Date.now();
+    
+    // 🎯 记录分页查询操作指标
+    Metrics.inc(
+      this.metricsRegistry,
+      'storageOperationsTotal',
+      { 
+        operation: 'paginated_query',
+        storage_type: 'persistent'
+      }
+    );
+    
     this.logger.log(
       `获取分页存储数据`,
       sanitizeLogData({
@@ -407,6 +499,29 @@ export class StorageService {
       );
 
       const processingTime = Date.now() - startTime;
+      
+      // 🎯 记录分页查询持续时间指标
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'paginated',
+          storage_type: 'persistent'
+        }
+      );
+      
+      // 🎯 记录数据量指标
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'storageDataVolume',
+        total,
+        { 
+          data_type: 'paginated_results',
+          storage_type: 'persistent'
+        }
+      );
+      
       this.logger.log(`分页数据检索完成`, {
         totalItems: total,
         pageItems: responseItems.length,
@@ -416,6 +531,18 @@ export class StorageService {
       return result;
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      
+      // 🎯 记录分页查询失败持续时间
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'paginated_failed',
+          storage_type: 'persistent'
+        }
+      );
+      
       this.logger.error(
         `获取分页数据失败`,
         sanitizeLogData({
@@ -475,7 +602,18 @@ export class StorageService {
     }
 
     const processingTime = Date.now() - startTime;
-    this.updatePerformanceMetrics("retrieve", processingTime, true);
+    
+    // 🎯 记录缓存检索查询持续时间指标
+    Metrics.observe(
+      this.metricsRegistry,
+      'storageQueryDuration',
+      processingTime,
+      { 
+        query_type: 'cache_retrieve',
+        storage_type: 'cache'
+      }
+    );
+    
     this.logRetrievalSuccess(processingTime, request.key, "cache");
 
     const responseMetadata = new StorageMetadataDto(
@@ -550,7 +688,18 @@ export class StorageService {
     }
 
     const processingTime = Date.now() - startTime;
-    this.updatePerformanceMetrics("retrieve", processingTime, true);
+    
+    // 🎯 记录持久化检索查询持续时间指标
+    Metrics.observe(
+      this.metricsRegistry,
+      'storageQueryDuration',
+      processingTime,
+      { 
+        query_type: 'persistent_retrieve',
+        storage_type: 'persistent'
+      }
+    );
+    
     this.logRetrievalSuccess(processingTime, request.key, "persistent");
 
     const responseMetadata = new StorageMetadataDto(
@@ -606,22 +755,13 @@ export class StorageService {
   }
 
   private getPerformanceStats(): PerformanceStatsDto {
+    // 🎯 统计数据现在由 Prometheus 指标提供，这里返回默认值
+    // 在生产环境中应通过 Grafana/Prometheus 查询真实的性能数据
     return {
-      avgStorageTime:
-        this.performanceMetrics.operations > 0
-          ? this.performanceMetrics.totalStorageTime /
-            this.performanceMetrics.operations
-          : 0,
-      avgRetrievalTime:
-        this.performanceMetrics.operations > 0
-          ? this.performanceMetrics.totalRetrievalTime /
-            this.performanceMetrics.operations
-          : 0,
+      avgStorageTime: 0,    // 可从 storageQueryDuration 直方图计算平均值
+      avgRetrievalTime: 0,  // 可从 storageQueryDuration 直方图计算平均值  
       operationsPerSecond: this.calculateOperationsPerSecond(),
-      errorRate:
-        this.performanceMetrics.operations > 0
-          ? this.performanceMetrics.errors / this.performanceMetrics.operations
-          : 0,
+      errorRate: 0,         // 可从 storageOperationsTotal 计算错误率
     };
   }
 
@@ -661,19 +801,6 @@ export class StorageService {
     return { serializedData, compressed, dataSize };
   }
 
-  private updatePerformanceMetrics(
-    operation: "store" | "retrieve" | "delete",
-    time: number,
-    success: boolean,
-  ): void {
-    this.performanceMetrics.operations++;
-    if (operation === "store") this.performanceMetrics.totalStorageTime += time;
-    else if (operation === "retrieve")
-      this.performanceMetrics.totalRetrievalTime += time;
-    else if (operation === "delete")
-      this.performanceMetrics.totalDeleteTime += time;
-    if (!success) this.performanceMetrics.errors++;
-  }
 
   private logStorageSuccess(
     processingTime: number,
@@ -720,10 +847,14 @@ export class StorageService {
   }
 
   private calculateCacheHitRate(): number {
-    return 0.85; // Placeholder
+    // 🎯 缓存命中率现在由 Prometheus 指标提供，这里返回默认值
+    // 在生产环境中应通过 storageCacheEfficiency 指标查询真实数据
+    return 0; // 可从 Prometheus storageCacheEfficiency 指标获取
   }
 
   private calculateOperationsPerSecond(): number {
-    return this.performanceMetrics.operations / 60; // Approximation
+    // 🎯 操作频率现在由 Prometheus 指标提供，这里返回默认值  
+    // 在生产环境中应通过 rate(storageOperationsTotal[1m]) 计算真实频率
+    return 0; // 可从 Prometheus storageOperationsTotal 指标计算速率
   }
 }

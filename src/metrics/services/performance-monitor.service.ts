@@ -13,7 +13,6 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import {
   PERFORMANCE_INTERVALS,
   PERFORMANCE_LIMITS,
-  PERFORMANCE_THRESHOLDS,
   METRIC_NAMES,
   METRIC_UNITS,
   HEALTH_SCORE_CONFIG,
@@ -22,6 +21,7 @@ import {
   API_KEY_CONSTANTS,
   REDIS_INFO,
 } from "../constants/metrics-performance.constants";
+import { PERFORMANCE_CONSTANTS } from "@common/constants/unified";
 import {
   PerformanceSummaryDto,
   EndpointMetricsDto,
@@ -203,7 +203,7 @@ export class PerformanceMonitorService {
   }
 
   private checkSlowOperation(duration: number) {
-    if (duration > PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS) {
+    if (duration > PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS) {
       this.logger.warn(
         "慢操作检测",
         sanitizeLogData({ duration, unit: METRIC_UNITS.MILLISECONDS }),
@@ -268,7 +268,7 @@ export class PerformanceMonitorService {
         : 0;
 
     const slowQueries = queryTimes.filter(
-      (time) => time > PERFORMANCE_THRESHOLDS.SLOW_QUERY_MS,
+      (time) => time > PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_QUERY_MS,
     ).length;
 
     const metrics: DatabaseMetricsDto = {

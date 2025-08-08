@@ -6,11 +6,15 @@
 import { Module, Global } from "@nestjs/common";
 
 import { CacheModule } from "../../../cache/module/cache.module";
+import { FeatureFlags } from "../../../common/config/feature-flags.config";
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
 import { BackgroundTaskService } from "../services/background-task.service";
+import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
+import { StreamPerformanceMetrics } from "../services/stream-performance-metrics.service";
+import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
 
 /**
  * A global module that provides shared services for data fetching,
@@ -35,6 +39,10 @@ import { BackgroundTaskService } from "../services/background-task.service";
     MarketStatusService,
     StringUtils,
     BackgroundTaskService,
+    FeatureFlags,
+    MetricsRegistryService,
+    StreamPerformanceMetrics,
+    DynamicLogLevelService,
   ],
   exports: [
     // DataFetchingService, // 移动到需要的模块中
@@ -42,6 +50,10 @@ import { BackgroundTaskService } from "../services/background-task.service";
     MarketStatusService,
     StringUtils,
     BackgroundTaskService,
+    FeatureFlags,
+    MetricsRegistryService,
+    StreamPerformanceMetrics,
+    DynamicLogLevelService,
   ],
 })
 export class SharedServicesModule {}

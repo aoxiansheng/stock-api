@@ -30,6 +30,9 @@ export class DataMappingRule {
   @Prop({ required: true, trim: true })
   transDataRuleListType: string;
 
+  @Prop({ type: String, enum: ["rest", "stream"], default: "rest" })
+  apiType: string;
+
   @Prop({
     type: [
       {

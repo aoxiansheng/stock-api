@@ -190,23 +190,8 @@ describe("Metrics Cache Integration", () => {
       // 也没有单独的慢查询缓存机制
     });
 
-    it.skip("应该缓存数据库连接池指标", async () => {
-      // 该测试需要 MetricsCollectorService，暂时跳过
-      expect(true).toBe(true);
-    });
   });
 
-  describe("Redis性能监控缓存测试", () => {
-    it.skip("应该缓存Redis操作统计指标", async () => {
-      // 该测试需要 MetricsCollectorService，暂时跳过
-      expect(true).toBe(true);
-    });
-
-    it.skip("应该缓存Redis内存使用指标", async () => {
-      // 该测试需要 MetricsCollectorService，暂时跳过
-      expect(true).toBe(true);
-    });
-  });
 
   describe("指标数据批量处理测试", () => {
     it.skip("应该支持批量指标数据的缓存写入", async () => {
@@ -253,9 +238,5 @@ describe("Metrics Cache Integration", () => {
       // 该测试针对的是metrics:performance时序格式，后端未实现
     });
 
-    it.skip("应该支持手动清理指标数据", async () => {
-      // 该测试需要 MetricsCollectorService，暂时跳过
-      expect(true).toBe(true);
-    });
   });
 });

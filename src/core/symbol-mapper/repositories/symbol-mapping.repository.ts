@@ -267,4 +267,40 @@ export class SymbolMappingRepository {
   async findAll(): Promise<SymbolMappingRuleDocument[]> {
     return this.symbolMappingRuleModel.find({ isActive: true }).exec();
   }
+
+  /**
+   * 🎯 监听数据变化 (Change Stream)
+   */
+  watchChanges(): any {
+    return this.symbolMappingRuleModel.watch([
+      {
+        $match: {
+          operationType: { $in: ['insert', 'update', 'delete'] }
+        }
+      }
+    ], {
+      fullDocument: 'updateLookup'
+    });
+  }
+
+  /**
+   * 🎯 获取所有数据源的最新更新时间
+   */
+  async getDataSourceVersions(): Promise<Map<string, Date>> {
+    const versions = new Map<string, Date>();
+    
+    const dataSources = await this.symbolMappingRuleModel
+      .find({ isActive: true })
+      .select('dataSourceName updatedAt')
+      .exec();
+    
+    for (const doc of dataSources) {
+      const currentVersion = versions.get(doc.dataSourceName);
+      if (!currentVersion || doc.updatedAt > currentVersion) {
+        versions.set(doc.dataSourceName, doc.updatedAt);
+      }
+    }
+    
+    return versions;
+  }
 }

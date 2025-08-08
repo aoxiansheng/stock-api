@@ -114,6 +114,11 @@ export class CreateDataMappingDto {
   @IsBoolean()
   isActive?: boolean;
 
+  @ApiProperty({ description: "API 类型 (rest 或 stream)", required: false, enum: ["rest", "stream"] })
+  @IsOptional()
+  @IsEnum(["rest", "stream"])
+  apiType?: string;
+
   @ApiProperty({ description: "版本号", example: "1.0.0", required: false })
   @IsOptional()
   @IsString()

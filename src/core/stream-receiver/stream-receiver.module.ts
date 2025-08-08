@@ -8,6 +8,7 @@ import { ProvidersModule } from '../../providers/module/providers.module';
 import { SymbolMapperModule } from '../symbol-mapper/module/symbol-mapper.module';
 import { DataMapperModule } from '../data-mapper/module/data-mapper.module';
 import { TransformerModule } from '../transformer/module/transformer.module';
+import { PerformanceOptimizationModule } from '../shared/module/performance-optimization.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TransformerModule } from '../transformer/module/transformer.module';
     SymbolMapperModule, // 符号映射服务
     DataMapperModule,  // 数据映射规则服务
     TransformerModule,  // 数据转换服务
+    PerformanceOptimizationModule, // 🎯 性能优化模块
   ],
   providers: [
     StreamReceiverGateway,

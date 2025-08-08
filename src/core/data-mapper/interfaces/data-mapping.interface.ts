@@ -29,6 +29,7 @@ export interface IDataMappingRule {
   description?: string;
   provider: string;
   transDataRuleListType: string;
+  apiType?: string; // rest | stream
   sharedDataFieldMappings: IFieldMapping[];
   isActive: boolean;
   version: string;

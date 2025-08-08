@@ -139,8 +139,32 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         client.id,
         data,
         (streamData) => {
-          // 推送数据给客户端
-          client.emit('data', streamData);
+          // 🔧 增强：推送数据给客户端并记录推送状态
+          try {
+            this.logger.debug({
+              message: '🔧 Gateway推送数据给客户端',
+              clientId: client.id,
+              symbols: streamData.symbols,
+              provider: streamData.provider,
+              timestamp: streamData.timestamp,
+            });
+            
+            client.emit('data', streamData);
+            
+            this.logger.debug({
+              message: '🔧 Gateway成功推送数据',
+              clientId: client.id,
+              symbols: streamData.symbols,
+              connected: client.connected,
+            });
+          } catch (error) {
+            this.logger.error({
+              message: '🔧 Gateway推送数据失败',
+              clientId: client.id,
+              error: error.message,
+              symbols: streamData.symbols,
+            });
+          }
         },
       );
 

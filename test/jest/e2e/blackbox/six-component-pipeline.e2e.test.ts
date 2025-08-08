@@ -127,8 +127,39 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         { sourceField: "volume", targetField: "volume" }
       ],
       isActive: true,
+      apiType: 'rest',
     };
 
+    // 1) 先查询是否已存在匹配规则，若存在则补充 apiType = 'rest'
+    try {
+      const listResp = await httpClient.get("/api/v1/data-mapper", {
+        headers: {
+          "X-App-Key": apiKey.appKey,
+          "X-Access-Token": apiKey.accessToken,
+        },
+        params: {
+          provider: "longport",
+          transDataRuleListType: "quote_fields",
+        }
+      });
+
+      if (listResp.status === 200 && Array.isArray(listResp.data.data)) {
+        const existing = listResp.data.data.find((r: any) => r.name === mappingRuleData.name);
+        if (existing && existing.id) {
+          // 补充/更新为 REST
+          await httpClient.patch(`/api/v1/data-mapper/${existing.id}`, { apiType: 'rest' }, {
+            headers: {
+              "X-App-Key": apiKey.appKey,
+              "X-Access-Token": apiKey.accessToken,
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // 忽略列表失败，继续后续创建
+    }
+
+    // 2) 创建或确保存在 REST 规则
     const response = await httpClient.post("/api/v1/data-mapper", mappingRuleData, {
       headers: {
         "X-App-Key": apiKey.appKey,
@@ -144,7 +175,36 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
         throw new Error(`创建数据映射规则失败: ${response.status}`);
       }
     } else {
-      console.log('✅ 数据映射规则创建成功');
+      console.log('✅ 数据映射规则创建成功 (REST)');
+    }
+
+    // 3) 额外创建一个 STREAM 规则
+    const streamRuleData = {
+      name: "E2E Test LongPort Quote Mapping Websocket Stream",
+      provider: "longport",
+      transDataRuleListType: "quote_fields",
+      description: "Stream rule for E2E pipeline test",
+      sharedDataFieldMappings: [
+        { sourceField: "symbol", targetField: "symbol" },
+        { sourceField: "last_done", targetField: "lastPrice" },
+        { sourceField: "volume", targetField: "volume" },
+        { sourceField: "timestamp", targetField: "timestamp" },
+      ],
+      isActive: true,
+      apiType: 'stream',
+    };
+
+    const streamResp = await httpClient.post("/api/v1/data-mapper", streamRuleData, {
+      headers: {
+        "X-App-Key": apiKey.appKey,
+        "X-Access-Token": apiKey.accessToken,
+      }
+    });
+
+    if (streamResp.status !== 201 && streamResp.status !== 409) {
+      throw new Error(`创建Stream映射规则失败: ${streamResp.status}`);
+    } else {
+      console.log(streamResp.status === 201 ? '✅ 数据映射规则创建成功 (STREAM)' : '⚠️ Stream映射规则已存在，跳过创建');
     }
   }
 

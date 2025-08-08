@@ -2,11 +2,16 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  OnModuleInit,
 } from "@nestjs/common";
 
+import { LRUCache } from 'lru-cache';
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+import { FeatureFlags } from "@common/config/feature-flags.config";
+import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
+import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   SYMBOL_MAPPER_ERROR_MESSAGES,
@@ -47,19 +52,146 @@ import { SymbolMappingRule, SymbolMappingRuleDocumentType } from '../schemas/sym
  * 5. 映射性能监控和统计
  */
 @Injectable()
-export class SymbolMapperService implements ISymbolMapper {
+export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(SymbolMapperService.name);
 
-  // 🎯 使用 common 模块的常量，无需重复定义
+  // 🎯 统一缓存实例（避免双重维护）
+  private unifiedCache: LRUCache<string, any>;
+  
+  // 🎯 Promise去重锁（防止并发查询同一规则）
+  private pendingQueries = new Map<string, Promise<any>>();
+  
+  // 旧本地缓存命中统计字段已废弃，全部交由 Prometheus 指标处理
 
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly paginationService: PaginationService,
-  ) {}
+    private readonly featureFlags: FeatureFlags,
+    private readonly metricsRegistry: MetricsRegistryService,
+  ) {
+    // 🎯 初始化统一缓存
+    this.unifiedCache = new LRUCache<string, any>({ 
+      max: this.featureFlags.symbolCacheMaxSize,
+      ttl: this.featureFlags.symbolCacheTtl,
+    });
+  }
+
+  /**
+   * 🎯 模块初始化：设置 Change Stream 监听
+   */
+  async onModuleInit() {
+    if (!this.featureFlags.symbolMappingCacheEnabled) {
+      this.logger.log('符号映射缓存已禁用，跳过初始化');
+      return;
+    }
+
+    try {
+      // 🎯 MongoDB Change Stream 监听实现
+      await this.setupChangeStreamMonitoring();
+      this.logger.log('MongoDB Change Stream 监听已启用');
+    } catch (error) {
+      this.logger.warn('ChangeStream 不可用，启用轮询模式', { error: error.message });
+      
+      // 🎯 降级策略：定时轮询检查规则版本
+      setInterval(() => this.checkRuleVersions(), 5 * 60 * 1000);
+    }
+  }
+
+  /**
+   * 🎯 设置 MongoDB Change Stream 监听
+   */
+  private async setupChangeStreamMonitoring(): Promise<void> {
+    try {
+      // 监听符号映射规则的变化
+      const changeStream = this.repository.watchChanges();
+      
+      changeStream.on('change', (change) => {
+        this.logger.debug('检测到符号映射规则变化', { 
+          operationType: change.operationType,
+          documentKey: change.documentKey 
+        });
+        
+        // 清除相关缓存
+        this.invalidateCacheForChangedRule(change);
+      });
+
+      changeStream.on('error', (error) => {
+        this.logger.error('Change Stream 错误', { error: error.message });
+        
+        // 启用降级策略
+        setTimeout(() => this.checkRuleVersions(), 1000);
+      });
+
+      this.logger.log('Change Stream 监听器已启动');
+    } catch (error) {
+      this.logger.warn('无法启动 Change Stream，使用轮询模式', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * 🎯 根据变化的规则清除缓存
+   */
+  private invalidateCacheForChangedRule(change: any): void {
+    try {
+      const { operationType, documentKey, fullDocument } = change;
+      
+      if (operationType === 'delete') {
+        // 删除操作：清除相关缓存键
+        this.clearCacheByDocumentKey(documentKey);
+      } else if (operationType === 'update' || operationType === 'insert') {
+        // 更新或插入操作：清除相关缓存并记录新版本
+        this.clearCacheByDocument(fullDocument || documentKey);
+      }
+      
+      this.logger.debug('缓存失效处理完成', { operationType, documentKey });
+    } catch (error) {
+      this.logger.error('缓存失效处理失败', { error: error.message });
+    }
+  }
+
+  /**
+   * 🎯 根据文档键清除缓存
+   */
+  private clearCacheByDocumentKey(documentKey: any): void {
+    // 查找所有包含该文档的缓存键
+    const cacheKeys = Array.from(this.unifiedCache.keys());
+    const relatedKeys = cacheKeys.filter(key => 
+      key.includes(documentKey._id?.toString() || '')
+    );
+    
+    for (const key of relatedKeys) {
+      this.unifiedCache.delete(key);
+    }
+    
+    this.logger.debug(`清除了 ${relatedKeys.length} 个相关缓存键`);
+  }
+
+  /**
+   * 🎯 根据文档内容清除缓存
+   */
+  private clearCacheByDocument(document: any): void {
+    if (!document || !document.dataSourceName) {
+      return;
+    }
+    
+    // 根据数据源名称清除相关缓存
+    const cacheKeys = Array.from(this.unifiedCache.keys());
+    const relatedKeys = cacheKeys.filter(key => 
+      key.includes(`:${document.dataSourceName}:`)
+    );
+    
+    for (const key of relatedKeys) {
+      this.unifiedCache.delete(key);
+    }
+    
+    this.logger.debug(`清除了数据源 ${document.dataSourceName} 的 ${relatedKeys.length} 个缓存键`);
+  }
 
   /**
    * 映射单个股票代码从标准格式转换为数据源特定格式
+   * 🎯 增强版本：支持缓存优化和并发控制
    *
    * @param originalSymbol 原始股票代码
    * @param fromProvider 来源提供商
@@ -67,6 +199,82 @@ export class SymbolMapperService implements ISymbolMapper {
    * @returns 转换后的股票代码
    */
   async mapSymbol(
+    originalSymbol: string,
+    fromProvider: string,
+    toProvider: string,
+  ): Promise<string> {
+    // 🎯 如果缓存被禁用，直接调用原始逻辑
+    if (!this.featureFlags.symbolMappingCacheEnabled) {
+      return await this.originalMapSymbolLogic(originalSymbol, fromProvider, toProvider);
+    }
+
+    const startTime = Date.now();
+    const cacheKey = `single:${fromProvider}:${toProvider}:${originalSymbol}`;
+    
+    // 🎯 检查统一缓存
+    const cached = this.unifiedCache.get(cacheKey);
+    if (cached) {
+      // 记录缓存命中到 Prometheus
+      Metrics.inc(
+        this.metricsRegistry,
+        'streamCacheHitRate',
+        { cache_type: 'symbol_mapping' },
+        100
+      );
+      
+      // 本地命中计数已弃用，改由 Prometheus 指标
+      
+      this.logger.debug('符号映射缓存命中', { 
+        originalSymbol, 
+        mappedSymbol: cached,
+        hitRate: this.getCacheHitRate()
+      });
+      return cached;
+    }
+    
+    // 🎯 并发去重：检查是否已有相同查询在进行
+    if (this.pendingQueries.has(cacheKey)) {
+      this.logger.debug('等待并发查询完成', { cacheKey });
+      return await this.pendingQueries.get(cacheKey);
+    }
+    
+    // 缓存未命中，创建查询Promise
+    // 记录缓存未命中到 Prometheus
+    Metrics.inc(
+      this.metricsRegistry,
+      'streamCacheHitRate',
+      { cache_type: 'symbol_mapping' },
+      0
+    );
+    
+    // 本地未命中计数已弃用，改由 Prometheus 指标
+    const queryPromise = this.originalMapSymbolLogic(originalSymbol, fromProvider, toProvider);
+    this.pendingQueries.set(cacheKey, queryPromise);
+    
+    try {
+      const mappedSymbol = await queryPromise;
+      
+      // 存入统一缓存
+      this.unifiedCache.set(cacheKey, mappedSymbol);
+      
+      this.logger.debug('符号映射完成并缓存', {
+        originalSymbol,
+        mappedSymbol,
+        hitRate: this.getCacheHitRate(),
+        processingTime: Date.now() - startTime,
+      });
+      
+      return mappedSymbol;
+    } finally {
+      // 清理并发锁
+      this.pendingQueries.delete(cacheKey);
+    }
+  }
+
+  /**
+   * 🎯 原始映射逻辑（无缓存版本）
+   */
+  private async originalMapSymbolLogic(
     originalSymbol: string,
     fromProvider: string,
     toProvider: string,
@@ -1285,5 +1493,109 @@ export class SymbolMapperService implements ISymbolMapper {
       });
       throw error;
     }
+  }
+
+  // ===== 🎯 缓存优化相关的辅助方法 =====
+
+  /**
+   * 获取缓存命中率
+   */
+  private getCacheHitRate(): string {
+    // 本地命中率统计已废弃，统一由 Prometheus 接管，此处返回占位值
+    return 'N/A';
+  }
+
+  /**
+   * 清理特定提供商的缓存
+   */
+  private clearProviderCache(dataSource: string): void {
+    if (!this.featureFlags.symbolMappingCacheEnabled) {
+      return;
+    }
+
+    // 清理单个映射缓存
+    const keysToDelete: string[] = [];
+    for (const [key] of this.unifiedCache.entries()) {
+      if (key.includes(`:${dataSource}:`)) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach(key => this.unifiedCache.delete(key));
+    this.logger.debug(`已清理提供商 ${dataSource} 的 ${keysToDelete.length} 个缓存项`);
+  }
+
+  /**
+   * 手动清理所有缓存（用于配置更新时）
+   */
+  clearCache(): void {
+    this.unifiedCache.clear();
+    this.pendingQueries.clear();
+    
+    // 本地统计已废弃，无需重置
+    
+    // 重置 Prometheus 指标
+    // missRate 指标已由 streamCacheHitRate 值和 Prometheus 计算，此处无需额外设置
+    
+    this.logger.log('符号映射统一缓存已清理');
+  }
+
+  /**
+   * 定时轮询检查规则版本（Change Stream 不可用时的降级策略）
+   */
+  private async checkRuleVersions(): Promise<void> {
+    if (!this.featureFlags.symbolMappingCacheEnabled) {
+      return;
+    }
+
+    try {
+      // 获取数据源版本信息
+      const currentVersions = await this.repository.getDataSourceVersions();
+      let cacheInvalidated = false;
+
+      for (const [dataSourceName, updateTime] of currentVersions.entries()) {
+        // 检查缓存中是否有该数据源的相关键
+        const cacheKeys = Array.from(this.unifiedCache.keys());
+        const sourceRelatedKeys = cacheKeys.filter(key => 
+          key.includes(`:${dataSourceName}:`)
+        );
+
+        if (sourceRelatedKeys.length > 0) {
+          // 简化实现：如果发现相关缓存，则清除该数据源的所有缓存
+          for (const key of sourceRelatedKeys) {
+            this.unifiedCache.delete(key);
+          }
+          cacheInvalidated = true;
+        }
+      }
+
+      if (cacheInvalidated) {
+        this.logger.debug('定时轮询：检测到规则版本变化，已清理相关缓存');
+      }
+    } catch (error) {
+      this.logger.warn('规则版本检查失败，清理所有缓存', { error: error.message });
+      this.clearCache();
+    }
+  }
+
+  /**
+   * 获取缓存统计信息
+   */
+  getCacheStats(): {
+    cacheHits: number;
+    cacheMisses: number;
+    hitRate: string;
+    cacheSize: number;
+    maxSize: number;
+    pendingQueries: number;
+  } {
+    return {
+      cacheHits: 0,
+      cacheMisses: 0,
+      hitRate: this.getCacheHitRate(),
+      cacheSize: this.unifiedCache.size,
+      maxSize: this.featureFlags.symbolCacheMaxSize,
+      pendingQueries: this.pendingQueries.size,
+    };
   }
 }

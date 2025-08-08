@@ -5,13 +5,13 @@ import { PerformanceMonitorService } from "../../../../../src/metrics/services/p
 import { PerformanceMetricsRepository } from "../../../../../src/metrics/repositories/performance-metrics.repository";
 import {
   PERFORMANCE_LIMITS,
-  PERFORMANCE_THRESHOLDS,
   METRIC_NAMES,
   METRIC_UNITS,
   PERFORMANCE_DEFAULTS,
   PERFORMANCE_EVENTS,
   API_KEY_CONSTANTS,
 } from "../../../../../src/metrics/constants/metrics-performance.constants";
+import { PERFORMANCE_CONSTANTS } from "../../../../../src/common/constants/unified";
 import {
   AuthType,
   AuthStatus,
@@ -390,7 +390,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
             new Promise((resolve) =>
               setTimeout(
                 () => resolve("slow result"),
-                PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS + 50,
+                PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS + 50,
               ),
             ),
         );
@@ -399,7 +399,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const resultPromise = service.wrapWithTiming(slowOperation, onComplete);
 
       // Fast-forward time to trigger slow operation warning
-      jest.advanceTimersByTime(PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS + 100);
+      jest.advanceTimersByTime(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_REQUEST_MS + 100);
 
       await resultPromise;
 
@@ -518,7 +518,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
     it("should get database metrics", async () => {
       // 不再硬编码假设SLOW_QUERY_MS的值，而是动态计算测试数据
       // 创建测试数据：确保有两个值超过PERFORMANCE_THRESHOLDS.SLOW_QUERY_MS
-      const currentSlowQueryThreshold = PERFORMANCE_THRESHOLDS.SLOW_QUERY_MS;
+      const currentSlowQueryThreshold = PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_QUERY_MS;
       const normalQuery = Math.floor(currentSlowQueryThreshold / 2).toString();
       const slowQuery1 = (currentSlowQueryThreshold + 50).toString();
       const slowQuery2 = (currentSlowQueryThreshold + 100).toString();

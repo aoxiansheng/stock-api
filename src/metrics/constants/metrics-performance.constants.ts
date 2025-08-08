@@ -43,12 +43,6 @@ export const PERFORMANCE_LIMITS = Object.freeze({
   MAX_ALERT_BUFFER_SIZE: 100, // 告警缓冲区最大大小
 } as const);
 
-/**
- * 性能阈值常量 - 使用统一常量系统
- * @deprecated 请直接使用 PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS 等
- */
-export const PERFORMANCE_THRESHOLDS =
-  PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS;
 
 /**
  * TTL 常量（秒）- 使用统一常量系统

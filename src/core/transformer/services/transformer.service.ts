@@ -10,6 +10,8 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { DataMapperService } from "../../data-mapper/services/data-mapper.service";
 import { DataMappingResponseDto } from "../../data-mapper/dto/data-mapping-response.dto";
 import { ObjectUtils } from "../../shared/utils/object.util";
+import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
+import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   TRANSFORM_ERROR_MESSAGES,
@@ -42,13 +44,40 @@ export class TransformerService {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(TransformerService.name);
 
-  constructor(private readonly dataMapperService: DataMapperService) {}
+  constructor(
+    private readonly dataMapperService: DataMapperService,
+    private readonly metricsRegistry: MetricsRegistryService,
+  ) {}
 
   /**
    * Transform raw data using mapping rules
    */
   async transform(request: TransformRequestDto): Promise<TransformResponseDto> {
     const startTime = Date.now();
+
+    // 自动推断API类型（rest/stream）
+    const inferApiType = (raw: any): string | undefined => {
+      try {
+        if (!raw) return undefined;
+        if (Array.isArray(raw)) return 'rest';
+        if (raw.secu_quote || raw.basic_info) return 'rest';
+        const flatFields = ['last_done', 'open', 'high', 'low', 'volume', 'turnover', 'timestamp'];
+        if (flatFields.some(k => raw[k] !== undefined)) return 'stream';
+      } catch {}
+      return undefined;
+    };
+
+    const apiTypeCtx = request.options?.context?.apiType || inferApiType(request.rawData);
+
+    // 🎯 记录转换操作开始
+    Metrics.inc(
+      this.metricsRegistry,
+      'transformerOperationsTotal',
+      { 
+        operation_type: 'transform',
+        provider: request.provider || 'unknown'
+      }
+    );
 
     // 🎯 使用 common 模块的日志脱敏功能
     this.logger.log(
@@ -58,6 +87,7 @@ export class TransformerService {
         transDataRuleListType: request.transDataRuleListType,
         mappingOutRuleId: request.mappingOutRuleId,
         hasRawData: !!request.rawData,
+        apiType: apiTypeCtx,
       }),
     );
 
@@ -67,6 +97,8 @@ export class TransformerService {
         request.provider,
         request.transDataRuleListType,
         request.mappingOutRuleId,
+        apiTypeCtx,
+        request.rawData,
       );
 
       if (!transformMappingRule) {
@@ -137,6 +169,22 @@ export class TransformerService {
         }),
       );
 
+      // 🎯 记录批次大小和成功率指标
+      const batchSize = Array.isArray(request.rawData) ? request.rawData.length : 1;
+      Metrics.observe(
+        this.metricsRegistry,
+        'transformerBatchSize',
+        batchSize,
+        { operation_type: 'transform' }
+      );
+      
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'transformerSuccessRate',
+        100, // 成功完成转换
+        { operation_type: 'transform' }
+      );
+
       // 🎯 性能警告检查
       if (
         processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
@@ -176,6 +224,14 @@ export class TransformerService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
 
+      // 🎯 记录失败率指标
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'transformerSuccessRate',
+        0, // 转换失败
+        { operation_type: 'transform' }
+      );
+
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.error(
         `数据转换失败`,
@@ -206,6 +262,21 @@ export class TransformerService {
     options?: BatchTransformOptionsDto;
   }): Promise<TransformResponseDto[]> {
     const operation = "transformBatch_optimized";
+
+    // 🎯 记录批量转换操作
+    Metrics.inc(
+      this.metricsRegistry,
+      'transformerOperationsTotal',
+      { operation_type: 'batch_transform', provider: 'batch' }
+    );
+
+    // 🎯 记录批量大小
+    Metrics.observe(
+      this.metricsRegistry,
+      'transformerBatchSize',
+      requests.length,
+      { operation_type: 'batch_transform' }
+    );
 
     // 🎯 使用 common 模块的配置常量进行批量大小检查
     if (requests.length > TRANSFORM_CONFIG.MAX_BATCH_SIZE) {
@@ -404,6 +475,13 @@ export class TransformerService {
   async previewTransformation(
     request: TransformRequestDto,
   ): Promise<TransformPreviewDto> {
+    // 🎯 记录预览生成指标
+    Metrics.inc(
+      this.metricsRegistry,
+      'transformerPreviewGeneratedTotal',
+      { preview_type: 'transformation_preview' }
+    );
+
     // 🎯 使用 common 模块的日志脱敏功能
     this.logger.log(
       `预览转换`,
@@ -479,16 +557,52 @@ export class TransformerService {
     provider: string,
     transDataRuleListType: string,
     ruleId?: string,
+    apiType?: string,
+    rawDataSample?: any,
   ): Promise<DataMappingResponseDto | null> {
     if (ruleId) {
       // Use specific rule if provided - 可能抛出 NotFoundException，让它传播
       return await this.dataMapperService.findOne(ruleId);
     } else {
-      // Find best matching rule - 可能抛出数据库异常，让它传播
-      // 返回 null 是正常的业务逻辑（没找到匹配规则）
+      // 先获取所有候选规则（按 apiType 过滤）
+      const candidates = await this.dataMapperService.getMappingRule(
+        provider,
+        transDataRuleListType,
+        apiType,
+      );
+
+      if (candidates && candidates.length > 0 && rawDataSample) {
+        // 计算每个候选规则对 rawData 的命中字段数
+        const scored = candidates.map((rule) => {
+          const mappings = rule.sharedDataFieldMappings || [];
+          const hits = mappings.reduce((cnt, m) => {
+            const val = ObjectUtils.getValueFromPath(rawDataSample, m.sourceField);
+            return cnt + (val !== undefined ? 1 : 0);
+          }, 0);
+          return { rule, hits, mappingsCount: mappings.length };
+        });
+        // 选择命中数最高的规则；若持平，选择映射项更多的
+        scored.sort((a, b) => (b.hits - a.hits) || (b.mappingsCount - a.mappingsCount));
+
+        const best = scored[0];
+        if (best && best.hits > 0) {
+          this.logger.debug('按字段命中率选择映射规则', sanitizeLogData({
+            provider,
+            transDataRuleListType,
+            apiType,
+            selectedRule: { id: best.rule.id, name: best.rule.name },
+            hits: best.hits,
+            mappingsCount: best.mappingsCount,
+          }));
+          return best.rule;
+        }
+      }
+
+      // 回退到默认的“最新规则”策略
       return await this.dataMapperService.findBestMatchingRule(
         provider,
         transDataRuleListType,
+        apiType,
       );
     }
   }

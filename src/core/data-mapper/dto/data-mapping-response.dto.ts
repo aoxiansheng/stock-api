@@ -47,6 +47,9 @@ export class DataMappingResponseDto implements IDataMappingRule {
   @ApiProperty({ description: "规则列表类型" })
   transDataRuleListType: string;
 
+  @ApiProperty({ description: "API 类型", enum: ["rest", "stream"] })
+  apiType: string;
+
   @ApiProperty({ description: "规则描述" })
   description?: string;
 
@@ -79,6 +82,7 @@ export class DataMappingResponseDto implements IDataMappingRule {
       name: document.name,
       provider: document.provider,
       transDataRuleListType: document.transDataRuleListType,
+      apiType: (document as any).apiType || "rest",
       description: document.description,
       sharedDataFieldMappings: document.sharedDataFieldMappings || [],
       sampleData: document.sampleData,
@@ -96,6 +100,7 @@ export class DataMappingResponseDto implements IDataMappingRule {
       name: obj.name,
       provider: obj.provider,
       transDataRuleListType: obj.transDataRuleListType,
+      apiType: obj.apiType || "rest",
       description: obj.description,
       sharedDataFieldMappings: obj.sharedDataFieldMappings || [],
       sampleData: obj.sampleData,

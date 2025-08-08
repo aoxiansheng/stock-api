@@ -4,6 +4,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { DataMapperService } from '../../../../../../src/core/data-mapper/services/data-mapper.service';
 import { DataMappingRepository } from '../../../../../../src/core/data-mapper/repositories/data-mapper.repository';
 import { PaginationService } from '../../../../../../src/common/modules/pagination/services/pagination.service';
+import { FeatureFlags } from '../../../../../../src/common/config/feature-flags.config';
 import { CreateDataMappingDto } from '../../../../../../src/core/data-mapper/dto/create-data-mapping.dto';
 import { DataMappingResponseDto } from '../../../../../../src/core/data-mapper/dto/data-mapping-response.dto';
 import { Types } from 'mongoose';
@@ -53,6 +54,15 @@ const mockPaginationService = {
   })),
 };
 
+const mockFeatureFlags = {
+  dataTransformCacheEnabled: true,
+  ruleCacheMaxSize: 100,
+  ruleCacheTtl: 10 * 60 * 1000,
+  objectPoolEnabled: true,
+  objectPoolSize: 100,
+  ruleCompilationEnabled: true,
+};
+
 
 describe('DataMapperService', () => {
   let service: DataMapperService;
@@ -63,6 +73,7 @@ describe('DataMapperService', () => {
         DataMapperService,
         { provide: DataMappingRepository, useValue: mockRepository },
         { provide: PaginationService, useValue: mockPaginationService },
+        { provide: FeatureFlags, useValue: mockFeatureFlags },
       ],
     }).compile();
 

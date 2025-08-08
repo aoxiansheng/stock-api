@@ -511,6 +511,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
   /**
    * 解析 LongPort 报价事件
    * 根据SDK实际返回格式，从PushQuoteEvent对象中提取数据
+   * 🔧 增强容错能力和调试信息
    */
   private parseLongportQuoteEvent(event: any): any {
     try {
@@ -593,9 +594,37 @@ export class LongportStreamContextService implements OnModuleDestroy {
         // 尝试直接访问属性（如果SDK提供）
         if (!symbol && event.symbol) {
           symbol = event.symbol;
+          this.logger.debug('从event.symbol获取符号', { symbol });
         }
         if (!quoteData && event.data) {
           quoteData = event.data;
+          this.logger.debug('从event.data获取报价数据', { quoteData });
+        }
+        
+        // 🔧 增强：尝试其他可能的属性访问方式
+        if (!symbol) {
+          // 尝试其他可能的符号字段
+          symbol = event.stock_symbol || event.sym || event.code;
+          if (symbol) {
+            this.logger.debug('从备用字段获取符号', { symbol, source: 'alternative_fields' });
+          }
+        }
+        
+        if (!quoteData) {
+          // 如果没有嵌套data对象，尝试直接从event获取字段
+          if (event.last_done || event.price || event.last_price) {
+            quoteData = {
+              last_done: event.last_done || event.price || event.last_price,
+              open: event.open || event.open_price,
+              high: event.high || event.high_price,
+              low: event.low || event.low_price,
+              volume: event.volume || event.total_volume,
+              turnover: event.turnover || event.total_turnover,
+              timestamp: event.timestamp || event.time,
+              trade_status: event.trade_status || event.status,
+            };
+            this.logger.debug('从event直接字段构建报价数据', { quoteData });
+          }
         }
       }
 

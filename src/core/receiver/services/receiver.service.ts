@@ -17,6 +17,8 @@ import {
   MarketStatusResult,
 } from "../../shared/services/market-status.service";
 import { SymbolMapperService } from "../../symbol-mapper/services/symbol-mapper.service";
+import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
+import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   RECEIVER_ERROR_MESSAGES,
@@ -58,6 +60,7 @@ export class ReceiverService {
     private readonly capabilityRegistryService: CapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
     private readonly cacheService: CacheService,
+    private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
 
@@ -71,6 +74,9 @@ export class ReceiverService {
   async handleRequest(request: DataRequestDto): Promise<DataResponseDto> {
     const startTime = Date.now();
     const requestId = uuidv4();
+
+    // 🎯 记录连接开始
+    this.recordConnectionChange(1);
 
     // 🎯 使用 common 模块的日志脱敏功能
     this.logger.log(
@@ -156,7 +162,12 @@ export class ReceiverService {
         requestId,
         processingTime,
         request.symbols.length,
+        provider,
+        true, // success
       );
+
+      // 🎯 记录连接结束
+      this.recordConnectionChange(-1);
 
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.log(
@@ -173,6 +184,19 @@ export class ReceiverService {
       return responseData;
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      
+      // 🎯 记录错误指标
+      this.recordPerformanceMetrics(
+        requestId,
+        processingTime,
+        request.symbols?.length || 0,
+        undefined, // provider 可能未定义
+        false, // success = false
+      );
+      
+      // 🎯 记录连接结束
+      this.recordConnectionChange(-1);
+      
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.error(
         `强时效数据请求处理失败`,
@@ -651,6 +675,7 @@ export class ReceiverService {
       originalSymbols: request.symbols,
       requestId,
       contextService: await this.getProviderContextService(provider),
+      context: { apiType: 'rest' },
     };
 
     try {
@@ -944,17 +969,74 @@ export class ReceiverService {
   }
 
   /**
+   * 🎯 记录活动连接数变化
+   */
+  private recordConnectionChange(delta: number, connectionType: string = 'http'): void {
+    // 从 Prometheus 获取当前连接数，然后更新
+    this.metricsRegistry.getMetricValue('newstock_receiver_active_connections')
+      .then(currentConnections => {
+        const count = Math.max(0, (Number(currentConnections) || 0) + delta);
+        
+        Metrics.setGauge(
+          this.metricsRegistry,
+          'receiverActiveConnections',
+          count,
+          { connection_type: connectionType }
+        );
+      })
+      .catch(error => {
+        this.logger.error('获取连接数指标失败', error);
+        // 降级处理 - 直接记录增量
+        Metrics.setGauge(
+          this.metricsRegistry,
+          'receiverActiveConnections',
+          delta > 0 ? 1 : 0,
+          { connection_type: connectionType }
+        );
+      });
+  }
+
+  /**
    * 记录性能指标
    */
   private recordPerformanceMetrics(
     requestId: string,
     processingTime: number,
     symbolsCount: number,
+    provider?: string,
+    success: boolean = true,
   ): void {
     const avgTimePerSymbol =
       symbolsCount > 0 ? processingTime / symbolsCount : 0;
 
+    // 🎯 记录 Prometheus 指标
+    const providerLabel = provider || 'unknown';
+    const status = success ? 'success' : 'error';
+    
+    // 记录请求总数
+    Metrics.inc(
+      this.metricsRegistry,
+      'receiverRequestsTotal',
+      { method: 'handleRequest', provider: providerLabel, status }
+    );
+    
+    // 记录处理时间分布
+    Metrics.observe(
+      this.metricsRegistry,
+      'receiverProcessingDuration',
+      processingTime,
+      { method: 'handleRequest', provider: providerLabel }
+    );
+    
+    // 如果是慢请求，记录错误率
     if (processingTime > RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS) {
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'receiverErrorRate',
+        100, // 表示检测到慢请求
+        { error_type: 'slow_request', provider: providerLabel }
+      );
+      
       this.logger.warn(
         RECEIVER_WARNING_MESSAGES.SLOW_REQUEST_DETECTED,
         sanitizeLogData({

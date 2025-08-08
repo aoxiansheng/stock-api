@@ -368,6 +368,11 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 调试：显示完整数据结构
           console.log(`🔍 [调试] 第${receivedQuoteCount}次数据结构:`, JSON.stringify(data, null, 2));
           
+          // 🆕 原始数据输出 - 不做任何格式化或解析
+          console.log(`🔍 [原始数据] data:`, data);
+          console.log(`🔍 [原始数据] data.data:`, data.data);
+          console.log(`🔍 [原始数据] data.symbols:`, data.symbols);
+          
           // 提取价格信息用于日志
           let currentPrice = null;
           let volume = null;
@@ -770,7 +775,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     }, 45000);
 
     it("应该拒绝无效符号格式的订阅请求", async () => {
-      const invalidSymbol = "00700.US"; // 这是一个无效的符号格式
+      const invalidSymbol = "AAPL0.US"; // 这是一个无效的符号格式
       
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {

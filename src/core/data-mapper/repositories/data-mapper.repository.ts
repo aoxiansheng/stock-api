@@ -55,9 +55,12 @@ export class DataMappingRepository {
   async findByProviderAndType(
     provider: string,
     transDataRuleListType: string,
+    apiType?: string,
   ): Promise<DataMappingRuleDocument[]> {
+    const filter: any = { provider, transDataRuleListType, isActive: true };
+    if (apiType) filter.apiType = apiType;
     return this.dataMappingRuleModel
-      .find({ provider, transDataRuleListType, isActive: true })
+      .find(filter)
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -158,10 +161,49 @@ export class DataMappingRepository {
   async findBestMatchingRule(
     provider: string,
     transDataRuleListType: string,
+    apiType?: string,
   ): Promise<DataMappingRuleDocument | null> {
+    const filter: any = { provider, transDataRuleListType, isActive: true };
+    if (apiType) filter.apiType = apiType;
     return this.dataMappingRuleModel
-      .findOne({ provider, transDataRuleListType, isActive: true })
+      .findOne(filter)
       .sort({ createdAt: -1 }) // 最新创建的优先
       .exec();
+  }
+
+  /**
+   * 🎯 监听数据映射规则变化 (Change Stream)
+   */
+  watchChanges(): any {
+    return this.dataMappingRuleModel.watch([
+      {
+        $match: {
+          operationType: { $in: ['insert', 'update', 'delete'] }
+        }
+      }
+    ], {
+      fullDocument: 'updateLookup'
+    });
+  }
+
+  /**
+   * 🎯 获取所有提供商的最新更新时间
+   */
+  async getProviderVersions(): Promise<Map<string, Date>> {
+    const versions = new Map<string, Date>();
+    
+    const providers = await this.dataMappingRuleModel
+      .find({ isActive: true })
+      .select('provider updatedAt')
+      .exec();
+    
+    for (const doc of providers) {
+      const currentVersion = versions.get(doc.provider);
+      if (!currentVersion || doc.updatedAt > currentVersion) {
+        versions.set(doc.provider, doc.updatedAt);
+      }
+    }
+    
+    return versions;
   }
 }

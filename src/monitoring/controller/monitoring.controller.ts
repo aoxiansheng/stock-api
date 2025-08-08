@@ -5,7 +5,9 @@ import {
   BadRequestException,
   InternalServerErrorException,
   UseGuards,
+  Res,
 } from "@nestjs/common";
+import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 
@@ -24,6 +26,9 @@ import { UserRole } from "../../auth/enums/user-role.enum";
 import { CacheService } from "../../cache/services/cache.service";
 import { MetricsHealthService } from "../../metrics/services/metrics-health.service";
 import { PerformanceMonitorService } from "../../metrics/services/performance-monitor.service";
+import { MetricsRegistryService } from "../metrics/metrics-registry.service";
+import { StreamPerformanceMetrics } from "../../core/shared/services/stream-performance-metrics.service";
+import { DynamicLogLevelService } from "../../core/shared/services/dynamic-log-level.service";
 
 import { GetDbPerformanceQueryDto } from "../dto/monitoring-query.dto";
 import { PerformanceMetricsDto } from "../../metrics/dto/performance-metrics.dto";
@@ -38,6 +43,9 @@ export class MonitoringController {
     private readonly cacheOptimization: CacheService,
     private readonly metricsHealthService: MetricsHealthService,
     private readonly alertingService: AlertingService,
+    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly streamPerformanceMetrics: StreamPerformanceMetrics,
+    private readonly dynamicLogLevelService: DynamicLogLevelService,
   ) {}
 
   // 敏感数据 - 需要管理员权限
@@ -842,6 +850,192 @@ export class MonitoringController {
     } catch (error) {
       this.logger.error("手动健康检查失败:", error);
       throw new InternalServerErrorException("手动健康检查执行失败");
+    }
+  }
+
+  // 标准 Prometheus 指标端点 - 管理员权限
+  @Auth([UserRole.ADMIN])
+  @Get("metrics")
+  @ApiOperation({
+    summary: "获取 Prometheus 指标",
+    description: "获取标准格式的 Prometheus 指标数据，用于监控系统集成",
+  })
+  @ApiSuccessResponse({ 
+    description: "Prometheus 指标获取成功",
+    schema: {
+      type: 'string',
+      example: '# HELP newstock_stream_symbols_processed_total Total number of symbols processed in stream\n# TYPE newstock_stream_symbols_processed_total counter\nnewstock_stream_symbols_processed_total{provider="longport",market="HK"} 42\n'
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  @NoPerformanceMonitoring()
+  async getPrometheusMetrics(@Res() res: Response) {
+    try {
+      const metricsData = await this.metricsRegistry.getMetrics();
+      
+      // 设置正确的 Content-Type 响应头
+      res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+      res.send(metricsData);
+      
+      this.logger.debug('Prometheus 指标数据已返回', {
+        metricsLength: metricsData.length
+      });
+    } catch (error) {
+      this.logger.error("获取 Prometheus 指标失败:", error);
+      throw new InternalServerErrorException("指标数据获取失败");
+    }
+  }
+
+  // 流性能指标端点 - 管理员权限
+  @Auth([UserRole.ADMIN])
+  @Get("stream-performance")
+  @ApiOperation({
+    summary: "获取流处理性能指标",
+    description: "获取 WebSocket 流处理系统的详细性能指标，包括批量处理统计",
+  })
+  @ApiSuccessResponse({ 
+    description: "流性能指标获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        stats: { type: 'object', description: '流处理统计数据' },
+        percentiles: { type: 'object', description: '响应时间百分位数' },
+        prometheusMetrics: { type: 'string', description: 'Prometheus 格式指标' },
+        timestamp: { type: 'string', format: 'date-time' }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  @NoPerformanceMonitoring()
+  async getStreamPerformanceMetrics() {
+    try {
+      const detailedReport = await this.streamPerformanceMetrics.getDetailedPerformanceReport();
+      
+      this.logger.debug('流性能指标获取成功', {
+        statsSymbolsProcessed: detailedReport.stats.totalSymbolsProcessed,
+        statsTotalBatches: detailedReport.stats.batchProcessingStats.totalBatches
+      });
+      
+      return detailedReport;
+    } catch (error) {
+      this.logger.error("获取流性能指标失败:", error);
+      throw new InternalServerErrorException("流性能指标获取失败");
+    }
+  }
+
+  // 动态日志级别状态端点 - 管理员权限
+  @Auth([UserRole.ADMIN])
+  @Get("dynamic-log-level")
+  @ApiOperation({
+    summary: "获取动态日志级别状态",
+    description: "获取动态日志级别服务的当前状态和性能指标",
+  })
+  @ApiSuccessResponse({ 
+    description: "动态日志级别状态获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        currentStatus: { 
+          type: 'object', 
+          description: '当前系统状态' 
+        },
+        performanceMetrics: { 
+          type: 'object', 
+          description: '性能指标摘要' 
+        },
+        prometheusMetrics: { 
+          type: 'string', 
+          description: 'Prometheus 格式指标' 
+        },
+        timestamp: { 
+          type: 'string', 
+          format: 'date-time' 
+        }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  @NoPerformanceMonitoring()
+  async getDynamicLogLevelStatus() {
+    try {
+      const currentStatus = this.dynamicLogLevelService.getCurrentStatus();
+      const performanceMetrics = await this.dynamicLogLevelService.getPerformanceMetrics();
+      const prometheusMetrics = await this.dynamicLogLevelService.getMetrics();
+      
+      const result = {
+        currentStatus,
+        performanceMetrics,
+        prometheusMetrics,
+        timestamp: new Date().toISOString()
+      };
+      
+      this.logger.debug('动态日志级别状态获取成功', {
+        currentLogLevel: currentStatus.currentLogLevel,
+        cpuUsage: currentStatus.cpuUsage,
+        totalSwitches: performanceMetrics.totalLogLevelSwitches
+      });
+      
+      return result;
+    } catch (error) {
+      this.logger.error("获取动态日志级别状态失败:", error);
+      throw new InternalServerErrorException("动态日志级别状态获取失败");
+    }
+  }
+
+  // 综合 Prometheus 指标摘要端点 - 管理员权限
+  @Auth([UserRole.ADMIN])
+  @Get("metrics/summary")
+  @ApiOperation({
+    summary: "获取指标系统摘要信息",
+    description: "获取 Prometheus 指标注册中心的摘要信息和健康状态",
+  })
+  @ApiSuccessResponse({ 
+    description: "指标摘要获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        metricsSummary: { 
+          type: 'object', 
+          description: '指标摘要信息' 
+        },
+        healthStatus: { 
+          type: 'object', 
+          description: '健康状态检查' 
+        },
+        timestamp: { 
+          type: 'string', 
+          format: 'date-time' 
+        }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  @NoPerformanceMonitoring()
+  async getMetricsSummary() {
+    try {
+      const metricsSummary = this.metricsRegistry.getMetricsSummary();
+      const healthStatus = this.metricsRegistry.getHealthStatus();
+      
+      const result = {
+        metricsSummary,
+        healthStatus,
+        timestamp: new Date().toISOString()
+      };
+      
+      this.logger.debug('指标摘要获取成功', {
+        totalMetrics: metricsSummary.totalMetrics,
+        customMetrics: metricsSummary.customMetrics,
+        healthStatus: healthStatus.status
+      });
+      
+      return result;
+    } catch (error) {
+      this.logger.error("获取指标摘要失败:", error);
+      throw new InternalServerErrorException("指标摘要获取失败");
     }
   }
 }
