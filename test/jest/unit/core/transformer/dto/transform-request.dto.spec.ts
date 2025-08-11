@@ -9,6 +9,7 @@ describe('TransformRequestDto', () => {
   // 创建一个有效的请求体
   const createValidRequest = () => ({
     provider: 'longport',
+    apiType: 'rest',
     transDataRuleListType: 'quote_fields',
     rawData: { price: 100, volume: 1000 },
     mappingOutRuleId: 'specific-rule-123',

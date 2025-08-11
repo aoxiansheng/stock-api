@@ -10,6 +10,7 @@ import { DataRequestDto } from '@core/receiver/dto/data-request.dto';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus } from '@common/constants/market-trading-hours.constants';
 import { ICapability } from '@providers/interfaces/capability.interface';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
 
 import { MarketStatusResult } from '@core/shared/services/market-status.service';
 
@@ -150,6 +151,26 @@ describe('ReceiverService', () => {
           provide: SymbolMapperService,
           useValue: {
             transformSymbols: jest.fn(),
+          },
+        },
+        {
+          provide: MetricsRegistryService,
+          useValue: {
+            receiverRequestsTotal: { inc: jest.fn() },
+            receiverProcessingDuration: { observe: jest.fn() },
+            receiverErrorRate: { set: jest.fn() },
+            receiverActiveConnections: { set: jest.fn() },
+            getMetricValue: jest.fn().mockResolvedValue(0),
+            getMetrics: jest.fn().mockResolvedValue('# Prometheus metrics'),
+            getMetricsSummary: jest.fn().mockReturnValue({
+              totalMetrics: 50,
+              customMetrics: 30,
+              defaultMetrics: 20,
+            }),
+            getHealthStatus: jest.fn().mockReturnValue({
+              status: 'healthy',
+              message: '指标系统运行正常',
+            }),
           },
         },
       ],
@@ -857,6 +878,22 @@ describe('ReceiverService private methods', () => {
           provide: SymbolMapperService,
           useValue: {
             transformSymbols: jest.fn(),
+          },
+        },
+        {
+          provide: MetricsRegistryService,
+          useValue: {
+            getMetrics: jest.fn().mockResolvedValue('# Prometheus metrics'),
+            getMetricsSummary: jest.fn().mockReturnValue({
+              totalMetrics: 50,
+              customMetrics: 30,
+              defaultMetrics: 20,
+            }),
+            getHealthStatus: jest.fn().mockReturnValue({
+              status: 'healthy',
+              message: '指标系统运行正常',
+            }),
+            getMetricValue: jest.fn().mockReturnValue(100),
           },
         },
       ],

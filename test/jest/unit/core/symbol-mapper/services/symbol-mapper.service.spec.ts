@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
 import { SymbolMappingRepository } from '../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository';
-import { PaginationService } from '../../../../../../src/common/modules/pagination/services/pagination.service';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import {
   ConflictException,
   NotFoundException,
@@ -13,6 +13,54 @@ import { UpdateSymbolMappingDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRul
 import { SymbolMappingRule } from '../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { SymbolMappingQueryDto } from '../../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto';
 import { PaginatedDataDto } from '../../../../../../src/common/modules/pagination/dto/paginated-data';
+import { FeatureFlags } from '@common/config/feature-flags.config';
+// We'll provide FeatureFlags without importing the real class
+
+// Create a proper mock class for FeatureFlags
+class MockFeatureFlags {
+  symbolMappingCacheEnabled = true;
+  dataTransformCacheEnabled = true;
+  batchProcessingEnabled = true;
+  objectPoolEnabled = true;
+  ruleCompilationEnabled = true;
+  dynamicLogLevelEnabled = true;
+  metricsLegacyModeEnabled = true;
+  symbolCacheMaxSize = 2000;
+  symbolCacheTtl = 5 * 60 * 1000;
+  ruleCacheMaxSize = 100;
+  ruleCacheTtl = 10 * 60 * 1000;
+  objectPoolSize = 100;
+  batchSizeThreshold = 10;
+  batchTimeWindowMs = 1;
+
+  getAllFlags() {
+    return {
+      symbolMappingCacheEnabled: this.symbolMappingCacheEnabled,
+      dataTransformCacheEnabled: this.dataTransformCacheEnabled,
+      batchProcessingEnabled: this.batchProcessingEnabled,
+      objectPoolEnabled: this.objectPoolEnabled,
+      ruleCompilationEnabled: this.ruleCompilationEnabled,
+      dynamicLogLevelEnabled: this.dynamicLogLevelEnabled,
+      metricsLegacyModeEnabled: this.metricsLegacyModeEnabled,
+      symbolCacheMaxSize: this.symbolCacheMaxSize,
+      symbolCacheTtl: this.symbolCacheTtl,
+      ruleCacheMaxSize: this.ruleCacheMaxSize,
+      ruleCacheTtl: this.ruleCacheTtl,
+      objectPoolSize: this.objectPoolSize,
+      batchSizeThreshold: this.batchSizeThreshold,
+      batchTimeWindowMs: this.batchTimeWindowMs,
+    };
+  }
+
+  isCacheOptimizationEnabled() {
+    return true;
+  }
+
+  isPerformanceOptimizationEnabled() {
+    return true;
+  }
+}
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
 
 const mockSymbolMappingRepository = () => ({
   exists: jest.fn(),
@@ -38,6 +86,7 @@ const mockPaginationService = () => ({
   createPaginatedResponseFromQuery: jest.fn(),
 });
 
+
 describe('SymbolMapperService', () => {
   let service: SymbolMapperService;
   let repository: jest.Mocked<ReturnType<typeof mockSymbolMappingRepository>>;
@@ -55,6 +104,19 @@ describe('SymbolMapperService', () => {
           provide: PaginationService,
           useFactory: mockPaginationService,
         },
+        {
+          provide: FeatureFlags,
+          useValue: new MockFeatureFlags(),
+        },
+        {
+          provide: MetricsRegistryService,
+          useValue: {
+            symbolMapperRequestsTotal: { inc: jest.fn() },
+            symbolMapperSuccessTotal: { inc: jest.fn() },
+            symbolMapperErrorTotal: { inc: jest.fn() },
+            symbolMapperProcessingDuration: { observe: jest.fn() },
+          },
+        },
       ],
     }).compile();
 
@@ -70,7 +132,7 @@ describe('SymbolMapperService', () => {
   describe('mapSymbol', () => {
     it('should map a symbol successfully', async () => {
       const originalSymbol = 'AAPL.US';
-      const fromProvider = 'Standard';
+      const fromProvider = 'standard';
       const toProvider = 'LongPort';
       const mockMappingRule = [
         { standardSymbol: 'AAPL.US', sdkSymbol: '700.HK', isActive: true },
@@ -91,7 +153,7 @@ describe('SymbolMapperService', () => {
 
     it('should return original symbol if mapping config not found', async () => {
       const originalSymbol = 'AAPL.US';
-      const fromProvider = 'Standard';
+      const fromProvider = 'standard';
       const toProvider = 'LongPort';
       repository.findByDataSource.mockResolvedValueOnce(null);
 
@@ -105,7 +167,7 @@ describe('SymbolMapperService', () => {
 
     it('should return original symbol if no matching rule found', async () => {
       const originalSymbol = 'GOOG.US';
-      const fromProvider = 'Standard';
+      const fromProvider = 'standard';
       const toProvider = 'LongPort';
       const mockMappingRule = [
         { standardSymbol: 'AAPL.US', sdkSymbol: '700.HK', isActive: true },
@@ -125,7 +187,7 @@ describe('SymbolMapperService', () => {
 
     it('should throw error if repository call fails', async () => {
       const originalSymbol = 'AAPL.US';
-      const fromProvider = 'Standard';
+      const fromProvider = 'standard';
       const toProvider = 'LongPort';
       repository.findByDataSource.mockRejectedValueOnce(new Error('DB Error'));
 

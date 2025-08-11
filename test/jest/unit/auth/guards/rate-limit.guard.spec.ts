@@ -337,9 +337,12 @@ describe("RateLimitGuard", () => {
         // Expected to throw
       }
 
-      expect(mockLogger.log).toHaveBeenCalledWith("频率限制守卫被调用");
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining("频率限制守卫 - API Key"),
+        "执行API Key频率限制检查",
+        expect.objectContaining({
+          appKey: "test-app-key",
+          endpoint: undefined,
+        })
       );
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining("频率限制超出"),
@@ -511,7 +514,7 @@ describe("RateLimitGuard", () => {
 
       new RateLimitGuard(rateLimitService, reflector);
 
-      expect(mockLogger.log).toHaveBeenCalledWith("RateLimitGuard 已实例化");
+      expect(mockLogger.debug).toHaveBeenCalledWith("RateLimitGuard 已实例化");
     });
   });
 

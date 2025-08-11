@@ -6,7 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StreamReceiverService } from '../../../../../src/core/stream-receiver/stream-receiver.service';
 import { CapabilityRegistryService } from '../../../../../src/providers/services/capability-registry.service';
 import { SymbolMapperService } from '../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { DataMapperService } from '../../../../../src/core/data-mapper/services/data-mapper.service';
+import { FlexibleMappingRuleService } from '../../../../../src/core/data-mapper/services/flexible-mapping-rule.service';
 import { TransformerService } from '../../../../../src/core/transformer/services/transformer.service';
 import { BatchOptimizationService } from '../../../../../src/core/shared/services/batch-optimization.service';
 import { FeatureFlags } from '../../../../../src/common/config/feature-flags.config';
@@ -24,8 +24,8 @@ const mockSymbolMapperService = {
   mapSymbol: jest.fn(),
 };
 
-const mockDataMapperService = {
-  getMappingRule: jest.fn(),
+const mockFlexibleMappingRuleService = {
+  findBestMatchingRule: jest.fn(),
 };
 
 const mockTransformerService = {
@@ -73,8 +73,8 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
           useValue: mockSymbolMapperService,
         },
         {
-          provide: DataMapperService,
-          useValue: mockDataMapperService,
+          provide: FlexibleMappingRuleService,
+          useValue: mockFlexibleMappingRuleService,
         },
         {
           provide: TransformerService,
@@ -132,8 +132,8 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
             useValue: mockSymbolMapperService,
           },
           {
-            provide: DataMapperService,
-            useValue: mockDataMapperService,
+            provide: FlexibleMappingRuleService,
+            useValue: mockFlexibleMappingRuleService,
           },
           {
             provide: TransformerService,
@@ -177,18 +177,20 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
     });
 
     it('应该在处理批量数据后更新统计信息', async () => {
-      const quotes = [
-        { ...mockQuoteData },
-        { ...mockQuoteData, rawData: { ...mockQuoteData.rawData, symbol: '09988.HK' } },
-        { ...mockQuoteData, rawData: { ...mockQuoteData.rawData, symbol: 'AAPL.US' } },
-      ];
+      // 使用 ≥10 个符号以触发批量预加载 (batchSizeThreshold = 10)
+      const quotes = Array.from({ length: 12 }, (_, i) => ({
+        ...mockQuoteData,
+        rawData: { ...mockQuoteData.rawData, symbol: `${700 + i}.HK` },
+      }));
 
-      // Mock 相关服务方法
-      mockBatchOptimizationService.preloadSymbolMappings.mockResolvedValue(new Map([
-        ['700.HK', '00700.HK'],
-        ['09988.HK', '09988.HK'],
-        ['AAPL.US', 'AAPL.US'],
-      ]));
+      // Mock 相关服务方法 - 为12个符号设置映射
+      const mappingResults = new Map();
+      quotes.forEach((quote, i) => {
+        const symbol = `${700 + i}.HK`;
+        mappingResults.set(symbol, `00${700 + i}.HK`);
+      });
+      
+      mockBatchOptimizationService.preloadSymbolMappings.mockResolvedValue(mappingResults);
 
       // 模拟处理数据的返回值
       const mockProcessedData = {
@@ -213,15 +215,15 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
 
       // 验证性能指标被正确记录
       expect(mockPerformanceMetrics.recordBatchProcessed).toHaveBeenCalledWith(
-        3, // quotesCount
+        12, // quotesCount
         expect.any(Number), // processingTime
         true // success
       );
 
       // 验证批量预加载缓存指标
       expect(mockPerformanceMetrics.recordBatchPreloadCacheHit).toHaveBeenCalledWith(
-        3, // symbolsCount
-        100 // hitRate (3/3 * 100)
+        12, // symbolsCount
+        100 // hitRate (12/12 * 100)
       );
 
       processAndCacheDataSpy.mockRestore();
@@ -248,16 +250,20 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
 
   describe('按提供商批量处理', () => {
     it('应该正确按提供商分组并处理报价数据', async () => {
-      const quotes = [
-        { ...mockQuoteData, providerName: 'longport' },
-        { ...mockQuoteData, providerName: 'longport' },
-        { ...mockQuoteData, providerName: 'itick', wsCapabilityType: 'stream-index-quote' },
-      ];
+      // 使用 ≥10 个符号以触发批量预加载 (batchSizeThreshold = 10)
+      const quotes = Array.from({ length: 12 }, (_, i) => ({
+        ...mockQuoteData, 
+        providerName: 'longport',
+        rawData: { ...mockQuoteData.rawData, symbol: `${700 + i}.HK` }
+      }));
 
-      // Mock 批量预加载
-      mockBatchOptimizationService.preloadSymbolMappings.mockResolvedValue(new Map([
-        ['700.HK', '00700.HK'],
-      ]));
+      // Mock 批量预加载 - 返回足够的映射结果
+      const mappingResults = new Map();
+      quotes.forEach((quote, i) => {
+        const symbol = `${700 + i}.HK`;
+        mappingResults.set(symbol, `00${700 + i}.HK`);
+      });
+      mockBatchOptimizationService.preloadSymbolMappings.mockResolvedValue(mappingResults);
 
       // Mock 数据处理
       jest.spyOn(service as any, 'processAndCacheProviderData')
@@ -267,13 +273,14 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
         });
 
       // 调用按提供商批量处理
-      await (service as any).processBatchByProvider('longport', 'stream-stock-quote', quotes.slice(0, 2));
+      await (service as any).processBatchByProvider('longport', 'stream-stock-quote', quotes);
 
-      // 验证预加载被调用
+      // 验证预加载被调用 - 修正参数顺序
+      const expectedSymbols = quotes.map(q => q.rawData.symbol);
       expect(mockBatchOptimizationService.preloadSymbolMappings).toHaveBeenCalledWith(
-        ['700.HK', '700.HK'],
-        'longport',
-        'standard'
+        expectedSymbols,
+        'standard',
+        'longport'
       );
     });
 
@@ -329,13 +336,20 @@ describe('StreamReceiverService - RxJS Batch Processing', () => {
 
   describe('性能指标集成', () => {
     it('应该在所有批量操作中正确记录性能指标', async () => {
-      const quotes = Array.from({ length: 5 }, (_, i) => ({
+      // 使用 ≥10 个符号以触发批量预加载 (batchSizeThreshold = 10)
+      const quotes = Array.from({ length: 15 }, (_, i) => ({
         ...mockQuoteData,
         rawData: { ...mockQuoteData.rawData, symbol: `${700 + i}.HK` },
       }));
 
-      // Mock 服务响应
-      mockBatchOptimizationService.preloadSymbolMappings.mockResolvedValue(new Map());
+      // Mock 服务响应 - 为15个符号设置映射
+      const mappingResults = new Map();
+      quotes.forEach((quote, i) => {
+        const symbol = `${700 + i}.HK`;
+        mappingResults.set(symbol, `00${700 + i}.HK`);
+      });
+      mockBatchOptimizationService.preloadSymbolMappings.mockResolvedValue(mappingResults);
+      
       jest.spyOn(service as any, 'processAndCacheProviderData')
         .mockResolvedValue({
           symbols: ['700.HK'],

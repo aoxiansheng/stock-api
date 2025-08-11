@@ -70,6 +70,7 @@ describe('TransformerController', () => {
   describe('transform', () => {
     const mockTransformRequestDto: TransformRequestDto = {
       provider: 'test-provider',
+      apiType: 'rest',
       transDataRuleListType: 'test-type',
       mappingOutRuleId: 'test-rule-id',
       rawData: { key: 'value' },
@@ -107,6 +108,7 @@ describe('TransformerController', () => {
     const mockTransformRequestDtos: TransformRequestDto[] = [
       {
         provider: 'test-provider',
+        apiType: 'rest',
         transDataRuleListType: 'test-type',
         mappingOutRuleId: 'test-rule-id-1',
         rawData: { key: 'value1' },
@@ -114,6 +116,7 @@ describe('TransformerController', () => {
       },
       {
         provider: 'test-provider',
+        apiType: 'stream',
         transDataRuleListType: 'test-type',
         mappingOutRuleId: 'test-rule-id-2',
         rawData: { key: 'value2' },
@@ -166,6 +169,7 @@ describe('TransformerController', () => {
   describe('preview', () => {
     const mockTransformRequestDto: TransformRequestDto = {
       provider: 'test-provider',
+      apiType: 'rest',
       transDataRuleListType: 'test-type',
       mappingOutRuleId: 'test-rule-id',
       rawData: { key: 'value' },

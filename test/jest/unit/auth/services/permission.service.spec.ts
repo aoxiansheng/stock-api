@@ -1,3 +1,6 @@
+// 禁用自动mock映射，直接导入真实的PermissionService
+jest.unmock("../../../../../src/auth/services/permission.service");
+
 import { Test, TestingModule } from "@nestjs/testing";
 import { PermissionService } from "../../../../../src/auth/services/permission.service";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
@@ -9,6 +12,51 @@ import {
   Permission,
   UserRole,
 } from "../../../../../src/auth/enums/user-role.enum";
+
+// Mock createLogger to provide controlled logger instance
+jest.mock("../../../../../src/common/config/logger.config", () => ({
+  createLogger: jest.fn(() => ({
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
+
+// Mock security config
+jest.mock("../../../../../src/common/config/security.config", () => ({
+  securityConfig: {
+    permission: {
+      cachePrefix: "permission",
+      cacheTtlSeconds: 300,
+    },
+  },
+}));
+
+// Mock permission constants
+jest.mock("../../../../../src/auth/constants/permission.constants", () => ({
+  PERMISSION_OPERATIONS: {
+    CHECK_PERMISSIONS: "checkPermissions",
+    INVALIDATE_CACHE: "invalidateCacheFor",
+  },
+  PERMISSION_MESSAGES: {
+    PERMISSION_CHECK_STARTED: "Permission check started",
+    CACHE_HIT: "Cache hit",
+    CACHE_MISS: "Cache miss",
+    CHECK_PASSED: "Check passed",
+    CHECK_FAILED: "Check failed",
+    CACHE_INVALIDATED: "Cache invalidated",
+    NO_CACHE_TO_INVALIDATE: "No cache to invalidate",
+    CACHE_INVALIDATION_FAILED: "Cache invalidation failed",
+  },
+}));
+
+// Mock permission utils
+jest.mock("../../../../../src/auth/utils/permission.utils", () => ({
+  PermissionTemplateUtil: {
+    generateDetails: jest.fn((template, params) => `Mocked details for ${template}`),
+  },
+}));
 
 describe("PermissionService - Enhanced Coverage", () => {
   let service: PermissionService;
@@ -61,7 +109,7 @@ describe("PermissionService - Enhanced Coverage", () => {
     service = module.get<PermissionService>(PermissionService);
     cacheService = module.get(CacheService);
 
-    // Spy on all logger methods
+    // Set up logger spies using the service's logger
     logSpies = {
       log: jest.spyOn((service as any).logger, "log").mockImplementation(),
       debug: jest.spyOn((service as any).logger, "debug").mockImplementation(),
@@ -86,7 +134,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       };
 
       cacheService.get.mockResolvedValue(cachedResult);
-
+      
       const result = await service.checkPermissions(subject, [
         Permission.DATA_READ,
       ]);

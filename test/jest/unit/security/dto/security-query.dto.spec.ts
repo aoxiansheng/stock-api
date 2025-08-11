@@ -1,4 +1,4 @@
-import { validate } from "class-validator";
+import { validate, ValidationArguments } from "class-validator";
 import { plainToClass } from "class-transformer";
 import {
   GetVulnerabilitiesQueryDto,
@@ -194,7 +194,13 @@ describe("Security Query DTOs", () => {
         endDate: "2023-01-15T00:00:00.000Z",
       };
 
-      const result = validator.validate(null, { object: obj } as any);
+      const result = validator.validate(null, { 
+        object: obj, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(result).toBe(true);
     });
 
@@ -205,7 +211,13 @@ describe("Security Query DTOs", () => {
         endDate: "2023-01-01T00:00:00.000Z",
       };
 
-      const result = validator.validate(null, { object: obj } as any);
+      const result = validator.validate(null, { 
+        object: obj, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(result).toBe(false);
     });
 
@@ -216,7 +228,13 @@ describe("Security Query DTOs", () => {
         endDate: "2023-04-15T00:00:00.000Z", // 超过90天
       };
 
-      const result = validator.validate(null, { object: obj } as any);
+      const result = validator.validate(null, { 
+        object: obj, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(result).toBe(false);
     });
 
@@ -228,7 +246,13 @@ describe("Security Query DTOs", () => {
         startDate: "2023-01-15T00:00:00.000Z",
         endDate: "2023-01-01T00:00:00.000Z",
       };
-      const message1 = validator.defaultMessage({ object: obj1 } as any);
+      const message1 = validator.defaultMessage({ 
+        object: obj1, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(message1).toBe("startDate must be before endDate");
 
       // 日期范围过长的错误消息
@@ -236,7 +260,13 @@ describe("Security Query DTOs", () => {
         startDate: "2023-01-01T00:00:00.000Z",
         endDate: "2023-04-15T00:00:00.000Z",
       };
-      const message2 = validator.defaultMessage({ object: obj2 } as any);
+      const message2 = validator.defaultMessage({ 
+        object: obj2, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(message2).toBe("The date range cannot exceed 90 days");
     });
 
@@ -245,12 +275,24 @@ describe("Security Query DTOs", () => {
 
       // 缺少开始日期
       const obj1 = { endDate: "2023-01-15T00:00:00.000Z" };
-      const result1 = validator.validate(null, { object: obj1 } as any);
+      const result1 = validator.validate(null, { 
+        object: obj1, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(result1).toBe(true);
 
       // 缺少结束日期
       const obj2 = { startDate: "2023-01-01T00:00:00.000Z" };
-      const result2 = validator.validate(null, { object: obj2 } as any);
+      const result2 = validator.validate(null, { 
+        object: obj2, 
+        value: null,
+        constraints: [],
+        targetName: 'test',
+        property: 'test'
+      } as ValidationArguments);
       expect(result2).toBe(true);
     });
   });

@@ -5,6 +5,8 @@ import {
   IsObject,
   IsOptional,
   IsBoolean,
+  IsEnum,
+  IsNotEmpty,
   ValidateNested,
 } from "class-validator";
 
@@ -21,6 +23,11 @@ class TransformOptionsDto {
   @IsBoolean()
   includeMetadata?: boolean;
 
+  @ApiPropertyOptional({ description: "是否包含调试信息" })
+  @IsOptional()
+  @IsBoolean()
+  includeDebugInfo?: boolean;
+
   @ApiPropertyOptional({ description: "自定义转换上下文" })
   @IsOptional()
   @IsObject()
@@ -32,6 +39,14 @@ export class TransformRequestDto {
   @IsString()
   provider: string;
 
+  @ApiProperty({ 
+    description: "API类型", 
+    example: "rest",
+    enum: ["rest", "stream"] 
+  })
+  @IsEnum(["rest", "stream"])
+  apiType: "rest" | "stream";
+
   @ApiProperty({
     description: "数据映射规则列表类型（用于查找对应的映射规则）",
     example: "quote_fields",
@@ -41,6 +56,7 @@ export class TransformRequestDto {
 
   @ApiProperty({ description: "要转换的原始数据" })
   @IsObject()
+  @IsNotEmpty()
   rawData: any;
 
   @ApiPropertyOptional({ description: "要使用的特定映射规则ID" })

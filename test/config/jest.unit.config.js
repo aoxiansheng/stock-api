@@ -55,13 +55,28 @@ module.exports = {
     '^@src/(.*)$': '<rootDir>/src/$1',
     '^@test/(.*)$': '<rootDir>/test/$1',
     '^@common/(.*)$': '<rootDir>/src/common/$1',
-    '^@ApiKeyAuth/(.*)$': '<rootDir>/src/auth/$1',
+    '^@auth/(.*)$': '<rootDir>/src/auth/$1',
     '^@core/(.*)$': '<rootDir>/src/core/$1',
     '^@alert/(.*)$': '<rootDir>/src/alert/$1',
     '^@cache/(.*)$': '<rootDir>/src/cache/$1',
     '^@metrics/(.*)$': '<rootDir>/src/metrics/$1',
     '^@security/(.*)$': '<rootDir>/src/security/$1',
     '^@providers/(.*)$': '<rootDir>/src/providers/$1',
+    // Mock FeatureFlags to prevent StreamPerformanceMetrics errors
+    '^@common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../../../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    
+    // Mock PermissionService to prevent UnifiedPermissionsGuard errors
+    // '^@auth/services/permission\\.service$': '<rootDir>/test/__mocks__/permission.service.js',
+    // '^../../../../../src/auth/services/permission\\.service$': '<rootDir>/test/__mocks__/permission.service.js',
+    
+    // Mock UnifiedPermissionsGuard to prevent dependency issues (disabled for true guard testing)
+    // '^@auth/guards/unified-permissions\\.guard$': '<rootDir>/test/__mocks__/unified-permissions.guard.js',
+    // '^../../../../../src/auth/guards/unified-permissions\\.guard$': '<rootDir>/test/__mocks__/unified-permissions.guard.js',
   },
   
   // TypeScript 转换 - 更新配置方式

@@ -1,6 +1,8 @@
 
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
+import { Test, TestingModule } from '@nestjs/testing';
+import { FeatureFlags } from '@common/config/feature-flags.config';
 import {
   RequestOptionsDto,
   SymbolTransformationResultDto,
@@ -15,6 +17,50 @@ import {
 // 由于 DTO 众多，我们将为每个 DTO 创建一个 describe 块
 
 describe('ReceiverInternal DTOs', () => {
+  let module: TestingModule;
+
+  beforeAll(async () => {
+    module = await Test.createTestingModule({
+      providers: [
+        {
+          provide: FeatureFlags,
+          useValue: {
+            symbolMappingCacheEnabled: true,
+            dataTransformCacheEnabled: true,
+            batchProcessingEnabled: true,
+            objectPoolEnabled: true,
+            ruleCompilationEnabled: true,
+            dynamicLogLevelEnabled: true,
+            metricsLegacyModeEnabled: true,
+            symbolCacheMaxSize: 2000,
+            symbolCacheTtl: 5 * 60 * 1000,
+            ruleCacheMaxSize: 100,
+            ruleCacheTtl: 10 * 60 * 1000,
+            objectPoolSize: 100,
+            batchSizeThreshold: 10,
+            batchTimeWindowMs: 1,
+            getAllFlags: jest.fn().mockReturnValue({
+              symbolMappingCacheEnabled: true,
+              dataTransformCacheEnabled: true,
+              batchProcessingEnabled: true,
+              objectPoolEnabled: true,
+              ruleCompilationEnabled: true,
+              dynamicLogLevelEnabled: true,
+              metricsLegacyModeEnabled: true,
+            }),
+            isCacheOptimizationEnabled: jest.fn().mockReturnValue(true),
+            isPerformanceOptimizationEnabled: jest.fn().mockReturnValue(true),
+          },
+        },
+      ],
+    }).compile();
+  });
+
+  afterAll(async () => {
+    if (module) {
+      await module.close();
+    }
+  });
 
   describe('RequestOptionsDto', () => {
     it('当所有字段都有效时应通过验证', async () => {

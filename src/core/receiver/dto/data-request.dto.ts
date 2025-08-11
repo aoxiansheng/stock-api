@@ -5,6 +5,7 @@ import {
   IsString,
   IsOptional,
   IsBoolean,
+  IsNumber,
   ValidateNested,
   ArrayNotEmpty,
   ArrayMaxSize,
@@ -40,6 +41,11 @@ class RequestOptionsDto {
   @IsOptional()
   @IsString()
   market?: string;
+
+  @ApiPropertyOptional({ description: "请求超时时间(毫秒)", example: 5000 })
+  @IsOptional()
+  @IsNumber()
+  timeout?: number;
 }
 
 export class DataRequestDto {
@@ -71,7 +77,7 @@ export class DataRequestDto {
   })
   @IsString({ message: "能力类型必须是字符串" })
   @IsNotEmpty({ message: "能力类型不能为空" })
-  @IsIn(SUPPORTED_CAPABILITY_TYPES, {
+  @IsIn([...SUPPORTED_CAPABILITY_TYPES], {
     message: (args) =>
       `不支持的能力类型: ${args.value}。支持的类型包括: ${SUPPORTED_CAPABILITY_TYPES.join(", ")}`,
   })

@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Optional,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request } from "express";
@@ -46,7 +47,7 @@ export class UnifiedPermissionsGuard implements CanActivate {
   private readonly logger = createLogger(UnifiedPermissionsGuard.name);
 
   constructor(
-    private readonly permissionService: PermissionService,
+    @Optional() private readonly permissionService: PermissionService,
     private readonly reflector: Reflector,
   ) {}
 
@@ -62,6 +63,16 @@ export class UnifiedPermissionsGuard implements CanActivate {
       if (requiredRoles.length === 0 && requiredPermissions.length === 0) {
         this.logger.debug("跳过权限检查 - 无权限要求");
         return true;
+      }
+
+      // 在需要检查权限时，确保权限服务已就绪
+      if (!this.permissionService) {
+        this.logger.error("权限服务未初始化，无法执行权限校验");
+        throw new ForbiddenException({
+          message: "权限服务不可用",
+          error: "PermissionServiceUnavailable",
+          timestamp: new Date().toISOString(),
+        });
       }
 
       // 获取认证主体
@@ -117,23 +128,15 @@ export class UnifiedPermissionsGuard implements CanActivate {
         requiredPermissions,
         checkResult,
       );
+
       return true;
     } catch (error) {
+      this.logger.error("权限验证失败", error);
+      // 若下游已抛出 ForbiddenException，则保持原样；否则统一包装为 ForbiddenException
       if (error instanceof ForbiddenException) {
         throw error;
       }
-
-      this.logger.error("统一权限验证异常", {
-        error: error.message,
-        stack: error.stack,
-        endpoint: request.url,
-        method: request.method,
-        userAgent: request.get("User-Agent"),
-        ip: request.ip,
-      });
-
-      // 权限验证异常时拒绝访问，确保安全
-      throw new ForbiddenException("权限验证失败，请稍后重试");
+      throw new ForbiddenException('权限验证失败，请稍后重试');
     }
   }
 

@@ -7,7 +7,9 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  WsException,
 } from '@nestjs/websockets';
+import { UsePipes, ValidationPipe } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { createLogger } from '@common/config/logger.config';
 import { StreamReceiverService } from './stream-receiver.service';
@@ -120,6 +122,13 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 使用连接级别认证，无需重复验证
    */
   @SubscribeMessage('subscribe')
+  @UsePipes(new ValidationPipe({ 
+    transform: true, 
+    whitelist: true,
+    exceptionFactory: (errors) => {
+      return new WsException('数据验证失败: ' + errors.map(e => Object.values(e.constraints || {}).join(', ')).join('; '));
+    }
+  }))
   async handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamSubscribeDto,
@@ -178,6 +187,22 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
       });
 
     } catch (error) {
+      // 处理 WsException
+      if (error instanceof WsException) {
+        this.logger.warn({
+          message: 'WebSocket 订阅验证失败',
+          clientId: client.id,
+          error: error.getError(),
+        });
+        
+        client.emit('subscriptionError', {
+          success: false,
+          message: error.getError(),
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
       this.logger.error({
         message: 'WebSocket 订阅处理失败',
         clientId: client.id,
@@ -185,10 +210,10 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
       });
 
       // 发送错误消息
-      client.emit('subscribe-error', {
+      client.emit('subscriptionError', {
         success: false,
-        message: error.message,
-        symbols: data.symbols,
+        message: error.message || '订阅处理失败',
+        symbols: data?.symbols || [],
         timestamp: Date.now(),
       });
     }

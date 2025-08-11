@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { CapabilityRegistryService } from '../../providers/services/capability-registry.service';
 import { SymbolMapperService } from '../symbol-mapper/services/symbol-mapper.service';
-import { DataMapperService } from '../data-mapper/services/data-mapper.service';
+import { FlexibleMappingRuleService } from '../data-mapper/services/flexible-mapping-rule.service';
 import { TransformerService } from '../transformer/services/transformer.service';
 import { BatchOptimizationService } from '../shared/services/batch-optimization.service';
 import { FeatureFlags } from '@common/config/feature-flags.config';
@@ -56,7 +56,7 @@ export class StreamReceiverService {
   constructor(
     private readonly capabilityRegistry: CapabilityRegistryService,
     private readonly symbolMapperService: SymbolMapperService,
-    private readonly dataMapperService: DataMapperService,
+    private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
     private readonly transformerService: TransformerService,
     private readonly batchOptimizationService: BatchOptimizationService,
     private readonly featureFlags: FeatureFlags,
@@ -449,7 +449,7 @@ export class StreamReceiverService {
       let ruleCompilationSuccess = false;
       
       this.logger.debug({
-        message: '🔍 开始获取数据映射规则',
+        message: '🔍 开始获取数据映射规则 - stream-receiver.service',
         provider: providerName,
         wsCapabilityType,
         dataRuleListType,
@@ -457,11 +457,13 @@ export class StreamReceiverService {
       });
       
       try {
-                 mappingRules = await this.dataMapperService.getMappingRule(providerName, dataRuleListType, 'stream');
+        // 通过 FlexibleMappingRuleService 获取最佳匹配的映射规则
+        const bestRule = await this.flexibleMappingRuleService.findBestMatchingRule(providerName, 'stream', dataRuleListType);
+        mappingRules = bestRule ? [bestRule] : null;
         ruleCompilationSuccess = true;
         
         this.logger.debug({
-          message: '✅ 成功获取数据映射规则',
+          message: '✅ 成功获取数据映射规则 - stream-receiver.service',
           provider: providerName,
           dataRuleListType,
           rulesCount: mappingRules?.length || 0,
@@ -495,7 +497,7 @@ export class StreamReceiverService {
       
       if (mappingRules && mappingRules.length > 0) {
         this.logger.debug({
-          message: '🔄 开始应用数据映射规则转换',
+          message: '🔄 开始应用数据映射规则转换 - stream-receiver.service',
           provider: providerName,
           dataRuleListType,
           rawDataKeys: Object.keys(rawData || {}),
@@ -506,15 +508,15 @@ export class StreamReceiverService {
           const transformRequest: TransformRequestDto = {
             rawData,
             provider: providerName,
+            apiType: 'stream',
             transDataRuleListType: dataRuleListType,
-            options: { context: { apiType: 'stream' } },
           };
           const transformResponse = await this.transformerService.transform(transformRequest);
           transformedData = transformResponse.transformedData;
           
           const transformationTime = Date.now() - transformationStart;
           this.logger.debug({
-            message: '✅ 数据映射规则转换成功',
+            message: '✅ 数据映射规则转换成功 - stream-receiver.service',
             provider: providerName,
             transformationTime,
             originalDataKeys: Object.keys(rawData || {}),
@@ -769,6 +771,15 @@ export class StreamReceiverService {
             }
           });
         }
+        
+        // 🎯 记录单条批量处理指标
+        const singleProcessingTime = Date.now() - batchStartTime;
+        this.performanceMetrics.recordBatchProcessed(
+          1, // quotesCount
+          singleProcessingTime,
+          true // 成功处理
+        );
+        
         return;
       }
 
@@ -848,7 +859,7 @@ export class StreamReceiverService {
     try {
       // 批量预热符号映射
       if (symbols.length >= this.featureFlags.batchSizeThreshold) {
-        const preloadResult = await this.batchOptimizationService.preloadSymbolMappings(symbols, providerName, 'standard');
+        const preloadResult = await this.batchOptimizationService.preloadSymbolMappings(symbols, 'standard', providerName);
         
         // 🎯 记录批量预加载缓存指标
         const hitRate = (preloadResult.size / symbols.length) * 100;

@@ -55,7 +55,12 @@
       "mcp__serena__get_symbols_overview",
       "mcp__serena__list_dir",
       "mcp__serena__think_about_collected_information",
-      "mcp__serena__find_file"
+      "mcp__serena__find_file",
+      "mcp__serena__replace_regex",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__serena__replace_symbol_body",
+      "Bash(TEST_PORT=3333 npx jest test/jest/e2e/core/stream-receiver/gateway/stream-receiver.gateway.e2e.test.ts --config test/config/jest.e2e.config.js --testNamePattern=\"should handle malformed subscription messages\")",
+      "mcp__serena__read_memory"
     ],
     "deny": []
   }

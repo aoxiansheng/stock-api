@@ -133,18 +133,23 @@ describe('StreamStockQuote Capability', () => {
         .rejects.toThrow('LongPort 流订阅失败: 订阅符号列表不能为空');
     });
 
-    it('should warn about invalid symbols but still proceed', async () => {
+    it('should reject subscription when invalid symbols are present', async () => {
       const symbolsWithInvalid = ['700.HK', 'INVALID_SYMBOL', 'AAPL.US'];
       mockContextService.subscribe.mockResolvedValue(undefined);
 
-      await streamStockQuote.subscribe(symbolsWithInvalid, mockContextService);
+      // 期望抛出错误，因为实际实现会拒绝包含无效符号的订阅
+      await expect(streamStockQuote.subscribe(symbolsWithInvalid, mockContextService))
+        .rejects.toThrow('LongPort 流订阅失败: 无效的股票符号格式，拒绝订阅: INVALID_SYMBOL');
 
+      // 验证记录了警告日志
       expect(mockLogger.warn).toHaveBeenCalledWith('发现无效符号格式', {
         invalidSymbols: ['INVALID_SYMBOL'],
         validSymbols: 2,
         totalSymbols: 3
       });
-      expect(mockContextService.subscribe).toHaveBeenCalledWith(symbolsWithInvalid);
+
+      // 验证没有调用实际订阅（因为被拒绝了）
+      expect(mockContextService.subscribe).not.toHaveBeenCalled();
     });
 
     it('should handle subscription failure', async () => {
@@ -251,9 +256,26 @@ describe('StreamStockQuote Capability', () => {
   });
 
   describe('isConnected()', () => {
-    it('should return connection status', () => {
-      // 当前实现总是返回 true，实际状态由 contextService 管理
-      expect(streamStockQuote.isConnected()).toBe(true);
+    it('should return false when no contextService provided', () => {
+      // 没有提供 contextService 时应该返回 false
+      expect(streamStockQuote.isConnected()).toBe(false);
+    });
+
+    it('should return connection status from contextService', () => {
+      // Mock contextService 连接状态
+      mockContextService.isWebSocketConnected.mockReturnValue(true);
+      
+      // 提供 contextService 参数
+      expect(streamStockQuote.isConnected(mockContextService)).toBe(true);
+      expect(mockContextService.isWebSocketConnected).toHaveBeenCalled();
+    });
+
+    it('should return false when contextService indicates disconnected', () => {
+      // Mock contextService 断开状态
+      mockContextService.isWebSocketConnected.mockReturnValue(false);
+      
+      expect(streamStockQuote.isConnected(mockContextService)).toBe(false);
+      expect(mockContextService.isWebSocketConnected).toHaveBeenCalled();
     });
   });
 });
@@ -310,16 +332,22 @@ describe('Symbol Validation Helper', () => {
     );
   });
 
-  it('should identify invalid symbols', async () => {
+  it('should reject subscription with all invalid symbols', async () => {
     const invalidSymbols = ['INVALID', '123', 'ABC.XY'];
     mockContextService.subscribe.mockResolvedValue(undefined);
 
-    await streamStockQuote.subscribe(invalidSymbols, mockContextService);
+    // 期望抛出错误，因为所有符号都无效
+    await expect(streamStockQuote.subscribe(invalidSymbols, mockContextService))
+      .rejects.toThrow('LongPort 流订阅失败: 无效的股票符号格式，拒绝订阅: INVALID, 123, ABC.XY');
 
+    // 验证记录了警告日志
     expect(mockLogger.warn).toHaveBeenCalledWith('发现无效符号格式', {
       invalidSymbols,
       validSymbols: 0,
       totalSymbols: 3
     });
+
+    // 验证没有调用实际订阅
+    expect(mockContextService.subscribe).not.toHaveBeenCalled();
   });
 });

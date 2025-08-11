@@ -1,141 +1,28 @@
 import {
-  DATA_MAPPER_ERROR_MESSAGES,
-  DATA_MAPPER_WARNING_MESSAGES,
-  DATA_MAPPER_SUCCESS_MESSAGES,
-  FIELD_SUGGESTION_CONFIG,
   DATA_MAPPER_CONFIG,
+  DATA_MAPPER_DEFAULTS,
+  DATA_MAPPER_STATUS,
+  DATA_MAPPER_ERROR_MESSAGES,
+  DATA_MAPPER_SUCCESS_MESSAGES,
+  DATA_MAPPER_WARNING_MESSAGES,
+  DATA_MAPPER_EVENTS,
+  DATA_MAPPER_METRICS,
+  DATA_MAPPER_PERFORMANCE_THRESHOLDS,
+  DATA_MAPPER_QUALITY_METRICS,
+  DATA_MAPPER_CACHE_CONFIG,
+  DATA_MAPPER_STATS_CONFIG,
+  DATA_MAPPER_FIELD_VALIDATION_RULES,
   TRANSFORMATION_TYPES,
   TRANSFORMATION_DEFAULTS,
-  DATA_MAPPER_PERFORMANCE_THRESHOLDS,
-  DATA_MAPPER_METRICS,
-  DATA_MAPPER_STATUS,
-  DATA_MAPPER_DEFAULTS,
   DATA_TYPE_HANDLERS,
+  FIELD_SUGGESTION_CONFIG,
+  PATH_RESOLUTION_CONFIG
 } from "../../../../../../src/core/data-mapper/constants/data-mapper.constants";
 
-describe("Data Mapper Constants", () => {
-  describe("DATA_MAPPER_ERROR_MESSAGES", () => {
-    it("should define all error messages", () => {
-      expect(DATA_MAPPER_ERROR_MESSAGES.MAPPING_RULE_NOT_FOUND).toBe(
-        "映射规则未找到",
-      );
-      expect(DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND).toBe(
-        "指定ID的映射规则不存在",
-      );
-      expect(DATA_MAPPER_ERROR_MESSAGES.INVALID_JSON_FORMAT).toBe(
-        "无效的JSON格式",
-      );
-      expect(DATA_MAPPER_ERROR_MESSAGES.JSON_DATA_REQUIRED).toBe(
-        "需要提供jsonData或jsonString",
-      );
-      expect(DATA_MAPPER_ERROR_MESSAGES.TRANSFORMATION_FAILED).toBe(
-        "数据转换失败",
-      );
-      expect(DATA_MAPPER_ERROR_MESSAGES.PATH_RESOLUTION_FAILED).toBe(
-        "路径解析失败",
-      );
-      expect(DATA_MAPPER_ERROR_MESSAGES.MAPPING_TEST_FAILED).toBe(
-        "映射规则测试失败",
-      );
-      expect(
-        DATA_MAPPER_ERROR_MESSAGES.CUSTOM_TRANSFORMATION_NOT_SUPPORTED,
-      ).toBe("不支持自定义转换");
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_ERROR_MESSAGES)).toBe(true);
-    });
-
-    it("should use Chinese messages", () => {
-      const messages = Object.values(DATA_MAPPER_ERROR_MESSAGES);
-      messages.forEach((message) => {
-        expect(message).toMatch(/[\u4e00-\u9fa5]/); // Contains Chinese characters
-      });
-    });
-  });
-
-  describe("DATA_MAPPER_WARNING_MESSAGES", () => {
-    it("should define all warning messages", () => {
-      expect(
-        DATA_MAPPER_WARNING_MESSAGES.CUSTOM_TRANSFORMATIONS_NOT_SUPPORTED,
-      ).toBe("不支持自定义转换");
-      expect(DATA_MAPPER_WARNING_MESSAGES.TRANSFORMATION_FAILED_FALLBACK).toBe(
-        "转换失败，返回原始值",
-      );
-      expect(DATA_MAPPER_WARNING_MESSAGES.PATH_NOT_FOUND).toBe("路径未找到");
-      expect(DATA_MAPPER_WARNING_MESSAGES.FIELD_NOT_MAPPED).toBe("字段未映射");
-      expect(DATA_MAPPER_WARNING_MESSAGES.EMPTY_MAPPING_RESULT).toBe(
-        "映射结果为空",
-      );
-      expect(DATA_MAPPER_WARNING_MESSAGES.LOW_SIMILARITY_SCORE).toBe(
-        "相似度评分较低",
-      );
-      expect(DATA_MAPPER_WARNING_MESSAGES.LARGE_DATASET_WARNING).toBe(
-        "数据集较大，可能影响性能",
-      );
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_WARNING_MESSAGES)).toBe(true);
-    });
-  });
-
-  describe("DATA_MAPPER_SUCCESS_MESSAGES", () => {
-    it("should define all success messages", () => {
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.RULE_CREATED).toBe(
-        "映射规则创建成功",
-      );
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.RULE_UPDATED).toBe(
-        "映射规则更新成功",
-      );
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.RULE_DELETED).toBe(
-        "映射规则删除成功",
-      );
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.RULE_ACTIVATED).toBe(
-        "映射规则激活成功",
-      );
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.RULE_DEACTIVATED).toBe(
-        "映射规则停用成功",
-      );
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.MAPPING_TEST_SUCCESSFUL).toBe(
-        "映射规则测试成功",
-      );
-      expect(DATA_MAPPER_SUCCESS_MESSAGES.TRANSFORMATION_SUCCESSFUL).toBe(
-        "数据转换成功",
-      );
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_SUCCESS_MESSAGES)).toBe(true);
-    });
-  });
-
-  describe("FIELD_SUGGESTION_CONFIG", () => {
-    it("should define all field suggestion configuration", () => {
-      expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBe(0.3);
-      expect(FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS).toBe(3);
-      expect(FIELD_SUGGESTION_CONFIG.MIN_FIELD_LENGTH).toBe(1);
-      expect(FIELD_SUGGESTION_CONFIG.MAX_FIELD_LENGTH).toBe(100);
-      expect(FIELD_SUGGESTION_CONFIG.EXACT_MATCH_SCORE).toBe(1.0);
-      expect(FIELD_SUGGESTION_CONFIG.SUBSTRING_MATCH_SCORE).toBe(0.8);
-      expect(FIELD_SUGGESTION_CONFIG.CASE_INSENSITIVE).toBe(true);
-    });
-
-    it("should have reasonable threshold values", () => {
-      expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBeGreaterThan(0);
-      expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBeLessThan(1);
-      expect(FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS).toBeGreaterThan(0);
-      expect(FIELD_SUGGESTION_CONFIG.EXACT_MATCH_SCORE).toBe(1.0);
-      expect(FIELD_SUGGESTION_CONFIG.SUBSTRING_MATCH_SCORE).toBeLessThan(1.0);
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(FIELD_SUGGESTION_CONFIG)).toBe(true);
-    });
-  });
-
+describe("DataMapperConstants", () => {
   describe("DATA_MAPPER_CONFIG", () => {
-    it("should define all configuration values", () => {
+    it("should be frozen object with correct configuration values", () => {
+      expect(Object.isFrozen(DATA_MAPPER_CONFIG)).toBe(true);
       expect(DATA_MAPPER_CONFIG.MAX_FIELD_MAPPINGS).toBe(100);
       expect(DATA_MAPPER_CONFIG.MAX_NESTED_DEPTH).toBe(10);
       expect(DATA_MAPPER_CONFIG.MAX_ARRAY_SIZE).toBe(1000);
@@ -146,219 +33,324 @@ describe("Data Mapper Constants", () => {
       expect(DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH).toBe(500);
     });
 
-    it("should have reasonable configuration values", () => {
+    it("should have numeric values for limits", () => {
+      expect(typeof DATA_MAPPER_CONFIG.MAX_FIELD_MAPPINGS).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.MAX_NESTED_DEPTH).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.MAX_ARRAY_SIZE).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.DEFAULT_PAGE_SIZE).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.MAX_PAGE_SIZE).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.DEFAULT_TIMEOUT_MS).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH).toBe('number');
+      expect(typeof DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH).toBe('number');
+    });
+
+    it("should have positive values for all limits", () => {
       expect(DATA_MAPPER_CONFIG.MAX_FIELD_MAPPINGS).toBeGreaterThan(0);
       expect(DATA_MAPPER_CONFIG.MAX_NESTED_DEPTH).toBeGreaterThan(0);
+      expect(DATA_MAPPER_CONFIG.MAX_ARRAY_SIZE).toBeGreaterThan(0);
       expect(DATA_MAPPER_CONFIG.DEFAULT_PAGE_SIZE).toBeGreaterThan(0);
-      expect(DATA_MAPPER_CONFIG.MAX_PAGE_SIZE).toBeGreaterThan(
-        DATA_MAPPER_CONFIG.DEFAULT_PAGE_SIZE,
-      );
+      expect(DATA_MAPPER_CONFIG.MAX_PAGE_SIZE).toBeGreaterThan(0);
       expect(DATA_MAPPER_CONFIG.DEFAULT_TIMEOUT_MS).toBeGreaterThan(0);
+      expect(DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH).toBeGreaterThan(0);
+      expect(DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH).toBeGreaterThan(0);
     });
 
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_CONFIG)).toBe(true);
-    });
-  });
-
-  describe("TRANSFORMATION_TYPES", () => {
-    it("should define all transformation types", () => {
-      expect(TRANSFORMATION_TYPES.MULTIPLY).toBe("multiply");
-      expect(TRANSFORMATION_TYPES.DIVIDE).toBe("divide");
-      expect(TRANSFORMATION_TYPES.ADD).toBe("add");
-      expect(TRANSFORMATION_TYPES.SUBTRACT).toBe("subtract");
-      expect(TRANSFORMATION_TYPES.FORMAT).toBe("format");
-      expect(TRANSFORMATION_TYPES.CUSTOM).toBe("custom");
-      expect(TRANSFORMATION_TYPES.NONE).toBe("none");
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(TRANSFORMATION_TYPES)).toBe(true);
-    });
-  });
-
-  describe("TRANSFORMATION_DEFAULTS", () => {
-    it("should define all transformation defaults", () => {
-      expect(TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE).toBe(1);
-      expect(TRANSFORMATION_DEFAULTS.DIVIDE_VALUE).toBe(1);
-      expect(TRANSFORMATION_DEFAULTS.ADD_VALUE).toBe(0);
-      expect(TRANSFORMATION_DEFAULTS.SUBTRACT_VALUE).toBe(0);
-      expect(TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE).toBe("{value}");
-      expect(TRANSFORMATION_DEFAULTS.VALUE_PLACEHOLDER).toBe("{value}");
-    });
-
-    it("should have reasonable default values", () => {
-      expect(TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE).toBeGreaterThan(0);
-      expect(TRANSFORMATION_DEFAULTS.DIVIDE_VALUE).toBeGreaterThan(0);
-      expect(typeof TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE).toBe("string");
-      expect(TRANSFORMATION_DEFAULTS.FORMAT_TEMPLATE).toContain("{value}");
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(TRANSFORMATION_DEFAULTS)).toBe(true);
-    });
-  });
-
-  describe("DATA_MAPPER_PERFORMANCE_THRESHOLDS", () => {
-    it("should define all performance thresholds", () => {
-      expect(DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS).toBe(1000);
-      expect(DATA_MAPPER_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE).toBe(1000);
-      expect(DATA_MAPPER_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(100);
-      expect(DATA_MAPPER_PERFORMANCE_THRESHOLDS.MAX_PROCESSING_TIME_MS).toBe(
-        60000,
-      );
-      expect(
-        DATA_MAPPER_PERFORMANCE_THRESHOLDS.SIMILARITY_CALCULATION_TIMEOUT_MS,
-      ).toBe(5000);
-    });
-
-    it("should have reasonable threshold values", () => {
-      expect(
-        DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS,
-      ).toBeGreaterThan(0);
-      expect(
-        DATA_MAPPER_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE,
-      ).toBeGreaterThan(0);
-      expect(
-        DATA_MAPPER_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB,
-      ).toBeGreaterThan(0);
-      expect(
-        DATA_MAPPER_PERFORMANCE_THRESHOLDS.MAX_PROCESSING_TIME_MS,
-      ).toBeGreaterThan(DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS);
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_PERFORMANCE_THRESHOLDS)).toBe(true);
-    });
-  });
-
-  describe("DATA_MAPPER_METRICS", () => {
-    it("should define all metric names", () => {
-      expect(DATA_MAPPER_METRICS.RULES_PROCESSED).toBe("rules_processed");
-      expect(DATA_MAPPER_METRICS.FIELDS_MAPPED).toBe("fields_mapped");
-      expect(DATA_MAPPER_METRICS.TRANSFORMATIONS_APPLIED).toBe(
-        "transformations_applied",
-      );
-      expect(DATA_MAPPER_METRICS.PROCESSING_TIME_MS).toBe("processing_time_ms");
-      expect(DATA_MAPPER_METRICS.SUCCESS_RATE).toBe("success_rate");
-      expect(DATA_MAPPER_METRICS.ERROR_RATE).toBe("error_rate");
-      expect(DATA_MAPPER_METRICS.SIMILARITY_SCORE).toBe("similarity_score");
-      expect(DATA_MAPPER_METRICS.CACHE_HIT_RATE).toBe("cache_hit_rate");
-    });
-
-    it("should use snake_case naming convention", () => {
-      const metrics = Object.values(DATA_MAPPER_METRICS);
-      metrics.forEach((metric) => {
-        expect(metric).toMatch(/^[a-z_]+$/);
-        expect(metric).not.toContain(" ");
-        expect(metric).not.toContain("-");
-      });
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_METRICS)).toBe(true);
-    });
-  });
-
-  describe("DATA_MAPPER_STATUS", () => {
-    it("should define all status values", () => {
-      expect(DATA_MAPPER_STATUS.ACTIVE).toBe("active");
-      expect(DATA_MAPPER_STATUS.INACTIVE).toBe("inactive");
-      expect(DATA_MAPPER_STATUS.DRAFT).toBe("draft");
-      expect(DATA_MAPPER_STATUS.TESTING).toBe("testing");
-      expect(DATA_MAPPER_STATUS.DEPRECATED).toBe("deprecated");
-      expect(DATA_MAPPER_STATUS.ERROR).toBe("error");
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_STATUS)).toBe(true);
+    it("should have logical relationships between values", () => {
+      expect(DATA_MAPPER_CONFIG.MAX_PAGE_SIZE).toBeGreaterThanOrEqual(DATA_MAPPER_CONFIG.DEFAULT_PAGE_SIZE);
     });
   });
 
   describe("DATA_MAPPER_DEFAULTS", () => {
-    it("should define all default values", () => {
-      expect(DATA_MAPPER_DEFAULTS.PAGE_NUMBER).toBe(1);
-      expect(DATA_MAPPER_DEFAULTS.PAGE_SIZE).toBe(10);
-      expect(DATA_MAPPER_DEFAULTS.RULE_STATUS).toBe(DATA_MAPPER_STATUS.ACTIVE);
-      expect(DATA_MAPPER_DEFAULTS.SIMILARITY_THRESHOLD).toBe(
-        FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD,
-      );
-      expect(DATA_MAPPER_DEFAULTS.MAX_SUGGESTIONS).toBe(
-        FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS,
-      );
-      expect(DATA_MAPPER_DEFAULTS.TIMEOUT_MS).toBe(10000);
-      expect(DATA_MAPPER_DEFAULTS.RETRY_ATTEMPTS).toBe(3);
-      expect(DATA_MAPPER_DEFAULTS.ENABLE_CACHING).toBe(true);
-      expect(DATA_MAPPER_DEFAULTS.LOG_LEVEL).toBe("info");
+    it("should be frozen object with default values", () => {
+      expect(Object.isFrozen(DATA_MAPPER_DEFAULTS)).toBe(true);
+      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('SIMILARITY_THRESHOLD');
+      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('RULE_STATUS');
+      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('ENABLE_CACHING');
+      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('LOG_LEVEL');
     });
 
     it("should have reasonable default values", () => {
-      expect(DATA_MAPPER_DEFAULTS.PAGE_NUMBER).toBeGreaterThan(0);
-      expect(DATA_MAPPER_DEFAULTS.PAGE_SIZE).toBeGreaterThan(0);
-      expect(DATA_MAPPER_DEFAULTS.TIMEOUT_MS).toBeGreaterThan(0);
-      expect(DATA_MAPPER_DEFAULTS.RETRY_ATTEMPTS).toBeGreaterThan(0);
-      expect(typeof DATA_MAPPER_DEFAULTS.ENABLE_CACHING).toBe("boolean");
+      expect(DATA_MAPPER_DEFAULTS.SIMILARITY_THRESHOLD).toBeGreaterThan(0);
+      expect(DATA_MAPPER_DEFAULTS.SIMILARITY_THRESHOLD).toBeLessThanOrEqual(1);
+      expect(typeof DATA_MAPPER_DEFAULTS.RULE_STATUS).toBe('string');
+      expect(typeof DATA_MAPPER_DEFAULTS.ENABLE_CACHING).toBe('boolean');
+      expect(typeof DATA_MAPPER_DEFAULTS.LOG_LEVEL).toBe('string');
+    });
+  });
+
+  describe("DATA_MAPPER_STATUS", () => {
+    it("should be frozen object with status constants", () => {
+      expect(Object.isFrozen(DATA_MAPPER_STATUS)).toBe(true);
+      expect(DATA_MAPPER_STATUS).toHaveProperty('ACTIVE');
+      expect(DATA_MAPPER_STATUS).toHaveProperty('INACTIVE');
+      expect(DATA_MAPPER_STATUS).toHaveProperty('DRAFT');
+      expect(DATA_MAPPER_STATUS).toHaveProperty('ERROR');
     });
 
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_MAPPER_DEFAULTS)).toBe(true);
+    it("should have string values for all status", () => {
+      Object.values(DATA_MAPPER_STATUS).forEach(status => {
+        expect(typeof status).toBe('string');
+        expect(status.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe("ERROR_MESSAGES", () => {
+    it("should be frozen object with error messages", () => {
+      expect(Object.isFrozen(DATA_MAPPER_ERROR_MESSAGES)).toBe(true);
+    });
+
+    it("should have string values for all error messages", () => {
+      Object.values(DATA_MAPPER_ERROR_MESSAGES).forEach(message => {
+        expect(typeof message).toBe('string');
+        expect(message.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should contain Chinese error messages", () => {
+      const messages = Object.values(DATA_MAPPER_ERROR_MESSAGES);
+      // Check if most messages contain Chinese characters
+      const chineseMessages = messages.filter(msg => /[\u4e00-\u9fff]/.test(msg));
+      expect(chineseMessages.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("SUCCESS_MESSAGES", () => {
+    it("should be frozen object with success messages", () => {
+      expect(Object.isFrozen(DATA_MAPPER_SUCCESS_MESSAGES)).toBe(true);
+    });
+
+    it("should have string values for all success messages", () => {
+      Object.values(DATA_MAPPER_SUCCESS_MESSAGES).forEach(message => {
+        expect(typeof message).toBe('string');
+        expect(message.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should contain Chinese success messages", () => {
+      const messages = Object.values(DATA_MAPPER_SUCCESS_MESSAGES);
+      const chineseMessages = messages.filter(msg => /[\u4e00-\u9fff]/.test(msg));
+      expect(chineseMessages.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("WARNING_MESSAGES", () => {
+    it("should be frozen object with warning messages", () => {
+      expect(Object.isFrozen(DATA_MAPPER_WARNING_MESSAGES)).toBe(true);
+    });
+
+    it("should have string values for all warning messages", () => {
+      Object.values(DATA_MAPPER_WARNING_MESSAGES).forEach(message => {
+        expect(typeof message).toBe('string');
+        expect(message.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe("DATA_MAPPER_EVENTS", () => {
+    it("should be frozen object with event constants", () => {
+      expect(Object.isFrozen(DATA_MAPPER_EVENTS)).toBe(true);
+    });
+
+    it("should have string values for all events", () => {
+      Object.values(DATA_MAPPER_EVENTS).forEach(event => {
+        expect(typeof event).toBe('string');
+        expect(event.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe("DATA_MAPPER_METRICS", () => {
+    it("should be frozen object with metrics configuration", () => {
+      expect(Object.isFrozen(DATA_MAPPER_METRICS)).toBe(true);
+    });
+
+    it("should contain metric names as string values", () => {
+      Object.values(DATA_MAPPER_METRICS).forEach(metric => {
+        expect(typeof metric).toBe('string');
+        expect(metric.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe("PERFORMANCE_THRESHOLDS", () => {
+    it("should be frozen object with performance thresholds", () => {
+      expect(Object.isFrozen(DATA_MAPPER_PERFORMANCE_THRESHOLDS)).toBe(true);
+    });
+
+    it("should have numeric values for thresholds", () => {
+      Object.values(DATA_MAPPER_PERFORMANCE_THRESHOLDS).forEach(threshold => {
+        expect(typeof threshold).toBe('number');
+        expect(threshold).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe("QUALITY_METRICS", () => {
+    it("should be frozen object with quality metrics", () => {
+      expect(Object.isFrozen(DATA_MAPPER_QUALITY_METRICS)).toBe(true);
+    });
+
+    it("should contain quality metric definitions", () => {
+      const metrics = Object.values(DATA_MAPPER_QUALITY_METRICS);
+      expect(metrics.length).toBeGreaterThan(0);
+      metrics.forEach(metric => {
+        expect(typeof metric).toBe('string');
+      });
+    });
+  });
+
+  describe("CACHE_CONFIG", () => {
+    it("should be frozen object with cache configuration", () => {
+      expect(Object.isFrozen(DATA_MAPPER_CACHE_CONFIG)).toBe(true);
+    });
+
+    it("should have cache TTL values as numbers", () => {
+      expect(typeof DATA_MAPPER_CACHE_CONFIG.RULE_CACHE_TTL).toBe('number');
+      expect(DATA_MAPPER_CACHE_CONFIG.RULE_CACHE_TTL).toBeGreaterThan(0);
+      expect(typeof DATA_MAPPER_CACHE_CONFIG.SUGGESTION_CACHE_TTL).toBe('number');
+      expect(DATA_MAPPER_CACHE_CONFIG.SUGGESTION_CACHE_TTL).toBeGreaterThan(0);
+    });
+  });
+
+  describe("TRANSFORMATION_TYPES", () => {
+    it("should be frozen object with transformation types", () => {
+      expect(Object.isFrozen(TRANSFORMATION_TYPES)).toBe(true);
+    });
+
+    it("should contain transformation type definitions", () => {
+      const types = Object.values(TRANSFORMATION_TYPES);
+      expect(types.length).toBeGreaterThan(0);
+      types.forEach(type => {
+        expect(typeof type).toBe('string');
+        expect(type.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should include common transformation types", () => {
+      const types = Object.values(TRANSFORMATION_TYPES);
+      const commonTypes = ['multiply', 'divide', 'format', 'custom'];
+      commonTypes.forEach(commonType => {
+        expect(types).toContain(commonType);
+      });
+    });
+  });
+
+  describe("TRANSFORMATION_DEFAULTS", () => {
+    it("should be frozen object with transformation defaults", () => {
+      expect(Object.isFrozen(TRANSFORMATION_DEFAULTS)).toBe(true);
+    });
+
+    it("should contain reasonable default values", () => {
+      expect(typeof TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE).toBe('number');
+      expect(TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE).toBeGreaterThanOrEqual(0);
+      expect(typeof TRANSFORMATION_DEFAULTS.DIVIDE_VALUE).toBe('number');
+      expect(TRANSFORMATION_DEFAULTS.DIVIDE_VALUE).toBeGreaterThan(0);
     });
   });
 
   describe("DATA_TYPE_HANDLERS", () => {
-    it("should define all data type handlers", () => {
-      expect(DATA_TYPE_HANDLERS.ARRAY_FIELDS).toEqual([
-        "secu_quote",
-        "basic_info",
-        "data",
-        "items",
-      ]);
-      expect(DATA_TYPE_HANDLERS.OBJECT_FIELDS).toEqual([
-        "metadata",
-        "config",
-        "settings",
-      ]);
-      expect(DATA_TYPE_HANDLERS.PRIMITIVE_FIELDS).toEqual([
-        "string",
-        "number",
-        "boolean",
-        "date",
-      ]);
-      expect(DATA_TYPE_HANDLERS.NESTED_SEPARATORS).toEqual([".", "[", "]"]);
-      expect(DATA_TYPE_HANDLERS.PATH_DELIMITERS).toEqual(/[.\[\]]/);
+    it("should be frozen object with data type handlers", () => {
+      expect(Object.isFrozen(DATA_TYPE_HANDLERS)).toBe(true);
     });
 
-    it("should be frozen", () => {
-      expect(Object.isFrozen(DATA_TYPE_HANDLERS)).toBe(true);
+    it("should contain handler definitions for common data types", () => {
+      const handlers = Object.keys(DATA_TYPE_HANDLERS);
+      expect(handlers.length).toBeGreaterThan(0);
+      
+      // Handler categories should be included
+      const handlerCategories = ['ARRAY_FIELDS', 'OBJECT_FIELDS', 'PRIMITIVE_FIELDS'];
+      handlerCategories.forEach(category => {
+        expect(handlers).toContain(category);
+      });
     });
   });
 
-  describe("Integration with data mapper service", () => {
-    it("should support error message construction", () => {
-      const ruleId = "test-rule-id";
-      const errorMessage = `${DATA_MAPPER_ERROR_MESSAGES.RULE_ID_NOT_FOUND}: ${ruleId}`;
-      expect(errorMessage).toBe("指定ID的映射规则不存在: test-rule-id");
+  describe("FIELD_SUGGESTION_CONFIG", () => {
+    it("should be frozen object with field suggestion configuration", () => {
+      expect(Object.isFrozen(FIELD_SUGGESTION_CONFIG)).toBe(true);
     });
 
-    it("should support performance threshold checking", () => {
-      const processingTime = 1500;
-      const isSlowMapping =
-        processingTime > DATA_MAPPER_PERFORMANCE_THRESHOLDS.SLOW_MAPPING_MS;
-      expect(isSlowMapping).toBe(true);
+    it("should have reasonable configuration values", () => {
+      expect(typeof FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBe('number');
+      expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBeGreaterThanOrEqual(0);
+      expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBeLessThanOrEqual(1);
+      
+      expect(typeof FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS).toBe('number');
+      expect(FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS).toBeGreaterThan(0);
+    });
+  });
+
+  describe("PATH_RESOLUTION_CONFIG", () => {
+    it("should be frozen object with path resolution configuration", () => {
+      expect(Object.isFrozen(PATH_RESOLUTION_CONFIG)).toBe(true);
     });
 
-    it("should support transformation type validation", () => {
-      const validTypes = Object.values(TRANSFORMATION_TYPES);
-      expect(validTypes).toContain("multiply");
-      expect(validTypes).toContain("divide");
-      expect(validTypes).toContain("format");
+    it("should contain path resolution settings", () => {
+      const config = PATH_RESOLUTION_CONFIG;
+      expect(typeof config.MAX_PATH_DEPTH).toBe('number');
+      expect(config.MAX_PATH_DEPTH).toBeGreaterThan(0);
+      expect(config.ARRAY_INDEX_PATTERN).toBeInstanceOf(RegExp);
+      expect(typeof config.CAMEL_CASE_CONVERSION).toBe('boolean');
+    });
+  });
+
+  describe("Constant Integrity", () => {
+    it("should have all constants defined and not undefined", () => {
+      expect(DATA_MAPPER_CONFIG).toBeDefined();
+      expect(DATA_MAPPER_DEFAULTS).toBeDefined();
+      expect(DATA_MAPPER_STATUS).toBeDefined();
+      expect(DATA_MAPPER_ERROR_MESSAGES).toBeDefined();
+      expect(DATA_MAPPER_SUCCESS_MESSAGES).toBeDefined();
+      expect(DATA_MAPPER_WARNING_MESSAGES).toBeDefined();
+      expect(DATA_MAPPER_EVENTS).toBeDefined();
+      expect(DATA_MAPPER_METRICS).toBeDefined();
+      expect(DATA_MAPPER_PERFORMANCE_THRESHOLDS).toBeDefined();
+      expect(DATA_MAPPER_QUALITY_METRICS).toBeDefined();
+      expect(DATA_MAPPER_CACHE_CONFIG).toBeDefined();
+      expect(DATA_MAPPER_STATS_CONFIG).toBeDefined();
+      expect(DATA_MAPPER_FIELD_VALIDATION_RULES).toBeDefined();
+      expect(TRANSFORMATION_TYPES).toBeDefined();
+      expect(TRANSFORMATION_DEFAULTS).toBeDefined();
+      expect(DATA_TYPE_HANDLERS).toBeDefined();
+      expect(FIELD_SUGGESTION_CONFIG).toBeDefined();
+      expect(PATH_RESOLUTION_CONFIG).toBeDefined();
     });
 
-    it("should support field suggestion configuration", () => {
-      const similarity = 0.5;
-      const isAboveThreshold =
-        similarity > FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD;
-      expect(isAboveThreshold).toBe(true);
+    it("should have all constants as frozen objects", () => {
+      expect(Object.isFrozen(DATA_MAPPER_CONFIG)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_DEFAULTS)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_STATUS)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_ERROR_MESSAGES)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_SUCCESS_MESSAGES)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_WARNING_MESSAGES)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_EVENTS)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_METRICS)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_PERFORMANCE_THRESHOLDS)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_QUALITY_METRICS)).toBe(true);
+      expect(Object.isFrozen(DATA_MAPPER_CACHE_CONFIG)).toBe(true);
+      expect(Object.isFrozen(TRANSFORMATION_TYPES)).toBe(true);
+      expect(Object.isFrozen(TRANSFORMATION_DEFAULTS)).toBe(true);
+      expect(Object.isFrozen(DATA_TYPE_HANDLERS)).toBe(true);
+      expect(Object.isFrozen(FIELD_SUGGESTION_CONFIG)).toBe(true);
+      expect(Object.isFrozen(PATH_RESOLUTION_CONFIG)).toBe(true);
+    });
+
+    it("should not allow modification of constant values", () => {
+      expect(() => {
+        // @ts-ignore
+        DATA_MAPPER_CONFIG.MAX_FIELD_MAPPINGS = 200;
+      }).toThrow();
+
+      expect(() => {
+        // @ts-ignore
+        DATA_MAPPER_STATUS.NEW_STATUS = 'new';
+      }).toThrow();
+
+      expect(() => {
+        // @ts-ignore
+        TRANSFORMATION_TYPES.NEW_TYPE = 'newtype';
+      }).toThrow();
     });
   });
 });

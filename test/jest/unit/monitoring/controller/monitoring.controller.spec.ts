@@ -1,4 +1,9 @@
+/**
+ * MonitoringController 单元测试
+ */
+
 import { Test, TestingModule } from "@nestjs/testing";
+import { Reflector } from "@nestjs/core";
 import { MonitoringController } from "../../../../../src/monitoring/controller/monitoring.controller";
 import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
@@ -6,6 +11,7 @@ import { MetricsHealthService } from "../../../../../src/metrics/services/metric
 import { PermissionService } from "../../../../../src/auth/services/permission.service";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { UnifiedPermissionsGuard } from "../../../../../src/auth/guards/unified-permissions.guard";
+import { JwtAuthGuard } from "../../../../../src/auth/guards/jwt-auth.guard";
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -19,6 +25,16 @@ import {
 } from "../../../../../src/metrics/dto/performance-summary.dto";
 import { CacheStatsDto } from "../../../../../src/cache/dto/cache-internal.dto";
 import { IAlertStats } from "../../../../../src/alert/interfaces/alert.interface";
+import { MetricsRegistryService } from "../../../../../src/monitoring/metrics/metrics-registry.service";
+import { StreamPerformanceMetrics } from "../../../../../src/core/shared/services/stream-performance-metrics.service";
+import { DynamicLogLevelService } from "../../../../../src/core/shared/services/dynamic-log-level.service";
+
+// Create a mock class for UnifiedPermissionsGuard
+class MockUnifiedPermissionsGuard {
+  canActivate() {
+    return true;
+  }
+}
 
 // Mock the logger
 jest.mock("../../../../../src/common/config/logger.config", () => ({
@@ -143,14 +159,6 @@ describe("MonitoringController", () => {
       healthCheck: jest.fn().mockResolvedValue({ status: "healthy" }),
     };
 
-    const mockRateLimitService = {
-      checkRateLimit: jest.fn().mockResolvedValue({
-        allowed: true,
-        limit: 1000,
-        remaining: 999,
-        resetTime: new Date().getTime() + 60000,
-      }),
-    };
 
     const mockMetricsHealthServiceProvider = {
       getDetailedHealthReport: jest.fn().mockReturnValue({
@@ -185,6 +193,21 @@ describe("MonitoringController", () => {
       }),
     };
 
+    // Create a mock for PermissionService
+    const mockPermissionService = {
+      checkPermissions: jest.fn().mockResolvedValue({ allowed: true }),
+      getEffectivePermissions: jest.fn().mockReturnValue([]),
+      createPermissionContext: jest.fn().mockResolvedValue({}),
+    };
+
+    // Create a mock for Reflector
+    const mockReflector = {
+      get: jest.fn().mockReturnValue([]),
+      getAll: jest.fn().mockReturnValue([]),
+      getAllAndOverride: jest.fn().mockReturnValue([]),
+      getAllAndMerge: jest.fn().mockReturnValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MonitoringController],
       providers: [
@@ -196,6 +219,16 @@ describe("MonitoringController", () => {
         {
           provide: MetricsHealthService,
           useValue: mockMetricsHealthServiceProvider,
+        },
+        // 解决 Nest 解析 UnifiedPermissionsGuard 时的依赖问题，提供一个简单的 mock
+        {
+          provide: UnifiedPermissionsGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
+        // JwtAuthGuard 也会被 @Auth 装饰器使用，同样提供 mock
+        {
+          provide: JwtAuthGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
         },
         {
           provide: AlertingService,
@@ -214,26 +247,75 @@ describe("MonitoringController", () => {
           },
         },
         {
-          provide: PermissionService,
+          provide: MetricsRegistryService,
           useValue: {
-            checkPermissions: jest.fn().mockResolvedValue({ allowed: true }),
-            getEffectivePermissions: jest.fn().mockReturnValue([]),
-            createPermissionContext: jest.fn().mockResolvedValue({}),
+            getMetrics: jest.fn().mockResolvedValue('# Prometheus metrics'),
+            getMetricsSummary: jest.fn().mockReturnValue({
+              totalMetrics: 50,
+              customMetrics: 30,
+              defaultMetrics: 20,
+            }),
+            getHealthStatus: jest.fn().mockReturnValue({
+              status: 'healthy',
+              message: '指标系统运行正常',
+            }),
           },
         },
         {
-          provide: UnifiedPermissionsGuard,
+          provide: StreamPerformanceMetrics,
           useValue: {
-            canActivate: jest.fn().mockReturnValue(true),
+            getDetailedPerformanceReport: jest.fn().mockResolvedValue({
+              stats: {
+                totalSymbolsProcessed: 1000,
+                batchProcessingStats: {
+                  totalBatches: 100,
+                },
+              },
+              percentiles: {},
+              prometheusMetrics: '# Stream metrics',
+              timestamp: new Date().toISOString(),
+            }),
           },
+        },
+        {
+          provide: DynamicLogLevelService,
+          useValue: {
+            getCurrentStatus: jest.fn().mockReturnValue({
+              currentLogLevel: 'info',
+              cpuUsage: 0.5,
+            }),
+            getPerformanceMetrics: jest.fn().mockResolvedValue({
+              totalLogLevelSwitches: 10,
+            }),
+            getMetrics: jest.fn().mockResolvedValue('# Log level metrics'),
+          },
+        },
+        {
+          provide: PermissionService,
+          useValue: mockPermissionService,
         },
         {
           provide: RateLimitService,
-          useValue: mockRateLimitService,
+          useValue: {
+            checkRateLimit: jest.fn().mockResolvedValue({
+              allowed: true,
+              limit: 1000,
+              remaining: 999,
+              resetTime: new Date().getTime() + 60000,
+            }),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: new Reflector(),
         },
       ],
     })
       .overrideGuard(ThrottlerGuard)
+      .useValue({
+        canActivate: jest.fn().mockReturnValue(true),
+      })
+      .overrideGuard(UnifiedPermissionsGuard)
       .useValue({
         canActivate: jest.fn().mockReturnValue(true),
       })

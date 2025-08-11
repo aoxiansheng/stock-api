@@ -7,8 +7,8 @@ import {
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 
-import { DataMapperService } from "../../data-mapper/services/data-mapper.service";
-import { DataMappingResponseDto } from "../../data-mapper/dto/data-mapping-response.dto";
+import { FlexibleMappingRuleService } from "../../data-mapper/services/flexible-mapping-rule.service";
+import { FlexibleMappingRuleResponseDto } from "../../data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../shared/utils/object.util";
 import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
 import { Metrics } from "../../../monitoring/metrics/metrics-helper";
@@ -20,14 +20,9 @@ import {
   TRANSFORM_PERFORMANCE_THRESHOLDS,
 } from "../constants/transformer.constants";
 import {
-  DataTransformRuleDto,
-  TransformValidationDto,
   TransformationStatsDto,
 } from "../dto/transform-interfaces.dto";
 import {
-  TransformPreviewDto,
-  TransformMappingRuleInfoDto,
-  TransformFieldMappingPreviewDto,
   BatchTransformOptionsDto,
 } from "../dto/transform-preview.dto";
 import { TransformRequestDto } from "../dto/transform-request.dto";
@@ -45,7 +40,7 @@ export class TransformerService {
   private readonly logger = createLogger(TransformerService.name);
 
   constructor(
-    private readonly dataMapperService: DataMapperService,
+    private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
     private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
@@ -54,32 +49,13 @@ export class TransformerService {
    */
   async transform(request: TransformRequestDto): Promise<TransformResponseDto> {
     const startTime = Date.now();
+    const apiTypeCtx = request.apiType;
 
-    // 自动推断API类型（rest/stream）
-    const inferApiType = (raw: any): string | undefined => {
-      try {
-        if (!raw) return undefined;
-        if (Array.isArray(raw)) return 'rest';
-        if (raw.secu_quote || raw.basic_info) return 'rest';
-        const flatFields = ['last_done', 'open', 'high', 'low', 'volume', 'turnover', 'timestamp'];
-        if (flatFields.some(k => raw[k] !== undefined)) return 'stream';
-      } catch {}
-      return undefined;
-    };
+    Metrics.inc(this.metricsRegistry, "transformerOperationsTotal", {
+      operation_type: "transform",
+      provider: request.provider || "unknown",
+    });
 
-    const apiTypeCtx = request.options?.context?.apiType || inferApiType(request.rawData);
-
-    // 🎯 记录转换操作开始
-    Metrics.inc(
-      this.metricsRegistry,
-      'transformerOperationsTotal',
-      { 
-        operation_type: 'transform',
-        provider: request.provider || 'unknown'
-      }
-    );
-
-    // 🎯 使用 common 模块的日志脱敏功能
     this.logger.log(
       `开始数据转换`,
       sanitizeLogData({
@@ -92,50 +68,73 @@ export class TransformerService {
     );
 
     try {
-      // 1. Find appropriate mapping rule
+      const dataToProcess = Array.isArray(request.rawData)
+        ? request.rawData
+        : [request.rawData].filter(Boolean);
+
+      if (dataToProcess.length === 0 && (request.rawData === null || request.rawData === undefined)) {
+        const metadata = new TransformationMetadataDto(
+          "",
+          "",
+          request.provider,
+          request.transDataRuleListType,
+          0,
+          0,
+          Date.now() - startTime,
+        );
+        return new TransformResponseDto([], metadata);
+      }
+
+      const sample = dataToProcess.length > 0 ? dataToProcess[0] : {};
+
       const transformMappingRule = await this.findMappingRule(
         request.provider,
         request.transDataRuleListType,
         request.mappingOutRuleId,
         apiTypeCtx,
-        request.rawData,
+        sample,
       );
 
       if (!transformMappingRule) {
-        // 抛出异常而不是返回错误响应，符合新的架构设计
         throw new NotFoundException(
           `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', transDataRuleListType '${request.transDataRuleListType}'`,
         );
       }
-
-      // 2. Apply transformation
-      const transformedData = await this.dataMapperService.applyMappingRule(
-        transformMappingRule.id,
-        request.rawData,
-      );
-
-      // 3. Validate output if requested
-      const validationErrors: string[] = [];
-      const warnings: string[] = [];
-
-      if (request.options?.validateOutput) {
-        const validation = this.validateTransformedData(
-          transformedData,
-          transformMappingRule,
-        );
-        validationErrors.push(...validation.errors);
-        warnings.push(...validation.warnings);
+      
+      const ruleDoc = await (this.flexibleMappingRuleService as any).ruleModel.findById(transformMappingRule.id);
+      if (!ruleDoc) {
+          throw new NotFoundException(`Mapping rule document not found for ID: ${transformMappingRule.id}`);
       }
 
-      // 4. Calculate transformation statistics
+      const transformedResults = [];
+      let successfulTransformations = 0;
+
+      for (const item of dataToProcess) {
+        const result = await this.flexibleMappingRuleService.applyFlexibleMappingRule(
+          ruleDoc,
+          item,
+          request.options?.includeDebugInfo || false,
+        );
+        
+        if (result.success) {
+            successfulTransformations++;
+        }
+        transformedResults.push(result.transformedData);
+      }
+
+      if (successfulTransformations === 0 && dataToProcess.length > 0) {
+          throw new BadRequestException('Transformation failed for all items in the request.');
+      }
+
+      const finalData = Array.isArray(request.rawData) ? transformedResults : transformedResults[0];
+
       const stats = this.calculateTransformationStats(
-        transformedData,
+        finalData,
         transformMappingRule,
       );
 
       const processingTime = Date.now() - startTime;
 
-      // 5. Build metadata
       const metadata = new TransformationMetadataDto(
         transformMappingRule.id,
         transformMappingRule.name,
@@ -149,7 +148,6 @@ export class TransformerService {
           : undefined,
       );
 
-      // 🎯 使用 common 模块的日志脱敏功能和性能阈值
       const logLevel =
         processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
           ? "warn"
@@ -157,82 +155,44 @@ export class TransformerService {
       this.logger[logLevel](
         `数据转换成功完成`,
         sanitizeLogData({
-          ruleId: transformMappingRule.id,
+          dataMapperRuleId: transformMappingRule.id,
           recordsProcessed: stats.recordsProcessed,
           fieldsTransformed: stats.fieldsTransformed,
           processingTime,
-          hasErrors: validationErrors.length > 0,
-          hasWarnings: warnings.length > 0,
-          isSlowTransformation:
-            processingTime >
-            TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS,
         }),
       );
 
-      // 🎯 记录批次大小和成功率指标
-      const batchSize = Array.isArray(request.rawData) ? request.rawData.length : 1;
       Metrics.observe(
         this.metricsRegistry,
-        'transformerBatchSize',
-        batchSize,
-        { operation_type: 'transform' }
+        "transformerBatchSize",
+        dataToProcess.length,
+        { operation_type: "transform" },
       );
       
+      const successRate = dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100;
       Metrics.setGauge(
         this.metricsRegistry,
-        'transformerSuccessRate',
-        100, // 成功完成转换
-        { operation_type: 'transform' }
+        "transformerSuccessRate",
+        successRate,
+        { operation_type: "transform" },
       );
 
-      // 🎯 性能警告检查
-      if (
-        processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
-      ) {
-        warnings.push(
-          `${TRANSFORM_WARNING_MESSAGES.PERFORMANCE_WARNING}: ${processingTime}ms`,
-        );
-      }
-      if (
-        stats.recordsProcessed >
-        TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE
-      ) {
-        warnings.push(
-          `${TRANSFORM_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${stats.recordsProcessed} records`,
-        );
+      if (processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
+        this.logger.warn(`数据转换性能警告: ${processingTime}ms`, {
+          provider: request.provider,
+          transDataRuleListType: request.transDataRuleListType,
+          processingTime,
+        });
       }
 
-      if (validationErrors.length > 0) {
-        // 抛出异常而不是返回错误响应，符合新的架构设计
-        throw new BadRequestException(validationErrors.join("; "));
-      }
-
-      // 警告信息通过日志记录，不在响应中返回
-      if (warnings.length > 0) {
-        this.logger.warn(
-          `数据转换警告`,
-          sanitizeLogData({
-            provider: request.provider,
-            transDataRuleListType: request.transDataRuleListType,
-            warnings,
-            operation: "transformData",
-          }),
-        );
-      }
-
-      return new TransformResponseDto(transformedData, metadata);
+      return new TransformResponseDto(finalData, metadata);
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
 
-      // 🎯 记录失败率指标
-      Metrics.setGauge(
-        this.metricsRegistry,
-        'transformerSuccessRate',
-        0, // 转换失败
-        { operation_type: 'transform' }
-      );
+      Metrics.setGauge(this.metricsRegistry, "transformerSuccessRate", 0, {
+        operation_type: "transform",
+      });
 
-      // 🎯 使用 common 模块的日志脱敏功能
       this.logger.error(
         `数据转换失败`,
         sanitizeLogData({
@@ -244,7 +204,6 @@ export class TransformerService {
         }),
       );
 
-      // 抛出异常而不是返回错误响应，符合新的架构设计
       throw new InternalServerErrorException(
         `${TRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED}: ${error.message}`,
       );
@@ -279,6 +238,12 @@ export class TransformerService {
     );
 
     // 🎯 使用 common 模块的配置常量进行批量大小检查
+    if (requests.length === 0) {
+      throw new BadRequestException(
+        `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: 批量请求不能为空`,
+      );
+    }
+
     if (requests.length > TRANSFORM_CONFIG.MAX_BATCH_SIZE) {
       throw new BadRequestException(
         `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: 批量大小 ${requests.length} 超过最大限制 ${TRANSFORM_CONFIG.MAX_BATCH_SIZE}`,
@@ -314,6 +279,7 @@ export class TransformerService {
             firstReq.provider,
             firstReq.transDataRuleListType,
             firstReq.mappingOutRuleId,
+            firstReq.apiType,
           );
 
           if (!transformMappingRule) {
@@ -370,25 +336,28 @@ export class TransformerService {
 
   private async _executeSingleTransform(
     request: TransformRequestDto,
-    transformMappingRule: DataMappingResponseDto,
+    transformMappingRule: FlexibleMappingRuleResponseDto,
   ): Promise<TransformResponseDto> {
     const startTime = Date.now();
     try {
-      const transformedData = await this.dataMapperService.applyMappingRule(
-        transformMappingRule.id,
+      const ruleDoc = await (this.flexibleMappingRuleService as any).ruleModel.findById(transformMappingRule.id);
+      if (!ruleDoc) {
+        throw new NotFoundException(`Mapping rule document not found for ID: ${transformMappingRule.id}`);
+      }
+
+      const result = await this.flexibleMappingRuleService.applyFlexibleMappingRule(
+        ruleDoc,
         request.rawData,
+        request.options?.includeDebugInfo || false,
       );
 
-      const validationErrors: string[] = [];
-      const warnings: string[] = [];
-      if (request.options?.validateOutput) {
-        const validation = this.validateTransformedData(
-          transformedData,
-          transformMappingRule,
+      if (!result.success) {
+        throw new BadRequestException(
+          result.errorMessage || 'Transformation failed'
         );
-        validationErrors.push(...validation.errors);
-        warnings.push(...validation.warnings);
       }
+      
+      const transformedData = result.transformedData;
 
       const stats = this.calculateTransformationStats(
         transformedData,
@@ -416,42 +385,17 @@ export class TransformerService {
       this.logger[logLevel](
         `单次数据转换成功完成`,
         sanitizeLogData({
-          ruleId: transformMappingRule.id,
+          dataMapperRuleId: transformMappingRule.id,
           recordsProcessed: stats.recordsProcessed,
           processingTime,
         }),
       );
 
-      if (
-        processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
-      ) {
-        warnings.push(
-          `${TRANSFORM_WARNING_MESSAGES.PERFORMANCE_WARNING}: ${processingTime}ms`,
-        );
-      }
-      if (
-        stats.recordsProcessed >
-        TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE
-      ) {
-        warnings.push(
-          `${TRANSFORM_WARNING_MESSAGES.LARGE_DATASET_WARNING}: ${stats.recordsProcessed} records`,
-        );
-      }
-
-      if (validationErrors.length > 0) {
-        throw new BadRequestException(validationErrors.join("; "));
-      }
-
-      // 警告信息通过日志记录
-      if (warnings.length > 0) {
-        this.logger.warn(
-          `数据转换警告`,
-          sanitizeLogData({
-            ruleId: transformMappingRule.id,
-            warnings,
-            operation: "_executeSingleTransform",
-          }),
-        );
+      if (processingTime > TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
+        this.logger.warn(`单次数据转换性能警告: ${processingTime}ms`, {
+          dataMapperRuleId: transformMappingRule.id,
+          processingTime,
+        });
       }
 
       return new TransformResponseDto(transformedData, metadata);
@@ -459,7 +403,7 @@ export class TransformerService {
       this.logger.error(
         `单次数据转换失败`,
         sanitizeLogData({
-          ruleId: transformMappingRule.id,
+          dataMapperRuleId: transformMappingRule.id,
           error: error.message,
         }),
       );
@@ -469,86 +413,7 @@ export class TransformerService {
 
   // createErrorResponse method removed - errors are now handled via exceptions
 
-  /**
-   * Preview transformation without applying it
-   */
-  async previewTransformation(
-    request: TransformRequestDto,
-  ): Promise<TransformPreviewDto> {
-    // 🎯 记录预览生成指标
-    Metrics.inc(
-      this.metricsRegistry,
-      'transformerPreviewGeneratedTotal',
-      { preview_type: 'transformation_preview' }
-    );
 
-    // 🎯 使用 common 模块的日志脱敏功能
-    this.logger.log(
-      `预览转换`,
-      sanitizeLogData({
-        provider: request.provider,
-        transDataRuleListType: request.transDataRuleListType,
-      }),
-    );
-
-    // Find mapping rule
-    const transformMappingRule = await this.findMappingRule(
-      request.provider,
-      request.transDataRuleListType,
-      request.mappingOutRuleId,
-    );
-
-    if (!transformMappingRule) {
-      throw new NotFoundException(
-        `${TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', transDataRuleListType '${request.transDataRuleListType}'`,
-      );
-    }
-
-    // Extract sample data for preview
-    const sampleInput = this.extractSampleData(request.rawData);
-
-    // Apply transformation to sample
-    const sampleOutput = await this.dataMapperService.applyMappingRule(
-      transformMappingRule.id,
-      sampleInput,
-    );
-
-    // Build field mapping preview
-    const sharedDataFieldMappings: TransformFieldMappingPreviewDto[] =
-      transformMappingRule.sharedDataFieldMappings.map((mapping) => {
-        const sourceValue = ObjectUtils.getValueFromPath(
-          sampleInput,
-          mapping.sourceField,
-        );
-        const targetValue = ObjectUtils.getValueFromPath(
-          sampleOutput[0] || {},
-          mapping.targetField,
-        );
-
-        return {
-          sourceField: mapping.sourceField,
-          targetField: mapping.targetField,
-          sampleSourceValue: sourceValue,
-          expectedTargetValue: targetValue,
-          transformType: mapping.transform?.type,
-        };
-      });
-
-    const mappingRuleInfo: TransformMappingRuleInfoDto = {
-      id: transformMappingRule.id,
-      name: transformMappingRule.name,
-      provider: transformMappingRule.provider,
-      transDataRuleListType: transformMappingRule.transDataRuleListType,
-      dataFieldMappingsCount: transformMappingRule.sharedDataFieldMappings.length,
-    };
-
-    return {
-      transformMappingRule: mappingRuleInfo,
-      sampleInput,
-      expectedOutput: sampleOutput[0] || {},
-      sharedDataFieldMappings,
-    };
-  }
 
   /**
    * Find appropriate mapping rule
@@ -557,131 +422,65 @@ export class TransformerService {
     provider: string,
     transDataRuleListType: string,
     ruleId?: string,
-    apiType?: string,
+    apiType: 'rest' | 'stream' = 'rest',
     rawDataSample?: any,
-  ): Promise<DataMappingResponseDto | null> {
+  ): Promise<FlexibleMappingRuleResponseDto | null> {
     if (ruleId) {
       // Use specific rule if provided - 可能抛出 NotFoundException，让它传播
-      return await this.dataMapperService.findOne(ruleId);
+      return await this.flexibleMappingRuleService.findRuleById(ruleId);
     } else {
-      // 先获取所有候选规则（按 apiType 过滤）
-      const candidates = await this.dataMapperService.getMappingRule(
+      // 获取最佳匹配规则
+      const bestRule = await this.flexibleMappingRuleService.findBestMatchingRule(
         provider,
-        transDataRuleListType,
         apiType,
+        transDataRuleListType,
       );
 
-      if (candidates && candidates.length > 0 && rawDataSample) {
-        // 计算每个候选规则对 rawData 的命中字段数
-        const scored = candidates.map((rule) => {
-          const mappings = rule.sharedDataFieldMappings || [];
-          const hits = mappings.reduce((cnt, m) => {
-            const val = ObjectUtils.getValueFromPath(rawDataSample, m.sourceField);
-            return cnt + (val !== undefined ? 1 : 0);
-          }, 0);
-          return { rule, hits, mappingsCount: mappings.length };
-        });
-        // 选择命中数最高的规则；若持平，选择映射项更多的
-        scored.sort((a, b) => (b.hits - a.hits) || (b.mappingsCount - a.mappingsCount));
-
-        const best = scored[0];
-        if (best && best.hits > 0) {
-          this.logger.debug('按字段命中率选择映射规则', sanitizeLogData({
-            provider,
-            transDataRuleListType,
-            apiType,
-            selectedRule: { id: best.rule.id, name: best.rule.name },
-            hits: best.hits,
-            mappingsCount: best.mappingsCount,
-          }));
-          return best.rule;
-        }
+      
+      if (bestRule && rawDataSample) {
+        // 验证规则与原始数据的兼容性
+        const mappings = bestRule.fieldMappings || [];
+        const hits = mappings.reduce((cnt, m) => {
+          const val = ObjectUtils.getValueFromPath(rawDataSample, m.sourceFieldPath);
+          return cnt + (val !== undefined ? 1 : 0);
+        }, 0);
+        
+        this.logger.debug('选择的映射规则命中统计', sanitizeLogData({
+          provider,
+          transDataRuleListType,
+          apiType,
+          selectedRule: { id: bestRule.id, name: bestRule.name },
+          hits,
+          totalMappings: mappings.length,
+        }));
       }
-
-      // 回退到默认的“最新规则”策略
-      return await this.dataMapperService.findBestMatchingRule(
-        provider,
-        transDataRuleListType,
-        apiType,
-      );
+      
+      return bestRule;
     }
   }
 
-  /**
-   * Validate transformed data
-   */
-  private validateTransformedData(
-    transformedData: any,
-    transformMappingRule: DataTransformRuleDto,
-  ): TransformValidationDto {
-    const errors: string[] = [];
-    const warnings: string[] = [];
 
-    if (!transformedData) {
-      errors.push(TRANSFORM_ERROR_MESSAGES.INVALID_RAW_DATA);
-      return { errors, warnings };
-    }
-
-    // Validate if we have the expected structure
-    const dataArray = Array.isArray(transformedData)
-      ? transformedData
-      : [transformedData];
-
-    if (dataArray.length === 0) {
-      warnings.push(TRANSFORM_WARNING_MESSAGES.EMPTY_TRANSFORMED_DATA);
-      return { errors, warnings };
-    }
-
-    // Check if all target fields from mapping rule are present
-    const requiredFields = transformMappingRule.sharedDataFieldMappings.map((m) => m.targetField);
-    const sampleRecord = dataArray[0];
-
-    const missingFields = requiredFields.filter(
-      (field: string) =>
-        ObjectUtils.getValueFromPath(sampleRecord, field) === undefined,
-    );
-
-    if (missingFields.length > 0) {
-      warnings.push(
-        `${TRANSFORM_WARNING_MESSAGES.MISSING_EXPECTED_FIELDS}: ${missingFields.join(", ")}`,
-      );
-    }
-
-    // Check for null/undefined values in important fields
-    const nullFields = requiredFields.filter((field: string) => {
-      const value = ObjectUtils.getValueFromPath(sampleRecord, field);
-      return value === null || value === undefined;
-    });
-
-    if (nullFields.length > 0) {
-      warnings.push(
-        `${TRANSFORM_WARNING_MESSAGES.NULL_FIELD_VALUES}: ${nullFields.join(", ")}`,
-      );
-    }
-
-    return { errors, warnings };
-  }
 
   /**
    * Calculate transformation statistics
    */
   private calculateTransformationStats(
     transformedData: any,
-    transformMappingRule: DataTransformRuleDto,
+    transformMappingRule: FlexibleMappingRuleResponseDto,
   ): TransformationStatsDto {
     const dataArray = Array.isArray(transformedData)
       ? transformedData
       : [transformedData];
     const recordsProcessed = dataArray.length;
 
-    const transformationsApplied = transformMappingRule.sharedDataFieldMappings.map((mapping) => ({
-      sourceField: mapping.sourceField,
+    const transformationsApplied = transformMappingRule.fieldMappings.map((mapping) => ({
+      sourceField: mapping.sourceFieldPath,
       targetField: mapping.targetField,
       transformType: mapping.transform?.type,
       transformValue: mapping.transform?.value,
     }));
 
-    const fieldsTransformed = transformMappingRule.sharedDataFieldMappings.length;
+    const fieldsTransformed = transformMappingRule.fieldMappings.length;
 
     return {
       recordsProcessed,
@@ -690,35 +489,5 @@ export class TransformerService {
     };
   }
 
-  /**
-   * Extract sample data for preview
-   */
-  private extractSampleData(rawData: any): any {
-    if (!rawData) return {};
 
-    // 🎯 使用 common 模块的配置常量限制样本大小
-    if (Array.isArray(rawData)) {
-      const sampleSize = Math.min(
-        rawData.length,
-        TRANSFORM_CONFIG.MAX_SAMPLE_SIZE,
-      );
-      return sampleSize > 0 ? rawData[0] : {};
-    }
-
-    // 🎯 使用配置常量处理嵌套数组属性
-    const sample: any = {};
-    for (const [key, value] of Object.entries(rawData)) {
-      if (Array.isArray(value) && value.length > 0) {
-        const sampleSize = Math.min(
-          value.length,
-          TRANSFORM_CONFIG.MAX_SAMPLE_SIZE,
-        );
-        sample[key] = value.slice(0, sampleSize);
-      } else {
-        sample[key] = value;
-      }
-    }
-
-    return sample;
-  }
 }

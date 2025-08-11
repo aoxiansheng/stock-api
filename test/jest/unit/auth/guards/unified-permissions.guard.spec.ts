@@ -63,11 +63,18 @@ describe("UnifiedPermissionsGuard", () => {
     roles: UserRole[] = [],
     permissions: Permission[] = [],
   ) => {
-    jest.spyOn(reflector, "getAllAndOverride").mockImplementation((key) => {
-      if (key === ROLES_KEY) return roles;
-      if (key === PERMISSIONS_KEY) return permissions;
-      return [];
-    });
+    jest
+      .spyOn(
+        (UnifiedPermissionsGuard as any).prototype,
+        "getRequiredRoles",
+      )
+      .mockReturnValue(roles);
+    jest
+      .spyOn(
+        (UnifiedPermissionsGuard as any).prototype,
+        "getRequiredPermissions",
+      )
+      .mockReturnValue(permissions);
   };
 
   // Helper function to mock AuthSubjectFactory
@@ -84,7 +91,8 @@ describe("UnifiedPermissionsGuard", () => {
   describe("Scenario 1: No permissions required", () => {
     it("should allow access if no roles or permissions are required", async () => {
       mockReflector([], []);
-      await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+      const result = await guard.canActivate(mockExecutionContext);
+      expect(result).toBe(true);
     });
   });
 
@@ -107,7 +115,8 @@ describe("UnifiedPermissionsGuard", () => {
         details: "all good",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+      const result = await guard.canActivate(mockExecutionContext);
+      expect(result).toBe(true);
     });
 
     it("should deny access if user is missing required roles", async () => {
@@ -121,7 +130,7 @@ describe("UnifiedPermissionsGuard", () => {
         details: "missing role",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -137,7 +146,7 @@ describe("UnifiedPermissionsGuard", () => {
         details: "missing permission",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         ForbiddenException,
       );
       try {
@@ -168,7 +177,8 @@ describe("UnifiedPermissionsGuard", () => {
         details: "all good",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+      const result = await guard.canActivate(mockExecutionContext);
+      expect(result).toBe(true);
     });
 
     it("should deny access if API key is missing required permissions", async () => {
@@ -182,7 +192,7 @@ describe("UnifiedPermissionsGuard", () => {
         details: "missing perm",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         ForbiddenException,
       );
       try {
@@ -208,7 +218,7 @@ describe("UnifiedPermissionsGuard", () => {
         details: "no roles for api key",
       });
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -228,10 +238,10 @@ describe("UnifiedPermissionsGuard", () => {
         .spyOn(permissionService, "checkPermissions")
         .mockRejectedValue(new Error("Database error"));
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         ForbiddenException,
       );
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         '权限验证失败，请稍后重试',
       );
     });
@@ -252,7 +262,7 @@ describe("UnifiedPermissionsGuard", () => {
         .spyOn(permissionService, "checkPermissions")
         .mockRejectedValue(customException);
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
         customException,
       );
     });

@@ -5,6 +5,8 @@ import { CacheModule } from "../../../cache/module/cache.module";
 import { ProvidersModule } from "../../../providers/module/providers.module";
 import { SharedServicesModule } from "../../shared/module/shared-services.module";
 import { SymbolMapperModule } from "../../symbol-mapper/module/symbol-mapper.module";
+import { TransformerModule } from "../../transformer/module/transformer.module";
+import { StorageModule } from "../../storage/module/storage.module";
 
 import { ReceiverController } from "../controller/receiver.controller";
 import { ReceiverService } from "../services/receiver.service";
@@ -13,6 +15,8 @@ import { ReceiverService } from "../services/receiver.service";
   imports: [
     AuthModule,
     SymbolMapperModule,
+    TransformerModule,
+    StorageModule,
     ProvidersModule,
     CacheModule,
     SharedServicesModule,

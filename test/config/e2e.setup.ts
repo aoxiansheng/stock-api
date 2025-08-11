@@ -106,10 +106,11 @@ beforeAll(async () => {
       credentials: true,
     });
 
-    // 启动应用
-    await app.init();
+    // 启动应用并监听端口（WebSocket需要真正的HTTP服务器）
+    const port = process.env.TEST_PORT || 3333;
+    await app.listen(port);
 
-    console.log("✅ E2E测试应用启动完成");
+    console.log(`✅ E2E测试应用启动完成，监听端口: ${port}`);
 
     // 等待应用完全启动
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -188,9 +189,13 @@ global.createTestRequest = () => {
 };
 
 global.registerTestUser = async (userData: any = {}) => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(7);
+  const uniqueSuffix = `${timestamp}_${random}`;
+  
   const defaultUser = {
-    username: "e2euser",
-    email: "e2e@example.com",
+    username: `e2euser_${uniqueSuffix}`,
+    email: `e2e_${uniqueSuffix}@example.com`,
     password: "password123",
     role: "developer",
     ...userData,
@@ -289,4 +294,25 @@ global.expectErrorResponse = (response: any, expectedStatus: number = 400) => {
     // Basic error response
     expect(response.body).toBeDefined();
   }
+};
+
+// Combined credential creation helper
+global.createTestCredentials = async (userData: any = {}, apiKeyData: any = {}) => {
+  // Register test user
+  const user = await global.registerTestUser(userData);
+  
+  // Login to get JWT token
+  const loginData = await global.loginTestUser({
+    username: user.username,
+    password: userData.password || "password123",
+  });
+  
+  // Create API key
+  const apiKey = await global.createTestApiKey(loginData.accessToken, apiKeyData);
+  
+  return {
+    user,
+    jwtToken: loginData.accessToken,
+    apiKey,
+  };
 };

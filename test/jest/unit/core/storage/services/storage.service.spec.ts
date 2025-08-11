@@ -14,6 +14,7 @@ import {
 import * as zlib from "zlib";
 import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "../../../../../../src/common/modules/pagination/dto/paginated-data";
+import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/metrics-registry.service";
 
 // Mock createLogger for core modules
 const mockLoggerInstance = {
@@ -142,6 +143,17 @@ describe("StorageService", () => {
         {
           provide: PaginationService,
           useValue: mockPaginationService,
+        },
+        {
+          provide: MetricsRegistryService,
+          useValue: {
+            storageRequestsTotal: { inc: jest.fn() },
+            storageSuccessTotal: { inc: jest.fn() },
+            storageFailureTotal: { inc: jest.fn() },
+            storageCompressionRatio: { observe: jest.fn() },
+            storageTtlUsage: { observe: jest.fn() },
+            storageSizeBytes: { observe: jest.fn() },
+          },
         },
       ],
     }).compile();

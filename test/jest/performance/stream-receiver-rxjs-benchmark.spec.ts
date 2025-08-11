@@ -8,7 +8,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StreamReceiverService } from '../../../src/core/stream-receiver/stream-receiver.service';
 import { CapabilityRegistryService } from '../../../src/providers/services/capability-registry.service';
 import { SymbolMapperService } from '../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { DataMapperService } from '../../../src/core/data-mapper/services/data-mapper.service';
+import { FlexibleMappingRuleService } from '../../../src/core/data-mapper/services/flexible-mapping-rule.service';
 import { TransformerService } from '../../../src/core/transformer/services/transformer.service';
 import { BatchOptimizationService } from '../../../src/core/shared/services/batch-optimization.service';
 import { FeatureFlags } from '../../../src/common/config/feature-flags.config';
@@ -43,11 +43,16 @@ const createMockServices = () => ({
     ),
   },
 
-  mockDataMapperService: {
-    getMappingRule: jest.fn().mockResolvedValue([{
+  mockFlexibleMappingRuleService: {
+    findBestMatchingRule: jest.fn().mockResolvedValue({
       id: 'test-rule',
-      sharedDataFieldMappings: []
-    }]),
+      fieldMappings: [],
+      provider: 'longport',
+      apiType: 'stream',
+      transDataRuleListType: 'quote_fields',
+      sourceTemplateId: 'template1',
+      name: 'Test Rule'
+    }),
   },
 
   mockTransformerService: {
@@ -89,7 +94,7 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
         StreamReceiverService,
         { provide: CapabilityRegistryService, useValue: mocks.mockCapabilityRegistry },
         { provide: SymbolMapperService, useValue: mocks.mockSymbolMapperService },
-        { provide: DataMapperService, useValue: mocks.mockDataMapperService },
+        { provide: FlexibleMappingRuleService, useValue: mocks.mockFlexibleMappingRuleService },
         { provide: TransformerService, useValue: mocks.mockTransformerService },
         { provide: BatchOptimizationService, useValue: mocks.mockBatchOptimizationService },
         {
@@ -111,7 +116,7 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
         StreamReceiverService,
         { provide: CapabilityRegistryService, useValue: mocks.mockCapabilityRegistry },
         { provide: SymbolMapperService, useValue: mocks.mockSymbolMapperService },
-        { provide: DataMapperService, useValue: mocks.mockDataMapperService },
+        { provide: FlexibleMappingRuleService, useValue: mocks.mockFlexibleMappingRuleService },
         { provide: TransformerService, useValue: mocks.mockTransformerService },
         { provide: BatchOptimizationService, useValue: mocks.mockBatchOptimizationService },
         {

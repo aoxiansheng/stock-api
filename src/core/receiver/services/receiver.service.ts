@@ -17,6 +17,8 @@ import {
   MarketStatusResult,
 } from "../../shared/services/market-status.service";
 import { SymbolMapperService } from "../../symbol-mapper/services/symbol-mapper.service";
+import { TransformerService } from "../../transformer/services/transformer.service";
+import { StorageService } from "../../storage/services/storage.service";
 import { MetricsRegistryService } from "../../../monitoring/metrics/metrics-registry.service";
 import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
@@ -33,6 +35,9 @@ import {
   SymbolTransformationResultDto,
   DataFetchingParamsDto,
 } from "../dto/receiver-internal.dto";
+import { TransformRequestDto } from "../../transformer/dto/transform-request.dto";
+import { StoreDataDto } from "../../storage/dto/storage-request.dto";
+import { StorageType, StorageClassification } from "../../storage/enums/storage-type.enum";
 import { ValidationResultDto } from "../dto/validation.dto";
 import { MarketUtils } from "../utils/market.util";
 // 🎯 复用 common 模块的日志配置
@@ -60,6 +65,8 @@ export class ReceiverService {
     private readonly capabilityRegistryService: CapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
     private readonly cacheService: CacheService,
+    private readonly transformerService: TransformerService,
+    private readonly storageService: StorageService,
     private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
@@ -669,6 +676,7 @@ export class ReceiverService {
       );
     }
 
+   
     const executionParams: DataFetchingParamsDto = {
       symbols: mappedSymbols.transformedSymbols,
       options: request.options,
@@ -681,10 +689,61 @@ export class ReceiverService {
     try {
       const data = await capability.execute(executionParams);
 
-      // 确保返回的数据始终是数组格式
-      const responseData = Array.isArray(data) ? data : [data];
+      // 确保返回的数据始终是数组格式, 并处理特定提供商的嵌套结构
+      const rawData = data.secu_quote || (Array.isArray(data) ? data : [data]);
 
-      // 🎯 新增：计算部分成功的信息
+      // ✅ 新增步骤1：使用 Transformer 进行数据标准化
+      this.logger.debug(`开始数据标准化处理`, {
+        requestId,
+        provider,
+        receiverType: request.receiverType,
+        rawDataCount: rawData.length,
+      });
+
+      this.logger.debug(`Raw data for transformation`, { rawData: JSON.stringify(rawData) });
+      const transformRequest: TransformRequestDto = {
+        provider,
+        apiType: 'rest',
+        transDataRuleListType: this.mapReceiverTypeToRuleType(request.receiverType),
+        rawData,
+        options: {
+          includeMetadata: true,
+          includeDebugInfo: false,
+        },
+      };
+
+      const transformedResult = await this.transformerService.transform(transformRequest);
+      
+      // ✅ 新增步骤2：使用 Storage 进行统一存储
+      this.logger.debug(`开始数据存储处理`, {
+        requestId,
+        provider,
+        transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
+      });
+
+      const storageRequest: StoreDataDto = {
+        key: `stock_data_${provider}_${request.receiverType}_${requestId}`,
+        data: transformedResult.transformedData,
+        storageType: StorageType.BOTH, // 既缓存又持久化
+        storageClassification: this.mapReceiverTypeToStorageClassification(request.receiverType),
+        provider,
+        market: this.extractMarketFromSymbols(request.symbols),
+        options: {
+          compress: true,
+          cacheTtl: this.calculateStorageCacheTTL(request.symbols),
+        },
+      };
+
+      // Storage 操作不应该阻塞主流程，异步执行
+      this.storageService.storeData(storageRequest).catch((error) => {
+        this.logger.warn(`数据存储失败，但不影响主流程`, {
+          requestId,
+          provider,
+          error: error.message,
+        });
+      });
+
+      // 🎯 计算部分成功的信息
       const hasPartialFailures =
         mappedSymbols.mappingResults.metadata.hasPartialFailures;
       const totalRequested = mappedSymbols.mappingResults.metadata.totalSymbols;
@@ -701,7 +760,17 @@ export class ReceiverService {
         successfullyProcessed,
       );
 
-      return new DataResponseDto(responseData, metadata);
+      this.logger.log(`完整数据处理链路执行成功`, {
+        requestId,
+        provider,
+        receiverType: request.receiverType,
+        totalProcessingTime: Date.now() - startTime,
+        rawDataCount: rawData.length,
+        transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
+      });
+
+      // 返回标准化后的数据而不是原始SDK数据
+      return new DataResponseDto(transformedResult.transformedData, metadata);
     } catch (error) {
       this.logger.error(
         `数据获取执行失败`,
@@ -1094,5 +1163,79 @@ export class ReceiverService {
     );
 
     return undefined;
+  }
+
+  /**
+   * 将 receiverType 映射到 transDataRuleListType
+   * 用于 Transformer 组件确定使用哪种映射规则类型
+   */
+  private mapReceiverTypeToRuleType(receiverType: string): string {
+    const mapping: Record<string, string> = {
+      'get-stock-quote': 'quote_fields',
+      'get-stock-basic-info': 'basic_info_fields',
+      'get-stock-realtime': 'quote_fields',
+      'get-stock-history': 'quote_fields',
+    };
+    
+    const ruleType = mapping[receiverType];
+    if (!ruleType) {
+      this.logger.warn(`未找到 receiverType 映射，使用默认值`, {
+        receiverType,
+        defaultRuleType: 'quote_fields'
+      });
+      return 'quote_fields'; // 默认使用股票报价字段映射
+    }
+    
+    return ruleType;
+  }
+
+  /**
+   * 将 receiverType 映射到 Storage 分类类型
+   */
+  private mapReceiverTypeToStorageClassification(receiverType: string): StorageClassification {
+    const mapping: Record<string, StorageClassification> = {
+      'get-stock-quote': StorageClassification.STOCK_QUOTE,
+      'get-stock-basic-info': StorageClassification.COMPANY_PROFILE,
+      'get-stock-realtime': StorageClassification.STOCK_QUOTE,
+      'get-stock-history': StorageClassification.STOCK_CANDLE,
+    };
+    
+    return mapping[receiverType] || StorageClassification.STOCK_QUOTE;
+  }
+
+  /**
+   * 从符号列表中提取主要市场信息
+   */
+  private extractMarketFromSymbols(symbols: string[]): string {
+    if (!symbols || symbols.length === 0) {
+      return 'UNKNOWN';
+    }
+    
+    // 取第一个符号的市场后缀作为主要市场
+    const firstSymbol = symbols[0];
+    if (firstSymbol.includes('.HK')) return 'HK';
+    if (firstSymbol.includes('.US')) return 'US';
+    if (firstSymbol.includes('.SZ')) return 'SZ';
+    if (firstSymbol.includes('.SH')) return 'SH';
+    
+    // 如果没有后缀，尝试根据格式推断
+    if (/^\d{5,6}$/.test(firstSymbol)) {
+      return firstSymbol.startsWith('00') || firstSymbol.startsWith('30') ? 'SZ' : 'SH';
+    }
+    
+    return 'MIXED'; // 混合市场
+  }
+
+  /**
+   * 根据符号和市场状态计算缓存TTL
+   */
+  private calculateStorageCacheTTL(symbols: string[]): number {
+    // 根据市场开盘状态调整缓存时间
+    // 开盘时间使用短缓存(1-5秒)，闭市使用长缓存(30-300秒)
+    const defaultTTL = 60; // 60秒默认缓存
+    
+    // 这里可以根据symbols判断市场，然后设置不同的TTL
+    // 实际实现可以调用 marketStatusService 获取市场状态
+    return defaultTTL;
   }
 }

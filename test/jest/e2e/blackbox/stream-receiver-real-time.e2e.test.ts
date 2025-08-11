@@ -343,7 +343,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     });
 
     it("应该能够订阅单个股票符号的实时数据流", async () => {
-      const testSymbol = "00700.HK";
+      const testSymbol = "AMD.US";
       const requiredQuoteCount = 3; // 要求至少3次报价
       let receivedQuoteCount = 0;
       const quotePrices = []; // 记录每次报价的价格

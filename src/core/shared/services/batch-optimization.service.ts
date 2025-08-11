@@ -8,7 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
 import { SymbolMapperService } from '../../symbol-mapper/services/symbol-mapper.service';
-import { DataMapperService } from '../../data-mapper/services/data-mapper.service';
+import { FlexibleMappingRuleService } from '../../data-mapper/services/flexible-mapping-rule.service';
 import { MetricsRegistryService } from '../../../monitoring/metrics/metrics-registry.service';
 import { Metrics } from '../../../monitoring/metrics/metrics-helper';
 
@@ -23,10 +23,7 @@ interface BatchRuleCompilationRequest {
   provider?: string;
 }
 
-interface BatchProcessingStats {
-  // 保留占位，防止旧引用报错，但不再存放任何实时数据
-  [key: string]: unknown;
-}
+// BatchProcessingStats 接口已废弃，迁移到 Prometheus 指标
 
 @Injectable()
 export class BatchOptimizationService {
@@ -41,7 +38,7 @@ export class BatchOptimizationService {
 
   constructor(
     private readonly symbolMapperService: SymbolMapperService,
-    private readonly dataMapperService: DataMapperService,
+    private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
     private readonly featureFlags: FeatureFlags,
     private readonly metricsRegistry: MetricsRegistryService,
   ) {}
@@ -182,8 +179,8 @@ export class BatchOptimizationService {
       // 批量预编译规则（通过内部API）
       const compilationPromises = ruleIds.map(async ruleId => {
         try {
-          // 触发规则缓存预热
-          const rule = await (this.dataMapperService as any).getOrCompileRule(ruleId, provider);
+          // 通过 FlexibleMappingRuleService 获取规则
+          const rule = await this.flexibleMappingRuleService.findRuleById(ruleId);
           return { ruleId, rule, status: 'fulfilled' };
         } catch (error) {
           return { ruleId, error, status: 'rejected' };

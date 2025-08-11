@@ -16,8 +16,6 @@ const mockLogger = {
 // Mock LongPort SDK
 const mockQuoteContext = {
   setOnQuote: jest.fn(),
-  setOnConnected: jest.fn(),
-  setOnDisconnected: jest.fn(),
   subscribe: jest.fn(),
   unsubscribe: jest.fn(),
 };
@@ -48,9 +46,20 @@ describe('LongportStreamContextService', () => {
   let configService: ConfigService;
   const { QuoteContext, Config } = require('longport');
   let timeoutSpy: jest.SpyInstance;
+  
+  // 回调函数变量，用于事件处理测试
+  let onQuoteCallback: ((symbol: string, event: any) => void) | null = null;
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    
+    // 重置回调变量
+    onQuoteCallback = null;
+    
+    // Mock setOnQuote 以捕获回调函数
+    mockQuoteContext.setOnQuote.mockImplementation((callback: (symbol: string, event: any) => void) => {
+      onQuoteCallback = callback;
+    });
     
     // Mock setTimeout to prevent actual timers in tests
     timeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
@@ -103,9 +112,16 @@ describe('LongportStreamContextService', () => {
       expect(Config.fromEnv).toHaveBeenCalledTimes(1);
       expect(QuoteContext.new).toHaveBeenCalledWith({ test: 'config' });
       expect(mockQuoteContext.setOnQuote).toHaveBeenCalledTimes(1);
-      expect(mockQuoteContext.setOnConnected).toHaveBeenCalledTimes(1);
-      expect(mockQuoteContext.setOnDisconnected).toHaveBeenCalledTimes(1);
-      expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 初始化成功');
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'LongPort WebSocket 初始化成功',
+          connectionId: expect.stringContaining('longport_'),
+          status: 'connected',
+          quotContextCreated: true,
+          configCreated: true,
+          messageCallbacksCount: expect.any(Number),
+        })
+      );
     });
 
     it('should initialize WebSocket connection successfully with ConfigService values', async () => {
@@ -130,7 +146,16 @@ describe('LongportStreamContextService', () => {
       expect(mockConfigService.get).toHaveBeenCalledWith('LONGPORT_APP_SECRET');
       expect(mockConfigService.get).toHaveBeenCalledWith('LONGPORT_ACCESS_TOKEN');
       expect(QuoteContext.new).toHaveBeenCalledTimes(1);
-      expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 初始化成功');
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'LongPort WebSocket 初始化成功',
+          connectionId: expect.stringContaining('longport_'),
+          status: 'connected',
+          quotContextCreated: true,
+          configCreated: true,
+          messageCallbacksCount: expect.any(Number),
+        })
+      );
     });
 
     it('should skip initialization if already connected', async () => {
@@ -146,7 +171,7 @@ describe('LongportStreamContextService', () => {
 
       // Verify
       expect(QuoteContext.new).not.toHaveBeenCalled();
-      expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 已连接');
+      expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 已连接，跳过初始化');
     });
 
     it('should throw error when LongPort configuration is incomplete', async () => {
@@ -160,6 +185,12 @@ describe('LongportStreamContextService', () => {
       expect(mockLogger.error).toHaveBeenCalledWith({
         message: 'LongPort WebSocket 初始化失败',
         error: 'LongPort 配置不完整：缺少 APP_KEY、APP_SECRET 或 ACCESS_TOKEN',
+        connectionState: expect.objectContaining({
+          status: 'failed',
+          healthStatus: 'failed',
+          isInitialized: false,
+          connectionId: null,
+        }),
       });
     });
 
@@ -176,6 +207,12 @@ describe('LongportStreamContextService', () => {
       expect(mockLogger.error).toHaveBeenCalledWith({
         message: 'LongPort WebSocket 初始化失败',
         error: 'Connection failed',
+        connectionState: expect.objectContaining({
+          status: 'failed',
+          healthStatus: 'failed',
+          isInitialized: false,
+          connectionId: null,
+        }),
       });
     });
   });
@@ -201,10 +238,12 @@ describe('LongportStreamContextService', () => {
       expect(mockQuoteContext.subscribe).toHaveBeenCalledWith(symbols, ['quote'], true);
       expect(mockLogger.log).toHaveBeenCalledWith({
         message: 'LongPort WebSocket 订阅成功',
+        connectionId: expect.stringContaining('longport_'),
         symbols,
         subTypes: ['quote'],
         isFirstPush: true,
-        totalSubscribed: 2,
+        totalSubscribed: symbols.length,
+        subscribedSymbolsList: expect.arrayContaining(symbols),
       });
     });
 
@@ -223,10 +262,12 @@ describe('LongportStreamContextService', () => {
       expect(mockQuoteContext.subscribe).toHaveBeenCalledWith(['TSLA.US'], ['quote'], true);
       expect(mockLogger.log).toHaveBeenCalledWith({
         message: 'LongPort WebSocket 订阅成功',
+        connectionId: expect.stringContaining('longport_'),
         symbols: ['TSLA.US'],
         subTypes: ['quote'],
         isFirstPush: true,
         totalSubscribed: 3,
+        subscribedSymbolsList: expect.arrayContaining(['700.HK', 'AAPL.US', 'TSLA.US']),
       });
     });
 
@@ -242,7 +283,12 @@ describe('LongportStreamContextService', () => {
 
       // Verify
       expect(mockQuoteContext.subscribe).not.toHaveBeenCalled();
-      expect(mockLogger.log).toHaveBeenCalledWith('所有符号已订阅，跳过');
+      expect(mockLogger.log).toHaveBeenCalledWith({
+        message: '当前连接下所有符号已订阅，跳过',
+        connectionId: expect.stringContaining('longport_'),
+        requestedSymbols: symbols,
+        alreadySubscribed: symbols.length,
+      });
     });
 
     it('should throw error when not connected', async () => {
@@ -266,9 +312,14 @@ describe('LongportStreamContextService', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith({
         message: 'LongPort WebSocket 订阅失败',
+        connectionId: expect.stringContaining('longport_'),
         symbols,
         error: 'Subscription failed',
         errorCode: null,
+        connectionState: expect.objectContaining({
+          healthStatus: 'degraded',
+          status: 'connected',
+        }),
       });
     });
   });
@@ -453,7 +504,17 @@ describe('LongportStreamContextService', () => {
       expect(mockQuoteContext.unsubscribe).toHaveBeenCalledWith(symbols, ['quote']);
       expect(service.isWebSocketConnected()).toBe(false);
       expect(service.getSubscribedSymbols()).toEqual([]);
-      expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 资源清理完成');
+      expect(mockLogger.log).toHaveBeenCalledWith({
+        message: 'LongPort WebSocket 资源清理完成',
+        connectionState: expect.objectContaining({
+          status: 'not_started',
+          healthStatus: 'healthy',
+          isInitialized: false,
+          connectionId: null,
+        }),
+        callbacksCleared: true,
+        subscriptionsCleared: true,
+      });
     });
 
     it('should handle cleanup when not connected', async () => {
@@ -481,18 +542,13 @@ describe('LongportStreamContextService', () => {
       // Execute
       await service.cleanup();
 
-      // Verify - should have two error calls: unsubscribe failure and cleanup failure
-      expect(mockLogger.error).toHaveBeenCalledTimes(2);
-      expect(mockLogger.error).toHaveBeenNthCalledWith(1, {
-        message: 'LongPort WebSocket 取消订阅失败',
-        symbols: ['700.HK'],
-        error: 'Cleanup failed',
-        errorCode: null,
-      });
-      expect(mockLogger.error).toHaveBeenNthCalledWith(2, {
-        message: 'LongPort WebSocket 资源清理失败',
-        error: 'LongPort WebSocket 取消订阅失败: Cleanup failed',
-      });
+      // Verify - cleanup should continue even with unsubscribe errors
+      // unsubscribe error is logged as warning, not error
+      expect(mockLogger.warn).toHaveBeenCalledWith('取消订阅时出错: LongPort WebSocket 取消订阅失败: Cleanup failed');
+      
+      // Cleanup should still complete successfully
+      expect(service.isWebSocketConnected()).toBe(false);
+      expect(service.getSubscribedSymbols()).toEqual([]);
     });
   });
 
@@ -509,46 +565,13 @@ describe('LongportStreamContextService', () => {
     });
   });
 
-  describe('Connection Event Handlers', () => {
-    let onConnectedCallback: () => void;
-    let onDisconnectedCallback: () => void;
-    let onQuoteCallback: (context: any, event: any) => void;
-
+  describe('Quote Event Handlers', () => {
     beforeEach(async () => {
-      // Setup to capture callbacks
-      mockQuoteContext.setOnConnected.mockImplementation((callback) => {
-        onConnectedCallback = callback;
-      });
-      mockQuoteContext.setOnDisconnected.mockImplementation((callback) => {
-        onDisconnectedCallback = callback;
-      });
-      mockQuoteContext.setOnQuote.mockImplementation((callback) => {
-        onQuoteCallback = callback;
-      });
-
       // Initialize service
       process.env.LONGPORT_APP_KEY = 'test_key';
       Config.fromEnv.mockReturnValue({ test: 'config' });
       await service.initializeWebSocket();
       jest.clearAllMocks();
-    });
-
-    it('should handle connected event', () => {
-      // Execute
-      onConnectedCallback();
-
-      // Verify
-      expect(service.isWebSocketConnected()).toBe(true);
-      expect(mockLogger.log).toHaveBeenCalledWith('LongPort WebSocket 连接成功');
-    });
-
-    it('should handle disconnected event', () => {
-      // Execute
-      onDisconnectedCallback();
-
-      // Verify
-      expect(service.isWebSocketConnected()).toBe(false);
-      expect(mockLogger.warn).toHaveBeenCalledWith('LongPort WebSocket 连接断开');
     });
 
     it('should handle quote update event', () => {
@@ -563,10 +586,11 @@ describe('LongportStreamContextService', () => {
         timestamp: 1640995200000,
       };
 
-      // Execute
-      onQuoteCallback(null, mockEvent);
+      // Execute - 使用捕获的回调函数
+      expect(onQuoteCallback).toBeDefined();
+      onQuoteCallback!('700.HK', mockEvent);
 
-      // Verify
+      // Verify - 基于实际的 parseLongportQuoteEvent 输出格式
       expect(callback).toHaveBeenCalledWith({
         symbol: '700.HK',
         last_done: 350.5,
@@ -576,16 +600,16 @@ describe('LongportStreamContextService', () => {
         low: undefined,
         volume: 1000,
         turnover: undefined,
-        timestamp: 1640995200000,
+        timestamp: expect.any(Number),
         trade_status: undefined,
+        trade_session: undefined,
         current_volume: undefined,
         current_turnover: undefined,
-        _raw: {
-          symbol: '700.HK',
-          last_done: 350.5,
-          volume: 1000,
-          timestamp: 1640995200000,
-        },
+        _raw: expect.objectContaining({
+          originalEvent: mockEvent,
+          extractedSymbol: '700.HK',
+          parsedQuoteData: expect.any(Object),
+        }),
         _provider: 'longport',
       });
     });
@@ -598,20 +622,30 @@ describe('LongportStreamContextService', () => {
       const mockEvent = 'invalid json';
 
       // Execute
-      onQuoteCallback(null, mockEvent);
+      expect(onQuoteCallback).toBeDefined();
+      onQuoteCallback!('UNKNOWN', mockEvent);
 
-      // Verify
+      // Verify - 基于实际的解析失败处理
       expect(callback).toHaveBeenCalledWith({
         symbol: 'UNKNOWN',
         timestamp: expect.any(Number),
-        _raw: 'invalid json',
+        last_done: undefined,
+        prev_close: undefined,
+        open: undefined,
+        high: undefined,
+        low: undefined,
+        volume: undefined,
+        turnover: undefined,
+        trade_status: undefined,
+        trade_session: undefined,
+        current_volume: undefined,
+        current_turnover: undefined,
+        _raw: expect.objectContaining({
+          originalEvent: 'invalid json',
+          extractedSymbol: null,
+          parsedQuoteData: null,
+        }),
         _provider: 'longport',
-        _error: 'parse_failed',
-      });
-      expect(mockLogger.error).toHaveBeenCalledWith({
-        message: '解析 LongPort 报价事件失败',
-        error: expect.any(String),
-        event: 'invalid json',
       });
     });
 
@@ -627,12 +661,19 @@ describe('LongportStreamContextService', () => {
       };
 
       // Execute
-      onQuoteCallback(null, mockEvent);
+      expect(onQuoteCallback).toBeDefined();
+      onQuoteCallback!('700.HK', mockEvent);
 
-      // Verify
+      // Verify - 基于实际的错误日志格式
       expect(mockLogger.error).toHaveBeenCalledWith({
         message: '报价回调处理失败',
+        callbackIndex: 0,
         error: 'Callback error',
+        eventData: expect.objectContaining({
+          symbol: 'UNKNOWN', // 因为解析失败会设为 UNKNOWN
+          _provider: 'longport',
+          _raw: expect.any(Object),
+        }),
       });
     });
   });

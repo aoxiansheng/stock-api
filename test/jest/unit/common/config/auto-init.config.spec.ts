@@ -1,13 +1,10 @@
-import {
-  getAutoInitConfig,
-  PRESET_FIELD_DEFINITIONS,
-} from "../../../../../src/common/config/auto-init.config";
+import { getAutoInitConfig } from "../../../../../src/common/config/auto-init.config";
 
 describe("AutoInitConfig", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.resetModules();
+    // Jest resetModules 在 Bun 中不可用，直接重置环境变量
     process.env = { ...originalEnv };
   });
 
@@ -236,61 +233,10 @@ describe("AutoInitConfig", () => {
     });
   });
 
-  describe("PRESET_FIELD_DEFINITIONS", () => {
-    it("should contain stockQuote definition", () => {
-      expect(PRESET_FIELD_DEFINITIONS.stockQuote).toBeDefined();
-      expect(PRESET_FIELD_DEFINITIONS.stockQuote.provider).toBe("preset");
-      expect(PRESET_FIELD_DEFINITIONS.stockQuote.transDataRuleListType).toBe(
-        "quote_fields",
-      );
-      expect(Array.isArray(PRESET_FIELD_DEFINITIONS.stockQuote.fields)).toBe(
-        true,
-      );
-    });
-
-    it("should contain stockBasicInfo definition", () => {
-      expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo).toBeDefined();
-      expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo.provider).toBe("preset");
-      expect(PRESET_FIELD_DEFINITIONS.stockBasicInfo.transDataRuleListType).toBe(
-        "basic_info_fields",
-      );
-      expect(
-        Array.isArray(PRESET_FIELD_DEFINITIONS.stockBasicInfo.fields),
-      ).toBe(true);
-    });
-
-    it("should have field structures with required properties", () => {
-      const stockQuoteFields = PRESET_FIELD_DEFINITIONS.stockQuote.fields;
-      expect(stockQuoteFields.length).toBeGreaterThan(0);
-
-      stockQuoteFields.forEach((field) => {
-        expect(field).toHaveProperty("source");
-        expect(field).toHaveProperty("target");
-        expect(field).toHaveProperty("desc");
-        expect(typeof field.source).toBe("string");
-        expect(typeof field.target).toBe("string");
-        expect(typeof field.desc).toBe("string");
-      });
-    });
-
-    it("should have consistent field mapping structure", () => {
-      const definitions = [
-        PRESET_FIELD_DEFINITIONS.stockQuote,
-        PRESET_FIELD_DEFINITIONS.stockBasicInfo,
-      ];
-
-      definitions.forEach((definition) => {
-        expect(definition).toHaveProperty("name");
-        expect(definition).toHaveProperty("description");
-        expect(definition).toHaveProperty("provider");
-        expect(definition).toHaveProperty("transDataRuleListType");
-        expect(definition).toHaveProperty("fields");
-        expect(typeof definition.name).toBe("string");
-        expect(typeof definition.description).toBe("string");
-        expect(definition.provider).toBe("preset");
-      });
-    });
-  });
+  // 🎯 PRESET_FIELD_DEFINITIONS 测试已移除
+  // 旧版预设字段定义已迁移到智能映射系统
+  // 现在使用 PresetTemplatesService 进行管理
+  // 详见：src/core/data-mapper/services/preset-templates.service.ts
 
   describe("environment variable edge cases", () => {
     it("should handle undefined vs empty string differently for testData", () => {

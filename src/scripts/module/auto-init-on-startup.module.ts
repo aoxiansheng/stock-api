@@ -2,9 +2,9 @@ import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
 import {
-  DataMappingRule,
-  DataMappingRuleSchema,
-} from "../../core/data-mapper/schemas/data-mapper.schema";
+  FlexibleMappingRule,
+  FlexibleMappingRuleSchema,
+} from "../../core/data-mapper/schemas/flexible-mapping-rule.schema";
 import {
   SymbolMappingRuleDocument,
   SymbolMappingRuleDocumentSchema,
@@ -18,7 +18,7 @@ import { AutoInitOnStartupService } from "../services/auto-init-on-startup.servi
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: DataMappingRule.name, schema: DataMappingRuleSchema },
+      { name: FlexibleMappingRule.name, schema: FlexibleMappingRuleSchema },
       { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),
   ],

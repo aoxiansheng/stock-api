@@ -242,13 +242,12 @@ describe("Auth Decorators", () => {
   });
 
   describe("ApiKeyAuth decorator", () => {
-    it("should apply API key authentication with rate limiting", () => {
+    it("should apply API key authentication", () => {
       ApiKeyAuth();
 
       expect(mockUseGuards).toHaveBeenCalledWith(
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
       expect(mockRequireApiKey).toHaveBeenCalled();
       expect(mockApiSecurity).toHaveBeenCalledWith("ApiKey");
@@ -289,7 +288,6 @@ describe("Auth Decorators", () => {
         JwtAuthGuard,
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
       expect(mockApiBearerAuth).toHaveBeenCalled();
       expect(mockApiSecurity).toHaveBeenCalledWith("ApiKey");
@@ -308,7 +306,6 @@ describe("Auth Decorators", () => {
         JwtAuthGuard,
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
       expect(mockApiBearerAuth).toHaveBeenCalled();
       expect(mockApiSecurity).toHaveBeenCalledWith("ApiKey");
@@ -329,7 +326,6 @@ describe("Auth Decorators", () => {
         JwtAuthGuard,
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
       expect(mockApiBearerAuth).toHaveBeenCalled();
       expect(mockApiSecurity).toHaveBeenCalledWith("ApiKey");
@@ -351,7 +347,6 @@ describe("Auth Decorators", () => {
         JwtAuthGuard,
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
       expect(mockApiBearerAuth).toHaveBeenCalled();
       expect(mockApiSecurity).toHaveBeenCalledWith("ApiKey");
@@ -370,7 +365,6 @@ describe("Auth Decorators", () => {
         JwtAuthGuard,
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
       expect(mockApiBearerAuth).toHaveBeenCalled();
       expect(mockApiSecurity).toHaveBeenCalledTimes(2);
@@ -381,12 +375,11 @@ describe("Auth Decorators", () => {
     it("should apply all required guards for mixed authentication", () => {
       MixedAuth();
 
-      // Should include both JWT and API Key guards plus UnifiedPermissionsGuard and RateLimitGuard
+      // Should include both JWT and API Key guards plus UnifiedPermissionsGuard (RateLimitGuard is global)
       expect(mockUseGuards).toHaveBeenCalledWith(
         JwtAuthGuard,
         ApiKeyAuthGuard,
         expect.any(Function),
-        RateLimitGuard,
       );
     });
 

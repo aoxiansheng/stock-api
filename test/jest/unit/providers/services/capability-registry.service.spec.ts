@@ -157,8 +157,8 @@ describe("CapabilityRegistryService", () => {
       // Arrange
       mockedFs.readdir.mockRejectedValue(new Error("Permission denied"));
 
-      // Act & Assert - 不应该抛出异常
-      await expect(service.discoverCapabilities()).resolves.not.toThrow();
+      // Act & Assert - 应该抛出异常
+      await expect(service.discoverCapabilities()).rejects.toThrow("Permission denied");
     });
   });
 

@@ -1,13 +1,46 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
+import { FeatureFlags } from '@common/config/feature-flags.config';
 
 describe('PaginationService', () => {
   let service: PaginationService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PaginationService],
+      providers: [
+        PaginationService,
+        {
+          provide: FeatureFlags,
+          useValue: {
+            symbolMappingCacheEnabled: true,
+            dataTransformCacheEnabled: true,
+            batchProcessingEnabled: true,
+            objectPoolEnabled: true,
+            ruleCompilationEnabled: true,
+            dynamicLogLevelEnabled: true,
+            metricsLegacyModeEnabled: true,
+            symbolCacheMaxSize: 2000,
+            symbolCacheTtl: 5 * 60 * 1000,
+            ruleCacheMaxSize: 100,
+            ruleCacheTtl: 10 * 60 * 1000,
+            objectPoolSize: 100,
+            batchSizeThreshold: 10,
+            batchTimeWindowMs: 1,
+            getAllFlags: jest.fn().mockReturnValue({
+              symbolMappingCacheEnabled: true,
+              dataTransformCacheEnabled: true,
+              batchProcessingEnabled: true,
+              objectPoolEnabled: true,
+              ruleCompilationEnabled: true,
+              dynamicLogLevelEnabled: true,
+              metricsLegacyModeEnabled: true,
+            }),
+            isCacheOptimizationEnabled: jest.fn().mockReturnValue(true),
+            isPerformanceOptimizationEnabled: jest.fn().mockReturnValue(true),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<PaginationService>(PaginationService);

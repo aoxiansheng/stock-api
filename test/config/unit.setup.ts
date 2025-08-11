@@ -15,6 +15,23 @@ beforeAll(() => {
   process.env.JWT_SECRET = "test-jwt-secret";
   process.env.MONGODB_URI = "mongodb://localhost:27017/test";
   process.env.REDIS_URL = "redis://localhost:6379";
+  
+  // Mock NestJS Guards and Auth services globally to prevent dependency resolution issues
+  jest.doMock('@auth/guards/unified-permissions.guard', () => ({
+    UnifiedPermissionsGuard: class MockUnifiedPermissionsGuard {
+      canActivate() { return true; }
+    }
+  }));
+  
+  jest.doMock('@auth/services/permission.service', () => ({
+    PermissionService: class MockPermissionService {
+      hasPermission() { return true; }
+      checkPermissions() { return true; }
+      getUserPermissions() { return ['data:read', 'data:write']; }
+      validateApiKeyPermissions() { return true; }
+      validateUserRolePermissions() { return true; }
+    }
+  }));
 });
 
 // 每个测试前清理
