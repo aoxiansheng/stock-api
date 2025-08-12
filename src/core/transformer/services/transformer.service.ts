@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  UnauthorizedException,
+  ForbiddenException,
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
@@ -204,6 +206,16 @@ export class TransformerService {
         }),
       );
 
+      // 🎯 区分业务逻辑异常和系统异常
+      // 业务逻辑异常应该直接传播，不重新包装
+      if (error instanceof NotFoundException || 
+          error instanceof BadRequestException || 
+          error instanceof UnauthorizedException ||
+          error instanceof ForbiddenException) {
+        throw error; // 直接传播业务逻辑异常
+      }
+
+      // 只有系统级异常才包装为 InternalServerErrorException
       throw new InternalServerErrorException(
         `${TRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED}: ${error.message}`,
       );
@@ -399,7 +411,7 @@ export class TransformerService {
       }
 
       return new TransformResponseDto(transformedData, metadata);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `单次数据转换失败`,
         sanitizeLogData({
@@ -407,6 +419,17 @@ export class TransformerService {
           error: error.message,
         }),
       );
+
+      // 🎯 区分业务逻辑异常和系统异常
+      // 业务逻辑异常应该直接传播，不重新包装
+      if (error instanceof NotFoundException || 
+          error instanceof BadRequestException || 
+          error instanceof UnauthorizedException ||
+          error instanceof ForbiddenException) {
+        throw error; // 直接传播业务逻辑异常
+      }
+
+      // 只有系统级异常才包装为 InternalServerErrorException
       throw new InternalServerErrorException(error.message);
     }
   }

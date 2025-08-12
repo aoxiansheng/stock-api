@@ -195,7 +195,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
           error: error.getError(),
         });
         
-        client.emit('subscriptionError', {
+        client.emit('subscribe-error', {
           success: false,
           message: error.getError(),
           timestamp: Date.now(),
@@ -210,7 +210,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
       });
 
       // 发送错误消息
-      client.emit('subscriptionError', {
+      client.emit('subscribe-error', {
         success: false,
         message: error.message || '订阅处理失败',
         symbols: data?.symbols || [],

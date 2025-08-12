@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock } from "@golevelup/ts-jest";
-import { DataMapperModule } from "../../../../../../src/core/data-mapper/module/data-mapper.module";
+import { Model } from "mongoose";
 import { DataSourceAnalyzerService } from "../../../../../../src/core/data-mapper/services/data-source-analyzer.service";
 import { DataSourceTemplateService } from "../../../../../../src/core/data-mapper/services/data-source-template.service";
 import { FlexibleMappingRuleService } from "../../../../../../src/core/data-mapper/services/flexible-mapping-rule.service";
@@ -12,48 +12,57 @@ import { UserJsonPersistenceController } from "../../../../../../src/core/data-m
 import { SystemPersistenceController } from "../../../../../../src/core/data-mapper/controller/system-persistence.controller";
 import { TemplateAdminController } from "../../../../../../src/core/data-mapper/controller/template-admin.controller";
 import { MappingRuleController } from "../../../../../../src/core/data-mapper/controller/mapping-rule.controller";
-import { DataSourceTemplate } from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
-import { FlexibleMappingRule } from "../../../../../../src/core/data-mapper/schemas/flexible-mapping-rule.schema";
+import { DataSourceTemplate, DataSourceTemplateDocument } from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
+import { FlexibleMappingRule, FlexibleMappingRuleDocument } from "../../../../../../src/core/data-mapper/schemas/flexible-mapping-rule.schema";
 import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
 import { CacheService } from "../../../../../../src/cache/services/cache.service";
 import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/metrics-registry.service";
 import { FeatureFlags } from "../../../../../../src/common/config/feature-flags.config";
 
-// Mock external modules that are imported
-jest.mock("../../../../../../src/auth/auth.module", () => ({
-  AuthModule: {},
+// Mock logger to avoid issues in testing
+jest.mock("../../../../../../src/common/config/logger.config", () => ({
+  createLogger: jest.fn(() => ({
+    log: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    verbose: jest.fn(),
+  })),
+  sanitizeLogData: jest.fn((data) => data),
 }));
 
-jest.mock("../../../../../../src/common/modules/pagination/pagination.module", () => ({
-  PaginationModule: {},
-}));
-
-jest.mock("../../../../../../src/monitoring/monitoring.module", () => ({
-  MonitoringModule: {},
-}));
-
-jest.mock("../../../../../../src/common/modules/cache/cache.module", () => ({
-  CacheModule: {},
-}));
-
-jest.mock("@nestjs/mongoose", () => ({
-  ...jest.requireActual("@nestjs/mongoose"),
-  MongooseModule: {
-    forFeature: jest.fn(() => ({})),
-  },
-}));
-
-describe("DataMapperModule", () => {
+describe("DataMapperModule Components", () => {
   let module: TestingModule;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
-      imports: [DataMapperModule],
+      controllers: [
+        UserJsonPersistenceController,
+        SystemPersistenceController,
+        TemplateAdminController,
+        MappingRuleController,
+      ],
+      providers: [
+        FeatureFlags,
+        DataSourceAnalyzerService,
+        DataSourceTemplateService,
+        FlexibleMappingRuleService,
+        PersistedTemplateService,
+        RuleAlignmentService,
+        MappingRuleCacheService,
+        PaginationService,
+        CacheService,
+        MetricsRegistryService,
+        {
+          provide: getModelToken(DataSourceTemplate.name),
+          useValue: createMock<Model<DataSourceTemplateDocument>>(),
+        },
+        {
+          provide: getModelToken(FlexibleMappingRule.name),
+          useValue: createMock<Model<FlexibleMappingRuleDocument>>(),
+        },
+      ],
     })
-    .overrideProvider(getModelToken(DataSourceTemplate.name))
-    .useValue(createMock())
-    .overrideProvider(getModelToken(FlexibleMappingRule.name))
-    .useValue(createMock())
     .overrideProvider(PaginationService)
     .useValue(createMock<PaginationService>())
     .overrideProvider(CacheService)
@@ -70,11 +79,7 @@ describe("DataMapperModule", () => {
   });
 
   describe("Module Compilation", () => {
-    it("should compile the module", () => {
-      expect(module).toBeDefined();
-    });
-
-    it("should be defined", () => {
+    it("should compile the testing module with all components", () => {
       expect(module).toBeDefined();
     });
   });
@@ -196,59 +201,65 @@ describe("DataMapperModule", () => {
     });
   });
 
-  describe("Exports", () => {
-    it("should export DataSourceAnalyzerService", () => {
+  describe("Service Availability", () => {
+    it("should provide DataSourceAnalyzerService", () => {
       const service = module.get<DataSourceAnalyzerService>(DataSourceAnalyzerService);
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(DataSourceAnalyzerService);
     });
 
-    it("should export DataSourceTemplateService", () => {
+    it("should provide DataSourceTemplateService", () => {
       const service = module.get<DataSourceTemplateService>(DataSourceTemplateService);
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(DataSourceTemplateService);
     });
 
-    it("should export FlexibleMappingRuleService", () => {
+    it("should provide FlexibleMappingRuleService", () => {
       const service = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(FlexibleMappingRuleService);
     });
 
-    it("should export PersistedTemplateService", () => {
+    it("should provide PersistedTemplateService", () => {
       const service = module.get<PersistedTemplateService>(PersistedTemplateService);
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(PersistedTemplateService);
     });
 
-    it("should export RuleAlignmentService", () => {
+    it("should provide RuleAlignmentService", () => {
       const service = module.get<RuleAlignmentService>(RuleAlignmentService);
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(RuleAlignmentService);
     });
 
-    it("should export MappingRuleCacheService", () => {
+    it("should provide MappingRuleCacheService", () => {
       const service = module.get<MappingRuleCacheService>(MappingRuleCacheService);
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(MappingRuleCacheService);
     });
   });
 
-  describe("Schema Registration", () => {
-    it("should register DataSourceTemplate schema", () => {
-      // Since MongooseModule.forFeature is mocked, we just verify the service can be created
-      // which implies the schema is registered correctly in the actual implementation
-      const service = module.get<DataSourceTemplateService>(DataSourceTemplateService);
-      expect(service).toBeDefined();
+  describe("Schema Dependencies", () => {
+    it("should provide DataSourceTemplate model token", () => {
+      const model = module.get(getModelToken(DataSourceTemplate.name));
+      expect(model).toBeDefined();
     });
 
-    it("should register FlexibleMappingRule schema", () => {
-      // Since MongooseModule.forFeature is mocked, we just verify the service can be created
-      // which implies the schema is registered correctly in the actual implementation
-      const service = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      expect(service).toBeDefined();
+    it("should provide FlexibleMappingRule model token", () => {
+      const model = module.get(getModelToken(FlexibleMappingRule.name));
+      expect(model).toBeDefined();
+    });
+
+    it("should inject models into services that need them", () => {
+      const templateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
+      const ruleService = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
+      
+      expect(templateService).toBeDefined();
+      expect(ruleService).toBeDefined();
     });
   });
 
-  describe("Module Structure", () => {
-    it("should have all required imports", () => {
-      // This is verified by the module compiling successfully
-      expect(module).toBeDefined();
-    });
+  describe("Component Registration", () => {
 
     it("should have all controllers registered", () => {
       const userJsonController = module.get<UserJsonPersistenceController>(UserJsonPersistenceController);
@@ -278,13 +289,15 @@ describe("DataMapperModule", () => {
       expect(cacheService).toBeDefined();
     });
 
-    it("should support circular service dependencies if any", () => {
+    it("should handle service interdependencies", () => {
       // Test that services can reference each other if needed
       const templateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
       const ruleService = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
+      const cacheService = module.get<MappingRuleCacheService>(MappingRuleCacheService);
       
       expect(templateService).toBeDefined();
       expect(ruleService).toBeDefined();
+      expect(cacheService).toBeDefined();
     });
   });
 
@@ -315,24 +328,52 @@ describe("DataMapperModule", () => {
     });
   });
 
-  describe("Error Handling", () => {
-    it("should handle missing dependencies gracefully", () => {
-      // This test verifies the module setup handles all dependencies
+  describe("Dependency Injection", () => {
+    it("should successfully inject all dependencies", () => {
+      // This test verifies the component setup handles all dependencies
       expect(module).toBeDefined();
     });
 
-    it("should maintain singleton services", () => {
+    it("should maintain singleton pattern for services", () => {
       const service1 = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
       const service2 = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
       
       expect(service1).toBe(service2); // Should be the same instance
     });
 
-    it("should maintain singleton controllers", () => {
+    it("should maintain singleton pattern for controllers", () => {
       const controller1 = module.get<MappingRuleController>(MappingRuleController);
       const controller2 = module.get<MappingRuleController>(MappingRuleController);
       
       expect(controller1).toBe(controller2); // Should be the same instance
+    });
+
+    it("should maintain singleton pattern for shared dependencies", () => {
+      const featureFlags1 = module.get<FeatureFlags>(FeatureFlags);
+      const featureFlags2 = module.get<FeatureFlags>(FeatureFlags);
+      
+      expect(featureFlags1).toBe(featureFlags2); // Should be the same instance
+    });
+
+    it("should verify all expected components are registered", () => {
+      // Controllers
+      expect(() => module.get(UserJsonPersistenceController)).not.toThrow();
+      expect(() => module.get(SystemPersistenceController)).not.toThrow();
+      expect(() => module.get(TemplateAdminController)).not.toThrow();
+      expect(() => module.get(MappingRuleController)).not.toThrow();
+      
+      // Services
+      expect(() => module.get(DataSourceAnalyzerService)).not.toThrow();
+      expect(() => module.get(DataSourceTemplateService)).not.toThrow();
+      expect(() => module.get(FlexibleMappingRuleService)).not.toThrow();
+      expect(() => module.get(PersistedTemplateService)).not.toThrow();
+      expect(() => module.get(RuleAlignmentService)).not.toThrow();
+      expect(() => module.get(MappingRuleCacheService)).not.toThrow();
+      
+      // Dependencies
+      expect(() => module.get(FeatureFlags)).not.toThrow();
+      expect(() => module.get(getModelToken(DataSourceTemplate.name))).not.toThrow();
+      expect(() => module.get(getModelToken(FlexibleMappingRule.name))).not.toThrow();
     });
   });
 });

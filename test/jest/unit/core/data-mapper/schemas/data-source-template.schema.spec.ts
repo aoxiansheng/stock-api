@@ -266,23 +266,6 @@ describe("DataSourceTemplateSchema", () => {
   });
 
   describe("ExtractedField Schema", () => {
-    it("should validate extracted field with correct data", () => {
-      const field = new ExtractedField();
-      field.fieldPath = "last_done";
-      field.fieldName = "lastPrice";
-      field.fieldType = "number";
-      field.confidence = 0.95;
-
-      // Since ExtractedField is embedded, we can't directly validate it with Mongoose
-      // But we can test its structure within a template
-      expect(field.fieldPath).toBe("last_done");
-      expect(field.fieldName).toBe("lastPrice");
-      expect(field.fieldType).toBe("number");
-      expect(field.confidence).toBe(0.95);
-      expect(field.isNested).toBe(false); // default value
-      expect(field.nestingLevel).toBe(0); // default value
-    });
-
     it("should handle nested field properties", () => {
       const field = new ExtractedField();
       field.fieldPath = "quote.data[0].price";

@@ -6,6 +6,8 @@ import { CacheService } from '../../../../../../src/cache/services/cache.service
 import { CapabilityRegistryService } from '@providers/services/capability-registry.service';
 import { MarketStatusService } from '@core/shared/services/market-status.service';
 import { SymbolMapperService } from '@core/symbol-mapper/services/symbol-mapper.service';
+import { TransformerService } from '@core/transformer/services/transformer.service';
+import { StorageService } from '@core/storage/services/storage.service';
 import { DataRequestDto } from '@core/receiver/dto/data-request.dto';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus } from '@common/constants/market-trading-hours.constants';
@@ -151,6 +153,30 @@ describe('ReceiverService', () => {
           provide: SymbolMapperService,
           useValue: {
             transformSymbols: jest.fn(),
+          },
+        },
+        {
+          provide: TransformerService,
+          useValue: {
+            transform: jest.fn().mockResolvedValue({
+              transformedData: [
+                { symbol: '700.HK', lastPrice: 100, volume: 1000 },
+                { symbol: 'AAPL', lastPrice: 150, volume: 2000 }
+              ],
+              metadata: {
+                provider: 'longport',
+                transformationRules: 'quote_fields',
+                processedCount: 2
+              }
+            }),
+          },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            storeData: jest.fn().mockResolvedValue({
+              success: true,
+            }),
           },
         },
         {
@@ -878,6 +904,30 @@ describe('ReceiverService private methods', () => {
           provide: SymbolMapperService,
           useValue: {
             transformSymbols: jest.fn(),
+          },
+        },
+        {
+          provide: TransformerService,
+          useValue: {
+            transform: jest.fn().mockResolvedValue({
+              transformedData: [
+                { symbol: '700.HK', lastPrice: 100, volume: 1000 },
+                { symbol: 'AAPL', lastPrice: 150, volume: 2000 }
+              ],
+              metadata: {
+                provider: 'longport',
+                transformationRules: 'quote_fields',
+                processedCount: 2
+              }
+            }),
+          },
+        },
+        {
+          provide: StorageService,
+          useValue: {
+            storeData: jest.fn().mockResolvedValue({
+              success: true,
+            }),
           },
         },
         {

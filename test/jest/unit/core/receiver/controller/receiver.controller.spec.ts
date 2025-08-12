@@ -10,19 +10,23 @@ import { UnifiedPermissionsGuard } from "../../../../../../src/auth/guards/unifi
 import { getModelToken } from "@nestjs/mongoose";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 
-// Mock createLogger for core modules
-const mockLoggerInstance = {
-  log: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-  verbose: jest.fn(),
-};
+// Mock createLogger for core modules - use var for hoisting compatibility
+var mockLoggerInstance: any;
 
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
-  createLogger: jest.fn(() => mockLoggerInstance),
-  sanitizeLogData: jest.fn((data) => data),
-}));
+jest.mock("../../../../../../src/common/config/logger.config", () => {
+  mockLoggerInstance = {
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    verbose: jest.fn(),
+  };
+  
+  return {
+    createLogger: jest.fn(() => mockLoggerInstance),
+    sanitizeLogData: jest.fn((data) => data),
+  };
+});
 
 describe("ReceiverController", () => {
   let controller: ReceiverController;

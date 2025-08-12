@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException, ConflictException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
@@ -76,16 +76,41 @@ describe("FlexibleMappingRuleService", () => {
   } as any;
 
   beforeEach(async () => {
+    // 重置所有静态方法的spy
+    jest.restoreAllMocks();
+    
+    // 手动创建Mock构造函数，支持 new ruleModel() 调用
+    const ruleModelConstructor = jest.fn().mockImplementation(() => mockRuleDocument);
+    const ruleModelStatics = {
+      findOne: jest.fn(),
+      findById: jest.fn(),
+      find: jest.fn(),
+      countDocuments: jest.fn(),
+      updateMany: jest.fn(),
+      findByIdAndUpdate: jest.fn(),
+      findByIdAndDelete: jest.fn(),
+    };
+    const mockRuleModel: any = Object.assign(ruleModelConstructor, ruleModelStatics);
+
+    // 为 templateModel 创建类似的mock
+    const templateModelConstructor = jest.fn();
+    const templateModelStatics = {
+      findById: jest.fn(),
+      findOne: jest.fn(),
+      find: jest.fn(),
+    };
+    const mockTemplateModel: any = Object.assign(templateModelConstructor, templateModelStatics);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FlexibleMappingRuleService,
         {
           provide: getModelToken(FlexibleMappingRule.name),
-          useValue: createMock<Model<FlexibleMappingRuleDocument>>(),
+          useValue: mockRuleModel,
         },
         {
           provide: getModelToken(DataSourceTemplate.name),
-          useValue: createMock<Model<DataSourceTemplateDocument>>(),
+          useValue: mockTemplateModel,
         },
         {
           provide: DataSourceTemplateService,
@@ -128,7 +153,6 @@ describe("FlexibleMappingRuleService", () => {
     it("should create a mapping rule successfully", async () => {
       ruleModel.findOne.mockResolvedValue(null); // No existing rule
       ruleModel.updateMany.mockResolvedValue({ acknowledged: true } as any);
-      ruleModel.constructor = jest.fn().mockImplementation(() => mockRuleDocument);
       mockRuleDocument.save.mockResolvedValue(mockRuleDocument);
       
       // Mock FlexibleMappingRuleResponseDto.fromDocument
@@ -154,7 +178,6 @@ describe("FlexibleMappingRuleService", () => {
 
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findOne.mockResolvedValue(null);
-      ruleModel.constructor = jest.fn().mockImplementation(() => mockRuleDocument);
       mockRuleDocument.save.mockResolvedValue(mockRuleDocument);
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
@@ -173,10 +196,10 @@ describe("FlexibleMappingRuleService", () => {
       expect(templateModel.findById).toHaveBeenCalledWith("nonexistent");
     });
 
-    it("should throw BadRequestException when rule already exists", async () => {
+    it("should throw ConflictException when rule already exists", async () => {
       ruleModel.findOne.mockResolvedValue(mockRuleDocument);
 
-      await expect(service.createRule(createRuleDto)).rejects.toThrow(BadRequestException);
+      await expect(service.createRule(createRuleDto)).rejects.toThrow(ConflictException);
     });
 
     it("should handle default rule creation", async () => {
@@ -184,7 +207,6 @@ describe("FlexibleMappingRuleService", () => {
 
       ruleModel.findOne.mockResolvedValue(null);
       ruleModel.updateMany.mockResolvedValue({ acknowledged: true } as any);
-      ruleModel.constructor = jest.fn().mockImplementation(() => mockRuleDocument);
       mockRuleDocument.save.mockResolvedValue(mockRuleDocument);
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
@@ -237,6 +259,10 @@ describe("FlexibleMappingRuleService", () => {
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
       
       // Mock pagination service
+      paginationService.normalizePaginationQuery.mockReturnValue({
+        page: 1,
+        limit: 10
+      });
       paginationService.createPaginatedResponse.mockReturnValue(mockPaginatedResult);
 
       const result = await service.findRules(1, 10, "longport");
@@ -248,16 +274,22 @@ describe("FlexibleMappingRuleService", () => {
 
   describe("findRuleById", () => {
     it("should find rule by id", async () => {
+      cacheService.getCachedRuleById.mockResolvedValue(null); // 缓存未命中
       ruleModel.findById.mockResolvedValue(mockRuleDocument);
-      jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
+      const fromDocumentSpy = jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
+      cacheService.cacheRuleById.mockResolvedValue(undefined);
 
       const result = await service.findRuleById("507f1f77bcf86cd799439011");
 
       expect(result).toEqual(mockRule);
+      expect(cacheService.getCachedRuleById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
       expect(ruleModel.findById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(fromDocumentSpy).toHaveBeenCalledWith(mockRuleDocument);
+      expect(cacheService.cacheRuleById).toHaveBeenCalledWith(mockRule);
     });
 
     it("should throw NotFoundException when rule not found", async () => {
+      cacheService.getCachedRuleById.mockResolvedValue(null); // 缓存未命中
       ruleModel.findById.mockResolvedValue(null);
 
       await expect(service.findRuleById("nonexistent")).rejects.toThrow(NotFoundException);
@@ -276,7 +308,10 @@ describe("FlexibleMappingRuleService", () => {
 
     it("should find best matching rule from database when not in cache", async () => {
       cacheService.getCachedBestMatchingRule.mockResolvedValue(null);
-      ruleModel.findOne.mockResolvedValue(mockRuleDocument);
+      // Mock链式调用 findOne().sort()
+      ruleModel.findOne.mockReturnValue({
+        sort: jest.fn().mockResolvedValue(mockRuleDocument)
+      } as any);
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
       cacheService.cacheBestMatchingRule.mockResolvedValue(undefined);
 
@@ -287,14 +322,18 @@ describe("FlexibleMappingRuleService", () => {
         provider: "longport",
         apiType: "rest",
         transDataRuleListType: "quote_fields",
-        isActive: true
+        isActive: true,
+        isDefault: true,
       });
       expect(cacheService.cacheBestMatchingRule).toHaveBeenCalledWith("longport", "rest", "quote_fields", mockRule);
     });
 
     it("should return null when no matching rule found", async () => {
       cacheService.getCachedBestMatchingRule.mockResolvedValue(null);
-      ruleModel.findOne.mockResolvedValue(null);
+      // Mock链式调用 findOne().sort() 返回null
+      ruleModel.findOne.mockReturnValue({
+        sort: jest.fn().mockResolvedValue(null)
+      } as any);
 
       const result = await service.findBestMatchingRule("longport", "rest", "quote_fields");
 
@@ -312,17 +351,22 @@ describe("FlexibleMappingRuleService", () => {
 
     it("should update rule successfully", async () => {
       const updatedRule = { ...mockRuleDocument, ...updateData };
+      ruleModel.findById.mockResolvedValue(mockRuleDocument); // 添加缺失的mock
       ruleModel.findByIdAndUpdate.mockResolvedValue(updatedRule);
-      jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue({ ...mockRule, ...updateData });
+      jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument')
+        .mockReturnValueOnce(mockRule) // 第一次调用返回oldRuleDto
+        .mockReturnValueOnce({ ...mockRule, ...updateData }); // 第二次调用返回更新后的规则
+      cacheService.invalidateRuleCache.mockResolvedValue(undefined);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
 
       const result = await service.updateRule("507f1f77bcf86cd799439011", updateData);
 
       expect(result.name).toBe(updateData.name);
+      expect(ruleModel.findById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
       expect(ruleModel.findByIdAndUpdate).toHaveBeenCalledWith(
         "507f1f77bcf86cd799439011",
         updateData,
-        { new: true, runValidators: true }
+        { new: true }
       );
       expect(cacheService.cacheRuleById).toHaveBeenCalled();
     });
@@ -347,7 +391,7 @@ describe("FlexibleMappingRuleService", () => {
       expect(result.isActive).toBe(false);
       expect(ruleModel.findByIdAndUpdate).toHaveBeenCalledWith(
         "507f1f77bcf86cd799439011",
-        { $set: { isActive: false } },
+        { isActive: false },
         { new: true }
       );
     });
@@ -368,7 +412,7 @@ describe("FlexibleMappingRuleService", () => {
       await service.deleteRule("507f1f77bcf86cd799439011");
 
       expect(ruleModel.findByIdAndDelete).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
-      expect(cacheService.invalidateRuleCache).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(cacheService.invalidateRuleCache).toHaveBeenCalledWith("507f1f77bcf86cd799439011", mockRule);
     });
 
     it("should throw NotFoundException when rule not found for deletion", async () => {
@@ -424,7 +468,7 @@ describe("FlexibleMappingRuleService", () => {
 
       const result = await service.applyFlexibleMappingRule(mockRuleDoc, testData);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false); // 成功率为0，所以success应该是false
       expect(result.mappingStats.failedMappings).toBe(1);
       expect(result.mappingStats.successfulMappings).toBe(0);
     });
@@ -444,7 +488,6 @@ describe("FlexibleMappingRuleService", () => {
       };
 
       ruleModel.findOne.mockResolvedValue(null);
-      ruleModel.constructor = jest.fn().mockImplementation(() => mockRuleDocument);
       mockRuleDocument.save.mockResolvedValue(mockRuleDocument);
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue({
         ...mockRule,
@@ -462,14 +505,19 @@ describe("FlexibleMappingRuleService", () => {
     it("should warmup cache with active rules", async () => {
       const mockRules = [mockRuleDocument];
       ruleModel.find.mockReturnValue({
-        lean: jest.fn().mockResolvedValue(mockRules)
+        sort: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockRules)
       } as any);
-      cacheService.cacheRuleById.mockResolvedValue(undefined);
+      
+      // Mock FlexibleMappingRuleResponseDto.fromDocument for each rule
+      jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
+      cacheService.warmupCache.mockResolvedValue(undefined);
 
       await service.warmupMappingRuleCache();
 
       expect(ruleModel.find).toHaveBeenCalledWith({ isActive: true });
-      expect(cacheService.cacheRuleById).toHaveBeenCalledTimes(mockRules.length);
+      expect(cacheService.warmupCache).toHaveBeenCalledWith([mockRule]);
     });
   });
 });

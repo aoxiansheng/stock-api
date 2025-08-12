@@ -328,7 +328,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const errorPromise = new Promise((resolve) => {
-        clientSocket.on('subscriptionError', (error) => {
+        clientSocket.on('subscribe-error', (error) => {
           resolve(error);
         });
       });
@@ -624,7 +624,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
         results.push({ success: data.success, type: 'result' });
       });
 
-      clientSocket.on('subscriptionError', (error) => {
+      clientSocket.on('subscribe-error', (error) => {
         results.push({ success: false, error: error.message, type: 'error' });
       });
 
@@ -655,7 +655,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
           resolve(data);
         });
 
-        clientSocket.on('subscriptionError', (error) => {
+        clientSocket.on('subscribe-error', (error) => {
           resolve({ error: error.message });
         });
       });
@@ -742,7 +742,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
           resolve(error);
         });
 
-        clientSocket.on('subscriptionError', (error) => {
+        clientSocket.on('subscribe-error', (error) => {
           resolve(error);
         });
       });

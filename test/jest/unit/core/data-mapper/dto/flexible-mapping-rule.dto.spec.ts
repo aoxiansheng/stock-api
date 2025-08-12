@@ -21,7 +21,8 @@ describe("FlexibleMappingRuleDto", () => {
         fieldMappings: [
           {
             sourceFieldPath: "last_done",
-            targetField: "lastPrice"
+            targetField: "lastPrice",
+            confidence: 0.95
           }
         ]
       });
@@ -74,7 +75,8 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with minimal required fields", async () => {
       const dto = plainToClass(FlexibleFieldMappingDto, {
         sourceFieldPath: "last_done",
-        targetField: "lastPrice"
+        targetField: "lastPrice",
+        confidence: 0.95
       });
 
       const errors = await validate(dto);
@@ -85,6 +87,7 @@ describe("FlexibleMappingRuleDto", () => {
       const dto = plainToClass(FlexibleFieldMappingDto, {
         sourceFieldPath: "last_done",
         targetField: "lastPrice",
+        confidence: 0.85,
         transform: {
           type: "multiply",
           value: 100
@@ -169,17 +172,10 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with suggestions", async () => {
       const dto = plainToClass(CreateMappingRuleFromSuggestionsDto, {
         templateId: "507f1f77bcf86cd799439011",
-        ruleName: "Auto Generated Rule",
-        provider: "longport",
-        apiType: "rest",
-        transDataRuleListType: "quote_fields",
-        selectedSuggestions: [
-          {
-            sourceField: "last_done",
-            targetField: "lastPrice",
-            confidence: 0.95
-          }
-        ]
+        name: "Auto Generated Rule",
+        selectedSuggestionIndexes: [0],
+        description: "Generated from template",
+        isDefault: false
       });
 
       const errors = await validate(dto);

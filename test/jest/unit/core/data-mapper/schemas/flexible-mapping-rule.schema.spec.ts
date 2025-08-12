@@ -267,29 +267,57 @@ describe("FlexibleMappingRuleSchema", () => {
   });
 
   describe("FlexibleFieldMapping Schema", () => {
-    it("should validate field mapping with correct data", () => {
-      const mapping = new FlexibleFieldMapping();
-      mapping.sourceFieldPath = "last_done";
-      mapping.targetField = "lastPrice";
-      mapping.confidence = 0.95;
+    it("should validate field mapping with correct data and default values", async () => {
+      const ruleData = {
+        name: "Field Mapping Default Values Test",
+        provider: "test",
+        apiType: "rest",
+        transDataRuleListType: "quote_fields",
+        fieldMappings: [
+          {
+            sourceFieldPath: "last_done",
+            targetField: "lastPrice",
+            confidence: 0.95
+            // isRequired 未设置，应该使用默认值 false
+          }
+        ]
+      };
 
+      const rule = new model(ruleData);
+      const savedRule = await rule.save();
+
+      const mapping = savedRule.fieldMappings[0];
       expect(mapping.sourceFieldPath).toBe("last_done");
       expect(mapping.targetField).toBe("lastPrice");
       expect(mapping.confidence).toBe(0.95);
-      expect(mapping.isRequired).toBe(false); // default value
+      expect(mapping.isRequired).toBe(false); // 验证默认值
+      expect(mapping.isActive).toBe(true); // 验证另一个默认值
     });
 
-    it("should handle mapping with transform rules", () => {
-      const mapping = new FlexibleFieldMapping();
-      mapping.sourceFieldPath = "price_cents";
-      mapping.targetField = "lastPrice";
-      mapping.confidence = 0.85;
-      mapping.transform = {
-        type: "divide",
-        value: 100,
-        description: "Convert cents to dollars"
+    it("should handle mapping with transform rules through model", async () => {
+      const ruleData = {
+        name: "Transform Rules Test",
+        provider: "test",
+        apiType: "rest",
+        transDataRuleListType: "quote_fields",
+        fieldMappings: [
+          {
+            sourceFieldPath: "price_cents",
+            targetField: "lastPrice",
+            confidence: 0.85,
+            transform: {
+              type: "divide",
+              value: 100,
+              description: "Convert cents to dollars"
+            }
+          }
+        ]
       };
 
+      const rule = new model(ruleData);
+      const savedRule = await rule.save();
+
+      const mapping = savedRule.fieldMappings[0];
       expect(mapping.transform.type).toBe("divide");
       expect(mapping.transform.value).toBe(100);
       expect(mapping.transform.description).toBe("Convert cents to dollars");
@@ -328,23 +356,59 @@ describe("FlexibleMappingRuleSchema", () => {
   });
 
   describe("TransformRule Schema", () => {
-    it("should validate transform rule with multiply type", () => {
-      const transform = new TransformRule();
-      transform.type = "multiply";
-      transform.value = 100;
-      transform.description = "Multiply by 100";
+    it("should validate transform rule with multiply type through model", async () => {
+      const ruleData = {
+        name: "Transform Multiply Test",
+        provider: "test",
+        apiType: "rest",
+        transDataRuleListType: "quote_fields",
+        fieldMappings: [
+          {
+            sourceFieldPath: "price",
+            targetField: "lastPrice",
+            confidence: 0.9,
+            transform: {
+              type: "multiply",
+              value: 100,
+              description: "Multiply by 100"
+            }
+          }
+        ]
+      };
 
+      const rule = new model(ruleData);
+      const savedRule = await rule.save();
+
+      const transform = savedRule.fieldMappings[0].transform;
       expect(transform.type).toBe("multiply");
       expect(transform.value).toBe(100);
       expect(transform.description).toBe("Multiply by 100");
     });
 
-    it("should validate transform rule with format type", () => {
-      const transform = new TransformRule();
-      transform.type = "format";
-      transform.format = "%.2f";
-      transform.description = "Format to 2 decimal places";
+    it("should validate transform rule with format type through model", async () => {
+      const ruleData = {
+        name: "Transform Format Test",
+        provider: "test",
+        apiType: "rest",
+        transDataRuleListType: "quote_fields",
+        fieldMappings: [
+          {
+            sourceFieldPath: "price",
+            targetField: "lastPrice",
+            confidence: 0.9,
+            transform: {
+              type: "format",
+              format: "%.2f",
+              description: "Format to 2 decimal places"
+            }
+          }
+        ]
+      };
 
+      const rule = new model(ruleData);
+      const savedRule = await rule.save();
+
+      const transform = savedRule.fieldMappings[0].transform;
       expect(transform.type).toBe("format");
       expect(transform.format).toBe("%.2f");
       expect(transform.description).toBe("Format to 2 decimal places");

@@ -104,6 +104,15 @@ export class MappingRuleCacheService {
    * 🎯 缓存规则内容（根据ID）
    */
   async cacheRuleById(rule: FlexibleMappingRuleResponseDto): Promise<void> {
+    // 验证规则ID是否存在
+    if (!rule.id) {
+      this.logger.warn('尝试缓存没有ID的规则，已跳过', {
+        ruleName: rule.name,
+        provider: rule.provider
+      });
+      return;
+    }
+
     const cacheKey = this.buildRuleByIdKey(rule.id);
     
     try {
@@ -331,8 +340,19 @@ export class MappingRuleCacheService {
 
     let cached = 0;
     let failed = 0;
+    let skipped = 0;
 
     for (const rule of commonRules) {
+      // 跳过没有ID的规则
+      if (!rule.id) {
+        skipped++;
+        this.logger.warn('预热缓存时跳过没有ID的规则', {
+          ruleName: rule.name,
+          provider: rule.provider
+        });
+        continue;
+      }
+
       try {
         // 缓存规则内容
         await this.cacheRuleById(rule);
@@ -357,7 +377,7 @@ export class MappingRuleCacheService {
       }
     }
 
-    this.logger.log('规则缓存预热完成', { cached, failed, total: commonRules.length });
+    this.logger.log('规则缓存预热完成', { cached, failed, skipped, total: commonRules.length });
   }
 
   // ===== 私有方法 =====

@@ -4,7 +4,6 @@ import { TransformerService } from '@core/transformer/services/transformer.servi
 import { TransformRequestDto } from '@core/transformer/dto/transform-request.dto';
 import { TransformResponseDto } from '@core/transformer/dto/transform-response.dto';
 import { InternalServerErrorException } from '@nestjs/common';
-import { TransformPreviewDto } from '@core/transformer/dto/transform-preview.dto';
 import { UnifiedPermissionsGuard } from '../../../../../../src/auth/guards/unified-permissions.guard';
 import { PermissionService } from '../../../../../../src/auth/services/permission.service';
 import { RateLimitGuard } from '../../../../../../src/auth/guards/rate-limit.guard';
@@ -24,7 +23,6 @@ describe('TransformerController', () => {
           useValue: {
             transform: jest.fn(),
             transformBatch: jest.fn(),
-            previewTransformation: jest.fn(),
           },
         },
         {
@@ -166,46 +164,5 @@ describe('TransformerController', () => {
     });
   });
 
-  describe('preview', () => {
-    const mockTransformRequestDto: TransformRequestDto = {
-      provider: 'test-provider',
-      apiType: 'rest',
-      transDataRuleListType: 'test-type',
-      mappingOutRuleId: 'test-rule-id',
-      rawData: { key: 'value' },
-      options: {},
-    };
-
-    it('should preview transformation successfully', async () => {
-      const mockResponse: TransformPreviewDto = {
-        transformMappingRule: {
-          id: 'test-rule-id',
-          name: 'Test Rule',
-          provider: 'test-provider',
-          transDataRuleListType: 'test-type',
-          dataFieldMappingsCount: 2
-        },
-        sampleInput: { key: 'value' },
-        expectedOutput: { transformedKey: 'transformedValue' },
-        sharedDataFieldMappings: [
-          {
-            sourceField: 'key',
-            targetField: 'transformedKey',
-            sampleSourceValue: 'value',
-            expectedTargetValue: 'transformedValue'
-          }
-        ]
-      };
-      transformerService.previewTransformation.mockResolvedValue(mockResponse);
-
-      const result = await controller.preview(mockTransformRequestDto);
-      expect(transformerService.previewTransformation).toHaveBeenCalledWith(mockTransformRequestDto);
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should throw error if transformerService.previewTransformation fails', async () => {
-      transformerService.previewTransformation.mockRejectedValue(new InternalServerErrorException('Preview failed'));
-      await expect(controller.preview(mockTransformRequestDto)).rejects.toThrow(InternalServerErrorException);
-    });
-  });
+  /* 预览相关的功能已在服务重构中移除，此处测试已删除 */
 });

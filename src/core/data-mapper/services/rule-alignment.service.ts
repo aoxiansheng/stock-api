@@ -91,10 +91,23 @@ export class RuleAlignmentService {
       throw new NotFoundException(`模板未找到: ${templateId}`);
     }
 
-    // 2. 自动对齐字段
+    // 2. 检查规则是否已存在
+    const generatedRuleName = ruleName || `${template.name} - ${ruleType} 自动对齐规则`;
+    const existingRule = await this.ruleModel.findOne({
+      name: generatedRuleName,
+      provider: template.provider,
+      apiType: template.apiType,
+      transDataRuleListType: ruleType
+    });
+
+    if (existingRule) {
+      throw new BadRequestException(`规则已存在: ${generatedRuleName}`);
+    }
+
+    // 3. 自动对齐字段
     const alignmentResult = this.autoAlignFields(template, ruleType);
 
-    // 3. 构建字段映射
+    // 4. 构建字段映射
     const fieldMappings = alignmentResult.suggestions
       .filter(suggestion => suggestion.confidence >= 0.7) // 只使用高置信度的对齐
       .map(suggestion => ({
@@ -105,8 +118,7 @@ export class RuleAlignmentService {
         isActive: true,
       }));
 
-    // 4. 创建规则
-    const generatedRuleName = ruleName || `${template.name} - ${ruleType} 自动对齐规则`;
+    // 5. 创建规则
     const rule = await this.ruleModel.create({
       name: generatedRuleName,
       provider: template.provider,
@@ -251,16 +263,17 @@ export class RuleAlignmentService {
           const mappingIndex = fieldMappings.findIndex(mapping => 
             mapping.sourceFieldPath === adjustment.sourceField
           );
-          if (mappingIndex !== -1) {
-            if (adjustment.newTargetField) {
-              fieldMappings[mappingIndex].targetField = adjustment.newTargetField;
-            }
-            if (adjustment.confidence) {
-              fieldMappings[mappingIndex].confidence = adjustment.confidence;
-            }
-            if (adjustment.description) {
-              fieldMappings[mappingIndex].description = adjustment.description;
-            }
+          if (mappingIndex === -1) {
+            throw new NotFoundException(`字段映射未找到: ${adjustment.sourceField}`);
+          }
+          if (adjustment.newTargetField) {
+            fieldMappings[mappingIndex].targetField = adjustment.newTargetField;
+          }
+          if (adjustment.confidence) {
+            fieldMappings[mappingIndex].confidence = adjustment.confidence;
+          }
+          if (adjustment.description) {
+            fieldMappings[mappingIndex].description = adjustment.description;
           }
           break;
       }
