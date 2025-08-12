@@ -17,7 +17,6 @@ import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   TRANSFORM_ERROR_MESSAGES,
-  TRANSFORM_WARNING_MESSAGES,
   TRANSFORM_CONFIG,
   TRANSFORM_PERFORMANCE_THRESHOLDS,
 } from "../constants/transformer.constants";

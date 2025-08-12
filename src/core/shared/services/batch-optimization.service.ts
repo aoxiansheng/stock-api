@@ -155,7 +155,7 @@ export class BatchOptimizationService {
         try {
           const mapped = await this.symbolMapperService.mapSymbol(symbol, fromProvider, toProvider);
           results.set(symbol, mapped);
-        } catch (error) {
+        } catch {
           results.set(symbol, symbol); // 使用原符号作为备用
         }
       }

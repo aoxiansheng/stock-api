@@ -10,8 +10,6 @@ import { DataSourceAnalyzerService } from './data-source-analyzer.service';
 import { 
   CreateDataSourceTemplateDto, 
   DataSourceTemplateResponseDto,
-  SuggestFieldMappingsDto,
-  SuggestFieldMappingsResponseDto
 } from '../dto/data-source-analysis.dto';
 
 @Injectable()

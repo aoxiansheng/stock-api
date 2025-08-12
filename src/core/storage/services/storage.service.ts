@@ -40,6 +40,7 @@ import {
   PaginatedStorageItemDto,
 } from "../dto/storage-response.dto";
 import { StorageMetadataDto } from "../dto/storage-metadata.dto";
+import { SmartCacheOptionsDto, SmartCacheResultDto } from "../dto/smart-cache-request.dto"; // 🔥 新增智能缓存导入
 import { StorageRepository } from "../repositories/storage.repository";
 import { RedisUtils } from "../utils/redis.util";
 
@@ -856,5 +857,353 @@ export class StorageService {
     // 🎯 操作频率现在由 Prometheus 指标提供，这里返回默认值  
     // 在生产环境中应通过 rate(storageOperationsTotal[1m]) 计算真实频率
     return 0; // 可从 Prometheus storageOperationsTotal 指标计算速率
+  }
+
+  /**
+   * 智能缓存：支持动态TTL和市场状态感知的缓存策略
+   * 🚀 统一缓存入口，替代Receiver中的实时缓存逻辑
+   * 
+   * @param key 缓存键
+   * @param fetchFn 数据获取函数
+   * @param options 智能缓存选项
+   * @returns 智能缓存结果
+   */
+  async getWithSmartCache<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    options: SmartCacheOptionsDto,
+  ): Promise<SmartCacheResultDto<T>> {
+    const startTime = Date.now();
+    const fullKey = options.keyPrefix ? `${options.keyPrefix}:${key}` : key;
+
+    // 🎯 记录智能缓存操作指标
+    Metrics.inc(
+      this.metricsRegistry,
+      'storageOperationsTotal',
+      { 
+        operation: 'smart_cache_query',
+        storage_type: 'smart_cache'
+      }
+    );
+
+    this.logger.debug('智能缓存查询开始', {
+      key: fullKey,
+      symbols: options.symbols.slice(0, 5), // 只记录前5个符号
+      forceRefresh: options.forceRefresh,
+    });
+
+    try {
+      // 1. 计算动态TTL
+      const dynamicTtl = this.calculateDynamicTTL(options);
+
+      // 2. 强制刷新则跳过缓存
+      if (!options.forceRefresh) {
+        const cachedResult = await this.tryGetFromSmartCache<T>(fullKey);
+        if (cachedResult) {
+          const processingTime = Date.now() - startTime;
+          
+          // 🎯 记录缓存命中指标
+          Metrics.observe(
+            this.metricsRegistry,
+            'storageQueryDuration',
+            processingTime,
+            { 
+              query_type: 'smart_cache_hit',
+              storage_type: 'smart_cache'
+            }
+          );
+
+          this.logger.debug('智能缓存命中', {
+            key: fullKey,
+            ttlRemaining: cachedResult.ttlRemaining,
+            processingTime,
+          });
+
+          return SmartCacheResultDto.hit(
+            cachedResult.data,
+            fullKey,
+            dynamicTtl,
+            cachedResult.ttlRemaining,
+          );
+        }
+      }
+
+      // 3. 缓存未命中或强制刷新，获取新数据
+      this.logger.debug('智能缓存未命中，获取新数据', {
+        key: fullKey,
+        forceRefresh: options.forceRefresh,
+      });
+
+      const freshData = await fetchFn();
+
+      // 4. 将新数据存储到缓存
+      await this.storeToSmartCache(fullKey, freshData, dynamicTtl);
+
+      const processingTime = Date.now() - startTime;
+
+      // 🎯 记录缓存未命中指标
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'smart_cache_miss',
+          storage_type: 'smart_cache'
+        }
+      );
+
+      this.logger.debug('智能缓存存储完成', {
+        key: fullKey,
+        dynamicTtl,
+        processingTime,
+      });
+
+      return SmartCacheResultDto.miss(freshData, fullKey, dynamicTtl);
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+
+      // 🎯 记录缓存错误指标
+      Metrics.observe(
+        this.metricsRegistry,
+        'storageQueryDuration',
+        processingTime,
+        { 
+          query_type: 'smart_cache_error',
+          storage_type: 'smart_cache'
+        }
+      );
+
+      this.logger.error('智能缓存操作失败', {
+        key: fullKey,
+        error: error.message,
+        processingTime,
+      });
+
+      throw new InternalServerErrorException(
+        `智能缓存操作失败: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * 批量智能缓存操作
+   * 
+   * @param requests 批量请求
+   * @returns 批量结果
+   */
+  async batchGetWithSmartCache<T>(
+    requests: Array<{
+      key: string;
+      fetchFn: () => Promise<T>;
+      options: SmartCacheOptionsDto;
+    }>,
+  ): Promise<SmartCacheResultDto<T>[]> {
+    this.logger.debug('批量智能缓存查询', {
+      requestCount: requests.length,
+    });
+
+    // 并行执行所有缓存查询
+    const results = await Promise.allSettled(
+      requests.map(({ key, fetchFn, options }) => 
+        this.getWithSmartCache(key, fetchFn, options)
+      )
+    );
+
+    return results.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        this.logger.error('批量缓存查询部分失败', {
+          index,
+          key: requests[index].key,
+          error: result.reason.message,
+        });
+        
+        // 返回错误结果
+        return SmartCacheResultDto.miss(
+          null as T,
+          requests[index].key,
+          0,
+        );
+      }
+    });
+  }
+
+  /**
+   * 计算基于市场状态的动态TTL
+   * 
+   * @param options 缓存选项
+   * @returns TTL（秒）
+   */
+  private calculateDynamicTTL(options: SmartCacheOptionsDto): number {
+    const { symbols, marketStatus, minCacheTtl = 30, maxCacheTtl = 3600 } = options;
+
+    if (!marketStatus || Object.keys(marketStatus).length === 0) {
+      // 没有市场状态信息，使用默认值
+      return Math.floor((minCacheTtl + maxCacheTtl) / 2);
+    }
+
+    let minTtl = maxCacheTtl; // 从最大值开始
+
+    // 遍历所有涉及的市场，取最小TTL
+    symbols.forEach(symbol => {
+      const market = this.inferMarketFromSymbol(symbol);
+      const status = marketStatus[market];
+
+      if (status && status.realtimeCacheTTL) {
+        minTtl = Math.min(minTtl, status.realtimeCacheTTL);
+      }
+    });
+
+    // 确保TTL在合理范围内
+    return Math.max(
+      Math.min(minTtl, maxCacheTtl),
+      minCacheTtl
+    );
+  }
+
+  /**
+   * 从智能缓存中尝试获取数据
+   */
+  private async tryGetFromSmartCache<T>(key: string): Promise<{
+    data: T;
+    ttlRemaining: number;
+  } | null> {
+    try {
+      const { data, metadata, ttl } = await this.storageRepository.retrieveFromCache(key);
+      
+      if (!data) {
+        return null;
+      }
+
+      let parsedData: T;
+      let cacheMetadata: any = {};
+
+      try {
+        if (metadata) {
+          cacheMetadata = JSON.parse(metadata);
+        }
+        
+        if (cacheMetadata.compressed) {
+          const buffer = Buffer.from(data, 'base64');
+          const decompressed = await gunzip(buffer);
+          parsedData = JSON.parse(decompressed.toString());
+        } else {
+          parsedData = JSON.parse(data);
+        }
+      } catch (parseError) {
+        this.logger.warn('智能缓存数据解析失败', {
+          key,
+          error: parseError.message,
+        });
+        return null;
+      }
+
+      return {
+        data: parsedData,
+        ttlRemaining: ttl || 0,
+      };
+
+    } catch (error) {
+      this.logger.debug('智能缓存获取失败', {
+        key,
+        error: error.message,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * 将数据存储到智能缓存
+   */
+  private async storeToSmartCache<T>(
+    key: string,
+    data: T,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      const serializedData = JSON.stringify(data);
+      const dataSize = Buffer.byteLength(serializedData, 'utf8');
+      
+      // 判断是否需要压缩
+      const shouldCompress = dataSize > 10 * 1024; // 大于10KB才压缩
+      let finalData = serializedData;
+      let compressed = false;
+
+      if (shouldCompress) {
+        try {
+          const compressedBuffer = await gzip(serializedData);
+          if (compressedBuffer.length < dataSize * 0.8) {
+            finalData = compressedBuffer.toString('base64');
+            compressed = true;
+          }
+        } catch (compressionError) {
+          this.logger.warn('智能缓存压缩失败', {
+            key,
+            error: compressionError.message,
+          });
+        }
+      }
+
+      // 存储元数据
+      const metadata = JSON.stringify({
+        compressed,
+        storedAt: new Date().toISOString(),
+        dataSize,
+      });
+
+      await this.storageRepository.storeInCache(
+        key,
+        finalData,
+        ttl,
+        compressed,
+        metadata,
+      );
+
+    } catch (error) {
+      this.logger.error('智能缓存存储失败', {
+        key,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 从股票代码推断市场
+   * 🔄 复用Receiver中的逻辑，保持一致性
+   */
+  private inferMarketFromSymbol(symbol: string): string {
+    const upperSymbol = symbol.toUpperCase().trim();
+
+    // 香港市场: .HK 后缀或5位数字
+    if (upperSymbol.includes('.HK') || /^\d{5}$/.test(upperSymbol)) {
+      return 'HK';
+    }
+
+    // 美国市场: 1-5位字母
+    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
+      return 'US';
+    }
+
+    // 深圳市场: .SZ 后缀或 00/30 前缀
+    if (
+      upperSymbol.includes('.SZ') ||
+      ['00', '30'].some(prefix => upperSymbol.startsWith(prefix))
+    ) {
+      return 'SZ';
+    }
+
+    // 上海市场: .SH 后缀或 60/68 前缀
+    if (
+      upperSymbol.includes('.SH') ||
+      ['60', '68'].some(prefix => upperSymbol.startsWith(prefix))
+    ) {
+      return 'SH';
+    }
+
+    // 默认美股
+    return 'US';
   }
 }

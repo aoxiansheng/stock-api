@@ -4,7 +4,6 @@
  * 提供简化的指标记录API，将业务层与具体实现解耦
  * 统一管理指标命名、标签等
  */
-import { Injectable } from '@nestjs/common';
 import { MetricsRegistryService } from './metrics-registry.service';
 
 /**

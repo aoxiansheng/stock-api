@@ -10,8 +10,6 @@ import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-
 import { 
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
-  TestFlexibleMappingRuleDto,
-  FlexibleMappingTestResultDto,
   CreateMappingRuleFromSuggestionsDto
 } from '../dto/flexible-mapping-rule.dto';
 import { DataSourceTemplateService } from './data-source-template.service';

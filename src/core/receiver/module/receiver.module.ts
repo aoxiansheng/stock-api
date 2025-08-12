@@ -5,6 +5,7 @@ import { CacheModule } from "../../../cache/module/cache.module";
 import { ProvidersModule } from "../../../providers/module/providers.module";
 import { SharedServicesModule } from "../../shared/module/shared-services.module";
 import { SymbolMapperModule } from "../../symbol-mapper/module/symbol-mapper.module";
+import { DataFetcherModule } from "../../data-fetcher/module/data-fetcher.module";
 import { TransformerModule } from "../../transformer/module/transformer.module";
 import { StorageModule } from "../../storage/module/storage.module";
 
@@ -15,6 +16,7 @@ import { ReceiverService } from "../services/receiver.service";
   imports: [
     AuthModule,
     SymbolMapperModule,
+    DataFetcherModule, // 🔥 新增DataFetcher模块
     TransformerModule,
     StorageModule,
     ProvidersModule,

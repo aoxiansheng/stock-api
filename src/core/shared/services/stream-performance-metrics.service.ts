@@ -93,6 +93,9 @@ export class StreamPerformanceMetrics {
       return;
     }
 
+    // 记录缓存命中情况
+    this.recordCacheAccess(cacheHit, 'rule_compilation');
+
     // 使用 Metrics helper 更新指标
     Metrics.inc(
       this.metricsRegistry, 

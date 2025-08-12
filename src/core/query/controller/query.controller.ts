@@ -6,7 +6,6 @@ import {
   Query as QueryParam,
   ValidationPipe,
   HttpStatus,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -16,7 +15,7 @@ import {
   ApiQuery,
   ApiSecurity,
 } from "@nestjs/swagger";
-import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import { createLogger } from "@common/config/logger.config";
 import {

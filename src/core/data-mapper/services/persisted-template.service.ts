@@ -306,7 +306,7 @@ export class PersistedTemplateService {
     let template;
     try {
       template = await this.templateModel.findById(id);
-    } catch (error) {
+    } catch {
       throw new BadRequestException(`无效的模板ID: ${id}`);
     }
     
@@ -369,7 +369,7 @@ export class PersistedTemplateService {
     let template;
     try {
       template = await this.templateModel.findById(id);
-    } catch (error) {
+    } catch {
       throw new BadRequestException(`无效的模板ID: ${id}`);
     }
 

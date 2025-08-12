@@ -155,7 +155,7 @@ describe("Real Environment Black-box: Six Component Pipeline E2E", () => {
           });
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // 忽略列表失败，继续后续创建
     }
 

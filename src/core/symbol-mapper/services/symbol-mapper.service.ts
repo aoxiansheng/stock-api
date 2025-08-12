@@ -3,6 +3,8 @@ import {
   ConflictException,
   NotFoundException,
   OnModuleInit,
+  BadRequestException,
+  InternalServerErrorException,
 } from "@nestjs/common";
 
 import { LRUCache } from 'lru-cache';
@@ -269,6 +271,279 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       // 清理并发锁
       this.pendingQueries.delete(cacheKey);
     }
+  }
+
+  /**
+   * 🆕 管道化的符号映射接口
+   * 简化的接口，用于在管道中进行符号转换
+   * 
+   * @param provider 数据提供商名称
+   * @param symbols 输入股票代码列表
+   * @param requestId 请求ID用于日志跟踪
+   * @returns 转换后的符号映射结果
+   */
+  async mapSymbols(
+    provider: string,
+    symbols: string[],
+    requestId?: string,
+  ): Promise<{
+    mappedSymbols: string[];
+    mappingDetails: Record<string, string>;
+    failedSymbols: string[];
+    metadata: {
+      provider: string;
+      totalSymbols: number;
+      successCount: number;
+      failedCount: number;
+      processingTimeMs: number;
+    };
+  }> {
+    const startTime = process.hrtime.bigint();
+    const reqId = requestId || `map_${Date.now()}`;
+
+    this.logger.debug('管道化符号映射开始', {
+      provider,
+      symbolsCount: symbols.length,
+      requestId: reqId,
+    });
+
+    try {
+      // 使用现有的 transformSymbolsForProvider 方法
+      const result = await this.transformSymbolsForProvider(provider, symbols, reqId);
+      
+      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+
+      // 转换为管道化接口的格式
+      const response = {
+        mappedSymbols: result.transformedSymbols || [],
+        mappingDetails: result.mappingResults?.transformedSymbols || {},
+        failedSymbols: result.mappingResults?.failedSymbols || [],
+        metadata: {
+          provider,
+          totalSymbols: symbols.length,
+          successCount: (result.transformedSymbols || []).length,
+          failedCount: (result.mappingResults?.failedSymbols || []).length,
+          processingTimeMs: processingTime,
+        },
+      };
+
+      this.logger.debug('管道化符号映射完成', {
+        requestId: reqId,
+        ...response.metadata,
+      });
+
+      return response;
+    } catch (error) {
+      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      
+      this.logger.error('管道化符号映射失败', {
+        requestId: reqId,
+        provider,
+        error: error.message,
+        processingTimeMs: processingTime,
+      });
+
+      // 返回全部失败的结果，而不是抛出异常
+      return {
+        mappedSymbols: [],
+        mappingDetails: {},
+        failedSymbols: symbols,
+        metadata: {
+          provider,
+          totalSymbols: symbols.length,
+          successCount: 0,
+          failedCount: symbols.length,
+          processingTimeMs: processingTime,
+        },
+      };
+    }
+  }
+
+  /**
+   * 🔥 新增：为特定提供商转换股票代码列表（整合分离和转换逻辑）
+   * 这个方法整合了ReceiverService中的separateSymbols和transformSymbols逻辑
+   * 
+   * @param provider 数据提供商名称
+   * @param symbols 输入股票代码列表（可能包含标准格式和非标准格式）
+   * @param requestId 请求ID用于日志跟踪
+   * @returns 转换结果包含成功和失败的详细信息
+   */
+  async transformSymbolsForProvider(
+    provider: string,
+    symbols: string[],
+    requestId: string,
+  ): Promise<any> {
+    const startTime = process.hrtime.bigint();
+    this.logger.debug(
+      `开始为提供商转换股票代码`,
+      sanitizeLogData({
+        provider,
+        symbolsCount: symbols.length,
+        requestId,
+        operation: 'transformSymbolsForProvider',
+      }),
+    );
+
+    try {
+      // 1. 分离股票代码 - 区分标准格式和需要转换的格式
+      const { symbolsToTransform, standardSymbols } = this.separateSymbolsByFormat(symbols);
+
+      this.logger.debug(
+        `代码分离完成`,
+        sanitizeLogData({
+          provider,
+          totalSymbols: symbols.length,
+          symbolsToTransform: symbolsToTransform.length,
+          standardSymbols: standardSymbols.length,
+          requestId,
+          operation: 'transformSymbolsForProvider',
+        }),
+      );
+
+      // 2. 转换非标准格式的股票代码
+      let mappingResult = {
+        transformedSymbols: {},
+        failedSymbols: [],
+        processingTimeMs: 0,
+      };
+
+      // 仅当有需要转换的代码时才调用服务
+      if (symbolsToTransform.length > 0) {
+        const resultFromService = await this.transformSymbols(
+          provider,
+          symbolsToTransform,
+        );
+        mappingResult = { ...resultFromService };
+      }
+
+      // 3. 将已经是标准格式的代码添加到成功结果中
+      // 它们的原始代码和转换后代码是相同的
+      standardSymbols.forEach((symbol) => {
+        mappingResult.transformedSymbols[symbol] = symbol;
+      });
+
+      const allOriginalSymbols = [...symbolsToTransform, ...standardSymbols];
+
+      // 4. 处理转换失败的股票代码，但不抛出异常，支持部分成功
+      if (mappingResult.failedSymbols && mappingResult.failedSymbols.length > 0) {
+        const errorMessage = `部分股票代码转换失败: ${mappingResult.failedSymbols.join(', ')}`;
+        this.logger.warn(
+          errorMessage,
+          sanitizeLogData({
+            requestId,
+            provider,
+            failedCount: mappingResult.failedSymbols.length,
+            failedSymbols: mappingResult.failedSymbols,
+            operation: 'transformSymbolsForProvider',
+          }),
+        );
+
+        // 如果所有股票代码都转换失败，则抛出异常
+        if (mappingResult.failedSymbols.length === allOriginalSymbols.length) {
+          throw new BadRequestException(errorMessage);
+        }
+
+        // 部分失败的情况下，继续处理成功的股票代码
+      }
+
+      // 5. 只处理成功转换的股票代码
+      const successfulSymbols = Object.keys(mappingResult.transformedSymbols).filter(
+        (symbol) => !mappingResult.failedSymbols?.includes(symbol),
+      );
+      const transformedSymbolsArray = successfulSymbols.map(
+        (symbol) => mappingResult.transformedSymbols[symbol],
+      );
+
+      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6; // 纳秒转毫秒
+
+      this.logger.debug(
+        `提供商股票代码转换完成`,
+        sanitizeLogData({
+          requestId,
+          provider,
+          originalCount: allOriginalSymbols.length,
+          transformedCount: transformedSymbolsArray.length,
+          failedCount: mappingResult.failedSymbols?.length || 0,
+          processingTime,
+          operation: 'transformSymbolsForProvider',
+        }),
+      );
+
+      // 6. 确保返回的结构与接收方期望的一致，支持部分成功
+      const hasFailures = mappingResult.failedSymbols && mappingResult.failedSymbols.length > 0;
+
+      return {
+        transformedSymbols: transformedSymbolsArray,
+        mappingResults: {
+          transformedSymbols: mappingResult.transformedSymbols,
+          failedSymbols: mappingResult.failedSymbols || [],
+          metadata: {
+            provider,
+            totalSymbols: allOriginalSymbols.length,
+            successfulTransformations: transformedSymbolsArray.length,
+            failedTransformations: (mappingResult.failedSymbols || []).length,
+            processingTime: processingTime,
+            hasPartialFailures: hasFailures,
+          },
+        },
+      };
+    } catch (error) {
+      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      this.logger.error(
+        `提供商股票代码转换失败`,
+        sanitizeLogData({
+          requestId,
+          provider,
+          error: error.message,
+          processingTime,
+          operation: 'transformSymbolsForProvider',
+        }),
+      );
+
+      // 重新抛出已知的 BadRequestException
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(`提供商股票代码转换失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🔥 新增：分离股票代码格式（从ReceiverService迁移）
+   * 根据启发式规则区分标准格式和非标准格式的股票代码
+   * 
+   * @param symbols 输入股票代码列表
+   * @returns 分离结果包含需要转换的和标准格式的代码
+   */
+  private separateSymbolsByFormat(symbols: string[]): {
+    symbolsToTransform: string[];
+    standardSymbols: string[];
+  } {
+    const symbolsToTransform: string[] = [];
+    const standardSymbols: string[] = [];
+
+    // 简单的启发式规则：包含 "." 的被认为是标准代码
+    // 注意：这个规则未来可能需要增强以应对更复杂的场景
+    symbols.forEach((symbol) => {
+      if (symbol.includes('.')) {
+        standardSymbols.push(symbol);
+      } else {
+        symbolsToTransform.push(symbol);
+      }
+    });
+
+    this.logger.debug(
+      `股票代码格式分离完成`,
+      sanitizeLogData({
+        totalSymbols: symbols.length,
+        symbolsToTransform: symbolsToTransform.length,
+        standardSymbols: standardSymbols.length,
+        operation: 'separateSymbolsByFormat',
+      }),
+    );
+
+    return { symbolsToTransform, standardSymbols };
   }
 
   /**
@@ -1553,7 +1828,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       const currentVersions = await this.repository.getDataSourceVersions();
       let cacheInvalidated = false;
 
-      for (const [dataSourceName, updateTime] of currentVersions.entries()) {
+      for (const dataSourceName of currentVersions.keys()) {
         // 检查缓存中是否有该数据源的相关键
         const cacheKeys = Array.from(this.unifiedCache.keys());
         const sourceRelatedKeys = cacheKeys.filter(key => 

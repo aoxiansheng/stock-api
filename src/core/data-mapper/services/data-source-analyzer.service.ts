@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 
 import { 
-  AnalyzeDataSourceDto,
   DataSourceAnalysisResponseDto,
 } from '../dto/data-source-analysis.dto';
 
@@ -33,7 +32,7 @@ export class DataSourceAnalyzerService {
       const dataStructureType = this.determineDataStructureType(sampleData);
       
       // 3. 计算分析置信度
-      const confidence = this.calculateAnalysisConfidence(extractedFields, sampleData);
+      const confidence = this.calculateAnalysisConfidence(extractedFields);
       
       const analysisResult: DataSourceAnalysisResponseDto = {
         provider,
@@ -215,7 +214,7 @@ export class DataSourceAnalyzerService {
   /**
    * 📊 计算分析置信度
    */
-  private calculateAnalysisConfidence(extractedFields: any[], sampleData: any): number {
+  private calculateAnalysisConfidence(extractedFields: any[]): number {
     if (extractedFields.length === 0) {
       return 0;
     }

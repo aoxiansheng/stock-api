@@ -3,6 +3,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 
 import { AuthModule } from "../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
+import { SharedServicesModule } from "../../shared/module/shared-services.module";
 import { FeatureFlags } from "@common/config/feature-flags.config";
 
 import { SymbolMappingRepository } from '../repositories/symbol-mapping.repository';
@@ -17,6 +18,7 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
   imports: [
     AuthModule,
     PaginationModule,
+    SharedServicesModule, // 🔥 导入SharedServicesModule以获取MetricsRegistryService
     MongooseModule.forFeature([
       { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),

@@ -6,11 +6,9 @@ import { Metrics } from "../../../monitoring/metrics/metrics-helper";
 
 import {
   QUERY_WARNING_MESSAGES,
-  QUERY_SUCCESS_MESSAGES,
   QUERY_PERFORMANCE_CONFIG,
   QUERY_OPERATIONS,
 } from "../constants/query.constants";
-import { QueryStatsRecordDto } from "../dto/query-internal.dto";
 import { QueryStatsDto } from "../dto/query-response.dto";
 import { QueryType } from "../dto/query-types.dto";
 

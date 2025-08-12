@@ -7,8 +7,7 @@ import {
   Body, 
   Param, 
   Query, 
-  ParseIntPipe,
-  NotFoundException
+
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Auth } from '../../../auth/decorators/auth.decorator';

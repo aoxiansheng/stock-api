@@ -43,6 +43,7 @@ export class StorageRepository {
     data: string,
     ttl: number,
     compressed: boolean,
+    customMetadata?: string, // 🔥 新增可选的自定义元数据参数
   ): Promise<void> {
     if (!this.redis) {
       throw new ServiceUnavailableException(
@@ -50,7 +51,9 @@ export class StorageRepository {
       );
     }
     const cacheKey = this.getCacheKey(key);
-    const metadata = JSON.stringify({
+    
+    // 🔥 支持自定义metadata，如果没有则使用默认的
+    const metadata = customMetadata || JSON.stringify({
       compressed,
       storedAt: new Date().toISOString(),
     });

@@ -129,21 +129,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
       },
 
       // 开发者权限
-      {
-        permission: "transformer:preview",
-        endpoint: "/api/v1/transformer/preview",
-        method: "post",
-        testData: {
-          provider: "longport",
-          transDataRuleListType: "get-stock-quote",
-          rawData: {
-            secu_quote: [{
-              symbol: "700.HK",
-              last_done: 385.6
-            }]
-          }
-        },
-      },
+      // 注释：transformer:preview 端点已不存在，已移除相关测试
       {
         permission: "system:monitor",
         endpoint: "/api/v1/monitoring/health/detailed",
@@ -154,7 +140,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
       },
       {
         permission: "config:read",
-        endpoint: "/api/v1/data-mapper/presets",
+        endpoint: "/api/v1/symbol-mapper",
         method: "get",
         testData: {},
       },

@@ -7,7 +7,7 @@ import {
   HttpStatus,
   ValidationPipe
 } from '@nestjs/common';
-import { Type } from 'class-transformer';
+
 import { IsArray, IsString, ArrayNotEmpty } from 'class-validator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Auth } from '../../../auth/decorators/auth.decorator';

@@ -4,12 +4,11 @@ import {
   Query,
   BadRequestException,
   InternalServerErrorException,
-  UseGuards,
   Res,
 } from "@nestjs/common";
 import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
-import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import { createLogger } from "@common/config/logger.config";
 import { NoPerformanceMonitoring } from "@common/core/decorators/performance-monitoring.decorator";
