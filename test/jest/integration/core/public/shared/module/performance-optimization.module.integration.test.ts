@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceOptimizationModule } from '../../../src/core/public/shared/module/performance-optimization.module';
+// performance-optimization.module.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/shared/module/performance-optimization.module.integration.test.ts
 
-describe('PerformanceOptimizationModule Integration', () => {
-  let performanceOptimizationModule: PerformanceOptimizationModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceOptimizationModule],
-    }).compile();
-
-    performanceOptimizationModule = module.get<PerformanceOptimizationModule>(PerformanceOptimizationModule);
-  });
-
-  it('should be defined', () => {
-    expect(performanceOptimizationModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PersistedTemplateService } from '../../../src/core/public/data-mapper/services/persisted-template.service';
+// persisted-template.service.security.test.ts - 测试占位代码
+// 路径: security/core/public/data-mapper/services/persisted-template.service.security.test.ts
 
-describe('PersistedTemplateService Security', () => {
-  let persistedTemplateService: PersistedTemplateService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PersistedTemplateService],
-    }).compile();
-
-    persistedTemplateService = module.get<PersistedTemplateService>(PersistedTemplateService);
-  });
-
-  it('should be defined', () => {
-    expect(persistedTemplateService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

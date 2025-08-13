@@ -10,7 +10,7 @@ import { TransformRequestDto } from "../../../../../../src/core/transformer/dto/
 import { FlexibleMappingRuleResponseDto } from "../../../../../../src/core/data-mapper/dto/flexible-mapping-rule.dto";
 import { TransformResponseDto } from "../../../../../../src/core/transformer/dto/transform-response.dto";
 import { DeepMocked, createMock } from "@golevelup/ts-jest";
-import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({

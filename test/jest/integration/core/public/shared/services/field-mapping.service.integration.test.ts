@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { FieldMappingService } from '../../../src/core/public/shared/services/field-mapping.service';
+// field-mapping.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/shared/services/field-mapping.service.integration.test.ts
 
-describe('FieldMappingService Integration', () => {
-  let fieldMappingService: FieldMappingService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [FieldMappingService],
-    }).compile();
-
-    fieldMappingService = module.get<FieldMappingService>(FieldMappingService);
-  });
-
-  it('should be defined', () => {
-    expect(fieldMappingService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

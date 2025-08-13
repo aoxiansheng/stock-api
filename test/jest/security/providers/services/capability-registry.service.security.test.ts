@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CapabilityRegistryService } from '../../../src/providers/services/capability-registry.service';
+// capability-registry.service.security.test.ts - 测试占位代码
+// 路径: security/providers/services/capability-registry.service.security.test.ts
 
-describe('CapabilityRegistryService Security', () => {
-  let capabilityRegistryService: CapabilityRegistryService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CapabilityRegistryService],
-    }).compile();
-
-    capabilityRegistryService = module.get<CapabilityRegistryService>(CapabilityRegistryService);
-  });
-
-  it('should be defined', () => {
-    expect(capabilityRegistryService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

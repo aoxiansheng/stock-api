@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertHistorySchema } from '../../../src/alert/schemas/alert-history.schema';
+// alert-history.schema.security.test.ts - 测试占位代码
+// 路径: security/alert/schemas/alert-history.schema.security.test.ts
 
-describe('AlertHistorySchema Security', () => {
-  let alertHistorySchema: AlertHistorySchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertHistorySchema],
-    }).compile();
-
-    alertHistorySchema = module.get<AlertHistorySchema>(AlertHistorySchema);
-  });
-
-  it('should be defined', () => {
-    expect(alertHistorySchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

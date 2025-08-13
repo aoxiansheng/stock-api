@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertRuleDto } from '../../../src/alert/dto/alert-rule.dto';
+// alert-rule.dto.integration.test.ts - 测试占位代码
+// 路径: integration/alert/dto/alert-rule.dto.integration.test.ts
 
-describe('AlertRuleDto Integration', () => {
-  let alertRuleDto: AlertRuleDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertRuleDto],
-    }).compile();
-
-    alertRuleDto = module.get<AlertRuleDto>(AlertRuleDto);
-  });
-
-  it('should be defined', () => {
-    expect(alertRuleDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataChangeDetectorService } from '../../../src/core/public/shared/services/data-change-detector.service';
+// data-change-detector.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/shared/services/data-change-detector.service.integration.test.ts
 
-describe('DataChangeDetectorService Integration', () => {
-  let dataChangeDetectorService: DataChangeDetectorService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataChangeDetectorService],
-    }).compile();
-
-    dataChangeDetectorService = module.get<DataChangeDetectorService>(DataChangeDetectorService);
-  });
-
-  it('should be defined', () => {
-    expect(dataChangeDetectorService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

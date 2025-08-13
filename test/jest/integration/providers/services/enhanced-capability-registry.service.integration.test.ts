@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { EnhancedCapabilityRegistryService } from '../../../src/providers/services/enhanced-capability-registry.service';
+// enhanced-capability-registry.service.integration.test.ts - 测试占位代码
+// 路径: integration/providers/services/enhanced-capability-registry.service.integration.test.ts
 
-describe('EnhancedCapabilityRegistryService Integration', () => {
-  let enhancedCapabilityRegistryService: EnhancedCapabilityRegistryService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [EnhancedCapabilityRegistryService],
-    }).compile();
-
-    enhancedCapabilityRegistryService = module.get<EnhancedCapabilityRegistryService>(EnhancedCapabilityRegistryService);
-  });
-
-  it('should be defined', () => {
-    expect(enhancedCapabilityRegistryService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

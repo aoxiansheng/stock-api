@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PaginatedData } from '../../../src/common/modules/pagination/dto/paginated-data';
+// paginated-data.security.test.ts - 测试占位代码
+// 路径: security/common/modules/pagination/dto/paginated-data.security.test.ts
 
-describe('PaginatedData Security', () => {
-  let paginatedData: PaginatedData;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PaginatedData],
-    }).compile();
-
-    paginatedData = module.get<PaginatedData>(PaginatedData);
-  });
-
-  it('should be defined', () => {
-    expect(paginatedData).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

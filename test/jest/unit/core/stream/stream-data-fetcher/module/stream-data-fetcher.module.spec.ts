@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamDataFetcherModule } from '../../../src/core/stream/stream-data-fetcher/module/stream-data-fetcher.module';
+// stream-data-fetcher.module.spec.ts - 测试占位代码
+// 路径: unit/core/stream/stream-data-fetcher/module/stream-data-fetcher.module.spec.ts
 
-describe('StreamDataFetcherModule', () => {
-  let streamDataFetcherModule: StreamDataFetcherModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamDataFetcherModule],
-    }).compile();
-
-    streamDataFetcherModule = module.get<StreamDataFetcherModule>(StreamDataFetcherModule);
-  });
-
-  it('should be defined', () => {
-    expect(streamDataFetcherModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

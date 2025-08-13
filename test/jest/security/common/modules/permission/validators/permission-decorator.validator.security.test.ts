@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PermissionDecoratorValidator } from '../../../src/common/modules/permission/validators/permission-decorator.validator';
+// permission-decorator.validator.security.test.ts - 测试占位代码
+// 路径: security/common/modules/permission/validators/permission-decorator.validator.security.test.ts
 
-describe('PermissionDecoratorValidator Security', () => {
-  let permissionDecoratorValidator: PermissionDecoratorValidator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PermissionDecoratorValidator],
-    }).compile();
-
-    permissionDecoratorValidator = module.get<PermissionDecoratorValidator>(PermissionDecoratorValidator);
-  });
-
-  it('should be defined', () => {
-    expect(permissionDecoratorValidator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

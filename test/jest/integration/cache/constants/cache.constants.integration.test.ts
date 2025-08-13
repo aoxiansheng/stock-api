@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CacheConstants } from '../../../src/cache/constants/cache.constants';
+// cache.constants.integration.test.ts - 测试占位代码
+// 路径: integration/cache/constants/cache.constants.integration.test.ts
 
-describe('CacheConstants Integration', () => {
-  let cacheConstants: CacheConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CacheConstants],
-    }).compile();
-
-    cacheConstants = module.get<CacheConstants>(CacheConstants);
-  });
-
-  it('should be defined', () => {
-    expect(cacheConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

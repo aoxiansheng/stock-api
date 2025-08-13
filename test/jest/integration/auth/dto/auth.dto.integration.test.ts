@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthDto } from '../../../src/auth/dto/auth.dto';
+// auth.dto.integration.test.ts - 测试占位代码
+// 路径: integration/auth/dto/auth.dto.integration.test.ts
 
-describe('AuthDto Integration', () => {
-  let authDto: AuthDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthDto],
-    }).compile();
-
-    authDto = module.get<AuthDto>(AuthDto);
-  });
-
-  it('should be defined', () => {
-    expect(authDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

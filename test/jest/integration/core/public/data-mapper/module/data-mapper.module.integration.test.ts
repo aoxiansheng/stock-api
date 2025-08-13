@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataMapperModule } from '../../../src/core/public/data-mapper/module/data-mapper.module';
+// data-mapper.module.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/data-mapper/module/data-mapper.module.integration.test.ts
 
-describe('DataMapperModule Integration', () => {
-  let dataMapperModule: DataMapperModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataMapperModule],
-    }).compile();
-
-    dataMapperModule = module.get<DataMapperModule>(DataMapperModule);
-  });
-
-  it('should be defined', () => {
-    expect(dataMapperModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

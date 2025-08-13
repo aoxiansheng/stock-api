@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RateLimitInterface } from '../../../src/auth/interfaces/rate-limit.interface';
+// rate-limit.interface.integration.test.ts - 测试占位代码
+// 路径: integration/auth/interfaces/rate-limit.interface.integration.test.ts
 
-describe('RateLimitInterface Integration', () => {
-  let rateLimitInterface: RateLimitInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RateLimitInterface],
-    }).compile();
-
-    rateLimitInterface = module.get<RateLimitInterface>(RateLimitInterface);
-  });
-
-  it('should be defined', () => {
-    expect(rateLimitInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

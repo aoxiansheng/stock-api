@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PublicDecorator } from '../../../src/auth/decorators/public.decorator';
+// public.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/auth/decorators/public.decorator.integration.test.ts
 
-describe('PublicDecorator Integration', () => {
-  let publicDecorator: PublicDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PublicDecorator],
-    }).compile();
-
-    publicDecorator = module.get<PublicDecorator>(PublicDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(publicDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

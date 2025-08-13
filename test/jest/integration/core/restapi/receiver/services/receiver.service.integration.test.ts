@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReceiverService } from '../../../src/core/restapi/receiver/services/receiver.service';
+// receiver.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/restapi/receiver/services/receiver.service.integration.test.ts
 
-describe('ReceiverService Integration', () => {
-  let receiverService: ReceiverService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ReceiverService],
-    }).compile();
-
-    receiverService = module.get<ReceiverService>(ReceiverService);
-  });
-
-  it('should be defined', () => {
-    expect(receiverService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

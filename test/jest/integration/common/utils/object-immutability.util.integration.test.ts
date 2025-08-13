@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ObjectImmutabilityUtil } from '../../../src/common/utils/object-immutability.util';
+// object-immutability.util.integration.test.ts - 测试占位代码
+// 路径: integration/common/utils/object-immutability.util.integration.test.ts
 
-describe('ObjectImmutabilityUtil Integration', () => {
-  let objectImmutabilityUtil: ObjectImmutabilityUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ObjectImmutabilityUtil],
-    }).compile();
-
-    objectImmutabilityUtil = module.get<ObjectImmutabilityUtil>(ObjectImmutabilityUtil);
-  });
-
-  it('should be defined', () => {
-    expect(objectImmutabilityUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

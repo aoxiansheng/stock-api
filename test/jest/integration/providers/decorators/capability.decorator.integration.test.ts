@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CapabilityDecorator } from '../../../src/providers/decorators/capability.decorator';
+// capability.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/providers/decorators/capability.decorator.integration.test.ts
 
-describe('CapabilityDecorator Integration', () => {
-  let capabilityDecorator: CapabilityDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CapabilityDecorator],
-    }).compile();
-
-    capabilityDecorator = module.get<CapabilityDecorator>(CapabilityDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(capabilityDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

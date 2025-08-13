@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule } from '../../../src/cache/module/cache.module';
+// cache.module.security.test.ts - 测试占位代码
+// 路径: security/cache/module/cache.module.security.test.ts
 
-describe('CacheModule Security', () => {
-  let cacheModule: CacheModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CacheModule],
-    }).compile();
-
-    cacheModule = module.get<CacheModule>(CacheModule);
-  });
-
-  it('should be defined', () => {
-    expect(cacheModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

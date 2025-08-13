@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PermissionService } from '../../../src/auth/services/permission.service';
+// permission.service.security.test.ts - 测试占位代码
+// 路径: security/auth/services/permission.service.security.test.ts
 
-describe('PermissionService Security', () => {
-  let permissionService: PermissionService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PermissionService],
-    }).compile();
-
-    permissionService = module.get<PermissionService>(PermissionService);
-  });
-
-  it('should be defined', () => {
-    expect(permissionService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

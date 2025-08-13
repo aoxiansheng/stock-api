@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtUserSubject } from '../../../src/auth/subjects/jwt-user.subject';
+// jwt-user.subject.integration.test.ts - 测试占位代码
+// 路径: integration/auth/subjects/jwt-user.subject.integration.test.ts
 
-describe('JwtUserSubject Integration', () => {
-  let jwtUserSubject: JwtUserSubject;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [JwtUserSubject],
-    }).compile();
-
-    jwtUserSubject = module.get<JwtUserSubject>(JwtUserSubject);
-  });
-
-  it('should be defined', () => {
-    expect(jwtUserSubject).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

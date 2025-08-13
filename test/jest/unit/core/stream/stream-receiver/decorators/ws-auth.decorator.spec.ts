@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { WsAuthDecorator } from '../../../src/core/stream/stream-receiver/decorators/ws-auth.decorator';
+// ws-auth.decorator.spec.ts - 测试占位代码
+// 路径: unit/core/stream/stream-receiver/decorators/ws-auth.decorator.spec.ts
 
-describe('WsAuthDecorator', () => {
-  let wsAuthDecorator: WsAuthDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [WsAuthDecorator],
-    }).compile();
-
-    wsAuthDecorator = module.get<WsAuthDecorator>(WsAuthDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(wsAuthDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

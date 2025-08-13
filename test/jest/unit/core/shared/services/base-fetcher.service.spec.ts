@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BaseFetcherService } from '../../../../../../src/core/shared/services/base-fetcher.service';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { InternalServerErrorException } from '@nestjs/common';
 
 // 创建一个具体的实现类用于测试

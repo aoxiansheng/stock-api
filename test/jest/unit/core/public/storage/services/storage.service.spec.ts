@@ -14,7 +14,7 @@ import {
 import * as zlib from "zlib";
 import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "../../../../../../src/common/modules/pagination/dto/paginated-data";
-import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 
 // Mock createLogger for core modules
 const mockLoggerInstance = {

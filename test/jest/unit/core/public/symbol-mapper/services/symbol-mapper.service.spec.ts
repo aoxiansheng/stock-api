@@ -60,7 +60,7 @@ class MockFeatureFlags {
     return true;
   }
 }
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 const mockSymbolMappingRepository = () => ({
   exists: jest.fn(),

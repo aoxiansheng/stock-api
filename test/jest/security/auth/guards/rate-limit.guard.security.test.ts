@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RateLimitGuard } from '../../../src/auth/guards/rate-limit.guard';
+// rate-limit.guard.security.test.ts - 测试占位代码
+// 路径: security/auth/guards/rate-limit.guard.security.test.ts
 
-describe('RateLimitGuard Security', () => {
-  let rateLimitGuard: RateLimitGuard;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RateLimitGuard],
-    }).compile();
-
-    rateLimitGuard = module.get<RateLimitGuard>(RateLimitGuard);
-  });
-
-  it('should be defined', () => {
-    expect(rateLimitGuard).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

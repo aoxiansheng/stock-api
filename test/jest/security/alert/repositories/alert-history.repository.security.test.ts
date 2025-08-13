@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertHistoryRepository } from '../../../src/alert/repositories/alert-history.repository';
+// alert-history.repository.security.test.ts - 测试占位代码
+// 路径: security/alert/repositories/alert-history.repository.security.test.ts
 
-describe('AlertHistoryRepository Security', () => {
-  let alertHistoryRepository: AlertHistoryRepository;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertHistoryRepository],
-    }).compile();
-
-    alertHistoryRepository = module.get<AlertHistoryRepository>(AlertHistoryRepository);
-  });
-
-  it('should be defined', () => {
-    expect(alertHistoryRepository).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

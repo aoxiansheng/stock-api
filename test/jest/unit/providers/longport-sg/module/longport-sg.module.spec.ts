@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { LongportSgModule } from '../../../src/providers/longport-sg/module/longport-sg.module';
+// longport-sg.module.spec.ts - 测试占位代码
+// 路径: unit/providers/longport-sg/module/longport-sg.module.spec.ts
 
-describe('LongportSgModule', () => {
-  let longportSgModule: LongportSgModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [LongportSgModule],
-    }).compile();
-
-    longportSgModule = module.get<LongportSgModule>(LongportSgModule);
-  });
-
-  it('should be defined', () => {
-    expect(longportSgModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

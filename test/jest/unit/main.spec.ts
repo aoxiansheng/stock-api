@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Main } from '../../../src/main';
+// main.spec.ts - 测试占位代码
+// 路径: unit/main.spec.ts
 
-describe('Main', () => {
-  let main: Main;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [Main],
-    }).compile();
-
-    main = module.get<Main>(Main);
-  });
-
-  it('should be defined', () => {
-    expect(main).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

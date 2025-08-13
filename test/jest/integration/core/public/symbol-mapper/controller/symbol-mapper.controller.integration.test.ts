@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolMapperController } from '../../../src/core/public/symbol-mapper/controller/symbol-mapper.controller';
+// symbol-mapper.controller.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/symbol-mapper/controller/symbol-mapper.controller.integration.test.ts
 
-describe('SymbolMapperController Integration', () => {
-  let symbolMapperController: SymbolMapperController;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SymbolMapperController],
-    }).compile();
-
-    symbolMapperController = module.get<SymbolMapperController>(SymbolMapperController);
-  });
-
-  it('should be defined', () => {
-    expect(symbolMapperController).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

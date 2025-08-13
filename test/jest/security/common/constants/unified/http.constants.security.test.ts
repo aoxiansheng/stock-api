@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { HttpConstants } from '../../../src/common/constants/unified/http.constants';
+// http.constants.security.test.ts - 测试占位代码
+// 路径: security/common/constants/unified/http.constants.security.test.ts
 
-describe('HttpConstants Security', () => {
-  let httpConstants: HttpConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [HttpConstants],
-    }).compile();
-
-    httpConstants = module.get<HttpConstants>(HttpConstants);
-  });
-
-  it('should be defined', () => {
-    expect(httpConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

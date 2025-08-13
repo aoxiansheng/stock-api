@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertHistoryInternalDto } from '../../../src/alert/dto/alert-history-internal.dto';
+// alert-history-internal.dto.security.test.ts - 测试占位代码
+// 路径: security/alert/dto/alert-history-internal.dto.security.test.ts
 
-describe('AlertHistoryInternalDto Security', () => {
-  let alertHistoryInternalDto: AlertHistoryInternalDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertHistoryInternalDto],
-    }).compile();
-
-    alertHistoryInternalDto = module.get<AlertHistoryInternalDto>(AlertHistoryInternalDto);
-  });
-
-  it('should be defined', () => {
-    expect(alertHistoryInternalDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -12,7 +12,7 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { FeatureFlags } from "@common/config/feature-flags.config";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
 
 import {

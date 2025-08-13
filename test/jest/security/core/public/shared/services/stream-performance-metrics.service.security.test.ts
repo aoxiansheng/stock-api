@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamPerformanceMetricsService } from '../../../src/core/public/shared/services/stream-performance-metrics.service';
+// stream-performance-metrics.service.security.test.ts - 测试占位代码
+// 路径: security/core/public/shared/services/stream-performance-metrics.service.security.test.ts
 
-describe('StreamPerformanceMetricsService Security', () => {
-  let streamPerformanceMetricsService: StreamPerformanceMetricsService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamPerformanceMetricsService],
-    }).compile();
-
-    streamPerformanceMetricsService = module.get<StreamPerformanceMetricsService>(StreamPerformanceMetricsService);
-  });
-
-  it('should be defined', () => {
-    expect(streamPerformanceMetricsService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

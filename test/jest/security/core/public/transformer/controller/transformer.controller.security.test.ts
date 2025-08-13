@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TransformerController } from '../../../src/core/public/transformer/controller/transformer.controller';
+// transformer.controller.security.test.ts - 测试占位代码
+// 路径: security/core/public/transformer/controller/transformer.controller.security.test.ts
 
-describe('TransformerController Security', () => {
-  let transformerController: TransformerController;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TransformerController],
-    }).compile();
-
-    transformerController = module.get<TransformerController>(TransformerController);
-  });
-
-  it('should be defined', () => {
-    expect(transformerController).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

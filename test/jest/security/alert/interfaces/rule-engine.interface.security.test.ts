@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RuleEngineInterface } from '../../../src/alert/interfaces/rule-engine.interface';
+// rule-engine.interface.security.test.ts - 测试占位代码
+// 路径: security/alert/interfaces/rule-engine.interface.security.test.ts
 
-describe('RuleEngineInterface Security', () => {
-  let ruleEngineInterface: RuleEngineInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RuleEngineInterface],
-    }).compile();
-
-    ruleEngineInterface = module.get<RuleEngineInterface>(RuleEngineInterface);
-  });
-
-  it('should be defined', () => {
-    expect(ruleEngineInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

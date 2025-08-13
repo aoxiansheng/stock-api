@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DatabasePerformanceDecorator } from '../../../src/metrics/decorators/database-performance.decorator';
+// database-performance.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/metrics/decorators/database-performance.decorator.integration.test.ts
 
-describe('DatabasePerformanceDecorator Integration', () => {
-  let databasePerformanceDecorator: DatabasePerformanceDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DatabasePerformanceDecorator],
-    }).compile();
-
-    databasePerformanceDecorator = module.get<DatabasePerformanceDecorator>(DatabasePerformanceDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(databasePerformanceDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

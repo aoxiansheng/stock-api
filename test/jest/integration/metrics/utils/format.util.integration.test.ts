@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { FormatUtil } from '../../../src/metrics/utils/format.util';
+// format.util.integration.test.ts - 测试占位代码
+// 路径: integration/metrics/utils/format.util.integration.test.ts
 
-describe('FormatUtil Integration', () => {
-  let formatUtil: FormatUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [FormatUtil],
-    }).compile();
-
-    formatUtil = module.get<FormatUtil>(FormatUtil);
-  });
-
-  it('should be defined', () => {
-    expect(formatUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

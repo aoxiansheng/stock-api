@@ -1,18 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
-import { SymbolMapperService } from '../../public/symbol-mapper/services/symbol-mapper.service';
-import { TransformerService } from '../../public/transformer/services/transformer.service';
-import { StreamDataFetcherService } from '../stream-data-fetcher/services/stream-data-fetcher.service';
-import { StreamRecoveryWorkerService, RecoveryJob } from '../stream-data-fetcher/services/stream-recovery-worker.service';
+import { SymbolMapperService } from '../../../public/symbol-mapper/services/symbol-mapper.service';
+import { TransformerService } from '../../../public/transformer/services/transformer.service';
+import { StreamDataFetcherService } from '../../stream-data-fetcher/services/stream-data-fetcher.service';
+import { StreamRecoveryWorkerService, RecoveryJob } from '../../stream-data-fetcher/services/stream-recovery-worker.service';
 import { 
   ClientReconnectRequest, 
   ClientReconnectResponse 
-} from '../stream-data-fetcher/interfaces';
-import { StreamSubscribeDto, StreamUnsubscribeDto } from './dto';
-import { TransformRequestDto } from '../../public/transformer/dto/transform-request.dto';
-import { StreamConnection, StreamConnectionParams } from '../stream-data-fetcher/interfaces';
+} from '../../stream-data-fetcher/interfaces';
+import { StreamSubscribeDto } from '../dto/stream-subscribe.dto';
+import { StreamUnsubscribeDto } from '../dto/stream-unsubscribe.dto';
+import { TransformRequestDto } from '../../../public/transformer/dto/transform-request.dto';
+import { StreamConnection, StreamConnectionParams } from '../../stream-data-fetcher/interfaces';
 import { Subject } from 'rxjs';
-import { MetricsRegistryService } from '../../../monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 import { bufferTime, filter, mergeMap } from 'rxjs/operators';
 
 /**

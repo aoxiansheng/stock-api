@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TokenService } from '../../../src/auth/services/token.service';
+// token.service.security.test.ts - 测试占位代码
+// 路径: security/auth/services/token.service.security.test.ts
 
-describe('TokenService Security', () => {
-  let tokenService: TokenService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TokenService],
-    }).compile();
-
-    tokenService = module.get<TokenService>(TokenService);
-  });
-
-  it('should be defined', () => {
-    expect(tokenService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

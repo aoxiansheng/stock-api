@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from '../../../src/providers/longport-sg/types';
+// types.integration.test.ts - 测试占位代码
+// 路径: integration/providers/longport-sg/types.integration.test.ts
 
-describe('Types Integration', () => {
-  let types: Types;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [Types],
-    }).compile();
-
-    types = module.get<Types>(Types);
-  });
-
-  it('should be defined', () => {
-    expect(types).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

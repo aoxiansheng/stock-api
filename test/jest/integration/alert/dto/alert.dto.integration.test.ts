@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertDto } from '../../../src/alert/dto/alert.dto';
+// alert.dto.integration.test.ts - 测试占位代码
+// 路径: integration/alert/dto/alert.dto.integration.test.ts
 
-describe('AlertDto Integration', () => {
-  let alertDto: AlertDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertDto],
-    }).compile();
-
-    alertDto = module.get<AlertDto>(AlertDto);
-  });
-
-  it('should be defined', () => {
-    expect(alertDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

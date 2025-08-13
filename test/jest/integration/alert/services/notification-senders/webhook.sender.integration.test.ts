@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { WebhookSender } from '../../../src/alert/services/notification-senders/webhook.sender';
+// webhook.sender.integration.test.ts - 测试占位代码
+// 路径: integration/alert/services/notification-senders/webhook.sender.integration.test.ts
 
-describe('WebhookSender Integration', () => {
-  let webhookSender: WebhookSender;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [WebhookSender],
-    }).compile();
-
-    webhookSender = module.get<WebhookSender>(WebhookSender);
-  });
-
-  it('should be defined', () => {
-    expect(webhookSender).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

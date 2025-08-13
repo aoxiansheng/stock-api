@@ -5,7 +5,7 @@ import {
   CapabilityCollectionItem,
   ProviderCollectionItem,
   Constructor
-} from './metadata.types';
+} from './types/metadata.types';
 
 /**
  * 能力收集器 - 使用装饰器收集所有注册的能力和提供商

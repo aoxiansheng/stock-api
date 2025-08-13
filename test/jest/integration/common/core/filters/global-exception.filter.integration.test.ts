@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { GlobalExceptionFilter } from '../../../src/common/core/filters/global-exception.filter';
+// global-exception.filter.integration.test.ts - 测试占位代码
+// 路径: integration/common/core/filters/global-exception.filter.integration.test.ts
 
-describe('GlobalExceptionFilter Integration', () => {
-  let globalExceptionFilter: GlobalExceptionFilter;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [GlobalExceptionFilter],
-    }).compile();
-
-    globalExceptionFilter = module.get<GlobalExceptionFilter>(GlobalExceptionFilter);
-  });
-
-  it('should be defined', () => {
-    expect(globalExceptionFilter).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

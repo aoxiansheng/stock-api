@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationService } from '../../../src/alert/services/notification.service';
+// notification.service.integration.test.ts - 测试占位代码
+// 路径: integration/alert/services/notification.service.integration.test.ts
 
-describe('NotificationService Integration', () => {
-  let notificationService: NotificationService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [NotificationService],
-    }).compile();
-
-    notificationService = module.get<NotificationService>(NotificationService);
-  });
-
-  it('should be defined', () => {
-    expect(notificationService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

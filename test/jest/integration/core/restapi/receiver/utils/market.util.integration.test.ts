@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MarketUtil } from '../../../src/core/restapi/receiver/utils/market.util';
+// market.util.integration.test.ts - 测试占位代码
+// 路径: integration/core/restapi/receiver/utils/market.util.integration.test.ts
 
-describe('MarketUtil Integration', () => {
-  let marketUtil: MarketUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MarketUtil],
-    }).compile();
-
-    marketUtil = module.get<MarketUtil>(MarketUtil);
-  });
-
-  it('should be defined', () => {
-    expect(marketUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

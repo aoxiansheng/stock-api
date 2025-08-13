@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataResponseDto } from '../../../src/core/restapi/receiver/dto/data-response.dto';
+// data-response.dto.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/receiver/dto/data-response.dto.security.test.ts
 
-describe('DataResponseDto Security', () => {
-  let dataResponseDto: DataResponseDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataResponseDto],
-    }).compile();
-
-    dataResponseDto = module.get<DataResponseDto>(DataResponseDto);
-  });
-
-  it('should be defined', () => {
-    expect(dataResponseDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

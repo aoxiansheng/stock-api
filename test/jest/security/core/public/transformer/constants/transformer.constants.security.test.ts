@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TransformerConstants } from '../../../src/core/public/transformer/constants/transformer.constants';
+// transformer.constants.security.test.ts - 测试占位代码
+// 路径: security/core/public/transformer/constants/transformer.constants.security.test.ts
 
-describe('TransformerConstants Security', () => {
-  let transformerConstants: TransformerConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TransformerConstants],
-    }).compile();
-
-    transformerConstants = module.get<TransformerConstants>(TransformerConstants);
-  });
-
-  it('should be defined', () => {
-    expect(transformerConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

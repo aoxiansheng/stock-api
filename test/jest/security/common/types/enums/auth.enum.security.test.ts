@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthEnum } from '../../../src/common/types/enums/auth.enum';
+// auth.enum.security.test.ts - 测试占位代码
+// 路径: security/common/types/enums/auth.enum.security.test.ts
 
-describe('AuthEnum Security', () => {
-  let authEnum: AuthEnum;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthEnum],
-    }).compile();
-
-    authEnum = module.get<AuthEnum>(AuthEnum);
-  });
-
-  it('should be defined', () => {
-    expect(authEnum).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

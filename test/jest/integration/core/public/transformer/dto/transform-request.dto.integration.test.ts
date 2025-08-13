@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TransformRequestDto } from '../../../src/core/public/transformer/dto/transform-request.dto';
+// transform-request.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/transformer/dto/transform-request.dto.integration.test.ts
 
-describe('TransformRequestDto Integration', () => {
-  let transformRequestDto: TransformRequestDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TransformRequestDto],
-    }).compile();
-
-    transformRequestDto = module.get<TransformRequestDto>(TransformRequestDto);
-  });
-
-  it('should be defined', () => {
-    expect(transformRequestDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

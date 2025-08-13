@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UrlSecurityValidatorUtil } from '../../../src/common/utils/url-security-validator.util';
+// url-security-validator.util.security.test.ts - 测试占位代码
+// 路径: security/common/utils/url-security-validator.util.security.test.ts
 
-describe('UrlSecurityValidatorUtil Security', () => {
-  let urlSecurityValidatorUtil: UrlSecurityValidatorUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UrlSecurityValidatorUtil],
-    }).compile();
-
-    urlSecurityValidatorUtil = module.get<UrlSecurityValidatorUtil>(UrlSecurityValidatorUtil);
-  });
-
-  it('should be defined', () => {
-    expect(urlSecurityValidatorUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

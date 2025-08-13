@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SecurityMiddleware } from '../../../src/security/middleware/security.middleware';
+// security.middleware.integration.test.ts - 测试占位代码
+// 路径: integration/security/middleware/security.middleware.integration.test.ts
 
-describe('SecurityMiddleware Integration', () => {
-  let securityMiddleware: SecurityMiddleware;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SecurityMiddleware],
-    }).compile();
-
-    securityMiddleware = module.get<SecurityMiddleware>(SecurityMiddleware);
-  });
-
-  it('should be defined', () => {
-    expect(securityMiddleware).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

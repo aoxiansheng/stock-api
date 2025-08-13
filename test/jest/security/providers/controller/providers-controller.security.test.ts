@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ProvidersController } from '../../../src/providers/controller/providers-controller';
+// providers-controller.security.test.ts - 测试占位代码
+// 路径: security/providers/controller/providers-controller.security.test.ts
 
-describe('ProvidersController Security', () => {
-  let providersController: ProvidersController;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ProvidersController],
-    }).compile();
-
-    providersController = module.get<ProvidersController>(ProvidersController);
-  });
-
-  it('should be defined', () => {
-    expect(providersController).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

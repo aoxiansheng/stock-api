@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataSourceTemplateService } from '../../../src/core/public/data-mapper/services/data-source-template.service';
+// data-source-template.service.security.test.ts - 测试占位代码
+// 路径: security/core/public/data-mapper/services/data-source-template.service.security.test.ts
 
-describe('DataSourceTemplateService Security', () => {
-  let dataSourceTemplateService: DataSourceTemplateService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataSourceTemplateService],
-    }).compile();
-
-    dataSourceTemplateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
-  });
-
-  it('should be defined', () => {
-    expect(dataSourceTemplateService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

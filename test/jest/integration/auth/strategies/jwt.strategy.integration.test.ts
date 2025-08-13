@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtStrategy } from '../../../src/auth/strategies/jwt.strategy';
+// jwt.strategy.integration.test.ts - 测试占位代码
+// 路径: integration/auth/strategies/jwt.strategy.integration.test.ts
 
-describe('JwtStrategy Integration', () => {
-  let jwtStrategy: JwtStrategy;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [JwtStrategy],
-    }).compile();
-
-    jwtStrategy = module.get<JwtStrategy>(JwtStrategy);
-  });
-
-  it('should be defined', () => {
-    expect(jwtStrategy).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

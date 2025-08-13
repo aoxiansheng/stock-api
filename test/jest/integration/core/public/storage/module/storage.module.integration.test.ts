@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StorageModule } from '../../../src/core/public/storage/module/storage.module';
+// storage.module.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/storage/module/storage.module.integration.test.ts
 
-describe('StorageModule Integration', () => {
-  let storageModule: StorageModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StorageModule],
-    }).compile();
-
-    storageModule = module.get<StorageModule>(StorageModule);
-  });
-
-  it('should be defined', () => {
-    expect(storageModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

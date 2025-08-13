@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceMonitoringDecorator } from '../../../src/common/core/decorators/performance-monitoring.decorator';
+// performance-monitoring.decorator.security.test.ts - 测试占位代码
+// 路径: security/common/core/decorators/performance-monitoring.decorator.security.test.ts
 
-describe('PerformanceMonitoringDecorator Security', () => {
-  let performanceMonitoringDecorator: PerformanceMonitoringDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceMonitoringDecorator],
-    }).compile();
-
-    performanceMonitoringDecorator = module.get<PerformanceMonitoringDecorator>(PerformanceMonitoringDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(performanceMonitoringDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

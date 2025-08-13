@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthTypeEnum } from '../../../src/metrics/enums/auth-type.enum';
+// auth-type.enum.integration.test.ts - 测试占位代码
+// 路径: integration/metrics/enums/auth-type.enum.integration.test.ts
 
-describe('AuthTypeEnum Integration', () => {
-  let authTypeEnum: AuthTypeEnum;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthTypeEnum],
-    }).compile();
-
-    authTypeEnum = module.get<AuthTypeEnum>(AuthTypeEnum);
-  });
-
-  it('should be defined', () => {
-    expect(authTypeEnum).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

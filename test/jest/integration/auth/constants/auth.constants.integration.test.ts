@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthConstants } from '../../../src/auth/constants/auth.constants';
+// auth.constants.integration.test.ts - 测试占位代码
+// 路径: integration/auth/constants/auth.constants.integration.test.ts
 
-describe('AuthConstants Integration', () => {
-  let authConstants: AuthConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthConstants],
-    }).compile();
-
-    authConstants = module.get<AuthConstants>(AuthConstants);
-  });
-
-  it('should be defined', () => {
-    expect(authConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -12,7 +12,7 @@ import { DataChangeDetectorService } from "../services/data-change-detector.serv
 import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
 import { BackgroundTaskService } from "../services/background-task.service";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { StreamPerformanceMetrics } from "../services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
 import { BaseFetcherService } from "../services/base-fetcher.service";

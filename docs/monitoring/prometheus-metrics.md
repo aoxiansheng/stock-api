@@ -75,7 +75,7 @@
 ### 4.1 在 `MetricsRegistryService` 中定义
 
 ```typescript
-// 在 src/monitoring/metrics/metrics-registry.service.ts 中添加
+// 在 src/monitoring/metrics/services/metrics-registry.service.ts 中添加
 
 @Injectable()
 export class MetricsRegistryService implements OnModuleInit {

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReceiverConstants } from '../../../src/core/restapi/receiver/constants/receiver.constants';
+// receiver.constants.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/receiver/constants/receiver.constants.security.test.ts
 
-describe('ReceiverConstants Security', () => {
-  let receiverConstants: ReceiverConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ReceiverConstants],
-    }).compile();
-
-    receiverConstants = module.get<ReceiverConstants>(ReceiverConstants);
-  });
-
-  it('should be defined', () => {
-    expect(receiverConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

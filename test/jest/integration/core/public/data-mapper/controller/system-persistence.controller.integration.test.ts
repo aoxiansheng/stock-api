@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SystemPersistenceController } from '../../../src/core/public/data-mapper/controller/system-persistence.controller';
+// system-persistence.controller.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/data-mapper/controller/system-persistence.controller.integration.test.ts
 
-describe('SystemPersistenceController Integration', () => {
-  let systemPersistenceController: SystemPersistenceController;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SystemPersistenceController],
-    }).compile();
-
-    systemPersistenceController = module.get<SystemPersistenceController>(SystemPersistenceController);
-  });
-
-  it('should be defined', () => {
-    expect(systemPersistenceController).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

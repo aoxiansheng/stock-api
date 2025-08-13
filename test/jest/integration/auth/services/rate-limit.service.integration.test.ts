@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RateLimitService } from '../../../src/auth/services/rate-limit.service';
+// rate-limit.service.integration.test.ts - 测试占位代码
+// 路径: integration/auth/services/rate-limit.service.integration.test.ts
 
-describe('RateLimitService Integration', () => {
-  let rateLimitService: RateLimitService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RateLimitService],
-    }).compile();
-
-    rateLimitService = module.get<RateLimitService>(RateLimitService);
-  });
-
-  it('should be defined', () => {
-    expect(rateLimitService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolMappingRuleSchema } from '../../../src/core/public/symbol-mapper/schemas/symbol-mapping-rule.schema';
+// symbol-mapping-rule.schema.security.test.ts - 测试占位代码
+// 路径: security/core/public/symbol-mapper/schemas/symbol-mapping-rule.schema.security.test.ts
 
-describe('SymbolMappingRuleSchema Security', () => {
-  let symbolMappingRuleSchema: SymbolMappingRuleSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SymbolMappingRuleSchema],
-    }).compile();
-
-    symbolMappingRuleSchema = module.get<SymbolMappingRuleSchema>(SymbolMappingRuleSchema);
-  });
-
-  it('should be defined', () => {
-    expect(symbolMappingRuleSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

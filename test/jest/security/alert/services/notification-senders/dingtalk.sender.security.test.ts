@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DingtalkSender } from '../../../src/alert/services/notification-senders/dingtalk.sender';
+// dingtalk.sender.security.test.ts - 测试占位代码
+// 路径: security/alert/services/notification-senders/dingtalk.sender.security.test.ts
 
-describe('DingtalkSender Security', () => {
-  let dingtalkSender: DingtalkSender;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DingtalkSender],
-    }).compile();
-
-    dingtalkSender = module.get<DingtalkSender>(DingtalkSender);
-  });
-
-  it('should be defined', () => {
-    expect(dingtalkSender).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

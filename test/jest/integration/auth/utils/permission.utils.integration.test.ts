@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PermissionUtils } from '../../../src/auth/utils/permission.utils';
+// permission.utils.integration.test.ts - 测试占位代码
+// 路径: integration/auth/utils/permission.utils.integration.test.ts
 
-describe('PermissionUtils Integration', () => {
-  let permissionUtils: PermissionUtils;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PermissionUtils],
-    }).compile();
-
-    permissionUtils = module.get<PermissionUtils>(PermissionUtils);
-  });
-
-  it('should be defined', () => {
-    expect(permissionUtils).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

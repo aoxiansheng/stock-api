@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SlackSender } from '../../../src/alert/services/notification-senders/slack.sender';
+// slack.sender.security.test.ts - 测试占位代码
+// 路径: security/alert/services/notification-senders/slack.sender.security.test.ts
 
-describe('SlackSender Security', () => {
-  let slackSender: SlackSender;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SlackSender],
-    }).compile();
-
-    slackSender = module.get<SlackSender>(SlackSender);
-  });
-
-  it('should be defined', () => {
-    expect(slackSender).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

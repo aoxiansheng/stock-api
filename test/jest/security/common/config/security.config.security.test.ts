@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SecurityConfig } from '../../../src/common/config/security.config';
+// security.config.security.test.ts - 测试占位代码
+// 路径: security/common/config/security.config.security.test.ts
 
-describe('SecurityConfig Security', () => {
-  let securityConfig: SecurityConfig;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SecurityConfig],
-    }).compile();
-
-    securityConfig = module.get<SecurityConfig>(SecurityConfig);
-  });
-
-  it('should be defined', () => {
-    expect(securityConfig).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

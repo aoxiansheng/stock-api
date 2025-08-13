@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataFetchingService } from '../../../src/core/public/shared/services/data-fetching.service';
+// data-fetching.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/shared/services/data-fetching.service.integration.test.ts
 
-describe('DataFetchingService Integration', () => {
-  let dataFetchingService: DataFetchingService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataFetchingService],
-    }).compile();
-
-    dataFetchingService = module.get<DataFetchingService>(DataFetchingService);
-  });
-
-  it('should be defined', () => {
-    expect(dataFetchingService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

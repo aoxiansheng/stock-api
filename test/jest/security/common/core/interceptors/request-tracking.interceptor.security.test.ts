@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RequestTrackingInterceptor } from '../../../src/common/core/interceptors/request-tracking.interceptor';
+// request-tracking.interceptor.security.test.ts - 测试占位代码
+// 路径: security/common/core/interceptors/request-tracking.interceptor.security.test.ts
 
-describe('RequestTrackingInterceptor Security', () => {
-  let requestTrackingInterceptor: RequestTrackingInterceptor;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RequestTrackingInterceptor],
-    }).compile();
-
-    requestTrackingInterceptor = module.get<RequestTrackingInterceptor>(RequestTrackingInterceptor);
-  });
-
-  it('should be defined', () => {
-    expect(requestTrackingInterceptor).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -14,7 +14,7 @@ import {
   ProviderInfo,
   CapabilityCollectionItem,
   ProviderCollectionItem
-} from '../decorators/metadata.types';
+} from '../decorators/types/metadata.types';
 
 export interface RegistryStats {
   totalCapabilities: number;

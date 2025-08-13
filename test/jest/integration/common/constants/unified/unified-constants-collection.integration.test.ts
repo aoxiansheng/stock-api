@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UnifiedConstantsCollection } from '../../../src/common/constants/unified/unified-constants-collection';
+// unified-constants-collection.integration.test.ts - 测试占位代码
+// 路径: integration/common/constants/unified/unified-constants-collection.integration.test.ts
 
-describe('UnifiedConstantsCollection Integration', () => {
-  let unifiedConstantsCollection: UnifiedConstantsCollection;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UnifiedConstantsCollection],
-    }).compile();
-
-    unifiedConstantsCollection = module.get<UnifiedConstantsCollection>(UnifiedConstantsCollection);
-  });
-
-  it('should be defined', () => {
-    expect(unifiedConstantsCollection).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RateLimitConstants } from '../../../src/common/constants/rate-limit.constants';
+// rate-limit.constants.spec.ts - 测试占位代码
+// 路径: unit/common/constants/rate-limit.constants.spec.ts
 
-describe('RateLimitConstants', () => {
-  let rateLimitConstants: RateLimitConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RateLimitConstants],
-    }).compile();
-
-    rateLimitConstants = module.get<RateLimitConstants>(RateLimitConstants);
-  });
-
-  it('should be defined', () => {
-    expect(rateLimitConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

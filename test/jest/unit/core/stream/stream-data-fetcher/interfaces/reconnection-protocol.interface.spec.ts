@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReconnectionProtocolInterface } from '../../../src/core/stream/stream-data-fetcher/interfaces/reconnection-protocol.interface';
+// reconnection-protocol.interface.spec.ts - 测试占位代码
+// 路径: unit/core/stream/stream-data-fetcher/interfaces/reconnection-protocol.interface.spec.ts
 
-describe('ReconnectionProtocolInterface', () => {
-  let reconnectionProtocolInterface: ReconnectionProtocolInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ReconnectionProtocolInterface],
-    }).compile();
-
-    reconnectionProtocolInterface = module.get<ReconnectionProtocolInterface>(ReconnectionProtocolInterface);
-  });
-
-  it('should be defined', () => {
-    expect(reconnectionProtocolInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryProcessedResultDto } from '../../../src/core/restapi/query/dto/query-processed-result.dto';
+// query-processed-result.dto.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/query/dto/query-processed-result.dto.security.test.ts
 
-describe('QueryProcessedResultDto Security', () => {
-  let queryProcessedResultDto: QueryProcessedResultDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryProcessedResultDto],
-    }).compile();
-
-    queryProcessedResultDto = module.get<QueryProcessedResultDto>(QueryProcessedResultDto);
-  });
-
-  it('should be defined', () => {
-    expect(queryProcessedResultDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

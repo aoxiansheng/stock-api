@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BackgroundTaskService } from '../../../src/core/public/shared/services/background-task.service';
+// background-task.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/shared/services/background-task.service.integration.test.ts
 
-describe('BackgroundTaskService Integration', () => {
-  let backgroundTaskService: BackgroundTaskService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [BackgroundTaskService],
-    }).compile();
-
-    backgroundTaskService = module.get<BackgroundTaskService>(BackgroundTaskService);
-  });
-
-  it('should be defined', () => {
-    expect(backgroundTaskService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

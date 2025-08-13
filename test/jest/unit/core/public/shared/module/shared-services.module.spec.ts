@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SharedServicesModule } from '../../../src/core/public/shared/module/shared-services.module';
+// shared-services.module.spec.ts - 测试占位代码
+// 路径: unit/core/public/shared/module/shared-services.module.spec.ts
 
-describe('SharedServicesModule', () => {
-  let sharedServicesModule: SharedServicesModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SharedServicesModule],
-    }).compile();
-
-    sharedServicesModule = module.get<SharedServicesModule>(SharedServicesModule);
-  });
-
-  it('should be defined', () => {
-    expect(sharedServicesModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

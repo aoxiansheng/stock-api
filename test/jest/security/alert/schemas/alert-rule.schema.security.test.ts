@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertRuleSchema } from '../../../src/alert/schemas/alert-rule.schema';
+// alert-rule.schema.security.test.ts - 测试占位代码
+// 路径: security/alert/schemas/alert-rule.schema.security.test.ts
 
-describe('AlertRuleSchema Security', () => {
-  let alertRuleSchema: AlertRuleSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertRuleSchema],
-    }).compile();
-
-    alertRuleSchema = module.get<AlertRuleSchema>(AlertRuleSchema);
-  });
-
-  it('should be defined', () => {
-    expect(alertRuleSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

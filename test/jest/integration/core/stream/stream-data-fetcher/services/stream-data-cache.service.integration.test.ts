@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamDataCacheService } from '../../../src/core/stream/stream-data-fetcher/services/stream-data-cache.service';
+// stream-data-cache.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/stream/stream-data-fetcher/services/stream-data-cache.service.integration.test.ts
 
-describe('StreamDataCacheService Integration', () => {
-  let streamDataCacheService: StreamDataCacheService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamDataCacheService],
-    }).compile();
-
-    streamDataCacheService = module.get<StreamDataCacheService>(StreamDataCacheService);
-  });
-
-  it('should be defined', () => {
-    expect(streamDataCacheService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

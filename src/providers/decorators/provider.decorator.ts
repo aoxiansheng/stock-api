@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Injectable } from '@nestjs/common';
-import { ProviderMetadata, Constructor } from './metadata.types';
+import { ProviderMetadata, Constructor } from './types/metadata.types';
 import { CapabilityCollector } from './capability-collector';
 
 /**

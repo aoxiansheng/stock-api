@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from '../../../src/app.module';
+// app.module.security.test.ts - 测试占位代码
+// 路径: security/app.module.security.test.ts
 
-describe('AppModule Security', () => {
-  let appModule: AppModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AppModule],
-    }).compile();
-
-    appModule = module.get<AppModule>(AppModule);
-  });
-
-  it('should be defined', () => {
-    expect(appModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

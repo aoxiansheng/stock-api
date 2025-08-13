@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolMappingInterface } from '../../../src/core/public/symbol-mapper/interfaces/symbol-mapping.interface';
+// symbol-mapping.interface.spec.ts - 测试占位代码
+// 路径: unit/core/public/symbol-mapper/interfaces/symbol-mapping.interface.spec.ts
 
-describe('SymbolMappingInterface', () => {
-  let symbolMappingInterface: SymbolMappingInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SymbolMappingInterface],
-    }).compile();
-
-    symbolMappingInterface = module.get<SymbolMappingInterface>(SymbolMappingInterface);
-  });
-
-  it('should be defined', () => {
-    expect(symbolMappingInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

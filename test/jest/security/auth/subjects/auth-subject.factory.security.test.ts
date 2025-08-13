@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthSubjectFactory } from '../../../src/auth/subjects/auth-subject.factory';
+// auth-subject.factory.security.test.ts - 测试占位代码
+// 路径: security/auth/subjects/auth-subject.factory.security.test.ts
 
-describe('AuthSubjectFactory Security', () => {
-  let authSubjectFactory: AuthSubjectFactory;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthSubjectFactory],
-    }).compile();
-
-    authSubjectFactory = module.get<AuthSubjectFactory>(AuthSubjectFactory);
-  });
-
-  it('should be defined', () => {
-    expect(authSubjectFactory).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

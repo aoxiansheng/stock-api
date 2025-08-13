@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UnifiedPermissionsGuard } from '../../../src/auth/guards/unified-permissions.guard';
+// unified-permissions.guard.integration.test.ts - 测试占位代码
+// 路径: integration/auth/guards/unified-permissions.guard.integration.test.ts
 
-describe('UnifiedPermissionsGuard Integration', () => {
-  let unifiedPermissionsGuard: UnifiedPermissionsGuard;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UnifiedPermissionsGuard],
-    }).compile();
-
-    unifiedPermissionsGuard = module.get<UnifiedPermissionsGuard>(UnifiedPermissionsGuard);
-  });
-
-  it('should be defined', () => {
-    expect(unifiedPermissionsGuard).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

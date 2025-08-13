@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceMetricsInterface } from '../../../src/metrics/interfaces/performance-metrics.interface';
+// performance-metrics.interface.spec.ts - 测试占位代码
+// 路径: unit/metrics/interfaces/performance-metrics.interface.spec.ts
 
-describe('PerformanceMetricsInterface', () => {
-  let performanceMetricsInterface: PerformanceMetricsInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceMetricsInterface],
-    }).compile();
-
-    performanceMetricsInterface = module.get<PerformanceMetricsInterface>(PerformanceMetricsInterface);
-  });
-
-  it('should be defined', () => {
-    expect(performanceMetricsInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

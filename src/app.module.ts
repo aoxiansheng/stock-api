@@ -16,7 +16,7 @@ import { RateLimitGuard } from "./auth/guards/rate-limit.guard";
 import { DataMapperModule } from "./core/public/data-mapper/module/data-mapper.module";
 import { QueryModule } from "./core/restapi/query/module/query.module";
 import { ReceiverModule } from "./core/restapi/receiver/module/receiver.module";
-import { StreamReceiverModule } from "./core/stream/stream-receiver/stream-receiver.module";
+import { StreamReceiverModule } from "./core/stream/stream-receiver/module/stream-receiver.module";
 import { StorageModule } from "./core/public/storage/module/storage.module";
 import { SymbolMapperModule } from "./core/public/symbol-mapper/module/symbol-mapper.module";
 import { TransformerModule } from "./core/public/transformer/module/transformer.module";

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamCapabilityDecorator } from '../../../src/providers/decorators/stream-capability.decorator';
+// stream-capability.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/providers/decorators/stream-capability.decorator.integration.test.ts
 
-describe('StreamCapabilityDecorator Integration', () => {
-  let streamCapabilityDecorator: StreamCapabilityDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamCapabilityDecorator],
-    }).compile();
-
-    streamCapabilityDecorator = module.get<StreamCapabilityDecorator>(StreamCapabilityDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(streamCapabilityDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

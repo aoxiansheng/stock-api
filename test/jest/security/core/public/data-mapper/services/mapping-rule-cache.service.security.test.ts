@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MappingRuleCacheService } from '../../../src/core/public/data-mapper/services/mapping-rule-cache.service';
+// mapping-rule-cache.service.security.test.ts - 测试占位代码
+// 路径: security/core/public/data-mapper/services/mapping-rule-cache.service.security.test.ts
 
-describe('MappingRuleCacheService Security', () => {
-  let mappingRuleCacheService: MappingRuleCacheService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MappingRuleCacheService],
-    }).compile();
-
-    mappingRuleCacheService = module.get<MappingRuleCacheService>(MappingRuleCacheService);
-  });
-
-  it('should be defined', () => {
-    expect(mappingRuleCacheService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

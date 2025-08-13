@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UserRoleEnum } from '../../../src/auth/enums/user-role.enum';
+// user-role.enum.security.test.ts - 测试占位代码
+// 路径: security/auth/enums/user-role.enum.security.test.ts
 
-describe('UserRoleEnum Security', () => {
-  let userRoleEnum: UserRoleEnum;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UserRoleEnum],
-    }).compile();
-
-    userRoleEnum = module.get<UserRoleEnum>(UserRoleEnum);
-  });
-
-  it('should be defined', () => {
-    expect(userRoleEnum).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

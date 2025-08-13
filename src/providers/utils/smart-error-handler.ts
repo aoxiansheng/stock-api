@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createLogger } from '@common/config/logger.config';
 import { SmartPathResolver } from './smart-path-resolver';
-import { ConventionViolation } from '../decorators/metadata.types';
+import { ConventionViolation } from '../decorators/types/metadata.types';
 
 export interface AutoFixResult {
   success: boolean;

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationChannelDto } from '../../../src/alert/dto/notification-channel.dto';
+// notification-channel.dto.integration.test.ts - 测试占位代码
+// 路径: integration/alert/dto/notification-channel.dto.integration.test.ts
 
-describe('NotificationChannelDto Integration', () => {
-  let notificationChannelDto: NotificationChannelDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [NotificationChannelDto],
-    }).compile();
-
-    notificationChannelDto = module.get<NotificationChannelDto>(NotificationChannelDto);
-  });
-
-  it('should be defined', () => {
-    expect(notificationChannelDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

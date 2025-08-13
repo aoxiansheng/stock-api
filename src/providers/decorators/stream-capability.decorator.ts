@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { CapabilityMetadata } from './metadata.types';
+import { CapabilityMetadata } from './types/metadata.types';
 import { Capability } from './capability.decorator';
 
 /**

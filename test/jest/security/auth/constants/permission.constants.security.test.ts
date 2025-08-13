@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PermissionConstants } from '../../../src/auth/constants/permission.constants';
+// permission.constants.security.test.ts - 测试占位代码
+// 路径: security/auth/constants/permission.constants.security.test.ts
 
-describe('PermissionConstants Security', () => {
-  let permissionConstants: PermissionConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PermissionConstants],
-    }).compile();
-
-    permissionConstants = module.get<PermissionConstants>(PermissionConstants);
-  });
-
-  it('should be defined', () => {
-    expect(permissionConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

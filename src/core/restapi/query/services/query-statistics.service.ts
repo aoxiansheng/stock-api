@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
 
 import {

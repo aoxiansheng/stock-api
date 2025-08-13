@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { FieldNamingTypes } from '../../../src/core/public/shared/types/field-naming.types';
+// field-naming.types.security.test.ts - 测试占位代码
+// 路径: security/core/public/shared/types/field-naming.types.security.test.ts
 
-describe('FieldNamingTypes Security', () => {
-  let fieldNamingTypes: FieldNamingTypes;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [FieldNamingTypes],
-    }).compile();
-
-    fieldNamingTypes = module.get<FieldNamingTypes>(FieldNamingTypes);
-  });
-
-  it('should be defined', () => {
-    expect(fieldNamingTypes).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

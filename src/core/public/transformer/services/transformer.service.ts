@@ -12,7 +12,7 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { FlexibleMappingRuleService } from "../../data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../shared/utils/object.util";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
 
 import {

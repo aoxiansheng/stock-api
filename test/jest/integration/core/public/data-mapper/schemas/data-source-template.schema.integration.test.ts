@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataSourceTemplateSchema } from '../../../src/core/public/data-mapper/schemas/data-source-template.schema';
+// data-source-template.schema.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/data-mapper/schemas/data-source-template.schema.integration.test.ts
 
-describe('DataSourceTemplateSchema Integration', () => {
-  let dataSourceTemplateSchema: DataSourceTemplateSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataSourceTemplateSchema],
-    }).compile();
-
-    dataSourceTemplateSchema = module.get<DataSourceTemplateSchema>(DataSourceTemplateSchema);
-  });
-
-  it('should be defined', () => {
-    expect(dataSourceTemplateSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

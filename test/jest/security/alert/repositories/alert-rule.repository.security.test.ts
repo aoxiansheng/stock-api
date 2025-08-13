@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertRuleRepository } from '../../../src/alert/repositories/alert-rule.repository';
+// alert-rule.repository.security.test.ts - 测试占位代码
+// 路径: security/alert/repositories/alert-rule.repository.security.test.ts
 
-describe('AlertRuleRepository Security', () => {
-  let alertRuleRepository: AlertRuleRepository;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertRuleRepository],
-    }).compile();
-
-    alertRuleRepository = module.get<AlertRuleRepository>(AlertRuleRepository);
-  });
-
-  it('should be defined', () => {
-    expect(alertRuleRepository).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

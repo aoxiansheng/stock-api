@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { StreamDataFetcherService } from '../../../../../../src/core/stream-data-fetcher/services/stream-data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import {
   StreamConnectionParams,
   StreamConnection,

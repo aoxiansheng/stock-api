@@ -25,7 +25,7 @@ import {
 } from "../../../../../src/metrics/dto/performance-summary.dto";
 import { CacheStatsDto } from "../../../../../src/cache/dto/cache-internal.dto";
 import { IAlertStats } from "../../../../../src/alert/interfaces/alert.interface";
-import { MetricsRegistryService } from "../../../../../src/monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../../src/monitoring/metrics/services/metrics-registry.service";
 import { StreamPerformanceMetrics } from "../../../../../src/core/shared/services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../../../../../src/core/shared/services/dynamic-log-level.service";
 

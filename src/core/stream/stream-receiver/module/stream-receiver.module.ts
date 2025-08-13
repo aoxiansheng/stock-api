@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { StreamReceiverGateway } from './stream-receiver.gateway';
-import { StreamReceiverService } from './stream-receiver.service';
+import { StreamReceiverGateway } from '../gateway/stream-receiver.gateway';
+import { StreamReceiverService } from '../services/stream-receiver.service';
 
 // 导入依赖模块 - Phase 2 重构后精简依赖
-import { AuthModule } from '../../../auth/module/auth.module';
-import { SymbolMapperModule } from '../../public/symbol-mapper/module/symbol-mapper.module';
-import { TransformerModule } from '../../public/transformer/module/transformer.module';
-import { StreamDataFetcherModule } from '../stream-data-fetcher/module/stream-data-fetcher.module';
-import { MonitoringModule } from '../../../monitoring/module/monitoring.module'; // Phase 4: 延迟监控集成
+import { AuthModule } from '../../../../auth/module/auth.module';
+import { SymbolMapperModule } from '../../../public/symbol-mapper/module/symbol-mapper.module';
+import { TransformerModule } from '../../../public/transformer/module/transformer.module';
+import { StreamDataFetcherModule } from '../../stream-data-fetcher/module/stream-data-fetcher.module';
+import { MonitoringModule } from '../../../../monitoring/module/monitoring.module'; // Phase 4: 延迟监控集成
 
 /**
  * StreamReceiver 模块 - Phase 4 完整版本

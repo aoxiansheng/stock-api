@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertInterface } from '../../../src/alert/interfaces/alert.interface';
+// alert.interface.spec.ts - 测试占位代码
+// 路径: unit/alert/interfaces/alert.interface.spec.ts
 
-describe('AlertInterface', () => {
-  let alertInterface: AlertInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertInterface],
-    }).compile();
-
-    alertInterface = module.get<AlertInterface>(AlertInterface);
-  });
-
-  it('should be defined', () => {
-    expect(alertInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

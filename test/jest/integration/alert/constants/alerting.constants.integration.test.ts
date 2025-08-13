@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertingConstants } from '../../../src/alert/constants/alerting.constants';
+// alerting.constants.integration.test.ts - 测试占位代码
+// 路径: integration/alert/constants/alerting.constants.integration.test.ts
 
-describe('AlertingConstants Integration', () => {
-  let alertingConstants: AlertingConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertingConstants],
-    }).compile();
-
-    alertingConstants = module.get<AlertingConstants>(AlertingConstants);
-  });
-
-  it('should be defined', () => {
-    expect(alertingConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

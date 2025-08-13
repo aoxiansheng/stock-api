@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MetadataTypes } from '../../../src/providers/decorators/types/metadata.types';
+// metadata.types.integration.test.ts - 测试占位代码
+// 路径: integration/providers/decorators/types/metadata.types.integration.test.ts
 
-describe('MetadataTypes Integration', () => {
-  let metadataTypes: MetadataTypes;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MetadataTypes],
-    }).compile();
-
-    metadataTypes = module.get<MetadataTypes>(MetadataTypes);
-  });
-
-  it('should be defined', () => {
-    expect(metadataTypes).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

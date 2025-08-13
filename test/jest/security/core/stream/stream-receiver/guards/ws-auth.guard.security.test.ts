@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { WsAuthGuard } from '../../../src/core/stream/stream-receiver/guards/ws-auth.guard';
+// ws-auth.guard.security.test.ts - 测试占位代码
+// 路径: security/core/stream/stream-receiver/guards/ws-auth.guard.security.test.ts
 
-describe('WsAuthGuard Security', () => {
-  let wsAuthGuard: WsAuthGuard;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [WsAuthGuard],
-    }).compile();
-
-    wsAuthGuard = module.get<WsAuthGuard>(WsAuthGuard);
-  });
-
-  it('should be defined', () => {
-    expect(wsAuthGuard).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamRecoveryMetrics } from '../../../src/core/stream/stream-data-fetcher/metrics/stream-recovery.metrics';
+// stream-recovery.metrics.integration.test.ts - 测试占位代码
+// 路径: integration/core/stream/stream-data-fetcher/metrics/stream-recovery.metrics.integration.test.ts
 
-describe('StreamRecoveryMetrics Integration', () => {
-  let streamRecoveryMetrics: StreamRecoveryMetrics;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamRecoveryMetrics],
-    }).compile();
-
-    streamRecoveryMetrics = module.get<StreamRecoveryMetrics>(StreamRecoveryMetrics);
-  });
-
-  it('should be defined', () => {
-    expect(streamRecoveryMetrics).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

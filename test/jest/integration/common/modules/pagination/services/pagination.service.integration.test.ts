@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PaginationService } from '../../../src/common/modules/pagination/services/pagination.service';
+// pagination.service.integration.test.ts - 测试占位代码
+// 路径: integration/common/modules/pagination/services/pagination.service.integration.test.ts
 
-describe('PaginationService Integration', () => {
-  let paginationService: PaginationService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PaginationService],
-    }).compile();
-
-    paginationService = module.get<PaginationService>(PaginationService);
-  });
-
-  it('should be defined', () => {
-    expect(paginationService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

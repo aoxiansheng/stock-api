@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertTypes } from '../../../src/alert/types/alert.types';
+// alert.types.integration.test.ts - 测试占位代码
+// 路径: integration/alert/types/alert.types.integration.test.ts
 
-describe('AlertTypes Integration', () => {
-  let alertTypes: AlertTypes;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertTypes],
-    }).compile();
-
-    alertTypes = module.get<AlertTypes>(AlertTypes);
-  });
-
-  it('should be defined', () => {
-    expect(alertTypes).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

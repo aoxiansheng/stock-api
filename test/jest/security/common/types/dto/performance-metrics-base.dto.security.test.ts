@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceMetricsBaseDto } from '../../../src/common/types/dto/performance-metrics-base.dto';
+// performance-metrics-base.dto.security.test.ts - 测试占位代码
+// 路径: security/common/types/dto/performance-metrics-base.dto.security.test.ts
 
-describe('PerformanceMetricsBaseDto Security', () => {
-  let performanceMetricsBaseDto: PerformanceMetricsBaseDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceMetricsBaseDto],
-    }).compile();
-
-    performanceMetricsBaseDto = module.get<PerformanceMetricsBaseDto>(PerformanceMetricsBaseDto);
-  });
-
-  it('should be defined', () => {
-    expect(performanceMetricsBaseDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

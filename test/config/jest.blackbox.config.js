@@ -13,7 +13,7 @@ module.exports = {
   
   // 匹配所有真实环境黑盒测试文件
   testMatch: [
-    '<rootDir>/test/jest/e2e/blackbox/*.e2e.test.ts'
+    '<rootDir>/test/jest/blackbox/*.e2e.test.ts'
   ],
   
   // 测试根目录

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceMetricsDto } from '../../../src/metrics/dto/performance-metrics.dto';
+// performance-metrics.dto.integration.test.ts - 测试占位代码
+// 路径: integration/metrics/dto/performance-metrics.dto.integration.test.ts
 
-describe('PerformanceMetricsDto Integration', () => {
-  let performanceMetricsDto: PerformanceMetricsDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceMetricsDto],
-    }).compile();
-
-    performanceMetricsDto = module.get<PerformanceMetricsDto>(PerformanceMetricsDto);
-  });
-
-  it('should be defined', () => {
-    expect(performanceMetricsDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

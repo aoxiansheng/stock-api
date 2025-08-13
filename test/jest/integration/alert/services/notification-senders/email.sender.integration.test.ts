@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { EmailSender } from '../../../src/alert/services/notification-senders/email.sender';
+// email.sender.integration.test.ts - 测试占位代码
+// 路径: integration/alert/services/notification-senders/email.sender.integration.test.ts
 
-describe('EmailSender Integration', () => {
-  let emailSender: EmailSender;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [EmailSender],
-    }).compile();
-
-    emailSender = module.get<EmailSender>(EmailSender);
-  });
-
-  it('should be defined', () => {
-    expect(emailSender).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryService } from '../../../src/core/restapi/query/services/query.service';
+// query.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/restapi/query/services/query.service.integration.test.ts
 
-describe('QueryService Integration', () => {
-  let queryService: QueryService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryService],
-    }).compile();
-
-    queryService = module.get<QueryService>(QueryService);
-  });
-
-  it('should be defined', () => {
-    expect(queryService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

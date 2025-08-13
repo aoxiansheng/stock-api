@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CreateSymbolMappingDto } from '../../../src/core/public/symbol-mapper/dto/create-symbol-mapping.dto';
+// create-symbol-mapping.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/symbol-mapper/dto/create-symbol-mapping.dto.integration.test.ts
 
-describe('CreateSymbolMappingDto Integration', () => {
-  let createSymbolMappingDto: CreateSymbolMappingDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CreateSymbolMappingDto],
-    }).compile();
-
-    createSymbolMappingDto = module.get<CreateSymbolMappingDto>(CreateSymbolMappingDto);
-  });
-
-  it('should be defined', () => {
-    expect(createSymbolMappingDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

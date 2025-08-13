@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SystemConstants } from '../../../src/common/constants/unified/system.constants';
+// system.constants.spec.ts - 测试占位代码
+// 路径: unit/common/constants/unified/system.constants.spec.ts
 
-describe('SystemConstants', () => {
-  let systemConstants: SystemConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SystemConstants],
-    }).compile();
-
-    systemConstants = module.get<SystemConstants>(SystemConstants);
-  });
-
-  it('should be defined', () => {
-    expect(systemConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

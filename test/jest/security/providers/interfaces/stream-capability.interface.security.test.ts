@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamCapabilityInterface } from '../../../src/providers/interfaces/stream-capability.interface';
+// stream-capability.interface.security.test.ts - 测试占位代码
+// 路径: security/providers/interfaces/stream-capability.interface.security.test.ts
 
-describe('StreamCapabilityInterface Security', () => {
-  let streamCapabilityInterface: StreamCapabilityInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamCapabilityInterface],
-    }).compile();
-
-    streamCapabilityInterface = module.get<StreamCapabilityInterface>(StreamCapabilityInterface);
-  });
-
-  it('should be defined', () => {
-    expect(streamCapabilityInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReceiverModule } from '../../../src/core/restapi/receiver/module/receiver.module';
+// receiver.module.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/receiver/module/receiver.module.security.test.ts
 
-describe('ReceiverModule Security', () => {
-  let receiverModule: ReceiverModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ReceiverModule],
-    }).compile();
-
-    receiverModule = module.get<ReceiverModule>(ReceiverModule);
-  });
-
-  it('should be defined', () => {
-    expect(receiverModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

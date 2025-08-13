@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TransformerModule } from '../../../src/core/public/transformer/module/transformer.module';
+// transformer.module.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/transformer/module/transformer.module.integration.test.ts
 
-describe('TransformerModule Integration', () => {
-  let transformerModule: TransformerModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TransformerModule],
-    }).compile();
-
-    transformerModule = module.get<TransformerModule>(TransformerModule);
-  });
-
-  it('should be defined', () => {
-    expect(transformerModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

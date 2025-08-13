@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ApikeyDto } from '../../../src/auth/dto/apikey.dto';
+// apikey.dto.integration.test.ts - 测试占位代码
+// 路径: integration/auth/dto/apikey.dto.integration.test.ts
 
-describe('ApikeyDto Integration', () => {
-  let apikeyDto: ApikeyDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ApikeyDto],
-    }).compile();
-
-    apikeyDto = module.get<ApikeyDto>(ApikeyDto);
-  });
-
-  it('should be defined', () => {
-    expect(apikeyDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

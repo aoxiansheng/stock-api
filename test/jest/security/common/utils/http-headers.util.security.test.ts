@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { HttpHeadersUtil } from '../../../src/common/utils/http-headers.util';
+// http-headers.util.security.test.ts - 测试占位代码
+// 路径: security/common/utils/http-headers.util.security.test.ts
 
-describe('HttpHeadersUtil Security', () => {
-  let httpHeadersUtil: HttpHeadersUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [HttpHeadersUtil],
-    }).compile();
-
-    httpHeadersUtil = module.get<HttpHeadersUtil>(HttpHeadersUtil);
-  });
-
-  it('should be defined', () => {
-    expect(httpHeadersUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueryStatisticsService } from '@core/query/services/query-statistics.service';
 import { QueryType } from '@core/query/dto/query-types.dto';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 describe('QueryStatisticsService', () => {
   let service: QueryStatisticsService;

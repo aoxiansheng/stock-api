@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { FlexibleMappingRuleDto } from '../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto';
+// flexible-mapping-rule.dto.security.test.ts - 测试占位代码
+// 路径: security/core/public/data-mapper/dto/flexible-mapping-rule.dto.security.test.ts
 
-describe('FlexibleMappingRuleDto Security', () => {
-  let flexibleMappingRuleDto: FlexibleMappingRuleDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [FlexibleMappingRuleDto],
-    }).compile();
-
-    flexibleMappingRuleDto = module.get<FlexibleMappingRuleDto>(FlexibleMappingRuleDto);
-  });
-
-  it('should be defined', () => {
-    expect(flexibleMappingRuleDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

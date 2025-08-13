@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseFetcherService } from '../../../public/shared/services/base-fetcher.service';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 import { sanitizeLogData } from '../../../../common/config/logger.config';
 import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
 import {

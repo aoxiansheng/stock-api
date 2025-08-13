@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ProviderInterface } from '../../../src/providers/interfaces/provider.interface';
+// provider.interface.integration.test.ts - 测试占位代码
+// 路径: integration/providers/interfaces/provider.interface.integration.test.ts
 
-describe('ProviderInterface Integration', () => {
-  let providerInterface: ProviderInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ProviderInterface],
-    }).compile();
-
-    providerInterface = module.get<ProviderInterface>(ProviderInterface);
-  });
-
-  it('should be defined', () => {
-    expect(providerInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

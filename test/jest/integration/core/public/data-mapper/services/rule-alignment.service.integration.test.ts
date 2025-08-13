@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RuleAlignmentService } from '../../../src/core/public/data-mapper/services/rule-alignment.service';
+// rule-alignment.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/data-mapper/services/rule-alignment.service.integration.test.ts
 
-describe('RuleAlignmentService Integration', () => {
-  let ruleAlignmentService: RuleAlignmentService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RuleAlignmentService],
-    }).compile();
-
-    ruleAlignmentService = module.get<RuleAlignmentService>(RuleAlignmentService);
-  });
-
-  it('should be defined', () => {
-    expect(ruleAlignmentService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

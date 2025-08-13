@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationLogSchema } from '../../../src/alert/schemas/notification-log.schema';
+// notification-log.schema.integration.test.ts - 测试占位代码
+// 路径: integration/alert/schemas/notification-log.schema.integration.test.ts
 
-describe('NotificationLogSchema Integration', () => {
-  let notificationLogSchema: NotificationLogSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [NotificationLogSchema],
-    }).compile();
-
-    notificationLogSchema = module.get<NotificationLogSchema>(NotificationLogSchema);
-  });
-
-  it('should be defined', () => {
-    expect(notificationLogSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

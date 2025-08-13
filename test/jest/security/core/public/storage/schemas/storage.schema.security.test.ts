@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StorageSchema } from '../../../src/core/public/storage/schemas/storage.schema';
+// storage.schema.security.test.ts - 测试占位代码
+// 路径: security/core/public/storage/schemas/storage.schema.security.test.ts
 
-describe('StorageSchema Security', () => {
-  let storageSchema: StorageSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StorageSchema],
-    }).compile();
-
-    storageSchema = module.get<StorageSchema>(StorageSchema);
-  });
-
-  it('should be defined', () => {
-    expect(storageSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

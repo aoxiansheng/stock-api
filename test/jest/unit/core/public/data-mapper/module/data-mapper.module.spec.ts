@@ -16,7 +16,7 @@ import { DataSourceTemplate, DataSourceTemplateDocument } from "../../../../../.
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from "../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
 import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
 import { CacheService } from "../../../../../../src/cache/services/cache.service";
-import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 import { FeatureFlags } from "../../../../../../src/common/config/feature-flags.config";
 
 // Mock logger to avoid issues in testing

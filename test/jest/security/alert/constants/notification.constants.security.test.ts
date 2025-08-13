@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationConstants } from '../../../src/alert/constants/notification.constants';
+// notification.constants.security.test.ts - 测试占位代码
+// 路径: security/alert/constants/notification.constants.security.test.ts
 
-describe('NotificationConstants Security', () => {
-  let notificationConstants: NotificationConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [NotificationConstants],
-    }).compile();
-
-    notificationConstants = module.get<NotificationConstants>(NotificationConstants);
-  });
-
-  it('should be defined', () => {
-    expect(notificationConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

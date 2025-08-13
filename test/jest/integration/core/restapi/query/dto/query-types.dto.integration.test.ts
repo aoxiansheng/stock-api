@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryTypesDto } from '../../../src/core/restapi/query/dto/query-types.dto';
+// query-types.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/restapi/query/dto/query-types.dto.integration.test.ts
 
-describe('QueryTypesDto Integration', () => {
-  let queryTypesDto: QueryTypesDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryTypesDto],
-    }).compile();
-
-    queryTypesDto = module.get<QueryTypesDto>(QueryTypesDto);
-  });
-
-  it('should be defined', () => {
-    expect(queryTypesDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

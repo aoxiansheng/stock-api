@@ -8,7 +8,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
 import * as os from 'os';
 

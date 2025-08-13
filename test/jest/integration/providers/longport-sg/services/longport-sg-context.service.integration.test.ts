@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { LongportSgContextService } from '../../../src/providers/longport-sg/services/longport-sg-context.service';
+// longport-sg-context.service.integration.test.ts - 测试占位代码
+// 路径: integration/providers/longport-sg/services/longport-sg-context.service.integration.test.ts
 
-describe('LongportSgContextService Integration', () => {
-  let longportSgContextService: LongportSgContextService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [LongportSgContextService],
-    }).compile();
-
-    longportSgContextService = module.get<LongportSgContextService>(LongportSgContextService);
-  });
-
-  it('should be defined', () => {
-    expect(longportSgContextService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

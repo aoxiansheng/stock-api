@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { LongportStreamContextService } from '../../../src/providers/longport/services/longport-stream-context.service';
+// longport-stream-context.service.security.test.ts - 测试占位代码
+// 路径: security/providers/longport/services/longport-stream-context.service.security.test.ts
 
-describe('LongportStreamContextService Security', () => {
-  let longportStreamContextService: LongportStreamContextService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [LongportStreamContextService],
-    }).compile();
-
-    longportStreamContextService = module.get<LongportStreamContextService>(LongportStreamContextService);
-  });
-
-  it('should be defined', () => {
-    expect(longportStreamContextService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -4,7 +4,7 @@ import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/se
 import { SymbolMappingRepository } from '../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository';
 import { PaginationService } from '../../../../../../src/common/modules/pagination/services/pagination.service';
 import { FeatureFlags } from '../../../../../../src/common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 // Create a proper mock class for FeatureFlags
 class MockFeatureFlags {

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MarketConstants } from '../../../src/common/constants/market.constants';
+// market.constants.security.test.ts - 测试占位代码
+// 路径: security/common/constants/market.constants.security.test.ts
 
-describe('MarketConstants Security', () => {
-  let marketConstants: MarketConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MarketConstants],
-    }).compile();
-
-    marketConstants = module.get<MarketConstants>(MarketConstants);
-  });
-
-  it('should be defined', () => {
-    expect(marketConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

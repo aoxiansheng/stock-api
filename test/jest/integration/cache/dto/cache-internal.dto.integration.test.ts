@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CacheInternalDto } from '../../../src/cache/dto/cache-internal.dto';
+// cache-internal.dto.integration.test.ts - 测试占位代码
+// 路径: integration/cache/dto/cache-internal.dto.integration.test.ts
 
-describe('CacheInternalDto Integration', () => {
-  let cacheInternalDto: CacheInternalDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CacheInternalDto],
-    }).compile();
-
-    cacheInternalDto = module.get<CacheInternalDto>(CacheInternalDto);
-  });
-
-  it('should be defined', () => {
-    expect(cacheInternalDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

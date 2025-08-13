@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { GetStockBasicInfo } from '../../../src/providers/longport/capabilities/get-stock-basic-info';
+// get-stock-basic-info.integration.test.ts - 测试占位代码
+// 路径: integration/providers/longport/capabilities/get-stock-basic-info.integration.test.ts
 
-describe('GetStockBasicInfo Integration', () => {
-  let getStockBasicInfo: GetStockBasicInfo;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [GetStockBasicInfo],
-    }).compile();
-
-    getStockBasicInfo = module.get<GetStockBasicInfo>(GetStockBasicInfo);
-  });
-
-  it('should be defined', () => {
-    expect(getStockBasicInfo).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

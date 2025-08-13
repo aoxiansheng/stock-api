@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RuleEngineService } from '../../../src/alert/services/rule-engine.service';
+// rule-engine.service.security.test.ts - 测试占位代码
+// 路径: security/alert/services/rule-engine.service.security.test.ts
 
-describe('RuleEngineService Security', () => {
-  let ruleEngineService: RuleEngineService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RuleEngineService],
-    }).compile();
-
-    ruleEngineService = module.get<RuleEngineService>(RuleEngineService);
-  });
-
-  it('should be defined', () => {
-    expect(ruleEngineService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

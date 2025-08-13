@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { CapabilityMetadata, Constructor } from './metadata.types';
+import { CapabilityMetadata, Constructor } from './types/metadata.types';
 import { CapabilityCollector } from './capability-collector';
 
 /**

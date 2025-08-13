@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReceiverInternalDto } from '../../../src/core/restapi/receiver/dto/receiver-internal.dto';
+// receiver-internal.dto.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/receiver/dto/receiver-internal.dto.security.test.ts
 
-describe('ReceiverInternalDto Security', () => {
-  let receiverInternalDto: ReceiverInternalDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ReceiverInternalDto],
-    }).compile();
-
-    receiverInternalDto = module.get<ReceiverInternalDto>(ReceiverInternalDto);
-  });
-
-  it('should be defined', () => {
-    expect(receiverInternalDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

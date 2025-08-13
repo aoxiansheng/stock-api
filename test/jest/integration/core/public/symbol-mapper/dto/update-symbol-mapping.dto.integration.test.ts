@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UpdateSymbolMappingDto } from '../../../src/core/public/symbol-mapper/dto/update-symbol-mapping.dto';
+// update-symbol-mapping.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/symbol-mapper/dto/update-symbol-mapping.dto.integration.test.ts
 
-describe('UpdateSymbolMappingDto Integration', () => {
-  let updateSymbolMappingDto: UpdateSymbolMappingDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UpdateSymbolMappingDto],
-    }).compile();
-
-    updateSymbolMappingDto = module.get<UpdateSymbolMappingDto>(UpdateSymbolMappingDto);
-  });
-
-  it('should be defined', () => {
-    expect(updateSymbolMappingDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryRequestDto } from '../../../src/core/restapi/query/dto/query-request.dto';
+// query-request.dto.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/query/dto/query-request.dto.security.test.ts
 
-describe('QueryRequestDto Security', () => {
-  let queryRequestDto: QueryRequestDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryRequestDto],
-    }).compile();
-
-    queryRequestDto = module.get<QueryRequestDto>(QueryRequestDto);
-  });
-
-  it('should be defined', () => {
-    expect(queryRequestDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

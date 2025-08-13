@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertConfig } from '../../../src/common/config/alert.config';
+// alert.config.integration.test.ts - 测试占位代码
+// 路径: integration/common/config/alert.config.integration.test.ts
 
-describe('AlertConfig Integration', () => {
-  let alertConfig: AlertConfig;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertConfig],
-    }).compile();
-
-    alertConfig = module.get<AlertConfig>(AlertConfig);
-  });
-
-  it('should be defined', () => {
-    expect(alertConfig).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

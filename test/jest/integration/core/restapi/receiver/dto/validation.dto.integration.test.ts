@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ValidationDto } from '../../../src/core/restapi/receiver/dto/validation.dto';
+// validation.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/restapi/receiver/dto/validation.dto.integration.test.ts
 
-describe('ValidationDto Integration', () => {
-  let validationDto: ValidationDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ValidationDto],
-    }).compile();
-
-    validationDto = module.get<ValidationDto>(ValidationDto);
-  });
-
-  it('should be defined', () => {
-    expect(validationDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -4,7 +4,7 @@
  * 根据 FeatureFlags 配置初始化 Metrics 工具的 legacyMode
  */
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { Metrics } from './metrics-helper';
+import { Metrics } from '../metrics-helper';
 
 @Injectable()
 export class MetricsInitializerService implements OnModuleInit {

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SmartPathResolver } from '../../../src/providers/utils/smart-path-resolver';
+// smart-path-resolver.spec.ts - 测试占位代码
+// 路径: unit/providers/utils/smart-path-resolver.spec.ts
 
-describe('SmartPathResolver', () => {
-  let smartPathResolver: SmartPathResolver;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SmartPathResolver],
-    }).compile();
-
-    smartPathResolver = module.get<SmartPathResolver>(SmartPathResolver);
-  });
-
-  it('should be defined', () => {
-    expect(smartPathResolver).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { Index } from '../../../src/alert/services/notification-senders/index';
+// index.security.test.ts - 测试占位代码
+// 路径: security/alert/services/notification-senders/index.security.test.ts
 
-describe('Index Security', () => {
-  let index: Index;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [Index],
-    }).compile();
-
-    index = module.get<Index>(Index);
-  });
-
-  it('should be defined', () => {
-    expect(index).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

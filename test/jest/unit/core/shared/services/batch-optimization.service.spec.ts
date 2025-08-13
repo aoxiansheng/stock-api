@@ -3,7 +3,7 @@ import { BatchOptimizationService } from '../../../../../../src/core/shared/serv
 import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
 import { FlexibleMappingRuleService } from '../../../../../../src/core/data-mapper/services/flexible-mapping-rule.service';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 const mockSymbolMapperService = {
   mapSymbol: jest.fn(),

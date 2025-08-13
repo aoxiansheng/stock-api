@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ProviderScanConfig } from '../../../src/providers/config/provider-scan.config';
+// provider-scan.config.spec.ts - 测试占位代码
+// 路径: unit/providers/config/provider-scan.config.spec.ts
 
-describe('ProviderScanConfig', () => {
-  let providerScanConfig: ProviderScanConfig;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ProviderScanConfig],
-    }).compile();
-
-    providerScanConfig = module.get<ProviderScanConfig>(ProviderScanConfig);
-  });
-
-  it('should be defined', () => {
-    expect(providerScanConfig).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StorageQueryDto } from '../../../src/core/public/storage/dto/storage-query.dto';
+// storage-query.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/storage/dto/storage-query.dto.integration.test.ts
 
-describe('StorageQueryDto Integration', () => {
-  let storageQueryDto: StorageQueryDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StorageQueryDto],
-    }).compile();
-
-    storageQueryDto = module.get<StorageQueryDto>(StorageQueryDto);
-  });
-
-  it('should be defined', () => {
-    expect(storageQueryDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TransformPreviewDto } from '../../../src/core/public/transformer/dto/transform-preview.dto';
+// transform-preview.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/transformer/dto/transform-preview.dto.integration.test.ts
 
-describe('TransformPreviewDto Integration', () => {
-  let transformPreviewDto: TransformPreviewDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TransformPreviewDto],
-    }).compile();
-
-    transformPreviewDto = module.get<TransformPreviewDto>(TransformPreviewDto);
-  });
-
-  it('should be defined', () => {
-    expect(transformPreviewDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

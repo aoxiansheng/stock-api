@@ -25,7 +25,7 @@ import { UserRole } from "../../auth/enums/user-role.enum";
 import { CacheService } from "../../cache/services/cache.service";
 import { MetricsHealthService } from "../../metrics/services/metrics-health.service";
 import { PerformanceMonitorService } from "../../metrics/services/performance-monitor.service";
-import { MetricsRegistryService } from "../metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../metrics/services/metrics-registry.service";
 import { StreamPerformanceMetrics } from "../../core/public/shared/services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../../core/public/shared/services/dynamic-log-level.service";
 

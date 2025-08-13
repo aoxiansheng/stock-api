@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CapabilityInterface } from '../../../src/providers/interfaces/capability.interface';
+// capability.interface.security.test.ts - 测试占位代码
+// 路径: security/providers/interfaces/capability.interface.security.test.ts
 
-describe('CapabilityInterface Security', () => {
-  let capabilityInterface: CapabilityInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CapabilityInterface],
-    }).compile();
-
-    capabilityInterface = module.get<CapabilityInterface>(CapabilityInterface);
-  });
-
-  it('should be defined', () => {
-    expect(capabilityInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

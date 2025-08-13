@@ -7,8 +7,8 @@ import { MetricsModule } from "../../metrics/module/metrics.module";
 import { SharedServicesModule } from "../../core/public/shared/module/shared-services.module";
 
 import { MonitoringController } from "../controller/monitoring.controller";
-import { MetricsInitializerService } from "../metrics/metrics-initializer.service";
-import { MetricsRegistryService } from "../metrics/metrics-registry.service";
+import { MetricsInitializerService } from "../metrics/services/metrics-initializer.service";
+import { MetricsRegistryService } from "../metrics/services/metrics-registry.service";
 
 @Module({
   imports: [AlertModule, AuthModule, CacheModule, MetricsModule, SharedServicesModule],

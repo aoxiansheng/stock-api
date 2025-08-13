@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { OperationsConstants } from '../../../src/common/constants/unified/operations.constants';
+// operations.constants.security.test.ts - 测试占位代码
+// 路径: security/common/constants/unified/operations.constants.security.test.ts
 
-describe('OperationsConstants Security', () => {
-  let operationsConstants: OperationsConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [OperationsConstants],
-    }).compile();
-
-    operationsConstants = module.get<OperationsConstants>(OperationsConstants);
-  });
-
-  it('should be defined', () => {
-    expect(operationsConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

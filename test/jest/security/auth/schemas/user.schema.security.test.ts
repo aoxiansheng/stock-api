@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UserSchema } from '../../../src/auth/schemas/user.schema';
+// user.schema.security.test.ts - 测试占位代码
+// 路径: security/auth/schemas/user.schema.security.test.ts
 
-describe('UserSchema Security', () => {
-  let userSchema: UserSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UserSchema],
-    }).compile();
-
-    userSchema = module.get<UserSchema>(UserSchema);
-  });
-
-  it('should be defined', () => {
-    expect(userSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

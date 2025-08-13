@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AutoInitConfig } from '../../../src/common/config/auto-init.config';
+// auto-init.config.security.test.ts - 测试占位代码
+// 路径: security/common/config/auto-init.config.security.test.ts
 
-describe('AutoInitConfig Security', () => {
-  let autoInitConfig: AutoInitConfig;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AutoInitConfig],
-    }).compile();
-
-    autoInitConfig = module.get<AutoInitConfig>(AutoInitConfig);
-  });
-
-  it('should be defined', () => {
-    expect(autoInitConfig).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

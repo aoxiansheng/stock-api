@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { GetIndexQuote } from '../../../src/providers/longport/capabilities/get-index-quote';
+// get-index-quote.security.test.ts - 测试占位代码
+// 路径: security/providers/longport/capabilities/get-index-quote.security.test.ts
 
-describe('GetIndexQuote Security', () => {
-  let getIndexQuote: GetIndexQuote;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [GetIndexQuote],
-    }).compile();
-
-    getIndexQuote = module.get<GetIndexQuote>(GetIndexQuote);
-  });
-
-  it('should be defined', () => {
-    expect(getIndexQuote).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

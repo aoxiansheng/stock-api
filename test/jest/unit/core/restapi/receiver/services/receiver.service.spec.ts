@@ -7,7 +7,7 @@ import { TransformerService } from '../../../../../../src/core/public/transforme
 import { StorageService } from '../../../../../../src/core/public/storage/services/storage.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
 import { MarketStatusService } from '../../../../../../src/core/public/shared/services/market-status.service';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { DataRequestDto } from '../../../../../../src/core/restapi/receiver/dto/data-request.dto';
 import { DataResponseDto } from '../../../../../../src/core/restapi/receiver/dto/data-response.dto';
 import { RawDataResult } from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';

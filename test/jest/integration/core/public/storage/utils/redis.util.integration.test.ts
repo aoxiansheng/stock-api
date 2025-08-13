@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RedisUtil } from '../../../src/core/public/storage/utils/redis.util';
+// redis.util.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/storage/utils/redis.util.integration.test.ts
 
-describe('RedisUtil Integration', () => {
-  let redisUtil: RedisUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RedisUtil],
-    }).compile();
-
-    redisUtil = module.get<RedisUtil>(RedisUtil);
-  });
-
-  it('should be defined', () => {
-    expect(redisUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

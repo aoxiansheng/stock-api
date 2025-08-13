@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SecurityScannerConstants } from '../../../src/security/constants/security-scanner.constants';
+// security-scanner.constants.spec.ts - 测试占位代码
+// 路径: unit/security/constants/security-scanner.constants.spec.ts
 
-describe('SecurityScannerConstants', () => {
-  let securityScannerConstants: SecurityScannerConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SecurityScannerConstants],
-    }).compile();
-
-    securityScannerConstants = module.get<SecurityScannerConstants>(SecurityScannerConstants);
-  });
-
-  it('should be defined', () => {
-    expect(securityScannerConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

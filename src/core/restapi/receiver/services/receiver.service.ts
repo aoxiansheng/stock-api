@@ -19,7 +19,7 @@ import { SymbolMapperService } from "../../../public/symbol-mapper/services/symb
 import { DataFetcherService } from "../../../restapi/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { TransformerService } from "../../../public/transformer/services/transformer.service";
 import { StorageService } from "../../../public/storage/services/storage.service";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
 
 import {

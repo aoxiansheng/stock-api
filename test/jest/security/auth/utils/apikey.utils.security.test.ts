@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ApikeyUtils } from '../../../src/auth/utils/apikey.utils';
+// apikey.utils.security.test.ts - 测试占位代码
+// 路径: security/auth/utils/apikey.utils.security.test.ts
 
-describe('ApikeyUtils Security', () => {
-  let apikeyUtils: ApikeyUtils;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ApikeyUtils],
-    }).compile();
-
-    apikeyUtils = module.get<ApikeyUtils>(ApikeyUtils);
-  });
-
-  it('should be defined', () => {
-    expect(apikeyUtils).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

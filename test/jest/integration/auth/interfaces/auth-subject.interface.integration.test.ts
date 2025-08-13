@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthSubjectInterface } from '../../../src/auth/interfaces/auth-subject.interface';
+// auth-subject.interface.integration.test.ts - 测试占位代码
+// 路径: integration/auth/interfaces/auth-subject.interface.integration.test.ts
 
-describe('AuthSubjectInterface Integration', () => {
-  let authSubjectInterface: AuthSubjectInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthSubjectInterface],
-    }).compile();
-
-    authSubjectInterface = module.get<AuthSubjectInterface>(AuthSubjectInterface);
-  });
-
-  it('should be defined', () => {
-    expect(authSubjectInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

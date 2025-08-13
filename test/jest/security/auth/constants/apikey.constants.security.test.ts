@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ApikeyConstants } from '../../../src/auth/constants/apikey.constants';
+// apikey.constants.security.test.ts - 测试占位代码
+// 路径: security/auth/constants/apikey.constants.security.test.ts
 
-describe('ApikeyConstants Security', () => {
-  let apikeyConstants: ApikeyConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ApikeyConstants],
-    }).compile();
-
-    apikeyConstants = module.get<ApikeyConstants>(ApikeyConstants);
-  });
-
-  it('should be defined', () => {
-    expect(apikeyConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

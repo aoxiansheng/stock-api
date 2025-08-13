@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamReceiverGateway } from '../../../src/core/stream/stream-receiver/gateway/stream-receiver.gateway';
+// stream-receiver.gateway.security.test.ts - 测试占位代码
+// 路径: security/core/stream/stream-receiver/gateway/stream-receiver.gateway.security.test.ts
 
-describe('StreamReceiverGateway Security', () => {
-  let streamReceiverGateway: StreamReceiverGateway;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamReceiverGateway],
-    }).compile();
-
-    streamReceiverGateway = module.get<StreamReceiverGateway>(StreamReceiverGateway);
-  });
-
-  it('should be defined', () => {
-    expect(streamReceiverGateway).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

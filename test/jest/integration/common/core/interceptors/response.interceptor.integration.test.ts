@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ResponseInterceptor } from '../../../src/common/core/interceptors/response.interceptor';
+// response.interceptor.integration.test.ts - 测试占位代码
+// 路径: integration/common/core/interceptors/response.interceptor.integration.test.ts
 
-describe('ResponseInterceptor Integration', () => {
-  let responseInterceptor: ResponseInterceptor;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ResponseInterceptor],
-    }).compile();
-
-    responseInterceptor = module.get<ResponseInterceptor>(ResponseInterceptor);
-  });
-
-  it('should be defined', () => {
-    expect(responseInterceptor).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

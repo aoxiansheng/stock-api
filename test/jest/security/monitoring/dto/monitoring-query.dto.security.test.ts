@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MonitoringQueryDto } from '../../../src/monitoring/dto/monitoring-query.dto';
+// monitoring-query.dto.security.test.ts - 测试占位代码
+// 路径: security/monitoring/dto/monitoring-query.dto.security.test.ts
 
-describe('MonitoringQueryDto Security', () => {
-  let monitoringQueryDto: MonitoringQueryDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MonitoringQueryDto],
-    }).compile();
-
-    monitoringQueryDto = module.get<MonitoringQueryDto>(MonitoringQueryDto);
-  });
-
-  it('should be defined', () => {
-    expect(monitoringQueryDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

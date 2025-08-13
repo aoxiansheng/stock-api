@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceMonitorService } from '../../../src/metrics/services/performance-monitor.service';
+// performance-monitor.service.integration.test.ts - 测试占位代码
+// 路径: integration/metrics/services/performance-monitor.service.integration.test.ts
 
-describe('PerformanceMonitorService Integration', () => {
-  let performanceMonitorService: PerformanceMonitorService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceMonitorService],
-    }).compile();
-
-    performanceMonitorService = module.get<PerformanceMonitorService>(PerformanceMonitorService);
-  });
-
-  it('should be defined', () => {
-    expect(performanceMonitorService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

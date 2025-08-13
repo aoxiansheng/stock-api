@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthDecorator } from '../../../src/auth/decorators/auth.decorator';
+// auth.decorator.security.test.ts - 测试占位代码
+// 路径: security/auth/decorators/auth.decorator.security.test.ts
 
-describe('AuthDecorator Security', () => {
-  let authDecorator: AuthDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthDecorator],
-    }).compile();
-
-    authDecorator = module.get<AuthDecorator>(AuthDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(authDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

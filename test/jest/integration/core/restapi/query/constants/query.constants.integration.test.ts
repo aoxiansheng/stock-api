@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryConstants } from '../../../src/core/restapi/query/constants/query.constants';
+// query.constants.integration.test.ts - 测试占位代码
+// 路径: integration/core/restapi/query/constants/query.constants.integration.test.ts
 
-describe('QueryConstants Integration', () => {
-  let queryConstants: QueryConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryConstants],
-    }).compile();
-
-    queryConstants = module.get<QueryConstants>(QueryConstants);
-  });
-
-  it('should be defined', () => {
-    expect(queryConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

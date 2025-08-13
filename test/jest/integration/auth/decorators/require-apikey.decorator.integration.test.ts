@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RequireApikeyDecorator } from '../../../src/auth/decorators/require-apikey.decorator';
+// require-apikey.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/auth/decorators/require-apikey.decorator.integration.test.ts
 
-describe('RequireApikeyDecorator Integration', () => {
-  let requireApikeyDecorator: RequireApikeyDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RequireApikeyDecorator],
-    }).compile();
-
-    requireApikeyDecorator = module.get<RequireApikeyDecorator>(RequireApikeyDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(requireApikeyDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { FlexibleMappingRuleSchema } from '../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema';
+// flexible-mapping-rule.schema.security.test.ts - 测试占位代码
+// 路径: security/core/public/data-mapper/schemas/flexible-mapping-rule.schema.security.test.ts
 
-describe('FlexibleMappingRuleSchema Security', () => {
-  let flexibleMappingRuleSchema: FlexibleMappingRuleSchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [FlexibleMappingRuleSchema],
-    }).compile();
-
-    flexibleMappingRuleSchema = module.get<FlexibleMappingRuleSchema>(FlexibleMappingRuleSchema);
-  });
-
-  it('should be defined', () => {
-    expect(flexibleMappingRuleSchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

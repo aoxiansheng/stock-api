@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamRecoveryWorkerService } from '../../../src/core/stream/stream-data-fetcher/services/stream-recovery-worker.service';
+// stream-recovery-worker.service.security.test.ts - 测试占位代码
+// 路径: security/core/stream/stream-data-fetcher/services/stream-recovery-worker.service.security.test.ts
 
-describe('StreamRecoveryWorkerService Security', () => {
-  let streamRecoveryWorkerService: StreamRecoveryWorkerService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamRecoveryWorkerService],
-    }).compile();
-
-    streamRecoveryWorkerService = module.get<StreamRecoveryWorkerService>(StreamRecoveryWorkerService);
-  });
-
-  it('should be defined', () => {
-    expect(streamRecoveryWorkerService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

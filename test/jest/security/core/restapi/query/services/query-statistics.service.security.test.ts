@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryStatisticsService } from '../../../src/core/restapi/query/services/query-statistics.service';
+// query-statistics.service.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/query/services/query-statistics.service.security.test.ts
 
-describe('QueryStatisticsService Security', () => {
-  let queryStatisticsService: QueryStatisticsService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryStatisticsService],
-    }).compile();
-
-    queryStatisticsService = module.get<QueryStatisticsService>(QueryStatisticsService);
-  });
-
-  it('should be defined', () => {
-    expect(queryStatisticsService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

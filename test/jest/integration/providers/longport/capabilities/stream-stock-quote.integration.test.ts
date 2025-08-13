@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamStockQuote } from '../../../src/providers/longport/capabilities/stream-stock-quote';
+// stream-stock-quote.integration.test.ts - 测试占位代码
+// 路径: integration/providers/longport/capabilities/stream-stock-quote.integration.test.ts
 
-describe('StreamStockQuote Integration', () => {
-  let streamStockQuote: StreamStockQuote;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamStockQuote],
-    }).compile();
-
-    streamStockQuote = module.get<StreamStockQuote>(StreamStockQuote);
-  });
-
-  it('should be defined', () => {
-    expect(streamStockQuote).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

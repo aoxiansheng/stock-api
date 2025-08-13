@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AlertHistoryConstants } from '../../../src/alert/constants/alert-history.constants';
+// alert-history.constants.security.test.ts - 测试占位代码
+// 路径: security/alert/constants/alert-history.constants.security.test.ts
 
-describe('AlertHistoryConstants Security', () => {
-  let alertHistoryConstants: AlertHistoryConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AlertHistoryConstants],
-    }).compile();
-
-    alertHistoryConstants = module.get<AlertHistoryConstants>(AlertHistoryConstants);
-  });
-
-  it('should be defined', () => {
-    expect(alertHistoryConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

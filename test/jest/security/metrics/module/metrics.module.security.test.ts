@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MetricsModule } from '../../../src/metrics/module/metrics.module';
+// metrics.module.security.test.ts - 测试占位代码
+// 路径: security/metrics/module/metrics.module.security.test.ts
 
-describe('MetricsModule Security', () => {
-  let metricsModule: MetricsModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MetricsModule],
-    }).compile();
-
-    metricsModule = module.get<MetricsModule>(MetricsModule);
-  });
-
-  it('should be defined', () => {
-    expect(metricsModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

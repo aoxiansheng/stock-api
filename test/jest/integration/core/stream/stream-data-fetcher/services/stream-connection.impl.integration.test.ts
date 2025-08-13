@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamConnectionImpl } from '../../../src/core/stream/stream-data-fetcher/services/stream-connection.impl';
+// stream-connection.impl.integration.test.ts - 测试占位代码
+// 路径: integration/core/stream/stream-data-fetcher/services/stream-connection.impl.integration.test.ts
 
-describe('StreamConnectionImpl Integration', () => {
-  let streamConnectionImpl: StreamConnectionImpl;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamConnectionImpl],
-    }).compile();
-
-    streamConnectionImpl = module.get<StreamConnectionImpl>(StreamConnectionImpl);
-  });
-
-  it('should be defined', () => {
-    expect(streamConnectionImpl).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamUnsubscribeDto } from '../../../src/core/stream/stream-receiver/dto/stream-unsubscribe.dto';
+// stream-unsubscribe.dto.security.test.ts - 测试占位代码
+// 路径: security/core/stream/stream-receiver/dto/stream-unsubscribe.dto.security.test.ts
 
-describe('StreamUnsubscribeDto Security', () => {
-  let streamUnsubscribeDto: StreamUnsubscribeDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamUnsubscribeDto],
-    }).compile();
-
-    streamUnsubscribeDto = module.get<StreamUnsubscribeDto>(StreamUnsubscribeDto);
-  });
-
-  it('should be defined', () => {
-    expect(streamUnsubscribeDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

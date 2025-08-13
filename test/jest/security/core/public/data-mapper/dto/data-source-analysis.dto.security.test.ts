@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataSourceAnalysisDto } from '../../../src/core/public/data-mapper/dto/data-source-analysis.dto';
+// data-source-analysis.dto.security.test.ts - 测试占位代码
+// 路径: security/core/public/data-mapper/dto/data-source-analysis.dto.security.test.ts
 
-describe('DataSourceAnalysisDto Security', () => {
-  let dataSourceAnalysisDto: DataSourceAnalysisDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [DataSourceAnalysisDto],
-    }).compile();
-
-    dataSourceAnalysisDto = module.get<DataSourceAnalysisDto>(DataSourceAnalysisDto);
-  });
-
-  it('should be defined', () => {
-    expect(dataSourceAnalysisDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

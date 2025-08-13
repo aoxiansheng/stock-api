@@ -9,7 +9,7 @@ import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
 import { SymbolMapperService } from '../../symbol-mapper/services/symbol-mapper.service';
 import { FlexibleMappingRuleService } from '../../data-mapper/services/flexible-mapping-rule.service';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
 
 interface BatchSymbolMappingRequest {

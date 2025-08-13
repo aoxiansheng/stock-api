@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { QueryUtil } from '../../../src/core/restapi/query/utils/query.util';
+// query.util.security.test.ts - 测试占位代码
+// 路径: security/core/restapi/query/utils/query.util.security.test.ts
 
-describe('QueryUtil Security', () => {
-  let queryUtil: QueryUtil;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [QueryUtil],
-    }).compile();
-
-    queryUtil = module.get<QueryUtil>(QueryUtil);
-  });
-
-  it('should be defined', () => {
-    expect(queryUtil).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

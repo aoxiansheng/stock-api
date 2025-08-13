@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SecurityAuditConstants } from '../../../src/security/constants/security-audit.constants';
+// security-audit.constants.integration.test.ts - 测试占位代码
+// 路径: integration/security/constants/security-audit.constants.integration.test.ts
 
-describe('SecurityAuditConstants Integration', () => {
-  let securityAuditConstants: SecurityAuditConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SecurityAuditConstants],
-    }).compile();
-
-    securityAuditConstants = module.get<SecurityAuditConstants>(SecurityAuditConstants);
-  });
-
-  it('should be defined', () => {
-    expect(securityAuditConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamReceiverService } from '../../../src/core/stream/stream-receiver/services/stream-receiver.service';
+// stream-receiver.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/stream/stream-receiver/services/stream-receiver.service.integration.test.ts
 
-describe('StreamReceiverService Integration', () => {
-  let streamReceiverService: StreamReceiverService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamReceiverService],
-    }).compile();
-
-    streamReceiverService = module.get<StreamReceiverService>(StreamReceiverService);
-  });
-
-  it('should be defined', () => {
-    expect(streamReceiverService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

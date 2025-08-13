@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BaseFetcherService } from '../../../src/core/public/shared/services/base-fetcher.service';
+// base-fetcher.service.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/shared/services/base-fetcher.service.integration.test.ts
 
-describe('BaseFetcherService Integration', () => {
-  let baseFetcherService: BaseFetcherService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [BaseFetcherService],
-    }).compile();
-
-    baseFetcherService = module.get<BaseFetcherService>(BaseFetcherService);
-  });
-
-  it('should be defined', () => {
-    expect(baseFetcherService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

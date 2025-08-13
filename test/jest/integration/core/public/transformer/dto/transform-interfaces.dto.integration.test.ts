@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TransformInterfacesDto } from '../../../src/core/public/transformer/dto/transform-interfaces.dto';
+// transform-interfaces.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/public/transformer/dto/transform-interfaces.dto.integration.test.ts
 
-describe('TransformInterfacesDto Integration', () => {
-  let transformInterfacesDto: TransformInterfacesDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [TransformInterfacesDto],
-    }).compile();
-
-    transformInterfacesDto = module.get<TransformInterfacesDto>(TransformInterfacesDto);
-  });
-
-  it('should be defined', () => {
-    expect(transformInterfacesDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

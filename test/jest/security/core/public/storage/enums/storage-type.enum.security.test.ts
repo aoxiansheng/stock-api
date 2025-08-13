@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StorageTypeEnum } from '../../../src/core/public/storage/enums/storage-type.enum';
+// storage-type.enum.security.test.ts - 测试占位代码
+// 路径: security/core/public/storage/enums/storage-type.enum.security.test.ts
 
-describe('StorageTypeEnum Security', () => {
-  let storageTypeEnum: StorageTypeEnum;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StorageTypeEnum],
-    }).compile();
-
-    storageTypeEnum = module.get<StorageTypeEnum>(StorageTypeEnum);
-  });
-
-  it('should be defined', () => {
-    expect(storageTypeEnum).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

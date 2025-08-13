@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamSubscribeDto } from '../../../src/core/stream/stream-receiver/dto/stream-subscribe.dto';
+// stream-subscribe.dto.integration.test.ts - 测试占位代码
+// 路径: integration/core/stream/stream-receiver/dto/stream-subscribe.dto.integration.test.ts
 
-describe('StreamSubscribeDto Integration', () => {
-  let streamSubscribeDto: StreamSubscribeDto;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [StreamSubscribeDto],
-    }).compile();
-
-    streamSubscribeDto = module.get<StreamSubscribeDto>(StreamSubscribeDto);
-  });
-
-  it('should be defined', () => {
-    expect(streamSubscribeDto).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

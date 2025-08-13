@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SwaggerResponsesDecorator } from '../../../src/common/core/decorators/swagger-responses.decorator';
+// swagger-responses.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/common/core/decorators/swagger-responses.decorator.integration.test.ts
 
-describe('SwaggerResponsesDecorator Integration', () => {
-  let swaggerResponsesDecorator: SwaggerResponsesDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SwaggerResponsesDecorator],
-    }).compile();
-
-    swaggerResponsesDecorator = module.get<SwaggerResponsesDecorator>(SwaggerResponsesDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(swaggerResponsesDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

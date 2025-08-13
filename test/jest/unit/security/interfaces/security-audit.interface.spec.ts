@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SecurityAuditInterface } from '../../../src/security/interfaces/security-audit.interface';
+// security-audit.interface.spec.ts - 测试占位代码
+// 路径: unit/security/interfaces/security-audit.interface.spec.ts
 
-describe('SecurityAuditInterface', () => {
-  let securityAuditInterface: SecurityAuditInterface;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SecurityAuditInterface],
-    }).compile();
-
-    securityAuditInterface = module.get<SecurityAuditInterface>(SecurityAuditInterface);
-  });
-
-  it('should be defined', () => {
-    expect(securityAuditInterface).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

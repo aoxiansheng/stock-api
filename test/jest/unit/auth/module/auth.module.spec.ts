@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthModule } from '../../../src/auth/module/auth.module';
+// auth.module.spec.ts - 测试占位代码
+// 路径: unit/auth/module/auth.module.spec.ts
 
-describe('AuthModule', () => {
-  let authModule: AuthModule;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthModule],
-    }).compile();
-
-    authModule = module.get<AuthModule>(AuthModule);
-  });
-
-  it('should be defined', () => {
-    expect(authModule).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

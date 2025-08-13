@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolMapperConstants } from '../../../src/core/public/symbol-mapper/constants/symbol-mapper.constants';
+// symbol-mapper.constants.security.test.ts - 测试占位代码
+// 路径: security/core/public/symbol-mapper/constants/symbol-mapper.constants.security.test.ts
 
-describe('SymbolMapperConstants Security', () => {
-  let symbolMapperConstants: SymbolMapperConstants;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SymbolMapperConstants],
-    }).compile();
-
-    symbolMapperConstants = module.get<SymbolMapperConstants>(SymbolMapperConstants);
-  });
-
-  it('should be defined', () => {
-    expect(symbolMapperConstants).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { LogSender } from '../../../src/alert/services/notification-senders/log.sender';
+// log.sender.integration.test.ts - 测试占位代码
+// 路径: integration/alert/services/notification-senders/log.sender.integration.test.ts
 
-describe('LogSender Integration', () => {
-  let logSender: LogSender;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [LogSender],
-    }).compile();
-
-    logSender = module.get<LogSender>(LogSender);
-  });
-
-  it('should be defined', () => {
-    expect(logSender).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

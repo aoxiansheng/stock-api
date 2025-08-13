@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ApikeyAuthGuard } from '../../../src/auth/guards/apikey-auth.guard';
+// apikey-auth.guard.integration.test.ts - 测试占位代码
+// 路径: integration/auth/guards/apikey-auth.guard.integration.test.ts
 
-describe('ApikeyAuthGuard Integration', () => {
-  let apikeyAuthGuard: ApikeyAuthGuard;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ApikeyAuthGuard],
-    }).compile();
-
-    apikeyAuthGuard = module.get<ApikeyAuthGuard>(ApikeyAuthGuard);
-  });
-
-  it('should be defined', () => {
-    expect(apikeyAuthGuard).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

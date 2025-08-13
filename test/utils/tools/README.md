@@ -25,6 +25,12 @@
   - 检测逻辑冲突、依赖违规、边界违规
   - 不处理文件删除，只报告问题
 
+### 5. test-duplicate-cleaner.ts ⭐️
+**通用占位测试文件清理器** - 智能检测和清理占位测试文件，支持多种测试类型
+- 🎯 **核心功能**: 通用占位文件检测和批量内容清理
+- 🔧 **适用场景**: 清理无用的占位测试文件，避免项目中的冗余代码
+- 💡 **智能检测**: 自动识别unit、integration、security、e2e等所有类型的占位文件
+
 
 ## 🚀 快速开始
 
@@ -45,7 +51,10 @@ npx ts-node test/utils/tools/test-structure-validator.ts --execute
 # 4. 清理重复文件
 npx ts-node test/utils/tools/test-find-duplicates.ts --cleanup --execute
 
-# 5. 最终验证
+# 5. 清理占位测试文件
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --execute
+
+# 6. 最终验证
 npx ts-node test/utils/tools/test-structure-validator.ts
 npx ts-node test/utils/tools/test-find-duplicates.ts
 ```
@@ -64,6 +73,10 @@ npx ts-node test/utils/tools/test-find-duplicates.ts --cleanup --execute
 # 命名检查
 npx ts-node test/utils/tools/test-naming-validator.ts
 npx ts-node test/utils/tools/test-naming-validator.ts --generate-script
+
+# 占位文件清理
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --execute
 ```
 
 ## 📋 test-structure-validator.ts 详细说明
@@ -232,6 +245,136 @@ npx ts-node test/utils/tools/test-naming-validator.ts
 npx ts-node test/utils/tools/test-naming-validator.ts --generate-script
 ```
 
+## 🧹 test-duplicate-cleaner.ts 详细说明
+
+### 核心功能
+
+专门检测和清理占位测试文件，支持通用模式和智能内容检测：
+
+- 🔍 **智能检测**: 自动识别基础的"should be defined"占位测试
+- 🧹 **批量清理**: 一次性清理所有类型的占位文件
+- 📝 **内容替换**: 将复杂的占位代码替换为简洁的注释
+- 📊 **全面支持**: 支持unit、integration、security、e2e等所有测试类型
+
+### 检测逻辑
+
+工具使用以下逻辑来识别占位测试文件：
+
+```typescript
+// 检测条件
+- 包含 `import { Test, TestingModule }`
+- 包含 `describe()` 和 `beforeEach()`
+- 包含 `should be defined` 测试
+- 只有一个测试用例
+- 文件行数较少（≤30行）
+- 没有复杂的测试逻辑（mock、spy等）
+```
+
+### 参数选项
+
+```bash
+# 预览清理（传统模式，需要指定参考文件）
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --dry-run
+
+# 执行清理（传统模式）
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --execute
+
+# 通用模式预览（推荐）
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --dry-run
+
+# 通用模式执行（推荐）
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --execute
+
+# 查看详细报告
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --report
+```
+
+### 支持的文件扩展名
+
+- **单元测试**: `*.spec.ts`
+- **集成测试**: `*.integration.test.ts`
+- **E2E测试**: `*.e2e.test.ts`
+- **安全测试**: `*.security.test.ts`
+- **性能测试**: `*.perf.test.ts`
+
+### 输出示例
+
+```
+🔍 开始扫描占位测试文件...
+📂 目标目录: /Users/honor/Documents/code/newstockapi/backend/test/jest
+🎯 扫描模式: 通用占位文件检测
+
+📋 找到 1231 个测试文件
+📄 找到占位文件: test/jest/integration/alert/constants/alert-history.constants.integration.test.ts
+📄 找到占位文件: test/jest/security/core/public/shared/services/batch-optimization.service.security.test.ts
+   ... 还有更多文件
+
+✅ 扫描完成! 找到 584 个占位测试文件
+
+🧹 执行清理操作...
+
+📝 [执行] test/jest/integration/alert/constants/alert-history.constants.integration.test.ts
+   ✅ 已清理
+
+✅ 清理完成! 处理了 584 个文件
+```
+
+### 清理后的文件格式
+
+所有占位文件被替换为简洁的注释格式：
+
+```typescript
+// alert-history.constants.integration.test.ts - 测试占位代码
+// 路径: integration/alert/constants/alert-history.constants.integration.test.ts
+
+// TODO: 实现具体的测试用例
+```
+
+### Package.json 命令集成
+
+工具已集成到项目的npm scripts中：
+
+```json
+{
+  "scripts": {
+    "test:clean-duplicates": "ts-node test/utils/tools/test-duplicate-cleaner.ts --dry-run",
+    "test:clean-duplicates:report": "ts-node test/utils/tools/test-duplicate-cleaner.ts --report", 
+    "test:clean-duplicates:execute": "ts-node test/utils/tools/test-duplicate-cleaner.ts --execute",
+    "test:clean-duplicates:universal": "ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --dry-run",
+    "test:clean-duplicates:universal:execute": "ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --execute"
+  }
+}
+```
+
+使用npm scripts运行：
+
+```bash
+# 通用模式预览
+npm run test:clean-duplicates:universal
+
+# 通用模式执行清理
+npm run test:clean-duplicates:universal:execute
+
+# 查看详细报告
+npm run test:clean-duplicates:report
+```
+
+### 最佳实践
+
+1. **使用通用模式**: 推荐使用 `--universal` 参数，无需指定参考文件
+2. **先预览再执行**: 使用 `--dry-run` 或不带参数先预览结果
+3. **定期清理**: 在项目开发过程中定期运行工具清理占位文件
+4. **备份重要文件**: 虽然工具只处理占位文件，建议清理前备份
+
+### 成功案例
+
+**最近一次运行结果:**
+- ✅ **扫描文件**: 1231 个测试文件
+- ✅ **检测占位**: 584 个占位文件
+- ✅ **清理成功**: 100% 成功率
+- ✅ **覆盖类型**: unit、integration、security、e2e 所有类型
+- ✅ **节省空间**: 显著减少冗余代码
+
 ## 🎯 项目特定配置
 
 ### 7组件核心架构支持
@@ -389,6 +532,9 @@ npx ts-node test/utils/tools/test-structure-validator.ts --execute
 
 # 清理重复文件
 npx ts-node test/utils/tools/test-find-duplicates.ts --cleanup --execute
+
+# 清理占位测试文件
+npx ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --execute
 ```
 
 #### 4. **验证阶段** ✅
@@ -409,7 +555,8 @@ npx ts-node test/utils/tools/test-find-duplicates.ts
 - ✅ **创建目录**: 594 个新目录
 - ✅ **创建文件**: 1059 个测试文件
 - ✅ **清理重复**: 40 个重复文件
-- ✅ **节省空间**: 24 KB
+- ✅ **清理占位**: 584 个占位测试文件
+- ✅ **节省空间**: 显著减少冗余代码
 - ✅ **最终状态**: 100% 结构合规
 
 ## ⚠️ 注意事项

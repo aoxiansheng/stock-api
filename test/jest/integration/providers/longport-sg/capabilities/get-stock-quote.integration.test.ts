@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { GetStockQuote } from '../../../src/providers/longport-sg/capabilities/get-stock-quote';
+// get-stock-quote.integration.test.ts - 测试占位代码
+// 路径: integration/providers/longport-sg/capabilities/get-stock-quote.integration.test.ts
 
-describe('GetStockQuote Integration', () => {
-  let getStockQuote: GetStockQuote;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [GetStockQuote],
-    }).compile();
-
-    getStockQuote = module.get<GetStockQuote>(GetStockQuote);
-  });
-
-  it('should be defined', () => {
-    expect(getStockQuote).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

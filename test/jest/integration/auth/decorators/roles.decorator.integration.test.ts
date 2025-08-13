@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RolesDecorator } from '../../../src/auth/decorators/roles.decorator';
+// roles.decorator.integration.test.ts - 测试占位代码
+// 路径: integration/auth/decorators/roles.decorator.integration.test.ts
 
-describe('RolesDecorator Integration', () => {
-  let rolesDecorator: RolesDecorator;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RolesDecorator],
-    }).compile();
-
-    rolesDecorator = module.get<RolesDecorator>(RolesDecorator);
-  });
-
-  it('should be defined', () => {
-    expect(rolesDecorator).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

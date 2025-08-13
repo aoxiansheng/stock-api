@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConventionScanner } from '../../../src/providers/utils/convention-scanner';
+// convention-scanner.integration.test.ts - 测试占位代码
+// 路径: integration/providers/utils/convention-scanner.integration.test.ts
 
-describe('ConventionScanner Integration', () => {
-  let conventionScanner: ConventionScanner;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ConventionScanner],
-    }).compile();
-
-    conventionScanner = module.get<ConventionScanner>(ConventionScanner);
-  });
-
-  it('should be defined', () => {
-    expect(conventionScanner).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

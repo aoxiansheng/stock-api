@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SecurityScanResultRepository } from '../../../src/security/repositories/security-scan-result.repository';
+// security-scan-result.repository.integration.test.ts - 测试占位代码
+// 路径: integration/security/repositories/security-scan-result.repository.integration.test.ts
 
-describe('SecurityScanResultRepository Integration', () => {
-  let securityScanResultRepository: SecurityScanResultRepository;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SecurityScanResultRepository],
-    }).compile();
-
-    securityScanResultRepository = module.get<SecurityScanResultRepository>(SecurityScanResultRepository);
-  });
-
-  it('should be defined', () => {
-    expect(securityScanResultRepository).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

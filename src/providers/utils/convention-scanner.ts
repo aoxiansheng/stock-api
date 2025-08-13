@@ -10,7 +10,7 @@ import {
   ConventionViolation,
   ScanStats,
   ScanResult
-} from '../decorators/metadata.types';
+} from '../decorators/types/metadata.types';
 
 /**
  * 约定优于配置的目录扫描器 - 单例模式防止重复扫描

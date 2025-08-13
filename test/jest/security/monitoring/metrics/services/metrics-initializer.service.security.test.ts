@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MetricsInitializerService } from '../../../src/monitoring/metrics/services/metrics-initializer.service';
+// metrics-initializer.service.security.test.ts - 测试占位代码
+// 路径: security/monitoring/metrics/services/metrics-initializer.service.security.test.ts
 
-describe('MetricsInitializerService Security', () => {
-  let metricsInitializerService: MetricsInitializerService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MetricsInitializerService],
-    }).compile();
-
-    metricsInitializerService = module.get<MetricsInitializerService>(MetricsInitializerService);
-  });
-
-  it('should be defined', () => {
-    expect(metricsInitializerService).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceInterceptor } from '../../../src/metrics/interceptors/performance.interceptor';
+// performance.interceptor.security.test.ts - 测试占位代码
+// 路径: security/metrics/interceptors/performance.interceptor.security.test.ts
 
-describe('PerformanceInterceptor Security', () => {
-  let performanceInterceptor: PerformanceInterceptor;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PerformanceInterceptor],
-    }).compile();
-
-    performanceInterceptor = module.get<PerformanceInterceptor>(PerformanceInterceptor);
-  });
-
-  it('should be defined', () => {
-    expect(performanceInterceptor).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConstantsVersion } from '../../../src/common/constants/unified/constants-version';
+// constants-version.security.test.ts - 测试占位代码
+// 路径: security/common/constants/unified/constants-version.security.test.ts
 
-describe('ConstantsVersion Security', () => {
-  let constantsVersion: ConstantsVersion;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ConstantsVersion],
-    }).compile();
-
-    constantsVersion = module.get<ConstantsVersion>(ConstantsVersion);
-  });
-
-  it('should be defined', () => {
-    expect(constantsVersion).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

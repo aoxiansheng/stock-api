@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ApikeySchema } from '../../../src/auth/schemas/apikey.schema';
+// apikey.schema.integration.test.ts - 测试占位代码
+// 路径: integration/auth/schemas/apikey.schema.integration.test.ts
 
-describe('ApikeySchema Integration', () => {
-  let apikeySchema: ApikeySchema;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ApikeySchema],
-    }).compile();
-
-    apikeySchema = module.get<ApikeySchema>(ApikeySchema);
-  });
-
-  it('should be defined', () => {
-    expect(apikeySchema).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

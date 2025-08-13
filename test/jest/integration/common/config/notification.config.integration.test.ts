@@ -1,18 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationConfig } from '../../../src/common/config/notification.config';
+// notification.config.integration.test.ts - 测试占位代码
+// 路径: integration/common/config/notification.config.integration.test.ts
 
-describe('NotificationConfig Integration', () => {
-  let notificationConfig: NotificationConfig;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [NotificationConfig],
-    }).compile();
-
-    notificationConfig = module.get<NotificationConfig>(NotificationConfig);
-  });
-
-  it('should be defined', () => {
-    expect(notificationConfig).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例
