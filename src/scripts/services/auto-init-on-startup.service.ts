@@ -3,7 +3,7 @@ import { ModuleRef } from "@nestjs/core";
 
 import { getAutoInitConfig } from "@common/config/auto-init.config";
 import { createLogger } from "@common/config/logger.config";
-import { PersistedTemplateService } from "../../core/data-mapper/services/persisted-template.service";
+import { PersistedTemplateService } from "../../core/public/data-mapper/services/persisted-template.service";
 
 /**
  * 简化的启动时自动初始化服务

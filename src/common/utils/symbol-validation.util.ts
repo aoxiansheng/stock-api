@@ -1,5 +1,5 @@
 import { Market } from '@common/constants/market.constants';
-import { MARKET_RECOGNITION_RULES, RECEIVER_VALIDATION_RULES } from '../../core/receiver/constants/receiver.constants';
+import { MARKET_RECOGNITION_RULES, RECEIVER_VALIDATION_RULES } from '../../core/restapi/receiver/constants/receiver.constants';
 
 /**
  * 统一的股票代码验证工具类

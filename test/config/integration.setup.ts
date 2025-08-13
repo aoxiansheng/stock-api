@@ -12,7 +12,7 @@ import { MongooseModule, getModelToken } from "@nestjs/mongoose";
 import { RedisModule, RedisService } from "@liaoliaots/nestjs-redis";
 import { EventEmitterModule, EventEmitter2 } from "@nestjs/event-emitter";
 import { JwtModule } from "@nestjs/jwt";
-import { TestEnvironment, smartDelay } from "../utils/async-test-helpers";
+import { TestEnvironment, smartDelay } from "../utils/utils/async-test-helpers";
 
 // Import modules needed for integration tests
 import { AuthModule } from "../../src/auth/module/auth.module";

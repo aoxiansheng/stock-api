@@ -4,11 +4,11 @@ import { MongooseModule } from "@nestjs/mongoose";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleSchema,
-} from "../../core/data-mapper/schemas/flexible-mapping-rule.schema";
+} from "../../core/public/data-mapper/schemas/flexible-mapping-rule.schema";
 import {
   SymbolMappingRuleDocument,
   SymbolMappingRuleDocumentSchema,
-} from "../../core/symbol-mapper/schemas/symbol-mapping-rule.schema";
+} from "../../core/public/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
 import { AutoInitOnStartupService } from "../services/auto-init-on-startup.service";
 

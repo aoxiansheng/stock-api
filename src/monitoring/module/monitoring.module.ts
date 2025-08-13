@@ -4,7 +4,7 @@ import { AlertModule } from "../../alert/module/alert.module";
 import { AuthModule } from "../../auth/module/auth.module";
 import { CacheModule } from "../../cache/module/cache.module";
 import { MetricsModule } from "../../metrics/module/metrics.module";
-import { SharedServicesModule } from "../../core/shared/module/shared-services.module";
+import { SharedServicesModule } from "../../core/public/shared/module/shared-services.module";
 
 import { MonitoringController } from "../controller/monitoring.controller";
 import { MetricsInitializerService } from "../metrics/metrics-initializer.service";

@@ -60,7 +60,8 @@
       "mcp__sequential-thinking__sequentialthinking",
       "mcp__serena__replace_symbol_body",
       "Bash(TEST_PORT=3333 npx jest test/jest/e2e/core/stream-receiver/gateway/stream-receiver.gateway.e2e.test.ts --config test/config/jest.e2e.config.js --testNamePattern=\"should handle malformed subscription messages\")",
-      "mcp__serena__read_memory"
+      "mcp__serena__read_memory",
+      "mcp__serena__insert_after_symbol"
     ],
     "deny": []
   }
