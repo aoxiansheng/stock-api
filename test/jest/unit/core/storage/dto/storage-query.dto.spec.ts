@@ -1,7 +1,7 @@
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import { StorageQueryDto } from '@core/storage/dto/storage-query.dto';
-import { StorageType, StorageClassification } from '@core/storage/enums/storage-type.enum';
+import { StorageQueryDto } from '@core/public/storage/dto/storage-query.dto';
+import { StorageType, StorageClassification } from '@core/public/storage/enums/storage-type.enum';
 
 describe('StorageQueryDto', () => {
   describe('Validation Rules', () => {

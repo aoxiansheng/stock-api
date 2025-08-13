@@ -1,63 +1,88 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createLogger } from '@common/config/logger.config';
-import { StreamReceiverService } from '../../../../../src/core/stream-receiver/stream-receiver.service';
-import { CapabilityRegistryService } from '../../../../../src/providers/services/capability-registry.service';
-import { SymbolMapperService } from '../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { TransformerService } from '../../../../../src/core/transformer/services/transformer.service';
-import { StreamSubscribeDto, StreamUnsubscribeDto } from '../../../../../src/core/stream-receiver/dto';
-import { FlexibleMappingRuleService } from '../../../../../src/core/data-mapper/services/flexible-mapping-rule.service';
-import { BatchOptimizationService } from '../../../../../src/core/shared/services/batch-optimization.service';
-import { FeatureFlags } from '../../../../../src/common/config/feature-flags.config';
-import { StreamPerformanceMetrics } from '../../../../../src/core/shared/services/stream-performance-metrics.service';
+import { StreamReceiverService } from '../../../../../src/core/stream/stream-receiver/stream-receiver.service';
+import { SymbolMapperService } from '../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { TransformerService } from '../../../../../src/core/public/transformer/services/transformer.service';
+import { StreamDataFetcherService } from '../../../../../src/core/stream/stream-data-fetcher/services/stream-data-fetcher.service';
+import { StreamDataCacheService } from '../../../../../src/core/stream/stream-data-fetcher/services/stream-data-cache.service';
+import { StreamClientStateManager } from '../../../../../src/core/stream/stream-data-fetcher/services/stream-client-state-manager.service';
+import { StreamSubscribeDto, StreamUnsubscribeDto } from '../../../../../src/core/stream/stream-receiver/dto';
+import { StreamConnection } from '../../../../../src/core/stream/stream-data-fetcher/interfaces';
+import { TransformResponseDto, TransformationMetadataDto } from '../../../../../src/core/public/transformer/dto/transform-response.dto';
 
 // Mock logger
-jest.mock('@common/config/logger.config');
+jest.mock('@common/config/logger.config', () => ({
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  })),
+}));
+
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
 };
-(createLogger as jest.Mock).mockReturnValue(mockLogger);
 
 // Mock services
-const mockCapabilityRegistry = {
-  getBestStreamProvider: jest.fn(),
-  getStreamCapability: jest.fn(),
-  getProvider: jest.fn(),
-};
-
 const mockSymbolMapperService = {
-  transformSymbols: jest.fn(),
-  mapSymbol: jest.fn(), // 添加 mapSymbol Mock
+  transformSymbolsForProvider: jest.fn(),
 };
 
 const mockTransformerService = {
   transform: jest.fn(),
 };
 
-// Mock capability and provider
-const mockCapability = {
-  isConnected: jest.fn(),
-  initialize: jest.fn(),
+const mockStreamDataFetcher = {
+  establishStreamConnection: jest.fn(),
+  subscribeToSymbols: jest.fn(),
+  unsubscribeFromSymbols: jest.fn(),
+  isConnectionActive: jest.fn(),
+  getConnectionStatsByProvider: jest.fn(),
+  batchHealthCheck: jest.fn(),
+};
+
+const mockStreamDataCache = {
+  setData: jest.fn(),
+  getData: jest.fn(),
+  getCacheStats: jest.fn(),
+};
+
+const mockClientStateManager = {
+  addClientSubscription: jest.fn(),
+  removeClientSubscription: jest.fn(),
+  getClientSubscription: jest.fn(),
+  getClientSymbols: jest.fn(),
+  getClientStateStats: jest.fn(),
+  addSubscriptionChangeListener: jest.fn(),
+  broadcastToSymbolSubscribers: jest.fn(),
+};
+
+// Mock StreamConnection
+const mockStreamConnection: StreamConnection = {
+  id: 'test-connection-1',
+  provider: 'longport',
+  capability: 'stream-stock-quote',
+  isActive: true,
+  onData: jest.fn(),
+  onError: jest.fn(),
+  onStatusChange: jest.fn(),
   subscribe: jest.fn(),
   unsubscribe: jest.fn(),
-  cleanup: jest.fn(),
+  close: jest.fn(),
+  getStats: jest.fn(),
 };
 
-const mockContextService = {
-  onQuoteUpdate: jest.fn(),
-  initializeWebSocket: jest.fn(),
-  subscribe: jest.fn(),
-  unsubscribe: jest.fn(),
-};
-
-const mockProvider = {
-  getStreamContextService: jest.fn().mockReturnValue(mockContextService),
-};
-
-describe('StreamReceiverService', () => {
+describe('StreamReceiverService - Phase 2 重构版本', () => {
   let service: StreamReceiverService;
+  let symbolMapper: jest.Mocked<SymbolMapperService>;
+  let transformer: jest.Mocked<TransformerService>;
+  let streamDataFetcher: jest.Mocked<StreamDataFetcherService>;
+  let streamDataCache: jest.Mocked<StreamDataCacheService>;
+  let clientStateManager: jest.Mocked<StreamClientStateManager>;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -65,10 +90,6 @@ describe('StreamReceiverService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StreamReceiverService,
-        {
-          provide: CapabilityRegistryService,
-          useValue: mockCapabilityRegistry,
-        },
         {
           provide: SymbolMapperService,
           useValue: mockSymbolMapperService,
@@ -78,830 +99,387 @@ describe('StreamReceiverService', () => {
           useValue: mockTransformerService,
         },
         {
-          provide: FlexibleMappingRuleService,
-          useValue: {
-            findBestMatchingRule: jest.fn().mockResolvedValue({
-              name: 'test-rule',
-              fieldMappings: [
-                { sourceFieldPath: 'symbol', targetField: 'symbol' },
-                { sourceFieldPath: 'last_done', targetField: 'lastPrice' },
-                { sourceFieldPath: 'volume', targetField: 'volume' },
-              ],
-            }),
-          },
+          provide: StreamDataFetcherService,
+          useValue: mockStreamDataFetcher,
         },
         {
-          provide: BatchOptimizationService,
-          useValue: {
-            getBatchSize: jest.fn().mockReturnValue(100),
-            getBatchInterval: jest.fn().mockReturnValue(50),
-          },
+          provide: StreamDataCacheService,
+          useValue: mockStreamDataCache,
         },
         {
-          provide: FeatureFlags,
-          useValue: {
-            symbolMappingCacheEnabled: true,
-            dataTransformCacheEnabled: true,
-            batchProcessingEnabled: true,
-            objectPoolEnabled: true,
-            ruleCompilationEnabled: true,
-            dynamicLogLevelEnabled: true,
-            metricsLegacyModeEnabled: true,
-            symbolCacheMaxSize: 2000,
-            symbolCacheTtl: 5 * 60 * 1000,
-            ruleCacheMaxSize: 100,
-            ruleCacheTtl: 10 * 60 * 1000,
-            objectPoolSize: 100,
-            batchSizeThreshold: 10,
-            batchTimeWindowMs: 1,
-            getAllFlags: jest.fn().mockReturnValue({
-              symbolMappingCacheEnabled: true,
-              dataTransformCacheEnabled: true,
-              batchProcessingEnabled: true,
-            }),
-            isCacheOptimizationEnabled: jest.fn().mockReturnValue(true),
-            isPerformanceOptimizationEnabled: jest.fn().mockReturnValue(true),
-          },
-        },
-        {
-          provide: StreamPerformanceMetrics,
-          useValue: {
-            recordBatchProcessing: jest.fn(),
-            recordQuoteProcessing: jest.fn(),
-            recordRuleCompilation: jest.fn(),
-            recordError: jest.fn(), // 记录错误
-            recordSymbolProcessed: jest.fn(), // 记录符号处理
-            recordCacheAccess: jest.fn(), // 记录缓存访问
-            recordRuleCompiled: jest.fn(), // 记录规则编译
-            recordBatchProcessed: jest.fn(), // 记录批量处理
-            recordBatchPreloadCacheHit: jest.fn(), // 记录批量预加载缓存命中
-            getDetailedPerformanceReport: jest.fn().mockResolvedValue({
-              stats: {},
-              percentiles: {},
-              prometheusMetrics: '',
-              timestamp: new Date().toISOString(),
-            }),
-          },
+          provide: StreamClientStateManager,
+          useValue: mockClientStateManager,
         },
       ],
     }).compile();
 
     service = module.get<StreamReceiverService>(StreamReceiverService);
+    symbolMapper = module.get(SymbolMapperService);
+    transformer = module.get(TransformerService);
+    streamDataFetcher = module.get(StreamDataFetcherService);
+    streamDataCache = module.get(StreamDataCacheService);
+    clientStateManager = module.get(StreamClientStateManager);
   });
 
-  describe('subscribeSymbols()', () => {
-    const clientId = 'test-client-123';
-    const subscribeDto: StreamSubscribeDto = {
-      symbols: ['700.HK', 'AAPL.US'],
+  describe('服务初始化', () => {
+    it('应该正确初始化服务', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('应该设置批量处理管道', () => {
+      expect(mockLogger.log).toHaveBeenCalledWith('StreamReceiver 重构完成 - 集成 StreamDataFetcher 架构');
+    });
+
+    it('应该设置订阅变更监听器', () => {
+      expect(mockClientStateManager.addSubscriptionChangeListener).toHaveBeenCalled();
+    });
+  });
+
+  describe('流数据订阅', () => {
+    const mockSubscribeDto: StreamSubscribeDto = {
+      symbols: ['AAPL.US', '700.HK'],
       wsCapabilityType: 'stream-stock-quote',
+      preferredProvider: 'longport',
     };
-    const messageCallback = jest.fn();
+
+    const mockCallback = jest.fn();
 
     beforeEach(() => {
-      // Default mocks setup
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      // 默认设置：大部分测试需要成功的初始化
-      // 第一次检查未连接，初始化后连接成功
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-      mockCapability.unsubscribe.mockResolvedValue(undefined);
-      mockCapability.cleanup.mockResolvedValue(undefined);
+      // 设置默认的 mock 返回值
+      symbolMapper.transformSymbolsForProvider.mockResolvedValue(['AAPL.US', '700.HK']);
+      streamDataFetcher.establishStreamConnection.mockResolvedValue(mockStreamConnection);
+      streamDataFetcher.isConnectionActive.mockReturnValue(true);
+      streamDataFetcher.subscribeToSymbols.mockResolvedValue();
     });
 
-    it('should subscribe to symbols successfully', async () => {
-      // Execute - 使用默认的Mock设置
-      // 临时禁用批量处理以测试传统消息处理模式
-      (service as any).featureFlags.batchProcessingEnabled = false;
+    it('应该成功订阅流数据', async () => {
+      await service.subscribeStream(mockSubscribeDto, mockCallback);
+
+      expect(symbolMapper.transformSymbolsForProvider).toHaveBeenCalledWith(
+        'longport',
+        ['AAPL.US', '700.HK'],
+        expect.any(String)
+      );
+      expect(clientStateManager.addClientSubscription).toHaveBeenCalled();
+      expect(streamDataFetcher.establishStreamConnection).toHaveBeenCalled();
+      expect(streamDataFetcher.subscribeToSymbols).toHaveBeenCalledWith(
+        mockStreamConnection,
+        ['AAPL.US', '700.HK']
+      );
+    });
+
+    it('应该使用默认提供商当未指定时', async () => {
+      const dtoWithoutProvider = { ...mockSubscribeDto };
+      delete dtoWithoutProvider.preferredProvider;
+
+      await service.subscribeStream(dtoWithoutProvider, mockCallback);
+
+      expect(symbolMapper.transformSymbolsForProvider).toHaveBeenCalledWith(
+        'longport',
+        ['AAPL.US', '700.HK'],
+        expect.any(String)
+      );
+    });
+
+    it('应该复用现有的活跃连接', async () => {
+      // 第一次订阅
+      await service.subscribeStream(mockSubscribeDto, mockCallback);
       
-      await service.subscribeSymbols(clientId, subscribeDto, messageCallback);
+      // 第二次订阅，应该复用连接
+      await service.subscribeStream(mockSubscribeDto, jest.fn());
 
-      // Verify
-      expect(mockCapabilityRegistry.getBestStreamProvider).toHaveBeenCalledWith('stream-stock-quote', 'HK');
-      expect(mockCapabilityRegistry.getStreamCapability).toHaveBeenCalledWith('longport', 'stream-stock-quote');
-      expect(mockCapabilityRegistry.getProvider).toHaveBeenCalledWith('longport');
-      expect(mockSymbolMapperService.transformSymbols).toHaveBeenCalledWith('longport', ['700.HK', 'AAPL.US']);
-      expect(mockCapability.initialize).toHaveBeenCalledWith(mockContextService);
-      expect(mockContextService.onQuoteUpdate).toHaveBeenCalledWith(expect.any(Function));
-      expect(mockCapability.subscribe).toHaveBeenCalledWith(['00700', 'AAPL'], mockContextService);
-      expect(mockLogger.log).toHaveBeenCalledWith({
-        message: 'WebSocket 订阅成功',
-        clientId,
-        symbols: subscribeDto.symbols,
-        provider: 'longport',
-        capability: 'stream-stock-quote',
-      });
+      expect(streamDataFetcher.establishStreamConnection).toHaveBeenCalledTimes(1);
+      expect(streamDataFetcher.subscribeToSymbols).toHaveBeenCalledTimes(2);
     });
 
-    it('should use preferred provider when specified', async () => {
-      // Setup
-      const subscribeWithProvider: StreamSubscribeDto = {
-        ...subscribeDto,
-        preferredProvider: 'longport-sg',
-      };
+    it('应该处理符号映射失败', async () => {
+      symbolMapper.transformSymbolsForProvider.mockResolvedValue(['AAPL.US', 'FAILED_SYMBOL']);
       
-      // 重置Mock以确保初始化成功
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
+      await service.subscribeStream(mockSubscribeDto, mockCallback);
 
-      // Execute
-      await service.subscribeSymbols(clientId, subscribeWithProvider, messageCallback);
-
-      // Verify
-      expect(mockCapabilityRegistry.getBestStreamProvider).not.toHaveBeenCalled();
-      expect(mockCapabilityRegistry.getStreamCapability).toHaveBeenCalledWith('longport-sg', 'stream-stock-quote');
+      expect(mockLogger.warn).not.toHaveBeenCalled(); // 符号映射成功，不应该有警告
     });
 
-    it('should skip initialization if already connected', async () => {
-      // Setup - 重置Mock配置：已连接状态，跳过初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected.mockReturnValue(true); // 始终返回已连接状态
-      mockCapability.initialize.mockReset();
-      mockCapability.subscribe.mockResolvedValue(undefined);
+    it('应该处理订阅错误', async () => {
+      const error = new Error('Subscription failed');
+      streamDataFetcher.subscribeToSymbols.mockRejectedValue(error);
 
-      // Execute
-      // 临时禁用批量处理以测试传统消息处理模式
-      (service as any).featureFlags.batchProcessingEnabled = false;
-      
-      await service.subscribeSymbols(clientId, subscribeDto, messageCallback);
+      await expect(service.subscribeStream(mockSubscribeDto, mockCallback)).rejects.toThrow('Subscription failed');
 
-      // Verify
-      expect(mockCapability.initialize).not.toHaveBeenCalled();
-      expect(mockCapability.subscribe).toHaveBeenCalled();
-    });
-
-    it('should throw error when no provider found', async () => {
-      // Setup
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue(null);
-
-      // Execute & Verify
-      await expect(service.subscribeSymbols(clientId, subscribeDto, messageCallback))
-        .rejects.toThrow('未找到支持 stream-stock-quote 能力的数据提供商');
-
-      expect(mockLogger.error).toHaveBeenCalledWith({
-        message: 'WebSocket 订阅失败',
-        clientId,
-        symbols: subscribeDto.symbols,
-        error: '未找到支持 stream-stock-quote 能力的数据提供商',
-      });
-    });
-
-    it('should throw error when capability not found', async () => {
-      // Setup
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(null);
-
-      // Execute & Verify
-      await expect(service.subscribeSymbols(clientId, subscribeDto, messageCallback))
-        .rejects.toThrow('提供商 longport 不支持 stream-stock-quote 流能力');
-    });
-
-    it('should throw error when context service not available', async () => {
-      // Setup
-      mockProvider.getStreamContextService.mockReturnValue(null);
-
-      // Execute & Verify
-      await expect(service.subscribeSymbols(clientId, subscribeDto, messageCallback))
-        .rejects.toThrow('提供商 longport 未提供流上下文服务');
-    });
-
-    it('should handle symbol mapping failure', async () => {
-      // Setup - 确保能到达符号映射步骤
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getStreamContextService.mockReturnValue(mockContextService); // 确保contextService可用
-      mockSymbolMapperService.transformSymbols.mockRejectedValue(new Error('Symbol mapping failed'));
-
-      // Execute & Verify
-      await expect(service.subscribeSymbols(clientId, subscribeDto, messageCallback))
-        .rejects.toThrow('Symbol mapping failed');
-
-      expect(mockLogger.error).toHaveBeenCalledWith({
-        message: 'WebSocket 订阅失败',
-        clientId,
-        symbols: subscribeDto.symbols,
-        error: 'Symbol mapping failed',
-      });
-    });
-
-    it('should handle capability initialization failure', async () => {
-      // Setup - 确保能到达初始化步骤
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getStreamContextService.mockReturnValue(mockContextService); // 确保contextService可用
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      }); // 确保符号映射成功
-      mockCapability.isConnected.mockReturnValue(false); // 确保需要初始化
-      mockCapability.initialize.mockRejectedValue(new Error('Initialization failed'));
-
-      // Execute & Verify
-      await expect(service.subscribeSymbols(clientId, subscribeDto, messageCallback))
-        .rejects.toThrow('Initialization failed');
-    });
-
-    it('should handle subscription failure', async () => {
-      // Setup - 确保能到达订阅步骤
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getStreamContextService.mockReturnValue(mockContextService); // 确保contextService可用
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      }); // 确保符号映射成功
-      // 重置并设置正确的Mock：初始化成功，但订阅失败
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined); // 确保初始化成功
-      mockCapability.subscribe.mockRejectedValue(new Error('Subscription failed'));
-
-      // Execute & Verify
-      await expect(service.subscribeSymbols(clientId, subscribeDto, messageCallback))
-        .rejects.toThrow('Subscription failed');
-    });
-
-    it('should infer markets correctly for different symbol formats', async () => {
-      // Test cases for different markets
-      const testCases = [
-        { symbols: ['700.HK'], expectedMarket: 'HK' },
-        { symbols: ['00700'], expectedMarket: 'HK' },
-        { symbols: ['AAPL.US'], expectedMarket: 'US' },
-        { symbols: ['AAPL'], expectedMarket: 'US' },
-        { symbols: ['000001.SZ'], expectedMarket: 'SZ' },
-        { symbols: ['000001'], expectedMarket: 'SZ' },
-        { symbols: ['600000.SH'], expectedMarket: 'SH' },
-        { symbols: ['600000'], expectedMarket: 'SH' },
-        { symbols: ['TEST.SG'], expectedMarket: 'SG' },
-      ];
-
-      for (const testCase of testCases) {
-        jest.clearAllMocks();
-        mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-        mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-        mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-        mockSymbolMapperService.transformSymbols.mockResolvedValue({
-          transformedSymbols: { [testCase.symbols[0]]: testCase.symbols[0].replace('.HK', '').replace('.US', '').replace('.SZ', '').replace('.SH', '').replace('.SG', '') },
-          failedSymbols: [],
-          processingTimeMs: 10,
-          dataSourceName: 'longport'
-        });
-        // 重置并设置正确的Mock：需要初始化
-        mockCapability.isConnected.mockReset();
-        mockCapability.isConnected
-          .mockReturnValueOnce(false)  // 第一次检查：未连接
-          .mockReturnValue(true);      // 初始化后检查：已连接
-        mockCapability.initialize.mockResolvedValue(undefined);
-        mockCapability.subscribe.mockResolvedValue(undefined);
-
-        const dto: StreamSubscribeDto = {
-          symbols: testCase.symbols,
-          wsCapabilityType: 'stream-stock-quote',
-        };
-
-        await service.subscribeSymbols(clientId + testCase.expectedMarket, dto, messageCallback);
-
-        expect(mockCapabilityRegistry.getBestStreamProvider).toHaveBeenCalledWith(
-          'stream-stock-quote',
-          testCase.expectedMarket
-        );
-      }
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        '流数据订阅失败',
+        expect.objectContaining({
+          error: 'Subscription failed',
+        })
+      );
     });
   });
 
-  describe('unsubscribeSymbols()', () => {
-    const clientId = 'test-client-123';
-    const unsubscribeDto: StreamUnsubscribeDto = {
-      symbols: ['700.HK', 'AAPL.US'],
-      wsCapabilityType: 'stream-stock-quote',
+  describe('流数据取消订阅', () => {
+    const mockUnsubscribeDto: StreamUnsubscribeDto = {
+      symbols: ['AAPL.US'],
     };
 
-    beforeEach(async () => {
-      // Setup initial subscription
-      const subscribeDto: StreamSubscribeDto = {
-        symbols: ['700.HK', 'AAPL.US', 'TSLA.US'],
+    beforeEach(() => {
+      mockClientStateManager.getClientSubscription.mockReturnValue({
+        clientId: 'temp_client_id',
+        symbols: new Set(['AAPL.US', '700.HK']),
         wsCapabilityType: 'stream-stock-quote',
-      };
-
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getStreamContextService.mockReturnValue(mockContextService); // 确保contextService可用
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL', 'TSLA.US': 'TSLA' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
+        providerName: 'longport',
+        subscriptionTime: Date.now(),
+        lastActiveTime: Date.now(),
       });
-      // 重置并设置正确的Mock：需要初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-
-      await service.subscribeSymbols(clientId, subscribeDto, jest.fn());
-      jest.clearAllMocks();
+      symbolMapper.transformSymbolsForProvider.mockResolvedValue(['AAPL.US']);
+      streamDataFetcher.unsubscribeFromSymbols.mockResolvedValue();
     });
 
-    it('should unsubscribe from symbols successfully', async () => {
-      // Setup
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      mockCapability.unsubscribe.mockResolvedValue(undefined);
+    it('应该成功取消订阅指定符号', async () => {
+      await service.unsubscribeStream(mockUnsubscribeDto);
 
-      // Execute
-      await service.unsubscribeSymbols(clientId, unsubscribeDto);
-
-      // Verify
-      expect(mockSymbolMapperService.transformSymbols).toHaveBeenCalledWith('longport', ['700.HK', 'AAPL.US']);
-      expect(mockCapability.unsubscribe).toHaveBeenCalledWith(['00700', 'AAPL'], mockContextService);
-      expect(mockLogger.log).toHaveBeenCalledWith({
-        message: 'WebSocket 取消订阅成功',
-        clientId,
-        symbols: unsubscribeDto.symbols,
-        provider: 'longport',
-      });
+      expect(mockClientStateManager.getClientSubscription).toHaveBeenCalledWith('temp_client_id');
+      expect(symbolMapper.transformSymbolsForProvider).toHaveBeenCalledWith(
+        'longport',
+        ['AAPL.US'],
+        expect.any(String)
+      );
+      expect(streamDataFetcher.unsubscribeFromSymbols).toHaveBeenCalled();
+      expect(mockClientStateManager.removeClientSubscription).toHaveBeenCalledWith(
+        'temp_client_id',
+        ['AAPL.US']
+      );
     });
 
-    it('should cleanup client subscription when no symbols remain', async () => {
-      // Setup - unsubscribe all symbols
-      const unsubscribeAllDto: StreamUnsubscribeDto = {
-        symbols: ['700.HK', 'AAPL.US', 'TSLA.US'],
-        wsCapabilityType: 'stream-stock-quote',
-      };
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL', 'TSLA.US': 'TSLA' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      mockCapability.unsubscribe.mockResolvedValue(undefined);
-      mockCapability.cleanup.mockResolvedValue(undefined);
-
-      // Execute
-      await service.unsubscribeSymbols(clientId, unsubscribeAllDto);
-
-      // Verify
-      expect(mockCapability.cleanup).toHaveBeenCalledTimes(1);
-      expect(service.getClientSubscription(clientId)).toBeUndefined();
-    });
-
-    it('should warn when client has no active subscription', async () => {
-      // Setup - unknown client
-      const unknownClientId = 'unknown-client';
-
-      // Execute
-      await service.unsubscribeSymbols(unknownClientId, unsubscribeDto);
-
-      // Verify
-      expect(mockLogger.warn).toHaveBeenCalledWith(`客户端 ${unknownClientId} 没有活跃的订阅`);
-      expect(mockCapability.unsubscribe).not.toHaveBeenCalled();
-    });
-
-    it('should handle symbol mapping failure during unsubscription', async () => {
-      // Setup
-      mockSymbolMapperService.transformSymbols.mockRejectedValue(new Error('Mapping failed'));
-
-      // Execute & Verify
-      await expect(service.unsubscribeSymbols(clientId, unsubscribeDto))
-        .rejects.toThrow('Mapping failed');
-
-      expect(mockLogger.error).toHaveBeenCalledWith({
-        message: 'WebSocket 取消订阅失败',
-        clientId,
-        error: 'Mapping failed',
-      });
-    });
-
-    it('should handle unsubscription failure', async () => {
-      // Setup
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      mockCapability.unsubscribe.mockRejectedValue(new Error('Unsubscription failed'));
-
-      // Execute & Verify
-      await expect(service.unsubscribeSymbols(clientId, unsubscribeDto))
-        .rejects.toThrow('Unsubscription failed');
-    });
-  });
-
-  describe('cleanupClientSubscription()', () => {
-    const clientId = 'test-client-123';
-
-    beforeEach(async () => {
-      // Setup initial subscription
-      const subscribeDto: StreamSubscribeDto = {
-        symbols: ['700.HK'],
-        wsCapabilityType: 'stream-stock-quote',
-      };
-
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getStreamContextService.mockReturnValue(mockContextService); // 确保contextService可用
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      // 重置并设置正确的Mock：需要初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-
-      await service.subscribeSymbols(clientId, subscribeDto, jest.fn());
-      jest.clearAllMocks();
-    });
-
-    it('should cleanup client subscription successfully', async () => {
-      // Setup
-      mockCapability.cleanup.mockResolvedValue(undefined);
-
-      // Execute
-      await service.cleanupClientSubscription(clientId);
-
-      // Verify
-      expect(mockCapability.cleanup).toHaveBeenCalledTimes(1);
-      expect(service.getClientSubscription(clientId)).toBeUndefined();
-      expect(mockLogger.log).toHaveBeenCalledWith(`已清理客户端 ${clientId} 的订阅`);
-    });
-
-    it('should handle cleanup errors gracefully', async () => {
-      // Setup
-      mockCapability.cleanup.mockRejectedValue(new Error('Cleanup failed'));
-
-      // Execute
-      await service.cleanupClientSubscription(clientId);
-
-      // Verify
-      expect(mockLogger.error).toHaveBeenCalledWith({
-        message: '清理客户端订阅失败',
-        clientId,
-        error: 'Cleanup failed',
-      });
-    });
-
-    it('should handle cleanup for non-existent client gracefully', async () => {
-      // Execute
-      await service.cleanupClientSubscription('non-existent-client');
-
-      // Verify - should not throw error
-      expect(mockCapability.cleanup).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('getClientSubscription()', () => {
-    it('should return undefined for non-existent client', () => {
-      // Execute & Verify
-      expect(service.getClientSubscription('non-existent')).toBeUndefined();
-    });
-
-    it('should return subscription for existing client', async () => {
-      // Setup
-      const clientId = 'test-client-123';
-      const subscribeDto: StreamSubscribeDto = {
-        symbols: ['700.HK'],
-        wsCapabilityType: 'stream-stock-quote',
-      };
-
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getStreamContextService.mockReturnValue(mockContextService); // 确保contextService可用
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      // 重置并设置正确的Mock：需要初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-
-      await service.subscribeSymbols(clientId, subscribeDto, jest.fn());
-
-      // Execute
-      const subscription = service.getClientSubscription(clientId);
-
-      // Verify
-      expect(subscription).toBeDefined();
-      expect(subscription?.clientId).toBe(clientId);
-      expect(subscription?.wsCapabilityType).toBe('stream-stock-quote');
-      expect(subscription?.providerName).toBe('longport');
-    });
-  });
-
-  describe('Message Handling', () => {
-    const clientId = 'test-client-123';
-
-    // 在消息处理测试中临时禁用批量处理，以测试直接的消息处理逻辑
-    // 注意：每个测试需要个别设置 featureFlags
-
-    it('should handle provider messages and transform data', async () => {
-      // Setup
-      const subscribeDto: StreamSubscribeDto = {
-        symbols: ['700.HK'],
-        wsCapabilityType: 'stream-stock-quote',
-      };
-      const messageCallback = jest.fn();
-
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      // 重置并设置正确的Mock：需要初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-
-      // 临时禁用批量处理以测试传统消息处理模式
-      (service as any).featureFlags.batchProcessingEnabled = false;
+    it('应该取消订阅所有符号当未指定时', async () => {
+      mockClientStateManager.getClientSymbols.mockReturnValue(['AAPL.US', '700.HK']);
       
-      await service.subscribeSymbols(clientId, subscribeDto, messageCallback);
+      const dtoWithoutSymbols: StreamUnsubscribeDto = {};
+      await service.unsubscribeStream(dtoWithoutSymbols);
 
-      // Get the callback that was set on the context service
-      const onQuoteUpdateCall = mockContextService.onQuoteUpdate.mock.calls[0];
-      const providerMessageHandler = onQuoteUpdateCall[0];
+      expect(mockClientStateManager.getClientSymbols).toHaveBeenCalledWith('temp_client_id');
+      expect(streamDataFetcher.unsubscribeFromSymbols).toHaveBeenCalled();
+    });
 
-      // Setup additional mocks needed for message processing
-      mockSymbolMapperService.mapSymbol.mockResolvedValue('700.HK'); // 符号映射返回标准格式
+    it('应该处理客户端订阅不存在的情况', async () => {
+      mockClientStateManager.getClientSubscription.mockReturnValue(null);
+
+      await service.unsubscribeStream(mockUnsubscribeDto);
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        '客户端订阅不存在',
+        { clientId: 'temp_client_id' }
+      );
+      expect(streamDataFetcher.unsubscribeFromSymbols).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('数据处理管道', () => {
+    beforeEach(() => {
+      const mockTransformResult = new TransformResponseDto(
+        [
+          { symbol: 'AAPL.US', price: 150.25, volume: 1000 },
+          { symbol: '700.HK', price: 320.80, volume: 2000 },
+        ],
+        new TransformationMetadataDto('rule-1', 'test-rule', 'longport', 'quote_fields', 2, 3, 50)
+      );
       
-      // Setup transformer
-      const rawData = {
-        symbol: '00700',
-        last_done: 350.5,
+      transformer.transform.mockResolvedValue(mockTransformResult);
+      streamDataCache.setData.mockResolvedValue();
+      clientStateManager.broadcastToSymbolSubscribers.mockImplementation(() => {});
+    });
+
+    it('应该处理接收到的流数据', (done) => {
+      const mockRawData = {
+        symbol: 'AAPL.US',
+        last_done: 150.25,
         volume: 1000,
       };
-      const transformedData = {
-        symbol: '700.HK',
-        lastPrice: 350.5,
-        volume: 1000,
-      };
-      mockTransformerService.transform.mockResolvedValue({ transformedData });
 
-      // Execute
-      await providerMessageHandler(rawData);
+      // 模拟数据接收
+      const service_: any = service;
+      service_.handleIncomingData(mockRawData, 'longport', 'stream-stock-quote');
 
-      // Verify
-      expect(mockTransformerService.transform).toHaveBeenCalledWith({
-        rawData,
-        provider: 'longport',
-        apiType: 'stream',
-        transDataRuleListType: 'quote_fields',
-      });
-      expect(messageCallback).toHaveBeenCalledWith({
-        symbols: ['700.HK'], // 使用标准化后的符号
-        data: transformedData,
-        timestamp: expect.any(Number),
-        provider: 'longport',
-        capability: 'stream-stock-quote',
-        processingChain: {
-          symbolMapped: true,
-          mappingRulesUsed: true,
-          dataTransformed: true,
-        },
-      });
+      // 等待批量处理完成
+      setTimeout(() => {
+        expect(transformer.transform).toHaveBeenCalled();
+        done();
+      }, 150); // 等待超过100ms的批量处理窗口
     });
 
-    it('should handle transformer errors gracefully', async () => {
-      // Setup
-      const subscribeDto: StreamSubscribeDto = {
-        symbols: ['700.HK'],
-        wsCapabilityType: 'stream-stock-quote',
-      };
-      const messageCallback = jest.fn();
-
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      // 重置并设置正确的Mock：需要初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-
-      // 临时禁用批量处理以测试传统消息处理模式
-      (service as any).featureFlags.batchProcessingEnabled = false;
+    it('应该正确提取数据中的符号', () => {
+      const service_: any = service;
       
-      await service.subscribeSymbols(clientId, subscribeDto, messageCallback);
-
-      // Get the callback
-      const providerMessageHandler = mockContextService.onQuoteUpdate.mock.calls[0][0];
-
-      // Setup additional mocks needed for message processing
-      mockSymbolMapperService.mapSymbol.mockResolvedValue('700.HK'); // 符号映射返回标准格式
-      
-      // Setup transformer to fail
-      mockTransformerService.transform.mockRejectedValue(new Error('Transform failed'));
-
-      // Execute
-      await providerMessageHandler({ symbol: '00700' });
-
-      // Verify - Service 会使用基础数据标准化作为后备，所以仍然会调用回调
-      expect(messageCallback).toHaveBeenCalledWith({
-        symbols: ['700.HK'],
-        data: expect.objectContaining({
-          symbol: '700.HK',
-          _provider: 'unknown', // 基础数据标准化的特征
-          _raw: { symbol: '00700' },
-        }),
-        timestamp: expect.any(Number),
-        provider: 'longport',
-        capability: 'stream-stock-quote',
-        processingChain: expect.objectContaining({
-          symbolMapped: true,
-          mappingRulesUsed: true,
-          dataTransformed: true,
-        }),
-      });
-      // 应该记录转换失败的错误日志
-      expect(mockLogger.error).toHaveBeenCalledWith(expect.objectContaining({
-        message: expect.stringContaining('转换失败'),
-        provider: 'longport',
-        error: 'Transform failed',
-      }));
+      // 测试不同的数据格式
+      expect(service_.extractSymbolsFromData({ symbol: 'AAPL.US' })).toEqual(['AAPL.US']);
+      expect(service_.extractSymbolsFromData({ symbols: ['AAPL.US', '700.HK'] })).toEqual(['AAPL.US', '700.HK']);
+      expect(service_.extractSymbolsFromData({ quote: { symbol: '700.HK' } })).toEqual(['700.HK']);
+      expect(service_.extractSymbolsFromData([{ symbol: 'AAPL.US' }, { s: '700.HK' }])).toEqual(['AAPL.US', '700.HK']);
+      expect(service_.extractSymbolsFromData(null)).toEqual([]);
     });
 
-    it('should handle array data from transformer', async () => {
-      // Setup
-      const subscribeDto: StreamSubscribeDto = {
-        symbols: ['700.HK', 'AAPL.US'],
-        wsCapabilityType: 'stream-stock-quote',
-      };
-      const messageCallback = jest.fn();
-
-      mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-      mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-      mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-      mockSymbolMapperService.transformSymbols.mockResolvedValue({
-        transformedSymbols: { '700.HK': '00700', 'AAPL.US': 'AAPL' },
-        failedSymbols: [],
-        processingTimeMs: 10,
-        dataSourceName: 'longport'
-      });
-      // 重置并设置正确的Mock：需要初始化
-      mockCapability.isConnected.mockReset();
-      mockCapability.isConnected
-        .mockReturnValueOnce(false)  // 第一次检查：未连接
-        .mockReturnValue(true);      // 初始化后检查：已连接
-      mockCapability.initialize.mockResolvedValue(undefined);
-      mockCapability.subscribe.mockResolvedValue(undefined);
-
-      // 临时禁用批量处理以测试传统消息处理模式
-      (service as any).featureFlags.batchProcessingEnabled = false;
-      
-      await service.subscribeSymbols(clientId, subscribeDto, messageCallback);
-
-      // Get the callback
-      const providerMessageHandler = mockContextService.onQuoteUpdate.mock.calls[0][0];
-
-      // Setup additional mocks needed for message processing
-      mockSymbolMapperService.mapSymbol.mockResolvedValue('700.HK'); // 符号映射返回标准格式
-      
-      // Setup transformer to return array
-      const transformedData = [
-        { symbol: '700.HK', lastPrice: 350.5 },
-        { symbol: '700.HK', lastPrice: 150.0 }, // 所有数组元素都会被设置为相同的标准化符号
+    it('应该按提供商和能力分组批量数据', () => {
+      const service_: any = service;
+      const batch = [
+        { providerName: 'longport', wsCapabilityType: 'stream-stock-quote', rawData: {}, timestamp: Date.now(), symbols: [] },
+        { providerName: 'longport', wsCapabilityType: 'stream-stock-quote', rawData: {}, timestamp: Date.now(), symbols: [] },
+        { providerName: 'itick', wsCapabilityType: 'stream-stock-quote', rawData: {}, timestamp: Date.now(), symbols: [] },
       ];
-      mockTransformerService.transform.mockResolvedValue({ transformedData });
 
-      // Execute
-      await providerMessageHandler({ symbol: '00700', data: 'batch' });
+      const grouped = service_.groupBatchByProviderCapability(batch);
 
-      // Verify
-      expect(messageCallback).toHaveBeenCalledWith({
-        symbols: ['700.HK', '700.HK'], // 所有数组元素都使用相同的标准化符号
-        data: transformedData,
-        timestamp: expect.any(Number),
-        provider: 'longport',
-        capability: 'stream-stock-quote',
-        processingChain: {
-          symbolMapped: true,
-          mappingRulesUsed: true,
-          dataTransformed: true,
-        },
-      });
+      expect(grouped['longport:stream-stock-quote']).toHaveLength(2);
+      expect(grouped['itick:stream-stock-quote']).toHaveLength(1);
     });
   });
 
-  describe('Data Rule Type Mapping', () => {
-    // 在数据规则类型映射测试中临时禁用批量处理
-    // 注意：每个测试需要个别设置 featureFlags
+  describe('健康检查和统计', () => {
+    beforeEach(() => {
+      mockClientStateManager.getClientStateStats.mockReturnValue({
+        totalClients: 5,
+        totalSubscriptions: 5,
+        totalSymbols: 10,
+        clientsByProvider: { longport: 3, itick: 2 },
+        symbolDistribution: { 'AAPL.US': 3, '700.HK': 2 },
+      });
 
-    it('should map capability types to data rule list types correctly', async () => {
-      const testCases = [
-        { wsCapabilityType: 'stream-stock-quote', expectedRuleType: 'quote_fields' },
-        { wsCapabilityType: 'stream-stock-basic-info', expectedRuleType: 'basic_info_fields' },
-        { wsCapabilityType: 'stream-index-quote', expectedRuleType: 'index_fields' },
-        { wsCapabilityType: 'unknown-capability', expectedRuleType: 'quote_fields' }, // default
-      ];
+      mockStreamDataCache.getCacheStats.mockReturnValue({
+        hotCacheHits: 100,
+        hotCacheMisses: 20,
+        warmCacheHits: 50,
+        warmCacheMisses: 10,
+        totalSize: 150,
+        compressionRatio: 0.7,
+      });
 
-      for (const testCase of testCases) {
-        // Setup
-        const clientId = `test-client-${testCase.wsCapabilityType}`;
-        const subscribeDto: StreamSubscribeDto = {
-          symbols: ['700.HK'],
-          wsCapabilityType: testCase.wsCapabilityType,
-        };
-        const messageCallback = jest.fn();
+      mockStreamDataFetcher.getConnectionStatsByProvider.mockReturnValue({
+        longport: { connections: 2, active: 2 },
+        itick: { connections: 1, active: 1 },
+      });
 
-        mockCapabilityRegistry.getBestStreamProvider.mockReturnValue('longport');
-        mockCapabilityRegistry.getStreamCapability.mockReturnValue(mockCapability);
-        mockCapabilityRegistry.getProvider.mockReturnValue(mockProvider);
-        mockSymbolMapperService.transformSymbols.mockResolvedValue({
-          transformedSymbols: { '700.HK': '00700' },
-          failedSymbols: [],
-          processingTimeMs: 10,
-          dataSourceName: 'longport'
-        });
-        // 重置并设置正确的Mock：需要初始化
-        mockCapability.isConnected.mockReset();
-        mockCapability.isConnected
-          .mockReturnValueOnce(false)  // 第一次检查：未连接
-          .mockReturnValue(true);      // 初始化后检查：已连接
-        mockCapability.initialize.mockResolvedValue(undefined);
-        mockCapability.subscribe.mockResolvedValue(undefined);
+      mockStreamDataFetcher.batchHealthCheck.mockResolvedValue({
+        'longport:stream-stock-quote': true,
+        'itick:stream-stock-quote': true,
+      });
+    });
 
-        // 临时禁用批量处理以测试传统消息处理模式
-        (service as any).featureFlags.batchProcessingEnabled = false;
-        
-        await service.subscribeSymbols(clientId, subscribeDto, messageCallback);
+    it('应该返回客户端统计信息', () => {
+      const stats = service.getClientStats();
 
-        // Get the callback and execute it
-        const providerMessageHandler = mockContextService.onQuoteUpdate.mock.calls[0][0];
-        
-        // Setup additional mocks needed for message processing
-        mockSymbolMapperService.mapSymbol.mockResolvedValue('700.HK');
-        mockTransformerService.transform.mockResolvedValue({ transformedData: { symbol: '700.HK' } });
+      expect(stats).toHaveProperty('clients');
+      expect(stats).toHaveProperty('cache');
+      expect(stats).toHaveProperty('connections');
+      expect(stats).toHaveProperty('batchProcessing');
+      expect(stats.clients.totalClients).toBe(5);
+    });
 
-        await providerMessageHandler({ symbol: '00700' });
+    it('应该返回健康检查状态', async () => {
+      const health = await service.healthCheck();
 
-        // Verify
-        expect(mockTransformerService.transform).toHaveBeenCalledWith({
-          rawData: { symbol: '00700' },
+      expect(health).toHaveProperty('status');
+      expect(health).toHaveProperty('connections');
+      expect(health).toHaveProperty('clients');
+      expect(health).toHaveProperty('cacheHitRate');
+      expect(health.status).toBe('healthy');
+      expect(health.connections).toBe(2);
+      expect(health.clients).toBe(5);
+    });
+
+    it('应该在连接不健康时返回降级状态', async () => {
+      mockStreamDataFetcher.batchHealthCheck.mockResolvedValue({
+        'longport:stream-stock-quote': true,
+        'itick:stream-stock-quote': false,
+      });
+
+      const health = await service.healthCheck();
+
+      expect(health.status).toBe('degraded');
+    });
+
+    it('应该正确计算缓存命中率', async () => {
+      const health = await service.healthCheck();
+
+      // 缓存命中率 = (热缓存命中 + 温缓存命中) / (所有请求)
+      // (100 + 50) / (100 + 20 + 50 + 10) = 150/180 = 0.83
+      expect(health.cacheHitRate).toBeCloseTo(0.83, 2);
+    });
+  });
+
+  describe('错误处理', () => {
+    it('应该处理数据处理过程中的错误', () => {
+      const service_: any = service;
+      const invalidData = undefined;
+
+      expect(() => {
+        service_.handleIncomingData(invalidData, 'longport', 'stream-stock-quote');
+      }).not.toThrow();
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        '数据处理失败',
+        expect.objectContaining({
           provider: 'longport',
-          apiType: 'stream',
-          transDataRuleListType: testCase.expectedRuleType,
-        });
+          capability: 'stream-stock-quote',
+        })
+      );
+    });
 
-        jest.clearAllMocks();
-      }
+    it('应该处理批量处理错误', async () => {
+      const error = new Error('Transform failed');
+      transformer.transform.mockRejectedValue(error);
+
+      const service_: any = service;
+      const mockQuotes = [{
+        rawData: { symbol: 'AAPL.US' },
+        providerName: 'longport',
+        wsCapabilityType: 'stream-stock-quote',
+        timestamp: Date.now(),
+        symbols: ['AAPL.US'],
+      }];
+
+      await service_.processQuoteGroup(mockQuotes, 'longport', 'stream-stock-quote');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        '报价组处理失败',
+        expect.objectContaining({
+          provider: 'longport',
+          capability: 'stream-stock-quote',
+          error: 'Transform failed',
+        })
+      );
+    });
+  });
+
+  describe('连接管理', () => {
+    it('应该创建新的流连接', async () => {
+      streamDataFetcher.isConnectionActive.mockReturnValue(false);
+      
+      const service_: any = service;
+      const connection = await service_.getOrCreateConnection(
+        'longport',
+        'stream-stock-quote',
+        'test-request-id'
+      );
+
+      expect(streamDataFetcher.establishStreamConnection).toHaveBeenCalledWith({
+        provider: 'longport',
+        capability: 'stream-stock-quote',
+        contextService: { requestId: 'test-request-id', provider: 'longport' },
+        requestId: 'test-request-id',
+        options: {
+          autoReconnect: true,
+          maxReconnectAttempts: 3,
+          heartbeatIntervalMs: 30000,
+        },
+      });
+
+      expect(connection).toBe(mockStreamConnection);
+    });
+
+    it('应该设置数据接收处理器', () => {
+      const service_: any = service;
+      service_.setupDataReceiving(mockStreamConnection, 'longport', 'stream-stock-quote');
+
+      expect(mockStreamConnection.onData).toHaveBeenCalled();
+      expect(mockStreamConnection.onError).toHaveBeenCalled();
+      expect(mockStreamConnection.onStatusChange).toHaveBeenCalled();
     });
   });
 });

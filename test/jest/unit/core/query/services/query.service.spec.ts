@@ -1,18 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { QueryService } from '@core/query/services/query.service';
-import { StorageService } from '@core/storage/services/storage.service';
-import { DataFetchingService } from '@core/shared/services/data-fetching.service';
-import { DataChangeDetectorService } from '@core/shared/services/data-change-detector.service';
-import { MarketStatusService } from '@core/shared/services/market-status.service';
-import { QueryStatisticsService } from '@core/query/services/query-statistics.service';
-import { QueryResultProcessorService } from '@core/query/services/query-result-processor.service';
-import { BackgroundTaskService } from '@core/shared/services/background-task.service';
+import { QueryService } from '@core/restapi/query/services/query.service';
+import { StorageService } from '@core/public/storage/services/storage.service';
+import { DataFetchingService } from '@core/public/shared/services/data-fetching.service';
+import { DataChangeDetectorService } from '@core/public/shared/services/data-change-detector.service';
+import { MarketStatusService } from '@core/public/shared/services/market-status.service';
+import { QueryStatisticsService } from '@core/restapi/query/services/query-statistics.service';
+import { QueryResultProcessorService } from '@core/restapi/query/services/query-result-processor.service';
+import { BackgroundTaskService } from '@core/public/shared/services/background-task.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { QueryRequestDto } from '@core/query/dto/query-request.dto';
-import { QueryType } from '@core/query/dto/query-types.dto';
-import { QueryMetadataDto } from '@core/query/dto/query-response.dto';
+import { QueryRequestDto } from '@core/restapi/query/dto/query-request.dto';
+import { QueryType } from '@core/restapi/query/dto/query-types.dto';
+import { QueryMetadataDto } from '@core/restapi/query/dto/query-response.dto';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { QueryProcessedResultDto } from '@core/query/dto/query-processed-result.dto';
+import { QueryProcessedResultDto } from '@core/restapi/query/dto/query-processed-result.dto';
 
 // 定义价格数据接口
 interface PriceData {

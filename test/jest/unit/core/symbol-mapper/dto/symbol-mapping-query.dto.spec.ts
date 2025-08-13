@@ -1,7 +1,7 @@
 
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import { SymbolMappingQueryDto } from '../../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto';
+import { SymbolMappingQueryDto } from '../../../../../../src/core/public/symbol-mapper/dto/symbol-mapping-query.dto';
 
 describe('SymbolMappingQueryDto', () => {
   it('当所有字段都有效时应通过验证', async () => {

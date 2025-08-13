@@ -1,68 +1,113 @@
-import * as path from "path";
-import { glob } from "glob";
+#!/usr/bin/env node
 
 /**
- * 命名规范验证器
- * 验证测试文件命名是否符合规范
+ * 测试文件命名规范验证器
+ * 
+ * 功能：
+ * 1. 理解当前测试目录的分类结构
+ * 2. 验证测试文件的命名规范
+ * 3. 检查测试目录结构与 src 目录的一致性
+ * 4. 提供重命名和移动建议
  */
-export class NamingValidator {
-  private violations: NamingViolation[] = [];
-  private namingRules: NamingRules;
 
-  constructor() {
-    this.namingRules = {
-      "test/jest/unit": {
-        pattern: /^.*\.spec\.ts$/,
-        description: "单元测试文件必须以 .spec.ts 结尾",
-        examples: ["auth.service.spec.ts", "data-mapper.util.spec.ts"],
-      },
-      "test/jest/integration": {
-        pattern: /^.*\.integration\.test\.ts$/,
-        description: "集成测试文件必须以 .integration.test.ts 结尾",
-        examples: ["auth.integration.test.ts", "database.integration.test.ts"],
-      },
-      "test/jest/e2e": {
-        pattern: /^.*\.e2e\.test\.ts$/,
-        description: "E2E测试文件必须以 .e2e.test.ts 结尾",
-        examples: ["auth-flow.e2e.test.ts", "data-query.e2e.test.ts"],
-      },
-      "test/jest/security": {
-        pattern: /^.*\.security\.test\.ts$/,
-        description: "安全测试文件必须以 .security.test.ts 结尾",
-        examples: [
-          "auth-security.security.test.ts",
-          "input-validation.security.test.ts",
-        ],
-      },
-      "test/k6": {
-        pattern: /^.*\.perf\.test\.js$/,
-        description: "性能测试文件必须以 .perf.test.js 结尾",
-        examples: ["auth-load.perf.test.js", "api-stress.perf.test.js"],
-      },
-    };
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface TestFileInfo {
+  fullPath: string;
+  relativePath: string;
+  fileName: string;
+  testType: 'unit' | 'integration' | 'e2e' | 'security' | 'blackbox' | 'performance';
+  isValidNaming: boolean;
+  suggestedName?: string;
+  correspondingSrcFile?: string;
+}
+
+interface DirectoryAnalysis {
+  testType: string;
+  totalFiles: number;
+  validNaming: number;
+  invalidNaming: number;
+  missingCorrespondingSrc: number;
+  extraDirectories: string[];
+  missingDirectories: string[];
+}
+
+interface NamingValidationResult {
+  summary: {
+    totalTestFiles: number;
+    validNaming: number;
+    invalidNaming: number;
+    complianceRate: number;
+  };
+  directoryAnalysis: DirectoryAnalysis[];
+  invalidFiles: TestFileInfo[];
+  suggestions: string[];
+}
+
+class NamingValidator {
+  private readonly srcDir: string;
+  private readonly testDir: string;
+  
+  // 测试文件命名规则
+  private readonly namingRules = {
+    unit: {
+      pattern: /\.spec\.ts$/,
+      description: '单元测试文件应以 .spec.ts 结尾'
+    },
+    integration: {
+      pattern: /\.integration\.test\.ts$/,
+      description: '集成测试文件应以 .integration.test.ts 结尾'
+    },
+    e2e: {
+      pattern: /\.e2e\.test\.ts$/,
+      description: 'E2E测试文件应以 .e2e.test.ts 结尾'
+    },
+    security: {
+      pattern: /\.security\.test\.ts$/,
+      description: '安全测试文件应以 .security.test.ts 结尾'
+    },
+    blackbox: {
+      pattern: /\.e2e\.test\.ts$/,
+      description: '黑盒测试文件应以 .e2e.test.ts 结尾'
+    },
+    performance: {
+      pattern: /\.(spec|perf\.test)\.ts$/,
+      description: '性能测试文件应以 .spec.ts 或 .perf.test.ts 结尾'
+    }
+  };
+
+  // 目标测试目录结构
+  private readonly targetTestTypes = ['unit', 'integration', 'e2e', 'security'];
+
+  constructor(projectRoot: string = process.cwd()) {
+    this.srcDir = path.join(projectRoot, 'src');
+    this.testDir = path.join(projectRoot, 'test/jest');
   }
 
   /**
-   * 执行命名规范验证
+   * 执行完整的命名验证
    */
   async validateNaming(): Promise<NamingValidationResult> {
-    console.log("🔍 开始验证测试文件命名规范...");
+    console.log('🔍 开始测试文件命名规范验证...\n');
 
-    // 验证各目录下的文件命名
-    await this.validateDirectoryNaming();
+    const srcStructure = this.scanSrcDirectory();
+    const testFiles = this.scanTestFiles();
+    const directoryAnalysis = this.analyzeDirectoryStructure(testFiles, srcStructure);
 
-    // 检查文件名一致性
-    await this.validateFileNameConsistency();
-
-    // 检查特殊命名约定
-    await this.validateSpecialNamingConventions();
+    const invalidFiles = testFiles.filter(file => !file.isValidNaming);
+    const validFiles = testFiles.filter(file => file.isValidNaming);
 
     const result: NamingValidationResult = {
-      isValid: this.violations.length === 0,
-      violations: this.violations,
-      summary: this.generateSummary(),
-      fixCommands: this.generateFixCommands(),
-      namingGuide: this.generateNamingGuide(),
+      summary: {
+        totalTestFiles: testFiles.length,
+        validNaming: validFiles.length,
+        invalidNaming: invalidFiles.length,
+        complianceRate: testFiles.length > 0 ? (validFiles.length / testFiles.length) * 100 : 0
+      },
+      directoryAnalysis,
+      invalidFiles,
+      suggestions: this.generateSuggestions(directoryAnalysis, invalidFiles)
     };
 
     this.printValidationResult(result);
@@ -70,368 +115,384 @@ export class NamingValidator {
   }
 
   /**
-   * 验证目录下的文件命名
+   * 扫描源代码目录
    */
-  private async validateDirectoryNaming(): Promise<void> {
-    for (const [dirPattern, rule] of Object.entries(this.namingRules)) {
-      const testFiles = await glob(`${dirPattern}/**/*.{ts,js}`);
+  private scanSrcDirectory(): Set<string> {
+    const srcFiles = new Set<string>();
 
-      for (const file of testFiles) {
-        const fileName = path.basename(file);
-        const relativePath = path.relative(process.cwd(), file);
+    const scan = (dirPath: string, relativePath: string = '') => {
+      if (!fs.existsSync(dirPath)) return;
 
-        if (!rule.pattern.test(fileName)) {
-          const suggestedName = this.generateSuggestedName(
-            fileName,
-            rule.pattern,
-          );
+      const items = fs.readdirSync(dirPath);
 
-          this.violations.push({
-            type: "invalid_file_naming",
-            severity: "warning",
-            filePath: relativePath,
-            fileName: fileName,
-            expectedPattern: rule.pattern.toString(),
-            description: rule.description,
-            suggestedName: suggestedName,
-            fixCommand: `mv "${file}" "${path.dirname(file)}/${suggestedName}"`,
+      for (const item of items) {
+        const fullPath = path.join(dirPath, item);
+        const relativeItemPath = relativePath ? path.join(relativePath, item) : item;
+
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          scan(fullPath, relativeItemPath);
+        } else if (stat.isFile() && item.endsWith('.ts')) {
+          srcFiles.add(relativeItemPath.replace(/\.ts$/, ''));
+        }
+      }
+    };
+
+    scan(this.srcDir);
+    return srcFiles;
+  }
+
+  /**
+   * 扫描测试文件
+   */
+  private scanTestFiles(): TestFileInfo[] {
+    const testFiles: TestFileInfo[] = [];
+
+    const scan = (dirPath: string, testType: string) => {
+      if (!fs.existsSync(dirPath)) return;
+
+      const items = fs.readdirSync(dirPath);
+
+      for (const item of items) {
+        const fullPath = path.join(dirPath, item);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          scan(fullPath, testType);
+        } else if (stat.isFile() && item.endsWith('.ts')) {
+          const relativePath = path.relative(path.join(this.testDir, testType), fullPath);
+          const correspondingSrcFile = this.findCorrespondingSrcFile(relativePath, testType);
+          
+          testFiles.push({
+            fullPath,
+            relativePath,
+            fileName: item,
+            testType: testType as any,
+            isValidNaming: this.isValidNaming(item, testType),
+            suggestedName: this.isValidNaming(item, testType) ? undefined : this.suggestCorrectName(item, testType),
+            correspondingSrcFile
           });
         }
       }
+    };
+
+    // 扫描所有测试类型目录
+    const testTypeDirectories = fs.readdirSync(this.testDir)
+      .filter(item => {
+        const fullPath = path.join(this.testDir, item);
+        return fs.statSync(fullPath).isDirectory();
+      });
+
+    for (const testType of testTypeDirectories) {
+      const testTypePath = path.join(this.testDir, testType);
+      scan(testTypePath, testType);
+    }
+
+    return testFiles;
+  }
+
+  /**
+   * 验证文件命名是否正确
+   */
+  private isValidNaming(fileName: string, testType: string): boolean {
+    const rule = this.namingRules[testType as keyof typeof this.namingRules];
+    if (!rule) return false;
+    return rule.pattern.test(fileName);
+  }
+
+  /**
+   * 建议正确的文件名
+   */
+  private suggestCorrectName(fileName: string, testType: string): string {
+    const rule = this.namingRules[testType as keyof typeof this.namingRules];
+    if (!rule) return fileName;
+
+    // 移除现有的测试后缀
+    let baseName = fileName.replace(/\.(spec|test|e2e|integration|security|perf)\.ts$/, '');
+    baseName = baseName.replace(/\.ts$/, '');
+
+    // 根据测试类型添加正确的后缀
+    switch (testType) {
+      case 'unit':
+        return `${baseName}.spec.ts`;
+      case 'integration':
+        return `${baseName}.integration.test.ts`;
+      case 'e2e':
+      case 'blackbox':
+        return `${baseName}.e2e.test.ts`;
+      case 'security':
+        return `${baseName}.security.test.ts`;
+      case 'performance':
+        return `${baseName}.perf.test.ts`;
+      default:
+        return fileName;
     }
   }
 
   /**
-   * 验证文件名一致性
+   * 查找对应的源文件
    */
-  private async validateFileNameConsistency(): Promise<void> {
-    // 检查是否有重复的测试目标但命名不一致
-    const filesByTestTarget = new Map<string, string[]>();
+  private findCorrespondingSrcFile(testRelativePath: string, testType: string): string | undefined {
+    // 移除测试文件的扩展名和测试后缀
+    let srcPath = testRelativePath.replace(/\.(spec|test|e2e|integration|security|perf)\.ts$/, '');
+    srcPath = srcPath.replace(/\.ts$/, '');
+    
+    const fullSrcPath = path.join(this.srcDir, `${srcPath}.ts`);
+    
+    if (fs.existsSync(fullSrcPath)) {
+      return `src/${srcPath}.ts`;
+    }
 
-    const allTestFiles = await glob("test/**/*.{ts,js}");
+    return undefined;
+  }
 
-    for (const file of allTestFiles) {
-      const fileName = path.basename(file);
-      const testTarget = this.extractTestTarget(fileName);
+  /**
+   * 分析目录结构
+   */
+  private analyzeDirectoryStructure(testFiles: TestFileInfo[], srcFiles: Set<string>): DirectoryAnalysis[] {
+    const analysis: DirectoryAnalysis[] = [];
 
-      if (testTarget) {
-        if (!filesByTestTarget.has(testTarget)) {
-          filesByTestTarget.set(testTarget, []);
-        }
-        filesByTestTarget.get(testTarget)!.push(file);
+    // 按测试类型分组
+    const testsByType = testFiles.reduce((acc, file) => {
+      if (!acc[file.testType]) {
+        acc[file.testType] = [];
       }
-    }
+      acc[file.testType].push(file);
+      return acc;
+    }, {} as Record<string, TestFileInfo[]>);
 
-    // 检查同一测试目标的文件命名一致性
-    for (const [testTarget, files] of filesByTestTarget.entries()) {
-      if (files.length > 1) {
-        const baseNames = files.map((f) =>
-          this.getBaseNameWithoutExtension(path.basename(f)),
-        );
-        const uniqueBaseNames = new Set(baseNames);
+    for (const [testType, files] of Object.entries(testsByType)) {
+      const validFiles = files.filter(f => f.isValidNaming);
+      const invalidFiles = files.filter(f => !f.isValidNaming);
+      const missingCorrespondingSrc = files.filter(f => !f.correspondingSrcFile);
 
-        if (uniqueBaseNames.size > 1) {
-          this.violations.push({
-            type: "inconsistent_naming",
-            severity: "info",
-            filePath: files.join(", "),
-            fileName: files.map((f) => path.basename(f)).join(", "),
-            expectedPattern: "一致的基础名称",
-            description: `测试目标 "${testTarget}" 的文件命名不一致`,
-            suggestedName: `建议统一使用: ${testTarget}.{type}.ts/js`,
-            fixCommand: `# 请手动重命名文件以保持一致性`,
-          });
-        }
-      }
-    }
-  }
+      // 检查目录结构
+      const testTypePath = path.join(this.testDir, testType);
+      const testDirs = this.getDirectoryStructure(testTypePath);
+      const srcDirs = Array.from(srcFiles).map(f => path.dirname(f)).filter((v, i, a) => a.indexOf(v) === i);
 
-  /**
-   * 验证特殊命名约定
-   */
-  private async validateSpecialNamingConventions(): Promise<void> {
-    // 检查setup文件命名
-    const setupFiles = await glob("test/**/*setup*.{ts,js}");
-    for (const file of setupFiles) {
-      const fileName = path.basename(file);
-      if (
-        !fileName.includes("setup") ||
-        (!fileName.endsWith(".ts") && !fileName.endsWith(".js"))
-      ) {
-        this.violations.push({
-          type: "invalid_setup_naming",
-          severity: "info",
-          filePath: path.relative(process.cwd(), file),
-          fileName: fileName,
-          expectedPattern: "*setup*.{ts,js}",
-          description: 'Setup文件应该包含 "setup" 关键字',
-          suggestedName: this.generateSetupFileName(fileName),
-        });
-      }
-    }
+      const extraDirectories = testDirs.filter(dir => !srcDirs.includes(dir));
+      const missingDirectories = srcDirs.filter(dir => !testDirs.includes(dir));
 
-    // 检查helper文件命名
-    const helperFiles = await glob("test/**/*helper*.{ts,js}");
-    for (const file of helperFiles) {
-      const fileName = path.basename(file);
-      if (!fileName.includes("helper") && !fileName.includes("util")) {
-        this.violations.push({
-          type: "invalid_helper_naming",
-          severity: "info",
-          filePath: path.relative(process.cwd(), file),
-          fileName: fileName,
-          expectedPattern: "*helper*.{ts,js} 或 *util*.{ts,js}",
-          description: '辅助文件应该包含 "helper" 或 "util" 关键字',
-          suggestedName: this.generateHelperFileName(fileName),
-        });
-      }
-    }
-  }
-
-  /**
-   * 生成建议的文件名
-   */
-  private generateSuggestedName(fileName: string, pattern: RegExp): string {
-    const baseName = this.getBaseNameWithoutExtension(fileName);
-
-    if (pattern.toString().includes(".spec.ts")) {
-      return `${baseName}.spec.ts`;
-    } else if (pattern.toString().includes(".integration.test.ts")) {
-      return `${baseName}.integration.test.ts`;
-    } else if (pattern.toString().includes(".e2e.test.ts")) {
-      return `${baseName}.e2e.test.ts`;
-    } else if (pattern.toString().includes(".security.test.ts")) {
-      return `${baseName}.security.test.ts`;
-    } else if (pattern.toString().includes(".perf.test.js")) {
-      return `${baseName}.perf.test.js`;
-    }
-
-    return fileName;
-  }
-
-  /**
-   * 提取测试目标
-   */
-  private extractTestTarget(fileName: string): string | null {
-    const baseName = this.getBaseNameWithoutExtension(fileName);
-
-    // 移除测试类型后缀
-    const cleanName = baseName
-      .replace(/\.(spec|test|integration|e2e|security|perf)$/, "")
-      .replace(/-(test|spec|integration|e2e|security|perf)$/, "");
-
-    return cleanName || null;
-  }
-
-  /**
-   * 获取不带扩展名的基础名称
-   */
-  private getBaseNameWithoutExtension(fileName: string): string {
-    return path.basename(fileName, path.extname(fileName));
-  }
-
-  /**
-   * 生成setup文件名
-   */
-  private generateSetupFileName(fileName: string): string {
-    const baseName = this.getBaseNameWithoutExtension(fileName);
-    const extension = path.extname(fileName);
-
-    if (!baseName.includes("setup")) {
-      return `${baseName}.setup${extension}`;
-    }
-
-    return fileName;
-  }
-
-  /**
-   * 生成helper文件名
-   */
-  private generateHelperFileName(fileName: string): string {
-    const baseName = this.getBaseNameWithoutExtension(fileName);
-    const extension = path.extname(fileName);
-
-    if (!baseName.includes("helper") && !baseName.includes("util")) {
-      return `${baseName}.helper${extension}`;
-    }
-
-    return fileName;
-  }
-
-  /**
-   * 生成验证摘要
-   */
-  private generateSummary(): string {
-    const warningCount = this.violations.filter(
-      (v) => v.severity === "warning",
-    ).length;
-    const infoCount = this.violations.filter(
-      (v) => v.severity === "info",
-    ).length;
-
-    if (this.violations.length === 0) {
-      return "所有测试文件命名规范正确";
-    }
-
-    let summary = "文件命名验证完成";
-    if (warningCount > 0) {
-      summary += ` - ${warningCount} 个命名问题`;
-    }
-    if (infoCount > 0) {
-      summary += ` - ${infoCount} 个建议改进`;
-    }
-
-    return summary;
-  }
-
-  /**
-   * 生成修复命令
-   */
-  private generateFixCommands(): string[] {
-    const commands: string[] = [];
-
-    const fixableViolations = this.violations.filter(
-      (v) => v.fixCommand && !v.fixCommand.includes("#"),
-    );
-
-    if (fixableViolations.length > 0) {
-      commands.push("# 自动修复命令:");
-      fixableViolations.forEach((v) => {
-        if (v.fixCommand) {
-          commands.push(v.fixCommand);
-        }
+      analysis.push({
+        testType,
+        totalFiles: files.length,
+        validNaming: validFiles.length,
+        invalidNaming: invalidFiles.length,
+        missingCorrespondingSrc: missingCorrespondingSrc.length,
+        extraDirectories,
+        missingDirectories
       });
     }
 
-    return commands;
+    return analysis;
   }
 
   /**
-   * 生成命名指南
+   * 获取目录结构
    */
-  private generateNamingGuide(): NamingGuide {
-    return {
-      rules: Object.entries(this.namingRules).map(([dir, rule]) => ({
-        directory: dir,
-        pattern: rule.pattern.toString(),
-        description: rule.description,
-        examples: rule.examples,
-      })),
-      bestPractices: [
-        "使用小写字母和连字符分隔单词",
-        "保持文件名简洁但具有描述性",
-        "同一功能的不同测试类型使用相同的基础名称",
-        "避免使用特殊字符和空格",
-        "使用英文命名，保持团队一致性",
-      ],
-      commonMistakes: [
-        "混用 .test.ts 和 .spec.ts",
-        "忘记添加测试类型后缀",
-        "使用大写字母开头",
-        "在文件名中包含路径信息",
-        "使用中文或特殊字符",
-      ],
+  private getDirectoryStructure(basePath: string): string[] {
+    const dirs: string[] = [];
+
+    const scan = (dirPath: string, relativePath: string = '') => {
+      if (!fs.existsSync(dirPath)) return;
+
+      const items = fs.readdirSync(dirPath);
+
+      for (const item of items) {
+        const fullPath = path.join(dirPath, item);
+        const relativeItemPath = relativePath ? path.join(relativePath, item) : item;
+
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          dirs.push(relativeItemPath);
+          scan(fullPath, relativeItemPath);
+        }
+      }
     };
+
+    scan(basePath);
+    return dirs;
+  }
+
+  /**
+   * 生成改进建议
+   */
+  private generateSuggestions(directoryAnalysis: DirectoryAnalysis[], invalidFiles: TestFileInfo[]): string[] {
+    const suggestions: string[] = [];
+
+    // 整体建议
+    suggestions.push('🎯 测试目录结构优化建议:');
+
+    // 命名规范建议
+    if (invalidFiles.length > 0) {
+      suggestions.push(`\n📝 文件命名规范化 (${invalidFiles.length} 个文件需要重命名):`);
+      
+      const byType = invalidFiles.reduce((acc, file) => {
+        if (!acc[file.testType]) acc[file.testType] = [];
+        acc[file.testType].push(file);
+        return acc;
+      }, {} as Record<string, TestFileInfo[]>);
+
+      for (const [testType, files] of Object.entries(byType)) {
+        suggestions.push(`   ${testType}: ${files.length} 个文件`);
+        files.slice(0, 3).forEach(file => {
+          suggestions.push(`     • ${file.fileName} → ${file.suggestedName}`);
+        });
+        if (files.length > 3) {
+          suggestions.push(`     • ... 还有 ${files.length - 3} 个文件`);
+        }
+      }
+    }
+
+    // 目录结构建议
+    directoryAnalysis.forEach(analysis => {
+      if (analysis.missingDirectories.length > 0 || analysis.extraDirectories.length > 0) {
+        suggestions.push(`\n🏗️  ${analysis.testType} 目录结构调整:`);
+        
+        if (analysis.missingDirectories.length > 0) {
+          suggestions.push(`   缺失目录 (${analysis.missingDirectories.length}): ${analysis.missingDirectories.slice(0, 3).join(', ')}${analysis.missingDirectories.length > 3 ? '...' : ''}`);
+        }
+        
+        if (analysis.extraDirectories.length > 0) {
+          suggestions.push(`   多余目录 (${analysis.extraDirectories.length}): ${analysis.extraDirectories.slice(0, 3).join(', ')}${analysis.extraDirectories.length > 3 ? '...' : ''}`);
+        }
+      }
+    });
+
+    // 合规性建议
+    const totalFiles = directoryAnalysis.reduce((sum, analysis) => sum + analysis.totalFiles, 0);
+    const totalValid = directoryAnalysis.reduce((sum, analysis) => sum + analysis.validNaming, 0);
+    const complianceRate = totalFiles > 0 ? (totalValid / totalFiles) * 100 : 0;
+
+    suggestions.push(`\n📊 当前合规率: ${complianceRate.toFixed(1)}%`);
+    
+    if (complianceRate < 90) {
+      suggestions.push('   建议: 优先处理命名不规范的文件，提高测试代码质量');
+    } else if (complianceRate < 100) {
+      suggestions.push('   建议: 接近完全合规，建议处理剩余的命名问题');
+    } else {
+      suggestions.push('   状态: 🎉 命名规范完全合规！');
+    }
+
+    // 执行建议
+    suggestions.push('\n🚀 执行建议:');
+    suggestions.push('   1. 运行 test-structure-validator.ts 来生成完整的迁移计划');
+    suggestions.push('   2. 使用 --execute 参数执行自动化重命名');
+    suggestions.push('   3. 手动检查生成的测试文件模板');
+    suggestions.push('   4. 运行测试确保迁移成功');
+
+    return suggestions;
   }
 
   /**
    * 打印验证结果
    */
   private printValidationResult(result: NamingValidationResult): void {
-    console.log("\n📝 文件命名规范验证结果");
-    console.log("=".repeat(50));
+    console.log('📋 测试文件命名规范验证报告');
+    console.log('='.repeat(50));
 
-    if (result.isValid) {
-      console.log("✅ 所有文件命名规范正确");
-    } else {
-      console.log("⚠️ 发现文件命名问题");
-      console.log(`\n发现 ${result.violations.length} 个命名问题:`);
+    // 总体统计
+    console.log('\n📊 总体统计:');
+    console.log(`   总测试文件数: ${result.summary.totalTestFiles}`);
+    console.log(`   命名规范文件: ${result.summary.validNaming}`);
+    console.log(`   命名不规范文件: ${result.summary.invalidNaming}`);
+    console.log(`   合规率: ${result.summary.complianceRate.toFixed(1)}%`);
 
-      result.violations.forEach((violation, index) => {
-        const icon = violation.severity === "warning" ? "⚠️" : "ℹ️";
-        console.log(
-          `\n${index + 1}. ${icon} [${violation.severity.toUpperCase()}] ${violation.description}`,
-        );
-        console.log(`   文件: ${violation.fileName}`);
-        console.log(`   路径: ${violation.filePath}`);
-        if (violation.suggestedName) {
-          console.log(`   建议: ${violation.suggestedName}`);
-        }
-      });
-    }
-
-    console.log(`\n📊 ${result.summary}`);
-
-    if (result.fixCommands.length > 0) {
-      console.log("\n🔧 修复命令:");
-      result.fixCommands.forEach((cmd) => {
-        console.log(cmd);
-      });
-    }
-
-    console.log("\n📖 命名规范指南:");
-    result.namingGuide.rules.forEach((rule) => {
-      console.log(`\n${rule.directory}:`);
-      console.log(`  模式: ${rule.pattern}`);
-      console.log(`  说明: ${rule.description}`);
-      console.log(`  示例: ${rule.examples.join(", ")}`);
+    // 按测试类型分析
+    console.log('\n📁 按测试类型分析:');
+    result.directoryAnalysis.forEach(analysis => {
+      const complianceRate = analysis.totalFiles > 0 ? 
+        (analysis.validNaming / analysis.totalFiles) * 100 : 0;
+      
+      console.log(`\n   ${analysis.testType.toUpperCase()}:`);
+      console.log(`     文件总数: ${analysis.totalFiles}`);
+      console.log(`     命名正确: ${analysis.validNaming}`);
+      console.log(`     命名错误: ${analysis.invalidNaming}`);
+      console.log(`     合规率: ${complianceRate.toFixed(1)}%`);
+      console.log(`     缺失对应源文件: ${analysis.missingCorrespondingSrc}`);
+      
+      if (analysis.missingDirectories.length > 0) {
+        console.log(`     缺失目录: ${analysis.missingDirectories.length} 个`);
+      }
+      
+      if (analysis.extraDirectories.length > 0) {
+        console.log(`     多余目录: ${analysis.extraDirectories.length} 个`);
+      }
     });
+
+    // 命名不规范的文件
+    if (result.invalidFiles.length > 0) {
+      console.log('\n❌ 命名不规范的文件:');
+      result.invalidFiles.slice(0, 10).forEach(file => {
+        console.log(`   ${file.testType}/${file.relativePath}`);
+        console.log(`     建议: ${file.suggestedName}`);
+      });
+      
+      if (result.invalidFiles.length > 10) {
+        console.log(`   ... 还有 ${result.invalidFiles.length - 10} 个文件`);
+      }
+    }
+
+    // 改进建议
+    if (result.suggestions.length > 0) {
+      console.log('\n💡 改进建议:');
+      result.suggestions.forEach(suggestion => {
+        console.log(`${suggestion}`);
+      });
+    }
+  }
+
+  /**
+   * 生成重命名脚本
+   */
+  async generateRenameScript(result: NamingValidationResult): Promise<string> {
+    const scriptLines: string[] = [
+      '#!/bin/bash',
+      '# 自动生成的测试文件重命名脚本',
+      '# 执行前请备份测试文件',
+      '',
+      'echo "开始批量重命名测试文件..."',
+      ''
+    ];
+
+    result.invalidFiles.forEach(file => {
+      if (file.suggestedName) {
+        const oldPath = file.fullPath;
+        const newPath = path.join(path.dirname(file.fullPath), file.suggestedName);
+        scriptLines.push(`echo "重命名: ${file.fileName} -> ${file.suggestedName}"`);
+        scriptLines.push(`mv "${oldPath}" "${newPath}"`);
+        scriptLines.push('');
+      }
+    });
+
+    scriptLines.push('echo "重命名完成!"');
+
+    const script = scriptLines.join('\n');
+    const scriptPath = path.join(this.testDir, '../utils/rename-test-files.sh');
+    
+    fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+    console.log(`\n📜 重命名脚本已生成: ${scriptPath}`);
+    
+    return scriptPath;
   }
 }
 
-// 类型定义
-interface NamingRules {
-  [directory: string]: {
-    pattern: RegExp;
-    description: string;
-    examples: string[];
-  };
-}
-
-interface NamingViolation {
-  type: string;
-  severity: "warning" | "info";
-  filePath: string;
-  fileName: string;
-  expectedPattern: string;
-  description: string;
-  suggestedName?: string;
-  fixCommand?: string;
-}
-
-interface NamingValidationResult {
-  isValid: boolean;
-  violations: NamingViolation[];
-  summary: string;
-  fixCommands: string[];
-  namingGuide: NamingGuide;
-}
-
-interface NamingGuide {
-  rules: Array<{
-    directory: string;
-    pattern: string;
-    description: string;
-    examples: string[];
-  }>;
-  bestPractices: string[];
-  commonMistakes: string[];
-}
-
-// 命令行工具
-export async function runNamingValidation(): Promise<void> {
-  const validator = new NamingValidator();
-  const result = await validator.validateNaming();
-
-  if (!result.isValid) {
-    const warningCount = result.violations.filter(
-      (v) => v.severity === "warning",
-    ).length;
-    process.exit(warningCount > 0 ? 1 : 0);
-  }
-}
-
-// 如果直接运行此文件
+// CLI 执行
 if (require.main === module) {
-  runNamingValidation().catch(console.error);
+  const validator = new NamingValidator();
+  const shouldGenerateScript = process.argv.includes('--generate-script') || process.argv.includes('-g');
+
+  validator.validateNaming().then(result => {
+    if (shouldGenerateScript) {
+      return validator.generateRenameScript(result);
+    }
+  }).catch(error => {
+    console.error('❌ 执行失败:', error);
+    process.exit(1);
+  });
 }
+
+export { NamingValidator, NamingValidationResult, TestFileInfo, DirectoryAnalysis };

@@ -242,7 +242,7 @@ class SrcStructureValidator {
       
       // 情况4: 不在任何service相关目录中，按原逻辑处理
       const moduleDir = this.getModuleDirectory(relativePath);
-      const expectedPath = path.join(moduleDir, fileName);
+      const expectedPath = path.join(moduleDir, 'services', fileName);
       
       return {
         file: fileName,
@@ -291,7 +291,7 @@ class SrcStructureValidator {
       // 对于服务文件，使用特殊的路径构建逻辑
       if (matchedRule.expectedDirectory === 'services') {
         const moduleDir = this.getModuleDirectory(relativePath);
-        const expectedPath = path.join(moduleDir, fileName);
+        const expectedPath = path.join(moduleDir, 'services', fileName);
         
         return {
           file: fileName,

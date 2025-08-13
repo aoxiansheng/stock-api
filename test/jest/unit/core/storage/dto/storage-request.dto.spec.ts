@@ -9,8 +9,8 @@ import {
   StorageOptionsDto,
   StoreDataDto,
   RetrieveDataDto,
-} from '../../../../../../src/core/storage/dto/storage-request.dto';
-import { StorageType, StorageClassification } from '../../../../../../src/core/storage/enums/storage-type.enum';
+} from '../../../../../../src/core/public/storage/dto/storage-request.dto';
+import { StorageType, StorageClassification } from '../../../../../../src/core/public/storage/enums/storage-type.enum';
 
 describe('Storage Request DTOs', () => {
   describe('StorageOptionsDto', () => {

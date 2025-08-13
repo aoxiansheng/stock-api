@@ -1,7 +1,7 @@
 
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import { TransformRequestDto } from '@core/transformer/dto/transform-request.dto';
+import { TransformRequestDto } from '@core/public/transformer/dto/transform-request.dto';
 
 // 由于 TransformOptionsDto 是 TransformRequestDto 的一部分，我们将通过测试 TransformRequestDto 来间接测试它。
 

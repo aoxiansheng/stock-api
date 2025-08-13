@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { ReceiverService } from '../../../../../../src/core/receiver/services/receiver.service';
-import { DataFetcherService } from '../../../../../../src/core/data-fetcher/services/data-fetcher.service';
-import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { TransformerService } from '../../../../../../src/core/transformer/services/transformer.service';
-import { StorageService } from '../../../../../../src/core/storage/services/storage.service';
+import { ReceiverService } from '../../../../../../src/core/restapi/receiver/services/receiver.service';
+import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { SymbolMapperService } from '../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { TransformerService } from '../../../../../../src/core/public/transformer/services/transformer.service';
+import { StorageService } from '../../../../../../src/core/public/storage/services/storage.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
-import { MarketStatusService } from '../../../../../../src/core/shared/services/market-status.service';
+import { MarketStatusService } from '../../../../../../src/core/public/shared/services/market-status.service';
 import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/metrics-registry.service';
-import { DataRequestDto } from '../../../../../../src/core/receiver/dto/data-request.dto';
-import { DataResponseDto } from '../../../../../../src/core/receiver/dto/data-response.dto';
-import { RawDataResult } from '../../../../../../src/core/data-fetcher/interfaces/data-fetcher.interface';
+import { DataRequestDto } from '../../../../../../src/core/restapi/receiver/dto/data-request.dto';
+import { DataResponseDto } from '../../../../../../src/core/restapi/receiver/dto/data-response.dto';
+import { RawDataResult } from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
 
 describe('ReceiverService', () => {
   let service: ReceiverService;

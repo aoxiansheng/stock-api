@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataFetcherService } from '../../../../../../src/core/data-fetcher/services/data-fetcher.service';
-import { DataFetcherModule } from '../../../../../../src/core/data-fetcher/module/data-fetcher.module';
+import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { DataFetcherModule } from '../../../../../../src/core/restapi/data-fetcher/module/data-fetcher.module';
 import { ProvidersModule } from '../../../../../../src/providers/module/providers.module';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
 import { 
   DataFetchParams,
   RawDataResult,
-} from '../../../../../../src/core/data-fetcher/interfaces/data-fetcher.interface';
+} from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
 import { 
   DataFetchRequestDto,
   ApiType,
-} from '../../../../../../src/core/data-fetcher/dto/data-fetch-request.dto';
+} from '../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
 import { ICapability } from '../../../../../../src/providers/interfaces/capability.interface';
 import { Market } from '../../../../../../src/common/constants/market.constants';
 

@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { DataFetcherService } from '../../../../../../src/core/data-fetcher/services/data-fetcher.service';
+import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
 import {
   DataFetchParams,
   RawDataResult,
-} from '../../../../../../src/core/data-fetcher/interfaces/data-fetcher.interface';
+} from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
 import {
   DataFetchRequestDto,
   ApiType,
-} from '../../../../../../src/core/data-fetcher/dto/data-fetch-request.dto';
+} from '../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
 
 describe('DataFetcherService', () => {
   let service: DataFetcherService;

@@ -6,7 +6,7 @@ import {
   TransformFieldMappingPreviewDto,
   TransformPreviewDto,
   BatchTransformOptionsDto,
-} from '@core/transformer/dto/transform-preview.dto';
+} from '@core/public/transformer/dto/transform-preview.dto';
 
 // 测试 TransformMappingRuleInfoDto
 describe('TransformMappingRuleInfoDto', () => {
