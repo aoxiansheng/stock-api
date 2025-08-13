@@ -167,8 +167,8 @@
    
     "tools:structure-validator": "ts-node test/utils/tools/test-structure-validator.ts",
     "tools:structure-validator:execute": "ts-node test/utils/tools/test-structure-validator.ts --execute",
-    "tools:structure-validator:repair": "ts-node -e \"require('./test/utils/tools/test-structure-validator').generateQuickRepairScript()\"",
-    "tools:structure-validator:list": "ts-node -e \"require('./test/utils/tools/test-structure-validator').printDetailedLists()\"",
+    "tools:structure-validator:dry-run": "ts-node test/utils/tools/test-structure-validator.ts --dry-run",
+   
     
     "tools:find-duplicates": "ts-node test/utils/tools/test-find-duplicates.ts",
     "tools:find-duplicates:cleanup": "ts-node test/utils/tools/test-find-duplicates.ts --cleanup",
