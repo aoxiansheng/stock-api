@@ -13,8 +13,8 @@ import { AuthService } from "../../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 
-import { smartDelay } from "../../../../utils/async-test-helpers";
-import { validateDatabaseMetricsResponse } from "../../../../utils/api-response-helpers";
+import { smartDelay } from "../../../../utils/utils/async-test-helpers";
+import { validateDatabaseMetricsResponse } from "../../../../../tools/api-response-helpers";
 
 describe("Monitoring Database Integration", () => {
   let app: INestApplication;

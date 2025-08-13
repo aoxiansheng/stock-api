@@ -10,14 +10,14 @@ import * as request from "supertest";
 import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
 import { AuthService } from "../../../../../src/auth/services/auth.service";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
-import { smartDelay } from "../../../../utils/async-test-helpers";
+import { smartDelay } from "../../../../utils/utils/async-test-helpers";
 import {
   ApiResponseTestHelper,
   validateEndpointMetricsResponse,
   validatePerformanceMetricsResponse,
   validateSystemMetricsResponse,
   validateApiKeyCreationResponse,
-} from "../../../../utils/api-response-helpers";
+} from "../../../../../tools/api-response-helpers";
 
 describe("Monitoring Auth Integration", () => {
   // 全局变量声明
