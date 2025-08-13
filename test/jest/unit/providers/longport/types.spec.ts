@@ -6,7 +6,7 @@
 
 import {
   LongportQuoteData,
-  LongportExt_endedQuote,
+  LongportExtendedQuote,
   LongportQuoteResponse,
   LongportBasicInfo,
   LongportConfig,
@@ -19,15 +19,15 @@ describe('LongPort Types', () => {
     beforeEach(() => {
       quoteData = {
         symbol: '700.HK',
-        lastdone: 320.50,
-        prevclose: 318.00,
+        last_done: 320.50,
+        prev_close: 318.00,
         open: 319.10,
         high: 322.80,
         low: 318.90,
         volume: 15000000,
         turnover: 4825000000,
         timestamp: 1640995200000,
-        tradestatus: 1,
+        trade_status: 1,
       };
     });
 
@@ -54,8 +54,8 @@ describe('LongPort Types', () => {
 
       it('should support both number and string for price fields', () => {
         // Number values
-        quoteData.lastdone = 320.50;
-        quoteData.prevclose = 318.00;
+        quoteData.last_done = 320.50;
+        quoteData.prev_close = 318.00;
         quoteData.open = 319.10;
         quoteData.high = 322.80;
         quoteData.low = 318.90;
@@ -201,12 +201,12 @@ describe('LongPort Types', () => {
     it('should have all required basic info properties', () => {
       const basicInfo: LongportBasicInfo = {
         symbol: '700.HK',
-        namecn: '腾讯控股',
+        name_cn: '腾讯控股',
         name_en: 'Tencent Holdings Ltd',
         name_hk: '騰訊控股',
-        listingdate: '2004-06-16',
-        sharesoutstanding: 9565000000,
-        marketcap: 3065625000000,
+        listing_date: '2004-06-16',
+        shares_outstanding: 9565000000,
+        market_cap: 3065625000000,
         sector: 'Communication Services',
         industry: 'Interactive Media & Services',
       };

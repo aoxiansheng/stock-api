@@ -70,7 +70,7 @@ describe('Storage Request DTOs', () => {
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors[0]._property).toBe('cacheTtl');
+        expect(errors[0].property).toBe('cacheTtl');
       });
 
       it('should fail validation with invalid tags', async () => {
@@ -183,8 +183,8 @@ describe('Storage Request DTOs', () => {
         // Arrange
         dto.key = 'stock:00700.HK:quote';
         dto.data = { symbol: '00700.HK', price: 425.6 };
-        dto.storageType = StorageType._BOTH;
-        dto.storageClassification = StorageClassification.STOCKQUOTE;
+        dto.storageType = StorageType.BOTH;
+        dto.storageClassification = StorageClassification.STOCK_QUOTE;
         dto.provider = 'longport';
         dto.market = 'HK';
 
@@ -368,7 +368,7 @@ describe('Storage Request DTOs', () => {
         const validClassifications = [
           StorageClassification.STOCK_QUOTE,
           StorageClassification.STOCK_CANDLE,
-          StorageClassification.MARKETNEWS,
+          StorageClassification.MARKET_NEWS,
           StorageClassification.GENERAL,
         ];
 
@@ -466,7 +466,7 @@ describe('Storage Request DTOs', () => {
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(error => error._property === 'preferredType')).toBe(true);
+        expect(errors.some(error => error.property === 'preferredType')).toBe(true);
       });
     });
 
@@ -697,7 +697,7 @@ describe('Storage Request DTOs', () => {
           timestamp: new Date().toISOString(),
         };
         dto.storageType = StorageType.CACHE;
-        dto.storageClassification = StorageClassification.STOCKTICK;
+        dto.storageClassification = StorageClassification.STOCK_TICK;
         dto.provider = 'realtime_provider';
         dto.market = 'HK';
         dto.options = {

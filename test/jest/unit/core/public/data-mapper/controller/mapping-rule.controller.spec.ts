@@ -151,7 +151,7 @@ describe("MappingRuleController", () => {
         }
       };
 
-      ruleService._findRules.mockResolvedValue(mockPaginatedResult);
+      ruleService.findRules.mockResolvedValue(mockPaginatedResult);
 
       const result = await controller.getFlexibleRules(
         queryParams.page,
@@ -246,7 +246,7 @@ describe("MappingRuleController", () => {
 
       await controller.deleteRule("507f1f77bcf86cd799439011");
 
-      expect(ruleService.delet_eRule).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(ruleService.deleteRule).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
     });
 
     it("should handle deletion errors", async () => {

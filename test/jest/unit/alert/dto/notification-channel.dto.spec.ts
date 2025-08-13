@@ -20,7 +20,7 @@ describe("NotificationChannelDTOs", () => {
     it("should pass validation with valid data", async () => {
       const dto = plainToClass(NotificationChannelDto, {
         name: "test-channel",
-        type: NotificationChannelType._SLACK,
+        type: NotificationChannelType.SLACK,
         config: { webhookurl: "http://slack.com/webhook", channel: "general" },
         enabled: true,
       });
@@ -85,7 +85,7 @@ describe("NotificationChannelDTOs", () => {
     it("CreateNotificationChannelDto should pass validation", async () => {
       const dto = plainToClass(CreateNotificationChannelDto, {
         name: "test-channel",
-        type: NotificationChannelType._EMAIL,
+        type: NotificationChannelType.EMAIL,
         config: { to: "test@example.com", subject: "Test" },
         enabled: true,
       });

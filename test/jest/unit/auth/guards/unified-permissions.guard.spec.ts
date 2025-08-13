@@ -154,7 +154,7 @@ describe("UnifiedPermissionsGuard", () => {
         await guard.canActivate(mockExecutionContext);
       } catch (e) {
         expect(e.getResponse().details.missingPermissions).toEqual([
-          Permission.USERMANAGE,
+          Permission.USER_MANAGE,
         ]);
       }
     });
@@ -200,7 +200,7 @@ describe("UnifiedPermissionsGuard", () => {
         await guard.canActivate(mockExecutionContext);
       } catch (e) {
         expect(e.getResponse().details.subjectType).toEqual(
-          AuthSubjectType.APIKEY,
+          AuthSubjectType.API_KEY,
         );
         expect(e.getResponse().details.missingPermissions).toEqual([
           Permission.USER_MANAGE,

@@ -147,7 +147,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
       .mockReturnValue(false);
     jest
       .spyOn(service as any, "isCompressed")
-      .mockImplementation((val: string) => val?.startsWith(COMPRESSION_PREFIX));
+      .mockImplementation((val: string) => val?.startsWith(COMPRESSIONPREFIX));
     jest
       .spyOn(service as any, "serialize")
       .mockImplementation((val) => JSON.stringify(val));
@@ -159,13 +159,13 @@ describe("CacheService - Error Handling Branch Coverage", () => {
     compressSpy = jest
       .spyOn(service as any, "compress")
       .mockImplementation((val: string) =>
-        Promise.resolve(COMPRESSION_PREFIX + val),
+        Promise.resolve(COMPRESSIONPREFIX + val),
       );
     jest
       .spyOn(service as any, "decompress")
       .mockImplementation((val: string) => {
-        if (val?.startsWith(COMPRESSION_PREFIX)) {
-          return Promise.resolve(val.substring(COMPRESSION_PREFIX.length));
+        if (val?.startsWith(COMPRESSIONPREFIX)) {
+          return Promise.resolve(val.substring(COMPRESSIONPREFIX.length));
         }
         return Promise.resolve(val);
       });
@@ -206,7 +206,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
         ServiceUnavailableException,
       );
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining(CACHE_ERROR_MESSAGES.GETFAILED),
+        expect.stringContaining(CACHE_ERROR_MESSAGES.GET_FAILED),
         expect.anything(),
       );
     });
@@ -349,7 +349,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
     it("should handle decompression errors during get operation", async () => {
       // Mock Redis returning compressed data
       mockRedisInstance.get.mockResolvedValue(
-        COMPRESSION_PREFIX + "invalid-data",
+        COMPRESSIONPREFIX + "invalid-data",
       );
 
       // Mock decompression to throw error by overriding the previous mock

@@ -197,9 +197,9 @@ describe("Security Cache Integration", () => {
 
       expect(ipAnalysis).toBeDefined();
       if (ipAnalysis) {
-        expect(ipAnalysis._requestCount).toBeGreaterThan(0);
-        expect(ipAnalysis._failureCount).toBeGreaterThan(0);
-        expect(ipAnalysis._lastSeen).toBeDefined();
+        expect(ipAnalysis.requestCount).toBeGreaterThan(0);
+        expect(ipAnalysis.failureCount).toBeGreaterThan(0);
+        expect(ipAnalysis.lastSeen).toBeDefined();
       }
     });
 

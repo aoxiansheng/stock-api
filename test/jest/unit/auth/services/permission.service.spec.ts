@@ -73,7 +73,7 @@ describe("PermissionService - Enhanced Coverage", () => {
     permissions: Permission[] = [],
     role?: UserRole,
     id: string = "user123",
-    type: AuthSubjectType = AuthSubjectType.JWTUSER,
+    type: AuthSubjectType = AuthSubjectType.JWT_USER,
   ): AuthSubject => {
     return {
       type,
@@ -137,7 +137,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       cacheService.get.mockResolvedValue(cachedResult);
       
       const result = await service.checkPermissions(subject, [
-        Permission.DATAREAD,
+        Permission.DATA_READ,
       ]);
 
       expect(result).toEqual(cachedResult);
@@ -187,8 +187,8 @@ describe("PermissionService - Enhanced Coverage", () => {
 
       const result = await service.checkPermissions(subject, [
         Permission.DATA_READ,
-        Permission.CONFIGWRITE,
-        Permission.QUERYEXECUTE,
+        Permission.CONFIG_WRITE,
+        Permission.QUERY_EXECUTE,
       ]);
 
       expect(result.allowed).toBe(false);
@@ -222,7 +222,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       const result = await service.checkPermissions(
         subject,
         [Permission.DATA_READ],
-        [UserRole._ADMIN],
+        [UserRole.ADMIN],
       );
 
       expect(result.allowed).toBe(false);
@@ -350,12 +350,12 @@ describe("PermissionService - Enhanced Coverage", () => {
       );
 
       expect(context.subject).toBe(subject);
-      expect(context._requiredPermissions).toEqual([Permission.DATA_READ]);
-      expect(context._requiredRoles).toEqual([UserRole.DEVELOPER]);
-      expect(context._grantedPermissions).toEqual([Permission.DATA_READ]);
+      expect(context.requiredPermissions).toEqual([Permission.DATA_READ]);
+      expect(context.requiredRoles).toEqual([UserRole.DEVELOPER]);
+      expect(context.grantedPermissions).toEqual([Permission.DATA_READ]);
       expect(context.hasAccess).toBe(true);
       expect(context.details.missingPermissions).toEqual([]);
-      expect(context.details._timestamp).toBeInstanceOf(Date);
+      expect(context.details.timestamp).toBeInstanceOf(Date);
     });
 
     it("should create context with access denied", async () => {
@@ -375,7 +375,7 @@ describe("PermissionService - Enhanced Coverage", () => {
 
       expect(context.hasAccess).toBe(false);
       expect(context.details.missingPermissions).toEqual([
-        Permission.SYSTEMADMIN,
+        Permission.SYSTEM_ADMIN,
       ]);
     });
   });
@@ -503,7 +503,7 @@ describe("PermissionService - Enhanced Coverage", () => {
         [Permission.DATA_READ],
         UserRole.DEVELOPER,
         "api-key-123",
-        AuthSubjectType.APIKEY,
+        AuthSubjectType.API_KEY,
       );
 
       cacheService.get.mockResolvedValue(null);

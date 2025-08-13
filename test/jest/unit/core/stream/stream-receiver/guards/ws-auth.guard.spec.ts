@@ -23,7 +23,7 @@ const mockLogger = {
   warn: jest.fn(),
   error: jest.fn(),
 };
-(createLogger as jest._Mock).mockReturnValue(mockLogger);
+(createLogger as jest.Mock).mockReturnValue(mockLogger);
 
 // 创建模拟服务
 const mockApiKeyService = {

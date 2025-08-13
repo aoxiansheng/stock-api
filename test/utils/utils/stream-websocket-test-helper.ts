@@ -116,7 +116,7 @@ export class StreamWebSocketTestHelper {
 
       this.client.on("disconnect", (reason) => {
         this.stats.connected = false;
-        this.stats._disconnectTime = Date.now();
+        this.stats.disconnectTime = Date.now();
         console.log(`🔌 WebSocket断开连接: ${reason}`);
       });
 
@@ -196,7 +196,7 @@ export class StreamWebSocketTestHelper {
       sequence: this.stats.messagesReceived + 1,
     };
 
-    this.messageBuffer.push(message);
+    this._messageBuffer.push(message);
     this.stats.messagesReceived++;
     
     // 计算延迟
@@ -322,13 +322,13 @@ export class StreamWebSocketTestHelper {
   async waitForMessages(count: number, timeoutMs: number = 30000): Promise<StreamMessage[]> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`等待${count}条消息超时，实际收到${this.messageBuffer.length}条`));
+        reject(new Error(`等待${count}条消息超时，实际收到${this._messageBuffer.length}条`));
       }, timeoutMs);
 
       const checkMessages = () => {
-        if (this.messageBuffer.length >= count) {
+        if (this._messageBuffer.length >= count) {
           clearTimeout(timeout);
-          resolve(this.messageBuffer.slice(0, count));
+          resolve(this._messageBuffer.slice(0, count));
         } else {
           setTimeout(checkMessages, 100);
         }
@@ -376,7 +376,7 @@ export class StreamWebSocketTestHelper {
   getMessagesBySymbol(symbols?: string[]): Map<string, StreamMessage[]> {
     const result = new Map<string, StreamMessage[]>();
     
-    for (const message of this.messageBuffer) {
+    for (const message of this._messageBuffer) {
       if (message.symbol) {
         if (!symbols || symbols.includes(message.symbol)) {
           if (!result.has(message.symbol)) {
@@ -401,14 +401,14 @@ export class StreamWebSocketTestHelper {
    * 获取所有收到的消息
    */
   getAllMessages(): StreamMessage[] {
-    return [...this.messageBuffer];
+    return [...this._messageBuffer];
   }
 
   /**
    * 清除消息缓冲区
    */
   clearMessages(): void {
-    this.messageBuffer = [];
+    this._messageBuffer = [];
     this.latencyMeasurements = [];
     this.stats.messagesReceived = 0;
     this.stats.averageLatency = 0;
@@ -463,7 +463,7 @@ export class StreamWebSocketTestHelper {
     const messagesByType = new Map<string, number>();
     const messagesBySymbol = new Map<string, number>();
 
-    for (const message of this.messageBuffer) {
+    for (const message of this._messageBuffer) {
       // 按类型统计
       const count = messagesByType.get(message.type) || 0;
       messagesByType.set(message.type, count + 1);
@@ -475,7 +475,7 @@ export class StreamWebSocketTestHelper {
       }
     }
 
-    const maxLatency = Math.max(...this._latencyMeasurements, 0);
+    const maxLatency = Math.max(...this.latencyMeasurements, 0);
     const minLatency = Math.min(...this.latencyMeasurements, 0);
 
     // 生成建议
@@ -496,7 +496,7 @@ export class StreamWebSocketTestHelper {
     return {
       connectionStats: this.getStats(),
       messageAnalysis: {
-        totalMessages: this.messageBuffer.length,
+        totalMessages: this._messageBuffer.length,
         messagesByType,
         messagesBySymbol,
         averageLatency: this.stats.averageLatency,

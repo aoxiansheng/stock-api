@@ -54,7 +54,7 @@ describe("ApiKey Schema", () => {
       appKey: "ak_test_123456789abcdef",
       accessToken: "sk_test_secret_token_123",
       name: "Test API Key",
-      permissions: [Permission.DATA_READ, Permission.QUERYEXECUTE],
+      permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
       rateLimit,
       isActive: true,
       expiresAt: new Date("2024-12-31T23:59:59Z"),
@@ -94,7 +94,7 @@ describe("ApiKey Schema", () => {
 
     expect(savedApiKey.permissions).toEqual([
       Permission.DATA_READ,
-      Permission.QUERYEXECUTE,
+      Permission.QUERY_EXECUTE,
       Permission.PROVIDERS_READ,
     ]); // 默认权限
     expect(savedApiKey.isActive).toBe(true); // 默认值
@@ -121,7 +121,7 @@ describe("ApiKey Schema", () => {
 
     expect(jsonApiKey.id).toBeDefined();
     expect(jsonApiKey._id).toBeUndefined(); // 被移除
-    expect(jsonApiKey.v).toBeUndefined(); // 被移除
+    expect(jsonApiKey.__v).toBeUndefined(); // 被移除
     expect(jsonApiKey.appKey).toBe(apiKeyData.appKey);
     expect(jsonApiKey.accessToken).toBe(apiKeyData.accessToken);
     expect(jsonApiKey.name).toBe(apiKeyData.name);
@@ -264,12 +264,12 @@ describe("ApiKey Schema", () => {
     expect(savedApiKey.isActive).toBe(apiKeyData.isActive);
     expect(savedApiKey.expiresAt).toEqual(apiKeyData.expiresAt);
     expect(savedApiKey.usageCount).toBe(apiKeyData.usageCount);
-    expect(savedApiKey.lastUsedAt).toEqual(apiKeyData.lastUsedAt);
+    expect(savedApiKey.lastUsedAt).toEqual(apiKeyData._lastUsedAt);
     expect(savedApiKey.description).toBe(apiKeyData.description);
 
     // 更新使用统计
     savedApiKey.usageCount += 1;
-    savedApiKey._lastUsedAt = new Date();
+    savedApiKey.lastUsedAt = new Date();
     const updatedApiKey = await savedApiKey.save();
 
     expect(updatedApiKey.usageCount).toBe(5001);

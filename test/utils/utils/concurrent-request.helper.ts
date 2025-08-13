@@ -172,7 +172,7 @@ export class ConcurrentRequestHelper {
     });
 
     results.successRate = results.successful / results.total;
-    results._averageResponseTime =
+    results.averageResponseTime =
       responseTimes.length > 0
         ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
         : 0;
@@ -237,13 +237,13 @@ export class ConcurrentRequestHelper {
         }
 
         // 添加请求体
-        if (config.body) {
-          requestBuilder = requestBuilder.send(config.body);
+        if (config._body) {
+          requestBuilder = requestBuilder.send(config._body);
         }
 
         // 添加请求头
-        if (config.headers) {
-          Object.entries(config.headers).forEach(([key, value]) => {
+        if (config._headers) {
+          Object.entries(config._headers).forEach(([key, value]) => {
             requestBuilder = requestBuilder.set(key, value as string);
           });
         }

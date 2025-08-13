@@ -62,7 +62,7 @@ describe("FlexibleMappingRuleService", () => {
     version: "1.0.0",
     overallConfidence: 0.95,
     usageCount: 0,
-    _successfulTransformations: 0,
+    successfulTransformations: 0,
     failedTransformations: 0,
     sourceTemplateId: undefined as any,
     createdAt: new Date(),
@@ -264,7 +264,7 @@ describe("FlexibleMappingRuleService", () => {
         page: 1,
         limit: 10
       });
-      paginationService._createPaginatedResponse.mockReturnValue(mockPaginatedResult);
+      paginationService.createPaginatedResponse.mockReturnValue(mockPaginatedResult);
 
       const result = await service.findRules(1, 10, "longport");
 
@@ -275,7 +275,7 @@ describe("FlexibleMappingRuleService", () => {
 
   describe("findRuleById", () => {
     it("should find rule by id", async () => {
-      cacheService._getCachedRuleById.mockResolvedValue(null); // 缓存未命中
+      cacheService.getCachedRuleById.mockResolvedValue(null); // 缓存未命中
       ruleModel.findById.mockResolvedValue(mockRuleDocument);
       const fromDocumentSpy = jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
@@ -299,7 +299,7 @@ describe("FlexibleMappingRuleService", () => {
 
   describe("findBestMatchingRule", () => {
     it("should find best matching rule from cache", async () => {
-      cacheService._getCachedBestMatchingRule.mockResolvedValue(mockRule);
+      cacheService.getCachedBestMatchingRule.mockResolvedValue(mockRule);
 
       const result = await service.findBestMatchingRule("longport", "rest", "quote_fields");
 
@@ -357,7 +357,7 @@ describe("FlexibleMappingRuleService", () => {
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument')
         .mockReturnValueOnce(mockRule) // 第一次调用返回oldRuleDto
         .mockReturnValueOnce({ ...mockRule, ...updateData }); // 第二次调用返回更新后的规则
-      cacheService._invalidateRuleCache.mockResolvedValue(undefined);
+      cacheService.invalidateRuleCache.mockResolvedValue(undefined);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
 
       const result = await service.updateRule("507f1f77bcf86cd799439011", updateData);
@@ -470,7 +470,7 @@ describe("FlexibleMappingRuleService", () => {
       const result = await service.applyFlexibleMappingRule(mockRuleDoc, testData);
 
       expect(result.success).toBe(false); // 成功率为0，所以success应该是false
-      expect(result.mappingStats._failedMappings).toBe(1);
+      expect(result.mappingStats.failedMappings).toBe(1);
       expect(result.mappingStats.successfulMappings).toBe(0);
     });
   });
@@ -513,7 +513,7 @@ describe("FlexibleMappingRuleService", () => {
       
       // Mock FlexibleMappingRuleResponseDto.fromDocument for each rule
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
-      cacheService._warmupCache.mockResolvedValue(undefined);
+      cacheService.warmupCache.mockResolvedValue(undefined);
 
       await service.warmupMappingRuleCache();
 

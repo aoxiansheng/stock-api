@@ -227,7 +227,7 @@ describe("FlexibleMappingRuleSchema", () => {
 
       // Wait a moment and update
       await new Promise(resolve => setTimeout(resolve, 10));
-      savedRule._usageCount = 1;
+      savedRule.usageCount = 1;
       const updatedRule = await savedRule.save();
 
       expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());

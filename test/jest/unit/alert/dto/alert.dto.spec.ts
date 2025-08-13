@@ -19,8 +19,8 @@ describe("AlertDTOs", () => {
     it("should pass validation with valid data", async () => {
       const dto = plainToClass(AlertQueryDto, {
         ruleId: "rule-123",
-        severity: AlertSeverity._WARNING,
-        status: AlertStatus._FIRING,
+        severity: AlertSeverity.WARNING,
+        status: AlertStatus.FIRING,
         page: 1,
         limit: 10,
         sortBy: "startTime",
@@ -72,7 +72,7 @@ describe("AlertDTOs", () => {
       const alertEntity: IAlert = {
         id: "alert-1",
         ruleId: "rule-1",
-        _ruleName: "Test Rule",
+        ruleName: "Test Rule",
         metric: "cpu.usage",
         value: 95,
         threshold: 90,
@@ -86,8 +86,8 @@ describe("AlertDTOs", () => {
 
       expect(responseDto.id).toBe(alertEntity.id);
       expect(responseDto.ruleName).toBe(alertEntity.ruleName);
-      expect(responseDto._isActive).toBe(true);
-      expect(responseDto._duration).toBeGreaterThan(0);
+      expect(responseDto.isActive).toBe(true);
+      expect(responseDto.duration).toBeGreaterThan(0);
     });
   });
 });

@@ -4,11 +4,11 @@ import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 describe('QueryType Enum', () => {
   describe('Enum Values', () => {
     it('should define all query types correctly', () => {
-      expect(QueryType.BYSYMBOLS).toBe('by_symbols');
-      expect(QueryType.BYMARKET).toBe('by_market');
-      expect(QueryType.BYPROVIDER).toBe('by_provider');
-      expect(QueryType.BYCATEGORY).toBe('by_tag');
-      expect(QueryType.BY_TIMERANGE).toBe('by_time_range');
+      expect(QueryType.BY_SYMBOLS).toBe('by_symbols');
+      expect(QueryType.BY_MARKET).toBe('by_market');
+      expect(QueryType.BY_PROVIDER).toBe('by_provider');
+      expect(QueryType.BY_CATEGORY).toBe('by_tag');
+      expect(QueryType.BY_TIME_RANGE).toBe('by_time_range');
       expect(QueryType.ADVANCED).toBe('advanced');
     });
 
@@ -120,7 +120,7 @@ describe('QueryType Enum', () => {
 
     it('should support array operations', () => {
       const queryTypes: QueryType[] = [
-        QueryType.BYSYMBOLS,
+        QueryType.BY_SYMBOLS,
         QueryType.BY_MARKET,
         QueryType.BY_PROVIDER,
       ];
@@ -148,7 +148,7 @@ describe('QueryType Enum', () => {
     it('should support string comparison', () => {
       const queryTypeValue = 'by_symbols';
 
-      expect(QueryType.BYSYMBOLS === queryTypeValue).toBe(true);
+      expect(QueryType.BY_SYMBOLS === queryTypeValue).toBe(true);
       expect(String(QueryType.BY_MARKET) === queryTypeValue).toBe(false);
     });
 
@@ -263,8 +263,8 @@ describe('QueryType Enum', () => {
         };
 
         expect(queryTypeGroups.simple).toContain(QueryType.BY_SYMBOLS);
-        expect(queryTypeGroups.moderate).toContain(QueryType.BY_MARKET);
-        expect(queryTypeGroups.moderate).toContain(QueryType.BY_PROVIDER);
+        expect(queryTypeGroups._moderate).toContain(QueryType.BY_MARKET);
+        expect(queryTypeGroups._moderate).toContain(QueryType.BY_PROVIDER);
         expect(queryTypeGroups.complex).toContain(QueryType.BY_CATEGORY);
         expect(queryTypeGroups.complex).toContain(QueryType.BY_TIME_RANGE);
         expect(queryTypeGroups.complex).toContain(QueryType.ADVANCED);

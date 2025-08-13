@@ -195,7 +195,7 @@ describe('ReceiverService', () => {
 
     beforeEach(() => {
       // Setup default successful mocks
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue('longport');
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue('longport');
       mockCapabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapabilityRegistryService.getProvider.mockReturnValue({
         getContextService: jest.fn().mockResolvedValue({ apiKey: 'test-key' }),
@@ -237,7 +237,7 @@ describe('ReceiverService', () => {
       expect(result.metadata.capability).toBe('get-stock-quote');
 
       // Verify the pipeline sequence
-      expect(mockCapabilityRegistryService.getBestProvider).toHaveBeenCalled();
+      expect(mockCapabilityRegistryService._getBestProvider).toHaveBeenCalled();
       expect(mockSymbolMapperService.mapSymbols).toHaveBeenCalledWith(
         'longport',
         mockRequest.symbols,
@@ -268,7 +268,7 @@ describe('ReceiverService', () => {
 
     it('should handle provider selection failure', async () => {
       // Arrange
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue(null);
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue(null);
 
       // Act & Assert
       await expect(service.handleRequest(mockRequest)).rejects.toThrow(
@@ -404,7 +404,7 @@ describe('ReceiverService', () => {
         options: {},
       };
 
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue('longport');
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue('longport');
       mockCapabilityRegistryService.getCapability.mockReturnValue({
         name: 'get-stock-quote',
         supportedMarkets: ['US', 'HK'],
@@ -496,7 +496,7 @@ describe('ReceiverService', () => {
     });
 
     it('should select best provider automatically when no preference', async () => {
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue('longport');
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue('longport');
       mockCapabilityRegistryService.getProvider.mockReturnValue({
         getContextService: jest.fn().mockResolvedValue({ apiKey: 'test' }),
       });
@@ -519,7 +519,7 @@ describe('ReceiverService', () => {
 
       const result = await service.handleRequest(baseRequest);
 
-      expect(mockCapabilityRegistryService.getBestProvider).toHaveBeenCalledWith(
+      expect(mockCapabilityRegistryService._getBestProvider).toHaveBeenCalledWith(
         'get-stock-quote',
         'US' // inferred from AAPL symbol
       );
@@ -535,7 +535,7 @@ describe('ReceiverService', () => {
         options: {},
       };
 
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue('longport');
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue('longport');
       mockCapabilityRegistryService.getProvider.mockReturnValue({
         getContextService: jest.fn().mockResolvedValue({ apiKey: 'test' }),
       });
@@ -576,7 +576,7 @@ describe('ReceiverService', () => {
         options: {},
       };
 
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue('longport');
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue('longport');
       mockCapabilityRegistryService.getProvider.mockReturnValue({
         getContextService: jest.fn().mockResolvedValue({ apiKey: 'test' }),
       });
@@ -602,7 +602,7 @@ describe('ReceiverService', () => {
       const result = await service.handleRequest(largeRequest);
 
       expect(result.data).toHaveLength(50);
-      expect(result.metadata._totalRequested).toBe(50);
+      expect(result.metadata.totalRequested).toBe(50);
     });
 
     it('should handle null/undefined options', async () => {
@@ -612,7 +612,7 @@ describe('ReceiverService', () => {
         // options: undefined - omitted
       };
 
-      mockCapabilityRegistryService.getBestProvider.mockReturnValue('longport');
+      mockCapabilityRegistryService._getBestProvider.mockReturnValue('longport');
       mockCapabilityRegistryService.getProvider.mockReturnValue({
         getContextService: jest.fn().mockResolvedValue({ apiKey: 'test' }),
       });

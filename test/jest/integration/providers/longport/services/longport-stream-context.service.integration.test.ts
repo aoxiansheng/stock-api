@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { createLogger } from '@common/config/_logger.config';
+import { createLogger } from '@common/config/logger.config';
 import { LongportStreamContextService } from '../../../../../../src/providers/longport/services/longport-stream-context.service';
 
 // Mock logger
@@ -20,7 +20,7 @@ let isLongPortAvailable = false;
 
 try {
   // 尝试加载真实的LongPort SDK
-  import longport from 'longport';
+  const longport = eval('require')('longport');
   if (longport && longport.Config && longport.QuoteContext) {
     isLongPortAvailable = true;
   }
@@ -90,12 +90,12 @@ describe('LongportStreamContextService Integration', () => {
     });
 
     it('should have correct service methods', () => {
-      expect(service._initializeWebSocket).toBeDefined();
+      expect(service.initializeWebSocket).toBeDefined();
       expect(service.subscribe).toBeDefined();
       expect(service.unsubscribe).toBeDefined();
-      expect(service._onQuoteUpdate).toBeDefined();
-      expect(service._isWebSocketConnected).toBeDefined();
-      expect(service._getSubscribedSymbols).toBeDefined();
+      expect(service.onQuoteUpdate).toBeDefined();
+      expect(service.isWebSocketConnected).toBeDefined();
+      expect(service.getSubscribedSymbols).toBeDefined();
       expect(service.cleanup).toBeDefined();
     });
   });
@@ -139,7 +139,7 @@ describe('LongportStreamContextService Integration', () => {
     it('should initialize WebSocket connection', async () => {
       if (!isLongPortAvailable) {
         // Mock环境下的测试
-        import { Config, QuoteContext } from 'longport';
+        const { Config, QuoteContext } = eval('require')('longport');
         Config.fromEnv.mockReturnValue({ test: 'config' });
         
         const mockQuoteContext = {
@@ -166,7 +166,7 @@ describe('LongportStreamContextService Integration', () => {
 
     it('should handle connection initialization failure', async () => {
       if (!isLongPortAvailable) {
-        import { Config } from 'longport';
+        const { Config } = eval('require')('longport');
         Config.fromEnv.mockImplementation(() => {
           throw new Error('Configuration error');
         });
@@ -183,7 +183,7 @@ describe('LongportStreamContextService Integration', () => {
     it('should prevent duplicate initialization', async () => {
       if (!isLongPortAvailable) {
         // Mock已连接状态
-        import { Config, QuoteContext } from 'longport';
+        const { Config, QuoteContext } = eval('require')('longport');
         Config.fromEnv.mockReturnValue({ test: 'config' });
         QuoteContext.new.mockResolvedValue({
           setOnQuote: jest.fn(),
@@ -204,7 +204,7 @@ describe('LongportStreamContextService Integration', () => {
   describe('Symbol Subscription Management', () => {
     beforeEach(async () => {
       if (!isLongPortAvailable) {
-        import { Config, QuoteContext } from 'longport';
+        const { Config, QuoteContext } = eval('require')('longport');
         Config.fromEnv.mockReturnValue({ test: 'config' });
         
         const mockQuoteContext = {
@@ -450,7 +450,7 @@ describe('LongportStreamContextService Integration', () => {
   describe('Error Handling and Recovery', () => {
     it('should handle subscription failures', async () => {
       if (!isLongPortAvailable) {
-        import { QuoteContext } from 'longport';
+        const { QuoteContext } = eval('require')('longport');
         const mockQuoteContext = {
           setOnQuote: jest.fn(),
           setOnConnected: jest.fn(),
@@ -506,7 +506,7 @@ describe('LongportStreamContextService Integration', () => {
         await service.subscribe(symbols);
 
         // Mock unsubscribe to fail
-        import { QuoteContext } from 'longport';
+        const { QuoteContext } = eval('require')('longport');
         const mockContext = QuoteContext.new.mock.results[QuoteContext.new.mock.results.length - 1].value;
         mockContext.unsubscribe.mockRejectedValue(new Error('Cleanup error'));
 

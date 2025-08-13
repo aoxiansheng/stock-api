@@ -5,7 +5,7 @@
  */
 
 import {
-  ERRORMESSAGES,
+  ERROR_MESSAGES,
   AUTH_ERROR_MESSAGES,
   BUSINESS_ERROR_MESSAGES,
   SYSTEM_ERROR_MESSAGES,
@@ -26,10 +26,10 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
       // Test specific error messages contain Chinese characters
       const chineseRegex = /[\u4e00-\u9fff]/;
 
-      expect(chineseRegex.test(AUTH_ERROR_MESSAGES.INVALIDCREDENTIALS)).toBe(
+      expect(chineseRegex.test(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS)).toBe(
         true,
       );
-      expect(chineseRegex.test(BUSINESS_ERROR_MESSAGES.VALIDATIONFAILED)).toBe(
+      expect(chineseRegex.test(BUSINESS_ERROR_MESSAGES.VALIDATION_FAILED)).toBe(
         true,
       );
       expect(
@@ -58,8 +58,8 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
       // Some messages should have placeholders for dynamic content
       const messagesWithPlaceholders = [
         ERROR_MESSAGES.RATE_LIMIT_EXCEEDED,
-        BUSINESS_ERROR_MESSAGES.RESOURCE_NOTFOUND,
-        SYSTEM_ERROR_MESSAGES.SERVICEUNAVAILABLE,
+        BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+        SYSTEM_ERROR_MESSAGES.SERVICE_UNAVAILABLE,
       ];
 
       messagesWithPlaceholders.forEach((message) => {
@@ -173,13 +173,13 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
     it("should handle different error contexts appropriately", () => {
       // Test that different error types exist for different contexts
       expect(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS).toBeDefined();
-      expect(AUTH_ERROR_MESSAGES.TOKENEXPIRED).toBeDefined();
-      expect(AUTH_ERROR_MESSAGES.INSUFFICIENTPERMISSIONS).toBeDefined();
+      expect(AUTH_ERROR_MESSAGES.TOKEN_EXPIRED).toBeDefined();
+      expect(AUTH_ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS).toBeDefined();
 
       // Business logic errors
       expect(BUSINESS_ERROR_MESSAGES.VALIDATION_FAILED).toBeDefined();
       expect(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND).toBeDefined();
-      expect(BUSINESS_ERROR_MESSAGES.RESOURCECONFLICT).toBeDefined();
+      expect(BUSINESS_ERROR_MESSAGES.RESOURCE_CONFLICT).toBeDefined();
 
       // System errors
       expect(SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR).toBeDefined();
@@ -190,13 +190,13 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
     it("should differentiate between user and system errors", () => {
       // User-facing vs system-facing error messages
       const userErrors = [
-        AUTH_ERROR_MESSAGES.INVALIDCREDENTIALS,
-        BUSINESS_ERROR_MESSAGES.VALIDATIONFAILED,
+        AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
+        BUSINESS_ERROR_MESSAGES.VALIDATION_FAILED,
         HTTP_ERROR_MESSAGES.BAD_REQUEST,
       ];
 
       const systemErrors = [
-        SYSTEM_ERROR_MESSAGES.INTERNAL_SERVERERROR,
+        SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         SYSTEM_ERROR_MESSAGES.DATABASE_ERROR,
         SYSTEM_ERROR_MESSAGES.SERVICE_UNAVAILABLE,
       ];

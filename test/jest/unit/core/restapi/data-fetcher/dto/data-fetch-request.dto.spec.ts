@@ -10,7 +10,7 @@ describe('DataFetchRequestDto', () => {
       dto.capability = 'get-stock-quote';
       dto.symbols = ['700.HK', 'AAPL.US'];
       dto.requestId = 'req_123456789';
-      dto.apiType = ApiType._REST;
+      dto.apiType = ApiType.REST;
       dto.options = { includeAfterHours: true };
 
       const errors = await validate(dto);

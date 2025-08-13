@@ -43,12 +43,12 @@ describe('FieldMappingService', () => {
   describe('capabilityToClassification', () => {
     it('应能正确将能力类型转换为数据分类', () => {
       const classification = service.capabilityToClassification('get-stock-quote' as ReceiverType);
-      expect(classification).toBe(StorageClassification.STOCKQUOTE);
+      expect(classification).toBe(StorageClassification.STOCK_QUOTE);
     });
 
     it('对于未知能力类型，应返回默认分类并记录警告', () => {
       const classification = service.capabilityToClassification('UNKNOWN_TYPE' as ReceiverType);
-      expect(classification).toBe(StorageClassification._GENERAL);
+      expect(classification).toBe(StorageClassification.GENERAL);
       expect(mockLogger.warn).toHaveBeenCalledWith('未知的能力类型: UNKNOWN_TYPE，使用默认分类 GENERAL');
     });
   });
@@ -74,7 +74,7 @@ describe('FieldMappingService', () => {
 
     it('当过滤器是有效的能力类型时，应转换并返回数据分类', () => {
       const classification = service.filterToClassification('get-stock-basic-info' as QueryTypeFilter);
-      expect(classification).toBe(StorageClassification.COMPANYPROFILE);
+      expect(classification).toBe(StorageClassification.COMPANY_PROFILE);
     });
 
     it('对于无效的过滤器，应返回 null 并记录警告', () => {
@@ -95,8 +95,8 @@ describe('FieldMappingService', () => {
     it('当配置有效时，应返回 _isValid: true', () => {
       const result = service.validateMappingConfig();
       expect(result.isValid).toBe(true);
-      expect(result._missingMappings).toHaveLength(0);
-      expect(result._redundantMappings).toHaveLength(0);
+      expect(result.missingMappings).toHaveLength(0);
+      expect(result.redundantMappings).toHaveLength(0);
     });
   });
 });

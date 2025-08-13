@@ -64,42 +64,42 @@ describe('NotificationTemplateUtil', () => {
     it('should replace variables in template', () => {
       const template = 'Hello {userName}, your order {orderId} is ready.';
       const variables = { userName: 'John Doe', orderId: 'ORDER-001' };
-      const result = NotificationTemplateUtil.formatTemplate(template, var_iables);
+      const result = NotificationTemplateUtil.formatTemplate(template, variables);
       expect(result).toBe('Hello John Doe, your order ORDER-001 is ready.');
     });
 
     it('should remove comments from template', () => {
       const template = 'Hello {userName},/* this is a comment */ your order is ready.';
       const variables = { userName: 'Jane' };
-      const result = NotificationTemplateUtil.formatTemplate(template, var_iables);
+      const result = NotificationTemplateUtil.formatTemplate(template, variables);
       expect(result).toBe('Hello Jane, your order is ready.');
     });
 
     it('should handle if blocks correctly', () => {
       const template = 'Hello {userName},{#if hasDiscount} you have a discount.{/if}';
       const variables = { userName: 'Mike', hasDiscount: true };
-      const result = NotificationTemplateUtil.formatTemplate(template, var_iables);
+      const result = NotificationTemplateUtil.formatTemplate(template, variables);
       expect(result).toBe('Hello Mike, you have a discount.');
     });
 
     it('should hide if blocks when condition is false', () => {
       const template = 'Hello {userName},{#if hasDiscount} you have a discount.{/if}';
       const variables = { userName: 'Sue', hasDiscount: false };
-      const result = NotificationTemplateUtil.formatTemplate(template, var_iables);
+      const result = NotificationTemplateUtil.formatTemplate(template, variables);
       expect(result).toBe('Hello Sue,');
     });
 
     it('should handle unless blocks correctly', () => {
       const template = 'Hello {userName},{#unless isPaid} please pay your invoice.{/unless}';
       const variables = { userName: 'Tom', isPaid: false };
-      const result = NotificationTemplateUtil.formatTemplate(template, var_iables);
+      const result = NotificationTemplateUtil.formatTemplate(template, variables);
       expect(result).toBe('Hello Tom, please pay your invoice.');
     });
 
     it('should hide unless blocks when condition is true', () => {
       const template = 'Hello {userName},{#unless isPaid} please pay your invoice.{/unless}';
       const variables = { userName: 'Kim', isPaid: true };
-      const result = NotificationTemplateUtil.formatTemplate(template, var_iables);
+      const result = NotificationTemplateUtil.formatTemplate(template, variables);
       expect(result).toBe('Hello Kim,');
     });
   });
@@ -163,7 +163,7 @@ describe('NotificationTemplateUtil', () => {
   describe('calculateRetryDelay', () => {
     it('should calculate exponential backoff delay', () => {
       const delay1 = NotificationTemplateUtil.calculateRetryDelay(0);
-      expect(delay1).toBeGreaterThanOrEqual(NOTIFICATION_RETRY_CONFIG.INITIAL_DELAYMS * (1 - NOTIFICATION_RETRY_CONFIG.JITTERFACTOR));
+      expect(delay1).toBeGreaterThanOrEqual(NOTIFICATION_RETRY_CONFIG.INITIAL_DELAY_MS * (1 - NOTIFICATION_RETRY_CONFIG.JITTER_FACTOR));
     });
 
     it('should not exceed maximum delay', () => {

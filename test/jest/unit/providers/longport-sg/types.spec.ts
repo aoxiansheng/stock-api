@@ -6,7 +6,7 @@
 
 import {
   LongportQuoteData,
-  LongportExt_endedQuote,
+  LongportExtendedQuote,
   LongportQuoteResponse,
   LongportBasicInfo,
   LongportConfig,
@@ -19,8 +19,8 @@ describe('LongPort SG Types', () => {
     beforeEach(() => {
       quoteData = {
         symbol: 'D05.SG',
-        lastdone: 32.50,
-        prevclose: 32.00,
+        last_done: 32.50,
+        prev_close: 32.00,
         open: 32.10,
         high: 32.80,
         low: 31.90,
@@ -54,8 +54,8 @@ describe('LongPort SG Types', () => {
 
       it('should support both number and string for price fields', () => {
         // Number values
-        quoteData.lastdone = 32.50;
-        quoteData.prevclose = 32.00;
+        quoteData.last_done = 32.50;
+        quoteData.prev_close = 32.00;
         quoteData.open = 32.10;
         quoteData.high = 32.80;
         quoteData.low = 31.90;
@@ -362,12 +362,12 @@ describe('LongPort SG Types', () => {
     beforeEach(() => {
       basicInfo = {
         symbol: 'D05.SG',
-        name_cn: 'U��',
+        name_cn: '中国',
         name_en: 'DBS Group Holdings Ltd',
-        namehk: 'U�',
+        name_hk: '中国银行',
         listing_date: '1999-07-23',
-        sharesoutstanding: 2650000000,
-        marketcap: 86125000000,
+        shares_outstanding: 2650000000,
+        market_cap: 86125000000,
         sector: 'Financials',
         industry: 'Banks',
       };

@@ -166,7 +166,7 @@ describe("Alert Rule DTOs - Function Coverage", () => {
         operator: "gte" as const,
         threshold: 85,
         duration: 180,
-        severity: AlertSeverity._INFO,
+        severity: AlertSeverity.INFO,
         enabled: false,
         channels: [],
         cooldown: 450,
@@ -233,7 +233,7 @@ describe("Alert Rule DTOs - Function Coverage", () => {
         {
           id: "webhook-1",
           name: "Webhook Channel",
-          type: NotificationChannelType._WEBHOOK,
+          type: NotificationChannelType.WEBHOOK,
           config: { url: "https://example.com/webhook" },
           enabled: true,
         },
@@ -312,7 +312,7 @@ describe("Alert Rule DTOs - Function Coverage", () => {
       const descriptor = Object.getOwnPropertyDescriptor(dto, "name");
       expect(descriptor).toBeDefined();
       expect(descriptor?.value).toBe("Descriptor Test");
-      expect(descriptor?._writable).toBe(true);
+      expect(descriptor?.writable).toBe(true);
       expect(descriptor?.enumerable).toBe(true);
     });
   });

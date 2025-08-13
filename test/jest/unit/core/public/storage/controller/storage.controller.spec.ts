@@ -251,14 +251,14 @@ describe('StorageController', () => {
     it('should delete data successfully with default storageType', async () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
       const result = await controller.deleteData('test-key');
-      expect(storageService.delet_eData).toHaveBeenCalledWith('test-key', StorageType.BOTH);
+      expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.BOTH);
       expect(result).toEqual({ success: true, delet_ed: true, key: 'test-key' });
     });
 
     it('should delete data successfully with specified storageType', async () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
       const result = await controller.deleteData('test-key', StorageType.CACHE);
-      expect(storageService.delet_eData).toHaveBeenCalledWith('test-key', StorageType.CACHE);
+      expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.CACHE);
       expect(result).toEqual({ success: true, delet_ed: true, key: 'test-key' });
     });
 

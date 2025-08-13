@@ -38,7 +38,7 @@ describe('DataRequestDto', () => {
       const dto = plainToClass(DataRequestDto, invalidDto);
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]._property).toBe('symbols');
+      expect(errors[0].property).toBe('symbols');
     });
 
     it('当 symbols 包含无效格式时应无法通过验证', async () => {
@@ -47,7 +47,7 @@ describe('DataRequestDto', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('symbols');
-      expect(errors[0].const_raints).toHaveProperty('isValidSymbolFormat');
+      expect(errors[0].constraints).toHaveProperty('isValidSymbolFormat');
     });
 
     it('当 symbols 列表过长时应无法通过验证', async () => {
@@ -57,7 +57,7 @@ describe('DataRequestDto', () => {
         const errors = await validate(dto);
         expect(errors.length).toBeGreaterThan(0);
         expect(errors[0].property).toBe('symbols');
-        expect(errors[0].const_raints).toHaveProperty('arrayMaxSize');
+        expect(errors[0].constraints).toHaveProperty('arrayMaxSize');
       });
   });
 
@@ -77,7 +77,7 @@ describe('DataRequestDto', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('receiverType');
-      expect(errors[0].const_raints).toHaveProperty('isIn');
+      expect(errors[0].constraints).toHaveProperty('isIn');
     });
   });
 

@@ -210,7 +210,7 @@ describe("MappingRuleCacheService", () => {
 
   describe("invalidateRuleCache", () => {
     it("should invalidate all cache entries for a rule", async () => {
-      cacheService._del.mockResolvedValue(1);
+      cacheService.del.mockResolvedValue(1);
 
       await service.invalidateRuleCache(mockRule.id, mockRule);
 
@@ -366,7 +366,7 @@ describe("MappingRuleCacheService", () => {
 
     it("should have reasonable TTL values", () => {
       const ttl = (service as any).CACHE_TTL;
-      Object.values(ttl).forEach((v:_number)=> expect(v).toBeGreaterThan(0));
+      Object.values(ttl).forEach((v:number)=> expect(v).toBeGreaterThan(0));
     });
   });
 

@@ -9,7 +9,7 @@ describe("ApiKeySubject", () => {
     name: "Test API Key",
     appKey: "test-app-key",
     userId: "user-123",
-    permissions: [Permission.DATAREAD, Permission.QUERYEXECUTE],
+    permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
     rateLimit: { requests: 1000, window: "1h" },
     isActive: true,
     expiresAt: new Date(Date.now() + 86400000), // 24 hours from now
@@ -23,7 +23,7 @@ describe("ApiKeySubject", () => {
       const subject = new ApiKeySubject(mockApiKeyData);
 
       expect(subject.id).toBe(mockApiKeyData.id);
-      expect(subject._type).toBe(AuthSubjectType.APIKEY);
+      expect(subject.type).toBe(AuthSubjectType.API_KEY);
       expect(subject.permissions).toEqual(mockApiKeyData.permissions);
       expect(subject.metadata.name).toBe(mockApiKeyData.name);
       expect(subject.metadata.appKey).toBe(mockApiKeyData.appKey);
@@ -128,8 +128,8 @@ describe("ApiKeySubject", () => {
     });
 
     it("should return false for permissions the API key does not have", () => {
-      expect(subject.hasPermission(Permission.USERMANAGE)).toBe(false);
-      expect(subject.hasPermission(Permission.SYSTEMADMIN)).toBe(false);
+      expect(subject.hasPermission(Permission.USER_MANAGE)).toBe(false);
+      expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(false);
     });
 
     it("should handle system admin hierarchical permissions", () => {
@@ -140,9 +140,9 @@ describe("ApiKeySubject", () => {
       const adminSubject = new ApiKeySubject(adminApiKey);
 
       expect(adminSubject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
-      expect(adminSubject.hasPermission(Permission.SYSTEMMONITOR)).toBe(true);
-      expect(adminSubject.hasPermission(Permission.SYSTEMMETRICS)).toBe(true);
-      expect(adminSubject.hasPermission(Permission.SYSTEMHEALTH)).toBe(true);
+      expect(adminSubject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+      expect(adminSubject.hasPermission(Permission.SYSTEM_METRICS)).toBe(true);
+      expect(adminSubject.hasPermission(Permission.SYSTEM_HEALTH)).toBe(true);
       expect(adminSubject.hasPermission(Permission.DATA_READ)).toBe(false);
     });
 
@@ -168,7 +168,7 @@ describe("ApiKeySubject", () => {
     it("should return true when API key has all specified permissions", () => {
       const result = subject.hasAllPermissions([
         Permission.DATA_READ,
-        Permission.QUERYEXECUTE,
+        Permission.QUERY_EXECUTE,
       ]);
 
       expect(result).toBe(true);
@@ -177,7 +177,7 @@ describe("ApiKeySubject", () => {
     it("should return false when API key is missing any permission", () => {
       const result = subject.hasAllPermissions([
         Permission.DATA_READ,
-        Permission.USERMANAGE,
+        Permission.USER_MANAGE,
       ]);
 
       expect(result).toBe(false);
@@ -197,8 +197,8 @@ describe("ApiKeySubject", () => {
       const adminSubject = new ApiKeySubject(adminApiKey);
 
       const result = adminSubject.hasAllPermissions([
-        Permission.SYSTEMMONITOR,
-        Permission.SYSTEMMETRICS,
+        Permission.SYSTEM_MONITOR,
+        Permission.SYSTEM_METRICS,
       ]);
 
       expect(result).toBe(true);
@@ -224,7 +224,7 @@ describe("ApiKeySubject", () => {
     it("should return false when API key has none of the specified permissions", () => {
       const result = subject.hasAnyPermission([
         Permission.USER_MANAGE,
-        Permission.SYSTEMADMIN,
+        Permission.SYSTEM_ADMIN,
       ]);
 
       expect(result).toBe(false);
@@ -459,7 +459,7 @@ describe("ApiKeySubject", () => {
       const json = subject.toJSON();
 
       expect(json).toEqual({
-        type: AuthSubjectType.APIKEY,
+        type: AuthSubjectType.API_KEY,
         id: mockApiKeyData.id,
         permissions: mockApiKeyData.permissions,
         metadata: {

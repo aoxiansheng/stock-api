@@ -4,7 +4,7 @@ import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 
 import { ApiKeyAuthGuard } from "../../../../../src/auth/guards/apikey-auth.guard";
-import { IS_PUBLICKEY } from "../../../../../src/auth/decorators/public.decorator";
+import { IS_PUBLIC_KEY } from "../../../../../src/auth/decorators/public.decorator";
 import { REQUIRE_API_KEY } from "../../../../../src/auth/decorators/require-apikey.decorator";
 import { createMock } from "@golevelup/ts-jest";
 
@@ -61,7 +61,7 @@ describe("ApiKeyAuthGuard", () => {
         const result = guard.canActivate(mockContext);
 
         expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
-          IS_PUBLICKEY,
+          IS_PUBLIC_KEY,
           [mockContext.getHandler(), mockContext.getClass()],
         );
         expect(result).toBe(true);

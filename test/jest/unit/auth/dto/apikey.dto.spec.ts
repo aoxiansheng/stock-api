@@ -36,7 +36,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("requests");
-      expect(errors[0].const_raints).toHaveProperty("min");
+      expect(errors[0].constraints).toHaveProperty("min");
     });
 
     it("should reject negative requests", async () => {
@@ -50,7 +50,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("requests");
-      expect(errors[0].const_raints).toHaveProperty("min");
+      expect(errors[0].constraints).toHaveProperty("min");
     });
 
     it("should reject non-number requests", async () => {
@@ -64,7 +64,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("requests");
-      expect(errors[0].const_raints).toHaveProperty("isNumber");
+      expect(errors[0].constraints).toHaveProperty("isNumber");
     });
 
     it("should reject empty window", async () => {
@@ -78,7 +78,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("window");
-      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
+      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject non-string window", async () => {
@@ -92,7 +92,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("window");
-      expect(errors[0].const_raints).toHaveProperty("isString");
+      expect(errors[0].constraints).toHaveProperty("isString");
     });
 
     it("should accept various time window formats", async () => {
@@ -163,7 +163,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("name");
-      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
+      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject name exceeding max length", async () => {
@@ -176,7 +176,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("name");
-      expect(errors[0].const_raints).toHaveProperty("maxLength");
+      expect(errors[0].constraints).toHaveProperty("maxLength");
     });
 
     it("should reject description exceeding max length", async () => {
@@ -190,7 +190,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("description");
-      expect(errors[0].const_raints).toHaveProperty("maxLength");
+      expect(errors[0].constraints).toHaveProperty("maxLength");
     });
 
     it("should reject non-string name", async () => {
@@ -203,7 +203,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("name");
-      expect(errors[0].const_raints).toHaveProperty("isString");
+      expect(errors[0].constraints).toHaveProperty("isString");
     });
 
     it("should reject invalid permissions", async () => {
@@ -217,7 +217,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("permissions");
-      expect(errors[0].const_raints).toHaveProperty("isEnum");
+      expect(errors[0].constraints).toHaveProperty("isEnum");
     });
 
     it("should reject non-array permissions", async () => {
@@ -231,7 +231,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("permissions");
-      expect(errors[0].const_raints).toHaveProperty("isArray");
+      expect(errors[0].constraints).toHaveProperty("isArray");
     });
 
     it("should validate all valid permissions", async () => {
@@ -278,7 +278,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("rateLimit");
-      expect(errors[0]._children).toHaveLength(2); // Both requests and window are invalid
+      expect(errors[0].children).toHaveLength(2); // Both requests and window are invalid
     });
 
     it("should validate date transformation for expiresAt", async () => {
@@ -307,7 +307,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("expiresAt");
-      expect(errors[0].const_raints).toHaveProperty("isDate");
+      expect(errors[0].constraints).toHaveProperty("isDate");
     });
   });
 
@@ -362,7 +362,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("name");
-      expect(errors[0].const_raints).toHaveProperty("maxLength");
+      expect(errors[0].constraints).toHaveProperty("maxLength");
     });
 
     it("should reject invalid description length", async () => {
@@ -375,7 +375,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("description");
-      expect(errors[0].const_raints).toHaveProperty("maxLength");
+      expect(errors[0].constraints).toHaveProperty("maxLength");
     });
 
     it("should reject invalid permissions in array", async () => {
@@ -388,7 +388,7 @@ describe("API Key DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("permissions");
-      expect(errors[0].const_raints).toHaveProperty("isEnum");
+      expect(errors[0].constraints).toHaveProperty("isEnum");
     });
 
     it("should validate partial updates", async () => {

@@ -172,7 +172,7 @@ describe("RateLimitService", () => {
       // Act
       const result = await service.checkRateLimit(
         mockApiKey as any,
-        RateLimitStrategy.FIXEDWINDOW,
+        RateLimitStrategy.FIXED_WINDOW,
       );
 
       // Assert

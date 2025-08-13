@@ -6,11 +6,11 @@ import { SecurityAuditService } from "../../../../../src/security/services/secur
 import { SecurityAuditLogRepository } from "../../../../../src/security/repositories/security-audit-log.repository";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 import {  
-  SECURITYAUDIT_CONFIG,
+  SECURITY_AUDIT_CONFIG,
   SECURITY_AUDIT_OPERATIONS,
   SECURITY_AUDIT_MESSAGES,
   SECURITY_AUDIT_RECOMMENDATIONS,
-  SECURITY_AUDITEVENT_SOURCES,
+  SECURITY_AUDIT_EVENT_SOURCES,
   SECURITY_AUDIT_EVENT_SEVERITIES,
   SECURITY_AUDIT_RECOMMENDATION_THRESHOLDS,
 } from "../../../../../src/security/constants/security-audit.constants";
@@ -120,9 +120,9 @@ describe("SecurityAuditService", () => {
       });
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        SECURITY_AUDIT_MESSAGES.EVENTLOGGED,
+        SECURITY_AUDIT_MESSAGES.EVENT_LOGGED,
         expect.objectContaining({
-          operation: SECURITY_AUDIT_OPERATIONS.LOG_SECURITYEVENT,
+          operation: SECURITY_AUDIT_OPERATIONS.LOG_SECURITY_EVENT,
         }),
       );
     });
@@ -131,26 +131,26 @@ describe("SecurityAuditService", () => {
       expect(SECURITY_AUDIT_OPERATIONS.LOG_SECURITY_EVENT).toBe(
         "logSecurityEvent",
       );
-      expect(SECURITY_AUDIT_OPERATIONS.GENERATE_AUDITREPORT).toBe(
+      expect(SECURITY_AUDIT_OPERATIONS.GENERATE_AUDIT_REPORT).toBe(
         "generateAuditReport",
       );
-      expect(SECURITY_AUDIT_OPERATIONS.FLUSH_AUDITLOGS).toBe("flushAuditLogs");
+      expect(SECURITY_AUDIT_OPERATIONS.FLUSH_AUDIT_LOGS).toBe("flushAuditLogs");
     });
 
     it("should use message constants for logging", () => {
       expect(SECURITY_AUDIT_MESSAGES.EVENT_LOGGED).toBe(
         "安全事件已记录到缓冲区",
       );
-      expect(SECURITY_AUDIT_MESSAGES.AUDIT_REPORTGENERATED).toBe(
+      expect(SECURITY_AUDIT_MESSAGES.AUDIT_REPORT_GENERATED).toBe(
         "审计报告生成成功",
       );
-      expect(SECURITY_AUDIT_MESSAGES.SUSPICIOUS_IPCLEARED).toBe(
+      expect(SECURITY_AUDIT_MESSAGES.SUSPICIOUS_IP_CLEARED).toBe(
         "清除可疑IP标记",
       );
     });
 
     it("should use event source constants", () => {
-      expect(SECURITY_AUDIT_EVENT_SOURCES.AUTHSERVICE).toBe("AuthService");
+      expect(SECURITY_AUDIT_EVENT_SOURCES.AUTH_SERVICE).toBe("AuthService");
       expect(SECURITY_AUDIT_EVENT_SOURCES.AUTHORIZATION_SERVICE).toBe(
         "AuthorizationService",
       );
@@ -191,8 +191,8 @@ describe("SecurityAuditService", () => {
 
       expect(logSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          severity: SECURITY_AUDIT_EVENT_SEVERITIES._MEDIUM,
-          source: SECURITY_AUDIT_EVENT_SOURCES.AUTHSERVICE,
+          severity: SECURITY_AUDIT_EVENT_SEVERITIES.MEDIUM,
+          source: SECURITY_AUDIT_EVENT_SOURCES.AUTH_SERVICE,
         }),
       );
     });
@@ -234,7 +234,7 @@ describe("SecurityAuditService", () => {
       expect(logSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'data_access',
-          severity: SECURITY_AUDIT_EVENT_SEVERITIES._INFO,
+          severity: SECURITY_AUDIT_EVENT_SEVERITIES.INFO,
           source: SECURITY_AUDIT_EVENT_SOURCES.DATA_ACCESS_SERVICE,
           outcome: 'success',
           details: expect.objectContaining({
@@ -285,7 +285,7 @@ describe("SecurityAuditService", () => {
         expect.objectContaining({
           type: 'suspicious_activity',
           severity: 'high',
-          source: SECURITY_AUDIT_EVENT_SOURCES.SECURITYMIDDLEWARE,
+          source: SECURITY_AUDIT_EVENT_SOURCES.SECURITY_MIDDLEWARE,
           outcome: 'blocked'
         })
       );
@@ -371,8 +371,8 @@ describe("SecurityAuditService", () => {
 
       expect(auditLogRepository.findWithFilters).toHaveBeenCalledWith(
         {},
-        SECURITY_AUDIT_CONFIG.DEFAULT_QUERYLIMIT,
-        SECURITY_AUDIT_CONFIG.DEFAULT_QUERYOFFSET
+        SECURITY_AUDIT_CONFIG.DEFAULT_QUERY_LIMIT,
+        SECURITY_AUDIT_CONFIG.DEFAULT_QUERY_OFFSET
       );
       expect(result).toEqual(mockLogs);
     });
@@ -404,9 +404,9 @@ describe("SecurityAuditService", () => {
 
       await expect(service.getAuditLogs()).rejects.toThrow(error);
       expect(errorSpy).toHaveBeenCalledWith(
-        SECURITY_AUDIT_MESSAGES.GET_AUDIT_LOGSFAILED,
+        SECURITY_AUDIT_MESSAGES.GET_AUDIT_LOGS_FAILED,
         expect.objectContaining({
-          operation: SECURITY_AUDIT_OPERATIONS.GET_AUDITLOGS,
+          operation: SECURITY_AUDIT_OPERATIONS.GET_AUDIT_LOGS,
           error: error.message
         })
       );
@@ -440,7 +440,7 @@ describe("SecurityAuditService", () => {
 
       expect(auditLogRepository.findWithFilters).toHaveBeenCalledWith(
         { startDate, endDate },
-        SECURITY_AUDIT_CONFIG.REPORT_MAXEVENTS,
+        SECURITY_AUDIT_CONFIG.REPORT_MAX_EVENTS,
         0,
       );
     });
@@ -481,10 +481,10 @@ describe("SecurityAuditService", () => {
       const report = await service.generateAuditReport(startDate, endDate);
 
       expect(report.recommendations).toContain(
-        SECURITY_AUDIT_RECOMMENDATIONS.STRICT_ACCOUNTLOCKOUT,
+        SECURITY_AUDIT_RECOMMENDATIONS.STRICT_ACCOUNT_LOCKOUT,
       );
       expect(report.recommendations).toContain(
-        SECURITY_AUDIT_RECOMMENDATIONS.ENABLEMFA,
+        SECURITY_AUDIT_RECOMMENDATIONS.ENABLE_MFA,
       );
     });
 
@@ -546,7 +546,7 @@ describe("SecurityAuditService", () => {
       
       const report = await service.generateAuditReport(startDate, endDate);
       
-      expect(report._period).toEqual({ start: startDate, end: endDate });
+      expect(report.period).toEqual({ start: startDate, end: endDate });
       expect(report.summary.totalEvents).toBe(3);
       expect(report.summary.criticalEvents).toBe(1);
       expect(report.summary.failedAuthentications).toBe(1);
@@ -554,7 +554,7 @@ describe("SecurityAuditService", () => {
       expect(report.summary.dataAccessEvents).toBe(1);
       expect(report.summary.uniqueIPs).toBe(3);
       expect(report.summary.uniqueUsers).toBe(2);
-      expect(report._topRisks).toHaveLength(2); // critical and high severity events
+      expect(report.topRisks).toHaveLength(2); // critical and high severity events
       expect(report.recommendations).toBeInstanceOf(Array);
     });
 
@@ -571,7 +571,7 @@ describe("SecurityAuditService", () => {
         
       expect(errorSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          operation: SECURITY_AUDIT_OPERATIONS.GENERATE_AUDITREPORT,
+          operation: SECURITY_AUDIT_OPERATIONS.GENERATE_AUDIT_REPORT,
           error: error.stack
         }),
         SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED
@@ -623,7 +623,7 @@ describe("SecurityAuditService", () => {
       expect(errorSpy).toHaveBeenCalledWith(
         SECURITY_AUDIT_MESSAGES.IP_ANALYSIS_UPDATE_FAILED,
         expect.objectContaining({
-          operation: SECURITY_AUDIT_OPERATIONS.UPDATE_IPANALYSIS,
+          operation: SECURITY_AUDIT_OPERATIONS.UPDATE_IP_ANALYSIS,
         }),
       );
     });
@@ -655,7 +655,7 @@ describe("SecurityAuditService", () => {
       await (service as any).updateIPAnalysis(event);
 
       expect(warnSpy).toHaveBeenCalledWith(
-        SECURITY_AUDIT_MESSAGES.SUSPICIOUS_IPDETECTED,
+        SECURITY_AUDIT_MESSAGES.SUSPICIOUS_IP_DETECTED,
         expect.objectContaining({
           operation: SECURITY_AUDIT_OPERATIONS.UPDATE_IP_ANALYSIS,
           ip: "127.0.0.1",
@@ -701,7 +701,7 @@ describe("SecurityAuditService", () => {
       expect(auditLogRepository.findWithFilters).toHaveBeenCalledWith(
         {},
         SECURITY_AUDIT_CONFIG.DEFAULT_QUERY_LIMIT,
-        SECURITY_AUDIT_CONFIG.DEFAULT_QUERYOFFSET,
+        SECURITY_AUDIT_CONFIG.DEFAULT_QUERY_OFFSET,
       );
     });
 
@@ -810,7 +810,7 @@ describe("SecurityAuditService", () => {
           '192.168.1.1'
         );
         expect(logSpy).toHaveBeenCalledWith(
-          SECURITY_AUDIT_MESSAGES.SUSPICIOUS_IPCLEARED,
+          SECURITY_AUDIT_MESSAGES.SUSPICIOUS_IP_CLEARED,
           { ip: '192.168.1.1' }
         );
       });
@@ -932,7 +932,7 @@ describe("SecurityAuditService", () => {
         await service.flushAuditLogs();
 
         expect(logSpy).toHaveBeenCalledWith(
-          SECURITY_AUDIT_MESSAGES.EVENT_BUFFEREMPTY,
+          SECURITY_AUDIT_MESSAGES.EVENT_BUFFER_EMPTY,
           expect.objectContaining({
             operation: SECURITY_AUDIT_OPERATIONS.FLUSH_AUDIT_LOGS
           })
@@ -963,7 +963,7 @@ describe("SecurityAuditService", () => {
         await service.cleanupOldData();
 
         expect(logSpy).toHaveBeenCalledWith(
-          SECURITY_AUDIT_MESSAGES.CLEANUP_AUTOHANDLED,
+          SECURITY_AUDIT_MESSAGES.CLEANUP_AUTO_HANDLED,
           expect.objectContaining({
             operation: SECURITY_AUDIT_OPERATIONS.CLEANUP_OLD_DATA
           })
@@ -1048,7 +1048,7 @@ describe("SecurityAuditService", () => {
         expect(errorSpy).toHaveBeenCalledWith(
           SECURITY_AUDIT_MESSAGES.RISK_SCORE_CALCULATION_FAILED,
           expect.objectContaining({
-            operation: SECURITY_AUDIT_OPERATIONS.CALCULATE_RISKSCORE,
+            operation: SECURITY_AUDIT_OPERATIONS.CALCULATE_RISK_SCORE,
             eventId: event.id
           })
         );
@@ -1096,7 +1096,7 @@ describe("SecurityAuditService", () => {
 
         const tags = await (service as any).generateTags(event);
 
-        expect(tags).toContain(TAG_GENERATION_RULES.conditions._isSuspiciousIp);
+        expect(tags).toContain(TAG_GENERATION_RULES.conditions.isSuspiciousIp);
       });
 
       it('should handle tag generation errors', async () => {
@@ -1122,7 +1122,7 @@ describe("SecurityAuditService", () => {
         expect(errorSpy).toHaveBeenCalledWith(
           SECURITY_AUDIT_MESSAGES.TAGS_GENERATION_FAILED,
           expect.objectContaining({
-            operation: SECURITY_AUDIT_OPERATIONS.GENERATETAGS,
+            operation: SECURITY_AUDIT_OPERATIONS.GENERATE_TAGS,
             eventId: event.id
           })
         );
@@ -1146,8 +1146,8 @@ describe("SecurityAuditService", () => {
 
       expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.STRICT_ACCOUNT_LOCKOUT);
       expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.ENABLE_MFA);
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_PASSWORDPOLICY);
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENTCAPTCHA);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_PASSWORD_POLICY);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_CAPTCHA);
     });
 
     it('should generate recommendations based on suspicious activities', () => {
@@ -1163,10 +1163,10 @@ describe("SecurityAuditService", () => {
 
       const recommendations = (service as any).generateSecurityRecommendations(summary);
 
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_IPBLACKLIST);
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.USE_WAF_DDOSPROTECTION);
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_RATELIMITING);
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_NETWORKMONITORING);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.STRENGTHEN_IP_BLACKLIST);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.USE_WAF_DDOS_PROTECTION);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.IMPLEMENT_RATE_LIMITING);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.ENHANCE_NETWORK_MONITORING);
     });
 
     it('should include universal recommendations', () => {
@@ -1182,7 +1182,7 @@ describe("SecurityAuditService", () => {
 
       const recommendations = (service as any).generateSecurityRecommendations(summary);
 
-      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.UPDATE_SECURITYPATCHES);
+      expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.UPDATE_SECURITY_PATCHES);
       expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.CONDUCT_SECURITY_AUDIT);
       expect(recommendations).toContain(SECURITY_AUDIT_RECOMMENDATIONS.BACKUP_SECURITY_LOGS);
     });
@@ -1252,7 +1252,7 @@ describe("SecurityAuditService", () => {
         event.clientIP
       );
       expect(errorSpy).toHaveBeenCalledWith(
-        SECURITY_AUDIT_MESSAGES.HIGH_SEVERITY_EVENT_AUTOBLOCK,
+        SECURITY_AUDIT_MESSAGES.HIGH_SEVERITY_EVENT_AUTO_BLOCK,
         expect.objectContaining({
           eventId: event.id,
           clientIP: event.clientIP

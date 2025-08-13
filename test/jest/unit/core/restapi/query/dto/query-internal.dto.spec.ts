@@ -70,7 +70,7 @@ describe('Query Internal DTOs', () => {
 
         // Assert
         expect(errors.length).toBe(3);
-        expect(errors.some(e => e._property === 'count')).toBe(true);
+        expect(errors.some(e => e.property === 'count')).toBe(true);
         expect(errors.some(e => e.property === 'totalTime')).toBe(true);
         expect(errors.some(e => e.property === 'errors')).toBe(true);
       });
@@ -120,7 +120,7 @@ describe('Query Internal DTOs', () => {
           realtime: { hits: 1, misses: 0 },
         };
         dto.errors = [];
-        dto._pagination = {
+        dto.pagination = {
           page: 1,
           limit: 10,
           total: 1,
@@ -258,7 +258,7 @@ describe('Query Internal DTOs', () => {
       it('should create instance with stock data', () => {
         // Arrange
         dto.data = { symbol: '00700.HK', price: 425.6, volume: 1000000 };
-        dto.source = DataSourceType._CACHE;
+        dto.source = DataSourceType.CACHE;
         dto.timestamp = '2023-06-01T10:00:00Z';
         dto.ttlRemaining = 300;
 
@@ -595,7 +595,7 @@ describe('Query Internal DTOs', () => {
       it('should create instance with all parameters', () => {
         // Arrange
         dto.symbol = '00700.HK';
-        dto._provider = 'longport';
+        dto.provider = 'longport';
         dto.queryTypeFilter = 'get-stock-quote';
         dto.market = 'HK';
 
@@ -653,7 +653,7 @@ describe('Query Internal DTOs', () => {
     describe('Valid Data', () => {
       it('should create instance with parallel execution', () => {
         // Arrange
-        dto._parallel = true;
+        dto.parallel = true;
         dto.continueOnError = true;
         dto.maxConcurrency = 10;
         dto.timeout = 5000;
@@ -730,10 +730,10 @@ describe('Query Internal DTOs', () => {
       it('should create instance with complete log context', () => {
         // Arrange
         dto.queryId = 'query-123';
-        dto._queryType = 'bysymbols';
+        dto.queryType = 'bysymbols';
         dto.operation = 'executeQuery';
         dto.executionTime = 150;
-        dto._symbols = ['00700.HK', 'AAPL.US'];
+        dto.symbols = ['00700.HK', 'AAPL.US'];
         dto.error = null;
 
         // Assert

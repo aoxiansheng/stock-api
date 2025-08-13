@@ -25,7 +25,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: ["AAPL", "700.HK"],
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -42,7 +42,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: [],
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -59,7 +59,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: undefined,
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -76,7 +76,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: null,
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -93,7 +93,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: "not-an-array",
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -111,7 +111,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: validSymbols,
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -139,7 +139,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
             object: { queryType } as QueryRequestDto,
             property: "symbols",
             value: [],
-            const_raints: [],
+            constraints: [],
             targetName: "QueryRequestDto",
           };
 
@@ -156,7 +156,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
             object: { queryType } as QueryRequestDto,
             property: "symbols",
             value: undefined,
-            const_raints: [],
+            constraints: [],
             targetName: "QueryRequestDto",
           };
 
@@ -174,7 +174,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
             object: { queryType } as QueryRequestDto,
             property: "symbols",
             value: symbols,
-            const_raints: [],
+            constraints: [],
             targetName: "QueryRequestDto",
           };
 
@@ -194,7 +194,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: {} as QueryRequestDto, // 没有queryType
           property: "symbols",
           value: ["AAPL"],
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -211,7 +211,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: null as any,
           property: "symbols",
           value: ["AAPL"],
-          const_raints: [],
+          constraints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -228,7 +228,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
         property: "symbols",
         value: [],
-        const_raints: [],
+        constraints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -247,7 +247,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: { queryType: QueryType.BY_MARKET } as QueryRequestDto,
         property: "symbols",
         value: [],
-        const_raints: [],
+        constraints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -264,7 +264,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: {} as QueryRequestDto,
         property: "symbols",
         value: [],
-        const_raints: [],
+        constraints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -281,7 +281,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: null as any,
         property: "symbols",
         value: [],
-        const_raints: [],
+        constraints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -297,7 +297,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: { queryType: undefined as any } as QueryRequestDto,
         property: "symbols",
         value: [],
-        const_raints: [],
+        constraints: [],
         targetName: "QueryRequestDto",
       };
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { LogSender } from '../../../../../../src/alert/services/notification-senders/log.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
 
 // Mock the createLogger function
 const mockLogger = {
@@ -78,7 +78,7 @@ describe('LogSender', () => {
       const result = await sender.send(mockAlert, mockRule, config);
 
       expect(result.success).toBe(true);
-      expect(result._channelType).toEqual(NotificationChannelType.LOG);
+      expect(result.channelType).toEqual(NotificationChannelType.LOG);
       expect(result.message).toEqual('日志记录成功');
       expect(mockLogger.log).toHaveBeenCalledTimes(1);
       expect(mockLogger.error).not.toHaveBeenCalled();

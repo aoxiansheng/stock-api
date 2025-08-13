@@ -147,13 +147,13 @@ describe('PermissionValidationService', () => {
     await service.validatePermissions();
 
     const stats = service.getValidationStats();
-    expect(stats._totalControllers).toBe(2);
+    expect(stats.totalControllers).toBe(2);
     expect(stats.totalRoutes).toBe(6);
-    expect(stats._totalViolations).toBe(1);
-    expect(stats._validControllers).toBe(1);
-    expect(stats._violationRate).toBeCloseTo(1 / 6 * 100);
-    expect(stats._complianceRate).toBeCloseTo(1 / 2 * 100);
-    expect(stats._lastValidation).toBeDefined();
+    expect(stats.totalViolations).toBe(1);
+    expect(stats.validControllers).toBe(1);
+    expect(stats.violationRate).toBeCloseTo(1 / 6 * 100);
+    expect(stats.complianceRate).toBeCloseTo(1 / 2 * 100);
+    expect(stats.lastValidation).toBeDefined();
   });
 
   // 测试 hasHighSeverityViolations 方法

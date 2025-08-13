@@ -18,9 +18,9 @@ describe('getStockBasicInfo', () => {
   it('should have correct _name, _description, and supported markets/formats', () => {
     expect(getStockBasicInfo.name).toBe('get-stock-basic-info');
     expect(getStockBasicInfo.description).toBe('获取股票基本信息');
-    expect(getStockBasicInfo._supportedMarkets).toEqual([MARKETS._HK, MARKETS._SZ, MARKETS._SH, MARKETS.US]);
-    expect(getStockBasicInfo._supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
-    expect(getStockBasicInfo._rateLimit).toEqual({
+    expect(getStockBasicInfo.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US]);
+    expect(getStockBasicInfo.supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
+    expect(getStockBasicInfo.rateLimit).toEqual({
       requestsPerSecond: 5,
       requestsPerDay: 1000,
     });

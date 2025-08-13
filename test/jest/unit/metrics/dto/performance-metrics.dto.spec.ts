@@ -17,14 +17,14 @@ describe('PerformanceMetricsDto', () => {
       totalRequests: 1000,
       averageResponseTime: 120,
       errorRate: 0.01,
-      _systemLoad: 0.75,
+      systemLoad: 0.75,
       memoryUsage: 1024000000,
       cacheHitRate: 0.85,
     };
     dto.endpoints = [];
     dto.database = {};
     dto.redis = {};
-    dto._system = {};
+    dto.system = {};
 
     expect(dto.timestamp).toBeDefined();
     expect(dto.healthScore).toBeDefined();

@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  TRANSFORMERRORMESSAGES,
-  TRANSFORMWARNING_MESSAGES,
-  TRANSFORMCONFIG,
-  TRANSFORM_PERFORMANCETHRESHOLDS,
-  TRANSFORMMETRICS,
-  TRANSFORMSTATUS,
-  TRANSFORMEVENTS,
-  TRANSFORMDEFAULTS,
-  FIELD_VALIDATIONRULES,
+  TRANSFORM_ERROR_MESSAGES,
+  TRANSFORM_WARNING_MESSAGES,
+  TRANSFORM_CONFIG,
+  TRANSFORM_PERFORMANCE_THRESHOLDS,
+  TRANSFORM_METRICS,
+  TRANSFORM_STATUS,
+  TRANSFORM_EVENTS,
+  TRANSFORM_DEFAULTS,
+  FIELD_VALIDATION_RULES,
 } from "../../../../../../../src/core/public/transformer/constants/transformer.constants";
 
 describe("Transformer Constants", () => {
@@ -17,19 +17,19 @@ describe("Transformer Constants", () => {
       expect(TRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE).toBe(
         "未找到匹配的映射规则",
       );
-      expect(TRANSFORM_ERROR_MESSAGES._TRANSFORMATIONFAILED).toBe(
+      expect(TRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED).toBe(
         "数据转换失败",
       );
       expect(TRANSFORM_ERROR_MESSAGES.VALIDATION_FAILED).toBe(
         "转换后数据验证失败",
       );
-      expect(TRANSFORM_ERROR_MESSAGES.INVALID_RAWDATA).toBe(
+      expect(TRANSFORM_ERROR_MESSAGES.INVALID_RAW_DATA).toBe(
         "原始数据格式无效",
       );
-      expect(TRANSFORM_ERROR_MESSAGES.MISSINGREQUIREDFIELDS).toBe(
+      expect(TRANSFORM_ERROR_MESSAGES.MISSING_REQUIRED_FIELDS).toBe(
         "缺少必需字段",
       );
-      expect(TRANSFORM_ERROR_MESSAGES.RULE_NOTFOUND).toBe(
+      expect(TRANSFORM_ERROR_MESSAGES.RULE_NOT_FOUND).toBe(
         "指定的映射规则不存在",
       );
       expect(TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED).toBe(
@@ -58,13 +58,13 @@ describe("Transformer Constants", () => {
 
   describe("TRANSFORM_WARNING_MESSAGES", () => {
     it("should define all warning messages", () => {
-      expect(TRANSFORM_WARNING_MESSAGES.EMPTYTRANSFORMED_DATA).toBe(
+      expect(TRANSFORM_WARNING_MESSAGES.EMPTY_TRANSFORMED_DATA).toBe(
         "转换后数据为空",
       );
       expect(TRANSFORM_WARNING_MESSAGES.MISSING_EXPECTED_FIELDS).toBe(
         "转换后数据缺少预期字段",
       );
-      expect(TRANSFORM_WARNING_MESSAGES.NULL_FIELDVALUES).toBe(
+      expect(TRANSFORM_WARNING_MESSAGES.NULL_FIELD_VALUES).toBe(
         "字段值为空或未定义",
       );
       expect(TRANSFORM_WARNING_MESSAGES.PARTIAL_TRANSFORMATION).toBe(
@@ -85,13 +85,13 @@ describe("Transformer Constants", () => {
 
   describe("TRANSFORM_CONFIG", () => {
     it("should define all configuration values", () => {
-      expect(TRANSFORM_CONFIG.MAX_BATCHSIZE).toBe(1000);
-      expect(TRANSFORM_CONFIG.MAX_FIELDMAPPINGS).toBe(100);
+      expect(TRANSFORM_CONFIG.MAX_BATCH_SIZE).toBe(1000);
+      expect(TRANSFORM_CONFIG.MAX_FIELD_MAPPINGS).toBe(100);
       expect(TRANSFORM_CONFIG.MAX_SAMPLE_SIZE).toBe(10);
-      expect(TRANSFORM_CONFIG.DEFAULTTIMEOUTMS).toBe(30000);
-      expect(TRANSFORM_CONFIG.MAX_NESTEDDEPTH).toBe(10);
-      expect(TRANSFORM_CONFIG.MAXSTRING_length).toBe(10000);
-      expect(TRANSFORM_CONFIG.MAXARRAY_LENGTH).toBe(10000);
+      expect(TRANSFORM_CONFIG.DEFAULT_TIMEOUT_MS).toBe(30000);
+      expect(TRANSFORM_CONFIG.MAX_NESTED_DEPTH).toBe(10);
+      expect(TRANSFORM_CONFIG.MAX_STRING_LENGTH).toBe(10000);
+      expect(TRANSFORM_CONFIG.MAX_ARRAY_LENGTH).toBe(10000);
     });
 
     it("should have reasonable configuration values", () => {
@@ -113,21 +113,21 @@ describe("Transformer Constants", () => {
         5000,
       );
       expect(TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE).toBe(1000);
-      expect(TRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGEMB).toBe(200); // 更新为统一常量系统中的值
-      expect(TRANSFORM_PERFORMANCE_THRESHOLDS.MAXPROCESSING_TIME_MS).toBe(
+      expect(TRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(200); // 更新为统一常量系统中的值
+      expect(TRANSFORM_PERFORMANCE_THRESHOLDS.MAX_PROCESSING_TIME_MS).toBe(
         60000,
       );
     });
 
     it("should have reasonable threshold values", () => {
       expect(
-        TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATIONMS,
+        TRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS,
       ).toBeGreaterThan(0);
       expect(
-        TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASETSIZE,
+        TRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE,
       ).toBeGreaterThan(0);
       expect(
-        TRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGEMB,
+        TRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB,
       ).toBeGreaterThan(0);
       expect(
         TRANSFORM_PERFORMANCE_THRESHOLDS.MAX_PROCESSING_TIME_MS,
@@ -143,13 +143,13 @@ describe("Transformer Constants", () => {
 
   describe("TRANSFORM_METRICS", () => {
     it("should define all metric names", () => {
-      expect(TRANSFORM_METRICS.RECORDSPROCESSED).toBe("records_processed");
+      expect(TRANSFORM_METRICS.RECORDS_PROCESSED).toBe("records_processed");
       expect(TRANSFORM_METRICS.FIELDS_TRANSFORMED).toBe("fields_transformed");
       expect(TRANSFORM_METRICS.PROCESSING_TIME_MS).toBe("processing_time_ms");
-      expect(TRANSFORM_METRICS.SUCCESSRATE).toBe("success_rate");
+      expect(TRANSFORM_METRICS.SUCCESS_RATE).toBe("success_rate");
       expect(TRANSFORM_METRICS.ERROR_RATE).toBe("error_rate");
       expect(TRANSFORM_METRICS.MEMORY_USAGE_MB).toBe("memory_usage_mb");
-      expect(TRANSFORM_METRICS.THROUGHPUT_PERSECOND).toBe(
+      expect(TRANSFORM_METRICS.THROUGHPUT_PER_SECOND).toBe(
         "throughput_per_second",
       );
     });
@@ -170,12 +170,12 @@ describe("Transformer Constants", () => {
 
   describe("TRANSFORM_STATUS", () => {
     it("should define all status values", () => {
-      expect(TRANSFORM_STATUS._PENDING).toBe("pending");
+      expect(TRANSFORM_STATUS.PENDING).toBe("pending");
       expect(TRANSFORM_STATUS.PROCESSING).toBe("processing");
       expect(TRANSFORM_STATUS.SUCCESS).toBe("success");
       expect(TRANSFORM_STATUS.FAILED).toBe("failed");
       expect(TRANSFORM_STATUS.PARTIAL_SUCCESS).toBe("partial_success");
-      expect(TRANSFORM_STATUS._CANCELLED).toBe("cancelled");
+      expect(TRANSFORM_STATUS.CANCELLED).toBe("cancelled");
       expect(TRANSFORM_STATUS.TIMEOUT).toBe("timeout");
     });
 
@@ -186,10 +186,10 @@ describe("Transformer Constants", () => {
 
   describe("TRANSFORM_EVENTS", () => {
     it("should define all event names", () => {
-      expect(TRANSFORM_EVENTS.TRANSFORMATIONSTARTED).toBe(
+      expect(TRANSFORM_EVENTS.TRANSFORMATION_STARTED).toBe(
         "transformation.started",
       );
-      expect(TRANSFORM_EVENTS.TRANSFORMATIONCOMPLETED).toBe(
+      expect(TRANSFORM_EVENTS.TRANSFORMATION_COMPLETED).toBe(
         "transformation.completed",
       );
       expect(TRANSFORM_EVENTS.TRANSFORMATION_FAILED).toBe(
@@ -201,7 +201,7 @@ describe("Transformer Constants", () => {
       expect(TRANSFORM_EVENTS.BATCH_TRANSFORMATION_COMPLETED).toBe(
         "batch.transformation.completed",
       );
-      expect(TRANSFORM_EVENTS.RULEAPPLIED).toBe("rule.applied");
+      expect(TRANSFORM_EVENTS.RULE_APPLIED).toBe("rule.applied");
       expect(TRANSFORM_EVENTS.VALIDATION_COMPLETED).toBe(
         "validation.completed",
       );
@@ -226,12 +226,12 @@ describe("Transformer Constants", () => {
     it("should define all default values", () => {
       expect(TRANSFORM_DEFAULTS.BATCH_SIZE).toBe(100);
       expect(TRANSFORM_DEFAULTS.TIMEOUT_MS).toBe(10000);
-      expect(TRANSFORM_DEFAULTS.RETRYATTEMPTS).toBe(3);
-      expect(TRANSFORM_DEFAULTS.VALI_DATEOUTPUT).toBe(true);
-      expect(TRANSFORM_DEFAULTS.INCLUDEMETADATA).toBe(false);
+      expect(TRANSFORM_DEFAULTS.RETRY_ATTEMPTS).toBe(3);
+      expect(TRANSFORM_DEFAULTS.VALIDATE_OUTPUT).toBe(true);
+      expect(TRANSFORM_DEFAULTS.INCLUDE_METADATA).toBe(false);
       expect(TRANSFORM_DEFAULTS.CONTINUE_ON_ERROR).toBe(false);
-      expect(TRANSFORM_DEFAULTS.ENABLECACHING).toBe(true);
-      expect(TRANSFORM_DEFAULTS.LOGLEVEL).toBe("info");
+      expect(TRANSFORM_DEFAULTS.ENABLE_CACHING).toBe(true);
+      expect(TRANSFORM_DEFAULTS.LOG_LEVEL).toBe("info");
     });
 
     it("should have reasonable default values", () => {
@@ -252,15 +252,15 @@ describe("Transformer Constants", () => {
   describe("FIELD_VALIDATION_RULES", () => {
     it("should define all validation rules", () => {
       expect(FIELD_VALIDATION_RULES.REQUIRED).toBe("required");
-      expect(FIELD_VALIDATION_RULES._OPTIONAL).toBe("optional");
-      expect(FIELD_VALIDATION_RULES._NUMERIC).toBe("numeric");
+      expect(FIELD_VALIDATION_RULES.OPTIONAL).toBe("optional");
+      expect(FIELD_VALIDATION_RULES.NUMERIC).toBe("numeric");
       expect(FIELD_VALIDATION_RULES.STRING).toBe("string");
-      expect(FIELD_VALIDATION_RULES._BOOLEAN).toBe("boolean");
+      expect(FIELD_VALIDATION_RULES.BOOLEAN).toBe("boolean");
       expect(FIELD_VALIDATION_RULES.DATE).toBe("date");
       expect(FIELD_VALIDATION_RULES.ARRAY).toBe("array");
-      expect(FIELD_VALIDATION_RULES._OBJECT).toBe("object");
-      expect(FIELD_VALIDATION_RULES._EMAIL).toBe("email");
-      expect(FIELD_VALIDATION_RULES._URL).toBe("url");
+      expect(FIELD_VALIDATION_RULES.OBJECT).toBe("object");
+      expect(FIELD_VALIDATION_RULES.EMAIL).toBe("email");
+      expect(FIELD_VALIDATION_RULES.URL).toBe("url");
     });
 
     it("should be frozen", () => {

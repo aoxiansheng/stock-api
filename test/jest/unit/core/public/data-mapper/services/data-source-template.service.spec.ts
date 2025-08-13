@@ -471,7 +471,7 @@ describe("DataSourceTemplateService", () => {
         sampleData: analysisData.sampleData,
         extractedFields: analysisData.extractedFields,
         dataStructureType: 'flat',
-        totalFields: analysisData.extractedFields._length,
+        totalFields: analysisData.extractedFields.length,
         confidence: analysisData.confidence,
         analysisTimestamp: new Date()
       } as any);

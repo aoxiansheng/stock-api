@@ -110,11 +110,11 @@ describe('StreamDataCacheService', () => {
 
   describe('数据设置和获取', () => {
     it('应该成功设置数据到缓存', async () => {
-      mockCacheService.set.mockResolvedValue(true);
+      mockCacheService._set.mockResolvedValue(true);
 
       await service.setData('quote:AAPL.US', mockRawData, 'hot');
 
-      expect(mockCacheService.set).toHaveBeenCalledWith(
+      expect(mockCacheService._set).toHaveBeenCalledWith(
         'streamcache:quote:AAPL.US',
         expect.any(String),
         { ttl: 300 }
@@ -163,7 +163,7 @@ describe('StreamDataCacheService', () => {
         timestamp: Date.now(),
       });
 
-      mockCacheService.set.mockResolvedValue(true);
+      mockCacheService._set.mockResolvedValue(true);
 
       // 小数据应该使用热缓存
       await service.setData('quote:small', smallData, 'auto');
@@ -171,11 +171,11 @@ describe('StreamDataCacheService', () => {
       // 大数据应该只使用温缓存
       await service.setData('quote:large', largeData, 'auto');
 
-      expect(mockCacheService.set).toHaveBeenCalledTimes(2);
+      expect(mockCacheService._set).toHaveBeenCalledTimes(2);
     });
 
     it('应该正确压缩原始数据', async () => {
-      mockCacheService.set.mockResolvedValue(true);
+      mockCacheService._set.mockResolvedValue(true);
 
       await service.setData('quote:test', mockRawData);
 
@@ -277,7 +277,7 @@ describe('StreamDataCacheService', () => {
     });
 
     it('应该优雅处理缓存设置失败', async () => {
-      mockCacheService.set.mockRejectedValue(new Error('Redis write failed'));
+      mockCacheService._set.mockRejectedValue(new Error('Redis write failed'));
 
       await expect(service.setData('quote:test', mockRawData)).resolves.not.toThrow();
 

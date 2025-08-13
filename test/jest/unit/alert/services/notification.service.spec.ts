@@ -17,7 +17,7 @@ import {
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
-  NOTIFICATIONTEMPLATE_VARIABLES,
+  NOTIFICATION_TEMPLATE_VARIABLES,
 } from "../../../../../src/alert/constants/notification.constants";
 
 // 从工具文件导入NotificationTemplateUtil
@@ -51,7 +51,7 @@ describe("NotificationService Optimization Features", () => {
       {
         id: "channel_2",
         name: "slack-channel",
-        type: NotificationChannelType._SLACK,
+        type: NotificationChannelType.SLACK,
         config: { webhookUrl: "http://slack.com" },
         enabled: true,
       },
@@ -139,31 +139,31 @@ describe("NotificationService Optimization Features", () => {
       expect(NOTIFICATION_OPERATIONS.SEND_NOTIFICATION).toBe(
         "sendNotification",
       );
-      expect(NOTIFICATION_OPERATIONS.SEND_BATCHNOTIFICATIONS).toBe(
+      expect(NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS).toBe(
         "sendBatchNotifications",
       );
-      expect(NOTIFICATION_OPERATIONS.TESTCHANNEL).toBe("testChannel");
+      expect(NOTIFICATION_OPERATIONS.TEST_CHANNEL).toBe("testChannel");
       expect(NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE).toBe(
         "generateTemplate",
       );
     });
 
     it("should use message constants for logging", () => {
-      expect(NOTIFICATION_MESSAGES.NOTIFICATIONSENT).toBe("通知发送成功");
-      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONSCOMPLETED).toBe(
+      expect(NOTIFICATION_MESSAGES.NOTIFICATION_SENT).toBe("通知发送成功");
+      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONS_COMPLETED).toBe(
         "批量通知发送完成",
       );
-      expect(NOTIFICATION_MESSAGES.CHANNEL_TESTPASSED).toBe(
+      expect(NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED).toBe(
         "通知渠道测试通过",
       );
-      expect(NOTIFICATION_MESSAGES.TEMPLATEGENERATED).toBe("通知模板生成成功");
+      expect(NOTIFICATION_MESSAGES.TEMPLATE_GENERATED).toBe("通知模板生成成功");
     });
 
     it("should use template variable constants", () => {
-      expect(NOTIFICATION_TEMPLATE_VARIABLES.ALERTID).toBe("alertId");
-      expect(NOTIFICATION_TEMPLATE_VARIABLES.RULENAME).toBe("ruleName");
-      expect(NOTIFICATION_TEMPLATE_VARIABLES._METRIC).toBe("metric");
-      expect(NOTIFICATION_TEMPLATE_VARIABLES._SEVERITY).toBe("severity");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID).toBe("alertId");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME).toBe("ruleName");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.METRIC).toBe("metric");
+      expect(NOTIFICATION_TEMPLATE_VARIABLES.SEVERITY).toBe("severity");
     });
   });
 
@@ -203,9 +203,9 @@ describe("NotificationService Optimization Features", () => {
       await service.sendNotification(mockAlert, mockRule, mockChannelConfig);
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSINGSTARTED,
+        NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED,
         expect.objectContaining({
-          operation: NOTIFICATION_OPERATIONS.SENDNOTIFICATION,
+          operation: NOTIFICATION_OPERATIONS.SEND_NOTIFICATION,
           channelType: NotificationChannelType.EMAIL,
           alertId: "alert_123",
           ruleId: "rule_123",
@@ -277,7 +277,7 @@ describe("NotificationService Optimization Features", () => {
       await service.sendNotification(mockAlert, mockRule, mockChannelConfig);
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        NOTIFICATION_MESSAGES.NOTIFICATIONSENT,
+        NOTIFICATION_MESSAGES.NOTIFICATION_SENT,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.SEND_NOTIFICATION,
           channelType: NotificationChannelType.EMAIL,
@@ -345,7 +345,7 @@ describe("NotificationService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         NOTIFICATION_MESSAGES.BATCH_PROCESSING_STARTED,
         expect.objectContaining({
-          operation: NOTIFICATION_OPERATIONS.SEND_BATCHNOTIFICATIONS,
+          operation: NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS,
           alertId: "alert_123",
           ruleId: "rule_123",
           channelCount: 2,
@@ -418,13 +418,13 @@ describe("NotificationService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         NOTIFICATION_MESSAGES.CHANNEL_TEST_STARTED,
         expect.objectContaining({
-          operation: NOTIFICATION_OPERATIONS.TESTCHANNEL,
+          operation: NOTIFICATION_OPERATIONS.TEST_CHANNEL,
           channelType: NotificationChannelType.EMAIL,
         }),
       );
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        NOTIFICATION_MESSAGES.CHANNEL_TESTPASSED,
+        NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.TEST_CHANNEL,
           channelType: NotificationChannelType.EMAIL,
@@ -466,14 +466,14 @@ describe("NotificationService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         NOTIFICATION_MESSAGES.TEMPLATE_GENERATION_STARTED,
         expect.objectContaining({
-          operation: NOTIFICATION_OPERATIONS.GENERATETEMPLATE,
+          operation: NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE,
           alertId: "alert_123",
           ruleId: "rule_123",
         }),
       );
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        NOTIFICATION_MESSAGES.TEMPLATEGENERATED,
+        NOTIFICATION_MESSAGES.TEMPLATE_GENERATED,
         expect.objectContaining({
           operation: NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE,
           alertId: "alert_123",
@@ -484,12 +484,12 @@ describe("NotificationService Optimization Features", () => {
       expect(template).toHaveProperty("subject");
       expect(template).toHaveProperty("body");
       expect(template).toHaveProperty("variables");
-      expect(template.var_iables).toHaveProperty(
-        NOTIFICATION_TEMPLATE_VARIABLES.ALERTID,
+      expect(template.variables).toHaveProperty(
+        NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID,
         "alert_123",
       );
-      expect(template.var_iables).toHaveProperty(
-        NOTIFICATION_TEMPLATE_VARIABLES.RULENAME,
+      expect(template.variables).toHaveProperty(
+        NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME,
         "CPU Alert Rule",
       );
     });
@@ -518,7 +518,7 @@ describe("NotificationService Optimization Features", () => {
 
       const result = NotificationTemplateUtil.formatTemplate(
         template,
-        var_iables,
+        variables,
       );
       expect(result).toBe("Alert alert_123 for rule Test Rule has value 85");
     });

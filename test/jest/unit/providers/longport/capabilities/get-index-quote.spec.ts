@@ -18,9 +18,9 @@ describe('getIndexQuote', () => {
   it('should have correct _name, _description, and supported markets/formats', () => {
     expect(getIndexQuote.name).toBe('get-index-quote');
     expect(getIndexQuote.description).toBe('获取指数实时报价数据');
-    expect(getIndexQuote._supportedMarkets).toEqual([MARKETS._HK, MARKETS._SZ, MARKETS.SH]);
-    expect(getIndexQuote._supportedSymbolFormats).toEqual(['HSI.HI', '000001.SH', '399001.SZ']);
-    expect(getIndexQuote._rateLimit).toEqual({
+    expect(getIndexQuote.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH]);
+    expect(getIndexQuote.supportedSymbolFormats).toEqual(['HSI.HI', '000001.SH', '399001.SZ']);
+    expect(getIndexQuote.rateLimit).toEqual({
       requestsPerSecond: 10,
       requestsPerDay: 5000,
     });

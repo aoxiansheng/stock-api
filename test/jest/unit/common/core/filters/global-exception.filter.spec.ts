@@ -120,7 +120,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     it('should handle ForbiddenException', () => {
-      const exception = new HttpException('Forbidden', HttpStatus._FORBIDDEN);
+      const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -604,7 +604,7 @@ describe('GlobalExceptionFilter', () => {
 
   describe('Path Sanitization', () => {
     it('should sanitize XSS attempts in path', () => {
-      mockRequest._url = '/api/test?_param=<script>alert("xss")</script>';
+      mockRequest.url = '/api/test?_param=<script>alert("xss")</script>';
       const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);

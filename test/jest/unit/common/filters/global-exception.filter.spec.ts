@@ -331,7 +331,7 @@ describe("GlobalExceptionFilter", () => {
           message: "Too Many Requests",
           error: "Rate Limit Exceeded",
         },
-        HttpStatus.TOO_MANYREQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS,
       );
 
       filter.catch(rateLimitError, mockArgumentsHost);
@@ -436,7 +436,7 @@ describe("GlobalExceptionFilter", () => {
       process.env.NODEENV = "development";
 
       const error = new Error("Development error");
-      error._stack = "Error: Development error\n    at Test.spec.ts:123:45";
+      error.stack = "Error: Development error\n    at Test.spec.ts:123:45";
 
       filter.catch(error, mockArgumentsHost);
 
@@ -957,7 +957,7 @@ describe("GlobalExceptionFilter", () => {
       ];
 
       routeNotFoundMessages.forEach((message) => {
-        const notFoundError = new HttpException(message, HttpStatus.NOTFOUND);
+        const notFoundError = new HttpException(message, HttpStatus.NOT_FOUND);
 
         filter.catch(notFoundError, mockArgumentsHost);
 
@@ -989,7 +989,7 @@ describe("GlobalExceptionFilter", () => {
         {
           input: "Not Found",
           expected: "资源不存在",
-          status: HttpStatus.NOTFOUND,
+          status: HttpStatus.NOT_FOUND,
         },
         {
           input: "Method Not Allowed",
@@ -1009,7 +1009,7 @@ describe("GlobalExceptionFilter", () => {
         {
           input: "Gateway Timeout",
           expected: "网关超时",
-          status: HttpStatus.GATEWAYTIMEOUT,
+          status: HttpStatus.GATEWAY_TIMEOUT,
         },
         {
           input: "Too Many Requests",
@@ -1256,7 +1256,7 @@ describe("GlobalExceptionFilter", () => {
     it("should return correct error code for PAYLOAD_TOO_LARGE status", () => {
       const payloadTooLargeException = new HttpException(
         "Payload Too Large",
-        HttpStatus.PAYLOAD_TOOLARGE,
+        HttpStatus.PAYLOAD_TOO_LARGE,
       );
       filter.catch(payloadTooLargeException, mockArgumentsHost);
       expect(mockResponse.json).toHaveBeenCalledWith(

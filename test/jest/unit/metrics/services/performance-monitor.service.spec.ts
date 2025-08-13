@@ -113,9 +113,9 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       );
 
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        PERFORMANCE_EVENTS.METRICRECORDED,
+        PERFORMANCE_EVENTS.METRIC_RECORDED,
         expect.objectContaining({
-          metric: METRIC_NAMES.API_REQUESTDURATION,
+          metric: METRIC_NAMES.API_REQUEST_DURATION,
           value: 150,
         }),
       );
@@ -180,7 +180,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const metricBuffer = (service as any).metricBuffer;
 
       const cacheOpMetric = metricBuffer.find(
-        (m) => m.name === METRIC_NAMES.CACHE_OPERATIONTOTAL,
+        (m) => m.name === METRIC_NAMES.CACHE_OPERATION_TOTAL,
       );
       expect(cacheOpMetric).toEqual(
         expect.objectContaining({
@@ -189,7 +189,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           unit: METRIC_UNITS.COUNT,
           tags: {
             operation: "get",
-            result: OperationStatus._HIT,
+            result: OperationStatus.HIT,
           },
         }),
       );
@@ -215,7 +215,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const cacheOpMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.CACHE_OPERATION_TOTAL,
       );
-      expect(cacheOpMetric.tags.result).toBe(OperationStatus._MISS);
+      expect(cacheOpMetric.tags.result).toBe(OperationStatus.MISS);
 
       const cacheDurationMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.CACHE_OPERATION_DURATION,
@@ -262,7 +262,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
     });
 
     it("should record failed authentication", () => {
-      service.recordAuthentication(AuthType.APIKEY, false, 50);
+      service.recordAuthentication(AuthType.API_KEY, false, 50);
 
       const metricBuffer = (service as any).metricBuffer;
 
@@ -286,7 +286,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const metricBuffer = (service as any).metricBuffer;
 
       const rateLimitCheckMetric = metricBuffer.find(
-        (m) => m.name === METRIC_NAMES.RATE_LIMITCHECK,
+        (m) => m.name === METRIC_NAMES.RATE_LIMIT_CHECK,
       );
       expect(rateLimitCheckMetric).toEqual(
         expect.objectContaining({
@@ -294,14 +294,14 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           value: 1,
           unit: METRIC_UNITS.COUNT,
           tags: {
-            api_key: apiKey.substring(0, API_KEY_CONSTANTS.PREFIX_length),
+            api_key: apiKey.substring(0, API_KEY_CONSTANTS.PREFIX_LENGTH),
             result: OperationStatus.ALLOWED,
           },
         }),
       );
 
       const rateLimitRemainingMetric = metricBuffer.find(
-        (m) => m.name === METRIC_NAMES.RATE_LIMITREMAINING,
+        (m) => m.name === METRIC_NAMES.RATE_LIMIT_REMAINING,
       );
       expect(rateLimitRemainingMetric).toEqual(
         expect.objectContaining({
@@ -324,7 +324,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const rateLimitCheckMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.RATE_LIMIT_CHECK,
       );
-      expect(rateLimitCheckMetric.tags.result).toBe(OperationStatus._BLOCKED);
+      expect(rateLimitCheckMetric.tags.result).toBe(OperationStatus.BLOCKED);
     });
   });
 
@@ -573,7 +573,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
 
       expect(result).toEqual(
         expect.objectContaining({
-          connectionPoolSize: PERFORMANCE_DEFAULTS.DB_POOLSIZE,
+          connectionPoolSize: PERFORMANCE_DEFAULTS.DB_POOL_SIZE,
           averageQueryTime: 0,
           slowQueries: 0,
           totalQueries: 0,
@@ -639,7 +639,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           memoryUsage: PERFORMANCE_DEFAULTS.REDIS_MEMORY_USAGE,
           connectedClients: 0,
           opsPerSecond: 0,
-          hitRate: PERFORMANCE_DEFAULTS.CACHE_HITRATE,
+          hitRate: PERFORMANCE_DEFAULTS.CACHE_HIT_RATE,
           evictedKeys: 0,
           expiredKeys: 0,
         }),
@@ -699,11 +699,11 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
         heap_size_limit: 30000000,
         total_available_size: 1000000000,
         total_physical_size: 30000000,
-        total_heap_sizeexecutable: 5000000,
-        does_zapgarbage: 0,
+        total_heap_size_executable: 5000000,
+        does_zap_garbage: 0,
         malloced_memory: 0,
         peak_malloced_memory: 0,
-        number_of_nativecontexts: 1,
+        number_of_native_contexts: 1,
         number_of_detached_contexts: 0,
         // 添加缺失的必需属性
         total_global_handles_size: 1000000,

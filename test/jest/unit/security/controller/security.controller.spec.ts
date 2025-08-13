@@ -115,7 +115,7 @@ describe("SecurityController", () => {
   describe("performSecurityScan", () => {
     it("should perform a security scan and return the results", async () => {
       const result = await controller.performSecurityScan();
-      expect(result.scanId).toBe(mockScanResult.scanId);
+      expect(result.scanId).toBe(mockScanResult._scanId);
       expect(scannerService.performSecurityScan).toHaveBeenCalled();
     });
   });
@@ -163,7 +163,7 @@ describe("SecurityController", () => {
       const result = await controller.getVulnerabilities({});
       expect(result.vulnerabilities).toEqual([]);
       expect(result.total).toBe(0);
-      expect(result._message).toBe("暂无扫描结果，请先执行安全扫描");
+      expect(result.message).toBe("暂无扫描结果，请先执行安全扫描");
     });
 
     it("should filter vulnerabilities by severity", async () => {
@@ -325,7 +325,7 @@ describe("SecurityController", () => {
   describe("getSuspiciousIPs", () => {
     it("should return a list of suspicious IPs", async () => {
       const result = await controller.getSuspiciousIPs();
-      expect(result._suspiciousIPs).toHaveLength(1);
+      expect(result.suspiciousIPs).toHaveLength(1);
       expect(result.suspiciousIPs[0].ip).toBe("1.2.3.4");
     });
   });
@@ -390,8 +390,8 @@ describe("SecurityController", () => {
 
       const result = await controller.getSecurityDashboard();
       expect(result.overview.securityScore).toBe(0);
-      expect(result.statistics._totalVulnerabilities).toBe(0);
-      expect(result._topVulnerabilities).toEqual([]);
+      expect(result.statistics.totalVulnerabilities).toBe(0);
+      expect(result.topVulnerabilities).toEqual([]);
     });
 
     it("should add critical vulnerability recommendation when critical vulnerabilities exist", async () => {
@@ -469,7 +469,7 @@ describe("SecurityController", () => {
       auditService.getSuspiciousIPs.mockResolvedValue([]);
 
       const result = await controller.getSecurityDashboard();
-      expect(result._recentHighRiskEvents).toHaveLength(2);
+      expect(result.recentHighRiskEvents).toHaveLength(2);
       expect(
         result.recentHighRiskEvents.every(
           (e) => e.severity === "critical" || e.severity === "high",

@@ -3,18 +3,18 @@
 import {
   // 顶层常量对象（从索引导入）
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  SYSTEMCONSTANTS,
+  SYSTEM_CONSTANTS,
   HTTP_CONSTANTS,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _PERFORMANCE_CONSTANTS,
+  PERFORMANCE_CONSTANTS,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _CACHE_CONSTANTS,
+  CACHE_CONSTANTS,
   OPERATION_CONSTANTS,
   UNIFIED_CONSTANTS,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  CONSTANTSVERSION,
+  CONSTANTS_VERSION,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  CONSTANTSMETA,
+  CONSTANTS_META,
 } from "../../../../../../src/common/constants/unified/index";
 
 // 从系统常量模块导入
@@ -79,31 +79,31 @@ describe("Unified Constants Index - Function Coverage", () => {
     it("should export SYSTEM_CONSTANTS", () => {
       expect(SYSTEM_CONSTANTS).toBeDefined();
       expect(typeof SYSTEM_CONSTANTS).toBe("object");
-      expect(SYSTEM_CONSTANTS.OPERATIONSTATUS).toBeDefined();
+      expect(SYSTEM_CONSTANTS.OPERATION_STATUS).toBeDefined();
     });
 
     it("should export HTTP_CONSTANTS", () => {
       expect(HTTP_CONSTANTS).toBeDefined();
       expect(typeof HTTP_CONSTANTS).toBe("object");
-      expect(HTTP_CONSTANTS.STATUSCODES).toBeDefined();
+      expect(HTTP_CONSTANTS.STATUS_CODES).toBeDefined();
     });
 
     it("should export PERFORMANCE_CONSTANTS", () => {
       expect(PERFORMANCE_CONSTANTS).toBeDefined();
       expect(typeof PERFORMANCE_CONSTANTS).toBe("object");
-      expect(PERFORMANCE_CONSTANTS.RESPONSE_TIMETHRESHOLDS).toBeDefined();
+      expect(PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS).toBeDefined();
     });
 
     it("should export CACHE_CONSTANTS", () => {
       expect(CACHE_CONSTANTS).toBeDefined();
       expect(typeof CACHE_CONSTANTS).toBe("object");
-      expect(CACHE_CONSTANTS.TTLSETTINGS).toBeDefined();
+      expect(CACHE_CONSTANTS.TTL_SETTINGS).toBeDefined();
     });
 
     it("should export OPERATION_CONSTANTS", () => {
       expect(OPERATION_CONSTANTS).toBeDefined();
       expect(typeof OPERATION_CONSTANTS).toBe("object");
-      expect(OPERATION_CONSTANTS.OPERATIONTYPES).toBeDefined();
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES).toBeDefined();
     });
   });
 
@@ -246,8 +246,8 @@ describe("Unified Constants Index - Function Coverage", () => {
       const parts = parseCacheKey(testKey);
 
       expect(typeof parts).toBe("object");
-      expect(parts._prefix).toBeDefined();
-      expect(parts._identifier).toBeDefined();
+      expect(parts.prefix).toBeDefined();
+      expect(parts.identifier).toBeDefined();
     });
 
     it("should execute getTTLFromEnv function", () => {
@@ -298,7 +298,7 @@ describe("Unified Constants Index - Function Coverage", () => {
 
       expect(typeof createMessage).toBe("string");
       expect(typeof updateMessage).toBe("string");
-      expect(typeof delet_eMessage).toBe("string");
+      expect(typeof deleteMessage).toBe("string");
 
       expect(createMessage.length).toBeGreaterThan(0);
       expect(updateMessage.length).toBeGreaterThan(0);
@@ -312,7 +312,7 @@ describe("Unified Constants Index - Function Coverage", () => {
 
       expect(typeof createFailure).toBe("string");
       expect(typeof updateFailure).toBe("string");
-      expect(typeof delet_eFailure).toBe("string");
+      expect(typeof deleteFailure).toBe("string");
 
       expect(createFailure.length).toBeGreaterThan(0);
       expect(updateFailure.length).toBeGreaterThan(0);
@@ -416,8 +416,8 @@ describe("Unified Constants Index - Function Coverage", () => {
       expect(typeof CONSTANTS_VERSION.MAJOR).toBe("number");
       expect(typeof CONSTANTS_VERSION.MINOR).toBe("number");
       expect(typeof CONSTANTS_VERSION.PATCH).toBe("number");
-      expect(typeof CONSTANTS_VERSION.VERSIONSTRING).toBe("string");
-      expect(typeof CONSTANTS_VERSION.BUILDDATE).toBe("string");
+      expect(typeof CONSTANTS_VERSION.VERSION_STRING).toBe("string");
+      expect(typeof CONSTANTS_VERSION.BUILD_DATE).toBe("string");
     });
 
     it("should have consistent version formatting", () => {
@@ -453,10 +453,10 @@ describe("Unified Constants Index - Function Coverage", () => {
       expect(typeof CONSTANTS_META).toBe("object");
 
       expect(typeof CONSTANTS_META.DESCRIPTION).toBe("string");
-      expect(typeof CONSTANTS_META._AUTHOR).toBe("string");
-      expect(typeof CONSTANTS_META._LICENSE).toBe("string");
+      expect(typeof CONSTANTS_META.AUTHOR).toBe("string");
+      expect(typeof CONSTANTS_META.LICENSE).toBe("string");
       expect(typeof CONSTANTS_META.CREATED_DATE).toBe("string");
-      expect(typeof CONSTANTS_META.LASTUPDATED).toBe("string");
+      expect(typeof CONSTANTS_META.LAST_UPDATED).toBe("string");
       expect(typeof CONSTANTS_META.TOTAL_CONSTANTS).toBe("number");
     });
 
@@ -482,7 +482,7 @@ describe("Unified Constants Index - Function Coverage", () => {
       const originalDescription = CONSTANTS_META.DESCRIPTION;
 
       try {
-        CONSTANTS_META._DESCRIPTION = "Modified";
+        CONSTANTS_META.DESCRIPTION = "Modified";
         // 确认值没有改变
         expect(CONSTANTS_META.DESCRIPTION).toBe(originalDescription);
       } catch (e) {

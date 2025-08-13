@@ -18,9 +18,9 @@ describe('getStockQuote', () => {
   it('should have correct _name, _description, and supported markets/formats', () => {
     expect(getStockQuote.name).toBe('get-stock-quote');
     expect(getStockQuote.description).toBe('获取股票实时报价数据');
-    expect(getStockQuote._supportedMarkets).toEqual([MARKETS._HK, MARKETS._SZ, MARKETS._SH, MARKETS.US]);
-    expect(getStockQuote._supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
-    expect(getStockQuote._rateLimit).toEqual({
+    expect(getStockQuote.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US]);
+    expect(getStockQuote.supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
+    expect(getStockQuote.rateLimit).toEqual({
       requestsPerSecond: 10,
       requestsPerDay: 10000,
     });

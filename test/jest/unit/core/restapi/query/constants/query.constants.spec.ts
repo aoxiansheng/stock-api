@@ -1,21 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  QUERYERRORMESSAGES,
-  QUERYWARNING_MESSAGES,
-  QUERYSUCCESS_MESSAGES,
-  QUERY_PERFORMANCECONFIG,
+  QUERY_ERROR_MESSAGES,
+  QUERY_WARNING_MESSAGES,
+  QUERY_SUCCESS_MESSAGES,
+  QUERY_PERFORMANCE_CONFIG,
   QUERY_CONFIG,
-  QUERY_VALIDATIONRULES,
-  QUERYOPERATIONS,
-  QUERYMETRICS,
-  QUERYSTATUS,
-  QUERYDEFAULTS,
+  QUERY_VALIDATION_RULES,
+  QUERY_OPERATIONS,
+  QUERY_METRICS,
+  QUERY_STATUS,
+  QUERY_DEFAULTS,
 } from "../../../../../../../src/core/restapi/query/constants/query.constants";
 
 describe("Query Constants", () => {
   describe("QUERY_ERROR_MESSAGES", () => {
     it("should define all error messages", () => {
-      expect(QUERY_ERROR_MESSAGES.QUERYTYPEREQUIRED).toBe("查询类型不能为空");
+      expect(QUERY_ERROR_MESSAGES.QUERY_TYPE_REQUIRED).toBe("查询类型不能为空");
       expect(QUERY_ERROR_MESSAGES.UNSUPPORTED_QUERY_TYPE).toContain(
         "{queryType}",
       );
@@ -23,19 +23,19 @@ describe("Query Constants", () => {
         "按股票代码查询时，股票代码列表不能为空",
       );
       expect(QUERY_ERROR_MESSAGES.TOO_MANY_SYMBOLS).toContain("{maxCount}");
-      expect(QUERY_ERROR_MESSAGES.INVALID_SYMBOLFORMAT).toBe(
+      expect(QUERY_ERROR_MESSAGES.INVALID_SYMBOL_FORMAT).toBe(
         "股票代码不能为空字符串",
       );
       expect(QUERY_ERROR_MESSAGES.INVALID_QUERY_LIMIT).toBe(
         "查询限制必须在1-1000之间",
       );
-      expect(QUERY_ERROR_MESSAGES.INVALID_QUERYOFFSET).toBe(
+      expect(QUERY_ERROR_MESSAGES.INVALID_QUERY_OFFSET).toBe(
         "查询偏移量不能为负数",
       );
-      expect(QUERY_ERROR_MESSAGES.QUERY_VALIDATIONFAILED).toBe(
+      expect(QUERY_ERROR_MESSAGES.QUERY_VALIDATION_FAILED).toBe(
         "查询请求参数验证失败",
       );
-      expect(QUERY_ERROR_MESSAGES._BULKQUERIES_REQUIRED).toBe(
+      expect(QUERY_ERROR_MESSAGES.BULK_QUERIES_REQUIRED).toBe(
         "批量查询请求列表不能为空",
       );
       expect(QUERY_ERROR_MESSAGES.TOO_MANY_BULK_QUERIES).toBe(
@@ -61,13 +61,13 @@ describe("Query Constants", () => {
 
   describe("QUERY_WARNING_MESSAGES", () => {
     it("should define all warning messages", () => {
-      expect(QUERY_WARNING_MESSAGES.QUERYREQUEST_VALIDATION_FAILED).toBe(
+      expect(QUERY_WARNING_MESSAGES.QUERY_REQUEST_VALIDATION_FAILED).toBe(
         "查询请求验证失败",
       );
-      expect(QUERY_WARNING_MESSAGES.SYMBOLDATA_FETCH_FAILED).toBe(
+      expect(QUERY_WARNING_MESSAGES.SYMBOL_DATA_FETCH_FAILED).toBe(
         "获取股票数据失败",
       );
-      expect(QUERY_WARNING_MESSAGES.CACHE_DATAEXPIRED).toBe("缓存数据已过期");
+      expect(QUERY_WARNING_MESSAGES.CACHE_DATA_EXPIRED).toBe("缓存数据已过期");
       expect(QUERY_WARNING_MESSAGES.CACHE_RETRIEVAL_WARNING).toBe(
         "从缓存获取数据失败",
       );
@@ -77,10 +77,10 @@ describe("Query Constants", () => {
       expect(QUERY_WARNING_MESSAGES.BULK_QUERY_SINGLE_FAILED).toBe(
         "批量查询中的单个查询失败",
       );
-      expect(QUERY_WARNING_MESSAGES.PARTIALRESULTS_WARNING).toContain(
+      expect(QUERY_WARNING_MESSAGES.PARTIAL_RESULTS_WARNING).toContain(
         "{actualCount}",
       );
-      expect(QUERY_WARNING_MESSAGES.SLOW_QUERYDETECTED).toBe("检测到慢查询");
+      expect(QUERY_WARNING_MESSAGES.SLOW_QUERY_DETECTED).toBe("检测到慢查询");
     });
 
     it("should be frozen", () => {
@@ -90,10 +90,10 @@ describe("Query Constants", () => {
 
   describe("QUERY_SUCCESS_MESSAGES", () => {
     it("should define all success messages", () => {
-      expect(QUERY_SUCCESS_MESSAGES.QUERY_SERVICEINITIALIZED).toBe(
+      expect(QUERY_SUCCESS_MESSAGES.QUERY_SERVICE_INITIALIZED).toBe(
         "查询服务初始化完成",
       );
-      expect(QUERY_SUCCESS_MESSAGES.QUERYEXECUTIONSTARTED).toBe(
+      expect(QUERY_SUCCESS_MESSAGES.QUERY_EXECUTION_STARTED).toBe(
         "开始执行查询",
       );
       expect(QUERY_SUCCESS_MESSAGES.QUERY_EXECUTION_SUCCESS).toBe(
@@ -102,22 +102,22 @@ describe("Query Constants", () => {
       expect(QUERY_SUCCESS_MESSAGES.BULK_QUERY_EXECUTION_STARTED).toBe(
         "开始执行批量查询",
       );
-      expect(QUERY_SUCCESS_MESSAGES.BULK_QUERY_EXECUTIONCOMPLETED).toBe(
+      expect(QUERY_SUCCESS_MESSAGES.BULK_QUERY_EXECUTION_COMPLETED).toBe(
         "批量查询执行完成",
       );
       expect(QUERY_SUCCESS_MESSAGES.SYMBOL_QUERY_PROCESSING_STARTED).toBe(
         "开始处理股票代码查询",
       );
-      expect(QUERY_SUCCESS_MESSAGES.CACHE_DATARETRIEVED).toBe(
+      expect(QUERY_SUCCESS_MESSAGES.CACHE_DATA_RETRIEVED).toBe(
         "从缓存获取数据成功",
       );
       expect(QUERY_SUCCESS_MESSAGES.REALTIME_DATA_RETRIEVED).toBe(
         "从实时数据源获取数据成功",
       );
-      expect(QUERY_SUCCESS_MESSAGES.QUERY_RESULTCACHED).toBe(
+      expect(QUERY_SUCCESS_MESSAGES.QUERY_RESULT_CACHED).toBe(
         "查询结果缓存成功",
       );
-      expect(QUERY_SUCCESS_MESSAGES.QUERY_RESULTSPROCESSED).toBe(
+      expect(QUERY_SUCCESS_MESSAGES.QUERY_RESULTS_PROCESSED).toBe(
         "查询结果处理完成",
       );
       expect(QUERY_SUCCESS_MESSAGES.QUERY_STATS_RETRIEVED).toBe(
@@ -132,14 +132,14 @@ describe("Query Constants", () => {
 
   describe("QUERY_PERFORMANCE_CONFIG", () => {
     it("should define all performance configuration", () => {
-      expect(QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLDMS).toBe(1000);
-      expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTLSECONDS).toBe(3600);
+      expect(QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLD_MS).toBe(1000);
+      expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTL_SECONDS).toBe(3600);
       expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS).toBe(300);
       expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_QUERY_LIMIT).toBe(100);
       expect(QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY).toBe(100);
       expect(QUERY_PERFORMANCE_CONFIG.LOG_SYMBOLS_LIMIT).toBe(3);
       expect(QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES).toBe(100);
-      expect(QUERY_PERFORMANCE_CONFIG.QUERYTIMEOUT_MS).toBe(30000);
+      expect(QUERY_PERFORMANCE_CONFIG.QUERY_TIMEOUT_MS).toBe(30000);
       expect(QUERY_PERFORMANCE_CONFIG.CACHE_TIMEOUT_MS).toBe(5000);
       expect(QUERY_PERFORMANCE_CONFIG.REALTIME_FETCH_TIMEOUT_MS).toBe(15000);
     });
@@ -149,7 +149,7 @@ describe("Query Constants", () => {
         0,
       );
       expect(
-        QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTLSECONDS,
+        QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTL_SECONDS,
       ).toBeGreaterThan(0);
       expect(
         QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS,
@@ -169,21 +169,21 @@ describe("Query Constants", () => {
 
   describe("QUERY_CONFIG", () => {
     it("should define all configuration values", () => {
-      expect(QUERY_CONFIG.DEFAULT_STORAGE_KEYSEPARATOR).toBe(":");
-      expect(QUERY_CONFIG.QUERY_IDlength).toBe(8);
+      expect(QUERY_CONFIG.DEFAULT_STORAGE_KEY_SEPARATOR).toBe(":");
+      expect(QUERY_CONFIG.QUERY_ID_LENGTH).toBe(8);
       expect(QUERY_CONFIG.MAX_QUERY_LIMIT).toBe(1000);
       expect(QUERY_CONFIG.MIN_QUERY_LIMIT).toBe(1);
       expect(QUERY_CONFIG.DEFAULT_DATA_TYPE).toBe("stock-quote");
-      expect(QUERY_CONFIG.DEFAULTPROVIDER).toBe("unknown");
-      expect(QUERY_CONFIG.DEFAULTMARKET).toBe("unknown");
-      expect(QUERY_CONFIG.CACHE_SOURCETAG).toBe("realtime");
+      expect(QUERY_CONFIG.DEFAULT_PROVIDER).toBe("unknown");
+      expect(QUERY_CONFIG.DEFAULT_MARKET).toBe("unknown");
+      expect(QUERY_CONFIG.CACHE_SOURCE_TAG).toBe("realtime");
       expect(QUERY_CONFIG.QPS_CALCULATION_WINDOW_SECONDS).toBe(60);
     });
 
     it("should have reasonable configuration values", () => {
       expect(QUERY_CONFIG.QUERY_ID_LENGTH).toBeGreaterThan(0);
       expect(QUERY_CONFIG.MAX_QUERY_LIMIT).toBeGreaterThan(
-        QUERY_CONFIG.MIN_QUERYLIMIT,
+        QUERY_CONFIG.MIN_QUERY_LIMIT,
       );
       expect(QUERY_CONFIG.QPS_CALCULATION_WINDOW_SECONDS).toBeGreaterThan(0);
       expect(typeof QUERY_CONFIG.DEFAULT_STORAGE_KEY_SEPARATOR).toBe("string");
@@ -203,14 +203,14 @@ describe("Query Constants", () => {
       expect(QUERY_VALIDATION_RULES.MAX_QUERY_LIMIT).toBe(1000);
       expect(QUERY_VALIDATION_RULES.MIN_QUERY_OFFSET).toBe(0);
       expect(QUERY_VALIDATION_RULES.MAX_BULK_QUERIES).toBe(100);
-      expect(QUERY_VALIDATION_RULES.SYMBOLPATTERN).toBeInstanceOf(RegExp);
+      expect(QUERY_VALIDATION_RULES.SYMBOL_PATTERN).toBeInstanceOf(RegExp);
       expect(QUERY_VALIDATION_RULES.QUERY_ID_PATTERN).toBeInstanceOf(RegExp);
     });
 
     it("should have reasonable validation values", () => {
       expect(QUERY_VALIDATION_RULES.MIN_SYMBOL_LENGTH).toBeGreaterThan(0);
       expect(QUERY_VALIDATION_RULES.MAX_SYMBOL_LENGTH).toBeGreaterThan(
-        QUERY_VALIDATION_RULES.MIN_SYMBOLlength,
+        QUERY_VALIDATION_RULES.MIN_SYMBOL_LENGTH,
       );
       expect(QUERY_VALIDATION_RULES.MIN_QUERY_LIMIT).toBeGreaterThan(0);
       expect(QUERY_VALIDATION_RULES.MAX_QUERY_LIMIT).toBeGreaterThan(
@@ -267,8 +267,8 @@ describe("Query Constants", () => {
   describe("QUERY_METRICS", () => {
     it("should define all metric names", () => {
       expect(QUERY_METRICS.TOTAL_QUERIES).toBe("query_total_queries");
-      expect(QUERY_METRICS.QUERYDURATION).toBe("query_duration");
-      expect(QUERY_METRICS.CACHE_HITRATE).toBe("query_cache_hit_rate");
+      expect(QUERY_METRICS.QUERY_DURATION).toBe("query_duration");
+      expect(QUERY_METRICS.CACHE_HIT_RATE).toBe("query_cache_hit_rate");
       expect(QUERY_METRICS.ERROR_RATE).toBe("query_error_rate");
       expect(QUERY_METRICS.SUCCESS_RATE).toBe("query_success_rate");
       expect(QUERY_METRICS.QUERIES_PER_SECOND).toBe("query_qps");
@@ -294,15 +294,15 @@ describe("Query Constants", () => {
 
   describe("QUERY_STATUS", () => {
     it("should define all status values", () => {
-      expect(QUERY_STATUS._PENDING).toBe("pending");
-      expect(QUERY_STATUS._VALIDATING).toBe("validating");
-      expect(QUERY_STATUS._EXECUTING).toBe("executing");
+      expect(QUERY_STATUS.PENDING).toBe("pending");
+      expect(QUERY_STATUS.VALIDATING).toBe("validating");
+      expect(QUERY_STATUS.EXECUTING).toBe("executing");
       expect(QUERY_STATUS.PROCESSING_RESULTS).toBe("processing_results");
       expect(QUERY_STATUS.CACHING).toBe("caching");
       expect(QUERY_STATUS.COMPLETED).toBe("completed");
       expect(QUERY_STATUS.FAILED).toBe("failed");
       expect(QUERY_STATUS.TIMEOUT).toBe("timeout");
-      expect(QUERY_STATUS._CANCELLED).toBe("cancelled");
+      expect(QUERY_STATUS.CANCELLED).toBe("cancelled");
     });
 
     it("should be frozen", () => {
@@ -312,18 +312,18 @@ describe("Query Constants", () => {
 
   describe("QUERY_DEFAULTS", () => {
     it("should define all default values", () => {
-      expect(QUERY_DEFAULTS.PAGESIZE).toBe(100);
+      expect(QUERY_DEFAULTS.PAGE_SIZE).toBe(100);
       expect(QUERY_DEFAULTS.PAGE_OFFSET).toBe(0);
       expect(QUERY_DEFAULTS.CACHE_TTL_SECONDS).toBe(3600);
       expect(QUERY_DEFAULTS.MAX_CACHE_AGE_SECONDS).toBe(300);
       expect(QUERY_DEFAULTS.TIMEOUT_MS).toBe(30000);
-      expect(QUERY_DEFAULTS.RETRYATTEMPTS).toBe(3);
-      expect(QUERY_DEFAULTS.LOGLEVEL).toBe("info");
+      expect(QUERY_DEFAULTS.RETRY_ATTEMPTS).toBe(3);
+      expect(QUERY_DEFAULTS.LOG_LEVEL).toBe("info");
       expect(QUERY_DEFAULTS.ENABLE_CACHING).toBe(true);
-      expect(QUERY_DEFAULTS.ENABLE_PERFORMANCEMONITORING).toBe(true);
+      expect(QUERY_DEFAULTS.ENABLE_PERFORMANCE_MONITORING).toBe(true);
       expect(QUERY_DEFAULTS.PARALLEL_EXECUTION).toBe(false);
       expect(QUERY_DEFAULTS.CONTINUE_ON_ERROR).toBe(false);
-      expect(QUERY_DEFAULTS.INCLUDEMETADATA).toBe(false);
+      expect(QUERY_DEFAULTS.INCLUDE_METADATA).toBe(false);
       expect(QUERY_DEFAULTS.UPDATE_CACHE).toBe(true);
       expect(QUERY_DEFAULTS.USE_CACHE).toBe(true);
     });

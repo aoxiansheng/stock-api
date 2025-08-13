@@ -39,16 +39,16 @@ describe('StreamStockQuote Capability', () => {
     });
 
     it('should support correct markets', () => {
-      expect(streamStockQuote._supportedMarkets).toEqual([
-        MARKETS._HK,
-        MARKETS._SZ,
-        MARKETS._SH,
-        MARKETS._US,
+      expect(streamStockQuote.supportedMarkets).toEqual([
+        MARKETS.HK,
+        MARKETS.SZ,
+        MARKETS.SH,
+        MARKETS.US,
       ]);
     });
 
     it('should support correct symbol formats', () => {
-      expect(streamStockQuote._supportedSymbolFormats).toEqual([
+      expect(streamStockQuote.supportedSymbolFormats).toEqual([
         '700.HK',
         '00700.HK',
         '09618.HK',
@@ -61,7 +61,7 @@ describe('StreamStockQuote Capability', () => {
     });
 
     it('should have rate limit configuration', () => {
-      expect(streamStockQuote._rateLimit).toEqual({
+      expect(streamStockQuote.rateLimit).toEqual({
         maxConnections: 100,
         maxSubscriptionsPerConnection: 200,
         reconnectDelay: 1000,
@@ -143,7 +143,7 @@ describe('StreamStockQuote Capability', () => {
         .rejects.toThrow('LongPort 流订阅失败: 无效的股票符号格式，拒绝订阅: INVALID_SYMBOL');
 
       // 验证记录了警告日志
-      expect(mockLogger.warn).toHaveBeenCalledWith('发现无效符号格式', {
+      expect(mockLogger._warn).toHaveBeenCalledWith('发现无效符号格式', {
         invalidSymbols: ['INVALID_SYMBOL'],
         validSymbols: 2,
         totalSymbols: 3
@@ -194,14 +194,14 @@ describe('StreamStockQuote Capability', () => {
     it('should handle empty symbols array gracefully', async () => {
       await streamStockQuote.unsubscribe([], mockContextService);
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('取消订阅符号列表为空');
+      expect(mockLogger._warn).toHaveBeenCalledWith('取消订阅符号列表为空');
       expect(mockContextService.unsubscribe).not.toHaveBeenCalled();
     });
 
     it('should handle null symbols gracefully', async () => {
       await streamStockQuote.unsubscribe(null, mockContextService);
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('取消订阅符号列表为空');
+      expect(mockLogger._warn).toHaveBeenCalledWith('取消订阅符号列表为空');
       expect(mockContextService.unsubscribe).not.toHaveBeenCalled();
     });
 
@@ -264,19 +264,19 @@ describe('StreamStockQuote Capability', () => {
 
     it('should return connection status from contextService', () => {
       // Mock contextService 连接状态
-      mockContextService.isWebSocketConnected.mockReturnValue(true);
+      mockContextService._isWebSocketConnected.mockReturnValue(true);
       
       // 提供 contextService 参数
       expect(streamStockQuote.isConnected(mockContextService)).toBe(true);
-      expect(mockContextService.isWebSocketConnected).toHaveBeenCalled();
+      expect(mockContextService._isWebSocketConnected).toHaveBeenCalled();
     });
 
     it('should return false when contextService indicates disconnected', () => {
       // Mock contextService 断开状态
-      mockContextService.isWebSocketConnected.mockReturnValue(false);
+      mockContextService._isWebSocketConnected.mockReturnValue(false);
       
       expect(streamStockQuote.isConnected(mockContextService)).toBe(false);
-      expect(mockContextService.isWebSocketConnected).toHaveBeenCalled();
+      expect(mockContextService._isWebSocketConnected).toHaveBeenCalled();
     });
   });
 });
@@ -291,7 +291,7 @@ describe('Symbol Validation Helper', () => {
     await streamStockQuote.subscribe(validHKSymbols, mockContextService);
 
     // 如果没有警告日志，说明符号都是有效的
-    expect(mockLogger.warn).not.toHaveBeenCalledWith(
+    expect(mockLogger._warn).not.toHaveBeenCalledWith(
       expect.stringContaining('发现无效符号格式'),
       expect.any(Object)
     );
@@ -303,7 +303,7 @@ describe('Symbol Validation Helper', () => {
 
     await streamStockQuote.subscribe(validUSSymbols, mockContextService);
 
-    expect(mockLogger.warn).not.toHaveBeenCalledWith(
+    expect(mockLogger._warn).not.toHaveBeenCalledWith(
       expect.stringContaining('发现无效符号格式'),
       expect.any(Object)
     );
@@ -315,7 +315,7 @@ describe('Symbol Validation Helper', () => {
 
     await streamStockQuote.subscribe(validSZSymbols, mockContextService);
 
-    expect(mockLogger.warn).not.toHaveBeenCalledWith(
+    expect(mockLogger._warn).not.toHaveBeenCalledWith(
       expect.stringContaining('发现无效符号格式'),
       expect.any(Object)
     );
@@ -327,7 +327,7 @@ describe('Symbol Validation Helper', () => {
 
     await streamStockQuote.subscribe(validSHSymbols, mockContextService);
 
-    expect(mockLogger.warn).not.toHaveBeenCalledWith(
+    expect(mockLogger._warn).not.toHaveBeenCalledWith(
       expect.stringContaining('发现无效符号格式'),
       expect.any(Object)
     );
@@ -342,7 +342,7 @@ describe('Symbol Validation Helper', () => {
       .rejects.toThrow('LongPort 流订阅失败: 无效的股票符号格式，拒绝订阅: INVALID, 123, ABC.XY');
 
     // 验证记录了警告日志
-    expect(mockLogger.warn).toHaveBeenCalledWith('发现无效符号格式', {
+    expect(mockLogger._warn).toHaveBeenCalledWith('发现无效符号格式', {
       invalidSymbols,
       validSymbols: 0,
       totalSymbols: 3

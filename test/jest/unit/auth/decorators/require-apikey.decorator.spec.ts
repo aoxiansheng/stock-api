@@ -2,7 +2,7 @@
 
 import { Reflector } from '@nestjs/core';
 import { Controller, Get, Post } from '@nestjs/common';
-import { RequireApiKey, REQUIRE_APIKEY } from '../../../../../src/auth/decorators/require-apikey.decorator';
+import { RequireApiKey, REQUIRE_API_KEY } from '../../../../../src/auth/decorators/require-apikey.decorator';
 
 // 创建测试控制器用于装饰器测试
 @Controller('test')
@@ -61,7 +61,7 @@ describe('RequireApiKey Decorator', () => {
     it('should not set metadata for non-decorated methods', () => {
       const requiresApiKey = reflector.get<boolean>(
         REQUIRE_API_KEY,
-        testController._publicEndpoint,
+        testController.publicEndpoint,
       );
       expect(requiresApiKey).toBeUndefined();
     });
@@ -73,7 +73,7 @@ describe('RequireApiKey Decorator', () => {
       );
       const requiresApiKeyGet = reflector.get<boolean>(
         REQUIRE_API_KEY,
-        testController._protectedEndpoint,
+        testController.protectedEndpoint,
       );
       expect(requiresApiKeyPost).toBe(true);
       expect(requiresApiKeyGet).toBe(true);
@@ -115,7 +115,7 @@ describe('RequireApiKey Decorator', () => {
 
       const controller = new MultiApiKeyController();
 
-      const requiresApiKey1 = reflector.get<boolean>(REQUIRE_API_KEY, controller.protectedMethod1);
+      const requiresApiKey1 = reflector.get<boolean>(REQUIRE_API_KEY, controller._protectedMethod1);
       const requiresApiKey2 = reflector.get<boolean>(REQUIRE_API_KEY, controller.protectedMethod2);
       const publicMethod = reflector.get<boolean>(REQUIRE_API_KEY, controller.publicMethod);
 
@@ -214,15 +214,15 @@ describe('RequireApiKey Decorator', () => {
     it('should handle methods with complex signatures', () => {
       const asyncProtected = reflector.get<boolean>(
         REQUIRE_API_KEY,
-        testController._asyncMethod,
+        testController.asyncMethod,
       );
       const paramsProtected = reflector.get<boolean>(
         REQUIRE_API_KEY,
-        testController._methodWithParams,
+        testController.methodWithParams,
       );
       const optionalParamsProtected = reflector.get<boolean>(
         REQUIRE_API_KEY,
-        testController._methodWithOptionalParams,
+        testController.methodWithOptionalParams,
       );
 
       expect(asyncProtected).toBe(true);

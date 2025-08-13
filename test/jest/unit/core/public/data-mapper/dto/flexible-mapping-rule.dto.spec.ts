@@ -48,7 +48,7 @@ describe("FlexibleMappingRuleDto", () => {
       });
 
       const errors = await validate(dto);
-      expect(errors.some(error => error._property === "apiType")).toBe(true);
+      expect(errors.some(error => error.property === "apiType")).toBe(true);
     });
 
     it("should be valid with optional fields", async () => {
@@ -200,9 +200,9 @@ describe("FlexibleMappingRuleDto", () => {
       dto.transDataRuleListType = "quote_fields";
       dto.fieldMappings = [];
       dto.isActive = true;
-      dto._version = "1.0.0";
-      dto._createdAt = new Date();
-      dto._updatedAt = new Date();
+      dto.version = "1.0.0";
+      dto.createdAt = new Date();
+      dto.updatedAt = new Date();
 
       expect(dto.id).toBe("507f1f77bcf86cd799439011");
       expect(dto.name).toBe("Test Rule");
@@ -214,12 +214,12 @@ describe("FlexibleMappingRuleDto", () => {
   describe("FlexibleMappingTestResultDto", () => {
     it("should create test result dto correctly", () => {
       const dto = new FlexibleMappingTestResultDto();
-      dto._dataMapperRuleId = "507f1f77bcf86cd799439011";
-      dto._ruleName = "Test Rule";
-      dto._originalData = { last_done: 100.50, symbol: "700.HK" };
+      dto.dataMapperRuleId = "507f1f77bcf86cd799439011";
+      dto.ruleName = "Test Rule";
+      dto.originalData = { last_done: 100.50, symbol: "700.HK" };
       dto.transformedData = { lastPrice: 100.50, symbol: "700.HK" };
       dto.success = true;
-      dto._mappingStats = {
+      dto.mappingStats = {
         totalMappings: 2,
         successfulMappings: 2,
         failedMappings: 0,

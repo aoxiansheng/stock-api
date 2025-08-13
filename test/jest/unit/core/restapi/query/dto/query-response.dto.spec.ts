@@ -31,7 +31,7 @@ describe('Query Response DTOs', () => {
   describe('QueryMetadataDto', () => {
     describe('Constructor', () => {
       it('should create instance with required parameters', () => {
-        const queryType = QueryType.BYSYMBOLS;
+        const queryType = QueryType.BY_SYMBOLS;
         const totalResults = 5;
         const returnedResults = 5;
         const executionTime = 150;
@@ -72,7 +72,7 @@ describe('Query Response DTOs', () => {
         ];
 
         const metadata = new QueryMetadataDto(
-          QueryType.BYSYMBOLS,
+          QueryType.BY_SYMBOLS,
           0,
           0,
           200,
@@ -128,7 +128,7 @@ describe('Query Response DTOs', () => {
           },
         );
 
-        metadata._queryParams = {
+        metadata.queryParams = {
           symbols: ['00700.HK', 'AAPL.US'],
           market: 'MIXED',
           provider: 'longport',
@@ -273,7 +273,7 @@ describe('Query Response DTOs', () => {
         });
 
         const metadata = new QueryMetadataDto(
-          QueryType.BYPROVIDER,
+          QueryType.BY_PROVIDER,
           0,
           0,
           50,
@@ -476,7 +476,7 @@ describe('Query Response DTOs', () => {
 
       it('should support query type distribution', () => {
         const stats = new QueryStatsDto();
-        stats._queryTypes = {
+        stats.queryTypes = {
           [QueryType.BY_SYMBOLS]: {
             count: 5000,
             averageTime: 120,

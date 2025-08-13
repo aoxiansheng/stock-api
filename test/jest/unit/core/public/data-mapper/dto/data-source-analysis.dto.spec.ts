@@ -9,7 +9,7 @@ import {
   FieldMappingSuggestionDto,
   SuggestFieldMappingsDto,
   SuggestFieldMappingsResponseDto
-} from "../../../../../../src/core/public/data-mapper/dto/data-source-analysis.dto";
+} from "../../../../../../../src/core/public/data-mapper/dto/data-source-analysis.dto";
 
 describe("DataSourceAnalysisDto", () => {
   describe("AnalyzeDataSourceDto", () => {

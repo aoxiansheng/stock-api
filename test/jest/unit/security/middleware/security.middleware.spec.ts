@@ -526,7 +526,7 @@ describe('RateLimitByIPMiddleware', () => {
     }));
     
     // 重新导入RateLimitByIPMiddleware类，因为它会使用我们模拟的模块
-    import { RateLimitByIPMiddleware } from '../../../../../src/security/middleware/security.middleware';
+    const { RateLimitByIPMiddleware } = eval('require')('../../../../../src/security/middleware/security.middleware');
     
     // 创建新的中间件实例（此实例将使用模拟的禁用配置）
     const disabledMiddleware = new RateLimitByIPMiddleware();
@@ -571,7 +571,7 @@ describe('RateLimitByIPMiddleware', () => {
     
     try {
       // 模拟Date.now返回我们控制的时间
-      Date._now = jest.fn(() => currentTime);
+      Date.now = jest.fn(() => currentTime);
       
       for (let i = 0; i < 5; i++) {
         middleware.use(mockRequest as Request, mockResponse as Response, nextFunction);

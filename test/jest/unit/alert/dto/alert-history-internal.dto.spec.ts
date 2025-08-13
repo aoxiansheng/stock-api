@@ -31,7 +31,7 @@ describe("AlertHistoryInternalDTOs", () => {
   describe("AlertStatusUpdateDataDto", () => {
     it("should pass validation with valid data", async () => {
       const dto = plainToClass(AlertStatusUpdateDataDto, {
-        status: AlertStatus._ACKNOWLEDGED,
+        status: AlertStatus.ACKNOWLEDGED,
         acknowledgedBy: "admin",
       });
       const errors = await validate(dto);
@@ -44,7 +44,7 @@ describe("AlertHistoryInternalDTOs", () => {
       const dto = plainToClass(AlertQueryParamsDto, {
         page: 1,
         limit: 10,
-        status: AlertStatus._FIRING,
+        status: AlertStatus.FIRING,
       });
       const errors = await validate(dto);
       expect(errors.length).toBe(0);

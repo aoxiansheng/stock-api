@@ -515,7 +515,7 @@ describe("Infrastructure Security Tests", () => {
       const responseText = JSON.stringify(response.body);
       expect(response.body.message).toBeDefined(); // Check message exists
       expect(responseText).not.toContain("stack trace");
-      expect(responseText).not.toContain(dirname);
+      expect(responseText).not.toContain(__dirname);
       expect(responseText).not.toContain("node_modules");
       expect(responseText).not.toContain("src/");
     });

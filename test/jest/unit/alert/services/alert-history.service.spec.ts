@@ -62,7 +62,7 @@ describe("AlertHistoryService", () => {
     ruleId: "rule-abc",
     ruleName: "Test Rule", // 添加缺失的ruleName属性
     severity: AlertSeverity.CRITICAL,
-    status: AlertStatus._FIRING,
+    status: AlertStatus.FIRING,
     message: "Test Alert",
     value: 100,
     threshold: 90,
@@ -364,8 +364,8 @@ describe("AlertHistoryService", () => {
       const result = await service.cleanupExpiredAlerts(7);
 
       expect(alertHistoryRepository.cleanup).toHaveBeenCalledWith(7);
-      expect(result.delet_edCount).toBe(5);
-      expect(result._executionTime).toBe(100);
+      expect(result.deletedCount).toBe(5);
+      expect(result.executionTime).toBe(100);
     });
 
     it("should use default cleanup days if invalid daysToKeep is provided", async () => {
@@ -376,9 +376,9 @@ describe("AlertHistoryService", () => {
       const result = await service.cleanupExpiredAlerts(-1);
 
       expect(alertHistoryRepository.cleanup).toHaveBeenCalledWith(
-        ALERT_HISTORY_CONFIG.DEFAULT_CLEANUPDAYS,
+        ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS,
       ); // DEFAULT_CLEANUP_DAYS
-      expect(result.delet_edCount).toBe(5);
+      expect(result.deletedCount).toBe(5);
     });
 
     it("should handle errors during cleanup", async () => {

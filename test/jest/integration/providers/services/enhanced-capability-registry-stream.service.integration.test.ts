@@ -33,7 +33,7 @@ import { readdir, stat } from 'fs/promises';
 const mockStreamCapability: IStreamCapability = {
   name: 'stream-stock-quote',
   description: '获取股票实时报价数据流',
-  supportedMarkets: [MARKETS._HK, MARKETS._US],
+  supportedMarkets: [MARKETS.HK, MARKETS.US],
   supportedSymbolFormats: ['700.HK', 'AAPL.US'],
   rateLimit: {
     maxConnections: 100,
@@ -72,8 +72,8 @@ describe('EnhancedCapabilityRegistryService - Stream Capabilities Integration', 
     legacyService = moduleRef.get<CapabilityRegistryService>(CapabilityRegistryService);
 
     // 设置文件系统操作的模拟返回
-    readdir.mockResolvedValue([]);
-    stat.mockResolvedValue({ isDirectory: () => false });
+    (readdir as jest.Mock).mockResolvedValue([]);
+    (stat as jest.Mock).mockResolvedValue({ isDirectory: () => false });
 
     // 初始化服务
     await enhancedService.onModuleInit();
@@ -202,7 +202,7 @@ describe('EnhancedCapabilityRegistryService - Stream Capabilities Integration', 
       expect(stats).not.toBeNull();
       
       // 当前测试环境下应该是0，因为我们模拟了文件系统返回空数组
-      expect(stats?._decoratorCapabilities).toBe(0);
+      expect(stats?.decoratorCapabilities).toBe(0);
     });
   });
 }); 

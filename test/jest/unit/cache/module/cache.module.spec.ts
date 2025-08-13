@@ -87,7 +87,7 @@ describe("CacheService Optimization Features", () => {
       await service.set(normalKey, "test value");
 
       expect(loggerSpy).not.toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.LARGE_VALUEWARNING,
+        CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
         expect.objectContaining({
           operation: "validateKeyLength",
         }),
@@ -137,9 +137,9 @@ describe("CacheService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
         expect.objectContaining({
-          operation: CACHE_OPERATIONS._M_SET,
+          operation: CACHE_OPERATIONS.MSET,
           batchSize: largeEntries.size,
-          limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCHSIZE,
+          limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
         }),
       );
     });
@@ -160,7 +160,7 @@ describe("CacheService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
         expect.objectContaining({
-          operation: CACHE_OPERATIONS._MGET,
+          operation: CACHE_OPERATIONS.MGET,
           batchSize: largeKeys.length,
           limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
         }),
@@ -191,11 +191,11 @@ describe("CacheService Optimization Features", () => {
       await setPromise;
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.SLOWOPERATION,
+        CACHE_WARNING_MESSAGES.SLOW_OPERATION,
         expect.objectContaining({
           operation: CACHE_OPERATIONS.SET,
           key: "test:key",
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATIONMS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
         }),
       );
     });
@@ -209,9 +209,9 @@ describe("CacheService Optimization Features", () => {
       }
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.HIGH_MISSRATE,
+        CACHE_WARNING_MESSAGES.HIGH_MISS_RATE,
         expect.objectContaining({
-          operation: CACHE_OPERATIONS.UPDATEMETRICS,
+          operation: CACHE_OPERATIONS.UPDATE_METRICS,
           pattern: "miss:*",
           threshold:
             CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
@@ -232,7 +232,7 @@ describe("CacheService Optimization Features", () => {
       expect(errorSpy).toHaveBeenCalledWith(
         expect.stringContaining("缓存健康检查失败"),
         expect.objectContaining({
-          operation: CACHE_OPERATIONS.HEALTHCHECK,
+          operation: CACHE_OPERATIONS.HEALTH_CHECK,
         }),
       );
     });

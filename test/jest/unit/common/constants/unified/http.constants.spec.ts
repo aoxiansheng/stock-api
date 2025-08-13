@@ -12,28 +12,28 @@ describe("HTTP_CONSTANTS", () => {
   describe("STATUSCODES", () => {
     it("should have all required success status codes (2xx)", () => {
       expect(HTTP_CONSTANTS.STATUS_CODES.OK).toBe(200);
-      expect(HTTP_CONSTANTS.STATUS_CODES._CREATED).toBe(201);
-      expect(HTTP_CONSTANTS.STATUS_CODES._ACCEPTED).toBe(202);
-      expect(HTTP_CONSTANTS.STATUS_CODES.NOCONTENT).toBe(204);
+      expect(HTTP_CONSTANTS.STATUS_CODES.CREATED).toBe(201);
+      expect(HTTP_CONSTANTS.STATUS_CODES.ACCEPTED).toBe(202);
+      expect(HTTP_CONSTANTS.STATUS_CODES.NO_CONTENT).toBe(204);
     });
 
     it("should have all required client error status codes (4xx)", () => {
       expect(HTTP_CONSTANTS.STATUS_CODES.BAD_REQUEST).toBe(400);
       expect(HTTP_CONSTANTS.STATUS_CODES.UNAUTHORIZED).toBe(401);
       expect(HTTP_CONSTANTS.STATUS_CODES.FORBIDDEN).toBe(403);
-      expect(HTTP_CONSTANTS.STATUS_CODES.NOTFOUND).toBe(404);
-      expect(HTTP_CONSTANTS.STATUS_CODES.METHOD_NOTALLOWED).toBe(405);
-      expect(HTTP_CONSTANTS.STATUS_CODES._CONFLICT).toBe(409);
-      expect(HTTP_CONSTANTS.STATUS_CODES.UNPROCESSABLEENTITY).toBe(422);
-      expect(HTTP_CONSTANTS.STATUS_CODES.TOO_MANYREQUESTS).toBe(429);
+      expect(HTTP_CONSTANTS.STATUS_CODES.NOT_FOUND).toBe(404);
+      expect(HTTP_CONSTANTS.STATUS_CODES.METHOD_NOT_ALLOWED).toBe(405);
+      expect(HTTP_CONSTANTS.STATUS_CODES.CONFLICT).toBe(409);
+      expect(HTTP_CONSTANTS.STATUS_CODES.UNPROCESSABLE_ENTITY).toBe(422);
+      expect(HTTP_CONSTANTS.STATUS_CODES.TOO_MANY_REQUESTS).toBe(429);
     });
 
     it("should have all required server error status codes (5xx)", () => {
       expect(HTTP_CONSTANTS.STATUS_CODES.INTERNAL_SERVER_ERROR).toBe(500);
-      expect(HTTP_CONSTANTS.STATUS_CODES.NOTIMPLEMENTED).toBe(501);
-      expect(HTTP_CONSTANTS.STATUS_CODES.BADGATEWAY).toBe(502);
-      expect(HTTP_CONSTANTS.STATUS_CODES.SERVICEUNAVAILABLE).toBe(503);
-      expect(HTTP_CONSTANTS.STATUS_CODES.GATEWAYTIMEOUT).toBe(504);
+      expect(HTTP_CONSTANTS.STATUS_CODES.NOT_IMPLEMENTED).toBe(501);
+      expect(HTTP_CONSTANTS.STATUS_CODES.BAD_GATEWAY).toBe(502);
+      expect(HTTP_CONSTANTS.STATUS_CODES.SERVICE_UNAVAILABLE).toBe(503);
+      expect(HTTP_CONSTANTS.STATUS_CODES.GATEWAY_TIMEOUT).toBe(504);
     });
 
     it("should be immutable", () => {
@@ -46,7 +46,7 @@ describe("HTTP_CONSTANTS", () => {
       try {
         HTTP_CONSTANTS.STATUS_CODES.OK = 201;
         // 如果没有抛出错误，确认值没有改变
-        expect(HTTP_CONSTANTS.STATUS_CODES.OK).toBe(originalOK);
+        expect(HTTP_CONSTANTS.STATUS_CODES.OK).toBe(original_OK);
       } catch (e) {
         // 在严格模式下抛出错误是预期的
         expect(e).toBeDefined();
@@ -66,18 +66,18 @@ describe("HTTP_CONSTANTS", () => {
     });
 
     it("should have authentication related error messages", () => {
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES._INVALIDCREDENTIALS).toBe(
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.INVALID_CREDENTIALS).toBe(
         "用户名或密码错误",
       );
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES.TOKENEXPIRED).toBe("token已过期");
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.TOKEN_EXPIRED).toBe("token已过期");
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.API_KEY_INVALID).toBe("API Key无效");
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES.INSUFFICIENTPERMISSIONS).toBe(
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS).toBe(
         "权限不足",
       );
     });
 
     it("should have business operation error messages", () => {
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES.OPERATIONFAILED).toBe("操作失败");
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.OPERATION_FAILED).toBe("操作失败");
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.DATA_NOT_FOUND).toBe("数据不存在");
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.VALIDATION_FAILED).toBe("验证失败");
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.PROCESSING_FAILED).toBe("处理失败");
@@ -87,10 +87,10 @@ describe("HTTP_CONSTANTS", () => {
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.RESOURCE_NOT_FOUND).toBe(
         "资源不存在",
       );
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES.RESOURCE_ALREADYEXISTS).toBe(
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.RESOURCE_ALREADY_EXISTS).toBe(
         "资源已存在",
       );
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES.RESOURCELOCKED).toBe("资源被锁定");
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.RESOURCE_LOCKED).toBe("资源被锁定");
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.RESOURCE_EXPIRED).toBe("资源已过期");
     });
 
@@ -101,7 +101,7 @@ describe("HTTP_CONSTANTS", () => {
     });
 
     it("should have data related error messages", () => {
-      expect(HTTP_CONSTANTS.ERROR_MESSAGES.DATACORRUPTION).toBe("数据损坏");
+      expect(HTTP_CONSTANTS.ERROR_MESSAGES.DATA_CORRUPTION).toBe("数据损坏");
       expect(HTTP_CONSTANTS.ERROR_MESSAGES.DATA_SYNC_FAILED).toBe(
         "数据同步失败",
       );
@@ -149,7 +149,7 @@ describe("HTTP_CONSTANTS", () => {
 
       // 尝试修改并验证是否失败
       try {
-        HTTP_CONSTANTS.SUCCESS_MESSAGES.OPERATIONSUCCESS = "修改的消息";
+        HTTP_CONSTANTS.SUCCESS_MESSAGES.OPERATION_SUCCESS = "修改的消息";
         // 如果没有抛出错误，确认值没有改变
         expect(HTTP_CONSTANTS.SUCCESS_MESSAGES.OPERATION_SUCCESS).toBe(
           originalSuccess,

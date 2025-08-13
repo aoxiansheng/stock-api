@@ -80,7 +80,7 @@ describe('DataFetchingService', () => {
     beforeEach(() => {
       mockMarketStatusService.getMarketStatus.mockResolvedValue({
         market: Market.US,
-        status: MarketStatus._TRADING,
+        status: MarketStatus.TRADING,
         currentTime: new Date(),
         marketTime: new Date(),
         timezone: 'America/New_York',
@@ -103,7 +103,7 @@ describe('DataFetchingService', () => {
       const response = await service.fetchSingleData(mockRequest);
 
       expect(response.data).toEqual(mockData);
-      expect(response.metadata._source).toBe('PROVIDER');
+      expect(response.metadata.source).toBe('PROVIDER');
       expect(response.metadata.market).toBe(Market.US); // 从 'AAPL' 推断
       expect(response.metadata.provider).toBe('TestProvider');
       expect(mockCapability.execute).toHaveBeenCalledWith({
@@ -159,7 +159,7 @@ describe('DataFetchingService', () => {
       expect(results[0]).toEqual(successResponse);
       expect(results[1].data).toBeNull();
       expect(results[1].metadata.market).toBe(Market.US); // 使用默认市场
-      expect(results[1].metadata.marketStatus).toBe(MarketStatus._CLOSED);
+      expect(results[1].metadata.marketStatus).toBe(MarketStatus.CLOSED);
       expect(results[1].metadata.cacheTTL).toBe(60);
       expect(results[1].metadata.provider).toBeUndefined(); // Provider might not be determined on failure
 

@@ -45,7 +45,7 @@ const mockConfigService = {
 describe('LongportStreamContextService', () => {
   let service: LongportStreamContextService;
   let configService: ConfigService;
-  import { QuoteContext, Config } from 'longport';
+  const { QuoteContext, Config } = eval('require')('longport');
   let timeoutSpy: jest.SpyInstance;
   
   // 回调函数变量，用于事件处理测试
@@ -394,7 +394,7 @@ describe('LongportStreamContextService', () => {
       await newService.unsubscribe(['700.HK']);
 
       // Verify
-      expect(mockLogger.warn).toHaveBeenCalledWith('LongPort WebSocket 未连接，无法取消订阅');
+      expect(mockLogger._warn).toHaveBeenCalledWith('LongPort WebSocket 未连接，无法取消订阅');
     });
 
     it('should handle unsubscription failure', async () => {
@@ -545,7 +545,7 @@ describe('LongportStreamContextService', () => {
 
       // Verify - cleanup should continue even with unsubscribe errors
       // unsubscribe error is logged as warning, not error
-      expect(mockLogger.warn).toHaveBeenCalledWith('取消订阅时出错: LongPort WebSocket 取消订阅失败: Cleanup failed');
+      expect(mockLogger._warn).toHaveBeenCalledWith('取消订阅时出错: LongPort WebSocket 取消订阅失败: Cleanup failed');
       
       // Cleanup should still complete successfully
       expect(service.isWebSocketConnected()).toBe(false);

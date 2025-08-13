@@ -4,7 +4,7 @@ import {
   PerformanceMonitoring,
   LightPerformanceMonitoring,
   NoPerformanceMonitoring,
-  PERFORMANCE_MONITORINGKEY,
+  PERFORMANCE_MONITORING_KEY,
 } from '@common/core/decorators/performance-monitoring.decorator';
 
 // 模拟 @nestjs/common 模块
@@ -15,7 +15,7 @@ jest.mock('@nestjs/common', () => ({
 describe('Performance Monitoring Decorators', () => {
   // 在每个测试用例之前，清除 mock 的调用记录
   beforeEach(() => {
-    (SetMetadata as jest._Mock).mockClear();
+    (SetMetadata as jest.Mock).mockClear();
   });
 
   // 测试 PerformanceMonitoring 装饰器

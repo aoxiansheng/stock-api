@@ -5,21 +5,21 @@ import {
   APIKEY_DEFAULTS,
   APIKEY_CONFIG,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  APIKEYSTATUS,
+  APIKEY_STATUS,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  APIKEYTYPES,
+  APIKEY_TYPES,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  APIKEYMETRICS,
+  APIKEY_METRICS,
   APIKEY_VALIDATION_RULES,
   APIKEY_TIME_CONFIG,
   APIKEY_ALERT_THRESHOLDS,
   APIKEY_RETRY_CONFIG,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  APIKEY_ERRORCODES,
+  APIKEY_ERROR_CODES,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  APIKEY_CACHEKEYS,
+  APIKEY_CACHE_KEYS,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  APIKEY_LOGLEVELS,
+  APIKEY_LOG_LEVELS,
 } from "../../../../../src/auth/constants/apikey.constants";
 
 import { ApiKeyUtil } from "../../../../../src/auth/utils/apikey.utils";
@@ -32,7 +32,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
         expect(appKey).toMatch(
           /^sk-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,
         );
-        expect(appKey.startsWith(APIKEY_DEFAULTS.APP_KEYPREFIX)).toBe(true);
+        expect(appKey.startsWith(APIKEY_DEFAULTS.APP_KEY_PREFIX)).toBe(true);
       });
 
       it("should generate unique app keys", () => {
@@ -47,7 +47,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
     describe("generateAccessToken", () => {
       it("should generate token with default length", () => {
         const token = ApiKeyUtil.generateAccessToken();
-        expect(token.length).toBe(APIKEY_DEFAULTS.ACCESS_TOKENlength);
+        expect(token.length).toBe(APIKEY_DEFAULTS.ACCESS_TOKEN_LENGTH);
         expect(token).toMatch(/^[a-zA-Z0-9]+$/);
       });
 
@@ -73,7 +73,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
 
       it("should use only characters from charset", () => {
         const token = ApiKeyUtil.generateAccessToken(50);
-        const charset = APIKEY_CONFIG.ACCESS_TOKENCHARSET;
+        const charset = APIKEY_CONFIG.ACCESS_TOKEN_CHARSET;
         for (const char of token) {
           expect(charset.includes(char)).toBe(true);
         }
@@ -409,9 +409,9 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
     it("should have valid numeric configurations", () => {
       expect(APIKEY_CONFIG.MIN_NAME_LENGTH).toBe(1);
       expect(APIKEY_CONFIG.MAX_NAME_LENGTH).toBe(100);
-      expect(APIKEY_CONFIG.MINPERMISSIONS).toBe(0);
+      expect(APIKEY_CONFIG.MIN_PERMISSIONS).toBe(0);
       expect(APIKEY_CONFIG.MAX_PERMISSIONS).toBe(50);
-      expect(APIKEY_CONFIG.MIN_RATE_LIMITREQUESTS).toBe(1);
+      expect(APIKEY_CONFIG.MIN_RATE_LIMIT_REQUESTS).toBe(1);
       expect(APIKEY_CONFIG.MAX_RATE_LIMIT_REQUESTS).toBe(1000000);
     });
 
@@ -423,7 +423,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
     });
 
     it("should have valid threshold values", () => {
-      expect(APIKEY_ALERT_THRESHOLDS.HIGH_USAGEPERCENTAGE).toBe(80);
+      expect(APIKEY_ALERT_THRESHOLDS.HIGH_USAGE_PERCENTAGE).toBe(80);
       expect(APIKEY_ALERT_THRESHOLDS.CRITICAL_USAGE_PERCENTAGE).toBe(95);
       expect(APIKEY_ALERT_THRESHOLDS.VALIDATION_FAILURE_RATE).toBe(0.1);
     });
@@ -474,15 +474,15 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
 
   describe("Time and retry configurations", () => {
     it("should have reasonable time configurations", () => {
-      expect(APIKEY_TIME_CONFIG.EXPIRY_WARNINGDAYS).toBeGreaterThan(0);
-      expect(APIKEY_TIME_CONFIG.CLEANUP_INTERVALHOURS).toBeGreaterThan(0);
-      expect(APIKEY_TIME_CONFIG.USAGE_UPDATE_TIMEOUTMS).toBeGreaterThan(0);
+      expect(APIKEY_TIME_CONFIG.EXPIRY_WARNING_DAYS).toBeGreaterThan(0);
+      expect(APIKEY_TIME_CONFIG.CLEANUP_INTERVAL_HOURS).toBeGreaterThan(0);
+      expect(APIKEY_TIME_CONFIG.USAGE_UPDATE_TIMEOUT_MS).toBeGreaterThan(0);
     });
 
     it("should have valid retry configurations", () => {
-      expect(APIKEY_RETRY_CONFIG.MAXRETRIES).toBeGreaterThan(0);
+      expect(APIKEY_RETRY_CONFIG.MAX_RETRIES).toBeGreaterThan(0);
       expect(APIKEY_RETRY_CONFIG.INITIAL_DELAY_MS).toBeGreaterThan(0);
-      expect(APIKEY_RETRY_CONFIG.BACKOFFMULTIPLIER).toBeGreaterThan(1);
+      expect(APIKEY_RETRY_CONFIG.BACKOFF_MULTIPLIER).toBeGreaterThan(1);
     });
   });
 

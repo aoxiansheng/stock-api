@@ -38,15 +38,15 @@ describe('QueryStatisticsService', () => {
   });
 
   it('should record query performance', async () => {
-    service.recordQueryPerformance(QueryType.BYSYMBOLS, 100, true, false);
+    service.recordQueryPerformance(QueryType.BY_SYMBOLS, 100, true, false);
     service.recordQueryPerformance(QueryType.BY_SYMBOLS, 200, false, true);
 
     const stats = await service.getQueryStats();
 
     expect(stats.performance.totalQueries).toBe(0);
-    expect(stats.performance._averageExecutionTime).toBe(0);
+    expect(stats.performance.averageExecutionTime).toBe(0);
     expect(stats.performance.cacheHitRate).toBe(0);
-    expect(stats.performance._errorRate).toBe(0);
+    expect(stats.performance.errorRate).toBe(0);
     expect(stats.queryTypes[QueryType.BY_SYMBOLS]).toBeUndefined();
   });
 
@@ -61,7 +61,7 @@ describe('QueryStatisticsService', () => {
 
   it('should return query stats', async () => {
     service.recordQueryPerformance(QueryType.BY_SYMBOLS, 100, true, false);
-    service.recordQueryPerformance(QueryType.BYMARKET, 200, true, true);
+    service.recordQueryPerformance(QueryType.BY_MARKET, 200, true, true);
 
     const stats = await service.getQueryStats();
 

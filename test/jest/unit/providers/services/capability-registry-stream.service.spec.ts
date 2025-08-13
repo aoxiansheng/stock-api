@@ -23,11 +23,14 @@ jest.mock('fs/promises', () => ({
 
 import { readdir, stat } from 'fs/promises';
 
+const mockReaddir = readdir as jest.MockedFunction<typeof readdir>;
+const mockStat = stat as jest.MockedFunction<typeof stat>;
+
 // Mock stream capability
 const mockStreamCapability: IStreamCapability = {
   name: 'stream-stock-quote',
   description: '获取股票实时报价数据流',
-  supportedMarkets: [MARKETS.HK, MARKETS._US],
+  supportedMarkets: [MARKETS.HK, MARKETS.US],
   supportedSymbolFormats: ['700.HK', 'AAPL.US'],
   rateLimit: {
     maxConnections: 100,
@@ -59,8 +62,8 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
     jest.clearAllMocks();
     
     // Mock fs operations to prevent auto-discovery during tests
-    readdir.mockResolvedValue([]);
-    stat.mockResolvedValue({ isDirectory: () => false });
+    mockReaddir.mockResolvedValue([] as any);
+    mockStat.mockResolvedValue({ isDirectory: () => false } as any);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [CapabilityRegistryService],
@@ -299,7 +302,7 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
       const capabilities = service.getAllStreamCapabilities();
       const registration = capabilities.get('longport')?.get('stream-stock-quote');
       expect(registration?.connectionStatus).toBe('connected');
-      expect(registration?._lastConnectedAt).toBeInstanceOf(Date);
+      expect(registration?.lastConnectedAt).toBeInstanceOf(Date);
       expect(registration?.errorCount).toBe(0);
       expect(mockLogger.log).toHaveBeenCalledWith({
         message: '流能力状态更新',
@@ -372,8 +375,8 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
   describe('Stream Capability Discovery Integration', () => {
     beforeEach(() => {
       // Mock file system operations
-      readdir.mockClear();
-      stat.mockClear();
+      mockReaddir.mockClear();
+      mockStat.mockClear();
     });
 
     it('should detect stream capabilities during discovery', async () => {
@@ -381,11 +384,11 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
       const testService = new CapabilityRegistryService();
       
       // Setup mock for discovery
-      readdir
-        .mockResolvedValueOnce([{ name: 'longport', isDirectory: () => true }]) // Provider directories
-        .mockResolvedValueOnce(['stream-stock-quote.ts', 'get-stock-quote.ts']); // Capability files
-
-      stat.mockResolvedValue({ isDirectory: () => true });
+      mockReaddir
+        .mockResolvedValueOnce([{ name: 'longport', isDirectory: () => true } as any] as any) // Provider directories
+        .mockResolvedValueOnce(['stream-stock-quote.ts', 'get-stock-quote.ts'] as any); // Capability files
+      
+      mockStat.mockResolvedValue({ isDirectory: () => true } as any);
 
       // Spy on the private methods to verify the discovery flow
       const loadCapabilitySpy = jest.spyOn(testService as any, 'loadCapability')
@@ -433,7 +436,7 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
       } as any;
 
       // Execute
-      await testService['loadStreamCapability']('test-provider', 'incomplete-stream', incomplet_eCapability);
+      await testService['loadStreamCapability']('test-provider', 'incomplete-stream', incompleteCapability);
 
       // Verify
       expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -525,7 +528,7 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
       expect(allCapabilities.size).toBe(10); // 10 providers
       
       let totalCapabilities = 0;
-      for (const providerCapabilities of allCapabilities.values()) {
+      for (const providerCapabilities of Array.from(allCapabilities.values())) {
         totalCapabilities += providerCapabilities.size;
       }
       expect(totalCapabilities).toBe(1000);

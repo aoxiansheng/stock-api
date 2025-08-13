@@ -13,13 +13,13 @@ describe("Query Enums Index - Function Coverage", () => {
       expect(typeof QueryType).toBe("object");
 
       // Test enum values are accessible
-      expect(QueryType.BYSYMBOLS).toBeDefined();
-      expect(QueryType.BYMARKET).toBeDefined();
-      expect(QueryType.BYPROVIDER).toBeDefined();
+      expect(QueryType.BY_SYMBOLS).toBeDefined();
+      expect(QueryType.BY_MARKET).toBeDefined();
+      expect(QueryType.BY_PROVIDER).toBeDefined();
 
       // Test enum as an object has the expected structure
       const queryTypeKeys = Object.keys(QueryType);
-      expect(queryTypeKeys._length).toBeGreaterThan(0);
+      expect(queryTypeKeys.length).toBeGreaterThan(0);
 
       // Test values are strings (not numbers for string enums)
       const queryTypeValues = Object.values(QueryType);

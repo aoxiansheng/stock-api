@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  CACHEKEYS,
+  CACHE_KEYS,
   CACHE_TTL,
   CACHE_CONSTANTS,
 } from "../../../../../src/cache/constants/cache.constants";
@@ -8,11 +8,11 @@ import {
 describe("Cache Constants", () => {
   describe("CACHE_KEYS", () => {
     it("should define all cache key prefixes", () => {
-      expect(CACHE_KEYS.STOCKQUOTE).toBe("stock:quote:");
-      expect(CACHE_KEYS.STOCK_BASICINFO).toBe("stock:basic:");
+      expect(CACHE_KEYS.STOCK_QUOTE).toBe("stock:quote:");
+      expect(CACHE_KEYS.STOCK_BASIC_INFO).toBe("stock:basic:");
       expect(CACHE_KEYS.INDEX_QUOTE).toBe("index:quote:");
-      expect(CACHE_KEYS.MARKETSTATUS).toBe("market:status:");
-      expect(CACHE_KEYS.SYMBOLMAPPING).toBe("symbol:mapping:");
+      expect(CACHE_KEYS.MARKET_STATUS).toBe("market:status:");
+      expect(CACHE_KEYS.SYMBOL_MAPPING).toBe("symbol:mapping:");
       expect(CACHE_KEYS.DATA_MAPPING).toBe("data:mapping:");
     });
 
@@ -60,7 +60,7 @@ describe("Cache Constants", () => {
       expect(CACHE_TTL.REALTIME_DATA).toBe(5);
       expect(CACHE_TTL.BASIC_INFO).toBe(3600);
       expect(CACHE_TTL.MARKET_STATUS).toBe(60);
-      expect(CACHE_TTL.MAPPINGRULES).toBe(1800);
+      expect(CACHE_TTL.MAPPING_RULES).toBe(1800);
     });
 
     it("should have reasonable TTL values", () => {
@@ -172,12 +172,12 @@ describe("Cache Constants", () => {
 
   describe("CACHE_CONFIG", () => {
     it("should have correct configuration values", () => {
-      expect(CACHE_CONSTANTS.SIZE_LIMITS._COMPRESSION_THRESHOLDKB).toBe(10);
+      expect(CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB).toBe(10);
       expect(CACHE_CONSTANTS.STRATEGY_CONFIG.ENABLE_COMPRESSION).toBe(true);
     });
 
     it("should define performance thresholds", () => {
-      expect(CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATIONMS).toBe(100);
+      expect(CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS).toBe(100);
     });
   });
 });

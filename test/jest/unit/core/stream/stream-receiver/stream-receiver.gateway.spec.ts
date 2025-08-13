@@ -55,7 +55,7 @@ describe('StreamReceiverGateway', () => {
     jest.clearAllMocks();
     
     // Setup logger mock
-    import { createLogger } from '@common/config/logger.config';
+    const { createLogger } = eval('require')('@common/config/logger.config');
     (createLogger as jest.Mock).mockReturnValue(mockLogger);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -166,7 +166,7 @@ describe('StreamReceiverGateway', () => {
     it('should handle subscription request successfully', async () => {
       // Setup
       const client = createMockSocket();
-      mockStreamReceiverService.subscribeSymbols.mockImplementation(
+      mockStreamReceiverService._subscribeSymbols.mockImplementation(
         (clientId, dto, callback) => {
           // Simulate callback invocation
           callback({
@@ -189,7 +189,7 @@ describe('StreamReceiverGateway', () => {
         wsCapabilityType: subscribeDto.wsCapabilityType,
         apiKeyName: 'Test API Key',
       });
-      expect(mockStreamReceiverService.subscribeSymbols).toHaveBeenCalledWith(
+      expect(mockStreamReceiverService._subscribeSymbols).toHaveBeenCalledWith(
         client.id,
         subscribeDto,
         expect.any(Function)
@@ -209,7 +209,7 @@ describe('StreamReceiverGateway', () => {
       // Setup
       const client = createMockSocket();
       const error = new Error('Subscription failed');
-      mockStreamReceiverService.subscribeSymbols.mockRejectedValue(error);
+      mockStreamReceiverService._subscribeSymbols.mockRejectedValue(error);
 
       // Execute
       await gateway.handleSubscribe(client, subscribeDto);
@@ -239,7 +239,7 @@ describe('StreamReceiverGateway', () => {
         capability: 'stream-stock-quote',
       };
 
-      mockStreamReceiverService.subscribeSymbols.mockImplementation(
+      mockStreamReceiverService._subscribeSymbols.mockImplementation(
         (clientId, dto, callback) => {
           // Simulate multiple data callbacks
           callback(streamData);
@@ -270,7 +270,7 @@ describe('StreamReceiverGateway', () => {
     it('should handle unsubscription request successfully', async () => {
       // Setup
       const client = createMockSocket();
-      mockStreamReceiverService.unsubscribeSymbols.mockResolvedValue(undefined);
+      mockStreamReceiverService._unsubscribeSymbols.mockResolvedValue(undefined);
 
       // Execute
       await gateway.handleUnsubscribe(client, unsubscribeDto);
@@ -282,7 +282,7 @@ describe('StreamReceiverGateway', () => {
         symbols: unsubscribeDto.symbols,
         apiKeyName: 'Test API Key',
       });
-      expect(mockStreamReceiverService.unsubscribeSymbols).toHaveBeenCalledWith(
+      expect(mockStreamReceiverService._unsubscribeSymbols).toHaveBeenCalledWith(
         client.id,
         unsubscribeDto
       );
@@ -298,7 +298,7 @@ describe('StreamReceiverGateway', () => {
       // Setup
       const client = createMockSocket();
       const error = new Error('Unsubscription failed');
-      mockStreamReceiverService.unsubscribeSymbols.mockRejectedValue(error);
+      mockStreamReceiverService._unsubscribeSymbols.mockRejectedValue(error);
 
       // Execute
       await gateway.handleUnsubscribe(client, unsubscribeDto);
@@ -532,7 +532,7 @@ describe('StreamReceiverGateway', () => {
     it('should validate subscribe message structure', async () => {
       // Setup
       const client = createMockSocket();
-      mockStreamReceiverService.subscribeSymbols.mockResolvedValue(undefined);
+      mockStreamReceiverService._subscribeSymbols.mockResolvedValue(undefined);
 
       const validDto: StreamSubscribeDto = {
         symbols: ['700.HK'],
@@ -544,7 +544,7 @@ describe('StreamReceiverGateway', () => {
       await gateway.handleSubscribe(client, validDto);
 
       // Verify
-      expect(mockStreamReceiverService.subscribeSymbols).toHaveBeenCalledWith(
+      expect(mockStreamReceiverService._subscribeSymbols).toHaveBeenCalledWith(
         client.id,
         validDto,
         expect.any(Function)
@@ -554,7 +554,7 @@ describe('StreamReceiverGateway', () => {
     it('should validate unsubscribe message structure', async () => {
       // Setup
       const client = createMockSocket();
-      mockStreamReceiverService.unsubscribeSymbols.mockResolvedValue(undefined);
+      mockStreamReceiverService._unsubscribeSymbols.mockResolvedValue(undefined);
 
       const validDto: StreamUnsubscribeDto = {
         symbols: ['700.HK', 'AAPL.US'],
@@ -565,7 +565,7 @@ describe('StreamReceiverGateway', () => {
       await gateway.handleUnsubscribe(client, validDto);
 
       // Verify
-      expect(mockStreamReceiverService.unsubscribeSymbols).toHaveBeenCalledWith(
+      expect(mockStreamReceiverService._unsubscribeSymbols).toHaveBeenCalledWith(
         client.id,
         validDto
       );
@@ -582,7 +582,7 @@ describe('StreamReceiverGateway', () => {
       };
 
       // Mock synchronous error
-      mockStreamReceiverService.subscribeSymbols.mockImplementation(() => {
+      mockStreamReceiverService._subscribeSymbols.mockImplementation(() => {
         throw new Error('Synchronous error');
       });
 

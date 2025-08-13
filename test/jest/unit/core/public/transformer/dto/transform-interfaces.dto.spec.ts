@@ -61,7 +61,7 @@ describe('Transform Interfaces DTOs', () => {
         const errors = await validate(dto);
 
         // Assert
-        expect(errors._length).toBe(0);
+        expect(errors.length).toBe(0);
       });
     });
 

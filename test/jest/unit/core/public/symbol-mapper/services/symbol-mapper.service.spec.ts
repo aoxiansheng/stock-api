@@ -416,7 +416,7 @@ describe('SymbolMapperService', () => {
       expect(result).toEqual(mockPaginatedResponse);
       expect(repository.findPaginated).toHaveBeenCalledWith(query);
       expect(
-        paginationService._createPaginatedResponseFromQuery,
+        paginationService.createPaginatedResponseFromQuery,
       ).toHaveBeenCalledWith(
         expect.any(Array),
         query,
@@ -448,25 +448,25 @@ describe('SymbolMapperService', () => {
     };
 
     it('should update a symbol mapping successfully', async () => {
-      repository.updateById.mockResolvedValueOnce(mockUpdatedDoc);
+      repository._updateById.mockResolvedValueOnce(mockUpdatedDoc);
 
       const result = await service.updateSymbolMapping(id, updateDto);
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
       expect(result.dataSourceName).toEqual(updateDto.dataSourceName);
-      expect(repository.updateById).toHaveBeenCalledWith(id, updateDto);
+      expect(repository._updateById).toHaveBeenCalledWith(id, updateDto);
     });
 
     it('should throw NotFoundException if mapping not found', async () => {
-      repository.updateById.mockResolvedValueOnce(null);
+      repository._updateById.mockResolvedValueOnce(null);
 
       await expect(service.updateSymbolMapping(id, updateDto)).rejects.toThrow(
         NotFoundException,
       );
-      expect(repository.updateById).toHaveBeenCalledWith(id, updateDto);
+      expect(repository._updateById).toHaveBeenCalledWith(id, updateDto);
     });
 
     it('should throw error if repository call fails', async () => {
-      repository.updateById.mockRejectedValueOnce(new Error('DB Error'));
+      repository._updateById.mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(service.updateSymbolMapping(id, updateDto)).rejects.toThrow(
         'DB Error',
@@ -483,7 +483,7 @@ describe('SymbolMapperService', () => {
     };
 
     it('should delete a symbol mapping successfully', async () => {
-      repository.deleteById.mockResolvedValueOnce(mockDeletedDoc);
+      repository.delet_eById.mockResolvedValueOnce(mockDeletedDoc);
 
       const result = await service.deleteSymbolMapping(id);
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
@@ -492,7 +492,7 @@ describe('SymbolMapperService', () => {
     });
 
     it('should throw NotFoundException if mapping not found', async () => {
-      repository.deleteById.mockResolvedValueOnce(null);
+      repository.delet_eById.mockResolvedValueOnce(null);
 
       await expect(service.deleteSymbolMapping(id)).rejects.toThrow(
         NotFoundException,
@@ -501,7 +501,7 @@ describe('SymbolMapperService', () => {
     });
 
     it('should throw error if repository call fails', async () => {
-      repository.deleteById.mockRejectedValueOnce(new Error('DB Error'));
+      repository.delet_eById.mockRejectedValueOnce(new Error('DB Error'));
 
       await expect(service.deleteSymbolMapping(id)).rejects.toThrow(
         'DB Error',
@@ -739,7 +739,7 @@ describe('SymbolMapperService', () => {
   describe('deleteSymbolMappingsByDataSource', () => {
     const dataSourceName = 'TestDataSource';
     it('should delete mappings by data source name', async () => {
-      repository._deleteByDataSource.mockResolvedValueOnce({ delet_edCount: 5 });
+      repository.delet_eByDataSource.mockResolvedValueOnce({ delet_edCount: 5 });
 
       const result = await service.deleteSymbolMappingsByDataSource(
         dataSourceName,
@@ -749,7 +749,7 @@ describe('SymbolMapperService', () => {
     });
 
     it('should throw error if repository call fails', async () => {
-      repository.deleteByDataSource.mockRejectedValueOnce(
+      repository.delet_eByDataSource.mockRejectedValueOnce(
         new Error('DB Error'),
       );
 

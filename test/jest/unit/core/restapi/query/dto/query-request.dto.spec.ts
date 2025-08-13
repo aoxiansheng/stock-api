@@ -13,7 +13,7 @@ describe("Query Request DTOs", () => {
   describe("QueryRequestDto", () => {
     it("should validate minimal valid query request", async () => {
       const queryData = {
-        queryType: QueryType.BYMARKET,
+        queryType: QueryType.BY_MARKET,
       };
 
       const dto = plainToClass(QueryRequestDto, queryData);
@@ -25,7 +25,7 @@ describe("Query Request DTOs", () => {
 
     it("should validate complete query request", async () => {
       const queryData = {
-        queryType: QueryType.BYSYMBOLS,
+        queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "GOOGL.US"],
         market: "US",
         provider: "LongPort",
@@ -39,7 +39,7 @@ describe("Query Request DTOs", () => {
         },
         querySort: {
           field: "price",
-          direction: SortDirection._ASC,
+          direction: SortDirection.ASC,
         },
         limit: 50,
         page: 10,
@@ -76,7 +76,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("queryType");
-      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
+      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
     });
 
     it("should validate queryType enum", async () => {
@@ -89,7 +89,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("queryType");
-      expect(errors[0].const_raints).toHaveProperty("isEnum");
+      expect(errors[0].constraints).toHaveProperty("isEnum");
     });
 
     it("should accept all valid query types", async () => {
@@ -152,7 +152,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("symbols");
-      expect(errors[0].const_raints).toHaveProperty(
+      expect(errors[0].constraints).toHaveProperty(
         "isNotEmpty",
       );
     });
@@ -177,9 +177,9 @@ describe("Query Request DTOs", () => {
         if (testCase.shouldFail) {
           expect(errors.length).toBeGreaterThan(0);
           expect(errors[0].property).toBe("limit");
-          expect(errors[0].const_raints).toHaveProperty(testCase.message);
+          expect(errors[0].constraints).toHaveProperty(testCase.message);
         } else {
-          expect(errors.filter((e) => e._property === "limit")).toHaveLength(0);
+          expect(errors.filter((e) => e.property === "limit")).toHaveLength(0);
         }
       }
     });
@@ -266,7 +266,7 @@ describe("Query Request DTOs", () => {
         queryType: QueryType.BY_MARKET,
         querySort: {
           field: "timestamp",
-          direction: SortDirection._DESC,
+          direction: SortDirection.DESC,
         },
       };
 
@@ -292,7 +292,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("querySort");
-      expect(errors[0]._children[0].property).toBe("direction");
+      expect(errors[0].children[0].property).toBe("direction");
     });
 
     it("should validate nested query options", async () => {
@@ -349,7 +349,7 @@ describe("Query Request DTOs", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("options");
       expect(errors[0].children[0].property).toBe("includeFields");
-      expect(errors[0].children[0].const_raints).toHaveProperty(
+      expect(errors[0].children[0].constraints).toHaveProperty(
         "isString",
       );
     });
@@ -393,7 +393,7 @@ describe("Query Request DTOs", () => {
             errors[0]?.children?.filter((c) => c.property === field) || [];
 
           if (fieldErrors.length > 0) {
-            expect(fieldErrors[0].const_raints).toHaveProperty("isBoolean");
+            expect(fieldErrors[0].constraints).toHaveProperty("isBoolean");
           }
         }
       }
@@ -430,7 +430,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("queries");
-      expect(errors[0].const_raints).toHaveProperty("arrayMinSize");
+      expect(errors[0].constraints).toHaveProperty("arrayMinSize");
     });
 
     it("should validate maximum number of queries", async () => {
@@ -445,7 +445,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("queries");
-      expect(errors[0].const_raints).toHaveProperty("arrayMaxSize");
+      expect(errors[0].constraints).toHaveProperty("arrayMaxSize");
     });
 
     it("should validate nested query objects", async () => {
@@ -510,7 +510,7 @@ describe("Query Request DTOs", () => {
 
           const fieldErrors = errors.filter((e) => e.property === field);
           if (fieldErrors.length > 0) {
-            expect(fieldErrors[0].const_raints).toHaveProperty("isBoolean");
+            expect(fieldErrors[0].constraints).toHaveProperty("isBoolean");
           }
         }
       }

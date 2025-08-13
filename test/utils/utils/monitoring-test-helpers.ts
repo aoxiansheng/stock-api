@@ -44,7 +44,7 @@ export class MonitoringTestHelper {
       async () => {
         const metrics = await this.performanceMonitor.getEndpointMetrics();
         const endpointMetric = metrics.find(
-          (m) => m._endpoint === endpointPath && m.method === method,
+          (m) => m.endpoint === endpointPath && m.method === method,
         );
         return endpointMetric && endpointMetric.totalRequests >= expectedCount;
       },
@@ -169,7 +169,7 @@ export class MonitoringTestHelper {
 
       if (
         requestConfig.expectedStatus &&
-        response.status !== requestConfig._expectedStatus
+        response.status !== requestConfig.expectedStatus
       ) {
         console.warn(
           `请求 ${i + 1} 返回意外状态码: ${response.status}, 期望: ${requestConfig.expectedStatus}`,
@@ -552,7 +552,7 @@ export const PerformanceTestHelpers = {
 
     // 统计结果
     const responses = results.map((r) =>
-      r._status === "fulfilled" ? r.value : { success: false },
+      r.status === "fulfilled" ? r.value : { success: false },
     );
     const successfulRequests = responses.filter((r) => r.success).length;
     const failedRequests = responses.length - successfulRequests;

@@ -320,7 +320,7 @@ describe("AlertingService", () => {
       alertHistoryService.getAlertById.mockResolvedValue(mockAlert);
 
       const result = await service.acknowledgeAlert("alert-1", "user1");
-      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus._ACKNOWLEDGED, "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.ACKNOWLEDGED, "user1");
       expect(result).toEqual(mockAlert);
     });
 
@@ -343,7 +343,7 @@ describe("AlertingService", () => {
       cacheService.del.mockResolvedValue(1);
 
       const result = await service.resolveAlert("alert-1", "user1", "rule-1");
-      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus._RESOLVED, "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.RESOLVED, "user1");
       expect(cacheService.del).toHaveBeenCalledWith("active-alert:rule-1");
       expect(result).toBe(true);
     });
@@ -361,8 +361,8 @@ describe("AlertingService", () => {
 
   describe("getStats", () => {
     it("should return alert statistics", async () => {
-      alertHistoryService.getAlertStats.mockResolvedValue({
-        _activeAlerts: 1,
+        alertHistoryService.getAlertStats.mockResolvedValue({
+        activeAlerts: 1,
         totalAlertsToday: 2,
         resolvedAlertsToday: 1,
         averageResolutionTime: 30,
@@ -376,8 +376,8 @@ describe("AlertingService", () => {
 
       const result = await service.getStats();
       expect(result.activeAlerts).toBe(1);
-      expect(result._totalRules).toBe(5);
-      expect(result._enabledRules).toBe(3);
+      expect(result.totalRules).toBe(5);
+      expect(result.enabledRules).toBe(3);
     });
 
     it("should handle errors during stats retrieval", async () => {

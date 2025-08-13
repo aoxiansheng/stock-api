@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 import { AxiosRequestHeaders, AxiosHeaders } from 'axios';
 
 import { DingTalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
 import { URLSecurityValidator } from '../../../../../../src/common/utils/url-security-validator.util';
 
 // Mock URLSecurityValidator
@@ -104,7 +104,7 @@ describe('DingTalkSender', () => {
       const result = await sender.send(mockAlert, mockRule, mockConfig);
 
       expect(result.success).toBe(true);
-      expect(result._channelType).toEqual(NotificationChannelType.DINGTALK);
+      expect(result.channelType).toEqual(NotificationChannelType.DINGTALK);
       expect(result.message).toEqual('钉钉消息发送成功');
       expect(httpService.post).toHaveBeenCalledTimes(1);
       expect(httpService.post).toHaveBeenCalledWith(

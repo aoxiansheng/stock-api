@@ -139,7 +139,7 @@ describe("ObjectImmutabilityUtil - Comprehensive Coverage", () => {
 
     it("should handle objects with getters and setters", () => {
       const obj = {
-        value: "internal",
+        _value: "internal",
         get value() {
           return this.value;
         },

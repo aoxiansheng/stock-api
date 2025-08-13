@@ -68,7 +68,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(savedTemplate.provider).toBe("longport");
       expect(savedTemplate.apiType).toBe("stream");
       expect(savedTemplate.confidence).toBe(0.95);
-      expect(savedTemplate._isActive).toBe(true); // default value
+      expect(savedTemplate.isActive).toBe(true); // default value
       expect(savedTemplate.isDefault).toBe(false); // default value
       expect(savedTemplate.usageCount).toBe(0); // default value
     });
@@ -221,7 +221,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(savedTemplate.isPreset).toBe(true);
       expect(savedTemplate.usageCount).toBe(10);
       expect(savedTemplate.description).toBeUndefined();
-      expect(savedTemplate._lastUsedAt).toBeUndefined();
+      expect(savedTemplate.lastUsedAt).toBeUndefined();
     });
 
     it("should auto-generate timestamps", async () => {
@@ -259,7 +259,7 @@ describe("DataSourceTemplateSchema", () => {
 
       // Wait a moment and update
       await new Promise(resolve => setTimeout(resolve, 10));
-      savedTemplate._usageCount = 1;
+      savedTemplate.usageCount = 1;
       const updatedTemplate = await savedTemplate.save();
 
       expect(updatedTemplate.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());

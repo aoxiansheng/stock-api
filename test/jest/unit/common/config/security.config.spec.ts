@@ -68,20 +68,20 @@ describe("SecurityConfig", () => {
     it("should have consistent Redis configuration", () => {
       const { rateLimit } = securityConfig;
 
-      expect(rateLimit._redisPrefix).toBe("rate_limit");
+      expect(rateLimit.redisPrefix).toBe("rate_limit");
       expect(rateLimit.luaExpireBufferSeconds).toBe(
-        RATE_LIMIT_CONFIG.REDIS.EXPIRE_BUFFERSECONDS,
+        RATE_LIMIT_CONFIG.REDIS.EXPIRE_BUFFER_SECONDS,
       );
     });
 
     it("should support performance test mode", () => {
       const { rateLimit } = securityConfig;
 
-      expect(rateLimit._performanceTestMode).toBe(
-        RATE_LIMIT_CONFIG.PERFORMANCE.TESTMODE,
+      expect(rateLimit.performanceTestMode).toBe(
+        RATE_LIMIT_CONFIG.PERFORMANCE.TEST_MODE,
       );
-      expect(rateLimit._multiplier).toBe(
-        RATE_LIMIT_CONFIG.PERFORMANCE._MULTIPLIER,
+      expect(rateLimit.multiplier).toBe(
+        RATE_LIMIT_CONFIG.PERFORMANCE.MULTIPLIER,
       );
     });
 

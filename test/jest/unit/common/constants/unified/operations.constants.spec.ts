@@ -16,11 +16,11 @@ describe("OPERATION_CONSTANTS", () => {
       expect(OPERATION_CONSTANTS.CRUD_MESSAGES.CREATE_SUCCESS).toBe("创建成功");
       expect(OPERATION_CONSTANTS.CRUD_MESSAGES.UPDATE_SUCCESS).toBe("更新成功");
       expect(OPERATION_CONSTANTS.CRUD_MESSAGES.DELETE_SUCCESS).toBe("删除成功");
-      expect(OPERATION_CONSTANTS.CRUD_MESSAGES._QUERY_SUCCESS).toBe("查询成功");
+      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.QUERY_SUCCESS).toBe("查询成功");
     });
 
     it("should have all required CRUD failure messages", () => {
-      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.CREATEFAILED).toBe("创建失败");
+      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.CREATE_FAILED).toBe("创建失败");
       expect(OPERATION_CONSTANTS.CRUD_MESSAGES.UPDATE_FAILED).toBe("更新失败");
       expect(OPERATION_CONSTANTS.CRUD_MESSAGES.DELETE_FAILED).toBe("删除失败");
       expect(OPERATION_CONSTANTS.CRUD_MESSAGES.QUERY_FAILED).toBe("查询失败");
@@ -36,13 +36,13 @@ describe("OPERATION_CONSTANTS", () => {
     });
 
     it("should have resource status messages", () => {
-      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.RESOURCE_NOTFOUND).toBe(
+      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.RESOURCE_NOT_FOUND).toBe(
         "资源不存在",
       );
-      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.RESOURCE_AL_READYEXISTS).toBe(
+      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.RESOURCE_ALREADY_EXISTS).toBe(
         "资源已存在",
       );
-      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.PERMISSIONDENIED).toBe(
+      expect(OPERATION_CONSTANTS.CRUD_MESSAGES.PERMISSION_DENIED).toBe(
         "权限不足",
       );
     });
@@ -64,13 +64,13 @@ describe("OPERATION_CONSTANTS", () => {
     });
 
     it("should have extended operations", () => {
-      expect(OPERATION_CONSTANTS.OPERATION_TYPES._VALIDATE).toBe("validate");
-      expect(OPERATION_CONSTANTS.OPERATION_TYPES._PROCESS).toBe("process");
-      expect(OPERATION_CONSTANTS.OPERATION_TYPES._SYNC).toBe("sync");
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES.VALIDATE).toBe("validate");
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES.PROCESS).toBe("process");
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES.SYNC).toBe("sync");
     });
 
     it("should have batch operations", () => {
-      expect(OPERATION_CONSTANTS.OPERATION_TYPES._BATCH_CREATE).toBe(
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES.BATCH_CREATE).toBe(
         "batch_create",
       );
       expect(OPERATION_CONSTANTS.OPERATION_TYPES.BATCH_UPDATE).toBe(
@@ -83,57 +83,57 @@ describe("OPERATION_CONSTANTS", () => {
 
     it("should have query operations", () => {
       expect(OPERATION_CONSTANTS.OPERATION_TYPES.QUERY).toBe("query");
-      expect(OPERATION_CONSTANTS.OPERATION_TYPES._SEARCH).toBe("search");
-      expect(OPERATION_CONSTANTS.OPERATION_TYPES._FILTER).toBe("filter");
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES.SEARCH).toBe("search");
+      expect(OPERATION_CONSTANTS.OPERATION_TYPES.FILTER).toBe("filter");
     });
   });
 
   describe("DATA_STATES", () => {
     it("should have all required data states", () => {
-      expect(OPERATION_CONSTANTS.DATA_STATES._FRESH).toBe("fresh");
-      expect(OPERATION_CONSTANTS.DATA_STATES._STALE).toBe("stale");
-      expect(OPERATION_CONSTANTS.DATA_STATES._DIRTY).toBe("dirty");
-      expect(OPERATION_CONSTANTS.DATA_STATES._CACHED).toBe("cached");
-      expect(OPERATION_CONSTANTS.DATA_STATES._CORRUPTED).toBe("corrupted");
+      expect(OPERATION_CONSTANTS.DATA_STATES.FRESH).toBe("fresh");
+      expect(OPERATION_CONSTANTS.DATA_STATES.STALE).toBe("stale");
+      expect(OPERATION_CONSTANTS.DATA_STATES.DIRTY).toBe("dirty");
+      expect(OPERATION_CONSTANTS.DATA_STATES.CACHED).toBe("cached");
+      expect(OPERATION_CONSTANTS.DATA_STATES.CORRUPTED).toBe("corrupted");
     });
   });
 
   describe("PRIORITYLEVELS", () => {
     it("should have all priority levels", () => {
       expect(OPERATION_CONSTANTS.PRIORITY_LEVELS.CRITICAL).toBe("critical");
-      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS._HIGH).toBe("high");
-      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS._MEDIUM).toBe("medium");
-      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS._LOW).toBe("low");
-      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS._BACKGROUND).toBe("background");
+      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS.HIGH).toBe("high");
+      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS.MEDIUM).toBe("medium");
+      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS.LOW).toBe("low");
+      expect(OPERATION_CONSTANTS.PRIORITY_LEVELS.BACKGROUND).toBe("background");
     });
   });
 
   describe("QUALITY_LEVELS", () => {
     it("should have all quality levels", () => {
-      expect(OPERATION_CONSTANTS.QUALITY_LEVELS._EXCELLENT).toBe("excellent");
-      expect(OPERATION_CONSTANTS.QUALITY_LEVELS._GOOD).toBe("good");
-      expect(OPERATION_CONSTANTS.QUALITY_LEVELS._FAIR).toBe("fair");
-      expect(OPERATION_CONSTANTS.QUALITY_LEVELS._POOR).toBe("poor");
-      expect(OPERATION_CONSTANTS.QUALITY_LEVELS._UNKNOWN).toBe("unknown");
+      expect(OPERATION_CONSTANTS.QUALITY_LEVELS.EXCELLENT).toBe("excellent");
+      expect(OPERATION_CONSTANTS.QUALITY_LEVELS.GOOD).toBe("good");
+      expect(OPERATION_CONSTANTS.QUALITY_LEVELS.FAIR).toBe("fair");
+      expect(OPERATION_CONSTANTS.QUALITY_LEVELS.POOR).toBe("poor");
+      expect(OPERATION_CONSTANTS.QUALITY_LEVELS.UNKNOWN).toBe("unknown");
     });
   });
 
   describe("PROCESSING_MODES", () => {
     it("should have all processing modes", () => {
-      expect(OPERATION_CONSTANTS.PROCESSING_MODES.REALTIME).toBe("real_time");
+      expect(OPERATION_CONSTANTS.PROCESSING_MODES.REAL_TIME).toBe("real_time");
       expect(OPERATION_CONSTANTS.PROCESSING_MODES.BATCH).toBe("batch");
-      expect(OPERATION_CONSTANTS.PROCESSING_MODES._STREAMING).toBe("streaming");
-      expect(OPERATION_CONSTANTS.PROCESSING_MODES._SCHEDULED).toBe("scheduled");
-      expect(OPERATION_CONSTANTS.PROCESSING_MODES.ONDEMAND).toBe("on_demand");
+      expect(OPERATION_CONSTANTS.PROCESSING_MODES.STREAMING).toBe("streaming");
+      expect(OPERATION_CONSTANTS.PROCESSING_MODES.SCHEDULED).toBe("scheduled");
+      expect(OPERATION_CONSTANTS.PROCESSING_MODES.ON_DEMAND).toBe("on_demand");
     });
   });
 
   describe("NOTIFICATION_TYPES", () => {
     it("should have all notification types", () => {
-      expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES._INFO).toBe("info");
+      expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES.INFO).toBe("info");
       expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES.SUCCESS).toBe("success");
-      expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES._WARNING).toBe("warning");
-      expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES._ERROR).toBe("error");
+      expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES.WARNING).toBe("warning");
+      expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES.ERROR).toBe("error");
       expect(OPERATION_CONSTANTS.NOTIFICATION_TYPES.CRITICAL).toBe("critical");
     });
   });

@@ -156,7 +156,7 @@ describe('CONSTANTS_META', () => {
   describe('Constants Collection Integration', () => {
     it('should correctly count unified constants', () => {
       // Arrange
-      import { UNIFIED_CONSTANTS } from '../../../../../../src/common/constants/unified/unified-constants-collection';
+      const { UNIFIED_CONSTANTS } = eval('require')('../../../../../../src/common/constants/unified/unified-constants-collection');
       const expectedCount = Object.keys(UNIFIED_CONSTANTS).length;
 
       // Assert

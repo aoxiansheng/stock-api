@@ -128,7 +128,7 @@ describe('Storage Internal DTOs', () => {
         dto.metadata = {
           storageClassification: 'stockquote',
           provider: 'longport',
-          _market: 'US',
+          market: 'US',
           dataSize: 1024,
           compressed: true,
           tags: { version: '1.0', source: 'api' },
@@ -249,7 +249,7 @@ describe('Storage Internal DTOs', () => {
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e._property === 'serializedData')).toBe(true);
+        expect(errors.some(e => e.property === 'serializedData')).toBe(true);
       });
 
       it('should fail validation with non-boolean compressed', async () => {

@@ -23,7 +23,7 @@ describe("AuthSubjectFactory", () => {
     id: "apikey-123",
     name: "Test API Key",
     appKey: "test-app-key",
-    permissions: [Permission.DATA_READ, Permission.QUERYEXECUTE],
+    permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
     isActive: true,
     rateLimit: { requests: 1000, window: "1h" },
   };
@@ -33,7 +33,7 @@ describe("AuthSubjectFactory", () => {
     id: "admin-apikey-123",
     name: "System Admin API Key",
     appKey: "admin-app-key",
-    permissions: [Permission.SYSTEMADMIN, Permission.SYSTEMMONITOR, Permission.SYSTEMMETRICS],
+    permissions: [Permission.SYSTEM_ADMIN, Permission.SYSTEM_MONITOR, Permission.SYSTEM_METRICS],
     isActive: true,
     rateLimit: { requests: 2000, window: "1h" },
   };
@@ -53,11 +53,11 @@ describe("AuthSubjectFactory", () => {
     appKey: "dev-app-key",
     permissions: [
       Permission.DATA_READ,
-      Permission.QUERYEXECUTE,
+      Permission.QUERY_EXECUTE,
       Permission.PROVIDERS_READ,
-      Permission.TRANSFORMERPREVIEW,
+      Permission.TRANSFORMER_PREVIEW,
       Permission.SYSTEM_MONITOR,
-      Permission.DEBUGACCESS,
+      Permission.DEBUG_ACCESS,
     ],
     isActive: true,
     rateLimit: { requests: 1000, window: "1h" },
@@ -81,7 +81,7 @@ describe("AuthSubjectFactory", () => {
       const subject = AuthSubjectFactory.createFromRequest(mockRequest);
 
       expect(subject).toBeInstanceOf(JwtUserSubject);
-      expect(subject.type).toBe(AuthSubjectType.JWTUSER);
+      expect(subject.type).toBe(AuthSubjectType.JWT_USER);
       expect(subject.id).toBe(mockUser.id);
     });
 
@@ -93,7 +93,7 @@ describe("AuthSubjectFactory", () => {
       const subject = AuthSubjectFactory.createFromRequest(mockRequest);
 
       expect(subject).toBeInstanceOf(ApiKeySubject);
-      expect(subject.type).toBe(AuthSubjectType.APIKEY);
+      expect(subject.type).toBe(AuthSubjectType.API_KEY);
       expect(subject.id).toBe(mockApiKey.id);
     });
 
@@ -223,7 +223,7 @@ describe("AuthSubjectFactory", () => {
       const subject = AuthSubjectFactory.createJwtUserSubject(userWithMetadata);
 
       expect(subject.metadata.username).toBe(userWithMetadata.username);
-      expect(subject.metadata.email).toBe(userWithMetadata.email);
+      expect(subject.metadata._email).toBe(userWithMetadata._email);
       expect(subject.metadata.isActive).toBe(userWithMetadata.isActive);
     });
   });
@@ -348,7 +348,7 @@ describe("AuthSubjectFactory", () => {
 
     it("should return false for subject without id", () => {
       const subjectWithoutId = {
-        type: AuthSubjectType.JWTUSER,
+        type: AuthSubjectType.JWT_USER,
         permissions: [],
         metadata: {},
         getDisplayName: () => "test",
@@ -361,7 +361,7 @@ describe("AuthSubjectFactory", () => {
 
     it("should handle non-ApiKeySubject with API_KEY type gracefully", () => {
       const mockSubject = {
-        type: AuthSubjectType.APIKEY,
+        type: AuthSubjectType.API_KEY,
         id: "mock-id",
         permissions: [],
         metadata: {},
@@ -615,7 +615,7 @@ describe("AuthSubjectFactory", () => {
 
       // Map database fields to expected format
       const mappedApiKey = {
-        id: dbApiKey._id,
+        id: dbApiKey.id,
         appKey: dbApiKey.app_key,
         permissions: dbApiKey.permissions,
         isActive: dbApiKey.is_active,
@@ -623,7 +623,7 @@ describe("AuthSubjectFactory", () => {
 
       const subject = AuthSubjectFactory.createApiKeySubject(mappedApiKey);
 
-      expect(subject.id).toBe(dbApiKey._id);
+      expect(subject.id).toBe(dbApiKey.id);
       expect(subject.permissions).toEqual(dbApiKey.permissions);
     });
   });
@@ -637,7 +637,7 @@ describe("AuthSubjectFactory", () => {
         expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
         expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
         expect(subject.hasPermission(Permission.SYSTEM_METRICS)).toBe(true);
-        expect(subject.hasPermission(Permission.SYSTEMHEALTH)).toBe(true);
+        expect(subject.hasPermission(Permission.SYSTEM_HEALTH)).toBe(true);
       });
 
       it("should validate SYSTEM_ADMIN does not grant non-system permissions", () => {

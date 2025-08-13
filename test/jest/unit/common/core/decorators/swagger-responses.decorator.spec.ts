@@ -72,7 +72,7 @@ describe('Swagger Responses Decorators', () => {
     // 断言 ApiResponse 被调用，并检查其参数
     expect(ApiResponse).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: HttpStatus._CREATED,
+        status: HttpStatus.CREATED,
         description: '创建成功',
         schema: expect.objectContaining({
           properties: expect.objectContaining({

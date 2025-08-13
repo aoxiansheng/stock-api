@@ -216,7 +216,7 @@ describe('AlertController', () => {
 
   describe('deleteRule', () => {
     it('should delete an alert rule', async () => {
-      alertingService.deleteRule.mockResolvedValue(undefined);
+      alertingService.delet_eRule.mockResolvedValue(undefined);
       await expect(controller.deleteRule('1')).resolves.toBeUndefined();
       expect(alertingService.delet_eRule).toHaveBeenCalledWith('1');
     });
@@ -344,16 +344,16 @@ describe('AlertController', () => {
         pagination: { total: 1, totalPages: 1, page: 1, limit: 10, hasNext: false, hasPrev: false },
       };
 
-      alertHistoryService.queryAlerts.mockResolvedValue({ alerts: mockAlerts, total: 1 });
-      paginationService.createPaginatedResponse.mockReturnValue(mockPaginatedResult);
+      alertHistoryService._queryAlerts.mockResolvedValue({ alerts: mockAlerts, total: 1 });
+      paginationService._createPaginatedResponse.mockReturnValue(mockPaginatedResult);
 
       const result = await controller.getAlertHistory(query);
       expect(result).toEqual(mockPaginatedResult);
-      expect(alertHistoryService.queryAlerts).toHaveBeenCalledWith(expect.objectContaining({
+      expect(alertHistoryService._queryAlerts).toHaveBeenCalledWith(expect.objectContaining({
         page: 1,
         limit: 10,
       }));
-      expect(paginationService.createPaginatedResponse).toHaveBeenCalledWith(
+      expect(paginationService._createPaginatedResponse).toHaveBeenCalledWith(
         expect.any(Array),
         1,
         10,
@@ -363,11 +363,11 @@ describe('AlertController', () => {
 
     it('should convert string dates in query to Date objects', async () => {
       const query: AlertQueryDto = { startTime: '2023-01-01T00:00:00Z', endTime: '2023-01-02T00:00:00Z' };
-      alertHistoryService.queryAlerts.mockResolvedValue({ alerts: [], total: 0 });
-      paginationService.createPaginatedResponse.mockReturnValue({ data: [], pagination: { totalItems: 0, totalPages: 0, currentPage: 1, itemsPerPage: 20 } });
+      alertHistoryService._queryAlerts.mockResolvedValue({ alerts: [], total: 0 });
+      paginationService._createPaginatedResponse.mockReturnValue({ data: [], pagination: { totalItems: 0, totalPages: 0, currentPage: 1, itemsPerPage: 20 } });
 
       await controller.getAlertHistory(query);
-      expect(alertHistoryService.queryAlerts).toHaveBeenCalledWith(expect.objectContaining({
+      expect(alertHistoryService._queryAlerts).toHaveBeenCalledWith(expect.objectContaining({
         startTime: expect.any(Date),
         endTime: expect.any(Date),
       }));
@@ -475,7 +475,7 @@ describe('AlertController', () => {
 
     beforeEach(() => {
       // 为 resolveAlert 方法提供必要的模拟
-      alertHistoryService.queryAlerts.mockResolvedValue({ 
+      alertHistoryService._queryAlerts.mockResolvedValue({ 
         alerts: [mockAlert], 
         total: 1 
       });
@@ -490,7 +490,7 @@ describe('AlertController', () => {
     });
 
     it('should throw NotFoundException if alert not found', async () => {
-      alertHistoryService.queryAlerts.mockResolvedValue({ alerts: [], total: 0 });
+      alertHistoryService._queryAlerts.mockResolvedValue({ alerts: [], total: 0 });
       const resolveDto: ResolveAlertDto = { resolvedBy: 'user1' };
 
       await expect(controller.resolveAlert('nonexistent', resolveDto)).rejects.toThrow(
@@ -508,11 +508,11 @@ describe('AlertController', () => {
         config: { to: 'test@example.com' },
         message: 'Test message',
       };
-      notificationService.testChannel.mockResolvedValue(true);
+      notificationService._testChannel.mockResolvedValue(true);
 
       const result = await controller.testNotificationChannel(testDto);
       expect(result).toEqual({ success: true });
-      expect(notificationService.testChannel).toHaveBeenCalledWith(
+      expect(notificationService._testChannel).toHaveBeenCalledWith(
         testDto.type,
         testDto.config,
       );
@@ -524,7 +524,7 @@ describe('AlertController', () => {
         config: { to: 'test@example.com' },
         message: 'Test message',
       };
-      notificationService.testChannel.mockResolvedValue(false);
+      notificationService._testChannel.mockResolvedValue(false);
 
       const result = await controller.testNotificationChannel(testDto);
       expect(result).toEqual({ success: false });
@@ -688,7 +688,7 @@ describe('AlertController', () => {
 
     beforeEach(() => {
       // 为 batchResolveAlerts 提供必要的模拟
-      alertHistoryService.queryAlerts.mockResolvedValue({ alerts: mockAlerts, total: mockAlerts.length });
+      alertHistoryService._queryAlerts.mockResolvedValue({ alerts: mockAlerts, total: mockAlerts.length });
     });
 
     it('should batch resolve alerts successfully', async () => {

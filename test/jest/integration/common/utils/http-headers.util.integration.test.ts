@@ -13,8 +13,8 @@ import * as request from "supertest";
 import {
   Market,
   MARKETS,
-  MARKETNAMES,
-  MARKETTIMEZONES,
+  MARKET_NAMES,
+  MARKET_TIMEZONES,
 } from "../../../../../src/common/constants/market.constants";
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 import {
@@ -362,7 +362,7 @@ describe("common Utilities Integration", () => {
       const concurrentRequests = 50;
       const startTime = Date.now();
 
-      const promises = Array.from({ _length: concurrentRequests }, (_, i) =>
+      const promises = Array.from({ length: concurrentRequests }, (_, i) =>
         request(httpServer)
           .get("/test-common-utilities/headers-test")
           .set("User-Agent", `Test-Agent-${i}`)

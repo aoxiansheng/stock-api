@@ -383,8 +383,8 @@ describe("Data-Mapper Workflow E2E", () => {
   describe("🧹 清理测试数据", () => {
     it("应该清理测试过程中创建的数据", async () => {
       const cleanupResults = {
-        delet_edTemplates: 0,
-        delet_edRules: 0,
+        deletedTemplates: 0,
+        deletedRules: 0,
         errors: []
       };
 
@@ -419,8 +419,8 @@ describe("Data-Mapper Workflow E2E", () => {
       }
 
       console.log("🧹 测试数据清理完成:", {
-        delet_edTemplates: cleanupResults.delet_edTemplates,
-        delet_edRules: cleanupResults.delet_edRules,
+        deletedTemplates: cleanupResults.deletedTemplates,
+        deletedRules: cleanupResults.deletedRules,
         errors: cleanupResults.errors
       });
 

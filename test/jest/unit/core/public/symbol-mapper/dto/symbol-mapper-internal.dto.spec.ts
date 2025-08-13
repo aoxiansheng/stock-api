@@ -7,7 +7,7 @@
 import { validate } from 'class-validator';
 import {
   MappingConfigResultDto,
-  _SymbolMappingRuleContextDto,
+  SymbolMappingRuleContextDto,
   InternalSymbolMappingDto,
   SymbolMapperPerformanceDto,
   SymbolMapperApplicationResultDto,
@@ -28,8 +28,8 @@ describe('Symbol Mapper Internal DTOs', () => {
       it('should create instance with found mapping config', () => {
         // Arrange
         dto.found = true;
-        dto._SymbolMappingRule = [];
-        dto._dataSourceName = 'longport';
+        dto.SymbolMappingRule = [];
+        dto.dataSourceName = 'longport';
 
         // Assert
         expect(dto.found).toBe(true);
@@ -416,7 +416,7 @@ describe('Symbol Mapper Internal DTOs', () => {
         dto.fromProvider = 'standard';
         dto.toProvider = 'longport';
         dto.processingTime = 15;
-        dto._success = true;
+        dto.success = true;
         dto.operation = 'transform';
 
         // Assert

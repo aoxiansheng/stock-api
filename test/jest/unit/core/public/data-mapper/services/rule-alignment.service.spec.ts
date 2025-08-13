@@ -142,7 +142,7 @@ describe("realignExistingRule", () => {
 it("should realign existing rule successfully", async () => {
       ruleModel.findById.mockResolvedValue(mockRule as any);
       templateModel.findById.mockResolvedValue(mockTemplate as any);
-      ruleModel._findByIdAndUpdate.mockResolvedValue(mockRule as any);
+      ruleModel.findByIdAndUpdate.mockResolvedValue(mockRule as any);
 
       const result = await service.realignExistingRule(ruleId);
 
@@ -168,7 +168,7 @@ it("should handle rule with no existing field mappings", async () => {
       const result = await service.realignExistingRule(ruleId);
 
       expect(result.rule).toBeDefined();
-      expect(result.changes._removed).toHaveLength(0);
+      expect(result.changes.removed).toHaveLength(0);
     });
 
 it("should handle rule realignment with template changes", async () => {

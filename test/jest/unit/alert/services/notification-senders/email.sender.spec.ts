@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailSender } from '../../../../../../src/alert/services/notification-senders/email.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
 
 describe('EmailSender', () => {
   let sender: EmailSender;
@@ -67,9 +67,9 @@ describe('EmailSender', () => {
       const result = await sender.send(mockAlert, mockRule, mockConfig);
 
       expect(result.success).toBe(true);
-      expect(result._channelType).toEqual(NotificationChannelType.EMAIL);
+      expect(result.channelType).toEqual(NotificationChannelType.EMAIL);
       expect(result.message).toEqual(`邮件已发送到 ${mockConfig.to}`);
-      expect(result._sentAt).toBeInstanceOf(Date);
+      expect(result.sentAt).toBeInstanceOf(Date);
       expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 

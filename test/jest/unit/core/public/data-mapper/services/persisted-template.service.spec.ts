@@ -65,7 +65,7 @@ describe("PersistedTemplateService", () => {
 
   describe("persistPresetTemplates", () => {
     it("should persist all preset templates successfully", async () => {
-      templateModel._findOne.mockResolvedValue(null); // No existing templates
+      templateModel.findOne.mockResolvedValue(null); // No existing templates
 
       const result = await service.persistPresetTemplates();
 
@@ -95,7 +95,7 @@ describe("PersistedTemplateService", () => {
       }) as any);
 
       const saveError = new Error("Save failed");
-      templateModel._constructor = jest.fn().mockImplementation(() => ({
+      templateModel.constructor = jest.fn().mockImplementation(() => ({
         save: jest.fn().mockRejectedValue(saveError)
       }));
 
@@ -202,7 +202,7 @@ describe("PersistedTemplateService", () => {
     it("should delete persisted template successfully", async () => {
       const nonPresetTemplate = { ...mockTemplate, isPreset: false };
       templateModel.findById.mockResolvedValue(nonPresetTemplate as any);
-      templateModel._findByIdAndDelete.mockResolvedValue(nonPresetTemplate as any);
+      templateModel.findByIdAndDelete.mockResolvedValue(nonPresetTemplate as any);
 
       await service.deletePersistedTemplate("507f1f77bcf86cd799439011");
 
@@ -312,7 +312,7 @@ describe("PersistedTemplateService", () => {
 
       const result = await service.resetPresetTemplates();
 
-      expect(result.delet_ed).toBe(2);
+      expect(result.deleted).toBe(2);
       expect(result.recreated).toBe(2);
       expect(result.message).toContain('删除了');
       expect(result.message).toContain('重新创建了');
@@ -331,7 +331,7 @@ describe("PersistedTemplateService", () => {
 
       const result = await service.resetPresetTemplates();
 
-      expect(result.delet_ed).toBe(0);
+      expect(result.deleted).toBe(0);
       expect(result.recreated).toBe(2);
       expect(result.message).toContain('重新创建了');
     });
@@ -386,7 +386,7 @@ describe("PersistedTemplateService", () => {
     });
 
     it("should handle very large extracted fields arrays", async () => {
-      const largeFieldsArray = Array.from({ _length: 1000 }, (_, i) => ({
+      const largeFieldsArray = Array.from({ length: 1000 }, (_, i) => ({
         fieldPath: `field${i}`,
         fieldName: `field${i}`,
         fieldType: "string",

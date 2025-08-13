@@ -175,7 +175,7 @@ describe("SecurityScannerService", () => {
       // Add a small delay to ensure duration > 0
       const originalDateNow = Date.now;
       let callCount = 0;
-      Date._now = jest.fn(() => {
+      Date.now = jest.fn(() => {
         callCount++;
         return originalDateNow() + (callCount > 1 ? 1 : 0); // Add 1ms after first call
       });
@@ -184,11 +184,11 @@ describe("SecurityScannerService", () => {
 
       expect(result).toBeDefined();
       expect(result.scanId).toMatch(/^scan_\d+_[a-f0-9]{8}$/);
-      expect(result._timestamp).toBeInstanceOf(Date);
+      expect(result.timestamp).toBeInstanceOf(Date);
       expect(result.duration).toBeGreaterThanOrEqual(0); // Changed to >= to handle fast execution
-      expect(result._totalChecks).toBe(14); // 修复：更新为正确的检查项数量
+      expect(result.totalChecks).toBe(14); // 修复：更新为正确的检查项数量
       expect(result.vulnerabilities).toBeInstanceOf(Array);
-      expect(result._summary).toBeDefined();
+      expect(result.summary).toBeDefined();
       expect(result.securityScore).toBeGreaterThanOrEqual(0);
       expect(result.securityScore).toBeLessThanOrEqual(100);
       expect(result.recommendations).toBeInstanceOf(Array);
@@ -222,7 +222,7 @@ describe("SecurityScannerService", () => {
       const result = await service.performSecurityScan();
 
       const expiredKeyVuln = result.vulnerabilities.find(
-        (v) => v.id === `expired_api_key_${expiredApiKey._id}`,
+        (v) => v.id === `expired_api_key_${expiredApiKey.id}`,
       );
       expect(expiredKeyVuln).toBeDefined();
       expect(expiredKeyVuln?.severity).toBe("high");
@@ -241,7 +241,7 @@ describe("SecurityScannerService", () => {
       const result = await service.performSecurityScan();
 
       const excessivePermVuln = result.vulnerabilities.find(
-        (v) => v.id === `excessive_permissions_${overPermissionedKey._id}`,
+        (v) => v.id === `excessive_permissions_${overPermissionedKey.id}`,
       );
       expect(excessivePermVuln).toBeDefined();
       expect(excessivePermVuln?.severity).toBe("medium");

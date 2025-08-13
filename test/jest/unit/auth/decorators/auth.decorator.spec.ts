@@ -156,7 +156,7 @@ describe("Auth Decorators", () => {
     });
 
     it("should apply JWT authentication with permissions", () => {
-      const permissions = [Permission.DATAREAD, Permission.QUERY_EXECUTE];
+      const permissions = [Permission.DATA_READ, Permission.QUERY_EXECUTE];
 
       Auth(undefined, permissions);
 
@@ -167,14 +167,14 @@ describe("Auth Decorators", () => {
       expect(mockApiBearerAuth).toHaveBeenCalled();
       expect(mockRequirePermissions).toHaveBeenCalledWith(
         Permission.DATA_READ,
-        Permission.QUERYEXECUTE,
+        Permission.QUERY_EXECUTE,
       );
       expect(mockRoles).not.toHaveBeenCalled();
     });
 
     it("should apply JWT authentication with both roles and permissions", () => {
       const roles = [UserRole.ADMIN];
-      const permissions = [Permission.USERMANAGE, Permission.APIKEY_MANAGE];
+      const permissions = [Permission.USER_MANAGE, Permission.APIKEY_MANAGE];
 
       Auth(roles, permissions);
 

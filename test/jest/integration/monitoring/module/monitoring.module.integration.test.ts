@@ -94,7 +94,7 @@ describe("Monitoring Auth Integration", () => {
       username: adminUser.username,
       password: "admin123",
     });
-    adminToken = adminLogin._accessToken;
+    adminToken = adminLogin.accessToken;
 
     const developerLogin = await authService.login({
       username: developerUser.username,
@@ -116,15 +116,15 @@ describe("Monitoring Auth Integration", () => {
           name: "Test Monitoring API Key",
           permissions: [
             Permission.SYSTEM_ADMIN,
-            Permission.SYSTEMHEALTH,
-            Permission.DATAREAD,
-            Permission.QUERYEXECUTE,
+            Permission.SYSTEM_HEALTH,
+            Permission.DATA_READ,
+            Permission.QUERY_EXECUTE,
           ],
         });
 
       if (response.status === 201) {
         const validatedResponse = validateApiKeyCreationResponse(response.body);
-        (global as any)._testApiKey = validatedResponse.data._appKey;
+        (global as any)._testApiKey = validatedResponse.data.appKey;
         (global as any)._testApiSecret = validatedResponse.data.accessToken;
 
         console.log("✅ 测试API Key创建成功", {
@@ -344,8 +344,8 @@ describe("Monitoring Auth Integration", () => {
       const validatedResponse = validateEndpointMetricsResponse(response.body);
 
       // 验证性能指标包含认证相关的信息
-      expect(validatedResponse.data._metrics).toBeDefined();
-      expect(validatedResponse.data._total).toBeGreaterThanOrEqual(0);
+      expect(validatedResponse.data.metrics).toBeDefined();
+      expect(validatedResponse.data.total).toBeGreaterThanOrEqual(0);
     });
 
     it("应该监控认证失败的统计", async () => {
@@ -432,9 +432,9 @@ describe("Monitoring Auth Integration", () => {
 
       // Assert - 验证性能指标响应结构
       const validatedResponse = validatePerformanceMetricsResponse(
-        response._body,
+        response.body,
       );
-      expect(validatedResponse.data._summary).toBeDefined();
+      expect(validatedResponse.data.summary).toBeDefined();
     });
 
     it("应该监控JWT Token认证的系统指标", async () => {

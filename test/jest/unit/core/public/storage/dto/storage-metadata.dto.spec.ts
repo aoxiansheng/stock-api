@@ -13,8 +13,8 @@ describe('StorageMetadataDto', () => {
       it('should create instance with all required parameters', () => {
         // Arrange
         const key = 'stock:00700.HK:quote';
-        const storageType = StorageType._BOTH;
-        const storageClassification = StorageClassification.STOCKQUOTE;
+        const storageType = StorageType.BOTH;
+        const storageClassification = StorageClassification.STOCK_QUOTE;
         const provider = 'longport';
         const market = 'HK';
         const dataSize = 1024;
@@ -40,7 +40,7 @@ describe('StorageMetadataDto', () => {
         expect(dto.market).toBe(market);
         expect(dto.dataSize).toBe(dataSize);
         expect(dto.processingTime).toBe(processingTime);
-        expect(dto._storedAt).toBeDefined();
+        expect(dto.storedAt).toBeDefined();
         expect(typeof dto.storedAt).toBe('string');
       });
 
@@ -80,7 +80,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.CACHE,
-          StorageClassification.STOCKCANDLE,
+          StorageClassification.STOCK_CANDLE,
           'test_provider',
           'US',
           2048,
@@ -101,7 +101,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.PERSISTENT,
-          StorageClassification.COMPANYPROFILE,
+          StorageClassification.COMPANY_PROFILE,
           'provider',
           'CN',
           512,
@@ -119,7 +119,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.PERSISTENT,
-          StorageClassification.MARKETNEWS,
+          StorageClassification.MARKET_NEWS,
           'provider',
           'EU',
           256,
@@ -167,10 +167,10 @@ describe('StorageMetadataDto', () => {
       it('should handle all storage classifications', () => {
         // Arrange
         const classifications = [
-          StorageClassification.STOCKQUOTE,
+          StorageClassification.STOCK_QUOTE,
           StorageClassification.STOCK_CANDLE,
-          StorageClassification.STOCKTICK,
-          StorageClassification.FINANCIALSTATEMENT,
+          StorageClassification.STOCK_TICK,
+          StorageClassification.FINANCIAL_STATEMENT,
           StorageClassification.COMPANY_PROFILE,
           StorageClassification.MARKET_NEWS,
           StorageClassification.TRADING_ORDER,
@@ -594,7 +594,7 @@ describe('StorageMetadataDto', () => {
         StorageClassification.GENERAL,
         'provider',
         'TEST',
-        Number.MAX_SAFEINTEGER,
+        Number.MAX_SAFE_INTEGER,
         Number.MAX_SAFE_INTEGER,
       );
 

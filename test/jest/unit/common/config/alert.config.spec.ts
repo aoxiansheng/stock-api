@@ -6,7 +6,7 @@ describe("AlertConfig", () => {
 
   beforeEach(() => {
     jest.resetModules();
-    process._env = { ...originalEnv };
+    process.env = { ...originalEnv };
   });
 
   afterAll(() => {

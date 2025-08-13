@@ -157,9 +157,9 @@ describe("Monitoring Database Integration", () => {
       for (let i = 0; i < 5; i++) {
         complexQueries.push(
           userModel.aggregate([
-            { $_match: { role: { $_in: [UserRole.ADMIN, UserRole.DEVELOPER] } } },
-            { $_group: { id: "$role", count: { $_sum: 1 } } },
-            { $_sort: { count: -1 } },
+            { $match: { role: { $in: [UserRole.ADMIN, UserRole.DEVELOPER] } } },
+            { $group: { _id: "$role", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
           ]),
         );
       }

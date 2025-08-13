@@ -13,7 +13,7 @@ import { SecurityScanResultRepository } from "../../../../../src/security/reposi
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  SECURITYSCANNERCONFIG,
+  SECURITY_SCANNER_CONFIG,
   SECURITY_SCANNER_OPERATIONS,
   SECURITY_SCANNER_MESSAGES,
   SECURITY_SCANNER_RECOMMENDATIONS,
@@ -100,11 +100,11 @@ describe("SecurityScannerService Optimization Features", () => {
 
   describe("Constants Usage", () => {
     it("should use configuration constants for scan settings", () => {
-      expect(SECURITY_SCANNER_CONFIG.SCAN_INTERVALMS).toBe(
+      expect(SECURITY_SCANNER_CONFIG.SCAN_INTERVAL_MS).toBe(
         24 * 60 * 60 * 1000,
       );
-      expect(SECURITY_SCANNER_CONFIG.DEFAULT_SCANHISTORYLIMIT).toBe(10);
-      expect(SECURITY_SCANNER_CONFIG.SCAN_IDPREFIX).toBe("scan_");
+      expect(SECURITY_SCANNER_CONFIG.DEFAULT_SCAN_HISTORY_LIMIT).toBe(10);
+      expect(SECURITY_SCANNER_CONFIG.SCAN_ID_PREFIX).toBe("scan_");
     });
 
     it("should use operation constants for logging", () => {
@@ -120,9 +120,9 @@ describe("SecurityScannerService Optimization Features", () => {
     });
 
     it("should use message constants for logging", () => {
-      expect(SECURITY_SCANNER_MESSAGES.SCANSTARTED).toBe("开始安全扫描");
-      expect(SECURITY_SCANNER_MESSAGES.SCANCOMPLETED).toBe("安全扫描完成");
-      expect(SECURITY_SCANNER_MESSAGES.SCANFAILED).toBe("安全扫描失败");
+      expect(SECURITY_SCANNER_MESSAGES.SCAN_STARTED).toBe("开始安全扫描");
+      expect(SECURITY_SCANNER_MESSAGES.SCAN_COMPLETED).toBe("安全扫描完成");
+      expect(SECURITY_SCANNER_MESSAGES.SCAN_FAILED).toBe("安全扫描失败");
     });
   });
 
@@ -170,7 +170,7 @@ describe("SecurityScannerService Optimization Features", () => {
 
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          operation: SECURITY_SCANNER_OPERATIONS.GET_SCANHISTORY,
+          operation: SECURITY_SCANNER_OPERATIONS.GET_SCAN_HISTORY,
           limit: 5,
         }),
         SECURITY_SCANNER_MESSAGES.SCAN_HISTORY_RETRIEVED,
@@ -226,18 +226,18 @@ describe("SecurityScannerService Optimization Features", () => {
 
       // Should include general recommendations
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.GENERALAUDIT,
+        SECURITY_SCANNER_RECOMMENDATIONS.GENERAL_AUDIT,
       );
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.UPDATEDEPENDENCIES,
+        SECURITY_SCANNER_RECOMMENDATIONS.UPDATE_DEPENDENCIES,
       );
 
       // Should include context-specific recommendations
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.IMPLEMENT2FA,
+        SECURITY_SCANNER_RECOMMENDATIONS.IMPLEMENT_2FA,
       );
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.SECURITYMONITORING,
+        SECURITY_SCANNER_RECOMMENDATIONS.SECURITY_MONITORING,
       );
     });
 
@@ -261,7 +261,7 @@ describe("SecurityScannerService Optimization Features", () => {
       );
 
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.PENETRATIONTESTING,
+        SECURITY_SCANNER_RECOMMENDATIONS.PENETRATION_TESTING,
       );
     });
   });
@@ -281,7 +281,7 @@ describe("SecurityScannerService Optimization Features", () => {
 
       expect(errorSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          operation: SECURITY_SCANNER_OPERATIONS.CHECK_PASSWORDSECURITY,
+          operation: SECURITY_SCANNER_OPERATIONS.CHECK_PASSWORD_SECURITY,
         }),
         SECURITY_SCANNER_MESSAGES.PASSWORD_CHECK_FAILED,
       );
@@ -311,7 +311,7 @@ describe("SecurityScannerService Optimization Features", () => {
   describe("Performance Monitoring", () => {
     it("should have performance monitoring constants defined", () => {
       expect(SECURITY_SCANNER_CONFIG.SCAN_TIMEOUT_MS).toBeDefined();
-      expect(SECURITY_SCANNER_MESSAGES.SCAN_TIMEOUTWARNING).toBe(
+      expect(SECURITY_SCANNER_MESSAGES.SCAN_TIMEOUT_WARNING).toBe(
         "扫描执行时间较长",
       );
     });

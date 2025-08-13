@@ -58,7 +58,7 @@ describe('DataChangeDetectorService', () => {
       const newData = { ...initialData, lastPrice: 151.0 }; // 价格变化超过阈值
       const result = await service.detectSignificantChange(symbol, newData, market, MarketStatus.TRADING);
       expect(result.hasChanged).toBe(true);
-      expect(result._significantChanges).toContain('lastPrice');
+      expect(result.significantChanges).toContain('lastPrice');
       expect(result.changeReason).toBe('价格显著变化');
     });
 
@@ -107,14 +107,14 @@ describe('DataChangeDetectorService', () => {
       const cache = (service as any).snapshotCache;
       const MAXSIZE = (service as any).MAX_CACHE_SIZE;
       // 填充超过缓存大小的快照
-      for (let i = 0; i < MAX_SIZE + 5; i++) {
+      for (let i = 0; i < MAXSIZE + 5; i++) {
         cache.set(`SYM${i}`, { symbol: `SYM${i}`, timestamp: Date.now() + i, checksum: '', criticalValues: {} });
       }
-      expect(cache.size).toBe(MAX_SIZE + 5);
+      expect(cache.size).toBe(MAXSIZE + 5);
       // 执行清理
       (service as any).cleanupOldSnapshots();
       // 验证缓存大小
-      expect(cache.size).toBe(MAX_SIZE);
+      expect(cache.size).toBe(MAXSIZE);
     });
   });
 });

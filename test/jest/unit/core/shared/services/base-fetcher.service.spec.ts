@@ -49,7 +49,7 @@ class TestFetcherService extends BaseFetcherService {
 
 describe('BaseFetcherService', () => {
   let service: TestFetcherService;
-  let metricsRegistry: jest._Mocked<MetricsRegistryService>;
+  let metricsRegistry: jest.Mocked<MetricsRegistryService>;
 
   beforeEach(async () => {
     const mockMetricsRegistry = {
@@ -434,8 +434,8 @@ describe('BaseFetcherService', () => {
       // 直接实例化会在编译时报错: new BaseFetcherService(metricsRegistry);
       
       // 验证类的名称和抽象性质
-      expect(BaseFetcherService._name).toBe('BaseFetcherService');
-      expect(BaseFetcherService.prototype.const_ructor).toBe(BaseFetcherService);
+      expect(BaseFetcherService.name).toBe('BaseFetcherService');
+      expect(BaseFetcherService.prototype.constructor).toBe(BaseFetcherService);
     });
 
     it('子类必须实现executeCore抽象方法', () => {

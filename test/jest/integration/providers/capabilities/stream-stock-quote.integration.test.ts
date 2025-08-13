@@ -131,9 +131,9 @@ describe('StreamStockQuote Capability Integration', () => {
   describe('基本功能测试', () => {
     it('应该正确获取stream-stock-quote能力', () => {
       expect(streamCapability).toBeDefined();
-      expect(streamCapability._name).toBe('stream-stock-quote');
+      expect(streamCapability.name).toBe('stream-stock-quote');
       expect(Array.isArray(streamCapability.supportedMarkets)).toBe(true);
-      expect(streamCapability.supportedMarkets).toContain(MARKETS._HK);
+      expect(streamCapability.supportedMarkets).toContain(MARKETS.HK);
     });
     
     it('应该能够初始化WebSocket连接', async () => {
@@ -258,7 +258,7 @@ describe('StreamStockQuote Capability Integration', () => {
     it('应该处理初始化错误', async () => {
       // 模拟上下文服务初始化失败
       const originalInitialize = longportStreamService.initializeWebSocket;
-      longportStreamService._initializeWebSocket = jest.fn().mockRejectedValue(new Error('初始化失败'));
+      longportStreamService.initializeWebSocket = jest.fn().mockRejectedValue(new Error('初始化失败'));
       
       await expect(streamCapability.initialize(longportStreamService))
         .rejects
@@ -271,7 +271,7 @@ describe('StreamStockQuote Capability Integration', () => {
     it('应该处理订阅错误', async () => {
       // 模拟订阅失败
       const originalSubscribe = longportStreamService.subscribe;
-      longportStreamService._subscribe = jest.fn().mockRejectedValue(new Error('订阅失败'));
+      longportStreamService.subscribe = jest.fn().mockRejectedValue(new Error('订阅失败'));
       
       await expect(streamCapability.subscribe(['700.HK'], longportStreamService))
         .rejects
@@ -284,7 +284,7 @@ describe('StreamStockQuote Capability Integration', () => {
     it('应该处理取消订阅错误', async () => {
       // 模拟取消订阅失败
       const originalUnsubscribe = longportStreamService.unsubscribe;
-      longportStreamService._unsubscribe = jest.fn().mockRejectedValue(new Error('取消订阅失败'));
+      longportStreamService.unsubscribe = jest.fn().mockRejectedValue(new Error('取消订阅失败'));
       
       await expect(streamCapability.unsubscribe(['700.HK'], longportStreamService))
         .rejects

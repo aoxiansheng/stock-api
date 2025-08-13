@@ -17,7 +17,7 @@ import { Module } from '@nestjs/common';
 
 // --- Mock Implementations ---
 
-const MOCK_PROVIDERSDIR = path.join(dirname, 'test-providers');
+const MOCK_PROVIDERSDIR = path.join(__dirname, 'test-providers');
 
 // Mock Provider: mock-provider-one
 const MOCK_PROVIDER_ONEPATH = path.join(MOCK_PROVIDERSDIR, 'mock-provider-one');
@@ -65,7 +65,7 @@ describe('EnhancedCapabilityRegistryService Integration Test', () => {
 
     // Write mock files
     await fs.writeFile(
-      path.join(MOCK_PROVIDER_ONE_PATH, 'index.ts'),
+      path.join(MOCK_PROVIDER_ONEPATH, 'index.ts'),
       `
         import { Provider } from '../../../../../../src/providers/decorators';
         @Provider({ name: 'mock-provider-one' })
@@ -110,17 +110,17 @@ describe('EnhancedCapabilityRegistryService Integration Test', () => {
     );
     
     // 2. Point SmartPathResolver to the mock directory
-    jest.spyOn(SmartPathResolver, 'getProvidersPath').mockReturnValue(MOCK_PROVIDERS_DIR);
+    jest.spyOn(SmartPathResolver, 'getProvidersPath').mockReturnValue(MOCK_PROVIDERSDIR);
     
     // 3. Dynamically import the modules to trigger decorators
-    await import(path.join(MOCK_PROVIDER_ONE_PATH, 'index.ts'));
+    await import(path.join(MOCK_PROVIDER_ONEPATH, 'index.ts'));
     await import(path.join(MOCK_PROVIDER_ONE_CAPS_PATH, 'get-stock-quote.ts'));
     await import(path.join(MOCK_PROVIDER_ONE_CAPS_PATH, 'stream-live-trades.ts'));
   });
 
   afterAll(async () => {
     // Cleanup
-    await fs.rm(MOCK_PROVIDERS_DIR, { recursive: true, force: true });
+    await fs.rm(MOCK_PROVIDERSDIR, { recursive: true, force: true });
     jest.restoreAllMocks();
     CapabilityCollector.clear();
   });
@@ -129,7 +129,7 @@ describe('EnhancedCapabilityRegistryService Integration Test', () => {
     CapabilityCollector.clear();
     
     // Re-import to populate collector before each test
-    await import(path.join(MOCK_PROVIDER_ONE_PATH, 'index.ts'));
+    await import(path.join(MOCK_PROVIDER_ONEPATH, 'index.ts'));
     await import(path.join(MOCK_PROVIDER_ONE_CAPS_PATH, 'get-stock-quote.ts'));
     await import(path.join(MOCK_PROVIDER_ONE_CAPS_PATH, 'stream-live-trades.ts'));
 
@@ -164,8 +164,8 @@ describe('EnhancedCapabilityRegistryService Integration Test', () => {
     expect(stats.totalProviders).toBe(1);
     expect(stats.totalCapabilities).toBe(2);
     expect(stats.decoratorCapabilities).toBe(2);
-    expect(stats._streamCapabilities).toBe(1);
-    expect(stats._restCapabilities).toBe(1);
+    expect(stats.streamCapabilities).toBe(1);
+    expect(stats.restCapabilities).toBe(1);
   });
   
   it('should return correct stats', () => {

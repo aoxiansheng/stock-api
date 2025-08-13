@@ -32,17 +32,17 @@ describe('StorageQueryDto', () => {
 
     it('should pass validation with valid string fields', async () => {
       const dto = new StorageQueryDto();
-      dto._keySearch = 'valid-key';
-      dto._provider = 'longport';
-      dto._market = 'HK';
+      dto.keySearch = 'valid-key';
+      dto.provider = 'longport';
+      dto.market = 'HK';
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
 
     it('should pass validation with valid enum values', async () => {
       const dto = new StorageQueryDto();
-      dto._storageType = StorageType.CACHE;
-      dto._storageClassification = StorageClassification.STOCK_QUOTE;
+      dto.storageType = StorageType.CACHE;
+      dto.storageClassification = StorageClassification.STOCK_QUOTE;
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
@@ -57,7 +57,7 @@ describe('StorageQueryDto', () => {
 
     it('should pass validation with valid tags array', async () => {
       const dto = new StorageQueryDto();
-      dto._tags = ['tag1', 'tag2'];
+      dto.tags = ['tag1', 'tag2'];
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });

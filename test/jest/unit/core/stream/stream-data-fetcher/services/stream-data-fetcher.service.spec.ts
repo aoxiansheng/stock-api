@@ -211,7 +211,7 @@ describe('StreamDataFetcherService', () => {
 
     it('应该在连接不活跃时抛出异常', async () => {
       // Arrange
-      connection._isConnected = false;
+      connection.isConnected = false;
 
       // Act & Assert
       await expect(service.subscribeToSymbols(connection, testSymbols)).rejects.toThrow(
@@ -383,10 +383,10 @@ describe('StreamDataFetcherService', () => {
       // Assert
       expect(stats).toBeDefined();
       expect(stats.connectionId).toBe(connection.id);
-      expect(stats._status).toBeDefined();
-      expect(stats._connectionDurationMs).toBeGreaterThanOrEqual(0);
-      expect(stats._messagesReceived).toBe(0);
-      expect(stats._subscribedSymbolsCount).toBe(0);
+      expect(stats.status).toBeDefined();
+      expect(stats.connectionDurationMs).toBeGreaterThanOrEqual(0);
+      expect(stats.messagesReceived).toBe(0);
+      expect(stats.subscribedSymbolsCount).toBe(0);
     });
   });
 

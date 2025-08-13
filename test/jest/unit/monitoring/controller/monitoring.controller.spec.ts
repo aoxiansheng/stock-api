@@ -80,7 +80,7 @@ describe("MonitoringController", () => {
       waitingConnections: 0,
       averageQueryTime: 50,
       slowQueries: 2,
-      _totalQueries: 1000,
+      totalQueries: 1000,
     },
     redis: {
       memoryUsage: 1024 * 1024,
@@ -154,7 +154,7 @@ describe("MonitoringController", () => {
     };
 
     // Mock process.uptime to return a fixed value for stable tests
-    jest.spyOn(process, "uptime").mockReturnValue(MOCK_UPTIME);
+    jest.spyOn(process, "uptime").mockReturnValue(MOCKUPTIME);
 
     const mockCacheOptimizationProvider = {
       getStats: jest.fn().mockResolvedValue(mockCacheStats),
@@ -345,8 +345,8 @@ describe("MonitoringController", () => {
       const result = await controller.getPerformanceMetrics(queryDto);
       expect(result).toEqual(mockPerformanceSummary);
       expect(performanceMonitor.getPerformanceSummary).toHaveBeenCalledWith(
-        queryDto._startDate,
-        queryDto._endDate,
+        queryDto.startDate,
+        queryDto.endDate,
       );
     });
   });
@@ -411,7 +411,7 @@ describe("MonitoringController", () => {
       expect(result).toHaveProperty("metrics");
       expect(result).toHaveProperty("recommendations");
       expect(
-        metricsHealthService._getDetailedHealthReport,
+        metricsHealthService.getDetailedHealthReport,
       ).toHaveBeenCalledTimes(1);
     });
   });
@@ -665,10 +665,10 @@ describe("MonitoringController", () => {
 
         const result = await controller.getSystemMetrics();
 
-        expect(result._memoryUsageGB).toBeCloseTo(1, 3);
-        expect(result._heapUsedGB).toBeCloseTo(0.5, 3);
-        expect(result._heapTotalGB).toBeCloseTo(1, 3);
-        expect(result._uptimeHours).toBeCloseTo(2, 3);
+        expect(result.memoryUsageGB).toBeCloseTo(1, 3);
+        expect(result.heapUsedGB).toBeCloseTo(0.5, 3);
+        expect(result.heapTotalGB).toBeCloseTo(1, 3);
+        expect(result.uptimeHours).toBeCloseTo(2, 3);
         expect(result.timestamp).toBeDefined();
       });
 
@@ -688,7 +688,7 @@ describe("MonitoringController", () => {
         const result = await controller.getHealthStatus();
         expect(result.status).toBe("operational");
         expect(result.timestamp).toBeDefined();
-        expect(result.uptime).toBe(MOCK_UPTIME);
+        expect(result.uptime).toBe(MOCKUPTIME);
         expect(result.version).toBeDefined();
         expect(result.message).toBe("系统运行正常");
       });
@@ -887,7 +887,7 @@ describe("MonitoringController", () => {
         expect(result.performance).toEqual(mockPerformanceSummary);
         expect(result.cache).toEqual(mockCacheStats);
         expect(result.trends).toBeDefined();
-        expect(result._alerts).toEqual(mockAlertStats);
+        expect(result.alerts).toEqual(mockAlertStats);
       });
 
       it("should handle service errors", async () => {
@@ -1172,7 +1172,7 @@ describe("MonitoringController", () => {
 
       expect(defaultMetrics.healthScore).toBe(0);
       expect(defaultMetrics.endpoints).toEqual([]);
-      expect(defaultMetrics.system.uptime).toBe(MOCK_UPTIME);
+      expect(defaultMetrics.system.uptime).toBe(MOCKUPTIME);
     });
 
     it("should cover getDefaultDatabaseMetrics", () => {
@@ -1198,7 +1198,7 @@ describe("MonitoringController", () => {
       expect(defaultStatus.status).toBe("degraded");
       expect(defaultStatus.score).toBe(0);
       expect(defaultStatus.issues).toContain("性能监控服务不可用");
-      expect(defaultStatus.uptime).toBe(MOCK_UPTIME);
+      expect(defaultStatus.uptime).toBe(MOCKUPTIME);
     });
   });
 });
