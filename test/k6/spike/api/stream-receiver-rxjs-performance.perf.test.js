@@ -40,7 +40,7 @@ const TEST_SYMBOLS = [
 ];
 
 export default function () {
-  const BASE_URL = __ENV.BASE_URL || 'localhost:3000';
+  const BASE_URL = _ENV.BASE_URL || 'localhost:3000';
   const WS_URL = `ws://${BASE_URL}/api/v1/stream-receiver/connect`;
   
   group('RxJS bufferTime 批量处理性能测试', () => {

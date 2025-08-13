@@ -42,7 +42,7 @@ export const options = {
 };
 
 // 测试配置
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
 const API_VERSION = '/api/v1';
 
 // 测试用户池

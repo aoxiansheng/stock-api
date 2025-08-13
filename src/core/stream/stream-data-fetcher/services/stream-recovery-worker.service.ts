@@ -58,11 +58,11 @@ export interface RecoveryMetrics {
 }
 
 // QPS限流配置
-interface RateLimitConfig {
-  maxQPS: number;
-  burstSize: number;
-  window: number; // 毫秒
-}
+// interface RateLimitConfig {
+//   maxQPS: number;
+//   burstSize: number;
+//   window: number; // 毫秒
+// }
 
 @Injectable()
 export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -220,7 +220,8 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
     });
     
     // 监听队列事件用于指标收集
-    this.queueEvents.on('completed', ({ jobId }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    this.queueEvents.on('completed', ({ jobId: _jobId }) => {
       this.metricsService.recordQPS();
     });
   }

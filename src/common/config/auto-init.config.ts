@@ -304,7 +304,7 @@ export function getAutoInitConfig(): AutoInitConfig {
 
 // 🔀 符号映射数据配置已迁移到符号映射器
 // 现在使用 SymbolMapper 组件进行管理
-// 详见：src/core/symbol-mapper/
+// 详见：src/core/public/symbol-mapper/
 
 /**
  * 📚 配置文件使用指南

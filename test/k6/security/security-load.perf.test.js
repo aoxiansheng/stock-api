@@ -28,7 +28,7 @@ export const options = {
 };
 
 // 测试数据
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
 const TEST_USERS = [
   { username: 'sectest1', password: 'password123' },
   { username: 'sectest2', password: 'password123' },
@@ -97,7 +97,7 @@ export function setup() {
 }
 
 export default function (data) {
-  const currentVU = __VU;
+  const currentVU = _VU;
   const scenario = currentVU % 6;
   
   switch (scenario) {

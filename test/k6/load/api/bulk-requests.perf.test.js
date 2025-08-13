@@ -20,7 +20,7 @@ export const options = {
 };
 
 // 测试数据
-const API_BASE_URL = __ENV.API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = _ENV.API_BASE_URL || 'http://localhost:3001';
 const TEST_APP_KEY = 'test-app-key-for-performance';
 const TEST_ACCESS_TOKEN = 'test-access-token-for-performance';
 

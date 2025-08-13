@@ -32,9 +32,9 @@ export const options = {
 };
 
 // 测试数据
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
-const API_KEY = __ENV.API_KEY || 'spike-test-app-key';
-const ACCESS_TOKEN = __ENV.ACCESS_TOKEN || 'spike-test-access-token';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
+const API_KEY = _ENV.API_KEY || 'spike-test-app-key';
+const ACCESS_TOKEN = _ENV.ACCESS_TOKEN || 'spike-test-access-token';
 
 // 峰值测试场景
 const SPIKE_SCENARIOS = {
@@ -55,7 +55,7 @@ let spikeStartTime = null;
 let baselinePerformance = null;
 
 export default function () {
-  const currentVUs = __VU;
+  const currentVUs = _VU;
   const currentTime = Date.now();
   
   // 根据当前虚拟用户数判断峰值阶段

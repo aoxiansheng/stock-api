@@ -25,7 +25,7 @@ export const options = {
 };
 
 // 测试数据
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
 const TEST_USERS = [
   { username: 'testuser1', email: 'test1@example.com', password: 'password123' },
   { username: 'testuser2', email: 'test2@example.com', password: 'password123' },

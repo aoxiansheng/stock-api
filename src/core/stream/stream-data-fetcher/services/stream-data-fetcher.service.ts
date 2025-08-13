@@ -418,7 +418,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
           // 使用新增的 isAlive 方法
           const isAlive = await (connection as any).isAlive?.(timeoutMs) || false;
           return [key, isAlive] as [string, boolean];
-        } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (_error) {
           return [key, false] as [string, boolean];
         }
       }
@@ -446,7 +447,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
    * BaseFetcherService抽象方法实现
    * @param params 参数
    */
-  async executeCore(params: any): Promise<any> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async executeCore(_params: any): Promise<any> {
     // 这里可以用于其他核心操作，暂时不需要实现
     throw new Error('executeCore not implemented for StreamDataFetcher');
   }

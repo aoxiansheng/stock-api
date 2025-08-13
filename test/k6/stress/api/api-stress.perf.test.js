@@ -28,9 +28,9 @@ export const options = {
 };
 
 // 测试数据
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
-const API_KEY = __ENV.API_KEY || 'stress-test-app-key';
-const ACCESS_TOKEN = __ENV.ACCESS_TOKEN || 'stress-test-access-token';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
+const API_KEY = _ENV.API_KEY || 'stress-test-app-key';
+const ACCESS_TOKEN = _ENV.ACCESS_TOKEN || 'stress-test-access-token';
 
 // 测试负载数据
 const STRESS_SYMBOLS = [
@@ -49,7 +49,7 @@ const headers = {
 
 export default function () {
   // 根据当前用户数量选择不同的压力策略
-  const currentVUs = __VU; 
+  const currentVUs = _VU; 
   const strategy = currentVUs % 4;
   
   switch (strategy) {

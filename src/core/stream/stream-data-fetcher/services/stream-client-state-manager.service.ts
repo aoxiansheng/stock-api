@@ -253,7 +253,8 @@ export class StreamClientStateManager {
   getAllRequiredSymbols(provider?: string, capability?: string): string[] {
     const symbols = new Set<string>();
     
-    for (const [clientId, clientSub] of this.clientSubscriptions.entries()) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const [_clientId, clientSub] of this.clientSubscriptions.entries()) {
       // 提供商过滤
       if (provider && clientSub.providerName !== provider) continue;
       
@@ -292,7 +293,8 @@ export class StreamClientStateManager {
       capabilityBreakdown: {},
     };
 
-    for (const [clientId, clientSub] of this.clientSubscriptions.entries()) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const [_clientId, clientSub] of this.clientSubscriptions.entries()) {
       stats.totalSubscriptions += clientSub.symbols.size;
       
       // 活跃客户端检查

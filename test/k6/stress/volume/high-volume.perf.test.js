@@ -53,7 +53,7 @@ export const options = {
 };
 
 // 测试配置
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
 const API_VERSION = '/api/v1';
 
 // 大数据集定义
@@ -231,7 +231,7 @@ export function setup() {
 // 主测试函数
 export default function(data) {
   // 根据当前虚拟用户数量选择测试强度
-  const currentVUs = __VU;
+  const currentVUs = _VU;
   let testIntensity = 'medium';
   
   if (currentVUs > 300) {

@@ -13,11 +13,9 @@
     "start:prod": "UV_THREADPOOL_SIZE=16 bun src/main.ts",
     "start:test": "NODE_ENV=test bun src/main.ts",
     "predev": "echo 'Starting with auto-initialization on startup'",
-    
     "// ========== 构建命令 ==========": "",
     "build": "bun run compile",
     "compile": "tsc -p tsconfig.build.json",
-    
     "// ========== 代码质量命令 ==========": "",
     "lint": "bun eslint \"{src,test}/**/*.ts\" --fix",
     "lint:common": "bun eslint \"{src,test}/**/*.ts\" --config .eslintrc.common-compliance.js",
@@ -26,15 +24,12 @@
     "compliance:check": "chmod +x scripts/check-common-compliance.sh && ./scripts/check-common-compliance.sh",
     "compliance:fix": "npm run lint:common --fix && npm run format",
     "security:deps": "bun audit --audit-level moderate",
-    
     "// ========== 初始化命令 ==========": "",
     "init:basic-info": "echo 'Basic info initialization handled by auto-startup service'",
-    
     "// ========== 基础测试命令 ==========": "",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:blackbox && npm run test:security && npm run test:perf",
     "test:all": "npm run test:unit:all && npm run test:integration:all && npm run test:e2e:all && npm run test:blackbox && npm run test:security:all && npm run test:perf:all",
     "test:dev": "npm run test:unit:watch",
-    
     "// ========== 单元测试命令 ==========": "",
     "test:unit": "jest --config test/config/jest.unit.config.js",
     "test:unit:all": "npm-run-all --parallel test:unit:auth test:unit:core test:unit:common test:unit:alert test:unit:cache test:unit:metrics test:unit:security test:unit:monitoring test:unit:providers",
@@ -49,7 +44,6 @@
     "test:unit:security": "jest --config test/config/jest.unit.config.js test/jest/unit/security",
     "test:unit:monitoring": "jest --config test/config/jest.unit.config.js test/jest/unit/monitoring",
     "test:unit:providers": "jest --config test/config/jest.unit.config.js test/jest/unit/providers",
-    
     "// ========== 集成测试命令 ==========": "",
     "test:integration": "jest --config test/config/jest.integration.config.js",
     "test:integration:all": "npm-run-all --parallel test:integration:auth test:integration:core test:integration:monitoring test:integration:alert test:integration:metrics test:integration:security test:integration:cross-module test:integration:common test:integration:providers test:integration:cache",
@@ -65,7 +59,6 @@
     "test:integration:common": "jest --config test/config/jest.integration.config.js test/jest/integration/common",
     "test:integration:providers": "jest --config test/config/jest.integration.config.js test/jest/integration/providers",
     "test:integration:cache": "jest --config test/config/jest.integration.config.js test/jest/integration/cache",
-    
     "// ========== E2E 测试命令 ==========": "",
     "test:e2e": "jest --config test/config/jest.e2e.config.js --rootDir .",
     "test:e2e:all": "npm-run-all --parallel test:e2e:auth test:e2e:core test:e2e:monitoring test:e2e:cache test:e2e:metrics test:e2e:common test:e2e:alert",
@@ -78,7 +71,6 @@
     "test:e2e:metrics": "jest --config test/config/jest.e2e.config.js test/jest/e2e/metrics",
     "test:e2e:common": "jest --config test/config/jest.e2e.config.js test/jest/e2e/common",
     "test:e2e:alert": "jest --config test/config/jest.e2e.config.js test/jest/e2e/alert",
-    
     "// ========== 特殊测试类型 ==========": "",
     "test:blackbox": "jest --config test/config/jest.blackbox.config.js",
     "test:blackbox:stream": "jest --config test/config/jest.blackbox.config.js test/jest/blackbox/stream-receiver-real-time.e2e.test.ts",
@@ -92,7 +84,6 @@
     "test:security:cache": "jest --config test/config/jest.security.config.js test/jest/security/cache",
     "test:security:metrics": "jest --config test/config/jest.security.config.js test/jest/security/metrics",
     "test:security:monitoring": "jest --config test/config/jest.security.config.js test/jest/security/monitoring",
-    
     "// ========== 性能测试命令 ==========": "",
     "test:perf": "npm run test:perf:auth && npm run test:perf:data && npm run test:perf:api",
     "test:perf:all": "npm run test:perf:auth && npm run test:perf:data && npm run test:perf:volume && npm run test:perf:api && npm run test:perf:security",
@@ -113,7 +104,6 @@
     "test:perf:load:data-flow": "echo 'Load data flow performance tests placeholder'",
     "test:perf:spike:data-flow": "echo 'Spike data flow performance tests placeholder'",
     "test:perf:stress:data-flow": "echo 'Stress data flow performance tests placeholder'",
-    
     "// ========== 覆盖率测试命令 ==========": "",
     "test:coverage:all": "npm-run-all --serial test:coverage:unit test:coverage:integration test:coverage:e2e test:coverage:security && npm run coverage:merge",
     "test:coverage": "npm-run-all --parallel test:coverage:auth test:coverage:core test:coverage:common test:coverage:alert test:coverage:cache test:coverage:metrics test:coverage:security:unit test:coverage:monitoring test:coverage:providers test:coverage:scripts test:coverage:integration:alert test:coverage:integration:cross-module test:coverage:integration:monitoring test:coverage:e2e:alert",
@@ -141,7 +131,6 @@
     "test:coverage:e2e:cache": "jest --config test/config/jest.e2e.config.js test/jest/e2e/cache --coverage --coverageDirectory=coverage/modules/cache-e2e",
     "test:coverage:e2e:metrics": "jest --config test/config/jest.e2e.config.js test/jest/e2e/metrics --coverage --coverageDirectory=coverage/modules/metrics-e2e",
     "test:coverage:e2e:common": "jest --config test/config/jest.e2e.config.js test/jest/e2e/common --coverage --coverageDirectory=coverage/modules/common-e2e",
-    
     "// ========== 覆盖率分析工具 ==========": "",
     "coverage:merge": "ts-node tools/coverage/coverage-merger.ts",
     "coverage:mapping": "ts-node tools/coverage/coverage-mapper.ts",
@@ -153,7 +142,6 @@
     "coverage:report:html": "nyc report --reporter=html --temp-dir=coverage/merged --report-dir=coverage/html",
     "coverage:report:lcov": "nyc report --reporter=lcov --temp-dir=coverage/merged --report-dir=coverage/lcov",
     "coverage:clean": "rimraf coverage/*",
-    
     "// ========== 代码结构验证工具 ==========": "",
     "test:src-validate-structure": "ts-node tools/src-structure-validator.ts",
     "test:validate-structure": "ts-node test/utils/tools/test-structure-validator.ts",
@@ -162,35 +150,25 @@
     "test:validate-structure:apply": "chmod +x ./test-structure-repair.sh && ./test-structure-repair.sh",
     "test:validate-naming": "ts-node test/utils/tools/test-naming-validator.ts",
     "test:quality-check": "npm run coverage:gate-check && npm run test:validate-structure",
-
     "// ========== 测试工具集合 ==========": "",
-   
     "tools:structure-validator": "ts-node test/utils/tools/test-structure-validator.ts",
     "tools:structure-validator:execute": "ts-node test/utils/tools/test-structure-validator.ts --execute",
     "tools:structure-validator:dry-run": "ts-node test/utils/tools/test-structure-validator.ts --dry-run",
-   
-    
     "tools:find-duplicates": "ts-node test/utils/tools/test-find-duplicates.ts",
     "tools:find-duplicates:cleanup": "ts-node test/utils/tools/test-find-duplicates.ts --cleanup",
     "tools:find-duplicates:execute": "ts-node test/utils/tools/test-find-duplicates.ts --cleanup --execute",
     "tools:find-duplicates:script": "ts-node test/utils/tools/test-find-duplicates.ts --generate-script",
-    
     "tools:naming-validator": "ts-node test/utils/tools/test-naming-validator.ts",
     "tools:naming-validator:script": "ts-node test/utils/tools/test-naming-validator.ts --generate-script",
-    
     "tools:quality-analyzer": "ts-node test/utils/tools/test-quality-analyzer.ts",
-    
     "tools:clean-duplicates": "ts-node test/utils/tools/test-duplicate-cleaner.ts --dry-run",
     "tools:clean-duplicates:report": "ts-node test/utils/tools/test-duplicate-cleaner.ts --report",
     "tools:clean-duplicates:execute": "ts-node test/utils/tools/test-duplicate-cleaner.ts --execute",
     "tools:clean-duplicates:universal": "ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --dry-run",
     "tools:clean-duplicates:universal:execute": "ts-node test/utils/tools/test-duplicate-cleaner.ts --universal --execute",
-    
     "// ========== 测试工具完整工作流 ==========": "",
     "tools:analyze-all": "npm run tools:structure-validator && npm run tools:naming-validator && npm run tools:find-duplicates && npm run tools:clean-duplicates:universal",
     "tools:fix-all": "npm run tools:structure-validator:execute && npm run tools:find-duplicates:execute && npm run tools:clean-duplicates:universal:execute",
-    
-     
     "// ========== 测试辅助工具 ==========": "",
     "test:helpers:api-response": "ts-node -e \"console.log('API响应助手工具可通过 import 使用'); console.log('示例: import { validateStandardResponse } from \\\"./tools/api-response-helpers\\\";');\"",
     "test:helpers:monitoring": "ts-node -e \"console.log('监控测试助手工具可通过 import 使用'); console.log('示例: import { createMonitoringTestHelper } from \\\"./test/utils/utils/monitoring-test-helpers\\\";');\"",
@@ -199,28 +177,22 @@
     "test:helpers:concurrent": "ts-node test/utils/utils/concurrent-request.helper.ts",
     "test:data-manager": "ts-node -e \"console.log('测试数据管理器可通过 import 使用'); console.log('示例: import { TestDataManager } from \\\"./test/utils/utils/test-data-manager\\\";');\"",
     "test:tools:all": "npm run test:helpers:api-response && npm run test:helpers:monitoring && npm run test:helpers:async && npm run test:helpers:batch-request && npm run test:helpers:concurrent && npm run test:data-manager && npm run test:validate-structure",
-
-    
     "// ========== 调试命令 ==========": "",
     "test:debug:auth": "jest --config test/config/jest.unit.config.js test/jest/unit/auth --verbose --no-coverage",
     "test:debug:alert": "jest --config test/config/jest.unit.config.js test/jest/unit/alert --verbose --no-coverage",
     "test:debug:monitoring": "jest --config test/config/jest.unit.config.js test/jest/unit/monitoring --verbose --no-coverage",
-    
-    
     "// ========== CI/CD 命令 ==========": "",
     "test:ci:quick": "npm run test:unit && npm run test:integration",
     "test:ci:full": "npm run test:ci:quick && npm run test:e2e && npm run test:security",
     "test:ci:security": "npm run test:security && npm run test:perf:security",
     "test:ci:performance": "npm run test:perf:auth && npm run test:perf:data && npm run test:perf:api",
     "test:ci:modules": "npm run test:unit:auth && npm run test:unit:core && npm run test:unit:alert && npm run test:unit:monitoring",
-    
     "// ========== 测试套件命令 ==========": "",
     "test:smoke": "npm run test:unit:auth && npm run test:unit:core && npm run test:integration:core",
     "test:regression": "npm run test:all && npm run test:perf:load",
     "test:database": "npm run test:integration:auth && npm run test:integration:monitoring && npm run test:integration:alert",
     "test:cache": "npm run test:unit:cache && npm run test:integration && npm run test:e2e:cache",
     "test:api": "npm run test:e2e:core && npm run test:perf:api:all",
-    
     "// ========== 其他工具 ==========": "",
     "cli": "bun src/providers/cli/index.ts"
   },
@@ -270,6 +242,7 @@
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
+    "ts-morph": "^26.0.0",
     "uuid": "^11.1.0",
     "xss": "^1.0.15"
   },

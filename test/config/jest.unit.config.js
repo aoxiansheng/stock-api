@@ -63,20 +63,20 @@ module.exports = {
     '^@security/(.*)$': '<rootDir>/src/security/$1',
     '^@providers/(.*)$': '<rootDir>/src/providers/$1',
     // Mock FeatureFlags to prevent StreamPerformanceMetrics errors
-    '^@common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
-    '^../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
-    '^../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
-    '^../../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
-    '^../../../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
-    '^../../../../../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^@common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
+    '^../../src/common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
+    '^../../../common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
+    '^../../../../common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
+    '^../../../../../common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
+    '^../../../../../../src/common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
     
     // Mock PermissionService to prevent UnifiedPermissionsGuard errors
-    // '^@auth/services/permission\\.service$': '<rootDir>/test/__mocks__/permission.service.js',
-    // '^../../../../../src/auth/services/permission\\.service$': '<rootDir>/test/__mocks__/permission.service.js',
+    // '^@auth/services/permission\\.service$': '<rootDir>/test/mocks/permission.service.js',
+    // '^../../../../../src/auth/services/permission\\.service$': '<rootDir>/test/mocks/permission.service.js',
     
     // Mock UnifiedPermissionsGuard to prevent dependency issues (disabled for true guard testing)
-    // '^@auth/guards/unified-permissions\\.guard$': '<rootDir>/test/__mocks__/unified-permissions.guard.js',
-    // '^../../../../../src/auth/guards/unified-permissions\\.guard$': '<rootDir>/test/__mocks__/unified-permissions.guard.js',
+    // '^@auth/guards/unified-permissions\\.guard$': '<rootDir>/test/mocks/unified-permissions.guard.js',
+    // '^../../../../../src/auth/guards/unified-permissions\\.guard$': '<rootDir>/test/mocks/unified-permissions.guard.js',
   },
   
   // TypeScript 转换 - 更新配置方式

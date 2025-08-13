@@ -15,7 +15,7 @@ import { BackgroundTaskService } from "../services/background-task.service";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { StreamPerformanceMetrics } from "../services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
-import { BaseFetcherService } from "../services/base-fetcher.service";
+// import { BaseFetcherService } from "../services/base-fetcher.service"; // Currently unused
 
 /**
  * A global module that provides shared services for data fetching,

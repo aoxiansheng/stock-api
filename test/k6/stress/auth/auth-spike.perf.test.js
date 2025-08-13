@@ -43,7 +43,7 @@ export const options = {
 };
 
 // 测试配置
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = _ENV.BASE_URL || 'http://localhost:3000';
 const API_VERSION = '/api/v1';
 
 // 测试用户池
@@ -165,7 +165,7 @@ export function setup() {
 // 主测试函数
 export default function(data) {
   // 检测当前阶段的虚拟用户数来判断是否为突发阶段
-  const currentVUs = __VU;
+  const currentVUs = _VU;
   const currentStage = getCurrentStage();
   
   if (currentStage === 'spike' || currentStage === 'extreme_spike') {
@@ -185,7 +185,7 @@ export default function(data) {
 
 // 获取当前测试阶段
 function getCurrentStage() {
-  const elapsedTime = __ITER * 1000; // 估算已用时间
+  const elapsedTime = _ITER * 1000; // 估算已用时间
   
   if (elapsedTime < 60000) return 'baseline';
   if (elapsedTime < 70000) return 'spike';

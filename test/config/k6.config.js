@@ -83,13 +83,13 @@ export const TEST_ENVIRONMENTS = {
   },
   staging: {
     baseUrl: 'https://staging-api.example.com',
-    apiKey: __ENV.STAGING_API_KEY,
-    accessToken: __ENV.STAGING_ACCESS_TOKEN,
+    apiKey: _ENV.STAGING_API_KEY,
+    accessToken: _ENV.STAGING_ACCESS_TOKEN,
   },
   production: {
     baseUrl: 'https://api.example.com',
-    apiKey: __ENV.PROD_API_KEY,
-    accessToken: __ENV.PROD_ACCESS_TOKEN,
+    apiKey: _ENV.PROD_API_KEY,
+    accessToken: _ENV.PROD_ACCESS_TOKEN,
   }
 };
 
@@ -177,8 +177,8 @@ export const REPORTING_CONFIG = {
   
   tags: {
     test_type: 'performance',
-    environment: __ENV.TEST_ENV || 'local',
-    version: __ENV.APP_VERSION || 'dev'
+    environment: _ENV.TEST_ENV || 'local',
+    version: _ENV.APP_VERSION || 'dev'
   }
 };
 
