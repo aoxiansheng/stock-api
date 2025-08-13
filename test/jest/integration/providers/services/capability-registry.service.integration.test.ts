@@ -46,6 +46,7 @@ describe("CapabilityRegistryService - Integration", () => {
   });
 
   beforeEach(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const module: TestingModule = await Test.createTestingModule({
       providers: [CapabilityRegistryService],
     }).compile();
@@ -318,7 +319,7 @@ describe("CapabilityRegistryService - Integration", () => {
       // We can't directly test private methods, but we can test the overall behavior
       // that relies on directory existence checks during discovery
 
-      // Mock the internal __dirname to point to our test directory
+      // Mock the internal _dirname to point to our test directory
 
       // This would normally be tested by setting up actual file structure
       // and calling discoverCapabilities, but that's complex for unit tests

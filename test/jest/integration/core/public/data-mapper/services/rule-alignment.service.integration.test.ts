@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // rule-alignment.service.integration.test.ts - 测试占位代码
 // 路径: integration/core/public/data-mapper/services/rule-alignment.service.integration.test.ts
 

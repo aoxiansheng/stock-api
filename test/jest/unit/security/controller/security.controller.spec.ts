@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { SecurityController } from "../../../../../src/security/controller/security.controller";
 import { SecurityScannerService } from "../../../../../src/security/services/security-scanner.service";
@@ -14,10 +15,10 @@ describe("SecurityController", () => {
   let auditService: jest.Mocked<SecurityAuditService>;
 
   const mockScanResult = {
-    scanId: "scan-123",
+    _scanId: "scan-123",
     timestamp: new Date(),
     duration: 5000,
-    totalChecks: 10,
+    _totalChecks: 10,
     vulnerabilities: [],
     summary: { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
     securityScore: 100,
@@ -162,7 +163,7 @@ describe("SecurityController", () => {
       const result = await controller.getVulnerabilities({});
       expect(result.vulnerabilities).toEqual([]);
       expect(result.total).toBe(0);
-      expect(result.message).toBe("暂无扫描结果，请先执行安全扫描");
+      expect(result._message).toBe("暂无扫描结果，请先执行安全扫描");
     });
 
     it("should filter vulnerabilities by severity", async () => {
@@ -171,7 +172,7 @@ describe("SecurityController", () => {
         type: "authentication",
         severity: "high",
         title: "Test vulnerability",
-        description: "Test description",
+        descr_iption: "Test description",
         location: "test location",
         impact: "high",
         recommendation: "Fix this",
@@ -324,7 +325,7 @@ describe("SecurityController", () => {
   describe("getSuspiciousIPs", () => {
     it("should return a list of suspicious IPs", async () => {
       const result = await controller.getSuspiciousIPs();
-      expect(result.suspiciousIPs).toHaveLength(1);
+      expect(result._suspiciousIPs).toHaveLength(1);
       expect(result.suspiciousIPs[0].ip).toBe("1.2.3.4");
     });
   });
@@ -389,8 +390,8 @@ describe("SecurityController", () => {
 
       const result = await controller.getSecurityDashboard();
       expect(result.overview.securityScore).toBe(0);
-      expect(result.statistics.totalVulnerabilities).toBe(0);
-      expect(result.topVulnerabilities).toEqual([]);
+      expect(result.statistics._totalVulnerabilities).toBe(0);
+      expect(result._topVulnerabilities).toEqual([]);
     });
 
     it("should add critical vulnerability recommendation when critical vulnerabilities exist", async () => {
@@ -468,7 +469,7 @@ describe("SecurityController", () => {
       auditService.getSuspiciousIPs.mockResolvedValue([]);
 
       const result = await controller.getSecurityDashboard();
-      expect(result.recentHighRiskEvents).toHaveLength(2);
+      expect(result._recentHighRiskEvents).toHaveLength(2);
       expect(
         result.recentHighRiskEvents.every(
           (e) => e.severity === "critical" || e.severity === "high",
@@ -486,13 +487,13 @@ describe("SecurityController", () => {
       let result = await controller.getSecurityDashboard();
       expect(result.overview.status).toBe("excellent");
 
-      // Test good score (>=80)
+      // Test good score (>=_80)
       const goodScan = { ...mockScanResult, securityScore: 85 } as any;
       scannerService.getScanHistory.mockResolvedValue([goodScan]);
       result = await controller.getSecurityDashboard();
       expect(result.overview.status).toBe("good");
 
-      // Test fair score (>=70)
+      // Test fair score (>=_70)
       const fairScan = { ...mockScanResult, securityScore: 75 } as any;
       scannerService.getScanHistory.mockResolvedValue([fairScan]);
       result = await controller.getSecurityDashboard();

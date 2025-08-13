@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SetMetadata } from '@nestjs/common';
 import {
   PerformanceMonitoring,
   LightPerformanceMonitoring,
   NoPerformanceMonitoring,
-  PERFORMANCE_MONITORING_KEY,
+  PERFORMANCE_MONITORINGKEY,
 } from '@common/core/decorators/performance-monitoring.decorator';
 
 // 模拟 @nestjs/common 模块
@@ -14,7 +15,7 @@ jest.mock('@nestjs/common', () => ({
 describe('Performance Monitoring Decorators', () => {
   // 在每个测试用例之前，清除 mock 的调用记录
   beforeEach(() => {
-    (SetMetadata as jest.Mock).mockClear();
+    (SetMetadata as jest._Mock).mockClear();
   });
 
   // 测试 PerformanceMonitoring 装饰器

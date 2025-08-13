@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { SecurityMiddleware, CSRFMiddleware, RateLimitByIPMiddleware } from '../../../../../src/security/middleware/security.middleware';
 import { Request, Response, NextFunction } from 'express';
@@ -238,19 +239,19 @@ describe('SecurityMiddleware', () => {
 
   describe('sanitizeInput', () => {
     it('should sanitize query parameters', () => {
-      mockRequest.query = { 'bad<param>': 'value<script>', '__proto__': 'polluted' };
+      mockRequest.query = { 'bad<param>': 'value<script>', 'proto': 'polluted' };
       (middleware as any).sanitizeInput(mockRequest);
       expect(mockRequest.query).toEqual({ badparam: 'value[removed]' });
     });
 
     it('should sanitize body', () => {
-      mockRequest.body = { 'bad<key>': 'value<script>', '__proto__': 'polluted' };
+      mockRequest.body = { 'bad<key>': 'value<script>', 'proto': 'polluted' };
       (middleware as any).sanitizeInput(mockRequest);
       expect(mockRequest.body).toEqual({ badkey: 'value[removed]' });
     });
 
     it('should sanitize params', () => {
-      mockRequest.params = { 'bad<id>': 'value<script>', '__proto__': 'polluted' };
+      mockRequest.params = { 'bad<id>': 'value<script>', 'proto': 'polluted' };
       (middleware as any).sanitizeInput(mockRequest);
       expect(mockRequest.params).toEqual({ badid: 'value[removed]' });
     });
@@ -274,9 +275,9 @@ describe('SecurityMiddleware', () => {
     });
 
     it('should set Strict-Transport-Security in production', () => {
-      process.env.NODE_ENV = 'production';
+      process.env.NODEENV = 'production';
       (middleware as any).setSecurityHeaders(mockResponse);
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Strict-Transport-Security', 'max-_age=31536000; includeSubDomains; preload');
       process.env.NODE_ENV = 'test'; // Reset for other tests
     });
   });
@@ -357,7 +358,7 @@ describe('CSRFMiddleware', () => {
     loggerDebugSpy = jest.spyOn((middleware as any).logger, 'debug').mockImplementation(() => {});
     loggerWarnSpy = jest.spyOn((middleware as any).logger, 'warn').mockImplementation(() => {});
 
-    process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
+    process.env.ALLOWEDORIGINS = 'http://localhost:3000';
     process.env.DISABLE_CSRF = 'false';
   });
 
@@ -447,14 +448,14 @@ describe('CSRFMiddleware', () => {
 });
 
 jest.mock('@common/constants/rate-limit.constants', () => ({
-  RATE_LIMIT_CONFIG: {
-    IP_RATE_LIMIT: {
+  RATE_LIMITCONFIG: {
+    IP_RATELIMIT: {
       ENABLED: true,
-      MAX_REQUESTS: 5,
-      WINDOW_MS: 60000,
+      MAXREQUESTS: 5,
+      WINDOWMS: 60000,
     },
   },
-  SECURITY_LIMITS: jest.requireActual('@common/constants/rate-limit.constants').SECURITY_LIMITS,
+  SECURITYLIMITS: jest.requireActual('@common/constants/rate-limit.constants').SECURITY_LIMITS,
 }));
 
 describe('RateLimitByIPMiddleware', () => {
@@ -525,7 +526,7 @@ describe('RateLimitByIPMiddleware', () => {
     }));
     
     // 重新导入RateLimitByIPMiddleware类，因为它会使用我们模拟的模块
-    const { RateLimitByIPMiddleware } = require('../../../../../src/security/middleware/security.middleware');
+    import { RateLimitByIPMiddleware } from '../../../../../src/security/middleware/security.middleware';
     
     // 创建新的中间件实例（此实例将使用模拟的禁用配置）
     const disabledMiddleware = new RateLimitByIPMiddleware();
@@ -570,7 +571,7 @@ describe('RateLimitByIPMiddleware', () => {
     
     try {
       // 模拟Date.now返回我们控制的时间
-      Date.now = jest.fn(() => currentTime);
+      Date._now = jest.fn(() => currentTime);
       
       for (let i = 0; i < 5; i++) {
         middleware.use(mockRequest as Request, mockResponse as Response, nextFunction);

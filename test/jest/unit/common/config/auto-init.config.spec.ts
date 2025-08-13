@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getAutoInitConfig } from "../../../../../src/common/config/auto-init.config";
 
 describe("AutoInitConfig", () => {
@@ -21,7 +22,7 @@ describe("AutoInitConfig", () => {
       });
 
       it('should be disabled when explicitly set to "false"', () => {
-        process.env.AUTO_INIT_ENABLED = "false";
+        process.env.AUTO_INITENABLED = "false";
         const config = getAutoInitConfig();
         expect(config.enabled).toBe(false);
       });
@@ -45,7 +46,7 @@ describe("AutoInitConfig", () => {
       });
 
       it('should disable stockQuote when set to "false"', () => {
-        process.env.AUTO_INIT_STOCK_QUOTE = "false";
+        process.env.AUTO_INIT_STOCKQUOTE = "false";
         const config = getAutoInitConfig();
         expect(config.presetFields.stockQuote).toBe(false);
       });
@@ -57,7 +58,7 @@ describe("AutoInitConfig", () => {
       });
 
       it('should disable stockBasicInfo when set to "false"', () => {
-        process.env.AUTO_INIT_STOCK_BASIC_INFO = "false";
+        process.env.AUTO_INIT_STOCK_BASICINFO = "false";
         const config = getAutoInitConfig();
         expect(config.presetFields.stockBasicInfo).toBe(false);
       });
@@ -71,7 +72,7 @@ describe("AutoInitConfig", () => {
       });
 
       it('should disable symbolMappings when set to "false"', () => {
-        process.env.AUTO_INIT_SYMBOL_MAPPINGS = "false";
+        process.env.AUTO_INIT_SYMBOLMAPPINGS = "false";
         const config = getAutoInitConfig();
         expect(config.sampleData.symbolMappings).toBe(false);
       });
@@ -83,7 +84,7 @@ describe("AutoInitConfig", () => {
       });
 
       it('should enable testData only when explicitly set to "true"', () => {
-        process.env.AUTO_INIT_TEST_DATA = "true";
+        process.env.AUTO_INIT_TESTDATA = "true";
         const config = getAutoInitConfig();
         expect(config.sampleData.testData).toBe(true);
       });
@@ -107,7 +108,7 @@ describe("AutoInitConfig", () => {
       });
 
       it('should disable skipExisting when set to "false"', () => {
-        process.env.AUTO_INIT_SKIP_EXISTING = "false";
+        process.env.AUTO_INIT_SKIPEXISTING = "false";
         const config = getAutoInitConfig();
         expect(config.options.skipExisting).toBe(false);
       });
@@ -122,7 +123,7 @@ describe("AutoInitConfig", () => {
         const logLevels = ["debug", "warn", "error"];
 
         logLevels.forEach((level) => {
-          process.env.AUTO_INIT_LOG_LEVEL = level;
+          process.env.AUTO_INIT_LOGLEVEL = level;
           const config = getAutoInitConfig();
           expect(config.options.logLevel).toBe(level);
         });
@@ -135,7 +136,7 @@ describe("AutoInitConfig", () => {
       });
 
       it("should parse custom retry attempts from env", () => {
-        process.env.AUTO_INIT_RETRY_ATTEMPTS = "5";
+        process.env.AUTO_INIT_RETRYATTEMPTS = "5";
         const config = getAutoInitConfig();
         expect(config.options.retryAttempts).toBe(5);
       });
@@ -153,7 +154,7 @@ describe("AutoInitConfig", () => {
       });
 
       it("should parse custom retry delay from env", () => {
-        process.env.AUTO_INIT_RETRY_DELAY = "2000";
+        process.env.AUTO_INIT_RETRYDELAY = "2000";
         const config = getAutoInitConfig();
         expect(config.options.retryDelay).toBe(2000);
       });

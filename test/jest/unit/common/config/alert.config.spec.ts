@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { alertConfig } from "../../../../../src/common/config/alert.config";
 
 describe("AlertConfig", () => {
@@ -5,7 +6,7 @@ describe("AlertConfig", () => {
 
   beforeEach(() => {
     jest.resetModules();
-    process.env = { ...originalEnv };
+    process._env = { ...originalEnv };
   });
 
   afterAll(() => {
@@ -20,7 +21,7 @@ describe("AlertConfig", () => {
     });
 
     it("should parse evaluation interval from environment variable", () => {
-      process.env.ALERT_EVALUATION_INTERVAL = "120";
+      process.env.ALERT_EVALUATIONINTERVAL = "120";
       const config = alertConfig();
       expect(config.evaluationInterval).toBe(120);
     });

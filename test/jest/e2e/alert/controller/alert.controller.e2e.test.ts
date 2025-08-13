@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Comprehensive Alerting E2E Tests", () => {
   let httpServer: any;
   let jwtToken: string;
@@ -155,7 +156,7 @@ describe("Comprehensive Alerting E2E Tests", () => {
       const historyResponse = response.body.data;
       expect(historyResponse).toHaveProperty("items");
       expect(historyResponse).toHaveProperty("pagination");
-      expect(historyResponse.pagination.total).toBeGreaterThanOrEqual(0);
+      expect(historyResponse.pagination._total).toBeGreaterThanOrEqual(0);
 
       const historyData = historyResponse.items;
       expect(Array.isArray(historyData)).toBe(true);

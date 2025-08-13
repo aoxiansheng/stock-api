@@ -1,7 +1,8 @@
-import { QueryProcessedResultDto } from '@core/query/dto/query-processed-result.dto';
-import { QueryMetadataDto } from '@core/query/dto/query-response.dto';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { QueryProcessedResultDto } from '@core/restapi/query/dto/query-processed-result.dto';
+import { QueryMetadataDto } from '@core/restapi/query/dto/query-response.dto';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { QueryType } from '@core/query/dto/query-types.dto';
+import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 
 interface StockData {
   symbol: string;

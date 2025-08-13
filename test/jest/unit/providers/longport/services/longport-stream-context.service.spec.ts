@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { createLogger } from '@common/config/logger.config';
@@ -8,7 +9,7 @@ jest.mock('@common/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),
-  warn: jest.fn(),
+  _warn: jest.fn(),
   error: jest.fn(),
 };
 (createLogger as jest.Mock).mockReturnValue(mockLogger);
@@ -25,7 +26,7 @@ jest.mock('longport', () => {
   const mockConfigConstructor = jest.fn();
   return {
     Config: Object.assign(mockConfigConstructor, {
-      fromEnv: jest.fn(),
+      _fromEnv: jest.fn(),
     }),
     QuoteContext: {
       new: jest.fn().mockImplementation(() => Promise.resolve(mockQuoteContext)),
@@ -44,7 +45,7 @@ const mockConfigService = {
 describe('LongportStreamContextService', () => {
   let service: LongportStreamContextService;
   let configService: ConfigService;
-  const { QuoteContext, Config } = require('longport');
+  import { QuoteContext, Config } from 'longport';
   let timeoutSpy: jest.SpyInstance;
   
   // 回调函数变量，用于事件处理测试
@@ -102,7 +103,7 @@ describe('LongportStreamContextService', () => {
   describe('initializeWebSocket()', () => {
     it('should initialize WebSocket connection successfully with environment variables', async () => {
       // Setup
-      process.env.LONGPORT_APP_KEY = 'test_key';
+      process.env.LONGPORT_APPKEY = 'test_key';
       Config.fromEnv.mockReturnValue({ test: 'config' });
 
       // Execute
@@ -581,7 +582,7 @@ describe('LongportStreamContextService', () => {
       
       const mockEvent = {
         symbol: '700.HK',
-        last_done: 350.5,
+        lastdone: 350.5,
         volume: 1000,
         timestamp: 1640995200000,
       };
@@ -594,7 +595,7 @@ describe('LongportStreamContextService', () => {
       expect(callback).toHaveBeenCalledWith({
         symbol: '700.HK',
         last_done: 350.5,
-        prev_close: undefined,
+        prevclose: undefined,
         open: undefined,
         high: undefined,
         low: undefined,
@@ -640,12 +641,12 @@ describe('LongportStreamContextService', () => {
         trade_session: undefined,
         current_volume: undefined,
         current_turnover: undefined,
-        _raw: expect.objectContaining({
+        raw: expect.objectContaining({
           originalEvent: 'invalid json',
           extractedSymbol: null,
           parsedQuoteData: null,
         }),
-        _provider: 'longport',
+        provider: 'longport',
       });
     });
 
@@ -671,8 +672,8 @@ describe('LongportStreamContextService', () => {
         error: 'Callback error',
         eventData: expect.objectContaining({
           symbol: 'UNKNOWN', // 因为解析失败会设为 UNKNOWN
-          _provider: 'longport',
-          _raw: expect.any(Object),
+          provider: 'longport',
+          raw: expect.any(Object),
         }),
       });
     });

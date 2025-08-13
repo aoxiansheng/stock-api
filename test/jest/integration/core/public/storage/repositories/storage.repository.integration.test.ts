@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // storage.repository.integration.test.ts - 测试占位代码
 // 路径: integration/core/public/storage/repositories/storage.repository.integration.test.ts
 

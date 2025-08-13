@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model, Query } from "mongoose";
@@ -26,7 +27,7 @@ describe("AlertHistoryRepository", () => {
     severity: AlertSeverity.CRITICAL,
     status: AlertStatus.FIRING,
     message: "CPU usage is above threshold",
-    startTime: new Date("2024-01-01T10:00:00Z"),
+    startTime: new Date("2024-01-_01T10:00:00Z"),
     endTime: null,
     acknowledgedBy: null,
     acknowledgedAt: null,
@@ -51,20 +52,20 @@ describe("AlertHistoryRepository", () => {
     ({
       exec: jest.fn().mockResolvedValue(result),
       sort: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
+      _skip: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       lean: jest.fn().mockReturnThis(),
-      findOneAndUpdate: jest.fn().mockReturnThis(),
+      _findOneAndUpdate: jest.fn().mockReturnThis(),
     }) as unknown as Query<any, any>;
 
   beforeEach(async () => {
     const mockModel = {
-      constructor: jest.fn(),
+      const_ructor: jest.fn(),
       find: jest.fn(),
       findOne: jest.fn(),
       findOneAndUpdate: jest.fn(),
       countDocuments: jest.fn(),
-      deleteMany: jest.fn(),
+      delet_eMany: jest.fn(),
       aggregate: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
@@ -109,7 +110,7 @@ describe("AlertHistoryRepository", () => {
 
       const mockDocument = createMockDocument(alertData);
       const MockModel = jest.fn().mockImplementation(() => mockDocument);
-      (repository as any).alertHistoryModel = MockModel;
+      (repository as any)._alertHistoryModel = MockModel;
 
       const result = await repository.create(alertData);
 
@@ -217,7 +218,7 @@ describe("AlertHistoryRepository", () => {
       const mockCountQuery = { exec: jest.fn().mockResolvedValue(1) };
 
       model.find = jest.fn().mockReturnValue(mockFindQuery);
-      model.countDocuments = jest.fn().mockReturnValue(mockCountQuery);
+      model._countDocuments = jest.fn().mockReturnValue(mockCountQuery);
 
       const result = await repository.find(query);
 
@@ -409,14 +410,14 @@ describe("AlertHistoryRepository", () => {
   describe("getStatistics", () => {
     it("should return comprehensive alert statistics", async () => {
       const mockActiveAlerts = [
-        { _id: AlertSeverity.CRITICAL, count: 5 },
-        { _id: AlertSeverity.WARNING, count: 10 },
+        { id: AlertSeverity.CRITICAL, count: 5 },
+        { id: AlertSeverity.WARNING, count: 10 },
       ];
       const mockTodayAlerts = 20;
       const mockResolvedToday = 15;
-      const mockAvgResolutionTime = [{ _id: null, avgTime: 1800000 }]; // 30 minutes
+      const mockAvgResolutionTime = [{ id: null, avgTime: 1800000 }]; // 30 minutes
 
-      model.aggregate = jest
+      model._aggregate = jest
         .fn()
         .mockResolvedValueOnce(mockActiveAlerts)
         .mockResolvedValueOnce(mockAvgResolutionTime);
@@ -436,11 +437,11 @@ describe("AlertHistoryRepository", () => {
       // Verify aggregation for active alerts
       expect(model.aggregate).toHaveBeenCalledWith([
         {
-          $match: {
+          $_match: {
             status: { $in: [AlertStatus.FIRING, AlertStatus.ACKNOWLEDGED] },
           },
         },
-        { $group: { _id: "$severity", count: { $sum: 1 } } },
+        { $_group: { id: "$severity", count: { $_sum: 1 } } },
       ]);
 
       // Verify today's date filtering
@@ -486,7 +487,7 @@ describe("AlertHistoryRepository", () => {
         exec: jest.fn().mockResolvedValue(mockAlert),
       };
 
-      model.findOne = jest.fn().mockReturnValue(mockQuery);
+      model._findOne = jest.fn().mockReturnValue(mockQuery);
 
       const result = await repository.findById("alert-123");
 
@@ -541,7 +542,7 @@ describe("AlertHistoryRepository", () => {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-      expect(model.deleteMany).toHaveBeenCalledWith({
+      expect(model.delet_eMany).toHaveBeenCalledWith({
         startTime: { $lt: expect.any(Date) },
         status: AlertStatus.RESOLVED,
       });
@@ -557,7 +558,7 @@ describe("AlertHistoryRepository", () => {
 
     it("should return zero when no alerts are deleted", async () => {
       const mockQuery = {
-        exec: jest.fn().mockResolvedValue({ deletedCount: 0 }),
+        exec: jest.fn().mockResolvedValue({ delet_edCount: 0 }),
       };
 
       model.deleteMany = jest.fn().mockReturnValue(mockQuery);
@@ -581,7 +582,7 @@ describe("AlertHistoryRepository", () => {
 
     it("should calculate correct cutoff date for different retention periods", async () => {
       const mockQuery = {
-        exec: jest.fn().mockResolvedValue({ deletedCount: 10 }),
+        exec: jest.fn().mockResolvedValue({ delet_edCount: 10 }),
       };
 
       model.deleteMany = jest.fn().mockReturnValue(mockQuery);

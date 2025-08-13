@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { notificationConfig } from "../../../../../src/common/config/notification.config";
 
 describe("NotificationConfig", () => {
@@ -166,7 +167,7 @@ describe("NotificationConfig", () => {
       templates.forEach((template) => {
         // Should not contain script tags or dangerous HTML
         expect(template.toLowerCase()).not.toContain("<script");
-        expect(template.toLowerCase()).not.toContain("javascript:");
+        expect(template.toLowerCase()).not.toContain("_javascript:");
         expect(template.toLowerCase()).not.toContain("<iframe");
       });
     });

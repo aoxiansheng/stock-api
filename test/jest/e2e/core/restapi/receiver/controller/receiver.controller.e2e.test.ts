@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Receiver Controller E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -324,7 +325,7 @@ describe("Receiver Controller E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send(dataRequest);
 
-      // Assert - 基于后端实现：MAX_SYMBOLS_PER_REQUEST=100，这个请求量(15个)在范围内
+      // Assert - 基于后端实现：MAX_SYMBOLS_PERREQUEST=100，这个请求量(15个)在范围内
       expect(response.status).toBe(200);
       global.expectSuccessResponse(response, 200);
       expect(response.body.data.metadata.totalRequested).toBe(symbols.length);

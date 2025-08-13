@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
@@ -30,13 +31,13 @@ describe("CacheService Optimization Features", () => {
       ping: jest.fn().mockResolvedValue("PONG"),
       info: jest.fn().mockImplementation((section?: string) => {
         if (section === "memory") {
-          return Promise.resolve("used_memory:1000\r\nmaxmemory:10000\r\n");
+          return Promise.resolve("usedmemory:1000\r\_nmaxmemory:10000\r\n");
         }
         if (section === "keyspace") {
-          return Promise.resolve("db0:keys=0,expires=0,avg_ttl=0\r\n");
+          return Promise.resolve("_db0:keys=0,_expires=0,avgttl=0\r\n");
         }
         return Promise.resolve(
-          "keyspace_hits:0\r\nkeyspace_misses:0\r\nused_memory:1000\r\n",
+          "keyspacehits:0\r\nkeyspacemisses:0\r\nused_memory:1000\r\n",
         );
       }),
       eval: jest.fn().mockResolvedValue(1),
@@ -86,7 +87,7 @@ describe("CacheService Optimization Features", () => {
       await service.set(normalKey, "test value");
 
       expect(loggerSpy).not.toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
+        CACHE_WARNING_MESSAGES.LARGE_VALUEWARNING,
         expect.objectContaining({
           operation: "validateKeyLength",
         }),
@@ -136,9 +137,9 @@ describe("CacheService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
         expect.objectContaining({
-          operation: CACHE_OPERATIONS.MSET,
+          operation: CACHE_OPERATIONS._M_SET,
           batchSize: largeEntries.size,
-          limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
+          limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCHSIZE,
         }),
       );
     });
@@ -159,7 +160,7 @@ describe("CacheService Optimization Features", () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING,
         expect.objectContaining({
-          operation: CACHE_OPERATIONS.MGET,
+          operation: CACHE_OPERATIONS._MGET,
           batchSize: largeKeys.length,
           limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
         }),
@@ -190,11 +191,11 @@ describe("CacheService Optimization Features", () => {
       await setPromise;
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.SLOW_OPERATION,
+        CACHE_WARNING_MESSAGES.SLOWOPERATION,
         expect.objectContaining({
           operation: CACHE_OPERATIONS.SET,
           key: "test:key",
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
+          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATIONMS,
         }),
       );
     });
@@ -208,9 +209,9 @@ describe("CacheService Optimization Features", () => {
       }
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        CACHE_WARNING_MESSAGES.HIGH_MISS_RATE,
+        CACHE_WARNING_MESSAGES.HIGH_MISSRATE,
         expect.objectContaining({
-          operation: CACHE_OPERATIONS.UPDATE_METRICS,
+          operation: CACHE_OPERATIONS.UPDATEMETRICS,
           pattern: "miss:*",
           threshold:
             CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
@@ -231,7 +232,7 @@ describe("CacheService Optimization Features", () => {
       expect(errorSpy).toHaveBeenCalledWith(
         expect.stringContaining("缓存健康检查失败"),
         expect.objectContaining({
-          operation: CACHE_OPERATIONS.HEALTH_CHECK,
+          operation: CACHE_OPERATIONS.HEALTHCHECK,
         }),
       );
     });

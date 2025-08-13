@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { INestApplication } from "@nestjs/common";
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
 
@@ -138,7 +139,7 @@ describe("Monitoring Alerting Integration Tests", () => {
         [{ metric: "cpu_usage", value: 85, timestamp: new Date() }],
       );
       expect(evaluationResults.length).toBeGreaterThan(0);
-      expect(evaluationResults[0].triggered).toBe(true);
+      expect(evaluationResults[0]._triggered).toBe(true);
     });
   });
 

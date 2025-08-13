@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：连接到实际运行的项目
  *
@@ -96,7 +97,7 @@ describe("Real Environment Black-box E2E Tests", () => {
         permissions: [
           "data:read",
           "query:execute",
-          "providers:read",
+          "_providers:read",
           "transformer:preview",
           "mapping:write",
           "system:monitor",
@@ -403,7 +404,7 @@ describe("Real Environment Black-box E2E Tests", () => {
 
       // 真实环境应该有实际的指标数据
       expect(metrics).toHaveProperty("healthScore");
-      expect(metrics).toHaveProperty("summary");
+      expect(metrics).toHaveProperty("_summary");
 
       if (metrics.summary) {
         console.log(`真实系统负载: ${metrics.summary.systemLoad || "N/A"}`);

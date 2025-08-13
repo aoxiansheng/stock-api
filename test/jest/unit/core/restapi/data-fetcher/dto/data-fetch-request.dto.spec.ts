@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate } from 'class-validator';
-import { DataFetchRequestDto, ApiType, DataFetchMetadataDto } from '../../../../../../src/core/data-fetcher/dto/data-fetch-request.dto';
+import { DataFetchRequestDto, ApiType, DataFetchMetadataDto } from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
 
 describe('DataFetchRequestDto', () => {
   describe('validation', () => {
@@ -9,7 +10,7 @@ describe('DataFetchRequestDto', () => {
       dto.capability = 'get-stock-quote';
       dto.symbols = ['700.HK', 'AAPL.US'];
       dto.requestId = 'req_123456789';
-      dto.apiType = ApiType.REST;
+      dto.apiType = ApiType._REST;
       dto.options = { includeAfterHours: true };
 
       const errors = await validate(dto);

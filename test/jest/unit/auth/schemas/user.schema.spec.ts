@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Model } from "mongoose";
 import { getModelToken } from "@nestjs/mongoose";
 import { Test, TestingModule } from "@nestjs/testing";
@@ -80,7 +81,7 @@ describe("User Schema", () => {
       moduleRef = await Test.createTestingModule({
         imports: [
           MongooseModule.forRoot(mongoUri),
-          MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+          MongooseModule.forFeature([{ name: User._name, schema: UserSchema }]),
         ],
       }).compile();
       setupProgress.update(4);
@@ -91,7 +92,7 @@ describe("User Schema", () => {
       setupProgress.complete();
       console.log('✅ 测试环境设置完成\n');
     } catch (error) {
-      setupProgress.fail(error instanceof Error ? error.message : '未知错误');
+      setupProgress.fail(error instanceof Error ? error._message : '未知错误');
       throw error;
     }
   }, 30000); // 增加超时时间到30秒
@@ -145,10 +146,10 @@ describe("User Schema", () => {
     expect(savedUser.username).toBe(minimalUserData.username);
     expect(savedUser.email).toBe(minimalUserData.email);
     expect(savedUser.role).toBe(UserRole.DEVELOPER); // 默认值
-    expect(savedUser.isActive).toBe(true); // 默认值
-    expect(savedUser.lastLoginAt).toBeInstanceOf(Date);
-    expect(savedUser.createdAt).toBeInstanceOf(Date);
-    expect(savedUser.updatedAt).toBeInstanceOf(Date);
+    expect(savedUser._isActive).toBe(true); // 默认值
+    expect(savedUser._lastLoginAt).toBeInstanceOf(Date);
+    expect(savedUser._createdAt).toBeInstanceOf(Date);
+    expect(savedUser._updatedAt).toBeInstanceOf(Date);
   }, 10000);
 
   it("应该正确序列化用户对象（toJSON方法）", async () => {
@@ -168,7 +169,7 @@ describe("User Schema", () => {
     // 验证敏感字段被移除
     expect(serializedUser.id).toBeDefined();
     expect(serializedUser._id).toBeUndefined();
-    expect(serializedUser.__v).toBeUndefined();
+    expect(serializedUser.v).toBeUndefined();
     expect(serializedUser.passwordHash).toBeUndefined();
     expect(serializedUser.refreshToken).toBeUndefined();
     

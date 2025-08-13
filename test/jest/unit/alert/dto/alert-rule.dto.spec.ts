@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { plainToClass } from "class-transformer";
 import {
   CreateAlertRuleDto,
@@ -165,7 +166,7 @@ describe("Alert Rule DTOs - Function Coverage", () => {
         operator: "gte" as const,
         threshold: 85,
         duration: 180,
-        severity: AlertSeverity.INFO,
+        severity: AlertSeverity._INFO,
         enabled: false,
         channels: [],
         cooldown: 450,
@@ -232,7 +233,7 @@ describe("Alert Rule DTOs - Function Coverage", () => {
         {
           id: "webhook-1",
           name: "Webhook Channel",
-          type: NotificationChannelType.WEBHOOK,
+          type: NotificationChannelType._WEBHOOK,
           config: { url: "https://example.com/webhook" },
           enabled: true,
         },
@@ -311,7 +312,7 @@ describe("Alert Rule DTOs - Function Coverage", () => {
       const descriptor = Object.getOwnPropertyDescriptor(dto, "name");
       expect(descriptor).toBeDefined();
       expect(descriptor?.value).toBe("Descriptor Test");
-      expect(descriptor?.writable).toBe(true);
+      expect(descriptor?._writable).toBe(true);
       expect(descriptor?.enumerable).toBe(true);
     });
   });

@@ -1,19 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { DataSourceTemplateService } from "../../../../../../src/core/data-mapper/services/data-source-template.service";
-import { DataSourceAnalyzerService } from "../../../../../../src/core/data-mapper/services/data-source-analyzer.service";
-import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
+import { DataSourceTemplateService } from "../../../../../../../src/core/public/data-mapper/services/data-source-template.service";
+import { DataSourceAnalyzerService } from "../../../../../../../src/core/public/data-mapper/services/data-source-analyzer.service";
+import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
 import {
   CreateDataSourceTemplateDto,
   DataSourceTemplateResponseDto
-} from "../../../../../../src/core/data-mapper/dto/data-source-analysis.dto";
+} from "../../../../../../../src/core/public/data-mapper/dto/data-source-analysis.dto";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({
@@ -36,7 +37,7 @@ describe("DataSourceTemplateService", () => {
 
   // 每个用例创建新的 document，避免状态污染
   const createMockTemplateDocument = () => ({
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     ...mockTemplate,
     save: jest.fn(),
     toJSON: jest.fn(),
@@ -85,12 +86,12 @@ describe("DataSourceTemplateService", () => {
     const staticMethodNames = [
       'findOne',
       'find',
-      'updateMany',
+      '_updateMany',
       'countDocuments',
       'aggregate',
-      'findById',
-      'findByIdAndUpdate',
-      'findByIdAndDelete'
+      '_findById',
+      '_findByIdAndUpdate',
+      '_findByIdAndDelete'
     ] as const;
     staticMethodNames.forEach((name) => {
       if (!mockModel[name]) {
@@ -183,7 +184,7 @@ describe("DataSourceTemplateService", () => {
           apiType: defaultTemplateDto.apiType,
           isDefault: true
         },
-        { $set: { isDefault: false } }
+        { $_set: { isDefault: false } }
       );
     });
   });
@@ -242,7 +243,7 @@ describe("DataSourceTemplateService", () => {
 
       paginationService.createPaginatedResponse.mockReturnValue({
         items: [],
-        pagination: {page:1,limit:10,total:0,totalPages:0,hasNext:false,hasPrev:false}
+        pagination: {page:1,limit:10,total:0,totalPages:0,_hasNext:false,_hasPrev:false}
       } as any);
 
       await service.findTemplates(1,10,filters.provider,filters.apiType,filters.isActive);
@@ -321,7 +322,7 @@ describe("DataSourceTemplateService", () => {
         sort: jest.fn().mockResolvedValue(defaultTemplate)
       };
       templateModel.findOne.mockReturnValue(mockQuery as any);
-      defaultTemplate.toJSON = jest.fn().mockReturnValue({ ...mockTemplate, isDefault: true });
+      defaultTemplate._toJSON = jest.fn().mockReturnValue({ ...mockTemplate, isDefault: true });
 
       const result = await service.findBestMatchingTemplate("longport", "rest");
 
@@ -401,14 +402,14 @@ describe("DataSourceTemplateService", () => {
         const groupStage = pipeline[0] as any;
         if (groupStage?.$group?._id === '$provider') {
           return Promise.resolve([
-            { _id: 'longport', count: 5 },
-            { _id: 'custom', count: 5 }
+            { id: 'longport', count: 5 },
+            { id: 'custom', count: 5 }
           ]);
         }
         if (groupStage?.$group?._id === '$apiType') {
           return Promise.resolve([
-            { _id: 'rest', count: 7 },
-            { _id: 'stream', count: 3 }
+            { id: 'rest', count: 7 },
+            { id: 'stream', count: 3 }
           ]);
         }
         return Promise.resolve([]);
@@ -470,7 +471,7 @@ describe("DataSourceTemplateService", () => {
         sampleData: analysisData.sampleData,
         extractedFields: analysisData.extractedFields,
         dataStructureType: 'flat',
-        totalFields: analysisData.extractedFields.length,
+        totalFields: analysisData.extractedFields._length,
         confidence: analysisData.confidence,
         analysisTimestamp: new Date()
       } as any);

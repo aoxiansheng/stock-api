@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // 从 @nestjs/common 模块导入用于验证管道的 ValidationPipe
 import { ValidationPipe } from "@nestjs/common";
@@ -9,7 +10,7 @@ import {
   TransformSymbolsDto,
   AddSymbolMappingRuleDto,
   UpdateSymbolMappingRuleDto,
-} from '@core/symbol-mapper/dto/update-symbol-mapping.dto';
+} from '@core/public/symbol-mapper/dto/update-symbol-mapping.dto';
 // 导入 create-symbol-mapping.dto.ts 文件中的 SymbolMappingRuleDto 类
 
 

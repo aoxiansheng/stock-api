@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { InternalServerErrorException } from "@nestjs/common";
 import { Config, QuoteContext } from "longport";

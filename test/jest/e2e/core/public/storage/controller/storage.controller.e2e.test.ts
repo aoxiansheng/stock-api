@@ -196,7 +196,7 @@ describe("Storage E2E Tests", () => {
       if (response.status === 200) {
         // Assert
         global.expectSuccessResponse(response, 200);
-        expect(response.body.data).toHaveProperty("results");
+        expect(response.body.data).toHaveProperty("_results");
         expect(Array.isArray(response.body.data.results)).toBe(true);
       }
     });
@@ -238,7 +238,7 @@ describe("Storage E2E Tests", () => {
       global.expectSuccessResponse(response, 201);
       const health = response.body.data;
       // 修复: 验证健康检查响应的正确结构
-      expect(health).toHaveProperty("overall");
+      expect(health).toHaveProperty("_overall");
       expect(health.overall).toHaveProperty("healthy", true);
       expect(health).toHaveProperty("cache");
       expect(health).toHaveProperty("persistent");
@@ -315,7 +315,7 @@ describe("Storage E2E Tests with Admin Role", () => {
 
     // Assert 1: Store was successful
     global.expectSuccessResponse(storeResponse, 201);
-    expect(storeResponse.body.data.metadata).toHaveProperty("key", key);
+    expect(storeResponse.body.data._metadata).toHaveProperty("key", key);
 
     // Act 2: Retrieve data
     const retrieveResponse = await httpServer

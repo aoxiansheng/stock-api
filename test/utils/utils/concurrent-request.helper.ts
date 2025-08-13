@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as request from "supertest";
 
 /**
@@ -39,8 +40,8 @@ export interface ConcurrentRequestConfig {
   maxRetries?: number;
   retryDelay?: number;
   queryParams?: any;
-  body?: any;
-  headers?: any;
+  _body?: any;
+  _headers?: any;
 }
 
 /**
@@ -142,7 +143,7 @@ export class ConcurrentRequestHelper {
           );
         }
       } catch (batchError: any) {
-        console.log(`❌ 批次 ${currentBatch} 执行出错:`, batchError.message);
+        console.log(`❌ 批次 ${currentBatch} 执行出错:`, batchError._message);
         const failedBatch = Array(
           Math.min(finalConfig.batchSize, finalConfig.totalRequests - i),
         )
@@ -171,7 +172,7 @@ export class ConcurrentRequestHelper {
     });
 
     results.successRate = results.successful / results.total;
-    results.averageResponseTime =
+    results._averageResponseTime =
       responseTimes.length > 0
         ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
         : 0;
@@ -280,7 +281,7 @@ export class ConcurrentRequestHelper {
     maxIncreasePercent: number = 50,
   ): Promise<MemoryAnalysis> {
     // 强制垃圾回收
-    if (global.gc) {
+    if (global._gc) {
       console.log("🧹 执行垃圾回收...");
       global.gc();
       await new Promise((resolve) => setTimeout(resolve, 100));

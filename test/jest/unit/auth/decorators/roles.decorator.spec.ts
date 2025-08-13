@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Reflector } from '@nestjs/core';
-import { Roles, ROLES_KEY } from '../../../../../src/auth/decorators/roles.decorator';
+import { Roles, ROLESKEY } from '../../../../../src/auth/decorators/roles.decorator';
 import { UserRole } from '../../../../../src/auth/enums/user-role.enum';
 
 describe('Roles Decorator', () => {
@@ -12,7 +13,7 @@ describe('Roles Decorator', () => {
 
   // 定义一个测试类，用于应用装饰器
   class TestClass {
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole._ADMIN)
     adminMethod() {}
 
     @Roles(UserRole.ADMIN, UserRole.DEVELOPER)
@@ -25,7 +26,7 @@ describe('Roles Decorator', () => {
   }
 
   it('should set metadata for a single role', () => {
-    const roles = reflector.get<UserRole[]>(ROLES_KEY, TestClass.prototype.adminMethod);
+    const roles = reflector.get<UserRole[]>(ROLESKEY, TestClass.prototype.adminMethod);
     expect(roles).toBeDefined();
     expect(roles).toEqual([UserRole.ADMIN]);
   });

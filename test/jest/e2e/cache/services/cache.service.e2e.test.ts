@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Cache Operations E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -159,8 +160,8 @@ describe("Cache Operations E2E Tests", () => {
       // 验证缓存命中数增加
       // 注意：在测试环境中，hitRate可能不是一个可靠的实时指标，取决于ioredis的内部统计逻辑
       // 这是一个更稳健的，尽管是间接的检查方式
-      expect(afterStats.opsPerSecond).toBeGreaterThanOrEqual(
-        beforeStats.opsPerSecond,
+      expect(afterStats._opsPerSecond).toBeGreaterThanOrEqual(
+        beforeStats._opsPerSecond,
       );
     });
 
@@ -208,7 +209,7 @@ describe("Cache Operations E2E Tests", () => {
         .expect(404);
 
       // 验证数据已过期
-      expect(expiredResponse.body.message).toContain("未找到");
+      expect(expiredResponse.body._message).toContain("未找到");
     });
   });
 
@@ -344,7 +345,7 @@ describe("Cache Operations E2E Tests", () => {
           (rec) =>
             rec &&
             rec.title &&
-            (rec.category === "cache" ||
+            (rec._category === "cache" ||
               rec.title.toLowerCase().includes("cache") ||
               rec.title.toLowerCase().includes("redis")),
         );
@@ -356,7 +357,7 @@ describe("Cache Operations E2E Tests", () => {
         cacheRecommendations.forEach((rec) => {
           expect(rec).toHaveProperty("title");
           expect(rec).toHaveProperty("description");
-          expect(rec).toHaveProperty("priority");
+          expect(rec).toHaveProperty("_priority");
           expect(["high", "medium", "low"]).toContain(rec.priority);
           expect(rec).toHaveProperty("category");
         });

@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { ReceiverService } from '../../../../../../src/core/restapi/receiver/services/receiver.service';
-import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
-import { SymbolMapperService } from '../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
-import { TransformerService } from '../../../../../../src/core/public/transformer/services/transformer.service';
-import { StorageService } from '../../../../../../src/core/public/storage/services/storage.service';
-import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
-import { MarketStatusService } from '../../../../../../src/core/public/shared/services/market-status.service';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { DataRequestDto } from '../../../../../../src/core/restapi/receiver/dto/data-request.dto';
-import { DataResponseDto } from '../../../../../../src/core/restapi/receiver/dto/data-response.dto';
-import { RawDataResult } from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
+import { ReceiverService } from '../../../../../../../src/core/restapi/receiver/services/receiver.service';
+import { DataFetcherService } from '../../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { SymbolMapperService } from '../../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { TransformerService } from '../../../../../../../src/core/public/transformer/services/transformer.service';
+import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
+import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
+import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { DataRequestDto } from '../../../../../../../src/core/restapi/receiver/dto/data-request.dto';
+import { DataResponseDto } from '../../../../../../../src/core/restapi/receiver/dto/data-response.dto';
+import { RawDataResult } from '../../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
 
 describe('ReceiverService', () => {
   let service: ReceiverService;
@@ -49,7 +50,7 @@ describe('ReceiverService', () => {
   const mockCapabilityRegistryService = {
     getCapability: jest.fn(),
     getProvider: jest.fn(),
-    getBestProvider: jest.fn(),
+    _getBestProvider: jest.fn(),
   };
 
   const mockMarketStatusService = {
@@ -601,7 +602,7 @@ describe('ReceiverService', () => {
       const result = await service.handleRequest(largeRequest);
 
       expect(result.data).toHaveLength(50);
-      expect(result.metadata.totalRequested).toBe(50);
+      expect(result.metadata._totalRequested).toBe(50);
     });
 
     it('should handle null/undefined options', async () => {

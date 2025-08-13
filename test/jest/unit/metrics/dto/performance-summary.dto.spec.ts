@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import {
@@ -71,7 +72,7 @@ describe('EndpointMetricsDto', () => {
     });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
-    expect(errors[0].property).toBe('endpoint');
+    expect(errors[0]._property).toBe('endpoint');
   });
 });
 
@@ -101,7 +102,7 @@ describe('DatabaseMetricsDto', () => {
     });
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
-    expect(errors.some(error => error.property === 'connectionPoolSize')).toBe(true);
+    expect(errors.some(error => error._property === 'connectionPoolSize')).toBe(true);
   });
 });
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * AuthController 单元测试
  * 测试认证控制器的API端点，所有依赖服务均为Mock
@@ -28,7 +29,7 @@ describe("AuthController", () => {
     email: "test@example.com",
     role: UserRole.DEVELOPER,
     isActive: true,
-    lastLoginAt: new Date("2024-01-01T11:30:00.000Z"),
+    lastLoginAt: new Date("2024-01-01T11:_30:00.000Z"),
     createdAt: new Date("2024-01-01T00:00:00.000Z"),
     updatedAt: new Date("2024-01-01T00:00:00.000Z"),
   } as any;

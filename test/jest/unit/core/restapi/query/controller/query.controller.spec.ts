@@ -1,21 +1,22 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
-import { QueryController } from "../../../../../../src/core/query/controller/query.controller";
-import { QueryService } from "../../../../../../src/core/query/services/query.service";
+import { QueryController } from "../../../../../../../src/core/restapi/query/controller/query.controller";
+import { QueryService } from "../../../../../../../src/core/restapi/query/services/query.service";
 import {
   QueryRequestDto,
   BulkQueryRequestDto,
-} from "../../../../../../src/core/query/dto/query-request.dto";
+} from "../../../../../../../src/core/restapi/query/dto/query-request.dto";
 import {
   QueryResponseDto,
   BulkQueryResponseDto,
   QueryStatsDto,
-} from "../../../../../../src/core/query/dto/query-response.dto";
-import { PaginatedDataDto } from "../../../../../../src/common/modules/pagination/dto/paginated-data";
-import { QueryType } from "../../../../../../src/core/query/dto/query-types.dto";
-import { RateLimitService } from "../../../../../../src/auth/services/rate-limit.service";
-import { PermissionService } from "../../../../../../src/auth/services/permission.service";
-import { UnifiedPermissionsGuard } from "../../../../../../src/auth/guards/unified-permissions.guard";
+} from "../../../../../../../src/core/restapi/query/dto/query-response.dto";
+import { PaginatedDataDto } from "../../../../../../../src/common/modules/pagination/dto/paginated-data";
+import { QueryType } from "../../../../../../../src/core/restapi/query/dto/query-types.dto";
+import { RateLimitService } from "../../../../../../../src/auth/services/rate-limit.service";
+import { PermissionService } from "../../../../../../../src/auth/services/permission.service";
+import { UnifiedPermissionsGuard } from "../../../../../../../src/auth/guards/unified-permissions.guard";
 import { getModelToken } from "@nestjs/mongoose";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
@@ -30,7 +31,7 @@ const mockLoggerInstance = {
   verbose: jest.fn(),
 };
 
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
   sanitizeLogData: jest.fn((data) => data),
 }));
@@ -481,7 +482,7 @@ describe("QueryController", () => {
     it("should log limited symbols in request log", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols("AAPL,MSFT,GOOGL,TSLA,AMZN", "longport", "US", "quote", 10, 1, true);
+      await controller.queryBySymbols("AAPL,MSFT,GOOGL,_TSLA,AMZN", "longport", "US", "quote", 10, 1, true);
 
       expect(mockLogger.log).toHaveBeenCalledWith(
         "API Request: Quick query by symbols",
@@ -681,8 +682,8 @@ describe("QueryController", () => {
         await controller.healthCheck();
         fail("Expected method to throw");
       } catch (thrown) {
-        expect(thrown.message).toBe("查询服务健康检查失败");
-        expect(thrown.statusCode).toBe(503);
+        expect(thrown._message).toBe("查询服务健康检查失败");
+        expect(thrown._statusCode).toBe(503);
         expect(thrown.data).toEqual({
           queryService: {
             available: false,

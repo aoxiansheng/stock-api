@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Symbol Mapper Internal DTO UCK�
  * Kաh� ��pn ��a
@@ -6,14 +7,14 @@
 import { validate } from 'class-validator';
 import {
   MappingConfigResultDto,
-  SymbolMappingRuleContextDto,
+  _SymbolMappingRuleContextDto,
   InternalSymbolMappingDto,
   SymbolMapperPerformanceDto,
   SymbolMapperApplicationResultDto,
   SymbolMapperTransformationLogDto,
   SymbolMapperDataSourceMappingLogDto,
   SymbolMapperBatchTransformationLogDto,
-} from '../../../../../../src/core/symbol-mapper/dto/symbol-mapper-internal.dto';
+} from '../../../../../../../src/core/public/symbol-mapper/dto/symbol-mapper-internal.dto';
 
 describe('Symbol Mapper Internal DTOs', () => {
   describe('MappingConfigResultDto', () => {
@@ -27,8 +28,8 @@ describe('Symbol Mapper Internal DTOs', () => {
       it('should create instance with found mapping config', () => {
         // Arrange
         dto.found = true;
-        dto.SymbolMappingRule = [];
-        dto.dataSourceName = 'longport';
+        dto._SymbolMappingRule = [];
+        dto._dataSourceName = 'longport';
 
         // Assert
         expect(dto.found).toBe(true);
@@ -415,7 +416,7 @@ describe('Symbol Mapper Internal DTOs', () => {
         dto.fromProvider = 'standard';
         dto.toProvider = 'longport';
         dto.processingTime = 15;
-        dto.success = true;
+        dto._success = true;
         dto.operation = 'transform';
 
         // Assert

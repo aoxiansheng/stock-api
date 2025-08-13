@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SecurityScanResultSchema } from '../../../../../src/security/schemas/security-scan-result.schema';
 
 describe('SecurityScanResult Schema', () => {

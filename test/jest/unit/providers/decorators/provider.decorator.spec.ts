@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { 
   Provider, 
   ProviderConfig,
@@ -36,8 +37,8 @@ describe('Provider Decorators', () => {
   it('should register provider config', () => {
     // 创建测试类
     @ProviderConfig({
-      apiUrl: 'https://test.api',
-      timeout: 5000
+      _apiUrl: 'https://test.api',
+      _timeout: 5000
     })
     class TestProviderWithConfig {}
 

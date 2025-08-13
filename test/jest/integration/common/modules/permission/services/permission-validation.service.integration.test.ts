@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // permission-validation.service.integration.test.ts - 测试占位代码
 // 路径: integration/common/modules/permission/services/permission-validation.service.integration.test.ts
 

@@ -9,7 +9,7 @@ import {
 } from "../../../../../../src/common/constants/unified/unified-cache-config.constants";
 
 describe("Cache Constants", () => {
-  describe("TTL_SETTINGS", () => {
+  describe("TTLSETTINGS", () => {
     it("should have all required TTL settings", () => {
       expect(CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL).toBe(3600);
       expect(CACHE_CONSTANTS.TTL_SETTINGS.SHORT_TTL).toBe(300);
@@ -33,11 +33,11 @@ describe("Cache Constants", () => {
     });
 
     it("should be immutable for key prefixes", () => {
-      expect(Object.isFrozen(CACHE_CONSTANTS.KEY_PREFIXES)).toBe(true);
+      expect(Object.isFrozen(CACHE_CONSTANTS.KEYPREFIXES)).toBe(true);
       const originalValue = CACHE_CONSTANTS.KEY_PREFIXES.AUTH;
 
       try {
-        CACHE_CONSTANTS.KEY_PREFIXES.AUTH = "changed:";
+        CACHE_CONSTANTS.KEY_PREFIXES._AUTH = "changed:";
         // 确认值没有改变
         expect(CACHE_CONSTANTS.KEY_PREFIXES.AUTH).toBe(originalValue);
       } catch (e) {
@@ -49,7 +49,7 @@ describe("Cache Constants", () => {
 
   describe("KEY_PREFIXES", () => {
     it("should have all required key prefixes", () => {
-      expect(CACHE_CONSTANTS.KEY_PREFIXES.QUERY).toBe("query:");
+      expect(CACHE_CONSTANTS.KEY_PREFIXES._QUERY).toBe("query:");
       expect(CACHE_CONSTANTS.KEY_PREFIXES.AUTH).toBe("auth:");
       expect(CACHE_CONSTANTS.KEY_PREFIXES.METRICS).toBe("metrics:");
     });
@@ -57,29 +57,29 @@ describe("Cache Constants", () => {
     it("should be immutable for key prefixes", () => {
       expect(() => {
         // @ts-expect-error Testing immutability
-        CACHE_CONSTANTS.KEY_PREFIXES.USER = "changed:";
+        CACHE_CONSTANTS.KEY_PREFIXES._USER = "changed:";
       }).toThrow();
     });
   });
 
-  describe("SIZE_LIMITS", () => {
+  describe("_SIZE_LIMITS", () => {
     it("should have all size limit configurations", () => {
       expect(CACHE_CONSTANTS.SIZE_LIMITS.MAX_CACHE_SIZE).toBe(1000);
-      expect(CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH).toBe(255);
-      expect(CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB).toBe(10);
+      expect(CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEYlength).toBe(255);
+      expect(CACHE_CONSTANTS.SIZE_LIMITS._COMPRESSION_THRESHOLDKB).toBe(10);
     });
   });
 
   describe("REDIS_CONFIG", () => {
     it("should have Redis connection configurations", () => {
-      expect(CACHE_CONSTANTS.REDIS_CONFIG.MAX_RETRIES).toBe(3);
-      expect(CACHE_CONSTANTS.REDIS_CONFIG.CONNECTION_TIMEOUT_MS).toBe(5000);
+      expect(CACHE_CONSTANTS.REDIS_CONFIG.MAXRETRIES).toBe(3);
+      expect(CACHE_CONSTANTS.REDIS_CONFIG.CONNECTION_TIMEOUTMS).toBe(5000);
     });
   });
 
   describe("STRATEGY_CONFIG", () => {
     it("should have cache strategy configurations", () => {
-      expect(CACHE_CONSTANTS.STRATEGY_CONFIG.EVICTION_POLICY).toBe(
+      expect(CACHE_CONSTANTS.STRATEGY_CONFIG.EVICTIONPOLICY).toBe(
         "allkeys-lru",
       );
       expect(CACHE_CONSTANTS.STRATEGY_CONFIG.ENABLE_COMPRESSION).toBe(true);
@@ -89,7 +89,7 @@ describe("Cache Constants", () => {
   describe("MONITORING_CONFIG", () => {
     it("should have monitoring configurations", () => {
       expect(CACHE_CONSTANTS.MONITORING_CONFIG.ENABLE_METRICS).toBe(true);
-      expect(CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT).toBe(
+      expect(CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLDPERCENT).toBe(
         90,
       );
     });
@@ -108,9 +108,9 @@ describe("buildCacheKey", () => {
   });
 
   it("should handle different prefix types", () => {
-    expect(buildCacheKey("STORAGE", "data")).toBe("storage:data");
+    expect(buildCacheKey("STORAGE", "data")).toBe("_storage:data");
     expect(buildCacheKey("METRICS", "performance")).toBe("metrics:performance");
-    expect(buildCacheKey("ALERT", "rule", "config")).toBe("alert:rule:config");
+    expect(buildCacheKey("ALERT", "rule", "config")).toBe("_alert:rule:config");
   });
 });
 
@@ -223,7 +223,7 @@ describe("getRecommendedTTL", () => {
   });
 
   it("should return default TTL for unknown data type", () => {
-    // @ts-expect-error - Testing runtime behavior
+    // @ts-expect-error - Type checking suppressed - Testing runtime behavior
     const ttl = getRecommendedTTL("unknown");
     expect(ttl).toBe(CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL);
   });

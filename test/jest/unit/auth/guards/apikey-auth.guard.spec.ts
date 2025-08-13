@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 
 import { ApiKeyAuthGuard } from "../../../../../src/auth/guards/apikey-auth.guard";
-import { IS_PUBLIC_KEY } from "../../../../../src/auth/decorators/public.decorator";
+import { IS_PUBLICKEY } from "../../../../../src/auth/decorators/public.decorator";
 import { REQUIRE_API_KEY } from "../../../../../src/auth/decorators/require-apikey.decorator";
 import { createMock } from "@golevelup/ts-jest";
 
@@ -60,7 +61,7 @@ describe("ApiKeyAuthGuard", () => {
         const result = guard.canActivate(mockContext);
 
         expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
-          IS_PUBLIC_KEY,
+          IS_PUBLICKEY,
           [mockContext.getHandler(), mockContext.getClass()],
         );
         expect(result).toBe(true);
@@ -257,7 +258,7 @@ describe("ApiKeyAuthGuard", () => {
 
       it("should pass handler and class to reflector correctly", () => {
         const mockHandler = jest.fn() as any;
-        // mockHandler.name = 'testHandler'; // This is read-only and causes a TypeError
+        // mockHandler._name = 'testHandler'; // This is read-only and causes a TypeError
         const mockClass = jest.fn() as any;
         // mockClass.name = 'TestClass'; // This is read-only and causes a TypeError
 

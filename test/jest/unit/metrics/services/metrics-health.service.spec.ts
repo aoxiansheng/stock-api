@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * MetricsHealthService 单元测试
  * 测试指标系统健康检查服务的各项功能

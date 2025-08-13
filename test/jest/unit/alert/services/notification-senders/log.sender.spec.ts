@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { LogSender } from '../../../../../../src/alert/services/notification-senders/log.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
 
 // Mock the createLogger function
 const mockLogger = {
@@ -25,7 +26,7 @@ describe('LogSender', () => {
     value: 95,
     threshold: 90,
     status: AlertStatus.FIRING,
-    startTime: new Date('2023-01-01T10:00:00Z'),
+    startTime: new Date('2023-01-_01T10:_00:00Z'),
     endTime: null,
     message: 'CPU usage is too high',
     ruleName: 'Test Rule',
@@ -77,7 +78,7 @@ describe('LogSender', () => {
       const result = await sender.send(mockAlert, mockRule, config);
 
       expect(result.success).toBe(true);
-      expect(result.channelType).toEqual(NotificationChannelType.LOG);
+      expect(result._channelType).toEqual(NotificationChannelType.LOG);
       expect(result.message).toEqual('日志记录成功');
       expect(mockLogger.log).toHaveBeenCalledTimes(1);
       expect(mockLogger.error).not.toHaveBeenCalled();

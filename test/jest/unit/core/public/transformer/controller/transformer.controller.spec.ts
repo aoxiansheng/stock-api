@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { TransformerController } from '@core/transformer/controller/transformer.controller';
-import { TransformerService } from '@core/transformer/services/transformer.service';
-import { TransformRequestDto } from '@core/transformer/dto/transform-request.dto';
-import { TransformResponseDto } from '@core/transformer/dto/transform-response.dto';
+import { TransformerController } from '@core/public/transformer/controller/transformer.controller';
+import { TransformerService } from '@core/public/transformer/services/transformer.service';
+import { TransformRequestDto } from '@core/public/transformer/dto/transform-request.dto';
+import { TransformResponseDto } from '@core/public/transformer/dto/transform-response.dto';
 import { InternalServerErrorException } from '@nestjs/common';
-import { UnifiedPermissionsGuard } from '../../../../../../src/auth/guards/unified-permissions.guard';
-import { PermissionService } from '../../../../../../src/auth/services/permission.service';
-import { RateLimitGuard } from '../../../../../../src/auth/guards/rate-limit.guard';
-import { RateLimitService } from '../../../../../../src/auth/services/rate-limit.service';
+import { UnifiedPermissionsGuard } from '../../../../../../../src/auth/guards/unified-permissions.guard';
+import { PermissionService } from '../../../../../../../src/auth/services/permission.service';
+import { RateLimitGuard } from '../../../../../../../src/auth/guards/rate-limit.guard';
+import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
 import { Reflector } from '@nestjs/core';
 
 describe('TransformerController', () => {

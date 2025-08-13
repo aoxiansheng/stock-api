@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // Import removed as TestingModule is not used in this test file
 import { createLogger } from '@common/config/logger.config';
 import { MARKETS } from '@common/constants/market.constants';
@@ -8,7 +9,7 @@ jest.mock('@common/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),
-  warn: jest.fn(),
+  _warn: jest.fn(),
   error: jest.fn(),
 };
 (createLogger as jest.Mock).mockReturnValue(mockLogger);
@@ -19,7 +20,7 @@ const mockContextService = {
   subscribe: jest.fn(),
   unsubscribe: jest.fn(),
   onQuoteUpdate: jest.fn(),
-  isWebSocketConnected: jest.fn(),
+  _isWebSocketConnected: jest.fn(),
   cleanup: jest.fn(),
 };
 
@@ -38,16 +39,16 @@ describe('StreamStockQuote Capability', () => {
     });
 
     it('should support correct markets', () => {
-      expect(streamStockQuote.supportedMarkets).toEqual([
-        MARKETS.HK,
-        MARKETS.SZ,
-        MARKETS.SH,
-        MARKETS.US,
+      expect(streamStockQuote._supportedMarkets).toEqual([
+        MARKETS._HK,
+        MARKETS._SZ,
+        MARKETS._SH,
+        MARKETS._US,
       ]);
     });
 
     it('should support correct symbol formats', () => {
-      expect(streamStockQuote.supportedSymbolFormats).toEqual([
+      expect(streamStockQuote._supportedSymbolFormats).toEqual([
         '700.HK',
         '00700.HK',
         '09618.HK',
@@ -60,7 +61,7 @@ describe('StreamStockQuote Capability', () => {
     });
 
     it('should have rate limit configuration', () => {
-      expect(streamStockQuote.rateLimit).toEqual({
+      expect(streamStockQuote._rateLimit).toEqual({
         maxConnections: 100,
         maxSubscriptionsPerConnection: 200,
         reconnectDelay: 1000,

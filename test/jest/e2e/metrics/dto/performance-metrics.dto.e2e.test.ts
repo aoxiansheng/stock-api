@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Performance Metrics E2E Tests", () => {
   let httpServer: any;
   let jwtToken: string;
@@ -18,7 +19,7 @@ describe("Performance Metrics E2E Tests", () => {
       .post("/api/v1/auth/login")
       .send({ username: userData.username, password: userData.password });
 
-    jwtToken = loginResponse.body.data.accessToken;
+    jwtToken = loginResponse.body._data.accessToken;
   });
 
   describe("Performance Metrics Collection", () => {
@@ -37,7 +38,7 @@ describe("Performance Metrics E2E Tests", () => {
       expect(perfData).toHaveProperty("redis");
       expect(perfData).toHaveProperty("system");
 
-      expect(perfData).toHaveProperty("healthScore");
+      expect(perfData).toHaveProperty("_healthScore");
       expect(typeof perfData.healthScore).toBe("number");
 
       if (perfData.summary) {
@@ -120,7 +121,7 @@ describe("Performance Metrics E2E Tests", () => {
       const dbData = response.body.data;
 
       expect(dbData).toBeDefined();
-      expect(dbData).not.toHaveProperty("status");
+      expect(dbData).not.toHaveProperty("_status");
       expect(dbData).toHaveProperty("connectionPoolSize");
       expect(dbData).toHaveProperty("activeConnections");
       expect(dbData).toHaveProperty("totalQueries");

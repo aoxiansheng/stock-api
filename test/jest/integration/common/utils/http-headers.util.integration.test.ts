@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * common 常量和工具函数集成测试
  * 测试 common 模块中的常量、工具函数和装饰器
@@ -12,8 +13,8 @@ import * as request from "supertest";
 import {
   Market,
   MARKETS,
-  MARKET_NAMES,
-  MARKET_TIMEZONES,
+  MARKETNAMES,
+  MARKETTIMEZONES,
 } from "../../../../../src/common/constants/market.constants";
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 import {
@@ -45,8 +46,8 @@ class TestcommonUtilitiesController {
     return {
       clientIP: HttpHeadersUtil.getClientIP(req),
       userAgent: HttpHeadersUtil.getUserAgent(req),
-      contentType: HttpHeadersUtil.getContentType(req),
-      isJsonContent: HttpHeadersUtil.isJsonContent(req),
+      _contentType: HttpHeadersUtil.getContentType(req),
+      _isJsonContent: HttpHeadersUtil.isJsonContent(req),
       safeHeaders: HttpHeadersUtil.getSafeHeaders(req),
     };
   }
@@ -188,7 +189,7 @@ describe("common Utilities Integration", () => {
       it("应该正确识别客户端 IP", async () => {
         const response = await request(httpServer)
           .get("/test-common-utilities/headers-test")
-          .set("X-Forwarded-For", "192.168.1.100, 10.0.0.1")
+          .set("X-Forwarded-For", "192.168.1._100, 10.0.0.1")
           .set("X-Real-IP", "172.16.0.1")
           .expect(200);
 
@@ -207,7 +208,7 @@ describe("common Utilities Integration", () => {
 
         const safeHeaders = response.body.data.safeHeaders;
 
-        expect(safeHeaders.authorization).toBe("[FILTERED]");
+        expect(safeHeaders._authorization).toBe("[FILTERED]");
         expect(safeHeaders["x-access-token"]).toBe("[FILTERED]");
         expect(safeHeaders["x-api-key"]).toBe("[FILTERED]");
         expect(safeHeaders["custom-header"]).toBe("safe-value");
@@ -361,7 +362,7 @@ describe("common Utilities Integration", () => {
       const concurrentRequests = 50;
       const startTime = Date.now();
 
-      const promises = Array.from({ length: concurrentRequests }, (_, i) =>
+      const promises = Array.from({ _length: concurrentRequests }, (_, i) =>
         request(httpServer)
           .get("/test-common-utilities/headers-test")
           .set("User-Agent", `Test-Agent-${i}`)
@@ -436,7 +437,7 @@ describe("common Utilities Integration", () => {
     it("常量对象应该是只读的", () => {
       // 使用 Object.freeze() 冻结的对象在尝试添加属性时会抛出 TypeError
       expect(() => {
-        (MARKETS as any).NEW_MARKET = "NEW";
+        (MARKETS as any).NEWMARKET = "NEW";
       }).toThrow(TypeError); // 期望抛出 TypeError
 
       // 由于对象被冻结，新属性添加失败，应该仍然是 undefined

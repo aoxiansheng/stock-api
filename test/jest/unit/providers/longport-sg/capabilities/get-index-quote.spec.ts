@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getIndexQuote } from '../../../../../../src/providers/longport-sg/capabilities/get-index-quote';
 
 describe('LongportSgGetIndexQuote Capability', () => {

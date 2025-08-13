@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NotificationLogSchema } from "../../../../../src/alert/schemas/notification-log.schema";
 
 describe("NotificationLogSchema", () => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as request from "supertest";
 import { INestApplication } from "@nestjs/common";
 

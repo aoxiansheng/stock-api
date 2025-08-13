@@ -1,18 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { SymbolMappingRepository } from '../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository';
+import { SymbolMapperService } from '../../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { SymbolMappingRepository } from '../../../../../../../src/core/public/symbol-mapper/repositories/symbol-mapping.repository';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateSymbolMappingDto } from '../../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto';
-import { SymbolMappingResponseDto } from '../../../../../../src/core/symbol-mapper/dto/symbol-mapping-response.dto';
-import { SYMBOL_MAPPER_ERROR_MESSAGES } from '../../../../../../src/core/symbol-mapper/constants/symbol-mapper.constants';
-import { UpdateSymbolMappingDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '../../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto';
-import { SymbolMappingRule } from '../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema';
-import { SymbolMappingQueryDto } from '../../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto';
-import { PaginatedDataDto } from '../../../../../../src/common/modules/pagination/dto/paginated-data';
+import { CreateSymbolMappingDto } from '../../../../../../../src/core/public/symbol-mapper/dto/create-symbol-mapping.dto';
+import { SymbolMappingResponseDto } from '../../../../../../../src/core/public/symbol-mapper/dto/symbol-mapping-response.dto';
+import { SYMBOL_MAPPER_ERROR_MESSAGES } from '../../../../../../../src/core/public/symbol-mapper/constants/symbol-mapper.constants';
+import { UpdateSymbolMappingDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '../../../../../../../src/core/public/symbol-mapper/dto/update-symbol-mapping.dto';
+import { SymbolMappingRule } from '../../../../../../../src/core/public/symbol-mapper/schemas/symbol-mapping-rule.schema';
+import { SymbolMappingQueryDto } from '../../../../../../../src/core/public/symbol-mapper/dto/symbol-mapping-query.dto';
+import { PaginatedDataDto } from '../../../../../../../src/common/modules/pagination/dto/paginated-data';
 import { FeatureFlags } from '@common/config/feature-flags.config';
 // We'll provide FeatureFlags without importing the real class
 
@@ -60,7 +61,7 @@ class MockFeatureFlags {
     return true;
   }
 }
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 const mockSymbolMappingRepository = () => ({
   exists: jest.fn(),
@@ -68,13 +69,13 @@ const mockSymbolMappingRepository = () => ({
   findByDataSource: jest.fn(),
   findById: jest.fn(),
   findPaginated: jest.fn(),
-  updateById: jest.fn(),
-  deleteById: jest.fn(),
+  _updateById: jest.fn(),
+  delet_eById: jest.fn(),
   findAllMappingsForSymbols: jest.fn(),
   getDataSources: jest.fn(),
   getMarkets: jest.fn(),
   getSymbolTypes: jest.fn(),
-  deleteByDataSource: jest.fn(),
+  delet_eByDataSource: jest.fn(),
   addSymbolMappingRule: jest.fn(),
   updateSymbolMappingRule: jest.fn(),
   removeSymbolMappingRule: jest.fn(),
@@ -205,7 +206,7 @@ describe('SymbolMapperService', () => {
       ],
     };
     const mockCreatedDoc = {
-      _id: 'someId',
+      id: 'someId',
       ...createDto,
       SymbolMappingRule: createDto.SymbolMappingRule,
     };
@@ -255,7 +256,7 @@ describe('SymbolMapperService', () => {
     it('should successfully save a new mapping', async () => {
       repository.exists.mockResolvedValue(false);
       repository.create.mockResolvedValue({
-        _id: 'newId',
+        id: 'newId',
         ...mockRuleList,
         SymbolMappingRule: mockRuleList.SymbolMappingRule,
       });
@@ -308,7 +309,7 @@ describe('SymbolMapperService', () => {
   describe('getSymbolMappingById', () => {
     const id = 'someId';
     const mockMapping = {
-      _id: id,
+      id: id,
       dataSourceName: 'TestDataSource',
       SymbolMappingRule: [],
     };
@@ -343,7 +344,7 @@ describe('SymbolMapperService', () => {
   describe('getSymbolMappingByDataSource', () => {
     const dataSourceName = 'TestDataSource';
     const mockMapping = {
-      _id: 'someId',
+      id: 'someId',
       dataSourceName: dataSourceName,
       SymbolMappingRule: [],
     };
@@ -383,7 +384,7 @@ describe('SymbolMapperService', () => {
     };
     const mockItems = [
       {
-        _id: 'id1',
+        id: 'id1',
         dataSourceName: 'Test',
         SymbolMappingRule: [{ standardSymbol: 'A', sdkSymbol: 'B' }],
       },
@@ -415,7 +416,7 @@ describe('SymbolMapperService', () => {
       expect(result).toEqual(mockPaginatedResponse);
       expect(repository.findPaginated).toHaveBeenCalledWith(query);
       expect(
-        paginationService.createPaginatedResponseFromQuery,
+        paginationService._createPaginatedResponseFromQuery,
       ).toHaveBeenCalledWith(
         expect.any(Array),
         query,
@@ -441,7 +442,7 @@ describe('SymbolMapperService', () => {
       ],
     };
     const mockUpdatedDoc = {
-      _id: id,
+      id: id,
       ...updateDto,
       SymbolMappingRule: updateDto.SymbolMappingRule,
     };
@@ -476,7 +477,7 @@ describe('SymbolMapperService', () => {
   describe('deleteSymbolMapping', () => {
     const id = 'someId';
     const mockDeletedDoc = {
-      _id: id,
+      id: id,
       dataSourceName: 'DeletedDataSource',
       SymbolMappingRule: [],
     };
@@ -487,7 +488,7 @@ describe('SymbolMapperService', () => {
       const result = await service.deleteSymbolMapping(id);
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
       expect(result.id).toEqual(id);
-      expect(repository.deleteById).toHaveBeenCalledWith(id);
+      expect(repository.delet_eById).toHaveBeenCalledWith(id);
     });
 
     it('should throw NotFoundException if mapping not found', async () => {
@@ -496,7 +497,7 @@ describe('SymbolMapperService', () => {
       await expect(service.deleteSymbolMapping(id)).rejects.toThrow(
         NotFoundException,
       );
-      expect(repository.deleteById).toHaveBeenCalledWith(id);
+      expect(repository.delet_eById).toHaveBeenCalledWith(id);
     });
 
     it('should throw error if repository call fails', async () => {
@@ -565,7 +566,7 @@ describe('SymbolMapperService', () => {
     const mappingInSymbolId = 'someMappingId';
     const standardSymbols = ['AAPL.US', 'GOOG.US'];
     const mockMappingDoc = {
-      _id: mappingInSymbolId,
+      id: mappingInSymbolId,
       dataSourceName: 'TestDataSource',
       isActive: true,
       SymbolMappingRule: [
@@ -738,13 +739,13 @@ describe('SymbolMapperService', () => {
   describe('deleteSymbolMappingsByDataSource', () => {
     const dataSourceName = 'TestDataSource';
     it('should delete mappings by data source name', async () => {
-      repository.deleteByDataSource.mockResolvedValueOnce({ deletedCount: 5 });
+      repository._deleteByDataSource.mockResolvedValueOnce({ delet_edCount: 5 });
 
       const result = await service.deleteSymbolMappingsByDataSource(
         dataSourceName,
       );
-      expect(result).toEqual({ deletedCount: 5 });
-      expect(repository.deleteByDataSource).toHaveBeenCalledWith(dataSourceName);
+      expect(result).toEqual({ delet_edCount: 5 });
+      expect(repository.delet_eByDataSource).toHaveBeenCalledWith(dataSourceName);
     });
 
     it('should throw error if repository call fails', async () => {
@@ -764,7 +765,7 @@ describe('SymbolMapperService', () => {
       symbolMappingRule: { standardSymbol: 'NEW', sdkSymbol: 'NEW_OUT', isActive: true },
     };
     const mockUpdatedDoc = {
-      _id: 'someId',
+      id: 'someId',
       dataSourceName: addDto.dataSourceName,
       SymbolMappingRule: [addDto.symbolMappingRule],
     };
@@ -807,7 +808,7 @@ describe('SymbolMapperService', () => {
       symbolMappingRule: { standardSymbol: 'OLD', sdkSymbol: 'UPDATED', isActive: true },
     };
     const mockUpdatedDoc = {
-      _id: 'someId',
+      id: 'someId',
       dataSourceName: updateDto.dataSourceName,
       SymbolMappingRule: [updateDto.symbolMappingRule],
     };
@@ -848,7 +849,7 @@ describe('SymbolMapperService', () => {
     const dataSourceName = 'TestDataSource';
     const standardSymbol = 'TO_REMOVE';
     const mockUpdatedDoc = {
-      _id: 'someId',
+      id: 'someId',
       dataSourceName: dataSourceName,
       SymbolMappingRule: [],
     };
@@ -893,7 +894,7 @@ describe('SymbolMapperService', () => {
       { standardSymbol: 'R1', sdkSymbol: 'O1', isActive: true },
     ];
     const mockUpdatedDoc = {
-      _id: 'someId',
+      id: 'someId',
       dataSourceName: dataSourceName,
       SymbolMappingRule: newRules,
     };
@@ -968,7 +969,7 @@ describe('SymbolMapperService', () => {
       expect(result.totalProviders).toBe(2);
       expect(result.totalRules).toBe(4); // 2 from A1 + 1 from B + 1 from A2
       expect(result.providers).toEqual(expect.arrayContaining(['ProviderA', 'ProviderB']));
-      expect(result.rulesByProvider['ProviderA'].SymbolMappingRule).toHaveLength(3);
+      expect(result._rulesByProvider['ProviderA'].SymbolMappingRule).toHaveLength(3);
       expect(result.rulesByProvider['ProviderB'].SymbolMappingRule).toHaveLength(1);
       expect(result.summary.mostRulesProvider).toBe('ProviderA');
       expect(result.summary.averageRulesPerProvider).toBe(2);

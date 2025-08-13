@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * StreamReceiver RxJS bufferTime 性能基准测试
  * 
@@ -5,14 +6,14 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { StreamReceiverService } from '../../../src/core/stream-receiver/stream-receiver.service';
+import { StreamReceiverService } from '../../../src/core/stream/stream-receiver/services/stream-receiver.service';
 import { CapabilityRegistryService } from '../../../src/providers/services/capability-registry.service';
-import { SymbolMapperService } from '../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { FlexibleMappingRuleService } from '../../../src/core/data-mapper/services/flexible-mapping-rule.service';
-import { TransformerService } from '../../../src/core/transformer/services/transformer.service';
-import { BatchOptimizationService } from '../../../src/core/shared/services/batch-optimization.service';
+import { SymbolMapperService } from '../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { FlexibleMappingRuleService } from '../../../src/core/public/data-mapper/services/flexible-mapping-rule.service';
+import { TransformerService } from '../../../src/core/public/transformer/services/transformer.service';
+import { BatchOptimizationService } from '../../../src/core/public/shared/services/batch-optimization.service';
 import { FeatureFlags } from '../../../src/common/config/feature-flags.config';
-import { StreamPerformanceMetrics } from '../../../src/core/shared/services/stream-performance-metrics.service';
+import { StreamPerformanceMetrics } from '../../../src/core/public/shared/services/stream-performance-metrics.service';
 
 // Performance test configuration
 const PERFORMANCE_TEST_CONFIG = {
@@ -243,8 +244,8 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
       }
       
       // 强制垃圾回收（如果可用）
-      if (global.gc) {
-        global.gc();
+      if ((global as any).gc) {
+        (global as any).gc();
       }
       
       const finalMemoryUsage = process.memoryUsage().heapUsed;

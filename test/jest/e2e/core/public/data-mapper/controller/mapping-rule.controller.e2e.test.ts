@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * MappingRuleController 端到端测试
  * 测试映射规则管理和测试功能
@@ -339,7 +340,7 @@ describe("MappingRuleController E2E", () => {
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
         
-        expect(result).toHaveProperty("items");
+        expect(result).toHaveProperty("_items");
         expect(result).toHaveProperty("pagination");
         expect(result.pagination).toHaveProperty("total");
         expect(result.pagination).toHaveProperty("page");
@@ -504,8 +505,8 @@ describe("MappingRuleController E2E", () => {
         
         // 验证映射统计
         expect(result.mappingStats).toHaveProperty("totalMappings");
-        expect(result.mappingStats).toHaveProperty("successfulMappings");
-        expect(result.mappingStats).toHaveProperty("failedMappings");
+        expect(result.mappingStats).toHaveProperty("_successfulMappings");
+        expect(result.mappingStats).toHaveProperty("_failedMappings");
         expect(result.mappingStats).toHaveProperty("successRate");
         
         // 验证转换结果

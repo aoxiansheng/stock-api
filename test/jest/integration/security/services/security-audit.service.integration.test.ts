@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Security模块Cache集成测试
  * 测试安全审计系统与Redis缓存的集成功能
@@ -196,9 +197,9 @@ describe("Security Cache Integration", () => {
 
       expect(ipAnalysis).toBeDefined();
       if (ipAnalysis) {
-        expect(ipAnalysis.requestCount).toBeGreaterThan(0);
-        expect(ipAnalysis.failureCount).toBeGreaterThan(0);
-        expect(ipAnalysis.lastSeen).toBeDefined();
+        expect(ipAnalysis._requestCount).toBeGreaterThan(0);
+        expect(ipAnalysis._failureCount).toBeGreaterThan(0);
+        expect(ipAnalysis._lastSeen).toBeDefined();
       }
     });
 

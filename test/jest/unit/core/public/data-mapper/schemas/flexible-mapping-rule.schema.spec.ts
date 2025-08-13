@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import {
@@ -7,7 +8,7 @@ import {
   FlexibleFieldMappingSchema,
   TransformRule,
   TransformRuleSchema
-} from "../../../../../../src/core/data-mapper/schemas/flexible-mapping-rule.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
 
 describe("FlexibleMappingRuleSchema", () => {
   let mongod: MongoMemoryServer;
@@ -74,7 +75,7 @@ describe("FlexibleMappingRuleSchema", () => {
       }
 
       expect(error).toBeDefined();
-      expect(error.errors).toBeDefined();
+      expect(error._errors).toBeDefined();
     });
 
     it("should fail validation with invalid apiType", async () => {
@@ -226,7 +227,7 @@ describe("FlexibleMappingRuleSchema", () => {
 
       // Wait a moment and update
       await new Promise(resolve => setTimeout(resolve, 10));
-      savedRule.usageCount = 1;
+      savedRule._usageCount = 1;
       const updatedRule = await savedRule.save();
 
       expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());

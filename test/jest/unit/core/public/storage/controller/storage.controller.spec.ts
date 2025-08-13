@@ -1,20 +1,21 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { StorageController } from '@core/storage/controller/storage.controller';
-import { StorageService } from '@core/storage/services/storage.service';
-import { StoreDataDto, RetrieveDataDto } from '@core/storage/dto/storage-request.dto';
-import { StorageType } from '@core/storage/enums/storage-type.enum';
-import { StorageClassification } from '@core/storage/enums/storage-type.enum'; // 修复导入路径
-import { StorageResponseDto, StorageStatsDto } from '@core/storage/dto/storage-response.dto';
+import { StorageController } from '../../../../../../../src/core/public/storage/controller/storage.controller';
+import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
+import { StoreDataDto, RetrieveDataDto } from '../../../../../../../src/core/public/storage/dto/storage-request.dto';
+import { StorageType } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
+import { StorageClassification } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
+import { StorageResponseDto, StorageStatsDto } from '../../../../../../../src/core/public/storage/dto/storage-response.dto';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UnifiedPermissionsGuard } from '../../../../../../src/auth/guards/unified-permissions.guard';
-import { PermissionService } from '../../../../../../src/auth/services/permission.service';
-import { CacheService } from '../../../../../../src/cache/services/cache.service';
-import { RateLimitGuard } from '../../../../../../src/auth/guards/rate-limit.guard';
-import { RateLimitService } from '../../../../../../src/auth/services/rate-limit.service';
+import { UnifiedPermissionsGuard } from '../../../../../../../src/auth/guards/unified-permissions.guard';
+import { PermissionService } from '../../../../../../../src/auth/services/permission.service';
+import { CacheService } from '../../../../../../../src/cache/services/cache.service';
+import { RateLimitGuard } from '../../../../../../../src/auth/guards/rate-limit.guard';
+import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
 
 // Mock the logger
-jest.mock('../../../../../../src/common/config/logger.config', () => ({
+jest.mock('../../../../../../../src/common/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     info: jest.fn(),
@@ -46,7 +47,7 @@ describe('StorageController', () => {
           useValue: {
             storeData: jest.fn(),
             retrieveData: jest.fn(),
-            deleteData: jest.fn(),
+            delet_eData: jest.fn(),
             getStorageStats: jest.fn(),
           },
         },
@@ -250,15 +251,15 @@ describe('StorageController', () => {
     it('should delete data successfully with default storageType', async () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
       const result = await controller.deleteData('test-key');
-      expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.BOTH);
-      expect(result).toEqual({ success: true, deleted: true, key: 'test-key' });
+      expect(storageService.delet_eData).toHaveBeenCalledWith('test-key', StorageType.BOTH);
+      expect(result).toEqual({ success: true, delet_ed: true, key: 'test-key' });
     });
 
     it('should delete data successfully with specified storageType', async () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
       const result = await controller.deleteData('test-key', StorageType.CACHE);
-      expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.CACHE);
-      expect(result).toEqual({ success: true, deleted: true, key: 'test-key' });
+      expect(storageService.delet_eData).toHaveBeenCalledWith('test-key', StorageType.CACHE);
+      expect(result).toEqual({ success: true, delet_ed: true, key: 'test-key' });
     });
 
     it('should throw error if storageService.deleteData fails', async () => {

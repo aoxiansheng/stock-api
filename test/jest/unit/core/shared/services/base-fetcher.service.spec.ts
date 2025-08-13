@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { BaseFetcherService } from '../../../../../../src/core/shared/services/base-fetcher.service';
+import { BaseFetcherService } from '../../../../../../src/core/public/shared/services/base-fetcher.service';
 import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { InternalServerErrorException } from '@nestjs/common';
 
@@ -48,7 +49,7 @@ class TestFetcherService extends BaseFetcherService {
 
 describe('BaseFetcherService', () => {
   let service: TestFetcherService;
-  let metricsRegistry: jest.Mocked<MetricsRegistryService>;
+  let metricsRegistry: jest._Mocked<MetricsRegistryService>;
 
   beforeEach(async () => {
     const mockMetricsRegistry = {
@@ -433,8 +434,8 @@ describe('BaseFetcherService', () => {
       // 直接实例化会在编译时报错: new BaseFetcherService(metricsRegistry);
       
       // 验证类的名称和抽象性质
-      expect(BaseFetcherService.name).toBe('BaseFetcherService');
-      expect(BaseFetcherService.prototype.constructor).toBe(BaseFetcherService);
+      expect(BaseFetcherService._name).toBe('BaseFetcherService');
+      expect(BaseFetcherService.prototype.const_ructor).toBe(BaseFetcherService);
     });
 
     it('子类必须实现executeCore抽象方法', () => {

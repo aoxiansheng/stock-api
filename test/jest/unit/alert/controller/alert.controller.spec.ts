@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { AlertController } from '../../../../../src/alert/controller/alert.controller';
 import { AlertingService } from '../../../../../src/alert/services/alerting.service';
@@ -23,7 +24,7 @@ const mockAlertingService = () => ({
   getRules: jest.fn(),
   getRuleById: jest.fn(),
   updateRule: jest.fn(),
-  deleteRule: jest.fn(),
+  delet_eRule: jest.fn(),
   toggleRule: jest.fn(),
   getStats: jest.fn(),
   acknowledgeAlert: jest.fn(),
@@ -33,16 +34,16 @@ const mockAlertingService = () => ({
 
 const mockAlertHistoryService = () => ({
   getActiveAlerts: jest.fn(),
-  queryAlerts: jest.fn(),
+  _queryAlerts: jest.fn(),
   getAlertById: jest.fn(),
 });
 
 const mockNotificationService = () => ({
-  testChannel: jest.fn(),
+  _testChannel: jest.fn(),
 });
 
 const mockPaginationService = () => ({
-  createPaginatedResponse: jest.fn(),
+  _createPaginatedResponse: jest.fn(),
 });
 
 const mockPermissionService = () => ({
@@ -217,7 +218,7 @@ describe('AlertController', () => {
     it('should delete an alert rule', async () => {
       alertingService.deleteRule.mockResolvedValue(undefined);
       await expect(controller.deleteRule('1')).resolves.toBeUndefined();
-      expect(alertingService.deleteRule).toHaveBeenCalledWith('1');
+      expect(alertingService.delet_eRule).toHaveBeenCalledWith('1');
     });
   });
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   AlertHistory,
   AlertHistorySchema,
@@ -44,7 +45,7 @@ describe("AlertHistorySchema", () => {
 
     beforeEach(() => {
       alertHistory = new AlertHistory();
-      alertHistory.startTime = new Date("2023-01-01T00:00:00.000Z");
+      alertHistory.startTime = new Date("2023-01-01T_00:00:00.000Z");
     });
 
     it("should calculate duration correctly", () => {

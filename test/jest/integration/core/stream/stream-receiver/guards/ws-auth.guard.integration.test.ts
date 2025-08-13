@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
 import { Socket } from 'socket.io';
 
-import { WsAuthGuard } from '../../../../../../src/core/stream-receiver/guards/ws-auth.guard';
-import { ApiKeyService } from '../../../../../../src/auth/services/apikey.service';
-import { RateLimitService } from '../../../../../../src/auth/services/rate-limit.service';
-import { Permission } from '../../../../../../src/auth/enums/user-role.enum';
+import { WsAuthGuard } from '../../../../../../../src/core/stream/stream-receiver/guards/ws-auth.guard';
+import { ApiKeyService } from '../../../../../../../src/auth/services/apikey.service';
+import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
+import { Permission } from '../../../../../../../src/auth/enums/user-role.enum';
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '../../../../../../../src/common/config/logger.config';
 
 /**
  * WsAuthGuard 集成测试
@@ -86,7 +87,7 @@ describe('WsAuthGuard Integration (API Key)', () => {
   const validAccessToken = 'valid-access-token';
 
   const baseApiKeyDoc = {
-    _id: 'api-key-id',
+    id: 'api-key-id',
     name: '测试 API Key',
     permissions: [Permission.STREAM_READ],
     appKey: validAppKey,
@@ -99,7 +100,7 @@ describe('WsAuthGuard Integration (API Key)', () => {
         {
           provide: ApiKeyService,
           useValue: {
-            validateApiKey: jest.fn(),
+            _validateApiKey: jest.fn(),
           },
         },
         {

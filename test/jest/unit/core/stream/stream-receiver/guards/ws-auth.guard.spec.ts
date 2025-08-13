@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
 import { Socket } from 'socket.io';
 
-import { WsAuthGuard } from '../../../../../../src/core/stream-receiver/guards/ws-auth.guard';
-import { ApiKeyService } from '../../../../../../src/auth/services/apikey.service';
-import { RateLimitService } from '../../../../../../src/auth/services/rate-limit.service';
-import { Permission } from '../../../../../../src/auth/enums/user-role.enum';
+import { WsAuthGuard } from '../../../../../../../src/core/stream/stream-receiver/guards/ws-auth.guard';
+import { ApiKeyService } from '../../../../../../../src/auth/services/apikey.service';
+import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
+import { Permission } from '../../../../../../../src/auth/enums/user-role.enum';
 
 import { createLogger } from '@common/config/logger.config';
 
@@ -22,7 +23,7 @@ const mockLogger = {
   warn: jest.fn(),
   error: jest.fn(),
 };
-(createLogger as jest.Mock).mockReturnValue(mockLogger);
+(createLogger as jest._Mock).mockReturnValue(mockLogger);
 
 // 创建模拟服务
 const mockApiKeyService = {
@@ -65,7 +66,7 @@ describe('WsAuthGuard 单元测试', () => {
   const validAppKey = 'unit-valid-key';
   const validAccessToken = 'unit-valid-token';
   const baseApiKeyDoc = {
-    _id: 'apikey-id',
+    id: 'apikey-id',
     name: '单元测试 Key',
     permissions: [Permission.STREAM_READ],
     appKey: validAppKey,

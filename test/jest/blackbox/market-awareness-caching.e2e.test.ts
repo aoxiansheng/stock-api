@@ -1,15 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：市场状态感知缓存系统
  * 测试基于市场状态的动态缓存策略和37字段变化检测
  * 验证多市场智能推断和缓存优化机制
  * 
- * 注意：此测试需要项目实际运行在 http://localhost:3000
+ * 注意：此测试需要项目实际运行在 http://localhost:_3000
  * 启动命令：bun run dev
  */
 
 import axios, { AxiosInstance } from 'axios';
 
-describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
+describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
   let httpClient: AxiosInstance;
   let baseURL: string;
   let apiKey: any;
@@ -114,7 +115,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       },
       { symbol: "300001.SZ", expectedMarket: "SZ", description: "创业板30开头" },
       {
-        symbol: "600000.SH",
+        symbol: "_600000.SH",
         expectedMarket: "SH", 
         description: "上交所.SH后缀",
       },
@@ -180,7 +181,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       }
 
       // 验证批量处理统计
-      expect(metadata.totalRequested).toBe(mixedSymbols.length);
+      expect(metadata._totalRequested).toBe(mixedSymbols.length);
     });
   });
 
@@ -218,7 +219,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         }
 
         // 验证市场感知标识
-        if (metadata.marketAware !== undefined) {
+        if (metadata._marketAware !== undefined) {
           expect(metadata.marketAware).toBe(true);
         }
       }
@@ -245,7 +246,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
         const metadata = response.data.data.metadata;
         if (metadata.cacheTTL) {
           measurements.push({
-            ttl: metadata.cacheTTL,
+            ttl: metadata._cacheTTL,
             timestamp: new Date().toISOString(),
             cacheUsed: metadata.cacheUsed || false,
           });
@@ -313,13 +314,13 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
           "volume_change",
           "no_change",
           "initial_load",
-        ]).toContain(metadata.changeDetection.reason);
+        ]).toContain(metadata.changeDetection._reason);
 
         console.log(
           `变化检测结果: ${metadata.changeDetection.reason}`,
         );
 
-        if (metadata.changeDetection.changedFields) {
+        if (metadata.changeDetection._changedFields) {
           console.log(
             `变化字段: ${metadata.changeDetection.changedFields.join(", ")}`,
           );
@@ -355,7 +356,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
       if (metadata.changeDetection) {
         expect(metadata.changeDetection).toBeDefined();
         console.log(
-          `批量变化检测: ${JSON.stringify(metadata.changeDetection, null, 2)}`,
+          `批量变化检测: ${JSON.stringify(metadata._changeDetection, null, 2)}`,
         );
       }
 
@@ -480,7 +481,7 @@ describe("Real Environment Black-box: Market Awareness & Caching E2E", () => {
           symbol: test.symbol,
           firstCacheUsed: firstResponse.data.data.metadata.cacheUsed || false,
           secondCacheUsed: secondResponse.data.data.metadata.cacheUsed || false,
-          cacheKey: secondResponse.data.data.metadata.cacheKey,
+          cacheKey: secondResponse.data.data.metadata._cacheKey,
         });
       }
 

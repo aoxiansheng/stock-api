@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { ValidationResultDto } from '../../../../../../src/core/receiver/dto/validation.dto';
+import { ValidationResultDto } from '../../../../../../../src/core/restapi/receiver/dto/validation.dto';
 
 describe('ValidationResultDto', () => {
 

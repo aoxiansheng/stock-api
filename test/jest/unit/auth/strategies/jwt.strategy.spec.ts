@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * JwtStrategy 单元测试
  * 测试JWT认证策略的验证逻辑
@@ -18,11 +19,11 @@ describe("JwtStrategy", () => {
   let configService: ConfigService;
   
   // 测试用JWT密钥
-  const TEST_JWT_SECRET = "test-jwt-secret-key-for-unit-tests";
+  const TEST_JWTSECRET = "test-jwt-secret-key-for-unit-tests";
 
   // 创建一个符合User类型的模拟用户
   const mockUser = {
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     username: "testuser",
     email: "test@example.com",
     role: UserRole.DEVELOPER,
@@ -39,7 +40,7 @@ describe("JwtStrategy", () => {
       get: jest.fn(),
       getOrThrow: jest.fn((key) => {
         if (key === "JWT_SECRET") {
-          return TEST_JWT_SECRET;
+          return TEST_JWTSECRET;
         }
         throw new Error(`未找到配置: ${key}`);
       }),

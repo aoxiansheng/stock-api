@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { SymbolMapperService } from '../../../../../../src/core/symbol-mapper/services/symbol-mapper.service';
-import { SymbolMappingRepository } from '../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository';
-import { PaginationService } from '../../../../../../src/common/modules/pagination/services/pagination.service';
-import { FeatureFlags } from '../../../../../../src/common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { SymbolMapperService } from '../../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { SymbolMappingRepository } from '../../../../../../../src/core/public/symbol-mapper/repositories/symbol-mapping.repository';
+import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
+import { FeatureFlags } from '../../../../../../../src/common/config/feature-flags.config';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 // Create a proper mock class for FeatureFlags
 class MockFeatureFlags {
@@ -33,7 +34,7 @@ describe('SymbolMapperService Enhanced Methods', () => {
     findAllMappingsForSymbols: jest.fn(),
     create: jest.fn(),
     updateById: jest.fn(),
-    deleteById: jest.fn(),
+    delet_eById: jest.fn(),
     exists: jest.fn(),
     findAll: jest.fn(),
     findById: jest.fn(),
@@ -42,7 +43,7 @@ describe('SymbolMapperService Enhanced Methods', () => {
     updateSymbolMappingRule: jest.fn(),
     removeSymbolMappingRule: jest.fn(),
     replaceSymbolMappingRule: jest.fn(),
-    deleteByDataSource: jest.fn(),
+    delet_eByDataSource: jest.fn(),
     getDataSources: jest.fn(),
     getMarkets: jest.fn(),
     getSymbolTypes: jest.fn(),
@@ -133,8 +134,8 @@ const mockMetricsRegistry = {
       });
       expect(result.mappingResults.failedSymbols).toEqual([]);
       expect(result.mappingResults.metadata.provider).toBe(mockProvider);
-      expect(result.mappingResults.metadata.totalSymbols).toBe(3);
-      expect(result.mappingResults.metadata.successfulTransformations).toBe(3);
+      expect(result.mappingResults.metadata._totalSymbols).toBe(3);
+      expect(result.mappingResults.metadata._successfulTransformations).toBe(3);
       expect(result.mappingResults.metadata.hasPartialFailures).toBe(false);
     });
 
@@ -163,7 +164,7 @@ const mockMetricsRegistry = {
       expect(result.transformedSymbols).toEqual(['700.HK', 'AAPL.US']);
       expect(result.mappingResults.failedSymbols).toContain('INVALID_SYMBOL');
       expect(result.mappingResults.metadata.hasPartialFailures).toBe(true);
-      expect(result.mappingResults.metadata.failedTransformations).toBe(1);
+      expect(result.mappingResults.metadata._failedTransformations).toBe(1);
     });
 
     it('should throw error when all symbols fail transformation', async () => {

@@ -1,5 +1,6 @@
-import { ObjectUtils } from '@core/shared/utils/object.util';
-import { TRANSFORM_CONFIG } from '@core/transformer/constants/transformer.constants';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { ObjectUtils } from '@core/public/shared/utils/object.util';
+import { TRANSFORM_CONFIG } from '@core/public/transformer/constants/transformer.constants';
 
 describe('ObjectUtils', () => {
   describe('getValueFromPath', () => {
@@ -78,7 +79,7 @@ describe('ObjectUtils', () => {
 
     it('should handle circular references gracefully', () => {
       const obj: any = { name: 'circular' };
-      obj.self = obj;
+      obj._self = obj;
       const path = 'self.name';
       const result = ObjectUtils.getValueFromPath(obj, path);
       // 移除JSON.stringify以避免循环引用错误

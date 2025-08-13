@@ -1,25 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../../../src/app.module';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// user-role.enum.e2e.test.ts - 测试占位代码
+// 路径: e2e/auth/enums/user-role.enum.e2e.test.ts
 
-describe('UserRoleEnum E2E', () => {
-  let app: INestApplication;
-
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-  });
-
-  afterEach(async () => {
-    await app.close();
-  });
-
-  it('should be defined', () => {
-    expect(app).toBeDefined();
-  });
-});
+// TODO: 实现具体的测试用例

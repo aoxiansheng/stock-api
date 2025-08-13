@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Model } from "mongoose";
 import { getModelToken } from "@nestjs/mongoose";
 import { Test, TestingModule } from "@nestjs/testing";
@@ -8,7 +9,7 @@ import {
   SymbolMappingRuleDocument,
   SymbolMappingRuleDocumentType,
   SymbolMappingRuleDocumentSchema
-} from "../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
+} from "../../../../../../../src/core/public/symbol-mapper/schemas/symbol-mapping-rule.schema";
 
 describe("SymbolMappingRule Schema", () => {
   let mongoServer: MongoMemoryServer;
@@ -120,7 +121,7 @@ describe("SymbolMappingRule Schema", () => {
 
     expect(jsonRule.id).toBeDefined();
     expect(jsonRule._id).toBeUndefined(); // 被移除
-    expect(jsonRule.__v).toBeUndefined(); // 被移除
+    expect(jsonRule.v).toBeUndefined(); // 被移除
     expect(jsonRule.dataSourceName).toBe(ruleData.dataSourceName);
 
     // 验证嵌套的 SymbolMappingRule，并考虑默认值
@@ -390,7 +391,7 @@ describe("SymbolMappingRule Schema", () => {
       fail("应该抛出唯一性验证错误");
     } catch (error) {
       expect(error).toBeDefined();
-      expect(error.code).toBe(11000); // MongoDB 唯一性约束错误代码
+      expect(error._code).toBe(11000); // MongoDB 唯一性约束错误代码
     }
   });
 

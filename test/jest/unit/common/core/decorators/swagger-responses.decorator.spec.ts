@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import {
@@ -71,7 +72,7 @@ describe('Swagger Responses Decorators', () => {
     // 断言 ApiResponse 被调用，并检查其参数
     expect(ApiResponse).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: HttpStatus.CREATED,
+        status: HttpStatus._CREATED,
         description: '创建成功',
         schema: expect.objectContaining({
           properties: expect.objectContaining({

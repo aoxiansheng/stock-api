@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // permission-decorator.validator.integration.test.ts - 测试占位代码
 // 路径: integration/common/modules/permission/validators/permission-decorator.validator.integration.test.ts
 

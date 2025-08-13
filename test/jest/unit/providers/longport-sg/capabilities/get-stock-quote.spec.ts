@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockQuote } from '../../../../../../src/providers/longport-sg/capabilities/get-stock-quote';
 
 describe('LongportSgGetStockQuote Capability', () => {

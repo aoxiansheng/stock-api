@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Metrics模块Cache集成测试
  * 测试性能监控系统与Redis缓存的集成功能

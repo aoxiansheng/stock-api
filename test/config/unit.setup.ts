@@ -51,7 +51,7 @@ afterAll(() => {
 
 // 全局测试工具函数
 global.createMockUser = () => ({
-  _id: "507f1f77bcf86cd799439011",
+  id: "507f1f77bcf86cd799439011",
   username: "testuser",
   email: "test@example.com",
   role: "developer",
@@ -61,7 +61,7 @@ global.createMockUser = () => ({
 });
 
 global.createMockApiKey = () => ({
-  _id: "507f1f77bcf86cd799439012",
+  id: "507f1f77bcf86cd799439012",
   appKey: "test-app-key",
   accessToken: "test-access-token",
   name: "Test API Key",

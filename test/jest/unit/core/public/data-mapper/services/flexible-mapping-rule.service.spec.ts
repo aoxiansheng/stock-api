@@ -1,26 +1,27 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException, NotFoundException, ConflictException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { FlexibleMappingRuleService } from "../../../../../../src/core/data-mapper/services/flexible-mapping-rule.service";
-import { DataSourceTemplateService } from "../../../../../../src/core/data-mapper/services/data-source-template.service";
-import { MappingRuleCacheService } from "../../../../../../src/core/data-mapper/services/mapping-rule-cache.service";
-import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
+import { FlexibleMappingRuleService } from "../../../../../../../src/core/public/data-mapper/services/flexible-mapping-rule.service";
+import { DataSourceTemplateService } from "../../../../../../../src/core/public/data-mapper/services/data-source-template.service";
+import { MappingRuleCacheService } from "../../../../../../../src/core/public/data-mapper/services/mapping-rule-cache.service";
+import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleDocument
-} from "../../../../../../src/core/data-mapper/schemas/flexible-mapping-rule.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
 import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
   TestFlexibleMappingRuleDto,
   CreateMappingRuleFromSuggestionsDto
-} from "../../../../../../src/core/data-mapper/dto/flexible-mapping-rule.dto";
+} from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({
@@ -43,7 +44,7 @@ describe("FlexibleMappingRuleService", () => {
   let paginationService: DeepMocked<PaginationService>;
 
   const mockRule: FlexibleMappingRuleResponseDto = {
-    id: "507f1f77bcf86cd799439011",
+    id: "_507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
     provider: "longport",
     apiType: "rest",
@@ -61,7 +62,7 @@ describe("FlexibleMappingRuleService", () => {
     version: "1.0.0",
     overallConfidence: 0.95,
     usageCount: 0,
-    successfulTransformations: 0,
+    _successfulTransformations: 0,
     failedTransformations: 0,
     sourceTemplateId: undefined as any,
     createdAt: new Date(),
@@ -69,7 +70,7 @@ describe("FlexibleMappingRuleService", () => {
   };
 
   const mockRuleDocument = {
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     ...mockRule,
     save: jest.fn(),
     toObject: jest.fn()
@@ -87,7 +88,7 @@ describe("FlexibleMappingRuleService", () => {
       find: jest.fn(),
       countDocuments: jest.fn(),
       updateMany: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
+      _findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
     };
     const mockRuleModel: any = Object.assign(ruleModelConstructor, ruleModelStatics);
@@ -174,7 +175,7 @@ describe("FlexibleMappingRuleService", () => {
 
     it("should validate template exists when sourceTemplateId provided", async () => {
       const dtoWithTemplate = { ...createRuleDto, sourceTemplateId: "template123" };
-      const mockTemplate = { _id: "template123", name: "Test Template" };
+      const mockTemplate = { id: "template123", name: "Test Template" };
 
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findOne.mockResolvedValue(null);
@@ -221,7 +222,7 @@ describe("FlexibleMappingRuleService", () => {
           transDataRuleListType: defaultRuleDto.transDataRuleListType,
           isDefault: true
         },
-        { $set: { isDefault: false } }
+        { $_set: { isDefault: false } }
       );
       expect(cacheService.cacheBestMatchingRule).toHaveBeenCalledWith(
         defaultRuleDto.provider,
@@ -263,7 +264,7 @@ describe("FlexibleMappingRuleService", () => {
         page: 1,
         limit: 10
       });
-      paginationService.createPaginatedResponse.mockReturnValue(mockPaginatedResult);
+      paginationService._createPaginatedResponse.mockReturnValue(mockPaginatedResult);
 
       const result = await service.findRules(1, 10, "longport");
 
@@ -274,7 +275,7 @@ describe("FlexibleMappingRuleService", () => {
 
   describe("findRuleById", () => {
     it("should find rule by id", async () => {
-      cacheService.getCachedRuleById.mockResolvedValue(null); // 缓存未命中
+      cacheService._getCachedRuleById.mockResolvedValue(null); // 缓存未命中
       ruleModel.findById.mockResolvedValue(mockRuleDocument);
       const fromDocumentSpy = jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
@@ -298,7 +299,7 @@ describe("FlexibleMappingRuleService", () => {
 
   describe("findBestMatchingRule", () => {
     it("should find best matching rule from cache", async () => {
-      cacheService.getCachedBestMatchingRule.mockResolvedValue(mockRule);
+      cacheService._getCachedBestMatchingRule.mockResolvedValue(mockRule);
 
       const result = await service.findBestMatchingRule("longport", "rest", "quote_fields");
 
@@ -356,7 +357,7 @@ describe("FlexibleMappingRuleService", () => {
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument')
         .mockReturnValueOnce(mockRule) // 第一次调用返回oldRuleDto
         .mockReturnValueOnce({ ...mockRule, ...updateData }); // 第二次调用返回更新后的规则
-      cacheService.invalidateRuleCache.mockResolvedValue(undefined);
+      cacheService._invalidateRuleCache.mockResolvedValue(undefined);
       cacheService.cacheRuleById.mockResolvedValue(undefined);
 
       const result = await service.updateRule("507f1f77bcf86cd799439011", updateData);
@@ -469,7 +470,7 @@ describe("FlexibleMappingRuleService", () => {
       const result = await service.applyFlexibleMappingRule(mockRuleDoc, testData);
 
       expect(result.success).toBe(false); // 成功率为0，所以success应该是false
-      expect(result.mappingStats.failedMappings).toBe(1);
+      expect(result.mappingStats._failedMappings).toBe(1);
       expect(result.mappingStats.successfulMappings).toBe(0);
     });
   });
@@ -512,7 +513,7 @@ describe("FlexibleMappingRuleService", () => {
       
       // Mock FlexibleMappingRuleResponseDto.fromDocument for each rule
       jest.spyOn(FlexibleMappingRuleResponseDto, 'fromDocument').mockReturnValue(mockRule);
-      cacheService.warmupCache.mockResolvedValue(undefined);
+      cacheService._warmupCache.mockResolvedValue(undefined);
 
       await service.warmupMappingRuleCache();
 

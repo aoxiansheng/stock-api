@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // metrics-registry.service.spec.ts - 测试占位代码
 // 路径: unit/monitoring/metrics/services/metrics-registry.service.spec.ts
 

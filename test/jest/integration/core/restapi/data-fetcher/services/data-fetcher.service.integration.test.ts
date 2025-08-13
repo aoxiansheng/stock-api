@@ -1,18 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
-import { DataFetcherModule } from '../../../../../../src/core/restapi/data-fetcher/module/data-fetcher.module';
-import { ProvidersModule } from '../../../../../../src/providers/module/providers.module';
-import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
+import { DataFetcherService } from '../../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { DataFetcherModule } from '../../../../../../../src/core/restapi/data-fetcher/module/data-fetcher.module';
+import { ProvidersModule } from '../../../../../../../src/providers/module/providers.module';
+import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
 import { 
   DataFetchParams,
   RawDataResult,
-} from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
+} from '../../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
 import { 
   DataFetchRequestDto,
   ApiType,
-} from '../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
-import { ICapability } from '../../../../../../src/providers/interfaces/capability.interface';
-import { Market } from '../../../../../../src/common/constants/market.constants';
+} from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
+import { ICapability } from '../../../../../../../src/providers/interfaces/capability.interface';
+import { Market } from '../../../../../../../src/common/constants/market.constants';
 
 describe('DataFetcherService Integration', () => {
   let service: DataFetcherService;
@@ -64,7 +65,7 @@ describe('DataFetcherService Integration', () => {
         secu_quote: [
           {
             symbol: '700.HK',
-            last_done: 320.5,
+            lastdone: 320.5,
             volume: 1500000,
             prev_close: 318.0,
             open: 319.2,
@@ -437,7 +438,7 @@ describe('DataFetcherService Integration', () => {
         await service.fetchRawData(params);
         throw new Error('Expected an error to be thrown');
       } catch (error) {
-        expect(error.message).toContain('Custom provider error with details');
+        expect(error._message).toContain('Custom provider error with details');
       }
     });
 

@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import {
   ResponseMetadataDto,
   DataResponseDto,
-} from '../../../../../../src/core/receiver/dto/data-response.dto';
+} from '../../../../../../../src/core/restapi/receiver/dto/data-response.dto';
 
 describe('DataResponse DTOs', () => {
 

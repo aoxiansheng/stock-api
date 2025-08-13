@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueryService } from '@core/restapi/query/services/query.service';
 import { StorageService } from '@core/public/storage/services/storage.service';

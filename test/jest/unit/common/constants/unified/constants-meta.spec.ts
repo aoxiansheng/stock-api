@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * CONSTANTS_META 单元测试
  * 测试常量元信息的结构和内容
@@ -12,9 +13,9 @@ jest.mock('../../../../../../src/common/utils/object-immutability.util', () => (
 
 // Mock UNIFIED_CONSTANTS
 jest.mock('../../../../../../src/common/constants/unified/unified-constants-collection', () => ({
-  UNIFIED_CONSTANTS: {
-    HTTP_STATUS: { OK: 200, NOT_FOUND: 404 },
-    API_VERSIONS: { V1: 'v1', V2: 'v2' },
+  UNIFIEDCONSTANTS: {
+    HTTPSTATUS: { OK: 200, NOTFOUND: 404 },
+    APIVERSIONS: { V1: 'v1', V2: 'v2' },
     OPERATIONS: { READ: 'read', WRITE: 'write' },
   },
 }));
@@ -30,8 +31,8 @@ describe('CONSTANTS_META', () => {
       expect(CONSTANTS_META).toHaveProperty('DESCRIPTION');
       expect(CONSTANTS_META).toHaveProperty('AUTHOR');
       expect(CONSTANTS_META).toHaveProperty('LICENSE');
-      expect(CONSTANTS_META).toHaveProperty('CREATED_DATE');
-      expect(CONSTANTS_META).toHaveProperty('LAST_UPDATED');
+      expect(CONSTANTS_META).toHaveProperty('CREATEDDATE');
+      expect(CONSTANTS_META).toHaveProperty('LASTUPDATED');
       expect(CONSTANTS_META).toHaveProperty('TOTAL_CONSTANTS');
     });
 
@@ -132,7 +133,7 @@ describe('CONSTANTS_META', () => {
       }).toThrow();
 
       expect(() => {
-        (CONSTANTS_META as any).NEW_PROPERTY = 'New Value';
+        (CONSTANTS_META as any).NEWPROPERTY = 'New Value';
       }).toThrow();
     });
 
@@ -155,7 +156,7 @@ describe('CONSTANTS_META', () => {
   describe('Constants Collection Integration', () => {
     it('should correctly count unified constants', () => {
       // Arrange
-      const { UNIFIED_CONSTANTS } = require('../../../../../../src/common/constants/unified/unified-constants-collection');
+      import { UNIFIED_CONSTANTS } from '../../../../../../src/common/constants/unified/unified-constants-collection';
       const expectedCount = Object.keys(UNIFIED_CONSTANTS).length;
 
       // Assert
@@ -267,14 +268,14 @@ describe('CONSTANTS_META', () => {
         team: CONSTANTS_META.AUTHOR,
         license: CONSTANTS_META.LICENSE,
         lastModified: CONSTANTS_META.LAST_UPDATED,
-        constantsCount: CONSTANTS_META.TOTAL_CONSTANTS,
+        const_antsCount: CONSTANTS_META.TOTAL_CONSTANTS,
       };
 
       // Assert
       expect(docInfo.project).toContain('常量定义');
       expect(docInfo.team).toContain('Team');
       expect(docInfo.license).toBe('MIT');
-      expect(docInfo.constantsCount).toBeGreaterThan(0);
+      expect(docInfo.const_antsCount).toBeGreaterThan(0);
       expect(new Date(docInfo.lastModified)).toBeInstanceOf(Date);
     });
 

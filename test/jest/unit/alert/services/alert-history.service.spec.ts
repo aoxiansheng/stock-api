@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
 import { AlertHistoryRepository } from "../../../../../src/alert/repositories/alert-history.repository";
@@ -41,7 +42,7 @@ describe("AlertHistoryService", () => {
               keys: jest.fn(),
             }),
             listRange: jest.fn(),
-            del: jest.fn(),
+            _del: jest.fn(),
           },
         },
       ],
@@ -61,7 +62,7 @@ describe("AlertHistoryService", () => {
     ruleId: "rule-abc",
     ruleName: "Test Rule", // 添加缺失的ruleName属性
     severity: AlertSeverity.CRITICAL,
-    status: AlertStatus.FIRING,
+    status: AlertStatus._FIRING,
     message: "Test Alert",
     value: 100,
     threshold: 90,
@@ -138,7 +139,7 @@ describe("AlertHistoryService", () => {
   });
 
   describe("updateAlertStatus", () => {
-    it("should update alert status to ACKNOWLEDGED and cache it", async () => {
+    it("should update alert status to _ACKNOWLEDGED and cache it", async () => {
       const updatedAlert = {
         ...mockAlert,
         status: AlertStatus.ACKNOWLEDGED,
@@ -301,7 +302,7 @@ describe("AlertHistoryService", () => {
   describe("getAlertStats", () => {
     it("should get alert statistics", async () => {
       alertHistoryRepository.getStatistics.mockResolvedValue({
-        activeAlerts: [{ _id: AlertSeverity.CRITICAL, count: 1 }],
+        activeAlerts: [{ id: AlertSeverity.CRITICAL, count: 1 }],
         todayAlerts: 2,
         resolvedToday: 1,
         avgResolutionTime: [{ avgTime: 60000 }],
@@ -363,8 +364,8 @@ describe("AlertHistoryService", () => {
       const result = await service.cleanupExpiredAlerts(7);
 
       expect(alertHistoryRepository.cleanup).toHaveBeenCalledWith(7);
-      expect(result.deletedCount).toBe(5);
-      expect(result.executionTime).toBe(100);
+      expect(result.delet_edCount).toBe(5);
+      expect(result._executionTime).toBe(100);
     });
 
     it("should use default cleanup days if invalid daysToKeep is provided", async () => {
@@ -375,9 +376,9 @@ describe("AlertHistoryService", () => {
       const result = await service.cleanupExpiredAlerts(-1);
 
       expect(alertHistoryRepository.cleanup).toHaveBeenCalledWith(
-        ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS,
+        ALERT_HISTORY_CONFIG.DEFAULT_CLEANUPDAYS,
       ); // DEFAULT_CLEANUP_DAYS
-      expect(result.deletedCount).toBe(5);
+      expect(result.delet_edCount).toBe(5);
     });
 
     it("should handle errors during cleanup", async () => {

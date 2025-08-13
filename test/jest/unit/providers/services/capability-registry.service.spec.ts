@@ -3,22 +3,28 @@
  * 测试能力发现、注册和Provider管理功能
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Test, TestingModule } from "@nestjs/testing";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
 import * as fs from "fs/promises";
 
 // Mock fs/promises
 jest.mock("fs/promises");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
 // 正确模拟动态导入
 const mockDynamicImport = jest.fn();
 jest.mock("../../../../../src/providers/services/capability-registry.service", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const originalModule = jest.requireActual(
     "../../../../../src/providers/services/capability-registry.service",
   );
   return {
-    __esModule: true,
+    _esModule: true,
     ...originalModule,
     CapabilityRegistryService: class extends originalModule.CapabilityRegistryService {
       async loadCapability(providerName: string, capabilityName: string) {
@@ -394,9 +400,7 @@ describe("CapabilityRegistryService", () => {
   describe("directoryExists", () => {
     it("应该检测到存在的目录", async () => {
       // Arrange
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require("fs/promises");
-      fs.stat = jest.fn().mockResolvedValue({ isDirectory: () => true });
+      mockedFs.stat = jest.fn().mockResolvedValue({ isDirectory: () => true });
 
       // Act
       const result = await (service as any).directoryExists("/existing/path");
@@ -408,9 +412,7 @@ describe("CapabilityRegistryService", () => {
 
     it("应该检测到不存在的目录", async () => {
       // Arrange
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require("fs/promises");
-      fs.stat = jest.fn().mockRejectedValue(new Error("ENOENT"));
+      mockedFs.stat = jest.fn().mockRejectedValue(new Error("ENOENT"));
 
       // Act
       const result = await (service as any).directoryExists(
@@ -423,9 +425,7 @@ describe("CapabilityRegistryService", () => {
 
     it("应该检测到文件（非目录）", async () => {
       // Arrange
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require("fs/promises");
-      fs.stat = jest.fn().mockResolvedValue({ isDirectory: () => false });
+      mockedFs.stat = jest.fn().mockResolvedValue({ isDirectory: () => false });
 
       // Act
       const result = await (service as any).directoryExists("/path/to/file");
@@ -868,7 +868,7 @@ describe("CapabilityRegistryService", () => {
 
       // Assert
       const result = service.getCapability("test-provider", "get-stock-quote");
-      expect(result).toBeNull(); // 因为第二次注册时isEnabled=false
+      expect(result).toBeNull(); // 因为第二次注册时_isEnabled=false
 
       const allCapabilities = service.getAllCapabilities();
       const providerCapabilities = allCapabilities.get("test-provider");

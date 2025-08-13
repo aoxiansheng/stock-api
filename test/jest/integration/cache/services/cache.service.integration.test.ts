@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * CacheService 容错机制集成测试
  * 测试缓存服务在Redis连接失败时的故障容错行为
@@ -43,49 +44,49 @@ describe("CacheService 容错机制集成测试", () => {
 
     it("应该正常执行哈希操作", async () => {
       // Arrange
-      const _testKey = "test:hash";
-      const _hashField = "field1";
-      const _hashValue = "value1";
+      const testKey = "test:hash";
+      const hashField = "field1";
+      const hashValue = "value1";
 
       // Act - 写入数据
-      await cacheService.hashSet(_testKey, _hashField, _hashValue);
+      await cacheService.hashSet(testKey, hashField, hashValue);
 
       // Act & Assert - 读取数据
-      const allFields = await cacheService.hashGetAll(_testKey);
-      expect(allFields[_hashField]).toBe(_hashValue);
-      expect(allFields).toEqual({ [_hashField]: _hashValue });
+      const allFields = await cacheService.hashGetAll(testKey);
+      expect(allFields[hashField]).toBe(hashValue);
+      expect(allFields).toEqual({ [hashField]: hashValue });
     });
 
     it("应该正常执行列表操作", async () => {
       // Arrange
-      const _listKey = "test:list";
+      const listKey = "test:list";
       const values = ["item1", "item2", "item3"];
 
       // Act - 写入数据
       for (const value of values) {
-        await cacheService.listPush(_listKey, value);
+        await cacheService.listPush(listKey, value);
       }
 
       // Act & Assert - 读取数据
-      const retrievedValues = await cacheService.listRange(_listKey, 0, -1);
+      const retrievedValues = await cacheService.listRange(listKey, 0, -1);
       expect(retrievedValues).toEqual(values.reverse()); // LPUSH会反转顺序
     });
 
     it("应该正常执行集合操作", async () => {
       // Arrange
-      const _setKey = "test:set";
+      const setKey = "test:set";
       const members = ["member1", "member2", "member3"];
 
       // Act - 写入数据
       for (const member of members) {
-        await cacheService.setAdd(_setKey, member);
+        await cacheService.setAdd(setKey, member);
       }
 
       // Act & Assert - 读取数据
-      const isMember = await cacheService.setIsMember(_setKey, "member1");
+      const isMember = await cacheService.setIsMember(setKey, "member1");
       expect(isMember).toBe(true);
 
-      const allMembers = await cacheService.setMembers(_setKey);
+      const allMembers = await cacheService.setMembers(setKey);
       expect(allMembers.sort()).toEqual(members.sort());
     });
   });

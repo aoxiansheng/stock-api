@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { URLSecurityValidator } from "../../../../../src/common/utils/url-security-validator.util";
 import { BadRequestException } from "@nestjs/common";
 
@@ -7,7 +8,7 @@ describe("URLSecurityValidator", () => {
     it("should return valid for allowed domains", () => {
       const validUrls = [
         "https://hooks.slack.com/services/123",
-        "https://oapi.dingtalk.com/robot/send?access_token=abc",
+        "https://oapi.dingtalk.com/robot/send?accesstoken=abc",
       ];
       validUrls.forEach((url) => {
         expect(URLSecurityValidator.validateURL(url).valid).toBe(true);
@@ -30,7 +31,7 @@ describe("URLSecurityValidator", () => {
 
     // Non-HTTP/HTTPS protocols should fail
     it("should return invalid for non-http/https protocols", () => {
-      const result = URLSecurityValidator.validateURL("ws://example.com");
+      const result = URLSecurityValidator.validateURL("_ws://example.com");
       expect(result.valid).toBe(false);
       expect(result.error).toContain("仅支持HTTP和HTTPS协议");
     });
@@ -75,7 +76,7 @@ describe("URLSecurityValidator", () => {
     // Invalid ports should fail
     it("should return invalid for non-standard ports", () => {
       const result = URLSecurityValidator.validateURL(
-        "https://hooks.slack.com:22/services/123",
+        "https://hooks.slack._com:22/services/123",
       );
       expect(result.valid).toBe(false);
       expect(result.error).toContain("端口范围无效");

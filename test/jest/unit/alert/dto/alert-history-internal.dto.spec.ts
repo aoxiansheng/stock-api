@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { plainToClass } from "class-transformer";
 import { validate } from "class-validator";
 import {
@@ -30,7 +31,7 @@ describe("AlertHistoryInternalDTOs", () => {
   describe("AlertStatusUpdateDataDto", () => {
     it("should pass validation with valid data", async () => {
       const dto = plainToClass(AlertStatusUpdateDataDto, {
-        status: AlertStatus.ACKNOWLEDGED,
+        status: AlertStatus._ACKNOWLEDGED,
         acknowledgedBy: "admin",
       });
       const errors = await validate(dto);
@@ -43,7 +44,7 @@ describe("AlertHistoryInternalDTOs", () => {
       const dto = plainToClass(AlertQueryParamsDto, {
         page: 1,
         limit: 10,
-        status: AlertStatus.FIRING,
+        status: AlertStatus._FIRING,
       });
       const errors = await validate(dto);
       expect(errors.length).toBe(0);

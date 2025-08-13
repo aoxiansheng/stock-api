@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -87,7 +88,7 @@ describe("SecurityAuditLogRepository", () => {
       mockAuditLogModel.exec.mockResolvedValue([]);
       await repository.findWithFilters(filters);
       expect(mockAuditLogModel.find).toHaveBeenCalledWith({
-        timestamp: { $gte: filters.startDate, $lte: filters.endDate },
+        timestamp: { $_gte: filters.startDate, $_lte: filters.endDate },
         type: filters.type,
         severity: filters.severity,
         clientIP: filters.clientIP,

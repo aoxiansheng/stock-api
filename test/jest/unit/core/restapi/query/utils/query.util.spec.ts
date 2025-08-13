@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   buildStorageKey,
   validateDataFreshness,
-} from "../../../../../../src/core/query/utils/query.util";
+} from "../../../../../../../src/core/restapi/query/utils/query.util";
 
 describe("Query Utils", () => {
   describe("buildStorageKey", () => {
@@ -75,7 +76,7 @@ describe("Query Utils", () => {
     it("当未指定maxAge时应该返回true", () => {
       const data = {
         value: 100,
-        timestamp: new Date("2022-12-31T12:00:00Z").toISOString(),
+        timestamp: new Date("2022-12-_31T12:00:00Z").toISOString(),
       };
 
       const result = validateDataFreshness(data);
@@ -165,9 +166,9 @@ describe("Query Utils", () => {
     });
 
     it("如果timestamp不存在，应该使用_timestamp字段", () => {
-      // 只有 _timestamp 存在，并且是新鲜的
+      // 只有 timestamp 存在，并且是新鲜的
       const data = {
-        _timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+        timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       };
 
       // 设置maxAge为10分钟

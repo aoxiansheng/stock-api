@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import {
@@ -54,7 +55,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("username");
-      expect(errors[0].constraints).toHaveProperty("minLength");
+      expect(errors[0].const_raints).toHaveProperty("minLength");
     });
 
     it("should reject invalid username - too long", async () => {
@@ -69,7 +70,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("username");
-      expect(errors[0].constraints).toHaveProperty("maxLength");
+      expect(errors[0].const_raints).toHaveProperty("maxLength");
     });
 
     it("should reject invalid username - special characters", async () => {
@@ -84,7 +85,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("username");
-      expect(errors[0].constraints).toHaveProperty("matches");
+      expect(errors[0].const_raints).toHaveProperty("_matches");
       expect(errors[0].constraints.matches).toBe(
         "用户名只能包含字母、数字、下划线和连字符",
       );
@@ -124,7 +125,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("username");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject invalid email format", async () => {
@@ -139,7 +140,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("email");
-      expect(errors[0].constraints).toHaveProperty("isEmail");
+      expect(errors[0].const_raints).toHaveProperty("isEmail");
     });
 
     it("should reject empty email", async () => {
@@ -154,7 +155,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("email");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject password that is too short", async () => {
@@ -169,7 +170,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("password");
-      expect(errors[0].constraints).toHaveProperty("minLength");
+      expect(errors[0].const_raints).toHaveProperty("minLength");
     });
 
     it("should reject empty password", async () => {
@@ -184,7 +185,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("password");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject invalid role", async () => {
@@ -200,7 +201,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("role");
-      expect(errors[0].constraints).toHaveProperty("isEnum");
+      expect(errors[0].const_raints).toHaveProperty("isEnum");
     });
 
     it("should accept all valid user roles", async () => {
@@ -269,7 +270,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("username");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject empty password", async () => {
@@ -283,7 +284,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("password");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject non-string username", async () => {
@@ -297,7 +298,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("username");
-      expect(errors[0].constraints).toHaveProperty("isString");
+      expect(errors[0].const_raints).toHaveProperty("isString");
     });
 
     it("should reject non-string password", async () => {
@@ -311,7 +312,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("password");
-      expect(errors[0].constraints).toHaveProperty("isString");
+      expect(errors[0].const_raints).toHaveProperty("isString");
     });
 
     it("should reject both empty fields", async () => {
@@ -354,7 +355,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("refreshToken");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
 
     it("should reject non-string refresh token", async () => {
@@ -367,7 +368,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("refreshToken");
-      expect(errors[0].constraints).toHaveProperty("isString");
+      expect(errors[0].const_raints).toHaveProperty("isString");
     });
 
     it("should handle missing refresh token property", async () => {
@@ -378,7 +379,7 @@ describe("Auth DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("refreshToken");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
   });
 
@@ -431,7 +432,7 @@ describe("Auth DTOs", () => {
     });
 
     it("should preserve date objects in user info", () => {
-      const createdAt = new Date("2023-01-01T00:00:00Z");
+      const createdAt = new Date("2023-01-_01T_00:00:00Z");
       const responseData = {
         user: {
           id: "123",

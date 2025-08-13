@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 分支覆盖率增强测试
  * 专门测试常量验证和边界条件中的分支逻辑
  */
 
 import {
-  ERROR_MESSAGES,
+  ERRORMESSAGES,
   AUTH_ERROR_MESSAGES,
   BUSINESS_ERROR_MESSAGES,
   SYSTEM_ERROR_MESSAGES,
@@ -25,10 +26,10 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
       // Test specific error messages contain Chinese characters
       const chineseRegex = /[\u4e00-\u9fff]/;
 
-      expect(chineseRegex.test(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS)).toBe(
+      expect(chineseRegex.test(AUTH_ERROR_MESSAGES.INVALIDCREDENTIALS)).toBe(
         true,
       );
-      expect(chineseRegex.test(BUSINESS_ERROR_MESSAGES.VALIDATION_FAILED)).toBe(
+      expect(chineseRegex.test(BUSINESS_ERROR_MESSAGES.VALIDATIONFAILED)).toBe(
         true,
       );
       expect(
@@ -57,8 +58,8 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
       // Some messages should have placeholders for dynamic content
       const messagesWithPlaceholders = [
         ERROR_MESSAGES.RATE_LIMIT_EXCEEDED,
-        BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND,
-        SYSTEM_ERROR_MESSAGES.SERVICE_UNAVAILABLE,
+        BUSINESS_ERROR_MESSAGES.RESOURCE_NOTFOUND,
+        SYSTEM_ERROR_MESSAGES.SERVICEUNAVAILABLE,
       ];
 
       messagesWithPlaceholders.forEach((message) => {
@@ -133,7 +134,7 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
       }
 
       // 打印所有消息，以便进一步检查
-      console.error("打印所有AUTH_ERROR_MESSAGES:");
+      console.error("打印所有AUTH_ERRORMESSAGES:");
       Object.entries(AUTH_ERROR_MESSAGES).forEach(([key, message]) => {
         if (typeof message === "string") {
           console.error(`${key}: "${message}", 长度=${message.length}`);
@@ -172,13 +173,13 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
     it("should handle different error contexts appropriately", () => {
       // Test that different error types exist for different contexts
       expect(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS).toBeDefined();
-      expect(AUTH_ERROR_MESSAGES.TOKEN_EXPIRED).toBeDefined();
-      expect(AUTH_ERROR_MESSAGES.INSUFFICIENT_PERMISSIONS).toBeDefined();
+      expect(AUTH_ERROR_MESSAGES.TOKENEXPIRED).toBeDefined();
+      expect(AUTH_ERROR_MESSAGES.INSUFFICIENTPERMISSIONS).toBeDefined();
 
       // Business logic errors
       expect(BUSINESS_ERROR_MESSAGES.VALIDATION_FAILED).toBeDefined();
       expect(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND).toBeDefined();
-      expect(BUSINESS_ERROR_MESSAGES.RESOURCE_CONFLICT).toBeDefined();
+      expect(BUSINESS_ERROR_MESSAGES.RESOURCECONFLICT).toBeDefined();
 
       // System errors
       expect(SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR).toBeDefined();
@@ -189,13 +190,13 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
     it("should differentiate between user and system errors", () => {
       // User-facing vs system-facing error messages
       const userErrors = [
-        AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
-        BUSINESS_ERROR_MESSAGES.VALIDATION_FAILED,
+        AUTH_ERROR_MESSAGES.INVALIDCREDENTIALS,
+        BUSINESS_ERROR_MESSAGES.VALIDATIONFAILED,
         HTTP_ERROR_MESSAGES.BAD_REQUEST,
       ];
 
       const systemErrors = [
-        SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+        SYSTEM_ERROR_MESSAGES.INTERNAL_SERVERERROR,
         SYSTEM_ERROR_MESSAGES.DATABASE_ERROR,
         SYSTEM_ERROR_MESSAGES.SERVICE_UNAVAILABLE,
       ];
@@ -245,11 +246,11 @@ describe("Error Messages Constants - Branch Coverage Enhancement", () => {
     it("should prevent modification of error message constants", () => {
       // Test that error message objects are frozen
       expect(() => {
-        (AUTH_ERROR_MESSAGES as any).NEW_ERROR = "New error message";
+        (AUTH_ERROR_MESSAGES as any).NEWERROR = "New error message";
       }).toThrow();
 
       expect(() => {
-        (BUSINESS_ERROR_MESSAGES as any).VALIDATION_FAILED = "Modified message";
+        (BUSINESS_ERROR_MESSAGES as any).VALIDATIONFAILED = "Modified message";
       }).toThrow();
     });
 

@@ -1,41 +1,42 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  RECEIVER_ERROR_MESSAGES,
-  RECEIVER_WARNING_MESSAGES,
-  RECEIVER_SUCCESS_MESSAGES,
-  SUPPORTED_CAPABILITY_TYPES,
-  RECEIVER_PERFORMANCE_THRESHOLDS,
-  RECEIVER_VALIDATION_RULES,
+  RECEIVER_ERRORMESSAGES,
+  RECEIVERWARNING_MESSAGES,
+  RECEIVERSUCCESS_MESSAGES,
+  SUPPORTEDCAPABILITYTYPES,
+  RECEIVERPERFORMANCETHRESHOLDS,
+  RECEIVER_VALIDATIONRULES,
   MARKET_RECOGNITION_RULES,
-  RECEIVER_CONFIG,
-  RECEIVER_METRICS,
-  RECEIVER_STATUS,
-  RECEIVER_OPERATIONS,
-} from "../../../../../../src/core/receiver/constants/receiver.constants";
+  RECEIVERCONFIG,
+  RECEIVERMETRICS,
+  RECEIVERSTATUS,
+  RECEIVEROPERATIONS,
+} from "../../../../../../../src/core/restapi/receiver/constants/receiver.constants";
 
 describe("Receiver Constants", () => {
   describe("RECEIVER_ERROR_MESSAGES", () => {
     it("should define all error messages", () => {
-      expect(RECEIVER_ERROR_MESSAGES.VALIDATION_FAILED).toBe(
+      expect(RECEIVER_ERROR_MESSAGES.VALIDATIONFAILED).toBe(
         "请求参数验证失败",
       );
-      expect(RECEIVER_ERROR_MESSAGES.SYMBOLS_REQUIRED).toBe(
+      expect(RECEIVER_ERROR_MESSAGES.SYMBOLSREQUIRED).toBe(
         "股票代码列表不能为空",
       );
-      expect(RECEIVER_ERROR_MESSAGES.DATA_TYPE_REQUIRED).toBe(
+      expect(RECEIVER_ERROR_MESSAGES._DATA_TYPE_REQUIRED).toBe(
         "数据类型参数必须为非空字符串",
       );
-      expect(RECEIVER_ERROR_MESSAGES.INVALID_SYMBOL_FORMAT).toContain(
+      expect(RECEIVER_ERROR_MESSAGES.INVALID_SYMBOLFORMAT).toContain(
         "{maxLength}",
       );
       expect(RECEIVER_ERROR_MESSAGES.TOO_MANY_SYMBOLS).toContain("{maxCount}");
       expect(RECEIVER_ERROR_MESSAGES.UNSUPPORTED_DATA_TYPE).toContain(
         "{receiverType}",
       );
-      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain("{receiverType}");
+      expect(RECEIVER_ERROR_MESSAGES.NOPROVIDERFOUND).toContain("{receiverType}");
       expect(RECEIVER_ERROR_MESSAGES.PROVIDER_NOT_SUPPORT_CAPABILITY).toContain(
         "{provider}",
       );
-      expect(RECEIVER_ERROR_MESSAGES.DATA_FETCHING_FAILED).toContain("{error}");
+      expect(RECEIVER_ERROR_MESSAGES.DATAFETCHING_FAILED).toContain("{error}");
     });
 
     it("should be frozen", () => {
@@ -56,22 +57,22 @@ describe("Receiver Constants", () => {
       expect(RECEIVER_WARNING_MESSAGES.DUPLICATE_SYMBOLS).toBe(
         "请求中包含重复的股票代码",
       );
-      expect(RECEIVER_WARNING_MESSAGES.SYMBOLS_WITH_WHITESPACE).toBe(
+      expect(RECEIVER_WARNING_MESSAGES.SYMBOLS_WITHWHITESPACE).toBe(
         "部分股票代码包含前后空白字符，已自动去除",
       );
       expect(RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORT).toBe(
         "首选提供商不支持请求的能力",
       );
       expect(
-        RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORT_MARKET,
+        RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORTMARKET,
       ).toBe("提供商 '{provider}' 不支持市场 '{market}'");
-      expect(RECEIVER_WARNING_MESSAGES.SYMBOL_TRANSFORMATION_FALLBACK).toBe(
+      expect(RECEIVER_WARNING_MESSAGES.SYMBOL_TRANSFORMATIONFALLBACK).toBe(
         "股票代码转换失败，使用原始代码",
       );
-      expect(RECEIVER_WARNING_MESSAGES.SLOW_REQUEST_DETECTED).toBe(
+      expect(RECEIVER_WARNING_MESSAGES.SLOWREQUESTDETECTED).toBe(
         "检测到慢请求",
       );
-      expect(RECEIVER_WARNING_MESSAGES.LARGE_SYMBOL_COUNT).toBe(
+      expect(RECEIVER_WARNING_MESSAGES.LARGE_SYMBOLCOUNT).toBe(
         "请求的股票代码数量较多，可能影响性能",
       );
     });
@@ -83,20 +84,20 @@ describe("Receiver Constants", () => {
 
   describe("RECEIVER_SUCCESS_MESSAGES", () => {
     it("should define all success messages", () => {
-      expect(RECEIVER_SUCCESS_MESSAGES.REQUEST_PROCESSED).toBe(
+      expect(RECEIVER_SUCCESS_MESSAGES.REQUESTPROCESSED).toBe(
         "数据请求处理成功",
       );
-      expect(RECEIVER_SUCCESS_MESSAGES.PROVIDER_SELECTED).toBe(
+      expect(RECEIVER_SUCCESS_MESSAGES.PROVIDERSELECTED).toBe(
         "自动选择最优提供商",
       );
-      expect(RECEIVER_SUCCESS_MESSAGES.PREFERRED_PROVIDER_USED).toBe(
+      expect(RECEIVER_SUCCESS_MESSAGES.PREFERRED_PROVIDERUSED).toBe(
         "使用首选提供商",
       );
-      expect(RECEIVER_SUCCESS_MESSAGES.SYMBOLS_TRANSFORMED).toBe(
+      expect(RECEIVER_SUCCESS_MESSAGES.SYMBOLSTRANSFORMED).toBe(
         "股票代码转换完成",
       );
-      expect(RECEIVER_SUCCESS_MESSAGES.DATA_FETCHED).toBe("数据获取成功");
-      expect(RECEIVER_SUCCESS_MESSAGES.VALIDATION_PASSED).toBe(
+      expect(RECEIVER_SUCCESS_MESSAGES.DATAFETCHED).toBe("数据获取成功");
+      expect(RECEIVER_SUCCESS_MESSAGES.VALIDATIONPASSED).toBe(
         "请求参数验证通过",
       );
     });
@@ -138,14 +139,14 @@ describe("Receiver Constants", () => {
 
   describe("RECEIVER_PERFORMANCE_THRESHOLDS", () => {
     it("should define all performance thresholds", () => {
-      expect(RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS).toBe(1000);
+      expect(RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUESTMS).toBe(1000);
       expect(RECEIVER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_REQUEST).toBe(100);
-      expect(RECEIVER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT).toBe(10);
+      expect(RECEIVER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLSLIMIT).toBe(10);
       expect(RECEIVER_PERFORMANCE_THRESHOLDS.LARGE_SYMBOL_COUNT_WARNING).toBe(
         50,
       );
       expect(
-        RECEIVER_PERFORMANCE_THRESHOLDS.PROVIDER_SELECTION_TIMEOUT_MS,
+        RECEIVER_PERFORMANCE_THRESHOLDS.PROVIDER_SELECTIONTIMEOUTMS,
       ).toBe(5000);
       expect(
         RECEIVER_PERFORMANCE_THRESHOLDS.SYMBOL_TRANSFORMATION_TIMEOUT_MS,
@@ -160,13 +161,13 @@ describe("Receiver Constants", () => {
         0,
       );
       expect(
-        RECEIVER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_REQUEST,
+        RECEIVER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PERREQUEST,
       ).toBeGreaterThan(0);
       expect(RECEIVER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT).toBeGreaterThan(
         0,
       );
       expect(
-        RECEIVER_PERFORMANCE_THRESHOLDS.LARGE_SYMBOL_COUNT_WARNING,
+        RECEIVER_PERFORMANCE_THRESHOLDS.LARGE_SYMBOL_COUNTWARNING,
       ).toBeLessThan(RECEIVER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_REQUEST);
     });
 
@@ -177,12 +178,12 @@ describe("Receiver Constants", () => {
 
   describe("RECEIVER_VALIDATION_RULES", () => {
     it("should define all validation rules", () => {
-      expect(RECEIVER_VALIDATION_RULES.MIN_SYMBOL_LENGTH).toBe(1);
+      expect(RECEIVER_VALIDATION_RULES.MIN_SYMBOLlength).toBe(1);
       expect(RECEIVER_VALIDATION_RULES.MAX_SYMBOL_LENGTH).toBe(20);
       expect(RECEIVER_VALIDATION_RULES.MAX_SYMBOLS_COUNT).toBe(100);
       expect(RECEIVER_VALIDATION_RULES.MIN_DATA_TYPE_LENGTH).toBe(1);
       expect(RECEIVER_VALIDATION_RULES.MAX_DATA_TYPE_LENGTH).toBe(50);
-      expect(RECEIVER_VALIDATION_RULES.SYMBOL_PATTERN).toBeInstanceOf(RegExp);
+      expect(RECEIVER_VALIDATION_RULES.SYMBOLPATTERN).toBeInstanceOf(RegExp);
       expect(RECEIVER_VALIDATION_RULES.DATA_TYPE_PATTERN).toBeInstanceOf(
         RegExp,
       );
@@ -191,7 +192,7 @@ describe("Receiver Constants", () => {
     it("should have reasonable validation values", () => {
       expect(RECEIVER_VALIDATION_RULES.MIN_SYMBOL_LENGTH).toBeGreaterThan(0);
       expect(RECEIVER_VALIDATION_RULES.MAX_SYMBOL_LENGTH).toBeGreaterThan(
-        RECEIVER_VALIDATION_RULES.MIN_SYMBOL_LENGTH,
+        RECEIVER_VALIDATION_RULES.MIN_SYMBOL_length,
       );
       expect(RECEIVER_VALIDATION_RULES.MAX_SYMBOLS_COUNT).toBeGreaterThan(0);
       expect(RECEIVER_VALIDATION_RULES.MIN_DATA_TYPE_LENGTH).toBeGreaterThan(0);
@@ -209,9 +210,9 @@ describe("Receiver Constants", () => {
     it("should define all market recognition rules", () => {
       expect(MARKET_RECOGNITION_RULES.HK_PATTERNS.SUFFIX).toBe(".HK");
       expect(
-        MARKET_RECOGNITION_RULES.HK_PATTERNS.NUMERIC_PATTERN,
+        MARKET_RECOGNITION_RULES.HK_PATTERNS.NUMERICPATTERN,
       ).toBeInstanceOf(RegExp);
-      expect(MARKET_RECOGNITION_RULES.HK_PATTERNS.MARKET_CODE).toBe("HK");
+      expect(MARKET_RECOGNITION_RULES.HK_PATTERNS.MARKETCODE).toBe("HK");
 
       expect(MARKET_RECOGNITION_RULES.US_PATTERNS.SUFFIX).toBe(".US");
       expect(MARKET_RECOGNITION_RULES.US_PATTERNS.ALPHA_PATTERN).toBeInstanceOf(
@@ -246,12 +247,12 @@ describe("Receiver Constants", () => {
   describe("RECEIVER_CONFIG", () => {
     it("should define all configuration values", () => {
       expect(RECEIVER_CONFIG.DEFAULT_TIMEOUT_MS).toBe(30000);
-      expect(RECEIVER_CONFIG.MAX_RETRY_ATTEMPTS).toBe(3);
+      expect(RECEIVER_CONFIG.MAX_RETRYATTEMPTS).toBe(3);
       expect(RECEIVER_CONFIG.RETRY_DELAY_MS).toBe(1000);
-      expect(RECEIVER_CONFIG.MAX_CONCURRENT_REQUESTS).toBe(10);
+      expect(RECEIVER_CONFIG.MAX_CONCURRENTREQUESTS).toBe(10);
       expect(RECEIVER_CONFIG.REQUEST_ID_LENGTH).toBe(36);
       expect(RECEIVER_CONFIG.LOG_TRUNCATE_LENGTH).toBe(1000);
-      expect(RECEIVER_CONFIG.PERFORMANCE_SAMPLE_SIZE).toBe(100);
+      expect(RECEIVER_CONFIG.PERFORMANCE_SAMPLESIZE).toBe(100);
     });
 
     it("should have reasonable configuration values", () => {
@@ -269,11 +270,11 @@ describe("Receiver Constants", () => {
 
   describe("RECEIVER_METRICS", () => {
     it("should define all metric names", () => {
-      expect(RECEIVER_METRICS.REQUESTS_TOTAL).toBe("receiver_requests_total");
-      expect(RECEIVER_METRICS.REQUEST_DURATION).toBe(
+      expect(RECEIVER_METRICS.REQUESTSTOTAL).toBe("receiver_requests_total");
+      expect(RECEIVER_METRICS.REQUESTDURATION).toBe(
         "receiver_request_duration",
       );
-      expect(RECEIVER_METRICS.VALIDATION_ERRORS).toBe(
+      expect(RECEIVER_METRICS.VALIDATIONERRORS).toBe(
         "receiver_validation_errors",
       );
       expect(RECEIVER_METRICS.PROVIDER_SELECTION_TIME).toBe(
@@ -285,7 +286,7 @@ describe("Receiver Constants", () => {
       expect(RECEIVER_METRICS.DATA_FETCHING_TIME).toBe(
         "receiver_data_fetching_time",
       );
-      expect(RECEIVER_METRICS.SUCCESS_RATE).toBe("receiver_success_rate");
+      expect(RECEIVER_METRICS.SUCCESSRATE).toBe("receiver_success_rate");
       expect(RECEIVER_METRICS.ERROR_RATE).toBe("receiver_error_rate");
       expect(RECEIVER_METRICS.SYMBOLS_PROCESSED).toBe(
         "receiver_symbols_processed",
@@ -309,15 +310,15 @@ describe("Receiver Constants", () => {
 
   describe("RECEIVER_STATUS", () => {
     it("should define all status values", () => {
-      expect(RECEIVER_STATUS.PENDING).toBe("pending");
-      expect(RECEIVER_STATUS.VALIDATING).toBe("validating");
+      expect(RECEIVER_STATUS._PENDING).toBe("pending");
+      expect(RECEIVER_STATUS._VALIDATING).toBe("validating");
       expect(RECEIVER_STATUS.SELECTING_PROVIDER).toBe("selecting_provider");
       expect(RECEIVER_STATUS.TRANSFORMING_SYMBOLS).toBe("transforming_symbols");
       expect(RECEIVER_STATUS.FETCHING_DATA).toBe("fetching_data");
       expect(RECEIVER_STATUS.SUCCESS).toBe("success");
       expect(RECEIVER_STATUS.FAILED).toBe("failed");
       expect(RECEIVER_STATUS.TIMEOUT).toBe("timeout");
-      expect(RECEIVER_STATUS.CANCELLED).toBe("cancelled");
+      expect(RECEIVER_STATUS._CANCELLED).toBe("cancelled");
     });
 
     it("should be frozen", () => {

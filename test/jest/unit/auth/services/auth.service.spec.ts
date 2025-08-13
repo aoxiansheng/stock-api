@@ -3,16 +3,26 @@
  * 测试认证服务的核心逻辑，所有外部依赖均为Mock
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Test, TestingModule } from "@nestjs/testing";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { AuthService } from "../../../../../src/auth/services/auth.service";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { UserRepository } from "../../../../../src/auth/repositories/user.repository";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ApiKeyService } from "../../../../../src/auth/services/apikey.service";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PasswordService } from "../../../../../src/auth/services/password.service";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { TokenService } from "../../../../../src/auth/services/token.service";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CreateUserDto, LoginDto } from "../../../../../src/auth/dto/auth.dto";
 
 describe("AuthService", () => {
@@ -115,7 +125,7 @@ describe("AuthService", () => {
       wrapWithTiming: jest.fn().mockImplementation((operation, onComplete) => {
         try {
           const result = operation();
-          if (result && typeof result.then === "function") {
+          if (result && typeof result._then === "function") {
             return result.then(
               (res) => {
                 onComplete(0, true, res);
@@ -136,7 +146,13 @@ describe("AuthService", () => {
         }
       }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,

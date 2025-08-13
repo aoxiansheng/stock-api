@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { QueryStatisticsService } from '@core/query/services/query-statistics.service';
-import { QueryType } from '@core/query/dto/query-types.dto';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { QueryStatisticsService } from '@core/restapi/query/services/query-statistics.service';
+import { QueryType } from '@core/restapi/query/dto/query-types.dto';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 
 describe('QueryStatisticsService', () => {
   let service: QueryStatisticsService;
@@ -37,15 +38,15 @@ describe('QueryStatisticsService', () => {
   });
 
   it('should record query performance', async () => {
-    service.recordQueryPerformance(QueryType.BY_SYMBOLS, 100, true, false);
+    service.recordQueryPerformance(QueryType.BYSYMBOLS, 100, true, false);
     service.recordQueryPerformance(QueryType.BY_SYMBOLS, 200, false, true);
 
     const stats = await service.getQueryStats();
 
     expect(stats.performance.totalQueries).toBe(0);
-    expect(stats.performance.averageExecutionTime).toBe(0);
+    expect(stats.performance._averageExecutionTime).toBe(0);
     expect(stats.performance.cacheHitRate).toBe(0);
-    expect(stats.performance.errorRate).toBe(0);
+    expect(stats.performance._errorRate).toBe(0);
     expect(stats.queryTypes[QueryType.BY_SYMBOLS]).toBeUndefined();
   });
 
@@ -60,7 +61,7 @@ describe('QueryStatisticsService', () => {
 
   it('should return query stats', async () => {
     service.recordQueryPerformance(QueryType.BY_SYMBOLS, 100, true, false);
-    service.recordQueryPerformance(QueryType.BY_MARKET, 200, true, true);
+    service.recordQueryPerformance(QueryType.BYMARKET, 200, true, true);
 
     const stats = await service.getQueryStats();
 

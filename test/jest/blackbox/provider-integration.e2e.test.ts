@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：Provider能力导向架构
  * 测试LongPort生产数据源集成和自动发现机制
@@ -9,7 +10,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-describe("Real Environment Black-box: Provider Integration E2E", () => {
+describe("Real Environment Black-_box: Provider Integration E2E", () => {
   let httpClient: AxiosInstance;
   let baseURL: string;
   let apiKey: any;
@@ -108,7 +109,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
 
   describe("📊 Provider能力发现与注册", () => {
     it("应该自动发现并注册所有可用的Provider能力", async () => {
-      const response = await httpClient.get("/api/v1/providers/capabilities", {
+      const response = await httpClient.get("/api/v1/providers/_capabilities", {
         headers: {
           "X-App-Key": apiKey.appKey,
           "X-Access-Token": apiKey.accessToken,
@@ -244,7 +245,7 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
                 if (responseData.length > 0) {
                   const sampleData = responseData[0];
                   expect(sampleData).toHaveProperty("symbol");
-                  expect(sampleData.lastPrice || sampleData.last_done).toBeDefined();
+                  expect(sampleData.lastPrice || sampleData.lastdone).toBeDefined();
                   console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
                 }
               } else if (responseData.secu_quote) {
@@ -343,14 +344,14 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
         const metadata = response.data.data.metadata;
 
         // 验证批量处理统计
-        expect(metadata.totalRequested).toBe(manySymbols.length);
-        expect(metadata.successfullyProcessed).toBeGreaterThanOrEqual(0);
+        expect(metadata._totalRequested).toBe(manySymbols.length);
+        expect(metadata._successfullyProcessed).toBeGreaterThanOrEqual(0);
 
-        if (metadata.hasPartialFailures) {
+        if (metadata._hasPartialFailures) {
           console.log(
             `批量请求: ${metadata.successfullyProcessed}/${metadata.totalRequested} 成功`,
           );
-          expect(metadata.failureReasons).toBeDefined();
+          expect(metadata._failureReasons).toBeDefined();
         }
       } else if (response.status === 429) {
         console.log("✅ LongPort API限流机制正常，系统正确处理限制");
@@ -401,9 +402,9 @@ describe("Real Environment Black-box: Provider Integration E2E", () => {
           );
         }
         
-        if (metadata.routingDecision) {
-          expect(metadata.routingDecision.selectedProvider).toBeDefined();
-          expect(metadata.routingDecision.reason).toBeDefined();
+        if (metadata._routingDecision) {
+          expect(metadata.routingDecision._selectedProvider).toBeDefined();
+          expect(metadata.routingDecision._reason).toBeDefined();
 
           console.log(
             `${testCase.description} -> Provider: ${metadata.routingDecision.selectedProvider}, 原因: ${metadata.routingDecision.reason}`,

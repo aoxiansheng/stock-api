@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockBasicInfo } from '../../../../../../src/providers/longport-sg/capabilities/get-stock-basic-info';
 
 describe('LongportSgGetStockBasicInfo Capability', () => {
@@ -62,6 +63,6 @@ describe('LongportSgGetStockBasicInfo Capability', () => {
     // 断言返回的结果是否正确
     expect(result).toHaveLength(1);
     expect(result[0].symbol).toBe('700.HK');
-    expect(result[0].name_cn).toBe('腾讯控股');
+    expect(result[0].namecn).toBe('腾讯控股');
   });
 });

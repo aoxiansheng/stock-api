@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { BadRequestException } from '@nestjs/common';
 import { URLSecurityValidator } from '@common/utils/url-security-validator.util';
 
@@ -45,7 +46,7 @@ describe('URLSecurityValidator', () => {
 
       it('should accept URLs with query parameters and fragments', () => {
         const urlsWithParams = [
-          'https://hooks.slack.com/webhook?token=123&channel=general',
+          'https://hooks.slack.com/webhook?_token=123&_channel=general',
           'https://hooks.slack.com/webhook#section',
           'https://hooks.slack.com/webhook?param=value#anchor'
         ];
@@ -85,7 +86,7 @@ describe('URLSecurityValidator', () => {
           'jar://example.com',
           'netdoc://example.com',
           'mailto:user@example.com',
-          'news://example.com',
+          'ne_ws://example.com',
           'imap://example.com',
           'telnet://example.com'
         ];
@@ -225,7 +226,7 @@ describe('URLSecurityValidator', () => {
       });
 
       it('should handle port edge cases', () => {
-        // Test extremely high port number (should be handled by URL constructor)
+        // Test extremely high port number (should be handled by URL const_ructor)
         const result1 = URLSecurityValidator.validateURL('https://hooks.slack.com:99999/webhook');
         expect(result1.valid).toBe(false);
         
@@ -419,7 +420,7 @@ describe('URLSecurityValidator', () => {
       expect(URLSecurityValidator.validateURL('').valid).toBe(false);
       
       // URLs with special characters in query params
-      const specialCharUrl = 'https://hooks.slack.com/webhook?param=test%20value&other=special%21';
+      const specialCharUrl = 'https://hooks.slack.com/webhook?param=test%20value&_other=special%21';
       expect(URLSecurityValidator.validateURL(specialCharUrl).valid).toBe(true);
       
       // Very long valid URL

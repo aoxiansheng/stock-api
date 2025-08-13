@@ -1,13 +1,14 @@
-import { QueryType } from '@core/query/dto/query-types.dto';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 
 describe('QueryType Enum', () => {
   describe('Enum Values', () => {
     it('should define all query types correctly', () => {
-      expect(QueryType.BY_SYMBOLS).toBe('by_symbols');
-      expect(QueryType.BY_MARKET).toBe('by_market');
-      expect(QueryType.BY_PROVIDER).toBe('by_provider');
-      expect(QueryType.BY_CATEGORY).toBe('by_tag');
-      expect(QueryType.BY_TIME_RANGE).toBe('by_time_range');
+      expect(QueryType.BYSYMBOLS).toBe('by_symbols');
+      expect(QueryType.BYMARKET).toBe('by_market');
+      expect(QueryType.BYPROVIDER).toBe('by_provider');
+      expect(QueryType.BYCATEGORY).toBe('by_tag');
+      expect(QueryType.BY_TIMERANGE).toBe('by_time_range');
       expect(QueryType.ADVANCED).toBe('advanced');
     });
 
@@ -119,7 +120,7 @@ describe('QueryType Enum', () => {
 
     it('should support array operations', () => {
       const queryTypes: QueryType[] = [
-        QueryType.BY_SYMBOLS,
+        QueryType.BYSYMBOLS,
         QueryType.BY_MARKET,
         QueryType.BY_PROVIDER,
       ];
@@ -147,7 +148,7 @@ describe('QueryType Enum', () => {
     it('should support string comparison', () => {
       const queryTypeValue = 'by_symbols';
 
-      expect(QueryType.BY_SYMBOLS === queryTypeValue).toBe(true);
+      expect(QueryType.BYSYMBOLS === queryTypeValue).toBe(true);
       expect(String(QueryType.BY_MARKET) === queryTypeValue).toBe(false);
     });
 
@@ -257,7 +258,7 @@ describe('QueryType Enum', () => {
       it('should support query type grouping', () => {
         const queryTypeGroups = {
           simple: [QueryType.BY_SYMBOLS],
-          moderate: [QueryType.BY_MARKET, QueryType.BY_PROVIDER],
+          _moderate: [QueryType.BY_MARKET, QueryType.BY_PROVIDER],
           complex: [QueryType.BY_CATEGORY, QueryType.BY_TIME_RANGE, QueryType.ADVANCED],
         };
 

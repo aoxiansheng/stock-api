@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  ALERT_HISTORY_OPERATIONS,
-  ALERT_HISTORY_MESSAGES,
-  ALERT_HISTORY_CONFIG,
-  ALERT_HISTORY_DEFAULT_STATS,
-  ALERT_STATUS_MAPPING,
-  ALERT_HISTORY_METRICS,
-  ALERT_HISTORY_VALIDATION_RULES,
-  ALERT_HISTORY_TIME_CONFIG,
-  ALERT_HISTORY_THRESHOLDS,
+  ALERT_HISTORYOPERATIONS,
+  ALERT_HISTORYMESSAGES,
+  ALERT_HISTORYCONFIG,
+  ALERT_HISTORY_DEFAULTSTATS,
+  ALERTSTATUSMAPPING,
+  ALERT_HISTORYMETRICS,
+  ALERT_HISTORY_VALIDATIONRULES,
+  ALERT_HISTORYTIME_CONFIG,
+  ALERT_HISTORYTHRESHOLDS,
   AlertHistoryUtil,
 } from '../../../../../src/alert/constants/alert-history.constants';
 
@@ -16,19 +17,19 @@ describe('Alert History Constants', () => {
     it('应包含所有必需的操作常量', () => {
       expect(ALERT_HISTORY_OPERATIONS.CREATE_ALERT).toBe('createAlert');
       expect(ALERT_HISTORY_OPERATIONS.UPDATE_ALERT_STATUS).toBe('updateAlertStatus');
-      expect(ALERT_HISTORY_OPERATIONS.QUERY_ALERTS).toBe('queryAlerts');
+      expect(ALERT_HISTORY_OPERATIONS.QUERYALERTS).toBe('queryAlerts');
       expect(ALERT_HISTORY_OPERATIONS.GET_ACTIVE_ALERTS).toBe('getActiveAlerts');
       expect(ALERT_HISTORY_OPERATIONS.GET_ALERT_STATS).toBe('getAlertStats');
       expect(ALERT_HISTORY_OPERATIONS.GET_ALERT_BY_ID).toBe('getAlertById');
       expect(ALERT_HISTORY_OPERATIONS.CLEANUP_EXPIRED_ALERTS).toBe('cleanupExpiredAlerts');
       expect(ALERT_HISTORY_OPERATIONS.BATCH_UPDATE_ALERT_STATUS).toBe('batchUpdateAlertStatus');
-      expect(ALERT_HISTORY_OPERATIONS.GET_ALERT_COUNT_BY_STATUS).toBe('getAlertCountByStatus');
+      expect(ALERT_HISTORY_OPERATIONS.GET_ALERTCOUNT_BY_STATUS).toBe('getAlertCountByStatus');
       expect(ALERT_HISTORY_OPERATIONS.GET_RECENT_ALERTS).toBe('getRecentAlerts');
       expect(ALERT_HISTORY_OPERATIONS.GET_SERVICE_STATS).toBe('getServiceStats');
       expect(ALERT_HISTORY_OPERATIONS.GENERATE_ALERT_ID).toBe('generateAlertId');
-      expect(ALERT_HISTORY_OPERATIONS.CALCULATE_STATISTICS).toBe('calculateStatistics');
-      expect(ALERT_HISTORY_OPERATIONS.VALIDATE_QUERY_PARAMS).toBe('validateQueryParams');
-      expect(ALERT_HISTORY_OPERATIONS.PROCESS_BATCH_RESULTS).toBe('processBatchResults');
+      expect(ALERT_HISTORY_OPERATIONS.CALCULATESTATISTICS).toBe('calculateStatistics');
+      expect(ALERT_HISTORY_OPERATIONS.VALIDATE_QUERYPARAMS).toBe('validateQueryParams');
+      expect(ALERT_HISTORY_OPERATIONS.PROCESS_BATCHRESULTS).toBe('processBatchResults');
     });
 
     it('应是不可变对象', () => {
@@ -38,18 +39,18 @@ describe('Alert History Constants', () => {
 
   describe('ALERT_HISTORY_MESSAGES', () => {
     it('应包含所有成功消息', () => {
-      expect(ALERT_HISTORY_MESSAGES.ALERT_CREATED).toBe('创建告警记录成功');
-      expect(ALERT_HISTORY_MESSAGES.ALERT_STATUS_UPDATED).toBe('更新告警状态成功');
-      expect(ALERT_HISTORY_MESSAGES.ALERTS_QUERIED).toBe('查询告警记录成功');
-      expect(ALERT_HISTORY_MESSAGES.ACTIVE_ALERTS_RETRIEVED).toBe('获取活跃告警成功');
+      expect(ALERT_HISTORY_MESSAGES.ALERTCREATED).toBe('创建告警记录成功');
+      expect(ALERT_HISTORY_MESSAGES.ALERT_STATUSUPDATED).toBe('更新告警状态成功');
+      expect(ALERT_HISTORY_MESSAGES.ALERTSQUERIED).toBe('查询告警记录成功');
+      expect(ALERT_HISTORY_MESSAGES.ACTIVE_ALERTSRETRIEVED).toBe('获取活跃告警成功');
       expect(ALERT_HISTORY_MESSAGES.ALERT_STATS_RETRIEVED).toBe('获取告警统计成功');
       expect(ALERT_HISTORY_MESSAGES.ALERT_RETRIEVED).toBe('获取告警记录成功');
-      expect(ALERT_HISTORY_MESSAGES.CLEANUP_COMPLETED).toBe('清理过期告警成功');
+      expect(ALERT_HISTORY_MESSAGES.CLEANUPCOMPLETED).toBe('清理过期告警成功');
       expect(ALERT_HISTORY_MESSAGES.BATCH_UPDATE_COMPLETED).toBe('批量更新告警状态完成');
     });
 
     it('应包含所有错误消息', () => {
-      expect(ALERT_HISTORY_MESSAGES.CREATE_ALERT_FAILED).toBe('创建告警记录失败');
+      expect(ALERT_HISTORY_MESSAGES.CREATE_ALERTFAILED).toBe('创建告警记录失败');
       expect(ALERT_HISTORY_MESSAGES.UPDATE_ALERT_STATUS_FAILED).toBe('更新告警状态失败');
       expect(ALERT_HISTORY_MESSAGES.QUERY_ALERTS_FAILED).toBe('查询告警记录失败');
       expect(ALERT_HISTORY_MESSAGES.GET_ACTIVE_ALERTS_FAILED).toBe('获取活跃告警失败');
@@ -60,18 +61,18 @@ describe('Alert History Constants', () => {
     });
 
     it('应包含所有信息消息', () => {
-      expect(ALERT_HISTORY_MESSAGES.CLEANUP_STARTED).toBe('开始清理过期告警');
+      expect(ALERT_HISTORY_MESSAGES.CLEANUPSTARTED).toBe('开始清理过期告警');
       expect(ALERT_HISTORY_MESSAGES.BATCH_UPDATE_STARTED).toBe('开始批量更新告警状态');
       expect(ALERT_HISTORY_MESSAGES.ALERT_CREATION_STARTED).toBe('开始创建告警记录');
       expect(ALERT_HISTORY_MESSAGES.ALERT_STATUS_UPDATE_STARTED).toBe('开始更新告警状态');
     });
 
     it('应包含所有警告消息', () => {
-      expect(ALERT_HISTORY_MESSAGES.NO_ALERTS_FOUND).toBe('未找到告警记录');
-      expect(ALERT_HISTORY_MESSAGES.PARTIAL_BATCH_UPDATE_SUCCESS).toBe('批量更新部分成功');
+      expect(ALERT_HISTORY_MESSAGES.NO_ALERTSFOUND).toBe('未找到告警记录');
+      expect(ALERT_HISTORY_MESSAGES.PARTIAL_BATCH_UPDATESUCCESS).toBe('批量更新部分成功');
       expect(ALERT_HISTORY_MESSAGES.CLEANUP_NO_EXPIRED_ALERTS).toBe('没有过期告警需要清理');
-      expect(ALERT_HISTORY_MESSAGES.STATISTICS_INCOMPLETE).toBe('统计数据不完整');
-      expect(ALERT_HISTORY_MESSAGES.QUERY_LIMIT_EXCEEDED).toBe('查询限制超出范围');
+      expect(ALERT_HISTORY_MESSAGES.STATISTICSINCOMPLETE).toBe('统计数据不完整');
+      expect(ALERT_HISTORY_MESSAGES.QUERY_LIMITEXCEEDED).toBe('查询限制超出范围');
     });
 
     it('应是不可变对象', () => {
@@ -81,20 +82,20 @@ describe('Alert History Constants', () => {
 
   describe('ALERT_HISTORY_CONFIG', () => {
     it('应包含正确的配置值', () => {
-      expect(ALERT_HISTORY_CONFIG.ALERT_ID_PREFIX).toBe('alrt_');
-      expect(ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS).toBe(90);
+      expect(ALERT_HISTORY_CONFIG.ALERT_IDPREFIX).toBe('alrt_');
+      expect(ALERT_HISTORY_CONFIG.DEFAULT_CLEANUPDAYS).toBe(90);
       expect(ALERT_HISTORY_CONFIG.DEFAULT_PAGE_LIMIT).toBe(20);
       expect(ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT).toBe(10);
       expect(ALERT_HISTORY_CONFIG.MAX_PAGE_LIMIT).toBe(100);
       expect(ALERT_HISTORY_CONFIG.MIN_PAGE_LIMIT).toBe(1);
       expect(ALERT_HISTORY_CONFIG.MAX_CLEANUP_DAYS).toBe(365);
       expect(ALERT_HISTORY_CONFIG.MIN_CLEANUP_DAYS).toBe(1);
-      expect(ALERT_HISTORY_CONFIG.ID_FORMAT_TEMPLATE).toBe('alrt_{timestamp}_{random}');
-      expect(ALERT_HISTORY_CONFIG.TIMESTAMP_BASE).toBe(36);
-      expect(ALERT_HISTORY_CONFIG.RANDOM_LENGTH).toBe(6);
+      expect(ALERT_HISTORY_CONFIG.ID_FORMATTEMPLATE).toBe('alrt_{timestamp}_{random}');
+      expect(ALERT_HISTORY_CONFIG.TIMESTAMPBASE).toBe(36);
+      expect(ALERT_HISTORY_CONFIG.RANDOMlength).toBe(6);
       expect(ALERT_HISTORY_CONFIG.RANDOM_START).toBe(2);
-      expect(ALERT_HISTORY_CONFIG.BATCH_SIZE_LIMIT).toBe(1000);
-      expect(ALERT_HISTORY_CONFIG.STATISTICS_CACHE_TTL_SECONDS).toBe(300);
+      expect(ALERT_HISTORY_CONFIG.BATCHSIZE_LIMIT).toBe(1000);
+      expect(ALERT_HISTORY_CONFIG.STATISTICS_CACHE_TTLSECONDS).toBe(300);
       expect(ALERT_HISTORY_CONFIG.CLEANUP_CHUNK_SIZE).toBe(1000);
       expect(ALERT_HISTORY_CONFIG.BATCH_UPDATE_LIMIT).toBe(1000);
     });
@@ -121,7 +122,7 @@ describe('Alert History Constants', () => {
       expect(ALERT_HISTORY_DEFAULT_STATS).toEqual({
         activeAlerts: 0,
         criticalAlerts: 0,
-        warningAlerts: 0,
+        _warningAlerts: 0,
         infoAlerts: 0,
         totalAlertsToday: 0,
         resolvedAlertsToday: 0,
@@ -143,8 +144,8 @@ describe('Alert History Constants', () => {
   describe('ALERT_STATUS_MAPPING', () => {
     it('应包含所有状态映射', () => {
       expect(ALERT_STATUS_MAPPING.FIRING).toBe('firing');
-      expect(ALERT_STATUS_MAPPING.ACKNOWLEDGED).toBe('acknowledged');
-      expect(ALERT_STATUS_MAPPING.RESOLVED).toBe('resolved');
+      expect(ALERT_STATUS_MAPPING._ACKNOWLEDGED).toBe('acknowledged');
+      expect(ALERT_STATUS_MAPPING._RESOLVED).toBe('resolved');
     });
 
     it('应是不可变对象', () => {
@@ -179,7 +180,7 @@ describe('Alert History Constants', () => {
 
   describe('ALERT_HISTORY_VALIDATION_RULES', () => {
     it('应包含正确的验证规则', () => {
-      expect(ALERT_HISTORY_VALIDATION_RULES.ALERT_ID_PATTERN).toBeInstanceOf(RegExp);
+      expect(ALERT_HISTORY_VALIDATION_RULES.ALERT_IDPATTERN).toBeInstanceOf(RegExp);
       expect(ALERT_HISTORY_VALIDATION_RULES.MIN_ALERT_ID_LENGTH).toBe(15);
       expect(ALERT_HISTORY_VALIDATION_RULES.MAX_ALERT_ID_LENGTH).toBe(50);
       expect(ALERT_HISTORY_VALIDATION_RULES.MIN_RULE_ID_LENGTH).toBe(1);
@@ -348,7 +349,7 @@ describe('Alert History Constants', () => {
           totalPages: 5,
           hasNext: true,
           hasPrev: true,
-          offset: 20,
+          _offset: 20,
         });
       });
 
@@ -375,7 +376,7 @@ describe('Alert History Constants', () => {
     describe('calculateExecutionTime', () => {
       it('应正确计算执行时间', () => {
         const startTime = new Date('2023-01-01T10:00:00.000Z');
-        const endTime = new Date('2023-01-01T10:00:01.500Z');
+        const endTime = new Date('2023-01-01T10:00:01._500Z');
         const executionTime = AlertHistoryUtil.calculateExecutionTime(startTime, endTime);
         expect(executionTime).toBe(1500);
       });

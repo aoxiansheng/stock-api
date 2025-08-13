@@ -1,19 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { TransformerService } from "../../../../../../src/core/transformer/services/transformer.service";
-import { FlexibleMappingRuleService } from "../../../../../../src/core/data-mapper/services/flexible-mapping-rule.service";
-import { TransformRequestDto } from "../../../../../../src/core/transformer/dto/transform-request.dto";
-import { FlexibleMappingRuleResponseDto } from "../../../../../../src/core/data-mapper/dto/flexible-mapping-rule.dto";
-import { TransformResponseDto } from "../../../../../../src/core/transformer/dto/transform-response.dto";
+import { TransformerService } from "../../../../../../../src/core/public/transformer/services/transformer.service";
+import { FlexibleMappingRuleService } from "../../../../../../../src/core/public/data-mapper/services/flexible-mapping-rule.service";
+import { TransformRequestDto } from "../../../../../../../src/core/public/transformer/dto/transform-request.dto";
+import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
+import { TransformResponseDto } from "../../../../../../../src/core/public/transformer/dto/transform-response.dto";
 import { DeepMocked, createMock } from "@golevelup/ts-jest";
-import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/services/metrics-registry.service";
+import { MetricsRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 
 // Mock the logger
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),
@@ -51,7 +52,7 @@ describe("TransformerService", () => {
   };
   
   const mockRuleDocument = {
-      _id: "507f1f77bcf86cd799439011",
+      id: "507f1f77bcf86cd799439011",
       ...mockMappingRule,
       toObject: () => mockMappingRule,
   } as any;
@@ -82,7 +83,7 @@ describe("TransformerService", () => {
     flexibleMappingRuleService = module.get(FlexibleMappingRuleService);
     
     // Setup the mock for the ruleModel property on the service
-    (flexibleMappingRuleService as any).ruleModel = {
+    (flexibleMappingRuleService as any)._ruleModel = {
         findById: jest.fn().mockResolvedValue(mockRuleDocument),
     };
   });

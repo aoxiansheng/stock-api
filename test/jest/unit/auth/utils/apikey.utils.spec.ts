@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * ApiKeyUtil 单元测试
  * 测试 API Key 工具类的各种功能
  */
 
 import { ApiKeyUtil } from '../../../../../src/auth/utils/apikey.utils';
+import { v4 as uuidv4 } from 'uuid';
 
 // Mock uuid 模块
 jest.mock('uuid', () => ({
@@ -12,23 +14,23 @@ jest.mock('uuid', () => ({
 
 // Mock constants
 jest.mock('../../../../../src/auth/constants/apikey.constants', () => ({
-  APIKEY_DEFAULTS: {
-    APP_KEY_PREFIX: 'sk-',
-    ACCESS_TOKEN_LENGTH: 32,
+  APIKEYDEFAULTS: {
+    APP_KEYPREFIX: 'sk-',
+    ACCESS_TOKENlength: 32,
     DEFAULT_NAME_PREFIX: 'API Key',
   },
-  APIKEY_CONFIG: {
-    ACCESS_TOKEN_CHARSET: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+  APIKEYCONFIG: {
+    ACCESS_TOKENCHARSET: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
     MIN_NAME_LENGTH: 1,
     MAX_NAME_LENGTH: 100,
   },
-  APIKEY_VALIDATION_RULES: {
-    APP_KEY_PATTERN: /^sk-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,
+  APIKEY_VALIDATIONRULES: {
+    APP_KEYPATTERN: /^sk-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,
     ACCESS_TOKEN_PATTERN: /^[a-zA-Z0-9]{32}$/,
     NAME_PATTERN: /^[a-zA-Z0-9\s\-_\.]+$/,
   },
   APIKEY_TIME_CONFIG: {
-    EXPIRY_WARNING_DAYS: 7,
+    EXPIRY_WARNINGDAYS: 7,
   },
 }));
 
@@ -58,11 +60,10 @@ describe('ApiKeyUtil', () => {
 
     it('should generate unique app keys on multiple calls', () => {
       // Arrange - 模拟不同的 UUID 返回值
-      const { v4: uuidv4 } = require('uuid');
       (uuidv4 as jest.Mock)
-        .mockReturnValueOnce('aaaaaaaa-1111-2222-3333-444444444444')
+        .mockReturnValueOnce('aaaaaaaa-_1111-2222-3333-444444444444')
         .mockReturnValueOnce('bbbbbbbb-5555-6666-7777-888888888888')
-        .mockReturnValueOnce('cccccccc-9999-aaaa-bbbb-cccccccccccc');
+        .mockReturnValueOnce('cccccccc-_9999-aaaa-bbbb-cccccccccccc');
 
       // Act
       const appKey1 = ApiKeyUtil.generateAppKey();
@@ -271,7 +272,7 @@ describe('ApiKeyUtil', () => {
       expect(ApiKeyUtil.isExpired(currentDate)).toBe(false);
       
       // 测试边界情况
-      const slightlyPast = new Date('2023-06-01T09:59:59.999Z');
+      const slightlyPast = new Date('2023-06-_01T09:59:59.999Z');
       expect(ApiKeyUtil.isExpired(slightlyPast)).toBe(true);
     });
   });
@@ -284,7 +285,7 @@ describe('ApiKeyUtil', () => {
 
     it('should return true for expiration within warning period', () => {
       // Arrange
-      const nearExpiryDate = new Date('2023-06-05T10:00:00.000Z'); // 4天后
+      const nearExpiryDate = new Date('2023-06-_05T10:00:00.000Z'); // 4天后
 
       // Act & Assert
       expect(ApiKeyUtil.isNearExpiry(nearExpiryDate)).toBe(true);
@@ -292,7 +293,7 @@ describe('ApiKeyUtil', () => {
 
     it('should return false for expiration beyond warning period', () => {
       // Arrange
-      const farExpiryDate = new Date('2023-06-15T10:00:00.000Z'); // 14天后
+      const farExpiryDate = new Date('2023-06-_15T10:00:00.000Z'); // 14天后
 
       // Act & Assert
       expect(ApiKeyUtil.isNearExpiry(farExpiryDate)).toBe(false);
@@ -300,7 +301,7 @@ describe('ApiKeyUtil', () => {
 
     it('should use custom warning days', () => {
       // Arrange
-      const expiryDate = new Date('2023-06-04T10:00:00.000Z'); // 3天后
+      const expiryDate = new Date('2023-06-_04T10:00:00.000Z'); // 3天后
 
       // Act & Assert
       expect(ApiKeyUtil.isNearExpiry(expiryDate, 2)).toBe(false); // 2天警告期
@@ -309,7 +310,7 @@ describe('ApiKeyUtil', () => {
 
     it('should return true for already expired dates', () => {
       // Arrange
-      const expiredDate = new Date('2023-05-25T10:00:00.000Z'); // 已过期
+      const expiredDate = new Date('2023-05-_25T10:00:00.000Z'); // 已过期
 
       // Act & Assert
       expect(ApiKeyUtil.isNearExpiry(expiredDate)).toBe(true);
@@ -440,7 +441,7 @@ describe('ApiKeyUtil', () => {
       expect(ApiKeyUtil.isValidName(name)).toBe(true);
 
       // 过期检查
-      const futureExpiry = new Date('2023-12-31T23:59:59.999Z');
+      const futureExpiry = new Date('2023-12-_31T23:59:59.999Z');
       expect(ApiKeyUtil.isExpired(futureExpiry)).toBe(false);
       expect(ApiKeyUtil.isNearExpiry(futureExpiry)).toBe(false);
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';

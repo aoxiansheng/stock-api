@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * LongPort SG Types Unit Tests
- * KÕLongPort° apn{‹šI„cn'Œ|¹'
+ * Kï¿½LongPortï¿½ï¿½apnï¿½{ï¿½ï¿½Iï¿½_cn'ï¿½|ï¿½'
  */
 
 import {
   LongportQuoteData,
-  LongportExtendedQuote,
+  LongportExt_endedQuote,
   LongportQuoteResponse,
   LongportBasicInfo,
   LongportConfig,
@@ -18,8 +19,8 @@ describe('LongPort SG Types', () => {
     beforeEach(() => {
       quoteData = {
         symbol: 'D05.SG',
-        last_done: 32.50,
-        prev_close: 32.00,
+        lastdone: 32.50,
+        prevclose: 32.00,
         open: 32.10,
         high: 32.80,
         low: 31.90,
@@ -53,8 +54,8 @@ describe('LongPort SG Types', () => {
 
       it('should support both number and string for price fields', () => {
         // Number values
-        quoteData.last_done = 32.50;
-        quoteData.prev_close = 32.00;
+        quoteData.lastdone = 32.50;
+        quoteData.prevclose = 32.00;
         quoteData.open = 32.10;
         quoteData.high = 32.80;
         quoteData.low = 31.90;
@@ -361,12 +362,12 @@ describe('LongPort SG Types', () => {
     beforeEach(() => {
       basicInfo = {
         symbol: 'D05.SG',
-        name_cn: 'UÆâ',
+        name_cn: 'Uï¿½ï¿½',
         name_en: 'DBS Group Holdings Ltd',
-        name_hk: 'UÆ',
+        namehk: 'Uï¿½',
         listing_date: '1999-07-23',
-        shares_outstanding: 2650000000,
-        market_cap: 86125000000,
+        sharesoutstanding: 2650000000,
+        marketcap: 86125000000,
         sector: 'Financials',
         industry: 'Banks',
       };
@@ -583,9 +584,9 @@ describe('LongPort SG Types', () => {
 
       const dbsBasicInfo: LongportBasicInfo = {
         symbol: 'D05.SG',
-        name_cn: 'UÆâ',
+        name_cn: 'Uï¿½ï¿½',
         name_en: 'DBS Group Holdings Ltd',
-        name_hk: 'UÆ',
+        name_hk: 'Uï¿½',
         listing_date: '1999-07-23',
         shares_outstanding: 2650000000,
         market_cap: 86125000000,

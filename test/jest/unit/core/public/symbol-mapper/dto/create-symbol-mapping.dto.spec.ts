@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { ValidationPipe } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
-import { CreateSymbolMappingDto, SymbolMappingRuleDto } from '@core/symbol-mapper/dto/create-symbol-mapping.dto';
+import { CreateSymbolMappingDto, SymbolMappingRuleDto } from '@core/public/symbol-mapper/dto/create-symbol-mapping.dto';
 
 describe('SymbolMappingRuleDto', () => {
   // 创建一个验证管道实例，用于后续的验证操作

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Alert模块Cache集成测试
  * 测试告警系统与Redis缓存的集成功能
@@ -21,8 +22,8 @@ describe("Alert Cache Integration", () => {
   let alertingService: AlertingService;
   let alertHistoryService: AlertHistoryService;
   // Services not used in integration tests
-  // let _notificationService: NotificationService;
-  // let _ruleEngineService: RuleEngineService;
+  // let notificationService: NotificationService;
+  // let ruleEngineService: RuleEngineService;
   let cacheService: CacheService;
   let redisClient: Redis;
 
@@ -31,8 +32,8 @@ describe("Alert Cache Integration", () => {
 
     alertingService = app.get<AlertingService>(AlertingService);
     alertHistoryService = app.get<AlertHistoryService>(AlertHistoryService);
-    // _notificationService = app.get<NotificationService>(NotificationService);
-    // _ruleEngineService = app.get<RuleEngineService>(RuleEngineService);
+    // notificationService = app.get<NotificationService>(NotificationService);
+    // ruleEngineService = app.get<RuleEngineService>(RuleEngineService);
     cacheService = app.get<CacheService>(CacheService);
     const redisService = app.get<RedisService>(RedisService);
     redisClient = redisService.getOrThrow();
@@ -221,7 +222,7 @@ describe("Alert Cache Integration", () => {
 
       // 验证缓存的数据结构
       const parsedHistory = JSON.parse(cachedHistory[0]);
-      expect(parsedHistory.status).toBe(AlertStatus.FIRING);
+      expect(parsedHistory._status).toBe(AlertStatus.FIRING);
       expect(parsedHistory.message).toBe(alertData.message);
     });
 

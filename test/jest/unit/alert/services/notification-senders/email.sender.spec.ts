@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailSender } from '../../../../../../src/alert/services/notification-senders/email.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
 
 describe('EmailSender', () => {
   let sender: EmailSender;
@@ -13,7 +14,7 @@ describe('EmailSender', () => {
     value: 95,
     threshold: 90,
     status: AlertStatus.FIRING,
-    startTime: new Date('2023-01-01T10:00:00Z'),
+    startTime: new Date('2023-01-_01T10:_00:00Z'),
     endTime: null,
     message: 'CPU usage is too high',
     ruleName: 'Test Rule',
@@ -66,13 +67,13 @@ describe('EmailSender', () => {
       const result = await sender.send(mockAlert, mockRule, mockConfig);
 
       expect(result.success).toBe(true);
-      expect(result.channelType).toEqual(NotificationChannelType.EMAIL);
+      expect(result._channelType).toEqual(NotificationChannelType.EMAIL);
       expect(result.message).toEqual(`邮件已发送到 ${mockConfig.to}`);
-      expect(result.sentAt).toBeInstanceOf(Date);
+      expect(result._sentAt).toBeInstanceOf(Date);
       expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
-    it('should return success: false if an error occurs during send', async () => {
+    it('should return success: false if an _error occurs during send', async () => {
       // 模拟在模拟邮件服务过程中发生异常
       // 通过模拟 logger.log 方法抛出异常来触发 catch 块
       jest.spyOn(sender['logger'], 'log').mockImplementationOnce(() => { 

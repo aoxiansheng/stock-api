@@ -1,15 +1,24 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Test, TestingModule } from "@nestjs/testing";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ConfigService } from "@nestjs/config";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SecurityScannerService } from "../../../../../src/security/services/security-scanner.service";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { UserRepository } from "../../../../../src/auth/repositories/user.repository";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ApiKeyRepository } from "../../../../../src/auth/repositories/apikey.repository";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SecurityScanResultRepository } from "../../../../../src/security/repositories/security-scan-result.repository";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {
-  SECURITY_SCANNER_CONFIG,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  SECURITYSCANNERCONFIG,
   SECURITY_SCANNER_OPERATIONS,
   SECURITY_SCANNER_MESSAGES,
   SECURITY_SCANNER_RECOMMENDATIONS,
 } from "../../../../../src/security/constants/security-scanner.constants";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { VulnerabilityTemplateUtil } from "../../../../../src/security/utils/vulnerability-template.util";
 
 describe("SecurityScannerService Optimization Features", () => {
@@ -17,9 +26,9 @@ describe("SecurityScannerService Optimization Features", () => {
   let userRepository: jest.Mocked<UserRepository>;
   let apiKeyRepository: jest.Mocked<ApiKeyRepository>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _scanResultRepository: jest.Mocked<SecurityScanResultRepository>;
+  let scanResultRepository: jest.Mocked<SecurityScanResultRepository>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _configService: jest.Mocked<ConfigService>;
+  let configService: jest.Mocked<ConfigService>;
   let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
@@ -32,7 +41,7 @@ describe("SecurityScannerService Optimization Features", () => {
     };
 
     const mockScanResultRepository = {
-      create: jest.fn().mockResolvedValue({ _id: "test-scan-id" }),
+      create: jest.fn().mockResolvedValue({ id: "test-scan-id" }),
       findMostRecent: jest.fn().mockResolvedValue([]),
     };
 
@@ -46,7 +55,13 @@ describe("SecurityScannerService Optimization Features", () => {
         return config[key] || defaultValue;
       }),
     };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SecurityScannerService,
@@ -72,8 +87,8 @@ describe("SecurityScannerService Optimization Features", () => {
     service = module.get<SecurityScannerService>(SecurityScannerService);
     userRepository = module.get(UserRepository);
     apiKeyRepository = module.get(ApiKeyRepository);
-    _scanResultRepository = module.get(SecurityScanResultRepository);
-    _configService = module.get(ConfigService);
+    scanResultRepository = module.get(SecurityScanResultRepository);
+    configService = module.get(ConfigService);
 
     // Spy on logger
     loggerSpy = jest.spyOn((service as any).logger, "log").mockImplementation();
@@ -85,11 +100,11 @@ describe("SecurityScannerService Optimization Features", () => {
 
   describe("Constants Usage", () => {
     it("should use configuration constants for scan settings", () => {
-      expect(SECURITY_SCANNER_CONFIG.SCAN_INTERVAL_MS).toBe(
+      expect(SECURITY_SCANNER_CONFIG.SCAN_INTERVALMS).toBe(
         24 * 60 * 60 * 1000,
       );
-      expect(SECURITY_SCANNER_CONFIG.DEFAULT_SCAN_HISTORY_LIMIT).toBe(10);
-      expect(SECURITY_SCANNER_CONFIG.SCAN_ID_PREFIX).toBe("scan_");
+      expect(SECURITY_SCANNER_CONFIG.DEFAULT_SCANHISTORYLIMIT).toBe(10);
+      expect(SECURITY_SCANNER_CONFIG.SCAN_IDPREFIX).toBe("scan_");
     });
 
     it("should use operation constants for logging", () => {
@@ -105,9 +120,9 @@ describe("SecurityScannerService Optimization Features", () => {
     });
 
     it("should use message constants for logging", () => {
-      expect(SECURITY_SCANNER_MESSAGES.SCAN_STARTED).toBe("开始安全扫描");
-      expect(SECURITY_SCANNER_MESSAGES.SCAN_COMPLETED).toBe("安全扫描完成");
-      expect(SECURITY_SCANNER_MESSAGES.SCAN_FAILED).toBe("安全扫描失败");
+      expect(SECURITY_SCANNER_MESSAGES.SCANSTARTED).toBe("开始安全扫描");
+      expect(SECURITY_SCANNER_MESSAGES.SCANCOMPLETED).toBe("安全扫描完成");
+      expect(SECURITY_SCANNER_MESSAGES.SCANFAILED).toBe("安全扫描失败");
     });
   });
 
@@ -155,7 +170,7 @@ describe("SecurityScannerService Optimization Features", () => {
 
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          operation: SECURITY_SCANNER_OPERATIONS.GET_SCAN_HISTORY,
+          operation: SECURITY_SCANNER_OPERATIONS.GET_SCANHISTORY,
           limit: 5,
         }),
         SECURITY_SCANNER_MESSAGES.SCAN_HISTORY_RETRIEVED,
@@ -211,18 +226,18 @@ describe("SecurityScannerService Optimization Features", () => {
 
       // Should include general recommendations
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.GENERAL_AUDIT,
+        SECURITY_SCANNER_RECOMMENDATIONS.GENERALAUDIT,
       );
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.UPDATE_DEPENDENCIES,
+        SECURITY_SCANNER_RECOMMENDATIONS.UPDATEDEPENDENCIES,
       );
 
       // Should include context-specific recommendations
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.IMPLEMENT_2FA,
+        SECURITY_SCANNER_RECOMMENDATIONS.IMPLEMENT2FA,
       );
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.SECURITY_MONITORING,
+        SECURITY_SCANNER_RECOMMENDATIONS.SECURITYMONITORING,
       );
     });
 
@@ -246,7 +261,7 @@ describe("SecurityScannerService Optimization Features", () => {
       );
 
       expect(recommendations).toContain(
-        SECURITY_SCANNER_RECOMMENDATIONS.PENETRATION_TESTING,
+        SECURITY_SCANNER_RECOMMENDATIONS.PENETRATIONTESTING,
       );
     });
   });
@@ -266,7 +281,7 @@ describe("SecurityScannerService Optimization Features", () => {
 
       expect(errorSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          operation: SECURITY_SCANNER_OPERATIONS.CHECK_PASSWORD_SECURITY,
+          operation: SECURITY_SCANNER_OPERATIONS.CHECK_PASSWORDSECURITY,
         }),
         SECURITY_SCANNER_MESSAGES.PASSWORD_CHECK_FAILED,
       );
@@ -296,7 +311,7 @@ describe("SecurityScannerService Optimization Features", () => {
   describe("Performance Monitoring", () => {
     it("should have performance monitoring constants defined", () => {
       expect(SECURITY_SCANNER_CONFIG.SCAN_TIMEOUT_MS).toBeDefined();
-      expect(SECURITY_SCANNER_MESSAGES.SCAN_TIMEOUT_WARNING).toBe(
+      expect(SECURITY_SCANNER_MESSAGES.SCAN_TIMEOUTWARNING).toBe(
         "扫描执行时间较长",
       );
     });

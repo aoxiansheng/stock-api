@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Data-Mapper 工作流程端到端测试
  * 测试完整的数据映射生命周期：模板创建 → 规则生成 → 规则测试 → 数据转换
@@ -47,8 +48,8 @@ describe("Data-Mapper Workflow E2E", () => {
         low: 558.0,
         volume: 11292534,
         turnover: 6334567890,
-        timestamp: "2024-08-11T10:00:00Z",
-        trade_status: "NORMAL",
+        timestamp: "2024-08-11T_10:00:00Z",
+        tradestatus: "NORMAL",
         pre_market_price: 560.5,
         post_market_price: 562.0,
         change: 2.5,
@@ -69,8 +70,8 @@ describe("Data-Mapper Workflow E2E", () => {
       // 分析数据源
       const analysisResponse = await request
         .post("/api/v1/data-mapper/user-persistence/analyze-source")
-        .set("X-App-Key", apiKey.appKey)
-        .set("X-Access-Token", apiKey.accessToken)
+        .set("X-App-Key", apiKey._appKey)
+        .set("X-Access-Token", apiKey._accessToken)
         .send(analysisRequest)
         .expect(201);
 
@@ -78,7 +79,7 @@ describe("Data-Mapper Workflow E2E", () => {
       analysisResult = analysisResponse.body.data;
       templateId = analysisResult.savedTemplate.id;
 
-      console.log(`✅ 数据分析完成，提取了 ${analysisResult.extractedFields.length} 个字段`);
+      console.log(`✅ 数据分析完成，提取了 ${analysisResult.extractedFields._length} 个字段`);
       console.log(`✅ 模板已保存，ID: ${templateId}`);
 
       // 验证分析结果
@@ -141,7 +142,7 @@ describe("Data-Mapper Workflow E2E", () => {
       const testResult = testResponse.body.data;
 
       console.log(`✅ 规则测试完成，成功率: ${(testResult.mappingStats.successRate * 100).toFixed(1)}%`);
-      console.log(`✅ 成功映射: ${testResult.mappingStats.successfulMappings}/${testResult.mappingStats.totalMappings} 个字段`);
+      console.log(`✅ 成功映射: ${testResult.mappingStats.successfulMappings}/${testResult.mappingStats._totalMappings} 个字段`);
 
       // 验证测试结果
       expect(testResult).toHaveProperty("success", true);
@@ -165,7 +166,7 @@ describe("Data-Mapper Workflow E2E", () => {
         sourceFieldPath: mapping.sourceFieldPath,
         targetField: mapping.targetField,
         transform: mapping.transform,
-        fallbackPaths: mapping.fallbackPaths,
+        fallbackPaths: mapping._fallbackPaths,
         confidence: mapping.confidence,
         isRequired: mapping.isRequired || false,
         description: mapping.description,
@@ -230,7 +231,7 @@ describe("Data-Mapper Workflow E2E", () => {
       // 验证优化后的结果
       expect(finalResult.success).toBe(true);
       expect(finalResult.mappingStats.successfulMappings).toBeGreaterThanOrEqual(
-        testResult.mappingStats.successfulMappings
+        testResult.mappingStats._successfulMappings
       );
 
       // 验证百分比转换
@@ -346,11 +347,11 @@ describe("Data-Mapper Workflow E2E", () => {
         .expect(200);
 
       const templateStats = templateStatsResponse.body.data;
-      console.log(`📊 模板统计 - 总计: ${templateStats.totalTemplates}, 活跃: ${templateStats.activeTemplates}`);
+      console.log(`📊 模板统计 - 总计: ${templateStats._totalTemplates}, 活跃: ${templateStats.activeTemplates}`);
 
       expect(templateStats.totalTemplates).toBeGreaterThan(0);
-      expect(templateStats.templatesByProvider).toBeInstanceOf(Object);
-      expect(templateStats.templatesByApiType).toBeInstanceOf(Object);
+      expect(templateStats._templatesByProvider).toBeInstanceOf(Object);
+      expect(templateStats._templatesByApiType).toBeInstanceOf(Object);
 
       // 2. 获取规则列表统计
       const rulesListResponse = await request
@@ -363,7 +364,7 @@ describe("Data-Mapper Workflow E2E", () => {
       console.log(`📊 规则统计 - 总计: ${rulesList.pagination.total} 个映射规则`);
 
       expect(rulesList.pagination.total).toBeGreaterThan(0);
-      expect(rulesList.items).toBeInstanceOf(Array);
+      expect(rulesList._items).toBeInstanceOf(Array);
 
       // 3. 健康检查
       const healthResponse = await request
@@ -382,8 +383,8 @@ describe("Data-Mapper Workflow E2E", () => {
   describe("🧹 清理测试数据", () => {
     it("应该清理测试过程中创建的数据", async () => {
       const cleanupResults = {
-        deletedTemplates: 0,
-        deletedRules: 0,
+        delet_edTemplates: 0,
+        delet_edRules: 0,
         errors: []
       };
 
@@ -418,8 +419,8 @@ describe("Data-Mapper Workflow E2E", () => {
       }
 
       console.log("🧹 测试数据清理完成:", {
-        deletedTemplates: cleanupResults.deletedTemplates,
-        deletedRules: cleanupResults.deletedRules,
+        delet_edTemplates: cleanupResults.delet_edTemplates,
+        delet_edRules: cleanupResults.delet_edRules,
         errors: cleanupResults.errors
       });
 

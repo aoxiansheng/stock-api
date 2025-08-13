@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
- * Transform Interfaces DTO UCKÕ
- * KÕpnlb¥ãpn “ùa
+ * Transform Interfaces DTO UCKï¿½
+ * Kï¿½pnlbï¿½ï¿½pn ï¿½ï¿½a
  */
 
 import { validate } from 'class-validator';
@@ -9,7 +10,7 @@ import {
   DataTransformRuleDto,
   TransformValidationDto,
   TransformationStatsDto,
-} from '../../../../../../src/core/transformer/dto/transform-interfaces.dto';
+} from '../../../../../../../src/core/public/transformer/dto/transform-interfaces.dto';
 
 describe('Transform Interfaces DTOs', () => {
   describe('FieldTransformDto', () => {
@@ -60,7 +61,7 @@ describe('Transform Interfaces DTOs', () => {
         const errors = await validate(dto);
 
         // Assert
-        expect(errors.length).toBe(0);
+        expect(errors._length).toBe(0);
       });
     });
 

@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../../../../../src/app.module';
-import { DataFetcherService } from '../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
-import { SymbolMapperService } from '../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
-import { ReceiverService } from '../../../../../src/core/restapi/receiver/services/receiver.service';
-import { CapabilityRegistryService } from '../../../../../src/providers/services/capability-registry.service';
-import { ICapability } from '../../../../../src/providers/interfaces/capability.interface';
-import { Market } from '../../../../../src/common/constants/market.constants';
+import { AppModule } from '../../../../../../src/app.module';
+import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { SymbolMapperService } from '../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
+import { ReceiverService } from '../../../../../../src/core/restapi/receiver/services/receiver.service';
+import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
+import { ICapability } from '../../../../../../src/providers/interfaces/capability.interface';
+import { Market } from '../../../../../../src/common/constants/market.constants';
 
 describe('DataFetcher Pipeline E2E', () => {
   let app: INestApplication;
@@ -40,7 +41,7 @@ describe('DataFetcher Pipeline E2E', () => {
     await app.init();
 
     // Register test capability
-    await capabilityRegistryService.registerCapability('test-provider', mockCapability);
+    capabilityRegistryService.registerCapability('test-provider', mockCapability, 1, true);
   });
 
   afterAll(async () => {
@@ -101,7 +102,7 @@ describe('DataFetcher Pipeline E2E', () => {
       });
 
       // Mock provider selection
-      jest.spyOn(receiverService, 'selectOptimalProvider').mockReturnValue('test-provider');
+      jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
 
       // Test the complete pipeline through receiver endpoint
       const response = await request(app.getHttpServer())
@@ -148,7 +149,7 @@ describe('DataFetcher Pipeline E2E', () => {
         data: [{ symbol: '700.HK', price: 320.5 }],
       });
 
-      jest.spyOn(receiverService, 'selectOptimalProvider').mockReturnValue('test-provider');
+      jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
 
       const response = await request(app.getHttpServer())
         .post('/api/v1/receiver/data')
@@ -184,7 +185,7 @@ describe('DataFetcher Pipeline E2E', () => {
       });
 
       mockCapability.execute.mockRejectedValue(new Error('Provider connection failed'));
-      jest.spyOn(receiverService, 'selectOptimalProvider').mockReturnValue('test-provider');
+      jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
 
       const response = await request(app.getHttpServer())
         .post('/api/v1/receiver/data')
@@ -209,19 +210,17 @@ describe('DataFetcher Pipeline E2E', () => {
 
       mockCapability.execute.mockResolvedValue(mockData);
 
-      const result = await dataFetcherService.fetchData({
+      const result = await dataFetcherService.fetchRawData({
         provider: 'test-provider',
         capability: 'get-stock-quote',
         symbols: ['700.HK'],
-        params: {},
         requestId: 'e2e-test-001',
       });
 
-      expect(result.success).toBe(true);
-      expect(result.rawData).toEqual(mockData);
+      expect(result.data).toEqual(mockData);
       expect(result.metadata.provider).toBe('test-provider');
       expect(result.metadata.capability).toBe('get-stock-quote');
-      expect(result.requestId).toBe('e2e-test-001');
+      expect(result.metadata.symbolsProcessed).toBe(1);
     });
 
     it('should handle batch data fetching', async () => {
@@ -243,7 +242,7 @@ describe('DataFetcher Pipeline E2E', () => {
         data: [{ symbol: 'AAPL.US', name: 'Apple Inc.' }],
       };
 
-      await capabilityRegistryService.registerCapability('test-provider', mockInfoCapability);
+      capabilityRegistryService.registerCapability('test-provider', mockInfoCapability, 1, true);
       
       mockCapability.execute.mockResolvedValue(mockQuoteData);
       mockInfoCapability.execute.mockResolvedValue(mockInfoData);
@@ -265,13 +264,13 @@ describe('DataFetcher Pipeline E2E', () => {
         },
       ];
 
-      const results = await dataFetcherService.batchFetchData(requests);
+      const results = await dataFetcherService.fetchBatch(requests);
 
       expect(results).toHaveLength(2);
-      expect(results[0].success).toBe(true);
-      expect(results[1].success).toBe(true);
-      expect(results[0].rawData).toEqual(mockQuoteData);
-      expect(results[1].rawData).toEqual(mockInfoData);
+      expect(results[0].hasPartialFailures).toBe(false);
+      expect(results[1].hasPartialFailures).toBe(false);
+      expect(results[0].data).toEqual(mockQuoteData);
+      expect(results[1].data).toEqual(mockInfoData);
     });
   });
 
@@ -331,11 +330,10 @@ describe('DataFetcher Pipeline E2E', () => {
     it('should recover gracefully from capability registration failures', async () => {
       // Try to use a non-existent capability
       await expect(
-        dataFetcherService.fetchData({
+        dataFetcherService.fetchRawData({
           provider: 'nonexistent-provider',
           capability: 'nonexistent-capability',
           symbols: ['700.HK'],
-          params: {},
           requestId: 'error-test-001',
         })
       ).rejects.toThrow('Capability not found');
@@ -350,11 +348,11 @@ describe('DataFetcher Pipeline E2E', () => {
       const startTime = Date.now();
       
       try {
-        await dataFetcherService.fetchData({
+        await dataFetcherService.fetchRawData({
           provider: 'test-provider',
           capability: 'get-stock-quote',
           symbols: ['700.HK'],
-          params: { timeout: 1000 },
+          options: { timeout: 1000 },
           requestId: 'timeout-test-001',
         });
       } catch {
@@ -386,7 +384,7 @@ describe('DataFetcher Pipeline E2E', () => {
         data: [{ symbol: '700.HK', price: 320.5 }],
       });
 
-      jest.spyOn(receiverService, 'selectOptimalProvider').mockReturnValue('test-provider');
+      jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
 
       const response = await request(app.getHttpServer())
         .post('/api/v1/receiver/data')
@@ -431,7 +429,7 @@ describe('DataFetcher Pipeline E2E', () => {
         },
       });
 
-      jest.spyOn(receiverService, 'selectOptimalProvider').mockReturnValue('test-provider');
+      jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
 
       const startTime = Date.now();
       const response = await request(app.getHttpServer())
@@ -471,7 +469,7 @@ describe('DataFetcher Pipeline E2E', () => {
         },
       });
 
-      jest.spyOn(receiverService, 'selectOptimalProvider').mockReturnValue('test-provider');
+      jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
 
       const concurrentRequests = Array.from({ length: 10 }, () =>
         request(app.getHttpServer())

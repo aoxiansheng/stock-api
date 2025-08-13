@@ -1,4 +1,5 @@
 #!/usr/bin/env ts-node
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -91,16 +92,30 @@ class TestDuplicateCleaner {
     const hasTestingModule = lines.some(line => line.includes("Test.createTestingModule"));
     const hasExpectDefined = lines.some(line => line.includes("expect(") && line.includes(").toBeDefined()"));
     
+    // E2E 测试特征检查
+    const hasINestApplication = lines.some(line => line.includes("INestApplication"));
+    const hasSupertest = lines.some(line => line.includes("* as request from 'supertest'"));
+    const hasAppModule = lines.some(line => line.includes("AppModule"));
+    const hasAfterEach = lines.some(line => line.includes("afterEach"));
+    const hasAppInit = lines.some(line => line.includes("app.init()"));
+    const hasAppClose = lines.some(line => line.includes("app.close()"));
+    
+    // 检查是否是E2E占位模板
+    const isE2ETemplate = hasINestApplication && hasSupertest && hasAppModule && 
+                          hasAfterEach && hasAppInit && hasAppClose;
+    
     // 计算非空白行数
     const nonEmptyLines = lines.filter(line => line.length > 0);
     
     // 检查是否是简单的占位文件：
     // 1. 有基本的测试结构
     // 2. 只有一个测试用例（should be defined）
-    // 3. 文件内容相对简单（通常少于30行有效代码，适应不同测试类型）
+    // 3. 文件内容相对简单（适应不同测试类型，E2E模板更长一些）
     const isBasicStructure = hasImport && hasDescribe && hasBeforeEach && hasBasicTest && hasTestingModule && hasExpectDefined;
-    const isSimpleFile = nonEmptyLines.length <= 30; // 放宽限制以适应security测试等
-    const hasSingleTest = content.match(/it\(/g)?.length === 1;
+    const isSimpleFile = nonEmptyLines.length <= (isE2ETemplate ? 35 : 30); // E2E模板允许更多行
+    // 更精确的测试函数检测 - 避免匹配到 app.init() 等
+    const testMatches = content.match(/^\s*it\s*\(/gm); // 只匹配行首的 it(
+    const hasSingleTest = testMatches?.length === 1;
     
     // 额外检查：确保没有复杂的测试逻辑
     const hasComplexLogic = lines.some(line => 
@@ -109,6 +124,12 @@ class TestDuplicateCleaner {
       line.includes('jest.fn') ||
       (line.includes('expect(') && line.split('expect(').length > 2) // 多个expect调用
     );
+    
+    // 对于E2E文件，检查测试的是否是app对象
+    if (isE2ETemplate) {
+      const testsApp = lines.some(line => line.includes("expect(app).toBeDefined()"));
+      return isBasicStructure && isSimpleFile && hasSingleTest && !hasComplexLogic && testsApp;
+    }
     
     return isBasicStructure && isSimpleFile && hasSingleTest && !hasComplexLogic;
   }

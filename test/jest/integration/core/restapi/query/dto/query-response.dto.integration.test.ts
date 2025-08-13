@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // query-response.dto.integration.test.ts - 测试占位代码
 // 路径: integration/core/restapi/query/dto/query-response.dto.integration.test.ts
 

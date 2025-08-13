@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  VALID_OPERATORS,
-  OPERATOR_SYMBOLS,
+  VALIDOPERATORS,
+  OPERATORSYMBOLS,
 } from '../../../../../src/alert/constants/alert.constants';
 
 describe('Alert Constants', () => {

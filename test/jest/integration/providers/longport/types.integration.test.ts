@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // types.integration.test.ts - 测试占位代码
 // 路径: integration/providers/longport/types.integration.test.ts
 

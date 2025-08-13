@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SymbolValidationUtils } from '../../../../../src/common/utils/symbol-validation.util';
 import { Market } from '../../../../../src/common/constants/market.constants';
 
@@ -5,7 +6,7 @@ describe('SymbolValidationUtils Integration', () => {
   describe('Market Recognition Integration', () => {
     it('should correctly identify Hong Kong market symbols', () => {
       const hkSymbols = [
-        '700.HK',      // 腾讯控股
+        '700._HK',      // 腾讯控股
         '00700.HK',    // 带前导零的腾讯控股
         '9988.HK',     // 阿里巴巴
         '09988.HK',    // 带前导零的阿里巴巴
@@ -42,7 +43,7 @@ describe('SymbolValidationUtils Integration', () => {
 
     it('should correctly identify Shenzhen market symbols', () => {
       const szSymbols = [
-        '000001.SZ',   // 平安银行
+        '000001._SZ',   // 平安银行
         '000002.SZ',   // 万科A
         '300001.SZ',   // 特锐德（创业板）
         '000001',      // 纯数字格式
@@ -58,7 +59,7 @@ describe('SymbolValidationUtils Integration', () => {
 
     it('should correctly identify Shanghai market symbols', () => {
       const shSymbols = [
-        '600000.SH',   // 浦发银行
+        '600000._SH',   // 浦发银行
         '600036.SH',   // 招商银行
         '688001.SH',   // 华兴源创（科创板）
         '600000',      // 纯数字格式
@@ -230,7 +231,7 @@ describe('SymbolValidationUtils Integration', () => {
         { symbol: '600999.SH', expected: true },   // 主板
         { symbol: '688001.SH', expected: true },   // 科创板
         { symbol: '688999.SH', expected: true },   // 科创板
-        { symbol: '500001.SH', expected: false },  // 无效前缀
+        { symbol: '_500001.SH', expected: false },  // 无效前缀
         { symbol: '700001.SH', expected: false },  // 无效前缀
       ];
 

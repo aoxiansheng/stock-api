@@ -1,21 +1,26 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { DataFetcherService } from '../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
-import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
+import { DataFetcherService } from '../../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
 import {
   DataFetchParams,
   RawDataResult,
-} from '../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
+} from '../../../../../../../src/core/restapi/data-fetcher/interfaces/data-fetcher.interface';
 import {
   DataFetchRequestDto,
   ApiType,
-} from '../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
+} from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
 
 describe('DataFetcherService', () => {
   let service: DataFetcherService;
   let capabilityRegistryService: jest.Mocked<CapabilityRegistryService>;
 
   const mockCapability = {
+    name: 'get-stock-quote',
+    description: 'Mock capability for testing',
+    supportedMarkets: ['US', 'HK'],
+    supportedSymbolFormats: ['SYMBOL.MARKET', 'SYMBOL'],
     execute: jest.fn(),
   };
 
@@ -23,10 +28,20 @@ describe('DataFetcherService', () => {
     getContextService: jest.fn(),
   };
 
+  const mockParams: DataFetchParams = {
+    provider: 'longport',
+    capability: 'get-stock-quote',
+    symbols: ['700.HK', 'AAPL.US'],
+    requestId: 'req_123456789',
+    apiType: 'rest',
+    options: { timeout: 5000 },
+    contextService: mockProvider,
+  };
+
   beforeEach(async () => {
     const mockCapabilityRegistryService = {
       getCapability: jest.fn(),
-      getProvider: jest.fn(),
+      _getProvider: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -48,15 +63,6 @@ describe('DataFetcherService', () => {
   });
 
   describe('fetchRawData', () => {
-    const mockParams: DataFetchParams = {
-      provider: 'longport',
-      capability: 'get-stock-quote',
-      symbols: ['700.HK', 'AAPL.US'],
-      requestId: 'req_123456789',
-      apiType: 'rest',
-      options: { timeout: 5000 },
-      contextService: mockProvider,
-    };
 
     const mockRawData = {
       secu_quote: [

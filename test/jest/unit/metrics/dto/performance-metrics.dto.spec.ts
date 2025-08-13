@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PerformanceMetricsDto } from '../../../../../src/metrics/dto/performance-metrics.dto';
 import { SystemPerformanceMetricsDto } from '@common/types/dto/performance-metrics-base.dto';
 
@@ -16,14 +17,14 @@ describe('PerformanceMetricsDto', () => {
       totalRequests: 1000,
       averageResponseTime: 120,
       errorRate: 0.01,
-      systemLoad: 0.75,
+      _systemLoad: 0.75,
       memoryUsage: 1024000000,
       cacheHitRate: 0.85,
     };
     dto.endpoints = [];
     dto.database = {};
     dto.redis = {};
-    dto.system = {};
+    dto._system = {};
 
     expect(dto.timestamp).toBeDefined();
     expect(dto.healthScore).toBeDefined();

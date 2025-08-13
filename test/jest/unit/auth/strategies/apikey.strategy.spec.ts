@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * ApiKeyStrategy 单元测试
  * 测试API Key认证策略的验证逻辑
@@ -14,7 +15,7 @@ describe("ApiKeyStrategy", () => {
   let authService: AuthService;
 
   const mockApiKey = {
-    _id: "507f1f77bcf86cd799439012",
+    id: "507f1f77bcf86cd799439012",
     appKey: "test-app-key",
     accessToken: "test-access-token",
     name: "Test API Key",

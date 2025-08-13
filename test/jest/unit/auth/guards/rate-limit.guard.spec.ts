@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import {
   ExecutionContext,
@@ -9,7 +10,7 @@ import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
 import {
   RateLimitGuard,
-  RATE_LIMIT_KEY,
+  RATE_LIMITKEY,
 } from "../../../../../src/auth/guards/rate-limit.guard";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
@@ -41,7 +42,7 @@ describe("RateLimitGuard", () => {
   let mockLogger: any;
 
   const mockApiKey = {
-    _id: new Types.ObjectId("507f1f77bcf86cd799439011"),
+    id: new Types.ObjectId("507f1f77bcf86cd799439011"),
     appKey: "test-app-key",
     accessToken: "test-access-token",
     name: "Test API Key",
@@ -146,7 +147,7 @@ describe("RateLimitGuard", () => {
       expect(result).toBe(true);
       expect(rateLimitService.checkRateLimit).toHaveBeenCalledWith(
         mockApiKey,
-        RateLimitStrategy.FIXED_WINDOW,
+        RateLimitStrategy.FIXEDWINDOW,
       );
       expect(response.setHeader).toHaveBeenCalledWith(
         "X-API-RateLimit-Limit",
@@ -203,9 +204,9 @@ describe("RateLimitGuard", () => {
       try {
         await guard.canActivate(executionContext);
       } catch (error: any) {
-        expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+        expect(error.getStatus()).toBe(HttpStatus.TOO_MANYREQUESTS);
         expect(error.getResponse()).toMatchObject({
-          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          statusCode: HttpStatus.TOO_MANYREQUESTS,
           message: "API Key请求频率超出限制",
           error: "Too Many Requests",
           details: {
@@ -276,7 +277,7 @@ describe("RateLimitGuard", () => {
     it("should re-throw HttpException when rate limit service throws HttpException", async () => {
       const httpException = new HttpException(
         "Rate limit error",
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVERERROR,
       );
       rateLimitService.checkRateLimit.mockRejectedValue(httpException);
       reflector.getAllAndOverride.mockReturnValue({});

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { deepFreeze, isDeepFrozen } from '@common/utils/object-immutability.util';
 
 describe('Object Immutability Utilities', () => {
@@ -200,7 +201,7 @@ describe('Object Immutability Utilities', () => {
 
     it('should handle functions with properties', () => {
       const fn: any = function() { return 'test'; };
-      fn.prop = { value: 42 };
+      fn._prop = { value: 42 };
       
       // Function frozen but property not
       Object.freeze(fn);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Request } from "express";
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 
@@ -387,8 +388,8 @@ describe("HttpHeadersUtil - Comprehensive Coverage", () => {
     });
 
     it("should use real IP in non-trusted environment", () => {
-      process.env.NODE_ENV = "development";
-      process.env.TRUSTED_PROXY = "false";
+      process.env.NODEENV = "development";
+      process.env.TRUSTEDPROXY = "false";
 
       mockRequest.connection = { remoteAddress: "192.168.1.100" } as any;
       mockRequest.get = jest.fn().mockImplementation((header) => {
@@ -408,7 +409,7 @@ describe("HttpHeadersUtil - Comprehensive Coverage", () => {
     it("should use forwarded IP in production trusted environment", () => {
       process.env.NODE_ENV = "production";
       process.env.TRUSTED_PROXY = "true";
-      process.env.TRUSTED_PROXY_IPS = "192.168.1";
+      process.env.TRUSTED_PROXYIPS = "192.168.1";
 
       mockRequest.connection = { remoteAddress: "192.168.1.10" } as any;
       mockRequest.get = jest.fn().mockImplementation((header) => {
@@ -426,7 +427,7 @@ describe("HttpHeadersUtil - Comprehensive Coverage", () => {
 
     it("should use forwarded IP in test environment with explicit allowance", () => {
       process.env.NODE_ENV = "test-integration";
-      process.env.ALLOW_PROXY_HEADERS_IN_TEST = "true";
+      process.env.ALLOW_PROXY_HEADERS_INTEST = "true";
       process.env.TRUSTED_PROXY_IPS = "127.0.0";
 
       mockRequest.connection = { remoteAddress: "127.0.0.1" } as any;

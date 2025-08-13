@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Symbol Mapper Controller E2E Tests", () => {
   let httpServer: any;
   let developerAuthTokens: any;
@@ -54,7 +55,7 @@ describe("Symbol Mapper Controller E2E Tests", () => {
 
     const developerApiKeyResult = developerApiKeyResponse.body.data;
     developerAuthTokens = {
-      apiKey: developerApiKeyResult.appKey,
+      apiKey: developerApiKeyResult._appKey,
       accessToken: developerApiKeyResult.accessToken,
     };
 
@@ -127,7 +128,7 @@ describe("Symbol Mapper Controller E2E Tests", () => {
       global.expectSuccessResponse(response, 201);
       expect(response.body.data).toHaveProperty("transformedSymbols");
       expect(response.body.data).toHaveProperty("failedSymbols");
-      expect(response.body.data).toHaveProperty("processingTimeMs");
+      expect(response.body.data).toHaveProperty("_processingTimeMs");
       expect(response.body.data).toHaveProperty("dataSourceName", "longport");
       
       // 验证转换结果结构
@@ -852,7 +853,7 @@ describe("Symbol Mapper Controller E2E Tests", () => {
 
       // Assert
       global.expectSuccessResponse(response, 200);
-      // The response might just be the deleted document or a success message
+      // The response might just be the deleted document or a success _message
       expect(response.body.message).toBeTruthy();
 
       // Verify the deletion response contains success confirmation

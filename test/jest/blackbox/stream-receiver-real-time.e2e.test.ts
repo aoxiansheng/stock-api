@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Stream Receiver 实时流黑盒E2E测试：WebSocket真实环境完整测试
  *
@@ -15,7 +16,7 @@
 
 import axios, { AxiosInstance } from "axios";
 import { io, Socket } from "socket.io-client";
-import { Permission } from "../../../../src/auth/enums/user-role.enum";
+import { Permission } from "../../../src/auth/enums/user-role.enum";
 
 describe("Stream Receiver Real-time Black-box E2E Tests", () => {
   let httpClient: AxiosInstance;
@@ -405,7 +406,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           console.log(`   💰 价格: $${currentPrice || 'N/A'}`);
           console.log(`   📈 成交量: ${volume || 'N/A'}`);
           console.log(`   ⏰ 时间: ${timestamp || 'N/A'}`);
-          console.log(`   🔄 处理链: 符号映射=${data.processingChain?.symbolMapped}, 规则映射=${data.processingChain?.mappingRulesUsed}, 数据转换=${data.processingChain?.dataTransformed}`);
+          console.log(`   🔄 处理链: 符号映射=${data.processingChain?._symbolMapped}, 规则映射=${data.processingChain?._mappingRulesUsed}, 数据转换=${data.processingChain?._dataTransformed}`);
           
           // 验证数据格式
           expect(data).toBeDefined();
@@ -470,13 +471,13 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
                 };
                 
                 if (validPrices.length > 0) {
-                  finalStats.priceRange = {
+                  finalStats._priceRange = {
                     min: Math.min(...validPrices),
                     max: Math.max(...validPrices),
                     avg: validPrices.reduce((a, b) => a + b, 0) / validPrices.length
                   };
                 } else {
-                  finalStats.warning = '价格字段提取失败，但数据流连接正常';
+                  finalStats._warning = '价格字段提取失败，但数据流连接正常';
                 }
                 
                 if (dataAfterUnsubscribe) {
@@ -839,7 +840,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           
           expect(status).toBeDefined();
           expect(status.connected).toBe(true);
-          expect(status.connectionId).toBeDefined();
+          expect(status._connectionId).toBeDefined();
           
           resolve(status);
         });
@@ -1100,7 +1101,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         }, 30000);
 
         wsClient.on("data", (data) => {
-          console.log("🔍 检查数据处理链:", JSON.stringify(data.processingChain, null, 2));
+          console.log("🔍 检查数据处理链:", JSON.stringify(data._processingChain, null, 2));
           
           if (data.processingChain) {
             dataWithProcessingChain = data;
@@ -1443,7 +1444,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           expect(info).toBeDefined();
           expect(info.clientId).toBe(wsClient.id);
           expect(info.connected).toBe(true);
-          expect(info.authType).toBeDefined();
+          expect(info._authType).toBeDefined();
           expect(info.timestamp).toBeDefined();
           
           resolve({
@@ -1489,7 +1490,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           if (status.data) {
             expect(status.data.symbols).toContain(testSymbol);
             expect(status.data.wsCapabilityType).toBe('stream-stock-quote');
-            expect(status.data.providerName).toBeDefined();
+            expect(status.data._providerName).toBeDefined();
           }
           
           // 清理订阅

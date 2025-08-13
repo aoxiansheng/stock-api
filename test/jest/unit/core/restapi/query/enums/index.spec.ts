@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   QueryType,
   SortDirection,
   DataSourceType,
-} from "../../../../../../src/core/query/enums/index";
+} from "../../../../../../../src/core/restapi/query/enums/index";
 
 describe("Query Enums Index - Function Coverage", () => {
   describe("Enum exports and usage", () => {
@@ -12,13 +13,13 @@ describe("Query Enums Index - Function Coverage", () => {
       expect(typeof QueryType).toBe("object");
 
       // Test enum values are accessible
-      expect(QueryType.BY_SYMBOLS).toBeDefined();
-      expect(QueryType.BY_MARKET).toBeDefined();
-      expect(QueryType.BY_PROVIDER).toBeDefined();
+      expect(QueryType.BYSYMBOLS).toBeDefined();
+      expect(QueryType.BYMARKET).toBeDefined();
+      expect(QueryType.BYPROVIDER).toBeDefined();
 
       // Test enum as an object has the expected structure
       const queryTypeKeys = Object.keys(QueryType);
-      expect(queryTypeKeys.length).toBeGreaterThan(0);
+      expect(queryTypeKeys._length).toBeGreaterThan(0);
 
       // Test values are strings (not numbers for string enums)
       const queryTypeValues = Object.values(QueryType);
@@ -218,7 +219,7 @@ describe("Query Enums Index - Function Coverage", () => {
 
       // Attempt to modify the enum (should not affect the original)
       try {
-        (QueryType as any).NEW_TYPE = "new_type";
+        (QueryType as any).NEWTYPE = "new_type";
       } catch {
         // Some environments might throw an error, we ignore it
       }

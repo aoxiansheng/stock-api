@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
@@ -14,7 +15,7 @@ describe('GlobalExceptionFilter', () => {
     filter = new GlobalExceptionFilter();
 
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
+      _status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
       setHeader: jest.fn().mockReturnThis(),
     } as any;
@@ -119,7 +120,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     it('should handle ForbiddenException', () => {
-      const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      const exception = new HttpException('Forbidden', HttpStatus._FORBIDDEN);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -170,7 +171,7 @@ describe('GlobalExceptionFilter', () => {
       const validationErrors: ValidationError[] = [
         {
           property: 'email',
-          constraints: {
+          const_raints: {
             isEmail: 'email must be an email',
             isNotEmpty: 'email should not be empty',
           },
@@ -178,7 +179,7 @@ describe('GlobalExceptionFilter', () => {
         } as ValidationError,
         {
           property: 'age',
-          constraints: {
+          const_raints: {
             isNumber: 'age must be a number',
           },
           children: [],
@@ -226,11 +227,11 @@ describe('GlobalExceptionFilter', () => {
     it('should handle nested ValidationError', () => {
       const nestedValidationError: ValidationError = {
         property: 'address',
-        constraints: {},
+        const_raints: {},
         children: [
           {
             property: 'street',
-            constraints: {
+            const_raints: {
               isNotEmpty: 'street should not be empty',
             },
             children: [],
@@ -603,7 +604,7 @@ describe('GlobalExceptionFilter', () => {
 
   describe('Path Sanitization', () => {
     it('should sanitize XSS attempts in path', () => {
-      mockRequest.url = '/api/test?param=<script>alert("xss")</script>';
+      mockRequest._url = '/api/test?_param=<script>alert("xss")</script>';
       const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
@@ -685,7 +686,7 @@ describe('GlobalExceptionFilter', () => {
   describe('Environment-specific Behavior', () => {
     it('should hide error details in production', () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      process.env.NODEENV = 'production';
 
       const error = new Error('Sensitive error details');
       filter.catch(error, mockArgumentsHost);

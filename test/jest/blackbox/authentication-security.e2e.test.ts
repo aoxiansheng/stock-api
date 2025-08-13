@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：三层认证体系与安全机制
  * 测试API Key、JWT、公开访问三层认证系统
@@ -9,7 +10,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-describe("Real Environment Black-box: Authentication & Security E2E", () => {
+describe("Real Environment Black-_box: Authentication & Security E2E", () => {
   let httpClient: AxiosInstance;
   let baseURL: string;
   let adminJWT: string;
@@ -514,7 +515,7 @@ describe("Real Environment Black-box: Authentication & Security E2E", () => {
       // 尝试使用开发者JWT创建管理员专用资源
       const maliciousRequest = await httpClient.post("/api/v1/auth/api-keys", {
         name: "Malicious Admin Key",
-        permissions: ["user:manage", "apikey:manage"], // 管理员权限
+        permissions: ["_user:manage", "_apikey:manage"], // 管理员权限
       }, {
         headers: { Authorization: `Bearer ${devJWT}` }
       });

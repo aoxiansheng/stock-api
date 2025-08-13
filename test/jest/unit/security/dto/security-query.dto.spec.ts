@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate, ValidationArguments } from "class-validator";
 import { plainToClass } from "class-transformer";
 import {
@@ -44,7 +45,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("severity");
-      expect(errors[0].constraints).toHaveProperty("isIn");
+      expect(errors[0].const_raints).toHaveProperty("isIn");
     });
 
     it("应该拒绝无效的漏洞类型", async () => {
@@ -57,7 +58,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("type");
-      expect(errors[0].constraints).toHaveProperty("isIn");
+      expect(errors[0].const_raints).toHaveProperty("isIn");
     });
 
     it("应该验证所有有效的严重程度值", async () => {
@@ -143,7 +144,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("startDate");
-      expect(errors[0].constraints).toHaveProperty("isDateString");
+      expect(errors[0].const_raints).toHaveProperty("isDateString");
     });
 
     it("应该拒绝超出范围的limit值", async () => {
@@ -156,7 +157,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("limit");
-      expect(errors[0].constraints).toHaveProperty("max");
+      expect(errors[0].const_raints).toHaveProperty("max");
     });
 
     it("应该拒绝负数offset值", async () => {
@@ -169,7 +170,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("offset");
-      expect(errors[0].constraints).toHaveProperty("min");
+      expect(errors[0].const_raints).toHaveProperty("min");
     });
 
     it("应该拒绝无效的IP地址", async () => {
@@ -182,7 +183,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("clientIP");
-      expect(errors[0].constraints).toHaveProperty("isIp");
+      expect(errors[0].const_raints).toHaveProperty("isIp");
     });
   });
 
@@ -197,7 +198,7 @@ describe("Security Query DTOs", () => {
       const result = validator.validate(null, { 
         object: obj, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -214,7 +215,7 @@ describe("Security Query DTOs", () => {
       const result = validator.validate(null, { 
         object: obj, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -231,7 +232,7 @@ describe("Security Query DTOs", () => {
       const result = validator.validate(null, { 
         object: obj, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -249,7 +250,7 @@ describe("Security Query DTOs", () => {
       const message1 = validator.defaultMessage({ 
         object: obj1, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -263,7 +264,7 @@ describe("Security Query DTOs", () => {
       const message2 = validator.defaultMessage({ 
         object: obj2, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -278,7 +279,7 @@ describe("Security Query DTOs", () => {
       const result1 = validator.validate(null, { 
         object: obj1, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -289,7 +290,7 @@ describe("Security Query DTOs", () => {
       const result2 = validator.validate(null, { 
         object: obj2, 
         value: null,
-        constraints: [],
+        const_raints: [],
         targetName: 'test',
         property: 'test'
       } as ValidationArguments);
@@ -427,7 +428,7 @@ describe("Security Query DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("action");
-      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
+      expect(errors[0].const_raints).toHaveProperty("isNotEmpty");
     });
   });
 });

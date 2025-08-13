@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { plainToClass } from "class-transformer";
 import { validate } from "class-validator";
 import {
@@ -18,8 +19,8 @@ describe("AlertDTOs", () => {
     it("should pass validation with valid data", async () => {
       const dto = plainToClass(AlertQueryDto, {
         ruleId: "rule-123",
-        severity: AlertSeverity.WARNING,
-        status: AlertStatus.FIRING,
+        severity: AlertSeverity._WARNING,
+        status: AlertStatus._FIRING,
         page: 1,
         limit: 10,
         sortBy: "startTime",
@@ -71,22 +72,22 @@ describe("AlertDTOs", () => {
       const alertEntity: IAlert = {
         id: "alert-1",
         ruleId: "rule-1",
-        ruleName: "Test Rule",
+        _ruleName: "Test Rule",
         metric: "cpu.usage",
         value: 95,
         threshold: 90,
         severity: AlertSeverity.CRITICAL,
         status: AlertStatus.FIRING,
         message: "CPU usage is critical",
-        startTime: new Date("2023-01-01T10:00:00Z"),
+        startTime: new Date("2023-01-_01T10:_00:00Z"),
       };
 
       const responseDto = AlertResponseDto.fromEntity(alertEntity);
 
       expect(responseDto.id).toBe(alertEntity.id);
       expect(responseDto.ruleName).toBe(alertEntity.ruleName);
-      expect(responseDto.isActive).toBe(true);
-      expect(responseDto.duration).toBeGreaterThan(0);
+      expect(responseDto._isActive).toBe(true);
+      expect(responseDto._duration).toBeGreaterThan(0);
     });
   });
 });

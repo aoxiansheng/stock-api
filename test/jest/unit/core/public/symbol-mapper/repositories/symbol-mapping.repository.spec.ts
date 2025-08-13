@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
-import { SymbolMappingRepository } from "../../../../../../src/core/symbol-mapper/repositories/symbol-mapping.repository";
-import { CreateSymbolMappingDto } from "../../../../../../src/core/symbol-mapper/dto/create-symbol-mapping.dto";
-import { UpdateSymbolMappingDto } from "../../../../../../src/core/symbol-mapper/dto/update-symbol-mapping.dto";
-import { SymbolMappingQueryDto } from "../../../../../../src/core/symbol-mapper/dto/symbol-mapping-query.dto";
+import { SymbolMappingRepository } from "../../../../../../../src/core/public/symbol-mapper/repositories/symbol-mapping.repository";
+import { CreateSymbolMappingDto } from "../../../../../../../src/core/public/symbol-mapper/dto/create-symbol-mapping.dto";
+import { UpdateSymbolMappingDto } from "../../../../../../../src/core/public/symbol-mapper/dto/update-symbol-mapping.dto";
+import { SymbolMappingQueryDto } from "../../../../../../../src/core/public/symbol-mapper/dto/symbol-mapping-query.dto";
 import {
   SymbolMappingRule,
   SymbolMappingRuleDocument,
-} from "../../../../../../src/core/symbol-mapper/schemas/symbol-mapping-rule.schema";
-import { PaginationService } from "../../../../../../src/common/modules/pagination/services/pagination.service";
+} from "../../../../../../../src/core/public/symbol-mapper/schemas/symbol-mapping-rule.schema";
+import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
 
 type MockModel<T = any> = Model<T> & {
   [key: string]: jest.Mock;
@@ -22,7 +23,7 @@ describe("SymbolMappingRepository", () => {
   let paginationService: PaginationService;
 
   const mockSymbolMappingDocument = {
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     dataSourceName: "longport",
     description: "LongPort symbol mappings",
     SymbolMappingRule: [
@@ -54,7 +55,7 @@ describe("SymbolMappingRepository", () => {
       jest.fn().mockImplementation((dto) => {
         return {
           ...dto,
-          save: jest.fn().mockResolvedValue({ ...dto, _id: "new-id" }),
+          save: jest.fn().mockResolvedValue({ ...dto, id: "new-id" }),
         };
       }),
       {
@@ -67,13 +68,13 @@ describe("SymbolMappingRepository", () => {
         create: jest
           .fn()
           .mockImplementation((dto) =>
-            Promise.resolve({ ...dto, _id: "new-id" }),
+            Promise.resolve({ ...dto, id: "new-id" }),
           ),
         countDocuments: jest.fn().mockReturnValue({ exec: jest.fn() }),
         updateOne: jest.fn().mockReturnValue(mockQuery),
-        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-        deleteMany: jest.fn().mockReturnValue({ exec: jest.fn() }),
-        aggregate: jest.fn().mockReturnValue({ exec: jest.fn() }),
+        delet_eOne: jest.fn().mockResolvedValue({ delet_edCount: 1 }),
+        delet_eMany: jest.fn().mockReturnValue({ exec: jest.fn() }),
+        _aggregate: jest.fn().mockReturnValue({ exec: jest.fn() }),
         distinct: jest.fn().mockReturnValue(mockQuery),
       },
     );
@@ -543,16 +544,16 @@ describe("SymbolMappingRepository", () => {
 
   describe("deleteByDataSource", () => {
     it("should delete all mappings for a data source", async () => {
-      (model.deleteMany as jest.Mock).mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ deletedCount: 3 }),
+      (model._deleteMany as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ delet_edCount: 3 }),
       });
 
       const result = await repository.deleteByDataSource("longport");
 
-      expect(model.deleteMany).toHaveBeenCalledWith({
+      expect(model.delet_eMany).toHaveBeenCalledWith({
         dataSourceName: "longport",
       });
-      expect(result).toEqual({ deletedCount: 3 });
+      expect(result).toEqual({ delet_edCount: 3 });
     });
   });
 
@@ -574,7 +575,7 @@ describe("SymbolMappingRepository", () => {
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { dataSourceName: "longport" },
-        { $push: { SymbolMappingRule: newRule } },
+        { $_push: { SymbolMappingRule: newRule } },
         { new: true },
       );
       expect(result).toEqual(mockSymbolMappingDocument);
@@ -629,7 +630,7 @@ describe("SymbolMappingRepository", () => {
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { dataSourceName: "longport" },
-        { $pull: { SymbolMappingRule: { standardSymbol: "AAPL" } } },
+        { $_pull: { SymbolMappingRule: { standardSymbol: "AAPL" } } },
         { new: true },
       );
       expect(result).toEqual(mockSymbolMappingDocument);

@@ -8,7 +8,7 @@ import {
 } from "../../../../../../src/common/constants/unified/performance.constants";
 
 describe("Performance Constants", () => {
-  describe("RESPONSE_TIME_THRESHOLDS", () => {
+  describe("RESPONSE_TIMETHRESHOLDS", () => {
     it("should define correct threshold values", () => {
       expect(
         PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS,
@@ -35,7 +35,7 @@ describe("Performance Constants", () => {
         PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS;
 
       try {
-        PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS = 200;
+        PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUESTMS = 200;
         // 确认值没有改变
         expect(
           PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.FAST_REQUEST_MS,
@@ -97,24 +97,24 @@ describe("Performance Constants", () => {
 
   describe("RETRY_SETTINGS", () => {
     it("should have retry configuration", () => {
-      expect(PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS).toBe(3);
+      expect(PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRYATTEMPTS).toBe(3);
       expect(PERFORMANCE_CONSTANTS.RETRY_SETTINGS.RETRY_DELAY_MS).toBe(1000);
       expect(
-        PERFORMANCE_CONSTANTS.RETRY_SETTINGS.EXPONENTIAL_BACKOFF_BASE,
+        PERFORMANCE_CONSTANTS.RETRY_SETTINGS.EXPONENTIAL_BACKOFFBASE,
       ).toBe(2);
       expect(PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_DELAY_MS).toBe(
         10000,
       );
-      expect(PERFORMANCE_CONSTANTS.RETRY_SETTINGS.JITTER_FACTOR).toBe(0.1);
+      expect(PERFORMANCE_CONSTANTS.RETRY_SETTINGS.JITTERFACTOR).toBe(0.1);
     });
   });
 
   describe("BATCH_LIMITS", () => {
     it("should have batch processing limits", () => {
-      expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE).toBe(1000);
+      expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCHSIZE).toBe(1000);
       expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.DEFAULT_PAGE_SIZE).toBe(10);
       expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_PAGE_SIZE).toBe(100);
-      expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_CONCURRENT_OPERATIONS).toBe(
+      expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_CONCURRENTOPERATIONS).toBe(
         10,
       );
       expect(PERFORMANCE_CONSTANTS.BATCH_LIMITS.BULK_INSERT_SIZE).toBe(500);
@@ -124,11 +124,11 @@ describe("Performance Constants", () => {
 
   describe("MEMORY_THRESHOLDS", () => {
     it("should have memory usage thresholds", () => {
-      expect(PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.LOW_MEMORY_USAGE_MB).toBe(
+      expect(PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.LOW_MEMORY_USAGEMB).toBe(
         50,
       );
       expect(
-        PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.NORMAL_MEMORY_USAGE_MB,
+        PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.NORMAL_MEMORY_USAGEMB,
       ).toBe(100);
       expect(PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(
         200,
@@ -169,7 +169,7 @@ describe("Performance Constants", () => {
       expect(PERFORMANCE_CONSTANTS.MONITORING.HEALTH_CHECK_INTERVAL_MS).toBe(
         30000,
       );
-      expect(PERFORMANCE_CONSTANTS.MONITORING.SAMPLE_RATE).toBe(0.1);
+      expect(PERFORMANCE_CONSTANTS.MONITORING.SAMPLERATE).toBe(0.1);
       expect(PERFORMANCE_CONSTANTS.MONITORING.ERROR_SAMPLE_RATE).toBe(1.0);
       expect(PERFORMANCE_CONSTANTS.MONITORING.SLOW_REQUEST_SAMPLE_RATE).toBe(
         1.0,
@@ -191,12 +191,12 @@ describe("getTimeoutFromEnv", () => {
   });
 
   it("should return timeout from environment variable", () => {
-    process.env.TIMEOUT_DEFAULT_TIMEOUT = "60000";
+    process.env.TIMEOUT_DEFAULTTIMEOUT = "60000";
     const timeout = getTimeoutFromEnv("DEFAULT_TIMEOUT_MS");
     expect(timeout).toBe(60000);
   });
 
-  it("should handle environment variable without _MS suffix", () => {
+  it("should handle environment variable without MS suffix", () => {
     process.env.TIMEOUT_CACHE_TIMEOUT = "5000";
     const timeout = getTimeoutFromEnv("CACHE_TIMEOUT_MS");
     expect(timeout).toBe(5000);

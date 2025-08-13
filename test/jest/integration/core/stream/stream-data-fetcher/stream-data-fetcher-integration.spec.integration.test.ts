@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
-import { StreamDataFetcherService } from '../../../../../src/core/stream-data-fetcher/services/stream-data-fetcher.service';
-import { CapabilityRegistryService } from '../../../../../src/providers/services/capability-registry.service';
-import { MetricsRegistryService } from '../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { StreamDataFetcherService } from '../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-fetcher.service';
+import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import {
   StreamConnectionParams,
   StreamConnection,
-} from '../../../../../src/core/stream-data-fetcher/interfaces';
+} from '../../../../../../src/core/stream/stream-data-fetcher/interfaces';
 
 /**
  * StreamDataFetcher 集成测试

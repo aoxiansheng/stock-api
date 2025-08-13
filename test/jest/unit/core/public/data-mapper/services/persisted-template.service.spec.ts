@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, ConflictException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { PersistedTemplateService } from "../../../../../../src/core/data-mapper/services/persisted-template.service";
+import { PersistedTemplateService } from "../../../../../../../src/core/public/data-mapper/services/persisted-template.service";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
 
 // Mock the logger
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),
@@ -26,7 +27,7 @@ describe("PersistedTemplateService", () => {
   let templateModel: DeepMocked<Model<DataSourceTemplateDocument>>;
 
   const mockTemplate = {
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     name: "LongPort REST Quote Template",
     provider: "longport",
     apiType: "rest",
@@ -59,12 +60,12 @@ describe("PersistedTemplateService", () => {
     service = module.get<PersistedTemplateService>(PersistedTemplateService);
     templateModel = module.get(getModelToken(DataSourceTemplate.name));
     // 避免在持久化测试中触发 new this.templateModel()
-    (service as any).BASIC_PRESET_TEMPLATES = [];
+    (service as any).BASIC_PRESETTEMPLATES = [];
   });
 
   describe("persistPresetTemplates", () => {
     it("should persist all preset templates successfully", async () => {
-      templateModel.findOne.mockResolvedValue(null); // No existing templates
+      templateModel._findOne.mockResolvedValue(null); // No existing templates
 
       const result = await service.persistPresetTemplates();
 
@@ -94,7 +95,7 @@ describe("PersistedTemplateService", () => {
       }) as any);
 
       const saveError = new Error("Save failed");
-      templateModel.constructor = jest.fn().mockImplementation(() => ({
+      templateModel._constructor = jest.fn().mockImplementation(() => ({
         save: jest.fn().mockRejectedValue(saveError)
       }));
 
@@ -126,7 +127,7 @@ describe("PersistedTemplateService", () => {
 
   describe("getAllPersistedTemplates", () => {
     it("should return all persisted templates", async () => {
-      const mockTemplates = [mockTemplate, { ...mockTemplate, _id: "507f1f77bcf86cd799439012" }];
+      const mockTemplates = [mockTemplate, { ...mockTemplate, id: "507f1f77bcf86cd799439012" }];
       templateModel.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(mockTemplates)
@@ -201,7 +202,7 @@ describe("PersistedTemplateService", () => {
     it("should delete persisted template successfully", async () => {
       const nonPresetTemplate = { ...mockTemplate, isPreset: false };
       templateModel.findById.mockResolvedValue(nonPresetTemplate as any);
-      templateModel.findByIdAndDelete.mockResolvedValue(nonPresetTemplate as any);
+      templateModel._findByIdAndDelete.mockResolvedValue(nonPresetTemplate as any);
 
       await service.deletePersistedTemplate("507f1f77bcf86cd799439011");
 
@@ -299,7 +300,7 @@ describe("PersistedTemplateService", () => {
 
   describe("resetPresetTemplates", () => {
     it("should reset all preset templates", async () => {
-      templateModel.deleteMany.mockResolvedValue({ deletedCount: 2 } as any);
+      templateModel.deleteMany.mockResolvedValue({ delet_edCount: 2 } as any);
       
       // Mock persistPresetTemplates
       jest.spyOn(service, 'persistPresetTemplates').mockResolvedValue({
@@ -311,14 +312,14 @@ describe("PersistedTemplateService", () => {
 
       const result = await service.resetPresetTemplates();
 
-      expect(result.deleted).toBe(2);
+      expect(result.delet_ed).toBe(2);
       expect(result.recreated).toBe(2);
       expect(result.message).toContain('删除了');
       expect(result.message).toContain('重新创建了');
     });
 
     it("should handle no preset templates to reset", async () => {
-      templateModel.deleteMany.mockResolvedValue({ deletedCount: 0 } as any);
+      templateModel.deleteMany.mockResolvedValue({ delet_edCount: 0 } as any);
       
       // Mock persistPresetTemplates
       jest.spyOn(service, 'persistPresetTemplates').mockResolvedValue({
@@ -330,7 +331,7 @@ describe("PersistedTemplateService", () => {
 
       const result = await service.resetPresetTemplates();
 
-      expect(result.deleted).toBe(0);
+      expect(result.delet_ed).toBe(0);
       expect(result.recreated).toBe(2);
       expect(result.message).toContain('重新创建了');
     });
@@ -385,7 +386,7 @@ describe("PersistedTemplateService", () => {
     });
 
     it("should handle very large extracted fields arrays", async () => {
-      const largeFieldsArray = Array.from({ length: 1000 }, (_, i) => ({
+      const largeFieldsArray = Array.from({ _length: 1000 }, (_, i) => ({
         fieldPath: `field${i}`,
         fieldName: `field${i}`,
         fieldType: "string",

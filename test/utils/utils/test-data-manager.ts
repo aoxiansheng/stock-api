@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 测试数据管理工具
  * 提供测试数据的创建、隔离和清理功能

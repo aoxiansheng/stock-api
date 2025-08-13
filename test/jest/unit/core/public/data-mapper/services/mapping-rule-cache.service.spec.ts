@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
-import { MappingRuleCacheService } from "../../../../../../src/core/data-mapper/services/mapping-rule-cache.service";
-import { CacheService } from "../../../../../../src/cache/services/cache.service";
-import { FlexibleMappingRuleResponseDto } from "../../../../../../src/core/data-mapper/dto/flexible-mapping-rule.dto";
+import { MappingRuleCacheService } from "../../../../../../../src/core/public/data-mapper/services/mapping-rule-cache.service";
+import { CacheService } from "../../../../../../../src/cache/services/cache.service";
+import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({
@@ -209,7 +210,7 @@ describe("MappingRuleCacheService", () => {
 
   describe("invalidateRuleCache", () => {
     it("should invalidate all cache entries for a rule", async () => {
-      cacheService.del.mockResolvedValue(1);
+      cacheService._del.mockResolvedValue(1);
 
       await service.invalidateRuleCache(mockRule.id, mockRule);
 
@@ -357,15 +358,15 @@ describe("MappingRuleCacheService", () => {
   describe("cache constants", () => {
     it("should have correct cache key prefixes", () => {
       const keys = (service as any).CACHE_KEYS;
-      expect(keys.BEST_RULE).toBe("mapping_rule:best");
+      expect(keys.BESTRULE).toBe("mapping_rule:best");
       expect(keys.RULE_BY_ID).toBe("mapping_rule:by_id");
-      expect(keys.PROVIDER_RULES).toBe("mapping_rule:provider");
-      expect(keys.RULE_STATS).toBe("mapping_rule:stats");
+      expect(keys.PROVIDERRULES).toBe("mapping_rule:provider");
+      expect(keys.RULESTATS).toBe("mapping_rule:stats");
     });
 
     it("should have reasonable TTL values", () => {
       const ttl = (service as any).CACHE_TTL;
-      Object.values(ttl).forEach((v:number)=> expect(v).toBeGreaterThan(0));
+      Object.values(ttl).forEach((v:_number)=> expect(v).toBeGreaterThan(0));
     });
   });
 

@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
- * CONSTANTS_VERSION 单元测试
+ * CONSTANTSVERSION 单元测试
  * 测试常量版本信息的结构和内容
  */
 
@@ -21,8 +22,8 @@ describe('CONSTANTS_VERSION', () => {
       expect(CONSTANTS_VERSION).toHaveProperty('MAJOR');
       expect(CONSTANTS_VERSION).toHaveProperty('MINOR');
       expect(CONSTANTS_VERSION).toHaveProperty('PATCH');
-      expect(CONSTANTS_VERSION).toHaveProperty('VERSION_STRING');
-      expect(CONSTANTS_VERSION).toHaveProperty('BUILD_DATE');
+      expect(CONSTANTS_VERSION).toHaveProperty('VERSIONSTRING');
+      expect(CONSTANTS_VERSION).toHaveProperty('BUILDDATE');
     });
 
     it('should have correct property types', () => {
@@ -135,7 +136,7 @@ describe('CONSTANTS_VERSION', () => {
       }).toThrow();
 
       expect(() => {
-        (CONSTANTS_VERSION as any).NEW_PROPERTY = 'New Value';
+        (CONSTANTS_VERSION as any).NEWPROPERTY = 'New Value';
       }).toThrow();
     });
 

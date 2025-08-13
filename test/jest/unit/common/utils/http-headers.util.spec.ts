@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 
 describe("HttpHeadersUtil", () => {
@@ -336,8 +337,8 @@ describe("HttpHeadersUtil", () => {
     });
 
     it("应该使用真实IP在非可信环境中", () => {
-      process.env.NODE_ENV = "development";
-      process.env.TRUSTED_PROXY = "false";
+      process.env.NODEENV = "development";
+      process.env.TRUSTEDPROXY = "false";
 
       const mockRequest = {
         get: jest.fn((header) => {
@@ -357,7 +358,7 @@ describe("HttpHeadersUtil", () => {
     it("应该在生产环境且可信代理时使用代理IP", () => {
       process.env.NODE_ENV = "production";
       process.env.TRUSTED_PROXY = "true";
-      process.env.TRUSTED_PROXY_IPS = "10.0.0";
+      process.env.TRUSTED_PROXYIPS = "10.0.0";
 
       const mockRequest = {
         get: jest.fn((header) => {
@@ -376,7 +377,7 @@ describe("HttpHeadersUtil", () => {
 
     it("应该在测试环境且允许代理时使用代理IP", () => {
       process.env.NODE_ENV = "test-unit";
-      process.env.ALLOW_PROXY_HEADERS_IN_TEST = "true";
+      process.env.ALLOW_PROXY_HEADERS_INTEST = "true";
       process.env.TRUSTED_PROXY_IPS = "10.0.0";
 
       const mockRequest = {
@@ -678,7 +679,7 @@ describe("HttpHeadersUtil", () => {
           authorization: "Bearer secret",
           "x-access-token": "secret-token",
           "x-api-key": "secret-key",
-          cookie: "session=secret",
+          cookie: "_session=secret",
           "user-agent": "Mozilla/5.0",
           "content-type": "application/json",
         },

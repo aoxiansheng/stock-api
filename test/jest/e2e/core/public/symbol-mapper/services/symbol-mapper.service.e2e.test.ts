@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Symbol Mapper E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;

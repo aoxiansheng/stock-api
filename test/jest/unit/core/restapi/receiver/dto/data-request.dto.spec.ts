@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import { DataRequestDto } from '../../../../../../src/core/restapi/receiver/dto/data-request.dto';
-import { SUPPORTED_CAPABILITY_TYPES } from '../../../../../../src/core/restapi/receiver/constants/receiver.constants';
+import { DataRequestDto } from '../../../../../../../src/core/restapi/receiver/dto/data-request.dto';
+import { SUPPORTED_CAPABILITY_TYPES } from '../../../../../../../src/core/restapi/receiver/constants/receiver.constants';
 
 describe('DataRequestDto', () => {
   // 创建一个有效的请求体
@@ -37,7 +38,7 @@ describe('DataRequestDto', () => {
       const dto = plainToClass(DataRequestDto, invalidDto);
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].property).toBe('symbols');
+      expect(errors[0]._property).toBe('symbols');
     });
 
     it('当 symbols 包含无效格式时应无法通过验证', async () => {
@@ -46,7 +47,7 @@ describe('DataRequestDto', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('symbols');
-      expect(errors[0].constraints).toHaveProperty('isValidSymbolFormat');
+      expect(errors[0].const_raints).toHaveProperty('isValidSymbolFormat');
     });
 
     it('当 symbols 列表过长时应无法通过验证', async () => {
@@ -56,7 +57,7 @@ describe('DataRequestDto', () => {
         const errors = await validate(dto);
         expect(errors.length).toBeGreaterThan(0);
         expect(errors[0].property).toBe('symbols');
-        expect(errors[0].constraints).toHaveProperty('arrayMaxSize');
+        expect(errors[0].const_raints).toHaveProperty('arrayMaxSize');
       });
   });
 
@@ -76,7 +77,7 @@ describe('DataRequestDto', () => {
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('receiverType');
-      expect(errors[0].constraints).toHaveProperty('isIn');
+      expect(errors[0].const_raints).toHaveProperty('isIn');
     });
   });
 

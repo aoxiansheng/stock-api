@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
 import { ExecutionContext, ForbiddenException } from "@nestjs/common";
@@ -98,7 +99,7 @@ describe("UnifiedPermissionsGuard", () => {
 
   describe("Scenario 2: JWT User Authentication", () => {
     const mockJwtUser = new JwtUserSubject({
-      _id: "user1",
+      id: "user1",
       username: "testuser",
       role: UserRole.DEVELOPER,
       permissions: [Permission.DATA_READ],
@@ -153,7 +154,7 @@ describe("UnifiedPermissionsGuard", () => {
         await guard.canActivate(mockExecutionContext);
       } catch (e) {
         expect(e.getResponse().details.missingPermissions).toEqual([
-          Permission.USER_MANAGE,
+          Permission.USERMANAGE,
         ]);
       }
     });
@@ -161,7 +162,7 @@ describe("UnifiedPermissionsGuard", () => {
 
   describe("Scenario 3: API Key Authentication", () => {
     const mockApiKey = new ApiKeySubject({
-      _id: "key1",
+      id: "key1",
       owner: "test-app",
       permissions: [Permission.DATA_READ],
     });
@@ -199,7 +200,7 @@ describe("UnifiedPermissionsGuard", () => {
         await guard.canActivate(mockExecutionContext);
       } catch (e) {
         expect(e.getResponse().details.subjectType).toEqual(
-          AuthSubjectType.API_KEY,
+          AuthSubjectType.APIKEY,
         );
         expect(e.getResponse().details.missingPermissions).toEqual([
           Permission.USER_MANAGE,
@@ -227,7 +228,7 @@ describe("UnifiedPermissionsGuard", () => {
   describe("Scenario 4: Exception Handling", () => {
     it("should throw ForbiddenException if permissionService throws an error", async () => {
       const mockJwtUser = new JwtUserSubject({
-        _id: "user1",
+        id: "user1",
         username: "testuser",
         role: UserRole.DEVELOPER,
         permissions: [],
@@ -248,7 +249,7 @@ describe("UnifiedPermissionsGuard", () => {
 
     it("should rethrow ForbiddenException if it is thrown by permissionService", async () => {
       const mockJwtUser = new JwtUserSubject({
-        _id: "user1",
+        id: "user1",
         username: "testuser",
         role: UserRole.DEVELOPER,
         permissions: [],

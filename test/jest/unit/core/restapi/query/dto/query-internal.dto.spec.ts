@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Query Internal DTO 单元测试
  * 测试查询内部数据传输对象
@@ -19,8 +20,8 @@ import {
   QueryLogContextDto,
   DataSourceStatsDto,
   DataSourceCounterDto,
-} from '../../../../../../src/core/query/dto/query-internal.dto';
-import { DataSourceType } from '../../../../../../src/core/query/enums/data-source-type.enum';
+} from '../../../../../../../src/core/restapi/query/dto/query-internal.dto';
+import { DataSourceType } from '../../../../../../../src/core/restapi/query/enums/data-source-type.enum';
 
 describe('Query Internal DTOs', () => {
   describe('QueryStatsRecordDto', () => {
@@ -69,7 +70,7 @@ describe('Query Internal DTOs', () => {
 
         // Assert
         expect(errors.length).toBe(3);
-        expect(errors.some(e => e.property === 'count')).toBe(true);
+        expect(errors.some(e => e._property === 'count')).toBe(true);
         expect(errors.some(e => e.property === 'totalTime')).toBe(true);
         expect(errors.some(e => e.property === 'errors')).toBe(true);
       });
@@ -119,7 +120,7 @@ describe('Query Internal DTOs', () => {
           realtime: { hits: 1, misses: 0 },
         };
         dto.errors = [];
-        dto.pagination = {
+        dto._pagination = {
           page: 1,
           limit: 10,
           total: 1,
@@ -204,7 +205,7 @@ describe('Query Internal DTOs', () => {
         dto.reason = 'Provider timeout';
         dto.errorCode = 'TIMEOUT_ERROR';
         dto.details = {
-          provider: 'longport',
+          _provider: 'longport',
           timeout: 5000,
           retryCount: 3,
         };
@@ -257,7 +258,7 @@ describe('Query Internal DTOs', () => {
       it('should create instance with stock data', () => {
         // Arrange
         dto.data = { symbol: '00700.HK', price: 425.6, volume: 1000000 };
-        dto.source = DataSourceType.CACHE;
+        dto.source = DataSourceType._CACHE;
         dto.timestamp = '2023-06-01T10:00:00Z';
         dto.ttlRemaining = 300;
 
@@ -594,7 +595,7 @@ describe('Query Internal DTOs', () => {
       it('should create instance with all parameters', () => {
         // Arrange
         dto.symbol = '00700.HK';
-        dto.provider = 'longport';
+        dto._provider = 'longport';
         dto.queryTypeFilter = 'get-stock-quote';
         dto.market = 'HK';
 
@@ -652,7 +653,7 @@ describe('Query Internal DTOs', () => {
     describe('Valid Data', () => {
       it('should create instance with parallel execution', () => {
         // Arrange
-        dto.parallel = true;
+        dto._parallel = true;
         dto.continueOnError = true;
         dto.maxConcurrency = 10;
         dto.timeout = 5000;
@@ -729,10 +730,10 @@ describe('Query Internal DTOs', () => {
       it('should create instance with complete log context', () => {
         // Arrange
         dto.queryId = 'query-123';
-        dto.queryType = 'by_symbols';
+        dto._queryType = 'bysymbols';
         dto.operation = 'executeQuery';
         dto.executionTime = 150;
-        dto.symbols = ['00700.HK', 'AAPL.US'];
+        dto._symbols = ['00700.HK', 'AAPL.US'];
         dto.error = null;
 
         // Assert

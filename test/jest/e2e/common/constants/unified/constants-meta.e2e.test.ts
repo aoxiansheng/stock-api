@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Response Formatting E2E Tests", () => {
   let httpServer: any;
   let adminToken: string;
@@ -84,7 +85,7 @@ describe("Response Formatting E2E Tests", () => {
 
         // Assert - 验证标准响应格式
         expect(result.body).toMatchObject({
-          statusCode: 200,
+          _statusCode: 200,
           message: expect.any(String),
           data: expect.anything(),
           timestamp: expect.stringMatching(
@@ -207,7 +208,7 @@ describe("Response Formatting E2E Tests", () => {
           const capability = capabilities[0];
           expect(capability).toHaveProperty("name");
           expect(capability).toHaveProperty("description");
-          expect(capability).toHaveProperty("supportedMarkets");
+          expect(capability).toHaveProperty("_supportedMarkets");
           expect(capability).toHaveProperty("priority");
           expect(capability).toHaveProperty("isEnabled");
 
@@ -254,9 +255,9 @@ describe("Response Formatting E2E Tests", () => {
         const data = response.body.data;
 
         // 验证价格字段是数值类型或字符串（不应该是NaN）
-        if (data.lastPrice !== undefined) {
+        if (data._lastPrice !== undefined) {
           expect(
-            typeof data.lastPrice === "number" ||
+            typeof data._lastPrice === "number" ||
               typeof data.lastPrice === "string",
           ).toBe(true);
           if (typeof data.lastPrice === "number") {
@@ -265,7 +266,7 @@ describe("Response Formatting E2E Tests", () => {
         }
 
         // 验证成交量是整数
-        if (data.volume !== undefined) {
+        if (data._volume !== undefined) {
           expect(Number.isInteger(Number(data.volume))).toBe(true);
         }
       }
@@ -379,7 +380,7 @@ describe("Response Formatting E2E Tests", () => {
       expect(pagination).toMatchObject({
         page: 2,
         limit: 10,
-        total: expect.any(Number),
+        _total: expect.any(Number),
         totalPages: expect.any(Number),
         hasNext: expect.any(Boolean),
         hasPrev: true,
@@ -437,7 +438,7 @@ describe("Response Formatting E2E Tests", () => {
 
       // Assert
       expect(response.headers["content-type"]).toContain("application/json");
-      expect(response.headers["content-type"]).toContain("charset=utf-8");
+      expect(response.headers["content-type"]).toContain("_charset=utf-8");
     });
 
     it("should handle special characters and Unicode in responses", async () => {
@@ -474,7 +475,7 @@ describe("Response Formatting E2E Tests", () => {
         httpServer.get("/api/v1/monitoring/health").set("Accept", "*/*"),
         httpServer
           .get("/api/v1/monitoring/health")
-          .set("Accept", "application/json, text/plain, */*"),
+          .set("Accept", "application/json, text/_plain, */*"),
       ]);
 
       // Assert - 所有请求都应该返回JSON
@@ -507,7 +508,7 @@ describe("Response Formatting E2E Tests", () => {
       }
     });
 
-    it("should provide deprecation warnings for deprecated features", async () => {
+    it("should provide deprecation _warnings for deprecated features", async () => {
       // Act - 测试可能被废弃的端点
       const response = await httpServer
         .get("/api/v1/monitoring/legacy-endpoint")

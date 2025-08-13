@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { QueryResultProcessorService } from '@core/query/services/query-result-processor.service';
+import { QueryResultProcessorService } from '@core/restapi/query/services/query-result-processor.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { QueryRequestDto, SortDirection } from '@core/query/dto/query-request.dto';
-import { QueryExecutionResultDto } from '@core/query/dto/query-internal.dto';
-import { QueryType } from '@core/query/dto/query-types.dto';
+import { QueryRequestDto, SortDirection } from '@core/restapi/query/dto/query-request.dto';
+import { QueryExecutionResultDto } from '@core/restapi/query/dto/query-internal.dto';
+import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 
 describe('QueryResultProcessorService', () => {
   let service: QueryResultProcessorService;
@@ -16,7 +17,7 @@ describe('QueryResultProcessorService', () => {
         {
           provide: PaginationService,
           useValue: {
-            createPaginatedResponse: jest.fn((items, page, limit, total) => ({
+            _createPaginatedResponse: jest.fn((items, page, limit, total) => ({
               items,
               pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page * limit < total, hasPrev: page > 1 },
             })),

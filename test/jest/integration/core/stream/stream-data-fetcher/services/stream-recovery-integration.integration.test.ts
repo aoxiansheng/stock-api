@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 🎯 Stream Recovery Integration Tests - Phase 3 Complete Recovery Chain
  * 
@@ -11,16 +12,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { StreamReceiverGateway } from '../../../../../../src/core/stream/stream-receiver/gateway/stream-receiver.gateway';
-import { StreamReceiverService } from '../../../../../../src/core/stream/stream-receiver/stream-receiver.service';
-import { StreamRecoveryWorkerService } from '../../../../../../src/core/stream/stream-data-fetcher/services/stream-recovery-worker.service';
-import { StreamDataCacheService } from '../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-cache.service';
-import { StreamClientStateManager } from '../../../../../../src/core/stream/stream-data-fetcher/services/stream-client-state-manager.service';
-import { StreamRecoveryConfigService } from '../../../../../../src/core/stream/stream-data-fetcher/config/stream-recovery.config';
-import { StreamRecoveryMetricsService } from '../../../../../../src/core/stream/stream-data-fetcher/metrics/stream-recovery.metrics';
-import { ApiKeyService } from '../../../../../../src/auth/services/apikey.service';
-import { CacheService } from '../../../../../../src/cache/services/cache.service';
-import { createLogger } from '../../../../../../src/common/config/logger.config';
+import { StreamReceiverGateway } from '../../../../../../../src/core/stream/stream-receiver/gateway/stream-receiver.gateway';
+import { StreamReceiverService } from '../../../../../../../src/core/stream/stream-receiver/services/stream-receiver.service';
+import { StreamRecoveryWorkerService } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-recovery-worker.service';
+import { StreamDataCacheService } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-cache.service';
+import { StreamClientStateManager } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-client-state-manager.service';
+import { StreamRecoveryConfigService } from '../../../../../../../src/core/stream/stream-data-fetcher/config/stream-recovery.config';
+import { StreamRecoveryMetricsService } from '../../../../../../../src/core/stream/stream-data-fetcher/metrics/stream-recovery.metrics';
+import { ApiKeyService } from '../../../../../../../src/auth/services/apikey.service';
+import { CacheService } from '../../../../../../../src/cache/services/cache.service';
+import { createLogger } from '../../../../../../../src/common/config/logger.config';
 import { Server } from 'socket.io';
 import { io as ClientIO, Socket as ClientSocket } from 'socket.io-client';
 
@@ -40,25 +41,25 @@ jest.mock('bullmq', () => ({
     add: jest.fn().mockResolvedValue({ id: 'integration-job-id' }),
     getJob: jest.fn(),
     getJobs: jest.fn().mockResolvedValue([]),
-    obliterate: jest.fn().mockResolvedValue(),
-    close: jest.fn().mockResolvedValue(),
+    obliterate: jest.fn().mockResolvedValue({}),
+    close: jest.fn().mockResolvedValue({}),
     getJobCounts: jest.fn().mockResolvedValue({
       waiting: 1,
       active: 1,
-      completed: 5,
+      complet_ed: 5,
       failed: 0,
       delayed: 0,
     }),
   })),
   Worker: jest.fn().mockImplementation((queueName, processor, options) => ({
     on: jest.fn(),
-    close: jest.fn().mockResolvedValue(),
+    close: jest.fn().mockResolvedValue({}),
     isRunning: jest.fn().mockReturnValue(true),
     process: processor, // 保存处理器函数以供测试调用
   })),
   QueueEvents: jest.fn().mockImplementation(() => ({
     on: jest.fn(),
-    close: jest.fn().mockResolvedValue(),
+    close: jest.fn().mockResolvedValue({}),
   })),
 }));
 
@@ -94,7 +95,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
           provide: ApiKeyService,
           useValue: {
             validateApiKey: jest.fn().mockResolvedValue({
-              _id: 'mock-api-key-id',
+              id: 'mock-api-key-id',
               name: 'Integration Test Key',
               permissions: ['stream:read', 'stream:subscribe'],
             }),
@@ -180,12 +181,16 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
     it('应该完成完整的客户端重连补发流程', async (done) => {
       const mockRecoveryData = [
         { 
-          t: Date.now() - 30000, 
-          d: { symbol: 'AAPL.US', price: 150.0, volume: 1000 } 
+          s: 'AAPL.US', 
+          p: 150.0, 
+          v: 1000,
+          t: Date.now() - 30000
         },
         { 
-          t: Date.now() - 15000, 
-          d: { symbol: 'AAPL.US', price: 151.5, volume: 2000 } 
+          s: 'AAPL.US', 
+          p: 151.5, 
+          v: 2000,
+          t: Date.now() - 15000
         },
       ];
 
@@ -243,9 +248,9 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
         
         expect(data.type).toBe('recovery');
         expect(data.data).toHaveLength(2);
-        expect(data.metadata).toMatchObject({
+        expect(data._metadata).toMatchObject({
           recoveryBatch: 1,
-          totalBatches: 1,
+          _totalBatches: 1,
           isLastBatch: true,
           dataPointsCount: 2,
         });
@@ -526,7 +531,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
           queueCounts: expect.objectContaining({
             waiting: expect.any(Number),
             active: expect.any(Number),
-            completed: expect.any(Number),
+            complet_ed: expect.any(Number),
             failed: expect.any(Number),
           }),
           metrics: expect.any(Object),

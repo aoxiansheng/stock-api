@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
@@ -112,9 +113,9 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       );
 
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        PERFORMANCE_EVENTS.METRIC_RECORDED,
+        PERFORMANCE_EVENTS.METRICRECORDED,
         expect.objectContaining({
-          metric: METRIC_NAMES.API_REQUEST_DURATION,
+          metric: METRIC_NAMES.API_REQUESTDURATION,
           value: 150,
         }),
       );
@@ -127,7 +128,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
         mockPerformanceMetricsRepository.recordRequest,
       ).toHaveBeenCalledWith("/api/error", "POST", 300, false);
 
-      // Check that metric was added with ERROR status
+      // Check that metric was added with _ERROR status
       const metricBuffer = (service as any).metricBuffer;
       const requestMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.API_REQUEST_DURATION,
@@ -141,7 +142,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       await service.recordDatabaseQuery("SELECT", 75, true);
 
       expect(
-        mockPerformanceMetricsRepository.recordDatabaseQuery,
+        mockPerformanceMetricsRepository._recordDatabaseQuery,
       ).toHaveBeenCalledWith(75);
 
       const metricBuffer = (service as any).metricBuffer;
@@ -154,7 +155,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           value: 75,
           unit: METRIC_UNITS.MILLISECONDS,
           tags: {
-            query_type: "SELECT",
+            querytype: "SELECT",
             status: OperationStatus.SUCCESS,
           },
         }),
@@ -179,7 +180,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const metricBuffer = (service as any).metricBuffer;
 
       const cacheOpMetric = metricBuffer.find(
-        (m) => m.name === METRIC_NAMES.CACHE_OPERATION_TOTAL,
+        (m) => m.name === METRIC_NAMES.CACHE_OPERATIONTOTAL,
       );
       expect(cacheOpMetric).toEqual(
         expect.objectContaining({
@@ -188,7 +189,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           unit: METRIC_UNITS.COUNT,
           tags: {
             operation: "get",
-            result: OperationStatus.HIT,
+            result: OperationStatus._HIT,
           },
         }),
       );
@@ -214,7 +215,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const cacheOpMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.CACHE_OPERATION_TOTAL,
       );
-      expect(cacheOpMetric.tags.result).toBe(OperationStatus.MISS);
+      expect(cacheOpMetric.tags.result).toBe(OperationStatus._MISS);
 
       const cacheDurationMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.CACHE_OPERATION_DURATION,
@@ -261,7 +262,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
     });
 
     it("should record failed authentication", () => {
-      service.recordAuthentication(AuthType.API_KEY, false, 50);
+      service.recordAuthentication(AuthType.APIKEY, false, 50);
 
       const metricBuffer = (service as any).metricBuffer;
 
@@ -285,7 +286,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const metricBuffer = (service as any).metricBuffer;
 
       const rateLimitCheckMetric = metricBuffer.find(
-        (m) => m.name === METRIC_NAMES.RATE_LIMIT_CHECK,
+        (m) => m.name === METRIC_NAMES.RATE_LIMITCHECK,
       );
       expect(rateLimitCheckMetric).toEqual(
         expect.objectContaining({
@@ -293,14 +294,14 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           value: 1,
           unit: METRIC_UNITS.COUNT,
           tags: {
-            api_key: apiKey.substring(0, API_KEY_CONSTANTS.PREFIX_LENGTH),
+            api_key: apiKey.substring(0, API_KEY_CONSTANTS.PREFIX_length),
             result: OperationStatus.ALLOWED,
           },
         }),
       );
 
       const rateLimitRemainingMetric = metricBuffer.find(
-        (m) => m.name === METRIC_NAMES.RATE_LIMIT_REMAINING,
+        (m) => m.name === METRIC_NAMES.RATE_LIMITREMAINING,
       );
       expect(rateLimitRemainingMetric).toEqual(
         expect.objectContaining({
@@ -323,7 +324,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       const rateLimitCheckMetric = metricBuffer.find(
         (m) => m.name === METRIC_NAMES.RATE_LIMIT_CHECK,
       );
-      expect(rateLimitCheckMetric.tags.result).toBe(OperationStatus.BLOCKED);
+      expect(rateLimitCheckMetric.tags.result).toBe(OperationStatus._BLOCKED);
     });
   });
 
@@ -453,7 +454,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
         averageResponseTime: 100, // (50+75+100+125+150)/5
         errorRate: 0.05, // 5/100
         p95ResponseTime: 150,
-        p99ResponseTime: 150,
+        p_99ResponseTime: 150,
         lastMinuteRequests: 5,
       });
 
@@ -572,7 +573,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
 
       expect(result).toEqual(
         expect.objectContaining({
-          connectionPoolSize: PERFORMANCE_DEFAULTS.DB_POOL_SIZE,
+          connectionPoolSize: PERFORMANCE_DEFAULTS.DB_POOLSIZE,
           averageQueryTime: 0,
           slowQueries: 0,
           totalQueries: 0,
@@ -588,7 +589,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       await service.getDatabaseMetrics("2023-01-01", "2023-01-02");
 
       expect(
-        mockPerformanceMetricsRepository.getDatabaseQueryTimes,
+        mockPerformanceMetricsRepository._getDatabaseQueryTimes,
       ).toHaveBeenCalledWith("2023-01-01", "2023-01-02");
     });
   });
@@ -596,9 +597,9 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
   describe("Redis Metrics", () => {
     it("should get Redis metrics", async () => {
       const mockRedisInfo = {
-        info: "used_memory:1048576\r\nother:value\r\n",
+        info: "usedmemory:1048576\r\nother:value\r\n",
         stats:
-          "total_commands_processed:1000\r\nkeyspace_hits:800\r\nkeyspace_misses:200\r\nevicted_keys:5\r\nexpired_keys:10\r\n",
+          "total_commands_processed:1000\r\nkeyspacehits:800\r\nkeyspacemisses:200\r\nevicted_keys:5\r\nexpired_keys:10\r\n",
         clients: "connected_clients:5\r\n",
       };
 
@@ -638,7 +639,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
           memoryUsage: PERFORMANCE_DEFAULTS.REDIS_MEMORY_USAGE,
           connectedClients: 0,
           opsPerSecond: 0,
-          hitRate: PERFORMANCE_DEFAULTS.CACHE_HIT_RATE,
+          hitRate: PERFORMANCE_DEFAULTS.CACHE_HITRATE,
           evictedKeys: 0,
           expiredKeys: 0,
         }),
@@ -698,11 +699,11 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
         heap_size_limit: 30000000,
         total_available_size: 1000000000,
         total_physical_size: 30000000,
-        total_heap_size_executable: 5000000,
-        does_zap_garbage: 0,
+        total_heap_sizeexecutable: 5000000,
+        does_zapgarbage: 0,
         malloced_memory: 0,
         peak_malloced_memory: 0,
-        number_of_native_contexts: 1,
+        number_of_nativecontexts: 1,
         number_of_detached_contexts: 0,
         // 添加缺失的必需属性
         total_global_handles_size: 1000000,
@@ -712,7 +713,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       
       // 设置 lastCpuUsageData 初始状态，使 CPU 使用率计算正确
       // 模拟 1 秒前的 CPU 使用数据
-      (service as any).lastCpuUsageData = {
+      (service as any)._lastCpuUsageData = {
         user: 0,
         system: 0,
         timestamp: Date.now() - 1000
@@ -1044,7 +1045,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
     it("should flush metrics periodically", async () => {
       // 初始化指标缓冲区和状态
       (service as any).metricBuffer = [];
-      (service as any).isFlushingMetrics = false;
+      (service as any)._isFlushingMetrics = false;
 
       // 使用bind绑定服务实例
       const addMetric = (service as any).addMetric.bind(service);
@@ -1164,7 +1165,7 @@ describe("PerformanceMonitorService - Comprehensive Coverage", () => {
       (service as any).metricBuffer = [];
 
       const originalSetImmediate = global.setImmediate;
-      global.setImmediate = jest.fn().mockImplementation((callback) => {
+      global._setImmediate = jest.fn().mockImplementation((callback) => {
         callback();
         return {} as NodeJS.Immediate;
       }) as any;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
@@ -5,7 +6,7 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 import { ServiceUnavailableException } from "@nestjs/common";
 import { CACHE_ERROR_MESSAGES } from "../../../../../src/cache/constants/cache.constants";
 
-const COMPRESSION_PREFIX = "COMPRESSED::";
+const COMPRESSIONPREFIX = "COMPRESSED::";
 
 // 创建Redis客户端实例模拟
 const mockRedisInstance = {
@@ -205,7 +206,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
         ServiceUnavailableException,
       );
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining(CACHE_ERROR_MESSAGES.GET_FAILED),
+        expect.stringContaining(CACHE_ERROR_MESSAGES.GETFAILED),
         expect.anything(),
       );
     });

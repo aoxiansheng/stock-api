@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Model } from "mongoose";
 import { getModelToken } from "@nestjs/mongoose";
 import { Test, TestingModule } from "@nestjs/testing";
@@ -53,7 +54,7 @@ describe("ApiKey Schema", () => {
       appKey: "ak_test_123456789abcdef",
       accessToken: "sk_test_secret_token_123",
       name: "Test API Key",
-      permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
+      permissions: [Permission.DATA_READ, Permission.QUERYEXECUTE],
       rateLimit,
       isActive: true,
       expiresAt: new Date("2024-12-31T23:59:59Z"),
@@ -93,7 +94,7 @@ describe("ApiKey Schema", () => {
 
     expect(savedApiKey.permissions).toEqual([
       Permission.DATA_READ,
-      Permission.QUERY_EXECUTE,
+      Permission.QUERYEXECUTE,
       Permission.PROVIDERS_READ,
     ]); // 默认权限
     expect(savedApiKey.isActive).toBe(true); // 默认值
@@ -120,7 +121,7 @@ describe("ApiKey Schema", () => {
 
     expect(jsonApiKey.id).toBeDefined();
     expect(jsonApiKey._id).toBeUndefined(); // 被移除
-    expect(jsonApiKey.__v).toBeUndefined(); // 被移除
+    expect(jsonApiKey.v).toBeUndefined(); // 被移除
     expect(jsonApiKey.appKey).toBe(apiKeyData.appKey);
     expect(jsonApiKey.accessToken).toBe(apiKeyData.accessToken);
     expect(jsonApiKey.name).toBe(apiKeyData.name);
@@ -225,9 +226,9 @@ describe("ApiKey Schema", () => {
   });
 
   it("应该支持完整的API Key生命周期", async () => {
-    const creationTime = new Date("2024-01-01T10:00:00Z");
+    const creationTime = new Date("2024-01-_01T10:_00:00Z");
     const expirationTime = new Date("2024-12-31T23:59:59Z");
-    const lastUsedTime = new Date("2024-06-15T14:30:00Z");
+    const lastUsedTime = new Date("2024-06-_15T14:_30:00Z");
 
     const apiKeyData = {
       appKey: "ak_lifecycle_test_12345",
@@ -245,7 +246,7 @@ describe("ApiKey Schema", () => {
       isActive: true,
       expiresAt: expirationTime,
       usageCount: 5000,
-      lastUsedAt: lastUsedTime,
+      _lastUsedAt: lastUsedTime,
       description: "完整生命周期测试的API密钥，包含所有可能的字段和状态",
       createdAt: creationTime,
       updatedAt: creationTime,
@@ -268,7 +269,7 @@ describe("ApiKey Schema", () => {
 
     // 更新使用统计
     savedApiKey.usageCount += 1;
-    savedApiKey.lastUsedAt = new Date();
+    savedApiKey._lastUsedAt = new Date();
     const updatedApiKey = await savedApiKey.save();
 
     expect(updatedApiKey.usageCount).toBe(5001);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Storage Internal DTO UCK�
  * K�X���(�pn ��a
@@ -12,7 +13,7 @@ import {
   StorageCacheStatsDto,
   PersistentStatsDto,
   PerformanceStatsDto,
-} from '../../../../../../src/core/storage/dto/storage-internal.dto';
+} from '../../../../../../../src/core/public/storage/dto/storage-internal.dto';
 
 describe('Storage Internal DTOs', () => {
   describe('CacheResultDto', () => {
@@ -29,7 +30,7 @@ describe('Storage Internal DTOs', () => {
         dto.ttl = 300;
         dto.metadata = {
           compressed: true,
-          storedAt: '2023-06-01T10:00:00Z',
+          storedAt: '2023-06-01T_10:00:00Z',
         };
 
         // Assert
@@ -125,9 +126,9 @@ describe('Storage Internal DTOs', () => {
         // Arrange
         dto.data = { symbols: ['AAPL', 'GOOGL'], prices: [150, 2800] };
         dto.metadata = {
-          storageClassification: 'stock_quote',
+          storageClassification: 'stockquote',
           provider: 'longport',
-          market: 'US',
+          _market: 'US',
           dataSize: 1024,
           compressed: true,
           tags: { version: '1.0', source: 'api' },
@@ -248,7 +249,7 @@ describe('Storage Internal DTOs', () => {
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e.property === 'serializedData')).toBe(true);
+        expect(errors.some(e => e._property === 'serializedData')).toBe(true);
       });
 
       it('should fail validation with non-boolean compressed', async () => {

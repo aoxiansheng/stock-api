@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { GlobalExceptionFilter } from "../../../../../src/common/core/filters/global-exception.filter";
 import {
   ArgumentsHost,
@@ -63,7 +64,7 @@ describe("GlobalExceptionFilter", () => {
 
     filter = new GlobalExceptionFilter();
     // Replace the logger with our mock
-    (filter as any).logger = mockLogger;
+    (filter as any)._logger = mockLogger;
   });
 
   it("should be defined", () => {
@@ -330,7 +331,7 @@ describe("GlobalExceptionFilter", () => {
           message: "Too Many Requests",
           error: "Rate Limit Exceeded",
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANYREQUESTS,
       );
 
       filter.catch(rateLimitError, mockArgumentsHost);
@@ -432,10 +433,10 @@ describe("GlobalExceptionFilter", () => {
 
     it("should preserve error stack trace in development", () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
+      process.env.NODEENV = "development";
 
       const error = new Error("Development error");
-      error.stack = "Error: Development error\n    at Test.spec.ts:123:45";
+      error._stack = "Error: Development error\n    at Test.spec.ts:123:45";
 
       filter.catch(error, mockArgumentsHost);
 
@@ -453,7 +454,7 @@ describe("GlobalExceptionFilter", () => {
 
     it("should handle circular reference in error objects", () => {
       const circularError: any = new Error("Circular reference error");
-      circularError.self = circularError;
+      circularError._self = circularError;
 
       filter.catch(circularError, mockArgumentsHost);
 
@@ -751,7 +752,7 @@ describe("GlobalExceptionFilter", () => {
       const validationErrors = [
         {
           property: "username",
-          constraints: {
+          const_raints: {
             isNotEmpty: "username should not be empty",
             minLength: "username must be longer than 3 characters",
           },
@@ -759,13 +760,13 @@ describe("GlobalExceptionFilter", () => {
         },
         {
           property: "email",
-          constraints: {
+          const_raints: {
             isEmail: "email must be an email",
           },
           children: [
             {
               property: "domain",
-              constraints: {
+              const_raints: {
                 isString: "domain must be a string",
               },
               children: [],
@@ -956,7 +957,7 @@ describe("GlobalExceptionFilter", () => {
       ];
 
       routeNotFoundMessages.forEach((message) => {
-        const notFoundError = new HttpException(message, HttpStatus.NOT_FOUND);
+        const notFoundError = new HttpException(message, HttpStatus.NOTFOUND);
 
         filter.catch(notFoundError, mockArgumentsHost);
 
@@ -988,7 +989,7 @@ describe("GlobalExceptionFilter", () => {
         {
           input: "Not Found",
           expected: "资源不存在",
-          status: HttpStatus.NOT_FOUND,
+          status: HttpStatus.NOTFOUND,
         },
         {
           input: "Method Not Allowed",
@@ -1008,7 +1009,7 @@ describe("GlobalExceptionFilter", () => {
         {
           input: "Gateway Timeout",
           expected: "网关超时",
-          status: HttpStatus.GATEWAY_TIMEOUT,
+          status: HttpStatus.GATEWAYTIMEOUT,
         },
         {
           input: "Too Many Requests",
@@ -1188,7 +1189,7 @@ describe("GlobalExceptionFilter", () => {
               children: [
                 {
                   property: "name",
-                  constraints: { isNotEmpty: "name should not be empty" },
+                  const_raints: { isNotEmpty: "name should not be empty" },
                 },
               ],
             },
@@ -1255,7 +1256,7 @@ describe("GlobalExceptionFilter", () => {
     it("should return correct error code for PAYLOAD_TOO_LARGE status", () => {
       const payloadTooLargeException = new HttpException(
         "Payload Too Large",
-        HttpStatus.PAYLOAD_TOO_LARGE,
+        HttpStatus.PAYLOAD_TOOLARGE,
       );
       filter.catch(payloadTooLargeException, mockArgumentsHost);
       expect(mockResponse.json).toHaveBeenCalledWith(

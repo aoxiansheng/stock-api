@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { UNIFIED_CONSTANTS } from '../../../../../../src/common/constants/unified/unified-constants-collection';
 import { deepFreeze } from '../../../../../../src/common/utils/object-immutability.util';
 
@@ -52,7 +53,7 @@ describe('UNIFIED_CONSTANTS', () => {
     if (UNIFIED_CONSTANTS.SYSTEM && typeof UNIFIED_CONSTANTS.SYSTEM === 'object') {
       const originalOperationStatus = (UNIFIED_CONSTANTS.SYSTEM as any).OPERATION_STATUS;
       try {
-        (UNIFIED_CONSTANTS.SYSTEM as any).OPERATION_STATUS = {};
+        (UNIFIED_CONSTANTS.SYSTEM as any).OPERATIONSTATUS = {};
         expect((UNIFIED_CONSTANTS.SYSTEM as any).OPERATION_STATUS).toBe(originalOperationStatus);
       } catch (error) {
         expect(error).toBeDefined();

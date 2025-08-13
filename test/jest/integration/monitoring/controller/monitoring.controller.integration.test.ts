@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Monitoring模块数据库集成测试
  * 测试数据库监控系统的指标收集和性能分析功能
@@ -67,7 +68,7 @@ describe("Monitoring Database Integration", () => {
   async function clearPerformanceMetrics() {
     const redis = cacheService.getClient();
     if (redis) {
-      const keys = await redis.keys("metrics:*");
+      const keys = await redis.keys("_metrics:*");
       if (keys.length > 0) {
         await redis.del(keys);
       }
@@ -156,9 +157,9 @@ describe("Monitoring Database Integration", () => {
       for (let i = 0; i < 5; i++) {
         complexQueries.push(
           userModel.aggregate([
-            { $match: { role: { $in: [UserRole.ADMIN, UserRole.DEVELOPER] } } },
-            { $group: { _id: "$role", count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
+            { $_match: { role: { $_in: [UserRole.ADMIN, UserRole.DEVELOPER] } } },
+            { $_group: { id: "$role", count: { $_sum: 1 } } },
+            { $_sort: { count: -1 } },
           ]),
         );
       }
@@ -230,7 +231,7 @@ describe("Monitoring Database Integration", () => {
       // 执行更新操作
       await userModel.updateMany(
         { username: { $regex: /^write_test_user_/ } },
-        { $set: { lastLogin: new Date() } },
+        { $_set: { lastLogin: new Date() } },
       );
 
       await smartDelay(1000);

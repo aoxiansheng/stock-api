@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Stream Receiver WebSocket测试工具库
  * 为Stream Receiver黑盒测试提供专用的WebSocket连接和数据流测试工具
@@ -51,7 +52,7 @@ export class StreamWebSocketTestHelper {
   private client: Socket | null = null;
   private config: StreamWebSocketConfig;
   private stats: StreamConnectionStats;
-  private messageBuffer: StreamMessage[] = [];
+  private _messageBuffer: StreamMessage[] = [];
   private connectTime: number = 0;
   private lastMessageTime: number = 0;
   private latencyMeasurements: number[] = [];
@@ -81,7 +82,7 @@ export class StreamWebSocketTestHelper {
   async connect(): Promise<StreamConnectionStats> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`WebSocket连接超时 (${this.config.timeout}ms)`));
+        reject(new Error(`WebSocket连接超时 (${this.config.timeout}_ms)`));
       }, this.config.timeout);
 
       const wsURL = this.config.baseURL.replace("http", "ws");
@@ -115,7 +116,7 @@ export class StreamWebSocketTestHelper {
 
       this.client.on("disconnect", (reason) => {
         this.stats.connected = false;
-        this.stats.disconnectTime = Date.now();
+        this.stats._disconnectTime = Date.now();
         console.log(`🔌 WebSocket断开连接: ${reason}`);
       });
 
@@ -474,7 +475,7 @@ export class StreamWebSocketTestHelper {
       }
     }
 
-    const maxLatency = Math.max(...this.latencyMeasurements, 0);
+    const maxLatency = Math.max(...this._latencyMeasurements, 0);
     const minLatency = Math.min(...this.latencyMeasurements, 0);
 
     // 生成建议

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // symbol-mapper.constants.integration.test.ts - 测试占位代码
 // 路径: integration/core/public/symbol-mapper/constants/symbol-mapper.constants.integration.test.ts
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Permission,
   UserRole,
@@ -21,7 +22,7 @@ describe("JwtUserSubject", () => {
       const subject = new JwtUserSubject(mockUserData);
 
       expect(subject.id).toBe(mockUserData.id);
-      expect(subject.type).toBe(AuthSubjectType.JWT_USER);
+      expect(subject.type).toBe(AuthSubjectType.JWTUSER);
       expect(subject.role).toBe(mockUserData.role);
       expect(subject.permissions).toEqual(RolePermissions[UserRole.DEVELOPER]);
       expect(subject.metadata.username).toBe(mockUserData.username);
@@ -32,7 +33,7 @@ describe("JwtUserSubject", () => {
 
     it("should handle user data with MongoDB ObjectId format", () => {
       const mongoUser = {
-        _id: { toString: () => "mongo-object-id" },
+        id: { toString: () => "mongo-object-id" },
         username: "mongouser",
         role: UserRole.ADMIN,
         isActive: true,
@@ -138,13 +139,13 @@ describe("JwtUserSubject", () => {
 
     it("should return true for permissions the user role has", () => {
       // Admin should have all permissions
-      expect(adminSubject.hasPermission(Permission.DATA_READ)).toBe(true);
-      expect(adminSubject.hasPermission(Permission.USER_MANAGE)).toBe(true);
+      expect(adminSubject.hasPermission(Permission.DATAREAD)).toBe(true);
+      expect(adminSubject.hasPermission(Permission.USERMANAGE)).toBe(true);
       expect(adminSubject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
 
       // Developer should have development permissions
       expect(developerSubject.hasPermission(Permission.DATA_READ)).toBe(true);
-      expect(developerSubject.hasPermission(Permission.QUERY_EXECUTE)).toBe(
+      expect(developerSubject.hasPermission(Permission.QUERYEXECUTE)).toBe(
         true,
       );
 
@@ -418,7 +419,7 @@ describe("JwtUserSubject", () => {
       const json = subject.toJSON();
 
       expect(json).toEqual({
-        type: AuthSubjectType.JWT_USER,
+        type: AuthSubjectType.JWTUSER,
         id: mockUserData.id,
         role: mockUserData.role,
         permissions: RolePermissions[UserRole.DEVELOPER],

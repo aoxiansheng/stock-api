@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
@@ -6,7 +7,7 @@ import * as crypto from 'crypto';
 import { AxiosRequestHeaders, AxiosHeaders } from 'axios';
 
 import { DingTalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
 import { URLSecurityValidator } from '../../../../../../src/common/utils/url-security-validator.util';
 
 // Mock URLSecurityValidator
@@ -28,7 +29,7 @@ describe('DingTalkSender', () => {
     value: 95,
     threshold: 90,
     status: AlertStatus.FIRING,
-    startTime: new Date('2023-01-01T10:00:00Z'),
+    startTime: new Date('2023-01-_01T10:_00:00Z'),
     endTime: null,
     message: 'CPU usage is too high',
     ruleName: 'Test Rule',
@@ -55,7 +56,7 @@ describe('DingTalkSender', () => {
 
   const mockConfig = {
     id: 'dingtalk-channel-1',
-    webhook_url: 'https://oapi.dingtalk.com/robot/send?access_token=testtoken',
+    webhook_url: 'https://oapi.dingtalk.com/robot/send?accesstoken=testtoken',
     secret: 'testsecret',
     at_mobiles: ['13800000000'],
     isAtAll: false,
@@ -103,7 +104,7 @@ describe('DingTalkSender', () => {
       const result = await sender.send(mockAlert, mockRule, mockConfig);
 
       expect(result.success).toBe(true);
-      expect(result.channelType).toEqual(NotificationChannelType.DINGTALK);
+      expect(result._channelType).toEqual(NotificationChannelType.DINGTALK);
       expect(result.message).toEqual('钉钉消息发送成功');
       expect(httpService.post).toHaveBeenCalledTimes(1);
       expect(httpService.post).toHaveBeenCalledWith(

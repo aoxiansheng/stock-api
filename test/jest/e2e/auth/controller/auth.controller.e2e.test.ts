@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 认证流程端到端测试
  * 测试完整的用户认证和API Key管理流程

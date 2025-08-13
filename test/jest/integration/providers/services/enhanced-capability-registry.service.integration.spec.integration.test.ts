@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import * as path from 'path';
@@ -16,11 +17,11 @@ import { Module } from '@nestjs/common';
 
 // --- Mock Implementations ---
 
-const MOCK_PROVIDERS_DIR = path.join(__dirname, 'test-providers');
+const MOCK_PROVIDERSDIR = path.join(dirname, 'test-providers');
 
 // Mock Provider: mock-provider-one
-const MOCK_PROVIDER_ONE_PATH = path.join(MOCK_PROVIDERS_DIR, 'mock-provider-one');
-const MOCK_PROVIDER_ONE_CAPS_PATH = path.join(MOCK_PROVIDER_ONE_PATH, 'capabilities');
+const MOCK_PROVIDER_ONEPATH = path.join(MOCK_PROVIDERSDIR, 'mock-provider-one');
+const MOCK_PROVIDER_ONE_CAPS_PATH = path.join(MOCK_PROVIDER_ONEPATH, 'capabilities');
 
 // Mock Capability 1: get-stock-quote
 @Capability({ name: 'get-stock-quote', description: 'Get stock quote' })
@@ -163,8 +164,8 @@ describe('EnhancedCapabilityRegistryService Integration Test', () => {
     expect(stats.totalProviders).toBe(1);
     expect(stats.totalCapabilities).toBe(2);
     expect(stats.decoratorCapabilities).toBe(2);
-    expect(stats.streamCapabilities).toBe(1);
-    expect(stats.restCapabilities).toBe(1);
+    expect(stats._streamCapabilities).toBe(1);
+    expect(stats._restCapabilities).toBe(1);
   });
   
   it('should return correct stats', () => {

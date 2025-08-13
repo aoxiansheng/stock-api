@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { createLogger } from '@common/config/logger.config';
-import { StreamReceiverGateway } from '../../../../../src/core/stream-receiver/stream-receiver.gateway';
-import { StreamReceiverService } from '../../../../../src/core/stream-receiver/stream-receiver.service';
-import { WsAuthGuard } from '../../../../../src/core/stream-receiver/guards/ws-auth.guard';
-import { StreamSubscribeDto, StreamUnsubscribeDto } from '../../../../../src/core/stream-receiver/dto';
-import { ApiKeyService } from '../../../../../src/auth/services/apikey.service';
+import { StreamReceiverGateway } from '../../../../../../src/core/stream/stream-receiver/gateway/stream-receiver.gateway';
+import { StreamReceiverService } from '../../../../../../src/core/stream/stream-receiver/services/stream-receiver.service';
+import { WsAuthGuard } from '../../../../../../src/core/stream/stream-receiver/guards/ws-auth.guard';
+import { StreamSubscribeDto, StreamUnsubscribeDto } from '../../../../../../src/core/stream/stream-receiver/dto';
+import { ApiKeyService } from '../../../../../../src/auth/services/apikey.service';
 
 // Mock logger
 jest.mock('@common/config/logger.config');
@@ -18,8 +19,8 @@ const mockLogger = {
 
 // Mock StreamReceiverService
 const mockStreamReceiverService = {
-  subscribeSymbols: jest.fn(),
-  unsubscribeSymbols: jest.fn(),
+  _subscribeSymbols: jest.fn(),
+  _unsubscribeSymbols: jest.fn(),
   getClientSubscription: jest.fn(),
   cleanupClientSubscription: jest.fn(),
 };
@@ -54,7 +55,7 @@ describe('StreamReceiverGateway', () => {
     jest.clearAllMocks();
     
     // Setup logger mock
-    const { createLogger } = require('@common/config/logger.config');
+    import { createLogger } from '@common/config/logger.config';
     (createLogger as jest.Mock).mockReturnValue(mockLogger);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -82,7 +83,7 @@ describe('StreamReceiverGateway', () => {
     gateway = module.get<StreamReceiverGateway>(StreamReceiverGateway);
   });
 
-  describe('handleConnection()', () => {
+  describe('_handleConnection()', () => {
     it('should handle client connection successfully', async () => {
       // Setup
       const client = createMockSocket();
@@ -121,7 +122,7 @@ describe('StreamReceiverGateway', () => {
     });
   });
 
-  describe('handleDisconnect()', () => {
+  describe('_handleDisconnect()', () => {
     it('should handle client disconnection successfully', async () => {
       // Setup
       const client = createMockSocket();
@@ -166,7 +167,7 @@ describe('StreamReceiverGateway', () => {
       // Setup
       const client = createMockSocket();
       mockStreamReceiverService.subscribeSymbols.mockImplementation(
-        (_clientId, dto, callback) => {
+        (clientId, dto, callback) => {
           // Simulate callback invocation
           callback({
             symbols: dto.symbols,
@@ -239,7 +240,7 @@ describe('StreamReceiverGateway', () => {
       };
 
       mockStreamReceiverService.subscribeSymbols.mockImplementation(
-        (_clientId, dto, callback) => {
+        (clientId, dto, callback) => {
           // Simulate multiple data callbacks
           callback(streamData);
           callback({ ...streamData, data: { symbol: '700.HK', lastPrice: 351.0 } });

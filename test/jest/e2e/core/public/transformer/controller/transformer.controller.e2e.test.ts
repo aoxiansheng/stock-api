@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Transformer Controller E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -78,6 +79,7 @@ describe("Transformer Controller E2E Tests", () => {
       .send(template1);
 
     console.log("Template 1 response:", template1Response.status, template1Response.body);
+    
 
     // 创建第二个测试模板
     const template2 = {
@@ -421,7 +423,7 @@ describe("Transformer Controller E2E Tests", () => {
       
       // 验证元数据
       const metadata = response.body.data.metadata;
-      expect(metadata).toHaveProperty("fieldsTransformed");
+      expect(metadata).toHaveProperty("_fieldsTransformed");
       expect(metadata).toHaveProperty("processingTime");
       expect(metadata).toHaveProperty("provider");
       expect(metadata.provider).toBe("longport");

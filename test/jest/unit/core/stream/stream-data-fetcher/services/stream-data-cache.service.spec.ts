@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { StreamDataCacheService, CompressedDataPoint, CacheStats } from '../../../../../../src/core/stream-data-fetcher/services/stream-data-cache.service';
-import { CacheService } from '../../../../../../src/cache/services/cache.service';
-import { createLogger } from '../../../../../../src/common/config/logger.config';
+import { StreamDataCacheService, CompressedDataPoint, CacheStats } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-cache.service';
+import { CacheService } from '../../../../../../../src/cache/services/cache.service';
+import { createLogger } from '../../../../../../../src/common/config/logger.config';
 
 // Mock logger
 jest.mock('../../../../../../src/common/config/logger.config', () => ({
@@ -23,7 +24,7 @@ const mockLogger = {
 // Mock CacheService
 const mockCacheService = {
   get: jest.fn(),
-  set: jest.fn(),
+  _set: jest.fn(),
   del: jest.fn(),
   delByPattern: jest.fn(),
 };
@@ -97,11 +98,11 @@ describe('StreamDataCacheService', () => {
       const stats = service.getCacheStats();
       
       expect(stats).toEqual({
-        hotCacheHits: 0,
+        _hotCacheHits: 0,
         hotCacheMisses: 0,
         warmCacheHits: 0,
-        warmCacheMisses: 0,
-        totalSize: 0,
+        _warmCacheMisses: 0,
+        _totalSize: 0,
         compressionRatio: 0,
       });
     });
@@ -114,7 +115,7 @@ describe('StreamDataCacheService', () => {
       await service.setData('quote:AAPL.US', mockRawData, 'hot');
 
       expect(mockCacheService.set).toHaveBeenCalledWith(
-        'stream_cache:quote:AAPL.US',
+        'streamcache:quote:AAPL.US',
         expect.any(String),
         { ttl: 300 }
       );

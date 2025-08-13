@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
 import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
@@ -67,7 +68,7 @@ describe("AlertingService", () => {
             findAll: jest.fn(),
             findById: jest.fn(),
             toggle: jest.fn(),
-            findAllEnabled: jest.fn(),
+            _findAllEnabled: jest.fn(),
             countAll: jest.fn(),
             countEnabled: jest.fn(),
           },
@@ -76,9 +77,9 @@ describe("AlertingService", () => {
           provide: RuleEngineService,
           useValue: {
             validateRule: jest.fn(),
-            evaluateRules: jest.fn(),
+            _evaluateRules: jest.fn(),
             isInCooldown: jest.fn(),
-            setCooldown: jest.fn(),
+            _setCooldown: jest.fn(),
           },
         },
         {
@@ -91,7 +92,7 @@ describe("AlertingService", () => {
           provide: AlertHistoryService,
           useValue: {
             createAlert: jest.fn(),
-            updateAlertStatus: jest.fn(),
+            _updateAlertStatus: jest.fn(),
             getAlertStats: jest.fn(),
             getActiveAlerts: jest.fn(),
             getAlertById: jest.fn(),
@@ -319,7 +320,7 @@ describe("AlertingService", () => {
       alertHistoryService.getAlertById.mockResolvedValue(mockAlert);
 
       const result = await service.acknowledgeAlert("alert-1", "user1");
-      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.ACKNOWLEDGED, "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus._ACKNOWLEDGED, "user1");
       expect(result).toEqual(mockAlert);
     });
 
@@ -342,7 +343,7 @@ describe("AlertingService", () => {
       cacheService.del.mockResolvedValue(1);
 
       const result = await service.resolveAlert("alert-1", "user1", "rule-1");
-      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.RESOLVED, "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus._RESOLVED, "user1");
       expect(cacheService.del).toHaveBeenCalledWith("active-alert:rule-1");
       expect(result).toBe(true);
     });
@@ -361,7 +362,7 @@ describe("AlertingService", () => {
   describe("getStats", () => {
     it("should return alert statistics", async () => {
       alertHistoryService.getAlertStats.mockResolvedValue({
-        activeAlerts: 1,
+        _activeAlerts: 1,
         totalAlertsToday: 2,
         resolvedAlertsToday: 1,
         averageResolutionTime: 30,
@@ -375,8 +376,8 @@ describe("AlertingService", () => {
 
       const result = await service.getStats();
       expect(result.activeAlerts).toBe(1);
-      expect(result.totalRules).toBe(5);
-      expect(result.enabledRules).toBe(3);
+      expect(result._totalRules).toBe(5);
+      expect(result._enabledRules).toBe(3);
     });
 
     it("should handle errors during stats retrieval", async () => {

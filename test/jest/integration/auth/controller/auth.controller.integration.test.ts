@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Auth模块数据库集成测试
  * 测试认证服务与MongoDB和Redis的真实交互
@@ -175,7 +176,7 @@ describe("Auth Database Integration", () => {
       // Act
       const validatedApiKey: any = await authService.validateApiKey(
         apiKey.appKey,
-        apiKey.accessToken,
+        apiKey._accessToken,
       );
 
       // Assert
@@ -208,7 +209,7 @@ describe("Auth Database Integration", () => {
 
       // Assert
       expect(updatedApiKey.usageCount).toBe(initialUsageCount + 2);
-      expect(updatedApiKey.lastUsedAt).toBeDefined();
+      expect(updatedApiKey._lastUsedAt).toBeDefined();
     });
 
     it("应该正确获取用户的API Keys", async () => {

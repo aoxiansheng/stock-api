@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // pagination.module.integration.test.ts - 测试占位代码
 // 路径: integration/common/modules/pagination/modules/pagination.module.integration.test.ts
 

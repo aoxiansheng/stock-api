@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Reflector } from '@nestjs/core';
 import { Controller, Get, Post } from '@nestjs/common';
-import { Public, IS_PUBLIC_KEY } from '../../../../../src/auth/decorators/public.decorator';
+import { Public, IS_PUBLICKEY } from '../../../../../src/auth/decorators/public.decorator';
 
 // Test controller for decorator tests
 @Controller('test')
@@ -51,7 +52,7 @@ describe('Public Decorator', () => {
   describe('Metadata Setting', () => {
     it('should set isPublic metadata to true for decorated methods', () => {
       const isPublic = reflector.get<boolean>(
-        IS_PUBLIC_KEY,
+        IS_PUBLICKEY,
         testController.publicMethod,
       );
       expect(isPublic).toBe(true);
@@ -72,7 +73,7 @@ describe('Public Decorator', () => {
       );
       const isPublicPost = reflector.get<boolean>(
         IS_PUBLIC_KEY,
-        testController.publicPostMethod,
+        testController._publicPostMethod,
       );
       expect(isPublicGet).toBe(true);
       expect(isPublicPost).toBe(true);
@@ -205,15 +206,15 @@ describe('Public Decorator', () => {
     it('should handle methods with complex signatures', () => {
       const asyncPublic = reflector.get<boolean>(
         IS_PUBLIC_KEY,
-        testController.asyncMethod,
+        testController._asyncMethod,
       );
       const paramsPublic = reflector.get<boolean>(
         IS_PUBLIC_KEY,
-        testController.methodWithParams,
+        testController._methodWithParams,
       );
       const optionalParamsPublic = reflector.get<boolean>(
         IS_PUBLIC_KEY,
-        testController.methodWithOptionalParams,
+        testController._methodWithOptionalParams,
       );
 
       expect(asyncPublic).toBe(true);

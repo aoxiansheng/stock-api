@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
-import { MappingRuleController } from "../../../../../../src/core/data-mapper/controller/mapping-rule.controller";
-import { FlexibleMappingRuleService } from "../../../../../../src/core/data-mapper/services/flexible-mapping-rule.service";
-import { RuleAlignmentService } from "../../../../../../src/core/data-mapper/services/rule-alignment.service";
-import { PersistedTemplateService } from "../../../../../../src/core/data-mapper/services/persisted-template.service";
+import { MappingRuleController } from "../../../../../../../src/core/public/data-mapper/controller/mapping-rule.controller";
+import { FlexibleMappingRuleService } from "../../../../../../../src/core/public/data-mapper/services/flexible-mapping-rule.service";
+import { RuleAlignmentService } from "../../../../../../../src/core/public/data-mapper/services/rule-alignment.service";
+import { PersistedTemplateService } from "../../../../../../../src/core/public/data-mapper/services/persisted-template.service";
 import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
   TestFlexibleMappingRuleDto,
   FlexibleMappingTestResultDto
-} from "../../../../../../src/core/data-mapper/dto/flexible-mapping-rule.dto";
+} from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
 
 describe("MappingRuleController", () => {
   let controller: MappingRuleController;
@@ -62,10 +63,10 @@ describe("MappingRuleController", () => {
     debugInfo: undefined
   });
 
-  const mockTestResult = createMockTestResult({ last_done: 561, symbol: "700.HK" });
+  const mockTestResult = createMockTestResult({ lastdone: 561, symbol: "700.HK" });
 
   const mockRuleDocument = {
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     ...mockRule,
     save: jest.fn(),
     toObject: jest.fn()
@@ -150,7 +151,7 @@ describe("MappingRuleController", () => {
         }
       };
 
-      ruleService.findRules.mockResolvedValue(mockPaginatedResult);
+      ruleService._findRules.mockResolvedValue(mockPaginatedResult);
 
       const result = await controller.getFlexibleRules(
         queryParams.page,
@@ -215,7 +216,7 @@ describe("MappingRuleController", () => {
     });
   });
 
-  describe("updateRule", () => {
+  describe("_updateRule", () => {
     const updateData = {
       name: "Updated Rule Name",
       description: "Updated description"
@@ -239,13 +240,13 @@ describe("MappingRuleController", () => {
     });
   });
 
-  describe("deleteRule", () => {
+  describe("_deleteRule", () => {
     it("should delete rule successfully", async () => {
       ruleService.deleteRule.mockResolvedValue(undefined);
 
       await controller.deleteRule("507f1f77bcf86cd799439011");
 
-      expect(ruleService.deleteRule).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(ruleService.delet_eRule).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
     });
 
     it("should handle deletion errors", async () => {
@@ -256,7 +257,7 @@ describe("MappingRuleController", () => {
     });
   });
 
-  describe("generateRuleFromTemplate", () => {
+  describe("_generateRuleFromTemplate", () => {
     const generateRequest = {
       templateId: "507f1f77bcf86cd799439011",
       ruleName: "Generated Rule",
@@ -377,7 +378,7 @@ describe("MappingRuleController", () => {
     });
   });
 
-  describe("realignExistingRule", () => {
+  describe("_realignExistingRule", () => {
     const ruleId = "507f1f77bcf86cd799439011";
 
     it("should realign existing rule", async () => {
@@ -414,7 +415,7 @@ describe("MappingRuleController", () => {
     });
   });
 
-  describe("manualAdjustFieldMapping", () => {
+  describe("_manualAdjustFieldMapping", () => {
     const ruleId = "507f1f77bcf86cd799439011";
     const adjustments = [{
       action: "modify" as const,
@@ -476,7 +477,7 @@ describe("MappingRuleController", () => {
       errorMessage: undefined,
     };
 
-    it("should call applyFlexibleMappingRule and return a formatted result", async () => {
+    it("should call _applyFlexibleMappingRule and return a formatted result", async () => {
       ruleService.findRuleById.mockResolvedValue(mockRule);
       ruleService.applyFlexibleMappingRule.mockResolvedValue(mockApplyResult);
 

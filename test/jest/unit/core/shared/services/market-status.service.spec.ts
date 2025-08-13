@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { MarketStatusService } from '../../../../../../src/core/shared/services/market-status.service';
+import { MarketStatusService } from '../../../../../../src/core/public/shared/services/market-status.service';
 import { Market } from '../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../src/common/constants/market-trading-hours.constants';
 
@@ -122,8 +123,8 @@ describe('MarketStatusService', () => {
 
   describe('private time helpers', () => {
     it('timeToMinutes 应能正确转换时间字符串', () => {
-      expect((service as any).timeToMinutes('09:30')).toBe(570);
-      expect((service as any).timeToMinutes('16:00')).toBe(960);
+      expect((service as any).timeToMinutes('_09:30')).toBe(570);
+      expect((service as any).timeToMinutes('_16:00')).toBe(960);
       expect((service as any).timeToMinutes('invalid-time')).toBe(0);
     });
 

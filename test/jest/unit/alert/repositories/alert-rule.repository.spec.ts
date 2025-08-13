@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { getModelToken } from "@nestjs/mongoose";
 import { NotFoundException } from "@nestjs/common";
@@ -70,10 +71,10 @@ describe("AlertRuleRepository", () => {
     Object.assign(mockModel, {
       find: jest.fn().mockReturnThis(),
       findOne: jest.fn().mockReturnThis(),
-      findOneAndUpdate: jest.fn().mockReturnThis(),
-      updateOne: jest.fn().mockReturnThis(),
-      deleteOne: jest.fn().mockReturnThis(),
-      countDocuments: jest.fn().mockReturnThis(),
+      _findOneAndUpdate: jest.fn().mockReturnThis(),
+      _updateOne: jest.fn().mockReturnThis(),
+      delet_eOne: jest.fn().mockReturnThis(),
+      _countDocuments: jest.fn().mockReturnThis(),
       lean: jest.fn().mockReturnThis(),
       exec: jest.fn(),
       create: jest.fn(),
@@ -167,17 +168,17 @@ describe("AlertRuleRepository", () => {
 
   describe("delete", () => {
     it("should delete an existing rule successfully", async () => {
-      mockModel.exec.mockResolvedValue({ deletedCount: 1 });
+      mockModel.exec.mockResolvedValue({ delet_edCount: 1 });
 
       const result = await repository.delete("rule-123");
 
-      expect(mockModel.deleteOne).toHaveBeenCalledWith({ id: "rule-123" });
+      expect(mockModel.delet_eOne).toHaveBeenCalledWith({ id: "rule-123" });
       expect(mockModel.exec).toHaveBeenCalled();
       expect(result).toBe(true);
     });
 
     it("should return false when rule does not exist", async () => {
-      mockModel.exec.mockResolvedValue({ deletedCount: 0 });
+      mockModel.exec.mockResolvedValue({ delet_edCount: 0 });
 
       const result = await repository.delete("nonexistent");
 

@@ -1,20 +1,21 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { RuleAlignmentService } from "../../../../../../src/core/data-mapper/services/rule-alignment.service";
+import { RuleAlignmentService } from "../../../../../../../src/core/public/data-mapper/services/rule-alignment.service";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleDocument
-} from "../../../../../../src/core/data-mapper/schemas/flexible-mapping-rule.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
 
 // Mock the logger
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),
@@ -31,7 +32,7 @@ describe("RuleAlignmentService", () => {
   let templateModel: DeepMocked<Model<DataSourceTemplateDocument>>;
 
   const mockTemplate = {
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     name: "Test Template",
     provider: "longport",
     apiType: "rest",
@@ -52,7 +53,7 @@ describe("RuleAlignmentService", () => {
   };
 
   const mockRule = {
-    _id: "507f1f77bcf86cd799439012",
+    id: "507f1f77bcf86cd799439012",
     name: "Test Rule",
     provider: "longport",
     apiType: "rest",
@@ -141,7 +142,7 @@ describe("realignExistingRule", () => {
 it("should realign existing rule successfully", async () => {
       ruleModel.findById.mockResolvedValue(mockRule as any);
       templateModel.findById.mockResolvedValue(mockTemplate as any);
-      ruleModel.findByIdAndUpdate.mockResolvedValue(mockRule as any);
+      ruleModel._findByIdAndUpdate.mockResolvedValue(mockRule as any);
 
       const result = await service.realignExistingRule(ruleId);
 
@@ -167,7 +168,7 @@ it("should handle rule with no existing field mappings", async () => {
       const result = await service.realignExistingRule(ruleId);
 
       expect(result.rule).toBeDefined();
-      expect(result.changes.removed).toHaveLength(0);
+      expect(result.changes._removed).toHaveLength(0);
     });
 
 it("should handle rule realignment with template changes", async () => {
@@ -200,7 +201,7 @@ it("should adjust field mapping successfully", async () => {
         ...mockRule,
         fieldMappings: [
           {
-            _id: "mapping123",
+            id: "mapping123",
             sourceFieldPath: "price",
             targetField: "oldTarget",
             confidence: 0.8
@@ -252,9 +253,9 @@ it("should throw NotFoundException when rule not found", async () => {
       expect(result.totalFields).toBeGreaterThan(0);
       expect(result.suggestions.length).toBeGreaterThan(0);
 
-      const symbolSuggestion = result.suggestions.find((s:any)=>s.sourceField==="symbol");
+      const symbolSuggestion = result.suggestions.find((s:any)=>s._sourceField==="symbol");
       expect(symbolSuggestion).toBeDefined();
-      expect(symbolSuggestion.suggestedTarget).toBe("symbol");
+      expect(symbolSuggestion._suggestedTarget).toBe("symbol");
       expect(symbolSuggestion.confidence).toBeCloseTo(1);
     });
   });
@@ -368,7 +369,7 @@ it("should throw NotFoundException when rule not found", async () => {
 
     it("should handle single mapping", () => {
       const mappings = [
-        { sourceFieldPath: "field1", targetField: "target1", confidence: 0.75 }
+        { sourceFieldPath: "field1", targetField: "target1", confidence: 0._75 }
       ];
 
       const confidence = service.calculateOverallConfidence(mappings);
@@ -453,7 +454,7 @@ describe("preset field functionality", () => {
     it("should handle save failures", async () => {
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findOne.mockResolvedValue(null);
-      ruleModel.constructor = jest.fn().mockImplementation(() => mockRule);
+      ruleModel._constructor = jest.fn().mockImplementation(() => mockRule);
       
       const saveError = new Error("Save failed");
       mockRule.save.mockRejectedValue(saveError);

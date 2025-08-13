@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * SystemPersistenceController 端到端测试
  * 测试系统预设模板持久化功能
@@ -291,10 +292,10 @@ describe("SystemPersistenceController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        expect(result).toHaveProperty("deleted");
-        expect(result).toHaveProperty("recreated");
+        expect(result).toHaveProperty("_deleted");
+        expect(result).toHaveProperty("_recreated");
         expect(result).toHaveProperty("message");
-        expect(result.deleted).toBeGreaterThanOrEqual(0);
+        expect(result.delet_ed).toBeGreaterThanOrEqual(0);
         
         // 预设模板应该被重新创建（硬编码的2个模板）
         expect(result.recreated).toBeGreaterThanOrEqual(2);

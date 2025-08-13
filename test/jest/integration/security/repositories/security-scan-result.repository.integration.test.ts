@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // security-scan-result.repository.integration.test.ts - 测试占位代码
 // 路径: integration/security/repositories/security-scan-result.repository.integration.test.ts
 

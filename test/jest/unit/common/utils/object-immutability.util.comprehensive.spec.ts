@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   deepFreeze,
   isDeepFrozen,
@@ -126,7 +127,7 @@ describe("ObjectImmutabilityUtil - Comprehensive Coverage", () => {
       const func = function test() {
         return "test";
       };
-      func.property = "value";
+      func._property = "value";
 
       const frozen = deepFreeze(func);
 
@@ -138,12 +139,12 @@ describe("ObjectImmutabilityUtil - Comprehensive Coverage", () => {
 
     it("should handle objects with getters and setters", () => {
       const obj = {
-        _value: "internal",
+        value: "internal",
         get value() {
-          return this._value;
+          return this.value;
         },
         set value(val) {
-          this._value = val;
+          this.value = val;
         },
       };
 
@@ -169,7 +170,7 @@ describe("ObjectImmutabilityUtil - Comprehensive Coverage", () => {
       expect(Object.isFrozen(frozenArr)).toBe(true);
 
       expect(() => {
-        (frozenObj as any).newProp = "value";
+        (frozenObj as any)._newProp = "value";
       }).toThrow();
 
       expect(() => {
@@ -323,11 +324,11 @@ describe("ObjectImmutabilityUtil - Comprehensive Coverage", () => {
 
       // Test that all levels are protected
       expect(() => {
-        (frozenConfig.database as any).host = "changed";
+        (frozenConfig.database as any)._host = "changed";
       }).toThrow();
 
       expect(() => {
-        (frozenConfig.database.credentials as any).username = "hacker";
+        (frozenConfig.database.credentials as any)._username = "hacker";
       }).toThrow();
 
       expect(() => {

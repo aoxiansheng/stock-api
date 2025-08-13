@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { DataFetchingService, DataFetchResponse } from '@core/shared/services/data-fetching.service';
+import { DataFetchingService, DataFetchResponse } from '@core/public/shared/services/data-fetching.service';
 import { CapabilityRegistryService } from '@providers/services/capability-registry.service';
-import { MarketStatusService, MarketStatusResult } from '@core/shared/services/market-status.service';
-import { DataChangeDetectorService } from '@core/shared/services/data-change-detector.service';
+import { MarketStatusService, MarketStatusResult } from '@core/public/shared/services/market-status.service';
+import { DataChangeDetectorService } from '@core/public/shared/services/data-change-detector.service';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus } from '@common/constants/market-trading-hours.constants';
 
@@ -79,7 +80,7 @@ describe('DataFetchingService', () => {
     beforeEach(() => {
       mockMarketStatusService.getMarketStatus.mockResolvedValue({
         market: Market.US,
-        status: MarketStatus.TRADING,
+        status: MarketStatus._TRADING,
         currentTime: new Date(),
         marketTime: new Date(),
         timezone: 'America/New_York',
@@ -102,7 +103,7 @@ describe('DataFetchingService', () => {
       const response = await service.fetchSingleData(mockRequest);
 
       expect(response.data).toEqual(mockData);
-      expect(response.metadata.source).toBe('PROVIDER');
+      expect(response.metadata._source).toBe('PROVIDER');
       expect(response.metadata.market).toBe(Market.US); // 从 'AAPL' 推断
       expect(response.metadata.provider).toBe('TestProvider');
       expect(mockCapability.execute).toHaveBeenCalledWith({
@@ -158,7 +159,7 @@ describe('DataFetchingService', () => {
       expect(results[0]).toEqual(successResponse);
       expect(results[1].data).toBeNull();
       expect(results[1].metadata.market).toBe(Market.US); // 使用默认市场
-      expect(results[1].metadata.marketStatus).toBe(MarketStatus.CLOSED);
+      expect(results[1].metadata.marketStatus).toBe(MarketStatus._CLOSED);
       expect(results[1].metadata.cacheTTL).toBe(60);
       expect(results[1].metadata.provider).toBeUndefined(); // Provider might not be determined on failure
 

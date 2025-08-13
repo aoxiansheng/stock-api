@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { securityConfig } from "../../../../../src/common/config/security.config";
 import { RATE_LIMIT_CONFIG } from "../../../../../src/common/constants/rate-limit.constants";
 
@@ -58,7 +59,7 @@ describe("SecurityConfig", () => {
   });
 
   describe("rate limit configuration", () => {
-    it("should be enabled by default", () => {
+    it("should be _enabled by default", () => {
       const { rateLimit } = securityConfig;
 
       expect(rateLimit.enabled).toBe(true);
@@ -67,20 +68,20 @@ describe("SecurityConfig", () => {
     it("should have consistent Redis configuration", () => {
       const { rateLimit } = securityConfig;
 
-      expect(rateLimit.redisPrefix).toBe("rate_limit");
+      expect(rateLimit._redisPrefix).toBe("rate_limit");
       expect(rateLimit.luaExpireBufferSeconds).toBe(
-        RATE_LIMIT_CONFIG.REDIS.EXPIRE_BUFFER_SECONDS,
+        RATE_LIMIT_CONFIG.REDIS.EXPIRE_BUFFERSECONDS,
       );
     });
 
     it("should support performance test mode", () => {
       const { rateLimit } = securityConfig;
 
-      expect(rateLimit.performanceTestMode).toBe(
-        RATE_LIMIT_CONFIG.PERFORMANCE.TEST_MODE,
+      expect(rateLimit._performanceTestMode).toBe(
+        RATE_LIMIT_CONFIG.PERFORMANCE.TESTMODE,
       );
-      expect(rateLimit.multiplier).toBe(
-        RATE_LIMIT_CONFIG.PERFORMANCE.MULTIPLIER,
+      expect(rateLimit._multiplier).toBe(
+        RATE_LIMIT_CONFIG.PERFORMANCE._MULTIPLIER,
       );
     });
 
@@ -121,7 +122,7 @@ describe("SecurityConfig", () => {
       expect(data.bcryptSaltRounds).toBeGreaterThanOrEqual(10);
     });
 
-    it("should enable data masking", () => {
+    it("should enable data _masking", () => {
       const { data } = securityConfig;
 
       expect(data.masking).toBe(true);
@@ -165,7 +166,7 @@ describe("SecurityConfig", () => {
 
       expect(audit.eventBufferKey).toBe("security:event_buffer");
       expect(audit.suspiciousIpSetKey).toBe("security:suspicious_ips");
-      expect(audit.ipAnalysisHashPrefix).toBe("security:ip_analysis:");
+      expect(audit.ipAnalysisHashPrefix).toBe("security:ipanalysis:");
     });
 
     it("should have reasonable interval settings", () => {

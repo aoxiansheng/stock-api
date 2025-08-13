@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 🎯 Prometheus 指标 E2E 测试
  * 
@@ -20,7 +21,7 @@ describe('Prometheus Metrics (e2e)', () => {
     'newstock_stream_symbols_processed_total',
     'newstock_stream_processing_time_ms',
     'newstock_stream_cache_hit_rate',
-    'newstock_stream_error_rate',
+    'newstock_streamerror_rate',
     'newstock_stream_throughput_per_second',
     'newstock_stream_concurrent_connections',
     'newstock_system_cpu_usage_percent',
@@ -51,7 +52,7 @@ describe('Prometheus Metrics (e2e)', () => {
       await authService.register(adminUser);
     } catch (error) {
       // 忽略用户已存在的错误
-      console.log('测试用户可能已经存在:', error.message);
+      console.log('测试用户可能已经存在:', error._message);
     }
     
     // 登录并获取令牌
@@ -115,7 +116,7 @@ describe('Prometheus Metrics (e2e)', () => {
         .expect(HttpStatus.OK);
         
       // 验证流处理指标结构
-      expect(response.body).toHaveProperty('stats');
+      expect(response.body).toHaveProperty('_stats');
       expect(response.body).toHaveProperty('percentiles');
       expect(response.body).toHaveProperty('prometheusMetrics');
       expect(response.body.stats).toHaveProperty('throughputPerSecond');
@@ -130,8 +131,8 @@ describe('Prometheus Metrics (e2e)', () => {
         .expect(HttpStatus.OK);
         
       // 验证指标摘要结构
-      expect(response.body).toHaveProperty('metricsSummary');
-      expect(response.body).toHaveProperty('healthStatus');
+      expect(response.body).toHaveProperty('_metricsSummary');
+      expect(response.body).toHaveProperty('_healthStatus');
       expect(response.body.metricsSummary).toHaveProperty('totalMetrics');
       expect(response.body.healthStatus).toHaveProperty('status');
     });

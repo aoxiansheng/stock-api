@@ -1,4 +1,5 @@
-import { StringUtils } from "../../../../../../src/core/shared/utils/string.util";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { StringUtils } from "../../../../../../src/core/public/shared/utils/string.util";
 import * as crypto from "crypto";
 
 // Mock crypto module for consistent testing
@@ -13,7 +14,7 @@ jest.mock("crypto", () => {
   };
 
   return {
-    createHash: jest.fn().mockImplementation(() => {
+    _createHash: jest.fn().mockImplementation(() => {
       let inputStr = "";
       const mockObj = {
         update: jest.fn().mockImplementation((str) => {

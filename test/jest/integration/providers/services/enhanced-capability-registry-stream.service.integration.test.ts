@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ModuleMetadata } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
@@ -26,13 +27,13 @@ jest.mock('fs/promises', () => ({
   stat: jest.fn(),
 }));
 
-const { readdir, stat } = require('fs/promises');
+import { readdir, stat } from 'fs/promises';
 
 // Mock stream capability
 const mockStreamCapability: IStreamCapability = {
   name: 'stream-stock-quote',
   description: '获取股票实时报价数据流',
-  supportedMarkets: [MARKETS.HK, MARKETS.US],
+  supportedMarkets: [MARKETS._HK, MARKETS._US],
   supportedSymbolFormats: ['700.HK', 'AAPL.US'],
   rateLimit: {
     maxConnections: 100,
@@ -201,7 +202,7 @@ describe('EnhancedCapabilityRegistryService - Stream Capabilities Integration', 
       expect(stats).not.toBeNull();
       
       // 当前测试环境下应该是0，因为我们模拟了文件系统返回空数组
-      expect(stats?.decoratorCapabilities).toBe(0);
+      expect(stats?._decoratorCapabilities).toBe(0);
     });
   });
 }); 

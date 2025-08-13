@@ -1,15 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  ALERTING_OPERATIONS,
-  ALERTING_MESSAGES,
-  ALERTING_ERROR_TEMPLATES,
-  ALERTING_CONFIG,
-  ALERTING_DEFAULT_STATS,
-  ALERTING_SEVERITY_LEVELS,
-  ALERTING_METRICS,
-  ALERTING_CACHE_PATTERNS,
-  ALERTING_VALIDATION_RULES,
+  ALERTINGOPERATIONS,
+  ALERTINGMESSAGES,
+  ALERTING_ERRORTEMPLATES,
+  ALERTINGCONFIG,
+  ALERTING_DEFAULTSTATS,
+  ALERTING_SEVERITYLEVELS,
+  ALERTINGMETRICS,
+  ALERTING_CACHEPATTERNS,
+  ALERTING_VALIDATIONRULES,
   ALERTING_TIME_CONFIG,
-  ALERTING_THRESHOLDS,
+  ALERTINGTHRESHOLDS,
   ALERTING_RETRY_CONFIG,
   AlertingTemplateUtil,
 } from '../../../../../src/alert/constants/alerting.constants';
@@ -27,11 +28,11 @@ describe('Alerting Constants', () => {
       expect(ALERTING_OPERATIONS.ACKNOWLEDGE_ALERT).toBe('acknowledgeAlert');
       expect(ALERTING_OPERATIONS.RESOLVE_ALERT).toBe('resolveAlert');
       expect(ALERTING_OPERATIONS.GET_STATS).toBe('getStats');
-      expect(ALERTING_OPERATIONS.HANDLE_SYSTEM_EVENT).toBe('handleSystemEvent');
-      expect(ALERTING_OPERATIONS.EVALUATE_RULES_SCHEDULED).toBe('evaluateRulesScheduled');
+      expect(ALERTING_OPERATIONS.HANDLE_SYSTEMEVENT).toBe('handleSystemEvent');
+      expect(ALERTING_OPERATIONS.EVALUATE_RULESSCHEDULED).toBe('evaluateRulesScheduled');
       expect(ALERTING_OPERATIONS.CREATE_NEW_ALERT).toBe('createNewAlert');
-      expect(ALERTING_OPERATIONS.LOAD_ACTIVE_ALERTS).toBe('loadActiveAlerts');
-      expect(ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION).toBe('handleRuleEvaluation');
+      expect(ALERTING_OPERATIONS.LOAD_ACTIVEALERTS).toBe('loadActiveAlerts');
+      expect(ALERTING_OPERATIONS.HANDLE_RULEEVALUATION).toBe('handleRuleEvaluation');
       expect(ALERTING_OPERATIONS.CONVERT_EVENT_TO_METRIC).toBe('convertEventToMetric');
       expect(ALERTING_OPERATIONS.GENERATE_RULE_ID).toBe('generateRuleId');
     });
@@ -43,17 +44,17 @@ describe('Alerting Constants', () => {
 
   describe('ALERTING_MESSAGES', () => {
     it('应包含所有成功消息', () => {
-      expect(ALERTING_MESSAGES.SERVICE_INITIALIZED).toBe('告警服务初始化...');
-      expect(ALERTING_MESSAGES.RULE_CREATED).toBe('告警规则创建成功');
-      expect(ALERTING_MESSAGES.RULE_UPDATED).toBe('告警规则更新成功');
-      expect(ALERTING_MESSAGES.RULE_DELETED).toBe('告警规则删除成功');
-      expect(ALERTING_MESSAGES.RULE_STATUS_TOGGLED).toBe('切换告警规则状态成功');
-      expect(ALERTING_MESSAGES.ALERT_ACKNOWLEDGED).toBe('告警已确认');
-      expect(ALERTING_MESSAGES.ALERT_RESOLVED).toBe('告警已解决');
+      expect(ALERTING_MESSAGES.SERVICEINITIALIZED).toBe('告警服务初始化...');
+      expect(ALERTING_MESSAGES.RULECREATED).toBe('告警规则创建成功');
+      expect(ALERTING_MESSAGES.RULEUPDATED).toBe('告警规则更新成功');
+      expect(ALERTING_MESSAGES.RULEDELETED).toBe('告警规则删除成功');
+      expect(ALERTING_MESSAGES.RULE_STATUSTOGGLED).toBe('切换告警规则状态成功');
+      expect(ALERTING_MESSAGES.ALERTACKNOWLEDGED).toBe('告警已确认');
+      expect(ALERTING_MESSAGES.ALERTRESOLVED).toBe('告警已解决');
     });
 
     it('应包含所有错误消息', () => {
-      expect(ALERTING_MESSAGES.INITIALIZATION_FAILED).toBe('初始化加载活跃告警失败');
+      expect(ALERTING_MESSAGES.INITIALIZATIONFAILED).toBe('初始化加载活跃告警失败');
       expect(ALERTING_MESSAGES.CREATE_RULE_DB_FAILED).toBe('创建告警规则数据库操作失败');
       expect(ALERTING_MESSAGES.UPDATE_RULE_FAILED).toBe('更新告警规则失败');
       expect(ALERTING_MESSAGES.DELETE_RULE_FAILED).toBe('删除告警规则失败');
@@ -66,14 +67,14 @@ describe('Alerting Constants', () => {
 
   describe('ALERTING_CONFIG', () => {
     it('应包含正确的配置值', () => {
-      expect(ALERTING_CONFIG.RULE_ID_PREFIX).toBe('rule_');
-      expect(ALERTING_CONFIG.RULE_ID_TIMESTAMP_BASE).toBe(36);
-      expect(ALERTING_CONFIG.RULE_ID_RANDOM_LENGTH).toBe(6);
-      expect(ALERTING_CONFIG.RULE_ID_RANDOM_START).toBe(2);
+      expect(ALERTING_CONFIG.RULE_IDPREFIX).toBe('rule_');
+      expect(ALERTING_CONFIG.RULE_ID_TIMESTAMPBASE).toBe(36);
+      expect(ALERTING_CONFIG.RULE_ID_RANDOMlength).toBe(6);
+      expect(ALERTING_CONFIG.RULE_ID_RANDOMSTART).toBe(2);
       expect(ALERTING_CONFIG.DEFAULT_COOLDOWN_SECONDS).toBe(300);
-      expect(ALERTING_CONFIG.MAX_RULE_NAME_LENGTH).toBe(100);
+      expect(ALERTING_CONFIG._MAX_RULE_NAME_LENGTH).toBe(100);
       expect(ALERTING_CONFIG.MAX_RULE_DESCRIPTION_LENGTH).toBe(500);
-      expect(ALERTING_CONFIG.MAX_TAGS_COUNT).toBe(10);
+      expect(ALERTING_CONFIG.MAX_TAGSCOUNT).toBe(10);
       expect(ALERTING_CONFIG.MAX_TAG_LENGTH).toBe(50);
     });
 
@@ -84,11 +85,11 @@ describe('Alerting Constants', () => {
 
   describe('ALERTING_SEVERITY_LEVELS', () => {
     it('应包含所有严重程度级别', () => {
-      expect(ALERTING_SEVERITY_LEVELS.CRITICAL).toBe('critical');
-      expect(ALERTING_SEVERITY_LEVELS.HIGH).toBe('high');
-      expect(ALERTING_SEVERITY_LEVELS.MEDIUM).toBe('medium');
-      expect(ALERTING_SEVERITY_LEVELS.LOW).toBe('low');
-      expect(ALERTING_SEVERITY_LEVELS.INFO).toBe('info');
+      expect(ALERTING_SEVERITY_LEVELS._CRITICAL).toBe('critical');
+      expect(ALERTING_SEVERITY_LEVELS._HIGH).toBe('high');
+      expect(ALERTING_SEVERITY_LEVELS._MEDIUM).toBe('medium');
+      expect(ALERTING_SEVERITY_LEVELS._LOW).toBe('low');
+      expect(ALERTING_SEVERITY_LEVELS._INFO).toBe('info');
     });
 
     it('应是不可变对象', () => {
@@ -102,8 +103,8 @@ describe('Alerting Constants', () => {
       expect(ALERTING_VALIDATION_RULES.RULE_ID_PATTERN).toBeInstanceOf(RegExp);
       expect(ALERTING_VALIDATION_RULES.METRIC_NAME_PATTERN).toBeInstanceOf(RegExp);
       expect(ALERTING_VALIDATION_RULES.TAG_PATTERN).toBeInstanceOf(RegExp);
-      expect(ALERTING_VALIDATION_RULES.THRESHOLD_MIN).toBe(0);
-      expect(ALERTING_VALIDATION_RULES.THRESHOLD_MAX).toBe(Number.MAX_SAFE_INTEGER);
+      expect(ALERTING_VALIDATION_RULES.THRESHOLDMIN).toBe(0);
+      expect(ALERTING_VALIDATION_RULES.THRESHOLD_MAX).toBe(Number.MAX_SAFEINTEGER);
     });
 
     it('应是不可变对象', () => {
@@ -382,7 +383,7 @@ describe('Alerting Constants', () => {
       });
 
       it('应正确四舍五入结果', () => {
-        const score = AlertingTemplateUtil.calculatePriorityScore('medium', 33, 100);
+        const score = AlertingTemplateUtil.calculatePriorityScore('medium', _33, 100);
         expect(score).toBe(20); // Math.round(60 * 0.33) = 20
       });
     });
@@ -419,7 +420,7 @@ describe('Alerting Constants', () => {
     });
 
     it('ALERTING_TIME_CONFIG应包含合理的时间配置', () => {
-      expect(ALERTING_TIME_CONFIG.DEFAULT_EVALUATION_INTERVAL_MS).toBe(60000);
+      expect(ALERTING_TIME_CONFIG.DEFAULT_EVALUATION_INTERVALMS).toBe(60000);
       expect(ALERTING_TIME_CONFIG.MIN_COOLDOWN_SECONDS).toBe(60);
       expect(ALERTING_TIME_CONFIG.MAX_COOLDOWN_SECONDS).toBe(86400);
       expect(ALERTING_TIME_CONFIG.ALERT_TTL_SECONDS).toBe(3600);
@@ -429,16 +430,16 @@ describe('Alerting Constants', () => {
 
     it('ALERTING_THRESHOLDS应包含合理的阈值', () => {
       expect(ALERTING_THRESHOLDS.MAX_ACTIVE_ALERTS).toBe(1000);
-      expect(ALERTING_THRESHOLDS.MAX_RULES_PER_USER).toBe(50);
-      expect(ALERTING_THRESHOLDS.MAX_ALERTS_PER_RULE_PER_HOUR).toBe(10);
+      expect(ALERTING_THRESHOLDS.MAX_RULES_PERUSER).toBe(50);
+      expect(ALERTING_THRESHOLDS.MAX_ALERTS_PER_RULE_PERHOUR).toBe(10);
       expect(ALERTING_THRESHOLDS.CRITICAL_ALERT_THRESHOLD).toBe(100);
       expect(ALERTING_THRESHOLDS.WARNING_ALERT_THRESHOLD).toBe(50);
     });
 
     it('ALERTING_RETRY_CONFIG应包含合理的重试配置', () => {
-      expect(ALERTING_RETRY_CONFIG.MAX_RETRIES).toBe(3);
+      expect(ALERTING_RETRY_CONFIG.MAXRETRIES).toBe(3);
       expect(ALERTING_RETRY_CONFIG.INITIAL_DELAY_MS).toBe(1000);
-      expect(ALERTING_RETRY_CONFIG.BACKOFF_MULTIPLIER).toBe(2);
+      expect(ALERTING_RETRY_CONFIG.BACKOFFMULTIPLIER).toBe(2);
       expect(ALERTING_RETRY_CONFIG.MAX_DELAY_MS).toBe(10000);
       expect(ALERTING_RETRY_CONFIG.TIMEOUT_MS).toBe(30000);
     });

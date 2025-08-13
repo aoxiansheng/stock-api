@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BackgroundTaskService } from '../../../../../../src/core/shared/services/background-task.service';
+import { BackgroundTaskService } from '../../../../../../src/core/public/shared/services/background-task.service';
 
 
 // Mock Logger

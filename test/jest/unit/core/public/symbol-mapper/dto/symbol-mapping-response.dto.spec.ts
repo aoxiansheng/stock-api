@@ -1,5 +1,6 @@
-import { SymbolMappingResponseDto } from '@core/symbol-mapper/dto/symbol-mapping-response.dto';
-import { SymbolMappingRuleDocumentType } from '@core/symbol-mapper/schemas/symbol-mapping-rule.schema';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { SymbolMappingResponseDto } from '@core/public/symbol-mapper/dto/symbol-mapping-response.dto';
+import { SymbolMappingRuleDocumentType } from '@core/public/symbol-mapper/schemas/symbol-mapping-rule.schema';
 
 describe('SymbolMappingResponseDto', () => {
   // 测试 fromDocument 方法
@@ -8,7 +9,7 @@ describe('SymbolMappingResponseDto', () => {
     it('应该正确地从 document 创建 DTO', () => {
       // 创建一个模拟的 document 对象
       const document = {
-        _id: 'some-id',
+        id: 'some-id',
         dataSourceName: 'test-source',
         SymbolMappingRule: [
           {
@@ -51,7 +52,7 @@ describe('SymbolMappingResponseDto', () => {
     it('应该正确地从 lean object 创建 DTO', () => {
       // 创建一个模拟的 lean object
       const leanObject = {
-        _id: 'some-id',
+        id: 'some-id',
         dataSourceName: 'test-source',
         SymbolMappingRule: [
           {

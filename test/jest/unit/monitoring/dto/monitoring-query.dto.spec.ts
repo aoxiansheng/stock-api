@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * MonitoringQueryDto 单元测试
  * 测试监控查询DTO的验证功能
@@ -55,7 +56,7 @@ describe("MonitoringQueryDto", () => {
       const startDateErrors = errors.find((e) => e.property === "startDate");
 
       // startDate应该有错误
-      expect(startDateErrors?.constraints?.isDateString).toBeDefined();
+      expect(startDateErrors?.constraints?._isDateString).toBeDefined();
 
       // 检查endDate不应该有MonitoringDateRangeValidator错误，因为我们跳过了无效日期的范围验证
       const endDateErrors = errors.find((e) => e.property === "endDate");
@@ -158,7 +159,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: undefined },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -172,7 +173,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -186,7 +187,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -200,7 +201,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -214,7 +215,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-15T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -228,7 +229,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "invalid-date" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -242,7 +243,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -256,7 +257,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -270,7 +271,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -284,7 +285,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2023-12-20T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -298,7 +299,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2023-12-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -312,7 +313,7 @@ describe("MonitoringQueryDto", () => {
         // Arrange - 2024年是闰年，2月有29天
         const mockArgs = {
           object: { startDate: "2024-02-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
@@ -340,11 +341,11 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T00:00:00.000Z" },
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act - 即使包含时间部分，也只关心日期部分
-        const result = validator.validate("2024-02-01T23:59:59.999Z", mockArgs);
+        const result = validator.validate("2024-02-_01T23:59:59.999Z", mockArgs);
 
         // Assert - 结果应该是 true，因为我们只比较日期部分 (2024-01-01 到 2024-02-01 是 31 天)
         expect(result).toBe(true);
@@ -354,12 +355,12 @@ describe("MonitoringQueryDto", () => {
         // Arrange
         const mockArgs = {
           object: { startDate: "2024-01-01T08:00:00+08:00" }, // 北京时间
-          constraints: ["startDate"],
+          const_raints: ["startDate"],
         } as any;
 
         // Act
         const result = validator.validate(
-          "2024-01-15T16:00:00-05:00",
+          "2024-01-_15T16:00:00-_05:00",
           mockArgs,
         ); // 美国东部时间
 

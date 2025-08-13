@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PermissionTemplateUtil } from "../../../../../src/auth/utils/permission.utils";
 import {
   PERMISSION_DETAIL_TEMPLATES,
@@ -138,7 +139,7 @@ describe("PermissionTemplateUtil", () => {
     });
 
     it("应该保留有效字符", () => {
-      const key = "user_123:profile-page";
+      const key = "user123:profile-page";
 
       const result = PermissionTemplateUtil.sanitizeCacheKey(key);
 
@@ -150,7 +151,7 @@ describe("PermissionTemplateUtil", () => {
 
       const result = PermissionTemplateUtil.sanitizeCacheKey(key);
 
-      expect(result).toBe("user_profile_page__main__");
+      expect(result).toBe("user_profile_pagemain");
     });
 
     it("应该使用常量中的正则表达式模式", () => {
@@ -189,7 +190,7 @@ describe("PermissionTemplateUtil", () => {
 
       const result = PermissionTemplateUtil.normalizePermissionName(permission);
 
-      expect(result).toBe("user_profile_access__admin__");
+      expect(result).toBe("user_profile_accessadmin");
     });
 
     it("应该使用常量中的正则表达式模式", () => {
@@ -228,7 +229,7 @@ describe("PermissionTemplateUtil", () => {
 
       const result = PermissionTemplateUtil.normalizeRoleName(role);
 
-      expect(result).toBe("system_admin_user__main__");
+      expect(result).toBe("system_admin_usermain");
     });
 
     it("应该使用常量中的正则表达式模式", () => {

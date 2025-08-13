@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // 禁用自动mock映射，直接导入真实的PermissionService
 jest.unmock("../../../../../src/auth/services/permission.service");
 
@@ -35,18 +36,18 @@ jest.mock("../../../../../src/common/config/security.config", () => ({
 
 // Mock permission constants
 jest.mock("../../../../../src/auth/constants/permission.constants", () => ({
-  PERMISSION_OPERATIONS: {
-    CHECK_PERMISSIONS: "checkPermissions",
-    INVALIDATE_CACHE: "invalidateCacheFor",
+  PERMISSIONOPERATIONS: {
+    CHECKPERMISSIONS: "checkPermissions",
+    INVALIDATECACHE: "invalidateCacheFor",
   },
-  PERMISSION_MESSAGES: {
-    PERMISSION_CHECK_STARTED: "Permission check started",
-    CACHE_HIT: "Cache hit",
-    CACHE_MISS: "Cache miss",
-    CHECK_PASSED: "Check passed",
-    CHECK_FAILED: "Check failed",
-    CACHE_INVALIDATED: "Cache invalidated",
-    NO_CACHE_TO_INVALIDATE: "No cache to invalidate",
+  PERMISSIONMESSAGES: {
+    PERMISSION_CHECKSTARTED: "Permission check started",
+    CACHEHIT: "Cache hit",
+    CACHEMISS: "Cache miss",
+    CHECKPASSED: "Check passed",
+    CHECKFAILED: "Check failed",
+    CACHEINVALIDATED: "Cache invalidated",
+    NO_CACHE_TOINVALIDATE: "No cache to invalidate",
     CACHE_INVALIDATION_FAILED: "Cache invalidation failed",
   },
 }));
@@ -72,7 +73,7 @@ describe("PermissionService - Enhanced Coverage", () => {
     permissions: Permission[] = [],
     role?: UserRole,
     id: string = "user123",
-    type: AuthSubjectType = AuthSubjectType.JWT_USER,
+    type: AuthSubjectType = AuthSubjectType.JWTUSER,
   ): AuthSubject => {
     return {
       type,
@@ -92,8 +93,8 @@ describe("PermissionService - Enhanced Coverage", () => {
   beforeEach(async () => {
     const mockCacheService = {
       get: jest.fn(),
-      set: jest.fn(),
-      delByPattern: jest.fn(),
+      _set: jest.fn(),
+      _delByPattern: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -136,7 +137,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       cacheService.get.mockResolvedValue(cachedResult);
       
       const result = await service.checkPermissions(subject, [
-        Permission.DATA_READ,
+        Permission.DATAREAD,
       ]);
 
       expect(result).toEqual(cachedResult);
@@ -186,8 +187,8 @@ describe("PermissionService - Enhanced Coverage", () => {
 
       const result = await service.checkPermissions(subject, [
         Permission.DATA_READ,
-        Permission.CONFIG_WRITE,
-        Permission.QUERY_EXECUTE,
+        Permission.CONFIGWRITE,
+        Permission.QUERYEXECUTE,
       ]);
 
       expect(result.allowed).toBe(false);
@@ -221,7 +222,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       const result = await service.checkPermissions(
         subject,
         [Permission.DATA_READ],
-        [UserRole.ADMIN],
+        [UserRole._ADMIN],
       );
 
       expect(result.allowed).toBe(false);
@@ -349,12 +350,12 @@ describe("PermissionService - Enhanced Coverage", () => {
       );
 
       expect(context.subject).toBe(subject);
-      expect(context.requiredPermissions).toEqual([Permission.DATA_READ]);
-      expect(context.requiredRoles).toEqual([UserRole.DEVELOPER]);
-      expect(context.grantedPermissions).toEqual([Permission.DATA_READ]);
+      expect(context._requiredPermissions).toEqual([Permission.DATA_READ]);
+      expect(context._requiredRoles).toEqual([UserRole.DEVELOPER]);
+      expect(context._grantedPermissions).toEqual([Permission.DATA_READ]);
       expect(context.hasAccess).toBe(true);
       expect(context.details.missingPermissions).toEqual([]);
-      expect(context.details.timestamp).toBeInstanceOf(Date);
+      expect(context.details._timestamp).toBeInstanceOf(Date);
     });
 
     it("should create context with access denied", async () => {
@@ -374,7 +375,7 @@ describe("PermissionService - Enhanced Coverage", () => {
 
       expect(context.hasAccess).toBe(false);
       expect(context.details.missingPermissions).toEqual([
-        Permission.SYSTEM_ADMIN,
+        Permission.SYSTEMADMIN,
       ]);
     });
   });
@@ -388,7 +389,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       await service.invalidateCacheFor(subject);
 
       expect(cacheService.delByPattern).toHaveBeenCalledWith(
-        expect.stringContaining("jwt_user:user456:"),
+        expect.stringContaining("jwtuser:user456:"),
       );
       expect(logSpies.log).toHaveBeenCalledWith(
         expect.any(String),
@@ -502,7 +503,7 @@ describe("PermissionService - Enhanced Coverage", () => {
         [Permission.DATA_READ],
         UserRole.DEVELOPER,
         "api-key-123",
-        AuthSubjectType.API_KEY,
+        AuthSubjectType.APIKEY,
       );
 
       cacheService.get.mockResolvedValue(null);

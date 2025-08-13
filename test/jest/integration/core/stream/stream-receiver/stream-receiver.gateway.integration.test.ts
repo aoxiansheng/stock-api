@@ -1,17 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { io, Socket as ClientSocket } from 'socket.io-client';
-import { createLogger } from '@common/config/logger.config';
-import { UserRole } from '../../../../../src/auth/enums/user-role.enum';
+import { createLogger } from '../../../../../../src/common/config/logger.config';
+import { UserRole } from '../../../../../../src/auth/enums/user-role.enum';
 
 // 导入应用模块和相关服务
-import { AppModule } from '../../../../../src/app.module';
-import { StreamReceiverGateway } from '../../../../../src/core/stream-receiver/stream-receiver.gateway';
-import { CacheService } from '../../../../../src/cache/services/cache.service';
-import { AuthService } from '../../../../../src/auth/services/auth.service';
+import { AppModule } from '../../../../../../src/app.module';
+import { StreamReceiverGateway } from '../../../../../../src/core/stream/stream-receiver/gateway/stream-receiver.gateway';
+import { CacheService } from '../../../../../../src/cache/services/cache.service';
+import { AuthService } from '../../../../../../src/auth/services/auth.service';
 
 // Mock logger
 jest.mock('@common/config/logger.config');

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 响应格式标准化集成测试
  * 测试系统范围内的响应格式一致性
@@ -234,9 +235,9 @@ describe("Response Format Standardization Integration", () => {
         expect(response.body.data.data).toBeDefined();
         expect(Array.isArray(response.body.data.data)).toBe(true);
         expect(response.body.data.metadata).toBeDefined();
-        expect(response.body.data.metadata.provider).toBeDefined();
-        expect(response.body.data.metadata.requestId).toBeDefined();
-        expect(response.body.data.metadata.processingTime).toBeDefined();
+        expect(response.body.data.metadata._provider).toBeDefined();
+        expect(response.body.data.metadata._requestId).toBeDefined();
+        expect(response.body.data.metadata._processingTime).toBeDefined();
       });
 
       it("无效 API Key 响应应该符合标准格式", async () => {
@@ -272,7 +273,7 @@ describe("Response Format Standardization Integration", () => {
           .set("x-app-key", apiKey)
           .set("x-access-token", accessToken)
           .send({
-            queryType: "by_symbols",
+            _queryType: "by_symbols",
             symbols: ["700.HK", "AAPL.US"],
           })
           .expect(201);
@@ -291,10 +292,10 @@ describe("Response Format Standardization Integration", () => {
         expect(Array.isArray(response.body.data.data.items)).toBe(true);
         expect(response.body.data.metadata).toBeDefined();
         expect(response.body.data.metadata.queryType).toBe("by_symbols");
-        expect(response.body.data.metadata.totalResults).toBeGreaterThanOrEqual(
+        expect(response.body.data.metadata._totalResults).toBeGreaterThanOrEqual(
           0,
         );
-        expect(response.body.data.metadata.executionTime).toBeGreaterThan(0);
+        expect(response.body.data.metadata._executionTime).toBeGreaterThan(0);
       });
     });
   });

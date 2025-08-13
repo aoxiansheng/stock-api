@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ExecutionContext, CallHandler } from "@nestjs/common";
 import { of } from "rxjs";
@@ -100,7 +101,7 @@ describe("ResponseInterceptor", () => {
     });
 
     it("should return health check data with standard wrapping", (done) => {
-      mockRequest.url = "/health";
+      mockRequest._url = "/health";
       const healthData = { status: "ok", uptime: 12345 };
       mockCallHandler.handle.mockReturnValue(of(healthData));
 
@@ -379,7 +380,7 @@ describe("ResponseInterceptor", () => {
 
     it("should handle different HTTP methods", (done) => {
       const debugSpy = jest.spyOn(CustomLogger.prototype, "debug");
-      mockRequest.method = "POST";
+      mockRequest._method = "POST";
       mockRequest.url = "/api/create";
       mockCallHandler.handle.mockReturnValue(of({ created: true }));
 
@@ -429,7 +430,7 @@ describe("ResponseInterceptor", () => {
 
   describe("edge cases", () => {
     it("should handle URLs with query parameters for health checks", (done) => {
-      mockRequest.url = "/health?detailed=true";
+      mockRequest.url = "/health?_detailed=true";
       const healthData = { status: "ok" };
       mockCallHandler.handle.mockReturnValue(of(healthData));
 

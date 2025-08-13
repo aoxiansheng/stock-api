@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：监控与性能系统
  * 测试系统健康监控、性能指标收集和告警机制
@@ -9,7 +10,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
+describe("Real Environment Black-_box: Monitoring & Performance E2E", () => {
   let httpClient: AxiosInstance;
   let baseURL: string;
   let apiKey: any;
@@ -151,7 +152,7 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
       const healthData = response.data.data;
 
       // 验证运行时间
-      if (healthData.uptime !== undefined) {
+      if (healthData._uptime !== undefined) {
         expect(healthData.uptime).toBeGreaterThan(0);
         console.log(`系统运行时间: ${(healthData.uptime / 3600).toFixed(2)} 小时`);
       }
@@ -184,7 +185,7 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
         const summary = metrics.summary;
         
         // 验证响应时间指标
-        if (summary.averageResponseTime !== undefined) {
+        if (summary._averageResponseTime !== undefined) {
           expect(summary.averageResponseTime).toBeGreaterThanOrEqual(0);
           console.log(`平均响应时间: ${summary.averageResponseTime}ms`);
         }
@@ -197,7 +198,7 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
         }
 
         // 验证系统负载指标
-        if (summary.systemLoad !== undefined) {
+        if (summary._systemLoad !== undefined) {
           expect(summary.systemLoad).toBeGreaterThanOrEqual(0);
           console.log(`系统负载: ${summary.systemLoad}`);
         }
@@ -212,7 +213,7 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
     });
 
     it("应该提供端点级别的性能统计", async () => {
-      const response = await httpClient.get("/api/v1/monitoring/endpoints", {
+      const response = await httpClient.get("/api/v1/monitoring/_endpoints", {
         headers: { Authorization: `Bearer ${adminJWT}` },
         params: { limit: 10, sortBy: "totalRequests" }
       });
@@ -251,23 +252,23 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
       const dbMetrics = response.data.data;
 
       // 验证数据库连接池指标
-      if (dbMetrics.connectionPoolSize !== undefined) {
+      if (dbMetrics._connectionPoolSize !== undefined) {
         expect(dbMetrics.connectionPoolSize).toBeGreaterThan(0);
         console.log(`数据库连接池大小: ${dbMetrics.connectionPoolSize}`);
       }
 
-      if (dbMetrics.activeConnections !== undefined) {
+      if (dbMetrics._activeConnections !== undefined) {
         expect(dbMetrics.activeConnections).toBeGreaterThanOrEqual(0);
         console.log(`活跃连接数: ${dbMetrics.activeConnections}`);
       }
 
       // 验证查询性能指标
-      if (dbMetrics.averageQueryTime !== undefined) {
+      if (dbMetrics._averageQueryTime !== undefined) {
         expect(dbMetrics.averageQueryTime).toBeGreaterThanOrEqual(0);
         console.log(`平均查询时间: ${dbMetrics.averageQueryTime}ms`);
       }
 
-      if (dbMetrics.totalQueries !== undefined) {
+      if (dbMetrics._totalQueries !== undefined) {
         expect(dbMetrics.totalQueries).toBeGreaterThanOrEqual(0);
         console.log(`总查询数: ${dbMetrics.totalQueries}`);
       }
@@ -290,7 +291,7 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
       }
 
       // 验证Redis连接数
-      if (redisMetrics.connectedClients !== undefined) {
+      if (redisMetrics._connectedClients !== undefined) {
         expect(redisMetrics.connectedClients).toBeGreaterThanOrEqual(0);
         console.log(`Redis连接数: ${redisMetrics.connectedClients}`);
       }
@@ -327,14 +328,14 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
       }
 
       // 验证堆内存
-      if (systemMetrics.heapUsed !== undefined && systemMetrics.heapTotal !== undefined) {
+      if (systemMetrics.heapUsed !== undefined && systemMetrics._heapTotal !== undefined) {
         expect(systemMetrics.heapUsed).toBeGreaterThan(0);
         expect(systemMetrics.heapTotal).toBeGreaterThan(systemMetrics.heapUsed);
         console.log(`堆内存: ${(systemMetrics.heapUsed / 1024 / 1024).toFixed(2)}MB / ${(systemMetrics.heapTotal / 1024 / 1024).toFixed(2)}MB`);
       }
 
       // 验证事件循环延迟
-      if (systemMetrics.eventLoopLag !== undefined) {
+      if (systemMetrics._eventLoopLag !== undefined) {
         expect(systemMetrics.eventLoopLag).toBeGreaterThanOrEqual(0);
         console.log(`事件循环延迟: ${systemMetrics.eventLoopLag}ms`);
       }
@@ -411,12 +412,12 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
         console.log(`缓存命中率: ${(cacheStats.hitRate * 100).toFixed(1)}%`);
       }
 
-      if (cacheStats.totalHits !== undefined) {
+      if (cacheStats._totalHits !== undefined) {
         expect(cacheStats.totalHits).toBeGreaterThanOrEqual(0);
         console.log(`缓存命中次数: ${cacheStats.totalHits}`);
       }
 
-      if (cacheStats.totalMisses !== undefined) {
+      if (cacheStats._totalMisses !== undefined) {
         expect(cacheStats.totalMisses).toBeGreaterThanOrEqual(0);
         console.log(`缓存未命中次数: ${cacheStats.totalMisses}`);
       }
@@ -524,7 +525,7 @@ describe("Real Environment Black-box: Monitoring & Performance E2E", () => {
       console.log(`手动健康检查结果: ${checkResult.status}`);
 
       // 验证检查执行时间
-      if (checkResult.checkDuration !== undefined) {
+      if (checkResult._checkDuration !== undefined) {
         expect(checkResult.checkDuration).toBeGreaterThanOrEqual(0);
         console.log(`检查执行时间: ${checkResult.checkDuration}ms`);
       }

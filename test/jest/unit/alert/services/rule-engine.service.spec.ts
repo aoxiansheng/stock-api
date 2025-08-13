@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { ConfigService } from "@nestjs/config";
@@ -551,12 +552,12 @@ describe("RuleEngineService Comprehensive Coverage", () => {
         threshold: 70 + i * 2, // Slightly different thresholds
       }));
 
-      const _metrics = [
+      const metrics = [
         { metric: "cpu.usage", value: 85, timestamp: new Date() },
       ];
 
       const startTime = Date.now();
-      const result = service.evaluateRules(similarRules, _metrics);
+      const result = service.evaluateRules(similarRules, metrics);
       const endTime = Date.now();
 
       expect(result).toHaveLength(10);
@@ -625,7 +626,7 @@ describe("RuleEngineService Comprehensive Coverage", () => {
 
     it.skip("should handle circular references in rule definitions", () => {
       const circularRule: any = { ...mockRule };
-      circularRule.self = circularRule; // Create circular reference
+      circularRule._self = circularRule; // Create circular reference
 
       const result = service.validateRule(circularRule);
 

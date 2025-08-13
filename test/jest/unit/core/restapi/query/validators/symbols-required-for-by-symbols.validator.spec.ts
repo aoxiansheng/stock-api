@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * SymbolsRequiredForBySymbolsQueryConstraint 单元测试
  * 测试根据查询类型验证必需字段的验证器
@@ -5,9 +6,9 @@
 
 import { ValidationArguments } from "class-validator";
 
-import { SymbolsRequiredForBySymbolsQueryConstraint } from "../../../../../../src/core/query/validators/symbols-required-for-by-symbols.validator";
-import { QueryRequestDto } from "../../../../../../src/core/query/dto/query-request.dto";
-import { QueryType } from "../../../../../../src/core/query/dto/query-types.dto";
+import { SymbolsRequiredForBySymbolsQueryConstraint } from "../../../../../../../src/core/restapi/query/validators/symbols-required-for-by-symbols.validator";
+import { QueryRequestDto } from "../../../../../../../src/core/restapi/query/dto/query-request.dto";
+import { QueryType } from "../../../../../../../src/core/restapi/query/dto/query-types.dto";
 
 describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
   let validator: SymbolsRequiredForBySymbolsQueryConstraint;
@@ -24,7 +25,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: ["AAPL", "700.HK"],
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -41,7 +42,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: [],
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -58,7 +59,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: undefined,
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -75,7 +76,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: null,
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -92,7 +93,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: "not-an-array",
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -110,7 +111,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
           value: validSymbols,
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -138,7 +139,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
             object: { queryType } as QueryRequestDto,
             property: "symbols",
             value: [],
-            constraints: [],
+            const_raints: [],
             targetName: "QueryRequestDto",
           };
 
@@ -155,7 +156,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
             object: { queryType } as QueryRequestDto,
             property: "symbols",
             value: undefined,
-            constraints: [],
+            const_raints: [],
             targetName: "QueryRequestDto",
           };
 
@@ -173,7 +174,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
             object: { queryType } as QueryRequestDto,
             property: "symbols",
             value: symbols,
-            constraints: [],
+            const_raints: [],
             targetName: "QueryRequestDto",
           };
 
@@ -193,7 +194,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: {} as QueryRequestDto, // 没有queryType
           property: "symbols",
           value: ["AAPL"],
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -210,7 +211,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
           object: null as any,
           property: "symbols",
           value: ["AAPL"],
-          constraints: [],
+          const_raints: [],
           targetName: "QueryRequestDto",
         };
 
@@ -227,7 +228,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
         property: "symbols",
         value: [],
-        constraints: [],
+        const_raints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -246,7 +247,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: { queryType: QueryType.BY_MARKET } as QueryRequestDto,
         property: "symbols",
         value: [],
-        constraints: [],
+        const_raints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -263,7 +264,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: {} as QueryRequestDto,
         property: "symbols",
         value: [],
-        constraints: [],
+        const_raints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -280,7 +281,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: null as any,
         property: "symbols",
         value: [],
-        constraints: [],
+        const_raints: [],
         targetName: "QueryRequestDto",
       };
 
@@ -296,7 +297,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         object: { queryType: undefined as any } as QueryRequestDto,
         property: "symbols",
         value: [],
-        constraints: [],
+        const_raints: [],
         targetName: "QueryRequestDto",
       };
 

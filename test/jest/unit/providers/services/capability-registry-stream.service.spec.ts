@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { createLogger } from '@common/config/logger.config';
 import { CapabilityRegistryService } from '../../../../../src/providers/services/capability-registry.service';
@@ -20,13 +21,13 @@ jest.mock('fs/promises', () => ({
   stat: jest.fn(),
 }));
 
-const { readdir, stat } = require('fs/promises');
+import { readdir, stat } from 'fs/promises';
 
 // Mock stream capability
 const mockStreamCapability: IStreamCapability = {
   name: 'stream-stock-quote',
   description: '获取股票实时报价数据流',
-  supportedMarkets: [MARKETS.HK, MARKETS.US],
+  supportedMarkets: [MARKETS.HK, MARKETS._US],
   supportedSymbolFormats: ['700.HK', 'AAPL.US'],
   rateLimit: {
     maxConnections: 100,
@@ -298,7 +299,7 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
       const capabilities = service.getAllStreamCapabilities();
       const registration = capabilities.get('longport')?.get('stream-stock-quote');
       expect(registration?.connectionStatus).toBe('connected');
-      expect(registration?.lastConnectedAt).toBeInstanceOf(Date);
+      expect(registration?._lastConnectedAt).toBeInstanceOf(Date);
       expect(registration?.errorCount).toBe(0);
       expect(mockLogger.log).toHaveBeenCalledWith({
         message: '流能力状态更新',
@@ -432,7 +433,7 @@ describe('CapabilityRegistryService - Stream Capabilities', () => {
       } as any;
 
       // Execute
-      await testService['loadStreamCapability']('test-provider', 'incomplete-stream', incompleteCapability);
+      await testService['loadStreamCapability']('test-provider', 'incomplete-stream', incomplet_eCapability);
 
       // Verify
       expect(mockLogger.warn).toHaveBeenCalledWith(

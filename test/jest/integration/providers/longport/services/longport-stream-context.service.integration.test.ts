@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@common/config/_logger.config';
 import { LongportStreamContextService } from '../../../../../../src/providers/longport/services/longport-stream-context.service';
 
 // Mock logger
@@ -19,7 +20,7 @@ let isLongPortAvailable = false;
 
 try {
   // 尝试加载真实的LongPort SDK
-  const longport = require('longport');
+  import longport from 'longport';
   if (longport && longport.Config && longport.QuoteContext) {
     isLongPortAvailable = true;
   }
@@ -59,7 +60,7 @@ describe('LongportStreamContextService Integration', () => {
               const config = {
                 LONGPORT_APP_KEY: process.env.LONGPORT_APP_KEY || 'test_key',
                 LONGPORT_APP_SECRET: process.env.LONGPORT_APP_SECRET || 'test_secret',
-                LONGPORT_ACCESS_TOKEN: process.env.LONGPORT_ACCESS_TOKEN || 'test_token',
+                LONGPORT_ACCESSTOKEN: process.env.LONGPORT_ACCESS_TOKEN || 'test_token',
               };
               return config[key];
             }),
@@ -89,12 +90,12 @@ describe('LongportStreamContextService Integration', () => {
     });
 
     it('should have correct service methods', () => {
-      expect(service.initializeWebSocket).toBeDefined();
+      expect(service._initializeWebSocket).toBeDefined();
       expect(service.subscribe).toBeDefined();
       expect(service.unsubscribe).toBeDefined();
-      expect(service.onQuoteUpdate).toBeDefined();
-      expect(service.isWebSocketConnected).toBeDefined();
-      expect(service.getSubscribedSymbols).toBeDefined();
+      expect(service._onQuoteUpdate).toBeDefined();
+      expect(service._isWebSocketConnected).toBeDefined();
+      expect(service._getSubscribedSymbols).toBeDefined();
       expect(service.cleanup).toBeDefined();
     });
   });
@@ -138,7 +139,7 @@ describe('LongportStreamContextService Integration', () => {
     it('should initialize WebSocket connection', async () => {
       if (!isLongPortAvailable) {
         // Mock环境下的测试
-        const { Config, QuoteContext } = require('longport');
+        import { Config, QuoteContext } from 'longport';
         Config.fromEnv.mockReturnValue({ test: 'config' });
         
         const mockQuoteContext = {
@@ -165,7 +166,7 @@ describe('LongportStreamContextService Integration', () => {
 
     it('should handle connection initialization failure', async () => {
       if (!isLongPortAvailable) {
-        const { Config } = require('longport');
+        import { Config } from 'longport';
         Config.fromEnv.mockImplementation(() => {
           throw new Error('Configuration error');
         });
@@ -182,7 +183,7 @@ describe('LongportStreamContextService Integration', () => {
     it('should prevent duplicate initialization', async () => {
       if (!isLongPortAvailable) {
         // Mock已连接状态
-        const { Config, QuoteContext } = require('longport');
+        import { Config, QuoteContext } from 'longport';
         Config.fromEnv.mockReturnValue({ test: 'config' });
         QuoteContext.new.mockResolvedValue({
           setOnQuote: jest.fn(),
@@ -203,7 +204,7 @@ describe('LongportStreamContextService Integration', () => {
   describe('Symbol Subscription Management', () => {
     beforeEach(async () => {
       if (!isLongPortAvailable) {
-        const { Config, QuoteContext } = require('longport');
+        import { Config, QuoteContext } from 'longport';
         Config.fromEnv.mockReturnValue({ test: 'config' });
         
         const mockQuoteContext = {
@@ -305,7 +306,7 @@ describe('LongportStreamContextService Integration', () => {
         // 模拟报价事件
         const mockEvent = {
           symbol: '700.HK',
-          last_done: 350.5,
+          lastdone: 350.5,
           volume: 1000,
           timestamp: Date.now(),
         };
@@ -319,7 +320,7 @@ describe('LongportStreamContextService Integration', () => {
             symbol: '700.HK',
             last_done: 350.5,
             volume: 1000,
-            _provider: 'longport',
+            provider: 'longport',
           })
         );
         expect(callback2).toHaveBeenCalledWith(
@@ -327,7 +328,7 @@ describe('LongportStreamContextService Integration', () => {
             symbol: '700.HK',
             last_done: 350.5,
             volume: 1000,
-            _provider: 'longport',
+            provider: 'longport',
           })
         );
       }
@@ -366,7 +367,7 @@ describe('LongportStreamContextService Integration', () => {
         const objectEvent = {
           symbol: '700.HK',
           last_done: 350.5,
-          prev_close: 340.0,
+          prevclose: 340.0,
           volume: 1000,
           timestamp: 1640995200000,
         };
@@ -381,8 +382,8 @@ describe('LongportStreamContextService Integration', () => {
             prev_close: 340.0,
             volume: 1000,
             timestamp: 1640995200000,
-            _provider: 'longport',
-            _raw: objectEvent,
+            provider: 'longport',
+            raw: objectEvent,
           })
         );
       }
@@ -402,9 +403,9 @@ describe('LongportStreamContextService Integration', () => {
         expect(callback).toHaveBeenCalledWith(
           expect.objectContaining({
             symbol: 'UNKNOWN',
-            _provider: 'longport',
-            _error: 'parse_failed',
-            _raw: invalidEvent,
+            provider: 'longport',
+            error: 'parse_failed',
+            raw: invalidEvent,
           })
         );
 
@@ -439,7 +440,7 @@ describe('LongportStreamContextService Integration', () => {
             last_done: 351.0,        // lastPrice 优先于 price
             prev_close: 340.0,
             volume: 1000,
-            _provider: 'longport',
+            provider: 'longport',
           })
         );
       }
@@ -449,7 +450,7 @@ describe('LongportStreamContextService Integration', () => {
   describe('Error Handling and Recovery', () => {
     it('should handle subscription failures', async () => {
       if (!isLongPortAvailable) {
-        const { QuoteContext } = require('longport');
+        import { QuoteContext } from 'longport';
         const mockQuoteContext = {
           setOnQuote: jest.fn(),
           setOnConnected: jest.fn(),
@@ -505,7 +506,7 @@ describe('LongportStreamContextService Integration', () => {
         await service.subscribe(symbols);
 
         // Mock unsubscribe to fail
-        const { QuoteContext } = require('longport');
+        import { QuoteContext } from 'longport';
         const mockContext = QuoteContext.new.mock.results[QuoteContext.new.mock.results.length - 1].value;
         mockContext.unsubscribe.mockRejectedValue(new Error('Cleanup error'));
 

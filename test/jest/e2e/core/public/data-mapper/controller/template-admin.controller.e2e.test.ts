@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * TemplateAdminController 端到端测试
  * 测试数据源模板管理功能
@@ -17,7 +18,7 @@ describe("TemplateAdminController E2E", () => {
     const { apiKey: testApiKey, jwtToken: testJwtToken } = await global.createTestCredentials({
       role: "developer"
     }, {
-      permissions: ["data:read", "query:execute", "providers:read"]
+      permissions: ["data:read", "_query:execute", "_providers:read"]
     });
     apiKey = testApiKey;
     jwtToken = testJwtToken;
@@ -50,7 +51,7 @@ describe("TemplateAdminController E2E", () => {
             volume: 11292534,
             turnover: 6334567890,
             timestamp: "2024-08-11T10:00:00Z",
-            trade_status: "NORMAL"
+            tradestatus: "NORMAL"
           },
           extractedFields: [
             {
@@ -328,10 +329,10 @@ describe("TemplateAdminController E2E", () => {
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
         
-        expect(result).toHaveProperty("items");
+        expect(result).toHaveProperty("_items");
         expect(result).toHaveProperty("pagination");
         const { pagination } = result;
-        expect(pagination).toHaveProperty("total");
+        expect(pagination).toHaveProperty("_total");
         expect(pagination).toHaveProperty("page");
         expect(pagination).toHaveProperty("limit");
         expect(pagination).toHaveProperty("totalPages");
@@ -675,11 +676,11 @@ describe("TemplateAdminController E2E", () => {
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
         
-        expect(result).toHaveProperty("totalTemplates");
-        expect(result).toHaveProperty("templatesByProvider");
-        expect(result).toHaveProperty("templatesByApiType");
-        expect(result).toHaveProperty("activeTemplates");
-        expect(result).toHaveProperty("presetTemplates");
+        expect(result).toHaveProperty("_totalTemplates");
+        expect(result).toHaveProperty("_templatesByProvider");
+        expect(result).toHaveProperty("_templatesByApiType");
+        expect(result).toHaveProperty("_activeTemplates");
+        expect(result).toHaveProperty("_presetTemplates");
         
         expect(typeof result.totalTemplates).toBe("number");
         expect(typeof result.templatesByProvider).toBe("object");

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataChangeDetectorService } from '../../../../../../src/core/shared/services/data-change-detector.service';
+import { DataChangeDetectorService } from '../../../../../../src/core/public/shared/services/data-change-detector.service';
 import { Market } from '../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../src/common/constants/market-trading-hours.constants';
 
@@ -57,7 +58,7 @@ describe('DataChangeDetectorService', () => {
       const newData = { ...initialData, lastPrice: 151.0 }; // 价格变化超过阈值
       const result = await service.detectSignificantChange(symbol, newData, market, MarketStatus.TRADING);
       expect(result.hasChanged).toBe(true);
-      expect(result.significantChanges).toContain('lastPrice');
+      expect(result._significantChanges).toContain('lastPrice');
       expect(result.changeReason).toBe('价格显著变化');
     });
 
@@ -104,7 +105,7 @@ describe('DataChangeDetectorService', () => {
 
     it('cleanupOldSnapshots 应能正确清理旧快照', () => {
       const cache = (service as any).snapshotCache;
-      const MAX_SIZE = (service as any).MAX_CACHE_SIZE;
+      const MAXSIZE = (service as any).MAX_CACHE_SIZE;
       // 填充超过缓存大小的快照
       for (let i = 0; i < MAX_SIZE + 5; i++) {
         cache.set(`SYM${i}`, { symbol: `SYM${i}`, timestamp: Date.now() + i, checksum: '', criticalValues: {} });

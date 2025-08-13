@@ -139,8 +139,8 @@ beforeEach(async () => {
       await redisClient.flushdb();
       await redisClient.config("RESETSTAT");
     }
-  } catch (_error) {
-    console.warn("⚠️ E2E测试数据清理失败:", (_error as Error).message);
+  } catch (error) {
+    console.warn("⚠️ E2E测试数据清理失败:", (error as Error).message);
   }
 });
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { plainToClass } from "class-transformer";
 import { validate } from "class-validator";
 import {
@@ -19,8 +20,8 @@ describe("NotificationChannelDTOs", () => {
     it("should pass validation with valid data", async () => {
       const dto = plainToClass(NotificationChannelDto, {
         name: "test-channel",
-        type: NotificationChannelType.SLACK,
-        config: { webhook_url: "http://slack.com/webhook", channel: "general" },
+        type: NotificationChannelType._SLACK,
+        config: { webhookurl: "http://slack.com/webhook", channel: "general" },
         enabled: true,
       });
       const errors = await validate(dto);
@@ -84,7 +85,7 @@ describe("NotificationChannelDTOs", () => {
     it("CreateNotificationChannelDto should pass validation", async () => {
       const dto = plainToClass(CreateNotificationChannelDto, {
         name: "test-channel",
-        type: NotificationChannelType.EMAIL,
+        type: NotificationChannelType._EMAIL,
         config: { to: "test@example.com", subject: "Test" },
         enabled: true,
       });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // require-apikey.decorator.integration.test.ts - 测试占位代码
 // 路径: integration/auth/decorators/require-apikey.decorator.integration.test.ts
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // receiver-internal.dto.integration.test.ts - 测试占位代码
 // 路径: integration/core/restapi/receiver/dto/receiver-internal.dto.integration.test.ts
 

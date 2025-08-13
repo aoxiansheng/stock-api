@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockQuote } from '../../../../../../src/providers/longport/capabilities/get-stock-quote';
 import { MARKETS } from '../../../../../../src/common/constants/market.constants';
 
@@ -14,12 +15,12 @@ describe('getStockQuote', () => {
     jest.clearAllMocks();
   });
 
-  it('should have correct name, description, and supported markets/formats', () => {
+  it('should have correct _name, _description, and supported markets/formats', () => {
     expect(getStockQuote.name).toBe('get-stock-quote');
     expect(getStockQuote.description).toBe('获取股票实时报价数据');
-    expect(getStockQuote.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US]);
-    expect(getStockQuote.supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
-    expect(getStockQuote.rateLimit).toEqual({
+    expect(getStockQuote._supportedMarkets).toEqual([MARKETS._HK, MARKETS._SZ, MARKETS._SH, MARKETS.US]);
+    expect(getStockQuote._supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
+    expect(getStockQuote._rateLimit).toEqual({
       requestsPerSecond: 10,
       requestsPerDay: 10000,
     });
@@ -67,15 +68,15 @@ describe('getStockQuote', () => {
       secu_quote: [
         {
           symbol: '700.HK',
-          last_done: 300,
-          prev_close: 290,
+          lastdone: 300,
+          prevclose: 290,
           open: 295,
           high: 305,
           low: 285,
           volume: 10000000,
           turnover: 3000000000,
           timestamp: 1678886400,
-          trade_status: 'TRADING',
+          tradestatus: 'TRADING',
         },
         {
           symbol: 'AAPL.US',

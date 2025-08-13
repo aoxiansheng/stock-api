@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { PerformanceMetricsRepository } from "../../../../../src/metrics/repositories/performance-metrics.repository";
@@ -21,9 +22,9 @@ describe("PerformanceMetricsRepository - Comprehensive Coverage", () => {
       lpush: jest.fn().mockReturnThis(),
       ltrim: jest.fn().mockReturnThis(),
       expire: jest.fn().mockReturnThis(),
-      zadd: jest.fn().mockReturnThis(),
+      _zadd: jest.fn().mockReturnThis(),
       zremrangebyrank: jest.fn().mockReturnThis(),
-      zremrangebyscore: jest.fn().mockReturnThis(),
+      _zremrangebyscore: jest.fn().mockReturnThis(),
       exec: jest.fn().mockResolvedValue([]),
     };
 
@@ -432,7 +433,7 @@ describe("PerformanceMetricsRepository - Comprehensive Coverage", () => {
       mockRedis.zrangebyscore.mockResolvedValue([
         "1234567890000:100",
         "1234567891000:150",
-        "1234567892000:200",
+        "_1234567892000:200",
       ]);
 
       const result = await repository.getDatabaseQueryTimes();
@@ -449,7 +450,7 @@ describe("PerformanceMetricsRepository - Comprehensive Coverage", () => {
       const startTime = new Date("2023-01-01").getTime();
       const endTime = new Date("2023-01-02").getTime();
 
-      mockRedis.zrangebyscore.mockResolvedValue(["1672531200000:75"]);
+      mockRedis.zrangebyscore.mockResolvedValue(["_1672531200000:75"]);
 
       const result = await repository.getDatabaseQueryTimes(
         "2023-01-01",
@@ -506,8 +507,8 @@ describe("PerformanceMetricsRepository - Comprehensive Coverage", () => {
       mockRedis.ping.mockResolvedValue("PONG");
       mockRedis.info
         .mockResolvedValueOnce("used_memory:1048576\r\n")
-        .mockResolvedValueOnce("total_commands_processed:1000\r\n")
-        .mockResolvedValueOnce("connected_clients:5\r\n");
+        .mockResolvedValueOnce("total_commandsprocessed:1000\r\n")
+        .mockResolvedValueOnce("connectedclients:5\r\n");
 
       const result = await repository.getRedisInfoPayload();
 

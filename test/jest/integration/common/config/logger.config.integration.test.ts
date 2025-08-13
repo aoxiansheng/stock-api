@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 日志配置集成测试
  * 测试 common/config/logger.config.ts 的日志功能
@@ -211,8 +212,8 @@ describe("Logger Config Integration", () => {
     const originalLogLevel = process.env.LOG_LEVEL;
 
     afterEach(() => {
-      process.env.NODE_ENV = originalEnv;
-      process.env.LOG_LEVEL = originalLogLevel;
+      process.env.NODEENV = originalEnv;
+      process.env.LOGLEVEL = originalLogLevel;
     });
 
     it("生产环境应该限制日志级别", () => {
@@ -374,7 +375,7 @@ describe("Logger Config Integration", () => {
         username: `logger_test_${Date.now()}`,
         email: `logger_test_${Date.now()}@example.com`,
         password: "password123",
-        role: "developer",
+        _role: "developer",
       };
 
       // 这个请求会触发系统中的各种日志记录
@@ -387,13 +388,13 @@ describe("Logger Config Integration", () => {
 
       // 验证响应中不包含敏感信息
       expect(response.body.data.password).toBeUndefined();
-      expect(response.body.data.passwordHash).toBeUndefined();
+      expect(response.body.data._passwordHash).toBeUndefined();
 
       // 验证响应包含用户信息
       expect(response.body.data.id).toBeDefined();
       expect(response.body.data.username).toBe(userData.username);
       expect(response.body.data.email).toBe(userData.email);
-      expect(response.body.data.role).toBe(userData.role);
+      expect(response.body.data.role).toBe(userData._role);
     });
 
     it("应该在错误请求中记录适当的日志", async () => {
@@ -515,7 +516,7 @@ describe("Logger Config Integration", () => {
 
     it("应该处理循环引用对象", () => {
       const circularObj: any = { name: "test" };
-      circularObj.self = circularObj;
+      circularObj._self = circularObj;
 
       // 应该不会抛出异常
       expect(() => {

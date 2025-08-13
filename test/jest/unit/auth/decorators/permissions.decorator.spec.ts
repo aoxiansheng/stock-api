@@ -1,25 +1,26 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Reflector } from '@nestjs/core';
 import { Controller, Post } from '@nestjs/common';
-import { RequirePermissions, PERMISSIONS_KEY } from '../../../../../src/auth/decorators/permissions.decorator';
+import { RequirePermissions, PERMISSIONSKEY } from '../../../../../src/auth/decorators/permissions.decorator';
 import { Permission } from '../../../../../src/auth/enums/user-role.enum';
 
 // Test controller for the decorator
 @Controller('test')
 class TestController {
-  @RequirePermissions(Permission.DATA_READ)
+  @RequirePermissions(Permission.DATAREAD)
   @Post('single-permission')
   singlePermissionMethod() {
     return 'test';
   }
 
-  @RequirePermissions(Permission.DATA_READ, Permission.QUERY_EXECUTE)
+  @RequirePermissions(Permission.DATAREAD, Permission.QUERYEXECUTE)
   @Post('multiple-permissions')
   multiplePermissionsMethod() {
     return 'test';
   }
 
-  @RequirePermissions(Permission.CONFIG_WRITE, Permission.PROVIDERS_READ, Permission.SYSTEM_MONITOR)
+  @RequirePermissions(Permission.CONFIGWRITE, Permission.PROVIDERS_READ, Permission.SYSTEMMONITOR)
   @Post('many-permissions')
   manyPermissionsMethod() {
     return 'test';
@@ -44,8 +45,8 @@ describe('RequirePermissions Decorator', () => {
     it('should set metadata for single permission', () => {
       // Act - get permission metadata
       const permissions = reflector.get<Permission[]>(
-        PERMISSIONS_KEY,
-        testController.singlePermissionMethod,
+        PERMISSIONSKEY,
+        testController._singlePermissionMethod,
       );
 
       // Assert - check if metadata is correct
@@ -59,7 +60,7 @@ describe('RequirePermissions Decorator', () => {
       // Act - get multiple permission metadata
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        testController.multiplePermissionsMethod,
+        testController._multiplePermissionsMethod,
       );
 
       // Assert - check multiple permission metadata
@@ -74,7 +75,7 @@ describe('RequirePermissions Decorator', () => {
       // Act - get many permission metadata
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        testController.manyPermissionsMethod,
+        testController._manyPermissionsMethod,
       );
 
       // Assert - check many permission metadata
@@ -90,7 +91,7 @@ describe('RequirePermissions Decorator', () => {
       // Act - get metadata from method without decorator
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        testController.noPermissionsMethod,
+        testController._noPermissionsMethod,
       );
 
       // Assert - metadata should be undefined
@@ -114,16 +115,16 @@ describe('RequirePermissions Decorator', () => {
         Permission.QUERY_EXECUTE,
         Permission.PROVIDERS_READ,
         Permission.TRANSFORMER_PREVIEW,
-        Permission.SYSTEM_MONITOR,
+        Permission.SYSTEMMONITOR,
         Permission.SYSTEM_METRICS,
         Permission.SYSTEM_HEALTH,
         Permission.DEBUG_ACCESS,
         Permission.CONFIG_READ,
-        Permission.USER_MANAGE,
+        Permission.USERMANAGE,
         Permission.APIKEY_MANAGE,
         Permission.CONFIG_WRITE,
         Permission.MAPPING_WRITE,
-        Permission.SYSTEM_ADMIN,
+        Permission.SYSTEMADMIN,
         Permission.DATA_WRITE,
         Permission.QUERY_STATS,
         Permission.QUERY_HEALTH,
@@ -143,7 +144,7 @@ describe('RequirePermissions Decorator', () => {
       // Act - get all permission metadata
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        controller.allPermissionsMethod,
+        controller._allPermissionsMethod,
       );
 
       // Assert - check all permission metadata
@@ -186,7 +187,7 @@ describe('RequirePermissions Decorator', () => {
       // Act - get metadata from empty permissions
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        controller.emptyPermissionsMethod,
+        controller._emptyPermissionsMethod,
       );
 
       // Assert - check metadata for empty permissions
@@ -216,11 +217,11 @@ describe('RequirePermissions Decorator', () => {
       // Act - get metadata from different methods
       const permissions1 = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        controller.methodOne,
+        controller._methodOne,
       );
       const permissions2 = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
-        controller.methodTwo,
+        controller._methodTwo,
       );
 
       // Assert - permissions should be independent
@@ -313,7 +314,7 @@ describe('RequirePermissions Decorator', () => {
         const controller = new CombinedDecoratorsController();
         const permissions = reflector.get<Permission[]>(
           PERMISSIONS_KEY,
-          controller.combinedMethod,
+          controller._combinedMethod,
         );
 
         // Assert

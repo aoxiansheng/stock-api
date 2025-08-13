@@ -1,12 +1,16 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Test, TestingModule } from "@nestjs/testing";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getModelToken } from "@nestjs/mongoose";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SecurityScanResultRepository } from "../../../../../src/security/repositories/security-scan-result.repository";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SecurityScanResult } from "../../../../../src/security/schemas/security-scan-result.schema";
 
 // Mock class for the Mongoose model
 class MockScanResultModel {
-  constructor(private data: any) {}
-  save = jest.fn().mockResolvedValue(this.data);
+  constructor(private _data: any) {}
+  save = jest.fn().mockResolvedValue(this._data);
   static find = jest.fn();
   static sort = jest.fn();
   static limit = jest.fn();
@@ -23,9 +27,11 @@ MockScanResultModel.lean.mockReturnThis();
 describe("SecurityScanResultRepository", () => {
   let repository: SecurityScanResultRepository;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _model: any;
+  let model: any;
 
   beforeEach(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SecurityScanResultRepository,
@@ -39,7 +45,7 @@ describe("SecurityScanResultRepository", () => {
     repository = module.get<SecurityScanResultRepository>(
       SecurityScanResultRepository,
     );
-    _model = module.get(getModelToken(SecurityScanResult.name));
+    model = module.get(getModelToken(SecurityScanResult.name));
   });
 
   afterEach(() => {

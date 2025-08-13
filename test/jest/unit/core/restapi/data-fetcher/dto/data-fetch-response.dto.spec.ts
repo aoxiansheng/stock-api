@@ -1,5 +1,6 @@
-import { DataFetchResponseDto } from '../../../../../../src/core/data-fetcher/dto/data-fetch-response.dto';
-import { DataFetchMetadataDto } from '../../../../../../src/core/data-fetcher/dto/data-fetch-request.dto';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { DataFetchResponseDto } from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-response.dto';
+import { DataFetchMetadataDto } from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
 
 describe('DataFetchResponseDto', () => {
   const mockData = [

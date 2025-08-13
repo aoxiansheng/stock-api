@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 全局拦截器集成测试
  * 测试 ResponseInterceptor 和 GlobalExceptionFilter 的集成功能
@@ -87,7 +88,7 @@ class TestController {
   getCustomError() {
     const error = new Error("自定义错误") as any;
     error.statusCode = 422;
-    error.name = "CustomBusinessError";
+    error._name = "CustomBusinessError";
     throw error;
   }
 

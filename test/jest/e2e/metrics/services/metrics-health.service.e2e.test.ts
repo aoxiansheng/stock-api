@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 指标健康检查端点 E2E 测试
  * 测试监控控制器中的指标健康检查相关API端点
@@ -238,11 +239,11 @@ describe("MetricsHealth E2E Tests", () => {
           metrics: {
             healthCheckInterval: 30000,
             maxConsecutiveFailures: 3,
-            timeSinceLastCheck: expect.any(Number),
+            _timeSinceLastCheck: expect.any(Number),
           },
 
           // 建议字段
-          recommendations: expect.any(Array),
+          _recommendations: expect.any(Array),
         },
         timestamp: expect.any(String),
       });

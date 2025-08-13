@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
-import { StreamDataFetcherService } from '../../../../../../src/core/stream-data-fetcher/services/stream-data-fetcher.service';
-import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
-import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { StreamDataFetcherService } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-fetcher.service';
+import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import {
   StreamConnectionParams,
   StreamConnection,
   StreamConnectionException,
   StreamSubscriptionException,
-} from '../../../../../../src/core/stream-data-fetcher/interfaces';
+} from '../../../../../../../src/core/stream/stream-data-fetcher/interfaces';
 
 describe('StreamDataFetcherService', () => {
   let service: StreamDataFetcherService;
@@ -24,7 +25,7 @@ describe('StreamDataFetcherService', () => {
     // 创建mock对象
     mockCapabilityInstance = {
       initialize: jest.fn().mockResolvedValue(undefined),
-      isConnected: jest.fn().mockReturnValue(true),
+      _isConnected: jest.fn().mockReturnValue(true),
       subscribe: jest.fn().mockResolvedValue(undefined),
       unsubscribe: jest.fn().mockResolvedValue(undefined),
       close: jest.fn().mockResolvedValue(undefined),
@@ -48,7 +49,7 @@ describe('StreamDataFetcherService', () => {
       // Mock the actual metric properties from MetricsRegistryService
       receiverProcessingDuration: {
         labels: jest.fn().mockReturnThis(),
-        observe: jest.fn(),
+        _observe: jest.fn(),
       },
       receiverRequestsTotal: {
         labels: jest.fn().mockReturnThis(),
@@ -210,7 +211,7 @@ describe('StreamDataFetcherService', () => {
 
     it('应该在连接不活跃时抛出异常', async () => {
       // Arrange
-      connection.isConnected = false;
+      connection._isConnected = false;
 
       // Act & Assert
       await expect(service.subscribeToSymbols(connection, testSymbols)).rejects.toThrow(
@@ -382,10 +383,10 @@ describe('StreamDataFetcherService', () => {
       // Assert
       expect(stats).toBeDefined();
       expect(stats.connectionId).toBe(connection.id);
-      expect(stats.status).toBeDefined();
-      expect(stats.connectionDurationMs).toBeGreaterThanOrEqual(0);
-      expect(stats.messagesReceived).toBe(0);
-      expect(stats.subscribedSymbolsCount).toBe(0);
+      expect(stats._status).toBeDefined();
+      expect(stats._connectionDurationMs).toBeGreaterThanOrEqual(0);
+      expect(stats._messagesReceived).toBe(0);
+      expect(stats._subscribedSymbolsCount).toBe(0);
     });
   });
 

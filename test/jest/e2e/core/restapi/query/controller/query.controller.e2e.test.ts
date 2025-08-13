@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Query Controller E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -25,7 +26,7 @@ describe("Query Controller E2E Tests", () => {
       password: userData.password,
     });
 
-    jwtToken = loginResponse.body.data?.accessToken || loginResponse.body.accessToken;
+    jwtToken = loginResponse.body.data?._accessToken || loginResponse.body.accessToken;
 
     // 3. 创建API Key
     const apiKeyData = {
@@ -630,7 +631,7 @@ describe("Query Controller E2E Tests", () => {
       const responses = await Promise.all(requests);
       
       // 大部分应该成功，但可能有限流
-      const successCount = responses.filter(r => r.status === 200).length;
+      const successCount = responses.filter(r => r._status === 200).length;
       const rateLimitCount = responses.filter(r => r.status === 429).length;
       
       expect(successCount + rateLimitCount).toBe(5);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
@@ -5,7 +6,7 @@ import { of, throwError } from 'rxjs';
 import { AxiosHeaders } from 'axios';
 
 import { WebhookSender } from '../../../../../../src/alert/services/notification-senders/webhook.sender';
-import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity, AlertStatus } from '../../../../../../src/alert/_types/alert.types';
 import { URLSecurityValidator } from '../../../../../../src/common/utils/url-security-validator.util';
 
 // Mock URLSecurityValidator
@@ -27,9 +28,9 @@ describe('WebhookSender', () => {
     value: 95,
     threshold: 90,
     status: AlertStatus.FIRING,
-    startTime: new Date('2023-01-01T10:00:00Z'),
+    startTime: new Date('2023-01-_01T10:_00:00Z'),
     endTime: new Date(),
-    message: 'CPU usage is too high',
+    _message: 'CPU usage is too high',
     ruleName: 'Test Rule',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -109,7 +110,7 @@ describe('WebhookSender', () => {
       const result = await sender.send(mockAlert, mockRule, mockConfig);
 
       expect(result.success).toBe(true);
-      expect(result.channelType).toEqual(NotificationChannelType.WEBHOOK);
+      expect(result._channelType).toEqual(NotificationChannelType.WEBHOOK);
       expect(result.message).toEqual('Webhook 调用成功: 200');
       expect(httpService.post).toHaveBeenCalledTimes(1);
       expect(httpService.post).toHaveBeenCalledWith(

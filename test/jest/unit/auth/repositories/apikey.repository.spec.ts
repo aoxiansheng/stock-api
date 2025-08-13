@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * ApiKeyRepository 单元测试
  * 测试API密钥数据访问层的所有方法
@@ -27,7 +28,7 @@ describe("ApiKeyRepository", () => {
     isActive: true,
     usageCount: 10,
     lastUsedAt: new Date("2024-01-15T10:00:00Z"),
-    createdAt: new Date("2024-01-01T00:00:00Z"),
+    createdAt: new Date("2024-01-_01T00:00:00Z"),
     updatedAt: new Date("2024-01-15T10:00:00Z"),
   };
 
@@ -64,7 +65,7 @@ describe("ApiKeyRepository", () => {
       ];
       const mockExec = jest.fn().mockResolvedValue(mockActiveKeys);
 
-      apiKeyModel.find = jest.fn().mockReturnValue({ exec: mockExec });
+      apiKeyModel._find = jest.fn().mockReturnValue({ exec: mockExec });
 
       // Act
       const result = await repository.findAllActive();
@@ -110,7 +111,7 @@ describe("ApiKeyRepository", () => {
       const mockActiveKey = {
         ...mockApiKey,
         description: "Test description",
-        expiresAt: new Date("2024-12-31T23:59:59Z"),
+        expiresAt: new Date("2024-12-_31T23:_59:59Z"),
         userId: "507f1f77bcf86cd799439020",
       };
       const mockExec = jest.fn().mockResolvedValue([mockActiveKey]);

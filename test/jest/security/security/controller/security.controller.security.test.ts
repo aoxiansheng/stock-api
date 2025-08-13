@@ -216,7 +216,7 @@ describe("Security Controller Security Tests", () => {
           severity: "high",
           action: "test",
           metadata: {
-            __proto__: { admin: true },
+            _proto: { admin: true },
           },
         },
       ];

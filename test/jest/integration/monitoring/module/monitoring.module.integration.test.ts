@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Monitoring模块认证集成测试
  * 测试监控系统与认证系统的集成功能
@@ -50,10 +51,10 @@ describe("Monitoring Auth Integration", () => {
     try {
       // 清理创建的用户
       if (adminUser) {
-        await userModel.deleteOne({ _id: adminUser.id });
+        await userModel.deleteOne({ id: adminUser.id });
       }
       if (developerUser) {
-        await userModel.deleteOne({ _id: developerUser.id });
+        await userModel.deleteOne({ id: developerUser.id });
       }
 
       // 清理创建的API Key
@@ -93,7 +94,7 @@ describe("Monitoring Auth Integration", () => {
       username: adminUser.username,
       password: "admin123",
     });
-    adminToken = adminLogin.accessToken;
+    adminToken = adminLogin._accessToken;
 
     const developerLogin = await authService.login({
       username: developerUser.username,
@@ -115,16 +116,16 @@ describe("Monitoring Auth Integration", () => {
           name: "Test Monitoring API Key",
           permissions: [
             Permission.SYSTEM_ADMIN,
-            Permission.SYSTEM_HEALTH,
-            Permission.DATA_READ,
-            Permission.QUERY_EXECUTE,
+            Permission.SYSTEMHEALTH,
+            Permission.DATAREAD,
+            Permission.QUERYEXECUTE,
           ],
         });
 
       if (response.status === 201) {
         const validatedResponse = validateApiKeyCreationResponse(response.body);
-        (global as any).testApiKey = validatedResponse.data.appKey;
-        (global as any).testApiSecret = validatedResponse.data.accessToken;
+        (global as any)._testApiKey = validatedResponse.data._appKey;
+        (global as any)._testApiSecret = validatedResponse.data.accessToken;
 
         console.log("✅ 测试API Key创建成功", {
           appKey: validatedResponse.data.appKey.substring(0, 12) + "...",
@@ -171,7 +172,7 @@ describe("Monitoring Auth Integration", () => {
         if (endpoint === "/api/v1/monitoring/health") {
           expect(response.body.data).toMatchObject({
             status: expect.any(String),
-            timestamp: expect.any(String),
+            _timestamp: expect.any(String),
             uptime: expect.any(Number),
             version: expect.any(String),
             message: expect.any(String),
@@ -343,8 +344,8 @@ describe("Monitoring Auth Integration", () => {
       const validatedResponse = validateEndpointMetricsResponse(response.body);
 
       // 验证性能指标包含认证相关的信息
-      expect(validatedResponse.data.metrics).toBeDefined();
-      expect(validatedResponse.data.total).toBeGreaterThanOrEqual(0);
+      expect(validatedResponse.data._metrics).toBeDefined();
+      expect(validatedResponse.data._total).toBeGreaterThanOrEqual(0);
     });
 
     it("应该监控认证失败的统计", async () => {
@@ -431,9 +432,9 @@ describe("Monitoring Auth Integration", () => {
 
       // Assert - 验证性能指标响应结构
       const validatedResponse = validatePerformanceMetricsResponse(
-        response.body,
+        response._body,
       );
-      expect(validatedResponse.data.summary).toBeDefined();
+      expect(validatedResponse.data._summary).toBeDefined();
     });
 
     it("应该监控JWT Token认证的系统指标", async () => {

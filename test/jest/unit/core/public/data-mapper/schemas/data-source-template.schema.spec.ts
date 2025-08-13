@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import mongoose from "mongoose";
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
@@ -8,7 +9,7 @@ import {
   DataSourceTemplateSchema,
   ExtractedField,
   ExtractedFieldSchema
-} from "../../../../../../src/core/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
 
 describe("DataSourceTemplateSchema", () => {
   let mongod: MongoMemoryServer;
@@ -67,7 +68,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(savedTemplate.provider).toBe("longport");
       expect(savedTemplate.apiType).toBe("stream");
       expect(savedTemplate.confidence).toBe(0.95);
-      expect(savedTemplate.isActive).toBe(true); // default value
+      expect(savedTemplate._isActive).toBe(true); // default value
       expect(savedTemplate.isDefault).toBe(false); // default value
       expect(savedTemplate.usageCount).toBe(0); // default value
     });
@@ -83,7 +84,7 @@ describe("DataSourceTemplateSchema", () => {
       }
 
       expect(error).toBeDefined();
-      expect(error.errors).toBeDefined();
+      expect(error._errors).toBeDefined();
     });
 
     it("should fail validation with invalid apiType", async () => {
@@ -220,7 +221,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(savedTemplate.isPreset).toBe(true);
       expect(savedTemplate.usageCount).toBe(10);
       expect(savedTemplate.description).toBeUndefined();
-      expect(savedTemplate.lastUsedAt).toBeUndefined();
+      expect(savedTemplate._lastUsedAt).toBeUndefined();
     });
 
     it("should auto-generate timestamps", async () => {
@@ -258,7 +259,7 @@ describe("DataSourceTemplateSchema", () => {
 
       // Wait a moment and update
       await new Promise(resolve => setTimeout(resolve, 10));
-      savedTemplate.usageCount = 1;
+      savedTemplate._usageCount = 1;
       const updatedTemplate = await savedTemplate.save();
 
       expect(updatedTemplate.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());

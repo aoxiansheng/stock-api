@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockBasicInfo } from '../../../../../../src/providers/longport/capabilities/get-stock-basic-info';
 import { MARKETS } from '../../../../../../src/common/constants/market.constants';
 
@@ -14,12 +15,12 @@ describe('getStockBasicInfo', () => {
     jest.clearAllMocks();
   });
 
-  it('should have correct name, description, and supported markets/formats', () => {
+  it('should have correct _name, _description, and supported markets/formats', () => {
     expect(getStockBasicInfo.name).toBe('get-stock-basic-info');
     expect(getStockBasicInfo.description).toBe('获取股票基本信息');
-    expect(getStockBasicInfo.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US]);
-    expect(getStockBasicInfo.supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
-    expect(getStockBasicInfo.rateLimit).toEqual({
+    expect(getStockBasicInfo._supportedMarkets).toEqual([MARKETS._HK, MARKETS._SZ, MARKETS._SH, MARKETS.US]);
+    expect(getStockBasicInfo._supportedSymbolFormats).toEqual(['700.HK', '000001.SZ', '600000.SH', 'AAPL.US']);
+    expect(getStockBasicInfo._rateLimit).toEqual({
       requestsPerSecond: 5,
       requestsPerDay: 1000,
     });
@@ -64,12 +65,12 @@ describe('getStockBasicInfo', () => {
     expect(result).toEqual([
       {
         symbol: '700.HK',
-        name_cn: '腾讯控股',
-        name_en: 'Tencent Holdings Ltd',
-        name_hk: '騰訊控股',
-        listing_date: '2004-06-16',
-        shares_outstanding: 9590000000,
-        market_cap: 3000000000000,
+        namecn: '腾讯控股',
+        nameen: 'Tencent Holdings Ltd',
+        namehk: '騰訊控股',
+        listingdate: '2004-06-16',
+        sharesoutstanding: 9590000000,
+        marketcap: 3000000000000,
         sector: 'Technology',
         industry: 'Internet Software & Services',
       },

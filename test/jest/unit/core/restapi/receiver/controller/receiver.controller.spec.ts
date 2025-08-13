@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
-import { ReceiverController } from "../../../../../../src/core/receiver/controller/receiver.controller";
-import { ReceiverService } from "../../../../../../src/core/receiver/services/receiver.service";
-import { DataRequestDto } from "../../../../../../src/core/receiver/dto/data-request.dto";
-import { DataResponseDto } from "../../../../../../src/core/receiver/dto/data-response.dto";
-import { RateLimitService } from "../../../../../../src/auth/services/rate-limit.service";
-import { PermissionService } from "../../../../../../src/auth/services/permission.service";
-import { UnifiedPermissionsGuard } from "../../../../../../src/auth/guards/unified-permissions.guard";
+import { ReceiverController } from "../../../../../../../src/core/restapi/receiver/controller/receiver.controller";
+import { ReceiverService } from "../../../../../../../src/core/restapi/receiver/services/receiver.service";
+import { DataRequestDto } from "../../../../../../../src/core/restapi/receiver/dto/data-request.dto";
+import { DataResponseDto } from "../../../../../../../src/core/restapi/receiver/dto/data-response.dto";
+import { RateLimitService } from "../../../../../../../src/auth/services/rate-limit.service";
+import { PermissionService } from "../../../../../../../src/auth/services/permission.service";
+import { UnifiedPermissionsGuard } from "../../../../../../../src/auth/guards/unified-permissions.guard";
 import { getModelToken } from "@nestjs/mongoose";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 
@@ -341,7 +342,7 @@ describe("ReceiverController", () => {
       };
 
       const timeoutError = new Error("Request timeout");
-      timeoutError.name = "TimeoutError";
+      (timeoutError as any).name = "TimeoutError";
       receiverService.handleRequest.mockRejectedValue(timeoutError);
 
       await expect(controller.handleDataRequest(dataRequest)).rejects.toThrow(

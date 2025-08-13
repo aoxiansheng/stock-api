@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { Response } from 'express';
 import { of } from 'rxjs';
@@ -158,8 +159,8 @@ describe('ResponseInterceptor', () => {
     });
 
     it('should handle different HTTP methods', (done) => {
-      mockRequest.method = 'POST';
-      mockRequest.url = '/api/users';
+      mockRequest._method = 'POST';
+      mockRequest._url = '/api/users';
       mockCallHandler.handle.mockReturnValue(of({ user: 'created' }));
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe(result => {
@@ -352,7 +353,7 @@ describe('ResponseInterceptor', () => {
 
     it('should handle circular references gracefully', (done) => {
       const circularObj: any = { id: 1 };
-      circularObj.self = circularObj;
+      circularObj._self = circularObj;
       
       mockCallHandler.handle.mockReturnValue(of(circularObj));
 

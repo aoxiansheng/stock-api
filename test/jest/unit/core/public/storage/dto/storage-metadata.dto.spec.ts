@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
- * Storage Metadata DTO UCKÕ
- * KÕX¨Cpnpn “ùa
+ * Storage Metadata DTO UCKï¿½
+ * Kï¿½Xï¿½Cpnpn ï¿½ï¿½a
  */
 
-import { StorageMetadataDto } from '../../../../../../src/core/storage/dto/storage-metadata.dto';
-import { StorageType, StorageClassification } from '../../../../../../src/core/storage/enums/storage-type.enum';
+import { StorageMetadataDto } from '../../../../../../../src/core/public/storage/dto/storage-metadata.dto';
+import { StorageType, StorageClassification } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
 
 describe('StorageMetadataDto', () => {
   describe('Constructor', () => {
@@ -12,8 +13,8 @@ describe('StorageMetadataDto', () => {
       it('should create instance with all required parameters', () => {
         // Arrange
         const key = 'stock:00700.HK:quote';
-        const storageType = StorageType.BOTH;
-        const storageClassification = StorageClassification.STOCK_QUOTE;
+        const storageType = StorageType._BOTH;
+        const storageClassification = StorageClassification.STOCKQUOTE;
         const provider = 'longport';
         const market = 'HK';
         const dataSize = 1024;
@@ -39,7 +40,7 @@ describe('StorageMetadataDto', () => {
         expect(dto.market).toBe(market);
         expect(dto.dataSize).toBe(dataSize);
         expect(dto.processingTime).toBe(processingTime);
-        expect(dto.storedAt).toBeDefined();
+        expect(dto._storedAt).toBeDefined();
         expect(typeof dto.storedAt).toBe('string');
       });
 
@@ -79,7 +80,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.CACHE,
-          StorageClassification.STOCK_CANDLE,
+          StorageClassification.STOCKCANDLE,
           'test_provider',
           'US',
           2048,
@@ -100,7 +101,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.PERSISTENT,
-          StorageClassification.COMPANY_PROFILE,
+          StorageClassification.COMPANYPROFILE,
           'provider',
           'CN',
           512,
@@ -118,7 +119,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.PERSISTENT,
-          StorageClassification.MARKET_NEWS,
+          StorageClassification.MARKETNEWS,
           'provider',
           'EU',
           256,
@@ -166,10 +167,10 @@ describe('StorageMetadataDto', () => {
       it('should handle all storage classifications', () => {
         // Arrange
         const classifications = [
-          StorageClassification.STOCK_QUOTE,
+          StorageClassification.STOCKQUOTE,
           StorageClassification.STOCK_CANDLE,
-          StorageClassification.STOCK_TICK,
-          StorageClassification.FINANCIAL_STATEMENT,
+          StorageClassification.STOCKTICK,
+          StorageClassification.FINANCIALSTATEMENT,
           StorageClassification.COMPANY_PROFILE,
           StorageClassification.MARKET_NEWS,
           StorageClassification.TRADING_ORDER,
@@ -326,10 +327,10 @@ describe('StorageMetadataDto', () => {
       it('should handle special characters in tag values', () => {
         // Arrange
         const tags = {
-          'unicode': '-‡~',
+          '_unicode': '-ï¿½~',
           'special-chars': '!@#$%^&*()_+-=',
           'json-like': '{"nested": "value"}',
-          'url': 'https://example.com/path?param=value',
+          '_url': 'https://example.com/path?param=value',
         };
 
         // Act
@@ -346,7 +347,7 @@ describe('StorageMetadataDto', () => {
         );
 
         // Assert
-        expect(dto.tags.unicode).toBe('-‡~');
+        expect(dto.tags.unicode).toBe('-ï¿½~');
         expect(dto.tags['special-chars']).toBe('!@#$%^&*()_+-=');
         expect(dto.tags['json-like']).toBe('{"nested": "value"}');
         expect(dto.tags.url).toBe('https://example.com/path?param=value');
@@ -430,7 +431,7 @@ describe('StorageMetadataDto', () => {
       it('should create metadata for US stock data', () => {
         // Act
         const dto = new StorageMetadataDto(
-          'candle:AAPL.US:1d:longport',
+          '_candle:AAPL.US:1d:longport',
           StorageType.PERSISTENT,
           StorageClassification.STOCK_CANDLE,
           'longport',
@@ -440,7 +441,7 @@ describe('StorageMetadataDto', () => {
           true,
           {
             symbol: 'AAPL.US',
-            interval: '1d',
+            _interval: '1d',
             count: '100',
           },
         );
@@ -459,7 +460,7 @@ describe('StorageMetadataDto', () => {
       it('should create metadata for market news', () => {
         // Act
         const dto = new StorageMetadataDto(
-          'news:market:global:20230601',
+          'news:market:_global:20230601',
           StorageType.CACHE,
           StorageClassification.MARKET_NEWS,
           'news_provider',
@@ -468,7 +469,7 @@ describe('StorageMetadataDto', () => {
           89,
           false,
           {
-            category: 'market_update',
+            _category: 'market_update',
             language: 'en',
             priority: 'high',
           },
@@ -496,7 +497,7 @@ describe('StorageMetadataDto', () => {
           true,
           {
             company: '00700.HK',
-            period: '2023Q1',
+            _period: '2023Q1',
             currency: 'HKD',
             audited: 'true',
           },
@@ -515,7 +516,7 @@ describe('StorageMetadataDto', () => {
       it('should handle large data with appropriate processing time', () => {
         // Act
         const dto = new StorageMetadataDto(
-          'bulk:tick_data:20230601',
+          '_bulk:tick_data:20230601',
           StorageType.PERSISTENT,
           StorageClassification.STOCK_TICK,
           'tick_provider',
@@ -540,7 +541,7 @@ describe('StorageMetadataDto', () => {
       it('should handle small data with fast processing', () => {
         // Act
         const dto = new StorageMetadataDto(
-          'simple:config:app_settings',
+          '_simple:_config:app_settings',
           StorageType.CACHE,
           StorageClassification.GENERAL,
           'config_provider',
@@ -593,7 +594,7 @@ describe('StorageMetadataDto', () => {
         StorageClassification.GENERAL,
         'provider',
         'TEST',
-        Number.MAX_SAFE_INTEGER,
+        Number.MAX_SAFEINTEGER,
         Number.MAX_SAFE_INTEGER,
       );
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ModuleRef } from '@nestjs/core';
 
@@ -51,7 +52,7 @@ describe('AutoInitOnStartupService', () => {
           provide: ModuleRef,
           useValue: {
             get: jest.fn().mockImplementation((token) => {
-              if (token.name === 'PersistedTemplateService') {
+              if (token._name === 'PersistedTemplateService') {
                 return mockPersistedTemplateService;
               }
               return null;
@@ -76,7 +77,7 @@ describe('AutoInitOnStartupService', () => {
     });
 
     it('should skip initialization if DISABLE_AUTO_INIT is true', async () => {
-      process.env.DISABLE_AUTO_INIT = 'true';
+      process.env.DISABLE_AUTOINIT = 'true';
       const loggerSpy = jest.spyOn((service as any).logger, 'log');
       await service.onApplicationBootstrap();
       expect(loggerSpy).toHaveBeenCalledWith('⏭️ 自动初始化已禁用，跳过启动初始化');
@@ -85,7 +86,7 @@ describe('AutoInitOnStartupService', () => {
     });
 
     it('should skip initialization in test environment', async () => {
-      process.env.NODE_ENV = 'test';
+      process.env.NODEENV = 'test';
       const loggerSpy = jest.spyOn((service as any).logger, 'log');
       await service.onApplicationBootstrap();
       expect(loggerSpy).toHaveBeenCalledWith('⏭️ 自动初始化已禁用，跳过启动初始化');

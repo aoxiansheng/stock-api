@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { FormatUtils } from "../../../../../src/metrics/utils/format.util";
 
 describe("FormatUtils - Comprehensive Coverage", () => {
@@ -101,11 +102,11 @@ describe("FormatUtils - Comprehensive Coverage", () => {
     });
 
     it("should handle fractional GB values", () => {
-      const bytes1_5GB = 1.5 * 1024 * 1024 * 1024;
-      expect(FormatUtils.bytesToGB(bytes1_5GB)).toBe(1.5);
+      const bytes15GB = 1.5 * 1024 * 1024 * 1024;
+      expect(FormatUtils.bytesToGB(bytes15GB)).toBe(1.5);
 
-      const bytes0_25GB = 0.25 * 1024 * 1024 * 1024;
-      expect(FormatUtils.bytesToGB(bytes0_25GB)).toBe(0.25);
+      const bytes025GB = 0.25 * 1024 * 1024 * 1024;
+      expect(FormatUtils.bytesToGB(bytes025GB)).toBe(0.25);
     });
 
     it("should handle small byte values", () => {

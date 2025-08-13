@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
@@ -111,9 +112,9 @@ describe('PermissionDecoratorValidator', () => {
 
       // 模拟 reflector.get 获取 HTTP 方法元数据
       mockReflector.get.mockImplementation((key, target) => {
-        if (key === '__get__' && target === MockController.prototype.method1) return '';
-        if (key === '__post__' && target === MockController.prototype.method2) return '';
-        if (key === '__put__' && target === MockController.prototype.method3) return '';
+        if (key === 'get' && target === MockController.prototype.method1) return '';
+        if (key === 'post' && target === MockController.prototype.method2) return '';
+        if (key === 'put' && target === MockController.prototype.method3) return '';
         return undefined;
       });
     });
@@ -123,7 +124,7 @@ describe('PermissionDecoratorValidator', () => {
       mockReflector.get.mockImplementation((key, target) => {
         if (key === REQUIRE_API_KEY && target === MockController.prototype.method1) return true;
         if (key === PERMISSIONS_KEY && target === MockController.prototype.method1) return [];
-        if (key === '__get__' && target === MockController.prototype.method1) return '';
+        if (key === 'get' && target === MockController.prototype.method1) return '';
         return undefined;
       });
 
@@ -138,7 +139,7 @@ describe('PermissionDecoratorValidator', () => {
       mockReflector.get.mockImplementation((key, target) => {
         if (key === REQUIRE_API_KEY && target === MockController.prototype.method3) return true;
         if (key === PERMISSIONS_KEY && target === MockController.prototype.method3) return [Permission.SYSTEM_ADMIN, Permission.DATA_READ];
-        if (key === '__put__' && target === MockController.prototype.method3) return '';
+        if (key === 'put' && target === MockController.prototype.method3) return '';
         return undefined;
       });
 
@@ -153,7 +154,7 @@ describe('PermissionDecoratorValidator', () => {
       mockReflector.get.mockImplementation((key, target) => {
         if (key === REQUIRE_API_KEY && target === MockController.prototype.method2) return true;
         if (key === PERMISSIONS_KEY && target === MockController.prototype.method2) return [Permission.DATA_READ];
-        if (key === '__post__' && target === MockController.prototype.method2) return '';
+        if (key === 'post' && target === MockController.prototype.method2) return '';
         return undefined;
       });
 

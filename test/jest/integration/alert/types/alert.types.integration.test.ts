@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // alert.types.integration.test.ts - 测试占位代码
 // 路径: integration/alert/types/alert.types.integration.test.ts
 

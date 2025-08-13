@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getIndexQuote } from '../../../../../../src/providers/longport/capabilities/get-index-quote';
 import { MARKETS } from '../../../../../../src/common/constants/market.constants';
 
@@ -14,12 +15,12 @@ describe('getIndexQuote', () => {
     jest.clearAllMocks();
   });
 
-  it('should have correct name, description, and supported markets/formats', () => {
+  it('should have correct _name, _description, and supported markets/formats', () => {
     expect(getIndexQuote.name).toBe('get-index-quote');
     expect(getIndexQuote.description).toBe('获取指数实时报价数据');
-    expect(getIndexQuote.supportedMarkets).toEqual([MARKETS.HK, MARKETS.SZ, MARKETS.SH]);
-    expect(getIndexQuote.supportedSymbolFormats).toEqual(['HSI.HI', '000001.SH', '399001.SZ']);
-    expect(getIndexQuote.rateLimit).toEqual({
+    expect(getIndexQuote._supportedMarkets).toEqual([MARKETS._HK, MARKETS._SZ, MARKETS.SH]);
+    expect(getIndexQuote._supportedSymbolFormats).toEqual(['HSI.HI', '000001.SH', '399001.SZ']);
+    expect(getIndexQuote._rateLimit).toEqual({
       requestsPerSecond: 10,
       requestsPerDay: 5000,
     });
@@ -67,15 +68,15 @@ describe('getIndexQuote', () => {
       secu_quote: [
         {
           symbol: 'HSI.HI',
-          last_done: 25000,
-          prev_close: 24900,
+          lastdone: 25000,
+          prevclose: 24900,
           open: 24950,
           high: 25100,
           low: 24800,
           volume: 1000000,
           turnover: 25000000000,
           timestamp: 1678886400,
-          trade_status: 'TRADING',
+          tradestatus: 'TRADING',
         },
         {
           symbol: '000001.SH',

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
@@ -12,7 +13,7 @@ import {
   ProviderValidationResultDto,
   CapabilityExecutionResultDto,
   SymbolMarketMappingDto,
-} from '../../../../../../src/core/restapi/receiver/dto/receiver-internal.dto';
+} from '../../../../../../../src/core/restapi/receiver/dto/receiver-internal.dto';
 
 // 由于 DTO 众多，我们将为每个 DTO 创建一个 describe 块
 

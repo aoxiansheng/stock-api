@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // market-trading-hours.constants.integration.test.ts - 测试占位代码
 // 路径: integration/common/constants/market-trading-hours.constants.integration.test.ts
 

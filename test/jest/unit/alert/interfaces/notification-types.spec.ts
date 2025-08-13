@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import {
   INotificationChannel,
@@ -122,7 +123,7 @@ describe('NotificationTypes Interface Re-exports', () => {
       const template: INotificationTemplate = {
         subject: '测试主题',
         body: '测试内容 {variable}',
-        variables: { variable: 'value' },
+        var_iables: { var_iable: 'value' },
         format: 'text',
       };
 
@@ -131,7 +132,7 @@ describe('NotificationTypes Interface Re-exports', () => {
       // Assert - 验证模板
       expect(template.subject).toBe('测试主题');
       expect(template.body).toBe('测试内容 {variable}');
-      expect(template.variables).toEqual({ variable: 'value' });
+      expect(template.var_iables).toEqual({ var_iable: 'value' });
       expect(template.format).toBe('text');
       expect(template).toBe(originalTemplate);
     });
@@ -219,7 +220,7 @@ describe('NotificationTypes Interface Re-exports', () => {
       const template: NotificationTemplate = {
         subject: 'SMS Subject',
         body: 'SMS Body',
-        variables: {},
+        var_iables: {},
       };
       const log: NotificationLog = {
         id: 'log-legacy',
@@ -373,14 +374,14 @@ describe('NotificationTypes Interface Re-exports', () => {
       const template: INotificationTemplate = {
         subject: 'Original Subject',
         body: 'Original Body',
-        variables: { key: 'value' },
+        var_iables: { key: 'value' },
         format: 'html',
       };
 
       // Act & Assert - 验证属性和方法
       expect(typeof template.subject).toBe('string');
       expect(typeof template.body).toBe('string');
-      expect(typeof template.variables).toBe('object');
+      expect(typeof template.var_iables).toBe('object');
       expect(typeof template.format).toBe('string');
     });
   });

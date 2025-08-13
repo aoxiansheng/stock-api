@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // performance.constants.integration.test.ts - 测试占位代码
 // 路径: integration/common/constants/unified/performance.constants.integration.test.ts
 

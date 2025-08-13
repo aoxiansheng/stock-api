@@ -1,7 +1,8 @@
-import { QueryMetadataDto, QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '@core/query/dto/query-response.dto';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { QueryMetadataDto, QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '@core/restapi/query/dto/query-response.dto';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { QueryErrorInfoDto } from '@core/query/dto/query-internal.dto';
-import { QueryType } from '@core/query/dto/query-types.dto';
+import { QueryErrorInfoDto } from '@core/restapi/query/dto/query-internal.dto';
+import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 
 interface StockData {
   symbol: string;
@@ -30,7 +31,7 @@ describe('Query Response DTOs', () => {
   describe('QueryMetadataDto', () => {
     describe('Constructor', () => {
       it('should create instance with required parameters', () => {
-        const queryType = QueryType.BY_SYMBOLS;
+        const queryType = QueryType.BYSYMBOLS;
         const totalResults = 5;
         const returnedResults = 5;
         const executionTime = 150;
@@ -71,7 +72,7 @@ describe('Query Response DTOs', () => {
         ];
 
         const metadata = new QueryMetadataDto(
-          QueryType.BY_SYMBOLS,
+          QueryType.BYSYMBOLS,
           0,
           0,
           200,
@@ -127,13 +128,13 @@ describe('Query Response DTOs', () => {
           },
         );
 
-        metadata.queryParams = {
+        metadata._queryParams = {
           symbols: ['00700.HK', 'AAPL.US'],
           market: 'MIXED',
           provider: 'longport',
           queryTypeFilter: 'get-stock-quote',
           timeRange: {
-            start: '2023-06-01T00:00:00Z',
+            start: '2.023-06-01T00:00:00Z',
             end: '2023-06-01T23:59:59Z',
           },
           queryFiltersCount: 3,
@@ -272,7 +273,7 @@ describe('Query Response DTOs', () => {
         });
 
         const metadata = new QueryMetadataDto(
-          QueryType.BY_PROVIDER,
+          QueryType.BYPROVIDER,
           0,
           0,
           50,
@@ -475,7 +476,7 @@ describe('Query Response DTOs', () => {
 
       it('should support query type distribution', () => {
         const stats = new QueryStatsDto();
-        stats.queryTypes = {
+        stats._queryTypes = {
           [QueryType.BY_SYMBOLS]: {
             count: 5000,
             averageTime: 120,

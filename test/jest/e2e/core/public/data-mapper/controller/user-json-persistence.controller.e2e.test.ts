@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * UserJsonPersistenceController 端到端测试
  * 测试用户JSON数据分析和持久化功能
@@ -33,7 +34,7 @@ describe("UserJsonPersistenceController E2E", () => {
             low: 558.0,
             volume: 11292534,
             turnover: 6334567890,
-            timestamp: "2024-08-11T10:00:00Z",
+            timestamp: "2024-08-11T_10:00:00Z",
             trade_status: "NORMAL"
           },
           name: "LongPort REST Quote Test",
@@ -45,8 +46,8 @@ describe("UserJsonPersistenceController E2E", () => {
         // Act
         const response = await request
           .post("/api/v1/data-mapper/user-persistence/analyze-source")
-          .set("X-App-Key", apiKey.appKey)
-          .set("X-Access-Token", apiKey.accessToken)
+          .set("X-App-Key", apiKey._appKey)
+          .set("X-Access-Token", apiKey._accessToken)
           .send(analysisRequest)
           .expect(201);
 
@@ -56,12 +57,12 @@ describe("UserJsonPersistenceController E2E", () => {
         
         expect(result).toHaveProperty("provider", "longport");
         expect(result).toHaveProperty("apiType", "rest");
-        expect(result).toHaveProperty("extractedFields");
+        expect(result).toHaveProperty("_extractedFields");
         expect(result.extractedFields).toBeInstanceOf(Array);
-        expect(result.extractedFields.length).toBeGreaterThan(0);
+        expect(result.extractedFields._length).toBeGreaterThan(0);
         
         // 验证关键字段被正确提取
-        const symbolField = result.extractedFields.find(f => f.fieldName === "symbol");
+        const symbolField = result.extractedFields.find(f => f._fieldName === "symbol");
         const lastPriceField = result.extractedFields.find(f => f.fieldName === "last_done");
         
         expect(symbolField).toBeDefined();
@@ -81,9 +82,9 @@ describe("UserJsonPersistenceController E2E", () => {
         });
 
         expect(result).toHaveProperty("dataStructureType", "flat");
-        expect(result).toHaveProperty("totalFields");
+        expect(result).toHaveProperty("_totalFields");
         expect(result.totalFields).toBeGreaterThan(5);
-        expect(result).toHaveProperty("confidence");
+        expect(result).toHaveProperty("_confidence");
         expect(result.confidence).toBeGreaterThan(0.5);
       });
 

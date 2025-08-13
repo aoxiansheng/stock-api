@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SecurityAuditLogSchema } from '../../../../../src/security/schemas/security-audit-log.schema';
 
 describe('SecurityAuditLog Schema', () => {

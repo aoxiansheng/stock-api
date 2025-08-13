@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  NOTIFICATION_OPERATIONS,
-  NOTIFICATION_MESSAGES,
-  NOTIFICATION_ERROR_TEMPLATES,
+  NOTIFICATIONOPERATIONS,
+  NOTIFICATIONMESSAGES,
+  NOTIFICATIONERRORTEMPLATES,
   NOTIFICATION_TEMPLATE_VARIABLES,
-  NOTIFICATION_TEMPLATE_PATTERNS,
-  NOTIFICATION_CONFIG,
-  NOTIFICATION_TYPE_PRIORITY,
+  NOTIFICATION_TEMPLATEPATTERNS,
+  NOTIFICATIONCONFIG,
+  NOTIFICATIONTYPEPRIORITY,
   NOTIFICATION_METRICS,
-  NOTIFICATION_VALIDATION_RULES,
+  NOTIFICATION_VALIDATIONRULES,
   NOTIFICATION_TIME_CONFIG,
   NOTIFICATION_ALERT_THRESHOLDS,
   NOTIFICATION_RETRY_CONFIG,
@@ -17,14 +18,14 @@ describe('Notification Constants', () => {
   describe('NOTIFICATION_OPERATIONS', () => {
     it('应包含所有必需的操作常量', () => {
       expect(NOTIFICATION_OPERATIONS.SEND_NOTIFICATION).toBe('sendNotification');
-      expect(NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS).toBe('sendBatchNotifications');
-      expect(NOTIFICATION_OPERATIONS.TEST_CHANNEL).toBe('testChannel');
+      expect(NOTIFICATION_OPERATIONS.SEND_BATCHNOTIFICATIONS).toBe('sendBatchNotifications');
+      expect(NOTIFICATION_OPERATIONS.TESTCHANNEL).toBe('testChannel');
       expect(NOTIFICATION_OPERATIONS.GENERATE_TEMPLATE).toBe('generateTemplate');
-      expect(NOTIFICATION_OPERATIONS.INITIALIZE_SENDERS).toBe('initializeSenders');
-      expect(NOTIFICATION_OPERATIONS.FORMAT_STRING).toBe('formatString');
+      expect(NOTIFICATION_OPERATIONS.INITIALIZESENDERS).toBe('initializeSenders');
+      expect(NOTIFICATION_OPERATIONS.FORMATSTRING).toBe('formatString');
       expect(NOTIFICATION_OPERATIONS.VALIDATE_CHANNEL_CONFIG).toBe('validateChannelConfig');
-      expect(NOTIFICATION_OPERATIONS.GET_SENDER_STATUS).toBe('getSenderStatus');
-      expect(NOTIFICATION_OPERATIONS.PROCESS_NOTIFICATION_RESULT).toBe('processNotificationResult');
+      expect(NOTIFICATION_OPERATIONS.GET_SENDERSTATUS).toBe('getSenderStatus');
+      expect(NOTIFICATION_OPERATIONS.PROCESS_NOTIFICATIONRESULT).toBe('processNotificationResult');
       expect(NOTIFICATION_OPERATIONS.HANDLE_NOTIFICATION_ERROR).toBe('handleNotificationError');
     });
 
@@ -35,16 +36,16 @@ describe('Notification Constants', () => {
 
   describe('NOTIFICATION_MESSAGES', () => {
     it('应包含所有成功消息', () => {
-      expect(NOTIFICATION_MESSAGES.NOTIFICATION_SENT).toBe('通知发送成功');
-      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONS_COMPLETED).toBe('批量通知发送完成');
-      expect(NOTIFICATION_MESSAGES.CHANNEL_TEST_PASSED).toBe('通知渠道测试通过');
-      expect(NOTIFICATION_MESSAGES.TEMPLATE_GENERATED).toBe('通知模板生成成功');
-      expect(NOTIFICATION_MESSAGES.SENDERS_INITIALIZED).toBe('通知发送器初始化完成');
+      expect(NOTIFICATION_MESSAGES.NOTIFICATIONSENT).toBe('通知发送成功');
+      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONSCOMPLETED).toBe('批量通知发送完成');
+      expect(NOTIFICATION_MESSAGES.CHANNEL_TESTPASSED).toBe('通知渠道测试通过');
+      expect(NOTIFICATION_MESSAGES.TEMPLATEGENERATED).toBe('通知模板生成成功');
+      expect(NOTIFICATION_MESSAGES.SENDERSINITIALIZED).toBe('通知发送器初始化完成');
     });
 
     it('应包含所有错误消息', () => {
       expect(NOTIFICATION_MESSAGES.UNSUPPORTED_NOTIFICATION_TYPE).toBe('不支持的通知类型');
-      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATION_FAILED).toBe('批量发送中单个通知执行失败');
+      expect(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONFAILED).toBe('批量发送中单个通知执行失败');
       expect(NOTIFICATION_MESSAGES.SEND_FAILED).toBe('发送失败');
       expect(NOTIFICATION_MESSAGES.CHANNEL_TEST_FAILED).toBe('通知渠道测试失败');
       expect(NOTIFICATION_MESSAGES.TEMPLATE_GENERATION_FAILED).toBe('通知模板生成失败');
@@ -57,14 +58,14 @@ describe('Notification Constants', () => {
 
   describe('NOTIFICATION_TEMPLATE_PATTERNS', () => {
     it('应包含所有模板模式', () => {
-      expect(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_SOURCE).toBe('\\{\\{(\\w+)\\}\\}');
-      expect(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS).toBe('g');
+      expect(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERNSOURCE).toBe('\\{\\{(\\w+)\\}\\}');
+      expect(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERNFLAGS).toBe('g');
     });
 
     it('模式字符串应能创建有效的正则表达式', () => {
       const variablePattern = new RegExp(
-        NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_SOURCE,
-        NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS
+        NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERNSOURCE,
+        NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERNFLAGS
       );
       expect(variablePattern.test('{{variable}}')).toBe(true);
       expect(variablePattern.test('{variable}')).toBe(false);
@@ -80,14 +81,14 @@ describe('Notification Constants', () => {
 
   describe('NOTIFICATION_CONFIG', () => {
     it('应包含正确的配置值', () => {
-      expect(NOTIFICATION_CONFIG.DEFAULT_TIMEOUT_MS).toBe(30000);
-      expect(NOTIFICATION_CONFIG.MAX_RETRY_ATTEMPTS).toBe(3);
+      expect(NOTIFICATION_CONFIG.DEFAULT_TIMEOUTMS).toBe(30000);
+      expect(NOTIFICATION_CONFIG.MAX_RETRYATTEMPTS).toBe(3);
       expect(NOTIFICATION_CONFIG.RETRY_DELAY_MS).toBe(1000);
-      expect(NOTIFICATION_CONFIG.BATCH_SIZE_LIMIT).toBe(100);
+      expect(NOTIFICATION_CONFIG.BATCH_SIZELIMIT).toBe(100);
       expect(NOTIFICATION_CONFIG.TEMPLATE_CACHE_TTL_MS).toBe(300000);
       expect(NOTIFICATION_CONFIG.SENDER_HEALTH_CHECK_INTERVAL_MS).toBe(60000);
-      expect(NOTIFICATION_CONFIG.MAX_TEMPLATE_SIZE_BYTES).toBe(10240);
-      expect(NOTIFICATION_CONFIG.MAX_VARIABLE_COUNT).toBe(50);
+      expect(NOTIFICATION_CONFIG.MAX_TEMPLATE_SIZEBYTES).toBe(10240);
+      expect(NOTIFICATION_CONFIG.MAX_VARIABLECOUNT).toBe(50);
     });
 
     it('应是不可变对象', () => {
@@ -97,11 +98,11 @@ describe('Notification Constants', () => {
 
   describe('NOTIFICATION_TYPE_PRIORITY', () => {
     it('应包含正确的优先级设置', () => {
-      expect(NOTIFICATION_TYPE_PRIORITY.EMAIL).toBe(1);
-      expect(NOTIFICATION_TYPE_PRIORITY.SLACK).toBe(2);
-      expect(NOTIFICATION_TYPE_PRIORITY.WEBHOOK).toBe(3);
-      expect(NOTIFICATION_TYPE_PRIORITY.DINGTALK).toBe(4);
-      expect(NOTIFICATION_TYPE_PRIORITY.LOG).toBe(5);
+      expect(NOTIFICATION_TYPE_PRIORITY._EMAIL).toBe(1);
+      expect(NOTIFICATION_TYPE_PRIORITY._SLACK).toBe(2);
+      expect(NOTIFICATION_TYPE_PRIORITY._WEBHOOK).toBe(3);
+      expect(NOTIFICATION_TYPE_PRIORITY._DINGTALK).toBe(4);
+      expect(NOTIFICATION_TYPE_PRIORITY._LOG).toBe(5);
     });
 
     it('应是不可变对象', () => {
@@ -111,7 +112,7 @@ describe('Notification Constants', () => {
 
   describe('NOTIFICATION_VALIDATION_RULES', () => {
     it('应包含正确的验证规则', () => {
-      expect(NOTIFICATION_VALIDATION_RULES.MIN_TEMPLATE_LENGTH).toBe(1);
+      expect(NOTIFICATION_VALIDATION_RULES.MIN_TEMPLATElength).toBe(1);
       expect(NOTIFICATION_VALIDATION_RULES.MAX_TEMPLATE_LENGTH).toBe(10000);
       expect(NOTIFICATION_VALIDATION_RULES.MIN_VARIABLE_NAME_LENGTH).toBe(1);
       expect(NOTIFICATION_VALIDATION_RULES.MAX_VARIABLE_NAME_LENGTH).toBe(50);

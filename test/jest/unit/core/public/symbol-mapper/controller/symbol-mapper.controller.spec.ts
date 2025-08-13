@@ -1,18 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolMapperController } from '@core/symbol-mapper/controller/symbol-mapper.controller';
-import { SymbolMapperService } from '@core/symbol-mapper/services/symbol-mapper.service';
-import { CreateSymbolMappingDto } from '@core/symbol-mapper/dto/create-symbol-mapping.dto';
-import { SymbolMappingResponseDto } from '@core/symbol-mapper/dto/symbol-mapping-response.dto';
-import { TransformSymbolsDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '@core/symbol-mapper/dto/update-symbol-mapping.dto';
-import { SymbolMappingQueryDto } from '@core/symbol-mapper/dto/symbol-mapping-query.dto';
+import { SymbolMapperController } from '@core/public/symbol-mapper/controller/symbol-mapper.controller';
+import { SymbolMapperService } from '@core/public/symbol-mapper/services/symbol-mapper.service';
+import { CreateSymbolMappingDto } from '@core/public/symbol-mapper/dto/create-symbol-mapping.dto';
+import { SymbolMappingResponseDto } from '@core/public/symbol-mapper/dto/symbol-mapping-response.dto';
+import { TransformSymbolsDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '@core/public/symbol-mapper/dto/update-symbol-mapping.dto';
+import { SymbolMappingQueryDto } from '@core/public/symbol-mapper/dto/symbol-mapping-query.dto';
 import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { Reflector } from '@nestjs/core';
-import { UnifiedPermissionsGuard } from '../../../../../../src/auth/guards/unified-permissions.guard';
-import { PermissionService } from '../../../../../../src/auth/services/permission.service';
-import { CacheService } from '../../../../../../src/cache/services/cache.service';
-import { RateLimitGuard } from '../../../../../../src/auth/guards/rate-limit.guard';
-import { RateLimitService } from '../../../../../../src/auth/services/rate-limit.service';
+import { UnifiedPermissionsGuard } from '../../../../../../../src/auth/guards/unified-permissions.guard';
+import { PermissionService } from '../../../../../../../src/auth/services/permission.service';
+import { CacheService } from '../../../../../../../src/cache/services/cache.service';
+import { RateLimitGuard } from '../../../../../../../src/auth/guards/rate-limit.guard';
+import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
 
 // Mock the logger
 jest.mock('../../../../../../src/common/config/logger.config', () => ({
@@ -67,8 +68,8 @@ describe('SymbolMapperController', () => {
             getSymbolMappingById: jest.fn(),
             updateSymbolMapping: jest.fn(),
             updateSymbolMappingRule: jest.fn(),
-            deleteSymbolMapping: jest.fn(),
-            deleteSymbolMappingsByDataSource: jest.fn(),
+            delet_eSymbolMapping: jest.fn(),
+            delet_eSymbolMappingsByDataSource: jest.fn(),
             removeSymbolMappingRule: jest.fn(),
           },
         },

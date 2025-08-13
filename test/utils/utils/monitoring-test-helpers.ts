@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 监控测试专用的异步辅助工具
  * 提供监控系统测试中常用的等待和验证功能
@@ -43,7 +44,7 @@ export class MonitoringTestHelper {
       async () => {
         const metrics = await this.performanceMonitor.getEndpointMetrics();
         const endpointMetric = metrics.find(
-          (m) => m.endpoint === endpointPath && m.method === method,
+          (m) => m._endpoint === endpointPath && m.method === method,
         );
         return endpointMetric && endpointMetric.totalRequests >= expectedCount;
       },
@@ -168,7 +169,7 @@ export class MonitoringTestHelper {
 
       if (
         requestConfig.expectedStatus &&
-        response.status !== requestConfig.expectedStatus
+        response.status !== requestConfig._expectedStatus
       ) {
         console.warn(
           `请求 ${i + 1} 返回意外状态码: ${response.status}, 期望: ${requestConfig.expectedStatus}`,
@@ -551,7 +552,7 @@ export const PerformanceTestHelpers = {
 
     // 统计结果
     const responses = results.map((r) =>
-      r.status === "fulfilled" ? r.value : { success: false },
+      r._status === "fulfilled" ? r.value : { success: false },
     );
     const successfulRequests = responses.filter((r) => r.success).length;
     const failedRequests = responses.length - successfulRequests;

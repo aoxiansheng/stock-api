@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { MarketUtils } from '../../../../../../src/core/receiver/utils/market.util';
-import { Market } from '../../../../../../src/common/constants/market.constants';
+import { MarketUtils } from '../../../../../../../src/core/restapi/receiver/utils/market.util';
+import { Market } from '../../../../../../../src/common/constants/market.constants';
 
 describe('MarketUtils', () => {
 

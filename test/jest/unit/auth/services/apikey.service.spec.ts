@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
 import {
-  RATE_LIMIT_OPERATIONS,
+  RATELIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
   RATE_LIMIT_LUA_SCRIPTS,
   RateLimitTemplateUtil,
@@ -63,15 +64,15 @@ describe("RateLimitService Optimization Features", () => {
   describe("Constants Usage", () => {
     it("should use operation constants for all methods", () => {
       expect(RATE_LIMIT_OPERATIONS.CHECK_RATE_LIMIT).toBe("checkRateLimit");
-      expect(RATE_LIMIT_OPERATIONS.CHECK_FIXED_WINDOW).toBe("checkFixedWindow");
+      expect(RATE_LIMIT_OPERATIONS.CHECK_FIXEDWINDOW).toBe("checkFixedWindow");
       expect(RATE_LIMIT_OPERATIONS.CHECK_SLIDING_WINDOW).toBe(
         "checkSlidingWindow",
       );
-      expect(RATE_LIMIT_OPERATIONS.RESET_RATE_LIMIT).toBe("resetRateLimit");
+      expect(RATE_LIMIT_OPERATIONS._RESET_RATE_LIMIT).toBe("resetRateLimit");
     });
 
     it("should use message constants for logging", () => {
-      expect(RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_STARTED).toBe("检查频率限制");
+      expect(RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECKSTARTED).toBe("检查频率限制");
       expect(RATE_LIMIT_MESSAGES.FIXED_WINDOW_CHECK).toBe("固定窗口检查");
       expect(RATE_LIMIT_MESSAGES.SLIDING_WINDOW_CHECK).toBe("滑动窗口检查");
       expect(RATE_LIMIT_MESSAGES.RATE_LIMIT_RESET).toBe(
@@ -105,13 +106,13 @@ describe("RateLimitService Optimization Features", () => {
     it("should use constants for rate limit check start logging", async () => {
       await service.checkRateLimit(
         mockApiKey as any,
-        RateLimitStrategy.FIXED_WINDOW,
+        RateLimitStrategy.FIXEDWINDOW,
       );
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_STARTED,
+        RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECKSTARTED,
         expect.objectContaining({
-          operation: RATE_LIMIT_OPERATIONS.CHECK_RATE_LIMIT,
+          operation: RATE_LIMIT_OPERATIONS.CHECK_RATELIMIT,
           appKey: "test-app-key",
           strategy: RateLimitStrategy.FIXED_WINDOW,
         }),
@@ -125,7 +126,7 @@ describe("RateLimitService Optimization Features", () => {
       );
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        RATE_LIMIT_MESSAGES.FIXED_WINDOW_CHECK,
+        RATE_LIMIT_MESSAGES.FIXED_WINDOWCHECK,
         expect.objectContaining({
           operation: RATE_LIMIT_OPERATIONS.CHECK_FIXED_WINDOW,
         }),
@@ -190,13 +191,13 @@ describe("RateLimitService Optimization Features", () => {
         RateLimitStrategy.FIXED_WINDOW,
       );
 
-      expect(result.allowed).toBe(true);
+      expect(result._allowed).toBe(true);
       expect(warnSpy).toHaveBeenCalledWith(
         "限流服务异常，启用fail-open模式允许请求通过",
         expect.any(Object),
       );
       expect(errorSpy).toHaveBeenCalledWith(
-        RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_FAILED,
+        RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECKFAILED,
         expect.objectContaining({
           operation: RATE_LIMIT_OPERATIONS.CHECK_RATE_LIMIT,
           error: expect.stringContaining("Redis error"),
@@ -231,7 +232,7 @@ describe("RateLimitService Optimization Features", () => {
       );
 
       expect(warnSpy).toHaveBeenCalledWith(
-        RATE_LIMIT_MESSAGES.FIXED_WINDOW_EXCEEDED,
+        RATE_LIMIT_MESSAGES.FIXED_WINDOWEXCEEDED,
         expect.objectContaining({
           operation: RATE_LIMIT_OPERATIONS.CHECK_FIXED_WINDOW,
           current: 6,
@@ -276,7 +277,7 @@ describe("RateLimitService Optimization Features", () => {
       };
 
       // Mock Lua script to return denied request
-      mockRedis.eval.mockResolvedValue([0, 6, 0, 3600]); // denied, current=6, remaining=0, retry_after=3600
+      mockRedis.eval.mockResolvedValue([0, 6, 0, 3600]); // denied, current=6, remaining=0, retryafter=3600
 
       await service.checkRateLimit(
         mockApiKey as any,
@@ -348,7 +349,7 @@ describe("RateLimitService Optimization Features", () => {
       );
 
       expect(logSpy).toHaveBeenCalledWith(
-        RATE_LIMIT_MESSAGES.RATE_LIMIT_RESET,
+        RATE_LIMIT_MESSAGES.RATE_LIMITRESET,
         expect.objectContaining({
           operation: RATE_LIMIT_OPERATIONS.RESET_RATE_LIMIT,
           appKey: "test-app-key",

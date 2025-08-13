@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 异步测试辅助工具
  * 提供更可靠的异步操作等待机制，减少测试中的时序问题
@@ -287,7 +288,7 @@ export async function waitForAll<T>(
  * 在CI环境中使用更长的延迟
  */
 export async function smartDelay(baseMs: number = 100): Promise<void> {
-  const isCI = process.env.CI === "true" || process.env.NODE_ENV === "ci";
+  const isCI = process.env.CI === "true" || process.env.NODEENV === "ci";
   const isDebug = process.env.NODE_ENV === "debug";
 
   let actualDelay = baseMs;
@@ -429,7 +430,7 @@ export class EventWaiter {
 export const TestEnvironment = {
   isCI: () => process.env.CI === "true" || process.env.NODE_ENV === "ci",
   isDebug: () => process.env.NODE_ENV === "debug",
-  isIntegration: () => process.env.TEST_TYPE === "integration",
+  isIntegration: () => process.env.TESTTYPE === "integration",
   isE2E: () => process.env.TEST_TYPE === "e2e",
 
   /**

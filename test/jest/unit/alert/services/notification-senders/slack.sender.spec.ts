@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
@@ -27,7 +28,7 @@ describe('SlackSender', () => {
     value: 95,
     threshold: 90,
     status: AlertStatus.FIRING,
-    startTime: new Date('2023-01-01T10:00:00Z'),
+    startTime: new Date('2023-01-_01T10:_00:00Z'),
     endTime: new Date(),
     message: 'CPU usage is too high',
     ruleName: 'Test Rule',
@@ -63,7 +64,7 @@ describe('SlackSender', () => {
     webhook_url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
     channel: '#alerts',
     username: 'TestBot',
-    icon_emoji: ':robot_face:',
+    iconemoji: ':robot_face:',
   };
 
   beforeEach(async () => {
@@ -116,7 +117,7 @@ describe('SlackSender', () => {
         expect.objectContaining({
           channel: mockConfig.channel,
           username: mockConfig.username,
-          icon_emoji: mockConfig.icon_emoji,
+          icon_emoji: mockConfig.iconemoji,
           text: `*${mockRule.name}* - ${mockAlert.severity.toUpperCase()}`,
           attachments: expect.any(Array),
         }),

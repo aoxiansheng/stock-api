@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * UserRepository 单元测试
  * 测试用户数据访问层的所有方法
@@ -16,7 +17,7 @@ describe("UserRepository", () => {
 
   const mockUser = {
     id: "507f1f77bcf86cd799439011",
-    username: "testuser",
+    user_name: "testuser",
     email: "test@example.com",
     passwordHash: "hashedPassword123",
     role: UserRole.DEVELOPER,
@@ -25,7 +26,7 @@ describe("UserRepository", () => {
 
   const mockUserDocument = {
     ...mockUser,
-    _id: "507f1f77bcf86cd799439011",
+    id: "507f1f77bcf86cd799439011",
     save: jest.fn(),
     exec: jest.fn(),
   } as any;
@@ -71,7 +72,7 @@ describe("UserRepository", () => {
     it("应该成功创建用户", async () => {
       // Arrange
       const userDto = {
-        username: mockUser.username,
+        username: mockUser.user_name,
         email: mockUser.email,
         passwordHash: mockUser.passwordHash,
         role: mockUser.role,

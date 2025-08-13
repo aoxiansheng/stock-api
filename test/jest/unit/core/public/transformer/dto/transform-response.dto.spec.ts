@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import {
   TransformationMetadataDto,
   TransformResponseDto,
-} from '../../../../../../src/core/transformer/dto/transform-response.dto';
+} from '../../../../../../../src/core/public/transformer/dto/transform-response.dto';
 
 // 测试 TransformationMetadataDto
 describe('TransformationMetadataDto', () => {

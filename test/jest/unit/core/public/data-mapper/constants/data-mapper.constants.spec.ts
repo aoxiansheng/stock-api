@@ -1,35 +1,36 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  DATA_MAPPER_CONFIG,
-  DATA_MAPPER_DEFAULTS,
-  DATA_MAPPER_STATUS,
-  DATA_MAPPER_ERROR_MESSAGES,
+  DATA_MAPPERCONFIG,
+  DATA_MAPPERDEFAULTS,
+  DATA_MAPPERSTATUS,
+  DATA_MAPPER_ERRORMESSAGES,
   DATA_MAPPER_SUCCESS_MESSAGES,
   DATA_MAPPER_WARNING_MESSAGES,
-  DATA_MAPPER_EVENTS,
-  DATA_MAPPER_METRICS,
-  DATA_MAPPER_PERFORMANCE_THRESHOLDS,
+  DATA_MAPPEREVENTS,
+  DATA_MAPPERMETRICS,
+  DATA_MAPPER_PERFORMANCETHRESHOLDS,
   DATA_MAPPER_QUALITY_METRICS,
   DATA_MAPPER_CACHE_CONFIG,
   DATA_MAPPER_STATS_CONFIG,
-  DATA_MAPPER_FIELD_VALIDATION_RULES,
-  TRANSFORMATION_TYPES,
+  DATA_MAPPER_FIELD_VALIDATIONRULES,
+  TRANSFORMATIONTYPES,
   TRANSFORMATION_DEFAULTS,
-  DATA_TYPE_HANDLERS,
+  DATA_TYPEHANDLERS,
   FIELD_SUGGESTION_CONFIG,
   PATH_RESOLUTION_CONFIG
-} from "../../../../../../src/core/public/data-mapper/constants/data-mapper.constants";
+} from "../../../../../../../src/core/public/data-mapper/constants/data-mapper.constants";
 
 describe("DataMapperConstants", () => {
   describe("DATA_MAPPER_CONFIG", () => {
     it("should be frozen object with correct configuration values", () => {
       expect(Object.isFrozen(DATA_MAPPER_CONFIG)).toBe(true);
-      expect(DATA_MAPPER_CONFIG.MAX_FIELD_MAPPINGS).toBe(100);
-      expect(DATA_MAPPER_CONFIG.MAX_NESTED_DEPTH).toBe(10);
-      expect(DATA_MAPPER_CONFIG.MAX_ARRAY_SIZE).toBe(1000);
+      expect(DATA_MAPPER_CONFIG.MAX_FIELDMAPPINGS).toBe(100);
+      expect(DATA_MAPPER_CONFIG.MAX_NESTEDDEPTH).toBe(10);
+      expect(DATA_MAPPER_CONFIG.MAX_ARRAYSIZE).toBe(1000);
       expect(DATA_MAPPER_CONFIG.DEFAULT_PAGE_SIZE).toBe(10);
       expect(DATA_MAPPER_CONFIG.MAX_PAGE_SIZE).toBe(100);
-      expect(DATA_MAPPER_CONFIG.DEFAULT_TIMEOUT_MS).toBe(30000);
-      expect(DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH).toBe(100);
+      expect(DATA_MAPPER_CONFIG.DEFAULT_TIMEOUTMS).toBe(30000);
+      expect(DATA_MAPPER_CONFIG.MAX_RULE_NAMElength).toBe(100);
       expect(DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH).toBe(500);
     });
 
@@ -65,8 +66,8 @@ describe("DataMapperConstants", () => {
       expect(Object.isFrozen(DATA_MAPPER_DEFAULTS)).toBe(true);
       expect(DATA_MAPPER_DEFAULTS).toHaveProperty('SIMILARITY_THRESHOLD');
       expect(DATA_MAPPER_DEFAULTS).toHaveProperty('RULE_STATUS');
-      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('ENABLE_CACHING');
-      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('LOG_LEVEL');
+      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('ENABLECACHING');
+      expect(DATA_MAPPER_DEFAULTS).toHaveProperty('LOGLEVEL');
     });
 
     it("should have reasonable default values", () => {
@@ -242,7 +243,7 @@ describe("DataMapperConstants", () => {
     });
 
     it("should contain reasonable default values", () => {
-      expect(typeof TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE).toBe('number');
+      expect(typeof TRANSFORMATION_DEFAULTS.MULTIPLYVALUE).toBe('number');
       expect(TRANSFORMATION_DEFAULTS.MULTIPLY_VALUE).toBeGreaterThanOrEqual(0);
       expect(typeof TRANSFORMATION_DEFAULTS.DIVIDE_VALUE).toBe('number');
       expect(TRANSFORMATION_DEFAULTS.DIVIDE_VALUE).toBeGreaterThan(0);
@@ -276,7 +277,7 @@ describe("DataMapperConstants", () => {
       expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBeGreaterThanOrEqual(0);
       expect(FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD).toBeLessThanOrEqual(1);
       
-      expect(typeof FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS).toBe('number');
+      expect(typeof FIELD_SUGGESTION_CONFIG.MAXSUGGESTIONS).toBe('number');
       expect(FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS).toBeGreaterThan(0);
     });
   });
@@ -290,8 +291,8 @@ describe("DataMapperConstants", () => {
       const config = PATH_RESOLUTION_CONFIG;
       expect(typeof config.MAX_PATH_DEPTH).toBe('number');
       expect(config.MAX_PATH_DEPTH).toBeGreaterThan(0);
-      expect(config.ARRAY_INDEX_PATTERN).toBeInstanceOf(RegExp);
-      expect(typeof config.CAMEL_CASE_CONVERSION).toBe('boolean');
+      expect(config.ARRAY_INDEXPATTERN).toBeInstanceOf(RegExp);
+      expect(typeof config.CAMEL_CASECONVERSION).toBe('boolean');
     });
   });
 
@@ -338,18 +339,18 @@ describe("DataMapperConstants", () => {
 
     it("should not allow modification of constant values", () => {
       expect(() => {
-        // @ts-ignore
-        DATA_MAPPER_CONFIG.MAX_FIELD_MAPPINGS = 200;
+        // @ts-expect-error - Testing immutability of frozen constant
+        DATA_MAPPER_CONFIG.MAX_FIELDMAPPINGS = 200;
       }).toThrow();
 
       expect(() => {
-        // @ts-ignore
-        DATA_MAPPER_STATUS.NEW_STATUS = 'new';
+        // @ts-expect-error - Testing immutability of frozen constant
+        DATA_MAPPER_STATUS.NEWSTATUS = 'new';
       }).toThrow();
 
       expect(() => {
-        // @ts-ignore
-        TRANSFORMATION_TYPES.NEW_TYPE = 'newtype';
+        // @ts-expect-error - Testing immutability of frozen constant
+        TRANSFORMATION_TYPES.NEWTYPE = 'newtype';
       }).toThrow();
     });
   });

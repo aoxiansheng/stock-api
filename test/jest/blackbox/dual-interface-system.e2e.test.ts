@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：双时效接口系统
  * 测试强时效(Receiver)和弱时效(Query)接口的完整业务场景
@@ -9,7 +10,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-describe("Real Environment Black-box: Dual Interface System E2E", () => {
+describe("Real Environment Black-_box: Dual Interface System E2E", () => {
   let httpClient: AxiosInstance;
   let baseURL: string;
   let apiKey: any;
@@ -166,7 +167,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       }
 
       // 验证市场感知
-      if (response.data.data?.metadata?.marketAware !== undefined) {
+      if (response.data.data?.metadata?._marketAware !== undefined) {
         expect(response.data.data.metadata.marketAware).toBe(true);
       }
 
@@ -183,7 +184,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
             expect(quoteItem).toHaveProperty("symbol");
             
             // 检查价格字段的存在（根据实际API响应结构调整）
-            const hasPrice = quoteItem.last_done || quoteItem.lastPrice || quoteItem.price;
+            const hasPrice = quoteItem.lastdone || quoteItem.lastPrice || quoteItem.price;
             if (hasPrice) {
               expect(hasPrice).toBeDefined();
             }
@@ -218,7 +219,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
           expect(detectedMarkets).toContain(test.expectedMarket);
         }
 
-        // 验证缓存TTL在合理范围内 (1s-300s)
+        // 验证缓存TTL在合理范围内 (1s-_300s)
         const cacheTTL = response.data.data.metadata.cacheTTL;
         if (cacheTTL) {
           expect(cacheTTL).toBeGreaterThan(0);
@@ -255,18 +256,18 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       // 适应ResponseInterceptor包装
       expect(response.data.data).toBeDefined();
       if (response.data.data) {
-        expect(response.data.data.data.items).toBeDefined();
+        expect(response.data.data.data._items).toBeDefined();
         expect(response.data.data.metadata).toBeDefined();
       }
 
       // 验证智能变化检测 - 如果存在此功能
-      if (response.data.data?.metadata?.changeDetection) {
+      if (response.data.data?.metadata?._changeDetection) {
         expect([
           "price_change",
           "volume_change", 
           "no_change",
           "initial_load",
-        ]).toContain(response.data.data.metadata.changeDetection.reason);
+        ]).toContain(response.data.data.metadata.changeDetection._reason);
       }
 
       // 验证弱时效缓存策略 - 应该有较长TTL
@@ -303,10 +304,10 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       // 验证批量处理结果
       if (response.data.data?.metadata) {
         // 验证返回结果数量
-        expect(response.data.data.metadata.returnedResults).toBeGreaterThan(0);
+        expect(response.data.data.metadata._returnedResults).toBeGreaterThan(0);
         
         // 验证总结果数
-        expect(response.data.data.metadata.totalResults).toBeGreaterThan(0);
+        expect(response.data.data.metadata._totalResults).toBeGreaterThan(0);
         
         // 或者验证返回的数据长度
         if (response.data.data.data.items && Array.isArray(response.data.data.data.items)) {
@@ -315,7 +316,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       }
 
       // 验证并行处理性能
-      if (response.data.data?.metadata?.executionTime !== undefined) {
+      if (response.data.data?.metadata?._executionTime !== undefined) {
         expect(response.data.data.metadata.executionTime).toBeLessThan(10000); // 10秒内完成
       }
     });
@@ -388,7 +389,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
         // 验证数据结构一致性（不要求数值完全相同，因为可能有时间差）
         if (realtimeQuote.last_done !== undefined && analyticalQuote.last_done !== undefined) {
           expect(typeof realtimeQuote.last_done).toBe(
-            typeof analyticalQuote.last_done,
+            typeof analyticalQuote.lastdone,
           );
         }
       } else {
@@ -468,7 +469,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       expect(responseTime).toBeLessThan(10000); // 10秒内
 
       // 验证批量处理统计信息，安全访问响应数据
-      if (response.data.data?.metadata?.totalRequested !== undefined) {
+      if (response.data.data?.metadata?._totalRequested !== undefined) {
         expect(response.data.data.metadata.totalRequested).toBeGreaterThan(0);
       } else if (response.data.data?.data?.items) {
         // 或者至少验证返回了一些数据
@@ -483,7 +484,7 @@ describe("Real Environment Black-box: Dual Interface System E2E", () => {
       console.log(`弱时效接口批量查询响应时间: ${responseTime}ms`);
       if (response.data.data?.metadata) {
         console.log(
-          `处理统计: ${JSON.stringify(response.data.data.metadata, null, 2)}`,
+          `处理统计: ${JSON.stringify(response.data.data._metadata, null, 2)}`,
         );
       }
     });
