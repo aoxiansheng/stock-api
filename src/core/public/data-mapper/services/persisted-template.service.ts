@@ -4,6 +4,9 @@ import { Model, Types } from 'mongoose';
 import { createLogger } from '@common/config/logger.config';
 
 import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-source-template.schema';
+import { FlexibleMappingRule, FlexibleMappingRuleDocument } from '../schemas/flexible-mapping-rule.schema';
+import { RuleAlignmentService } from './rule-alignment.service';
+import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 
 /**
  * 🏗️ 简化的持久化模板服务
@@ -16,6 +19,10 @@ export class PersistedTemplateService {
   constructor(
     @InjectModel(DataSourceTemplate.name)
     private readonly templateModel: Model<DataSourceTemplateDocument>,
+    @InjectModel(FlexibleMappingRule.name)
+    private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
+    private readonly ruleAlignmentService: RuleAlignmentService,
+    private readonly metricsRegistry: MetricsRegistryService,
   ) {}
   
   /**
@@ -46,19 +53,19 @@ export class PersistedTemplateService {
         preMarketQuote: null,
       },
       extractedFields: [
-        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string' },
-        { fieldPath: 'high', fieldName: 'high', fieldType: 'string' },
-        { fieldPath: 'lastDone', fieldName: 'lastDone', fieldType: 'string' },
-        { fieldPath: 'low', fieldName: 'low', fieldType: 'string' },
-        { fieldPath: 'open', fieldName: 'open', fieldType: 'string' },
-        { fieldPath: 'prevClose', fieldName: 'prevClose', fieldType: 'string' },
-        { fieldPath: 'volume', fieldName: 'volume', fieldType: 'number' },
-        { fieldPath: 'turnover', fieldName: 'turnover', fieldType: 'string' },
-        { fieldPath: 'timestamp', fieldName: 'timestamp', fieldType: 'string' },
-        { fieldPath: 'tradeStatus', fieldName: 'tradeStatus', fieldType: 'string' },
-        { fieldPath: 'overnightQuote', fieldName: 'overnightQuote', fieldType: 'object' },
-        { fieldPath: 'postMarketQuote', fieldName: 'postMarketQuote', fieldType: 'object' },
-        { fieldPath: 'preMarketQuote', fieldName: 'preMarketQuote', fieldType: 'object' },
+        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'high', fieldName: 'high', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'lastDone', fieldName: 'lastDone', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'low', fieldName: 'low', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'open', fieldName: 'open', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'prevClose', fieldName: 'prevClose', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'volume', fieldName: 'volume', fieldType: 'number', confidence: 0.95 },
+        { fieldPath: 'turnover', fieldName: 'turnover', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'timestamp', fieldName: 'timestamp', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'tradeStatus', fieldName: 'tradeStatus', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'overnightQuote', fieldName: 'overnightQuote', fieldType: 'object', confidence: 0.95 },
+        { fieldPath: 'postMarketQuote', fieldName: 'postMarketQuote', fieldType: 'object', confidence: 0.95 },
+        { fieldPath: 'preMarketQuote', fieldName: 'preMarketQuote', fieldType: 'object', confidence: 0.95 },
       ],
       totalFields: 13,
       confidence: 0.95,
@@ -104,32 +111,32 @@ export class PersistedTemplateService {
       },
       extractedFields: [
         // 基础报价字段
-        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string' },
-        { fieldPath: 'high', fieldName: 'high', fieldType: 'string' },
-        { fieldPath: 'lastDone', fieldName: 'lastDone', fieldType: 'string' },
-        { fieldPath: 'low', fieldName: 'low', fieldType: 'string' },
-        { fieldPath: 'open', fieldName: 'open', fieldType: 'string' },
-        { fieldPath: 'prevClose', fieldName: 'prevClose', fieldType: 'string' },
-        { fieldPath: 'volume', fieldName: 'volume', fieldType: 'number' },
-        { fieldPath: 'turnover', fieldName: 'turnover', fieldType: 'string' },
-        { fieldPath: 'timestamp', fieldName: 'timestamp', fieldType: 'string' },
-        { fieldPath: 'tradeStatus', fieldName: 'tradeStatus', fieldType: 'string' },
+        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'high', fieldName: 'high', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'lastDone', fieldName: 'lastDone', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'low', fieldName: 'low', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'open', fieldName: 'open', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'prevClose', fieldName: 'prevClose', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'volume', fieldName: 'volume', fieldType: 'number', confidence: 0.92 },
+        { fieldPath: 'turnover', fieldName: 'turnover', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'timestamp', fieldName: 'timestamp', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'tradeStatus', fieldName: 'tradeStatus', fieldType: 'string', confidence: 0.92 },
         // 盘后报价字段
-        { fieldPath: 'postMarketQuote.high', fieldName: 'postMarketHigh', fieldType: 'string' },
-        { fieldPath: 'postMarketQuote.lastDone', fieldName: 'postMarketLastDone', fieldType: 'string' },
-        { fieldPath: 'postMarketQuote.low', fieldName: 'postMarketLow', fieldType: 'string' },
-        { fieldPath: 'postMarketQuote.prevClose', fieldName: 'postMarketPrevClose', fieldType: 'string' },
-        { fieldPath: 'postMarketQuote.volume', fieldName: 'postMarketVolume', fieldType: 'number' },
-        { fieldPath: 'postMarketQuote.turnover', fieldName: 'postMarketTurnover', fieldType: 'string' },
-        { fieldPath: 'postMarketQuote.timestamp', fieldName: 'postMarketTimestamp', fieldType: 'string' },
+        { fieldPath: 'postMarketQuote.high', fieldName: 'postMarketHigh', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'postMarketQuote.lastDone', fieldName: 'postMarketLastDone', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'postMarketQuote.low', fieldName: 'postMarketLow', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'postMarketQuote.prevClose', fieldName: 'postMarketPrevClose', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'postMarketQuote.volume', fieldName: 'postMarketVolume', fieldType: 'number', confidence: 0.92 },
+        { fieldPath: 'postMarketQuote.turnover', fieldName: 'postMarketTurnover', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'postMarketQuote.timestamp', fieldName: 'postMarketTimestamp', fieldType: 'string', confidence: 0.92 },
         // 盘前报价字段
-        { fieldPath: 'preMarketQuote.high', fieldName: 'preMarketHigh', fieldType: 'string' },
-        { fieldPath: 'preMarketQuote.lastDone', fieldName: 'preMarketLastDone', fieldType: 'string' },
-        { fieldPath: 'preMarketQuote.low', fieldName: 'preMarketLow', fieldType: 'string' },
-        { fieldPath: 'preMarketQuote.prevClose', fieldName: 'preMarketPrevClose', fieldType: 'string' },
-        { fieldPath: 'preMarketQuote.volume', fieldName: 'preMarketVolume', fieldType: 'number' },
-        { fieldPath: 'preMarketQuote.turnover', fieldName: 'preMarketTurnover', fieldType: 'string' },
-        { fieldPath: 'preMarketQuote.timestamp', fieldName: 'preMarketTimestamp', fieldType: 'string' },
+        { fieldPath: 'preMarketQuote.high', fieldName: 'preMarketHigh', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'preMarketQuote.lastDone', fieldName: 'preMarketLastDone', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'preMarketQuote.low', fieldName: 'preMarketLow', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'preMarketQuote.prevClose', fieldName: 'preMarketPrevClose', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'preMarketQuote.volume', fieldName: 'preMarketVolume', fieldType: 'number', confidence: 0.92 },
+        { fieldPath: 'preMarketQuote.turnover', fieldName: 'preMarketTurnover', fieldType: 'string', confidence: 0.92 },
+        { fieldPath: 'preMarketQuote.timestamp', fieldName: 'preMarketTimestamp', fieldType: 'string', confidence: 0.92 },
       ],
       totalFields: 24,
       confidence: 0.92,
@@ -159,18 +166,18 @@ export class PersistedTemplateService {
         },
       },
       extractedFields: [
-        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string' },
-        { fieldPath: 'data.high', fieldName: 'high', fieldType: 'string' },
-        { fieldPath: 'data.lastDone', fieldName: 'lastDone', fieldType: 'string' },
-        { fieldPath: 'data.low', fieldName: 'low', fieldType: 'string' },
-        { fieldPath: 'data.open', fieldName: 'open', fieldType: 'string' },
-        { fieldPath: 'data.volume', fieldName: 'volume', fieldType: 'number' },
-        { fieldPath: 'data.turnover', fieldName: 'turnover', fieldType: 'string' },
-        { fieldPath: 'data.timestamp', fieldName: 'timestamp', fieldType: 'string' },
-        { fieldPath: 'data.tradeStatus', fieldName: 'tradeStatus', fieldType: 'string' },
-        { fieldPath: 'data.tradeSession', fieldName: 'tradeSession', fieldType: 'string' },
-        { fieldPath: 'data.currentTurnover', fieldName: 'currentTurnover', fieldType: 'string' },
-        { fieldPath: 'data.currentVolume', fieldName: 'currentVolume', fieldType: 'number' },
+        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.high', fieldName: 'high', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.lastDone', fieldName: 'lastDone', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.low', fieldName: 'low', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.open', fieldName: 'open', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.volume', fieldName: 'volume', fieldType: 'number', confidence: 0.9 },
+        { fieldPath: 'data.turnover', fieldName: 'turnover', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.timestamp', fieldName: 'timestamp', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.tradeStatus', fieldName: 'tradeStatus', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.tradeSession', fieldName: 'tradeSession', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.currentTurnover', fieldName: 'currentTurnover', fieldType: 'string', confidence: 0.9 },
+        { fieldPath: 'data.currentVolume', fieldName: 'currentVolume', fieldType: 'number', confidence: 0.9 },
       ],
       totalFields: 12,
       confidence: 0.9,
@@ -202,22 +209,22 @@ export class PersistedTemplateService {
         totalShares: 9153739354,
       },
       extractedFields: [
-        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string' },
-        { fieldPath: 'board', fieldName: 'board', fieldType: 'string' },
-        { fieldPath: 'bps', fieldName: 'bps', fieldType: 'string' },
-        { fieldPath: 'circulatingShares', fieldName: 'circulatingShares', fieldType: 'number' },
-        { fieldPath: 'currency', fieldName: 'currency', fieldType: 'string' },
-        { fieldPath: 'dividendYield', fieldName: 'dividendYield', fieldType: 'string' },
-        { fieldPath: 'eps', fieldName: 'eps', fieldType: 'string' },
-        { fieldPath: 'epsTtm', fieldName: 'epsTtm', fieldType: 'string' },
-        { fieldPath: 'exchange', fieldName: 'exchange', fieldType: 'string' },
-        { fieldPath: 'hkShares', fieldName: 'hkShares', fieldType: 'number' },
-        { fieldPath: 'lotSize', fieldName: 'lotSize', fieldType: 'number' },
-        { fieldPath: 'nameCn', fieldName: 'nameCn', fieldType: 'string' },
-        { fieldPath: 'nameEn', fieldName: 'nameEn', fieldType: 'string' },
-        { fieldPath: 'nameHk', fieldName: 'nameHk', fieldType: 'string' },
-        { fieldPath: 'stockDerivatives', fieldName: 'stockDerivatives', fieldType: 'array' },
-        { fieldPath: 'totalShares', fieldName: 'totalShares', fieldType: 'number' },
+        { fieldPath: 'symbol', fieldName: 'symbol', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'board', fieldName: 'board', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'bps', fieldName: 'bps', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'circulatingShares', fieldName: 'circulatingShares', fieldType: 'number', confidence: 0.95 },
+        { fieldPath: 'currency', fieldName: 'currency', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'dividendYield', fieldName: 'dividendYield', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'eps', fieldName: 'eps', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'epsTtm', fieldName: 'epsTtm', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'exchange', fieldName: 'exchange', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'hkShares', fieldName: 'hkShares', fieldType: 'number', confidence: 0.95 },
+        { fieldPath: 'lotSize', fieldName: 'lotSize', fieldType: 'number', confidence: 0.95 },
+        { fieldPath: 'nameCn', fieldName: 'nameCn', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'nameEn', fieldName: 'nameEn', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'nameHk', fieldName: 'nameHk', fieldType: 'string', confidence: 0.95 },
+        { fieldPath: 'stockDerivatives', fieldName: 'stockDerivatives', fieldType: 'array', confidence: 0.95 },
+        { fieldPath: 'totalShares', fieldName: 'totalShares', fieldType: 'number', confidence: 0.95 },
       ],
       totalFields: 16,
       confidence: 0.95,
@@ -451,5 +458,186 @@ export class PersistedTemplateService {
     
     this.logger.log('预设模板重置完成', summary);
     return summary;
+  }
+
+  /**
+   * 🚀 自动生成预设映射规则
+   * 基于四个预设模板生成对应的映射规则
+   */
+  async initializePresetMappingRules(): Promise<{
+    created: number;
+    skipped: number;
+    failed: number;
+    details: string[];
+  }> {
+    this.logger.log('开始初始化预设映射规则');
+    
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+    const details: string[] = [];
+
+    try {
+      // 获取所有预设模板
+      const presetTemplates = await this.templateModel.find({ isPreset: true }).exec();
+      
+      if (presetTemplates.length === 0) {
+        this.logger.warn('未找到预设模板，跳过映射规则初始化');
+        details.push('未找到预设模板，建议先执行预设模板持久化');
+        return { created: 0, skipped: 0, failed: 0, details };
+      }
+
+      // 为每个模板生成映射规则
+      for (const template of presetTemplates) {
+        try {
+          const ruleType = this.determineRuleType(template);
+          const ruleName = this.generateRuleName(template, ruleType);
+          
+          // 检查规则是否已存在（双重保险：名称 + 核心字段）
+          const existingRule = await this.ruleModel.findOne({
+            name: ruleName,
+            provider: template.provider,
+            apiType: template.apiType,
+            transDataRuleListType: ruleType
+          }).exec();
+
+          if (existingRule) {
+            skipped++;
+            details.push(`已跳过 ${template.name}: 规则已存在`);
+            this.logger.debug(`跳过已存在的映射规则: ${ruleName}`);
+            
+            // 监控指标：跳过
+            this.metricsRegistry.dataMapperRuleInitializationTotal
+              .labels('skipped', template.provider, template.apiType)
+              .inc();
+            continue;
+          }
+
+          // 使用智能对齐服务生成规则
+          const { rule } = await this.ruleAlignmentService.generateRuleFromTemplate(
+            template._id.toString(),
+            ruleType,
+            ruleName
+          );
+
+          created++;
+          details.push(`已创建 ${template.name}: ${rule.name}`);
+          this.logger.log(`成功创建映射规则: ${rule.name}`, {
+            templateId: template._id,
+            ruleId: rule._id,
+            provider: template.provider,
+            apiType: template.apiType,
+            ruleType
+          });
+          
+          // 监控指标：创建成功
+          this.metricsRegistry.dataMapperRuleInitializationTotal
+            .labels('created', template.provider, template.apiType)
+            .inc();
+
+        } catch (error) {
+          failed++;
+          details.push(`失败 ${template.name}: ${error.message}`);
+          this.logger.error(`映射规则创建失败: ${template.name}`, {
+            templateId: template._id,
+            error: error.message,
+            stack: error.stack
+          });
+          
+          // 监控指标：创建失败
+          this.metricsRegistry.dataMapperRuleInitializationTotal
+            .labels('failed', template.provider, template.apiType)
+            .inc();
+        }
+      }
+
+      const summary = { created, skipped, failed, details };
+      
+      // 更新 Gauges 指标：设置累计创建和跳过数量
+      this.metricsRegistry.dataMapperRulesCreatedTotal.set(created);
+      this.metricsRegistry.dataMapperRulesSkippedTotal.set(skipped);
+      
+      this.logger.log('预设映射规则初始化完成', summary);
+      return summary;
+
+    } catch (error) {
+      this.logger.error('预设映射规则初始化过程发生错误', {
+        error: error.message,
+        stack: error.stack
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 🧠 启发式规则类型判断
+   * 基于模板名称和提取字段智能判断规则类型
+   */
+  private determineRuleType(template: DataSourceTemplateDocument): 'quote_fields' | 'basic_info_fields' {
+    const templateName = template.name.toLowerCase();
+    const extractedFieldNames = template.extractedFields.map(field => field.fieldName.toLowerCase());
+    
+    // 基于模板名称的启发式判断
+    if (templateName.includes('基础信息') || templateName.includes('基本信息') || templateName.includes('basic_info')) {
+      return 'basic_info_fields';
+    }
+    
+    if (templateName.includes('报价') || templateName.includes('quote')) {
+      return 'quote_fields';
+    }
+    
+    // 基于字段内容的启发式判断
+    const basicInfoIndicators = ['namecn', 'nameen', 'exchange', 'currency', 'lotsize', 'totalshares', 'eps', 'bps'];
+    const quoteIndicators = ['lastdone', 'high', 'low', 'open', 'volume', 'turnover', 'timestamp'];
+    
+    const basicInfoMatches = basicInfoIndicators.filter(indicator => 
+      extractedFieldNames.some(field => field.includes(indicator))
+    ).length;
+    
+    const quoteMatches = quoteIndicators.filter(indicator => 
+      extractedFieldNames.some(field => field.includes(indicator))
+    ).length;
+    
+    // 根据匹配数量判断类型
+    if (basicInfoMatches > quoteMatches) {
+      return 'basic_info_fields';
+    }
+    
+    // 默认返回报价字段类型（更常用）
+    return 'quote_fields';
+  }
+
+  /**
+   * 🏷️ 健壮的规则名称生成
+   * 基于模板信息生成唯一且描述性的规则名称
+   */
+  private generateRuleName(template: DataSourceTemplateDocument, ruleType: 'quote_fields' | 'basic_info_fields'): string {
+    const provider = template.provider;
+    const apiType = template.apiType.toUpperCase();
+    const ruleTypeLabel = ruleType === 'quote_fields' ? '报价数据' : '基础信息';
+    
+    // 基于模板名称简化
+    let templateNameSimplified = template.name
+      .replace(/LongPort\s*/gi, '')
+      .replace(/REST\s*/gi, '')
+      .replace(/WebSocket\s*/gi, '')
+      .replace(/通用模板.*$/gi, '')
+      .replace(/模板.*$/gi, '')
+      .trim();
+    
+    // 如果简化后名称太短，使用原始名称的关键部分
+    if (templateNameSimplified.length < 5) {
+      if (template.name.includes('美股')) {
+        templateNameSimplified = '美股专用';
+      } else if (template.name.includes('港股')) {
+        templateNameSimplified = '港股';
+      } else if (template.name.includes('A股')) {
+        templateNameSimplified = 'A股';
+      } else {
+        templateNameSimplified = '通用';
+      }
+    }
+    
+    return `${provider}_${apiType}_${templateNameSimplified}_${ruleTypeLabel}_规则`;
   }
 }

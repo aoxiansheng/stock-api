@@ -48,7 +48,6 @@ export class UserJsonPersistenceController {
         apiType: dto.apiType,
         sampleData: dto.sampleData,
         extractedFields: analysis.extractedFields,
-        dataStructureType: analysis.dataStructureType as 'flat' | 'nested' | 'mixed',
         confidence: analysis.confidence,
       };
       
@@ -60,7 +59,6 @@ export class UserJsonPersistenceController {
       apiType: analysis.apiType,
       sampleData: analysis.sampleData,
       extractedFields: analysis.extractedFields,
-      dataStructureType: analysis.dataStructureType,
       totalFields: analysis.totalFields,
       analysisTimestamp: analysis.analysisTimestamp,
       confidence: analysis.confidence,

@@ -515,7 +515,7 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
       // 尝试使用开发者JWT创建管理员专用资源
       const maliciousRequest = await httpClient.post("/api/v1/auth/api-keys", {
         name: "Malicious Admin Key",
-        permissions: ["_user:manage", "_apikey:manage"], // 管理员权限
+        permissions: ["user:manage", "apikey:manage"], // 管理员权限
       }, {
         headers: { Authorization: `Bearer ${devJWT}` }
       });

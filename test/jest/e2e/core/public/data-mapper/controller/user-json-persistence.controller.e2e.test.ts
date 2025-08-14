@@ -81,7 +81,7 @@ describe("UserJsonPersistenceController E2E", () => {
           isNested: false
         });
 
-        expect(result).toHaveProperty("dataStructureType", "flat");
+        
         expect(result).toHaveProperty("_totalFields");
         expect(result.totalFields).toBeGreaterThan(5);
         expect(result).toHaveProperty("_confidence");
@@ -128,7 +128,7 @@ describe("UserJsonPersistenceController E2E", () => {
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
         
-        expect(result).toHaveProperty("dataStructureType", "nested");
+        
         expect(result.extractedFields.length).toBeGreaterThan(0);
         
         // 验证嵌套字段路径

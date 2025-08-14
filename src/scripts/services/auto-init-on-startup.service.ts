@@ -42,6 +42,9 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
       // 初始化预设模板
       await this.initializePresetTemplates();
 
+      // 初始化预设映射规则
+      await this.initializePresetMappingRules();
+
       this.logger.log("✅ 启动时自动初始化完成");
     } catch (error) {
       this.logger.error("❌ 启动时自动初始化失败", {
@@ -80,6 +83,37 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
       this.logger.error("❌ 预设模板初始化失败", {
         error: error.message,
         operation: "initializePresetTemplates",
+      });
+    }
+  }
+
+  /**
+   * 🎯 初始化预设映射规则
+   */
+  private async initializePresetMappingRules(): Promise<void> {
+    try {
+      this.logger.log("🎯 开始初始化预设映射规则...");
+      
+      const persistedTemplateService = this.moduleRef.get(PersistedTemplateService, { strict: false });
+      
+      if (!persistedTemplateService) {
+        this.logger.warn("⚠️ PersistedTemplateService 未找到，跳过预设映射规则初始化");
+        return;
+      }
+
+      const result = await persistedTemplateService.initializePresetMappingRules();
+      
+      this.logger.log("✅ 预设映射规则初始化完成", {
+        created: result.created,
+        skipped: result.skipped,
+        failed: result.failed,
+        details: result.details.slice(0, 5) // 只显示前5个详情，避免日志过长
+      });
+
+    } catch (error) {
+      this.logger.error("❌ 预设映射规则初始化失败", {
+        error: error.message,
+        operation: "initializePresetMappingRules",
       });
     }
   }

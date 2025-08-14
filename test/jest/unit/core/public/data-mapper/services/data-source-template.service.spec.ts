@@ -63,7 +63,7 @@ describe("DataSourceTemplateService", () => {
         nestingLevel: 0
       }
     ],
-    dataStructureType: "flat",
+    
     totalFields: 2,
     confidence: 0.95,
     isActive: true,
@@ -131,7 +131,7 @@ describe("DataSourceTemplateService", () => {
       provider: "longport",
       apiType: "rest",
       sampleData: { symbol: "700.HK" },
-      dataStructureType: "flat",
+      
       confidence: 0.9,
       extractedFields: [
         {
@@ -470,7 +470,7 @@ describe("DataSourceTemplateService", () => {
         apiType: analysisData.apiType,
         sampleData: analysisData.sampleData,
         extractedFields: analysisData.extractedFields,
-        dataStructureType: 'flat',
+        
         totalFields: analysisData.extractedFields.length,
         confidence: analysisData.confidence,
         analysisTimestamp: new Date()
@@ -515,7 +515,7 @@ describe("DataSourceTemplateService", () => {
         apiType: nestedAnalysisData.apiType,
         sampleData: nestedAnalysisData.sampleData,
         extractedFields: nestedAnalysisData.extractedFields,
-        dataStructureType: 'nested',
+        
         totalFields: nestedAnalysisData.extractedFields.length,
         confidence: 0.9,
         analysisTimestamp: new Date()
@@ -563,7 +563,7 @@ describe("DataSourceTemplateService", () => {
         provider: "longport",
         apiType: "rest",
         sampleData: {},
-        dataStructureType: "flat",
+        
         confidence: 0.5,
         extractedFields: []
       };
@@ -581,7 +581,7 @@ describe("DataSourceTemplateService", () => {
         provider: "test",
         apiType: "rest",
         sampleData: {},
-        dataStructureType: "flat",
+        
         confidence: 0.5,
         extractedFields: []
       };
@@ -619,7 +619,7 @@ describe("DataSourceTemplateService", () => {
         apiType: highConfidenceAnalysis.apiType,
         sampleData: highConfidenceAnalysis.sampleData,
         extractedFields: highConfidenceAnalysis.extractedFields,
-        dataStructureType: 'flat',
+        
         totalFields: highConfidenceAnalysis.extractedFields.length,
         confidence: highConfidenceAnalysis.confidence,
         analysisTimestamp: new Date()

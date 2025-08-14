@@ -134,6 +134,7 @@ FlexibleMappingRuleSchema.set('toObject', { virtuals: true });
 
 // 🎯 创建索引
 FlexibleMappingRuleSchema.index({ provider: 1, apiType: 1, transDataRuleListType: 1 }); // 复合查询索引
+FlexibleMappingRuleSchema.index({ name: 1, provider: 1, apiType: 1, transDataRuleListType: 1 }); // 重复检查索引（用于initializePresetMappingRules）
 FlexibleMappingRuleSchema.index({ sourceTemplateId: 1 });                               // 模板关联索引
 FlexibleMappingRuleSchema.index({ isActive: 1, isDefault: 1 });                        // 状态查询索引
 FlexibleMappingRuleSchema.index({ overallConfidence: -1 });                            // 质量排序索引

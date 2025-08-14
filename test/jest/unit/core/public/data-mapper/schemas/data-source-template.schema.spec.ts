@@ -55,7 +55,7 @@ describe("DataSourceTemplateSchema", () => {
             nestingLevel: 0
           }
         ],
-        dataStructureType: "flat",
+        
         totalFields: 3,
         confidence: 0.95
       };
@@ -93,7 +93,7 @@ describe("DataSourceTemplateSchema", () => {
         provider: "longport",
         apiType: "invalid",
         sampleData: { symbol: "700.HK" },
-        dataStructureType: "flat",
+        
         confidence: 0.5
       };
 
@@ -110,28 +110,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(error.errors.apiType).toBeDefined();
     });
 
-    it("should fail validation with invalid dataStructureType", async () => {
-      const templateData = {
-        name: "Test Template",
-        provider: "longport",
-        apiType: "rest",
-        sampleData: { symbol: "700.HK" },
-        dataStructureType: "invalid",
-        confidence: 0.5
-      };
 
-      const template = new model(templateData);
-      
-      let error;
-      try {
-        await template.save();
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).toBeDefined();
-      expect(error.errors.dataStructureType).toBeDefined();
-    });
 
     it("should fail validation with confidence out of range", async () => {
       const templateData = {
@@ -139,7 +118,7 @@ describe("DataSourceTemplateSchema", () => {
         provider: "longport",
         apiType: "rest",
         sampleData: { symbol: "700.HK" },
-        dataStructureType: "flat",
+        
         confidence: 1.5 // Invalid: > 1
       };
 
@@ -187,7 +166,7 @@ describe("DataSourceTemplateSchema", () => {
             nestingLevel: 1
           }
         ],
-        dataStructureType: "nested",
+        
         totalFields: 2,
         confidence: 0.92
       };
@@ -198,7 +177,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(savedTemplate.extractedFields).toHaveLength(2);
       expect(savedTemplate.extractedFields[0].isNested).toBe(true);
       expect(savedTemplate.extractedFields[0].nestingLevel).toBe(1);
-      expect(savedTemplate.dataStructureType).toBe("nested");
+      
     });
 
     it("should handle optional fields correctly", async () => {
@@ -207,7 +186,7 @@ describe("DataSourceTemplateSchema", () => {
         provider: "test",
         apiType: "rest",
         sampleData: { test: true },
-        dataStructureType: "flat",
+        
         confidence: 0.8,
         isDefault: true,
         isPreset: true,
@@ -230,7 +209,7 @@ describe("DataSourceTemplateSchema", () => {
         provider: "test",
         apiType: "rest",
         sampleData: { test: true },
-        dataStructureType: "flat",
+        
         confidence: 0.5
       };
 
@@ -249,7 +228,7 @@ describe("DataSourceTemplateSchema", () => {
         provider: "test",
         apiType: "rest",
         sampleData: { test: true },
-        dataStructureType: "flat",
+        
         confidence: 0.5
       };
 
@@ -309,7 +288,7 @@ describe("DataSourceTemplateSchema", () => {
             nestingLevel: 0
           }
         ],
-        dataStructureType: "flat",
+        
         totalFields: 2,
         confidence: 0.95
       };

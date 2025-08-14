@@ -82,7 +82,7 @@ describe("TemplateAdminController E2E", () => {
               nestingLevel: 0
             }
           ],
-          dataStructureType: "flat",
+          
           isDefault: false,
           confidence: 0.9
         };
@@ -102,7 +102,7 @@ describe("TemplateAdminController E2E", () => {
         expect(result).toHaveProperty("name", "E2E Test Template");
         expect(result).toHaveProperty("provider", "longport");
         expect(result).toHaveProperty("apiType", "rest");
-        expect(result).toHaveProperty("dataStructureType", "flat");
+        
         expect(result).toHaveProperty("confidence", 0.9);
         expect(result).toHaveProperty("extractedFields");
         expect(result.extractedFields).toBeInstanceOf(Array);
@@ -162,7 +162,7 @@ describe("TemplateAdminController E2E", () => {
               nestingLevel: 0
             }
           ],
-          dataStructureType: "nested",
+          
           isDefault: false,
           confidence: 0.88
         };
@@ -178,7 +178,7 @@ describe("TemplateAdminController E2E", () => {
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
         
-        expect(result).toHaveProperty("dataStructureType", "nested");
+        
         expect(result.extractedFields).toHaveLength(3);
         
         // 验证嵌套字段
@@ -209,7 +209,7 @@ describe("TemplateAdminController E2E", () => {
               nestingLevel: 0
             }
           ],
-          dataStructureType: "flat",
+          
           isDefault: true,  // 设置为默认模板
           confidence: 0.9
         };
@@ -236,7 +236,7 @@ describe("TemplateAdminController E2E", () => {
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
-          dataStructureType: "flat",
+          
           confidence: 0.9
         };
 
@@ -258,7 +258,7 @@ describe("TemplateAdminController E2E", () => {
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
-          dataStructureType: "flat",
+          
           confidence: 0.9
         };
 
@@ -280,7 +280,7 @@ describe("TemplateAdminController E2E", () => {
           apiType: "invalid", // 无效的API类型
           sampleData: { test: "data" },
           extractedFields: [],
-          dataStructureType: "flat",
+          
           confidence: 0.9
         };
 
@@ -302,7 +302,7 @@ describe("TemplateAdminController E2E", () => {
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
-          dataStructureType: "flat",
+          
           confidence: 0.9
         };
 
@@ -596,7 +596,7 @@ describe("TemplateAdminController E2E", () => {
             nestingLevel: 0
           }
         ],
-        dataStructureType: "flat",
+        
         confidence: 0.9
       };
 

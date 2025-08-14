@@ -57,6 +57,9 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
   public readonly dataMapperTransformationDuration: Histogram<string>;
   public readonly dataMapperCacheHitRate: Gauge<string>;
   public readonly dataMapperValidationErrors: Counter<string>;
+  public readonly dataMapperRuleInitializationTotal: Counter<string>;
+  public readonly dataMapperRulesCreatedTotal: Gauge<string>;
+  public readonly dataMapperRulesSkippedTotal: Gauge<string>;
   
   // Transformer 指标
   public readonly transformerOperationsTotal: Counter<string>;
@@ -300,6 +303,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.streamAverageBatchSize = new Gauge({
       name: 'newstock_stream_average_batch_size',
       help: 'Average size of stream processing batches',
+      labelNames: ['provider'],
       registers: [this.registry]
     });
 
@@ -313,6 +317,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.streamBatchSuccessRate = new Gauge({
       name: 'newstock_stream_batch_success_rate',
       help: 'Success rate of stream batch processing',
+      labelNames: ['provider'],
       registers: [this.registry]
     });
 
@@ -342,14 +347,14 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.receiverRequestsTotal = new Counter({
       name: 'newstock_receiver_requests_total',
       help: 'Total number of receiver requests',
-      labelNames: ['method', 'status'],
+      labelNames: ['method', 'status', 'provider', 'operation', 'error_type'],
       registers: [this.registry]
     });
 
     this.receiverProcessingDuration = new Histogram({
       name: 'newstock_receiver_processing_duration_seconds',
       help: 'Receiver processing duration in seconds',
-      labelNames: ['operation'],
+      labelNames: ['method', 'provider', 'operation', 'status', 'attempt'],
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
       registers: [this.registry]
     });
@@ -395,18 +400,35 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       labelNames: ['validation_type'],
       registers: [this.registry]
     });
+    this.dataMapperRuleInitializationTotal = new Counter({
+      name: 'newstock_data_mapper_rule_initialization_total',
+      help: 'Total number of data mapper rule initialization attempts',
+      labelNames: ['action', 'provider', 'apiType'],
+      registers: [this.registry]
+    });
+    this.dataMapperRulesCreatedTotal = new Gauge({
+      name: 'newstock_data_mapper_rules_created_total',
+      help: 'Total number of data mapper rules created during initialization',
+      registers: [this.registry]
+    });
+    this.dataMapperRulesSkippedTotal = new Gauge({
+      name: 'newstock_data_mapper_rules_skipped_total', 
+      help: 'Total number of data mapper rules skipped during initialization',
+      registers: [this.registry]
+    });
 
     // Transformer 指标
     this.transformerOperationsTotal = new Counter({
       name: 'newstock_transformer_operations_total',
       help: 'Total number of transformer operations',
-      labelNames: ['operation_type'],
+      labelNames: ['operation_type', 'provider'],
       registers: [this.registry]
     });
 
     this.transformerBatchSize = new Histogram({
       name: 'newstock_transformer_batch_size',
       help: 'Transformer batch size distribution',
+      labelNames: ['operation_type'],
       buckets: [1, 5, 10, 25, 50, 100, 250, 500],
       registers: [this.registry]
     });
@@ -414,6 +436,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.transformerSuccessRate = new Gauge({
       name: 'newstock_transformer_success_rate',
       help: 'Transformer operation success rate',
+      labelNames: ['operation_type'],
       registers: [this.registry]
     });
 
@@ -435,7 +458,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.storageQueryDuration = new Histogram({
       name: 'newstock_storage_query_duration_seconds',
       help: 'Storage query duration in seconds',
-      labelNames: ['query_type'],
+      labelNames: ['query_type', 'storage_type' ],
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
       registers: [this.registry]
     });
@@ -450,7 +473,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.storageDataVolume = new Gauge({
       name: 'newstock_storage_data_volume_bytes',
       help: 'Storage data volume in bytes',
-      labelNames: ['data_type'],
+      labelNames: ['data_type', 'storage_type'],
       registers: [this.registry]
     });
   }

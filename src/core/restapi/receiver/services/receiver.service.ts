@@ -868,15 +868,15 @@ export class ReceiverService {
     Metrics.inc(
       this.metricsRegistry,
       'receiverRequestsTotal',
-      { method: 'handleRequest', provider: providerLabel, status }
+      { method: 'handleRequest', provider: providerLabel, status, operation: 'handleRequest' }
     );
     
     // 记录处理时间分布
     Metrics.observe(
       this.metricsRegistry,
       'receiverProcessingDuration',
-      processingTime,
-      { method: 'handleRequest', provider: providerLabel }
+      processingTime / 1000, // 转换为秒
+      { method: 'handleRequest', provider: providerLabel, operation: 'handleRequest', status: success ? 'success' : 'error' }
     );
     
     // 如果是慢请求，记录错误率

@@ -256,7 +256,7 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
       // 适应ResponseInterceptor包装
       expect(response.data.data).toBeDefined();
       if (response.data.data) {
-        expect(response.data.data.data._items).toBeDefined();
+        expect(response.data.data.data.items).toBeDefined();
         expect(response.data.data.metadata).toBeDefined();
       }
 
@@ -304,10 +304,10 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
       // 验证批量处理结果
       if (response.data.data?.metadata) {
         // 验证返回结果数量
-        expect(response.data.data.metadata._returnedResults).toBeGreaterThan(0);
+        expect(response.data.data.metadata.returnedResults).toBeGreaterThan(0);
         
         // 验证总结果数
-        expect(response.data.data.metadata._totalResults).toBeGreaterThan(0);
+        expect(response.data.data.metadata.totalResults).toBeGreaterThan(0);
         
         // 或者验证返回的数据长度
         if (response.data.data.data.items && Array.isArray(response.data.data.data.items)) {

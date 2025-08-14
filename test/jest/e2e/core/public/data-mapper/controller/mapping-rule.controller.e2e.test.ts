@@ -51,7 +51,7 @@ describe("MappingRuleController E2E", () => {
           nestingLevel: 0
         }
       ],
-      dataStructureType: "flat",
+      
       confidence: 0.9
     };
 

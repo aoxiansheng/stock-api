@@ -115,15 +115,15 @@ export abstract class BaseFetcherService {
       Metrics.observe(
         this.metricsRegistry,
         'receiverProcessingDuration',
-        processingTime,
-        { operation, status: 'success', attempt: attempt.toString() }
+        processingTime / 1000, // 转换为秒
+        { method: operation, provider: 'base-fetcher', operation, status: 'success', attempt: attempt.toString() }
       );
 
       // 记录成功计数 - 使用已有的指标
       Metrics.inc(
         this.metricsRegistry,
         'receiverRequestsTotal',
-        { operation, status: 'success' }
+        { method: operation, status: 'success', operation, provider: 'base-fetcher' }
       );
 
       // 记录重试指标
@@ -131,7 +131,7 @@ export abstract class BaseFetcherService {
         Metrics.inc(
           this.metricsRegistry,
           'receiverRequestsTotal',
-          { operation, status: 'retry_success' }
+          { method: operation, status: 'retry_success', operation, provider: 'base-fetcher' }
         );
       }
     } catch (error) {
@@ -156,8 +156,10 @@ export abstract class BaseFetcherService {
         this.metricsRegistry,
         'receiverRequestsTotal',
         { 
+          method: operation,
           operation, 
           status: 'failure',
+          provider: 'base-fetcher',
           error_type: error.constructor.name
         }
       );
@@ -167,7 +169,7 @@ export abstract class BaseFetcherService {
         Metrics.inc(
           this.metricsRegistry,
           'receiverRequestsTotal',
-          { operation, status: 'retry_failure' }
+          { method: operation, operation, status: 'retry_failure', provider: 'base-fetcher' }
         );
       }
     } catch (metricError) {
@@ -207,7 +209,7 @@ export abstract class BaseFetcherService {
         Metrics.inc(
           this.metricsRegistry,
           'receiverRequestsTotal',
-          { operation, status: 'slow_response' }
+          { method: operation, operation, status: 'slow_response', provider: 'base-fetcher' }
         );
       } catch (error) {
         this.logger.warn(`慢响应指标记录失败`, { error: error.message });

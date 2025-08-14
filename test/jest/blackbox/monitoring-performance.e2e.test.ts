@@ -213,7 +213,7 @@ describe("Real Environment Black-_box: Monitoring & Performance E2E", () => {
     });
 
     it("应该提供端点级别的性能统计", async () => {
-      const response = await httpClient.get("/api/v1/monitoring/_endpoints", {
+      const response = await httpClient.get("/api/v1/monitoring/endpoints", {
         headers: { Authorization: `Bearer ${adminJWT}` },
         params: { limit: 10, sortBy: "totalRequests" }
       });

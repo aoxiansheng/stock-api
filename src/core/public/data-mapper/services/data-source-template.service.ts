@@ -294,7 +294,6 @@ export class DataSourceTemplateService {
       description: dto.description || `${dto.provider} ${dto.apiType} 数据模板`,
       sampleData: dto.sampleData,
       extractedFields: analysis.extractedFields,
-      dataStructureType: analysis.dataStructureType as 'flat' | 'nested' | 'mixed',
       confidence: analysis.confidence,
       isDefault: false,
     };

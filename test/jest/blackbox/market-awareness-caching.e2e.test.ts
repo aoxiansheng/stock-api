@@ -115,7 +115,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
       },
       { symbol: "300001.SZ", expectedMarket: "SZ", description: "创业板30开头" },
       {
-        symbol: "_600000.SH",
+        symbol: "600000.SH",
         expectedMarket: "SH", 
         description: "上交所.SH后缀",
       },
@@ -181,7 +181,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
       }
 
       // 验证批量处理统计
-      expect(metadata._totalRequested).toBe(mixedSymbols.length);
+      expect(metadata.totalRequested).toBe(mixedSymbols.length);
     });
   });
 

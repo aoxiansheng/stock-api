@@ -49,12 +49,6 @@ export class DataSourceTemplate extends Document {
   @Prop({ type: [ExtractedFieldSchema], default: [] })
   extractedFields: ExtractedField[]; // 自动提取的字段
 
-  @Prop({ 
-    required: true,
-    enum: ['flat', 'nested', 'mixed']
-  })
-  dataStructureType: string; // 数据结构类型
-
   @Prop({ default: 0, min: 0 })
   totalFields: number;       // 总字段数量
 

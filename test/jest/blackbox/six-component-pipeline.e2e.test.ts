@@ -246,7 +246,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       expect(symbolResponse.status).toBe(201);
       expect(symbolResponse.data.data).toBeDefined();
-      if (symbolResponse.data.data._transformedSymbols) {
+      if (symbolResponse.data.data.transformedSymbols) {
         expect(symbolResponse.data.data.transformedSymbols).toBeDefined();
       }
 
@@ -286,7 +286,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
         expect(transformResponse.status).toBe(201);
         expect(transformResponse.data.data).toBeDefined();
-        if (transformResponse.data.data._previewResult) {
+        if (transformResponse.data.data.previewResult) {
           expect(transformResponse.data.data.previewResult).toBeDefined();
         }
       }
@@ -302,10 +302,10 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       expect(storageHealthResponse.status).toBe(201);
       expect(storageHealthResponse.data.data).toBeDefined();
-      if (storageHealthResponse.data.data._redis) {
+      if (storageHealthResponse.data.data.redis) {
         expect(storageHealthResponse.data.data.redis).toBeDefined();
       }
-      if (storageHealthResponse.data.data._mongodb) {
+      if (storageHealthResponse.data.data.mongodb) {
         expect(storageHealthResponse.data.data.mongodb).toBeDefined();
       }
 
@@ -325,7 +325,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       expect(queryResponse.status).toBe(201);
       expect(queryResponse.data.data).toBeDefined();
-      expect(queryResponse.data.data.data._items).toBeDefined();
+      expect(queryResponse.data.data.data.items).toBeDefined();
 
       // 验证端到端数据一致性
       if (originalData && queryResponse.data.data.data.items.length > 0) {
@@ -333,7 +333,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
         expect(queryData.symbol).toBe(originalData.symbol);
 
         // 验证数据可追溯性
-        if (queryResponse.data.data.metadata && queryResponse.data.data.metadata._traceId) {
+        if (queryResponse.data.data.metadata && queryResponse.data.data.metadata.traceId) {
           expect(typeof queryResponse.data.data.metadata.traceId).toBe(
             "string",
           );
@@ -545,8 +545,8 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       // 验证关键性能指标存在
       const metrics = metricsResponse.data.data;
       expect(metrics).toHaveProperty("summary");
-      expect(metrics.summary).toHaveProperty("_averageResponseTime");
-      expect(metrics.summary).toHaveProperty("_totalRequests");
+      expect(metrics.summary).toHaveProperty("averageResponseTime");
+      expect(metrics.summary).toHaveProperty("totalRequests");
 
       if (metrics.summary) {
         expect(typeof metrics.summary.averageResponseTime).toBe('number');

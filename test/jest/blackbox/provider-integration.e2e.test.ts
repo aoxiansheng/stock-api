@@ -109,7 +109,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
   describe("📊 Provider能力发现与注册", () => {
     it("应该自动发现并注册所有可用的Provider能力", async () => {
-      const response = await httpClient.get("/api/v1/providers/_capabilities", {
+      const response = await httpClient.get("/api/v1/providers/capabilities", {
         headers: {
           "X-App-Key": apiKey.appKey,
           "X-Access-Token": apiKey.accessToken,
@@ -188,13 +188,13 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       {
         capability: "get-stock-quote",
         receiverType: "get-stock-quote",
-        testSymbols: ["00700.HK", "AAPL.US", "000001.SZ"],
+        testSymbols: ["700.HK", "AAPL.US", "000001.SZ"],
         description: "实时股票报价",
       },
       {
         capability: "get-stock-basic-info",
         receiverType: "get-stock-basic-info",
-        testSymbols: ["00700.HK", "AAPL.US"],
+        testSymbols: ["700.HK", "AAPL.US"],
         description: "股票基本信息",
       },
       {
@@ -305,6 +305,40 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       },
     );
 
+    // 独立验证测试：检查单符号基本信息查询
+    it("应该能够独立获取单个股票的基本信息 (验证批量查询问题)", async () => {
+      const singleSymbol = "700.HK"; // 使用失败测试中的符号
+
+      const response = await httpClient.post("/api/v1/receiver/data", {
+        symbols: [singleSymbol], // 只查询一个符号
+        receiverType: "get-stock-basic-info",
+        options: {
+          preferredProvider: "longport",
+          realtime: true,
+        },
+      }, {
+        headers: {
+          "X-App-Key": apiKey.appKey,
+          "X-Access-Token": apiKey.accessToken,
+        }
+      });
+
+      console.log(`单符号查询状态: ${response.status}`);
+      if (response.status !== 200) {
+        console.log(`单符号查询失败响应:`, JSON.stringify(response.data, null, 2));
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.data.data).toBeDefined();
+
+      const metadata = response.data.data.metadata;
+      if (metadata.provider) {
+        expect(metadata.provider).toBe("longport");
+      }
+
+      console.log(`✅ 单符号基本信息查询成功: ${singleSymbol}`);
+    });
+
     it("应该处理LongPort API限制和错误恢复", async () => {
       // 使用可能触发限制的大批量请求
       const manySymbols = [
@@ -313,7 +347,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         "MSFT.US",
         "TSLA.US",
         "AMZN.US", // 美股
-        "00700.HK",
+        "700.HK",
         "388.HK",
         "175.HK",
         "981.HK", // 港股
@@ -344,10 +378,10 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         const metadata = response.data.data.metadata;
 
         // 验证批量处理统计
-        expect(metadata._totalRequested).toBe(manySymbols.length);
-        expect(metadata._successfullyProcessed).toBeGreaterThanOrEqual(0);
+        expect(metadata.totalRequested).toBe(manySymbols.length);
+        expect(metadata.successfullyProcessed).toBeGreaterThanOrEqual(0);
 
-        if (metadata._hasPartialFailures) {
+        if (metadata.hasPartialFailures) {
           console.log(
             `批量请求: ${metadata.successfullyProcessed}/${metadata.totalRequested} 成功`,
           );
@@ -369,7 +403,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
           description: "美股市场",
         },
         {
-          symbols: ["00700.HK", "388.HK"],
+          symbols: ["700.HK", "388.HK"],
           expectedMarket: "HK",
           description: "港股市场",
         },
@@ -415,7 +449,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
     it("应该支持Provider故障转移机制", async () => {
       const response = await httpClient.post("/api/v1/receiver/data", {
-        symbols: ["00700.HK"],
+        symbols: ["700.HK"],
         receiverType: "get-stock-quote",
         options: {
           realtime: true,
@@ -481,7 +515,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     it.skip("应该监控Provider性能指标", async () => {
       // 先执行一些请求生成指标
       await httpClient.post("/api/v1/receiver/data", {
-        symbols: ["00700.HK"],
+        symbols: ["700.HK"],
         receiverType: "get-stock-quote",
         options: { realtime: true },
       }, {
@@ -519,7 +553,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     it("应该支持多Provider并发数据获取", async () => {
       const mixedMarketSymbols = [
         "AAPL.US", // 美股 - 可能路由到LongPort
-        "00700.HK", // 港股 - 可能路由到LongPort
+        "700.HK", // 港股 - 可能路由到LongPort
         "000001.SZ", // A股 - 可能路由到LongPort
       ];
 
@@ -571,7 +605,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
   describe("🔄 Provider数据一致性验证", () => {
     it("应该确保相同符号在不同Provider间的数据一致性", async () => {
-      const testSymbol = "00700.HK";
+      const testSymbol = "700.HK";
 
       // 通过不同方式获取相同符号的数据
       const directResponse = await httpClient.post("/api/v1/receiver/data", {

@@ -85,7 +85,7 @@ describe("Data-Mapper Workflow E2E", () => {
       // 验证分析结果
       expect(analysisResult).toHaveProperty("extractedFields");
       expect(analysisResult.extractedFields.length).toBeGreaterThanOrEqual(10);
-      expect(analysisResult).toHaveProperty("dataStructureType", "flat");
+      
       expect(analysisResult).toHaveProperty("confidence");
       expect(analysisResult.confidence).toBeGreaterThan(0.7);
 

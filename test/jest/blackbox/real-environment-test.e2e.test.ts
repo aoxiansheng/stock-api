@@ -97,7 +97,7 @@ describe("Real Environment Black-box E2E Tests", () => {
         permissions: [
           "data:read",
           "query:execute",
-          "_providers:read",
+          "providers:read",
           "transformer:preview",
           "mapping:write",
           "system:monitor",
@@ -404,7 +404,7 @@ describe("Real Environment Black-box E2E Tests", () => {
 
       // 真实环境应该有实际的指标数据
       expect(metrics).toHaveProperty("healthScore");
-      expect(metrics).toHaveProperty("_summary");
+      expect(metrics).toHaveProperty("summary");
 
       if (metrics.summary) {
         console.log(`真实系统负载: ${metrics.summary.systemLoad || "N/A"}`);

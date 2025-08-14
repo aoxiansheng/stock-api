@@ -124,14 +124,6 @@ export class DataSourceAnalysisResponseDto {
   @Type(() => ExtractedFieldDto)
   extractedFields: ExtractedFieldDto[];
 
-  @ApiProperty({ 
-    description: '数据结构类型', 
-    example: 'flat',
-    enum: ['flat', 'nested', 'mixed'] 
-  })
-  @IsEnum(['flat', 'nested', 'mixed'])
-  dataStructureType: string;
-
   @ApiProperty({ description: '总字段数量', example: 15 })
   @IsNumber()
   @Min(0)
@@ -192,10 +184,6 @@ export class CreateDataSourceTemplateDto {
   @ValidateNested({ each: true })
   @Type(() => ExtractedFieldDto)
   extractedFields: ExtractedFieldDto[];
-
-  @ApiProperty({ description: '数据结构类型', enum: ['flat', 'nested', 'mixed'] })
-  @IsEnum(['flat', 'nested', 'mixed'])
-  dataStructureType: 'flat' | 'nested' | 'mixed';
 
   @ApiProperty({ description: '是否设为默认模板', default: false })
   @IsBoolean()
@@ -316,10 +304,6 @@ export class DataSourceTemplateResponseDto {
   @Type(() => ExtractedFieldDto)
   extractedFields: ExtractedFieldDto[];
 
-  @ApiProperty({ description: '数据结构类型' })
-  @IsEnum(['flat', 'nested', 'mixed'])
-  dataStructureType: string;
-
   @ApiProperty({ description: '总字段数量' })
   @IsNumber()
   @Min(0)
@@ -365,7 +349,6 @@ export class DataSourceTemplateResponseDto {
       description: doc.description,
       sampleData: doc.sampleData,
       extractedFields: doc.extractedFields || [],
-      dataStructureType: doc.dataStructureType,
       totalFields: doc.totalFields || 0,
       confidence: doc.confidence || 0,
       isActive: doc.isActive ?? true,

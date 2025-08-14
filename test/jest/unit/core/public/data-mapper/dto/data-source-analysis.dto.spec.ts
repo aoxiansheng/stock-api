@@ -110,7 +110,7 @@ describe("DataSourceAnalysisDto", () => {
             nestingLevel: 0
           }
         ],
-        dataStructureType: "flat",
+        
         confidence: 0.9
       });
 
@@ -126,7 +126,7 @@ describe("DataSourceAnalysisDto", () => {
         description: "Custom data source template",
         sampleData: { symbol: "700.HK" },
         extractedFields: [],
-        dataStructureType: "flat",
+        
         isDefault: true,
         confidence: 0.8
       });
@@ -303,7 +303,7 @@ describe("DataSourceAnalysisDto", () => {
           nestingLevel: 0
         }
       ];
-      dto.dataStructureType = "flat";
+      
       dto.totalFields = 1;
       dto.confidence = 0.9;
       dto.analysisTimestamp = new Date();
@@ -311,7 +311,7 @@ describe("DataSourceAnalysisDto", () => {
       expect(dto.extractedFields).toHaveLength(1);
       expect(dto.totalFields).toBe(1);
       expect(dto.confidence).toBe(0.9);
-      expect(dto.dataStructureType).toBe("flat");
+      
     });
   });
 
@@ -324,7 +324,7 @@ describe("DataSourceAnalysisDto", () => {
       dto.apiType = "rest";
       dto.sampleData = { symbol: "700.HK" };
       dto.extractedFields = [];
-      dto.dataStructureType = "flat";
+      
       dto.totalFields = 0;
       dto.confidence = 0.8;
       dto.isActive = true;

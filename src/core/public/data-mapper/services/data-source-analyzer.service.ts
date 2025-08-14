@@ -28,10 +28,7 @@ export class DataSourceAnalyzerService {
       // 1. 基础字段提取
       const extractedFields = this.extractFieldsFromData(sampleData);
       
-      // 2. 确定数据结构类型
-      const dataStructureType = this.determineDataStructureType(sampleData);
-      
-      // 3. 计算分析置信度
+      // 2. 计算分析置信度
       const confidence = this.calculateAnalysisConfidence(extractedFields);
       
       const analysisResult: DataSourceAnalysisResponseDto = {
@@ -39,7 +36,6 @@ export class DataSourceAnalyzerService {
         apiType,
         sampleData,
         extractedFields,
-        dataStructureType,
         totalFields: extractedFields.length,
         analysisTimestamp: new Date(),
         confidence,
@@ -150,65 +146,6 @@ export class DataSourceAnalyzerService {
       return Array.isArray(value) ? '[...]' : '{...}';
     }
     return value;
-  }
-
-  /**
-   * 🎯 确定数据结构类型
-   */
-  private determineDataStructureType(data: any): 'flat' | 'nested' | 'mixed' {
-    if (!data || typeof data !== 'object') {
-      return 'flat';
-    }
-
-    const hasNestedObjects = this.hasNestedObjects(data);
-    const hasArrays = this.hasArrays(data);
-
-    if (hasNestedObjects || hasArrays) {
-      return hasNestedObjects && hasArrays ? 'mixed' : 'nested';
-    }
-
-    return 'flat';
-  }
-
-  /**
-   * 🔍 检查是否有嵌套对象
-   */
-  private hasNestedObjects(obj: any): boolean {
-    if (!obj || typeof obj !== 'object') {
-      return false;
-    }
-
-    for (const value of Object.values(obj)) {
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        return true;
-      }
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (typeof item === 'object' && item !== null) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * 🔍 检查是否有数组
-   */
-  private hasArrays(obj: any): boolean {
-    if (!obj || typeof obj !== 'object') {
-      return false;
-    }
-
-    for (const value of Object.values(obj)) {
-      if (Array.isArray(value)) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**
