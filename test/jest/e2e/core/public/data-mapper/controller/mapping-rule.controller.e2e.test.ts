@@ -622,7 +622,7 @@ describe("MappingRuleController E2E", () => {
 
         // Arrange
         const generateRequest = {
-          ruleType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           ruleName: "Generated from Template Rule"
         };
 
@@ -651,7 +651,7 @@ describe("MappingRuleController E2E", () => {
       it("应该在模板不存在时返回404错误", async () => {
         // Arrange
         const generateRequest = {
-          ruleType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           ruleName: "Test Rule"
         };
 
@@ -668,7 +668,7 @@ describe("MappingRuleController E2E", () => {
       it("应该在无认证时返回401错误", async () => {
         // Arrange
         const generateRequest = {
-          ruleType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           ruleName: "Test Rule"
         };
 

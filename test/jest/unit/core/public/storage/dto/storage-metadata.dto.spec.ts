@@ -101,7 +101,7 @@ describe('StorageMetadataDto', () => {
         const dto = new StorageMetadataDto(
           'test:key',
           StorageType.PERSISTENT,
-          StorageClassification.COMPANY_PROFILE,
+          StorageClassification.STOCK_BASIC_INFO,
           'provider',
           'CN',
           512,
@@ -171,7 +171,7 @@ describe('StorageMetadataDto', () => {
           StorageClassification.STOCK_CANDLE,
           StorageClassification.STOCK_TICK,
           StorageClassification.FINANCIAL_STATEMENT,
-          StorageClassification.COMPANY_PROFILE,
+          StorageClassification.STOCK_BASIC_INFO,
           StorageClassification.MARKET_NEWS,
           StorageClassification.TRADING_ORDER,
           StorageClassification.USER_PORTFOLIO,

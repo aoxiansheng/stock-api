@@ -74,7 +74,7 @@ describe('FieldMappingService', () => {
 
     it('当过滤器是有效的能力类型时，应转换并返回数据分类', () => {
       const classification = service.filterToClassification('get-stock-basic-info' as QueryTypeFilter);
-      expect(classification).toBe(StorageClassification.COMPANY_PROFILE);
+      expect(classification).toBe(StorageClassification.STOCK_BASIC_INFO);
     });
 
     it('对于无效的过滤器，应返回 null 并记录警告', () => {

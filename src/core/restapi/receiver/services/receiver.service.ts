@@ -625,7 +625,7 @@ export class ReceiverService {
       const transformRequest: TransformRequestDto = {
         provider,
         apiType: 'rest',
-        transDataRuleListType: this.mapReceiverTypeToRuleType(request.receiverType),
+        transDataRuleListType: this.mapReceiverTypeToTransDataRuleListType(request.receiverType),
         rawData,
         options: {
           includeMetadata: true,
@@ -951,24 +951,27 @@ export class ReceiverService {
    * 将 receiverType 映射到 transDataRuleListType
    * 用于 Transformer 组件确定使用哪种映射规则类型
    */
-  private mapReceiverTypeToRuleType(receiverType: string): string {
+  private mapReceiverTypeToTransDataRuleListType(receiverType: string): string {
     const mapping: Record<string, string> = {
       'get-stock-quote': 'quote_fields',
       'get-stock-basic-info': 'basic_info_fields',
       'get-stock-realtime': 'quote_fields',
       'get-stock-history': 'quote_fields',
+      'get-index-quote': 'index_fields',
+      'get-market-status': 'market_status_fields'
+
     };
     
-    const ruleType = mapping[receiverType];
-    if (!ruleType) {
+    const transDataRuleListType = mapping[receiverType];
+    if (!transDataRuleListType) {
       this.logger.warn(`未找到 receiverType 映射，使用默认值`, {
         receiverType,
-        defaultRuleType: 'quote_fields'
+        defaultTransDataRuleListType: 'quote_fields'
       });
       return 'quote_fields'; // 默认使用股票报价字段映射
     }
     
-    return ruleType;
+    return transDataRuleListType;
   }
 
   /**
@@ -977,9 +980,11 @@ export class ReceiverService {
   private mapReceiverTypeToStorageClassification(receiverType: string): StorageClassification {
     const mapping: Record<string, StorageClassification> = {
       'get-stock-quote': StorageClassification.STOCK_QUOTE,
-      'get-stock-basic-info': StorageClassification.COMPANY_PROFILE,
+      'get-stock-basic-info': StorageClassification.STOCK_BASIC_INFO,
       'get-stock-realtime': StorageClassification.STOCK_QUOTE,
       'get-stock-history': StorageClassification.STOCK_CANDLE,
+      'get-index-quote': StorageClassification.INDEX_QUOTE,
+      'get-market-status': StorageClassification.MARKET_STATUS,
     };
     
     return mapping[receiverType] || StorageClassification.STOCK_QUOTE;

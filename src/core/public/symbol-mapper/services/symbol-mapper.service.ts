@@ -1652,7 +1652,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           originalSymbol,
           mappedSymbol,
           direction: isReverseLookup ? 'reverse' : 'forward',
-          ruleType: isReverseLookup ? 'sdkSymbol->standardSymbol' : 'standardSymbol->sdkSymbol',
+          mappingDirection: isReverseLookup ? 'sdkSymbol->standardSymbol' : 'standardSymbol->sdkSymbol',
           operation: "findMatchingSymbolMappingRule",
         }),
       );

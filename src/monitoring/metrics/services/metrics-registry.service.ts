@@ -237,7 +237,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.streamRulesCompiledTotal = new Counter({
       name: 'newstock_stream_rules_compiled_total',
       help: 'Total number of stream processing rules compiled',
-      labelNames: ['rule_type'],
+      labelNames: ['mapping_rule_category'],
       registers: [this.registry]
     });
 
@@ -376,7 +376,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.dataMapperRulesAppliedTotal = new Counter({
       name: 'newstock_data_mapper_rules_applied_total',
       help: 'Total number of data mapper rules applied',
-      labelNames: ['rule_type'],
+      labelNames: ['mapping_rule_category'],
       registers: [this.registry]
     });
 

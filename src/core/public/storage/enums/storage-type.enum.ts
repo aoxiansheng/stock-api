@@ -17,9 +17,11 @@ export enum StorageClassification {
   STOCK_CANDLE = "stock_candle",
   STOCK_TICK = "stock_tick",
   FINANCIAL_STATEMENT = "financial_statement",
-  COMPANY_PROFILE = "company_profile",
+  STOCK_BASIC_INFO = "stock_basic_info",
   MARKET_NEWS = "market_news",
   TRADING_ORDER = "trading_order",
   USER_PORTFOLIO = "user_portfolio",
+  INDEX_QUOTE = "index_quote",
+  MARKET_STATUS = "market_status",
   GENERAL = "general", // 默认/通用类别
 }

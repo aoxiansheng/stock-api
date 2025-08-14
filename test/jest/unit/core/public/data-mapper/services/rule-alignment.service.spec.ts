@@ -91,7 +91,7 @@ describe("RuleAlignmentService", () => {
 
 describe("generateRuleFromTemplate", () => {
     const templateId = "507f1f77bcf86cd799439011";
-    const ruleType = "quote_fields" as const;
+    const transDataRuleListType = "quote_fields" as const;
     const ruleName = "Generated Rule";
 
 it("should generate rule from template successfully", async () => {
@@ -99,7 +99,7 @@ it("should generate rule from template successfully", async () => {
       ruleModel.findOne.mockResolvedValue(null); // No existing rule
       ruleModel.create.mockResolvedValue(mockRule as any);
 
-      const result = await service.generateRuleFromTemplate(templateId, ruleType, ruleName);
+      const result = await service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName);
 
       expect(result.rule).toBeDefined();
       expect(result.alignmentResult).toBeDefined();
@@ -111,7 +111,7 @@ it("should generate rule from template successfully", async () => {
     it("should throw NotFoundException when template not found", async () => {
       templateModel.findById.mockResolvedValue(null);
 
-      await expect(service.generateRuleFromTemplate(templateId, ruleType, ruleName))
+      await expect(service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName))
         .rejects.toThrow(NotFoundException);
     });
 
@@ -119,7 +119,7 @@ it("should generate rule from template successfully", async () => {
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findOne.mockResolvedValue(mockRule as any);
 
-      await expect(service.generateRuleFromTemplate(templateId, ruleType, ruleName))
+      await expect(service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName))
         .rejects.toThrow(BadRequestException);
     });
 
@@ -129,7 +129,7 @@ it("should handle template with no extracted fields", async () => {
       ruleModel.findOne.mockResolvedValue(null); // No existing rule
       ruleModel.create.mockResolvedValue(mockRule as any);
 
-      const result = await service.generateRuleFromTemplate(templateId, ruleType, ruleName);
+      const result = await service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName);
 
       expect(result.rule).toBeDefined();
       expect(result.alignmentResult.alignedFields).toBe(0);

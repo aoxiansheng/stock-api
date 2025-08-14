@@ -9,6 +9,12 @@ import {
   DataSourceTemplate,
   DataSourceTemplateDocument
 } from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
+import {
+  FlexibleMappingRule,
+  FlexibleMappingRuleDocument
+} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
+import { RuleAlignmentService } from "../../../../../../../src/core/public/data-mapper/services/rule-alignment.service";
+import { MetricsRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 
 // Mock the logger
 jest.mock("../../../../../../../src/common/config/logger.config", () => ({
@@ -25,10 +31,14 @@ jest.mock("../../../../../../../src/common/config/logger.config", () => ({
 describe("PersistedTemplateService", () => {
   let service: PersistedTemplateService;
   let templateModel: DeepMocked<Model<DataSourceTemplateDocument>>;
+  let ruleModel: DeepMocked<Model<FlexibleMappingRuleDocument>>;
+  let mockRuleAlignmentService: DeepMocked<RuleAlignmentService>;
+  let mockMetricsRegistry: DeepMocked<MetricsRegistryService>;
 
   const mockTemplate = {
+    _id: "507f1f77bcf86cd799439011",
     id: "507f1f77bcf86cd799439011",
-    name: "LongPort REST Quote Template",
+    name: "LongPort REST 股票报价通用模板（港股/A股个股和指数）",
     provider: "longport",
     apiType: "rest",
     isPreset: true,
@@ -39,6 +49,12 @@ describe("PersistedTemplateService", () => {
         fieldName: "symbol",
         fieldType: "string",
         confidence: 1.0
+      },
+      {
+        fieldPath: "lastDone",
+        fieldName: "lastDone",
+        fieldType: "number",
+        confidence: 0.95
       }
     ],
     save: jest.fn(),
@@ -46,7 +62,59 @@ describe("PersistedTemplateService", () => {
     toJSON: jest.fn()
   };
 
+  const mockBasicInfoTemplate = {
+    _id: "507f1f77bcf86cd799439012",
+    id: "507f1f77bcf86cd799439012", 
+    name: "LongPort REST 股票基础信息通用模板",
+    provider: "longport",
+    apiType: "rest",
+    isPreset: true,
+    isActive: true,
+    extractedFields: [
+      {
+        fieldPath: "nameCn",
+        fieldName: "nameCn",
+        fieldType: "string",
+        confidence: 1.0
+      },
+      {
+        fieldPath: "exchange",
+        fieldName: "exchange", 
+        fieldType: "string",
+        confidence: 0.9
+      },
+      {
+        fieldPath: "lotSize",
+        fieldName: "lotSize",
+        fieldType: "number", 
+        confidence: 0.9
+      }
+    ],
+    save: jest.fn(),
+    toObject: jest.fn(),
+    toJSON: jest.fn()
+  };
+
+  const mockRule = {
+    _id: "507f1f77bcf86cd799439013",
+    name: "longport_REST_港股/A股个股和指数_报价数据_规则",
+    provider: "longport",
+    apiType: "rest",
+    transDataRuleListType: "quote_fields",
+    fieldMappings: [],
+    overallConfidence: 0.8
+  };
+
   beforeEach(async () => {
+    // Mock监控指标对象
+    const mockCounter = {
+      labels: jest.fn().mockReturnThis(),
+      inc: jest.fn().mockReturnThis(),
+    };
+    const mockGauge = {
+      set: jest.fn().mockReturnThis(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PersistedTemplateService,
@@ -54,16 +122,41 @@ describe("PersistedTemplateService", () => {
           provide: getModelToken(DataSourceTemplate.name),
           useValue: createMock<Model<DataSourceTemplateDocument>>(),
         },
+        {
+          provide: getModelToken(FlexibleMappingRule.name),
+          useValue: createMock<Model<FlexibleMappingRuleDocument>>(),
+        },
+        {
+          provide: RuleAlignmentService,
+          useValue: createMock<RuleAlignmentService>(),
+        },
+        {
+          provide: MetricsRegistryService,
+          useValue: {
+            dataMapperRuleInitializationTotal: mockCounter,
+            dataMapperRulesCreatedTotal: mockGauge,
+            dataMapperRulesSkippedTotal: mockGauge,
+          },
+        },
       ],
     }).compile();
 
     service = module.get<PersistedTemplateService>(PersistedTemplateService);
     templateModel = module.get(getModelToken(DataSourceTemplate.name));
-    // 避免在持久化测试中触发 new this.templateModel()
-    (service as any).BASIC_PRESETTEMPLATES = [];
+    ruleModel = module.get(getModelToken(FlexibleMappingRule.name));
+    mockRuleAlignmentService = module.get(RuleAlignmentService);
+    mockMetricsRegistry = module.get(MetricsRegistryService);
+    
+    // 重置所有mock
+    jest.clearAllMocks();
   });
 
   describe("persistPresetTemplates", () => {
+    beforeEach(() => {
+      // 避免在持久化测试中触发 new this.templateModel()
+      (service as any).BASIC_PRESET_TEMPLATES = [];
+    });
+
     it("should persist all preset templates successfully", async () => {
       templateModel.findOne.mockResolvedValue(null); // No existing templates
 
@@ -299,6 +392,11 @@ describe("PersistedTemplateService", () => {
   });
 
   describe("resetPresetTemplates", () => {
+    beforeEach(() => {
+      // 避免在重置测试中触发默认模板
+      (service as any).BASIC_PRESET_TEMPLATES = [];
+    });
+
     it("should reset all preset templates", async () => {
       templateModel.deleteMany.mockResolvedValue({ delet_edCount: 2 } as any);
       
@@ -436,6 +534,290 @@ describe("PersistedTemplateService", () => {
 
       const result = await service.persistPresetTemplates();
       expect(result.details.length).toBeGreaterThan(0);
+    });
+  });
+
+  // 【新增】数据映射规则自动化功能测试
+  describe("initializePresetMappingRules【优化版】", () => {
+    it("应该使用智能对齐服务为每个预设模板创建规则", async () => {
+      // 准备测试数据 - 2个不同类型的模板
+      const mockTemplates = [mockTemplate, mockBasicInfoTemplate];
+
+      // Mock模板查询
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTemplates)
+      } as any);
+
+      // Mock规则查询 - 规则不存在
+      ruleModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null)
+      } as any);
+
+      // Mock智能对齐服务
+      mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
+        rule: mockRule
+      } as any);
+
+      // 执行测试
+      const result = await service.initializePresetMappingRules();
+
+      // 验证结果
+      expect(result.created).toBe(2);
+      expect(result.skipped).toBe(0);
+      expect(result.failed).toBe(0);
+      expect(result.details).toHaveLength(2);
+
+      // 验证模板查询
+      expect(templateModel.find).toHaveBeenCalledWith({ isPreset: true });
+
+      // 【关键验证】智能对齐服务被正确调用
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledTimes(2);
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenNthCalledWith(
+        1,
+        mockTemplate._id.toString(),
+        "quote_fields",
+        "longport_REST_港股_报价数据_规则"
+      );
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenNthCalledWith(
+        2,
+        mockBasicInfoTemplate._id.toString(),
+        "basic_info_fields", 
+        "longport_REST_股票基础信息_基础信息_规则"
+      );
+
+      // 验证监控指标记录
+      expect(mockMetricsRegistry.dataMapperRuleInitializationTotal.labels).toHaveBeenCalledWith("created", "longport", "rest");
+      expect(mockMetricsRegistry.dataMapperRulesCreatedTotal.set).toHaveBeenCalledWith(2);
+    });
+
+    it("应该智能判断规则类型", async () => {
+      const mockTemplates = [mockBasicInfoTemplate];
+
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTemplates)
+      } as any);
+
+      ruleModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null)
+      } as any);
+
+      mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
+        rule: mockRule
+      } as any);
+
+      await service.initializePresetMappingRules();
+
+      // 验证基础信息模板被正确识别为 basic_info_fields
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledWith(
+        mockBasicInfoTemplate._id.toString(),
+        "basic_info_fields",
+        expect.any(String)
+      );
+    });
+
+    it("应该基于extractedFields启发式判断规则类型", async () => {
+      const mockUnknownTemplate = {
+        _id: "507f1f77bcf86cd799439014",
+        name: "未知数据源模板", // 名称不包含关键词
+        provider: "unknown",
+        apiType: "rest",
+        isPreset: true,
+        isActive: true,
+        extractedFields: [
+          { fieldName: "symbol" },
+          { fieldName: "lotSize" },     // 基础信息指标
+          { fieldName: "totalShares" }, // 基础信息指标  
+          { fieldName: "exchange" },    // 基础信息指标
+          { fieldName: "currency" }     // 基础信息指标 (4个 >= 3个阈值)
+        ]
+      };
+
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue([mockUnknownTemplate])
+      } as any);
+
+      ruleModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null)
+      } as any);
+
+      mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
+        rule: mockRule
+      } as any);
+
+      await service.initializePresetMappingRules();
+
+      // 验证启发式判断：包含4个基础信息指标 >= 3，应判断为 basic_info_fields
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledWith(
+        mockUnknownTemplate._id.toString(),
+        "basic_info_fields",
+        expect.any(String)
+      );
+    });
+
+    it("应该跳过已存在的映射规则", async () => {
+      const mockTemplates = [mockTemplate];
+
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTemplates)
+      } as any);
+
+      // Mock规则查询 - 规则已存在
+      const existingRule = {
+        name: "longport_REST_港股_报价数据_规则",
+        provider: "longport",
+        apiType: "rest",
+        transDataRuleListType: "quote_fields"
+      };
+      ruleModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(existingRule)
+      } as any);
+
+      const result = await service.initializePresetMappingRules();
+
+      // 验证跳过逻辑
+      expect(result.created).toBe(0);
+      expect(result.skipped).toBe(1);
+      expect(result.details).toContain('已跳过 LongPort REST 股票报价通用模板（港股/A股个股和指数）: 规则已存在');
+
+      // 验证智能对齐服务未被调用
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).not.toHaveBeenCalled();
+
+      // 验证跳过指标被记录
+      expect(mockMetricsRegistry.dataMapperRuleInitializationTotal.labels).toHaveBeenCalledWith("skipped", "longport", "rest");
+    });
+
+    it("应该正确处理智能对齐服务失败的情况", async () => {
+      const mockTemplates = [mockTemplate];
+
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTemplates)
+      } as any);
+
+      ruleModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null)
+      } as any);
+
+      // Mock智能对齐服务失败
+      mockRuleAlignmentService.generateRuleFromTemplate.mockRejectedValue(new Error('智能对齐失败'));
+
+      const result = await service.initializePresetMappingRules();
+
+      // 验证错误处理
+      expect(result.created).toBe(0);
+      expect(result.skipped).toBe(0);
+      expect(result.failed).toBe(1);
+      expect(result.details).toEqual(expect.arrayContaining([
+        expect.stringContaining('失败')
+      ]));
+
+      // 验证失败指标被记录
+      expect(mockMetricsRegistry.dataMapperRuleInitializationTotal.labels).toHaveBeenCalledWith("failed", "longport", "rest");
+    });
+
+    it("应该处理没有预设模板的情况", async () => {
+      // Mock没有预设模板
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue([])
+      } as any);
+
+      const result = await service.initializePresetMappingRules();
+
+      expect(result.created).toBe(0);
+      expect(result.skipped).toBe(0);
+      expect(result.failed).toBe(0);
+      expect(result.details).toContain('未找到预设模板，建议先执行预设模板持久化');
+
+      // 验证智能对齐服务未被调用
+      expect(mockRuleAlignmentService.generateRuleFromTemplate).not.toHaveBeenCalled();
+    });
+
+    it("应该使用完整查重条件避免跨类型误判", async () => {
+      const mockTemplates = [mockTemplate];
+
+      templateModel.find.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockTemplates)
+      } as any);
+
+      ruleModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null)
+      } as any);
+
+      mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
+        rule: mockRule
+      } as any);
+
+      await service.initializePresetMappingRules();
+
+      // 验证查重条件包含所有4个关键字段
+      expect(ruleModel.findOne).toHaveBeenCalledWith({
+        name: expect.any(String),
+        provider: mockTemplate.provider,
+        apiType: mockTemplate.apiType,
+        transDataRuleListType: "quote_fields"  // 【关键】避免跨类型同名误判
+      });
+    });
+  });
+
+  // 【新增】私有方法测试
+  describe("私有方法测试", () => {
+    it("应该正确生成规则名称", () => {
+      // 测试报价模板命名
+      const quoteRuleName = (service as any).generateRuleName(mockTemplate, "quote_fields");
+      expect(quoteRuleName).toBe("longport_REST_港股_报价数据_规则");
+      
+      // 测试基础信息模板命名
+      const basicInfoRuleName = (service as any).generateRuleName(mockBasicInfoTemplate, "basic_info_fields");
+      expect(basicInfoRuleName).toBe("longport_REST_股票基础信息_基础信息_规则");
+    });
+
+    it("应该正确判断规则类型", () => {
+      // 测试基础信息类型判断
+      const basicInfoType = (service as any).determineRuleType(mockBasicInfoTemplate);
+      expect(basicInfoType).toBe('basic_info_fields');
+      
+      // 测试报价类型判断（默认）
+      const quoteType = (service as any).determineRuleType(mockTemplate);
+      expect(quoteType).toBe('quote_fields');
+    });
+
+    it("应该基于模板名称关键词判断类型", () => {
+      const basicInfoTemplate = {
+        ...mockTemplate,
+        name: "LongPort REST 股票基础信息通用模板"
+      };
+      
+      const type = (service as any).determineRuleType(basicInfoTemplate);
+      expect(type).toBe('basic_info_fields');
+    });
+
+    it("应该基于字段内容启发式判断类型", () => {
+      const templateWithBasicFields = {
+        ...mockTemplate,
+        name: "未知模板", // 不包含关键词
+        extractedFields: [
+          { fieldName: "nameCn" },
+          { fieldName: "exchange" }, 
+          { fieldName: "lotSize" },
+          { fieldName: "totalShares" } // 4个基础信息字段 > 阈值3
+        ]
+      };
+      
+      const type = (service as any).determineRuleType(templateWithBasicFields);
+      expect(type).toBe('basic_info_fields');
+    });
+    
+    it("应该处理边缘命名情况", () => {
+      const edgeCaseTemplate = {
+        ...mockTemplate,
+        name: "  LongPort   REST   美股专用报价模板 (含盘前盘后)  ",
+        provider: "longport",
+        apiType: "rest"
+      };
+      
+      const ruleName = (service as any).generateRuleName(edgeCaseTemplate, "quote_fields");
+      expect(ruleName).toContain("美股专用");
+      expect(ruleName).toContain("报价数据");
+      expect(ruleName).toContain("规则");
     });
   });
 });

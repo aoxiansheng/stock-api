@@ -36,21 +36,8 @@ export const getStockQuote: ICapability = {
       const ctx = await params.contextService.getQuoteContext();
       const quotes = await ctx.quote(params.symbols);
 
-      // 转换为标准格式
-      const secu_quote = quotes.map((quote) => ({
-        symbol: quote.symbol,
-        last_done: quote.lastDone,
-        prev_close: quote.prevClose,
-        open: quote.open,
-        high: quote.high,
-        low: quote.low,
-        volume: quote.volume,
-        turnover: quote.turnover,
-        timestamp: quote.timestamp,
-        trade_status: quote.tradeStatus,
-      }));
-
-      return { secu_quote };
+      // 直接返回SDK原始格式，不做任何字段名转换
+      return { secu_quote: quotes };
     } catch (error) {
       throw new Error(`LongPort 获取股票报价失败: ${error.message}`);
     }

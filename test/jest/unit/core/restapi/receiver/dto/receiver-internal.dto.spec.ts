@@ -144,17 +144,17 @@ describe('ReceiverInternal DTOs', () => {
   describe('SymbolMarketMappingDto', () => {
     it('当数据有效时应通过验证', async () => {
       const dto = plainToClass(SymbolMarketMappingDto, {
-        symbol: 's1', market: 'HK', confidence: 1.0, ruleType: 'suffix'
+        symbol: 's1', market: 'HK', confidence: 1.0, matchStrategy: 'suffix'
       });
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
 
-    it('当 ruleType 无效时应无法通过验证', async () => {
-        // ruleType 约束当前未在 DTO 中强制实施，但测试可以预留
+    it('当 matchStrategy 无效时应无法通过验证', async () => {
+        // matchStrategy 约束当前未在 DTO 中强制实施，但测试可以预留
         // 如果未来添加 @IsIn(['suffix', ...])，此测试将失败
         const dto = plainToClass(SymbolMarketMappingDto, {
-            symbol: 's1', market: 'HK', confidence: 1.0, ruleType: 'invalid_rule'
+            symbol: 's1', market: 'HK', confidence: 1.0, matchStrategy: 'invalid_rule'
         });
         const errors = await validate(dto);
         // 期望无错误，因为没有 IsIn 装饰器

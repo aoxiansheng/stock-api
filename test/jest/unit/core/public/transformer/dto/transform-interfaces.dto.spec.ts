@@ -189,10 +189,10 @@ describe('Transform Interfaces DTOs', () => {
       });
     });
 
-    describe('Rule Types', () => {
-      it('should support different rule list types', () => {
+    describe('Data Rule List Types', () => {
+      it('should support different data rule list types', () => {
         // Arrange
-        const ruleTypes = [
+        const transDataRuleListTypes = [
           'quote_fields',
           'basic_info_fields',
           'market_status_fields',
@@ -200,15 +200,15 @@ describe('Transform Interfaces DTOs', () => {
           'custom_fields',
         ];
 
-        ruleTypes.forEach(ruleType => {
-          dto.id = `rule-${ruleType}`;
-          dto.name = `${ruleType} mapping`;
+        transDataRuleListTypes.forEach(transDataRuleListType => {
+          dto.id = `rule-${transDataRuleListType}`;
+          dto.name = `${transDataRuleListType} mapping`;
           dto.provider = 'longport';
-          dto.transDataRuleListType = ruleType;
+          dto.transDataRuleListType = transDataRuleListType;
           dto.sharedDataFieldMappings = [];
 
           // Assert
-          expect(dto.transDataRuleListType).toBe(ruleType);
+          expect(dto.transDataRuleListType).toBe(transDataRuleListType);
         });
       });
     });

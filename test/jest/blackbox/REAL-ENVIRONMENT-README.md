@@ -76,14 +76,14 @@ curl http://localhost:3000/api/v1/monitoring/health
 
 test:blackbox
 
-npx jest --config test/config/jest.blackbox.config.js  authentication-security.e2e.test.ts
-npx jest --config test/config/jest.blackbox.config.js  dual-interface-system.e2e.test.ts 
-npx jest --config test/config/jest.blackbox.config.js  market-awareness-caching.e2e.test.ts 
+npx jest --config test/config/jest.blackbox.config.js  authentication-security.e2e.test.ts 
+npx jest --config test/config/jest.blackbox.config.js  dual-interface-system.e2e.test.ts  
+npx jest --config test/config/jest.blackbox.config.js  market-awareness-caching.e2e.test.ts  
 npx jest --config test/config/jest.blackbox.config.js  monitoring-performance.e2e.test.ts 
 npx jest --config test/config/jest.blackbox.config.js  provider-integration.e2e.test.ts    有错误
 npx jest --config test/config/jest.blackbox.config.js  real-environment-test.e2e.test.ts   
-npx jest --config test/config/jest.blackbox.config.js  six-component-pipeline.e2e.test.ts 
-npx jest --config test/config/jest.blackbox.config.js  stream-receiver-real-time.e2e.test.ts  
+npx jest --config test/config/jest.blackbox.config.js  six-component-pipeline.e2e.test.ts  
+npx jest --config test/config/jest.blackbox.config.js  stream-receiver-real-time.e2e.test.ts   有错误
 
 # 快速运行Stream Receiver专项测试
 bun run test:blackbox:stream

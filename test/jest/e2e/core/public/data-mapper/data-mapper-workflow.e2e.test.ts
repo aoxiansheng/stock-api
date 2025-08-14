@@ -93,7 +93,7 @@ describe("Data-Mapper Workflow E2E", () => {
       console.log("🛠️ 阶段2: 基于模板生成映射规则");
 
       const generateRuleRequest = {
-        ruleType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         ruleName: "LongPort Complete Mapping Rule"
       };
 
@@ -288,7 +288,7 @@ describe("Data-Mapper Workflow E2E", () => {
 
       // 2. 生成流式映射规则
       const streamRuleRequest = {
-        ruleType: "quote_fields",
+        transDataRuleListType: "quote_fields",
         ruleName: "Custom Stream Mapping Rule"
       };
 
@@ -464,7 +464,7 @@ describe("Data-Mapper Workflow E2E", () => {
 
         // 3. 基于预设模板生成规则
         const presetRuleRequest = {
-          ruleType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           ruleName: `E2E Preset Rule - ${Date.now()}`
         };
 

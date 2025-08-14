@@ -490,15 +490,15 @@ export class PersistedTemplateService {
       // 为每个模板生成映射规则
       for (const template of presetTemplates) {
         try {
-          const ruleType = this.determineRuleType(template);
-          const ruleName = this.generateRuleName(template, ruleType);
+          const transDataRuleListType = this.determineRuleType(template);
+          const ruleName = this.generateRuleName(template, transDataRuleListType);
           
           // 检查规则是否已存在（双重保险：名称 + 核心字段）
           const existingRule = await this.ruleModel.findOne({
             name: ruleName,
             provider: template.provider,
             apiType: template.apiType,
-            transDataRuleListType: ruleType
+            transDataRuleListType: transDataRuleListType
           }).exec();
 
           if (existingRule) {
@@ -516,7 +516,7 @@ export class PersistedTemplateService {
           // 使用智能对齐服务生成规则
           const { rule } = await this.ruleAlignmentService.generateRuleFromTemplate(
             template._id.toString(),
-            ruleType,
+            transDataRuleListType,
             ruleName
           );
 
@@ -527,7 +527,7 @@ export class PersistedTemplateService {
             ruleId: rule._id,
             provider: template.provider,
             apiType: template.apiType,
-            ruleType
+            transDataRuleListType
           });
           
           // 监控指标：创建成功
@@ -611,10 +611,10 @@ export class PersistedTemplateService {
    * 🏷️ 健壮的规则名称生成
    * 基于模板信息生成唯一且描述性的规则名称
    */
-  private generateRuleName(template: DataSourceTemplateDocument, ruleType: 'quote_fields' | 'basic_info_fields'): string {
+  private generateRuleName(template: DataSourceTemplateDocument, transDataRuleListType: 'quote_fields' | 'basic_info_fields'): string {
     const provider = template.provider;
     const apiType = template.apiType.toUpperCase();
-    const ruleTypeLabel = ruleType === 'quote_fields' ? '报价数据' : '基础信息';
+    const ruleTypeLabel = transDataRuleListType === 'quote_fields' ? '报价数据' : '基础信息';
     
     // 基于模板名称简化
     let templateNameSimplified = template.name

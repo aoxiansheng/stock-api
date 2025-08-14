@@ -432,7 +432,7 @@ describe("Transformer Controller E2E Tests", () => {
     it("should handle different rule types", async () => {
       const testCases = [
         {
-          ruleType: "quote_fields",
+          transDataRuleListType: "quote_fields",
           rawData: {
             symbol: "AAPL",
             last_price: 150.25,
@@ -442,14 +442,14 @@ describe("Transformer Controller E2E Tests", () => {
           }
         },
         {
-          ruleType: "basic_info_fields", 
+          transDataRuleListType: "basic_info_fields", 
           rawData: {
             symbol: "AAPL",
             name: "Apple Inc"
           }
         },
         {
-          ruleType: "index_fields",
+          transDataRuleListType: "index_fields",
           rawData: {
             symbol: "SPY",
             name: "SPDR S&P 500",
@@ -462,7 +462,7 @@ describe("Transformer Controller E2E Tests", () => {
         const transformRequest = {
           rawData: testCase.rawData,
           apiType: "rest",
-          transDataRuleListType: testCase.ruleType,
+          transDataRuleListType: testCase.transDataRuleListType,
           provider: "longport"
         };
 

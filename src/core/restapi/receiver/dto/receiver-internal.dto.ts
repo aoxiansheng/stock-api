@@ -201,7 +201,7 @@ export class SymbolMarketMappingDto {
   @IsNumber()
   confidence: number;
 
-  @ApiProperty({ description: "匹配规则类型" })
+  @ApiProperty({ description: "市场匹配策略" })
   @IsString()
-  ruleType: "suffix" | "prefix" | "pattern" | "numeric" | "alpha";
+  matchStrategy: "suffix" | "prefix" | "pattern" | "numeric" | "alpha";
 }

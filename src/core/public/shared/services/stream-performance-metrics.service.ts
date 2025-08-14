@@ -8,6 +8,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
+import { MAPPING_RULE_CATEGORY, type MappingRuleCategory } from '@common/constants/mapping-rule-category.constants';
 import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
 
@@ -87,7 +88,10 @@ export class StreamPerformanceMetrics {
     compilationTimeMs: number, 
     cacheHit: boolean = false,
     provider: string = 'unknown',
-    ruleType: string = 'unknown'
+    /** 
+     * 数据映射规则类别，与 Data-Mapper 组件的 transDataRuleListType 保持语义一致
+     */
+    mappingRuleCategory: MappingRuleCategory = MAPPING_RULE_CATEGORY.QUOTE_FIELDS
   ): void {
     if (!this.featureFlags.isPerformanceOptimizationEnabled()) {
       return;
@@ -100,7 +104,7 @@ export class StreamPerformanceMetrics {
     Metrics.inc(
       this.metricsRegistry, 
       'streamRulesCompiledTotal', 
-      { provider, rule_type: ruleType }
+      { provider, mapping_rule_category: mappingRuleCategory }
     );
 
     this.recordResponseTime(compilationTimeMs);

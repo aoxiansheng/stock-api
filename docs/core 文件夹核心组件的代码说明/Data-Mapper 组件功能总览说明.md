@@ -338,7 +338,7 @@ Data-Mapper Component
 **请求体**:
 ```json
 {
-  "ruleType": "quote_fields",  // 或 "basic_info_fields"
+  "transDataRuleListType": "quote_fields",  // 或 "basic_info_fields"
   "ruleName": "自定义规则名称"
 }
 ```
@@ -349,7 +349,7 @@ Data-Mapper Component
 
 **权限**: JWT认证 (`UserRole.ADMIN`, `UserRole.DEVELOPER`)
 
-**查询参数**: `ruleType` ('quote_fields' | 'basic_info_fields')
+**查询参数**: `transDataRuleListType` ('quote_fields' | 'basic_info_fields')
 
 ### 4.3 规则对齐和调整
 

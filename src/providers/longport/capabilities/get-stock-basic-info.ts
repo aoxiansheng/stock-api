@@ -36,20 +36,8 @@ export const getStockBasicInfo: ICapability = {
       const ctx = await params.contextService.getQuoteContext();
       const staticInfos = await ctx.staticInfo(params.symbols);
 
-      // 转换为标准格式
-      const basicInfos: LongportBasicInfo[] = staticInfos.map((info) => ({
-        symbol: info.symbol,
-        name_cn: info.nameCn || "",
-        name_en: info.nameEn || "",
-        name_hk: info.nameHk || "",
-        listing_date: info.listingDate || "",
-        shares_outstanding: info.totalShares || 0,
-        market_cap: info.marketVal || 0,
-        sector: info.sector || "",
-        industry: info.industry || "",
-      }));
-
-      return basicInfos;
+      // 直接返回SDK原始格式，不做任何字段名转换
+      return staticInfos;
     } catch (error) {
       throw new Error(`LongPort 获取股票基本信息失败: ${error.message}`);
     }

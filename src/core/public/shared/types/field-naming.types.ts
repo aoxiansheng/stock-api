@@ -24,7 +24,7 @@ export enum StorageClassification {
   STOCK_CANDLE = "stock_candle",
   STOCK_TICK = "stock_tick",
   FINANCIAL_STATEMENT = "financial_statement",
-  COMPANY_PROFILE = "company_profile",
+  STOCK_BASIC_INFO = "stock_basic_info",
   MARKET_NEWS = "market_news",
   TRADING_ORDER = "trading_order",
   USER_PORTFOLIO = "user_portfolio",
@@ -51,7 +51,7 @@ export const FIELD_MAPPING_CONFIG = {
   // Receiver 能力类型到 Storage 数据分类的映射
   CAPABILITY_TO_CLASSIFICATION: {
     "get-stock-quote": StorageClassification.STOCK_QUOTE,
-    "get-stock-basic-info": StorageClassification.COMPANY_PROFILE,
+    "get-stock-basic-info": StorageClassification.STOCK_BASIC_INFO,
     "get-index-quote": StorageClassification.INDEX_QUOTE,
     "get-market-status": StorageClassification.MARKET_STATUS,
     "get-trading-days": StorageClassification.TRADING_DAYS,
@@ -67,7 +67,7 @@ export const FIELD_MAPPING_CONFIG = {
   // Storage 数据分类到 Receiver 能力类型的反向映射
   CLASSIFICATION_TO_CAPABILITY: {
     [StorageClassification.STOCK_QUOTE]: "get-stock-quote",
-    [StorageClassification.COMPANY_PROFILE]: "get-stock-basic-info",
+    [StorageClassification.STOCK_BASIC_INFO]: "get-stock-basic-info",
     [StorageClassification.INDEX_QUOTE]: "get-index-quote",
     [StorageClassification.MARKET_STATUS]: "get-market-status",
     [StorageClassification.TRADING_DAYS]: "get-trading-days",

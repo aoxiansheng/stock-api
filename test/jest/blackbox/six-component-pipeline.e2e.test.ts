@@ -122,21 +122,19 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       provider: "longport",
       transDataRuleListType: "quote_fields",
       description: "Rule for E2E pipeline test",
-      sharedDataFieldMappings: [
-        { sourceField: "symbol", targetField: "symbol" },
-        { sourceField: "last_done", targetField: "lastPrice" },
-        { sourceField: "volume", targetField: "volume" }
+      fieldMappings: [
+        { sourceFieldPath: "symbol", targetField: "symbol", confidence: 1.0 },
+        { sourceFieldPath: "lastDone", targetField: "lastPrice", confidence: 1.0 },
+        { sourceFieldPath: "volume", targetField: "volume", confidence: 1.0 }
       ],
-      isActive: true,
       apiType: 'rest',
     };
 
     // 1) 先查询是否已存在匹配规则，若存在则补充 apiType = 'rest'
     try {
-      const listResp = await httpClient.get("/api/v1/data-mapper", {
+      const listResp = await httpClient.get("/api/v1/data-mapper/rules", {
         headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
+          "Authorization": `Bearer ${adminJWT}`,
         },
         params: {
           provider: "longport",
@@ -148,10 +146,9 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
         const existing = listResp.data.data.find((r: any) => r.name === mappingRuleData.name);
         if (existing && existing.id) {
           // 补充/更新为 REST
-          await httpClient.patch(`/api/v1/data-mapper/${existing.id}`, { apiType: 'rest' }, {
+          await httpClient.put(`/api/v1/data-mapper/rules/${existing.id}`, { apiType: 'rest' }, {
             headers: {
-              "X-App-Key": apiKey.appKey,
-              "X-Access-Token": apiKey.accessToken,
+              "Authorization": `Bearer ${adminJWT}`,
             }
           });
         }
@@ -161,10 +158,9 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
     }
 
     // 2) 创建或确保存在 REST 规则
-    const response = await httpClient.post("/api/v1/data-mapper", mappingRuleData, {
+    const response = await httpClient.post("/api/v1/data-mapper/rules", mappingRuleData, {
       headers: {
-        "X-App-Key": apiKey.appKey,
-        "X-Access-Token": apiKey.accessToken,
+        "Authorization": `Bearer ${adminJWT}`,
       }
     });
 
@@ -185,20 +181,18 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       provider: "longport",
       transDataRuleListType: "quote_fields",
       description: "Stream rule for E2E pipeline test",
-      sharedDataFieldMappings: [
-        { sourceField: "symbol", targetField: "symbol" },
-        { sourceField: "last_done", targetField: "lastPrice" },
-        { sourceField: "volume", targetField: "volume" },
-        { sourceField: "timestamp", targetField: "timestamp" },
+      fieldMappings: [
+        { sourceFieldPath: "symbol", targetField: "symbol", confidence: 1.0 },
+        { sourceFieldPath: "lastDone", targetField: "lastPrice", confidence: 1.0 },
+        { sourceFieldPath: "volume", targetField: "volume", confidence: 1.0 },
+        { sourceFieldPath: "timestamp", targetField: "timestamp", confidence: 1.0 },
       ],
-      isActive: true,
       apiType: 'stream',
     };
 
-    const streamResp = await httpClient.post("/api/v1/data-mapper", streamRuleData, {
+    const streamResp = await httpClient.post("/api/v1/data-mapper/rules", streamRuleData, {
       headers: {
-        "X-App-Key": apiKey.appKey,
-        "X-Access-Token": apiKey.accessToken,
+        "Authorization": `Bearer ${adminJWT}`,
       }
     });
 
@@ -211,7 +205,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
   describe("完整六组件数据流水线测试", () => {
     it("应该完成从Receiver到Query的完整数据处理流", async () => {
-        const testSymbol = "00700.HK";
+        const testSymbol = "AMD.US";
   const testDataType = "get-stock-quote";
 
   // Step 1: Receiver - 数据接收和初始处理
@@ -252,7 +246,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       // Step 3: DataMapper - 字段映射规则验证
       console.log("Step 3: Testing DataMapper component...");
-      const mappingResponse = await httpClient.get("/api/v1/data-mapper", {
+      const mappingResponse = await httpClient.get("/api/v1/data-mapper/rules", {
         headers: {
           "X-App-Key": apiKey.appKey,
           "X-Access-Token": apiKey.accessToken,
@@ -272,11 +266,11 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       // Step 4: Transformer - 数据转换验证
       console.log("Step 4: Testing Transformer component...");
       if (originalData) {
-        const transformResponse = await httpClient.post("/api/v1/transformer/preview", {
+        const transformResponse = await httpClient.post("/api/v1/transformer/transform", {
           provider: "longport",
+          apiType: "rest",
           transDataRuleListType: "quote_fields",
           rawData: originalData,
-         // previewOnly: true,
         }, {
           headers: {
             "X-App-Key": apiKey.appKey,
@@ -284,10 +278,10 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
           }
         });
 
-        expect(transformResponse.status).toBe(201);
+        expect([200, 201]).toContain(transformResponse.status);
         expect(transformResponse.data.data).toBeDefined();
-        if (transformResponse.data.data.previewResult) {
-          expect(transformResponse.data.data.previewResult).toBeDefined();
+        if (transformResponse.data.data.transformedData) {
+          expect(transformResponse.data.data.transformedData).toBeDefined();
         }
       }
 

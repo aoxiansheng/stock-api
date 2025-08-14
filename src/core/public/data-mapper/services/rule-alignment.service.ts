@@ -67,7 +67,7 @@ export class RuleAlignmentService {
    */
   async generateRuleFromTemplate(
     templateId: string,
-    ruleType: 'quote_fields' | 'basic_info_fields',
+    transDataRuleListType: 'quote_fields' | 'basic_info_fields',
     ruleName?: string
   ): Promise<{
     rule: FlexibleMappingRuleDocument;
@@ -83,7 +83,7 @@ export class RuleAlignmentService {
       }>;
     };
   }> {
-    this.logger.log(`基于模板生成规则`, { templateId, ruleType });
+    this.logger.log(`基于模板生成规则`, { templateId, transDataRuleListType });
 
     // 1. 获取模板
     const template = await this.templateModel.findById(templateId);
@@ -92,12 +92,12 @@ export class RuleAlignmentService {
     }
 
     // 2. 检查规则是否已存在
-    const generatedRuleName = ruleName || `${template.name} - ${ruleType} 自动对齐规则`;
+    const generatedRuleName = ruleName || `${template.name} - ${transDataRuleListType} 自动对齐规则`;
     const existingRule = await this.ruleModel.findOne({
       name: generatedRuleName,
       provider: template.provider,
       apiType: template.apiType,
-      transDataRuleListType: ruleType
+      transDataRuleListType: transDataRuleListType
     });
 
     if (existingRule) {
@@ -105,7 +105,7 @@ export class RuleAlignmentService {
     }
 
     // 3. 自动对齐字段
-    const alignmentResult = this.autoAlignFields(template, ruleType);
+    const alignmentResult = this.autoAlignFields(template, transDataRuleListType);
 
     // 4. 构建字段映射
     const fieldMappings = alignmentResult.suggestions
@@ -123,7 +123,7 @@ export class RuleAlignmentService {
       name: generatedRuleName,
       provider: template.provider,
       apiType: template.apiType,
-      transDataRuleListType: ruleType,
+      transDataRuleListType: transDataRuleListType,
       description: `基于模板 ${template.name} 自动生成的字段映射规则`,
       sourceTemplateId: templateId,
       fieldMappings,
@@ -302,9 +302,9 @@ export class RuleAlignmentService {
    */
   private autoAlignFields(
     template: DataSourceTemplateDocument, 
-    ruleType: 'quote_fields' | 'basic_info_fields'
+    transDataRuleListType: 'quote_fields' | 'basic_info_fields'
   ) {
-    const targetFields = this.PRESET_TARGET_FIELDS[ruleType];
+    const targetFields = this.PRESET_TARGET_FIELDS[transDataRuleListType];
     const sourceFields = template.extractedFields || [];
     
     const suggestions = [];

@@ -290,7 +290,7 @@ describe("MappingRuleController", () => {
       const result = await controller.generateRuleFromTemplate(
         generateRequest.templateId,
         {
-          ruleType: generateRequest.transDataRuleListType as "quote_fields",
+          transDataRuleListType: generateRequest.transDataRuleListType as "quote_fields",
           ruleName: generateRequest.ruleName
         }
       );
@@ -311,7 +311,7 @@ describe("MappingRuleController", () => {
       await expect(controller.generateRuleFromTemplate(
         generateRequest.templateId,
         {
-          ruleType: generateRequest.transDataRuleListType as "quote_fields",
+          transDataRuleListType: generateRequest.transDataRuleListType as "quote_fields",
           ruleName: generateRequest.ruleName
         }
       )).rejects.toThrow(NotFoundException);
@@ -333,7 +333,7 @@ describe("MappingRuleController", () => {
           provider: "longport",
           apiType: "rest"
         },
-        ruleType: "quote_fields" as const,
+        transDataRuleListType: "quote_fields" as const,
         alignmentPreview: {
           totalFields: 2,
           alignedFields: 2,
@@ -364,7 +364,7 @@ describe("MappingRuleController", () => {
           provider: "longport",
           apiType: "rest"
         },
-        ruleType: "quote_fields" as const,
+        transDataRuleListType: "quote_fields" as const,
         alignmentPreview: {
           totalFields: 0,
           alignedFields: 0,

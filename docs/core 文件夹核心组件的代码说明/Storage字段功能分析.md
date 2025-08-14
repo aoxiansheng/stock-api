@@ -64,7 +64,7 @@ Storage 是6-component架构中的第5个组件，负责双层存储策略：Red
   STOCK_CANDLE = "stock_candle"         // K线数据
   STOCK_TICK = "stock_tick"             // 逐笔成交数据
   FINANCIAL_STATEMENT = "financial_statement" // 财务报表
-  COMPANY_PROFILE = "company_profile"    // 公司概况
+  STOCK_BASIC_INFO = "stock_basic_info"    // 公司概况
   MARKET_NEWS = "market_news"           // 市场新闻
   TRADING_ORDER = "trading_order"       // 交易订单
   USER_PORTFOLIO = "user_portfolio"     // 用户投资组合

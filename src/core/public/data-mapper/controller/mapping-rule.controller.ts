@@ -130,13 +130,13 @@ export class MappingRuleController {
   async generateRuleFromTemplate(
     @Param('templateId') templateId: string,
     @Body() body: {
-      ruleType: 'quote_fields' | 'basic_info_fields';
+      transDataRuleListType: 'quote_fields' | 'basic_info_fields';
       ruleName?: string;
     }
   ) {
     return await this.ruleAlignmentService.generateRuleFromTemplate(
       templateId,
-      body.ruleType,
+      body.transDataRuleListType,
       body.ruleName
     );
   }
@@ -152,10 +152,10 @@ export class MappingRuleController {
   @JwtAuthResponses()
   async previewFieldAlignment(
     @Param('templateId') templateId: string,
-    @Query('ruleType') ruleType: 'quote_fields' | 'basic_info_fields'
+    @Query('transDataRuleListType') transDataRuleListType: 'quote_fields' | 'basic_info_fields'
   ) {
     const template = await this.persistedTemplateService.getPersistedTemplateById(templateId);
-    const alignmentResult = await this.ruleAlignmentService['autoAlignFields'](template, ruleType);
+    const alignmentResult = await this.ruleAlignmentService['autoAlignFields'](template, transDataRuleListType);
     
     return {
       template: {
@@ -164,7 +164,7 @@ export class MappingRuleController {
         provider: template.provider,
         apiType: template.apiType,
       },
-      ruleType,
+      transDataRuleListType,
       alignmentPreview: alignmentResult,
     };
   }

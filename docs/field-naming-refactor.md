@@ -57,7 +57,7 @@ export type ReceiverType =
 // Storage 组件的数据分类
 export enum StorageClassification {
   STOCK_QUOTE = "stock_quote",
-  COMPANY_PROFILE = "company_profile",
+  STOCK_BASIC_INFO = "stock_basic_info",
   // ... 更多分类
 }
 
@@ -72,7 +72,7 @@ export const FIELD_MAPPING_CONFIG = {
   // Receiver 能力类型到 Storage 数据分类的映射
   CAPABILITY_TO_CLASSIFICATION: {
     "get-stock-quote": StorageClassification.STOCK_QUOTE,
-    "get-stock-basic-info": StorageClassification.COMPANY_PROFILE,
+    "get-stock-basic-info": StorageClassification.STOCK_BASIC_INFO,
     // ... 更多映射
   },
   // 反向映射
