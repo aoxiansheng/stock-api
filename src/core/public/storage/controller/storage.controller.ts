@@ -561,7 +561,7 @@ export class StorageController {
           key: testKey,
           data: testData,
           storageType: StorageType.CACHE,
-          storageClassification: "get-stock-quote" as any,
+          storageClassification: "stock_quote" as any,
           provider: "health-test",
           market: "test",
           options: { cacheTtl: 60 },
@@ -591,7 +591,7 @@ export class StorageController {
           key: `${testKey}-persistent`,
           data: testData,
           storageType: StorageType.PERSISTENT,
-          storageClassification: "get-stock-quote" as any,
+          storageClassification: "stock_quote" as any,
           provider: "health-test",
           market: "test",
         });

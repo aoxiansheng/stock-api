@@ -293,7 +293,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
       const secondResponse = await httpClient.post("/api/v1/query/execute", {
         queryType: "by_symbols",
         symbols: [testSymbol],
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         options: {
           includeMetadata: true
         }
@@ -335,7 +335,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
         queryType: "by_symbols",
 
         symbols: testSymbols,
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         options: {
           includeMetadata: true
         }

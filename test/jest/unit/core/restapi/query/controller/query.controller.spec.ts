@@ -216,7 +216,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "MSFT.US"],
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         options: {
           useCache: true,
           updateCache: true,
@@ -235,7 +235,7 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["AAPL.US", "MSFT.US"],
-          queryTypeFilter: "stock-quote",
+          queryTypeFilter: "get-stock-quote",
         }),
       );
       expect(mockLogger.log).toHaveBeenCalledWith(
@@ -251,7 +251,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["INVALID.US"],
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
       };
 
       const error = new Error("Query execution failed");
@@ -274,7 +274,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "MSFT.US", "GOOGL.US", "TSLA.US", "AMZN.US"],
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
       };
 
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
@@ -297,12 +297,12 @@ describe("QueryController", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL.US"],
-            queryTypeFilter: "stock-quote",
+            queryTypeFilter: "get-stock-quote",
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["MSFT.US"],
-            queryTypeFilter: "stock-quote",
+            queryTypeFilter: "get-stock-quote",
           },
         ],
         parallel: true,
@@ -331,7 +331,7 @@ describe("QueryController", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID.US"],
-            queryTypeFilter: "stock-quote",
+            queryTypeFilter: "get-stock-quote",
           },
         ],
         parallel: false,
@@ -407,7 +407,7 @@ describe("QueryController", () => {
           symbols: ["AAPL", "MSFT", "GOOGL"],
           provider: "longport",
           market: "US",
-          queryTypeFilter: "quote",
+          queryTypeFilter: "get-stock-quote",
           limit: 10,
           page: 1,
           options: {
@@ -511,7 +511,7 @@ describe("QueryController", () => {
           queryType: QueryType.BY_MARKET,
           market: "US",
           provider: "longport",
-          queryTypeFilter: "quote",
+          queryTypeFilter: "get-stock-quote",
           limit: 50,
           page: 10,
           options: {
@@ -561,7 +561,7 @@ describe("QueryController", () => {
           queryType: QueryType.BY_PROVIDER,
           provider: "longport",
           market: "US",
-          queryTypeFilter: "quote",
+          queryTypeFilter: "get-stock-quote",
           limit: 25,
           page: 5,
           options: {
@@ -654,7 +654,7 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["TEST"],
-          queryTypeFilter: "stock-quote",
+          queryTypeFilter: "get-stock-quote",
           options: {
             useCache: false,
             updateCache: false,

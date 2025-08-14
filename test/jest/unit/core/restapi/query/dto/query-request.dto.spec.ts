@@ -29,7 +29,7 @@ describe("Query Request DTOs", () => {
         symbols: ["AAPL.US", "GOOGL.US"],
         market: "US",
         provider: "LongPort",
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         startTime: "2023-01-01T00:00:00Z",
         endTime: "2023-01-02T00:00:00Z",
         advancedQuery: {

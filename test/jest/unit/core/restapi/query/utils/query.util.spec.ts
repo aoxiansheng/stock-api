@@ -9,12 +9,12 @@ describe("Query Utils", () => {
     it("应该使用所有提供的参数构建存储键", () => {
       const symbol = "AAPL.US";
       const provider = "longport";
-      const queryTypeFilter = "stock-quote";
+      const queryTypeFilter = "get-stock-quote";
       const market = "US";
 
       const key = buildStorageKey(symbol, provider, queryTypeFilter, market);
 
-      expect(key).toBe("US:longport:stock-quote:AAPL.US");
+      expect(key).toBe("US:longport:get-stock-quote:AAPL.US");
     });
 
     it("应该为缺少的参数使用通配符", () => {
@@ -37,12 +37,12 @@ describe("Query Utils", () => {
     it("应该正确处理包含冒号的符号", () => {
       const symbol = "700:HK";
       const provider = "longport";
-      const queryTypeFilter = "stock-quote";
+      const queryTypeFilter = "get-stock-quote";
       const market = "HK";
 
       const key = buildStorageKey(symbol, provider, queryTypeFilter, market);
 
-      expect(key).toBe("HK:longport:stock-quote:700:HK");
+      expect(key).toBe("HK:longport:get-stock-quote:700:HK");
     });
 
     it("应该处理空字符串参数", () => {
@@ -76,7 +76,7 @@ describe("Query Utils", () => {
     it("当未指定maxAge时应该返回true", () => {
       const data = {
         value: 100,
-        timestamp: new Date("2022-12-_31T12:00:00Z").toISOString(),
+        timestamp: new Date("2022-12-31T12:00:00Z").toISOString(),
       };
 
       const result = validateDataFreshness(data);

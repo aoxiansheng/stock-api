@@ -76,7 +76,7 @@ export class FieldMappingService {
    * @returns Query 组件可用的数据类型过滤器
    */
   classificationToFilter(classification: StorageClassification): QueryTypeFilter {
-    return classification.toString();
+    return FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY[classification] || classification.toString();
   }
 
   /**

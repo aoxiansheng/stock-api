@@ -267,7 +267,7 @@ describe("ReceiverController", () => {
     it("should handle index quote requests", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["HSI.HK", "SPX.US"],
-        receiverType: "index-quote",
+        receiverType: "get-index-quote",
         options: {
           preferredProvider: "longport",
           realtime: true,
@@ -486,7 +486,7 @@ describe("ReceiverController", () => {
 
       const indexQuoteRequest: DataRequestDto = {
         symbols: ["HSI.HK"],
-        receiverType: "index-quote",
+        receiverType: "get-index-quote",
       };
 
       receiverService.handleRequest.mockImplementation((request) => {
@@ -494,7 +494,7 @@ describe("ReceiverController", () => {
         const dataTypeToCapabilityMap: Record<string, string> = {
           "get-stock-quote": "get-stock-quote",
           "get-stock-basic-info": "get-stock-basic-info",
-          "index-quote": "get-index-quote",
+          "get-index-quote": "get-index-quote",
         };
 
         return Promise.resolve({

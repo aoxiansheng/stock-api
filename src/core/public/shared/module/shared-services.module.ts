@@ -15,6 +15,7 @@ import { BackgroundTaskService } from "../services/background-task.service";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { StreamPerformanceMetrics } from "../services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
+import { FieldMappingService } from "../services/field-mapping.service";
 // import { BaseFetcherService } from "../services/base-fetcher.service"; // Currently unused
 
 /**
@@ -45,6 +46,7 @@ import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
     MetricsRegistryService,
     StreamPerformanceMetrics,
     DynamicLogLevelService,
+    FieldMappingService,
   ],
   exports: [
     // DataFetchingService, // 移动到需要的模块中
@@ -57,6 +59,7 @@ import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
     MetricsRegistryService,
     StreamPerformanceMetrics,
     DynamicLogLevelService,
+    FieldMappingService,
   ],
 })
 export class SharedServicesModule {}

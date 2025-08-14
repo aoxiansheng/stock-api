@@ -114,7 +114,7 @@ export class QueryController {
 {
   "queryType": "by_symbols",
   "symbols": ["AAPL", "MSFT", "700.HK"],
-  "queryTypeFilter": "stock-quote",
+  "queryTypeFilter": "get-stock-quote",
   "maxAge": 300,
   "options": {
     "useCache": true,
@@ -614,7 +614,7 @@ export class QueryController {
       const testQuery: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["TEST"],
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         options: {
           useCache: false,
           updateCache: false,

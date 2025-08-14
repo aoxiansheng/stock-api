@@ -88,7 +88,7 @@ export const QUERY_CONFIG = Object.freeze({
   QUERY_ID_LENGTH: 8, // 查询ID长度
   MAX_QUERY_LIMIT: 1000, // 最大查询限制
   MIN_QUERY_LIMIT: 1, // 最小查询限制
-  DEFAULT_DATA_TYPE: "stock-quote", // 默认数据类型
+  DEFAULT_DATA_TYPE: "get-stock-quote", // 默认数据类型
   DEFAULT_PROVIDER: "unknown", // 默认提供商
   DEFAULT_MARKET: "unknown", // 默认市场
   CACHE_SOURCE_TAG: "realtime", // 缓存源标签

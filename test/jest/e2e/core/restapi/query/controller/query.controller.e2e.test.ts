@@ -60,7 +60,7 @@ describe("Query Controller E2E Tests", () => {
       const queryRequest = {
         queryType: "by_symbols",
         symbols: ["AAPL.US", "GOOGL.US", "MSFT.US"],
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         maxAge: 300,
         options: {
           useCache: true,
@@ -99,7 +99,7 @@ describe("Query Controller E2E Tests", () => {
       const queryRequest = {
         queryType: "by_market",
         market: "US",
-        queryTypeFilter: "stock-quote",
+        queryTypeFilter: "get-stock-quote",
         limit: 10,
         options: {
           useCache: true,
@@ -466,7 +466,7 @@ describe("Query Controller E2E Tests", () => {
         .query({
           market: "US",
           limit: 10,
-          queryTypeFilter: "stock-quote"
+          queryTypeFilter: "get-stock-quote"
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken);

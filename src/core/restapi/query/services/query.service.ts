@@ -15,6 +15,7 @@ import {
   DataFetchRequest,
 } from "../../../public/shared/services/data-fetching.service";
 import { MarketStatusService } from "../../../public/shared/services/market-status.service";
+import { FieldMappingService } from "../../../public/shared/services/field-mapping.service";
 import { StringUtils } from "../../../public/shared/utils/string.util";
 import {
   StorageType,
@@ -57,6 +58,7 @@ export class QueryService implements OnModuleInit {
     private readonly dataFetchingService: DataFetchingService,
     private readonly dataChangeDetector: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
+    private readonly fieldMappingService: FieldMappingService,
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
     private readonly backgroundTaskService: BackgroundTaskService,
@@ -526,7 +528,7 @@ export class QueryService implements OnModuleInit {
           key: storageKey,
           data: data,
           storageType: StorageType.CACHE,
-          storageClassification: queryTypeFilter as StorageClassification,
+          storageClassification: (this.fieldMappingService.filterToClassification(queryTypeFilter) ?? StorageClassification.GENERAL) as StorageClassification,
           provider: metadata.provider,
           market: metadata.market,
           options: { cacheTtl: metadata.cacheTTL || 300 },
@@ -536,7 +538,7 @@ export class QueryService implements OnModuleInit {
           key: storageKey + ":persistent",
           data: data,
           storageType: StorageType.PERSISTENT,
-          storageClassification: queryTypeFilter as StorageClassification,
+          storageClassification: (this.fieldMappingService.filterToClassification(queryTypeFilter) ?? StorageClassification.GENERAL) as StorageClassification,
           provider: metadata.provider,
           market: metadata.market,
           options: { cacheTtl: 0 }, // MongoDB不过期

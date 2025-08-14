@@ -10,6 +10,7 @@ import { QueryService } from "../services/query.service";
 import { QueryResultProcessorService } from "../services/query-result-processor.service";
 import { QueryStatisticsService } from "../services/query-statistics.service";
 import { DataFetchingService } from "../../../public/shared/services/data-fetching.service";
+import { FieldMappingService } from "../../../public/shared/services/field-mapping.service";
 
 @Module({
   imports: [AuthModule, StorageModule, SharedServicesModule, ProvidersModule],
@@ -18,8 +19,15 @@ import { DataFetchingService } from "../../../public/shared/services/data-fetchi
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,
-    DataFetchingService, // 在这里提供DataFetchingService
+    DataFetchingService,
+    FieldMappingService,
   ],
-  exports: [QueryService, QueryStatisticsService, QueryResultProcessorService, DataFetchingService],
+  exports: [
+    QueryService,
+    QueryStatisticsService,
+    QueryResultProcessorService,
+    DataFetchingService,
+    FieldMappingService,
+  ],
 })
 export class QueryModule {}
