@@ -50,6 +50,7 @@ describe('ReceiverService', () => {
   const mockCapabilityRegistryService = {
     getCapability: jest.fn(),
     getProvider: jest.fn(),
+    getBestProvider: jest.fn(),
     _getBestProvider: jest.fn(),
   };
 
@@ -106,6 +107,50 @@ describe('ReceiverService', () => {
     transformerService = module.get(TransformerService);
     storageService = module.get(StorageService);
     capabilityRegistryService = module.get(CapabilityRegistryService);
+
+    // 设置默认mock返回值
+    capabilityRegistryService.getBestProvider.mockReturnValue('longport');
+    capabilityRegistryService.getProvider.mockReturnValue(dataFetcherService);
+    capabilityRegistryService.getCapability.mockReturnValue({
+      name: 'get-stock-quote',
+      description: 'Get stock quote data',
+      supportedMarkets: ['HK', 'US'],
+      supportedSymbolFormats: ['700.HK', 'AAPL.US'],
+      execute: jest.fn(),
+    });
+
+    // 设置其他服务的默认mock
+    symbolMapperService.transformSymbolsForProvider.mockResolvedValue(['700.HK', 'AAPL.US']);
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        { symbol: '700.HK', last_done: 385.6, volume: 12345600 },
+        { symbol: 'AAPL.US', last_done: 195.18, volume: 8765432 }
+      ],
+      metadata: {
+        provider: 'longport',
+        capability: 'get-stock-quote',
+        processingTime: 150,
+        symbolsProcessed: 2,
+      },
+    });
+    transformerService.transform.mockResolvedValue({
+      transformedData: {
+        symbol: '700.HK',
+        lastPrice: 385.6,
+        volume: 12345600,
+      },
+      metadata: {
+        ruleId: 'rule-001',
+        ruleName: 'stock-quote-mapping',
+        provider: 'longport',
+        transDataRuleListType: 'quote_fields',
+        recordsProcessed: 1,
+        fieldsTransformed: 2,
+        processingTime: 5,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    storageService.storeData.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

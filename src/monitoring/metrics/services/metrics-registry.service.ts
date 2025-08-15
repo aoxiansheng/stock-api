@@ -73,6 +73,20 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
   public readonly storageCacheEfficiency: Gauge<string>;
   public readonly storageDataVolume: Gauge<string>;
   
+  // 🎯 Query 架构重构监控指标 - Milestone 6.3
+  public readonly queryPipelineDuration: Histogram<string>;
+  public readonly queryCacheHitRatio: Gauge<string>;
+  public readonly queryBatchEfficiency: Gauge<string>;
+  public readonly queryBackgroundTasksActive: Gauge<string>;
+  public readonly queryBackgroundTasksCompleted: Counter<string>;
+  public readonly queryBackgroundTasksFailed: Counter<string>;
+  public readonly querySymbolsProcessedTotal: Counter<string>;
+  public readonly queryReceiverCallsTotal: Counter<string>;
+  public readonly queryReceiverCallDuration: Histogram<string>;
+  public readonly queryMarketProcessingTime: Histogram<string>;
+  public readonly queryBatchShardingEfficiency: Gauge<string>;
+  public readonly queryConcurrentRequestsActive: Gauge<string>;
+  
   // 🎯 Stream Recovery 指标 - Phase 3 Critical Fix
   public readonly streamRecoveryJobsTotal: Counter<string>;
   public readonly streamRecoveryJobsPending: Gauge<string>;
@@ -474,6 +488,93 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       name: 'newstock_storage_data_volume_bytes',
       help: 'Storage data volume in bytes',
       labelNames: ['data_type', 'storage_type'],
+      registers: [this.registry]
+    });
+
+    // 🎯 Query 架构重构监控指标初始化 - Milestone 6.3
+    this.queryPipelineDuration = new Histogram({
+      name: 'newstock_query_pipeline_duration_seconds',
+      help: 'Query pipeline execution duration in seconds',
+      labelNames: ['query_type', 'market', 'has_cache_hit', 'symbols_count_range'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0],
+      registers: [this.registry]
+    });
+
+    this.queryCacheHitRatio = new Gauge({
+      name: 'newstock_query_cache_hit_ratio',
+      help: 'Query cache hit ratio percentage',
+      labelNames: ['query_type', 'market'],
+      registers: [this.registry]
+    });
+
+    this.queryBatchEfficiency = new Gauge({
+      name: 'newstock_query_batch_efficiency',
+      help: 'Query batch processing efficiency (symbols per second)',
+      labelNames: ['market', 'batch_size_range'],
+      registers: [this.registry]
+    });
+
+    this.queryBackgroundTasksActive = new Gauge({
+      name: 'newstock_query_background_tasks_active',
+      help: 'Number of active background update tasks',
+      labelNames: ['task_type'],
+      registers: [this.registry]
+    });
+
+    this.queryBackgroundTasksCompleted = new Counter({
+      name: 'newstock_query_background_tasks_completed_total',
+      help: 'Total number of completed background update tasks',
+      labelNames: ['task_type', 'has_significant_change'],
+      registers: [this.registry]
+    });
+
+    this.queryBackgroundTasksFailed = new Counter({
+      name: 'newstock_query_background_tasks_failed_total',
+      help: 'Total number of failed background update tasks',
+      labelNames: ['task_type', 'error_type'],
+      registers: [this.registry]
+    });
+
+    this.querySymbolsProcessedTotal = new Counter({
+      name: 'newstock_query_symbols_processed_total',
+      help: 'Total number of symbols processed in queries',
+      labelNames: ['query_type', 'market', 'processing_mode'],
+      registers: [this.registry]
+    });
+
+    this.queryReceiverCallsTotal = new Counter({
+      name: 'newstock_query_receiver_calls_total',
+      help: 'Total number of calls to ReceiverService from Query',
+      labelNames: ['market', 'batch_size_range', 'receiver_type'],
+      registers: [this.registry]
+    });
+
+    this.queryReceiverCallDuration = new Histogram({
+      name: 'newstock_query_receiver_call_duration_seconds',
+      help: 'Duration of ReceiverService calls from Query in seconds',
+      labelNames: ['market', 'symbols_count_range'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0],
+      registers: [this.registry]
+    });
+
+    this.queryMarketProcessingTime = new Histogram({
+      name: 'newstock_query_market_processing_time_seconds',
+      help: 'Market-level parallel processing time in seconds',
+      labelNames: ['market', 'processing_mode'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0],
+      registers: [this.registry]
+    });
+
+    this.queryBatchShardingEfficiency = new Gauge({
+      name: 'newstock_query_batch_sharding_efficiency',
+      help: 'Query batch sharding efficiency (avg symbols per shard)',
+      labelNames: ['market', 'total_symbols_range'],
+      registers: [this.registry]
+    });
+
+    this.queryConcurrentRequestsActive = new Gauge({
+      name: 'newstock_query_concurrent_requests_active',
+      help: 'Number of active concurrent query requests',
       registers: [this.registry]
     });
   }

@@ -46,6 +46,14 @@ class RequestOptionsDto {
   @IsOptional()
   @IsNumber()
   timeout?: number;
+
+  @ApiPropertyOptional({ 
+    description: "存储模式：none=不存储，short_ttl=短时效存储，both=双存储", 
+    enum: ['none', 'short_ttl', 'both'] 
+  })
+  @IsOptional()
+  @IsIn(['none', 'short_ttl', 'both'])
+  storageMode?: 'none' | 'short_ttl' | 'both';
 }
 
 export class DataRequestDto {

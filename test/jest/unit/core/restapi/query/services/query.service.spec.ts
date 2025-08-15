@@ -2,13 +2,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueryService } from '@core/restapi/query/services/query.service';
 import { StorageService } from '@core/public/storage/services/storage.service';
-import { DataFetchingService } from '@core/public/shared/services/data-fetching.service';
+import { ReceiverService } from '@core/restapi/receiver/services/receiver.service';
 import { DataChangeDetectorService } from '@core/public/shared/services/data-change-detector.service';
 import { MarketStatusService } from '@core/public/shared/services/market-status.service';
+import { FieldMappingService } from '@core/public/shared/services/field-mapping.service';
 import { QueryStatisticsService } from '@core/restapi/query/services/query-statistics.service';
 import { QueryResultProcessorService } from '@core/restapi/query/services/query-result-processor.service';
 import { BackgroundTaskService } from '@core/public/shared/services/background-task.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { QueryRequestDto } from '@core/restapi/query/dto/query-request.dto';
 import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 import { QueryMetadataDto } from '@core/restapi/query/dto/query-response.dto';
@@ -29,14 +31,17 @@ describe('QueryService', () => {
     retrieveData: jest.fn(),
     storeData: jest.fn(),
   };
-  const mockDataFetchingService = {
-    fetchSingleData: jest.fn(),
+  const mockReceiverService = {
+    handleRequest: jest.fn(),
   };
   const mockDataChangeDetectorService = {
     detectSignificantChange: jest.fn(),
   };
   const mockMarketStatusService = {
     getMarketStatus: jest.fn(),
+  };
+  const mockFieldMappingService = {
+    filterToClassification: jest.fn(),
   };
   const mockQueryStatisticsService = {
     recordQueryPerformance: jest.fn(),
@@ -51,6 +56,20 @@ describe('QueryService', () => {
   const mockPaginationService = {
     createPaginatedResponseFromQuery: jest.fn(),
   };
+  const mockMetricsRegistryService = {
+    queryConcurrentRequestsActive: { inc: jest.fn(), dec: jest.fn() },
+    queryPipelineDuration: { observe: jest.fn() },
+    querySymbolsProcessedTotal: { inc: jest.fn() },
+    queryBatchEfficiency: { set: jest.fn() },
+    queryCacheHitRatio: { set: jest.fn() },
+    queryBatchShardingEfficiency: { set: jest.fn() },
+    queryMarketProcessingTime: { observe: jest.fn() },
+    queryReceiverCallsTotal: { inc: jest.fn() },
+    queryReceiverCallDuration: { observe: jest.fn() },
+    queryBackgroundTasksActive: { inc: jest.fn(), dec: jest.fn() },
+    queryBackgroundTasksCompleted: { inc: jest.fn() },
+    queryBackgroundTasksFailed: { inc: jest.fn() },
+  };
 
   // 在每个测试用例之前，创建一个新的测试模块
   beforeEach(async () => {
@@ -58,13 +77,15 @@ describe('QueryService', () => {
       providers: [
         QueryService,
         { provide: StorageService, useValue: mockStorageService },
-        { provide: DataFetchingService, useValue: mockDataFetchingService },
+        { provide: ReceiverService, useValue: mockReceiverService },
         { provide: DataChangeDetectorService, useValue: mockDataChangeDetectorService },
         { provide: MarketStatusService, useValue: mockMarketStatusService },
+        { provide: FieldMappingService, useValue: mockFieldMappingService },
         { provide: QueryStatisticsService, useValue: mockQueryStatisticsService },
         { provide: QueryResultProcessorService, useValue: mockQueryResultProcessorService },
         { provide: BackgroundTaskService, useValue: mockBackgroundTaskService },
         { provide: PaginationService, useValue: mockPaginationService },
+        { provide: MetricsRegistryService, useValue: mockMetricsRegistryService },
       ],
     }).compile();
 
@@ -78,13 +99,17 @@ describe('QueryService', () => {
     const request: QueryRequestDto = {
       queryType: QueryType.BY_SYMBOLS,
       symbols: ['AAPL'],
+      queryTypeFilter: 'get-stock-quote',
       options: { useCache: true },
     };
 
     // 模拟缓存未命中
     mockStorageService.retrieveData.mockResolvedValue({ data: null });
-    // 模拟实时数据获取
-    mockDataFetchingService.fetchSingleData.mockResolvedValue({ data: { price: 150 } });
+    // 模拟ReceiverService响应
+    mockReceiverService.handleRequest.mockResolvedValue({
+      data: [{ symbol: 'AAPL', price: 150 }],
+      metadata: { provider: 'longport', capability: 'get-stock-quote' },
+    });
     // 模拟分页服务
     mockPaginationService.createPaginatedResponseFromQuery.mockReturnValue({
       items: [{ price: 150 }],
@@ -125,6 +150,11 @@ describe('QueryService', () => {
     // 断言结果是否正确
     expect((result.data.items[0] as any).price).toBe(150);
     expect(mockStorageService.retrieveData).toHaveBeenCalled();
-    expect(mockDataFetchingService.fetchSingleData).toHaveBeenCalled();
+    
+    // 🎯 里程碑6.3: 验证监控指标被正确调用
+    expect(mockMetricsRegistryService.queryConcurrentRequestsActive.inc).toHaveBeenCalled();
+    expect(mockMetricsRegistryService.queryConcurrentRequestsActive.dec).toHaveBeenCalled();
+    expect(mockMetricsRegistryService.queryPipelineDuration.observe).toHaveBeenCalled();
+    expect(mockMetricsRegistryService.querySymbolsProcessedTotal.inc).toHaveBeenCalled();
   });
 });

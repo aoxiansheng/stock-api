@@ -29,7 +29,7 @@ import {
   RECEIVER_OPERATIONS,
 } from "../constants/receiver.constants";
 import { DataRequestDto } from "../dto/data-request.dto";
-import { DataResponseDto, ResponseMetadataDto } from "../dto/data-response.dto";
+import { DataResponseDto, ResponseMetadataDto, FailureDetailDto } from "../dto/data-response.dto";
 import {
   SymbolTransformationResultDto,
 } from "../dto/receiver-internal.dto";
@@ -655,14 +655,23 @@ export class ReceiverService {
         },
       };
 
-      // Storage 操作不应该阻塞主流程，异步执行
-      this.storageService.storeData(storageRequest).catch((error) => {
-        this.logger.warn(`数据存储失败，但不影响主流程`, {
+      // 条件存储：检查storageMode是否允许存储
+      if (request.options?.storageMode !== 'none') {
+        // Storage 操作不应该阻塞主流程，异步执行
+        this.storageService.storeData(storageRequest).catch((error) => {
+          this.logger.warn(`数据存储失败，但不影响主流程`, {
+            requestId,
+            provider,
+            error: error.message,
+          });
+        });
+      } else {
+        this.logger.debug(`存储模式为none，跳过数据存储`, {
           requestId,
           provider,
-          error: error.message,
+          storageMode: request.options.storageMode,
         });
-      });
+      }
 
       // 🎯 计算部分成功的信息
       const hasPartialFailures =
@@ -691,8 +700,17 @@ export class ReceiverService {
         transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
       });
 
+      // 构造响应对象，包含失败明细
+      const response = new DataResponseDto(transformedResult.transformedData, metadata);
+      if (mappedSymbols.mappingResults.metadata.hasPartialFailures && mappedSymbols.mappingResults.failedSymbols?.length > 0) {
+        response.failures = mappedSymbols.mappingResults.failedSymbols.map(symbol => ({
+          symbol,
+          reason: '符号映射失败或数据获取失败',
+        } as FailureDetailDto));
+      }
+      
       // 返回标准化后的数据而不是原始SDK数据
-      return new DataResponseDto(transformedResult.transformedData, metadata);
+      return response;
     } catch (error) {
       this.logger.error(
         `数据获取执行失败`,
