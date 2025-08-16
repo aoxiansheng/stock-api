@@ -29,6 +29,11 @@ export class RequestOptionsDto {
   @IsString()
   market?: string;
 
+  @ApiProperty({ description: "是否启用智能缓存", required: false, default: true })
+  @IsOptional()
+  @IsBoolean()
+  useSmartCache?: boolean;
+
   @ApiPropertyOptional({
     description: "其他动态选项，以键值对形式提供",
     type: "object",

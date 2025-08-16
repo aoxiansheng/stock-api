@@ -279,7 +279,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.streamThroughputPerSecond = new Gauge({
       name: 'newstock_stream_throughput_per_second',
       help: 'Current stream throughput per second',
-      labelNames: ['data_type'],
+      labelNames: ['data_type', 'stream_type'],
       registers: [this.registry]
     });
 
@@ -383,6 +383,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.receiverActiveConnections = new Gauge({
       name: 'newstock_receiver_active_connections',
       help: 'Number of active receiver connections',
+      labelNames: ['connection_type'],
       registers: [this.registry]
     });
 

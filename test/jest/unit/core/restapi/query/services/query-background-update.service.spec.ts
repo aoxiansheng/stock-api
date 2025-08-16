@@ -16,6 +16,8 @@ import { PaginationService } from '@common/modules/pagination/services/paginatio
 import { QueryRequestDto } from '@core/restapi/query/dto/query-request.dto';
 import { QueryType } from '@core/restapi/query/dto/query-types.dto';
 import { Market } from '@common/constants/market.constants';
+import { MarketStatus } from '@common/constants/market-trading-hours.constants';
+import { StorageType, StorageClassification } from '@core/public/storage/enums/storage-type.enum';
 
 describe('QueryService - 后台更新优化测试', () => {
   let service: QueryService;
@@ -109,7 +111,16 @@ describe('QueryService - 后台更新优化测试', () => {
       // 模拟缓存命中
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // 执行多次相同的查询
@@ -127,7 +138,16 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该正确管理backgroundUpdateTasks Map的生命周期', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // Mock后台更新完成流程
@@ -150,19 +170,42 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该使用ReceiverService进行后台数据获取', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // Mock ReceiverService响应
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: 'AAPL', price: 155 }],
-        metadata: { provider: 'longport' },
+        metadata: { 
+          provider: 'longport',
+          capability: 'get-stock-quote',
+          requestId: 'test-request-id',
+          processingTime: 100,
+          timestamp: new Date().toISOString()
+        },
       });
 
       // Mock市场状态
       marketStatusService.getMarketStatus.mockResolvedValue({
-        status: 'TRADING',
+        market: Market.HK,
+        status: MarketStatus.TRADING,
+        currentTime: new Date(),
+        marketTime: new Date(),
+        timezone: 'Asia/Hong_Kong',
+        realtimeCacheTTL: 60,
+        analyticalCacheTTL: 300,
         isHoliday: false,
+        isDST: false,
+        confidence: 1.0,
       });
 
       // Mock变动检测结果
@@ -195,17 +238,40 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该正确处理变动检测结果', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: 'AAPL', price: 150.01 }], // 微小变化
-        metadata: { provider: 'longport' },
+        metadata: { 
+          provider: 'longport',
+          capability: 'get-stock-quote',
+          requestId: 'test-request-id',
+          processingTime: 100,
+          timestamp: new Date().toISOString()
+        },
       });
 
       marketStatusService.getMarketStatus.mockResolvedValue({
-        status: 'TRADING',
+        market: Market.HK,
+        status: MarketStatus.TRADING,
+        currentTime: new Date(),
+        marketTime: new Date(),
+        timezone: 'Asia/Hong_Kong',
+        realtimeCacheTTL: 60,
+        analyticalCacheTTL: 300,
         isHoliday: false,
+        isDST: false,
+        confidence: 1.0,
       });
 
       // Mock无显著变化
@@ -237,7 +303,16 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该实现TTL节流策略', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // 第一次查询
@@ -261,7 +336,16 @@ describe('QueryService - 后台更新优化测试', () => {
 
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'TEST', price: 100 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // 模拟高并发情况
@@ -277,7 +361,16 @@ describe('QueryService - 后台更新优化测试', () => {
       // 测试onModuleDestroy的清理逻辑
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // 启动一些后台任务
@@ -295,7 +388,16 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该处理大量并发查询请求', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       // 模拟100个并发请求
@@ -327,14 +429,29 @@ describe('QueryService - 后台更新优化测试', () => {
       storageService.retrieveData
         .mockResolvedValueOnce({
           data: { symbol: 'AAPL', price: 150 },
-          metadata: { storedAt: new Date().toISOString() },
+          metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
         })
         .mockRejectedValue(new Error('Storage overload'));
 
       receiverService.handleRequest
         .mockResolvedValueOnce({
           data: [{ symbol: 'AAPL', price: 155 }],
-          metadata: { provider: 'longport' },
+          metadata: { 
+          provider: 'longport',
+          capability: 'get-stock-quote',
+          requestId: 'test-request-id',
+          processingTime: 100,
+          timestamp: new Date().toISOString()
+        },
         })
         .mockRejectedValue(new Error('Receiver overload'));
 
@@ -363,7 +480,16 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该正确处理ReceiverService错误', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       receiverService.handleRequest.mockRejectedValue(new Error('Network timeout'));
@@ -380,12 +506,27 @@ describe('QueryService - 后台更新优化测试', () => {
     it('应该正确处理DataChangeDetector错误', async () => {
       storageService.retrieveData.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
-        metadata: { storedAt: new Date().toISOString() },
+        metadata: { 
+          key: 'test-key',
+          storageType: StorageType.BOTH,
+          storageClassification: StorageClassification.STOCK_QUOTE,
+          provider: 'longport',
+          market: 'HK',
+          dataSize: 1024,
+          storedAt: new Date().toISOString(),
+          processingTime: 100
+        },
       });
 
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: 'AAPL', price: 155 }],
-        metadata: { provider: 'longport' },
+        metadata: { 
+          provider: 'longport',
+          capability: 'get-stock-quote',
+          requestId: 'test-request-id',
+          processingTime: 100,
+          timestamp: new Date().toISOString()
+        },
       });
 
       dataChangeDetector.detectSignificantChange.mockRejectedValue(

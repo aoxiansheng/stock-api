@@ -30,7 +30,8 @@ describe('Auth Type Enums', () => {
       const originalValue = AuthStatus.SUCCESS;
       try {
         (AuthStatus as any).SUCCESS = 'modified';
-      } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_error) {
         // Expected in strict mode
       }
       expect(AuthStatus.SUCCESS).toBe(originalValue);

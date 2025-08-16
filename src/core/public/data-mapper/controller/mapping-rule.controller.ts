@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Auth } from '../../../../auth/decorators/auth.decorator';
 import { UserRole, Permission } from '../../../../auth/enums/user-role.enum';
 import { ApiKeyAuth } from '../../../../auth/decorators/auth.decorator';
-import { ApiStandardResponses, ApiKeyAuthResponses, JwtAuthResponses } from '../../../../common/core/decorators/swagger-responses.decorator';
+import { ApiStandardResponses, ApiKeyAuthResponses, JwtAuthResponses } from '@common/core/decorators/swagger-responses.decorator';
 import { PaginatedDataDto } from '../../../../common/modules/pagination/dto/paginated-data';
 import { FlexibleMappingRuleService } from '../services/flexible-mapping-rule.service';
 import { RuleAlignmentService } from '../services/rule-alignment.service';

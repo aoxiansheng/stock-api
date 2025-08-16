@@ -8,6 +8,7 @@ import { Interval } from "@nestjs/schedule";
 import { v4 as uuidv4 } from "uuid";
 
 import { createLogger } from "@common/config/logger.config";
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
 import { CacheService } from "../../cache/services/cache.service";
 import { securityConfig } from "../../common/config/security.config";
@@ -47,6 +48,7 @@ export class SecurityAuditService implements OnModuleDestroy {
     private readonly auditLogRepository: SecurityAuditLogRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly cacheService: CacheService,
+    private readonly paginationService: PaginationService,
   ) {}
 
   onModuleDestroy() {

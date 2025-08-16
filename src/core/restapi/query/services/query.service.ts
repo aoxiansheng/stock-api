@@ -3,7 +3,6 @@ import {
   OnModuleInit,
   OnModuleDestroy,
   BadRequestException,
-  NotFoundException,
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
@@ -11,9 +10,12 @@ import { Market } from "@common/constants/market.constants";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
 import { DataChangeDetectorService } from "../../../public/shared/services/data-change-detector.service";
-import { MarketStatusService } from "../../../public/shared/services/market-status.service";
+import { MarketStatusService, MarketStatusResult } from "../../../public/shared/services/market-status.service";
 import { FieldMappingService } from "../../../public/shared/services/field-mapping.service";
 import { StringUtils } from "../../../public/shared/utils/string.util";
+import { SmartCacheOrchestrator } from "../../../public/smart-cache/services/smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../public/smart-cache/interfaces/cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest, inferMarketFromSymbol } from "../../../public/smart-cache/utils/cache-request.utils";
 import { ReceiverService } from "../../../restapi/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../restapi/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../restapi/receiver/dto/data-response.dto";
@@ -25,7 +27,6 @@ import { StorageService } from "../../../public/storage/services/storage.service
 
 import {
   QUERY_ERROR_MESSAGES,
-  QUERY_WARNING_MESSAGES,
   QUERY_SUCCESS_MESSAGES,
   QUERY_OPERATIONS,
 } from "../constants/query.constants";
@@ -33,7 +34,6 @@ import {
   DataSourceStatsDto,
   QueryExecutionResultDto,
   SymbolDataResultDto,
-  CacheQueryResultDto,
   RealtimeQueryResultDto,
   QueryErrorInfoDto,
 } from "../dto/query-internal.dto";
@@ -46,7 +46,7 @@ import { QueryType } from "../dto/query-types.dto";
 import { DataSourceType } from "../enums/data-source-type.enum";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
-import { buildStorageKey, validateDataFreshness } from "../utils/query.util";
+import { buildStorageKey } from "../utils/query.util";
 import { BackgroundTaskService } from "../../../public/shared/services/background-task.service";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 
@@ -54,23 +54,10 @@ import { MetricsRegistryService } from "../../../../monitoring/metrics/services/
 export class QueryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryService.name);
 
-  // 🆕 里程碑4.1: 后台更新去重机制
-  private readonly backgroundUpdateTasks = new Map<string, Promise<void>>();
-
-  // 🆕 里程碑4.3: 性能调优 - TTL节流策略
-  private readonly lastUpdateTimestamps = new Map<string, number>();
-  private readonly MIN_UPDATE_INTERVAL_MS = 30000; // 30秒最小更新间隔
-
-  // 🆕 里程碑4.3: 任务队列优化
-  private readonly MAX_CONCURRENT_UPDATES = 10; // 最大并发更新任务数
-  private readonly updateQueue: Array<{
-    symbol: string;
-    storageKey: string;
-    request: QueryRequestDto;
-    queryId: string;
-    currentCachedData: any;
-    priority: number;
-  }> = [];
+  // 🔄 智能缓存编排器集成后，以下字段已废弃（由编排器统一管理）:
+  // - backgroundUpdateTasks：后台更新去重机制
+  // - lastUpdateTimestamps：TTL节流策略  
+  // - updateQueue：任务队列优化
 
   // 🆕 里程碑5.2: 批量处理分片策略
   private readonly MAX_BATCH_SIZE = 50; // 单次Receiver请求的最大符号数
@@ -92,6 +79,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly backgroundTaskService: BackgroundTaskService,
     private readonly paginationService: PaginationService,
     private readonly metricsRegistry: MetricsRegistryService,
+    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
 
@@ -105,34 +93,11 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 🆕 里程碑4.3: 优雅关闭后台更新任务
+   * 🔄 模块销毁处理 - 智能缓存编排器集成后简化
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('开始关闭QueryService后台更新任务');
-    
-    // 清空等待队列
-    const queueCount = this.updateQueue.length;
-    this.updateQueue.splice(0, this.updateQueue.length);
-    
-    // 等待所有正在运行的任务完成（最多等待30秒）
-    const activeTasksCount = this.backgroundUpdateTasks.size;
-    if (activeTasksCount > 0) {
-      this.logger.log(`等待${activeTasksCount}个后台更新任务完成`);
-      
-      const timeout = new Promise(resolve => setTimeout(resolve, 30000));
-      const allTasksComplete = Promise.all(Array.from(this.backgroundUpdateTasks.values()));
-      
-      await Promise.race([allTasksComplete, timeout]);
-    }
-    
-    // 清理Map
-    this.backgroundUpdateTasks.clear();
-    this.lastUpdateTimestamps.clear();
-    
-    this.logger.log('QueryService后台更新任务已关闭', {
-      cancelledQueueTasks: queueCount,
-      completedActiveTasks: activeTasksCount,
-    });
+    this.logger.log('QueryService模块正在关闭');
+    // 后台更新任务现在由SmartCacheOrchestrator统一管理
   }
 
   /**
@@ -212,6 +177,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         symbolsCount
       );
 
+      // 正确使用processedResult的PaginatedDataDto类型
       return new QueryResponseDto(processedResult.data, processedResult.metadata);
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -616,7 +582,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const symbolsByMarket: Record<Market, string[]> = {} as Record<Market, string[]>;
 
     symbols.forEach(symbol => {
-      const market = this.inferMarketFromSymbol(symbol);
+      const market = inferMarketFromSymbol(symbol);
       
       if (!symbolsByMarket[market]) {
         symbolsByMarket[market] = [];
@@ -885,13 +851,18 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 🆕 里程碑5.2: 处理Receiver批量请求
+   * 🎯 重构：Query批量流水线智能缓存集成
+   * 
+   * 使用Query层SmartCacheOrchestrator处理指定市场内的符号批次
+   * 实现两层缓存协同：Query层（300秒）+ Receiver层（5秒）
+   * 
    * @param market 市场
-   * @param symbols Receiver批次中的符号列表
+   * @param symbols 符号列表
    * @param request 查询请求
    * @param queryId 查询ID
-   * @param chunkIndex 市场分片索引
-   * @param receiverIndex Receiver分片索引
+   * @param chunkIndex 分片索引
+   * @param receiverIndex Receiver批次索引
+   * @returns 处理结果（数据、缓存命中数、实时命中数、错误信息）
    */
   private async processReceiverBatch(
     market: Market,
@@ -906,137 +877,113 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     realtimeHits: number;
     marketErrors: QueryErrorInfoDto[];
   }> {
-    let cacheHits = 0;
-    let realtimeHits = 0;
+    let queryCacheHits = 0;  // Query层缓存命中
+    let receiverCalls = 0;   // 需要调用Receiver的次数
     const marketErrors: QueryErrorInfoDto[] = [];
     const results: SymbolDataResultDto[] = [];
 
     try {
-      // 🎯 里程碑6.3: 监控指标跟踪 - Receiver调用指标
+      // 🎯 监控指标跟踪 - Query批量编排器调用指标
       const batchSizeRange = this.getBatchSizeRange(symbols.length);
       const symbolsCountRange = this.getSymbolsCountRange(symbols.length);
       
-      // 记录Receiver调用计数
+      // 🎯 监控指标：记录Query层SmartCacheOrchestrator编排调用计数
+      // 注意：复用queryReceiverCallsTotal指标，但语义已变为"Query层智能缓存编排器调用"
+      // receiver_type标签现在表示编排器处理的接收器类型，而非直接的Receiver调用
       this.metricsRegistry.queryReceiverCallsTotal.inc({
         market,
         batch_size_range: batchSizeRange,
         receiver_type: request.queryTypeFilter || 'unknown',
       });
 
-      // 使用Receiver进行批量数据获取
-      const batchRequest = {
-        ...this.convertQueryToReceiverRequest(request, symbols),
-        options: {
-          ...this.convertQueryToReceiverRequest(request, symbols).options,
-          market, // 指定市场
-        },
-      };
+      // 🎯 核心重构：构建Query层批量编排器请求
+      // 注意：symbols[0] 语义安全，因为上游已按市场分组，同批次符号属于同一市场
+      const marketStatus = await this.getMarketStatusForSymbol(symbols[0]);
       
-      // 🎯 里程碑6.3: 监控指标跟踪 - Receiver调用耗时
-      const receiverCallStartTime = Date.now();
-      const receiverResponse = await this.receiverService.handleRequest(batchRequest);
-      const receiverCallDuration = (Date.now() - receiverCallStartTime) / 1000;
+      const batchRequests = symbols.map(symbol => 
+        buildCacheOrchestratorRequest({
+          symbols: [symbol],
+          receiverType: request.queryTypeFilter || 'get-stock-quote',
+          provider: request.provider,
+          queryId: `${queryId}_${symbol}`,
+          marketStatus,
+          strategy: CacheStrategy.WEAK_TIMELINESS, // Query层弱时效策略（300秒）
+          executeOriginalDataFlow: () => this.executeQueryToReceiverFlow(symbol, request, market),
+        })
+      );
+
+      // 🎯 使用Query层批量编排器（先检查Query层缓存）
+      const orchestratorStartTime = Date.now();
+      const orchestratorResults = await this.smartCacheOrchestrator.batchGetDataWithSmartCache(batchRequests);
+      const orchestratorDuration = (Date.now() - orchestratorStartTime) / 1000;
       
-      // 记录Receiver调用耗时
+      // 🎯 监控指标：记录Query层SmartCacheOrchestrator编排调用耗时
+      // 注意：复用queryReceiverCallDuration指标，但语义已变为"Query层智能缓存编排器耗时"
+      // 测量的是SmartCacheOrchestrator.batchGetDataWithSmartCache的执行时间
       this.metricsRegistry.queryReceiverCallDuration.observe(
         {
           market,
           symbols_count_range: symbolsCountRange,
         },
-        receiverCallDuration
+        orchestratorDuration
       );
 
-      // 处理成功的数据
-      if (receiverResponse.data && Array.isArray(receiverResponse.data)) {
-        receiverResponse.data.forEach((item, index) => {
+      // 🎯 处理编排器返回结果
+      orchestratorResults.forEach((result, index) => {
+        const symbol = symbols[index];
+        
+        if (result.hit) {
+          // Query层缓存命中
+          queryCacheHits++;
           results.push({
-            data: item,
+            data: result.data,
+            source: DataSourceType.CACHE,
+          });
+        } else if (result.data) {
+          // Query缓存缺失，已调用Receiver流向获取数据
+          receiverCalls++;
+          results.push({
+            data: result.data,
             source: DataSourceType.REALTIME,
           });
-          realtimeHits++;
-
-          // 异步存储标准化数据（不阻塞主流程）
-          const symbol = symbols[index];
-          if (symbol) {
-            this.storeStandardizedData(symbol, item, request, queryId, receiverResponse)
-              .catch(error => {
-                this.logger.warn(`市场${market}分片${chunkIndex}数据存储失败: ${symbol}`, {
-                  queryId,
-                  chunkIndex,
-                  receiverIndex,
-                  error: error.message,
-                });
-              });
-          }
-        });
-      }
-
-      // 处理失败的符号
-      if (receiverResponse.failures && receiverResponse.failures.length > 0) {
-        receiverResponse.failures.forEach(failure => {
-          marketErrors.push({
-            symbol: failure.symbol,
-            reason: failure.reason ?? `市场${market}分片${chunkIndex}数据获取失败`,
-          });
-        });
-      }
-
-      // 如果没有实时数据，尝试从缓存回退
-      const missingSymbols = symbols.filter((_, index) => 
-        !receiverResponse.data || !receiverResponse.data[index]
-      );
-
-      if (missingSymbols.length > 0) {
-        // 🖥 里程碑5.3: 并行缓存查询（带超时控制）
-        const cachePromises = missingSymbols.map(async (symbol) => {
-          const storageKey = buildStorageKey(
-            symbol,
-            request.provider || 'auto',
-            request.queryTypeFilter,
-            market
-          );
           
-          const cached = await this.tryGetFromCache(symbol, storageKey, request, queryId);
-          if (cached) {
-            cacheHits++;
-            return {
-              data: cached.data,
-              source: DataSourceType.CACHE,
-            };
-          }
-          return null;
-        });
-        
-        const cacheResults = await this.safeAllSettled(
-          cachePromises,
-          `市场${market}分片${chunkIndex}Receiver批缓存查询`,
-          this.CACHE_BATCH_TIMEOUT
-        );
-
-        cacheResults.forEach((result, index) => {
-          const symbol = missingSymbols[index];
-          if (result.status === 'fulfilled' && result.value) {
-            results.push(result.value);
-          } else {
-            marketErrors.push({
-              symbol,
-              reason: result.status === 'rejected' 
-                ? `缓存查询失败: ${result.reason}` 
-                : `市场${market}分片${chunkIndex}数据不可用`,
+          // 异步存储标准化数据（不阻塞主流程）
+          this.storeStandardizedData(symbol, result.data, request, queryId, { 
+            data: [result.data],
+            metadata: {
+              provider: request.provider || 'auto',
+              capability: request.queryTypeFilter || 'get-stock-quote',
+              timestamp: new Date().toISOString(),
+              requestId: queryId,
+              processingTime: 0,
+            }
+          })
+            .catch(error => {
+              this.logger.warn(`市场${market}分片${chunkIndex}数据存储失败: ${symbol}`, {
+                queryId,
+                chunkIndex,
+                receiverIndex,
+                error: error.message,
+              });
             });
-          }
-        });
-      }
+        } else {
+          // 编排器无法获取数据
+          marketErrors.push({
+            symbol,
+            reason: result.error || `市场${market}分片${chunkIndex}数据获取失败`,
+          });
+        }
+      });
 
       return {
         data: results,
-        cacheHits,
-        realtimeHits,
+        cacheHits: queryCacheHits,
+        realtimeHits: receiverCalls,
         marketErrors,
       };
 
     } catch (error) {
-      this.logger.error(`市场${market}分片${chunkIndex}Receiver批${receiverIndex}失败`, {
+      this.logger.error(`市场${market}分片${chunkIndex}Query编排器批${receiverIndex}失败`, {
         queryId,
         market,
         chunkIndex,
@@ -1048,196 +995,88 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       symbols.forEach(symbol => {
         marketErrors.push({
           symbol,
-          reason: `市场${market}分片${chunkIndex}Receiver批${receiverIndex}异常: ${error.message}`,
+          reason: `市场${market}分片${chunkIndex}Query编排器批${receiverIndex}异常: ${error.message}`,
         });
       });
 
       return {
         data: [],
-        cacheHits,
-        realtimeHits,
+        cacheHits: 0,
+        realtimeHits: 0,
         marketErrors,
       };
     }
   }
 
-  private async fetchSymbolData(
-    symbol: string,
-    request: QueryRequestDto,
-    queryId: string,
-  ): Promise<SymbolDataResultDto> {
-    const storageKey = buildStorageKey(
-      symbol,
-      request.provider,
-      request.queryTypeFilter,
-      request.market,
-    );
-
-    // 1. 优先尝试从缓存获取
-    if (request.options?.useCache) {
-      const cachedResult = await this.tryGetFromCache(
-        symbol,
-        storageKey,
-        request,
-        queryId,
-      );
-      if (cachedResult) {
-        // 缓存命中，立即返回并异步触发去重的后台更新
-        this.scheduleBackgroundUpdate(symbol, storageKey, request, queryId, cachedResult.data);
-        return { data: cachedResult.data, source: DataSourceType.CACHE };
-      }
-    }
-
-    // 2. 缓存未命中或不使用缓存，则从实时源获取
-    const realtimeResult = await this.fetchFromRealtime(
-      symbol,
-      storageKey,
-      request,
-      queryId,
-    );
-
-    // 3. 将新获取的数据异步存入缓存
-    if (request.options?.useCache) {
-      this.backgroundTaskService.run(
-        () =>
-          this.storeRealtimeData(
-            storageKey,
-            realtimeResult,
-            request.queryTypeFilter,
-          ),
-        `Store data for symbol ${symbol}`,
-      );
-    }
-
-    return { data: realtimeResult.data, source: DataSourceType.REALTIME };
-  }
-
-  private async tryGetFromCache(
-    symbol: string,
-    storageKey: string,
-    request: QueryRequestDto,
-    queryId: string,
-  ): Promise<CacheQueryResultDto | null> {
-    try {
-      const storageResponse = await this.storageService.retrieveData({
-        key: storageKey,
-        preferredType: StorageType.CACHE,
-      });
-
-      if (
-        !storageResponse.data ||
-        !validateDataFreshness(storageResponse.data, request.maxAge)
-      ) {
-        if (storageResponse.data) {
-          this.logger.warn(
-            QUERY_WARNING_MESSAGES.CACHE_DATA_EXPIRED,
-            sanitizeLogData({ queryId, key: storageKey }),
-          );
-        }
-        return null;
-      }
-
-      this.logger.log(
-        QUERY_SUCCESS_MESSAGES.CACHE_DATA_RETRIEVED,
-        sanitizeLogData({ queryId, key: storageKey }),
-      );
-      return {
-        data: storageResponse.data,
-        metadata: {
-          source: DataSourceType.CACHE,
-          timestamp: new Date(storageResponse.metadata.storedAt),
-          storageKey,
-        },
-      };
-    } catch (error) {
-      this.logger.debug(
-        "缓存未命中，将获取实时数据",
-        sanitizeLogData({ queryId, key: storageKey, error: error.message }),
-      );
-      return null;
-    }
-  }
-
-  private async fetchFromRealtime(
-    symbol: string,
-    storageKey: string, // 传入 storageKey 以便复用
-    request: QueryRequestDto,
-    queryId: string,
-  ): Promise<RealtimeQueryResultDto> {
-    try {
-      // 使用 Receiver 架构获取标准化数据
-      const receiverRequest = this.convertQueryToReceiverRequest(request, [symbol]);
-      const receiverResponse = await this.receiverService.handleRequest(receiverRequest);
-
-      // 从Receiver响应中提取单符号数据（receiverResponse.data是数组）
-      if (!receiverResponse.data || (Array.isArray(receiverResponse.data) && receiverResponse.data.length === 0)) {
-        // 尝试从持久化存储中获取作为回退
-        const fallbackData = await this.tryGetFromCache(
-          symbol,
-          storageKey + ":persistent",
-          { ...request, maxAge: undefined }, // 从持久化存储获取时不关心maxAge
-          queryId,
-        );
-
-        if (fallbackData) {
-          this.logger.warn(
-            `实时数据获取失败，使用持久化存储作为回退: ${symbol}`,
-            { queryId },
-          );
-          return {
-            data: fallbackData.data,
-            metadata: {
-              source: DataSourceType.REALTIME, // 源头仍然是期望实时
-              timestamp: new Date(fallbackData.metadata.timestamp),
-              storageKey,
-              provider: request.provider,
-              market: this.inferMarketFromSymbol(symbol) as Market,
-            },
-          };
-        }
-        throw new NotFoundException(
-          `Real-time data not found for symbol: ${symbol}`,
-        );
-      }
-
-      // 正确的数据路径：单符号取data[0]
-      const symbolData = Array.isArray(receiverResponse.data) 
-        ? receiverResponse.data[0] 
-        : receiverResponse.data;
-      const market = request.market || this.inferMarketFromSymbol(symbol);
-
-      return {
-        data: symbolData,
-        metadata: {
-          source: DataSourceType.REALTIME,
-          timestamp: new Date(),
-          storageKey,
-          provider: receiverResponse.metadata?.provider || request.provider,
-          market: market as Market,
-          cacheTTL: await this.calculateCacheTTLByMarket(market, [symbol]),
-        },
-      };
-    } catch (error) {
-      this.logger.error(
-        "实时数据获取失败",
-        sanitizeLogData({
-          symbol,
-          queryId,
-          error: error.message,
-        }),
-      );
-      throw error;
-    }
+  /**
+   * 🎯 新增支持方法：Query到Receiver的数据流执行
+   * 
+   * 供Query层编排器回调使用，调用完整的Receiver流向获取数据
+   * 重要：允许Receiver使用自己的智能缓存（强时效5秒缓存）
+   * 两层缓存协同工作：Query层300秒，Receiver层5秒
+   */
+  private async executeQueryToReceiverFlow(
+    symbol: string, 
+    request: QueryRequestDto, 
+    market: Market
+  ): Promise<any> {
+    // 🎯 性能优化：缓存convertQueryToReceiverRequest结果，避免重复计算
+    const baseReceiverRequest = this.convertQueryToReceiverRequest(request, [symbol]);
+    
+    const receiverRequest = {
+      ...baseReceiverRequest,
+      options: {
+        ...baseReceiverRequest.options,
+        market,
+        // ✅ 允许Receiver使用自己的智能缓存（强时效5秒缓存）
+        // 不设置 useCache: false，让Receiver层维护自己的短效缓存
+        // 两层缓存协同工作：Query层300秒，Receiver层5秒
+      },
+    };
+    
+    // 调用完整的Receiver流向（包括Receiver的智能缓存检查）
+    const receiverResponse = await this.receiverService.handleRequest(receiverRequest);
+    
+    // 提取单符号数据
+    return receiverResponse.data && Array.isArray(receiverResponse.data) 
+      ? receiverResponse.data[0] 
+      : receiverResponse.data;
   }
 
   /**
-   * 🆕 里程碑4.1-4.3: 调度带去重、节流和队列优化的后台更新任务
-   * @param symbol 股票符号
-   * @param storageKey 存储键
-   * @param request 查询请求
-   * @param queryId 查询ID
-   * @param currentCachedData 当前缓存数据
+   * 🎯 新增支持方法：获取单符号的市场状态
+   * 
+   * 为编排器提供市场信息，用于推断符号的市场状态
    */
+  /**
+   * 获取符号对应的市场状态（类型安全版本）
+   * 
+   * @param symbol 股票符号
+   * @returns 市场状态映射，键为Market枚举，值为MarketStatusResult
+   */
+  private async getMarketStatusForSymbol(symbol: string): Promise<Record<Market, MarketStatusResult>> {
+    const market = inferMarketFromSymbol(symbol);
+    return await this.marketStatusService.getBatchMarketStatus([market as Market]);
+  }
+
+  // 🗑️ 老单符号缓存逻辑已移除 - fetchSymbolData
+  // 已被Query层SmartCacheOrchestrator在processReceiverBatch中统一处理
+
+  // 🗑️ 老数据流执行方法已移除 - executeOriginalDataFlow
+  // 已被executeQueryToReceiverFlow替代
+
+  // 🗑️ 老缓存查询方法已移除 - tryGetFromCache
+  // 已被SmartCacheOrchestrator统一处理
+
+  // 🗑️ 老实时数据获取方法已移除 - fetchFromRealtime
+  // 已被executeQueryToReceiverFlow替代
+
+  /**
+   * 🔄 已废弃：后台更新任务现在由SmartCacheOrchestrator统一管理
+   * @deprecated 该方法已被智能缓存编排器替代，请使用SmartCacheOrchestrator.getDataWithSmartCache()
+   */
+  // TODO: 已迁移到 SmartCacheOrchestrator，保留供参考
+  /*
   private scheduleBackgroundUpdate(
     symbol: string,
     storageKey: string,
@@ -1247,7 +1086,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   ): void {
     // 🆕 里程碑4.3: TTL节流策略检查
     const now = Date.now();
-    const lastUpdate = this.lastUpdateTimestamps.get(storageKey);
+    const lastUpdate = this.lastUpdateTimestamps?.get(storageKey);
     if (lastUpdate && (now - lastUpdate) < this.MIN_UPDATE_INTERVAL_MS) {
       this.logger.debug(`后台更新被TTL节流限制，跳过: ${storageKey}`, { 
         queryId,
@@ -1259,7 +1098,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     }
 
     // 检查是否已经有相同storageKey的更新任务在运行
-    if (this.backgroundUpdateTasks.has(storageKey)) {
+    if (this.backgroundUpdateTasks?.has(storageKey)) {
       this.logger.debug(`后台更新任务已存在，跳过重复调度: ${storageKey}`, { queryId });
       return;
     }
@@ -1293,7 +1132,10 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     // 执行更新任务
     this.executeBackgroundUpdate(symbol, storageKey, request, queryId, currentCachedData);
   }
+  */
 
+  // TODO: 已迁移到 SmartCacheOrchestrator，保留供参考
+  /*
   /**
    * 🆕 里程碑4.3: 计算更新优先级
    */
@@ -1314,9 +1156,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     return priority;
   }
 
-  /**
-   * 🆕 里程碑4.3: 执行后台更新任务
-   */
+  // TODO: 已迁移到 SmartCacheOrchestrator，保留供参考
+  /*
   private executeBackgroundUpdate(
     symbol: string,
     storageKey: string,
@@ -1378,26 +1219,13 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 🆕 里程碑4.3: 处理更新队列
+   * 🔄 处理更新队列 - 已迁移至SmartCacheOrchestrator
+   * 此方法已废弃，队列处理逻辑现由SmartCacheOrchestrator.processUpdateQueue()管理
    */
-  private processUpdateQueue(): void {
-    while (this.updateQueue.length > 0 && this.backgroundUpdateTasks.size < this.MAX_CONCURRENT_UPDATES) {
-      const queuedUpdate = this.updateQueue.shift()!;
-      
-      this.logger.debug(`从队列中处理更新任务: ${queuedUpdate.storageKey}`, {
-        priority: queuedUpdate.priority,
-        remainingInQueue: this.updateQueue.length
-      });
-      
-      this.executeBackgroundUpdate(
-        queuedUpdate.symbol,
-        queuedUpdate.storageKey,
-        queuedUpdate.request,
-        queuedUpdate.queryId,
-        queuedUpdate.currentCachedData,
-      );
-    }
-  }
+  // private processUpdateQueue(): void {
+  //   // 🔄 此功能已迁移至SmartCacheOrchestrator
+  //   this.logger.debug('processUpdateQueue已迁移至SmartCacheOrchestrator');
+  // }
 
   private async updateDataInBackground(
     symbol: string,
@@ -1410,7 +1238,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     try {
       this.logger.debug(`后台更新任务开始: ${symbol}`, { queryId });
 
-      const market = request.market || this.inferMarketFromSymbol(symbol);
+      const market = request.market || inferMarketFromSymbol(symbol);
       const marketStatus = await this.marketStatusService.getMarketStatus(
         market as Market,
       );
@@ -1500,7 +1328,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       );
       
       // Query自行计算TTL，不依赖Receiver元信息
-      const market = request.market || this.inferMarketFromSymbol(symbol);
+      const market = request.market || inferMarketFromSymbol(symbol);
       const cacheTTL = await this.calculateCacheTTLByMarket(market, [symbol]);
       
       await this.storageService.storeData({
@@ -1634,7 +1462,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const marketCounts = new Map<string, number>();
     
     symbols.forEach(symbol => {
-      const market = this.inferMarketFromSymbol(symbol);
+      const market = inferMarketFromSymbol(symbol);
       marketCounts.set(market, (marketCounts.get(market) || 0) + 1);
     });
     
@@ -1708,15 +1536,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           0,
         );
         
-        // Use PaginationService instead of direct instantiation
-        const paginatedData = this.paginationService.createPaginatedResponse(
-          executionResult.results,
-          query.page || 1,
-          query.limit || executionResult.results.length,
-          errorResult.metadata.totalResults
-        );
-        
-        return new QueryResponseDto(paginatedData, errorResult.metadata);
+        // 直接使用已正确处理的PaginatedDataDto
+        return new QueryResponseDto(errorResult.data, errorResult.metadata);
       }
     });
 
@@ -1780,15 +1601,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           0,
         );
         
-        // Use PaginationService instead of direct instantiation
-        const paginatedData = this.paginationService.createPaginatedResponse(
-          executionResult.results,
-          query.page || 1,
-          query.limit || executionResult.results.length,
-          errorResult.metadata.totalResults
-        );
-        
-        results.push(new QueryResponseDto(paginatedData, errorResult.metadata));
+        // 直接使用已正确处理的PaginatedDataDto
+        results.push(new QueryResponseDto(errorResult.data, errorResult.metadata));
       }
     }
 

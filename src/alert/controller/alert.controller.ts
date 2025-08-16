@@ -8,11 +8,13 @@ import {
   Param,
   Query,
   BadRequestException,
-  Logger,
   NotFoundException,
   Req,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
+
+import { createLogger } from "@common/config/logger.config";
+import { ALERT_RATE_LIMIT, ALERT_RATE_LIMIT_MESSAGES } from "@common/constants/alert-rate-limit.constants";
 
 import {
   ApiSuccessResponse,
@@ -49,14 +51,14 @@ import { NotificationChannelType } from "../types/alert.types";
 @ApiTags("告警管理")
 @Controller("alerts")
 export class AlertController {
-  private readonly logger = new Logger(AlertController.name);
+  private readonly logger = createLogger(AlertController.name);
   // 简单的内存频率限制（生产环境应使用Redis）
   private readonly triggerRateLimit = new Map<
     string,
     { count: number; lastReset: number }
   >();
-  private readonly TRIGGER_RATE_LIMIT = 5; // 每分钟最多5次
-  private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟窗口
+  private readonly TRIGGER_RATE_LIMIT = ALERT_RATE_LIMIT.TRIGGER_EVALUATION.MAX_REQUESTS_PER_MINUTE;
+  private readonly RATE_LIMIT_WINDOW = ALERT_RATE_LIMIT.TRIGGER_EVALUATION.WINDOW_MS;
 
   constructor(
     private readonly alertingService: AlertingService,
@@ -465,7 +467,7 @@ export class AlertController {
 
       // 检查是否超过限制
       if (rateData.count >= this.TRIGGER_RATE_LIMIT) {
-        throw new BadRequestException("手动触发频率过高，请稍后再试");
+        throw new BadRequestException(ALERT_RATE_LIMIT_MESSAGES.TRIGGER_RATE_EXCEEDED);
       }
 
       rateData.count++;

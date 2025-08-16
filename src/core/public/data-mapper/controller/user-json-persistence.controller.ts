@@ -2,7 +2,7 @@ import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ApiKeyAuth } from '../../../../auth/decorators/auth.decorator';
 import { Permission } from '../../../../auth/enums/user-role.enum';
-import { ApiStandardResponses, ApiKeyAuthResponses } from '../../../../common/core/decorators/swagger-responses.decorator';
+import { ApiStandardResponses, ApiKeyAuthResponses } from '@common/core/decorators/swagger-responses.decorator';
 import { DataSourceAnalyzerService } from '../services/data-source-analyzer.service';
 import { DataSourceTemplateService } from '../services/data-source-template.service';
 import { 

@@ -18,7 +18,7 @@ import { TestEnvironment, smartDelay } from "../utils/utils/async-test-helpers";
 import { AuthModule } from "../../src/auth/module/auth.module";
 import { MonitoringModule } from "../../src/monitoring/module/monitoring.module";
 import { AlertModule } from "../../src/alert/module/alert.module";
-import { CacheModule } from "../../src/cache/module/cache.module";
+// import { CacheModule } from "../../src/cache/module/cache.module"; // 移除：已通过SharedServicesModule提供
 import { SecurityModule } from "../../src/security/module/security.module";
 import { alertConfig } from "../../src/common/config/alert.config";
 // 临时禁用LongPort模块以避免资源泄露
@@ -29,7 +29,8 @@ import { ThrottlerModule } from "@nestjs/throttler";
 // Core modules - 添加缺失的核心模块导入
 import { SymbolMapperModule } from "../../src/core/public/symbol-mapper/module/symbol-mapper.module";
 import { DataMapperModule } from "../../src/core/public/data-mapper/module/data-mapper.module";
-import { StorageModule } from "../../src/core/public/storage/module/storage.module";
+// import { StorageModule } from "../../src/core/public/storage/module/storage.module"; // 移除：已通过SmartCacheModule提供
+import { SmartCacheModule } from "../../src/core/public/smart-cache/smart-cache.module";
 import { QueryModule } from "../../src/core/restapi/query/module/query.module"; 
 import { TransformerModule } from "../../src/core/public/transformer/module/transformer.module";
 import { ReceiverModule } from "../../src/core/restapi/receiver/module/receiver.module";
@@ -96,11 +97,12 @@ async function createTestApplication(): Promise<void> {
       ProvidersModule, // 临时禁用以避免LongPort资源泄露
       MonitoringModule,
       AlertModule,
-      CacheModule,
+      // CacheModule, // 已通过SharedServicesModule提供，移除重复导入
       SecurityModule,
       SymbolMapperModule,
       DataMapperModule,
-      StorageModule,
+      // StorageModule, // 已通过SmartCacheModule提供，移除重复导入
+      SmartCacheModule,
       QueryModule,
       TransformerModule,
       ReceiverModule,

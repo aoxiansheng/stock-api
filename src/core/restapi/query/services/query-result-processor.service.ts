@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 
 import {
   QUERY_OPERATIONS,
@@ -24,9 +24,7 @@ import { QueryProcessedResultDto } from "../dto/query-processed-result.dto";
 export class QueryResultProcessorService {
   private readonly logger = createLogger(QueryResultProcessorService.name);
 
-  constructor(
-    private readonly paginationService: PaginationService,
-  ) {}
+  constructor() {}
 
   /**
    * 处理查询结果，应用后处理并格式化为最终响应
@@ -43,7 +41,8 @@ export class QueryResultProcessorService {
     executionTime: number,
   ): QueryProcessedResultDto {
     // 应用后处理（排序、字段选择）
-    const finalProcessedData = this.applyPostProcessing(
+    // 注意：executionResult.results 已经是分页后的结果，由 QueryService 中的 paginationService 处理
+    const processedItems = this.applyPostProcessing(
       executionResult.results,
       request,
     );
@@ -51,8 +50,8 @@ export class QueryResultProcessorService {
     // 构建元数据
     const metadata = new QueryMetadataDto(
       request.queryType,
-      finalProcessedData.length,
-      finalProcessedData.length,
+      executionResult.results.length, // 这里应该使用总记录数
+      executionResult.results.length,
       executionTime,
       executionResult.cacheUsed,
       executionResult.dataSources,
@@ -78,25 +77,34 @@ export class QueryResultProcessorService {
       `查询结果处理完成`,
       sanitizeLogData({
         queryId,
-        totalResults: finalProcessedData.length,
-        paginatedCount: finalProcessedData.length,
+        totalResults: processedItems.length,
+        paginatedCount: processedItems.length,
         hasErrors: executionResult.errors && executionResult.errors.length > 0,
         operation: QUERY_OPERATIONS.PROCESS_QUERY_RESULTS,
       }),
     );
 
-    // Replace direct PaginatedDataDto usage with paginationService
-    const paginatedData = this.paginationService.createPaginatedResponse(
-      finalProcessedData,
-      request.page || 1,
-      request.limit || finalProcessedData.length,
-      finalProcessedData.length
-    );
+    // 设置分页元数据
+    metadata.pagination = executionResult.pagination;
+
+    // 创建符合 QueryProcessedResultDto 类型的返回值
+    // 如果 executionResult.results 已经是 PaginatedDataDto，则直接使用
+    // 否则，创建一个新的 PaginatedDataDto
+    const paginatedData = executionResult.pagination
+      ? new PaginatedDataDto(processedItems, executionResult.pagination)
+      : new PaginatedDataDto(processedItems, {
+          page: request.page || 1,
+          limit: request.limit || processedItems.length,
+          total: processedItems.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        });
 
     return {
       data: paginatedData,
       metadata: metadata,
-    } as QueryProcessedResultDto;
+    };
   }
 
   /**

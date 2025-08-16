@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { SharedServicesModule } from "../../../public/shared/module/shared-services.module";
+import { SmartCacheModule } from "../../../public/smart-cache/smart-cache.module";
 import { StorageModule } from "../../../public/storage/module/storage.module";
 import { ReceiverModule } from "../../../restapi/receiver/module/receiver.module";
 
@@ -15,6 +16,7 @@ import { QueryStatisticsService } from "../services/query-statistics.service";
     AuthModule, 
     StorageModule, 
     SharedServicesModule,
+    SmartCacheModule,    // 🔑 关键: 导入SmartCacheModule，否则DI注入失败
     ReceiverModule,
   ],
   controllers: [QueryController],

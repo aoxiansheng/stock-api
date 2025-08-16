@@ -1,14 +1,14 @@
 import * as NotificationSendersIndex from '../../../../../../src/alert/services/notification-senders/index';
-import { DingtalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';
+import { DingTalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';
 import { EmailSender } from '../../../../../../src/alert/services/notification-senders/email.sender';
 import { LogSender } from '../../../../../../src/alert/services/notification-senders/log.sender';
 import { SlackSender } from '../../../../../../src/alert/services/notification-senders/slack.sender';
 import { WebhookSender } from '../../../../../../src/alert/services/notification-senders/webhook.sender';
 
 describe('Notification Senders Index', () => {
-  it('should export DingtalkSender', () => {
-    expect(NotificationSendersIndex.DingtalkSender).toBeDefined();
-    expect(NotificationSendersIndex.DingtalkSender).toBe(DingtalkSender);
+  it('should export DingTalkSender', () => {
+    expect(NotificationSendersIndex.DingTalkSender).toBeDefined();
+    expect(NotificationSendersIndex.DingTalkSender).toBe(DingTalkSender);
   });
 
   it('should export EmailSender', () => {
@@ -33,7 +33,7 @@ describe('Notification Senders Index', () => {
 
   it('should export all expected notification senders', () => {
     const expectedExports = [
-      'DingtalkSender',
+      'DingTalkSender',
       'EmailSender', 
       'LogSender',
       'SlackSender',
@@ -58,7 +58,7 @@ describe('Notification Senders Index', () => {
   });
 
   it('should support sender class references', () => {
-    expect(NotificationSendersIndex.DingtalkSender).toBeInstanceOf(Function);
+    expect(NotificationSendersIndex.DingTalkSender).toBeInstanceOf(Function);
     expect(NotificationSendersIndex.EmailSender).toBeInstanceOf(Function);
     expect(NotificationSendersIndex.LogSender).toBeInstanceOf(Function);
     expect(NotificationSendersIndex.SlackSender).toBeInstanceOf(Function);

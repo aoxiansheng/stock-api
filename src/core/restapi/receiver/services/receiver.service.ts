@@ -7,15 +7,18 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { MarketStatus } from "@common/constants/market-trading-hours.constants";
-import { Market } from "@common/constants/market.constants";
+// import { MarketStatus } from "@common/constants/market-trading-hours.constants";
+// import { Market } from "@common/constants/market.constants"; // 已由cache-request.utils提供
 
 import { CapabilityRegistryService } from "../../../../providers/services/capability-registry.service";
 import {
   MarketStatusService,
-  MarketStatusResult,
+  // MarketStatusResult,
 } from "../../../public/shared/services/market-status.service";
 import { SymbolMapperService } from "../../../public/symbol-mapper/services/symbol-mapper.service";
+import { SmartCacheOrchestrator } from "../../../public/smart-cache/services/smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../public/smart-cache/interfaces/cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest } from "../../../public/smart-cache/utils/cache-request.utils";
 import { DataFetcherService } from "../../../restapi/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { TransformerService } from "../../../public/transformer/services/transformer.service";
 import { StorageService } from "../../../public/storage/services/storage.service";
@@ -29,12 +32,10 @@ import {
   RECEIVER_OPERATIONS,
 } from "../constants/receiver.constants";
 import { DataRequestDto } from "../dto/data-request.dto";
-import { DataResponseDto, ResponseMetadataDto, FailureDetailDto } from "../dto/data-response.dto";
+import { DataResponseDto, ResponseMetadataDto } from "../dto/data-response.dto";
 import {
   SymbolTransformationResultDto,
 } from "../dto/receiver-internal.dto";
-import { TransformRequestDto } from "../../../public/transformer/dto/transform-request.dto";
-import { StoreDataDto } from "../../../public/storage/dto/storage-request.dto";
 import { StorageType, StorageClassification } from "../../../public/storage/enums/storage-type.enum";
 import { ValidationResultDto } from "../dto/validation.dto";
 import { MarketUtils } from "../utils/market.util";
@@ -56,6 +57,7 @@ import { DataFetchParams } from "../../data-fetcher/interfaces/data-fetcher.inte
 export class ReceiverService {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(ReceiverService.name);
+  private activeConnections = 0;
 
   // 🎯 使用 common 模块的常量，无需重复定义
 
@@ -67,6 +69,7 @@ export class ReceiverService {
     private readonly transformerService: TransformerService,
     private readonly storageService: StorageService,
     private readonly metricsRegistry: MetricsRegistryService,
+    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
 
@@ -81,8 +84,14 @@ export class ReceiverService {
     const startTime = Date.now();
     const requestId = uuidv4();
 
-    // 🎯 记录连接开始
-    this.recordConnectionChange(1);
+    // 🎯 记录连接开始（避免调用已弃用方法，直接维护计数并写入指标）
+    this.activeConnections = Math.max(0, this.activeConnections + 1);
+    Metrics.setGauge(
+      this.metricsRegistry,
+      'receiverActiveConnections',
+      this.activeConnections,
+      { connection_type: 'http' }
+    );
 
     // 🎯 使用 common 模块的日志脱敏功能
     this.logger.log(
@@ -112,60 +121,38 @@ export class ReceiverService {
         requestId,
       );
 
-      // 3. 获取市场状态 - 强时效关键步骤
-      // 注释掉暂时未使用的marketStatus获取
-      // const marketStatus = await this.getMarketStatusForSymbols(
-      //   request.symbols,
-      //   requestId,
-      // );
+      // 3. 🔑 智能缓存编排器 - 统一数据获取入口
+      const { inferMarketFromSymbol } = await import("../../../public/smart-cache/utils/cache-request.utils");
+      const markets = [...new Set(request.symbols.map(symbol => inferMarketFromSymbol(symbol)))];
+      const marketStatus = await this.marketStatusService.getBatchMarketStatus(markets);
 
-      // 4. 转换股票代码 - 🆕 使用管道化接口
-      const mappingResult = await this.SymbolMapperService.mapSymbols(
+      // 构建编排器请求
+      const orchestratorRequest = buildCacheOrchestratorRequest({
+        symbols: request.symbols,
+        receiverType: request.receiverType,
         provider,
-        request.symbols,
-        requestId,
-      );
+        queryId: requestId,
+        marketStatus,
+        strategy: CacheStrategy.STRONG_TIMELINESS, // Receiver 强时效策略
+        executeOriginalDataFlow: () => this.executeDataFlow(request, provider, requestId),
+      });
 
-      // 转换为兼容的格式
-      const mappedSymbols = {
-        transformedSymbols: mappingResult.mappedSymbols,
-        mappingResults: {
-          transformedSymbols: mappingResult.mappingDetails,
-          failedSymbols: mappingResult.failedSymbols,
-          metadata: {
-            provider: mappingResult.metadata.provider,
-            totalSymbols: mappingResult.metadata.totalSymbols,
-            successfulTransformations: mappingResult.metadata.successCount,
-            failedTransformations: mappingResult.metadata.failedCount,
-            processingTime: mappingResult.metadata.processingTimeMs,
-            hasPartialFailures: mappingResult.metadata.failedCount > 0,
-          },
-        },
-      };
-
-      // 5. 执行数据获取（移除缓存逻辑，统一到Storage组件处理）
-      const responseData = await this.executeDataFetching(
-        request,
-        provider,
-        mappedSymbols,
-        requestId,
-      );
-
+      // 使用编排器获取数据
+      const result = await this.smartCacheOrchestrator.getDataWithSmartCache(orchestratorRequest);
       const processingTime = Date.now() - startTime;
 
-      // 6. 记录性能指标
-      this.recordPerformanceMetrics(
-        requestId,
-        processingTime,
-        request.symbols.length,
-        provider,
-        true, // success
+      // 记录性能指标
+      this.recordPerformanceMetrics(requestId, processingTime, request.symbols.length, provider, true);
+
+      // 记录连接结束
+      this.activeConnections = Math.max(0, this.activeConnections - 1);
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'receiverActiveConnections',
+        this.activeConnections,
+        { connection_type: 'http' }
       );
 
-      // 🎯 记录连接结束
-      this.recordConnectionChange(-1);
-
-      // 🎯 使用 common 模块的日志脱敏功能
       this.logger.log(
         `强时效数据请求处理成功`,
         sanitizeLogData({
@@ -173,14 +160,26 @@ export class ReceiverService {
           provider,
           processingTime,
           symbolsCount: request.symbols.length,
-          operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
+          cacheHit: result.hit,
         }),
       );
 
-      return responseData;
+      return new DataResponseDto(
+        result.data,
+        new ResponseMetadataDto(
+          provider,
+          request.receiverType,
+          requestId,
+          processingTime,
+          false, // hasPartialFailures
+          request.symbols.length, // totalRequested
+          request.symbols.length  // successfullyProcessed
+        )
+      );
+
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      
+
       // 🎯 记录错误指标
       this.recordPerformanceMetrics(
         requestId,
@@ -189,10 +188,16 @@ export class ReceiverService {
         undefined, // provider 可能未定义
         false, // success = false
       );
-      
-      // 🎯 记录连接结束
-      this.recordConnectionChange(-1);
-      
+
+      // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
+      this.activeConnections = Math.max(0, this.activeConnections - 1);
+      Metrics.setGauge(
+        this.metricsRegistry,
+        'receiverActiveConnections',
+        this.activeConnections,
+        { connection_type: 'http' }
+      );
+
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.error(
         `强时效数据请求处理失败`,
@@ -586,256 +591,230 @@ export class ReceiverService {
   }
 
   /**
-   * 执行数据获取 (原有方法，保持兼容性)
+   * 🔑 执行数据流程 - 供智能缓存编排器回调使用
+   * 统一的数据获取入口，集成符号映射、数据获取和转换
    */
-  private async executeDataFetching(
+  private async executeDataFlow(
     request: DataRequestDto,
     provider: string,
-    mappedSymbols: SymbolTransformationResultDto,
     requestId: string,
-  ): Promise<DataResponseDto> {
-    const startTime = Date.now();
-    const capabilityName = request.receiverType;
+  ): Promise<any> {
+    // 1. 符号映射
+    const mappingResult = await this.SymbolMapperService.mapSymbols(
+      provider,
+      request.symbols,
+      requestId,
+    );
 
-    try {
-      // 🔥 关键重构：委托DataFetcher处理SDK调用
-      const fetchParams: DataFetchParams = {
-        provider,
-        capability: capabilityName,
-        symbols: mappedSymbols.transformedSymbols,
-        contextService: await this.getProviderContextService(provider),
-        requestId,
-        apiType: 'rest',
-        options: request.options,
-      };
+    // 2. 数据获取
+    const rawData = await this.dataFetcherService.fetchRawData({
+      provider,
+      capability: request.receiverType,
+      symbols: mappingResult.mappedSymbols,
+      requestId,
+      apiType: 'rest',
+      options: {
+        timeout: request.options?.timeout,
+        fields: request.options?.fields,
+      },
+    } as DataFetchParams);
 
-      const fetchResult = await this.dataFetcherService.fetchRawData(fetchParams);
-      const rawData = fetchResult.data;
+    // 3. 数据转换
+    const transformRequest = {
+      provider,
+      apiType: 'rest' as const,
+      transDataRuleListType: this.mapReceiverTypeToTransDataRuleListType(request.receiverType),
+      rawData,
+      options: {
+        includeMetadata: true,
+        includeDebugInfo: false,
+      },
+    };
 
-      // ✅ 数据标准化处理：使用 Transformer 进行数据格式转换
-      this.logger.debug(`开始数据标准化处理`, {
-        requestId,
-        provider,
-        receiverType: request.receiverType,
-        rawDataCount: rawData.length,
-        fetchTime: fetchResult.metadata.processingTime,
-      });
+    const transformedResult = await this.transformerService.transform(transformRequest);
 
-      this.logger.debug(`Raw data for transformation`, { rawData: JSON.stringify(rawData) });
-      const transformRequest: TransformRequestDto = {
-        provider,
-        apiType: 'rest',
-        transDataRuleListType: this.mapReceiverTypeToTransDataRuleListType(request.receiverType),
-        rawData,
-        options: {
-          includeMetadata: true,
-          includeDebugInfo: false,
-        },
-      };
-
-      const transformedResult = await this.transformerService.transform(transformRequest);
-      
-      // ✅ 新增步骤2：使用 Storage 进行统一存储
-      this.logger.debug(`开始数据存储处理`, {
-        requestId,
-        provider,
-        transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
-      });
-
-      const storageRequest: StoreDataDto = {
-        key: `stock_data_${provider}_${request.receiverType}_${requestId}`,
-        data: transformedResult.transformedData,
-        storageType: StorageType.BOTH, // 既缓存又持久化
-        storageClassification: this.mapReceiverTypeToStorageClassification(request.receiverType),
-        provider,
-        market: this.extractMarketFromSymbols(request.symbols),
-        options: {
-          compress: true,
-          cacheTtl: this.calculateStorageCacheTTL(request.symbols),
-        },
-      };
-
-      // 条件存储：检查storageMode是否允许存储
-      if (request.options?.storageMode !== 'none') {
-        // Storage 操作不应该阻塞主流程，异步执行
-        this.storageService.storeData(storageRequest).catch((error) => {
-          this.logger.warn(`数据存储失败，但不影响主流程`, {
-            requestId,
-            provider,
-            error: error.message,
-          });
-        });
-      } else {
-        this.logger.debug(`存储模式为none，跳过数据存储`, {
+    // 4. 数据存储
+    const storageRequest = {
+      key: `receiver:${request.receiverType}:${provider}:${request.symbols.join(',')}`,
+      market: this.extractMarketFromSymbols(request.symbols),
+      provider,
+      storageClassification: this.mapReceiverTypeToStorageClassification(request.receiverType),
+      storageType: StorageType.BOTH,
+      data: transformedResult.transformedData,
+      options: {
+        cacheTtl: this.calculateStorageCacheTTL(request.symbols),
+        compress: true,
+        tags: {
+          symbols: request.symbols.join(','),
           requestId,
-          provider,
-          storageMode: request.options.storageMode,
-        });
-      }
+          transformedAt: new Date().toISOString(),
+        },
+        priority: 'normal' as const,
+      },
+    };
 
-      // 🎯 计算部分成功的信息
-      const hasPartialFailures =
-        mappedSymbols.mappingResults.metadata.hasPartialFailures;
-      const totalRequested = mappedSymbols.mappingResults.metadata.totalSymbols;
-      const successfullyProcessed =
-        mappedSymbols.mappingResults.metadata.successfulTransformations;
+    await this.storageService.storeData(storageRequest);
 
-      const metadata = new ResponseMetadataDto(
-        provider,
-        capabilityName,
-        requestId,
-        Date.now() - startTime, // 计算实际处理时间
-        hasPartialFailures,
-        totalRequested,
-        successfullyProcessed,
-      );
-
-      this.logger.log(`完整数据处理链路执行成功`, {
-        requestId,
-        provider,
-        receiverType: request.receiverType,
-        totalProcessingTime: Date.now() - startTime,
-        fetchTime: fetchResult.metadata.processingTime,
-        rawDataCount: rawData.length,
-        transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
-      });
-
-      // 构造响应对象，包含失败明细
-      const response = new DataResponseDto(transformedResult.transformedData, metadata);
-      if (mappedSymbols.mappingResults.metadata.hasPartialFailures && mappedSymbols.mappingResults.failedSymbols?.length > 0) {
-        response.failures = mappedSymbols.mappingResults.failedSymbols.map(symbol => ({
-          symbol,
-          reason: '符号映射失败或数据获取失败',
-        } as FailureDetailDto));
-      }
-      
-      // 返回标准化后的数据而不是原始SDK数据
-      return response;
-    } catch (error) {
-      this.logger.error(
-        `数据获取执行失败`,
-        sanitizeLogData({
-          requestId,
-          provider,
-          capability: capabilityName,
-          error: error.message,
-          operation: "executeDataFetching",
-        }),
-      );
-
-      throw new InternalServerErrorException(
-        RECEIVER_ERROR_MESSAGES.DATA_FETCHING_FAILED.replace(
-          "{error}",
-          error.message,
-        ),
-      );
-    }
+    return transformedResult.transformedData;
   }
+
+  /**
+   * 🔑 构建Receiver缓存键 - 供智能缓存编排器使用 (预留方法)
+   * 格式: receiver:{receiverType}:{provider}:{symbolsHash}
+   * @deprecated 当前由cache-request.utils统一处理，保留以备将来扩展
+   */
+  // private buildReceiverCacheKey(
+  //   symbols: string[],
+  //   receiverType: string,
+  //   provider: string,
+  // ): string {
+  //   const symbolsStr = symbols.sort().join(',');
+  //   const symbolsHash = require('crypto')
+  //     .createHash('sha1')
+  //     .update(symbolsStr)
+  //     .digest('hex')
+  //     .substring(0, 8);
+  //
+  //   return `receiver:${receiverType}:${provider}:${symbolsHash}`;
+  // }
+
 
   /**
    * 获取股票代码对应的市场状态
    * 🎯 强时效接口专用 - 快速市场状态检测
+   * @deprecated 当前由智能缓存编排器统一调用marketStatusService，保留以备将来扩展
    */
-  private async getMarketStatusForSymbols(
-    symbols: string[],
-    requestId: string,
-  ): Promise<Record<Market, MarketStatusResult>> {
-    try {
-      // 推断所有涉及的市场
-      const marketsSet = new Set<Market>();
-      symbols.forEach((symbol) => {
-        marketsSet.add(this.inferMarketFromSymbol(symbol));
-      });
+  // private async getMarketStatusForSymbols(
+  //   symbols: string[],
+  //   requestId: string,
+  // ): Promise<Record<Market, MarketStatusResult>> {
+  //   try {
+  //     // 推断所有涉及的市场
+  //     const marketsSet = new Set<Market>();
+  //     symbols.forEach((symbol) => {
+  //       marketsSet.add(this.inferMarketFromSymbol(symbol));
+  //     });
 
-      const markets = Array.from(marketsSet);
+  //     const markets = Array.from(marketsSet);
 
-      // 批量获取市场状态
-      const marketStatus =
-        await this.marketStatusService.getBatchMarketStatus(markets);
+  //     // 批量获取市场状态
+  //     const marketStatus =
+  //       await this.marketStatusService.getBatchMarketStatus(markets);
 
-      this.logger.debug(
-        `批量市场状态获取完成`,
-        sanitizeLogData({
-          requestId,
-          markets,
-          statuses: Object.fromEntries(
-            Object.entries(marketStatus).map(([market, status]) => [
-              market,
-              status.status,
-            ]),
-          ),
-        }),
-      );
+  //     this.logger.debug(
+  //       `批量市场状态获取完成`,
+  //       sanitizeLogData({
+  //         requestId,
+  //         markets,
+  //         statuses: Object.fromEntries(
+  //           Object.entries(marketStatus).map(([market, status]) => [
+  //             market,
+  //             status.status,
+  //           ]),
+  //         ),
+  //       }),
+  //     );
 
-      return marketStatus;
-    } catch (error) {
-      this.logger.error(
-        `市场状态获取失败`,
-        sanitizeLogData({
-          requestId,
-          symbols: symbols.slice(0, 3),
-          error: error.message,
-        }),
-      );
+  //     return marketStatus;
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `市场状态获取失败`,
+  //       sanitizeLogData({
+  //         requestId,
+  //         symbols: symbols.slice(0, 3),
+  //         error: error.message,
+  //       }),
+  //     );
 
-      // 降级处理：返回默认市场状态
-      const markets = [Market.US, Market.HK, Market.SH, Market.SZ];
-      const fallbackStatus: Record<Market, MarketStatusResult> = {} as any;
+  //     // 降级处理：返回默认市场状态
+  //     const markets = [Market.US, Market.HK, Market.SH, Market.SZ];
+  //     const fallbackStatus: Record<Market, MarketStatusResult> = {} as any;
 
-      for (const market of markets) {
-        fallbackStatus[market] = {
-          market,
-          status: MarketStatus.CLOSED,
-          currentTime: new Date(),
-          marketTime: new Date(),
-          timezone: "UTC",
-          realtimeCacheTTL: 60,
-          analyticalCacheTTL: 3600,
-          isHoliday: false,
-          isDST: false,
-          confidence: 0.5,
-        };
-      }
+  //     for (const market of markets) {
+  //       fallbackStatus[market] = {
+  //         market,
+  //         status: MarketStatus.CLOSED,
+  //         currentTime: new Date(),
+  //         marketTime: new Date(),
+  //         timezone: "UTC",
+  //         realtimeCacheTTL: 60,
+  //         analyticalCacheTTL: 3600,
+  //         isHoliday: false,
+  //         isDST: false,
+  //         confidence: 0.5,
+  //       };
+  //     }
 
-      return fallbackStatus;
-    }
-  }
+  //     return fallbackStatus;
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `市场状态获取失败`,
+  //       sanitizeLogData({
+  //         requestId,
+  //         symbols: symbols.slice(0, 3),
+  //         error: error.message,
+  //       }),
+  //     );
+
+  //     // 降级处理：返回默认市场状态
+  //     const markets = [Market.US, Market.HK, Market.SH, Market.SZ];
+  //     const fallbackStatus: Record<Market, MarketStatusResult> = {} as any;
+
+  //     for (const market of markets) {
+  //       fallbackStatus[market] = {
+  //         market,
+  //         status: MarketStatus.CLOSED,
+  //         currentTime: new Date(),
+  //         marketTime: new Date(),
+  //         timezone: "UTC",
+  //         realtimeCacheTTL: 60,
+  //         analyticalCacheTTL: 3600,
+  //         isHoliday: false,
+  //         isDST: false,
+  //         confidence: 0.5,
+  //       };
+  //     }
+
+  //     return fallbackStatus;
+  //   }
+  // }
 
   /**
    * 从股票代码推断市场
+   * @deprecated 当前使用 cache-request.utils 中的统一实现
    */
-  private inferMarketFromSymbol(symbol: string): Market {
-    const upperSymbol = symbol.toUpperCase().trim();
+  // private inferMarketFromSymbol(symbol: string): Market {
+  //   const upperSymbol = symbol.toUpperCase().trim();
 
-    // 香港市场: .HK 后缀或5位数字
-    if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
-      return Market.HK;
-    }
+  //   // 香港市场: .HK 后缀或5位数字
+  //   if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
+  //     return Market.HK;
+  //   }
 
-    // 美国市场: 1-5位字母
-    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-      return Market.US;
-    }
+  //   // 美国市场: 1-5位字母
+  //   if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
+  //     return Market.US;
+  //   }
 
-    // 深圳市场: .SZ 后缀或 00/30 前缀
-    if (
-      upperSymbol.includes(".SZ") ||
-      ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
-    ) {
-      return Market.SZ;
-    }
+  //   // 深圳市场: .SZ 后缀或 00/30 前缀
+  //   if (
+  //     upperSymbol.includes(".SZ") ||
+  //     ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
+  //   ) {
+  //     return Market.SZ;
+  //   }
 
-    // 上海市场: .SH 后缀或 60/68 前缀
-    if (
-      upperSymbol.includes(".SH") ||
-      ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
-    ) {
-      return Market.SH;
-    }
+  //   // 上海市场: .SH 后缀或 60/68 前缀
+  //   if (
+  //     upperSymbol.includes(".SH") ||
+  //     ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
+  //   ) {
+  //     return Market.SH;
+  //   }
 
-    // 默认美股
-    return Market.US;
-  }
+  //   // 默认美股
+  //   return Market.US;
+  // }
 
   /**
    * 🎯 记录活动连接数变化
@@ -845,7 +824,7 @@ export class ReceiverService {
     this.metricsRegistry.getMetricValue('newstock_receiver_active_connections')
       .then(currentConnections => {
         const count = Math.max(0, (Number(currentConnections) || 0) + delta);
-        
+
         Metrics.setGauge(
           this.metricsRegistry,
           'receiverActiveConnections',
@@ -881,14 +860,14 @@ export class ReceiverService {
     // 🎯 记录 Prometheus 指标
     const providerLabel = provider || 'unknown';
     const status = success ? 'success' : 'error';
-    
+
     // 记录请求总数
     Metrics.inc(
       this.metricsRegistry,
       'receiverRequestsTotal',
       { method: 'handleRequest', provider: providerLabel, status, operation: 'handleRequest' }
     );
-    
+
     // 记录处理时间分布
     Metrics.observe(
       this.metricsRegistry,
@@ -896,7 +875,7 @@ export class ReceiverService {
       processingTime / 1000, // 转换为秒
       { method: 'handleRequest', provider: providerLabel, operation: 'handleRequest', status: success ? 'success' : 'error' }
     );
-    
+
     // 如果是慢请求，记录错误率
     if (processingTime > RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS) {
       Metrics.setGauge(
@@ -905,7 +884,7 @@ export class ReceiverService {
         100, // 表示检测到慢请求
         { error_type: 'slow_request', provider: providerLabel }
       );
-      
+
       this.logger.warn(
         RECEIVER_WARNING_MESSAGES.SLOW_REQUEST_DETECTED,
         sanitizeLogData({
@@ -979,7 +958,7 @@ export class ReceiverService {
       'get-market-status': 'market_status_fields'
 
     };
-    
+
     const transDataRuleListType = mapping[receiverType];
     if (!transDataRuleListType) {
       this.logger.warn(`未找到 receiverType 映射，使用默认值`, {
@@ -988,7 +967,7 @@ export class ReceiverService {
       });
       return 'quote_fields'; // 默认使用股票报价字段映射
     }
-    
+
     return transDataRuleListType;
   }
 
@@ -1004,7 +983,7 @@ export class ReceiverService {
       'get-index-quote': StorageClassification.INDEX_QUOTE,
       'get-market-status': StorageClassification.MARKET_STATUS,
     };
-    
+
     return mapping[receiverType] || StorageClassification.STOCK_QUOTE;
   }
 
@@ -1015,19 +994,19 @@ export class ReceiverService {
     if (!symbols || symbols.length === 0) {
       return 'UNKNOWN';
     }
-    
+
     // 取第一个符号的市场后缀作为主要市场
     const firstSymbol = symbols[0];
     if (firstSymbol.includes('.HK')) return 'HK';
     if (firstSymbol.includes('.US')) return 'US';
     if (firstSymbol.includes('.SZ')) return 'SZ';
     if (firstSymbol.includes('.SH')) return 'SH';
-    
+
     // 如果没有后缀，尝试根据格式推断
     if (/^\d{5,6}$/.test(firstSymbol)) {
       return firstSymbol.startsWith('00') || firstSymbol.startsWith('30') ? 'SZ' : 'SH';
     }
-    
+
     return 'MIXED'; // 混合市场
   }
 
@@ -1044,7 +1023,7 @@ export class ReceiverService {
     if (symbolCount > 20) {
       return Math.max(defaultTTL, 120); // 大批量请求给更长 TTL
     }
-    
+
     // 这里可以根据symbols判断市场，然后设置不同的TTL
     // 实际实现可以调用 marketStatusService 获取市场状态
     return defaultTTL;

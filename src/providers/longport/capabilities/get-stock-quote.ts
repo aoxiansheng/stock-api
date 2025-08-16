@@ -39,7 +39,7 @@ export const getStockQuote: ICapability = {
       // 直接返回SDK原始格式，不做任何字段名转换
       return { secu_quote: quotes };
     } catch (error) {
-      throw new Error(`LongPort 获取股票报价失败: ${error.message}`);
+      throw new Error(`LongPort 获取股票报价失败了: ${error.message}`);
     }
   },
 };

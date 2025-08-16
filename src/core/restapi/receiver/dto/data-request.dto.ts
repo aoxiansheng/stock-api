@@ -20,7 +20,7 @@ import {
 } from "../constants/receiver.constants";
 import { IsValidSymbolFormat } from "@common/validators/symbol-format.validator";
 
-class RequestOptionsDto {
+export class RequestOptionsDto {
   @ApiPropertyOptional({ description: "首选数据提供商" })
   @IsOptional()
   @IsString()
@@ -54,6 +54,16 @@ class RequestOptionsDto {
   @IsOptional()
   @IsIn(['none', 'short_ttl', 'both'])
   storageMode?: 'none' | 'short_ttl' | 'both';
+
+  @ApiPropertyOptional({ description: "是否使用智能缓存", default: true })
+  @IsOptional()
+  @IsBoolean()
+  useSmartCache?: boolean;
+
+  @ApiPropertyOptional({ description: "是否启用后台更新", default: false })
+  @IsOptional()
+  @IsBoolean()
+  enableBackgroundUpdate?: boolean;
 }
 
 export class DataRequestDto {

@@ -51,6 +51,18 @@ bun run test:coverage:unit      # Unit test coverage only
 bun run test:coverage:auth      # Auth module coverage
 bun run test:coverage:core      # Core modules coverage
 bun run coverage:report         # Merge and analyze coverage reports
+
+# Smart Cache testing
+bun run test:unit:cache         # Cache module unit tests
+bun run test:integration:cache  # Cache integration tests
+bun run test:e2e:cache          # Cache E2E tests
+
+# Quality validation tools
+bun run test:validate-structure # Test structure validation
+bun run tools:structure-validator # Structure validation tool
+bun run tools:find-duplicates  # Find duplicate test files
+bun run tools:clean-duplicates # Clean duplicate tests
+bun run tools:analyze-all      # Complete analysis workflow
 ```
 
 ## Critical Development Patterns
@@ -210,6 +222,14 @@ Each component has specific responsibilities:
 - **Storage** (`src/core/storage/`): Redis + MongoDB dual storage
 - **Query** (`src/core/query/`): Unified data retrieval
 
+### Smart Cache Enhancement
+
+**New Addition**: The system now includes a **Smart Cache Orchestrator** (`src/core/public/smart-cache/`) that enhances the Query component:
+- **Cache Request Utils**: Intelligent cache key generation and request optimization
+- **Smart Cache Orchestrator Service**: Advanced caching strategies with TTL management
+- **Cache Configuration Interface**: Flexible caching behavior configuration
+- **Module Integration**: Dynamic module creation with configurable cache policies
+
 ### Four-Layer Field Semantics
 
 **CRITICAL**: Never use ambiguous `dataType` fields. Use layer-specific semantic names:
@@ -278,6 +298,13 @@ await request(httpServer).get('/api/v1/endpoint');
 - E2E: `test/config/jest.e2e.config.js`
 - Security: `test/config/jest.security.config.js`
 - Blackbox: `test/config/jest.blackbox.config.js`
+
+**Advanced Testing Tools**:
+- **Structure Validator**: Ensures test file organization matches source structure
+- **Duplicate Finder**: Identifies and removes duplicate test files
+- **Coverage Analyzer**: Comprehensive coverage analysis with trend tracking
+- **Quality Gate Checker**: Enforces minimum coverage thresholds
+- **Test Data Manager**: Generates unique test data to prevent conflicts
 
 ### Common Test Failures and Fixes
 
@@ -387,11 +414,13 @@ When encountering issues, check these common patterns:
 - `src/main.ts` - Application bootstrap, interceptors, global setup
 - `src/app.module.ts` - Module imports, guard configuration
 - `src/core/` - 7-component architecture implementation
+- `src/core/public/smart-cache/` - Smart cache orchestrator implementation
 - `src/auth/` - Three-tier authentication system
 - `src/providers/` - Data provider integration with @Provider decorator
 - `src/common/interceptors/response.interceptor.ts` - Response formatting
 - `test/config/` - Jest configuration for different test types
 - `test/config/e2e.setup.ts` - E2E test setup with unique user generation
+- `test/utils/tools/` - Advanced testing validation and analysis tools
 
 ## Important Reminders
 

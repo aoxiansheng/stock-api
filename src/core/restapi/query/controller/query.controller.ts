@@ -6,6 +6,7 @@ import {
   Query as QueryParam,
   ValidationPipe,
   HttpStatus,
+  HttpCode,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -47,6 +48,7 @@ export class QueryController {
   @ApiKeyAuth()
   @RequirePermissions(Permission.QUERY_EXECUTE)
   @Post("execute")
+  @HttpCode(200)
   @ApiOperation({
     summary: "🧠 弱时效数据查询 - 分析决策专用",
     description: `

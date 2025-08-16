@@ -4,7 +4,7 @@ import {
   IAlertStats,
   IAlertQuery,
 } from '../../../../../src/alert/interfaces/alert.interface';
-import { AlertSeverity, AlertStatus, NotificationChannel } from '../../../../../src/alert/types/alert.types';
+import { AlertSeverity, AlertStatus, NotificationChannelType } from '../../../../../src/alert/types/alert.types';
 
 describe('Alert Interfaces', () => {
   describe('IAlertRule', () => {
@@ -19,7 +19,7 @@ describe('Alert Interfaces', () => {
         duration: 300,
         severity: AlertSeverity.CRITICAL,
         enabled: true,
-        channels: [NotificationChannel.EMAIL],
+        channels: [{ name: 'email', type: NotificationChannelType.EMAIL, config: {}, enabled: true }],
         cooldown: 600,
         tags: { team: 'backend' },
         createdAt: new Date(),
@@ -77,7 +77,7 @@ describe('Alert Interfaces', () => {
         value: 85,
         threshold: 80,
         severity: AlertSeverity.CRITICAL,
-        status: AlertStatus.ACTIVE,
+        status: AlertStatus.FIRING,
         message: 'CPU usage is 85%, exceeding threshold of 80%',
         startTime: new Date(),
         endTime: new Date(),
@@ -89,7 +89,7 @@ describe('Alert Interfaces', () => {
 
       expect(mockAlert.id).toBe('alert-1');
       expect(mockAlert.value).toBeGreaterThan(mockAlert.threshold);
-      expect(mockAlert.status).toBe(AlertStatus.ACTIVE);
+      expect(mockAlert.status).toBe(AlertStatus.FIRING);
       expect(typeof mockAlert.message).toBe('string');
     });
 
@@ -102,7 +102,7 @@ describe('Alert Interfaces', () => {
         value: 90,
         threshold: 85,
         severity: AlertSeverity.WARNING,
-        status: AlertStatus.ACTIVE,
+        status: AlertStatus.FIRING,
         message: 'Memory usage high',
         startTime: new Date()
         // Resolution fields are optional for active alerts
@@ -161,7 +161,7 @@ describe('Alert Interfaces', () => {
       const complexQuery: IAlertQuery = {
         ruleId: 'rule-1',
         severity: AlertSeverity.CRITICAL,
-        status: AlertStatus.ACTIVE,
+        status: AlertStatus.FIRING,
         startTime: new Date('2023-01-01'),
         endTime: new Date('2023-12-31'),
         metric: 'cpu_usage',
@@ -211,8 +211,8 @@ describe('Alert Interfaces', () => {
 
   describe('Interface consistency', () => {
     it('should maintain consistent severity types across interfaces', () => {
-      const rule: Partial<IAlertRule> = { severity: AlertSeverity.HIGH };
-      const alert: Partial<IAlert> = { severity: AlertSeverity.HIGH };
+      const rule: Partial<IAlertRule> = { severity: AlertSeverity.CRITICAL };
+      const alert: Partial<IAlert> = { severity: AlertSeverity.CRITICAL };
 
       expect(rule.severity).toBe(alert.severity);
     });

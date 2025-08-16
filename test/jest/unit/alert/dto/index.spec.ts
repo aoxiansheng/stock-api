@@ -1,17 +1,17 @@
 import * as AlertDtoIndex from '../../../../../src/alert/dto/index';
-import { AlertDto } from '../../../../../src/alert/dto/alert.dto';
-import { AlertRuleDto } from '../../../../../src/alert/dto/alert-rule.dto';
+import { AlertResponseDto } from '../../../../../src/alert/dto/alert.dto';
+import { CreateAlertRuleDto } from '../../../../../src/alert/dto/alert-rule.dto';
 import { NotificationChannelDto } from '../../../../../src/alert/dto/notification-channel.dto';
 
 describe('Alert DTO Index', () => {
-  it('should export AlertDto', () => {
-    expect(AlertDtoIndex.AlertDto).toBeDefined();
-    expect(AlertDtoIndex.AlertDto).toBe(AlertDto);
+  it('should export AlertResponseDto', () => {
+    expect(AlertDtoIndex.AlertResponseDto).toBeDefined();
+    expect(AlertDtoIndex.AlertResponseDto).toBe(AlertResponseDto);
   });
 
-  it('should export AlertRuleDto', () => {
-    expect(AlertDtoIndex.AlertRuleDto).toBeDefined();
-    expect(AlertDtoIndex.AlertRuleDto).toBe(AlertRuleDto);
+  it('should export CreateAlertRuleDto', () => {
+    expect(AlertDtoIndex.CreateAlertRuleDto).toBeDefined();
+    expect(AlertDtoIndex.CreateAlertRuleDto).toBe(CreateAlertRuleDto);
   });
 
   it('should export NotificationChannelDto', () => {
@@ -40,8 +40,8 @@ describe('Alert DTO Index', () => {
   });
 
   it('should support DTO class references', () => {
-    expect(AlertDtoIndex.AlertDto).toBeInstanceOf(Function);
-    expect(AlertDtoIndex.AlertRuleDto).toBeInstanceOf(Function);
+    expect(AlertDtoIndex.AlertResponseDto).toBeInstanceOf(Function);
+    expect(AlertDtoIndex.CreateAlertRuleDto).toBeInstanceOf(Function);
     expect(AlertDtoIndex.NotificationChannelDto).toBeInstanceOf(Function);
   });
 });

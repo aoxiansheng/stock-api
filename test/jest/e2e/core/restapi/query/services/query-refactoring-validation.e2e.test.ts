@@ -11,7 +11,8 @@ import { QueryType } from '../../../../../../../src/core/restapi/query/dto/query
 describe('Query架构重构验证 E2E', () => {
   let app: INestApplication;
   let queryService: QueryService;
-  let httpServer: any;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _httpServer: any;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -19,7 +20,7 @@ describe('Query架构重构验证 E2E', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    httpServer = app.getHttpServer();
+    _httpServer = app.getHttpServer();
     
     queryService = moduleFixture.get<QueryService>(QueryService);
     await app.init();

@@ -18,6 +18,7 @@ import { QueryModule } from "./core/restapi/query/module/query.module";
 import { ReceiverModule } from "./core/restapi/receiver/module/receiver.module";
 import { StreamReceiverModule } from "./core/stream/stream-receiver/module/stream-receiver.module";
 import { StorageModule } from "./core/public/storage/module/storage.module";
+import { SmartCacheModule } from "./core/public/smart-cache/smart-cache.module";
 import { SymbolMapperModule } from "./core/public/symbol-mapper/module/symbol-mapper.module";
 import { TransformerModule } from "./core/public/transformer/module/transformer.module";
 import { MetricsModule } from "./metrics/module/metrics.module";
@@ -89,6 +90,7 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
     DataMapperModule,
     TransformerModule,
     StorageModule,
+    SmartCacheModule,      // 智能缓存编排器模块（可选导入，不影响DI可见性）
     QueryModule,
 
     // 数据源模块

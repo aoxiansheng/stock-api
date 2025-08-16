@@ -53,6 +53,9 @@ export class QueryMetadataDto {
   })
   errors?: QueryErrorInfoDto[];
 
+  @ApiPropertyOptional({ description: "Pagination metadata" })
+  pagination?: any;
+
   constructor(
     queryType: QueryType,
     totalResults: number,
@@ -82,7 +85,7 @@ export class QueryMetadataDto {
  * 错误和警告信息应该通过抛出异常或记录日志来处理
  */
 export class QueryResponseDto<T = unknown> {
-  @ApiProperty({ description: "查询结果数据", type: () => PaginatedDataDto })
+  @ApiProperty({ description: "查询结果数据" })
   data: PaginatedDataDto<T>;
 
   @ApiProperty({ description: "查询元信息", type: () => QueryMetadataDto })

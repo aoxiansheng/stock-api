@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 
+import { createLogger } from "@common/config/logger.config";
 import { securityConfig } from "../../common/config/security.config";
 
 /**
@@ -8,6 +9,7 @@ import { securityConfig } from "../../common/config/security.config";
  */
 @Injectable()
 export class PasswordService {
+  private readonly logger = createLogger(PasswordService.name);
   private readonly saltRounds = securityConfig.data.bcryptSaltRounds;
 
   /**

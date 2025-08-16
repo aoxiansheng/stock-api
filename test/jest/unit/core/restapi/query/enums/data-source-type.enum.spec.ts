@@ -154,7 +154,8 @@ describe('DataSourceType Enum', () => {
       // Attempt to modify enum (should not succeed in strict mode)
       try {
         (DataSourceType as any).CACHE = 'modified';
-      } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_error) {
         // Expected in strict mode
       }
 

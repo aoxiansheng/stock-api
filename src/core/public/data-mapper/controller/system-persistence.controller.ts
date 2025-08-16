@@ -12,7 +12,7 @@ import { IsArray, IsString, ArrayNotEmpty } from 'class-validator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Auth } from '../../../../auth/decorators/auth.decorator';
 import { UserRole } from '../../../../auth/enums/user-role.enum';
-import { ApiStandardResponses, JwtAuthResponses } from '../../../../common/core/decorators/swagger-responses.decorator';
+import { ApiStandardResponses, JwtAuthResponses } from '@common/core/decorators/swagger-responses.decorator';
 import { PersistedTemplateService } from '../services/persisted-template.service';
 
 // DTO for bulk reset request

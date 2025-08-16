@@ -1,6 +1,5 @@
 import { 
   MAPPING_RULE_CATEGORY, 
-  MappingRuleCategory, 
   MappingRuleCategoryValues, 
   isValidMappingRuleCategory 
 } from '../../../../../src/common/constants/mapping-rule-category.constants';
