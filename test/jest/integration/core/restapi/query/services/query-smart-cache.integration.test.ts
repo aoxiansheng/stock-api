@@ -13,7 +13,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { QueryService } from '../../../../../../../src/core/restapi/query/services/query.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service';
 import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
 import { ReceiverService } from '../../../../../../../src/core/restapi/receiver/services/receiver.service';
 import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';
@@ -21,7 +21,7 @@ import { MetricsRegistryService } from '../../../../../../../src/monitoring/metr
 import { CacheService } from '../../../../../../../src/cache/services/cache.service';
 import { QueryRequestDto } from '../../../../../../../src/core/restapi/query/dto/query-request.dto';
 import { QueryType } from '../../../../../../../src/core/restapi/query/dto/query-types.dto';
-import { CacheStrategy } from '../../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { CacheStrategy } from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 // 移除未使用的类型导入以通过lint

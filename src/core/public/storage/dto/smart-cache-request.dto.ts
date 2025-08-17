@@ -13,7 +13,7 @@ import { MarketStatusResult } from '../../shared/services/market-status.service'
 /**
  * 智能缓存选项DTO
  */
-export class SymbolSmartCacheOptionsDto {
+export class SmartCacheOptionsDto {
   @ApiProperty({
     description: '股票代码列表，用于市场状态判断',
     type: [String],
@@ -75,7 +75,7 @@ export class SymbolSmartCacheOptionsDto {
 /**
  * 智能缓存结果DTO
  */
-export class SymbolSmartCacheResultDto<T = any> {
+export class SmartCacheResultDto<T = any> {
   @ApiProperty({
     description: '是否命中缓存',
   })
@@ -129,14 +129,14 @@ export class SymbolSmartCacheResultDto<T = any> {
     key: string,
     dynamicTtl: number,
     ttlRemaining: number,
-  ): SymbolSmartCacheResultDto<T> {
-    return new SymbolSmartCacheResultDto(true, data, key, 'cache', dynamicTtl, ttlRemaining);
+  ): SmartCacheResultDto<T> {
+    return new SmartCacheResultDto(true, data, key, 'cache', dynamicTtl, ttlRemaining);
   }
 
   /**
    * 创建缓存未命中结果
    */
-  static miss<T>(data: T, key: string, dynamicTtl: number): SymbolSmartCacheResultDto<T> {
-    return new SymbolSmartCacheResultDto(false, data, key, 'fresh', dynamicTtl);
+  static miss<T>(data: T, key: string, dynamicTtl: number): SmartCacheResultDto<T> {
+    return new SmartCacheResultDto(false, data, key, 'fresh', dynamicTtl);
   }
 }

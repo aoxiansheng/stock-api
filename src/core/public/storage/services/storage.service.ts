@@ -40,7 +40,7 @@ import {
   PaginatedStorageItemDto,
 } from "../dto/storage-response.dto";
 import { StorageMetadataDto } from "../dto/storage-metadata.dto";
-import { SymbolSmartCacheOptionsDto, SymbolSmartCacheResultDto } from "../dto/smart-cache-request.dto"; // 🔥 新增智能缓存导入
+import { SymbolSmartCacheOptionsDto, SmartCacheResultDto } from "../dto/smart-cache-request.dto"; // 🔥 新增智能缓存导入
 import { StorageRepository } from "../repositories/storage.repository";
 import { RedisUtils } from "../utils/redis.util";
 
@@ -872,7 +872,7 @@ export class StorageService {
     key: string,
     fetchFn: () => Promise<T>,
     options: SymbolSmartCacheOptionsDto,
-  ): Promise<SymbolSmartCacheResultDto<T>> {
+  ): Promise<SmartCacheResultDto<T>> {
     const startTime = Date.now();
     const fullKey = options.keyPrefix ? `${options.keyPrefix}:${key}` : key;
 
@@ -919,7 +919,7 @@ export class StorageService {
             processingTime,
           });
 
-          return SymbolSmartCacheResultDto.hit(
+          return SmartCacheResultDto.hit(
             cachedResult.data,
             fullKey,
             dynamicTtl,
@@ -958,7 +958,7 @@ export class StorageService {
         processingTime,
       });
 
-      return SymbolSmartCacheResultDto.miss(freshData, fullKey, dynamicTtl);
+      return SmartCacheResultDto.miss(freshData, fullKey, dynamicTtl);
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
@@ -998,7 +998,7 @@ export class StorageService {
       fetchFn: () => Promise<T>;
       options: SymbolSmartCacheOptionsDto;
     }>,
-  ): Promise<SymbolSmartCacheResultDto<T>[]> {
+  ): Promise<SmartCacheResultDto<T>[]> {
     this.logger.debug('批量智能缓存查询', {
       requestCount: requests.length,
     });
@@ -1021,7 +1021,7 @@ export class StorageService {
         });
         
         // 返回错误结果
-        return SymbolSmartCacheResultDto.miss(
+        return SmartCacheResultDto.miss(
           null as T,
           requests[index].key,
           0,

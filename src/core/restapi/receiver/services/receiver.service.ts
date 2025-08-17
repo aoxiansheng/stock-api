@@ -16,9 +16,9 @@ import {
   // MarketStatusResult,
 } from "../../../public/shared/services/market-status.service";
 import { SymbolMapperService } from "../../../public/symbol-mapper/services/symbol-mapper.service";
-import { SymbolSmartCacheOrchestrator } from "../../../public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest } from "../../../public/symbol-smart-cache/utils/symbol-smart-cache-request.utils";
+import { SmartCacheOrchestrator } from "../../../public/smart-cache/services/symbol-smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest } from "../../../public/smart-cache/utils/symbol-smart-cache-request.utils";
 import { DataFetcherService } from "../../../restapi/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { TransformerService } from "../../../public/transformer/services/transformer.service";
 import { StorageService } from "../../../public/storage/services/storage.service";
@@ -71,7 +71,7 @@ export class ReceiverService {
     private readonly transformerService: TransformerService,
     private readonly storageService: StorageService,
     private readonly metricsRegistry: MetricsRegistryService,
-    private readonly smartCacheOrchestrator: SymbolSmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
+    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
 
@@ -127,7 +127,7 @@ export class ReceiverService {
       const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
       if (useSmartCache) {
         // 获取市场状态用于缓存策略决策
-        const { inferMarketFromSymbol } = await import("../../../public/symbol-smart-cache/utils/symbol-smart-cache-request.utils");
+        const { inferMarketFromSymbol } = await import("../../../public/smart-cache/utils/symbol-smart-cache-request.utils");
         const markets = [...new Set(request.symbols.map(symbol => inferMarketFromSymbol(symbol)))];
         const marketStatus = await this.marketStatusService.getBatchMarketStatus(markets);
 

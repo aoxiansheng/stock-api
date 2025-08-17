@@ -139,7 +139,7 @@ class DataCacheOrchestratorService {
 
 **重构后不再依赖StorageService**：
 ```typescript
-class SymbolSmartCacheOrchestrator {
+class SmartCacheOrchestrator {
   constructor(
     private cacheEngine: CacheEngineService,  // 使用通用缓存引擎
     private marketStatusService: MarketStatusService,
@@ -343,7 +343,7 @@ export class CacheRepositoryService {
 
 ### 5.2 阶段二：重构symbol-smart-cache依赖（第3周）
 
-**目标**：将`SymbolSmartCacheOrchestrator`的依赖从`StorageService`切换到`CacheEngineService`
+**目标**：将`SmartCacheOrchestrator`的依赖从`StorageService`切换到`CacheEngineService`
 
 **关键改动**：
 ```typescript
@@ -424,7 +424,7 @@ async tryGetFromSmartCache<T>(key: string): Promise<{ data: T; ttlRemaining: num
 ```typescript
 // 特性开关 + 双写验证
 export class DataSmartCacheService {
-  async getWithSmartCache<T>(...args): Promise<SymbolSmartCacheResultDto<T>> {
+  async getWithSmartCache<T>(...args): Promise<SmartCacheResultDto<T>> {
     if (!FEATURE_FLAGS.USE_NEW_IMPLEMENTATION) {
       return this.storageService.getWithSmartCache(...args);
     }
@@ -468,15 +468,15 @@ export { SymbolMapperCacheService } from '../symbol-mapper/services/symbol-mappe
 @Module({
   imports: [SymbolMapperModule], // 导入原模块
   providers: [
-    SymbolSmartCacheOrchestrator,
+    SmartCacheOrchestrator,
     // 统一注册和指标收集
   ],
   exports: [
-    SymbolSmartCacheOrchestrator,
+    SmartCacheOrchestrator,
     SymbolMapperCacheService, // 统一导出
   ],
 })
-export class SymbolSmartCacheModule {}
+export class SmartCacheModule {}
 ```
 
 **边界清晰原则**：

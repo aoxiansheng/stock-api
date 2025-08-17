@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { StorageModule } from '../../storage/module/storage.module';
 import { SharedServicesModule } from '../../shared/module/shared-services.module';
-import { SymbolSmartCacheOrchestrator } from '../services/symbol-smart-cache-orchestrator.service';
+import { SmartCacheOrchestrator } from '../services/symbol-smart-cache-orchestrator.service';
 import { 
-  type SymbolSmartCacheOrchestratorConfig, 
+  type SmartCacheOrchestratorConfig, 
   DEFAULT_SMART_CACHE_CONFIG,
   SMART_CACHE_ORCHESTRATOR_CONFIG 
 } from '../interfaces/symbol-smart-cache-config.interface';
@@ -22,11 +22,11 @@ import {
  * - SharedServicesModule: 提供MarketStatusService、BackgroundTaskService等共享服务
  * 
  * 导出服务：
- * - SymbolSmartCacheOrchestrator: 核心编排器服务
+ * - SmartCacheOrchestrator: 核心编排器服务
  * 
  * 使用方式：
  * - 在QueryModule、ReceiverModule中导入此模块
- * - 注入SymbolSmartCacheOrchestrator服务进行缓存操作
+ * - 注入SmartCacheOrchestrator服务进行缓存操作
  */
 @Module({
   imports: [
@@ -45,7 +45,7 @@ import {
   
   providers: [
     // 核心编排器服务
-    SymbolSmartCacheOrchestrator,
+    SmartCacheOrchestrator,
     
     // 配置提供者 - 使用默认配置
     {
@@ -56,21 +56,21 @@ import {
   
   exports: [
     // 导出核心编排器，供其他模块使用
-    SymbolSmartCacheOrchestrator,
+    SmartCacheOrchestrator,
     
     // 也导出配置令牌，便于测试和配置覆盖
     SMART_CACHE_ORCHESTRATOR_CONFIG,
   ],
 })
-export class SymbolSmartCacheModule {
+export class SmartCacheModule {
   constructor() {
     // 模块初始化日志
-    console.log('SymbolSmartCacheModule initialized');
+    console.log('SmartCacheModule initialized');
   }
 }
 
 /**
- * 创建自定义配置的SymbolSmartCacheModule
+ * 创建自定义配置的SmartCacheModule
  * 
  * @param config 自定义配置
  * @returns 配置好的模块类
@@ -79,7 +79,7 @@ export class SymbolSmartCacheModule {
  * ```typescript
  * @Module({
  *   imports: [
- *     SymbolSmartCacheModule.forRoot({
+ *     SmartCacheModule.forRoot({
  *       defaultMinUpdateInterval: 60000, // 自定义60秒间隔
  *       maxConcurrentUpdates: 5,         // 自定义并发数
  *       // ...其他配置
@@ -89,7 +89,7 @@ export class SymbolSmartCacheModule {
  * export class AppModule {}
  * ```
  */
-export function createSymbolSmartCacheModuleWithConfig(config: Partial<SymbolSmartCacheOrchestratorConfig>) {
+export function createSmartCacheModuleWithConfig(config: Partial<SmartCacheOrchestratorConfig>) {
   const mergedConfig = {
     ...DEFAULT_SMART_CACHE_CONFIG,
     ...config,
@@ -102,20 +102,20 @@ export function createSymbolSmartCacheModuleWithConfig(config: Partial<SymbolSma
   @Module({
     imports: [StorageModule, SharedServicesModule],
     providers: [
-      SymbolSmartCacheOrchestrator,
+      SmartCacheOrchestrator,
       {
         provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
         useValue: mergedConfig,
       },
     ],
-    exports: [SymbolSmartCacheOrchestrator, SMART_CACHE_ORCHESTRATOR_CONFIG],
+    exports: [SmartCacheOrchestrator, SMART_CACHE_ORCHESTRATOR_CONFIG],
   })
-  class ConfiguredSymbolSmartCacheModule {}
+  class ConfiguredSmartCacheModule {}
 
-  return ConfiguredSymbolSmartCacheModule;
+  return ConfiguredSmartCacheModule;
 }
 
 /**
  * 静态方法：创建带有自定义配置的模块
  */
-(SymbolSmartCacheModule as any).forRoot = createSymbolSmartCacheModuleWithConfig;
+(SmartCacheModule as any).forRoot = createSmartCacheModuleWithConfig;

@@ -4,10 +4,10 @@ import {
   createStableSymbolsHash,
   extractMarketFromSymbols,
   inferMarketFromSymbol,
-} from '../../../../../../../src/core/public/symbol-smart-cache/utils/symbol-smart-cache-request.utils';
+} from '../../../../../../../src/core/public/smart-cache/utils/symbol-smart-cache-request.utils';
 import {
   CacheStrategy,
-} from '../../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+} from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 
 describe('Cache Request Utils', () => {
