@@ -13,6 +13,7 @@ import {
 } from '../schemas/symbol-mapping-rule.schema';
 import { SymbolMapperController } from "../controller/symbol-mapper.controller";
 import { SymbolMapperService } from '../services/symbol-mapper.service';
+import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.service';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
   providers: [
     SymbolMapperService, 
     SymbolMappingRepository,
+    SymbolMapperCacheService, // 🎯 新增缓存服务
     FeatureFlags, // 🎯 添加 FeatureFlags 服务
   ],
   exports: [SymbolMapperService],

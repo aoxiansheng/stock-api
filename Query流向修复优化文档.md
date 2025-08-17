@@ -479,7 +479,7 @@ Query批量流向: 发起请求 → Query → 批量分片 → 直接调用Recei
 ```
 Receiver流向: 发起请求 → Receiver → Symbol Mapper → [Receiver层缓存检查(5秒)] → Data Fetching → ... → 用户应用
 
-Query流向: 发起请求 → Query → [Query层缓存检查(300秒)] → [缓存缺失] → 调用完整Receiver流向 → 用户应用
+Query流向: 发起请求 → Query → Symbol Mapper → [Query层缓存检查(300秒)] → [缓存缺失] → 调用完整Receiver流向 → 用户应用
 ```
 
 ### 关键架构理念

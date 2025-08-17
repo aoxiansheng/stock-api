@@ -9,14 +9,14 @@
  * - 哈希算法稳定性验证
  */
 
-import { CacheStrategy } from '../../../../../../../src/core/public/smart-cache/interfaces/cache-orchestrator.interface';
+import { CacheStrategy } from '../../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 import { 
   buildUnifiedCacheKey, 
   createStableSymbolsHash,
   extractMarketFromSymbols,
   inferMarketFromSymbol,
   validateCacheKey
-} from '../../../../../../../src/core/public/smart-cache/utils/cache-request.utils';
+} from '../../../../../../../src/core/public/symbol-smart-cache/utils/symbol-smart-cache-request.utils';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 
 describe('Query Smart Cache Utils Integration Tests', () => {

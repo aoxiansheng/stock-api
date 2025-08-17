@@ -11,6 +11,8 @@
  * - RULE_COMPILATION_ENABLED: 规则编译优化开关 (default: true)
  * - DYNAMIC_LOG_LEVEL_ENABLED: 动态日志级别开关 (default: true)
  * - METRICS_LEGACY_MODE_ENABLED: 指标双写兼容模式开关 (default: true)
+ * - BATCH_RESULT_CACHE_MAX_SIZE: L3批量结果缓存最大条目数 (default: 1000)
+ * - BATCH_RESULT_CACHE_TTL: L3批量结果缓存生存时间ms (default: 7200000)
  */
 
 import { Injectable } from '@nestjs/common';
@@ -53,6 +55,18 @@ export class FeatureFlags {
   readonly batchSizeThreshold: number = Number(process.env.BATCH_SIZE_THRESHOLD) || 10;
   readonly batchTimeWindowMs: number = Number(process.env.BATCH_TIME_WINDOW_MS) || 1;
 
+  // 🎯 L3批量结果缓存配置参数 (Symbol Mapper 重构新增)
+  readonly batchResultCacheMaxSize: number = Number(process.env.BATCH_RESULT_CACHE_MAX_SIZE) || 1000;
+  readonly batchResultCacheTtl: number = Number(process.env.BATCH_RESULT_CACHE_TTL) || 2 * 60 * 60 * 1000; // 2小时
+  
+  // 🎯 Symbol Mapper 查询超时配置（补位建议2：显式化配置）
+  readonly symbolMapperQueryTimeoutMs: number = Number(process.env.SYMBOL_MAPPER_QUERY_TIMEOUT_MS) || 5000; // 默认5秒
+  
+  // 🎯 Symbol Mapper 内存水位监控配置（补位建议1：内存监控）
+  readonly symbolMapperMemoryCheckInterval: number = Number(process.env.SYMBOL_MAPPER_MEMORY_CHECK_INTERVAL) || 60000; // 默认1分钟检查一次
+  readonly symbolMapperMemoryWarningThreshold: number = Number(process.env.SYMBOL_MAPPER_MEMORY_WARNING_THRESHOLD) || 70; // 70%内存警告
+  readonly symbolMapperMemoryCriticalThreshold: number = Number(process.env.SYMBOL_MAPPER_MEMORY_CRITICAL_THRESHOLD) || 80; // 80%内存临界，触发清理
+
   /**
    * 获取所有当前生效的 Feature Flags
    */
@@ -72,6 +86,8 @@ export class FeatureFlags {
       objectPoolSize: this.objectPoolSize,
       batchSizeThreshold: this.batchSizeThreshold,
       batchTimeWindowMs: this.batchTimeWindowMs,
+      batchResultCacheMaxSize: this.batchResultCacheMaxSize,
+      batchResultCacheTtl: this.batchResultCacheTtl,
     };
   }
 

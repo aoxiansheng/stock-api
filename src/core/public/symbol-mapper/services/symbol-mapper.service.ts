@@ -14,6 +14,7 @@ import { PaginationService } from "@common/modules/pagination/services/paginatio
 import { FeatureFlags } from "@common/config/feature-flags.config";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
+import { SymbolMapperCacheService } from "./symbol-mapper-cache.service";
 
 import {
   SYMBOL_MAPPER_ERROR_MESSAGES,
@@ -71,8 +72,9 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     private readonly paginationService: PaginationService,
     private readonly featureFlags: FeatureFlags,
     private readonly metricsRegistry: MetricsRegistryService,
+    private readonly cacheService?: SymbolMapperCacheService, // 可选注入，向后兼容
   ) {
-    // 🎯 初始化统一缓存
+    // 🎯 初始化统一缓存（向后兼容）
     this.unifiedCache = new LRUCache<string, any>({ 
       max: this.featureFlags.symbolCacheMaxSize,
       ttl: this.featureFlags.symbolCacheTtl,
@@ -205,7 +207,37 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     fromProvider: string,
     toProvider: string,
   ): Promise<string> {
-    // 🎯 如果缓存被禁用，直接调用原始逻辑
+    // 🎯 优先使用新的缓存服务（如果可用且启用）
+    if (this.cacheService && this.featureFlags.symbolMappingCacheEnabled) {
+      try {
+        // 确定映射方向：从 provider 到标准格式
+        const direction = fromProvider === 'standard' ? 'from_standard' : 'to_standard';
+        const sourceProvider = direction === 'to_standard' ? fromProvider : toProvider;
+        
+        const result = await this.cacheService.mapSymbols(
+          sourceProvider,
+          originalSymbol,
+          direction
+        );
+        
+        if (result.success && result.mappingDetails[originalSymbol]) {
+          return result.mappingDetails[originalSymbol];
+        } else {
+          // 缓存服务未找到映射，返回原符号
+          return originalSymbol;
+        }
+      } catch (error) {
+        this.logger.warn('新缓存服务失败，回退到传统方式', {
+          originalSymbol,
+          fromProvider,
+          toProvider,
+          error: error.message
+        });
+        // 回退到传统缓存方式
+      }
+    }
+
+    // 🎯 传统缓存逻辑（向后兼容）
     if (!this.featureFlags.symbolMappingCacheEnabled) {
       return await this.originalMapSymbolLogic(originalSymbol, fromProvider, toProvider);
     }
@@ -224,8 +256,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
         100
       );
       
-      // 本地命中计数已弃用，改由 Prometheus 指标
-      
       this.logger.debug('符号映射缓存命中', { 
         originalSymbol, 
         mappedSymbol: cached,
@@ -241,7 +271,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     }
     
     // 缓存未命中，创建查询Promise
-    // 记录缓存未命中到 Prometheus
     Metrics.inc(
       this.metricsRegistry,
       'streamCacheHitRate',
@@ -249,7 +278,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       0
     );
     
-    // 本地未命中计数已弃用，改由 Prometheus 指标
     const queryPromise = this.originalMapSymbolLogic(originalSymbol, fromProvider, toProvider);
     this.pendingQueries.set(cacheKey, queryPromise);
     
@@ -307,8 +335,57 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       requestId: reqId,
     });
 
+    // 🎯 优先使用新的缓存服务（如果可用且启用）
+    if (this.cacheService && this.featureFlags.symbolMappingCacheEnabled) {
+      try {
+        // 默认使用 to_standard 方向映射
+        const result = await this.cacheService.mapSymbols(
+          provider,
+          symbols,
+          'to_standard',
+          reqId
+        );
+        
+        const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+        
+        if (result.success) {
+          // 转换为管道化接口的格式
+          const mappedSymbols = Object.values(result.mappingDetails);
+          
+          const response = {
+            mappedSymbols,
+            mappingDetails: result.mappingDetails,
+            failedSymbols: result.failedSymbols,
+            metadata: {
+              provider,
+              totalSymbols: symbols.length,
+              successCount: mappedSymbols.length,
+              failedCount: result.failedSymbols.length,
+              processingTimeMs: processingTime,
+            },
+          };
+
+          this.logger.debug('新缓存服务映射完成', {
+            requestId: reqId,
+            ...response.metadata,
+            cacheHits: result.cacheHits
+          });
+
+          return response;
+        }
+      } catch (error) {
+        this.logger.warn('新缓存服务批量映射失败，回退到传统方式', {
+          requestId: reqId,
+          provider,
+          symbolsCount: symbols.length,
+          error: error.message
+        });
+        // 回退到传统方式
+      }
+    }
+
     try {
-      // 使用现有的 transformSymbolsForProvider 方法
+      // 🎯 传统方式：使用现有的 transformSymbolsForProvider 方法
       const result = await this.transformSymbolsForProvider(provider, symbols, reqId);
       
       const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
@@ -327,7 +404,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
         },
       };
 
-      this.logger.debug('管道化符号映射完成', {
+      this.logger.debug('传统方式映射完成', {
         requestId: reqId,
         ...response.metadata,
       });
@@ -1864,6 +1941,30 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     maxSize: number;
     pendingQueries: number;
   } {
+    // 🎯 优先使用新缓存服务的统计信息（如果可用）
+    if (this.cacheService) {
+      try {
+        const newStats = this.cacheService.getCacheStats();
+        
+        // 转换为兼容格式
+        const totalL2Hits = newStats.layerStats.l2.hits;
+        const totalL2Misses = newStats.layerStats.l2.misses;
+        const totalL2Accesses = totalL2Hits + totalL2Misses;
+        
+        return {
+          cacheHits: totalL2Hits,
+          cacheMisses: totalL2Misses,
+          hitRate: totalL2Accesses > 0 ? (totalL2Hits / totalL2Accesses * 100).toFixed(2) + '%' : '0%',
+          cacheSize: newStats.cacheSize.l2, // L2 符号缓存大小
+          maxSize: this.featureFlags.symbolCacheMaxSize,
+          pendingQueries: 0, // 新缓存服务中的并发控制不暴露计数
+        };
+      } catch (error) {
+        this.logger.warn('获取新缓存统计失败，使用传统统计', { error: error.message });
+      }
+    }
+
+    // 🎯 传统缓存统计（向后兼容）
     return {
       cacheHits: 0,
       cacheMisses: 0,

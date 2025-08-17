@@ -30,7 +30,7 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { SymbolMapperModule } from "../../src/core/public/symbol-mapper/module/symbol-mapper.module";
 import { DataMapperModule } from "../../src/core/public/data-mapper/module/data-mapper.module";
 // import { StorageModule } from "../../src/core/public/storage/module/storage.module"; // 移除：已通过SmartCacheModule提供
-import { SmartCacheModule } from "../../src/core/public/smart-cache/smart-cache.module";
+import { SymbolSmartCacheModule } from "../../src/core/public/symbol-smart-cache/module/symbol-smart-cache.module";
 import { QueryModule } from "../../src/core/restapi/query/module/query.module"; 
 import { TransformerModule } from "../../src/core/public/transformer/module/transformer.module";
 import { ReceiverModule } from "../../src/core/restapi/receiver/module/receiver.module";
@@ -102,7 +102,7 @@ async function createTestApplication(): Promise<void> {
       SymbolMapperModule,
       DataMapperModule,
       // StorageModule, // 已通过SmartCacheModule提供，移除重复导入
-      SmartCacheModule,
+      SymbolSmartCacheModule,
       QueryModule,
       TransformerModule,
       ReceiverModule,

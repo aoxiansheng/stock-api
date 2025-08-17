@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { Market } from '@common/constants/market.constants';
-import { CacheStrategy, CacheOrchestratorRequest } from '../interfaces/cache-orchestrator.interface';
+import { CacheStrategy, CacheOrchestratorRequest } from '../interfaces/symbol-smart-cache-orchestrator.interface';
 
 /**
  * 智能缓存编排器请求构建工具

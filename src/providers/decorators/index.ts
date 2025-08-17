@@ -8,7 +8,7 @@ export * from './stream-capability.decorator';
 export * from './provider.decorator';
 
 // 类型定义
-export * from './metadata.types';
+export * from './types/metadata.types';
 
 // 工具函数和收集器
 export { CapabilityCollector } from './capability-collector';

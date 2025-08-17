@@ -1,4 +1,4 @@
-import { CacheStrategy } from './cache-orchestrator.interface';
+import { CacheStrategy } from './symbol-smart-cache-orchestrator.interface';
 
 /**
  * 智能缓存编排器配置令牌
@@ -10,7 +10,7 @@ export const SMART_CACHE_ORCHESTRATOR_CONFIG = 'SMART_CACHE_ORCHESTRATOR_CONFIG'
  * 智能缓存编排器主配置接口
  * 定义编排器的全局配置参数
  */
-export interface SmartCacheOrchestratorConfig {
+export interface SymbolSmartCacheOrchestratorConfig {
   /** 
    * 默认最小更新间隔（毫秒）
    * 沿用Query现网值：30秒
@@ -181,7 +181,7 @@ export interface AdaptiveConfig {
  * 默认配置常量
  * 提供各策略的默认配置值
  */
-export const DEFAULT_SMART_CACHE_CONFIG: SmartCacheOrchestratorConfig = {
+export const DEFAULT_SMART_CACHE_CONFIG: SymbolSmartCacheOrchestratorConfig = {
   defaultMinUpdateInterval: 30000, // 30秒，沿用Query现网值
   maxConcurrentUpdates: 10,
   gracefulShutdownTimeout: 30000, // 30秒，与QueryService保持一致
@@ -237,7 +237,7 @@ export const DEFAULT_SMART_CACHE_CONFIG: SmartCacheOrchestratorConfig = {
  * 配置验证函数
  * 验证配置参数的有效性
  */
-export function validateSmartCacheConfig(config: SmartCacheOrchestratorConfig): string[] {
+export function validateSymbolSmartCacheConfig(config: SymbolSmartCacheOrchestratorConfig): string[] {
   const errors: string[] = [];
   
   // 验证基础配置

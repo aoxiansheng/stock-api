@@ -18,11 +18,11 @@ import { UserRole } from "../../../../../../src/auth/enums/user-role.enum";
 import { Permission } from "../../../../../../src/auth/enums/user-role.enum";
 import { UserRepository } from "../../../../../../src/auth/repositories/user.repository";
 import { PasswordService } from "../../../../../../src/auth/services/password.service";
-import { SmartCacheOrchestrator } from "../../../../../../src/core/public/smart-cache/services/smart-cache-orchestrator.service";
+import { SmartCacheOrchestrator } from "../../../../../../src/core/public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service";
 import { StorageService } from "../../../../../../src/core/public/storage/services/storage.service";
 import { CacheService } from "../../../../../../src/cache/services/cache.service";
 import { MetricsRegistryService } from "../../../../../../src/monitoring/metrics/services/metrics-registry.service";
-import { CacheStrategy } from "../../../../../../src/core/public/smart-cache/interfaces/cache-orchestrator.interface";
+import { CacheStrategy } from "../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
 
 describe("Smart Cache Orchestrator E2E Tests", () => {
   let app: INestApplication;

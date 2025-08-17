@@ -13,9 +13,9 @@ import { DataChangeDetectorService } from "../../../public/shared/services/data-
 import { MarketStatusService, MarketStatusResult } from "../../../public/shared/services/market-status.service";
 import { FieldMappingService } from "../../../public/shared/services/field-mapping.service";
 import { StringUtils } from "../../../public/shared/utils/string.util";
-import { SmartCacheOrchestrator } from "../../../public/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../public/smart-cache/interfaces/cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest, inferMarketFromSymbol } from "../../../public/smart-cache/utils/cache-request.utils";
+import { SymbolSmartCacheOrchestrator } from "../../../public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest, inferMarketFromSymbol } from "../../../public/symbol-smart-cache/utils/symbol-smart-cache-request.utils";
 import { ReceiverService } from "../../../restapi/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../restapi/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../restapi/receiver/dto/data-response.dto";
@@ -79,7 +79,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly backgroundTaskService: BackgroundTaskService,
     private readonly paginationService: PaginationService,
     private readonly metricsRegistry: MetricsRegistryService,
-    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
+    private readonly smartCacheOrchestrator: SymbolSmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
 
@@ -914,7 +914,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
 
       // 🎯 使用Query层批量编排器（先检查Query层缓存）
       const orchestratorStartTime = Date.now();
-      const orchestratorResults = await this.smartCacheOrchestrator.batchGetDataWithSmartCache(batchRequests);
+      const orchestratorResults = await this.smartCacheOrchestrator.batchGetDataWithSymbolSmartCache(batchRequests);
       const orchestratorDuration = (Date.now() - orchestratorStartTime) / 1000;
       
       // 🎯 监控指标：记录Query层SmartCacheOrchestrator编排调用耗时

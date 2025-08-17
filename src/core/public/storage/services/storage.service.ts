@@ -40,7 +40,7 @@ import {
   PaginatedStorageItemDto,
 } from "../dto/storage-response.dto";
 import { StorageMetadataDto } from "../dto/storage-metadata.dto";
-import { SmartCacheOptionsDto, SmartCacheResultDto } from "../dto/smart-cache-request.dto"; // 🔥 新增智能缓存导入
+import { SymbolSmartCacheOptionsDto, SymbolSmartCacheResultDto } from "../dto/smart-cache-request.dto"; // 🔥 新增智能缓存导入
 import { StorageRepository } from "../repositories/storage.repository";
 import { RedisUtils } from "../utils/redis.util";
 
@@ -871,8 +871,8 @@ export class StorageService {
   async getWithSmartCache<T>(
     key: string,
     fetchFn: () => Promise<T>,
-    options: SmartCacheOptionsDto,
-  ): Promise<SmartCacheResultDto<T>> {
+    options: SymbolSmartCacheOptionsDto,
+  ): Promise<SymbolSmartCacheResultDto<T>> {
     const startTime = Date.now();
     const fullKey = options.keyPrefix ? `${options.keyPrefix}:${key}` : key;
 
@@ -919,7 +919,7 @@ export class StorageService {
             processingTime,
           });
 
-          return SmartCacheResultDto.hit(
+          return SymbolSmartCacheResultDto.hit(
             cachedResult.data,
             fullKey,
             dynamicTtl,
@@ -958,7 +958,7 @@ export class StorageService {
         processingTime,
       });
 
-      return SmartCacheResultDto.miss(freshData, fullKey, dynamicTtl);
+      return SymbolSmartCacheResultDto.miss(freshData, fullKey, dynamicTtl);
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
@@ -996,9 +996,9 @@ export class StorageService {
     requests: Array<{
       key: string;
       fetchFn: () => Promise<T>;
-      options: SmartCacheOptionsDto;
+      options: SymbolSmartCacheOptionsDto;
     }>,
-  ): Promise<SmartCacheResultDto<T>[]> {
+  ): Promise<SymbolSmartCacheResultDto<T>[]> {
     this.logger.debug('批量智能缓存查询', {
       requestCount: requests.length,
     });
@@ -1021,7 +1021,7 @@ export class StorageService {
         });
         
         // 返回错误结果
-        return SmartCacheResultDto.miss(
+        return SymbolSmartCacheResultDto.miss(
           null as T,
           requests[index].key,
           0,
@@ -1036,7 +1036,7 @@ export class StorageService {
    * @param options 缓存选项
    * @returns TTL（秒）
    */
-  private calculateDynamicTTL(options: SmartCacheOptionsDto): number {
+  private calculateDynamicTTL(options: SymbolSmartCacheOptionsDto): number {
     const { symbols, marketStatus, minCacheTtl = 30, maxCacheTtl = 3600 } = options;
 
     if (!marketStatus || Object.keys(marketStatus).length === 0) {

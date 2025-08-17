@@ -10,10 +10,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/smart-cache-orchestrator.service';
-import { CacheStrategy, CacheOrchestratorRequest } from '../../../../../../../src/core/public/smart-cache/interfaces/cache-orchestrator.interface';
-import { SMART_CACHE_ORCHESTRATOR_CONFIG } from '../../../../../../../src/core/public/smart-cache/interfaces/cache-config.interface';
-import { buildUnifiedCacheKey } from '../../../../../../../src/core/public/smart-cache/utils/cache-request.utils';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { CacheStrategy, CacheOrchestratorRequest } from '../../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { SMART_CACHE_ORCHESTRATOR_CONFIG } from '../../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-config.interface';
+import { buildUnifiedCacheKey } from '../../../../../../../src/core/public/symbol-smart-cache/utils/symbol-smart-cache-request.utils';
 import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
 import { DataChangeDetectorService } from '../../../../../../../src/core/public/shared/services/data-change-detector.service';
 import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';

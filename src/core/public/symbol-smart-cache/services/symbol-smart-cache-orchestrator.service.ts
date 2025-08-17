@@ -12,16 +12,16 @@ import {
   CacheOrchestratorResult,
   BackgroundUpdateTask,
   MarketStatusQueryResult
-} from '../interfaces/cache-orchestrator.interface';
-import { SmartCacheOrchestratorConfig, SMART_CACHE_ORCHESTRATOR_CONFIG } from '../interfaces/cache-config.interface';
-import { SmartCacheOptionsDto } from '../../storage/dto/smart-cache-request.dto';
+} from '../interfaces/symbol-smart-cache-orchestrator.interface';
+import { type SymbolSmartCacheOrchestratorConfig, SMART_CACHE_ORCHESTRATOR_CONFIG } from '../interfaces/symbol-smart-cache-config.interface';
+import { SymbolSmartCacheOptionsDto } from '../../storage/dto/smart-cache-request.dto';
 
 /**
  * 智能缓存编排器服务
  * 
  * 核心功能：
  * - 统一Receiver与Query的缓存调用骨架
- * - 策略映射：将CacheStrategy转换为StorageService可识别的SmartCacheOptionsDto
+ * - 策略映射：将CacheStrategy转换为StorageService可识别的SymbolSmartCacheOptionsDto
  * - 后台更新调度：TTL节流、去重、优先级计算
  * - 生命周期管理：初始化和优雅关闭
  * 
@@ -31,8 +31,8 @@ import { SmartCacheOptionsDto } from '../../storage/dto/smart-cache-request.dto'
  * - 保持与Query现有监控指标的一致性
  */
 @Injectable()
-export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(SmartCacheOrchestrator.name);
+export class SymbolSmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(SymbolSmartCacheOrchestrator.name);
   
   /** 后台更新任务管理Map：cacheKey -> BackgroundUpdateTask */
   private readonly backgroundUpdateTasks = new Map<string, BackgroundUpdateTask>();
@@ -51,7 +51,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   
   constructor(
     @Inject(SMART_CACHE_ORCHESTRATOR_CONFIG)
-    private readonly config: SmartCacheOrchestratorConfig,
+    private readonly config: SymbolSmartCacheOrchestratorConfig,
     
     private readonly storageService: StorageService,
     private readonly dataChangeDetectorService: DataChangeDetectorService,
@@ -59,7 +59,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly backgroundTaskService: BackgroundTaskService,
     private readonly metricsRegistryService: MetricsRegistryService,
   ) {
-    this.logger.log('SmartCacheOrchestrator service initializing...');
+    this.logger.log('SymbolSmartCacheOrchestrator service initializing...');
   }
 
   /**
@@ -67,7 +67,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 设置后台任务处理和监控指标
    */
   async onModuleInit(): Promise<void> {
-    this.logger.log('SmartCacheOrchestrator service started');
+    this.logger.log('SymbolSmartCacheOrchestrator service started');
     
     // 初始化监控指标（复用Query现有指标名称）
     if (this.config.enableMetrics) {
@@ -79,7 +79,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       this.startBackgroundTaskProcessor();
     }
     
-    this.logger.log(`SmartCacheOrchestrator initialized with config: ${JSON.stringify({
+    this.logger.log(`SymbolSmartCacheOrchestrator initialized with config: ${JSON.stringify({
       defaultMinUpdateInterval: this.config.defaultMinUpdateInterval,
       maxConcurrentUpdates: this.config.maxConcurrentUpdates,
       enableBackgroundUpdate: this.config.enableBackgroundUpdate,
@@ -93,7 +93,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 不强制取消进行中任务
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('SmartCacheOrchestrator shutting down...');
+    this.logger.log('SymbolSmartCacheOrchestrator shutting down...');
     this.isShuttingDown = true;
 
     // 停止接受新的后台更新任务
@@ -126,7 +126,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(`Cleared ${pendingTaskCount} pending background update tasks during shutdown`);
     }
     
-    this.logger.log('SmartCacheOrchestrator shutdown completed');
+    this.logger.log('SymbolSmartCacheOrchestrator shutdown completed');
   }
 
   /**
@@ -278,7 +278,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 获取单个数据的智能缓存
    * 复用StorageService.getWithSmartCache基础设施
    */
-  async getDataWithSmartCache<T>(request: CacheOrchestratorRequest<T>): Promise<CacheOrchestratorResult<T>> {
+  async getDataWithSymbolSmartCache<T>(request: CacheOrchestratorRequest<T>): Promise<CacheOrchestratorResult<T>> {
     try {
       // 处理NO_CACHE策略的直取直返
       if (request.strategy === CacheStrategy.NO_CACHE) {
@@ -398,10 +398,10 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 批量获取数据的智能缓存
-   * 复用StorageService.batchGetWithSmartCache基础设施
+   * 复用StorageService.batchgetWithSmartCache基础设施
    * 🚨语义说明: 单个失败不影响整体，失败项返回miss(null)，与StorageService行为一致
    */
-  async batchGetDataWithSmartCache<T>(requests: CacheOrchestratorRequest<T>[]): Promise<CacheOrchestratorResult<T>[]> {
+  async batchGetDataWithSymbolSmartCache<T>(requests: CacheOrchestratorRequest<T>[]): Promise<CacheOrchestratorResult<T>[]> {
     if (!requests || requests.length === 0) {
       return [];
     }
@@ -566,7 +566,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       // Fallback：逐个处理请求
       for (const request of requests) {
         try {
-          const individualResult = await this.getDataWithSmartCache(request);
+          const individualResult = await this.getDataWithSymbolSmartCache(request);
           results.push({
             result: individualResult,
             originalIndex: (request as any).originalIndex,
@@ -645,17 +645,17 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 策略映射：同步版本
-   * 将CacheStrategy转换为StorageService可识别的SmartCacheOptionsDto
+   * 将CacheStrategy转换为StorageService可识别的SymbolSmartCacheOptionsDto
    * 注意：策略映射对象不传keyPrefix字段，避免与cacheKey双重命名空间
    */
-  mapStrategyToOptions(strategy: CacheStrategy, symbols: string[] = []): SmartCacheOptionsDto {
+  mapStrategyToOptions(strategy: CacheStrategy, symbols: string[] = []): SymbolSmartCacheOptionsDto {
     const strategyConfig = this.config.strategies[strategy];
     
     if (!strategyConfig) {
       throw new Error(`Unknown cache strategy: ${strategy}`);
     }
 
-    const options: SmartCacheOptionsDto = {
+    const options: SymbolSmartCacheOptionsDto = {
       symbols,
       forceRefresh: false,
       // 🚨注意: 不传keyPrefix字段，避免与cacheKey双重命名空间
@@ -706,7 +706,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 查询市场状态后动态调整TTL
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async mapStrategyToOptionsAsync(strategy: CacheStrategy, symbols: string[], _metadata?: any): Promise<SmartCacheOptionsDto> {
+  async mapStrategyToOptionsAsync(strategy: CacheStrategy, symbols: string[], _metadata?: any): Promise<SymbolSmartCacheOptionsDto> {
     // 对于非市场感知策略，直接使用同步映射
     if (strategy !== CacheStrategy.MARKET_AWARE) {
       return this.mapStrategyToOptions(strategy, symbols);

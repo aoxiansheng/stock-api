@@ -8,8 +8,8 @@ import { MarketStatusService } from '../../../../../../../src/core/public/shared
 import { TransformerService } from '../../../../../../../src/core/public/transformer/services/transformer.service';
 import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/smart-cache-orchestrator.service';
-import { CacheStrategy } from '../../../../../../../src/core/public/smart-cache/interfaces/cache-orchestrator.interface';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { CacheStrategy } from '../../../../../../../src/core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 import { StorageType, StorageClassification } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';

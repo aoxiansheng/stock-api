@@ -1,0 +1,1360 @@
+# Symbol Mapper 组件缓存重构设计方案
+
+## 📋 项目背景
+
+### 当前问题分析
+
+经过深度代码分析和实际流程验证，发现当前 Symbol Mapper 组件存在以下缓存架构问题：
+
+1. **缓存路径不统一**：单符号查询有缓存，批量查询完全绕过缓存
+2. **双向映射缺失**：只缓存单向映射，反向查询重复计算
+3. **数据孤岛问题**：批量与单次查询数据无法共享
+4. **TTL策略不合理**：Symbol映射数据稳定性高，但使用短TTL
+
+**重要说明**：经过详细代码审查，Query→Receiver流向中**不存在**Symbol Mapper重复调用问题。SmartCacheOrchestrator有效避免了重复调用。
+
+### 性能影响
+
+| 问题类型 | 当前影响 | 业务痛点 |
+|---------|----------|----------|
+| 批量查询无缓存 | 每次都查数据库 | 高并发下数据库压力大 |
+| 双向查询重复 | 2次独立查询 | 浪费计算资源 |
+| 短TTL策略 | 频繁缓存失效 | 缓存命中率低于30% |
+| 数据孤岛 | 批量和单次查询缓存不共享 | 重复的数据库查询 |
+
+## 🎯 重构目标
+
+### 核心设计原则
+
+1. **📊 分层缓存架构**：L1规则缓存 + L2符号缓存 + L3批量缓存
+2. **🔄 双向映射缓存**：一次查询，双向受益
+3. **⚡ 批量单次统一**：所有查询走统一处理路径
+4. **🕒 长期缓存策略**：根据数据稳定性设置合理TTL
+5. **🎯 智能预加载**：基于使用模式主动预加载
+
+### 预期性能改善
+
+| 指标 | 当前性能 | 目标性能 | 改善幅度 |
+|------|----------|----------|----------|
+| 批量符号映射缓存命中率 | <5% | 85%+ | **80%提升** |
+| 单符号查询延迟 | 20-50ms | 0.1-1ms | **95%减少** |
+| 批量查询延迟 | 100-300ms | 10-30ms | **80%减少** |
+| 数据库查询次数 | 每次都查 | 缓存期内0次 | **90%减少** |
+| 双向查询效率 | 2次独立查询 | 1次查询双向缓存 | **50%减少** |
+
+## 🏗️ 新架构设计
+
+### 架构说明
+本重构方案专注于优化Symbol Mapper组件内部的缓存机制，不涉及Query-Receiver的调用流程（该流程已通过SmartCacheOrchestrator优化）。
+
+### 统一缓存服务类
+
+```typescript
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { LRUCache } from 'lru-cache';
+import * as crypto from 'crypto';
+import { FeatureFlags } from '@common/config/feature-flags.config';
+import { MetricsRegistryService } from '@monitoring/metrics/services/metrics-registry.service';
+import { SymbolMappingRepository } from '../repositories/symbol-mapping.repository';
+import { SymbolMappingRule } from '../schemas/symbol-mapping-rule.schema';
+import { createLogger } from '@common/config/logger.config';
+import { Metrics } from '@common/utils/metrics.utils'; // 统一使用 Metrics.inc 封装
+// TODO: 需要新增以下接口定义文件：
+// import { BatchMappingResult, SymbolMappingResult } from '../interfaces/symbol-mapper.interfaces';
+
+// 📝 实施提醒: 代码示例中使用的导入已在上方定义，实施时确保路径正确
+// 特别注意 MetricsRegistryService、FeatureFlags、SymbolMappingRepository 的导入路径
+// 统一使用 Metrics.inc 封装: import { Metrics } from '@common/utils/metrics.utils';
+
+/**
+ * 📝 需要新增的类型定义 (interfaces/symbol-mapper.interfaces.ts):
+ * 
+ * export interface SymbolMappingResult {
+ *   success: boolean;
+ *   mappedSymbol?: string;
+ *   originalSymbol: string;
+ *   provider: string;
+ *   direction: 'to_standard' | 'from_standard';
+ *   cacheHit?: boolean;
+ *   processingTime?: number;
+ * }
+ * 
+ * export interface BatchMappingResult {
+ *   success: boolean;
+ *   mappingDetails: Record<string, string>;
+ *   failedSymbols: string[];
+ *   provider: string;
+ *   direction: 'to_standard' | 'from_standard';
+ *   totalProcessed: number;
+ *   cacheHits: number;
+ *   processingTime: number;
+ * }
+ */
+/**
+ * Symbol Mapper 统一缓存服务
+ * 优化批量查询缓存和实现双向映射的核心组件
+ */
+@Injectable()
+export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = createLogger(SymbolMapperCacheService.name);
+  
+  // 🎯 三层缓存架构
+  private readonly providerRulesCache: LRUCache<string, SymbolMappingRule[]>;  // L1: 规则缓存
+  private readonly symbolMappingCache: LRUCache<string, string>;               // L2: 符号映射缓存  
+  private readonly batchResultCache: LRUCache<string, any>;     // L3: 批量结果缓存 (TODO: 使用 BatchMappingResult 类型)
+  
+  // 🔒 并发控制
+  private readonly pendingQueries: Map<string, Promise<any>>;
+  
+  // 📡 变更监听
+  private changeStream: any; // Change Stream 实例
+  
+  // 📊 缓存统计 - 按层级分别统计
+  private cacheStats: {
+    l1: { hits: number; misses: number };
+    l2: { hits: number; misses: number };
+    l3: { hits: number; misses: number };
+    totalQueries: number;
+  };
+
+  constructor(
+    private readonly repository: SymbolMappingRepository,
+    private readonly featureFlags: FeatureFlags,
+    private readonly metricsRegistry: MetricsRegistryService
+  ) {
+    this.initializeCaches();
+    this.initializeStats();
+    this.pendingQueries = new Map();
+  }
+
+  /**
+   * 🚀 模块初始化 - 启动变更监听
+   */
+  async onModuleInit(): Promise<void> {
+    // 仅在模块初始化时注册一次，避免重复监听
+    this.setupChangeStreamMonitoring();
+    
+    this.logger.log('SymbolMapperCacheService initialized with change stream monitoring');
+  }
+
+  /**
+   * 📊 模块销毁 - 清理资源
+   */
+  async onModuleDestroy(): Promise<void> {
+    // 关闭 Change Stream
+    if (this.changeStream) {
+      try {
+        await this.changeStream.close();
+        this.logger.log('Change Stream 已关闭');
+      } catch (error) {
+        this.logger.error('关闭 Change Stream 失败', { error: error.message });
+      }
+    }
+    
+    // 清理缓存
+    this.providerRulesCache.clear();
+    this.symbolMappingCache.clear();
+    this.batchResultCache.clear();
+    
+    // 清理待处理查询
+    this.pendingQueries.clear();
+    
+    this.logger.log('SymbolMapperCacheService destroyed and resources cleaned up');
+  }
+
+  /**
+   * 📊 初始化统计计数器
+   */
+  private initializeStats(): void {
+    this.cacheStats = {
+      l1: { hits: 0, misses: 0 },
+      l2: { hits: 0, misses: 0 },
+      l3: { hits: 0, misses: 0 },
+      totalQueries: 0
+    };
+  }
+
+  /**
+   * 🎯 缓存初始化：从FeaturesFlags读取现有字段，L3使用默认值
+   */
+  private initializeCaches(): void {
+    // 从 FeatureFlags 读取现有缓存配置（仅L1/L2）
+    const l1Config = {
+      max: this.featureFlags.ruleCacheMaxSize || 100,
+      ttl: this.featureFlags.ruleCacheTtl || 24 * 60 * 60 * 1000
+    };
+    
+    const l2Config = {
+      max: this.featureFlags.symbolCacheMaxSize || 50000,
+      ttl: this.featureFlags.symbolCacheTtl || 12 * 60 * 60 * 1000
+    };
+    
+    // L3配置：新增 FeatureFlags 字段
+    const l3Config = {
+      max: this.featureFlags.batchResultCacheMaxSize || 1000,
+      ttl: this.featureFlags.batchResultCacheTtl || 2 * 60 * 60 * 1000 // 2小时
+    };
+    
+    // L1: 规则缓存 - 规则很少变动，长期缓存
+    this.providerRulesCache = new LRUCache({
+      max: l1Config.max,
+      ttl: l1Config.ttl,
+      updateAgeOnGet: false        // 不更新访问时间，保持TTL
+    });
+    
+    // L2: 符号映射缓存 - 符号映射相对稳定
+    this.symbolMappingCache = new LRUCache({
+      max: l2Config.max,
+      ttl: l2Config.ttl,
+      updateAgeOnGet: true         // 热门符号延长生命周期
+    });
+    
+    // L3: 批量结果缓存 - 批量查询结果
+    this.batchResultCache = new LRUCache({
+      max: l3Config.max,
+      ttl: l3Config.ttl,
+      updateAgeOnGet: true
+    });
+    
+    this.logger.log('Caches initialized with FeatureFlags and ENV config', {
+      l1Rules: l1Config,
+      l2Symbols: l2Config,
+      l3Batches: l3Config
+    });
+  }
+}
+```
+
+### 统一查询入口
+
+```typescript
+/**
+ * 🎯 统一入口：支持单个和批量查询
+ * 替换现有的 mapSymbol 和 mapSymbols 方法
+ */
+async mapSymbols(
+  provider: string, 
+  symbols: string | string[], 
+  direction: 'to_standard' | 'from_standard',
+  requestId?: string
+): Promise<any> { // TODO: 使用 SymbolMappingResult 类型
+  
+  const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
+  const isBatch = symbolArray.length > 1;
+  const startTime = Date.now();
+  
+  this.cacheStats.totalQueries++;
+  
+  try {
+    // 🎯 Level 3: 批量结果缓存检查
+    if (isBatch) {
+      const batchKey = this.getBatchCacheKey(provider, symbolArray, direction);
+      const batchCached = this.batchResultCache.get(batchKey);
+      if (batchCached) {
+        this.cacheStats.l3.hits++;
+        this.recordCacheMetrics('l3', true);
+        return this.cloneResult(batchCached);
+      }
+      // L3 未命中计数
+      this.cacheStats.l3.misses++;
+      this.recordCacheMetrics('l3', false);
+    }
+    
+    // 🎯 Level 2: 单符号缓存检查
+    const cacheHits = new Map<string, string>();
+    const uncachedSymbols = [];
+    
+    for (const symbol of symbolArray) {
+      const symbolKey = this.getSymbolCacheKey(provider, symbol, direction);
+      const cached = this.symbolMappingCache.get(symbolKey);
+      if (cached) {
+        cacheHits.set(symbol, cached);
+        this.cacheStats.l2.hits++;
+        this.recordCacheMetrics('l2', true);
+      } else {
+        uncachedSymbols.push(symbol);
+        this.cacheStats.l2.misses++;  // L2 未命中计数
+        this.recordCacheMetrics('l2', false);
+      }
+    }
+    
+    // 🎯 Level 1: 规则缓存 + 数据库查询
+    let uncachedResults = {};
+    if (uncachedSymbols.length > 0) {
+      // 并发控制：使用与批量缓存完全相同的键规范（包括MD5）
+      const queryKey = this.getPendingQueryKey(provider, uncachedSymbols, direction);
+      
+      if (this.pendingQueries.has(queryKey)) {
+        uncachedResults = await this.pendingQueries.get(queryKey);
+      } else {
+        const queryPromise = this.executeUncachedQuery(provider, uncachedSymbols, direction);
+        this.pendingQueries.set(queryKey, queryPromise);
+        
+        try {
+          uncachedResults = await queryPromise;
+          // 🔄 批量结果回填单符号缓存（双向写入）
+          this.backfillSingleSymbolCache(provider, uncachedResults, direction);
+        } catch (error) {
+          this.logger.error('Uncached query failed', { queryKey, error: error.message });
+          throw error;
+        } finally {
+          this.pendingQueries.delete(queryKey);
+        }
+      }
+    }
+    
+    // 🎯 合并所有结果
+    const finalResult = this.mergeResults(cacheHits, uncachedResults, symbolArray);
+    
+    // 🎯 存储批量结果缓存 - 结构校验后存储
+    if (isBatch && uncachedSymbols.length > 0) {
+      const batchKey = this.getBatchCacheKey(provider, symbolArray, direction);
+      
+      // 重要：结构校验并补齐L3精准失效所需字段
+      const validatedResult = this.validateAndFixBatchResult(finalResult);
+      
+      this.batchResultCache.set(batchKey, validatedResult);
+      
+      this.logger.debug('Batch result cached with validated structure', {
+        batchKey,
+        mappingDetailsCount: Object.keys(validatedResult.mappingDetails).length,
+        failedSymbolsCount: validatedResult.failedSymbols.length
+      });
+    }
+    
+    // 📊 记录性能指标
+    this.recordPerformanceMetrics(provider, symbolArray.length, Date.now() - startTime, cacheHits.size);
+    
+    return finalResult;
+    
+  } catch (error) {
+    this.logger.error('Symbol mapping failed', {
+      provider,
+      symbolsCount: symbolArray.length,
+      direction,
+      error: error.message,
+      requestId
+    });
+    throw error;
+  }
+}
+```
+
+### 双向缓存机制
+
+```typescript
+/**
+ * 🔄 深拷贝结果，避免调用方修改影响缓存
+ */
+private cloneResult(result: any): any {
+  // 深拷贝确保缓存数据不被外部修改
+  return JSON.parse(JSON.stringify(result));
+}
+
+/**
+ * ✅ 批量结果结构校验与修复
+ */
+private validateAndFixBatchResult(result: any): any { // TODO: 使用 BatchMappingResult 类型
+  // 确保必需字段存在，供L3精准失效使用
+  const validatedResult = { ...result };
+  
+  if (!validatedResult.mappingDetails || typeof validatedResult.mappingDetails !== 'object') {
+    validatedResult.mappingDetails = {};
+    this.logger.warn('Missing mappingDetails in batch result, added empty object');
+  }
+  
+  if (!Array.isArray(validatedResult.failedSymbols)) {
+    validatedResult.failedSymbols = [];
+    this.logger.warn('Missing failedSymbols in batch result, added empty array');
+  }
+  
+  return validatedResult;
+}
+
+/**
+ * 🔄 双向缓存存储：同时缓存正向和反向映射
+ */
+private storeBidirectionalMapping(
+  provider: string, 
+  standardSymbol: string, 
+  providerSymbol: string
+): void {
+  // 正向：provider → standard
+  const forwardKey = this.getSymbolCacheKey(provider, providerSymbol, 'to_standard');
+  this.symbolMappingCache.set(forwardKey, standardSymbol);
+  
+  // 反向：standard → provider  
+  const reverseKey = this.getSymbolCacheKey(provider, standardSymbol, 'from_standard');
+  this.symbolMappingCache.set(reverseKey, providerSymbol);
+  
+  this.logger.debug('Bidirectional mapping cached', {
+    provider,
+    standardSymbol,
+    providerSymbol,
+    forwardKey,
+    reverseKey
+  });
+}
+
+/**
+ * 🎯 统一规则获取（带缓存）- 键一致性修正
+ */
+private async getProviderRules(provider: string): Promise<SymbolMappingRule[]> {
+  const rulesKey = this.getProviderRulesKey(provider);  // 使用统一键生成
+  const cached = this.providerRulesCache.get(rulesKey);
+  if (cached) {
+    this.cacheStats.l1.hits++;  // L1是规则缓存
+    this.recordCacheMetrics('l1', true);  // 记录L1命中
+    return cached;
+  }
+  
+  this.cacheStats.l1.misses++;
+  this.recordCacheMetrics('l1', false);  // 记录L1未命中
+  
+  // 查询数据库获取规则
+  const mappingConfig = await this.repository.findByDataSource(provider);
+  const rules = mappingConfig?.SymbolMappingRule || [];
+  
+  // 存入L1缓存，使用统一键
+  this.providerRulesCache.set(rulesKey, rules);
+  
+  this.logger.debug('Provider rules loaded and cached', {
+    provider: provider.toLowerCase(),
+    rulesKey,
+    rulesCount: rules.length
+  });
+  
+  return rules;
+}
+
+/**
+ * 🔄 批量回源回填策略 - 详细实现规则
+ */
+private backfillSingleSymbolCache(
+  provider: string, 
+  uncachedResults: Record<string, string>, 
+  direction: 'to_standard' | 'from_standard'
+): void {
+  // uncachedResults 格式：{ [originalSymbol]: mappedSymbol }
+  // 遍历成功映射的结果，失败项不回填
+  
+  for (const [originalSymbol, mappedSymbol] of Object.entries(uncachedResults)) {
+    // 跳过映射失败的项（值为 null、undefined 或空字符串）
+    if (!mappedSymbol) {
+      continue;
+    }
+    
+    // 缓存当前方向的映射
+    const currentKey = this.getSymbolCacheKey(provider, originalSymbol, direction);
+    this.symbolMappingCache.set(currentKey, mappedSymbol);
+    
+    // 同步双向回填：缓存反向映射
+    const reverseDirection = direction === 'to_standard' ? 'from_standard' : 'to_standard';
+    const reverseKey = this.getSymbolCacheKey(provider, mappedSymbol, reverseDirection);
+    this.symbolMappingCache.set(reverseKey, originalSymbol);
+    
+    this.logger.debug('Bidirectional backfill completed', {
+      provider: provider.toLowerCase(),
+      originalSymbol,
+      mappedSymbol,
+      direction,
+      currentKey,
+      reverseKey
+    });
+  }
+  
+  this.logger.info('Batch backfill completed', {
+    provider: provider.toLowerCase(),
+    direction,
+    successCount: Object.keys(uncachedResults).filter(key => uncachedResults[key]).length,
+    totalCount: Object.keys(uncachedResults).length
+  });
+}
+```
+
+### 智能预加载机制
+
+```typescript
+/**
+ * 📊 智能预加载：基于使用模式预加载热门符号
+ */
+async preloadHotSymbols(provider: string, hotSymbols: string[]): Promise<void> {
+  const startTime = Date.now();
+  
+  try {
+    // 获取规则（可能命中L1缓存）
+    const rules = await this.getProviderRules(provider);
+    
+    // 批量预加载，减少数据库查询
+    const preloadPromises = hotSymbols.map(async (symbol) => {
+      // 双向预加载
+      await this.preloadSymbolMapping(provider, symbol, rules, 'to_standard');
+      await this.preloadSymbolMapping(provider, symbol, rules, 'from_standard');
+    });
+    
+    await Promise.all(preloadPromises);
+    
+    this.logger.info('Hot symbols preloaded', {
+      provider,
+      symbolsCount: hotSymbols.length,
+      preloadTime: Date.now() - startTime
+    });
+    
+  } catch (error) {
+    this.logger.error('Preload failed', {
+      provider,
+      symbolsCount: hotSymbols.length,
+      error: error.message
+    });
+  }
+}
+
+private async preloadSymbolMapping(
+  provider: string,
+  symbol: string,
+  rules: SymbolMappingRule[],
+  direction: 'to_standard' | 'from_standard'
+): Promise<void> {
+  const cacheKey = this.getSymbolCacheKey(provider, symbol, direction);
+  
+  // 如果已经缓存，跳过
+  if (this.symbolMappingCache.has(cacheKey)) {
+    return;
+  }
+  
+  // 应用规则并缓存结果
+  const mappedSymbol = this.applyMappingRules(symbol, rules, direction);
+  if (mappedSymbol) {
+    this.symbolMappingCache.set(cacheKey, mappedSymbol);
+    
+    // 如果是双向映射，同时缓存反向
+    if (direction === 'to_standard') {
+      this.storeBidirectionalMapping(provider, mappedSymbol, symbol);
+    } else {
+      this.storeBidirectionalMapping(provider, symbol, mappedSymbol);
+    }
+  }
+}
+```
+
+### 缓存键生成策略
+
+```typescript
+/**
+ * 🔑 缓存键生成策略 - 确保稳定性和一致性
+ */
+private getSymbolCacheKey(provider: string, symbol: string, direction: 'to_standard' | 'from_standard'): string {
+  // 标准化provider名称（小写）避免大小写导致的缓存miss
+  const normalizedProvider = provider.toLowerCase();
+  return `symbol:${normalizedProvider}:${direction}:${symbol}`;
+}
+
+/**
+ * 🔑 统一键生成方法 - 确保批量缓存与并发控制使用相同规格
+ */
+private generateConsistentKey(prefix: string, provider: string, symbols: string[], direction: 'to_standard' | 'from_standard'): string {
+  const normalizedProvider = provider.toLowerCase();
+  const sortedSymbols = [...symbols].sort().join(',');
+  const symbolsHash = crypto.createHash('md5').update(sortedSymbols).digest('hex');
+  return `${prefix}:${normalizedProvider}:${direction}:${symbolsHash}`;
+}
+
+private getBatchCacheKey(provider: string, symbols: string[], direction: 'to_standard' | 'from_standard'): string {
+  return this.generateConsistentKey('batch', provider, symbols, direction);
+}
+
+private getPendingQueryKey(provider: string, symbols: string[], direction: 'to_standard' | 'from_standard'): string {
+  return this.generateConsistentKey('pending', provider, symbols, direction);
+}
+
+private getProviderRulesKey(provider: string): string {
+  const normalizedProvider = provider.toLowerCase();
+  return `rules:${normalizedProvider}`;
+}
+
+/**
+ * 📊 符号数量范围分类（用于监控标签）
+ */
+private getSymbolsCountRange(count: number): string {
+  if (count === 1) return 'single';
+  if (count <= 5) return 'small';
+  if (count <= 20) return 'medium';
+  if (count <= 100) return 'large';
+  return 'bulk';
+}
+```
+
+### 🔧 实施细节提示
+
+**重要依赖和实现要点**：
+
+1. **MD5 哈希依赖**：`getBatchCacheKey()` 使用 `crypto.createHash('md5')`，需确保引入 Node.js 内置 `crypto` 模块
+2. **规则查询路径**：`executeUncachedQuery()` 方法内部必须先调用 `getProviderRules(provider)` 确保走 L1 规则缓存
+3. **监控标签规范**：所有 `cache_type` 标签使用小写格式 `symbol_mapping_l{1|2|3}`，保持 PromQL 查询一致性
+4. **并发键一致性**：批量缓存键与并发控制键必须使用完全相同的规格（provider 小写化 + 符号排序 + direction + 哈希）
+5. **规则查询实现**：`executeUncachedQuery()` 内部先调用 `getProviderRules(provider)` 再应用规则，确保走 L1 规则缓存
+6. **批量缓存数据结构**：`finalResult` 写入 L3 缓存前必须确保包含 `mappingDetails` 和 `failedSymbols` 字段，否则 L3 精准失效无法正确命中
+7. **深拷贝保护**：`cloneResult()` 必须进行深拷贝，避免调用方修改同一引用影响缓存
+8. **统计准确性**：各层命中率使用层内总次数作为分母，避免量纲不同导致比例异常
+9. **并发键一致性**：批量缓存键与并发控制键使用统一的 `generateConsistentKey()` 方法，确保完全一致（包括MD5哈希）
+10. **生命周期管理**：Change Stream 监听仅在 `onModuleInit()` 中启动一次，`onModuleDestroy()` 中清理资源
+11. **misses计数完整性**：L2/L3 在未命中时正确自增 `misses` 计数，确保统计准确性
+12. **指标策略明确化**：不计算 `overallHitRatio`（避免>100%问题），仅以各层命中率为主要指标
+13. **配置管理统一化**：统一使用FeatureFlags字段配置 - L1: `ruleCacheMaxSize`/`ruleCacheTtl`, L2: `symbolCacheMaxSize`/`symbolCacheTtl`, L3: `batchResultCacheMaxSize`/`batchResultCacheTtl` (新增)
+
+### 变更失效策略
+
+```typescript
+/**
+ * 📡 基于MongoDB Change Stream的缓存失效策略
+ * 注意：具体实现按现有repository.watchChanges()事件模型对齐
+ * 事件结构：{ operationType, documentKey, fullDocument }
+ * 重要：仅在 onModuleInit() 中调用一次，避免重复监听
+ */
+private setupChangeStreamMonitoring(): void {
+  try {
+    // 事件流模式（与现实现对齐）
+    this.changeStream = this.repository.watchChanges();
+    this.changeStream.on('change', async (change) => {
+      const provider = await this.extractProviderFromChangeEvent(change);
+      if (provider) {
+        this.invalidateCacheForProvider(provider);
+      }
+    });
+    
+    // 错误事件处理
+    this.changeStream.on('error', (error) => {
+      this.logger.error('Change Stream 发生错误', { error: error.message });
+      // 可选：在这里实现重连逻辑
+    });
+    
+    // 关闭事件处理
+    this.changeStream.on('close', () => {
+      this.logger.warn('Change Stream 已关闭');
+    });
+    
+    this.logger.log('Change stream monitoring setup completed');
+  } catch (error) {
+    this.logger.error('Failed to setup change stream monitoring', {
+      error: error.message
+    });
+    // 不阻断服务启动，可降级为定时刷新
+  }
+}
+
+/**
+ * 🔍 从变更事件中提取provider名称
+ * 基于现网事件结构：operationType/documentKey/fullDocument
+ */
+private async extractProviderFromChangeEvent(change: any): Promise<string | null> {
+  try {
+    // 1. 优先使用 fullDocument.dataSourceName（insert/replace/部分update有）
+    if (change.fullDocument?.dataSourceName) {
+      return change.fullDocument.dataSourceName;
+    }
+    
+    // 2. delete/部分update无fullDocument，通过documentKey._id回查
+    if (change.documentKey?._id) {
+      this.logger.debug('No fullDocument, querying by documentKey._id', {
+        operationType: change.operationType,
+        documentId: change.documentKey._id
+      });
+      
+      const doc = await this.repository.findById(change.documentKey._id);
+      if (doc?.dataSourceName) {
+        return doc.dataSourceName;
+      }
+    }
+    
+    // 3. 无法获取provider，记录警告但不阻断
+    this.logger.warn('Cannot extract provider from change event, skipping invalidation', {
+      operationType: change.operationType,
+      hasFullDocument: !!change.fullDocument,
+      hasDocumentKey: !!change.documentKey,
+      documentKeyId: change.documentKey?._id
+    });
+    
+    return null;
+    
+  } catch (error) {
+    this.logger.error('Failed to extract provider from change event', {
+      error: error.message,
+      changeEvent: {
+        operationType: change.operationType,
+        hasFullDocument: !!change.fullDocument,
+        hasDocumentKey: !!change.documentKey
+      }
+    });
+    
+    // 发生错误时，可选择降级为全量失效或跳过
+    // 这里选择跳过，避免误删所有缓存
+    return null;
+  }
+}
+
+/**
+ * 🔄 智能差异化失效策略 - 仅失效受影响的缓存条目
+ * 特别处理delete事件的边界情况
+ */
+private async invalidateCacheForProvider(provider: string): Promise<void> {
+  const normalizedProvider = provider.toLowerCase();
+  const startTime = Date.now();
+  
+  try {
+    // 1. 获取旧规则（如果存在）
+    const rulesKey = this.getProviderRulesKey(provider);
+    const oldRules = this.providerRulesCache.get(rulesKey);
+    
+    // 2. 强制刷新规则缓存，获取新规则
+    this.providerRulesCache.delete(rulesKey);
+    
+    let newRules;
+    try {
+      newRules = await this.getProviderRules(provider);
+    } catch (error) {
+      // delete事件可能导致查询失败，此时应全量失效
+      this.logger.warn('Failed to fetch new rules after change event, likely delete operation', {
+        provider: normalizedProvider,
+        error: error.message
+      });
+      await this.invalidateAllCacheForProvider(normalizedProvider);
+      return;
+    }
+    
+    // 3. 如果是首次加载或无旧规则，清空所有相关缓存
+    if (!oldRules || oldRules.length === 0) {
+      await this.invalidateAllCacheForProvider(normalizedProvider);
+      return;
+    }
+    
+    // 4. delete事件特殊处理：新规则为空或明显减少，执行全量失效
+    if (!newRules || newRules.length === 0 || newRules.length < oldRules.length * 0.5) {
+      this.logger.info('Detected significant rule reduction or deletion, performing full invalidation', {
+        provider: normalizedProvider,
+        oldRulesCount: oldRules.length,
+        newRulesCount: newRules?.length || 0
+      });
+      await this.invalidateAllCacheForProvider(normalizedProvider);
+      return;
+    }
+    
+    // 5. 计算规则差异，智能失效 - 基于符号对差分
+    const affectedSymbolPairs = this.calculateRuleDifferences(oldRules, newRules);
+    
+    if (affectedSymbolPairs.length === 0) {
+      this.logger.debug('No rule changes detected, cache preserved', {
+        provider: normalizedProvider,
+        oldRulesCount: oldRules.length,
+        newRulesCount: newRules.length
+      });
+      return;
+    }
+    
+    // 6. 精准失效受影响的符号映射和批量缓存
+    const invalidationStats = await this.invalidateAffectedCache(normalizedProvider, affectedSymbolPairs);
+    
+    this.logger.info('Smart cache invalidation completed', {
+      provider: normalizedProvider,
+      affectedSymbolPairs: affectedSymbolPairs.length,
+      invalidationStats,
+      processingTime: Date.now() - startTime
+    });
+    
+  } catch (error) {
+    this.logger.error('Smart invalidation failed, falling back to full invalidation', {
+      provider: normalizedProvider,
+      error: error.message
+    });
+    
+    // 降级策略：完全失效
+    await this.invalidateAllCacheForProvider(normalizedProvider);
+  }
+}
+
+/**
+ * 📊 计算规则差异，识别受影响的符号对
+ * 按 (standardSymbol, sdkSymbol, isActive) 差分，符合实际数据模型
+ */
+private calculateRuleDifferences(
+  oldRules: SymbolMappingRule[], 
+  newRules: SymbolMappingRule[]
+): Array<{ standardSymbol: string; sdkSymbol: string }> {
+  const affectedSymbolPairs: Set<string> = new Set();
+  
+  // 创建规则映射以便快速比较 - 使用符号对作为键
+  const oldRuleMap = new Map(oldRules.map(rule => [
+    `${rule.standardSymbol}|${rule.sdkSymbol}`, 
+    rule
+  ]));
+  const newRuleMap = new Map(newRules.map(rule => [
+    `${rule.standardSymbol}|${rule.sdkSymbol}`, 
+    rule
+  ]));
+  
+  // 检查已删除的规则
+  for (const [symbolPairKey, oldRule] of oldRuleMap) {
+    if (!newRuleMap.has(symbolPairKey)) {
+      affectedSymbolPairs.add(symbolPairKey);
+      this.logger.debug('Rule deleted', {
+        standardSymbol: oldRule.standardSymbol,
+        sdkSymbol: oldRule.sdkSymbol,
+        oldRule
+      });
+    }
+  }
+  
+  // 检查新增的规则
+  for (const [symbolPairKey, newRule] of newRuleMap) {
+    if (!oldRuleMap.has(symbolPairKey)) {
+      affectedSymbolPairs.add(symbolPairKey);
+      this.logger.debug('Rule added', {
+        standardSymbol: newRule.standardSymbol,
+        sdkSymbol: newRule.sdkSymbol,
+        newRule
+      });
+    }
+  }
+  
+  // 检查修改的规则
+  for (const [symbolPairKey, newRule] of newRuleMap) {
+    const oldRule = oldRuleMap.get(symbolPairKey);
+    if (oldRule && this.isRuleModified(oldRule, newRule)) {
+      affectedSymbolPairs.add(symbolPairKey);
+      this.logger.debug('Rule modified', {
+        standardSymbol: newRule.standardSymbol,
+        sdkSymbol: newRule.sdkSymbol,
+        oldRule,
+        newRule
+      });
+    }
+  }
+  
+  // 转换为符号对数组
+  return Array.from(affectedSymbolPairs).map(pairKey => {
+    const [standardSymbol, sdkSymbol] = pairKey.split('|');
+    return { standardSymbol, sdkSymbol };
+  });
+}
+
+/**
+ * 🔍 判断规则是否发生实质性修改
+ * 基于实际 SymbolMappingRule 数据模型 (standardSymbol, sdkSymbol, market, symbolType, isActive)
+ */
+private isRuleModified(oldRule: SymbolMappingRule, newRule: SymbolMappingRule): boolean {
+  // 比较关键字段 - 对齐实际数据模型，排除不存在的priority字段
+  return (
+    oldRule.isActive !== newRule.isActive ||     // 活跃状态变化
+    oldRule.market !== newRule.market ||         // 市场字段变化
+    oldRule.symbolType !== newRule.symbolType    // 符号类型变化
+    // 注意：standardSymbol 和 sdkSymbol 在键比较中已处理，这里主要检查其他字段
+    // priority字段在当前模型中不存在，已移除
+  );
+}
+
+/**
+ * 🎯 精准失效受影响的缓存条目
+ * 基于符号对进行精准匹配，而非正则表达式模式
+ */
+private async invalidateAffectedCache(
+  provider: string, 
+  affectedSymbolPairs: Array<{ standardSymbol: string; sdkSymbol: string }>
+): Promise<{ symbolsInvalidated: number; batchesInvalidated: number }> {
+  let symbolsInvalidated = 0;
+  let batchesInvalidated = 0;
+  
+  // 构建受影响符号的查找集合（双向）
+  const affectedSymbols = new Set<string>();
+  
+  for (const { standardSymbol, sdkSymbol } of affectedSymbolPairs) {
+    affectedSymbols.add(standardSymbol);
+    affectedSymbols.add(sdkSymbol);
+  }
+  
+  // L2: 精准失效符号映射缓存 - 基于符号对精确匹配
+  try {
+    for (const [key] of this.symbolMappingCache) {
+      if (key.startsWith(`symbol:${provider}:`)) {
+        const symbol = this.extractSymbolFromCacheKey(key);
+        if (affectedSymbols.has(symbol)) {
+          this.symbolMappingCache.delete(key);
+          symbolsInvalidated++;
+          
+          this.logger.debug('Symbol cache invalidated', {
+            provider,
+            cacheKey: key,
+            symbol
+          });
+        }
+      }
+    }
+  } catch {
+    // 降级：使用keys()方法
+    for (const key of this.symbolMappingCache.keys()) {
+      if (key.startsWith(`symbol:${provider}:`)) {
+        const symbol = this.extractSymbolFromCacheKey(key);
+        if (affectedSymbols.has(symbol)) {
+          this.symbolMappingCache.delete(key);
+          symbolsInvalidated++;
+        }
+      }
+    }
+  }
+  
+  // L3: 失效包含受影响符号的批量缓存
+  try {
+    for (const [key, batchResult] of this.batchResultCache) {
+      if (key.startsWith(`batch:${provider}:`)) {
+        if (this.isBatchAffectedBySymbols(batchResult, affectedSymbols)) {
+          this.batchResultCache.delete(key);
+          batchesInvalidated++;
+          
+          this.logger.debug('Batch cache invalidated', {
+            provider,
+            cacheKey: key,
+            affectedSymbolsCount: affectedSymbols.size
+          });
+        }
+      }
+    }
+  } catch {
+    // 降级：使用keys()方法
+    for (const key of this.batchResultCache.keys()) {
+      if (key.startsWith(`batch:${provider}:`)) {
+        const batchResult = this.batchResultCache.get(key);
+        if (batchResult && this.isBatchAffectedBySymbols(batchResult, affectedSymbols)) {
+          this.batchResultCache.delete(key);
+          batchesInvalidated++;
+        }
+      }
+    }
+  }
+  
+  return { symbolsInvalidated, batchesInvalidated };
+}
+
+/**
+ * 🔍 判断批量结果是否受符号变更影响
+ * 基于精确符号匹配，而非正则表达式模式
+ */
+private isBatchAffectedBySymbols(batchResult: any, affectedSymbols: Set<string>): boolean { // TODO: 使用 BatchMappingResult 类型
+  // 检查批量结果中是否包含受影响的符号
+  const allSymbols = [
+    ...Object.keys(batchResult.mappingDetails || {}),
+    ...Object.values(batchResult.mappingDetails || {}),
+    ...(batchResult.failedSymbols || [])
+  ];
+  
+  return allSymbols.some(symbol => affectedSymbols.has(symbol));
+}
+
+/**
+ * 🔧 从缓存键提取符号
+ */
+private extractSymbolFromCacheKey(cacheKey: string): string {
+  // 缓存键格式: symbol:provider:direction:symbol
+  const parts = cacheKey.split(':');
+  return parts.length >= 4 ? parts.slice(3).join(':') : '';
+}
+
+/**
+ * 🔄 降级策略：完全失效所有相关缓存
+ */
+private async invalidateAllCacheForProvider(provider: string): Promise<void> {
+  const symbolPrefix = `symbol:${provider}:`;
+  const batchPrefix = `batch:${provider}:`;
+  
+  let symbolsInvalidated = 0;
+  let batchesInvalidated = 0;
+  
+  // 清空所有符号映射缓存
+  try {
+    for (const [key] of this.symbolMappingCache) {
+      if (key.startsWith(symbolPrefix)) {
+        this.symbolMappingCache.delete(key);
+        symbolsInvalidated++;
+      }
+    }
+  } catch {
+    for (const key of this.symbolMappingCache.keys()) {
+      if (key.startsWith(symbolPrefix)) {
+        this.symbolMappingCache.delete(key);
+        symbolsInvalidated++;
+      }
+    }
+  }
+  
+  // 清空所有批量缓存
+  try {
+    for (const [key] of this.batchResultCache) {
+      if (key.startsWith(batchPrefix)) {
+        this.batchResultCache.delete(key);
+        batchesInvalidated++;
+      }
+    }
+  } catch {
+    for (const key of this.batchResultCache.keys()) {
+      if (key.startsWith(batchPrefix)) {
+        this.batchResultCache.delete(key);
+        batchesInvalidated++;
+      }
+    }
+  }
+  
+  this.logger.info('Full cache invalidation completed', {
+    provider,
+    symbolsInvalidated,
+    batchesInvalidated
+  });
+}
+```
+
+### 性能监控和统计
+
+```typescript
+/**
+ * 📊 监控指标策略 - 避免指标类型冲突
+ */
+private recordCacheMetrics(level: 'l1'|'l2'|'l3', isHit: boolean): void {
+  // 复用现有的 streamCacheHitRate，仅使用定义中的 cache_type 标签
+  // 避免添加额外标签导致 prom-client 标签不匹配报错
+  // 统一使用 Metrics.inc 封装，与现网保持一致
+  Metrics.inc(
+    this.metricsRegistry,
+    'streamCacheHitRate',
+    { 
+      cache_type: `symbol_mapping_${level}`  // symbol_mapping_l1/l2/l3
+    },
+    isHit ? 100 : 0
+  );
+}
+
+private recordPerformanceMetrics(
+  provider: string, 
+  symbolsCount: number, 
+  processingTime: number,
+  cacheHits: number
+): void {
+  const hitRatio = (cacheHits / symbolsCount) * 100;
+  
+  // 避免与Counter类型的streamCacheHitRate冲突
+  // 方式1：仅记录日志，不新增指标
+  this.logger.info('Symbol mapping performance', {
+    provider: provider.toLowerCase(),
+    symbolsCount,
+    processingTime,
+    hitRatio,
+    cacheEfficiency: hitRatio > 80 ? 'high' : hitRatio > 50 ? 'medium' : 'low'
+  });
+  
+  // 方式2：如果需要命中率指标，统一使用 Metrics.inc 封装
+  /*
+  Metrics.inc(
+    this.metricsRegistry,
+    'symbolMapperCacheHitRatio',  // 如果新增此指标
+    { 
+      provider: provider.toLowerCase()
+    },
+    hitRatio
+  );
+  */
+}
+
+/**
+ * 📊 扩展监控指标（可选 - 如需要新指标）
+ */
+private initializeNewMetrics(): void {
+  // 如果决定使用新指标，需要在 MetricsRegistryService 中注册
+  // 示例：
+  /*
+  this.metricsRegistry.symbolMapperCacheHits = new Counter({
+    name: 'symbol_mapper_cache_hits_total',
+    help: 'Symbol Mapper cache hits',
+    labelNames: ['cache_level', 'provider', 'symbols_count_range']
+  });
+  
+  this.metricsRegistry.symbolMapperProcessingTime = new Histogram({
+    name: 'symbol_mapper_processing_duration_seconds',
+    help: 'Symbol Mapper processing time',
+    labelNames: ['provider', 'cache_efficiency']
+  });
+  */
+}
+
+/**
+ * 🔍 缓存统计信息 - 使用层内总次数作为分母，避免比例异常
+ */
+getCacheStats(): CacheStatsDto {
+  const l1Total = this.cacheStats.l1.hits + this.cacheStats.l1.misses;
+  const l2Total = this.cacheStats.l2.hits + this.cacheStats.l2.misses;
+  const l3Total = this.cacheStats.l3.hits + this.cacheStats.l3.misses;
+  
+  return {
+    totalQueries: this.cacheStats.totalQueries,
+    
+    // 各层命中率：使用层内总次数作为分母
+    l1HitRatio: l1Total > 0 ? (this.cacheStats.l1.hits / l1Total) * 100 : 0,
+    l2HitRatio: l2Total > 0 ? (this.cacheStats.l2.hits / l2Total) * 100 : 0,
+    l3HitRatio: l3Total > 0 ? (this.cacheStats.l3.hits / l3Total) * 100 : 0,
+    
+    // 注意：不计算 overallHitRatio，因为一次查询可能产生多个层级命中，导致比例 > 100%
+    // 建议使用各层命中率作为主要指标
+    // overallHitRatio: 'Use individual layer ratios for accurate metrics',
+    
+    // 详细计数
+    layerStats: {
+      l1: { hits: this.cacheStats.l1.hits, misses: this.cacheStats.l1.misses, total: l1Total },
+      l2: { hits: this.cacheStats.l2.hits, misses: this.cacheStats.l2.misses, total: l2Total },
+      l3: { hits: this.cacheStats.l3.hits, misses: this.cacheStats.l3.misses, total: l3Total }
+    },
+    
+    cacheSize: {
+      l1: this.providerRulesCache.size,    // L1: 规则缓存
+      l2: this.symbolMappingCache.size,    // L2: 符号映射缓存
+      l3: this.batchResultCache.size       // L3: 批量结果缓存
+    }
+  };
+}
+```
+
+## 🔧 实施计划
+
+### 实施前提：配置与兼容性设计
+
+#### 配置管理策略
+```typescript
+// 统一使用 FeatureFlags 字段配置，L3 需新增字段
+
+// L1 规则缓存配置 (现有字段)
+const ruleCacheMaxSize = this.featureFlags.ruleCacheMaxSize || 100;
+const ruleCacheTtl = this.featureFlags.ruleCacheTtl || 24 * 60 * 60 * 1000; // 24小时
+
+// L2 符号缓存配置 (现有字段)  
+const symbolCacheMaxSize = this.featureFlags.symbolCacheMaxSize || 50000;
+const symbolCacheTtl = this.featureFlags.symbolCacheTtl || 12 * 60 * 60 * 1000; // 12小时
+
+// L3 批量结果缓存配置 (新增 FeatureFlags 字段)
+const batchCacheMax = this.featureFlags.batchResultCacheMaxSize || 1000;
+const batchCacheTtl = this.featureFlags.batchResultCacheTtl || 2 * 60 * 60 * 1000; // 2小时
+
+// 🎯 需要在 FeatureFlags 中新增的字段:
+// - batchResultCacheMaxSize: number  // L3 批量结果缓存最大条目数
+// - batchResultCacheTtl: number      // L3 批量结果缓存生存时间 (ms)
+//
+// 📝 实施提醒: 同步在 FeatureFlags 中增加这两个字段的 ENV 覆盖支持
+// 保持与现有 ruleCacheMaxSize、symbolCacheMaxSize 等字段一致的可配置性
+```
+
+#### API兼容性策略
+```typescript
+// 保持向后兼容，现有方法内部委托到新统一入口
+// 🎯 重要：所有返回结构统一使用 mappingDetails/failedSymbols，确保与L3精准失效完全一致
+export class SymbolMapperService {
+  // 现有方法保持不变，内部调用新缓存服务
+  async mapSymbol(originalSymbol: string, fromProvider: string, toProvider: string): Promise<string> {
+    // 注意：通过 toProvider === 'standard' 判断方向
+    // 不支持 providerA→providerB 直转（维持现状）
+    const direction = toProvider === 'standard' ? 'to_standard' : 'from_standard';
+    const result = await this.cacheService.mapSymbols(
+      fromProvider, 
+      originalSymbol, 
+      direction
+    );
+    // 从 mappingDetails 中获取映射结果
+    const mapped = result.mappingDetails?.[originalSymbol] ?? originalSymbol;
+    return mapped;
+  }
+
+  async mapSymbols(provider: string, symbols: string[], requestId?: string) {
+    // 委托到新缓存服务
+    // 注意：mapSymbols 用于将标准符号转为 provider 符号，使用 from_standard
+    const result = await this.cacheService.mapSymbols(provider, symbols, 'from_standard', requestId);
+    
+    // 选项1: 如果现有调用方期望简单的字符串数组，按顺序返回
+    // return symbols.map(symbol => result.mappingDetails?.[symbol] ?? symbol);
+    
+    // 选项2: 保持完整的批量结构，供调用方自行处理 (推荐)
+    return result;
+  }
+
+  async transformSymbolsForProvider(provider: string, symbols: string[], requestId: string) {
+    // 内部使用新缓存服务，保持现有业务逻辑
+    // 注意：transformSymbolsForProvider 也是 standard→provider，使用 from_standard
+    const result = await this.cacheService.mapSymbols(provider, symbols, 'from_standard', requestId);
+    
+    // 返回统一的批量结构，与 mappingDetails/failedSymbols 完全一致
+    return result;
+  }
+}
+```
+
+### Phase 1: 基础架构搭建（1-2天）
+- [ ] 在 FeatureFlags 中新增 L3 配置字段：`batchResultCacheMaxSize`, `batchResultCacheTtl`
+- [ ] 为新增字段增加 ENV 覆盖支持，保持与现有字段一致的可配置性
+- [ ] 创建 `SymbolMapperCacheService` 类，确认所有导入路径正确
+- [ ] 从 FeatureFlags 统一读取三层缓存配置
+- [ ] 实现三层缓存架构
+- [ ] 添加兼容层保持API不变
+- [ ] 单元测试覆盖
+
+### Phase 2: 核心功能实现（2-3天）
+- [ ] 实现统一查询入口 `mapSymbols`
+- [ ] 实现双向缓存机制和回填策略
+- [ ] 实现并发控制（基于排序符号的稳定key）
+- [ ] 集成Change Stream监听和缓存失效
+- [ ] 集成测试
+
+### Phase 3: 监控与兼容层（1-2天）
+- [ ] 复用现有监控指标体系
+- [ ] 实现API兼容层（委托模式）
+- [ ] 添加缓存统计和健康检查接口
+- [ ] 回归测试验证兼容性
+
+### Phase 4: 高级功能（1-2天）
+- [ ] 实现智能预加载（避重复、双向写入）
+- [ ] 添加批量结果回填单符号缓存
+- [ ] 完善配置管理和环境变量支持
+- [ ] 性能基准测试
+
+### Phase 5: 灰度部署（1天）
+- [ ] 功能开关控制灰度发布
+- [ ] 性能监控对比（新旧实现）
+- [ ] 缓存命中率观察
+- [ ] 回滚预案和降级开关
+
+## 📊 预期效果验证
+
+### 关键指标监控
+
+1. **缓存命中率**
+   - L1（规则缓存）: 目标 > 95%
+   - L2（符号缓存）: 目标 > 85%
+   - L3（批量缓存）: 目标 > 60%
+   - 注：不计算整体命中率，避免跨层级统计导致的指标异常
+
+2. **性能指标**
+   - 单符号查询延迟: 目标 < 2ms
+   - 批量查询延迟: 目标 < 30ms
+   - Symbol Mapper内部缓存效率提升: 目标 > 80%
+
+3. **资源消耗**
+   - 数据库查询减少: 目标 > 80%
+   - 内存使用合理: 目标 < 500MB
+   - CPU使用优化: 目标 > 50%减少
+
+### 验证方案
+
+```typescript
+/**
+ * 🧪 性能对比测试
+ */
+export class SymbolMapperPerformanceTest {
+  
+  async benchmarkOldVsNew(testSymbols: string[], provider: string): Promise<BenchmarkResult> {
+    // 旧版本测试
+    const oldStartTime = Date.now();
+    await this.oldSymbolMapper.mapSymbols(provider, testSymbols);
+    const oldTime = Date.now() - oldStartTime;
+    
+    // 新版本测试
+    const newStartTime = Date.now();
+    await this.newSymbolMapper.mapSymbols(provider, testSymbols);
+    const newTime = Date.now() - newStartTime;
+    
+    return {
+      oldPerformance: oldTime,
+      newPerformance: newTime,
+      improvement: ((oldTime - newTime) / oldTime) * 100,
+      cacheStats: this.newSymbolMapper.getCacheStats()
+    };
+  }
+}
+```
+
+## 🚀 长期优化方向
+
+### 缓存策略进化
+1. **自适应TTL**: 根据符号使用频率动态调整缓存时间
+2. **分级预加载**: 根据市场开盘时间预加载相关符号
+3. **智能失效**: 基于数据源变更事件主动失效缓存
+
+### 性能优化
+1. **缓存压缩**: 对大批量结果进行压缩存储
+2. **异步预热**: 后台异步预加载热门符号
+3. **分布式缓存**: 支持Redis集群分布式缓存
+
+### 监控告警
+1. **缓存命中率告警**: 命中率低于阈值时告警
+2. **性能退化监控**: 响应时间异常增长告警
+3. **缓存容量监控**: 缓存使用率过高告警
+
+## 📝 总结
+
+本重构方案通过引入三层缓存架构、双向映射机制和长期缓存策略，将彻底解决当前Symbol Mapper组件的缓存架构问题。
+
+### 重要澄清
+经过详细的代码审查和流程验证，**Query→Receiver流向中不存在Symbol Mapper重复调用问题**。SmartCacheOrchestrator的缓存编排机制有效避免了重复调用。本重构方案的主要价值在于：
+
+1. **解决批量查询绕过缓存的问题** - 让批量查询也能享受缓存加速
+2. **实现双向映射缓存** - 一次查询，双向受益
+3. **统一单次和批量查询路径** - 提高缓存复用率
+4. **采用长期缓存策略** - 充分利用Symbol映射的稳定性特点
+
+### 实施关键点总结
+
+根据代码审查发现的关键实施要点和本次修正：
+
+1. **配置管理**: 通过FeatureFlags统一管理，支持ENV覆盖，避免硬编码TTL
+2. **变更失效**: 基于MongoDB Change Stream的精准失效，按dataSourceName匹配三层缓存键
+3. **监控对齐**: 复用现有`streamCacheHitRate`指标体系，通过`cache_type`标签区分
+4. **API兼容**: 保留现有方法签名，内部委托到新缓存服务，确保平滑迁移
+5. **并发安全**: 缓存键基于排序符号+provider+direction，确保并发一致性
+6. **回填策略**: 批量查询结果同步回填单符号缓存，解除数据孤岛
+
+**本次文档修正要点**：
+- **缓存层级统一**: L1规则缓存、L2符号缓存、L3批量缓存（全文一致）
+- **监控指标优化**: `recordCacheMetrics(level, isHit)` 仅使用定义中的标签，避免标签不匹配错误
+- **方向参数强制**: 移除`mapSymbols`默认方向，强制调用方显式传入，避免误用
+- **键生成一致**: 所有规则缓存操作统一使用`getProviderRulesKey()`生成键
+- **回填细则明确**: 详细规定失败项不回填，成功项双向写入的具体实现
+- **迭代器兼容**: 标注LRU-Cache版本选择策略，避免混用两种遍历方式
+- **并发键规格**: 确保批量缓存键与并发控制键使用相同规格（排序+小写+哈希）
+
+预期将带来80%以上的批量查询性能提升，同时显著减少数据库查询压力。通过智能预加载和自适应优化，系统将随着使用而变得更加高效。
+
+## ⚠️ 实施风险提示
+
+### 关键风险点和规避策略
+
+1. **并发键与缓存键一致性风险**
+   - **风险**：并发去重键与批量缓存键规格不一致，导致重复执行或错失命中
+   - **规避**：确保两处使用完全相同的键生成逻辑（provider 小写化 + 符号排序 + direction + MD5 哈希）
+   - **验证**：通过单元测试验证相同输入生成相同键
+
+2. **智能失效复杂性风险**
+   - **风险**：规则差异计算错误，导致应该失效的缓存未失效或误失效正确缓存
+   - **规避**：实现严格的规则比较逻辑，提供降级到完全失效的机制
+   - **监控**：记录智能失效统计，异常时自动降级到完全失效模式
+
+3. **内存占用风险**
+   - **风险**：L2 符号缓存默认 5 万条目可能消耗过多内存
+   - **规避**：灰度期密切监控内存使用，通过 FeatureFlags/ENV 动态调整
+   - **降级**：准备内存告警和自动降级机制
+
+4. **监控指标冲突风险**
+   - **风险**：新增的 `symbol_mapping_l{1|2|3}` 标签与现有指标产生命名空间冲突
+   - **规避**：实施前验证 Prometheus 指标注册，确保标签格式兼容
+   - **回滚**：保留原有监控逻辑作为降级方案
+
+5. **Change Stream 依赖风险**
+   - **风险**：MongoDB Change Stream 不可用时，缓存无法及时失效
+   - **规避**：实现轮询模式作为降级策略，定期检查规则版本
+   - **监控**：添加 Change Stream 连接状态监控
+
+### 灰度发布检查清单
+
+- [ ] **性能基准**：记录重构前的缓存命中率和响应时间基准
+- [ ] **内存监控**：设置内存使用阈值告警（建议 < 500MB）
+- [ ] **并发测试**：验证高并发场景下键生成一致性
+- [ ] **失效测试**：验证规则变更后三层缓存正确失效
+- [ ] **降级开关**：确保功能开关可以快速回滚到旧实现
+- [ ] **监控仪表板**：准备缓存命中率、响应时间、内存使用的监控面板

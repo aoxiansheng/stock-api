@@ -21,7 +21,7 @@ describe('Prometheus Metrics (e2e)', () => {
     'newstock_stream_symbols_processed_total',
     'newstock_stream_processing_time_ms',
     'newstock_stream_cache_hit_rate',
-    'newstock_streamerror_rate',
+    'newstock_stream_error_rate',
     'newstock_stream_throughput_per_second',
     'newstock_stream_concurrent_connections',
     'newstock_system_cpu_usage_percent',
@@ -69,10 +69,10 @@ describe('Prometheus Metrics (e2e)', () => {
   });
 
   describe('/monitoring/metrics (GET)', () => {
-    it('应返回403状态码当未授权访问时', () => {
+    it('应返回401状态码当未授权访问时', () => {
       return request(app.getHttpServer())
         .get('/monitoring/metrics')
-        .expect(HttpStatus.FORBIDDEN);
+        .expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('应返回200状态码和Prometheus格式指标', async () => {
@@ -116,7 +116,7 @@ describe('Prometheus Metrics (e2e)', () => {
         .expect(HttpStatus.OK);
         
       // 验证流处理指标结构
-      expect(response.body).toHaveProperty('_stats');
+      expect(response.body).toHaveProperty('stats');
       expect(response.body).toHaveProperty('percentiles');
       expect(response.body).toHaveProperty('prometheusMetrics');
       expect(response.body.stats).toHaveProperty('throughputPerSecond');
@@ -131,8 +131,8 @@ describe('Prometheus Metrics (e2e)', () => {
         .expect(HttpStatus.OK);
         
       // 验证指标摘要结构
-      expect(response.body).toHaveProperty('_metricsSummary');
-      expect(response.body).toHaveProperty('_healthStatus');
+      expect(response.body).toHaveProperty('metricsSummary');
+      expect(response.body).toHaveProperty('healthStatus');
       expect(response.body.metricsSummary).toHaveProperty('totalMetrics');
       expect(response.body.healthStatus).toHaveProperty('status');
     });

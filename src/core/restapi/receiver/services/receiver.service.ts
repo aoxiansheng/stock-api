@@ -16,9 +16,9 @@ import {
   // MarketStatusResult,
 } from "../../../public/shared/services/market-status.service";
 import { SymbolMapperService } from "../../../public/symbol-mapper/services/symbol-mapper.service";
-import { SmartCacheOrchestrator } from "../../../public/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../public/smart-cache/interfaces/cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest } from "../../../public/smart-cache/utils/cache-request.utils";
+import { SymbolSmartCacheOrchestrator } from "../../../public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest } from "../../../public/symbol-smart-cache/utils/symbol-smart-cache-request.utils";
 import { DataFetcherService } from "../../../restapi/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { TransformerService } from "../../../public/transformer/services/transformer.service";
 import { StorageService } from "../../../public/storage/services/storage.service";
@@ -32,10 +32,12 @@ import {
   RECEIVER_OPERATIONS,
 } from "../constants/receiver.constants";
 import { DataRequestDto } from "../dto/data-request.dto";
-import { DataResponseDto, ResponseMetadataDto } from "../dto/data-response.dto";
+import { DataResponseDto, ResponseMetadataDto, FailureDetailDto } from "../dto/data-response.dto";
 import {
   SymbolTransformationResultDto,
 } from "../dto/receiver-internal.dto";
+import { TransformRequestDto } from "../../../public/transformer/dto/transform-request.dto";
+import { StoreDataDto } from "../../../public/storage/dto/storage-request.dto";
 import { StorageType, StorageClassification } from "../../../public/storage/enums/storage-type.enum";
 import { ValidationResultDto } from "../dto/validation.dto";
 import { MarketUtils } from "../utils/market.util";
@@ -69,7 +71,7 @@ export class ReceiverService {
     private readonly transformerService: TransformerService,
     private readonly storageService: StorageService,
     private readonly metricsRegistry: MetricsRegistryService,
-    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
+    private readonly smartCacheOrchestrator: SymbolSmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
 
@@ -121,30 +123,106 @@ export class ReceiverService {
         requestId,
       );
 
-      // 3. 🔑 智能缓存编排器 - 统一数据获取入口
-      const { inferMarketFromSymbol } = await import("../../../public/smart-cache/utils/cache-request.utils");
-      const markets = [...new Set(request.symbols.map(symbol => inferMarketFromSymbol(symbol)))];
-      const marketStatus = await this.marketStatusService.getBatchMarketStatus(markets);
+      // 3. 🔑 智能缓存编排器集成 - 强时效缓存策略
+      const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
+      if (useSmartCache) {
+        // 获取市场状态用于缓存策略决策
+        const { inferMarketFromSymbol } = await import("../../../public/symbol-smart-cache/utils/symbol-smart-cache-request.utils");
+        const markets = [...new Set(request.symbols.map(symbol => inferMarketFromSymbol(symbol)))];
+        const marketStatus = await this.marketStatusService.getBatchMarketStatus(markets);
 
-      // 构建编排器请求
-      const orchestratorRequest = buildCacheOrchestratorRequest({
-        symbols: request.symbols,
-        receiverType: request.receiverType,
+        // 构建编排器请求
+        const orchestratorRequest = buildCacheOrchestratorRequest({
+          symbols: request.symbols,
+          receiverType: request.receiverType,
+          provider,
+          queryId: requestId,
+          marketStatus,
+          strategy: CacheStrategy.STRONG_TIMELINESS, // Receiver 强时效策略
+          executeOriginalDataFlow: () => this.executeOriginalDataFlow(request, requestId),
+        });
+
+        // 使用编排器获取数据
+        const result = await this.smartCacheOrchestrator.getDataWithSymbolSmartCache(orchestratorRequest);
+
+        const processingTime = Date.now() - startTime;
+
+        // 记录性能指标
+        this.recordPerformanceMetrics(
+          requestId,
+          processingTime,
+          request.symbols.length,
+          provider,
+          true, // success
+        );
+
+        // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
+        this.activeConnections = Math.max(0, this.activeConnections - 1);
+        Metrics.setGauge(
+          this.metricsRegistry,
+          'receiverActiveConnections',
+          this.activeConnections,
+          { connection_type: 'http' }
+        );
+
+        return new DataResponseDto(
+          result.data,
+          new ResponseMetadataDto(
+            provider,
+            request.receiverType,
+            requestId,
+            processingTime,
+            false, // hasPartialFailures
+            request.symbols.length, // totalRequested
+            request.symbols.length  // successfullyProcessed
+          )
+        );
+      }
+
+      // 4. 传统数据流 - 转换股票代码
+      const mappingResult = await this.SymbolMapperService.mapSymbols(
         provider,
-        queryId: requestId,
-        marketStatus,
-        strategy: CacheStrategy.STRONG_TIMELINESS, // Receiver 强时效策略
-        executeOriginalDataFlow: () => this.executeDataFlow(request, provider, requestId),
-      });
+        request.symbols,
+        requestId,
+      );
 
-      // 使用编排器获取数据
-      const result = await this.smartCacheOrchestrator.getDataWithSmartCache(orchestratorRequest);
+      // 转换为兼容的格式
+      const mappedSymbols = {
+        transformedSymbols: mappingResult.mappedSymbols,
+        mappingResults: {
+          transformedSymbols: mappingResult.mappingDetails,
+          failedSymbols: mappingResult.failedSymbols,
+          metadata: {
+            provider: mappingResult.metadata.provider,
+            totalSymbols: mappingResult.metadata.totalSymbols,
+            successfulTransformations: mappingResult.metadata.successCount,
+            failedTransformations: mappingResult.metadata.failedCount,
+            processingTime: mappingResult.metadata.processingTimeMs,
+            hasPartialFailures: mappingResult.metadata.failedCount > 0,
+          },
+        },
+      };
+
+      // 5. 执行数据获取（移除缓存逻辑，统一到Storage组件处理）
+      const responseData = await this.executeDataFetching(
+        request,
+        provider,
+        mappedSymbols,
+        requestId,
+      );
+
       const processingTime = Date.now() - startTime;
 
-      // 记录性能指标
-      this.recordPerformanceMetrics(requestId, processingTime, request.symbols.length, provider, true);
+      // 6. 记录性能指标
+      this.recordPerformanceMetrics(
+        requestId,
+        processingTime,
+        request.symbols.length,
+        provider,
+        true, // success
+      );
 
-      // 记录连接结束
+      // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
       this.activeConnections = Math.max(0, this.activeConnections - 1);
       Metrics.setGauge(
         this.metricsRegistry,
@@ -153,6 +231,7 @@ export class ReceiverService {
         { connection_type: 'http' }
       );
 
+      // 🎯 使用 common 模块的日志脱敏功能
       this.logger.log(
         `强时效数据请求处理成功`,
         sanitizeLogData({
@@ -160,23 +239,11 @@ export class ReceiverService {
           provider,
           processingTime,
           symbolsCount: request.symbols.length,
-          cacheHit: result.hit,
+          operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
         }),
       );
 
-      return new DataResponseDto(
-        result.data,
-        new ResponseMetadataDto(
-          provider,
-          request.receiverType,
-          requestId,
-          processingTime,
-          false, // hasPartialFailures
-          request.symbols.length, // totalRequested
-          request.symbols.length  // successfullyProcessed
-        )
-      );
-
+      return responseData;
     } catch (error) {
       const processingTime = Date.now() - startTime;
 
@@ -591,71 +658,51 @@ export class ReceiverService {
   }
 
   /**
-   * 🔑 执行数据流程 - 供智能缓存编排器回调使用
-   * 统一的数据获取入口，集成符号映射、数据获取和转换
+   * 🔑 原始数据流执行方法 - 供智能缓存编排器调用
+   * 封装了完整的数据获取、转换和存储流程
    */
-  private async executeDataFlow(
+  private async executeOriginalDataFlow(
     request: DataRequestDto,
-    provider: string,
     requestId: string,
   ): Promise<any> {
-    // 1. 符号映射
+    // 1. 提供商选择
+    const provider = await this.determineOptimalProvider(
+      request.symbols,
+      request.receiverType,
+      request.options?.preferredProvider,
+      request.options?.market,
+      requestId,
+    );
+
+    // 2. 符号映射
     const mappingResult = await this.SymbolMapperService.mapSymbols(
       provider,
       request.symbols,
       requestId,
     );
 
-    // 2. 数据获取
-    const rawData = await this.dataFetcherService.fetchRawData({
-      provider,
-      capability: request.receiverType,
-      symbols: mappingResult.mappedSymbols,
-      requestId,
-      apiType: 'rest',
-      options: {
-        timeout: request.options?.timeout,
-        fields: request.options?.fields,
-      },
-    } as DataFetchParams);
-
-    // 3. 数据转换
-    const transformRequest = {
-      provider,
-      apiType: 'rest' as const,
-      transDataRuleListType: this.mapReceiverTypeToTransDataRuleListType(request.receiverType),
-      rawData,
-      options: {
-        includeMetadata: true,
-        includeDebugInfo: false,
-      },
-    };
-
-    const transformedResult = await this.transformerService.transform(transformRequest);
-
-    // 4. 数据存储
-    const storageRequest = {
-      key: `receiver:${request.receiverType}:${provider}:${request.symbols.join(',')}`,
-      market: this.extractMarketFromSymbols(request.symbols),
-      provider,
-      storageClassification: this.mapReceiverTypeToStorageClassification(request.receiverType),
-      storageType: StorageType.BOTH,
-      data: transformedResult.transformedData,
-      options: {
-        cacheTtl: this.calculateStorageCacheTTL(request.symbols),
-        compress: true,
-        tags: {
-          symbols: request.symbols.join(','),
-          requestId,
-          transformedAt: new Date().toISOString(),
+    // 转换为兼容的格式
+    const mappedSymbols = {
+      transformedSymbols: mappingResult.mappedSymbols,
+      mappingResults: {
+        transformedSymbols: mappingResult.mappingDetails,
+        failedSymbols: mappingResult.failedSymbols,
+        metadata: {
+          provider: mappingResult.metadata.provider,
+          totalSymbols: mappingResult.metadata.totalSymbols,
+          successfulTransformations: mappingResult.metadata.successCount,
+          failedTransformations: mappingResult.metadata.failedCount,
+          processingTime: mappingResult.metadata.processingTimeMs,
+          hasPartialFailures: mappingResult.metadata.failedCount > 0,
         },
-        priority: 'normal' as const,
       },
     };
 
-    await this.storageService.storeData(storageRequest);
+    // 3. 执行数据获取流程
+    const response = await this.executeDataFetching(request, provider, mappedSymbols, requestId);
 
-    return transformedResult.transformedData;
+    // 4. 返回数据（编排器期望的格式）
+    return response.data;
   }
 
   /**
@@ -678,6 +725,152 @@ export class ReceiverService {
   //   return `receiver:${receiverType}:${provider}:${symbolsHash}`;
   // }
 
+  /**
+   * 执行数据获取 (原有方法，保持兼容性)
+   */
+  private async executeDataFetching(
+    request: DataRequestDto,
+    provider: string,
+    mappedSymbols: SymbolTransformationResultDto,
+    requestId: string,
+  ): Promise<DataResponseDto> {
+    const startTime = Date.now();
+    const capabilityName = request.receiverType;
+
+    try {
+      // 🔥 关键重构：委托DataFetcher处理SDK调用
+      const fetchParams: DataFetchParams = {
+        provider,
+        capability: capabilityName,
+        symbols: mappedSymbols.transformedSymbols,
+        contextService: await this.getProviderContextService(provider),
+        requestId,
+        apiType: 'rest',
+        options: request.options,
+      };
+
+      const fetchResult = await this.dataFetcherService.fetchRawData(fetchParams);
+      const rawData = fetchResult.data;
+
+      // ✅ 数据标准化处理：使用 Transformer 进行数据格式转换
+      this.logger.debug(`开始数据标准化处理`, {
+        requestId,
+        provider,
+        receiverType: request.receiverType,
+        rawDataCount: rawData.length,
+        fetchTime: fetchResult.metadata.processingTime,
+      });
+
+      this.logger.debug(`Raw data for transformation`, { rawData: JSON.stringify(rawData) });
+      const transformRequest: TransformRequestDto = {
+        provider,
+        apiType: 'rest',
+        transDataRuleListType: this.mapReceiverTypeToTransDataRuleListType(request.receiverType),
+        rawData,
+        options: {
+          includeMetadata: true,
+          includeDebugInfo: false,
+        },
+      };
+
+      const transformedResult = await this.transformerService.transform(transformRequest);
+
+      // ✅ 新增步骤2：使用 Storage 进行统一存储
+      this.logger.debug(`开始数据存储处理`, {
+        requestId,
+        provider,
+        transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
+      });
+
+      const storageRequest: StoreDataDto = {
+        key: `stock_data_${provider}_${request.receiverType}_${requestId}`,
+        data: transformedResult.transformedData,
+        storageType: StorageType.BOTH, // 既缓存又持久化
+        storageClassification: this.mapReceiverTypeToStorageClassification(request.receiverType),
+        provider,
+        market: this.extractMarketFromSymbols(request.symbols),
+        options: {
+          compress: true,
+          cacheTtl: this.calculateStorageCacheTTL(request.symbols),
+        },
+      };
+
+      // 条件存储：检查storageMode是否允许存储
+      if (request.options?.storageMode !== 'none') {
+        // Storage 操作不应该阻塞主流程，异步执行
+        this.storageService.storeData(storageRequest).catch((error) => {
+          this.logger.warn(`数据存储失败，但不影响主流程`, {
+            requestId,
+            provider,
+            error: error.message,
+          });
+        });
+      } else {
+        this.logger.debug(`存储模式为none，跳过数据存储`, {
+          requestId,
+          provider,
+          storageMode: request.options.storageMode,
+        });
+      }
+
+      // 🎯 计算部分成功的信息
+      const hasPartialFailures =
+        mappedSymbols.mappingResults.metadata.hasPartialFailures;
+      const totalRequested = mappedSymbols.mappingResults.metadata.totalSymbols;
+      const successfullyProcessed =
+        mappedSymbols.mappingResults.metadata.successfulTransformations;
+
+      const metadata = new ResponseMetadataDto(
+        provider,
+        capabilityName,
+        requestId,
+        Date.now() - startTime, // 计算实际处理时间
+        hasPartialFailures,
+        totalRequested,
+        successfullyProcessed,
+      );
+
+      this.logger.log(`完整数据处理链路执行成功`, {
+        requestId,
+        provider,
+        receiverType: request.receiverType,
+        totalProcessingTime: Date.now() - startTime,
+        fetchTime: fetchResult.metadata.processingTime,
+        rawDataCount: rawData.length,
+        transformedDataCount: Array.isArray(transformedResult.transformedData) ? transformedResult.transformedData.length : 1,
+      });
+
+      // 构造响应对象，包含失败明细
+      const response = new DataResponseDto(transformedResult.transformedData, metadata);
+      if (mappedSymbols.mappingResults.metadata.hasPartialFailures && mappedSymbols.mappingResults.failedSymbols?.length > 0) {
+        response.failures = mappedSymbols.mappingResults.failedSymbols.map(symbol => ({
+          symbol,
+          reason: '符号映射失败或数据获取失败',
+        } as FailureDetailDto));
+      }
+
+      // 返回标准化后的数据而不是原始SDK数据
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `数据获取执行失败`,
+        sanitizeLogData({
+          requestId,
+          provider,
+          capability: capabilityName,
+          error: error.message,
+          operation: "executeDataFetching",
+        }),
+      );
+
+      throw new InternalServerErrorException(
+        RECEIVER_ERROR_MESSAGES.DATA_FETCHING_FAILED.replace(
+          "{error}",
+          error.message,
+        ),
+      );
+    }
+  }
 
   /**
    * 获取股票代码对应的市场状态

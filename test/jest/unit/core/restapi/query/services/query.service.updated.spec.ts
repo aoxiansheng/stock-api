@@ -10,12 +10,12 @@ import { QueryResultProcessorService } from '../../../../../../../src/core/resta
 import { BackgroundTaskService } from '../../../../../../../src/core/public/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/smart-cache-orchestrator.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/symbol-smart-cache/services/symbol-smart-cache-orchestrator.service';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 import { QueryRequestDto } from '../../../../../../../src/core/restapi/query/dto/query-request.dto';
 import { QueryType } from '../../../../../../../src/core/restapi/query/dto/query-types.dto';
-import { CacheStrategy } from '@core/public/smart-cache/interfaces/cache-orchestrator.interface';
+import { CacheStrategy } from '@core/public/symbol-smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 
 // Mock外部工具函数
 jest.mock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils', () => ({
