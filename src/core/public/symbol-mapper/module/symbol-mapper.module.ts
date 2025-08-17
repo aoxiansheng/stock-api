@@ -6,6 +6,9 @@ import { PaginationModule } from "@common/modules/pagination/modules/pagination.
 import { SharedServicesModule } from "../../shared/module/shared-services.module";
 import { FeatureFlags } from "@common/config/feature-flags.config";
 
+// 导入新的独立缓存模块
+import { SymbolMapperCacheModule } from '../../symbol-mapper-cache/module/symbol-mapper-cache.module';
+
 import { SymbolMappingRepository } from '../repositories/symbol-mapping.repository';
 import {
   SymbolMappingRuleDocument,
@@ -13,13 +16,13 @@ import {
 } from '../schemas/symbol-mapping-rule.schema';
 import { SymbolMapperController } from "../controller/symbol-mapper.controller";
 import { SymbolMapperService } from '../services/symbol-mapper.service';
-import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.service';
 
 @Module({
   imports: [
     AuthModule,
     PaginationModule,
     SharedServicesModule, // 🔥 导入SharedServicesModule以获取MetricsRegistryService
+    SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
     MongooseModule.forFeature([
       { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),
@@ -28,8 +31,7 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
   providers: [
     SymbolMapperService, 
     SymbolMappingRepository,
-    SymbolMapperCacheService, // 🎯 新增缓存服务
-    FeatureFlags, // 🎯 添加 FeatureFlags 服务
+    FeatureFlags, // 🎯 保留 FeatureFlags 服务
   ],
   exports: [SymbolMapperService],
 })

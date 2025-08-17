@@ -14,7 +14,7 @@ import { PaginationService } from "@common/modules/pagination/services/paginatio
 import { FeatureFlags } from "@common/config/feature-flags.config";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
-import { SymbolMapperCacheService } from "./symbol-mapper-cache.service";
+import { SymbolMapperCacheService } from "../../symbol-mapper-cache/services/symbol-mapper-cache.service";
 
 import {
   SYMBOL_MAPPER_ERROR_MESSAGES,

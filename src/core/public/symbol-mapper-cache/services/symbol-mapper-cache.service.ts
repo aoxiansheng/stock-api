@@ -3,14 +3,14 @@ import { LRUCache } from 'lru-cache';
 import * as crypto from 'crypto';
 import { FeatureFlags } from '@common/config/feature-flags.config';
 import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
-import { SymbolMappingRepository } from '../repositories/symbol-mapping.repository';
-import { SymbolMappingRule } from '../schemas/symbol-mapping-rule.schema';
+import { SymbolMappingRepository } from '../../symbol-mapper/repositories/symbol-mapping.repository';
+import { SymbolMappingRule } from '../../symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { createLogger } from '@common/config/logger.config';
 import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
 import { 
   BatchMappingResult,
   CacheStatsDto 
-} from '../interfaces/symbol-mapping.interface';
+} from '../interfaces/cache-stats.interface';
 
 /**
  * Symbol Mapper 统一缓存服务

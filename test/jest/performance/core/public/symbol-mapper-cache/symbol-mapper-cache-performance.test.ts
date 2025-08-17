@@ -5,7 +5,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongooseModule } from '@nestjs/mongoose';
-import { SymbolMapperCacheService } from '../../../../../src/core/public/symbol-mapper/services/symbol-mapper-cache.service';
+import { SymbolMapperCacheService } from '../../../../../src/core/public/symbol-mapper-cache/services/symbol-mapper-cache.service';
 import { SymbolMappingRepository } from '../../../../../src/core/public/symbol-mapper/repositories/symbol-mapping.repository';
 import { FeatureFlags } from '../../../../../src/common/config/feature-flags.config';
 import { MetricsRegistryService } from '../../../../../src/monitoring/metrics/services/metrics-registry.service';

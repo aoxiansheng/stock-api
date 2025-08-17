@@ -89,7 +89,8 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/restapi/query/services/query-smart-cache.integration.test.ts --config test/config/jest.integration.config.js --testTimeout=30000)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/restapi/query/services/query-smart-cache.integration.test.ts --config test/config/jest.integration.config.js --testTimeout=60000)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/symbol-mapper/symbol-mapper-cache.e2e.test.ts --config test/config/jest.e2e.config.js --testTimeout=60000 --verbose)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/symbol-mapper/symbol-mapper-cache.e2e.test.ts --config test/config/jest.e2e.config.js --testTimeout=60000 --silent)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/symbol-mapper/symbol-mapper-cache.e2e.test.ts --config test/config/jest.e2e.config.js --testTimeout=60000 --silent)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

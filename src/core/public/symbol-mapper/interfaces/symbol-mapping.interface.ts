@@ -38,49 +38,6 @@ export interface ISymbolMappingRuleList {
   updatedAt: Date;
 }
 
-/**
- * 单符号映射结果 (Symbol Mapper 缓存重构新增)
- */
-export interface SymbolMappingResult {
-  success: boolean;
-  mappedSymbol?: string;
-  originalSymbol: string;
-  provider: string;
-  direction: 'to_standard' | 'from_standard';
-  cacheHit?: boolean;
-  processingTime?: number;
-}
-
-/**
- * 批量符号映射结果 (Symbol Mapper 缓存重构新增)
- */
-export interface BatchMappingResult {
-  success: boolean;
-  mappingDetails: Record<string, string>; // 原始符号 -> 映射结果
-  failedSymbols: string[];
-  provider: string;
-  direction: 'to_standard' | 'from_standard';
-  totalProcessed: number;
-  cacheHits: number;
-  processingTime: number;
-}
-
-/**
- * 缓存统计信息
- */
-export interface CacheStatsDto {
-  totalQueries: number;
-  l1HitRatio: number; // L1规则缓存命中率
-  l2HitRatio: number; // L2符号缓存命中率
-  l3HitRatio: number; // L3批量缓存命中率
-  layerStats: {
-    l1: { hits: number; misses: number; total: number };
-    l2: { hits: number; misses: number; total: number };
-    l3: { hits: number; misses: number; total: number };
-  };
-  cacheSize: {
-    l1: number; // 规则缓存当前大小
-    l2: number; // 符号缓存当前大小
-    l3: number; // 批量缓存当前大小
-  };
-}
+// 缓存相关接口已迁移到 symbol-mapper-cache/interfaces/cache-stats.interface.ts
+// 如需使用这些接口，请从该位置导入:
+// import { SymbolMappingResult, BatchMappingResult, CacheStatsDto } from '../../symbol-mapper-cache/interfaces/cache-stats.interface';
