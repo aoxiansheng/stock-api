@@ -64,7 +64,7 @@ describe("Query Controller E2E Tests", () => {
         maxAge: 300,
         options: {
           useCache: true,
-          updateCache: true,
+          updateCache: true, // 已弃用：E2E测试保持向后兼容性验证
           includeMetadata: true
         }
       };
@@ -211,10 +211,10 @@ describe("Query Controller E2E Tests", () => {
 
     it("should handle cache options properly", async () => {
       const cacheOptions = [
-        { useCache: true, updateCache: false },
-        { useCache: false, updateCache: true },
-        { useCache: true, updateCache: true },
-        { useCache: false, updateCache: false }
+        { useCache: true, updateCache: false }, // 已弃用：updateCache字段保持向后兼容
+        { useCache: false, updateCache: true }, // 已弃用：updateCache字段保持向后兼容
+        { useCache: true, updateCache: true },  // 已弃用：updateCache字段保持向后兼容
+        { useCache: false, updateCache: false } // 已弃用：updateCache字段保持向后兼容
       ];
 
       for (const cacheOption of cacheOptions) {

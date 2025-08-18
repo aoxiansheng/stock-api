@@ -168,7 +168,7 @@ describe("AlertRuleRepository", () => {
 
   describe("delete", () => {
     it("should delete an existing rule successfully", async () => {
-      mockModel.exec.mockResolvedValue({ delet_edCount: 1 });
+      mockModel.exec.mockResolvedValue({ deletedCount: 1 });
 
       const result = await repository.delete("rule-123");
 
@@ -178,7 +178,7 @@ describe("AlertRuleRepository", () => {
     });
 
     it("should return false when rule does not exist", async () => {
-      mockModel.exec.mockResolvedValue({ delet_edCount: 0 });
+      mockModel.exec.mockResolvedValue({ deletedCount: 0 });
 
       const result = await repository.delete("nonexistent");
 

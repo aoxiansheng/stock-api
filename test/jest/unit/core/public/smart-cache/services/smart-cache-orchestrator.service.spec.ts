@@ -5,7 +5,7 @@ import { MarketStatusService } from '../../../../../../../src/core/public/shared
 import { DataChangeDetectorService } from '../../../../../../../src/core/public/shared/services/data-change-detector.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/public/shared/services/background-task.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { CacheService } from '../../../../../../../src/cache/services/cache.service';
+import { CommonCacheService } from '../../../../../../../src/core/public/common-cache/services/common-cache.service';
 import { 
   CacheStrategy, 
   CacheOrchestratorRequest
@@ -29,7 +29,7 @@ describe('SmartCacheOrchestrator', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _metricsRegistry: jest.Mocked<MetricsRegistryService>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _cacheService: jest.Mocked<CacheService>;
+  let _commonCacheService: jest.Mocked<CommonCacheService>;
 
   // Mock data
   const mockMarketStatus = {
@@ -86,9 +86,15 @@ describe('SmartCacheOrchestrator', () => {
       incrementCounter: jest.fn(),
     };
 
-    const mockCacheService = {
-      get: jest.fn(),
-      set: jest.fn(),
+    const mockCommonCacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      mget: jest.fn().mockResolvedValue([]),
+      getWithFallback: jest.fn().mockResolvedValue({
+        data: mockTransformedData,
+        hit: false,
+        ttlRemaining: 60
+      }),
       getTTL: jest.fn(),
       hashGetAll: jest.fn().mockResolvedValue({}),
       listRange: jest.fn().mockResolvedValue([]),
@@ -119,8 +125,8 @@ describe('SmartCacheOrchestrator', () => {
           useValue: mockMetricsRegistry,
         },
         {
-          provide: CacheService,
-          useValue: mockCacheService,
+          provide: CommonCacheService,
+          useValue: mockCommonCacheService,
         },
         {
           provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
@@ -135,84 +141,170 @@ describe('SmartCacheOrchestrator', () => {
     _dataChangeDetectorService = module.get(DataChangeDetectorService);
     _backgroundTaskService = module.get(BackgroundTaskService);
     _metricsRegistry = module.get(MetricsRegistryService);
-    _cacheService = module.get(CacheService);
+    _commonCacheService = module.get(CommonCacheService);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('Strategy Mapping', () => {
-    it('should map STRONG_TIMELINESS strategy correctly', () => {
-      const options = service.mapStrategyToOptions(CacheStrategy.STRONG_TIMELINESS, ['700.HK']);
-      
-      expect(options).toEqual({
-        symbols: ['700.HK'],
-        forceRefresh: false,
-        smartCacheStrategy: CacheStrategy.STRONG_TIMELINESS,
-        ttl: 60, // From DEFAULT_SMART_CACHE_CONFIG
-        enableBackgroundUpdate: true,
-        backgroundUpdateThreshold: 0.3,
+  describe('Phase 5.4: Performance Optimization Methods', () => {
+    it('should warmup hot queries successfully', async () => {
+      // Mock CommonCacheService responses
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
+      mockCommonCache.get
+        .mockResolvedValueOnce(null) // First key not cached
+        .mockResolvedValueOnce({ data: { test: 'existing' }, ttlRemaining: 120 }); // Second key cached
+
+      const hotQueries = [
+        {
+          key: 'stock:AAPL:quote',
+          request: {
+            cacheKey: 'stock:AAPL:quote',
+            symbols: ['AAPL'],
+            fetchFn: jest.fn().mockResolvedValue({ symbol: 'AAPL', price: 195.89 }),
+            strategy: CacheStrategy.STRONG_TIMELINESS,
+          },
+          priority: 10,
+        },
+        {
+          key: 'stock:TSLA:quote',
+          request: {
+            cacheKey: 'stock:TSLA:quote',
+            symbols: ['TSLA'],
+            fetchFn: jest.fn().mockResolvedValue({ symbol: 'TSLA', price: 248.42 }),
+            strategy: CacheStrategy.STRONG_TIMELINESS,
+          },
+          priority: 5,
+        },
+      ];
+
+      // Mock getDataWithSmartCache for the first key (not cached)
+      jest.spyOn(service, 'getDataWithSmartCache').mockResolvedValueOnce({
+        data: { symbol: 'AAPL', price: 195.89 },
+        hit: false,
+        ttlRemaining: 60,
+        strategy: CacheStrategy.STRONG_TIMELINESS,
+        storageKey: 'stock:AAPL:quote',
+      });
+
+      const results = await service.warmupHotQueries(hotQueries);
+
+      expect(results).toHaveLength(2);
+      expect(results[0]).toMatchObject({
+        key: 'stock:AAPL:quote',
+        success: true,
+        ttl: 60,
+      });
+      expect(results[1]).toMatchObject({
+        key: 'stock:TSLA:quote',
+        success: true,
+        ttl: 120,
+        skipped: true,
       });
     });
 
-    it('should map WEAK_TIMELINESS strategy correctly', () => {
-      const options = service.mapStrategyToOptions(CacheStrategy.WEAK_TIMELINESS, ['AAPL']);
+    it('should handle batch data with optimized concurrency', async () => {
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
       
-      expect(options).toEqual({
-        symbols: ['AAPL'],
-        forceRefresh: false,
-        smartCacheStrategy: CacheStrategy.WEAK_TIMELINESS,
-        ttl: 300, // From DEFAULT_SMART_CACHE_CONFIG
-        enableBackgroundUpdate: true,
-        backgroundUpdateThreshold: 0.2,
+      // Mock batch cache results - first key hit, second miss
+      mockCommonCache.mget.mockResolvedValue([
+        { data: { symbol: 'AAPL', price: 195.89 }, ttlRemaining: 300 },
+        null, // Cache miss
+      ]);
+
+      const requests = [
+        {
+          cacheKey: 'stock:AAPL:quote',
+          symbols: ['AAPL'],
+          fetchFn: jest.fn().mockResolvedValue({ symbol: 'AAPL', price: 195.89 }),
+          strategy: CacheStrategy.STRONG_TIMELINESS,
+        },
+        {
+          cacheKey: 'stock:GOOGL:quote',
+          symbols: ['GOOGL'],
+          fetchFn: jest.fn().mockResolvedValue({ symbol: 'GOOGL', price: 2750.8 }),
+          strategy: CacheStrategy.STRONG_TIMELINESS,
+        },
+      ];
+
+      // Mock market status for TTL calculation
+      jest.spyOn(service as any, 'getMarketStatusForSymbol').mockResolvedValue('open');
+
+      const results = await service.getBatchDataWithOptimizedConcurrency(requests, {
+        concurrency: 2,
+        enableCache: true,
+      });
+
+      expect(results).toHaveLength(2);
+      expect(results[0]).toMatchObject({
+        data: { symbol: 'AAPL', price: 195.89 },
+        hit: true,
+        ttlRemaining: 300,
+      });
+      expect(results[1]).toMatchObject({
+        data: { symbol: 'GOOGL', price: 2750.8 },
+        hit: false,
       });
     });
 
-    it('should map MARKET_AWARE strategy correctly', () => {
-      const options = service.mapStrategyToOptions(CacheStrategy.MARKET_AWARE, ['600000.SH']);
+    it('should analyze cache performance correctly', async () => {
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
       
-      expect(options).toEqual({
-        symbols: ['600000.SH'],
-        forceRefresh: false,
-        smartCacheStrategy: CacheStrategy.MARKET_AWARE,
-        ttl: 30, // openMarketTtl from DEFAULT_SMART_CACHE_CONFIG  
-        enableBackgroundUpdate: true,
-        backgroundUpdateThreshold: 0.3,
-        marketStatusCheckInterval: 300000, // 5 minutes in ms
+      // Mock cache analysis data
+      mockCommonCache.mget.mockResolvedValue([
+        { data: { test: 1 }, ttlRemaining: 600 }, // Valid cache
+        null, // Expired
+        { data: { test: 2 }, ttlRemaining: 50 }, // About to expire
+      ]);
+
+      const cacheKeys = [
+        'stock:AAPL:quote',
+        'stock:TSLA:quote', 
+        'stock:NVDA:quote',
+      ];
+
+      const analysis = await service.analyzeCachePerformance(cacheKeys);
+
+      expect(analysis.summary).toMatchObject({
+        totalKeys: 3,
+        cached: 2,
+        expired: 1,
+        hitRate: expect.closeTo(0.67, 2),
       });
+      
+      expect(analysis.recommendations).toContain('缓存命中率较低，建议增加TTL或实施缓存预热策略');
+      expect(analysis.hotspots).toHaveLength(2); // One expiring, one expired
     });
 
-    it('should map NO_CACHE strategy correctly', () => {
-      const options = service.mapStrategyToOptions(CacheStrategy.NO_CACHE, ['000001.SZ']);
-      
-      expect(options).toEqual({
-        symbols: ['000001.SZ'],
-        forceRefresh: true,
-        smartCacheStrategy: CacheStrategy.NO_CACHE,
-        ttl: 0,
-        enableBackgroundUpdate: false,
-      });
-    });
+    it('should set data with adaptive TTL based on access frequency', async () => {
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
+      mockCommonCache.set.mockResolvedValue(undefined);
 
-    it('should map ADAPTIVE strategy correctly', () => {
-      const options = service.mapStrategyToOptions(CacheStrategy.ADAPTIVE, ['INDEX']);
+      const testData = { symbol: 'AAPL', price: 195.89 };
       
-      expect(options).toEqual({
-        symbols: ['INDEX'],
-        forceRefresh: false,
-        smartCacheStrategy: CacheStrategy.ADAPTIVE,
-        ttl: 180, // baseTtl from DEFAULT_SMART_CACHE_CONFIG
-        enableBackgroundUpdate: true,
-        backgroundUpdateThreshold: 0.75,
-        adaptationFactor: 1.5,
-      });
-    });
+      const result = await service.setDataWithAdaptiveTTL(
+        'stock:AAPL:quote',
+        testData,
+        {
+          dataType: 'stock_quote',
+          symbol: 'AAPL',
+          accessFrequency: 'high',
+          marketStatus: 'open',
+        },
+      );
 
-    it('should throw error for unknown strategy', () => {
-      expect(() => {
-        service.mapStrategyToOptions('UNKNOWN_STRATEGY' as CacheStrategy, []);
-      }).toThrow('Unknown cache strategy: UNKNOWN_STRATEGY');
+      expect(result).toMatchObject({
+        success: true,
+        ttl: expect.any(Number),
+        strategy: expect.any(String),
+      });
+      
+      expect(mockCommonCache.set).toHaveBeenCalledWith(
+        'stock:AAPL:quote',
+        testData,
+        result.ttl,
+      );
     });
   });
 
@@ -230,17 +322,12 @@ describe('SmartCacheOrchestrator', () => {
     };
 
     it('should handle cache hit successfully', async () => {
-      // Mock cache hit with correct metadata structure
-      storageService.getWithSmartCache.mockResolvedValue({
-        hit: true,
+      // Mock CommonCacheService.getWithFallback for cache hit
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
+      mockCommonCache.getWithFallback.mockResolvedValue({
         data: mockCacheData,
-        metadata: {
-          key: 'test:cache:key',
-          source: 'cache',
-          ttlRemaining: 300,
-          generatedAt: new Date().toISOString(),
-          dynamicTtl: 60,
-        },
+        hit: true,
+        ttlRemaining: 300
       });
 
       const result = await service.getDataWithSmartCache(mockRequest);
@@ -249,35 +336,26 @@ describe('SmartCacheOrchestrator', () => {
         data: mockCacheData,
         hit: true,
         ttlRemaining: 300,
+        dynamicTtl: expect.any(Number),
         strategy: CacheStrategy.STRONG_TIMELINESS,
         storageKey: 'test:cache:key',
         timestamp: expect.any(String),
       });
 
-      expect(storageService.getWithSmartCache).toHaveBeenCalledWith(
+      expect(mockCommonCache.getWithFallback).toHaveBeenCalledWith(
         'test:cache:key',
         expect.any(Function),
-        expect.objectContaining({
-          smartCacheStrategy: CacheStrategy.STRONG_TIMELINESS,
-          ttl: 60,
-          enableBackgroundUpdate: true,
-          backgroundUpdateThreshold: 0.3,
-        })
+        expect.any(Number)
       );
     });
 
     it('should handle cache miss and fetch fresh data', async () => {
-      // Mock cache miss
-      storageService.getWithSmartCache.mockResolvedValue({
-        hit: false,
+      // Mock CommonCacheService.getWithFallback for cache miss
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
+      mockCommonCache.getWithFallback.mockResolvedValue({
         data: mockTransformedData,
-        metadata: {
-          key: 'test:cache:key',
-          source: 'fresh',
-          ttlRemaining: 0,
-          generatedAt: new Date().toISOString(),
-          dynamicTtl: 60,
-        },
+        hit: false,
+        ttlRemaining: 0
       });
 
       const result = await service.getDataWithSmartCache(mockRequest);
@@ -286,12 +364,17 @@ describe('SmartCacheOrchestrator', () => {
         data: mockTransformedData,
         hit: false,
         ttlRemaining: 0,
+        dynamicTtl: expect.any(Number),
         strategy: CacheStrategy.STRONG_TIMELINESS,
         storageKey: 'test:cache:key',
         timestamp: expect.any(String),
       });
 
-      expect(mockRequest.fetchFn).toHaveBeenCalled();
+      expect(mockCommonCache.getWithFallback).toHaveBeenCalledWith(
+        'test:cache:key',
+        expect.any(Function),
+        expect.any(Number)
+      );
     });
 
     it('should handle NO_CACHE strategy by bypassing cache', async () => {
@@ -305,14 +388,12 @@ describe('SmartCacheOrchestrator', () => {
       expect(result).toEqual({
         data: mockTransformedData,
         hit: false,
-        ttlRemaining: 0,
         strategy: CacheStrategy.NO_CACHE,
         storageKey: 'test:cache:key',
         timestamp: expect.any(String),
       });
 
       expect(mockRequest.fetchFn).toHaveBeenCalled();
-      expect(storageService.getWithSmartCache).not.toHaveBeenCalled();
     });
   });
 
@@ -325,20 +406,12 @@ describe('SmartCacheOrchestrator', () => {
         fetchFn: jest.fn().mockRejectedValue(new Error('Fetch failed')),
       };
 
-      // Mock cache miss that triggers fetchFn
-      storageService.getWithSmartCache.mockRejectedValue(new Error('Cache error'));
+      // Mock CommonCacheService.getWithFallback to throw error (simulating fetch failure)
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
+      mockCommonCache.getWithFallback.mockRejectedValue(new Error('Fetch failed'));
 
-      const result = await service.getDataWithSmartCache(failingRequest);
-
-      expect(result).toEqual({
-        data: null,
-        hit: false,
-        ttlRemaining: 0,
-        strategy: CacheStrategy.STRONG_TIMELINESS,
-        storageKey: 'failing:key',
-        timestamp: expect.any(String),
-        error: 'Fetch failed',
-      });
+      // The method should throw the error from fetchFn since fallback also fails
+      await expect(service.getDataWithSmartCache(failingRequest)).rejects.toThrow('Fetch failed');
     });
 
     it('should handle storage service errors gracefully', async () => {
@@ -349,14 +422,16 @@ describe('SmartCacheOrchestrator', () => {
         fetchFn: jest.fn().mockResolvedValue(mockTransformedData),
       };
 
-      // Mock storage error
-      storageService.getWithSmartCache.mockRejectedValue(new Error('Storage failed'));
+      // Mock CommonCacheService.getWithFallback to throw storage error 
+      const mockCommonCache = service['commonCacheService'] as jest.Mocked<any>;
+      mockCommonCache.getWithFallback.mockRejectedValue(new Error('Storage failed'));
 
       const result = await service.getDataWithSmartCache(mockRequest);
 
-      // Should fallback to direct fetch
+      // Should return fallback data with error indication
       expect(result.data).toEqual(mockTransformedData);
       expect(result.hit).toBe(false);
+      expect(result.error).toBe('Storage failed');
       expect(mockRequest.fetchFn).toHaveBeenCalled();
     });
   });
@@ -364,8 +439,17 @@ describe('SmartCacheOrchestrator', () => {
   describe('Lifecycle Management', () => {
     it('should initialize correctly on module init', async () => {
       const initSpy = jest.spyOn(service, 'onModuleInit');
+      
+      // Mock setInterval to prevent actual interval creation
+      const originalSetInterval = global.setInterval;
+      const mockSetInterval = jest.fn();
+      global.setInterval = mockSetInterval;
+      
       await service.onModuleInit();
       expect(initSpy).toHaveBeenCalled();
+      
+      // Restore original setInterval
+      global.setInterval = originalSetInterval;
     });
 
     it('should cleanup correctly on module destroy', async () => {
@@ -373,5 +457,12 @@ describe('SmartCacheOrchestrator', () => {
       await service.onModuleDestroy();
       expect(destroySpy).toHaveBeenCalled();
     });
+  });
+
+  // Cleanup after all tests to prevent Jest hanging
+  afterAll(async () => {
+    if (service) {
+      await service.onModuleDestroy();
+    }
   });
 });

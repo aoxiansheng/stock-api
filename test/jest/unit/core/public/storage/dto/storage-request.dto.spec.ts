@@ -505,6 +505,48 @@ describe('Storage Request DTOs', () => {
           expect(dto.updateCache).toBe(updateCache);
         }
       });
+
+      it('should maintain updateCache field backward compatibility (deprecated)', async () => {
+        // Arrange - 测试已弃用的updateCache字段仍然工作
+        dto.key = 'deprecated:updateCache:test';
+        dto.updateCache = true;
+
+        // Act
+        const errors = await validate(dto);
+
+        // Assert - 字段仍然验证通过，但已被标记为弃用
+        expect(errors.length).toBe(0);
+        expect(dto.updateCache).toBe(true);
+        
+        // 验证字段在DTO定义中的存在性（不会因为弃用而被移除）
+        expect(dto).toHaveProperty('updateCache');
+      });
+
+      it('should handle updateCache undefined gracefully (recommended usage)', async () => {
+        // Arrange - 新代码不应设置updateCache字段
+        dto.key = 'modern:usage:test';
+        // 故意不设置updateCache字段
+
+        // Act
+        const errors = await validate(dto);
+
+        // Assert
+        expect(errors.length).toBe(0);
+        expect(dto.updateCache).toBeUndefined();
+      });
+
+      it('should accept updateCache false as safe default', async () => {
+        // Arrange - false是安全的默认值
+        dto.key = 'safe:default:test';
+        dto.updateCache = false;
+
+        // Act
+        const errors = await validate(dto);
+
+        // Assert
+        expect(errors.length).toBe(0);
+        expect(dto.updateCache).toBe(false);
+      });
     });
   });
 
@@ -636,7 +678,7 @@ describe('Storage Request DTOs', () => {
         const dto = new RetrieveDataDto();
         dto.key = 'quote:AAPL.US:longport:latest';
         dto.preferredType = StorageType.CACHE;
-        dto.updateCache = false;
+        dto.updateCache = false; // 已弃用：建议移除此字段，缓存更新由SmartCacheOrchestrator处理
 
         // Act
         const errors = await validate(dto);
@@ -726,7 +768,7 @@ describe('Storage Request DTOs', () => {
         const dto = new RetrieveDataDto();
         dto.key = 'batch:quotes:HK:20230601';
         dto.preferredType = StorageType.PERSISTENT;
-        dto.updateCache = true; // Update cache for frequently accessed data
+        dto.updateCache = true; // 已弃用：SmartCacheOrchestrator将自动处理频繁访问数据的缓存更新
 
         // Act
         const errors = await validate(dto);

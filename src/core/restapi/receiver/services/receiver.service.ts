@@ -143,7 +143,7 @@ export class ReceiverService {
         });
 
         // 使用编排器获取数据
-        const result = await this.smartCacheOrchestrator.getDataWithSymbolSmartCache(orchestratorRequest);
+        const result = await this.smartCacheOrchestrator.getDataWithSmartCache(orchestratorRequest);
 
         const processingTime = Date.now() - startTime;
 
@@ -705,25 +705,6 @@ export class ReceiverService {
     return response.data;
   }
 
-  /**
-   * 🔑 构建Receiver缓存键 - 供智能缓存编排器使用 (预留方法)
-   * 格式: receiver:{receiverType}:{provider}:{symbolsHash}
-   * @deprecated 当前由cache-request.utils统一处理，保留以备将来扩展
-   */
-  // private buildReceiverCacheKey(
-  //   symbols: string[],
-  //   receiverType: string,
-  //   provider: string,
-  // ): string {
-  //   const symbolsStr = symbols.sort().join(',');
-  //   const symbolsHash = require('crypto')
-  //     .createHash('sha1')
-  //     .update(symbolsStr)
-  //     .digest('hex')
-  //     .substring(0, 8);
-  //
-  //   return `receiver:${receiverType}:${provider}:${symbolsHash}`;
-  // }
 
   /**
    * 执行数据获取 (原有方法，保持兼容性)
@@ -872,142 +853,7 @@ export class ReceiverService {
     }
   }
 
-  /**
-   * 获取股票代码对应的市场状态
-   * 🎯 强时效接口专用 - 快速市场状态检测
-   * @deprecated 当前由智能缓存编排器统一调用marketStatusService，保留以备将来扩展
-   */
-  // private async getMarketStatusForSymbols(
-  //   symbols: string[],
-  //   requestId: string,
-  // ): Promise<Record<Market, MarketStatusResult>> {
-  //   try {
-  //     // 推断所有涉及的市场
-  //     const marketsSet = new Set<Market>();
-  //     symbols.forEach((symbol) => {
-  //       marketsSet.add(this.inferMarketFromSymbol(symbol));
-  //     });
 
-  //     const markets = Array.from(marketsSet);
-
-  //     // 批量获取市场状态
-  //     const marketStatus =
-  //       await this.marketStatusService.getBatchMarketStatus(markets);
-
-  //     this.logger.debug(
-  //       `批量市场状态获取完成`,
-  //       sanitizeLogData({
-  //         requestId,
-  //         markets,
-  //         statuses: Object.fromEntries(
-  //           Object.entries(marketStatus).map(([market, status]) => [
-  //             market,
-  //             status.status,
-  //           ]),
-  //         ),
-  //       }),
-  //     );
-
-  //     return marketStatus;
-  //   } catch (error) {
-  //     this.logger.error(
-  //       `市场状态获取失败`,
-  //       sanitizeLogData({
-  //         requestId,
-  //         symbols: symbols.slice(0, 3),
-  //         error: error.message,
-  //       }),
-  //     );
-
-  //     // 降级处理：返回默认市场状态
-  //     const markets = [Market.US, Market.HK, Market.SH, Market.SZ];
-  //     const fallbackStatus: Record<Market, MarketStatusResult> = {} as any;
-
-  //     for (const market of markets) {
-  //       fallbackStatus[market] = {
-  //         market,
-  //         status: MarketStatus.CLOSED,
-  //         currentTime: new Date(),
-  //         marketTime: new Date(),
-  //         timezone: "UTC",
-  //         realtimeCacheTTL: 60,
-  //         analyticalCacheTTL: 3600,
-  //         isHoliday: false,
-  //         isDST: false,
-  //         confidence: 0.5,
-  //       };
-  //     }
-
-  //     return fallbackStatus;
-  //   } catch (error) {
-  //     this.logger.error(
-  //       `市场状态获取失败`,
-  //       sanitizeLogData({
-  //         requestId,
-  //         symbols: symbols.slice(0, 3),
-  //         error: error.message,
-  //       }),
-  //     );
-
-  //     // 降级处理：返回默认市场状态
-  //     const markets = [Market.US, Market.HK, Market.SH, Market.SZ];
-  //     const fallbackStatus: Record<Market, MarketStatusResult> = {} as any;
-
-  //     for (const market of markets) {
-  //       fallbackStatus[market] = {
-  //         market,
-  //         status: MarketStatus.CLOSED,
-  //         currentTime: new Date(),
-  //         marketTime: new Date(),
-  //         timezone: "UTC",
-  //         realtimeCacheTTL: 60,
-  //         analyticalCacheTTL: 3600,
-  //         isHoliday: false,
-  //         isDST: false,
-  //         confidence: 0.5,
-  //       };
-  //     }
-
-  //     return fallbackStatus;
-  //   }
-  // }
-
-  /**
-   * 从股票代码推断市场
-   * @deprecated 当前使用 cache-request.utils 中的统一实现
-   */
-  // private inferMarketFromSymbol(symbol: string): Market {
-  //   const upperSymbol = symbol.toUpperCase().trim();
-
-  //   // 香港市场: .HK 后缀或5位数字
-  //   if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
-  //     return Market.HK;
-  //   }
-
-  //   // 美国市场: 1-5位字母
-  //   if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-  //     return Market.US;
-  //   }
-
-  //   // 深圳市场: .SZ 后缀或 00/30 前缀
-  //   if (
-  //     upperSymbol.includes(".SZ") ||
-  //     ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
-  //   ) {
-  //     return Market.SZ;
-  //   }
-
-  //   // 上海市场: .SH 后缀或 60/68 前缀
-  //   if (
-  //     upperSymbol.includes(".SH") ||
-  //     ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
-  //   ) {
-  //     return Market.SH;
-  //   }
-
-  //   // 默认美股
-  //   return Market.US;
-  // }
 
   /**
    * 🎯 记录活动连接数变化

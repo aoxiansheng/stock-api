@@ -30,7 +30,7 @@ describe("SecurityAuditService", () => {
       create: jest.fn().mockResolvedValue({}),
       findOne: jest.fn().mockResolvedValue(null),
       find: jest.fn().mockResolvedValue([]),
-      delet_eMany: jest.fn().mockResolvedValue({ delet_edCount: 0 }),
+      delet_eMany: jest.fn().mockResolvedValue({ deletedCount: 0 }),
     };
 
     const mockEventEmitter = {

@@ -91,9 +91,4 @@ export class RetrieveDataDto {
   @IsEnum(StorageType)
   preferredType?: StorageType;
 
-  @ApiPropertyOptional({
-    description: "Whether to update cache if found in persistent storage",
-  })
-  @IsOptional()
-  updateCache?: boolean;
 }

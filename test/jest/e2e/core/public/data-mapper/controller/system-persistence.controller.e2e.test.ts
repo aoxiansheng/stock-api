@@ -295,7 +295,7 @@ describe("SystemPersistenceController E2E", () => {
         expect(result).toHaveProperty("_deleted");
         expect(result).toHaveProperty("_recreated");
         expect(result).toHaveProperty("message");
-        expect(result.delet_ed).toBeGreaterThanOrEqual(0);
+        expect(result.deleted).toBeGreaterThanOrEqual(0);
         
         // 预设模板应该被重新创建（硬编码的2个模板）
         expect(result.recreated).toBeGreaterThanOrEqual(2);

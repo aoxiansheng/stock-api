@@ -203,7 +203,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
         queryTypeFilter: "get-stock-quote",
         options: {
           useCache: true,
-          updateCache: true,
+          updateCache: true, // 已弃用：E2E测试保持向后兼容性验证
           includeMetadata: true
         }
       };
@@ -261,7 +261,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
         queryTypeFilter: "get-stock-quote",
         options: {
           useCache: true,
-          updateCache: true,
+          updateCache: true, // 已弃用：E2E测试保持向后兼容性验证
           includeMetadata: true
         }
       };

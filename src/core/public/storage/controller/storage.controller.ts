@@ -192,7 +192,6 @@ export class StorageController {
     this.logger.log(`API Request: Retrieve data`, {
       key: request.key,
       preferredType: request.preferredType,
-      updateCache: request.updateCache,
     });
 
     try {
@@ -239,7 +238,6 @@ export class StorageController {
 
 ### 查询参数
 - \`preferredType\`: 首选存储类型 (CACHE/PERSISTENT/BOTH)
-- \`updateCache\`: 是否更新缓存 (true/false)
     `,
   })
   @ApiParam({
@@ -286,18 +284,15 @@ export class StorageController {
   async retrieveDataByKey(
     @Param("key") key: string,
     @Query("preferredType") preferredType?: StorageType,
-    @Query("updateCache") updateCache?: boolean,
   ) {
     this.logger.log(`API Request: Retrieve data by key`, {
       key,
       preferredType,
-      updateCache,
     });
 
     const request: RetrieveDataDto = {
       key,
       preferredType: preferredType || StorageType.BOTH, // 支持缓存回退到数据库
-      updateCache: updateCache || false,
     };
 
     return this.retrieveData(request);

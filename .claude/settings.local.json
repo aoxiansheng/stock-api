@@ -90,7 +90,23 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/restapi/query/services/query-smart-cache.integration.test.ts --config test/config/jest.integration.config.js --testTimeout=60000)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/symbol-mapper/symbol-mapper-cache.e2e.test.ts --config test/config/jest.e2e.config.js --testTimeout=60000 --verbose)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/symbol-mapper/symbol-mapper-cache.e2e.test.ts --config test/config/jest.e2e.config.js --testTimeout=60000 --silent)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache/utils/cache-key.utils.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/public/common-cache/common-cache.integration.test.ts --testTimeout=30000 --config test/config/jest.integration.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/restapi/query/controller/query.controller.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "mcp__serena__think_about_task_adherence",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/restapi/query/controller/query.controller.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"should handle deprecated updateCache field with warning\")",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache/services/common-cache-enhanced.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache/services/common-cache-enhanced-simple.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache/services/common-cache-ttl.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/public/common-cache/cache-service.adapter.integration.test.ts --testTimeout=30000 --config test/config/jest.integration.config.js --testNamePattern=\"TTL计算集成\")",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/public/common-cache/ttl-calculation.integration.test.ts --testTimeout=30000 --config test/config/jest.integration.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/common-cache/adapters --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/restapi/receiver --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/public/smart-cache/services/smart-cache-orchestrator.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"Phase 5.4\")",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --project . src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service.ts)"
     ],
     "deny": []
   }

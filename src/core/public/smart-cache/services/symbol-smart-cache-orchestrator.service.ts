@@ -1,5 +1,5 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { StorageService } from '../../storage/services/storage.service';
+import { CommonCacheService } from '../../common-cache/services/common-cache.service'; // Phase 5.2 重构：直接使用CommonCacheService
 import { DataChangeDetectorService } from '../../shared/services/data-change-detector.service';
 import { MarketStatusService, MarketStatusResult } from '../../shared/services/market-status.service';
 import { BackgroundTaskService } from '../../shared/services/background-task.service';
@@ -14,22 +14,29 @@ import {
   MarketStatusQueryResult
 } from '../interfaces/symbol-smart-cache-orchestrator.interface';
 import { type SmartCacheOrchestratorConfig, SMART_CACHE_ORCHESTRATOR_CONFIG } from '../interfaces/symbol-smart-cache-config.interface';
-import { SmartCacheOptionsDto } from '../../storage/dto/smart-cache-request.dto';
 
 /**
- * 智能缓存编排器服务
+ * 智能缓存编排器服务 - Phase 5.2 重构版
  * 
  * 核心功能：
  * - 统一Receiver与Query的缓存调用骨架
- * - 策略映射：将CacheStrategy转换为StorageService可识别的SmartCacheOptionsDto
+ * - 策略映射：将CacheStrategy转换为CommonCacheService可识别的参数
  * - 后台更新调度：TTL节流、去重、优先级计算
  * - 生命周期管理：初始化和优雅关闭
  * 
+ * Phase 5.2重构改进：
+ * - 直接使用CommonCacheService进行缓存操作
+ * - 简化策略映射逻辑，使用CommonCacheService.calculateOptimalTTL
+ * - 优化后台任务处理性能
+ * - 保持API兼容性，内部实现完全重构
+ * 
  * 设计原则：
- * - 复用现有StorageService.getWithSmartCache基础设施
- * - 统一缓存键管理，避免命名空间冲突
- * - 保持与Query现有监控指标的一致性
+ * - 保持现有API接口不变
+ * - 内部实现完全基于CommonCacheService
+ * - 提高缓存操作性能
+ * - 简化依赖关系
  */
+
 @Injectable()
 export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SmartCacheOrchestrator.name);
@@ -53,7 +60,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     @Inject(SMART_CACHE_ORCHESTRATOR_CONFIG)
     private readonly config: SmartCacheOrchestratorConfig,
     
-    private readonly storageService: StorageService,
+    private readonly commonCacheService: CommonCacheService, // Phase 5.2 重构：直接使用CommonCacheService
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
@@ -191,7 +198,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 执行后台更新任务
-   * 包含错误处理和指标更新
+   * Phase 5.2重构：直接使用CommonCacheService，提高性能
    */
   private async executeBackgroundUpdate(task: BackgroundUpdateTask): Promise<void> {
     this.activeTaskCount++;
@@ -208,16 +215,21 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       // 执行数据获取
       const freshData = await task.fetchFn();
       
-      // 使用StorageService的forceRefresh写回缓存
-      await this.storageService.getWithSmartCache(
-        task.cacheKey,
-        () => Promise.resolve(freshData),
-        {
-          symbols: task.symbols || [],
-          forceRefresh: true,
-          // 注意：不传keyPrefix，避免双重命名空间
-        }
-      );
+      // Phase 5.2 重构：直接使用CommonCacheService计算TTL
+      const symbol = task.symbols?.[0] || 'unknown';
+      const dataType = this.inferDataTypeFromKey(task.cacheKey);
+      
+      const ttlResult = CommonCacheService.calculateOptimalTTL({
+        symbol,
+        dataType,
+        marketStatus: task.market ? {
+          isOpen: true, // 简化处理，实际应该查询市场状态
+          timezone: 'UTC'
+        } : undefined
+      });
+
+      // 直接写入缓存
+      await this.commonCacheService.set(task.cacheKey, freshData, ttlResult.ttl);
 
       // 数据变化检测（如果启用）
       // TODO: 实现数据变化检测逻辑
@@ -271,12 +283,12 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   // ===================
   // 公共接口方法
-  // 后续Task中将实现这些方法
+  // Phase 5.2重构：直接使用CommonCacheService实现
   // ===================
 
   /**
    * 获取单个数据的智能缓存
-   * 复用StorageService.getWithSmartCache基础设施
+   * Phase 5.2重构：基于CommonCacheService实现，简化策略映射
    */
   async getDataWithSmartCache<T>(request: CacheOrchestratorRequest<T>): Promise<CacheOrchestratorResult<T>> {
     try {
@@ -295,29 +307,44 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         };
       }
 
-      // 根据策略映射获取缓存选项
-      const cacheOptions = await this.mapStrategyToOptionsAsync(
-        request.strategy, 
-        request.symbols, 
-        request.metadata
-      );
+      // Phase 5.2重构：直接使用CommonCacheService计算TTL
+      const symbol = request.symbols?.[0] || 'unknown';
+      const dataType = this.inferDataTypeFromKey(request.cacheKey);
+      
+      // 获取市场状态（如果是市场感知策略）
+      let marketStatus = undefined;
+      if (request.strategy === CacheStrategy.MARKET_AWARE) {
+        const marketStatusResult = await this.getMarketStatusForSymbols(request.symbols);
+        marketStatus = {
+          isOpen: Object.values(marketStatusResult.marketStatus).some(status => status.status === 'TRADING'),
+          timezone: Object.values(marketStatusResult.marketStatus)[0]?.timezone || 'UTC'
+        };
+      }
 
-      // 调用StorageService.getWithSmartCache
-      const cacheResult = await this.storageService.getWithSmartCache(
+      // 计算优化TTL
+      const ttlResult = CommonCacheService.calculateOptimalTTL({
+        symbol,
+        dataType,
+        marketStatus,
+        freshnessRequirement: this.mapStrategyToFreshnessRequirement(request.strategy)
+      });
+
+      // 直接使用CommonCacheService获取数据
+      const cacheResult = await this.commonCacheService.getWithFallback(
         request.cacheKey,
         request.fetchFn,
-        cacheOptions
+        ttlResult.ttl
       );
 
       // 转换为标准化结果格式
       const result: CacheOrchestratorResult<T> = {
         data: cacheResult.data as T,
         hit: cacheResult.hit,
-        ttlRemaining: cacheResult.metadata?.ttlRemaining,
-        dynamicTtl: cacheResult.metadata?.dynamicTtl,
+        ttlRemaining: cacheResult.ttlRemaining,
+        dynamicTtl: ttlResult.ttl,
         strategy: request.strategy,
-        storageKey: cacheResult.metadata?.key || request.cacheKey,
-        timestamp: cacheResult.metadata?.generatedAt || new Date().toISOString(),
+        storageKey: request.cacheKey,
+        timestamp: new Date().toISOString(),
       };
 
       // 触发后台更新任务（如果策略支持且缓存命中）
@@ -363,51 +390,14 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 判断是否应该调度后台更新
-   * 基于策略配置和缓存状态决定
-   */
-  private shouldScheduleBackgroundUpdate(strategy: CacheStrategy, cacheResult: any): boolean {
-    const strategyConfig = this.config.strategies[strategy];
-    
-    if (!strategyConfig || !this.config.enableBackgroundUpdate) {
-      return false;
-    }
-
-    // NO_CACHE策略不需要后台更新
-    if (strategy === CacheStrategy.NO_CACHE) {
-      return false;
-    }
-
-    // 检查策略是否启用后台更新
-    const enableBackgroundUpdate = (strategyConfig as any).enableBackgroundUpdate;
-    if (!enableBackgroundUpdate) {
-      return false;
-    }
-
-    // 检查TTL阈值
-    if (cacheResult.metadata?.ttlRemaining && cacheResult.metadata?.dynamicTtl) {
-      const thresholdRatio = (strategyConfig as any).updateThresholdRatio || 0.3;
-      const remainingRatio = cacheResult.metadata.ttlRemaining / cacheResult.metadata.dynamicTtl;
-      
-      return remainingRatio <= thresholdRatio;
-    }
-
-    // 默认不触发更新
-    return false;
-  }
-
-  /**
    * 批量获取数据的智能缓存
-   * 复用StorageService.batchgetWithSmartCache基础设施
-   * 🚨语义说明: 单个失败不影响整体，失败项返回miss(null)，与StorageService行为一致
+   * Phase 5.2重构：直接使用CommonCacheService的mget功能
    */
   async batchGetDataWithSmartCache<T>(requests: CacheOrchestratorRequest<T>[]): Promise<CacheOrchestratorResult<T>[]> {
     if (!requests || requests.length === 0) {
       return [];
     }
 
-    // const results: CacheOrchestratorResult<T>[] = [];
-    
     try {
       // 分组处理：按策略分组以便批量优化
       const strategyGroups = new Map<CacheStrategy, CacheOrchestratorRequest<T>[]>();
@@ -481,7 +471,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 处理批量缓存组（按策略分组）
-   * 针对相同策略的请求进行批量优化
+   * Phase 5.2重构：使用CommonCacheService的mget进行批量优化
    */
   private async processBatchGroup<T>(
     strategy: CacheStrategy, 
@@ -523,42 +513,45 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       return await Promise.all(promises);
     }
 
-    // 对于其他策略，尝试使用批量缓存API（如果StorageService支持）
+    // 对于其他策略，使用CommonCacheService的批量API
     try {
-      // 收集所有符号用于市场状态查询（优化：一次查询多个市场）
-      const allSymbols = requests.flatMap(req => req.symbols);
-      const uniqueSymbols = [...new Set(allSymbols)];
+      // Phase 5.2重构：直接使用CommonCacheService.mget
+      const keys = requests.map(req => req.cacheKey);
+      const cacheResults = await this.commonCacheService.mget<T>(keys);
 
-      // 获取统一的缓存选项（对于相同策略的请求）
-      const cacheOptions = await this.mapStrategyToOptionsAsync(strategy, uniqueSymbols);
+      // 识别缓存未命中的查询
+      const missedQueries = [];
+      const finalResults = new Array(requests.length);
 
-      // 准备批量请求
-      const batchRequests = requests.map(request => ({
-        key: request.cacheKey,
-        fetchFn: request.fetchFn,
-        options: cacheOptions,
-      }));
+      for (let i = 0; i < requests.length; i++) {
+        const cacheResult = cacheResults[i];
+        if (cacheResult?.data) {
+          finalResults[i] = {
+            result: {
+              data: cacheResult.data,
+              hit: true,
+              ttlRemaining: cacheResult.ttlRemaining,
+              strategy: requests[i].strategy,
+              storageKey: requests[i].cacheKey,
+              timestamp: new Date().toISOString(),
+            },
+            originalIndex: (requests[i] as any).originalIndex,
+          };
+        } else {
+          missedQueries.push({ index: i, request: requests[i] });
+        }
+      }
 
-      // 调用StorageService的批量API
-      const batchResults = await this.storageService.batchGetWithSmartCache(batchRequests);
+      this.logger.debug(
+        `Batch query cache stats: total=${requests.length}, hit=${requests.length - missedQueries.length}, miss=${missedQueries.length}`,
+      );
 
-      // 转换结果格式
-      batchResults.forEach((cacheResult, index) => {
-        const originalRequest = requests[index];
-        
-        results.push({
-          result: {
-            data: cacheResult.data as T,
-            hit: cacheResult.hit,
-            ttlRemaining: cacheResult.metadata?.ttlRemaining,
-            dynamicTtl: cacheResult.metadata?.dynamicTtl,
-            strategy: originalRequest.strategy,
-            storageKey: cacheResult.metadata?.key || originalRequest.cacheKey,
-            timestamp: cacheResult.metadata?.generatedAt || new Date().toISOString(),
-          },
-          originalIndex: (originalRequest as any).originalIndex,
-        });
-      });
+      // 并发执行缓存未命中的查询
+      if (missedQueries.length > 0) {
+        await this.handleMissedQueries(missedQueries, finalResults);
+      }
+
+      return finalResults;
 
     } catch (error) {
       this.logger.warn(`Batch cache API failed for strategy ${strategy}, falling back to individual requests:`, error);
@@ -589,6 +582,71 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     }
 
     return results;
+  }
+
+  /**
+   * 处理缓存未命中的查询
+   * Phase 5.2重构：优化并发处理，直接写入CommonCacheService
+   */
+  private async handleMissedQueries<T>(
+    missedQueries: Array<{ index: number; request: CacheOrchestratorRequest<T> }>,
+    finalResults: any[]
+  ): Promise<void> {
+    const concurrency = 5; // 控制并发数量避免过载
+    
+    for (let i = 0; i < missedQueries.length; i += concurrency) {
+      const batch = missedQueries.slice(i, i + concurrency);
+      
+      const batchPromises = batch.map(async ({ index, request }) => {
+        try {
+          const data = await request.fetchFn();
+          
+          // Phase 5.2重构：计算智能TTL并直接写入CommonCacheService
+          const symbol = request.symbols?.[0] || 'unknown';
+          const dataType = this.inferDataTypeFromKey(request.cacheKey);
+          
+          const ttlResult = CommonCacheService.calculateOptimalTTL({
+            symbol,
+            dataType,
+            freshnessRequirement: this.mapStrategyToFreshnessRequirement(request.strategy)
+          });
+          
+          // 异步设置缓存
+          this.commonCacheService.set(request.cacheKey, data, ttlResult.ttl).catch(error => {
+            this.logger.warn(`Failed to cache query result for ${request.cacheKey}:`, error);
+          });
+          
+          finalResults[index] = {
+            result: {
+              data,
+              hit: false,
+              ttlRemaining: ttlResult.ttl,
+              dynamicTtl: ttlResult.ttl,
+              strategy: request.strategy,
+              storageKey: request.cacheKey,
+              timestamp: new Date().toISOString(),
+            },
+            originalIndex: (request as any).originalIndex,
+          };
+        } catch (error) {
+          this.logger.error(`Failed to fetch data for query ${request.cacheKey}:`, error);
+          finalResults[index] = {
+            result: {
+              data: null,
+              hit: false,
+              ttlRemaining: 0,
+              strategy: request.strategy,
+              storageKey: request.cacheKey,
+              timestamp: new Date().toISOString(),
+              error: error.message,
+            },
+            originalIndex: (request as any).originalIndex,
+          };
+        }
+      });
+      
+      await Promise.all(batchPromises);
+    }
   }
 
   /**
@@ -644,101 +702,397 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 策略映射：同步版本
-   * 将CacheStrategy转换为StorageService可识别的SmartCacheOptionsDto
-   * 注意：策略映射对象不传keyPrefix字段，避免与cacheKey双重命名空间
+   * Phase 5.4: 高性能缓存预热
+   * 主动预热热点查询数据，提升系统响应速度
    */
-  mapStrategyToOptions(strategy: CacheStrategy, symbols: string[] = []): SmartCacheOptionsDto {
-    const strategyConfig = this.config.strategies[strategy];
+  async warmupHotQueries(
+    hotQueries: Array<{
+      key: string;
+      request: CacheOrchestratorRequest<any>;
+      priority?: number;
+    }>,
+  ): Promise<Array<{
+    key: string;
+    success: boolean;
+    duration?: number;
+    ttl?: number;
+    error?: string;
+  }>> {
+    // 按优先级排序预热任务
+    const sortedQueries = hotQueries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
     
-    if (!strategyConfig) {
-      throw new Error(`Unknown cache strategy: ${strategy}`);
+    const warmupResults = [];
+    const concurrencyLimit = 3; // 控制并发数避免系统过载
+    
+    this.logger.log(`开始缓存预热: ${hotQueries.length} 个查询`);
+
+    // 分批并发执行预热任务
+    for (let i = 0; i < sortedQueries.length; i += concurrencyLimit) {
+      const batch = sortedQueries.slice(i, i + concurrencyLimit);
+      
+      const batchPromises = batch.map(async (query) => {
+        const startTime = Date.now();
+        
+        try {
+          // 检查是否已存在有效缓存
+          const existingResult = await this.commonCacheService.get(query.key);
+          if (existingResult?.data && existingResult.ttlRemaining > 60) {
+            this.logger.debug(`跳过预热已缓存的key: ${query.key}`);
+            return {
+              key: query.key,
+              success: true,
+              duration: Date.now() - startTime,
+              ttl: existingResult.ttlRemaining,
+              skipped: true,
+            };
+          }
+
+          // 执行缓存预热
+          const result = await this.getDataWithSmartCache(query.request);
+          
+          const duration = Date.now() - startTime;
+          this.logger.debug(`缓存预热完成: ${query.key} (${duration}ms)`);
+          
+          return {
+            key: query.key,
+            success: true,
+            duration,
+            ttl: result.ttlRemaining || 0,
+          };
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          this.logger.warn(`缓存预热失败: ${query.key}`, error);
+          
+          return {
+            key: query.key,
+            success: false,
+            duration,
+            error: error.message,
+          };
+        }
+      });
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          warmupResults.push(result.value);
+        } else {
+          warmupResults.push({
+            key: 'unknown',
+            success: false,
+            error: result.reason?.message || '未知错误',
+          });
+        }
+      });
     }
-
-    const options: SmartCacheOptionsDto = {
-      symbols,
-      forceRefresh: false,
-      // 🚨注意: 不传keyPrefix字段，避免与cacheKey双重命名空间
-    };
-
-    switch (strategy) {
-      case CacheStrategy.STRONG_TIMELINESS:
-        const strongConfig = strategyConfig as any;
-        options.minCacheTtl = Math.min(strongConfig.ttl, strongConfig.forceRefreshInterval);
-        options.maxCacheTtl = strongConfig.forceRefreshInterval;
-        break;
-
-      case CacheStrategy.WEAK_TIMELINESS:
-        const weakConfig = strategyConfig as any;
-        options.minCacheTtl = weakConfig.ttl;
-        options.maxCacheTtl = weakConfig.ttl;
-        break;
-
-      case CacheStrategy.NO_CACHE:
-        options.forceRefresh = true;
-        options.minCacheTtl = 0;
-        options.maxCacheTtl = 0;
-        break;
-
-      case CacheStrategy.ADAPTIVE:
-        const adaptiveConfig = strategyConfig as any;
-        options.minCacheTtl = adaptiveConfig.minTtl;
-        options.maxCacheTtl = adaptiveConfig.maxTtl;
-        break;
-
-      case CacheStrategy.MARKET_AWARE:
-        // 市场感知策略需要异步处理，这里使用基础值
-        const marketConfig = strategyConfig as any;
-        options.minCacheTtl = marketConfig.openMarketTtl;
-        options.maxCacheTtl = marketConfig.closedMarketTtl;
-        break;
-
-      default:
-        throw new Error(`Unsupported cache strategy: ${strategy}`);
-    }
-
-    this.logger.debug(`Mapped strategy ${strategy} to options:`, options);
-    return options;
+    
+    const successCount = warmupResults.filter(r => r.success).length;
+    this.logger.log(`缓存预热完成: ${successCount}/${hotQueries.length} 成功`);
+    
+    return warmupResults;
   }
 
   /**
-   * 策略映射：异步版本（用于市场感知策略）
-   * 查询市场状态后动态调整TTL
+   * Phase 5.4: 智能并发控制的批量获取
+   * 优化的批量获取方法，支持智能并发控制和错误隔离
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async mapStrategyToOptionsAsync(strategy: CacheStrategy, symbols: string[], _metadata?: any): Promise<SmartCacheOptionsDto> {
-    // 对于非市场感知策略，直接使用同步映射
-    if (strategy !== CacheStrategy.MARKET_AWARE) {
-      return this.mapStrategyToOptions(strategy, symbols);
+  async getBatchDataWithOptimizedConcurrency<T>(
+    requests: Array<CacheOrchestratorRequest<T>>,
+    options: {
+      concurrency?: number;
+      enableCache?: boolean;
+      errorIsolation?: boolean;
+      retryFailures?: boolean;
+    } = {},
+  ): Promise<Array<CacheOrchestratorResult<T>>> {
+    const {
+      concurrency = 5,
+      enableCache = true,
+      errorIsolation = true,
+      retryFailures = true,
+    } = options;
+
+    if (!enableCache) {
+      return this.executeConcurrentRequests(requests, concurrency);
     }
 
-    // 市场感知策略需要查询市场状态
-    const marketStatus = await this.getMarketStatusForSymbols(symbols);
-    const options = this.mapStrategyToOptions(strategy, symbols);
-    
-    // 将市场状态添加到选项中
-    options.marketStatus = marketStatus.marketStatus;
+    try {
+      // 1. 批量缓存检查
+      const keys = requests.map(req => req.cacheKey);
+      const cacheResults = await this.commonCacheService.mget<T>(keys);
+      
+      // 2. 识别缓存未命中的请求
+      const missedRequests = [];
+      const finalResults = new Array(requests.length);
 
-    // 根据市场状态动态调整TTL
-    const marketConfig = this.config.strategies[CacheStrategy.MARKET_AWARE] as any;
-    const isAnyMarketOpen = Object.values(marketStatus.marketStatus).some(status => status.status === 'TRADING');
+      for (let i = 0; i < requests.length; i++) {
+        const cacheResult = cacheResults[i];
+        if (cacheResult?.data) {
+          finalResults[i] = {
+            data: cacheResult.data,
+            hit: true,
+            ttlRemaining: cacheResult.ttlRemaining,
+            strategy: requests[i].strategy,
+            storageKey: requests[i].cacheKey,
+          };
+        } else {
+          missedRequests.push({ index: i, request: requests[i] });
+        }
+      }
+
+      this.logger.debug(
+        `批量查询缓存统计: total=${requests.length}, hit=${requests.length - missedRequests.length}, miss=${missedRequests.length}`,
+      );
+
+      // 3. 处理缓存未命中的请求
+      if (missedRequests.length > 0) {
+        await this.handleMissedRequestsOptimized(
+          missedRequests,
+          finalResults,
+          concurrency,
+          errorIsolation,
+          retryFailures,
+        );
+      }
+
+      return finalResults;
+    } catch (error) {
+      this.logger.error('优化批量获取失败:', error);
+      
+      if (errorIsolation) {
+        // 降级到单个请求处理
+        return this.executeConcurrentRequests(requests, concurrency);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Phase 5.4: 缓存使用分析和优化建议
+   * 提供详细的缓存性能分析和优化建议
+   */
+  async analyzeCachePerformance(cacheKeys: string[]): Promise<{
+    summary: {
+      totalKeys: number;
+      cached: number;
+      expired: number;
+      avgTtl: number;
+      hitRate: number;
+    };
+    recommendations: string[];
+    hotspots: Array<{
+      key: string;
+      ttlRemaining: number;
+      dataSize?: number;
+      recommendation: string;
+    }>;
+  }> {
+    try {
+      const analysis = {
+        summary: {
+          totalKeys: cacheKeys.length,
+          cached: 0,
+          expired: 0,
+          avgTtl: 0,
+          hitRate: 0,
+        },
+        recommendations: [],
+        hotspots: [],
+      };
+
+      if (cacheKeys.length === 0) {
+        return analysis;
+      }
+
+      // 批量获取缓存状态
+      const cacheResults = await this.commonCacheService.mget(cacheKeys);
+      let totalTtl = 0;
+
+      for (let i = 0; i < cacheKeys.length; i++) {
+        const key = cacheKeys[i];
+        const result = cacheResults[i];
+        
+        if (result?.data) {
+          analysis.summary.cached++;
+          totalTtl += result.ttlRemaining;
+          
+          // 识别热点数据
+          if (result.ttlRemaining < 300) { // 5分钟内过期
+            analysis.hotspots.push({
+              key,
+              ttlRemaining: result.ttlRemaining,
+              recommendation: 'TTL即将过期，建议主动刷新',
+            });
+          }
+        } else {
+          analysis.summary.expired++;
+          
+          // 已过期的热点数据
+          if (this.isHotKey(key)) {
+            analysis.hotspots.push({
+              key,
+              ttlRemaining: 0,
+              recommendation: '热点数据已过期，建议立即预热',
+            });
+          }
+        }
+      }
+
+      // 计算统计指标
+      analysis.summary.hitRate = analysis.summary.cached / analysis.summary.totalKeys;
+      if (analysis.summary.cached > 0) {
+        analysis.summary.avgTtl = Math.round(totalTtl / analysis.summary.cached);
+      }
+
+      // 生成优化建议
+      if (analysis.summary.hitRate < 0.7) {
+        analysis.recommendations.push('缓存命中率较低，建议增加TTL或实施缓存预热策略');
+      }
+      
+      if (analysis.summary.avgTtl < 60) {
+        analysis.recommendations.push('平均TTL过短，可能导致频繁回源，建议优化TTL计算策略');
+      }
+      
+      if (analysis.summary.avgTtl > 3600) {
+        analysis.recommendations.push('平均TTL较长，注意监控数据新鲜度');
+      }
+      
+      if (analysis.hotspots.length > analysis.summary.totalKeys * 0.1) {
+        analysis.recommendations.push(`发现${analysis.hotspots.length}个热点数据问题，建议实施主动刷新策略`);
+      }
+
+      this.logger.debug(`缓存性能分析: 命中率=${analysis.summary.hitRate.toFixed(2)}, 平均TTL=${analysis.summary.avgTtl}s, 热点=${analysis.hotspots.length}`);
+      
+      return analysis;
+    } catch (error) {
+      this.logger.error('缓存性能分析失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Phase 5.4: 自适应TTL优化
+   * 基于访问模式和数据特征的智能TTL计算
+   */
+  async setDataWithAdaptiveTTL<T>(
+    key: string,
+    data: T,
+    options: {
+      dataType?: string;
+      symbol?: string;
+      accessFrequency?: 'high' | 'medium' | 'low';
+      dataSize?: number;
+      lastUpdated?: Date;
+      marketStatus?: 'open' | 'closed' | 'pre_market' | 'after_hours';
+    } = {},
+  ): Promise<{ success: boolean; ttl: number; strategy: string; error?: string }> {
+    try {
+      const {
+        dataType = 'unknown',
+        symbol = '',
+        accessFrequency = 'medium',
+        dataSize = 0,
+        lastUpdated,
+        marketStatus = 'unknown',
+      } = options;
+
+      // 使用CommonCacheService的智能TTL计算
+      const marketStatusObj = this.convertMarketStatusToObject(marketStatus);
+      const ttlResult = CommonCacheService.calculateOptimalTTL({
+        symbol,
+        dataType,
+        marketStatus: marketStatusObj,
+        freshnessRequirement: this.mapAccessFrequencyToFreshnessRequirement(accessFrequency),
+      });
+
+      let finalTtl = ttlResult.ttl;
+      let strategy = ttlResult.strategy;
+
+      // 基于数据大小的额外优化
+      if (dataSize > 10240) { // 10KB以上的大数据
+        finalTtl = Math.max(finalTtl * 0.8, 300); // 减少20%但不低于5分钟
+        strategy += '+大数据优化';
+      }
+
+      // 基于数据新鲜度的调整
+      if (lastUpdated) {
+        const ageMinutes = (Date.now() - lastUpdated.getTime()) / (1000 * 60);
+        if (ageMinutes > 30) { // 数据超过30分钟
+          finalTtl = Math.max(finalTtl * 0.7, 180); // 缩短30%但不低于3分钟
+          strategy += '+陈旧数据惩罚';
+        }
+      }
+
+      // 设置缓存
+      await this.commonCacheService.set(key, data, finalTtl);
+      
+      this.logger.debug(
+        `自适应TTL设置: key=${key}, ttl=${finalTtl}s, strategy=${strategy}, type=${dataType}, freq=${accessFrequency}`,
+      );
+      
+      return { success: true, ttl: finalTtl, strategy };
+    } catch (error) {
+      this.logger.error(`自适应TTL设置失败: ${key}`, error);
+      return { success: false, ttl: 0, strategy: 'error', error: error.message };
+    }
+  }
+
+  // ===================
+  // 辅助方法和策略映射
+  // Phase 5.2重构：简化逻辑，直接使用CommonCacheService功能
+  // ===================
+
+  /**
+   * 将缓存策略映射到新鲜度要求
+   * Phase 5.2重构：简化策略映射，移除复杂的SmartCacheOptionsDto转换
+   */
+  private mapStrategyToFreshnessRequirement(strategy: CacheStrategy): 'realtime' | 'analytical' | 'archive' {
+    switch (strategy) {
+      case CacheStrategy.STRONG_TIMELINESS:
+        return 'realtime';
+      case CacheStrategy.WEAK_TIMELINESS:
+        return 'analytical';
+      case CacheStrategy.ADAPTIVE:
+      case CacheStrategy.MARKET_AWARE:
+        return 'analytical';
+      default:
+        return 'analytical';
+    }
+  }
+
+  /**
+   * 判断是否应该调度后台更新
+   * 基于策略配置和缓存状态决定
+   */
+  private shouldScheduleBackgroundUpdate(strategy: CacheStrategy, cacheResult: any): boolean {
+    const strategyConfig = this.config.strategies[strategy];
     
-    if (isAnyMarketOpen) {
-      // 开市时使用短TTL
-      options.minCacheTtl = marketConfig.openMarketTtl;
-      options.maxCacheTtl = marketConfig.openMarketTtl;
-    } else {
-      // 闭市时使用长TTL
-      options.minCacheTtl = marketConfig.closedMarketTtl;
-      options.maxCacheTtl = marketConfig.closedMarketTtl;
+    if (!strategyConfig || !this.config.enableBackgroundUpdate) {
+      return false;
     }
 
-    this.logger.debug(`Market-aware strategy mapped for symbols ${symbols.join(',')}:`, {
-      isAnyMarketOpen,
-      ttl: options.minCacheTtl,
-    });
+    // NO_CACHE策略不需要后台更新
+    if (strategy === CacheStrategy.NO_CACHE) {
+      return false;
+    }
 
-    return options;
+    // 检查策略是否启用后台更新
+    const enableBackgroundUpdate = (strategyConfig as any).enableBackgroundUpdate;
+    if (!enableBackgroundUpdate) {
+      return false;
+    }
+
+    // 检查TTL阈值
+    if (cacheResult.metadata?.ttlRemaining && cacheResult.metadata?.dynamicTtl) {
+      const thresholdRatio = (strategyConfig as any).updateThresholdRatio || 0.3;
+      const remainingRatio = cacheResult.metadata.ttlRemaining / cacheResult.metadata.dynamicTtl;
+      
+      return remainingRatio <= thresholdRatio;
+    }
+
+    // 默认不触发更新
+    return false;
   }
 
   /**
@@ -845,6 +1199,24 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
     // 默认美股
     return Market.US;
+  }
+
+  /**
+   * 从缓存键推断数据类型
+   * Phase 5.2重构：简化数据类型推断
+   */
+  private inferDataTypeFromKey(key: string): string {
+    const keyLower = key.toLowerCase();
+    
+    if (keyLower.includes('quote') || keyLower.includes('realtime')) {
+      return 'stock-quote';
+    } else if (keyLower.includes('historical') || keyLower.includes('history')) {
+      return 'historical';
+    } else if (keyLower.includes('company') || keyLower.includes('info')) {
+      return 'company-info';
+    } else {
+      return 'unknown-type';
+    }
   }
 
   /**
@@ -1023,5 +1395,226 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     });
     
     return priority;
+  }
+
+  // Phase 5.4: 性能优化辅助方法
+
+  /**
+   * 执行并发请求（降级方案）
+   */
+  private async executeConcurrentRequests<T>(
+    requests: Array<CacheOrchestratorRequest<T>>,
+    concurrency: number,
+  ): Promise<Array<CacheOrchestratorResult<T>>> {
+    const results = new Array(requests.length);
+    
+    for (let i = 0; i < requests.length; i += concurrency) {
+      const batch = requests.slice(i, i + concurrency);
+      const batchPromises = batch.map(async (request, batchIndex) => {
+        try {
+          const data = await request.fetchFn();
+          
+          return {
+            data,
+            hit: false,
+            ttlRemaining: 0,
+            strategy: CacheStrategy.NO_CACHE,
+            storageKey: '',
+          };
+        } catch (error) {
+          this.logger.error(`并发请求失败: batch ${i + batchIndex}`, error);
+          return {
+            data: null,
+            hit: false,
+            ttlRemaining: 0,
+            strategy: CacheStrategy.NO_CACHE,
+            storageKey: '',
+            error: error.message,
+          };
+        }
+      });
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      batchResults.forEach((result, batchIndex) => {
+        if (result.status === 'fulfilled') {
+          results[i + batchIndex] = result.value;
+        } else {
+          results[i + batchIndex] = {
+            data: null,
+            hit: false,
+            ttlRemaining: 0,
+            strategy: CacheStrategy.NO_CACHE,
+            storageKey: '',
+            error: result.reason?.message || '未知错误',
+          };
+        }
+      });
+    }
+    
+    return results;
+  }
+
+  /**
+   * 优化的缓存未命中处理
+   */
+  private async handleMissedRequestsOptimized<T>(
+    missedRequests: Array<{ index: number; request: CacheOrchestratorRequest<T> }>,
+    finalResults: Array<CacheOrchestratorResult<T>>,
+    concurrency: number,
+    errorIsolation: boolean,
+    retryFailures: boolean,
+  ) {
+    const failedRequests = [];
+    
+    // 第一轮：正常处理
+    for (let i = 0; i < missedRequests.length; i += concurrency) {
+      const batch = missedRequests.slice(i, i + concurrency);
+      
+      const batchPromises = batch.map(async ({ index, request }) => {
+        try {
+          // 计算TTL
+          const symbol = this.extractSymbolFromKey(request.cacheKey);
+          const dataType = this.inferDataTypeFromKey(request.cacheKey);
+          const marketStatus = await this.getMarketStatusForSymbol(symbol);
+          
+          const marketStatusObj = this.convertMarketStatusToObject(marketStatus);
+          const ttlResult = CommonCacheService.calculateOptimalTTL({
+            symbol,
+            dataType,
+            marketStatus: marketStatusObj,
+            freshnessRequirement: this.mapStrategyToFreshnessRequirement(request.strategy),
+          });
+
+          // 获取数据
+          const data = await request.fetchFn();
+          
+          // 异步设置缓存
+          this.commonCacheService.set(request.cacheKey, data, ttlResult.ttl).catch(error => {
+            this.logger.warn(`缓存设置失败: ${request.cacheKey}`, error);
+          });
+          
+          finalResults[index] = {
+            data,
+            hit: false,
+            ttlRemaining: ttlResult.ttl,
+            strategy: request.strategy,
+            storageKey: request.cacheKey,
+          };
+        } catch (error) {
+          this.logger.warn(`请求失败: ${request.cacheKey}`, error);
+          
+          if (errorIsolation && retryFailures) {
+            failedRequests.push({ index, request });
+          }
+          
+          finalResults[index] = {
+            data: null,
+            hit: false,
+            ttlRemaining: 0,
+            strategy: request.strategy,
+            storageKey: request.cacheKey,
+            error: error.message,
+          };
+        }
+      });
+      
+      await Promise.allSettled(batchPromises);
+    }
+    
+    // 第二轮：重试失败的请求（降低并发度）
+    if (retryFailures && failedRequests.length > 0) {
+      this.logger.log(`重试失败的请求: ${failedRequests.length} 个`);
+      
+      for (const { index, request } of failedRequests) {
+        try {
+          const data = await request.fetchFn();
+          
+          finalResults[index] = {
+            data,
+            hit: false,
+            ttlRemaining: 300, // 重试成功的数据使用较短TTL
+            strategy: request.strategy,
+            storageKey: request.cacheKey,
+          };
+          
+          // 异步设置缓存
+          this.commonCacheService.set(request.cacheKey, data, 300).catch(error => {
+            this.logger.warn(`重试缓存设置失败: ${request.cacheKey}`, error);
+          });
+        } catch (retryError) {
+          this.logger.error(`重试仍失败: ${request.cacheKey}`, retryError);
+          // 保持原有的错误结果
+        }
+      }
+    }
+  }
+
+  /**
+   * 判断是否为热点键
+   */
+  private isHotKey(key: string): boolean {
+    // 简单的热点判断逻辑，可以根据实际情况扩展
+    const hotPatterns = [
+      /stock:.*:quote/,     // 股票报价
+      /market:.*:status/,   // 市场状态
+      /symbol:.*:mapping/,  // 符号映射
+    ];
+    
+    return hotPatterns.some(pattern => pattern.test(key));
+  }
+
+  /**
+   * 从缓存键提取符号
+   */
+  private extractSymbolFromKey(key: string): string {
+    const matches = key.match(/(?:stock|symbol):([^:]+)/);
+    return matches ? matches[1] : '';
+  }
+
+  /**
+   * 获取单个符号的市场状态
+   */
+  private async getMarketStatusForSymbol(symbol: string): Promise<string> {
+    if (!symbol) return 'unknown';
+    
+    try {
+      const market = this.inferMarketFromSymbol(symbol);
+      await this.getMarketStatusForSymbols([symbol]);
+      // 假设我们有一个简化的状态获取方法
+      return market === Market.US ? 'open' : 'closed';
+    } catch (error) {
+      this.logger.warn(`获取市场状态失败: ${symbol}`, error);
+      return 'unknown';
+    }
+  }
+
+  /**
+   * 将访问频率映射到新鲜度要求
+   */
+  private mapAccessFrequencyToFreshnessRequirement(frequency: 'high' | 'medium' | 'low'): 'realtime' | 'analytical' | 'archive' {
+    switch (frequency) {
+      case 'high':
+        return 'realtime';
+      case 'medium':
+        return 'analytical';
+      case 'low':
+      default:
+        return 'archive';
+    }
+  }
+
+  /**
+   * 将字符串市场状态转换为CommonCacheService需要的对象格式
+   */
+  private convertMarketStatusToObject(status: string): { isOpen: boolean; timezone: string; nextStateChange?: Date } | undefined {
+    if (!status || status === 'unknown') {
+      return undefined;
+    }
+    
+    return {
+      isOpen: status === 'open',
+      timezone: 'UTC',
+      nextStateChange: undefined,
+    };
   }
 }

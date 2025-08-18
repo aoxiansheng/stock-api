@@ -1,263 +1,191 @@
-# CLAUDE.md - Backend Development Guide
+# CLAUDE.md
 
-This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with the New Stock API backend codebase.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Context
+## Project Overview
 
-This is the **backend directory** of the New Stock API project - a sophisticated NestJS-based intelligent stock data processing system featuring a **7-component core architecture** with real-time WebSocket streaming, three-tier authentication, and comprehensive fault tolerance.
+This is the backend of the **New Stock API** - a sophisticated NestJS-based intelligent stock data processing system that aggregates and normalizes financial data from multiple providers into a unified API.
 
-**Key Architecture Principles:**
-- **7-component architecture**: Eliminates circular dependencies through Receiver → Stream Receiver → Symbol Mapper → Data Mapper → Transformer → Storage → Query flow
-- **Three-tier authentication**: API Key (third-party apps), JWT (developers/admins), Public access
-- **Four-layer field semantics**: Eliminates ambiguous `dataType` fields through layer-specific naming
-- **Fault-tolerant design**: Non-critical systems gracefully handle failures
-- **Response interception**: Never manually wrap responses - use global ResponseInterceptor
+**Core Technologies:**
+- Runtime: Bun (replaces Node.js for faster TypeScript execution)
+- Framework: NestJS with Express
+- Database: MongoDB (Mongoose ODM) + Redis (caching)
+- Real-time: WebSocket with Socket.IO
+- Authentication: Three-tier system (API Key, JWT, Public)
 
-## Development Commands
+## Essential Commands
 
-### Essential Commands
 ```bash
 # Development
-bun run dev              # Start development server with auto-reload
-bun run build           # Compile TypeScript
-bun run lint            # ESLint with auto-fix
-bun run format          # Format code with Prettier
+bun run dev                      # Start with auto-reload
+bun run start:debug              # Start with debugging
+bun run build                    # Compile TypeScript
+bun run lint                     # ESLint with auto-fix
+bun run format                   # Prettier formatting
 
-# Testing
-bun run test:unit                # Unit tests
-bun run test:unit:watch          # Unit tests in watch mode
-bun run test:integration         # Integration tests (requires MongoDB/Redis)
+# Testing - Single Test Execution
+npx jest path/to/test.spec.ts                           # Run specific test file
+npx jest path/to/test.spec.ts -t "test name"           # Run specific test case
+DISABLE_AUTO_INIT=true npx jest path/to/test.spec.ts   # Run without auto-initialization
+
+# Testing - Module Testing
+bun run test:unit:auth           # Auth module unit tests
+bun run test:unit:core           # Core modules unit tests
+bun run test:unit:cache          # Cache module unit tests
+bun run test:unit:query          # Query component tests
+bun run test:unit:receiver       # Receiver component tests
+
+# Testing - Integration & E2E
+bun run test:integration         # Integration tests (requires MongoDB/Redis running)
 bun run test:e2e                 # E2E tests
-bun run test:security           # Security tests
-bun run test:all                # All tests
+bun run test:all                 # Run all test types
 
-# Individual test execution
-npx jest test/jest/unit/auth/auth.service.spec.ts
-npx jest test/jest/unit/auth/auth.service.spec.ts -t "should authenticate user"
-npx jest --config test/config/jest.integration.config.js test/jest/integration/core/
+# Testing - Coverage
+bun run test:coverage:all        # Generate full coverage report
+bun run test:coverage:unit       # Unit test coverage only
 
-# Module-specific testing
-bun run test:unit:auth          # Auth module tests
-bun run test:unit:core          # Core module tests
-bun run test:unit:common        # Shared module tests
-
-# Performance testing (requires K6)
-bun run test:perf:auth          # Auth performance tests
-bun run test:perf:data          # Data processing performance
-
-# Coverage testing
-bun run test:coverage:all       # Generate coverage for all test types
-bun run test:coverage:unit      # Unit test coverage only
-bun run test:coverage:auth      # Auth module coverage
-bun run test:coverage:core      # Core modules coverage
-bun run coverage:report         # Merge and analyze coverage reports
-
-# Smart Cache testing
-bun run test:unit:cache         # Cache module unit tests
-bun run test:integration:cache  # Cache integration tests
-bun run test:e2e:cache          # Cache E2E tests
-
-# Quality validation tools
-bun run test:validate-structure # Test structure validation
-bun run tools:structure-validator # Structure validation tool
-bun run tools:find-duplicates  # Find duplicate test files
-bun run tools:clean-duplicates # Clean duplicate tests
-bun run tools:analyze-all      # Complete analysis workflow
+# Performance Testing (requires K6)
+bun run test:perf:auth           # Auth performance tests
+bun run test:perf:data           # Data processing performance
 ```
 
-## Critical Development Patterns
+## High-Level Architecture
 
-### 1. Response Format Requirements
-**NEVER manually wrap responses** - Use global `ResponseInterceptor`:
+### 7-Component Core Data Flow
 
-```typescript
-// ✅ Correct
-async getData(@Body() dto: QueryDto) {
-  return await this.service.getData(dto); // Interceptor handles wrapping
-}
+The system uses a pipeline architecture that eliminates circular dependencies:
 
-// ❌ Wrong - Don't manually wrap
-async getData(@Body() dto: QueryDto) {
-  const data = await this.service.getData(dto);
-  return { statusCode: 200, message: '成功', data }; // Don't do this
-}
+```
+User Request
+    ↓
+1. Receiver (Entry point, market detection, provider routing)
+    ↓
+2. Stream Receiver (WebSocket real-time streaming)
+    ↓
+3. Symbol Mapper (Format conversion: "700.HK" → "00700")
+    ↓
+4. Data Mapper (Field mapping rules engine)
+    ↓
+5. Transformer (Data standardization/normalization)
+    ↓
+6. Storage (Redis cache + MongoDB persistence)
+    ↓
+7. Query (Unified data retrieval with intelligent caching)
+    ↓
+Response to User
 ```
 
-**Standard Response Format**:
-```typescript
-{
-  statusCode: number;
-  message: string;       // Must be in Chinese
-  data: T | null;
-  timestamp: string;
-  requestId?: string;
-}
-```
+### Multi-Layer Caching Architecture
 
-### 2. HTTP Status Code Conventions
-**Critical for E2E Tests**: Understand the distinction between operations and resource creation:
+The system implements three independent caching layers:
 
-```typescript
-// ✅ Operations return 200 (with @HttpCode decorator)
-@Post('reset-presets')
-@HttpCode(HttpStatus.OK)  // Operations like reset, persist, update
-async resetPresets() { ... }
+1. **Smart Cache (Redis)** - Complete API responses
+   - Receiver: 5-second TTL (strong timeliness)
+   - Query: Dynamic TTL based on strategy (weak timeliness, ~300s default)
+   - Key format: `receiver:get-stock-quote:700.HK:longport`
 
-// ✅ Resource creation returns 201 (default POST behavior)
-@Post('templates')
-async createTemplate() { ... }  // Creating new resources
-```
+2. **Symbol Mapper Cache (Memory LRU)** - Symbol mappings
+   - L3: Batch results cache
+   - L2: Single symbol cache
+   - L1: Provider rules cache
 
-**Key Rule**: If the endpoint primarily updates/resets/operates on existing data → use `@HttpCode(HttpStatus.OK)`. If it creates entirely new resources → let it return 201.
+3. **Common Cache (Redis)** - Shared caching service
+   - Dynamic TTL calculation based on market status
+   - Fault-tolerant methods for non-critical operations
 
-### 3. Three-Tier Authentication System
-
-**Critical Pattern**: Different decorators for different access levels:
+### Three-Tier Authentication System
 
 ```typescript
-// 1. API Key Authentication (Third-party applications)
+// 1. API Key Auth (Third-party apps)
 @ApiKeyAuth([Permission.DATA_READ])
-async getPublicData() { ... }
 
-// 2. JWT Authentication (Developers/Admins)  
+// 2. JWT Auth (Developers/Admins)
 @Auth([UserRole.ADMIN])
-async adminOperation() { ... }
 
 // 3. Public Access
 @Public()
-async healthCheck() { ... }
 ```
 
-**Authentication Flow Understanding**:
-- API Key returns **403** (not 401) when authenticated but lacking permissions
-- JWT returns **401** when token is missing/invalid
-- Admin-only endpoints with API Key access return **403** (permission denied)
+### Critical Patterns
 
-### 4. Input Validation Patterns
-
-**Critical for DTO Design**:
-
+#### Response Format (NEVER manually wrap)
 ```typescript
-// ✅ Proper validation
-export class BulkOperationDto {
-  @IsArray()
-  @ArrayNotEmpty()  // Reject empty arrays - batch operations need actual items
-  @IsString({ each: true })
-  ids: string[];
-}
+// ✅ Correct - Let interceptor handle it
+return await this.service.getData(dto);
 
-// ✅ ObjectId validation
+// ❌ Wrong - Don't manually wrap
+return { statusCode: 200, message: '成功', data };
+```
+
+#### Four-Layer Field Semantics (Avoid ambiguous dataType)
+```typescript
+{
+  receiverType: "get-stock-quote",        // Receiver layer
+  transDataRuleListType: "quote_fields",  // Transformer layer
+  storageClassification: "stock_quote",   // Storage layer
+  queryTypeFilter: "get-stock-quote"      // Query layer
+}
+```
+
+#### HTTP Status Conventions
+- Operations (reset, update): Use `@HttpCode(HttpStatus.OK)` → 200
+- Resource creation: Default POST behavior → 201
+
+#### Database Error Handling
+```typescript
+// 1. Validate ObjectId format first
 if (!Types.ObjectId.isValid(id)) {
   throw new BadRequestException(`无效的ID格式: ${id}`);
 }
-```
 
-**Validation Rules**:
-- Empty arrays in batch operations should be **rejected** (use `@ArrayNotEmpty()`)
-- Always validate ObjectId format before database queries
-- Use proper error types: `BadRequestException` for format errors, `NotFoundException` for missing resources
+// 2. Query with try-catch
+try {
+  document = await this.model.findById(id);
+} catch (error) {
+  throw new BadRequestException(`无效的ID: ${id}`);
+}
 
-### 5. Database Error Handling Patterns
-
-**MongoDB ObjectId Error Handling**:
-
-```typescript
-// ✅ Proper error handling sequence
-async getById(id: string) {
-  // 1. Format validation first
-  if (!Types.ObjectId.isValid(id)) {
-    throw new BadRequestException(`无效的ID格式: ${id}`);
-  }
-
-  // 2. Database query with try-catch
-  let document;
-  try {
-    document = await this.model.findById(id);
-  } catch (error) {
-    throw new BadRequestException(`无效的ID: ${id}`);
-  }
-
-  // 3. Existence check
-  if (!document) {
-    throw new NotFoundException(`资源未找到: ${id}`);
-  }
-
-  return document;
+// 3. Check existence
+if (!document) {
+  throw new NotFoundException(`资源未找到: ${id}`);
 }
 ```
 
-### 6. Test Data Management
+## Data Flow Scenarios
 
-**E2E Test Patterns**:
+### Scenario 1: Cache Hit (Optimal)
+```
+Request → Smart Cache → ✅ Hit → Return (~10ms)
+```
+
+### Scenario 2: Symbol Cache Hit Only
+```
+Request → Smart Cache ❌ → Symbol Mapper ✅ → Data Fetcher → Transformer → Storage → Response (~100-200ms)
+```
+
+### Scenario 3: Complete Miss (Cold Start)
+```
+Request → Smart Cache ❌ → Symbol Mapper ❌ → MongoDB Rules → Data Fetcher → Provider API → Transformer → Storage → Response (~500-1000ms)
+```
+
+## Query vs Receiver Components
+
+| Aspect | Query Component | Receiver Component |
+|--------|----------------|-------------------|
+| Purpose | Long-term queries, batch processing | Real-time data, immediate freshness |
+| Cache Strategy | WEAK_TIMELINESS | STRONG_TIMELINESS |
+| Default TTL | ~300 seconds (dynamic) | 5 seconds |
+| Batch Support | Three-level parallel processing | Single/small batch |
+| Use Case | Reports, analytics | Trading, live prices |
+
+## Provider System
+
+Providers use decorator-based registration:
 
 ```typescript
-// ✅ Unique test data generation
-const timestamp = Date.now();
-const random = Math.random().toString(36).substring(7);
-const uniqueSuffix = `${timestamp}_${random}`;
-
-const testUser = {
-  username: `e2euser_${uniqueSuffix}`,
-  email: `e2e_${uniqueSuffix}@example.com`,
-  // ... other fields
-};
-```
-
-**Avoid 409 Conflicts**: Always generate unique identifiers for test data to prevent registration conflicts.
-
-## Architecture Components
-
-### 7-Component Core Flow
-
-```
-Request → Receiver → Stream Receiver → Symbol Mapper → Data Mapper → Transformer → Storage → Query → Response
-```
-
-Each component has specific responsibilities:
-- **Receiver** (`src/core/receiver/`): Entry point, market detection, provider routing
-- **Stream Receiver** (`src/core/stream-receiver/`): WebSocket streaming, real-time data
-- **Symbol Mapper** (`src/core/symbol-mapper/`): Format conversion between providers  
-- **Data Mapper** (`src/core/data-mapper/`): Field mapping rules engine
-- **Transformer** (`src/core/transformer/`): Data transformation application
-- **Storage** (`src/core/storage/`): Redis + MongoDB dual storage
-- **Query** (`src/core/query/`): Unified data retrieval
-
-### Smart Cache Enhancement
-
-**New Addition**: The system now includes a **Smart Cache Orchestrator** (`src/core/public/smart-cache/`) that enhances the Query component:
-- **Cache Request Utils**: Intelligent cache key generation and request optimization
-- **Smart Cache Orchestrator Service**: Advanced caching strategies with TTL management
-- **Cache Configuration Interface**: Flexible caching behavior configuration
-- **Module Integration**: Dynamic module creation with configurable cache policies
-
-### Four-Layer Field Semantics
-
-**CRITICAL**: Never use ambiguous `dataType` fields. Use layer-specific semantic names:
-
-```typescript
-// ✅ Correct semantic naming
-{
-  receiverType: "get-stock-quote",           // Receiver layer (kebab-case)
-  transDataRuleListType: "quote_fields",    // Transformer layer (snake_case)
-  storageClassification: "stock_quote",     // Storage layer (snake_case)
-  queryTypeFilter: "get-stock-quote"        // Query layer (kebab-case)
-}
-
-// ❌ Wrong - ambiguous field
-{
-  dataType: "quote"  // Which layer? What context? Avoid this!
-}
-```
-
-### Provider System
-
-**Auto-Discovery Pattern**:
-
-```typescript
-// ✅ Use @Provider decorator
 @Provider({
   name: "longport",
-  description: "LongPort 长桥证券数据提供商",
+  description: "LongPort provider",
   autoRegister: true,
   healthCheck: true,
   initPriority: 1
@@ -267,169 +195,78 @@ export class LongportProvider implements IDataProvider {
 }
 ```
 
-## Testing Best Practices
+## Testing Guidelines
 
-### Development Workflow Rules
+### Test Organization
+- Unit tests: `test/jest/unit/`
+- Integration tests: `test/jest/integration/`
+- E2E tests: `test/jest/e2e/`
+- Different Jest configs for each type in `test/config/`
 
-**CRITICAL**: Follow these debugging principles:
+### Common Test Issues
+- **409 Conflicts**: Generate unique test data with timestamps
+- **Authentication**: API Key insufficient permissions → 403 (not 401)
+- **Validation**: Empty arrays should fail with `@ArrayNotEmpty()`
+- **E2E Setup**: Use `app.getHttpServer()` not `httpServer` directly
 
-1. **No Speculative Fixes**: Never modify assertions to make tests pass. Always examine backend code to understand correct behavior.
+### Running Tests with Environment Control
+```bash
+# Disable auto-initialization for tests
+DISABLE_AUTO_INIT=true npx jest test/path/to/test.spec.ts
 
-2. **Batch Testing**: When writing multiple test files, complete ALL editing before running tests. Don't run tests after each file.
-
-3. **Code-Based Analysis**: Determine expected behavior by examining actual implementation, not by guessing.
-
-### E2E Test Configuration
-
-**Test Setup Patterns**:
-
-```typescript
-// ✅ Use app.getHttpServer() for HTTP access
-const server = app.getHttpServer();
-await request(server).get('/api/v1/endpoint');
-
-// ❌ Don't use httpServer directly
-await request(httpServer).get('/api/v1/endpoint');
+# Run specific test timeout
+npx jest test/path/to/test.spec.ts --testTimeout=30000
 ```
 
-**Test Configuration Files**:
-- Unit: `test/config/jest.unit.config.js`
-- Integration: `test/config/jest.integration.config.js` 
-- E2E: `test/config/jest.e2e.config.js`
-- Security: `test/config/jest.security.config.js`
-- Blackbox: `test/config/jest.blackbox.config.js`
-
-**Advanced Testing Tools**:
-- **Structure Validator**: Ensures test file organization matches source structure
-- **Duplicate Finder**: Identifies and removes duplicate test files
-- **Coverage Analyzer**: Comprehensive coverage analysis with trend tracking
-- **Quality Gate Checker**: Enforces minimum coverage thresholds
-- **Test Data Manager**: Generates unique test data to prevent conflicts
-
-### Common Test Failures and Fixes
-
-**User Registration Conflicts (409)**:
-- Always use unique usernames in test setup
-- Generate timestamps and random suffixes for uniqueness
-
-**Authentication Expectation Mismatches**:
-- API Key with insufficient permissions returns **403** (not 401)
-- Missing/invalid JWT tokens return **401**
-- Admin endpoints accessed with API Key return **403**
-
-**Validation Errors**:
-- Empty arrays in batch operations should fail validation
-- Invalid ObjectId format should return **400**
-- Non-existent resources should return **404**
-
-## Module-Specific Guidance
-
-### Data Mapper Module
-
-**System Persistence Controller**:
-- All operations (persist, reset, bulk operations) return **200** with `@HttpCode(HttpStatus.OK)`
-- Requires **Admin** role authentication (`@Auth([UserRole.ADMIN])`)
-- Batch operations validate non-empty arrays with `@ArrayNotEmpty()`
-
-**Persisted Template Service**:
-- Reset operations count both `created` and `updated` as `recreated`
-- Bulk operations track `failed` items (not `skipped`)
-- ObjectId validation before all database operations
-
-### Authentication Module
-
-**Guard Order** (from `app.module.ts`):
-1. `ThrottlerGuard` (rate limiting)
-2. `ApiKeyAuthGuard` (API key validation)  
-3. `JwtAuthGuard` (JWT token validation)
-4. `RateLimitGuard` (API key rate limiting)
-5. `UnifiedPermissionsGuard` (permission checking)
-
-**Permission System**:
-- API Keys: `data:read`, `query:execute`, `providers:read`
-- JWT Roles: `admin`, `developer`
-- Public endpoints: No authentication required
-
-## Technology Stack
-
-- **Runtime**: Bun (high-performance TypeScript execution)
-- **Framework**: NestJS with Express
-- **Database**: MongoDB with Mongoose ODM
-- **Cache**: Redis with optimization layers
-- **Authentication**: JWT + Passport + API Key system  
-- **Testing**: Jest + K6 performance testing + E2E testing
-- **Documentation**: Swagger/OpenAPI with interactive docs
-- **Real-time**: WebSocket with Socket.IO
-
-## Environment Setup
+## Environment Requirements
 
 ### Required Services
-- **MongoDB** >= 5.0 on localhost:27017 (required)
-- **Redis** >= 6.0 on localhost:6379 (required)
-- **Bun** >= 1.0 (preferred over Node.js)
+- MongoDB >= 5.0 (localhost:27017)
+- Redis >= 6.0 (localhost:6379)
+- Bun >= 1.0
 
-### Environment Variables
+### Key Environment Variables
 ```bash
-# LongPort API (for production data)
-LONGPORT_APP_KEY=your_app_key
-LONGPORT_APP_SECRET=your_app_secret
-LONGPORT_ACCESS_TOKEN=your_access_token
+# Provider credentials
+LONGPORT_APP_KEY=xxx
+LONGPORT_APP_SECRET=xxx
+LONGPORT_ACCESS_TOKEN=xxx
 
-# Database connections
+# Database
 MONGODB_URI=mongodb://localhost:27017/smart-stock-data
 REDIS_URL=redis://localhost:6379
 
 # Auto-initialization
 AUTO_INIT_ENABLED=true
 AUTO_INIT_SYMBOL_MAPPINGS=true
-AUTO_INIT_SKIP_EXISTING=true
+DISABLE_AUTO_INIT=true  # For testing
 ```
 
-## Debugging Checklist
+## Key Files for Understanding
 
-When encountering issues, check these common patterns:
-
-### Response Format Issues
-- ✅ Controllers return raw data (not manually wrapped)
-- ✅ `ResponseInterceptor` is registered in `main.ts`
-- ✅ Success messages are in Chinese
-
-### Authentication Issues
-- ✅ Correct decorators: `@ApiKeyAuth()`, `@Auth()`, `@Public()`
-- ✅ Required headers present: `X-App-Key`, `X-Access-Token`, `Authorization`
-- ✅ Understanding 401 vs 403 expectations
-
-### Database Issues
-- ✅ MongoDB and Redis services running
-- ✅ ObjectId format validation before queries
-- ✅ Proper error types: `BadRequestException` vs `NotFoundException`
-
-### Test Issues
-- ✅ Unique test data generation
-- ✅ Correct HTTP status expectations (200 vs 201)
-- ✅ Proper validation expectations (empty arrays should fail)
-
-## Key Files Reference
-
-- `src/main.ts` - Application bootstrap, interceptors, global setup
+- `src/main.ts` - Application bootstrap, interceptors, middleware
 - `src/app.module.ts` - Module imports, guard configuration
-- `src/core/` - 7-component architecture implementation
-- `src/core/public/smart-cache/` - Smart cache orchestrator implementation
-- `src/auth/` - Three-tier authentication system
-- `src/providers/` - Data provider integration with @Provider decorator
+- `src/core/restapi/receiver/` - Entry point for real-time data
+- `src/core/restapi/query/` - Entry point for batch queries
+- `src/core/public/smart-cache/` - Intelligent caching orchestrator
+- `src/core/public/symbol-mapper/` - Symbol conversion engine
 - `src/common/interceptors/response.interceptor.ts` - Response formatting
-- `test/config/` - Jest configuration for different test types
-- `test/config/e2e.setup.ts` - E2E test setup with unique user generation
-- `test/utils/tools/` - Advanced testing validation and analysis tools
+- `docs/完整的数据流场景实景说明.md` - Detailed data flow documentation
 
-## Important Reminders
+## Performance Optimization
 
-- **Never manually wrap responses** - Use global ResponseInterceptor
-- **Always analyze backend code** - No speculative test fixes
-- **Follow HTTP conventions** - Operations return 200, creation returns 201
-- **Use proper authentication decorators** - Match access requirements
-- **Validate inputs properly** - ObjectId format, non-empty arrays
-- **Generate unique test data** - Avoid registration conflicts
-- **Understand error expectations** - 401 vs 403, 400 vs 404
-- **Follow 7-component architecture** - No circular dependencies
-- **Use semantic field names** - Four-layer field architecture eliminates ambiguity
+### Caching Strategy
+- Smart Cache handles 90%+ requests with ~10ms response
+- Symbol Mapper Cache uses three-layer LRU to minimize DB queries
+- Query component implements three-level parallel batch processing
+- Pending queries mechanism prevents duplicate requests
+
+### TTL Management
+- Dynamic TTL based on market status (open/closed)
+- Strategy-driven (STRONG_TIMELINESS, WEAK_TIMELINESS, MARKET_AWARE)
+- Automatic cache invalidation on data changes
+
+### Monitoring
+- Cache hit rate targets: Smart Cache > 90%, Symbol Cache > 70%
+- Response time targets: P95 < 200ms, P99 < 500ms
+- Error rate threshold: < 0.1%

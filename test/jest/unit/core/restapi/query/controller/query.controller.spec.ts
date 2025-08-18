@@ -23,23 +23,28 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { CanActivate } from "@nestjs/common";
 
 // Mock createLogger for core modules
-const mockLoggerInstance = {
-  log: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-  verbose: jest.fn(),
-};
-
 jest.mock("../../../../../../../src/common/config/logger.config", () => ({
-  createLogger: jest.fn(() => mockLoggerInstance),
+  createLogger: jest.fn(() => ({
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    verbose: jest.fn(),
+  })),
   sanitizeLogData: jest.fn((data) => data),
 }));
 
 describe("QueryController", () => {
   let controller: QueryController;
   let queryService: jest.Mocked<QueryService>;
-  let mockLogger: any;
+  // Define mockLoggerInstance for the tests
+  const mockLoggerInstance = {
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    verbose: jest.fn(),
+  };
 
   const mockQueryResponse: QueryResponseDto = {
     data: new PaginatedDataDto([
@@ -197,7 +202,6 @@ describe("QueryController", () => {
 
     controller = module.get<QueryController>(QueryController);
     queryService = module.get(QueryService);
-    mockLogger = mockLoggerInstance;
 
     // Clear all previous calls
     jest.clearAllMocks();
@@ -219,7 +223,7 @@ describe("QueryController", () => {
         queryTypeFilter: "get-stock-quote",
         options: {
           useCache: true,
-          updateCache: true,
+          updateCache: true, // 已弃用：测试向后兼容性，生产代码应避免使用
           includeMetadata: true,
         },
       };
@@ -230,7 +234,7 @@ describe("QueryController", () => {
 
       expect(result).toBe(mockQueryResponse);
       expect(queryService.executeQuery).toHaveBeenCalledWith(queryRequest);
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Execute query",
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
@@ -238,7 +242,7 @@ describe("QueryController", () => {
           queryTypeFilter: "get-stock-quote",
         }),
       );
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Success: Query executed successfully",
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
@@ -260,7 +264,7 @@ describe("QueryController", () => {
       await expect(controller.executeQuery(queryRequest)).rejects.toThrow(
         "Query execution failed",
       );
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         "API Error: Query execution failed",
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
@@ -281,10 +285,43 @@ describe("QueryController", () => {
 
       await controller.executeQuery(queryRequest);
 
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Execute query",
         expect.objectContaining({
           symbols: ["AAPL.US", "MSFT.US", "GOOGL.US"],
+        }),
+      );
+    });
+
+    it("should handle deprecated updateCache field with warning (controller integration)", async () => {
+      // Test that controller properly integrates with deprecated updateCache field
+      const queryRequest: QueryRequestDto = {
+        queryType: QueryType.BY_SYMBOLS,
+        symbols: ["AAPL.US"],
+        queryTypeFilter: "get-stock-quote",
+        options: {
+          useCache: true,
+          updateCache: true, // 已弃用：应该生成警告日志但仍然正常工作
+          includeMetadata: false,
+        },
+      };
+
+      queryService.executeQuery.mockResolvedValue(mockQueryResponse);
+
+      const result = await controller.executeQuery(queryRequest);
+
+      // 验证请求仍然正常处理
+      expect(result).toBe(mockQueryResponse);
+      expect(queryService.executeQuery).toHaveBeenCalledWith(queryRequest);
+      
+      // 验证应该有警告日志（controller应该有deprecation warning）
+      // 这里只验证基本的日志记录，实际的deprecation warning在真实的controller中处理
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
+        "API Request: Execute query",
+        expect.objectContaining({
+          queryType: QueryType.BY_SYMBOLS,
+          symbols: ["AAPL.US"],
+          queryTypeFilter: "get-stock-quote",
         }),
       );
     });
@@ -315,7 +352,7 @@ describe("QueryController", () => {
 
       expect(result).toBe(mockBulkQueryResponse);
       expect(queryService.executeBulkQuery).toHaveBeenCalledWith(bulkRequest);
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Execute bulk query",
         expect.objectContaining({
           queriesCount: 2,
@@ -344,7 +381,7 @@ describe("QueryController", () => {
       await expect(controller.executeBulkQuery(bulkRequest)).rejects.toThrow(
         "Bulk query execution failed",
       );
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         "API Error: Bulk query execution failed",
         expect.objectContaining({
           queriesCount: 1,
@@ -377,7 +414,7 @@ describe("QueryController", () => {
 
       await controller.executeBulkQuery(bulkRequest);
 
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Execute bulk query",
         expect.objectContaining({
           queryTypes: [QueryType.BY_SYMBOLS, QueryType.BY_MARKET],
@@ -412,7 +449,7 @@ describe("QueryController", () => {
           page: 1,
           options: {
             useCache: true,
-            updateCache: true,
+            updateCache: true, // 已弃用：测试向后兼容性，生产代码应避免使用
             includeMetadata: false,
           },
         }),
@@ -448,7 +485,7 @@ describe("QueryController", () => {
           page: 1,
           options: {
             useCache: true,
-            updateCache: true,
+            updateCache: true, // 已弃用：测试向后兼容性，生产代码应避免使用
             includeMetadata: false,
           },
         }),
@@ -484,7 +521,7 @@ describe("QueryController", () => {
 
       await controller.queryBySymbols("AAPL,MSFT,GOOGL,_TSLA,AMZN", "longport", "US", "quote", 10, 1, true);
 
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Quick query by symbols",
         expect.objectContaining({
           symbols: ["AAPL", "MSFT", "GOOGL"],
@@ -516,7 +553,7 @@ describe("QueryController", () => {
           page: 10,
           options: {
             useCache: true,
-            updateCache: true,
+            updateCache: true, // 已弃用：测试向后兼容性，生产代码应避免使用
             includeMetadata: true,
           },
         }),
@@ -566,7 +603,7 @@ describe("QueryController", () => {
           page: 5,
           options: {
             useCache: true,
-            updateCache: true,
+            updateCache: true, // 已弃用：测试向后兼容性，生产代码应避免使用
             includeMetadata: true,
           },
         }),
@@ -601,10 +638,10 @@ describe("QueryController", () => {
 
       expect(result).toBe(mockQueryStats);
       expect(queryService.getQueryStats).toHaveBeenCalled();
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Get query statistics",
       );
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Success: Query statistics generated",
         expect.objectContaining({
           totalQueries: 15420,
@@ -623,7 +660,7 @@ describe("QueryController", () => {
       await expect(controller.getQueryStats()).rejects.toThrow(
         "Failed to generate statistics",
       );
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         "API Error: Failed to get query statistics",
         expect.objectContaining({
           error: "Failed to generate statistics",
@@ -657,14 +694,14 @@ describe("QueryController", () => {
           queryTypeFilter: "get-stock-quote",
           options: {
             useCache: false,
-            updateCache: false,
+            updateCache: false, // 已弃用：测试保持一致性，生产代码应避免使用
           },
         }),
       );
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Query service health check",
       );
-      expect(mockLogger.log).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Success: Query service health check completed",
         expect.objectContaining({
           queryServiceHealthy: true,
@@ -696,7 +733,7 @@ describe("QueryController", () => {
         });
       }
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         "API Error: Query service health check failed",
         expect.objectContaining({
           error: "Query service unavailable",

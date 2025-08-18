@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { StorageModule } from '../../storage/module/storage.module';
 import { SharedServicesModule } from '../../shared/module/shared-services.module';
+import { CommonCacheModule } from '../../common-cache/module/common-cache.module';
 import { SmartCacheOrchestrator } from '../services/symbol-smart-cache-orchestrator.service';
 import { 
   type SmartCacheOrchestratorConfig, 
@@ -33,6 +34,10 @@ import {
     // 🔑 关键依赖：StorageModule（非全局，必须显式导入）
     // 提供StorageService用于底层缓存操作和智能缓存功能
     StorageModule,
+    
+    // 🔑 关键依赖：CommonCacheModule（Phase 4.4 迁移）
+    // 提供CommonCacheService用于缓存操作
+    CommonCacheModule,
     
     // 🔑 关键依赖：SharedServicesModule
     // 提供以下共享服务：

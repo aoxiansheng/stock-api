@@ -3,6 +3,7 @@ import * as zlib from "zlib";
 
 import {
   Injectable,
+  BadRequestException,
   InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
@@ -14,35 +15,27 @@ import { PaginationService } from '@common/modules/pagination/services/paginatio
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
 
-import {
-  CACHE_TTL,
-  CACHE_CONSTANTS,
-} from "../../../../cache/constants/cache.constants";
 
 import {
   STORAGE_ERROR_MESSAGES,
   STORAGE_WARNING_MESSAGES,
   STORAGE_PERFORMANCE_THRESHOLDS,
-  STORAGE_DEFAULTS,
 } from "../constants/storage.constants";
 import {
   CacheInfoDto,
-  StorageCacheStatsDto,
   PersistentStatsDto,
   PerformanceStatsDto,
 } from "../dto/storage-internal.dto";
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
 import { StorageQueryDto } from "../dto/storage-query.dto";
-import { StorageType, StorageClassification } from "../enums/storage-type.enum";
+import { StorageType } from "../enums/storage-type.enum";
 import {
   StorageResponseDto,
   StorageStatsDto,
   PaginatedStorageItemDto,
 } from "../dto/storage-response.dto";
 import { StorageMetadataDto } from "../dto/storage-metadata.dto";
-import { SymbolSmartCacheOptionsDto, SmartCacheResultDto } from "../dto/smart-cache-request.dto"; // 🔥 新增智能缓存导入
 import { StorageRepository } from "../repositories/storage.repository";
-import { RedisUtils } from "../utils/redis.util";
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -57,24 +50,35 @@ export class StorageService {
     private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
+  /**
+   * 数据库持久化存储
+   * 🎯 重构后：仅负责数据库写入，不再处理缓存操作
+   * @param request 存储请求（仅支持PERSISTENT类型）
+   * @returns 存储响应
+   */
   async storeData(request: StoreDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
     
-    // 🎯 记录存储操作指标
+    // 🎯 重构后：仅支持数据库存储
+    if (request.storageType !== StorageType.PERSISTENT) {
+      throw new BadRequestException(
+        `StorageService现在仅支持PERSISTENT存储类型。对于缓存操作，请使用CommonCacheService。`
+      );
+    }
+    
+    // 🎯 记录数据库存储操作指标
     Metrics.inc(
       this.metricsRegistry,
-      'storageOperationsTotal',
+      'storagePersistentOperationsTotal',
       { 
-        operation: 'store',
-        storage_type: request.storageType || 'unknown'
+        operation: 'store'
       }
     );
     
     this.logger.log(
-      `存储数据，键: ${request.key}`,
+      `存储数据到数据库，键: ${request.key}`,
       sanitizeLogData({
         key: request.key,
-        storageType: request.storageType,
         storageClassification: request.storageClassification,
       }),
     );
@@ -84,90 +88,64 @@ export class StorageService {
         request.data,
         request.options?.compress,
       );
-      const cacheTtl = request.options?.cacheTtl || CACHE_TTL.DEFAULT;
 
-      // 持久化存储不应该有TTL过期机制
-      const expiresAt =
-        request.storageType === StorageType.PERSISTENT
-          ? undefined // 纯持久化存储不设置过期时间
-          : new Date(Date.now() + cacheTtl * 1000); // 缓存和混合存储设置过期时间
+      // 🎯 重构后：仅处理数据库存储，无TTL过期机制
+      const documentToStore = {
+        key: request.key,
+        data: compressed
+          ? { compressed: true, data: serializedData }
+          : JSON.parse(serializedData),
+        storageClassification: request.storageClassification.toString(),
+        provider: request.provider,
+        market: request.market,
+        dataSize,
+        compressed,
+        tags: request.options?.tags,
+        expiresAt: undefined, // 数据库存储不设置过期时间
+        storedAt: new Date(),
+      };
 
-      if (
-        request.storageType === StorageType.CACHE ||
-        request.storageType === StorageType.BOTH
-      ) {
-        await this.storageRepository.storeInCache(
-          request.key,
-          serializedData,
-          cacheTtl,
-          compressed,
-        );
-      }
+      this.logger.debug(`准备存储到数据库`, {
+        key: request.key,
+        hasData: !!documentToStore.data,
+        storageClassification: documentToStore.storageClassification,
+        dataSize: documentToStore.dataSize,
+      });
 
-      if (
-        request.storageType === StorageType.PERSISTENT ||
-        request.storageType === StorageType.BOTH
-      ) {
-        const documentToStore = {
-          key: request.key,
-          data: compressed
-            ? { compressed: true, data: serializedData }
-            : JSON.parse(serializedData),
-          storageClassification: request.storageClassification.toString(),
-          provider: request.provider,
-          market: request.market,
-          dataSize,
-          compressed,
-          tags: request.options?.tags,
-          expiresAt,
-          storedAt: new Date(),
-        };
+      const storedDocument = await this.storageRepository.upsert(documentToStore);
 
-        this.logger.debug(`准备存储到数据库`, {
-          key: request.key,
-          hasData: !!documentToStore.data,
-          storageClassification: documentToStore.storageClassification,
-          dataSize: documentToStore.dataSize,
-        });
-
-        const storedDocument =
-          await this.storageRepository.upsert(documentToStore);
-
-        this.logger.debug(`数据库存储完成`, {
-          key: request.key,
-          storedId: storedDocument._id,
-          storedKey: storedDocument.key,
-          success: !!storedDocument,
-        });
-      }
+      this.logger.debug(`数据库存储完成`, {
+        key: request.key,
+        storedId: storedDocument._id,
+        storedKey: storedDocument.key,
+        success: !!storedDocument,
+      });
 
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录查询持续时间指标
+      // 🎯 记录数据库查询持续时间指标
       Metrics.observe(
         this.metricsRegistry,
-        'storageQueryDuration',
+        'storagePersistentQueryDuration',
         processingTime,
         { 
-          query_type: 'store',
-          storage_type: request.storageType || 'unknown'
+          query_type: 'store'
         }
       );
       
-      // 🎯 记录数据量指标
+      // 🎯 记录数据库数据量指标
       Metrics.setGauge(
         this.metricsRegistry,
-        'storageDataVolume',
+        'storagePersistentDataVolume',
         dataSize,
         { 
-          data_type: request.storageClassification || 'unknown',
-          storage_type: request.storageType || 'unknown'
+          data_type: request.storageClassification || 'unknown'
         }
       );
 
       const metadata = new StorageMetadataDto(
         request.key,
-        request.storageType,
+        StorageType.PERSISTENT,
         request.storageClassification,
         request.provider,
         request.market,
@@ -175,7 +153,7 @@ export class StorageService {
         processingTime,
         compressed,
         request.options?.tags,
-        expiresAt?.toISOString(),
+        undefined, // 数据库存储无过期时间
       );
 
       this.logStorageSuccess(processingTime, request.key, dataSize, compressed);
@@ -183,7 +161,7 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       this.logger.error(
-        `数据存储失败: ${request.key}`,
+        `数据库存储失败: ${request.key}`,
         sanitizeLogData({
           error: error.message,
           stack: error.stack,
@@ -196,63 +174,43 @@ export class StorageService {
     }
   }
 
+  /**
+   * 数据库持久化检索
+   * 🎯 重构后：仅负责数据库检索，不再处理缓存操作
+   * @param request 检索请求（仅支持PERSISTENT类型）
+   * @returns 检索响应
+   */
   async retrieveData(request: RetrieveDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
     
-    // 🎯 记录检索操作指标
+    // 🎯 重构后：仅支持数据库检索
+    if (request.preferredType && request.preferredType !== StorageType.PERSISTENT) {
+      throw new BadRequestException(
+        `StorageService现在仅支持PERSISTENT检索类型。对于缓存操作，请使用CommonCacheService。`
+      );
+    }
+    
+    // 🎯 记录数据库检索操作指标
     Metrics.inc(
       this.metricsRegistry,
-      'storageOperationsTotal',
+      'storagePersistentOperationsTotal',
       { 
-        operation: 'retrieve',
-        storage_type: request.preferredType || 'both'
+        operation: 'retrieve'
       }
     );
     
     this.logger.log(
-      `检索数据，键: ${request.key}`,
+      `从数据库检索数据，键: ${request.key}`,
       sanitizeLogData({
         key: request.key,
-        preferredType: request.preferredType,
       }),
     );
 
-    this.logger.debug(`检索请求详情`, {
-      key: request.key,
-      preferredType: request.preferredType,
-      updateCache: request.updateCache,
-      willTryCache:
-        !request.preferredType ||
-        request.preferredType === StorageType.CACHE ||
-        request.preferredType === StorageType.BOTH,
-      willTryPersistent:
-        request.preferredType === StorageType.PERSISTENT ||
-        request.preferredType === StorageType.BOTH ||
-        !request.preferredType,
-    });
-
     try {
-      let response: StorageResponseDto;
-
-      // 先尝试缓存（当preferredType为null、CACHE或BOTH时）
-      if (
-        !request.preferredType ||
-        request.preferredType === StorageType.CACHE ||
-        request.preferredType === StorageType.BOTH
-      ) {
-        response = await this.tryRetrieveFromCache(request, startTime);
-        if (response) return response;
-      }
-
-      // 再尝试数据库（当preferredType为PERSISTENT、BOTH或null时，且缓存未命中）
-      if (
-        !response &&
-        (request.preferredType === StorageType.PERSISTENT ||
-          request.preferredType === StorageType.BOTH ||
-          !request.preferredType)
-      ) {
-        response = await this.tryRetrieveFromPersistent(request, startTime);
-        if (response) return response;
+      // 🎯 重构后：直接从数据库检索
+      const response = await this.tryRetrieveFromPersistent(request, startTime);
+      if (response) {
+        return response;
       }
 
       this.logger.warn(
@@ -264,19 +222,18 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录检索失败的查询持续时间指标
+      // 🎯 记录数据库检索失败的查询持续时间指标
       Metrics.observe(
         this.metricsRegistry,
-        'storageQueryDuration',
+        'storagePersistentQueryDuration',
         processingTime,
         { 
-          query_type: 'retrieve_failed',
-          storage_type: request.preferredType || 'both'
+          query_type: 'retrieve_failed'
         }
       );
       
       this.logger.error(
-        `数据检索失败: ${request.key}`,
+        `数据库检索失败: ${request.key}`,
         sanitizeLogData({
           error: error.message,
           stack: error.stack,
@@ -296,99 +253,63 @@ export class StorageService {
     }
   }
 
+  /**
+   * 数据库持久化删除
+   * 🎯 重构后：仅负责数据库删除，不再处理缓存操作
+   * @param key 删除的键
+   * @param storageType 存储类型（仅支持PERSISTENT）
+   * @returns 是否删除成功
+   */
   async deleteData(
     key: string,
-    storageType: StorageType = StorageType.BOTH,
+    storageType: StorageType = StorageType.PERSISTENT,
   ): Promise<boolean> {
     const startTime = Date.now();
     
-    // 🎯 记录删除操作指标
+    // 🎯 重构后：仅支持数据库删除
+    if (storageType !== StorageType.PERSISTENT) {
+      throw new BadRequestException(
+        `StorageService现在仅支持PERSISTENT删除类型。对于缓存操作，请使用CommonCacheService。`
+      );
+    }
+    
+    // 🎯 记录数据库删除操作指标
     Metrics.inc(
       this.metricsRegistry,
-      'storageOperationsTotal',
+      'storagePersistentOperationsTotal',
       { 
-        operation: 'delete',
-        storage_type: storageType || 'both'
+        operation: 'delete'
       }
     );
     
-    this.logger.log(`删除数据，键: ${key}`, { storageType });
-
-    let deleted = false;
-    let hasErrors = false;
+    this.logger.log(`从数据库删除数据，键: ${key}`);
 
     try {
-      // 缓存删除
-      if (
-        storageType === StorageType.CACHE ||
-        storageType === StorageType.BOTH
-      ) {
-        try {
-          const cacheDeleted =
-            await this.storageRepository.deleteFromCache(key);
-          deleted = deleted || cacheDeleted;
-          this.logger.log(
-            `缓存删除${cacheDeleted ? "成功" : "未找到"}: ${key}`,
-          );
-        } catch (cacheError) {
-          hasErrors = true;
-          this.logger.error(
-            `缓存删除失败: ${key}`,
-            sanitizeLogData({
-              error: cacheError.message,
-              stack: cacheError.stack,
-            }),
-          );
-          // 继续执行，不中断整个删除过程
-        }
-      }
-
-      // 持久化删除
-      if (
-        storageType === StorageType.PERSISTENT ||
-        storageType === StorageType.BOTH
-      ) {
-        try {
-          const persistentResult =
-            await this.storageRepository.deleteByKey(key);
-          const persistentDeleted = persistentResult.deletedCount > 0;
-          deleted = deleted || persistentDeleted;
-          this.logger.log(
-            `持久化删除${persistentDeleted ? "成功" : "未找到"}: ${key}`,
-            {
-              deletedCount: persistentResult.deletedCount,
-            },
-          );
-        } catch (persistentError) {
-          hasErrors = true;
-          this.logger.error(
-            `持久化删除失败: ${key}`,
-            sanitizeLogData({
-              error: persistentError.message,
-              stack: persistentError.stack,
-            }),
-          );
-          // 继续执行，不中断整个删除过程
-        }
-      }
+      // 🎯 重构后：仅处理数据库删除
+      const persistentResult = await this.storageRepository.deleteByKey(key);
+      const deleted = persistentResult.deletedCount > 0;
+      
+      this.logger.log(
+        `数据库删除${deleted ? "成功" : "未找到"}: ${key}`,
+        {
+          deletedCount: persistentResult.deletedCount,
+        },
+      );
 
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录删除查询持续时间指标
+      // 🎯 记录数据库删除查询持续时间指标
       Metrics.observe(
         this.metricsRegistry,
-        'storageQueryDuration',
+        'storagePersistentQueryDuration',
         processingTime,
         { 
-          query_type: 'delete',
-          storage_type: storageType || 'both'
+          query_type: 'delete'
         }
       );
 
-      this.logger.log(`数据删除完成: ${key}`, {
+      this.logger.log(`数据库删除完成: ${key}`, {
         deleted,
-        hasErrors,
-        storageType,
         processingTime,
       });
 
@@ -396,19 +317,18 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录删除失败的查询持续时间
+      // 🎯 记录数据库删除失败的查询持续时间
       Metrics.observe(
         this.metricsRegistry,
-        'storageQueryDuration',
+        'storagePersistentQueryDuration',
         processingTime,
         { 
-          query_type: 'delete_failed',
-          storage_type: storageType || 'both'
+          query_type: 'delete_failed'
         }
       );
       
       this.logger.error(
-        `数据删除失败: ${key}`,
+        `数据库删除失败: ${key}`,
         sanitizeLogData({
           error: error.message,
           stack: error.stack,
@@ -422,24 +342,41 @@ export class StorageService {
     }
   }
 
+  /**
+   * 数据库统计信息
+   * 🎯 重构后：仅负责数据库统计，不再处理缓存统计
+   * @returns 数据库存储统计信息
+   */
   async getStorageStats(): Promise<StorageStatsDto> {
-    this.logger.log("生成存储统计信息");
+    this.logger.log("生成数据库存储统计信息");
     try {
       const stats = new StorageStatsDto();
-      const [cacheStats, persistentStats] = await Promise.all([
-        this.getCacheStats(),
-        this.getPersistentStats(),
-      ]);
-      stats.cache = cacheStats;
+      
+      // 🎯 重构后：仅生成数据库统计，缓存统计由CommonCacheService负责
+      const persistentStats = await this.getPersistentStats();
+      
+      // 缓存统计设为空对象，提示用户使用专用缓存服务
+      stats.cache = {
+        totalKeys: 0,
+        totalMemoryUsage: 0,
+        hitRate: 0,
+        avgTtl: 0
+      };
+      
       stats.persistent = persistentStats;
       stats.performance = this.getPerformanceStats();
 
-      this.logger.log("存储统计信息生成成功");
+      this.logger.log("数据库存储统计信息生成成功", {
+        totalDocuments: persistentStats.totalDocuments,
+        totalSizeBytes: persistentStats.totalSizeBytes,
+        categories: Object.keys(persistentStats.categoriesCounts).length,
+        providers: Object.keys(persistentStats.providerCounts).length
+      });
       return stats;
     } catch (error: any) {
-      this.logger.error("生成存储统计信息失败", error);
+      this.logger.error("生成数据库存储统计信息失败", error);
       throw new InternalServerErrorException(
-        `生成存储统计信息失败: ${error.message}`,
+        `生成数据库存储统计信息失败: ${error.message}`,
       );
     }
   }
@@ -558,84 +495,6 @@ export class StorageService {
     }
   }
 
-  private async tryRetrieveFromCache(
-    request: RetrieveDataDto,
-    startTime: number,
-  ): Promise<StorageResponseDto | null> {
-    this.logger.debug(`尝试从缓存检索数据`, {
-      key: request.key,
-      operation: "tryRetrieveFromCache",
-    });
-
-    const { data, metadata, ttl } =
-      await this.storageRepository.retrieveFromCache(request.key);
-
-    this.logger.debug(`缓存查询结果`, {
-      key: request.key,
-      found: !!data,
-      hasMetadata: !!metadata,
-      ttl,
-    });
-
-    if (!data) {
-      this.logger.debug(`缓存未命中，将尝试数据库`, { key: request.key });
-      return null;
-    }
-
-    let parsedData = data;
-    let cacheMetadata: { compressed?: boolean; storedAt?: string } = {};
-
-    try {
-      if (metadata) cacheMetadata = JSON.parse(metadata);
-      if (cacheMetadata.compressed) {
-        const buffer = Buffer.from(data, "base64");
-        const decompressed = await gunzip(buffer);
-        parsedData = JSON.parse(decompressed.toString());
-      } else {
-        parsedData = JSON.parse(data);
-      }
-    } catch (parseError) {
-      this.logger.warn(
-        STORAGE_WARNING_MESSAGES.METADATA_PARSING_FAILED,
-        parseError,
-      );
-      return null; // Data is corrupted, treat as a miss
-    }
-
-    const processingTime = Date.now() - startTime;
-    
-    // 🎯 记录缓存检索查询持续时间指标
-    Metrics.observe(
-      this.metricsRegistry,
-      'storageQueryDuration',
-      processingTime,
-      { 
-        query_type: 'cache_retrieve',
-        storage_type: 'cache'
-      }
-    );
-    
-    this.logRetrievalSuccess(processingTime, request.key, "cache");
-
-    const responseMetadata = new StorageMetadataDto(
-      request.key,
-      StorageType.CACHE,
-      StorageClassification.GENERAL,
-      STORAGE_DEFAULTS.PROVIDER,
-      STORAGE_DEFAULTS.MARKET,
-      Buffer.byteLength(data),
-      processingTime,
-      cacheMetadata.compressed,
-      {},
-      new Date(cacheMetadata.storedAt).toISOString(),
-    );
-    const cacheInfo: CacheInfoDto = {
-      hit: true,
-      source: "cache",
-      ttlRemaining: ttl,
-    };
-    return new StorageResponseDto(parsedData, responseMetadata, cacheInfo);
-  }
 
   private async tryRetrieveFromPersistent(
     request: RetrieveDataDto,
@@ -672,21 +531,6 @@ export class StorageService {
       }
     }
 
-    if (request.updateCache) {
-      try {
-        await this.storageRepository.storeInCache(
-          request.key,
-          JSON.stringify(data),
-          CACHE_TTL.DEFAULT,
-          false,
-        );
-      } catch (cacheUpdateError) {
-        this.logger.warn(
-          STORAGE_WARNING_MESSAGES.CACHE_UPDATE_FAILED,
-          cacheUpdateError,
-        );
-      }
-    }
 
     const processingTime = Date.now() - startTime;
     
@@ -719,19 +563,6 @@ export class StorageService {
     return new StorageResponseDto(data, responseMetadata, cacheInfo);
   }
 
-  private async getCacheStats(): Promise<StorageCacheStatsDto> {
-    const { info, dbSize } = await this.storageRepository.getCacheStats();
-    if (!info) {
-      return { totalKeys: 0, totalMemoryUsage: 0, hitRate: 0, avgTtl: 0 };
-    }
-    const memoryUsage = RedisUtils.extractValueFromInfo(info, "used_memory");
-    return {
-      totalKeys: dbSize,
-      totalMemoryUsage: memoryUsage ? parseInt(memoryUsage, 10) : 0,
-      hitRate: this.calculateCacheHitRate(),
-      avgTtl: await this.storageRepository.getAverageTtl(),
-    };
-  }
 
   private async getPersistentStats(): Promise<PersistentStatsDto> {
     const [totalDocs, categoryStats, providerStats, sizeStats] =
@@ -756,13 +587,13 @@ export class StorageService {
   }
 
   private getPerformanceStats(): PerformanceStatsDto {
-    // 🎯 统计数据现在由 Prometheus 指标提供，这里返回默认值
+    // 🎯 重构后：数据库性能统计，由 Prometheus 指标提供
     // 在生产环境中应通过 Grafana/Prometheus 查询真实的性能数据
     return {
-      avgStorageTime: 0,    // 可从 storageQueryDuration 直方图计算平均值
-      avgRetrievalTime: 0,  // 可从 storageQueryDuration 直方图计算平均值  
+      avgStorageTime: 0,    // 可从 storagePersistentQueryDuration 直方图计算平均值
+      avgRetrievalTime: 0,  // 可从 storagePersistentQueryDuration 直方图计算平均值  
       operationsPerSecond: this.calculateOperationsPerSecond(),
-      errorRate: 0,         // 可从 storageOperationsTotal 计算错误率
+      errorRate: 0,         // 可从 storagePersistentOperationsTotal 计算错误率
     };
   }
 
@@ -780,7 +611,7 @@ export class StorageService {
 
     if (
       compressOption &&
-      dataSize > CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB * 1024
+      dataSize > 10 * 1024 // 10KB compression threshold
     ) {
       try {
         const compressedBuffer = await gzip(serializedData);
@@ -801,7 +632,6 @@ export class StorageService {
     }
     return { serializedData, compressed, dataSize };
   }
-
 
   private logStorageSuccess(
     processingTime: number,
@@ -833,7 +663,7 @@ export class StorageService {
   private logRetrievalSuccess(
     processingTime: number,
     key: string,
-    source: "cache" | "persistent",
+    source: "persistent",
   ) {
     const logLevel =
       processingTime > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_RETRIEVAL_MS
@@ -847,363 +677,10 @@ export class StorageService {
     }
   }
 
-  private calculateCacheHitRate(): number {
-    // 🎯 缓存命中率现在由 Prometheus 指标提供，这里返回默认值
-    // 在生产环境中应通过 storageCacheEfficiency 指标查询真实数据
-    return 0; // 可从 Prometheus storageCacheEfficiency 指标获取
-  }
 
   private calculateOperationsPerSecond(): number {
-    // 🎯 操作频率现在由 Prometheus 指标提供，这里返回默认值  
-    // 在生产环境中应通过 rate(storageOperationsTotal[1m]) 计算真实频率
-    return 0; // 可从 Prometheus storageOperationsTotal 指标计算速率
-  }
-
-  /**
-   * 智能缓存：支持动态TTL和市场状态感知的缓存策略
-   * 🚀 统一缓存入口，替代Receiver中的实时缓存逻辑
-   * 
-   * @param key 缓存键
-   * @param fetchFn 数据获取函数
-   * @param options 智能缓存选项
-   * @returns 智能缓存结果
-   */
-  async getWithSmartCache<T>(
-    key: string,
-    fetchFn: () => Promise<T>,
-    options: SymbolSmartCacheOptionsDto,
-  ): Promise<SmartCacheResultDto<T>> {
-    const startTime = Date.now();
-    const fullKey = options.keyPrefix ? `${options.keyPrefix}:${key}` : key;
-
-    // 🎯 记录智能缓存操作指标
-    Metrics.inc(
-      this.metricsRegistry,
-      'storageOperationsTotal',
-      { 
-        operation: 'smart_cache_query',
-        storage_type: 'smart_cache'
-      }
-    );
-
-    this.logger.debug('智能缓存查询开始', {
-      key: fullKey,
-      symbols: options.symbols.slice(0, 5), // 只记录前5个符号
-      forceRefresh: options.forceRefresh,
-    });
-
-    try {
-      // 1. 计算动态TTL
-      const dynamicTtl = this.calculateDynamicTTL(options);
-
-      // 2. 强制刷新则跳过缓存
-      if (!options.forceRefresh) {
-        const cachedResult = await this.tryGetFromSmartCache<T>(fullKey);
-        if (cachedResult) {
-          const processingTime = Date.now() - startTime;
-          
-          // 🎯 记录缓存命中指标
-          Metrics.observe(
-            this.metricsRegistry,
-            'storageQueryDuration',
-            processingTime,
-            { 
-              query_type: 'smart_cache_hit',
-              storage_type: 'smart_cache'
-            }
-          );
-
-          this.logger.debug('智能缓存命中', {
-            key: fullKey,
-            ttlRemaining: cachedResult.ttlRemaining,
-            processingTime,
-          });
-
-          return SmartCacheResultDto.hit(
-            cachedResult.data,
-            fullKey,
-            dynamicTtl,
-            cachedResult.ttlRemaining,
-          );
-        }
-      }
-
-      // 3. 缓存未命中或强制刷新，获取新数据
-      this.logger.debug('智能缓存未命中，获取新数据', {
-        key: fullKey,
-        forceRefresh: options.forceRefresh,
-      });
-
-      const freshData = await fetchFn();
-
-      // 4. 将新数据存储到缓存
-      await this.storeToSmartCache(fullKey, freshData, dynamicTtl);
-
-      const processingTime = Date.now() - startTime;
-
-      // 🎯 记录缓存未命中指标
-      Metrics.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime,
-        { 
-          query_type: 'smart_cache_miss',
-          storage_type: 'smart_cache'
-        }
-      );
-
-      this.logger.debug('智能缓存存储完成', {
-        key: fullKey,
-        dynamicTtl,
-        processingTime,
-      });
-
-      return SmartCacheResultDto.miss(freshData, fullKey, dynamicTtl);
-
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-
-      // 🎯 记录缓存错误指标
-      Metrics.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime,
-        { 
-          query_type: 'smart_cache_error',
-          storage_type: 'smart_cache'
-        }
-      );
-
-      this.logger.error('智能缓存操作失败', {
-        key: fullKey,
-        error: error.message,
-        processingTime,
-      });
-
-      throw new InternalServerErrorException(
-        `智能缓存操作失败: ${error.message}`
-      );
-    }
-  }
-
-  /**
-   * 批量智能缓存操作
-   * 
-   * @param requests 批量请求
-   * @returns 批量结果
-   */
-  async batchGetWithSmartCache<T>(
-    requests: Array<{
-      key: string;
-      fetchFn: () => Promise<T>;
-      options: SymbolSmartCacheOptionsDto;
-    }>,
-  ): Promise<SmartCacheResultDto<T>[]> {
-    this.logger.debug('批量智能缓存查询', {
-      requestCount: requests.length,
-    });
-
-    // 并行执行所有缓存查询
-    const results = await Promise.allSettled(
-      requests.map(({ key, fetchFn, options }) => 
-        this.getWithSmartCache(key, fetchFn, options)
-      )
-    );
-
-    return results.map((result, index) => {
-      if (result.status === 'fulfilled') {
-        return result.value;
-      } else {
-        this.logger.error('批量缓存查询部分失败', {
-          index,
-          key: requests[index].key,
-          error: result.reason.message,
-        });
-        
-        // 返回错误结果
-        return SmartCacheResultDto.miss(
-          null as T,
-          requests[index].key,
-          0,
-        );
-      }
-    });
-  }
-
-  /**
-   * 计算基于市场状态的动态TTL
-   * 
-   * @param options 缓存选项
-   * @returns TTL（秒）
-   */
-  private calculateDynamicTTL(options: SymbolSmartCacheOptionsDto): number {
-    const { symbols, marketStatus, minCacheTtl = 30, maxCacheTtl = 3600 } = options;
-
-    if (!marketStatus || Object.keys(marketStatus).length === 0) {
-      // 没有市场状态信息，使用默认值
-      return Math.floor((minCacheTtl + maxCacheTtl) / 2);
-    }
-
-    let minTtl = maxCacheTtl; // 从最大值开始
-
-    // 遍历所有涉及的市场，取最小TTL
-    symbols.forEach(symbol => {
-      const market = this.inferMarketFromSymbol(symbol);
-      const status = marketStatus[market];
-
-      if (status && status.realtimeCacheTTL) {
-        minTtl = Math.min(minTtl, status.realtimeCacheTTL);
-      }
-    });
-
-    // 确保TTL在合理范围内
-    return Math.max(
-      Math.min(minTtl, maxCacheTtl),
-      minCacheTtl
-    );
-  }
-
-  /**
-   * 从智能缓存中尝试获取数据
-   */
-  private async tryGetFromSmartCache<T>(key: string): Promise<{
-    data: T;
-    ttlRemaining: number;
-  } | null> {
-    try {
-      const { data, metadata, ttl } = await this.storageRepository.retrieveFromCache(key);
-      
-      if (!data) {
-        return null;
-      }
-
-      let parsedData: T;
-      let cacheMetadata: any = {};
-
-      try {
-        if (metadata) {
-          cacheMetadata = JSON.parse(metadata);
-        }
-        
-        if (cacheMetadata.compressed) {
-          const buffer = Buffer.from(data, 'base64');
-          const decompressed = await gunzip(buffer);
-          parsedData = JSON.parse(decompressed.toString());
-        } else {
-          parsedData = JSON.parse(data);
-        }
-      } catch (parseError) {
-        this.logger.warn('智能缓存数据解析失败', {
-          key,
-          error: parseError.message,
-        });
-        return null;
-      }
-
-      return {
-        data: parsedData,
-        ttlRemaining: ttl || 0,
-      };
-
-    } catch (error) {
-      this.logger.debug('智能缓存获取失败', {
-        key,
-        error: error.message,
-      });
-      return null;
-    }
-  }
-
-  /**
-   * 将数据存储到智能缓存
-   */
-  private async storeToSmartCache<T>(
-    key: string,
-    data: T,
-    ttl: number,
-  ): Promise<void> {
-    try {
-      const serializedData = JSON.stringify(data);
-      const dataSize = Buffer.byteLength(serializedData, 'utf8');
-      
-      // 判断是否需要压缩
-      const shouldCompress = dataSize > 10 * 1024; // 大于10KB才压缩
-      let finalData = serializedData;
-      let compressed = false;
-
-      if (shouldCompress) {
-        try {
-          const compressedBuffer = await gzip(serializedData);
-          if (compressedBuffer.length < dataSize * 0.8) {
-            finalData = compressedBuffer.toString('base64');
-            compressed = true;
-          }
-        } catch (compressionError) {
-          this.logger.warn('智能缓存压缩失败', {
-            key,
-            error: compressionError.message,
-          });
-        }
-      }
-
-      // 存储元数据
-      const metadata = JSON.stringify({
-        compressed,
-        storedAt: new Date().toISOString(),
-        dataSize,
-      });
-
-      await this.storageRepository.storeInCache(
-        key,
-        finalData,
-        ttl,
-        compressed,
-        metadata,
-      );
-
-    } catch (error) {
-      this.logger.error('智能缓存存储失败', {
-        key,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 从股票代码推断市场
-   * 🔄 复用Receiver中的逻辑，保持一致性
-   */
-  private inferMarketFromSymbol(symbol: string): string {
-    const upperSymbol = symbol.toUpperCase().trim();
-
-    // 香港市场: .HK 后缀或5位数字
-    if (upperSymbol.includes('.HK') || /^\d{5}$/.test(upperSymbol)) {
-      return 'HK';
-    }
-
-    // 美国市场: 1-5位字母
-    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-      return 'US';
-    }
-
-    // 深圳市场: .SZ 后缀或 00/30 前缀
-    if (
-      upperSymbol.includes('.SZ') ||
-      ['00', '30'].some(prefix => upperSymbol.startsWith(prefix))
-    ) {
-      return 'SZ';
-    }
-
-    // 上海市场: .SH 后缀或 60/68 前缀
-    if (
-      upperSymbol.includes('.SH') ||
-      ['60', '68'].some(prefix => upperSymbol.startsWith(prefix))
-    ) {
-      return 'SH';
-    }
-
-    // 默认美股
-    return 'US';
+    // 🎯 重构后：数据库操作频率，由 Prometheus 指标提供  
+    // 在生产环境中应通过 rate(storagePersistentOperationsTotal[1m]) 计算真实频率
+    return 0; // 可从 Prometheus storagePersistentOperationsTotal 指标计算速率
   }
 }

@@ -47,7 +47,7 @@ describe('StorageController', () => {
           useValue: {
             storeData: jest.fn(),
             retrieveData: jest.fn(),
-            delet_eData: jest.fn(),
+            deleteData: jest.fn(),
             getStorageStats: jest.fn(),
           },
         },
@@ -252,14 +252,14 @@ describe('StorageController', () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
       const result = await controller.deleteData('test-key');
       expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.BOTH);
-      expect(result).toEqual({ success: true, delet_ed: true, key: 'test-key' });
+      expect(result).toEqual({ success: true, deleted: true, key: 'test-key' });
     });
 
     it('should delete data successfully with specified storageType', async () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
       const result = await controller.deleteData('test-key', StorageType.CACHE);
       expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.CACHE);
-      expect(result).toEqual({ success: true, delet_ed: true, key: 'test-key' });
+      expect(result).toEqual({ success: true, deleted: true, key: 'test-key' });
     });
 
     it('should throw error if storageService.deleteData fails', async () => {

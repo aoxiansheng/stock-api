@@ -234,7 +234,10 @@ describe('Query Smart Cache Integration Tests', () => {
         queryTypeFilter: 'get-stock-quote',
         limit: 10,
         page: 1,
-        options: { useCache: true },
+        options: { 
+          useCache: true,
+          // updateCache: false, // 不设置deprecated字段（推荐方式）
+        },
       };
 
       const startTime = Date.now();
@@ -641,6 +644,89 @@ describe('Query Smart Cache Integration Tests', () => {
       });
 
       console.log(`📊 Metrics Test: ${symbol} recorded ${responseTime}ms response time`);
+    });
+  });
+
+  describe('Deprecated updateCache字段向后兼容性验证', () => {
+    it('应该正确处理deprecated updateCache=true选项', async () => {
+      const mockData = [
+        { symbol: 'DEPRECATED_TEST', lastPrice: 199.99, volume: 500000, timestamp: new Date().toISOString() }
+      ];
+
+      (smartCacheOrchestrator.getDataWithSmartCache as jest.Mock).mockResolvedValue({
+        data: mockData,
+        hit: false, // 模拟cache miss，触发更新
+        ttlRemaining: 0,
+        strategy: CacheStrategy.STRONG_TIMELINESS,
+        storageKey: 'cache:query:DEPRECATED_TEST:quote',
+        timestamp: new Date().toISOString(),
+      });
+
+      const request: QueryRequestDto = {
+        queryType: QueryType.BY_SYMBOLS,
+        symbols: ['DEPRECATED_TEST'],
+        queryTypeFilter: 'get-stock-quote',
+        limit: 10,
+        page: 1,
+        options: { 
+          useCache: true,
+          updateCache: true, // 已弃用：测试向后兼容性，应该生成警告但正常工作
+        },
+      };
+
+      const result = await queryService.executeQuery(request);
+
+      expect(result).toBeDefined();
+      expect(result.data).toEqual(mockData);
+      expect(smartCacheOrchestrator.getDataWithSmartCache).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbols: ['DEPRECATED_TEST'],
+          strategy: CacheStrategy.STRONG_TIMELINESS,
+        })
+      );
+
+      console.log(`⚠️ Deprecated updateCache=true Test: Request processed successfully with backward compatibility`);
+    });
+
+    it('应该正确处理现代化的options（不含updateCache字段）', async () => {
+      const mockData = [
+        { symbol: 'MODERN_TEST', lastPrice: 299.99, volume: 750000, timestamp: new Date().toISOString() }
+      ];
+
+      (smartCacheOrchestrator.getDataWithSmartCache as jest.Mock).mockResolvedValue({
+        data: mockData,
+        hit: true,
+        ttlRemaining: 120,
+        strategy: CacheStrategy.WEAK_TIMELINESS,
+        storageKey: 'cache:query:MODERN_TEST:quote',
+        timestamp: new Date().toISOString(),
+      });
+
+      const request: QueryRequestDto = {
+        queryType: QueryType.BY_SYMBOLS,
+        symbols: ['MODERN_TEST'],
+        queryTypeFilter: 'get-stock-quote',
+        limit: 10,
+        page: 1,
+        options: { 
+          useCache: true,
+          // 注意：不设置updateCache字段（现代推荐方式）
+          includeMetadata: true,
+        },
+      };
+
+      const result = await queryService.executeQuery(request);
+
+      expect(result).toBeDefined();
+      expect(result.data).toEqual(mockData);
+      expect(smartCacheOrchestrator.getDataWithSmartCache).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbols: ['MODERN_TEST'],
+          strategy: CacheStrategy.WEAK_TIMELINESS,
+        })
+      );
+
+      console.log(`✅ Modern Options Test: Request processed successfully without deprecated fields`);
     });
   });
 

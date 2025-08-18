@@ -52,14 +52,6 @@ export class QueryOptionsDto {
   @IsBoolean()
   useCache?: boolean;
 
-  @ApiPropertyOptional({
-    description: '是否更新缓存',
-    example: true,
-    default: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  updateCache?: boolean;
 
   @ApiPropertyOptional({
     description: '是否包含元数据',

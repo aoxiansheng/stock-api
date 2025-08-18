@@ -300,7 +300,7 @@ describe("Query Request DTOs", () => {
         queryType: QueryType.BY_MARKET,
         options: {
           useCache: false,
-          updateCache: true,
+          updateCache: true, // 已弃用：此字段仍然验证通过但应避免使用
           includeMetadata: true,
           includeFields: ["symbol", "price", "volume"],
           excludeFields: ["internalData"],
@@ -397,6 +397,76 @@ describe("Query Request DTOs", () => {
           }
         }
       }
+    });
+
+    it("should handle deprecated updateCache field backward compatibility", async () => {
+      // Test 1: updateCache=true (legacy usage)
+      const queryData1 = {
+        queryType: QueryType.BY_SYMBOLS,
+        symbols: ["AAPL.US"],
+        options: {
+          useCache: true,
+          updateCache: true, // 已弃用：仍然验证通过但生产代码应避免使用
+          includeMetadata: false,
+        },
+      };
+
+      const dto1 = plainToClass(QueryRequestDto, queryData1);
+      const errors1 = await validate(dto1);
+
+      expect(errors1).toHaveLength(0);
+      expect(dto1.options?.updateCache).toBe(true);
+
+      // Test 2: updateCache=false (safer legacy usage)
+      const queryData2 = {
+        queryType: QueryType.BY_MARKET,
+        market: "US",
+        options: {
+          useCache: true,
+          updateCache: false, // 已弃用：false是更安全的默认值
+        },
+      };
+
+      const dto2 = plainToClass(QueryRequestDto, queryData2);
+      const errors2 = await validate(dto2);
+
+      expect(errors2).toHaveLength(0);
+      expect(dto2.options?.updateCache).toBe(false);
+
+      // Test 3: updateCache undefined (modern usage)
+      const queryData3 = {
+        queryType: QueryType.BY_PROVIDER,
+        provider: "longport",
+        options: {
+          useCache: true,
+          // updateCache字段应该不被设置（现代用法）
+          includeMetadata: true,
+        },
+      };
+
+      const dto3 = plainToClass(QueryRequestDto, queryData3);
+      const errors3 = await validate(dto3);
+
+      expect(errors3).toHaveLength(0);
+      expect(dto3.options?.updateCache).toBeUndefined();
+    });
+
+    it("should validate that deprecated updateCache field maintains type safety", async () => {
+      // Test invalid type for updateCache
+      const queryData = {
+        queryType: QueryType.BY_MARKET,
+        options: {
+          updateCache: "true", // 字符串应该导致验证失败
+        },
+      };
+
+      const dto = plainToClass(QueryRequestDto, queryData);
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].property).toBe("options");
+      expect(errors[0].children[0].property).toBe("updateCache");
+      expect(errors[0].children[0].constraints).toHaveProperty("isBoolean");
     });
   });
 

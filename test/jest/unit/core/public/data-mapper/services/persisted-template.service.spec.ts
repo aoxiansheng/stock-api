@@ -398,7 +398,7 @@ describe("PersistedTemplateService", () => {
     });
 
     it("should reset all preset templates", async () => {
-      templateModel.deleteMany.mockResolvedValue({ delet_edCount: 2 } as any);
+      templateModel.deleteMany.mockResolvedValue({ deletedCount: 2 } as any);
       
       // Mock persistPresetTemplates
       jest.spyOn(service, 'persistPresetTemplates').mockResolvedValue({
@@ -417,7 +417,7 @@ describe("PersistedTemplateService", () => {
     });
 
     it("should handle no preset templates to reset", async () => {
-      templateModel.deleteMany.mockResolvedValue({ delet_edCount: 0 } as any);
+      templateModel.deleteMany.mockResolvedValue({ deletedCount: 0 } as any);
       
       // Mock persistPresetTemplates
       jest.spyOn(service, 'persistPresetTemplates').mockResolvedValue({

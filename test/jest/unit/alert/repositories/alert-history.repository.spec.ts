@@ -558,7 +558,7 @@ describe("AlertHistoryRepository", () => {
 
     it("should return zero when no alerts are deleted", async () => {
       const mockQuery = {
-        exec: jest.fn().mockResolvedValue({ delet_edCount: 0 }),
+        exec: jest.fn().mockResolvedValue({ deletedCount: 0 }),
       };
 
       model.deleteMany = jest.fn().mockReturnValue(mockQuery);
@@ -582,7 +582,7 @@ describe("AlertHistoryRepository", () => {
 
     it("should calculate correct cutoff date for different retention periods", async () => {
       const mockQuery = {
-        exec: jest.fn().mockResolvedValue({ delet_edCount: 10 }),
+        exec: jest.fn().mockResolvedValue({ deletedCount: 10 }),
       };
 
       model.deleteMany = jest.fn().mockReturnValue(mockQuery);

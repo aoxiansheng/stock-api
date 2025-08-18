@@ -120,7 +120,6 @@ export class QueryController {
   "maxAge": 300,
   "options": {
     "useCache": true,
-    "updateCache": true,
     "includeMetadata": true
   }
 }
@@ -422,7 +421,6 @@ export class QueryController {
       page: page || 1,
       options: {
         useCache: useCache !== false,
-        updateCache: true,
         includeMetadata: false,
       },
     };
@@ -466,7 +464,6 @@ export class QueryController {
       page: page || 1,
       options: {
         useCache: true,
-        updateCache: true,
         includeMetadata: true,
       },
     };
@@ -510,7 +507,6 @@ export class QueryController {
       page: page || 1,
       options: {
         useCache: true,
-        updateCache: true,
         includeMetadata: true,
       },
     };
@@ -619,7 +615,6 @@ export class QueryController {
         queryTypeFilter: "get-stock-quote",
         options: {
           useCache: false,
-          updateCache: false,
         },
       };
 
