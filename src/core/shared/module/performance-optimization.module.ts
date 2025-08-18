@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { SymbolMapperModule } from '../../00-prepare/symbol-mapper/module/symbol-mapper.module';
+import { SymbolTransformerModule } from '../../02-processing/symbol-transformer/module/symbol-transformer.module';
 import { DataMapperModule } from '../../00-prepare/data-mapper/module/data-mapper.module';
 import { BatchOptimizationService } from '../services/batch-optimization.service';
 
@@ -11,7 +11,7 @@ import { BatchOptimizationService } from '../services/batch-optimization.service
  */
 @Module({
   imports: [
-    SymbolMapperModule,
+    SymbolTransformerModule,
     DataMapperModule,
   ],
   providers: [

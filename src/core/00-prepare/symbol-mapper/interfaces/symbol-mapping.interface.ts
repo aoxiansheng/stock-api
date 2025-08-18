@@ -1,12 +1,8 @@
 /**
- * 股票代码映射器接口
+ * 股票代码映射规则管理器接口
+ * 注意：执行逻辑已迁移到 SymbolTransformerService
  */
 export interface ISymbolMapper {
-  mapSymbol(
-    originalSymbol: string,
-    fromProvider: string,
-    toProvider: string,
-  ): Promise<string>;
   saveMapping(rule: ISymbolMappingRuleList): Promise<void>;
   getSymbolMappingRule(provider: string): Promise<ISymbolMappingRule[]>;
 }

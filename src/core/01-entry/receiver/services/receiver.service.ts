@@ -16,6 +16,7 @@ import {
   // MarketStatusResult,
 } from "../../../shared/services/market-status.service";
 import { SymbolMapperService } from "../../../00-prepare/symbol-mapper/services/symbol-mapper.service";
+import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service";
 import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
 import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/utils/symbol-smart-cache-request.utils";
@@ -65,6 +66,7 @@ export class ReceiverService {
 
   constructor(
     private readonly SymbolMapperService: SymbolMapperService,
+    private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly dataFetcherService: DataFetcherService, // 🔥 新增DataFetcher依赖
     private readonly capabilityRegistryService: CapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
@@ -180,10 +182,9 @@ export class ReceiverService {
       }
 
       // 4. 传统数据流 - 转换股票代码
-      const mappingResult = await this.SymbolMapperService.mapSymbols(
+      const mappingResult = await this.symbolTransformerService.transformSymbols(
         provider,
         request.symbols,
-        requestId,
       );
 
       // 转换为兼容的格式
@@ -675,10 +676,9 @@ export class ReceiverService {
     );
 
     // 2. 符号映射
-    const mappingResult = await this.SymbolMapperService.mapSymbols(
+    const mappingResult = await this.symbolTransformerService.transformSymbols(
       provider,
       request.symbols,
-      requestId,
     );
 
     // 转换为兼容的格式

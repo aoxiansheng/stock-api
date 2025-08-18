@@ -8,6 +8,8 @@ import { FeatureFlags } from "@common/config/feature-flags.config";
 
 // 导入新的独立缓存模块
 import { SymbolMapperCacheModule } from '../../../05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module';
+// 导入 Symbol Transformer 服务模块
+import { SymbolTransformerModule } from '../../../02-processing/symbol-transformer/module/symbol-transformer.module';
 
 import { SymbolMappingRepository } from '../repositories/symbol-mapping.repository';
 import {
@@ -23,6 +25,7 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
     PaginationModule,
     SharedServicesModule, // 🔥 导入SharedServicesModule以获取MetricsRegistryService
     SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
+    SymbolTransformerModule, // 🔄 导入 Symbol Transformer 模块
     MongooseModule.forFeature([
       { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),

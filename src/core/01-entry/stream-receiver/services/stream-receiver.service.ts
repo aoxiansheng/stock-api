@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { SymbolMapperService } from '../../../00-prepare/symbol-mapper/services/symbol-mapper.service';
+import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
 import { TransformerService } from '../../../02-processing/transformer/services/transformer.service';
 import { StreamDataFetcherService } from '../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { StreamRecoveryWorkerService, RecoveryJob } from '../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
@@ -62,6 +63,7 @@ export class StreamReceiverService {
   constructor(
     // Phase 4 精简依赖注入 - 从6个减少到5个核心依赖 (含Phase4监控)
     private readonly symbolMapperService: SymbolMapperService,
+    private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly transformerService: TransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
@@ -607,7 +609,7 @@ export class StreamReceiverService {
     
     for (const symbol of symbols) {
       try {
-        const mappedResult = await this.symbolMapperService.transformSymbolsForProvider(
+        const mappedResult = await this.symbolTransformerService.transformSymbolsForProvider(
           providerName, 
           [symbol], 
           `map_${Date.now()}`

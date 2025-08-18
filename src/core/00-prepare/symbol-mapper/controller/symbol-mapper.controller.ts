@@ -34,13 +34,17 @@ import {
   UpdateSymbolMappingRuleDto,
 } from '../dto/update-symbol-mapping.dto';
 import { SymbolMapperService } from '../services/symbol-mapper.service';
+import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
 
 @ApiTags("🔄 符号映射器")
 @Controller("symbol-mapper")
 export class SymbolMapperController {
   private readonly logger = createLogger(SymbolMapperController.name);
 
-  constructor(private readonly symbolMapperService: SymbolMapperService) {}
+  constructor(
+    private readonly symbolMapperService: SymbolMapperService,
+    private readonly symbolTransformerService: SymbolTransformerService,
+  ) {}
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.MAPPING_WRITE)
@@ -87,10 +91,10 @@ export class SymbolMapperController {
   async mapSymbol(
     @Body() body: { symbol: string; fromProvider: string; toProvider: string },
   ) {
-    const mappedSymbol = await this.symbolMapperService.mapSymbol(
-      body.symbol,
-      body.fromProvider,
+    const mappedSymbol = await this.symbolTransformerService.transformSingleSymbol(
       body.toProvider,
+      body.symbol,
+      'to_standard',
     );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return {

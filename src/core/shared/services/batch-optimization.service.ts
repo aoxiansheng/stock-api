@@ -7,7 +7,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { SymbolMapperService } from '../../00-prepare/symbol-mapper/services/symbol-mapper.service';
+import { SymbolTransformerService } from '../../02-processing/symbol-transformer/services/symbol-transformer.service';
 import { FlexibleMappingRuleService } from '../../00-prepare/data-mapper/services/flexible-mapping-rule.service';
 import { MetricsRegistryService } from '../../../monitoring/metrics/services/metrics-registry.service';
 import { Metrics } from '../../../monitoring/metrics/metrics-helper';
@@ -37,7 +37,7 @@ export class BatchOptimizationService {
   private batchTimer: NodeJS.Timeout | null = null;
 
   constructor(
-    private readonly symbolMapperService: SymbolMapperService,
+    private readonly symbolTransformerService: SymbolTransformerService,
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
     private readonly featureFlags: FeatureFlags,
     private readonly metricsRegistry: MetricsRegistryService,
@@ -56,7 +56,7 @@ export class BatchOptimizationService {
       const results = new Map<string, string>();
       for (const symbol of symbols) {
         try {
-          const mapped = await this.symbolMapperService.mapSymbol(symbol, fromProvider, toProvider);
+          const mapped = await this.symbolTransformerService.transformSingleSymbol(toProvider, symbol, 'to_standard');
           results.set(symbol, mapped);
         } catch (error) {
           this.logger.warn(`符号映射失败: ${symbol}`, { error: error.message });
@@ -74,7 +74,7 @@ export class BatchOptimizationService {
       // 使用Promise.allSettled确保部分失败不影响其他符号
       const mappingPromises = symbols.map(async symbol => {
         try {
-          const mapped = await this.symbolMapperService.mapSymbol(symbol, fromProvider, toProvider);
+          const mapped = await this.symbolTransformerService.transformSingleSymbol(toProvider, symbol, 'to_standard');
           return { symbol, mapped, success: true };
         } catch (error) {
           return { symbol, error, success: false };
@@ -153,7 +153,7 @@ export class BatchOptimizationService {
       // 降级处理：逐个映射
       for (const symbol of symbols) {
         try {
-          const mapped = await this.symbolMapperService.mapSymbol(symbol, fromProvider, toProvider);
+          const mapped = await this.symbolTransformerService.transformSingleSymbol(toProvider, symbol, 'to_standard');
           results.set(symbol, mapped);
         } catch {
           results.set(symbol, symbol); // 使用原符号作为备用
