@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { DataFetchingService, DataFetchResponse } from '@core/public/shared/services/data-fetching.service';
+import { DataFetchingService, DataFetchResponse } from '@core/shared/services/data-fetching.service';
 import { CapabilityRegistryService } from '@providers/services/capability-registry.service';
-import { MarketStatusService, MarketStatusResult } from '@core/public/shared/services/market-status.service';
-import { DataChangeDetectorService } from '@core/public/shared/services/data-change-detector.service';
+import { MarketStatusService, MarketStatusResult } from '@core/shared/services/market-status.service';
+import { DataChangeDetectorService } from '@core/shared/services/data-change-detector.service';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus } from '@common/constants/market-trading-hours.constants';
 

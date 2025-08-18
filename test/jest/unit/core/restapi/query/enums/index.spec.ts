@@ -3,7 +3,7 @@ import {
   QueryType,
   SortDirection,
   DataSourceType,
-} from "../../../../../../../src/core/restapi/query/enums/index";
+} from "../../../../../../../src/core/01-entry/query/enums/index";
 
 describe("Query Enums Index - Function Coverage", () => {
   describe("Enum exports and usage", () => {

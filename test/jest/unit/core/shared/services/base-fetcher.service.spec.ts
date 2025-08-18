@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { BaseFetcherService } from '../../../../../../src/core/public/shared/services/base-fetcher.service';
+import { BaseFetcherService } from '../../../../../../src/core/shared/services/base-fetcher.service';
 import { MetricsRegistryService } from '../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { InternalServerErrorException } from '@nestjs/common';
 

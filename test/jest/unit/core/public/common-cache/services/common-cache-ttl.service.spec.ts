@@ -3,7 +3,7 @@
  * 测试Phase 4.1.3的calculateOptimalTTL静态方法
  */
 
-import { CommonCacheService } from '../../../../../../../src/core/public/common-cache/services/common-cache.service';
+import { CommonCacheService } from '../../../../../../../src/core/shared/common-cache/services/common-cache.service';
 
 describe('CommonCacheService TTL计算功能', () => {
   describe('calculateOptimalTTL静态方法', () => {

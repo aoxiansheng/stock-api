@@ -8,7 +8,7 @@ import {
   FlexibleFieldMappingSchema,
   TransformRule,
   TransformRuleSchema
-} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/flexible-mapping-rule.schema";
 
 describe("FlexibleMappingRuleSchema", () => {
   let mongod: MongoMemoryServer;

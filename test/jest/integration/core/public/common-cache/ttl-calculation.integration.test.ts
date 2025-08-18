@@ -5,8 +5,8 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { CommonCacheModule } from '../../../../../../src/core/public/common-cache/module/common-cache.module';
-import { CommonCacheService } from '../../../../../../src/core/public/common-cache/services/common-cache.service';
+import { CommonCacheModule } from '../../../../../../src/core/shared/common-cache/module/common-cache.module';
+import { CommonCacheService } from '../../../../../../src/core/shared/common-cache/services/common-cache.service';
 
 describe('TTL计算功能集成测试', () => {
   let commonCacheService: CommonCacheService;

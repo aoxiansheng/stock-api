@@ -5,12 +5,12 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { CommonCacheService } from '../../../../../../../src/core/public/common-cache/services/common-cache.service';
-import { CacheCompressionService } from '../../../../../../../src/core/public/common-cache/services/cache-compression.service';
+import { CommonCacheService } from '../../../../../../../src/core/shared/common-cache/services/common-cache.service';
+import { CacheCompressionService } from '../../../../../../../src/core/shared/common-cache/services/cache-compression.service';
 import Redis from 'ioredis';
 
 // Import RedisValueUtils to get access to the mocked module
-import { RedisValueUtils } from '../../../../../../../src/core/public/common-cache/utils/redis-value.utils';
+import { RedisValueUtils } from '../../../../../../../src/core/shared/common-cache/utils/redis-value.utils';
 
 // Mock createLogger
 jest.mock('../../../../../../../src/common/config/logger.config', () => ({

@@ -10,14 +10,14 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { CacheStrategy, CacheOrchestratorRequest } from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
-import { SMART_CACHE_ORCHESTRATOR_CONFIG } from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-config.interface';
-import { buildUnifiedCacheKey } from '../../../../../../../src/core/public/smart-cache/utils/symbol-smart-cache-request.utils';
-import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
-import { DataChangeDetectorService } from '../../../../../../../src/core/public/shared/services/data-change-detector.service';
-import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';
-import { BackgroundTaskService } from '../../../../../../../src/core/public/shared/services/background-task.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/shared/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { CacheStrategy, CacheOrchestratorRequest } from '../../../../../../../src/core/shared/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { SMART_CACHE_ORCHESTRATOR_CONFIG } from '../../../../../../../src/core/shared/smart-cache/interfaces/symbol-smart-cache-config.interface';
+import { buildUnifiedCacheKey } from '../../../../../../../src/core/shared/smart-cache/utils/symbol-smart-cache-request.utils';
+import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
+import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
+import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
+import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';

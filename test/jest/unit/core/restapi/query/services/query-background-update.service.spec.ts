@@ -3,21 +3,21 @@
  * 验证里程碑4.1-4.3的实现：去重机制、变动检测、性能调优
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { QueryService } from '@core/restapi/query/services/query.service';
+import { QueryService } from '@core/01-entry/query/services/query.service';
 import { ReceiverService } from '@core/restapi/receiver/services/receiver.service';
-import { StorageService } from '@core/public/storage/services/storage.service';
-import { DataChangeDetectorService } from '@core/public/shared/services/data-change-detector.service';
-import { MarketStatusService } from '@core/public/shared/services/market-status.service';
-import { FieldMappingService } from '@core/public/shared/services/field-mapping.service';
-import { QueryStatisticsService } from '@core/restapi/query/services/query-statistics.service';
-import { QueryResultProcessorService } from '@core/restapi/query/services/query-result-processor.service';
-import { BackgroundTaskService } from '@core/public/shared/services/background-task.service';
+import { StorageService } from '@core/04-storage/storage/services/storage.service';
+import { DataChangeDetectorService } from '@core/shared/services/data-change-detector.service';
+import { MarketStatusService } from '@core/shared/services/market-status.service';
+import { FieldMappingService } from '@core/shared/services/field-mapping.service';
+import { QueryStatisticsService } from '@core/01-entry/query/services/query-statistics.service';
+import { QueryResultProcessorService } from '@core/01-entry/query/services/query-result-processor.service';
+import { BackgroundTaskService } from '@core/shared/services/background-task.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { QueryRequestDto } from '@core/restapi/query/dto/query-request.dto';
-import { QueryType } from '@core/restapi/query/dto/query-types.dto';
+import { QueryRequestDto } from '@core/01-entry/query/dto/query-request.dto';
+import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus } from '@common/constants/market-trading-hours.constants';
-import { StorageType, StorageClassification } from '@core/public/storage/enums/storage-type.enum';
+import { StorageType, StorageClassification } from '@core/04-storage/storage/enums/storage-type.enum';
 
 describe('QueryService - 后台更新优化测试', () => {
   let service: QueryService;

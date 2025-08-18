@@ -4,17 +4,17 @@ import { NotFoundException, BadRequestException, ConflictException } from "@nest
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { DataSourceTemplateService } from "../../../../../../../src/core/public/data-mapper/services/data-source-template.service";
-import { DataSourceAnalyzerService } from "../../../../../../../src/core/public/data-mapper/services/data-source-analyzer.service";
+import { DataSourceTemplateService } from "../../../../../../../src/core/shared/data-mapper/services/data-source-template.service";
+import { DataSourceAnalyzerService } from "../../../../../../../src/core/shared/data-mapper/services/data-source-analyzer.service";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/data-source-template.schema";
 import {
   CreateDataSourceTemplateDto,
   DataSourceTemplateResponseDto
-} from "../../../../../../../src/core/public/data-mapper/dto/data-source-analysis.dto";
+} from "../../../../../../../src/core/shared/data-mapper/dto/data-source-analysis.dto";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({

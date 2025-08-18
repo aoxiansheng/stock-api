@@ -1,0 +1,1266 @@
+# Symbol Mapper 拆分方案
+
+## 📊 实施状态
+
+- ✅ **方案优化完成**：基于代码实际分析，简化为实用的3阶段渐进式重构
+- 🔄 **当前状态**：SymbolMapperService(43个方法) + SymbolMapperCacheService(48个方法，含业务逻辑)
+- 🎯 **实施策略**：保持现有高效架构，仅解决核心职责混合问题
+
+**设计原则调整**：从"大规模架构重构"调整为"最小化影响的职责分离"，避免过度设计。
+
+### 📋 简化方案对比（避免过度设计）
+
+| 组件 | 当前状态 | 简化目标状态 | 保持不变 |
+|-----|---------|-------------|----------|
+| **Symbol Mapper** | ✅ 规则管理 + ❌ 43个混合方法 | ✅ 纯规则管理(CRUD) + 兼容适配器 | 🔶 现有缓存管理 |
+| **Symbol Transformer** | ❌ **不存在** | ✅ 核心转换逻辑(简化版) | - |
+| **Symbol Mapper Cache** | ❌ mapSymbols + executeUncachedQuery | 🟡 **可选优化** | ✅ 三层缓存架构 |
+| **Change Stream监控** | ✅ setupChangeStreamMonitoring | **保持不变** | ✅ 现有事件机制 |
+| **调用方** | ReceiverService + StreamReceiverService | **最小化修改** | ✅ 现有接口格式 |
+
+## 📋 概述
+
+基于对现有代码架构的深入分析，当前Symbol Mapper组件存在职责混合的问题，将规则制定和规则执行混合在一个组件中，与Data Mapper + Transformer的优秀设计模式不一致。本文档制定了详细的拆分方案，将Symbol Mapper重构为符合架构原则的双组件设计。
+
+## 🎯 简化重构目标
+
+### 实用架构设计
+```
+00-prepare/symbol-mapper/          # 📋 规则管理器（清理后）
+├── 规则CRUD操作（保留）
+├── 缓存管理（保留）  
+└── 兼容适配器（新增）
+
+02-processing/symbol-transformer/  # ⚙️ 转换执行器（新建）
+└── 核心转换逻辑（从SymbolMapper迁移）
+```
+
+### 简化设计原则
+- **最小化影响**：保持现有高效架构和性能特征
+- **职责分离**：仅解决核心职责混合问题
+- **渐进式迁移**：3阶段可控实施，每阶段可回滚
+- **向后兼容**：现有调用方式继续工作
+
+## 🔴 关键问题修复（必须优先处理）
+
+### 发现的返回结构误用问题
+
+**问题位置**：`src/core/01-entry/stream-receiver/services/stream-receiver.service.ts:610-615`
+
+**问题描述**：`StreamReceiverService.mapSymbols()` 中误将对象返回值当作数组使用
+
+**错误代码**：
+```typescript
+private async mapSymbols(symbols: string[], providerName: string): Promise<string[]> {
+  const mappedSymbol = await this.symbolMapperService.transformSymbolsForProvider(
+    providerName, [symbol], `map_${Date.now()}`
+  );
+  // ❌ 错误：将对象当作数组处理
+  const finalSymbol = Array.isArray(mappedSymbol) && mappedSymbol.length > 0 ? mappedSymbol[0] : symbol;
+}
+```
+
+**实际返回结构**（经代码验证）：
+```typescript
+// transformSymbolsForProvider() 实际返回：
+{
+  transformedSymbols: string[],        // ← 实际的符号数组在这里
+  mappingResults: {
+    transformedSymbols: Record<string, string>,
+    failedSymbols: string[],
+    metadata: { provider, totalSymbols, successfulTransformations, processingTime }
+  }
+}
+```
+
+**正确修复方案**：
+```typescript
+private async mapSymbols(symbols: string[], providerName: string): Promise<string[]> {
+  const mappedSymbol = await this.symbolMapperService.transformSymbolsForProvider(
+    providerName, [symbol], `map_${Date.now()}`
+  );
+  // ✅ 正确：从对象中提取转换后的符号数组
+  const finalSymbol = mappedSymbol.transformedSymbols?.[0] ?? symbol;
+}
+```
+
+**影响评估**：
+- **当前影响**：StreamReceiver 中符号映射实际失败，但因为有 fallback 机制使用原始符号，功能可正常工作
+- **潜在风险**：符号转换逻辑被绕过，可能影响流数据处理的准确性
+- **修复优先级**：🔴 **P0 阻塞问题**，必须在实施新架构前修复
+
+## 🔍 现状分析
+
+### 实际代码复杂度确认
+
+**✅ 验证的问题**：
+- **SymbolMapperService**: 43个方法，职责严重混合（CRUD + 转换 + 缓存）
+- **SymbolMapperCacheService**: 48个方法，含`mapSymbols()`和`executeUncachedQuery()`业务逻辑
+- **调用方集中**: 主要是ReceiverService(2处) + StreamReceiverService(4处)
+
+**✅ 现有良好设计**：
+- **三层缓存架构**运行高效，性能无问题
+- **Change Stream监控**已实现，无需重新设计  
+- **现有接口**工作良好，用户满意
+
+### 核心问题识别
+
+#### 1. **SymbolMapperService职责混合** ❌
+实际检查确认43个方法，职责严重混合：
+
+**保留方法**（规则管理 + 缓存管理）：
+```typescript
+// 规则CRUD（8个核心方法）
+- createDataSourceMapping(), saveMapping(), updateSymbolMapping(), deleteSymbolMapping()
+- getSymbolMappingRule(), addSymbolMappingRule(), updateSymbolMappingRule(), removeSymbolMappingRule()
+
+// 查询和分页（5个方法）
+- getSymbolMappingsPaginated(), getSymbolMappingByDataSource(), getAllSymbolMappingRule()
+- getDataSources(), getMarkets(), getSymbolTypes()
+
+// 缓存管理（保持现有高效机制）
+- clearCache(), clearProviderCache(), getCacheStats()
+- setupChangeStreamMonitoring() // 保持不变
+```
+
+**迁移方法**（转换执行逻辑 → SymbolTransformerService）：
+```typescript
+// 核心转换方法（7个方法）
+- mapSymbol() → transformSingleSymbol()
+- mapSymbols() → transformSymbols()
+- transformSymbols(), transformSymbolsById(), transformSymbolsForProvider()
+- _executeSymbolTransformation(), applySymbolMappingRule()
+```
+
+#### 2. **SymbolMapperCacheService职责污染** ❌
+缓存层确实包含业务逻辑（48个方法）：
+```typescript
+// 当前问题方法
+- mapSymbols() // 完整业务逻辑，应移到SymbolTransformer
+- executeUncachedQuery() // 数据库查询，应集成到转换逻辑中
+```
+
+**简化处理方案**：
+- **阶段3可选优化**：如果确实需要，可以清理缓存层业务逻辑
+- **优先保持**：现有三层缓存架构（L1+L2+L3）运行高效
+- **重点关注**：核心转换逻辑的职责分离
+
+#### 3. **真实痛点确认** ✅
+- **测试困难**：43个方法混合在一起，单元测试复杂
+- **维护困难**：职责不清晰，修改影响面大
+- **代码可读性**：新人理解成本高
+
+## 📐 简化重构设计
+
+### 组件职责重新定义（实用版）
+
+#### **Symbol Mapper** (00-prepare/symbol-mapper/) 【清理版】
+**职责**：规则管理 + 缓存管理 + 兼容适配器
+
+**保留的方法（约30个）**：
+```typescript
+// 规则CRUD操作（8个核心方法）
+createDataSourceMapping(), saveMapping(), getSymbolMappingRule(), updateSymbolMapping()
+deleteSymbolMapping(), addSymbolMappingRule(), updateSymbolMappingRule(), removeSymbolMappingRule()
+
+// 查询和分页（5个方法）
+getSymbolMappingsPaginated(), getSymbolMappingByDataSource(), getAllSymbolMappingRule()
+getDataSources(), getMarkets(), getSymbolTypes()
+
+// 缓存管理（保持现有机制）
+clearCache(), clearProviderCache(), getCacheStats()
+setupChangeStreamMonitoring() // 保持不变
+
+// 兼容适配器（新增，实现向后兼容）
+mapSymbols() // 内部委托给SymbolTransformerService
+transformSymbols() // 内部委托给SymbolTransformerService
+```
+
+#### **Symbol Transformer** (02-processing/symbol-transformer/) 【简化新建】
+**职责**：专门的符号转换执行逻辑（从SymbolMapperService迁移）
+
+**简化设计原则**：
+- **直接依赖**：依赖现有SymbolMapperService（无需新接口层）
+- **最小改动**：保持现有接口格式和缓存机制
+- **核心功能**：仅处理符号转换，不管理缓存和规则
+
+**迁移的方法（7个核心方法）**：
+```typescript
+// 主要转换方法
+transformSymbols(provider: string, symbols: string[], direction?: string)
+transformSingleSymbol(provider: string, symbol: string, direction?: string)
+
+// 迁移的内部逻辑
+_executeSymbolTransformation() // 从SymbolMapperService迁移
+applySymbolMappingRule() // 从SymbolMapperService迁移
+transformSymbolsForProvider() // 从SymbolMapperService迁移
+
+// 保持现有格式
+mapSymbol() // 向后兼容方法名
+mapSymbols() // 向后兼容方法名
+```
+
+#### **依赖关系简化**
+**避免过度设计**：无需新的接口层和复杂依赖关系
+
+**简化依赖设计**：
+```typescript
+// SymbolTransformerService 直接依赖现有服务
+@Injectable()
+export class SymbolTransformerService {
+  constructor(
+    // 直接依赖，无需接口抽象
+    private readonly symbolMapperService: SymbolMapperService,
+    private readonly symbolMapperCacheService: SymbolMapperCacheService // 可选，用于缓存
+  ) {}
+}
+
+// SymbolMapperService 提供兼容适配器
+class SymbolMapperService {
+  constructor(
+    private readonly symbolTransformerService?: SymbolTransformerService // 可选注入，向前兼容
+  ) {}
+  
+  // 兼容适配器方法
+  async mapSymbols(provider: string, symbols: string[]) {
+    if (this.symbolTransformerService) {
+      return await this.symbolTransformerService.transformSymbols(provider, symbols);
+    }
+    // 保留现有实现作为fallback
+    return await this.legacyMapSymbols(provider, symbols);
+  }
+}
+```
+
+#### **Symbol Mapper Cache** (05-caching/symbol-mapper-cache/) 【可选优化】
+**当前状态**：包含业务逻辑，但运行高效
+
+**简化处理策略**：
+- **阶段3可选**：如果确实需要，可以清理`mapSymbols()`和`executeUncachedQuery()`
+- **优先保持**：现有三层缓存架构运行良好，无性能问题
+- **重点关注**：核心转换逻辑的职责分离即可
+
+**如需优化的调整**：
+```typescript
+// 可选移除的方法（仅当确实需要时）
+- mapSymbols() // 移到SymbolTransformerService  
+- executeUncachedQuery() // 集成到转换逻辑中
+
+// 保留的核心缓存功能（保持高效）
++ 三层缓存管理（L1规则+L2符号+L3批量）
++ setupChangeStreamMonitoring() // 保持现有事件机制
++ 性能监控和统计
++ 内存管理和清理
+```
+
+### 简化组件结构设计
+
+#### **Symbol Transformer 组件结构（最小化）**
+```
+src/core/02-processing/symbol-transformer/
+├── services/
+│   └── symbol-transformer.service.ts         # 核心转换服务（从SymbolMapper迁移逻辑）
+├── module/
+│   └── symbol-transformer.module.ts          # 模块定义
+└── controller/  # 可选
+    └── symbol-transformer.controller.ts      # 调试接口（生产环境禁用）
+```
+
+**避免过度设计**：
+- **无需新DTO**：使用现有接口格式，避免大规模API变更
+- **无需新接口**：直接依赖现有服务，避免抽象层复杂度
+- **无需新常量**：使用现有配置机制
+- **专注核心**：仅迁移转换逻辑，保持简单
+
+### 简化接口设计（保持向后兼容）
+
+#### **Symbol Transformer Service 核心接口**
+```typescript
+// 简化接口设计，保持现有格式
+@Injectable()
+export class SymbolTransformerService {
+  // 主要转换方法（保持现有接口格式）
+  async transformSymbols(
+    provider: string, 
+    symbols: string | string[], 
+    direction: 'to_standard' | 'from_standard' = 'to_standard'
+  ): Promise<SymbolTransformResult> {
+    // 从SymbolMapperService迁移的逻辑
+  }
+  
+  // 单符号转换（便捷方法）
+  async transformSingleSymbol(
+    provider: string, 
+    symbol: string, 
+    direction: 'to_standard' | 'from_standard' = 'to_standard'
+  ): Promise<string> {
+    const result = await this.transformSymbols(provider, [symbol], direction);
+    return result.mappedSymbols[0] || symbol;  // 注意：使用 mappedSymbols 字段
+  }
+  
+  // 兼容现有方法名
+  async mapSymbols(provider: string, symbols: string | string[], requestId?: string) {
+    return await this.transformSymbols(provider, symbols, 'to_standard');
+  }
+  
+  async mapSymbol(provider: string, symbol: string, requestId?: string) {
+    return await this.transformSingleSymbol(provider, symbol, 'to_standard');
+  }
+}
+
+// 严格对齐现有 SymbolMapperService.mapSymbols() 返回格式
+interface SymbolTransformResult {
+  mappedSymbols: string[];                    // 对齐：SymbolMapperService.mapSymbols().mappedSymbols
+  mappingDetails: Record<string, string>;     // 对齐：SymbolMapperService.mapSymbols().mappingDetails
+  failedSymbols: string[];                    // 对齐：SymbolMapperService.mapSymbols().failedSymbols
+  metadata: {                                 // 对齐：SymbolMapperService.mapSymbols().metadata
+    provider: string;
+    totalSymbols: number;
+    successCount: number;
+    failedCount: number;
+    processingTimeMs: number;                 // 注意：使用 processingTimeMs（不是 processingTime）
+  };
+}
+```
+
+#### **字段对齐验证**（基于代码实际验证）
+```typescript
+// 缓存层 BatchMappingResult → 规则服务转换 → 调用方使用
+// ✅ 已验证的字段流转：
+BatchMappingResult {
+  mappingDetails: Record<string, string>,    // → mappedSymbols = Object.values(mappingDetails)
+  failedSymbols: string[],                   // → 直接传递
+  processingTime: number                     // → 转换为 processingTimeMs
+} 
+→ SymbolMapperService.mapSymbols() {
+  mappedSymbols: string[],                   // ← 从 Object.values(mappingDetails) 派生
+  mappingDetails: Record<string, string>,    // ← 直接传递
+  failedSymbols: string[],                   // ← 直接传递
+  metadata: { processingTimeMs: number }     // ← 从 processingTime 转换
+}
+→ ReceiverService 使用正常
+```
+
+**设计原则**：
+- **保持现有接口**：避免调用方大规模修改
+- **向后兼容**：现有方法名和参数格式继续工作
+- **最小化变更**：仅迁移内部逻辑，不改变外部接口
+
+### 事件机制处理（简化）
+
+#### **保持现有事件机制（避免重新设计）**
+```typescript
+// 现有Change Stream监控已经工作良好
+class SymbolMapperCacheService {
+  // 保持现有实现
+  setupChangeStreamMonitoring() {
+    // 已实现的MongoDB Change Stream监控
+    // 无需重新设计事件系统
+  }
+  
+  handleChangeEvent(changeEvent) {
+    // 现有的变更处理逻辑
+    // 保持不变，运行高效
+  }
+}
+
+// Symbol Mapper保持现有缓存失效机制
+class SymbolMapperService {
+  async updateSymbolMapping(id: string, updateDto: UpdateSymbolMappingDto) {
+    const updatedRule = await this.repository.update(id, updateDto);
+    
+    // 保持现有缓存失效逻辑
+    await this.invalidateCacheForChangedRule(updatedRule);
+    
+    return updatedRule;
+  }
+  
+  // 现有方法保持不变
+  private async invalidateCacheForChangedRule(rule: SymbolMappingRule) {
+    // 现有实现已经高效，无需修改
+  }
+}
+```
+
+**简化原则**：
+- **保持现有机制**：Change Stream监控已经工作良好
+- **避免重复建设**：无需新的EventEmitter2事件系统  
+- **降低复杂度**：现有缓存失效逻辑运行稳定
+
+### 直接架构实现（无兼容层）
+
+#### **直接替换 SymbolMapperService 的转换方法**
+```typescript
+// 直接移除转换方法，保留规则管理方法
+class SymbolMapperService {
+  // ❌ 删除所有转换方法
+  // - mapSymbol()
+  // - mapSymbols()
+  // - transformSymbols()
+  // - transformSymbolsForProvider()
+  // - _executeSymbolTransformation()
+  // - applySymbolMappingRule()
+
+  // ✅ 保留规则管理方法
+  async createDataSourceMapping() { /* 保持不变 */ }
+  async updateSymbolMapping() { /* 保持不变 */ }
+  async deleteSymbolMapping() { /* 保持不变 */ }
+  async getSymbolMappingRule() { /* 保持不变 */ }
+  // ... 其他规则CRUD方法
+}
+```
+
+#### **调用方直接切换到新服务**
+```typescript
+// ReceiverService 直接注入 SymbolTransformerService
+class ReceiverService {
+  constructor(
+    private readonly symbolTransformerService: SymbolTransformerService,
+    private readonly symbolMapperService: SymbolMapperService, // 仅用于规则管理
+    // ... 其他依赖
+  ) {}
+
+  async executeOriginalDataFlow(dto: QueryDto, requestId: string) {
+    // 直接调用新服务
+    const mappingResult = await this.symbolTransformerService.transformSymbols(
+      dto.provider, 
+      dto.symbols
+    );
+    
+    // 规则管理仍使用 SymbolMapperService
+    const rules = await this.symbolMapperService.getSymbolMappingRule(dto.provider);
+  }
+}
+
+// StreamReceiverService - 保持 transformSymbolsForProvider() 零改动
+class StreamReceiverService {
+  constructor(
+    private readonly symbolTransformerService: SymbolTransformerService,
+    // ... 其他依赖
+  ) {}
+
+  private async mapSymbols(symbols: string[], providerName: string): Promise<string[]> {
+    // 保持现有方法调用，仅切换服务来源
+    const result = await this.symbolTransformerService.transformSymbolsForProvider(
+      providerName,
+      symbols,
+      `map_${Date.now()}`
+    );
+    return result.transformedSymbols || [];
+  }
+}
+```
+
+## 🔄 无兼容层实施方案（最小改动路径）
+
+**🎯 核心策略**：直接创建新服务，调用方零改动或最小改动
+
+### 阶段1：创建 SymbolTransformerService 【核心阶段】
+
+**🔴 当前状态**：此组件完全不存在，需要从零创建
+
+#### 1.1 创建目录结构
+```bash
+mkdir -p src/core/02-processing/symbol-transformer/{services,module,interfaces,dto}
+```
+
+#### 1.2 实现核心服务
+```typescript
+// src/core/02-processing/symbol-transformer/services/symbol-transformer.service.ts
+@Injectable()
+export class SymbolTransformerService {
+  private readonly logger = createLogger('SymbolTransformer');
+  
+  constructor(
+    private readonly symbolMapperCacheService: SymbolMapperCacheService,  // 缓存服务（含回源逻辑）
+    private readonly metricsRegistry?: MetricsRegistryService  // 可选监控
+  ) {}
+
+  /**
+   * 核心转换方法 - 迁移自 SymbolMapperService
+   */
+  async transformSymbols(
+    provider: string,
+    symbols: string | string[],
+    direction: 'to_standard' | 'from_standard' = 'to_standard'
+  ): Promise<SymbolTransformResult> {
+    const startTime = process.hrtime.bigint();
+    const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
+    const requestId = `transform_${Date.now()}`;
+
+    this.logger.debug('开始符号转换', {
+      provider,
+      symbolsCount: symbolArray.length,
+      direction,
+      requestId,
+    });
+
+    try {
+      // 使用缓存服务进行批量转换
+      const result = await this.symbolMapperCacheService.mapSymbols(
+        provider,
+        symbolArray,
+        direction,
+        requestId
+      );
+      
+      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      
+      // 转换为统一返回格式
+      const response: SymbolTransformResult = {
+        mappedSymbols: Object.values(result.mappingDetails),
+        mappingDetails: result.mappingDetails,
+        failedSymbols: result.failedSymbols,
+        metadata: {
+          provider,
+          totalSymbols: symbolArray.length,
+          successCount: Object.keys(result.mappingDetails).length,
+          failedCount: result.failedSymbols.length,
+          processingTimeMs: processingTime,
+        },
+      };
+
+      // 记录性能指标
+      if (this.metricsRegistry) {
+        this.recordMetrics(provider, response);
+      }
+
+      return response;
+
+    } catch (error) {
+      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      
+      this.logger.error('符号转换失败', {
+        requestId,
+        provider,
+        error: error.message,
+        processingTimeMs: processingTime,
+      });
+
+      // 返回失败结果
+      return {
+        mappedSymbols: [],
+        mappingDetails: {},
+        failedSymbols: symbolArray,
+        metadata: {
+          provider,
+          totalSymbols: symbolArray.length,
+          successCount: 0,
+          failedCount: symbolArray.length,
+          processingTimeMs: processingTime,
+        },
+      };
+    }
+  }
+
+  /**
+   * 单符号转换便捷方法
+   */
+  async transformSingleSymbol(
+    provider: string,
+    symbol: string,
+    direction: 'to_standard' | 'from_standard' = 'to_standard'
+  ): Promise<string> {
+    const result = await this.transformSymbols(provider, [symbol], direction);
+    return result.mappedSymbols[0] || symbol;
+  }
+
+  /**
+   * transformSymbolsForProvider - 迁移自 SymbolMapperService
+   */
+  async transformSymbolsForProvider(
+    provider: string,
+    symbols: string[],
+    requestId: string
+  ): Promise<any> {
+    // 分离标准格式和需要转换的符号
+    const { symbolsToTransform, standardSymbols } = this.separateSymbolsByFormat(symbols);
+    
+    // 转换非标准格式
+    let mappingResult = {
+      transformedSymbols: {},
+      failedSymbols: [],
+      processingTimeMs: 0,
+    };
+
+    if (symbolsToTransform.length > 0) {
+      const result = await this.transformSymbols(provider, symbolsToTransform);
+      mappingResult = {
+        transformedSymbols: result.mappingDetails,
+        failedSymbols: result.failedSymbols,
+        processingTimeMs: result.metadata.processingTimeMs,
+      };
+    }
+
+    // 添加标准格式符号
+    standardSymbols.forEach((symbol) => {
+      mappingResult.transformedSymbols[symbol] = symbol;
+    });
+
+    return {
+      transformedSymbols: Object.values(mappingResult.transformedSymbols),
+      mappingResults: {
+        transformedSymbols: mappingResult.transformedSymbols,
+        failedSymbols: mappingResult.failedSymbols,
+        metadata: {
+          provider,
+          totalSymbols: symbols.length,
+          successfulTransformations: Object.keys(mappingResult.transformedSymbols).length,
+          failedTransformations: mappingResult.failedSymbols.length,
+          processingTime: mappingResult.processingTimeMs,
+        },
+      },
+    };
+  }
+
+  private separateSymbolsByFormat(symbols: string[]): {
+    symbolsToTransform: string[];
+    standardSymbols: string[];
+  } {
+    // 实现符号格式分离逻辑（从 SymbolMapperService 迁移）
+    const symbolsToTransform: string[] = [];
+    const standardSymbols: string[] = [];
+    
+    symbols.forEach(symbol => {
+      if (this.isStandardFormat(symbol)) {
+        standardSymbols.push(symbol);
+      } else {
+        symbolsToTransform.push(symbol);
+      }
+    });
+    
+    return { symbolsToTransform, standardSymbols };
+  }
+
+  private isStandardFormat(symbol: string): boolean {
+    // 判断是否为标准格式（迁移自 SymbolMapperService）
+    return /^\d{6}$/.test(symbol) || // 6位数字（A股）
+           /^[A-Z]+$/.test(symbol);    // 纯字母（美股）
+  }
+
+  private recordMetrics(provider: string, result: SymbolTransformResult): void {
+    const hitRate = result.metadata.successCount / result.metadata.totalSymbols;
+    this.metricsRegistry?.setGauge('symbol_transformer_success_rate', hitRate, { provider });
+    this.metricsRegistry?.histogram('symbol_transformer_processing_time', 
+      result.metadata.processingTimeMs, { provider });
+  }
+}
+```
+
+#### 1.3 定义接口和DTO
+按照设计创建完整的接口和DTO定义。
+
+### 阶段2：清理 SymbolMapperService
+
+#### 2.1 删除转换相关方法
+从 SymbolMapperService 中直接删除以下方法：
+```typescript
+// ❌ 完全删除这些方法（已迁移到 SymbolTransformerService）
+- mapSymbol()
+- mapSymbols()
+- transformSymbols()
+- transformSymbolsById()
+- transformSymbolsForProvider()
+- _executeSymbolTransformation()
+- applySymbolMappingRule()
+```
+
+#### 2.2 保留规则管理职责
+```typescript
+// ✅ 保留这些方法
+class SymbolMapperService {
+  // 规则CRUD
+  async createDataSourceMapping() { }
+  async updateSymbolMapping() { }
+  async deleteSymbolMapping() { }
+  async getSymbolMappingRule() { }
+  
+  // 查询和分页
+  async getSymbolMappingsPaginated() { }
+  async getSymbolMappingByDataSource() { }
+  
+  // 缓存管理
+  async clearCache() { }
+  async getCacheStats() { }
+  setupChangeStreamMonitoring() { }
+}
+```
+
+### 阶段3：更新调用方
+
+#### 3.1 更新 ReceiverService
+```typescript
+class ReceiverService {
+  constructor(
+    // 注入两个服务：转换服务 + 规则管理服务
+    private readonly symbolTransformerService: SymbolTransformerService,
+    private readonly symbolMapperService: SymbolMapperService,
+    // ... 其他依赖
+  ) {}
+
+  async executeOriginalDataFlow(dto: QueryDto, requestId: string) {
+    // 使用新的转换服务
+    const mappingResult = await this.symbolTransformerService.transformSymbols(
+      dto.provider, 
+      dto.symbols
+    );
+    
+    // 规则管理仍使用原服务
+    const rules = await this.symbolMapperService.getSymbolMappingRule(dto.provider);
+  }
+}
+```
+
+#### 3.2 更新 StreamReceiverService
+```typescript
+class StreamReceiverService {
+  constructor(
+    // 注入转换服务
+    private readonly symbolTransformerService: SymbolTransformerService,
+    // ... 其他依赖
+  ) {}
+
+  private async mapSymbols(symbols: string[], providerName: string): Promise<string[]> {
+    // 使用新的转换服务
+    const result = await this.symbolTransformerService.transformSymbolsForProvider(
+      providerName,
+      symbols,
+      `map_${Date.now()}`
+    );
+    // ✅ 修复：正确提取转换后的符号
+    return result.transformedSymbols || [];
+  }
+}
+```
+
+### 阶段4：模块组装和测试
+
+#### 4.1 创建 SymbolTransformerModule
+```typescript
+// src/core/02-processing/symbol-transformer/module/symbol-transformer.module.ts
+@Module({
+  imports: [
+    SymbolMapperModule,      // 获取规则仓库
+    SymbolMapperCacheModule, // 缓存服务
+  ],
+  providers: [SymbolTransformerService],
+  exports: [SymbolTransformerService],
+})
+export class SymbolTransformerModule {}
+```
+
+#### 4.2 更新上层模块导入
+```typescript
+// ReceiverModule
+@Module({
+  imports: [
+    SymbolTransformerModule, // 新增：符号转换服务
+    SymbolMapperModule,      // 保留：规则管理
+    // ... 其他模块
+  ],
+})
+export class ReceiverModule {}
+
+// StreamReceiverModule  
+@Module({
+  imports: [
+    SymbolTransformerModule, // 新增：符号转换服务
+    // ... 其他模块
+  ],
+})
+export class StreamReceiverModule {}
+```
+
+### 阶段5：测试验证
+
+#### 5.1 等价性测试
+```typescript
+describe('Symbol Transformer Equivalence', () => {
+  it('新旧实现对同一规则集的转换结果完全一致', async () => {
+    const testCases = [
+      { provider: 'longport', symbols: ['700.HK'], expected: ['00700'] },
+      { provider: 'longport', symbols: ['AAPL.US'], expected: ['AAPL'] },
+      { provider: 'longport', symbols: ['invalid-symbol'], expected: [] }, // 边界情况
+      { provider: 'longport', symbols: ['AApl.Us'], expected: ['AAPL'] }, // 大小写
+    ];
+    
+    for (const testCase of testCases) {
+      // 旧实现结果
+      const oldResult = await oldSymbolMapperService.mapSymbols(testCase.provider, testCase.symbols);
+      
+      // 新实现结果
+      const newRequest = SymbolTransformRequestDto.fromLegacy(testCase.provider, 'to_standard');
+      newRequest.symbols = testCase.symbols;
+      const newResult = await symbolTransformerService.transformSymbols(newRequest);
+      
+      // 结果必须完全一致
+      expect(newResult.transformedSymbols).toEqual(oldResult.mappedSymbols);
+      expect(newResult.mappingDetails).toEqual(oldResult.mappingDetails);
+      expect(newResult.failedSymbols).toEqual(oldResult.failedSymbols);
+    }
+  });
+});
+```
+
+#### 6.2 一致性快照测试
+```typescript
+describe('Symbol Normalization Consistency', () => {
+  const testCases = [
+    // 大小写差异
+    { input: '700.hk', expected: '700.HK' },
+    { input: 'aapl.us', expected: 'AAPL.US' },
+    
+    // 地域后缀标准化
+    { input: ' 700.HK ', expected: '700.HK' },  // trim处理
+    { input: 'BABA.US', expected: 'BABA.US' },
+    
+    // 纯数字A股符号
+    { input: '000001', expected: '000001' },    // 深交所
+    { input: '600000', expected: '600000' },    // 上交所
+    { input: '688001', expected: '688001' },    // 科创板
+  ];
+  
+  testCases.forEach(({ input, expected }) => {
+    it(`符号归一化策略保持一致: ${input} -> ${expected}`, async () => {
+      // 使用现有工具类进行归一化测试
+      const result = SymbolValidationUtil.normalizeSymbol(input);
+      expect(result).toBe(expected);
+      
+      // 如果 SymbolTransformerService 提供了 normalizeSymbol 方法，也进行对比测试
+      if (symbolTransformerService.normalizeSymbol) {
+        const serviceResult = await symbolTransformerService.normalizeSymbol(input);
+        expect(serviceResult).toBe(result); // 确保服务层与工具类一致
+      }
+    });
+  });
+});
+```
+
+#### 6.3 性能测试
+```typescript
+describe('Symbol Transformer Performance', () => {
+  const performanceTests = [
+    { name: '单符号', symbols: ['700.HK'] },
+    { name: '小批量', symbols: ['700.HK', 'AAPL.US', 'BABA.US', 'JD.US', 'NTES.US'] },
+    { name: '中批量', symbols: generateTestSymbols(50) },
+    { name: '大批量', symbols: generateTestSymbols(500) }
+  ];
+  
+  performanceTests.forEach(({ name, symbols }) => {
+    it(`${name}转换性能不回退`, async () => {
+      const iterations = 10;
+      const oldTimes = [];
+      const newTimes = [];
+      
+      // 测试旧实现性能
+      for (let i = 0; i < iterations; i++) {
+        const start = Date.now();
+        await oldSymbolMapperService.mapSymbols('longport', symbols);
+        oldTimes.push(Date.now() - start);
+      }
+      
+      // 测试新实现性能
+      for (let i = 0; i < iterations; i++) {
+        const start = Date.now();
+        await symbolTransformerService.transformSymbols('longport', symbols);
+        newTimes.push(Date.now() - start);
+      }
+      
+      const oldP95 = percentile(oldTimes, 0.95);
+      const oldP99 = percentile(oldTimes, 0.99);
+      const newP95 = percentile(newTimes, 0.95);
+      const newP99 = percentile(newTimes, 0.99);
+      
+      // P95、P99不回退超过20%
+      expect(newP95).toBeLessThanOrEqual(oldP95 * 1.2);
+      expect(newP99).toBeLessThanOrEqual(oldP99 * 1.2);
+    });
+  });
+});
+```
+
+**直接架构优势**：
+- ⚡ **实施周期**：1-2周（无兼容层开发）
+- 🔧 **架构清晰**：无历史包袱，职责分明
+- 🛡️ **降低复杂度**：无需维护兼容代码
+- 🎯 **直接切换**：调用方直接使用新服务
+- 👨‍💻 **易于维护**：代码结构简单清晰
+
+**核心成果**：
+✅ 解决职责混合问题（SymbolMapperService 43个方法 → 规则管理30个 + 转换执行7个）  
+✅ 保持高效架构（三层缓存 + Change Stream 监控保持不变）  
+✅ 提升代码可读性和可测试性  
+✅ 最小化影响和实施风险
+
+**下一步行动**：
+1. **✅ P0**：StreamReceiverService 返回结构误用问题已修复
+2. **🎯 P1**：开始实施阶段1 - 创建 SymbolTransformerService（1周内完成）
+
+**关键成功要素**：
+- 严格按照字段口径要求实现三个核心方法
+- 确保调用方代码零改动（ReceiverService）或最小改动（StreamReceiverService）
+- 保持现有缓存和性能特征不变
+
+## 🔍 代码对齐核查（实施前必读）
+
+### 字段口径验证结果
+
+**✅ Receiver调用链验证**：
+- 现状：`SymbolMapperService.mapSymbols()` → `{ mappedSymbols, mappingDetails, failedSymbols, metadata.processingTimeMs }`
+- 目标：`SymbolTransformerService.transformSymbols()` → 保持相同结构
+- 影响：ReceiverService 后续转换代码可完全保持不变
+
+**✅ StreamReceiver调用链验证**：
+- 现状：`transformSymbolsForProvider()` → `{ transformedSymbols, mappingResults.metadata.processingTime }`
+- 目标：新服务保持相同方法签名和返回结构
+- 影响：StreamReceiverService 可零改动切换（已修复取值逻辑）
+
+### 顺序语义说明
+**当前行为**：`mappedSymbols = Object.values(mappingDetails)` 不保证与输入逐一对应
+**调用方依赖**：当前无调用方依赖位序匹配
+**处理策略**：维持现状，如未来需严格按序可在新服务中优化
+
+### 缓存和事件机制
+**保持不变**：
+- `SymbolMapperCacheService` 三层缓存架构
+- Change Stream 监控机制
+- 现有缓存失效逻辑
+**无需新增**：事件系统、额外接口抽象层
+
+### 实施影响面评估
+**最小改动点**：
+1. 新增1个服务类（SymbolTransformerService）
+2. 新增1个模块（SymbolTransformerModule）  
+3. 修改2处调用方（ReceiverService + StreamReceiverService）
+4. 清理1个服务类（SymbolMapperService 删除执行方法）
+
+**风险控制**：
+- 使用相同缓存路径，性能等价
+- 字段结构完全对齐，无兼容性问题
+- 可分阶段实施，每阶段可回滚
+
+## 🔄 数据流兼容性验证
+
+### 与现有数据流的兼容性分析
+
+基于`docs/完整的数据流场景实景说明.md`的分析，新架构完全兼容现有数据流：
+
+#### **当前数据流**
+```
+Receiver → Smart Cache检查(❌) → executeOriginalDataFlow() 
+→ Symbol Mapper (三层缓存处理，返回映射结果{700.HK→00700})
+→ Data Fetcher → Transformer → Storage → 返回数据
+```
+
+#### **拆分后数据流**  
+```
+Receiver → Smart Cache检查(❌) → executeOriginalDataFlow()
+→ Symbol Mapper (规则查询和管理) 
+→ Symbol Transformer (三层缓存处理，返回映射结果{700.HK→00700})
+→ Data Fetcher → Transformer → Storage → 返回数据
+```
+
+#### **兼容性保障**
+1. **缓存层完全保持**：L1规则 + L2符号 + L3批量三层缓存架构不变
+2. **性能特征一致**：响应时间和缓存命中率保持现有水平
+3. **调用方直接切换到新服务，字段口径保持一致**
+4. **数据流位置不变**：符号处理仍在Data Fetcher之前执行
+5. **Smart Cache集成**：与Smart Cache + Common Cache的协同工作不受影响
+
+#### **架构优势**
+- **职责清晰**：规则管理(00-prepare) vs 规则执行(02-processing)分离  
+- **与Transformer一致**：Symbol Transformer与Data Transformer都在02-processing
+- **最小化影响**：核心数据流程序不变，仅内部实现重构
+
+## ✅ 实施检查清单（无兼容层版本）
+
+### 🔴 P0 阻塞问题修复（必须优先完成）
+- [x] **修复 StreamReceiverService 返回结构误用**（已在代码中修复）
+  ```typescript
+  // 文件：src/core/01-entry/stream-receiver/services/stream-receiver.service.ts
+  // 方法：mapSymbols()
+  // 已修复：const finalSymbol = mappedResult?.transformedSymbols?.[0] ?? symbol;
+  ```
+
+### 阶段1：创建 SymbolTransformerService
+- [ ] 创建目录 `src/core/02-processing/symbol-transformer/{services,module,interfaces,dto}`
+  - 注：`dto` 目录可选，本方案无需新DTO
+- [ ] 实现 `SymbolTransformerService` 包含三个核心方法：
+  - [ ] `transformSymbols(provider, symbols)` → 返回与现有 `mapSymbols()` 完全相同的结构
+  - [ ] `transformSingleSymbol(provider, symbol)` → 基于 `transformSymbols()` 取第一个
+  - [ ] `transformSymbolsForProvider(provider, symbols, requestId)` → 返回与现有实现一致的结构
+- [ ] 确保返回字段口径：
+  - [ ] `transformSymbols()` 返回 `metadata.processingTimeMs`（毫秒）
+  - [ ] `transformSymbolsForProvider()` 返回 `mappingResults.metadata.processingTime`（毫秒）
+- [ ] 内部依赖 `SymbolMapperCacheService.mapSymbols()`，不直接访问仓储
+
+### 阶段2：更新调用方
+- [ ] **ReceiverService**：
+  - [ ] 注入 `SymbolTransformerService`
+  - [ ] 替换 `this.symbolMapperService.mapSymbols()` → `this.symbolTransformerService.transformSymbols()`
+  - [ ] 保持后续字段转换代码不变（字段已对齐）
+- [ ] **StreamReceiverService**：
+  - [ ] 注入 `SymbolTransformerService`  
+  - [ ] 保持调用 `transformSymbolsForProvider()`（零改动，字段口径完全一致）
+  - [ ] 确认返回值提取正确：`result.transformedSymbols[0]`
+
+### 阶段3：清理 SymbolMapperService
+- [ ] 删除执行层方法：
+  - [ ] `mapSymbol()`, `mapSymbols()`, `transformSymbols()`
+  - [ ] `transformSymbolsById()`, `transformSymbolsForProvider()`
+  - [ ] `_executeSymbolTransformation()`, `applySymbolMappingRule()`
+- [ ] 删除相关状态（如无其他使用）：
+  - [ ] `unifiedCache`
+  - [ ] `pendingQueries`
+- [ ] 保留规则管理职责：
+  - [ ] 规则 CRUD 方法
+  - [ ] 查询和分页方法
+  - [ ] Change Stream 监控
+
+### 阶段4：模块装配
+- [ ] 创建 `SymbolTransformerModule`
+- [ ] 在 `ReceiverModule` 导入 `SymbolTransformerModule`
+- [ ] 在 `StreamReceiverModule` 导入 `SymbolTransformerModule`
+- [ ] 确认依赖注入正常工作（只注入 SymbolMapperCacheService，避免直接仓储访问）
+
+### 验证测试清单
+- [ ] **等价性测试**：⚠️ **必须在清理 SymbolMapperService 执行方法前完成**
+  - [ ] `SymbolTransformerService.transformSymbols()` vs 旧 `SymbolMapperService.mapSymbols()` 四字段完全一致
+  - [ ] 特别验证 `metadata.processingTimeMs` 字段准确性
+  - [ ] 清理后需要跳过或替换对旧实现的比对测试
+- [ ] **流式场景测试**：
+  - [ ] `transformSymbolsForProvider()` 返回结构完整性
+  - [ ] StreamReceiverService 取值逻辑正确（`result.transformedSymbols[0]`）
+- [ ] **性能测试**：P95/P99不回退超过20%（基于相同缓存路径）
+- [ ] **回归测试**：
+  - [ ] 全库搜索确认无引用已删除的旧执行方法
+  - [ ] `*symbol-mapper-cache*` 测试保持不变且通过
+
+### 清理验收清单（阶段3完成后）
+- [ ] **SymbolMapperService 已删除执行层方法**：
+  - [ ] `mapSymbol`, `mapSymbols`, `transformSymbols`
+  - [ ] `transformSymbolsById`, `transformSymbolsForProvider`  
+  - [ ] `_executeSymbolTransformation`, `applySymbolMappingRule`
+- [ ] **已删除仅服务旧执行路径的字段与私有方法**：
+  - [ ] `unifiedCache`（如无其他使用）
+  - [ ] `pendingQueries`（如无其他使用）
+  - [ ] 全库搜索移除旧方法引用，避免编译错误
+- [ ] **保留的规则管理功能正常**：
+  - [ ] 规则 CRUD 操作
+  - [ ] 查询和分页功能
+  - [ ] Change Stream 监控和缓存失效
+
+## 📊 预期收益
+
+### 架构收益
+1. **职责清晰**：规则制定 vs 规则执行完全分离
+2. **架构一致**：与Data Mapper + Transformer保持一致  
+3. **缓存纯化**：缓存层专注缓存，不包含业务逻辑
+4. **接口统一**：标准化的转换接口和数据结构
+
+### 性能收益
+1. **缓存优化**：专门的缓存层，性能更好
+2. **并发处理**：转换服务可独立扩展
+3. **监控改进**：更精确的性能监控和指标
+
+### 维护收益  
+1. **测试简化**：组件职责单一，测试更容易
+2. **扩展性**：新的转换算法可独立开发
+3. **调试友好**：问题定位更精确
+
+### 观测性和兼容性保障
+
+#### **指标命名与映射关系**
+```typescript
+// 保持现有指标语义不变，新增指标建立映射关系
+class SymbolTransformerService {
+  private recordMetrics(provider: string, result: SymbolTransformResponseDto) {
+    // 沿用旧指标口径（避免Dashboard失联）
+    const hitRate = result.metadata.cacheHits / result.metadata.totalSymbols;
+    this.metricsRegistry.setGauge('symbol_cache_hit_rate', hitRate, { provider }); // 保持原名
+    
+    // 转换耗时（与旧系统保持相同口径）
+    this.metricsRegistry.histogram('symbol_processing_time', 
+      result.metadata.processingTimeMs, { provider, type: 'transform' }); // 保持原名
+    
+    // 失败率
+    const failureRate = result.metadata.failedCount / result.metadata.totalSymbols;
+    this.metricsRegistry.setGauge('symbol_failure_rate', failureRate, { provider }); // 保持原名
+    
+    // 新增指标（与监控文档建立映射关系）
+    this.metricsRegistry.inc('symbol_transformer_requests_total', { provider, status: 'success' });
+    this.metricsRegistry.inc('symbol_transformer_cache_operations', { provider, operation: 'hit' }, result.metadata.cacheHits);
+  }
+  
+  // 降级指标记录
+  private recordFallbackMetrics(provider: string, error: Error, symbolCount: number) {
+    this.metricsRegistry.inc('symbol_transformer_fallback_total', { 
+      provider, 
+      error_type: error.constructor.name,
+      symbol_count_bucket: this.getSymbolCountBucket(symbolCount)
+    });
+  }
+}
+```
+
+**指标映射文档**（需添加到监控文档）：
+- `symbol_cache_hit_rate` ← 原 `symbol_mapper_cache_hit_rate`
+- `symbol_processing_time` ← 原 `symbol_mapper_processing_time` 
+- `symbol_failure_rate` ← 原 `symbol_mapper_failure_rate`
+- `symbol_transformer_*` ← 新增指标，用于Symbol Transformer专用监控
+
+**新旧指标重叠期双写策略**：
+```typescript
+// 指标双写：同时上报新旧指标名，避免监控空窗
+private recordMetrics(provider: string, result: SymbolTransformResponseDto) {
+  const hitRate = result.metadata.cacheHits / result.metadata.totalSymbols;
+  
+  // 双写：保持旧指标名 + 新指标名
+  this.metricsRegistry.setGauge('symbol_cache_hit_rate', hitRate, { provider }); // 旧指标保持
+  this.metricsRegistry.setGauge('symbol_transformer_cache_hit_rate', hitRate, { provider }); // 新指标名
+  
+  // Dashboard切换完成后，通过FeatureFlag控制下线旧指标
+  if (!this.featureFlags.enableLegacyMetrics) {
+    // 停止上报旧指标名
+  }
+}
+```
+
+#### **灰度放量控制**
+```typescript
+// Feature Flags配置
+interface SymbolTransformerFeatureFlags {
+  enableSymbolTransformer: boolean;           // 主开关
+  symbolTransformerTrafficPercentage: number; // 流量百分比 0-100
+  enableSymbolTransformerDebugApi: boolean;   // 调试API开关
+  symbolTransformerFallbackEnabled: boolean;  // 降级开关
+}
+
+// 流量分配逻辑
+class SymbolMapperService {
+  async mapSymbols(provider: string, symbols: string[], requestId?: string) {
+    const shouldUseNewService = this.featureFlags.enableSymbolTransformer &&
+      this.shouldRouteToNewService(requestId);
+    
+    if (shouldUseNewService) {
+      try {
+        return await this.routeToSymbolTransformer(provider, symbols, requestId);
+      } catch (error) {
+        if (this.featureFlags.symbolTransformerFallbackEnabled) {
+          // 记录降级指标
+          this.recordFallbackMetrics(provider, error, symbols.length);
+          this.logger.warn('Symbol Transformer failed, fallback to legacy', { 
+            error: error.message, 
+            provider, 
+            symbolsCount: symbols.length,
+            requestId 
+          });
+          return await this.legacyMapSymbols(provider, symbols, requestId);
+        }
+        throw error;
+      }
+    } else {
+      return await this.legacyMapSymbols(provider, symbols, requestId);
+    }
+  }
+  
+  // 多维路由策略开关（明确优先级）
+  private shouldRouteToNewService(requestId: string, userId?: string, symbols?: string[]): boolean {
+    const flags = this.featureFlags;
+    let routingDecision = { method: 'none', enabled: false };
+    
+    // 优先级1：用户白名单 > 其他策略
+    if (flags.symbolTransformerUserWhitelist && userId) {
+      const inWhitelist = flags.symbolTransformerUserWhitelist.includes(userId);
+      routingDecision = { method: 'user_whitelist', enabled: inWhitelist };
+      this.recordRoutingMetrics('user_whitelist', inWhitelist, { userId, requestId });
+      return inWhitelist;
+    }
+    
+    // 优先级2：市场路由 > 百分比路由
+    if (flags.symbolTransformerMarketRouting && symbols?.length) {
+      const markets = this.extractMarkets(symbols);
+      const hasEnabledMarket = flags.symbolTransformerEnabledMarkets && 
+        markets.some(market => flags.symbolTransformerEnabledMarkets.includes(market));
+      
+      if (!hasEnabledMarket) {
+        routingDecision = { method: 'market_routing', enabled: false };
+        this.recordRoutingMetrics('market_routing', false, { markets, requestId });
+        return false; // 市场未开放，直接拒绝
+      }
+    }
+    
+    // 优先级3：按百分比路由（最后兜底）
+    const percentage = flags.symbolTransformerTrafficPercentage || 0;
+    const hash = crypto.createHash('md5').update(requestId || Date.now().toString()).digest('hex');
+    const hashNum = parseInt(hash.substring(0, 8), 16);
+    const enabled = (hashNum % 100) < percentage;
+    
+    routingDecision = { method: 'percentage', enabled };
+    this.recordRoutingMetrics('percentage', enabled, { percentage, hashNum: hashNum % 100, requestId });
+    
+    return enabled;
+  }
+  
+  // 路由决策指标记录（分布可观测）
+  private recordRoutingMetrics(method: string, enabled: boolean, context: any): void {
+    this.metricsRegistry.inc('symbol_transformer_routing_decisions_total', {
+      method,
+      decision: enabled ? 'enabled' : 'disabled',
+      percentage_bucket: method === 'percentage' ? this.getPercentageBucket(context.percentage) : 'n/a'
+    });
+  }
+  
+  private extractMarkets(symbols: string[]): string[] {
+    return symbols.map(symbol => {
+      if (symbol.endsWith('.HK')) return 'HK';
+      if (symbol.endsWith('.US')) return 'US';
+      if (symbol.startsWith('00') || symbol.startsWith('30')) return 'SZ';
+      if (symbol.startsWith('60') || symbol.startsWith('68')) return 'SH';
+      return 'UNKNOWN';
+    });
+  }
+}
+```
+
+## ⚠️ 风险控制
+
+### 迁移风险
+1. **接口兼容**：新接口必须向下兼容，保持现有调用方式不变
+2. **性能回归**：P95/P99响应时间不能回退超过20%
+3. **数据一致**：转换结果必须与现有实现完全一致
+4. **缓存失效**：规则变更后缓存必须精准失效并即时生效
+5. **执行层依赖边界**：执行层不直接访问仓储，统一通过 `SymbolMapperCacheService` 回源并缓存
+
+### 风险缓解
+1. **分阶段迁移**：3阶段逐步实施，每阶段都有回滚点
+2. **灰度放量**：通过流量百分比控制，从5% → 20% → 50% → 100%
+3. **A/B对比验证**：迁移期间新老系统并行运行，实时对比结果
+4. **降级机制**：新服务异常时自动降级到旧实现
+5. **监控告警**：关键指标实时监控，异常立即告警
+6. **回滚预案**：每个阶段都保留完整的回滚方案
+
+## 🗓️ 实施时间线
+
+- **Week 1**：阶段1-2，创建组件并迁移核心逻辑
+- **Week 2**：阶段3-4，重构缓存和清理Symbol Mapper  
+- **Week 3**：阶段5，更新所有依赖调用
+- **Week 4**：阶段6，测试验证和性能对比
+
+## 📝 总结
+
+通过这个无兼容层的拆分方案，我们将实现：
+- **规则制定器**：Symbol Mapper专注映射规则管理（CRUD + Change Stream监控）
+- **规则执行器**：Symbol Transformer专门处理符号转换（复用现有缓存路径）
+- **调用方影响**：最小化改动，保持字段口径一致
+
+### 实施优势
+- **时间最短**：1-2周完成，无兼容层开发成本
+- **风险可控**：4个最小改动点，每阶段可回滚
+- **架构清晰**：职责分离彻底，与Data Mapper + Transformer保持一致
+- **性能保持**：使用相同缓存机制，P95/P99不回退
+
+### 关键提醒
+⚠️ **实施前必须阅读"代码对齐核查"章节，确保字段口径严格匹配**
+
+🎯 **核心目标**：零历史包袱的职责分离，为全新项目奠定清晰的架构基础

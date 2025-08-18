@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { StringUtils } from "../../../../../../src/core/public/shared/utils/string.util";
+import { StringUtils } from "../../../../../../src/core/shared/utils/string.util";
 import * as crypto from "crypto";
 
 // Mock crypto module for consistent testing

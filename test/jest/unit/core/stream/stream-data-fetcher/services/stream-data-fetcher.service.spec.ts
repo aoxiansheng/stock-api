@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
-import { StreamDataFetcherService } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-fetcher.service';
+import { StreamDataFetcherService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import {
@@ -9,7 +9,7 @@ import {
   StreamConnection,
   StreamConnectionException,
   StreamSubscriptionException,
-} from '../../../../../../../src/core/stream/stream-data-fetcher/interfaces';
+} from '../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces';
 
 describe('StreamDataFetcherService', () => {
   let service: StreamDataFetcherService;

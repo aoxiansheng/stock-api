@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { TransformerController } from '@core/public/transformer/controller/transformer.controller';
-import { TransformerService } from '@core/public/transformer/services/transformer.service';
-import { TransformRequestDto } from '@core/public/transformer/dto/transform-request.dto';
-import { TransformResponseDto } from '@core/public/transformer/dto/transform-response.dto';
+import { TransformerController } from '@core/02-processing/transformer/controller/transformer.controller';
+import { TransformerService } from '@core/02-processing/transformer/services/transformer.service';
+import { TransformRequestDto } from '@core/02-processing/transformer/dto/transform-request.dto';
+import { TransformResponseDto } from '@core/02-processing/transformer/dto/transform-response.dto';
 import { InternalServerErrorException } from '@nestjs/common';
 import { UnifiedPermissionsGuard } from '../../../../../../../src/auth/guards/unified-permissions.guard';
 import { PermissionService } from '../../../../../../../src/auth/services/permission.service';

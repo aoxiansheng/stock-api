@@ -2,7 +2,7 @@
 import {
   buildStorageKey,
   validateDataFreshness,
-} from "../../../../../../../src/core/restapi/query/utils/query.util";
+} from "../../../../../../../src/core/01-entry/query/utils/query.util";
 
 describe("Query Utils", () => {
   describe("buildStorageKey", () => {

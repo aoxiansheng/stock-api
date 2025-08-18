@@ -1,4 +1,4 @@
-import { DataSourceType } from '../../../../../../../src/core/restapi/query/enums/data-source-type.enum';
+import { DataSourceType } from '../../../../../../../src/core/01-entry/query/enums/data-source-type.enum';
 
 describe('DataSourceType Enum', () => {
   describe('Enum values', () => {

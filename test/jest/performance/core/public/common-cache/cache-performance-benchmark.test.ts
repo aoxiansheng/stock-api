@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { CommonCacheService } from '@core/public/common-cache/services/common-cache.service';
-import { StorageService } from '@core/public/storage/services/storage.service';
+import { StorageService } from '@core/04-storage/storage/services/storage.service';
 import { DualWriteTestService } from '@core/public/common-cache/monitoring/dual-write-test.service';
 import { CachePerformanceMonitorService } from '@core/public/common-cache/monitoring/cache-performance-monitor.service';
 import { CommonCacheModule } from '@core/public/common-cache/module/common-cache.module';

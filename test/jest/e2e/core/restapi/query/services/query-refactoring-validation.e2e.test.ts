@@ -5,8 +5,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../../../../../../../src/app.module';
-import { QueryService } from '../../../../../../../src/core/restapi/query/services/query.service';
-import { QueryType } from '../../../../../../../src/core/restapi/query/dto/query-types.dto';
+import { QueryService } from '../../../../../../../src/core/01-entry/query/services/query.service';
+import { QueryType } from '../../../../../../../src/core/01-entry/query/dto/query-types.dto';
 
 describe('Query架构重构验证 E2E', () => {
   let app: INestApplication;

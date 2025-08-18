@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import { StorageQueryDto } from '@core/public/storage/dto/storage-query.dto';
-import { StorageType, StorageClassification } from '@core/public/storage/enums/storage-type.enum';
+import { StorageQueryDto } from '@core/04-storage/storage/dto/storage-query.dto';
+import { StorageType, StorageClassification } from '@core/04-storage/storage/enums/storage-type.enum';
 
 describe('StorageQueryDto', () => {
   describe('Validation Rules', () => {

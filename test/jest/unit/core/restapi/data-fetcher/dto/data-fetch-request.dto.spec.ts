@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate } from 'class-validator';
-import { DataFetchRequestDto, ApiType, DataFetchMetadataDto } from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
+import { DataFetchRequestDto, ApiType, DataFetchMetadataDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-request.dto';
 
 describe('DataFetchRequestDto', () => {
   describe('validation', () => {

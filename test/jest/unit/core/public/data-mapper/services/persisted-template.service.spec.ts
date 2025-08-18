@@ -4,16 +4,16 @@ import { NotFoundException, ConflictException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { PersistedTemplateService } from "../../../../../../../src/core/public/data-mapper/services/persisted-template.service";
+import { PersistedTemplateService } from "../../../../../../../src/core/shared/data-mapper/services/persisted-template.service";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/data-source-template.schema";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleDocument
-} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
-import { RuleAlignmentService } from "../../../../../../../src/core/public/data-mapper/services/rule-alignment.service";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/flexible-mapping-rule.schema";
+import { RuleAlignmentService } from "../../../../../../../src/core/shared/data-mapper/services/rule-alignment.service";
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 
 // Mock the logger

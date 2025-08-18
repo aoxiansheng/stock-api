@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataChangeDetectorService } from '../../../../../../src/core/public/shared/services/data-change-detector.service';
+import { DataChangeDetectorService } from '../../../../../../src/core/shared/services/data-change-detector.service';
 import { Market } from '../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../src/common/constants/market-trading-hours.constants';
 

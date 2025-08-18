@@ -4,8 +4,8 @@
  * K�X�Cpnpn ��a
  */
 
-import { StorageMetadataDto } from '../../../../../../../src/core/public/storage/dto/storage-metadata.dto';
-import { StorageType, StorageClassification } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
+import { StorageMetadataDto } from '../../../../../../../src/core/04-storage/storage/dto/storage-metadata.dto';
+import { StorageType, StorageClassification } from '../../../../../../../src/core/04-storage/storage/enums/storage-type.enum';
 
 describe('StorageMetadataDto', () => {
   describe('Constructor', () => {

@@ -1,18 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { ReceiverService } from '../../../../../../../src/core/restapi/receiver/services/receiver.service';
-import { SymbolMapperService } from '../../../../../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
-import { DataFetcherService } from '../../../../../../../src/core/restapi/data-fetcher/services/data-fetcher.service';
+import { SymbolMapperService } from '../../../../../../../src/core/shared/symbol-mapper/services/symbol-mapper.service';
+import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
-import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';
-import { TransformerService } from '../../../../../../../src/core/public/transformer/services/transformer.service';
-import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
+import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
+import { TransformerService } from '../../../../../../../src/core/02-processing/transformer/services/transformer.service';
+import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { CacheStrategy } from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/shared/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { CacheStrategy } from '../../../../../../../src/core/shared/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
-import { StorageType, StorageClassification } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
+import { StorageType, StorageClassification } from '../../../../../../../src/core/04-storage/storage/enums/storage-type.enum';
 import { DataRequestDto } from '../../../../../../../src/core/restapi/receiver/dto/data-request.dto';
 import { DataResponseDto, ResponseMetadataDto } from '../../../../../../../src/core/restapi/receiver/dto/data-response.dto';
 

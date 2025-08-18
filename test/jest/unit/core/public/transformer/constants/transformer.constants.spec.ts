@@ -9,7 +9,7 @@ import {
   TRANSFORM_EVENTS,
   TRANSFORM_DEFAULTS,
   FIELD_VALIDATION_RULES,
-} from "../../../../../../../src/core/public/transformer/constants/transformer.constants";
+} from "../../../../../../../src/core/02-processing/transformer/constants/transformer.constants";
 
 describe("Transformer Constants", () => {
   describe("TRANSFORM_ERROR_MESSAGES", () => {

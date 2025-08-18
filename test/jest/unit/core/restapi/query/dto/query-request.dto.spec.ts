@@ -6,8 +6,8 @@ import {
   BulkQueryRequestDto,
   SortDirection,
   QueryOptionsDto,
-} from "../../../../../../../src/core/restapi/query/dto/query-request.dto";
-import { QueryType } from "../../../../../../../src/core/restapi/query/dto/query-types.dto";
+} from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
+import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 
 describe("Query Request DTOs", () => {
   describe("QueryRequestDto", () => {

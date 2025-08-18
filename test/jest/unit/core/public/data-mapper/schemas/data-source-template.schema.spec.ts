@@ -9,7 +9,7 @@ import {
   DataSourceTemplateSchema,
   ExtractedField,
   ExtractedFieldSchema
-} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/data-source-template.schema";
 
 describe("DataSourceTemplateSchema", () => {
   let mongod: MongoMemoryServer;

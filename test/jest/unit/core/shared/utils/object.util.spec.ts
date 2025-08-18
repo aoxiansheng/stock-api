@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ObjectUtils } from '@core/public/shared/utils/object.util';
-import { TRANSFORM_CONFIG } from '@core/public/transformer/constants/transformer.constants';
+import { ObjectUtils } from '@core/shared/utils/object.util';
+import { TRANSFORM_CONFIG } from '@core/02-processing/transformer/constants/transformer.constants';
 
 describe('ObjectUtils', () => {
   describe('getValueFromPath', () => {

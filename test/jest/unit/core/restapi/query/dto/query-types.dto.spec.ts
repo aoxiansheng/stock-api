@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { QueryType } from '@core/restapi/query/dto/query-types.dto';
+import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
 
 describe('QueryType Enum', () => {
   describe('Enum Values', () => {

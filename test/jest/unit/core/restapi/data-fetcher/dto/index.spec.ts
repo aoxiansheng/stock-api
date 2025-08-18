@@ -1,6 +1,6 @@
-import * as DataFetcherDtoIndex from '../../../../../../../src/core/restapi/data-fetcher/dto/index';
-import { DataFetchRequestDto } from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-request.dto';
-import { DataFetchResponseDto } from '../../../../../../../src/core/restapi/data-fetcher/dto/data-fetch-response.dto';
+import * as DataFetcherDtoIndex from '../../../../../../../src/core/03-fetching/data-fetcher/dto/index';
+import { DataFetchRequestDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-request.dto';
+import { DataFetchResponseDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-response.dto';
 
 describe('Data Fetcher DTO Index', () => {
   it('should export DataFetchRequestDto', () => {

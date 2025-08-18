@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { QueryMetadataDto, QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '@core/restapi/query/dto/query-response.dto';
+import { QueryMetadataDto, QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '@core/01-entry/query/dto/query-response.dto';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { QueryErrorInfoDto } from '@core/restapi/query/dto/query-internal.dto';
-import { QueryType } from '@core/restapi/query/dto/query-types.dto';
+import { QueryErrorInfoDto } from '@core/01-entry/query/dto/query-internal.dto';
+import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
 
 interface StockData {
   symbol: string;

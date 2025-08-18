@@ -4,24 +4,24 @@ import { BadRequestException, NotFoundException, ConflictException } from "@nest
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
-import { FlexibleMappingRuleService } from "../../../../../../../src/core/public/data-mapper/services/flexible-mapping-rule.service";
-import { DataSourceTemplateService } from "../../../../../../../src/core/public/data-mapper/services/data-source-template.service";
-import { MappingRuleCacheService } from "../../../../../../../src/core/public/data-mapper/services/mapping-rule-cache.service";
+import { FlexibleMappingRuleService } from "../../../../../../../src/core/shared/data-mapper/services/flexible-mapping-rule.service";
+import { DataSourceTemplateService } from "../../../../../../../src/core/shared/data-mapper/services/data-source-template.service";
+import { MappingRuleCacheService } from "../../../../../../../src/core/shared/data-mapper/services/mapping-rule-cache.service";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleDocument
-} from "../../../../../../../src/core/public/data-mapper/schemas/flexible-mapping-rule.schema";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/flexible-mapping-rule.schema";
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument
-} from "../../../../../../../src/core/public/data-mapper/schemas/data-source-template.schema";
+} from "../../../../../../../src/core/shared/data-mapper/schemas/data-source-template.schema";
 import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
   TestFlexibleMappingRuleDto,
   CreateMappingRuleFromSuggestionsDto
-} from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
+} from "../../../../../../../src/core/shared/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({

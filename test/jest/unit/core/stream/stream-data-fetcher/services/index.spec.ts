@@ -1,6 +1,6 @@
-import * as StreamDataFetcherServicesIndex from '../../../../../../../src/core/stream/stream-data-fetcher/services/index';
-import { StreamDataFetcherService } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-fetcher.service';
-import { StreamConnectionImpl } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-connection.impl';
+import * as StreamDataFetcherServicesIndex from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/index';
+import { StreamDataFetcherService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
+import { StreamConnectionImpl } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-connection.impl';
 
 describe('Stream Data Fetcher Services Index', () => {
   it('should export StreamDataFetcherService', () => {

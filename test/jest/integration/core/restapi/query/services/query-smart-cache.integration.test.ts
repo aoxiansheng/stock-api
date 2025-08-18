@@ -12,24 +12,24 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { QueryService } from '../../../../../../../src/core/restapi/query/services/query.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
+import { QueryService } from '../../../../../../../src/core/01-entry/query/services/query.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/shared/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { ReceiverService } from '../../../../../../../src/core/restapi/receiver/services/receiver.service';
-import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';
+import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { CacheService } from '../../../../../../../src/cache/services/cache.service';
-import { QueryRequestDto } from '../../../../../../../src/core/restapi/query/dto/query-request.dto';
-import { QueryType } from '../../../../../../../src/core/restapi/query/dto/query-types.dto';
-import { CacheStrategy } from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { QueryRequestDto } from '../../../../../../../src/core/01-entry/query/dto/query-request.dto';
+import { QueryType } from '../../../../../../../src/core/01-entry/query/dto/query-types.dto';
+import { CacheStrategy } from '../../../../../../../src/core/shared/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 // 移除未使用的类型导入以通过lint
-import { DataChangeDetectorService } from '../../../../../../../src/core/public/shared/services/data-change-detector.service';
-import { FieldMappingService } from '../../../../../../../src/core/public/shared/services/field-mapping.service';
-import { QueryStatisticsService } from '../../../../../../../src/core/restapi/query/services/query-statistics.service';
-import { QueryResultProcessorService } from '../../../../../../../src/core/restapi/query/services/query-result-processor.service';
-import { BackgroundTaskService } from '../../../../../../../src/core/public/shared/services/background-task.service';
+import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
+import { FieldMappingService } from '../../../../../../../src/core/shared/services/field-mapping.service';
+import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/query/services/query-statistics.service';
+import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
+import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
 
 describe('Query Smart Cache Integration Tests', () => {

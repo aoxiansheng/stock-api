@@ -26,8 +26,8 @@ import {
 import { CacheStatsDto } from "../../../../../src/cache/dto/cache-internal.dto";
 import { IAlertStats } from "../../../../../src/alert/interfaces/alert.interface";
 import { MetricsRegistryService } from "../../../../../src/monitoring/metrics/services/metrics-registry.service";
-import { StreamPerformanceMetrics } from "../../../../../src/core/public/shared/services/stream-performance-metrics.service";
-import { DynamicLogLevelService } from "../../../../../src/core/public/shared/services/dynamic-log-level.service";
+import { StreamPerformanceMetrics } from "../../../../../src/core/shared/services/stream-performance-metrics.service";
+import { DynamicLogLevelService } from "../../../../../src/core/shared/services/dynamic-log-level.service";
 
 // Create a mock class for UnifiedPermissionsGuard
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -27,12 +27,12 @@ import { ProvidersModule } from "../../src/providers/module/providers.module";
 import { ThrottlerModule } from "@nestjs/throttler";
 
 // Core modules - 添加缺失的核心模块导入
-import { SymbolMapperModule } from "../../src/core/public/symbol-mapper/module/symbol-mapper.module";
-import { DataMapperModule } from "../../src/core/public/data-mapper/module/data-mapper.module";
+import { SymbolMapperModule } from "../../src/core/shared/symbol-mapper/module/symbol-mapper.module";
+import { DataMapperModule } from "../../src/core/shared/data-mapper/module/data-mapper.module";
 // import { StorageModule } from "../../src/core/public/storage/module/storage.module"; // 移除：已通过SmartCacheModule提供
-import { SmartCacheModule } from "../../src/core/public/smart-cache/module/symbol-smart-cache.module";
-import { QueryModule } from "../../src/core/restapi/query/module/query.module"; 
-import { TransformerModule } from "../../src/core/public/transformer/module/transformer.module";
+import { SmartCacheModule } from "../../src/core/shared/smart-cache/module/symbol-smart-cache.module";
+import { QueryModule } from "../../src/core/01-entry/query/module/query.module"; 
+import { TransformerModule } from "../../src/core/02-processing/transformer/module/transformer.module";
 import { ReceiverModule } from "../../src/core/restapi/receiver/module/receiver.module";
 // 添加分页模块导入
 import { PaginationModule } from "../../src/common/modules/pagination/modules/pagination.module";

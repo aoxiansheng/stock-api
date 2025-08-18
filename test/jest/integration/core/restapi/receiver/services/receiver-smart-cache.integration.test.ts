@@ -13,8 +13,8 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 // import { ReceiverService } from '../../../../../../../src/core/restapi/receiver/services/receiver.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/shared/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { DataRequestDto } from '../../../../../../../src/core/restapi/receiver/dto/data-request.dto';
 import { Market } from '../../../../../../../src/common/constants/market.constants';

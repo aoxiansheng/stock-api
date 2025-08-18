@@ -3,7 +3,7 @@
 import {
   TransformationMetadataDto,
   TransformResponseDto,
-} from '../../../../../../../src/core/public/transformer/dto/transform-response.dto';
+} from '../../../../../../../src/core/02-processing/transformer/dto/transform-response.dto';
 
 // 测试 TransformationMetadataDto
 describe('TransformationMetadataDto', () => {

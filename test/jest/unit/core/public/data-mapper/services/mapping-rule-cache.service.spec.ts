@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
-import { MappingRuleCacheService } from "../../../../../../../src/core/public/data-mapper/services/mapping-rule-cache.service";
+import { MappingRuleCacheService } from "../../../../../../../src/core/shared/data-mapper/services/mapping-rule-cache.service";
 import { CacheService } from "../../../../../../../src/cache/services/cache.service";
-import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
+import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/shared/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
 jest.mock("../../../../../../src/common/config/logger.config", () => ({

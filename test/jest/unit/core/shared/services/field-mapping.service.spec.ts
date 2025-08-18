@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
-import { FieldMappingService } from '@core/public/shared/services/field-mapping.service';
+import { FieldMappingService } from '@core/shared/services/field-mapping.service';
 import {
   ReceiverType,
   StorageClassification,
   QueryTypeFilter,
-} from '@core/public/shared/types/field-naming.types';
+} from '@core/shared/types/field-naming.types';
 
 const mockLogger = {
   warn: jest.fn(),

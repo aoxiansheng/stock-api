@@ -6,9 +6,9 @@
 
 import { ValidationArguments } from "class-validator";
 
-import { SymbolsRequiredForBySymbolsQueryConstraint } from "../../../../../../../src/core/restapi/query/validators/symbols-required-for-by-symbols.validator";
-import { QueryRequestDto } from "../../../../../../../src/core/restapi/query/dto/query-request.dto";
-import { QueryType } from "../../../../../../../src/core/restapi/query/dto/query-types.dto";
+import { SymbolsRequiredForBySymbolsQueryConstraint } from "../../../../../../../src/core/01-entry/query/validators/symbols-required-for-by-symbols.validator";
+import { QueryRequestDto } from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
+import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 
 describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
   let validator: SymbolsRequiredForBySymbolsQueryConstraint;

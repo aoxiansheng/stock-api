@@ -9,7 +9,7 @@ import {
   CreateMappingRuleFromSuggestionsDto,
   FlexibleMappingRuleResponseDto,
   FlexibleMappingTestResultDto
-} from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
+} from "../../../../../../../src/core/shared/data-mapper/dto/flexible-mapping-rule.dto";
 
 describe("FlexibleMappingRuleDto", () => {
   describe("CreateFlexibleMappingRuleDto", () => {

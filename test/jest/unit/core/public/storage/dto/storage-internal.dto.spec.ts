@@ -13,7 +13,7 @@ import {
   StorageCacheStatsDto,
   PersistentStatsDto,
   PerformanceStatsDto,
-} from '../../../../../../../src/core/public/storage/dto/storage-internal.dto';
+} from '../../../../../../../src/core/04-storage/storage/dto/storage-internal.dto';
 
 describe('Storage Internal DTOs', () => {
   describe('CacheResultDto', () => {

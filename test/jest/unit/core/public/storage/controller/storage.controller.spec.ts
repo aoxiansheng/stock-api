@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { StorageController } from '../../../../../../../src/core/public/storage/controller/storage.controller';
-import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
-import { StoreDataDto, RetrieveDataDto } from '../../../../../../../src/core/public/storage/dto/storage-request.dto';
-import { StorageType } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
-import { StorageClassification } from '../../../../../../../src/core/public/storage/enums/storage-type.enum';
-import { StorageResponseDto, StorageStatsDto } from '../../../../../../../src/core/public/storage/dto/storage-response.dto';
+import { StorageController } from '../../../../../../../src/core/04-storage/storage/controller/storage.controller';
+import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
+import { StoreDataDto, RetrieveDataDto } from '../../../../../../../src/core/04-storage/storage/dto/storage-request.dto';
+import { StorageType } from '../../../../../../../src/core/04-storage/storage/enums/storage-type.enum';
+import { StorageClassification } from '../../../../../../../src/core/04-storage/storage/enums/storage-type.enum';
+import { StorageResponseDto, StorageStatsDto } from '../../../../../../../src/core/04-storage/storage/dto/storage-response.dto';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UnifiedPermissionsGuard } from '../../../../../../../src/auth/guards/unified-permissions.guard';

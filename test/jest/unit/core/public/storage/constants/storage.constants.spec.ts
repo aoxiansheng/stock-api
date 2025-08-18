@@ -9,7 +9,7 @@ import {
   STORAGE_STATUS,
   STORAGE_DEFAULTS,
   STORAGE_KEY_PATTERNS,
-} from "../../../../../../../src/core/public/storage/constants/storage.constants";
+} from "../../../../../../../src/core/04-storage/storage/constants/storage.constants";
 
 describe("Storage Constants", () => {
   describe("STORAGE_ERROR_MESSAGES", () => {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { MarketStatusService } from '../../../../../../src/core/public/shared/services/market-status.service';
+import { MarketStatusService } from '../../../../../../src/core/shared/services/market-status.service';
 import { Market } from '../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../src/common/constants/market-trading-hours.constants';
 

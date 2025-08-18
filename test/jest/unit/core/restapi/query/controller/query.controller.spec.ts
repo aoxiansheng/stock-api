@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
-import { QueryController } from "../../../../../../../src/core/restapi/query/controller/query.controller";
-import { QueryService } from "../../../../../../../src/core/restapi/query/services/query.service";
+import { QueryController } from "../../../../../../../src/core/01-entry/query/controller/query.controller";
+import { QueryService } from "../../../../../../../src/core/01-entry/query/services/query.service";
 import {
   QueryRequestDto,
   BulkQueryRequestDto,
-} from "../../../../../../../src/core/restapi/query/dto/query-request.dto";
+} from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import {
   QueryResponseDto,
   BulkQueryResponseDto,
   QueryStatsDto,
-} from "../../../../../../../src/core/restapi/query/dto/query-response.dto";
+} from "../../../../../../../src/core/01-entry/query/dto/query-response.dto";
 import { PaginatedDataDto } from "../../../../../../../src/common/modules/pagination/dto/paginated-data";
-import { QueryType } from "../../../../../../../src/core/restapi/query/dto/query-types.dto";
+import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 import { RateLimitService } from "../../../../../../../src/auth/services/rate-limit.service";
 import { PermissionService } from "../../../../../../../src/auth/services/permission.service";
 import { UnifiedPermissionsGuard } from "../../../../../../../src/auth/guards/unified-permissions.guard";

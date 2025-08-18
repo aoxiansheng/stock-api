@@ -10,7 +10,7 @@ import {
   QUERY_METRICS,
   QUERY_STATUS,
   QUERY_DEFAULTS,
-} from "../../../../../../../src/core/restapi/query/constants/query.constants";
+} from "../../../../../../../src/core/01-entry/query/constants/query.constants";
 
 describe("Query Constants", () => {
   describe("QUERY_ERROR_MESSAGES", () => {

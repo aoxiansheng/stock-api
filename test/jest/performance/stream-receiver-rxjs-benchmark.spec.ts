@@ -8,12 +8,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StreamReceiverService } from '../../../src/core/stream/stream-receiver/services/stream-receiver.service';
 import { CapabilityRegistryService } from '../../../src/providers/services/capability-registry.service';
-import { SymbolMapperService } from '../../../src/core/public/symbol-mapper/services/symbol-mapper.service';
-import { FlexibleMappingRuleService } from '../../../src/core/public/data-mapper/services/flexible-mapping-rule.service';
-import { TransformerService } from '../../../src/core/public/transformer/services/transformer.service';
-import { BatchOptimizationService } from '../../../src/core/public/shared/services/batch-optimization.service';
+import { SymbolMapperService } from '../../../src/core/shared/symbol-mapper/services/symbol-mapper.service';
+import { FlexibleMappingRuleService } from '../../../src/core/shared/data-mapper/services/flexible-mapping-rule.service';
+import { TransformerService } from '../../../src/core/02-processing/transformer/services/transformer.service';
+import { BatchOptimizationService } from '../../../src/core/shared/services/batch-optimization.service';
 import { FeatureFlags } from '../../../src/common/config/feature-flags.config';
-import { StreamPerformanceMetrics } from '../../../src/core/public/shared/services/stream-performance-metrics.service';
+import { StreamPerformanceMetrics } from '../../../src/core/shared/services/stream-performance-metrics.service';
 
 // Performance test configuration
 const PERFORMANCE_TEST_CONFIG = {

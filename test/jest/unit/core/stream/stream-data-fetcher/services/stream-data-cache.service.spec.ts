@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { StreamDataCacheService, CompressedDataPoint, CacheStats } from '../../../../../../../src/core/stream/stream-data-fetcher/services/stream-data-cache.service';
+import { StreamDataCacheService, CompressedDataPoint, CacheStats } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-cache.service';
 import { CacheService } from '../../../../../../../src/cache/services/cache.service';
 import { createLogger } from '../../../../../../../src/common/config/logger.config';
 

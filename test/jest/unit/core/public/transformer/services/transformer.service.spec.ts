@@ -5,11 +5,11 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { TransformerService } from "../../../../../../../src/core/public/transformer/services/transformer.service";
-import { FlexibleMappingRuleService } from "../../../../../../../src/core/public/data-mapper/services/flexible-mapping-rule.service";
-import { TransformRequestDto } from "../../../../../../../src/core/public/transformer/dto/transform-request.dto";
-import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
-import { TransformResponseDto } from "../../../../../../../src/core/public/transformer/dto/transform-response.dto";
+import { TransformerService } from "../../../../../../../src/core/02-processing/transformer/services/transformer.service";
+import { FlexibleMappingRuleService } from "../../../../../../../src/core/shared/data-mapper/services/flexible-mapping-rule.service";
+import { TransformRequestDto } from "../../../../../../../src/core/02-processing/transformer/dto/transform-request.dto";
+import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/shared/data-mapper/dto/flexible-mapping-rule.dto";
+import { TransformResponseDto } from "../../../../../../../src/core/02-processing/transformer/dto/transform-response.dto";
 import { DeepMocked, createMock } from "@golevelup/ts-jest";
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 

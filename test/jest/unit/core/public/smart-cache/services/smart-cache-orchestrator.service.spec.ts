@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/public/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { StorageService } from '../../../../../../../src/core/public/storage/services/storage.service';
-import { MarketStatusService } from '../../../../../../../src/core/public/shared/services/market-status.service';
-import { DataChangeDetectorService } from '../../../../../../../src/core/public/shared/services/data-change-detector.service';
-import { BackgroundTaskService } from '../../../../../../../src/core/public/shared/services/background-task.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/shared/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
+import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
+import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
+import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { CommonCacheService } from '../../../../../../../src/core/public/common-cache/services/common-cache.service';
+import { CommonCacheService } from '../../../../../../../src/core/shared/common-cache/services/common-cache.service';
 import { 
   CacheStrategy, 
   CacheOrchestratorRequest
-} from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
-import { DEFAULT_SMART_CACHE_CONFIG } from '../../../../../../../src/core/public/smart-cache/interfaces/symbol-smart-cache-config.interface';
+} from '../../../../../../../src/core/shared/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { DEFAULT_SMART_CACHE_CONFIG } from '../../../../../../../src/core/shared/smart-cache/interfaces/symbol-smart-cache-config.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 

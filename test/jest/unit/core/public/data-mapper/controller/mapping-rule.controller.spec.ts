@@ -2,16 +2,16 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
-import { MappingRuleController } from "../../../../../../../src/core/public/data-mapper/controller/mapping-rule.controller";
-import { FlexibleMappingRuleService } from "../../../../../../../src/core/public/data-mapper/services/flexible-mapping-rule.service";
-import { RuleAlignmentService } from "../../../../../../../src/core/public/data-mapper/services/rule-alignment.service";
-import { PersistedTemplateService } from "../../../../../../../src/core/public/data-mapper/services/persisted-template.service";
+import { MappingRuleController } from "../../../../../../../src/core/shared/data-mapper/controller/mapping-rule.controller";
+import { FlexibleMappingRuleService } from "../../../../../../../src/core/shared/data-mapper/services/flexible-mapping-rule.service";
+import { RuleAlignmentService } from "../../../../../../../src/core/shared/data-mapper/services/rule-alignment.service";
+import { PersistedTemplateService } from "../../../../../../../src/core/shared/data-mapper/services/persisted-template.service";
 import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
   TestFlexibleMappingRuleDto,
   FlexibleMappingTestResultDto
-} from "../../../../../../../src/core/public/data-mapper/dto/flexible-mapping-rule.dto";
+} from "../../../../../../../src/core/shared/data-mapper/dto/flexible-mapping-rule.dto";
 
 describe("MappingRuleController", () => {
   let controller: MappingRuleController;

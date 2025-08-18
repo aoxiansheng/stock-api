@@ -10,7 +10,7 @@ import {
   DataTransformRuleDto,
   TransformValidationDto,
   TransformationStatsDto,
-} from '../../../../../../../src/core/public/transformer/dto/transform-interfaces.dto';
+} from '../../../../../../../src/core/02-processing/transformer/dto/transform-interfaces.dto';
 
 describe('Transform Interfaces DTOs', () => {
   describe('FieldTransformDto', () => {

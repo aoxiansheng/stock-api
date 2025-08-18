@@ -18,7 +18,7 @@ import {
   DATA_TYPE_HANDLERS,
   FIELD_SUGGESTION_CONFIG,
   PATH_RESOLUTION_CONFIG
-} from "../../../../../../../src/core/public/data-mapper/constants/data-mapper.constants";
+} from "../../../../../../../src/core/shared/data-mapper/constants/data-mapper.constants";
 
 describe("DataMapperConstants", () => {
   describe("DATA_MAPPER_CONFIG", () => {

@@ -20,8 +20,8 @@ import {
   QueryLogContextDto,
   DataSourceStatsDto,
   DataSourceCounterDto,
-} from '../../../../../../../src/core/restapi/query/dto/query-internal.dto';
-import { DataSourceType } from '../../../../../../../src/core/restapi/query/enums/data-source-type.enum';
+} from '../../../../../../../src/core/01-entry/query/dto/query-internal.dto';
+import { DataSourceType } from '../../../../../../../src/core/01-entry/query/enums/data-source-type.enum';
 
 describe('Query Internal DTOs', () => {
   describe('QueryStatsRecordDto', () => {
