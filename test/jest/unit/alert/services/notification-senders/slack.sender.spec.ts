@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { AxiosHeaders } from 'axios';
 

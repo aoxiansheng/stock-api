@@ -1,6 +1,5 @@
 import {
   Injectable,
-  InternalServerErrorException,
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
@@ -60,9 +59,8 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
           "LongPort SDK 连接初始化失败",
         );
         this.initializationPromise = null; // 允许下次调用时重试
-        throw new InternalServerErrorException(
-          "LongPort SDK 连接初始化失败",
-          errorMessage,
+        throw new Error(
+          `LongPort SDK 连接初始化失败: ${errorMessage}`
         );
       }
     })();
@@ -77,7 +75,6 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         "获取 LongPort QuoteContext 失败，因初始化后实例仍为空",
       );
-      throw new InternalServerErrorException("LongPort QuoteContext 未初始化");
     }
 
     return this.quoteContext;

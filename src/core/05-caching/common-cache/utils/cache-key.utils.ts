@@ -1,4 +1,4 @@
-import { CACHE_KEY_PREFIXES, CACHE_DEFAULTS } from '../constants/cache.constants';
+import { CACHE_KEY_PREFIXES } from '../constants/cache.constants';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 
 /**

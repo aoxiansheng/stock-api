@@ -121,11 +121,11 @@ private readonly cacheService?: SymbolMapperCacheService, // 第71行
 // clearCache() - 委托给专用服务
 clearCache(): void {
   if (this.cacheService) {
-    this.cacheService.clearCache();
+    this.cacheService.clearAllCaches();
+    this.logger.log('符号映射规则缓存清理请求已发送到专用缓存服务');
   } else {
-    this.logger.warn('缓存服务未注入，无法清理缓存');
+    this.logger.warn('专用缓存服务未注入，无法清理缓存');
   }
-  this.logger.log('符号映射规则缓存清理请求已发送');
 }
 
 // getCacheStats() - 完全委托给专用服务
@@ -167,6 +167,10 @@ getCacheStats() {
    - `unifiedCache` 属性仅在 `SymbolMapperService` 内部使用
    - 无外部服务直接访问此缓存实例
 
+4. **⛔ 阻塞性问题（必须先解决）**：
+   - 当前 `SymbolMapperCacheService` 未提供公共的全量清理方法（例如 `clearAllCaches()`）。
+   - 在执行本清理方案前，需先在 `SymbolMapperCacheService` 增加公开入口用于清空 L1/L2/L3 缓存并（可选）重置统计计数；随后再将 `SymbolMapperService.clearCache()` 委托到该方法。
+
 ### 🔍 兼容性风险
 1. **✅ 外部调用检查**：已确认没有其他服务直接调用被移除的缓存方法
 2. **✅ 测试依赖**：已确认测试不直接依赖这些内部缓存方法
@@ -185,6 +189,12 @@ getCacheStats() {
 1. **✅ 依赖分析**：已搜索整个代码库，确认没有外部直接调用被移除的方法
 2. **✅ 测试识别**：已确认测试不直接依赖内部缓存方法
 3. **✅ 功能验证**：SymbolMapperCacheService 已在生产环境正常运行
+
+### 🧩 新增阶段：公共 API 补齐（必须先做）
+1. 在 `SymbolMapperCacheService` 新增 `public clearAllCaches(): void`（或团队约定命名，例如 `invalidateAll()`）：
+   - 清空 L1/L2/L3 缓存，必要时重置统计计数
+   - 记录操作日志，暴露最小必要信息
+2. （可选）提供按 Provider/规则粒度的公开失效 API，支撑后续更精细的失效策略
 
 ### 第二阶段：具体清理操作
 
@@ -235,7 +245,7 @@ onModuleInit() {
 // 替换现有实现
 clearCache(): void {
   if (this.cacheService) {
-    this.cacheService.clearCache();
+    this.cacheService.clearAllCaches();
     this.logger.log('符号映射规则缓存清理请求已发送到专用缓存服务');
   } else {
     this.logger.warn('专用缓存服务未注入，无法清理缓存');
@@ -248,13 +258,14 @@ clearCache(): void {
 // 简化为完全委托
 getCacheStats() {
   if (this.cacheService) {
+    // 建议：直接返回缓存服务的 CacheStatsDto；若需要沿用旧格式，请在 Controller 层做 DTO 转换
     return this.cacheService.getCacheStats();
   }
   
-  // 返回默认值而不是本地统计
+  // 返回默认值而不是本地统计（保持向后兼容，不引用本地缓存）
   return {
     cacheHits: 0,
-    cacheMisses: 0, 
+    cacheMisses: 0,
     hitRate: 'N/A (专用缓存服务未注入)',
     cacheSize: 0,
     maxSize: 0,
@@ -273,6 +284,14 @@ getCacheStats() {
 1. **更新文档**：更新相关技术文档
 2. **代码审查**：进行代码审查确保清理彻底
 3. **性能验证**：确认性能没有退化
+
+### 🔁 回滚方案
+- 通过 Feature Flag 控制本次清理后的委托路径，保留旧实现的代码路径（默认关闭），若线上出现统计异常或缓存未及时失效，可临时切换回旧路径快速止血；同时记录指标并尽快回归统一缓存方案。
+- 若统计结构对外暴露，采用版本化接口或在 Controller 层进行 DTO 兼容转换，支持热切换。
+
+### 📐 接口契约与统计对齐建议
+- 服务层建议直接返回 `SymbolMapperCacheService.getCacheStats()` 的 `CacheStatsDto`，避免在服务层重复做格式转换。
+- 若现有上游依赖旧的简化统计（如字符串百分比命中率），建议在 Controller 层集中进行 DTO 转换，减少耦合与漂移风险。
 
 ## 📊 预期收益
 

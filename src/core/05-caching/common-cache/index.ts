@@ -51,5 +51,3 @@ export {
   CompressionAlgorithm,
 } from './constants/cache-config.constants';
 
-// 使用示例（仅在开发环境导出）
-export { StockDataCacheService, QueryCacheService } from './examples';

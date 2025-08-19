@@ -1,7 +1,7 @@
 import {
   Injectable,
-  InternalServerErrorException,
   OnModuleDestroy,
+  BadRequestException,
 } from "@nestjs/common";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
@@ -354,9 +354,9 @@ export class SecurityAuditService implements OnModuleDestroy {
     } catch (error) {
       this.logger.error(
         { operation, error: error.stack },
-        SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED,
+        SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED
       );
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         SECURITY_AUDIT_MESSAGES.GENERATE_REPORT_FAILED,
       );
     }

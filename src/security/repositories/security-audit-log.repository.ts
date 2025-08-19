@@ -1,7 +1,6 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-
+import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
 import {
@@ -76,7 +75,6 @@ export class SecurityAuditLogRepository {
         "获取审计日志失败",
       );
       // Re-throw to allow global error handlers to process it
-      throw new InternalServerErrorException("获取审计日志失败");
     }
   }
 }

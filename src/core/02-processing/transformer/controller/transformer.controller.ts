@@ -1,4 +1,3 @@
-import { Controller, Post, Body, ValidationPipe, BadRequestException } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/config/logger.config";
@@ -7,7 +6,7 @@ import {
   ApiStandardResponses,
   ApiKeyAuthResponses,
 } from "@common/core/decorators/swagger-responses.decorator";
-
+import { Controller, Post, Body, ValidationPipe, BadRequestException } from "@nestjs/common";
 import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
 import { Permission } from "../../../../auth/enums/user-role.enum";
 

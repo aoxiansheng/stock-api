@@ -185,24 +185,24 @@ describe("JwtAuthGuard", () => {
     it("should return user when authentication is successful", () => {
       const mockUser = { id: "123", username: "testuser" };
 
-      const result = guard.handleRequest(null, mockUser, null);
+      const result = guard.handleRequest(null, mockUser);
 
       expect(result).toBe(mockUser);
     });
 
     it("should throw UnauthorizedException when user is null", () => {
       expect(() => {
-        guard.handleRequest(null, null, null);
+        guard.handleRequest(null, null);
       }).toThrow(UnauthorizedException);
 
       expect(() => {
-        guard.handleRequest(null, null, null);
+        guard.handleRequest(null, null);
       }).toThrow("JWT认证失败");
     });
 
     it("should throw UnauthorizedException when user is undefined", () => {
       expect(() => {
-        guard.handleRequest(null, undefined, null);
+        guard.handleRequest(null, undefined);
       }).toThrow(UnauthorizedException);
     });
 
@@ -210,7 +210,7 @@ describe("JwtAuthGuard", () => {
       const customError = new Error("Custom authentication error");
 
       expect(() => {
-        guard.handleRequest(customError, null, null);
+        guard.handleRequest(customError, null);
       }).toThrow(customError);
     });
 
@@ -219,7 +219,7 @@ describe("JwtAuthGuard", () => {
       const mockUser = { id: "123", username: "testuser" };
 
       expect(() => {
-        guard.handleRequest(customError, mockUser, null);
+        guard.handleRequest(customError, mockUser);
       }).toThrow(customError);
     });
 
@@ -228,7 +228,7 @@ describe("JwtAuthGuard", () => {
 
       falsyValues.forEach((value) => {
         expect(() => {
-          guard.handleRequest(null, value, null);
+          guard.handleRequest(null, value);
         }).toThrow(UnauthorizedException);
       });
     });
@@ -242,14 +242,14 @@ describe("JwtAuthGuard", () => {
       ];
 
       userVariants.forEach((user) => {
-        const result = guard.handleRequest(null, user, null);
+        const result = guard.handleRequest(null, user);
         expect(result).toBe(user);
       });
     });
 
     it("should handle empty object as valid user", () => {
       const emptyUser = {};
-      const result = guard.handleRequest(null, emptyUser, null);
+      const result = guard.handleRequest(null, emptyUser);
       expect(result).toBe(emptyUser);
     });
   });

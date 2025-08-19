@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
 import { MetricsRegistryService } from '../../../monitoring/metrics/services/metrics-registry.service';
 import { Metrics } from '../../../monitoring/metrics/metrics-helper';
+import { NotFoundException } from '@nestjs/common';
 
 /**
  * BaseFetcherService 抽象基类 - 🚫 不可直接实例化
@@ -242,7 +242,7 @@ export abstract class BaseFetcherService {
       return error;
     }
 
-    return new InternalServerErrorException(
+    throw new Error(
       `${operation}失败: ${errorMessage}`
     );
   }

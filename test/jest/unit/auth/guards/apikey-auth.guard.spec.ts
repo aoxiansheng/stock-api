@@ -405,7 +405,7 @@ describe("ApiKeyAuthGuard", () => {
         const mockApiKey = { id: "key-123" };
         const info = { message: "Additional info" };
 
-        const result = guard.handleRequest(null, mockApiKey, info);
+        const result = guard.handleRequest(null, mockApiKey);
 
         expect(result).toBe(mockApiKey);
         // Info parameter is intentionally unused (marked with underscore)
@@ -414,7 +414,7 @@ describe("ApiKeyAuthGuard", () => {
       it("should ignore info parameter when authentication fails", () => {
         const info = { error: "Detailed error info" };
 
-        expect(() => guard.handleRequest(null, null, info)).toThrow(
+        expect(() => guard.handleRequest(null, null)).toThrow(
           "API凭证验证失败",
         );
       });

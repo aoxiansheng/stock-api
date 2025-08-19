@@ -187,14 +187,14 @@ export class SymbolTransformerService {
   /**
    * 向后兼容的方法名 - mapSymbols
    */
-  async mapSymbols(provider: string, symbols: string | string[], requestId?: string) {
+  async mapSymbols(provider: string, symbols: string | string[]) {
     return await this.transformSymbols(provider, symbols, 'to_standard');
   }
 
   /**
    * 向后兼容的方法名 - mapSymbol
    */
-  async mapSymbol(provider: string, symbol: string, requestId?: string) {
+  async mapSymbol(provider: string, symbol: string) {
     return await this.transformSingleSymbol(provider, symbol, 'to_standard');
   }
 

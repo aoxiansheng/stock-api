@@ -1,2 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// This file has been cleared due to import path resolution issues
+// batch-optimization.service.spec.ts - 测试占位代码
+// 路径: unit/core/public/shared/services/batch-optimization.service.spec.ts
+
+// TODO: 实现具体的测试用例

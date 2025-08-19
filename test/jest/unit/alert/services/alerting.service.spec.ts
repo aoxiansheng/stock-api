@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
+import {
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
 import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
 import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
@@ -11,7 +16,6 @@ import { ConfigService } from "@nestjs/config";
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../../../../../src/alert/dto";
 import { IAlertRule, IMetricData, IRuleEvaluationResult } from "../../../../../src/alert/interfaces";
 import { AlertStatus, AlertSeverity } from "../../../../../src/alert/types/alert.types";
-import { BadRequestException, NotFoundException, InternalServerErrorException } from "@nestjs/common";
 import { ALERTING_MESSAGES, AlertingTemplateUtil } from "../../../../../src/alert/constants/alerting.constants";
 
 describe("AlertingService", () => {

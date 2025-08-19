@@ -1,5 +1,4 @@
-import { Injectable, BadRequestException, OnModuleInit } from "@nestjs/common";
-
+import { Injectable, OnModuleInit, BadRequestException } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
 import { notificationConfig } from "../../common/config/notification.config";

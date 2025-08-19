@@ -37,8 +37,7 @@ export class ApiKeyAuthGuard extends AuthGuard("apikey") {
     return super.canActivate(context);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handleRequest(err: any, apiKey: any, _info?: any) {
+  handleRequest(err: any, apiKey: any) {
     if (err || !apiKey) {
       // 确保错误消息包含"API凭证"字样
       throw err || new UnauthorizedException("API凭证验证失败");

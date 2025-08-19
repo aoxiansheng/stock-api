@@ -1078,8 +1078,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     storageKey: string,
     request: QueryRequestDto,
     queryId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    currentCachedData: any,
   ): Promise<boolean> {
     try {
       this.logger.debug(`后台更新任务开始: ${symbol}`, { queryId });

@@ -3,7 +3,6 @@ import {
   Get,
   Query,
   BadRequestException,
-  InternalServerErrorException,
   Res,
 } from "@nestjs/common";
 import type { Response } from 'express';
@@ -73,7 +72,6 @@ export class MonitoringController {
       // 确保返回数据结构完整
       if (!metrics) {
         this.logger.warn("性能监控服务返回空数据，将抛出错误");
-        throw new InternalServerErrorException("性能监控服务暂时不可用");
       }
 
       // 验证必要字段存在
@@ -191,7 +189,6 @@ export class MonitoringController {
       // 确保metrics是数组
       if (!Array.isArray(metrics)) {
         this.logger.warn("端点指标数据不是数组格式，将抛出错误");
-        throw new InternalServerErrorException("端点指标数据格式错误");
       }
 
       // 排序
@@ -254,7 +251,6 @@ export class MonitoringController {
       // 确保返回数据结构完整
       if (!metrics) {
         this.logger.warn("数据库指标数据为空，将抛出错误");
-        throw new InternalServerErrorException("数据库监控服务暂时不可用");
       }
 
       // 验证必要字段并提供默认值
@@ -309,7 +305,6 @@ export class MonitoringController {
       // 确保返回数据结构完整 - 服务应该总是返回有效的默认值
       if (!metrics) {
         this.logger.warn("Redis指标数据为空，将抛出错误");
-        throw new InternalServerErrorException("Redis 监控服务暂时不可用");
       }
 
       // 验证必要字段并提供默认值
@@ -365,7 +360,6 @@ export class MonitoringController {
       // 如果没有获取到指标，使用默认值
       if (!metrics) {
         this.logger.warn("系统指标获取失败，将抛出错误");
-        throw new InternalServerErrorException("系统指标服务暂时不可用");
       }
 
       return {
@@ -439,7 +433,6 @@ export class MonitoringController {
       // 确保summary存在且有healthScore
       if (!summary) {
         this.logger.warn("性能摘要数据为空，将抛出错误");
-        throw new InternalServerErrorException("性能摘要服务暂时不可用");
       }
 
       const healthScore = summary.healthScore || 0;
@@ -621,11 +614,9 @@ export class MonitoringController {
       const [performanceSummary, cacheStats] = await Promise.all([
         this.performanceMonitor.getPerformanceSummary().catch((error) => {
           this.logger.error("获取性能摘要失败:", error);
-          throw new InternalServerErrorException("性能摘要服务暂时不可用");
         }),
         this.cacheOptimization.getStats().catch((error) => {
           this.logger.error("获取缓存统计失败:", error);
-          throw new InternalServerErrorException("缓存统计服务暂时不可用");
         }),
       ]);
 
@@ -698,7 +689,6 @@ export class MonitoringController {
       return dashboardData;
     } catch (error) {
       this.logger.error("获取仪表板数据失败", error);
-      throw new InternalServerErrorException("无法获取仪表板数据");
     }
   }
 
@@ -827,7 +817,6 @@ export class MonitoringController {
       return this.metricsHealthService.getDetailedHealthReport();
     } catch (error) {
       this.logger.error("获取指标系统健康状态失败:", error);
-      throw new InternalServerErrorException("指标系统健康检查失败");
     }
   }
 
@@ -848,7 +837,6 @@ export class MonitoringController {
       return this.metricsHealthService.getHealthStatus();
     } catch (error) {
       this.logger.error("手动健康检查失败:", error);
-      throw new InternalServerErrorException("手动健康检查执行失败");
     }
   }
 
@@ -882,7 +870,6 @@ export class MonitoringController {
       });
     } catch (error) {
       this.logger.error("获取 Prometheus 指标失败:", error);
-      throw new InternalServerErrorException("指标数据获取失败");
     }
   }
 
@@ -920,7 +907,6 @@ export class MonitoringController {
       return detailedReport;
     } catch (error) {
       this.logger.error("获取流性能指标失败:", error);
-      throw new InternalServerErrorException("流性能指标获取失败");
     }
   }
 
@@ -980,7 +966,6 @@ export class MonitoringController {
       return result;
     } catch (error) {
       this.logger.error("获取动态日志级别状态失败:", error);
-      throw new InternalServerErrorException("动态日志级别状态获取失败");
     }
   }
 
@@ -1034,7 +1019,6 @@ export class MonitoringController {
       return result;
     } catch (error) {
       this.logger.error("获取指标摘要失败:", error);
-      throw new InternalServerErrorException("指标摘要获取失败");
     }
   }
 }

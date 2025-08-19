@@ -3,8 +3,6 @@ import {
   ConflictException,
   NotFoundException,
   OnModuleInit,
-  BadRequestException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 
 import { LRUCache } from 'lru-cache';
@@ -13,7 +11,6 @@ import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data"
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { FeatureFlags } from "@common/config/feature-flags.config";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
-import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
 import { SymbolMapperCacheService } from "../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
 
 import {
@@ -1341,5 +1338,29 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       maxSize: this.featureFlags.symbolCacheMaxSize,
       pendingQueries: 0,
     };
+  }
+
+  // ===== 🎯 测试兼容性方法别名 =====
+
+  /**
+   * 测试兼容性别名：transformSymbolsForProvider
+   * 映射到 transformSymbols 方法
+   */
+  async transformSymbolsForProvider(
+    dataSourceName: string,
+    standardSymbols: string[],
+  ): Promise<TransformSymbolsResponseDto> {
+    return this.transformSymbols(dataSourceName, standardSymbols);
+  }
+
+  /**
+   * 测试兼容性别名：mapSymbols
+   * 映射到 transformSymbols 方法
+   */
+  async mapSymbols(
+    dataSourceName: string,
+    standardSymbols: string[],
+  ): Promise<TransformSymbolsResponseDto> {
+    return this.transformSymbols(dataSourceName, standardSymbols);
   }
 }

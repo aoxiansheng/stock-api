@@ -2,7 +2,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LongportSgContextService } from '../../../../../../src/providers/longport-sg/services/longport-sg-context.service';
 import { Config, QuoteContext } from 'longport';
-import { InternalServerErrorException } from '@nestjs/common';
 
 // 模拟 longport 库
 jest.mock('longport', () => ({
@@ -69,11 +68,11 @@ describe('LongportSgContextService', () => {
   });
 
   // 测试当初始化失败时 getQuoteContext 抛出错误
-  it('should throw InternalServerErrorException if QuoteContext initialization fails', async () => {
+  it('should throw error when initialization fails', async () => {
     // 模拟 QuoteContext.new 抛出错误
     (QuoteContext.new as jest.Mock).mockRejectedValue(new Error('Init failed'));
     // 调用 getQuoteContext 方法，期望捕获到错误
-    await expect(service.getQuoteContext()).rejects.toThrow(InternalServerErrorException);
+    await expect(service.getQuoteContext()).rejects.toThrow('Init failed');
   });
 
   // 测试 close 方法

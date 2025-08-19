@@ -74,7 +74,7 @@ export class RedisValueUtils {
       const maxSizeInBytes = CACHE_CONFIG.MEMORY.MAX_VALUE_SIZE_MB * 1024 * 1024;
       
       return sizeInBytes <= maxSizeInBytes;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -88,7 +88,7 @@ export class RedisValueUtils {
     try {
       const serialized = JSON.stringify(data);
       return Buffer.byteLength(serialized, 'utf8');
-    } catch (error) {
+    } catch {
       return 0;
     }
   }
@@ -127,7 +127,7 @@ export class RedisValueUtils {
   static safeParseJSON<T>(value: string, defaultValue: T): T {
     try {
       return JSON.parse(value);
-    } catch (error) {
+    } catch {
       return defaultValue;
     }
   }
@@ -144,7 +144,7 @@ export class RedisValueUtils {
              parsed !== null && 
              'data' in parsed && 
              'storedAt' in parsed;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -172,7 +172,7 @@ export class RedisValueUtils {
         compressed: parsed.compressed,
         metadata: parsed.metadata,
       };
-    } catch (error) {
+    } catch {
       return {};
     }
   }

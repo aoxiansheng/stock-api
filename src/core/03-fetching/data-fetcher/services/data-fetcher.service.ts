@@ -1,7 +1,7 @@
 import {
   Injectable,
   NotFoundException,
-  InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
@@ -124,7 +124,7 @@ export class DataFetcherService implements IDataFetcher {
         })
       );
       
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         DATA_FETCHER_ERROR_MESSAGES.DATA_FETCH_FAILED.replace(
           '{error}', 
           error.message

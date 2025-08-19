@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException } from '@nestjs/common';
 import { NotificationService } from "../../../../../src/alert/services/notification.service";
 import {
   EmailSender,

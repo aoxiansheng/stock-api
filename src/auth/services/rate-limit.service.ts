@@ -2,7 +2,6 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 import {
   Injectable,
   BadRequestException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import { Redis } from "ioredis";
 
@@ -254,7 +253,7 @@ export class RateLimitService {
 
     const multiplier = RATE_LIMIT_TIME_MULTIPLIERS[unit];
     if (multiplier === undefined) {
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         RateLimitTemplateUtil.generateErrorMessage("UNSUPPORTED_TIME_UNIT", {
           unit,
         }),

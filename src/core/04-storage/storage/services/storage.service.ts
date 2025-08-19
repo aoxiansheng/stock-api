@@ -4,7 +4,6 @@ import * as zlib from "zlib";
 import {
   Injectable,
   BadRequestException,
-  InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
@@ -168,7 +167,7 @@ export class StorageService {
           processingTime,
         }),
       );
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `${STORAGE_ERROR_MESSAGES.STORAGE_FAILED}: ${error.message}`,
       );
     }
@@ -247,7 +246,7 @@ export class StorageService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `${STORAGE_ERROR_MESSAGES.RETRIEVAL_FAILED}: ${error.message}`,
       );
     }
@@ -336,7 +335,7 @@ export class StorageService {
         }),
       );
 
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `${STORAGE_ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`,
       );
     }
@@ -375,7 +374,7 @@ export class StorageService {
       return stats;
     } catch (error: any) {
       this.logger.error("生成数据库存储统计信息失败", error);
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `生成数据库存储统计信息失败: ${error.message}`,
       );
     }
@@ -489,7 +488,7 @@ export class StorageService {
           processingTime,
         }),
       );
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `${STORAGE_ERROR_MESSAGES.RETRIEVAL_FAILED}: ${error.message}`,
       );
     }

@@ -813,7 +813,7 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
       reasoning: string;
     };
   } {
-    const { symbol, dataType, marketStatus, freshnessRequirement, customMultipliers } = context;
+    const { dataType, marketStatus, freshnessRequirement, customMultipliers } = context;
     
     // 基础TTL映射（基于数据类型）
     let baseTTL: number = CACHE_CONFIG.TTL.DEFAULT_SECONDS; // 默认1小时

@@ -2,7 +2,6 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
@@ -453,7 +452,7 @@ export class ReceiverService {
         throw error;
       }
 
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         RECEIVER_ERROR_MESSAGES.PROVIDER_SELECTION_FAILED,
       );
     }
@@ -652,7 +651,7 @@ export class ReceiverService {
         throw error;
       }
 
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         RECEIVER_ERROR_MESSAGES.SYMBOL_TRANSFORMATION_FAILED,
       );
     }
@@ -844,8 +843,8 @@ export class ReceiverService {
         }),
       );
 
-      throw new InternalServerErrorException(
-        RECEIVER_ERROR_MESSAGES.DATA_FETCHING_FAILED.replace(
+      throw new BadRequestException(
+        RECEIVER_ERROR_MESSAGES.VALIDATION_FAILED.replace(
           "{error}",
           error.message,
         ),

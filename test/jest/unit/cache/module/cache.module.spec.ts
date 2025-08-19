@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
+import { BadRequestException } from '@nestjs/common';
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 import {
@@ -7,7 +8,6 @@ import {
   CACHE_WARNING_MESSAGES,
   CACHE_OPERATIONS,
 } from "../../../../../src/cache/constants/cache.constants";
-import { BadRequestException } from "@nestjs/common";
 
 describe("CacheService Optimization Features", () => {
   let service: CacheService;

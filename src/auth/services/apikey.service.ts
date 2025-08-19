@@ -2,12 +2,11 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
-  InternalServerErrorException,
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-
+import { BadRequestException } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
 import { AuthPerformance } from "../../metrics/decorators/database-performance.decorator";
@@ -170,7 +169,7 @@ export class ApiKeyService {
         userId,
         error: error.stack,
       });
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         ERROR_MESSAGES.CREATE_API_KEY_FAILED,
       );
     }
@@ -247,7 +246,6 @@ export class ApiKeyService {
         error: error.stack,
       });
 
-      throw new InternalServerErrorException("权限验证失败");
     }
   }
 
@@ -280,7 +278,7 @@ export class ApiKeyService {
         userId,
         error: error.stack,
       });
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         ERROR_MESSAGES.GET_USER_API_KEYS_FAILED,
       );
     }
@@ -323,7 +321,7 @@ export class ApiKeyService {
         userId,
         error: error.stack,
       });
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         ERROR_MESSAGES.REVOKE_API_KEY_FAILED,
       );
     }

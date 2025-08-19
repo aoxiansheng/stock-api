@@ -1,5 +1,4 @@
 import { BadRequestException } from "@nestjs/common";
-
 /**
  * URL安全验证工具类 - SSRF防护
  * 用于验证URL是否安全，防止SSRF攻击

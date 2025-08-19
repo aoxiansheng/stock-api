@@ -220,8 +220,7 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
     });
     
     // 监听队列事件用于指标收集
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.queueEvents.on('completed', ({ jobId: _jobId }) => {
+    this.queueEvents.on('completed', () => {
       this.metricsService.recordQPS();
     });
   }

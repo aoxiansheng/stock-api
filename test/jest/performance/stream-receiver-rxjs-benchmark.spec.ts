@@ -6,10 +6,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { StreamReceiverService } from '../../../src/core/stream/stream-receiver/services/stream-receiver.service';
+import { StreamReceiverService } from '../../../src/core/01-entry/stream-receiver/services/stream-receiver.service';
 import { CapabilityRegistryService } from '../../../src/providers/services/capability-registry.service';
-import { SymbolMapperService } from '../../../src/core/shared/symbol-mapper/services/symbol-mapper.service';
-import { FlexibleMappingRuleService } from '../../../src/core/shared/data-mapper/services/flexible-mapping-rule.service';
+import { SymbolMapperService } from '../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
+import { FlexibleMappingRuleService } from '../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
 import { TransformerService } from '../../../src/core/02-processing/transformer/services/transformer.service';
 import { BatchOptimizationService } from '../../../src/core/shared/services/batch-optimization.service';
 import { FeatureFlags } from '../../../src/common/config/feature-flags.config';

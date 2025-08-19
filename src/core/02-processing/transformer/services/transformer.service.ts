@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  InternalServerErrorException,
   UnauthorizedException,
   ForbiddenException,
 } from "@nestjs/common";
@@ -214,8 +213,7 @@ export class TransformerService {
         throw error; // 直接传播业务逻辑异常
       }
 
-      // 只有系统级异常才包装为 InternalServerErrorException
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `${TRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED}: ${error.message}`,
       );
     }
@@ -310,7 +308,7 @@ export class TransformerService {
         } catch (error) {
           if (!options.continueOnError) throw error;
           // For batch operations, we throw exceptions that will be caught by the batch handler
-          throw new InternalServerErrorException(
+          throw new BadRequestException(
             `${TRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: ${error.message}`,
           );
         }
@@ -428,8 +426,6 @@ export class TransformerService {
         throw error; // 直接传播业务逻辑异常
       }
 
-      // 只有系统级异常才包装为 InternalServerErrorException
-      throw new InternalServerErrorException(error.message);
     }
   }
 

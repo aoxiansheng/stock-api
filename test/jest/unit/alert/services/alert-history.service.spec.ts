@@ -9,7 +9,6 @@ import {
   AlertSeverity,
 } from "../../../../../src/alert/types/alert.types";
 import { AlertHistoryUtil, ALERT_HISTORY_CONFIG } from "../../../../../src/alert/constants/alert-history.constants";
-import { BadRequestException } from "@nestjs/common";
 
 describe("AlertHistoryService", () => {
   let service: AlertHistoryService;

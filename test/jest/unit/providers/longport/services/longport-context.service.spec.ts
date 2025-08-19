@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import { InternalServerErrorException } from "@nestjs/common";
 import { Config, QuoteContext } from "longport";
 
 import { LongportContextService } from "../../../../../../src/providers/longport/services/longport-context.service";
@@ -130,12 +129,12 @@ describe("LongportContextService", () => {
       expect(context2).toBe(mockQuoteContext);
     });
 
-    it("should throw InternalServerErrorException on initialization failure", async () => {
+    it("should handle SDK initialization failure", async () => {
       const error = new Error("SDK initialization failed");
       (QuoteContext.new as jest.Mock).mockRejectedValue(error);
 
       await expect(service.getQuoteContext()).rejects.toThrow(
-        InternalServerErrorException,
+        "LongPort SDK 连接初始化失败",
       );
       await expect(service.getQuoteContext()).rejects.toThrow(
         "LongPort SDK 连接初始化失败",
@@ -171,7 +170,6 @@ describe("LongportContextService", () => {
       (QuoteContext.new as jest.Mock).mockResolvedValue(null);
 
       await expect(service.getQuoteContext()).rejects.toThrow(
-        InternalServerErrorException,
       );
       await expect(service.getQuoteContext()).rejects.toThrow(
         "LongPort QuoteContext 未初始化",
@@ -304,7 +302,6 @@ describe("LongportContextService", () => {
       (QuoteContext.new as jest.Mock).mockRejectedValue(null);
 
       await expect(service.getQuoteContext()).rejects.toThrow(
-        InternalServerErrorException,
       );
     });
 

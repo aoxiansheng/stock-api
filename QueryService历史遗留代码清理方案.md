@@ -232,3 +232,86 @@ async onModuleDestroy(): Promise<void> {
 **📝 状态**：✅ 完整分析完成，依赖验证通过，实施方案制定完毕  
 **🎯 目标**：清理历史遗留代码，优化服务架构，实现职责分离  
 **📊 清理范围**：83行历史遗留代码，1个未使用方法，1个冗余依赖注入
+
+## 更正与补充（基于技术审核）
+
+### 风险矩阵（按影响分级）
+- 🛑 高危｜依赖注入移除影响实例化路径  
+    影响面：构造函数签名变更，Nest DI 依赖图需重建。  
+    文档依据：第二阶段·具体清理操作（L144-L148）。  
+    处置：在全仓编译并执行相关测试，确保所有容器初始化与构造调用点均已更新。
+- ⚠️ 中危｜测试回归与假阳性通过  
+    影响面：mock 移除导致测试失败；或因过度 mock 误判安全。  
+    文档依据：第三阶段（L172-L177）与测试清单（L210-L228）。  
+    处置：改为“行为驱动”断言，拉通集成测试并做覆盖率对比。
+- ⚠️ 中危｜隐藏的间接使用路径  
+    影响面：若 `updateDataInBackground()` 被反射/字符串动态调用，清理可能断裂。  
+    文档依据：依赖关系验证（L94-L108）。  
+    处置：静态（ts-prune）+ 动态（灰度探针）双重校验。
+- ℹ️ 建议｜注释清理后的知识传递  
+    影响面：去除历史注释后，新成员理解历史上下文成本上升。  
+    文档依据：注释清理（L150-L157、L164-L170）。  
+    处置：在 `docs/重构文档/` 增补职责迁移决策记录与比对表。
+
+### CI 与自动化校验（新增）
+- 编译与 Lint 门禁：
+    ```json
+    // tsconfig.json（关键项）
+    {
+        "compilerOptions": {
+            "noUnusedLocals": true,
+            "noUnusedParameters": true
+        }
+    }
+    ```
+    ```bash
+    # ESLint 作为强门禁
+    eslint . --max-warnings=0
+    ```
+- 依赖与死代码扫描：
+    ```bash
+    npx depcheck --ignores="@types/*"
+    npx ts-prune
+    npx madge --circular --extensions ts src
+    ```
+- 测试保护：
+    ```bash
+    # 变更相关测试优先
+    npx jest --findRelatedTests src/**/query.service.ts
+    # 覆盖率基线对比
+    npx jest --coverage --coverageReporters=text-summary
+    ```
+
+### 可逆性与回滚方案（新增）
+- 单提交聚合“导入/注入/方法/注释”改动，支持原子化 `git revert`。  
+- 发布前必须通过：编译 + 单测 + 集成测试 + depcheck/ts-prune/madge/eslint。  
+- 如需保底，可在一个小版本内保留“空门面”（不对外暴露），下个小版本移除。
+
+### 测试更新细化（新增）
+- 重写断言：从 `BackgroundTaskService` 的调用断言切换为 `SmartCacheOrchestrator` 行为/指标断言。  
+- 删除所有对 `BackgroundTaskService` 的 mock 与注入桩，更新 Nest 测试模块构造。  
+- 覆盖率检查：确保查询主路径、缓存命中/未命中、后台更新触发路径均有端到端用例。  
+- 命令建议：
+    ```bash
+    npx jest test/jest/unit/core/restapi/query/services --runInBand
+    npx jest test/jest/integration/core/restapi/query/services --runInBand
+    ```
+
+### 运行期与动态调用校验（新增）
+- 在灰度环境对 `QueryService` 关键入口加轻量日志探针，验证无通过反射/字符串路由调用 `updateDataInBackground()` 的情况。  
+- 若发现动态调用需求，应将其迁移至 `SmartCacheOrchestrator` 对应入口后再移除旧方法。
+
+### 适用范围说明（新增）
+- 本文档适用于当前仓库的 NestJS 后端服务（TypeScript）。与 Next.js 前端无直接关系。  
+- 如需前端路由/数据获取层清理，请在前端仓库单独制定与本方案解耦的文档。
+
+### 关键结论修订（新增）
+- 🛑 移除未使用的 `BackgroundTaskService` 导入与构造注入是必要且安全的，需以编译/测试/依赖图三重校验为门禁。  
+- ⚠️ `updateDataInBackground()` 删除不影响现行职责边界，但需完成动态调用的负面证明（灰度探针）。  
+- ℹ️ 注释清理不改变行为，提升可维护性；相关知识应转移至重构文档并保持可检索。
+
+### 时间与资源评估（建议性修订）
+- 开发：0.5 人日（代码删除与构造器签名同步）。  
+- 测试：1-1.5 人日（mock 清理、断言重写、覆盖率校验）。  
+- CI 门禁与工具集成：0.5 人日。  
+- 灰度验证与回滚预案演练：0.5 人日。
