@@ -76,7 +76,7 @@ private readonly hotCacheTTL = 30000; // 30秒，设计要求5秒
 **问题代码位置**：`src/core/01-entry/stream-receiver/services/stream-receiver.service.ts:868-872`
 ```typescript
 // 缺少显式标准化
-const transformRequestDto: TransformRequestDto = {
+const dataTransformRequestDto: DataTransformRequestDto = {
   provider: provider,
   rawData: quotes.map(q => q.rawData), // 原始符号直接使用
 };

@@ -5,7 +5,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
 
   📋 核心业务逻辑
 
-  1. 智能转换引擎 (TransformerService:50-196)
+  1. 智能转换引擎 (DataTransformerService:50-196)
 
   - 映射规则查找: 根据provider和transDataRuleListType自动匹配或使用指定规则ID
   - 批量处理优化: 相同规则的请求分组并行处理，提升性能
@@ -15,17 +15,17 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
   2. 三种核心操作模式
 
   // 1. 单次转换
-  transform(request: TransformRequestDto): Promise<TransformResponseDto>
+  transform(request: DataTransformRequestDto): Promise<DataTransformResponseDto>
 
   // 2. 批量转换 
-  transformBatch(requests: TransformRequestDto[]): Promise<TransformResponseDto[]>
+  transformBatch(requests: DataTransformRequestDto[]): Promise<DataTransformResponseDto[]>
 
   // 3. 预览转换
-  previewTransformation(request: TransformRequestDto): Promise<TransformPreviewDto>
+  previewTransformation(request: DataTransformRequestDto): Promise<TransformPreviewDto>
 
   🔍 详细字段定义和含义
 
-  TransformRequestDto (transform-request.dto.ts:30-56)
+  DataTransformRequestDto (transform-request.dto.ts:30-56)
 
   provider: string              // 数据提供商 (longport, itick等)
   transDataRuleListType: string      // 数据规则列表类型 (对应Data Mapper中的规则分类)
@@ -37,12 +37,12 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
     context?: Record<string, any> // 自定义转换上下文
   }
 
-  TransformResponseDto (transform-response.dto.ts:70-84)
+  DataTransformResponseDto (transform-response.dto.ts:70-84)
 
   transformedData: T           // 转换后的标准化数据 (通常是数组)
-  metadata: TransformationMetadataDto // 转换元信息
+  metadata: DataTransformationMetadataDto // 转换元信息
 
-  TransformationMetadataDto (transform-response.dto.ts:3-63)
+  DataTransformationMetadataDto (transform-response.dto.ts:3-63)
 
   ruleId: string              // 应用的映射规则ID
   ruleName: string            // 映射规则名称
@@ -77,10 +77,10 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
 
   ⚡ 性能优化特性
 
-  1. 批量处理优化算法 (TransformerService:201-298)
+  1. 批量处理优化算法 (DataTransformerService:201-298)
 
   // 按映射规则分组，减少重复规则查找
-  const requestsByRule = new Map<string, TransformRequestDto[]>();
+  const requestsByRule = new Map<string, DataTransformRequestDto[]>();
   // 并行处理相同规则的多个请求
   const groupPromises = groupedRequests.map(request =>
     this._executeSingleTransform(request, transformMappingRule)
@@ -212,7 +212,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
 
 
    * 接收转换请求:
-       * 它的主要入口是 transform 方法，接收一个 TransformRequestDto 对象。
+       * 它的主要入口是 transform 方法，接收一个 DataTransformRequestDto 对象。
        * 这个请求对象中包含了关键信息：provider (数据源), transDataRuleListType (数据类型), 和 rawData (原始数据)。
 
 
@@ -233,7 +233,7 @@ Transformer 是6-component架构中的第4个组件，负责实时数据转换�
          能够接收一个请求数组，并进行分组优化（将使用相同规则的请求打包处理），高效地完成批量转换。
        * 结果校验 (`validateTransformedData`):
          可以在转换完成后，对结果进行校验，例如检查目标字段是否存在、值是否为 null 等。
-       * 元数据和统计 (`TransformationMetadataDto`): 转换完成后，会生成包含丰富元数据（如使用的规则
+       * 元数据和统计 (`DataTransformationMetadataDto`): 转换完成后，会生成包含丰富元数据（如使用的规则
          ID、处理耗时、处理记录数等）的响应，便于监控和调试。
        * 转换预览 (`previewTransformation`):
          允许在不保存数据的情况下，用样本数据预览一个规则的转换效果，非常适合在调试和配置阶段使用。  

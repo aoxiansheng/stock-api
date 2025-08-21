@@ -32,7 +32,7 @@ import { DataMapperModule } from "../../src/core/00-prepare/data-mapper/module/d
 // import { StorageModule } from "../../src/core/public/storage/module/storage.module"; // 移除：已通过SmartCacheModule提供
 import { SmartCacheModule } from "../../src/core/05-caching/smart-cache/module/smart-cache.module";
 import { QueryModule } from "../../src/core/01-entry/query/module/query.module"; 
-import { TransformerModule } from "../../src/core/02-processing/transformer/module/transformer.module";
+import { TransformerModule } from "../../src/core/02-processing/transformer/module/data-transformer.module";
 import { ReceiverModule } from "../../src/core/01-entry/receiver/module/receiver.module";
 // Add the new SymbolTransformerModule
 import { SymbolTransformerModule } from "../../src/core/02-processing/symbol-transformer/module/symbol-transformer.module";

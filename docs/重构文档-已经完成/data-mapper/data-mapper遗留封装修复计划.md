@@ -10,7 +10,7 @@
 
 #### ❌ 严重问题（P0）
 - **违规1：服务封装越界**
-  - 现象：`TransformerService` 直接访问 `FlexibleMappingRuleService` 的内部 `ruleModel`（越界访问 ORM 层）
+  - 现象：`DataTransformerService` 直接访问 `FlexibleMappingRuleService` 的内部 `ruleModel`（越界访问 ORM 层）
   - 位置：`src/core/02-processing/transformer/services/transformer.service.ts` 第104行和第352行
   - 代码证据：`(this.flexibleMappingRuleService as any).ruleModel.findById()`
   - 影响：破坏服务封装，未来替换存储或缓存策略时耦合点增多，测试困难
@@ -65,7 +65,7 @@
      return rule;
    }
    ```
-   - **修改点**：`TransformerService` 第104行和第352行
+   - **修改点**：`DataTransformerService` 第104行和第352行
    - **受影响文件**：
      - `src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service.ts`
      - `src/core/02-processing/transformer/services/transformer.service.ts`
@@ -143,7 +143,7 @@ DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/transformer/transform
 
 #### 手工回归测试
 - **核心流程验证**：
-  - 规则选择与应用：`TransformerService.transform` / `transformBatch`
+  - 规则选择与应用：`DataTransformerService.transform` / `transformBatch`
   - 预设模板与规则初始化：启动日志与 `system-persistence` 接口
   - 对齐预览：`data-mapper/rules/preview-alignment/:templateId`
   
@@ -179,7 +179,7 @@ async getRuleDocumentById(id: string): Promise<FlexibleMappingRuleDocument> {
 #### Phase 1: 紧急修复（高优先级，0.5-1天）
 - **P0-封装越界修复**：
   - ✅ 新增 `getRuleDocumentById` 方法（带缓存和错误处理）
-  - ✅ 修改 `TransformerService` 两处调用点
+  - ✅ 修改 `DataTransformerService` 两处调用点
   - ✅ 添加单元测试覆盖
   
 - **P1-私有方法访问修复**：

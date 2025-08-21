@@ -5,7 +5,7 @@ import { SymbolTransformerService } from '../../../../../../../src/core/02-proce
 import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
-import { TransformerService } from '../../../../../../../src/core/02-processing/transformer/services/transformer.service';
+import { DataTransformerService } from '../../../../../../../src/core/02-processing/transformer/services/data-transformer.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
@@ -32,7 +32,7 @@ describe('ReceiverService', () => {
   let dataFetcherService: jest.Mocked<DataFetcherService>;
   let capabilityRegistryService: jest.Mocked<CapabilityRegistryService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
-  let transformerService: jest.Mocked<TransformerService>;
+  let dataTransformerService: jest.Mocked<DataTransformerService>;
   let storageService: jest.Mocked<StorageService>;
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
 
@@ -185,7 +185,7 @@ describe('ReceiverService', () => {
           useValue: mockMarketStatusService,
         },
         {
-          provide: TransformerService,
+          provide: DataTransformerService,
           useValue: mockTransformerService,
         },
         {
@@ -208,7 +208,7 @@ describe('ReceiverService', () => {
     dataFetcherService = module.get(DataFetcherService);
     capabilityRegistryService = module.get(CapabilityRegistryService);
     marketStatusService = module.get(MarketStatusService);
-    transformerService = module.get(TransformerService);
+    dataTransformerService = module.get(DataTransformerService);
     storageService = module.get(StorageService);
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
@@ -375,7 +375,7 @@ describe('ReceiverService', () => {
       });
 
       // Verify transformer was called
-      expect(transformerService.transform).toHaveBeenCalledWith({
+      expect(dataTransformerService.transform).toHaveBeenCalledWith({
         provider: 'longport',
         apiType: 'rest',
         transDataRuleListType: 'quote_fields',
@@ -430,7 +430,7 @@ describe('ReceiverService', () => {
     });
 
     it('should handle transformer errors', async () => {
-      transformerService.transform.mockRejectedValueOnce(new Error('Transform failed'));
+      dataTransformerService.transform.mockRejectedValueOnce(new Error('Transform failed'));
 
       const executeOriginalDataFlow = (service as any).executeOriginalDataFlow.bind(service);
 

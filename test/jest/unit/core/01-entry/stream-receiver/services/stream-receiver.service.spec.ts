@@ -2,14 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/stream-receiver.service';
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { SymbolTransformerService } from '@core/02-processing/symbol-transformer/services/symbol-transformer.service';
-import { TransformerService } from '@core/02-processing/transformer/services/transformer.service';
+import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
 import { Logger } from '@nestjs/common';
 
 describe('StreamReceiverService', () => {
   let service: StreamReceiverService;
   let streamDataFetcher: jest.Mocked<StreamDataFetcherService>;
   let symbolTransformer: jest.Mocked<SymbolTransformerService>;
-  let transformer: jest.Mocked<TransformerService>;
+  let transformer: jest.Mocked<DataTransformerService>;
 
   // Mock test data
   const mockClientId = 'test-client-123';
@@ -78,7 +78,7 @@ describe('StreamReceiverService', () => {
           provide: StreamReceiverService,
           useFactory: (
             symbolTransformer: SymbolTransformerService,
-            transformer: TransformerService,
+            transformer: DataTransformerService,
             streamDataFetcher: StreamDataFetcherService
           ) => {
             return new StreamReceiverService(
@@ -89,7 +89,7 @@ describe('StreamReceiverService', () => {
               undefined  // optional MetricsRegistryService
             );
           },
-          inject: [SymbolTransformerService, TransformerService, StreamDataFetcherService]
+          inject: [SymbolTransformerService, DataTransformerService, StreamDataFetcherService]
         },
         {
           provide: StreamDataFetcherService,
@@ -100,7 +100,7 @@ describe('StreamReceiverService', () => {
           useValue: mockSymbolTransformer,
         },
         {
-          provide: TransformerService,
+          provide: DataTransformerService,
           useValue: mockTransformer,
         },
         {
@@ -118,7 +118,7 @@ describe('StreamReceiverService', () => {
     service = module.get<StreamReceiverService>(StreamReceiverService);
     streamDataFetcher = module.get(StreamDataFetcherService);
     symbolTransformer = module.get(SymbolTransformerService);
-    transformer = module.get(TransformerService);
+    transformer = module.get(DataTransformerService);
 
     // Setup default mock behaviors
     symbolTransformer.transformSymbolsForProvider.mockResolvedValue({

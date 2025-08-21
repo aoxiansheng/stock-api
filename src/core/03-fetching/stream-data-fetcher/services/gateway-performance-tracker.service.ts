@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '../../../../common/config/logger.config';
 
 /**
  * Gateway性能追踪服务

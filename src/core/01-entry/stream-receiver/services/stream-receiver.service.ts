@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
-import { TransformerService } from '../../../02-processing/transformer/services/transformer.service';
+import { DataTransformerService } from '../../../02-processing/transformer/services/data-transformer.service';
 import { StreamDataFetcherService } from '../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { StreamRecoveryWorkerService, RecoveryJob } from '../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
 import { 
@@ -10,7 +10,7 @@ import {
 } from '../../../03-fetching/stream-data-fetcher/interfaces';
 import { StreamSubscribeDto } from '../dto/stream-subscribe.dto';
 import { StreamUnsubscribeDto } from '../dto/stream-unsubscribe.dto';
-import { TransformRequestDto } from '../../../02-processing/transformer/dto/transform-request.dto';
+import { DataTransformRequestDto } from '../../../02-processing/transformer/dto/data-transform-request.dto';
 import { StreamConnection, StreamConnectionParams } from '../../../03-fetching/stream-data-fetcher/interfaces';
 import { Subject } from 'rxjs';
 import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
@@ -86,7 +86,7 @@ interface StreamConnectionContext {
  * ❌ 不再负责：
  * - 直接的 WebSocket 连接管理 (由 StreamDataFetcher 负责)
  * - 本地数据缓存 (由 StreamDataCacheService 负责)
- * - 直接的数据转换 (统一由 TransformerService 负责)
+ * - 直接的数据转换 (统一由 DataTransformerService 负责)
  * - 客户端状态跟踪 (由 StreamClientStateManager 负责)
  * 
  * 🔗 Pipeline 位置：WebSocket → **StreamReceiver** → StreamDataFetcher → Transformer → Storage
@@ -130,7 +130,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   constructor(
     // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现在4个核心依赖 + 2个可选依赖
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
-    private readonly transformerService: TransformerService,
+    private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
     private readonly metricsRegistry?: MetricsRegistryService, // Phase 4 可选监控依赖
@@ -905,7 +905,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 🎯 统一的管道化数据处理 - Phase 4 核心重构
    * 
    * 数据流向：RawData → Transform → Cache → Broadcast
-   * - 仅通过 TransformerService 进行数据转换
+   * - 仅通过 DataTransformerService 进行数据转换
    * - 统一的错误处理和性能监控
    * - 支持延迟监控埋点
    */
@@ -924,9 +924,9 @@ export class StreamReceiverService implements OnModuleDestroy {
         pipelineId: `${provider}_${capability}_${pipelineStartTime}`,
       });
 
-      // Step 1: 数据转换 - 仅通过 TransformerService
+      // Step 1: 数据转换 - 仅通过 DataTransformerService
       const transformStartTime = Date.now();
-      const transformRequestDto: TransformRequestDto = {
+      const dataTransformRequestDto: DataTransformRequestDto = {
         provider: provider,
         apiType: 'stream' as const,
         // ✅ Phase 3 - P3: 替换脆弱的字符串替换，使用健壮的能力映射
@@ -934,7 +934,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         rawData: quotes.map(q => q.rawData),
       };
 
-      const transformedData = await this.transformerService.transform(transformRequestDto);
+      const transformedData = await this.dataTransformerService.transform(dataTransformRequestDto);
       const transformDuration = Date.now() - transformStartTime;
 
       if (!transformedData?.transformedData) {

@@ -10,7 +10,7 @@ import { StreamReceiverService } from '../../../src/core/01-entry/stream-receive
 import { CapabilityRegistryService } from '../../../src/providers/services/capability-registry.service';
 import { SymbolMapperService } from '../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
 import { FlexibleMappingRuleService } from '../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
-import { TransformerService } from '../../../src/core/02-processing/transformer/services/transformer.service';
+import { DataTransformerService } from '../../../src/core/02-processing/transformer/services/data-transformer.service';
 import { FeatureFlags } from '../../../src/common/config/feature-flags.config';
 import { StreamPerformanceMetrics } from '../../../src/core/shared/services/stream-performance-metrics.service';
 
@@ -85,7 +85,7 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
         { provide: CapabilityRegistryService, useValue: mocks.mockCapabilityRegistry },
         { provide: SymbolMapperService, useValue: mocks.mockSymbolMapperService },
         { provide: FlexibleMappingRuleService, useValue: mocks.mockFlexibleMappingRuleService },
-        { provide: TransformerService, useValue: mocks.mockTransformerService },
+        { provide: DataTransformerService, useValue: mocks.mockTransformerService },
         {
           provide: FeatureFlags,
           useValue: {
@@ -106,7 +106,7 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
         { provide: CapabilityRegistryService, useValue: mocks.mockCapabilityRegistry },
         { provide: SymbolMapperService, useValue: mocks.mockSymbolMapperService },
         { provide: FlexibleMappingRuleService, useValue: mocks.mockFlexibleMappingRuleService },
-        { provide: TransformerService, useValue: mocks.mockTransformerService },
+        { provide: DataTransformerService, useValue: mocks.mockTransformerService },
         {
           provide: FeatureFlags,
           useValue: {

@@ -6,7 +6,7 @@ import { StreamReceiverService } from '../services/stream-receiver.service';
 import { AuthModule } from '../../../../auth/module/auth.module';
 import { SymbolMapperModule } from '../../../00-prepare/symbol-mapper/module/symbol-mapper.module';
 import { SymbolTransformerModule } from '../../../02-processing/symbol-transformer/module/symbol-transformer.module';
-import { TransformerModule } from '../../../02-processing/transformer/module/transformer.module';
+import { TransformerModule } from '../../../02-processing/transformer/module/data-transformer.module';
 import { StreamDataFetcherModule } from '../../../03-fetching/stream-data-fetcher/module/stream-data-fetcher.module';
 import { MonitoringModule } from '../../../../monitoring/module/monitoring.module'; // Phase 4: 延迟监控集成
 

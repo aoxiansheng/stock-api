@@ -1,6 +1,6 @@
 import { createLogger } from "@common/config/logger.config";
 
-import { TRANSFORM_CONFIG } from "../../02-processing/transformer/constants/transformer.constants";
+import { DATATRANSFORM_CONFIG } from "../../02-processing/transformer/constants/data-transformer.constants";
 
 const logger = createLogger("ObjectUtils");
 
@@ -21,9 +21,9 @@ export class ObjectUtils {
     try {
       const keys = path.split(/[.\[\]]/).filter((key) => key !== "");
 
-      if (keys.length > TRANSFORM_CONFIG.MAX_NESTED_DEPTH) {
+      if (keys.length > DATATRANSFORM_CONFIG.MAX_NESTED_DEPTH) {
         logger.warn(
-          `路径深度 ${keys.length} 超过最大限制 ${TRANSFORM_CONFIG.MAX_NESTED_DEPTH}: ${path}`,
+          `路径深度 ${keys.length} 超过最大限制 ${DATATRANSFORM_CONFIG.MAX_NESTED_DEPTH}: ${path}`,
         );
         return undefined;
       }

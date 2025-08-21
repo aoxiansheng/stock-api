@@ -20,7 +20,7 @@ import { StorageModule } from "./core/04-storage/storage/module/storage.module";
 import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cache.module";
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
 import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
-import { TransformerModule } from "./core/02-processing/transformer/module/transformer.module";
+import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
 import { MetricsModule } from "./metrics/module/metrics.module";
 import { MonitoringModule } from "./monitoring/module/monitoring.module";
 import { ProvidersModule } from "./providers/module/providers.module";

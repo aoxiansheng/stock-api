@@ -154,7 +154,7 @@ private async executeDataFetching(
   });
 
   // 后续的数据转换和存储保持不变
-  const transformRequest: TransformRequestDto = {
+  const transformRequest: DataTransformRequestDto = {
     provider,
     apiType: 'rest',
     transDataRuleListType: this.mapReceiverTypeToRuleType(request.receiverType),
@@ -165,7 +165,7 @@ private async executeDataFetching(
     },
   };
 
-  const transformedResult = await this.transformerService.transform(transformRequest);
+  const transformedResult = await this.dataTransformerService.transform(transformRequest);
   
   // 存储处理...
   

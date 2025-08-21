@@ -162,7 +162,7 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
         testData: {
           key: "test-key",
           data: { test: "data" },
-          storageType: "both",
+          storageType: "persistent",
           storageClassification: "general",
           provider: "test-provider",
           market: "test-market"
@@ -196,7 +196,7 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
         const apiKey = apiKeyResponse.data.data;
 
         // 测试有权限的访问
-        let requestHeaders;
+        let requestHeaders: Record<string, string>;
         if (useJWT) {
           // 对于需要JWT认证的端点，使用管理员JWT令牌
           requestHeaders = {
@@ -211,7 +211,7 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
         }
         
         // 根据HTTP方法调整请求参数
-        let authorizedResponse;
+        let authorizedResponse: any;
         if (method.toLowerCase() === 'get') {
           // GET请求不应该有请求体，只传headers
           authorizedResponse = await httpClient[method](endpoint, {
@@ -264,7 +264,7 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
             const unauthorizedKey = unauthorizedKeyResponse.data.data;
 
             // 根据HTTP方法调整无权限请求参数
-            let unauthorizedResponse;
+            let unauthorizedResponse: any;
             if (method.toLowerCase() === 'get') {
               unauthorizedResponse = await httpClient[method](endpoint, {
                 headers: {

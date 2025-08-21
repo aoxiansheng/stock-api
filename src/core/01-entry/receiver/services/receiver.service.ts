@@ -19,7 +19,7 @@ import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services
 import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
 import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
-import { TransformerService } from "../../../02-processing/transformer/services/transformer.service";
+import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
@@ -35,7 +35,7 @@ import { DataResponseDto, ResponseMetadataDto, FailureDetailDto } from "../dto/d
 import {
   SymbolTransformationResultDto,
 } from "../dto/receiver-internal.dto";
-import { TransformRequestDto } from "../../../02-processing/transformer/dto/transform-request.dto";
+import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
 import { StoreDataDto } from "../../../04-storage/storage/dto/storage-request.dto";
 import { StorageType, StorageClassification } from "../../../04-storage/storage/enums/storage-type.enum";
 import { ValidationResultDto } from "../dto/validation.dto";
@@ -67,7 +67,7 @@ export class ReceiverService {
     private readonly dataFetcherService: DataFetcherService, // 🔥 新增DataFetcher依赖
     private readonly capabilityRegistryService: CapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
-    private readonly transformerService: TransformerService,
+    private readonly dataTransformerService: DataTransformerService,
     private readonly storageService: StorageService,
     private readonly metricsRegistry: MetricsRegistryService,
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
@@ -613,7 +613,7 @@ export class ReceiverService {
       });
 
       this.logger.debug(`Raw data for transformation`, { rawData: JSON.stringify(rawData) });
-      const transformRequest: TransformRequestDto = {
+      const transformRequest: DataTransformRequestDto = {
         provider,
         apiType: 'rest',
         transDataRuleListType: this.mapReceiverTypeToTransDataRuleListType(request.receiverType),
@@ -624,7 +624,7 @@ export class ReceiverService {
         },
       };
 
-      const transformedResult = await this.transformerService.transform(transformRequest);
+      const transformedResult = await this.dataTransformerService.transform(transformRequest);
 
       // ✅ 新增步骤2：使用 Storage 进行统一存储
       this.logger.debug(`开始数据存储处理`, {

@@ -4,7 +4,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../../../../src/app.module';
 import { DataFetcherService } from '../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
-import { SymbolMapperService } from '../../../../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
+import { SymbolTransformerService } from '../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { ReceiverService } from '../../../../../../src/core/01-entry/receiver/services/receiver.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
 import { ICapability } from '../../../../../../src/providers/interfaces/capability.interface';
@@ -13,7 +13,7 @@ import { Market } from '../../../../../../src/common/constants/market.constants'
 describe('DataFetcher Pipeline E2E', () => {
   let app: INestApplication;
   let dataFetcherService: DataFetcherService;
-  let symbolMapperService: SymbolMapperService;
+  let symbolTransformerService: SymbolTransformerService;
   let receiverService: ReceiverService;
   let capabilityRegistryService: CapabilityRegistryService;
 
@@ -34,7 +34,7 @@ describe('DataFetcher Pipeline E2E', () => {
     app = moduleFixture.createNestApplication();
     
     dataFetcherService = moduleFixture.get<DataFetcherService>(DataFetcherService);
-    symbolMapperService = moduleFixture.get<SymbolMapperService>(SymbolMapperService);
+    symbolTransformerService = moduleFixture.get<SymbolTransformerService>(SymbolTransformerService);
     receiverService = moduleFixture.get<ReceiverService>(ReceiverService);
     capabilityRegistryService = moduleFixture.get<CapabilityRegistryService>(CapabilityRegistryService);
 
@@ -85,11 +85,19 @@ describe('DataFetcher Pipeline E2E', () => {
       mockCapability.execute.mockResolvedValue(mockQuoteData);
 
       // Mock symbol mapper to transform 00700 -> 700.HK
-      jest.spyOn(symbolMapperService, 'transformSymbolsForProvider').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: { '700.HK': '700.HK', '00700': '700.HK' },
-        failedSymbols: [],
-        processingTimeMs: 50,
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: ['700.HK'],
+        mappingResults: {
+          transformedSymbols: { '700.HK': '700.HK', '00700': '700.HK' },
+          failedSymbols: [],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 2,
+            successfulTransformations: 2,
+            failedTransformations: 0,
+            processingTime: 50,
+          },
+        },
       });
 
       // Mock provider selection
@@ -109,7 +117,7 @@ describe('DataFetcher Pipeline E2E', () => {
       expect(Array.isArray(response.body.data)).toBe(true);
       
       // Verify the pipeline was executed correctly
-      expect(symbolMapperService.transformSymbolsForProvider).toHaveBeenCalledWith(
+      expect(symbolTransformerService.transformSymbolsForProvider).toHaveBeenCalledWith(
         'test-provider',
         ['700.HK', '00700'],
         expect.any(String)
@@ -119,11 +127,19 @@ describe('DataFetcher Pipeline E2E', () => {
 
     it('should handle symbol transformation failures in pipeline', async () => {
       // Mock partial failure in symbol transformation
-      jest.spyOn(symbolMapperService, 'transformSymbolsForProvider').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: { '700.HK': '700.HK' },
-        failedSymbols: ['INVALID_SYMBOL'],
-        processingTimeMs: 50,
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: ['700.HK'],
+        mappingResults: {
+          transformedSymbols: { '700.HK': '700.HK' },
+          failedSymbols: ['INVALID_SYMBOL'],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 2,
+            successfulTransformations: 1,
+            failedTransformations: 1,
+            processingTime: 50,
+          },
+        },
       });
 
       mockCapability.execute.mockResolvedValue({
@@ -150,11 +166,19 @@ describe('DataFetcher Pipeline E2E', () => {
     }, 10000);
 
     it('should handle data fetching errors properly', async () => {
-      jest.spyOn(symbolMapperService, 'transformSymbolsForProvider').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: { '700.HK': '700.HK' },
-        failedSymbols: [],
-        processingTimeMs: 50,
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: ['700.HK'],
+        mappingResults: {
+          transformedSymbols: { '700.HK': '700.HK' },
+          failedSymbols: [],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 1,
+            successfulTransformations: 1,
+            failedTransformations: 0,
+            processingTime: 50,
+          },
+        },
       });
 
       mockCapability.execute.mockRejectedValue(new Error('Provider connection failed'));
@@ -251,49 +275,64 @@ describe('DataFetcher Pipeline E2E', () => {
     it('should transform symbols using enhanced transformSymbolsForProvider method', async () => {
       // Setup mock symbol mapping data
       const mockMappingResult = {
-        dataSourceName: 'test-provider',
-        transformedSymbols: { '00700': '700.HK' },
-        failedSymbols: [],
+        transformedSymbols: ['700.HK'],
+        mappingResults: {
+          transformedSymbols: { '00700': '700.HK' },
+          failedSymbols: [],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 2,
+            successfulTransformations: 2,
+            failedTransformations: 0,
+            processingTime: 50,
+          },
+        },
       };
 
-      jest.spyOn(symbolMapperService, 'transformSymbols').mockResolvedValue({
-        ...mockMappingResult,
-        processingTimeMs: 50,
-      });
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue(mockMappingResult);
 
-      const result = await symbolMapperService.transformSymbolsForProvider(
+      const result = await symbolTransformerService.transformSymbolsForProvider(
         'test-provider',
-        ['700.HK', '00700']
+        ['700.HK', '00700'],
+        'test-request-id'
       );
 
-      expect(result.transformedSymbols['700.HK']).toBe('700.HK');
-      expect(result.transformedSymbols['00700']).toBe('700.HK');
-      expect(result.dataSourceName).toBe('test-provider');
-      expect(result.processingTimeMs).toBeGreaterThan(0);
+      expect(result.mappingResults.transformedSymbols['00700']).toBe('700.HK');
+      expect(result.mappingResults.metadata.provider).toBe('test-provider');
+      expect(result.mappingResults.metadata.processingTime).toBeGreaterThan(0);
     });
 
     it('should handle mixed symbol formats correctly', async () => {
       const mixedSymbols = ['700.HK', '00700', 'AAPL.US', '600000'];
 
-      jest.spyOn(symbolMapperService, 'transformSymbols').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: {
-          '00700': '700.HK',
-          '600000': '600000.SH',
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: ['700.HK', '600000.SH', 'AAPL.US'],
+        mappingResults: {
+          transformedSymbols: {
+            '00700': '700.HK',
+            '600000': '600000.SH',
+          },
+          failedSymbols: [],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 4,
+            successfulTransformations: 4,
+            failedTransformations: 0,
+            processingTime: 100,
+          },
         },
-        failedSymbols: [],
-        processingTimeMs: 100,
       });
 
-      const result = await symbolMapperService.transformSymbolsForProvider(
+      const result = await symbolTransformerService.transformSymbolsForProvider(
         'test-provider',
-        mixedSymbols
+        mixedSymbols,
+        'test-request-id'
       );
 
-      expect(Object.keys(result.transformedSymbols)).toEqual(['00700', '600000']);
-      expect(result.transformedSymbols['00700']).toBe('700.HK');
-      expect(result.transformedSymbols['600000']).toBe('600000.SH');
-      expect(result.failedSymbols).toEqual([]);
+      expect(Object.keys(result.mappingResults.transformedSymbols)).toEqual(['00700', '600000']);
+      expect(result.mappingResults.transformedSymbols['00700']).toBe('700.HK');
+      expect(result.mappingResults.transformedSymbols['600000']).toBe('600000.SH');
+      expect(result.mappingResults.failedSymbols).toEqual([]);
     });
   });
 
@@ -334,11 +373,19 @@ describe('DataFetcher Pipeline E2E', () => {
 
     it('should maintain data integrity during partial failures', async () => {
       // Mock partial success scenario
-      jest.spyOn(symbolMapperService, 'transformSymbolsForProvider').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: { '700.HK': '700.HK' },
-        failedSymbols: ['INVALID'],
-        processingTimeMs: 50,
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: ['700.HK'],
+        mappingResults: {
+          transformedSymbols: { '700.HK': '700.HK' },
+          failedSymbols: ['INVALID'],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 2,
+            successfulTransformations: 1,
+            failedTransformations: 1,
+            processingTime: 50,
+          },
+        },
       });
 
       mockCapability.execute.mockResolvedValue({
@@ -372,14 +419,22 @@ describe('DataFetcher Pipeline E2E', () => {
         data: largeSymbolSet.map(symbol => ({ symbol, price: 320.5 })),
       });
 
-      jest.spyOn(symbolMapperService, 'transformSymbolsForProvider').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: largeSymbolSet.reduce((acc, symbol) => {
-          acc[symbol] = symbol;
-          return acc;
-        }, {} as Record<string, string>),
-        failedSymbols: [],
-        processingTimeMs: 200,
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: largeSymbolSet,
+        mappingResults: {
+          transformedSymbols: largeSymbolSet.reduce((acc, symbol) => {
+            acc[symbol] = symbol;
+            return acc;
+          }, {} as Record<string, string>),
+          failedSymbols: [],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 50,
+            successfulTransformations: 50,
+            failedTransformations: 0,
+            processingTime: 200,
+          },
+        },
       });
 
       jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');
@@ -406,11 +461,19 @@ describe('DataFetcher Pipeline E2E', () => {
         data: [{ symbol: '700.HK', price: 320.5 }],
       });
 
-      jest.spyOn(symbolMapperService, 'transformSymbolsForProvider').mockResolvedValue({
-        dataSourceName: 'test-provider',
-        transformedSymbols: { '700.HK': '700.HK' },
-        failedSymbols: [],
-        processingTimeMs: 50,
+      jest.spyOn(symbolTransformerService, 'transformSymbolsForProvider').mockResolvedValue({
+        transformedSymbols: ['700.HK'],
+        mappingResults: {
+          transformedSymbols: { '700.HK': '700.HK' },
+          failedSymbols: [],
+          metadata: {
+            provider: 'test-provider',
+            totalSymbols: 1,
+            successfulTransformations: 1,
+            failedTransformations: 0,
+            processingTime: 50,
+          },
+        },
       });
 
       jest.spyOn(receiverService, 'determineOptimalProvider' as any).mockReturnValue('test-provider');

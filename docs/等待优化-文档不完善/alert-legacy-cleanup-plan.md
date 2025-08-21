@@ -1730,7 +1730,7 @@ business_kpis:
 
 ### 问题定位（与重构直接相关）
 - **越层访问内部模型，破坏封装**
-  - `TransformerService` 通过 `(this.flexibleMappingRuleService as any).ruleModel.findById(...)` 直接访问内部 Mongoose Model，绕过了服务的公共 API，属于脆弱耦合。
+  - `DataTransformerService` 通过 `(this.flexibleMappingRuleService as any).ruleModel.findById(...)` 直接访问内部 Mongoose Model，绕过了服务的公共 API，属于脆弱耦合。
   - 证据：
 ```104:117:src/core/02-processing/transformer/services/transformer.service.ts
 const ruleDoc = await (this.flexibleMappingRuleService as any).ruleModel.findById(transformMappingRule.id);
@@ -1760,7 +1760,7 @@ if (!ruleDoc) {
   - 单测：为以上新方法补充正/反例测试（存在/不存在ID、含debugInfo等）。
 
 - **T2（低风险）替换调用点**
-  - 修改 `TransformerService`：
+  - 修改 `DataTransformerService`：
     - 将两处 `(as any).ruleModel.findById(...)` + `applyFlexibleMappingRule(ruleDoc, ...)`，替换为 `applyFlexibleMappingRuleById(transformMappingRule.id, ...)`。
     - 移除 `as any`，消除对内部 Model 的依赖。
 
@@ -1814,7 +1814,7 @@ const result = await this.flexibleMappingRuleService.applyFlexibleMappingRuleByI
 #### FlexibleMappingRuleService 批量优化
 
 ##### 问题分析
-当前 `TransformerService` 中存在的性能瓶颈：
+当前 `DataTransformerService` 中存在的性能瓶颈：
 1. **N+1 查询问题**：每个转换规则都单独查询数据库
 2. **缺乏批量接口**：只能逐个调用 `applyFlexibleMappingRuleById`
 3. **重复规则查询**：相同规则ID在批量处理中可能被多次查询
@@ -1982,11 +1982,11 @@ interface BatchMappingResult {
 }
 ```
 
-#### TransformerService 批量集成
+#### DataTransformerService 批量集成
 
-##### 优化的 TransformerService 实现
+##### 优化的 DataTransformerService 实现
 ```typescript
-export class TransformerService {
+export class DataTransformerService {
   
   /**
    * 批量转换优化版本
@@ -2135,7 +2135,7 @@ export class TransformerService {
 ##### 优化前后性能对比
 ```typescript
 // 性能基准测试
-describe('TransformerService Batch Optimization', () => {
+describe('DataTransformerService Batch Optimization', () => {
   it('应显著提升批量处理性能', async () => {
     const batchSizes = [10, 50, 100, 200];
     const results: { size: number; before: number; after: number; improvement: number }[] = [];
@@ -2145,12 +2145,12 @@ describe('TransformerService Batch Optimization', () => {
       
       // 优化前性能
       const beforeStart = Date.now();
-      await transformerService.transformBatch({ items });
+      await dataTransformerService.transformBatch({ items });
       const beforeDuration = Date.now() - beforeStart;
       
       // 优化后性能
       const afterStart = Date.now();
-      await transformerService.transformBatchOptimized({ items });
+      await dataTransformerService.transformBatchOptimized({ items });
       const afterDuration = Date.now() - afterStart;
       
       const improvement = ((beforeDuration - afterDuration) / beforeDuration) * 100;
@@ -2236,7 +2236,7 @@ class TransformerOptimizationController {
   - `applyFlexibleMappingRuleById`：命中/未命中ID、`includeDebugInfo` 打开时的 `debugInfo` 内容
   - `getRuleDocumentsByIds`：批量查询正确性、去重逻辑、空数组处理
   - `applyFlexibleMappingRulesBatch`：批量处理正确性、错误隔离、并行处理
-  - `TransformerService.transformBatchOptimized`：分组逻辑、性能提升验证
+  - `DataTransformerService.transformBatchOptimized`：分组逻辑、性能提升验证
 
 #### 性能验证
 - 集成：

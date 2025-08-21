@@ -137,7 +137,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
           },
         },
         {
-          provide: 'TransformerService',
+          provide: 'DataTransformerService',
           useValue: {
             transformData: jest.fn().mockImplementation((data) => data),
           },

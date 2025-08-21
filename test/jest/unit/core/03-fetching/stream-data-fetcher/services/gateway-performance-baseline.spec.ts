@@ -3,9 +3,9 @@
  * 验证Legacy代码移除后性能无回归
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { GatewayPerformanceTracker } from '../../../../../../src/core/03-fetching/stream-data-fetcher/services/gateway-performance-tracker.service';
-import { StreamClientStateManager } from '../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service';
-import { WebSocketServerProvider } from '../../../../../../src/core/03-fetching/stream-data-fetcher/providers/websocket-server.provider';
+import { GatewayPerformanceTracker } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/gateway-performance-tracker.service';
+import { StreamClientStateManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service';
+import { WebSocketServerProvider } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/providers/websocket-server.provider';
 
 describe('Gateway Performance Baseline Tests', () => {
   let performanceTracker: GatewayPerformanceTracker;

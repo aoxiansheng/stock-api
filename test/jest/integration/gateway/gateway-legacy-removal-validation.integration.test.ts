@@ -7,6 +7,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { Server } from 'socket.io';
+import { Server as HttpServer } from 'http';
 import { io, Socket } from 'socket.io-client';
 import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../../../../src/core/03-fetching/stream-data-fetcher/providers/websocket-server.provider';
 import { StreamReceiverGateway } from '../../../../src/core/01-entry/stream-receiver/gateway/stream-receiver.gateway';
@@ -19,6 +20,7 @@ describe('Gateway Legacy移除验证测试', () => {
   let webSocketProvider: WebSocketServerProvider;
   let clientStateManager: StreamClientStateManager;
   let server: Server;
+  let httpServer: HttpServer;
   let clientSocket: Socket;
 
   beforeAll(async () => {
@@ -54,8 +56,12 @@ describe('Gateway Legacy移除验证测试', () => {
     
     await app.init();
     
-    // 获取Socket.IO服务器实例
-    server = app.getHttpServer().listen().server;
+    // 获取HTTP服务器实例用于地址获取
+    httpServer = app.getHttpServer();
+    await app.listen(0); // 使用动态端口
+    
+    // 获取Socket.IO服务器实例  
+    server = app.get('socket.io.server'); // 或者从provider获取
   });
 
   afterAll(async () => {
@@ -93,7 +99,8 @@ describe('Gateway Legacy移除验证测试', () => {
   describe('Gateway广播功能验证', () => {
     beforeEach(async () => {
       // 创建测试客户端连接
-      const port = server.address()?.port || 3000;
+      const address = httpServer.address();
+      const port = typeof address === 'object' && address ? address.port : 3000;
       clientSocket = io(`http://localhost:${port}`, {
         auth: {
           'x-app-key': 'test-key',
