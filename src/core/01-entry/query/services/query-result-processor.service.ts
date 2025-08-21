@@ -48,9 +48,10 @@ export class QueryResultProcessorService {
     );
 
     // 构建元数据
+    const totalRecords = executionResult.pagination?.total ?? executionResult.results.length;
     const metadata = new QueryMetadataDto(
       request.queryType,
-      executionResult.results.length, // 这里应该使用总记录数
+      totalRecords, // 使用分页信息中的总记录数，如果没有分页信息则回退到结果长度
       executionResult.results.length,
       executionTime,
       executionResult.cacheUsed,

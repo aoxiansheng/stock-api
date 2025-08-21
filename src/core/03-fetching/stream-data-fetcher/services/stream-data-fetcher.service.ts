@@ -4,7 +4,6 @@ import { BaseFetcherService } from '../../../shared/services/base-fetcher.servic
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
 import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
 import { sanitizeLogData } from '../../../../common/config/logger.config';
-import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
 import {
   IStreamDataFetcher,
   StreamConnectionParams,
@@ -16,6 +15,7 @@ import {
 import { StreamConnectionImpl } from './stream-connection.impl';
 import { StreamDataCacheService } from './stream-data-cache.service';
 import { StreamClientStateManager } from './stream-client-state-manager.service';
+import { StreamMetricsService } from './stream-metrics.service';
 
 /**
  * 流数据获取器服务实现 - Stream Data Fetcher
@@ -54,6 +54,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
     // Phase 4: 添加内部服务访问 - 供 StreamReceiver 使用
     private readonly streamDataCache: StreamDataCacheService,
     private readonly clientStateManager: StreamClientStateManager,
+    private readonly streamMetrics: StreamMetricsService,
   ) {
     super(metricsRegistry);
   }
@@ -116,7 +117,9 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
         
         // 记录成功指标
         this.recordOperationSuccess('establish_connection', processingTime);
-        this.recordConnectionMetrics(connection, 'established');
+        this.streamMetrics.recordConnectionEvent('connected', connection.provider);
+        this.streamMetrics.recordLatency('establish_connection', processingTime, connection.provider);
+        this.streamMetrics.updateActiveConnectionsCount(this.activeConnections.size, connection.provider);
         
         return connection;
       },
@@ -186,7 +189,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
           }));
           
           // 记录订阅指标
-          this.recordSubscriptionMetrics(connection, symbols, 'subscribed');
+          this.streamMetrics.recordSymbolProcessing(symbols, connection.provider, 'subscribe');
+          this.streamMetrics.recordLatency('subscribe_symbols', processingTime, connection.provider);
           
         } else {
           throw new StreamSubscriptionException(
@@ -258,7 +262,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
           }));
           
           // 记录取消订阅指标
-          this.recordSubscriptionMetrics(connection, symbols, 'unsubscribed');
+          this.streamMetrics.recordSymbolProcessing(symbols, connection.provider, 'unsubscribe');
+          this.streamMetrics.recordLatency('unsubscribe_symbols', processingTime, connection.provider);
           
         } else {
           throw new StreamSubscriptionException(
@@ -297,20 +302,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
         this.connectionIdToKey.delete(connection.id);
       }
       
-      // 2. 清空订阅符号
-      connection.subscribedSymbols.clear();
-      
-      // 3. 关闭底层连接
-      const connectionImpl = connection as StreamConnectionImpl;
-      const capabilityInstance = (connectionImpl as any).capabilityInstance;
-      const contextService = (connectionImpl as any).contextService;
-      
-      if (typeof capabilityInstance.close === 'function') {
-        await capabilityInstance.close(contextService);
-      }
-      
-      // 4. 更新连接状态
-      connection.isConnected = false;
+      // 2. 调用连接实例的关闭方法，避免重复清理
+      await connection.close();
       
       const processingTime = Date.now() - startTime;
       
@@ -321,7 +314,9 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
       });
       
       // 记录关闭指标
-      this.recordConnectionMetrics(connection, 'closed');
+      this.streamMetrics.recordConnectionEvent('disconnected', connection.provider);
+      this.streamMetrics.recordLatency('close_connection', processingTime, connection.provider);
+      this.streamMetrics.updateActiveConnectionsCount(this.activeConnections.size, connection.provider);
       
     } catch (error) {
       this.logger.error('流连接关闭失败', sanitizeLogData({
@@ -415,10 +410,11 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
     const healthCheckPromises = Array.from(this.activeConnections.entries()).map(
       async ([key, connection]) => {
         try {
-          // 使用新增的 isAlive 方法
-          const isAlive = await (connection as any).isAlive?.(timeoutMs) || false;
+          // 使用接口方法进行健康检查
+          const isAlive = await connection.isAlive(timeoutMs);
           return [key, isAlive] as [string, boolean];
-        } catch {
+        } catch (error) {
+          this.logger.warn('连接健康检查失败', { connectionId: key, error: error.message });
           return [key, false] as [string, boolean];
         }
       }
@@ -529,26 +525,24 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
    * @param connection 连接实例
    */
   private setupConnectionMonitoring(connection: StreamConnection): void {
+    let previousStatus = 'connecting'; // 初始状态
+    
     // 监听连接状态变化
     connection.onStatusChange((status) => {
       this.logger.debug('连接状态变化', {
         connectionId: connection.id,
-        status,
+        previousStatus,
+        currentStatus: status,
       });
       
-      // 记录状态变化指标
-      try {
-        Metrics.inc(
-          this.metricsRegistry,
-          'streamSymbolsProcessedTotal',
-          { 
-            provider: connection.provider,
-            market: `status_change_${status.toString()}`,
-          }
-        );
-      } catch (error) {
-        this.logger.warn('状态变化指标记录失败', { error: error.message });
-      }
+      // 使用新的语义明确的指标记录状态变化
+      this.streamMetrics.recordConnectionStatusChange(
+        connection.provider,
+        previousStatus,
+        status.toString()
+      );
+      
+      previousStatus = status.toString();
     });
     
     // 监听连接错误
@@ -560,99 +554,17 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
         error: error.message,
       }));
       
-      // 记录错误指标
-      this.recordConnectionError(connection, error);
+      // 记录错误事件
+      this.streamMetrics.recordErrorEvent(error.constructor.name, connection.provider);
+      this.streamMetrics.recordConnectionEvent('failed', connection.provider);
     });
   }
 
   /**
-   * 记录连接指标
-   * @param connection 连接实例
-   * @param action 操作类型
+   * 获取流指标摘要 - 用于监控和调试
+   * @returns 指标摘要信息
    */
-  private recordConnectionMetrics(connection: StreamConnection, action: string): void {
-    try {
-      // 使用现有的流连接指标
-      Metrics.inc(
-        this.metricsRegistry,
-        'streamConcurrentConnections',
-        {
-          provider: connection.provider,
-          capability: connection.capability,
-          action,
-        }
-      );
-      
-      // 记录活跃连接数
-      Metrics.setGauge(
-        this.metricsRegistry,
-        'streamConcurrentConnections',
-        this.activeConnections.size,
-        { 
-          provider: connection.provider,
-          capability: connection.capability,
-        }
-      );
-    } catch (error) {
-      this.logger.warn('连接指标记录失败', { error: error.message });
-    }
-  }
-
-  /**
-   * 记录订阅指标
-   * @param connection 连接实例
-   * @param symbols 符号列表
-   * @param action 操作类型
-   */
-  private recordSubscriptionMetrics(
-    connection: StreamConnection,
-    symbols: string[],
-    action: string,
-  ): void {
-    try {
-      // 使用现有的流符号处理指标
-      Metrics.inc(
-        this.metricsRegistry,
-        'streamSymbolsProcessedTotal',
-        {
-          provider: connection.provider,
-          market: 'multi', // 多市场订阅
-        },
-        symbols.length
-      );
-      
-      // 记录总订阅数 - 使用处理时间指标的gauge形式
-      Metrics.setGauge(
-        this.metricsRegistry,
-        'streamProcessingTimeMs',
-        connection.subscribedSymbols.size,
-        {
-          operation_type: `${action}_symbols_count`
-        }
-      );
-    } catch (error) {
-      this.logger.warn('订阅指标记录失败', { error: error.message });
-    }
-  }
-
-  /**
-   * 记录连接错误
-   * @param connection 连接实例
-   * @param error 错误对象
-   */
-  private recordConnectionError(connection: StreamConnection, error: Error): void {
-    try {
-      // 使用现有的错误率指标
-      Metrics.setGauge(
-        this.metricsRegistry,
-        'streamErrorRate',
-        1, // 记录一次错误
-        {
-          error_type: error.constructor.name,
-        }
-      );
-    } catch (metricError) {
-      this.logger.warn('连接错误指标记录失败', { error: metricError.message });
-    }
+  getMetricsSummary(): any {
+    return this.streamMetrics.getMetricsSummary();
   }
 }

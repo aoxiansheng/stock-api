@@ -101,10 +101,7 @@ export class TransformerService {
         );
       }
       
-      const ruleDoc = await (this.flexibleMappingRuleService as any).ruleModel.findById(transformMappingRule.id);
-      if (!ruleDoc) {
-          throw new NotFoundException(`Mapping rule document not found for ID: ${transformMappingRule.id}`);
-      }
+      const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(transformMappingRule.id);
 
       const transformedResults = [];
       let successfulTransformations = 0;
@@ -349,10 +346,7 @@ export class TransformerService {
   ): Promise<TransformResponseDto> {
     const startTime = Date.now();
     try {
-      const ruleDoc = await (this.flexibleMappingRuleService as any).ruleModel.findById(transformMappingRule.id);
-      if (!ruleDoc) {
-        throw new NotFoundException(`Mapping rule document not found for ID: ${transformMappingRule.id}`);
-      }
+      const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(transformMappingRule.id);
 
       const result = await this.flexibleMappingRuleService.applyFlexibleMappingRule(
         ruleDoc,

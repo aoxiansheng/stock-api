@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
-import { SymbolMapperService } from '../../../../../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
+import { SymbolTransformerService } from '../../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { TransformerService } from '../../../../../../../src/core/02-processing/transformer/services/transformer.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
+import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 import { StorageType, StorageClassification } from '../../../../../../../src/core/04-storage/storage/enums/storage-type.enum';
@@ -17,7 +17,7 @@ import { DataRequestDto } from '../../../../../../../src/core/01-entry/receiver/
 import { DataResponseDto, ResponseMetadataDto } from '../../../../../../../src/core/01-entry/receiver/dto/data-response.dto';
 
 // Mock the external utilities
-jest.mock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils', () => ({
+jest.mock('../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils', () => ({
   buildCacheOrchestratorRequest: jest.fn(),
   inferMarketFromSymbol: jest.fn(),
 }));
@@ -28,14 +28,12 @@ jest.mock('uuid', () => ({
 
 describe('ReceiverService', () => {
   let service: ReceiverService;
-  let symbolMapperService: jest.Mocked<SymbolMapperService>;
+  let symbolTransformerService: jest.Mocked<SymbolTransformerService>;
   let dataFetcherService: jest.Mocked<DataFetcherService>;
   let capabilityRegistryService: jest.Mocked<CapabilityRegistryService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
   let transformerService: jest.Mocked<TransformerService>;
   let storageService: jest.Mocked<StorageService>;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _metricsRegistry: jest.Mocked<MetricsRegistryService>;
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
 
   // Mock data
@@ -134,8 +132,9 @@ describe('ReceiverService', () => {
 
   beforeEach(async () => {
     // Create all mocks
-    const mockSymbolMapperService = {
-      mapSymbols: jest.fn().mockResolvedValue(mockSymbolMappingResult),
+
+    const mockSymbolTransformerService = {
+      transformSymbols: jest.fn().mockResolvedValue(mockSymbolMappingResult),
     };
 
     const mockDataFetcherService = {
@@ -170,8 +169,8 @@ describe('ReceiverService', () => {
       providers: [
         ReceiverService,
         {
-          provide: SymbolMapperService,
-          useValue: mockSymbolMapperService,
+          provide: SymbolTransformerService,
+          useValue: mockSymbolTransformerService,
         },
         {
           provide: DataFetcherService,
@@ -205,17 +204,16 @@ describe('ReceiverService', () => {
     }).compile();
 
     service = module.get<ReceiverService>(ReceiverService);
-    symbolMapperService = module.get(SymbolMapperService);
+    symbolTransformerService = module.get(SymbolTransformerService);
     dataFetcherService = module.get(DataFetcherService);
     capabilityRegistryService = module.get(CapabilityRegistryService);
     marketStatusService = module.get(MarketStatusService);
     transformerService = module.get(TransformerService);
     storageService = module.get(StorageService);
-    _metricsRegistry = module.get(MetricsRegistryService);
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
     // Setup cache request utils mock
-    const { buildCacheOrchestratorRequest, inferMarketFromSymbol } = jest.requireMock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils');
+    const { buildCacheOrchestratorRequest, inferMarketFromSymbol } = jest.requireMock('../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils');
     buildCacheOrchestratorRequest.mockReturnValue({
       cacheKey: 'test:cache:key',
       strategy: CacheStrategy.STRONG_TIMELINESS,
@@ -291,7 +289,7 @@ describe('ReceiverService', () => {
       expect(result.data).toEqual(mockTransformedData.transformedData);
       expect(result.metadata.hasPartialFailures).toBe(false);
 
-      // The orchestrator would have called executeDataFlow internally through fetchFn
+      // The orchestrator would have called executeOriginalDataFlow internally through fetchFn
       expect(smartCacheOrchestrator.getDataWithSmartCache).toHaveBeenCalled();
     });
 
@@ -340,7 +338,7 @@ describe('ReceiverService', () => {
     });
   });
 
-  describe('executeDataFlow', () => {
+  describe('executeOriginalDataFlow', () => {
     const request: DataRequestDto = {
       symbols: ['700.HK', 'AAPL'],
       receiverType: 'get-stock-quote',
@@ -352,16 +350,15 @@ describe('ReceiverService', () => {
 
     it('should execute complete data flow successfully', async () => {
       // Call the private method via reflection for testing
-      const executeDataFlow = (service as any).executeDataFlow.bind(service);
-      const result = await executeDataFlow(request, 'longport', 'test-123');
+      const executeOriginalDataFlow = (service as any).executeOriginalDataFlow.bind(service);
+      const result = await executeOriginalDataFlow(request, 'test-123');
 
       expect(result).toEqual(mockTransformedData.transformedData);
 
-      // Verify symbol mapping was called
-      expect(symbolMapperService.mapSymbols).toHaveBeenCalledWith(
+      // Verify symbol transformation was called
+      expect(symbolTransformerService.transformSymbols).toHaveBeenCalledWith(
         'longport',
-        ['700.HK', 'AAPL'],
-        'test-123'
+        ['700.HK', 'AAPL']
       );
 
       // Verify data fetcher was called
@@ -413,11 +410,11 @@ describe('ReceiverService', () => {
     });
 
     it('should handle symbol mapping errors', async () => {
-      symbolMapperService.mapSymbols.mockRejectedValueOnce(new Error('Symbol mapping failed'));
+      symbolTransformerService.transformSymbols.mockRejectedValueOnce(new Error('Symbol mapping failed'));
 
-      const executeDataFlow = (service as any).executeDataFlow.bind(service);
+      const executeOriginalDataFlow = (service as any).executeOriginalDataFlow.bind(service);
 
-      await expect(executeDataFlow(request, 'longport', 'test-123')).rejects.toThrow(
+      await expect(executeOriginalDataFlow(request, 'test-123')).rejects.toThrow(
         'Symbol mapping failed'
       );
     });
@@ -425,9 +422,9 @@ describe('ReceiverService', () => {
     it('should handle data fetcher errors', async () => {
       dataFetcherService.fetchRawData.mockRejectedValueOnce(new Error('Data fetch failed'));
 
-      const executeDataFlow = (service as any).executeDataFlow.bind(service);
+      const executeOriginalDataFlow = (service as any).executeOriginalDataFlow.bind(service);
 
-      await expect(executeDataFlow(request, 'longport', 'test-123')).rejects.toThrow(
+      await expect(executeOriginalDataFlow(request, 'test-123')).rejects.toThrow(
         'Data fetch failed'
       );
     });
@@ -435,9 +432,9 @@ describe('ReceiverService', () => {
     it('should handle transformer errors', async () => {
       transformerService.transform.mockRejectedValueOnce(new Error('Transform failed'));
 
-      const executeDataFlow = (service as any).executeDataFlow.bind(service);
+      const executeOriginalDataFlow = (service as any).executeOriginalDataFlow.bind(service);
 
-      await expect(executeDataFlow(request, 'longport', 'test-123')).rejects.toThrow(
+      await expect(executeOriginalDataFlow(request, 'test-123')).rejects.toThrow(
         'Transform failed'
       );
     });
@@ -445,9 +442,9 @@ describe('ReceiverService', () => {
     it('should handle storage errors', async () => {
       storageService.storeData.mockRejectedValueOnce(new Error('Storage failed'));
 
-      const executeDataFlow = (service as any).executeDataFlow.bind(service);
+      const executeOriginalDataFlow = (service as any).executeOriginalDataFlow.bind(service);
 
-      await expect(executeDataFlow(request, 'longport', 'test-123')).rejects.toThrow(
+      await expect(executeOriginalDataFlow(request, 'test-123')).rejects.toThrow(
         'Storage failed'
       );
     });

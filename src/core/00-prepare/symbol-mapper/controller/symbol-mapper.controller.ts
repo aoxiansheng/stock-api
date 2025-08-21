@@ -94,7 +94,7 @@ export class SymbolMapperController {
     const mappedSymbol = await this.symbolTransformerService.transformSingleSymbol(
       body.toProvider,
       body.symbol,
-      'to_standard',
+      'from_standard',  // 修正方向语义：standard→provider
     );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return {
@@ -158,24 +158,25 @@ export class SymbolMapperController {
     });
 
     try {
-      const result = transformDto.mappingInSymbolId
-        ? await this.symbolMapperService.transformSymbolsById(
-            transformDto.mappingInSymbolId,
-            transformDto.symbols,
-          )
-        : await this.symbolMapperService.transformSymbols(
-            transformDto.dataSourceName,
-            transformDto.symbols,
-          );
+      const result = await this.symbolTransformerService.transformSymbols(
+        transformDto.dataSourceName,
+        transformDto.symbols,
+        'from_standard'  // 修正方向语义：standard→provider
+      );
 
       this.logger.log(`API响应: 代码转换成功`, {
         dataSourceName: transformDto.dataSourceName,
         inputCount: transformDto.symbols.length,
-        processingTime: result.processingTimeMs + "ms",
+        processingTime: result.metadata.processingTimeMs + "ms",
       });
 
-      // 遵循控制器编写规范：让拦截器自动处理响应格式化
-      return result;
+      // Controller层适配返回结构为 TransformSymbolsResponseDto
+      return {
+        dataSourceName: result.metadata.provider,
+        transformedSymbols: result.mappingDetails,
+        failedSymbols: result.failedSymbols,
+        processingTimeMs: result.metadata.processingTimeMs
+      };
     } catch (error: any) {
       this.logger.error(`API错误: 代码转换失败`, {
         dataSourceName: transformDto.dataSourceName,

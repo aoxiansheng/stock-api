@@ -28,7 +28,7 @@ import {
 } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),
@@ -523,6 +523,116 @@ describe("FlexibleMappingRuleService", () => {
 
       expect(ruleModel.find).toHaveBeenCalledWith({ isActive: true });
       expect(cacheService.warmupCache).toHaveBeenCalledWith([mockRule]);
+    });
+  });
+
+  // 新增测试：getRuleDocumentById 公共方法
+  describe("getRuleDocumentById", () => {
+    const validRuleId = "507f1f77bcf86cd799439011";
+    
+    it("should return rule document for valid ID", async () => {
+      const mockRuleDoc = {
+        _id: validRuleId,
+        name: "Test Rule",
+        provider: "longport",
+        apiType: "rest",
+        transDataRuleListType: "quote_fields",
+        fieldMappings: [
+          {
+            sourceFieldPath: "last_done",
+            targetField: "lastPrice",
+            confidence: 0.9
+          }
+        ],
+        isActive: true,
+        overallConfidence: 0.9
+      };
+
+      ruleModel.findById.mockResolvedValue(mockRuleDoc);
+
+      const result = await service.getRuleDocumentById(validRuleId);
+
+      expect(ruleModel.findById).toHaveBeenCalledWith(validRuleId);
+      expect(result).toEqual(mockRuleDoc);
+    });
+
+    it("should throw BadRequestException for invalid ObjectId format", async () => {
+      const invalidId = "invalid-id-format";
+      
+      await expect(service.getRuleDocumentById(invalidId))
+        .rejects.toThrow(BadRequestException);
+      
+      // 确保没有调用数据库查询
+      expect(ruleModel.findById).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundException when rule does not exist", async () => {
+      const nonExistentId = "507f1f77bcf86cd799439099";
+      
+      ruleModel.findById.mockResolvedValue(null);
+
+      await expect(service.getRuleDocumentById(nonExistentId))
+        .rejects.toThrow(NotFoundException);
+      
+      expect(ruleModel.findById).toHaveBeenCalledWith(nonExistentId);
+    });
+
+    it("should handle database errors gracefully", async () => {
+      const dbError = new Error("Database connection failed");
+      ruleModel.findById.mockRejectedValue(dbError);
+
+      await expect(service.getRuleDocumentById(validRuleId))
+        .rejects.toThrow(BadRequestException);
+      
+      expect(ruleModel.findById).toHaveBeenCalledWith(validRuleId);
+    });
+
+    it("should throw BadRequestException for empty ID", async () => {
+      await expect(service.getRuleDocumentById(""))
+        .rejects.toThrow(BadRequestException);
+      
+      await expect(service.getRuleDocumentById(null as any))
+        .rejects.toThrow(BadRequestException);
+      
+      await expect(service.getRuleDocumentById(undefined as any))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it("should handle various ObjectId edge cases", async () => {
+      // 测试各种无效的 ObjectId 格式
+      const invalidIds = [
+        "123",                              // 太短
+        "507f1f77bcf86cd799439011x",         // 包含非十六进制字符
+        "507f1f77bcf86cd79943901",          // 23个字符（应该是24个）
+        "507f1f77bcf86cd799439011a",        // 25个字符
+        "GGGGGGGGGGGGGGGGGGGGGGGG"          // 全是非十六进制字符
+      ];
+
+      for (const invalidId of invalidIds) {
+        await expect(service.getRuleDocumentById(invalidId))
+          .rejects.toThrow(BadRequestException);
+      }
+      
+      // 确保没有任何数据库调用
+      expect(ruleModel.findById).not.toHaveBeenCalled();
+    });
+
+    it("should preserve existing error types from service exceptions", async () => {
+      // 当数据库抛出 NotFoundException 时，应该透传
+      ruleModel.findById.mockImplementation(() => {
+        throw new NotFoundException("Custom not found message");
+      });
+
+      await expect(service.getRuleDocumentById(validRuleId))
+        .rejects.toThrow(NotFoundException);
+      
+      // 当数据库抛出 BadRequestException 时，应该透传
+      ruleModel.findById.mockImplementation(() => {
+        throw new BadRequestException("Custom bad request message");
+      });
+
+      await expect(service.getRuleDocumentById(validRuleId))
+        .rejects.toThrow(BadRequestException);
     });
   });
 });

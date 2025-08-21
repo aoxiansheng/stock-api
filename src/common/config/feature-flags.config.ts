@@ -6,7 +6,6 @@
  * Environment Variables:
  * - SYMBOL_MAPPING_CACHE_ENABLED: 符号映射缓存开关 (default: true)
  * - DATA_TRANSFORM_CACHE_ENABLED: 数据转换缓存开关 (default: true)
- * - BATCH_PROCESSING_ENABLED: 批量处理开关 (default: true)
  * - OBJECT_POOL_ENABLED: 对象池优化开关 (default: true)
  * - RULE_COMPILATION_ENABLED: 规则编译优化开关 (default: true)
  * - DYNAMIC_LOG_LEVEL_ENABLED: 动态日志级别开关 (default: true)
@@ -25,9 +24,6 @@ export class FeatureFlags {
   // 🎯 Data-Mapper 缓存优化开关
   readonly dataTransformCacheEnabled: boolean = process.env.DATA_TRANSFORM_CACHE_ENABLED !== 'false';
   
-  // 🎯 批量处理优化开关
-  readonly batchProcessingEnabled: boolean = process.env.BATCH_PROCESSING_ENABLED !== 'false';
-  
   // 🎯 对象池优化开关
   readonly objectPoolEnabled: boolean = process.env.OBJECT_POOL_ENABLED !== 'false';
   
@@ -40,13 +36,13 @@ export class FeatureFlags {
   // 🎯 指标双写兼容模式开关
   readonly metricsLegacyModeEnabled: boolean = process.env.METRICS_LEGACY_MODE_ENABLED !== 'false';
 
-  // 🎯 Symbol-Mapper 缓存配置参数
+  // 🎯 Symbol-Mapper 缓存配置参数 (调整为长期缓存策略)
   readonly symbolCacheMaxSize: number = Number(process.env.SYMBOL_CACHE_MAX_SIZE) || 2000;
-  readonly symbolCacheTtl: number = Number(process.env.SYMBOL_CACHE_TTL) || 5 * 60 * 1000; // 5分钟
+  readonly symbolCacheTtl: number = Number(process.env.SYMBOL_CACHE_TTL) || 12 * 60 * 60 * 1000; // 12小时 (L2)
   
-  // 🎯 Data-Mapper 缓存配置参数  
+  // 🎯 Data-Mapper 缓存配置参数 (调整为长期缓存策略)
   readonly ruleCacheMaxSize: number = Number(process.env.RULE_CACHE_MAX_SIZE) || 100;
-  readonly ruleCacheTtl: number = Number(process.env.RULE_CACHE_TTL) || 10 * 60 * 1000; // 10分钟
+  readonly ruleCacheTtl: number = Number(process.env.RULE_CACHE_TTL) || 24 * 60 * 60 * 1000; // 24小时 (L1)
   
   // 🎯 对象池配置参数
   readonly objectPoolSize: number = Number(process.env.OBJECT_POOL_SIZE) || 100;
@@ -74,7 +70,6 @@ export class FeatureFlags {
     return {
       symbolMappingCacheEnabled: this.symbolMappingCacheEnabled,
       dataTransformCacheEnabled: this.dataTransformCacheEnabled,
-      batchProcessingEnabled: this.batchProcessingEnabled,
       objectPoolEnabled: this.objectPoolEnabled,
       ruleCompilationEnabled: this.ruleCompilationEnabled,
       dynamicLogLevelEnabled: this.dynamicLogLevelEnabled,
@@ -103,7 +98,6 @@ export class FeatureFlags {
    */
   isPerformanceOptimizationEnabled(): boolean {
     return this.isCacheOptimizationEnabled() || 
-           this.batchProcessingEnabled || 
            this.objectPoolEnabled ||
            this.ruleCompilationEnabled;
   }
@@ -115,7 +109,6 @@ export class FeatureFlags {
     return {
       SYMBOL_MAPPING_CACHE_ENABLED: 'false',
       DATA_TRANSFORM_CACHE_ENABLED: 'false',
-      BATCH_PROCESSING_ENABLED: 'false',
       OBJECT_POOL_ENABLED: 'false',
       RULE_COMPILATION_ENABLED: 'false',
       DYNAMIC_LOG_LEVEL_ENABLED: 'false',

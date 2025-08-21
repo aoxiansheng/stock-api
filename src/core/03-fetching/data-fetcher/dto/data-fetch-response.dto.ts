@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DataFetchMetadataDto } from './data-fetch-request.dto';
+import { DataFetchMetadataDto } from './data-fetch-metadata.dto';
 
 /**
  * 数据获取响应DTO

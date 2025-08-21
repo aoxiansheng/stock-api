@@ -10,6 +10,55 @@ import {
   ICacheFallback, 
   ICacheMetadata 
 } from '../interfaces/cache-operation.interface';
+import { CacheMetadata } from '../interfaces/cache-metadata.interface';
+
+/**
+ * 缓存解压异常类
+ * 用于类型安全的错误处理和更好的调试体验
+ */
+export class CacheDecompressionException extends Error {
+  constructor(
+    message: string, 
+    public readonly key?: string, 
+    public readonly originalError?: Error
+  ) {
+    super(message);
+    this.name = 'CacheDecompressionException';
+  }
+}
+
+/**
+ * 解压操作并发控制工具
+ * 防止高并发下CPU峰值，控制同时进行的解压操作数量
+ */
+class DecompressionSemaphore {
+  private permits: number;
+  private waiting: (() => void)[] = [];
+  
+  constructor(permits: number = 10) {
+    this.permits = permits;
+  }
+  
+  async acquire(): Promise<void> {
+    if (this.permits > 0) {
+      this.permits--;
+      return;
+    }
+    
+    return new Promise<void>(resolve => {
+      this.waiting.push(resolve);
+    });
+  }
+  
+  release(): void {
+    if (this.waiting.length > 0) {
+      const resolve = this.waiting.shift()!;
+      resolve();
+    } else {
+      this.permits++;
+    }
+  }
+}
 
 /**
  * 通用缓存服务
@@ -18,6 +67,11 @@ import {
 @Injectable()
 export class CommonCacheService implements ICacheOperation, ICacheFallback, ICacheMetadata {
   private readonly logger = new Logger(CommonCacheService.name);
+
+  // 解压并发控制实例
+  private readonly decompressionSemaphore = new DecompressionSemaphore(
+    CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT
+  );
 
   constructor(
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
@@ -61,6 +115,143 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
   }
 
   /**
+   * 记录解压指标
+   * @param key 缓存键
+   * @param errorType 错误类型或'success'
+   * @param duration 操作耗时（毫秒）
+   */
+  private recordDecompressionMetrics(key: string | undefined, errorType: string, duration: number): void {
+    try {
+      if (this.metricsRegistry && typeof this.metricsRegistry.inc === 'function') {
+        const status = errorType === 'success' ? 'success' : 'error';
+        this.metricsRegistry.inc('cacheDecompressionTotal', { 
+          status, 
+          error_type: errorType 
+        });
+        
+        if (duration > 0 && typeof this.metricsRegistry.observe === 'function') {
+          this.metricsRegistry.observe('cacheDecompressionDuration', duration / 1000);
+        }
+      }
+    } catch (error) {
+      this.logger.debug('Failed to record decompression metrics', error);
+    }
+  }
+
+  /**
+   * 分类解压错误类型
+   * @param error 错误对象
+   * @returns 错误类型字符串
+   */
+  private classifyDecompressionError(error: Error): string {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('base64')) return 'base64_decode_failed';
+    if (message.includes('gunzip') || message.includes('gzip')) return 'gzip_decompress_failed';
+    if (message.includes('json')) return 'json_parse_failed';
+    if (message.includes('metadata')) return 'metadata_invalid';
+    
+    return 'unknown_error';
+  }
+
+  /**
+   * 获取数据预览（用于调试）
+   * @param data 数据
+   * @returns 安全的数据预览字符串
+   */
+  private getDataPreview(data: any): string {
+    if (typeof data === 'string') {
+      return data.length > 50 ? `${data.substring(0, 50)}...` : data;
+    }
+    try {
+      const str = JSON.stringify(data);
+      return str.length > 50 ? `${str.substring(0, 50)}...` : str;
+    } catch {
+      return '[Unparseable data]';
+    }
+  }
+
+  /**
+   * 规范化缓存元数据
+   * @param parsed 解析后的缓存数据
+   * @returns 规范化的元数据对象
+   */
+  private normalizeMetadata(parsed: any): CacheMetadata {
+    return {
+      compressed: parsed.compressed || false,
+      storedAt: parsed.storedAt || parsed.metadata?.storedAt || Date.now(),
+      originalSize: parsed.metadata?.originalSize || 0,
+      compressedSize: parsed.metadata?.compressedSize || 0
+    };
+  }
+
+  /**
+   * 将解析后的缓存数据转换为业务数据类型
+   * 核心解压逻辑，处理压缩数据的自动解压
+   * @param parsed 解析后的缓存数据
+   * @param key 缓存键（用于调试）
+   * @returns 业务数据类型
+   */
+  private async toBusinessData<T>(
+    parsed: { data: any; storedAt?: number; compressed?: boolean; metadata?: Partial<CacheMetadata> },
+    key?: string
+  ): Promise<T> {
+    // 检查解压开关 - 动态检查环境变量
+    const decompressionEnabled = process.env.CACHE_DECOMPRESSION_ENABLED !== 'false';
+    if (!decompressionEnabled) {
+      return parsed.data;
+    }
+    
+    // 非压缩数据直接返回
+    if (!parsed.compressed) {
+      return parsed.data;
+    }
+    
+    try {
+      // 规范化metadata（增强验证）
+      const normalizedMetadata = this.normalizeMetadata(parsed);
+      
+      // 基础数据验证
+      if (!parsed.data || typeof parsed.data !== 'string') {
+        throw new Error('Invalid compressed data format: expected base64 string');
+      }
+      
+      // 执行解压
+      const startTime = process.hrtime.bigint();
+      const decompressed = await this.compressionService.decompress(
+        parsed.data as string,
+        normalizedMetadata
+      );
+      const endTime = process.hrtime.bigint();
+      
+      // 记录成功指标
+      const duration = Number(endTime - startTime) / 1_000_000;
+      this.recordDecompressionMetrics(key, 'success', duration);
+      
+      return decompressed;
+      
+    } catch (error) {
+      // 分类错误并记录
+      const errorType = this.classifyDecompressionError(error);
+      this.logger.warn(`Decompression ${errorType} for key: ${key}`, {
+        error: error.message,
+        key,
+        dataPreview: this.getDataPreview(parsed.data)
+      });
+      
+      // 记录失败指标
+      this.recordDecompressionMetrics(key, errorType, 0);
+      
+      // 抛出类型安全的异常
+      throw new CacheDecompressionException(
+        `缓存解压失败: ${error.message}`,
+        key,
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+
+  /**
    * 基础缓存获取 - 返回数据和TTL元数据，失败返回null
    * @param key 缓存键
    * @returns 缓存结果或null
@@ -82,10 +273,13 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
       const parsed = RedisValueUtils.parse<T>(value);
       const ttlRemaining = this.mapPttlToSeconds(pttl);
 
+      // 新增：统一解压处理
+      const data = await this.toBusinessData<T>(parsed, key);
+
       this.recordMetrics('get', 'success', Date.now() - startTime);
       
       return {
-        data: parsed.data,
+        data,
         ttlRemaining
       };
     } catch (error) {
@@ -180,20 +374,43 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
         Promise.all(keys.map(key => this.redis.pttl(key)))
       ]);
 
-      const results = values.map((value, index) => {
+      // 批量解压处理（并发控制）
+      const decompressionPromises = values.map(async (value, index) => {
         if (value === null) return null;
         
+        const parsed = RedisValueUtils.parse<T>(value);
+        const key = keys[index];
+        
         try {
-          const parsed = RedisValueUtils.parse<T>(value);
+          // 并发控制：获取信号量
+          await this.decompressionSemaphore.acquire();
+          
+          const data = await this.toBusinessData<T>(parsed, key);
+          
           return {
-            data: parsed.data,
+            data,
             ttlRemaining: this.mapPttlToSeconds(ttlResults[index])
           };
         } catch (error) {
-          this.logger.debug(`Failed to parse cached value for ${keys[index]}`, error);
-          return null;
+          // 单个解压失败时的处理策略
+          if (error instanceof CacheDecompressionException) {
+            this.logger.warn(`批量解压失败，回退到原始数据`, { key, error: error.message });
+            
+            return {
+              data: parsed.data, // 回退到原始数据
+              ttlRemaining: this.mapPttlToSeconds(ttlResults[index])
+            };
+          }
+          
+          // 非解压异常直接抛出
+          throw error;
+        } finally {
+          // 释放信号量
+          this.decompressionSemaphore.release();
         }
       });
+      
+      const results = await Promise.all(decompressionPromises);
 
       this.recordMetrics('mget', 'success', Date.now() - startTime);
       
@@ -698,21 +915,45 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
         Promise.all(keys.map(key => this.redis.pttl(key)))
       ]);
 
-      const results = values.map((value, index) => {
+      // 批量解压处理（支持元数据）
+      const decompressionPromises = values.map(async (value, index) => {
         if (value === null) return null;
         
+        const parsed = RedisValueUtils.parse<T>(value);
+        const key = keys[index];
+        
         try {
-          const parsed = RedisValueUtils.parse<T>(value);
+          // 并发控制：获取信号量
+          await this.decompressionSemaphore.acquire();
+          
+          const data = await this.toBusinessData<T>(parsed, key);
+          
           return {
-            data: parsed.data,
+            data,
             ttlRemaining: this.mapPttlToSeconds(ttlResults[index]),
             storedAt: parsed.storedAt || Date.now()
           };
         } catch (error) {
-          this.logger.debug(`Failed to parse cached value with metadata for ${keys[index]}`, error);
-          return null;
+          // 单个解压失败时的处理策略
+          if (error instanceof CacheDecompressionException) {
+            this.logger.warn(`批量解压失败（含元数据），回退到原始数据`, { key, error: error.message });
+            
+            return {
+              data: parsed.data, // 回退到原始数据
+              ttlRemaining: this.mapPttlToSeconds(ttlResults[index]),
+              storedAt: parsed.storedAt || Date.now()
+            };
+          }
+          
+          // 非解压异常直接抛出
+          throw error;
+        } finally {
+          // 释放信号量
+          this.decompressionSemaphore.release();
         }
       });
+      
+      const results = await Promise.all(decompressionPromises);
 
       this.recordMetrics('mget_metadata', 'success', Date.now() - startTime);
       

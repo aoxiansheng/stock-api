@@ -194,8 +194,8 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         direction
       });
       
-      // 记录缓存禁用指标
-      this.recordCacheMetrics('disabled', false);
+      // 记录缓存禁用情况，使用专用方法
+      this.recordCacheDisabled();
       
       // 直接执行数据库查询，不使用任何缓存
       const results = await this.executeUncachedQuery(provider, symbolArray, direction);
@@ -337,6 +337,21 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /**
+   * 🧹 清理所有缓存层 - 统一清理入口
+   */
+  clearAllCaches(): void {
+    this.providerRulesCache.clear();  // L1: 规则缓存
+    this.symbolMappingCache.clear();  // L2: 符号映射缓存
+    this.batchResultCache.clear();    // L3: 批量结果缓存
+    this.pendingQueries.clear();      // 清理待处理查询
+    
+    // 重置统计信息
+    this.initializeStats();
+    
+    this.logger.log('All caches cleared (L1/L2/L3) and statistics reset');
+  }
+
   // =============================================================================
   // 🔧 私有辅助方法区域 - 将在下一个里程碑中实现
   // =============================================================================
@@ -428,7 +443,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   /**
    * 📊 监控指标策略 - 避免指标类型冲突
    */
-  private recordCacheMetrics(level: 'l1'|'l2'|'l3'|'disabled', isHit: boolean): void {
+  private recordCacheMetrics(level: 'l1'|'l2'|'l3', isHit: boolean): void {
     // 复用现有的 streamCacheHitRate，仅使用定义中的 cache_type 标签
     // 避免添加额外标签导致 prom-client 标签不匹配报错
     // 统一使用 Metrics.inc 封装，与现网保持一致
@@ -436,10 +451,21 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       this.metricsRegistry,
       'streamCacheHitRate',
       { 
-        cache_type: `symbol_mapping_${level}`  // symbol_mapping_l1/l2/l3
+        cache_type: `symbol_mapping_${level}`  // 只接受 symbol_mapping_l1|l2|l3
       },
       isHit ? 100 : 0
     );
+  }
+
+  /**
+   * 缓存禁用专用方法，避免产生 symbol_mapping_disabled 标签
+   */
+  private recordCacheDisabled(): void {
+    this.logger.warn('Symbol mapping cache disabled by feature flag', {
+      reason: 'feature_flag_disabled',
+      provider: 'symbol_mapper',
+      timestamp: new Date().toISOString()
+    });
   }
 
   private recordPerformanceMetrics(
@@ -1102,23 +1128,26 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     removedPairs: Array<{ standard: string; sdk: string }>;
     modifiedPairs: Array<{ standard: string; sdk: string }>;
   } {
-    // 将规则转换为符号对映射，便于比较
-    const oldPairsMap = new Map<string, string>();
+    // 双重映射结构：键值对比（新增/删除）+ 完整规则对比（修改）
+    const oldPairsMap = new Map<string, string>(); // 保留原有键值对比（用于新增/删除）
     const newPairsMap = new Map<string, string>();
-    
-    // 构建旧规则的符号对映射
+    const oldRulesMap = new Map<string, SymbolMappingRule>(); // 新增完整规则对比（用于修改）  
+    const newRulesMap = new Map<string, SymbolMappingRule>();
+
+    // 构建映射表
     for (const rule of oldRules) {
       if (rule.isActive !== false && rule.standardSymbol && rule.sdkSymbol) {
         const key = `${rule.standardSymbol}:${rule.sdkSymbol}`;
-        oldPairsMap.set(key, rule.market || '');
+        oldPairsMap.set(key, rule.market || ''); // 保持原有逻辑兼容
+        oldRulesMap.set(key, rule); // 新增完整规则映射
       }
     }
     
-    // 构建新规则的符号对映射
     for (const rule of newRules) {
       if (rule.isActive !== false && rule.standardSymbol && rule.sdkSymbol) {
         const key = `${rule.standardSymbol}:${rule.sdkSymbol}`;
         newPairsMap.set(key, rule.market || '');
+        newRulesMap.set(key, rule);
       }
     }
     
@@ -1142,12 +1171,20 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       }
     }
     
-    // 找出修改的符号对（规则属性发生变化，如 market 字段）
-    for (const [key, newMarket] of newPairsMap) {
-      const oldMarket = oldPairsMap.get(key);
-      if (oldMarket !== undefined && oldMarket !== newMarket) {
-        const [standard, sdk] = key.split(':');
-        modifiedPairs.push({ standard, sdk });
+    // 修改判定（使用完整规则对象比较 market/symbolType/isActive）
+    for (const [key, newRule] of newRulesMap) {
+      const oldRule = oldRulesMap.get(key);
+      if (oldRule) {
+        // 比较关键属性：market, symbolType, isActive
+        const hasChanged = 
+          oldRule.market !== newRule.market ||
+          oldRule.symbolType !== newRule.symbolType ||
+          oldRule.isActive !== newRule.isActive;
+          
+        if (hasChanged) {
+          const [standard, sdk] = key.split(':');
+          modifiedPairs.push({ standard, sdk });
+        }
       }
     }
     
@@ -1366,10 +1403,21 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
       
-      // 检查批量结果是否包含受影响的符号
+      // 检查批量结果是否包含受影响的符号（增加failedSymbols检查+短路逻辑）
       const mappingDetails = batchResult.mappingDetails || {};
-      const hasAffectedSymbol = Object.keys(mappingDetails).some(symbol => symbolSet.has(symbol)) ||
-                               Object.values(mappingDetails).some(symbol => symbolSet.has(symbol));
+      const failedSymbols = batchResult.failedSymbols || [];
+
+      // 先检查 failedSymbols，命中则短路返回（性能优化）
+      let hasAffectedSymbol = false;
+      if (failedSymbols.length > 0) {
+        hasAffectedSymbol = failedSymbols.some(symbol => symbolSet.has(symbol));
+      }
+      
+      // 如果failedSymbols没有命中，再检查mappingDetails
+      if (!hasAffectedSymbol && Object.keys(mappingDetails).length > 0) {
+        hasAffectedSymbol = Object.keys(mappingDetails).some(symbol => symbolSet.has(symbol)) ||
+                           Object.values(mappingDetails).some(symbol => symbolSet.has(symbol));
+      }
       
       if (hasAffectedSymbol) {
         this.batchResultCache.delete(cacheKey);

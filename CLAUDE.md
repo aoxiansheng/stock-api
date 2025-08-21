@@ -18,35 +18,59 @@ This is the backend of the **New Stock API** - a sophisticated NestJS-based inte
 ```bash
 # Development
 bun run dev                      # Start with auto-reload
-bun run start:debug              # Start with debugging
+bun run start:debug              # Start with debugging  
 bun run build                    # Compile TypeScript
 bun run lint                     # ESLint with auto-fix
 bun run format                   # Prettier formatting
+
+# Provider CLI Tool
+bun run cli                      # Provider management CLI tool
 
 # Testing - Single Test Execution
 npx jest path/to/test.spec.ts                           # Run specific test file
 npx jest path/to/test.spec.ts -t "test name"           # Run specific test case
 DISABLE_AUTO_INIT=true npx jest path/to/test.spec.ts   # Run without auto-initialization
+npx jest path/to/test.spec.ts --testTimeout=30000      # Run with extended timeout
 
-# Testing - Module Testing
+# Testing - Module Testing (Comprehensive Coverage)
 bun run test:unit:auth           # Auth module unit tests
 bun run test:unit:core           # Core modules unit tests
 bun run test:unit:cache          # Cache module unit tests
-bun run test:unit:query          # Query component tests
-bun run test:unit:receiver       # Receiver component tests
+bun run test:unit:alert          # Alert system unit tests
+bun run test:unit:metrics        # Metrics monitoring unit tests
+bun run test:unit:security       # Security module unit tests
+bun run test:unit:monitoring     # System monitoring unit tests
+bun run test:unit:providers      # Data providers unit tests
 
 # Testing - Integration & E2E
 bun run test:integration         # Integration tests (requires MongoDB/Redis running)
+bun run test:integration:all     # All integration tests in parallel
 bun run test:e2e                 # E2E tests
+bun run test:e2e:all             # All E2E tests in parallel
+bun run test:security            # Security vulnerability tests
+bun run test:blackbox            # Black box testing
 bun run test:all                 # Run all test types
 
-# Testing - Coverage
-bun run test:coverage:all        # Generate full coverage report
+# Testing - Coverage Analysis
+bun run test:coverage:all        # Generate comprehensive coverage report
 bun run test:coverage:unit       # Unit test coverage only
+bun run coverage:merge           # Merge coverage reports from different test types
+bun run coverage:analyze         # Analyze coverage trends and quality gates
+bun run coverage:gate-check      # Check if coverage meets quality thresholds
 
 # Performance Testing (requires K6)
 bun run test:perf:auth           # Auth performance tests
 bun run test:perf:data           # Data processing performance
+bun run test:perf:api            # API stress testing
+bun run test:perf:load           # Load testing
+bun run test:perf:spike          # Spike testing
+
+# Code Quality and Analysis Tools
+bun run tools:structure-validator         # Validate project structure
+bun run tools:find-duplicates            # Find duplicate test files
+bun run tools:naming-validator           # Validate naming conventions
+bun run tools:analyze-all               # Run all analysis tools
+bun run tools:fix-all                   # Auto-fix detected issues
 ```
 
 ## High-Level Architecture
@@ -242,15 +266,33 @@ AUTO_INIT_SYMBOL_MAPPINGS=true
 DISABLE_AUTO_INIT=true  # For testing
 ```
 
+## Module Architecture Overview
+
+The system includes these key modules beyond the 7-component core:
+
+### Operational Modules
+- **Alert Module** (`src/alert/`) - System alerting and notification management
+- **Metrics Module** (`src/metrics/`) - Performance metrics collection and analysis
+- **Monitoring Module** (`src/monitoring/`) - System health monitoring and diagnostics
+- **Security Module** (`src/security/`) - Security middleware, validation, and audit
+- **Cache Module** (`src/cache/`) - Shared caching utilities and fault-tolerance
+
+### Support Modules
+- **Scripts Module** (`src/scripts/`) - Auto-initialization and maintenance scripts
+- **Common Module** (`src/common/`) - Shared utilities, decorators, and configurations
+
 ## Key Files for Understanding
 
-- `src/main.ts` - Application bootstrap, interceptors, middleware
-- `src/app.module.ts` - Module imports, guard configuration
-- `src/core/restapi/receiver/` - Entry point for real-time data
-- `src/core/restapi/query/` - Entry point for batch queries
-- `src/core/public/smart-cache/` - Intelligent caching orchestrator
-- `src/core/public/symbol-mapper/` - Symbol conversion engine
-- `src/common/interceptors/response.interceptor.ts` - Response formatting
+- `src/main.ts` - Application bootstrap, interceptors, middleware, security setup
+- `src/app.module.ts` - Module imports, guard configuration, global settings
+- `src/core/restapi/receiver/` - Entry point for real-time data (strong timeliness)
+- `src/core/restapi/query/` - Entry point for batch queries (weak timeliness)
+- `src/core/public/smart-cache/` - Intelligent caching orchestrator with TTL strategies
+- `src/core/public/symbol-mapper/` - Symbol conversion engine with 3-layer LRU cache
+- `src/common/interceptors/response.interceptor.ts` - Standard response formatting
+- `src/auth/` - Three-tier authentication system implementation
+- `src/providers/` - Data provider integrations with decorator system
+- `test/config/` - Jest configurations for different test types
 - `docs/完整的数据流场景实景说明.md` - Detailed data flow documentation
 
 ## Performance Optimization
@@ -270,3 +312,40 @@ DISABLE_AUTO_INIT=true  # For testing
 - Cache hit rate targets: Smart Cache > 90%, Symbol Cache > 70%
 - Response time targets: P95 < 200ms, P99 < 500ms
 - Error rate threshold: < 0.1%
+
+## Test Architecture and Debugging
+
+### Test Configuration Structure
+The system uses specialized Jest configurations for different test scenarios:
+- `test/config/jest.unit.config.js` - Unit tests with mocked dependencies
+- `test/config/jest.integration.config.js` - Integration tests requiring MongoDB/Redis
+- `test/config/jest.e2e.config.js` - End-to-end API tests with full app initialization
+- `test/config/jest.security.config.js` - Security vulnerability and penetration tests
+- `test/config/jest.blackbox.config.js` - Black box testing scenarios
+
+### Debugging Commands
+```bash
+# Debug specific modules with verbose output
+bun run test:debug:auth          # Debug auth module with detailed output
+bun run test:debug:alert         # Debug alert system
+bun run test:debug:monitoring    # Debug monitoring components
+
+# Run tests with different timeouts for slow operations
+npx jest path/to/test.spec.ts --testTimeout=60000
+
+# CI/CD Testing Pipelines
+bun run test:ci:quick            # Fast CI pipeline (unit + integration)
+bun run test:ci:full             # Complete CI pipeline (all test types)
+bun run test:ci:security         # Security-focused CI pipeline
+bun run test:ci:performance      # Performance testing pipeline
+
+# Smoke and Regression Testing
+bun run test:smoke               # Quick smoke tests for critical paths
+bun run test:regression          # Full regression test suite
+```
+
+### Common Debugging Scenarios
+- **Memory Issues**: Use `bun run test:perf:load` to identify memory leaks
+- **Cache Problems**: Run `bun run test:integration:cache` for cache-related issues
+- **Database Connections**: Use `bun run test:database` for DB connectivity issues
+- **API Performance**: Use `bun run test:api` for endpoint performance analysis

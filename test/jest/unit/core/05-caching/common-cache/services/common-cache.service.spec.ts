@@ -345,4 +345,322 @@ describe('CommonCacheService', () => {
       expect(result).toBe(false);
     });
   });
+
+  // ✅ 新增：缓存解压功能测试
+  describe('Cache Decompression Functionality', () => {
+    
+    beforeEach(() => {
+      // 确保解压功能启用
+      process.env.CACHE_DECOMPRESSION_ENABLED = 'true';
+      // 重置mock
+      jest.clearAllMocks();
+    });
+
+    afterEach(() => {
+      // 恢复环境变量
+      delete process.env.CACHE_DECOMPRESSION_ENABLED;
+    });
+
+    describe('基础解压功能', () => {
+      it('应正确解压大于10KB的数据', async () => {
+        const largeData = { 
+          symbol: "700.HK", 
+          quotes: new Array(1000).fill({ price: 100, volume: 1000 }) 
+        };
+        const compressedValue = JSON.stringify({
+          data: 'H4sIAAAAAAAAA+fake_base64_data',
+          compressed: true,
+          storedAt: Date.now(),
+          metadata: { originalSize: 15000, compressedSize: 5000 }
+        });
+
+        mockRedis.get.mockResolvedValue(compressedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+        mockCompressionService.decompress.mockResolvedValue(largeData);
+
+        const result = await service.get('large-data-key');
+
+        expect(result).not.toBeNull();
+        expect(result.data).toEqual(largeData);
+        expect(typeof result.data).toBe('object');
+        expect(mockCompressionService.decompress).toHaveBeenCalledWith(
+          'H4sIAAAAAAAAA+fake_base64_data',
+          expect.objectContaining({ compressed: true })
+        );
+      });
+
+      it('应保持小于10KB数据的原有行为', async () => {
+        const smallData = { test: 'small data' };
+        const uncompressedValue = JSON.stringify({
+          data: smallData,
+          compressed: false,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(uncompressedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+
+        const result = await service.get('small-data-key');
+
+        expect(result).not.toBeNull();
+        expect(result.data).toEqual(smallData);
+        expect(mockCompressionService.decompress).not.toHaveBeenCalled();
+      });
+
+      it('解压开关关闭时应返回原始数据', async () => {
+        process.env.CACHE_DECOMPRESSION_ENABLED = 'false';
+        
+        const compressedValue = JSON.stringify({
+          data: 'H4sIAAAAAAAAA+fake_base64_data',
+          compressed: true,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(compressedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+
+        const result = await service.get('switch-test-key');
+
+        expect(result).not.toBeNull();
+        expect(result.data).toBe('H4sIAAAAAAAAA+fake_base64_data');
+        expect(mockCompressionService.decompress).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('批量操作解压', () => {
+      it('mget应正确处理混合大小数据', async () => {
+        const smallData = { type: 'small' };
+        const largeData = { type: 'large', data: new Array(100).fill('x') };
+        
+        const values = [
+          JSON.stringify({ data: smallData, compressed: false, storedAt: Date.now() }),
+          JSON.stringify({ data: 'compressed_base64', compressed: true, storedAt: Date.now() })
+        ];
+
+        mockRedis.mget.mockResolvedValue(values);
+        mockRedis.pttl.mockResolvedValueOnce(300000).mockResolvedValueOnce(300000);
+        mockCompressionService.decompress.mockResolvedValue(largeData);
+
+        const results = await service.mget(['small', 'large']);
+
+        expect(results).toHaveLength(2);
+        expect(results[0].data).toEqual(smallData);
+        expect(results[1].data).toEqual(largeData);
+        expect(mockCompressionService.decompress).toHaveBeenCalledTimes(1);
+      });
+
+      it('批量操作中单个解压失败应回退到原数据', async () => {
+        const validData = { test: 'valid' };
+        const values = [
+          JSON.stringify({ data: validData, compressed: false, storedAt: Date.now() }),
+          JSON.stringify({ data: 'invalid-base64-data', compressed: true, storedAt: Date.now() })
+        ];
+
+        mockRedis.mget.mockResolvedValue(values);
+        mockRedis.pttl.mockResolvedValueOnce(300000).mockResolvedValueOnce(300000);
+        
+        // 第一次调用成功，第二次失败
+        mockCompressionService.decompress.mockImplementation((data) => {
+          if (data === 'invalid-base64-data') {
+            throw new Error('Invalid base64 format');
+          }
+          return Promise.resolve({ decompressed: 'data' });
+        });
+
+        const results = await service.mget(['valid-key', 'corrupted-key']);
+
+        expect(results).toHaveLength(2);
+        expect(results[0].data).toEqual(validData);
+        // 损坏数据应回退到原始值
+        expect(results[1].data).toBe('invalid-base64-data');
+      });
+    });
+
+    describe('错误处理和类型安全', () => {
+      it('解压失败时应返回null(resilient behavior)', async () => {
+        const corruptedValue = JSON.stringify({
+          data: 'invalid-base64-data',
+          compressed: true,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(corruptedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+        mockCompressionService.decompress.mockRejectedValue(new Error('Invalid base64 format'));
+
+        const result = await service.get('corrupted-key');
+
+        // 缓存服务应该是resilient的，返回null而不是抛出异常
+        expect(result).toBeNull();
+        expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+          'cacheOperationsTotal',
+          { op: 'get', status: 'error' }
+        );
+      });
+
+      it('缺少metadata时应安全处理并补充默认值', async () => {
+        const dataWithoutMetadata = JSON.stringify({
+          data: 'H4sIAAAAAAAAA+test_data',
+          compressed: true
+          // 缺少metadata和storedAt
+        });
+
+        mockRedis.get.mockResolvedValue(dataWithoutMetadata);
+        mockRedis.pttl.mockResolvedValue(300000);
+        mockCompressionService.decompress.mockResolvedValue({ test: 'decompressed' });
+
+        const result = await service.get('legacy-key');
+
+        expect(result).not.toBeNull();
+        expect(mockCompressionService.decompress).toHaveBeenCalledWith(
+          'H4sIAAAAAAAAA+test_data',
+          expect.objectContaining({
+            compressed: true,
+            storedAt: expect.any(Number),
+            originalSize: 0,
+            compressedSize: 0
+          })
+        );
+      });
+
+      it('非字符串压缩数据应返回null(resilient behavior)', async () => {
+        const invalidFormatValue = JSON.stringify({
+          data: { invalid: 'object' }, // 非字符串
+          compressed: true,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(invalidFormatValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+
+        const result = await service.get('invalid-format-key');
+
+        // 缓存服务应该是resilient的，返回null而不是抛出异常
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('性能和并发控制', () => {
+      it('应记录解压成功指标', async () => {
+        const testData = { test: 'data' };
+        const compressedValue = JSON.stringify({
+          data: 'H4sIAAAAAAAAA+test',
+          compressed: true,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(compressedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+        mockCompressionService.decompress.mockResolvedValue(testData);
+
+        await service.get('test-key');
+
+        expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+          'cacheDecompressionTotal',
+          expect.objectContaining({ status: 'success', error_type: 'success' })
+        );
+        expect(mockMetricsRegistry.observe).toHaveBeenCalledWith(
+          'cacheDecompressionDuration',
+          expect.any(Number)
+        );
+      });
+
+      it('应记录解压失败指标', async () => {
+        const corruptedValue = JSON.stringify({
+          data: 'invalid-data',
+          compressed: true,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(corruptedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+        mockCompressionService.decompress.mockRejectedValue(new Error('base64 decode failed'));
+
+        try {
+          await service.get('corrupted-key');
+        } catch {
+          // 预期的异常
+        }
+
+        expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+          'cacheDecompressionTotal',
+          expect.objectContaining({ status: 'error', error_type: 'base64_decode_failed' })
+        );
+      });
+
+      it('应正确分类不同类型的解压错误', async () => {
+        const testCases = [
+          { error: new Error('base64 invalid'), expectedType: 'base64_decode_failed' },
+          { error: new Error('gunzip failed'), expectedType: 'gzip_decompress_failed' },
+          { error: new Error('JSON parse error'), expectedType: 'json_parse_failed' },
+          { error: new Error('metadata missing'), expectedType: 'metadata_invalid' },
+          { error: new Error('unknown issue'), expectedType: 'unknown_error' }
+        ];
+
+        for (const testCase of testCases) {
+          jest.clearAllMocks();
+          
+          const compressedValue = JSON.stringify({
+            data: 'test-data',
+            compressed: true,
+            storedAt: Date.now()
+          });
+
+          mockRedis.get.mockResolvedValue(compressedValue);
+          mockRedis.pttl.mockResolvedValue(300000);
+          mockCompressionService.decompress.mockRejectedValue(testCase.error);
+
+          try {
+            await service.get('error-test-key');
+          } catch {
+            // 预期的异常
+          }
+
+          expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+            'cacheDecompressionTotal',
+            expect.objectContaining({ 
+              status: 'error', 
+              error_type: testCase.expectedType 
+            })
+          );
+        }
+      });
+    });
+
+    describe('边界条件测试', () => {
+      it('应处理空缓存值', async () => {
+        mockRedis.get.mockResolvedValue(null);
+        mockRedis.pttl.mockResolvedValue(-2);
+
+        const result = await service.get('non-existent-key');
+
+        expect(result).toBeNull();
+        expect(mockCompressionService.decompress).not.toHaveBeenCalled();
+      });
+
+      it('应处理Unicode和特殊字符', async () => {
+        const unicodeData = {
+          chinese: "这是中文测试数据",
+          emoji: "😀😃😄😁😆😅🤣😂",
+          special: "!@#$%^&*()_+-=[]{}|;:,.<>?",
+          mixed: "Mixed content: 中文 + English + 123 + 🎉"
+        };
+
+        const compressedValue = JSON.stringify({
+          data: 'H4sIAAAAAAAAA+unicode_data',
+          compressed: true,
+          storedAt: Date.now()
+        });
+
+        mockRedis.get.mockResolvedValue(compressedValue);
+        mockRedis.pttl.mockResolvedValue(300000);
+        mockCompressionService.decompress.mockResolvedValue(unicodeData);
+
+        const result = await service.get('unicode-test');
+
+        expect(result).not.toBeNull();
+        expect(result.data).toEqual(unicodeData);
+      });
+    });
+  });
 });

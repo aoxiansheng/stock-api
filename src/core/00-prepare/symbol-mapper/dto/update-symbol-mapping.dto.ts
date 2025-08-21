@@ -1,9 +1,7 @@
-import { PartialType, ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { PartialType, ApiProperty } from "@nestjs/swagger";
 import {
   IsNotEmpty,
   IsString,
-  IsOptional,
-  ValidateIf,
   IsArray,
   ArrayNotEmpty,
 } from "class-validator";
@@ -18,25 +16,10 @@ export class UpdateSymbolMappingDto extends PartialType(
 ) {}
 
 export class TransformSymbolsDto {
-  @ApiPropertyOptional({
-    description: "映射配置 ID（优先使用）",
-    example: "64e8f7b4b7dcb16f7a1c1234",
-  })
-  @IsOptional()
-  @IsString()
-  mappingInSymbolId?: string;
-
   @ApiProperty({ description: "数据源名称", example: "longport" })
-  @ApiPropertyOptional({
-    description: "数据源名称（若未传 mappingInSymbolId 时必填）",
-    example: "longport",
-  })
-  @ValidateIf((o) => !o.mappingInSymbolId)
-  @IsNotEmpty({
-    message: "当未提供 mappingInSymbolId 时，dataSourceName 不能为空",
-  })
+  @IsNotEmpty({ message: "dataSourceName 不能为空" })
   @IsString()
-  dataSourceName?: string;
+  dataSourceName: string;
 
   @ApiProperty({
     description: "需要转换的股票代码列表",

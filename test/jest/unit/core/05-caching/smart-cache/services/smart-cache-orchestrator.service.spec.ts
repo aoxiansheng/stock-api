@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
@@ -9,8 +9,8 @@ import { CommonCacheService } from '../../../../../../../src/core/05-caching/com
 import { 
   CacheStrategy, 
   CacheOrchestratorRequest
-} from '../../../../../../../src/core/05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
-import { DEFAULT_SMART_CACHE_CONFIG } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/symbol-smart-cache-config.interface';
+} from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
+import { DEFAULT_SMART_CACHE_CONFIG } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-config.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 

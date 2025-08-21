@@ -122,7 +122,7 @@ describe('DataFetcherService', () => {
           apiType: 'rest',
           options: mockParams.options,
         },
-        options: mockParams.options,
+        // 注意：options重复传递已移除，通过context传递
       });
     });
 

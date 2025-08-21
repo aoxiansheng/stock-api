@@ -14,11 +14,10 @@ import {
   MarketStatusService,
   // MarketStatusResult,
 } from "../../../shared/services/market-status.service";
-import { SymbolMapperService } from "../../../00-prepare/symbol-mapper/services/symbol-mapper.service";
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
-import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/utils/symbol-smart-cache-request.utils";
+import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { TransformerService } from "../../../02-processing/transformer/services/transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
@@ -64,7 +63,6 @@ export class ReceiverService {
   // 🎯 使用 common 模块的常量，无需重复定义
 
   constructor(
-    private readonly SymbolMapperService: SymbolMapperService,
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly dataFetcherService: DataFetcherService, // 🔥 新增DataFetcher依赖
     private readonly capabilityRegistryService: CapabilityRegistryService,
@@ -128,7 +126,7 @@ export class ReceiverService {
       const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
       if (useSmartCache) {
         // 获取市场状态用于缓存策略决策
-        const { inferMarketFromSymbol } = await import("../../../05-caching/smart-cache/utils/symbol-smart-cache-request.utils");
+        const { inferMarketFromSymbol } = await import("../../../05-caching/smart-cache/utils/smart-cache-request.utils");
         const markets = [...new Set(request.symbols.map(symbol => inferMarketFromSymbol(symbol)))];
         const marketStatus = await this.marketStatusService.getBatchMarketStatus(markets);
 
@@ -184,6 +182,7 @@ export class ReceiverService {
       const mappingResult = await this.symbolTransformerService.transformSymbols(
         provider,
         request.symbols,
+        'from_standard'
       );
 
       // 转换为兼容的格式
@@ -527,135 +526,6 @@ export class ReceiverService {
     return preferredProvider;
   }
 
-  /**
-   * 转换股票代码
-   *
-   * @param symbolsToTransform 需要转换的原始股票代码列表
-   * @param standardSymbols 已经是标准格式的股票代码
-   * @param provider 数据提供商
-   * @param requestId 请求ID
-   * @returns 转换结果
-   */
-  private async transformSymbols(
-    symbolsToTransform: string[],
-    standardSymbols: string[],
-    provider: string,
-    requestId: string,
-  ): Promise<SymbolTransformationResultDto> {
-    try {
-      let mappingResult = {
-        transformedSymbols: {},
-        failedSymbols: [],
-        processingTimeMs: 0,
-      };
-
-      // 仅当有需要转换的代码时才调用服务
-      if (symbolsToTransform.length > 0) {
-        const resultFromService =
-          await this.SymbolMapperService.transformSymbols(
-            provider,
-            symbolsToTransform,
-          );
-        mappingResult = { ...resultFromService };
-      }
-
-      // 将已经是标准格式的代码添加到成功结果中
-      // 它们的原始代码和转换后代码是相同的
-      standardSymbols.forEach((symbol) => {
-        mappingResult.transformedSymbols[symbol] = symbol;
-      });
-
-      const allOriginalSymbols = [...symbolsToTransform, ...standardSymbols];
-
-      // 🎯 修改：处理转换失败的股票代码，但不抛出异常，支持部分成功
-      if (
-        mappingResult.failedSymbols &&
-        mappingResult.failedSymbols.length > 0
-      ) {
-        const errorMessage =
-          RECEIVER_ERROR_MESSAGES.SOME_SYMBOLS_FAILED_TO_MAP.replace(
-            "{failedSymbols}",
-            mappingResult.failedSymbols.join(", "),
-          );
-        this.logger.warn(
-          errorMessage,
-          sanitizeLogData({
-            requestId,
-            provider,
-            failedCount: mappingResult.failedSymbols.length,
-            failedSymbols: mappingResult.failedSymbols,
-            operation: "transformSymbols",
-          }),
-        );
-
-        // 如果所有股票代码都转换失败，则抛出异常
-        if (mappingResult.failedSymbols.length === allOriginalSymbols.length) {
-          throw new BadRequestException(errorMessage);
-        }
-
-        // 部分失败的情况下，继续处理成功的股票代码
-      }
-
-      // 🎯 修改：只处理成功转换的股票代码
-      const successfulSymbols = Object.keys(
-        mappingResult.transformedSymbols,
-      ).filter((symbol) => !mappingResult.failedSymbols?.includes(symbol));
-      const transformedSymbolsArray = successfulSymbols.map(
-        (symbol) => mappingResult.transformedSymbols[symbol],
-      );
-
-      this.logger.debug(
-        `股票代码转换完成`,
-        sanitizeLogData({
-          requestId,
-          provider,
-          originalCount: allOriginalSymbols.length,
-          transformedCount: transformedSymbolsArray.length,
-          failedCount: mappingResult.failedSymbols?.length || 0,
-          operation: "transformSymbols",
-        }),
-      );
-
-      // 🎯 修正：确保返回的结构与接收方期望的一致，支持部分成功
-      const hasFailures =
-        mappingResult.failedSymbols && mappingResult.failedSymbols.length > 0;
-
-      return {
-        transformedSymbols: transformedSymbolsArray,
-        mappingResults: {
-          transformedSymbols: mappingResult.transformedSymbols,
-          failedSymbols: mappingResult.failedSymbols || [],
-          metadata: {
-            provider,
-            totalSymbols: allOriginalSymbols.length,
-            successfulTransformations: transformedSymbolsArray.length,
-            failedTransformations: (mappingResult.failedSymbols || []).length,
-            processingTime: mappingResult.processingTimeMs, // 🎯 使用 DTO 中的处理时间
-            hasPartialFailures: hasFailures,
-          },
-        },
-      } as SymbolTransformationResultDto;
-    } catch (error) {
-      this.logger.error(
-        RECEIVER_ERROR_MESSAGES.SYMBOL_TRANSFORMATION_FAILED,
-        sanitizeLogData({
-          requestId,
-          provider,
-          error: error.message,
-          operation: "transformSymbols",
-        }),
-      );
-
-      // 🎯 新增：重新抛出已知的 BadRequestException
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new BadRequestException(
-        RECEIVER_ERROR_MESSAGES.SYMBOL_TRANSFORMATION_FAILED,
-      );
-    }
-  }
 
   /**
    * 🔑 原始数据流执行方法 - 供智能缓存编排器调用
@@ -678,6 +548,7 @@ export class ReceiverService {
     const mappingResult = await this.symbolTransformerService.transformSymbols(
       provider,
       request.symbols,
+      'from_standard'
     );
 
     // 转换为兼容的格式
@@ -854,33 +725,6 @@ export class ReceiverService {
 
 
 
-  /**
-   * 🎯 记录活动连接数变化
-   */
-  private recordConnectionChange(delta: number, connectionType: string = 'http'): void {
-    // 从 Prometheus 获取当前连接数，然后更新
-    this.metricsRegistry.getMetricValue('newstock_receiver_active_connections')
-      .then(currentConnections => {
-        const count = Math.max(0, (Number(currentConnections) || 0) + delta);
-
-        Metrics.setGauge(
-          this.metricsRegistry,
-          'receiverActiveConnections',
-          count,
-          { connection_type: connectionType }
-        );
-      })
-      .catch(error => {
-        this.logger.error('获取连接数指标失败', error);
-        // 降级处理 - 直接记录增量
-        Metrics.setGauge(
-          this.metricsRegistry,
-          'receiverActiveConnections',
-          delta > 0 ? 1 : 0,
-          { connection_type: connectionType }
-        );
-      });
-  }
 
   /**
    * 记录性能指标

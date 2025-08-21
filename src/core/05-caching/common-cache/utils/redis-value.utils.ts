@@ -94,16 +94,6 @@ export class RedisValueUtils {
   }
 
   /**
-   * 判断数据是否应该压缩
-   * @param data 要判断的数据
-   * @returns 是否应该压缩
-   */
-  static shouldCompress(data: any): boolean {
-    const size = this.getDataSize(data);
-    return size >= CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES;
-  }
-
-  /**
    * 创建带压缩标记的元数据
    * @param originalSize 原始大小
    * @param compressedSize 压缩后大小
@@ -175,14 +165,6 @@ export class RedisValueUtils {
     } catch {
       return {};
     }
-  }
-
-  /**
-   * 创建空的缓存结果
-   * @returns 空缓存结果
-   */
-  static createEmptyResult<T>(): { data: T; storedAt: number; compressed: boolean } | null {
-    return null;
   }
 
   /**

@@ -68,9 +68,10 @@ export class StorageService {
     // 🎯 记录数据库存储操作指标
     Metrics.inc(
       this.metricsRegistry,
-      'storagePersistentOperationsTotal',
+      'storageOperationsTotal',
       { 
-        operation: 'store'
+        operation: 'store',
+        storage_type: 'persistent'
       }
     );
     
@@ -88,19 +89,23 @@ export class StorageService {
         request.options?.compress,
       );
 
-      // 🎯 重构后：仅处理数据库存储，无TTL过期机制
+      // 🎯 重构后：支持可选的TTL过期机制
+      const expiresAt = request.options?.persistentTtlSeconds
+        ? new Date(Date.now() + request.options.persistentTtlSeconds * 1000)
+        : undefined;
+
       const documentToStore = {
         key: request.key,
         data: compressed
-          ? { compressed: true, data: serializedData }
-          : JSON.parse(serializedData),
+          ? serializedData // Store as base64 string directly when compressed
+          : JSON.parse(serializedData), // Store as object when not compressed
         storageClassification: request.storageClassification.toString(),
         provider: request.provider,
         market: request.market,
         dataSize,
         compressed,
         tags: request.options?.tags,
-        expiresAt: undefined, // 数据库存储不设置过期时间
+        expiresAt,
         storedAt: new Date(),
       };
 
@@ -125,20 +130,22 @@ export class StorageService {
       // 🎯 记录数据库查询持续时间指标
       Metrics.observe(
         this.metricsRegistry,
-        'storagePersistentQueryDuration',
-        processingTime,
+        'storageQueryDuration',
+        processingTime / 1000,
         { 
-          query_type: 'store'
+          query_type: 'store',
+          storage_type: 'persistent'
         }
       );
       
       // 🎯 记录数据库数据量指标
       Metrics.setGauge(
         this.metricsRegistry,
-        'storagePersistentDataVolume',
+        'storageDataVolume',
         dataSize,
         { 
-          data_type: request.storageClassification || 'unknown'
+          data_type: request.storageClassification || 'unknown',
+          storage_type: 'persistent'
         }
       );
 
@@ -152,7 +159,7 @@ export class StorageService {
         processingTime,
         compressed,
         request.options?.tags,
-        undefined, // 数据库存储无过期时间
+        expiresAt?.toISOString(),
       );
 
       this.logStorageSuccess(processingTime, request.key, dataSize, compressed);
@@ -192,9 +199,10 @@ export class StorageService {
     // 🎯 记录数据库检索操作指标
     Metrics.inc(
       this.metricsRegistry,
-      'storagePersistentOperationsTotal',
+      'storageOperationsTotal',
       { 
-        operation: 'retrieve'
+        operation: 'retrieve',
+        storage_type: 'persistent'
       }
     );
     
@@ -224,10 +232,11 @@ export class StorageService {
       // 🎯 记录数据库检索失败的查询持续时间指标
       Metrics.observe(
         this.metricsRegistry,
-        'storagePersistentQueryDuration',
-        processingTime,
+        'storageQueryDuration',
+        processingTime / 1000,
         { 
-          query_type: 'retrieve_failed'
+          query_type: 'retrieve_failed',
+          storage_type: 'persistent'
         }
       );
       
@@ -275,9 +284,10 @@ export class StorageService {
     // 🎯 记录数据库删除操作指标
     Metrics.inc(
       this.metricsRegistry,
-      'storagePersistentOperationsTotal',
+      'storageOperationsTotal',
       { 
-        operation: 'delete'
+        operation: 'delete',
+        storage_type: 'persistent'
       }
     );
     
@@ -300,10 +310,11 @@ export class StorageService {
       // 🎯 记录数据库删除查询持续时间指标
       Metrics.observe(
         this.metricsRegistry,
-        'storagePersistentQueryDuration',
-        processingTime,
+        'storageQueryDuration',
+        processingTime / 1000,
         { 
-          query_type: 'delete'
+          query_type: 'delete',
+          storage_type: 'persistent'
         }
       );
 
@@ -319,10 +330,11 @@ export class StorageService {
       // 🎯 记录数据库删除失败的查询持续时间
       Metrics.observe(
         this.metricsRegistry,
-        'storagePersistentQueryDuration',
-        processingTime,
+        'storageQueryDuration',
+        processingTime / 1000,
         { 
-          query_type: 'delete_failed'
+          query_type: 'delete_failed',
+          storage_type: 'persistent'
         }
       );
       
@@ -422,7 +434,7 @@ export class StorageService {
           storageClassification: item.storageClassification,
           compressed: item.compressed,
           dataSize: item.dataSize,
-          tags: item.tags || [],
+          tags: item.tags ? Object.entries(item.tags).map(([k, v]) => `${k}=${v}`) : [],
           storedAt: item.storedAt?.toISOString(),
           expiresAt: item.expiresAt?.toISOString(),
         } as PaginatedStorageItemDto;
@@ -441,7 +453,7 @@ export class StorageService {
       Metrics.observe(
         this.metricsRegistry,
         'storageQueryDuration',
-        processingTime,
+        processingTime / 1000,
         { 
           query_type: 'paginated',
           storage_type: 'persistent'
@@ -473,7 +485,7 @@ export class StorageService {
       Metrics.observe(
         this.metricsRegistry,
         'storageQueryDuration',
-        processingTime,
+        processingTime / 1000,
         { 
           query_type: 'paginated_failed',
           storage_type: 'persistent'
@@ -520,12 +532,24 @@ export class StorageService {
     }
 
     let data = document.data;
-    if (document.compressed && data.compressed) {
+    
+    // New format: Check root-level compressed flag first
+    if (document.compressed === true && typeof data === 'string') {
+      try {
+        const buffer = Buffer.from(data, "base64");
+        data = JSON.parse((await gunzip(buffer)).toString());
+      } catch (error) {
+        this.logger.warn("解压持久数据失败 (新格式)", error);
+        return null; // Corrupted data
+      }
+    }
+    // Legacy format: Check nested compressed flag for backward compatibility
+    else if (data && typeof data === 'object' && data.compressed === true) {
       try {
         const buffer = Buffer.from(data.data, "base64");
         data = JSON.parse((await gunzip(buffer)).toString());
       } catch (error) {
-        this.logger.warn("解压持久数据失败", error);
+        this.logger.warn("解压持久数据失败 (兼容格式)", error);
         return null; // Corrupted data
       }
     }
@@ -537,7 +561,7 @@ export class StorageService {
     Metrics.observe(
       this.metricsRegistry,
       'storageQueryDuration',
-      processingTime,
+      processingTime / 1000,
       { 
         query_type: 'persistent_retrieve',
         storage_type: 'persistent'
@@ -556,8 +580,9 @@ export class StorageService {
       processingTime,
       document.compressed,
       document.tags,
-      document.storedAt.toISOString(),
+      undefined,
     );
+    responseMetadata.storedAt = document.storedAt.toISOString();
     const cacheInfo: CacheInfoDto = { hit: true, source: "persistent" };
     return new StorageResponseDto(data, responseMetadata, cacheInfo);
   }

@@ -1,3 +1,4 @@
+import { OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { sanitizeLogData } from '@common/config/logger.config';
 import {
@@ -11,7 +12,7 @@ import {
  * 流连接具体实现类
  * 封装第三方SDK的WebSocket连接，提供统一的接口
  */
-export class StreamConnectionImpl implements StreamConnection {
+export class StreamConnectionImpl implements StreamConnection, OnModuleDestroy {
   private readonly logger = createLogger('StreamConnection');
   
   public readonly id: string;
@@ -45,6 +46,9 @@ export class StreamConnectionImpl implements StreamConnection {
   
   // 连接状态
   private currentStatus: StreamConnectionStatus = StreamConnectionStatus.DISCONNECTED;
+  
+  // 定时器管理
+  private heartbeatInterval: NodeJS.Timeout | null = null;
   
   constructor(
     connectionId: string,
@@ -297,7 +301,7 @@ export class StreamConnectionImpl implements StreamConnection {
    * 启动心跳机制
    */
   private startHeartbeat(): void {
-    setInterval(async () => {
+    this.heartbeatInterval = setInterval(async () => {
       if (this.isConnected) {
         try {
           await this.sendHeartbeat();
@@ -370,12 +374,25 @@ export class StreamConnectionImpl implements StreamConnection {
   }
 
   /**
+   * 模块销毁时清理资源
+   */
+  async onModuleDestroy(): Promise<void> {
+    await this.close();
+  }
+
+  /**
    * 关闭连接 (外部调用接口)
    * 与 StreamDataFetcherService.closeConnection 配合使用
    * @returns Promise<void>
    */
   async close(): Promise<void> {
     try {
+      // 清理心跳定时器
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
+      }
+      
       // 清空订阅符号
       this.subscribedSymbols.clear();
       
@@ -386,7 +403,7 @@ export class StreamConnectionImpl implements StreamConnection {
       
       // 更新连接状态
       this.isConnected = false;
-      this.updateStatus(StreamConnectionStatus.DISCONNECTED);
+      this.updateStatus(StreamConnectionStatus.CLOSED);
       
       this.logger.log('连接已关闭', {
         connectionId: this.id,

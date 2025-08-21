@@ -29,11 +29,6 @@ export class SymbolMappingRuleContextDto {
   @ApiProperty({ description: "数据源名称" })
   @IsString()
   source: string;
-
-  @ApiProperty({ description: "映射配置ID", required: false })
-  @IsOptional()
-  @IsString()
-  mappingInSymbolId?: string;
 }
 
 export class InternalSymbolMappingDto {
@@ -108,11 +103,6 @@ export class SymbolMapperApplicationResultDto {
   @ApiProperty({ description: "数据源名称" })
   @IsString()
   dataSourceName: string;
-
-  @ApiProperty({ description: "映射配置ID", required: false })
-  @IsOptional()
-  @IsString()
-  mappingInSymbolId?: string;
 }
 
 export class SymbolMapperTransformationLogDto {
@@ -199,9 +189,4 @@ export class SymbolMapperBatchTransformationLogDto {
   @IsOptional()
   @IsArray()
   symbols?: string[];
-
-  @ApiProperty({ description: "映射配置ID", required: false })
-  @IsOptional()
-  @IsString()
-  mappingInSymbolId?: string;
 }

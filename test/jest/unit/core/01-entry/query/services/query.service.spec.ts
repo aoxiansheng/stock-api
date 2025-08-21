@@ -11,8 +11,8 @@ import { QueryResultProcessorService } from '../../../../../../../src/core/01-en
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
+import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 import { DataSourceType } from '../../../../../../../src/core/01-entry/query/enums/data-source-type.enum';
@@ -21,12 +21,12 @@ import { QueryType } from '../../../../../../../src/core/01-entry/query/dto/quer
 import { ResponseMetadataDto } from '../../../../../../../src/core/01-entry/receiver/dto/data-response.dto';
 
 // Mock the external utilities
-jest.mock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils', () => ({
+jest.mock('../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils', () => ({
   buildCacheOrchestratorRequest: jest.fn(),
   inferMarketFromSymbol: jest.fn(),
 }));
 
-jest.mock('../../../../../../../src/core/restapi/query/utils/query.util', () => ({
+jest.mock('../../../../../../../src/core/01-entry/query/utils/query.util', () => ({
   buildStorageKey: jest.fn(),
   validateDataFreshness: jest.fn(),
 }));
@@ -232,8 +232,8 @@ describe('QueryService', () => {
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
     // Setup utility function mocks
-    const cacheUtils = jest.requireMock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils');
-    const queryUtils = jest.requireMock('../../../../../../../src/core/restapi/query/utils/query.util');
+    const cacheUtils = jest.requireMock('../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils');
+    const queryUtils = jest.requireMock('../../../../../../../src/core/01-entry/query/utils/query.util');
 
     cacheUtils.buildCacheOrchestratorRequest.mockReturnValue({
       cacheKey: 'test:cache:key',
@@ -322,7 +322,7 @@ describe('QueryService', () => {
         options: { useCache: false },
       };
 
-      const { buildCacheOrchestratorRequest } = jest.requireMock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils');
+      const { buildCacheOrchestratorRequest } = jest.requireMock('../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils');
       buildCacheOrchestratorRequest.mockReturnValue({
         cacheKey: 'test:cache:key',
         strategy: CacheStrategy.NO_CACHE,
@@ -631,7 +631,7 @@ describe('QueryService', () => {
     });
 
     it('should handle build cache orchestrator request errors', async () => {
-      const { buildCacheOrchestratorRequest } = jest.requireMock('../../../../../../../src/core/public/smart-cache/utils/cache-request.utils');
+      const { buildCacheOrchestratorRequest } = jest.requireMock('../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils');
       buildCacheOrchestratorRequest.mockImplementation(() => {
         throw new Error('Build cache request error');
       });

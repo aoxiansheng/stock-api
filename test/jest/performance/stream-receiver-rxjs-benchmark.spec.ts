@@ -11,7 +11,6 @@ import { CapabilityRegistryService } from '../../../src/providers/services/capab
 import { SymbolMapperService } from '../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
 import { FlexibleMappingRuleService } from '../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
 import { TransformerService } from '../../../src/core/02-processing/transformer/services/transformer.service';
-import { BatchOptimizationService } from '../../../src/core/shared/services/batch-optimization.service';
 import { FeatureFlags } from '../../../src/common/config/feature-flags.config';
 import { StreamPerformanceMetrics } from '../../../src/core/shared/services/stream-performance-metrics.service';
 
@@ -62,16 +61,6 @@ const createMockServices = () => ({
     }),
   },
 
-  mockBatchOptimizationService: {
-    preloadSymbolMappings: jest.fn().mockImplementation((symbols) => {
-      // 模拟快速批量预加载
-      const result = new Map();
-      symbols.forEach(symbol => {
-        result.set(symbol, symbol.replace('.', '_'));
-      });
-      return Promise.resolve(result);
-    }),
-  },
 
   mockPerformanceMetrics: {
     recordBatchProcessed: jest.fn(),
@@ -97,7 +86,6 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
         { provide: SymbolMapperService, useValue: mocks.mockSymbolMapperService },
         { provide: FlexibleMappingRuleService, useValue: mocks.mockFlexibleMappingRuleService },
         { provide: TransformerService, useValue: mocks.mockTransformerService },
-        { provide: BatchOptimizationService, useValue: mocks.mockBatchOptimizationService },
         {
           provide: FeatureFlags,
           useValue: {
@@ -119,7 +107,6 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
         { provide: SymbolMapperService, useValue: mocks.mockSymbolMapperService },
         { provide: FlexibleMappingRuleService, useValue: mocks.mockFlexibleMappingRuleService },
         { provide: TransformerService, useValue: mocks.mockTransformerService },
-        { provide: BatchOptimizationService, useValue: mocks.mockBatchOptimizationService },
         {
           provide: FeatureFlags,
           useValue: {

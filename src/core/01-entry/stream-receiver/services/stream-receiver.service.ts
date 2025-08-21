@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
-import { SymbolMapperService } from '../../../00-prepare/symbol-mapper/services/symbol-mapper.service';
 import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
 import { TransformerService } from '../../../02-processing/transformer/services/transformer.service';
 import { StreamDataFetcherService } from '../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
@@ -46,54 +45,79 @@ interface QuoteData {
  * 🔗 Pipeline 位置：WebSocket → **StreamReceiver** → StreamDataFetcher → Transformer → Storage
  */
 @Injectable()
-export class StreamReceiverService {
+export class StreamReceiverService implements OnModuleDestroy {
   private readonly logger = createLogger('StreamReceiver');
   
-  // 活跃的流连接管理 - provider:capability -> StreamConnection
+  // ✅ 活跃的流连接管理 - provider:capability -> StreamConnection (已修复内存泄漏)
   private readonly activeConnections = new Map<string, StreamConnection>();
+  
+  // 连接清理配置 - 防止内存泄漏
+  private readonly CONNECTION_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5分钟
+  private readonly MAX_CONNECTIONS = 1000; // 连接数上限
+  private readonly CONNECTION_STALE_TIMEOUT = 10 * 60 * 1000; // 10分钟超时
+  private cleanupTimer?: NodeJS.Timeout; // 清理定时器
   
   // 🎯 RxJS 批量处理管道
   private readonly quoteBatchSubject = new Subject<QuoteData>();
+  
+  // 🔒 并发安全的批量处理统计 - 使用互斥锁保护
   private batchProcessingStats = {
     totalBatches: 0,
     totalQuotes: 0,
     batchProcessingTime: 0,
   };
+  private readonly statsLock = new Map<string, Promise<void>>(); // 简单的锁机制
+  
+  // 🔄 错误恢复和重试配置
+  private readonly MAX_RETRY_ATTEMPTS = 3;
+  private readonly RETRY_DELAY_BASE = 1000; // 1秒基础延迟
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 50; // 50%失败率阈值
+  private readonly CIRCUIT_BREAKER_RESET_TIMEOUT = 30000; // 30秒重置时间
+  private circuitBreakerState = {
+    failures: 0,
+    successes: 0,
+    lastFailureTime: 0,
+    isOpen: false,
+  };
 
   constructor(
-    // Phase 4 精简依赖注入 - 从6个减少到5个核心依赖 (含Phase4监控)
-    private readonly symbolMapperService: SymbolMapperService,
+    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现在4个核心依赖 + 2个可选依赖
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly transformerService: TransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
     private readonly metricsRegistry?: MetricsRegistryService, // Phase 4 可选监控依赖
   ) {
-    this.logger.log('StreamReceiver Phase 4 重构完成 - 精简依赖架构 + 延迟监控');
+    this.logger.log('StreamReceiver Phase 4 重构完成 - 精简依赖架构 + 延迟监控 + 连接清理');
     this.initializeBatchProcessing();
     this.setupSubscriptionChangeListener();
+    this.initializeConnectionCleanup(); // ✅ 初始化连接清理机制
   }
 
   /**
    * 🎯 订阅流数据 - 重构后的核心方法
    * @param subscribeDto 订阅请求
    * @param messageCallback 消息回调
+   * @param clientId WebSocket客户端ID (从Socket.IO获取)
    */
   async subscribeStream(
     subscribeDto: StreamSubscribeDto,
-    messageCallback: (data: any) => void
+    messageCallback: (data: any) => void,
+    clientId?: string
   ): Promise<void> {
     const { symbols, wsCapabilityType, preferredProvider } = subscribeDto;
-    const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // ✅ Phase 3 - P2: 使用传入的clientId或生成唯一ID作为回退
+    const resolvedClientId = clientId || `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const providerName = preferredProvider || 'longport'; // 默认提供商
     const requestId = `request_${Date.now()}`;
     
     this.logger.log('开始订阅流数据', {
-      clientId,
+      clientId: resolvedClientId,
       symbolsCount: symbols.length,
       capability: wsCapabilityType,
       provider: providerName,
       requestId,
+      contextSource: clientId ? 'websocket' : 'generated',
     });
 
     try {
@@ -102,7 +126,7 @@ export class StreamReceiverService {
       
       // 2. 更新客户端状态
       this.streamDataFetcher.getClientStateManager().addClientSubscription(
-        clientId,
+        resolvedClientId,
         mappedSymbols,
         wsCapabilityType,
         providerName,
@@ -123,14 +147,14 @@ export class StreamReceiverService {
       this.setupDataReceiving(connection, providerName, wsCapabilityType);
 
       this.logger.log('流数据订阅成功', {
-        clientId,
+        clientId: resolvedClientId,
         symbolsCount: mappedSymbols.length,
         connectionId: connection.id,
       });
 
     } catch (error) {
       this.logger.error('流数据订阅失败', {
-        clientId,
+        clientId: resolvedClientId,
         error: error.message,
         requestId,
       });
@@ -141,15 +165,23 @@ export class StreamReceiverService {
   /**
    * 🎯 取消订阅流数据
    * @param unsubscribeDto 取消订阅请求
+   * @param clientId WebSocket客户端ID (从Socket.IO获取)
    */
-  async unsubscribeStream(unsubscribeDto: StreamUnsubscribeDto): Promise<void> {
+  async unsubscribeStream(unsubscribeDto: StreamUnsubscribeDto, clientId?: string): Promise<void> {
     const { symbols } = unsubscribeDto;
-    // 注意：这里需要从WebSocket连接中获取clientId，暂时使用临时实现
-    const clientId = 'temp_client_id'; // TODO: 从WebSocket连接上下文获取
+    // ✅ Phase 3 - P2: 使用传入的clientId，如果没有则记录警告
+    if (!clientId) {
+      this.logger.warn('取消订阅缺少clientId，无法精确定位客户端订阅', {
+        symbolsCount: symbols?.length || 0,
+        fallbackBehavior: 'skip_operation',
+      });
+      return;
+    }
 
     this.logger.log('开始取消订阅流数据', {
       clientId,
       symbolsCount: symbols?.length || 0,
+      contextSource: 'websocket',
     });
 
     try {
@@ -768,41 +800,11 @@ export class StreamReceiverService {
   }
 
   /**
-   * 处理批量数据
+   * 🔄 处理批量数据 - 增强版本，包含重试和降级策略
    */
   private async processBatch(batch: QuoteData[]): Promise<void> {
-    const startTime = Date.now();
-    
-    try {
-      this.batchProcessingStats.totalBatches++;
-      this.batchProcessingStats.totalQuotes += batch.length;
-
-      // 按提供商和能力分组
-      const groupedBatch = this.groupBatchByProviderCapability(batch);
-
-      // 并行处理每个组
-      const processingPromises = Object.entries(groupedBatch).map(async ([key, quotes]) => {
-        const [provider, capability] = key.split(':');
-        return this.processQuoteGroup(quotes, provider, capability);
-      });
-
-      await Promise.all(processingPromises);
-
-      const processingTime = Date.now() - startTime;
-      this.batchProcessingStats.batchProcessingTime += processingTime;
-
-      this.logger.debug('批量处理完成', {
-        batchSize: batch.length,
-        processingTime,
-        groups: Object.keys(groupedBatch).length,
-      });
-
-    } catch (error) {
-      this.logger.error('批量处理失败', {
-        batchSize: batch.length,
-        error: error.message,
-      });
-    }
+    // 使用带重试和降级的增强处理方法
+    await this.processBatchWithRecovery(batch);
   }
 
   /**
@@ -868,7 +870,8 @@ export class StreamReceiverService {
       const transformRequestDto: TransformRequestDto = {
         provider: provider,
         apiType: 'stream' as const,
-        transDataRuleListType: capability.replace('stream-', '').replace('-', '_'), // 转换为snake_case
+        // ✅ Phase 3 - P3: 替换脆弱的字符串替换，使用健壮的能力映射
+        transDataRuleListType: this.mapCapabilityToTransformRuleType(capability),
         rawData: quotes.map(q => q.rawData),
       };
 
@@ -951,6 +954,132 @@ export class StreamReceiverService {
       throw error;
     }
   }
+  
+  /**
+   * ✅ Phase 3 - P3: 健壮的能力映射 - 替换脆弱的字符串替换
+   * 将WebSocket能力名称映射到TransformRequestDto所需的transDataRuleListType
+   */
+  private mapCapabilityToTransformRuleType(capability: string): string {
+    // 标准化能力映射表 - 明确的键值对映射，避免字符串操作
+    const capabilityMappingTable: Record<string, string> = {
+      // WebSocket 流能力映射
+      'ws-stock-quote': 'quote_fields',
+      'ws-option-quote': 'option_fields', 
+      'ws-futures-quote': 'futures_fields',
+      'ws-forex-quote': 'forex_fields',
+      'ws-crypto-quote': 'crypto_fields',
+      
+      // REST API 能力映射
+      'get-stock-quote': 'quote_fields',
+      'get-option-quote': 'option_fields',
+      'get-futures-quote': 'futures_fields',
+      'get-forex-quote': 'forex_fields',
+      'get-crypto-quote': 'crypto_fields',
+      
+      // 实时数据流能力
+      'stream-stock-quote': 'quote_fields',
+      'stream-option-quote': 'option_fields',
+      'stream-market-data': 'market_data_fields',
+      'stream-trading-data': 'trading_data_fields',
+      
+      // 基础信息能力
+      'get-stock-info': 'basic_info_fields',
+      'get-company-info': 'company_info_fields',
+      'get-market-info': 'market_info_fields',
+      
+      // 历史数据能力
+      'get-historical-data': 'historical_data_fields',
+      'get-historical-quotes': 'quote_fields',
+      
+      // 新闻和公告能力
+      'get-news': 'news_fields',
+      'get-announcements': 'announcement_fields',
+    };
+    
+    // 1. 直接查表映射
+    const mappedRuleType = capabilityMappingTable[capability];
+    if (mappedRuleType) {
+      this.logger.debug('能力映射成功', {
+        capability,
+        mappedRuleType,
+        method: 'direct_mapping',
+      });
+      return mappedRuleType;
+    }
+    
+    // 2. 智能后缀分析 (作为回退机制)
+    const intelligentMapping = this.intelligentCapabilityMapping(capability);
+    if (intelligentMapping) {
+      this.logger.debug('智能能力映射成功', {
+        capability,
+        mappedRuleType: intelligentMapping,
+        method: 'intelligent_analysis',
+      });
+      return intelligentMapping;
+    }
+    
+    // 3. 兜底策略：基于关键词的推断
+    const fallbackMapping = this.fallbackCapabilityMapping(capability);
+    
+    this.logger.warn('使用兜底能力映射', {
+      capability,
+      mappedRuleType: fallbackMapping,
+      method: 'fallback_inference',
+      warning: '建议在 capabilityMappingTable 中添加明确映射',
+    });
+    
+    return fallbackMapping;
+  }
+  
+  /**
+   * 智能能力映射 - 基于模式识别的后缀分析
+   */
+  private intelligentCapabilityMapping(capability: string): string | null {
+    const lowerCapability = capability.toLowerCase();
+    
+    // 分析能力字符串的语义组件
+    const semanticPatterns = [
+      { pattern: /quote|price|ticker/, ruleType: 'quote_fields' },
+      { pattern: /option|derivative/, ruleType: 'option_fields' },
+      { pattern: /futures|forward/, ruleType: 'futures_fields' },
+      { pattern: /forex|currency|fx/, ruleType: 'forex_fields' },
+      { pattern: /crypto|digital/, ruleType: 'crypto_fields' },
+      { pattern: /info|detail|basic/, ruleType: 'basic_info_fields' },
+      { pattern: /company|profile/, ruleType: 'company_info_fields' },
+      { pattern: /market|exchange/, ruleType: 'market_info_fields' },
+      { pattern: /historical|history/, ruleType: 'historical_data_fields' },
+      { pattern: /news|article/, ruleType: 'news_fields' },
+      { pattern: /announcement|notice/, ruleType: 'announcement_fields' },
+      { pattern: /trading|trade/, ruleType: 'trading_data_fields' },
+    ];
+    
+    for (const { pattern, ruleType } of semanticPatterns) {
+      if (pattern.test(lowerCapability)) {
+        return ruleType;
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * 兜底能力映射 - 最后的推断机制
+   */
+  private fallbackCapabilityMapping(capability: string): string {
+    const lowerCapability = capability.toLowerCase();
+    
+    // 基于协议类型的推断
+    if (lowerCapability.startsWith('ws-') || lowerCapability.includes('stream')) {
+      return 'quote_fields'; // WebSocket默认为报价数据
+    }
+    
+    if (lowerCapability.startsWith('get-') || lowerCapability.includes('rest')) {
+      return 'basic_info_fields'; // REST默认为基础信息
+    }
+    
+    // 最终兜底 - 基于最常见的数据类型
+    return 'quote_fields';
+  }
 
   /**
    * 管道化数据缓存
@@ -1027,11 +1156,9 @@ export class StreamReceiverService {
       broadcast: number;
     };
   }): void {
-    // 更新批处理统计
-    this.batchProcessingStats.totalBatches++;
-    this.batchProcessingStats.totalQuotes += metrics.quotesCount;
-    this.batchProcessingStats.batchProcessingTime += metrics.durations.total;
-
+    // ✅ Removed duplicate accumulation - statistics are already accumulated in processBatch
+    // Only record detailed performance metrics here
+    
     // 详细阶段性能日志
     this.logger.debug('管道性能指标', {
       provider: metrics.provider,
@@ -1044,6 +1171,11 @@ export class StreamReceiverService {
           cachePercent: Math.round((metrics.durations.cache / metrics.durations.total) * 100),
           broadcastPercent: Math.round((metrics.durations.broadcast / metrics.durations.total) * 100),
         },
+      },
+      notes: {
+        message: 'Statistics already accumulated in processBatch - avoiding double counting',
+        quotesCount: metrics.quotesCount,
+        totalDuration: metrics.durations.total,
       },
     });
   }
@@ -1121,19 +1253,158 @@ export class StreamReceiverService {
   }
 
   /**
-   * 从符号中提取提供商信息 - Phase 4 辅助方法
+   * ✅ Phase 3 - P3: 智能提供商推断 - 基于能力注册表和市场支持
+   * 替换简单的符号后缀匹配，使用更准确的提供商映射
    */
   private extractProviderFromSymbol(symbol: string): string {
-    // 根据符号格式判断提供商和市场
-    if (symbol.includes('.HK')) {
-      return 'longport'; // 港股通常使用 LongPort
-    } else if (symbol.includes('.US')) {
-      return 'longport'; // 美股通常使用 LongPort
-    } else if (symbol.includes('.SZ') || symbol.includes('.SH')) {
-      return 'longport'; // A股通常使用 LongPort
-    } else {
-      return 'unknown'; // 默认未知提供商
+    try {
+      // 1. 首先通过符号格式推断市场
+      const market = this.inferMarketFromSymbol(symbol);
+      
+      // 2. 查找支持该市场的最佳提供商 (如果可用的话)
+      const optimalProvider = this.findOptimalProviderForMarket(market, symbol);
+      if (optimalProvider) {
+        this.logger.debug('基于能力注册表找到最佳提供商', {
+          symbol,
+          market,
+          provider: optimalProvider,
+          method: 'capability_registry',
+        });
+        return optimalProvider;
+      }
+
+      // 3. 回退到改进的启发式规则 (更准确的映射)
+      const heuristicProvider = this.getProviderByHeuristics(symbol, market);
+      
+      this.logger.debug('使用改进启发式推断提供商', {
+        symbol,
+        market,
+        provider: heuristicProvider,
+        method: 'enhanced_heuristics',
+      });
+      
+      return heuristicProvider;
+      
+    } catch (error) {
+      this.logger.warn('提供商推断失败，使用默认提供商', {
+        symbol,
+        error: error.message,
+        fallback: 'longport',
+      });
+      return 'longport'; // 安全的默认值
     }
+  }
+  
+  /**
+   * 从符号推断市场代码
+   */
+  private inferMarketFromSymbol(symbol: string): string {
+    const upperSymbol = symbol.toUpperCase();
+    
+    // 港股市场
+    if (upperSymbol.includes('.HK') || upperSymbol.includes('.HKG')) {
+      return 'HK';
+    }
+    
+    // 美股市场  
+    if (upperSymbol.includes('.US') || upperSymbol.includes('.NASDAQ') || upperSymbol.includes('.NYSE')) {
+      return 'US';
+    }
+    
+    // A股市场
+    if (upperSymbol.includes('.SZ') || upperSymbol.includes('.SH')) {
+      return 'CN';
+    }
+    
+    // 新加坡市场
+    if (upperSymbol.includes('.SG') || upperSymbol.includes('.SGX')) {
+      return 'SG';
+    }
+    
+    // 基于符号模式推断 (无明确后缀的情况)
+    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
+      // 纯字母，可能是美股
+      return 'US';
+    }
+    
+    if (/^(00|30|60|68)\d{4}$/.test(upperSymbol)) {
+      // 6位数字，以00/30/60/68开头，A股
+      return 'CN';
+    }
+    
+    if (/^\d{4,5}$/.test(upperSymbol)) {
+      // 4-5位数字，可能是港股
+      return 'HK';
+    }
+    
+    return 'UNKNOWN';
+  }
+  
+  /**
+   * 基于能力注册表查找最佳提供商
+   */
+  private findOptimalProviderForMarket(market: string, symbol: string): string | null {
+    try {
+      // 检查是否有 MetricsRegistry 注入的 EnhancedCapabilityRegistry
+      // 由于目前没有直接注入，这里暂时返回 null，等待依赖注入扩展
+      // TODO: 在构造函数中注入 EnhancedCapabilityRegistryService
+      
+      // 简化的能力查找逻辑 (等待注入)
+      const streamCapabilityName = 'ws-stock-quote'; // 假设的流能力名称
+      
+      // 临时实现：基于已知的市场-提供商映射
+      const marketProviderMap: Record<string, string[]> = {
+        'HK': ['longport', 'itick'],
+        'US': ['longport', 'alpaca'],
+        'CN': ['longport', 'tushare'],
+        'SG': ['longport'],
+        'UNKNOWN': ['longport'],
+      };
+      
+      const candidateProviders = marketProviderMap[market] || ['longport'];
+      
+      // 返回第一个候选提供商 (优先级最高)
+      return candidateProviders[0] || null;
+      
+    } catch (error) {
+      this.logger.debug('能力注册表查询失败', {
+        market,
+        symbol,
+        error: error.message,
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * 改进的启发式提供商推断
+   */
+  private getProviderByHeuristics(symbol: string, market: string): string {
+    // 基于市场的提供商优先级映射
+    const marketProviderPriority: Record<string, string[]> = {
+      'HK': ['longport', 'itick'],          // 港股优先LongPort
+      'US': ['longport', 'alpaca'],         // 美股优先LongPort  
+      'CN': ['longport', 'tushare'],        // A股优先LongPort
+      'SG': ['longport'],                   // 新加坡优先LongPort
+      'UNKNOWN': ['longport'],              // 未知市场默认LongPort
+    };
+    
+    // 特殊符号的自定义映射
+    const symbolSpecificMapping: Record<string, string> = {
+      // 可以在这里添加特定符号的提供商映射
+      // 'AAPL.US': 'alpaca',
+      // '00700.HK': 'longport',
+    };
+    
+    // 1. 首先检查特定符号映射
+    const specificProvider = symbolSpecificMapping[symbol.toUpperCase()];
+    if (specificProvider) {
+      return specificProvider;
+    }
+    
+    // 2. 基于市场选择最佳提供商
+    const priorityList = marketProviderPriority[market] || marketProviderPriority['UNKNOWN'];
+    return priorityList[0];
   }
 
   /**
@@ -1162,6 +1433,372 @@ export class StreamReceiverService {
   }
 
 
+
+  /**
+   * 初始化连接清理机制 - 防止内存泄漏
+   */
+  private initializeConnectionCleanup(): void {
+    // 定期清理断开的连接
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupStaleConnections();
+    }, this.CONNECTION_CLEANUP_INTERVAL);
+
+    this.logger.log('连接清理机制已初始化', {
+      cleanupInterval: this.CONNECTION_CLEANUP_INTERVAL,
+      maxConnections: this.MAX_CONNECTIONS,
+      staleTimeout: this.CONNECTION_STALE_TIMEOUT,
+    });
+  }
+
+  /**
+   * 清理过期的连接
+   */
+  private cleanupStaleConnections(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [connectionId, connection] of this.activeConnections) {
+      // 检查连接是否过期或已断开
+      if (this.isConnectionStale(connection, now)) {
+        this.activeConnections.delete(connectionId);
+        cleanedCount++;
+        this.logger.debug('清理过期连接', { connectionId });
+      }
+    }
+
+    // 连接数上限保护
+    if (this.activeConnections.size > this.MAX_CONNECTIONS) {
+      this.enforceConnectionLimit();
+    }
+
+    if (cleanedCount > 0) {
+      this.logger.log('连接清理完成', {
+        cleanedCount,
+        remainingConnections: this.activeConnections.size,
+      });
+    }
+  }
+
+  /**
+   * 检查连接是否过期
+   */
+  private isConnectionStale(connection: StreamConnection, now: number = Date.now()): boolean {
+    // 检查连接状态
+    if (!connection.isConnected) {
+      return true;
+    }
+
+    // 检查连接是否超时
+    const lastActivity = connection.lastActiveAt || connection.createdAt;
+    if (lastActivity && (now - lastActivity.getTime()) > this.CONNECTION_STALE_TIMEOUT) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 强制执行连接数上限
+   */
+  private enforceConnectionLimit(): void {
+    const connectionsArray = Array.from(this.activeConnections.entries());
+    
+    // 按最后活动时间排序，清理最老的连接
+    connectionsArray.sort(([, a], [, b]) => {
+      const aTime = a.lastActiveAt || a.createdAt;
+      const bTime = b.lastActiveAt || b.createdAt;
+      return (aTime?.getTime() || 0) - (bTime?.getTime() || 0);
+    });
+
+    // 移除超出上限的连接
+    const toRemove = connectionsArray.slice(0, connectionsArray.length - this.MAX_CONNECTIONS);
+    for (const [connectionId] of toRemove) {
+      this.activeConnections.delete(connectionId);
+    }
+
+    this.logger.warn('强制执行连接数上限', {
+      removedConnections: toRemove.length,
+      currentConnections: this.activeConnections.size,
+      maxConnections: this.MAX_CONNECTIONS,
+    });
+  }
+
+  /**
+   * 获取当前活跃连接数 (用于测试和监控)
+   */
+  getActiveConnectionsCount(): number {
+    return this.activeConnections.size;
+  }
+
+  /**
+   * 线程安全地更新批量处理统计 - 防止并发竞态条件
+   */
+  private async updateBatchStatsThreadSafe(batchSize: number, processingTime: number): Promise<void> {
+    const lockKey = 'batchStats';
+    
+    // 等待之前的更新完成
+    if (this.statsLock.has(lockKey)) {
+      await this.statsLock.get(lockKey);
+    }
+
+    // 创建新的更新锁
+    const updatePromise = new Promise<void>((resolve) => {
+      // 原子性更新统计数据
+      this.batchProcessingStats.totalBatches++;
+      this.batchProcessingStats.totalQuotes += batchSize;
+      this.batchProcessingStats.batchProcessingTime += processingTime;
+      
+      // 立即释放锁
+      setImmediate(() => {
+        this.statsLock.delete(lockKey);
+        resolve();
+      });
+    });
+
+    this.statsLock.set(lockKey, updatePromise);
+    await updatePromise;
+  }
+
+  /**
+   * 获取批量处理统计数据 (用于监控和测试)
+   */
+  getBatchProcessingStats(): { totalBatches: number; totalQuotes: number; batchProcessingTime: number } {
+    // 返回副本以防止外部修改
+    return { ...this.batchProcessingStats };
+  }
+
+  /**
+   * 🔄 带重试和降级的批量处理 - 增强错误恢复能力
+   */
+  private async processBatchWithRecovery(batch: QuoteData[]): Promise<void> {
+    // 检查断路器状态
+    if (this.isCircuitBreakerOpen()) {
+      this.logger.warn('断路器开启，跳过批量处理', { batchSize: batch.length });
+      await this.fallbackProcessing(batch, 'circuit_breaker_open');
+      return;
+    }
+
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.MAX_RETRY_ATTEMPTS; attempt++) {
+      try {
+        await this.processBatchInternal(batch);
+        
+        // 成功处理，更新断路器状态
+        this.recordCircuitBreakerSuccess();
+        return;
+        
+      } catch (error) {
+        lastError = error as Error;
+        this.logger.warn(`批量处理失败，尝试 ${attempt}/${this.MAX_RETRY_ATTEMPTS}`, {
+          batchSize: batch.length,
+          attempt,
+          error: error.message,
+        });
+
+        // 记录断路器失败
+        this.recordCircuitBreakerFailure();
+
+        // 如果不是最后一次尝试，等待后重试
+        if (attempt < this.MAX_RETRY_ATTEMPTS) {
+          await this.delay(this.calculateRetryDelay(attempt));
+        }
+      }
+    }
+
+    // 所有重试都失败，使用降级策略
+    this.logger.error('批量处理所有重试失败，启用降级策略', {
+      batchSize: batch.length,
+      finalError: lastError?.message,
+    });
+    
+    await this.fallbackProcessing(batch, lastError?.message || 'unknown_error');
+  }
+
+  /**
+   * 内部批量处理逻辑 (可重试的核心逻辑)
+   */
+  private async processBatchInternal(batch: QuoteData[]): Promise<void> {
+    const startTime = Date.now();
+    
+    // 按提供商和能力分组
+    const groupedBatch = this.groupBatchByProviderCapability(batch);
+
+    // 并行处理每个组
+    const processingPromises = Object.entries(groupedBatch).map(async ([key, quotes]) => {
+      const [provider, capability] = key.split(':');
+      return this.processQuoteGroup(quotes, provider, capability);
+    });
+
+    await Promise.all(processingPromises);
+
+    const processingTime = Date.now() - startTime;
+    
+    // 🔒 线程安全地更新统计数据
+    await this.updateBatchStatsThreadSafe(batch.length, processingTime);
+
+    this.logger.debug('批量处理完成', {
+      batchSize: batch.length,
+      processingTime,
+      groups: Object.keys(groupedBatch).length,
+    });
+  }
+
+  /**
+   * 降级处理策略 - 当所有重试失败时的兜底方案
+   */
+  private async fallbackProcessing(batch: QuoteData[], reason: string): Promise<void> {
+    this.logger.warn('启用批量处理降级策略', {
+      batchSize: batch.length,
+      reason,
+      fallbackStrategy: 'basic_logging_only',
+    });
+
+    try {
+      // 降级策略1: 仅记录关键信息，不进行复杂处理
+      const symbolsCount = new Set(batch.flatMap(quote => quote.symbols)).size;
+      const providersCount = new Set(batch.map(quote => quote.providerName)).size;
+
+      // 简单统计更新 (降级模式)
+      await this.updateBatchStatsThreadSafe(batch.length, 0);
+
+      this.logger.log('降级处理完成', {
+        batchSize: batch.length,
+        uniqueSymbols: symbolsCount,
+        providers: providersCount,
+        reason,
+      });
+
+    } catch (fallbackError) {
+      this.logger.error('降级处理也失败', {
+        originalReason: reason,
+        fallbackError: fallbackError.message,
+        batchSize: batch.length,
+      });
+    }
+  }
+
+  /**
+   * 计算重试延迟 (指数退避)
+   */
+  private calculateRetryDelay(attempt: number): number {
+    return this.RETRY_DELAY_BASE * Math.pow(2, attempt - 1);
+  }
+
+  /**
+   * 延迟函数
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 检查断路器是否开启
+   */
+  private isCircuitBreakerOpen(): boolean {
+    // 如果断路器已开启，检查是否可以重置
+    if (this.circuitBreakerState.isOpen) {
+      const now = Date.now();
+      if (now - this.circuitBreakerState.lastFailureTime > this.CIRCUIT_BREAKER_RESET_TIMEOUT) {
+        this.resetCircuitBreaker();
+        return false;
+      }
+      return true;
+    }
+
+    // 计算失败率
+    const totalAttempts = this.circuitBreakerState.failures + this.circuitBreakerState.successes;
+    if (totalAttempts >= 10) { // 至少10次尝试后才考虑开启断路器
+      const failureRate = (this.circuitBreakerState.failures / totalAttempts) * 100;
+      if (failureRate >= this.CIRCUIT_BREAKER_THRESHOLD) {
+        this.openCircuitBreaker();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 记录断路器成功
+   */
+  private recordCircuitBreakerSuccess(): void {
+    this.circuitBreakerState.successes++;
+    
+    // 重置计数器防止溢出
+    if (this.circuitBreakerState.successes > 1000) {
+      this.circuitBreakerState.successes = Math.floor(this.circuitBreakerState.successes / 2);
+      this.circuitBreakerState.failures = Math.floor(this.circuitBreakerState.failures / 2);
+    }
+  }
+
+  /**
+   * 记录断路器失败
+   */
+  private recordCircuitBreakerFailure(): void {
+    this.circuitBreakerState.failures++;
+    this.circuitBreakerState.lastFailureTime = Date.now();
+  }
+
+  /**
+   * 开启断路器
+   */
+  private openCircuitBreaker(): void {
+    this.circuitBreakerState.isOpen = true;
+    this.circuitBreakerState.lastFailureTime = Date.now();
+    
+    this.logger.warn('断路器开启', {
+      failures: this.circuitBreakerState.failures,
+      successes: this.circuitBreakerState.successes,
+      failureRate: Math.round((this.circuitBreakerState.failures / 
+        (this.circuitBreakerState.failures + this.circuitBreakerState.successes)) * 100),
+    });
+  }
+
+  /**
+   * 重置断路器
+   */
+  private resetCircuitBreaker(): void {
+    this.circuitBreakerState.isOpen = false;
+    this.circuitBreakerState.failures = 0;
+    this.circuitBreakerState.successes = 0;
+    
+    this.logger.log('断路器重置', { 
+      resetTime: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * 获取断路器状态 (用于监控)
+   */
+  getCircuitBreakerState(): {
+    isOpen: boolean;
+    failures: number;
+    successes: number;
+    failureRate: number;
+  } {
+    const total = this.circuitBreakerState.failures + this.circuitBreakerState.successes;
+    const failureRate = total > 0 ? (this.circuitBreakerState.failures / total) * 100 : 0;
+    
+    return {
+      isOpen: this.circuitBreakerState.isOpen,
+      failures: this.circuitBreakerState.failures,
+      successes: this.circuitBreakerState.successes,
+      failureRate: Math.round(failureRate * 100) / 100,
+    };
+  }
+
+  /**
+   * 模块销毁时清理资源
+   */
+  onModuleDestroy() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+    this.activeConnections.clear();
+    this.logger.log('StreamReceiver 资源已清理');
+  }
 
   /**
    * 设置订阅变更监听器

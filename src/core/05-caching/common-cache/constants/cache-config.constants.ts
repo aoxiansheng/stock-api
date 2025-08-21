@@ -45,6 +45,25 @@ export const CACHE_CONFIG = {
     LEVEL: 6,                            // 压缩级别 (1-9)
   },
 
+  // ✅ 解压配置
+  DECOMPRESSION: {
+    ENABLED: process.env.CACHE_DECOMPRESSION_ENABLED !== 'false',                              // 默认启用
+    MAX_CONCURRENT: parseInt(process.env.CACHE_DECOMPRESSION_MAX_CONCURRENT || '10', 10),      // 10个 - 最大并发解压数
+    MAX_RETRY_ATTEMPTS: parseInt(process.env.CACHE_DECOMPRESSION_MAX_RETRY || '3', 10),        // 3次 - 解压失败重试次数
+    TIMEOUT_MS: parseInt(process.env.CACHE_DECOMPRESSION_TIMEOUT_MS || '5000', 10),            // 5000ms - 解压操作超时时间
+    FALLBACK_ON_ERROR: process.env.CACHE_DECOMPRESSION_FALLBACK !== 'false',                  // 默认启用回退
+    HIGH_FREQ_THRESHOLD_BYTES: 50 * 1024,           // 50KB - 高频数据压缩阈值
+    LOW_FREQ_THRESHOLD_BYTES: 5 * 1024,             // 5KB - 低频数据压缩阈值
+  },
+
+  // ✅ 解压监控配置
+  DECOMPRESSION_MONITORING: {
+    ENABLE_METRICS: process.env.CACHE_DECOMPRESSION_METRICS_ENABLED !== 'false',              // 默认启用指标记录
+    PERFORMANCE_ALERT_THRESHOLD_MS: parseInt(process.env.CACHE_PERF_ALERT_THRESHOLD || '50', 10), // 50ms - 性能告警阈值
+    ERROR_RATE_ALERT_THRESHOLD: parseFloat(process.env.CACHE_ERROR_ALERT_THRESHOLD || '0.01'), // 1% - 错误率告警阈值
+    SUCCESS_RATE_TARGET: 99.9,                       // 99.9% - 成功率目标
+  },
+
   // ✅ 内存管理配置
   MEMORY: {
     MAX_KEY_LENGTH: 512,                 // 512字符 - 最大键长度

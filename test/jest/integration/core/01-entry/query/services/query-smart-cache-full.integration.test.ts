@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueryService } from '../../../../../../../src/core/01-entry/query/services/query.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 import { DataSourceType } from '../../../../../../../src/core/01-entry/query/enums/data-source-type.enum';

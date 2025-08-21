@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
 import { AsyncLocalStorage } from 'async_hooks';
 import { Server } from 'socket.io';
@@ -8,6 +8,7 @@ import { StreamClientStateManager } from './stream-client-state-manager.service'
 import { StreamDataFetcherService } from './stream-data-fetcher.service';
 import { StreamRecoveryConfigService, StreamRecoveryConfig } from '../config/stream-recovery.config';
 import { StreamRecoveryMetricsService } from '../metrics/stream-recovery.metrics';
+import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../providers/websocket-server.provider';
 
 /**
  * StreamRecoveryWorkerService - Phase 3 Worker线程池实现
@@ -97,7 +98,7 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly configService: StreamRecoveryConfigService,
     private readonly metricsService: StreamRecoveryMetricsService,
-    @Inject(forwardRef(() => 'WEBSOCKET_SERVER')) private readonly webSocketServer?: Server,
+    @Inject(WEBSOCKET_SERVER_TOKEN) private readonly webSocketProvider: WebSocketServerProvider,
   ) {
     this.config = this.configService.getConfig();
   }
@@ -127,10 +128,10 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
    * 由WebSocket Gateway在初始化时调用
    */
   setWebSocketServer(server: Server): void {
-    (this as any).webSocketServer = server;
+    this.webSocketProvider.setServer(server);
     this.logger.log('WebSocket服务器实例已设置到StreamRecoveryWorker', {
       hasServer: !!server,
-      serverAvailable: server ? 'yes' : 'no',
+      serverAvailable: this.webSocketProvider.isServerAvailable(),
     });
   }
 
@@ -138,7 +139,7 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
    * 获取WebSocket服务器实例
    */
   getWebSocketServer(): Server | null {
-    return (this as any).webSocketServer || null;
+    return this.webSocketProvider.getServer();
   }
   
   /**
@@ -158,8 +159,65 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
       },
     });
     
-    // 清理旧任务
-    await this.recoveryQueue.obliterate({ force: true });
+    // 环境保护机制 - 仅在开发环境或明确配置时清空队列
+    await this.initializeQueueWithProtection();
+  }
+
+  /**
+   * 队列初始化环境保护机制
+   */
+  private async initializeQueueWithProtection(): Promise<void> {
+    const shouldObliterate = process.env.NODE_ENV !== 'production' && 
+                            process.env.RECOVERY_OBLITERATE === 'true';
+    
+    if (shouldObliterate) {
+      this.logger.warn('开发环境：清空恢复队列', { 
+        environment: process.env.NODE_ENV,
+        obliterateEnabled: process.env.RECOVERY_OBLITERATE 
+      });
+      await this.recoveryQueue.obliterate({ force: true });
+    } else {
+      const queueLength = await this.recoveryQueue.count();
+      this.logger.log('生产环境：保留现有队列任务', {
+        environment: process.env.NODE_ENV,
+        queueLength,
+        obliterateDisabled: true
+      });
+    }
+    
+    // 队列健康检查
+    await this.validateQueueHealth();
+  }
+
+  /**
+   * 队列健康检查
+   */
+  private async validateQueueHealth(): Promise<void> {
+    try {
+      const queueStats = await this.recoveryQueue.getJobCounts();
+      
+      this.logger.log('队列健康状态', {
+        waiting: queueStats.waiting,
+        active: queueStats.active,
+        completed: queueStats.completed,
+        failed: queueStats.failed,
+        delayed: queueStats.delayed,
+        paused: queueStats.paused
+      });
+
+      // 如果失败任务过多，记录警告
+      if (queueStats.failed > 100) {
+        this.logger.warn('队列中失败任务过多', {
+          failedJobs: queueStats.failed,
+          recommendedAction: 'consider_cleanup'
+        });
+      }
+    } catch (error) {
+      this.logger.error('队列健康检查失败', {
+        error: error.message,
+        queueName: this.config.queue.name
+      });
+    }
   }
   
   /**
@@ -348,13 +406,17 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
     clientId: string,
     data: CompressedDataPoint[]
   ): Promise<void> {
-    // Phase 3 Critical Fix: 使用真正的WebSocket服务器而不是回调函数
-    const webSocketServer = this.getWebSocketServer();
-    if (!webSocketServer) {
-      this.logger.error('WebSocket服务器未注入，无法发送补发数据', { clientId });
+    // Phase 3 Critical Fix: 使用强类型WebSocket提供者
+    if (!this.webSocketProvider.isServerAvailable()) {
+      this.logger.error('WebSocket服务器不可用，无法发送补发数据', { 
+        clientId,
+        serverStats: this.webSocketProvider.getServerStats()
+      });
       this.metricsService.incrementError('networkErrors');
       return;
     }
+
+    const webSocketServer = this.webSocketProvider.getServer()!;
 
     // 获取客户端Socket连接
     const clientSocket = webSocketServer.sockets.sockets.get(clientId);
@@ -486,12 +548,16 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
   ): Promise<void> {
     this.logger.warn('补发失败，执行降级策略', { clientId, symbols });
     
-    // Phase 3 Critical Fix: 使用真正的WebSocket服务器发送降级通知
-    const webSocketServer = this.getWebSocketServer();
-    if (!webSocketServer) {
-      this.logger.error('WebSocket服务器未注入，无法发送降级通知', { clientId });
+    // Phase 3 Critical Fix: 使用强类型WebSocket提供者发送降级通知
+    if (!this.webSocketProvider.isServerAvailable()) {
+      this.logger.error('WebSocket服务器不可用，无法发送降级通知', { 
+        clientId,
+        serverStats: this.webSocketProvider.getServerStats()
+      });
       return;
     }
+
+    const webSocketServer = this.webSocketProvider.getServer()!;
 
     // 获取客户端Socket连接
     const clientSocket = webSocketServer.sockets.sockets.get(clientId);

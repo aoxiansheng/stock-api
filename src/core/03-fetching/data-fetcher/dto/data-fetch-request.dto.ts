@@ -51,14 +51,7 @@ export class DataFetchRequestDto {
   @IsString()
   requestId: string;
 
-  @ApiPropertyOptional({
-    description: 'API类型',
-    enum: ApiType,
-    default: ApiType.REST,
-  })
-  @IsOptional()
-  @IsEnum(ApiType)
-  apiType?: ApiType = ApiType.REST;
+  
 
   @ApiPropertyOptional({
     description: '其他选项',
@@ -70,61 +63,3 @@ export class DataFetchRequestDto {
   options?: Record<string, any>;
 }
 
-/**
- * 数据获取元数据DTO
- */
-export class DataFetchMetadataDto {
-  @ApiProperty({
-    description: '数据提供商名称',
-    example: 'longport',
-  })
-  provider: string;
-
-  @ApiProperty({
-    description: '能力名称',
-    example: 'get-stock-quote',
-  })
-  capability: string;
-
-  @ApiProperty({
-    description: '处理时间戳',
-    example: 1704110400000,
-  })
-  processingTime: number;
-
-  @ApiProperty({
-    description: '成功处理的股票代码数量',
-    example: 2,
-  })
-  symbolsProcessed: number;
-
-  @ApiPropertyOptional({
-    description: '失败的股票代码列表',
-    type: [String],
-    example: ['INVALID.XX'],
-  })
-  failedSymbols?: string[];
-
-  @ApiPropertyOptional({
-    description: '错误信息列表',
-    type: [String],
-    example: ['Symbol not found: INVALID.XX'],
-  })
-  errors?: string[];
-
-  constructor(
-    provider: string,
-    capability: string,
-    processingTime: number,
-    symbolsProcessed: number,
-    failedSymbols?: string[],
-    errors?: string[],
-  ) {
-    this.provider = provider;
-    this.capability = capability;
-    this.processingTime = processingTime;
-    this.symbolsProcessed = symbolsProcessed;
-    this.failedSymbols = failedSymbols;
-    this.errors = errors;
-  }
-}

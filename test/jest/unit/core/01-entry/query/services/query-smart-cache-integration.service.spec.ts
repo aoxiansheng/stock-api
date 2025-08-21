@@ -10,8 +10,8 @@ import { QueryResultProcessorService } from '../../../../../../../src/core/01-en
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service';
-import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
+import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 import { DataSourceType } from '../../../../../../../src/core/01-entry/query/enums/data-source-type.enum';

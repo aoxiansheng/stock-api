@@ -10,6 +10,7 @@ import {
   DataFetchParams,
   RawDataResult,
 } from '../interfaces/data-fetcher.interface';
+import { CapabilityExecuteResult } from '../interfaces/capability-execute-result.interface';
 import {
   DataFetchRequestDto,
   DataFetchResponseDto,
@@ -20,6 +21,7 @@ import {
   DATA_FETCHER_WARNING_MESSAGES,
   DATA_FETCHER_PERFORMANCE_THRESHOLDS,
   DATA_FETCHER_OPERATIONS,
+  DATA_FETCHER_DEFAULT_CONFIG,
 } from '../constants/data-fetcher.constants';
 
 /**
@@ -67,10 +69,10 @@ export class DataFetcherService implements IDataFetcher {
         contextService,
         requestId,
         context: { 
-          apiType: params.apiType || 'rest',
+          apiType: params.apiType || DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_API_TYPE,
           options: params.options,
         },
-        options: params.options,
+        // 注意：options将通过context传递，避免重复
       };
 
       // 3. 执行SDK调用
@@ -252,13 +254,51 @@ export class DataFetcherService implements IDataFetcher {
   /**
    * 处理原始数据格式
    * 
-   * @param rawData SDK返回的原始数据
+   * 支持新的CapabilityExecuteResult格式，同时保持向后兼容
+   * Phase 2: 移除了LongPort特定的secu_quote处理逻辑，改为统一处理
+   * 
+   * @param rawData SDK返回的原始数据或CapabilityExecuteResult
    * @returns 处理后的数据数组
    */
-  private processRawData(rawData: any): any[] {
-    // 处理特定提供商的嵌套结构，如LongPort的secu_quote
-    if (rawData && rawData.secu_quote) {
-      return Array.isArray(rawData.secu_quote) ? rawData.secu_quote : [rawData.secu_quote];
+  private processRawData(rawData: any | CapabilityExecuteResult): any[] {
+    // 优先处理新的CapabilityExecuteResult格式
+    if (rawData && typeof rawData === 'object' && 'data' in rawData) {
+      const result = rawData as CapabilityExecuteResult;
+      
+      // 如果是标准CapabilityExecuteResult，直接返回data字段（已经是数组）
+      if (Array.isArray(result.data)) {
+        return result.data;
+      }
+      
+      // 兜底：如果data不是数组，强制数组化
+      return result.data ? [result.data] : [];
+    }
+    
+    // 向后兼容：处理旧格式数据
+    // 注意：LongPort的secu_quote特定逻辑已移除，改为通用处理
+    
+    // 处理legacy格式: 检查是否有嵌套数据结构
+    if (rawData && typeof rawData === 'object') {
+      // 通用嵌套数据处理：寻找第一个数组字段
+      const keys = Object.keys(rawData);
+      for (const key of keys) {
+        const value = rawData[key];
+        if (Array.isArray(value)) {
+          this.logger.debug(`检测到嵌套数据结构，使用字段: ${key}`, {
+            operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+            sourceFormat: key,
+          });
+          return value;
+        }
+        if (value && typeof value === 'object') {
+          // 对于单个嵌套对象，也数组化
+          this.logger.debug(`检测到嵌套对象，数组化处理: ${key}`, {
+            operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+            sourceFormat: key,
+          });
+          return [value];
+        }
+      }
     }
     
     // 确保返回数组格式

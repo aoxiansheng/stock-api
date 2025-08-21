@@ -13,7 +13,7 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 // import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
-import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service';
+import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { DataRequestDto } from '../../../../../../../src/core/01-entry/receiver/dto/data-request.dto';

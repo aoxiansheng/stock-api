@@ -403,7 +403,7 @@ class SmartCacheIntegrationValidator {
   async simulateCacheStrategy(strategy) {
     // 模拟缓存策略实现
     const implementations = {
-      'STRONG_TIMELINESS': { implemented: true, ttl: 60 },
+      'STRONG_TIMELINESS': { implemented: true, ttl: 5 },
       'WEAK_TIMELINESS': { implemented: true, ttl: 3600 },
       'MARKET_AWARE': { implemented: true, ttl: 'dynamic' },
       'NO_CACHE': { implemented: true, ttl: 0 },

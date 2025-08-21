@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 
 /**
@@ -54,7 +54,7 @@ export interface SubscriptionChangeEvent {
  * - 活跃状态监控
  */
 @Injectable()
-export class StreamClientStateManager {
+export class StreamClientStateManager implements OnModuleDestroy {
   private readonly logger = createLogger('StreamClientStateManager');
   
   // 客户端订阅信息
@@ -71,9 +71,24 @@ export class StreamClientStateManager {
   
   // 客户端活跃性检查间隔 (5分钟)
   private readonly clientTimeoutMs = 5 * 60 * 1000;
+  private readonly CLEANUP_INTERVAL = 5 * 60 * 1000; // 5分钟清理间隔
+  
+  // 定时器管理
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.setupPeriodicCleanup();
+  }
+
+  /**
+   * 模块销毁时清理资源
+   */
+  async onModuleDestroy(): Promise<void> {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+      this.logger.debug('客户端清理调度器已停止');
+    }
   }
 
   /**
@@ -313,11 +328,22 @@ export class StreamClientStateManager {
   }
 
   /**
-   * 广播消息给订阅指定符号的所有客户端
+   * @deprecated 使用WebSocket Gateway替代
+   * 计划在下个版本移除
+   * 
+   * 广播消息给订阅指定符号的所有客户端 (Legacy方法)
    * @param symbol 符号
    * @param data 消息数据
    */
   broadcastToSymbolSubscribers(symbol: string, data: any): void {
+    this.logger.warn('使用了废弃的广播方法', { 
+      symbol, 
+      method: 'broadcastToSymbolSubscribers',
+      migrationNeeded: true,
+      recommendedMethod: 'broadcastToSymbolViaGateway'
+    });
+    
+    // 保留原有逻辑以确保兼容性
     const clientIds = this.getClientsForSymbol(symbol);
     
     clientIds.forEach(clientId => {
@@ -327,20 +353,63 @@ export class StreamClientStateManager {
           clientSub.messageCallback(data);
           this.updateClientActivity(clientId);
         } catch (error) {
-          this.logger.error('客户端消息回调失败', {
-            clientId,
-            symbol,
-            error: error.message,
-          });
+          this.logger.error('Legacy广播失败', { clientId, symbol, error: error.message });
         }
       }
     });
 
-    this.logger.debug('消息已广播', {
+    this.logger.debug('Legacy消息已广播', {
       symbol,
       clientCount: clientIds.length,
       dataSize: JSON.stringify(data).length,
+      deprecated: true
     });
+  }
+
+  /**
+   * 新的统一广播方法 - 通过WebSocket Gateway
+   * @param symbol 符号
+   * @param data 消息数据
+   * @param webSocketProvider WebSocket服务器提供者
+   */
+  async broadcastToSymbolViaGateway(symbol: string, data: any, webSocketProvider?: any): Promise<void> {
+    if (!webSocketProvider || !webSocketProvider.isServerAvailable()) {
+      this.logger.warn('WebSocket服务器不可用，回退到Legacy广播', { symbol });
+      this.broadcastToSymbolSubscribers(symbol, data);
+      return;
+    }
+
+    try {
+      // 统一通过Gateway广播
+      const success = await webSocketProvider.broadcastToRoom(`symbol:${symbol}`, 'data', {
+        symbol,
+        timestamp: new Date().toISOString(),
+        data
+      });
+
+      if (success) {
+        // 更新客户端活动状态
+        const clientIds = this.getClientsForSymbol(symbol);
+        clientIds.forEach(clientId => this.updateClientActivity(clientId));
+
+        this.logger.debug('Gateway广播成功', {
+          symbol,
+          clientCount: clientIds.length,
+          dataSize: JSON.stringify(data).length,
+          method: 'gateway'
+        });
+      } else {
+        this.logger.warn('Gateway广播失败，回退到Legacy方法', { symbol });
+        this.broadcastToSymbolSubscribers(symbol, data);
+      }
+      
+    } catch (error) {
+      this.logger.error('Gateway广播异常，回退到Legacy方法', {
+        symbol,
+        error: error.message
+      });
+      this.broadcastToSymbolSubscribers(symbol, data);
+    }
   }
 
   /**
@@ -425,26 +494,36 @@ export class StreamClientStateManager {
    * 设置周期性清理非活跃客户端
    */
   private setupPeriodicCleanup(): void {
-    // 每5分钟清理非活跃客户端
-    setInterval(() => {
-      const now = Date.now();
-      const inactiveClients: string[] = [];
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupInactiveClients();
+    }, this.CLEANUP_INTERVAL);
+    
+    this.logger.debug('客户端清理调度器已启动', { 
+      interval: this.CLEANUP_INTERVAL 
+    });
+  }
 
-      for (const [clientId, clientSub] of this.clientSubscriptions.entries()) {
-        if (now - clientSub.lastActiveTime > this.clientTimeoutMs) {
-          inactiveClients.push(clientId);
-        }
+  /**
+   * 清理非活跃客户端
+   */
+  private cleanupInactiveClients(): void {
+    const now = Date.now();
+    const inactiveClients: string[] = [];
+
+    for (const [clientId, clientSub] of this.clientSubscriptions.entries()) {
+      if (now - clientSub.lastActiveTime > this.clientTimeoutMs) {
+        inactiveClients.push(clientId);
       }
+    }
 
-      // 清理非活跃客户端
-      inactiveClients.forEach(clientId => {
-        this.logger.debug('清理非活跃客户端', { clientId });
-        this.removeClientSubscription(clientId);
-      });
+    // 清理非活跃客户端
+    inactiveClients.forEach(clientId => {
+      this.logger.debug('清理非活跃客户端', { clientId });
+      this.removeClientSubscription(clientId);
+    });
 
-      if (inactiveClients.length > 0) {
-        this.logger.log(`清理了 ${inactiveClients.length} 个非活跃客户端`);
-      }
-    }, this.clientTimeoutMs);
+    if (inactiveClients.length > 0) {
+      this.logger.log(`清理了 ${inactiveClients.length} 个非活跃客户端`);
+    }
   }
 }

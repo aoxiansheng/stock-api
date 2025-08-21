@@ -155,7 +155,7 @@ export class MappingRuleController {
     @Query('transDataRuleListType') transDataRuleListType: 'quote_fields' | 'basic_info_fields'
   ) {
     const template = await this.persistedTemplateService.getPersistedTemplateById(templateId);
-    const alignmentResult = await this.ruleAlignmentService['autoAlignFields'](template, transDataRuleListType);
+    const alignmentResult = await this.ruleAlignmentService.previewAlignment(template, transDataRuleListType);
     
     return {
       template: {

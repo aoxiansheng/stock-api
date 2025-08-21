@@ -33,7 +33,6 @@
 | 变量名 | 默认值 | 说明 | 环境 |
 |--------|--------|------|------|
 | `DATA_TRANSFORM_CACHE_ENABLED` | `true` | 数据转换缓存开关 | 所有 |
-| `BATCH_PROCESSING_ENABLED` | `true` | 批量处理优化开关 | 所有 |
 | `OBJECT_POOL_ENABLED` | `true` | 对象池优化开关 | 所有 |
 | `RULE_COMPILATION_ENABLED` | `true` | 规则编译优化开关 | 所有 |
 | `DYNAMIC_LOG_LEVEL_ENABLED` | `true` | 动态日志级别开关 | 所有 |
@@ -213,7 +212,6 @@ METRICS_LEGACY_MODE_ENABLED=true
 # 或使用 FeatureFlags 紧急回滚
 SYMBOL_MAPPING_CACHE_ENABLED=false
 DATA_TRANSFORM_CACHE_ENABLED=false
-BATCH_PROCESSING_ENABLED=false
 ```
 
 ## 📈 性能基准和验证

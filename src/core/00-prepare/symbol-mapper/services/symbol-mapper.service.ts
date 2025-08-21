@@ -5,30 +5,22 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 
-import { LRUCache } from 'lru-cache';
+
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { FeatureFlags } from "@common/config/feature-flags.config";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 import { SymbolMapperCacheService } from "../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
 
 import {
   SYMBOL_MAPPER_ERROR_MESSAGES,
-  SYMBOL_MAPPER_WARNING_MESSAGES,
   SYMBOL_MAPPER_SUCCESS_MESSAGES,
-  SYMBOL_MAPPER_PERFORMANCE_CONFIG,
-  SYMBOL_MAPPER_OPERATIONS,
 } from "../constants/symbol-mapper.constants";
 import { CreateSymbolMappingDto } from '../dto/create-symbol-mapping.dto';
-import {
-  SymbolMappingRuleContextDto,
-} from "../dto/symbol-mapper-internal.dto";
 import { SymbolMappingQueryDto } from '../dto/symbol-mapping-query.dto';
 import { SymbolMappingResponseDto } from '../dto/symbol-mapping-response.dto';
 import {
   UpdateSymbolMappingDto,
-  TransformSymbolsResponseDto,
   AddSymbolMappingRuleDto,
   UpdateSymbolMappingRuleDto,
 } from '../dto/update-symbol-mapping.dto';
@@ -55,8 +47,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(SymbolMapperService.name);
 
-  // 🎯 统一缓存实例（规则管理缓存）
-  private unifiedCache: LRUCache<string, any>;
+
   
   // 旧本地缓存命中统计字段已废弃，全部交由 Prometheus 指标处理
 
@@ -64,127 +55,22 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     private readonly repository: SymbolMappingRepository,
     private readonly paginationService: PaginationService,
     private readonly featureFlags: FeatureFlags,
-    private readonly metricsRegistry: MetricsRegistryService,
     private readonly cacheService?: SymbolMapperCacheService, // 可选注入，向后兼容
   ) {
-    // 🎯 初始化统一缓存（向后兼容）
-    this.unifiedCache = new LRUCache<string, any>({ 
-      max: this.featureFlags.symbolCacheMaxSize,
-      ttl: this.featureFlags.symbolCacheTtl,
-    });
+
   }
 
   /**
-   * 🎯 模块初始化：设置 Change Stream 监听
+   * 🎯 模块初始化：SymbolMapperService 不再负责缓存监听
+   * Change Stream 监听已迁移到 SymbolMapperCacheService
    */
   async onModuleInit() {
-    if (!this.featureFlags.symbolMappingCacheEnabled) {
-      this.logger.log('符号映射缓存已禁用，跳过初始化');
-      return;
-    }
-
-    try {
-      // 🎯 MongoDB Change Stream 监听实现
-      await this.setupChangeStreamMonitoring();
-      this.logger.log('MongoDB Change Stream 监听已启用');
-    } catch (error) {
-      this.logger.warn('ChangeStream 不可用，启用轮询模式', { error: error.message });
-      
-      // 🎯 降级策略：定时轮询检查规则版本
-      setInterval(() => this.checkRuleVersions(), 5 * 60 * 1000);
-    }
+    this.logger.log('SymbolMapperService 初始化完成，缓存监听由 CacheService 负责');
   }
 
-  /**
-   * 🎯 设置 MongoDB Change Stream 监听
-   */
-  private async setupChangeStreamMonitoring(): Promise<void> {
-    try {
-      // 监听符号映射规则的变化
-      const changeStream = this.repository.watchChanges();
-      
-      changeStream.on('change', (change) => {
-        this.logger.debug('检测到符号映射规则变化', { 
-          operationType: change.operationType,
-          documentKey: change.documentKey 
-        });
-        
-        // 清除相关缓存
-        this.invalidateCacheForChangedRule(change);
-      });
 
-      changeStream.on('error', (error) => {
-        this.logger.error('Change Stream 错误', { error: error.message });
-        
-        // 启用降级策略
-        setTimeout(() => this.checkRuleVersions(), 1000);
-      });
 
-      this.logger.log('Change Stream 监听器已启动');
-    } catch (error) {
-      this.logger.warn('无法启动 Change Stream，使用轮询模式', { error: error.message });
-      throw error;
-    }
-  }
 
-  /**
-   * 🎯 根据变化的规则清除缓存
-   */
-  private invalidateCacheForChangedRule(change: any): void {
-    try {
-      const { operationType, documentKey, fullDocument } = change;
-      
-      if (operationType === 'delete') {
-        // 删除操作：清除相关缓存键
-        this.clearCacheByDocumentKey(documentKey);
-      } else if (operationType === 'update' || operationType === 'insert') {
-        // 更新或插入操作：清除相关缓存并记录新版本
-        this.clearCacheByDocument(fullDocument || documentKey);
-      }
-      
-      this.logger.debug('缓存失效处理完成', { operationType, documentKey });
-    } catch (error) {
-      this.logger.error('缓存失效处理失败', { error: error.message });
-    }
-  }
-
-  /**
-   * 🎯 根据文档键清除缓存
-   */
-  private clearCacheByDocumentKey(documentKey: any): void {
-    // 查找所有包含该文档的缓存键
-    const cacheKeys = Array.from(this.unifiedCache.keys());
-    const relatedKeys = cacheKeys.filter(key => 
-      key.includes(documentKey._id?.toString() || '')
-    );
-    
-    for (const key of relatedKeys) {
-      this.unifiedCache.delete(key);
-    }
-    
-    this.logger.debug(`清除了 ${relatedKeys.length} 个相关缓存键`);
-  }
-
-  /**
-   * 🎯 根据文档内容清除缓存
-   */
-  private clearCacheByDocument(document: any): void {
-    if (!document || !document.dataSourceName) {
-      return;
-    }
-    
-    // 根据数据源名称清除相关缓存
-    const cacheKeys = Array.from(this.unifiedCache.keys());
-    const relatedKeys = cacheKeys.filter(key => 
-      key.includes(`:${document.dataSourceName}:`)
-    );
-    
-    for (const key of relatedKeys) {
-      this.unifiedCache.delete(key);
-    }
-    
-    this.logger.debug(`清除了数据源 ${document.dataSourceName} 的 ${relatedKeys.length} 个缓存键`);
-  }
 
   // ===== 🎯 核心规则管理功能 =====
 
@@ -564,97 +450,8 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     }
   }
 
-  /**
-   * 批量转换股票代码
-   *
-   * @param dataSourceName 数据源名称
-   * @param standardSymbols 输入股票代码列表
-   * @returns 转换响应DTO
-   */
-  async transformSymbols(
-    dataSourceName: string,
-    standardSymbols: string[],
-  ): Promise<TransformSymbolsResponseDto> {
-    const operation = SYMBOL_MAPPER_OPERATIONS.TRANSFORM_BY_NAME;
-    const ruleFetcher = () =>
-      this.repository.findAllMappingsForSymbols(dataSourceName, standardSymbols);
 
-    return this._executeSymbolTransformation(
-      standardSymbols,
-      { dataSourceName, operation },
-      ruleFetcher,
-    );
-  }
 
-  /**
-   * 通过映射配置ID批量转换股票代码
-   *
-   * @param mappingInSymbolId 映射配置ID
-   * @param standardSymbols 输入股票代码列表
-   * @returns 转换响应DTO
-   */
-  async transformSymbolsById(
-    mappingInSymbolId: string,
-    standardSymbols: string[],
-  ): Promise<TransformSymbolsResponseDto> {
-    const operation = SYMBOL_MAPPER_OPERATIONS.TRANSFORM_BY_ID;
-
-    // 🎯 规则获取逻辑现在移交给 _executeSymbolTransformation 处理
-    const ruleFetcher = async () => {
-      const mappingDoc = await this.repository.findById(mappingInSymbolId);
-      if (!mappingDoc || !mappingDoc.isActive) {
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_CONFIG_INACTIVE.replace(
-            "{mappingId}",
-            mappingInSymbolId,
-          ),
-        );
-      }
-      return {
-        rules: mappingDoc.SymbolMappingRule.filter(
-          (rule) =>
-            standardSymbols.includes(rule.standardSymbol) && rule.isActive !== false,
-        ),
-        dataSourceName: mappingDoc.dataSourceName,
-      };
-    };
-
-    return this._executeSymbolTransformation(
-      standardSymbols,
-      { mappingInSymbolId, operation },
-      ruleFetcher,
-    );
-  }
-
-  /**
-   * 获取转换后的代码列表（用于数据提供商调用）
-   *
-   * @param dataSourceName 数据源名称
-   * @param standardSymbols 输入股票代码列表
-   * @returns 转换后的股票代码列表
-   */
-  async getTransformedSymbolList(
-    dataSourceName: string,
-    standardSymbols: string[],
-  ): Promise<string[]> {
-    this.logger.debug(`获取转换后的代码列表`, {
-      dataSourceName,
-      symbolsCount: standardSymbols.length,
-      operation: "getTransformedSymbolList",
-    });
-
-    try {
-      const result = await this.transformSymbols(dataSourceName, standardSymbols);
-      return standardSymbols.map((symbol) => result.transformedSymbols[symbol]);
-    } catch (error) {
-      this.logger.error(`获取转换后代码列表失败`, {
-        dataSourceName,
-        error: error.message,
-        operation: "getTransformedSymbolList",
-      });
-      throw error;
-    }
-  }
 
   /**
    * 获取所有数据源列表
@@ -1017,160 +814,8 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
   // ===== 私有辅助方法 =====
 
-  /**
-   * 🎯 新增: 封装核心转换流程以消除重复
-   */
-  private async _executeSymbolTransformation(
-    standardSymbols: string[],
-    context: {
-      dataSourceName?: string;
-      mappingInSymbolId?: string;
-      operation: string;
-    },
-    ruleFetcher: () => Promise<
-      SymbolMappingRule[] | { rules: SymbolMappingRule[]; dataSourceName: string }
-    >,
-  ): Promise<TransformSymbolsResponseDto> {
-    const startTime = process.hrtime.bigint();
-    this.logger.log(
-      `开始批量转换: ${context.operation}`,
-      sanitizeLogData({ ...context, symbolsCount: standardSymbols.length }),
-    );
-
-    try {
-      const fetchResult = await ruleFetcher();
-
-      let SymbolMappingRule: SymbolMappingRule[];
-      let dataSourceName: string;
-
-      if (Array.isArray(fetchResult)) {
-        SymbolMappingRule = fetchResult;
-        dataSourceName = context.dataSourceName;
-      } else {
-        SymbolMappingRule = fetchResult.rules;
-        dataSourceName = fetchResult.dataSourceName;
-      }
-
-      const result = this.applySymbolMappingRule(standardSymbols, SymbolMappingRule, {
-        source: dataSourceName,
-        mappingInSymbolId: context.mappingInSymbolId,
-      });
-
-      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6; // 纳秒转毫秒
-      this.recordTransformationPerformance(processingTime, standardSymbols.length);
-
-      this.logger.log(
-        `批量转换完成: ${context.operation}`,
-        sanitizeLogData({
-          ...context,
-          totalInput: standardSymbols.length,
-          mappedCount: standardSymbols.length - result.failedSymbols.length,
-          unmappedCount: result.failedSymbols.length,
-          processingTime,
-        }),
-      );
-
-      return { ...result, processingTimeMs: processingTime };
-    } catch (error) {
-      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
-      this.logger.error(
-        `批量转换失败: ${context.operation}`,
-        sanitizeLogData({
-          ...context,
-          symbolsCount: standardSymbols.length,
-          error: error.message,
-          processingTime,
-        }),
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * 应用映射规则进行股票代码转换
-   */
-  private applySymbolMappingRule(
-    standardSymbols: string[],
-    SymbolMappingRule: SymbolMappingRule[],
-    context: SymbolMappingRuleContextDto,
-  ): Omit<TransformSymbolsResponseDto, "processingTimeMs"> {
-    // 🎯 移除处理时间
-    // 创建映射字典以提高查找性能
-    const mappingDict = new Map<string, string>();
-    SymbolMappingRule.forEach((rule) => {
-      mappingDict.set(rule.standardSymbol, rule.sdkSymbol);
-    });
-
-    const transformedSymbols: Record<string, string> = {};
-    const failedSymbols: string[] = []; // 🎯 新增: 用于收集转换失败的代码
-
-    standardSymbols.forEach((standardSymbol) => {
-      if (mappingDict.has(standardSymbol)) {
-        // 🎯 修正: 只在成功时进行映射
-        transformedSymbols[standardSymbol] = mappingDict.get(standardSymbol);
-      } else {
-        // 🎯 修正: 记录失败的股票代码
-        failedSymbols.push(standardSymbol);
-        // 保留原始映射行为，以便调用方能找到key
-        transformedSymbols[standardSymbol] = standardSymbol;
-      }
-    });
-
-    // 🎯 移除 "忙等待" 循环
-    // 确保最小处理时间（测试兼容性）
-    // const now = Date.now();
-    // while (Date.now() - now < SYMBOL_MAPPER_PERFORMANCE_CONFIG.MIN_PROCESSING_TIME_MS) {
-    //   // 忙等待以确保处理时间 > 0
-    // }
-
-    this.logger.debug(
-      `映射规则应用完成`,
-      sanitizeLogData({
-        source: context.source,
-        mappingInSymbolId: context.mappingInSymbolId,
-        totalInput: standardSymbols.length,
-        mappedCount: standardSymbols.length - failedSymbols.length,
-        unmappedCount: failedSymbols.length,
-        operation: "applySymbolMappingRule",
-      }),
-    );
-
-    // 🎯 修正: 返回不含 processingTimeMs 的对象
-    return {
-      dataSourceName: context.source,
-      transformedSymbols,
-      failedSymbols,
-    };
-  }
 
 
-
-  /**
-   * 记录转换性能指标
-   */
-  private recordTransformationPerformance(
-    processingTime: number,
-    symbolsCount: number,
-  ): void {
-    if (
-      processingTime >
-      SYMBOL_MAPPER_PERFORMANCE_CONFIG.SLOW_MAPPING_THRESHOLD_MS
-    ) {
-      this.logger.warn(
-        SYMBOL_MAPPER_WARNING_MESSAGES.SLOW_MAPPING_DETECTED,
-        sanitizeLogData({
-          processingTime,
-          symbolsCount,
-          threshold: SYMBOL_MAPPER_PERFORMANCE_CONFIG.SLOW_MAPPING_THRESHOLD_MS,
-          avgTimePerSymbol:
-            symbolsCount > 0
-              ? Math.round((processingTime / symbolsCount) * 100) / 100
-              : 0,
-          operation: SYMBOL_MAPPER_OPERATIONS.PERFORMANCE_METRICS,
-        }),
-      );
-    }
-  }
 
   /**
    * 获取所有映射规则
@@ -1250,50 +895,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
 
   /**
-   * 手动清理所有缓存（用于配置更新时）
+   * 手动清理所有缓存（委派给缓存服务）
    */
   clearCache(): void {
-    this.unifiedCache.clear();
-    this.logger.log('符号映射规则缓存已清理');
-  }
-
-  /**
-   * 定时轮询检查规则版本（Change Stream 不可用时的降级策略）
-   */
-  private async checkRuleVersions(): Promise<void> {
-    if (!this.featureFlags.symbolMappingCacheEnabled) {
-      return;
-    }
-
-    try {
-      // 获取数据源版本信息
-      const currentVersions = await this.repository.getDataSourceVersions();
-      let cacheInvalidated = false;
-
-      for (const dataSourceName of currentVersions.keys()) {
-        // 检查缓存中是否有该数据源的相关键
-        const cacheKeys = Array.from(this.unifiedCache.keys());
-        const sourceRelatedKeys = cacheKeys.filter(key => 
-          key.includes(`:${dataSourceName}:`)
-        );
-
-        if (sourceRelatedKeys.length > 0) {
-          // 简化实现：如果发现相关缓存，则清除该数据源的所有缓存
-          for (const key of sourceRelatedKeys) {
-            this.unifiedCache.delete(key);
-          }
-          cacheInvalidated = true;
-        }
-      }
-
-      if (cacheInvalidated) {
-        this.logger.debug('定时轮询：检测到规则版本变化，已清理相关缓存');
-      }
-    } catch (error) {
-      this.logger.warn('规则版本检查失败，清理所有缓存', { error: error.message });
-      this.clearCache();
+    if (this.cacheService) {
+      this.cacheService.clearAllCaches();
+      this.logger.log('符号映射规则缓存已清理（通过缓存服务）');
+    } else {
+      this.logger.warn('缓存服务不可用，无法清理缓存');
     }
   }
+
 
   /**
    * 获取缓存统计信息
@@ -1329,38 +941,15 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       }
     }
 
-    // 🎯 规则缓存统计（仅用于规则管理）
+    // 🎯 无缓存服务时返回默认统计
     return {
       cacheHits: 0,
       cacheMisses: 0,
       hitRate: 'N/A',
-      cacheSize: this.unifiedCache.size,
+      cacheSize: 0,
       maxSize: this.featureFlags.symbolCacheMaxSize,
       pendingQueries: 0,
     };
   }
 
-  // ===== 🎯 测试兼容性方法别名 =====
-
-  /**
-   * 测试兼容性别名：transformSymbolsForProvider
-   * 映射到 transformSymbols 方法
-   */
-  async transformSymbolsForProvider(
-    dataSourceName: string,
-    standardSymbols: string[],
-  ): Promise<TransformSymbolsResponseDto> {
-    return this.transformSymbols(dataSourceName, standardSymbols);
-  }
-
-  /**
-   * 测试兼容性别名：mapSymbols
-   * 映射到 transformSymbols 方法
-   */
-  async mapSymbols(
-    dataSourceName: string,
-    standardSymbols: string[],
-  ): Promise<TransformSymbolsResponseDto> {
-    return this.transformSymbols(dataSourceName, standardSymbols);
-  }
 }

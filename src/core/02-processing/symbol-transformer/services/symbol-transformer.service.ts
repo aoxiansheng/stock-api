@@ -29,7 +29,7 @@ export class SymbolTransformerService {
   async transformSymbols(
     provider: string,
     symbols: string | string[],
-    direction: 'to_standard' | 'from_standard' = 'to_standard'
+    direction: 'to_standard' | 'from_standard'  // 移除默认值，强制显式传入
   ): Promise<SymbolTransformResult> {
     const startTime = process.hrtime.bigint();
     const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
@@ -111,7 +111,7 @@ export class SymbolTransformerService {
   async transformSingleSymbol(
     provider: string,
     symbol: string,
-    direction: 'to_standard' | 'from_standard' = 'to_standard'
+    direction: 'to_standard' | 'from_standard'  // 移除默认值，强制显式传入
   ): Promise<string> {
     const result = await this.transformSymbols(provider, [symbol], direction);
     return result.mappedSymbols[0] || symbol;
@@ -145,7 +145,7 @@ export class SymbolTransformerService {
     };
 
     if (symbolsToTransform.length > 0) {
-      const result = await this.transformSymbols(provider, symbolsToTransform);
+      const result = await this.transformSymbols(provider, symbolsToTransform, 'to_standard');
       mappingResult = {
         transformedSymbols: result.mappingDetails,
         failedSymbols: result.failedSymbols,

@@ -1,5 +1,5 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { createLogger } from '@common/config/logger.config';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
@@ -420,15 +420,16 @@ export class FlexibleMappingRuleService {
   }
 
   /**
-   * 🔧 从路径获取值的辅助方法
+   * 🔧 从路径获取值的辅助方法（统一路径解析优化）
+   * 性能优化：保留直接属性访问，对复杂路径使用统一的ObjectUtils
    */
   private getValueFromPath(obj: any, path: string): any {
-    // 优先尝试直接访问
-    if (obj?.[path] !== undefined) {
-      return obj[path];
+    // 快速路径：直接属性访问（无嵌套路径）
+    if (path.indexOf('.') === -1 && path.indexOf('[') === -1) {
+      return obj?.[path];
     }
     
-    // 使用ObjectUtils作为回退
+    // 复杂路径：使用统一的ObjectUtils处理嵌套路径和数组访问
     return ObjectUtils.getValueFromPath(obj, path);
   }
 
@@ -620,6 +621,36 @@ export class FlexibleMappingRuleService {
     await this.cacheService.invalidateRuleCache(id, ruleDto);
 
     this.logger.log(`映射规则删除成功`, { id, name: rule.name });
+  }
+
+  /**
+   * 🔧 根据ID获取规则文档（修复封装越界）
+   * 修复服务封装越界问题：提供受控的公开API访问规则文档
+   * 注意：此方法专为修复架构违规而设计，不包含复杂的缓存逻辑
+   */
+  async getRuleDocumentById(id: string): Promise<FlexibleMappingRuleDocument> {
+    // 参数验证
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`无效的规则ID格式: ${id}`);
+    }
+    
+    try {
+      // 直接查询数据库
+      const rule = await this.ruleModel.findById(id);
+      if (!rule) {
+        throw new NotFoundException(`映射规则未找到: ${id}`);
+      }
+      
+      this.logger.debug(`获取规则文档成功: ${id}`);
+      return rule;
+      
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('获取规则文档时发生错误', { id, error: error.message });
+      throw new BadRequestException(`获取规则文档失败: ${error.message}`);
+    }
   }
 
   /**

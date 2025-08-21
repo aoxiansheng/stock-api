@@ -17,7 +17,7 @@ import { QueryModule } from "./core/01-entry/query/module/query.module";
 import { ReceiverModule } from "./core/01-entry/receiver/module/receiver.module";
 import { StreamReceiverModule } from "./core/01-entry/stream-receiver/module/stream-receiver.module";
 import { StorageModule } from "./core/04-storage/storage/module/storage.module";
-import { SmartCacheModule } from "./core/05-caching/smart-cache/module/symbol-smart-cache.module";
+import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cache.module";
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
 import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
 import { TransformerModule } from "./core/02-processing/transformer/module/transformer.module";

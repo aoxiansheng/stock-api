@@ -23,8 +23,7 @@ export interface DataFetchParams {
   /** 请求ID，用于日志追踪 */
   requestId: string;
 
-  /** API类型 */
-  apiType?: 'rest' | 'websocket';
+
 
   /** 其他选项 */
   options?: Record<string, any>;

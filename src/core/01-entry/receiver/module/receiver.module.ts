@@ -4,7 +4,7 @@ import { AuthModule } from "../../../../auth/module/auth.module";
 import { CacheModule } from "../../../../cache/module/cache.module";
 import { ProvidersModule } from "../../../../providers/module/providers.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-import { SmartCacheModule } from "../../../05-caching/smart-cache/module/symbol-smart-cache.module";
+import { SmartCacheModule } from "../../../05-caching/smart-cache/module/smart-cache.module";
 import { SymbolMapperModule } from "../../../00-prepare/symbol-mapper/module/symbol-mapper.module";
 import { SymbolTransformerModule } from "../../../02-processing/symbol-transformer/module/symbol-transformer.module";
 import { DataFetcherModule } from "../../../03-fetching/data-fetcher/module/data-fetcher.module";

@@ -9,13 +9,12 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { Market } from "@common/constants/market.constants";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
-import { DataChangeDetectorService } from "../../../shared/services/data-change-detector.service";
 import { MarketStatusService, MarketStatusResult } from "../../../shared/services/market-status.service";
 import { FieldMappingService } from "../../../shared/services/field-mapping.service";
 import { StringUtils } from "../../../shared/utils/string.util";
-import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/symbol-smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/symbol-smart-cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest, inferMarketFromSymbol } from "../../../05-caching/smart-cache/utils/symbol-smart-cache-request.utils";
+import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest, inferMarketFromSymbol } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
 import { ReceiverService } from "../../../01-entry/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../01-entry/receiver/dto/data-response.dto";
@@ -34,7 +33,6 @@ import {
   DataSourceStatsDto,
   QueryExecutionResultDto,
   SymbolDataResultDto,
-  RealtimeQueryResultDto,
   QueryErrorInfoDto,
 } from "../dto/query-internal.dto";
 import { QueryRequestDto, BulkQueryRequestDto } from "../dto/query-request.dto";
@@ -47,17 +45,12 @@ import { DataSourceType } from "../enums/data-source-type.enum";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
 import { buildStorageKey } from "../utils/query.util";
-import { BackgroundTaskService } from "../../../shared/services/background-task.service";
 import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
 
 @Injectable()
 export class QueryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryService.name);
 
-  // 🔄 智能缓存编排器集成后，以下字段已废弃（由编排器统一管理）:
-  // - backgroundUpdateTasks：后台更新去重机制
-  // - lastUpdateTimestamps：TTL节流策略  
-  // - updateQueue：任务队列优化
 
   // 🆕 里程碑5.2: 批量处理分片策略
   private readonly MAX_BATCH_SIZE = 50; // 单次Receiver请求的最大符号数
@@ -66,17 +59,14 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   // 🆕 里程碑5.3: 并行处理优化
   private readonly MARKET_PARALLEL_TIMEOUT = 30000; // 市场级并行处理超时 30秒
   private readonly RECEIVER_BATCH_TIMEOUT = 15000; // Receiver批次超时 15秒
-  private readonly CACHE_BATCH_TIMEOUT = 10000; // 缓存批次超时 10秒
 
   constructor(
     private readonly storageService: StorageService,
     private readonly receiverService: ReceiverService,
-    private readonly dataChangeDetector: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly fieldMappingService: FieldMappingService,
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
-    private readonly backgroundTaskService: BackgroundTaskService,
     private readonly paginationService: PaginationService,
     private readonly metricsRegistry: MetricsRegistryService,
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
@@ -92,12 +82,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  /**
-   * 🔄 模块销毁处理 - 智能缓存编排器集成后简化
-   */
   async onModuleDestroy(): Promise<void> {
     this.logger.log('QueryService模块正在关闭');
-    // 后台更新任务现在由SmartCacheOrchestrator统一管理
   }
 
   /**
@@ -1059,94 +1045,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     return await this.marketStatusService.getBatchMarketStatus([market as Market]);
   }
 
-  // 🗑️ 老单符号缓存逻辑已移除 - fetchSymbolData
-  // 已被Query层SmartCacheOrchestrator在processReceiverBatch中统一处理
-
-  // 🗑️ 老数据流执行方法已移除 - executeOriginalDataFlow
-  // 已被executeQueryToReceiverFlow替代
-
-  // 🗑️ 老缓存查询方法已移除 - tryGetFromCache
-  // 已被SmartCacheOrchestrator统一处理
-
-  // 🗑️ 老实时数据获取方法已移除 - fetchFromRealtime
-  // 已被executeQueryToReceiverFlow替代
-
-
-
-  private async updateDataInBackground(
-    symbol: string,
-    storageKey: string,
-    request: QueryRequestDto,
-    queryId: string,
-  ): Promise<boolean> {
-    try {
-      this.logger.debug(`后台更新任务开始: ${symbol}`, { queryId });
-
-      const market = request.market || inferMarketFromSymbol(symbol);
-      const marketStatus = await this.marketStatusService.getMarketStatus(
-        market as Market,
-      );
-
-      // 🖥 里程碑4.2: 使用ReceiverService获取实时数据以保持架构一致性
-      // 🎯 里程碑6.3: 监控指标跟踪 - 添加storageMode:'none'以避免重复存储
-      const baseRequest = this.convertQueryToReceiverRequest(request, [symbol]);
-      const receiverRequest = {
-        ...baseRequest,
-        options: {
-          ...baseRequest.options,
-          storageMode: 'none' as const, // 后台更新不重复存储
-        },
-      };
-      
-      const receiverResponse = await this.receiverService.handleRequest(receiverRequest);
-
-      // 从Receiver响应中提取数据
-      if (!receiverResponse.data || (Array.isArray(receiverResponse.data) && receiverResponse.data.length === 0)) {
-        this.logger.debug(`后台更新: Receiver未返回数据，跳过变动检测: ${symbol}`, { queryId });
-        return false;
-      }
-
-      const freshData = Array.isArray(receiverResponse.data) 
-        ? receiverResponse.data[0] 
-        : receiverResponse.data;
-
-      // 🖥 里程碑4.2: 优化的变动检测，使用标准化数据
-      const changeResult =
-        await this.dataChangeDetector.detectSignificantChange(
-          symbol,
-          freshData,
-          market as Market,
-          marketStatus.status,
-        );
-
-      if (changeResult.hasChanged) {
-        this.logger.log(`数据发生显著变化，后台更新缓存: ${symbol}`, {
-          queryId,
-          changes: changeResult.significantChanges,
-          confidence: changeResult.confidence,
-        });
-        
-        // 异步存储标准化数据，使用Query的存储机制
-        await this.storeStandardizedData(symbol, freshData, request, queryId, receiverResponse);
-        return true;
-      } else {
-        this.logger.debug(`数据无显著变化，无需更新: ${symbol}`, { 
-          queryId,
-          confidence: changeResult.confidence 
-        });
-        return false;
-      }
-    } catch (error) {
-      this.logger.warn(`后台更新任务失败: ${symbol}`, {
-        queryId,
-        error: error.message,
-        storageKey,
-      });
-      
-      // 抛出错误以便上层监控指标能够正确记录失败
-      throw error;
-    }
-  }
 
   /**
    * 存储标准化数据到缓存
@@ -1225,75 +1123,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       });
       return 300; // 默认5分钟缓存
     }
-  }
-
-  private async storeRealtimeData(
-    storageKey: string,
-    realtimeResult: RealtimeQueryResultDto,
-    queryTypeFilter: string,
-  ): Promise<void> {
-    const { data, metadata } = realtimeResult;
-    if (!data) return;
-
-    try {
-      await Promise.all([
-        // 存储到Redis缓存
-        this.storageService.storeData({
-          key: storageKey,
-          data: data,
-          storageType: StorageType.CACHE,
-          storageClassification: (this.fieldMappingService.filterToClassification(queryTypeFilter) ?? StorageClassification.GENERAL) as StorageClassification,
-          provider: metadata.provider,
-          market: metadata.market,
-          options: { cacheTtl: metadata.cacheTTL || 300 },
-        }),
-        // 存储到MongoDB持久化
-        this.storageService.storeData({
-          key: storageKey + ":persistent",
-          data: data,
-          storageType: StorageType.PERSISTENT,
-          storageClassification: (this.fieldMappingService.filterToClassification(queryTypeFilter) ?? StorageClassification.GENERAL) as StorageClassification,
-          provider: metadata.provider,
-          market: metadata.market,
-          options: { cacheTtl: 0 }, // MongoDB不过期
-        }),
-      ]);
-      this.logger.debug(`成功存储数据到双存储: ${storageKey}`);
-    } catch (storageError) {
-      // 存储失败不应影响主流程，但需要记录
-      this.logger.warn("数据存储失败", {
-        key: storageKey,
-        error: storageError.message,
-      });
-    }
-  }
-
-  /**
-   * 从股票代码推断市场
-   */
-  private inferMarketFromSymbol(symbol: string): Market {
-    const upperSymbol = symbol.toUpperCase().trim();
-
-    if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
-      return Market.HK;
-    }
-    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-      return Market.US;
-    }
-    if (
-      upperSymbol.includes(".SZ") ||
-      ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
-    ) {
-      return Market.SZ;
-    }
-    if (
-      upperSymbol.includes(".SH") ||
-      ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
-    ) {
-      return Market.SH;
-    }
-
-    return Market.US;
   }
 
   /**

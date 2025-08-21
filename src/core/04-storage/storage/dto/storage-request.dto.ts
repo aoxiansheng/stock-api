@@ -16,6 +16,11 @@ export class StorageOptionsDto {
   @IsNumber()
   cacheTtl?: number;
 
+  @ApiPropertyOptional({ description: "Persistent storage TTL in seconds (undefined means never expire)" })
+  @IsOptional()
+  @IsNumber()
+  persistentTtlSeconds?: number;
+
   @ApiPropertyOptional({
     description: "Whether to compress data",
     default: false,

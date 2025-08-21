@@ -112,7 +112,20 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/stream-receiver --testTimeout=30000 --config test/config/jest.e2e.config.js --passWithNoTests)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/e2e/core/stream/stream-receiver/services/stream-receiver.service.e2e.test.ts --testTimeout=30000 --config test/config/jest.e2e.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/stream/stream-receiver/services/stream-receiver.service.integration.test.ts --testTimeout=30000 --config test/config/jest.integration.config.js)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/stream --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/stream --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/query/ --passWithNoTests --testTimeout=30000)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/04-storage --testTimeout=30000 --config test/config/jest.integration.config.js)",
+      "Bash(true)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/00-prepare/data-mapper/services/flexible-mapping-rule.service.spec.ts --testTimeout=30000)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/00-prepare/data-mapper/services/rule-alignment.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"previewAlignment\")",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"性能和并发控制\")",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/03-fetching/data-fetcher/services/data-fetcher.service.spec.ts --testTimeout=30000)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"压缩|decompression\")",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-receiver.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --verbose)"
     ],
     "deny": []
   }

@@ -23,7 +23,6 @@ export const SYMBOL_MAPPER_ERROR_MESSAGES = Object.freeze({
   UPDATE_MAPPING_FAILED: "映射配置更新失败",
   DELETE_MAPPING_FAILED: "映射配置删除失败",
   TRANSFORM_SYMBOLS_FAILED: "批量代码转换失败",
-  TRANSFORM_SYMBOLS_BY_ID_FAILED: "通过配置ID代码转换失败",
   GET_TRANSFORMED_LIST_FAILED: "获取转换后代码列表失败",
   GET_DATA_SOURCES_FAILED: "获取数据源列表失败",
   GET_MARKETS_FAILED: "获取市场列表失败",
@@ -63,7 +62,6 @@ export const SYMBOL_MAPPER_SUCCESS_MESSAGES = Object.freeze({
   DATA_SOURCE_MAPPING_RETRIEVED: "数据源映射配置获取成功",
   PAGINATED_QUERY_COMPLETED: "分页查询完成",
   SYMBOLS_TRANSFORMED: "批量代码转换完成",
-  SYMBOLS_TRANSFORMED_BY_ID: "通过配置ID代码转换完成",
   DATA_SOURCES_RETRIEVED: "数据源列表获取完成",
   MARKETS_RETRIEVED: "市场列表获取完成",
   SYMBOL_TYPES_RETRIEVED: "股票类型列表获取完成",
@@ -145,9 +143,6 @@ export const SYMBOL_MAPPER_OPERATIONS = Object.freeze({
   GET_MAPPINGS_PAGINATED: "getSymbolMappingsPaginated",
   UPDATE_MAPPING: "updateSymbolMapping",
   DELETE_MAPPING: "deleteSymbolMapping",
-  TRANSFORM_SYMBOLS: "transformSymbols",
-  TRANSFORM_SYMBOLS_BY_ID: "transformSymbolsById",
-  GET_TRANSFORMED_SYMBOL_LIST: "getTransformedSymbolList",
   GET_DATA_SOURCES: "getDataSources",
   GET_MARKETS: "getMarkets",
   GET_SYMBOL_TYPES: "getSymbolTypes",
@@ -159,9 +154,6 @@ export const SYMBOL_MAPPER_OPERATIONS = Object.freeze({
   APPLY_MAPPING_RULES: "applySymbolMappingRule",
   GET_MAPPING_CONFIG_FOR_PROVIDER: "getMappingConfigForProvider",
   FIND_MATCHING_MAPPING_RULE: "findMatchingMappingRule",
-  PERFORMANCE_METRICS: "performanceMetrics",
-  TRANSFORM_BY_NAME: "transformByName",
-  TRANSFORM_BY_ID: "transformById",
 } as const);
 
 /**

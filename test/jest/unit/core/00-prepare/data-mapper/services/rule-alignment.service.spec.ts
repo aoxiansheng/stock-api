@@ -467,4 +467,135 @@ describe("preset field functionality", () => {
     });
   });
   */
+
+  // 新增测试：previewAlignment 公共方法
+  describe("previewAlignment", () => {
+    it("should preview alignment successfully for quote_fields", async () => {
+      const template = {
+        _id: "507f1f77bcf86cd799439011",
+        name: "Test Template",
+        provider: "longport",
+        extractedFields: [
+          {
+            fieldPath: "last_done",
+            fieldName: "last_done",
+            fieldType: "number",
+            confidence: 0.95
+          },
+          {
+            fieldPath: "symbol",
+            fieldName: "symbol", 
+            fieldType: "string",
+            confidence: 1.0
+          }
+        ]
+      };
+
+      // 模拟 autoAlignFields 私有方法的返回值
+      const expectedResult = {
+        alignedFields: 2,
+        totalFields: 2,
+        mappings: [
+          {
+            sourceFieldPath: "last_done",
+            targetField: "lastPrice",
+            confidence: 0.9
+          },
+          {
+            sourceFieldPath: "symbol",
+            targetField: "symbol",
+            confidence: 1.0
+          }
+        ]
+      };
+
+      // 通过 spy 来模拟私有方法
+      const autoAlignSpy = jest.spyOn(service as any, 'autoAlignFields').mockReturnValue(expectedResult);
+
+      const result = await service.previewAlignment(template as any, "quote_fields");
+
+      expect(autoAlignSpy).toHaveBeenCalledWith(template, "quote_fields");
+      expect(result).toEqual(expectedResult);
+      expect(result.alignedFields).toBe(2);
+      expect(result.totalFields).toBe(2);
+    });
+
+    it("should preview alignment successfully for basic_info_fields", async () => {
+      const template = {
+        _id: "507f1f77bcf86cd799439011",
+        name: "Test Template",
+        provider: "longport",
+        extractedFields: [
+          {
+            fieldPath: "company_name",
+            fieldName: "company_name",
+            fieldType: "string",
+            confidence: 0.98
+          }
+        ]
+      };
+
+      const expectedResult = {
+        alignedFields: 1,
+        totalFields: 1,
+        mappings: [
+          {
+            sourceFieldPath: "company_name",
+            targetField: "companyName",
+            confidence: 0.95
+          }
+        ]
+      };
+
+      const autoAlignSpy = jest.spyOn(service as any, 'autoAlignFields').mockReturnValue(expectedResult);
+
+      const result = await service.previewAlignment(template as any, "basic_info_fields");
+
+      expect(autoAlignSpy).toHaveBeenCalledWith(template, "basic_info_fields");
+      expect(result).toEqual(expectedResult);
+    });
+
+    it("should throw BadRequestException when template is missing", async () => {
+      await expect(service.previewAlignment(null as any, "quote_fields"))
+        .rejects.toThrow(BadRequestException);
+      
+      await expect(service.previewAlignment(undefined as any, "quote_fields"))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw BadRequestException when transDataRuleListType is missing", async () => {
+      const template = { _id: "507f1f77bcf86cd799439011", name: "Test" };
+      
+      await expect(service.previewAlignment(template as any, null as any))
+        .rejects.toThrow(BadRequestException);
+      
+      await expect(service.previewAlignment(template as any, undefined as any))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw BadRequestException for invalid transDataRuleListType", async () => {
+      const template = { _id: "507f1f77bcf86cd799439011", name: "Test" };
+      
+      await expect(service.previewAlignment(template as any, "invalid_type" as any))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it("should handle autoAlignFields errors gracefully", async () => {
+      const template = {
+        _id: "507f1f77bcf86cd799439011",
+        name: "Test Template",
+        provider: "longport"
+      };
+
+      const autoAlignError = new Error("Alignment process failed");
+      const autoAlignSpy = jest.spyOn(service as any, 'autoAlignFields').mockImplementation(() => {
+        throw autoAlignError;
+      });
+
+      await expect(service.previewAlignment(template as any, "quote_fields"))
+        .rejects.toThrow(BadRequestException);
+      
+      expect(autoAlignSpy).toHaveBeenCalledWith(template, "quote_fields");
+    });
+  });
 });

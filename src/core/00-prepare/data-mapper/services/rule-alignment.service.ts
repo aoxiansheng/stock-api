@@ -298,6 +298,50 @@ export class RuleAlignmentService {
   }
 
   /**
+   * 🔧 预览字段对齐（公开接口）
+   * 修复私有方法访问问题：提供正式的预览接口
+   */
+  async previewAlignment(
+    template: DataSourceTemplateDocument,
+    transDataRuleListType: 'quote_fields' | 'basic_info_fields'
+  ) {
+    // 参数验证
+    if (!template) {
+      throw new BadRequestException('模板参数必须提供');
+    }
+    if (!transDataRuleListType) {
+      throw new BadRequestException('transDataRuleListType参数必须提供');
+    }
+    if (!['quote_fields', 'basic_info_fields'].includes(transDataRuleListType)) {
+      throw new BadRequestException('transDataRuleListType必须是quote_fields或basic_info_fields');
+    }
+    
+    try {
+      // 调用原私有方法逻辑
+      const alignmentResult = this.autoAlignFields(template, transDataRuleListType);
+      
+      this.logger.debug('字段对齐预览完成', {
+        templateId: template._id?.toString(),
+        templateName: template.name,
+        provider: template.provider,
+        transDataRuleListType,
+        alignedCount: alignmentResult.alignedFields,
+        totalCount: alignmentResult.totalFields
+      });
+      
+      return alignmentResult;
+      
+    } catch (error) {
+      this.logger.error('字段对齐预览失败', {
+        templateId: template._id?.toString(),
+        transDataRuleListType,
+        error: error.message
+      });
+      throw new BadRequestException(`字段对齐预览失败: ${error.message}`);
+    }
+  }
+
+  /**
    * 🔧 自动对齐字段
    */
   private autoAlignFields(

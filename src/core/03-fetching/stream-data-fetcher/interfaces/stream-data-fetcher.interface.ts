@@ -155,6 +155,19 @@ export interface StreamConnection {
    * @returns 统计信息
    */
   getStats(): StreamConnectionStats;
+  
+  /**
+   * 健康检查方法 - 检查连接是否活跃可用
+   * @param timeoutMs 健康检查超时时间(毫秒)
+   * @returns Promise<boolean> true表示连接健康
+   */
+  isAlive(timeoutMs?: number): Promise<boolean>;
+  
+  /**
+   * 关闭连接并清理资源
+   * @returns Promise<void>
+   */
+  close(): Promise<void>;
 }
 
 /**

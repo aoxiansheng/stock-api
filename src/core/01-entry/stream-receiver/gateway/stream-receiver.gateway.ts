@@ -152,7 +152,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         apiKeyName: client.data?.apiKey?.name || '未知',
       });
 
-      // 执行订阅
+      // 执行订阅 - ✅ Phase 3 - P2: 传递WebSocket客户端ID
       await this.streamReceiverService.subscribeStream(
         data,
         (streamData) => {
@@ -173,7 +173,8 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
               error: pushError.message,
             });
           }
-        }
+        },
+        client.id // ✅ 传递WebSocket客户端ID
       );
 
       // 发送订阅成功确认
@@ -235,8 +236,8 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         apiKeyName: client.data?.apiKey?.name || '未知',
       });
 
-      // 执行取消订阅
-      await this.streamReceiverService.unsubscribeStream(data);
+      // 执行取消订阅 - ✅ Phase 3 - P2: 传递WebSocket客户端ID
+      await this.streamReceiverService.unsubscribeStream(data, client.id);
 
       // 发送取消订阅成功确认
       client.emit('unsubscribe-ack', {
