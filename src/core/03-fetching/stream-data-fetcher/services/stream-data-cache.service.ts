@@ -52,8 +52,8 @@ export class StreamDataCacheService implements OnModuleDestroy {
   }>();
   
   private readonly maxHotCacheSize = 1000;
-  private readonly hotCacheTTL = 30000; // 30秒 // 🎯 修复: 5秒 (符合设计要求) // 30秒
-  private readonly CACHE_CLEANUP_INTERVAL = 120000; // 2分钟清理间隔
+  private readonly hotCacheTTL = 5000;           // 🎯 修复：5秒TTL（符合设计要求）
+  private readonly CACHE_CLEANUP_INTERVAL = 30000; // 🎯 优化：30秒清理间隔（原120秒）
   
   // 缓存统计
   private stats: CacheStats = {

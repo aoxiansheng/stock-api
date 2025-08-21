@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
+import { GatewayBroadcastError } from '../exceptions/gateway-broadcast.exception';
 
 /**
  * 客户端订阅信息
@@ -11,7 +12,6 @@ export interface ClientSubscriptionInfo {
   providerName: string;
   subscriptionTime: number;
   lastActiveTime: number;
-  messageCallback?: (data: any) => void;
 }
 
 /**
@@ -76,6 +76,29 @@ export class StreamClientStateManager implements OnModuleDestroy {
   // 定时器管理
   private cleanupInterval: NodeJS.Timeout | null = null;
 
+  // Gateway广播统计 - 用于监控Legacy移除进度
+  private readonly broadcastStats = {
+    gateway: {
+      success: 0,
+      failure: 0,
+      lastSuccess: null as Date | null,
+      lastFailure: null as Date | null,
+    },
+    legacy: {
+      calls: 0,
+      lastCall: null as Date | null,
+    },
+    total: {
+      attempts: 0,
+      startTime: new Date(),
+    },
+    errors: {
+      gatewayBroadcastErrors: 0,
+      lastGatewayError: null as Date | null,
+      lastErrorReason: null as string | null,
+    }
+  };
+
   constructor() {
     this.setupPeriodicCleanup();
   }
@@ -97,14 +120,12 @@ export class StreamClientStateManager implements OnModuleDestroy {
    * @param symbols 订阅符号列表
    * @param wsCapabilityType WebSocket能力类型
    * @param providerName 提供商名称
-   * @param messageCallback 消息回调函数
    */
   addClientSubscription(
     clientId: string,
     symbols: string[],
     wsCapabilityType: string,
-    providerName: string,
-    messageCallback?: (data: any) => void
+    providerName: string
   ): void {
     const now = Date.now();
     
@@ -118,7 +139,6 @@ export class StreamClientStateManager implements OnModuleDestroy {
         providerName,
         subscriptionTime: now,
         lastActiveTime: now,
-        messageCallback,
       };
       this.clientSubscriptions.set(clientId, clientSub);
     }
@@ -327,44 +347,6 @@ export class StreamClientStateManager implements OnModuleDestroy {
     return stats;
   }
 
-  /**
-   * @deprecated 使用WebSocket Gateway替代
-   * 计划在下个版本移除
-   * 
-   * 广播消息给订阅指定符号的所有客户端 (Legacy方法)
-   * @param symbol 符号
-   * @param data 消息数据
-   */
-  broadcastToSymbolSubscribers(symbol: string, data: any): void {
-    this.logger.warn('使用了废弃的广播方法', { 
-      symbol, 
-      method: 'broadcastToSymbolSubscribers',
-      migrationNeeded: true,
-      recommendedMethod: 'broadcastToSymbolViaGateway'
-    });
-    
-    // 保留原有逻辑以确保兼容性
-    const clientIds = this.getClientsForSymbol(symbol);
-    
-    clientIds.forEach(clientId => {
-      const clientSub = this.clientSubscriptions.get(clientId);
-      if (clientSub?.messageCallback) {
-        try {
-          clientSub.messageCallback(data);
-          this.updateClientActivity(clientId);
-        } catch (error) {
-          this.logger.error('Legacy广播失败', { clientId, symbol, error: error.message });
-        }
-      }
-    });
-
-    this.logger.debug('Legacy消息已广播', {
-      symbol,
-      clientCount: clientIds.length,
-      dataSize: JSON.stringify(data).length,
-      deprecated: true
-    });
-  }
 
   /**
    * 新的统一广播方法 - 通过WebSocket Gateway
@@ -373,10 +355,32 @@ export class StreamClientStateManager implements OnModuleDestroy {
    * @param webSocketProvider WebSocket服务器提供者
    */
   async broadcastToSymbolViaGateway(symbol: string, data: any, webSocketProvider?: any): Promise<void> {
+    // 更新统计：总尝试次数
+    this.broadcastStats.total.attempts++;
+    const attemptTime = new Date();
+
     if (!webSocketProvider || !webSocketProvider.isServerAvailable()) {
-      this.logger.warn('WebSocket服务器不可用，回退到Legacy广播', { symbol });
-      this.broadcastToSymbolSubscribers(symbol, data);
-      return;
+      const healthStatus = webSocketProvider?.healthCheck() || { status: 'unavailable', details: { reason: 'Provider not injected' } };
+      
+      // 更新错误统计
+      this.broadcastStats.gateway.failure++;
+      this.broadcastStats.gateway.lastFailure = attemptTime;
+      this.broadcastStats.errors.gatewayBroadcastErrors++;
+      this.broadcastStats.errors.lastGatewayError = attemptTime;
+      this.broadcastStats.errors.lastErrorReason = healthStatus.details?.reason || '未知原因';
+      
+      this.logger.error('Gateway不可用，广播失败', { 
+        symbol, 
+        healthStatus,
+        migrationComplete: true,
+        broadcastStats: this.getBroadcastStats()
+      });
+      
+      throw new GatewayBroadcastError(
+        symbol,
+        healthStatus,
+        healthStatus.details?.reason || '未知原因'
+      );
     }
 
     try {
@@ -388,6 +392,10 @@ export class StreamClientStateManager implements OnModuleDestroy {
       });
 
       if (success) {
+        // 更新成功统计
+        this.broadcastStats.gateway.success++;
+        this.broadcastStats.gateway.lastSuccess = attemptTime;
+        
         // 更新客户端活动状态
         const clientIds = this.getClientsForSymbol(symbol);
         clientIds.forEach(clientId => this.updateClientActivity(clientId));
@@ -396,20 +404,152 @@ export class StreamClientStateManager implements OnModuleDestroy {
           symbol,
           clientCount: clientIds.length,
           dataSize: JSON.stringify(data).length,
-          method: 'gateway'
+          method: 'gateway',
+          broadcastStats: this.getBroadcastStats()
         });
       } else {
-        this.logger.warn('Gateway广播失败，回退到Legacy方法', { symbol });
-        this.broadcastToSymbolSubscribers(symbol, data);
+        // 更新失败统计
+        this.broadcastStats.gateway.failure++;
+        this.broadcastStats.gateway.lastFailure = attemptTime;
+        this.broadcastStats.errors.gatewayBroadcastErrors++;
+        this.broadcastStats.errors.lastGatewayError = attemptTime;
+        this.broadcastStats.errors.lastErrorReason = 'Gateway广播返回失败状态';
+        
+        const healthStatus = webSocketProvider.healthCheck();
+        this.logger.error('Gateway广播失败', { 
+          symbol, 
+          healthStatus,
+          migrationComplete: true,
+          broadcastStats: this.getBroadcastStats()
+        });
+        
+        throw new GatewayBroadcastError(
+          symbol,
+          healthStatus,
+          'Gateway广播返回失败状态'
+        );
       }
       
     } catch (error) {
-      this.logger.error('Gateway广播异常，回退到Legacy方法', {
+      // 如果是我们自己抛出的GatewayBroadcastError，直接重新抛出
+      if (error instanceof GatewayBroadcastError) {
+        throw error;
+      }
+      
+      // 更新异常统计
+      this.broadcastStats.gateway.failure++;
+      this.broadcastStats.gateway.lastFailure = attemptTime;
+      this.broadcastStats.errors.gatewayBroadcastErrors++;
+      this.broadcastStats.errors.lastGatewayError = attemptTime;
+      this.broadcastStats.errors.lastErrorReason = `Gateway广播异常: ${error.message}`;
+      
+      // 其他异常转换为GatewayBroadcastError
+      const healthStatus = webSocketProvider?.healthCheck() || { status: 'error', details: { reason: 'Unknown health status' } };
+      this.logger.error('Gateway广播异常', {
         symbol,
-        error: error.message
+        error: error.message,
+        healthStatus,
+        migrationComplete: true,
+        broadcastStats: this.getBroadcastStats()
       });
-      this.broadcastToSymbolSubscribers(symbol, data);
+      
+      throw new GatewayBroadcastError(
+        symbol,
+        healthStatus,
+        `Gateway广播异常: ${error.message}`
+      );
     }
+  }
+
+  /**
+   * 获取Gateway广播统计信息 - 用于监控Legacy移除进度
+   * @returns 广播统计信息和使用率分析
+   */
+  getBroadcastStats(): {
+    gatewayUsageRate: number;
+    errorRate: number;
+    healthStatus: 'excellent' | 'good' | 'warning' | 'critical';
+    stats: typeof this.broadcastStats;
+    analysis: {
+      totalBroadcasts: number;
+      successRate: number;
+      averageLatency?: number;
+      uptime: number;
+    };
+  } {
+    const totalAttempts = this.broadcastStats.total.attempts;
+    const totalGateway = this.broadcastStats.gateway.success + this.broadcastStats.gateway.failure;
+    const totalLegacy = this.broadcastStats.legacy.calls;
+    const totalErrors = this.broadcastStats.errors.gatewayBroadcastErrors;
+    
+    // 计算Gateway使用率 (Gateway调用 / 总调用)
+    const gatewayUsageRate = totalAttempts > 0 
+      ? (totalGateway * 100) / totalAttempts 
+      : 100; // 没有调用时假设100%
+    
+    // 计算错误率 (错误数 / Gateway尝试数)
+    const errorRate = totalGateway > 0 
+      ? (totalErrors * 100) / totalGateway 
+      : 0;
+    
+    // 计算成功率
+    const successRate = totalGateway > 0 
+      ? (this.broadcastStats.gateway.success * 100) / totalGateway 
+      : 100;
+    
+    // 计算运行时间
+    const uptime = (Date.now() - this.broadcastStats.total.startTime.getTime()) / 1000 / 60; // 分钟
+    
+    // 健康状态判断
+    let healthStatus: 'excellent' | 'good' | 'warning' | 'critical';
+    
+    if (errorRate > 10 || gatewayUsageRate < 80) {
+      healthStatus = 'critical';
+    } else if (errorRate > 5 || gatewayUsageRate < 90) {
+      healthStatus = 'warning';
+    } else if (errorRate > 1 || gatewayUsageRate < 95) {
+      healthStatus = 'good';
+    } else {
+      healthStatus = 'excellent';
+    }
+    
+    return {
+      gatewayUsageRate: Math.round(gatewayUsageRate * 100) / 100,
+      errorRate: Math.round(errorRate * 100) / 100,
+      healthStatus,
+      stats: {
+        ...this.broadcastStats,
+        // 深拷贝避免外部修改
+        gateway: { ...this.broadcastStats.gateway },
+        legacy: { ...this.broadcastStats.legacy },
+        total: { ...this.broadcastStats.total },
+        errors: { ...this.broadcastStats.errors }
+      },
+      analysis: {
+        totalBroadcasts: totalAttempts,
+        successRate: Math.round(successRate * 100) / 100,
+        uptime: Math.round(uptime * 100) / 100
+      }
+    };
+  }
+
+  /**
+   * 重置广播统计信息 (用于测试或手动重置)
+   */
+  resetBroadcastStats(): void {
+    this.broadcastStats.gateway.success = 0;
+    this.broadcastStats.gateway.failure = 0;
+    this.broadcastStats.gateway.lastSuccess = null;
+    this.broadcastStats.gateway.lastFailure = null;
+    this.broadcastStats.legacy.calls = 0;
+    this.broadcastStats.legacy.lastCall = null;
+    this.broadcastStats.total.attempts = 0;
+    this.broadcastStats.total.startTime = new Date();
+    this.broadcastStats.errors.gatewayBroadcastErrors = 0;
+    this.broadcastStats.errors.lastGatewayError = null;
+    this.broadcastStats.errors.lastErrorReason = null;
+    
+    this.logger.log('Gateway广播统计已重置');
   }
 
   /**

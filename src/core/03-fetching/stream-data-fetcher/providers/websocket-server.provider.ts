@@ -15,44 +15,67 @@ import { createLogger } from '@common/config/logger.config';
 export class WebSocketServerProvider {
   private readonly logger = createLogger('WebSocketServerProvider');
   private server: Server | null = null;
+  private gatewayServer: Server | null = null; // 新增：Gateway服务器引用
   private isInitialized = false;
 
   /**
-   * 设置WebSocket服务器实例
+   * 从Gateway获取服务器实例（推荐方式）
+   * @param server Gateway服务器实例
+   */
+  setGatewayServer(server: Server): void {
+    this.gatewayServer = server;
+    this.server = server; // 兼容现有API
+    this.isInitialized = true;
+    
+    this.logger.log('Gateway服务器已集成到Provider', {
+      hasServer: !!server,
+      serverPath: server?.path(),
+      source: 'gateway',
+      engineConnectionCount: server?.engine?.clientsCount || 0
+    });
+  }
+
+  /**
+   * 设置WebSocket服务器实例（Legacy方式，保持向后兼容）
    * @param server Socket.IO服务器实例
    */
   setServer(server: Server): void {
     if (this.server && this.isInitialized) {
       this.logger.warn('WebSocket服务器已经初始化，覆盖现有实例', {
         hasExistingServer: !!this.server,
-        newServerNamespace: server.path()
+        newServerNamespace: server.path(),
+        isGatewayServer: !!this.gatewayServer
       });
     }
 
-    this.server = server;
-    this.isInitialized = true;
-    
-    this.logger.log('WebSocket服务器实例已设置', {
-      hasServer: !!server,
-      serverPath: server?.path(),
-      engineConnectionCount: server?.engine?.clientsCount || 0
-    });
+    // 如果没有Gateway服务器，则使用Legacy方式
+    if (!this.gatewayServer) {
+      this.server = server;
+      this.isInitialized = true;
+      
+      this.logger.log('WebSocket服务器实例已设置 (Legacy模式)', {
+        hasServer: !!server,
+        serverPath: server?.path(),
+        source: 'legacy',
+        engineConnectionCount: server?.engine?.clientsCount || 0
+      });
+    }
   }
 
   /**
-   * 获取WebSocket服务器实例
+   * 获取实际的WebSocket服务器（Gateway优先）
    * @returns Socket.IO服务器实例或null
    */
   getServer(): Server | null {
-    return this.server;
+    return this.gatewayServer || this.server;
   }
 
   /**
-   * 检查WebSocket服务器是否可用
+   * 检查WebSocket服务器是否可用（Gateway优先）
    * @returns 是否可用
    */
   isServerAvailable(): boolean {
-    return this.server !== null && this.isInitialized;
+    return (this.gatewayServer || this.server) !== null && this.isInitialized;
   }
 
   /**
@@ -64,23 +87,28 @@ export class WebSocketServerProvider {
     connectedClients: number;
     serverPath: string;
     namespaces: any[];
+    serverSource: 'gateway' | 'legacy' | 'none';
   } {
-    if (!this.server) {
+    const activeServer = this.getServer();
+    
+    if (!activeServer) {
       return {
         isAvailable: false,
         connectedClients: 0,
         serverPath: '',
-        namespaces: []
+        namespaces: [],
+        serverSource: 'none'
       };
     }
 
-    const namespaces = Array.from(this.server.of('/').adapter.rooms.keys() || []);
+    const namespaces = Array.from(activeServer.of('/').adapter.rooms.keys() || []);
     
     return {
       isAvailable: this.isInitialized,
-      connectedClients: this.server.engine?.clientsCount || 0,
-      serverPath: this.server.path(),
-      namespaces
+      connectedClients: activeServer.engine?.clientsCount || 0,
+      serverPath: activeServer.path(),
+      namespaces,
+      serverSource: this.gatewayServer ? 'gateway' : 'legacy'
     };
   }
 
@@ -92,13 +120,19 @@ export class WebSocketServerProvider {
    * @returns 是否发送成功
    */
   async emitToClient(clientId: string, event: string, data: any): Promise<boolean> {
-    if (!this.isServerAvailable()) {
-      this.logger.warn('WebSocket服务器不可用，无法发送消息', { clientId, event });
+    const activeServer = this.getServer();
+    
+    if (!this.isServerAvailable() || !activeServer) {
+      this.logger.warn('WebSocket服务器不可用，无法发送消息', { 
+        clientId, 
+        event,
+        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+      });
       return false;
     }
 
     try {
-      const clientSocket = this.server!.sockets.sockets.get(clientId);
+      const clientSocket = activeServer.sockets.sockets.get(clientId);
       if (!clientSocket) {
         this.logger.warn('客户端Socket连接不存在', { clientId, event });
         return false;
@@ -116,7 +150,8 @@ export class WebSocketServerProvider {
       this.logger.error('发送消息到客户端失败', {
         clientId,
         event,
-        error: error.message
+        error: error.message,
+        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
       });
       return false;
     }
@@ -130,20 +165,35 @@ export class WebSocketServerProvider {
    * @returns 是否广播成功
    */
   async broadcastToRoom(room: string, event: string, data: any): Promise<boolean> {
-    if (!this.isServerAvailable()) {
-      this.logger.warn('WebSocket服务器不可用，无法广播消息', { room, event });
+    const activeServer = this.getServer();
+    
+    if (!this.isServerAvailable() || !activeServer) {
+      this.logger.warn('WebSocket服务器不可用，无法广播消息', { 
+        room, 
+        event,
+        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+      });
       return false;
     }
 
     try {
-      this.server!.to(room).emit(event, data);
+      activeServer.to(room).emit(event, data);
+      
+      this.logger.debug('消息已广播到房间', {
+        room,
+        event,
+        dataSize: JSON.stringify(data).length,
+        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+      });
+      
       return true;
       
     } catch (error) {
       this.logger.error('广播消息到房间失败', {
         room,
         event,
-        error: error.message
+        error: error.message,
+        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
       });
       return false;
     }
@@ -154,6 +204,7 @@ export class WebSocketServerProvider {
    */
   reset(): void {
     this.server = null;
+    this.gatewayServer = null;
     this.isInitialized = false;
     this.logger.log('WebSocket服务器实例已重置');
   }
@@ -166,12 +217,16 @@ export class WebSocketServerProvider {
     status: 'healthy' | 'degraded' | 'unhealthy';
     details: any;
   } {
-    if (!this.server) {
+    const activeServer = this.getServer();
+    
+    if (!activeServer) {
       return {
         status: 'unhealthy',
         details: {
           reason: 'No server instance',
-          isInitialized: this.isInitialized
+          isInitialized: this.isInitialized,
+          hasGatewayServer: !!this.gatewayServer,
+          hasLegacyServer: !!this.server
         }
       };
     }
@@ -181,7 +236,8 @@ export class WebSocketServerProvider {
         status: 'degraded',
         details: {
           reason: 'Server not fully initialized',
-          hasServer: !!this.server
+          hasServer: !!activeServer,
+          serverSource: this.gatewayServer ? 'gateway' : 'legacy'
         }
       };
     }
@@ -194,6 +250,76 @@ export class WebSocketServerProvider {
         uptime: process.uptime()
       }
     };
+  }
+
+  /**
+   * 强制健康检查 - 用于Legacy代码移除验证
+   * 比标准healthCheck更严格，确保Gateway完全可用
+   * @returns 是否满足Legacy移除的健康条件
+   */
+  isReadyForLegacyRemoval(): {
+    ready: boolean;
+    reason?: string;
+    details: any;
+  } {
+    const healthStatus = this.healthCheck();
+    
+    // 必须是healthy状态
+    if (healthStatus.status !== 'healthy') {
+      return {
+        ready: false,
+        reason: `Gateway状态不健康: ${healthStatus.status}`,
+        details: healthStatus.details
+      };
+    }
+
+    // 必须有Gateway服务器（优先于Legacy）
+    if (!this.gatewayServer) {
+      return {
+        ready: false,
+        reason: 'Gateway服务器未集成，仍使用Legacy模式',
+        details: {
+          hasGatewayServer: !!this.gatewayServer,
+          hasLegacyServer: !!this.server,
+          serverSource: healthStatus.details.serverSource
+        }
+      };
+    }
+
+    // 检查连接数是否正常（避免在无连接时进行移除）
+    const connectedClients = healthStatus.details.connectedClients || 0;
+    if (connectedClients < 0) {
+      return {
+        ready: false,
+        reason: '无法获取客户端连接数',
+        details: { connectedClients }
+      };
+    }
+
+    // 验证Gateway功能完整性
+    try {
+      const serverPath = this.gatewayServer.path();
+      const namespaces = Array.from(this.gatewayServer.of('/').adapter.rooms.keys() || []);
+      
+      return {
+        ready: true,
+        details: {
+          ...healthStatus.details,
+          gatewayValidation: {
+            serverPath,
+            namespaceCount: namespaces.length,
+            connectedClients,
+            validationTime: new Date().toISOString()
+          }
+        }
+      };
+    } catch (error) {
+      return {
+        ready: false,
+        reason: `Gateway功能验证失败: ${error.message}`,
+        details: { error: error.message }
+      };
+    }
   }
 }
 

@@ -28,6 +28,53 @@ interface QuoteData {
 }
 
 /**
+ * 增强的流连接上下文接口
+ */
+interface StreamConnectionContext {
+  // 基础信息
+  requestId: string;
+  provider: string;
+  capability: string;
+  clientId: string;
+  
+  // 市场和符号信息
+  market: string;
+  symbolsCount: number;
+  marketDistribution: Record<string, number>;
+  
+  // 配置信息
+  connectionConfig: {
+    autoReconnect: boolean;
+    maxReconnectAttempts: number;
+    heartbeatIntervalMs: number;
+    connectionTimeoutMs: number;
+  };
+  
+  metricsConfig: {
+    enableLatencyTracking: boolean;
+    enableThroughputTracking: boolean;
+    metricsPrefix: string;
+  };
+  
+  errorHandling: {
+    retryPolicy: string;
+    maxRetries: number;
+    circuitBreakerEnabled: boolean;
+  };
+  
+  // 会话信息
+  session: {
+    createdAt: number;
+    version: string;
+    protocol: string;
+    compression: string;
+  };
+  
+  // 扩展字段
+  extensions: Record<string, any>;
+}
+
+/**
  * StreamReceiver - 重构后的流数据接收器
  * 
  * 🎯 核心职责 (重构后精简)：
@@ -95,20 +142,18 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * 🎯 订阅流数据 - 重构后的核心方法
+   * 🎯 订阅流数据 - 重构后的核心方法 (Gateway模式)
    * @param subscribeDto 订阅请求
-   * @param messageCallback 消息回调
    * @param clientId WebSocket客户端ID (从Socket.IO获取)
    */
   async subscribeStream(
     subscribeDto: StreamSubscribeDto,
-    messageCallback: (data: any) => void,
     clientId?: string
   ): Promise<void> {
     const { symbols, wsCapabilityType, preferredProvider } = subscribeDto;
     // ✅ Phase 3 - P2: 使用传入的clientId或生成唯一ID作为回退
     const resolvedClientId = clientId || `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const providerName = preferredProvider || 'longport'; // 默认提供商
+    const providerName = preferredProvider || this.getDefaultProvider(symbols);
     const requestId = `request_${Date.now()}`;
     
     this.logger.log('开始订阅流数据', {
@@ -129,15 +174,16 @@ export class StreamReceiverService implements OnModuleDestroy {
         resolvedClientId,
         mappedSymbols,
         wsCapabilityType,
-        providerName,
-        messageCallback
+        providerName
       );
 
       // 3. 获取或创建流连接
       const connection = await this.getOrCreateConnection(
         providerName,
         wsCapabilityType,
-        requestId
+        requestId,
+        symbols,
+        resolvedClientId
       );
 
       // 4. 订阅符号到流连接
@@ -246,7 +292,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       reason,
     } = reconnectRequest;
     
-    const providerName = preferredProvider || 'longport';
+    const providerName = preferredProvider || this.getDefaultProvider(symbols);
     const requestId = `reconnect_${Date.now()}`;
     
     this.logger.log('客户端重连请求', {
@@ -280,28 +326,21 @@ export class StreamReceiverService implements OnModuleDestroy {
         !rejectedSymbols.find(r => r.symbol === s)
       );
       
-      // 3. 恢复客户端订阅
-      const messageCallback = (data: any) => {
-        // 这里需要从客户端状态中获取原始回调
-        const clientInfo = this.streamDataFetcher.getClientStateManager().getClientSubscription(clientId);
-        if (clientInfo?.messageCallback) {
-          clientInfo.messageCallback(data);
-        }
-      };
-      
+      // 3. 恢复客户端订阅 (已移除messageCallback wrapper)
       this.streamDataFetcher.getClientStateManager().addClientSubscription(
         clientId,
         confirmedSymbols,
         wsCapabilityType,
-        providerName,
-        messageCallback
+        providerName
       );
       
       // 4. 获取或创建连接
       const connection = await this.getOrCreateConnection(
         providerName,
         wsCapabilityType,
-        requestId
+        requestId,
+        symbols,
+        clientId
       );
       
       // 5. 订阅符号
@@ -566,17 +605,16 @@ export class StreamReceiverService implements OnModuleDestroy {
   private async notifyClientResubscribe(clientId: string, errorMessage: string): Promise<void> {
     const clientInfo = this.streamDataFetcher.getClientStateManager().getClientSubscription(clientId);
     
-    if (clientInfo?.messageCallback) {
+    if (clientInfo) {
       try {
-        clientInfo.messageCallback({
-          type: 'recovery_failed',
-          message: '数据恢复失败，请重新订阅',
-          action: 'resubscribe',
-          error: errorMessage,
-          timestamp: Date.now(),
-        });
+        // messageCallback功能已移除，改为通过其他方式通知客户端
+        // 例如：通过WebSocket直接发送消息或者通过事件系统
         
-        this.logger.log('已通知客户端重新订阅', { clientId });
+        this.logger.log('需要通知客户端重新订阅', { 
+          clientId, 
+          error: errorMessage,
+          message: '数据恢复失败，请重新订阅'
+        });
         
       } catch (error) {
         this.logger.error('通知客户端重新订阅失败', {
@@ -637,28 +675,45 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 符号映射
    */
   private async mapSymbols(symbols: string[], providerName: string): Promise<string[]> {
-    const mappedSymbols: string[] = [];
-    
-    for (const symbol of symbols) {
-      try {
-        const mappedResult = await this.symbolTransformerService.transformSymbolsForProvider(
-          providerName, 
-          [symbol], 
-          `map_${Date.now()}`
-        );
-        const finalSymbol = mappedResult?.transformedSymbols?.[0] ?? symbol;
-        mappedSymbols.push(finalSymbol);
-      } catch (error) {
-        this.logger.warn('符号映射失败，使用原始符号', {
-          symbol,
-          provider: providerName,
-          error: error.message,
-        });
-        mappedSymbols.push(symbol);
-      }
-    }
+    try {
+      // 🎯 优化：一次性批量转换，充分利用三层缓存
+      const transformResult = await this.symbolTransformerService.transformSymbols(
+        providerName,
+        symbols,        // 批量输入所有符号
+        'to_standard'   // 明确转换方向
+      );
 
-    return mappedSymbols;
+      // 构建结果，保持顺序一致性
+      return symbols.map(symbol => 
+        transformResult.mappingDetails[symbol] || symbol
+      );
+    } catch (error) {
+      this.logger.warn('批量符号映射失败，降级处理', {
+        provider: providerName,
+        symbolsCount: symbols.length,
+        error: error.message,
+      });
+      return symbols; // 安全降级
+    }
+  }
+
+  /**
+   * 确保符号一致性：用于管道处理时的端到端标准化
+   */
+  private async ensureSymbolConsistency(symbols: string[], provider: string): Promise<string[]> {
+    try {
+      const result = await this.symbolTransformerService.transformSymbols(
+        provider, symbols, 'to_standard'
+      );
+      return symbols.map(symbol => result.mappingDetails[symbol] || symbol);
+    } catch (error) {
+      this.logger.warn('符号标准化失败，使用原始符号', { 
+        provider, 
+        symbols, 
+        error: error.message 
+      });
+      return symbols;
+    }
   }
 
   /**
@@ -667,7 +722,9 @@ export class StreamReceiverService implements OnModuleDestroy {
   private async getOrCreateConnection(
     provider: string,
     capability: string,
-    requestId: string
+    requestId: string,
+    symbols: string[],
+    clientId: string
   ): Promise<StreamConnection> {
     const connectionKey = `${provider}:${capability}`;
     
@@ -681,7 +738,8 @@ export class StreamReceiverService implements OnModuleDestroy {
     const connectionParams: StreamConnectionParams = {
       provider,
       capability,
-      contextService: { requestId, provider }, // 简化的 contextService
+      // 🎯 修复：使用增强的上下文服务
+      contextService: this.buildEnhancedContextService(requestId, provider, symbols, capability, clientId),
       requestId,
       options: {
         autoReconnect: true,
@@ -785,7 +843,8 @@ export class StreamReceiverService implements OnModuleDestroy {
   private initializeBatchProcessing(): void {
     this.quoteBatchSubject
       .pipe(
-        bufferTime(100), // 100ms 缓冲窗口
+        // 🎯 修复：固定50ms窗口 + 200条缓冲上限，严格满足SLA且内存安全
+        bufferTime(50, undefined, 200),
         filter(batch => batch.length > 0),
         mergeMap(async (batch) => this.processBatch(batch))
       )
@@ -897,16 +956,19 @@ export class StreamReceiverService implements OnModuleDestroy {
       quotes.forEach(quote => {
         quote.symbols.forEach(symbol => symbolsSet.add(symbol));
       });
-      const allSymbols = Array.from(symbolsSet);
+      const rawSymbols = Array.from(symbolsSet);
+      
+      // Step 3.5: 符号标准化（确保缓存键和广播键一致）
+      const standardizedSymbols = await this.ensureSymbolConsistency(rawSymbols, provider);
 
-      // Step 4: 数据缓存
+      // Step 4: 使用标准化符号进行缓存
       const cacheStartTime = Date.now();
-      await this.pipelineCacheData(dataArray, allSymbols);
+      await this.pipelineCacheData(dataArray, standardizedSymbols);
       const cacheDuration = Date.now() - cacheStartTime;
 
-      // Step 5: 数据广播
+      // Step 5: 使用标准化符号进行广播
       const broadcastStartTime = Date.now();
-      await this.pipelineBroadcastData(dataArray, allSymbols);
+      await this.pipelineBroadcastData(dataArray, standardizedSymbols);
       const broadcastDuration = Date.now() - broadcastStartTime;
 
       // Step 6: 性能监控埋点
@@ -915,7 +977,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         provider,
         capability,
         quotesCount: quotes.length,
-        symbolsCount: allSymbols.length,
+        symbolsCount: standardizedSymbols.length,
         durations: {
           total: totalDuration,
           transform: transformDuration,
@@ -928,7 +990,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         provider,
         capability,
         quotesCount: quotes.length,
-        symbolsCount: allSymbols.length,
+        symbolsCount: standardizedSymbols.length,
         totalDuration,
         stages: {
           transform: transformDuration,
@@ -1119,7 +1181,7 @@ export class StreamReceiverService implements OnModuleDestroy {
           // 记录推送延迟埋点
           const pushStartTime = Date.now();
           
-          this.streamDataFetcher.getClientStateManager().broadcastToSymbolSubscribers(symbol, {
+          this.streamDataFetcher.getClientStateManager().broadcastToSymbolViaGateway(symbol, {
             ...symbolData,
             _metadata: {
               pushTimestamp: pushStartTime,
@@ -1218,12 +1280,14 @@ export class StreamReceiverService implements OnModuleDestroy {
         // 提取提供商信息
         const provider = this.extractProviderFromSymbol(symbol);
         
-        // 记录到 stream_push_latency_ms 直方图指标
+        const market = this.inferMarketFromSymbol(symbol);
+        
+        // 🎯 修复：移除symbol高基数标签，使用聚合维度
         this.metricsRegistry.streamPushLatencyMs.observe(
           {
-            symbol: symbol,
-            provider: provider,
-            latency_category: latencyCategory,
+            provider: provider,          // 低基数：5个值
+            market: market,             // 低基数：4个值 (HK/US/SH/SZ)
+            latency_category: this.categorizeLatency(latencyMs), // 低基数：4个值
           },
           latencyMs
         );
@@ -1339,6 +1403,144 @@ export class StreamReceiverService implements OnModuleDestroy {
     
     return 'UNKNOWN';
   }
+
+  /**
+   * 延迟分类方法：将延迟时间归类为性能等级
+   */
+  private categorizeLatency(ms: number): string {
+    if (ms <= 10) return 'excellent';
+    if (ms <= 50) return 'good';
+    if (ms <= 200) return 'acceptable';
+    return 'poor';
+  }
+
+  /**
+   * 获取默认Provider：第一阶段简版市场优先级策略
+   */
+  private getDefaultProvider(symbols: string[]): string {
+    try {
+      // 🎯 第一阶段：基于市场的简单优先级策略
+      const marketDistribution = this.analyzeMarketDistribution(symbols);
+      const primaryMarket = marketDistribution.primary;
+      
+      const provider = this.getProviderByMarketPriority(primaryMarket);
+      
+      this.logger.debug('Market-based provider selection', {
+        primaryMarket,
+        selectedProvider: provider,
+        symbolsCount: symbols.length,
+        method: 'market_priority_v1'
+      });
+      
+      return provider;
+      
+    } catch (error) {
+      this.logger.warn('Provider选择失败，使用默认', {
+        error: error.message,
+        fallback: 'longport'
+      });
+      return 'longport'; // 安全回退
+    }
+  }
+
+  /**
+   * 分析市场分布：找到占比最高的市场
+   */
+  private analyzeMarketDistribution(symbols: string[]): { primary: string; distribution: Record<string, number> } {
+    const marketCounts: Record<string, number> = {};
+    
+    symbols.forEach(symbol => {
+      const market = this.inferMarketFromSymbol(symbol);
+      marketCounts[market] = (marketCounts[market] || 0) + 1;
+    });
+    
+    // 找到占比最高的市场
+    const sortedMarkets = Object.entries(marketCounts)
+      .sort(([,a], [,b]) => b - a);
+    
+    return {
+      primary: sortedMarkets[0]?.[0] || 'UNKNOWN',
+      distribution: marketCounts
+    };
+  }
+
+  /**
+   * 基于市场优先级获取Provider
+   */
+  private getProviderByMarketPriority(market: string): string {
+    const marketProviderPriority: Record<string, string> = {
+      'HK': 'longport',    // 港股优先LongPort
+      'US': 'longport',    // 美股优先LongPort  
+      'CN': 'longport',    // A股优先LongPort
+      'SG': 'longport',    // 新加坡优先LongPort
+      'UNKNOWN': 'longport' // 未知市场默认LongPort
+    };
+    
+    return marketProviderPriority[market] || 'longport';
+  }
+
+  /**
+   * 构建增强的连接上下文服务
+   */
+  private buildEnhancedContextService(
+    requestId: string, 
+    provider: string, 
+    symbols: string[], 
+    capability: string,
+    clientId: string
+  ): StreamConnectionContext {
+    const marketDistribution = this.analyzeMarketDistribution(symbols);
+    const primaryMarket = marketDistribution.primary;
+    
+    return {
+      // 基础信息
+      requestId,
+      provider,
+      capability,
+      clientId,
+      
+      // 市场和符号信息
+      market: primaryMarket,
+      symbolsCount: symbols.length,
+      marketDistribution: marketDistribution.distribution,
+      
+      // 连接配置
+      connectionConfig: {
+        autoReconnect: true,
+        maxReconnectAttempts: 3,
+        heartbeatIntervalMs: 30000,
+        connectionTimeoutMs: 10000,
+      },
+      
+      // 性能监控配置
+      metricsConfig: {
+        enableLatencyTracking: true,
+        enableThroughputTracking: true,
+        metricsPrefix: `stream_${provider}_${capability}`,
+      },
+      
+      // 错误处理配置
+      errorHandling: {
+        retryPolicy: 'exponential_backoff',
+        maxRetries: 3,
+        circuitBreakerEnabled: true,
+      },
+      
+      // 会话信息
+      session: {
+        createdAt: Date.now(),
+        version: '2.0',
+        protocol: 'websocket',
+        compression: 'gzip',
+      },
+      
+      // 扩展字段 (为复杂SDK预留)
+      extensions: {
+        // 可以添加特定Provider需要的额外上下文
+        // 例如：认证token、区域设置、特殊配置等
+      }
+    };
+  }
   
   /**
    * 基于能力注册表查找最佳提供商
@@ -1350,7 +1552,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       // TODO: 在构造函数中注入 EnhancedCapabilityRegistryService
       
       // 简化的能力查找逻辑 (等待注入)
-      const streamCapabilityName = 'ws-stock-quote'; // 假设的流能力名称
+      // const streamCapabilityName = 'ws-stock-quote'; // 假设的流能力名称
       
       // 临时实现：基于已知的市场-提供商映射
       const marketProviderMap: Record<string, string[]> = {

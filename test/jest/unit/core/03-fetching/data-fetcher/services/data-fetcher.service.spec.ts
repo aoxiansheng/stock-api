@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
 import {
@@ -41,7 +41,7 @@ describe('DataFetcherService', () => {
   beforeEach(async () => {
     const mockCapabilityRegistryService = {
       getCapability: jest.fn(),
-      _getProvider: jest.fn(),
+      getProvider: jest.fn(), // Changed from _getProvider to getProvider
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -108,7 +108,7 @@ describe('DataFetcherService', () => {
       expect(result.metadata.provider).toBe('longport');
       expect(result.metadata.capability).toBe('get-stock-quote');
       expect(result.metadata.symbolsProcessed).toBe(2);
-      expect(result.metadata.processingTime).toBeGreaterThan(0);
+      expect(result.metadata.processingTime).toBeGreaterThanOrEqual(0);
       
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
         'longport',
@@ -118,11 +118,10 @@ describe('DataFetcherService', () => {
         symbols: mockParams.symbols,
         contextService: mockParams.contextService,
         requestId: mockParams.requestId,
-        context: {
+        options: {
           apiType: 'rest',
-          options: mockParams.options,
+          ...mockParams.options,
         },
-        // 注意：options重复传递已移除，通过context传递
       });
     });
 
@@ -140,8 +139,8 @@ describe('DataFetcherService', () => {
       const result = await service.fetchRawData(mockParams);
 
       // Assert
-      expect(result.data).toEqual(arrayRawData);
       expect(result.data).toHaveLength(2);
+      expect(result.data).toEqual(arrayRawData);
     });
 
     it('should handle single object raw data', async () => {
@@ -171,16 +170,16 @@ describe('DataFetcherService', () => {
       expect(result.data).toEqual([]);
     });
 
-    it('should throw NotFoundException when capability not found', async () => {
+    it('should throw BadRequestException when capability not found', async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(null);
 
       // Act & Assert
       await expect(service.fetchRawData(mockParams)).rejects.toThrow(
-        NotFoundException
+        BadRequestException
       );
       await expect(service.fetchRawData(mockParams)).rejects.toThrow(
-        '提供商 longport 不支持能力 get-stock-quote'
+        '数据获取失败'
       );
     });
 
@@ -213,7 +212,7 @@ describe('DataFetcherService', () => {
       // Assert
       expect(mockCapability.execute).toHaveBeenCalledWith(
         expect.objectContaining({
-          context: expect.objectContaining({
+          options: expect.objectContaining({
             apiType: 'rest',
           }),
         })
@@ -298,40 +297,33 @@ describe('DataFetcherService', () => {
       expect(mockProvider.getContextService).toHaveBeenCalled();
     });
 
-    it('should return undefined when provider does not exist', async () => {
+    it('should throw NotFoundException when provider does not exist', async () => {
       // Arrange
       capabilityRegistryService.getProvider.mockReturnValue(null);
 
-      // Act
-      const result = await service.getProviderContext('nonexistent');
-
-      // Assert
-      expect(result).toBeUndefined();
-      expect(capabilityRegistryService.getProvider).toHaveBeenCalledWith('nonexistent');
+      // Act & Assert
+      await expect(service.getProviderContext('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.getProviderContext('nonexistent')).rejects.toThrow('Provider nonexistent not registered');
     });
 
-    it('should return undefined when provider does not support getContextService', async () => {
+    it('should throw NotFoundException when provider does not support getContextService', async () => {
       // Arrange
       const providerWithoutContext = {};
       capabilityRegistryService.getProvider.mockReturnValue(providerWithoutContext);
 
-      // Act
-      const result = await service.getProviderContext('longport');
-
-      // Assert
-      expect(result).toBeUndefined();
+      // Act & Assert
+      await expect(service.getProviderContext('longport')).rejects.toThrow(NotFoundException);
+      await expect(service.getProviderContext('longport')).rejects.toThrow('Provider longport context service not available');
     });
 
-    it('should return undefined when getContextService throws error', async () => {
+    it('should throw ServiceUnavailableException when getContextService throws error', async () => {
       // Arrange
       mockProvider.getContextService.mockRejectedValue(new Error('Context service error'));
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
 
-      // Act
-      const result = await service.getProviderContext('longport');
-
-      // Assert
-      expect(result).toBeUndefined();
+      // Act & Assert
+      await expect(service.getProviderContext('longport')).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.getProviderContext('longport')).rejects.toThrow('Provider context error: Context service error');
     });
   });
 

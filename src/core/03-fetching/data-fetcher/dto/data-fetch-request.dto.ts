@@ -44,6 +44,19 @@ export class DataFetchRequestDto {
   @IsString({ each: true })
   symbols: string[];
 
+  /**
+   * @deprecated 后端已拆分REST与流式能力，请使用专用的stream-data-fetcher服务处理流式数据
+   */
+  @ApiPropertyOptional({
+    description: 'API类型',
+    example: 'rest',
+    enum: ['rest', 'stream'],
+    deprecated: true
+  })
+  @IsOptional()
+  @IsEnum(['rest', 'stream'])
+  apiType?: 'rest' | 'stream';
+
   @ApiProperty({
     description: '请求ID，用于日志追踪',
     example: 'req_123456789',

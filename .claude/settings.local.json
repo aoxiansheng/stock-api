@@ -125,7 +125,13 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"压缩|decompression\")",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-receiver.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --verbose)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/common-cache/services/common-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --verbose)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/03-fetching/stream-data-fetcher/exceptions/gateway-broadcast.exception.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(chmod:*)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/03-fetching/stream-data-fetcher/gateway-integration.test.ts --testTimeout=30000 --config test/config/jest.integration.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/performance/gateway-performance-baseline.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/03-fetching/stream-data-fetcher/services/gateway-performance-baseline.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)"
     ],
     "deny": []
   }

@@ -17,12 +17,17 @@ export interface DataFetchParams {
   /** 股票代码列表 */
   symbols: string[];
 
+  /**
+   * API类型 ('rest' | 'stream')
+   * @deprecated 后端已拆分REST与流式能力，请使用专用的stream-data-fetcher服务处理流式数据
+   */
+  apiType?: 'rest' | 'stream';
+
   /** 提供商上下文服务 */
   contextService?: any;
 
   /** 请求ID，用于日志追踪 */
   requestId: string;
-
 
 
   /** 其他选项 */

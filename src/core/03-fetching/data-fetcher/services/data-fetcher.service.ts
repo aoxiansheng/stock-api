@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
@@ -25,6 +26,19 @@ import {
 } from '../constants/data-fetcher.constants';
 
 /**
+ * 遗留原始数据类型定义 - 向后兼容
+ */
+interface LegacyRawData {
+  [key: string]: any;
+}
+
+/**
+ * processRawData方法的输入类型联合
+ * 支持新的CapabilityExecuteResult格式和向后兼容的遗留格式
+ */
+type ProcessRawDataInput = CapabilityExecuteResult | LegacyRawData | any[];
+
+/**
  * 数据获取服务
  * 
  * 专门负责从第三方SDK获取原始数据，解耦Receiver组件的职责
@@ -33,6 +47,11 @@ import {
 @Injectable()
 export class DataFetcherService implements IDataFetcher {
   private readonly logger = createLogger(DataFetcherService.name);
+  
+  /**
+   * 批处理并发限制数量 - 防止高并发场景资源耗尽
+   */
+  private readonly BATCH_CONCURRENCY_LIMIT = 10;
 
   constructor(
     private readonly capabilityRegistryService: CapabilityRegistryService,
@@ -63,16 +82,15 @@ export class DataFetcherService implements IDataFetcher {
       // 1. 验证提供商能力
       const cap = await this.getCapability(provider, capability);
       
-      // 2. 准备执行参数
+      // 2. 准备执行参数 - 简化：统一通过options传递，移除重复参数
       const executionParams = {
         symbols,
         contextService,
         requestId,
-        context: { 
+        options: {
           apiType: params.apiType || DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_API_TYPE,
-          options: params.options,
+          ...params.options, // 合并用户传入的options
         },
-        // 注意：options将通过context传递，避免重复
       };
 
       // 3. 执行SDK调用
@@ -161,34 +179,29 @@ export class DataFetcherService implements IDataFetcher {
     try {
       const providerInstance = this.capabilityRegistryService.getProvider(provider);
       
-      if (providerInstance && typeof providerInstance.getContextService === 'function') {
-        return await providerInstance.getContextService();
+      if (!providerInstance) {
+        throw new NotFoundException(`Provider ${provider} not registered`);
       }
 
-      this.logger.debug(`提供商 ${provider} 未注册或不支持getContextService方法`, {
-        provider,
-        hasProvider: !!providerInstance,
-        hasContextService: providerInstance && 
-          typeof providerInstance.getContextService === 'function',
-        operation: DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
-      });
+      if (typeof providerInstance.getContextService !== 'function') {
+        throw new NotFoundException(`Provider ${provider} context service not available`);
+      }
 
-      return undefined;
+      return await providerInstance.getContextService();
       
     } catch (error) {
-      this.logger.warn(
-        DATA_FETCHER_WARNING_MESSAGES.CONTEXT_SERVICE_WARNING.replace(
-          '{warning}', 
-          error.message
-        ), 
-        {
-          provider,
-          error: error.message,
-          operation: DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
-        }
-      );
+      // 标准化错误处理：统一抛出异常
+      if (error instanceof NotFoundException) {
+        throw error; // 重新抛出已分类的异常
+      }
       
-      return undefined;
+      this.logger.error('Provider context service error', {
+        provider,
+        error: error.message,
+        operation: DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
+      });
+      
+      throw new ServiceUnavailableException(`Provider context error: ${error.message}`);
     }
   }
 
@@ -199,34 +212,86 @@ export class DataFetcherService implements IDataFetcher {
    * @returns 批量结果
    */
   async fetchBatch(requests: DataFetchRequestDto[]): Promise<DataFetchResponseDto[]> {
-    const results = await Promise.allSettled(
-      requests.map(async (request) => {
-        const params: DataFetchParams = {
-          provider: request.provider,
-          capability: request.capability,
-          symbols: request.symbols,
-          requestId: request.requestId,
-          apiType: request.apiType,
-          options: request.options,
-          contextService: await this.getProviderContext(request.provider),
-        };
-        
-        const result = await this.fetchRawData(params);
-        return DataFetchResponseDto.success(
-          result.data,
-          result.metadata.provider,
-          result.metadata.capability,
-          result.metadata.processingTime,
-          result.metadata.symbolsProcessed,
-        );
-      })
-    );
+    const results: DataFetchResponseDto[] = [];
+    
+    this.logger.debug('开始批量数据获取', {
+      totalRequests: requests.length,
+      concurrencyLimit: this.BATCH_CONCURRENCY_LIMIT,
+      operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+    });
+    
+    // 分批处理，控制并发数量
+    for (let i = 0; i < requests.length; i += this.BATCH_CONCURRENCY_LIMIT) {
+      const batch = requests.slice(i, i + this.BATCH_CONCURRENCY_LIMIT);
+      
+      this.logger.debug('处理批次', {
+        batchIndex: Math.floor(i / this.BATCH_CONCURRENCY_LIMIT) + 1,
+        batchSize: batch.length,
+        operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+      });
+      
+      const batchResults = await Promise.allSettled(
+        batch.map(async (request) => this.processSingleRequest(request))
+      );
+      
+      // 转换结果
+      const processedResults = batchResults.map(result => 
+        result.status === 'fulfilled' 
+          ? result.value 
+          : this.createErrorResponse(result.reason)
+      );
+      
+      results.push(...processedResults);
+    }
+    
+    this.logger.debug('批量数据获取完成', {
+      totalRequests: requests.length,
+      successCount: results.filter(r => !r.hasPartialFailures).length,
+      partialFailuresCount: results.filter(r => r.hasPartialFailures).length,
+      operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+    });
+    
+    return results;
+  }
 
-    return results.map(result => 
-      result.status === 'fulfilled' 
-        ? result.value 
-        : this.createErrorResponse(result.reason)
-    );
+  /**
+   * 处理单个批量请求
+   * 
+   * @param request 单个请求
+   * @returns 处理结果
+   */
+  private async processSingleRequest(request: DataFetchRequestDto): Promise<DataFetchResponseDto> {
+    try {
+      const params: DataFetchParams = {
+        provider: request.provider,
+        capability: request.capability,
+        symbols: request.symbols,
+        requestId: request.requestId,
+        apiType: request.apiType,
+        options: request.options,
+        contextService: await this.getProviderContext(request.provider),
+      };
+      
+      const result = await this.fetchRawData(params);
+      return DataFetchResponseDto.success(
+        result.data,
+        result.metadata.provider,
+        result.metadata.capability,
+        result.metadata.processingTime,
+        result.metadata.symbolsProcessed,
+      );
+    } catch (error) {
+      // 统一异常处理：将异常转换为错误响应
+      this.logger.error('Single request failed', {
+        provider: request.provider,
+        capability: request.capability,
+        requestId: request.requestId,
+        error: error.message,
+        operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+      });
+      
+      throw error; // 让上层Promise.allSettled处理
+    }
   }
 
   /**
@@ -260,9 +325,9 @@ export class DataFetcherService implements IDataFetcher {
    * @param rawData SDK返回的原始数据或CapabilityExecuteResult
    * @returns 处理后的数据数组
    */
-  private processRawData(rawData: any | CapabilityExecuteResult): any[] {
-    // 优先处理新的CapabilityExecuteResult格式
-    if (rawData && typeof rawData === 'object' && 'data' in rawData) {
+  private processRawData(rawData: ProcessRawDataInput): any[] {
+    // 类型守卫：优先处理新的CapabilityExecuteResult格式
+    if (this.isCapabilityExecuteResult(rawData)) {
       const result = rawData as CapabilityExecuteResult;
       
       // 如果是标准CapabilityExecuteResult，直接返回data字段（已经是数组）
@@ -272,6 +337,11 @@ export class DataFetcherService implements IDataFetcher {
       
       // 兜底：如果data不是数组，强制数组化
       return result.data ? [result.data] : [];
+    }
+    
+    // 确保返回数组格式 - 优先检查数组类型
+    if (Array.isArray(rawData)) {
+      return rawData;
     }
     
     // 向后兼容：处理旧格式数据
@@ -301,12 +371,20 @@ export class DataFetcherService implements IDataFetcher {
       }
     }
     
-    // 确保返回数组格式
-    if (Array.isArray(rawData)) {
-      return rawData;
-    }
-    
     return rawData ? [rawData] : [];
+  }
+
+  /**
+   * 类型守卫：检查数据是否为CapabilityExecuteResult格式
+   * 
+   * @param data 待检查的数据
+   * @returns 是否为CapabilityExecuteResult类型
+   */
+  private isCapabilityExecuteResult(data: any): data is CapabilityExecuteResult {
+    return data && 
+           typeof data === 'object' && 
+           'data' in data &&
+           (Array.isArray(data.data) || data.data !== undefined);
   }
 
   /**

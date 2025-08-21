@@ -17,6 +17,8 @@ import { StreamSubscribeDto, StreamUnsubscribeDto } from '../dto';
 import { Permission } from '../../../../auth/enums/user-role.enum';
 import { ApiKeyService } from '../../../../auth/services/apikey.service';
 import { StreamRecoveryWorkerService } from '../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
+import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider';
+import { Inject } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -37,9 +39,21 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
     private readonly streamReceiverService: StreamReceiverService,
     private readonly apiKeyService: ApiKeyService,
     @Optional() private readonly streamRecoveryWorker?: StreamRecoveryWorkerService,
+    @Inject(WEBSOCKET_SERVER_TOKEN) private readonly webSocketProvider?: WebSocketServerProvider,
   ) {}
 
   afterInit(server: Server) {
+    // 🎯 CRITICAL FIX: 注入WebSocket服务器到WebSocketServerProvider (Gateway模式)
+    if (this.webSocketProvider) {
+      this.webSocketProvider.setGatewayServer(server);
+      this.logger.log('✅ Gateway服务器已集成到WebSocketServerProvider', {
+        serverPath: server.path(),
+        engineConnectionCount: server.engine?.clientsCount || 0
+      });
+    } else {
+      this.logger.warn('⚠️ WebSocketServerProvider未注入，Gateway集成失败');
+    }
+
     // Phase 3 Critical Fix: 注入WebSocket服务器到StreamRecoveryWorker
     if (this.streamRecoveryWorker && typeof (this.streamRecoveryWorker as any).setWebSocketServer === 'function') {
       (this.streamRecoveryWorker as any).setWebSocketServer(server);
@@ -152,30 +166,19 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         apiKeyName: client.data?.apiKey?.name || '未知',
       });
 
-      // 执行订阅 - ✅ Phase 3 - P2: 传递WebSocket客户端ID
+      // 执行订阅 - ✅ Legacy messageCallback已移除，通过Gateway直接广播
       await this.streamReceiverService.subscribeStream(
         data,
-        (streamData) => {
-          // 推送数据给客户端
-          try {
-            this.logger.debug({
-              message: '🔧 Gateway推送数据给客户端',
-              clientId: client.id,
-              symbols: streamData.symbols,
-              provider: streamData.provider,
-              timestamp: streamData.timestamp,
-            });
-
-            client.emit('data', streamData);
-          } catch (pushError) {
-            this.logger.error('推送数据失败', {
-              clientId: client.id,
-              error: pushError.message,
-            });
-          }
-        },
-        client.id // ✅ 传递WebSocket客户端ID
+        client.id // WebSocket客户端ID
       );
+      
+      // 注册客户端数据推送监听 - 通过Gateway事件系统
+      this.logger.debug('客户端订阅已建立，通过Gateway广播推送数据', {
+        clientId: client.id,
+        symbols: data.symbols,
+        wsCapabilityType: data.wsCapabilityType,
+        message: 'messageCallback功能已由Gateway广播替代'
+      });
 
       // 发送订阅成功确认
       client.emit('subscribe-ack', {

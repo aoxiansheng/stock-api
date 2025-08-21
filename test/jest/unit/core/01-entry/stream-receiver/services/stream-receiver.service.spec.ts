@@ -169,7 +169,7 @@ describe('StreamReceiverService', () => {
 
       // Should not throw with proper parameters
       await expect(
-        service.subscribeStream(subscriptionData, mockCallback, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId)
       ).resolves.not.toThrow();
 
       expect(streamDataFetcher.getClientStateManager).toHaveBeenCalled();
@@ -185,7 +185,7 @@ describe('StreamReceiverService', () => {
 
       // Test without providing clientId (should generate one)
       await expect(
-        service.subscribeStream(subscriptionData, mockCallback)
+        service.subscribeStream(subscriptionData)
       ).resolves.not.toThrow();
 
       expect(streamDataFetcher.getClientStateManager).toHaveBeenCalled();
@@ -203,7 +203,7 @@ describe('StreamReceiverService', () => {
       );
 
       await expect(
-        service.subscribeStream(subscriptionData, mockCallback, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId)
       ).rejects.toThrow('Subscription failed');
     });
 
@@ -280,7 +280,7 @@ describe('StreamReceiverService', () => {
       });
 
       await expect(
-        service.subscribeStream(subscriptionData, mockCallback, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId)
       ).rejects.toThrow('Service unavailable');
     });
 
@@ -301,7 +301,7 @@ describe('StreamReceiverService', () => {
       };
 
       const startTime = Date.now();
-      await service.subscribeStream(subscriptionData, mockCallback, mockClientId);
+      await service.subscribeStream(subscriptionData, mockClientId);
       const endTime = Date.now();
 
       // Should complete within reasonable time
@@ -343,7 +343,7 @@ describe('StreamReceiverService', () => {
 
       // Should handle empty arrays gracefully
       await expect(
-        service.subscribeStream(subscriptionData, mockCallback, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId)
       ).resolves.not.toThrow();
     });
 
@@ -354,9 +354,9 @@ describe('StreamReceiverService', () => {
         preferredProvider: 'longport'
       };
 
-      // Should handle null callback
+      // Should handle valid subscription data
       await expect(
-        service.subscribeStream(subscriptionData, null as any, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId)
       ).resolves.not.toThrow();
     });
 
