@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
-import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
+import { MonitoringRegistryService } from '../../../../system-status/monitoring/services/monitoring-registry.service';
+import { MetricsHelper } from '../../../../system-status/monitoring/helper/metrics-helper';
 
 /**
  * StreamMetricsService - 流数据获取器语义明确的指标服务
@@ -17,7 +17,7 @@ export class StreamMetricsService {
   private readonly logger = createLogger('StreamMetrics');
 
   constructor(
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
   ) {}
 
   /**
@@ -27,7 +27,7 @@ export class StreamMetricsService {
    */
   recordConnectionEvent(event: 'connected' | 'disconnected' | 'failed', provider: string): void {
     try {
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'stream_connection_events_total',
         { 
@@ -51,7 +51,7 @@ export class StreamMetricsService {
    */
   updateActiveConnectionsCount(count: number, provider: string): void {
     try {
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         'stream_active_connections_gauge',
         count,
@@ -74,7 +74,7 @@ export class StreamMetricsService {
    */
   recordSymbolProcessing(symbols: string[], provider: string, action: 'subscribe' | 'unsubscribe'): void {
     try {
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'stream_symbols_processed_total',
         { 
@@ -85,7 +85,7 @@ export class StreamMetricsService {
       );
       
       // TODO: Use correct histogram method when available
-      // Metrics.addToHistogram(
+      // MetricsHelper.addToHistogram(
       //   this.metricsRegistry,
       //   'stream_symbols_batch_size',
       //   symbols.length,
@@ -117,7 +117,7 @@ export class StreamMetricsService {
   recordLatency(operation: string, duration: number, provider: string): void {
     try {
       // TODO: Use correct histogram method when available
-      // Metrics.recordHistogram(
+      // MetricsHelper.recordHistogram(
       //   this.metricsRegistry,
       //   'stream_operation_duration_ms',
       //   duration,
@@ -145,7 +145,7 @@ export class StreamMetricsService {
    */
   recordConnectionStatusChange(provider: string, oldStatus: string, newStatus: string): void {
     try {
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'stream_connection_status_changes_total',
         { 
@@ -175,7 +175,7 @@ export class StreamMetricsService {
   updateQueueStats(stats: { waiting: number; active: number; completed: number; failed: number }): void {
     try {
       Object.entries(stats).forEach(([status, count]) => {
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry,
           'stream_recovery_queue_jobs_gauge',
           count,
@@ -200,7 +200,7 @@ export class StreamMetricsService {
   }): void {
     try {
       Object.entries(stats).forEach(([type, count]) => {
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry,
           'stream_connection_pool_gauge',
           count,
@@ -220,7 +220,7 @@ export class StreamMetricsService {
    */
   recordErrorEvent(errorType: string, provider: string): void {
     try {
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'stream_error_events_total',
         { 
@@ -251,7 +251,7 @@ export class StreamMetricsService {
     // 仅在环境变量允许时发送旧指标
     if (process.env.LEGACY_METRICS_ENABLED !== 'false') {
       try {
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry,
           legacyMetricName,
           value,

@@ -11,8 +11,8 @@ import {
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
-import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
+import { MonitoringRegistryService } from "../../../../system-status/monitoring/services/monitoring-registry.service";
+import { MetricsHelper } from "../../../../system-status/monitoring/helper/metrics-helper";
 
 
 import {
@@ -46,7 +46,7 @@ export class StorageService {
   constructor(
     private readonly storageRepository: StorageRepository,
     private readonly paginationService: PaginationService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
   ) {}
 
   /**
@@ -66,7 +66,7 @@ export class StorageService {
     }
     
     // 🎯 记录数据库存储操作指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'storageOperationsTotal',
       { 
@@ -128,7 +128,7 @@ export class StorageService {
       const processingTime = Date.now() - startTime;
       
       // 🎯 记录数据库查询持续时间指标
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'storageQueryDuration',
         processingTime / 1000,
@@ -139,7 +139,7 @@ export class StorageService {
       );
       
       // 🎯 记录数据库数据量指标
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         'storageDataVolume',
         dataSize,
@@ -197,7 +197,7 @@ export class StorageService {
     }
     
     // 🎯 记录数据库检索操作指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'storageOperationsTotal',
       { 
@@ -230,7 +230,7 @@ export class StorageService {
       const processingTime = Date.now() - startTime;
       
       // 🎯 记录数据库检索失败的查询持续时间指标
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'storageQueryDuration',
         processingTime / 1000,
@@ -282,7 +282,7 @@ export class StorageService {
     }
     
     // 🎯 记录数据库删除操作指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'storageOperationsTotal',
       { 
@@ -308,7 +308,7 @@ export class StorageService {
       const processingTime = Date.now() - startTime;
       
       // 🎯 记录数据库删除查询持续时间指标
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'storageQueryDuration',
         processingTime / 1000,
@@ -328,7 +328,7 @@ export class StorageService {
       const processingTime = Date.now() - startTime;
       
       // 🎯 记录数据库删除失败的查询持续时间
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'storageQueryDuration',
         processingTime / 1000,
@@ -403,7 +403,7 @@ export class StorageService {
     const startTime = Date.now();
     
     // 🎯 记录分页查询操作指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'storageOperationsTotal',
       { 
@@ -450,7 +450,7 @@ export class StorageService {
       const processingTime = Date.now() - startTime;
       
       // 🎯 记录分页查询持续时间指标
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'storageQueryDuration',
         processingTime / 1000,
@@ -461,7 +461,7 @@ export class StorageService {
       );
       
       // 🎯 记录数据量指标
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         'storageDataVolume',
         total,
@@ -482,7 +482,7 @@ export class StorageService {
       const processingTime = Date.now() - startTime;
       
       // 🎯 记录分页查询失败持续时间
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'storageQueryDuration',
         processingTime / 1000,
@@ -558,7 +558,7 @@ export class StorageService {
     const processingTime = Date.now() - startTime;
     
     // 🎯 记录持久化检索查询持续时间指标
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'storageQueryDuration',
       processingTime / 1000,

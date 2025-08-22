@@ -1562,7 +1562,7 @@ grep 确认仓内无残留调用：getWithSmartCache/batchGetWithSmartCache/tryR
 #### **开始重构前必须确认**
 - [ ] Redis连接配置已验证（复用现网@nestjs-modules/ioredis）
 - [ ] 测试环境准备完成（MongoDB + Redis）
-- [ ] 监控指标采集就绪（MetricsRegistryService可用）
+- [ ] 监控指标采集就绪（MonitoringRegistryService可用）
 - [ ] Feature Flag系统可用（控制新功能启用）
 
 #### **每个阶段完成后检查**

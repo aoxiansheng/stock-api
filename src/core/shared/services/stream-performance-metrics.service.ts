@@ -9,8 +9,8 @@ import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
 import { MAPPING_RULE_CATEGORY, type MappingRuleCategory } from '@common/constants/mapping-rule-category.constants';
-import { MetricsRegistryService } from '../../../monitoring/metrics/services/metrics-registry.service';
-import { Metrics } from '../../../monitoring/metrics/metrics-helper';
+import { MonitoringRegistryService } from '../../../system-status/monitoring/services/monitoring-registry.service';
+import { MetricsHelper } from '../../../system-status/monitoring/helper/metrics-helper';
 
 // 流处理性能统计接口（保持向后兼容）
 export interface StreamProcessingStats {
@@ -32,15 +32,15 @@ export interface StreamProcessingStats {
 }
 
 @Injectable()
-export class StreamPerformanceMetrics {
-  private readonly logger = createLogger(StreamPerformanceMetrics.name);
+export class StreamPerformanceMetricsService {
+  private readonly logger = createLogger(StreamPerformanceMetricsService.name);
   
   // 历史遗留值，已重构为使用 Prometheus 指标
   private readonly throughputWindowSize = 60; // 60秒窗口，仅作为常量配置
 
   constructor(
     private readonly featureFlags: FeatureFlags,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
   ) {
     // 定期更新计算指标
     setInterval(() => this.updateCalculatedMetrics(), 10 * 1000); // 每10秒更新计算指标
@@ -60,7 +60,7 @@ export class StreamPerformanceMetrics {
     }
 
     // 使用 Metrics helper 更新指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry, 
       'streamSymbolsProcessedTotal', 
       { provider, market }
@@ -74,7 +74,7 @@ export class StreamPerformanceMetrics {
     }
 
     // 记录吞吐量 - 使用计数器替代内存统计
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry, 
       'streamThroughputPerSecond', 
       { stream_type: 'overall' }
@@ -101,7 +101,7 @@ export class StreamPerformanceMetrics {
     this.recordCacheAccess(cacheHit, 'rule_compilation');
 
     // 使用 Metrics helper 更新指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry, 
       'streamRulesCompiledTotal', 
       { provider, mapping_rule_category: mappingRuleCategory }
@@ -120,7 +120,7 @@ export class StreamPerformanceMetrics {
 
     // 从 Prometheus 获取当前值，并计算新的命中率
     // 这里不再维护本地的命中/丢失计数
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'streamCacheHitRate',
       hit ? 100 : 0,  // 简化的方法：每次调用都只反映当前这一次的命中情况
@@ -138,7 +138,7 @@ export class StreamPerformanceMetrics {
         const count = Math.max(0, (Number(currentConnections) || 0) + delta);
         
         // 使用 Metrics helper 更新指标
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry,
           'streamConcurrentConnections',
           count,
@@ -148,7 +148,7 @@ export class StreamPerformanceMetrics {
       .catch(error => {
         this.logger.error('获取连接数指标失败', error);
         // 降级处理 - 直接记录增量
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry,
           'streamConcurrentConnections',
           delta > 0 ? 1 : 0,
@@ -175,20 +175,20 @@ export class StreamPerformanceMetrics {
     const histogramLabels = { provider, batch_size_range: batchType };
     
     // 使用 Metrics helper 更新指标
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry, 
       'streamBatchesProcessedTotal', 
       labels
     );
     
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry, 
       'streamQuotesInBatchesTotal', 
       { provider },
       quotesCount
     );
     
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'streamBatchProcessingDuration',
       processingTimeMs,
@@ -217,7 +217,7 @@ export class StreamPerformanceMetrics {
     }
     
     // 使用 Metrics helper 更新缓存命中率
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'streamCacheHitRate',
       hitRate,
@@ -236,7 +236,7 @@ export class StreamPerformanceMetrics {
   recordError(errorType: string = 'general'): void {
     // 更新错误率到 Prometheus - 简化实现，直接设置为100%表示发生了错误
     // 实际错误率由 Prometheus 的时序数据计算得出
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'streamErrorRate',
       100,
@@ -369,7 +369,7 @@ export class StreamPerformanceMetrics {
 
   private recordResponseTime(timeMs: number): void {
     // 直接记录到 Prometheus 直方图
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'streamProcessingTimeMs',
       timeMs,

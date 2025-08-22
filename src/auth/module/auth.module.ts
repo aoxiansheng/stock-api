@@ -6,8 +6,8 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { PassportModule } from "@nestjs/passport";
 
 import { CacheModule } from "../../cache/module/cache.module";
-import { MetricsModule } from "../../metrics/module/metrics.module";
-import { PerformanceMonitorService } from "../../metrics/services/performance-monitor.service";
+import { CollectMetricsModule } from "../../system-status/collect-metrics/module/collect-metrics.module";
+import { MetricsPerformanceService } from "../../system-status/collect-metrics/services/metrics-performance.service";
 
 import { AuthController } from "../controller/auth.controller";
 import { RateLimitExceptionFilter } from "../filters/rate-limit.filter";
@@ -32,7 +32,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
 @Module({
   imports: [
     CacheModule,
-    MetricsModule,
+    CollectMetricsModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
     RedisModule,
     JwtModule.registerAsync({
@@ -55,7 +55,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     PermissionService,
     RateLimitService,
     ApiKeyService,
-    PerformanceMonitorService,
+    MetricsPerformanceService,
     PasswordService,
     TokenService,
     JwtStrategy,
@@ -75,7 +75,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     PermissionService,
     RateLimitService,
     ApiKeyService,
-    PerformanceMonitorService,
+    MetricsPerformanceService,
     TokenService,
     JwtAuthGuard,
     ApiKeyAuthGuard,

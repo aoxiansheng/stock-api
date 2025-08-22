@@ -11,8 +11,8 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
-import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
+import { MonitoringRegistryService } from "../../../../system-status/monitoring/services/monitoring-registry.service";
+import { MetricsHelper } from "../../../../system-status/monitoring/helper/metrics-helper";
 
 import {
   DATATRANSFORM_ERROR_MESSAGES,
@@ -41,7 +41,7 @@ export class DataTransformerService {
 
   constructor(
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
   ) {}
 
   /**
@@ -51,7 +51,7 @@ export class DataTransformerService {
     const startTime = Date.now();
     const apiTypeCtx = request.apiType;
 
-    Metrics.inc(this.metricsRegistry, "transformerOperationsTotal", {
+    MetricsHelper.inc(this.metricsRegistry, "transformerOperationsTotal", {
       operation_type: "transform",
       provider: request.provider || "unknown",
     });
@@ -159,7 +159,7 @@ export class DataTransformerService {
         }),
       );
 
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         "transformerBatchSize",
         dataToProcess.length,
@@ -167,7 +167,7 @@ export class DataTransformerService {
       );
       
       const successRate = dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100;
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         "transformerSuccessRate",
         successRate,
@@ -186,7 +186,7 @@ export class DataTransformerService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
 
-      Metrics.setGauge(this.metricsRegistry, "transformerSuccessRate", 0, {
+      MetricsHelper.setGauge(this.metricsRegistry, "transformerSuccessRate", 0, {
         operation_type: "transform",
       });
 
@@ -229,14 +229,14 @@ export class DataTransformerService {
     const operation = "transformBatch_optimized";
 
     // 🎯 记录批量转换操作
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'transformerOperationsTotal',
       { operation_type: 'batch_transform', provider: 'batch' }
     );
 
     // 🎯 记录批量大小
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'transformerBatchSize',
       requests.length,

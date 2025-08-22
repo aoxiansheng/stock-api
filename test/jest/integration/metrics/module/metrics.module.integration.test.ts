@@ -8,21 +8,21 @@ import { INestApplication } from "@nestjs/common";
 import Redis from "ioredis";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 
-import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
+import { MetricsPerformanceService } from "../../../../../src/metrics/services/metrics-performance.service";
 import { PerformanceMetricsRepository } from "../../../../../src/metrics/repositories/performance-metrics.repository";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 
 describe("Metrics Cache Integration", () => {
   let app: INestApplication;
-  let performanceMonitorService: PerformanceMonitorService;
+  let MetricsPerformanceService: MetricsPerformanceService;
   let performanceMetricsRepository: PerformanceMetricsRepository;
   let cacheService: CacheService;
   let redisClient: Redis;
 
   beforeAll(async () => {
     app = (global as any).testApp;
-    performanceMonitorService = app.get<PerformanceMonitorService>(
-      PerformanceMonitorService,
+    MetricsPerformanceService = app.get<MetricsPerformanceService>(
+      MetricsPerformanceService,
     );
     performanceMetricsRepository = app.get<PerformanceMetricsRepository>(
       PerformanceMetricsRepository,
@@ -59,7 +59,7 @@ describe("Metrics Cache Integration", () => {
       }
 
       // Act - 记录请求性能指标
-      await performanceMonitorService.recordRequest(
+      await MetricsPerformanceService.recordRequest(
         requestData.endpoint,
         requestData.method,
         requestData.duration,
@@ -109,7 +109,7 @@ describe("Metrics Cache Integration", () => {
 
       // Act - 验证系统不会崩溃
       await expect(
-        performanceMonitorService.recordRequest(
+        MetricsPerformanceService.recordRequest(
           "/test/fault-tolerance",
           "GET",
           100,
@@ -161,7 +161,7 @@ describe("Metrics Cache Integration", () => {
       };
 
       // Act - 记录数据库查询性能
-      await performanceMonitorService.recordDatabaseQuery(
+      await MetricsPerformanceService.recordDatabaseQuery(
         queryData.operation,
         queryData.duration,
         queryData.success,
@@ -224,7 +224,7 @@ describe("Metrics Cache Integration", () => {
 
       // 这个操作应该不会抛出异常，而是记录到内存
       await expect(
-        performanceMonitorService.recordRequest(endpoint, method, 100, true),
+        MetricsPerformanceService.recordRequest(endpoint, method, 100, true),
       ).resolves.not.toThrow();
 
       // Assert - 验证系统继续工作

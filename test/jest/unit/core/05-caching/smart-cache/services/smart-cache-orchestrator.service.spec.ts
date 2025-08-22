@@ -4,7 +4,7 @@ import { StorageService } from '../../../../../../../src/core/04-storage/storage
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
-import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MonitoringRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { CommonCacheService } from '../../../../../../../src/core/05-caching/common-cache/services/common-cache.service';
 import { 
   CacheStrategy, 
@@ -26,7 +26,7 @@ describe('SmartCacheOrchestrator', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _backgroundTaskService: jest.Mocked<BackgroundTaskService>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let _metricsRegistry: jest.Mocked<MetricsRegistryService>;
+  let _metricsRegistry: jest.Mocked<MonitoringRegistryService>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _commonCacheService: jest.Mocked<CommonCacheService>;
 
@@ -120,7 +120,7 @@ describe('SmartCacheOrchestrator', () => {
           useValue: mockBackgroundTaskService,
         },
         {
-          provide: MetricsRegistryService,
+          provide: MonitoringRegistryService,
           useValue: mockMetricsRegistry,
         },
         {
@@ -138,7 +138,7 @@ describe('SmartCacheOrchestrator', () => {
     _marketStatusService = module.get(MarketStatusService);
     _dataChangeDetectorService = module.get(DataChangeDetectorService);
     _backgroundTaskService = module.get(BackgroundTaskService);
-    _metricsRegistry = module.get(MetricsRegistryService);
+    _metricsRegistry = module.get(MonitoringRegistryService);
     _commonCacheService = module.get(CommonCacheService);
   });
 

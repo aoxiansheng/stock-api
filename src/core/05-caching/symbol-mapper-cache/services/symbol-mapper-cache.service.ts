@@ -2,11 +2,11 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
 import * as crypto from 'crypto';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
+import { MonitoringRegistryService } from '../../../../system-status/monitoring/services/monitoring-registry.service';
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { SymbolMappingRule } from '../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { createLogger } from '@common/config/logger.config';
-import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
+import { MetricsHelper } from '../../../../system-status/monitoring/helper/metrics-helper';
 import { 
   BatchMappingResult,
   CacheStatsDto 
@@ -54,7 +54,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
-    private readonly metricsRegistry: MetricsRegistryService
+    private readonly metricsRegistry: MonitoringRegistryService
   ) {
     this.initializeCaches();
     this.initializeStats();
@@ -446,8 +446,8 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private recordCacheMetrics(level: 'l1'|'l2'|'l3', isHit: boolean): void {
     // 复用现有的 streamCacheHitRate，仅使用定义中的 cache_type 标签
     // 避免添加额外标签导致 prom-client 标签不匹配报错
-    // 统一使用 Metrics.inc 封装，与现网保持一致
-    Metrics.inc(
+    // 统一使用 MetricsHelper.inc 封装，与现网保持一致
+    MetricsHelper.inc(
       this.metricsRegistry,
       'streamCacheHitRate',
       { 

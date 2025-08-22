@@ -14,7 +14,7 @@ import {
   FlexibleMappingRuleDocument
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import { RuleAlignmentService } from "../../../../../../../src/core/00-prepare/data-mapper/services/rule-alignment.service";
-import { MetricsRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
+import { MonitoringRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
 
 // Mock the logger
 jest.mock("../../../../../../../src/common/config/logger.config", () => ({
@@ -33,7 +33,7 @@ describe("PersistedTemplateService", () => {
   let templateModel: DeepMocked<Model<DataSourceTemplateDocument>>;
   let ruleModel: DeepMocked<Model<FlexibleMappingRuleDocument>>;
   let mockRuleAlignmentService: DeepMocked<RuleAlignmentService>;
-  let mockMetricsRegistry: DeepMocked<MetricsRegistryService>;
+  let mockMetricsRegistry: DeepMocked<MonitoringRegistryService>;
 
   const mockTemplate = {
     _id: "507f1f77bcf86cd799439011",
@@ -131,7 +131,7 @@ describe("PersistedTemplateService", () => {
           useValue: createMock<RuleAlignmentService>(),
         },
         {
-          provide: MetricsRegistryService,
+          provide: MonitoringRegistryService,
           useValue: {
             dataMapperRuleInitializationTotal: mockCounter,
             dataMapperRulesCreatedTotal: mockGauge,
@@ -145,7 +145,7 @@ describe("PersistedTemplateService", () => {
     templateModel = module.get(getModelToken(DataSourceTemplate.name));
     ruleModel = module.get(getModelToken(FlexibleMappingRule.name));
     mockRuleAlignmentService = module.get(RuleAlignmentService);
-    mockMetricsRegistry = module.get(MetricsRegistryService);
+    mockMetricsRegistry = module.get(MonitoringRegistryService);
     
     // 重置所有mock
     jest.clearAllMocks();

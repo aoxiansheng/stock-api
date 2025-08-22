@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
-import { MetricsRegistryService } from '../../../monitoring/metrics/services/metrics-registry.service';
-import { Metrics } from '../../../monitoring/metrics/metrics-helper';
+import { MonitoringRegistryService } from '../../../system-status/monitoring/services/monitoring-registry.service';
+import { MetricsHelper } from '../../../system-status/monitoring/helper/metrics-helper';
 import { NotFoundException } from '@nestjs/common';
 
 /**
@@ -33,7 +33,7 @@ export abstract class BaseFetcherService {
   protected readonly logger = createLogger(this.constructor.name);
 
   constructor(
-    protected readonly metricsRegistry: MetricsRegistryService,
+    protected readonly metricsRegistry: MonitoringRegistryService,
   ) {}
 
   /**
@@ -112,7 +112,7 @@ export abstract class BaseFetcherService {
   ): void {
     try {
       // 记录处理时间分布 - 使用已有的指标
-      Metrics.observe(
+      MetricsHelper.observe(
         this.metricsRegistry,
         'receiverProcessingDuration',
         processingTime / 1000, // 转换为秒
@@ -120,7 +120,7 @@ export abstract class BaseFetcherService {
       );
 
       // 记录成功计数 - 使用已有的指标
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'receiverRequestsTotal',
         { method: operation, status: 'success', operation, provider: 'base-fetcher' }
@@ -128,7 +128,7 @@ export abstract class BaseFetcherService {
 
       // 记录重试指标
       if (attempt > 0) {
-        Metrics.inc(
+        MetricsHelper.inc(
           this.metricsRegistry,
           'receiverRequestsTotal',
           { method: operation, status: 'retry_success', operation, provider: 'base-fetcher' }
@@ -152,7 +152,7 @@ export abstract class BaseFetcherService {
   ): void {
     try {
       // 记录失败计数
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'receiverRequestsTotal',
         { 
@@ -166,7 +166,7 @@ export abstract class BaseFetcherService {
 
       // 记录重试指标
       if (totalAttempts > 1) {
-        Metrics.inc(
+        MetricsHelper.inc(
           this.metricsRegistry,
           'receiverRequestsTotal',
           { method: operation, operation, status: 'retry_failure', provider: 'base-fetcher' }
@@ -206,7 +206,7 @@ export abstract class BaseFetcherService {
 
       // 记录慢响应指标
       try {
-        Metrics.inc(
+        MetricsHelper.inc(
           this.metricsRegistry,
           'receiverRequestsTotal',
           { method: operation, operation, status: 'slow_response', provider: 'base-fetcher' }

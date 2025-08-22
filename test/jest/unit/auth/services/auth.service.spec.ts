@@ -21,7 +21,7 @@ import { PasswordService } from "../../../../../src/auth/services/password.servi
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { TokenService } from "../../../../../src/auth/services/token.service";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { PerformanceMonitorService } from "../../../../../src/metrics/services/performance-monitor.service";
+import { MetricsPerformanceService } from "../../../../../src/metrics/services/metrics-performance.service";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CreateUserDto, LoginDto } from "../../../../../src/auth/dto/auth.dto";
 
@@ -32,7 +32,7 @@ describe("AuthService", () => {
   let passwordService: jest.Mocked<PasswordService>;
   let tokenService: jest.Mocked<TokenService>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let performanceMonitorService: jest.Mocked<PerformanceMonitorService>;
+  let MetricsPerformanceService: jest.Mocked<MetricsPerformanceService>;
 
   // Mock 数据 - 使用 any 类型来模拟 Mongoose 文档行为
   const mockUser: any = {
@@ -111,7 +111,7 @@ describe("AuthService", () => {
       verifyRefreshToken: jest.fn(),
     };
 
-    const mockPerformanceMonitorService = {
+    const mockMetricsPerformanceService = {
       recordDatabaseQuery: jest.fn(),
       recordCacheOperation: jest.fn(),
       recordAuthentication: jest.fn(),
@@ -173,8 +173,8 @@ describe("AuthService", () => {
           useValue: mockTokenService,
         },
         {
-          provide: PerformanceMonitorService,
-          useValue: mockPerformanceMonitorService,
+          provide: MetricsPerformanceService,
+          useValue: mockMetricsPerformanceService,
         },
       ],
     }).compile();
@@ -184,7 +184,7 @@ describe("AuthService", () => {
     apiKeyService = module.get(ApiKeyService);
     passwordService = module.get(PasswordService);
     tokenService = module.get(TokenService);
-    performanceMonitorService = module.get(PerformanceMonitorService);
+    MetricsPerformanceService = module.get(MetricsPerformanceService);
   });
 
   afterEach(() => {

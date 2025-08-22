@@ -27,7 +27,7 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
  */
 @Module({
   imports: [
-    SharedServicesModule, // 提供 MetricsRegistryService
+    SharedServicesModule, // 提供 MonitoringRegistryService
     MongooseModule.forFeature([
       { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),

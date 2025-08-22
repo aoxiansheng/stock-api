@@ -21,8 +21,8 @@ import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/u
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
-import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
+import { MonitoringRegistryService } from "../../../../system-status/monitoring/services/monitoring-registry.service";
+import { MetricsHelper } from "../../../../system-status/monitoring/helper/metrics-helper";
 
 import {
   RECEIVER_ERROR_MESSAGES,
@@ -69,7 +69,7 @@ export class ReceiverService {
     private readonly marketStatusService: MarketStatusService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly storageService: StorageService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
@@ -87,7 +87,7 @@ export class ReceiverService {
 
     // 🎯 记录连接开始（避免调用已弃用方法，直接维护计数并写入指标）
     this.activeConnections = Math.max(0, this.activeConnections + 1);
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'receiverActiveConnections',
       this.activeConnections,
@@ -157,7 +157,7 @@ export class ReceiverService {
 
         // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
         this.activeConnections = Math.max(0, this.activeConnections - 1);
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry,
           'receiverActiveConnections',
           this.activeConnections,
@@ -223,7 +223,7 @@ export class ReceiverService {
 
       // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
       this.activeConnections = Math.max(0, this.activeConnections - 1);
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         'receiverActiveConnections',
         this.activeConnections,
@@ -257,7 +257,7 @@ export class ReceiverService {
 
       // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
       this.activeConnections = Math.max(0, this.activeConnections - 1);
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         'receiverActiveConnections',
         this.activeConnections,
@@ -744,14 +744,14 @@ export class ReceiverService {
     const status = success ? 'success' : 'error';
 
     // 记录请求总数
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'receiverRequestsTotal',
       { method: 'handleRequest', provider: providerLabel, status, operation: 'handleRequest' }
     );
 
     // 记录处理时间分布
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'receiverProcessingDuration',
       processingTime / 1000, // 转换为秒
@@ -760,7 +760,7 @@ export class ReceiverService {
 
     // 如果是慢请求，记录错误率
     if (processingTime > RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS) {
-      Metrics.setGauge(
+      MetricsHelper.setGauge(
         this.metricsRegistry,
         'receiverErrorRate',
         100, // 表示检测到慢请求

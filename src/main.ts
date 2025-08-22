@@ -11,8 +11,8 @@ import {
 } from "@common/core/interceptors";
 
 import { AppModule } from "./app.module";
-import { PerformanceInterceptor } from "./metrics/interceptors/performance.interceptor";
-import { PerformanceMonitorService } from "./metrics/services/performance-monitor.service";
+import { PerformanceInterceptor } from "./system-status/collect-metrics/interceptors/performance.interceptor";
+import { MetricsPerformanceService } from "./system-status/collect-metrics/services/metrics-performance.service";
 import { SecurityMiddleware } from "./security/middleware/security.middleware";
 
 async function bootstrap() {
@@ -65,7 +65,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new RequestTrackingInterceptor());
 
   // 全局性能监控拦截器
-  const performanceMonitor = app.get(PerformanceMonitorService);
+  const performanceMonitor = app.get(MetricsPerformanceService);
   const reflector = app.get("Reflector");
   app.useGlobalInterceptors(
     new PerformanceInterceptor(performanceMonitor, reflector),
@@ -75,7 +75,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   // 设置全局性能监控服务（供装饰器使用）
-  global["performanceMonitorService"] = performanceMonitor;
+  global["metricsPerformanceService"] = performanceMonitor;
 
   // CORS 配置
   app.enableCors({

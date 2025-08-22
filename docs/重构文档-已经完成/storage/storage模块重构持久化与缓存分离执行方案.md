@@ -80,7 +80,7 @@
 - [ ] 所有方法都有TypeScript类型注解
 - [ ] 错误处理覆盖Redis连接失败场景
 - [ ] 日志记录debug级别信息
-- [ ] 指标收集正确使用MetricsRegistryService
+- [ ] 指标收集正确使用MonitoringRegistryService
 
 #### 测试验收
 - [ ] 创建并通过基础单元测试
@@ -543,7 +543,7 @@ constructor(
   private readonly featureFlags: FeatureFlags,
   private readonly legacyStorageService?: StorageService,   // 保留作为fallback
   @Inject('METRICS_REGISTRY') 
-  private readonly metricsRegistry: MetricsRegistryService
+  private readonly metricsRegistry: MonitoringRegistryService
 ) {
   this.useNewImplementation = this.featureFlags.getBoolean(
     'cache.useCommonCacheService', 

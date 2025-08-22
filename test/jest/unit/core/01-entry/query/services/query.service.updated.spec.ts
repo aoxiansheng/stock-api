@@ -10,7 +10,7 @@ import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/q
 import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
-import { MetricsRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MonitoringRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -36,7 +36,7 @@ describe('QueryService - Updated Tests', () => {
   let storageService: jest.Mocked<StorageService>;
   let receiverService: jest.Mocked<ReceiverService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
-  let metricsRegistryService: jest.Mocked<MetricsRegistryService>;
+  let monitoringRegistryService: jest.Mocked<MonitoringRegistryService>;
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
 
   // Mock data for testing
@@ -141,7 +141,7 @@ describe('QueryService - Updated Tests', () => {
         { provide: QueryResultProcessorService, useValue: {} },
         { provide: BackgroundTaskService, useValue: {} },
         { provide: PaginationService, useValue: {} },
-        { provide: MetricsRegistryService, useValue: mockMetricsRegistry },
+        { provide: MonitoringRegistryService, useValue: mockMetricsRegistry },
         { provide: SmartCacheOrchestrator, useValue: mockSmartCacheOrchestrator },
       ],
     }).compile();
@@ -150,7 +150,7 @@ describe('QueryService - Updated Tests', () => {
     storageService = module.get(StorageService);
     receiverService = module.get(ReceiverService);
     marketStatusService = module.get(MarketStatusService);
-    metricsRegistryService = module.get(MetricsRegistryService);
+    monitoringRegistryService = module.get(MonitoringRegistryService);
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
     // Setup utility function mocks
@@ -404,8 +404,8 @@ describe('QueryService - Updated Tests', () => {
         // Expected to throw
       }
 
-      // Note: queryErrors metric doesn't exist in current MetricsRegistryService
-      // expect(metricsRegistryService.queryErrors.inc).toHaveBeenCalled();
+      // Note: queryErrors metric doesn't exist in current MonitoringRegistryService
+      // expect(monitoringRegistryService.queryErrors.inc).toHaveBeenCalled();
     });
   });
 
@@ -413,7 +413,7 @@ describe('QueryService - Updated Tests', () => {
     it('should track query duration metrics', async () => {
       await service.executeQuery(mockRequest);
 
-      expect(metricsRegistryService.queryPipelineDuration.observe).toHaveBeenCalled();
+      expect(monitoringRegistryService.queryPipelineDuration.observe).toHaveBeenCalled();
     });
 
     it('should track batch size metrics for multi-symbol queries', async () => {
@@ -431,8 +431,8 @@ describe('QueryService - Updated Tests', () => {
 
       await service.executeQuery(multiBatchRequest);
 
-      // Note: queryBatchSize metric doesn't exist in current MetricsRegistryService
-      // expect(metricsRegistryService.queryBatchSize.observe).toHaveBeenCalled();
+      // Note: queryBatchSize metric doesn't exist in current MonitoringRegistryService
+      // expect(monitoringRegistryService.queryBatchSize.observe).toHaveBeenCalled();
     });
   });
 

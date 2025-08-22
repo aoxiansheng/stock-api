@@ -39,7 +39,7 @@ import { SymbolTransformerModule } from "../../src/core/02-processing/symbol-tra
 // 添加分页模块导入
 import { PaginationModule } from "../../src/common/modules/pagination/modules/pagination.module";
 
-import { PerformanceMonitorService } from "../../src/metrics/services/performance-monitor.service";
+import { MetricsPerformanceService } from "../../src/metrics/services/metrics-performance.service";
 
 // 导入拦截器和过滤器
 import {
@@ -121,7 +121,7 @@ async function createTestApplication(): Promise<void> {
 
   // 在模块创建后重新配置Mock的事件发射功能
   const eventEmitter = testModule.get(EventEmitter2);
-  const mockPerformanceMonitor = testModule.get(PerformanceMonitorService);
+  const mockPerformanceMonitor = testModule.get(MetricsPerformanceService);
 
   // 重新配置recordRequest方法以发射事件
   mockPerformanceMonitor.recordRequest = jest
@@ -172,7 +172,7 @@ async function createTestApplication(): Promise<void> {
   testApp.useGlobalInterceptors(new ResponseInterceptor());
 
   // 设置全局性能监控服务（供装饰器使用）
-  (global as any).performanceMonitorService = mockPerformanceMonitor;
+  (global as any).MetricsPerformanceService = mockPerformanceMonitor;
 
   await testApp.init();
 
@@ -274,7 +274,7 @@ afterEach(async () => {
     // 重置性能监控模拟
     const app = (global as any).testApp;
     if (app) {
-      const mockPerformanceMonitor = app.get(PerformanceMonitorService);
+      const mockPerformanceMonitor = app.get(MetricsPerformanceService);
       if (mockPerformanceMonitor) {
         // 重置所有模拟函数的调用记录
         Object.values(mockPerformanceMonitor).forEach((fn) => {

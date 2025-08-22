@@ -1,4 +1,4 @@
-import { FlexibleMappingRuleResponseDto } from '../../../00-prepare/data-mapper/dto/flexible-mapping-rule-response.dto';
+import { FlexibleMappingRuleResponseDto } from '../../../../core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 
 /**
  * DataMapper 专用缓存接口

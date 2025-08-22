@@ -166,7 +166,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly dataChangeDetector: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
     @Inject('SMART_CACHE_ORCHESTRATOR_CONFIG') config: SmartCacheOrchestratorConfig,
   ) {
     this.config = config;

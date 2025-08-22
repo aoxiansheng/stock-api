@@ -17,7 +17,7 @@
 
 ### 1.1 模块职责边界错位 - P0级架构问题
 
-**问题描述**: `AuthModule` 与 `MetricsModule` 重复提供 `PerformanceMonitorService`，违反单一职责原则。
+**问题描述**: `AuthModule` 与 `AnalyticsModule` 重复提供 `MetricsPerformanceService`，违反单一职责原则。
 
 **具体代码位置与影响**:
 ```typescript
@@ -27,7 +27,7 @@ providers: [
   PermissionService,
   RateLimitService,
   ApiKeyService,
-  PerformanceMonitorService, // 🚨 与MetricsModule冲突
+  MetricsPerformanceService, // 🚨 与AnalyticsModule冲突
   PasswordService,
   TokenService,
 ],
@@ -38,20 +38,20 @@ exports: [
   PermissionService,
   RateLimitService,
   ApiKeyService,
-  PerformanceMonitorService, // 🚨 重复导出
+  MetricsPerformanceService, // 🚨 重复导出
   TokenService,
 ]
 ```
 
 **影响分析**:
-- **多实例风险**: 可能创建两个 `PerformanceMonitorService` 实例，导致监控数据不一致
+- **多实例风险**: 可能创建两个 `MetricsPerformanceService` 实例，导致监控数据不一致
 - **内存泄漏**: 重复实例增加约15-20MB内存占用（基于监控数据存储）
 - **调试困难**: 无法确定使用的是哪个实例，排查问题复杂化
 
 **验证方法**:
 ```bash
 # 检查依赖注入树结构
-npx nest-cli info --display-depth 3 | grep PerformanceMonitorService
+npx nest-cli info --display-depth 3 | grep MetricsPerformanceService
 # 应该只显示一个提供者路径
 ```
 
@@ -60,12 +60,12 @@ npx nest-cli info --display-depth 3 | grep PerformanceMonitorService
 **问题位置**: 
 ```typescript
 // ❌ 遗留代码 - src/main.ts:78行
-global["performanceMonitorService"] = performanceMonitor;
+global["MetricsPerformanceService"] = performanceMonitor;
 
 // ❌ 依赖代码 - src/metrics/decorators/database-performance.decorator.ts:14行
 const performanceMonitor =
   this.performanceMonitor ||  // 优先使用DI注入
-  (global["performanceMonitorService"] as PerformanceMonitorService); // 🚨 全局变量回退
+  (global["MetricsPerformanceService"] as MetricsPerformanceService); // 🚨 全局变量回退
 
 // ❌ 依赖代码 - src/metrics/decorators/database-performance.decorator.ts:45行
 if (!performanceMonitor || typeof performanceMonitor.wrapWithTiming !== "function") {
@@ -110,7 +110,7 @@ const reflector = app.get(Reflector); // 类token，编译时类型检查
 
 **问题位置**:
 ```typescript
-// ❌ 空发射事件 - src/metrics/services/performance-monitor.service.ts:542行
+// ❌ 空发射事件 - src/metrics/services/metrics-performance.service.ts:542行
 this.eventEmitter.emit(PERFORMANCE_EVENTS.METRIC_RECORDED, { 
   metric: name, 
   value,
@@ -136,7 +136,7 @@ const performanceImpact = {
 
 ### 2.1 依赖注入一致性增强
 
-**目标**: 确保所有使用性能装饰器的服务都正确注入 `PerformanceMonitorService`
+**目标**: 确保所有使用性能装饰器的服务都正确注入 `MetricsPerformanceService`
 
 **实施指南**:
 ```typescript
@@ -144,7 +144,7 @@ const performanceImpact = {
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly performanceMonitor: PerformanceMonitorService, // 必须注入
+    private readonly performanceMonitor: MetricsPerformanceService, // 必须注入
     private readonly userRepository: UserRepository,
     private readonly configService: ConfigService,
   ) {}
@@ -180,12 +180,12 @@ export function DatabasePerformance(operation?: string) {
     
     descriptor.value = function (...args: any[]) {
       const performanceMonitor = this.performanceMonitor || 
-        (global["performanceMonitorService"] as PerformanceMonitorService);
+        (global["MetricsPerformanceService"] as MetricsPerformanceService);
         
       if (!performanceMonitor) {
         // 🔧 增强错误信息
-        console.warn(`[PERFORMANCE DECORATOR] Service ${this.constructor.name} missing PerformanceMonitorService injection. Method: ${propertyKey}`);
-        console.warn(`[PERFORMANCE DECORATOR] Please inject PerformanceMonitorService in constructor to enable performance monitoring`);
+        console.warn(`[PERFORMANCE DECORATOR] Service ${this.constructor.name} missing MetricsPerformanceService injection. Method: ${propertyKey}`);
+        console.warn(`[PERFORMANCE DECORATOR] Please inject MetricsPerformanceService in constructor to enable performance monitoring`);
         
         // 记录缺失监控的调用
         this.recordMissingMonitoringCall?.(propertyKey);
@@ -195,7 +195,7 @@ export function DatabasePerformance(operation?: string) {
       
       // 验证方法签名
       if (typeof performanceMonitor.wrapWithTiming !== "function") {
-        console.error(`[PERFORMANCE DECORATOR] Invalid PerformanceMonitorService instance in ${this.constructor.name}`);
+        console.error(`[PERFORMANCE DECORATOR] Invalid MetricsPerformanceService instance in ${this.constructor.name}`);
         return method.apply(this, args);
       }
       
@@ -411,7 +411,7 @@ private hasActiveSubscribers(): boolean {
 ```typescript
 // ✅ 可配置的事件发射
 @Injectable()
-export class PerformanceMonitorService {
+export class MetricsPerformanceService {
   private readonly eventConfig = {
     enableMetricEvents: process.env.ENABLE_PERFORMANCE_EVENTS !== 'false',
     enableAlerting: process.env.ENABLE_PERFORMANCE_ALERTING === 'true',
@@ -483,10 +483,10 @@ const preValidationChecks = {
 // 1.1 移除AuthModule重复Provider
 // File: src/auth/module/auth.module.ts
 const removeFromProviders = [
-  'PerformanceMonitorService' // Line 58
+  'MetricsPerformanceService' // Line 58
 ];
 const removeFromExports = [
-  'PerformanceMonitorService' // Line 78
+  'MetricsPerformanceService' // Line 78
 ];
 
 // 1.2 修复类型安全问题
@@ -515,7 +515,7 @@ const serviceAuditPlan = {
     'CacheService'
   ],
   checkItems: [
-    'constructor injection of PerformanceMonitorService',
+    'constructor injection of MetricsPerformanceService',
     'decorator usage patterns',
     'test mock configurations'
   ],
@@ -534,8 +534,8 @@ const deprecationAnnotations = {
   ],
   annotations: [
     '// @deprecated Global variable fallback - scheduled for removal in v2.1',
-    '// @todo Ensure all services inject PerformanceMonitorService via constructor',
-    '// @warning New code must not depend on global["performanceMonitorService"]'
+    '// @todo Ensure all services inject MetricsPerformanceService via constructor',
+    '// @warning New code must not depend on global["MetricsPerformanceService"]'
   ]
 };
 ```
@@ -588,16 +588,16 @@ const eventSystemOptimization = {
 
 ```typescript
 // 新增测试用例
-describe('PerformanceMonitorService - Dependency Injection', () => {
-  it('should be provided only by MetricsModule', () => {
+describe('MetricsPerformanceService - Dependency Injection', () => {
+  it('should be provided only by AnalyticsModule', () => {
     // 验证单一提供者
     const moduleRef = await Test.createTestingModule({
-      imports: [MetricsModule, AuthModule]
+      imports: [AnalyticsModule, AuthModule]
     }).compile();
     
-    const instances = moduleRef.get(PerformanceMonitorService, { strict: false });
+    const instances = moduleRef.get(MetricsPerformanceService, { strict: false });
     expect(instances).toBeDefined();
-    expect(instances.constructor.name).toBe('PerformanceMonitorService');
+    expect(instances.constructor.name).toBe('MetricsPerformanceService');
   });
   
   it('should not have duplicate instances', async () => {
@@ -606,8 +606,8 @@ describe('PerformanceMonitorService - Dependency Injection', () => {
       imports: [AppModule]
     }).compile();
     
-    const metricsInstance = app.get(PerformanceMonitorService);
-    const authModuleInstance = app.select(AuthModule).get(PerformanceMonitorService, { strict: false });
+    const metricsInstance = app.get(MetricsPerformanceService);
+    const authModuleInstance = app.select(AuthModule).get(MetricsPerformanceService, { strict: false });
     
     expect(metricsInstance).toBe(authModuleInstance);
   });
@@ -616,7 +616,7 @@ describe('PerformanceMonitorService - Dependency Injection', () => {
 describe('Performance Decorators - DI Integration', () => {
   it('should use injected service over global fallback', () => {
     class TestService {
-      constructor(public performanceMonitor: PerformanceMonitorService) {}
+      constructor(public performanceMonitor: MetricsPerformanceService) {}
       
       @DatabasePerformance('test-operation')
       testMethod() {
@@ -624,7 +624,7 @@ describe('Performance Decorators - DI Integration', () => {
       }
     }
     
-    const mockService = createMock<PerformanceMonitorService>();
+    const mockService = createMock<MetricsPerformanceService>();
     const testInstance = new TestService(mockService);
     
     testInstance.testMethod();
@@ -640,7 +640,7 @@ describe('Performance Decorators - DI Integration', () => {
 // 集成测试套件
 describe('Metrics Module Integration', () => {
   let app: INestApplication;
-  let performanceMonitor: PerformanceMonitorService;
+  let performanceMonitor: MetricsPerformanceService;
   
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -648,7 +648,7 @@ describe('Metrics Module Integration', () => {
     }).compile();
     
     app = moduleRef.createNestApplication();
-    performanceMonitor = app.get(PerformanceMonitorService);
+    performanceMonitor = app.get(MetricsPerformanceService);
     await app.init();
   });
   
@@ -731,8 +731,8 @@ describe('Performance Regression Tests', () => {
 @Injectable()
 export class BusinessService {
   constructor(
-    // 1. 明确注入PerformanceMonitorService
-    private readonly performanceMonitor: PerformanceMonitorService,
+    // 1. 明确注入MetricsPerformanceService
+    private readonly performanceMonitor: MetricsPerformanceService,
     // 2. 其他业务依赖
     private readonly repository: BusinessRepository,
     private readonly logger: Logger
@@ -752,17 +752,17 @@ export class BusinessService {
 // ✅ 清晰的模块职责划分
 @Module({
   imports: [
-    MetricsModule,  // 导入监控能力
+    AnalyticsModule,  // 导入监控能力
     // 其他业务依赖
   ],
   providers: [
     BusinessService,
     BusinessRepository,
-    // ❌ 不要重复提供 PerformanceMonitorService
+    // ❌ 不要重复提供 MetricsPerformanceService
   ],
   exports: [
     BusinessService,
-    // ❌ 不要重复导出 PerformanceMonitorService
+    // ❌ 不要重复导出 MetricsPerformanceService
   ]
 })
 export class BusinessModule {}
@@ -773,7 +773,7 @@ export class BusinessModule {}
 ```typescript
 // ✅ 装饰器使用指南
 class ServiceExample {
-  constructor(private readonly performanceMonitor: PerformanceMonitorService) {}
+  constructor(private readonly performanceMonitor: MetricsPerformanceService) {}
   
   // 1. 为关键业务操作添加监控
   @DatabasePerformance('user:authentication')
@@ -837,8 +837,8 @@ const METRIC_NAMING_CONVENTION = {
 cp src/auth/module/auth.module.ts src/auth/module/auth.module.ts.backup
 
 # 编辑 src/auth/module/auth.module.ts
-# 从 providers 数组中删除 PerformanceMonitorService (第58行)
-# 从 exports 数组中删除 PerformanceMonitorService (第78行)
+# 从 providers 数组中删除 MetricsPerformanceService (第58行)
+# 从 exports 数组中删除 MetricsPerformanceService (第78行)
 ```
 
 **8.1.2 修复类型安全问题**
@@ -877,13 +877,13 @@ echo "=== Performance Decorator Usage Audit ==="
 echo "1. Classes using performance decorators:"
 grep -r "@.*Performance" src/ --include="*.ts" -A 5 -B 2
 
-# 检查这些类是否正确注入了 PerformanceMonitorService
-echo -e "\n2. Checking PerformanceMonitorService injection:"
-grep -r "performanceMonitor.*PerformanceMonitorService" src/ --include="*.ts" -n
+# 检查这些类是否正确注入了 MetricsPerformanceService
+echo -e "\n2. Checking MetricsPerformanceService injection:"
+grep -r "performanceMonitor.*MetricsPerformanceService" src/ --include="*.ts" -n
 
 # 查找全局变量使用
 echo -e "\n3. Global variable usage:"
-grep -r 'global\["performanceMonitorService"\]' src/ --include="*.ts" -n
+grep -r 'global\["MetricsPerformanceService"\]' src/ --include="*.ts" -n
 
 echo -e "\n=== Audit Complete ==="
 ```
@@ -893,12 +893,12 @@ echo -e "\n=== Audit Complete ==="
 // 在所有装饰器文件中添加
 /**
  * @deprecated Global variable fallback - scheduled for removal in v2.1
- * @todo Ensure all services inject PerformanceMonitorService via constructor  
- * @warning New code must not depend on global["performanceMonitorService"]
+ * @todo Ensure all services inject MetricsPerformanceService via constructor  
+ * @warning New code must not depend on global["MetricsPerformanceService"]
  */
 const performanceMonitor =
   this.performanceMonitor ||
-  (global["performanceMonitorService"] as PerformanceMonitorService);
+  (global["MetricsPerformanceService"] as MetricsPerformanceService);
 ```
 
 ---
@@ -909,7 +909,7 @@ const performanceMonitor =
 
 | 验收项目 | 验收标准 | 验证方法 | 优先级 |
 |---------|---------|----------|--------|
-| DI唯一性 | PerformanceMonitorService只有一个实例 | 依赖注入树检查 | P0 |
+| DI唯一性 | MetricsPerformanceService只有一个实例 | 依赖注入树检查 | P0 |
 | 监控功能 | 所有装饰器正常工作 | 集成测试验证 | P0 |
 | 类型安全 | Reflector使用类token | 编译时检查 | P1 |
 | 性能稳定 | 无性能回归 | 基准测试对比 | P1 |
@@ -1018,7 +1018,7 @@ echo "=== Rollback Complete ==="
 const troubleshootingGuide = {
   symptom: "性能监控数据丢失",
   checkList: [
-    "1. 验证PerformanceMonitorService实例数量",
+    "1. 验证MetricsPerformanceService实例数量",
     "2. 检查装饰器中的错误日志",  
     "3. 确认服务正确注入依赖",
     "4. 验证全局变量是否可用（过渡期间）"
@@ -1034,7 +1034,7 @@ const troubleshootingGuide = {
   
   symptom: "依赖注入失败",
   checkList: [
-    "1. 验证MetricsModule是否正确导入",
+    "1. 验证AnalyticsModule是否正确导入",
     "2. 检查CircularDependency错误",
     "3. 确认Provider配置正确性",
     "4. 验证模块导入顺序"

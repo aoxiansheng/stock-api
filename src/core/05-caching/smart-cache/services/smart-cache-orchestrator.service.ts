@@ -3,7 +3,7 @@ import { CommonCacheService } from '../../common-cache/services/common-cache.ser
 import { DataChangeDetectorService } from '../../../shared/services/data-change-detector.service';
 import { MarketStatusService, MarketStatusResult } from '../../../shared/services/market-status.service';
 import { BackgroundTaskService } from '../../../shared/services/background-task.service';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
+import { MonitoringRegistryService } from '../../../../system-status/monitoring/services/monitoring-registry.service';
 import { Market } from '../../../../common/constants/market.constants';
 import { MarketStatus } from '../../../../common/constants/market-trading-hours.constants';
 import { 
@@ -75,7 +75,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
-    private readonly metricsRegistryService: MetricsRegistryService,
+    private readonly monitoringRegistryService: MonitoringRegistryService,
   ) {
     this.logger.log('SmartCacheOrchestrator service initializing...');
     
@@ -294,7 +294,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       
       // 记录告警指标
       if (this.config.enableMetrics) {
-        this.metricsRegistryService.queryBackgroundTasksFailed.inc();
+        this.monitoringRegistryService.queryBackgroundTasksFailed.inc();
       }
     }
     
@@ -315,7 +315,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    */
   private initializeMetrics(): void {
     try {
-      // 指标已在MetricsRegistryService中注册：
+      // 指标已在MonitoringRegistryService中注册：
       // - queryBackgroundTasksActive (Gauge)
       // - queryBackgroundTasksCompleted (Counter)
       // - queryBackgroundTasksFailed (Counter)
@@ -382,7 +382,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
     // 更新活跃任务指标
     if (this.config.enableMetrics) {
-      this.metricsRegistryService.queryBackgroundTasksActive.set(this.activeTaskCount);
+      this.monitoringRegistryService.queryBackgroundTasksActive.set(this.activeTaskCount);
     }
 
     try {
@@ -481,7 +481,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 更新完成指标
       if (this.config.enableMetrics) {
-        this.metricsRegistryService.queryBackgroundTasksCompleted.inc();
+        this.monitoringRegistryService.queryBackgroundTasksCompleted.inc();
       }
       
     } catch (error) {
@@ -503,7 +503,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 更新失败指标
       if (this.config.enableMetrics) {
-        this.metricsRegistryService.queryBackgroundTasksFailed.inc();
+        this.monitoringRegistryService.queryBackgroundTasksFailed.inc();
       }
     } finally {
       this.activeTaskCount--;
@@ -515,7 +515,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 更新活跃任务指标
       if (this.config.enableMetrics) {
-        this.metricsRegistryService.queryBackgroundTasksActive.set(this.activeTaskCount);
+        this.monitoringRegistryService.queryBackgroundTasksActive.set(this.activeTaskCount);
       }
     }
   }

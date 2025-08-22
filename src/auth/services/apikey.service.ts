@@ -9,7 +9,7 @@ import { Model } from "mongoose";
 import { BadRequestException } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
-import { AuthPerformance } from "../../metrics/decorators/database-performance.decorator";
+import { AuthPerformance } from "../../system-status/collect-metrics/decorators/database-performance.decorator";
 import {
   APIKEY_OPERATIONS,
   APIKEY_MESSAGES,

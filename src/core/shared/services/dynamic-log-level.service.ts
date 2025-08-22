@@ -8,8 +8,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../monitoring/metrics/services/metrics-registry.service';
-import { Metrics } from '../../../monitoring/metrics/metrics-helper';
+import { MonitoringRegistryService } from '../../../system-status/monitoring/services/monitoring-registry.service';
+import { MetricsHelper } from '../../../system-status/monitoring/helper/metrics-helper';
 import * as os from 'os';
 
 interface CPUUsageStats {
@@ -51,7 +51,7 @@ export class DynamicLogLevelService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly featureFlags: FeatureFlags,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: MonitoringRegistryService,
   ) {
     this.originalLogLevel = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
     this.currentLogLevel = this.originalLogLevel;
@@ -124,7 +124,7 @@ export class DynamicLogLevelService implements OnModuleInit, OnModuleDestroy {
       
       // 更新 Prometheus CPU 使用率指标 - 使用 Metrics 助手
       if (this.featureFlags.isPerformanceOptimizationEnabled()) {
-        Metrics.setGauge(
+        MetricsHelper.setGauge(
           this.metricsRegistry, 
           'systemCpuUsagePercent', 
           this.currentCPUUsage
@@ -197,7 +197,7 @@ export class DynamicLogLevelService implements OnModuleInit, OnModuleDestroy {
         const durationSeconds = (currentTime - this.highLoadStartTime) / 1000;
         
         // 使用 Metrics 助手更新 Prometheus 指标
-        Metrics.inc(
+        MetricsHelper.inc(
           this.metricsRegistry, 
           'highLoadDurationSecondsTotal', 
           {}, 
@@ -233,7 +233,7 @@ export class DynamicLogLevelService implements OnModuleInit, OnModuleDestroy {
       
       // 更新 Prometheus 日志级别切换计数器 - 使用 Metrics 助手
       if (this.featureFlags.isPerformanceOptimizationEnabled()) {
-        Metrics.inc(
+        MetricsHelper.inc(
           this.metricsRegistry,
           'logLevelSwitchesTotal',
           {

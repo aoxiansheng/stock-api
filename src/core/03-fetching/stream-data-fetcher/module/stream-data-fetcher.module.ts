@@ -8,7 +8,7 @@ import { StreamRecoveryMetricsService } from '../metrics/stream-recovery.metrics
 import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../providers/websocket-server.provider';
 import { SharedServicesModule } from '../../../shared/module/shared-services.module';
 import { ProvidersModule } from '../../../../providers/module/providers.module';
-import { MonitoringModule } from '../../../../monitoring/module/monitoring.module';
+import { MonitoringModule } from '../../../../system-status/monitoring/module/monitoring.module';
 import { StreamCacheModule } from '../../../05-caching/stream-cache/module/stream-cache.module';
 
 /**
@@ -24,7 +24,7 @@ import { StreamCacheModule } from '../../../05-caching/stream-cache/module/strea
   imports: [
     SharedServicesModule, // 导入共享服务(包含BaseFetcherService相关依赖)
     ProvidersModule, // 导入提供商模块以访问CapabilityRegistryService
-    MonitoringModule, // 导入监控模块以访问MetricsRegistryService
+    MonitoringModule, // 导入监控模块以访问MonitoringRegistryService
     StreamCacheModule, // 🎯 新增：导入专用流缓存模块
   ],
   providers: [

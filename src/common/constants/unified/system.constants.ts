@@ -10,7 +10,7 @@
  */
 
 import type { DataState } from "./operations.constants";
-import { OperationStatus } from "../../../metrics/enums/auth-type.enum";
+import { OperationStatus } from "../../../system-status/collect-metrics/enums/auth-type.enum";
 import { deepFreeze } from "@common/utils/object-immutability.util";
 
 export const SYSTEM_CONSTANTS = deepFreeze({

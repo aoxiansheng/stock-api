@@ -6,8 +6,8 @@ import {
 
 import { createLogger } from "@common/config/logger.config";
 
-import { DatabasePerformance } from "../../metrics/decorators/database-performance.decorator";
-import { PerformanceMonitorService } from "../../metrics/services/performance-monitor.service";
+import { DatabasePerformance } from "../../system-status/collect-metrics/decorators/database-performance.decorator";
+import { MetricsPerformanceService } from "../../system-status/collect-metrics/services/metrics-performance.service";
 import {
   AUTH_OPERATIONS,
   AUTH_MESSAGES,
@@ -31,7 +31,7 @@ export class AuthService {
     private readonly apiKeyService: ApiKeyService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
-    private readonly performanceMonitor: PerformanceMonitorService,
+    private readonly performanceMonitor: MetricsPerformanceService,
   ) {}
 
   /**

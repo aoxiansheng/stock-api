@@ -134,7 +134,8 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/03-fetching/stream-data-fetcher/services/gateway-performance-baseline.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/00-prepare/data-mapper/services/mapping-rule-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest src/core/05-caching/data-mapper-cache/__tests__/data-mapper-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/data-mapper-cache/services/data-mapper-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/data-mapper-cache/services/data-mapper-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/performance/analytics-vs-direct-performance.benchmark.test.ts --testTimeout=60000 --config test/config/jest.unit.config.js --verbose)"
     ],
     "deny": []
   }

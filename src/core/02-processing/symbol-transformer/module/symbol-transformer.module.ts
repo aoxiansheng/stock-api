@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SymbolMapperCacheModule } from '../../../05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module';
-import { MonitoringModule } from '../../../../monitoring/module/monitoring.module';
+import { MonitoringModule } from '../../../../system-status/monitoring/module/monitoring.module';
 import { SymbolTransformerService } from '../services/symbol-transformer.service';
 
 @Module({

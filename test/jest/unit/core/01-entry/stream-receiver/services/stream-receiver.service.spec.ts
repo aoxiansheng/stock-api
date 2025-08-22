@@ -86,7 +86,7 @@ describe('StreamReceiverService', () => {
               transformer,
               streamDataFetcher,
               undefined, // optional StreamRecoveryWorkerService
-              undefined  // optional MetricsRegistryService
+              undefined  // optional MonitoringRegistryService
             );
           },
           inject: [SymbolTransformerService, DataTransformerService, StreamDataFetcherService]

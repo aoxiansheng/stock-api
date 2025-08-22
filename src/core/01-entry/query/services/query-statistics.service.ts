@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { MetricsRegistryService } from "../../../../monitoring/metrics/services/metrics-registry.service";
-import { Metrics } from "../../../../monitoring/metrics/metrics-helper";
+import { MonitoringRegistryService } from "../../../../system-status/monitoring/services/monitoring-registry.service";
+import { MetricsHelper } from "../../../../system-status/monitoring/helper/metrics-helper";
 
 import {
   QUERY_WARNING_MESSAGES,
@@ -21,7 +21,7 @@ import { QueryType } from "../dto/query-types.dto";
 export class QueryStatisticsService {
   private readonly logger = createLogger(QueryStatisticsService.name);
   
-  constructor(private readonly metricsRegistry: MetricsRegistryService) {}
+  constructor(private readonly metricsRegistry: MonitoringRegistryService) {}
 
   // 旧版内存统计已废弃，所有数据直接从 Prometheus 获取
 
@@ -39,7 +39,7 @@ export class QueryStatisticsService {
     cacheUsed: boolean,
   ): void {
     // 使用 Metrics 助手记录查询总数
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'streamThroughputPerSecond',
       { stream_type: 'query' },
@@ -47,7 +47,7 @@ export class QueryStatisticsService {
     );
     
     // 使用 Metrics 助手记录执行时间
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'streamProcessingTimeMs',
       executionTime,
@@ -56,7 +56,7 @@ export class QueryStatisticsService {
 
     if (cacheUsed) {
       // 使用 Metrics 助手记录缓存命中
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'streamCacheHitRate',
         { cache_type: 'query' },
@@ -64,7 +64,7 @@ export class QueryStatisticsService {
       );
     } else {
       // 使用 Metrics 助手记录缓存未命中
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'streamCacheHitRate',
         { cache_type: 'query' },
@@ -74,7 +74,7 @@ export class QueryStatisticsService {
 
     if (!success) {
       // 使用 Metrics 助手记录错误
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'streamErrorRate',
         { error_type: 'query' },
@@ -82,7 +82,7 @@ export class QueryStatisticsService {
       );
     } else {
       // 使用 Metrics 助手记录成功
-      Metrics.inc(
+      MetricsHelper.inc(
         this.metricsRegistry,
         'streamErrorRate',
         { error_type: 'query' },
@@ -111,7 +111,7 @@ export class QueryStatisticsService {
    */
   public incrementCacheHits(): void {
     // 使用 Metrics 助手记录缓存命中
-    Metrics.inc(
+    MetricsHelper.inc(
       this.metricsRegistry,
       'streamCacheHitRate',
       { cache_type: 'query' },
@@ -175,21 +175,21 @@ export class QueryStatisticsService {
    */
   public resetQueryStats(): void {
     // 仅重置 Prometheus 指标
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'streamThroughputPerSecond',
       0,
       { stream_type: 'query' }
     );
     
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'streamCacheHitRate',
       0,
       { cache_type: 'query' }
     );
     
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'streamErrorRate',
       0,

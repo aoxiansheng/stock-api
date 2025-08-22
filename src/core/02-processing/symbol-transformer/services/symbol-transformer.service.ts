@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '../../../../common/config/logger.config';
 import { SymbolMapperCacheService } from '../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { MetricsRegistryService } from '../../../../monitoring/metrics/services/metrics-registry.service';
-import { Metrics } from '../../../../monitoring/metrics/metrics-helper';
+import { MonitoringRegistryService } from '../../../../system-status/monitoring/services/monitoring-registry.service';
+import { MetricsHelper } from '../../../../system-status/monitoring/helper/metrics-helper';
 import { 
   SymbolTransformResult, 
   SymbolTransformForProviderResult 
@@ -19,7 +19,7 @@ export class SymbolTransformerService {
 
   constructor(
     private readonly symbolMapperCacheService: SymbolMapperCacheService,  // 缓存服务（含回源逻辑）
-    private readonly metricsRegistry?: MetricsRegistryService  // 可选监控
+    private readonly metricsRegistry?: MonitoringRegistryService  // 可选监控
   ) {}
 
   /**
@@ -236,14 +236,14 @@ export class SymbolTransformerService {
     const hitRate = result.metadata.successCount / result.metadata.totalSymbols;
     
     // 使用 Metrics 助手类记录指标
-    Metrics.setGauge(
+    MetricsHelper.setGauge(
       this.metricsRegistry,
       'symbol_transformer_success_rate',
       hitRate,
       { provider }
     );
     
-    Metrics.observe(
+    MetricsHelper.observe(
       this.metricsRegistry,
       'symbol_transformer_processing_time',
       result.metadata.processingTimeMs,

@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CommonCacheService } from '@core/05-caching/common-cache/services/common-cache.service';
 import { StorageService } from '@core/04-storage/storage/services/storage.service';
 // import { DualWriteTestService } from '@core/05-caching/common-cache/monitoring/dual-write-test.service';
-// import { CachePerformanceMonitorService } from '@core/05-caching/common-cache/monitoring/cache-performance-monitor.service';
+// import { CacheMetricsPerformanceService } from '@core/05-caching/common-cache/monitoring/cache-performance-monitor.service';
 import { CommonCacheModule } from '@core/05-caching/common-cache/module/common-cache.module';
 
 /**
@@ -13,7 +13,7 @@ import { CommonCacheModule } from '@core/05-caching/common-cache/module/common-c
 describe.skip('Cache Performance Benchmark', () => {
   let module: TestingModule;
   // let dualWriteTest: DualWriteTestService;
-  // let performanceMonitor: CachePerformanceMonitorService;
+  // let performanceMonitor: CacheMetricsPerformanceService;
   let commonCache: CommonCacheService;
   let storageService: StorageService;
 
@@ -35,7 +35,7 @@ describe.skip('Cache Performance Benchmark', () => {
       ],
       providers: [
         // DualWriteTestService,
-        // CachePerformanceMonitorService,
+        // CacheMetricsPerformanceService,
         StorageService,
         {
           provide: 'METRICS_REGISTRY',
@@ -51,7 +51,7 @@ describe.skip('Cache Performance Benchmark', () => {
     }).compile();
 
     // dualWriteTest = module.get<DualWriteTestService>(DualWriteTestService);
-    // performanceMonitor = module.get<CachePerformanceMonitorService>(CachePerformanceMonitorService);
+    // performanceMonitor = module.get<CacheMetricsPerformanceService>(CacheMetricsPerformanceService);
     commonCache = module.get<CommonCacheService>(CommonCacheService);
     storageService = module.get<StorageService>(StorageService);
   });

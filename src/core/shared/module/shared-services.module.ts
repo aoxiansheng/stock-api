@@ -12,8 +12,8 @@ import { DataChangeDetectorService } from "../services/data-change-detector.serv
 import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
 import { BackgroundTaskService } from "../services/background-task.service";
-import { MetricsRegistryService } from "../../../monitoring/metrics/services/metrics-registry.service";
-import { StreamPerformanceMetrics } from "../services/stream-performance-metrics.service";
+import { MonitoringRegistryService } from "../../../system-status/monitoring/services/monitoring-registry.service";
+import { StreamPerformanceMetricsService } from "../services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
 import { FieldMappingService } from "../services/field-mapping.service";
 // import { BaseFetcherService } from "../services/base-fetcher.service"; // Currently unused
@@ -43,8 +43,8 @@ import { FieldMappingService } from "../services/field-mapping.service";
     StringUtils,
     BackgroundTaskService,
     FeatureFlags,
-    MetricsRegistryService,
-    StreamPerformanceMetrics,
+    MonitoringRegistryService,
+    StreamPerformanceMetricsService,
     DynamicLogLevelService,
     FieldMappingService,
   ],
@@ -56,8 +56,8 @@ import { FieldMappingService } from "../services/field-mapping.service";
     StringUtils,
     BackgroundTaskService,
     FeatureFlags,
-    MetricsRegistryService,
-    StreamPerformanceMetrics,
+    MonitoringRegistryService,
+    StreamPerformanceMetricsService,
     DynamicLogLevelService,
     FieldMappingService,
   ],

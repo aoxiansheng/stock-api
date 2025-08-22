@@ -21,8 +21,8 @@ import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cac
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
 import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
 import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
-import { MetricsModule } from "./metrics/module/metrics.module";
-import { MonitoringModule } from "./monitoring/module/monitoring.module";
+import { AnalyticsModule } from "./system-status/analytics/module/analytics.module";
+import { MonitoringModule } from "./system-status/monitoring/module/monitoring.module";
 import { ProvidersModule } from "./providers/module/providers.module";
 import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
 import { SecurityModule } from "./security/module/security.module";
@@ -112,7 +112,7 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
     SecurityModule,
 
     // 指标模块
-    MetricsModule,
+    AnalyticsModule,
 
     // 权限验证模块
     PermissionValidationModule,
