@@ -2,11 +2,11 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { MappingRuleCacheService } from "../../../../../../../src/core/00-prepare/data-mapper/services/mapping-rule-cache.service";
-import { CacheService } from "../../../../../../../src/cache/services/cache.service";
+import { DataMapperCacheService } from "../../../../../../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service";
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock("../../../../../../src/common/config/logger.config", () => ({
 
 describe("MappingRuleCacheService", () => {
   let service: MappingRuleCacheService;
-  let cacheService: DeepMocked<CacheService>;
+  let dataMapperCacheService: DeepMocked<DataMapperCacheService>;
 
   const mockRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
@@ -52,14 +52,14 @@ describe("MappingRuleCacheService", () => {
       providers: [
         MappingRuleCacheService,
         {
-          provide: CacheService,
-          useValue: createMock<CacheService>(),
+          provide: DataMapperCacheService,
+          useValue: createMock<DataMapperCacheService>(),
         },
       ],
     }).compile();
 
     service = module.get<MappingRuleCacheService>(MappingRuleCacheService);
-    cacheService = module.get<DeepMocked<CacheService>>(CacheService);
+    dataMapperCacheService = module.get<DeepMocked<DataMapperCacheService>>(DataMapperCacheService);
   });
 
   describe("cacheBestMatchingRule", () => {

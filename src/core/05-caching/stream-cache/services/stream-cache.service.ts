@@ -1,62 +1,39 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
-import { CacheService } from '../../../../cache/services/cache.service';
+import { 
+  IStreamCache, 
+  StreamDataPoint, 
+  StreamCacheStats,
+  StreamCacheConfig 
+} from '../interfaces/stream-cache.interface';
+import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/stream-cache.constants';
+import Redis from 'ioredis';
 
 /**
- * 压缩数据点格式
- */
-export interface CompressedDataPoint {
-  s: string;  // symbol
-  p: number;  // price
-  v: number;  // volume
-  t: number;  // timestamp
-  c?: number; // change
-  cp?: number; // change percent
-}
-
-/**
- * 缓存统计信息
- */
-export interface CacheStats {
-  hotCacheHits: number;
-  hotCacheMisses: number;
-  warmCacheHits: number;
-  warmCacheMisses: number;
-  totalSize: number;
-  compressionRatio: number;
-}
-
-/**
- * StreamDataCacheService - 智能双路径缓存系统
+ * 专用流数据缓存服务
  * 
  * 🎯 核心功能：
- * - Hot Cache (LRU): 内存中的快速访问缓存，存储最近访问的数据
- * - Warm Cache (Redis): 分布式缓存，存储较大数据集
- * - 数据压缩：减少内存和网络传输开销
- * - 智能缓存策略：根据访问频率和数据大小自动选择存储层
- * 
- * 📊 缓存层级：
- * 1. Hot Cache (内存LRU) - 最热数据，毫秒级访问
- * 2. Warm Cache (Redis) - 温数据，10ms级访问
- * 3. 源数据 (Provider API) - 冷数据，100ms+访问
+ * - Hot Cache (LRU内存): 毫秒级访问的最热数据
+ * - Warm Cache (Redis): 10ms级访问的温数据
+ * - 数据压缩: 减少内存和网络开销
+ * - 智能缓存策略: 根据访问频率自动选择存储层
  */
 @Injectable()
-export class StreamDataCacheService implements OnModuleDestroy {
-  private readonly logger = createLogger('StreamDataCache');
+export class StreamCacheService implements IStreamCache, OnModuleDestroy {
+  private readonly logger = createLogger('StreamCache');
   
   // Hot Cache - LRU in-memory cache
   private readonly hotCache = new Map<string, {
-    data: CompressedDataPoint[];
+    data: StreamDataPoint[];
     timestamp: number;
     accessCount: number;
   }>();
   
-  private readonly maxHotCacheSize = 1000;
-  private readonly hotCacheTTL = 5000;           // 🎯 修复：5秒TTL（符合设计要求）
-  private readonly CACHE_CLEANUP_INTERVAL = 30000; // 🎯 优化：30秒清理间隔（原120秒）
+  // 配置参数
+  private readonly config: StreamCacheConfig;
   
   // 缓存统计
-  private stats: CacheStats = {
+  private stats: StreamCacheStats = {
     hotCacheHits: 0,
     hotCacheMisses: 0,
     warmCacheHits: 0,
@@ -67,11 +44,18 @@ export class StreamDataCacheService implements OnModuleDestroy {
   
   // 定时器管理
   private cacheCleanupInterval: NodeJS.Timeout | null = null;
-  
+
   constructor(
-    private readonly cacheService: CacheService,
+    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+    @Inject('STREAM_CACHE_CONFIG') config?: Partial<StreamCacheConfig>
   ) {
+    this.config = { ...DEFAULT_STREAM_CACHE_CONFIG, ...config };
     this.setupPeriodicCleanup();
+    this.logger.log('StreamCacheService 初始化完成', {
+      hotCacheTTL: this.config.hotCacheTTL,
+      warmCacheTTL: this.config.warmCacheTTL,
+      maxHotCacheSize: this.config.maxHotCacheSize,
+    });
   }
 
   /**
@@ -90,7 +74,7 @@ export class StreamDataCacheService implements OnModuleDestroy {
    * @param key 缓存键
    * @returns 数据或null
    */
-  async getData(key: string): Promise<CompressedDataPoint[] | null> {
+  async getData(key: string): Promise<StreamDataPoint[] | null> {
     const startTime = Date.now();
     
     try {
@@ -169,7 +153,7 @@ export class StreamDataCacheService implements OnModuleDestroy {
    * @param since 时间戳
    * @returns 增量数据
    */
-  async getDataSince(key: string, since: number): Promise<CompressedDataPoint[] | null> {
+  async getDataSince(key: string, since: number): Promise<StreamDataPoint[] | null> {
     const allData = await this.getData(key);
     if (!allData) return null;
     
@@ -191,8 +175,8 @@ export class StreamDataCacheService implements OnModuleDestroy {
    * @param keys 缓存键数组
    * @returns 键值对映射
    */
-  async getBatchData(keys: string[]): Promise<Record<string, CompressedDataPoint[] | null>> {
-    const result: Record<string, CompressedDataPoint[] | null> = {};
+  async getBatchData(keys: string[]): Promise<Record<string, StreamDataPoint[] | null>> {
+    const result: Record<string, StreamDataPoint[] | null> = {};
     
     const promises = keys.map(async (key) => {
       const data = await this.getData(key);
@@ -213,7 +197,7 @@ export class StreamDataCacheService implements OnModuleDestroy {
       this.hotCache.delete(key);
       
       // 删除 Warm Cache
-      await this.cacheService.del(this.buildWarmCacheKey(key));
+      await this.redisClient.del(this.buildWarmCacheKey(key));
       
       this.logger.debug('缓存数据已删除', { key });
     } catch (error) {
@@ -229,8 +213,11 @@ export class StreamDataCacheService implements OnModuleDestroy {
       this.hotCache.clear();
       
       // 清空 Warm Cache 中的流数据
-      const pattern = 'stream_cache:*';
-      await this.cacheService.delByPattern(pattern);
+      const pattern = `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
+      const keys = await this.redisClient.keys(pattern);
+      if (keys.length > 0) {
+        await this.redisClient.del(...keys);
+      }
       
       this.resetStats();
       this.logger.log('所有缓存已清空');
@@ -242,7 +229,7 @@ export class StreamDataCacheService implements OnModuleDestroy {
   /**
    * 获取缓存统计信息
    */
-  getCacheStats(): CacheStats {
+  getCacheStats(): StreamCacheStats {
     return {
       ...this.stats,
       totalSize: this.hotCache.size,
@@ -254,12 +241,12 @@ export class StreamDataCacheService implements OnModuleDestroy {
   /**
    * 从 Hot Cache 获取数据
    */
-  private getFromHotCache(key: string): CompressedDataPoint[] | null {
+  private getFromHotCache(key: string): StreamDataPoint[] | null {
     const entry = this.hotCache.get(key);
     if (!entry) return null;
     
     // 检查TTL
-    if (Date.now() - entry.timestamp > this.hotCacheTTL) {
+    if (Date.now() - entry.timestamp > this.config.hotCacheTTL) {
       this.hotCache.delete(key);
       return null;
     }
@@ -272,9 +259,9 @@ export class StreamDataCacheService implements OnModuleDestroy {
   /**
    * 设置数据到 Hot Cache
    */
-  private setToHotCache(key: string, data: CompressedDataPoint[]): void {
+  private setToHotCache(key: string, data: StreamDataPoint[]): void {
     // LRU 清理
-    if (this.hotCache.size >= this.maxHotCacheSize) {
+    if (this.hotCache.size >= this.config.maxHotCacheSize) {
       this.evictLeastRecentlyUsed();
     }
     
@@ -288,13 +275,13 @@ export class StreamDataCacheService implements OnModuleDestroy {
   /**
    * 从 Warm Cache (Redis) 获取数据
    */
-  private async getFromWarmCache(key: string): Promise<CompressedDataPoint[] | null> {
+  private async getFromWarmCache(key: string): Promise<StreamDataPoint[] | null> {
     try {
       const cacheKey = this.buildWarmCacheKey(key);
-      const cachedData = await this.cacheService.get(cacheKey);
+      const cachedData = await this.redisClient.get(cacheKey);
       
       if (cachedData) {
-        return JSON.parse(cachedData as string);
+        return JSON.parse(cachedData);
       }
       return null;
     } catch (error) {
@@ -306,13 +293,13 @@ export class StreamDataCacheService implements OnModuleDestroy {
   /**
    * 设置数据到 Warm Cache (Redis)
    */
-  private async setToWarmCache(key: string, data: CompressedDataPoint[]): Promise<void> {
+  private async setToWarmCache(key: string, data: StreamDataPoint[]): Promise<void> {
     try {
       const cacheKey = this.buildWarmCacheKey(key);
       const serializedData = JSON.stringify(data);
       
-      // 设置TTL为5分钟
-      await this.cacheService.set(cacheKey, serializedData, { ttl: 300 });
+      // 设置TTL
+      await this.redisClient.setex(cacheKey, this.config.warmCacheTTL, serializedData);
     } catch (error) {
       this.logger.warn('Warm cache设置失败', { key, error: error.message });
     }
@@ -322,13 +309,13 @@ export class StreamDataCacheService implements OnModuleDestroy {
    * 构建 Warm Cache 键
    */
   private buildWarmCacheKey(key: string): string {
-    return `stream_cache:${key}`;
+    return `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}${key}`;
   }
 
   /**
    * 数据压缩 - 将原始数据转换为压缩格式
    */
-  private compressData(data: any[]): CompressedDataPoint[] {
+  private compressData(data: any[]): StreamDataPoint[] {
     const now = Date.now();
     let fallbackTimestampCount = 0;
     
@@ -374,23 +361,17 @@ export class StreamDataCacheService implements OnModuleDestroy {
 
   /**
    * 记录时间戳回退指标
-   * @param fallbackCount 回退使用次数
-   * @param totalCount 总数据量
    */
   private recordTimestampFallbackMetrics(fallbackCount: number, totalCount: number): void {
     try {
-      // 这里需要集成 StreamMetricsService，暂时使用日志记录
       const fallbackRate = fallbackCount / totalCount;
       
       this.logger.warn('时间戳回退统计', {
         fallbackCount,
         totalCount,
-        fallbackRate: Math.round(fallbackRate * 10000) / 100 + '%', // 保留2位小数
+        fallbackRate: Math.round(fallbackRate * 10000) / 100 + '%',
         recommendation: fallbackRate > 0.1 ? 'check_data_source' : 'normal'
       });
-      
-      // TODO: 集成新的 StreamMetricsService 记录此指标
-      // this.streamMetrics.recordTimestampFallback(fallbackCount, totalCount);
       
     } catch (error) {
       this.logger.debug('时间戳回退指标记录失败', { error: error.message });
@@ -447,10 +428,10 @@ export class StreamDataCacheService implements OnModuleDestroy {
   private setupPeriodicCleanup(): void {
     this.cacheCleanupInterval = setInterval(() => {
       this.cleanupExpiredEntries();
-    }, this.CACHE_CLEANUP_INTERVAL);
+    }, this.config.cleanupInterval);
     
     this.logger.debug('缓存清理调度器已启动', { 
-      interval: this.CACHE_CLEANUP_INTERVAL 
+      interval: this.config.cleanupInterval 
     });
   }
 
@@ -462,7 +443,7 @@ export class StreamDataCacheService implements OnModuleDestroy {
     let cleanedCount = 0;
     
     for (const [key, entry] of this.hotCache.entries()) {
-      if (now - entry.timestamp > this.hotCacheTTL) {
+      if (now - entry.timestamp > this.config.hotCacheTTL) {
         this.hotCache.delete(key);
         cleanedCount++;
       }

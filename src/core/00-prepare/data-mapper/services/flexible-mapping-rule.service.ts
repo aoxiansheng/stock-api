@@ -26,7 +26,7 @@ export class FlexibleMappingRuleService {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     private readonly paginationService: PaginationService,
     private readonly templateService: DataSourceTemplateService,
-    private readonly cacheService: MappingRuleCacheService,
+    private readonly mappingRuleCacheService: MappingRuleCacheService,
   ) {}
 
   /**
@@ -86,9 +86,9 @@ export class FlexibleMappingRuleService {
       const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(saved);
       
       // 🚀 缓存新创建的规则
-      await this.cacheService.cacheRuleById(ruleDto);
+      await this.mappingRuleCacheService.cacheRuleById(ruleDto);
       if (dto.isDefault) {
-        await this.cacheService.cacheBestMatchingRule(
+        await this.mappingRuleCacheService.cacheBestMatchingRule(
           dto.provider,
           dto.apiType,
           dto.transDataRuleListType,
@@ -210,7 +210,7 @@ export class FlexibleMappingRuleService {
    */
   async findRuleById(id: string): Promise<FlexibleMappingRuleResponseDto> {
     // 1. 尝试从缓存获取
-    const cachedRule = await this.cacheService.getCachedRuleById(id);
+    const cachedRule = await this.mappingRuleCacheService.getCachedRuleById(id);
     if (cachedRule) {
       return cachedRule;
     }
@@ -225,7 +225,7 @@ export class FlexibleMappingRuleService {
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
     
     // 3. 缓存查询结果
-    await this.cacheService.cacheRuleById(ruleDto);
+    await this.mappingRuleCacheService.cacheRuleById(ruleDto);
 
     return ruleDto;
   }
@@ -241,7 +241,7 @@ export class FlexibleMappingRuleService {
     this.logger.debug(`查找最匹配的映射规则`, { provider, apiType, transDataRuleListType });
 
     // 1. 尝试从缓存获取最佳匹配规则
-    const cachedRule = await this.cacheService.getCachedBestMatchingRule(
+    const cachedRule = await this.mappingRuleCacheService.getCachedBestMatchingRule(
       provider, 
       apiType, 
       transDataRuleListType
@@ -282,7 +282,7 @@ export class FlexibleMappingRuleService {
     
     // 4. 缓存查询结果（仅在找到规则时）
     if (ruleDto) {
-      await this.cacheService.cacheBestMatchingRule(
+      await this.mappingRuleCacheService.cacheBestMatchingRule(
         provider, 
         apiType, 
         transDataRuleListType, 
@@ -499,7 +499,7 @@ export class FlexibleMappingRuleService {
 
       // 🚀 统计更新后失效缓存，因为成功率和使用数量变化会影响最佳匹配
       const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
-      await this.cacheService.invalidateRuleCache(dataMapperRuleId, ruleDto);
+      await this.mappingRuleCacheService.invalidateRuleCache(dataMapperRuleId, ruleDto);
     }
   }
 
@@ -564,10 +564,10 @@ export class FlexibleMappingRuleService {
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
     // 3. 🚀 失效相关缓存
-    await this.cacheService.invalidateRuleCache(id, oldRuleDto);
+    await this.mappingRuleCacheService.invalidateRuleCache(id, oldRuleDto);
     
     // 4. 缓存新的规则数据
-    await this.cacheService.cacheRuleById(ruleDto);
+    await this.mappingRuleCacheService.cacheRuleById(ruleDto);
 
     this.logger.log(`映射规则更新成功`, { id, name: rule.name });
     return ruleDto;
@@ -594,10 +594,10 @@ export class FlexibleMappingRuleService {
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
     // 3. 🚀 失效相关缓存（特别是最佳匹配规则缓存）
-    await this.cacheService.invalidateRuleCache(id, oldRuleDto);
+    await this.mappingRuleCacheService.invalidateRuleCache(id, oldRuleDto);
     
     // 4. 缓存新的规则数据
-    await this.cacheService.cacheRuleById(ruleDto);
+    await this.mappingRuleCacheService.cacheRuleById(ruleDto);
 
     this.logger.log(`规则状态更新`, { id, isActive });
     return ruleDto;
@@ -618,7 +618,7 @@ export class FlexibleMappingRuleService {
     await this.ruleModel.findByIdAndDelete(id);
 
     // 3. 🚀 失效相关缓存
-    await this.cacheService.invalidateRuleCache(id, ruleDto);
+    await this.mappingRuleCacheService.invalidateRuleCache(id, ruleDto);
 
     this.logger.log(`映射规则删除成功`, { id, name: rule.name });
   }
@@ -670,7 +670,7 @@ export class FlexibleMappingRuleService {
       const ruleDtos = activeRules.map(rule => FlexibleMappingRuleResponseDto.fromDocument(rule));
       
       // 使用MappingRuleCacheService的预热功能
-      await this.cacheService.warmupCache(ruleDtos);
+      await this.mappingRuleCacheService.warmupCache(ruleDtos);
       
       this.logger.log('映射规则缓存预热完成', { cachedRules: ruleDtos.length });
     } catch (error) {

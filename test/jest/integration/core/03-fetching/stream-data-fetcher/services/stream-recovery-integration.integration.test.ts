@@ -15,7 +15,8 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { StreamReceiverGateway } from '../../../../../../../src/core/01-entry/stream-receiver/gateway/stream-receiver.gateway';
 import { StreamReceiverService } from '../../../../../../../src/core/01-entry/stream-receiver/services/stream-receiver.service';
 import { StreamRecoveryWorkerService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
-import { StreamDataCacheService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-cache.service';
+import { StreamCacheService } from '../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
+import { StreamCacheModule } from '../../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module';
 import { StreamClientStateManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service';
 import { StreamRecoveryConfigService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/config/stream-recovery.config';
 import { StreamRecoveryMetricsService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/metrics/stream-recovery.metrics';
@@ -68,7 +69,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
   let gateway: StreamReceiverGateway;
   let receiverService: StreamReceiverService;
   let recoveryWorker: StreamRecoveryWorkerService;
-  let dataCache: StreamDataCacheService;
+  let streamCache: StreamCacheService;
   let clientStateManager: StreamClientStateManager;
   let cacheService: CacheService;
   let server: Server;
@@ -82,11 +83,13 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        StreamCacheModule,
+      ],
       providers: [
         StreamReceiverGateway,
         StreamReceiverService,
         StreamRecoveryWorkerService,
-        StreamDataCacheService,
         StreamClientStateManager,
         StreamRecoveryConfigService,
         StreamRecoveryMetricsService,
@@ -151,7 +154,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
     gateway = module.get<StreamReceiverGateway>(StreamReceiverGateway);
     receiverService = module.get<StreamReceiverService>(StreamReceiverService);
     recoveryWorker = module.get<StreamRecoveryWorkerService>(StreamRecoveryWorkerService);
-    dataCache = module.get<StreamDataCacheService>(StreamDataCacheService);
+    streamCache = module.get<StreamCacheService>(StreamCacheService);
     clientStateManager = module.get<StreamClientStateManager>(StreamClientStateManager);
     cacheService = module.get<CacheService>(CacheService);
 
@@ -195,7 +198,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
       ];
 
       // 1. 模拟缓存中有历史数据
-      jest.spyOn(dataCache, 'getDataSince').mockResolvedValue(mockRecoveryData);
+      jest.spyOn(streamCache, 'getDataSince').mockResolvedValue(mockRecoveryData);
 
       // 2. 建立 WebSocket 连接
       const port = 3001; // 使用测试端口
@@ -306,7 +309,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
 
     it('应该处理无历史数据的补发请求', async (done) => {
       // 模拟缓存中没有数据
-      jest.spyOn(dataCache, 'getDataSince').mockResolvedValue([]);
+      jest.spyOn(streamCache, 'getDataSince').mockResolvedValue([]);
 
       const port = 3002;
       await app.listen(port);
@@ -463,7 +466,7 @@ describe('Stream Recovery Integration Tests - Phase 3 Complete Chain', () => {
 
     it('应该处理缓存服务不可用的情况', async () => {
       // 模拟缓存服务错误
-      jest.spyOn(dataCache, 'getDataSince').mockRejectedValue(
+      jest.spyOn(streamCache, 'getDataSince').mockRejectedValue(
         new Error('Cache service unavailable')
       );
 

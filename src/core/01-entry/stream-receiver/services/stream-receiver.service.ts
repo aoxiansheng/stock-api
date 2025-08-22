@@ -85,7 +85,7 @@ interface StreamConnectionContext {
  * 
  * ❌ 不再负责：
  * - 直接的 WebSocket 连接管理 (由 StreamDataFetcher 负责)
- * - 本地数据缓存 (由 StreamDataCacheService 负责)
+ * - 本地数据缓存 (由 StreamCacheService 负责)
  * - 直接的数据转换 (统一由 DataTransformerService 负责)
  * - 客户端状态跟踪 (由 StreamClientStateManager 负责)
  * 

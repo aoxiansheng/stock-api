@@ -3,7 +3,8 @@ import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
 import { AsyncLocalStorage } from 'async_hooks';
 import { Server } from 'socket.io';
 import { createLogger } from '@common/config/logger.config';
-import { StreamDataCacheService, CompressedDataPoint } from './stream-data-cache.service';
+import { StreamCacheService } from '../../../05-caching/stream-cache/services/stream-cache.service';
+import { StreamDataPoint } from '../../../05-caching/stream-cache/interfaces/stream-cache.interface';
 import { StreamClientStateManager } from './stream-client-state-manager.service';
 import { StreamDataFetcherService } from './stream-data-fetcher.service';
 import { StreamRecoveryConfigService, StreamRecoveryConfig } from '../config/stream-recovery.config';
@@ -22,7 +23,7 @@ import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../providers/we
  * 不负责：
  * - 实时流数据处理（由StreamReceiver负责）
  * - 连接管理（由StreamDataFetcher负责）
- * - 缓存管理（由StreamDataCache负责）
+ * - 缓存管理（由StreamCacheService负责）
  */
 
 export interface RecoveryJob {
@@ -93,7 +94,7 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
   // 统计数据 - 改用注入的指标服务
   
   constructor(
-    private readonly streamDataCache: StreamDataCacheService,
+    private readonly streamCache: StreamCacheService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly configService: StreamRecoveryConfigService,
@@ -288,7 +289,7 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
    */
   private async processRecoveryJob(job: Job<RecoveryJob>): Promise<RecoveryResult> {
     const startTime = Date.now();
-    const { clientId, symbols, lastReceiveTimestamp, provider, capability } = job.data;
+    const { clientId, symbols, lastReceiveTimestamp, provider } = job.data;
     
     try {
       // 检查QPS限流
@@ -297,13 +298,12 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
       }
       
       // 获取缓存数据
-      const recoveredData: CompressedDataPoint[] = [];
+      const recoveredData: StreamDataPoint[] = [];
       const currentTime = Date.now();
       
       for (const symbol of symbols) {
-        const cacheKey = `${capability}:${symbol}`;
-        const dataPoints = await this.streamDataCache.getDataSince(
-          cacheKey,
+        const dataPoints = await this.streamCache.getDataSince(
+          symbol,
           lastReceiveTimestamp
         );
         
@@ -404,7 +404,7 @@ export class StreamRecoveryWorkerService implements OnModuleInit, OnModuleDestro
    */
   private async sendRecoveryDataToClient(
     clientId: string,
-    data: CompressedDataPoint[]
+    data: StreamDataPoint[]
   ): Promise<void> {
     // Phase 3 Critical Fix: 使用强类型WebSocket提供者
     if (!this.webSocketProvider.isServerAvailable()) {

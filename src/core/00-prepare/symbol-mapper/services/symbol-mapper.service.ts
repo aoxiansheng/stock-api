@@ -55,7 +55,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     private readonly repository: SymbolMappingRepository,
     private readonly paginationService: PaginationService,
     private readonly featureFlags: FeatureFlags,
-    private readonly cacheService?: SymbolMapperCacheService, // 可选注入，向后兼容
+    private readonly symbolMapperCacheService?: SymbolMapperCacheService, // 可选注入，向后兼容
   ) {
 
   }
@@ -65,7 +65,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
    * Change Stream 监听已迁移到 SymbolMapperCacheService
    */
   async onModuleInit() {
-    this.logger.log('SymbolMapperService 初始化完成，缓存监听由 CacheService 负责');
+    this.logger.log('SymbolMapperService 初始化完成，缓存监听由 SymbolMapperCacheService 负责');
   }
 
 
@@ -898,8 +898,8 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
    * 手动清理所有缓存（委派给缓存服务）
    */
   clearCache(): void {
-    if (this.cacheService) {
-      this.cacheService.clearAllCaches();
+    if (this.symbolMapperCacheService) {
+      this.symbolMapperCacheService.clearAllCaches();
       this.logger.log('符号映射规则缓存已清理（通过缓存服务）');
     } else {
       this.logger.warn('缓存服务不可用，无法清理缓存');
@@ -919,9 +919,9 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     pendingQueries: number;
   } {
     // 🎯 优先使用新缓存服务的统计信息（如果可用）
-    if (this.cacheService) {
+    if (this.symbolMapperCacheService) {
       try {
-        const newStats = this.cacheService.getCacheStats();
+        const newStats = this.symbolMapperCacheService.getCacheStats();
         
         // 转换为兼容格式
         const totalL2Hits = newStats.layerStats.l2.hits;

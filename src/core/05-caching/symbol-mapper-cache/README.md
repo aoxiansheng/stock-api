@@ -40,12 +40,12 @@ import { SymbolMapperCacheService } from '@core/public/symbol-mapper-cache/servi
 @Injectable()
 export class YourService {
   constructor(
-    private readonly cacheService: SymbolMapperCacheService,
+    private readonly SymbolMapperCacheService: SymbolMapperCacheService,
   ) {}
   
   async yourMethod() {
     // 使用缓存服务
-    const stats = await this.cacheService.getCacheStats();
+    const stats = await this.SymbolMapperCacheService.getCacheStats();
     // ...
   }
 }

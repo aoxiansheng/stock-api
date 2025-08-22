@@ -1,0 +1,222 @@
+version: '3.8'
+
+# StreamCache Docker Compose 配置
+# 用于本地开发和测试环境的完整StreamCache环境
+
+services:
+  # Redis 服务 - StreamCache后端存储
+  redis-stream-cache:
+    image: redis:7-alpine
+    container_name: newstock-redis-stream-cache
+    restart: unless-stopped
+    
+    # Redis配置
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 0
+    
+    ports:
+      - "6379:6379"
+    
+    volumes:
+      - redis_stream_cache_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    
+    environment:
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,KEYS,PEXPIRE,DEL,CONFIG,SHUTDOWN,DEBUG,EVAL
+    
+    networks:
+      - stream-cache-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Redis Commander - Redis管理界面
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: newstock-redis-commander
+    restart: unless-stopped
+    
+    ports:
+      - "8081:8081"
+    
+    environment:
+      - REDIS_HOSTS=stream-cache:redis-stream-cache:6379
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=stream-cache-admin
+    
+    networks:
+      - stream-cache-network
+    
+    depends_on:
+      redis-stream-cache:
+        condition: service_healthy
+
+  # 应用服务 - 集成StreamCache
+  app-with-stream-cache:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    
+    container_name: newstock-app-stream-cache
+    restart: unless-stopped
+    
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Node.js调试端口
+    
+    volumes:
+      - ../src:/app/src:ro
+      - ../test:/app/test:ro
+      - ../package.json:/app/package.json:ro
+      - ../bun.lockb:/app/bun.lockb:ro
+    
+    environment:
+      # 基础配置
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      
+      # Redis连接配置
+      - REDIS_HOST=redis-stream-cache
+      - REDIS_PORT=6379
+      - REDIS_STREAM_CACHE_DB=1
+      
+      # StreamCache配置
+      - STREAM_CACHE_HOT_TTL_MS=3000
+      - STREAM_CACHE_WARM_TTL_SECONDS=180
+      - STREAM_CACHE_MAX_HOT_SIZE=500
+      - STREAM_CACHE_CLEANUP_INTERVAL_MS=15000
+      - STREAM_CACHE_COMPRESSION_THRESHOLD=512
+      
+      # 开发环境特定配置
+      - STREAM_CACHE_ENABLE_DEBUG_LOGS=true
+      - STREAM_CACHE_ENABLE_METRICS=true
+      - STREAM_CACHE_FAST_FAILOVER=true
+    
+    networks:
+      - stream-cache-network
+    
+    depends_on:
+      redis-stream-cache:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/monitoring/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # 性能监控服务
+  stream-cache-monitor:
+    image: prom/prometheus:latest
+    container_name: newstock-stream-cache-prometheus
+    restart: unless-stopped
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    networks:
+      - stream-cache-network
+    
+    depends_on:
+      - app-with-stream-cache
+
+  # Grafana 仪表板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: newstock-stream-cache-grafana
+    restart: unless-stopped
+    
+    ports:
+      - "3001:3000"
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=stream-cache-grafana
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=redis-datasource
+    
+    networks:
+      - stream-cache-network
+    
+    depends_on:
+      - stream-cache-monitor
+
+# 网络配置
+networks:
+  stream-cache-network:
+    driver: bridge
+    name: newstock-stream-cache-network
+
+# 数据卷配置
+volumes:
+  redis_stream_cache_data:
+    driver: local
+    name: newstock-redis-stream-cache-data
+  
+  prometheus_data:
+    driver: local
+    name: newstock-prometheus-data
+  
+  grafana_data:
+    driver: local
+    name: newstock-grafana-data
+
+# ================================
+# 使用说明
+# ================================
+#
+# 1. 启动完整环境:
+#    docker-compose -f docker-compose.stream-cache.yml up -d
+#
+# 2. 仅启动Redis:
+#    docker-compose -f docker-compose.stream-cache.yml up -d redis-stream-cache
+#
+# 3. 查看日志:
+#    docker-compose -f docker-compose.stream-cache.yml logs -f app-with-stream-cache
+#
+# 4. 进入应用容器:
+#    docker-compose -f docker-compose.stream-cache.yml exec app-with-stream-cache sh
+#
+# 5. 运行测试:
+#    docker-compose -f docker-compose.stream-cache.yml exec app-with-stream-cache bun test
+#
+# 6. 访问服务:
+#    - 应用: http://localhost:3000
+#    - Redis管理: http://localhost:8081 (admin/stream-cache-admin)
+#    - Prometheus: http://localhost:9090
+#    - Grafana: http://localhost:3001 (admin/stream-cache-grafana)
+#
+# 7. 清理环境:
+#    docker-compose -f docker-compose.stream-cache.yml down -v

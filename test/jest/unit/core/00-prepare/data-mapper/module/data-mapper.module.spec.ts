@@ -16,12 +16,12 @@ import { MappingRuleController } from "../../../../../../../src/core/00-prepare/
 import { DataSourceTemplate, DataSourceTemplateDocument } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
-import { CacheService } from "../../../../../../../src/cache/services/cache.service";
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
+import { DataMapperCacheService } from "../../../../../../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service";
 import { FeatureFlags } from "../../../../../../../src/common/config/feature-flags.config";
 
 // Mock logger to avoid issues in testing
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../../../../../../../src/common/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),
@@ -51,8 +51,8 @@ describe("DataMapperModule Components", () => {
         PersistedTemplateService,
         RuleAlignmentService,
         MappingRuleCacheService,
+        DataMapperCacheService,
         PaginationService,
-        CacheService,
         MetricsRegistryService,
         {
           provide: getModelToken(DataSourceTemplate.name),
@@ -66,8 +66,8 @@ describe("DataMapperModule Components", () => {
     })
     .overrideProvider(PaginationService)
     .useValue(createMock<PaginationService>())
-    .overrideProvider(CacheService)
-    .useValue(createMock<CacheService>())
+    .overrideProvider(DataMapperCacheService)
+    .useValue(createMock<DataMapperCacheService>())
     .overrideProvider(MetricsRegistryService)
     .useValue(createMock<MetricsRegistryService>())
     .overrideProvider(FeatureFlags)

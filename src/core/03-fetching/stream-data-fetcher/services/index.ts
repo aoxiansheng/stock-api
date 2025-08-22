@@ -3,7 +3,6 @@
 
 // 核心服务
 export * from './stream-data-fetcher.service';
-export * from './stream-data-cache.service';
 export * from './stream-client-state-manager.service';
 export * from './stream-recovery-worker.service';
 export * from './stream-metrics.service';

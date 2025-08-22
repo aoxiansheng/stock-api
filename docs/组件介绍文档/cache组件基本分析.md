@@ -20,8 +20,8 @@ src/cache/                    # 缓存模块根目录
 
 - **cache.constants.ts** - 被cache.service.ts引用，提供缓存相关常量
 - **cache-internal.dto.ts** - 被cache.service.ts引用，提供数据传输对象类型定义
-- **cache.module.ts** - 被多个模块引用（monitoring、alert、auth、security等12+个模块）
-- **cache.service.ts** - 核心服务，被多个组件引用
+- **cache.module.ts** - 被5个模块引用（auth、alert、security）
+- **cache.service.ts** - 核心服务，被5个组件引用
 
 ## 第三步：无效文件识别
 
@@ -205,10 +205,6 @@ export class CacheModule {}
 - `VERY_LONG_TTL`: 超长TTL (默认: 86400秒/24小时)
 
 **业务特定TTL：**
-- `REALTIME_DATA_TTL`: 实时数据TTL (默认: 5秒)
-- `BASIC_INFO_TTL`: 基础信息TTL (默认: 3600秒)
-- `RULE_CACHE_TTL`: 规则缓存TTL (默认: 1800秒)
-- `MAPPING_CONFIG_TTL`: 映射配置TTL (默认: 1800秒)
 - `STATS_TTL`: 统计数据TTL (默认: 300秒)
 - `SESSION_TTL`: 会话数据TTL (默认: 7200秒)
 
@@ -216,6 +212,15 @@ export class CacheModule {}
 - `AUTH_TOKEN_TTL`: 认证令牌TTL (默认: 1800秒)
 - `API_KEY_CACHE_TTL`: API Key缓存TTL (默认: 3600秒)
 - `PERMISSION_CACHE_TTL`: 权限缓存TTL (默认: 1800秒)
+
+**安全审计TTL：**
+- `SECURITY_EVENT_BUFFER_TTL`: 安全事件缓冲区TTL (默认: 1800秒)
+- `IP_ANALYSIS_TTL`: IP分析数据TTL (配置驱动)
+- `SUSPICIOUS_IP_TTL`: 可疑IP列表TTL (永久或长期)
+
+**告警系统TTL：**
+- `ALERT_RULE_CACHE_TTL`: 告警规则缓存TTL (默认: 3600秒)
+- `ALERT_HISTORY_TTL`: 告警历史TTL (默认: 7200秒)
 
 ### 2. 缓存大小限制配置
 - `MAX_CACHE_SIZE`: 最大缓存条目数 (默认: 1000)
@@ -272,14 +277,26 @@ export class CacheModule {}
 ```typescript
 // 标准化键构建
 CACHE_KEYS = {
-  STOCK_QUOTE: "stock:quote:",
-  STOCK_BASIC_INFO: "stock:basic:",
-  INDEX_QUOTE: "index:quote:",
-  MARKET_STATUS: "market:status:",
-  SYMBOL_MAPPING: "symbol:mapping:",
-  DATA_MAPPING: "data:mapping:",
+  // 基础设施
   LOCK_PREFIX: "lock:",
   HEALTH_CHECK_PREFIX: "health:",
+  STATS_PREFIX: "stats:",
+  
+  // 认证权限
+  SESSION_PREFIX: "session:",
+  AUTH_PREFIX: "auth:",
+  PERMISSION_PREFIX: "permission:",
+  
+  // 安全审计  
+  AUDIT_PREFIX: "audit:",
+  SECURITY_EVENT_BUFFER: "security:events:buffer",
+  SUSPICIOUS_IP_SET: "security:suspicious:ips",
+  IP_ANALYSIS_HASH: "security:ip:analysis:",
+  
+  // 告警系统
+  ALERT_PREFIX: "alert:",
+  ALERT_RULES: "alert:rules:",
+  ALERT_HISTORY: "alert:history:",
 }
 
 // 键模式提取 - 用于统计分组
@@ -299,174 +316,17 @@ extractKeyPattern(key: string): string {
 #### 分层TTL设计：
 ```typescript
 CACHE_TTL = {
-  REALTIME_DATA: 5,      // 实时数据：5秒
-  MARKET_STATUS: 60,     // 市场状态：1分钟  
-  BASIC_INFO: 3600,      // 基础信息：1小时
-  MAPPING_RULES: 1800,   // 映射规则：30分钟
   DEFAULT: 3600,         // 默认：1小时
   LOCK_TTL: 30,          // 分布式锁：30秒
+  SESSION: 7200,         // 会话：2小时
+  PERMISSION: 1800,      // 权限：30分钟
+  STATS: 300,            // 统计：5分钟
 }
 ```
 
 #### 动态TTL调整：
 - **环境变量覆盖：** 支持`CACHE_TTL_<KEY>`格式
-- **数据性质推荐：** `getRecommendedTTL(nature)` 根据数据类型推荐TTL
 - **访问时更新：** `UPDATE_ON_ACCESS = true` 热数据延长TTL
-
-### 缓存实现代码详解
-
-#### 1. 智能缓存设置 (`set` 方法)
-```typescript
-@CachePerformance("set")  // 性能装饰器监控
-async set<T>(key: string, value: T, options: CacheConfigDto): Promise<boolean> {
-  // 1. 键长度验证
-  this.validateKeyLength(key);
-  
-  // 2. 数据序列化
-  const serializedValue = this.serialize(value, options.serializer);
-  
-  // 3. 智能压缩 (> 10KB触发)
-  const finalValue = this.shouldCompress(serializedValue, options.compressionThreshold)
-    ? await this.compress(serializedValue)  // Gzip压缩
-    : serializedValue;
-  
-  // 4. Redis存储
-  await this.redis.setex(key, options.ttl, finalValue);
-  
-  // 5. 指标更新
-  this.updateCacheMetrics(key, "set");
-}
-```
-
-#### 2. 缓存穿透保护 (`getOrSet` 方法)
-```typescript
-async getOrSet<T>(key: string, callback: () => Promise<T>, options: CacheConfigDto): Promise<T> {
-  // 1. 尝试从缓存获取
-  const cached = await this.get<T>(key);
-  if (cached !== null) return cached;
-  
-  // 2. 分布式锁防止缓存击穿
-  const lockKey = `${CACHE_KEYS.LOCK_PREFIX}${key}`;
-  const lockValue = `${Date.now()}-${Math.random()}`;
-  
-  const lockAcquired = await this.redis.set(lockKey, lockValue, "EX", 30, "NX");
-  
-  if (lockAcquired) {
-    try {
-      // 获得锁，执行回调并缓存结果
-      const result = await callback();
-      await this.set(key, result, options);
-      return result;
-    } finally {
-      // Lua脚本原子性释放锁
-      await this.releaseLock(lockKey, lockValue);
-    }
-  } else {
-    // 未获锁，等待并重试
-    await this.sleep(500 + Math.random() * 500);
-    const retryResult = await this.get<T>(key);
-    return retryResult !== null ? retryResult : await callback();
-  }
-}
-```
-
-#### 3. 批量操作优化 (`mget`/`mset`)
-```typescript
-@CachePerformance("mget")
-async mget<T>(keys: string[]): Promise<Map<string, T>> {
-  // 批量大小检查
-  if (keys.length > CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE) {
-    this.logger.warn("批量操作过大", { size: keys.length });
-  }
-  
-  const values = await this.redis.mget(...keys);
-  const result = new Map<string, T>();
-  
-  for (let i = 0; i < keys.length; i++) {
-    if (values[i] !== null) {
-      // 自动解压和反序列化
-      const decompressedValue = this.isCompressed(values[i])
-        ? await this.decompress(values[i])
-        : values[i];
-      result.set(keys[i], this.deserialize(decompressedValue));
-      this.updateCacheMetrics(keys[i], "hit");
-    } else {
-      this.updateCacheMetrics(keys[i], "miss");
-    }
-  }
-  return result;
-}
-```
-
-#### 4. 数据压缩实现
-```typescript
-// Gzip压缩
-private async compress(value: string): Promise<string> {
-  const compressedBuffer = await gzip(value);
-  return COMPRESSION_PREFIX + compressedBuffer.toString("base64");
-}
-
-// 压缩判断
-private shouldCompress(value: string, threshold = 10 * 1024): boolean {
-  return value.length > threshold;
-}
-
-// 压缩标识检查
-private isCompressed(value: string): boolean {
-  return value.startsWith("COMPRESSED::");
-}
-```
-
-#### 5. 故障容错设计
-```typescript
-// 关键操作：抛出异常
-async get<T>(key: string): Promise<T | null> {
-  try {
-    return await this.redis.get(key);
-  } catch (error) {
-    throw new ServiceUnavailableException(`缓存获取失败: ${error.message}`);
-  }
-}
-
-// 非关键操作：返回默认值
-async listRange(key: string, start: number, stop: number): Promise<string[]> {
-  try {
-    return await this.redis.lrange(key, start, stop);
-  } catch (error) {
-    this.logger.error("获取列表失败", { key, error: error.message, impact: "MetricsDataLoss" });
-    return []; // 性能监控是非关键功能，返回空数组
-  }
-}
-```
-
-#### 6. 性能监控集成
-```typescript
-// 慢操作检测
-const duration = Date.now() - startTime;
-if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
-  this.logger.warn("缓存操作较慢", {
-    operation: "get",
-    key,
-    duration,
-    threshold: 100
-  });
-}
-
-// 命中率统计
-private updateCacheMetrics(key: string, operation: "hit"|"miss"|"set"): void {
-  const pattern = this.extractKeyPattern(key);
-  const stats = this.cacheStats.get(pattern) || { hits: 0, misses: 0 };
-  
-  if (operation === "hit") stats.hits++;
-  else if (operation === "miss") stats.misses++;
-  
-  // 检查命中率告警
-  const missRate = stats.misses / (stats.hits + stats.misses);
-  if (missRate > 0.9) {
-    this.logger.warn("缓存命中率过低", { pattern, missRate });
-  }
-}
-```
 
 ## 第九步：组件依赖和调用关系分析
 
@@ -487,70 +347,118 @@ private updateCacheMetrics(key: string, operation: "hit"|"miss"|"set"): void {
 
 ### 被依赖的组件关系
 
-#### 1. 核心业务模块 (12个模块)
-**数据处理链路：**
-- `core/01-entry/receiver/module/receiver.module.ts` - 数据接收入口
-- `core/01-entry/query/module/query.module.ts` - 数据查询入口  
-- `core/03-fetching/stream-data-fetcher/module/stream-data-fetcher.module.ts` - 流数据获取
-- `core/00-prepare/data-mapper/module/data-mapper.module.ts` - 数据映射规则缓存
+#### 当前使用CacheService的模块 (5个模块)
 
-**共享服务：**
-- `core/shared/module/shared-services.module.ts` - 共享服务模块
-
-#### 2. 认证与权限模块 (2个模块)
+**认证与权限模块 (2个模块):**
 - `auth/module/auth.module.ts` - 认证服务，缓存用户会话和权限
 - `security/module/security.module.ts` - 安全审计，缓存安全事件
 
-#### 3. 监控与告警模块 (2个模块)  
-- `monitoring/module/monitoring.module.ts` - 系统监控，使用故障容错的缓存方法
-- `alert/module/alert.module.ts` - 告警服务，缓存告警规则和历史
+**告警模块 (3个服务):**
+- `alert/services/alerting.service.ts` - 告警服务
+- `alert/services/alert-history.service.ts` - 告警历史
+- `alert/services/rule-engine.service.ts` - 规则引擎
 
 ### 具体服务调用关系
 
-#### 1. 监控组件调用
+#### 1. 认证系统调用 - PermissionService (重度使用)
 ```typescript
-// monitoring/controller/monitoring.controller.ts:24
-import { CacheService } from "../../cache/services/cache.service";
+// auth/services/permission.service.ts:48
+constructor(private readonly cacheService: CacheService) {}
 
-// 使用故障容错的缓存方法进行性能监控
-await cacheService.hashGetAll(key);     // 返回 {} 而非抛异常
-await cacheService.listRange(key, 0, -1); // 返回 [] 而非抛异常
+// 权限检查缓存 - 核心功能
+async checkPermissions(subject, requiredPermissions, requiredRoles): Promise<PermissionCheckResult> {
+  // 1. 获取缓存的权限检查结果 (Lines 77-78)
+  const cachedResult = await this.cacheService.get<PermissionCheckResult>(cacheKey);
+  
+  // 2. 缓存权限检查结果 (Lines 103-105)
+  await this.cacheService.set(cacheKey, result, { ttl: this.config.cacheTtlSeconds });
+}
+
+// 权限缓存失效 (Line 229)
+async invalidateCacheFor(subject: AuthSubject): Promise<void> {
+  const deletedCount = await this.cacheService.delByPattern(pattern);
+}
+
+// 缓存用途：权限检查结果缓存，避免重复权限验证计算，提升认证性能
 ```
 
-#### 2. 告警系统调用  
+#### 2. 安全审计调用 - SecurityAuditService (重度使用)
 ```typescript
-// alert/services/alerting.service.ts:13
-import { CacheService } from "../../cache/services/cache.service";
+// security/services/security-audit.service.ts:50
+constructor(
+  private readonly auditLogRepository: SecurityAuditLogRepository,
+  private readonly eventEmitter: EventEmitter2,
+  private readonly cacheService: CacheService,
+) {}
 
-// alert/services/rule-engine.service.ts:6
-import { CacheService } from "../../cache/services/cache.service";
+// 安全事件缓冲区管理 (Lines 75-83)
+async logSecurityEvent(event): Promise<void> {
+  // 事件推入缓冲区
+  await this.cacheService.listPush(this.config.eventBufferKey, JSON.stringify(securityEvent));
+  // 维护缓冲区大小
+  await this.cacheService.listTrim(this.config.eventBufferKey, 0, this.config.eventBufferMaxSize - 1);
+}
 
-// alert/services/alert-history.service.ts:6  
-import { CacheService } from "../../cache/services/cache.service";
+// IP分析和管理 (Lines 220, 366, 374-376, 385-386)
+async logSuspiciousActivity(): Promise<void> {
+  await this.cacheService.setAdd(this.config.suspiciousIpSetKey, clientIP); // 添加可疑IP
+}
+
+isIPSuspicious(ip: string): Promise<boolean> {
+  return this.cacheService.setIsMember(this.config.suspiciousIpSetKey, ip); // 检查可疑IP
+}
+
+async getIPAnalysis(ip: string) {
+  return await this.cacheService.hashGetAll(`${this.config.ipAnalysisHashPrefix}${ip}`); // IP数据分析
+}
+
+getSuspiciousIPs(): Promise<string[]> {
+  return this.cacheService.setMembers(this.config.suspiciousIpSetKey); // 获取可疑IP列表
+}
+
+// IP统计更新 (Lines 529-541)
+private async updateIPAnalysis(event: SecurityEvent): Promise<void> {
+  // 增加请求/失败计数
+  await this.cacheService.hashIncrementBy(key, "requestCount", 1);
+  await this.cacheService.hashIncrementBy(key, "failureCount", 1);
+  // 设置最后访问时间和过期时间
+  await this.cacheService.hashSet(key, "lastSeen", timestamp);
+  await this.cacheService.expire(key, this.config.ipAnalysisTtlSeconds);
+}
+
+// 事件刷新到数据库 (Lines 450-466)
+async flushAuditLogs(): Promise<void> {
+  // 获取缓冲区所有事件
+  const eventsJson = await this.cacheService.listRange(this.config.eventBufferKey, 0, -1);
+  // 清空已处理事件
+  await this.cacheService.listTrim(this.config.eventBufferKey, eventsJson.length, -1);
+}
+
+// 缓存用途：安全事件缓冲、IP分析数据、可疑IP黑名单、实时安全统计
 ```
 
-#### 3. 认证系统调用
+#### 3. 告警系统调用  
 ```typescript
-// auth/services/permission.service.ts:5
-import { CacheService } from "../../cache/services/cache.service";
+// alert/services/alerting.service.ts:53
+constructor(
+  private readonly alertRuleRepository: AlertRuleRepository,
+  private readonly ruleEngine: RuleEngineService,
+  private readonly notificationService: NotificationService,
+  private readonly alertHistoryService: AlertHistoryService,
+  private readonly eventEmitter: EventEmitter2,
+  private readonly cacheService: CacheService,
+) {}
 
-// 缓存API Key和权限信息，提升认证性能
-```
+// alert/services/rule-engine.service.ts:36
+constructor(private readonly cacheService: CacheService) {}
 
-#### 4. 流数据处理调用
-```typescript
-// core/03-fetching/stream-data-fetcher/services/stream-data-cache.service.ts:3
-import { CacheService } from '../../../../cache/services/cache.service';
+// alert/services/alert-history.service.ts:37  
+constructor(
+  private readonly alertHistoryRepository: AlertHistoryRepository,
+  private readonly cacheService: CacheService,
+) {}
 
-// 用于缓存流数据、压缩历史数据点
-```
-
-#### 5. 数据映射规则缓存
-```typescript
-// core/00-prepare/data-mapper/services/mapping-rule-cache.service.ts:3
-import { CacheService } from '../../../../cache/services/cache.service';
-
-// 缓存数据映射规则，减少数据库查询
+// 告警系统具体使用方式需要进一步分析
 ```
 
 ### 依赖注入图谱
@@ -558,20 +466,14 @@ import { CacheService } from '../../../../cache/services/cache.service';
 ```
 CacheModule (导出 CacheService)
     ↓
-├─ MonitoringModule → MonitoringController
-├─ AlertModule → AlertingService, RuleEngineService, AlertHistoryService  
 ├─ AuthModule → PermissionService
 ├─ SecurityModule → SecurityAuditService
-├─ ReceiverModule → ReceiverService
-├─ QueryModule → QueryService (通过SmartCacheModule)
-├─ StreamDataFetcherModule → StreamDataCacheService
-├─ DataMapperModule → MappingRuleCacheService
-└─ SharedServicesModule → (各种共享服务)
+└─ AlertModule → AlertingService, RuleEngineService, AlertHistoryService
 ```
 
 ### 模块间通信模式
 
-#### 1. 直接依赖注入 (多数情况)
+#### 直接依赖注入
 ```typescript
 @Module({
   imports: [CacheModule],          // 导入缓存模块
@@ -583,36 +485,27 @@ export class SomeModule {}
 @Injectable()
 export class SomeService {
   constructor(
-    private readonly cacheService: CacheService  // 直接注入
+    private readonly cacheService: CacheService  // 直接注入通用缓存
   ) {}
 }
 ```
 
-#### 2. 通过共享服务模块 (部分情况)
-```typescript
-@Module({
-  imports: [SharedServicesModule], // 间接通过共享模块
-  providers: [SomeService],
-})  
-export class SomeModule {}
-```
-
-#### 3. 故障容错调用模式 (监控组件)
-```typescript
-// 监控组件使用故障容错方法，避免缓存故障影响监控
-const data = await cacheService.hashGetAll(key);      // 失败返回 {}
-const members = await cacheService.setMembers(key);   // 失败返回 []
-const range = await cacheService.listRange(key, 0, -1); // 失败返回 []
-```
-
 ## 组件分析总结
 
-**Cache模块** 是一个功能完整、设计精良的Redis缓存服务组件，具有以下特点：
+**Cache模块** 是一个功能完整、设计精良的Redis缓存服务组件，目前为5个服务提供缓存支持：
+
+### 使用情况详情
+1. **PermissionService (重度使用)** - 权限检查结果缓存，使用 get/set/delByPattern
+2. **SecurityAuditService (重度使用)** - 安全事件缓冲、IP分析、可疑IP管理，使用 List/Set/Hash 等多种数据结构
+3. **AlertingService (轻度使用)** - 告警相关缓存
+4. **RuleEngineService (轻度使用)** - 规则引擎缓存  
+5. **AlertHistoryService (轻度使用)** - 告警历史缓存
 
 ### 架构优势
 1. **清晰的模块结构** - 按功能分层：常量、DTO、模块、服务
 2. **无无效文件** - 所有文件都被有效引用，代码精简高效
-3. **广泛集成** - 被12+个核心模块依赖，是系统的基础设施组件
+3. **专注核心功能** - 专注于认证、安全、告警等核心业务缓存需求
+4. **多数据结构支持** - 支持String、List、Set、Hash等Redis数据结构
 
 ### 技术亮点
 1. **智能缓存** - 自动压缩、序列化、TTL管理
@@ -627,4 +520,4 @@ const range = await cacheService.listRange(key, 0, -1); // 失败返回 []
 3. **大小限制控制** - 防止大数据影响性能
 4. **监控策略可调** - 告警阈值、慢操作阈值等可配置
 
-该Cache组件在Stock API系统中扮演着关键的基础设施角色，为数据缓存、认证权限、监控告警等多个子系统提供高性能、高可靠的缓存服务支撑。
+该Cache组件在Stock API系统中扮演着重要的基础设施角色，为认证权限、安全审计、告警系统等核心功能提供高性能、高可靠的缓存服务支撑。

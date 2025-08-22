@@ -13,7 +13,7 @@ import {
   StreamConnectionStats,
 } from '../interfaces';
 import { StreamConnectionImpl } from './stream-connection.impl';
-import { StreamDataCacheService } from './stream-data-cache.service';
+import { StreamCacheService } from '../../../05-caching/stream-cache/services/stream-cache.service';
 import { StreamClientStateManager } from './stream-client-state-manager.service';
 import { StreamMetricsService } from './stream-metrics.service';
 
@@ -27,7 +27,7 @@ import { StreamMetricsService } from './stream-metrics.service';
  * - 与 CapabilityRegistry 集成获取提供商流能力
  * 
  * ❌ 明确不负责：
- * - 数据缓存（由 StreamDataCacheService 负责）
+ * - 数据缓存（由 StreamCacheService 负责）
  * - 数据转换（由 Transformer 负责）
  * - 数据存储（由 Storage 负责）
  * - 数据路由（由 StreamReceiver 负责）
@@ -52,7 +52,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
     protected readonly metricsRegistry: MetricsRegistryService,
     private readonly capabilityRegistry: CapabilityRegistryService,
     // Phase 4: 添加内部服务访问 - 供 StreamReceiver 使用
-    private readonly streamDataCache: StreamDataCacheService,
+    private readonly streamCache: StreamCacheService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly streamMetrics: StreamMetricsService,
   ) {
@@ -427,8 +427,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
   /**
    * Phase 4: 获取内部缓存服务 - 供 StreamReceiver 使用
    */
-  getStreamDataCache(): StreamDataCacheService {
-    return this.streamDataCache;
+  getStreamDataCache(): StreamCacheService {
+    return this.streamCache;
   }
 
   /**
