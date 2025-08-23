@@ -8,7 +8,7 @@
 
 #### **重叠1: 健康评分计算重复**
 
-**Metrics组件**(`MetricsPerformanceService`):
+**Metrics组件**(`CollectorService`):
 ```typescript
 private calculateHealthScore(
   endpointMetrics: EndpointMetricsDto[],
@@ -131,7 +131,7 @@ export class PerformanceAnalyticsService implements IPerformanceAnalytics {
   private readonly CACHE_TTL = 30000; // 30秒缓存
 
   constructor(
-    private readonly performanceMonitor: MetricsPerformanceService,
+    private readonly performanceMonitor: CollectorService,
     private readonly cacheService: AnalyticsCacheService
   ) {}
 
@@ -168,7 +168,7 @@ export class HealthAnalyticsService implements IHealthAnalytics {
   private readonly CACHE_TTL = 15000; // 15秒缓存
 
   constructor(
-    private readonly performanceMonitor: MetricsPerformanceService,
+    private readonly performanceMonitor: CollectorService,
     private readonly cacheService: AnalyticsCacheService
   ) {}
 
@@ -858,7 +858,7 @@ export class MetricsCalculatorService {
 
 | 迁移来源 | 迁移内容 (移走) | 保留内容 (不动) | 目标位置 |
 | :--- | :--- | :--- | :--- |
-| **`metrics/services/metrics-performance.service.ts`** | `getPerformanceSummary` (封装调用)<br>`calculateHealthScore` (封装调用) | `record*` 系列数据采集方法<br>`getEndpointMetrics`<br>`getDatabaseMetrics`<br>`getSystemMetrics`<br>原始数据获取方法<br>定时数据采集任务<br>事件发射逻辑 | `PerformanceAnalyticsService`<br>`HealthAnalyticsService` |
+| **`metrics/services/collector.service.ts`** | `getPerformanceSummary` (封装调用)<br>`calculateHealthScore` (封装调用) | `record*` 系列数据采集方法<br>`getEndpointMetrics`<br>`getDatabaseMetrics`<br>`getSystemMetrics`<br>原始数据获取方法<br>定时数据采集任务<br>事件发射逻辑 | `PerformanceAnalyticsService`<br>`HealthAnalyticsService` |
 | **`monitoring/controller/monitoring.controller.ts`** | `determineHealthStatus`<br>`identifyIssues`<br>`generateRecommendations`<br>`calculateTrends`<br>`categorizePriority` | 参数校验逻辑<br>权限控制<br>路由定义 | `HealthAnalyticsService` |
 | **单位转换逻辑** | 数据单位转换<br>默认值处理 | - | DTO层或全局拦截器 |
 
@@ -907,7 +907,7 @@ export class MetricsCalculatorService {
 ### 风险与回滚策略
 
 - **依赖注入切换风险**: 模块的导入/导出链路调整期间，可能存在短暂的服务不可用。
-  - **应对策略**: 建议采用“灰度发布”策略。先引入 `AnalyticsModule`，在 `MonitoringController` 中通过配置开关控制调用新服务还是旧服务。确认新服务行为与旧服务完全等价后，再移除旧逻辑和开关。
+  - **应对策略**: 建议采用“灰度发布”策略。先引入 `AnalyzerModule`，在 `MonitoringController` 中通过配置开关控制调用新服务还是旧服务。确认新服务行为与旧服务完全等价后，再移除旧逻辑和开关。
 - **测试回归风险**: 分析逻辑的迁移可能引入计算偏差。
   - **应对策略**:
     1. **表格化单元测试**: 为 `HealthAnalyticsService` 编写覆盖边界阈值和极端场景的表格驱动测试（输入一组指标 -> 断言各项扣分 -> 断言最终状态）。

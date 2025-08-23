@@ -33,7 +33,7 @@
 
 ### 2.1 必需标签
 
-所有指标应包含以下公共标签（由 `MonitoringRegistryService` 自动添加）：
+所有指标应包含以下公共标签（由 `PresenterRegistryService` 自动添加）：
 
 - `app`: 应用名称，通常为 "newstock-api"
 - `version`: 应用版本号，取自 `process.env.npm_package_version`
@@ -72,13 +72,13 @@
 
 ## 4. 如何添加新指标
 
-### 4.1 在 `MonitoringRegistryService` 中定义
+### 4.1 在 `PresenterRegistryService` 中定义
 
 ```typescript
 // 在 src/monitoring/metrics/services/metrics-registry.service.ts 中添加
 
 @Injectable()
-export class MonitoringRegistryService implements OnModuleInit {
+export class PresenterRegistryService implements OnModuleInit {
   // ... 现有代码 ...
   
   // 添加新的计数器
@@ -106,7 +106,7 @@ export class MonitoringRegistryService implements OnModuleInit {
 @Injectable()
 export class MyBusinessService {
   constructor(
-    private readonly metricsRegistry: MonitoringRegistryService
+    private readonly metricsRegistry: PresenterRegistryService
   ) {}
   
   someBusinessMethod(): void {
@@ -140,9 +140,9 @@ export class MyBusinessService {
 
 ### 4.3 添加新指标的流程
 
-1. 在 `MonitoringRegistryService` 中声明并初始化指标
+1. 在 `PresenterRegistryService` 中声明并初始化指标
 2. 为指标提供合适的名称、描述和标签
-3. 在业务服务中注入 `MonitoringRegistryService`
+3. 在业务服务中注入 `PresenterRegistryService`
 4. 使用 `Metrics` 助手类更新指标值
 5. 更新 E2E 测试以确认新指标正常工作
 6. 在本文档中更新指标列表（可选）

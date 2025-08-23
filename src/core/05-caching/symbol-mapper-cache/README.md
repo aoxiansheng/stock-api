@@ -82,7 +82,7 @@ batchResultCacheTtl: number;
 
 - `SymbolMappingRepository` - 数据访问层
 - `FeatureFlags` - 配置管理
-- `MonitoringRegistryService` - 监控指标
+- `MetricsRegistryService` - 监控指标
 - `SharedServicesModule` - 共享服务
 
 ## 测试

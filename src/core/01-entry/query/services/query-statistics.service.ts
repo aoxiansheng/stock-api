@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { MonitoringRegistryService } from "../../../../system-status/monitoring/services/monitoring-registry.service";
-import { MetricsHelper } from "../../../../system-status/monitoring/helper/metrics-helper";
+import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
+import { MetricsHelper } from "../../../../common/core/monitoring/helper/metrics-helper";
 
 import {
   QUERY_WARNING_MESSAGES,
@@ -21,7 +21,7 @@ import { QueryType } from "../dto/query-types.dto";
 export class QueryStatisticsService {
   private readonly logger = createLogger(QueryStatisticsService.name);
   
-  constructor(private readonly metricsRegistry: MonitoringRegistryService) {}
+  constructor(private readonly metricsRegistry: MetricsRegistryService) {}
 
   // 旧版内存统计已废弃，所有数据直接从 Prometheus 获取
 

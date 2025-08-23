@@ -1,4 +1,4 @@
-import { OperationStatus } from "../../system-status/collect-metrics/enums/auth-type.enum";
+import { OperationStatus } from "../../system-status/contracts/enums/operation-status.enum";
 
 /**
  * 安全事件接口

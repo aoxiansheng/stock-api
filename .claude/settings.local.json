@@ -135,7 +135,15 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/00-prepare/data-mapper/services/mapping-rule-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest src/core/05-caching/data-mapper-cache/__tests__/data-mapper-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/data-mapper-cache/services/data-mapper-cache.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/performance/analytics-vs-direct-performance.benchmark.test.ts --testTimeout=60000 --config test/config/jest.unit.config.js --verbose)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/performance/analytics-vs-direct-performance.benchmark.test.ts --testTimeout=60000 --config test/config/jest.unit.config.js --verbose)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/contracts/interfaces/analyzer.interface.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/contracts/**/*.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/collect-metrics/services/collector.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/analytics/services/analyzer.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/monitoring/controller/monitoring.controller.ts)",
+      "Bash(echo:*)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/collector/interceptors/collector.interceptor.ts)",
+      "mcp__serena__think_about_whether_you_are_done"
     ],
     "deny": []
   }

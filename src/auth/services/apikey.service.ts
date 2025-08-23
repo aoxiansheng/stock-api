@@ -9,7 +9,7 @@ import { Model } from "mongoose";
 import { BadRequestException } from "@nestjs/common";
 import { createLogger } from "@common/config/logger.config";
 
-import { AuthPerformance } from "../../system-status/collect-metrics/decorators/database-performance.decorator";
+import { AuthPerformance } from "../../common/core/monitoring/decorators/database-performance.decorator";
 import {
   APIKEY_OPERATIONS,
   APIKEY_MESSAGES,
@@ -89,6 +89,49 @@ export class ApiKeyService {
     });
 
     return apiKey;
+  }
+
+  /**
+   * 根据AppKey查找API Key (不验证accessToken)
+   */
+  async findByAppKey(appKey: string): Promise<ApiKeyDocument | null> {
+    const operation = APIKEY_OPERATIONS.FIND_API_KEY_BY_ID || 'FIND_API_KEY_BY_ID';
+
+    this.logger.debug(`查找API Key: ${appKey}`, {
+      operation,
+      appKey,
+    });
+
+    try {
+      const apiKey = await this.apiKeyModel
+        .findOne({
+          appKey,
+          isActive: true,
+        })
+        .exec();
+
+      if (apiKey) {
+        this.logger.debug(`API Key找到: ${appKey}`, {
+          operation,
+          apiKeyId: apiKey._id.toString(),
+          appKey,
+        });
+      } else {
+        this.logger.debug(`API Key未找到: ${appKey}`, {
+          operation,
+          appKey,
+        });
+      }
+
+      return apiKey;
+    } catch (error) {
+      this.logger.error(`查找API Key失败: ${appKey}`, {
+        operation,
+        appKey,
+        error: error.stack,
+      });
+      return null;
+    }
   }
 
   /**

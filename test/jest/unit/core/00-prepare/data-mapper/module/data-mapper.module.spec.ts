@@ -16,7 +16,7 @@ import { MappingRuleController } from "../../../../../../../src/core/00-prepare/
 import { DataSourceTemplate, DataSourceTemplateDocument } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
-import { MonitoringRegistryService } from "../../../../../../../src/monitoring/metrics/services/metrics-registry.service";
+import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { DataMapperCacheService } from "../../../../../../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service";
 import { FeatureFlags } from "../../../../../../../src/common/config/feature-flags.config";
 
@@ -53,7 +53,7 @@ describe("DataMapperModule Components", () => {
         MappingRuleCacheService,
         DataMapperCacheService,
         PaginationService,
-        MonitoringRegistryService,
+        MetricsRegistryService,
         {
           provide: getModelToken(DataSourceTemplate.name),
           useValue: createMock<Model<DataSourceTemplateDocument>>(),
@@ -68,8 +68,8 @@ describe("DataMapperModule Components", () => {
     .useValue(createMock<PaginationService>())
     .overrideProvider(DataMapperCacheService)
     .useValue(createMock<DataMapperCacheService>())
-    .overrideProvider(MonitoringRegistryService)
-    .useValue(createMock<MonitoringRegistryService>())
+    .overrideProvider(MetricsRegistryService)
+    .useValue(createMock<MetricsRegistryService>())
     .overrideProvider(FeatureFlags)
     .useValue(createMock<FeatureFlags>())
     .compile();

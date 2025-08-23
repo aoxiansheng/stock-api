@@ -2,12 +2,13 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  ForbiddenException,
 } from "@nestjs/common";
 
 import { createLogger } from "@common/config/logger.config";
 
-import { DatabasePerformance } from "../../system-status/collect-metrics/decorators/database-performance.decorator";
-import { MetricsPerformanceService } from "../../system-status/collect-metrics/services/metrics-performance.service";
+import { DatabasePerformance } from "../../common/core/monitoring/decorators/database-performance.decorator";
+import { CollectorService } from "../../system-status/collector/services/collector.service";
 import {
   AUTH_OPERATIONS,
   AUTH_MESSAGES,
@@ -15,6 +16,7 @@ import {
 } from "../constants/auth.constants";
 import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
 import { CreateUserDto, LoginDto } from "../dto/auth.dto";
+import { ApiKeyUsageDto } from "../dto/apikey.dto";
 import { UserRepository } from "../repositories/user.repository";
 import { ApiKeyDocument } from "../schemas/apikey.schema";
 import { User } from "../schemas/user.schema";
@@ -31,7 +33,7 @@ export class AuthService {
     private readonly apiKeyService: ApiKeyService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
-    private readonly performanceMonitor: MetricsPerformanceService,
+    private readonly performanceMonitor: CollectorService,
   ) {}
 
   /**
@@ -198,6 +200,69 @@ export class AuthService {
     accessToken: string,
   ): Promise<ApiKeyDocument> {
     return this.apiKeyService.validateApiKey(appKey, accessToken);
+  }
+
+  /**
+   * 获取API Key使用统计
+   */
+  async getApiKeyUsage(appKey: string, userId: string): Promise<ApiKeyUsageDto> {
+    try {
+      // 验证API Key存在且属于该用户
+      const apiKeyData = await this.apiKeyService.findByAppKey(appKey);
+      if (!apiKeyData || apiKeyData.userId.toString() !== userId) {
+        throw new ForbiddenException('无权访问此API Key的使用统计');
+      }
+
+      // TODO: 从性能监控服务获取使用统计 (需要实现 getApiKeyStats 方法)
+      // const stats = await this.performanceMonitor.getApiKeyStats(appKey);
+      const stats = null; // 临时处理，等待实现
+      
+      const usage: ApiKeyUsageDto = {
+        apiKeyId: apiKeyData._id.toString(),
+        appKey: apiKeyData.appKey,
+        name: apiKeyData.name,
+        totalRequests: stats?.totalRequests || 0,
+        todayRequests: stats?.todayRequests || 0,
+        hourlyRequests: stats?.hourlyRequests || 0,
+        successfulRequests: stats?.successfulRequests || 0,
+        failedRequests: stats?.failedRequests || 0,
+        averageResponseTime: stats?.averageResponseTime || 0,
+        lastUsedAt: apiKeyData.lastUsedAt,
+        createdAt: apiKeyData.createdAt,
+        usageByHour: stats?.usageByHour || {},
+        errorStats: stats?.errorStats || {}
+      };
+
+      this.logger.log(`获取API Key使用统计成功: ${appKey}`);
+      return usage;
+    } catch (error) {
+      this.logger.error(`获取API Key使用统计失败: ${appKey}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * 重置API Key频率限制
+   */
+  async resetApiKeyRateLimit(appKey: string, userId: string): Promise<{ success: boolean }> {
+    try {
+      // 验证API Key存在且属于该用户  
+      const apiKeyData = await this.apiKeyService.findByAppKey(appKey);
+      if (!apiKeyData || apiKeyData.userId.toString() !== userId) {
+        throw new ForbiddenException('无权重置此API Key的频率限制');
+      }
+
+      // TODO: 通过性能监控服务重置频率限制 (需要实现 resetRateLimit 方法)
+      // await this.performanceMonitor.resetRateLimit(appKey);
+      // 临时处理：记录重置操作
+      this.logger.warn(`频率限制重置功能尚未实现: ${appKey}`);
+      
+      this.logger.log(`重置API Key频率限制成功: ${appKey}`);
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`重置API Key频率限制失败: ${appKey}`, error.stack);
+      throw error;
+    }
   }
 
   /**

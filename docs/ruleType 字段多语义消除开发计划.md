@@ -212,7 +212,7 @@ recordRuleCompiled(
 }
 ```
 
-##### 2.1.3 更新 MonitoringRegistryService
+##### 2.1.3 更新 PresenterRegistryService
 ```typescript
 // src/monitoring/metrics/services/metrics-registry.service.ts
 // 重构前
@@ -387,7 +387,7 @@ grep -r "recordRuleCompiled" src/ test/
 # 结果：只找到方法定义，无调用方
 
 # 分析 Prometheus 指标定义
-# MonitoringRegistryService.streamRulesCompiledTotal: Counter<string>
+# PresenterRegistryService.streamRulesCompiledTotal: Counter<string>
 # 标签: ['rule_type']
 ```
 

@@ -2,7 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueryStatisticsService } from '@core/01-entry/query/services/query-statistics.service';
 import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
-import { MonitoringRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 
 describe('QueryStatisticsService', () => {
   let service: QueryStatisticsService;
@@ -12,7 +12,7 @@ describe('QueryStatisticsService', () => {
       providers: [
         QueryStatisticsService,
         {
-          provide: MonitoringRegistryService,
+          provide: MetricsRegistryService,
           useValue: {
             streamThroughputPerSecond: { inc: jest.fn() },
             streamProcessingTimeMs: { observe: jest.fn() },

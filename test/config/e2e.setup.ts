@@ -22,7 +22,7 @@ import {
   RequestTrackingInterceptor,
 } from "@common/core/interceptors";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
-import { MetricsPerformanceService } from "../../src/metrics/services/metrics-performance.service";
+import { CollectorService } from "../../src/metrics/services/collector.service";
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;
@@ -88,7 +88,7 @@ beforeAll(async () => {
     app.useGlobalInterceptors(new RequestTrackingInterceptor());
 
     // 全局性能监控拦截器
-    const performanceMonitor = app.get(MetricsPerformanceService);
+    const performanceMonitor = app.get(CollectorService);
     const reflector = app.get(Reflector);
     app.useGlobalInterceptors(
       new PerformanceInterceptor(performanceMonitor, reflector),
@@ -98,7 +98,7 @@ beforeAll(async () => {
     app.useGlobalInterceptors(new ResponseInterceptor());
 
     // 设置全局性能监控服务（供装饰器使用）
-    global["MetricsPerformanceService"] = performanceMonitor;
+    global["CollectorService"] = performanceMonitor;
 
     // CORS 配置
     app.enableCors({

@@ -305,7 +305,7 @@ if (document.compressed === true && typeof data === 'string') {
 // 选项1：移除占位实现，返回实际 Prometheus 聚合数据（示例伪码）
 async getStorageStats(): Promise<StorageStatsDto> {
   // 文件：src/core/04-storage/storage/services/storage.service.ts
-  // 使用 MonitoringRegistryService 获取注册表文本，再解析聚合
+  // 使用 PresenterRegistryService 获取注册表文本，再解析聚合
   const raw = await this.metricsRegistry.getMetrics(); // text exposition format
   const aggregated = parseAndAggregate(raw, {
     counters: ['newstock_storage_operations_total'],

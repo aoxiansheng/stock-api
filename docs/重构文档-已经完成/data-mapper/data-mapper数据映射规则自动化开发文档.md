@@ -142,7 +142,7 @@ interface SmartRuleGeneration {
 ```typescript
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from '../schemas/flexible-mapping-rule.schema';
 import { RuleAlignmentService } from './rule-alignment.service';
-import { MonitoringRegistryService } from '../../../system-status/monitoring/services/metrics-registry.service';
+import { PresenterRegistryService } from '../../../system-status/monitoring/services/metrics-registry.service';
 ```
 
 #### 1.2 优化构造函数
@@ -153,7 +153,7 @@ constructor(
   @InjectModel(FlexibleMappingRule.name)  // 新增
   private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
   private readonly ruleAlignmentService: RuleAlignmentService,  // 【优化】注入现有服务
-  private readonly metricsRegistry: MonitoringRegistryService,  // 【新增】监控指标
+  private readonly metricsRegistry: PresenterRegistryService,  // 【新增】监控指标
 ) {}
 ```
 
@@ -434,10 +434,10 @@ providers: [
 
 文件路径：`src/monitoring/metrics/services/metrics-registry.service.ts`
 
-#### 4.1 在MonitoringRegistryService中新增Data-Mapper专属指标
+#### 4.1 在PresenterRegistryService中新增Data-Mapper专属指标
 ```typescript
 @Injectable()
-export class MonitoringRegistryService implements OnModuleInit, OnModuleDestroy {
+export class PresenterRegistryService implements OnModuleInit, OnModuleDestroy {
   // ... 现有指标字段
 
   // 【新增】Data-Mapper 规则初始化计数器
@@ -536,10 +536,10 @@ const fieldMappings = alignmentResult.suggestions
 
 #### 2. ✅ 监控指标接口校正
 
-**校验发现**：MonitoringRegistryService 暴露的是具体指标字段，非通用API方法
+**校验发现**：PresenterRegistryService 暴露的是具体指标字段，非通用API方法
 
 **解决方案**：采用新增具体指标字段的方案
-- ✅ 在 MonitoringRegistryService 中新增 data-mapper 专属指标
+- ✅ 在 PresenterRegistryService 中新增 data-mapper 专属指标
 - ✅ 使用 `.labels().inc()` 和 `.set()` 方法调用
 - ✅ 符合现有监控架构设计
 
@@ -581,7 +581,7 @@ const existingRule = await this.ruleModel.findOne({
 ```typescript
 // 实施前必须验证的关键点：
 ✅ 1. 确认 RuleAlignmentService.generateRuleFromTemplate() 方法签名
-✅ 2. 确认 MonitoringRegistryService 是否已注入到 DataMapperModule  
+✅ 2. 确认 PresenterRegistryService 是否已注入到 DataMapperModule  
 ✅ 3. 验证 confidence 阈值行为（0.5候选/0.7采纳）
 ✅ 4. 测试查重逻辑的完整性（包含4个字段）
 ✅ 5. 验证启发式类型判断的参数类型（DataSourceTemplateDocument）
@@ -936,7 +936,7 @@ bun run test:coverage:data-mapper
    - 添加业务查询索引
 
 6. **监控指标集成**
-   - 集成 MonitoringRegistryService
+   - 集成 PresenterRegistryService
    - 记录 created/skipped/failed 指标
 
 ### 技术风险评估

@@ -10,7 +10,7 @@ import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/q
 import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
-import { MonitoringRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -49,7 +49,7 @@ describe('QueryService', () => {
   let _backgroundTaskService: jest.Mocked<BackgroundTaskService>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _paginationService: jest.Mocked<PaginationService>;
-  let monitoringRegistryService: jest.Mocked<MonitoringRegistryService>;
+  let presenterRegistryService: jest.Mocked<MetricsRegistryService>;
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
 
   // Mock data
@@ -157,7 +157,7 @@ describe('QueryService', () => {
       paginate: jest.fn(),
     };
 
-    const mockMonitoringRegistryService = {
+    const mockMetricsRegistryService = {
       queryConcurrentRequestsActive: { inc: jest.fn(), dec: jest.fn() },
       queryPipelineDuration: { observe: jest.fn() },
       querySymbolsProcessedTotal: { inc: jest.fn() },
@@ -208,8 +208,8 @@ describe('QueryService', () => {
           useValue: mockPaginationService,
         },
         {
-          provide: MonitoringRegistryService,
-          useValue: mockMonitoringRegistryService,
+          provide: MetricsRegistryService,
+          useValue: mockMetricsRegistryService,
         },
         {
           provide: SmartCacheOrchestrator,
@@ -228,7 +228,7 @@ describe('QueryService', () => {
     _queryResultProcessorService = module.get(QueryResultProcessorService);
     _backgroundTaskService = module.get(BackgroundTaskService);
     _paginationService = module.get(PaginationService);
-    monitoringRegistryService = module.get(MonitoringRegistryService);
+    presenterRegistryService = module.get(MetricsRegistryService);
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
     // Setup utility function mocks
@@ -664,9 +664,9 @@ describe('QueryService', () => {
       if (executeQuery) {
         await executeQuery(mockRequest);
 
-        expect(monitoringRegistryService.queryConcurrentRequestsActive.inc).toHaveBeenCalled();
-        expect(monitoringRegistryService.queryPipelineDuration.observe).toHaveBeenCalled();
-        expect(monitoringRegistryService.querySymbolsProcessedTotal.inc).toHaveBeenCalled();
+        expect(presenterRegistryService.queryConcurrentRequestsActive.inc).toHaveBeenCalled();
+        expect(presenterRegistryService.queryPipelineDuration.observe).toHaveBeenCalled();
+        expect(presenterRegistryService.querySymbolsProcessedTotal.inc).toHaveBeenCalled();
       }
     });
   });

@@ -56,7 +56,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
     private readonly paginationService: PaginationService,
-    private readonly metricsRegistry: MonitoringRegistryService,
+    private readonly metricsRegistry: PresenterRegistryService,
   ) {}
 
   // 🎯 重构亮点：移除了200+行老缓存逻辑

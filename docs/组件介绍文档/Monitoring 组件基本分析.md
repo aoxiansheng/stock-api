@@ -23,7 +23,7 @@ src/monitoring/
 
 ### 1. MonitoringModule (入口模块)
 - **依赖集成**: 整合Alert、Auth、Cache、Metrics、SharedServices模块
-- **服务导出**: MonitoringInitializerService, MonitoringRegistryService供其他模块使用
+- **服务导出**: MonitoringInitializerService, PresenterRegistryService供其他模块使用
 
 ### 2. MonitoringController (REST API层)
 **功能**: 提供14个监控API端点，覆盖系统全方位监控需求
@@ -37,7 +37,7 @@ src/monitoring/
 - **智能分析** (2个): /optimization/recommendations, /dashboard
 
 ### 3. 指标系统架构
-- **MonitoringRegistryService**: 68个Prometheus指标的统一注册中心
+- **PresenterRegistryService**: 68个Prometheus指标的统一注册中心
 - **Metrics Helper**: 简化的指标记录API，业务层与实现解耦
 - **MonitoringInitializerService**: 配置管理和初始化
 
@@ -51,7 +51,7 @@ src/monitoring/
 - 多层次健康状态检查 (基础→详细→指标系统)
 - 实时仪表板数据聚合
 
-### MonitoringRegistryService类  
+### PresenterRegistryService类  
 **指标类型分布**:
 - **流处理性能** (13个): 包含端到端延迟监控
 - **流恢复系统** (18个): Phase 3关键修复指标
@@ -106,12 +106,12 @@ src/monitoring/
 - **alert** → AlertingService (告警统计)
 - **auth** → 认证装饰器, 用户角色 (权限控制)
 - **cache** → CacheService (缓存监控)
-- **metrics** → MetricsPerformanceService, MetricsHealthService (核心监控)
+- **metrics** → CollectorService, MetricsHealthService (核心监控)
 - **core/shared** → StreamPerformanceMetrics, DynamicLogLevelService (流监控)
 
 ### 被调用情况 (15+个组件)
 **app.module.ts**: 主模块集成MonitoringModule
-**核心组件服务**: 大量使用MonitoringRegistryService和Metrics Helper进行指标记录
+**核心组件服务**: 大量使用PresenterRegistryService和Metrics Helper进行指标记录
 - receiver, query, transformer, storage, stream-receiver等
 
 ### 通信模式

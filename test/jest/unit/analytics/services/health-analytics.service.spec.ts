@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HealthAnalyticsService } from '../../../../../src/system-status/analytics/services/health-analytics.service';
-import { MetricsPerformanceService } from '../../../../../src/system-status/collect-metrics/services/metrics-performance.service';
-import { AnalyticsCacheService } from '../../../../../src/system-status/analytics/services/analytics-cache.service';
-import { ANALYTICS_EVENTS } from '../../../../../src/system-status/analytics/constants';
+import { HealthAnalyticsService } from '../../../../../src/system-status/analyzer/services/health-analytics.service';
+import { CollectorService } from '../../../../../src/system-status/collector/services/collector.service';
+import { AnalyticsCacheService } from '../../../../../src/system-status/analyzer/services/analyzer-cache.service';
+import { ANALYTICS_EVENTS } from '../../../../../src/system-status/analyzer/constants';
 
 describe('HealthAnalyticsService', () => {
   let service: HealthAnalyticsService;
-  let MetricsPerformanceService: jest.Mocked<MetricsPerformanceService>;
+  let CollectorService: jest.Mocked<CollectorService>;
   let cacheService: jest.Mocked<AnalyticsCacheService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
@@ -51,7 +51,7 @@ describe('HealthAnalyticsService', () => {
   };
 
   beforeEach(async () => {
-    const mockMetricsPerformanceService = {
+    const mockCollectorService = {
       getPerformanceSummary: jest.fn(),
     };
 
@@ -68,8 +68,8 @@ describe('HealthAnalyticsService', () => {
       providers: [
         HealthAnalyticsService,
         {
-          provide: MetricsPerformanceService,
-          useValue: mockMetricsPerformanceService,
+          provide: CollectorService,
+          useValue: mockCollectorService,
         },
         {
           provide: AnalyticsCacheService,
@@ -83,7 +83,7 @@ describe('HealthAnalyticsService', () => {
     }).compile();
 
     service = module.get<HealthAnalyticsService>(HealthAnalyticsService);
-    MetricsPerformanceService = module.get(MetricsPerformanceService);
+    CollectorService = module.get(CollectorService);
     cacheService = module.get(AnalyticsCacheService);
     eventEmitter = module.get(EventEmitter2);
   });
@@ -95,7 +95,7 @@ describe('HealthAnalyticsService', () => {
   describe('getHealthScore', () => {
     it('should return cached health score when available', async () => {
       // 设置性能摘要数据
-      MetricsPerformanceService.getPerformanceSummary.mockResolvedValue(mockPerformanceSummary);
+      CollectorService.getPerformanceSummary.mockResolvedValue(mockPerformanceSummary);
 
       // 第一次调用
       const score1 = await service.getHealthScore();
@@ -109,7 +109,7 @@ describe('HealthAnalyticsService', () => {
     });
 
     it('should return default score when calculation fails', async () => {
-      MetricsPerformanceService.getPerformanceSummary.mockRejectedValue(new Error('Calculation failed'));
+      CollectorService.getPerformanceSummary.mockRejectedValue(new Error('Calculation failed'));
 
       const score = await service.getHealthScore();
       expect(score).toBe(100); // ANALYTICS_DEFAULTS.HEALTH_SCORE
@@ -125,14 +125,14 @@ describe('HealthAnalyticsService', () => {
     });
 
     it('should use calculated score when no score provided', async () => {
-      MetricsPerformanceService.getPerformanceSummary.mockResolvedValue(mockPerformanceSummary);
+      CollectorService.getPerformanceSummary.mockResolvedValue(mockPerformanceSummary);
 
       const status = await service.getHealthStatus();
       expect(['healthy', 'warning', 'degraded', 'unhealthy']).toContain(status);
     });
 
     it('should return unhealthy on error', async () => {
-      MetricsPerformanceService.getPerformanceSummary.mockRejectedValue(new Error('Failed to get performance summary'));
+      CollectorService.getPerformanceSummary.mockRejectedValue(new Error('Failed to get performance summary'));
 
       const status = await service.getHealthStatus();
       expect(status).toBe('unhealthy');
@@ -159,7 +159,7 @@ describe('HealthAnalyticsService', () => {
 
     it('should generate new report when cache miss', async () => {
       cacheService.get.mockResolvedValue(null);
-      MetricsPerformanceService.getPerformanceSummary.mockResolvedValue(mockPerformanceSummary);
+      CollectorService.getPerformanceSummary.mockResolvedValue(mockPerformanceSummary);
 
       const report = await service.getDetailedHealthReport();
 
@@ -192,7 +192,7 @@ describe('HealthAnalyticsService', () => {
 
     it('should return default report on error', async () => {
       cacheService.get.mockRejectedValue(new Error('Cache error'));
-      MetricsPerformanceService.getPerformanceSummary.mockImplementation(() => {
+      CollectorService.getPerformanceSummary.mockImplementation(() => {
         throw new Error('Performance summary error');
       });
 

@@ -138,6 +138,97 @@ export class ApiKeyResponseDto {
 }
 
 /**
+ * API Key使用统计DTO
+ */
+export class ApiKeyUsageDto {
+  @ApiProperty({ description: "API Key ID" })
+  apiKeyId: string;
+
+  @ApiProperty({ description: "App Key" })
+  appKey: string;
+
+  @ApiProperty({ description: "API Key名称" })
+  name: string;
+
+  @ApiProperty({ description: "总请求次数" })
+  totalRequests: number;
+
+  @ApiProperty({ description: "今日请求次数" })
+  todayRequests: number;
+
+  @ApiProperty({ description: "本小时请求次数" })
+  hourlyRequests: number;
+
+  @ApiProperty({ description: "成功请求次数" })
+  successfulRequests: number;
+
+  @ApiProperty({ description: "失败请求次数" })
+  failedRequests: number;
+
+  @ApiProperty({ description: "平均响应时间(ms)" })
+  averageResponseTime: number;
+
+  @ApiProperty({ description: "最后使用时间" })
+  lastUsedAt?: Date;
+
+  @ApiProperty({ description: "创建时间" })
+  createdAt: Date;
+
+  @ApiProperty({ description: "使用频率统计", type: 'object' })
+  usageByHour: Record<string, number>;
+
+  @ApiProperty({ description: "错误统计", type: 'object' })
+  errorStats: Record<string, number>;
+}
+
+/**
+ * 用户统计信息DTO
+ */
+export class UserStatsDto {
+  @ApiProperty({ description: "用户ID" })
+  userId: string;
+
+  @ApiProperty({ description: "用户名" })
+  username: string;
+
+  @ApiProperty({ description: "用户角色" })
+  role: string;
+
+  @ApiProperty({ description: "API Key总数" })
+  totalApiKeys: number;
+
+  @ApiProperty({ description: "活跃API Key数" })
+  activeApiKeys: number;
+
+  @ApiProperty({ description: "总请求次数" })
+  totalRequests: number;
+
+  @ApiProperty({ description: "今日请求次数" })
+  todayRequests: number;
+
+  @ApiProperty({ description: "成功请求次数" })
+  successfulRequests: number;
+
+  @ApiProperty({ description: "失败请求次数" })
+  failedRequests: number;
+
+  @ApiProperty({ description: "成功率(%)" })
+  successRate: number;
+
+  @ApiProperty({ description: "最后登录时间" })
+  lastLoginAt?: Date;
+
+  @ApiProperty({ description: "注册时间" })
+  createdAt: Date;
+
+  @ApiProperty({ description: "账户状态" })
+  accountStatus: 'active' | 'inactive' | 'suspended';
+
+  @ApiProperty({ description: "使用的权限列表", enum: Permission, isArray: true })
+  usedPermissions: Permission[];
+}
+
+/**
  * 更新API Key DTO
  */
 export class UpdateApiKeyDto {

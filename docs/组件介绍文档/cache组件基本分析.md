@@ -343,7 +343,7 @@ CACHE_TTL = {
 #### 项目内部依赖：
 - `@common/config/logger.config` - 统一日志配置
 - `@common/constants/unified/unified-cache-config.constants` - 统一缓存配置
-- `../system-status/collect-metrics/decorators/database-performance.decorator` - 性能监控装饰器
+- `../system-status/collector/decorators/database-performance.decorator` - 性能监控装饰器
 
 ### 被依赖的组件关系
 

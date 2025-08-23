@@ -75,7 +75,7 @@ src/auth/
 
 **导入的模块:**
 - CacheModule (缓存模块)
-- AnalyticsModule (指标模块)
+- AnalyzerModule (指标模块)
 - PassportModule (JWT策略)
 - JwtModule (JWT模块)
 - MongooseModule (数据库模式)
@@ -197,7 +197,7 @@ ACCESS_TOKEN_LENGTH: 32
 
 ### 外部依赖
 - **CacheModule**: Redis缓存服务
-- **AnalyticsModule**: 性能监控服务  
+- **AnalyzerModule**: 性能监控服务  
 - **PassportModule**: Passport认证框架
 - **JwtModule**: JWT令牌处理
 - **MongooseModule**: MongoDB数据访问

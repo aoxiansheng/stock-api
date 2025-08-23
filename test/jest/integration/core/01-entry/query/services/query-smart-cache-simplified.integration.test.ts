@@ -18,7 +18,7 @@ import { StorageService } from '../../../../../../../src/core/04-storage/storage
 import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
-import { MonitoringRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
 
@@ -60,7 +60,7 @@ describe('Query Smart Cache Simplified Integration Tests', () => {
     run: jest.fn(),
   };
 
-  const mockMonitoringRegistryService = {
+  const mockMetricsRegistryService = {
     queryBackgroundTasksCompleted: { inc: jest.fn() },
     queryBackgroundTasksActive: { set: jest.fn() },
     queryBackgroundTasksFailed: { inc: jest.fn() },
@@ -124,7 +124,7 @@ describe('Query Smart Cache Simplified Integration Tests', () => {
         { provide: DataChangeDetectorService, useValue: mockDataChangeDetectorService },
         { provide: MarketStatusService, useValue: mockMarketStatusService },
         { provide: BackgroundTaskService, useValue: mockBackgroundTaskService },
-        { provide: MonitoringRegistryService, useValue: mockMonitoringRegistryService },
+        { provide: MetricsRegistryService, useValue: mockMetricsRegistryService },
       ],
     }).compile();
 

@@ -2,11 +2,11 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
 import * as crypto from 'crypto';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { MonitoringRegistryService } from '../../../../system-status/monitoring/services/monitoring-registry.service';
+import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { SymbolMappingRule } from '../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { createLogger } from '@common/config/logger.config';
-import { MetricsHelper } from '../../../../system-status/monitoring/helper/metrics-helper';
+import { MetricsHelper } from '../../../../common/core/monitoring/helper/metrics-helper';
 import { 
   BatchMappingResult,
   CacheStatsDto 
@@ -54,7 +54,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
-    private readonly metricsRegistry: MonitoringRegistryService
+    private readonly metricsRegistry: MetricsRegistryService
   ) {
     this.initializeCaches();
     this.initializeStats();

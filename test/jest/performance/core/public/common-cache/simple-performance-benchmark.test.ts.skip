@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { CommonCacheService } from '@core/05-caching/common-cache/services/common-cache.service';
-// import { CacheMetricsPerformanceService } from '@core/05-caching/common-cache/monitoring/cache-performance-monitor.service';
+// import { CacheCollectorService } from '@core/05-caching/common-cache/monitoring/cache-performance-monitor.service';
 import { CommonCacheModule } from '@core/05-caching/common-cache/module/common-cache.module';
 
 /**
@@ -11,7 +11,7 @@ import { CommonCacheModule } from '@core/05-caching/common-cache/module/common-c
 describe.skip('Simple Cache Performance Benchmark', () => {
   let module: TestingModule;
   let commonCache: CommonCacheService;
-  // let performanceMonitor: CacheMetricsPerformanceService;
+  // let performanceMonitor: CacheCollectorService;
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
@@ -30,7 +30,7 @@ describe.skip('Simple Cache Performance Benchmark', () => {
         CommonCacheModule,
       ],
       providers: [
-        // CacheMetricsPerformanceService,
+        // CacheCollectorService,
         {
           provide: 'METRICS_REGISTRY',
           useValue: {
@@ -49,7 +49,7 @@ describe.skip('Simple Cache Performance Benchmark', () => {
     }).compile();
 
     commonCache = module.get<CommonCacheService>(CommonCacheService);
-    // performanceMonitor = module.get<CacheMetricsPerformanceService>(CacheMetricsPerformanceService);
+    // performanceMonitor = module.get<CacheCollectorService>(CacheCollectorService);
   });
 
   afterAll(async () => {

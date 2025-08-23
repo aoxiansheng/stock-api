@@ -21,7 +21,7 @@ import { PasswordService } from "../../../../../../src/auth/services/password.se
 import { SmartCacheOrchestrator } from "../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service";
 import { StorageService } from "../../../../../../src/core/04-storage/storage/services/storage.service";
 import { CacheService } from "../../../../../../src/cache/services/cache.service";
-import { MonitoringRegistryService } from "../../../../../../src/monitoring/metrics/services/metrics-registry.service";
+import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { CacheStrategy } from "../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
 
 describe("Smart Cache Orchestrator E2E Tests", () => {
@@ -32,7 +32,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
   let smartCacheOrchestrator: SmartCacheOrchestrator;
   let storageService: StorageService;
   let cacheService: CacheService;
-  let monitoringRegistryService: MonitoringRegistryService;
+  let presenterRegistryService: MetricsRegistryService;
 
   // 测试数据
   const testSymbols = {
@@ -56,7 +56,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
     smartCacheOrchestrator = app.get(SmartCacheOrchestrator);
     storageService = app.get(StorageService);
     cacheService = app.get(CacheService);
-    monitoringRegistryService = app.get(MonitoringRegistryService);
+    presenterRegistryService = app.get(MetricsRegistryService);
 
     // 创建认证环境
     await setupAuthenticationEnvironment();

@@ -1,8 +1,8 @@
   import { Test, TestingModule } from '@nestjs/testing';
   import { EventEmitter2 } from '@nestjs/event-emitter';
-  import { CacheInvalidationCoordinatorService } from '../../../../../../src/system-status/analytics/services/cache-invalidation-coordinator.service';
-import { AnalyticsCacheService } from '../../../../../../src/system-status/analytics/services/analytics-cache.service';
-import { ANALYTICS_EVENTS } from '../../../../../../src/system-status/analytics/constants';
+  import { CacheInvalidationCoordinatorService } from '../../../../../../src/system-status/analyzer/services/cache-invalidation-coordinator.service';
+import { AnalyticsCacheService } from '../../../../../../src/system-status/analyzer/services/analyzer-cache.service';
+import { ANALYTICS_EVENTS } from '../../../../../../src/system-status/analyzer/constants';
 
 describe('CacheInvalidationCoordinatorService', () => {
   let service: CacheInvalidationCoordinatorService;

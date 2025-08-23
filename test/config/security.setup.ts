@@ -19,7 +19,7 @@ import {
 } from "../../src/common/core/interceptors";
 import { SecurityMiddleware } from "../../src/security/middleware/security.middleware";
 import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
-import { MetricsPerformanceService } from "../../src/metrics/services/metrics-performance.service";
+import { CollectorService } from "../../src/metrics/services/collector.service";
 import { UserRepository } from "../../src/auth/repositories/user.repository";
 import { PasswordService } from "../../src/auth/services/password.service";
 import { UserRole, Permission } from "../../src/auth/enums/user-role.enum";
@@ -100,7 +100,7 @@ beforeAll(async () => {
 
     app.useGlobalInterceptors(new RequestTrackingInterceptor());
 
-    const performanceMonitor = app.get(MetricsPerformanceService);
+    const performanceMonitor = app.get(CollectorService);
     const reflector = app.get("Reflector");
     app.useGlobalInterceptors(
       new PerformanceInterceptor(performanceMonitor, reflector),
@@ -108,7 +108,7 @@ beforeAll(async () => {
 
     app.useGlobalInterceptors(new ResponseInterceptor());
 
-    global["MetricsPerformanceService"] = performanceMonitor;
+    global["CollectorService"] = performanceMonitor;
 
     // 安全测试的CORS配置
     const whitelist = ["https://trusted.com", "http://localhost:3000"];

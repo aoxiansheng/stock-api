@@ -5,7 +5,7 @@
  */
 
 import { INestApplication } from "@nestjs/common";
-import { MetricsPerformanceService } from "../../../src/metrics/services/metrics-performance.service";
+import { CollectorService } from "../../../src/metrics/services/collector.service";
 import { AlertingService } from "../../../src/alert/services/alerting.service";
 import { AlertHistoryService } from "../../../src/alert/services/alert-history.service";
 import { RedisService } from "@liaoliaots/nestjs-redis";
@@ -24,7 +24,7 @@ import * as request from "supertest";
 export class MonitoringTestHelper {
   constructor(
     private readonly app: INestApplication,
-    private readonly performanceMonitor: MetricsPerformanceService,
+    private readonly performanceMonitor: CollectorService,
     private readonly alertingService: AlertingService,
     private readonly alertHistoryService: AlertHistoryService,
   ) {}
@@ -422,8 +422,8 @@ export class MonitoringTestHelper {
 export function createMonitoringTestHelper(
   app: INestApplication,
 ): MonitoringTestHelper {
-  const performanceMonitor = app.get<MetricsPerformanceService>(
-    MetricsPerformanceService,
+  const performanceMonitor = app.get<CollectorService>(
+    CollectorService,
   );
   const alertingService = app.get<AlertingService>(AlertingService);
   const alertHistoryService = app.get<AlertHistoryService>(AlertHistoryService);

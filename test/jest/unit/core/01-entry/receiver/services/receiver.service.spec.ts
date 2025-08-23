@@ -7,7 +7,7 @@ import { CapabilityRegistryService } from '../../../../../../../src/providers/se
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { DataTransformerService } from '../../../../../../../src/core/02-processing/transformer/services/data-transformer.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
-import { MonitoringRegistryService } from '../../../../../../../src/monitoring/metrics/services/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -193,7 +193,7 @@ describe('ReceiverService', () => {
           useValue: mockStorageService,
         },
         {
-          provide: MonitoringRegistryService,
+          provide: MetricsRegistryService,
           useValue: mockMetricsRegistry,
         },
         {

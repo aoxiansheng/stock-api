@@ -39,7 +39,7 @@ src/metrics/
 经过全面的静态代码分析，**所有Metrics模块的文件都是有效的**，没有发现无用文件。
 
 ### 核心文件被引用情况：
-- **services/metrics-performance.service.ts** - 在 `main.ts` 和模块中被引用
+- **services/collector.service.ts** - 在 `main.ts` 和模块中被引用
 - **services/metrics-health.service.ts** - 在模块中导出，被监控系统使用
 - **repositories/performance-metrics.repository.ts** - 在模块中注册，被服务使用
 - **interceptors/performance.interceptor.ts** - 在 `main.ts` 中被全局注册
@@ -64,7 +64,7 @@ src/metrics/
 
 ## 第五步：模块结构分析
 
-### AnalyticsModule 架构特点：
+### AnalyzerModule 架构特点：
 
 **依赖模块：**
 - `ConfigModule` - 配置管理
@@ -72,7 +72,7 @@ src/metrics/
 - `EventEmitterModule.forRoot()` - 事件发射器支持
 
 **核心提供者：**
-- `MetricsPerformanceService` - 性能监控核心服务
+- `CollectorService` - 性能监控核心服务
 - `PerformanceMetricsRepository` - 性能数据持久化
 - `MetricsHealthService` - 指标健康检查服务
 
@@ -86,7 +86,7 @@ src/metrics/
 
 ## 第六步：核心类详细分析
 
-### 1. MetricsPerformanceService（性能监控核心服务）
+### 1. CollectorService（性能监控核心服务）
 
 **字段（属性）:**
 - `logger: Logger` - 日志记录器
@@ -159,7 +159,7 @@ src/metrics/
 
 **字段（属性）:**
 - `logger: Logger` - 日志记录器
-- `performanceMonitor: MetricsPerformanceService` - 性能监控服务
+- `performanceMonitor: CollectorService` - 性能监控服务
 - `reflector: Reflector` - 反射器（获取装饰器元数据）
 
 **核心方法:**
@@ -380,7 +380,7 @@ do {
 ### 对外提供的服务
 
 **导出服务:**
-- `MetricsPerformanceService` - 性能监控核心服务
+- `CollectorService` - 性能监控核心服务
 - `PerformanceMetricsRepository` - 性能数据仓储服务
 - `MetricsHealthService` - 指标健康检查服务
 
@@ -391,13 +391,13 @@ do {
 // 全局性能监控拦截器注册
 app.useGlobalInterceptors(new PerformanceInterceptor(...));
 // 性能监控服务初始化
-const performanceMonitor = app.get(MetricsPerformanceService);
+const performanceMonitor = app.get(CollectorService);
 ```
 
 **2. 应用模块（app.module.ts）:**
 ```typescript
 @Module({
-  imports: [AnalyticsModule, ...],  // 导入Metrics模块
+  imports: [AnalyzerModule, ...],  // 导入Metrics模块
 })
 ```
 
@@ -435,7 +435,7 @@ await this.performanceMonitor.recordDatabaseQuery('find', duration, success);
 ```
 HTTP请求 → PerformanceInterceptor（全局拦截）
     ↓
-MetricsPerformanceService（指标记录）
+CollectorService（指标记录）
     ↓
 PerformanceMetricsRepository（数据持久化）
     ↓
