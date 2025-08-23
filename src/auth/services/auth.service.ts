@@ -7,8 +7,8 @@ import {
 
 import { createLogger } from "@common/config/logger.config";
 
-import { DatabasePerformance } from "../../common/core/monitoring/decorators/database-performance.decorator";
-import { CollectorService } from "../../system-status/collector/services/collector.service";
+import { DatabasePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database-performance.decorator";
+import { CollectorService } from "../../monitoring/collector/services/collector.service";
 import {
   AUTH_OPERATIONS,
   AUTH_MESSAGES,

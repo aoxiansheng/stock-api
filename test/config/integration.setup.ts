@@ -16,7 +16,7 @@ import { TestEnvironment, smartDelay } from "../utils/utils/async-test-helpers";
 
 // Import modules needed for integration tests
 import { AuthModule } from "../../src/auth/module/auth.module";
-import { MonitoringModule } from "../../src/monitoring/module/monitoring.module";
+import { MonitoringModule } from "../../src/monitoring/monitoring.module";
 import { AlertModule } from "../../src/alert/module/alert.module";
 // import { CacheModule } from "../../src/cache/module/cache.module"; // 移除：已通过SharedServicesModule提供
 import { SecurityModule } from "../../src/security/module/security.module";

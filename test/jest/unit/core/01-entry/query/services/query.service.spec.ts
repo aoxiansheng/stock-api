@@ -10,7 +10,7 @@ import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/q
 import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
-import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -49,7 +49,7 @@ describe('QueryService', () => {
   let _backgroundTaskService: jest.Mocked<BackgroundTaskService>;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _paginationService: jest.Mocked<PaginationService>;
-  let presenterRegistryService: jest.Mocked<MetricsRegistryService>;
+  let presenterRegistryService: jest.Mocked<InfrastructureMetricsRegistryService>;
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
 
   // Mock data
@@ -157,7 +157,7 @@ describe('QueryService', () => {
       paginate: jest.fn(),
     };
 
-    const mockMetricsRegistryService = {
+    const mockInfrastructureMetricsRegistryService = {
       queryConcurrentRequestsActive: { inc: jest.fn(), dec: jest.fn() },
       queryPipelineDuration: { observe: jest.fn() },
       querySymbolsProcessedTotal: { inc: jest.fn() },
@@ -208,8 +208,8 @@ describe('QueryService', () => {
           useValue: mockPaginationService,
         },
         {
-          provide: MetricsRegistryService,
-          useValue: mockMetricsRegistryService,
+          provide: InfrastructureMetricsRegistryService,
+          useValue: mockInfrastructureMetricsRegistryService,
         },
         {
           provide: SmartCacheOrchestrator,
@@ -228,7 +228,7 @@ describe('QueryService', () => {
     _queryResultProcessorService = module.get(QueryResultProcessorService);
     _backgroundTaskService = module.get(BackgroundTaskService);
     _paginationService = module.get(PaginationService);
-    presenterRegistryService = module.get(MetricsRegistryService);
+    presenterRegistryService = module.get(InfrastructureMetricsRegistryService);
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
     // Setup utility function mocks

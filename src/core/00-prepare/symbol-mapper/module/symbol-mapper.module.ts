@@ -23,7 +23,7 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
   imports: [
     AuthModule,
     PaginationModule,
-    SharedServicesModule, // 🔥 导入SharedServicesModule以获取MetricsRegistryService
+    SharedServicesModule, // 🔥 导入SharedServicesModule以获取InfrastructureMetricsRegistryService
     SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
     SymbolTransformerModule, // 🔄 导入 Symbol Transformer 模块
     MongooseModule.forFeature([

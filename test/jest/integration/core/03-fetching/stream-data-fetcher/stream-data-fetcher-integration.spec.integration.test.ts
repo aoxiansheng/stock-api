@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { StreamDataFetcherService } from '../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
-import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import {
   StreamConnectionParams,
   StreamConnection,
@@ -24,7 +24,7 @@ import {
 describe('StreamDataFetcher Integration Tests', () => {
   let service: StreamDataFetcherService;
   let capabilityRegistry: jest.Mocked<CapabilityRegistryService>;
-  let metricsRegistry: jest.Mocked<MetricsRegistryService>;
+  let metricsRegistry: jest.Mocked<InfrastructureMetricsRegistryService>;
   
   // Mock capability instances for different providers
   let mockLongportCapability: any;
@@ -101,7 +101,7 @@ describe('StreamDataFetcher Integration Tests', () => {
           useValue: mockCapabilityRegistry,
         },
         {
-          provide: MetricsRegistryService,
+          provide: InfrastructureMetricsRegistryService,
           useValue: mockMetricsRegistry,
         },
       ],
@@ -109,7 +109,7 @@ describe('StreamDataFetcher Integration Tests', () => {
 
     service = module.get<StreamDataFetcherService>(StreamDataFetcherService);
     capabilityRegistry = module.get(CapabilityRegistryService);
-    metricsRegistry = module.get(MetricsRegistryService);
+    metricsRegistry = module.get(InfrastructureMetricsRegistryService);
   });
 
   afterEach(() => {

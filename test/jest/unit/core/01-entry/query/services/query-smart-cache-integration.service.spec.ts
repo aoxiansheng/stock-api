@@ -9,7 +9,7 @@ import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/q
 import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
-import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -34,7 +34,7 @@ describe('QueryService - Smart Cache Integration', () => {
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
   let receiverService: jest.Mocked<ReceiverService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
-  let metricsRegistry: jest.Mocked<MetricsRegistryService>;
+  let metricsRegistry: jest.Mocked<InfrastructureMetricsRegistryService>;
 
   const mockQueryRequest: QueryRequestDto = {
     queryType: QueryType.BY_SYMBOLS,
@@ -107,7 +107,7 @@ describe('QueryService - Smart Cache Integration', () => {
           },
         },
         {
-          provide: MetricsRegistryService,
+          provide: InfrastructureMetricsRegistryService,
           useValue: {
             queryReceiverCallsTotal: {
               inc: jest.fn(),
@@ -131,7 +131,7 @@ describe('QueryService - Smart Cache Integration', () => {
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
     receiverService = module.get(ReceiverService);
     marketStatusService = module.get(MarketStatusService);
-    metricsRegistry = module.get(MetricsRegistryService);
+    metricsRegistry = module.get(InfrastructureMetricsRegistryService);
   });
 
   describe('Query批量流水线智能缓存集成', () => {

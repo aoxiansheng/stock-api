@@ -17,7 +17,7 @@ import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
-import { MetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { CacheService } from '../../../../../../../src/cache/services/cache.service';
 import { QueryRequestDto } from '../../../../../../../src/core/01-entry/query/dto/query-request.dto';
 import { QueryType } from '../../../../../../../src/core/01-entry/query/dto/query-types.dto';
@@ -39,7 +39,7 @@ describe('Query Smart Cache Integration Tests', () => {
   // let storageService: StorageService;
   let receiverService: ReceiverService;
   let marketStatusService: MarketStatusService;
-  let metricsRegistry: MetricsRegistryService;
+  let metricsRegistry: InfrastructureMetricsRegistryService;
   // let cacheService: CacheService;
 
   // 去除未使用的计数器变量，避免lint
@@ -90,7 +90,7 @@ describe('Query Smart Cache Integration Tests', () => {
           },
         },
         {
-          provide: MetricsRegistryService,
+          provide: InfrastructureMetricsRegistryService,
           useValue: {
             getMetricValue: jest.fn().mockResolvedValue(0),
             queryConcurrentRequestsActive: {
@@ -176,7 +176,7 @@ describe('Query Smart Cache Integration Tests', () => {
     // cacheService = moduleFixture.get<CacheService>(CacheService);
     receiverService = moduleFixture.get<ReceiverService>(ReceiverService);
     marketStatusService = moduleFixture.get<MarketStatusService>(MarketStatusService);
-    metricsRegistry = moduleFixture.get<MetricsRegistryService>(MetricsRegistryService);
+    metricsRegistry = moduleFixture.get<InfrastructureMetricsRegistryService>(InfrastructureMetricsRegistryService);
     // cacheService = moduleFixture.get<CacheService>(CacheService);
 
     await app.init();
@@ -631,7 +631,7 @@ describe('Query Smart Cache Integration Tests', () => {
 
       expect(result).toBeDefined();
 
-      // Verify metrics are tracked (Note: MetricsRegistryService has getMetricValue method)
+      // Verify metrics are tracked (Note: InfrastructureMetricsRegistryService has getMetricValue method)
       expect(metricsRegistry.getMetricValue).toBeDefined();
 
       performanceMetrics.push({

@@ -3,7 +3,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
-import { PresenterModule } from "../../../../system-status/presenter/module/presenter.module";
+import { PresenterModule } from "../../../../monitoring/presenter/presenter.module";
 import { DataMapperCacheModule } from "../../../05-caching/data-mapper-cache/module/data-mapper-cache.module";
 import { FeatureFlags } from "@common/config/feature-flags.config";
 
@@ -35,7 +35,7 @@ import {
   imports: [
     AuthModule,
     PaginationModule,
-    PresenterModule, // 监控模块，提供MetricsRegistryService
+    PresenterModule, // 监控模块，提供InfrastructureMetricsRegistryService
     DataMapperCacheModule, // 专用DataMapper缓存模块，替换通用CacheModule
     MongooseModule.forFeature([
       // 核心Schema - 只保留必要的数据存储结构

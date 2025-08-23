@@ -45,7 +45,7 @@ import { DataSourceType } from "../enums/data-source-type.enum";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
 import { buildStorageKey } from "../utils/query.util";
-import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
 
 @Injectable()
 export class QueryService implements OnModuleInit, OnModuleDestroy {
@@ -68,7 +68,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
     private readonly paginationService: PaginationService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 

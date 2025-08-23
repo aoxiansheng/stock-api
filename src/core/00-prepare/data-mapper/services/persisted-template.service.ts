@@ -6,7 +6,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-source-template.schema';
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from '../schemas/flexible-mapping-rule.schema';
 import { RuleAlignmentService } from './rule-alignment.service';
-import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
 
 /**
  * 🏗️ 简化的持久化模板服务
@@ -22,7 +22,7 @@ export class PersistedTemplateService {
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
     private readonly ruleAlignmentService: RuleAlignmentService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
   ) {}
   
   /**

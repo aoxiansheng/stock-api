@@ -3,7 +3,7 @@ import { CommonCacheService } from '../../common-cache/services/common-cache.ser
 import { DataChangeDetectorService } from '../../../shared/services/data-change-detector.service';
 import { MarketStatusService, MarketStatusResult } from '../../../shared/services/market-status.service';
 import { BackgroundTaskService } from '../../../shared/services/background-task.service';
-import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
 import { Market } from '../../../../common/constants/market.constants';
 import { MarketStatus } from '../../../../common/constants/market-trading-hours.constants';
 import { 
@@ -75,7 +75,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
-    private readonly presenterRegistryService: MetricsRegistryService,
+    private readonly presenterRegistryService: InfrastructureMetricsRegistryService,
   ) {
     this.logger.log('SmartCacheOrchestrator service initializing...');
     
@@ -315,7 +315,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    */
   private initializeMetrics(): void {
     try {
-      // 指标已在MetricsRegistryService中注册：
+      // 指标已在InfrastructureMetricsRegistryService中注册：
       // - queryBackgroundTasksActive (Gauge)
       // - queryBackgroundTasksCompleted (Counter)
       // - queryBackgroundTasksFailed (Counter)

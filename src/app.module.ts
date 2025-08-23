@@ -21,8 +21,7 @@ import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cac
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
 import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
 import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
-import { AnalyzerModule } from "./system-status/analyzer/module/analyzer.module";
-import { PresenterModule } from "./system-status/presenter/module/presenter.module";
+import { MonitoringModule } from "./monitoring/monitoring.module";
 import { ProvidersModule } from "./providers/module/providers.module";
 import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
 import { SecurityModule } from "./security/module/security.module";
@@ -102,17 +101,14 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
     // 认证模块
     AuthModule,
 
-    // 监控模块
-    PresenterModule,
+    // 统一监控模块 (包含原 PresenterModule 和 AnalyzerModule)
+    MonitoringModule,
 
     // 告警模块
     AlertModule,
 
     // 安全模块
     SecurityModule,
-
-    // 指标模块
-    AnalyzerModule,
 
     // 权限验证模块
     PermissionValidationModule,

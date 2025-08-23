@@ -11,8 +11,8 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
-import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
-import { MetricsHelper } from "../../../../common/core/monitoring/helper/metrics-helper";
+import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
+import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/metrics-helper";
 
 import {
   DATATRANSFORM_ERROR_MESSAGES,
@@ -41,7 +41,7 @@ export class DataTransformerService {
 
   constructor(
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
   ) {}
 
   /**

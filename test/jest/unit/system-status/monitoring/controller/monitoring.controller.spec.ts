@@ -4,11 +4,11 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
-import { MonitoringController } from "../../../../../../src/system-status/presenter/controller/monitoring.controller";
-import { IPerformanceAnalytics } from "../../../../../../src/system-status/analyzer/interfaces/performance-analyzer.interface";
-import { IHealthAnalytics } from "../../../../../../src/system-status/analyzer/interfaces/health-analyzer.interface";
+import { MonitoringController } from "../../../../../../src/monitoring/presenter/controller/monitoring.controller";
+import { IPerformanceAnalytics } from "../../../../../../src/monitoring/analyzer/interfaces/performance-analyzer.interface";
+import { IHealthAnalytics } from "../../../../../../src/monitoring/analyzer/interfaces/health-analyzer.interface";
 import { CacheService } from "../../../../../../src/cache/services/cache.service";
-import { MetricsHealthService } from "../../../../../../src/system-status/collector/services/metrics-health.service";
+import { MetricsHealthService } from "../../../../../../src/monitoring/collector/services/metrics-health.service";
 import { PermissionService } from "../../../../../../src/auth/services/permission.service";
 import { RateLimitService } from "../../../../../../src/auth/services/rate-limit.service";
 import { UnifiedPermissionsGuard } from "../../../../../../src/auth/guards/unified-permissions.guard";
@@ -22,10 +22,10 @@ import { createLogger } from "../../../../../../src/common/config/logger.config"
 import {
   PerformanceSummaryDto,
   EndpointMetricsDto,
-} from "../../../../../../src/system-status/collector/dto/performance-summary.dto";
+} from "../../../../../../src/monitoring/collector/dto/performance-summary.dto";
 import { CacheStatsDto } from "../../../../../../src/cache/dto/cache-internal.dto";
 import { IAlertStats } from "../../../../../../src/alert/interfaces/alert.interface";
-import { MetricsRegistryService } from '../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 import { StreamPerformanceMetrics } from "../../../../../../src/core/shared/services/stream-performance-metrics.service";
 import { DynamicLogLevelService } from "../../../../../../src/core/shared/services/dynamic-log-level.service";
 
@@ -277,7 +277,7 @@ describe("MonitoringController", () => {
           },
         },
         {
-          provide: MetricsRegistryService,
+          provide: InfrastructureMetricsRegistryService,
           useValue: {
             getMetrics: jest.fn().mockResolvedValue('# Prometheus metrics'),
             getMetricsSummary: jest.fn().mockReturnValue({

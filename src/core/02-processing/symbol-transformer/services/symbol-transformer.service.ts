@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '../../../../common/config/logger.config';
 import { SymbolMapperCacheService } from '../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { MetricsRegistryService } from '../../../../common/core/monitoring/infrastructure/metrics-registry.service';
-import { MetricsHelper } from '../../../../common/core/monitoring/helper/metrics-helper';
+import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
+import { MetricsHelper } from '../../../../monitoring/infrastructure/helper/metrics-helper';
 import { 
   SymbolTransformResult, 
   SymbolTransformForProviderResult 
@@ -19,7 +19,7 @@ export class SymbolTransformerService {
 
   constructor(
     private readonly symbolMapperCacheService: SymbolMapperCacheService,  // 缓存服务（含回源逻辑）
-    private readonly metricsRegistry?: MetricsRegistryService  // 可选监控
+    private readonly metricsRegistry?: InfrastructureMetricsRegistryService  // 可选监控
   ) {}
 
   /**

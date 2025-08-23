@@ -11,9 +11,9 @@ import {
 } from "@common/core/interceptors";
 
 import { AppModule } from "./app.module";
-import { PerformanceInterceptor } from "./common/core/monitoring/infrastructure/performance.interceptor";
-import { CollectorService } from "./system-status/collector/services/collector.service";
-import { MetricsRegistryService } from "./common/core/monitoring/infrastructure/metrics-registry.service";
+import { InfrastructurePerformanceInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure-performance.interceptor";
+import { CollectorService } from "./monitoring/collector/services/collector.service";
+import { InfrastructureMetricsRegistryService } from "./monitoring/infrastructure/metrics/infrastructure-metrics-registry.service";
 import { SecurityMiddleware } from "./security/middleware/security.middleware";
 
 async function bootstrap() {
@@ -68,9 +68,9 @@ async function bootstrap() {
   // 全局性能监控拦截器
   const performanceMonitor = app.get(CollectorService);
   const reflector = app.get("Reflector");
-  const metricsRegistry = app.get(MetricsRegistryService);
+  const metricsRegistry = app.get(InfrastructureMetricsRegistryService);
   app.useGlobalInterceptors(
-    new PerformanceInterceptor(performanceMonitor, reflector, metricsRegistry),
+    new InfrastructurePerformanceInterceptor(performanceMonitor, reflector, metricsRegistry),
   );
 
   // 全局响应格式拦截器（最后执行）
