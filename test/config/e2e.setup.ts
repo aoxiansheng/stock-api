@@ -21,8 +21,8 @@ import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "@common/core/interceptors";
-import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
-import { CollectorService } from "../../src/metrics/services/collector.service";
+import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { CollectorService } from "../../src/monitoring/collector/collector.service";
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;
@@ -91,7 +91,7 @@ beforeAll(async () => {
     const performanceMonitor = app.get(CollectorService);
     const reflector = app.get(Reflector);
     app.useGlobalInterceptors(
-      new PerformanceInterceptor(performanceMonitor, reflector),
+      new InfrastructureInterceptor(performanceMonitor, reflector),
     );
 
     // 全局响应格式拦截器（最后执行）

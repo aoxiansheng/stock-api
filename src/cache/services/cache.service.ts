@@ -11,7 +11,7 @@ import {
 import Redis from "ioredis";
 
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
-import { CachePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database-performance.decorator";
+import { CachePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database.decorator";
 
 import {
   CACHE_ERROR_MESSAGES,

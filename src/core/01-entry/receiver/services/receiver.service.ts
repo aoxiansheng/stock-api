@@ -21,8 +21,8 @@ import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/u
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
-import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
-import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/metrics-helper";
+import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/infrastructure-helper";
 
 import {
   RECEIVER_ERROR_MESSAGES,
@@ -69,7 +69,7 @@ export class ReceiverService {
     private readonly marketStatusService: MarketStatusService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly storageService: StorageService,
-    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
+    private readonly metricsRegistry: MetricsRegistryService,
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 

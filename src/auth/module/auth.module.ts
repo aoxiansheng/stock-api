@@ -7,7 +7,7 @@ import { PassportModule } from "@nestjs/passport";
 
 import { CacheModule } from "../../cache/module/cache.module";
 import { CollectorModule } from "../../monitoring/collector/collector.module";
-import { CollectorService } from "../../monitoring/collector/services/collector.service";
+import { CollectorService } from "../../monitoring/collector/collector.service";
 
 import { AuthController } from "../controller/auth.controller";
 import { RateLimitExceptionFilter } from "../filters/rate-limit.filter";

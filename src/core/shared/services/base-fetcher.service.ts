@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
-import { InfrastructureMetricsRegistryService } from '../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
-import { MetricsHelper } from '../../../monitoring/infrastructure/helper/metrics-helper';
+import { MetricsRegistryService } from '../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsHelper } from '../../../monitoring/infrastructure/helper/infrastructure-helper';
 import { NotFoundException } from '@nestjs/common';
 
 /**
@@ -33,7 +33,7 @@ export abstract class BaseFetcherService {
   protected readonly logger = createLogger(this.constructor.name);
 
   constructor(
-    protected readonly metricsRegistry: InfrastructureMetricsRegistryService,
+    protected readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
   /**

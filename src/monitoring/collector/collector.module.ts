@@ -9,9 +9,9 @@
 
 import { Module } from '@nestjs/common';
 import { InfrastructureModule } from '../infrastructure/infrastructure.module';
-import { CollectorService } from './services/collector.service';
-import { CollectorRepository } from './repositories/collector.repository';
-import { CollectorInterceptor } from './interceptors/collector.interceptor';
+import { CollectorService } from './collector.service';
+import { CollectorRepository } from './collector.repository';
+import { CollectorInterceptor } from './collector.interceptor';
 
 @Module({
   imports: [InfrastructureModule],

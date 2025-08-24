@@ -35,7 +35,7 @@ import {
   imports: [
     AuthModule,
     PaginationModule,
-    PresenterModule, // 监控模块，提供InfrastructureMetricsRegistryService
+    PresenterModule, // 监控模块，提供MetricsRegistryService
     DataMapperCacheModule, // 专用DataMapper缓存模块，替换通用CacheModule
     MongooseModule.forFeature([
       // 核心Schema - 只保留必要的数据存储结构

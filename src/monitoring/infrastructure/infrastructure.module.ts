@@ -8,12 +8,12 @@
  */
 
 import { Module } from '@nestjs/common';
-import { InfrastructureMetricsModule } from './metrics/infrastructure-metrics.module';
-import { InfrastructureMetricsRegistryService } from './metrics/infrastructure-metrics-registry.service';
+import { MetricsModule } from './metrics/metrics.module';
+import { MetricsRegistryService } from './metrics/metrics-registry.service';
 
 @Module({
-  imports: [InfrastructureMetricsModule],
-  providers: [InfrastructureMetricsRegistryService],
-  exports: [InfrastructureMetricsRegistryService, InfrastructureMetricsModule],
+  imports: [MetricsModule],
+  providers: [MetricsRegistryService],
+  exports: [MetricsRegistryService, MetricsModule],
 })
 export class InfrastructureModule {}

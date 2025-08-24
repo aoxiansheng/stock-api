@@ -19,7 +19,7 @@ import { AuthModule } from "../../src/auth/module/auth.module";
 import { MonitoringModule } from "../../src/monitoring/monitoring.module";
 import { AlertModule } from "../../src/alert/module/alert.module";
 // import { CacheModule } from "../../src/cache/module/cache.module"; // 移除：已通过SharedServicesModule提供
-import { SecurityModule } from "../../src/security/module/security.module";
+
 import { alertConfig } from "../../src/common/config/alert.config";
 // 临时禁用LongPort模块以避免资源泄露
 import { ProvidersModule } from "../../src/providers/module/providers.module";
@@ -39,14 +39,14 @@ import { SymbolTransformerModule } from "../../src/core/02-processing/symbol-tra
 // 添加分页模块导入
 import { PaginationModule } from "../../src/common/modules/pagination/modules/pagination.module";
 
-import { CollectorService } from "../../src/metrics/services/collector.service";
+import { CollectorService } from "../../src/monitoring/collector/collector.service";
 
 // 导入拦截器和过滤器
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "../../src/common/core/interceptors";
-import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
+import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
 import { GlobalExceptionFilter } from "../../src/common/core/filters";
 import { Reflector } from "@nestjs/core";
 
@@ -100,7 +100,7 @@ async function createTestApplication(): Promise<void> {
       MonitoringModule,
       AlertModule,
       // CacheModule, // 已通过SharedServicesModule提供，移除重复导入
-      SecurityModule,
+ 
       SymbolMapperModule,
       DataMapperModule,
       // StorageModule, // 已通过SmartCacheModule提供，移除重复导入
@@ -165,7 +165,7 @@ async function createTestApplication(): Promise<void> {
   // 全局性能监控拦截器
   const reflector = testModule.get(Reflector);
   testApp.useGlobalInterceptors(
-    new PerformanceInterceptor(mockPerformanceMonitor, reflector),
+    new InfrastructureInterceptor(mockPerformanceMonitor, reflector),
   );
 
   // 全局响应格式拦截器（最后执行）

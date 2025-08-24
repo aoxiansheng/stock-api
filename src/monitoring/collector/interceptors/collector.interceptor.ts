@@ -2,7 +2,7 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { createLogger } from '@common/config/logger.config';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { CollectorService } from '../services/collector.service';
+import { CollectorService } from '../collector.service';
 
 /**
  * 收集器拦截器

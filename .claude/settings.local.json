@@ -144,7 +144,13 @@
       "Bash(echo:*)",
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/system-status/collector/interceptors/collector.interceptor.ts)",
       "mcp__serena__think_about_whether_you_are_done",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(__NEW_LINE__ if [ -f infrastructure/metrics/infrastructure-metrics.constants.ts ])",
+      "Bash(then)",
+      "Bash(fi)",
+      "Bash(__NEW_LINE__ if [ -f infrastructure/metrics/infrastructure-metrics-registry.service.ts ])",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/monitoring/analyzer/*.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/monitoring/analyzer/analyzer.module.ts)"
     ],
     "deny": []
   }

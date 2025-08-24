@@ -12,7 +12,7 @@ import { DataChangeDetectorService } from "../services/data-change-detector.serv
 import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
 import { BackgroundTaskService } from "../services/background-task.service";
-import { InfrastructureMetricsRegistryService } from '../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
+import { MetricsRegistryService } from '../../../monitoring/infrastructure/metrics/metrics-registry.service';
 //import { StreamPerformanceMetricsService } from "../services/stream-performance-metrics.service";
 //import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
 import { FieldMappingService } from "../services/field-mapping.service";
@@ -43,7 +43,7 @@ import { FieldMappingService } from "../services/field-mapping.service";
     StringUtils,
     BackgroundTaskService,
     FeatureFlags,
-    InfrastructureMetricsRegistryService,
+    MetricsRegistryService,
     FieldMappingService,
   ],
   exports: [
@@ -54,7 +54,7 @@ import { FieldMappingService } from "../services/field-mapping.service";
     StringUtils,
     BackgroundTaskService,
     FeatureFlags,
-    InfrastructureMetricsRegistryService,
+    MetricsRegistryService,
     FieldMappingService,
   ],
 })

@@ -11,10 +11,11 @@ import {
 } from "@common/core/interceptors";
 
 import { AppModule } from "./app.module";
-import { InfrastructurePerformanceInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure-performance.interceptor";
-import { CollectorService } from "./monitoring/collector/services/collector.service";
-import { InfrastructureMetricsRegistryService } from "./monitoring/infrastructure/metrics/infrastructure-metrics-registry.service";
-import { SecurityMiddleware } from "./security/middleware/security.middleware";
+import { InfrastructureInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { CollectorService } from "./monitoring/collector/collector.service";
+import { MetricsRegistryService } from "./monitoring/infrastructure/metrics/metrics-registry.service";
+import { SecurityMiddleware } from "./auth/middleware/security.middleware";
+
 
 async function bootstrap() {
   const nodeEnv = process.env.NODE_ENV || "development";
@@ -39,7 +40,7 @@ async function bootstrap() {
   app.use("/api", express.json({ limit: "10mb" }));
   app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
 
-  // 应用全局安全中间件
+  // 全局安全中间件
   const securityMiddleware = new SecurityMiddleware();
   app.use(securityMiddleware.use.bind(securityMiddleware));
 
@@ -68,9 +69,9 @@ async function bootstrap() {
   // 全局性能监控拦截器
   const performanceMonitor = app.get(CollectorService);
   const reflector = app.get("Reflector");
-  const metricsRegistry = app.get(InfrastructureMetricsRegistryService);
+  const metricsRegistry = app.get(MetricsRegistryService);
   app.useGlobalInterceptors(
-    new InfrastructurePerformanceInterceptor(performanceMonitor, reflector, metricsRegistry),
+    new InfrastructureInterceptor(performanceMonitor, reflector, metricsRegistry),
   );
 
   // 全局响应格式拦截器（最后执行）

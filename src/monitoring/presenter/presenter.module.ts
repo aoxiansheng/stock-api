@@ -10,9 +10,9 @@
 
 import { Module } from '@nestjs/common';
 import { AnalyzerModule } from '../analyzer/analyzer.module';
-import { PresenterController } from './controllers/presenter.controller';
-import { PresenterService } from './services/presenter.service';
-import { PresenterErrorHandlerService } from './services/presenter-error-handler.service';
+import { PresenterController } from './presenter.controller';
+import { PresenterService } from './presenter.service';
+import { PresenterErrorHandlerService } from './presenter-error.service';
 
 @Module({
   imports: [AnalyzerModule],

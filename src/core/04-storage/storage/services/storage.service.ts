@@ -11,8 +11,8 @@ import {
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
-import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/metrics-helper";
+import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/infrastructure-helper";
 
 
 import {
@@ -46,7 +46,7 @@ export class StorageService {
   constructor(
     private readonly storageRepository: StorageRepository,
     private readonly paginationService: PaginationService,
-    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
+    private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
   /**

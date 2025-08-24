@@ -24,7 +24,7 @@ import { TransformerModule } from "./core/02-processing/transformer/module/data-
 import { MonitoringModule } from "./monitoring/monitoring.module";
 import { ProvidersModule } from "./providers/module/providers.module";
 import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
-import { SecurityModule } from "./security/module/security.module";
+
 import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
 import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
 import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
@@ -107,8 +107,7 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
     // 告警模块
     AlertModule,
 
-    // 安全模块
-    SecurityModule,
+ 
 
     // 权限验证模块
     PermissionValidationModule,

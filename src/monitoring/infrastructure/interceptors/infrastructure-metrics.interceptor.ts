@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { InfrastructureMetricsRegistryService } from '../metrics/infrastructure-metrics-registry.service';
+import { MetricsRegistryService } from '../metrics/metrics-registry.service';
 import { createLogger } from '@common/config/logger.config';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class InfrastructureMetricsInterceptor implements NestInterceptor {
   private readonly logger = createLogger(InfrastructureMetricsInterceptor.name);
 
   constructor(
-    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
+    private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {

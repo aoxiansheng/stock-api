@@ -13,7 +13,7 @@ import { StreamUnsubscribeDto } from '../dto/stream-unsubscribe.dto';
 import { DataTransformRequestDto } from '../../../02-processing/transformer/dto/data-transform-request.dto';
 import { StreamConnection, StreamConnectionParams } from '../../../03-fetching/stream-data-fetcher/interfaces';
 import { Subject } from 'rxjs';
-import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
+import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
 import { bufferTime, filter, mergeMap } from 'rxjs/operators';
 
 /**
@@ -133,7 +133,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
-    private readonly metricsRegistry?: InfrastructureMetricsRegistryService, // Phase 4 可选监控依赖
+    private readonly metricsRegistry?: MetricsRegistryService, // Phase 4 可选监控依赖
   ) {
     this.logger.log('StreamReceiver Phase 4 重构完成 - 精简依赖架构 + 延迟监控 + 连接清理');
     this.initializeBatchProcessing();

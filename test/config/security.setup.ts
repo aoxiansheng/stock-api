@@ -17,9 +17,9 @@ import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "../../src/common/core/interceptors";
-import { SecurityMiddleware } from "../../src/security/middleware/security.middleware";
-import { PerformanceInterceptor } from "../../src/metrics/interceptors/performance.interceptor";
-import { CollectorService } from "../../src/metrics/services/collector.service";
+
+import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { CollectorService } from "../../src/monitoring/collector/collector.service";
 import { UserRepository } from "../../src/auth/repositories/user.repository";
 import { PasswordService } from "../../src/auth/services/password.service";
 import { UserRole, Permission } from "../../src/auth/enums/user-role.enum";
@@ -80,8 +80,7 @@ beforeAll(async () => {
     app.use("/api", express.json({ limit: "10mb" }));
     app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
 
-    const securityMiddleware = new SecurityMiddleware();
-    app.use(securityMiddleware.use.bind(securityMiddleware));
+
 
     app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
 
@@ -103,7 +102,7 @@ beforeAll(async () => {
     const performanceMonitor = app.get(CollectorService);
     const reflector = app.get("Reflector");
     app.useGlobalInterceptors(
-      new PerformanceInterceptor(performanceMonitor, reflector),
+      new InfrastructureInterceptor(performanceMonitor, reflector),
     );
 
     app.useGlobalInterceptors(new ResponseInterceptor());

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
-import { InfrastructureMetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/infrastructure-metrics-registry.service';
-import { MetricsHelper } from '../../../../monitoring/infrastructure/helper/metrics-helper';
+import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsHelper } from '../../../../monitoring/infrastructure/helper/infrastructure-helper';
 
 /**
  * StreamMetricsService - 流数据获取器语义明确的指标服务
@@ -17,7 +17,7 @@ export class StreamMetricsService {
   private readonly logger = createLogger('StreamMetrics');
 
   constructor(
-    private readonly metricsRegistry: InfrastructureMetricsRegistryService,
+    private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
   /**
