@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { createLogger } from '@common/config/logger.config';
 import {
   ReceiverType,
   StorageClassification,
@@ -12,7 +13,8 @@ import {
  */
 @Injectable()
 export class FieldMappingService {
-  private readonly logger = new Logger(FieldMappingService.name);
+  // 🔧 Phase 1.4: 统一日志规范，使用 createLogger 与项目规范一致
+  private readonly logger = createLogger(FieldMappingService.name);
 
   /**
    * 将 Receiver 的能力类型转换为 Storage 的数据分类

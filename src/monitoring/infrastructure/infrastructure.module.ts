@@ -9,11 +9,17 @@
 
 import { Module } from '@nestjs/common';
 import { MetricsModule } from './metrics/metrics.module';
-import { MetricsRegistryService } from './metrics/metrics-registry.service';
+// import { MetricsRegistryService } from './metrics/metrics-registry.service'; // 🔧 Phase 1: 移除未使用的 import
+import { FeatureFlags } from '../../common/config/feature-flags.config';
 
 @Module({
   imports: [MetricsModule],
-  providers: [MetricsRegistryService],
-  exports: [MetricsRegistryService, MetricsModule],
+  providers: [
+    FeatureFlags, // 🔧 Phase 2.4: 集中提供 FeatureFlags（满足 MetricsRegistryService 依赖）
+  ],
+  exports: [
+    MetricsModule, // 🔧 导出 MetricsModule
+    FeatureFlags,  // 🔧 Phase 2.4: 导出 FeatureFlags 供其他模块使用
+  ],
 })
 export class InfrastructureModule {}

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import {
   IDataFetcher,
   DataFetchParams,
@@ -55,6 +56,7 @@ export class DataFetcherService implements IDataFetcher {
 
   constructor(
     private readonly capabilityRegistryService: CapabilityRegistryService,
+    private readonly collectorService: CollectorService,
   ) {}
 
   /**
@@ -93,16 +95,26 @@ export class DataFetcherService implements IDataFetcher {
         },
       };
 
-      // 3. 执行SDK调用
-      const rawData = await cap.execute(executionParams);
+      // 3. 执行SDK调用 - 标准化监控：记录外部API调用
+      const rawData = await this.collectorService.recordRequest(
+        'external_api',
+        `${provider}/${capability}`,
+        async () => cap.execute(executionParams)
+      );
       
       // 4. 处理返回数据格式
       const processedData = this.processRawData(rawData);
       
       const processingTime = Date.now() - startTime;
       
-      // 5. 性能监控
-      this.checkPerformance(processingTime, symbols.length, requestId);
+      // 5. 系统性能监控 - 使用标准化监控服务
+      await this.collectorService.recordSystemMetrics('data_fetcher', {
+        processingTime,
+        symbolsCount: symbols.length,
+        timePerSymbol: symbols.length > 0 ? processingTime / symbols.length : 0,
+        provider,
+        capability,
+      });
       
       // 6. 构建结果
       const result: RawDataResult = {
@@ -131,6 +143,13 @@ export class DataFetcherService implements IDataFetcher {
       
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      
+      // 记录失败的外部API调用
+      await this.collectorService.recordRequest(
+        'external_api_error', 
+        `${provider}/${capability}`, 
+        async () => { throw error; }
+      ).catch(() => {}); // 忽略监控记录失败
       
       this.logger.error('原始数据获取失败', 
         sanitizeLogData({
@@ -187,7 +206,12 @@ export class DataFetcherService implements IDataFetcher {
         throw new NotFoundException(`Provider ${provider} context service not available`);
       }
 
-      return await providerInstance.getContextService();
+      // 记录数据库操作 - 获取provider上下文可能涉及数据库查询
+      return await this.collectorService.recordDatabaseOperation(
+        'provider_context_query',
+        provider,
+        async () => providerInstance.getContextService()
+      );
       
     } catch (error) {
       // 标准化错误处理：统一抛出异常
@@ -243,6 +267,13 @@ export class DataFetcherService implements IDataFetcher {
       
       results.push(...processedResults);
     }
+    
+    // 记录批量操作性能指标
+    await this.collectorService.recordSystemMetrics('batch_processing', {
+      totalRequests: requests.length,
+      successCount: results.filter(r => !r.hasPartialFailures).length,
+      partialFailuresCount: results.filter(r => r.hasPartialFailures).length,
+    });
     
     this.logger.debug('批量数据获取完成', {
       totalRequests: requests.length,
@@ -385,38 +416,6 @@ export class DataFetcherService implements IDataFetcher {
            typeof data === 'object' && 
            'data' in data &&
            (Array.isArray(data.data) || data.data !== undefined);
-  }
-
-  /**
-   * 检查性能指标
-   * 
-   * @param processingTime 处理时间
-   * @param symbolsCount 符号数量
-   * @param requestId 请求ID
-   */
-  private checkPerformance(
-    processingTime: number, 
-    symbolsCount: number, 
-    requestId: string
-  ): void {
-    const timePerSymbol = symbolsCount > 0 ? processingTime / symbolsCount : 0;
-    
-    if (processingTime > DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS) {
-      this.logger.warn(
-        DATA_FETCHER_WARNING_MESSAGES.SLOW_RESPONSE.replace(
-          '{processingTime}', 
-          processingTime.toString()
-        ),
-        sanitizeLogData({
-          requestId,
-          processingTime,
-          symbolsCount,
-          timePerSymbol: Math.round(timePerSymbol * 100) / 100,
-          threshold: DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS,
-          operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-        })
-      );
-    }
   }
 
   /**

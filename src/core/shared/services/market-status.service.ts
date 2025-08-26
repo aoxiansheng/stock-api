@@ -3,7 +3,7 @@
  * 🕐 支持多市场、夏令时、实时状态检测
  */
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
 
 import { createLogger } from "@common/config/logger.config";
 import {
@@ -52,8 +52,11 @@ interface ProviderMarketStatus {
 }
 
 @Injectable()
-export class MarketStatusService {
+export class MarketStatusService implements OnModuleDestroy {
   private readonly logger = createLogger(MarketStatusService.name);
+
+  // 🔧 Phase 1.3.1: 静态时区格式化器缓存（解决415-424行性能问题）
+  private static readonly formatters = new Map<string, Intl.DateTimeFormat>();
 
   // 市场状态缓存（避免频繁计算）
   private readonly statusCache = new Map<
@@ -411,14 +414,19 @@ export class MarketStatusService {
 
   /**
    * 工具方法：格式化时间为HH:mm
+   * 🔧 Phase 1.3.1: 使用静态缓存避免重复创建格式化器（解决415-424行性能问题）
    */
   private formatTime(date: Date, timezone: string): string {
-    const formatter = new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: timezone,
-      hour12: false,
-    });
+    let formatter = MarketStatusService.formatters.get(timezone);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: timezone,
+        hour12: false,
+      });
+      MarketStatusService.formatters.set(timezone, formatter);
+    }
     // Intl can return '24:00' for midnight, which we should handle.
     return formatter.format(date).replace("24", "00");
   }
@@ -485,11 +493,16 @@ export class MarketStatusService {
 
   /**
    * 缓存管理
+   * 🔧 Phase 1.3.2: 修复 getCachedStatus 添加过期清理（解决486-507行缓存泄漏）
    */
   private getCachedStatus(market: Market): MarketStatusResult | null {
     const cached = this.statusCache.get(market);
     if (cached && Date.now() < cached.expiry) {
       return cached.result;
+    }
+    // 🔧 新增：删除过期缓存项，防止内存泄漏
+    if (cached) {
+      this.statusCache.delete(market);
     }
     return null;
   }
@@ -504,5 +517,25 @@ export class MarketStatusService {
       result,
       expiry: Date.now() + duration,
     });
+  }
+
+  /**
+   * 🔧 Phase 1.3.3: 生命周期管理 - 定期清理过期缓存
+   */
+  private cleanupExpiredCache(): void {
+    const now = Date.now();
+    for (const [key, cached] of this.statusCache.entries()) {
+      if (now >= cached.expiry) {
+        this.statusCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * 🔧 Phase 1.3.3: 模块销毁时清理所有资源
+   */
+  onModuleDestroy() {
+    this.statusCache.clear();
+    MarketStatusService.formatters.clear();
   }
 }

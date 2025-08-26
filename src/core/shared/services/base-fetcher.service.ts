@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
 import { MetricsRegistryService } from '../../../monitoring/infrastructure/metrics/metrics-registry.service';
 import { MetricsHelper } from '../../../monitoring/infrastructure/helper/infrastructure-helper';
@@ -32,8 +32,12 @@ import { NotFoundException } from '@nestjs/common';
 export abstract class BaseFetcherService {
   protected readonly logger = createLogger(this.constructor.name);
 
+  /**
+   * 🔧 Phase 2.1: 使用 @Optional 装饰器实现可选依赖注入
+   * 当 MetricsRegistryService 不可用时，服务仍可正常运行，只是跳过指标记录
+   */
   constructor(
-    protected readonly metricsRegistry: MetricsRegistryService,
+    @Optional() protected readonly metricsRegistry?: MetricsRegistryService,
   ) {}
 
   /**
@@ -110,6 +114,12 @@ export abstract class BaseFetcherService {
     processingTime: number,
     attempt: number = 0,
   ): void {
+    // 🔧 Phase 2.1: 添加 MetricsRegistryService 可用性检查
+    if (!this.metricsRegistry) {
+      this.logger.debug(`指标服务不可用，跳过指标记录: ${operation}`);
+      return;
+    }
+
     try {
       // 记录处理时间分布 - 使用已有的指标
       MetricsHelper.observe(
@@ -150,6 +160,12 @@ export abstract class BaseFetcherService {
     error: Error,
     totalAttempts: number,
   ): void {
+    // 🔧 Phase 2.1: 添加 MetricsRegistryService 可用性检查
+    if (!this.metricsRegistry) {
+      this.logger.debug(`指标服务不可用，跳过失败指标记录: ${operation}`);
+      return;
+    }
+
     try {
       // 记录失败计数
       MetricsHelper.inc(

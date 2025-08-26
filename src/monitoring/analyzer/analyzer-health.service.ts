@@ -5,7 +5,7 @@ import { RawMetricsDto } from '../contracts/interfaces/collector.interface';
 import { HealthReportDto } from '../contracts/interfaces/analyzer.interface';
 import { SYSTEM_STATUS_EVENTS } from '../contracts/events/system-status.events';
 import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
-import { AnalyzerCacheService } from './analyzer-cache.service';
+import { MonitoringCacheService } from '../cache/monitoring-cache.service';
 
 /**
  * 健康分析服务
@@ -17,7 +17,7 @@ export class HealthAnalyzerService {
 
   constructor(
     private readonly healthScoreCalculator: AnalyzerHealthScoreCalculator,
-    private readonly cacheService: AnalyzerCacheService,
+    private readonly monitoringCache: MonitoringCacheService, // 替换为MonitoringCacheService
     private readonly eventBus: EventEmitter2,
   ) {
     this.logger.log('HealthAnalyzerService initialized - 健康分析服务已启动');
@@ -30,130 +30,129 @@ export class HealthAnalyzerService {
     try {
       this.logger.debug('开始生成健康报告');
 
-      // 检查缓存
+      // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
       const cacheKey = this.buildCacheKey('health_report', rawMetrics);
-      const cachedReport = await this.cacheService.get<HealthReportDto>(cacheKey);
       
-      if (cachedReport) {
-        this.logger.debug('健康报告缓存命中');
-        
-        // 发射缓存命中事件
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_HIT, {
-          timestamp: new Date(),
-          source: 'health-analyzer',
-          metadata: { cacheKey, type: 'health_report' }
-        });
+      const healthReport = await this.monitoringCache.getOrSetHealthData<HealthReportDto>(
+        cacheKey,
+        async () => {
+          // 缓存未命中，重新计算健康报告
+          this.logger.debug('健康报告缓存未命中，重新生成');
 
-        return cachedReport;
-      }
+          // 计算健康分
+          const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
+          const healthGrade = this.healthScoreCalculator.getHealthGrade(healthScore);
+          const healthStatus = this.healthScoreCalculator.getHealthStatus(healthScore);
 
-      // 计算健康分
-      const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
-      const healthGrade = this.healthScoreCalculator.getHealthGrade(healthScore);
-      const healthStatus = this.healthScoreCalculator.getHealthStatus(healthScore);
+          // 计算各组件健康分
+          const componentScores = {
+            api: this.healthScoreCalculator.calculateApiHealthScore(rawMetrics),
+            database: this.healthScoreCalculator.calculateDatabaseHealthScore(rawMetrics),
+            cache: this.healthScoreCalculator.calculateCacheHealthScore(rawMetrics),
+            system: this.healthScoreCalculator.calculateSystemHealthScore(rawMetrics)
+          };
 
-      // 计算各组件健康分
-      const componentScores = {
-        api: this.healthScoreCalculator.calculateApiHealthScore(rawMetrics),
-        database: this.healthScoreCalculator.calculateDatabaseHealthScore(rawMetrics),
-        cache: this.healthScoreCalculator.calculateCacheHealthScore(rawMetrics),
-        system: this.healthScoreCalculator.calculateSystemHealthScore(rawMetrics)
-      };
+          // 生成健康建议
+          const recommendations = this.healthScoreCalculator.generateHealthRecommendations(rawMetrics);
 
-      // 生成健康建议
-      const recommendations = this.healthScoreCalculator.generateHealthRecommendations(rawMetrics);
+          // 获取具体组件指标
+          const requests = rawMetrics.requests || [];
+          const dbOps = rawMetrics.database || [];
+          const cacheOps = rawMetrics.cache || [];
+          const system = rawMetrics.system;
 
-      // 获取具体组件指标
-      const requests = rawMetrics.requests || [];
-      const dbOps = rawMetrics.database || [];
-      const cacheOps = rawMetrics.cache || [];
-      const system = rawMetrics.system;
+          // 计算详细组件指标
+          const avgResponseTime = requests.length > 0 
+            ? requests.reduce((sum, r) => sum + r.responseTime, 0) / requests.length 
+            : 0;
+          const errorRate = requests.length > 0 
+            ? requests.filter(r => r.statusCode >= 400).length / requests.length 
+            : 0;
+          
+          const avgQueryTime = dbOps.length > 0 
+            ? dbOps.reduce((sum, op) => sum + op.duration, 0) / dbOps.length 
+            : 0;
+          const dbFailureRate = dbOps.length > 0 
+            ? dbOps.filter(op => !op.success).length / dbOps.length 
+            : 0;
 
-      // 计算详细组件指标
-      const avgResponseTime = requests.length > 0 
-        ? requests.reduce((sum, r) => sum + r.responseTime, 0) / requests.length 
-        : 0;
-      const errorRate = requests.length > 0 
-        ? requests.filter(r => r.statusCode >= 400).length / requests.length 
-        : 0;
-      
-      const avgQueryTime = dbOps.length > 0 
-        ? dbOps.reduce((sum, op) => sum + op.duration, 0) / dbOps.length 
-        : 0;
-      const dbFailureRate = dbOps.length > 0 
-        ? dbOps.filter(op => !op.success).length / dbOps.length 
-        : 0;
+          const cacheHitRate = cacheOps.length > 0 
+            ? cacheOps.filter(op => op.hit).length / cacheOps.length 
+            : 0;
+          const cacheAvgResponseTime = cacheOps.length > 0 
+            ? cacheOps.reduce((sum, op) => sum + op.duration, 0) / cacheOps.length 
+            : 0;
 
-      const cacheHitRate = cacheOps.length > 0 
-        ? cacheOps.filter(op => op.hit).length / cacheOps.length 
-        : 0;
-      const cacheAvgResponseTime = cacheOps.length > 0 
-        ? cacheOps.reduce((sum, op) => sum + op.duration, 0) / cacheOps.length 
-        : 0;
+          // 构建健康报告
+          const report: HealthReportDto = {
+            overall: {
+              score: healthScore,
+              status: healthStatus,
+              timestamp: new Date()
+            },
+            components: {
+              api: {
+                score: componentScores.api,
+                responseTime: Math.round(avgResponseTime),
+                errorRate: Math.round(errorRate * 10000) / 10000
+              },
+              database: {
+                score: componentScores.database,
+                averageQueryTime: Math.round(avgQueryTime),
+                failureRate: Math.round(dbFailureRate * 10000) / 10000
+              },
+              cache: {
+                score: componentScores.cache,
+                hitRate: Math.round(cacheHitRate * 10000) / 10000,
+                averageResponseTime: Math.round(cacheAvgResponseTime)
+              },
+              system: {
+                score: componentScores.system,
+                memoryUsage: system?.memory.percentage || 0,
+                cpuUsage: system?.cpu.usage || 0
+              }
+            },
+            recommendations
+          };
 
-      // 构建健康报告
-      const healthReport: HealthReportDto = {
-        overall: {
-          score: healthScore,
-          status: healthStatus,
-          timestamp: new Date()
-        },
-        components: {
-          api: {
-            score: componentScores.api,
-            responseTime: Math.round(avgResponseTime),
-            errorRate: Math.round(errorRate * 10000) / 10000
-          },
-          database: {
-            score: componentScores.database,
-            averageQueryTime: Math.round(avgQueryTime),
-            failureRate: Math.round(dbFailureRate * 10000) / 10000
-          },
-          cache: {
-            score: componentScores.cache,
-            hitRate: Math.round(cacheHitRate * 10000) / 10000,
-            averageResponseTime: Math.round(cacheAvgResponseTime)
-          },
-          system: {
-            score: componentScores.system,
-            memoryUsage: system?.memory.percentage || 0,
-            cpuUsage: system?.cpu.usage || 0
+          // 发射分析完成事件
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.ANALYSIS_COMPLETED, {
+            timestamp: new Date(),
+            source: 'health-analyzer',
+            metadata: { 
+              type: 'health_analysis',
+              healthScore,
+              healthStatus,
+              recommendationsCount: report.recommendations?.length || 0
+            }
+          });
+
+          // 如果健康分过低，发射警告事件
+          if (healthScore < 50) {
+            this.eventBus.emit(SYSTEM_STATUS_EVENTS.HEALTH_SCORE_UPDATED, {
+              timestamp: new Date(),
+              source: 'health-analyzer',
+              metadata: { 
+                healthScore,
+                previousScore: 50, // 简化实现，实际应该记录历史分数
+                trend: 'critical',
+                recommendations: report.recommendations
+              }
+            });
           }
-        },
-        recommendations
-      };
 
-      // 缓存结果
-      const ttl = await this.cacheService.getTTL('HEALTH_SCORE');
-      await this.cacheService.set(cacheKey, healthReport, ttl);
+          this.logger.debug(`健康报告生成完成: 健康分 ${healthScore}, 状态 ${healthStatus}`);
+          return report;
+        }
+      );
 
-      // 发射分析完成事件
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.ANALYSIS_COMPLETED, {
+      // 发射缓存命中或回填完成事件
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_HIT, {
         timestamp: new Date(),
         source: 'health-analyzer',
-        metadata: { 
-          type: 'health_analysis',
-          healthScore,
-          healthStatus,
-          recommendationsCount: healthReport.recommendations?.length || 0
-        }
+        metadata: { cacheKey, type: 'health_report' }
       });
 
-      // 如果健康分过低，发射警告事件
-      if (healthScore < 50) {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.HEALTH_SCORE_UPDATED, {
-          timestamp: new Date(),
-          source: 'health-analyzer',
-          metadata: { 
-            healthScore,
-            previousScore: 50, // 简化实现，实际应该记录历史分数
-            trend: 'critical',
-            recommendations: healthReport.recommendations
-          }
-        });
-      }
-
-      this.logger.debug(`健康报告生成完成: 健康分 ${healthScore}, 状态 ${healthStatus}`);
       return healthReport;
 
     } catch (error) {
@@ -273,7 +272,7 @@ export class HealthAnalyzerService {
    */
   async invalidateHealthCache(): Promise<void> {
     try {
-      await this.cacheService.invalidatePattern('health_');
+      await this.monitoringCache.invalidateHealthCache();
       this.logger.debug('健康相关缓存已失效');
 
       // 发射缓存失效事件

@@ -15,7 +15,6 @@ import { HealthAnalyzerService } from './analyzer-health.service';
 import { TrendAnalyzerService } from './analyzer-trend.service';
 import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
 import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
-import { AnalyzerCacheService } from './analyzer-cache.service';
 
 @Module({
   imports: [CollectorModule],
@@ -25,7 +24,6 @@ import { AnalyzerCacheService } from './analyzer-cache.service';
     TrendAnalyzerService,
     AnalyzerHealthScoreCalculator,
     AnalyzerMetricsCalculator,
-    AnalyzerCacheService,
   ],
   exports: [
     AnalyzerService,

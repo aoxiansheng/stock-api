@@ -6,13 +6,13 @@
 import { Module, Global } from "@nestjs/common";
 
 import { CacheModule } from "../../../cache/module/cache.module";
-import { FeatureFlags } from "../../../common/config/feature-flags.config";
+// import { FeatureFlags } from "../../../common/config/feature-flags.config"; // 🔧 Phase 2.3: 移除未使用的 import
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
 import { StringUtils } from "../utils/string.util";
 import { BackgroundTaskService } from "../services/background-task.service";
-import { MetricsRegistryService } from '../../../monitoring/infrastructure/metrics/metrics-registry.service';
+// import { MetricsRegistryService } from '../../../monitoring/infrastructure/metrics/metrics-registry.service'; // 🔧 Phase 1: 移除未使用的 import
 //import { StreamPerformanceMetricsService } from "../services/stream-performance-metrics.service";
 //import { DynamicLogLevelService } from "../services/dynamic-log-level.service";
 import { FieldMappingService } from "../services/field-mapping.service";
@@ -42,8 +42,8 @@ import { FieldMappingService } from "../services/field-mapping.service";
     MarketStatusService,
     StringUtils,
     BackgroundTaskService,
-    FeatureFlags,
-    MetricsRegistryService,
+    // FeatureFlags, // 🔧 Phase 2.3: 移除 FeatureFlags，转移到 InfrastructureModule 统一提供
+    // MetricsRegistryService, // 🔧 Phase 1.2.1: 移除重复提供者，由 MetricsModule 统一提供
     FieldMappingService,
   ],
   exports: [
@@ -53,8 +53,8 @@ import { FieldMappingService } from "../services/field-mapping.service";
     MarketStatusService,
     StringUtils,
     BackgroundTaskService,
-    FeatureFlags,
-    MetricsRegistryService,
+    // FeatureFlags, // 🔧 Phase 2.3: 移除 FeatureFlags 导出，转移到 InfrastructureModule
+    // MetricsRegistryService, // 🔧 Phase 1.2.1: 移除重复导出，由 MetricsModule 统一提供
     FieldMappingService,
   ],
 })

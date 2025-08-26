@@ -5,7 +5,7 @@ import { RawMetricsDto } from '../contracts/interfaces/collector.interface';
 import { TrendsDto } from '../contracts/interfaces/analyzer.interface';
 import { SYSTEM_STATUS_EVENTS } from '../contracts/events/system-status.events';
 import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
-import { AnalyzerCacheService } from './analyzer-cache.service';
+import { MonitoringCacheService } from '../cache/monitoring-cache.service';
 
 /**
  * 趋势分析服务
@@ -17,7 +17,7 @@ export class TrendAnalyzerService {
 
   constructor(
     private readonly metricsCalculator: AnalyzerMetricsCalculator,
-    private readonly cacheService: AnalyzerCacheService,
+    private readonly monitoringCache: MonitoringCacheService,
     private readonly eventBus: EventEmitter2,
   ) {
     this.logger.log('TrendAnalyzerService initialized - 趋势分析服务已启动');
@@ -34,47 +34,46 @@ export class TrendAnalyzerService {
     try {
       this.logger.debug(`开始计算性能趋势: 周期 ${period}`);
 
-      // 检查缓存
+      // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
       const cacheKey = this.buildTrendsCacheKey('performance', period, currentMetrics);
-      const cachedTrends = await this.cacheService.get<TrendsDto>(cacheKey);
       
-      if (cachedTrends) {
-        this.logger.debug('趋势分析缓存命中');
-        
-        // 发射缓存命中事件
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_HIT, {
-          timestamp: new Date(),
-          source: 'trend-analyzer',
-          metadata: { cacheKey, type: 'performance_trends', period }
-        });
+      const trends = await this.monitoringCache.getOrSetTrendData<TrendsDto>(
+        cacheKey,
+        async () => {
+          // 缓存未命中，重新计算趋势
+          this.logger.debug('趋势分析缓存未命中，重新生成');
 
-        return cachedTrends;
-      }
+          // 使用计算器生成趋势分析
+          const basicTrends = this.metricsCalculator.calculateTrends(currentMetrics, previousMetrics);
 
-      // 使用计算器生成趋势分析
-      const trends = this.metricsCalculator.calculateTrends(currentMetrics, previousMetrics);
+          // 增强趋势分析
+          const enhancedTrends = await this.enhanceTrendsAnalysis(basicTrends, currentMetrics, previousMetrics, period);
 
-      // 增强趋势分析
-      const enhancedTrends = await this.enhanceTrendsAnalysis(trends, currentMetrics, previousMetrics, period);
+          // 发射分析完成事件
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.ANALYSIS_COMPLETED, {
+            timestamp: new Date(),
+            source: 'trend-analyzer',
+            metadata: { 
+              type: 'trends_analysis',
+              period,
+              hasComparison: !!previousMetrics,
+              trendsCount: Object.keys(enhancedTrends).length
+            }
+          });
 
-      // 缓存结果
-      const ttl = await this.cacheService.getTTL('TRENDS');
-      await this.cacheService.set(cacheKey, enhancedTrends, ttl);
+          this.logger.debug(`趋势分析完成: 周期 ${period}, 对比数据 ${previousMetrics ? '有' : '无'}`);
+          return enhancedTrends;
+        }
+      );
 
-      // 发射分析完成事件
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.ANALYSIS_COMPLETED, {
+      // 发射缓存命中或回填完成事件
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_HIT, {
         timestamp: new Date(),
         source: 'trend-analyzer',
-        metadata: { 
-          type: 'trends_analysis',
-          period,
-          hasComparison: !!previousMetrics,
-          trendsCount: Object.keys(enhancedTrends).length
-        }
+        metadata: { cacheKey, type: 'performance_trends', period }
       });
 
-      this.logger.debug(`趋势分析完成: 周期 ${period}, 对比数据 ${previousMetrics ? '有' : '无'}`);
-      return enhancedTrends;
+      return trends;
 
     } catch (error) {
       this.logger.error('性能趋势计算失败', error.stack);
@@ -303,7 +302,7 @@ export class TrendAnalyzerService {
    */
   async invalidateTrendsCache(): Promise<void> {
     try {
-      await this.cacheService.invalidatePattern('trends_');
+      await this.monitoringCache.invalidateTrendCache();
       this.logger.debug('趋势相关缓存已失效');
 
       // 发射缓存失效事件

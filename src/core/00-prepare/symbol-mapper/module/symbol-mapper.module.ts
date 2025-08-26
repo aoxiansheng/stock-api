@@ -4,7 +4,8 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-import { FeatureFlags } from "@common/config/feature-flags.config";
+// import { FeatureFlags } from "@common/config/feature-flags.config"; // 🔧 Phase 2.5: 从 InfrastructureModule 获取
+import { InfrastructureModule } from "../../../../monitoring/infrastructure/infrastructure.module";
 
 // 导入新的独立缓存模块
 import { SymbolMapperCacheModule } from '../../../05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module';
@@ -24,6 +25,7 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
     AuthModule,
     PaginationModule,
     SharedServicesModule, // 🔥 导入SharedServicesModule以获取MetricsRegistryService
+    InfrastructureModule, // 🔧 Phase 2.5: 导入 InfrastructureModule 以获取 FeatureFlags
     SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
     SymbolTransformerModule, // 🔄 导入 Symbol Transformer 模块
     MongooseModule.forFeature([
@@ -34,7 +36,7 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
   providers: [
     SymbolMapperService, 
     SymbolMappingRepository,
-    FeatureFlags, // 🎯 保留 FeatureFlags 服务
+    // FeatureFlags, // 🔧 Phase 2.5: 移除本地提供，从 InfrastructureModule 获取
   ],
   exports: [SymbolMapperService],
 })

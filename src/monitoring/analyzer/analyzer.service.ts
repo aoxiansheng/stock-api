@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollectorService } from '../collector/collector.service';
@@ -18,7 +18,7 @@ import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
 import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
 import { HealthAnalyzerService } from './analyzer-health.service';
 import { TrendAnalyzerService } from './analyzer-trend.service';
-import { AnalyzerCacheService } from './analyzer-cache.service';
+import { MonitoringCacheService } from '../cache/monitoring-cache.service';
 
 /**
  * 主分析器服务
@@ -26,8 +26,9 @@ import { AnalyzerCacheService } from './analyzer-cache.service';
  * 协调各个专业分析服务，统一缓存管理和事件发布
  */
 @Injectable()
-export class AnalyzerService implements IAnalyzer {
+export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(AnalyzerService.name);
+  private eventHandlers = new Map<string, Function>();
 
   constructor(
     private readonly collectorService: CollectorService,
@@ -35,11 +36,29 @@ export class AnalyzerService implements IAnalyzer {
     private readonly healthScoreCalculator: AnalyzerHealthScoreCalculator,
     private readonly healthAnalyzer: HealthAnalyzerService,
     private readonly trendAnalyzer: TrendAnalyzerService,
-    private readonly cacheService: AnalyzerCacheService,
+    private readonly monitoringCache: MonitoringCacheService, // 使用新的监控缓存服务
     private readonly eventBus: EventEmitter2,
   ) {
     this.logger.log('AnalyzerService initialized - 主分析器服务已启动');
+  }
+
+  /**
+   * 模块初始化时设置事件监听器
+   */
+  onModuleInit(): void {
     this.setupEventListeners();
+    this.logger.log('事件监听器已注册');
+  }
+
+  /**
+   * 模块销毁时清理事件监听器，防止内存泄漏
+   */
+  onModuleDestroy(): void {
+    this.eventHandlers.forEach((handler, event) => {
+      this.eventBus.off(event, handler as any);
+    });
+    this.eventHandlers.clear();
+    this.logger.log('事件监听器已清理');
   }
 
   /**
@@ -130,32 +149,27 @@ export class AnalyzerService implements IAnalyzer {
    */
   async getHealthScore(): Promise<number> {
     try {
-      // 检查缓存
-      const cachedScore = await this.cacheService.get<number>('health_score');
-      if (cachedScore !== null) {
-        return cachedScore;
-      }
-
-      // 获取原始数据并计算健康分
-      const rawMetrics = await this.collectorService.getRawMetrics();
-      const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
-
-      // 缓存结果
-      const ttl = await this.cacheService.getTTL('HEALTH_SCORE');
-      await this.cacheService.set('health_score', healthScore, ttl);
-
-      // 发射健康分更新事件
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.HEALTH_SCORE_UPDATED, {
-        timestamp: new Date(),
-        source: 'analyzer',
-        metadata: { 
-          healthScore,
-          previousScore: 50, // 简化实现
-          trend: healthScore >= 70 ? 'healthy' : healthScore >= 40 ? 'warning' : 'critical'
+      // 使用getOrSet热点路径，自动获得分布式锁与缓存回填
+      return await this.monitoringCache.getOrSetHealthData<number>(
+        'score',
+        async () => {
+          const rawMetrics = await this.collectorService.getRawMetrics();
+          const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
+          
+          // 发射健康分更新事件
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.HEALTH_SCORE_UPDATED, {
+            timestamp: new Date(),
+            source: 'analyzer',
+            metadata: { 
+              healthScore,
+              previousScore: 50, // 简化实现
+              trend: healthScore >= 70 ? 'healthy' : healthScore >= 40 ? 'warning' : 'critical'
+            }
+          });
+          
+          return healthScore;
         }
-      });
-
-      return healthScore;
+      );
 
     } catch (error) {
       this.logger.error('健康分获取失败', error.stack);
@@ -181,16 +195,24 @@ export class AnalyzerService implements IAnalyzer {
    */
   async calculateTrends(period: string): Promise<TrendsDto> {
     try {
-      const currentMetrics = await this.collectorService.getRawMetrics();
+      const cacheKey = `trends_${period}`;
       
-      // 获取历史数据作为对比基线（简化实现）
-      const previousTime = new Date(Date.now() - this.parsePeriodToMs(period));
-      const previousMetrics = await this.collectorService.getRawMetrics(previousTime, new Date(previousTime.getTime() + 60000));
+      // 使用getOrSet热点路径优化
+      return await this.monitoringCache.getOrSetTrendData<TrendsDto>(
+        cacheKey,
+        async () => {
+          const currentMetrics = await this.collectorService.getRawMetrics();
+          
+          // 获取历史数据作为对比基线（简化实现）
+          const previousTime = new Date(Date.now() - this.parsePeriodToMs(period));
+          const previousMetrics = await this.collectorService.getRawMetrics(previousTime, new Date(previousTime.getTime() + 60000));
 
-      return await this.trendAnalyzer.calculatePerformanceTrends(
-        currentMetrics,
-        previousMetrics.requests?.length ? previousMetrics : undefined,
-        period
+          return await this.trendAnalyzer.calculatePerformanceTrends(
+            currentMetrics,
+            previousMetrics.requests?.length ? previousMetrics : undefined,
+            period
+          );
+        }
       );
     } catch (error) {
       this.logger.error('趋势分析失败', error.stack);
@@ -260,7 +282,7 @@ export class AnalyzerService implements IAnalyzer {
 
       // 检查缓存
       const cacheKey = 'optimization_suggestions';
-      const cachedSuggestions = await this.cacheService.get<SuggestionDto[]>(cacheKey);
+      const cachedSuggestions = await this.monitoringCache.getPerformanceData<SuggestionDto[]>(cacheKey);
       
       if (cachedSuggestions) {
         return cachedSuggestions;
@@ -290,8 +312,7 @@ export class AnalyzerService implements IAnalyzer {
       suggestions.push(...performanceSuggestions);
 
       // 缓存结果
-      const ttl = await this.cacheService.getTTL('SUGGESTIONS');
-      await this.cacheService.set(cacheKey, suggestions, ttl);
+      await this.monitoringCache.setPerformanceData(cacheKey, suggestions);
 
       this.logger.debug(`优化建议生成完成: ${suggestions.length} 条建议`);
       return suggestions;
@@ -308,9 +329,20 @@ export class AnalyzerService implements IAnalyzer {
   async invalidateCache(pattern?: string): Promise<void> {
     try {
       if (pattern) {
-        await this.cacheService.invalidatePattern(pattern);
+        // 根据模式选择性失效缓存
+        if (pattern.includes('health')) {
+          await this.monitoringCache.invalidateHealthCache();
+        } else if (pattern.includes('trend')) {
+          await this.monitoringCache.invalidateTrendCache();
+        } else if (pattern.includes('performance')) {
+          await this.monitoringCache.invalidatePerformanceCache();
+        } else {
+          // 其他模式失效所有缓存
+          await this.monitoringCache.invalidateAllMonitoringCache();
+        }
       } else {
-        await this.cacheService.clear();
+        // 失效所有监控缓存
+        await this.monitoringCache.invalidateAllMonitoringCache();
       }
 
       // 同时失效专业分析服务的缓存
@@ -340,12 +372,13 @@ export class AnalyzerService implements IAnalyzer {
     totalMisses: number;
   }> {
     try {
-      const stats = await this.cacheService.getCacheStats();
+      const healthCheck = await this.monitoringCache.healthCheck();
+      const stats = this.monitoringCache.getMetrics();
       
-      // 简化的命中率计算
-      const totalRequests = stats.size + 100; // 模拟过期key数量
-      const totalHits = Math.floor(totalRequests * 0.7); // 假设70%命中率
-      const totalMisses = totalRequests - totalHits;
+      // 从实际统计中获取命中率
+      const totalRequests = stats.operations.total;
+      const totalHits = stats.operations.hits;
+      const totalMisses = stats.operations.misses;
       const hitRate = totalRequests > 0 ? totalHits / totalRequests : 0;
 
       return {
@@ -366,11 +399,11 @@ export class AnalyzerService implements IAnalyzer {
   }
 
   /**
-   * 设置事件监听器
+   * 设置事件监听器，将处理器存储到 Map 中以便后续清理
    */
   private setupEventListeners(): void {
     // 监听数据收集完成事件
-    this.eventBus.on(SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED, async (data) => {
+    const collectionCompletedHandler = async (data) => {
       this.logger.debug('数据收集完成，触发分析流程', data);
       
       // 可以在这里触发自动分析
@@ -379,14 +412,20 @@ export class AnalyzerService implements IAnalyzer {
       } catch (error) {
         this.logger.error('自动健康分析失败', error.stack);
       }
-    });
+    };
+    
+    this.eventBus.on(SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED, collectionCompletedHandler);
+    this.eventHandlers.set(SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED, collectionCompletedHandler);
 
     // 监听数据收集错误事件
-    this.eventBus.on(SYSTEM_STATUS_EVENTS.COLLECTION_ERROR, async (data) => {
+    const collectionErrorHandler = async (data) => {
       this.logger.warn('数据收集错误，可能影响分析准确性', data);
-    });
+    };
+    
+    this.eventBus.on(SYSTEM_STATUS_EVENTS.COLLECTION_ERROR, collectionErrorHandler);
+    this.eventHandlers.set(SYSTEM_STATUS_EVENTS.COLLECTION_ERROR, collectionErrorHandler);
 
-    this.logger.log('分析器事件监听器已设置');
+    this.logger.log(`分析器事件监听器已设置，共 ${this.eventHandlers.size} 个监听器`);
   }
 
   /**
