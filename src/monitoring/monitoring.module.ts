@@ -9,29 +9,23 @@
  */
 
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@cache/module/cache.module';
+import { MonitoringCacheModule } from './cache/monitoring-cache.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { CollectorModule } from './collector/collector.module';
 import { AnalyzerModule } from './analyzer/analyzer.module';
 import { PresenterModule } from './presenter/presenter.module';
-import { MonitoringCacheService } from './cache/monitoring-cache.service';
 
 
 @Module({
   imports: [
-    CacheModule, // 导入系统缓存模块
+    MonitoringCacheModule, // 导入独立缓存模块
     InfrastructureModule,
     CollectorModule,
     AnalyzerModule,
     PresenterModule,
   ],
-  providers: [
-    MonitoringCacheService, // 监控专用缓存服务
-  
-  ],
   exports: [
-    MonitoringCacheService,
-
+    MonitoringCacheModule, // 导出缓存模块供外部使用
     InfrastructureModule,
     CollectorModule,
     AnalyzerModule,

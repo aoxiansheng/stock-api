@@ -10,18 +10,17 @@
 
 import { Module } from '@nestjs/common';
 import { CollectorModule } from '../collector/collector.module';
+import { MonitoringCacheModule } from '../cache/monitoring-cache.module';
 import { AnalyzerService } from './analyzer.service';
 import { HealthAnalyzerService } from './analyzer-health.service';
 import { TrendAnalyzerService } from './analyzer-trend.service';
 import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
 import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
-import { MonitoringCacheService } from '../cache/monitoring-cache.service';
-import { CacheModule } from '@cache/module/cache.module';
 
 @Module({
   imports: [
     CollectorModule,
-    CacheModule, // 添加对CacheModule的导入，因为MonitoringCacheService依赖它
+    MonitoringCacheModule, // 导入独立的缓存模块，不再直接声明服务
   ],
   providers: [
     AnalyzerService,
@@ -29,7 +28,6 @@ import { CacheModule } from '@cache/module/cache.module';
     TrendAnalyzerService,
     AnalyzerHealthScoreCalculator,
     AnalyzerMetricsCalculator,
-    MonitoringCacheService, // 在这里添加MonitoringCacheService
   ],
   exports: [
     AnalyzerService,

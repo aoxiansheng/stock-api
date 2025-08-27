@@ -185,7 +185,8 @@
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/core/01-entry/stream-receiver/services/stream-receiver.service.ts)",
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck src/core/01-entry/stream-receiver/services/stream-receiver.service.ts)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-receiver.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --skipLibCheck)",
-      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck --isolatedModules src/core/01-entry/stream-receiver/services/stream-receiver.service.ts)"
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck --isolatedModules src/core/01-entry/stream-receiver/services/stream-receiver.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/**/*.ts)"
     ],
     "deny": []
   }
