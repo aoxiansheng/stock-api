@@ -6,9 +6,13 @@
 
 import { Module } from '@nestjs/common';
 import { MetricsRegistryService } from './metrics-registry.service';
+import { FeatureFlags } from '../../../common/config/feature-flags.config';
 
 @Module({
-  providers: [MetricsRegistryService],
+  providers: [
+    MetricsRegistryService,
+    FeatureFlags  // 添加FeatureFlags作为provider
+  ],
   exports: [MetricsRegistryService],
 })
 export class MetricsModule {}

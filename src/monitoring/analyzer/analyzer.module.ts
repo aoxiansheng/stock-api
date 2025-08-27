@@ -15,15 +15,21 @@ import { HealthAnalyzerService } from './analyzer-health.service';
 import { TrendAnalyzerService } from './analyzer-trend.service';
 import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
 import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
+import { MonitoringCacheService } from '../cache/monitoring-cache.service';
+import { CacheModule } from '@cache/module/cache.module';
 
 @Module({
-  imports: [CollectorModule],
+  imports: [
+    CollectorModule,
+    CacheModule, // 添加对CacheModule的导入，因为MonitoringCacheService依赖它
+  ],
   providers: [
     AnalyzerService,
     HealthAnalyzerService, 
     TrendAnalyzerService,
     AnalyzerHealthScoreCalculator,
     AnalyzerMetricsCalculator,
+    MonitoringCacheService, // 在这里添加MonitoringCacheService
   ],
   exports: [
     AnalyzerService,

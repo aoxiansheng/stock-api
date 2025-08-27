@@ -14,6 +14,8 @@ import {
 } from '../contracts/interfaces/analyzer.interface';
 import { 
   SYSTEM_STATUS_EVENTS,
+} from '../contracts/events/system-status.events';
+import type { 
   DataRequestEvent,
   DataResponseEvent 
 } from '../contracts/events/system-status.events';

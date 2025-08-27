@@ -8,6 +8,7 @@ import {
   DEFAULT_SMART_CACHE_CONFIG,
   SMART_CACHE_ORCHESTRATOR_CONFIG 
 } from '../interfaces/smart-cache-config.interface';
+import { CollectorModule } from '../../../../monitoring/collector/collector.module';
 
 /**
  * 智能缓存模块
@@ -21,6 +22,7 @@ import {
  * 依赖模块：
  * - StorageModule: 提供StorageService，用于底层缓存操作
  * - SharedServicesModule: 提供MarketStatusService、BackgroundTaskService等共享服务
+ * - CollectorModule: 提供CollectorService，用于监控数据收集
  * 
  * 导出服务：
  * - SmartCacheOrchestrator: 核心编排器服务
@@ -43,9 +45,12 @@ import {
     // 提供以下共享服务：
     // - MarketStatusService: 市场状态查询，用于市场感知策略
     // - BackgroundTaskService: 后台任务管理
-    // - CollectorService: 事件驱动监控数据收集（通过MonitoringModule提供）
     // - DataChangeDetectorService: 数据变化检测
     SharedServicesModule,
+    
+    // 🔑 直接导入CollectorModule以解决依赖问题
+    // 提供CollectorService用于监控数据收集
+    CollectorModule,
   ],
   
   providers: [
@@ -109,8 +114,9 @@ export function createSmartCacheModuleWithConfig(config: Partial<SmartCacheOrche
   @Module({
     imports: [
       StorageModule, 
-      CommonCacheModule, // 添加缺失的CommonCacheModule导入
-      SharedServicesModule
+      CommonCacheModule,
+      SharedServicesModule,
+      CollectorModule, // 添加导入CollectorModule
     ],
     providers: [
       SmartCacheOrchestrator,
