@@ -71,7 +71,7 @@ async function bootstrap() {
   const reflector = app.get("Reflector");
   const metricsRegistry = app.get(MetricsRegistryService);
   app.useGlobalInterceptors(
-    new InfrastructureInterceptor(performanceMonitor, reflector, metricsRegistry),
+    new InfrastructureInterceptor(performanceMonitor, reflector),
   );
 
   // 全局响应格式拦截器（最后执行）

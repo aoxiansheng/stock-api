@@ -178,7 +178,7 @@ export function validateConfig(config: Partial<SharedConfig>): boolean {
     throw new Error('缓存大小不能为负数');
   }
   
-  if (config.PERFORMANCE?.MAX_RETRIES && config.PERFORMANCE.MAX_RETRIES > 10) {
+  if (config.PERFORMANCE?.RETRY_CONFIG?.MAX_RETRIES && config.PERFORMANCE.RETRY_CONFIG.MAX_RETRIES > 10) {
     console.warn('重试次数过多可能影响性能');
   }
   
@@ -188,7 +188,7 @@ export function validateConfig(config: Partial<SharedConfig>): boolean {
 /**
  * 获取环境相关配置（可选）
  */
-export function getEnvironmentConfig(): Partial<SharedConfig> {
+export function getEnvironmentConfig() {
   const env = process.env.NODE_ENV || 'development';
   
   switch (env) {
@@ -196,22 +196,22 @@ export function getEnvironmentConfig(): Partial<SharedConfig> {
       return {
         PERFORMANCE: {
           ...SHARED_CONFIG.PERFORMANCE,
-          SLOW_THRESHOLD_MS: 3000, // 生产环境更严格
+          SLOW_THRESHOLD_MS: 3000 as const, // 生产环境更严格
         },
         LOGGING: {
           ...SHARED_CONFIG.LOGGING,
-          DEFAULT_LEVEL: 'warn',
+          DEFAULT_LEVEL: 'warn' as const,
         },
       };
     case 'test':
       return {
         CACHE: {
           ...SHARED_CONFIG.CACHE,
-          CLEANUP_INTERVAL: 1000, // 测试环境快速清理
+          CLEANUP_INTERVAL: 1000 as const, // 测试环境快速清理
         },
         MONITORING: {
           ...SHARED_CONFIG.MONITORING,
-          METRICS_ENABLED: false, // 测试环境禁用指标
+          METRICS_ENABLED: false as const, // 测试环境禁用指标
         },
       };
     default:

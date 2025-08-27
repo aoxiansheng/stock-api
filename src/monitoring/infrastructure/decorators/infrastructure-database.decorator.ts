@@ -3,8 +3,7 @@
  * 基于重构后的三层架构，集成到现有的监控体系中
  */
 
-import { createLogger } from '@common/config/logger.config';
-import { MetricsRegistryService } from '../metrics/metrics-registry.service';
+import { createLogger } from '../../../common/config/logger.config';
 
 const logger = createLogger('PerformanceDecorators');
 
@@ -31,19 +30,6 @@ function getCollectorService() {
   }
 }
 
-/**
- * 获取MetricsRegistryService实例
- * 尝试从应用上下文中获取
- */
-function getMetricsRegistry(): MetricsRegistryService | null {
-  try {
-    // 这里可以通过依赖注入容器获取实例
-    // 暂时返回null，让装饰器在没有指标服务时也能工作
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
 
 /**
  * 创建性能装饰器的通用工厂函数
@@ -125,7 +111,7 @@ async function recordPerformanceData(data: {
   method: string;
 }) {
   try {
-    // 1. 通过CollectorService收集数据
+    // 1. 通过CollectorService收集数据（事件驱动方式）
     const collectorService = getCollectorService();
     if (collectorService && typeof collectorService.collectPerformanceData === 'function') {
       await collectorService.collectPerformanceData({
@@ -145,13 +131,7 @@ async function recordPerformanceData(data: {
       });
     }
 
-    // 2. 记录到Prometheus指标
-    const metricsRegistry = getMetricsRegistry();
-    if (metricsRegistry) {
-      recordToPrometheusMetrics(metricsRegistry, data);
-    }
-
-    // 3. 记录慢操作日志
+    // 2. 记录慢操作日志
     if (data.duration > data.options.threshold) {
       logger.warn(`慢${data.metricType}操作检测`, {
         operation: data.operation,
@@ -164,7 +144,7 @@ async function recordPerformanceData(data: {
       });
     }
 
-    // 4. 记录错误日志
+    // 3. 记录错误日志
     if (!data.success && data.options.recordError) {
       logger.error(`${data.metricType}操作失败`, {
         operation: data.operation,
@@ -184,97 +164,6 @@ async function recordPerformanceData(data: {
   }
 }
 
-/**
- * 记录Prometheus指标
- */
-function recordToPrometheusMetrics(
-  metricsRegistry: MetricsRegistryService,
-  data: {
-    metricType: 'database' | 'cache' | 'auth';
-    operation: string;
-    duration: number;
-    success: boolean;
-    error: Error | null;
-    target: string;
-    method: string;
-  }
-) {
-  try {
-    const labels = {
-      operation: data.operation,
-      target: data.target,
-      method: data.method,
-      status: data.success ? 'success' : 'error',
-      error_type: data.error ? 'application_error' : 'none',
-    };
-
-    // 根据类型选择合适的指标
-    switch (data.metricType) {
-      case 'database':
-        // 使用现有的存储指标
-        metricsRegistry.storageOperationsTotal.inc({
-          operation: data.method,
-          storage_type: 'database',
-        });
-        metricsRegistry.storageQueryDuration.observe(
-          {
-            query_type: data.operation,
-            storage_type: 'database',
-          },
-          data.duration / 1000
-        );
-        break;
-
-      case 'cache':
-        // 使用现有的接收器指标作为通用性能指标
-        metricsRegistry.receiverRequestsTotal.inc({
-          method: 'cache',
-          status: data.success ? '200' : '500',
-          provider: 'internal',
-          operation: data.operation,
-          error_type: labels.error_type,
-        });
-        metricsRegistry.receiverProcessingDuration.observe(
-          {
-            method: 'cache',
-            provider: 'internal',
-            operation: data.operation,
-            status: labels.status,
-            attempt: '1',
-          },
-          data.duration / 1000
-        );
-        break;
-
-      case 'auth':
-        // 使用现有的接收器指标
-        metricsRegistry.receiverRequestsTotal.inc({
-          method: 'auth',
-          status: data.success ? '200' : '401',
-          provider: 'internal',
-          operation: data.operation,
-          error_type: labels.error_type,
-        });
-        metricsRegistry.receiverProcessingDuration.observe(
-          {
-            method: 'auth',
-            provider: 'internal',
-            operation: data.operation,
-            status: labels.status,
-            attempt: '1',
-          },
-          data.duration / 1000
-        );
-        break;
-    }
-
-  } catch (error) {
-    logger.error('Prometheus指标记录失败', {
-      operation: data.operation,
-      error: error.message,
-    });
-  }
-}
 
 /**
  * 数据库性能监控装饰器

@@ -20,6 +20,11 @@ export const SYSTEM_STATUS_EVENTS = {
   ANALYSIS_CACHE_MISS: 'system-status.analysis.cache.miss',
   CALCULATION_COMPLETED: 'system-status.calculation.completed',
 
+  // 数据请求/响应事件（Data Request/Response）
+  DATA_REQUEST: 'system-status.data.request',
+  DATA_RESPONSE: 'system-status.data.response',
+  DATA_NOT_AVAILABLE: 'system-status.data.not-available',
+
   // 缓存相关事件
   CACHE_HIT: 'system-status.cache.hit',
   CACHE_MISS: 'system-status.cache.miss',
@@ -87,6 +92,23 @@ export interface AnalysisCompletedEvent extends SystemStatusEventData {
   duration: number;
   dataPoints: number;
   results?: Record<string, any>;
+}
+
+// 数据请求事件数据
+export interface DataRequestEvent extends SystemStatusEventData {
+  requestId: string;
+  requestType: 'raw_metrics' | 'health_report' | 'performance_data';
+  startTime?: Date;
+  endTime?: Date;
+  filters?: Record<string, any>;
+}
+
+// 数据响应事件数据  
+export interface DataResponseEvent extends SystemStatusEventData {
+  requestId: string;
+  responseType: 'raw_metrics' | 'health_report' | 'performance_data';
+  data: any;
+  dataSize: number;
 }
 
 // 缓存操作事件数据
@@ -158,6 +180,8 @@ export interface SystemPerformanceAlertEvent extends SystemStatusEventData {
 export type SystemStatusEventMap = {
   [SYSTEM_STATUS_EVENTS.METRIC_COLLECTED]: MetricCollectedEvent;
   [SYSTEM_STATUS_EVENTS.ANALYSIS_COMPLETED]: AnalysisCompletedEvent;
+  [SYSTEM_STATUS_EVENTS.DATA_REQUEST]: DataRequestEvent;
+  [SYSTEM_STATUS_EVENTS.DATA_RESPONSE]: DataResponseEvent;
   [SYSTEM_STATUS_EVENTS.CACHE_HIT]: CacheOperationEvent;
   [SYSTEM_STATUS_EVENTS.CACHE_MISS]: CacheOperationEvent;
   [SYSTEM_STATUS_EVENTS.CACHE_INVALIDATED]: CacheOperationEvent;

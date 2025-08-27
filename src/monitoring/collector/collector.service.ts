@@ -1,17 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { createLogger } from '../../common/config/logger.config';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { 
   ICollector, 
   RawMetric, 
   RawMetricsDto, 
   SystemMetricsDto 
 } from '../contracts/interfaces/collector.interface';
-import { SYSTEM_STATUS_EVENTS } from '../contracts/events/system-status.events';
+import { 
+  SYSTEM_STATUS_EVENTS,
+  DataRequestEvent,
+  DataResponseEvent 
+} from '../contracts/events/system-status.events';
 import { CollectorRepository } from './collector.repository';
-import { MetricsRegistryService } from '../infrastructure/metrics/metrics-registry.service';
 import * as os from 'os';
 import * as v8 from 'v8';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * 数据收集器服务
@@ -19,7 +23,7 @@ import * as v8 from 'v8';
  * 按照优化方案，collector层只负责数据收集和原始存储
  */
 @Injectable()
-export class CollectorService implements ICollector {
+export class CollectorService implements ICollector, OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(CollectorService.name);
   private readonly metricsBuffer: RawMetric[] = [];
   private readonly maxBufferSize = 1000;
@@ -27,9 +31,88 @@ export class CollectorService implements ICollector {
   constructor(
     private readonly repository: CollectorRepository,
     private readonly eventBus: EventEmitter2,
-    private readonly metricsRegistryService: MetricsRegistryService,
   ) {
-    this.logger.log('CollectorService initialized - 纯数据收集服务已启动');
+    this.logger.log('CollectorService initialized - 纯事件驱动数据收集服务已启动');
+  }
+
+  /**
+   * 模块初始化
+   */
+  onModuleInit(): void {
+    this.logger.log('CollectorService 事件监听器已注册 - 支持数据请求响应');
+  }
+
+  /**
+   * 模块销毁
+   */
+  onModuleDestroy(): void {
+    this.logger.log('CollectorService 事件监听器已清理');
+  }
+
+  /**
+   * 处理数据请求事件
+   * 分析层通过事件请求数据，收集层通过事件响应数据
+   */
+  @OnEvent(SYSTEM_STATUS_EVENTS.DATA_REQUEST)
+  async handleDataRequest(eventData: DataRequestEvent): Promise<void> {
+    try {
+      this.logger.debug('接收到数据请求', { 
+        requestId: eventData.requestId,
+        requestType: eventData.requestType 
+      });
+
+      let responseData: any = null;
+      let dataSize = 0;
+
+      // 根据请求类型获取相应数据
+      switch (eventData.requestType) {
+        case 'raw_metrics':
+          responseData = await this.getRawMetrics(eventData.startTime, eventData.endTime);
+          dataSize = (responseData.requests?.length || 0) + 
+                    (responseData.database?.length || 0) + 
+                    (responseData.cache?.length || 0);
+          break;
+          
+        default:
+          this.logger.warn('未知的数据请求类型', { requestType: eventData.requestType });
+          return;
+      }
+
+      // 发射数据响应事件
+      const responseEvent: DataResponseEvent = {
+        timestamp: new Date(),
+        source: 'collector',
+        requestId: eventData.requestId,
+        responseType: eventData.requestType,
+        data: responseData,
+        dataSize,
+        metadata: {
+          processingTime: Date.now() - eventData.timestamp.getTime()
+        }
+      };
+
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_RESPONSE, responseEvent);
+      
+      this.logger.debug('数据请求处理完成', { 
+        requestId: eventData.requestId,
+        dataSize 
+      });
+
+    } catch (error) {
+      this.logger.error('处理数据请求失败', {
+        requestId: eventData.requestId,
+        error: error.message,
+        stack: error.stack
+      });
+
+      // 发射数据不可用事件
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_NOT_AVAILABLE, {
+        timestamp: new Date(),
+        source: 'collector',
+        requestId: eventData.requestId,
+        metadata: { error: error.message }
+      });
+    }
   }
 
   /**
@@ -54,26 +137,20 @@ export class CollectorService implements ICollector {
 
     this.addMetricToBuffer(metric);
     
-    // 使用统一的 Prometheus 指标
-    this.metricsRegistryService.receiverRequestsTotal.inc({
-      method: method.toLowerCase(),
-      status: statusCode.toString(),
-      operation: 'data_request'
-    });
-    
-    this.metricsRegistryService.receiverProcessingDuration.observe(
-      { method: method.toLowerCase(), operation: 'data_request', status: statusCode >= 400 ? 'error' : 'success' },
-      duration / 1000 // Convert to seconds
-    );
-    
-    // 发射数据收集事件
+    // 发射数据收集事件 - 纯事件驱动方式
     this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
       timestamp: new Date(),
       source: 'collector',
       metricType: 'request',
       metricName: 'http_request',
       metricValue: duration,
-      metadata: { endpoint, method, statusCode }
+      tags: { 
+        method: method.toLowerCase(),
+        status: statusCode.toString(),
+        operation: 'data_request',
+        endpoint, 
+        statusCode 
+      }
     });
 
     this.logger.debug(`记录HTTP请求: ${method} ${endpoint} - ${statusCode} (${duration}ms)`);
@@ -101,25 +178,18 @@ export class CollectorService implements ICollector {
 
     this.addMetricToBuffer(metric);
     
-    // 使用统一的 Prometheus 指标 
-    this.metricsRegistryService.storageOperationsTotal.inc({
-      operation: operation,
-      storage_type: 'database'
-    });
-    
-    this.metricsRegistryService.storageQueryDuration.observe(
-      { query_type: operation, storage_type: 'database' },
-      duration / 1000 // Convert to seconds
-    );
-    
-    // 发射数据收集事件
+    // 发射数据收集事件 - 纯事件驱动方式
     this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
       timestamp: new Date(),
       source: 'collector',
       metricType: 'database',
       metricName: 'database_operation',
       metricValue: duration,
-      metadata: { operation, success }
+      tags: { 
+        operation: operation,
+        storage_type: 'database',
+        success 
+      }
     });
 
     this.logger.debug(`记录数据库操作: ${operation} - ${success ? '成功' : '失败'} (${duration}ms)`);
@@ -147,25 +217,20 @@ export class CollectorService implements ICollector {
 
     this.addMetricToBuffer(metric);
     
-    // 使用统一的 Prometheus 指标
-    this.metricsRegistryService.storageOperationsTotal.inc({
-      operation: operation,
-      storage_type: 'cache'
-    });
-    
-    this.metricsRegistryService.storageCacheEfficiency.set(
-      { cache_layer: 'redis' },
-      hit ? 1 : 0
-    );
-    
-    // 发射数据收集事件
+    // 发射数据收集事件 - 纯事件驱动方式
     this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
       timestamp: new Date(),
       source: 'collector',
       metricType: 'cache',
       metricName: 'cache_operation',
       metricValue: hit ? 1 : 0,
-      metadata: { operation, hit, duration }
+      tags: { 
+        operation: operation,
+        storage_type: 'cache',
+        cache_layer: 'redis',
+        hit, 
+        duration 
+      }
     });
 
     this.logger.debug(`记录缓存操作: ${operation} - ${hit ? '命中' : '未命中'} (${duration}ms)`);
@@ -188,20 +253,17 @@ export class CollectorService implements ICollector {
 
     this.addMetricToBuffer(metric);
     
-    // 使用统一的 Prometheus 指标
-    this.metricsRegistryService.systemCpuUsagePercent.set(metrics.cpu.usage * 100);
-    this.metricsRegistryService.storageDataVolume.set(
-      { data_type: 'memory', storage_type: 'system' },
-      metrics.memory.used
-    );
-    
-    // 发射数据收集事件
+    // 发射数据收集事件 - 纯事件驱动方式
     this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
       timestamp: new Date(),
       source: 'collector',
       metricType: 'system',
       metricName: 'system_metrics',
       metricValue: metrics.memory.percentage,
+      tags: {
+        data_type: 'memory',
+        storage_type: 'system'
+      },
       metadata: metrics
     });
 
@@ -238,13 +300,19 @@ export class CollectorService implements ICollector {
 
     this.addMetricToBuffer(metric);
     
-    // 发射数据收集事件
+    // 发射数据收集事件 - 纯事件驱动方式
     this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
       timestamp: data.timestamp,
       source: data.source,
       metricType: 'request',
       metricName: 'performance_request',
       metricValue: data.duration,
+      tags: {
+        method: data.metadata?.method || 'unknown',
+        status: data.statusCode.toString(),
+        operation: data.operation,
+        provider: 'internal'
+      },
       metadata: data.metadata
     });
 
@@ -280,13 +348,17 @@ export class CollectorService implements ICollector {
 
     this.addMetricToBuffer(metric);
     
-    // 发射数据收集事件
+    // 发射数据收集事件 - 纯事件驱动方式
     this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
       timestamp: data.timestamp,
       source: data.source,
       metricType: metricType,
       metricName: data.operation,
       metricValue: data.duration,
+      tags: {
+        operation_type: data.operation,
+        provider: 'internal'
+      },
       metadata: data.metadata
     });
 

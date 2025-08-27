@@ -3,7 +3,7 @@ import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { GetDbPerformanceQueryDto } from './dto/presenter-query.dto';
 import { AnalyzerService } from '../analyzer/analyzer.service';
 import { PresenterErrorHandlerService } from './presenter-error.service';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '../../common/config/logger.config';
 
 /**
  * 展示层业务服务

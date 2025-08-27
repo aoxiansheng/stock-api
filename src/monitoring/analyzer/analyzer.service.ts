@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CollectorService } from '../collector/collector.service';
+import { createLogger } from '../../common/config/logger.config';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { 
   IAnalyzer,
   AnalysisOptions,
@@ -13,12 +12,17 @@ import {
   CacheMetricsDto,
   SuggestionDto
 } from '../contracts/interfaces/analyzer.interface';
-import { SYSTEM_STATUS_EVENTS } from '../contracts/events/system-status.events';
+import { 
+  SYSTEM_STATUS_EVENTS,
+  DataRequestEvent,
+  DataResponseEvent 
+} from '../contracts/events/system-status.events';
 import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
 import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
 import { HealthAnalyzerService } from './analyzer-health.service';
 import { TrendAnalyzerService } from './analyzer-trend.service';
 import { MonitoringCacheService } from '../cache/monitoring-cache.service';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * 主分析器服务
@@ -29,17 +33,24 @@ import { MonitoringCacheService } from '../cache/monitoring-cache.service';
 export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(AnalyzerService.name);
   private eventHandlers = new Map<string, Function>();
+  
+  // 事件驱动数据请求管理
+  private dataRequestPromises = new Map<string, {
+    resolve: (data: any) => void;
+    reject: (error: Error) => void;
+    timeout: NodeJS.Timeout;
+  }>();
+  private readonly requestTimeoutMs = 5000; // 5秒超时
 
   constructor(
-    private readonly collectorService: CollectorService,
     private readonly metricsCalculator: AnalyzerMetricsCalculator,
     private readonly healthScoreCalculator: AnalyzerHealthScoreCalculator,
     private readonly healthAnalyzer: HealthAnalyzerService,
     private readonly trendAnalyzer: TrendAnalyzerService,
-    private readonly monitoringCache: MonitoringCacheService, // 使用新的监控缓存服务
+    private readonly monitoringCache: MonitoringCacheService,
     private readonly eventBus: EventEmitter2,
   ) {
-    this.logger.log('AnalyzerService initialized - 主分析器服务已启动');
+    this.logger.log('AnalyzerService initialized - 事件驱动分析器服务已启动');
   }
 
   /**
@@ -58,7 +69,94 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       this.eventBus.off(event, handler as any);
     });
     this.eventHandlers.clear();
+    
+    // 清理待处理的数据请求
+    this.dataRequestPromises.forEach(({ reject, timeout }, requestId) => {
+      clearTimeout(timeout);
+      reject(new Error('AnalyzerService shutting down'));
+    });
+    this.dataRequestPromises.clear();
+    
     this.logger.log('事件监听器已清理');
+  }
+
+  /**
+   * 处理数据响应事件
+   */
+  @OnEvent(SYSTEM_STATUS_EVENTS.DATA_RESPONSE)
+  handleDataResponse(responseEvent: DataResponseEvent): void {
+    const { requestId, data } = responseEvent;
+    const pendingRequest = this.dataRequestPromises.get(requestId);
+    
+    if (pendingRequest) {
+      clearTimeout(pendingRequest.timeout);
+      this.dataRequestPromises.delete(requestId);
+      pendingRequest.resolve(data);
+      
+      this.logger.debug('数据响应处理完成', { 
+        requestId,
+        dataSize: responseEvent.dataSize 
+      });
+    } else {
+      this.logger.warn('收到未知请求ID的数据响应', { requestId });
+    }
+  }
+
+  /**
+   * 处理数据不可用事件
+   */
+  @OnEvent(SYSTEM_STATUS_EVENTS.DATA_NOT_AVAILABLE)
+  handleDataNotAvailable(errorEvent: any): void {
+    const { requestId, metadata } = errorEvent;
+    const pendingRequest = this.dataRequestPromises.get(requestId);
+    
+    if (pendingRequest) {
+      clearTimeout(pendingRequest.timeout);
+      this.dataRequestPromises.delete(requestId);
+      pendingRequest.reject(new Error(metadata?.error || '数据不可用'));
+      
+      this.logger.debug('数据不可用事件处理完成', { requestId });
+    }
+  }
+
+  /**
+   * 事件驱动的数据请求方法
+   * 替代原来的直接调用collectorService.getRawMetrics()
+   */
+  private async requestRawMetrics(startTime?: Date, endTime?: Date): Promise<any> {
+    const requestId = `analyzer_${Date.now()}_${uuidv4().substring(0, 8)}`;
+    
+    return new Promise((resolve, reject) => {
+      // 设置请求超时
+      const timeout = setTimeout(() => {
+        this.dataRequestPromises.delete(requestId);
+        reject(new Error('数据请求超时'));
+      }, this.requestTimeoutMs);
+
+      // 存储请求Promise
+      this.dataRequestPromises.set(requestId, {
+        resolve,
+        reject,
+        timeout
+      });
+
+      // 发射数据请求事件
+      const requestEvent: DataRequestEvent = {
+        timestamp: new Date(),
+        source: 'analyzer',
+        requestId,
+        requestType: 'raw_metrics',
+        startTime,
+        endTime,
+        metadata: {
+          requester: 'AnalyzerService'
+        }
+      };
+
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_REQUEST, requestEvent);
+      
+      this.logger.debug('已发送数据请求', { requestId, requestType: 'raw_metrics' });
+    });
   }
 
   /**
@@ -69,7 +167,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       this.logger.debug('开始性能分析', { options });
 
       // 获取原始指标数据
-      const rawMetrics = await this.collectorService.getRawMetrics(
+      const rawMetrics = await this.requestRawMetrics(
         options?.startTime,
         options?.endTime
       );
@@ -153,7 +251,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       return await this.monitoringCache.getOrSetHealthData<number>(
         'score',
         async () => {
-          const rawMetrics = await this.collectorService.getRawMetrics();
+          const rawMetrics = await this.requestRawMetrics();
           const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
           
           // 发射健康分更新事件
@@ -182,7 +280,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   async getHealthReport(): Promise<HealthReportDto> {
     try {
-      const rawMetrics = await this.collectorService.getRawMetrics();
+      const rawMetrics = await this.requestRawMetrics();
       return await this.healthAnalyzer.generateHealthReport(rawMetrics);
     } catch (error) {
       this.logger.error('健康报告获取失败', error.stack);
@@ -201,11 +299,11 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       return await this.monitoringCache.getOrSetTrendData<TrendsDto>(
         cacheKey,
         async () => {
-          const currentMetrics = await this.collectorService.getRawMetrics();
+          const currentMetrics = await this.requestRawMetrics();
           
           // 获取历史数据作为对比基线（简化实现）
           const previousTime = new Date(Date.now() - this.parsePeriodToMs(period));
-          const previousMetrics = await this.collectorService.getRawMetrics(previousTime, new Date(previousTime.getTime() + 60000));
+          const previousMetrics = await this.requestRawMetrics(previousTime, new Date(previousTime.getTime() + 60000));
 
           return await this.trendAnalyzer.calculatePerformanceTrends(
             currentMetrics,
@@ -225,7 +323,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   async getEndpointMetrics(limit?: number): Promise<EndpointMetricsDto[]> {
     try {
-      const rawMetrics = await this.collectorService.getRawMetrics();
+      const rawMetrics = await this.requestRawMetrics();
       const endpointMetrics = this.metricsCalculator.calculateEndpointMetrics(rawMetrics);
       
       return limit ? endpointMetrics.slice(0, limit) : endpointMetrics;
@@ -240,7 +338,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   async getDatabaseMetrics(): Promise<DatabaseMetricsDto> {
     try {
-      const rawMetrics = await this.collectorService.getRawMetrics();
+      const rawMetrics = await this.requestRawMetrics();
       return this.metricsCalculator.calculateDatabaseMetrics(rawMetrics);
     } catch (error) {
       this.logger.error('数据库指标获取失败', error.stack);
@@ -259,7 +357,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   async getCacheMetrics(): Promise<CacheMetricsDto> {
     try {
-      const rawMetrics = await this.collectorService.getRawMetrics();
+      const rawMetrics = await this.requestRawMetrics();
       return this.metricsCalculator.calculateCacheMetrics(rawMetrics);
     } catch (error) {
       this.logger.error('缓存指标获取失败', error.stack);
@@ -288,7 +386,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
         return cachedSuggestions;
       }
 
-      const rawMetrics = await this.collectorService.getRawMetrics();
+      const rawMetrics = await this.requestRawMetrics();
       const healthReport = await this.healthAnalyzer.generateHealthReport(rawMetrics);
       
       const suggestions: SuggestionDto[] = [];

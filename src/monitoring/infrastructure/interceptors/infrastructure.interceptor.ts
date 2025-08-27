@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
 import { Request, Response } from 'express';
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '../../../common/config/logger.config';
 import { CollectorService } from '../../collector/collector.service';
 import { MetricsRegistryService } from '../metrics/metrics-registry.service';
 
@@ -19,7 +19,6 @@ export class InfrastructureInterceptor implements NestInterceptor {
   constructor(
     private readonly collectorService: CollectorService,
     private readonly reflector: Reflector,
-    private readonly metricsRegistry?: MetricsRegistryService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -75,47 +74,24 @@ export class InfrastructureInterceptor implements NestInterceptor {
     error?: string;
   }) {
     try {
-      // 1. 通过CollectorService收集性能数据
+      // 通过CollectorService收集性能数据（事件驱动方式）
       await this.collectorService.collectRequestMetrics({
         timestamp: new Date(),
-        source: 'performance-interceptor',
+        source: 'infrastructure-interceptor',
         layer: 'collector',
         operation: `${data.method} ${data.route}`,
         duration: data.duration,
         statusCode: data.statusCode,
         success: data.success,
         metadata: {
+          method: data.method,
           handler: data.handler,
           controller: data.controller,
           error: data.error,
         },
       });
 
-      // 2. 记录到Prometheus指标（如果可用）
-      if (this.metricsRegistry) {
-        // 请求计数
-        this.metricsRegistry.receiverRequestsTotal.inc({
-          method: data.method,
-          status: data.statusCode.toString(),
-          provider: 'internal',
-          operation: data.route,
-          error_type: data.error ? 'application_error' : 'none',
-        });
-
-        // 响应时间
-        this.metricsRegistry.receiverProcessingDuration.observe(
-          {
-            method: data.method,
-            provider: 'internal',
-            operation: data.route,
-            status: data.success ? 'success' : 'error',
-            attempt: '1',
-          },
-          data.duration / 1000 // 转换为秒
-        );
-      }
-
-      // 3. 记录慢请求日志
+      // 记录慢请求日志
       if (data.duration > 1000) { // 超过1秒的请求
         this.logger.warn('慢请求检测', {
           route: data.route,

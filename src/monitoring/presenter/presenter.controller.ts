@@ -14,7 +14,7 @@ import {
   ApiSuccessResponse,
   JwtAuthResponses,
   ApiHealthResponse,
-} from "@common/core/decorators/swagger-responses.decorator";
+} from "../../common/core/decorators/swagger-responses.decorator";
 
 import { Auth, Public } from "../../auth/decorators/auth.decorator";
 import { UserRole } from "../../auth/enums/user-role.enum";

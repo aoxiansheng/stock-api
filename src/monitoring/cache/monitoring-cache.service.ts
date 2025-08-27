@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { Injectable, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { createLogger } from '../../common/config/logger.config';
 import { CacheService } from '@cache/services/cache.service';
 import { MonitoringConfig, getMonitoringConfigForEnvironment } from '../config/monitoring.config';
+import { SYSTEM_STATUS_EVENTS } from '../contracts/events/system-status.events';
 
 /**
  * 监控专用缓存服务
@@ -24,6 +26,7 @@ export class MonitoringCacheService {
 
   constructor(
     private readonly cacheService: CacheService, // 复用系统能力
+    @Optional() private readonly eventBus?: EventEmitter2, // 可选注入，保持向后兼容
   ) {
     // 加载环境特定配置
     this.config = getMonitoringConfigForEnvironment();
@@ -31,8 +34,14 @@ export class MonitoringCacheService {
       namespace: this.config.cache.namespace,
       compressionThreshold: this.config.cache.compressionThreshold,
       batchSize: this.config.cache.batchSize,
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
+      eventBusEnabled: !!this.eventBus
     });
+    
+    // 如果eventBus未注入，记录警告但不影响功能
+    if (!this.eventBus) {
+      this.logger.warn('EventEmitter2未注入，事件功能将被禁用');
+    }
   }
 
   // 私有方法：构建监控专用键（带输入验证）
@@ -145,6 +154,26 @@ export class MonitoringCacheService {
         this.recordOperationTime(duration);
         this.metrics.operations.hits++;
         
+        // 🎯 发送缓存命中事件（仅在eventBus存在时）
+        if (this.eventBus) {
+          try {
+            this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_HIT, {
+              timestamp: new Date(),
+              source: 'cache',
+              key: cacheKey,
+              metadata: { 
+                duration,
+                ttl,
+                cache_type: 'monitoring',
+                category: 'health'
+              }
+            });
+          } catch (eventError) {
+            // 静默处理事件发送错误，不影响缓存操作
+            this.logger.debug('事件发送失败', { event: 'CACHE_HIT', error: eventError.message });
+          }
+        }
+        
         this.logger.debug('监控缓存命中', { 
           category: 'health', 
           key, 
@@ -157,6 +186,24 @@ export class MonitoringCacheService {
       }
       
       // 缓存未命中，需要回填
+      // 🎯 发送缓存未命中事件
+      if (this.eventBus) {
+        try {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_MISS, {
+            timestamp: new Date(),
+            source: 'cache',
+            key: cacheKey,
+            metadata: { 
+              duration: Date.now() - startTime,
+              cache_type: 'monitoring',
+              category: 'health'
+            }
+          });
+        } catch (eventError) {
+          this.logger.debug('事件发送失败', { event: 'CACHE_MISS', error: eventError.message });
+        }
+      }
+      
       this.logger.debug('监控缓存未命中，开始回填', { 
         category: 'health', 
         key, 
@@ -174,7 +221,45 @@ export class MonitoringCacheService {
           compressionThreshold: this.config.cache.compressionThreshold 
         });
         await this.addToKeyIndex('health', cacheKey);
+        
+        // 🎯 发送缓存设置事件
+        if (this.eventBus) {
+          try {
+            this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_SET, {
+              timestamp: new Date(),
+              source: 'cache',
+              key: cacheKey,
+              metadata: { 
+                ttl,
+                size: JSON.stringify(result).length,
+                cache_type: 'monitoring',
+                category: 'health'
+              }
+            });
+          } catch (eventError) {
+            this.logger.debug('事件发送失败', { event: 'CACHE_SET', error: eventError.message });
+          }
+        }
       } catch (cacheError) {
+        // 🎯 发送缓存错误事件
+        if (this.eventBus) {
+          try {
+            this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_ERROR, {
+              timestamp: new Date(),
+              source: 'cache',
+              key: cacheKey,
+              metadata: { 
+                error: cacheError.message,
+                operation: 'set',
+                cache_type: 'monitoring',
+                category: 'health'
+              }
+            });
+          } catch (eventError) {
+            this.logger.debug('事件发送失败', { event: 'CACHE_ERROR', error: eventError.message });
+          }
+        }
+        
         this.logger.warn('缓存写入失败', { 
           category: 'health', 
           key, 
@@ -203,6 +288,27 @@ export class MonitoringCacheService {
       const duration = Date.now() - startTime;
       this.recordOperationTime(duration);
       this.metrics.operations.errors++;
+      
+      // 🎯 发送缓存错误事件
+      if (this.eventBus) {
+        try {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_ERROR, {
+            timestamp: new Date(),
+            source: 'cache',
+            key: cacheKey,
+            metadata: { 
+              error: error.message,
+              duration,
+              operation: 'getOrSet',
+              cache_type: 'monitoring',
+              category: 'health',
+              fallback: true
+            }
+          });
+        } catch (eventError) {
+          this.logger.debug('事件发送失败', { event: 'CACHE_ERROR', error: eventError.message });
+        }
+      }
       
       this.logger.warn('监控缓存操作失败，降级处理', { 
         category: 'health', 
@@ -382,6 +488,26 @@ export class MonitoringCacheService {
         
         // 清空索引
         await this.cacheService.del(indexKey);
+        
+        // 🎯 发送缓存失效事件
+        if (this.eventBus) {
+          try {
+            this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_INVALIDATED, {
+              timestamp: new Date(),
+              source: 'cache',
+              pattern: `${category}:*`,
+              metadata: { 
+                count: keys.length,
+                method: 'index_based',
+                cache_type: 'monitoring',
+                category
+              }
+            });
+          } catch (eventError) {
+            this.logger.debug('事件发送失败', { event: 'CACHE_INVALIDATED', error: eventError.message });
+          }
+        }
+        
         this.logger.debug(`基于索引批量删除监控缓存: ${category}`, { count: keys.length });
       }
     } catch (error) {
