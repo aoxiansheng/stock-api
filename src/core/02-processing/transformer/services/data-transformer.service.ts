@@ -11,8 +11,7 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
-import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/infrastructure-helper";
+import { CollectorService } from "../../../../monitoring/collector/collector.service"; // ✅ 新增标准监控依赖
 
 import {
   DATATRANSFORM_ERROR_MESSAGES,
@@ -41,7 +40,7 @@ export class DataTransformerService {
 
   constructor(
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly collectorService: CollectorService, // ✅ 标准监控依赖
   ) {}
 
   /**
@@ -50,11 +49,6 @@ export class DataTransformerService {
   async transform(request: DataTransformRequestDto): Promise<DataTransformResponseDto> {
     const startTime = Date.now();
     const apiTypeCtx = request.apiType;
-
-    MetricsHelper.inc(this.metricsRegistry, "transformerOperationsTotal", {
-      operation_type: "transform",
-      provider: request.provider || "unknown",
-    });
 
     this.logger.log(
       `开始数据转换`,
@@ -159,20 +153,15 @@ export class DataTransformerService {
         }),
       );
 
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        "transformerBatchSize",
-        dataToProcess.length,
-        { operation_type: "transform" },
-      );
-      
-      const successRate = dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100;
-      MetricsHelper.setGauge(
-        this.metricsRegistry,
-        "transformerSuccessRate",
-        successRate,
-        { operation_type: "transform" },
-      );
+      // ✅ 使用标准的 CollectorService.recordRequest()
+      this.safeRecordMetrics('/internal/data-transformation', 'POST', 200, processingTime, {
+        operation: 'data-transformation',
+        provider: request.provider,
+        transDataRuleListType: request.transDataRuleListType,
+        recordsProcessed: stats.recordsProcessed,
+        fieldsTransformed: stats.fieldsTransformed,
+        successRate: dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100
+      });
 
       if (processingTime > DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
         this.logger.warn(`数据转换性能警告: ${processingTime}ms`, {
@@ -186,8 +175,13 @@ export class DataTransformerService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
 
-      MetricsHelper.setGauge(this.metricsRegistry, "transformerSuccessRate", 0, {
-        operation_type: "transform",
+      // ✅ 标准错误监控
+      this.safeRecordMetrics('/internal/data-transformation', 'POST', 500, processingTime, {
+        operation: 'data-transformation',
+        provider: request.provider,
+        transDataRuleListType: request.transDataRuleListType,
+        error: error.message,
+        errorType: error.constructor.name
       });
 
       this.logger.error(
@@ -227,21 +221,7 @@ export class DataTransformerService {
     options?: DataBatchTransformOptionsDto;
   }): Promise<DataTransformResponseDto[]> {
     const operation = "transformBatch_optimized";
-
-    // 🎯 记录批量转换操作
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'transformerOperationsTotal',
-      { operation_type: 'batch_transform', provider: 'batch' }
-    );
-
-    // 🎯 记录批量大小
-    MetricsHelper.observe(
-      this.metricsRegistry,
-      'transformerBatchSize',
-      requests.length,
-      { operation_type: 'batch_transform' }
-    );
+    const startTime = Date.now();
 
     // 🎯 使用 common 模块的配置常量进行批量大小检查
     if (requests.length === 0) {
@@ -314,17 +294,33 @@ export class DataTransformerService {
 
     const resultsNested = await Promise.allSettled(allPromises);
     const finalResponses: DataTransformResponseDto[] = [];
+    let successCount = 0;
+    let failedCount = 0;
 
     resultsNested.forEach((result) => {
       if (result.status === "fulfilled") {
         finalResponses.push(...result.value);
+        successCount += result.value.length;
       } else {
         // This case should be rare if the inner try/catch is correct
+        failedCount++;
         this.logger.error(
           { operation, error: result.reason.message },
           "transformBatch中的组Promise被拒绝",
         );
       }
+    });
+
+    const processingTime = Date.now() - startTime;
+
+    // ✅ 批量操作监控
+    this.safeRecordMetrics('/internal/batch-transformation', 'POST', 200, processingTime, {
+      operation: 'batch-data-transformation',
+      batchSize: requests.length,
+      successCount: successCount,
+      failedCount: requests.length - successCount,
+      successRate: (successCount / requests.length) * 100,
+      providers: [...new Set(requests.map(r => r.provider))]
     });
 
     this.logger.log(
@@ -501,5 +497,15 @@ export class DataTransformerService {
     };
   }
 
-
+  /**
+   * ✅ 安全监控包装 - 错误隔离机制
+   */
+  private safeRecordMetrics(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+    try {
+      this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+    } catch (error) {
+      // 监控失败仅记录日志，不影响业务
+      this.logger.warn(`监控记录失败: ${error.message}`, { endpoint, metadata });
+    }
+  }
 }

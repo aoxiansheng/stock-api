@@ -32,22 +32,15 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   // 配置参数
   private readonly config: StreamCacheConfig;
   
-  // 缓存统计
-  private stats: StreamCacheStats = {
-    hotCacheHits: 0,
-    hotCacheMisses: 0,
-    warmCacheHits: 0,
-    warmCacheMisses: 0,
-    totalSize: 0,
-    compressionRatio: 0,
-  };
-  
   // 定时器管理
   private cacheCleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
-    @Inject('STREAM_CACHE_CONFIG') config?: Partial<StreamCacheConfig>
+    @Inject('STREAM_CACHE_CONFIG') config?: Partial<StreamCacheConfig>,
+    @Inject('CollectorService') private readonly collectorService: any = {
+      recordCacheOperation: () => {} // Fallback
+    }
   ) {
     this.config = { ...DEFAULT_STREAM_CACHE_CONFIG, ...config };
     this.setupPeriodicCleanup();
@@ -81,24 +74,32 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       // 1. 检查 Hot Cache
       const hotCacheData = this.getFromHotCache(key);
       if (hotCacheData) {
-        this.stats.hotCacheHits++;
-        this.logger.debug('Hot cache命中', { key, duration: Date.now() - startTime });
+        const duration = Date.now() - startTime;
+        this.collectorService.recordCacheOperation('get', true, duration, {
+          cacheType: 'stream-cache', layer: 'hot'
+        });
+        this.logger.debug('Hot cache命中', { key, duration });
         return hotCacheData;
       }
-      this.stats.hotCacheMisses++;
       
       // 2. 检查 Warm Cache (Redis)
       const warmCacheData = await this.getFromWarmCache(key);
       if (warmCacheData) {
-        this.stats.warmCacheHits++;
+        const duration = Date.now() - startTime;
+        this.collectorService.recordCacheOperation('get', true, duration, {
+          cacheType: 'stream-cache', layer: 'warm'
+        });
         // 提升到 Hot Cache
         this.setToHotCache(key, warmCacheData);
-        this.logger.debug('Warm cache命中，提升到Hot cache', { key, duration: Date.now() - startTime });
+        this.logger.debug('Warm cache命中，提升到Hot cache', { key, duration });
         return warmCacheData;
       }
-      this.stats.warmCacheMisses++;
       
-      this.logger.debug('缓存未命中', { key, duration: Date.now() - startTime });
+      const duration = Date.now() - startTime;
+      this.collectorService.recordCacheOperation('get', false, duration, {
+        cacheType: 'stream-cache', layer: 'miss'
+      });
+      this.logger.debug('缓存未命中', { key, duration });
       return null;
       
     } catch (error) {
@@ -117,6 +118,8 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     if (!data || data.length === 0) return;
     
     try {
+      const startTime = Date.now();
+      
       // 数据压缩
       const compressedData = this.compressData(data);
       const dataSize = JSON.stringify(compressedData).length;
@@ -132,7 +135,13 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       // 总是同时存储到 Warm Cache 作为备份
       await this.setToWarmCache(key, compressedData);
       
-      this.updateCacheStats(dataSize, data.length, compressedData.length);
+      const duration = Date.now() - startTime;
+      this.collectorService.recordCacheOperation('set', true, duration, {
+        cacheType: 'stream-cache',
+        layer: shouldUseHotCache ? 'both' : 'warm',
+        dataSize,
+        compressionRatio: compressedData.length / data.length
+      });
       
       this.logger.debug('数据已缓存', {
         key,
@@ -219,7 +228,6 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
         await this.redisClient.del(...keys);
       }
       
-      this.resetStats();
       this.logger.log('所有缓存已清空');
     } catch (error) {
       this.logger.error('缓存清空失败', { error: error.message });
@@ -228,11 +236,18 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
 
   /**
    * 获取缓存统计信息
+   * @deprecated 已迁移到监控系统，通过CollectorService收集指标
    */
   getCacheStats(): StreamCacheStats {
+    // CollectorService 负责实际的指标收集
+    // 这里返回基础信息用于兼容性
     return {
-      ...this.stats,
+      hotCacheHits: 0,
+      hotCacheMisses: 0,
+      warmCacheHits: 0,
+      warmCacheMisses: 0,
       totalSize: this.hotCache.size,
+      compressionRatio: 0,
     };
   }
 
@@ -399,27 +414,6 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       this.hotCache.delete(lruKey);
       this.logger.debug('LRU清理缓存条目', { key: lruKey, accessCount: lruAccessCount });
     }
-  }
-
-  /**
-   * 更新缓存统计
-   */
-  private updateCacheStats(dataSize: number, originalLength: number, compressedLength: number): void {
-    this.stats.compressionRatio = originalLength > 0 ? compressedLength / originalLength : 1;
-  }
-
-  /**
-   * 重置统计信息
-   */
-  private resetStats(): void {
-    this.stats = {
-      hotCacheHits: 0,
-      hotCacheMisses: 0,
-      warmCacheHits: 0,
-      warmCacheMisses: 0,
-      totalSize: 0,
-      compressionRatio: 0,
-    };
   }
 
   /**

@@ -481,7 +481,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     this.storageCacheEfficiency = new Gauge({
       name: 'newstock_storage_cache_efficiency',
       help: 'Storage cache efficiency percentage',
-      labelNames: ['cache_layer'],
+      labelNames: ['cache_type', 'operation'], // 🔧 修正：统一标签名称，与事件桥接层保持一致
       registers: [this.registry]
     });
 

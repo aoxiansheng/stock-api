@@ -10,7 +10,7 @@ import { Request, Response } from 'express';
 
 import { createLogger } from '../../../common/config/logger.config';
 import { CollectorService } from '../../collector/collector.service';
-import { MetricsRegistryService } from '../metrics/metrics-registry.service';
+// MetricsRegistryService已移除，使用CollectorService的事件驱动架构
 
 @Injectable()
 export class InfrastructureInterceptor implements NestInterceptor {

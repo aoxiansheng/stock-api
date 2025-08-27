@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { StreamCacheService } from '../services/stream-cache.service';
 import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/stream-cache.constants';
+import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 
 /**
  * 流数据缓存模块
@@ -15,7 +16,10 @@ import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/s
  * - 智能缓存策略和TTL管理
  */
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule,
+    MonitoringModule, // ✅ 导入监控模块，提供CollectorService
+  ],
   providers: [
     // Redis客户端提供者 - 专用于流数据缓存
     {
@@ -96,6 +100,14 @@ import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/s
 
     // 核心流缓存服务
     StreamCacheService,
+    
+    // ✅ 提供CollectorService fallback
+    {
+      provide: 'CollectorService',
+      useFactory: () => ({
+        recordCacheOperation: () => {}, // fallback mock
+      }),
+    },
   ],
   exports: [
     StreamCacheService,

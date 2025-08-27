@@ -45,7 +45,7 @@ import { DataSourceType } from "../enums/data-source-type.enum";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
 import { buildStorageKey } from "../utils/query.util";
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 @Injectable()
 export class QueryService implements OnModuleInit, OnModuleDestroy {
@@ -68,7 +68,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
     private readonly paginationService: PaginationService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly collectorService: CollectorService, // ✅ 替换为CollectorService
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
@@ -114,8 +114,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const startTime = Date.now();
     const queryId = this.generateQueryId(request);
 
-    // 🎯 里程碑6.3: 监控指标跟踪 - 增加活跃并发请求计数
-    this.metricsRegistry.queryConcurrentRequestsActive.inc();
+    // ✅ 查询开始监控 - 使用CollectorService
+    this.recordQueryStartMetrics(request, queryId);
 
     this.logger.log(
       QUERY_SUCCESS_MESSAGES.QUERY_EXECUTION_STARTED,
@@ -141,27 +141,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         Date.now() - startTime,
       );
 
-      // 🎯 里程碑6.3: 监控指标跟踪 - 记录成功的pipeline duration
-      const executionTimeSeconds = (Date.now() - startTime) / 1000;
-      this.metricsRegistry.queryPipelineDuration.observe(
-        {
-          query_type: request.queryType,
-          market,
-          has_cache_hit: executionResult.cacheUsed ? 'true' : 'false',
-          symbols_count_range: symbolsCountRange,
-        },
-        executionTimeSeconds
-      );
-
-      // 🎯 记录处理的符号总数
-      this.metricsRegistry.querySymbolsProcessedTotal.inc(
-        {
-          query_type: request.queryType,
-          market,
-          processing_mode: 'batch',
-        },
-        symbolsCount
-      );
+      // ✅ 记录查询成功监控指标
+      this.recordQueryCompleteMetrics(request, queryId, Date.now() - startTime, true, executionResult.cacheUsed);
 
       // 正确使用processedResult的PaginatedDataDto类型
       return new QueryResponseDto(processedResult.data, processedResult.metadata);
@@ -174,17 +155,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         false,
       );
 
-      // 🎯 里程碑6.3: 监控指标跟踪 - 记录失败的pipeline duration
-      const executionTimeSeconds = executionTime / 1000;
-      this.metricsRegistry.queryPipelineDuration.observe(
-        {
-          query_type: request.queryType,
-          market,
-          has_cache_hit: 'false',
-          symbols_count_range: symbolsCountRange,
-        },
-        executionTimeSeconds
-      );
+      // ✅ 记录查询失败监控指标
+      this.recordQueryCompleteMetrics(request, queryId, executionTime, false, false);
 
       this.logger.error(
         QUERY_ERROR_MESSAGES.QUERY_EXECUTION_FAILED,
@@ -197,8 +169,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
 
       throw error;
     } finally {
-      // 🎯 里程碑6.3: 监控指标跟踪 - 减少活跃并发请求计数
-      this.metricsRegistry.queryConcurrentRequestsActive.dec();
+      // 查询结束 - 监控已在成功/失败分支中记录
     }
   }
 
@@ -331,7 +302,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const startTime = Date.now();
     
     try {
-      // 🎯 里程碑6.3: 监控指标跟踪 - 批量处理效率指标
+      // 批量处理效率指标计算
       const totalSymbolsCount = validSymbols.length;
       const batchSizeRange = this.getBatchSizeRange(totalSymbolsCount);
       
@@ -348,18 +319,11 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         ),
       });
 
-      // 🎯 里程碑6.3: 监控指标跟踪 - 批量分片效率
+      // ✅ 记录批处理分片监控指标
       Object.entries(symbolsByMarket).forEach(([market, symbols]) => {
         const shardsForMarket = Math.ceil(symbols.length / this.MAX_MARKET_BATCH_SIZE);
-        
-        // 记录每个市场的分片效率
-        this.metricsRegistry.queryBatchShardingEfficiency.set(
-          {
-            market,
-            total_symbols_range: this.getSymbolsCountRange(symbols.length),
-          },
-          symbols.length / Math.max(shardsForMarket, 1)
-        );
+        const efficiency = symbols.length / Math.max(shardsForMarket, 1);
+        this.recordBatchProcessingMetrics(symbols.length, 0, market, efficiency);
       });
 
       // 🖥 里程碑5.3: 市场级并行处理（带超时控制）
@@ -396,15 +360,9 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           // 合并错误
           errors.push(...marketErrors);
           
-          // 🎯 里程碑6.3: 监控指标跟踪 - 市场处理时间
-          const marketProcessingTime = (Date.now() - startTime) / 1000;
-          this.metricsRegistry.queryMarketProcessingTime.observe(
-            {
-              market,
-              processing_mode: 'parallel',
-            },
-            marketProcessingTime
-          );
+          // ✅ 记录市场处理时间监控指标
+          const marketProcessingTime = Date.now() - startTime;
+          this.recordBatchProcessingMetrics(data.length, marketProcessingTime, market, 1.0);
           
           this.logger.debug(`市场${market}批量处理完成`, {
             queryId,
@@ -434,30 +392,26 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         }
       });
 
-      // 🎯 里程碑6.3: 监控指标跟踪 - 批量处理效率计算
-      const processingTimeSeconds = (Date.now() - startTime) / 1000;
-      const symbolsPerSecond = totalSymbolsCount / Math.max(processingTimeSeconds, 0.001);
-      
-      // 记录批量效率指标
-      this.metricsRegistry.queryBatchEfficiency.set(
-        {
-          market: this.inferMarketFromSymbols(validSymbols),
-          batch_size_range: batchSizeRange,
-        },
+      // ✅ 记录批量处理效率监控指标
+      const processingTime = Date.now() - startTime;
+      const symbolsPerSecond = totalSymbolsCount / Math.max(processingTime / 1000, 0.001);
+      this.recordBatchProcessingMetrics(
+        totalSymbolsCount, 
+        processingTime, 
+        this.inferMarketFromSymbols(validSymbols), 
         symbolsPerSecond
       );
 
-      // 🎯 记录缓存命中率
+      // ✅ 记录缓存命中率监控指标
       const totalRequests = totalCacheHits + totalRealtimeHits;
       if (totalRequests > 0) {
-        const cacheHitRatio = (totalCacheHits / totalRequests) * 100;
-        this.metricsRegistry.queryCacheHitRatio.set(
-          {
-            query_type: request.queryType,
-            market: this.inferMarketFromSymbols(validSymbols),
-          },
-          cacheHitRatio
-        );
+        const cacheHitRatio = totalCacheHits / totalRequests;
+        this.recordCacheMetrics('batch_cache_hit', cacheHitRatio > 0.5, 0, {
+          hitRatio: cacheHitRatio,
+          totalRequests,
+          queryType: request.queryType,
+          market: this.inferMarketFromSymbols(validSymbols)
+        });
       }
 
       // 处理结果数据
@@ -869,17 +823,15 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const results: SymbolDataResultDto[] = [];
 
     try {
-      // 🎯 监控指标跟踪 - Query批量编排器调用指标
+      // Query批量编排器调用指标计算
       const batchSizeRange = this.getBatchSizeRange(symbols.length);
       const symbolsCountRange = this.getSymbolsCountRange(symbols.length);
       
-      // 🎯 监控指标：记录Query层SmartCacheOrchestrator编排调用计数
-      // 注意：复用queryReceiverCallsTotal指标，但语义已变为"Query层智能缓存编排器调用"
-      // receiver_type标签现在表示编排器处理的接收器类型，而非直接的Receiver调用
-      this.metricsRegistry.queryReceiverCallsTotal.inc({
+      // ✅ 记录智能缓存编排器调用开始监控
+      this.recordCacheMetrics('orchestrator_call_start', false, 0, {
         market,
-        batch_size_range: batchSizeRange,
-        receiver_type: request.queryTypeFilter || 'unknown',
+        receiverType: request.queryTypeFilter || 'unknown',
+        symbolsCount: symbols.length
       });
 
       // 🎯 核心重构：构建Query层批量编排器请求
@@ -903,16 +855,12 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       const orchestratorResults = await this.smartCacheOrchestrator.batchGetDataWithSmartCache(batchRequests);
       const orchestratorDuration = (Date.now() - orchestratorStartTime) / 1000;
       
-      // 🎯 监控指标：记录Query层SmartCacheOrchestrator编排调用耗时
-      // 注意：复用queryReceiverCallDuration指标，但语义已变为"Query层智能缓存编排器耗时"
-      // 测量的是SmartCacheOrchestrator.batchGetDataWithSmartCache的执行时间
-      this.metricsRegistry.queryReceiverCallDuration.observe(
-        {
-          market,
-          symbols_count_range: symbolsCountRange,
-        },
+      // ✅ 记录智能缓存编排器调用完成监控
+      this.recordCacheMetrics('orchestrator_call_complete', true, orchestratorDuration * 1000, {
+        market,
+        symbolsCount: symbols.length,
         orchestratorDuration
-      );
+      });
 
       // 🎯 处理编排器返回结果
       orchestratorResults.forEach((result, index) => {
@@ -1292,5 +1240,106 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
 
   public getQueryStats() {
     return this.statisticsService.getQueryStats();
+  }
+
+  // =============== 监控辅助方法 ===============
+  
+  /**
+   * ✅ 记录查询开始指标
+   */
+  private recordQueryStartMetrics(request: QueryRequestDto, queryId: string): void {
+    try {
+      // 使用CollectorService记录查询开始
+      this.collectorService.recordRequest(
+        '/internal/query-start',         // endpoint
+        'POST',                         // method
+        200,                           // statusCode
+        0,                            // duration (查询开始时为0)
+        {                             // metadata
+          queryId,
+          queryType: request.queryType,
+          symbolsCount: request.symbols?.length || 0,
+          market: request.market,
+          operation: 'query_start',
+          componentType: 'query'
+        }
+      );
+    } catch (error) {
+      this.logger.warn(`查询开始监控记录失败: ${error.message}`, { queryId });
+    }
+  }
+
+  /**
+   * ✅ 记录查询完成指标
+   */
+  private recordQueryCompleteMetrics(
+    request: QueryRequestDto, 
+    queryId: string, 
+    duration: number, 
+    success: boolean,
+    cacheUsed: boolean
+  ): void {
+    try {
+      // 使用CollectorService记录查询完成
+      this.collectorService.recordRequest(
+        '/api/v1/query/data',           // endpoint
+        'POST',                         // method
+        success ? 200 : 500,           // statusCode
+        duration,                      // duration
+        {                             // metadata
+          queryId,
+          queryType: request.queryType,
+          symbolsCount: request.symbols?.length || 0,
+          market: request.market,
+          cacheUsed,
+          success,
+          avgTimePerSymbol: (request.symbols?.length || 0) > 0 ? duration / (request.symbols?.length || 1) : 0,
+          operation: success ? 'query_complete' : 'query_failed',
+          componentType: 'query'
+        }
+      );
+    } catch (error) {
+      this.logger.warn(`查询完成监控记录失败: ${error.message}`, { queryId });
+    }
+  }
+
+  /**
+   * ✅ 记录批处理性能指标
+   */
+  private recordBatchProcessingMetrics(
+    batchSize: number, 
+    processingTime: number, 
+    market: string,
+    efficiency: number
+  ): void {
+    try {
+      this.collectorService.recordRequest(
+        '/internal/query-batch-processing', // endpoint
+        'POST',                             // method
+        200,                               // statusCode
+        processingTime,                    // duration
+        {                                  // metadata
+          batchSize,
+          market,
+          efficiency,
+          avgTimePerBatch: batchSize > 0 ? processingTime / batchSize : 0,
+          operation: 'batch_processing',
+          componentType: 'query'
+        }
+      );
+    } catch (error) {
+      this.logger.warn(`批处理监控记录失败: ${error.message}`, { batchSize });
+    }
+  }
+
+  /**
+   * ✅ 记录缓存操作指标
+   */
+  private recordCacheMetrics(operation: string, hit: boolean, duration: number, metadata: any): void {
+    try {
+      this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
+    } catch (error) {
+      this.logger.warn(`缓存监控记录失败: ${error.message}`, { operation, hit });
+    }
   }
 }

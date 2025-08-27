@@ -6,6 +6,7 @@
 import { Module, Global } from "@nestjs/common";
 
 import { CacheModule } from "../../../cache/module/cache.module";
+import { MonitoringModule } from '../../../monitoring/monitoring.module'; // ✅ 导入监控模块
 // import { FeatureFlags } from "../../../common/config/feature-flags.config"; // 🔧 Phase 2.3: 移除未使用的 import
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
@@ -34,7 +35,10 @@ import { FieldMappingService } from "../services/field-mapping.service";
  */
 @Global()
 @Module({
-  imports: [CacheModule],
+  imports: [
+    CacheModule,
+    MonitoringModule, // ✅ 标准监控模块导入，获得CollectorService
+  ],
   providers: [
     // DataFetchingService, // 移动到需要的模块中，因为它依赖CapabilityRegistryService
     // BaseFetcherService, // 抽象基类不需要注册为provider，只用于继承

@@ -6,7 +6,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-source-template.schema';
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from '../schemas/flexible-mapping-rule.schema';
 import { RuleAlignmentService } from './rule-alignment.service';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**
  * 🏗️ 简化的持久化模板服务
@@ -22,7 +22,7 @@ export class PersistedTemplateService {
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
     private readonly ruleAlignmentService: RuleAlignmentService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly collectorService: CollectorService,
   ) {}
   
   /**
@@ -470,6 +470,7 @@ export class PersistedTemplateService {
     failed: number;
     details: string[];
   }> {
+    const startTime = Date.now();
     this.logger.log('开始初始化预设映射规则');
     
     let created = 0;
@@ -489,6 +490,8 @@ export class PersistedTemplateService {
 
       // 为每个模板生成映射规则
       for (const template of presetTemplates) {
+        const templateStartTime = Date.now();
+        
         try {
           const transDataRuleListType = this.determineRuleType(template);
           const ruleName = this.generateRuleName(template, transDataRuleListType);
@@ -506,10 +509,22 @@ export class PersistedTemplateService {
             details.push(`已跳过 ${template.name}: 规则已存在`);
             this.logger.debug(`跳过已存在的映射规则: ${ruleName}`);
             
-            // 监控指标：跳过
-            this.metricsRegistry.dataMapperRuleInitializationTotal
-              .labels('skipped', template.provider, template.apiType)
-              .inc();
+            // ✅ 跳过操作监控
+            this.collectorService.recordRequest(
+              '/internal/initialize-preset-rule',  // endpoint
+              'POST',                             // method
+              409,                                // statusCode (Conflict)
+              Date.now() - templateStartTime,     // duration
+              {                                   // metadata
+                service: 'PersistedTemplateService',
+                operation: 'initializePresetMappingRules',
+                result: 'skipped',
+                templateName: template.name,
+                provider: template.provider,
+                apiType: template.apiType,
+                reason: 'rule_already_exists'
+              }
+            );
             continue;
           }
 
@@ -530,10 +545,23 @@ export class PersistedTemplateService {
             transDataRuleListType
           });
           
-          // 监控指标：创建成功
-          this.metricsRegistry.dataMapperRuleInitializationTotal
-            .labels('created', template.provider, template.apiType)
-            .inc();
+          // ✅ 成功创建监控
+          this.collectorService.recordRequest(
+            '/internal/initialize-preset-rule',   // endpoint
+            'POST',                               // method
+            201,                                  // statusCode
+            Date.now() - templateStartTime,       // duration
+            {                                     // metadata
+              service: 'PersistedTemplateService',
+              operation: 'initializePresetMappingRules',
+              result: 'created',
+              templateName: template.name,
+              ruleName: rule.name,
+              provider: template.provider,
+              apiType: template.apiType,
+              ruleId: rule._id
+            }
+          );
 
         } catch (error) {
           failed++;
@@ -544,23 +572,61 @@ export class PersistedTemplateService {
             stack: error.stack
           });
           
-          // 监控指标：创建失败
-          this.metricsRegistry.dataMapperRuleInitializationTotal
-            .labels('failed', template.provider, template.apiType)
-            .inc();
+          // ✅ 失败监控
+          this.collectorService.recordRequest(
+            '/internal/initialize-preset-rule',   // endpoint
+            'POST',                               // method
+            500,                                  // statusCode
+            Date.now() - templateStartTime,       // duration
+            {                                     // metadata
+              service: 'PersistedTemplateService',
+              operation: 'initializePresetMappingRules',
+              result: 'failed',
+              templateName: template.name,
+              provider: template.provider,
+              apiType: template.apiType,
+              error: error.message
+            }
+          );
         }
       }
 
       const summary = { created, skipped, failed, details };
       
-      // 更新 Gauges 指标：设置累计创建和跳过数量
-      this.metricsRegistry.dataMapperRulesCreatedTotal.set(created);
-      this.metricsRegistry.dataMapperRulesSkippedTotal.set(skipped);
+      // ✅ 整体操作监控
+      this.collectorService.recordRequest(
+        '/internal/initialize-preset-rules',     // endpoint
+        'POST',                                  // method
+        200,                                     // statusCode
+        Date.now() - startTime,                  // duration
+        {                                        // metadata
+          service: 'PersistedTemplateService',
+          operation: 'initializePresetMappingRules_batch',
+          totalTemplates: presetTemplates.length,
+          created,
+          skipped,
+          failed,
+          successRate: presetTemplates.length > 0 ? created / presetTemplates.length : 0
+        }
+      );
       
       this.logger.log('预设映射规则初始化完成', summary);
       return summary;
 
     } catch (error) {
+      // ✅ 批量操作错误监控
+      this.collectorService.recordRequest(
+        '/internal/initialize-preset-rules',     // endpoint
+        'POST',                                  // method
+        500,                                     // statusCode
+        Date.now() - startTime,                  // duration
+        {                                        // metadata
+          service: 'PersistedTemplateService',
+          operation: 'initializePresetMappingRules_batch',
+          error: error.message
+        }
+      );
+      
       this.logger.error('预设映射规则初始化过程发生错误', {
         error: error.message,
         stack: error.stack

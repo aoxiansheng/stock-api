@@ -10,6 +10,7 @@ import { SymbolTransformerModule } from "../../../02-processing/symbol-transform
 import { DataFetcherModule } from "../../../03-fetching/data-fetcher/module/data-fetcher.module";
 import { TransformerModule } from "../../../02-processing/transformer/module/data-transformer.module";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
+import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 
 import { ReceiverController } from "../controller/receiver.controller";
 import { ReceiverService } from "../services/receiver.service";
@@ -26,6 +27,7 @@ import { ReceiverService } from "../services/receiver.service";
     ProvidersModule,
    // CacheModule,
     SharedServicesModule,
+    MonitoringModule, // ✅ 导入监控模块
   ],
   controllers: [ReceiverController],
   providers: [ReceiverService],

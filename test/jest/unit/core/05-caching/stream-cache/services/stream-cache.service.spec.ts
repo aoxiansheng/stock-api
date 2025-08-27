@@ -4,9 +4,15 @@ import { StreamDataPoint, StreamCacheStats } from '../../../../../../../src/core
 import { DEFAULT_STREAM_CACHE_CONFIG } from '../../../../../../../src/core/05-caching/stream-cache/constants/stream-cache.constants';
 import Redis from 'ioredis';
 
+// Mock CollectorService class
+class MockCollectorService {
+  recordCacheOperation = jest.fn();
+}
+
 describe('StreamCacheService', () => {
   let service: StreamCacheService;
   let mockRedisClient: jest.Mocked<Redis>;
+  let mockCollectorService: MockCollectorService;
   let module: TestingModule;
 
   // 测试数据
@@ -43,13 +49,19 @@ describe('StreamCacheService', () => {
           provide: 'STREAM_CACHE_CONFIG',
           useValue: DEFAULT_STREAM_CACHE_CONFIG,
         },
+        {
+          provide: 'CollectorService',
+          useClass: MockCollectorService,
+        },
       ],
     }).compile();
 
     service = module.get<StreamCacheService>(StreamCacheService);
+    mockCollectorService = module.get('CollectorService');
   });
 
   afterEach(async () => {
+    jest.clearAllMocks();
     await module.close();
   });
 
@@ -64,6 +76,12 @@ describe('StreamCacheService', () => {
         totalSize: 0,
         compressionRatio: 0,
       });
+    });
+
+    it('应该正确注入CollectorService', () => {
+      expect(mockCollectorService).toBeDefined();
+      expect(mockCollectorService.recordCacheOperation).toBeDefined();
+      expect(typeof mockCollectorService.recordCacheOperation).toBe('function');
     });
   });
 
@@ -82,10 +100,21 @@ describe('StreamCacheService', () => {
       expect(result![0].s).toBe('AAPL.US');
       expect(result![1].s).toBe('TSLA.US');
       
-      // 验证统计信息
+      // 验证统计信息（已迁移到监控系统）
       const stats = service.getCacheStats();
-      expect(stats.hotCacheHits).toBe(1);
-      expect(stats.hotCacheMisses).toBe(0);
+      expect(stats.hotCacheHits).toBe(0); // 已迁移到CollectorService
+      expect(stats.hotCacheMisses).toBe(0); // 已迁移到CollectorService
+      
+      // 验证CollectorService被调用
+      expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
+        'get', 
+        true, 
+        expect.any(Number), 
+        {
+          cacheType: 'stream-cache', 
+          layer: 'hot'
+        }
+      );
     });
 
     it('Warm Cache命中 - 应该从Redis获取并提升到Hot Cache', async () => {
@@ -100,17 +129,17 @@ describe('StreamCacheService', () => {
       expect(result).toEqual(mockStreamData);
       expect(mockRedisClient.get).toHaveBeenCalledWith('stream_cache:test:warm-symbol');
       
-      // 验证统计信息
+      // 验证统计信息（已迁移到监控系统）
       const stats = service.getCacheStats();
-      expect(stats.hotCacheMisses).toBe(1);
-      expect(stats.warmCacheHits).toBe(1);
+      expect(stats.hotCacheMisses).toBe(0); // 已迁移到CollectorService
+      expect(stats.warmCacheHits).toBe(0); // 已迁移到CollectorService
       
       // 再次获取应该命中Hot Cache
       const secondResult = await service.getData(key);
       expect(secondResult).toEqual(mockStreamData);
       
       const finalStats = service.getCacheStats();
-      expect(finalStats.hotCacheHits).toBe(1);
+      expect(finalStats.hotCacheHits).toBe(0); // 已迁移到CollectorService
     });
 
     it('缓存未命中 - 应该返回null', async () => {
@@ -124,10 +153,10 @@ describe('StreamCacheService', () => {
       expect(result).toBeNull();
       expect(mockRedisClient.get).toHaveBeenCalledWith('stream_cache:test:missing-key');
       
-      // 验证统计信息
+      // 验证统计信息（已迁移到监控系统）
       const stats = service.getCacheStats();
-      expect(stats.hotCacheMisses).toBe(1);
-      expect(stats.warmCacheMisses).toBe(1);
+      expect(stats.hotCacheMisses).toBe(0); // 已迁移到CollectorService
+      expect(stats.warmCacheMisses).toBe(0); // 已迁移到CollectorService
     });
 
     it('Redis错误时应该优雅降级', async () => {
@@ -330,10 +359,10 @@ describe('StreamCacheService', () => {
       expect(result1).toBeNull();
       expect(result2).toBeNull();
       
-      // 验证统计信息被重置
+      // 验证统计信息被重置（已迁移到监控系统）
       const stats = service.getCacheStats();
       expect(stats.hotCacheHits).toBe(0);
-      expect(stats.hotCacheMisses).toBe(2); // 两次查询未命中
+      expect(stats.hotCacheMisses).toBe(0); // 已迁移到CollectorService
     });
 
     it('没有键时应该正常处理', async () => {
@@ -360,8 +389,9 @@ describe('StreamCacheService', () => {
       expect(stats).toHaveProperty('totalSize');
       expect(stats).toHaveProperty('compressionRatio');
       
-      expect(stats.hotCacheHits).toBeGreaterThanOrEqual(1);
-      expect(stats.totalSize).toBeGreaterThanOrEqual(1);
+      // 注意：统计已迁移到CollectorService，getCacheStats只返回基础信息
+      expect(stats.hotCacheHits).toBe(0); // 已迁移到CollectorService
+      expect(stats.totalSize).toBeGreaterThanOrEqual(1); // totalSize仍然可用
     });
   });
 

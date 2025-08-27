@@ -5,6 +5,7 @@ import { SharedServicesModule } from "../../../shared/module/shared-services.mod
 import { SmartCacheModule } from "../../../05-caching/smart-cache/module/smart-cache.module";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { ReceiverModule } from "../../../01-entry/receiver/module/receiver.module";
+import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 
 import { QueryController } from "../controller/query.controller";
 import { QueryService } from "../services/query.service";
@@ -18,6 +19,7 @@ import { QueryStatisticsService } from "../services/query-statistics.service";
     SharedServicesModule,
     SmartCacheModule,    // 🔑 关键: 导入SmartCacheModule，否则DI注入失败
     ReceiverModule,
+    MonitoringModule, // ✅ 导入监控模块
   ],
   controllers: [QueryController],
   providers: [

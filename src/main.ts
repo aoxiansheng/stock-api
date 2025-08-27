@@ -12,8 +12,9 @@ import {
 
 import { AppModule } from "./app.module";
 import { InfrastructureInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { ApiMonitoringInterceptor } from "./monitoring/infrastructure/interceptors/api-monitoring.interceptor";
 import { CollectorService } from "./monitoring/collector/collector.service";
-import { MetricsRegistryService } from "./monitoring/infrastructure/metrics/metrics-registry.service";
+// MetricsRegistryService已移除，使用事件驱动的CollectorService架构
 import { SecurityMiddleware } from "./auth/middleware/security.middleware";
 
 
@@ -69,10 +70,14 @@ async function bootstrap() {
   // 全局性能监控拦截器
   const performanceMonitor = app.get(CollectorService);
   const reflector = app.get("Reflector");
-  const metricsRegistry = app.get(MetricsRegistryService);
+  // metricsRegistry已移除，监控功能由CollectorService通过事件驱动方式提供
   app.useGlobalInterceptors(
     new InfrastructureInterceptor(performanceMonitor, reflector),
   );
+
+  // 🎯 事件驱动API监控拦截器（事件化重构）
+  const apiMonitoringInterceptor = app.get(ApiMonitoringInterceptor);
+  app.useGlobalInterceptors(apiMonitoringInterceptor);
 
   // 全局响应格式拦截器（最后执行）
   app.useGlobalInterceptors(new ResponseInterceptor());

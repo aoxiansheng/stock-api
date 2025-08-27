@@ -1,7 +1,6 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { createLogger, sanitizeLogData } from '@common/config/logger.config';
-import { MetricsRegistryService } from '../../../monitoring/infrastructure/metrics/metrics-registry.service';
-import { MetricsHelper } from '../../../monitoring/infrastructure/helper/infrastructure-helper';
+import { CollectorService } from '../../../monitoring/collector/collector.service';
 import { NotFoundException } from '@nestjs/common';
 
 /**
@@ -33,11 +32,11 @@ export abstract class BaseFetcherService {
   protected readonly logger = createLogger(this.constructor.name);
 
   /**
-   * 🔧 Phase 2.1: 使用 @Optional 装饰器实现可选依赖注入
-   * 当 MetricsRegistryService 不可用时，服务仍可正常运行，只是跳过指标记录
+   * 🎯 Phase 1: 使用 CollectorService 作为统一监控接口
+   * 遵循四层监控架构，shared组件只使用Collector层
    */
   constructor(
-    @Optional() protected readonly metricsRegistry?: MetricsRegistryService,
+    protected readonly collectorService: CollectorService,
   ) {}
 
   /**
@@ -54,16 +53,28 @@ export abstract class BaseFetcherService {
     maxRetries: number = 2,
     retryDelayMs: number = 1000,
   ): Promise<T> {
+    const startTime = Date.now();
     let lastError: Error;
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const startTime = Date.now();
         const result = await operation();
         const duration = Date.now() - startTime;
         
-        // 记录成功指标
-        this.recordOperationSuccess(context, duration, attempt);
+        // ✅ 成功监控 - 使用外部API调用监控
+        this.safeRecordExternalCall(
+          context,
+          'POST', // 假设大多数操作是POST
+          200,
+          duration,
+          {
+            operation: context,
+            provider: 'external_api',
+            attempt_count: attempt + 1,
+            max_retries: maxRetries + 1,
+            call_type: 'data_fetch'
+          }
+        );
         
         if (attempt > 0) {
           this.logger.log(`操作重试成功`, {
@@ -79,8 +90,22 @@ export abstract class BaseFetcherService {
         lastError = error;
         
         if (attempt === maxRetries) {
-          // 最后一次重试失败，记录指标
-          this.recordOperationFailure(context, error, attempt + 1);
+          // ✅ 最终失败监控
+          this.safeRecordExternalCall(
+            context,
+            'POST',
+            500,
+            Date.now() - startTime,
+            {
+              operation: context,
+              provider: 'external_api',
+              attempt_count: attempt + 1,
+              max_retries: maxRetries + 1,
+              call_type: 'data_fetch',
+              error: error.message,
+              error_type: error.constructor.name
+            }
+          );
           break;
         }
         
@@ -101,96 +126,6 @@ export abstract class BaseFetcherService {
     }
     
     throw lastError;
-  }
-
-  /**
-   * 记录操作指标 - 成功情况
-   * @param operation 操作名称
-   * @param processingTime 处理时间
-   * @param attempt 尝试次数
-   */
-  protected recordOperationSuccess(
-    operation: string,
-    processingTime: number,
-    attempt: number = 0,
-  ): void {
-    // 🔧 Phase 2.1: 添加 MetricsRegistryService 可用性检查
-    if (!this.metricsRegistry) {
-      this.logger.debug(`指标服务不可用，跳过指标记录: ${operation}`);
-      return;
-    }
-
-    try {
-      // 记录处理时间分布 - 使用已有的指标
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'receiverProcessingDuration',
-        processingTime / 1000, // 转换为秒
-        { method: operation, provider: 'base-fetcher', operation, status: 'success', attempt: attempt.toString() }
-      );
-
-      // 记录成功计数 - 使用已有的指标
-      MetricsHelper.inc(
-        this.metricsRegistry,
-        'receiverRequestsTotal',
-        { method: operation, status: 'success', operation, provider: 'base-fetcher' }
-      );
-
-      // 记录重试指标
-      if (attempt > 0) {
-        MetricsHelper.inc(
-          this.metricsRegistry,
-          'receiverRequestsTotal',
-          { method: operation, status: 'retry_success', operation, provider: 'base-fetcher' }
-        );
-      }
-    } catch (error) {
-      this.logger.warn(`指标记录失败`, { error: error.message });
-    }
-  }
-
-  /**
-   * 记录操作指标 - 失败情况  
-   * @param operation 操作名称
-   * @param error 错误对象
-   * @param totalAttempts 总尝试次数
-   */
-  protected recordOperationFailure(
-    operation: string,
-    error: Error,
-    totalAttempts: number,
-  ): void {
-    // 🔧 Phase 2.1: 添加 MetricsRegistryService 可用性检查
-    if (!this.metricsRegistry) {
-      this.logger.debug(`指标服务不可用，跳过失败指标记录: ${operation}`);
-      return;
-    }
-
-    try {
-      // 记录失败计数
-      MetricsHelper.inc(
-        this.metricsRegistry,
-        'receiverRequestsTotal',
-        { 
-          method: operation,
-          operation, 
-          status: 'failure',
-          provider: 'base-fetcher',
-          error_type: error.constructor.name
-        }
-      );
-
-      // 记录重试指标
-      if (totalAttempts > 1) {
-        MetricsHelper.inc(
-          this.metricsRegistry,
-          'receiverRequestsTotal',
-          { method: operation, operation, status: 'retry_failure', provider: 'base-fetcher' }
-        );
-      }
-    } catch (metricError) {
-      this.logger.warn(`指标记录失败`, { error: metricError.message });
-    }
   }
 
   /**
@@ -220,16 +155,21 @@ export abstract class BaseFetcherService {
         threshold: slowThresholdMs,
       }));
 
-      // 记录慢响应指标
-      try {
-        MetricsHelper.inc(
-          this.metricsRegistry,
-          'receiverRequestsTotal',
-          { method: operation, operation, status: 'slow_response', provider: 'base-fetcher' }
-        );
-      } catch (error) {
-        this.logger.warn(`慢响应指标记录失败`, { error: error.message });
-      }
+      // ✅ 慢响应监控 - 使用HTTP请求监控记录
+      this.safeRecordExternalCall(
+        `/performance/${operation}`,
+        'GET',
+        200,
+        processingTime,
+        {
+          operation: operation,
+          provider: 'external_api',
+          call_type: 'slow_response_detection',
+          symbols_count: symbolsCount,
+          time_per_symbol: timePerSymbol,
+          threshold: slowThresholdMs
+        }
+      );
     }
   }
 
@@ -261,6 +201,17 @@ export abstract class BaseFetcherService {
     throw new Error(
       `${operation}失败: ${errorMessage}`
     );
+  }
+
+  // ✅ 使用HTTP请求监控记录外部API调用
+  private safeRecordExternalCall(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.collectorService.recordRequest(`/external/${endpoint}`, method, statusCode, duration, metadata);
+      } catch (error) {
+        this.logger.warn('外部调用监控记录失败', { error: error.message, endpoint });
+      }
+    });
   }
 
   /**

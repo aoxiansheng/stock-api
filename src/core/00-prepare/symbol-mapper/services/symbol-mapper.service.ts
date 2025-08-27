@@ -31,6 +31,7 @@ import { SymbolMappingRepository } from '../repositories/symbol-mapping.reposito
 // 🎯 复用 common 模块的股票代码映射常量
 
 import { SymbolMappingRule, SymbolMappingRuleDocumentType } from '../schemas/symbol-mapping-rule.schema';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**
  * 股票代码映射服务
@@ -49,15 +50,55 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
 
   
-  // 旧本地缓存命中统计字段已废弃，全部交由 Prometheus 指标处理
 
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly paginationService: PaginationService,
     private readonly featureFlags: FeatureFlags,
+    private readonly collectorService: CollectorService, // ✅ 标准注入
     private readonly symbolMapperCacheService?: SymbolMapperCacheService, // 可选注入，向后兼容
   ) {
 
+  }
+
+  /**
+   * ✅ 监控安全包装器 - 确保监控失败不影响业务流程
+   */
+  private safeRecordRequest(
+    endpoint: string, 
+    method: string, 
+    statusCode: number, 
+    duration: number, 
+    metadata: any
+  ) {
+    try {
+      this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+    } catch (monitoringError) {
+      // 监控失败仅记录警告，不影响业务流程
+      this.logger.warn(`监控记录失败，不影响业务流程`, {
+        endpoint,
+        error: monitoringError.message,
+        metadata
+      });
+    }
+  }
+
+  private safeRecordDatabaseOperation(
+    operation: string, 
+    duration: number, 
+    success: boolean, 
+    metadata?: any
+  ) {
+    try {
+      this.collectorService.recordDatabaseOperation(operation, duration, success, metadata);
+    } catch (monitoringError) {
+      // 监控失败仅记录警告，不影响业务流程
+      this.logger.warn(`数据库操作监控记录失败，不影响业务流程`, {
+        operation,
+        error: monitoringError.message,
+        metadata
+      });
+    }
   }
 
   /**
@@ -270,6 +311,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
   async getSymbolMappingByDataSource(
     dataSourceName: string,
   ): Promise<SymbolMappingResponseDto> {
+    const startTime = Date.now();
     this.logger.debug(
       `根据数据源名称获取映射配置`,
       sanitizeLogData({
@@ -280,7 +322,21 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
     try {
       const mapping = await this.repository.findByDataSource(dataSourceName);
+      
       if (!mapping) {
+        // ✅ 数据库查询失败监控
+        this.safeRecordDatabaseOperation(
+          'findByDataSource',                   // operation
+          Date.now() - startTime,               // duration
+          false,                                // success
+          {                                     // metadata
+            collection: 'symbolMappings',
+            query: { dataSourceName },
+            service: 'SymbolMapperService',
+            error: 'Document not found'
+          }
+        );
+        
         throw new NotFoundException(
           SYMBOL_MAPPER_ERROR_MESSAGES.DATA_SOURCE_MAPPING_NOT_FOUND.replace(
             "{dataSourceName}",
@@ -288,6 +344,19 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           ),
         );
       }
+
+      // ✅ 数据库查询成功监控
+      this.safeRecordDatabaseOperation(
+        'findByDataSource',                   // operation
+        Date.now() - startTime,               // duration
+        true,                                 // success
+        {                                     // metadata
+          collection: 'symbolMappings',
+          query: { dataSourceName },
+          service: 'SymbolMapperService',
+          resultCount: 1
+        }
+      );
 
       this.logger.debug(
         `数据源映射配置获取成功`,
@@ -301,6 +370,20 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
       return SymbolMappingResponseDto.fromDocument(mapping as SymbolMappingRuleDocumentType);
     } catch (error) {
+      // ✅ 错误监控
+      this.safeRecordRequest(
+        '/internal/symbol-mapping-by-datasource', // endpoint
+        'GET',                                // method
+        error instanceof NotFoundException ? 404 : 500, // statusCode
+        Date.now() - startTime,               // duration
+        {                                     // metadata
+          service: 'SymbolMapperService',
+          operation: 'getSymbolMappingByDataSource',
+          dataSourceName,
+          error: error.message
+        }
+      );
+
       this.logger.error(
         `获取数据源映射配置失败`,
         sanitizeLogData({

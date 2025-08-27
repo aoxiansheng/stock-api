@@ -6,6 +6,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/config/logger.config";
+import { CollectorService } from '../../../monitoring/collector/collector.service';
 import {
   MarketStatus,
   CHANGE_DETECTION_THRESHOLDS,
@@ -79,6 +80,10 @@ interface DataSnapshot {
 export class DataChangeDetectorService {
   private readonly logger = createLogger(DataChangeDetectorService.name);
 
+  constructor(
+    private readonly collectorService: CollectorService, // ✅ 新增监控依赖
+  ) {}
+
   // 内存中的数据快照缓存（Redis故障时的降级方案）
   private readonly snapshotCache = new Map<string, DataSnapshot>();
 
@@ -98,21 +103,53 @@ export class DataChangeDetectorService {
     market: Market,
     marketStatus: MarketStatus,
   ): Promise<ChangeDetectionResult> {
+    const startTime = Date.now();
+    
     try {
-      const startTime = Date.now();
-
       // 1. 获取上次的数据快照
       const lastSnapshot = await this.getLastSnapshot(symbol);
 
       if (!lastSnapshot) {
         // 首次数据，直接认为有变化
         await this.saveSnapshot(symbol, newData);
+        
+        // ✅ 首次检测监控
+        this.safeRecordRequest(
+          '/internal/change-detection',
+          'POST',
+          200,
+          Date.now() - startTime,
+          {
+            operation: 'detect_significant_change',
+            symbol,
+            market,
+            market_status: marketStatus,
+            is_first_time: true
+          }
+        );
+        
         return this.createResult(true, [], [], "首次数据", 1.0);
       }
 
       // 2. 快速校验和比较（最快的检测方式）
       const newChecksum = this.calculateQuickChecksum(newData);
       if (newChecksum === lastSnapshot.checksum) {
+        // ✅ 无变化监控
+        this.safeRecordRequest(
+          '/internal/change-detection',
+          'POST',
+          200,
+          Date.now() - startTime,
+          {
+            operation: 'detect_significant_change',
+            symbol,
+            market,
+            market_status: marketStatus,
+            has_changed: false,
+            detection_method: 'checksum_match'
+          }
+        );
+        
         this.logPerformance("checksum_match", startTime);
         return this.createResult(false, [], [], "数据未变化", 1.0);
       }
@@ -130,9 +167,43 @@ export class DataChangeDetectorService {
         await this.saveSnapshot(symbol, newData);
       }
 
+      // ✅ 检测成功监控
+      this.safeRecordRequest(
+        '/internal/change-detection',
+        'POST',
+        200,
+        Date.now() - startTime,
+        {
+          operation: 'detect_significant_change',
+          symbol,
+          market,
+          market_status: marketStatus,
+          has_changed: changeResult.hasChanged,
+          significant_changes: changeResult.significantChanges.length,
+          confidence: changeResult.confidence,
+          detection_method: 'field_comparison'
+        }
+      );
+      
+      // 保持现有性能日志
       this.logPerformance("full_detection", startTime);
+      
       return changeResult;
     } catch (error) {
+      // ✅ 检测失败监控
+      this.safeRecordRequest(
+        '/internal/change-detection',
+        'POST',
+        500,
+        Date.now() - startTime,
+        {
+          operation: 'detect_significant_change',
+          symbol,
+          market,
+          error: error.message
+        }
+      );
+      
       this.logger.error("数据变化检测失败", { symbol, error: error.message });
       // 容错：检测失败时认为数据有变化（保证数据新鲜度）
       return this.createResult(true, [], [], "检测失败-保守处理", 0.5);
@@ -344,13 +415,33 @@ export class DataChangeDetectorService {
    * 获取上次数据快照
    */
   private async getLastSnapshot(symbol: string): Promise<DataSnapshot | null> {
+    const startTime = Date.now();
+    
     try {
       // 优先从Redis获取
       // TODO: 实现Redis缓存逻辑
 
       // 降级到内存缓存
-      return this.snapshotCache.get(symbol) || null;
+      const snapshot = this.snapshotCache.get(symbol) || null;
+      const hit = snapshot !== null;
+      
+      // ✅ 缓存操作监控
+      this.safeRecordCacheOperation('get', hit, Date.now() - startTime, {
+        cache_type: 'memory',
+        operation: 'get_snapshot',
+        symbol
+      });
+      
+      return snapshot;
     } catch (error) {
+      // ✅ 缓存错误监控
+      this.safeRecordCacheOperation('get', false, Date.now() - startTime, {
+        cache_type: 'memory',
+        operation: 'get_snapshot',
+        symbol,
+        error: error.message
+      });
+      
       this.logger.warn("获取数据快照失败", { symbol, error: error.message });
       return null;
     }
@@ -445,5 +536,26 @@ export class DataChangeDetectorService {
       // 超过10ms记录警告
       this.logger.warn("数据变化检测性能异常", { operation, duration });
     }
+  }
+
+  // ✅ 监控故障隔离方法
+  private safeRecordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+      } catch (error) {
+        this.logger.warn('变化检测监控记录失败', { error: error.message });
+      }
+    });
+  }
+
+  private safeRecordCacheOperation(operation: string, hit: boolean, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
+      } catch (error) {
+        this.logger.warn('缓存操作监控记录失败', { error: error.message });
+      }
+    });
   }
 }

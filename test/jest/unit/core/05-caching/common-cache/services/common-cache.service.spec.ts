@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { CommonCacheService } from '@core/05-caching/common-cache/services/common-cache.service';
 import { CacheCompressionService } from '@core/05-caching/common-cache/services/cache-compression.service';
+import { CollectorService } from '../../../../../../monitoring/collector/collector.service';
 import { CACHE_CONFIG } from '@core/05-caching/common-cache/constants/cache-config.constants';
 import { REDIS_SPECIAL_VALUES } from '@core/05-caching/common-cache/constants/cache.constants';
 
@@ -9,7 +10,7 @@ describe('CommonCacheService', () => {
   let service: CommonCacheService;
   let mockRedis: any;
   let mockCompressionService: any;
-  let mockMetricsRegistry: any;
+  let mockCollectorService: any;
 
   beforeEach(async () => {
     // Mock Redis客户端
@@ -36,10 +37,10 @@ describe('CommonCacheService', () => {
       decompress: jest.fn(),
     };
 
-    // Mock指标注册表
-    mockMetricsRegistry = {
-      inc: jest.fn(),
-      observe: jest.fn(),
+    // Mock CollectorService
+    mockCollectorService = {
+      recordCacheOperation: jest.fn(),
+      recordSystemOperation: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -60,8 +61,8 @@ describe('CommonCacheService', () => {
           useValue: mockCompressionService,
         },
         {
-          provide: 'METRICS_REGISTRY',
-          useValue: mockMetricsRegistry,
+          provide: CollectorService,
+          useValue: mockCollectorService,
         },
       ],
     }).compile();
@@ -134,10 +135,7 @@ describe('CommonCacheService', () => {
       const result = await service.get(key);
 
       expect(result).toBeNull();
-      expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
-        'cacheOperationsTotal',
-        { op: 'get', status: 'error' }
-      );
+      expect(mockCollectorService.recordCacheOperation).toHaveBeenCalled();
     });
   });
 
@@ -157,7 +155,7 @@ describe('CommonCacheService', () => {
         ttl,
         expect.stringContaining('"data":{"value":"test"}')
       );
-      expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+      expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
         'cacheOperationsTotal',
         { op: 'set', status: 'success' }
       );
@@ -196,7 +194,7 @@ describe('CommonCacheService', () => {
       mockRedis.setex.mockRejectedValue(new Error('Redis connection failed'));
 
       await expect(service.set(key, data, ttl)).resolves.not.toThrow();
-      expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+      expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
         'cacheOperationsTotal',
         { op: 'set', status: 'error' }
       );
@@ -254,7 +252,7 @@ describe('CommonCacheService', () => {
       const results = await service.mget(keys);
 
       expect(results).toEqual(keys.map(() => null));
-      expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+      expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
         'cacheOperationsTotal',
         { op: 'mget', status: 'error' }
       );
@@ -492,7 +490,7 @@ describe('CommonCacheService', () => {
 
         // 缓存服务应该是resilient的，返回null而不是抛出异常
         expect(result).toBeNull();
-        expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+        expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
           'cacheOperationsTotal',
           { op: 'get', status: 'error' }
         );
@@ -555,11 +553,11 @@ describe('CommonCacheService', () => {
 
         await service.get('test-key');
 
-        expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+        expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
           'cacheDecompressionTotal',
           expect.objectContaining({ status: 'success', error_type: 'success' })
         );
-        expect(mockMetricsRegistry.observe).toHaveBeenCalledWith(
+        expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
           'cacheDecompressionDuration',
           expect.any(Number)
         );
@@ -582,7 +580,7 @@ describe('CommonCacheService', () => {
           // 预期的异常
         }
 
-        expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+        expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
           'cacheDecompressionTotal',
           expect.objectContaining({ status: 'error', error_type: 'base64_decode_failed' })
         );
@@ -616,7 +614,7 @@ describe('CommonCacheService', () => {
             // 预期的异常
           }
 
-          expect(mockMetricsRegistry.inc).toHaveBeenCalledWith(
+          expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
             'cacheDecompressionTotal',
             expect.objectContaining({ 
               status: 'error', 

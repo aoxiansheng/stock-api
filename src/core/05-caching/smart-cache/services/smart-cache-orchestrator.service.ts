@@ -3,7 +3,7 @@ import { CommonCacheService } from '../../common-cache/services/common-cache.ser
 import { DataChangeDetectorService } from '../../../shared/services/data-change-detector.service';
 import { MarketStatusService, MarketStatusResult } from '../../../shared/services/market-status.service';
 import { BackgroundTaskService } from '../../../shared/services/background-task.service';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { Market } from '../../../../common/constants/market.constants';
 import { MarketStatus } from '../../../../common/constants/market-trading-hours.constants';
 import { 
@@ -75,7 +75,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
-    private readonly presenterRegistryService: MetricsRegistryService,
+    private readonly collectorService: CollectorService,
   ) {
     this.logger.log('SmartCacheOrchestrator service initializing...');
     
@@ -292,10 +292,21 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     if (this.activeTaskCount > 0) {
       this.logger.warn(`Graceful shutdown timeout reached. ${this.activeTaskCount} tasks still active.`);
       
-      // 记录告警指标
-      if (this.config.enableMetrics) {
-        this.presenterRegistryService.queryBackgroundTasksFailed.inc();
-      }
+              // 记录告警指标
+        if (this.config.enableMetrics) {
+          // 使用CollectorService记录后台任务失败
+          this.collectorService.recordRequest(
+            '/internal/cache-background-task',
+            'POST',
+            500,
+            0,
+            {
+              operation: 'background_task_failed',
+              componentType: 'smart_cache_orchestrator',
+              activeTaskCount: this.activeTaskCount
+            }
+          );
+        }
     }
     
     // 清空待执行队列
@@ -315,7 +326,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    */
   private initializeMetrics(): void {
     try {
-      // 指标已在MetricsRegistryService中注册：
+      // 指标通过CollectorService事件驱动方式记录：
       // - queryBackgroundTasksActive (Gauge)
       // - queryBackgroundTasksCompleted (Counter)
       // - queryBackgroundTasksFailed (Counter)
@@ -382,7 +393,18 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
     // 更新活跃任务指标
     if (this.config.enableMetrics) {
-      this.presenterRegistryService.queryBackgroundTasksActive.set(this.activeTaskCount);
+      // 使用CollectorService记录活跃任务数
+      this.collectorService.recordRequest(
+        '/internal/cache-active-tasks',
+        'GET',
+        200,
+        0,
+        {
+          operation: 'active_tasks_count',
+          activeTaskCount: this.activeTaskCount,
+          componentType: 'smart_cache_orchestrator'
+        }
+      );
     }
 
     try {
@@ -481,7 +503,18 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 更新完成指标
       if (this.config.enableMetrics) {
-        this.presenterRegistryService.queryBackgroundTasksCompleted.inc();
+        // 使用CollectorService记录后台任务完成
+        this.collectorService.recordRequest(
+          '/internal/cache-background-task',
+          'POST',
+          200,
+          Date.now() - task.scheduledAt,
+          {
+            operation: 'background_task_completed',
+            cacheKey: task.cacheKey,
+            componentType: 'smart_cache_orchestrator'
+          }
+        );
       }
       
     } catch (error) {
@@ -503,7 +536,19 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 更新失败指标
       if (this.config.enableMetrics) {
-        this.presenterRegistryService.queryBackgroundTasksFailed.inc();
+        // 使用CollectorService记录后台任务失败
+        this.collectorService.recordRequest(
+          '/internal/cache-background-task',
+          'POST',
+          500,
+          0,
+          {
+            operation: 'background_task_failed',
+            cacheKey: task.cacheKey,
+            error: error.message,
+            componentType: 'smart_cache_orchestrator'
+          }
+        );
       }
     } finally {
       this.activeTaskCount--;
@@ -515,7 +560,18 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 更新活跃任务指标
       if (this.config.enableMetrics) {
-        this.presenterRegistryService.queryBackgroundTasksActive.set(this.activeTaskCount);
+        // 使用CollectorService记录活跃任务数更新
+        this.collectorService.recordRequest(
+          '/internal/cache-active-tasks',
+          'GET',
+          200,
+          0,
+          {
+            operation: 'active_tasks_count_updated',
+            activeTaskCount: this.activeTaskCount,
+            componentType: 'smart_cache_orchestrator'
+          }
+        );
       }
     }
   }

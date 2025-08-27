@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/config/logger.config';
+import { CollectorService } from '../../../monitoring/collector/collector.service';
 import {
   ReceiverType,
   StorageClassification,
@@ -15,6 +16,10 @@ import {
 export class FieldMappingService {
   // 🔧 Phase 1.4: 统一日志规范，使用 createLogger 与项目规范一致
   private readonly logger = createLogger(FieldMappingService.name);
+
+  constructor(
+    private readonly collectorService: CollectorService, // ✅ 新增监控依赖
+  ) {}
 
   /**
    * 将 Receiver 的能力类型转换为 Storage 的数据分类
@@ -166,5 +171,16 @@ export class FieldMappingService {
       missingMappings,
       redundantMappings,
     };
+  }
+
+  // ✅ 监控故障隔离方法（为保持架构一致性而添加，虽然此服务监控需求较低）
+  private safeRecordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+      } catch (error) {
+        this.logger.warn('字段映射监控记录失败', { error: error.message });
+      }
+    });
   }
 }

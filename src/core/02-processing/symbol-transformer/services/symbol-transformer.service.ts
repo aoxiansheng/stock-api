@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '../../../../common/config/logger.config';
 import { SymbolMapperCacheService } from '../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
-import { MetricsHelper } from '../../../../monitoring/infrastructure/helper/infrastructure-helper';
+import { CollectorService } from '../../../../monitoring/collector/collector.service'; // ✅ 新增标准监控依赖
 import { 
   SymbolTransformResult, 
   SymbolTransformForProviderResult 
@@ -19,7 +18,7 @@ export class SymbolTransformerService {
 
   constructor(
     private readonly symbolMapperCacheService: SymbolMapperCacheService,  // 缓存服务（含回源逻辑）
-    private readonly metricsRegistry?: MetricsRegistryService  // 可选监控
+    private readonly collectorService: CollectorService  // ✅ 标准监控依赖
   ) {}
 
   /**
@@ -67,10 +66,17 @@ export class SymbolTransformerService {
         },
       };
 
-      // 记录性能指标
-      if (this.metricsRegistry) {
-        this.recordMetrics(provider, response);
-      }
+      // ✅ 使用标准的 CollectorService.recordRequest()
+      this.safeRecordMetrics('/internal/symbol-transformation', 'POST', 200, processingTime, {
+        operation: 'symbol-transformation',
+        provider: provider,
+        direction: direction,
+        totalSymbols: symbolArray.length,
+        successCount: response.metadata.successCount,
+        failedCount: response.metadata.failedCount,
+        successRate: (response.metadata.successCount / symbolArray.length) * 100,
+        market: this.inferMarketFromSymbols(symbolArray)
+      });
 
       this.logger.debug('符号转换完成', {
         requestId,
@@ -81,6 +87,16 @@ export class SymbolTransformerService {
 
     } catch (error) {
       const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      
+      // ✅ 标准错误监控
+      this.safeRecordMetrics('/internal/symbol-transformation', 'POST', 500, processingTime, {
+        operation: 'symbol-transformation',
+        provider: provider,
+        direction: direction,
+        totalSymbols: symbolArray.length,
+        error: error.message,
+        errorType: error.constructor.name
+      });
       
       this.logger.error('符号转换失败', {
         requestId,
@@ -228,26 +244,28 @@ export class SymbolTransformerService {
   }
 
   /**
-   * 记录性能指标
+   * 推断市场类型
    */
-  private recordMetrics(provider: string, result: SymbolTransformResult): void {
-    if (!this.metricsRegistry) return;
+  private inferMarketFromSymbols(symbols: string[]): string {
+    if (symbols.length === 0) return 'unknown';
+    
+    const sample = symbols[0];
+    if (/^\d{6}$/.test(sample)) return 'CN';  // A股
+    if (/^[A-Z]+$/.test(sample)) return 'US'; // 美股
+    if (sample.includes('.HK')) return 'HK';  // 港股
+    
+    return 'mixed';
+  }
 
-    const hitRate = result.metadata.successCount / result.metadata.totalSymbols;
-    
-    // 使用 Metrics 助手类记录指标
-    MetricsHelper.setGauge(
-      this.metricsRegistry,
-      'symbol_transformer_success_rate',
-      hitRate,
-      { provider }
-    );
-    
-    MetricsHelper.observe(
-      this.metricsRegistry,
-      'symbol_transformer_processing_time',
-      result.metadata.processingTimeMs,
-      { provider }
-    );
+  /**
+   * ✅ 安全监控包装 - 错误隔离机制
+   */
+  private safeRecordMetrics(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+    try {
+      this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+    } catch (error) {
+      // 监控失败仅记录日志，不影响业务
+      this.logger.warn(`监控记录失败: ${error.message}`, { endpoint, metadata });
+    }
   }
 }

@@ -3,6 +3,7 @@ import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/s
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { SymbolTransformerService } from '@core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import { Logger } from '@nestjs/common';
 
 describe('StreamReceiverService', () => {
@@ -10,6 +11,7 @@ describe('StreamReceiverService', () => {
   let streamDataFetcher: jest.Mocked<StreamDataFetcherService>;
   let symbolTransformer: jest.Mocked<SymbolTransformerService>;
   let transformer: jest.Mocked<DataTransformerService>;
+  let collectorService: jest.Mocked<CollectorService>;
 
   // Mock test data
   const mockClientId = 'test-client-123';
@@ -72,6 +74,12 @@ describe('StreamReceiverService', () => {
       validateDataStructure: jest.fn()
     };
 
+    const mockCollectorService = {
+      recordRequest: jest.fn(),
+      recordSystemMetrics: jest.fn(),
+      getMetricsStats: jest.fn(() => ({}))
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
@@ -79,17 +87,18 @@ describe('StreamReceiverService', () => {
           useFactory: (
             symbolTransformer: SymbolTransformerService,
             transformer: DataTransformerService,
-            streamDataFetcher: StreamDataFetcherService
+            streamDataFetcher: StreamDataFetcherService,
+            collectorService: CollectorService
           ) => {
             return new StreamReceiverService(
               symbolTransformer,
               transformer,
               streamDataFetcher,
-              undefined, // optional StreamRecoveryWorkerService
-              undefined  // optional InfrastructureMetricsRegistryService
+              collectorService, // required CollectorService
+              undefined  // optional StreamRecoveryWorkerService
             );
           },
-          inject: [SymbolTransformerService, DataTransformerService, StreamDataFetcherService]
+          inject: [SymbolTransformerService, DataTransformerService, StreamDataFetcherService, CollectorService]
         },
         {
           provide: StreamDataFetcherService,
@@ -102,6 +111,10 @@ describe('StreamReceiverService', () => {
         {
           provide: DataTransformerService,
           useValue: mockTransformer,
+        },
+        {
+          provide: CollectorService,
+          useValue: mockCollectorService,
         },
         {
           provide: Logger,
@@ -119,6 +132,7 @@ describe('StreamReceiverService', () => {
     streamDataFetcher = module.get(StreamDataFetcherService);
     symbolTransformer = module.get(SymbolTransformerService);
     transformer = module.get(DataTransformerService);
+    collectorService = module.get(CollectorService);
 
     // Setup default mock behaviors
     symbolTransformer.transformSymbolsForProvider.mockResolvedValue({

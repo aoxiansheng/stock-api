@@ -1,7 +1,7 @@
 import { HttpModule } from "@nestjs/axios";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { EventEmitterModule } from "@nestjs/event-emitter";
+// 🔧 移除未使用的 EventEmitterModule 导入
 import { MongooseModule } from "@nestjs/mongoose";
 import { ScheduleModule } from "@nestjs/schedule";
 
@@ -58,16 +58,9 @@ import {
       maxRedirects: 3,
     }),
 
-    // 事件发射器用于监听系统事件
-    EventEmitterModule.forRoot({
-      wildcard: true,
-      delimiter: ".",
-      newListener: false,
-      removeListener: false,
-      maxListeners: 20,
-      verboseMemoryLeak: false,
-      ignoreErrors: false,
-    }),
+    // 🔧 修正：移除重复的 EventEmitterModule.forRoot，
+    // 使用 AppModule 中全局配置的 EventEmitter2 实例
+    // EventEmitterModule.forRoot() 已在 AppModule 中配置
 
     // 定时任务用于定期评估规则
     ScheduleModule.forRoot(),

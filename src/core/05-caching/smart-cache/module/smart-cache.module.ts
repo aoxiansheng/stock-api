@@ -43,7 +43,7 @@ import {
     // 提供以下共享服务：
     // - MarketStatusService: 市场状态查询，用于市场感知策略
     // - BackgroundTaskService: 后台任务管理
-    // - MetricsRegistryService: Prometheus指标采集
+    // - CollectorService: 事件驱动监控数据收集（通过MonitoringModule提供）
     // - DataChangeDetectorService: 数据变化检测
     SharedServicesModule,
   ],

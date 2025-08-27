@@ -13,7 +13,7 @@ import { StreamUnsubscribeDto } from '../dto/stream-unsubscribe.dto';
 import { DataTransformRequestDto } from '../../../02-processing/transformer/dto/data-transform-request.dto';
 import { StreamConnection, StreamConnectionParams } from '../../../03-fetching/stream-data-fetcher/interfaces';
 import { Subject } from 'rxjs';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { bufferTime, filter, mergeMap } from 'rxjs/operators';
 
 /**
@@ -128,14 +128,14 @@ export class StreamReceiverService implements OnModuleDestroy {
   };
 
   constructor(
-    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现在4个核心依赖 + 2个可选依赖
+    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现在5个核心依赖 + 1个可选依赖
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
+    private readonly collectorService: CollectorService, // ✅ 替换为CollectorService (标准化：必填注入)
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
-    private readonly metricsRegistry?: MetricsRegistryService, // Phase 4 可选监控依赖
   ) {
-    this.logger.log('StreamReceiver Phase 4 重构完成 - 精简依赖架构 + 延迟监控 + 连接清理');
+    this.logger.log('StreamReceiver Phase 4 重构完成 - 精简依赖架构 + 统一监控 + 连接清理');
     this.initializeBatchProcessing();
     this.setupSubscriptionChangeListener();
     this.initializeConnectionCleanup(); // ✅ 初始化连接清理机制
@@ -751,6 +751,9 @@ export class StreamReceiverService implements OnModuleDestroy {
     connection = await this.streamDataFetcher.establishStreamConnection(connectionParams);
     this.activeConnections.set(connectionKey, connection);
 
+    // ✅ 记录连接创建监控
+    this.recordConnectionMetrics(connection.id, provider, capability, true);
+
     this.logger.log('新流连接已创建', {
       connectionId: connection.id,
       provider,
@@ -973,7 +976,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       // Step 6: 性能监控埋点
       const totalDuration = Date.now() - pipelineStartTime;
-      this.recordPipelineMetrics({
+      this.recordStreamPipelineMetrics({
         provider,
         capability,
         quotesCount: quotes.length,
@@ -1206,7 +1209,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 记录管道性能指标
    */
-  private recordPipelineMetrics(metrics: {
+  private recordStreamPipelineMetrics(metrics: {
     provider: string;
     capability: string;
     quotesCount: number;
@@ -1218,27 +1221,42 @@ export class StreamReceiverService implements OnModuleDestroy {
       broadcast: number;
     };
   }): void {
-    // ✅ Removed duplicate accumulation - statistics are already accumulated in processBatch
-    // Only record detailed performance metrics here
-    
-    // 详细阶段性能日志
-    this.logger.debug('管道性能指标', {
-      provider: metrics.provider,
-      capability: metrics.capability,
-      performance: {
-        quotesPerSecond: Math.round((metrics.quotesCount / metrics.durations.total) * 1000),
-        symbolsPerSecond: Math.round((metrics.symbolsCount / metrics.durations.total) * 1000),
-        stageBreakdown: {
-          transformPercent: Math.round((metrics.durations.transform / metrics.durations.total) * 100),
-          cachePercent: Math.round((metrics.durations.cache / metrics.durations.total) * 100),
-          broadcastPercent: Math.round((metrics.durations.broadcast / metrics.durations.total) * 100),
-        },
-      },
-      notes: {
-        message: 'Statistics already accumulated in processBatch - avoiding double counting',
+    // 批处理监控异步化，避免阻塞管道处理
+    setImmediate(() => {
+      try {
+      // 使用 CollectorService 标准接口记录流管道性能
+      this.collectorService.recordRequest(
+        '/stream/pipeline',              // endpoint
+        'WebSocket',                     // method
+        200,                             // statusCode
+        metrics.durations.total,         // duration
+        {                               // metadata
+          provider: metrics.provider,
+          capability: metrics.capability,
+          quotesCount: metrics.quotesCount,
+          symbolsCount: metrics.symbolsCount,
+          componentType: 'stream-receiver',
+          operationType: 'pipeline',
+          performance: {
+            quotesPerSecond: Math.round((metrics.quotesCount / metrics.durations.total) * 1000),
+            symbolsPerSecond: Math.round((metrics.symbolsCount / metrics.durations.total) * 1000),
+            transformPercent: Math.round((metrics.durations.transform / metrics.durations.total) * 100),
+            cachePercent: Math.round((metrics.durations.cache / metrics.durations.total) * 100),
+            broadcastPercent: Math.round((metrics.durations.broadcast / metrics.durations.total) * 100)
+          }
+        }
+      );
+      
+      // 保留详细调试日志
+      this.logger.debug('流管道性能指标已记录', {
+        provider: metrics.provider,
+        capability: metrics.capability,
         quotesCount: metrics.quotesCount,
         totalDuration: metrics.durations.total,
-      },
+      });
+      } catch (error) {
+        this.logger.warn(`流管道监控记录失败: ${error.message}`, { provider: metrics.provider });
+      }
     });
   }
 
@@ -1274,46 +1292,8 @@ export class StreamReceiverService implements OnModuleDestroy {
       });
     }
 
-    // Phase 4 Critical: 集成 Prometheus 指标
-    if (this.metricsRegistry) {
-      try {
-        // 提取提供商信息
-        const provider = this.extractProviderFromSymbol(symbol);
-        
-        const market = this.inferMarketFromSymbol(symbol);
-        
-        // 🎯 修复：移除symbol高基数标签，使用聚合维度
-        this.metricsRegistry.streamPushLatencyMs.observe(
-          {
-            provider: provider,          // 低基数：5个值
-            market: market,             // 低基数：4个值 (HK/US/SH/SZ)
-            latency_category: this.categorizeLatency(latencyMs), // 低基数：4个值
-          },
-          latencyMs
-        );
-
-        this.logger.debug('延迟指标已记录', {
-          symbol,
-          provider,
-          latencyMs,
-          latencyCategory,
-          metric: 'stream_push_latency_ms',
-        });
-
-      } catch (error) {
-        this.logger.warn('延迟指标记录失败', {
-          symbol,
-          latencyMs,
-          error: error.message,
-        });
-      }
-    } else {
-      this.logger.debug('延迟指标服务不可用', {
-        symbol,
-        latencyMs,
-        note: 'MetricsRegistry未注入',
-      });
-    }
+    // ✅ 使用CollectorService记录流数据延迟指标
+    this.recordStreamLatencyMetrics(symbol, latencyMs);
   }
 
   /**
@@ -1547,8 +1527,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private findOptimalProviderForMarket(market: string, symbol: string): string | null {
     try {
-      // 检查是否有 MetricsRegistry 注入的 EnhancedCapabilityRegistry
-      // 由于目前没有直接注入，这里暂时返回 null，等待依赖注入扩展
+      // 基于能力注册表查找最佳提供商
       // TODO: 在构造函数中注入 EnhancedCapabilityRegistryService
       
       // 简化的能力查找逻辑 (等待注入)
@@ -1839,6 +1818,10 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 🔒 线程安全地更新统计数据
     await this.updateBatchStatsThreadSafe(batch.length, processingTime);
 
+    // ✅ 记录批处理监控指标
+    const primaryProvider = Object.keys(groupedBatch)[0]?.split(':')[0] || 'unknown';
+    this.recordBatchProcessingMetrics(batch.length, processingTime, primaryProvider);
+
     this.logger.debug('批量处理完成', {
       batchSize: batch.length,
       processingTime,
@@ -2018,5 +2001,104 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 这里可以添加订阅变更后的处理逻辑
       // 例如：优化连接管理、调整缓存策略等
     });
+  }
+
+  // =============== 监控辅助方法 ===============
+  
+  /**
+   * ✅ 记录流数据延迟指标
+   */
+  private recordStreamLatencyMetrics(symbol: string, latencyMs: number): void {
+    // 延迟监控使用异步处理，避免阻塞流数据处理
+    setImmediate(() => {
+      try {
+      // 提取业务元数据
+      const provider = this.extractProviderFromSymbol(symbol);
+      const market = this.inferMarketFromSymbol(symbol);
+      
+      // 使用CollectorService记录请求指标（用于延迟统计）
+      this.collectorService.recordRequest(
+        '/stream/latency',               // endpoint
+        'WebSocket',                     // method
+        200,                             // statusCode
+        latencyMs,                       // duration
+        {                               // metadata
+          symbol,
+          componentType: 'stream-receiver',
+          operationType: 'streamLatency',
+          latencyCategory: this.categorizeLatency(latencyMs),
+          provider: this.extractProviderFromSymbol(symbol)
+        }
+      );
+
+      this.logger.debug('流延迟指标已记录', {
+        symbol,
+        provider,
+        market,
+        latencyMs,
+        latency_category: this.categorizeLatency(latencyMs)
+      });
+
+      } catch (error) {
+        // 监控失败不应影响业务流程
+        this.logger.warn(`流延迟监控记录失败: ${error.message}`, { symbol, latencyMs });
+      }
+    });
+  }
+
+  /**
+   * ✅ 记录流连接状态指标
+   */
+  private recordConnectionMetrics(connectionId: string, provider: string, capability: string, isConnected: boolean): void {
+    try {
+      // 使用 recordRequest 记录连接状态变化
+      this.collectorService.recordRequest(
+        '/stream/connection',              // endpoint
+        'WebSocket',                       // method
+        isConnected ? 200 : 500,          // statusCode
+        0,                                // duration
+        {                                 // metadata
+          connectionId,
+          provider,
+          capability,
+          connectionStatus: isConnected ? 'connected' : 'disconnected',
+          activeStreamConnections: this.activeConnections.size,
+          componentType: 'stream-receiver',
+          operationType: 'connectionChange'
+        }
+      );
+
+    } catch (error) {
+      this.logger.warn(`流连接监控记录失败: ${error.message}`, { connectionId, provider });
+    }
+  }
+
+  /**
+   * ✅ 记录批处理指标
+   */
+  private recordBatchProcessingMetrics(batchSize: number, processingTime: number, provider: string): void {
+    if (!this.collectorService) {
+      return; // 监控服务不可用
+    }
+
+    try {
+      // 使用CollectorService记录批处理请求
+      this.collectorService.recordRequest(
+        '/internal/stream-batch-processing', // endpoint
+        'POST',                             // method
+        200,                               // statusCode
+        processingTime,                    // duration
+        {                                  // metadata
+          batchSize,
+          provider,
+          avgTimePerQuote: batchSize > 0 ? processingTime / batchSize : 0,
+          operation: 'batch_processing',
+          componentType: 'stream_receiver'
+        }
+      );
+
+    } catch (error) {
+      this.logger.warn(`批处理监控记录失败: ${error.message}`, { batchSize, processingTime });
+    }
   }
 }

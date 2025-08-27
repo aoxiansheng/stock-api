@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseFetcherService } from '../../../shared/services/base-fetcher.service';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { sanitizeLogData } from '@common/config/logger.config';
 import {
   IStreamDataFetcher,
@@ -11,11 +11,13 @@ import {
   StreamConnectionException,
   StreamSubscriptionException,
   StreamConnectionStats,
+  StreamConnectionStatus,
 } from '../interfaces';
 import { StreamConnectionImpl } from './stream-connection.impl';
 import { StreamCacheService } from '../../../05-caching/stream-cache/services/stream-cache.service';
 import { StreamClientStateManager } from './stream-client-state-manager.service';
 import { StreamMetricsService } from './stream-metrics.service';
+import { ConnectionPoolManager } from './connection-pool-manager.service';
 
 /**
  * 流数据获取器服务实现 - Stream Data Fetcher
@@ -49,14 +51,15 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
   private connectionIdToKey = new Map<string, string>();
   
   constructor(
-    protected readonly metricsRegistry: MetricsRegistryService,
+    protected readonly collectorService: CollectorService,
     private readonly capabilityRegistry: CapabilityRegistryService,
-    // Phase 4: 添加内部服务访问 - 供 StreamReceiver 使用
+    // Phase 4: 添加内部服务访问 - 供StreamReceiver使用
     private readonly streamCache: StreamCacheService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly streamMetrics: StreamMetricsService,
+    private readonly connectionPoolManager: ConnectionPoolManager, // 新增连接池管理器
   ) {
-    super(metricsRegistry);
+    super(collectorService);
   }
 
   /**
@@ -77,13 +80,17 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
 
     return await this.executeWithRetry(
       async () => {
-        // 1. 获取提供商能力实例
+        // 1. 检查连接池限制
+        const connectionKey = `${provider}:${capability}`;
+        this.connectionPoolManager.canCreateConnection(connectionKey); // 如果超限会抛出异常
+        
+        // 2. 获取提供商能力实例
         const capabilityInstance = await this.getStreamCapability(provider, capability);
         
-        // 2. 生成连接ID
+        // 3. 生成连接ID
         const connectionId = uuidv4();
         
-        // 3. 创建连接实例
+        // 4. 创建连接实例
         const connection = new StreamConnectionImpl(
           connectionId,
           provider,
@@ -93,11 +100,11 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
           options,
         );
         
-        // 4. 等待连接建立
+        // 5. 等待连接建立
         await this.waitForConnectionEstablished(connection);
         
-        // 5. 注册连接到连接池
-        const connectionKey = `${provider}:${capability}`;
+        // 6. 注册连接到连接池管理器和内部Map
+        this.connectionPoolManager.registerConnection(connectionKey);
         this.activeConnections.set(connectionKey, connection);
         this.connectionIdToKey.set(connectionId, connectionKey);
         
@@ -116,7 +123,13 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
         }));
         
         // 记录成功指标
-        this.recordOperationSuccess('establish_connection', processingTime);
+        this.collectorService.recordRequest(
+          `/stream/establish-connection/${provider}`,
+          'POST', 
+          200, 
+          processingTime,
+          { provider, capability, operation: 'establish_connection' }
+        );
         this.streamMetrics.recordConnectionEvent('connected', connection.provider);
         this.streamMetrics.recordLatency('establish_connection', processingTime, connection.provider);
         this.streamMetrics.updateActiveConnectionsCount(this.activeConnections.size, connection.provider);
@@ -298,6 +311,9 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
       // 1. 从连接池中移除
       const connectionKey = this.connectionIdToKey.get(connection.id);
       if (connectionKey) {
+        // 从连接池管理器注销
+        this.connectionPoolManager.unregisterConnection(connectionKey);
+        // 从内部Map移除
         this.activeConnections.delete(connectionKey);
         this.connectionIdToKey.delete(connection.id);
       }
@@ -402,26 +418,187 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
   }
 
   /**
-   * 批量健康检查所有活跃连接
-   * @param timeoutMs 健康检查超时时间
+   * 批量健康检查所有活跃连接（带并发控制）
+   * @param options 健康检查选项
    * @returns 健康检查结果映射
    */
-  async batchHealthCheck(timeoutMs: number = 5000): Promise<Record<string, boolean>> {
-    const healthCheckPromises = Array.from(this.activeConnections.entries()).map(
-      async ([key, connection]) => {
-        try {
-          // 使用接口方法进行健康检查
-          const isAlive = await connection.isAlive(timeoutMs);
-          return [key, isAlive] as [string, boolean];
-        } catch (error) {
-          this.logger.warn('连接健康检查失败', { connectionId: key, error: error.message });
-          return [key, false] as [string, boolean];
+  async batchHealthCheck(options: {
+    timeoutMs?: number;
+    concurrency?: number;
+    retries?: number;
+    skipUnresponsive?: boolean;
+  } = {}): Promise<Record<string, boolean>> {
+    const {
+      timeoutMs = 5000,
+      concurrency = parseInt(process.env.HEALTHCHECK_CONCURRENCY || '10'),
+      retries = 1,
+      skipUnresponsive = true
+    } = options;
+    
+    const connections = Array.from(this.activeConnections.entries());
+    const results: [string, boolean][] = [];
+    
+    this.logger.debug('开始批量健康检查', {
+      totalConnections: connections.length,
+      concurrency,
+      timeoutMs,
+      retries,
+    });
+    
+    // 分批处理，控制并发数量
+    for (let i = 0; i < connections.length; i += concurrency) {
+      const batch = connections.slice(i, i + concurrency);
+      const batchIndex = Math.floor(i / concurrency) + 1;
+      const totalBatches = Math.ceil(connections.length / concurrency);
+      
+      this.logger.debug(`处理健康检查批次 ${batchIndex}/${totalBatches}`, {
+        batchSize: batch.length,
+        startIndex: i,
+      });
+      
+      // 并行处理当前批次
+      const batchPromises = batch.map(async ([key, connection]) => {
+        return this.performHealthCheckWithRetry(key, connection, timeoutMs, retries, skipUnresponsive);
+      });
+      
+      try {
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        // 处理批次结果
+        batchResults.forEach((result, index) => {
+          const [key] = batch[index];
+          
+          if (result.status === 'fulfilled') {
+            results.push([key, result.value]);
+          } else {
+            this.logger.warn('健康检查批次处理失败', {
+              connectionKey: key,
+              error: result.reason?.message || 'Unknown error',
+            });
+            results.push([key, false]);
+          }
+        });
+        
+        // 批次间短暂延迟，避免过度并发
+        if (i + concurrency < connections.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+      } catch (error) {
+        this.logger.error('健康检查批次异常', {
+          batchIndex,
+          error: error.message,
+        });
+        
+        // 批次失败时，将该批次所有连接标记为不健康
+        batch.forEach(([key]) => {
+          results.push([key, false]);
+        });
+      }
+    }
+    
+    const healthyCount = results.filter(([, isHealthy]) => isHealthy).length;
+    const totalCount = results.length;
+    const healthRate = totalCount > 0 ? (healthyCount / totalCount) * 100 : 100;
+    
+    this.logger.log('批量健康检查完成', {
+      totalConnections: totalCount,
+      healthyConnections: healthyCount,
+      unhealthyConnections: totalCount - healthyCount,
+      healthRate: healthRate.toFixed(1) + '%',
+      processingBatches: Math.ceil(connections.length / concurrency),
+    });
+    
+    // 如果健康率过低，触发告警
+    if (healthRate < 50) {
+      this.logger.error('连接健康率过低', {
+        healthRate: healthRate.toFixed(1) + '%',
+        totalConnections: totalCount,
+        healthyConnections: healthyCount,
+      });
+    }
+    
+    return Object.fromEntries(results);
+  }
+  
+  /**
+   * 执行带重试的健康检查
+   * @private
+   */
+  private async performHealthCheckWithRetry(
+    key: string,
+    connection: StreamConnection,
+    timeoutMs: number,
+    maxRetries: number,
+    skipUnresponsive: boolean
+  ): Promise<boolean> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        // 检查连接是否仍然存在（防止在健康检查过程中连接被关闭）
+        if (!this.activeConnections.has(key)) {
+          this.logger.debug('连接在健康检查期间已被关闭', { connectionKey: key });
+          return false;
+        }
+        
+        // 执行健康检查
+        const startTime = Date.now();
+        const isAlive = await Promise.race([
+          connection.isAlive(timeoutMs),
+          new Promise<boolean>((_, reject) => 
+            setTimeout(() => reject(new Error('Health check timeout')), timeoutMs)
+          )
+        ]);
+        
+        const checkDuration = Date.now() - startTime;
+        
+        if (attempt > 1) {
+          this.logger.debug('健康检查重试成功', {
+            connectionKey: key,
+            attempt,
+            duration: checkDuration,
+            result: isAlive,
+          });
+        }
+        
+        // 如果响应时间过长且配置了跳过不响应连接，标记为不健康
+        if (skipUnresponsive && checkDuration > timeoutMs * 0.8) {
+          this.logger.warn('连接响应缓慢', {
+            connectionKey: key,
+            duration: checkDuration,
+            threshold: timeoutMs * 0.8,
+          });
+          return false;
+        }
+        
+        return isAlive;
+        
+      } catch (error) {
+        lastError = error;
+        
+        if (attempt <= maxRetries) {
+          this.logger.debug('健康检查重试', {
+            connectionKey: key,
+            attempt,
+            maxRetries: maxRetries + 1,
+            error: error.message,
+          });
+          
+          // 重试前短暂延迟
+          await new Promise(resolve => setTimeout(resolve, Math.min(100 * attempt, 500)));
         }
       }
-    );
+    }
     
-    const results = await Promise.all(healthCheckPromises);
-    return Object.fromEntries(results);
+    // 所有重试都失败
+    this.logger.warn('连接健康检查最终失败', {
+      connectionKey: key,
+      attempts: maxRetries + 1,
+      lastError: lastError?.message || 'Unknown error',
+    });
+    
+    return false;
   }
 
   /**
@@ -486,8 +663,10 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
   }
 
   /**
-   * 等待连接建立
+   * 等待连接建立（事件驱动版本，替代轮询）
    * @param connection 连接实例
+   * @param timeoutMs 超时时间
+   * @returns Promise<void>
    */
   private async waitForConnectionEstablished(
     connection: StreamConnection,
@@ -496,15 +675,107 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       
+      // 如果连接已经建立，直接返回
+      if (connection.isConnected) {
+        resolve();
+        return;
+      }
+      
+      // 设置超时定时器
+      const timeoutTimer = setTimeout(() => {
+        // 从StreamConnectionImpl.statusCallbacks和errorCallbacks中移除回调
+        const connectionImpl = connection as StreamConnectionImpl;
+        
+        reject(new StreamConnectionException(
+          `连接建立超时 (${timeoutMs}ms)`,
+          connection.id,
+          connection.provider,
+          connection.capability,
+        ));
+      }, timeoutMs);
+      
+      // 监听状态变化事件
+      const onStatusChange = (status: string) => {
+        if (status === 'CONNECTED' || connection.isConnected) {
+          // 清理定时器
+          clearTimeout(timeoutTimer);
+          
+          const establishmentTime = Date.now() - startTime;
+          this.logger.debug('连接建立成功（事件驱动）', {
+            connectionId: connection.id,
+            provider: connection.provider,
+            capability: connection.capability,
+            establishmentTime,
+          });
+          
+          resolve();
+        }
+      };
+      
+      // 监听错误事件
+      const onError = (error: Error) => {
+        // 清理定时器
+        clearTimeout(timeoutTimer);
+        
+        reject(new StreamConnectionException(
+          `连接建立失败: ${error.message}`,
+          connection.id,
+          connection.provider,
+          connection.capability,
+        ));
+      };
+      
+      // 注册事件监听器
+      try {
+        connection.onStatusChange(onStatusChange);
+        connection.onError(onError);
+      } catch (listenerError) {
+        // 如果事件监听器注册失败，回退到轮询机制
+        this.logger.warn('事件监听器注册失败，回退到轮询模式', {
+          connectionId: connection.id,
+          error: listenerError.message,
+        });
+        
+        clearTimeout(timeoutTimer);
+        this.waitForConnectionEstablishedFallback(connection, timeoutMs)
+          .then(resolve)
+          .catch(reject);
+      }
+    });
+  }
+  
+  /**
+   * 轮询模式备用方案（当事件驱动失败时使用）
+   * @param connection 连接实例
+   * @param timeoutMs 超时时间
+   * @returns Promise<void>
+   * @private
+   */
+  private async waitForConnectionEstablishedFallback(
+    connection: StreamConnection,
+    timeoutMs: number,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const pollInterval = parseInt(process.env.STREAM_POLLING_INTERVAL_MS || '100');
+      
       const checkConnection = () => {
         if (connection.isConnected) {
+          const establishmentTime = Date.now() - startTime;
+          this.logger.debug('连接建立成功（轮询备用）', {
+            connectionId: connection.id,
+            provider: connection.provider,
+            capability: connection.capability,
+            establishmentTime,
+            pollInterval,
+          });
           resolve();
           return;
         }
         
         if (Date.now() - startTime > timeoutMs) {
           reject(new StreamConnectionException(
-            `连接建立超时 (${timeoutMs}ms)`,
+            `连接建立超时 (${timeoutMs}ms, fallback)`,
             connection.id,
             connection.provider,
             connection.capability,
@@ -512,8 +783,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
           return;
         }
         
-        // 每100ms检查一次
-        setTimeout(checkConnection, 100);
+        // 使用可配置的轮询间隔
+        setTimeout(checkConnection, pollInterval);
       };
       
       checkConnection();
@@ -542,6 +813,11 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
         status.toString()
       );
       
+      // 如果连接状态变为关闭或错误，自动清理Map
+      if (status === StreamConnectionStatus.CLOSED || status === StreamConnectionStatus.ERROR) {
+        this.cleanupConnectionFromMaps(connection.id);
+      }
+      
       previousStatus = status.toString();
     });
     
@@ -557,6 +833,9 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
       // 记录错误事件
       this.streamMetrics.recordErrorEvent(error.constructor.name, connection.provider);
       this.streamMetrics.recordConnectionEvent('failed', connection.provider);
+      
+      // 异常情况下也需要清理Map
+      this.cleanupConnectionFromMaps(connection.id);
     });
   }
 
@@ -566,5 +845,44 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
    */
   getMetricsSummary(): any {
     return this.streamMetrics.getMetricsSummary();
+  }
+  
+  /**
+   * 从内部Map中清理连接（防止内存泄漏的辅助方法）
+   * 
+   * @param connectionId 连接ID
+   * @private
+   */
+  private cleanupConnectionFromMaps(connectionId: string): void {
+    const connectionKey = this.connectionIdToKey.get(connectionId);
+    if (connectionKey) {
+      // 从连接池管理器注销
+      this.connectionPoolManager.unregisterConnection(connectionKey);
+      
+      // 从内部Map移除
+      this.activeConnections.delete(connectionKey);
+      this.connectionIdToKey.delete(connectionId);
+      
+      this.logger.debug('连接已从内部Map清理', {
+        connectionId,
+        connectionKey,
+        remainingConnections: this.activeConnections.size,
+      });
+    }
+  }
+  
+  /**
+   * 获取连接池状态
+   */
+  getConnectionPoolStats() {
+    const poolStats = this.connectionPoolManager.getStats();
+    const alerts = this.connectionPoolManager.getAlerts();
+    
+    return {
+      ...poolStats,
+      alerts,
+      activeConnections: this.activeConnections.size,
+      timestamp: new Date().toISOString(),
+    };
   }
 }

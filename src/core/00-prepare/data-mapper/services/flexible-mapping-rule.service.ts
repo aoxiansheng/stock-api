@@ -14,6 +14,7 @@ import {
 import { DataSourceTemplateService } from './data-source-template.service';
 import { MappingRuleCacheService } from './mapping-rule-cache.service';
 import { ObjectUtils } from '../../../shared/utils/object.util';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 @Injectable()
 export class FlexibleMappingRuleService {
@@ -27,6 +28,7 @@ export class FlexibleMappingRuleService {
     private readonly paginationService: PaginationService,
     private readonly templateService: DataSourceTemplateService,
     private readonly mappingRuleCacheService: MappingRuleCacheService,
+    private readonly collectorService: CollectorService,
   ) {}
 
   /**
@@ -209,25 +211,84 @@ export class FlexibleMappingRuleService {
    * 🔍 根据ID获取规则 (Redis缓存优化)
    */
   async findRuleById(id: string): Promise<FlexibleMappingRuleResponseDto> {
-    // 1. 尝试从缓存获取
-    const cachedRule = await this.mappingRuleCacheService.getCachedRuleById(id);
-    if (cachedRule) {
-      return cachedRule;
-    }
-
-    // 2. 缓存未命中，从数据库查询
-    const rule = await this.ruleModel.findById(id);
+    const startTime = Date.now();
     
-    if (!rule) {
-      throw new NotFoundException(`映射规则未找到: ${id}`);
+    try {
+      // 1. 尝试从缓存获取
+      const cachedRule = await this.mappingRuleCacheService.getCachedRuleById(id);
+      if (cachedRule) {
+        // ✅ 缓存命中监控
+        this.collectorService.recordCacheOperation(
+          'get',                              // operation
+          true,                               // hit
+          Date.now() - startTime,             // duration
+          {                                   // metadata
+            cacheType: 'redis',
+            key: `mapping_rule:${id}`,
+            service: 'FlexibleMappingRuleService'
+          }
+        );
+        return cachedRule;
+      }
+
+      // 2. 缓存未命中，从数据库查询
+      const rule = await this.ruleModel.findById(id);
+      
+      if (!rule) {
+        // ✅ 数据库查询失败监控
+        this.collectorService.recordDatabaseOperation(
+          'findById',                         // operation
+          Date.now() - startTime,             // duration
+          false,                              // success
+          {                                   // metadata
+            collection: 'flexibleMappingRules',
+            query: { _id: id },
+            service: 'FlexibleMappingRuleService',
+            error: 'Document not found'
+          }
+        );
+        throw new NotFoundException(`映射规则未找到: ${id}`);
+      }
+
+      // ✅ 数据库查询成功监控
+      this.collectorService.recordDatabaseOperation(
+        'findById',                           // operation
+        Date.now() - startTime,               // duration
+        true,                                 // success
+        {                                     // metadata
+          collection: 'flexibleMappingRules',
+          query: { _id: id },
+          service: 'FlexibleMappingRuleService',
+          resultCount: 1
+        }
+      );
+
+      const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
+      
+      // 3. 缓存查询结果 - 异步监控避免阻塞
+      setImmediate(() => {
+        this.mappingRuleCacheService.cacheRuleById(ruleDto).catch(error => {
+          this.logger.warn('缓存规则失败', { id, error: error.message });
+        });
+      });
+
+      return ruleDto;
+    } catch (error) {
+      // ✅ 异常监控
+      this.collectorService.recordRequest(
+        '/internal/find-rule-by-id',          // endpoint
+        'GET',                                // method
+        500,                                  // statusCode
+        Date.now() - startTime,               // duration
+        {                                     // metadata
+          service: 'FlexibleMappingRuleService',
+          operation: 'findRuleById',
+          error: error.message,
+          ruleId: id
+        }
+      );
+      throw error;
     }
-
-    const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
-    
-    // 3. 缓存查询结果
-    await this.mappingRuleCacheService.cacheRuleById(ruleDto);
-
-    return ruleDto;
   }
 
   /**
@@ -238,59 +299,125 @@ export class FlexibleMappingRuleService {
     apiType: 'rest' | 'stream',
     transDataRuleListType: string
   ): Promise<FlexibleMappingRuleResponseDto | null> {
+    const startTime = Date.now();
     this.logger.debug(`查找最匹配的映射规则`, { provider, apiType, transDataRuleListType });
 
-    // 1. 尝试从缓存获取最佳匹配规则
-    const cachedRule = await this.mappingRuleCacheService.getCachedBestMatchingRule(
-      provider, 
-      apiType, 
-      transDataRuleListType
-    );
-    if (cachedRule) {
-      return cachedRule;
-    }
+    try {
+      // 1. 尝试从缓存获取最佳匹配规则
+      const cachedRule = await this.mappingRuleCacheService.getCachedBestMatchingRule(
+        provider, 
+        apiType, 
+        transDataRuleListType
+      );
+      if (cachedRule) {
+        // ✅ 缓存命中监控
+        this.collectorService.recordCacheOperation(
+          'get',                              // operation
+          true,                               // hit
+          Date.now() - startTime,             // duration
+          {                                   // metadata
+            cacheType: 'redis',
+            key: `best_matching_rule:${provider}:${apiType}:${transDataRuleListType}`,
+            service: 'FlexibleMappingRuleService'
+          }
+        );
+        return cachedRule;
+      }
 
-    // 2. 缓存未命中，从数据库查询
-    // 首先查找默认规则
-    let rule = await this.ruleModel
-      .findOne({
-        provider,
-        apiType,
-        transDataRuleListType,
-        isActive: true,
-        isDefault: true,
-      })
-      .sort({ overallConfidence: -1 });
-
-    // 3. 如果没有默认规则，查找最佳匹配规则
-    if (!rule) {
-      rule = await this.ruleModel
+      // 2. 缓存未命中，从数据库查询
+      // 首先查找默认规则
+      let rule = await this.ruleModel
         .findOne({
           provider,
           apiType,
           transDataRuleListType,
           isActive: true,
+          isDefault: true,
         })
-        .sort({ 
-          overallConfidence: -1, 
-          successRate: -1,
-          usageCount: -1 
-        });
-    }
+        .sort({ overallConfidence: -1 });
 
-    const ruleDto = rule ? FlexibleMappingRuleResponseDto.fromDocument(rule) : null;
-    
-    // 4. 缓存查询结果（仅在找到规则时）
-    if (ruleDto) {
-      await this.mappingRuleCacheService.cacheBestMatchingRule(
-        provider, 
-        apiType, 
-        transDataRuleListType, 
-        ruleDto
+      // 3. 如果没有默认规则，查找最佳匹配规则
+      if (!rule) {
+        rule = await this.ruleModel
+          .findOne({
+            provider,
+            apiType,
+            transDataRuleListType,
+            isActive: true,
+          })
+          .sort({ 
+            overallConfidence: -1, 
+            successRate: -1,
+            usageCount: -1 
+          });
+      }
+
+      const ruleDto = rule ? FlexibleMappingRuleResponseDto.fromDocument(rule) : null;
+      
+      // ✅ 数据库查询监控
+      this.collectorService.recordDatabaseOperation(
+        'findBestMatchingRule',               // operation
+        Date.now() - startTime,               // duration
+        !!ruleDto,                            // success
+        {                                     // metadata
+          collection: 'flexibleMappingRules',
+          query: { provider, apiType, transDataRuleListType },
+          service: 'FlexibleMappingRuleService',
+          resultCount: ruleDto ? 1 : 0
+        }
       );
-    }
+      
+      // 4. 缓存查询结果（仅在找到规则时） - 异步避免阻塞
+      if (ruleDto) {
+        setImmediate(() => {
+          this.mappingRuleCacheService.cacheBestMatchingRule(
+            provider, 
+            apiType, 
+            transDataRuleListType, 
+            ruleDto
+          ).catch(error => {
+            this.logger.warn('缓存最佳匹配规则失败', { provider, apiType, transDataRuleListType, error: error.message });
+          });
+        });
+      }
 
-    return ruleDto;
+      // ✅ 性能监控 - 关键业务操作
+      this.collectorService.recordRequest(
+        '/internal/find-best-matching-rule',  // endpoint
+        'GET',                                // method
+        ruleDto ? 200 : 404,                  // statusCode
+        Date.now() - startTime,               // duration
+        {                                     // metadata
+          service: 'FlexibleMappingRuleService',
+          operation: 'findBestMatchingRule',
+          provider,
+          apiType,
+          transDataRuleListType,
+          cacheHit: false,
+          ruleFound: !!ruleDto,
+          performance_category: 'critical_path' // 标记为关键路径
+        }
+      );
+
+      return ruleDto;
+    } catch (error) {
+      // ✅ 错误监控
+      this.collectorService.recordRequest(
+        '/internal/find-best-matching-rule',  // endpoint
+        'GET',                                // method
+        500,                                  // statusCode
+        Date.now() - startTime,               // duration
+        {                                     // metadata
+          service: 'FlexibleMappingRuleService',
+          operation: 'findBestMatchingRule',
+          provider,
+          apiType,
+          transDataRuleListType,
+          error: error.message
+        }
+      );
+      throw error;
+    }
   }
 
   
@@ -314,6 +441,8 @@ export class FlexibleMappingRuleService {
     };
     debugInfo?: any[];
   }> {
+    const startTime = Date.now();
+    
     // 🐞 调试：应用映射前输出规则概览
     this.logger.debug("applyFlexibleMappingRule: begin", {
       ruleId: rule._id?.toString(),
@@ -406,7 +535,7 @@ export class FlexibleMappingRuleService {
     const totalMappings = successfulMappings + failedMappings;
     const successRate = totalMappings > 0 ? successfulMappings / totalMappings : 0;
 
-    return {
+    const result = {
       transformedData,
       success: successRate > 0.5, // 超过50%映射成功则认为整体成功
       mappingStats: {
@@ -417,6 +546,40 @@ export class FlexibleMappingRuleService {
       },
       debugInfo: includeDebugInfo ? debugInfo : undefined,
     };
+
+    try {
+      // ✅ 业务操作监控
+      this.collectorService.recordRequest(
+        '/internal/apply-mapping-rule',       // endpoint
+        'POST',                               // method
+        result.success ? 200 : 207,           // statusCode (207=部分成功)
+        Date.now() - startTime,               // duration
+        {                                     // metadata
+          service: 'FlexibleMappingRuleService',
+          operation: 'applyFlexibleMappingRule',
+          ruleId: rule._id?.toString(),
+          provider: rule.provider,
+          apiType: rule.apiType,
+          totalMappings,
+          successfulMappings,
+          failedMappings,
+          successRate: Math.round(successRate * 100) / 100,
+          performance_category: 'business_operation' // 标记为业务操作
+        }
+      );
+      
+      // ✅ 异步更新规则统计（避免阻塞）
+      setImmediate(() => {
+        this.updateRuleStats(rule._id.toString(), result.success).catch(error => {
+          this.logger.warn('更新规则统计失败', { error: error.message });
+        });
+      });
+    } catch (monitoringError) {
+      // 监控失败不应影响业务逻辑
+      this.logger.warn('记录业务监控指标失败', { error: monitoringError.message });
+    }
+
+    return result;
   }
 
   /**

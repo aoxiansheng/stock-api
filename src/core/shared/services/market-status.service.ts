@@ -6,6 +6,7 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 
 import { createLogger } from "@common/config/logger.config";
+import { CollectorService } from '../../../monitoring/collector/collector.service';
 import {
   MarketStatus,
   MarketTradingHours,
@@ -55,6 +56,10 @@ interface ProviderMarketStatus {
 export class MarketStatusService implements OnModuleDestroy {
   private readonly logger = createLogger(MarketStatusService.name);
 
+  constructor(
+    private readonly collectorService: CollectorService, // ✅ 标准依赖注入
+  ) {}
+
   // 🔧 Phase 1.3.1: 静态时区格式化器缓存（解决415-424行性能问题）
   private static readonly formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -78,10 +83,22 @@ export class MarketStatusService implements OnModuleDestroy {
    * 🎯 优先级：Provider实时数据 > 本地时间计算 > 缓存降级
    */
   async getMarketStatus(market: Market): Promise<MarketStatusResult> {
+    const startTime = Date.now();
+    let cacheHit = false;
+
     try {
       // 1. 检查缓存
       const cached = this.getCachedStatus(market);
       if (cached) {
+        cacheHit = true;
+        
+        // ✅ 缓存命中监控
+        this.safeRecordCacheOperation('get', true, Date.now() - startTime, {
+          market,
+          operation: 'get_market_status',
+          source: 'memory_cache'
+        });
+        
         return cached;
       }
 
@@ -96,9 +113,30 @@ export class MarketStatusService implements OnModuleDestroy {
 
       // 5. 缓存结果
       this.cacheStatus(market, finalStatus);
+      
+      // ✅ 缓存未命中监控
+      this.safeRecordCacheOperation('get', false, Date.now() - startTime, {
+        market,
+        operation: 'get_market_status',
+        calculation_required: true
+      });
 
       return finalStatus;
     } catch (error) {
+      // ✅ 错误监控
+      this.safeRecordRequest(
+        `/internal/market-status/${market}`,
+        'GET',
+        500,
+        Date.now() - startTime,
+        {
+          operation: 'get_market_status',
+          market,
+          cache_hit: cacheHit,
+          error: error.message
+        }
+      );
+      
       this.logger.error("获取市场状态失败", { market, error: error.message });
 
       // 降级到本地计算
@@ -112,27 +150,66 @@ export class MarketStatusService implements OnModuleDestroy {
   async getBatchMarketStatus(
     markets: Market[],
   ): Promise<Record<Market, MarketStatusResult>> {
-    const results = await Promise.allSettled(
-      markets.map((market) => this.getMarketStatus(market)),
-    );
+    const startTime = Date.now();
+    let successCount = 0;
+    let errorCount = 0;
 
-    const statusMap: Record<Market, MarketStatusResult> = {} as any;
+    try {
+      const results = await Promise.allSettled(
+        markets.map((market) => this.getMarketStatus(market)),
+      );
 
-    results.forEach((result, index) => {
-      const market = markets[index];
-      if (result.status === "fulfilled") {
-        statusMap[market] = result.value;
-      } else {
-        this.logger.error("批量获取市场状态失败", {
-          market,
-          error: result.reason,
-        });
-        // 降级处理
-        statusMap[market] = this.calculateLocalMarketStatus(market);
-      }
-    });
+      const statusMap: Record<Market, MarketStatusResult> = {} as any;
 
-    return statusMap;
+      // 统计结果
+      results.forEach((result, index) => {
+        const market = markets[index];
+        if (result.status === "fulfilled") {
+          statusMap[market] = result.value;
+          successCount++;
+        } else {
+          this.logger.error("批量获取市场状态失败", {
+            market,
+            error: result.reason,
+          });
+          // 降级处理
+          statusMap[market] = this.calculateLocalMarketStatus(market);
+          errorCount++;
+        }
+      });
+
+      // ✅ 批量操作监控
+      this.safeRecordRequest(
+        '/internal/market-status/batch',
+        'POST', 
+        errorCount > 0 ? 207 : 200, // 207=部分成功
+        Date.now() - startTime,
+        {
+          operation: 'batch_market_status',
+          total_markets: markets.length,
+          success_count: successCount,
+          error_count: errorCount,
+          markets: markets.join(',')
+        }
+      );
+
+      return statusMap;
+    } catch (error) {
+      // ✅ 批量操作失败监控
+      this.safeRecordRequest(
+        '/internal/market-status/batch',
+        'POST',
+        500,
+        Date.now() - startTime,
+        {
+          operation: 'batch_market_status',
+          total_markets: markets.length,
+          error: error.message
+        }
+      );
+      
+      throw error;
+    }
   }
 
   /**
@@ -537,5 +614,26 @@ export class MarketStatusService implements OnModuleDestroy {
   onModuleDestroy() {
     this.statusCache.clear();
     MarketStatusService.formatters.clear();
+  }
+
+  // ✅ 监控故障隔离方法
+  private safeRecordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+      } catch (error) {
+        this.logger.warn('监控记录失败', { error: error.message, endpoint, method });
+      }
+    });
+  }
+
+  private safeRecordCacheOperation(operation: string, hit: boolean, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
+      } catch (error) {
+        this.logger.warn('缓存监控记录失败', { error: error.message, operation });
+      }
+    });
   }
 }

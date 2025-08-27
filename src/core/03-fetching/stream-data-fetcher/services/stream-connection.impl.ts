@@ -401,6 +401,11 @@ export class StreamConnectionImpl implements StreamConnection, OnModuleDestroy {
         await this.capabilityInstance.close(this.contextService);
       }
       
+      // 清空事件监听器回调数组（防止内存泄漏）
+      this.dataCallbacks.length = 0;
+      this.statusCallbacks.length = 0;
+      this.errorCallbacks.length = 0;
+      
       // 更新连接状态
       this.isConnected = false;
       this.updateStatus(StreamConnectionStatus.CLOSED);

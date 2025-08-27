@@ -3,12 +3,17 @@ import { StreamDataFetcherService } from '../services/stream-data-fetcher.servic
 import { StreamClientStateManager } from '../services/stream-client-state-manager.service';
 import { StreamRecoveryWorkerService } from '../services/stream-recovery-worker.service';
 import { StreamMetricsService } from '../services/stream-metrics.service';
+import { ConnectionPoolManager } from '../services/connection-pool-manager.service';
+import { StreamRateLimitGuard } from '../guards/stream-rate-limit.guard';
+import { WebSocketRateLimitGuard } from '../guards/websocket-rate-limit.guard';
+import { ErrorSanitizerInterceptor } from '../interceptors/error-sanitizer.interceptor';
+import { StreamConfigService } from '../config/stream-config.service';
 import { StreamRecoveryConfigService } from '../config/stream-recovery.config';
 import { StreamRecoveryMetricsService } from '../metrics/stream-recovery.metrics';
 import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../providers/websocket-server.provider';
 import { SharedServicesModule } from '../../../shared/module/shared-services.module';
 import { ProvidersModule } from '../../../../providers/module/providers.module';
-import { PresenterModule } from '../../../../monitoring/presenter/presenter.module';
+import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 import { StreamCacheModule } from '../../../05-caching/stream-cache/module/stream-cache.module';
 
 /**
@@ -24,7 +29,7 @@ import { StreamCacheModule } from '../../../05-caching/stream-cache/module/strea
   imports: [
     SharedServicesModule, // 导入共享服务(包含BaseFetcherService相关依赖)
     ProvidersModule, // 导入提供商模块以访问CapabilityRegistryService
-    PresenterModule, // 导入监控模块以访问MetricsRegistryService
+    MonitoringModule, // 导入监控模块以访问CollectorService
     StreamCacheModule, // 🎯 新增：导入专用流缓存模块
   ],
   providers: [
@@ -32,6 +37,11 @@ import { StreamCacheModule } from '../../../05-caching/stream-cache/module/strea
     StreamClientStateManager,
     StreamRecoveryWorkerService,
     StreamMetricsService,
+    ConnectionPoolManager, // 新增连接池管理器
+    StreamRateLimitGuard, // DoS防护 - HTTP
+    WebSocketRateLimitGuard, // DoS防护 - WebSocket
+    ErrorSanitizerInterceptor, // 错误信息脱敏
+    StreamConfigService, // 配置管理服务
     StreamRecoveryConfigService,
     StreamRecoveryMetricsService,
     // 强类型WebSocket服务器提供者 - 替代forwardRef

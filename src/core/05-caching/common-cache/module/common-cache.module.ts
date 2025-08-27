@@ -4,13 +4,17 @@ import Redis from 'ioredis';
 import { CommonCacheService } from '../services/common-cache.service';
 import { CacheCompressionService } from '../services/cache-compression.service';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
+import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 
 /**
  * 通用缓存模块
  * 非全局模块，需显式导入
  */
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule,
+    MonitoringModule, // ✅ 导入监控模块，提供CollectorService
+  ],
   providers: [
     // Redis客户端提供者
     {
@@ -73,22 +77,16 @@ import { CACHE_CONFIG } from '../constants/cache-config.constants';
       inject: [ConfigService],
     },
 
-    // 指标注册表提供者（可选）
+    // ✅ 提供CollectorService（从 MonitoringModule 导入）
     {
-      provide: 'METRICS_REGISTRY',
-      useFactory: () => {
-        // 这里应该返回实际的MetricsRegistry实例
-        // 暂时返回一个简单的mock对象
-        return {
-          inc: (name: string, labels?: Record<string, string>) => {
-            // 在生产环境中，这里应该调用实际的指标收集器
-            console.debug(`Metric ${name} incremented with labels:`, labels);
-          },
-          observe: (name: string, value: number, labels?: Record<string, string>) => {
-            console.debug(`Metric ${name} observed value ${value} with labels:`, labels);
-          },
+      provide: 'CollectorService',
+      useFactory: (monitoringModule: any) => {
+        // CollectorService 将由 MonitoringModule 提供
+        return monitoringModule?.collectorService || {
+          recordCacheOperation: () => {}, // fallback
         };
       },
+      inject: [], // MonitoringModule will provide CollectorService
     },
 
     // 核心服务
@@ -99,6 +97,7 @@ import { CACHE_CONFIG } from '../constants/cache-config.constants';
     CommonCacheService,
     CacheCompressionService,
     'REDIS_CLIENT',
+    // ✅ 移除METRICS_REGISTRY导出
   ],
 })
 export class CommonCacheModule {

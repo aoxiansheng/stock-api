@@ -14,7 +14,7 @@ import {
   FlexibleMappingRuleDocument
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import { RuleAlignmentService } from "../../../../../../../src/core/00-prepare/data-mapper/services/rule-alignment.service";
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 
 // Mock the logger
 jest.mock("../../../../../../../src/common/config/logger.config", () => ({
@@ -33,7 +33,7 @@ describe("PersistedTemplateService", () => {
   let templateModel: DeepMocked<Model<DataSourceTemplateDocument>>;
   let ruleModel: DeepMocked<Model<FlexibleMappingRuleDocument>>;
   let mockRuleAlignmentService: DeepMocked<RuleAlignmentService>;
-  let mockMetricsRegistry: DeepMocked<InfrastructureMetricsRegistryService>;
+  let mockCollectorService: DeepMocked<CollectorService>;
 
   const mockTemplate = {
     _id: "507f1f77bcf86cd799439011",
@@ -131,12 +131,12 @@ describe("PersistedTemplateService", () => {
           useValue: createMock<RuleAlignmentService>(),
         },
         {
-          provide: InfrastructureMetricsRegistryService,
-          useValue: {
-            dataMapperRuleInitializationTotal: mockCounter,
-            dataMapperRulesCreatedTotal: mockGauge,
-            dataMapperRulesSkippedTotal: mockGauge,
-          },
+          provide: CollectorService,
+          useValue: createMock<CollectorService>({
+            recordRequest: jest.fn(),
+            recordDatabaseOperation: jest.fn(),
+            recordCacheOperation: jest.fn(),
+          }),
         },
       ],
     }).compile();
@@ -145,7 +145,7 @@ describe("PersistedTemplateService", () => {
     templateModel = module.get(getModelToken(DataSourceTemplate.name));
     ruleModel = module.get(getModelToken(FlexibleMappingRule.name));
     mockRuleAlignmentService = module.get(RuleAlignmentService);
-    mockMetricsRegistry = module.get(InfrastructureMetricsRegistryService);
+    mockCollectorService = module.get(CollectorService);
     
     // 重置所有mock
     jest.clearAllMocks();
@@ -586,8 +586,19 @@ describe("PersistedTemplateService", () => {
       );
 
       // 验证监控指标记录
-      expect(mockMetricsRegistry.dataMapperRuleInitializationTotal.labels).toHaveBeenCalledWith("created", "longport", "rest");
-      expect(mockMetricsRegistry.dataMapperRulesCreatedTotal.set).toHaveBeenCalledWith(2);
+      // ✅ 验证监控调用 - 使用新的CollectorService API
+      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
+        '/internal/initialize-preset-rules',
+        'POST',
+        200,
+        expect.any(Number),
+        expect.objectContaining({
+          service: 'PersistedTemplateService',
+          operation: 'initializePresetMappingRules_batch',
+          created: 2,
+          successRate: expect.any(Number)
+        })
+      );
     });
 
     it("应该智能判断规则类型", async () => {
@@ -683,7 +694,18 @@ describe("PersistedTemplateService", () => {
       expect(mockRuleAlignmentService.generateRuleFromTemplate).not.toHaveBeenCalled();
 
       // 验证跳过指标被记录
-      expect(mockMetricsRegistry.dataMapperRuleInitializationTotal.labels).toHaveBeenCalledWith("skipped", "longport", "rest");
+      // ✅ 验证跳过记录的监控调用
+      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
+        '/internal/initialize-preset-rule',
+        'POST',
+        409,
+        expect.any(Number),
+        expect.objectContaining({
+          service: 'PersistedTemplateService',
+          result: 'skipped',
+          reason: 'rule_already_exists'
+        })
+      );
     });
 
     it("应该正确处理智能对齐服务失败的情况", async () => {
@@ -711,7 +733,18 @@ describe("PersistedTemplateService", () => {
       ]));
 
       // 验证失败指标被记录
-      expect(mockMetricsRegistry.dataMapperRuleInitializationTotal.labels).toHaveBeenCalledWith("failed", "longport", "rest");
+      // ✅ 验证失败记录的监控调用
+      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
+        '/internal/initialize-preset-rule',
+        'POST',
+        500,
+        expect.any(Number),
+        expect.objectContaining({
+          service: 'PersistedTemplateService',
+          result: 'failed',
+          error: expect.any(String)
+        })
+      );
     });
 
     it("应该处理没有预设模板的情况", async () => {

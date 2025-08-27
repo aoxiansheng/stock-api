@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { SymbolMapperCacheModule } from '../../../05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module';
-import { PresenterModule } from '../../../../monitoring/presenter/presenter.module';
+import { MonitoringModule } from '../../../../monitoring/monitoring.module'; // ✅ 替换 PresenterModule
 import { SymbolTransformerService } from '../services/symbol-transformer.service';
 
 @Module({
   imports: [
-    SymbolMapperCacheModule, // 缓存服务
-    PresenterModule,        // 监控服务（可选）
+    SymbolMapperCacheModule,
+    MonitoringModule, // ✅ 标准监控模块导入（替换 PresenterModule）
   ],
   providers: [SymbolTransformerService],
   exports: [SymbolTransformerService],

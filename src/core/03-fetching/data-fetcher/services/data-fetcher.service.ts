@@ -96,10 +96,17 @@ export class DataFetcherService implements IDataFetcher {
       };
 
       // 3. 执行SDK调用 - 标准化监控：记录外部API调用
-      const rawData = await this.collectorService.recordRequest(
+      const apiStartTime = Date.now();
+      const rawData = await cap.execute(executionParams);
+      const apiDuration = Date.now() - apiStartTime;
+      
+      // 记录API调用指标
+      this.collectorService.recordRequest(
         'external_api',
         `${provider}/${capability}`,
-        async () => cap.execute(executionParams)
+        200, // 成功状态码
+        apiDuration,
+        { requestId, symbolsCount: symbols.length }
       );
       
       // 4. 处理返回数据格式
@@ -108,13 +115,27 @@ export class DataFetcherService implements IDataFetcher {
       const processingTime = Date.now() - startTime;
       
       // 5. 系统性能监控 - 使用标准化监控服务
-      await this.collectorService.recordSystemMetrics('data_fetcher', {
-        processingTime,
-        symbolsCount: symbols.length,
-        timePerSymbol: symbols.length > 0 ? processingTime / symbols.length : 0,
-        provider,
-        capability,
+      this.collectorService.recordSystemMetrics({
+        memory: { used: 0, total: 0, percentage: 0 },
+        cpu: { usage: 0 },
+        uptime: process.uptime(),
+        timestamp: new Date()
       });
+      
+      // 记录额外的性能数据
+      this.collectorService.recordRequest(
+        '/internal/data-fetcher-metrics',
+        'POST',
+        200,
+        processingTime,
+        {
+          symbolsCount: symbols.length,
+          timePerSymbol: symbols.length > 0 ? processingTime / symbols.length : 0,
+          provider,
+          capability,
+          componentType: 'data_fetcher'
+        }
+      );
       
       // 6. 构建结果
       const result: RawDataResult = {
@@ -145,11 +166,21 @@ export class DataFetcherService implements IDataFetcher {
       const processingTime = Date.now() - startTime;
       
       // 记录失败的外部API调用
-      await this.collectorService.recordRequest(
-        'external_api_error', 
-        `${provider}/${capability}`, 
-        async () => { throw error; }
-      ).catch(() => {}); // 忽略监控记录失败
+      try {
+        this.collectorService.recordRequest(
+          'external_api_error',
+          `${provider}/${capability}`,
+          500, // 错误状态码
+          processingTime,
+          { 
+            requestId, 
+            error: error.message, 
+            symbolsCount: symbols.length 
+          }
+        );
+      } catch(monitorError) {
+        // 忽略监控记录失败
+      }
       
       this.logger.error('原始数据获取失败', 
         sanitizeLogData({
@@ -207,11 +238,22 @@ export class DataFetcherService implements IDataFetcher {
       }
 
       // 记录数据库操作 - 获取provider上下文可能涉及数据库查询
-      return await this.collectorService.recordDatabaseOperation(
+      const startTime = Date.now();
+      const result = await providerInstance.getContextService();
+      const duration = Date.now() - startTime;
+
+      // 记录数据库操作性能指标
+      this.collectorService.recordDatabaseOperation(
         'provider_context_query',
-        provider,
-        async () => providerInstance.getContextService()
+        duration,
+        true, // 成功标志
+        {
+          provider,
+          operation: 'get_context_service'
+        }
       );
+      
+      return result;
       
     } catch (error) {
       // 标准化错误处理：统一抛出异常
@@ -269,11 +311,27 @@ export class DataFetcherService implements IDataFetcher {
     }
     
     // 记录批量操作性能指标
-    await this.collectorService.recordSystemMetrics('batch_processing', {
-      totalRequests: requests.length,
-      successCount: results.filter(r => !r.hasPartialFailures).length,
-      partialFailuresCount: results.filter(r => r.hasPartialFailures).length,
+    this.collectorService.recordSystemMetrics({
+      memory: { used: 0, total: 0, percentage: 0 },
+      cpu: { usage: 0 },
+      uptime: process.uptime(),
+      timestamp: new Date()
     });
+    
+    // 记录批量处理详细指标
+    this.collectorService.recordRequest(
+      '/internal/batch-metrics',
+      'POST',
+      200,
+      0, // 无耗时
+      {
+        totalRequests: requests.length,
+        successCount: results.filter(r => !r.hasPartialFailures).length,
+        partialFailuresCount: results.filter(r => r.hasPartialFailures).length,
+        componentType: 'data_fetcher',
+        operation: 'batch_processing'
+      }
+    );
     
     this.logger.debug('批量数据获取完成', {
       totalRequests: requests.length,

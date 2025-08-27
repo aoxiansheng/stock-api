@@ -6,11 +6,11 @@ import {
 } from "@nestjs/common";
 import { DataTransformerService } from "../../../../../../../src/core/02-processing/transformer/services/data-transformer.service";
 import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service";
+import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service"; // ✅ 新增 CollectorService
 import { DataTransformRequestDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-request.dto";
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { DataTransformResponseDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-response.dto";
 import { DeepMocked, createMock } from "@golevelup/ts-jest";
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
 
 // Mock the logger
 jest.mock("../../../../../../../src/common/config/logger.config", () => ({
@@ -26,6 +26,7 @@ jest.mock("../../../../../../../src/common/config/logger.config", () => ({
 describe("DataTransformerService", () => {
   let service: DataTransformerService;
   let flexibleMappingRuleService: DeepMocked<FlexibleMappingRuleService>;
+  let mockCollectorService: jest.Mocked<CollectorService>; // ✅ 新增 CollectorService mock
 
   const mockMappingRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
@@ -64,6 +65,13 @@ describe("DataTransformerService", () => {
   };
 
   beforeEach(async () => {
+    const mockCollector = {
+      recordRequest: jest.fn(),
+      recordDatabaseOperation: jest.fn(),
+      recordCacheOperation: jest.fn(),
+      recordSystemMetrics: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DataTransformerService,
@@ -71,20 +79,16 @@ describe("DataTransformerService", () => {
           provide: FlexibleMappingRuleService,
           useValue: createMock<FlexibleMappingRuleService>(),
         },
-        {
-          provide: InfrastructureMetricsRegistryService,
-          useValue: createMock<InfrastructureMetricsRegistryService>(),
-        },
+        { provide: CollectorService, useValue: mockCollector }, // ✅ Mock CollectorService
       ],
     }).compile();
 
     service = module.get<DataTransformerService>(DataTransformerService);
     flexibleMappingRuleService = module.get(FlexibleMappingRuleService);
+    mockCollectorService = module.get(CollectorService);
     
-    // Setup the mock for the ruleModel property on the service
-    (flexibleMappingRuleService as any)._ruleModel = {
-        findById: jest.fn().mockResolvedValue(mockRuleDocument),
-    };
+    // Setup the mock for getRuleDocumentById method
+    flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
   });
 
   afterEach(() => {
@@ -105,7 +109,7 @@ describe("DataTransformerService", () => {
       expect(result.transformedData).toEqual({ lastPrice: 150.5, volume: 100000 });
       expect(result.metadata.ruleId).toBe(mockMappingRule.id);
       expect(flexibleMappingRuleService.findBestMatchingRule).toHaveBeenCalled();
-      expect((flexibleMappingRuleService as any).ruleModel.findById).toHaveBeenCalledWith(mockMappingRule.id);
+      expect(flexibleMappingRuleService.getRuleDocumentById).toHaveBeenCalledWith(mockMappingRule.id);
       expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalled();
     });
 
@@ -139,6 +143,55 @@ describe("DataTransformerService", () => {
       flexibleMappingRuleService.findBestMatchingRule.mockRejectedValue(new Error("DB Error"));
       await expect(service.transform(validRequest)).rejects.toThrow("DB Error");
     });
+
+    // ✅ 验证标准监控调用
+    it("should record metrics on successful transformation", async () => {
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
+        success: true,
+        transformedData: { lastPrice: 150.5, volume: 100000 },
+        mappingStats: { successfulMappings: 2, failedMappings: 0, totalMappings: 2, successRate: 1 },
+      });
+
+      await service.transform(validRequest);
+
+      // ✅ 验证标准监控调用
+      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
+        '/internal/data-transformation',        // endpoint
+        'POST',                                // method
+        200,                                   // statusCode
+        expect.any(Number),                    // duration
+        expect.objectContaining({              // metadata
+          operation: 'data-transformation',
+          provider: validRequest.provider,
+          transDataRuleListType: validRequest.transDataRuleListType
+        })
+      );
+    });
+
+    // ✅ 验证错误监控调用
+    it("should record error metrics on transformation failure", async () => {
+      const transformError = new Error('Transform failed');
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockRejectedValue(transformError);
+
+      await expect(service.transform(validRequest)).rejects.toThrow();
+
+      // ✅ 验证错误监控调用
+      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
+        '/internal/data-transformation',        // endpoint
+        'POST',                                // method
+        500,                                   // statusCode
+        expect.any(Number),                    // duration
+        expect.objectContaining({              // metadata
+          operation: 'data-transformation',
+          provider: validRequest.provider,
+          transDataRuleListType: validRequest.transDataRuleListType,
+          error: transformError.message,
+          errorType: 'Error'
+        })
+      );
+    });
   });
   
   describe("transformBatch", () => {
@@ -171,7 +224,7 @@ describe("DataTransformerService", () => {
 
         expect(result).toBeInstanceOf(DataTransformResponseDto);
         expect(result.transformedData).toEqual({ lastPrice: 150.5 });
-        expect((flexibleMappingRuleService as any).ruleModel.findById).toHaveBeenCalledWith(mockMappingRule.id);
+        expect(flexibleMappingRuleService.getRuleDocumentById).toHaveBeenCalledWith(mockMappingRule.id);
         expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalled();
       });
 

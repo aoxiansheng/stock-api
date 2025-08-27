@@ -8,7 +8,7 @@ import { SymbolMapperModule } from '../../../00-prepare/symbol-mapper/module/sym
 import { SymbolTransformerModule } from '../../../02-processing/symbol-transformer/module/symbol-transformer.module';
 import { TransformerModule } from '../../../02-processing/transformer/module/data-transformer.module';
 import { StreamDataFetcherModule } from '../../../03-fetching/stream-data-fetcher/module/stream-data-fetcher.module';
-import { PresenterModule } from '../../../../monitoring/presenter/presenter.module'; // Phase 4: 延迟监控集成
+import { MonitoringModule } from '../../../../monitoring/monitoring.module'; // ✅ 使用统一监控模块
 
 /**
  * StreamReceiver 模块 - Phase 4 完整版本
@@ -18,9 +18,9 @@ import { PresenterModule } from '../../../../monitoring/presenter/presenter.modu
  * - 移除了 DataMapperModule 直接依赖 (数据转换统一由 TransformerModule 处理)
  * - 移除了 PerformanceOptimizationModule (批量优化逻辑内置)
  * - 新增 StreamDataFetcherModule (集成新的流数据架构)
- * - 新增 MonitoringModule (Phase 4 延迟监控集成)
+ * - ✅ 使用 MonitoringModule (统一监控集成)
  * 
- * 🎯 Phase 4 架构：精简依赖 + 管道化处理 + 延迟监控
+ * 🎯 Phase 4 架构：精简依赖 + 管道化处理 + 统一监控
  */
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { PresenterModule } from '../../../../monitoring/presenter/presenter.modu
     SymbolTransformerModule,   // 🔥 符号转换执行服务
     TransformerModule,         // 数据转换服务 (统一处理所有转换)
     StreamDataFetcherModule,   // 🚀 流数据获取、缓存、客户端管理
-    PresenterModule,          // 🎯 Phase 4: 延迟监控和 Prometheus 指标
+    MonitoringModule,         // ✅ 统一监控模块
   ],
   providers: [
     StreamReceiverGateway,

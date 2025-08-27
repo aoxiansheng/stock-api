@@ -142,8 +142,13 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
             this.metricsRegistry.receiverRequestsTotal.inc(tags, count);
             break;
           case 'cache':
+            // 🔧 修正：标签白名单筛选，避免 prom-client 未知标签错误
+            const cacheLabels = {
+              cache_type: tags.cache_type || tags.storage_type || 'unknown',
+              operation: tags.operation || 'unknown'
+            };
             // 对于gauge类型，使用平均值
-            this.metricsRegistry.storageCacheEfficiency.set(tags, value / count);
+            this.metricsRegistry.storageCacheEfficiency.set(cacheLabels, value / count);
             break;
           case 'database':
             this.metricsRegistry.storageOperationsTotal.inc(tags, count);

@@ -1,12 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
 import * as crypto from 'crypto';
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service'; // ✅ 更换为CollectorService
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { SymbolMappingRule } from '../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { createLogger } from '@common/config/logger.config';
-import { MetricsHelper } from '../../../../monitoring/infrastructure/helper/infrastructure-helper';
 import { 
   BatchMappingResult,
   CacheStatsDto 
@@ -54,7 +53,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
-    private readonly metricsRegistry: MetricsRegistryService
+    @Inject('CollectorService') private readonly collectorService: any // ✅ 使用CollectorService
   ) {
     this.initializeCaches();
     this.initializeStats();
@@ -444,17 +443,22 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
    * 📊 监控指标策略 - 避免指标类型冲突
    */
   private recordCacheMetrics(level: 'l1'|'l2'|'l3', isHit: boolean): void {
-    // 复用现有的 streamCacheHitRate，仅使用定义中的 cache_type 标签
-    // 避免添加额外标签导致 prom-client 标签不匹配报错
-    // 统一使用 MetricsHelper.inc 封装，与现网保持一致
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'streamCacheHitRate',
-      { 
-        cache_type: `symbol_mapping_${level}`  // 只接受 symbol_mapping_l1|l2|l3
-      },
-      isHit ? 100 : 0
-    );
+    try {
+      // ✅ 使用CollectorService的业务语义化接口
+      this.collectorService.recordCacheOperation(
+        `symbol_mapping_${level}`, // 操作名
+        isHit,                     // 是否命中
+        0,                         // duration（符号映射缓存通常很快）
+        { 
+          cacheType: 'symbol-mapper',
+          level: level,            // l1/l2/l3
+          layer: level             // 用于区分不同缓存层级
+        }
+      );
+    } catch (error) {
+      // ✅ 监控失败不影响业务
+      this.logger.debug(`符号映射缓存监控记录失败: ${error.message}`);
+    }
   }
 
   /**

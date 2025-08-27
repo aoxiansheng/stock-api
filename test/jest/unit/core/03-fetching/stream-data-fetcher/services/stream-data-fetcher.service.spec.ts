@@ -3,7 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { StreamDataFetcherService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
+import { StreamMetricsService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-metrics.service';
+import { StreamCacheService } from '../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
+import { StreamClientStateManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service';
+import { ConnectionPoolManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/connection-pool-manager.service';
 import {
   StreamConnectionParams,
   StreamConnection,
@@ -14,7 +18,7 @@ import {
 describe('StreamDataFetcherService', () => {
   let service: StreamDataFetcherService;
   let capabilityRegistry: jest.Mocked<CapabilityRegistryService>;
-  let metricsRegistry: jest.Mocked<InfrastructureMetricsRegistryService>;
+  let collectorService: jest.Mocked<CollectorService>;
 
   // Mock对象
   let mockCapabilityInstance: any;
@@ -45,33 +49,46 @@ describe('StreamDataFetcherService', () => {
       getProvider: jest.fn(),
     };
 
-    const mockMetricsRegistry = {
-      // Mock the actual metric properties from InfrastructureMetricsRegistryService
-      receiverProcessingDuration: {
-        labels: jest.fn().mockReturnThis(),
-        _observe: jest.fn(),
-      },
-      receiverRequestsTotal: {
-        labels: jest.fn().mockReturnThis(),
-        inc: jest.fn(),
-      },
-      streamConcurrentConnections: {
-        labels: jest.fn().mockReturnThis(),
-        inc: jest.fn(),
-        set: jest.fn(),
-      },
-      streamSymbolsProcessedTotal: {
-        labels: jest.fn().mockReturnThis(),
-        inc: jest.fn(),
-      },
-      streamProcessingTimeMs: {
-        labels: jest.fn().mockReturnThis(),
-        set: jest.fn(),
-      },
-      streamErrorRate: {
-        labels: jest.fn().mockReturnThis(),
-        set: jest.fn(),
-      },
+    const mockCollectorService = {
+      recordRequest: jest.fn(),
+      recordDatabaseOperation: jest.fn(),
+      recordCacheOperation: jest.fn(),
+      recordSystemMetrics: jest.fn(),
+      collectRequestMetrics: jest.fn().mockResolvedValue(undefined),
+      collectPerformanceData: jest.fn().mockResolvedValue(undefined),
+      getRawMetrics: jest.fn().mockResolvedValue({ requests: [], database: [], cache: [], system: undefined }),
+      getSystemMetrics: jest.fn().mockResolvedValue({ memory: { used: 0, total: 0, percentage: 0 }, cpu: { usage: 0 }, uptime: 0, timestamp: new Date() }),
+    };
+
+    const mockStreamMetricsService = {
+      recordConnectionEvent: jest.fn(),
+      updateActiveConnectionsCount: jest.fn(),
+      recordSymbolProcessing: jest.fn(),
+      recordLatency: jest.fn(),
+      recordConnectionStatusChange: jest.fn(),
+      recordErrorEvent: jest.fn(),
+    };
+
+    const mockStreamCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      clear: jest.fn(),
+    };
+
+    const mockClientStateManager = {
+      addClient: jest.fn(),
+      removeClient: jest.fn(),
+      updateClientState: jest.fn(),
+      getClientState: jest.fn(),
+    };
+
+    const mockConnectionPoolManager = {
+      canCreateConnection: jest.fn().mockReturnValue(true),
+      registerConnection: jest.fn(),
+      unregisterConnection: jest.fn(),
+      getStats: jest.fn().mockReturnValue({}),
+      getAlerts: jest.fn().mockReturnValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -82,15 +99,31 @@ describe('StreamDataFetcherService', () => {
           useValue: mockCapabilityRegistry,
         },
         {
-          provide: InfrastructureMetricsRegistryService,
-          useValue: mockMetricsRegistry,
+          provide: CollectorService,
+          useValue: mockCollectorService,
+        },
+        {
+          provide: StreamMetricsService,
+          useValue: mockStreamMetricsService,
+        },
+        {
+          provide: StreamCacheService,
+          useValue: mockStreamCacheService,
+        },
+        {
+          provide: StreamClientStateManager,
+          useValue: mockClientStateManager,
+        },
+        {
+          provide: ConnectionPoolManager,
+          useValue: mockConnectionPoolManager,
         },
       ],
     }).compile();
 
     service = module.get<StreamDataFetcherService>(StreamDataFetcherService);
     capabilityRegistry = module.get(CapabilityRegistryService);
-    metricsRegistry = module.get(InfrastructureMetricsRegistryService);
+    collectorService = module.get(CollectorService);
   });
 
   afterEach(() => {
@@ -174,9 +207,8 @@ describe('StreamDataFetcherService', () => {
       await service.establishStreamConnection(validParams);
 
       // Assert
-      // 验证指标记录 - 连接建立成功时会记录指标
-      expect(metricsRegistry.receiverProcessingDuration.observe).toHaveBeenCalled();
-      expect(metricsRegistry.receiverRequestsTotal.inc).toHaveBeenCalled();
+      // 验证指标记录 - 连接建立成功时会通过CollectorService记录指标
+      expect(collectorService.recordRequest).toHaveBeenCalled();
     });
   });
 
@@ -247,8 +279,7 @@ describe('StreamDataFetcherService', () => {
 
       // Assert
       // 验证指标记录 - 订阅成功时会记录指标
-      expect(metricsRegistry.streamSymbolsProcessedTotal.inc).toHaveBeenCalled();
-      expect(metricsRegistry.streamProcessingTimeMs.set).toHaveBeenCalled();
+      expect(collectorService.recordRequest).toHaveBeenCalled();
     });
   });
 
@@ -474,7 +505,7 @@ describe('StreamDataFetcherService', () => {
       // Act & Assert
       await expect(service.establishStreamConnection(params)).rejects.toThrow();
       // 验证失败指标记录
-      expect(metricsRegistry.receiverRequestsTotal.inc).toHaveBeenCalled();
+      expect(collectorService.recordRequest).toHaveBeenCalled();
     });
   });
 
@@ -493,7 +524,7 @@ describe('StreamDataFetcherService', () => {
 
       // Assert
       // 验证处理时间指标记录
-      expect(metricsRegistry.receiverProcessingDuration.observe).toHaveBeenCalled();
+      expect(collectorService.recordRequest).toHaveBeenCalled();
     });
   });
 

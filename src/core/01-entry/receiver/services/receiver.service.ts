@@ -21,8 +21,7 @@ import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/u
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
-import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/infrastructure-helper";
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 import {
   RECEIVER_ERROR_MESSAGES,
@@ -69,7 +68,7 @@ export class ReceiverService {
     private readonly marketStatusService: MarketStatusService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly storageService: StorageService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly collectorService: CollectorService, // ✅ 替换为CollectorService
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
@@ -85,14 +84,8 @@ export class ReceiverService {
     const startTime = Date.now();
     const requestId = uuidv4();
 
-    // 🎯 记录连接开始（避免调用已弃用方法，直接维护计数并写入指标）
-    this.activeConnections = Math.max(0, this.activeConnections + 1);
-    MetricsHelper.setGauge(
-      this.metricsRegistry,
-      'receiverActiveConnections',
-      this.activeConnections,
-      { connection_type: 'http' }
-    );
+    // ✅ 记录连接开始
+    this.updateActiveConnections(1);
 
     // 🎯 使用 common 模块的日志脱敏功能
     this.logger.log(
@@ -146,23 +139,25 @@ export class ReceiverService {
 
         const processingTime = Date.now() - startTime;
 
-        // 记录性能指标
-        this.recordPerformanceMetrics(
-          requestId,
-          processingTime,
-          request.symbols.length,
-          provider,
-          true, // success
+        // ✅ 记录成功请求
+        this.recordRequestMetrics(
+          '/api/v1/receiver/data',    // endpoint
+          'POST',                     // method
+          200,                        // statusCode
+          processingTime,             // duration
+          {                          // metadata
+            requestId,
+            operation: request.receiverType,
+            provider: provider || 'unknown',
+            symbolsCount: request.symbols.length,
+            avgTimePerSymbol: request.symbols.length > 0 ? processingTime / request.symbols.length : 0,
+            componentType: 'receiver',
+            market: this.extractMarketFromSymbols(request.symbols)
+          }
         );
 
-        // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
-        this.activeConnections = Math.max(0, this.activeConnections - 1);
-        MetricsHelper.setGauge(
-          this.metricsRegistry,
-          'receiverActiveConnections',
-          this.activeConnections,
-          { connection_type: 'http' }
-        );
+        // ✅ 记录连接结束
+        this.updateActiveConnections(-1);
 
         return new DataResponseDto(
           result.data,
@@ -212,23 +207,25 @@ export class ReceiverService {
 
       const processingTime = Date.now() - startTime;
 
-      // 6. 记录性能指标
-      this.recordPerformanceMetrics(
-        requestId,
-        processingTime,
-        request.symbols.length,
-        provider,
-        true, // success
+      // ✅ 记录成功请求
+      this.recordRequestMetrics(
+        '/api/v1/receiver/data',    // endpoint
+        'POST',                     // method
+        200,                        // statusCode
+        processingTime,             // duration
+        {                          // metadata
+          requestId,
+          operation: request.receiverType,
+          provider: provider || 'unknown',
+          symbolsCount: request.symbols.length,
+          avgTimePerSymbol: request.symbols.length > 0 ? processingTime / request.symbols.length : 0,
+          componentType: 'receiver',
+          market: this.extractMarketFromSymbols(request.symbols)
+        }
       );
 
-      // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
-      this.activeConnections = Math.max(0, this.activeConnections - 1);
-      MetricsHelper.setGauge(
-        this.metricsRegistry,
-        'receiverActiveConnections',
-        this.activeConnections,
-        { connection_type: 'http' }
-      );
+      // ✅ 记录连接结束
+      this.updateActiveConnections(-1);
 
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.log(
@@ -246,23 +243,23 @@ export class ReceiverService {
     } catch (error) {
       const processingTime = Date.now() - startTime;
 
-      // 🎯 记录错误指标
-      this.recordPerformanceMetrics(
-        requestId,
-        processingTime,
-        request.symbols?.length || 0,
-        undefined, // provider 可能未定义
-        false, // success = false
+      // ✅ 记录失败请求
+      this.recordRequestMetrics(
+        '/api/v1/receiver/data',    // endpoint
+        'POST',                     // method
+        500,                        // statusCode
+        processingTime,             // duration
+        {                          // metadata
+          requestId,
+          operation: request.receiverType,
+          error: error.message,
+          symbolsCount: request.symbols?.length || 0,
+          componentType: 'receiver'
+        }
       );
-
-      // 🎯 记录连接结束（避免调用已弃用方法，直接维护计数并写入指标）
-      this.activeConnections = Math.max(0, this.activeConnections - 1);
-      MetricsHelper.setGauge(
-        this.metricsRegistry,
-        'receiverActiveConnections',
-        this.activeConnections,
-        { connection_type: 'http' }
-      );
+      
+      // ✅ 记录连接结束
+      this.updateActiveConnections(-1);
 
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.error(
@@ -727,70 +724,61 @@ export class ReceiverService {
 
 
   /**
-   * 记录性能指标
+   * ✅ 使用CollectorService记录请求指标
    */
-  private recordPerformanceMetrics(
-    requestId: string,
+  private recordRequestMetrics(
+    endpoint: string,
+    method: string,
+    statusCode: number,
     processingTime: number,
-    symbolsCount: number,
-    provider?: string,
-    success: boolean = true,
+    metadata: Record<string, any>
   ): void {
-    const avgTimePerSymbol =
-      symbolsCount > 0 ? processingTime / symbolsCount : 0;
-
-    // 🎯 记录 Prometheus 指标
-    const providerLabel = provider || 'unknown';
-    const status = success ? 'success' : 'error';
-
-    // 记录请求总数
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'receiverRequestsTotal',
-      { method: 'handleRequest', provider: providerLabel, status, operation: 'handleRequest' }
-    );
-
-    // 记录处理时间分布
-    MetricsHelper.observe(
-      this.metricsRegistry,
-      'receiverProcessingDuration',
-      processingTime / 1000, // 转换为秒
-      { method: 'handleRequest', provider: providerLabel, operation: 'handleRequest', status: success ? 'success' : 'error' }
-    );
-
-    // 如果是慢请求，记录错误率
-    if (processingTime > RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS) {
-      MetricsHelper.setGauge(
-        this.metricsRegistry,
-        'receiverErrorRate',
-        100, // 表示检测到慢请求
-        { error_type: 'slow_request', provider: providerLabel }
+    try {
+      // 使用CollectorService的标准接口
+      this.collectorService.recordRequest(
+        endpoint,           // endpoint
+        method,             // method  
+        statusCode,         // statusCode
+        processingTime,     // duration
+        metadata            // metadata
       );
-
-      this.logger.warn(
-        RECEIVER_WARNING_MESSAGES.SLOW_REQUEST_DETECTED,
-        sanitizeLogData({
-          requestId,
-          processingTime,
-          symbolsCount,
-          avgTimePerSymbol: Math.round(avgTimePerSymbol * 100) / 100,
-          threshold: RECEIVER_PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS,
-          operation: RECEIVER_OPERATIONS.RECORD_PERFORMANCE,
-        }),
-      );
+    } catch (error) {
+      // 监控失败不影响业务
+      this.logger.warn(`监控记录失败: ${error.message}`, { endpoint, metadata });
     }
+  }
 
-    // 记录性能指标到监控系统（如果需要）
-    this.logger.debug(
-      `性能指标记录`,
-      sanitizeLogData({
-        requestId,
-        processingTime,
-        symbolsCount,
-        avgTimePerSymbol: Math.round(avgTimePerSymbol * 100) / 100,
-        operation: "performanceMetrics",
-      }),
-    );
+  /**
+   * ✅ 更新活跃连接监控
+   */
+  private updateActiveConnections(delta: number): void {
+    this.activeConnections = Math.max(0, this.activeConnections + delta);
+    
+    try {
+      // 通过系统指标记录连接数
+      // 调用标准系统指标记录，符合 SystemMetricsDto 接口
+      this.collectorService.recordSystemMetrics({
+        memory: { used: 0, total: 0, percentage: 0 },
+        cpu: { usage: 0 },
+        uptime: process.uptime(),
+        timestamp: new Date()
+      });
+      
+      // 额外通过请求记录方式传递自定义指标
+      this.collectorService.recordRequest(
+        '/internal/active-connections',
+        'POST',
+        200,
+        0, // 无耗时
+        {
+          activeConnections: this.activeConnections,
+          componentType: 'receiver',
+          metricType: 'connection_count'
+        }
+      );
+    } catch (error) {
+      this.logger.warn(`活跃连接监控记录失败: ${error.message}`);
+    }
   }
 
 

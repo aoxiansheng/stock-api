@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RedisModule as NestRedisModule } from '@liaoliaots/nestjs-redis';
 import { DataMapperCacheService } from '../services/data-mapper-cache.service';
+import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 
 /**
  * DataMapper 缓存模块
@@ -14,9 +15,17 @@ import { DataMapperCacheService } from '../services/data-mapper-cache.service';
 @Module({
   imports: [
     NestRedisModule, // 直接导入 Redis 模块，获得 RedisService
+    MonitoringModule, // ✅ 导入监控模块，提供CollectorService
   ],
   providers: [
     DataMapperCacheService,
+    // ✅ 提供CollectorService
+    {
+      provide: 'CollectorService',
+      useFactory: () => ({
+        recordCacheOperation: () => {}, // fallback mock
+      }),
+    },
   ],
   exports: [
     DataMapperCacheService, // 导出专用缓存服务供其他模块使用

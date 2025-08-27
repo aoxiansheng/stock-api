@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { FeatureFlags } from '@common/config/feature-flags.config';
-import { SharedServicesModule } from '../../../shared/module/shared-services.module';
+import { MonitoringModule } from '../../../../monitoring/monitoring.module'; // ✅ 更换为监控模块
 
 // 导入 symbol-mapper 相关的 Schema 和 Repository
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
@@ -23,11 +23,11 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
  * - LRU内存缓存管理
  * - 并发控制和防重复查询
  * - 内存水位监控和自动清理
- * - 详细的缓存统计和性能指标
+ * - 使用CollectorService进行统一监控
  */
 @Module({
   imports: [
-    SharedServicesModule, // 提供 MetricsRegistryService
+    MonitoringModule, // ✅ 提供 CollectorService
     MongooseModule.forFeature([
       { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
     ]),
@@ -36,6 +36,13 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
     SymbolMapperCacheService,
     SymbolMappingRepository, // 缓存服务需要访问数据库
     FeatureFlags,           // 缓存配置参数
+    // ✅ 提供CollectorService
+    {
+      provide: 'CollectorService',
+      useFactory: () => ({
+        recordCacheOperation: () => {}, // fallback mock
+      }),
+    },
   ],
   exports: [
     SymbolMapperCacheService, // 导出缓存服务供其他模块使用

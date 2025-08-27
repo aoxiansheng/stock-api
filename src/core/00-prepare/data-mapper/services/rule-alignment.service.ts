@@ -2,6 +2,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { createLogger } from '@common/config/logger.config';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-source-template.schema';
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from '../schemas/flexible-mapping-rule.schema';
@@ -60,7 +61,31 @@ export class RuleAlignmentService {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
+    private readonly collectorService: CollectorService, // ✅ 新增依赖注入
   ) {}
+
+  /**
+   * ✅ 监控安全包装器 - 确保监控失败不影响业务流程
+   */
+  private safeRecordOperation(
+    operation: string,
+    duration: number,
+    success: boolean,
+    metadata?: any
+  ) {
+    try {
+      this.collectorService.recordRequest(
+        `rule-alignment/${operation}`,
+        'POST',
+        success ? 200 : 500,
+        duration,
+        { service: 'RuleAlignmentService', ...metadata }
+      );
+    } catch (error) {
+      // 监控失败不应影响业务
+      this.logger.warn(`监控记录失败: ${error.message}`, { operation, metadata });
+    }
+  }
 
   /**
    * 🎯 基于模板一键生成规则
@@ -83,7 +108,10 @@ export class RuleAlignmentService {
       }>;
     };
   }> {
+    const startTime = Date.now();
     this.logger.log(`基于模板生成规则`, { templateId, transDataRuleListType });
+
+    try {
 
     // 1. 获取模板
     const template = await this.templateModel.findById(templateId);
@@ -143,7 +171,33 @@ export class RuleAlignmentService {
       totalFields: alignmentResult.totalFields,
     });
 
+    // ✅ 轻量级成功监控
+    this.safeRecordOperation(
+      'generate-rule',
+      Date.now() - startTime,
+      true,
+      {
+        templateId,
+        transDataRuleListType,
+        alignedFields: alignmentResult.alignedFields
+      }
+    );
+    
     return { rule, alignmentResult };
+    } catch (error) {
+      // ✅ 轻量级错误监控
+      this.safeRecordOperation(
+        'generate-rule',
+        Date.now() - startTime,
+        false,
+        {
+          templateId,
+          transDataRuleListType,
+          error: error.message
+        }
+      );
+      throw error;
+    }
   }
 
   /**
@@ -158,7 +212,10 @@ export class RuleAlignmentService {
     };
     alignmentResult: any;
   }> {
+    const startTime = Date.now();
     this.logger.log(`重新对齐现有规则`, { dataMapperRuleId });
+
+    try {
 
     // 1. 获取规则和关联模板
     const rule = await this.ruleModel.findById(dataMapperRuleId);
@@ -211,7 +268,31 @@ export class RuleAlignmentService {
       newMappingsCount: newFieldMappings.length,
     });
 
+    // ✅ 轻量级成功监控
+    this.safeRecordOperation(
+      'realign-rule',
+      Date.now() - startTime,
+      true,
+      {
+        ruleId: dataMapperRuleId,
+        totalChanges: changes.added.length + changes.removed.length + changes.modified.length
+      }
+    );
+    
     return { rule: updatedRule, changes, alignmentResult };
+    } catch (error) {
+      // ✅ 轻量级错误监控
+      this.safeRecordOperation(
+        'realign-rule',
+        Date.now() - startTime,
+        false,
+        {
+          ruleId: dataMapperRuleId,
+          error: error.message
+        }
+      );
+      throw error;
+    }
   }
 
   /**

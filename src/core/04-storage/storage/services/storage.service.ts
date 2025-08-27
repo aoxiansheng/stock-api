@@ -11,8 +11,7 @@ import {
 import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';
-import { MetricsHelper } from "../../../../monitoring/infrastructure/helper/infrastructure-helper";
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 
 import {
@@ -46,7 +45,7 @@ export class StorageService {
   constructor(
     private readonly storageRepository: StorageRepository,
     private readonly paginationService: PaginationService,
-    private readonly metricsRegistry: MetricsRegistryService,
+    private readonly collectorService: CollectorService,
   ) {}
 
   /**
@@ -65,15 +64,6 @@ export class StorageService {
       );
     }
     
-    // 🎯 记录数据库存储操作指标
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'storageOperationsTotal',
-      { 
-        operation: 'store',
-        storage_type: 'persistent'
-      }
-    );
     
     this.logger.log(
       `存储数据到数据库，键: ${request.key}`,
@@ -127,25 +117,21 @@ export class StorageService {
 
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录数据库查询持续时间指标
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime / 1000,
-        { 
-          query_type: 'store',
-          storage_type: 'persistent'
-        }
-      );
-      
-      // 🎯 记录数据库数据量指标
-      MetricsHelper.setGauge(
-        this.metricsRegistry,
-        'storageDataVolume',
-        dataSize,
-        { 
-          data_type: request.storageClassification || 'unknown',
-          storage_type: 'persistent'
+      // ✅ 使用CollectorService标准化监控
+      this.collectorService.recordDatabaseOperation(
+        'upsert',                           // operation
+        processingTime,                     // duration
+        true,                              // success
+        {                                  // metadata
+          storage_type: 'persistent',
+          data_size: dataSize,
+          compressed: compressed,
+          classification: request.storageClassification,
+          provider: request.provider,
+          market: request.market,
+          ttl_seconds: request.options?.persistentTtlSeconds,
+          has_tags: !!(request.options?.tags),
+          operation_type: 'store'
         }
       );
 
@@ -166,6 +152,22 @@ export class StorageService {
       return new StorageResponseDto(request.data, metadata);
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
+      
+      // ✅ 错误情况监控
+      this.collectorService.recordDatabaseOperation(
+        'upsert',                           // operation
+        processingTime,                     // duration
+        false,                             // success
+        {                                  // metadata
+          storage_type: 'persistent',
+          error_type: error.constructor.name,
+          classification: request.storageClassification,
+          provider: request.provider,
+          key_pattern: this.extractKeyPattern(request.key),
+          operation_type: 'store'
+        }
+      );
+      
       this.logger.error(
         `数据库存储失败: ${request.key}`,
         sanitizeLogData({
@@ -196,15 +198,6 @@ export class StorageService {
       );
     }
     
-    // 🎯 记录数据库检索操作指标
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'storageOperationsTotal',
-      { 
-        operation: 'retrieve',
-        storage_type: 'persistent'
-      }
-    );
     
     this.logger.log(
       `从数据库检索数据，键: ${request.key}`,
@@ -217,6 +210,20 @@ export class StorageService {
       // 🎯 重构后：直接从数据库检索
       const response = await this.tryRetrieveFromPersistent(request, startTime);
       if (response) {
+        // ✅ 成功检索监控
+        this.collectorService.recordDatabaseOperation(
+          'findOne',                        // operation
+          Date.now() - startTime,           // duration
+          true,                            // success
+          {                                // metadata
+            storage_type: 'persistent',
+            data_source: 'mongodb',
+            key_pattern: this.extractKeyPattern(request.key),
+            cache_hit: response.cacheInfo?.hit || false,
+            decompressed: response.metadata?.compressed || false,
+            operation_type: 'retrieve'
+          }
+        );
         return response;
       }
 
@@ -229,14 +236,17 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录数据库检索失败的查询持续时间指标
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime / 1000,
-        { 
-          query_type: 'retrieve_failed',
-          storage_type: 'persistent'
+      // ✅ 检索失败监控
+      this.collectorService.recordDatabaseOperation(
+        'findOne',                          // operation
+        processingTime,                     // duration
+        false,                             // success
+        {                                  // metadata
+          storage_type: 'persistent',
+          error_type: error.constructor.name,
+          key_pattern: this.extractKeyPattern(request.key),
+          is_not_found: error instanceof NotFoundException,
+          operation_type: 'retrieve'
         }
       );
       
@@ -281,15 +291,6 @@ export class StorageService {
       );
     }
     
-    // 🎯 记录数据库删除操作指标
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'storageOperationsTotal',
-      { 
-        operation: 'delete',
-        storage_type: 'persistent'
-      }
-    );
     
     this.logger.log(`从数据库删除数据，键: ${key}`);
 
@@ -307,14 +308,17 @@ export class StorageService {
 
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录数据库删除查询持续时间指标
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime / 1000,
-        { 
-          query_type: 'delete',
-          storage_type: 'persistent'
+      // ✅ 删除操作监控
+      this.collectorService.recordDatabaseOperation(
+        'deleteOne',                        // operation
+        processingTime,                     // duration
+        true,                              // success (操作本身成功)
+        {                                  // metadata
+          storage_type: 'persistent',
+          deleted_count: persistentResult.deletedCount,
+          actually_deleted: deleted,
+          key_pattern: this.extractKeyPattern(key),
+          operation_type: 'delete'
         }
       );
 
@@ -327,14 +331,16 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录数据库删除失败的查询持续时间
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime / 1000,
-        { 
-          query_type: 'delete_failed',
-          storage_type: 'persistent'
+      // ✅ 删除失败监控
+      this.collectorService.recordDatabaseOperation(
+        'deleteOne',                        // operation
+        processingTime,                     // duration
+        false,                             // success
+        {                                  // metadata
+          storage_type: 'persistent',
+          error_type: error.constructor.name,
+          key_pattern: this.extractKeyPattern(key),
+          operation_type: 'delete'
         }
       );
       
@@ -402,15 +408,6 @@ export class StorageService {
   ): Promise<PaginatedDataDto<PaginatedStorageItemDto>> {
     const startTime = Date.now();
     
-    // 🎯 记录分页查询操作指标
-    MetricsHelper.inc(
-      this.metricsRegistry,
-      'storageOperationsTotal',
-      { 
-        operation: 'paginated_query',
-        storage_type: 'persistent'
-      }
-    );
     
     this.logger.log(
       `获取分页存储数据`,
@@ -449,25 +446,20 @@ export class StorageService {
 
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录分页查询持续时间指标
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime / 1000,
-        { 
-          query_type: 'paginated',
-          storage_type: 'persistent'
-        }
-      );
-      
-      // 🎯 记录数据量指标
-      MetricsHelper.setGauge(
-        this.metricsRegistry,
-        'storageDataVolume',
-        total,
-        { 
-          data_type: 'paginated_results',
-          storage_type: 'persistent'
+      // ✅ 分页查询监控
+      this.collectorService.recordDatabaseOperation(
+        'findPaginated',                    // operation
+        processingTime,                     // duration
+        true,                              // success
+        {                                  // metadata
+          storage_type: 'persistent',
+          page: query.page || 1,
+          limit: query.limit || 10,
+          total_results: total,
+          page_results: responseItems.length,
+          has_filters: !!(query.keySearch || query.provider || query.market),
+          filter_types: this.getFilterTypes(query),
+          operation_type: 'paginated_query'
         }
       );
       
@@ -481,14 +473,17 @@ export class StorageService {
     } catch (error) {
       const processingTime = Date.now() - startTime;
       
-      // 🎯 记录分页查询失败持续时间
-      MetricsHelper.observe(
-        this.metricsRegistry,
-        'storageQueryDuration',
-        processingTime / 1000,
-        { 
-          query_type: 'paginated_failed',
-          storage_type: 'persistent'
+      // ✅ 分页查询失败监控
+      this.collectorService.recordDatabaseOperation(
+        'findPaginated',                    // operation
+        processingTime,                     // duration
+        false,                             // success
+        {                                  // metadata
+          storage_type: 'persistent',
+          error_type: error.constructor.name,
+          page: query.page || 1,
+          limit: query.limit || 10,
+          operation_type: 'paginated_query'
         }
       );
       
@@ -556,17 +551,6 @@ export class StorageService {
 
 
     const processingTime = Date.now() - startTime;
-    
-    // 🎯 记录持久化检索查询持续时间指标
-    MetricsHelper.observe(
-      this.metricsRegistry,
-      'storageQueryDuration',
-      processingTime / 1000,
-      { 
-        query_type: 'persistent_retrieve',
-        storage_type: 'persistent'
-      }
-    );
     
     this.logRetrievalSuccess(processingTime, request.key, "persistent");
 
@@ -706,5 +690,27 @@ export class StorageService {
     // 🎯 重构后：数据库操作频率，由 Prometheus 指标提供  
     // 在生产环境中应通过 rate(storagePersistentOperationsTotal[1m]) 计算真实频率
     return 0; // 可从 Prometheus storagePersistentOperationsTotal 指标计算速率
+  }
+
+  // ✅ 新增键模式提取方法
+  private extractKeyPattern(key: string): string {
+    // 提取键的模式，隐藏敏感信息
+    const parts = key.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}:*`;
+    }
+    return key.length > 20 ? `${key.substring(0, 20)}...` : key;
+  }
+
+  // ✅ 新增过滤器类型分析
+  private getFilterTypes(query: StorageQueryDto): string[] {
+    const filters = [];
+    if (query.keySearch) filters.push('key_search');
+    if (query.provider) filters.push('provider');
+    if (query.market) filters.push('market');
+    if (query.storageClassification) filters.push('classification');
+    if (query.tags?.length) filters.push('tags');
+    if (query.startDate || query.endDate) filters.push('date_range');
+    return filters;
   }
 }

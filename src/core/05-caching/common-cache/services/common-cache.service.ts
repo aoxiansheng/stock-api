@@ -5,6 +5,7 @@ import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { REDIS_SPECIAL_VALUES } from '../constants/cache.constants';
 import { RedisValueUtils } from '../utils/redis-value.utils';
 import { CacheCompressionService } from './cache-compression.service';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { 
   ICacheOperation, 
   ICacheFallback, 
@@ -77,7 +78,7 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
     private readonly configService: ConfigService,
     private readonly compressionService: CacheCompressionService,
-    @Inject('METRICS_REGISTRY') private readonly metricsRegistry: any
+    @Inject('CollectorService') private readonly collectorService: any, // ✅ 使用字符串注入
   ) {}
 
   /**
@@ -102,15 +103,20 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
    */
   private recordMetrics(operation: string, status: 'success' | 'error', duration?: number): void {
     try {
-      if (this.metricsRegistry && typeof this.metricsRegistry.inc === 'function') {
-        this.metricsRegistry.inc('cacheOperationsTotal', { op: operation, status });
-        
-        if (duration !== undefined && typeof this.metricsRegistry.observe === 'function') {
-          this.metricsRegistry.observe('cacheQueryDuration', duration / 1000, { op: operation });
+      // ✅ 使用CollectorService的业务语义化接口
+      const hit = status === 'success';
+      this.collectorService.recordCacheOperation(
+        operation,
+        hit,
+        duration || 0,
+        { 
+          layer: 'common-cache',
+          status
         }
-      }
+      );
     } catch (error) {
-      this.logger.debug('Failed to record metrics', error);
+      // ✅ 监控失败不影响业务
+      this.logger.debug(`监控记录失败: ${error.message}`);
     }
   }
 
@@ -122,19 +128,22 @@ export class CommonCacheService implements ICacheOperation, ICacheFallback, ICac
    */
   private recordDecompressionMetrics(key: string | undefined, errorType: string, duration: number): void {
     try {
-      if (this.metricsRegistry && typeof this.metricsRegistry.inc === 'function') {
-        const status = errorType === 'success' ? 'success' : 'error';
-        this.metricsRegistry.inc('cacheDecompressionTotal', { 
-          status, 
-          error_type: errorType 
-        });
-        
-        if (duration > 0 && typeof this.metricsRegistry.observe === 'function') {
-          this.metricsRegistry.observe('cacheDecompressionDuration', duration / 1000);
+      // ✅ 使用CollectorService记录解压缩指标
+      const hit = errorType === 'success';
+      this.collectorService.recordCacheOperation(
+        'decompression',
+        hit,
+        duration,
+        {
+          layer: 'common-cache',
+          operation_type: 'decompression',
+          error_type: errorType,
+          cache_key: key
         }
-      }
+      );
     } catch (error) {
-      this.logger.debug('Failed to record decompression metrics', error);
+      // ✅ 监控失败不影响业务
+      this.logger.debug(`解压缩监控记录失败: ${error.message}`);
     }
   }
 
