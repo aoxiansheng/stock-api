@@ -5,6 +5,7 @@ import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ScheduleModule } from "@nestjs/schedule";
 
+import { DatabaseModule } from "../../database/database.module"; // 🆕 试点测试
 import { AuthModule } from "../../auth/module/auth.module";
 import { CacheModule } from "../../cache/module/cache.module";
 import { alertConfig } from "../../common/config/alert.config";
@@ -40,16 +41,19 @@ import {
 
 @Module({
   imports: [
+    // 🆕 试点：统一数据库模块
+    DatabaseModule,
+    
     // 基础模块
     AuthModule,
     CacheModule,
 
-    // MongoDB Schemas
-    MongooseModule.forFeature([
-      { name: AlertRule.name, schema: AlertRuleSchema },
-      { name: AlertHistory.name, schema: AlertHistorySchema },
-      { name: NotificationLog.name, schema: NotificationLogSchema },
-    ]),
+    // 🔄 试点：暂时注释MongoDB Schemas (改用DatabaseModule)
+    // MongooseModule.forFeature([
+    //   { name: AlertRule.name, schema: AlertRuleSchema },
+    //   { name: AlertHistory.name, schema: AlertHistorySchema },
+    //   { name: NotificationLog.name, schema: NotificationLogSchema },
+    // ]),
     ConfigModule.forFeature(alertConfig),
 
     // HTTP 客户端用于 Webhook 通知

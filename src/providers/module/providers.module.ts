@@ -16,12 +16,16 @@ import { ProvidersController } from "../controller/providers-controller";
   imports: [AuthModule, LongportModule, LongportSgModule],
   controllers: [ProvidersController],
   providers: [
-    CapabilityRegistryService,
     EnhancedCapabilityRegistryService,
-    // 为增强服务提供别名，保持向后兼容
+    // 提供别名以保持向后兼容性 - 让旧代码继续使用 CapabilityRegistryService
+    {
+      provide: CapabilityRegistryService,
+      useExisting: EnhancedCapabilityRegistryService
+    },
+    // 为增强服务提供别名
     {
       provide: 'ENHANCED_CAPABILITY_REGISTRY',
-      useClass: EnhancedCapabilityRegistryService
+      useExisting: EnhancedCapabilityRegistryService
     }
   ],
   exports: [CapabilityRegistryService, EnhancedCapabilityRegistryService],
@@ -30,8 +34,8 @@ export class ProvidersModule implements OnModuleInit {
   private initialized = false;
 
   constructor(
+    // 只注入增强服务，由于别名设置，capabilityRegistry 实际上也是 EnhancedCapabilityRegistryService
     private readonly capabilityRegistry: CapabilityRegistryService,
-    private readonly enhancedRegistry: EnhancedCapabilityRegistryService,
     private readonly longportProvider: LongportProvider,
     private readonly longportSgProvider: LongportSgProvider,
   ) {}
@@ -44,26 +48,21 @@ export class ProvidersModule implements OnModuleInit {
     // 等待注册表初始化完成后再注册提供商实例
     await this.waitForRegistriesInitialization();
     
-    // 🎯 自动注册所有Provider实例
+    // 🎯 只使用统一的注册服务 - 消除重复注册
     await this.registerProviders();
     
     this.initialized = true;
   }
 
   private async waitForRegistriesInitialization(): Promise<void> {
-    // 这里暂停一下，让注册表先完成初始化
-    // 可以考虑添加更智能的等待机制
+    // 等待增强注册表完成初始化
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   private async registerProviders(): Promise<void> {
-    // 注册LongPort Provider
+    // 只使用一个注册表，避免重复注册
     this.capabilityRegistry.registerProvider(this.longportProvider);
-    this.enhancedRegistry.registerProvider(this.longportProvider);
-
-    // 注册LongPort SG Provider
     this.capabilityRegistry.registerProvider(this.longportSgProvider);
-    this.enhancedRegistry.registerProvider(this.longportSgProvider);
 
     // TODO: 注册其他Provider实例
   }

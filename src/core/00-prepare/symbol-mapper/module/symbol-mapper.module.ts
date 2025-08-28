@@ -6,6 +6,7 @@ import { PaginationModule } from "@common/modules/pagination/modules/pagination.
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 // import { FeatureFlags } from "@common/config/feature-flags.config"; // 已从 MonitoringModule 获取
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
+import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 
 // 导入新的独立缓存模块
 import { SymbolMapperCacheModule } from '../../../05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module';
@@ -22,15 +23,21 @@ import { SymbolMapperService } from '../services/symbol-mapper.service';
 
 @Module({
   imports: [
+    // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
+    DatabaseModule,
+    
     AuthModule,
     PaginationModule,
     SharedServicesModule, // 🔥 导入SharedServicesModule以获取共享服务支持
     MonitoringModule, // ✅ 导入完整的 MonitoringModule 以获取 CollectorService
     SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
     SymbolTransformerModule, // 🔄 导入 Symbol Transformer 模块
-    MongooseModule.forFeature([
-      { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
-    ]),
+    
+    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
+    // MongooseModule.forFeature([
+    //   // SymbolMappingRuleDocument已在CoreDatabaseModule中注册
+    //   { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
+    // ]),
   ],
   controllers: [SymbolMapperController],
   providers: [

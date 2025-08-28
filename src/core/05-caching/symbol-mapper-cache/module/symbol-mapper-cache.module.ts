@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { FeatureFlags } from '@common/config/feature-flags.config';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module'; // ✅ 更换为监控模块
+import { DatabaseModule } from '../../../../database/database.module'; // 🆕 统一数据库模块
 
 // 导入 symbol-mapper 相关的 Schema 和 Repository
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
@@ -27,10 +28,16 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
  */
 @Module({
   imports: [
+    // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
+    DatabaseModule,
+    
     MonitoringModule, // ✅ 提供 CollectorService
-    MongooseModule.forFeature([
-      { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
-    ]),
+    
+    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
+    // MongooseModule.forFeature([
+    //   // SymbolMappingRuleDocument已在CoreDatabaseModule中注册
+    //   { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
+    // ]),
   ],
   providers: [
     SymbolMapperCacheService,

@@ -4,9 +4,9 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
-import { MongooseModule } from "@nestjs/mongoose";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
+import { DatabaseModule } from "./database/database.module"; // 🆕 统一数据库模块
 import { AlertModule } from "./alert/module/alert.module";
 import { AuthModule } from "./auth/module/auth.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
@@ -45,13 +45,8 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
       },
     ]),
 
-    // 数据库连接
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/smart-stock-data",
-      {
-        maxPoolSize: parseInt(process.env.MONGODB_POOL_SIZE) || 100, // 使用正确的连接池大小配置
-      },
-    ),
+    // 统一数据库模块 (替换原有MongooseModule.forRoot)
+    DatabaseModule,
 
     // Redis连接
     RedisModule.forRoot({

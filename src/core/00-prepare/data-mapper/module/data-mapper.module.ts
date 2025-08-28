@@ -5,6 +5,7 @@ import { AuthModule } from "../../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { DataMapperCacheModule } from "../../../05-caching/data-mapper-cache/module/data-mapper-cache.module";
+import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 import { FeatureFlags } from "@common/config/feature-flags.config";
 
 // 🚀 重构后的控制器（按职责分离）
@@ -33,15 +34,20 @@ import {
 
 @Module({
   imports: [
+    // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
+    DatabaseModule,
+    
     AuthModule,
     PaginationModule,
     MonitoringModule, // 监控模块，提供CollectorService
     DataMapperCacheModule, // 专用DataMapper缓存模块，替换通用CacheModule
-    MongooseModule.forFeature([
-      // 核心Schema - 只保留必要的数据存储结构
-      { name: DataSourceTemplate.name, schema: DataSourceTemplateSchema },
-      { name: FlexibleMappingRule.name, schema: FlexibleMappingRuleSchema },
-    ]),
+    
+    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
+    // MongooseModule.forFeature([
+    //   // 核心Schema - DataSourceTemplate和FlexibleMappingRule已在CoreDatabaseModule中注册
+    //   { name: DataSourceTemplate.name, schema: DataSourceTemplateSchema },
+    //   { name: FlexibleMappingRule.name, schema: FlexibleMappingRuleSchema },
+    // ]),
   ],
   controllers: [
     UserJsonPersistenceController,  // 用户JSON持久化控制器

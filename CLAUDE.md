@@ -349,3 +349,169 @@ bun run test:regression          # Full regression test suite
 - **Cache Problems**: Run `bun run test:integration:cache` for cache-related issues
 - **Database Connections**: Use `bun run test:database` for DB connectivity issues
 - **API Performance**: Use `bun run test:api` for endpoint performance analysis
+
+## Critical Startup Issues to Monitor
+
+### Singleton Pattern Violations
+The system enforces singleton patterns for critical services. Watch for these warnings:
+```
+WARN: 检测到非单例StreamContextService实例，替换为单例实例
+```
+- **Location**: `src/core/03-fetching/stream-data-fetcher/services/`
+- **Impact**: Resource waste, state inconsistency, memory leaks
+- **Fix**: Review dependency injection configuration
+
+### WebSocket Server Conflicts
+```
+WARN: WebSocket服务器已经初始化，覆盖现有实例
+```
+- **Location**: `src/core/stream-receiver/gateway/`
+- **Impact**: Connection loss, duplicate server instances
+- **Fix**: Check initialization order and server lifecycle
+
+### Provider Registration Redundancy
+- Multiple provider registration events indicate potential architectural redundancy
+- **Locations**: `EnhancedCapabilityRegistryService` and `CapabilityRegistryService`
+- **Recommendation**: Consolidate provider registration logic
+
+## Core Component File Paths
+
+### 7-Component Architecture Implementation
+```
+src/core/
+├── 00-prepare/           # Symbol/Data Mapper preparation layer
+│   ├── symbol-mapper/    # Symbol format conversion ("700.HK" → "00700")  
+│   └── data-mapper/      # Field mapping rules engine (37 preset fields)
+├── 01-entry/            # Receiver layer (entry points)
+│   ├── receiver/        # REST API entry (strong timeliness, 5s TTL)
+│   └── stream-receiver/ # WebSocket entry (real-time streaming)
+├── 02-processing/       # Transformer layer  
+│   ├── transformer/     # Data standardization/normalization
+│   └── symbol-transformer/ # Symbol-specific transformations
+├── 03-fetching/         # Data fetcher layer
+│   ├── data-fetcher/    # REST API data fetching
+│   └── stream-data-fetcher/ # WebSocket data fetching + singleton issues
+├── 04-storage/          # Storage layer (dual strategy)
+│   └── storage/         # Redis cache + MongoDB persistence
+├── 05-caching/          # Caching layer (3 independent layers)
+│   ├── smart-cache/     # Complete API response cache
+│   ├── common-cache/    # Shared caching service
+│   ├── symbol-mapper-cache/ # 3-layer LRU memory cache
+│   └── stream-cache/    # WebSocket stream caching
+└── shared/              # Cross-component utilities
+```
+
+### Module Integration Points
+```
+src/
+├── alert/              # System alerting (5 notification channels)
+├── auth/              # 3-tier authentication (API Key, JWT, Public)
+├── monitoring/        # Health checks, performance metrics
+├── providers/         # Data provider integrations (@Provider decorator)
+├── security/          # Security middleware, audit logging  
+├── metrics/           # Prometheus metrics (89 total metrics)
+├── cache/             # Fault-tolerant caching utilities
+├── scripts/           # Auto-initialization scripts
+└── common/            # Zero-dependency utilities
+```
+
+## Provider Decorator System
+
+### Enhanced Provider Registration
+```typescript
+// New pattern - use @Provider decorator
+@Provider({
+  name: "provider-name",
+  description: "Provider description", 
+  autoRegister: true,
+  healthCheck: true,
+  initPriority: 1
+})
+export class CustomProvider implements IDataProvider {
+  // Capability methods automatically discovered from:
+  // src/providers/{provider}/capabilities/{capability}.ts
+}
+```
+
+### Capability File Structure
+```
+src/providers/
+├── longport/
+│   ├── capabilities/
+│   │   ├── get-stock-quote.ts      # REST API capability
+│   │   ├── get-stock-info.ts       # Basic info capability
+│   │   ├── stream-stock-quote.ts   # WebSocket capability  
+│   │   └── get-us-stock-quote.ts   # Market-specific capability
+│   ├── longport.provider.ts        # Main provider class
+│   └── longport.module.ts          # NestJS module
+└── longport-sg/                    # Singapore market provider
+    └── capabilities/
+        ├── get-sg-stock-quote.ts
+        ├── get-sg-stock-info.ts  
+        └── stream-sg-stock-quote.ts
+```
+
+## Fault-Tolerance Patterns
+
+### Cache Service Fault Tolerance
+The system uses fault-tolerant methods for non-critical operations:
+
+```typescript
+// ✅ Fault-tolerant methods (return defaults on Redis failure)
+await cacheService.hashGetAll(key);      // Returns {} on failure
+await cacheService.listRange(key, 0, -1); // Returns [] on failure  
+await cacheService.setIsMember(key, member); // Returns false on failure
+await cacheService.setMembers(key);      // Returns [] on failure
+
+// ❌ Standard methods (throw exceptions on failure) 
+await cacheService.get(key);             // Throws ServiceUnavailableException
+await cacheService.set(key, value);      // Throws ServiceUnavailableException
+```
+
+**Implementation Location**: `src/cache/services/cache.service.ts`
+
+### Performance Monitoring Fault Tolerance
+Performance monitoring is treated as **non-critical functionality**:
+- Redis failures in metrics collection don't crash the application
+- Monitoring services gracefully degrade when dependencies are unavailable
+- **Location**: `src/monitoring/` and `src/metrics/`
+
+## Smart Cache Orchestrator
+
+### Advanced Caching Strategies
+```typescript
+// TTL Strategies
+enum CacheStrategy {
+  STRONG_TIMELINESS = 5,     // Receiver component (real-time)
+  WEAK_TIMELINESS = 300,     // Query component (batch)  
+  MARKET_AWARE = 'dynamic'   // Based on market open/close
+}
+```
+
+### Cache Key Patterns
+```
+// Smart Cache Keys
+receiver:get-stock-quote:700.HK:longport
+query:by-symbols:AAPL,GOOGL:weak-timeliness
+
+// Symbol Mapper Cache (3-layer LRU)
+L1: provider-rules:{provider}
+L2: symbol:{standardSymbol} 
+L3: batch:{symbols-hash}
+```
+
+**Implementation**: `src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service.ts`
+
+### Startup Performance Diagnostics
+
+#### Normal Startup Timing
+- **Total startup**: ~3 seconds ✅
+- **MongoDB connection**: 120ms ✅  
+- **Redis connections**: <50ms ✅
+- **Module initialization**: Parallel loading ✅
+
+#### Performance Red Flags
+- Singleton violations (immediate fix required)
+- WebSocket server overrides (check initialization order)  
+- Provider registration loops (consolidation needed)
+- Auto-init 409 conflicts (normal, but monitor frequency)

@@ -7,6 +7,7 @@ import { PassportModule } from "@nestjs/passport";
 
 import { CacheModule } from "../../cache/module/cache.module";
 import { CollectorModule } from "../../monitoring/collector/collector.module";
+import { DatabaseModule } from "../../database/database.module"; // 🆕 统一数据库模块
 
 import { AuthController } from "../controller/auth.controller";
 import { RateLimitExceptionFilter } from "../filters/rate-limit.filter";
@@ -30,6 +31,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
 
 @Module({
   imports: [
+    // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
+    DatabaseModule,
+    
     CacheModule,
     CollectorModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
@@ -44,10 +48,12 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
       }),
       inject: [ConfigService],
     }),
-    MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
-      { name: ApiKey.name, schema: ApiKeySchema },
-    ]),
+    
+    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的AuthDatabaseModule)
+    // MongooseModule.forFeature([
+    //   { name: User.name, schema: UserSchema },
+    //   { name: ApiKey.name, schema: ApiKeySchema },
+    // ]),
   ],
   providers: [
     AuthService,

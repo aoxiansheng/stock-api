@@ -35,30 +35,10 @@ export class LongportProvider implements IDataProvider {
     private contextService: LongportContextService,
     private streamContextService: LongportStreamContextService,
   ) {
-    // 确保使用单例模式的streamContextService
-    this.ensureStreamContextSingleton();
+    // 工厂提供者已确保注入的是单例实例，无需额外检查
+    this.logger.log('LongportProvider 构造函数完成，使用工厂提供者保证的单例');
   }
 
-  /**
-   * 确保使用单例模式的StreamContextService
-   * 遵循NestJS最佳实践的依赖注入
-   */
-  private async ensureStreamContextSingleton(): Promise<void> {
-    try {
-      // 使用工厂方法获取单例实例
-      const singletonInstance = await LongportStreamContextService.getInstance(this.configService);
-      
-      // 如果注入的实例不是单例，替换为单例实例
-      if (this.streamContextService !== singletonInstance) {
-        this.logger.warn('检测到非单例StreamContextService实例，替换为单例实例');
-        (this as any).streamContextService = singletonInstance;
-      }
-      
-      this.logger.log('StreamContextService单例模式验证完成');
-    } catch (error) {
-      this.logger.error('StreamContextService单例模式设置失败', error.message);
-    }
-  }
 
   async initialize(): Promise<void> {
     this.logger.log("初始化 LongPort 提供商...");
