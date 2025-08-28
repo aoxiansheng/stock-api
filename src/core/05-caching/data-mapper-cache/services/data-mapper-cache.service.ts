@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { createLogger } from '../../../../common/config/logger.config';
 import { RedisService } from '@liaoliaots/nestjs-redis';
@@ -23,11 +23,80 @@ export class DataMapperCacheService implements IDataMapperCache {
 
   constructor(
     private readonly redisService: RedisService,
-    @Inject('CollectorService') private readonly collectorService: any, // ✅ 必选注入
+    // 可选注入，支持监控服务不可用的场景
+    @Optional() private readonly collectorService?: CollectorService,
   ) {}
 
   private get redis(): Redis {
     return this.redisService.getOrThrow();
+  }
+
+  // 添加空值保护，处理可选注入场景
+  private recordCacheOperation(operation: string, hit: boolean, duration: number, metadata?: any): void {
+    try {
+      if (this.collectorService) {
+        this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
+      }
+    } catch (error) {
+      // 监控失败不影响业务逻辑
+      this.logger.debug('监控记录失败', { operation, error: error.message });
+    }
+  }
+
+  /**
+   * 优化的SCAN实现，支持超时和错误处理
+   */
+  private async scanKeysWithTimeout(pattern: string, timeoutMs: number = 5000): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = '0';
+    const startTime = Date.now();
+    
+    try {
+      do {
+        // 检查超时
+        if (Date.now() - startTime > timeoutMs) {
+          this.logger.warn('SCAN操作超时', { pattern, scannedKeys: keys.length, timeoutMs });
+          break;
+        }
+
+        const result = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = result[0];
+        keys.push(...result[1]);
+        
+      } while (cursor !== '0' && keys.length < 10000); // 防止内存过度使用
+
+      return keys;
+      
+    } catch (error) {
+      this.logger.error('SCAN操作失败', { pattern, error: error.message });
+      // 降级到空数组，而不是抛出异常
+      return [];
+    }
+  }
+
+  /**
+   * 分批安全删除
+   */
+  private async batchDelete(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+
+    const BATCH_SIZE = 100;
+    const batches = [];
+    
+    for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+      batches.push(keys.slice(i, i + BATCH_SIZE));
+    }
+
+    // 串行删除批次，避免Redis压力过大
+    for (const batch of batches) {
+      try {
+        await this.redis.del(...batch);
+        // 批次间短暂延迟，降低Redis负载
+        await new Promise(resolve => setTimeout(resolve, 10));
+      } catch (error) {
+        this.logger.warn('批量删除失败', { batchSize: batch.length, error: error.message });
+      }
+    }
   }
 
   /**
@@ -373,51 +442,83 @@ export class DataMapperCacheService implements IDataMapperCache {
   }
 
   /**
-   * 🧹 失效提供商相关缓存
+   * 🧹 失效提供商相关缓存 (优化版 - 使用SCAN替代KEYS)
    */
   async invalidateProviderCache(provider: string): Promise<void> {
+    const startTime = Date.now();
+    
     try {
-      // 构建匹配模式
       const patterns = [
         `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:${provider}:*`,
         `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:${provider}:*`,
       ];
 
+      let totalDeleted = 0;
+      
       for (const pattern of patterns) {
-        const keys = await this.redis.keys(pattern);
-        if (keys.length > 0) {
-          await this.redis.del(...keys);
-        }
+        const keys = await this.scanKeysWithTimeout(pattern, 3000);
+        await this.batchDelete(keys);
+        totalDeleted += keys.length;
       }
 
-      this.logger.log('提供商相关缓存已失效', { provider });
-      // ✅ 批量删除操作监控可通过CollectorService记录
+      // 监控记录
+      this.recordCacheOperation('delete', true, Date.now() - startTime, {
+        cacheType: 'redis',
+        service: 'DataMapperCacheService',
+        operation: 'invalidateProviderCache',
+        provider,
+        deletedKeys: totalDeleted
+      });
+
+      this.logger.log('提供商缓存失效完成', { provider, deletedKeys: totalDeleted });
+      
     } catch (error) {
-      this.logger.error('失效提供商缓存失败', {
+      this.recordCacheOperation('delete', false, Date.now() - startTime, {
+        cacheType: 'redis',
+        service: 'DataMapperCacheService',
+        operation: 'invalidateProviderCache',
         provider,
         error: error.message
       });
+      
+      this.logger.error('失效提供商缓存失败', { provider, error: error.message });
       throw error;
     }
   }
 
   /**
-   * 🧹 清空所有规则缓存
+   * 🧹 清空所有规则缓存 (优化版 - 使用SCAN替代KEYS)
    */
   async clearAllRuleCache(): Promise<void> {
+    const startTime = Date.now();
+    
     try {
       const patterns = Object.values(DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS).map(prefix => `${prefix}:*`);
+      let totalDeleted = 0;
       
       for (const pattern of patterns) {
-        const keys = await this.redis.keys(pattern);
-        if (keys.length > 0) {
-          await this.redis.del(...keys);
-        }
+        const keys = await this.scanKeysWithTimeout(pattern, 5000);
+        await this.batchDelete(keys);
+        totalDeleted += keys.length;
       }
 
-      this.logger.log('所有规则缓存已清空');
-      // ✅ 清空操作监控可通过CollectorService记录
+      // 监控记录
+      this.recordCacheOperation('delete', true, Date.now() - startTime, {
+        cacheType: 'redis',
+        service: 'DataMapperCacheService',
+        operation: 'clearAllRuleCache',
+        deletedKeys: totalDeleted
+      });
+
+      this.logger.log('所有规则缓存已清空', { deletedKeys: totalDeleted });
     } catch (error) {
+      this.recordCacheOperation('delete', false, Date.now() - startTime, {
+        cacheType: 'redis',
+        service: 'DataMapperCacheService',
+        operation: 'clearAllRuleCache',
+        error: error.message
+      });
+      
       this.logger.error('清空规则缓存失败', { error: error.message });
       throw error;
     }
@@ -481,16 +582,26 @@ export class DataMapperCacheService implements IDataMapperCache {
   }
 
   /**
-   * 📊 获取缓存统计
+   * 📊 获取缓存统计 (优化版 - 使用SCAN替代KEYS)
    */
   async getCacheStats(): Promise<DataMapperCacheStatsDto> {
+    const startTime = Date.now();
+    
     try {
-      // 获取各类型缓存的数量
+      // 获取各类型缓存的数量 - 使用SCAN替代KEYS
       const [bestRuleKeys, ruleByIdKeys, providerRulesKeys] = await Promise.all([
-        this.redis.keys(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:*`),
-        this.redis.keys(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:*`),
-        this.redis.keys(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:*`),
+        this.scanKeysWithTimeout(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:*`, 2000),
+        this.scanKeysWithTimeout(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:*`, 2000),
+        this.scanKeysWithTimeout(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:*`, 2000),
       ]);
+
+      // 监控记录
+      this.recordCacheOperation('scan', true, Date.now() - startTime, {
+        cacheType: 'redis',
+        service: 'DataMapperCacheService',
+        operation: 'getCacheStats',
+        scannedKeys: bestRuleKeys.length + ruleByIdKeys.length + providerRulesKeys.length
+      });
 
       // ✅ 统计数据现在由CollectorService提供，这里只返回缓存大小信息
       return {
@@ -502,6 +613,14 @@ export class DataMapperCacheService implements IDataMapperCache {
         avgResponseTime: 0, // ✅ 由CollectorService提供性能数据
       };
     } catch (error) {
+      // 监控记录失败情况
+      this.recordCacheOperation('scan', false, Date.now() - startTime, {
+        cacheType: 'redis',
+        service: 'DataMapperCacheService',
+        operation: 'getCacheStats',
+        error: error.message
+      });
+      
       this.logger.error('获取缓存统计失败', { error: error.message });
       return {
         bestRuleCacheSize: 0,

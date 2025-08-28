@@ -111,26 +111,13 @@ export class FlexibleMappingRule extends Document {
   @Prop({ default: 0, min: 0 })
   failedTransformations: number;     // 失败转换次数
 
-  // successRate 作为虚拟字段动态计算，不存储在数据库中
-  // TypeScript 虚拟字段类型声明
-  successRate?: number;
+  // 新增：将successRate改为持久化字段
+  @Prop({ default: 0, min: 0, max: 1 })
+  successRate: number;              // 成功率持久化字段
 
 }
 
 export const FlexibleMappingRuleSchema = SchemaFactory.createForClass(FlexibleMappingRule);
-
-// 🎯 添加虚拟字段：动态计算成功率
-FlexibleMappingRuleSchema.virtual('successRate').get(function() {
-  const total = this.successfulTransformations + this.failedTransformations;
-  if (total === 0) {
-    return 0;
-  }
-  return this.successfulTransformations / total;
-});
-
-// 确保虚拟字段在 JSON 输出中包含
-FlexibleMappingRuleSchema.set('toJSON', { virtuals: true });
-FlexibleMappingRuleSchema.set('toObject', { virtuals: true });
 
 // 🎯 创建索引
 FlexibleMappingRuleSchema.index({ provider: 1, apiType: 1, transDataRuleListType: 1 }); // 复合查询索引

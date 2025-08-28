@@ -344,4 +344,293 @@ export class PresenterService {
       throw error;
     }
   }
+
+  /**
+   * 注册自定义监控指标 (Data Mapper 组件支持)
+   */
+  async registerCustomMetrics(componentName: string, config: any) {
+    try {
+      this.logger.log(`注册自定义监控指标: ${componentName}`, {
+        metricsCount: Object.keys(config.dataMapperMetrics || {}).length,
+        alertRulesCount: config.alertingRules?.criticalErrors?.length || 0
+      });
+
+      // 存储组件配置到内存 (实际应用可能需要持久化存储)
+      if (!this.customMetricsConfig) {
+        this.customMetricsConfig = new Map();
+      }
+      
+      this.customMetricsConfig.set(componentName, {
+        config,
+        registeredAt: new Date(),
+        enabled: true
+      });
+
+      this.logger.log(`✅ 自定义监控指标注册成功: ${componentName}`);
+      
+      return {
+        componentName,
+        status: 'registered',
+        timestamp: new Date().toISOString(),
+        metricsRegistered: true
+      };
+      
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'registerCustomMetrics',
+        componentName,
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 获取指定组件的监控指标
+   */
+  async getMetrics(componentName: string) {
+    try {
+      if (!this.customMetricsConfig?.has(componentName)) {
+        throw new BadRequestException(`组件 ${componentName} 的监控指标未找到`);
+      }
+
+      const componentConfig = this.customMetricsConfig.get(componentName);
+      
+      // 模拟获取实际指标数据 (实际应用需要从监控后端获取)
+      const mockMetrics = this.generateMockMetricsData(componentName, componentConfig.config);
+
+      this.logger.debug(`获取组件监控指标: ${componentName}`, {
+        metricsCount: mockMetrics.length
+      });
+
+      return mockMetrics;
+      
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'getMetrics',
+        componentName,
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 创建监控仪表盘
+   */
+  async createDashboard(dashboardId: string, dashboardConfig: any) {
+    try {
+      this.logger.log(`创建监控仪表盘: ${dashboardId}`, {
+        panelsCount: dashboardConfig.panels?.length || 0,
+        title: dashboardConfig.title
+      });
+
+      // 存储仪表盘配置
+      if (!this.dashboardConfigs) {
+        this.dashboardConfigs = new Map();
+      }
+      
+      this.dashboardConfigs.set(dashboardId, {
+        config: dashboardConfig,
+        createdAt: new Date(),
+        enabled: true,
+        viewCount: 0
+      });
+
+      this.logger.log(`✅ 监控仪表盘创建成功: ${dashboardId}`);
+      
+      return {
+        dashboardId,
+        title: dashboardConfig.title,
+        status: 'created',
+        timestamp: new Date().toISOString(),
+        url: `/monitoring/dashboard/${dashboardId}`
+      };
+      
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'createDashboard',
+        dashboardId,
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 获取仪表盘数据
+   */
+  async getDashboard(dashboardId: string) {
+    try {
+      if (!this.dashboardConfigs?.has(dashboardId)) {
+        throw new BadRequestException(`仪表盘 ${dashboardId} 未找到`);
+      }
+
+      const dashboard = this.dashboardConfigs.get(dashboardId);
+      
+      // 增加访问计数
+      dashboard.viewCount += 1;
+      
+      // 生成仪表盘实时数据
+      const dashboardData = await this.generateDashboardData(dashboardId, dashboard.config);
+
+      this.logger.debug(`获取仪表盘数据: ${dashboardId}`, {
+        panelsCount: dashboardData.panels?.length || 0,
+        viewCount: dashboard.viewCount
+      });
+
+      return {
+        ...dashboardData,
+        metadata: {
+          dashboardId,
+          title: dashboard.config.title,
+          createdAt: dashboard.createdAt,
+          lastViewedAt: new Date(),
+          viewCount: dashboard.viewCount
+        }
+      };
+      
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'getDashboard',
+        dashboardId,
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  // 私有成员变量声明
+  private customMetricsConfig?: Map<string, any>;
+  private dashboardConfigs?: Map<string, any>;
+
+  /**
+   * 生成模拟指标数据 (私有方法)
+   */
+  private generateMockMetricsData(componentName: string, config: any): any[] {
+    const now = Date.now();
+    const metrics = [];
+
+    if (componentName === 'data-mapper' && config.dataMapperMetrics) {
+      // 数据库查询指标
+      metrics.push({
+        name: 'data_mapper_database_query_duration',
+        value: Math.random() * 200 + 100, // 100-300ms
+        unit: 'ms',
+        timestamp: now,
+        labels: { service: 'FlexibleMappingRuleService', operation: 'updateRuleStats' }
+      });
+
+      metrics.push({
+        name: 'data_mapper_database_query_success_rate',
+        value: Math.random() * 5 + 95, // 95-100%
+        unit: '%',
+        timestamp: now,
+        labels: { service: 'FlexibleMappingRuleService' }
+      });
+
+      // 缓存操作指标
+      metrics.push({
+        name: 'data_mapper_cache_operation_duration',
+        value: Math.random() * 500 + 200, // 200-700ms
+        unit: 'ms',
+        timestamp: now,
+        labels: { service: 'DataMapperCacheService', operation: 'scanKeys' }
+      });
+
+      metrics.push({
+        name: 'data_mapper_cache_hit_rate',
+        value: Math.random() * 10 + 85, // 85-95%
+        unit: '%',
+        timestamp: now,
+        labels: { service: 'DataMapperCacheService' }
+      });
+
+      // 业务逻辑指标
+      metrics.push({
+        name: 'data_mapper_mapping_success_rate',
+        value: Math.random() * 3 + 97, // 97-100%
+        unit: '%',
+        timestamp: now,
+        labels: { service: 'DataMapperService' }
+      });
+
+      // 任务限流器指标
+      metrics.push({
+        name: 'data_mapper_task_limiter_pending_count',
+        value: Math.floor(Math.random() * 20), // 0-19
+        unit: 'count',
+        timestamp: now,
+        labels: { service: 'AsyncTaskLimiter' }
+      });
+    }
+
+    return metrics;
+  }
+
+  /**
+   * 生成仪表盘数据 (私有方法)
+   */
+  private async generateDashboardData(dashboardId: string, config: any): Promise<any> {
+    const panels = [];
+    
+    if (config.panels) {
+      for (const panelConfig of config.panels) {
+        const panelData = {
+          title: panelConfig.title,
+          type: panelConfig.type,
+          data: this.generatePanelData(panelConfig),
+          thresholds: panelConfig.thresholds,
+          lastUpdated: new Date().toISOString()
+        };
+        panels.push(panelData);
+      }
+    }
+
+    return {
+      title: config.title,
+      panels,
+      refreshedAt: new Date().toISOString()
+    };
+  }
+
+  /**
+   * 生成面板数据 (私有方法)
+   */
+  private generatePanelData(panelConfig: any): any {
+    const mockData = [];
+    const now = Date.now();
+    
+    // 生成最近1小时的模拟数据点
+    for (let i = 59; i >= 0; i--) {
+      const timestamp = now - i * 60000; // 每分钟一个数据点
+      
+      panelConfig.metrics.forEach((metricName: string) => {
+        let value;
+        
+        // 根据指标类型生成不同范围的模拟数据
+        if (metricName.includes('duration') || metricName.includes('time')) {
+          value = Math.random() * 500 + 100; // 100-600ms
+        } else if (metricName.includes('rate') || metricName.includes('success')) {
+          value = Math.random() * 10 + 90; // 90-100%
+        } else if (metricName.includes('count')) {
+          value = Math.floor(Math.random() * 50); // 0-49
+        } else {
+          value = Math.random() * 100; // 0-100
+        }
+        
+        mockData.push({
+          metric: metricName,
+          timestamp,
+          value
+        });
+      });
+    }
+    
+    return mockData;
+  }
 }

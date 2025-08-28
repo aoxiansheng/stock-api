@@ -15,10 +15,12 @@ import { DataSourceTemplateService } from './data-source-template.service';
 import { MappingRuleCacheService } from './mapping-rule-cache.service';
 import { ObjectUtils } from '../../../shared/utils/object.util';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { AsyncTaskLimiter } from '../utils/async-task-limiter';
 
 @Injectable()
 export class FlexibleMappingRuleService {
   private readonly logger = createLogger(FlexibleMappingRuleService.name);
+  private readonly asyncLimiter = new AsyncTaskLimiter(50);
 
   constructor(
     @InjectModel(FlexibleMappingRule.name)
@@ -570,9 +572,11 @@ export class FlexibleMappingRuleService {
       
       // ✅ 异步更新规则统计（避免阻塞）
       setImmediate(() => {
-        this.updateRuleStats(rule._id.toString(), result.success).catch(error => {
-          this.logger.warn('更新规则统计失败', { error: error.message });
-        });
+        if (rule._id) {
+          this.updateRuleStats(rule._id.toString(), result.success).catch(error => {
+            this.logger.warn('更新规则统计失败', { error: error.message });
+          });
+        }
       });
     } catch (monitoringError) {
       // 监控失败不应影响业务逻辑
@@ -634,35 +638,79 @@ export class FlexibleMappingRuleService {
   }
 
   /**
-   * 📊 更新规则使用统计 (Redis缓存失效)
+   * 📊 更新规则使用统计 (优化版 - 单次原子更新)
    */
   private async updateRuleStats(dataMapperRuleId: string, success: boolean): Promise<void> {
-    const updateFields: any = {
-      $inc: { usageCount: 1 },
-      $set: { lastUsedAt: new Date() }
-    };
+    const startTime = Date.now();
+    
+    try {
+      // 使用单次原子更新，包含成功率重新计算
+      const result = await this.ruleModel.findByIdAndUpdate(
+        dataMapperRuleId,
+        [
+          {
+            $set: {
+              usageCount: { $add: ["$usageCount", 1] },
+              lastUsedAt: new Date(),
+              successfulTransformations: success 
+                ? { $add: ["$successfulTransformations", 1] }
+                : "$successfulTransformations",
+              failedTransformations: success
+                ? "$failedTransformations"
+                : { $add: ["$failedTransformations", 1] }
+            }
+          },
+          {
+            $set: {
+              successRate: {
+                $cond: {
+                  if: { $gt: [{ $add: ["$successfulTransformations", "$failedTransformations"] }, 0] },
+                  then: { $divide: ["$successfulTransformations", { $add: ["$successfulTransformations", "$failedTransformations"] }] },
+                  else: 0
+                }
+              }
+            }
+          }
+        ],
+        { new: true }
+      );
 
-    if (success) {
-      updateFields.$inc.successfulTransformations = 1;
-    } else {
-      updateFields.$inc.failedTransformations = 1;
-    }
+      if (result) {
+        // 轻量任务限流器替代 setImmediate
+        this.asyncLimiter.schedule(() => {
+          const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(result);
+          return this.mappingRuleCacheService.invalidateRuleCache(dataMapperRuleId, ruleDto);
+        });
+      }
 
-    await this.ruleModel.findByIdAndUpdate(dataMapperRuleId, updateFields);
+      // 监控记录
+      this.collectorService?.recordDatabaseOperation(
+        'updateRuleStats',
+        Date.now() - startTime,
+        true,
+        {
+          collection: 'flexibleMappingRules',
+          ruleId: dataMapperRuleId,
+          service: 'FlexibleMappingRuleService'
+        }
+      );
 
-    // 重新计算成功率
-    const rule = await this.ruleModel.findById(dataMapperRuleId);
-    if (rule) {
-      const total = rule.successfulTransformations + rule.failedTransformations;
-      const successRate = total > 0 ? rule.successfulTransformations / total : 0;
+    } catch (error) {
+      // 监控记录失败情况
+      this.collectorService?.recordDatabaseOperation(
+        'updateRuleStats',
+        Date.now() - startTime,
+        false,
+        {
+          collection: 'flexibleMappingRules',
+          ruleId: dataMapperRuleId,
+          service: 'FlexibleMappingRuleService',
+          error: error.message
+        }
+      );
       
-      await this.ruleModel.findByIdAndUpdate(dataMapperRuleId, { 
-        $set: { successRate } 
-      });
-
-      // 🚀 统计更新后失效缓存，因为成功率和使用数量变化会影响最佳匹配
-      const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
-      await this.mappingRuleCacheService.invalidateRuleCache(dataMapperRuleId, ruleDto);
+      this.logger.error('更新规则统计失败', { dataMapperRuleId, success, error: error.message });
+      throw error;
     }
   }
 
