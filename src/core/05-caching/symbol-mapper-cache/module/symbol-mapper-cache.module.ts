@@ -28,28 +28,17 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
  */
 @Module({
   imports: [
-    // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
+    // 🎖️ 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
     
     MonitoringModule, // ✅ 提供 CollectorService
-    
-    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
-    // MongooseModule.forFeature([
-    //   // SymbolMappingRuleDocument已在CoreDatabaseModule中注册
-    //   { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
-    // ]),
   ],
   providers: [
     SymbolMapperCacheService,
     SymbolMappingRepository, // 缓存服务需要访问数据库
     FeatureFlags,           // 缓存配置参数
-    // ✅ 提供CollectorService
-    {
-      provide: 'CollectorService',
-      useFactory: () => ({
-        recordCacheOperation: () => {}, // fallback mock
-      }),
-    },
+    // 🗑️ 全新项目：直接移除fallback mock
+    // 不再提供'CollectorService' mock，直接使用MonitoringModule提供的CollectorService
   ],
   exports: [
     SymbolMapperCacheService, // 导出缓存服务供其他模块使用

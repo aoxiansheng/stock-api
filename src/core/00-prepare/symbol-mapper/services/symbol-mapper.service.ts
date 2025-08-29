@@ -48,15 +48,12 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(SymbolMapperService.name);
 
-
-  
-
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly paginationService: PaginationService,
     private readonly featureFlags: FeatureFlags,
-    private readonly collectorService: CollectorService, // ✅ 标准注入
-    private readonly symbolMapperCacheService?: SymbolMapperCacheService, // 可选注入，向后兼容
+    private readonly collectorService: CollectorService,
+    private readonly symbolMapperCacheService: SymbolMapperCacheService, // 🗑️ 移除可选标记
   ) {
 
   }
@@ -108,10 +105,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
   async onModuleInit() {
     this.logger.log('SymbolMapperService 初始化完成，缓存监听由 SymbolMapperCacheService 负责');
   }
-
-
-
-
 
   // ===== 🎯 核心规则管理功能 =====
 
@@ -533,9 +526,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     }
   }
 
-
-
-
   /**
    * 获取所有数据源列表
    *
@@ -897,9 +887,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
   // ===== 私有辅助方法 =====
 
-
-
-
   /**
    * 获取所有映射规则
    *
@@ -975,20 +962,14 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
   // ===== 🎯 缓存优化相关的辅助方法 =====
 
-
-
   /**
    * 手动清理所有缓存（委派给缓存服务）
    */
   clearCache(): void {
-    if (this.symbolMapperCacheService) {
-      this.symbolMapperCacheService.clearAllCaches();
-      this.logger.log('符号映射规则缓存已清理（通过缓存服务）');
-    } else {
-      this.logger.warn('缓存服务不可用，无法清理缓存');
-    }
+    // 🗑️ 移除兼容性检查，直接调用
+    this.symbolMapperCacheService.clearAllCaches();
+    this.logger.log('符号映射规则缓存已清理');
   }
-
 
   /**
    * 获取缓存统计信息
@@ -1001,38 +982,21 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     maxSize: number;
     pendingQueries: number;
   } {
-    // 🎯 优先使用新缓存服务的统计信息（如果可用）
-    if (this.symbolMapperCacheService) {
-      try {
-        const newStats = this.symbolMapperCacheService.getCacheStats();
-        
-        // 转换为兼容格式
-        const totalL2Hits = newStats.layerStats.l2.hits;
-        const totalL2Misses = newStats.layerStats.l2.misses;
-        const totalL2Accesses = totalL2Hits + totalL2Misses;
-        
-        return {
-          cacheHits: totalL2Hits,
-          cacheMisses: totalL2Misses,
-          hitRate: totalL2Accesses > 0 ? (totalL2Hits / totalL2Accesses * 100).toFixed(2) + '%' : '0%',
-          cacheSize: newStats.cacheSize.l2, // L2 符号缓存大小
-          maxSize: this.featureFlags.symbolCacheMaxSize,
-          pendingQueries: 0, // 新缓存服务中的并发控制不暴露计数
-        };
-      } catch (error) {
-        this.logger.warn('获取新缓存统计失败，使用传统统计', { error: error.message });
-      }
-    }
-
-    // 🎯 无缓存服务时返回默认统计
+    // 🗑️ 移除可用性检查，直接使用缓存服务
+    const newStats = this.symbolMapperCacheService.getCacheStats();
+    
+    // 转换为兼容格式
+    const totalL2Hits = newStats.layerStats.l2.hits;
+    const totalL2Misses = newStats.layerStats.l2.misses;
+    const totalL2Accesses = totalL2Hits + totalL2Misses;
+    
     return {
-      cacheHits: 0,
-      cacheMisses: 0,
-      hitRate: 'N/A',
-      cacheSize: 0,
+      cacheHits: totalL2Hits,
+      cacheMisses: totalL2Misses,
+      hitRate: totalL2Accesses > 0 ? (totalL2Hits / totalL2Accesses * 100).toFixed(2) + '%' : '0%',
+      cacheSize: newStats.cacheSize.l2, // L2 符号缓存大小
       maxSize: this.featureFlags.symbolCacheMaxSize,
-      pendingQueries: 0,
+      pendingQueries: 0, // 新缓存服务中的并发控制不暴露计数
     };
   }
-
 }

@@ -187,7 +187,20 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-receiver.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --skipLibCheck)",
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck --isolatedModules src/core/01-entry/stream-receiver/services/stream-receiver.service.ts)",
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/**/*.ts)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/receiver/services/receiver-connection-count.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --verbose)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-receiver-cleanup.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/01-entry/stream-receiver/rate-limit-memory-protection.integration.test.ts --testTimeout=60000 --config test/config/jest.integration.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/01-entry/stream-receiver/rate-limit-memory-protection.integration.test.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/integration/core/01-entry/stream-receiver/rate-limit-memory-protection.integration.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/query/factories/query-executor.factory.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/stream-receiver-rate-limit-memory.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/query --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/query/factories/ test/jest/unit/core/01-entry/query/config/ --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/core/01-entry/query/services/query.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/stream-receiver-rate-limit-memory.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --testNamePattern=\"should have memory monitoring methods\")",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck src/core/01-entry/query/factories/**/*.ts src/core/01-entry/query/config/query.config.ts src/core/01-entry/query/services/query-memory-monitor.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/stream-receiver-rate-limit-memory.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)"
     ],
     "deny": []
   }

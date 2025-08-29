@@ -1,4 +1,5 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createLogger } from '@common/config/logger.config';
 import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '../../../02-processing/transformer/services/data-transformer.service';
@@ -14,7 +15,15 @@ import { DataTransformRequestDto } from '../../../02-processing/transformer/dto/
 import { StreamConnection, StreamConnectionParams } from '../../../03-fetching/stream-data-fetcher/interfaces';
 import { Subject } from 'rxjs';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { RateLimitService } from '../../../../auth/services/rate-limit.service';
 import { bufferTime, filter, mergeMap } from 'rxjs/operators';
+import { 
+  StreamReceiverConfig,
+  defaultStreamReceiverConfig,
+  StreamReceiverConfigKeys,
+  mergeStreamReceiverConfig,
+  validateStreamReceiverConfig
+} from '../config/stream-receiver.config';
 
 /**
  * 批量处理的报价数据
@@ -98,14 +107,13 @@ export class StreamReceiverService implements OnModuleDestroy {
   // ✅ 活跃的流连接管理 - provider:capability -> StreamConnection (已修复内存泄漏)
   private readonly activeConnections = new Map<string, StreamConnection>();
   
-  // 连接清理配置 - 防止内存泄漏
-  private readonly CONNECTION_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5分钟
-  private readonly MAX_CONNECTIONS = 1000; // 连接数上限
-  private readonly CONNECTION_STALE_TIMEOUT = 10 * 60 * 1000; // 10分钟超时
+  // P1重构: 配置管理 - 从硬编码迁移到ConfigService
+  private readonly config: StreamReceiverConfig;
   private cleanupTimer?: NodeJS.Timeout; // 清理定时器
+  private memoryCheckTimer?: NodeJS.Timeout;
   
   // 🎯 RxJS 批量处理管道
-  private readonly quoteBatchSubject = new Subject<QuoteData>();
+  private quoteBatchSubject = new Subject<QuoteData>();
   
   // 🔒 并发安全的批量处理统计 - 使用互斥锁保护
   private batchProcessingStats = {
@@ -113,13 +121,27 @@ export class StreamReceiverService implements OnModuleDestroy {
     totalQuotes: 0,
     batchProcessingTime: 0,
   };
+  /** 动态批处理优化状态 */
+  private dynamicBatchingState = {
+    currentInterval: 50, // 当前批处理间隔(ms)
+    loadSamples: [] as number[], // 负载采样数组
+    lastAdjustment: 0, // 上次调整时间戳
+    isHighLoad: false, // 是否处于高负载状态
+    isLowLoad: false, // 是否处于低负载状态
+    adjustmentTimer: undefined as NodeJS.Timeout | undefined, // 调整定时器
+  };
+
+  /** 动态批处理性能指标 */
+  private dynamicBatchingMetrics = {
+    totalAdjustments: 0, // 总调整次数
+    avgResponseTime: 0, // 平均响应时间
+    throughputPerSecond: 0, // 每秒吞吐量
+    lastThroughputCheck: Date.now(), // 上次吞吐量检查时间
+    batchCountInWindow: 0, // 窗口内的批次数
+  };
   private readonly statsLock = new Map<string, Promise<void>>(); // 简单的锁机制
   
-  // 🔄 错误恢复和重试配置
-  private readonly MAX_RETRY_ATTEMPTS = 3;
-  private readonly RETRY_DELAY_BASE = 1000; // 1秒基础延迟
-  private readonly CIRCUIT_BREAKER_THRESHOLD = 50; // 50%失败率阈值
-  private readonly CIRCUIT_BREAKER_RESET_TIMEOUT = 30000; // 30秒重置时间
+  // 🔄 错误恢复和重试状态 (配置已迁移到config)
   private circuitBreakerState = {
     failures: 0,
     successes: 0,
@@ -128,17 +150,167 @@ export class StreamReceiverService implements OnModuleDestroy {
   };
 
   constructor(
-    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现在5个核心依赖 + 1个可选依赖
+    // P1重构: 添加配置服务
+    private readonly configService: ConfigService,
+    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现有5个核心依赖 + 1个可选依赖
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly collectorService: CollectorService, // ✅ 替换为CollectorService (标准化：必填注入)
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
+    @Inject(forwardRef(() => RateLimitService))
+    private readonly rateLimitService?: RateLimitService, // P0修复: 连接频率限制服务 (可选)
   ) {
-    this.logger.log('StreamReceiver Phase 4 重构完成 - 精简依赖架构 + 统一监控 + 连接清理');
+    // P1重构: 初始化配置管理
+    this.config = this.initializeConfig();
+    
+    this.logger.log('StreamReceiver P1重构完成 - 配置管理 + 精简依赖架构 + 统一监控 + 连接清理 + 频率限制 + 内存防护 + 动态批处理');
     this.initializeBatchProcessing();
     this.setupSubscriptionChangeListener();
     this.initializeConnectionCleanup(); // ✅ 初始化连接清理机制
+    this.initializeMemoryMonitoring(); // P0修复: 初始化内存监控
+    this.initializeDynamicBatching(); // P1阶段2: 初始化动态批处理优化
+  }
+
+  /**
+   * P1重构: 初始化配置管理
+   */
+  private initializeConfig(): StreamReceiverConfig {
+    const userConfig: Partial<StreamReceiverConfig> = {
+      connectionCleanupInterval: this.configService.get<number>(
+        StreamReceiverConfigKeys.CONNECTION_CLEANUP_INTERVAL, 
+        defaultStreamReceiverConfig.connectionCleanupInterval
+      ),
+      maxConnections: this.configService.get<number>(
+        StreamReceiverConfigKeys.MAX_CONNECTIONS,
+        defaultStreamReceiverConfig.maxConnections
+      ),
+      connectionStaleTimeout: this.configService.get<number>(
+        StreamReceiverConfigKeys.CONNECTION_STALE_TIMEOUT,
+        defaultStreamReceiverConfig.connectionStaleTimeout
+      ),
+      maxRetryAttempts: this.configService.get<number>(
+        StreamReceiverConfigKeys.MAX_RETRY_ATTEMPTS,
+        defaultStreamReceiverConfig.maxRetryAttempts
+      ),
+      retryDelayBase: this.configService.get<number>(
+        StreamReceiverConfigKeys.RETRY_DELAY_BASE,
+        defaultStreamReceiverConfig.retryDelayBase
+      ),
+      circuitBreakerThreshold: this.configService.get<number>(
+        StreamReceiverConfigKeys.CIRCUIT_BREAKER_THRESHOLD,
+        defaultStreamReceiverConfig.circuitBreakerThreshold
+      ),
+      circuitBreakerResetTimeout: this.configService.get<number>(
+        StreamReceiverConfigKeys.CIRCUIT_BREAKER_RESET_TIMEOUT,
+        defaultStreamReceiverConfig.circuitBreakerResetTimeout
+      ),
+      batchProcessingInterval: this.configService.get<number>(
+        StreamReceiverConfigKeys.BATCH_PROCESSING_INTERVAL,
+        defaultStreamReceiverConfig.batchProcessingInterval
+      ),
+      dynamicBatching: {
+        enabled: this.configService.get<boolean>(
+          StreamReceiverConfigKeys.DYNAMIC_BATCHING_ENABLED,
+          defaultStreamReceiverConfig.dynamicBatching.enabled
+        ),
+        minInterval: this.configService.get<number>(
+          StreamReceiverConfigKeys.DYNAMIC_BATCHING_MIN_INTERVAL,
+          defaultStreamReceiverConfig.dynamicBatching.minInterval
+        ),
+        maxInterval: this.configService.get<number>(
+          StreamReceiverConfigKeys.DYNAMIC_BATCHING_MAX_INTERVAL,
+          defaultStreamReceiverConfig.dynamicBatching.maxInterval
+        ),
+        highLoadInterval: this.configService.get<number>(
+          StreamReceiverConfigKeys.DYNAMIC_BATCHING_HIGH_LOAD_INTERVAL,
+          defaultStreamReceiverConfig.dynamicBatching.highLoadInterval
+        ),
+        lowLoadInterval: this.configService.get<number>(
+          StreamReceiverConfigKeys.DYNAMIC_BATCHING_LOW_LOAD_INTERVAL,
+          defaultStreamReceiverConfig.dynamicBatching.lowLoadInterval
+        ),
+        loadDetection: {
+          sampleWindow: this.configService.get<number>(
+            StreamReceiverConfigKeys.DYNAMIC_BATCHING_SAMPLE_WINDOW,
+            defaultStreamReceiverConfig.dynamicBatching.loadDetection.sampleWindow
+          ),
+          highLoadThreshold: this.configService.get<number>(
+            StreamReceiverConfigKeys.DYNAMIC_BATCHING_HIGH_LOAD_THRESHOLD,
+            defaultStreamReceiverConfig.dynamicBatching.loadDetection.highLoadThreshold
+          ),
+          lowLoadThreshold: this.configService.get<number>(
+            StreamReceiverConfigKeys.DYNAMIC_BATCHING_LOW_LOAD_THRESHOLD,
+            defaultStreamReceiverConfig.dynamicBatching.loadDetection.lowLoadThreshold
+          ),
+          adjustmentStep: this.configService.get<number>(
+            StreamReceiverConfigKeys.DYNAMIC_BATCHING_ADJUSTMENT_STEP,
+            defaultStreamReceiverConfig.dynamicBatching.loadDetection.adjustmentStep
+          ),
+          adjustmentFrequency: this.configService.get<number>(
+            StreamReceiverConfigKeys.DYNAMIC_BATCHING_ADJUSTMENT_FREQUENCY,
+            defaultStreamReceiverConfig.dynamicBatching.loadDetection.adjustmentFrequency
+          ),
+        },
+      },
+      memoryMonitoring: {
+        checkInterval: this.configService.get<number>(
+          StreamReceiverConfigKeys.MEMORY_CHECK_INTERVAL,
+          defaultStreamReceiverConfig.memoryMonitoring.checkInterval
+        ),
+        warningThreshold: this.configService.get<number>(
+          StreamReceiverConfigKeys.MEMORY_WARNING_THRESHOLD,
+          defaultStreamReceiverConfig.memoryMonitoring.warningThreshold / (1024 * 1024)
+        ) * 1024 * 1024, // 从MB转换为字节
+        criticalThreshold: this.configService.get<number>(
+          StreamReceiverConfigKeys.MEMORY_CRITICAL_THRESHOLD,
+          defaultStreamReceiverConfig.memoryMonitoring.criticalThreshold / (1024 * 1024)
+        ) * 1024 * 1024, // 从MB转换为字节
+      },
+      rateLimit: {
+        maxConnectionsPerMinute: this.configService.get<number>(
+          StreamReceiverConfigKeys.RATE_LIMIT_MAX_CONNECTIONS,
+          defaultStreamReceiverConfig.rateLimit.maxConnectionsPerMinute
+        ),
+        windowSize: this.configService.get<number>(
+          StreamReceiverConfigKeys.RATE_LIMIT_WINDOW_SIZE,
+          defaultStreamReceiverConfig.rateLimit.windowSize
+        ),
+      },
+    };
+
+    // 合并配置
+    const config = mergeStreamReceiverConfig(userConfig);
+    
+    // 验证配置
+    const validationErrors = validateStreamReceiverConfig(config);
+    if (validationErrors.length > 0) {
+      this.logger.warn('配置验证发现问题，使用默认值', {
+        errors: validationErrors,
+        fallbackToDefaults: true
+      });
+      return defaultStreamReceiverConfig;
+    }
+
+    this.logger.log('StreamReceiver配置已初始化', {
+      maxConnections: config.maxConnections,
+      cleanupInterval: `${config.connectionCleanupInterval / 1000}s`,
+      batchProcessing: {
+        baseInterval: `${config.batchProcessingInterval}ms`,
+        dynamicEnabled: config.dynamicBatching.enabled,
+        intervalRange: `${config.dynamicBatching.minInterval}-${config.dynamicBatching.maxInterval}ms`,
+      },
+      memoryThresholds: {
+        warning: `${config.memoryMonitoring.warningThreshold / (1024 * 1024)}MB`,
+        critical: `${config.memoryMonitoring.criticalThreshold / (1024 * 1024)}MB`,
+      },
+      rateLimit: {
+        connections: config.rateLimit.maxConnectionsPerMinute,
+        window: `${config.rateLimit.windowSize / 1000}s`,
+      }
+    });
+
+    return config;
   }
 
   /**
@@ -146,15 +318,504 @@ export class StreamReceiverService implements OnModuleDestroy {
    * @param subscribeDto 订阅请求
    * @param clientId WebSocket客户端ID (从Socket.IO获取)
    */
+  /**
+   * P0修复: 检查连接频率限制
+   */
+  private async checkConnectionRateLimit(clientIp: string): Promise<boolean> {
+    if (!this.rateLimitService) {
+      this.logger.debug('RateLimitService未注入，跳过频率检查');
+      return true; // 服务不可用时允许连接
+    }
+
+    const key = `stream_connect:${clientIp}`;
+    
+    try {
+      // 创建简化的ApiKey对象用于频率检查
+      const mockApiKey = {
+        appKey: key,
+        rateLimit: {
+          requests: this.config.rateLimit.maxConnectionsPerMinute,
+          window: `${this.config.rateLimit.windowSize / 1000}s`,
+        }
+      } as any;
+
+      const result = await this.rateLimitService.checkRateLimit(mockApiKey);
+      
+      if (!result.allowed) {
+        this.logger.warn('连接频率超限', {
+          clientIp,
+          limit: result.limit,
+          current: result.current,
+          retryAfter: result.retryAfter,
+        });
+        return false;
+      }
+
+      this.logger.debug('连接频率检查通过', {
+        clientIp,
+        remaining: result.remaining,
+        resetTime: new Date(result.resetTime).toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      this.logger.warn('连接频率检查失败，允许连接 (故障时开放)', { 
+        clientIp,
+        error: error.message 
+      });
+      return true; // 故障时允许连接，确保服务可用性
+    }
+  }
+
+  /**
+   * P0修复: 初始化内存监控机制
+   */
+  private initializeMemoryMonitoring(): void {
+    // 每30秒检查一次内存使用情况
+    this.memoryCheckTimer = setInterval(() => {
+      this.checkMemoryUsage();
+    }, this.config.memoryMonitoring.checkInterval);
+
+    this.logger.log('内存监控机制已初始化', {
+      checkInterval: `${this.config.memoryMonitoring.checkInterval / 1000}s`,
+      warningThreshold: `${Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024))}MB`,
+      criticalThreshold: `${Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))}MB`,
+    });
+  }
+
+  /**
+   * 初始化动态批处理间隔优化
+   */
+  private initializeDynamicBatching(): void {
+    if (!this.config.dynamicBatching.enabled) {
+      this.logger.log('动态批处理优化已禁用');
+      return;
+    }
+
+    // 初始化当前间隔
+    this.dynamicBatchingState.currentInterval = this.config.batchProcessingInterval;
+
+    // 启动定时调整器
+    this.dynamicBatchingState.adjustmentTimer = setInterval(
+      () => this.adjustBatchProcessingInterval(),
+      this.config.dynamicBatching.loadDetection.adjustmentFrequency
+    );
+
+    this.logger.log('动态批处理间隔优化已启用', {
+      initialInterval: `${this.dynamicBatchingState.currentInterval}ms`,
+      adjustmentFrequency: `${this.config.dynamicBatching.loadDetection.adjustmentFrequency}ms`,
+      intervalRange: `${this.config.dynamicBatching.minInterval}-${this.config.dynamicBatching.maxInterval}ms`
+    });
+  }
+
+  /**
+   * 调整批处理间隔 - 基于负载检测
+   */
+  private adjustBatchProcessingInterval(): void {
+    if (!this.config.dynamicBatching.enabled || this.dynamicBatchingState.loadSamples.length === 0) {
+      return;
+    }
+
+    const { loadDetection } = this.config.dynamicBatching;
+    const currentTime = Date.now();
+    
+    // 计算当前负载水平 (每秒批次数)
+    const recentSamples = this.dynamicBatchingState.loadSamples
+      .slice(-loadDetection.sampleWindow);
+    const avgBatchesPerSecond = recentSamples.reduce((sum, count) => sum + count, 0) / recentSamples.length;
+
+    let newInterval = this.dynamicBatchingState.currentInterval;
+    let adjustmentReason = '';
+
+    // 高负载检测 - 减少间隔以提高响应速度
+    if (avgBatchesPerSecond >= loadDetection.highLoadThreshold) {
+      if (!this.dynamicBatchingState.isHighLoad) {
+        this.dynamicBatchingState.isHighLoad = true;
+        this.dynamicBatchingState.isLowLoad = false;
+        newInterval = Math.max(
+          this.config.dynamicBatching.highLoadInterval,
+          this.config.dynamicBatching.minInterval
+        );
+        adjustmentReason = `高负载模式 (${avgBatchesPerSecond.toFixed(1)}批次/秒)`;
+      }
+    }
+    // 低负载检测 - 增加间隔以节省资源
+    else if (avgBatchesPerSecond <= loadDetection.lowLoadThreshold) {
+      if (!this.dynamicBatchingState.isLowLoad) {
+        this.dynamicBatchingState.isLowLoad = true;
+        this.dynamicBatchingState.isHighLoad = false;
+        newInterval = Math.min(
+          this.config.dynamicBatching.lowLoadInterval,
+          this.config.dynamicBatching.maxInterval
+        );
+        adjustmentReason = `低负载模式 (${avgBatchesPerSecond.toFixed(1)}批次/秒)`;
+      }
+    }
+    // 中等负载 - 渐进式调整
+    else {
+      this.dynamicBatchingState.isHighLoad = false;
+      this.dynamicBatchingState.isLowLoad = false;
+      
+      // 基于当前性能指标进行微调
+      const targetThroughput = (loadDetection.highLoadThreshold + loadDetection.lowLoadThreshold) / 2;
+      if (avgBatchesPerSecond > targetThroughput) {
+        // 略微减少间隔
+        newInterval = Math.max(
+          this.dynamicBatchingState.currentInterval - loadDetection.adjustmentStep,
+          this.config.dynamicBatching.minInterval
+        );
+        adjustmentReason = `中负载微调-加速 (${avgBatchesPerSecond.toFixed(1)}批次/秒)`;
+      } else if (avgBatchesPerSecond < targetThroughput) {
+        // 略微增加间隔
+        newInterval = Math.min(
+          this.dynamicBatchingState.currentInterval + loadDetection.adjustmentStep,
+          this.config.dynamicBatching.maxInterval
+        );
+        adjustmentReason = `中负载微调-节能 (${avgBatchesPerSecond.toFixed(1)}批次/秒)`;
+      }
+    }
+
+    // 执行间隔调整
+    if (newInterval !== this.dynamicBatchingState.currentInterval) {
+      const oldInterval = this.dynamicBatchingState.currentInterval;
+      this.dynamicBatchingState.currentInterval = newInterval;
+      this.dynamicBatchingState.lastAdjustment = currentTime;
+      this.dynamicBatchingMetrics.totalAdjustments++;
+
+      // 重新初始化批处理管道 - 使用新的间隔
+      this.reinitializeBatchProcessingPipeline();
+
+      this.logger.log('批处理间隔已调整', {
+        reason: adjustmentReason,
+        oldInterval: `${oldInterval}ms`,
+        newInterval: `${newInterval}ms`,
+        loadLevel: avgBatchesPerSecond.toFixed(1),
+        totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments
+      });
+
+      // 记录性能指标
+      this.recordBatchIntervalAdjustment(oldInterval, newInterval, avgBatchesPerSecond);
+    }
+
+    // 清理旧的采样数据
+    if (this.dynamicBatchingState.loadSamples.length > loadDetection.sampleWindow * 2) {
+      this.dynamicBatchingState.loadSamples = this.dynamicBatchingState.loadSamples
+        .slice(-loadDetection.sampleWindow);
+    }
+  }
+
+  /**
+   * 重新初始化批处理管道 - 使用新的间隔
+   */
+  private reinitializeBatchProcessingPipeline(): void {
+    try {
+      // 完成当前的Subject
+      if (this.quoteBatchSubject && !this.quoteBatchSubject.closed) {
+        this.quoteBatchSubject.complete();
+      }
+
+      // 创建新的Subject
+      this.quoteBatchSubject = new Subject<QuoteData>();
+
+      // 使用新的间隔初始化批处理管道
+      this.quoteBatchSubject
+        .pipe(
+          bufferTime(
+            this.dynamicBatchingState.currentInterval, 
+            undefined, 
+            200 // 保持缓冲区上限不变
+          ),
+          filter(batch => batch.length > 0),
+          mergeMap(async (batch) => this.processBatch(batch))
+        )
+        .subscribe({
+          next: () => {
+            // 更新负载统计
+            this.updateLoadStatistics();
+          },
+          error: (error) => {
+            this.logger.error('动态批处理管道错误', { 
+              error: error.message,
+              currentInterval: this.dynamicBatchingState.currentInterval 
+            });
+          }
+        });
+
+    } catch (error) {
+      this.logger.error('重新初始化批处理管道失败', { 
+        error: error.message,
+        fallbackToStatic: true 
+      });
+      
+      // 回退到静态模式
+      this.dynamicBatchingState.currentInterval = this.config.batchProcessingInterval;
+      this.initializeBatchProcessing();
+    }
+  }
+
+  /**
+   * 更新负载统计
+   */
+  private updateLoadStatistics(): void {
+    const currentTime = Date.now();
+    const timeDiff = currentTime - this.dynamicBatchingMetrics.lastThroughputCheck;
+
+    // 每秒更新一次负载统计
+    if (timeDiff >= 1000) {
+      const batchesPerSecond = (this.dynamicBatchingMetrics.batchCountInWindow * 1000) / timeDiff;
+      
+      // 添加到负载采样
+      this.dynamicBatchingState.loadSamples.push(batchesPerSecond);
+      
+      // 更新吞吐量指标
+      this.dynamicBatchingMetrics.throughputPerSecond = batchesPerSecond;
+      this.dynamicBatchingMetrics.lastThroughputCheck = currentTime;
+      this.dynamicBatchingMetrics.batchCountInWindow = 0;
+    }
+
+    this.dynamicBatchingMetrics.batchCountInWindow++;
+  }
+
+  /**
+   * 记录批处理间隔调整的性能指标
+   */
+  private recordBatchIntervalAdjustment(
+    oldInterval: number, 
+    newInterval: number, 
+    loadLevel: number
+  ): void {
+    try {
+      // 使用现有的CollectorService记录调整事件
+      this.collectorService?.recordRequest(
+        'batch_interval_adjustment', 
+        'POST',
+        200,
+        0, // duration
+        {
+          oldInterval,
+          newInterval,
+          loadLevel,
+          adjustmentDirection: newInterval > oldInterval ? 'increase' : 'decrease',
+          timestamp: new Date(),
+        }
+      );
+
+      // 通过事件总线记录自定义指标
+      if ((this.collectorService as any)?.eventBus) {
+        (this.collectorService as any).eventBus.emit('METRIC_COLLECTED', {
+          timestamp: new Date(),
+          source: 'stream-receiver',
+          metricType: 'dynamic_batching',
+          metricName: 'batch_interval_adjusted',
+          metricValue: newInterval,
+          tags: {
+            oldInterval,
+            newInterval,
+            loadLevel,
+            adjustmentDirection: newInterval > oldInterval ? 'increase' : 'decrease',
+            totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,
+            throughput: this.dynamicBatchingMetrics.throughputPerSecond,
+          }
+        });
+      }
+
+    } catch (error) {
+      this.logger.warn('记录批处理调整指标失败', { error: error.message });
+    }
+  }
+
+  /**
+   * 获取动态批处理状态信息
+   */
+  public getDynamicBatchingStats(): any {
+    if (!this.config.dynamicBatching.enabled) {
+      return { enabled: false };
+    }
+
+    return {
+      enabled: true,
+      currentInterval: this.dynamicBatchingState.currentInterval,
+      loadState: {
+        isHighLoad: this.dynamicBatchingState.isHighLoad,
+        isLowLoad: this.dynamicBatchingState.isLowLoad,
+        recentLoadSamples: this.dynamicBatchingState.loadSamples.slice(-5),
+      },
+      metrics: {
+        totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,
+        throughputPerSecond: this.dynamicBatchingMetrics.throughputPerSecond,
+        avgResponseTime: this.dynamicBatchingMetrics.avgResponseTime,
+      },
+      config: {
+        intervalRange: `${this.config.dynamicBatching.minInterval}-${this.config.dynamicBatching.maxInterval}ms`,
+        loadThresholds: {
+          high: this.config.dynamicBatching.loadDetection.highLoadThreshold,
+          low: this.config.dynamicBatching.loadDetection.lowLoadThreshold,
+        },
+        adjustmentFrequency: `${this.config.dynamicBatching.loadDetection.adjustmentFrequency}ms`,
+      },
+    };
+  }
+
+  /**
+   * P0修复: 检查内存使用情况
+   */
+  private checkMemoryUsage(): void {
+    try {
+      const usage = process.memoryUsage();
+      const heapUsed = usage.heapUsed;
+      
+      if (heapUsed > this.config.memoryMonitoring.criticalThreshold) {
+        this.logger.error('内存使用超过临界阈值，启动强制清理', { 
+          heapUsed: `${Math.round(heapUsed / (1024 * 1024))}MB`,
+          connections: this.activeConnections.size,
+          threshold: `${Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))}MB`,
+        });
+        this.forceConnectionCleanup().catch(error => {
+        this.logger.error('强制连接清理失败', { error: error.message });
+      });
+        
+        // 记录监控指标
+        this.recordMemoryAlert('critical', heapUsed, this.activeConnections.size);
+        
+      } else if (heapUsed > this.config.memoryMonitoring.warningThreshold) {
+        this.logger.warn('内存使用接近阈值', { 
+          heapUsed: `${Math.round(heapUsed / (1024 * 1024))}MB`,
+          connections: this.activeConnections.size,
+          threshold: `${Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024))}MB`,
+        });
+        
+        // 记录监控指标
+        this.recordMemoryAlert('warning', heapUsed, this.activeConnections.size);
+      }
+      
+      // 更新检查时间 (已迁移到config管理)
+      
+    } catch (error) {
+      this.logger.warn('内存检查失败', { error: error.message });
+    }
+  }
+
+  /**
+   * P0修复: 强制连接清理机制
+   */
+  private async forceConnectionCleanup(): Promise<void> {
+    const connectionCount = this.activeConnections.size;
+    if (connectionCount === 0) {
+      this.logger.debug('无连接需要清理');
+      return;
+    }
+    
+    // 清理10%最久未活跃的连接
+    const cleanupTarget = Math.max(1, Math.floor(connectionCount * 0.1));
+    
+    const sortedConnections = Array.from(this.activeConnections.entries())
+      .sort(([, a], [, b]) => {
+        const aTime = a.lastActiveAt?.getTime() || a.createdAt?.getTime() || 0;
+        const bTime = b.lastActiveAt?.getTime() || b.createdAt?.getTime() || 0;
+        return aTime - bTime; // 最久未活跃的排在前面
+      })
+      .slice(0, cleanupTarget);
+    
+    let cleanedCount = 0;
+    for (const [connectionId, connection] of sortedConnections) {
+      try {
+        // 尝试优雅关闭连接
+        if (typeof connection.close === 'function') {
+          await connection.close();
+        }
+        this.activeConnections.delete(connectionId);
+        cleanedCount++;
+        
+        this.logger.debug('强制清理非活跃连接', { 
+          connectionId,
+          lastActivity: connection.lastActiveAt?.toISOString() || 'unknown',
+        });
+      } catch (error) {
+        this.logger.warn('连接清理失败', { 
+          connectionId, 
+          error: error.message 
+        });
+      }
+    }
+    
+    // 强制垃圾回收 (如果可用)
+    if (global.gc) {
+      global.gc();
+      this.logger.debug('已触发垃圾回收');
+    }
+    
+    this.logger.log('强制连接清理完成', { 
+      cleaned: cleanedCount,
+      remaining: this.activeConnections.size,
+      originalCount: connectionCount,
+      cleanupRatio: `${Math.round((cleanedCount / connectionCount) * 100)}%`,
+    });
+  }
+
+  /**
+   * P0修复: 记录内存告警指标
+   */
+  private recordMemoryAlert(level: 'warning' | 'critical', heapUsed: number, connectionCount: number): void {
+    try {
+      if (this.collectorService) {
+        this.collectorService.recordRequest(
+          '/internal/memory-alert',
+          'POST',
+          level === 'critical' ? 500 : 200,
+          0,
+          {
+            alertLevel: level,
+            heapUsedMB: Math.round(heapUsed / (1024 * 1024)),
+            connectionCount,
+            thresholdMB: level === 'critical' 
+              ? Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))
+              : Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024)),
+            componentType: 'stream-receiver',
+            operationType: 'memoryMonitoring',
+          }
+        );
+      }
+    } catch (error) {
+      this.logger.warn('内存告警指标记录失败', { error: error.message });
+    }
+  }
+
   async subscribeStream(
     subscribeDto: StreamSubscribeDto,
-    clientId?: string
+    clientId?: string,
+    clientIp?: string  // P0修复: 新增客户端IP参数用于频率限制
   ): Promise<void> {
     const { symbols, wsCapabilityType, preferredProvider } = subscribeDto;
     // ✅ Phase 3 - P2: 使用传入的clientId或生成唯一ID作为回退
     const resolvedClientId = clientId || `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const providerName = preferredProvider || this.getDefaultProvider(symbols);
     const requestId = `request_${Date.now()}`;
+    
+    // P0修复: 连接频率限制检查
+    if (clientIp) {
+      const rateLimitPassed = await this.checkConnectionRateLimit(clientIp);
+      if (!rateLimitPassed) {
+        const error = new Error('连接频率过高，请稍后重试');
+        this.logger.warn('连接被频率限制拒绝', {
+          clientId: resolvedClientId,
+          clientIp,
+          requestId,
+        });
+        throw error;
+      }
+    }
+
+    // P0修复: 连接数量上限检查
+    if (this.activeConnections.size >= this.config.maxConnections) {
+      const error = new Error('服务器连接数已达上限');
+      this.logger.warn('连接被数量上限拒绝', {
+        clientId: resolvedClientId,
+        currentConnections: this.activeConnections.size,
+        maxConnections: this.config.maxConnections,
+        requestId,
+      });
+      throw error;
+    }
     
     this.logger.log('开始订阅流数据', {
       clientId: resolvedClientId,
@@ -844,21 +1505,38 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 初始化批量处理管道
    */
   private initializeBatchProcessing(): void {
+    const batchInterval = this.config.dynamicBatching.enabled 
+      ? this.dynamicBatchingState.currentInterval 
+      : this.config.batchProcessingInterval;
+
     this.quoteBatchSubject
       .pipe(
-        // 🎯 修复：固定50ms窗口 + 200条缓冲上限，严格满足SLA且内存安全
-        bufferTime(50, undefined, 200),
+        // 🎯 修复：使用配置化的批处理间隔 + 200条缓冲上限，严格满足SLA且内存安全
+        bufferTime(batchInterval, undefined, 200),
         filter(batch => batch.length > 0),
         mergeMap(async (batch) => this.processBatch(batch))
       )
       .subscribe({
         next: () => {
-          // 处理成功
+          // 如果启用了动态批处理，更新负载统计
+          if (this.config.dynamicBatching.enabled) {
+            this.updateLoadStatistics();
+          }
         },
         error: (error) => {
-          this.logger.error('批量处理管道错误', { error: error.message });
+          this.logger.error('批量处理管道错误', { 
+            error: error.message,
+            dynamicEnabled: this.config.dynamicBatching.enabled,
+            currentInterval: batchInterval 
+          });
         }
       });
+
+    this.logger.log('批处理管道已初始化', {
+      interval: `${batchInterval}ms`,
+      dynamicEnabled: this.config.dynamicBatching.enabled,
+      bufferLimit: 200
+    });
   }
 
   /**
@@ -1622,12 +2300,12 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 定期清理断开的连接
     this.cleanupTimer = setInterval(() => {
       this.cleanupStaleConnections();
-    }, this.CONNECTION_CLEANUP_INTERVAL);
+    }, this.config.connectionCleanupInterval);
 
     this.logger.log('连接清理机制已初始化', {
-      cleanupInterval: this.CONNECTION_CLEANUP_INTERVAL,
-      maxConnections: this.MAX_CONNECTIONS,
-      staleTimeout: this.CONNECTION_STALE_TIMEOUT,
+      cleanupInterval: this.config.connectionCleanupInterval,
+      maxConnections: this.config.maxConnections,
+      staleTimeout: this.config.connectionStaleTimeout,
     });
   }
 
@@ -1648,7 +2326,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     }
 
     // 连接数上限保护
-    if (this.activeConnections.size > this.MAX_CONNECTIONS) {
+    if (this.activeConnections.size > this.config.maxConnections) {
       this.enforceConnectionLimit();
     }
 
@@ -1671,7 +2349,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     // 检查连接是否超时
     const lastActivity = connection.lastActiveAt || connection.createdAt;
-    if (lastActivity && (now - lastActivity.getTime()) > this.CONNECTION_STALE_TIMEOUT) {
+    if (lastActivity && (now - lastActivity.getTime()) > this.config.connectionStaleTimeout) {
       return true;
     }
 
@@ -1692,7 +2370,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     });
 
     // 移除超出上限的连接
-    const toRemove = connectionsArray.slice(0, connectionsArray.length - this.MAX_CONNECTIONS);
+    const toRemove = connectionsArray.slice(0, connectionsArray.length - this.config.maxConnections);
     for (const [connectionId] of toRemove) {
       this.activeConnections.delete(connectionId);
     }
@@ -1700,7 +2378,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     this.logger.warn('强制执行连接数上限', {
       removedConnections: toRemove.length,
       currentConnections: this.activeConnections.size,
-      maxConnections: this.MAX_CONNECTIONS,
+      maxConnections: this.config.maxConnections,
     });
   }
 
@@ -1761,7 +2439,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     let lastError: Error | null = null;
     
-    for (let attempt = 1; attempt <= this.MAX_RETRY_ATTEMPTS; attempt++) {
+    for (let attempt = 1; attempt <= this.config.maxRetryAttempts; attempt++) {
       try {
         await this.processBatchInternal(batch);
         
@@ -1771,7 +2449,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         
       } catch (error) {
         lastError = error as Error;
-        this.logger.warn(`批量处理失败，尝试 ${attempt}/${this.MAX_RETRY_ATTEMPTS}`, {
+        this.logger.warn(`批量处理失败，尝试 ${attempt}/${this.config.maxRetryAttempts}`, {
           batchSize: batch.length,
           attempt,
           error: error.message,
@@ -1781,7 +2459,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         this.recordCircuitBreakerFailure();
 
         // 如果不是最后一次尝试，等待后重试
-        if (attempt < this.MAX_RETRY_ATTEMPTS) {
+        if (attempt < this.config.maxRetryAttempts) {
           await this.delay(this.calculateRetryDelay(attempt));
         }
       }
@@ -1867,7 +2545,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 计算重试延迟 (指数退避)
    */
   private calculateRetryDelay(attempt: number): number {
-    return this.RETRY_DELAY_BASE * Math.pow(2, attempt - 1);
+    return this.config.retryDelayBase * Math.pow(2, attempt - 1);
   }
 
   /**
@@ -1884,7 +2562,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 如果断路器已开启，检查是否可以重置
     if (this.circuitBreakerState.isOpen) {
       const now = Date.now();
-      if (now - this.circuitBreakerState.lastFailureTime > this.CIRCUIT_BREAKER_RESET_TIMEOUT) {
+      if (now - this.circuitBreakerState.lastFailureTime > this.config.circuitBreakerResetTimeout) {
         this.resetCircuitBreaker();
         return false;
       }
@@ -1895,7 +2573,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     const totalAttempts = this.circuitBreakerState.failures + this.circuitBreakerState.successes;
     if (totalAttempts >= 10) { // 至少10次尝试后才考虑开启断路器
       const failureRate = (this.circuitBreakerState.failures / totalAttempts) * 100;
-      if (failureRate >= this.CIRCUIT_BREAKER_THRESHOLD) {
+      if (failureRate >= this.config.circuitBreakerThreshold) {
         this.openCircuitBreaker();
         return true;
       }
@@ -1977,12 +2655,44 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 模块销毁时清理资源
    */
   onModuleDestroy() {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-      this.cleanupTimer = undefined;
+    // 1. 清理 RxJS Subject (防错处理)
+    try {
+      if (this.quoteBatchSubject) {
+        this.quoteBatchSubject.complete();
+        this.quoteBatchSubject.unsubscribe();
+      }
+    } catch (error) {
+      this.logger.warn('RxJS Subject清理失败，继续其他清理步骤', { error: error.message });
     }
-    this.activeConnections.clear();
-    this.logger.log('StreamReceiver 资源已清理');
+    
+    // 2. 清理定时器
+    try {
+      if (this.cleanupTimer) {
+        clearInterval(this.cleanupTimer);
+        this.cleanupTimer = undefined;
+      }
+      // P0修复: 清理内存监控定时器
+      if (this.memoryCheckTimer) {
+        clearInterval(this.memoryCheckTimer);
+        this.memoryCheckTimer = undefined;
+      }
+      // P1阶段2: 清理动态批处理调整定时器
+      if (this.dynamicBatchingState.adjustmentTimer) {
+        clearInterval(this.dynamicBatchingState.adjustmentTimer);
+        this.dynamicBatchingState.adjustmentTimer = undefined;
+      }
+    } catch (error) {
+      this.logger.warn('定时器清理失败', { error: error.message });
+    }
+    
+    // 3. 清理连接
+    try {
+      this.activeConnections.clear();
+    } catch (error) {
+      this.logger.warn('连接清理失败', { error: error.message });
+    }
+    
+    this.logger.log('StreamReceiver 资源已清理 - 包含动态批处理优化');
   }
 
   /**

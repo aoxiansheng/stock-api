@@ -7,6 +7,8 @@ export interface ErrorContext {
   layer: 'collector' | 'analyzer' | 'presenter';
   operation: string;
   userId?: string;
+  componentName?: string;
+  dashboardId?: string;
   timestamp?: Date;
   metadata?: Record<string, any>;
 }

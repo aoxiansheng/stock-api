@@ -9,6 +9,8 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 // import { MarketStatus } from "@common/constants/market-trading-hours.constants";
 // import { Market } from "@common/constants/market.constants"; // 已由cache-request.utils提供
 
+import { RequestContext } from "../interfaces/request-context.interface";
+
 import { CapabilityRegistryService } from "../../../../providers/services/capability-registry.service";
 import {
   MarketStatusService,
@@ -62,12 +64,17 @@ export class ReceiverService {
   // 🎯 使用 common 模块的常量，无需重复定义
 
   constructor(
+    // 🔄 数据处理核心依赖
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly dataFetcherService: DataFetcherService, // 🔥 新增DataFetcher依赖
-    private readonly capabilityRegistryService: CapabilityRegistryService,
-    private readonly marketStatusService: MarketStatusService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly storageService: StorageService,
+    
+    // 🎯 服务注册与状态依赖  
+    private readonly capabilityRegistryService: CapabilityRegistryService,
+    private readonly marketStatusService: MarketStatusService,
+    
+    // 📊 监控与优化依赖
     private readonly collectorService: CollectorService, // ✅ 替换为CollectorService
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
@@ -156,9 +163,6 @@ export class ReceiverService {
           }
         );
 
-        // ✅ 记录连接结束
-        this.updateActiveConnections(-1);
-
         return new DataResponseDto(
           result.data,
           new ResponseMetadataDto(
@@ -224,9 +228,6 @@ export class ReceiverService {
         }
       );
 
-      // ✅ 记录连接结束
-      this.updateActiveConnections(-1);
-
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.log(
         `强时效数据请求处理成功`,
@@ -258,9 +259,6 @@ export class ReceiverService {
         }
       );
       
-      // ✅ 记录连接结束
-      this.updateActiveConnections(-1);
-
       // 🎯 使用 common 模块的日志脱敏功能
       this.logger.error(
         `强时效数据请求处理失败`,
@@ -277,7 +275,69 @@ export class ReceiverService {
         }),
       );
       throw error;
+    } finally {
+      // 🔧 确保资源清理，无论成功还是失败
+      this.updateActiveConnections(-1);
     }
+  }
+
+  /**
+   * 初始化请求上下文
+   * 
+   * @param request 数据请求DTO
+   * @returns 请求上下文对象
+   */
+  private initializeRequestContext(request: DataRequestDto): RequestContext {
+    const requestId = uuidv4();
+    const startTime = Date.now();
+    
+    return {
+      requestId,
+      startTime,
+      useSmartCache: request.options?.useSmartCache !== false, // 默认启用
+      metadata: {
+        symbolsCount: request.symbols?.length || 0,
+        receiverType: request.receiverType,
+        market: this.extractMarketFromSymbols(request.symbols),
+      },
+    };
+  }
+
+  /**
+   * 验证和准备请求
+   * 
+   * @param request 数据请求DTO
+   * @param context 请求上下文
+   * @throws BadRequestException 当验证失败时
+   */
+  private async validateAndPrepareRequest(
+    request: DataRequestDto,
+    context: RequestContext,
+  ): Promise<void> {
+    // 1. 验证请求参数
+    await this.validateRequest(request, context.requestId);
+
+    // 2. 确定数据提供商
+    const provider = await this.determineOptimalProvider(
+      request.symbols,
+      request.receiverType,
+      request.options?.preferredProvider,
+      request.options?.market,
+      context.requestId,
+    );
+    
+    // 更新上下文
+    context.provider = provider;
+  }
+
+  /**
+   * 判断是否应该使用智能缓存
+   * 
+   * @param request 数据请求DTO
+   * @returns 是否使用智能缓存
+   */
+  private shouldUseSmartCache(request: DataRequestDto): boolean {
+    return request.options?.useSmartCache !== false; // 默认启用
   }
 
   /**

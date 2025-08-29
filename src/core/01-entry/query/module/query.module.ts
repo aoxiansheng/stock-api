@@ -11,6 +11,11 @@ import { QueryController } from "../controller/query.controller";
 import { QueryService } from "../services/query.service";
 import { QueryResultProcessorService } from "../services/query-result-processor.service";
 import { QueryStatisticsService } from "../services/query-statistics.service";
+import { QueryConfigService } from "../config/query.config";
+import { QueryMemoryMonitorService } from "../services/query-memory-monitor.service";
+import { QueryExecutorFactory } from "../factories/query-executor.factory";
+import { SymbolQueryExecutor } from "../factories/executors/symbol-query.executor";
+import { MarketQueryExecutor } from "../factories/executors/market-query.executor";
 
 @Module({
   imports: [
@@ -23,14 +28,23 @@ import { QueryStatisticsService } from "../services/query-statistics.service";
   ],
   controllers: [QueryController],
   providers: [
+    QueryConfigService,
+    QueryMemoryMonitorService,
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,
+    // ✅ Phase 3.2: 查询执行器工厂模式
+    QueryExecutorFactory,
+    SymbolQueryExecutor,
+    MarketQueryExecutor,
   ],
   exports: [
+    QueryConfigService,
+    QueryMemoryMonitorService,
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,
+    // ✅ Phase 3.2: 导出工厂以供其他模块使用
+    QueryExecutorFactory,
   ],
 })
-export class QueryModule {}

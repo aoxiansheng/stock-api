@@ -9,6 +9,10 @@ import { createLogger, sanitizeLogData } from "@common/config/logger.config";
 import { Market } from "@common/constants/market.constants";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
+import { QueryConfigService } from '../config/query.config';
+import { QueryMemoryMonitorService, MemoryCheckResult } from './query-memory-monitor.service';
+import { QueryExecutorFactory } from '../factories/query-executor.factory';
+
 import { MarketStatusService, MarketStatusResult } from "../../../shared/services/market-status.service";
 import { FieldMappingService } from "../../../shared/services/field-mapping.service";
 import { StringUtils } from "../../../shared/utils/string.util";
@@ -52,14 +56,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryService.name);
 
 
-  // 🆕 里程碑5.2: 批量处理分片策略
-  private readonly MAX_BATCH_SIZE = 50; // 单次Receiver请求的最大符号数
-  private readonly MAX_MARKET_BATCH_SIZE = 100; // 单个市场处理的最大符号数
-
-  // 🆕 里程碑5.3: 并行处理优化
-  private readonly MARKET_PARALLEL_TIMEOUT = 30000; // 市场级并行处理超时 30秒
-  private readonly RECEIVER_BATCH_TIMEOUT = 15000; // Receiver批次超时 15秒
-
   constructor(
     private readonly storageService: StorageService,
     private readonly receiverService: ReceiverService,
@@ -70,7 +66,16 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly paginationService: PaginationService,
     private readonly collectorService: CollectorService, // ✅ 替换为CollectorService
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
+    private readonly queryConfig: QueryConfigService, // ✅ 新增: 注入配置服务
+    private readonly memoryMonitor: QueryMemoryMonitorService, // ✅ Phase 2.2: 注入内存监控服务
+    private readonly queryExecutorFactory: QueryExecutorFactory, // ✅ Phase 3.2: 注入查询执行器工厂
   ) {}
+
+  // ✅ 配置参数访问器 - 使用配置服务替代硬编码常量
+  private get MAX_BATCH_SIZE() { return this.queryConfig.maxBatchSize; }
+  private get MAX_MARKET_BATCH_SIZE() { return this.queryConfig.maxMarketBatchSize; }
+  private get MARKET_PARALLEL_TIMEOUT() { return this.queryConfig.marketParallelTimeout; }
+  private get RECEIVER_BATCH_TIMEOUT() { return this.queryConfig.receiverBatchTimeout; }
 
 
   async onModuleInit(): Promise<void> {
@@ -78,6 +83,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       QUERY_SUCCESS_MESSAGES.QUERY_SERVICE_INITIALIZED,
       sanitizeLogData({
         operation: QUERY_OPERATIONS.ON_MODULE_INIT,
+        config: this.queryConfig.getConfigSummary(), // ✅ 新增: 记录配置摘要
       }),
     );
   }
@@ -220,15 +226,22 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   private async performQueryExecution(
     request: QueryRequestDto,
   ): Promise<QueryExecutionResultDto> {
-    if (request.queryType === QueryType.BY_SYMBOLS) {
-      return this.executeSymbolBasedQuery(request);
+    // ✅ Phase 3.2: 使用工厂模式创建查询执行器
+    try {
+      const executor = this.queryExecutorFactory.create(request.queryType);
+      return await executor.execute(request);
+    } catch (error) {
+      // 如果工厂无法创建执行器，抛出更友好的错误信息
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `查询执行器创建失败: ${error.message}`,
+      );
     }
-    throw new BadRequestException(
-      `Unsupported query type: ${request.queryType}`,
-    );
   }
 
-  private async executeSymbolBasedQuery(
+  public async executeSymbolBasedQuery(
     request: QueryRequestDto,
   ): Promise<QueryExecutionResultDto> {
     // 防御性检查：确保symbols存在（DTO验证应该已经处理，但为了类型安全）
@@ -307,7 +320,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       const batchSizeRange = this.getBatchSizeRange(totalSymbolsCount);
       
       // 🖥 里程碑5.1: 按市场分组符号以实现市场级批量处理
-      const symbolsByMarket = this.groupSymbolsByMarket(validSymbols);
+      let symbolsByMarket = this.groupSymbolsByMarket(validSymbols);
       const marketsCount = Object.keys(symbolsByMarket).length;
       
       this.logger.debug('批量处理管道启动', {
@@ -319,66 +332,133 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         ),
       });
 
+      // ✅ Phase 2.2: 批量处理前内存监控检查
+      const memoryCheckResult = await this.memoryMonitor.checkMemoryBeforeBatch(totalSymbolsCount);
+      
+      if (!memoryCheckResult.canProcess) {
+        // 内存压力过高，无法处理
+        this.logger.warn('内存压力过高，拒绝处理批量请求', {
+          queryId,
+          memoryUsage: (memoryCheckResult.currentUsage.memory.percentage * 100).toFixed(1) + '%',
+          pressureLevel: memoryCheckResult.pressureLevel,
+          symbolsCount: totalSymbolsCount,
+        });
+
+        // 将所有符号标记为失败
+        validSymbols.forEach(symbol => {
+          errors.push({
+            symbol,
+            reason: `内存压力过高（${(memoryCheckResult.currentUsage.memory.percentage * 100).toFixed(1)}%），系统自动拒绝处理`,
+          });
+          dataSources.realtime.misses++;
+        });
+
+        return {
+          results: [],
+          cacheUsed: false,
+          dataSources,
+          errors,
+        };
+      }
+
+      // 如果内存处于警告状态，调整批量大小
+      let adjustedSymbolsByMarket = symbolsByMarket;
+      if (memoryCheckResult.recommendation === 'reduce_batch' && memoryCheckResult.suggestedBatchSize) {
+        this.logger.warn('内存处于警告状态，调整批量处理大小', {
+          queryId,
+          originalSize: totalSymbolsCount,
+          suggestedSize: memoryCheckResult.suggestedBatchSize,
+          memoryUsage: (memoryCheckResult.currentUsage.memory.percentage * 100).toFixed(1) + '%',
+          pressureLevel: memoryCheckResult.pressureLevel,
+        });
+
+        // 重新按建议的批量大小分组（简化版，只处理第一个市场）
+        const firstMarket = Object.keys(symbolsByMarket)[0] as Market;
+        if (firstMarket) {
+          const limitedSymbols = validSymbols.slice(0, memoryCheckResult.suggestedBatchSize);
+          adjustedSymbolsByMarket = { [firstMarket]: limitedSymbols } as Record<Market, string[]>;
+          
+          // 将被跳过的符号标记为延迟处理
+          const skippedSymbols = validSymbols.slice(memoryCheckResult.suggestedBatchSize);
+          skippedSymbols.forEach(symbol => {
+            errors.push({
+              symbol,
+              reason: `内存压力下降级处理，符号被延迟`,
+            });
+            dataSources.realtime.misses++;
+          });
+        }
+      }
+
       // ✅ 记录批处理分片监控指标
-      Object.entries(symbolsByMarket).forEach(([market, symbols]) => {
+      Object.entries(adjustedSymbolsByMarket).forEach(([market, symbols]) => {
         const shardsForMarket = Math.ceil(symbols.length / this.MAX_MARKET_BATCH_SIZE);
         const efficiency = symbols.length / Math.max(shardsForMarket, 1);
         this.recordBatchProcessingMetrics(symbols.length, 0, market, efficiency);
       });
 
       // 🖥 里程碑5.3: 市场级并行处理（带超时控制）
-      const marketPromises = Object.entries(symbolsByMarket).map(([market, symbols]) =>
-        this.processBatchForMarket(market as Market, symbols, request, queryId)
-      );
-      
-      const marketResults = await this.safeAllSettled(
-        marketPromises,
-        `批量处理管道市场级并行处理`,
-        this.MARKET_PARALLEL_TIMEOUT
-      );
-
-      // 合并所有市场的结果
+      // 🔧 Phase 3.1: 实现优化内存释放的市场处理循环
       const results: SymbolDataResultDto[] = [];
       let totalCacheHits = 0;
       let totalRealtimeHits = 0;
-      
-      marketResults.forEach((marketResult, index) => {
-        const market = Object.keys(symbolsByMarket)[index] as Market;
-        
-        if (marketResult.status === 'fulfilled') {
-          const { data, cacheHits, realtimeHits, marketErrors } = marketResult.value;
+      let processedSymbolsCount = 0;
+
+      // 逐个处理市场以实现内存优化
+      for (const [market, symbols] of Object.entries(adjustedSymbolsByMarket)) {
+        try {
+          this.logger.debug(`开始处理市场 ${market}`, {
+            queryId,
+            market,
+            symbolsCount: symbols.length,
+            processedSymbols: processedSymbolsCount,
+            totalSymbols: totalSymbolsCount,
+          });
+
+          const marketResult = await this.processBatchForMarket(market as Market, symbols, request, queryId);
           
-          // 合并数据
-          results.push(...data);
-          
-          // 更新数据源统计
-          dataSources.cache.hits += cacheHits;
-          dataSources.realtime.hits += realtimeHits;
-          totalCacheHits += cacheHits;
-          totalRealtimeHits += realtimeHits;
-          
-          // 合并错误
-          errors.push(...marketErrors);
-          
+          // 合并当前市场的结果
+          results.push(...marketResult.data);
+          totalCacheHits += marketResult.cacheHits;
+          totalRealtimeHits += marketResult.realtimeHits;
+          errors.push(...marketResult.marketErrors);
+          processedSymbolsCount += symbols.length;
+
           // ✅ 记录市场处理时间监控指标
           const marketProcessingTime = Date.now() - startTime;
-          this.recordBatchProcessingMetrics(data.length, marketProcessingTime, market, 1.0);
+          this.recordBatchProcessingMetrics(marketResult.data.length, marketProcessingTime, market, 1.0);
           
           this.logger.debug(`市场${market}批量处理完成`, {
             queryId,
             market,
-            dataCount: data.length,
-            cacheHits,
-            realtimeHits,
-            errorsCount: marketErrors.length,
+            dataCount: marketResult.data.length,
+            cacheHits: marketResult.cacheHits,
+            realtimeHits: marketResult.realtimeHits,
+            errorsCount: marketResult.marketErrors.length,
           });
-        } else {
+
+          // 🔧 Phase 3.1: 立即清理处理完的市场数据
+          delete adjustedSymbolsByMarket[market];
+
+          // 🔧 Phase 3.1: 定期触发垃圾回收（可选，仅在启用时）
+          if (this.queryConfig.enableMemoryOptimization && 
+              global.gc && 
+              processedSymbolsCount % this.queryConfig.gcTriggerInterval === 0) {
+            this.logger.debug('触发垃圾回收优化', {
+              queryId,
+              processedSymbols: processedSymbolsCount,
+              gcTriggerInterval: this.queryConfig.gcTriggerInterval,
+            });
+            global.gc();
+          }
+
+        } catch (error) {
           // 处理市场级别的失败
-          const marketSymbols = symbolsByMarket[market];
+          const marketSymbols = adjustedSymbolsByMarket[market];
           marketSymbols.forEach(symbol => {
             errors.push({
               symbol,
-              reason: `市场${market}批量处理失败: ${marketResult.reason}`,
+              reason: `市场${market}批量处理失败: ${error.message}`,
             });
             dataSources.realtime.misses++;
           });
@@ -386,11 +466,14 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           this.logger.warn(`市场${market}批量处理失败`, {
             queryId,
             market,
-            error: marketResult.reason,
+            error: error.message,
             affectedSymbols: marketSymbols.length,
           });
+
+          // 🔧 Phase 3.1: 即使失败也要清理市场数据
+          delete adjustedSymbolsByMarket[market];
         }
-      });
+      }
 
       // ✅ 记录批量处理效率监控指标
       const processingTime = Date.now() - startTime;
@@ -432,7 +515,12 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         dataSources,
         processingTimeMs: Date.now() - startTime,
         symbolsPerSecond: symbolsPerSecond.toFixed(2),
+        memoryOptimizationEnabled: this.queryConfig.enableMemoryOptimization,
       });
+
+      // 🔧 Phase 3.1: 最终内存清理
+      adjustedSymbolsByMarket = null;
+      symbolsByMarket = null;
 
       return {
         results: paginatedData.items,

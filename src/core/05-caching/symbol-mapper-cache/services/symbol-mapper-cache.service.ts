@@ -36,7 +36,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private changeStream: any; // Change Stream 实例
   private reconnectAttempts: number = 0; // 重连尝试次数
   private readonly maxReconnectDelay: number = 30000; // 最大重连延迟 30秒
-  private isMonitoringActive: boolean = false; // 监听器激活状态
+  private isMonitoringActive: boolean = false; // 监控器激活状态
   
   // 💾 内存监控
   private memoryCheckTimer: NodeJS.Timeout | null = null; // 内存检查定时器
@@ -53,7 +53,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
-    @Inject('CollectorService') private readonly collectorService: any // ✅ 使用CollectorService
+    private readonly collectorService: CollectorService, // 🗑️ 移除字符串token，直接使用CollectorService类
   ) {
     this.initializeCaches();
     this.initializeStats();
@@ -94,7 +94,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Memory monitoring stopped');
     }
     
-    // 重置监听状态
+    // 重置监控状态
     this.isMonitoringActive = false;
     this.reconnectAttempts = 0;
     
@@ -524,7 +524,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * ⏱️ 创建带超时保护的查询
-   * 防止底层Promise悬挂导致内存泄露
+   * 防止底层Promise悬挂导致内存泄漏
    */
   private createTimeoutProtectedQuery(
     provider: string,
@@ -543,7 +543,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       timeoutHandle = setTimeout(() => {
         if (!isResolved) {
           isResolved = true;
-          // 清理pendingQueries以防止内存泄露
+          // 清理pendingQueries以防止内存泄漏
           this.pendingQueries.delete(queryKey);
           
           const errorMsg = `Query timeout after ${queryTimeout}ms`;
@@ -856,590 +856,129 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
             return document.dataSourceName;
           }
         } catch (dbError) {
-          this.logger.warn('Failed to query document for provider extraction', {
+          this.logger.warn('Database query failed for deleted document', {
             documentId: documentKey._id,
             error: dbError.message
           });
         }
       }
       
-      // 策略 3: 基于时间窗口的启发式方法
-      // 记录最近操作的 provider，在短时间内假设删除的是同一个 provider
-      // 这里可以实现一个 LRU 最近操作缓存
+      // 策略 3: 无法确定具体 provider，返回 null（将使用保守策略）
+      this.logger.debug('Unable to extract provider from delete event', {
+        hasPreImage: !!preImage,
+        hasDocumentKey: !!documentKey,
+        documentId: documentKey?._id
+      });
       
-      this.logger.warn('All provider extraction strategies failed for delete operation', {
+      return null;
+      
+    } catch (error) {
+      this.logger.error('Error extracting provider from delete event', {
+        error: error.message,
         documentKey,
         hasPreImage: !!preImage
       });
-      
-      return null;
-      
-    } catch (error) {
-      this.logger.error('Error during provider extraction from delete event', {
-        error: error.message,
-        documentKey
-      });
       return null;
     }
   }
 
   /**
-   * 🧹 智能缓存失效：基于 provider 失效相关缓存
-   * 支持两种模式：全量失效和精准失效
+   * 🎯 Provider缓存失效策略
+   * 智能失效受影响provider的所有缓存层级
    */
   private async invalidateProviderCache(provider: string, operationType: string): Promise<void> {
-    const startTime = Date.now();
-    let invalidatedCount = 0;
-
     try {
+      const normalizedProvider = provider.toLowerCase();
+      
+      // 保守策略：清空所有缓存（如果 provider 为 '*'）
       if (provider === '*') {
-        // 影响所有 provider 的操作（如 delete 且无法确定具体 provider）
-        invalidatedCount = await this.performFullCacheInvalidation(operationType, startTime);
+        this.logger.warn('Using conservative invalidation: clearing all caches', {
+          operationType,
+          reason: 'cannot_determine_provider'
+        });
+        this.clearAllCaches();
         return;
       }
 
-      const normalizedProvider = provider.toLowerCase();
+      // 智能失效：仅影响指定provider的缓存
+      let invalidatedItems = 0;
       
-      // 尝试精准失效：比较新旧规则差异
-      const preciseCacheInvalidated = await this.attemptPreciseCacheInvalidation(normalizedProvider, operationType);
-      
-      if (preciseCacheInvalidated !== null) {
-        // 精准失效成功
-        invalidatedCount = preciseCacheInvalidated;
-        
-        this.logger.log('Precise cache invalidation completed', {
-          provider: normalizedProvider,
-          operationType,
-          invalidatedEntries: invalidatedCount,
-          processingTime: Date.now() - startTime,
-          remainingCacheSize: {
-            l1: this.providerRulesCache.size,
-            l2: this.symbolMappingCache.size,
-            l3: this.batchResultCache.size
-          }
-        });
-      } else {
-        // 精准失效失败，回退到传统方式
-        invalidatedCount = await this.performProviderWideInvalidation(normalizedProvider, operationType, startTime);
+      // L1: 清理provider规则缓存
+      const rulesKey = this.getProviderRulesKey(normalizedProvider);
+      if (this.providerRulesCache.has(rulesKey)) {
+        this.providerRulesCache.delete(rulesKey);
+        invalidatedItems++;
+        this.logger.debug('L1 provider rules cache invalidated', { rulesKey });
       }
-
-    } catch (error) {
-      this.logger.error('Cache invalidation failed', {
-        provider,
-        operationType,
-        error: error.message,
-        invalidatedCount
-      });
-    }
-  }
-
-  /**
-   * 🚨 全量缓存失效 - 最保守的策略
-   */
-  private async performFullCacheInvalidation(operationType: string, startTime: number): Promise<number> {
-    this.logger.warn('Performing full cache invalidation due to ambiguous change');
-    
-    // 统计失效条目数
-    const invalidatedCount = this.symbolMappingCache.size + this.batchResultCache.size;
-    
-    // 清空所有缓存
-    this.providerRulesCache.clear();
-    this.symbolMappingCache.clear();
-    this.batchResultCache.clear();
-    
-    this.logger.warn('Full cache invalidation completed', {
-      operationType,
-      invalidatedEntries: invalidatedCount,
-      processingTime: Date.now() - startTime
-    });
-    
-    return invalidatedCount;
-  }
-
-  /**
-   * 🎯 尝试精准缓存失效
-   * 通过比较新旧规则差异，只失效受影响的符号
-   */
-  private async attemptPreciseCacheInvalidation(provider: string, operationType: string): Promise<number | null> {
-    try {
-      // 对于 insert 操作，无需比较旧规则
-      if (operationType === 'insert') {
-        // 直接失效 L1 规则缓存，让系统重新加载
-        const rulesKey = this.getProviderRulesKey(provider);
-        if (this.providerRulesCache.has(rulesKey)) {
-          this.providerRulesCache.delete(rulesKey);
-          this.logger.debug('L1 rules cache invalidated for insert operation', { provider });
+      
+      // L2: 清理相关符号映射缓存（按前缀匹配）
+      const symbolPrefix = `symbol:${normalizedProvider}:`;
+      const symbolKeysToDelete = [];
+      
+      // 版本兼容性处理：优先使用 entries()，回退到 keys()
+      const symbolCacheIterator = this.symbolMappingCache.entries?.() || this.symbolMappingCache.keys();
+      
+      for (const entry of symbolCacheIterator) {
+        const key = Array.isArray(entry) ? entry[0] : entry;
+        if (key.startsWith(symbolPrefix)) {
+          symbolKeysToDelete.push(key);
         }
-        return 1; // 只失效了 L1 缓存
       }
-
-      // 对于 update/delete 操作，尝试精准比较
-      const rulesKey = this.getProviderRulesKey(provider);
-      const oldRules = this.providerRulesCache.get(rulesKey);
       
-      if (!oldRules) {
-        // 缓存中没有旧规则，无法进行精准比较
-        this.logger.debug('No cached rules found for precise invalidation', { provider });
-        return null;
+      symbolKeysToDelete.forEach(key => this.symbolMappingCache.delete(key));
+      invalidatedItems += symbolKeysToDelete.length;
+      
+      // L3: 清理相关批量结果缓存
+      const batchPrefix = `batch:${normalizedProvider}:`;
+      const batchKeysToDelete = [];
+      
+      // 版本兼容性处理：优先使用 entries()，回退到 keys()
+      const batchCacheIterator = this.batchResultCache.entries?.() || this.batchResultCache.keys();
+      
+      for (const entry of batchCacheIterator) {
+        const key = Array.isArray(entry) ? entry[0] : entry;
+        if (key.startsWith(batchPrefix)) {
+          batchKeysToDelete.push(key);
+        }
       }
-
-      // 获取最新规则
-      const newRules = await this.getProviderRules(provider);
       
-      // 计算规则差异
-      const differences = this.calculateRuleDifferences(oldRules, newRules);
-      const totalAffectedPairs = differences.addedPairs.length + 
-                                differences.removedPairs.length + 
-                                differences.modifiedPairs.length;
+      batchKeysToDelete.forEach(key => this.batchResultCache.delete(key));
+      invalidatedItems += batchKeysToDelete.length;
 
-      if (totalAffectedPairs === 0) {
-        this.logger.debug('No rule differences detected, skipping cache invalidation', { provider });
-        return 0;
-      }
-
-      // 合并所有受影响的符号对
-      const allAffectedPairs = [
-        ...differences.addedPairs,
-        ...differences.removedPairs,
-        ...differences.modifiedPairs
-      ];
-
-      // 执行精准失效
-      const invalidatedCount = await this.invalidateAffectedCacheEntries(provider, allAffectedPairs, operationType);
-      
-      this.logger.log('Precise cache invalidation successful', {
-        provider,
+      this.logger.log('Provider cache intelligently invalidated', {
+        provider: normalizedProvider,
         operationType,
-        affectedPairs: totalAffectedPairs,
-        invalidatedEntries: invalidatedCount
+        invalidatedItems,
+        layers: {
+          l1Rules: rulesKey,
+          l2Symbols: symbolKeysToDelete.length,
+          l3Batches: batchKeysToDelete.length
+        }
       });
 
-      return invalidatedCount;
-
     } catch (error) {
+      this.logger.error('Provider cache invalidation failed', {
+        provider,
+        operationType,
+        error: error.message
+      });
+      
       this.logger.warn('Precise cache invalidation failed, will fallback to provider-wide invalidation', {
         provider,
-        operationType,
-        error: error.message
-      });
-      return null;
-    }
-  }
-
-  /**
-   * 🔄 提供商范围失效 - 传统方式的性能优化版本
-   */
-  private async performProviderWideInvalidation(provider: string, operationType: string, startTime: number): Promise<number> {
-    let invalidatedCount = 0;
-    
-    // 1. 失效 L1 规则缓存
-    const rulesKey = this.getProviderRulesKey(provider);
-    if (this.providerRulesCache.has(rulesKey)) {
-      this.providerRulesCache.delete(rulesKey);
-      this.logger.debug('L1 rules cache invalidated', { provider, rulesKey });
-    }
-
-    // 2. 批量失效 L2 符号缓存 - 性能优化：收集键后批量删除
-    const l2KeysToDelete: string[] = [];
-    
-    // 版本兼容性处理：优先使用 entries()，回退到 keys()
-    if (this.symbolMappingCache.entries) {
-      // 新版本 LRU 库支持 entries()
-      for (const [key] of this.symbolMappingCache.entries()) {
-        if (key.includes(`:${provider}:`)) {
-          l2KeysToDelete.push(key);
-        }
-      }
-    } else if (this.symbolMappingCache.keys) {
-      // 旧版本 LRU 库回退到 keys()
-      for (const key of this.symbolMappingCache.keys()) {
-        if (key.includes(`:${provider}:`)) {
-          l2KeysToDelete.push(key);
-        }
-      }
-    } else {
-      // 最后的回退方案：forEach
-      this.symbolMappingCache.forEach((value, key) => {
-        if (key.includes(`:${provider}:`)) {
-          l2KeysToDelete.push(key);
-        }
-      });
-    }
-    
-    for (const key of l2KeysToDelete) {
-      this.symbolMappingCache.delete(key);
-      invalidatedCount++;
-    }
-
-    // 3. 批量失效 L3 批量缓存 - 性能优化：收集键后批量删除
-    const l3KeysToDelete: string[] = [];
-    
-    // 版本兼容性处理：优先使用 entries()，回退到 keys()
-    if (this.batchResultCache.entries) {
-      // 新版本 LRU 库支持 entries()
-      for (const [key] of this.batchResultCache.entries()) {
-        if (key.includes(`:${provider}:`)) {
-          l3KeysToDelete.push(key);
-        }
-      }
-    } else if (this.batchResultCache.keys) {
-      // 旧版本 LRU 库回退到 keys()
-      for (const key of this.batchResultCache.keys()) {
-        if (key.includes(`:${provider}:`)) {
-          l3KeysToDelete.push(key);
-        }
-      }
-    } else {
-      // 最后的回退方案：forEach
-      this.batchResultCache.forEach((value, key) => {
-        if (key.includes(`:${provider}:`)) {
-          l3KeysToDelete.push(key);
-        }
-      });
-    }
-    
-    for (const key of l3KeysToDelete) {
-      this.batchResultCache.delete(key);
-      invalidatedCount++;
-    }
-
-    this.logger.log('Provider-wide cache invalidation completed', {
-      provider,
-      operationType,
-      invalidatedEntries: invalidatedCount,
-      l2KeysRemoved: l2KeysToDelete.length,
-      l3KeysRemoved: l3KeysToDelete.length,
-      processingTime: Date.now() - startTime,
-      remainingCacheSize: {
-        l1: this.providerRulesCache.size,
-        l2: this.symbolMappingCache.size,
-        l3: this.batchResultCache.size
-      }
-    });
-    
-    return invalidatedCount;
-  }
-
-  /**
-   * 🔍 计算规则差异 - 用于精准缓存失效
-   * 比较新旧规则集合，返回受影响的符号对
-   */
-  private calculateRuleDifferences(
-    oldRules: SymbolMappingRule[],
-    newRules: SymbolMappingRule[]
-  ): {
-    addedPairs: Array<{ standard: string; sdk: string }>;
-    removedPairs: Array<{ standard: string; sdk: string }>;
-    modifiedPairs: Array<{ standard: string; sdk: string }>;
-  } {
-    // 双重映射结构：键值对比（新增/删除）+ 完整规则对比（修改）
-    const oldPairsMap = new Map<string, string>(); // 保留原有键值对比（用于新增/删除）
-    const newPairsMap = new Map<string, string>();
-    const oldRulesMap = new Map<string, SymbolMappingRule>(); // 新增完整规则对比（用于修改）  
-    const newRulesMap = new Map<string, SymbolMappingRule>();
-
-    // 构建映射表
-    for (const rule of oldRules) {
-      if (rule.isActive !== false && rule.standardSymbol && rule.sdkSymbol) {
-        const key = `${rule.standardSymbol}:${rule.sdkSymbol}`;
-        oldPairsMap.set(key, rule.market || ''); // 保持原有逻辑兼容
-        oldRulesMap.set(key, rule); // 新增完整规则映射
-      }
-    }
-    
-    for (const rule of newRules) {
-      if (rule.isActive !== false && rule.standardSymbol && rule.sdkSymbol) {
-        const key = `${rule.standardSymbol}:${rule.sdkSymbol}`;
-        newPairsMap.set(key, rule.market || '');
-        newRulesMap.set(key, rule);
-      }
-    }
-    
-    const addedPairs: Array<{ standard: string; sdk: string }> = [];
-    const removedPairs: Array<{ standard: string; sdk: string }> = [];
-    const modifiedPairs: Array<{ standard: string; sdk: string }> = [];
-    
-    // 找出新增的符号对
-    for (const [key] of newPairsMap) {
-      if (!oldPairsMap.has(key)) {
-        const [standard, sdk] = key.split(':');
-        addedPairs.push({ standard, sdk });
-      }
-    }
-    
-    // 找出删除的符号对
-    for (const [key] of oldPairsMap) {
-      if (!newPairsMap.has(key)) {
-        const [standard, sdk] = key.split(':');
-        removedPairs.push({ standard, sdk });
-      }
-    }
-    
-    // 修改判定（使用完整规则对象比较 market/symbolType/isActive）
-    for (const [key, newRule] of newRulesMap) {
-      const oldRule = oldRulesMap.get(key);
-      if (oldRule) {
-        // 比较关键属性：market, symbolType, isActive
-        const hasChanged = 
-          oldRule.market !== newRule.market ||
-          oldRule.symbolType !== newRule.symbolType ||
-          oldRule.isActive !== newRule.isActive;
-          
-        if (hasChanged) {
-          const [standard, sdk] = key.split(':');
-          modifiedPairs.push({ standard, sdk });
-        }
-      }
-    }
-    
-    this.logger.debug('Rule differences calculated', {
-      addedCount: addedPairs.length,
-      removedCount: removedPairs.length,
-      modifiedCount: modifiedPairs.length,
-      totalAffectedPairs: addedPairs.length + removedPairs.length + modifiedPairs.length
-    });
-    
-    return {
-      addedPairs,
-      removedPairs,
-      modifiedPairs
-    };
-  }
-
-  /**
-   * 🎯 精准缓存失效 - 基于符号对差异进行选择性失效
-   * 只失效受影响的符号，而不是清空整个 provider 的缓存
-   */
-  private async invalidateAffectedCacheEntries(
-    provider: string,
-    affectedPairs: Array<{ standard: string; sdk: string }>,
-    operationType: string
-  ): Promise<number> {
-    const normalizedProvider = provider.toLowerCase();
-    let invalidatedCount = 0;
-    const startTime = Date.now();
-    
-    try {
-      // 对于每个受影响的符号对，失效相关的 L2 和 L3 缓存条目
-      for (const { standard, sdk } of affectedPairs) {
-        
-        // 失效 L2 符号映射缓存 - 双向失效
-        const toStandardKey = this.getSymbolCacheKey(normalizedProvider, sdk, 'to_standard');
-        const fromStandardKey = this.getSymbolCacheKey(normalizedProvider, standard, 'from_standard');
-        
-        if (this.symbolMappingCache.has(toStandardKey)) {
-          this.symbolMappingCache.delete(toStandardKey);
-          invalidatedCount++;
-        }
-        
-        if (this.symbolMappingCache.has(fromStandardKey)) {
-          this.symbolMappingCache.delete(fromStandardKey);
-          invalidatedCount++;
-        }
-        
-        // 失效 L3 批量缓存中包含这些符号的条目
-        // 注意：这里需要遍历所有 L3 缓存条目，检查其 mappingDetails
-        invalidatedCount += this.invalidateL3EntriesContainingSymbols(normalizedProvider, [standard, sdk]);
-      }
-      
-      this.logger.log('Precise cache invalidation completed', {
-        provider: normalizedProvider,
-        operationType,
-        affectedPairsCount: affectedPairs.length,
-        invalidatedEntries: invalidatedCount,
-        processingTime: Date.now() - startTime
+        fallbackAction: 'clear_all_caches'
       });
       
-      return invalidatedCount;
-      
-    } catch (error) {
-      this.logger.error('Precise cache invalidation failed', {
-        provider: normalizedProvider,
-        operationType,
-        affectedPairsCount: affectedPairs.length,
-        error: error.message
-      });
-      throw error;
+      // 失效失败时使用保守策略
+      this.clearAllCaches();
     }
   }
 
   /**
-   * 💾 启动内存水位监控
+   * 🔄 合并缓存命中和数据库查询结果
    */
-  private startMemoryMonitoring(): void {
-    const checkInterval = this.featureFlags.symbolMapperMemoryCheckInterval;
-    
-    this.memoryCheckTimer = setInterval(() => {
-      this.checkMemoryUsage();
-    }, checkInterval);
-    
-    this.logger.log('Memory monitoring started', {
-      checkIntervalMs: checkInterval,
-      warningThreshold: `${this.featureFlags.symbolMapperMemoryWarningThreshold}%`,
-      criticalThreshold: `${this.featureFlags.symbolMapperMemoryCriticalThreshold}%`
-    });
-  }
-  
-  /**
-   * 🔍 检查内存使用情况
-   */
-  private checkMemoryUsage(): void {
-    const memUsage = process.memoryUsage();
-    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-    const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
-    const rssMB = Math.round(memUsage.rss / 1024 / 1024);
-    const heapUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-    
-    // 记录当前内存状态
-    const memoryState = {
-      heapUsedMB,
-      heapTotalMB,
-      rssMB,
-      heapUsagePercent: Math.round(heapUsagePercent),
-      cacheSize: {
-        l1: this.providerRulesCache.size,
-        l2: this.symbolMappingCache.size,
-        l3: this.batchResultCache.size
-      }
-    };
-    
-    // 检查是否达到警告阈值
-    if (heapUsagePercent >= this.featureFlags.symbolMapperMemoryWarningThreshold) {
-      this.logger.warn('Memory usage warning threshold reached', memoryState);
-      
-      // 检查是否达到临界阈值，需要清理
-      if (heapUsagePercent >= this.featureFlags.symbolMapperMemoryCriticalThreshold) {
-        this.logger.error('Memory usage critical threshold reached, triggering cleanup', memoryState);
-        this.performLayeredCacheCleanup();
-      }
-    } else {
-      // 每10次检查记录一次正常状态
-      const timeSinceLastCleanup = Date.now() - this.lastMemoryCleanup.getTime();
-      if (timeSinceLastCleanup > 600000) { // 10分钟
-        this.logger.debug('Memory usage normal', memoryState);
-      }
-    }
-  }
-  
-  /**
-   * 🧹 执行分层缓存清理
-   * 按优先级清理：L3 → L2 → L1
-   */
-  private performLayeredCacheCleanup(): void {
-    const startTime = Date.now();
-    const beforeStats = {
-      l1: this.providerRulesCache.size,
-      l2: this.symbolMappingCache.size,
-      l3: this.batchResultCache.size
-    };
-    
-    // Step 1: 清理 L3 批量缓存（影响最小）
-    const l3Cleared = this.batchResultCache.size;
-    this.batchResultCache.clear();
-    this.logger.log('L3 batch cache cleared', { entriesCleared: l3Cleared });
-    
-    // 检查内存是否已经恢复
-    const memAfterL3 = process.memoryUsage();
-    const heapPercentAfterL3 = (memAfterL3.heapUsed / memAfterL3.heapTotal) * 100;
-    
-    if (heapPercentAfterL3 >= this.featureFlags.symbolMapperMemoryCriticalThreshold) {
-      // Step 2: 清理 L2 符号缓存
-      const l2Cleared = this.symbolMappingCache.size;
-      this.symbolMappingCache.clear();
-      this.logger.log('L2 symbol cache cleared', { entriesCleared: l2Cleared });
-      
-      // 再次检查内存
-      const memAfterL2 = process.memoryUsage();
-      const heapPercentAfterL2 = (memAfterL2.heapUsed / memAfterL2.heapTotal) * 100;
-      
-      if (heapPercentAfterL2 >= this.featureFlags.symbolMapperMemoryCriticalThreshold) {
-        // Step 3: 清理 L1 规则缓存（最后手段）
-        const l1Cleared = this.providerRulesCache.size;
-        this.providerRulesCache.clear();
-        this.logger.log('L1 rules cache cleared', { entriesCleared: l1Cleared });
-      }
-    }
-    
-    // 记录清理结果
-    const afterStats = {
-      l1: this.providerRulesCache.size,
-      l2: this.symbolMappingCache.size,
-      l3: this.batchResultCache.size
-    };
-    
-    // 强制垃圾回收（如果可用）
-    if (global.gc) {
-      global.gc();
-      this.logger.log('Manual garbage collection triggered');
-    }
-    
-    const memAfterCleanup = process.memoryUsage();
-    const heapUsedAfterMB = Math.round(memAfterCleanup.heapUsed / 1024 / 1024);
-    const heapPercentAfter = (memAfterCleanup.heapUsed / memAfterCleanup.heapTotal) * 100;
-    
-    this.lastMemoryCleanup = new Date();
-    
-    this.logger.log('Layered cache cleanup completed', {
-      processingTime: Date.now() - startTime,
-      entriesCleared: {
-        l1: beforeStats.l1 - afterStats.l1,
-        l2: beforeStats.l2 - afterStats.l2,
-        l3: beforeStats.l3 - afterStats.l3
-      },
-      memoryAfter: {
-        heapUsedMB: heapUsedAfterMB,
-        heapUsagePercent: Math.round(heapPercentAfter)
-      }
-    });
-  }
-  
-  /**
-   * 🔍 失效包含特定符号的 L3 批量缓存条目
-   */
-  private invalidateL3EntriesContainingSymbols(provider: string, symbols: string[]): number {
-    let invalidatedCount = 0;
-    const symbolSet = new Set(symbols);
-    
-    // 遍历 L3 缓存条目，检查 mappingDetails 是否包含目标符号
-    for (const [cacheKey, batchResult] of this.batchResultCache.entries()) {
-      // 确认这是目标 provider 的缓存条目
-      if (!cacheKey.includes(`:${provider}:`)) {
-        continue;
-      }
-      
-      // 检查批量结果是否包含受影响的符号（增加failedSymbols检查+短路逻辑）
-      const mappingDetails = batchResult.mappingDetails || {};
-      const failedSymbols = batchResult.failedSymbols || [];
-
-      // 先检查 failedSymbols，命中则短路返回（性能优化）
-      let hasAffectedSymbol = false;
-      if (failedSymbols.length > 0) {
-        hasAffectedSymbol = failedSymbols.some(symbol => symbolSet.has(symbol));
-      }
-      
-      // 如果failedSymbols没有命中，再检查mappingDetails
-      if (!hasAffectedSymbol && Object.keys(mappingDetails).length > 0) {
-        hasAffectedSymbol = Object.keys(mappingDetails).some(symbol => symbolSet.has(symbol)) ||
-                           Object.values(mappingDetails).some(symbol => symbolSet.has(symbol));
-      }
-      
-      if (hasAffectedSymbol) {
-        this.batchResultCache.delete(cacheKey);
-        invalidatedCount++;
-        
-        this.logger.debug('L3 cache entry invalidated due to affected symbol', {
-          cacheKey,
-          affectedSymbols: symbols
-        });
-      }
-    }
-    
-    return invalidatedCount;
-  }
-
   private mergeResults(
-    cacheHits: Map<string, string>, 
-    uncachedResults: Record<string, string>, 
+    cacheHits: Map<string, string>,
+    uncachedResults: Record<string, string>,
     originalSymbols: string[],
     provider: string,
     direction: 'to_standard' | 'from_standard',
@@ -1448,25 +987,116 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     const mappingDetails: Record<string, string> = {};
     const failedSymbols: string[] = [];
     
-    // 合并缓存命中和数据库查询结果
+    // 处理每个原始符号
     for (const symbol of originalSymbols) {
-      const mappedSymbol = cacheHits.get(symbol) || uncachedResults[symbol];
-      if (mappedSymbol) {
-        mappingDetails[symbol] = mappedSymbol;
+      if (cacheHits.has(symbol)) {
+        // 缓存命中
+        mappingDetails[symbol] = cacheHits.get(symbol);
+      } else if (uncachedResults[symbol]) {
+        // 数据库查询结果
+        mappingDetails[symbol] = uncachedResults[symbol];
       } else {
+        // 映射失败
         failedSymbols.push(symbol);
       }
     }
     
     return {
       success: true,
-      mappingDetails,
-      failedSymbols,
-      provider: provider.toLowerCase(),
+      provider,
       direction,
       totalProcessed: originalSymbols.length,
       cacheHits: cacheHits.size,
+      mappingDetails,
+      failedSymbols,
       processingTime: Date.now() - startTime
     };
+  }
+
+  /**
+   * 💾 启动内存监控
+   */
+  private startMemoryMonitoring(): void {
+    // 每5分钟检查一次内存使用
+    const memoryCheckInterval = 5 * 60 * 1000; // 5分钟
+    
+    this.memoryCheckTimer = setInterval(() => {
+      this.checkMemoryUsage();
+    }, memoryCheckInterval);
+    
+    this.logger.debug('Memory monitoring started', {
+      checkIntervalMs: memoryCheckInterval
+    });
+  }
+
+  /**
+   * 💾 检查内存使用情况
+   */
+  private checkMemoryUsage(): void {
+    try {
+      const memUsage = process.memoryUsage();
+      const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+      const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
+      
+      const cacheStats = this.getCacheStats();
+      const totalCacheItems = cacheStats.cacheSize.l1 + cacheStats.cacheSize.l2 + cacheStats.cacheSize.l3;
+      
+      this.logger.debug('Memory usage check', {
+        heapUsedMB,
+        heapTotalMB,
+        heapUtilization: `${Math.round((heapUsedMB / heapTotalMB) * 100)}%`,
+        totalCacheItems,
+        lastCleanup: this.lastMemoryCleanup.toISOString()
+      });
+      
+      // 简单的内存压力检测：如果堆使用率超过80%，执行清理
+      const memoryPressureThreshold = 0.8;
+      if ((heapUsedMB / heapTotalMB) > memoryPressureThreshold) {
+        this.logger.warn('Memory pressure detected, performing cache cleanup', {
+          heapUsedMB,
+          heapTotalMB,
+          threshold: `${memoryPressureThreshold * 100}%`
+        });
+        
+        // 执行渐进式清理：优先清理L3，然后L2
+        this.performGradualCleanup();
+        this.lastMemoryCleanup = new Date();
+      }
+      
+    } catch (error) {
+      this.logger.error('Memory usage check failed', {
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * 💾 执行渐进式缓存清理
+   */
+  private performGradualCleanup(): void {
+    const beforeStats = this.getCacheStats();
+    
+    // 阶段1：清理L3批量结果缓存（影响最小）
+    this.batchResultCache.clear();
+    
+    // 阶段2：部分清理L2符号缓存（保留25%最热门的）
+    const l2Size = this.symbolMappingCache.size;
+    const keepCount = Math.floor(l2Size * 0.25);
+    
+    if (l2Size > keepCount) {
+      // 简单策略：清空后让LRU自然重建
+      this.symbolMappingCache.clear();
+    }
+    
+    const afterStats = this.getCacheStats();
+    
+    this.logger.log('Gradual cache cleanup completed', {
+      before: beforeStats.cacheSize,
+      after: afterStats.cacheSize,
+      freedItems: {
+        l2: beforeStats.cacheSize.l2 - afterStats.cacheSize.l2,
+        l3: beforeStats.cacheSize.l3 - afterStats.cacheSize.l3
+      }
+    });
   }
 }

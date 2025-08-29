@@ -87,6 +87,11 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
   public readonly queryBatchShardingEfficiency: Gauge<string>;
   public readonly queryConcurrentRequestsActive: Gauge<string>;
   
+  // 🎯 Query内存监控指标 - Phase 2.2
+  public readonly queryMemoryUsageBytes: Gauge<string>;
+  public readonly queryMemoryPressureLevel: Gauge<string>;
+  public readonly queryMemoryTriggeredDegradations: Counter<string>;
+  
   // 🎯 Stream Recovery 指标 - Phase 3 Critical Fix
   public readonly streamRecoveryJobsTotal: Counter<string>;
   public readonly streamRecoveryJobsPending: Gauge<string>;
@@ -578,6 +583,28 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       help: 'Number of active concurrent query requests',
       registers: [this.registry]
     });
+    
+    // 🎯 Query内存监控指标初始化 - Phase 2.2
+    this.queryMemoryUsageBytes = new Gauge({
+      name: 'newstock_query_memory_usage_bytes',
+      help: 'Query component memory usage in bytes',
+      labelNames: ['component', 'type'],
+      registers: [this.registry]
+    });
+
+    this.queryMemoryPressureLevel = new Gauge({
+      name: 'newstock_query_memory_pressure_level',
+      help: 'Query component memory pressure level (0=normal, 1=warning, 2=critical)',
+      labelNames: ['pressure_level', 'symbols_count_range'],
+      registers: [this.registry]
+    });
+
+    this.queryMemoryTriggeredDegradations = new Counter({
+      name: 'newstock_query_memory_triggered_degradations_total',
+      help: 'Total number of memory-triggered degradations in Query processing',
+      labelNames: ['degradation_type', 'symbols_count_range'],
+      registers: [this.registry]
+    });
   }
 
   async onModuleInit(): Promise<void> {
@@ -595,7 +622,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log('Prometheus 指标注册中心初始化完成', {
       totalMetrics: this.registry.getMetricsAsArray().length,
-      customMetrics: 68, // 自定义指标数量: 18 (Stream Recovery) + 13 (流处理性能,含Phase4延迟) + 5 (批量处理) + 3 (系统性能) + 16 (核心组件) + 13 (原有其他指标)
+      customMetrics: 71, // 自定义指标数量: 18 (Stream Recovery) + 13 (流处理性能,含Phase4延迟) + 5 (批量处理) + 3 (系统性能) + 16 (核心组件) + 13 (原有其他指标) + 3 (Query内存监控)
       streamRecoveryMetrics: 18, // Phase 3 Stream Recovery指标
       streamPerformanceMetrics: 13, // 流处理性能指标 (含Phase4延迟)
       batchProcessingMetrics: 5, // 批量处理指标
@@ -641,7 +668,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
     
     return {
       totalMetrics: metrics.length,
-      customMetrics: 68, // StreamRecovery (18) + StreamPerformance (13,含Phase4延迟) + BatchProcessing (5) + SystemPerformance (3) + CoreComponents (16) + Others (13)
+      customMetrics: 71, // StreamRecovery (18) + StreamPerformance (13,含Phase4延迟) + BatchProcessing (5) + SystemPerformance (3) + CoreComponents (16) + Others (13) + QueryMemory (3)
       streamRecoveryMetrics: 18, // Phase 3 Stream Recovery指标
       streamPerformanceMetrics: 13, // 流处理性能指标 (含Phase4延迟)
       batchProcessingMetrics: 5, // 批量处理指标

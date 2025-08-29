@@ -63,12 +63,12 @@ module.exports = {
     '^@security/(.*)$': '<rootDir>/src/security/$1',
     '^@providers/(.*)$': '<rootDir>/src/providers/$1',
     // Mock FeatureFlags to prevent StreamPerformanceMetrics errors
-    '^@common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
-    '^../../src/common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
-    '^../../../common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
-    '^../../../../common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
-    '^../../../../../common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
-    '^../../../../../../src/common/config/feature-flags\\.config$': '<rootDir>/test/mocks/feature-flags.config.js',
+    '^@common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../../../common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
+    '^../../../../../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
     
     // Mock PermissionService to prevent UnifiedPermissionsGuard errors
     // '^@auth/services/permission\\.service$': '<rootDir>/test/mocks/permission.service.js',
