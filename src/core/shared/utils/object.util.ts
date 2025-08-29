@@ -17,6 +17,9 @@ export class ObjectUtils {
    */
   public static getValueFromPath(obj: any, path: string): any {
     if (obj === null || obj === undefined || !path) return undefined;
+    
+    // Type check for path
+    if (typeof path !== 'string') return undefined;
 
     try {
       const keys = path.split(/[.\[\]]/).filter((key) => key !== "");

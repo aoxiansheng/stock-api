@@ -65,1177 +65,1410 @@ class DecompressionSemaphore {
  * 通用缓存服务
  * 提供极简的缓存操作接口，失败返回null不抛异常
  */
-@Injectable()
-export class CommonCacheService implements ICacheOperation, ICacheFallback, ICacheMetadata {
-  private readonly logger = new Logger(CommonCacheService.name);
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+import { CacheCompressionService } from './cache-compression.service';
+import { CACHE_CONFIG } from '../constants/cache-config.constants';
+import { createLogger } from '../../../../common/config/logger.config';
+import { AdaptiveDecompressionService } from './adaptive-decompression.service';
+import { BatchMemoryOptimizerService } from './batch-memory-optimizer.service';
+import { 
+  CACHE_REDIS_CLIENT_TOKEN, 
+  MONITORING_COLLECTOR_TOKEN, 
+  ICollector 
+} from '../../../../monitoring/contracts';
 
-  // 解压并发控制实例
+/**
+ * 并发控制信号量 - 管理解压缩操作的并发数
+ * 防止在高并发场景下过度消耗系统资源
+ */
+class DecompressionSemaphore {
+  private permits: number;
+  private readonly maxPermits: number;
+
+  constructor(maxPermits: number = CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT) {
+    this.maxPermits = maxPermits;
+    this.permits = maxPermits;
+  }
+
+  async acquire(): Promise<void> {
+    if (this.permits > 0) {
+      this.permits--;
+      return Promise.resolve();
+    }
+    
+    // 如果没有可用许可，等待一小段时间再重试
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return this.acquire();
+  }
+
+  release(): void {
+    if (this.permits < this.maxPermits) {
+      this.permits++;
+    }
+  }
+}
+
+/**
+ * 通用缓存服务 - Redis-based distributed cache
+ * 提供完整的缓存操作能力，包含压缩、监控和容错机制
+ * 
+ * 核心特性：
+ * - 智能压缩和解压缩（基于数据大小阈值）
+ * - 并发控制（防止解压缩操作过载）
+ * - 监控指标收集
+ * - 类型安全的依赖注入
+ * - 容错和降级处理
+ */
+@Injectable()
+export class CommonCacheService {
+  private readonly logger = createLogger(CommonCacheService.name);
+
+  // ✅ 使用类型安全的并发控制
   private readonly decompressionSemaphore = new DecompressionSemaphore(
     CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT
   );
 
   constructor(
-    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+    @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redis: Redis,
     private readonly configService: ConfigService,
     private readonly compressionService: CacheCompressionService,
-    @Inject('CollectorService') private readonly collectorService: any, // ✅ 使用字符串注入
+    @Inject(MONITORING_COLLECTOR_TOKEN) private readonly collectorService: ICollector, // ✅ 使用类型安全的依赖注入
+    private readonly adaptiveDecompressionService: AdaptiveDecompressionService, // ✅ 新增自适应解压缩服务
+    private readonly batchMemoryOptimizer: BatchMemoryOptimizerService, // ✅ 新增批量内存优化器
   ) {}
 
   /**
-   * ✅ TTL处理工具方法（单位一致性修正）
-   * @param pttlMs Redis pttl返回的毫秒值
-   * @returns TTL秒数
+   * 映射 Redis PTTL 结果到秒数
+   * -2: key不存在
+   * -1: key存在但无过期时间
+   * 正数: TTL毫秒数
    */
-  private mapPttlToSeconds(pttlMs: number): number {
-    // Redis pttl特殊值处理：
-    // -2: key不存在 -> 0s(秒)  
-    // -1: key存在但无过期时间 -> 默认365天
-    if (pttlMs === REDIS_SPECIAL_VALUES.PTTL_KEY_NOT_EXISTS) return 0;
-    if (pttlMs === REDIS_SPECIAL_VALUES.PTTL_NO_EXPIRE) return CACHE_CONFIG.TTL.NO_EXPIRE_DEFAULT; // 31536000s (365天)
-    return Math.max(0, Math.floor(pttlMs / 1000)); // ✅ 强制转换毫秒->秒(s)
+  private mapPttlToSeconds(pttl: number): number | null {
+    if (pttl === -2) return null; // key不存在
+    if (pttl === -1) return -1;   // 永不过期
+    return Math.ceil(pttl / 1000); // 转换为秒并向上取整
   }
 
   /**
-   * 记录操作指标
-   * @param operation 操作类型
-   * @param status 状态
-   * @param duration 耗时（毫秒）
+   * 记录缓存操作指标
+   * 通过监控服务收集缓存性能数据
    */
-  private recordMetrics(operation: string, status: 'success' | 'error', duration?: number): void {
+  private recordMetrics(operation: string, hit: boolean, duration: number, metadata?: any): void {
     try {
-      // ✅ 使用CollectorService的业务语义化接口
-      const hit = status === 'success';
-      this.collectorService.recordCacheOperation(
-        operation,
-        hit,
-        duration || 0,
-        { 
-          layer: 'common-cache',
-          status
-        }
-      );
+      this.collectorService.recordCacheOperation(operation, hit, duration, {
+        cacheType: 'common',
+        ...metadata
+      });
     } catch (error) {
-      // ✅ 监控失败不影响业务
-      this.logger.debug(`监控记录失败: ${error.message}`);
+      // 监控记录失败不影响业务逻辑
+      this.logger.warn('记录缓存指标失败', { operation, error: error.message });
     }
   }
 
   /**
-   * 记录解压指标
-   * @param key 缓存键
-   * @param errorType 错误类型或'success'
-   * @param duration 操作耗时（毫秒）
+   * 记录解压缩操作指标
+   * 专门用于监控解压缩性能和资源消耗
    */
-  private recordDecompressionMetrics(key: string | undefined, errorType: string, duration: number): void {
+  private recordDecompressionMetrics(
+    success: boolean, 
+    duration: number, 
+    originalSize?: number, 
+    decompressedSize?: number
+  ): void {
     try {
-      // ✅ 使用CollectorService记录解压缩指标
-      const hit = errorType === 'success';
-      this.collectorService.recordCacheOperation(
-        'decompression',
-        hit,
-        duration,
-        {
-          layer: 'common-cache',
-          operation_type: 'decompression',
-          error_type: errorType,
-          cache_key: key
-        }
-      );
+      this.collectorService.recordCacheOperation('decompress', success, duration, {
+        cacheType: 'common',
+        operation: 'decompress',
+        originalSize,
+        decompressedSize,
+        compressionRatio: originalSize && decompressedSize ? originalSize / decompressedSize : null
+      });
     } catch (error) {
-      // ✅ 监控失败不影响业务
-      this.logger.debug(`解压缩监控记录失败: ${error.message}`);
+      // 监控记录失败不影响业务逻辑
+      this.logger.warn('记录解压缩指标失败', { error: error.message });
     }
   }
 
   /**
-   * 分类解压错误类型
-   * @param error 错误对象
-   * @returns 错误类型字符串
+   * 分类解压缩错误类型
+   * 用于更好的错误处理和监控
    */
   private classifyDecompressionError(error: Error): string {
     const message = error.message.toLowerCase();
-    
-    if (message.includes('base64')) return 'base64_decode_failed';
-    if (message.includes('gunzip') || message.includes('gzip')) return 'gzip_decompress_failed';
-    if (message.includes('json')) return 'json_parse_failed';
-    if (message.includes('metadata')) return 'metadata_invalid';
-    
+    if (message.includes('invalid')) return 'invalid_data';
+    if (message.includes('corrupt')) return 'corrupted_data';
+    if (message.includes('memory')) return 'memory_limit';
+    if (message.includes('timeout')) return 'timeout';
     return 'unknown_error';
   }
 
   /**
-   * 获取数据预览（用于调试）
-   * @param data 数据
-   * @returns 安全的数据预览字符串
+   * 获取数据预览 - 用于调试和监控
+   * 安全地截取数据的前几个字符用于日志记录
    */
-  private getDataPreview(data: any): string {
-    if (typeof data === 'string') {
-      return data.length > 50 ? `${data.substring(0, 50)}...` : data;
-    }
+  private getDataPreview(data: any, maxLength: number = 100): string {
     try {
-      const str = JSON.stringify(data);
-      return str.length > 50 ? `${str.substring(0, 50)}...` : str;
+      const str = typeof data === 'string' ? data : JSON.stringify(data);
+      return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
     } catch {
-      return '[Unparseable data]';
+      return '[不可序列化的数据]';
     }
   }
 
   /**
-   * 规范化缓存元数据
-   * @param parsed 解析后的缓存数据
-   * @returns 规范化的元数据对象
+   * 标准化元数据格式
+   * 确保元数据符合监控系统的要求
    */
-  private normalizeMetadata(parsed: any): CacheMetadata {
+  private normalizeMetadata(metadata: any): Record<string, any> {
+    if (!metadata) return {};
+    
     return {
-      compressed: parsed.compressed || false,
-      storedAt: parsed.storedAt || parsed.metadata?.storedAt || Date.now(),
-      originalSize: parsed.metadata?.originalSize || 0,
-      compressedSize: parsed.metadata?.compressedSize || 0
+      timestamp: new Date().toISOString(),
+      ...metadata
     };
   }
 
   /**
-   * 将解析后的缓存数据转换为业务数据类型
-   * 核心解压逻辑，处理压缩数据的自动解压
-   * @param parsed 解析后的缓存数据
-   * @param key 缓存键（用于调试）
-   * @returns 业务数据类型
+   * 转换为业务数据格式
+   * 标准化缓存数据的返回格式
    */
   private async toBusinessData<T>(
-    parsed: { data: any; storedAt?: number; compressed?: boolean; metadata?: Partial<CacheMetadata> },
-    key?: string
-  ): Promise<T> {
-    // 检查解压开关 - 动态检查环境变量
-    const decompressionEnabled = process.env.CACHE_DECOMPRESSION_ENABLED !== 'false';
-    if (!decompressionEnabled) {
-      return parsed.data;
-    }
-    
-    // 非压缩数据直接返回
-    if (!parsed.compressed) {
-      return parsed.data;
-    }
-    
-    try {
-      // 规范化metadata（增强验证）
-      const normalizedMetadata = this.normalizeMetadata(parsed);
-      
-      // 基础数据验证
-      if (!parsed.data || typeof parsed.data !== 'string') {
-        throw new Error('Invalid compressed data format: expected base64 string');
-      }
-      
-      // 执行解压
-      const startTime = process.hrtime.bigint();
-      const decompressed = await this.compressionService.decompress(
-        parsed.data as string,
-        normalizedMetadata
-      );
-      const endTime = process.hrtime.bigint();
-      
-      // 记录成功指标
-      const duration = Number(endTime - startTime) / 1_000_000;
-      this.recordDecompressionMetrics(key, 'success', duration);
-      
-      return decompressed;
-      
-    } catch (error) {
-      // 分类错误并记录
-      const errorType = this.classifyDecompressionError(error);
-      this.logger.warn(`Decompression ${errorType} for key: ${key}`, {
-        error: error.message,
-        key,
-        dataPreview: this.getDataPreview(parsed.data)
-      });
-      
-      // 记录失败指标
-      this.recordDecompressionMetrics(key, errorType, 0);
-      
-      // 抛出类型安全的异常
-      throw new CacheDecompressionException(
-        `缓存解压失败: ${error.message}`,
-        key,
-        error instanceof Error ? error : new Error(String(error))
-      );
-    }
-  }
-
-  /**
-   * 基础缓存获取 - 返回数据和TTL元数据，失败返回null
-   * @param key 缓存键
-   * @returns 缓存结果或null
-   */
-  async get<T>(key: string): Promise<{ data: T; ttlRemaining: number } | null> {
+    rawData: string | null,
+    key: string,
+    options: {
+      enableDecompression?: boolean;
+      metadata?: any;
+    } = {}
+  ): Promise<{ data: T | null; metadata: any }> {
     const startTime = Date.now();
     
-    try {
-      const [value, pttl] = await Promise.all([
-        this.redis.get(key),
-        this.redis.pttl(key)
-      ]);
-
-      if (value === null) {
-        this.recordMetrics('get', 'success', Date.now() - startTime);
-        return null;
-      }
-
-      const parsed = RedisValueUtils.parse<T>(value);
-      const ttlRemaining = this.mapPttlToSeconds(pttl);
-
-      // 新增：统一解压处理
-      const data = await this.toBusinessData<T>(parsed, key);
-
-      this.recordMetrics('get', 'success', Date.now() - startTime);
-      
-      return {
-        data,
-        ttlRemaining
+    if (rawData === null) {
+      return { 
+        data: null, 
+        metadata: this.normalizeMetadata({ 
+          ...options.metadata, 
+          cached: false,
+          duration: Date.now() - startTime
+        }) 
       };
-    } catch (error) {
-      this.logger.debug(`Cache get failed for ${key}`, error);
-      this.recordMetrics('get', 'error', Date.now() - startTime);
-      return null;
     }
-  }
 
-  /**
-   * 基础缓存设置
-   * @param key 缓存键
-   * @param data 数据
-   * @param ttl TTL（秒）
-   */
-  async set<T>(key: string, data: T, ttl: number): Promise<void> {
-    const startTime = Date.now();
-    
     try {
-      // 验证TTL范围
-      const validTtl = Math.max(CACHE_CONFIG.TTL.MIN_SECONDS, Math.min(ttl, CACHE_CONFIG.TTL.MAX_SECONDS));
-      
-      // 检查是否需要压缩
-      const shouldCompress = this.compressionService.shouldCompress(data);
-      let serializedValue: string;
-      
-      if (shouldCompress) {
-        const compressionResult = await this.compressionService.compress(data);
-        serializedValue = RedisValueUtils.serialize(
-          compressionResult.compressedData, 
-          compressionResult.metadata.compressed,
-          compressionResult.metadata
-        );
-      } else {
-        serializedValue = RedisValueUtils.serialize(data, false);
-      }
+      let processedData = rawData;
+      let isDecompressed = false;
 
-      await this.redis.setex(key, validTtl, serializedValue);
-      
-      this.recordMetrics('set', 'success', Date.now() - startTime);
-      this.logger.debug(`Cache set successful for ${key}, TTL: ${validTtl}s`);
-    } catch (error) {
-      this.logger.debug(`Cache set failed for ${key}`, error);
-      this.recordMetrics('set', 'error', Date.now() - startTime);
-      // 不抛异常，静默失败
-    }
-  }
+      // 检测和处理压缩数据
+      if (options.enableDecompression && this.compressionService.isCompressed(rawData)) {
+        // 并发控制 - 获取解压缩许可
+        await this.decompressionSemaphore.acquire();
 
-  /**
-   * 删除缓存
-   * @param key 缓存键
-   * @returns 是否删除成功
-   */
-  async delete(key: string): Promise<boolean> {
-    const startTime = Date.now();
-    
-    try {
-      const result = await this.redis.del(key);
-      const success = result > 0;
-      
-      this.recordMetrics('delete', 'success', Date.now() - startTime);
-      this.logger.debug(`Cache delete ${success ? 'successful' : 'not found'} for ${key}`);
-      
-      return success;
-    } catch (error) {
-      this.logger.debug(`Cache delete failed for ${key}`, error);
-      this.recordMetrics('delete', 'error', Date.now() - startTime);
-      return false;
-    }
-  }
-
-  /**
-   * ✅ 修正示例：批量获取，保持结果顺序与输入一致
-   * @param keys 缓存键数组
-   * @returns 缓存结果数组
-   */
-  async mget<T>(keys: string[]): Promise<Array<{ data: T; ttlRemaining: number } | null>> {
-    const startTime = Date.now();
-    
-    try {
-      if (keys.length === 0) {
-        return [];
-      }
-
-      // 验证批量大小限制
-      if (keys.length > CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE) {
-        throw new Error(`Batch size ${keys.length} exceeds limit ${CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE}`);
-      }
-
-      const [values, ttlResults] = await Promise.all([
-        this.redis.mget(keys),
-        Promise.all(keys.map(key => this.redis.pttl(key)))
-      ]);
-
-      // 批量解压处理（并发控制）
-      const decompressionPromises = values.map(async (value, index) => {
-        if (value === null) return null;
-        
-        const parsed = RedisValueUtils.parse<T>(value);
-        const key = keys[index];
-        
         try {
-          // 并发控制：获取信号量
-          await this.decompressionSemaphore.acquire();
+          const decompressionStart = Date.now();
+          processedData = await this.compressionService.decompress(rawData);
+          const decompressionDuration = Date.now() - decompressionStart;
+
+          isDecompressed = true;
+
+          // 记录解压缩指标
+          this.recordDecompressionMetrics(
+            true, 
+            decompressionDuration, 
+            rawData.length, 
+            processedData.length
+          );
+
+          this.logger.debug(`解压缩完成: ${key}`, {
+            originalSize: rawData.length,
+            decompressedSize: processedData.length,
+            duration: decompressionDuration
+          });
+        } catch (decompressError) {
+          const decompressionDuration = Date.now() - Date.now();
+          const errorType = this.classifyDecompressionError(decompressError);
           
-          const data = await this.toBusinessData<T>(parsed, key);
-          
-          return {
-            data,
-            ttlRemaining: this.mapPttlToSeconds(ttlResults[index])
+          // 记录解压缩失败指标
+          this.recordDecompressionMetrics(false, decompressionDuration);
+
+          this.logger.error(`解压缩失败: ${key}`, {
+            error: decompressError.message,
+            errorType,
+            dataPreview: this.getDataPreview(rawData)
+          });
+
+          // 解压缩失败时返回null而不是抛出异常
+          return { 
+            data: null, 
+            metadata: this.normalizeMetadata({
+              ...options.metadata,
+              cached: true,
+              decompression_failed: true,
+              error_type: errorType,
+              duration: Date.now() - startTime
+            })
           };
-        } catch (error) {
-          // 单个解压失败时的处理策略
-          if (error instanceof CacheDecompressionException) {
-            this.logger.warn(`批量解压失败，回退到原始数据`, { key, error: error.message });
-            
-            return {
-              data: parsed.data, // 回退到原始数据
-              ttlRemaining: this.mapPttlToSeconds(ttlResults[index])
-            };
-          }
-          
-          // 非解压异常直接抛出
-          throw error;
         } finally {
-          // 释放信号量
+          // 释放解压缩许可
           this.decompressionSemaphore.release();
         }
-      });
-      
-      const results = await Promise.all(decompressionPromises);
+      }
 
-      this.recordMetrics('mget', 'success', Date.now() - startTime);
-      
-      return results;
-    } catch (error) {
-      this.logger.debug(`Cache mget failed for ${keys.length} keys`, error);
-      this.recordMetrics('mget', 'error', Date.now() - startTime);
-      return keys.map(() => null);
+      // 解析JSON数据
+      const parsedData: T = JSON.parse(processedData);
+
+      return {
+        data: parsedData,
+        metadata: this.normalizeMetadata({
+          ...options.metadata,
+          cached: true,
+          compressed: isDecompressed,
+          duration: Date.now() - startTime
+        })
+      };
+
+    } catch (parseError) {
+      this.logger.error(`数据解析失败: ${key}`, {
+        error: parseError.message,
+        dataPreview: this.getDataPreview(rawData)
+      });
+
+      return { 
+        data: null, 
+        metadata: this.normalizeMetadata({
+          ...options.metadata,
+          cached: true,
+          parse_failed: true,
+          duration: Date.now() - startTime
+        })
+      };
     }
   }
 
   /**
-   * 增强版批量获取 - 支持智能缓存批量操作迁移 (Phase 4.1.2)
-   * @param requests 批量请求配置数组
-   * @returns 批量操作结果
+   * 获取单个缓存数据
+   * @param key 缓存键
+   * @param enableDecompression 是否启用解压缩
+   * @returns 缓存数据和元数据
    */
-  async mgetEnhanced<T>(
-    requests: Array<{
-      key: string;
-      fetchFn?: () => Promise<T>;
-      ttl?: number;
-      options?: {
-        useCache?: boolean;
-        maxAge?: number;
-        includeMetadata?: boolean;
-      };
-    }>
-  ): Promise<Array<{
-    key: string;
-    data: T | null;
-    hit: boolean;
-    ttlRemaining?: number;
-    source: 'cache' | 'fetch' | 'error';
-    metadata?: {
-      storedAt?: number;
-      fetchTime?: number;
-      error?: string;
-    };
-  }>> {
+  async get<T>(key: string, enableDecompression: boolean = true): Promise<{ data: T | null; metadata: any }> {
     const startTime = Date.now();
-    
+
     try {
-      if (requests.length === 0) {
-        return [];
+      const rawData = await this.redis.get(key);
+      const duration = Date.now() - startTime;
+
+      // 记录缓存操作指标
+      this.recordMetrics('get', rawData !== null, duration, { key });
+
+      return await this.toBusinessData<T>(rawData, key, {
+        enableDecompression,
+        metadata: { operation: 'get', key }
+      });
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      this.recordMetrics('get', false, duration, { 
+        key, 
+        error: error.message 
+      });
+
+      this.logger.error(`缓存获取失败: ${key}`, error);
+      
+      return { 
+        data: null, 
+        metadata: this.normalizeMetadata({
+          operation: 'get',
+          key,
+          error: error.message,
+          duration
+        })
+      };
+    }
+  }
+
+  /**
+   * 设置单个缓存数据
+   * @param key 缓存键
+   * @param data 要缓存的数据
+   * @param ttlSeconds TTL秒数
+   * @param enableCompression 是否启用压缩
+   * @returns 操作结果和元数据
+   */
+  async set<T>(
+    key: string, 
+    data: T, 
+    ttlSeconds?: number, 
+    enableCompression: boolean = true
+  ): Promise<{ success: boolean; metadata: any }> {
+    const startTime = Date.now();
+
+    try {
+      let processedData = JSON.stringify(data);
+      let isCompressed = false;
+
+      // 智能压缩
+      if (enableCompression && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
+        const compressedData = await this.compressionService.compress(processedData);
+        processedData = compressedData;
+        isCompressed = true;
       }
 
-      // 验证批量大小限制
-      if (requests.length > CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE) {
-        throw new Error(`Batch size ${requests.length} exceeds limit ${CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE}`);
-      }
+      // 设置缓存
+      const result = ttlSeconds 
+        ? await this.redis.setex(key, ttlSeconds, processedData)
+        : await this.redis.set(key, processedData);
 
-      const keys = requests.map(req => req.key);
+      const duration = Date.now() - startTime;
+      const success = result === 'OK';
+
+      // 记录缓存操作指标
+      this.recordMetrics('set', success, duration, { 
+        key, 
+        compressed: isCompressed,
+        dataSize: processedData.length,
+        ttl: ttlSeconds
+      });
+
+      return {
+        success,
+        metadata: this.normalizeMetadata({
+          operation: 'set',
+          key,
+          compressed: isCompressed,
+          dataSize: processedData.length,
+          ttl: ttlSeconds,
+          duration
+        })
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
       
-      // 批量获取缓存数据
-      const cacheResults = await this.mget<T>(keys);
+      this.recordMetrics('set', false, duration, { 
+        key, 
+        error: error.message 
+      });
+
+      this.logger.error(`缓存设置失败: ${key}`, error);
       
-      // 处理每个请求
-      const results = await Promise.allSettled(
-        requests.map(async (request, index) => {
-          const cacheResult = cacheResults[index];
-          const { key, fetchFn, ttl = 300, options = {} } = request;
-          
-          // 如果缓存命中且满足条件
-          if (cacheResult !== null && options.useCache !== false) {
-            // 检查maxAge条件
-            if (options.maxAge && cacheResult.ttlRemaining < options.maxAge) {
-              // TTL不足，需要重新获取
-              if (fetchFn) {
-                try {
-                  const fetchStart = Date.now();
-                  const freshData = await fetchFn();
-                  const fetchTime = Date.now() - fetchStart;
-                  
-                  // 异步更新缓存
-                  this.set(key, freshData, ttl).catch(err => {
-                    this.logger.debug(`Failed to update cache for ${key}`, err);
-                  });
-                  
-                  return {
-                    key,
-                    data: freshData,
-                    hit: false,
-                    ttlRemaining: ttl,
-                    source: 'fetch' as const,
-                    metadata: options.includeMetadata ? {
-                      fetchTime,
-                      storedAt: Date.now()
-                    } : undefined
-                  };
-                } catch (fetchError) {
-                  // 获取失败，返回缓存数据（降级策略）
-                  return {
-                    key,
-                    data: cacheResult.data,
-                    hit: true,
-                    ttlRemaining: cacheResult.ttlRemaining,
-                    source: 'cache' as const,
-                    metadata: options.includeMetadata ? {
-                      error: `Fetch failed, using stale cache: ${fetchError.message}`
-                    } : undefined
-                  };
-                }
-              } else {
-                // 没有fetchFn，返回过期的缓存数据
-                return {
-                  key,
-                  data: cacheResult.data,
-                  hit: true,
-                  ttlRemaining: cacheResult.ttlRemaining,
-                  source: 'cache' as const,
-                  metadata: options.includeMetadata ? {
-                    error: 'Cache data may be stale (no fetch function provided)'
-                  } : undefined
-                };
-              }
-            } else {
-              // 缓存有效，直接返回
-              return {
-                key,
-                data: cacheResult.data,
-                hit: true,
-                ttlRemaining: cacheResult.ttlRemaining,
-                source: 'cache' as const,
-                metadata: options.includeMetadata ? {
-                  storedAt: Date.now() - (ttl - cacheResult.ttlRemaining) * 1000
-                } : undefined
-              };
-            }
-          } else {
-            // 缓存未命中，需要获取数据
-            if (fetchFn) {
-              try {
-                const fetchStart = Date.now();
-                const freshData = await fetchFn();
-                const fetchTime = Date.now() - fetchStart;
-                
-                // 异步存储到缓存
-                this.set(key, freshData, ttl).catch(err => {
-                  this.logger.debug(`Failed to store cache for ${key}`, err);
-                });
-                
-                return {
-                  key,
-                  data: freshData,
-                  hit: false,
-                  ttlRemaining: ttl,
-                  source: 'fetch' as const,
-                  metadata: options.includeMetadata ? {
-                    fetchTime,
-                    storedAt: Date.now()
-                  } : undefined
-                };
-              } catch (fetchError) {
-                return {
-                  key,
-                  data: null,
-                  hit: false,
-                  ttlRemaining: 0,
-                  source: 'error' as const,
-                  metadata: options.includeMetadata ? {
-                    error: fetchError.message
-                  } : undefined
-                };
-              }
-            } else {
-              // 没有fetchFn，返回null
-              return {
-                key,
-                data: null,
-                hit: false,
-                ttlRemaining: 0,
-                source: 'cache' as const,
-                metadata: options.includeMetadata ? {
-                  error: 'Cache miss and no fetch function provided'
-                } : undefined
-              };
-            }
-          }
+      return {
+        success: false,
+        metadata: this.normalizeMetadata({
+          operation: 'set',
+          key,
+          error: error.message,
+          duration
+        })
+      };
+    }
+  }
+
+  /**
+   * 删除缓存数据
+   * @param keys 要删除的缓存键（支持单个或多个）
+   * @returns 删除结果和元数据
+   */
+  async delete(keys: string | string[]): Promise<{ deletedCount: number; metadata: any }> {
+    const startTime = Date.now();
+    const keyArray = Array.isArray(keys) ? keys : [keys];
+
+    try {
+      const deletedCount = await this.redis.del(...keyArray);
+      const duration = Date.now() - startTime;
+
+      // 记录缓存操作指标
+      this.recordMetrics('delete', deletedCount > 0, duration, { 
+        keys: keyArray,
+        deletedCount
+      });
+
+      return {
+        deletedCount,
+        metadata: this.normalizeMetadata({
+          operation: 'delete',
+          keys: keyArray,
+          deletedCount,
+          duration
+        })
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      this.recordMetrics('delete', false, duration, { 
+        keys: keyArray, 
+        error: error.message 
+      });
+
+      this.logger.error(`缓存删除失败`, error);
+      
+      return {
+        deletedCount: 0,
+        metadata: this.normalizeMetadata({
+          operation: 'delete',
+          keys: keyArray,
+          error: error.message,
+          duration
+        })
+      };
+    }
+  }
+
+  /**
+   * 批量获取缓存数据
+   * @param keys 缓存键数组
+   * @param enableDecompression 是否启用解压缩
+   * @returns 批量缓存数据和元数据
+   */
+  async mget<T>(keys: string[], enableDecompression: boolean = true): Promise<{
+    data: Array<{ key: string; value: T | null }>;
+    metadata: any;
+  }> {
+    const startTime = Date.now();
+
+    if (keys.length === 0) {
+      return {
+        data: [],
+        metadata: this.normalizeMetadata({
+          operation: 'mget',
+          keys: [],
+          duration: 0
+        })
+      };
+    }
+
+    try {
+      const rawResults = await this.redis.mget(...keys);
+      const duration = Date.now() - startTime;
+
+      // 处理结果
+      const results = await Promise.all(
+        keys.map(async (key, index) => {
+          const rawValue = rawResults[index];
+          const { data } = await this.toBusinessData<T>(rawValue, key, { enableDecompression });
+          return { key, value: data };
         })
       );
 
-      // 处理Promise.allSettled结果
-      const finalResults = results.map((result, index) => {
-        if (result.status === 'fulfilled') {
-          return result.value;
-        } else {
-          this.logger.error(`Enhanced mget failed for key ${requests[index].key}`, result.reason);
-          return {
-            key: requests[index].key,
-            data: null,
-            hit: false,
-            ttlRemaining: 0,
-            source: 'error' as const,
-            metadata: requests[index].options?.includeMetadata ? {
-              error: result.reason.message
-            } : undefined
-          };
-        }
+      const hitCount = results.filter(r => r.value !== null).length;
+
+      // 记录批量操作指标
+      this.recordMetrics('mget', hitCount > 0, duration, { 
+        keys,
+        hitCount,
+        totalCount: keys.length,
+        hitRate: hitCount / keys.length
       });
 
-      this.recordMetrics('mget_enhanced', 'success', Date.now() - startTime);
-      
-      return finalResults;
+      return {
+        data: results,
+        metadata: this.normalizeMetadata({
+          operation: 'mget',
+          keys,
+          hitCount,
+          totalCount: keys.length,
+          hitRate: hitCount / keys.length,
+          duration
+        })
+      };
+
     } catch (error) {
-      this.logger.debug(`Enhanced mget failed for ${requests.length} requests`, error);
-      this.recordMetrics('mget_enhanced', 'error', Date.now() - startTime);
+      const duration = Date.now() - startTime;
       
-      // 返回错误结果
-      return requests.map(req => ({
-        key: req.key,
-        data: null,
-        hit: false,
-        ttlRemaining: 0,
-        source: 'error' as const,
-        metadata: req.options?.includeMetadata ? {
-          error: error.message
-        } : undefined
-      }));
+      this.recordMetrics('mget', false, duration, { 
+        keys, 
+        error: error.message 
+      });
+
+      this.logger.error(`批量获取缓存失败`, error);
+
+      // 返回所有null值而不是抛出异常
+      return {
+        data: keys.map(key => ({ key, value: null })),
+        metadata: this.normalizeMetadata({
+          operation: 'mget',
+          keys,
+          error: error.message,
+          duration
+        })
+      };
     }
   }
 
   /**
-   * 批量设置缓存，使用pipeline优化
-   * @param entries 缓存条目数组
+   * 增强批量获取 - 包含TTL信息
+   * @param keys 缓存键数组
+   * @param options 选项配置
+   * @returns 增强的批量缓存数据
    */
-  async mset<T>(entries: Array<{ key: string; data: T; ttl: number }>): Promise<void> {
+  async mgetEnhanced<T>(
+    keys: string[], 
+    options: {
+      enableDecompression?: boolean;
+      includeTTL?: boolean;
+      includeMetadata?: boolean;
+    } = {}
+  ): Promise<{
+    data: Array<{
+      key: string;
+      value: T | null;
+      ttl?: number | null;
+      metadata?: any;
+    }>;
+    summary: {
+      total: number;
+      hits: number;
+      misses: number;
+      hitRate: number;
+    };
+    metadata: any;
+  }> {
     const startTime = Date.now();
-    
+    const { enableDecompression = true, includeTTL = false, includeMetadata = false } = options;
+
+    if (keys.length === 0) {
+      return {
+        data: [],
+        summary: { total: 0, hits: 0, misses: 0, hitRate: 0 },
+        metadata: this.normalizeMetadata({
+          operation: 'mgetEnhanced',
+          keys: [],
+          duration: 0
+        })
+      };
+    }
+
     try {
-      if (entries.length === 0) {
-        return;
+      // 并行执行 mget 和 pttl (如果需要)
+      const promises: Promise<any>[] = [this.redis.mget(...keys)];
+      if (includeTTL) {
+        promises.push(Promise.all(keys.map(key => this.redis.pttl(key))));
       }
 
-      // 验证批量大小限制
-      if (entries.length > CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE) {
-        throw new Error(`Batch size ${entries.length} exceeds limit ${CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE}`);
-      }
+      const results = await Promise.all(promises);
+      const rawValues = results[0];
+      const ttlValues = includeTTL ? results[1] : null;
 
-      // 分段处理大批量操作
-      const pipelineMaxSize = CACHE_CONFIG.BATCH_LIMITS.PIPELINE_MAX_SIZE;
-      
-      for (let i = 0; i < entries.length; i += pipelineMaxSize) {
-        const chunk = entries.slice(i, i + pipelineMaxSize);
-        
-        const pipeline = this.redis.pipeline();
-        
-        for (const { key, data, ttl } of chunk) {
-          const validTtl = Math.max(CACHE_CONFIG.TTL.MIN_SECONDS, Math.min(ttl, CACHE_CONFIG.TTL.MAX_SECONDS));
-          
-          // 简化版本：暂不在批量操作中进行压缩，避免复杂度
-          const serialized = RedisValueUtils.serialize(data, false);
-          pipeline.setex(key, validTtl, serialized);
-        }
-        
-        const results = await pipeline.exec();
-        
-        // ✅ 修正：Pipeline结果逐条检查，部分失败是正常情况
-        const failures = results?.filter(([err]) => err !== null) || [];
-        if (failures.length > 0) {
-          this.logger.warn(`Batch set partial failure: ${failures.length}/${chunk.length} failed in chunk ${Math.floor(i/pipelineMaxSize)+1}`);
-          
-          // 只有全部失败时才抛异常
-          if (failures.length === chunk.length) {
-            throw new Error(`Batch set complete failure in chunk ${Math.floor(i/pipelineMaxSize)+1}`);
+      // 处理数据
+      const processedData = await Promise.all(
+        keys.map(async (key, index) => {
+          const rawValue = rawValues[index];
+          const { data, metadata } = await this.toBusinessData<T>(rawValue, key, { 
+            enableDecompression,
+            metadata: { index }
+          });
+
+          const result: any = { key, value: data };
+
+          if (includeTTL && ttlValues) {
+            result.ttl = this.mapPttlToSeconds(ttlValues[index]);
           }
-        }
-      }
 
-      this.recordMetrics('mset', 'success', Date.now() - startTime);
-      this.logger.debug(`Cache mset successful for ${entries.length} entries`);
+          if (includeMetadata) {
+            result.metadata = metadata;
+          }
+
+          return result;
+        })
+      );
+
+      const duration = Date.now() - startTime;
+      const hits = processedData.filter(item => item.value !== null).length;
+      const misses = keys.length - hits;
+      const hitRate = hits / keys.length;
+
+      // 记录增强批量操作指标
+      this.recordMetrics('mgetEnhanced', hits > 0, duration, { 
+        keys,
+        hits,
+        misses,
+        hitRate,
+        includeTTL,
+        includeMetadata
+      });
+
+      return {
+        data: processedData,
+        summary: {
+          total: keys.length,
+          hits,
+          misses,
+          hitRate
+        },
+        metadata: this.normalizeMetadata({
+          operation: 'mgetEnhanced',
+          keys,
+          includeTTL,
+          includeMetadata,
+          summary: { hits, misses, hitRate },
+          duration
+        })
+      };
+
     } catch (error) {
-      this.logger.debug(`Cache mset failed for ${entries.length} entries`, error);
-      this.recordMetrics('mset', 'error', Date.now() - startTime);
-      // 不抛异常，静默失败
+      const duration = Date.now() - startTime;
+      
+      this.recordMetrics('mgetEnhanced', false, duration, { 
+        keys, 
+        error: error.message 
+      });
+
+      this.logger.error(`增强批量获取失败`, error);
+
+      // 容错处理：返回所有null值
+      return {
+        data: keys.map(key => ({ key, value: null })),
+        summary: {
+          total: keys.length,
+          hits: 0,
+          misses: keys.length,
+          hitRate: 0
+        },
+        metadata: this.normalizeMetadata({
+          operation: 'mgetEnhanced',
+          keys,
+          error: error.message,
+          duration
+        })
+      };
     }
   }
 
   /**
-   * 增强版批量设置 - 支持智能缓存批量操作迁移 (Phase 4.1.2)
-   * @param entries 增强批量设置条目数组
-   * @returns 批量设置结果统计
+   * 批量设置缓存数据
+   * @param entries 键值对数组
+   * @param ttlSeconds TTL秒数
+   * @param enableCompression 是否启用压缩
+   * @returns 批量设置结果
+   */
+  async mset<T>(
+    entries: Array<{ key: string; value: T }>, 
+    ttlSeconds?: number, 
+    enableCompression: boolean = true
+  ): Promise<{ success: boolean; results: Array<{ key: string; success: boolean }>; metadata: any }> {
+    const startTime = Date.now();
+
+    if (entries.length === 0) {
+      return {
+        success: true,
+        results: [],
+        metadata: this.normalizeMetadata({
+          operation: 'mset',
+          entries: [],
+          duration: 0
+        })
+      };
+    }
+
+    try {
+      // 预处理数据（压缩等）
+      const processedEntries = await Promise.all(
+        entries.map(async ({ key, value }) => {
+          let processedData = JSON.stringify(value);
+          let isCompressed = false;
+
+          if (enableCompression && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
+            processedData = await this.compressionService.compress(processedData);
+            isCompressed = true;
+          }
+
+          return { key, data: processedData, compressed: isCompressed };
+        })
+      );
+
+      // 执行批量设置
+      const pipeline = this.redis.pipeline();
+      
+      for (const { key, data } of processedEntries) {
+        if (ttlSeconds) {
+          pipeline.setex(key, ttlSeconds, data);
+        } else {
+          pipeline.set(key, data);
+        }
+      }
+
+      const results = await pipeline.exec();
+      const duration = Date.now() - startTime;
+
+      // 处理结果
+      const operationResults = entries.map((entry, index) => ({
+        key: entry.key,
+        success: results?.[index]?.[1] === 'OK'
+      }));
+
+      const successCount = operationResults.filter(r => r.success).length;
+      const overallSuccess = successCount === entries.length;
+
+      // 记录批量设置指标
+      this.recordMetrics('mset', overallSuccess, duration, { 
+        keys: entries.map(e => e.key),
+        successCount,
+        totalCount: entries.length,
+        successRate: successCount / entries.length,
+        ttl: ttlSeconds,
+        enableCompression
+      });
+
+      return {
+        success: overallSuccess,
+        results: operationResults,
+        metadata: this.normalizeMetadata({
+          operation: 'mset',
+          entries: entries.map(e => e.key),
+          successCount,
+          totalCount: entries.length,
+          successRate: successCount / entries.length,
+          duration
+        })
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      this.recordMetrics('mset', false, duration, { 
+        keys: entries.map(e => e.key), 
+        error: error.message 
+      });
+
+      this.logger.error(`批量设置缓存失败`, error);
+
+      return {
+        success: false,
+        results: entries.map(entry => ({ key: entry.key, success: false })),
+        metadata: this.normalizeMetadata({
+          operation: 'mset',
+          entries: entries.map(e => e.key),
+          error: error.message,
+          duration
+        })
+      };
+    }
+  }
+
+  /**
+   * 增强批量设置 - 支持独立TTL和更多选项
+   * @param entries 增强的键值对数组
+   * @param options 全局选项
+   * @returns 增强的批量设置结果
    */
   async msetEnhanced<T>(
     entries: Array<{
       key: string;
-      data: T;
+      value: T;
       ttl?: number;
-      options?: {
-        compression?: boolean;
-        skipIfExists?: boolean;
-        onlyIfExists?: boolean;
-        includeMetadata?: boolean;
-      };
-    }>
+      enableCompression?: boolean;
+    }>,
+    options: {
+      defaultTTL?: number;
+      defaultCompression?: boolean;
+      continueOnError?: boolean;
+      batchSize?: number;
+    } = {}
   ): Promise<{
-    total: number;
-    successful: number;
-    failed: number;
-    skipped: number;
-    details: Array<{
+    success: boolean;
+    results: Array<{
       key: string;
-      status: 'success' | 'failed' | 'skipped';
-      reason?: string;
+      success: boolean;
+      error?: string;
+      metadata?: any;
     }>;
+    summary: {
+      total: number;
+      successful: number;
+      failed: number;
+      successRate: number;
+    };
+    metadata: any;
   }> {
     const startTime = Date.now();
-    
-    try {
-      if (entries.length === 0) {
-        return {
-          total: 0,
-          successful: 0,
-          failed: 0,
-          skipped: 0,
-          details: []
-        };
-      }
+    const { 
+      defaultTTL, 
+      defaultCompression = true, 
+      continueOnError = true,
+      batchSize = CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE
+    } = options;
 
-      // 验证批量大小限制
-      if (entries.length > CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE) {
-        throw new Error(`Batch size ${entries.length} exceeds limit ${CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE}`);
-      }
-
-      let successful = 0;
-      let failed = 0;
-      let skipped = 0;
-      const details: Array<{
-        key: string;
-        status: 'success' | 'failed' | 'skipped';
-        reason?: string;
-      }> = [];
-
-      // 处理条件性设置（需要先检查键是否存在）
-      const conditionalEntries = entries.filter(entry => 
-        entry.options?.skipIfExists || entry.options?.onlyIfExists
-      );
-      
-      let existingKeys: Set<string> = new Set();
-      if (conditionalEntries.length > 0) {
-        const checkKeys = conditionalEntries.map(e => e.key);
-        const existsResults = await Promise.all(
-          checkKeys.map(key => this.redis.exists(key))
-        );
-        existingKeys = new Set(
-          checkKeys.filter((key, index) => existsResults[index] === 1)
-        );
-      }
-
-      // 分段处理大批量操作
-      const pipelineMaxSize = CACHE_CONFIG.BATCH_LIMITS.PIPELINE_MAX_SIZE;
-      
-      for (let i = 0; i < entries.length; i += pipelineMaxSize) {
-        const chunk = entries.slice(i, i + pipelineMaxSize);
-        
-        const pipeline = this.redis.pipeline();
-        const chunkOps: Array<{
-          index: number;
-          entry: typeof entries[0];
-          willExecute: boolean;
-          skipReason?: string;
-        }> = [];
-
-        for (let j = 0; j < chunk.length; j++) {
-          const entry = chunk[j];
-          const globalIndex = i + j;
-          const { key, data, ttl = 300, options = {} } = entry;
-          
-          // 检查条件性设置
-          let willExecute = true;
-          let skipReason = '';
-
-          if (options.skipIfExists && existingKeys.has(key)) {
-            willExecute = false;
-            skipReason = 'Key already exists (skipIfExists=true)';
-          } else if (options.onlyIfExists && !existingKeys.has(key)) {
-            willExecute = false;
-            skipReason = 'Key does not exist (onlyIfExists=true)';
-          }
-
-          chunkOps.push({
-            index: globalIndex,
-            entry,
-            willExecute,
-            skipReason
-          });
-
-          if (willExecute) {
-            try {
-              const validTtl = Math.max(CACHE_CONFIG.TTL.MIN_SECONDS, Math.min(ttl, CACHE_CONFIG.TTL.MAX_SECONDS));
-              
-              // 根据options决定是否压缩
-              let serializedValue: string;
-              if (options.compression && this.compressionService.shouldCompress(data)) {
-                const compressionResult = await this.compressionService.compress(data);
-                serializedValue = RedisValueUtils.serialize(
-                  compressionResult.compressedData,
-                  compressionResult.metadata.compressed,
-                  compressionResult.metadata
-                );
-              } else {
-                serializedValue = RedisValueUtils.serialize(data, false, options.includeMetadata ? {
-                  storedAt: Date.now()
-                } : undefined);
-              }
-
-              pipeline.setex(key, validTtl, serializedValue);
-            } catch (error) {
-              // 序列化错误，标记为失败
-              chunkOps[j].willExecute = false;
-              chunkOps[j].skipReason = `Serialization failed: ${error.message}`;
-            }
-          }
-        }
-        
-        // 执行pipeline
-        const results = await pipeline.exec();
-        let resultIndex = 0;
-
-        // 处理结果
-        for (const op of chunkOps) {
-          if (!op.willExecute) {
-            skipped++;
-            details.push({
-              key: op.entry.key,
-              status: 'skipped',
-              reason: op.skipReason
-            });
-          } else {
-            const result = results?.[resultIndex];
-            resultIndex++;
-
-            if (result && result[0] === null) {
-              // 成功
-              successful++;
-              details.push({
-                key: op.entry.key,
-                status: 'success'
-              });
-            } else {
-              // 失败
-              failed++;
-              details.push({
-                key: op.entry.key,
-                status: 'failed',
-                reason: result?.[0]?.message || 'Unknown Redis error'
-              });
-            }
-          }
-        }
-      }
-
-      this.recordMetrics('mset_enhanced', 'success', Date.now() - startTime);
-      this.logger.debug(`Enhanced mset completed`, {
-        total: entries.length,
-        successful,
-        failed,
-        skipped,
-        processingTime: Date.now() - startTime
-      });
-
+    if (entries.length === 0) {
       return {
-        total: entries.length,
-        successful,
-        failed,
-        skipped,
-        details
-      };
-    } catch (error) {
-      this.logger.debug(`Enhanced mset failed for ${entries.length} entries`, error);
-      this.recordMetrics('mset_enhanced', 'error', Date.now() - startTime);
-      
-      // 返回全部失败的结果
-      return {
-        total: entries.length,
-        successful: 0,
-        failed: entries.length,
-        skipped: 0,
-        details: entries.map(entry => ({
-          key: entry.key,
-          status: 'failed' as const,
-          reason: error.message
-        }))
+        success: true,
+        results: [],
+        summary: { total: 0, successful: 0, failed: 0, successRate: 1 },
+        metadata: this.normalizeMetadata({
+          operation: 'msetEnhanced',
+          entries: [],
+          duration: 0
+        })
       };
     }
-  }
 
-  /**
-   * 带元数据的批量获取 - 支持Orchestrator批量判断后台更新
-   * @param keys 缓存键数组
-   * @returns 带元数据的缓存结果数组
-   */
-  async mgetWithMetadata<T>(keys: string[]): Promise<Array<{ data: T; ttlRemaining: number; storedAt: number } | null>> {
-    const startTime = Date.now();
-    
+    // 分批处理大量数据
+    const batches: typeof entries[] = [];
+    for (let i = 0; i < entries.length; i += batchSize) {
+      batches.push(entries.slice(i, i + batchSize));
+    }
+
+    const allResults: Array<{
+      key: string;
+      success: boolean;
+      error?: string;
+      metadata?: any;
+    }> = [];
+
     try {
-      if (keys.length === 0) {
-        return [];
-      }
-
-      const [values, ttlResults] = await Promise.all([
-        this.redis.mget(keys),
-        Promise.all(keys.map(key => this.redis.pttl(key)))
-      ]);
-
-      // 批量解压处理（支持元数据）
-      const decompressionPromises = values.map(async (value, index) => {
-        if (value === null) return null;
-        
-        const parsed = RedisValueUtils.parse<T>(value);
-        const key = keys[index];
+      // 处理每个批次
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
         
         try {
-          // 并发控制：获取信号量
-          await this.decompressionSemaphore.acquire();
-          
-          const data = await this.toBusinessData<T>(parsed, key);
-          
-          return {
-            data,
-            ttlRemaining: this.mapPttlToSeconds(ttlResults[index]),
-            storedAt: parsed.storedAt || Date.now()
-          };
-        } catch (error) {
-          // 单个解压失败时的处理策略
-          if (error instanceof CacheDecompressionException) {
-            this.logger.warn(`批量解压失败（含元数据），回退到原始数据`, { key, error: error.message });
-            
-            return {
-              data: parsed.data, // 回退到原始数据
-              ttlRemaining: this.mapPttlToSeconds(ttlResults[index]),
-              storedAt: parsed.storedAt || Date.now()
-            };
-          }
-          
-          // 非解压异常直接抛出
-          throw error;
-        } finally {
-          // 释放信号量
-          this.decompressionSemaphore.release();
-        }
-      });
-      
-      const results = await Promise.all(decompressionPromises);
+          // 预处理批次数据
+          const processedBatch = await Promise.all(
+            batch.map(async ({ key, value, ttl, enableCompression }) => {
+              const entryStartTime = Date.now();
+              
+              try {
+                let processedData = JSON.stringify(value);
+                let isCompressed = false;
+                const shouldCompress = enableCompression ?? defaultCompression;
+                
+                if (shouldCompress && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
+                  processedData = await this.compressionService.compress(processedData);
+                  isCompressed = true;
+                }
 
-      this.recordMetrics('mget_metadata', 'success', Date.now() - startTime);
-      
-      return results;
+                const finalTTL = ttl ?? defaultTTL;
+                
+                return {
+                  key,
+                  data: processedData,
+                  ttl: finalTTL,
+                  compressed: isCompressed,
+                  processingTime: Date.now() - entryStartTime
+                };
+              } catch (processingError) {
+                return {
+                  key,
+                  error: processingError.message,
+                  processingTime: Date.now() - entryStartTime
+                };
+              }
+            })
+          );
+
+          // 执行批次操作
+          const pipeline = this.redis.pipeline();
+          
+          for (const processed of processedBatch) {
+            if ('error' in processed) continue;
+            
+            if (processed.ttl) {
+              pipeline.setex(processed.key, processed.ttl, processed.data);
+            } else {
+              pipeline.set(processed.key, processed.data);
+            }
+          }
+
+          const pipelineResults = await pipeline.exec();
+          let pipelineIndex = 0;
+
+          // 处理批次结果
+          for (let i = 0; i < processedBatch.length; i++) {
+            const processed = processedBatch[i];
+            
+            if ('error' in processed) {
+              allResults.push({
+                key: processed.key,
+                success: false,
+                error: processed.error,
+                metadata: this.normalizeMetadata({
+                  batchIndex,
+                  entryIndex: i,
+                  processingTime: processed.processingTime
+                })
+              });
+            } else {
+              const pipelineResult = pipelineResults?.[pipelineIndex];
+              const success = pipelineResult?.[1] === 'OK';
+              
+              allResults.push({
+                key: processed.key,
+                success,
+                error: success ? undefined : pipelineResult?.[0]?.message || '设置失败',
+                metadata: this.normalizeMetadata({
+                  batchIndex,
+                  entryIndex: i,
+                  compressed: processed.compressed,
+                  ttl: processed.ttl,
+                  processingTime: processed.processingTime
+                })
+              });
+              
+              pipelineIndex++;
+            }
+          }
+
+        } catch (batchError) {
+          // 批次级错误处理
+          if (continueOnError) {
+            // 将该批次的所有条目标记为失败
+            for (const entry of batch) {
+              allResults.push({
+                key: entry.key,
+                success: false,
+                error: batchError.message,
+                metadata: this.normalizeMetadata({
+                  batchIndex,
+                  batchError: true
+                })
+              });
+            }
+          } else {
+            // 不继续处理，抛出错误
+            throw batchError;
+          }
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      const successful = allResults.filter(r => r.success).length;
+      const failed = allResults.length - successful;
+      const successRate = successful / allResults.length;
+      const overallSuccess = failed === 0;
+
+      // 记录增强批量设置指标
+      this.recordMetrics('msetEnhanced', overallSuccess, duration, { 
+        keys: entries.map(e => e.key),
+        successful,
+        failed,
+        successRate,
+        batchCount: batches.length,
+        batchSize
+      });
+
+      return {
+        success: overallSuccess,
+        results: allResults,
+        summary: {
+          total: entries.length,
+          successful,
+          failed,
+          successRate
+        },
+        metadata: this.normalizeMetadata({
+          operation: 'msetEnhanced',
+          entries: entries.map(e => e.key),
+          batchCount: batches.length,
+          batchSize,
+          summary: { successful, failed, successRate },
+          duration
+        })
+      };
+
     } catch (error) {
-      this.logger.debug(`Cache mget with metadata failed for ${keys.length} keys`, error);
-      this.recordMetrics('mget_metadata', 'error', Date.now() - startTime);
-      return keys.map(() => null);
+      const duration = Date.now() - startTime;
+      
+      this.recordMetrics('msetEnhanced', false, duration, { 
+        keys: entries.map(e => e.key), 
+        error: error.message 
+      });
+
+      this.logger.error(`增强批量设置失败`, error);
+
+      // 如果还没有处理任何结果，创建所有失败的结果
+      if (allResults.length === 0) {
+        entries.forEach(entry => {
+          allResults.push({
+            key: entry.key,
+            success: false,
+            error: error.message
+          });
+        });
+      }
+
+      return {
+        success: false,
+        results: allResults,
+        summary: {
+          total: entries.length,
+          successful: 0,
+          failed: entries.length,
+          successRate: 0
+        },
+        metadata: this.normalizeMetadata({
+          operation: 'msetEnhanced',
+          entries: entries.map(e => e.key),
+          error: error.message,
+          duration
+        })
+      };
     }
   }
 
   /**
-   * 带回源的缓存获取 - 返回命中状态和TTL信息
+   * 带元数据的批量获取
+   * @param keys 缓存键数组
+   * @param options 选项配置
+   * @returns 包含完整元数据的批量结果
+   */
+  async mgetWithMetadata<T>(
+    keys: string[], 
+    options: {
+      enableDecompression?: boolean;
+      includeTTL?: boolean;
+      includeSize?: boolean;
+    } = {}
+  ): Promise<{
+    results: Array<{
+      key: string;
+      data: T | null;
+      cached: boolean;
+      ttl?: number | null;
+      size?: number;
+      metadata: any;
+    }>;
+    summary: {
+      total: number;
+      hits: number;
+      misses: number;
+      hitRate: number;
+      totalSize?: number;
+    };
+    metadata: any;
+  }> {
+    const startTime = Date.now();
+    const { enableDecompression = true, includeTTL = false, includeSize = false } = options;
+
+    if (keys.length === 0) {
+      return {
+        results: [],
+        summary: { total: 0, hits: 0, misses: 0, hitRate: 0 },
+        metadata: this.normalizeMetadata({
+          operation: 'mgetWithMetadata',
+          keys: [],
+          duration: 0
+        })
+      };
+    }
+
+    try {
+      // 构建并行查询
+      const queries: Promise<any>[] = [this.redis.mget(...keys)];
+      
+      if (includeTTL) {
+        queries.push(Promise.all(keys.map(key => this.redis.pttl(key))));
+      }
+      
+      if (includeSize) {
+        queries.push(Promise.all(keys.map(key => this.redis.strlen(key))));
+      }
+
+      const [rawValues, ttlValues, sizeValues] = await Promise.all(queries);
+
+      // 处理每个结果
+      const results = await Promise.all(
+        keys.map(async (key, index) => {
+          const rawValue = rawValues[index];
+          const { data, metadata: itemMetadata } = await this.toBusinessData<T>(rawValue, key, { 
+            enableDecompression,
+            metadata: { index }
+          });
+
+          const result: any = {
+            key,
+            data,
+            cached: rawValue !== null,
+            metadata: itemMetadata
+          };
+
+          if (includeTTL && ttlValues) {
+            result.ttl = this.mapPttlToSeconds(ttlValues[index]);
+          }
+
+          if (includeSize && sizeValues) {
+            result.size = sizeValues[index];
+          }
+
+          return result;
+        })
+      );
+
+      const duration = Date.now() - startTime;
+      const hits = results.filter(r => r.cached).length;
+      const misses = keys.length - hits;
+      const hitRate = hits / keys.length;
+      const totalSize = includeSize ? results.reduce((sum, r) => sum + (r.size || 0), 0) : undefined;
+
+      // 记录带元数据的批量获取指标
+      this.recordMetrics('mgetWithMetadata', hits > 0, duration, { 
+        keys,
+        hits,
+        misses,
+        hitRate,
+        includeTTL,
+        includeSize,
+        totalSize
+      });
+
+      return {
+        results,
+        summary: {
+          total: keys.length,
+          hits,
+          misses,
+          hitRate,
+          totalSize
+        },
+        metadata: this.normalizeMetadata({
+          operation: 'mgetWithMetadata',
+          keys,
+          options,
+          summary: { hits, misses, hitRate, totalSize },
+          duration
+        })
+      };
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      this.recordMetrics('mgetWithMetadata', false, duration, { 
+        keys, 
+        error: error.message 
+      });
+
+      this.logger.error(`带元数据的批量获取失败`, error);
+
+      return {
+        results: keys.map(key => ({
+          key,
+          data: null,
+          cached: false,
+          metadata: this.normalizeMetadata({ error: error.message })
+        })),
+        summary: {
+          total: keys.length,
+          hits: 0,
+          misses: keys.length,
+          hitRate: 0
+        },
+        metadata: this.normalizeMetadata({
+          operation: 'mgetWithMetadata',
+          keys,
+          error: error.message,
+          duration
+        })
+      };
+    }
+  }
+
+  /**
+   * 容错获取 - 提供降级策略
    * @param key 缓存键
-   * @param fetchFn 回源函数
-   * @param ttl TTL（秒）
-   * @returns 缓存结果
+   * @param fallbackFn 降级函数
+   * @param options 选项配置
+   * @returns 缓存数据或降级数据
    */
   async getWithFallback<T>(
     key: string,
-    fetchFn: () => Promise<T>,
-    ttl: number
-  ): Promise<{ data: T; hit: boolean; ttlRemaining?: number }> {
+    fallbackFn?: () => Promise<T>,
+    options: {
+      enableDecompression?: boolean;
+      cacheFallbackResult?: boolean;
+      fallbackTTL?: number;
+    } = {}
+  ): Promise<{ data: T | null; fromCache: boolean; fromFallback: boolean; metadata: any }> {
     const startTime = Date.now();
-    
-    try {
-      const cached = await this.get<T>(key);
-      if (cached !== null) {
-        this.logger.debug(`Cache hit for ${key}, TTL remaining: ${cached.ttlRemaining}s`);
-        return { 
-          data: cached.data, 
-          hit: true, 
-          ttlRemaining: cached.ttlRemaining 
-        };
-      }
-    } catch (error) {
-      this.logger.debug(`Cache get failed for ${key}, will fetch fresh data`, error);
-      this.recordMetrics('get', 'error');
-    }
-    
-    // 缓存未命中，执行回源
-    try {
-      const data = await fetchFn();
-      
-      // 异步写入缓存，不阻塞响应
-      this.set(key, data, ttl).catch(err => {
-        this.logger.debug(`Cache set failed for ${key}`, err);
-      });
-      
-      this.logger.debug(`Cache miss for ${key}, fetched fresh data`);
-      this.recordMetrics('fallback', 'success', Date.now() - startTime);
-      
-      return { data, hit: false };
-    } catch (fetchError) {
-      this.recordMetrics('fallback', 'error', Date.now() - startTime);
-      throw fetchError;
-    }
-  }
+    const { enableDecompression = true, cacheFallbackResult = true, fallbackTTL = 3600 } = options;
 
-  /**
-   * 静态方法：缓存键生成器（在调用端构建显式cacheKey）
-   * @param prefix 前缀
-   * @param parts 键组成部分
-   * @returns 完整缓存键
-   */
-  static generateCacheKey(prefix: string, ...parts: string[]): string {
-    return `${prefix}:${parts.filter(Boolean).join(':')}`;
-  }
-
-  /**
-   * 静态方法：智能TTL计算器 - 支持智能缓存TTL计算迁移 (Phase 4.1.3)
-   * @param context TTL计算上下文
-   * @returns 优化的TTL值（秒）
-   */
-  static calculateOptimalTTL(context: {
-    symbol: string;
-    dataType: string;
-    marketStatus?: {
-      isOpen: boolean;
-      timezone: string;
-      nextStateChange?: Date;
-    };
-    freshnessRequirement?: 'realtime' | 'analytical' | 'archive';
-    customMultipliers?: {
-      market?: number;
-      dataType?: number;
-      freshness?: number;
-    };
-  }): {
-    ttl: number;
-    strategy: 'market_aware' | 'data_type_based' | 'freshness_optimized' | 'default_fallback';
-    details: {
-      baseTTL: number;
-      marketMultiplier: number;
-      dataTypeMultiplier: number;
-      freshnessMultiplier: number;
-      finalTTL: number;
-      reasoning: string;
-    };
-  } {
-    const { dataType, marketStatus, freshnessRequirement, customMultipliers } = context;
+    // 尝试从缓存获取
+    const cacheResult = await this.get<T>(key, enableDecompression);
     
-    // 基础TTL映射（基于数据类型）
-    let baseTTL: number = CACHE_CONFIG.TTL.DEFAULT_SECONDS; // 默认1小时
-    let strategy: 'market_aware' | 'data_type_based' | 'freshness_optimized' | 'default_fallback' = 'default_fallback';
-    
-    // 1. 数据类型影响因子
-    let dataTypeMultiplier = 1.0;
-    switch (dataType) {
-      case 'stock-quote':
-      case 'realtime':
-      case 'get-stock-quote':
-        baseTTL = CACHE_CONFIG.TTL.MARKET_OPEN_SECONDS; // 300s (5分钟)
-        dataTypeMultiplier = 1.0;
-        strategy = 'data_type_based';
-        break;
-      case 'historical':
-      case 'analytical':
-      case 'get-historical-data':
-        baseTTL = CACHE_CONFIG.TTL.MARKET_CLOSED_SECONDS; // 3600s (1小时)
-        dataTypeMultiplier = 1.0;
-        strategy = 'data_type_based';
-        break;
-      case 'static':
-      case 'company-info':
-      case 'get-company-info':
-        baseTTL = CACHE_CONFIG.TTL.MAX_SECONDS; // 24小时
-        dataTypeMultiplier = 1.0;
-        strategy = 'data_type_based';
-        break;
-      default:
-        baseTTL = CACHE_CONFIG.TTL.DEFAULT_SECONDS; // 1小时
-        strategy = 'default_fallback';
-    }
-    
-    // 2. 市场状态影响因子
-    let marketMultiplier = 1.0;
-    if (marketStatus && strategy !== 'default_fallback') {
-      if (marketStatus.isOpen) {
-        // 开市时：实时数据需要更频繁刷新
-        marketMultiplier = 0.5;
-        strategy = 'market_aware';
-      } else {
-        // 闭市时：数据变化少，可以延长TTL
-        marketMultiplier = 2.0;
-        strategy = 'market_aware';
-        
-        // 如果知道下次开市时间，可以更智能地设置TTL
-        if (marketStatus.nextStateChange) {
-          const timeToOpen = marketStatus.nextStateChange.getTime() - Date.now();
-          const hoursToOpen = timeToOpen / (1000 * 60 * 60);
-          
-          // 如果离开市还有很久，进一步延长TTL（但不超过最大值）
-          if (hoursToOpen > 8) {
-            marketMultiplier = Math.min(4.0, marketMultiplier * 2);
-          }
+    if (cacheResult.data !== null) {
+      return {
+        data: cacheResult.data,
+        fromCache: true,
+        fromFallback: false,
+        metadata: {
+          ...cacheResult.metadata,
+          operation: 'getWithFallback',
+          source: 'cache',
+          duration: Date.now() - startTime
         }
-      }
+      };
     }
-    
-    // 3. 新鲜度要求影响因子
-    let freshnessMultiplier = 1.0;
-    if (freshnessRequirement && strategy !== 'default_fallback') {
-      switch (freshnessRequirement) {
-        case 'realtime':
-          freshnessMultiplier = 0.3; // 极短TTL
-          strategy = 'freshness_optimized';
-          break;
-        case 'analytical':
-          freshnessMultiplier = 1.5; // 稍长TTL
-          strategy = 'freshness_optimized';
-          break;
-        case 'archive':
-          freshnessMultiplier = 3.0; // 很长TTL
-          strategy = 'freshness_optimized';
-          break;
-      }
+
+    // 缓存未命中，尝试降级策略
+    if (!fallbackFn) {
+      return {
+        data: null,
+        fromCache: false,
+        fromFallback: false,
+        metadata: this.normalizeMetadata({
+          operation: 'getWithFallback',
+          source: 'none',
+          cache_miss: true,
+          no_fallback: true,
+          duration: Date.now() - startTime
+        })
+      };
     }
-    
-    // 4. 应用自定义倍数（如果提供）
-    if (customMultipliers) {
-      if (customMultipliers.market !== undefined) {
-        marketMultiplier = customMultipliers.market;
+
+    try {
+      const fallbackData = await fallbackFn();
+      
+      // 缓存降级结果
+      if (cacheFallbackResult && fallbackData !== null) {
+        await this.set(key, fallbackData, fallbackTTL);
       }
-      if (customMultipliers.dataType !== undefined) {
-        dataTypeMultiplier = customMultipliers.dataType;
-      }
-      if (customMultipliers.freshness !== undefined) {
-        freshnessMultiplier = customMultipliers.freshness;
-      }
+
+      return {
+        data: fallbackData,
+        fromCache: false,
+        fromFallback: true,
+        metadata: this.normalizeMetadata({
+          operation: 'getWithFallback',
+          source: 'fallback',
+          cache_miss: true,
+          fallback_cached: cacheFallbackResult,
+          duration: Date.now() - startTime
+        })
+      };
+
+    } catch (fallbackError) {
+      this.logger.error(`降级策略执行失败: ${key}`, fallbackError);
+
+      return {
+        data: null,
+        fromCache: false,
+        fromFallback: false,
+        metadata: this.normalizeMetadata({
+          operation: 'getWithFallback',
+          source: 'none',
+          cache_miss: true,
+          fallback_error: fallbackError.message,
+          duration: Date.now() - startTime
+        })
+      };
     }
-    
-    // 5. 计算最终TTL
-    const calculatedTTL = baseTTL * marketMultiplier * dataTypeMultiplier * freshnessMultiplier;
-    
-    // 6. 应用边界限制
-    const finalTTL = Math.round(
-      Math.max(
-        CACHE_CONFIG.TTL.MIN_SECONDS,
-        Math.min(calculatedTTL, CACHE_CONFIG.TTL.MAX_SECONDS)
-      )
-    );
-    
-    // 7. 生成推理说明
-    const factors = [];
-    if (marketStatus) {
-      factors.push(`市场${marketStatus.isOpen ? '开放' : '关闭'}`);
-    }
-    if (freshnessRequirement) {
-      factors.push(`${freshnessRequirement}需求`);
-    }
-    factors.push(`${dataType}数据类型`);
-    
-    const reasoning = `基于${factors.join('、')}计算的优化TTL`;
-    
-    return {
-      ttl: finalTTL,
-      strategy,
-      details: {
-        baseTTL,
-        marketMultiplier,
-        dataTypeMultiplier,
-        freshnessMultiplier,
-        finalTTL,
-        reasoning
-      }
-    };
   }
 
   /**
-   * 检查Redis连接状态
-   * @returns 连接是否正常
+   * 生成缓存键
+   * 提供标准化的缓存键生成逻辑
+   */
+  private generateCacheKey(prefix: string, ...parts: (string | number)[]): string {
+    return [prefix, ...parts].join(':');
+  }
+
+  /**
+   * 计算最优TTL
+   * 基于数据特征和业务场景计算最适合的TTL
+   */
+  private calculateOptimalTTL(
+    dataSize: number,
+    accessPattern: 'hot' | 'warm' | 'cold' = 'warm',
+    customTTL?: number
+  ): number {
+    // 如果提供了自定义TTL，直接使用
+    if (customTTL !== undefined && customTTL > 0) {
+      return customTTL;
+    }
+
+    // 基于访问模式的基础TTL
+    const baseTTL = {
+      hot: 300,    // 5分钟
+      warm: 1800,  // 30分钟  
+      cold: 3600   // 1小时
+    }[accessPattern];
+
+    // 基于数据大小的调整因子
+    let sizeFactor = 1.0;
+    
+    if (dataSize > 1024 * 1024) {        // > 1MB
+      sizeFactor = 0.5;  // 大数据缩短TTL
+    } else if (dataSize > 100 * 1024) {   // > 100KB
+      sizeFactor = 0.8;  // 中等数据稍微缩短TTL
+    } else if (dataSize < 1024) {        // < 1KB
+      sizeFactor = 1.5;  // 小数据延长TTL
+    }
+
+    // 时间因子：非工作时间可以延长TTL
+    const now = new Date();
+    const hour = now.getHours();
+    const isWorkingHours = hour >= 9 && hour <= 18;
+    const timeFactor = isWorkingHours ? 1.0 : 1.5;
+
+    // 计算最终TTL
+    const finalTTL = Math.floor(baseTTL * sizeFactor * timeFactor);
+    
+    // 确保TTL在合理范围内
+    return Math.max(60, Math.min(finalTTL, 86400)); // 1分钟到24小时
+  }
+
+  /**
+   * 检查缓存服务健康状态
+   * @returns 健康检查结果
    */
   async isHealthy(): Promise<boolean> {
     try {
-      const result = await this.redis.ping();
-      return result === 'PONG';
-    } catch (error) {
-      this.logger.error('Redis health check failed', error);
+      await this.redis.ping();
+      return true;
+    } catch {
       return false;
     }
   }
 
   /**
    * 获取缓存统计信息
-   * @returns 统计数据
+   * @returns 缓存服务统计数据
    */
   async getStats(): Promise<{
-    connected: boolean;
-    usedMemory: string;
-    totalKeys: number;
-    hitRate?: number;
+    redis: any;
+    memory: any;
+    performance: any;
   }> {
     try {
-      const info = await this.redis.info('memory');
-      const dbsize = await this.redis.dbsize();
-      
-      // 简单解析内存使用信息
-      const usedMemoryMatch = info.match(/used_memory_human:(.+)/);
-      const usedMemory = usedMemoryMatch ? usedMemoryMatch[1].trim() : 'unknown';
+      const info = await this.redis.info();
+      const memory = await this.redis.info('memory');
       
       return {
-        connected: true,
-        usedMemory,
-        totalKeys: dbsize,
+        redis: {
+          connected: true,
+          info: this.parseRedisInfo(info)
+        },
+        memory: {
+          info: this.parseRedisInfo(memory)
+        },
+        performance: {
+          decompressionSemaphore: {
+            available: this.decompressionSemaphore['permits'],
+            max: this.decompressionSemaphore['maxPermits']
+          }
+        }
       };
     } catch (error) {
-      this.logger.error('Failed to get cache stats', error);
       return {
-        connected: false,
-        usedMemory: 'unknown',
-        totalKeys: 0,
+        redis: { connected: false, error: error.message },
+        memory: { error: error.message },
+        performance: { error: error.message }
       };
     }
+  }
+
+  /**
+   * 解析Redis INFO命令返回的文本
+   */
+  private parseRedisInfo(infoText: string): Record<string, any> {
+    const result: Record<string, any> = {};
+    const lines = infoText.split('\r\n');
+    
+    for (const line of lines) {
+      if (line.includes(':')) {
+        const [key, value] = line.split(':');
+        result[key] = value;
+      }
+    }
+    
+    return result;
   }
 }

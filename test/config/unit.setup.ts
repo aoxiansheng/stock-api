@@ -73,6 +73,40 @@ global.createMockApiKey = () => ({
   updatedAt: new Date(),
 });
 
+// 导入共享测试配置
+const globalTestConfig = {
+  // 默认超时时间
+  DEFAULT_TIMEOUT: 5000,
+  
+  // 性能基准
+  PERFORMANCE_THRESHOLDS: {
+    STRING_SIMILARITY: 10,     // StringUtils.calculateSimilarity < 10ms
+    STRING_HASH: 5,            // StringUtils.generateHash < 5ms
+    OBJECT_TRAVERSE: 20,       // ObjectUtils深度遍历 < 20ms
+    MARKET_STATUS_CACHE_HIT: 5,        // 缓存命中 < 5ms (more realistic)
+    MARKET_STATUS_CACHE_MISS: 100,     // 缓存未命中 < 100ms
+    DATA_CHANGE_DETECTION: 50,         // 变更检测 < 50ms
+    QUICK_CHECKSUM: 10,                // 快速校验和 < 10ms
+  },
+  
+  // 缓存相关
+  CACHE_CONFIG: {
+    MIN_HIT_RATE: 0.8,        // 最低缓存命中率80%
+    MAX_CACHE_SIZE: 1000,     // 测试用最大缓存大小
+    TEST_TTL: 1000,           // 测试用TTL 1秒
+  },
+  
+  // 测试数据配置
+  TEST_DATA: {
+    SAMPLE_SYMBOLS: ['700.HK', 'AAPL.US', '000001.SZ', '600036.SH'],
+    LARGE_DATASET_SIZE: 1000,
+    PERFORMANCE_TEST_ITERATIONS: 100,
+  },
+};
+
+// 导出全局配置供测试使用
+(global as any).testConfig = globalTestConfig;
+
 // 抑制控制台输出，除非是错误
 const originalConsole = console;
 global.console = {

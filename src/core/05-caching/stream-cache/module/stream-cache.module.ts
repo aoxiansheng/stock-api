@@ -1,9 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleDestroy, OnModuleInit, Inject } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { StreamCacheService } from '../services/stream-cache.service';
 import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/stream-cache.constants';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module';
+import { 
+  MONITORING_COLLECTOR_TOKEN, 
+  CACHE_REDIS_CLIENT_TOKEN,
+  STREAM_CACHE_CONFIG_TOKEN 
+} from '../../../../monitoring/contracts';
 
 /**
  * 流数据缓存模块
@@ -18,12 +23,12 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 @Module({
   imports: [
     ConfigModule,
-    MonitoringModule, // ✅ 导入监控模块，提供CollectorService
+    MonitoringModule, // ✅ 导入监控模块，提供真实CollectorService
   ],
   providers: [
     // Redis客户端提供者 - 专用于流数据缓存
     {
-      provide: 'REDIS_CLIENT',
+      provide: CACHE_REDIS_CLIENT_TOKEN,
       useFactory: (configService: ConfigService) => {
         const redisConfig = {
           host: configService.get<string>('redis.host', 'localhost'),
@@ -85,7 +90,7 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 
     // 流缓存配置提供者
     {
-      provide: 'STREAM_CACHE_CONFIG',
+      provide: STREAM_CACHE_CONFIG_TOKEN,
       useFactory: (configService: ConfigService) => {
         return {
           hotCacheTTL: configService.get<number>('stream_cache.hot_ttl_ms', DEFAULT_STREAM_CACHE_CONFIG.hotCacheTTL),
@@ -101,24 +106,21 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
     // 核心流缓存服务
     StreamCacheService,
     
-    // ✅ 提供CollectorService fallback
-    {
-      provide: 'CollectorService',
-      useFactory: () => ({
-        recordCacheOperation: () => {}, // fallback mock
-      }),
-    },
+    // ❌ 移除CollectorService fallback mock，使用MonitoringModule提供的真实服务
   ],
   exports: [
     StreamCacheService,
-    'REDIS_CLIENT',
-    'STREAM_CACHE_CONFIG',
+    CACHE_REDIS_CLIENT_TOKEN,
+    STREAM_CACHE_CONFIG_TOKEN,
   ],
 })
-export class StreamCacheModule {
+export class StreamCacheModule implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
-  ) {
+    @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
+  ) {}
+
+  async onModuleInit() {
     // 模块初始化日志
     const redisHost = this.configService.get<string>('redis.host', 'localhost');
     const redisPort = this.configService.get<number>('redis.port', 6379);
@@ -127,48 +129,34 @@ export class StreamCacheModule {
     console.log(`🚀 StreamCacheModule initialized`);
     console.log(`📡 StreamCache Redis configuration: ${redisHost}:${redisPort} (DB: ${redisDb})`);
     console.log(`⚙️  StreamCache config: Hot TTL=${STREAM_CACHE_CONFIG.TTL.HOT_CACHE_MS}ms, Warm TTL=${STREAM_CACHE_CONFIG.TTL.WARM_CACHE_SECONDS}s`);
+
+    // 验证Redis连接
+    try {
+      await this.redisClient.ping();
+      console.log('✅ StreamCache Redis connection verified');
+    } catch (error) {
+      console.error('❌ StreamCache Redis connection failed:', error.message);
+      throw error;
+    }
   }
-}
 
-/**
- * 异步模块配置（用于需要异步初始化的场景）
- */
-@Module({})
-export class StreamCacheAsyncModule {
-  static forRootAsync() {
-    return {
-      module: StreamCacheAsyncModule,
-      imports: [ConfigModule],
-      providers: [
-        {
-          provide: 'REDIS_CLIENT',
-          useFactory: async (configService: ConfigService) => {
-            const redisConfig = {
-              host: configService.get<string>('redis.host', 'localhost'),
-              port: configService.get<number>('redis.port', 6379),
-              password: configService.get<string>('redis.password'),
-              db: configService.get<number>('redis.stream_cache_db', 1),
-              connectTimeout: 5000,
-              commandTimeout: 3000,
-            };
-
-            const redis = new Redis(redisConfig);
-            
-            // 等待连接建立
-            await redis.ping();
-            console.log(`✅ StreamCache Redis async connection established`);
-            
-            return redis;
-          },
-          inject: [ConfigService],
-        },
-        {
-          provide: 'STREAM_CACHE_CONFIG',
-          useValue: DEFAULT_STREAM_CACHE_CONFIG,
-        },
-        StreamCacheService,
-      ],
-      exports: [StreamCacheService, 'REDIS_CLIENT', 'STREAM_CACHE_CONFIG'],
-    };
+  async onModuleDestroy() {
+    console.log('🧹 Cleaning up StreamCache Redis connections...');
+    
+    try {
+      // 清理事件监听器
+      this.redisClient.removeAllListeners('connect');
+      this.redisClient.removeAllListeners('error');
+      this.redisClient.removeAllListeners('close');
+      this.redisClient.removeAllListeners('reconnecting');
+      
+      // 优雅关闭连接
+      await this.redisClient.quit();
+      console.log('✅ StreamCache Redis cleanup completed');
+    } catch (error) {
+      console.error('❌ StreamCache Redis cleanup error:', error.message);
+      // 强制断开连接
+      this.redisClient.disconnect();
+    }
   }
 }

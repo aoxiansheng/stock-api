@@ -8,6 +8,8 @@ import {
   DEFAULT_SMART_CACHE_CONFIG,
   SMART_CACHE_ORCHESTRATOR_CONFIG 
 } from '../interfaces/smart-cache-config.interface';
+import { SmartCacheConfigFactory } from '../config/smart-cache-config.factory';
+import { SmartCachePerformanceOptimizer } from '../services/smart-cache-performance-optimizer.service';
 import { CollectorModule } from '../../../../monitoring/collector/collector.module';
 
 /**
@@ -57,16 +59,22 @@ import { CollectorModule } from '../../../../monitoring/collector/collector.modu
     // 核心编排器服务
     SmartCacheOrchestrator,
     
-    // 配置提供者 - 使用默认配置
+    // 性能优化器服务
+    SmartCachePerformanceOptimizer,
+    
+    // 配置提供者 - 使用环境变量驱动的配置工厂
     {
       provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
-      useValue: DEFAULT_SMART_CACHE_CONFIG,
+      useFactory: () => SmartCacheConfigFactory.createConfig(),
     },
   ],
   
   exports: [
     // 导出核心编排器，供其他模块使用
     SmartCacheOrchestrator,
+    
+    // 导出性能优化器，供其他模块使用
+    SmartCachePerformanceOptimizer,
     
     // 也导出配置令牌，便于测试和配置覆盖
     SMART_CACHE_ORCHESTRATOR_CONFIG,
@@ -102,11 +110,15 @@ export class SmartCacheModule {
  * ```
  */
 export function createSmartCacheModuleWithConfig(config: Partial<SmartCacheOrchestratorConfig>) {
+  // 获取环境变量配置作为基础
+  const envConfig = SmartCacheConfigFactory.createConfig();
+  
+  // 合并用户提供的配置，用户配置优先级更高
   const mergedConfig = {
-    ...DEFAULT_SMART_CACHE_CONFIG,
+    ...envConfig,
     ...config,
     strategies: {
-      ...DEFAULT_SMART_CACHE_CONFIG.strategies,
+      ...envConfig.strategies,
       ...config.strategies,
     },
   };
@@ -116,7 +128,7 @@ export function createSmartCacheModuleWithConfig(config: Partial<SmartCacheOrche
       StorageModule, 
       CommonCacheModule,
       SharedServicesModule,
-      CollectorModule, // 添加导入CollectorModule
+      CollectorModule,
     ],
     providers: [
       SmartCacheOrchestrator,

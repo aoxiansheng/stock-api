@@ -48,3 +48,4 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
     QueryExecutorFactory,
   ],
 })
+export class QueryModule {}

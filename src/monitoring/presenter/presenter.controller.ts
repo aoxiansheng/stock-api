@@ -312,6 +312,150 @@ export class PresenterController {
   }
 
   /**
+   * 获取SmartCache性能统计
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("smart-cache/stats")
+  @ApiOperation({
+    summary: "获取SmartCache性能统计",
+    description: "获取SmartCache性能优化器的详细统计信息，包括并发控制和内存压力数据",
+  })
+  @ApiSuccessResponse({
+    description: "SmartCache统计获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        hitRate: { type: 'number', description: '缓存命中率' },
+        totalRequests: { type: 'number', description: '总请求数' },
+        smartCache: {
+          type: 'object',
+          properties: {
+            concurrencyAdjustments: { type: 'number', description: '并发调整次数' },
+            memoryPressureEvents: { type: 'number', description: '内存压力事件' },
+            tasksCleared: { type: 'number', description: '任务清理数量' },
+            avgExecutionTime: { type: 'number', description: '平均执行时间(ms)' },
+            dynamicMaxConcurrency: { type: 'number', description: '动态最大并发数' },
+            originalMaxConcurrency: { type: 'number', description: '原始最大并发数' },
+            currentBatchSize: { type: 'number', description: '当前批次大小' }
+          }
+        },
+        timestamp: { type: 'string', format: 'date-time' }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getSmartCacheStats() {
+    return this.presenterService.getSmartCacheStats();
+  }
+
+  /**
+   * 获取SmartCache优化建议
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("smart-cache/suggestions")
+  @ApiOperation({
+    summary: "获取SmartCache优化建议",
+    description: "基于SmartCache性能数据生成的智能优化建议",
+  })
+  @ApiSuccessResponse({
+    description: "SmartCache优化建议获取成功",
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+          category: { type: 'string', enum: ['memory', 'concurrency', 'performance', 'capacity'] },
+          title: { type: 'string' },
+          description: { type: 'string' },
+          recommendation: { type: 'string' }
+        }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getSmartCacheOptimizationSuggestions() {
+    return this.presenterService.getSmartCacheOptimizationSuggestions();
+  }
+
+  /**
+   * 创建SmartCache监控仪表板
+   */
+  @Auth([UserRole.ADMIN])
+  @HttpCode(HttpStatus.CREATED)
+  @Post("smart-cache/dashboard")
+  @ApiOperation({
+    summary: "创建SmartCache监控仪表板",
+    description: "自动创建专门用于SmartCache性能监控的仪表板",
+  })
+  @ApiSuccessResponse({
+    description: "SmartCache仪表板创建成功",
+    schema: {
+      type: 'object',
+      properties: {
+        dashboardId: { type: 'string' },
+        title: { type: 'string' },
+        status: { type: 'string', enum: ['created'] },
+        timestamp: { type: 'string', format: 'date-time' },
+        url: { type: 'string' }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async createSmartCacheDashboard() {
+    return this.presenterService.createSmartCacheDashboard();
+  }
+
+  /**
+   * 获取SmartCache分析报告
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("smart-cache/analysis")
+  @ApiOperation({
+    summary: "获取SmartCache详细分析报告",
+    description: "获取全面的SmartCache性能分析报告，包括健康评分、趋势分析和优化建议",
+  })
+  @ApiSuccessResponse({
+    description: "SmartCache分析报告获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        timestamp: { type: 'string', format: 'date-time' },
+        healthScore: { type: 'number', minimum: 0, maximum: 100 },
+        summary: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['excellent', 'good', 'fair', 'poor', 'critical'] },
+            totalTasks: { type: 'number' },
+            avgExecutionTime: { type: 'number' },
+            concurrencyOptimization: { type: 'object' },
+            memoryManagement: { type: 'object' }
+          }
+        },
+        performance: {
+          type: 'object',
+          properties: {
+            concurrencyMetrics: { type: 'object' },
+            memoryMetrics: { type: 'object' },
+            systemMetrics: { type: 'object' }
+          }
+        },
+        optimizations: { type: 'array', items: { type: 'object' } },
+        recommendations: { type: 'array', items: { type: 'object' } },
+        trends: { type: 'object' }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getSmartCacheAnalysisReport() {
+    return this.presenterService.getSmartCacheAnalysisReport();
+  }
+
+  /**
    * 失效缓存
    */
   @Auth([UserRole.ADMIN])

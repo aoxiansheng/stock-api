@@ -1,10 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleDestroy, OnModuleInit, Inject } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { CommonCacheService } from '../services/common-cache.service';
 import { CacheCompressionService } from '../services/cache-compression.service';
+import { CacheConfigValidator } from '../validators/cache-config.validator';
+import { AdaptiveDecompressionService } from '../services/adaptive-decompression.service';
+import { BatchMemoryOptimizerService } from '../services/batch-memory-optimizer.service';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module';
+import { 
+  MONITORING_COLLECTOR_TOKEN, 
+  CACHE_REDIS_CLIENT_TOKEN 
+} from '../../../../monitoring/contracts';
 
 /**
  * 通用缓存模块
@@ -18,7 +25,7 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
   providers: [
     // Redis客户端提供者
     {
-      provide: 'REDIS_CLIENT',
+      provide: CACHE_REDIS_CLIENT_TOKEN,
       useFactory: (configService: ConfigService) => {
         const redisConfig = {
           host: configService.get<string>('redis.host', 'localhost'),
@@ -79,38 +86,99 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 
     // ✅ 提供CollectorService（从 MonitoringModule 导入）
     {
-      provide: 'CollectorService',
-      useFactory: (monitoringModule: any) => {
-        // CollectorService 将由 MonitoringModule 提供
-        return monitoringModule?.collectorService || {
-          recordCacheOperation: () => {}, // fallback
-        };
-      },
-      inject: [], // MonitoringModule will provide CollectorService
+      provide: MONITORING_COLLECTOR_TOKEN,
+      useExisting: 'CollectorService', // 直接引用现有的 CollectorService
     },
 
     // 核心服务
     CacheCompressionService,
+    CacheConfigValidator,
+    AdaptiveDecompressionService,
+    BatchMemoryOptimizerService,
     CommonCacheService,
   ],
   exports: [
     CommonCacheService,
     CacheCompressionService,
-    'REDIS_CLIENT',
+    CacheConfigValidator,
+    AdaptiveDecompressionService,
+    BatchMemoryOptimizerService,
+    CACHE_REDIS_CLIENT_TOKEN,
     // ✅ 移除METRICS_REGISTRY导出
   ],
 })
-export class CommonCacheModule {
+export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
-  ) {
-    // 模块初始化日志
-    const redisHost = this.configService.get<string>('redis.host', 'localhost');
-    const redisPort = this.configService.get<number>('redis.port', 6379);
+    @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
+    private readonly configValidator: CacheConfigValidator,
+  ) {}
+
+  async onModuleInit() {
+    console.log(`🚀 CommonCacheModule initializing...`);
+
+    // ✅ Phase 1: 配置验证
+    console.log(`🔍 Validating cache configuration...`);
+    const validationResult = this.configValidator.validateConfig();
     
-    console.log(`🚀 CommonCacheModule initialized`);
-    console.log(`📡 Redis configuration: ${redisHost}:${redisPort}`);
-    console.log(`⚙️  Cache config: TTL=${CACHE_CONFIG.TTL.DEFAULT_SECONDS}s, Batch=${CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE}`);
+    if (!validationResult.valid) {
+      console.error('❌ CommonCache configuration validation failed:');
+      console.error(this.configValidator.getConfigSummary(validationResult));
+      throw new Error(`CommonCache configuration validation failed: ${validationResult.errors.join(', ')}`);
+    }
+
+    // 记录验证摘要
+    const summary = this.configValidator.getConfigSummary(validationResult);
+    console.log('✅ CommonCache configuration validation passed');
+    if (validationResult.warnings.length > 0 || validationResult.recommendations.length > 0) {
+      console.log('ℹ️  Configuration summary:\n' + summary);
+    }
+
+    // ✅ Phase 2: 生产环境就绪检查
+    const productionCheck = this.configValidator.isProductionReady(validationResult.config);
+    if (!productionCheck.ready) {
+      console.warn('⚠️  Production readiness issues detected:');
+      productionCheck.issues.forEach(issue => console.warn(`  • ${issue}`));
+    }
+
+    // ✅ Phase 3: Redis连接验证
+    console.log(`📡 Connecting to Redis: ${validationResult.config.redis.host}:${validationResult.config.redis.port}`);
+    try {
+      await this.redisClient.ping();
+      console.log('✅ CommonCache Redis connection verified');
+    } catch (error) {
+      console.error('❌ CommonCache Redis connection failed:', error.message);
+      throw error;
+    }
+
+    // ✅ Phase 4: 初始化摘要
+    console.log(`✅ CommonCacheModule initialized successfully`);
+    console.log(`⚙️  Configuration summary:`);
+    console.log(`   • Redis: ${validationResult.config.redis.host}:${validationResult.config.redis.port} (DB: ${validationResult.config.redis.db})`);
+    console.log(`   • TTL: ${validationResult.config.ttl.defaultSeconds}s (${validationResult.config.ttl.minSeconds}s - ${validationResult.config.ttl.maxSeconds}s)`);
+    console.log(`   • Compression: ${validationResult.config.compression.enabled ? 'enabled' : 'disabled'} (threshold: ${validationResult.config.compression.thresholdBytes} bytes)`);
+    console.log(`   • Batch: max ${validationResult.config.batch.maxBatchSize} items (timeout: ${validationResult.config.batch.timeoutMs}ms)`);
+    console.log(`   • Decompression: max ${validationResult.config.decompression.maxConcurrent} concurrent (timeout: ${validationResult.config.decompression.timeoutMs}ms)`);
+  }
+
+  async onModuleDestroy() {
+    console.log('🧹 Cleaning up CommonCache Redis connections...');
+    
+    try {
+      // 清理事件监听器
+      this.redisClient.removeAllListeners('connect');
+      this.redisClient.removeAllListeners('error');
+      this.redisClient.removeAllListeners('close');
+      this.redisClient.removeAllListeners('reconnecting');
+      
+      // 优雅关闭连接
+      await this.redisClient.quit();
+      console.log('✅ CommonCache Redis cleanup completed');
+    } catch (error) {
+      console.error('❌ CommonCache Redis cleanup error:', error.message);
+      // 强制断开连接
+      this.redisClient.disconnect();
+    }
   }
 }
 
@@ -125,7 +193,7 @@ export class CommonCacheAsyncModule {
       imports: [ConfigModule],
       providers: [
         {
-          provide: 'REDIS_CLIENT',
+          provide: CACHE_REDIS_CLIENT_TOKEN,
           useFactory: async (configService: ConfigService) => {
             const redisConfig = {
               host: configService.get<string>('redis.host', 'localhost'),

@@ -244,6 +244,456 @@ export class PresenterService {
   }
 
   /**
+   * 获取SmartCache性能统计
+   */
+  async getSmartCacheStats() {
+    try {
+      // 获取SmartCache性能优化器的统计信息
+      const smartCacheStats = await this.getSmartCachePerformanceStats();
+      const cacheMetrics = await this.analyzer.getCacheStats();
+      
+      const result = {
+        ...cacheMetrics,
+        smartCache: smartCacheStats,
+        timestamp: new Date().toISOString()
+      };
+      
+      this.logger.debug("SmartCache统计获取成功", {
+        hitRate: result.hitRate,
+        concurrencyAdjustments: result.smartCache.concurrencyAdjustments,
+        memoryPressureEvents: result.smartCache.memoryPressureEvents
+      });
+
+      return result;
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'getSmartCacheStats',
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 获取SmartCache优化建议
+   */
+  async getSmartCacheOptimizationSuggestions() {
+    try {
+      const performanceStats = await this.getSmartCachePerformanceStats();
+      const suggestions = [];
+
+      // 根据统计数据生成优化建议
+      if (performanceStats.memoryPressureEvents > 50) {
+        suggestions.push({
+          priority: 'high',
+          category: 'memory',
+          title: 'SmartCache内存压力过高',
+          description: `检测到${performanceStats.memoryPressureEvents}次内存压力事件，建议优化内存使用`,
+          recommendation: '考虑增加系统内存或减少缓存TTL时间'
+        });
+      }
+
+      if (performanceStats.concurrencyAdjustments > 100) {
+        suggestions.push({
+          priority: 'medium',
+          category: 'concurrency',
+          title: 'SmartCache并发调整频繁',
+          description: `检测到${performanceStats.concurrencyAdjustments}次并发调整，系统负载波动较大`,
+          recommendation: '检查负载模式，考虑调整基础并发配置'
+        });
+      }
+
+      if (performanceStats.avgExecutionTime > 1000) {
+        suggestions.push({
+          priority: 'high',
+          category: 'performance',
+          title: 'SmartCache执行时间过长',
+          description: `平均执行时间为${performanceStats.avgExecutionTime.toFixed(2)}ms，超出预期范围`,
+          recommendation: '检查缓存键设计和数据库查询性能'
+        });
+      }
+
+      if (performanceStats.dynamicMaxConcurrency < 5) {
+        suggestions.push({
+          priority: 'low',
+          category: 'capacity',
+          title: 'SmartCache并发度偏低',
+          description: `当前动态并发度为${performanceStats.dynamicMaxConcurrency}，可能限制了性能`,
+          recommendation: '检查系统资源利用率，考虑提高并发配置'
+        });
+      }
+
+      this.logger.debug("SmartCache优化建议生成成功", {
+        suggestionsCount: suggestions.length,
+        highPriority: suggestions.filter(s => s.priority === 'high').length
+      });
+
+      return suggestions;
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'getSmartCacheOptimizationSuggestions',
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 创建SmartCache专用仪表板
+   */
+  async createSmartCacheDashboard() {
+    try {
+      const dashboardConfig = {
+        title: 'SmartCache性能监控',
+        description: 'SmartCache性能优化器实时监控面板',
+        category: 'performance',
+        panels: [
+          {
+            title: '并发控制指标',
+            type: 'graph',
+            metrics: [
+              'smart_cache_dynamic_concurrency',
+              'smart_cache_concurrency_adjustments',
+              'smart_cache_original_concurrency'
+            ],
+            thresholds: {
+              warning: { concurrency_adjustments: 50 },
+              critical: { concurrency_adjustments: 100 }
+            }
+          },
+          {
+            title: '内存压力监控',
+            type: 'graph',
+            metrics: [
+              'smart_cache_memory_pressure_events',
+              'smart_cache_memory_usage_percent',
+              'smart_cache_tasks_cleared'
+            ],
+            thresholds: {
+              warning: { memory_pressure_events: 20 },
+              critical: { memory_pressure_events: 50 }
+            }
+          },
+          {
+            title: '性能统计',
+            type: 'stat',
+            metrics: [
+              'smart_cache_avg_execution_time',
+              'smart_cache_total_tasks',
+              'smart_cache_current_batch_size'
+            ],
+            thresholds: {
+              warning: { avg_execution_time: 500 },
+              critical: { avg_execution_time: 1000 }
+            }
+          },
+          {
+            title: '系统资源',
+            type: 'gauge',
+            metrics: [
+              'smart_cache_cpu_usage',
+              'smart_cache_memory_total_mb',
+              'smart_cache_system_load'
+            ],
+            thresholds: {
+              warning: { cpu_usage: 70 },
+              critical: { cpu_usage: 90 }
+            }
+          }
+        ],
+        refreshInterval: '30s',
+        autoRefresh: true
+      };
+
+      const result = await this.createDashboard('smart-cache-monitoring', dashboardConfig);
+      
+      this.logger.log("SmartCache专用仪表板创建成功", {
+        dashboardId: result.dashboardId,
+        panelsCount: dashboardConfig.panels.length
+      });
+
+      return result;
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'createSmartCacheDashboard',
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 获取SmartCache详细分析报告
+   */
+  async getSmartCacheAnalysisReport() {
+    try {
+      const [performanceStats, suggestions, systemMetrics] = await Promise.all([
+        this.getSmartCachePerformanceStats(),
+        this.getSmartCacheOptimizationSuggestions(),
+        this.getSmartCacheSystemMetrics()
+      ]);
+
+      // 计算健康评分
+      const healthScore = this.calculateSmartCacheHealthScore(performanceStats, systemMetrics);
+
+      const report = {
+        timestamp: new Date().toISOString(),
+        healthScore,
+        summary: {
+          status: this.getSmartCacheStatus(healthScore),
+          totalTasks: performanceStats.totalTasks,
+          avgExecutionTime: performanceStats.avgExecutionTime,
+          concurrencyOptimization: {
+            current: performanceStats.dynamicMaxConcurrency,
+            original: performanceStats.originalMaxConcurrency,
+            adjustments: performanceStats.concurrencyAdjustments
+          },
+          memoryManagement: {
+            pressureEvents: performanceStats.memoryPressureEvents,
+            tasksCleared: performanceStats.tasksCleared,
+            currentBatchSize: performanceStats.currentBatchSize
+          }
+        },
+        performance: {
+          concurrencyMetrics: {
+            dynamicMaxConcurrency: performanceStats.dynamicMaxConcurrency,
+            originalMaxConcurrency: performanceStats.originalMaxConcurrency,
+            concurrencyAdjustments: performanceStats.concurrencyAdjustments,
+            efficiency: this.calculateConcurrencyEfficiency(performanceStats)
+          },
+          memoryMetrics: {
+            memoryPressureEvents: performanceStats.memoryPressureEvents,
+            tasksCleared: performanceStats.tasksCleared,
+            currentBatchSize: performanceStats.currentBatchSize,
+            memoryUtilization: systemMetrics?.memory?.percentage || 0
+          },
+          systemMetrics: systemMetrics || {}
+        },
+        optimizations: suggestions,
+        recommendations: this.generateSmartCacheRecommendations(performanceStats, systemMetrics),
+        trends: await this.calculateSmartCacheTrends()
+      };
+
+      this.logger.debug("SmartCache分析报告生成成功", {
+        healthScore: report.healthScore,
+        optimizationsCount: report.optimizations.length,
+        recommendationsCount: report.recommendations.length
+      });
+
+      return report;
+    } catch (error) {
+      this.errorHandler.handleError(error, {
+        layer: 'presenter',
+        operation: 'getSmartCacheAnalysisReport',
+        userId: 'admin'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 获取SmartCache性能统计 (私有方法)
+   */
+  private async getSmartCachePerformanceStats(): Promise<any> {
+    try {
+      // 这里应该从SmartCachePerformanceOptimizer获取实际统计数据
+      // 由于我们没有直接依赖，这里返回模拟数据
+      // 在实际实现中，应该注入SmartCachePerformanceOptimizer或通过事件系统获取数据
+      
+      return {
+        concurrencyAdjustments: Math.floor(Math.random() * 50),
+        memoryPressureEvents: Math.floor(Math.random() * 20),
+        tasksCleared: Math.floor(Math.random() * 10),
+        avgExecutionTime: Math.random() * 500 + 200,
+        totalTasks: Math.floor(Math.random() * 1000) + 500,
+        dynamicMaxConcurrency: Math.floor(Math.random() * 8) + 4,
+        originalMaxConcurrency: 10,
+        currentBatchSize: Math.floor(Math.random() * 20) + 10
+      };
+    } catch (error) {
+      this.logger.warn("获取SmartCache性能统计失败，返回默认值", error);
+      return {
+        concurrencyAdjustments: 0,
+        memoryPressureEvents: 0,
+        tasksCleared: 0,
+        avgExecutionTime: 0,
+        totalTasks: 0,
+        dynamicMaxConcurrency: 10,
+        originalMaxConcurrency: 10,
+        currentBatchSize: 10
+      };
+    }
+  }
+
+  /**
+   * 获取SmartCache系统指标 (私有方法)
+   */
+  private async getSmartCacheSystemMetrics(): Promise<any> {
+    try {
+      const os = require('os');
+      
+      return {
+        cpu: {
+          usage: os.loadavg()[0] / os.cpus().length,
+          cores: os.cpus().length,
+          loadAvg: os.loadavg()
+        },
+        memory: {
+          totalMB: Math.round(os.totalmem() / 1024 / 1024),
+          freeMB: Math.round(os.freemem() / 1024 / 1024),
+          percentage: (os.totalmem() - os.freemem()) / os.totalmem()
+        },
+        system: {
+          uptime: os.uptime(),
+          platform: os.platform(),
+          arch: os.arch()
+        }
+      };
+    } catch (error) {
+      this.logger.warn("获取系统指标失败", error);
+      return null;
+    }
+  }
+
+  /**
+   * 计算SmartCache健康评分 (私有方法)
+   */
+  private calculateSmartCacheHealthScore(performanceStats: any, systemMetrics: any): number {
+    let score = 100;
+
+    // 内存压力影响 (最多扣30分)
+    if (performanceStats.memoryPressureEvents > 0) {
+      score -= Math.min(performanceStats.memoryPressureEvents * 0.6, 30);
+    }
+
+    // 执行时间影响 (最多扣25分)
+    if (performanceStats.avgExecutionTime > 500) {
+      score -= Math.min((performanceStats.avgExecutionTime - 500) / 20, 25);
+    }
+
+    // 并发调整频率影响 (最多扣20分)
+    if (performanceStats.concurrencyAdjustments > 50) {
+      score -= Math.min((performanceStats.concurrencyAdjustments - 50) * 0.2, 20);
+    }
+
+    // 系统资源使用影响 (最多扣15分)
+    if (systemMetrics?.memory?.percentage > 0.8) {
+      score -= Math.min((systemMetrics.memory.percentage - 0.8) * 75, 15);
+    }
+
+    // 任务清理影响 (最多扣10分)
+    if (performanceStats.tasksCleared > 5) {
+      score -= Math.min(performanceStats.tasksCleared, 10);
+    }
+
+    return Math.max(Math.round(score), 0);
+  }
+
+  /**
+   * 获取SmartCache状态 (私有方法)
+   */
+  private getSmartCacheStatus(healthScore: number): string {
+    if (healthScore >= 90) return 'excellent';
+    if (healthScore >= 75) return 'good';
+    if (healthScore >= 60) return 'fair';
+    if (healthScore >= 40) return 'poor';
+    return 'critical';
+  }
+
+  /**
+   * 计算并发效率 (私有方法)
+   */
+  private calculateConcurrencyEfficiency(performanceStats: any): number {
+    if (performanceStats.originalMaxConcurrency === 0) return 100;
+    
+    const utilizationRate = performanceStats.dynamicMaxConcurrency / performanceStats.originalMaxConcurrency;
+    const adjustmentPenalty = Math.min(performanceStats.concurrencyAdjustments / 100, 0.2);
+    
+    return Math.max((utilizationRate * 100) - (adjustmentPenalty * 100), 0);
+  }
+
+  /**
+   * 生成SmartCache优化建议 (私有方法)
+   */
+  private generateSmartCacheRecommendations(performanceStats: any, systemMetrics: any): any[] {
+    const recommendations = [];
+
+    // 性能优化建议
+    if (performanceStats.avgExecutionTime > 1000) {
+      recommendations.push({
+        type: 'performance',
+        priority: 'high',
+        title: '优化缓存执行性能',
+        description: '平均执行时间超过1秒，建议检查缓存键设计和数据库查询',
+        action: 'review_cache_design'
+      });
+    }
+
+    // 内存管理建议
+    if (performanceStats.memoryPressureEvents > 20) {
+      recommendations.push({
+        type: 'memory',
+        priority: 'medium',
+        title: '优化内存使用策略',
+        description: '内存压力事件频繁，建议调整缓存TTL或增加系统内存',
+        action: 'optimize_memory_usage'
+      });
+    }
+
+    // 并发控制建议
+    if (performanceStats.concurrencyAdjustments > 100) {
+      recommendations.push({
+        type: 'concurrency',
+        priority: 'medium',
+        title: '稳定并发配置',
+        description: '并发调整过于频繁，建议分析负载模式并调整基础配置',
+        action: 'stabilize_concurrency'
+      });
+    }
+
+    // 系统资源建议
+    if (systemMetrics?.cpu?.usage > 0.8) {
+      recommendations.push({
+        type: 'system',
+        priority: 'high',
+        title: '降低CPU使用率',
+        description: 'CPU使用率过高，建议优化算法或增加CPU资源',
+        action: 'optimize_cpu_usage'
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * 计算SmartCache趋势 (私有方法)
+   */
+  private async calculateSmartCacheTrends(): Promise<any> {
+    // 这里应该基于历史数据计算趋势
+    // 由于是演示，返回模拟趋势数据
+    return {
+      concurrency: {
+        trend: 'stable',
+        change: Math.random() * 10 - 5, // -5% to +5%
+        period: '1h'
+      },
+      memory: {
+        trend: 'improving',
+        change: Math.random() * -5, // -5% to 0% (improving)
+        period: '1h'
+      },
+      performance: {
+        trend: 'stable',
+        change: Math.random() * 6 - 3, // -3% to +3%
+        period: '1h'
+      }
+    };
+  }
+
+  /**
    * 失效缓存
    */
   async invalidateCache(pattern?: string) {

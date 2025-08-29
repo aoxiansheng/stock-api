@@ -62,6 +62,7 @@ module.exports = {
     '^@metrics/(.*)$': '<rootDir>/src/metrics/$1',
     '^@security/(.*)$': '<rootDir>/src/security/$1',
     '^@providers/(.*)$': '<rootDir>/src/providers/$1',
+    '^@monitoring/(.*)$': '<rootDir>/src/monitoring/$1',
     // Mock FeatureFlags to prevent StreamPerformanceMetrics errors
     '^@common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',
     '^../../src/common/config/feature-flags\\.config$': '<rootDir>/test/__mocks__/feature-flags.config.js',

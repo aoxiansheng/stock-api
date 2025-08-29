@@ -82,13 +82,65 @@ export class CacheCompressionService {
   }
 
   /**
-   * 解压缩数据
+   * 检查数据是否已被压缩
+   * @param data 要检查的数据字符串
+   * @returns 是否为压缩数据
+   */
+  isCompressed(data: string): boolean {
+    try {
+      // 检查是否为Base64格式的压缩数据
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+      if (!base64Regex.test(data)) {
+        return false;
+      }
+      
+      // 尝试解码Base64并检查gzip标头
+      const buffer = Buffer.from(data, 'base64');
+      // gzip文件的魔数字是 0x1f8b
+      return buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * 解压缩数据（简化版本，不需要metadata）
+   * @param compressedData 压缩的数据
+   * @returns 解压缩后的字符串
+   */
+  async decompress(compressedData: string): Promise<string>;
+  
+  /**
+   * 解压缩数据（带metadata版本）
    * @param compressedData 压缩的数据
    * @param metadata 元数据信息
    * @returns 解压缩后的数据
    */
-  async decompress(compressedData: string, metadata: CacheMetadata): Promise<any> {
+  async decompress(compressedData: string, metadata: CacheMetadata): Promise<any>;
+  
+  /**
+   * 解压缩数据实现
+   */
+  async decompress(compressedData: string, metadata?: CacheMetadata): Promise<any> {
     try {
+      // 如果没有metadata，使用简化版本
+      if (!metadata) {
+        // 如果数据未压缩，直接返回
+        if (!this.isCompressed(compressedData)) {
+          return compressedData;
+        }
+
+        // 解压缩数据
+        const compressedBuffer = Buffer.from(compressedData, 'base64');
+        const decompressed = await gunzipAsync(compressedBuffer);
+        const decompressedString = decompressed.toString('utf8');
+
+        this.logger.debug(`Decompressed data from ${compressedBuffer.length} to ${decompressed.length} bytes`);
+
+        return decompressedString;
+      }
+      
+      // 带metadata的版本
       // 如果数据未压缩，直接解析
       if (!metadata.compressed) {
         return JSON.parse(compressedData);

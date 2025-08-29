@@ -4,7 +4,7 @@ import { StorageService } from '../../../../../../../src/core/04-storage/storage
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
 import { DataChangeDetectorService } from '../../../../../../../src/core/shared/services/data-change-detector.service';
 import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { InfrastructureMetricsRegistryService } from '../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
 import { CommonCacheService } from '../../../../../../../src/core/05-caching/common-cache/services/common-cache.service';
 import { 
   CacheStrategy, 
