@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ServiceUnavailableException, OnModuleDestroy } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { createLogger } from '@common/config/logger.config';
 
@@ -37,7 +37,7 @@ export const StreamRateLimit = (config: RateLimitConfig) =>
  * - 连接频率控制
  */
 @Injectable()
-export class StreamRateLimitGuard implements CanActivate {
+export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   private readonly logger = createLogger(StreamRateLimitGuard.name);
   
   // 请求计数器 - IP级别
@@ -45,6 +45,12 @@ export class StreamRateLimitGuard implements CanActivate {
   
   // 请求计数器 - 用户级别
   private readonly userRequestCounts = new Map<string, { count: number; lastReset: number; burstCount: number; lastBurst: number }>();
+  
+  // 定时器引用 - 用于清理
+  private cleanupTimer: NodeJS.Timeout | null = null;
+  
+  // 销毁标志 - 防止在销毁后继续操作
+  private isDestroyed = false;
   
   // 默认配置
   private readonly defaultConfig: RateLimitConfig = {
@@ -56,11 +62,63 @@ export class StreamRateLimitGuard implements CanActivate {
   };
   
   constructor(private readonly reflector: Reflector) {
-    // 定期清理过期的计数器
-    setInterval(() => this.cleanupExpiredCounters(), 60 * 1000); // 每分钟清理一次
+    // 使用安全的递归定时调度
+    this.scheduleNextCleanup();
+    
+    this.logger.debug('StreamRateLimitGuard 已初始化', {
+      cleanupInterval: '60秒',
+      defaultConfig: this.defaultConfig,
+    });
+  }
+  
+  /**
+   * 安全的递归定时调度（优于 setInterval）
+   */
+  private scheduleNextCleanup(): void {
+    if (this.isDestroyed) return;
+    
+    this.cleanupTimer = setTimeout(() => {
+      try {
+        this.cleanupExpiredCounters();
+      } catch (error) {
+        this.logger.error('清理过程异常', error);
+      } finally {
+        // 递归调度下一次清理
+        this.scheduleNextCleanup();
+      }
+    }, 60 * 1000);
+  }
+  
+  /**
+   * 销毁时清理资源
+   * 实现 OnModuleDestroy 接口确保定时器被正确清理
+   */
+  onModuleDestroy(): void {
+    this.isDestroyed = true;
+    
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+      this.logger.debug('定时器已清理');
+    }
+    
+    // 清理所有计数器内存
+    this.ipRequestCounts.clear();
+    this.userRequestCounts.clear();
+    
+    this.logger.log('StreamRateLimitGuard 已销毁，资源已清理', {
+      ipCountersCleared: this.ipRequestCounts.size,
+      userCountersCleared: this.userRequestCounts.size,
+    });
   }
   
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 如果已销毁，拒绝请求
+    if (this.isDestroyed) {
+      this.logger.warn('Guard已销毁，拒绝请求');
+      throw new ServiceUnavailableException('服务不可用');
+    }
+    
     const request = context.switchToHttp().getRequest();
     
     // 获取装饰器配置
@@ -123,6 +181,8 @@ export class StreamRateLimitGuard implements CanActivate {
    * 检查速率限制
    */
   private checkRateLimit(type: 'ip' | 'user', identifier: string, config: RateLimitConfig): boolean {
+    if (this.isDestroyed) return false;
+    
     const now = Date.now();
     const counters = type === 'ip' ? this.ipRequestCounts : this.userRequestCounts;
     
@@ -152,7 +212,7 @@ export class StreamRateLimitGuard implements CanActivate {
    * 检查突发请求限制
    */
   private checkBurstLimit(clientIP: string, config: RateLimitConfig): boolean {
-    if (!config.burst) return true;
+    if (!config.burst || this.isDestroyed) return true;
     
     const now = Date.now();
     const counter = this.ipRequestCounts.get(clientIP);

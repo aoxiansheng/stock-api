@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import {
   DataFetchParams,
   RawDataResult,
@@ -44,12 +45,22 @@ describe('DataFetcherService', () => {
       getProvider: jest.fn(), // Changed from _getProvider to getProvider
     };
 
+    const mockCollectorService = {
+      recordRequest: jest.fn(),
+      recordDatabaseOperation: jest.fn(),
+      recordSystemMetrics: jest.fn(), // 保留以防测试中使用
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DataFetcherService,
         {
           provide: CapabilityRegistryService,
           useValue: mockCapabilityRegistryService,
+        },
+        {
+          provide: CollectorService,
+          useValue: mockCollectorService,
         },
       ],
     }).compile();
@@ -323,7 +334,7 @@ describe('DataFetcherService', () => {
 
       // Act & Assert
       await expect(service.getProviderContext('longport')).rejects.toThrow(ServiceUnavailableException);
-      await expect(service.getProviderContext('longport')).rejects.toThrow('Provider context error: Context service error');
+      await expect(service.getProviderContext('longport')).rejects.toThrow('Provider longport context service failed: Context service error');
     });
   });
 

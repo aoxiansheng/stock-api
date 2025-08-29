@@ -8,6 +8,7 @@ import { StreamMetricsService } from '../../../../../../../src/core/03-fetching/
 import { StreamCacheService } from '../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
 import { StreamClientStateManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service';
 import { ConnectionPoolManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/connection-pool-manager.service';
+import { StreamMonitoringService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-monitoring.service';
 import {
   StreamConnectionParams,
   StreamConnection,
@@ -91,6 +92,13 @@ describe('StreamDataFetcherService', () => {
       getAlerts: jest.fn().mockReturnValue([]),
     };
 
+    const mockStreamMonitoringService = {
+      startMonitoringConnection: jest.fn().mockReturnValue(true),
+      stopMonitoringConnection: jest.fn().mockReturnValue(true),
+      getConnectionCount: jest.fn().mockReturnValue(0),
+      isDestroyed: false,
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StreamDataFetcherService,
@@ -117,6 +125,10 @@ describe('StreamDataFetcherService', () => {
         {
           provide: ConnectionPoolManager,
           useValue: mockConnectionPoolManager,
+        },
+        {
+          provide: StreamMonitoringService,
+          useValue: mockStreamMonitoringService,
         },
       ],
     }).compile();
@@ -573,6 +585,445 @@ describe('StreamDataFetcherService', () => {
       );
 
       loggerWarnSpy.mockRestore();
+    });
+  });
+
+  describe('P1-2: Adaptive Concurrency Control', () => {
+    beforeEach(() => {
+      // Reset performance metrics before each test
+      service['performanceMetrics'] = {
+        responseTimes: [],
+        avgResponseTime: 0,
+        p95ResponseTime: 0,
+        totalRequests: 0,
+        successfulRequests: 0,
+        failedRequests: 0,
+        successRate: 100,
+        concurrencyHistory: [],
+        activeOperations: 0,
+        queuedOperations: 0,
+        lastMetricsUpdate: Date.now(),
+        windowSize: 100,
+      };
+    });
+
+    it('should initialize with proper performance metrics state', () => {
+      // Assert
+      expect(service['performanceMetrics']).toBeDefined();
+      expect(service['performanceMetrics'].responseTimes).toEqual([]);
+      expect(service['performanceMetrics'].avgResponseTime).toBe(0);
+      expect(service['performanceMetrics'].successRate).toBe(100);
+      expect(service['performanceMetrics'].activeOperations).toBe(0);
+    });
+
+    it('should record operation performance metrics', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      // Act
+      await service.establishStreamConnection(params);
+
+      // Assert
+      expect(service['performanceMetrics'].totalRequests).toBe(1);
+      expect(service['performanceMetrics'].successfulRequests).toBe(1);
+      expect(service['performanceMetrics'].responseTimes.length).toBe(1);
+      expect(service['performanceMetrics'].responseTimes[0]).toBeGreaterThan(0);
+    });
+
+    it('should calculate average response time correctly', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      // Act - perform multiple operations
+      await service.establishStreamConnection(params);
+      await service.establishStreamConnection({ ...params, requestId: uuidv4() });
+
+      // Assert
+      expect(service['performanceMetrics'].avgResponseTime).toBeGreaterThan(0);
+      expect(service['performanceMetrics'].totalRequests).toBe(2);
+      expect(service['performanceMetrics'].responseTimes.length).toBe(2);
+    });
+
+    it('should calculate P95 response time correctly', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      // Simulate multiple operations with varying response times
+      const responseTimes = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+      service['performanceMetrics'].responseTimes = responseTimes;
+
+      // Act
+      const p95 = service['calculateP95ResponseTime']();
+
+      // Assert
+      expect(p95).toBe(95); // P95 of [10,20,30,40,50,60,70,80,90,100] is 95
+    });
+
+    it('should adjust concurrency based on performance metrics', () => {
+      // Arrange - simulate poor performance
+      service['performanceMetrics'].avgResponseTime = 1000; // High response time
+      service['performanceMetrics'].successRate = 70; // Low success rate
+      const initialConcurrency = service['currentConcurrency'];
+
+      // Act
+      const newConcurrency = service['calculateOptimalConcurrency']();
+
+      // Assert
+      expect(newConcurrency).toBeLessThanOrEqual(initialConcurrency);
+    });
+
+    it('should increase concurrency when performance is good', () => {
+      // Arrange - simulate good performance
+      service['performanceMetrics'].avgResponseTime = 50; // Low response time
+      service['performanceMetrics'].successRate = 100; // High success rate
+      service['currentConcurrency'] = 10;
+
+      // Act
+      const newConcurrency = service['calculateOptimalConcurrency']();
+
+      // Assert
+      expect(newConcurrency).toBeGreaterThan(10);
+    });
+
+    it('should respect minimum and maximum concurrency limits', () => {
+      // Arrange - extreme conditions
+      service['performanceMetrics'].avgResponseTime = 10000; // Very high
+      service['performanceMetrics'].successRate = 0; // Complete failure
+
+      // Act
+      const newConcurrency = service['calculateOptimalConcurrency']();
+
+      // Assert
+      expect(newConcurrency).toBeGreaterThanOrEqual(service['minConcurrency']);
+      expect(newConcurrency).toBeLessThanOrEqual(service['maxConcurrency']);
+    });
+
+    it('should implement circuit breaker functionality', () => {
+      // Arrange - simulate many failures
+      service['performanceMetrics'].failedRequests = 15;
+      service['performanceMetrics'].totalRequests = 20;
+      service['performanceMetrics'].successRate = 25; // 25% success rate
+
+      // Act
+      const isCircuitOpen = service['shouldTriggerCircuitBreaker']();
+
+      // Assert
+      expect(isCircuitOpen).toBe(true);
+    });
+
+    it('should not trigger circuit breaker with good performance', () => {
+      // Arrange - simulate good performance
+      service['performanceMetrics'].failedRequests = 1;
+      service['performanceMetrics'].totalRequests = 100;
+      service['performanceMetrics'].successRate = 99;
+
+      // Act
+      const isCircuitOpen = service['shouldTriggerCircuitBreaker']();
+
+      // Assert
+      expect(isCircuitOpen).toBe(false);
+    });
+
+    it('should track concurrency history for analysis', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      const initialHistoryLength = service['performanceMetrics'].concurrencyHistory.length;
+
+      // Act
+      await service.establishStreamConnection(params);
+
+      // Assert
+      expect(service['performanceMetrics'].concurrencyHistory.length).toBeGreaterThan(initialHistoryLength);
+      
+      const latestEntry = service['performanceMetrics'].concurrencyHistory[
+        service['performanceMetrics'].concurrencyHistory.length - 1
+      ];
+      expect(latestEntry).toHaveProperty('concurrency');
+      expect(latestEntry).toHaveProperty('timestamp');
+      expect(latestEntry).toHaveProperty('performance');
+    });
+
+    it('should maintain performance metrics window size', () => {
+      // Arrange
+      const windowSize = service['performanceMetrics'].windowSize;
+      
+      // Fill response times beyond window size
+      for (let i = 0; i < windowSize + 50; i++) {
+        service['performanceMetrics'].responseTimes.push(Math.random() * 100);
+      }
+
+      // Act
+      service['maintainMetricsWindow']();
+
+      // Assert
+      expect(service['performanceMetrics'].responseTimes.length).toBeLessThanOrEqual(windowSize);
+    });
+  });
+
+  describe('P2-1: StreamMonitoringService Integration', () => {
+    it('should use StreamMonitoringService for connection monitoring', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      const mockStreamMonitoringService = service['streamMonitoringService'];
+
+      // Act
+      const connection = await service.establishStreamConnection(params);
+
+      // Assert
+      expect(mockStreamMonitoringService.startMonitoringConnection).toHaveBeenCalledWith(connection);
+    });
+
+    it('should stop monitoring connection when closing', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      const connection = await service.establishStreamConnection(params);
+      const mockStreamMonitoringService = service['streamMonitoringService'];
+
+      // Act
+      await service.closeConnection(connection);
+
+      // Assert
+      expect(mockStreamMonitoringService.stopMonitoringConnection).toHaveBeenCalledWith(connection.id);
+    });
+
+    it('should handle monitoring service failures gracefully', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      const mockStreamMonitoringService = service['streamMonitoringService'];
+      mockStreamMonitoringService.startMonitoringConnection.mockReturnValue(false);
+
+      const loggerWarnSpy = jest.spyOn(service['logger'], 'warn');
+
+      // Act
+      const connection = await service.establishStreamConnection(params);
+
+      // Assert
+      expect(connection).toBeDefined();
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        '启动连接监控失败',
+        expect.objectContaining({
+          connectionId: connection.id,
+        })
+      );
+
+      loggerWarnSpy.mockRestore();
+    });
+  });
+
+  describe('Health Check Integration', () => {
+    it('should include performance metrics in health check', () => {
+      // Arrange
+      service['performanceMetrics'].avgResponseTime = 150;
+      service['performanceMetrics'].successRate = 95;
+      service['performanceMetrics'].activeOperations = 5;
+
+      // Act
+      const healthInfo = service['getHealthInfo']();
+
+      // Assert
+      expect(healthInfo).toHaveProperty('performance');
+      expect(healthInfo.performance).toHaveProperty('avgResponseTime', 150);
+      expect(healthInfo.performance).toHaveProperty('successRate', 95);
+      expect(healthInfo.performance).toHaveProperty('activeOperations', 5);
+      expect(healthInfo.performance).toHaveProperty('currentConcurrency');
+    });
+
+    it('should include monitoring service status in health check', () => {
+      // Arrange
+      const mockStreamMonitoringService = service['streamMonitoringService'];
+      mockStreamMonitoringService.getConnectionCount.mockReturnValue(3);
+      mockStreamMonitoringService.isDestroyed = false;
+
+      // Act
+      const healthInfo = service['getHealthInfo']();
+
+      // Assert
+      expect(healthInfo).toHaveProperty('monitoring');
+      expect(healthInfo.monitoring).toHaveProperty('connectionCount', 3);
+      expect(healthInfo.monitoring).toHaveProperty('isDestroyed', false);
+    });
+
+    it('should report unhealthy status when circuit breaker is open', () => {
+      // Arrange - simulate circuit breaker conditions
+      service['performanceMetrics'].failedRequests = 20;
+      service['performanceMetrics'].totalRequests = 25;
+      service['performanceMetrics'].successRate = 20;
+
+      // Act
+      const healthInfo = service['getHealthInfo']();
+
+      // Assert
+      expect(healthInfo.status).toBe('unhealthy');
+      expect(healthInfo).toHaveProperty('circuitBreaker');
+      expect(healthInfo.circuitBreaker.isOpen).toBe(true);
+    });
+
+    it('should report healthy status under normal conditions', () => {
+      // Arrange - simulate normal conditions
+      service['performanceMetrics'].failedRequests = 2;
+      service['performanceMetrics'].totalRequests = 100;
+      service['performanceMetrics'].successRate = 98;
+      service['performanceMetrics'].avgResponseTime = 80;
+
+      // Act
+      const healthInfo = service['getHealthInfo']();
+
+      // Assert
+      expect(healthInfo.status).toBe('healthy');
+      expect(healthInfo.circuitBreaker.isOpen).toBe(false);
+    });
+  });
+
+  describe('Error Handling and Recovery', () => {
+    it('should handle performance tracking errors gracefully', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      // Mock performance tracking to throw error
+      const originalRecordPerformance = service['recordOperationPerformance'];
+      service['recordOperationPerformance'] = jest.fn().mockImplementation(() => {
+        throw new Error('Performance tracking failed');
+      });
+
+      const loggerErrorSpy = jest.spyOn(service['logger'], 'error');
+
+      // Act & Assert - should not throw, operation should complete
+      const connection = await service.establishStreamConnection(params);
+      expect(connection).toBeDefined();
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        '记录性能指标失败',
+        expect.any(Object)
+      );
+
+      // Cleanup
+      service['recordOperationPerformance'] = originalRecordPerformance;
+      loggerErrorSpy.mockRestore();
+    });
+
+    it('should continue operation if concurrency adjustment fails', async () => {
+      // Arrange
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      // Mock concurrency calculation to throw error
+      const originalCalculateOptimal = service['calculateOptimalConcurrency'];
+      service['calculateOptimalConcurrency'] = jest.fn().mockImplementation(() => {
+        throw new Error('Concurrency calculation failed');
+      });
+
+      const loggerErrorSpy = jest.spyOn(service['logger'], 'error');
+
+      // Act & Assert - should not throw, operation should complete
+      const connection = await service.establishStreamConnection(params);
+      expect(connection).toBeDefined();
+
+      // Cleanup
+      service['calculateOptimalConcurrency'] = originalCalculateOptimal;
+      loggerErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Performance Optimization', () => {
+    it('should handle high-concurrency scenarios efficiently', async () => {
+      // Arrange
+      const concurrentRequests = 50;
+      const promises: Promise<any>[] = [];
+
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      const startTime = Date.now();
+
+      // Act
+      for (let i = 0; i < concurrentRequests; i++) {
+        promises.push(
+          service.establishStreamConnection({ ...params, requestId: uuidv4() })
+        );
+      }
+
+      const connections = await Promise.all(promises);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      // Assert
+      expect(connections).toHaveLength(concurrentRequests);
+      expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
+      expect(service['performanceMetrics'].totalRequests).toBe(concurrentRequests);
+    });
+
+    it('should maintain performance metrics accuracy under load', async () => {
+      // Arrange
+      const operationCount = 100;
+      const params: StreamConnectionParams = {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        contextService: mockContextService,
+        requestId: uuidv4(),
+      };
+
+      // Act
+      for (let i = 0; i < operationCount; i++) {
+        await service.establishStreamConnection({ ...params, requestId: uuidv4() });
+      }
+
+      // Assert
+      expect(service['performanceMetrics'].totalRequests).toBe(operationCount);
+      expect(service['performanceMetrics'].responseTimes.length).toBeLessThanOrEqual(
+        service['performanceMetrics'].windowSize
+      );
+      expect(service['performanceMetrics'].avgResponseTime).toBeGreaterThan(0);
     });
   });
 });

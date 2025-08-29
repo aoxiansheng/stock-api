@@ -15,6 +15,7 @@ import { CollectorService } from '../../../../monitoring/collector/collector.ser
 
 
 import {
+  STORAGE_CONFIG,
   STORAGE_ERROR_MESSAGES,
   STORAGE_WARNING_MESSAGES,
   STORAGE_PERFORMANCE_THRESHOLDS,
@@ -619,13 +620,13 @@ export class StorageService {
 
     if (
       compressOption &&
-      dataSize > 10 * 1024 // 10KB compression threshold
+      dataSize > STORAGE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD
     ) {
       try {
         const compressedBuffer = await gzip(serializedData);
         if (
           compressedBuffer.length <
-          dataSize * 0.8 // 使用0.8代替CACHE_CONFIG.COMPRESSION_SAVING_RATIO
+          dataSize * STORAGE_CONFIG.DEFAULT_COMPRESSION_RATIO
         ) {
           serializedData = compressedBuffer.toString("base64");
           compressed = true;

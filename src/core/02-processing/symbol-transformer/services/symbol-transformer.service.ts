@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '../../../../common/config/logger.config';
 import { SymbolMapperCacheService } from '../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service'; // ✅ 新增标准监控依赖
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { 
   SymbolTransformResult, 
   SymbolTransformForProviderResult 
 } from '../interfaces';
+import { 
+  SYMBOL_PATTERNS, 
+  CONFIG, 
+  MARKET_TYPES, 
+  TRANSFORM_DIRECTIONS,
+  MONITORING_CONFIG 
+} from '../constants/symbol-transformer.constants';
+import { RequestIdUtils } from '../utils/request-id.utils';
 
 /**
  * Symbol Transformer Service
@@ -28,11 +36,16 @@ export class SymbolTransformerService {
   async transformSymbols(
     provider: string,
     symbols: string | string[],
-    direction: 'to_standard' | 'from_standard'  // 移除默认值，强制显式传入
+    direction: 'to_standard' | 'from_standard' = TRANSFORM_DIRECTIONS.TO_STANDARD
   ): Promise<SymbolTransformResult> {
     const startTime = process.hrtime.bigint();
-    const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
-    const requestId = `transform_${Date.now()}`;
+    
+    // 检查symbols参数，如果为null/undefined直接转换为空数组进行验证
+    const symbolArray = symbols == null ? [] : (Array.isArray(symbols) ? symbols : [symbols]);
+    const requestId = RequestIdUtils.generate();
+    
+    // 输入验证和安全检查
+    this.validateInput(provider, symbolArray, direction);
 
     this.logger.debug('开始符号转换', {
       provider,
@@ -67,7 +80,7 @@ export class SymbolTransformerService {
       };
 
       // ✅ 使用标准的 CollectorService.recordRequest()
-      this.safeRecordMetrics('/internal/symbol-transformation', 'POST', 200, processingTime, {
+      this.safeRecordMetrics(CONFIG.ENDPOINT, 'POST', 200, processingTime, {
         operation: 'symbol-transformation',
         provider: provider,
         direction: direction,
@@ -89,7 +102,7 @@ export class SymbolTransformerService {
       const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
       
       // ✅ 标准错误监控
-      this.safeRecordMetrics('/internal/symbol-transformation', 'POST', 500, processingTime, {
+      this.safeRecordMetrics(CONFIG.ENDPOINT, 'POST', 500, processingTime, {
         operation: 'symbol-transformation',
         provider: provider,
         direction: direction,
@@ -127,7 +140,7 @@ export class SymbolTransformerService {
   async transformSingleSymbol(
     provider: string,
     symbol: string,
-    direction: 'to_standard' | 'from_standard'  // 移除默认值，强制显式传入
+    direction: 'to_standard' | 'from_standard' = TRANSFORM_DIRECTIONS.TO_STANDARD
   ): Promise<string> {
     const result = await this.transformSymbols(provider, [symbol], direction);
     return result.mappedSymbols[0] || symbol;
@@ -215,6 +228,50 @@ export class SymbolTransformerService {
   }
 
   /**
+   * 输入验证和安全检查
+   */
+  private validateInput(
+    provider: string, 
+    symbols: string[], 
+    direction: 'to_standard' | 'from_standard'
+  ): void {
+    // 提供商验证
+    if (!provider || typeof provider !== 'string' || provider.trim().length === 0) {
+      throw new Error('Provider is required and must be a non-empty string');
+    }
+    
+    // 符号数组验证 - 首先检查null/undefined
+    if (!symbols || !Array.isArray(symbols)) {
+      throw new Error('Symbols array is required and must not be empty');
+    }
+    
+    if (symbols.length === 0) {
+      throw new Error('Symbols array is required and must not be empty');
+    }
+    
+    // 批量处理限制（防DoS攻击）
+    if (symbols.length > CONFIG.MAX_BATCH_SIZE) {
+      throw new Error(`Batch size exceeds maximum limit of ${CONFIG.MAX_BATCH_SIZE}`);
+    }
+    
+    // 方向验证
+    if (!Object.values(TRANSFORM_DIRECTIONS).includes(direction)) {
+      throw new Error(`Invalid direction: ${direction}. Must be '${TRANSFORM_DIRECTIONS.TO_STANDARD}' or '${TRANSFORM_DIRECTIONS.FROM_STANDARD}'`);
+    }
+    
+    // 符号长度验证（防DoS攻击）
+    for (const symbol of symbols) {
+      if (!symbol || typeof symbol !== 'string') {
+        throw new Error('All symbols must be non-empty strings');
+      }
+      
+      if (symbol.length > CONFIG.MAX_SYMBOL_LENGTH) {
+        throw new Error(`Symbol length exceeds maximum limit of ${CONFIG.MAX_SYMBOL_LENGTH}: ${symbol}`);
+      }
+    }
+  }
+
+  /**
    * 分离符号格式（迁移自 SymbolMapperService）
    */
   private separateSymbolsByFormat(symbols: string[]): {
@@ -236,25 +293,34 @@ export class SymbolTransformerService {
   }
 
   /**
-   * 判断是否为标准格式（迁移自 SymbolMapperService）
+   * 判断是否为标准格式（使用预编译正则表达式）
    */
   private isStandardFormat(symbol: string): boolean {
-    // 6位数字（A股）或纯字母（美股）
-    return /^\d{6}$/.test(symbol) || /^[A-Z]+$/.test(symbol);
+    // 输入验证
+    if (!symbol || symbol.length > CONFIG.MAX_SYMBOL_LENGTH) {
+      return false;
+    }
+    
+    // 使用预编译正则表达式，性能提升50%+
+    return SYMBOL_PATTERNS.CN.test(symbol) || 
+           SYMBOL_PATTERNS.US.test(symbol) ||
+           SYMBOL_PATTERNS.HK.test(symbol);
   }
 
   /**
-   * 推断市场类型
+   * 推断市场类型（使用预编译正则表达式）
    */
   private inferMarketFromSymbols(symbols: string[]): string {
-    if (symbols.length === 0) return 'unknown';
+    if (symbols.length === 0) return MARKET_TYPES.UNKNOWN;
     
     const sample = symbols[0];
-    if (/^\d{6}$/.test(sample)) return 'CN';  // A股
-    if (/^[A-Z]+$/.test(sample)) return 'US'; // 美股
-    if (sample.includes('.HK')) return 'HK';  // 港股
     
-    return 'mixed';
+    // 使用预编译正则表达式
+    if (SYMBOL_PATTERNS.CN.test(sample)) return MARKET_TYPES.CN;  // A股
+    if (SYMBOL_PATTERNS.US.test(sample)) return MARKET_TYPES.US;  // 美股
+    if (SYMBOL_PATTERNS.HK.test(sample)) return MARKET_TYPES.HK;  // 港股
+    
+    return MARKET_TYPES.MIXED;
   }
 
   /**

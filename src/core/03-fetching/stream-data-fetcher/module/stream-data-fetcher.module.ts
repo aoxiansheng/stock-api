@@ -3,6 +3,7 @@ import { StreamDataFetcherService } from '../services/stream-data-fetcher.servic
 import { StreamClientStateManager } from '../services/stream-client-state-manager.service';
 import { StreamRecoveryWorkerService } from '../services/stream-recovery-worker.service';
 import { StreamMetricsService } from '../services/stream-metrics.service';
+import { StreamMonitoringService } from '../services/stream-monitoring.service';
 import { ConnectionPoolManager } from '../services/connection-pool-manager.service';
 import { StreamRateLimitGuard } from '../guards/stream-rate-limit.guard';
 import { WebSocketRateLimitGuard } from '../guards/websocket-rate-limit.guard';
@@ -17,13 +18,14 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 import { StreamCacheModule } from '../../../05-caching/stream-cache/module/stream-cache.module';
 
 /**
- * StreamDataFetcher模块 - Phase 4 重构版本
+ * StreamDataFetcher模块 - Phase 4+ 重构版本
  * 提供WebSocket流数据获取、客户端状态管理和Worker线程池功能
  * 
  * 重构变更：
  * - 移除对通用CacheModule的依赖
  * - 移除StreamDataCacheService (已迁移到StreamCacheModule)
  * - 导入专用StreamCacheModule
+ * - P2-1: 新增StreamMonitoringService优化依赖结构
  */
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { StreamCacheModule } from '../../../05-caching/stream-cache/module/strea
     StreamClientStateManager,
     StreamRecoveryWorkerService,
     StreamMetricsService,
+    StreamMonitoringService, // P2-1: 新增专门的监控服务
     ConnectionPoolManager, // 新增连接池管理器
     StreamRateLimitGuard, // DoS防护 - HTTP
     WebSocketRateLimitGuard, // DoS防护 - WebSocket
@@ -56,6 +59,7 @@ import { StreamCacheModule } from '../../../05-caching/stream-cache/module/strea
     StreamClientStateManager,
     StreamRecoveryWorkerService,
     StreamMetricsService,
+    StreamMonitoringService, // P2-1: 导出监控服务供其他模块使用
     StreamRecoveryConfigService,
     StreamRecoveryMetricsService,
     // 导出强类型WebSocket服务器提供者供其他模块使用

@@ -45,8 +45,8 @@ export const STORAGE_WARNING_MESSAGES = Object.freeze({
  */
 export const STORAGE_CONFIG = Object.freeze({
   DEFAULT_CACHE_TTL: 3600, // 默认缓存TTL（1小时）
-  DEFAULT_COMPRESSION_THRESHOLD: 1024, // 默认压缩阈值（1KB）
-  DEFAULT_COMPRESSION_RATIO: 0.8, // 默认压缩比例（80%）
+  DEFAULT_COMPRESSION_THRESHOLD: parseInt(process.env.STORAGE_COMPRESS_THRESHOLD) || 5 * 1024, // 默认压缩阈值（5KB）
+  DEFAULT_COMPRESSION_RATIO: parseFloat(process.env.STORAGE_COMPRESS_RATIO) || 0.8, // 默认压缩比例（80%）
   MAX_KEY_LENGTH: 250, // 最大键长度
   MAX_DATA_SIZE_MB: 16, // 最大数据大小（16MB）
   MAX_BATCH_SIZE: 1000, // 最大批量操作大小

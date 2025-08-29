@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymbolTransformerService } from '../../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { SymbolMapperCacheService } from '../../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service'; // ✅ 新增 CollectorService
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import { SymbolTransformResult } from '../../../../../../../src/core/02-processing/symbol-transformer/interfaces';
+import { CONFIG, TRANSFORM_DIRECTIONS } from '../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants';
 import { DeepMocked, createMock } from '@golevelup/ts-jest';
 
 // Mock the logger
@@ -212,6 +213,82 @@ describe('SymbolTransformerService', () => {
       const result = await service.mapSymbol('longport', '700.HK');
 
       expect(result).toBe('00700');
+    });
+  });
+
+  describe('input validation', () => {
+    it('should throw error for empty provider', async () => {
+      await expect(
+        service.transformSymbols('', ['700.HK'], TRANSFORM_DIRECTIONS.TO_STANDARD)
+      ).rejects.toThrow('Provider is required and must be a non-empty string');
+    });
+
+    it('should throw error for null symbols array', async () => {
+      await expect(
+        service.transformSymbols('longport', null as any, TRANSFORM_DIRECTIONS.TO_STANDARD)
+      ).rejects.toThrow('Symbols array is required and must not be empty');
+    });
+
+    it('should throw error for empty symbols array', async () => {
+      await expect(
+        service.transformSymbols('longport', [], TRANSFORM_DIRECTIONS.TO_STANDARD)
+      ).rejects.toThrow('Symbols array is required and must not be empty');
+    });
+
+    it('should throw error for invalid direction', async () => {
+      await expect(
+        service.transformSymbols('longport', ['700.HK'], 'invalid_direction' as any)
+      ).rejects.toThrow('Invalid direction: invalid_direction');
+    });
+
+    it('should throw error for oversized batch', async () => {
+      const oversizedArray = new Array(CONFIG.MAX_BATCH_SIZE + 1).fill('AAPL');
+      
+      await expect(
+        service.transformSymbols('longport', oversizedArray, TRANSFORM_DIRECTIONS.TO_STANDARD)
+      ).rejects.toThrow(`Batch size exceeds maximum limit of ${CONFIG.MAX_BATCH_SIZE}`);
+    });
+
+    it('should throw error for oversized symbol', async () => {
+      const oversizedSymbol = 'A'.repeat(CONFIG.MAX_SYMBOL_LENGTH + 1);
+      
+      await expect(
+        service.transformSymbols('longport', [oversizedSymbol], TRANSFORM_DIRECTIONS.TO_STANDARD)
+      ).rejects.toThrow(`Symbol length exceeds maximum limit of ${CONFIG.MAX_SYMBOL_LENGTH}`);
+    });
+
+    it('should throw error for empty string in symbols array', async () => {
+      await expect(
+        service.transformSymbols('longport', ['AAPL', '', '700.HK'], TRANSFORM_DIRECTIONS.TO_STANDARD)
+      ).rejects.toThrow('All symbols must be non-empty strings');
+    });
+  });
+
+  describe('performance improvements', () => {
+    it('should use constants endpoint for monitoring', async () => {
+      symbolMapperCacheService.mapSymbols.mockResolvedValue(mockMappingResult);
+
+      await service.transformSymbols('longport', ['700.HK'], TRANSFORM_DIRECTIONS.TO_STANDARD);
+
+      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
+        CONFIG.ENDPOINT, // Using constant instead of hardcoded value
+        'POST',
+        200,
+        expect.any(Number),
+        expect.any(Object)
+      );
+    });
+
+    it('should generate UUID-based request IDs', async () => {
+      symbolMapperCacheService.mapSymbols.mockResolvedValue(mockMappingResult);
+
+      await service.transformSymbols('longport', ['700.HK'], TRANSFORM_DIRECTIONS.TO_STANDARD);
+
+      // Verify that mapSymbols was called with a UUID-like request ID
+      const call = symbolMapperCacheService.mapSymbols.mock.calls[0];
+      const requestId = call[3]; // 4th parameter is requestId
+      
+      expect(requestId).toMatch(/^transform_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
   });
 });

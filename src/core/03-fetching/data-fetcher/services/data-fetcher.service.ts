@@ -50,9 +50,11 @@ export class DataFetcherService implements IDataFetcher {
   private readonly logger = createLogger(DataFetcherService.name);
   
   /**
-   * 批处理并发限制数量 - 防止高并发场景资源耗尽
+   * 批处理并发限制数量 - 通过环境变量配置，防止高并发场景资源耗尽
    */
-  private readonly BATCH_CONCURRENCY_LIMIT = 10;
+  private readonly BATCH_CONCURRENCY_LIMIT = parseInt(
+    process.env.DATA_FETCHER_BATCH_CONCURRENCY || '10'
+  );
 
   constructor(
     private readonly capabilityRegistryService: CapabilityRegistryService,
@@ -114,13 +116,9 @@ export class DataFetcherService implements IDataFetcher {
       
       const processingTime = Date.now() - startTime;
       
-      // 5. 系统性能监控 - 使用标准化监控服务
-      this.collectorService.recordSystemMetrics({
-        memory: { used: 0, total: 0, percentage: 0 },
-        cpu: { usage: 0 },
-        uptime: process.uptime(),
-        timestamp: new Date()
-      });
+      // 💡 系统级性能监控由 src/monitoring/ 全局监控组件统一处理
+      // 📁 不得在业务组件中重复实现系统级监控功能
+      // 🎯 组件级监控只记录业务相关的性能指标
       
       // 记录额外的性能数据
       this.collectorService.recordRequest(
@@ -256,19 +254,37 @@ export class DataFetcherService implements IDataFetcher {
       return result;
       
     } catch (error) {
-      // 标准化错误处理：统一抛出异常
+      // 简化的错误处理：增强现有异常信息
       if (error instanceof NotFoundException) {
-        throw error; // 重新抛出已分类的异常
+        // 保持原异常类型，增强错误信息
+        throw new NotFoundException(
+          `${error.message} [Context: DataFetcher.getProviderContext]`
+        );
       }
       
+      // 增强日志信息
       this.logger.error('Provider context service error', {
         provider,
         error: error.message,
+        stack: error.stack, // 添加堆栈信息
         operation: DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
       });
       
-      throw new ServiceUnavailableException(`Provider context error: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `Provider ${provider} context service failed: ${error.message}`
+      );
     }
+  }
+
+  /**
+   * 获取批量处理并发限制 - 带边界检查
+   * 
+   * @returns 合理范围内的并发限制数量 (1-50)
+   */
+  private getBatchConcurrencyLimit(): number {
+    const limit = this.BATCH_CONCURRENCY_LIMIT;
+    // 限制在合理范围内：1-50
+    return Math.max(1, Math.min(limit, 50));
   }
 
   /**
@@ -280,19 +296,24 @@ export class DataFetcherService implements IDataFetcher {
   async fetchBatch(requests: DataFetchRequestDto[]): Promise<DataFetchResponseDto[]> {
     const results: DataFetchResponseDto[] = [];
     
+    // 获取动态并发限制
+    const concurrencyLimit = this.getBatchConcurrencyLimit();
+    
     this.logger.debug('开始批量数据获取', {
       totalRequests: requests.length,
-      concurrencyLimit: this.BATCH_CONCURRENCY_LIMIT,
+      concurrencyLimit,
+      rawLimit: this.BATCH_CONCURRENCY_LIMIT,
       operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
     });
     
     // 分批处理，控制并发数量
-    for (let i = 0; i < requests.length; i += this.BATCH_CONCURRENCY_LIMIT) {
-      const batch = requests.slice(i, i + this.BATCH_CONCURRENCY_LIMIT);
+    for (let i = 0; i < requests.length; i += concurrencyLimit) {
+      const batch = requests.slice(i, i + concurrencyLimit);
       
       this.logger.debug('处理批次', {
-        batchIndex: Math.floor(i / this.BATCH_CONCURRENCY_LIMIT) + 1,
+        batchIndex: Math.floor(i / concurrencyLimit) + 1,
         batchSize: batch.length,
+        concurrencyLimit,
         operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
       });
       
@@ -310,13 +331,9 @@ export class DataFetcherService implements IDataFetcher {
       results.push(...processedResults);
     }
     
-    // 记录批量操作性能指标
-    this.collectorService.recordSystemMetrics({
-      memory: { used: 0, total: 0, percentage: 0 },
-      cpu: { usage: 0 },
-      uptime: process.uptime(),
-      timestamp: new Date()
-    });
+    // 💡 批量操作的系统级监控由 src/monitoring/ 全局监控组件统一处理
+    // 📁 复用现有监控组件，不得新建系统级监控功能
+    // 🎯 此处保留业务级监控指标即可
     
     // 记录批量处理详细指标
     this.collectorService.recordRequest(

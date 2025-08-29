@@ -84,7 +84,7 @@ describe("Storage Constants", () => {
   describe("STORAGE_CONFIG", () => {
     it("should define all configuration values", () => {
       expect(STORAGE_CONFIG.DEFAULT_CACHE_TTL).toBe(3600);
-      expect(STORAGE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD).toBe(1024);
+      expect(STORAGE_CONFIG.DEFAULT_COMPRESSION_THRESHOLD).toBe(5 * 1024);
       expect(STORAGE_CONFIG.DEFAULT_COMPRESSION_RATIO).toBe(0.8);
       expect(STORAGE_CONFIG.MAX_KEY_LENGTH).toBe(250);
       expect(STORAGE_CONFIG.MAX_DATA_SIZE_MB).toBe(16);
