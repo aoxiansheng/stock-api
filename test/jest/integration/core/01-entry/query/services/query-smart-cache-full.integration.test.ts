@@ -4,7 +4,7 @@ import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching
 import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
 import { MarketStatusService } from '../../../../../../../src/core/shared/services/market-status.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../../../../../src/common/constants/market-trading-hours.constants';
@@ -72,7 +72,7 @@ describe('QueryService - Smart Cache Full Integration', () => {
           },
         },
         {
-          provide: InfrastructureMetricsRegistryService,
+          provide: MetricsRegistryService,
           useValue: {
             queryReceiverCallsTotal: { inc: jest.fn() },
             queryReceiverCallDuration: { observe: jest.fn() },

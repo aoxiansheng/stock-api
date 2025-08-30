@@ -16,7 +16,7 @@ import { TestEnvironment, smartDelay } from "../utils/utils/async-test-helpers";
 
 // Import modules needed for integration tests
 import { AuthModule } from "../../src/auth/module/auth.module";
-import { MonitoringModule } from "@monitoring/monitoring.module";
+import { MonitoringModule } from "../../src/monitoring/monitoring.module";
 import { AlertModule } from "../../src/alert/module/alert.module";
 // import { CacheModule } from "../../src/cache/module/cache.module"; // 移除：已通过SharedServicesModule提供
 
@@ -39,14 +39,14 @@ import { SymbolTransformerModule } from "../../src/core/02-processing/symbol-tra
 // 添加分页模块导入
 import { PaginationModule } from "../../src/common/modules/pagination/modules/pagination.module";
 
-import { CollectorService } from "@monitoring/collector/collector.service";
+import { CollectorService } from "../../src/monitoring/collector/collector.service";
 
 // 导入拦截器和过滤器
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "../../src/common/core/interceptors";
-import { InfrastructureInterceptor } from "@monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
 import { GlobalExceptionFilter } from "../../src/common/core/filters";
 import { Reflector } from "@nestjs/core";
 

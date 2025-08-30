@@ -187,18 +187,18 @@ export class TestDataManager {
   async setRedisData(key: string, value: any, ttl?: number): Promise<void> {
     try {
       const redisService = this.app.get('default_IORedisModuleConnectionToken');
-      const redisClient = redisService.getOrThrow();
+      // Use redis client directly
 
       const testKey = `${this.testDataPrefix}:${key}`;
 
       if (typeof value === "object") {
-        await redisClient.set(testKey, JSON.stringify(value));
+        await redisService.set(testKey, JSON.stringify(value));
       } else {
-        await redisClient.set(testKey, value);
+        await redisService.set(testKey, value);
       }
 
       if (ttl) {
-        await redisClient.expire(testKey, ttl);
+        await redisService.expire(testKey, ttl);
       }
 
       this.createdRedisKeys.push(testKey);
@@ -212,11 +212,11 @@ export class TestDataManager {
    */
   async getRedisData(key: string): Promise<any> {
     try {
-      const redisService = this.app.get<RedisService>(RedisService);
-      const redisClient = redisService.getOrThrow();
+      const redisService = this.app.get('REDIS_CLIENT');
+      // Use redis client directly
 
       const testKey = `${this.testDataPrefix}:${key}`;
-      const value = await redisClient.get(testKey);
+      const value = await redisService.get(testKey);
 
       if (!value) return null;
 
@@ -333,17 +333,17 @@ export class TestDataManager {
    */
   private async cleanupRedisData(): Promise<void> {
     try {
-      const redisService = this.app.get<RedisService>(RedisService);
-      const redisClient = redisService.getOrThrow();
+      const redisService = this.app.get('REDIS_CLIENT');
+      // Use redis client directly
 
       if (this.createdRedisKeys.length > 0) {
-        await redisClient.del(...this.createdRedisKeys);
+        await redisService.del(...this.createdRedisKeys);
       }
 
       // 清理所有带有测试前缀的键
-      const testKeys = await redisClient.keys(`${this.testDataPrefix}:*`);
+      const testKeys = await redisService.keys(`${this.testDataPrefix}:*`);
       if (testKeys.length > 0) {
-        await redisClient.del(...testKeys);
+        await redisService.del(...testKeys);
       }
     } catch (error) {
       console.warn("清理Redis测试数据失败:", error.message);

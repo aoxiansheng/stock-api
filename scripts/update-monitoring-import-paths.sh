@@ -22,7 +22,7 @@ update_imports() {
     sed -i '' 's|from.*system-status/presenter|from "../../monitoring/presenter"|g' "$file"
     
     # Update class names
-    sed -i '' 's/InfrastructureMetricsRegistryService/InfrastructureMetricsRegistryService/g' "$file"
+    sed -i '' 's/MetricsRegistryService/MetricsRegistryService/g' "$file"
     sed -i '' 's/PerformanceInterceptor/InfrastructurePerformanceInterceptor/g' "$file"
 }
 

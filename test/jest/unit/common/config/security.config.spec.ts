@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { securityConfig } from "../../../../../src/common/config/security.config";
+import { securityConfig } from "../../../../../src/auth/config/security.config";
 import { RATE_LIMIT_CONFIG } from "../../../../../src/common/constants/rate-limit.constants";
 
 describe("SecurityConfig", () => {

@@ -5,7 +5,8 @@ import {
   LightPerformanceMonitoring,
   NoPerformanceMonitoring,
   PERFORMANCE_MONITORING_KEY,
-} from '@common/core/decorators/performance-monitoring.decorator';
+} from '../../../../../../src/monitoring/infrastructure/decorators/infrastructure-config.decorator';
+
 
 // 模拟 @nestjs/common 模块
 jest.mock('@nestjs/common', () => ({

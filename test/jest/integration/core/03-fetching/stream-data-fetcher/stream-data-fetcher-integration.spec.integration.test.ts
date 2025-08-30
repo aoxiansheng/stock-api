@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { v4 as uuidv4 } from 'uuid';
 import { StreamDataFetcherService } from '../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../src/providers/services/capability-registry.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
 import {
   StreamConnectionParams,
   StreamConnection,
@@ -24,7 +24,7 @@ import {
 describe('StreamDataFetcher Integration Tests', () => {
   let service: StreamDataFetcherService;
   let capabilityRegistry: jest.Mocked<CapabilityRegistryService>;
-  let metricsRegistry: jest.Mocked<InfrastructureMetricsRegistryService>;
+  let metricsRegistry: jest.Mocked<MetricsRegistryService>;
   
   // Mock capability instances for different providers
   let mockLongportCapability: any;
@@ -101,7 +101,7 @@ describe('StreamDataFetcher Integration Tests', () => {
           useValue: mockCapabilityRegistry,
         },
         {
-          provide: InfrastructureMetricsRegistryService,
+          provide: MetricsRegistryService,
           useValue: mockMetricsRegistry,
         },
       ],
@@ -109,7 +109,7 @@ describe('StreamDataFetcher Integration Tests', () => {
 
     service = module.get<StreamDataFetcherService>(StreamDataFetcherService);
     capabilityRegistry = module.get(CapabilityRegistryService);
-    metricsRegistry = module.get(InfrastructureMetricsRegistryService);
+    metricsRegistry = module.get(MetricsRegistryService);
   });
 
   afterEach(() => {
@@ -142,7 +142,7 @@ describe('StreamDataFetcher Integration Tests', () => {
       });
 
       // Act - 执行完整流程
-      const connection = await service.establishStreamConnection(params);
+      const connection = await service.establishStreamConnection(params.provider, params.capability);
       await service.subscribeToSymbols(connection, testSymbols);
       
       // TODO Phase 2: 等待数据接收
@@ -184,7 +184,7 @@ describe('StreamDataFetcher Integration Tests', () => {
       mockLongportCapability.isConnected.mockReturnValue(false);
 
       // Act
-      const connection = await service.establishStreamConnection(params);
+      const connection = await service.establishStreamConnection(params.provider, params.capability);
 
       // Assert
       expect(connection).toBeDefined();
@@ -214,8 +214,8 @@ describe('StreamDataFetcher Integration Tests', () => {
 
       // Act - 同时建立两个provider的连接
       const [longportConnection, itickConnection] = await Promise.all([
-        service.establishStreamConnection(longportParams),
-        service.establishStreamConnection(itickParams),
+        service.establishStreamConnection(longportParams.provider, longportParams.capability),
+        service.establishStreamConnection(itickParams.provider, itickParams.capability),
       ]);
 
       // 分别订阅不同的符号
@@ -224,15 +224,14 @@ describe('StreamDataFetcher Integration Tests', () => {
 
       // Assert - 验证连接池状态
       const allStats = service.getAllConnectionStats();
-      const providerStats = service.getConnectionStatsByProvider();
+      const longportStats = service.getConnectionStatsByProvider('longport');
+      const itickStats = service.getConnectionStatsByProvider('itick');
 
       expect(allStats).toHaveLength(2);
-      expect(providerStats).toHaveProperty('longport');
-      expect(providerStats).toHaveProperty('itick');
-      expect(providerStats.longport.connections).toBe(1);
-      expect(providerStats.longport.totalSubscriptions).toBe(2);
-      expect(providerStats.itick.connections).toBe(1);
-      expect(providerStats.itick.totalSubscriptions).toBe(2);
+      expect(longportStats.total).toBe(1);
+      expect(longportStats.active).toBe(1);
+      expect(itickStats.total).toBe(1);
+      expect(itickStats.active).toBe(1);
       
       // 清理
       await service.closeConnection(longportConnection);
@@ -259,12 +258,12 @@ describe('StreamDataFetcher Integration Tests', () => {
           mockItickCapability.isConnected.mockReturnValue(false);
         }
         
-        const connection = await service.establishStreamConnection(params);
+        const connection = await service.establishStreamConnection(params.provider, params.capability);
         connections.push(connection);
       }
 
       // Act - 执行批量健康检查
-      const healthResults = await service.batchHealthCheck(1000);
+      const healthResults = await service.batchHealthCheck({ timeoutMs: 1000 });
 
       // Assert
       expect(Object.keys(healthResults)).toHaveLength(2);
@@ -288,8 +287,8 @@ describe('StreamDataFetcher Integration Tests', () => {
       mockLongportCapability.isConnected.mockReturnValue(false);
 
       // Act - 建立连接后查找现有连接
-      const connection = await service.establishStreamConnection(params);
-      const existingConnection = service.getExistingConnection('longport', 'ws-stock-quote');
+      const connection = await service.establishStreamConnection(params.provider, params.capability);
+      const existingConnection = service.getExistingConnection('longport:ws-stock-quote');
 
       // Assert
       expect(existingConnection).toBe(connection);

@@ -1,4 +1,4 @@
-import  StreamDataFetcherInterfacesIndex from '../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces/index';
+import * as StreamDataFetcherInterfacesIndex from '../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces/index';
 
 describe('Stream Data Fetcher Interfaces Index', () => {
   it('should export interfaces', () => {

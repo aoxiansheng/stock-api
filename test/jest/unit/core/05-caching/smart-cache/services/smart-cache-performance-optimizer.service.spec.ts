@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { SmartCachePerformanceOptimizer } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-performance-optimizer.service';
-import { CollectorService } from '@monitoring/collector/collector.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import  os from 'os';
 
 // Mock os module

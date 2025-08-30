@@ -160,6 +160,7 @@
     "tools:find-duplicates:script": "ts-node test/utils/tools/test-find-duplicates.ts --generate-script",
     "tools:naming-validator": "ts-node test/utils/tools/test-naming-validator.ts",
     "tools:naming-validator:script": "ts-node test/utils/tools/test-naming-validator.ts --generate-script",
+    "tools:naming-validator:execute": "ts-node test/utils/tools/test-naming-validator.ts --execute",
     "tools:clean-duplicates": "ts-node test/utils/tools/test-duplicate-cleaner.ts --dry-run",
     "tools:clean-duplicates:report": "ts-node test/utils/tools/test-duplicate-cleaner.ts --report",
     "tools:clean-duplicates:execute": "ts-node test/utils/tools/test-duplicate-cleaner.ts --execute",

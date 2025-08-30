@@ -155,12 +155,16 @@ describe('StreamReceiverGateway', () => {
         totalSize: 1024,
         compressionRatio: 0.8
       },
-      connections: { 
-        longport: { 
-          connections: 1,
-          totalSubscriptions: 5,
-          capabilities: ['quote', 'trade']
-        }
+      connections: {
+        total: 1,
+        active: 1,
+        connections: [{
+          key: 'longport:ws-stock-quote',
+          id: 'conn123',
+          capability: 'ws-stock-quote',
+          isConnected: true,
+          lastActiveAt: new Date()
+        }]
       },
       batchProcessing: { 
         totalBatches: 5,

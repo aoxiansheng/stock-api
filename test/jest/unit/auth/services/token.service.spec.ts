@@ -13,7 +13,7 @@ import {
   UserDocument,
 } from "../../../../../src/auth/schemas/user.schema";
 import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
-import { securityConfig } from "../../../../../src/common/config/security.config";
+import { securityConfig } from "../../../../../src/auth/config/security.config";
 
 describe("TokenService", () => {
   let service: TokenService;

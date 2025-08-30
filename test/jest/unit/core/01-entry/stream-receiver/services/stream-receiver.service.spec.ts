@@ -3,8 +3,9 @@ import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/s
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { SymbolTransformerService } from '@core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
-import { CollectorService } from '@monitoring/collector/collector.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 describe('StreamReceiverService', () => {
   let service: StreamReceiverService;
@@ -85,12 +86,14 @@ describe('StreamReceiverService', () => {
         {
           provide: StreamReceiverService,
           useFactory: (
+            configService: ConfigService,
             symbolTransformer: SymbolTransformerService,
             transformer: DataTransformerService,
             streamDataFetcher: StreamDataFetcherService,
             collectorService: CollectorService
           ) => {
             return new StreamReceiverService(
+              configService,
               symbolTransformer,
               transformer,
               streamDataFetcher,
@@ -98,7 +101,7 @@ describe('StreamReceiverService', () => {
               undefined  // optional StreamRecoveryWorkerService
             );
           },
-          inject: [SymbolTransformerService, DataTransformerService, StreamDataFetcherService, CollectorService]
+          inject: [ConfigService, SymbolTransformerService, DataTransformerService, StreamDataFetcherService, CollectorService]
         },
         {
           provide: StreamDataFetcherService,
@@ -115,6 +118,12 @@ describe('StreamReceiverService', () => {
         {
           provide: CollectorService,
           useValue: mockCollectorService,
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('test'),
+          },
         },
         {
           provide: Logger,

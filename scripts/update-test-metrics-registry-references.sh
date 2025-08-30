@@ -2,7 +2,7 @@
 
 # Script to update all test files that reference PresenterRegistryService
 
-echo "Updating test file references to InfrastructureMetricsRegistryService..."
+echo "Updating test file references to MetricsRegistryService..."
 
 # Find all test files that reference PresenterRegistryService
 grep -r "PresenterRegistryService" test/ --include="*.ts" -l | while read file; do
@@ -13,7 +13,7 @@ grep -r "PresenterRegistryService" test/ --include="*.ts" -l | while read file; 
   sed -i '' "s|from.*system-status/presenter/helper/services/metrics-registry.service.*|from '../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';|g" "$file"
   
   # Update class name references
-  sed -i '' 's/PresenterRegistryService/InfrastructureMetricsRegistryService/g' "$file"
+  sed -i '' 's/PresenterRegistryService/MetricsRegistryService/g' "$file"
   
   echo "✅ Updated $file"
 done

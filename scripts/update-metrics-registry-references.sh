@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script to update all PresenterRegistryService references to InfrastructureMetricsRegistryService
+# Script to update all PresenterRegistryService references to MetricsRegistryService
 # and update import paths
 
-echo "Updating PresenterRegistryService references to InfrastructureMetricsRegistryService..."
+echo "Updating PresenterRegistryService references to MetricsRegistryService..."
 
 # List of files to update
 files=(
@@ -33,7 +33,7 @@ for file in "${files[@]}"; do
     sed -i '' "s|from.*../../../system-status/presenter/services/presenter-registry.service.*|from '../../../common/infrastructure/monitoring/metrics-registry.service';|g" "$file"
     
     # Update class name references
-    sed -i '' 's/PresenterRegistryService/InfrastructureMetricsRegistryService/g' "$file"
+    sed -i '' 's/PresenterRegistryService/MetricsRegistryService/g' "$file"
     
     echo "✅ Updated $file"
   else

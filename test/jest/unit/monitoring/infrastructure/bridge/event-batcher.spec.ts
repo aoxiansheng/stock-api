@@ -1,0 +1,4 @@
+// event-batcher.spec.ts - 测试占位代码
+// 路径: unit/monitoring/infrastructure/bridge/event-batcher.spec.ts
+
+// TODO: 实现具体的测试用例

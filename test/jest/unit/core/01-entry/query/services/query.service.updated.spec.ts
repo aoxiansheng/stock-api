@@ -8,9 +8,9 @@ import { MarketStatusService } from '../../../../../../../src/core/shared/servic
 import { FieldMappingService } from '../../../../../../../src/core/shared/services/field-mapping.service';
 import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/query/services/query-statistics.service';
 import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
-import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
+import { BackgroundTaskService } from '../../../../../../../src/app/services/infrastructure/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -36,7 +36,7 @@ describe('QueryService - Updated Tests', () => {
   let storageService: jest.Mocked<StorageService>;
   let receiverService: jest.Mocked<ReceiverService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
-  let presenterRegistryService: jest.Mocked<InfrastructureMetricsRegistryService>;
+  let presenterRegistryService: jest.Mocked<MetricsRegistryService>;
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
 
   // Mock data for testing
@@ -141,7 +141,7 @@ describe('QueryService - Updated Tests', () => {
         { provide: QueryResultProcessorService, useValue: {} },
         { provide: BackgroundTaskService, useValue: {} },
         { provide: PaginationService, useValue: {} },
-        { provide: InfrastructureMetricsRegistryService, useValue: mockMetricsRegistry },
+        { provide: MetricsRegistryService, useValue: mockMetricsRegistry },
         { provide: SmartCacheOrchestrator, useValue: mockSmartCacheOrchestrator },
       ],
     }).compile();
@@ -150,7 +150,7 @@ describe('QueryService - Updated Tests', () => {
     storageService = module.get(StorageService);
     receiverService = module.get(ReceiverService);
     marketStatusService = module.get(MarketStatusService);
-    presenterRegistryService = module.get(InfrastructureMetricsRegistryService);
+    presenterRegistryService = module.get(MetricsRegistryService);
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
 
     // Setup utility function mocks
@@ -404,7 +404,7 @@ describe('QueryService - Updated Tests', () => {
         // Expected to throw
       }
 
-      // Note: queryErrors metric doesn't exist in current InfrastructureMetricsRegistryService
+      // Note: queryErrors metric doesn't exist in current MetricsRegistryService
       // expect(presenterRegistryService.queryErrors.inc).toHaveBeenCalled();
     });
   });
@@ -431,7 +431,7 @@ describe('QueryService - Updated Tests', () => {
 
       await service.executeQuery(multiBatchRequest);
 
-      // Note: queryBatchSize metric doesn't exist in current InfrastructureMetricsRegistryService
+      // Note: queryBatchSize metric doesn't exist in current MetricsRegistryService
       // expect(presenterRegistryService.queryBatchSize.observe).toHaveBeenCalled();
     });
   });

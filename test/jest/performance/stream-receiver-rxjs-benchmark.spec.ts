@@ -11,8 +11,15 @@ import { CapabilityRegistryService } from '../../../src/providers/services/capab
 import { SymbolMapperService } from '../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
 import { FlexibleMappingRuleService } from '../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
 import { DataTransformerService } from '../../../src/core/02-processing/transformer/services/data-transformer.service';
-import { FeatureFlags } from '../../../src/common/config/feature-flags.config';
-import { StreamPerformanceMetrics } from '../../../src/core/shared/services/stream-performance-metrics.service';
+import { FeatureFlags } from '../../../src/app/config/feature-flags.config';
+// Mock StreamPerformanceMetrics class since the actual service doesn't exist
+class MockStreamPerformanceMetrics {
+  recordBatchProcessing() {}
+  recordBatchProcessed() {}
+  recordBatchPreloadCacheHit() {}
+  getAverageProcessingTime() { return 10; }
+  reset() {}
+}
 
 // Performance test configuration
 const PERFORMANCE_TEST_CONFIG = {
@@ -73,7 +80,7 @@ const createMockServices = () => ({
 describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => {
   let batchEnabledService: StreamReceiverService;
   let batchDisabledService: StreamReceiverService;
-  let performanceMetrics: StreamPerformanceMetrics;
+  let performanceMetrics: MockStreamPerformanceMetrics;
 
   beforeAll(async () => {
     const mocks = createMockServices();
@@ -95,7 +102,7 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
             isPerformanceOptimizationEnabled: () => true,
           },
         },
-        { provide: StreamPerformanceMetrics, useValue: mocks.mockPerformanceMetrics },
+        { provide: MockStreamPerformanceMetrics, useValue: mocks.mockPerformanceMetrics },
       ],
     }).compile();
 
@@ -116,13 +123,13 @@ describe('StreamReceiver RxJS Batch Processing - Performance Benchmarks', () => 
             isPerformanceOptimizationEnabled: () => true,
           },
         },
-        { provide: StreamPerformanceMetrics, useValue: mocks.mockPerformanceMetrics },
+        { provide: MockStreamPerformanceMetrics, useValue: mocks.mockPerformanceMetrics },
       ],
     }).compile();
 
     batchEnabledService = batchEnabledModule.get<StreamReceiverService>(StreamReceiverService);
     batchDisabledService = batchDisabledModule.get<StreamReceiverService>(StreamReceiverService);
-    performanceMetrics = batchEnabledModule.get<StreamPerformanceMetrics>(StreamPerformanceMetrics);
+    performanceMetrics = batchEnabledModule.get<MockStreamPerformanceMetrics>(MockStreamPerformanceMetrics);
 
     // 预热服务实例
     await warmupServices(batchEnabledService, batchDisabledService);

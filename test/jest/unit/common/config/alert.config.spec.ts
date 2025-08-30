@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { alertConfig } from "../../../../../src/common/config/alert.config";
+import { alertConfig } from "../../../../../src/alert/config/alert.config";
 
 describe("AlertConfig", () => {
   const originalEnv = process.env;

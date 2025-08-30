@@ -7,10 +7,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import  request from 'supertest';
-import { AppModule } from '../../../../src/app.module';
-import { AuthService } from '../../../../src/auth/services/auth.service';
-import { UserRole } from '../../../../src/auth/enums/user-role.enum';
-import { CreateUserDto } from '../../../../src/auth/dto/auth.dto';
+import { AppModule } from '../../../../../src/app.module';
+import { AuthService } from '../../../../../src/auth/services/auth.service';
+import { UserRole } from '../../../../../src/auth/enums/user-role.enum';
+import { CreateUserDto } from '../../../../../src/auth/dto/auth.dto';
 
 describe('Prometheus Metrics (e2e)', () => {
   let app: INestApplication;

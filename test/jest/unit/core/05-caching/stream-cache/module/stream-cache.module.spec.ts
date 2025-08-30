@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { StreamCacheModule } from '../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module';
-import { StreamCacheService } from '../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
+import { StreamCacheModule } from '../../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module';
+import { StreamCacheService } from '../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
 import Redis from 'ioredis';
 
 describe('StreamCacheModule', () => {

@@ -11,7 +11,7 @@ import { MarketStatusService } from '@core/shared/services/market-status.service
 import { FieldMappingService } from '@core/shared/services/field-mapping.service';
 import { QueryStatisticsService } from '@core/01-entry/query/services/query-statistics.service';
 import { QueryResultProcessorService } from '@core/01-entry/query/services/query-result-processor.service';
-import { BackgroundTaskService } from '../../../../../../app/services/infrastructure/background-task.service';
+import { BackgroundTaskService } from '../../../../../../../src/app/services/infrastructure/background-task.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { QueryRequestDto } from '@core/01-entry/query/dto/query-request.dto';
 import { QueryType } from '@core/01-entry/query/dto/query-types.dto';

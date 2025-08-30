@@ -3,7 +3,7 @@ import { StreamReceiverService } from '../../../../../../src/core/01-entry/strea
 import { SymbolTransformerService } from '../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '../../../../../../src/core/02-processing/transformer/services/data-transformer.service';
 import { StreamDataFetcherService } from '../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
-import { CollectorService } from '@monitoring/collector/collector.service';
+import { CollectorService } from '../../../../../../src/monitoring/collector/collector.service';
 import { StreamRecoveryWorkerService } from '../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
 import { RateLimitService } from '../../../../../../src/auth/services/rate-limit.service';
 import { StreamSubscribeDto } from '../../../../../../src/core/01-entry/stream-receiver/dto/stream-subscribe.dto';

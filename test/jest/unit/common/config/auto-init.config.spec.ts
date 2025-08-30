@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { getAutoInitConfig } from "../../../../../src/common/config/auto-init.config";
+import { getAutoInitConfig } from "../../../../../src/app/config/auto-init.config";
 
 describe("AutoInitConfig", () => {
   const originalEnv = process.env;

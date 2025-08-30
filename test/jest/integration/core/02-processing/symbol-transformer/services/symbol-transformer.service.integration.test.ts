@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SymbolTransformerService } from '../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
-import { SymbolMapperCacheService } from '../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { CollectorService } from '@monitoring/collector/collector.service';
-import { TRANSFORM_DIRECTIONS, CONFIG } from '../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants';
+import { SymbolTransformerService } from '../../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
+import { SymbolMapperCacheService } from '../../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
+import { TRANSFORM_DIRECTIONS, CONFIG } from '../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants';
 
 describe('SymbolTransformerService Integration Test', () => {
   let service: SymbolTransformerService;

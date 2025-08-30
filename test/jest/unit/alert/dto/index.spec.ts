@@ -1,4 +1,4 @@
-import  AlertDtoIndex from '../../../../../src/alert/dto/index';
+import * as AlertDtoIndex from '../../../../../src/alert/dto/index';
 import { AlertResponseDto } from '../../../../../src/alert/dto/alert.dto';
 import { CreateAlertRuleDto } from '../../../../../src/alert/dto/alert-rule.dto';
 import { NotificationChannelDto } from '../../../../../src/alert/dto/notification-channel.dto';

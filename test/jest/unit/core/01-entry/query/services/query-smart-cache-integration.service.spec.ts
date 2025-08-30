@@ -7,9 +7,9 @@ import { MarketStatusService, MarketStatusResult } from '../../../../../../../sr
 import { FieldMappingService } from '../../../../../../../src/core/shared/services/field-mapping.service';
 import { QueryStatisticsService } from '../../../../../../../src/core/01-entry/query/services/query-statistics.service';
 import { QueryResultProcessorService } from '../../../../../../../src/core/01-entry/query/services/query-result-processor.service';
-import { BackgroundTaskService } from '../../../../../../../src/core/shared/services/background-task.service';
+import { BackgroundTaskService } from '../../../../../../../src/app/services/infrastructure/background-task.service';
 import { PaginationService } from '../../../../../../../src/common/modules/pagination/services/pagination.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
@@ -34,7 +34,7 @@ describe('QueryService - Smart Cache Integration', () => {
   let smartCacheOrchestrator: jest.Mocked<SmartCacheOrchestrator>;
   let receiverService: jest.Mocked<ReceiverService>;
   let marketStatusService: jest.Mocked<MarketStatusService>;
-  let metricsRegistry: jest.Mocked<InfrastructureMetricsRegistryService>;
+  let metricsRegistry: jest.Mocked<MetricsRegistryService>;
 
   const mockQueryRequest: QueryRequestDto = {
     queryType: QueryType.BY_SYMBOLS,
@@ -107,7 +107,7 @@ describe('QueryService - Smart Cache Integration', () => {
           },
         },
         {
-          provide: InfrastructureMetricsRegistryService,
+          provide: MetricsRegistryService,
           useValue: {
             queryReceiverCallsTotal: {
               inc: jest.fn(),
@@ -131,7 +131,7 @@ describe('QueryService - Smart Cache Integration', () => {
     smartCacheOrchestrator = module.get(SmartCacheOrchestrator);
     receiverService = module.get(ReceiverService);
     marketStatusService = module.get(MarketStatusService);
-    metricsRegistry = module.get(InfrastructureMetricsRegistryService);
+    metricsRegistry = module.get(MetricsRegistryService);
   });
 
   describe('Query批量流水线智能缓存集成', () => {

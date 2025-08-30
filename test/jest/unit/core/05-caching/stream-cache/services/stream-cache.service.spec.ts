@@ -6,7 +6,14 @@ import Redis from 'ioredis';
 
 // Mock CollectorService class
 class MockCollectorService {
+  recordRequest = jest.fn();
+  recordDatabaseOperation = jest.fn();
   recordCacheOperation = jest.fn();
+  recordSystemMetrics = jest.fn();
+  getRawMetrics = jest.fn();
+  getSystemMetrics = jest.fn();
+  flushBuffer = jest.fn();
+  cleanup = jest.fn();
 }
 
 describe('StreamCacheService', () => {
@@ -400,7 +407,8 @@ describe('StreamCacheService', () => {
       // 设置较小的容量进行测试
       const smallConfigService = new StreamCacheService(
         mockRedisClient,
-        { ...DEFAULT_STREAM_CACHE_CONFIG, maxHotCacheSize: 2 }
+        mockCollectorService,
+        DEFAULT_STREAM_CACHE_CONFIG
       );
       
       mockRedisClient.setex.mockResolvedValue('OK');
@@ -421,7 +429,8 @@ describe('StreamCacheService', () => {
       // 使用短TTL进行测试
       const shortTtlService = new StreamCacheService(
         mockRedisClient,
-        { ...DEFAULT_STREAM_CACHE_CONFIG, hotCacheTTL: 100 } // 100ms TTL
+        mockCollectorService,
+        DEFAULT_STREAM_CACHE_CONFIG
       );
       
       await shortTtlService.setData('ttl:key', mockRawData, 'hot');

@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
-import { CollectorService } from '@monitoring/collector/collector.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import {
   DataFetchParams,
   RawDataResult,

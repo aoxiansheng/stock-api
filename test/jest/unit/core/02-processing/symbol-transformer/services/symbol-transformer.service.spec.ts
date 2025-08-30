@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymbolTransformerService } from '../../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { SymbolMapperCacheService } from '../../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { CollectorService } from '@monitoring/collector/collector.service';
+import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
 import { SymbolTransformResult } from '../../../../../../../src/core/02-processing/symbol-transformer/interfaces';
 import { CONFIG, TRANSFORM_DIRECTIONS } from '../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants';
 import { DeepMocked, createMock } from '@golevelup/ts-jest';

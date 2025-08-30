@@ -1,4 +1,4 @@
-import  NotificationSendersIndex from '../../../../../../src/alert/services/notification-senders/index';
+import * as NotificationSendersIndex from '../../../../../../src/alert/services/notification-senders/index';
 import { DingTalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';
 import { EmailSender } from '../../../../../../src/alert/services/notification-senders/email.sender';
 import { LogSender } from '../../../../../../src/alert/services/notification-senders/log.sender';

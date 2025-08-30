@@ -1,4 +1,4 @@
-import  AlertSchemasIndex from '../../../../../src/alert/schemas/index';
+import * as AlertSchemasIndex from '../../../../../src/alert/schemas/index';
 import { AlertRuleSchema } from '../../../../../src/alert/schemas/alert-rule.schema';
 import { AlertHistorySchema } from '../../../../../src/alert/schemas/alert-history.schema';
 import { NotificationLogSchema } from '../../../../../src/alert/schemas/notification-log.schema';

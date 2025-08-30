@@ -21,7 +21,7 @@ import { PasswordService } from "../../../../../src/auth/services/password.servi
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { TokenService } from "../../../../../src/auth/services/token.service";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { CollectorService } from "../../../../../src/metrics/services/collector.service";
+import { CollectorService } from "../../../../../src/monitoring/collector/collector.service";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CreateUserDto, LoginDto } from "../../../../../src/auth/dto/auth.dto";
 
@@ -31,8 +31,7 @@ describe("AuthService", () => {
   let apiKeyService: jest.Mocked<ApiKeyService>;
   let passwordService: jest.Mocked<PasswordService>;
   let tokenService: jest.Mocked<TokenService>;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let CollectorService: jest.Mocked<CollectorService>;
+  let collectorService: jest.Mocked<CollectorService>;
 
   // Mock 数据 - 使用 any 类型来模拟 Mongoose 文档行为
   const mockUser: any = {
@@ -184,7 +183,7 @@ describe("AuthService", () => {
     apiKeyService = module.get(ApiKeyService);
     passwordService = module.get(PasswordService);
     tokenService = module.get(TokenService);
-    CollectorService = module.get(CollectorService);
+    collectorService = module.get<jest.Mocked<CollectorService>>(CollectorService);
   });
 
   afterEach(() => {

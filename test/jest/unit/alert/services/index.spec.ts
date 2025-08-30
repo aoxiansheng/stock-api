@@ -1,4 +1,4 @@
-import  AlertServicesIndex from '../../../../../src/alert/services/index';
+import * as AlertServicesIndex from '../../../../../src/alert/services/index';
 import { AlertingService } from '../../../../../src/alert/services/alerting.service';
 import { AlertHistoryService } from '../../../../../src/alert/services/alert-history.service';
 import { NotificationService } from '../../../../../src/alert/services/notification.service';

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { notificationConfig } from "../../../../../src/common/config/notification.config";
+import { notificationConfig } from "../../../../../src/app/config/notification.config";
 
 describe("NotificationConfig", () => {
   describe("default template", () => {

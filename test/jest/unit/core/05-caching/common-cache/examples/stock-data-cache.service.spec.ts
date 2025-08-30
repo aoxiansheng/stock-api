@@ -41,14 +41,15 @@ describe.skip('StockDataCacheService', () => {
       const mockData = { symbol: 'AAPL', provider: 'longport', price: 150, timestamp: Date.now() };
       mockCommonCache.getWithFallback.mockResolvedValue({
         data: mockData,
-        hit: true,
-        ttlRemaining: 3600,
+        fromCache: true,
+        fromFallback: false,
+        metadata: {},
       });
 
       const result = await service.getStockQuote('AAPL', 'longport');
 
       expect(result.data).toEqual(mockData);
-      expect(result.hit).toBe(true);
+      expect(result.fromCache).toBe(true);
       expect(mockCommonCache.getWithFallback).toHaveBeenCalledWith(
         'stock_quote:AAPL:longport',
         expect.any(Function),
@@ -66,8 +67,9 @@ describe.skip('StockDataCacheService', () => {
     it('should generate correct cache key with market', async () => {
       mockCommonCache.getWithFallback.mockResolvedValue({
         data: { symbol: '700.HK' },
-        hit: false,
-        ttlRemaining: 3600,
+        fromCache: false,
+        fromFallback: true,
+        metadata: {},
       });
 
       await service.getStockQuote('700.HK', 'longport', 'HK');
@@ -89,11 +91,13 @@ describe.skip('StockDataCacheService', () => {
       ];
 
       // 模拟部分命中的情况
-      mockCommonCache.mget.mockResolvedValue([
-        { data: { symbol: 'AAPL', price: 150 }, ttlRemaining: 1800 },
-        null, // GOOGL缓存未命中
-        { data: { symbol: 'MSFT', price: 300 }, ttlRemaining: 2400 },
-      ]);
+      mockCommonCache.mget.mockResolvedValue({
+        data: [
+          { key: 'stock_quote:AAPL:longport', value: { symbol: 'AAPL', price: 150 } },
+          { key: 'stock_quote:MSFT:longport', value: { symbol: 'MSFT', price: 300 } }
+        ],
+        metadata: {}
+      });
 
       // 模拟设置缓存的调用
       mockCommonCache.set.mockResolvedValue(undefined);
@@ -170,13 +174,11 @@ describe.skip('StockDataCacheService', () => {
       expect(mockCommonCache.mset).toHaveBeenCalledWith([
         {
           key: 'symbol_mapping:AAPL:longport',
-          data: { mapped: 'AAPL.US' },
-          ttl: 86400,
+          value: { mapped: 'AAPL.US' },
         },
         {
           key: 'symbol_mapping:700:longport',
-          data: { mapped: '700.HK' },
-          ttl: 86400,
+          value: { mapped: '700.HK' },
         },
       ]);
     });
@@ -184,7 +186,7 @@ describe.skip('StockDataCacheService', () => {
 
   describe('clearStockCache', () => {
     it('should clear cache for specific provider', async () => {
-      mockCommonCache.delete.mockResolvedValue(true);
+      mockCommonCache.delete.mockResolvedValue({ deletedCount: 1, metadata: {} });
 
       const result = await service.clearStockCache('AAPL', 'longport');
 
@@ -193,7 +195,7 @@ describe.skip('StockDataCacheService', () => {
     });
 
     it('should clear cache for all providers when none specified', async () => {
-      mockCommonCache.delete.mockResolvedValue(true);
+      mockCommonCache.delete.mockResolvedValue({ deletedCount: 1, metadata: {} });
 
       const result = await service.clearStockCache('AAPL');
 
@@ -211,7 +213,11 @@ describe.skip('StockDataCacheService', () => {
       };
 
       mockCommonCache.isHealthy.mockResolvedValue(true);
-      mockCommonCache.getStats.mockResolvedValue(mockStats);
+      mockCommonCache.getStats.mockResolvedValue({
+        redis: mockStats,
+        memory: mockStats,
+        performance: mockStats
+      });
 
       const result = await service.getCacheHealth();
 

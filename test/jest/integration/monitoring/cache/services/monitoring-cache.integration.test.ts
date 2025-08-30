@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { MonitoringCacheService } from '@monitoring/cache/monitoring-cache.service';
+import { MonitoringCacheService } from '../../../../../../src/monitoring/cache/monitoring-cache.service';
 import { CacheService } from '../../../../../../src/cache/services/cache.service';
 
 describe('MonitoringCacheService Integration Tests', () => {

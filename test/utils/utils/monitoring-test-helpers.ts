@@ -36,17 +36,18 @@ export class MonitoringTestHelper {
     endpointPath: string,
     method: string = "GET",
     options: { timeout?: number; expectedCount?: number } = {},
-  ): Promise<any[]> {
+  ): Promise<any> {
     const { timeout = TestEnvironment.getTimeout(2000), expectedCount = 1 } =
       options;
 
     await waitForCondition(
       async () => {
-        const metrics = await this.performanceMonitor.getEndpointMetrics();
-        const endpointMetric = metrics.find(
+        const metrics = await this.performanceMonitor.getRawMetrics();
+        const requests = metrics.requests || [];
+        const endpointMetric = requests.find(
           (m) => m.endpoint === endpointPath && m.method === method,
         );
-        return endpointMetric && endpointMetric.totalRequests >= expectedCount;
+        return endpointMetric && requests.filter(r => r.endpoint === endpointPath && r.method === method).length >= expectedCount;
       },
       {
         timeout,
@@ -55,7 +56,7 @@ export class MonitoringTestHelper {
       },
     );
 
-    return this.performanceMonitor.getEndpointMetrics();
+    return this.performanceMonitor.getRawMetrics();
   }
 
   /**
@@ -278,7 +279,7 @@ export class MonitoringTestHelper {
 
     await waitForCondition(
       async () => {
-        finalMetrics = await this.performanceMonitor.getDatabaseMetrics();
+        finalMetrics = await this.performanceMonitor.getRawMetrics();
 
         let allConditionsMet = true;
 
@@ -398,8 +399,8 @@ export class MonitoringTestHelper {
   }> {
     const [endpointMetrics, databaseMetrics, systemMetrics, alertRules] =
       await Promise.all([
-        this.performanceMonitor.getEndpointMetrics(),
-        this.performanceMonitor.getDatabaseMetrics(),
+        this.performanceMonitor.getRawMetrics(),
+        this.performanceMonitor.getRawMetrics(),
         Promise.resolve(this.performanceMonitor.getSystemMetrics()),
         this.alertingService.getRules(),
       ]);
@@ -407,7 +408,7 @@ export class MonitoringTestHelper {
     const activeAlerts = await this.alertHistoryService.getActiveAlerts();
 
     return {
-      endpointMetrics: endpointMetrics.length,
+      endpointMetrics: (endpointMetrics.requests || []).length,
       activeAlerts: activeAlerts.length,
       alertRules: alertRules.length,
       databaseMetrics,

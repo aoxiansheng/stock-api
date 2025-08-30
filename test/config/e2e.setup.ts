@@ -21,8 +21,8 @@ import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "@common/core/interceptors";
-import { InfrastructureInterceptor } from "@monitoring/infrastructure/interceptors/infrastructure.interceptor";
-import { CollectorService } from "@monitoring/collector/collector.service";
+import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { CollectorService } from "../../src/monitoring/collector/collector.service";
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;

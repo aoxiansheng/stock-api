@@ -15,7 +15,7 @@ import { INestApplication } from '@nestjs/common';
 // import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
 import { StorageService } from '../../../../../../../src/core/04-storage/storage/services/storage.service';
-import { InfrastructureMetricsRegistryService } from '../../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
+import { MetricsRegistryService } from '../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
 import { DataRequestDto } from '../../../../../../../src/core/01-entry/receiver/dto/data-request.dto';
 import { Market } from '../../../../../../../src/common/constants/market.constants';
 
@@ -29,7 +29,7 @@ describe('Receiver Smart Cache Integration Tests', () => {
   // let receiverService: ReceiverService;
   // let smartCacheOrchestrator: SmartCacheOrchestrator;
   // let storageService: StorageService;
-  // let metricsRegistry: InfrastructureMetricsRegistryService;
+  // let metricsRegistry: MetricsRegistryService;
 
   // SDK调用统计
   // let providerCallCount = 0;
@@ -56,7 +56,7 @@ describe('Receiver Smart Cache Integration Tests', () => {
     // receiverService = app.get<ReceiverService>(ReceiverService);
     app.get<SmartCacheOrchestrator>(SmartCacheOrchestrator);
     app.get<StorageService>(StorageService);
-    app.get<InfrastructureMetricsRegistryService>(InfrastructureMetricsRegistryService);
+    app.get<MetricsRegistryService>(MetricsRegistryService);
 
     console.log('✅ Receiver智能缓存集成测试环境已初始化');
   });

@@ -12,7 +12,7 @@ import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-pre
 import { DataSourceTemplateService } from "../../../../../../../src/core/00-prepare/data-mapper/services/data-source-template.service";
 import { MappingRuleCacheService } from "../../../../../../../src/core/00-prepare/data-mapper/services/mapping-rule-cache.service";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
-import { CollectorService } from "@monitoring/collector/collector.service";
+import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleDocument

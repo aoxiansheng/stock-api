@@ -391,7 +391,7 @@ describe('StreamConfigHotReloadService', () => {
     it('should debounce file change events', async () => {
       // Arrange
       let changeCallback: (eventType: string, filename: string) => void;
-      mockWatcher.on.mockImplementation((event: string, callback: Function) => {
+      mockWatcher.on.mockImplementation((event: string, callback: (eventType: string, filename: string) => void) => {
         if (event === 'change') {
           changeCallback = callback;
         }

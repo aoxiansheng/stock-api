@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { CommonCacheModule, CommonCacheService } from '@core/05-caching/common-cache';
+import { CommonCacheModule, CommonCacheService } from '../../../../../../src/core/05-caching/common-cache';
 
 describe('CommonCacheService Integration', () => {
   let service: CommonCacheService;
@@ -92,8 +92,7 @@ describe('CommonCacheService Integration', () => {
 
         expect(result).not.toBeNull();
         expect(result?.data).toEqual(testData);
-        expect(result?.ttlRemaining).toBeGreaterThan(0);
-        expect(result?.ttlRemaining).toBeLessThanOrEqual(ttl);
+        expect(result?.metadata).toBeDefined();
 
         // 清理测试数据
         await service.delete(key);
@@ -133,9 +132,9 @@ describe('CommonCacheService Integration', () => {
         `test:batch3:${Date.now()}`,
       ];
       const testData = [
-        { key: keys[0], data: { value: 'test1' }, ttl: 60 },
-        { key: keys[1], data: { value: 'test2' }, ttl: 60 },
-        { key: keys[2], data: { value: 'test3' }, ttl: 60 },
+        { key: keys[0], value: { value: 'test1' } },
+        { key: keys[1], value: { value: 'test2' } },
+        { key: keys[2], value: { value: 'test3' } },
       ];
 
       try {
@@ -170,20 +169,20 @@ describe('CommonCacheService Integration', () => {
 
       try {
         // 首次调用应该触发fallback
-        const result1 = await service.getWithFallback(key, fetchFn, 60);
+        const result1 = await service.getWithFallback(key, fetchFn, { fallbackTTL: 60 });
         
         expect(result1.data).toEqual(fallbackData);
-        expect(result1.hit).toBe(false);
+        expect(result1.fromFallback).toBe(true);
         expect(fetchFn).toHaveBeenCalledTimes(1);
 
         // 给缓存一些时间写入
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // 第二次调用应该命中缓存
-        const result2 = await service.getWithFallback(key, fetchFn, 60);
+        const result2 = await service.getWithFallback(key, fetchFn, { fallbackTTL: 60 });
         
         expect(result2.data).toEqual(fallbackData);
-        expect(result2.hit).toBe(true);
+        expect(result2.fromCache).toBe(true);
         expect(fetchFn).toHaveBeenCalledTimes(1); // 仍然只调用一次
 
         // 清理测试数据

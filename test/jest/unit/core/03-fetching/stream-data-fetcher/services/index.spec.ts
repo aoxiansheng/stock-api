@@ -1,4 +1,4 @@
-import  StreamDataFetcherServicesIndex from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/index';
+import * as StreamDataFetcherServicesIndex from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/index';
 import { StreamDataFetcherService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { StreamConnectionImpl } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-connection.impl';
 

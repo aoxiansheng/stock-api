@@ -6,7 +6,7 @@ import {
   CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN,
   MONITORING_COLLECTOR_TOKEN
-} from '@monitoring/contracts';
+} from '../../../../../../src/monitoring/contracts/tokens/injection.tokens';
 
 describe('StreamCache Monitoring Integration', () => {
   let service: StreamCacheService;
