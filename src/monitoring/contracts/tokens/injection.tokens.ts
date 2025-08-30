@@ -1,4 +1,3 @@
-import { InjectionToken } from '@nestjs/common';
 import { ICollector } from '../interfaces/collector.interface';
 
 /**
@@ -28,7 +27,7 @@ import { ICollector } from '../interfaces/collector.interface';
  * ) {}
  * ```
  */
-export const MONITORING_COLLECTOR_TOKEN = new InjectionToken<ICollector>('MONITORING_COLLECTOR');
+export const MONITORING_COLLECTOR_TOKEN = Symbol('MONITORING_COLLECTOR');
 
 /**
  * Redis客户端令牌（缓存专用）
@@ -49,7 +48,7 @@ export const MONITORING_COLLECTOR_TOKEN = new InjectionToken<ICollector>('MONITO
  * ) {}
  * ```
  */
-export const CACHE_REDIS_CLIENT_TOKEN = new InjectionToken<any>('CACHE_REDIS_CLIENT');
+export const CACHE_REDIS_CLIENT_TOKEN = Symbol('CACHE_REDIS_CLIENT');
 
 /**
  * 流缓存配置令牌
@@ -69,7 +68,7 @@ export const CACHE_REDIS_CLIENT_TOKEN = new InjectionToken<any>('CACHE_REDIS_CLI
  * ) {}
  * ```
  */
-export const STREAM_CACHE_CONFIG_TOKEN = new InjectionToken<any>('STREAM_CACHE_CONFIG');
+export const STREAM_CACHE_CONFIG_TOKEN = Symbol('STREAM_CACHE_CONFIG');
 
 /**
  * 通用缓存配置令牌
@@ -89,4 +88,4 @@ export const STREAM_CACHE_CONFIG_TOKEN = new InjectionToken<any>('STREAM_CACHE_C
  * ) {}
  * ```
  */
-export const COMMON_CACHE_CONFIG_TOKEN = new InjectionToken<any>('COMMON_CACHE_CONFIG');
+export const COMMON_CACHE_CONFIG_TOKEN = Symbol('COMMON_CACHE_CONFIG');

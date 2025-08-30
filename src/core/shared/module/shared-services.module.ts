@@ -1,6 +1,6 @@
 /**
- * 共享服务模块
- * 🎯 提供核心组件间共享的服务，解决循环依赖
+ * 共享业务服务模块
+ * 🎯 提供核心业务逻辑服务，仍需全局可用以解决循环依赖
  */
 
 import { Module, Global } from "@nestjs/common";
@@ -10,23 +10,20 @@ import { MonitoringModule } from '../../../monitoring/monitoring.module';
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
-import { StringUtils } from "../utils/string.util";
-import { BackgroundTaskService } from "../services/background-task.service";
 import { FieldMappingService } from "../services/field-mapping.service";
 
 /**
- * A global module that provides shared services for data fetching,
- * change detection, and market status. These services are fundamental
- * for core operations and are made available application-wide.
+ * 核心业务服务模块，提供跨组件共享的业务逻辑
  *
  * @remarks
- * The services included here are singletons, ensuring consistent
- * behavior and state management across different parts of the application.
- * Using `@Global()` simplifies dependency injection by eliminating the need
- * to import `SharedServicesModule` in every feature module.
+ * 这些服务包含核心业务逻辑，需要在多个组件间共享：
+ * - DataChangeDetectorService: 数据变化检测逻辑
+ * - MarketStatusService: 市场状态和交易时间计算
+ * - FieldMappingService: 组件间字段映射转换
  * 
- * Note: ProvidersModule removed to prevent circular dependency and duplicate initialization.
- * Services requiring provider capabilities should import ProvidersModule directly.
+ * 保留 @Global() 是因为这些服务包含业务逻辑，需要在core组件间共享。
+ * 纯工具类已迁移到 SharedUtilsModule
+ * 基础设施服务已迁移到 src/app/services/infrastructure/
  */
 @Global()
 @Module({
@@ -37,15 +34,11 @@ import { FieldMappingService } from "../services/field-mapping.service";
   providers: [
     DataChangeDetectorService,
     MarketStatusService,
-    StringUtils,
-    BackgroundTaskService,
     FieldMappingService,
   ],
   exports: [
     DataChangeDetectorService,
     MarketStatusService,
-    StringUtils,
-    BackgroundTaskService,
     FieldMappingService,
   ],
 })

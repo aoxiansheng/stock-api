@@ -6,6 +6,7 @@
  * - Collector: 数据收集层
  * - Analyzer: 数据分析层  
  * - Presenter: 数据展示层
+ * - Health: 扩展健康检查层（应用级健康检查）
  */
 
 import { Module } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { CollectorModule } from './collector/collector.module';
 import { AnalyzerModule } from './analyzer/analyzer.module';
 import { PresenterModule } from './presenter/presenter.module';
+import { HealthModule } from './health/health.module';
 
 
 @Module({
@@ -23,6 +25,7 @@ import { PresenterModule } from './presenter/presenter.module';
     CollectorModule,
     AnalyzerModule,
     PresenterModule,
+    HealthModule, // 扩展健康检查模块
   ],
   exports: [
     MonitoringCacheModule, // 导出缓存模块供外部使用
@@ -30,6 +33,7 @@ import { PresenterModule } from './presenter/presenter.module';
     CollectorModule,
     AnalyzerModule,
     PresenterModule,
+    HealthModule, // 导出健康检查模块
   ],
 })
 export class MonitoringModule {}

@@ -207,7 +207,15 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/04-storage --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/smart-cache/services/smart-cache-performance-optimizer.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/stream-cache/monitoring-integration.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js --verbose)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/smart-cache/performance/smart-cache-memory-leak.spec.ts --testTimeout=60000 --config test/config/jest.unit.config.js)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/smart-cache/performance/smart-cache-memory-leak.spec.ts --testTimeout=60000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/app/config/app.config.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/app/config/app.config.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/app/services/infrastructure/background-task.service.spec.ts --testTimeout=10000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/core/shared/module/shared-services.module.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/monitoring/health/extended-health.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/monitoring/presenter/presenter-controller-health.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/monitoring/health/health.module.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/shared/utils/string.util.spec.ts test/jest/unit/monitoring/health/ --testTimeout=30000 --config test/config/jest.unit.config.js)"
     ],
     "deny": []
   }

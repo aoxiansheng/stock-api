@@ -5,6 +5,9 @@ import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { REDIS_SPECIAL_VALUES } from '../constants/cache.constants';
 import { RedisValueUtils } from '../utils/redis-value.utils';
 import { CacheCompressionService } from './cache-compression.service';
+import { createLogger } from '../../../../common/config/logger.config';
+import { AdaptiveDecompressionService } from './adaptive-decompression.service';
+import { BatchMemoryOptimizerService } from './batch-memory-optimizer.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { 
   ICacheOperation, 
@@ -12,6 +15,11 @@ import {
   ICacheMetadata 
 } from '../interfaces/cache-operation.interface';
 import { CacheMetadata } from '../interfaces/cache-metadata.interface';
+import { 
+  CACHE_REDIS_CLIENT_TOKEN, 
+  MONITORING_COLLECTOR_TOKEN, 
+  ICollector 
+} from '../../../../monitoring/contracts';
 
 /**
  * 缓存解压异常类
@@ -56,55 +64,6 @@ class DecompressionSemaphore {
       const resolve = this.waiting.shift()!;
       resolve();
     } else {
-      this.permits++;
-    }
-  }
-}
-
-/**
- * 通用缓存服务
- * 提供极简的缓存操作接口，失败返回null不抛异常
- */
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
-import { CacheCompressionService } from './cache-compression.service';
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
-import { createLogger } from '../../../../common/config/logger.config';
-import { AdaptiveDecompressionService } from './adaptive-decompression.service';
-import { BatchMemoryOptimizerService } from './batch-memory-optimizer.service';
-import { 
-  CACHE_REDIS_CLIENT_TOKEN, 
-  MONITORING_COLLECTOR_TOKEN, 
-  ICollector 
-} from '../../../../monitoring/contracts';
-
-/**
- * 并发控制信号量 - 管理解压缩操作的并发数
- * 防止在高并发场景下过度消耗系统资源
- */
-class DecompressionSemaphore {
-  private permits: number;
-  private readonly maxPermits: number;
-
-  constructor(maxPermits: number = CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT) {
-    this.maxPermits = maxPermits;
-    this.permits = maxPermits;
-  }
-
-  async acquire(): Promise<void> {
-    if (this.permits > 0) {
-      this.permits--;
-      return Promise.resolve();
-    }
-    
-    // 如果没有可用许可，等待一小段时间再重试
-    await new Promise(resolve => setTimeout(resolve, 10));
-    return this.acquire();
-  }
-
-  release(): void {
-    if (this.permits < this.maxPermits) {
       this.permits++;
     }
   }

@@ -2,7 +2,7 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nest
 import { CommonCacheService } from '../../common-cache/services/common-cache.service'; // Phase 5.2 重构：直接使用CommonCacheService
 import { DataChangeDetectorService } from '../../../shared/services/data-change-detector.service';
 import { MarketStatusService, MarketStatusResult } from '../../../shared/services/market-status.service';
-import { BackgroundTaskService } from '../../../shared/services/background-task.service';
+import { BackgroundTaskService } from '../../../../app/services/infrastructure/background-task.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { Market } from '../../../../common/constants/market.constants';
 import { MarketStatus } from '../../../../common/constants/market-trading-hours.constants';

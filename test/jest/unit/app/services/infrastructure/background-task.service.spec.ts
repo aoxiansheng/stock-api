@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { BackgroundTaskService } from '../../../../../../src/core/shared/services/background-task.service';
+import { BackgroundTaskService } from '../../../../../../src/app/services/infrastructure/background-task.service';
 import { CollectorService } from '../../../../../../src/monitoring/collector/collector.service';
 
 describe('BackgroundTaskService', () => {

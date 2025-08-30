@@ -4,6 +4,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Post,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
@@ -20,6 +21,7 @@ import { Auth, Public } from "../../auth/decorators/auth.decorator";
 import { UserRole } from "../../auth/enums/user-role.enum";
 import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
 import { PresenterService } from "./presenter.service";
+import { ExtendedHealthService } from "../health/extended-health.service";
 
 /**
  * 展示层控制器
@@ -37,6 +39,7 @@ import { PresenterService } from "./presenter.service";
 export class PresenterController {
   constructor(
     private readonly presenterService: PresenterService,
+    private readonly extendedHealthService: ExtendedHealthService,
   ) {}
 
   /**
@@ -505,6 +508,247 @@ export class PresenterController {
   @ApiStandardResponses()
   async getBasicHealthStatus() {
     return this.presenterService.getBasicHealthStatus();
+  }
+
+  /**
+   * 完整健康状态检查 (需要管理员权限)
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("health/extended")
+  @ApiOperation({
+    summary: "获取系统完整健康状态",
+    description: "获取系统完整健康状态，包括配置验证、依赖检查、启动状态等详细信息",
+  })
+  @ApiSuccessResponse({
+    description: "完整健康状态获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'] },
+        timestamp: { type: 'string', format: 'date-time' },
+        uptime: { type: 'number', description: '系统运行时间(秒)' },
+        version: { type: 'string' },
+        system: {
+          type: 'object',
+          properties: {
+            nodeVersion: { type: 'string' },
+            platform: { type: 'string' },
+            architecture: { type: 'string' },
+            memory: {
+              type: 'object',
+              properties: {
+                used: { type: 'number' },
+                total: { type: 'number' },
+                percentage: { type: 'number' }
+              }
+            },
+            cpu: {
+              type: 'object',
+              properties: {
+                usage: { type: 'number' }
+              }
+            }
+          }
+        },
+        configuration: {
+          type: 'object',
+          properties: {
+            isValid: { type: 'boolean' },
+            errors: { type: 'array', items: { type: 'string' } },
+            warnings: { type: 'array', items: { type: 'string' } },
+            validatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        dependencies: {
+          type: 'object',
+          properties: {
+            mongodb: {
+              type: 'object',
+              properties: {
+                status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
+                responseTime: { type: 'number' },
+                error: { type: 'string' }
+              }
+            },
+            redis: {
+              type: 'object',
+              properties: {
+                status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
+                responseTime: { type: 'number' },
+                error: { type: 'string' }
+              }
+            },
+            externalServices: {
+              type: 'object',
+              properties: {
+                longport: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', enum: ['available', 'unavailable', 'not_configured'] },
+                    error: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        },
+        startup: {
+          type: 'object',
+          properties: {
+            lastCheck: { type: 'string', format: 'date-time' },
+            success: { type: 'boolean' },
+            phases: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  success: { type: 'boolean' },
+                  duration: { type: 'number' },
+                  error: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        healthScore: { type: 'number', minimum: 0, maximum: 100 },
+        recommendations: { type: 'array', items: { type: 'string' } }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getExtendedHealthStatus() {
+    return this.extendedHealthService.getFullHealthStatus();
+  }
+
+  /**
+   * 配置健康检查
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("health/config")
+  @ApiOperation({
+    summary: "获取配置健康状态",
+    description: "检查系统配置的有效性和完整性",
+  })
+  @ApiSuccessResponse({
+    description: "配置健康状态获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        isValid: { type: 'boolean' },
+        errors: { type: 'array', items: { type: 'string' } },
+        warnings: { type: 'array', items: { type: 'string' } },
+        validatedAt: { type: 'string', format: 'date-time' }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getConfigHealthStatus() {
+    return this.extendedHealthService.getConfigHealthStatus();
+  }
+
+  /**
+   * 依赖服务健康检查
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("health/dependencies")
+  @ApiOperation({
+    summary: "获取依赖服务健康状态",
+    description: "检查数据库、缓存服务等关键依赖的连接状态",
+  })
+  @ApiSuccessResponse({
+    description: "依赖服务健康状态获取成功",
+    schema: {
+      type: 'object',
+      properties: {
+        mongodb: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
+            responseTime: { type: 'number' },
+            error: { type: 'string' }
+          }
+        },
+        redis: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
+            responseTime: { type: 'number' },
+            error: { type: 'string' }
+          }
+        },
+        externalServices: {
+          type: 'object',
+          properties: {
+            longport: {
+              type: 'object',
+              properties: {
+                status: { type: 'string', enum: ['available', 'unavailable', 'not_configured'] },
+                error: { type: 'string' }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getDependenciesHealthStatus() {
+    return this.extendedHealthService.getDependenciesHealthStatus();
+  }
+
+  /**
+   * 启动健康检查
+   */
+  @Auth([UserRole.ADMIN])
+  @HttpCode(HttpStatus.OK)
+  @Post("health/startup")
+  @ApiOperation({
+    summary: "执行启动健康检查",
+    description: "手动触发启动健康检查，验证系统各组件的初始化状态",
+  })
+  @ApiSuccessResponse({
+    description: "启动健康检查完成",
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        phases: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              success: { type: 'boolean' },
+              duration: { type: 'number' },
+              error: { type: 'string' }
+            }
+          }
+        },
+        totalDuration: { type: 'number' },
+        validationResult: {
+          type: 'object',
+          properties: {
+            overall: {
+              type: 'object',
+              properties: {
+                isValid: { type: 'boolean' },
+                errors: { type: 'array', items: { type: 'string' } },
+                warnings: { type: 'array', items: { type: 'string' } }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async performStartupCheck() {
+    return this.extendedHealthService.performStartupCheck();
   }
 
   /**
