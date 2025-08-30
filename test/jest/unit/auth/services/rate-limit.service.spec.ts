@@ -9,7 +9,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getModelToken } from "@nestjs/mongoose";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
@@ -83,7 +83,7 @@ describe("RateLimitService", () => {
           },
         },
         {
-          provide: RedisService,
+          provide: 'default_IORedisModuleConnectionToken',
           useValue: {
             getOrThrow: jest.fn().mockReturnValue(mockRedis),
           },

@@ -6,7 +6,7 @@
 
 import { getModelToken } from "@nestjs/mongoose";
 import { INestApplication } from "@nestjs/common";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 import { AuthService } from "../../../src/auth/services/auth.service";
 import { JwtService } from "@nestjs/jwt";
 import { UserRole, Permission } from "../../../src/auth/enums/user-role.enum";
@@ -186,7 +186,7 @@ export class TestDataManager {
    */
   async setRedisData(key: string, value: any, ttl?: number): Promise<void> {
     try {
-      const redisService = this.app.get<RedisService>(RedisService);
+      const redisService = this.app.get('default_IORedisModuleConnectionToken');
       const redisClient = redisService.getOrThrow();
 
       const testKey = `${this.testDataPrefix}:${key}`;

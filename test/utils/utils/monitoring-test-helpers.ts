@@ -8,7 +8,7 @@ import { INestApplication } from "@nestjs/common";
 import { CollectorService } from "@monitoring/collector/collector.service";
 import { AlertingService } from "../../../src/alert/services/alerting.service";
 import { AlertHistoryService } from "../../../src/alert/services/alert-history.service";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 import { AlertSeverity } from "../../../src/alert/types/alert.types";
 import { NotificationChannelType } from "../../../src/alert/types/alert.types";
 import {
@@ -355,7 +355,7 @@ export class MonitoringTestHelper {
 
       // 清理Redis缓存（如果有Redis服务）
       try {
-        const redisService = this.app.get<RedisService>(RedisService);
+        const redisService = this.app.get('default_IORedisModuleConnectionToken');
         const redisClient = redisService.getOrThrow();
 
         const testKeys = await redisClient.keys("test:*");

@@ -1,4 +1,4 @@
-import { RedisModule } from "@liaoliaots/nestjs-redis";
+import { RedisModule } from "@nestjs-modules/ioredis";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";

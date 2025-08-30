@@ -1,4 +1,4 @@
-import { RedisModule } from "@liaoliaots/nestjs-redis";
+import { RedisModule } from "@nestjs-modules/ioredis";
 import { Module } from "@nestjs/common";
 
 import { CacheService } from "../services/cache.service";

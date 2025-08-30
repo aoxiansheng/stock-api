@@ -9,7 +9,7 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { jest } from "@jest/globals";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule, getModelToken } from "@nestjs/mongoose";
-import { RedisModule, RedisService } from "@liaoliaots/nestjs-redis";
+import { RedisModule } from "@nestjs-modules/ioredis";
 import { EventEmitterModule, EventEmitter2 } from "@nestjs/event-emitter";
 import { JwtModule } from "@nestjs/jwt";
 import { TestEnvironment, smartDelay } from "../utils/utils/async-test-helpers";
@@ -73,9 +73,9 @@ async function createTestApplication(): Promise<void> {
       }),
       MongooseModule.forRoot(mongoUri),
       RedisModule.forRoot({
-        config: {
-          host: "localhost",
-          port: 6379,
+        type: 'single',
+        url: "redis://localhost:6379/2",
+        options: {
           maxRetriesPerRequest: 3,
           lazyConnect: true,
           connectTimeout: 10000,
@@ -337,7 +337,7 @@ afterAll(async () => {
       console.log("✅ 测试模块已关闭");
     }
 
-    // Redis 连接由 @liaoliaots/nestjs-redis 模块在 app.close() 期间自动管理
+    // Redis 连接由 @nestjs-modules/ioredis 模块在 app.close() 期间自动管理
     // 无需手动关闭
 
     // 增加延时，确保模块完全关闭
@@ -587,27 +587,24 @@ async function cleanupRedisData(): Promise<void> {
     const app = (global as any).testApp;
     if (!app) return;
 
-    const redisService = app.get(RedisService);
-    if (redisService) {
-      const redisClient = redisService.getOrThrow();
-      if (redisClient && redisClient.status === "ready") {
-        // 清理测试相关的Redis键
-        const testKeys = await redisClient.keys("test:*");
-        if (testKeys.length > 0) {
-          await redisClient.del(...testKeys);
-        }
+    const redis = app.get('default_IORedisModuleConnectionToken');
+    if (redis && redis.status === "ready") {
+      // 清理测试相关的Redis键
+      const testKeys = await redis.keys("test:*");
+      if (testKeys.length > 0) {
+        await redis.del(...testKeys);
+      }
 
-        // 清理性能监控相关的键
-        const perfKeys = await redisClient.keys("metrics:*");
-        if (perfKeys.length > 0) {
-          await redisClient.del(...perfKeys);
-        }
+      // 清理性能监控相关的键
+      const perfKeys = await redis.keys("metrics:*");
+      if (perfKeys.length > 0) {
+        await redis.del(...perfKeys);
+      }
 
-        // 清理缓存键
-        const cacheKeys = await redisClient.keys("cache:*");
-        if (cacheKeys.length > 0) {
-          await redisClient.del(...cacheKeys);
-        }
+      // 清理缓存键
+      const cacheKeys = await redis.keys("cache:*");
+      if (cacheKeys.length > 0) {
+        await redis.del(...cacheKeys);
       }
     }
   } catch (error) {
@@ -699,9 +696,7 @@ global.getRedisClient = (): any | null => {
     const app = (global as any).testApp;
     if (!app) return null;
 
-    const redisService = app.get(RedisService);
-    const redis = redisService.getOrThrow();
-
+    const redis = app.get('default_IORedisModuleConnectionToken');
     return redis && redis.status === "ready" ? redis : null;
   } catch (error) {
     console.warn("⚠️ 获取Redis客户端失败:", error.message);

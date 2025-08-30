@@ -174,10 +174,18 @@ export class ApiKeyUsageDto {
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
 
-  @ApiProperty({ description: "使用频率统计", type: 'object' })
+  @ApiProperty({ 
+    description: "使用频率统计", 
+    type: 'object', 
+    additionalProperties: { type: 'number' }
+  })
   usageByHour: Record<string, number>;
 
-  @ApiProperty({ description: "错误统计", type: 'object' })
+  @ApiProperty({ 
+    description: "错误统计", 
+    type: 'object', 
+    additionalProperties: { type: 'number' }
+  })
   errorStats: Record<string, number>;
 }
 

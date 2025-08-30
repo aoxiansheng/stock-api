@@ -10,7 +10,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import request from "supertest";
 import { jest } from "@jest/globals";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 // 先加载E2E测试环境变量
 import "./e2e.env";
@@ -133,11 +133,10 @@ beforeEach(async () => {
     }
 
     // 重置Redis缓存
-    const redisService = testModule.get(RedisService);
-    if (redisService) {
-      const redisClient = redisService.getOrThrow();
-      await redisClient.flushdb();
-      await redisClient.config("RESETSTAT");
+    const redis = testModule.get('default_IORedisModuleConnectionToken');
+    if (redis) {
+      await redis.flushdb();
+      await redis.config("RESETSTAT");
     }
   } catch (error) {
     console.warn("⚠️ E2E测试数据清理失败:", (error as Error).message);

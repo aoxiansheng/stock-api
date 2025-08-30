@@ -6,7 +6,7 @@
 
 import { INestApplication } from "@nestjs/common";
 import Redis from "ioredis";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
 import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
@@ -35,8 +35,7 @@ describe("Alert Cache Integration", () => {
     // notificationService = app.get<NotificationService>(NotificationService);
     // ruleEngineService = app.get<RuleEngineService>(RuleEngineService);
     cacheService = app.get<CacheService>(CacheService);
-    const redisService = app.get<RedisService>(RedisService);
-    redisClient = redisService.getOrThrow();
+    redisClient = app.get('default_IORedisModuleConnectionToken');
   });
 
   beforeEach(async () => {

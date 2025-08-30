@@ -185,12 +185,46 @@ export class NotificationChannelDto {
 /**
  * 创建通知渠道DTO - 用于独立的通知渠道管理API（如果需要）
  */
-export class CreateNotificationChannelDto extends NotificationChannelDto {
-  // 继承所有字段，但移除可选的id字段的定义
-  @ApiPropertyOptional({ description: "通知渠道ID" })
-  @IsOptional()
+export class CreateNotificationChannelDto {
+  @ApiProperty({ description: "通知渠道名称" })
   @IsString()
-  id?: never; // 创建时不应该有ID
+  name: string;
+
+  @ApiProperty({
+    description: "通知渠道类型",
+    enum: NotificationChannelType,
+  })
+  @IsEnum(NotificationChannelType)
+  type: NotificationChannelType;
+
+  @ApiProperty({ description: "通知渠道配置" })
+  @IsObject()
+  config: Record<string, any>;
+
+  @ApiProperty({ description: "是否启用", default: true })
+  @IsBoolean()
+  enabled: boolean;
+
+  @ApiPropertyOptional({ description: "重试次数", default: 3 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(10)
+  retryCount?: number;
+
+  @ApiPropertyOptional({ description: "超时时间（秒）", default: 30 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(300)
+  timeout?: number;
+
+  @ApiPropertyOptional({ description: "优先级", default: 1 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(10)
+  priority?: number;
 }
 
 /**

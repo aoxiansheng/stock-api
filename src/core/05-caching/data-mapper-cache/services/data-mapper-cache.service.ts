@@ -1,7 +1,7 @@
 import { Injectable, Inject, Optional } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { createLogger } from '../../../../app/config/logger.config';
-import { RedisService } from '@liaoliaots/nestjs-redis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { FlexibleMappingRuleResponseDto } from '../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 import { IDataMapperCache } from '../interfaces/data-mapper-cache.interface';
 import { 
@@ -22,14 +22,12 @@ export class DataMapperCacheService implements IDataMapperCache {
   // ✅ 移除私有metrics对象，统一使用CollectorService
 
   constructor(
-    private readonly redisService: RedisService,
+    @InjectRedis() private readonly redis: Redis,
     // 可选注入，支持监控服务不可用的场景
     @Optional() private readonly collectorService?: CollectorService,
   ) {}
 
-  private get redis(): Redis {
-    return this.redisService.getOrThrow();
-  }
+
 
   // 添加空值保护，处理可选注入场景
   private recordCacheOperation(operation: string, hit: boolean, duration: number, metadata?: any): void {

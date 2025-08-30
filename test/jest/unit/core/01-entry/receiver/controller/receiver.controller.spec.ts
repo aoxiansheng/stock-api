@@ -9,7 +9,7 @@ import { RateLimitService } from "../../../../../../../src/auth/services/rate-li
 import { PermissionService } from "../../../../../../../src/auth/services/permission.service";
 import { UnifiedPermissionsGuard } from "../../../../../../../src/auth/guards/unified-permissions.guard";
 import { getModelToken } from "@nestjs/mongoose";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 // Mock createLogger for core modules - use var for hoisting compatibility
 var mockLoggerInstance: any;
@@ -95,7 +95,7 @@ describe("ReceiverController", () => {
           useValue: mockRateLimitService,
         },
         {
-          provide: RedisService,
+          provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedisService,
         },
         {

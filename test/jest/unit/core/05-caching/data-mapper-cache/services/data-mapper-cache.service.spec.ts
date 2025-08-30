@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { Redis } from 'ioredis';
 import { DataMapperCacheService } from '../../../../../../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service';
-import { RedisService } from '@liaoliaots/nestjs-redis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { FlexibleMappingRuleResponseDto } from '../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 import { DATA_MAPPER_CACHE_CONSTANTS } from '../../../../../../../src/core/05-caching/data-mapper-cache/constants/data-mapper-cache.constants';
 
@@ -19,7 +19,7 @@ jest.mock('../@app/config/logger.config', () => ({
 
 describe('DataMapperCacheService', () => {
   let service: DataMapperCacheService;
-  let redisService: DeepMocked<RedisService>;
+  let redisService: any;
   let mockRedis: DeepMocked<Redis>;
 
   const mockRule: FlexibleMappingRuleResponseDto = {
@@ -52,8 +52,8 @@ describe('DataMapperCacheService', () => {
       providers: [
         DataMapperCacheService,
         {
-          provide: RedisService,
-          useValue: createMock<RedisService>({
+          provide: 'default_IORedisModuleConnectionToken',
+          useValue: createMock<any>({
             getOrThrow: jest.fn().mockReturnValue(mockRedis),
           }),
         },
@@ -61,7 +61,7 @@ describe('DataMapperCacheService', () => {
     }).compile();
 
     service = module.get<DataMapperCacheService>(DataMapperCacheService);
-    redisService = module.get<DeepMocked<RedisService>>(RedisService);
+    redisService = module.get<any>('default_IORedisModuleConnectionToken');
   });
 
   describe('cacheBestMatchingRule', () => {

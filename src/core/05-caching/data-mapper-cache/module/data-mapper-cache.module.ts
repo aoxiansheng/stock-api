@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { RedisModule as NestRedisModule } from '@liaoliaots/nestjs-redis';
+import { RedisModule as NestRedisModule } from '@nestjs-modules/ioredis';
 import { DataMapperCacheService } from '../services/data-mapper-cache.service';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 

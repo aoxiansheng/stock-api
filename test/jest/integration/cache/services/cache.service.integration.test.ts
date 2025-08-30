@@ -6,7 +6,7 @@
 
 import { INestApplication } from "@nestjs/common";
 import Redis from "ioredis";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 
@@ -18,8 +18,7 @@ describe("CacheService 容错机制集成测试", () => {
   beforeAll(async () => {
     app = (global as any).testApp;
     cacheService = app.get<CacheService>(CacheService);
-    const redisService = app.get(RedisService);
-    redisClient = redisService.getOrThrow();
+    redisClient = app.get('default_IORedisModuleConnectionToken');
   });
 
   beforeEach(async () => {

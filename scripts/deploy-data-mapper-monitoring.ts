@@ -15,7 +15,7 @@ import { AppModule } from '../src/app.module';
 import { AlertingService } from '../src/alert/services/alerting.service';
 import { PresenterService } from '@monitoring/presenter/presenter.service';
 import { Logger } from '@nestjs/common';
-import { NotificationChannelType } from '../src/alert/types/alert.types';
+import { NotificationChannelType, AlertSeverity } from '../src/alert/types/alert.types';
 
 interface MonitoringConfig {
   dataMapperMetrics: {
@@ -182,7 +182,7 @@ class DataMapperMonitoringDeployer {
         }
       ],
       enabled: true,
-      thresholds: { warning: 500, critical: 1000 },
+      cooldown: 300,
       tags: {
         'data-mapper': 'true',
         'database': 'true',
@@ -214,7 +214,7 @@ class DataMapperMonitoringDeployer {
         }
       ],
       enabled: true,
-      thresholds: { warning: 1000, critical: 5000 },
+      cooldown: 300,
       tags: {
         'data-mapper': 'true',
         'cache': 'true', 
@@ -226,8 +226,11 @@ class DataMapperMonitoringDeployer {
     await this.alertingService.createRule({
       name: 'data-mapper-business-logic',
       description: 'Data Mapper 业务逻辑监控', 
-      condition: 'mapping_success_rate < 95 OR transformation_failure_rate > 5',
-      severity: 'critical',
+      metric: 'mapping_success_rate',
+      operator: 'lt',
+      threshold: 95,
+      duration: 300,
+      severity: AlertSeverity.CRITICAL,
       channels: [
         {
           name: 'email-alert',
@@ -249,7 +252,7 @@ class DataMapperMonitoringDeployer {
         }
       ],
       enabled: true,
-      thresholds: { warning: 95, critical: 90 },
+      cooldown: 600,
       tags: {
         'data-mapper': 'true',
         'business-logic': 'true',

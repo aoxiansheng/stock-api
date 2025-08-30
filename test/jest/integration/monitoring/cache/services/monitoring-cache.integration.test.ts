@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { MonitoringCacheService } from '@monitoring/cache/monitoring-cache.service';
 import { CacheService } from '../../../../../../src/cache/services/cache.service';
 
@@ -17,10 +17,9 @@ describe('MonitoringCacheService Integration Tests', () => {
           envFilePath: '.env.test'
         }),
         RedisModule.forRoot({
-          config: {
-            host: 'localhost',
-            port: 6379,
-            db: 15, // Use a different DB for testing
+          type: 'single',
+          url: 'redis://localhost:6379/15',
+          options: {
             maxRetriesPerRequest: 3,
             lazyConnect: true,
             connectTimeout: 10000,

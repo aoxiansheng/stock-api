@@ -88,7 +88,7 @@ export class DataFetchingParamsDto {
   @IsObject()
   contextService?: any;
 
-  @ApiPropertyOptional({ description: "执行上下文（透传给下游能力/转换器）", type: "object" })
+  @ApiPropertyOptional({ description: "执行上下文（透传给下游能力/转换器）", type: "object", additionalProperties: true })
   @IsOptional()
   @IsObject()
   context?: Record<string, any>;

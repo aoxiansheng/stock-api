@@ -1133,7 +1133,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     const connectionStats = this.streamDataFetcher.getConnectionStatsByProvider(provider);
     const providerStats = connectionStats;
     
-    if (!providerStats || providerStats.length === 0) {
+    if (!providerStats || providerStats.connections?.length === 0) {
       this.logger.warn('检测到提供商连接断开', {
         provider,
         stats: providerStats,
@@ -1410,10 +1410,9 @@ export class StreamReceiverService implements OnModuleDestroy {
     };
 
     connection = await this.streamDataFetcher.establishStreamConnection(provider, capability, {
-      retryAttempts: 3,
-      connectionTimeout: 30000,
-      autoReconnect: true,
       maxReconnectAttempts: 3,
+      connectionTimeoutMs: 30000,
+      autoReconnect: true,
       heartbeatIntervalMs: 30000,
     });
     this.activeConnections.set(connectionKey, connection);

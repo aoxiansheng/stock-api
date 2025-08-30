@@ -1,7 +1,7 @@
 import { promisify } from "util";
 import  zlib from "zlib";
 
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 import {
   Injectable,
   ServiceUnavailableException,
@@ -45,11 +45,7 @@ export class CacheService {
   private readonly logger = createLogger(CacheService.name);
   private cacheStats = new Map<string, { hits: number; misses: number }>();
 
-  private get redis(): Redis {
-    return this.redisService.getOrThrow();
-  }
-
-  constructor(private readonly redisService: RedisService) {
+  constructor(@InjectRedis() private readonly redis: Redis) {
     // 启动缓存优化任务
     this.startOptimizationTasks();
   }

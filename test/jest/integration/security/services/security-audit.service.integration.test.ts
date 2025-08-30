@@ -6,7 +6,7 @@
 
 import { INestApplication } from "@nestjs/common";
 import Redis from "ioredis";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 import { SecurityAuditService } from "../../../../../src/security/services/security-audit.service";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
@@ -23,8 +23,7 @@ describe("Security Cache Integration", () => {
 
     securityAuditService = app.get<SecurityAuditService>(SecurityAuditService);
     cacheService = app.get<CacheService>(CacheService);
-    const redisService = app.get<RedisService>(RedisService);
-    redisClient = redisService.getOrThrow();
+    redisClient = app.get('default_IORedisModuleConnectionToken');
   });
 
   beforeEach(async () => {

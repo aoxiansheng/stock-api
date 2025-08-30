@@ -2,7 +2,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
-import { RedisService } from "@liaoliaots/nestjs-redis";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 import { ServiceUnavailableException } from "@nestjs/common";
 import { CACHE_ERROR_MESSAGES } from "../../../../../src/cache/constants/cache.constants";
 
@@ -68,8 +68,8 @@ jest.mock("ioredis", () => {
 });
 
 // 模拟RedisService
-jest.mock("@liaoliaots/nestjs-redis", () => ({
-  RedisService: jest.fn().mockImplementation(() => mockRedisService),
+jest.mock("@nestjs-modules/ioredis", () => ({
+  InjectRedis: jest.fn().mockImplementation(() => mockRedisService),
 }));
 
 describe("CacheService - Error Handling Branch Coverage", () => {
@@ -129,7 +129,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
           useValue: mockConfigService,
         },
         {
-          provide: RedisService,
+          provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedisService,
         },
       ],

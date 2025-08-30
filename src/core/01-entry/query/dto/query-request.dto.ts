@@ -141,6 +141,7 @@ export class QueryRequestDto {
   @ApiPropertyOptional({
     description: '高级查询参数，当queryType为advanced时必需',
     type: 'object',
+    additionalProperties: true,
   })
   @IsOptional()
   @IsObject()

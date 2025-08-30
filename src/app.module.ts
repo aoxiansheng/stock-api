@@ -1,4 +1,4 @@
-import { RedisModule } from "@liaoliaots/nestjs-redis";
+import { RedisModule } from "@nestjs-modules/ioredis";
 import { BullModule } from "@nestjs/bull";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
@@ -50,9 +50,9 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
 
     // Redis连接
     RedisModule.forRoot({
-      config: {
-        host: process.env.REDIS_HOST || "localhost",
-        port: parseInt(process.env.REDIS_PORT) || 6379,
+      type: 'single',
+      url: `redis://${process.env.REDIS_HOST || "localhost"}:${parseInt(process.env.REDIS_PORT) || 6379}`,
+      options: {
         enableReadyCheck: false,
         maxRetriesPerRequest: RATE_LIMIT_CONFIG.REDIS.MAX_RETRIES,
         lazyConnect: true,
