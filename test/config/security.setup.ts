@@ -5,9 +5,9 @@
 import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import * as request from "supertest";
+import request from "supertest";
 import { jest } from "@jest/globals";
-import * as express from "express";
+import  express from "express";
 
 // 动态导入AppModule
 import { AppModule } from "../../src/app.module";

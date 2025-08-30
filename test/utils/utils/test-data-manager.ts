@@ -10,7 +10,7 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 import { AuthService } from "../../../src/auth/services/auth.service";
 import { JwtService } from "@nestjs/jwt";
 import { UserRole, Permission } from "../../../src/auth/enums/user-role.enum";
-import * as request from "supertest";
+import request from "supertest";
 
 export interface TestUser {
   id: string;

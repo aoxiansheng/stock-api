@@ -11,9 +11,9 @@
  * 4. 可选择自动清理重复文件
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import  fs from 'fs';
+import  path from 'path';
+import  crypto from 'crypto';
 
 interface DuplicateFile {
   path: string;

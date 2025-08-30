@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import  crypto from 'crypto';
 import { Market } from '@common/constants/market.constants';
 import { CacheStrategy, CacheOrchestratorRequest } from '../interfaces/smart-cache-orchestrator.interface';
 

@@ -3,8 +3,8 @@ import { createLogger } from '@app/config/logger.config';
 import { Subject, fromEvent } from 'rxjs';
 import { takeUntil, debounceTime } from 'rxjs/operators';
 import { StreamDataFetcherService } from './stream-data-fetcher.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import  fs from 'fs';
+import  path from 'path';
 
 /**
  * StreamConfigHotReloadService - P2-2 信号机制配置热重载

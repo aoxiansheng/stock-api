@@ -15,7 +15,7 @@ import {
   Module,
 } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
-import * as request from "supertest";
+import  request from "supertest";
 
 import { ResponseInterceptor } from "../../../../../../src/common/core/interceptors/response.interceptor";
 import { GlobalExceptionFilter } from "../../../../../../src/common/core/filters/global-exception.filter";

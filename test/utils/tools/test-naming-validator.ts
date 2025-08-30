@@ -11,8 +11,8 @@
  * 4. 提供重命名和移动建议
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import  fs from 'fs';
+import  path from 'path';
 
 interface TestFileInfo {
   fullPath: string;

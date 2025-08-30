@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StreamConfigHotReloadService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-config-hot-reload.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import  fs from 'fs';
+import  path from 'path';
 
 // Mock fs module
 jest.mock('fs');

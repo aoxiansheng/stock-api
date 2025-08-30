@@ -10,7 +10,7 @@
  * - 验证API Key认证下的完整链路
  */
 
-import * as request from "supertest";
+import  request from "supertest";
 import { INestApplication } from "@nestjs/common";
 import { AuthService } from "../../../../../../src/auth/services/auth.service";
 import { ApiKeyService } from "../../../../../../src/auth/services/apikey.service";

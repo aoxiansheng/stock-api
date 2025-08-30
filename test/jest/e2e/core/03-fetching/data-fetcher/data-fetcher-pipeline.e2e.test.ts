@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import  request from 'supertest';
 import { AppModule } from '../../../../../../src/app.module';
 import { DataFetcherService } from '../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
 import { SymbolTransformerService } from '../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';

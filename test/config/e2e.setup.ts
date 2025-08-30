@@ -8,7 +8,7 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import * as request from "supertest";
+import request from "supertest";
 import { jest } from "@jest/globals";
 import { RedisService } from "@liaoliaots/nestjs-redis";
 

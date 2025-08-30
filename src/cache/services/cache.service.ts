@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import * as zlib from "zlib";
+import  zlib from "zlib";
 
 import { RedisService } from "@liaoliaots/nestjs-redis";
 import {

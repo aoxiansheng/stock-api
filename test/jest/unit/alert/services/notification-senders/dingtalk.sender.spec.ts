@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
-import * as crypto from 'crypto';
+import  crypto from 'crypto';
 import { AxiosRequestHeaders, AxiosHeaders } from 'axios';
 
 import { DingTalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';

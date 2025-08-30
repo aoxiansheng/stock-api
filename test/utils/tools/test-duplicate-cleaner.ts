@@ -1,8 +1,8 @@
 #!/usr/bin/env ts-node
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import  fs from 'fs';
+import  path from 'path';
 
 interface DuplicateFile {
   path: string;

@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { SmartCachePerformanceOptimizer } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-performance-optimizer.service';
 import { CollectorService } from '@monitoring/collector/collector.service';
-import * as os from 'os';
+import  os from 'os';
 
 // Mock os module
 jest.mock('os');

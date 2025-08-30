@@ -10,7 +10,7 @@
  * - Provider调用次数统计
  */
 
-import * as request from 'supertest';
+import  request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 // import { ReceiverService } from '../../../../../../../src/core/01-entry/receiver/services/receiver.service';
 import { SmartCacheOrchestrator } from '../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service';

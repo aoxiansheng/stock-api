@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as fs from "fs";
-import * as path from "path";
+import  fs from "fs";
+import  path from "path";
 import { glob } from "glob";
 
 /**

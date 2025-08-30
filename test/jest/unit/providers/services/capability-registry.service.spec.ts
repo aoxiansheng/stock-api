@@ -7,7 +7,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
-import * as fs from "fs/promises";
+import  fs from "fs/promises";
 
 // Mock fs/promises
 jest.mock("fs/promises");

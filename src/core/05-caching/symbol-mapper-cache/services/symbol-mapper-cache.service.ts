@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
-import * as crypto from 'crypto';
+import  crypto from 'crypto';
 import { FeatureFlags } from '@config/feature-flags.config';
 import { CollectorService } from '../../../../monitoring/collector/collector.service'; // ✅ 更换为CollectorService
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';

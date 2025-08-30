@@ -15,8 +15,8 @@ import type {
   DataResponseEvent 
 } from '../contracts/events/system-status.events';
 import { CollectorRepository } from './collector.repository';
-import * as os from 'os';
-import * as v8 from 'v8';
+import  os from 'os';
+import  v8 from 'v8';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

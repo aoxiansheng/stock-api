@@ -1,6 +1,6 @@
 import { SmartCacheConfigFactory } from '../../../../../../../src/core/05-caching/smart-cache/config/smart-cache-config.factory';
 import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
-import * as os from 'os';
+import  os from 'os';
 
 describe('SmartCacheConfigFactory', () => {
   let originalEnv: NodeJS.ProcessEnv;

@@ -11,8 +11,8 @@
  * 4. 遵守测试文件命名规则
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import  fs from 'fs';
+import  path from 'path';
 
 interface DirectoryStructure {
   dirs: string[];
@@ -690,7 +690,7 @@ describe('${className} Integration', () => {
 `,
       e2e: `import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import  request from 'supertest';
 import { AppModule } from '../../../src/app.module';
 
 describe('${className} E2E', () => {

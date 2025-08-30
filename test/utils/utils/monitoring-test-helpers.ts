@@ -16,7 +16,7 @@ import {
   smartDelay,
   TestEnvironment,
 } from "./async-test-helpers";
-import * as request from "supertest";
+import request from "supertest";
 
 /**
  * 监控测试助手类

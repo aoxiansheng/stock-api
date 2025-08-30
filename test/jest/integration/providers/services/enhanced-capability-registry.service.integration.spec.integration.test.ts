@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import * as path from 'path';
-import * as fs from 'fs/promises';
+import  path from 'path';
+import  fs from 'fs/promises';
 import { EnhancedCapabilityRegistryService } from '../../../../../src/providers/services/enhanced-capability-registry.service';
 import { SmartPathResolver } from '../../../../../src/providers/utils/smart-path-resolver';
 import {

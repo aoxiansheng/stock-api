@@ -6,7 +6,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import  request from 'supertest';
 import { AppModule } from '../../../../src/app.module';
 import { AuthService } from '../../../../src/auth/services/auth.service';
 import { UserRole } from '../../../../src/auth/enums/user-role.enum';

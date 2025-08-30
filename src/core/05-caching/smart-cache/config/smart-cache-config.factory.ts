@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as os from 'os';
+import  os from 'os';
 import { SmartCacheOrchestratorConfig } from '../interfaces/smart-cache-config.interface';
 import { CacheStrategy } from '../interfaces/smart-cache-orchestrator.interface';
 

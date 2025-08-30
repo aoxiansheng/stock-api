@@ -1,4 +1,4 @@
-import * as DataFetcherDtoIndex from '../../../../../../../src/core/03-fetching/data-fetcher/dto/index';
+import  DataFetcherDtoIndex from '../../../../../../../src/core/03-fetching/data-fetcher/dto/index';
 import { DataFetchRequestDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-request.dto';
 import { DataFetchResponseDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-response.dto';
 

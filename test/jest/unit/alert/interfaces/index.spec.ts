@@ -1,4 +1,4 @@
-import * as AlertInterfacesIndex from '../../../../../src/alert/interfaces/index';
+import  AlertInterfacesIndex from '../../../../../src/alert/interfaces/index';
 
 describe('Alert Interfaces Index', () => {
   it('should export alert interfaces', () => {

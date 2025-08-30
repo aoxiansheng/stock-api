@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as request from "supertest";
+import  request from "supertest";
 import { INestApplication } from "@nestjs/common";
 
 import { AuthService } from "../../../../../src/auth/services/auth.service";

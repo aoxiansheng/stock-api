@@ -1,4 +1,4 @@
-import * as StreamReceiverDtoIndex from '../../../../../../../src/core/01-entry/stream-receiver/dto/index';
+import  StreamReceiverDtoIndex from '../../../../../../../src/core/01-entry/stream-receiver/dto/index';
 import { StreamSubscribeDto } from '../../../../../../../src/core/01-entry/stream-receiver/dto/stream-subscribe.dto';
 import { StreamUnsubscribeDto } from '../../../../../../../src/core/01-entry/stream-receiver/dto/stream-unsubscribe.dto';
 

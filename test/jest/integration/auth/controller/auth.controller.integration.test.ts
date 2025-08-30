@@ -7,7 +7,7 @@
 import { INestApplication } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import * as bcrypt from "bcrypt";
+import  bcrypt from "bcrypt";
 
 import { AuthService } from "../../../../../src/auth/services/auth.service";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as os from 'os';
+import  os from 'os';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**

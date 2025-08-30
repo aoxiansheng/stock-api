@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as request from "supertest";
+import request from "supertest";
 
 /**
  * 并发请求测试结果接口
