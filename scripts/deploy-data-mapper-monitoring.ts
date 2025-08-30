@@ -162,8 +162,11 @@ class DataMapperMonitoringDeployer {
     await this.alertingService.createRule({
       name: 'data-mapper-database-performance',
       description: 'Data Mapper 数据库性能监控',
-      condition: 'database_query_duration > 500 OR query_failure_rate > 5',
-      severity: 'warning',
+      metric: 'database_query_duration',
+      operator: 'gt',
+      threshold: 500,
+      duration: 60,
+      severity: AlertSeverity.WARNING,
       channels: [
         {
           name: 'email-alert',
@@ -189,10 +192,13 @@ class DataMapperMonitoringDeployer {
     
     // Redis 缓存性能告警规则
     await this.alertingService.createRule({
-      name: 'data-mapper-cache-performance', 
+      name: 'data-mapper-cache-performance',
       description: 'Data Mapper 缓存性能监控',
-      condition: 'cache_scan_duration > 1000 OR cache_operation_failure_rate > 3',
-      severity: 'warning',
+      metric: 'cache_scan_duration',
+      operator: 'gt',
+      threshold: 1000,
+      duration: 60,
+      severity: AlertSeverity.WARNING,
       channels: [
         {
           name: 'email-alert',

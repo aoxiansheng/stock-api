@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@app/config/logger.config';
+import Redis from 'ioredis';
 import { ConfigValidatorService, FullValidationResult } from '../config/validation/config-validator.service';
 import { StartupConfig } from '../config/startup.config';
 
@@ -254,7 +255,7 @@ export class StartupHealthCheckerService {
    */
   private async checkCacheConnection(): Promise<void> {
     try {
-      const { default: Redis } = await import('ioredis');
+
       const host = process.env.REDIS_HOST || 'localhost';
       const port = parseInt(process.env.REDIS_PORT || '6379', 10);
       

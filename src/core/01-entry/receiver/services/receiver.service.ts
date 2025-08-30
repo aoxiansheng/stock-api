@@ -126,7 +126,7 @@ export class ReceiverService {
       const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
       if (useSmartCache) {
         // 获取市场状态用于缓存策略决策
-        const { inferMarketFromSymbol } = await import("../../../05-caching/smart-cache/utils/smart-cache-request.utils");
+        const { inferMarketFromSymbol } = await import("../../../05-caching/smart-cache/utils/smart-cache-request.utils.js");
         const markets = [...new Set(request.symbols.map(symbol => inferMarketFromSymbol(symbol)))];
         const marketStatus = await this.marketStatusService.getBatchMarketStatus(markets);
 

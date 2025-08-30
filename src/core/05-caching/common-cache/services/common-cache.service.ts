@@ -15,11 +15,11 @@ import {
   ICacheMetadata 
 } from '../interfaces/cache-operation.interface';
 import { CacheMetadata } from '../interfaces/cache-metadata.interface';
-import { 
-  CACHE_REDIS_CLIENT_TOKEN, 
-  MONITORING_COLLECTOR_TOKEN, 
-  ICollector 
+import {
+  CACHE_REDIS_CLIENT_TOKEN,
+  MONITORING_COLLECTOR_TOKEN
 } from '../../../../monitoring/contracts';
+import type { ICollector } from '../../../../monitoring/contracts';
 
 /**
  * 缓存解压异常类

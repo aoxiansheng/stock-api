@@ -590,7 +590,8 @@ class SrcStructureValidator {
 }
 
 // 导出验证器类和相关接口
-export { SrcStructureValidator, ValidationResult, Violation, FileTypeRule };
+export { SrcStructureValidator };
+export type { ValidationResult, Violation, FileTypeRule };
 
 // 如果直接运行此脚本，则执行验证
 if (require.main === module) {

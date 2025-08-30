@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@app/config/logger.config';
+import Redis from 'ioredis';
 import { ConfigValidatorService, FullValidationResult } from '../../app/config/validation/config-validator.service';
 import { StartupHealthCheckerService, StartupResult } from '../../app/startup/health-checker.service';
 
@@ -294,7 +295,7 @@ export class ExtendedHealthService {
     const startTime = Date.now();
     
     try {
-      const { default: Redis } = await import('ioredis');
+
       const host = process.env.REDIS_HOST || 'localhost';
       const port = parseInt(process.env.REDIS_PORT || '6379', 10);
       

@@ -20,12 +20,12 @@ interface StreamCacheHealthStatus {
   };
 }
 import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/stream-cache.constants';
-import { 
-  MONITORING_COLLECTOR_TOKEN, 
+import {
+  MONITORING_COLLECTOR_TOKEN,
   CACHE_REDIS_CLIENT_TOKEN,
-  STREAM_CACHE_CONFIG_TOKEN,
-  ICollector 
+  STREAM_CACHE_CONFIG_TOKEN
 } from '../../../../monitoring/contracts';
+import type { ICollector } from '../../../../monitoring/contracts';
 import Redis from 'ioredis';
 
 /**

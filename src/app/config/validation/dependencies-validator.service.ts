@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@app/config/logger.config';
+import Redis from 'ioredis';
 import {
   ValidationResult,
   DependencyValidationResult,
@@ -159,7 +160,7 @@ export class DependenciesValidatorService {
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const { default: Redis } = await import('ioredis');
+
         const client = new Redis({
           host,
           port,

@@ -218,7 +218,8 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/shared/utils/string.util.spec.ts test/jest/unit/monitoring/health/ --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/app/config/config.module.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/services/password.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/services/password.service.spec.ts test/jest/unit/auth/services/token.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/services/password.service.spec.ts test/jest/unit/auth/services/token.service.spec.ts --testTimeout=30000 --config test/config/jest.unit.config.js)",
+      "WebSearch"
     ],
     "deny": []
   }

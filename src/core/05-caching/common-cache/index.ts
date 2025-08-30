@@ -10,12 +10,12 @@ export { CacheCompressionService } from './services/cache-compression.service';
 export { CommonCacheModule, CommonCacheAsyncModule } from './module/common-cache.module';
 
 // 接口
-export {
+export type {
   ICacheOperation,
   ICacheFallback,
   ICacheMetadata,
 } from './interfaces/cache-operation.interface';
-export {
+export type {
   CacheMetadata,
   RedisEnvelope,
   CacheResult,
@@ -46,6 +46,8 @@ export {
 export {
   CACHE_CONFIG,
   CACHE_STRATEGIES,
+} from './constants/cache-config.constants';
+export type {
   CacheStrategy,
   CacheOperation,
   CompressionAlgorithm,

@@ -148,7 +148,7 @@ class DataMapperFixValidator {
       this.logger.log('⏱️ 验证AsyncTaskLimiter...');
       
       // 尝试导入AsyncTaskLimiter类
-      const { AsyncTaskLimiter } = await import('../src/core/00-prepare/data-mapper/utils/async-task-limiter');
+      const { AsyncTaskLimiter } = await import('../src/core/00-prepare/data-mapper/utils/async-task-limiter.js');
       
       if (AsyncTaskLimiter) {
         // 创建实例测试
