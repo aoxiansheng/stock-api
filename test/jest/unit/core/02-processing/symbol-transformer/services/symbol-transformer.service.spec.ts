@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymbolTransformerService } from '../../../../../../../src/core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { SymbolMapperCacheService } from '../../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 import { SymbolTransformResult } from '../../../../../../../src/core/02-processing/symbol-transformer/interfaces';
 import { CONFIG, TRANSFORM_DIRECTIONS } from '../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants';
 import { DeepMocked, createMock } from '@golevelup/ts-jest';
 
 // Mock the logger
-jest.mock('../../../../../../../src/common/config/logger.config', () => ({
+jest.mock('../@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

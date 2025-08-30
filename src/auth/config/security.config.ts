@@ -1,4 +1,4 @@
-import { RATE_LIMIT_CONFIG } from "../constants/rate-limit.constants";
+import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
 
 /**
  * 集中化的安全配置

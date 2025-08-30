@@ -2,7 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { FeatureFlags } from '@common/config/feature-flags.config';
+import { FeatureFlags } from '@config/feature-flags.config';
 
 describe('PaginationService', () => {
   let service: PaginationService;

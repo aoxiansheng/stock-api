@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ModuleMetadata } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { MARKETS } from '@common/constants/market.constants';
 
 // 导入需要测试的服务和接口
@@ -12,7 +12,7 @@ import { IStreamCapability, StreamDataCallbackParams } from '../../../../../src/
 import { LongportStreamContextService } from '../../../../../src/providers/longport/services/longport-stream-context.service';
 
 // Mock logger
-jest.mock('@common/config/logger.config');
+jest.mock('@app/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),

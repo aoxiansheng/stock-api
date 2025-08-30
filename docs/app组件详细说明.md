@@ -374,7 +374,7 @@ private readonly taskCounter = new Map<string, number>();
 ### 外部依赖
 
 1. **common 模块**
-   - `@common/config/logger.config` - 日志配置和工具
+   - `@app/config/logger.config` - 日志配置和工具
 
 2. **monitoring 模块**
    - `MonitoringModule` - 监控模块

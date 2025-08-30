@@ -1,11 +1,11 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
 import * as crypto from 'crypto';
-import { FeatureFlags } from '@common/config/feature-flags.config';
+import { FeatureFlags } from '@config/feature-flags.config';
 import { CollectorService } from '../../../../monitoring/collector/collector.service'; // ✅ 更换为CollectorService
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { SymbolMappingRule } from '../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { 
   BatchMappingResult,
   CacheStatsDto 

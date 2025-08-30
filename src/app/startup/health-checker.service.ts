@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { ConfigValidatorService, FullValidationResult } from '../config/validation/config-validator.service';
 import { StartupConfig } from '../config/startup.config';
 

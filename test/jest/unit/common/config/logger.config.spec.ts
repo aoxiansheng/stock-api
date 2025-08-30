@@ -2,7 +2,7 @@
 import {
   CustomLogger,
   sanitizeLogData,
-} from "../../../../../src/common/config/logger.config";
+} from "../../../../../src/app/config/logger.config";
 import pino from "pino";
 
 // Create a stable mock object that can be referenced across tests

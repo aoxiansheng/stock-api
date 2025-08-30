@@ -440,14 +440,12 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         }
       }
       
-      const ttlResult = CommonCacheService.calculateOptimalTTL({
-        symbol,
-        dataType,
-        marketStatus
-      });
+      const dataSize = JSON.stringify(freshData).length;
+      const accessPattern = marketStatus?.isOpen ? 'hot' : 'warm';
+      const ttlResult = CommonCacheService.calculateOptimalTTL(dataSize, accessPattern);
 
       // 直接写入缓存
-      await this.commonCacheService.set(task.cacheKey, freshData, ttlResult.ttl);
+      await this.commonCacheService.set(task.cacheKey, freshData, ttlResult);
 
       // 数据变化检测（如果启用）
       if (this.config.enableDataChangeDetection) {
@@ -617,33 +615,37 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       }
 
       // 计算优化TTL
-      const ttlResult = CommonCacheService.calculateOptimalTTL({
-        symbol,
-        dataType,
-        marketStatus,
-        freshnessRequirement: this.mapStrategyToFreshnessRequirement(request.strategy)
-      });
+      // 计算数据大小和访问模式
+      const dataSize = 1024; // 估计数据大小，可以根据实际情况调整
+      const freshnessRequirement = this.mapStrategyToFreshnessRequirement(request.strategy);
+      const accessPattern = freshnessRequirement === 'realtime' ? 'hot' : 
+                           freshnessRequirement === 'analytical' ? 'warm' : 'cold';
+      const ttlResult = CommonCacheService.calculateOptimalTTL(dataSize, accessPattern);
 
       // 直接使用CommonCacheService获取数据
       const cacheResult = await this.commonCacheService.getWithFallback(
         request.cacheKey,
         request.fetchFn,
-        ttlResult.ttl
+        {
+          enableDecompression: true,
+          cacheFallbackResult: true,
+          fallbackTTL: ttlResult
+        }
       );
 
       // 转换为标准化结果格式
       const result: CacheOrchestratorResult<T> = {
         data: cacheResult.data as T,
-        hit: cacheResult.hit,
-        ttlRemaining: cacheResult.ttlRemaining,
-        dynamicTtl: ttlResult.ttl,
+        hit: cacheResult.data !== null,
+        ttlRemaining: cacheResult.metadata?.ttlRemaining || 0,
+        dynamicTtl: ttlResult,
         strategy: request.strategy,
         storageKey: request.cacheKey,
         timestamp: new Date().toISOString(),
       };
 
       // 触发后台更新任务（如果策略支持且缓存命中）
-      if (cacheResult.hit && this.shouldScheduleBackgroundUpdate(request.strategy, { metadata: cacheResult })) {
+      if (result.hit && this.shouldScheduleBackgroundUpdate(request.strategy, { metadata: cacheResult })) {
         const priority = this.calculateUpdatePriority(request.symbols, request.metadata?.market);
         
         this.scheduleBackgroundUpdate(
@@ -900,14 +902,15 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           const symbol = request.symbols?.[0] || 'unknown';
           const dataType = this.inferDataTypeFromKey(request.cacheKey);
           
-          const ttlResult = CommonCacheService.calculateOptimalTTL({
-            symbol,
-            dataType,
-            freshnessRequirement: this.mapStrategyToFreshnessRequirement(request.strategy)
-          });
+          // 计算最优TTL
+          const dataSize = JSON.stringify(data).length;
+          const freshnessRequirement = this.mapStrategyToFreshnessRequirement(request.strategy);
+          const accessPattern = freshnessRequirement === 'realtime' ? 'hot' : 
+                               freshnessRequirement === 'analytical' ? 'warm' : 'cold';
+          const ttlResult = CommonCacheService.calculateOptimalTTL(dataSize, accessPattern);
           
           // 异步设置缓存
-          this.commonCacheService.set(request.cacheKey, data, ttlResult.ttl).catch(error => {
+          this.commonCacheService.set(request.cacheKey, data, ttlResult).catch(error => {
             this.logger.warn(`Failed to cache query result for ${request.cacheKey}:`, error);
           });
           
@@ -915,8 +918,8 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
             result: {
               data,
               hit: false,
-              ttlRemaining: ttlResult.ttl,
-              dynamicTtl: ttlResult.ttl,
+              ttlRemaining: ttlResult,
+              dynamicTtl: ttlResult,
               strategy: request.strategy,
               storageKey: request.cacheKey,
               timestamp: new Date().toISOString(),
@@ -1031,13 +1034,14 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         try {
           // 检查是否已存在有效缓存
           const existingResult = await this.commonCacheService.get(query.key);
-          if (existingResult?.data && existingResult.ttlRemaining > 60) {
+          const ttlRemaining = existingResult.metadata?.ttlRemaining || 0;
+          if (existingResult?.data && ttlRemaining > 60) {
             this.logger.debug(`跳过预热已缓存的key: ${query.key}`);
             return {
               key: query.key,
               success: true,
               duration: Date.now() - startTime,
-              ttl: existingResult.ttlRemaining,
+              ttl: ttlRemaining,
               skipped: true,
             };
           }
@@ -1293,16 +1297,13 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       } = options;
 
       // 使用CommonCacheService的智能TTL计算
-      const marketStatusObj = this.convertMarketStatusToObject(marketStatus);
-      const ttlResult = CommonCacheService.calculateOptimalTTL({
-        symbol,
-        dataType,
-        marketStatus: marketStatusObj,
-        freshnessRequirement: this.mapAccessFrequencyToFreshnessRequirement(accessFrequency),
-      });
+      const freshnessRequirement = this.mapAccessFrequencyToFreshnessRequirement(accessFrequency);
+      const accessPattern = freshnessRequirement === 'realtime' ? 'hot' : 
+                           freshnessRequirement === 'analytical' ? 'warm' : 'cold';
+      const ttlResult = CommonCacheService.calculateOptimalTTL(dataSize || 1024, accessPattern);
 
-      let finalTtl = ttlResult.ttl;
-      let strategy = ttlResult.strategy;
+      let finalTtl = ttlResult;
+      let strategy = accessPattern;
 
       // 基于数据大小的额外优化
       if (dataSize > 10240) { // 10KB以上的大数据
@@ -1810,31 +1811,25 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       
       const batchPromises = batch.map(async ({ index, request }) => {
         try {
-          // 计算TTL
-          const symbol = this.extractSymbolFromKey(request.cacheKey);
-          const dataType = this.inferDataTypeFromKey(request.cacheKey);
-          const marketStatus = await this.getMarketStatusForSymbol(symbol);
-          
-          const marketStatusObj = this.convertMarketStatusToObject(marketStatus);
-          const ttlResult = CommonCacheService.calculateOptimalTTL({
-            symbol,
-            dataType,
-            marketStatus: marketStatusObj,
-            freshnessRequirement: this.mapStrategyToFreshnessRequirement(request.strategy),
-          });
+          // 计算最优TTL
+          const dataSize = 1024; // 估计数据大小
+          const freshnessRequirement = this.mapStrategyToFreshnessRequirement(request.strategy);
+          const accessPattern = freshnessRequirement === 'realtime' ? 'hot' : 
+                               freshnessRequirement === 'analytical' ? 'warm' : 'cold';
+          const ttlResult = CommonCacheService.calculateOptimalTTL(dataSize, accessPattern);
 
           // 获取数据
           const data = await request.fetchFn();
           
           // 异步设置缓存
-          this.commonCacheService.set(request.cacheKey, data, ttlResult.ttl).catch(error => {
+          this.commonCacheService.set(request.cacheKey, data, ttlResult).catch(error => {
             this.logger.warn(`缓存设置失败: ${request.cacheKey}`, error);
           });
           
           finalResults[index] = {
             data,
             hit: false,
-            ttlRemaining: ttlResult.ttl,
+            ttlRemaining: ttlResult,
             strategy: request.strategy,
             storageKey: request.cacheKey,
           };

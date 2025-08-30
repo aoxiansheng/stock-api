@@ -3,7 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import * as express from "express";
 
-import { CustomLogger, getLogLevels } from "@common/config/logger.config";
+import { CustomLogger, getLogLevels } from "@app/config/logger.config";
 import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,

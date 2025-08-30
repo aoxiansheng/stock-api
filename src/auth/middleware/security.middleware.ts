@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from "@nestjs/common";
 import { Request, Response, NextFunction } from "express";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import {
   RATE_LIMIT_CONFIG,
   SECURITY_LIMITS,

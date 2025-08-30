@@ -5,9 +5,9 @@ import {
 } from "@nestjs/common";
 import { Redis } from "ioredis";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
-import { securityConfig } from "../../common/config/security.config";
+import { securityConfig } from "@auth/config/security.config";
 import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,

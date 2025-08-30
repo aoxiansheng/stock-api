@@ -4,8 +4,8 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { MetricsRegistryService } from '../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
-import { FeatureFlags } from '../../../../src/common/config/feature-flags.config';
+import { MetricsRegistryService } from '@monitoring/infrastructure/metrics/metrics-registry.service';
+import { FeatureFlags } from '@config/feature-flags.config';
 
 describe('MetricsRegistryService Basic Test', () => {
   let testingModule: TestingModule;

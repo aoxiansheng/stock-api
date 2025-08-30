@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { createLogger, sanitizeLogData } from '@common/config/logger.config';
+import { createLogger, sanitizeLogData } from '@app/config/logger.config';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import {

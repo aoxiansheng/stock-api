@@ -6,10 +6,10 @@ import {
 } from "@nestjs/common";
 
 
-import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
-import { FeatureFlags } from "@common/config/feature-flags.config";
+import { FeatureFlags } from "@config/feature-flags.config";
 import { SymbolMapperCacheService } from "../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
 
 import {

@@ -5,7 +5,7 @@
 
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import { CollectorService } from '../../../monitoring/collector/collector.service';
 import {
   MarketStatus,

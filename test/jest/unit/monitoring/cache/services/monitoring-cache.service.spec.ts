@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MonitoringCacheService } from '../../../../../../src/monitoring/cache/monitoring-cache.service';
+import { MonitoringCacheService } from '@monitoring/cache/monitoring-cache.service';
 import { CacheService } from '../../../../../../src/cache/services/cache.service';
 
 describe('MonitoringCacheService', () => {

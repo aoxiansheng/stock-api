@@ -8,7 +8,7 @@ import { ApiKeyService } from '../../../../../../../src/auth/services/apikey.ser
 import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
 import { Permission } from '../../../../../../../src/auth/enums/user-role.enum';
 
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 
 /**
  * WsAuthGuard 单元测试
@@ -16,7 +16,7 @@ import { createLogger } from '@common/config/logger.config';
  */
 
 // 模拟 logger
-jest.mock('@common/config/logger.config');
+jest.mock('@app/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),

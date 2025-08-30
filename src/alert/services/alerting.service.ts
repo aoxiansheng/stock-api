@@ -8,7 +8,7 @@ import { ConfigService } from "@nestjs/config";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
 import { CacheService } from "../../cache/services/cache.service";
 import {

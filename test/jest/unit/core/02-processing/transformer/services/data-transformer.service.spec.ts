@@ -6,14 +6,14 @@ import {
 } from "@nestjs/common";
 import { DataTransformerService } from "../../../../../../../src/core/02-processing/transformer/services/data-transformer.service";
 import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service";
-import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service"; // ✅ 新增 CollectorService
+import { CollectorService } from "@monitoring/collector/collector.service"; // ✅ 新增 CollectorService
 import { DataTransformRequestDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-request.dto";
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { DataTransformResponseDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-response.dto";
 import { DeepMocked, createMock } from "@golevelup/ts-jest";
 
 // Mock the logger
-jest.mock("../../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

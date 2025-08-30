@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SYSTEM_STATUS_EVENTS } from '../../contracts/events/system-status.events';
-import { createLogger } from '../../../common/config/logger.config';
+import { createLogger } from '../../../app/config/logger.config';
 
 /**
  * 🎯 API监控拦截器

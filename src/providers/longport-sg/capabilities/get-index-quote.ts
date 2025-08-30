@@ -1,4 +1,4 @@
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import { MARKETS } from "@common/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";

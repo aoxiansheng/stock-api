@@ -8,7 +8,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';

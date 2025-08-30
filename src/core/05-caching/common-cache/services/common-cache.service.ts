@@ -5,7 +5,7 @@ import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { REDIS_SPECIAL_VALUES } from '../constants/cache.constants';
 import { RedisValueUtils } from '../utils/redis-value.utils';
 import { CacheCompressionService } from './cache-compression.service';
-import { createLogger } from '../../../../common/config/logger.config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { AdaptiveDecompressionService } from './adaptive-decompression.service';
 import { BatchMemoryOptimizerService } from './batch-memory-optimizer.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
@@ -369,8 +369,8 @@ export class CommonCacheService {
 
       // 智能压缩
       if (enableCompression && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
-        const compressedData = await this.compressionService.compress(processedData);
-        processedData = compressedData;
+        const compressedResult = await this.compressionService.compress(processedData);
+        processedData = compressedResult.compressedData;
         isCompressed = true;
       }
 
@@ -729,7 +729,8 @@ export class CommonCacheService {
           let isCompressed = false;
 
           if (enableCompression && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
-            processedData = await this.compressionService.compress(processedData);
+            const compressedResult = await this.compressionService.compress(processedData);
+            processedData = compressedResult.compressedData;
             isCompressed = true;
           }
 
@@ -892,7 +893,8 @@ export class CommonCacheService {
                 const shouldCompress = enableCompression ?? defaultCompression;
                 
                 if (shouldCompress && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
-                  processedData = await this.compressionService.compress(processedData);
+                  const compressedResult = await this.compressionService.compress(processedData);
+                  processedData = compressedResult.compressedData;
                   isCompressed = true;
                 }
 
@@ -1323,7 +1325,7 @@ export class CommonCacheService {
    * 计算最优TTL
    * 基于数据特征和业务场景计算最适合的TTL
    */
-  private calculateOptimalTTL(
+  static calculateOptimalTTL(
     dataSize: number,
     accessPattern: 'hot' | 'warm' | 'cold' = 'warm',
     customTTL?: number

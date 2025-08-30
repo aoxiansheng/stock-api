@@ -23,7 +23,7 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { CanActivate } from "@nestjs/common";
 
 // Mock createLogger for core modules
-jest.mock("../../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     error: jest.fn(),

@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HealthAnalyticsService } from '../../../../../src/monitoring/analyzer/services/health-analytics.service';
-import { CollectorService } from '../../../../../src/monitoring/collector/services/collector.service';
-import { AnalyticsCacheService } from '../../../../../src/monitoring/analyzer/services/analyzer-cache.service';
-import { ANALYTICS_EVENTS } from '../../../../../src/monitoring/analyzer/constants';
+import { HealthAnalyticsService } from '@monitoring/analyzer/services/health-analytics.service';
+import { CollectorService } from '@monitoring/collector/services/collector.service';
+import { AnalyticsCacheService } from '@monitoring/analyzer/services/analyzer-cache.service';
+import { ANALYTICS_EVENTS } from '@monitoring/analyzer/constants';
 
 describe('HealthAnalyticsService', () => {
   let service: HealthAnalyticsService;

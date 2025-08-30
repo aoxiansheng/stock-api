@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { SmartPathResolver } from './smart-path-resolver';
 import { ConventionViolation } from '../decorators/types/metadata.types';
 

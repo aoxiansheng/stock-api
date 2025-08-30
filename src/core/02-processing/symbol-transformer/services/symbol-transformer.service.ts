@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createLogger } from '../../../../common/config/logger.config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { SymbolMapperCacheService } from '../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { 

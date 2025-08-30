@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/commo
 import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
 import { AsyncLocalStorage } from 'async_hooks';
 import { Server } from 'socket.io';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { StreamCacheService } from '../../../05-caching/stream-cache/services/stream-cache.service';
 import { StreamDataPoint } from '../../../05-caching/stream-cache/interfaces/stream-cache.interface';
 import { StreamClientStateManager } from './stream-client-state-manager.service';

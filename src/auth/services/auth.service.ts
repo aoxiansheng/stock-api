@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
 import { DatabasePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database.decorator";
 import { CollectorService } from "../../monitoring/collector/collector.service";

@@ -17,7 +17,7 @@ import { ROLES_KEY } from "../../../../../src/auth/decorators/roles.decorator";
 import { AuthSubjectType } from "../../../../../src/auth/interfaces/auth-subject.interface";
 
 // Mock the logger to prevent console output during tests
-jest.mock("../../../../../src/common/config/logger.config", () => ({
+jest.mock("@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     warn: jest.fn(),

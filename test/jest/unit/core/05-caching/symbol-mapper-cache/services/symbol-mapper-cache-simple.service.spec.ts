@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SymbolMapperCacheService } from '@core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
 import { SymbolMappingRepository } from '@core/00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
-import { FeatureFlags } from '@common/config/feature-flags.config';
+import { FeatureFlags } from '@config/feature-flags.config';
 
 // Mock CollectorService class
 class MockCollectorService {

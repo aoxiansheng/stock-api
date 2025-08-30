@@ -3,7 +3,7 @@
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FeatureFlags } from '@common/config/feature-flags.config';
+import { FeatureFlags } from '@config/feature-flags.config';
 import {
   RequestOptionsDto,
   SymbolTransformationResultDto,

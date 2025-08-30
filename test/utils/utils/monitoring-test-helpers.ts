@@ -5,7 +5,7 @@
  */
 
 import { INestApplication } from "@nestjs/common";
-import { CollectorService } from "../../../src/metrics/services/collector.service";
+import { CollectorService } from "@monitoring/collector/collector.service";
 import { AlertingService } from "../../../src/alert/services/alerting.service";
 import { AlertHistoryService } from "../../../src/alert/services/alert-history.service";
 import { RedisService } from "@liaoliaots/nestjs-redis";

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
-import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 
 import { CacheService } from "../../cache/services/cache.service";
 import {

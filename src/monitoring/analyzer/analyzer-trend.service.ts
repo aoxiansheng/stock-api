@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createLogger } from '../../common/config/logger.config';
+import { createLogger } from '../../app/config/logger.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RawMetricsDto } from '../contracts/interfaces/collector.interface';
 import { TrendsDto } from '../contracts/interfaces/analyzer.interface';

@@ -3,7 +3,7 @@ import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/s
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { SymbolTransformerService } from '@core/02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 import { Logger } from '@nestjs/common';
 
 describe('StreamReceiverService', () => {

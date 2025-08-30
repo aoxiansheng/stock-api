@@ -18,8 +18,8 @@ export interface MemoryStats {
 /**
  * 批量处理结果接口
  */
-export interface BatchProcessResult<T> {
-  successful: T[];
+export interface BatchProcessResult<T, R = T> {
+  successful: R[];
   failed: Array<{ item: T; error: string }>;
   metrics: {
     totalItems: number;
@@ -142,7 +142,7 @@ export class BatchMemoryOptimizerService {
     items: T[],
     processor: (items: T[]) => Promise<R[]>,
     options: BatchProcessOptions = {}
-  ): Promise<BatchProcessResult<R>> {
+  ): Promise<BatchProcessResult<T, R>> {
     const startTime = Date.now();
     const startMemory = this.getCurrentMemoryUsage();
 
@@ -247,7 +247,7 @@ export class BatchMemoryOptimizerService {
     // 更新统计
     this.updateStats(totalMemoryUsed, successful.length + failed.length, avgItemSize);
 
-    const result: BatchProcessResult<R> = {
+    const result: BatchProcessResult<T, R> = {
       successful,
       failed,
       metrics: {

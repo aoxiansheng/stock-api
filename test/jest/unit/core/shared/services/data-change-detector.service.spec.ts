@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataChangeDetectorService, ChangeDetectionResult } from '@core/shared/services/data-change-detector.service';
-import { CollectorService } from '../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus, CHANGE_DETECTION_THRESHOLDS } from '@common/constants/market-trading-hours.constants';
 import { TestUtils } from '../../../../shared/test-utils';

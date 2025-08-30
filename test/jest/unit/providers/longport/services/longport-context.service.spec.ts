@@ -15,7 +15,7 @@ jest.mock("longport", () => ({
 }));
 
 // Mock logger
-jest.mock("../../../../../../src/common/config/logger.config", () => ({
+jest.mock("@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     warn: jest.fn(),

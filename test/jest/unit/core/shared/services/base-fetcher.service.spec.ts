@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 
 import { BaseFetcherService } from '../../../../../../src/core/shared/services/base-fetcher.service';
-import { CollectorService } from '../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 
 // 创建具体实现类用于测试抽象类
 class TestBaseFetcherService extends BaseFetcherService {

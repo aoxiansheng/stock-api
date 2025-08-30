@@ -341,7 +341,7 @@ CACHE_TTL = {
 - Node.js内置: `util`, `zlib` - 工具和压缩功能
 
 #### 项目内部依赖：
-- `@common/config/logger.config` - 统一日志配置
+- `@app/config/logger.config` - 统一日志配置
 - `@common/constants/unified/unified-cache-config.constants` - 统一缓存配置
 - `../system-status/collector/decorators/database-performance.decorator` - 性能监控装饰器
 

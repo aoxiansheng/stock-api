@@ -9,7 +9,7 @@ import { ValidationError } from "class-validator";
 import { Request, Response } from "express";
 import { MongoError } from "mongodb";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import {
   AUTH_ERROR_MESSAGES,
   HTTP_ERROR_MESSAGES,

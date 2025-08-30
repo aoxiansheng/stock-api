@@ -5,7 +5,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { io, Socket as ClientSocket } from 'socket.io-client';
-import { createLogger } from '../../../../../../src/common/config/logger.config';
+import { createLogger } from '../../../../../../src/app/config/logger.config';
 import { UserRole } from '../../../../../../src/auth/enums/user-role.enum';
 
 // 导入应用模块和相关服务
@@ -15,7 +15,7 @@ import { CacheService } from '../../../../../../src/cache/services/cache.service
 import { AuthService } from '../../../../../../src/auth/services/auth.service';
 
 // Mock logger
-jest.mock('@common/config/logger.config');
+jest.mock('@app/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { EnvironmentValidatorService } from './environment-validator.service';
 import { DependenciesValidatorService } from './dependencies-validator.service';
 import {

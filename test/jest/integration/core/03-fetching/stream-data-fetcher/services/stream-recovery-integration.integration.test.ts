@@ -22,12 +22,12 @@ import { StreamRecoveryConfigService } from '../../../../../../../src/core/03-fe
 import { StreamRecoveryMetricsService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/metrics/stream-recovery.metrics';
 import { ApiKeyService } from '../../../../../../../src/auth/services/apikey.service';
 import { CacheService } from '../../../../../../../src/cache/services/cache.service';
-import { createLogger } from '../../../../../../../src/common/config/logger.config';
+import { createLogger } from '../../../../../../../src/app/config/logger.config';
 import { Server } from 'socket.io';
 import { io as ClientIO, Socket as ClientSocket } from 'socket.io-client';
 
 // Mock Logger
-jest.mock('../../../../../../src/common/config/logger.config', () => ({
+jest.mock('@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     log: jest.fn(),

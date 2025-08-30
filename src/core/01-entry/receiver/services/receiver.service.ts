@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
-import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 // import { MarketStatus } from "@common/constants/market-trading-hours.constants";
 // import { Market } from "@common/constants/market.constants"; // 已由cache-request.utils提供
 

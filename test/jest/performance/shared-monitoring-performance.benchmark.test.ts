@@ -7,7 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MarketStatusService } from '../../../src/core/shared/services/market-status.service';
 import { DataChangeDetectorService } from '../../../src/core/shared/services/data-change-detector.service';
 import { BackgroundTaskService } from '../../../src/core/shared/services/background-task.service';
-import { CollectorService } from '../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 import { Market } from '../../../src/common/constants/market.constants';
 import { MarketStatus } from '../../../src/common/constants/market-trading-hours.constants';
 

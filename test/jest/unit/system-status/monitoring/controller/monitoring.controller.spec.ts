@@ -4,11 +4,11 @@
 
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
-import { MonitoringController } from "../../../../../../src/monitoring/presenter/controller/monitoring.controller";
-import { IPerformanceAnalytics } from "../../../../../../src/monitoring/analyzer/interfaces/performance-analyzer.interface";
-import { IHealthAnalytics } from "../../../../../../src/monitoring/analyzer/interfaces/health-analyzer.interface";
+import { MonitoringController } from "@monitoring/presenter/controller/monitoring.controller";
+import { IPerformanceAnalytics } from "@monitoring/analyzer/interfaces/performance-analyzer.interface";
+import { IHealthAnalytics } from "@monitoring/analyzer/interfaces/health-analyzer.interface";
 import { CacheService } from "../../../../../../src/cache/services/cache.service";
-import { MetricsHealthService } from "../../../../../../src/monitoring/collector/services/metrics-health.service";
+import { MetricsHealthService } from "@monitoring/collector/services/metrics-health.service";
 import { PermissionService } from "../../../../../../src/auth/services/permission.service";
 import { RateLimitService } from "../../../../../../src/auth/services/rate-limit.service";
 import { UnifiedPermissionsGuard } from "../../../../../../src/auth/guards/unified-permissions.guard";
@@ -18,11 +18,11 @@ import {
 } from "@nestjs/common";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { AlertingService } from "../../../../../../src/alert/services/alerting.service";
-import { createLogger } from "../../../../../../src/common/config/logger.config";
+import { createLogger } from "../../../../../../src/app/config/logger.config";
 import {
   PerformanceSummaryDto,
   EndpointMetricsDto,
-} from "../../../../../../src/monitoring/collector/dto/performance-summary.dto";
+} from "@monitoring/collector/dto/performance-summary.dto";
 import { CacheStatsDto } from "../../../../../../src/cache/dto/cache-internal.dto";
 import { IAlertStats } from "../../../../../../src/alert/interfaces/alert.interface";
 import { InfrastructureMetricsRegistryService } from '../../../../../../src/common/infrastructure/monitoring/metrics-registry.service';
@@ -38,7 +38,7 @@ class MockUnifiedPermissionsGuard {
 }
 
 // Mock the logger
-jest.mock("../../../../../src/common/config/logger.config", () => ({
+jest.mock("@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     info: jest.fn(),

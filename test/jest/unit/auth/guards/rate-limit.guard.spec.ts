@@ -28,7 +28,7 @@ const mockLoggerInstance = {
   verbose: jest.fn(),
 };
 
-jest.mock("../../../../../src/common/config/logger.config", () => ({
+jest.mock("@app/config/logger.config", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
 }));
 

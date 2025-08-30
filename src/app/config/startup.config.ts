@@ -63,3 +63,8 @@ export const createStartupConfig = (): StartupConfig => ({
     signals: (process.env.SHUTDOWN_SIGNALS || 'SIGTERM,SIGINT').split(','),
   },
 });
+
+/**
+ * NestJS Config 工厂函数
+ */
+export const startupConfig = () => createStartupConfig();

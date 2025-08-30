@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { ApiKeyService } from '../../../../auth/services/apikey.service';
 import { RateLimitService } from '../../../../auth/services/rate-limit.service';
 import { Socket } from 'socket.io';

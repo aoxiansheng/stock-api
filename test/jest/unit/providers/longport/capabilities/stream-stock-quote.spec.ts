@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // Import removed as TestingModule is not used in this test file
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { MARKETS } from '@common/constants/market.constants';
 import streamStockQuote from '../../../../../../src/providers/longport/capabilities/stream-stock-quote';
 
 // Mock logger
-jest.mock('@common/config/logger.config');
+jest.mock('@app/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),

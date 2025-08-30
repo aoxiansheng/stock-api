@@ -6,5 +6,3 @@
 // 基础设施服务
 export * from './infrastructure';
 
-// 全局服务
-export * from './global';

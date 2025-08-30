@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 
 // LongPort SDK 导入
 // eslint-disable-next-line @typescript-eslint/no-require-imports

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { StreamMetricsService } from './stream-metrics.service';
 import { Subject, race, timer, takeUntil, map } from 'rxjs';
 import { StreamConnection, StreamConnectionStatus } from '../interfaces';

@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 
-import { createLogger } from "@common/config/logger.config";
-import { securityConfig } from "../../common/config/security.config";
+import { createLogger } from "@app/config/logger.config";
+import { securityConfig } from "@auth/config/security.config";
 
 /**
  * 封装密码处理逻辑的服务

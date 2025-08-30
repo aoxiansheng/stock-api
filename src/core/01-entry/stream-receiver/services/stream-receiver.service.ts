@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '../../../02-processing/transformer/services/data-transformer.service';
 import { StreamDataFetcherService } from '../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
@@ -1130,10 +1130,10 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private checkProviderConnections(provider: string): void {
     // 获取该提供商的所有连接
-    const connectionStats = this.streamDataFetcher.getConnectionStatsByProvider();
-    const providerStats = connectionStats[provider];
+    const connectionStats = this.streamDataFetcher.getConnectionStatsByProvider(provider);
+    const providerStats = connectionStats;
     
-    if (!providerStats || providerStats.connections === 0) {
+    if (!providerStats || providerStats.length === 0) {
       this.logger.warn('检测到提供商连接断开', {
         provider,
         stats: providerStats,
@@ -1192,7 +1192,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 检查连接是否活跃
       const connectionKey = `${clientInfo.providerName}:${clientInfo.wsCapabilityType}`;
       const connection = this.activeConnections.get(connectionKey);
-      const isActive = connection ? this.streamDataFetcher.isConnectionActive(connection) : false;
+      const isActive = connection ? this.streamDataFetcher.isConnectionActive(connectionKey) : false;
       
       if (!isActive) {
         this.logger.warn('检测到连接不活跃，调度补发任务', {
@@ -1292,7 +1292,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   getClientStats() {
     const clientStats = this.streamDataFetcher.getClientStateManager().getClientStateStats();
     const cacheStats = this.streamDataFetcher.getStreamDataCache().getCacheStats();
-    const connectionStats = this.streamDataFetcher.getConnectionStatsByProvider();
+    const connectionStats = this.streamDataFetcher.getConnectionStatsByProvider('all');
 
     return {
       clients: clientStats,
@@ -1391,7 +1391,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     
     // 检查现有连接
     let connection = this.activeConnections.get(connectionKey);
-    if (connection && this.streamDataFetcher.isConnectionActive(connection)) {
+    if (connection && this.streamDataFetcher.isConnectionActive(connectionKey)) {
       return connection;
     }
 
@@ -1409,7 +1409,13 @@ export class StreamReceiverService implements OnModuleDestroy {
       },
     };
 
-    connection = await this.streamDataFetcher.establishStreamConnection(connectionParams);
+    connection = await this.streamDataFetcher.establishStreamConnection(provider, capability, {
+      retryAttempts: 3,
+      connectionTimeout: 30000,
+      autoReconnect: true,
+      maxReconnectAttempts: 3,
+      heartbeatIntervalMs: 30000,
+    });
     this.activeConnections.set(connectionKey, connection);
 
     // ✅ 记录连接创建监控

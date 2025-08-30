@@ -14,7 +14,7 @@ import {
   sanitizeLogData,
   LoggerConfig,
   TestableLogger,
-} from "../../../../../src/common/config/logger.config";
+} from "../../../../../src/app/config/logger.config";
 
 // 模拟控制台输出以便测试
 interface LogOutput {

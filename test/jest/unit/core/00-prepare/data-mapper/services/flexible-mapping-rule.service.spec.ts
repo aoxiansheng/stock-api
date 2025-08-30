@@ -12,7 +12,7 @@ import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-pre
 import { DataSourceTemplateService } from "../../../../../../../src/core/00-prepare/data-mapper/services/data-source-template.service";
 import { MappingRuleCacheService } from "../../../../../../../src/core/00-prepare/data-mapper/services/mapping-rule-cache.service";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
-import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
+import { CollectorService } from "@monitoring/collector/collector.service";
 import {
   FlexibleMappingRule,
   FlexibleMappingRuleDocument
@@ -29,7 +29,7 @@ import {
 } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
-jest.mock("../../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

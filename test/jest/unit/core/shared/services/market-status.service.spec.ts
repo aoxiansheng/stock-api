@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MarketStatusService, MarketStatusResult } from '@core/shared/services/market-status.service';
-import { CollectorService } from '../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 import { Market } from '@common/constants/market.constants';
 import { MarketStatus } from '@common/constants/market-trading-hours.constants';
 import { TestUtils } from '../../../../shared/test-utils';

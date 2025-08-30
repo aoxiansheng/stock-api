@@ -4,7 +4,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-// import { FeatureFlags } from "@common/config/feature-flags.config"; // 已从 MonitoringModule 获取
+// import { FeatureFlags } from "@config/feature-flags.config"; // 已从 MonitoringModule 获取
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 

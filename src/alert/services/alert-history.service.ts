@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 
 // 🎯 引入缓存服务用于时序数据存储
 import { CacheService } from "../../cache/services/cache.service";

@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { Config, QuoteContext } from "longport";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
 /**
  * LongPort SG 上下文服务 - 单例模式管理 SDK 连接

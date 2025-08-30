@@ -11,15 +11,15 @@ import * as express from "express";
 
 // 动态导入AppModule
 import { AppModule } from "../../src/app.module";
-import { CustomLogger } from "../../src/common/config/logger.config";
+import { CustomLogger } from "../../src/app/config/logger.config";
 import { GlobalExceptionFilter } from "../../src/common/core/filters";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "../../src/common/core/interceptors";
 
-import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
-import { CollectorService } from "../../src/monitoring/collector/collector.service";
+import { InfrastructureInterceptor } from "@monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { CollectorService } from "@monitoring/collector/collector.service";
 import { UserRepository } from "../../src/auth/repositories/user.repository";
 import { PasswordService } from "../../src/auth/services/password.service";
 import { UserRole, Permission } from "../../src/auth/enums/user-role.enum";

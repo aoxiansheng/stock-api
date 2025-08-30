@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HealthModule } from '../../../../../src/monitoring/health/health.module';
-import { ExtendedHealthService } from '../../../../../src/monitoring/health/extended-health.service';
+import { HealthModule } from '@monitoring/health/health.module';
+import { ExtendedHealthService } from '@monitoring/health/extended-health.service';
 import { ConfigValidationModule } from '../../../../../src/app/config/validation/config-validation.module';
 import { StartupModule } from '../../../../../src/app/startup/startup.module';
 

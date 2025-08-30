@@ -109,7 +109,7 @@
   ✅ 完美复用 (100%)
 
   1. 日志系统完全复用
-  import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+  import { createLogger, sanitizeLogData } from "@app/config/logger.config";
   private readonly logger = createLogger(CacheService.name); // ✅
   2. 性能监控装饰器
   import { CachePerformance } from "../../common/core/monitoring/decorators/..."; // ✅

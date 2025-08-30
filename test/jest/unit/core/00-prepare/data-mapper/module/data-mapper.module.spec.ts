@@ -21,7 +21,7 @@ import { DataMapperCacheService } from "../../../../../../../src/core/05-caching
 import { FeatureFlags } from "../../../../../../../src/common/config/feature-flags.config";
 
 // Mock logger to avoid issues in testing
-jest.mock("../../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

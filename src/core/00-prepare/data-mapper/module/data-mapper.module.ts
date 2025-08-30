@@ -6,7 +6,7 @@ import { PaginationModule } from "@common/modules/pagination/modules/pagination.
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { DataMapperCacheModule } from "../../../05-caching/data-mapper-cache/module/data-mapper-cache.module";
 import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
-import { FeatureFlags } from "@common/config/feature-flags.config";
+import { FeatureFlags } from "@config/feature-flags.config";
 
 // 🚀 重构后的控制器（按职责分离）
 import { UserJsonPersistenceController } from "../controller/user-json-persistence.controller";

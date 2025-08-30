@@ -15,14 +15,14 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 // 先加载E2E测试环境变量
 import "./e2e.env";
 
-import { CustomLogger, getLogLevels } from "@common/config/logger.config";
+import { CustomLogger, getLogLevels } from "@app/config/logger.config";
 import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "@common/core/interceptors";
-import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
-import { CollectorService } from "../../src/monitoring/collector/collector.service";
+import { InfrastructureInterceptor } from "@monitoring/infrastructure/interceptors/infrastructure.interceptor";
+import { CollectorService } from "@monitoring/collector/collector.service";
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;

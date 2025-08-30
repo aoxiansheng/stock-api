@@ -15,7 +15,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { MonitoringEventBridgeService } from './bridge/monitoring-event-bridge.service';
 import { ApiMonitoringInterceptor } from './interceptors/api-monitoring.interceptor';
 // import { MetricsRegistryService } from './metrics/metrics-registry.service'; // 🔧 Phase 1: 移除未使用的 import
-import { FeatureFlags } from '../../common/config/feature-flags.config';
+import { FeatureFlags } from '@app/config/feature-flags.config';
 
 @Module({
   imports: [MetricsModule],

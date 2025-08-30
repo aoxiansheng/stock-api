@@ -10,7 +10,7 @@ import { CacheCompressionService } from '../../../../../../../src/core/05-cachin
 import Redis from 'ioredis';
 
 // Mock createLogger
-jest.mock('../../../../../../../src/common/config/logger.config', () => ({
+jest.mock('../@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     error: jest.fn(),

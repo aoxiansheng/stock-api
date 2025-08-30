@@ -8,7 +8,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 

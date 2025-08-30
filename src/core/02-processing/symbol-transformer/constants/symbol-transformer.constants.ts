@@ -48,6 +48,15 @@ export const MONITORING_CONFIG = {
   ERROR_RATE_THRESHOLD: 0.01,       // 错误率阈值（1%）
 } as const;
 
+// 重试配置
+export const RETRY_CONFIG = {
+  MAX_ATTEMPTS: 3,                  // 最大重试次数
+  BASE_DELAY: 1000,                 // 基础延迟时间（毫秒）
+  BACKOFF_FACTOR: 2,                // 指数退避因子
+  MAX_DELAY: 10000,                 // 最大延迟时间（毫秒）
+  JITTER_FACTOR: 0.1,               // 抖动因子
+} as const;
+
 // 类型定义
 export type MarketType = typeof MARKET_TYPES[keyof typeof MARKET_TYPES];
 export type TransformDirection = typeof TRANSFORM_DIRECTIONS[keyof typeof TRANSFORM_DIRECTIONS];

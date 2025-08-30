@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { createLogger } from '../../../../common/config/logger.config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { SystemMetricsDto } from '../../../../monitoring/contracts/interfaces/collector.interface';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { MetricsRegistryService } from '../../../../monitoring/infrastructure/metrics/metrics-registry.service';

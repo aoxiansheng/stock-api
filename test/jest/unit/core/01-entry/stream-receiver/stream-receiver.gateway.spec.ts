@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { StreamReceiverGateway } from '../../../../../../src/core/01-entry/stream-receiver/gateway/stream-receiver.gateway';
 import { StreamReceiverService } from '../../../../../../src/core/01-entry/stream-receiver/services/stream-receiver.service';
 import { WsAuthGuard } from '../../../../../../src/core/01-entry/stream-receiver/guards/ws-auth.guard';
@@ -8,7 +8,7 @@ import { StreamSubscribeDto, StreamUnsubscribeDto } from '../../../../../../src/
 import { ApiKeyService } from '../../../../../../src/auth/services/apikey.service';
 
 // Mock logger
-jest.mock('@common/config/logger.config');
+jest.mock('@app/config/logger.config');
 
 const mockLogger = {
   debug: jest.fn(),
@@ -55,7 +55,7 @@ describe('StreamReceiverGateway', () => {
     jest.clearAllMocks();
     
     // Setup logger mock
-    const { createLogger } = eval('require')('@common/config/logger.config');
+    const { createLogger } = eval('require')('@app/config/logger.config');
     (createLogger as jest.Mock).mockReturnValue(mockLogger);
 
     const module: TestingModule = await Test.createTestingModule({

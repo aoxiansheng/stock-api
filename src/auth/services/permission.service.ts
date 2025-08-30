@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
 import { CacheService } from "../../cache/services/cache.service";
-import { securityConfig } from "../../common/config/security.config";
+import { securityConfig } from "@auth/config/security.config";
 // 更新导入路径，从utils导入PermissionTemplateUtil
 import {
   PERMISSION_OPERATIONS,

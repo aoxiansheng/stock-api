@@ -13,7 +13,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import { ALERT_RATE_LIMIT, ALERT_RATE_LIMIT_MESSAGES } from "@common/constants/alert-rate-limit.constants";
 
 import {

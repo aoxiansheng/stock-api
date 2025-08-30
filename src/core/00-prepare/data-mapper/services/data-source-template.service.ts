@@ -1,6 +1,6 @@
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';

@@ -6,7 +6,7 @@ import { DataMapperCacheService } from "../../../../../../../src/core/05-caching
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 
 // Mock the logger
-jest.mock("../../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

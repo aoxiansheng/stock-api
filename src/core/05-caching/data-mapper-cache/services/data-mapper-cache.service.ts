@@ -1,6 +1,6 @@
 import { Injectable, Inject, Optional } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { createLogger } from '../../../../common/config/logger.config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { FlexibleMappingRuleResponseDto } from '../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 import { IDataMapperCache } from '../interfaces/data-mapper-cache.interface';

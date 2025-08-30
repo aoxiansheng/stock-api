@@ -2,7 +2,7 @@ import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
 import {

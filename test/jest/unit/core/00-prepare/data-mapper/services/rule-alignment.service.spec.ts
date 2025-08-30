@@ -18,7 +18,7 @@ import {
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
 
 // Mock the logger
-jest.mock("../../../../../../../src/common/config/logger.config", () => ({
+jest.mock("../@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

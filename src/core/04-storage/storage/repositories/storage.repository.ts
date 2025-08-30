@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 import { StorageQueryDto } from "../dto/storage-query.dto";
 import { StoredData, StoredDataDocument } from "../schemas/storage.schema";
 

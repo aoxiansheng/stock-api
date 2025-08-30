@@ -99,6 +99,45 @@ export interface StreamConnectionOptions {
 }
 
 /**
+ * 流连接配置接口（别名，用于向后兼容）
+ */
+export type StreamConnectionConfig = StreamConnectionOptions;
+
+/**
+ * 订阅结果接口
+ */
+export interface SubscriptionResult {
+  /** 是否成功 */
+  success: boolean;
+  
+  /** 已订阅的符号列表 */
+  subscribedSymbols: string[];
+  
+  /** 失败的符号列表 */
+  failedSymbols?: string[];
+  
+  /** 错误信息 */
+  error?: string;
+}
+
+/**
+ * 取消订阅结果接口
+ */
+export interface UnsubscriptionResult {
+  /** 是否成功 */
+  success: boolean;
+  
+  /** 已取消订阅的符号列表 */
+  unsubscribedSymbols: string[];
+  
+  /** 失败的符号列表 */
+  failedSymbols?: string[];
+  
+  /** 错误信息 */
+  error?: string;
+}
+
+/**
  * 流连接实例接口
  */
 export interface StreamConnection {

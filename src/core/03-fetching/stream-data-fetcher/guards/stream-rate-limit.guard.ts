@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, ServiceUnavailableException, OnModuleDestroy } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 
 /**
  * DoS防护参数配置接口

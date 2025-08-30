@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { FeatureFlags } from '@common/config/feature-flags.config';
+import { FeatureFlags } from '@config/feature-flags.config';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module'; // ✅ 更换为监控模块
 import { DatabaseModule } from '../../../../database/database.module'; // 🆕 统一数据库模块
 

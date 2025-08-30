@@ -4,10 +4,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { MetricsRegistryService } from '../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '@monitoring/infrastructure/metrics/metrics-registry.service';
 import { SharedServicesModule } from '../../../../src/core/shared/module/shared-services.module';
-import { InfrastructureModule } from '../../../../src/monitoring/infrastructure/infrastructure.module';
-import { FeatureFlags } from '../../../../src/common/config/feature-flags.config';
+import { InfrastructureModule } from '@monitoring/infrastructure/infrastructure.module';
+import { FeatureFlags } from '@config/feature-flags.config';
 
 describe('MetricsRegistryService Singleton Validation', () => {
   let testingModule: TestingModule;

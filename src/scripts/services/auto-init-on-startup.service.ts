@@ -1,8 +1,8 @@
 import { Injectable, OnApplicationBootstrap } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
 
-import { getAutoInitConfig } from "@common/config/auto-init.config";
-import { createLogger } from "@common/config/logger.config";
+import { getAutoInitConfig } from "@config/auto-init.config";
+import { createLogger } from "@app/config/logger.config";
 import { PersistedTemplateService } from "../../core/00-prepare/data-mapper/services/persisted-template.service";
 
 /**

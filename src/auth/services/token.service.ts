@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 
-import { securityConfig } from "../../common/config/security.config";
+import { securityConfig } from "@auth/config/security.config";
 import { UserRole } from "../enums/user-role.enum";
 import { UserRepository } from "../repositories/user.repository";
 import { User } from "../schemas/user.schema";

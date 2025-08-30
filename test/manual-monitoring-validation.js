@@ -20,7 +20,7 @@ try {
 
   // Test 3: Check monitoring interface
   console.log('3. 检查监控接口...');
-  const interfacePath = require('path').resolve('./src/monitoring/contracts/interfaces/collector.interface.ts');
+  const interfacePath = require('path').resolve('@monitoring/contracts/interfaces/collector.interface.ts');
   console.log('✅ 监控接口路径有效:', interfacePath.substring(interfacePath.length - 60));
 
   // Test 4: Manual function validation

@@ -8,7 +8,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 试点测试
 import { AuthModule } from "../../auth/module/auth.module";
 import { CacheModule } from "../../cache/module/cache.module";
-import { alertConfig } from "../../common/config/alert.config";
+import { alertConfig } from "@alert/config/alert.config";
 
 import { AlertController } from "../controller/alert.controller";
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";

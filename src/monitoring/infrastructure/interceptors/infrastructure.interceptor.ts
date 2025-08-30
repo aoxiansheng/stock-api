@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
 import { Request, Response } from 'express';
 
-import { createLogger } from '../../../common/config/logger.config';
+import { createLogger } from '../../../app/config/logger.config';
 import { CollectorService } from '../../collector/collector.service';
 // MetricsRegistryService已移除，使用CollectorService的事件驱动架构
 

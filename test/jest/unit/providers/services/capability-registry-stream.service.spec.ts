@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
-import { createLogger } from '@common/config/logger.config';
+import { createLogger } from '@app/config/logger.config';
 import { CapabilityRegistryService } from '../../../../../src/providers/services/capability-registry.service';
 import { IStreamCapability } from '../../../../../src/providers/interfaces/stream-capability.interface';
 import { MARKETS } from '@common/constants/market.constants';
 
 // Mock logger
-jest.mock('@common/config/logger.config');
+jest.mock('@app/config/logger.config');
 const mockLogger = {
   debug: jest.fn(),
   log: jest.fn(),

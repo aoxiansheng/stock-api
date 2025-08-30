@@ -7,7 +7,7 @@ import { FlexibleMappingRuleResponseDto } from '../../../../../../../src/core/00
 import { DATA_MAPPER_CACHE_CONSTANTS } from '../../../../../../../src/core/05-caching/data-mapper-cache/constants/data-mapper-cache.constants';
 
 // Mock the logger
-jest.mock('../../../../../../../src/common/config/logger.config', () => ({
+jest.mock('../@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     debug: jest.fn(),

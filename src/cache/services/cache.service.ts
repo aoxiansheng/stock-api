@@ -10,7 +10,7 @@ import {
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
 
-import { createLogger, sanitizeLogData } from "@common/config/logger.config";
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { CachePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database.decorator";
 
 import {

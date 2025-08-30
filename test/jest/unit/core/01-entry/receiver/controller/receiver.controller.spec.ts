@@ -14,7 +14,7 @@ import { RedisService } from "@liaoliaots/nestjs-redis";
 // Mock createLogger for core modules - use var for hoisting compatibility
 var mockLoggerInstance: any;
 
-jest.mock("../../../../../../src/common/config/logger.config", () => {
+jest.mock("@app/config/logger.config", () => {
   mockLoggerInstance = {
     log: jest.fn(),
     error: jest.fn(),

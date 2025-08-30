@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createLogger } from '../../common/config/logger.config';
+import { createLogger } from '../../app/config/logger.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ISystemStatusErrorHandler, ErrorContext } from '../contracts/interfaces/error-handler.interface';
 import { SYSTEM_STATUS_EVENTS } from '../contracts/events/system-status.events';

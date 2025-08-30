@@ -7,7 +7,7 @@ import {
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { BadRequestException } from "@nestjs/common";
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
 import { AuthPerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database.decorator";
 import {

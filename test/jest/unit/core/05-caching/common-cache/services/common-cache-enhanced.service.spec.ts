@@ -13,7 +13,7 @@ import Redis from 'ioredis';
 import { RedisValueUtils } from '../../../../../../../src/core/05-caching/common-cache/utils/redis-value.utils';
 
 // Mock createLogger
-jest.mock('../../../../../../../src/common/config/logger.config', () => ({
+jest.mock('../@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     error: jest.fn(),

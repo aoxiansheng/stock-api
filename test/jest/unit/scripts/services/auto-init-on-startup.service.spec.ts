@@ -3,13 +3,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ModuleRef } from '@nestjs/core';
 
 import { AutoInitOnStartupService } from '../../../../../src/scripts/services/auto-init-on-startup.service';
-import { getAutoInitConfig } from '../../../../../src/common/config/auto-init.config';
+import { getAutoInitConfig } from '@config/auto-init.config';
 
 // 注意：旧版预设字段和符号映射已移除
 // 新版架构不再需要这些自动初始化功能
 
 // 模拟 logger
-jest.mock('../../../../../src/common/config/logger.config', () => ({
+jest.mock('@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     warn: jest.fn(),

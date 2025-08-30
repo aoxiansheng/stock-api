@@ -133,6 +133,11 @@ export const createAppConfig = (): Partial<AppConfig> => ({
 });
 
 /**
+ * NestJS Config 工厂函数
+ */
+export const appConfig = () => createAppConfig();
+
+/**
  * 类型安全的配置服务包装器
  */
 export class TypedConfigService {

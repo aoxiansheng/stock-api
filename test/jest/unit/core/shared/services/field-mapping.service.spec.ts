@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { FieldMappingService } from '../../../../../../src/core/shared/services/field-mapping.service';
-import { CollectorService } from '../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from '@monitoring/collector/collector.service';
 
 describe('FieldMappingService', () => {
   let service: FieldMappingService;

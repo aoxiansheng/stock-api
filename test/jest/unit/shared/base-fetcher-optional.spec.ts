@@ -5,7 +5,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { Injectable } from '@nestjs/common';
-import { MetricsRegistryService } from '../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsRegistryService } from '@monitoring/infrastructure/metrics/metrics-registry.service';
 
 // 创建一个具体的测试实现类
 @Injectable()

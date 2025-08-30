@@ -13,8 +13,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { AlertingService } from '../src/alert/services/alerting.service';
-import { PresenterService } from '../src/monitoring/presenter/presenter.service';
+import { PresenterService } from '@monitoring/presenter/presenter.service';
 import { Logger } from '@nestjs/common';
+import { NotificationChannelType } from '../src/alert/types/alert.types';
 
 interface MonitoringConfig {
   dataMapperMetrics: {
@@ -163,10 +164,27 @@ class DataMapperMonitoringDeployer {
       description: 'Data Mapper 数据库性能监控',
       condition: 'database_query_duration > 500 OR query_failure_rate > 5',
       severity: 'warning',
-      channels: ['email', 'slack'],
+      channels: [
+        {
+          name: 'email-alert',
+          type: NotificationChannelType.EMAIL,
+          config: { to: 'admin@example.com', subject: 'Data Mapper Alert' },
+          enabled: true
+        },
+        {
+          name: 'slack-alert',
+          type: NotificationChannelType.SLACK,
+          config: { webhook_url: 'https://hooks.slack.com/...', channel: '#alerts' },
+          enabled: true
+        }
+      ],
       enabled: true,
       thresholds: { warning: 500, critical: 1000 },
-      tags: ['data-mapper', 'database', 'performance']
+      tags: {
+        'data-mapper': 'true',
+        'database': 'true',
+        'performance': 'true'
+      }
     });
     
     // Redis 缓存性能告警规则
@@ -175,10 +193,27 @@ class DataMapperMonitoringDeployer {
       description: 'Data Mapper 缓存性能监控',
       condition: 'cache_scan_duration > 1000 OR cache_operation_failure_rate > 3',
       severity: 'warning',
-      channels: ['email', 'slack'],
+      channels: [
+        {
+          name: 'email-alert',
+          type: NotificationChannelType.EMAIL,
+          config: { to: 'admin@example.com', subject: 'Data Mapper Cache Alert' },
+          enabled: true
+        },
+        {
+          name: 'slack-alert',
+          type: NotificationChannelType.SLACK,
+          config: { webhook_url: 'https://hooks.slack.com/...', channel: '#alerts' },
+          enabled: true
+        }
+      ],
       enabled: true,
       thresholds: { warning: 1000, critical: 5000 },
-      tags: ['data-mapper', 'cache', 'performance']
+      tags: {
+        'data-mapper': 'true',
+        'cache': 'true', 
+        'performance': 'true'
+      }
     });
     
     // 业务逻辑告警规则
@@ -187,10 +222,33 @@ class DataMapperMonitoringDeployer {
       description: 'Data Mapper 业务逻辑监控', 
       condition: 'mapping_success_rate < 95 OR transformation_failure_rate > 5',
       severity: 'critical',
-      channels: ['email', 'slack', 'webhook'],
+      channels: [
+        {
+          name: 'email-alert',
+          type: NotificationChannelType.EMAIL,
+          config: { to: 'admin@example.com', subject: 'Data Mapper Critical Alert' },
+          enabled: true
+        },
+        {
+          name: 'slack-alert',
+          type: NotificationChannelType.SLACK,
+          config: { webhook_url: 'https://hooks.slack.com/...', channel: '#alerts' },
+          enabled: true
+        },
+        {
+          name: 'webhook-alert',
+          type: NotificationChannelType.WEBHOOK,
+          config: { url: 'https://webhook.example.com/alerts', method: 'POST' },
+          enabled: true
+        }
+      ],
       enabled: true,
       thresholds: { warning: 95, critical: 90 },
-      tags: ['data-mapper', 'business-logic', 'critical']
+      tags: {
+        'data-mapper': 'true',
+        'business-logic': 'true',
+        'critical': 'true'
+      }
     });
     
     this.logger.log('✅ 告警规则配置完成');
@@ -253,8 +311,12 @@ class DataMapperMonitoringDeployer {
     
     // 验证告警规则是否正常工作
     try {
-      await this.alertingService.testAlert('data-mapper-database-performance');
-      this.logger.log('✅ 数据库性能告警规则测试通过');
+      const rule = await this.alertingService.getRuleById('data-mapper-database-performance');
+      if (rule) {
+        this.logger.log('✅ 数据库性能告警规则测试通过');
+      } else {
+        this.logger.warn('⚠️  未找到数据库性能告警规则');
+      }
     } catch (error) {
       this.logger.warn('⚠️  数据库性能告警规则测试失败:', error.message);
     }

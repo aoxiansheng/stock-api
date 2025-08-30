@@ -15,7 +15,7 @@ import {
 } from "../../../../../src/auth/enums/user-role.enum";
 
 // Mock createLogger to provide controlled logger instance
-jest.mock("../../../../../src/common/config/logger.config", () => ({
+jest.mock("@app/config/logger.config", () => ({
   createLogger: jest.fn(() => ({
     log: jest.fn(),
     warn: jest.fn(),

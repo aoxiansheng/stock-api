@@ -15,7 +15,7 @@ import { RateLimitGuard } from '../../../../../../../src/auth/guards/rate-limit.
 import { RateLimitService } from '../../../../../../../src/auth/services/rate-limit.service';
 
 // Mock the logger
-jest.mock('../../../../../../../src/common/config/logger.config', () => ({
+jest.mock('../@app/config/logger.config', () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
     info: jest.fn(),

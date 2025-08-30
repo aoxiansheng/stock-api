@@ -296,7 +296,7 @@ src/common/
 
 #### 日志系统
 - **使用模块**: 几乎所有服务类
-- **调用方式**: `import { createLogger } from '@common/config/logger.config'`
+- **调用方式**: `import { createLogger } from '@app/config/logger.config'`
 - **使用场景**: 统一日志记录、错误追踪、性能监控
 
 #### 响应格式化

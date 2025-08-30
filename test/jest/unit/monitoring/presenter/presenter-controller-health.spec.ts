@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PresenterController } from '../../../../../src/monitoring/presenter/presenter.controller';
-import { PresenterService } from '../../../../../src/monitoring/presenter/presenter.service';
-import { ExtendedHealthService } from '../../../../../src/monitoring/health/extended-health.service';
-import { ExtendedHealthStatus } from '../../../../../src/monitoring/health/extended-health.service';
+import { PresenterController } from '@monitoring/presenter/presenter.controller';
+import { PresenterService } from '@monitoring/presenter/presenter.service';
+import { ExtendedHealthService } from '@monitoring/health/extended-health.service';
+import { ExtendedHealthStatus } from '@monitoring/health/extended-health.service';
 
 describe('PresenterController - Health Endpoints', () => {
   let controller: PresenterController;

@@ -1,4 +1,4 @@
-import { createLogger } from "@common/config/logger.config";
+import { createLogger } from "@app/config/logger.config";
 
 import { DATATRANSFORM_CONFIG } from "../../02-processing/transformer/constants/data-transformer.constants";
 
