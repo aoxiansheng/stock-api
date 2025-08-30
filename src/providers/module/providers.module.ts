@@ -26,9 +26,18 @@ import { ProvidersController } from "../controller/providers-controller";
     {
       provide: 'ENHANCED_CAPABILITY_REGISTRY',
       useExisting: EnhancedCapabilityRegistryService
+    },
+    // 为StreamDataFetcherService提供正确的token
+    {
+      provide: 'ENHANCED_CAPABILITY_REGISTRY_SERVICE',
+      useExisting: EnhancedCapabilityRegistryService
     }
   ],
-  exports: [CapabilityRegistryService, EnhancedCapabilityRegistryService],
+  exports: [
+    CapabilityRegistryService, 
+    EnhancedCapabilityRegistryService,
+    'ENHANCED_CAPABILITY_REGISTRY_SERVICE' // 导出新添加的token
+  ],
 })
 export class ProvidersModule implements OnModuleInit {
   private initialized = false;

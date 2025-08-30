@@ -5,6 +5,7 @@ import { takeUntil, first, map } from 'rxjs/operators';
 import { BaseFetcherService } from '../../../shared/services/base-fetcher.service';
 import { EnhancedCapabilityRegistryService } from '../../../../providers/services/enhanced-capability-registry.service';
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { MONITORING_COLLECTOR_TOKEN } from '../../../../monitoring/contracts';
 import { createLogger, sanitizeLogData } from '../../../../app/config/logger.config';
 import {
   IStreamDataFetcher,
@@ -133,7 +134,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     private readonly clientStateManager: StreamClientStateManager,
     private readonly streamMetrics: StreamMetricsService,
     private readonly connectionPoolManager: ConnectionPoolManager,
-    @Inject('COLLECTOR_SERVICE') protected readonly collectorService: CollectorService,
+    @Inject(MONITORING_COLLECTOR_TOKEN) protected readonly collectorService: CollectorService,
     // P2-1: 注入专门的监控服务，优化依赖结构
     private readonly streamMonitoringService: StreamMonitoringService,
   ) {

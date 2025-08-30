@@ -13,6 +13,7 @@ import { QueryResultProcessorService } from "../services/query-result-processor.
 import { QueryStatisticsService } from "../services/query-statistics.service";
 import { QueryConfigService } from "../config/query.config";
 import { QueryMemoryMonitorService } from "../services/query-memory-monitor.service";
+import { QueryExecutionEngine } from "../services/query-execution-engine.service";
 import { QueryExecutorFactory } from "../factories/query-executor.factory";
 import { SymbolQueryExecutor } from "../factories/executors/symbol-query.executor";
 import { MarketQueryExecutor } from "../factories/executors/market-query.executor";
@@ -30,6 +31,7 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
   providers: [
     QueryConfigService,
     QueryMemoryMonitorService,
+    QueryExecutionEngine, // ✅ 新增: 查询执行引擎，解决循环依赖
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,
@@ -41,6 +43,7 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
   exports: [
     QueryConfigService,
     QueryMemoryMonitorService,
+    QueryExecutionEngine, // ✅ 导出执行引擎供其他模块使用
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,

@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { QueryRequestDto } from '../../dto/query-request.dto';
 import { QueryExecutionResultDto } from '../../dto/query-internal.dto';
 import { QueryExecutor } from '../query-executor.factory';
-import { QueryService } from '../../services/query.service';
+import { QueryExecutionEngine } from '../../services/query-execution-engine.service';
 
 /**
  * 基于符号列表的查询执行器
@@ -16,12 +16,16 @@ import { QueryService } from '../../services/query.service';
  * - 智能缓存和批量处理
  * - 多数据源聚合和结果标准化
  * 
- * 该执行器将现有QueryService中的executeSymbolBasedQuery逻辑进行封装，
- * 为工厂模式提供标准接口实现。
+ * 重构说明：
+ * - 不再依赖QueryService，避免循环依赖
+ * - 使用QueryExecutionEngine执行具体的查询逻辑
+ * - 保持接口不变，确保向后兼容
  */
 @Injectable()
 export class SymbolQueryExecutor implements QueryExecutor {
-  constructor(private readonly queryService: QueryService) {}
+  constructor(
+    private readonly executionEngine: QueryExecutionEngine
+  ) {}
 
   /**
    * 执行基于符号的查询
@@ -37,7 +41,8 @@ export class SymbolQueryExecutor implements QueryExecutor {
    * @returns 查询执行结果
    */
   async execute(request: QueryRequestDto): Promise<QueryExecutionResultDto> {
-    // 直接委托给QueryService的现有实现
-    return await this.queryService.executeSymbolBasedQuery(request);
+    // 委托给QueryExecutionEngine执行
+    // 解决了循环依赖问题
+    return await this.executionEngine.executeSymbolBasedQuery(request);
   }
 }

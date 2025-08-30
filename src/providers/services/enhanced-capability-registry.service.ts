@@ -53,7 +53,7 @@ export class EnhancedCapabilityRegistryService implements OnModuleInit {
   private static initializationPromise: Promise<void> | null = null;
 
   constructor(
-    @Optional() private readonly capabilityRegistry?: CapabilityRegistryService
+   // @Optional() private readonly capabilityRegistry?: CapabilityRegistryService
   ) {}
 
   async onModuleInit() {

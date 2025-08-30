@@ -6,27 +6,11 @@ import {
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
-import { Market } from "@common/constants/market.constants";
-import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { StringUtils } from "../../../shared/utils/string.util";
 
 import { QueryConfigService } from '../config/query.config';
-import { QueryMemoryMonitorService, MemoryCheckResult } from './query-memory-monitor.service';
 import { QueryExecutorFactory } from '../factories/query-executor.factory';
-
-import { MarketStatusService, MarketStatusResult } from "../../../shared/services/market-status.service";
-import { FieldMappingService } from "../../../shared/services/field-mapping.service";
-import { StringUtils } from "../../../shared/utils/string.util";
-import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest, inferMarketFromSymbol } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
-import { ReceiverService } from "../../../01-entry/receiver/services/receiver.service";
-import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";
-import { DataResponseDto } from "../../../01-entry/receiver/dto/data-response.dto";
-import {
-  StorageType,
-  StorageClassification,
-} from "../../../04-storage/storage/enums/storage-type.enum";
-import { StorageService } from "../../../04-storage/storage/services/storage.service";
+import { QueryExecutionEngine } from './query-execution-engine.service';
 
 import {
   QUERY_ERROR_MESSAGES,
@@ -34,56 +18,50 @@ import {
   QUERY_OPERATIONS,
 } from "../constants/query.constants";
 import {
-  DataSourceStatsDto,
   QueryExecutionResultDto,
-  SymbolDataResultDto,
-  QueryErrorInfoDto,
 } from "../dto/query-internal.dto";
 import { QueryRequestDto, BulkQueryRequestDto } from "../dto/query-request.dto";
 import {
   QueryResponseDto,
   BulkQueryResponseDto,
 } from "../dto/query-response.dto";
-import { QueryType } from "../dto/query-types.dto";
-import { DataSourceType } from "../enums/data-source-type.enum";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
-import { buildStorageKey } from "../utils/query.util";
 import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
+/**
+ * Query服务 - 查询编排器
+ * 
+ * 重构后职责：
+ * - 查询请求的编排和路由
+ * - 使用工厂模式分发查询到合适的执行器
+ * - 管理查询统计和监控
+ * - 处理批量查询请求
+ * 
+ * 不再负责：
+ * - 具体的查询执行逻辑（已移至QueryExecutionEngine）
+ * - 批量处理管道实现（已移至QueryExecutionEngine）
+ * - 缓存交互细节（已移至QueryExecutionEngine）
+ */
 @Injectable()
 export class QueryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryService.name);
 
-
   constructor(
-    private readonly storageService: StorageService,
-    private readonly receiverService: ReceiverService,
-    private readonly marketStatusService: MarketStatusService,
-    private readonly fieldMappingService: FieldMappingService,
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
-    private readonly paginationService: PaginationService,
-    private readonly collectorService: CollectorService, // ✅ 替换为CollectorService
-    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
-    private readonly queryConfig: QueryConfigService, // ✅ 新增: 注入配置服务
-    private readonly memoryMonitor: QueryMemoryMonitorService, // ✅ Phase 2.2: 注入内存监控服务
-    private readonly queryExecutorFactory: QueryExecutorFactory, // ✅ Phase 3.2: 注入查询执行器工厂
+    private readonly collectorService: CollectorService,
+    private readonly queryConfig: QueryConfigService,
+    private readonly queryExecutorFactory: QueryExecutorFactory,
+    private readonly executionEngine: QueryExecutionEngine, // 用于向后兼容
   ) {}
-
-  // ✅ 配置参数访问器 - 使用配置服务替代硬编码常量
-  private get MAX_BATCH_SIZE() { return this.queryConfig.maxBatchSize; }
-  private get MAX_MARKET_BATCH_SIZE() { return this.queryConfig.maxMarketBatchSize; }
-  private get MARKET_PARALLEL_TIMEOUT() { return this.queryConfig.marketParallelTimeout; }
-  private get RECEIVER_BATCH_TIMEOUT() { return this.queryConfig.receiverBatchTimeout; }
-
 
   async onModuleInit(): Promise<void> {
     this.logger.log(
       QUERY_SUCCESS_MESSAGES.QUERY_SERVICE_INITIALIZED,
       sanitizeLogData({
         operation: QUERY_OPERATIONS.ON_MODULE_INIT,
-        config: this.queryConfig.getConfigSummary(), // ✅ 新增: 记录配置摘要
+        config: this.queryConfig.getConfigSummary(),
       }),
     );
   }
@@ -93,34 +71,19 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 转换Query请求为Receiver请求格式
-   * @param queryRequest 查询请求
-   * @param symbols 符号列表
-   * @returns Receiver请求格式
+   * 执行单个查询请求
+   * 
+   * 职责：
+   * 1. 记录查询开始监控
+   * 2. 使用工厂创建合适的执行器
+   * 3. 执行查询并处理结果
+   * 4. 记录查询完成监控
    */
-  private convertQueryToReceiverRequest(
-    queryRequest: QueryRequestDto, 
-    symbols: string[]
-  ): DataRequestDto {
-    return {
-      symbols,
-      receiverType: queryRequest.queryTypeFilter || 'get-stock-quote',
-      options: {
-        preferredProvider: queryRequest.provider,
-        realtime: true,
-        fields: queryRequest.options?.includeFields,
-        market: queryRequest.market,
-        timeout: queryRequest.maxAge ? queryRequest.maxAge * 1000 : undefined,
-        storageMode: 'none',  // 关键：禁止Receiver存储，由Query管理缓存
-      },
-    };
-  }
-
   async executeQuery(request: QueryRequestDto): Promise<QueryResponseDto> {
     const startTime = Date.now();
     const queryId = this.generateQueryId(request);
 
-    // ✅ 查询开始监控 - 使用CollectorService
+    // 查询开始监控
     this.recordQueryStartMetrics(request, queryId);
 
     this.logger.log(
@@ -132,14 +95,11 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       }),
     );
 
-    // 确定市场和符号计数范围以用于标签
-    const market = this.inferMarketFromSymbols(request.symbols || []);
-    const symbolsCount = request.symbols?.length || 0;
-    const symbolsCountRange = this.getSymbolsCountRange(symbolsCount);
-
     try {
+      // 使用工厂模式执行查询
       const executionResult = await this.performQueryExecution(request);
 
+      // 处理查询结果
       const processedResult = this.resultProcessorService.process(
         executionResult,
         request,
@@ -147,10 +107,9 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         Date.now() - startTime,
       );
 
-      // ✅ 记录查询成功监控指标
+      // 记录查询成功监控指标
       this.recordQueryCompleteMetrics(request, queryId, Date.now() - startTime, true, executionResult.cacheUsed);
 
-      // 正确使用processedResult的PaginatedDataDto类型
       return new QueryResponseDto(processedResult.data, processedResult.metadata);
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -161,7 +120,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         false,
       );
 
-      // ✅ 记录查询失败监控指标
+      // 记录查询失败监控指标
       this.recordQueryCompleteMetrics(request, queryId, executionTime, false, false);
 
       this.logger.error(
@@ -174,11 +133,12 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       );
 
       throw error;
-    } finally {
-      // 查询结束 - 监控已在成功/失败分支中记录
     }
   }
 
+  /**
+   * 执行批量查询请求
+   */
   async executeBulkQuery(
     request: BulkQueryRequestDto,
   ): Promise<BulkQueryResponseDto> {
@@ -201,6 +161,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         results,
         request.queries.length,
       );
+      
       this.logger.log(
         QUERY_SUCCESS_MESSAGES.BULK_QUERY_EXECUTION_COMPLETED,
         sanitizeLogData({
@@ -210,6 +171,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           totalTime: Date.now() - startTime,
         }),
       );
+      
       return bulkResponse;
     } catch (error) {
       this.logger.error(
@@ -223,15 +185,21 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * 使用工厂模式执行查询
+   * 
+   * 核心改进：
+   * - 不再直接处理查询逻辑
+   * - 使用工厂创建合适的执行器
+   * - 执行器不再依赖QueryService，避免循环依赖
+   */
   private async performQueryExecution(
     request: QueryRequestDto,
   ): Promise<QueryExecutionResultDto> {
-    // ✅ Phase 3.2: 使用工厂模式创建查询执行器
     try {
       const executor = this.queryExecutorFactory.create(request.queryType);
       return await executor.execute(request);
     } catch (error) {
-      // 如果工厂无法创建执行器，抛出更友好的错误信息
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -241,978 +209,22 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * executeSymbolBasedQuery - 向后兼容方法
+   * 
+   * 保留此方法以确保向后兼容性
+   * 实际执行已委托给QueryExecutionEngine
+   */
   public async executeSymbolBasedQuery(
     request: QueryRequestDto,
   ): Promise<QueryExecutionResultDto> {
-    // 防御性检查：确保symbols存在（DTO验证应该已经处理，但为了类型安全）
-    if (!request.symbols || request.symbols.length === 0) {
-      this.logger.warn(
-        `BY_SYMBOLS查询缺少symbols参数`,
-        sanitizeLogData({
-          queryType: request.queryType,
-          symbols: request.symbols,
-        }),
-      );
-      return {
-        results: [],
-        cacheUsed: false,
-        dataSources: {
-          cache: { hits: 0, misses: 0 },
-          realtime: { hits: 0, misses: 0 },
-        },
-        errors: [{ symbol: "", reason: "symbols字段是必需的" }],
-      };
-    }
-
-    const dataSources: DataSourceStatsDto = {
-      cache: { hits: 0, misses: 0 },
-      realtime: { hits: 0, misses: 0 },
-    };
-    const errors: QueryErrorInfoDto[] = [];
-
-    // 过滤掉undefined或null的符号
-    const validSymbols = request.symbols.filter(
-      (s) => s !== undefined && s !== null,
-    );
-
-    if (validSymbols.length < request.symbols.length) {
-      this.logger.warn(
-        `查询包含无效的symbols`,
-        sanitizeLogData({
-          validCount: validSymbols.length,
-          totalCount: request.symbols.length,
-        }),
-      );
-      // 记录无效符号的错误
-      request.symbols.forEach((s, idx) => {
-        if (s === undefined || s === null) {
-          errors.push({
-            symbol: `at index ${idx}`,
-            reason: "Invalid symbol (undefined or null)",
-          });
-        }
-      });
-    }
-
-    // 🚀 里程碑5.1: 使用优化的批量处理管道
-    return await this.executeBatchedPipeline(request, validSymbols, dataSources, errors);
+    // 直接委托给执行引擎
+    return await this.executionEngine.executeSymbolBasedQuery(request);
   }
 
   /**
-   * 🆕 里程碑5.1: 批量处理管道 - 核心执行器
-   * @param request 查询请求
-   * @param validSymbols 有效符号列表
-   * @param dataSources 数据源统计
-   * @param errors 错误信息收集
+   * 并行执行批量查询
    */
-  private async executeBatchedPipeline(
-    request: QueryRequestDto,
-    validSymbols: string[],
-    dataSources: DataSourceStatsDto,
-    errors: QueryErrorInfoDto[],
-  ): Promise<QueryExecutionResultDto> {
-    const queryId = this.generateQueryId(request);
-    const startTime = Date.now();
-    
-    try {
-      // 批量处理效率指标计算
-      const totalSymbolsCount = validSymbols.length;
-      const batchSizeRange = this.getBatchSizeRange(totalSymbolsCount);
-      
-      // 🖥 里程碑5.1: 按市场分组符号以实现市场级批量处理
-      let symbolsByMarket = this.groupSymbolsByMarket(validSymbols);
-      const marketsCount = Object.keys(symbolsByMarket).length;
-      
-      this.logger.debug('批量处理管道启动', {
-        queryId,
-        totalSymbols: validSymbols.length,
-        marketsCount,
-        symbolsByMarket: Object.fromEntries(
-          Object.entries(symbolsByMarket).map(([market, symbols]) => [market, symbols.length])
-        ),
-      });
-
-      // ✅ Phase 2.2: 批量处理前内存监控检查
-      const memoryCheckResult = await this.memoryMonitor.checkMemoryBeforeBatch(totalSymbolsCount);
-      
-      if (!memoryCheckResult.canProcess) {
-        // 内存压力过高，无法处理
-        this.logger.warn('内存压力过高，拒绝处理批量请求', {
-          queryId,
-          memoryUsage: (memoryCheckResult.currentUsage.memory.percentage * 100).toFixed(1) + '%',
-          pressureLevel: memoryCheckResult.pressureLevel,
-          symbolsCount: totalSymbolsCount,
-        });
-
-        // 将所有符号标记为失败
-        validSymbols.forEach(symbol => {
-          errors.push({
-            symbol,
-            reason: `内存压力过高（${(memoryCheckResult.currentUsage.memory.percentage * 100).toFixed(1)}%），系统自动拒绝处理`,
-          });
-          dataSources.realtime.misses++;
-        });
-
-        return {
-          results: [],
-          cacheUsed: false,
-          dataSources,
-          errors,
-        };
-      }
-
-      // 如果内存处于警告状态，调整批量大小
-      let adjustedSymbolsByMarket = symbolsByMarket;
-      if (memoryCheckResult.recommendation === 'reduce_batch' && memoryCheckResult.suggestedBatchSize) {
-        this.logger.warn('内存处于警告状态，调整批量处理大小', {
-          queryId,
-          originalSize: totalSymbolsCount,
-          suggestedSize: memoryCheckResult.suggestedBatchSize,
-          memoryUsage: (memoryCheckResult.currentUsage.memory.percentage * 100).toFixed(1) + '%',
-          pressureLevel: memoryCheckResult.pressureLevel,
-        });
-
-        // 重新按建议的批量大小分组（简化版，只处理第一个市场）
-        const firstMarket = Object.keys(symbolsByMarket)[0] as Market;
-        if (firstMarket) {
-          const limitedSymbols = validSymbols.slice(0, memoryCheckResult.suggestedBatchSize);
-          adjustedSymbolsByMarket = { [firstMarket]: limitedSymbols } as Record<Market, string[]>;
-          
-          // 将被跳过的符号标记为延迟处理
-          const skippedSymbols = validSymbols.slice(memoryCheckResult.suggestedBatchSize);
-          skippedSymbols.forEach(symbol => {
-            errors.push({
-              symbol,
-              reason: `内存压力下降级处理，符号被延迟`,
-            });
-            dataSources.realtime.misses++;
-          });
-        }
-      }
-
-      // ✅ 记录批处理分片监控指标
-      Object.entries(adjustedSymbolsByMarket).forEach(([market, symbols]) => {
-        const shardsForMarket = Math.ceil(symbols.length / this.MAX_MARKET_BATCH_SIZE);
-        const efficiency = symbols.length / Math.max(shardsForMarket, 1);
-        this.recordBatchProcessingMetrics(symbols.length, 0, market, efficiency);
-      });
-
-      // 🖥 里程碑5.3: 市场级并行处理（带超时控制）
-      // 🔧 Phase 3.1: 实现优化内存释放的市场处理循环
-      const results: SymbolDataResultDto[] = [];
-      let totalCacheHits = 0;
-      let totalRealtimeHits = 0;
-      let processedSymbolsCount = 0;
-
-      // 逐个处理市场以实现内存优化
-      for (const [market, symbols] of Object.entries(adjustedSymbolsByMarket)) {
-        try {
-          this.logger.debug(`开始处理市场 ${market}`, {
-            queryId,
-            market,
-            symbolsCount: symbols.length,
-            processedSymbols: processedSymbolsCount,
-            totalSymbols: totalSymbolsCount,
-          });
-
-          const marketResult = await this.processBatchForMarket(market as Market, symbols, request, queryId);
-          
-          // 合并当前市场的结果
-          results.push(...marketResult.data);
-          totalCacheHits += marketResult.cacheHits;
-          totalRealtimeHits += marketResult.realtimeHits;
-          errors.push(...marketResult.marketErrors);
-          processedSymbolsCount += symbols.length;
-
-          // ✅ 记录市场处理时间监控指标
-          const marketProcessingTime = Date.now() - startTime;
-          this.recordBatchProcessingMetrics(marketResult.data.length, marketProcessingTime, market, 1.0);
-          
-          this.logger.debug(`市场${market}批量处理完成`, {
-            queryId,
-            market,
-            dataCount: marketResult.data.length,
-            cacheHits: marketResult.cacheHits,
-            realtimeHits: marketResult.realtimeHits,
-            errorsCount: marketResult.marketErrors.length,
-          });
-
-          // 🔧 Phase 3.1: 立即清理处理完的市场数据
-          delete adjustedSymbolsByMarket[market];
-
-          // 🔧 Phase 3.1: 定期触发垃圾回收（可选，仅在启用时）
-          if (this.queryConfig.enableMemoryOptimization && 
-              global.gc && 
-              processedSymbolsCount % this.queryConfig.gcTriggerInterval === 0) {
-            this.logger.debug('触发垃圾回收优化', {
-              queryId,
-              processedSymbols: processedSymbolsCount,
-              gcTriggerInterval: this.queryConfig.gcTriggerInterval,
-            });
-            global.gc();
-          }
-
-        } catch (error) {
-          // 处理市场级别的失败
-          const marketSymbols = adjustedSymbolsByMarket[market];
-          marketSymbols.forEach(symbol => {
-            errors.push({
-              symbol,
-              reason: `市场${market}批量处理失败: ${error.message}`,
-            });
-            dataSources.realtime.misses++;
-          });
-          
-          this.logger.warn(`市场${market}批量处理失败`, {
-            queryId,
-            market,
-            error: error.message,
-            affectedSymbols: marketSymbols.length,
-          });
-
-          // 🔧 Phase 3.1: 即使失败也要清理市场数据
-          delete adjustedSymbolsByMarket[market];
-        }
-      }
-
-      // ✅ 记录批量处理效率监控指标
-      const processingTime = Date.now() - startTime;
-      const symbolsPerSecond = totalSymbolsCount / Math.max(processingTime / 1000, 0.001);
-      this.recordBatchProcessingMetrics(
-        totalSymbolsCount, 
-        processingTime, 
-        this.inferMarketFromSymbols(validSymbols), 
-        symbolsPerSecond
-      );
-
-      // ✅ 记录缓存命中率监控指标
-      const totalRequests = totalCacheHits + totalRealtimeHits;
-      if (totalRequests > 0) {
-        const cacheHitRatio = totalCacheHits / totalRequests;
-        this.recordCacheMetrics('batch_cache_hit', cacheHitRatio > 0.5, 0, {
-          hitRatio: cacheHitRatio,
-          totalRequests,
-          queryType: request.queryType,
-          market: this.inferMarketFromSymbols(validSymbols)
-        });
-      }
-
-      // 处理结果数据
-      const combinedData = results.map((r) => r.data).flat();
-      const cacheUsed = results.some((r) => r.source === DataSourceType.CACHE);
-
-      const paginatedData = this.paginationService.createPaginatedResponseFromQuery(
-        combinedData,
-        request,
-        combinedData.length,
-      );
-
-      this.logger.log('批量处理管道完成', {
-        queryId,
-        totalResults: results.length,
-        cacheUsed,
-        totalErrors: errors.length,
-        dataSources,
-        processingTimeMs: Date.now() - startTime,
-        symbolsPerSecond: symbolsPerSecond.toFixed(2),
-        memoryOptimizationEnabled: this.queryConfig.enableMemoryOptimization,
-      });
-
-      // 🔧 Phase 3.1: 最终内存清理
-      adjustedSymbolsByMarket = null;
-      symbolsByMarket = null;
-
-      return {
-        results: paginatedData.items,
-        cacheUsed,
-        dataSources,
-        errors,
-        pagination: paginatedData.pagination,
-      };
-
-    } catch (error) {
-      this.logger.error('批量处理管道执行失败', {
-        queryId,
-        error: error.message,
-        symbolsCount: validSymbols.length,
-      });
-
-      // 全部符号标记为失败
-      validSymbols.forEach(symbol => {
-        errors.push({
-          symbol,
-          reason: `批量处理管道失败: ${error.message}`,
-        });
-        dataSources.realtime.misses++;
-      });
-
-      return {
-        results: [],
-        cacheUsed: false,
-        dataSources,
-        errors,
-      };
-    }
-  }
-
-  /**
-   * 🆕 里程碑5.3: 超时控制工具
-   * @param promise 需要超时控制的Promise
-   * @param timeout 超时时间（毫秒）
-   * @param errorMessage 超时错误消息
-   */
-  private withTimeout<T>(promise: Promise<T>, timeout: number, errorMessage: string): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(() => reject(new Error(errorMessage)), timeout);
-      })
-    ]);
-  }
-
-  /**
-   * 🆕 里程碑5.3: 安全的Promise.allSettled包装，提供更好的错误上下文
-   * @param promises Promise数组
-   * @param context 上下文信息
-   * @param timeout 超时时间
-   */
-  private async safeAllSettled<T>(
-    promises: Promise<T>[],
-    context: string,
-    timeout?: number
-  ): Promise<PromiseSettledResult<T>[]> {
-    const wrappedPromises = timeout 
-      ? promises.map((p, index) => this.withTimeout(p, timeout, `${context} 第${index + 1}项超时`))
-      : promises;
-
-    try {
-      return await Promise.allSettled(wrappedPromises);
-    } catch (error) {
-      this.logger.error(`${context} 批量处理异常`, {
-        error: error.message,
-        promisesCount: promises.length,
-      });
-      
-      // 创建所有失败的结果
-      return promises.map(() => ({
-        status: 'rejected' as const,
-        reason: error.message,
-      }));
-    }
-  }
-
-  /**
-   * 🆕 里程碑5.1: 按市场分组符号
-   * @param symbols 符号列表
-   * @returns 按市场分组的符号映射
-   */
-  private groupSymbolsByMarket(symbols: string[]): Record<Market, string[]> {
-    const symbolsByMarket: Record<Market, string[]> = {} as Record<Market, string[]>;
-
-    symbols.forEach(symbol => {
-      const market = inferMarketFromSymbol(symbol);
-      
-      if (!symbolsByMarket[market]) {
-        symbolsByMarket[market] = [];
-      }
-      
-      symbolsByMarket[market].push(symbol);
-    });
-
-    return symbolsByMarket;
-  }
-
-  /**
-   * 🆕 里程碑5.2: 数组分片工具
-   * @param array 待分片的数组
-   * @param chunkSize 分片大小
-   * @returns 分片后的数组
-   */
-  private chunkArray<T>(array: T[], chunkSize: number): T[][] {
-    if (chunkSize <= 0) {
-      throw new Error('分片大小必须大于0');
-    }
-
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += chunkSize) {
-      chunks.push(array.slice(i, i + chunkSize));
-    }
-    return chunks;
-  }
-
-  /**
-   * 🆕 里程碑5.1-5.2: 处理单个市场的批量数据（支持分片策略）
-   * @param market 市场
-   * @param symbols 该市场的符号列表
-   * @param request 查询请求
-   * @param queryId 查询ID
-   */
-  private async processBatchForMarket(
-    market: Market,
-    symbols: string[],
-    request: QueryRequestDto,
-    queryId: string,
-  ): Promise<{
-    data: SymbolDataResultDto[];
-    cacheHits: number;
-    realtimeHits: number;
-    marketErrors: QueryErrorInfoDto[];
-  }> {
-    const startTime = Date.now();
-    let cacheHits = 0;
-    let realtimeHits = 0;
-    const marketErrors: QueryErrorInfoDto[] = [];
-    const results: SymbolDataResultDto[] = [];
-
-    this.logger.debug(`开始处理市场${market}的批量数据`, {
-      queryId,
-      market,
-      symbolsCount: symbols.length,
-      willUseSharding: symbols.length > this.MAX_MARKET_BATCH_SIZE,
-    });
-
-    try {
-      // 🆕 里程碑5.2: 两级分片策略
-      // 第一级：如果市场符号超过限制，按市场级分片
-      if (symbols.length > this.MAX_MARKET_BATCH_SIZE) {
-        const marketChunks = this.chunkArray(symbols, this.MAX_MARKET_BATCH_SIZE);
-        
-        this.logger.debug(`市场${market}采用市场级分片`, {
-          queryId,
-          market,
-          totalSymbols: symbols.length,
-          chunksCount: marketChunks.length,
-          chunkSize: this.MAX_MARKET_BATCH_SIZE,
-        });
-
-        // 🆕 里程碑5.3: 并行处理市场分片（带超时控制）
-        const chunkPromises = marketChunks.map(async (chunkSymbols, chunkIndex) => {
-          return await this.processMarketChunk(market, chunkSymbols, request, queryId, chunkIndex);
-        });
-        
-        const chunkResults = await this.safeAllSettled(
-          chunkPromises,
-          `市场${market}分片并行处理`,
-          this.MARKET_PARALLEL_TIMEOUT / 2 // 分片级别用一半时间
-        );
-
-        // 合并分片结果
-        chunkResults.forEach((chunkResult, chunkIndex) => {
-          if (chunkResult.status === 'fulfilled') {
-            const chunkData = chunkResult.value;
-            results.push(...chunkData.data);
-            cacheHits += chunkData.cacheHits;
-            realtimeHits += chunkData.realtimeHits;
-            marketErrors.push(...chunkData.marketErrors);
-          } else {
-            // 处理分片失败
-            const chunkSymbols = marketChunks[chunkIndex];
-            chunkSymbols.forEach(symbol => {
-              marketErrors.push({
-                symbol,
-                reason: `市场${market}分片${chunkIndex}处理失败: ${chunkResult.reason}`,
-              });
-            });
-          }
-        });
-
-      } else {
-        // 单一市场批处理（不需要市场级分片）
-        const marketResult = await this.processMarketChunk(market, symbols, request, queryId, 0);
-        results.push(...marketResult.data);
-        cacheHits += marketResult.cacheHits;
-        realtimeHits += marketResult.realtimeHits;
-        marketErrors.push(...marketResult.marketErrors);
-      }
-
-      const processingTime = Date.now() - startTime;
-      
-      this.logger.debug(`市场${market}批量处理完成`, {
-        queryId,
-        market,
-        processingTime,
-        resultsCount: results.length,
-        cacheHits,
-        realtimeHits,
-        errorsCount: marketErrors.length,
-      });
-
-      return {
-        data: results,
-        cacheHits,
-        realtimeHits,
-        marketErrors,
-      };
-
-    } catch (error) {
-      this.logger.error(`市场${market}批量处理失败`, {
-        queryId,
-        market,
-        error: error.message,
-        symbolsCount: symbols.length,
-      });
-
-      // 将所有该市场的符号标记为失败
-      symbols.forEach(symbol => {
-        marketErrors.push({
-          symbol,
-          reason: `市场${market}批量处理异常: ${error.message}`,
-        });
-      });
-
-      return {
-        data: [],
-        cacheHits,
-        realtimeHits,
-        marketErrors,
-      };
-    }
-  }
-
-  /**
-   * 🆕 里程碑5.2: 处理市场分片
-   * @param market 市场
-   * @param symbols 分片中的符号列表
-   * @param request 查询请求
-   * @param queryId 查询ID
-   * @param chunkIndex 分片索引
-   */
-  private async processMarketChunk(
-    market: Market,
-    symbols: string[],
-    request: QueryRequestDto,
-    queryId: string,
-    chunkIndex: number,
-  ): Promise<{
-    data: SymbolDataResultDto[];
-    cacheHits: number;
-    realtimeHits: number;
-    marketErrors: QueryErrorInfoDto[];
-  }> {
-    let cacheHits = 0;
-    let realtimeHits = 0;
-    const marketErrors: QueryErrorInfoDto[] = [];
-    const results: SymbolDataResultDto[] = [];
-
-    this.logger.debug(`处理市场${market}分片${chunkIndex}`, {
-      queryId,
-      market,
-      chunkIndex,
-      symbolsCount: symbols.length,
-    });
-
-    try {
-      // 🆕 里程碑5.2: 第二级分片 - 按Receiver批量大小分片
-      const receiverChunks = this.chunkArray(symbols, this.MAX_BATCH_SIZE);
-      
-      if (receiverChunks.length > 1) {
-        this.logger.debug(`市场${market}分片${chunkIndex}采用Receiver级分片`, {
-          queryId,
-          market,
-          chunkIndex,
-          receiverChunksCount: receiverChunks.length,
-          batchSize: this.MAX_BATCH_SIZE,
-        });
-      }
-
-      // 🆕 里程碑5.3: 并行处理Receiver级分片（带超时和错误恢复）
-      const receiverPromises = receiverChunks.map(async (receiverSymbols, receiverIndex) => {
-        return await this.processReceiverBatch(market, receiverSymbols, request, queryId, chunkIndex, receiverIndex);
-      });
-      
-      const receiverResults = await this.safeAllSettled(
-        receiverPromises,
-        `市场${market}分片${chunkIndex}Receiver级并行处理`,
-        this.RECEIVER_BATCH_TIMEOUT
-      );
-
-      // 合并Receiver分片结果
-      receiverResults.forEach((receiverResult, receiverIndex) => {
-        if (receiverResult.status === 'fulfilled') {
-          const receiverData = receiverResult.value;
-          results.push(...receiverData.data);
-          cacheHits += receiverData.cacheHits;
-          realtimeHits += receiverData.realtimeHits;
-          marketErrors.push(...receiverData.marketErrors);
-        } else {
-          // 处理Receiver分片失败
-          const receiverSymbols = receiverChunks[receiverIndex];
-          receiverSymbols.forEach(symbol => {
-            marketErrors.push({
-              symbol,
-              reason: `市场${market}分片${chunkIndex}Receiver批${receiverIndex}失败: ${receiverResult.reason}`,
-            });
-          });
-        }
-      });
-
-      return {
-        data: results,
-        cacheHits,
-        realtimeHits,
-        marketErrors,
-      };
-
-    } catch (error) {
-      this.logger.error(`市场${market}分片${chunkIndex}处理失败`, {
-        queryId,
-        market,
-        chunkIndex,
-        error: error.message,
-        symbolsCount: symbols.length,
-      });
-
-      symbols.forEach(symbol => {
-        marketErrors.push({
-          symbol,
-          reason: `市场${market}分片${chunkIndex}异常: ${error.message}`,
-        });
-      });
-
-      return {
-        data: [],
-        cacheHits,
-        realtimeHits,
-        marketErrors,
-      };
-    }
-  }
-
-  /**
-   * 🎯 重构：Query批量流水线智能缓存集成
-   * 
-   * 使用Query层SmartCacheOrchestrator处理指定市场内的符号批次
-   * 实现两层缓存协同：Query层（300秒）+ Receiver层（5秒）
-   * 
-   * @param market 市场
-   * @param symbols 符号列表
-   * @param request 查询请求
-   * @param queryId 查询ID
-   * @param chunkIndex 分片索引
-   * @param receiverIndex Receiver批次索引
-   * @returns 处理结果（数据、缓存命中数、实时命中数、错误信息）
-   */
-  private async processReceiverBatch(
-    market: Market,
-    symbols: string[],
-    request: QueryRequestDto,
-    queryId: string,
-    chunkIndex: number,
-    receiverIndex: number,
-  ): Promise<{
-    data: SymbolDataResultDto[];
-    cacheHits: number;
-    realtimeHits: number;
-    marketErrors: QueryErrorInfoDto[];
-  }> {
-    let queryCacheHits = 0;  // Query层缓存命中
-    let receiverCalls = 0;   // 需要调用Receiver的次数
-    const marketErrors: QueryErrorInfoDto[] = [];
-    const results: SymbolDataResultDto[] = [];
-
-    try {
-      // Query批量编排器调用指标计算
-      const batchSizeRange = this.getBatchSizeRange(symbols.length);
-      const symbolsCountRange = this.getSymbolsCountRange(symbols.length);
-      
-      // ✅ 记录智能缓存编排器调用开始监控
-      this.recordCacheMetrics('orchestrator_call_start', false, 0, {
-        market,
-        receiverType: request.queryTypeFilter || 'unknown',
-        symbolsCount: symbols.length
-      });
-
-      // 🎯 核心重构：构建Query层批量编排器请求
-      // 注意：symbols[0] 语义安全，因为上游已按市场分组，同批次符号属于同一市场
-      const marketStatus = await this.getMarketStatusForSymbol(symbols[0]);
-      
-      const batchRequests = symbols.map(symbol => 
-        buildCacheOrchestratorRequest({
-          symbols: [symbol],
-          receiverType: request.queryTypeFilter || 'get-stock-quote',
-          provider: request.provider,
-          queryId: `${queryId}_${symbol}`,
-          marketStatus,
-          strategy: CacheStrategy.WEAK_TIMELINESS, // Query层弱时效策略（300秒）
-          executeOriginalDataFlow: () => this.executeQueryToReceiverFlow(symbol, request, market),
-        })
-      );
-
-      // 🎯 使用Query层批量编排器（先检查Query层缓存）
-      const orchestratorStartTime = Date.now();
-      const orchestratorResults = await this.smartCacheOrchestrator.batchGetDataWithSmartCache(batchRequests);
-      const orchestratorDuration = (Date.now() - orchestratorStartTime) / 1000;
-      
-      // ✅ 记录智能缓存编排器调用完成监控
-      this.recordCacheMetrics('orchestrator_call_complete', true, orchestratorDuration * 1000, {
-        market,
-        symbolsCount: symbols.length,
-        orchestratorDuration
-      });
-
-      // 🎯 处理编排器返回结果
-      orchestratorResults.forEach((result, index) => {
-        const symbol = symbols[index];
-        
-        if (result.hit) {
-          // Query层缓存命中
-          queryCacheHits++;
-          results.push({
-            data: result.data,
-            source: DataSourceType.CACHE,
-          });
-        } else if (result.data) {
-          // Query缓存缺失，已调用Receiver流向获取数据
-          receiverCalls++;
-          results.push({
-            data: result.data,
-            source: DataSourceType.REALTIME,
-          });
-          
-          // 异步存储标准化数据（不阻塞主流程）
-          this.storeStandardizedData(symbol, result.data, request, queryId, { 
-            data: [result.data],
-            metadata: {
-              provider: request.provider || 'auto',
-              capability: request.queryTypeFilter || 'get-stock-quote',
-              timestamp: new Date().toISOString(),
-              requestId: queryId,
-              processingTime: 0,
-            }
-          })
-            .catch(error => {
-              this.logger.warn(`市场${market}分片${chunkIndex}数据存储失败: ${symbol}`, {
-                queryId,
-                chunkIndex,
-                receiverIndex,
-                error: error.message,
-              });
-            });
-        } else {
-          // 编排器无法获取数据
-          marketErrors.push({
-            symbol,
-            reason: result.error || `市场${market}分片${chunkIndex}数据获取失败`,
-          });
-        }
-      });
-
-      return {
-        data: results,
-        cacheHits: queryCacheHits,
-        realtimeHits: receiverCalls,
-        marketErrors,
-      };
-
-    } catch (error) {
-      this.logger.error(`市场${market}分片${chunkIndex}Query编排器批${receiverIndex}失败`, {
-        queryId,
-        market,
-        chunkIndex,
-        receiverIndex,
-        error: error.message,
-        symbolsCount: symbols.length,
-      });
-
-      symbols.forEach(symbol => {
-        marketErrors.push({
-          symbol,
-          reason: `市场${market}分片${chunkIndex}Query编排器批${receiverIndex}异常: ${error.message}`,
-        });
-      });
-
-      return {
-        data: [],
-        cacheHits: 0,
-        realtimeHits: 0,
-        marketErrors,
-      };
-    }
-  }
-
-  /**
-   * 🎯 新增支持方法：Query到Receiver的数据流执行
-   * 
-   * 供Query层编排器回调使用，调用完整的Receiver流向获取数据
-   * 重要：允许Receiver使用自己的智能缓存（强时效5秒缓存）
-   * 两层缓存协同工作：Query层300秒，Receiver层5秒
-   */
-  private async executeQueryToReceiverFlow(
-    symbol: string, 
-    request: QueryRequestDto, 
-    market: Market
-  ): Promise<any> {
-    // 🎯 性能优化：缓存convertQueryToReceiverRequest结果，避免重复计算
-    const baseReceiverRequest = this.convertQueryToReceiverRequest(request, [symbol]);
-    
-    const receiverRequest = {
-      ...baseReceiverRequest,
-      options: {
-        ...baseReceiverRequest.options,
-        market,
-        // ✅ 允许Receiver使用自己的智能缓存（强时效5秒缓存）
-        // 不设置 useCache: false，让Receiver层维护自己的短效缓存
-        // 两层缓存协同工作：Query层300秒，Receiver层5秒
-      },
-    };
-    
-    // 调用完整的Receiver流向（包括Receiver的智能缓存检查）
-    const receiverResponse = await this.receiverService.handleRequest(receiverRequest);
-    
-    // 提取单符号数据
-    return receiverResponse.data && Array.isArray(receiverResponse.data) 
-      ? receiverResponse.data[0] 
-      : receiverResponse.data;
-  }
-
-  /**
-   * 🎯 新增支持方法：获取单符号的市场状态
-   * 
-   * 为编排器提供市场信息，用于推断符号的市场状态
-   */
-  /**
-   * 获取符号对应的市场状态（类型安全版本）
-   * 
-   * @param symbol 股票符号
-   * @returns 市场状态映射，键为Market枚举，值为MarketStatusResult
-   */
-  private async getMarketStatusForSymbol(symbol: string): Promise<Record<Market, MarketStatusResult>> {
-    const market = inferMarketFromSymbol(symbol);
-    return await this.marketStatusService.getBatchMarketStatus([market as Market]);
-  }
-
-
-  /**
-   * 存储标准化数据到缓存
-   * @param symbol 符号
-   * @param standardizedData 标准化数据
-   * @param request 查询请求
-   * @param queryId 查询ID
-   * @param receiverResponse Receiver响应
-   */
-  private async storeStandardizedData(
-    symbol: string,
-    standardizedData: any,
-    request: QueryRequestDto,
-    queryId: string,
-    receiverResponse: DataResponseDto,
-  ): Promise<void> {
-    try {
-      const storageKey = buildStorageKey(
-        symbol, 
-        request.provider || 'auto', 
-        request.queryTypeFilter, 
-        request.market
-      );
-      
-      // Query自行计算TTL，不依赖Receiver元信息
-      const market = request.market || inferMarketFromSymbol(symbol);
-      const cacheTTL = await this.calculateCacheTTLByMarket(market, [symbol]);
-      
-      await this.storageService.storeData({
-        key: storageKey,
-        data: standardizedData,
-        storageType: StorageType.BOTH,
-        storageClassification: (this.fieldMappingService.filterToClassification(request.queryTypeFilter) ?? StorageClassification.GENERAL) as StorageClassification,
-        // 优先使用Receiver实际选择的provider，回退到请求中的provider
-        provider: receiverResponse.metadata?.provider || request.provider || 'auto',
-        market,
-        options: {
-          compress: true,
-          cacheTtl: cacheTTL,
-        },
-      });
-
-      this.logger.debug(`标准化数据已存储: ${symbol}`, { queryId, storageKey });
-    } catch (error) {
-      this.logger.warn(`标准化数据存储失败: ${symbol}`, {
-        queryId,
-        error: error.message,
-      });
-    }
-  }
-
-  /**
-   * 根据市场状态计算缓存TTL
-   * @param market 市场
-   * @param symbols 符号列表
-   * @returns TTL秒数
-   */
-  private async calculateCacheTTLByMarket(market: string, symbols: string[]): Promise<number> {
-    try {
-      // Query自行计算TTL，不依赖Receiver的ResponseMetadata
-      const { status, isHoliday } = await this.marketStatusService.getMarketStatus(market as Market);
-      
-      // 使用MarketStatus枚举进行判断
-      if (status === 'TRADING') {
-        return 60;  // 交易时间1分钟缓存
-      } else if (isHoliday) {
-        return 3600; // 假日1小时缓存
-      } else {
-        return 1800; // 闭市30分钟缓存
-      }
-    } catch (error) {
-      this.logger.warn(`TTL计算失败，使用默认值`, {
-        market,
-        symbols,
-        error: error.message,
-      });
-      return 300; // 默认5分钟缓存
-    }
-  }
-
-  /**
-   * 🎯 里程碑6.3: 监控指标辅助方法 - 从多个符号推断主要市场
-   */
-  private inferMarketFromSymbols(symbols: string[]): string {
-    if (!symbols || symbols.length === 0) return 'unknown';
-    
-    // 统计各市场的符号数量
-    const marketCounts = new Map<string, number>();
-    
-    symbols.forEach(symbol => {
-      const market = inferMarketFromSymbol(symbol);
-      marketCounts.set(market, (marketCounts.get(market) || 0) + 1);
-    });
-    
-    // 返回符号数量最多的市场
-    let maxMarket = 'unknown';
-    let maxCount = 0;
-    for (const [market, count] of marketCounts) {
-      if (count > maxCount) {
-        maxCount = count;
-        maxMarket = market;
-      }
-    }
-    
-    return maxMarket;
-  }
-
-  /**
-   * 🎯 里程碑6.3: 监控指标辅助方法 - 获取符号数量范围标签
-   */
-  private getSymbolsCountRange(count: number): string {
-    if (count <= 0) return '0';
-    if (count <= 5) return '1-5';
-    if (count <= 10) return '6-10';
-    if (count <= 25) return '11-25';
-    if (count <= 50) return '26-50';
-    if (count <= 100) return '51-100';
-    return '100+';
-  }
-
-  /**
-   * 🎯 里程碑6.3: 监控指标辅助方法 - 获取批次大小范围标签
-   */
-  private getBatchSizeRange(size: number): string {
-    if (size <= 0) return '0';
-    if (size <= 10) return '1-10';
-    if (size <= 25) return '11-25';
-    if (size <= 50) return '26-50';
-    if (size <= 100) return '51-100';
-    return '100+';
-  }
-
   private async executeBulkQueriesInParallel(
     request: BulkQueryRequestDto,
   ): Promise<QueryResponseDto[]> {
@@ -1245,7 +257,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           0,
         );
         
-        // 直接使用已正确处理的PaginatedDataDto
         return new QueryResponseDto(errorResult.data, errorResult.metadata);
       }
     });
@@ -1256,6 +267,9 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  /**
+   * 顺序执行批量查询
+   */
   private async executeBulkQueriesSequentially(
     request: BulkQueryRequestDto,
   ): Promise<QueryResponseDto[]> {
@@ -1278,7 +292,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
             queryType: query.queryType,
             errors: result.metadata.errors,
           });
-          // 即使允许继续，也应该将包含错误信息的响应添加到结果中
           results.push(result);
         } else {
           results.push(result);
@@ -1287,7 +300,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         if (!request.continueOnError) {
           throw error;
         }
-        // 当允许继续时，为失败的查询构建一个包含错误信息的响应
+        // 为失败的查询构建错误响应
         const queryId = this.generateQueryId(query);
         const executionResult = {
           results: [],
@@ -1310,7 +323,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           0,
         );
         
-        // 直接使用已正确处理的PaginatedDataDto
         results.push(new QueryResponseDto(errorResult.data, errorResult.metadata));
       }
     }
@@ -1318,6 +330,9 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     return results;
   }
 
+  /**
+   * 生成查询ID
+   */
   private generateQueryId(request: QueryRequestDto): string {
     const requestString = JSON.stringify({
       ...request,
@@ -1326,6 +341,9 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     return StringUtils.generateSimpleHash(requestString);
   }
 
+  /**
+   * 获取查询统计信息
+   */
   public getQueryStats() {
     return this.statisticsService.getQueryStats();
   }
@@ -1333,17 +351,16 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   // =============== 监控辅助方法 ===============
   
   /**
-   * ✅ 记录查询开始指标
+   * 记录查询开始指标
    */
   private recordQueryStartMetrics(request: QueryRequestDto, queryId: string): void {
     try {
-      // 使用CollectorService记录查询开始
       this.collectorService.recordRequest(
-        '/internal/query-start',         // endpoint
-        'POST',                         // method
-        200,                           // statusCode
-        0,                            // duration (查询开始时为0)
-        {                             // metadata
+        '/internal/query-start',
+        'POST',
+        200,
+        0,
+        {
           queryId,
           queryType: request.queryType,
           symbolsCount: request.symbols?.length || 0,
@@ -1358,7 +375,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * ✅ 记录查询完成指标
+   * 记录查询完成指标
    */
   private recordQueryCompleteMetrics(
     request: QueryRequestDto, 
@@ -1368,13 +385,12 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     cacheUsed: boolean
   ): void {
     try {
-      // 使用CollectorService记录查询完成
       this.collectorService.recordRequest(
-        '/api/v1/query/data',           // endpoint
-        'POST',                         // method
-        success ? 200 : 500,           // statusCode
-        duration,                      // duration
-        {                             // metadata
+        '/api/v1/query/data',
+        'POST',
+        success ? 200 : 500,
+        duration,
+        {
           queryId,
           queryType: request.queryType,
           symbolsCount: request.symbols?.length || 0,
@@ -1388,46 +404,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (error) {
       this.logger.warn(`查询完成监控记录失败: ${error.message}`, { queryId });
-    }
-  }
-
-  /**
-   * ✅ 记录批处理性能指标
-   */
-  private recordBatchProcessingMetrics(
-    batchSize: number, 
-    processingTime: number, 
-    market: string,
-    efficiency: number
-  ): void {
-    try {
-      this.collectorService.recordRequest(
-        '/internal/query-batch-processing', // endpoint
-        'POST',                             // method
-        200,                               // statusCode
-        processingTime,                    // duration
-        {                                  // metadata
-          batchSize,
-          market,
-          efficiency,
-          avgTimePerBatch: batchSize > 0 ? processingTime / batchSize : 0,
-          operation: 'batch_processing',
-          componentType: 'query'
-        }
-      );
-    } catch (error) {
-      this.logger.warn(`批处理监控记录失败: ${error.message}`, { batchSize });
-    }
-  }
-
-  /**
-   * ✅ 记录缓存操作指标
-   */
-  private recordCacheMetrics(operation: string, hit: boolean, duration: number, metadata: any): void {
-    try {
-      this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
-    } catch (error) {
-      this.logger.warn(`缓存监控记录失败: ${error.message}`, { operation, hit });
     }
   }
 }

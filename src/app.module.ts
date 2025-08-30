@@ -28,6 +28,7 @@ import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
 import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
 import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
 import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
+import { AppCoreModule } from "./app";
 
 @Module({
   imports: [
@@ -76,7 +77,7 @@ import { PaginationModule } from "./common/modules/pagination/modules/pagination
 
     // 通用模块
     PaginationModule,
-
+    AppCoreModule,
     // 核心模块
     ReceiverModule,
     StreamReceiverModule,  // WebSocket 流接收器

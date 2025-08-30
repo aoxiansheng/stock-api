@@ -9,6 +9,7 @@ import {
   CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN 
 } from '../../../../monitoring/contracts';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**
  * 流数据缓存模块
@@ -103,10 +104,14 @@ import {
       inject: [ConfigService],
     },
 
+    // ✅ 提供CollectorService（从 MonitoringModule 导入）
+    {
+      provide: MONITORING_COLLECTOR_TOKEN,
+      useExisting: CollectorService, // 使用类引用而不是字符串引用
+    },
+
     // 核心流缓存服务
     StreamCacheService,
-    
-    // ❌ 移除CollectorService fallback mock，使用MonitoringModule提供的真实服务
   ],
   exports: [
     StreamCacheService,

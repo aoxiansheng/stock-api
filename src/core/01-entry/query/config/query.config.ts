@@ -21,41 +21,41 @@ export class QueryConfigService {
   
   /** 单次Receiver请求的最大符号数 */
   get maxBatchSize(): number {
-    return this.configService.get('QUERY_MAX_BATCH_SIZE', 50);
+    return Number(this.configService.get('QUERY_MAX_BATCH_SIZE', 30));
   }
 
   /** 单个市场处理的最大符号数 */
   get maxMarketBatchSize(): number {
-    return this.configService.get('QUERY_MAX_MARKET_BATCH_SIZE', 100);
+    return Number(this.configService.get('QUERY_MAX_MARKET_BATCH_SIZE', 100));
   }
 
   // =============== 超时控制配置 ===============
   
   /** 市场级并行处理超时时间（毫秒） */
   get marketParallelTimeout(): number {
-    return this.configService.get('QUERY_MARKET_TIMEOUT', 30000);
+    return Number(this.configService.get('QUERY_MARKET_TIMEOUT', 30000));
   }
 
   /** Receiver批次超时时间（毫秒） */
   get receiverBatchTimeout(): number {
-    return this.configService.get('QUERY_RECEIVER_TIMEOUT', 15000);
+    return Number(this.configService.get('QUERY_RECEIVER_TIMEOUT', 15000));
   }
 
   // =============== 内存监控配置 ===============
   
   /** 内存使用率警告阈值 (0.0-1.0) */
   get memoryWarningThreshold(): number {
-    return this.configService.get('QUERY_MEMORY_WARNING_THRESHOLD', 0.7);
+    return Number(this.configService.get('QUERY_MEMORY_WARNING_THRESHOLD', 0.7));
   }
 
   /** 内存使用率临界阈值 (0.0-1.0) */
   get memoryCriticalThreshold(): number {
-    return this.configService.get('QUERY_MEMORY_CRITICAL_THRESHOLD', 0.9);
+    return Number(this.configService.get('QUERY_MEMORY_CRITICAL_THRESHOLD', 0.9));
   }
 
   /** 内存压力下的批量大小降级比例 (0.0-1.0) */
   get memoryPressureReductionRatio(): number {
-    return this.configService.get('QUERY_MEMORY_REDUCTION_RATIO', 0.5);
+    return Number(this.configService.get('QUERY_MEMORY_REDUCTION_RATIO', 0.5));
   }
 
   // =============== 性能调优配置 ===============
@@ -67,7 +67,7 @@ export class QueryConfigService {
 
   /** 垃圾回收触发间隔（处理符号数） */
   get gcTriggerInterval(): number {
-    return this.configService.get('QUERY_GC_TRIGGER_INTERVAL', 1000);
+    return Number(this.configService.get('QUERY_GC_TRIGGER_INTERVAL', 1000));
   }
 
   /**

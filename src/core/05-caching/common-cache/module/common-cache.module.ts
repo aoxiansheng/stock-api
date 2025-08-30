@@ -8,6 +8,7 @@ import { AdaptiveDecompressionService } from '../services/adaptive-decompression
 import { BatchMemoryOptimizerService } from '../services/batch-memory-optimizer.service';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module';
+import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { 
   MONITORING_COLLECTOR_TOKEN, 
   CACHE_REDIS_CLIENT_TOKEN 
@@ -33,10 +34,10 @@ import {
           password: configService.get<string>('redis.password'),
           db: configService.get<number>('redis.db', 0),
           
-          // 连接配置
+          // 连接配置 - 优化超时设置
           connectTimeout: CACHE_CONFIG.TIMEOUTS.CONNECTION_TIMEOUT,
           commandTimeout: CACHE_CONFIG.TIMEOUTS.REDIS_OPERATION_TIMEOUT,
-          lazyConnect: true,
+          lazyConnect: false,        // 禁用懒连接，立即连接
           
           // 连接池配置
           maxRetriesPerRequest: CACHE_CONFIG.RETRY.MAX_ATTEMPTS,
@@ -87,7 +88,7 @@ import {
     // ✅ 提供CollectorService（从 MonitoringModule 导入）
     {
       provide: MONITORING_COLLECTOR_TOKEN,
-      useExisting: 'CollectorService', // 直接引用现有的 CollectorService
+      useExisting: CollectorService, // 使用类引用而不是字符串引用
     },
 
     // 核心服务
