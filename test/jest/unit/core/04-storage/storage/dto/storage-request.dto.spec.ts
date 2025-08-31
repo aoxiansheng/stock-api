@@ -201,7 +201,7 @@ describe('Storage Request DTOs', () => {
         // Arrange
         dto.key = 'test:key';
         dto.data = { test: 'data' };
-        dto.storageType = StorageType.CACHE;
+        dto.storageType = StorageType.DATA_CACHE;
         dto.storageClassification = StorageClassification.GENERAL;
         dto.provider = 'test_provider';
         dto.market = 'TEST';
@@ -273,7 +273,7 @@ describe('Storage Request DTOs', () => {
         // Arrange
         dto.key = 'test';
         dto.data = { test: 'data' };
-        dto.storageType = StorageType.CACHE;
+        dto.storageType = StorageType.DATA_CACHE;
         dto.storageClassification = StorageClassification.GENERAL;
         dto.provider = 'provider';
         dto.market = 'TEST';
@@ -297,7 +297,7 @@ describe('Storage Request DTOs', () => {
         {
           dto.key = 'test';
           dto.data = { object: 'value' };
-          dto.storageType = StorageType.CACHE;
+          dto.storageType = StorageType.DATA_CACHE;
           dto.storageClassification = StorageClassification.GENERAL;
           dto.provider = 'provider';
           dto.market = 'TEST';
@@ -312,7 +312,7 @@ describe('Storage Request DTOs', () => {
         {
           dto.key = 'test';
           dto.data = [1, 2, 3];
-          dto.storageType = StorageType.CACHE;
+          dto.storageType = StorageType.DATA_CACHE;
           dto.storageClassification = StorageClassification.GENERAL;
           dto.provider = 'provider';
           dto.market = 'TEST';
@@ -329,7 +329,7 @@ describe('Storage Request DTOs', () => {
         {
           dto.key = 'test';
           dto.data = { nested: { deep: 'value' } };
-          dto.storageType = StorageType.CACHE;
+          dto.storageType = StorageType.DATA_CACHE;
           dto.storageClassification = StorageClassification.GENERAL;
           dto.provider = 'provider';
           dto.market = 'TEST';
@@ -345,7 +345,7 @@ describe('Storage Request DTOs', () => {
     describe('Enum Validation', () => {
       it('should validate storage types', async () => {
         // Arrange
-        const validTypes = [StorageType.CACHE, StorageType.PERSISTENT, StorageType.BOTH];
+        const validTypes = [StorageType.DATA_CACHE, StorageType.PERSISTENT, StorageType.BOTH];
 
         for (const storageType of validTypes) {
           dto.key = 'test';
@@ -375,7 +375,7 @@ describe('Storage Request DTOs', () => {
         for (const classification of validClassifications) {
           dto.key = 'test';
           dto.data = { test: 'data' };
-          dto.storageType = StorageType.CACHE;
+          dto.storageType = StorageType.DATA_CACHE;
           dto.storageClassification = classification;
           dto.provider = 'provider';
           dto.market = 'TEST';
@@ -410,11 +410,11 @@ describe('Storage Request DTOs', () => {
       it('should create instance with all fields', () => {
         // Arrange
         dto.key = 'retrieve:complete:key';
-        dto.preferredType = StorageType.CACHE;
+        dto.preferredType = StorageType.DATA_CACHE;
 
         // Assert
         expect(dto.key).toBe('retrieve:complete:key');
-        expect(dto.preferredType).toBe(StorageType.CACHE);
+        expect(dto.preferredType).toBe(StorageType.DATA_CACHE);
       });
 
       it('should validate successfully with valid data', async () => {
@@ -469,7 +469,7 @@ describe('Storage Request DTOs', () => {
     describe('Preferred Type Options', () => {
       it('should accept all valid storage types', async () => {
         // Arrange
-        const validTypes = [StorageType.CACHE, StorageType.PERSISTENT, StorageType.BOTH];
+        const validTypes = [StorageType.DATA_CACHE, StorageType.PERSISTENT, StorageType.BOTH];
 
         for (const preferredType of validTypes) {
           dto.key = 'test:key';
@@ -576,7 +576,7 @@ describe('Storage Request DTOs', () => {
         const plainObject = {
           key: 'nested:test',
           data: { test: 'data' },
-          storageType: StorageType.CACHE,
+          storageType: StorageType.DATA_CACHE,
           storageClassification: StorageClassification.GENERAL,
           provider: 'provider',
           market: 'TEST',
@@ -664,7 +664,7 @@ describe('Storage Request DTOs', () => {
         // Arrange
         const dto = new RetrieveDataDto();
         dto.key = 'quote:AAPL.US:longport:latest';
-        dto.preferredType = StorageType.CACHE;
+        dto.preferredType = StorageType.DATA_CACHE;
 
         // Act
         const errors = await validate(dto);
@@ -672,7 +672,7 @@ describe('Storage Request DTOs', () => {
         // Assert
         expect(errors.length).toBe(0);
         expect(dto.key).toContain('AAPL.US');
-        expect(dto.preferredType).toBe(StorageType.CACHE);
+        expect(dto.preferredType).toBe(StorageType.DATA_CACHE);
       });
     });
 
@@ -723,7 +723,7 @@ describe('Storage Request DTOs', () => {
           volume: 1000,
           timestamp: new Date().toISOString(),
         };
-        dto.storageType = StorageType.CACHE;
+        dto.storageType = StorageType.DATA_CACHE;
         dto.storageClassification = StorageClassification.STOCK_TICK;
         dto.provider = 'realtime_provider';
         dto.market = 'HK';
@@ -832,7 +832,7 @@ describe('Storage Request DTOs', () => {
         const dto = new StoreDataDto();
         dto.key = 'null:test';
         dto.data = null;
-        dto.storageType = StorageType.CACHE;
+        dto.storageType = StorageType.DATA_CACHE;
         dto.storageClassification = StorageClassification.GENERAL;
         dto.provider = 'provider';
         dto.market = 'TEST';
@@ -850,7 +850,7 @@ describe('Storage Request DTOs', () => {
         const dto = new StoreDataDto();
         dto.key = 'undefined:options:test';
         dto.data = { test: 'data' };
-        dto.storageType = StorageType.CACHE;
+        dto.storageType = StorageType.DATA_CACHE;
         dto.storageClassification = StorageClassification.GENERAL;
         dto.provider = 'provider';
         dto.market = 'TEST';

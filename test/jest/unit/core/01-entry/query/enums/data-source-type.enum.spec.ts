@@ -3,7 +3,7 @@ import { DataSourceType } from '../../../../../../../src/core/01-entry/query/enu
 describe('DataSourceType Enum', () => {
   describe('Enum values', () => {
     it('should have CACHE value', () => {
-      expect(DataSourceType.CACHE).toBe('cache');
+      expect(DataSourceType.CACHE).toBe('DataSourceType_cache');
     });
 
     it('should have PERSISTENT value', () => {
@@ -15,7 +15,7 @@ describe('DataSourceType Enum', () => {
     });
 
     it('should have all expected enum values', () => {
-      const expectedValues = ['cache', 'persistent', 'realtime'];
+      const expectedValues = ['DataSourceType_cache', 'persistent', 'realtime'];
       const actualValues = Object.values(DataSourceType);
 
       expect(actualValues).toEqual(expect.arrayContaining(expectedValues));
@@ -33,7 +33,7 @@ describe('DataSourceType Enum', () => {
     });
 
     it('should map keys to correct values', () => {
-      expect(DataSourceType.CACHE).toBe('cache');
+      expect(DataSourceType.SOURCE_CACHE).toBe('cache');
       expect(DataSourceType.PERSISTENT).toBe('persistent');
       expect(DataSourceType.REALTIME).toBe('realtime');
     });
@@ -66,7 +66,7 @@ describe('DataSourceType Enum', () => {
 
   describe('Enum validation', () => {
     it('should validate against enum values', () => {
-      const validValues = ['cache', 'persistent', 'realtime'];
+      const validValues = ['DataSourceType_cache', 'persistent', 'realtime'];
       
       validValues.forEach(value => {
         const isValid = Object.values(DataSourceType).includes(value as DataSourceType);
@@ -85,13 +85,13 @@ describe('DataSourceType Enum', () => {
 
     it('should support type checking', () => {
       const testValue: DataSourceType = DataSourceType.CACHE;
-      expect(testValue).toBe('cache');
+      expect(testValue).toBe('DataSourceType_cache');
 
       const isValidType = (value: string): value is DataSourceType => {
         return Object.values(DataSourceType).includes(value as DataSourceType);
       };
 
-      expect(isValidType('cache')).toBe(true);
+      expect(isValidType('DataSourceType_cache')).toBe(true);
       expect(isValidType('invalid')).toBe(false);
     });
   });
@@ -179,7 +179,7 @@ describe('DataSourceType Enum', () => {
   describe('Business logic validation', () => {
     it('should represent different data source priorities', () => {
       // Cache should be fastest
-      expect(DataSourceType.CACHE).toBe('cache');
+      expect(DataSourceType.CACHE).toBe('DataSourceType_cache');
       
       // Persistent should be for long-term storage
       expect(DataSourceType.PERSISTENT).toBe('persistent');

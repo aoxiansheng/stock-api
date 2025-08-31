@@ -51,7 +51,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'test_provider',
           'TEST',
@@ -79,7 +79,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.STOCK_CANDLE,
           'test_provider',
           'US',
@@ -142,7 +142,7 @@ describe('StorageMetadataDto', () => {
       it('should handle all storage types', () => {
         // Arrange & Act & Assert
         const storageTypes = [
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageType.PERSISTENT,
           StorageType.BOTH,
         ];
@@ -182,7 +182,7 @@ describe('StorageMetadataDto', () => {
         classifications.forEach((classification) => {
           const dto = new StorageMetadataDto(
             'test:key',
-            StorageType.CACHE,
+            StorageType.DATA_CACHE,
             classification,
             'provider',
             'TEST',
@@ -205,7 +205,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           key,
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.STOCK_QUOTE,
           provider,
           market,
@@ -232,7 +232,7 @@ describe('StorageMetadataDto', () => {
         testCases.forEach(({ dataSize, processingTime }) => {
           const dto = new StorageMetadataDto(
             'test:key',
-            StorageType.CACHE,
+            StorageType.DATA_CACHE,
             StorageClassification.GENERAL,
             'provider',
             'TEST',
@@ -249,7 +249,7 @@ describe('StorageMetadataDto', () => {
         // Arrange & Act & Assert
         const compressedDto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'provider',
           'TEST',
@@ -260,7 +260,7 @@ describe('StorageMetadataDto', () => {
 
         const uncompressedDto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'provider',
           'TEST',
@@ -279,7 +279,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'provider',
           'TEST',
@@ -336,7 +336,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'provider',
           'TEST',
@@ -362,7 +362,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'provider',
           'TEST',
@@ -383,7 +383,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'test:key',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'provider',
           'TEST',
@@ -461,7 +461,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           'news:market:_global:20230601',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.MARKET_NEWS,
           'news_provider',
           'GLOBAL',
@@ -478,7 +478,7 @@ describe('StorageMetadataDto', () => {
 
         // Assert
         expect(dto.storageClassification).toBe(StorageClassification.MARKET_NEWS);
-        expect(dto.storageType).toBe(StorageType.CACHE);
+        expect(dto.storageType).toBe(StorageType.DATA_CACHE);
         expect(dto.market).toBe('GLOBAL');
         expect(dto.compressed).toBe(false);
         expect(dto.tags.category).toBe('market_update');
@@ -542,7 +542,7 @@ describe('StorageMetadataDto', () => {
         // Act
         const dto = new StorageMetadataDto(
           '_simple:_config:app_settings',
-          StorageType.CACHE,
+          StorageType.DATA_CACHE,
           StorageClassification.GENERAL,
           'config_provider',
           'APP',
@@ -573,7 +573,7 @@ describe('StorageMetadataDto', () => {
       // Act
       const dto = new StorageMetadataDto(
         longKey,
-        StorageType.CACHE,
+        StorageType.DATA_CACHE,
         StorageClassification.GENERAL,
         'provider',
         'TEST',
@@ -607,7 +607,7 @@ describe('StorageMetadataDto', () => {
       // Act
       const dto = new StorageMetadataDto(
         'test:special',
-        StorageType.CACHE,
+        StorageType.DATA_CACHE,
         StorageClassification.GENERAL,
         'provider-with-special-chars_123',
         'MARKET_CODE-2023',
@@ -677,7 +677,7 @@ describe('StorageMetadataDto', () => {
       // Arrange
       const dto = new StorageMetadataDto(
         'update:test',
-        StorageType.CACHE,
+        StorageType.DATA_CACHE,
         StorageClassification.GENERAL,
         'provider',
         'TEST',
@@ -699,7 +699,7 @@ describe('StorageMetadataDto', () => {
       expect(dto.compressed).toBe(true);
       expect(dto.tags).toEqual({ updated: 'true' });
       expect(dto.key).toBe('update:test'); // Original values preserved
-      expect(dto.storageType).toBe(StorageType.CACHE);
+      expect(dto.storageType).toBe(StorageType.DATA_CACHE);
     });
   });
 });

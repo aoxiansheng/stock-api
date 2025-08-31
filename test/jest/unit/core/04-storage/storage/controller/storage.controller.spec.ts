@@ -152,7 +152,7 @@ describe('StorageController', () => {
         data: { value: 'retrieved-data' },
         metadata: {
           key: 'test-key',
-          storageType: StorageType.CACHE,
+          storageType: StorageType.DATA_CACHE,
           storageClassification: StorageClassification.GENERAL,
           provider: 'test-provider',
           market: 'test-market',
@@ -186,7 +186,7 @@ describe('StorageController', () => {
         data: { value: 'retrieved-data-by-key' },
         metadata: {
           key: 'test-key',
-          storageType: StorageType.CACHE,
+          storageType: StorageType.DATA_CACHE,
           storageClassification: StorageClassification.GENERAL,
           provider: 'test-provider',
           market: 'test-market',
@@ -252,8 +252,8 @@ describe('StorageController', () => {
 
     it('should delete data successfully with specified storageType', async () => {
       storageService.deleteData.mockResolvedValue(true); // 返回布尔值而非数字
-      const result = await controller.deleteData('test-key', StorageType.CACHE);
-      expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.CACHE);
+      const result = await controller.deleteData('test-key', StorageType.DATA_CACHE);
+      expect(storageService.deleteData).toHaveBeenCalledWith('test-key', StorageType.DATA_CACHE);
       expect(result).toEqual({ success: true, deleted: true, key: 'test-key' });
     });
 
@@ -352,7 +352,7 @@ describe('StorageController', () => {
       
       // 使用正确返回类型的mockImplementation
       storageService.storeData.mockImplementation((req) => {
-        if (req.storageType === StorageType.CACHE) {
+        if (req.storageType === StorageType.DATA_CACHE) {
           return Promise.reject(mockStoreError);
         }
         return Promise.resolve({
@@ -418,7 +418,7 @@ describe('StorageController', () => {
           data: { test: true },
           metadata: {
             key: 'health-check-key',
-            storageType: StorageType.CACHE,
+            storageType: StorageType.DATA_CACHE,
             storageClassification: StorageClassification.GENERAL,
             provider: 'test-provider',
             market: 'test-market',

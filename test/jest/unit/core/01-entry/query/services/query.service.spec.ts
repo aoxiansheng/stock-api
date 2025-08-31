@@ -296,7 +296,7 @@ describe('QueryService', () => {
 
       expect(result).toEqual({
         data: mockSymbolData,
-        source: DataSourceType.CACHE,
+        source: DataSourceType.SOURCE_CACHE,
       });
 
       // Verify smart cache orchestrator was called

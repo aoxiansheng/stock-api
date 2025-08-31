@@ -41,7 +41,7 @@ describe('StorageQueryDto', () => {
 
     it('should pass validation with valid enum values', async () => {
       const dto = new StorageQueryDto();
-      dto.storageType = StorageType.CACHE;
+      dto.storageType = StorageType.DATA_CACHE;
       dto.storageClassification = StorageClassification.STOCK_QUOTE;
       const errors = await validate(dto);
       expect(errors.length).toBe(0);

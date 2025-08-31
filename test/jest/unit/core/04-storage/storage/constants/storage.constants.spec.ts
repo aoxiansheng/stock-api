@@ -196,7 +196,7 @@ describe("Storage Constants", () => {
 
   describe("STORAGE_SOURCES", () => {
     it("should define all source types", () => {
-      expect(STORAGE_SOURCES.CACHE).toBe("cache");
+      expect(STORAGE_SOURCES.CACHE_SOURCE).toBe("StorageSource_cache");
       expect(STORAGE_SOURCES.PERSISTENT).toBe("persistent");
       expect(STORAGE_SOURCES.NOT_FOUND).toBe("not_found");
       expect(STORAGE_SOURCES.BOTH).toBe("both");

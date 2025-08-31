@@ -258,20 +258,20 @@ describe('Query Internal DTOs', () => {
       it('should create instance with stock data', () => {
         // Arrange
         dto.data = { symbol: '00700.HK', price: 425.6, volume: 1000000 };
-        dto.source = DataSourceType.CACHE;
+        dto.source = DataSourceType.SOURCE_CACHE;
         dto.timestamp = '2023-06-01T10:00:00Z';
         dto.ttlRemaining = 300;
 
         // Assert
         expect(dto.data.symbol).toBe('00700.HK');
-        expect(dto.source).toBe(DataSourceType.CACHE);
+        expect(dto.source).toBe(DataSourceType.SOURCE_CACHE);
         expect(dto.timestamp).toBe('2023-06-01T10:00:00Z');
         expect(dto.ttlRemaining).toBe(300);
       });
 
       it('should handle different data sources', () => {
         // Arrange
-        const sources = [DataSourceType.CACHE, DataSourceType.REALTIME, DataSourceType.PERSISTENT];
+        const sources = [DataSourceType.SOURCE_CACHE, DataSourceType.REALTIME, DataSourceType.PERSISTENT];
 
         sources.forEach(source => {
           dto.data = { test: 'data' };
@@ -293,7 +293,7 @@ describe('Query Internal DTOs', () => {
 
         const newsDto = new SymbolDataResultDto<{ title: string; content: string }>();
         newsDto.data = { title: 'News', content: 'Content' };
-        newsDto.source = DataSourceType.CACHE;
+        newsDto.source = DataSourceType.SOURCE_CACHE;
         expect(newsDto.data.title).toBe('News');
       });
     });

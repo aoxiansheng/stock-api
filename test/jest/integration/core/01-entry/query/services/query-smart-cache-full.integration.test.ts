@@ -16,7 +16,7 @@ import { StorageType, StorageClassification } from '../../../../../../../src/cor
 // Helper function to create StorageMetadataDto
 const createMockStorageMetadata = (overrides: Partial<any> = {}) => ({
   key: 'test:cache:key',
-  storageType: StorageType.CACHE,
+  storageType: StorageType.DATA_CACHE,
   storageClassification: StorageClassification.STOCK_QUOTE,
   provider: 'longport',
   market: 'US',
@@ -202,7 +202,7 @@ describe('QueryService - Smart Cache Full Integration', () => {
         .mockResolvedValueOnce({ // Receiver层缓存命中
           data: { symbol: 'AAPL', lastPrice: 150.00 },
           metadata: createMockStorageMetadata({ 
-            storageType: StorageType.CACHE,
+            storageType: StorageType.DATA_CACHE,
             market: 'US' 
           }),
         });
@@ -301,7 +301,7 @@ describe('QueryService - Smart Cache Full Integration', () => {
           data: { symbol: 'MSFT', lastPrice: 300.00 },
           metadata: createMockStorageMetadata({ 
             storedAt: new Date(Date.now() - 3000).toISOString(), // 3秒前，在Receiver TTL内
-            storageType: StorageType.CACHE,
+            storageType: StorageType.DATA_CACHE,
             market: 'US'
           }),
         })
@@ -346,7 +346,7 @@ describe('QueryService - Smart Cache Full Integration', () => {
       expect(result.realtimeHits).toBeGreaterThan(0); // 至少有一个需要实时获取
 
       // 验证数据源类型正确
-      const cacheResults = result.data.filter(item => item.source === DataSourceType.CACHE);
+      const cacheResults = result.data.filter(item => item.source === DataSourceType.SOURCE_CACHE);
       const realtimeResults = result.data.filter(item => item.source === DataSourceType.REALTIME);
       
       expect(cacheResults.length).toBeGreaterThan(0);
