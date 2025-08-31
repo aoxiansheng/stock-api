@@ -293,7 +293,7 @@ export class QueryExecutionEngine implements OnModuleInit {
         } catch (error) {
           // 处理市场级别的失败
           const marketSymbols = adjustedSymbolsByMarket[market];
-          marketSymbols.forEach(symbol => {
+          marketSymbols.forEach((symbol: string) => {
             errors.push({
               symbol,
               reason: `市场${market}批量处理失败: ${error.message}`,
@@ -337,7 +337,7 @@ export class QueryExecutionEngine implements OnModuleInit {
 
       // 处理结果数据
       const combinedData = results.map((r) => r.data).flat();
-      const cacheUsed = results.some((r) => r.source === DataSourceType.CACHE);
+      const cacheUsed = results.some((r) => r.source === DataSourceType.DATASOURCETYPECACHE);
 
       const paginatedData = this.paginationService.createPaginatedResponseFromQuery(
         combinedData,
@@ -686,7 +686,7 @@ export class QueryExecutionEngine implements OnModuleInit {
           queryCacheHits++;
           results.push({
             data: result.data,
-            source: DataSourceType.CACHE,
+            source: DataSourceType.DATASOURCETYPECACHE,
           });
         } else if (result.data) {
           // Query缓存缺失，已调用Receiver流向获取数据

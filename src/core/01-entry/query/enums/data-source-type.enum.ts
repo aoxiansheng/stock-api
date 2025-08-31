@@ -7,7 +7,7 @@ export enum DataSourceType {
   /**
    * 数据来源于缓存（内存或Redis）
    */
-  CACHE = "cache",
+  DATASOURCETYPECACHE = "datasourcetype_cache",
 
   /**
    * 数据来源于持久化存储（如数据库）
@@ -18,4 +18,9 @@ export enum DataSourceType {
    * 数据来源于实时外部API调用
    */
   REALTIME = "realtime",
+
+  /**
+   * 混合数据源（缓存+实时）
+   */
+  HYBRID = "hybrid",
 }

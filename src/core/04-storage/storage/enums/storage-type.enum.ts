@@ -2,7 +2,7 @@
  * 存储类型枚举
  */
 export enum StorageType {
-  CACHE = "cache",
+  STORAGETYPECACHE = "storagetype_cache",
   PERSISTENT = "persistent",
   BOTH = "both",
 }

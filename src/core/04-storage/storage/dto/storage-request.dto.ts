@@ -90,7 +90,7 @@ export class RetrieveDataDto {
   @ApiPropertyOptional({
     description: "Preferred storage type to check first",
     enum: StorageType,
-    default: StorageType.CACHE,
+    default: StorageType.STORAGETYPECACHE,
   })
   @IsOptional()
   @IsEnum(StorageType)

@@ -555,7 +555,7 @@ export class StorageController {
         await this.storageService.storeData({
           key: testKey,
           data: testData,
-          storageType: StorageType.CACHE,
+          storageType: StorageType.STORAGETYPECACHE,
           storageClassification: "stock_quote" as any,
           provider: "health-test",
           market: "test",
@@ -564,14 +564,14 @@ export class StorageController {
 
         const retrieved = await this.storageService.retrieveData({
           key: testKey,
-          preferredType: StorageType.CACHE,
+          preferredType: StorageType.STORAGETYPECACHE,
         });
 
         cacheHealthy = !!retrieved.data;
         cacheLatency = Date.now() - cacheStartTime;
 
         // Cleanup
-        await this.storageService.deleteData(testKey, StorageType.CACHE);
+        await this.storageService.deleteData(testKey, StorageType.STORAGETYPECACHE);
       } catch (cacheError) {
         this.logger.warn("Cache health check failed", cacheError);
       }
