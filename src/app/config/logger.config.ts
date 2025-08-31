@@ -2,30 +2,39 @@ import { LoggerService, LogLevel } from "@nestjs/common";
 import pino, { Logger as PinoLogger } from "pino";
 
 /**
- * Pino 日志配置
- * 统一管理日志格式、级别和输出方式，使用 Pino 高性能日志库
+ * 单例 Pino Logger 实例管理器
+ * 避免多个 transport worker 线程冲突
  */
-export class CustomLogger implements LoggerService {
-  private context?: string;
-  private pinoLogger: PinoLogger;
-  private seen?: Set<any>;
+class PinoLoggerSingleton {
+  private static instance: PinoLogger | null = null;
+  private static isCreating = false;
 
-  constructor(context?: string) {
-    this.context = context;
-    this.pinoLogger = this.createPinoLogger();
+  static getInstance(): PinoLogger {
+    if (!PinoLoggerSingleton.instance && !PinoLoggerSingleton.isCreating) {
+      PinoLoggerSingleton.isCreating = true;
+      try {
+        PinoLoggerSingleton.instance = PinoLoggerSingleton.createPinoLogger();
+      } finally {
+        PinoLoggerSingleton.isCreating = false;
+      }
+    }
+    
+    // 如果实例还在创建中，等待或返回一个基础的 pino logger
+    if (!PinoLoggerSingleton.instance) {
+      return pino({ name: 'fallback-logger' });
+    }
+    
+    return PinoLoggerSingleton.instance;
   }
 
-  /**
-   * 创建 Pino 日志实例
-   */
-  private createPinoLogger(): PinoLogger {
+  private static createPinoLogger(): PinoLogger {
     const isDevelopment = process.env.NODE_ENV === "development";
     const isProduction = process.env.NODE_ENV === "production";
 
     // 基础配置
     const baseConfig = {
       name: "newstockapi",
-      level: this.getLogLevel(),
+      level: PinoLoggerSingleton.getLogLevel(),
       formatters: {
         level: (label: string) => {
           return { level: label.toUpperCase() };
@@ -43,21 +52,15 @@ export class CustomLogger implements LoggerService {
       },
     };
 
-    // 开发环境配置 - 使用 pretty 打印
+    // 开发环境配置 - 使用稳定的 destination 而不是 transport
     if (isDevelopment) {
-      return pino({
+      // 创建自定义的 pretty print destination
+      const prettyStream = pino.destination({ sync: false });
+      const logger = pino({
         ...baseConfig,
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            translateTime: "yyyy-mm-dd HH:MM:ss.l",
-            ignore: "pid,hostname",
-            customColors:
-              "info:green,warn:yellow,error:red,debug:cyan,trace:magenta",
-          },
-        },
-      });
+      }, prettyStream);
+
+      return logger;
     }
 
     // 生产环境配置 - 结构化 JSON 输出
@@ -71,32 +74,43 @@ export class CustomLogger implements LoggerService {
     return pino(baseConfig);
   }
 
-  /**
-   * 获取日志级别
-   */
-  protected getLogLevel(): string {
-    const logLevel = process.env.LOG_LEVEL?.toLowerCase();
-    if (logLevel) {
-      switch (logLevel) {
-        case "verbose":
-          return "trace";
-        case "debug":
-          return "debug";
-        case "warn":
-          return "warn";
-        case "error":
-          return "error";
-        default:
-          return "info";
-      }
+  static getLogLevel(): string {
+    const level = process.env.LOG_LEVEL;
+    if (level && ['fatal', 'error', 'warn', 'info', 'debug', 'trace'].includes(level.toLowerCase())) {
+      return level.toLowerCase();
     }
-
-    const env = process.env.NODE_ENV;
-    if (env === "production") {
-      return "info";
+    
+    // 根据环境设置默认级别
+    if (process.env.NODE_ENV === 'production') {
+      return 'info';
+    } else if (process.env.NODE_ENV === 'test') {
+      return 'warn';
     }
     return "debug";
   }
+
+  // 重置实例（主要用于测试）
+  static reset(): void {
+    if (PinoLoggerSingleton.instance) {
+      PinoLoggerSingleton.instance = null;
+    }
+  }
+}
+
+/**
+ * Pino 日志配置
+ * 统一管理日志格式、级别和输出方式，使用 Pino 高性能日志库
+ */
+export class CustomLogger implements LoggerService {
+  private context?: string;
+  private pinoLogger: PinoLogger;
+  private seen?: Set<any>;
+
+  constructor(context?: string) {
+    this.context = context;
+    this.pinoLogger = PinoLoggerSingleton.getInstance();
+  }
+
 
   /**
    * 记录普通日志
@@ -446,7 +460,7 @@ export class TestableLogger extends CustomLogger {
 
   // 在测试中可以覆盖的方法
   public getLogLevel(): string {
-    return super.getLogLevel();
+    return PinoLoggerSingleton.getLogLevel();
   }
 
   public isDebugEnabled(): boolean {

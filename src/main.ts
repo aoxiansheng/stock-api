@@ -30,85 +30,86 @@ async function bootstrap() {
   ================================================
   `);
 
-  const app = await NestFactory.create(AppModule, {
-    logger: getLogLevels(),
-  });
-
-  // 使用自定义日志器
-  app.useLogger(new CustomLogger("NestApplication"));
-
-  // 配置请求体大小限制，防止DoS攻击
-  app.use("/api", express.json({ limit: "10mb" }));
-  app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
-
-  // 全局安全中间件
-  const securityMiddleware = new SecurityMiddleware();
-  app.use(securityMiddleware.use.bind(securityMiddleware));
-
-  // 全局前缀
-  app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
-
-  // 全局异常过滤器
-  app.useGlobalFilters(new GlobalExceptionFilter());
-
-  // 全局验证管道
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      exceptionFactory: (errors) => {
-        // 将验证错误转换为自定义格式，由全局异常过滤器处理
-        return new ValidationPipe().createExceptionFactory()(errors);
-      },
-    }),
-  );
-
-  // 全局请求追踪拦截器（第一个执行）
-  app.useGlobalInterceptors(new RequestTrackingInterceptor());
-
-  // 全局性能监控拦截器
-  const performanceMonitor = app.get(CollectorService);
-  const reflector = app.get("Reflector");
-  // metricsRegistry已移除，监控功能由CollectorService通过事件驱动方式提供
-  app.useGlobalInterceptors(
-    new InfrastructureInterceptor(performanceMonitor, reflector),
-  );
-
-  // 🎯 事件驱动API监控拦截器（事件化重构）
-  const apiMonitoringInterceptor = app.get(ApiMonitoringInterceptor);
-  app.useGlobalInterceptors(apiMonitoringInterceptor);
-
-  // 全局响应格式拦截器（最后执行）
-  app.useGlobalInterceptors(new ResponseInterceptor());
-
-  // 设置全局性能监控服务（供装饰器使用）
-  global["CollectorService"] = performanceMonitor;
-
-  // CORS 配置
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(",") || true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-App-Key",
-      "X-Access-Token",
-      "X-Requested-With",
-      "Origin",
-      "Accept",
-    ],
-    credentials: true,
-    maxAge: 86400, // 24小时预检缓存
-    optionsSuccessStatus: 200,
-  });
-
-  // Swagger 配置 - 智能股票数据系统 API 文档
   try {
-    const config = new DocumentBuilder()
-      .setTitle("智能股票数据系统 API")
-      .setDescription(
-        `
+    const app = await NestFactory.create(AppModule, {
+      logger: getLogLevels(),
+    });
+
+    // 使用自定义日志器
+    app.useLogger(new CustomLogger("NestApplication"));
+
+    // 配置请求体大小限制，防止DoS攻击
+    app.use("/api", express.json({ limit: "10mb" }));
+    app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
+
+    // 全局安全中间件
+    const securityMiddleware = new SecurityMiddleware();
+    app.use(securityMiddleware.use.bind(securityMiddleware));
+
+    // 全局前缀
+    app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
+
+    // 全局异常过滤器
+    app.useGlobalFilters(new GlobalExceptionFilter());
+
+    // 全局验证管道
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        exceptionFactory: (errors) => {
+          // 将验证错误转换为自定义格式，由全局异常过滤器处理
+          return new ValidationPipe().createExceptionFactory()(errors);
+        },
+      }),
+    );
+
+    // 全局请求追踪拦截器（第一个执行）
+    app.useGlobalInterceptors(new RequestTrackingInterceptor());
+
+    // 全局性能监控拦截器
+    const performanceMonitor = app.get(CollectorService);
+    const reflector = app.get("Reflector");
+    // metricsRegistry已移除，监控功能由CollectorService通过事件驱动方式提供
+    app.useGlobalInterceptors(
+      new InfrastructureInterceptor(performanceMonitor, reflector),
+    );
+
+    // 🎯 事件驱动API监控拦截器（事件化重构）
+    const apiMonitoringInterceptor = app.get(ApiMonitoringInterceptor);
+    app.useGlobalInterceptors(apiMonitoringInterceptor);
+
+    // 全局响应格式拦截器（最后执行）
+    app.useGlobalInterceptors(new ResponseInterceptor());
+
+    // 设置全局性能监控服务（供装饰器使用）
+    global["CollectorService"] = performanceMonitor;
+
+    // CORS 配置
+    app.enableCors({
+      origin: process.env.CORS_ORIGIN?.split(",") || true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-App-Key",
+        "X-Access-Token",
+        "X-Requested-With",
+        "Origin",
+        "Accept",
+      ],
+      credentials: true,
+      maxAge: 86400, // 24小时预检缓存
+      optionsSuccessStatus: 200,
+    });
+
+    // Swagger 配置 - 智能股票数据系统 API 文档
+    try {
+      const config = new DocumentBuilder()
+        .setTitle("智能股票数据系统 API")
+        .setDescription(
+          `
 ## 📊 智能股票数据处理系统
 
 基于六组件核心架构的智能化股票数据处理系统，提供**强时效vs弱时效**双接口设计和多数据源融合能力。
@@ -162,72 +163,72 @@ async function bootstrap() {
 - **A股** (CN): 上交所、深交所
 - **新加坡** (SG): SGX
       `,
-      )
-      .setVersion("1.0.0")
-      .setContact(
-        "系统管理员",
-        "https://github.com/your-repo",
-        "admin@yourcompany.com",
-      )
-      .setLicense("MIT License", "https://opensource.org/licenses/MIT")
-      .addServer("http://localhost:3000", "开发环境")
-      .addServer("https://api.yourcompany.com", "生产环境")
+        )
+        .setVersion("1.0.0")
+        .setContact(
+          "系统管理员",
+          "https://github.com/your-repo",
+          "admin@yourcompany.com",
+        )
+        .setLicense("MIT License", "https://opensource.org/licenses/MIT")
+        .addServer("http://localhost:3000", "开发环境")
+        .addServer("https://api.yourcompany.com", "生产环境")
 
-      // API 标签分组 - 按功能模块和时效性架构组织
-      .addTag(
-        "🔐 认证管理",
-        "用户注册登录、JWT Token 管理、API Key 创建与管理 | 支持三层认证架构",
-      )
+        // API 标签分组 - 按功能模块和时效性架构组织
+        .addTag(
+          "🔐 认证管理",
+          "用户注册登录、JWT Token 管理、API Key 创建与管理 | 支持三层认证架构",
+        )
 
-      // === 六组件核心架构 - 强弱时效接口 ===
-      .addTag(
-        "🚀 强时效接口 - 实时数据接收",
-        "专为高频交易设计的1秒级缓存策略，提供毫秒级响应 | 🔑 需要 API Key 认证 | 适合实时交易场景",
-      )
-      .addTag(
-        "🧠 弱时效接口 - 智能数据查询",
-        "专为数据分析设计的智能变化检测和双存储策略 | 🔑 需要 API Key 认证 | 适合分析决策场景",
-      )
+        // === 六组件核心架构 - 强弱时效接口 ===
+        .addTag(
+          "🚀 强时效接口 - 实时数据接收",
+          "专为高频交易设计的1秒级缓存策略，提供毫秒级响应 | 🔑 需要 API Key 认证 | 适合实时交易场景",
+        )
+        .addTag(
+          "🧠 弱时效接口 - 智能数据查询",
+          "专为数据分析设计的智能变化检测和双存储策略 | 🔑 需要 API Key 认证 | 适合分析决策场景",
+        )
 
-      // === 六组件核心架构 - 数据处理组件 ===
-      .addTag(
-        "🔄 符号映射器",
-        "股票代码格式转换，支持多数据源代码映射 | 🔑 API Key + 🛡️ 管理员权限",
-      )
-      .addTag(
-        "🗺️ 数据映射器",
-        "数据源字段映射规则管理，支持智能字段建议 | 🛡️ 需要开发者/管理员权限",
-      )
-      .addTag(
-        "⚡ 数据转换",
-        "原始数据实时转换，格式标准化处理 | 🛡️ 需要开发者/管理员权限",
-      )
-      .addTag(
-        "💾 数据存储",
-        "智能缓存管理，Redis + MongoDB 双存储策略 | 🛡️ 需要开发者/管理员权限",
-      )
+        // === 六组件核心架构 - 数据处理组件 ===
+        .addTag(
+          "🔄 符号映射器",
+          "股票代码格式转换，支持多数据源代码映射 | 🔑 API Key + 🛡️ 管理员权限",
+        )
+        .addTag(
+          "🗺️ 数据映射器",
+          "数据源字段映射规则管理，支持智能字段建议 | 🛡️ 需要开发者/管理员权限",
+        )
+        .addTag(
+          "⚡ 数据转换",
+          "原始数据实时转换，格式标准化处理 | 🛡️ 需要开发者/管理员权限",
+        )
+        .addTag(
+          "💾 数据存储",
+          "智能缓存管理，Redis + MongoDB 双存储策略 | 🛡️ 需要开发者/管理员权限",
+        )
 
-      // === 系统管理和监控 ===
-      .addTag(
-        "📈 性能监控",
-        "系统性能指标、API 响应时间、资源使用监控 | 🛡️ 需要开发者/管理员权限",
-      )
-      .addTag(
-        "安全管理",
-        "安全扫描、漏洞检测、审计日志、权限管理 | 🔒 仅限管理员访问",
-      )
-      .addTag(
-        "告警管理",
-        "系统告警规则管理、告警历史查询、通知渠道配置 | 🔒 仅限管理员访问",
-      )
+        // === 系统管理和监控 ===
+        .addTag(
+          "📈 性能监控",
+          "系统性能指标、API 响应时间、资源使用监控 | 🛡️ 需要开发者/管理员权限",
+        )
+        .addTag(
+          "安全管理",
+          "安全扫描、漏洞检测、审计日志、权限管理 | 🔒 仅限管理员访问",
+        )
+        .addTag(
+          "告警管理",
+          "系统告警规则管理、告警历史查询、通知渠道配置 | 🔒 仅限管理员访问",
+        )
 
-      // JWT Bearer 认证
-      .addBearerAuth(
-        {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description: `
+        // JWT Bearer 认证
+        .addBearerAuth(
+          {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+            description: `
 ### JWT 认证说明
 
 JWT Token 用于用户身份验证，获取方式：
@@ -239,17 +240,17 @@ JWT Token 用于用户身份验证，获取方式：
 **Token 有效期**: 24小时  
 **刷新机制**: 使用 refreshToken 刷新访问令牌
         `,
-        },
-        "bearer",
-      )
+          },
+          "bearer",
+        )
 
-      // API Key 认证 (App Key)
-      .addApiKey(
-        {
-          type: "apiKey",
-          name: "X-App-Key",
-          in: "header",
-          description: `
+        // API Key 认证 (App Key)
+        .addApiKey(
+          {
+            type: "apiKey",
+            name: "X-App-Key",
+            in: "header",
+            description: `
 ### API Key 认证说明 (第三方应用访问)
 
 API Key 认证用于第三方应用和自动化脚本访问，采用双密钥验证机制：
@@ -283,17 +284,17 @@ API Key 认证用于第三方应用和自动化脚本访问，采用双密钥验
 **🔄 数据处理组件**:
 - 代码转换: POST /api/v1/symbol-mapper/transform
         `,
-        },
-        "ApiKey",
-      )
+          },
+          "ApiKey",
+        )
 
-      // Access Token 认证
-      .addApiKey(
-        {
-          type: "apiKey",
-          name: "X-Access-Token",
-          in: "header",
-          description: `
+        // Access Token 认证
+        .addApiKey(
+          {
+            type: "apiKey",
+            name: "X-Access-Token",
+            in: "header",
+            description: `
 ### Access Token 说明
 
 Access Token 与 App Key 配合使用，提供双重安全验证：
@@ -302,25 +303,27 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
 **安全级别**: 高级别加密，定期轮换
 **有效期**: 根据应用配置决定
         `,
-        },
-        "AccessToken",
-      )
+          },
+          "AccessToken",
+        )
 
-      .build();
+        .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup("docs", app, document);
-    logger.log("📚 Swagger API 文档已启用");
-  } catch (error) {
-    logger.warn("⚠️ Swagger 配置失败，跳过 API 文档生成", {
-      error: error.message,
-    });
-  }
+      const document = SwaggerModule.createDocument(app, config);
+      SwaggerModule.setup("docs", app, document);
+      logger.log("📚 Swagger API 文档已启用");
+    } catch (error) {
+      logger.warn("⚠️ Swagger 配置失败，跳过 API 文档生成", {
+        error: error.message,
+      });
+    }
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-
-  logger.log(`
+    const port = process.env.PORT || 3000;
+    
+    // 添加更详细的错误处理
+    try {
+      await app.listen(port);
+      logger.log(`
   ================================================
   🚀 智能股票数据系统启动成功
   ================================================
@@ -341,6 +344,43 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
   🛡️ 安全中间件已启用
   ================================================
   `);
+    } catch (error) {
+      // 检查是否是端口占用错误
+      if (error.message && error.message.includes('port')) {
+        logger.error(`❌ 端口 ${port} 已被占用！`, {
+          suggestion: `请尝试以下方法：
+1. 使用 'lsof -i :${port}' 查找占用端口的进程
+2. 使用 'kill -9 <PID>' 终止占用进程
+3. 或设置环境变量 PORT 使用其他端口：PORT=3001 bun run dev`
+        });
+      } else {
+        logger.error("❌ 应用启动失败", {
+          error: error.message,
+          stack: error.stack,
+        });
+      }
+      process.exit(1);
+    }
+  } catch (error) {
+    logger.error("❌ 应用初始化失败", {
+      error: error.message,
+      stack: error.stack,
+    });
+    process.exit(1);
+  }
 }
+
+// 添加全局未捕获异常处理
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 未处理的Promise拒绝:', reason);
+  console.error('Promise:', promise);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('🚨 未捕获的异常:', error);
+  console.error('Stack:', error.stack);
+  process.exit(1);
+});
 
 bootstrap();

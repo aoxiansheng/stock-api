@@ -55,7 +55,7 @@ import { CollectorService } from '../../../../monitoring/collector/collector.ser
           // 性能优化 - 流数据特性
           enableReadyCheck: true,
           keepAlive: 10000,        // 更短的保活时间
-          enableOfflineQueue: false, // 流数据不允许离线队列
+          enableOfflineQueue: true,  // 暂时启用离线队列避免启动失败
           enableAutoPipelining: true, // 启用自动管道化
           
           // 内存优化
