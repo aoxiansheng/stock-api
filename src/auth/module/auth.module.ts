@@ -1,8 +1,6 @@
-import { RedisModule } from "@nestjs-modules/ioredis";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
-import { MongooseModule } from "@nestjs/mongoose";
 import { PassportModule } from "@nestjs/passport";
 
 import { CacheModule } from "../../cache/module/cache.module";
@@ -18,8 +16,6 @@ import { RateLimitGuard } from "../guards/rate-limit.guard";
 import { UnifiedPermissionsGuard } from "../guards/unified-permissions.guard";
 import { ApiKeyRepository } from "../repositories/apikey.repository";
 import { UserRepository } from "../repositories/user.repository";
-import { ApiKey, ApiKeySchema } from "../schemas/apikey.schema";
-import { User, UserSchema } from "../schemas/user.schema";
 import { ApiKeyService } from "../services/apikey.service";
 import { AuthService } from "../services/auth.service";
 import { PasswordService } from "../services/password.service";
@@ -37,7 +33,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     CacheModule,
     CollectorModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
-    RedisModule,
+    // ❌ 删除 RedisModule - 使用全局注入的 RedisService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -68,7 +64,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ApiKeyAuthGuard,
     
     UnifiedPermissionsGuard,
-    RateLimitGuard,
+    RateLimitGuard, // 需要在providers中提供以便导出
     RateLimitExceptionFilter,
     ApiKeyRepository,
     UserRepository,
@@ -84,7 +80,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ApiKeyAuthGuard,
     
     UnifiedPermissionsGuard,
-    RateLimitGuard,
+    RateLimitGuard, // 需要导出以供AppModule的APP_GUARD使用
     RateLimitExceptionFilter,
     ApiKeyRepository,
     UserRepository,

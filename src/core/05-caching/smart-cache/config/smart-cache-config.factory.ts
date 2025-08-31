@@ -128,7 +128,7 @@ export class SmartCacheConfigFactory {
       throw new Error(`SmartCache configuration validation failed: ${validationErrors.join(', ')}`);
     }
 
-    // 记录关键配置信息
+    // 记录配置摘要（包含环境变量使用统计）
     this.logger.log(`SmartCache configuration created successfully:`, {
       maxConcurrentUpdates: config.maxConcurrentUpdates,
       enableBackgroundUpdate: config.enableBackgroundUpdate,
@@ -136,6 +136,15 @@ export class SmartCacheConfigFactory {
       strongTtl: config.strategies[CacheStrategy.STRONG_TIMELINESS].ttl,
       weakTtl: config.strategies[CacheStrategy.WEAK_TIMELINESS].ttl,
     });
+
+    // 仅在有自定义环境变量时输出详细信息
+    const customEnvVars = this.getCurrentEnvVars();
+    const setEnvVars = Object.entries(customEnvVars).filter(([, value]) => value !== undefined);
+    if (setEnvVars.length > 0) {
+      this.logger.log(`Custom environment variables: ${setEnvVars.map(([key, value]) => `${key}=${value}`).join(', ')}`);
+    } else {
+      this.logger.debug(`Using all default values for SmartCache configuration`);
+    }
 
     return config;
   }
@@ -150,7 +159,10 @@ export class SmartCacheConfigFactory {
   private static parseIntEnv(key: string, defaultValue: number, min?: number, max?: number): number {
     const value = process.env[key];
     if (!value) {
-      this.logger.debug(`Using default value for ${key}: ${defaultValue}`);
+      // 仅在详细模式时输出默认值日志
+      if (process.env.SMART_CACHE_VERBOSE_CONFIG === 'true') {
+        this.logger.debug(`Using default value for ${key}: ${defaultValue}`);
+      }
       return defaultValue;
     }
 
@@ -170,6 +182,7 @@ export class SmartCacheConfigFactory {
       return max;
     }
 
+    // 仅在有自定义值时输出debug日志
     this.logger.debug(`Parsed ${key}: ${parsed}`);
     return parsed;
   }
@@ -184,7 +197,10 @@ export class SmartCacheConfigFactory {
   private static parseFloatEnv(key: string, defaultValue: number, min?: number, max?: number): number {
     const value = process.env[key];
     if (!value) {
-      this.logger.debug(`Using default value for ${key}: ${defaultValue}`);
+      // 仅在详细模式时输出默认值日志
+      if (process.env.SMART_CACHE_VERBOSE_CONFIG === 'true') {
+        this.logger.debug(`Using default value for ${key}: ${defaultValue}`);
+      }
       return defaultValue;
     }
 
@@ -204,6 +220,7 @@ export class SmartCacheConfigFactory {
       return max;
     }
 
+    // 仅在有自定义值时输出debug日志
     this.logger.debug(`Parsed ${key}: ${parsed}`);
     return parsed;
   }
@@ -216,13 +233,17 @@ export class SmartCacheConfigFactory {
   private static parseBoolEnv(key: string, defaultValue: boolean): boolean {
     const value = process.env[key];
     if (!value) {
-      this.logger.debug(`Using default value for ${key}: ${defaultValue}`);
+      // 仅在详细模式时输出默认值日志
+      if (process.env.SMART_CACHE_VERBOSE_CONFIG === 'true') {
+        this.logger.debug(`Using default value for ${key}: ${defaultValue}`);
+      }
       return defaultValue;
     }
 
     const lowerValue = value.toLowerCase();
     const parsedValue = lowerValue === 'true' || lowerValue === '1' || lowerValue === 'yes';
     
+    // 仅在有自定义值时输出debug日志
     this.logger.debug(`Parsed ${key}: ${parsedValue}`);
     return parsedValue;
   }

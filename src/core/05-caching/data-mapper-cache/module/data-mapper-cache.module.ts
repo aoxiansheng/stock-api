@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { RedisModule as NestRedisModule } from '@nestjs-modules/ioredis';
 import { DataMapperCacheService } from '../services/data-mapper-cache.service';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 
@@ -14,7 +13,7 @@ import { MonitoringModule } from '../../../../monitoring/monitoring.module';
  */
 @Module({
   imports: [
-    NestRedisModule, // 直接导入 Redis 模块，获得 RedisService
+    // ❌ 删除 NestRedisModule - 使用全局注入的 RedisService
     MonitoringModule, // ✅ 导入监控模块，提供CollectorService
   ],
   providers: [

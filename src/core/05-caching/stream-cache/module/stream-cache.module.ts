@@ -23,7 +23,7 @@ import { CollectorService } from '../../../../monitoring/collector/collector.ser
  */
 @Module({
   imports: [
-    ConfigModule,
+    // ConfigModule已通过AppConfigModule全局提供，无需重复导入
     MonitoringModule, // ✅ 导入监控模块，提供真实CollectorService
   ],
   providers: [

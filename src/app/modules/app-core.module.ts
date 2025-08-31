@@ -4,9 +4,7 @@
  */
 
 import { Module } from "@nestjs/common";
-import { ConfigModule } from '@nestjs/config';
 
-import { createAppConfig, createStartupConfig } from '../config';
 import { GlobalServicesModule } from './global-services.module';
 import { StartupModule } from '../startup/startup.module';
 
@@ -23,11 +21,11 @@ import { StartupModule } from '../startup/startup.module';
  */
 @Module({
   imports: [
-    // 配置管理
-    ConfigModule.forRoot({
-      load: [createAppConfig, createStartupConfig],
-      isGlobal: true,
-    }),
+    // ❌ 删除重复配置 - 现在由 AppConfigModule 统一提供
+    // ConfigModule.forRoot({
+    //   load: [createAppConfig, createStartupConfig],
+    //   isGlobal: true,
+    // }),
     
     // 全局应用服务
     GlobalServicesModule,

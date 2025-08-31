@@ -1,12 +1,12 @@
 import { RedisModule } from "@nestjs-modules/ioredis";
 import { BullModule } from "@nestjs/bull";
-import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { Global, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { DatabaseModule } from "./database/database.module"; // 🆕 统一数据库模块
+import { AppConfigModule } from "./app/config/config.module"; // 🆕 统一配置模块
 import { AlertModule } from "./alert/module/alert.module";
 import { AuthModule } from "./auth/module/auth.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
@@ -30,13 +30,11 @@ import { PermissionValidationModule } from "./common/modules/permission/modules/
 import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
 import { AppCoreModule } from "./app";
 
+@Global() // ✅ 添加全局装饰器，使RedisModule全局可用
 @Module({
   imports: [
-    // 全局配置
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || "development"}`,
-    }),
+    // ✅ 完整的统一配置模块 (包含所有应用级配置)
+    AppConfigModule,
 
     // 速率限制模块
     ThrottlerModule.forRoot([
@@ -107,6 +105,10 @@ import { AppCoreModule } from "./app";
 
     // 权限验证模块
     PermissionValidationModule,
+  ],
+  exports: [
+    // ✅ 导出 RedisModule 使其他模块可以使用全局Redis连接
+    RedisModule,
   ],
   providers: [
     {
