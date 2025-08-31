@@ -8,7 +8,7 @@ import {
   Query,
   ValidationPipe,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiParam, ApiConsumes } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiQuery } from "@nestjs/swagger";
 
 import { createLogger } from "@app/config/logger.config";
 import {
@@ -245,6 +245,7 @@ export class StorageController {
     description: "存储键名",
     example: "stock:AAPL:quote",
   })
+  @ApiQuery({ name: "preferredType", enum: StorageType, required: false })
   @ApiSuccessResponse({
     type: StorageResponseDto,
     description: "按键名检索成功",
@@ -283,7 +284,7 @@ export class StorageController {
   @ApiStandardResponses()
   async retrieveDataByKey(
     @Param("key") key: string,
-    @Query("preferredType") preferredType?: StorageType,
+    @Query("preferredType") preferredType?: string,
   ) {
     this.logger.log(`API Request: Retrieve data by key`, {
       key,
@@ -292,7 +293,7 @@ export class StorageController {
 
     const request: RetrieveDataDto = {
       key,
-      preferredType: preferredType || StorageType.BOTH, // 支持缓存回退到数据库
+      preferredType: (preferredType as StorageType) || StorageType.BOTH, // 支持缓存回退到数据库
     };
 
     return this.retrieveData(request);
@@ -333,6 +334,7 @@ export class StorageController {
     description: "要删除的存储键名",
     example: "stock:AAPL:quote",
   })
+  @ApiQuery({ name: "storageType", enum: StorageType, required: false })
   @ApiSuccessResponse({
     description: "数据删除成功",
     schema: {
@@ -355,17 +357,17 @@ export class StorageController {
   @ApiStandardResponses()
   async deleteData(
     @Param("key") key: string,
-    @Query("storageType") storageType?: StorageType,
+    @Query("storageType") storageType?: string,
   ) {
     this.logger.log(`API Request: Delete data`, {
       key,
-      storageType: storageType || StorageType.BOTH,
+      storageType: (storageType as StorageType) || StorageType.BOTH,
     });
 
     try {
       const deleted = await this.storageService.deleteData(
         key,
-        storageType || StorageType.BOTH,
+        (storageType as StorageType) || StorageType.BOTH,
       );
 
       this.logger.log(`API Success: Data deletion completed`, {

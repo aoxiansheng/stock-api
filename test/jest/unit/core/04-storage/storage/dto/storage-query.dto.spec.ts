@@ -2,7 +2,7 @@
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { StorageQueryDto } from '@core/04-storage/storage/dto/storage-query.dto';
-import { StorageType, StorageClassification } from '@core/04-storage/storage/enums/storage-type.enum';
+import { StorageClassification } from '@core/04-storage/storage/enums/storage-type.enum';
 
 describe('StorageQueryDto', () => {
   describe('Validation Rules', () => {
@@ -41,7 +41,6 @@ describe('StorageQueryDto', () => {
 
     it('should pass validation with valid enum values', async () => {
       const dto = new StorageQueryDto();
-      dto.storageType = StorageType.DATA_CACHE;
       dto.storageClassification = StorageClassification.STOCK_QUOTE;
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
@@ -49,10 +48,11 @@ describe('StorageQueryDto', () => {
 
     it('should fail validation with invalid enum value', async () => {
       const dto = new StorageQueryDto();
-      (dto as any).storageType = 'INVALID';
+      // @ts-expect-error Testing invalid enum value
+      dto.storageClassification = 'INVALID';
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].property).toBe('storageType');
+      expect(errors[0].property).toBe('storageClassification');
     });
 
     it('should pass validation with valid tags array', async () => {
