@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { createLogger } from '@app/config/logger.config';
 import  os from 'os';
 import { SmartCacheOrchestratorConfig } from '../interfaces/smart-cache-config.interface';
 import { CacheStrategy } from '../interfaces/smart-cache-orchestrator.interface';
@@ -26,7 +27,7 @@ import { CacheStrategy } from '../interfaces/smart-cache-orchestrator.interface'
  */
 @Injectable()
 export class SmartCacheConfigFactory {
-  private static readonly logger = new Logger(SmartCacheConfigFactory.name);
+  private static readonly logger = createLogger(SmartCacheConfigFactory.name);
 
   /**
    * 创建SmartCache配置实例

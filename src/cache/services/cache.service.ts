@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import  zlib from "zlib";
+import * as zlib from "zlib";
 
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import {
@@ -11,7 +11,8 @@ import {
 import Redis from "ioredis";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
-import { CachePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database.decorator";
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../monitoring/contracts/events/system-status.events';
 
 import {
   CACHE_ERROR_MESSAGES,
@@ -43,12 +44,11 @@ export type CacheStats = CacheStatsDto;
 export class CacheService {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(CacheService.name);
-  private cacheStats = new Map<string, { hits: number; misses: number }>();
 
-  constructor(@InjectRedis() private readonly redis: Redis) {
-    // 启动缓存优化任务
-    this.startOptimizationTasks();
-  }
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
+  ) {}
 
   /**
    * 获取底层的 ioredis 客户端实例
@@ -61,7 +61,6 @@ export class CacheService {
   /**
    * 智能缓存设置
    */
-  @CachePerformance("set")
   async set<T = any>(
     key: string,
     value: T,
@@ -82,8 +81,8 @@ export class CacheService {
 
       const result = await this.redis.setex(key, options.ttl, compressedValue);
 
-      // 记录缓存指标
-      this.updateCacheMetrics(key, "set");
+      // 🎯 事件驱动监控
+      this.emitCacheEvent('set', key, startTime, { ttl: options.ttl, compressed: compressedValue !== serializedValue });
 
       // 检查慢操作
       const duration = Date.now() - startTime;
@@ -112,7 +111,6 @@ export class CacheService {
   /**
    * 智能缓存获取
    */
-  @CachePerformance("get")
   async get<T>(
     key: string,
     deserializer?: "json" | "msgpack",
@@ -125,11 +123,13 @@ export class CacheService {
       const value = await this.redis.get(key);
 
       if (value === null) {
-        this.updateCacheMetrics(key, "miss");
+        // 🎯 事件驱动监控 - 缓存未命中
+        this.emitCacheEvent('get_miss', key, startTime);
         return null;
       }
 
-      this.updateCacheMetrics(key, "hit");
+      // 🎯 事件驱动监控 - 缓存命中
+      this.emitCacheEvent('get_hit', key, startTime, { compressed: this.isCompressed(value) });
 
       // 解压缩和反序列化
       const decompressedValue = this.isCompressed(value)
@@ -153,7 +153,8 @@ export class CacheService {
         `${CACHE_ERROR_MESSAGES.GET_FAILED} ${key}:`,
         sanitizeLogData({ error }),
       );
-      this.updateCacheMetrics(key, "miss");
+      // 🎯 事件驱动监控 - 错误导致未命中
+      this.emitCacheEvent('get_miss', key, startTime, { error: error.message });
       // 🎯 修正: 抛出标准异常
       throw new ServiceUnavailableException(
         `${CACHE_ERROR_MESSAGES.GET_FAILED}: ${error.message}`,
@@ -164,7 +165,6 @@ export class CacheService {
   /**
    * 带回调的缓存获取（缓存穿透保护）
    */
-  @CachePerformance("get_or_set")
   async getOrSet<T>(
     key: string,
     callback: () => Promise<T>,
@@ -461,7 +461,6 @@ export class CacheService {
   /**
    * 批量获取缓存
    */
-  @CachePerformance("mget")
   async mget<T>(keys: string[]): Promise<Map<string, T>> {
     const result = new Map<string, T>();
 
@@ -485,13 +484,15 @@ export class CacheService {
         const value = values[i];
 
         if (value !== null) {
-          this.updateCacheMetrics(key, "hit");
+          // 🎯 事件驱动监控 - mget 命中
+          this.emitCacheEvent('get_hit', key, startTime, { compressed: this.isCompressed(value), batch: true });
           const decompressedValue = this.isCompressed(value)
             ? await this.decompress(value)
             : value;
           result.set(key, this.deserialize(decompressedValue));
         } else {
-          this.updateCacheMetrics(key, "miss");
+          // 🎯 事件驱动监控 - mget 未命中
+          this.emitCacheEvent('get_miss', key, startTime, { batch: true });
         }
       }
 
@@ -510,7 +511,8 @@ export class CacheService {
         CACHE_ERROR_MESSAGES.BATCH_GET_FAILED,
         sanitizeLogData({ error }),
       );
-      keys.forEach((key) => this.updateCacheMetrics(key, "miss"));
+      // 🎯 事件驱动监控 - mget 错误导致未命中
+      keys.forEach((key) => this.emitCacheEvent('get_miss', key, startTime, { error: error.message, batch: true }));
       // 🎯 修正: 抛出标准异常
       throw new ServiceUnavailableException(
         `${CACHE_ERROR_MESSAGES.BATCH_GET_FAILED}: ${error.message}`,
@@ -523,7 +525,6 @@ export class CacheService {
   /**
    * 批量设置缓存
    */
-  @CachePerformance("mset")
   async mset<T>(
     entries: Map<string, T>,
     ttl: number = CACHE_TTL.DEFAULT,
@@ -546,7 +547,8 @@ export class CacheService {
       for (const [key, value] of entries) {
         const serializedValue = this.serialize(value);
         pipeline.setex(key, ttl, serializedValue);
-        this.updateCacheMetrics(key, "set");
+        // 🎯 事件驱动监控 - mset 操作
+        this.emitCacheEvent('mset', key, startTime, { ttl, batch: true });
       }
 
       const results = await pipeline.exec();
@@ -578,7 +580,6 @@ export class CacheService {
   /**
    * 删除缓存
    */
-  @CachePerformance("del")
   async del(key: string | string[]): Promise<number> {
     try {
       if (Array.isArray(key)) {
@@ -601,7 +602,6 @@ export class CacheService {
   /**
    * 模式删除缓存
    */
-  @CachePerformance("pattern_del")
   async delByPattern(pattern: string): Promise<number> {
     try {
       const keys = await this.redis.keys(pattern);
@@ -646,76 +646,10 @@ export class CacheService {
   /**
    * 获取缓存统计信息
    */
-  async getStats(): Promise<CacheStatsDto> {
-    // 从 Redis 获取服务器级别的统计数据
-    const [info, dbSize, keyspace] = await Promise.all([
-      this.redis.info(),
-      this.redis.dbsize(),
-      this.redis.info("keyspace"),
-    ]);
-
-    // 从内存中计算准确的命中/未命中次数
-    let totalHits = 0;
-    let totalMisses = 0;
-    for (const stats of this.cacheStats.values()) {
-      totalHits += stats.hits;
-      totalMisses += stats.misses;
-    }
-
-    const totalRequests = totalHits + totalMisses;
-
-    return {
-      hits: totalHits,
-      misses: totalMisses,
-      hitRate: totalRequests > 0 ? totalHits / totalRequests : 0,
-      memoryUsage: this.parseRedisInfo(info, "used_memory"),
-      keyCount: dbSize,
-      avgTtl: this.parseRedisKeyspace(keyspace),
-    };
-  }
 
   /**
    * 缓存健康检查
    */
-  async healthCheck(): Promise<CacheHealthCheckResultDto> {
-    const errors: string[] = [];
-    let status: "healthy" | "warning" | "unhealthy" = "healthy";
-    let latency = 0;
-
-    try {
-      const startTime = Date.now();
-      const pong = await this.redis.ping();
-      latency = Date.now() - startTime;
-
-      if (pong !== "PONG") {
-        errors.push(CACHE_ERROR_MESSAGES.REDIS_PING_FAILED);
-        status = "unhealthy";
-      }
-
-      // 检查内存使用
-      const info = await this.redis.info("memory");
-      const memoryUsage = this.parseRedisInfo(info, "used_memory");
-      const maxMemory = this.parseRedisInfo(info, "maxmemory");
-
-      if (
-        maxMemory > 0 &&
-        memoryUsage / maxMemory >
-          CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100
-      ) {
-        errors.push(CACHE_ERROR_MESSAGES.MEMORY_USAGE_HIGH);
-        status = "warning";
-      }
-    } catch (error) {
-      errors.push(CACHE_ERROR_MESSAGES.HEALTH_CHECK_FAILED);
-      status = "unhealthy";
-      this.logger.error(CACHE_ERROR_MESSAGES.HEALTH_CHECK_FAILED, {
-        operation: CACHE_OPERATIONS.HEALTH_CHECK,
-        error: error.message,
-      });
-    }
-
-    return { status, latency, errors };
-  }
 
   // 私有辅助方法
   private serialize<T>(
@@ -833,41 +767,6 @@ export class CacheService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private updateCacheMetrics(
-    key: string,
-    operation: "hit" | "miss" | "set",
-  ): void {
-    const pattern = this.extractKeyPattern(key);
-    const stats = this.cacheStats.get(pattern) || { hits: 0, misses: 0 };
-
-    if (operation === "hit") {
-      stats.hits++;
-    } else if (operation === "miss") {
-      stats.misses++;
-    }
-
-    this.cacheStats.set(pattern, stats);
-
-    // 检查缓存命中率
-    const total = stats.hits + stats.misses;
-    if (total > 100) {
-      // 只在有足够样本时检查
-      const missRate = stats.misses / total;
-      if (
-        missRate >
-        CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100
-      ) {
-        this.logger.warn(CACHE_WARNING_MESSAGES.HIGH_MISS_RATE, {
-          operation: CACHE_OPERATIONS.UPDATE_METRICS,
-          pattern,
-          missRate: Math.round(missRate * 100) / 100,
-          threshold:
-            CACHE_CONSTANTS.MONITORING_CONFIG.ALERT_THRESHOLD_PERCENT / 100,
-          totalRequests: total,
-        });
-      }
-    }
-  }
 
   private extractKeyPattern(key: string): string {
     // 简化处理，可根据实际情况扩展
@@ -876,6 +775,33 @@ export class CacheService {
       return `${parts[0]}:*`;
     }
     return "general";
+  }
+
+  /**
+   * 🎯 事件驱动监控 - 替代内部统计系统
+   */
+  private emitCacheEvent(
+    operation: 'set' | 'get_hit' | 'get_miss' | 'del' | 'mget' | 'mset',
+    key: string,
+    startTime?: number,
+    additionalData?: Record<string, any>
+  ): void {
+    setImmediate(() => {
+      const eventData = {
+        timestamp: new Date(),
+        source: 'cache_service',
+        metricType: 'cache' as const,
+        metricName: `cache_${operation}`,
+        metricValue: startTime ? Date.now() - startTime : 0,
+        tags: {
+          operation,
+          key_pattern: this.extractKeyPattern(key),
+          ...additionalData
+        }
+      };
+
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, eventData);
+    });
   }
 
   private parseRedisInfo(info: string, key: string): number {
@@ -900,70 +826,14 @@ export class CacheService {
   /**
    * 启动后台优化任务
    */
-  private startOptimizationTasks(): void {
-    this.logger.log(CACHE_SUCCESS_MESSAGES.OPTIMIZATION_TASKS_STARTED, {
-      operation: CACHE_OPERATIONS.UPDATE_METRICS,
-      statsCleanupInterval:
-        CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10,
-      healthCheckInterval:
-        CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 3,
-    });
-
-    // 定期清理内存中的统计信息
-    setInterval(
-      () => this.cleanupStats(),
-      CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 10,
-    );
-
-    // 定期检查缓存健康状况
-    setInterval(
-      () => this.checkAndLogHealth(),
-      CACHE_CONSTANTS.MONITORING_CONFIG.METRICS_INTERVAL_MS * 3,
-    );
-  }
 
   /**
    * 检查并记录缓存健康状况
    */
-  private async checkAndLogHealth(): Promise<void> {
-    const health = await this.healthCheck();
-    if (health.status !== "healthy") {
-      this.logger.warn(
-        CACHE_WARNING_MESSAGES.HEALTH_CHECK_WARNING,
-        sanitizeLogData({
-          status: health.status,
-          latency: health.latency,
-          errors: health.errors,
-        }),
-      );
-    }
-  }
 
   /**
    * 清理不再使用的缓存键统计信息
    */
-  private cleanupStats(): void {
-    const activeKeys = new Set(this.cacheStats.keys());
-    this.logger.log(
-      `开始清理缓存统计`,
-      sanitizeLogData({
-        operation: CACHE_OPERATIONS.CLEANUP_STATS,
-        activeKeysCount: activeKeys.size,
-      }),
-    );
-
-    // 假设长时间未访问的键可以被清理
-    // 这里需要更复杂的逻辑来判断键是否“不再使用”
-    // 此处为简化实现，不执行清理
-
-    this.logger.log(
-      CACHE_SUCCESS_MESSAGES.STATS_CLEANUP_COMPLETED,
-      sanitizeLogData({
-        operation: CACHE_OPERATIONS.CLEANUP_STATS,
-        activeKeysCount: activeKeys.size,
-      }),
-    );
-  }
 
   /**
    * 验证缓存键长度

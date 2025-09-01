@@ -361,7 +361,8 @@ export class ${className} implements IDataProvider {
 
   async initialize(): Promise<void> {
     // TODO: 实现初始化逻辑
-    console.log(\`\${this.name} 数据源初始化完成\`);
+    const logger = createLogger(this.name);
+    logger.log('数据源初始化完成');
   }
 
   async testConnection(): Promise<boolean> {

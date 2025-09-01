@@ -112,6 +112,8 @@ export interface ISymbolTransformCache {
 
 /**
  * 符号转换监控接口
+ * @deprecated 监控功能已由事件驱动模式替代，该接口将在下个版本移除
+ * 请使用 EventEmitter2 和 SYSTEM_STATUS_EVENTS.METRIC_COLLECTED 事件
  */
 export interface ISymbolTransformMonitor {
   /**
@@ -206,6 +208,9 @@ export interface ISymbolTransformerFactory {
 export const SYMBOL_TRANSFORMER_TOKEN = Symbol('ISymbolTransformer');
 export const SYMBOL_FORMAT_VALIDATOR_TOKEN = Symbol('ISymbolFormatValidator');
 export const SYMBOL_TRANSFORM_CACHE_TOKEN = Symbol('ISymbolTransformCache');
+/**
+ * @deprecated 监控功能已由事件驱动模式替代
+ */
 export const SYMBOL_TRANSFORM_MONITOR_TOKEN = Symbol('ISymbolTransformMonitor');
 export const SYMBOL_TRANSFORM_CONFIG_TOKEN = Symbol('ISymbolTransformConfig');
 export const SYMBOL_TRANSFORMER_FACTORY_TOKEN = Symbol('ISymbolTransformerFactory');

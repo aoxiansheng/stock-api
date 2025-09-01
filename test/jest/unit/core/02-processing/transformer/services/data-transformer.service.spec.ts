@@ -6,7 +6,8 @@ import {
 } from "@nestjs/common";
 import { DataTransformerService } from "../../../../../../../src/core/02-processing/transformer/services/data-transformer.service";
 import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service";
-import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service"; // ✅ 新增 CollectorService
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from "../../../../../../../src/monitoring/contracts/events/system-status.events";
 import { DataTransformRequestDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-request.dto";
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { DataTransformResponseDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-response.dto";
@@ -26,7 +27,7 @@ jest.mock("../@app/config/logger.config", () => ({
 describe("DataTransformerService", () => {
   let service: DataTransformerService;
   let flexibleMappingRuleService: DeepMocked<FlexibleMappingRuleService>;
-  let mockCollectorService: jest.Mocked<CollectorService>; // ✅ 新增 CollectorService mock
+  let mockEventBus: jest.Mocked<EventEmitter2>; // ✅ 事件总线 mock
 
   const mockMappingRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
@@ -65,11 +66,12 @@ describe("DataTransformerService", () => {
   };
 
   beforeEach(async () => {
-    const mockCollector = {
-      recordRequest: jest.fn(),
-      recordDatabaseOperation: jest.fn(),
-      recordCacheOperation: jest.fn(),
-      recordSystemMetrics: jest.fn(),
+    const mockEventEmitter = {
+      emit: jest.fn(),
+      on: jest.fn(),
+      once: jest.fn(),
+      removeListener: jest.fn(),
+      removeAllListeners: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -79,13 +81,13 @@ describe("DataTransformerService", () => {
           provide: FlexibleMappingRuleService,
           useValue: createMock<FlexibleMappingRuleService>(),
         },
-        { provide: CollectorService, useValue: mockCollector }, // ✅ Mock CollectorService
+        { provide: EventEmitter2, useValue: mockEventEmitter }, // ✅ Mock EventEmitter2
       ],
     }).compile();
 
     service = module.get<DataTransformerService>(DataTransformerService);
     flexibleMappingRuleService = module.get(FlexibleMappingRuleService);
-    mockCollectorService = module.get(CollectorService);
+    mockEventBus = module.get(EventEmitter2);
     
     // Setup the mock for getRuleDocumentById method
     flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
@@ -155,16 +157,21 @@ describe("DataTransformerService", () => {
 
       await service.transform(validRequest);
 
-      // ✅ 验证标准监控调用
-      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
-        '/internal/data-transformation',        // endpoint
-        'POST',                                // method
-        200,                                   // statusCode
-        expect.any(Number),                    // duration
-        expect.objectContaining({              // metadata
-          operation: 'data-transformation',
-          provider: validRequest.provider,
-          transDataRuleListType: validRequest.transDataRuleListType
+      // ✅ 验证事件化监控调用
+      expect(mockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          timestamp: expect.any(Date),
+          source: 'data_transformer',
+          metricType: 'business',
+          metricName: 'transformation_completed',
+          metricValue: expect.any(Number),
+          tags: expect.objectContaining({
+            operation: 'data-transformation',
+            provider: validRequest.provider,
+            transDataRuleListType: validRequest.transDataRuleListType,
+            status: 'success'
+          })
         })
       );
     });
@@ -177,18 +184,23 @@ describe("DataTransformerService", () => {
 
       await expect(service.transform(validRequest)).rejects.toThrow();
 
-      // ✅ 验证错误监控调用
-      expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
-        '/internal/data-transformation',        // endpoint
-        'POST',                                // method
-        500,                                   // statusCode
-        expect.any(Number),                    // duration
-        expect.objectContaining({              // metadata
-          operation: 'data-transformation',
-          provider: validRequest.provider,
-          transDataRuleListType: validRequest.transDataRuleListType,
-          error: transformError.message,
-          errorType: 'Error'
+      // ✅ 验证事件化错误监控调用
+      expect(mockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          timestamp: expect.any(Date),
+          source: 'data_transformer',
+          metricType: 'business',
+          metricName: 'transformation_failed',
+          metricValue: expect.any(Number),
+          tags: expect.objectContaining({
+            operation: 'data-transformation',
+            provider: validRequest.provider,
+            transDataRuleListType: validRequest.transDataRuleListType,
+            status: 'error',
+            error: transformError.message,
+            errorType: 'Error'
+          })
         })
       );
     });

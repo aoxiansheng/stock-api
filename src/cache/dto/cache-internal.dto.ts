@@ -40,33 +40,24 @@ export class CacheConfigDto {
 }
 
 /**
- * 缓存统计信息DTO
+ * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
+ * 此类已重命名为 RedisCacheRuntimeStatsDto 以解决与 StorageCacheStatsDto 的命名冲突
+ * 
+ * 迁移指南：
+ * 旧导入：import { CacheStatsDto } from './cache-internal.dto'
+ * 新导入：import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto'
  */
-export class CacheStatsDto {
-  @ApiProperty({ description: "缓存命中次数" })
-  @IsNumber()
-  hits: number;
+import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 
-  @ApiProperty({ description: "缓存未命中次数" })
-  @IsNumber()
-  misses: number;
+/**
+ * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
+ */
+export type CacheStatsDto = RedisCacheRuntimeStatsDto;
 
-  @ApiProperty({ description: "缓存命中率" })
-  @IsNumber()
-  hitRate: number;
-
-  @ApiProperty({ description: "内存使用量（字节）" })
-  @IsNumber()
-  memoryUsage: number;
-
-  @ApiProperty({ description: "键总数" })
-  @IsNumber()
-  keyCount: number;
-
-  @ApiProperty({ description: "平均TTL" })
-  @IsNumber()
-  avgTtl: number;
-}
+/**
+ * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
+ */
+export const CacheStatsDto = RedisCacheRuntimeStatsDto;
 
 /**
  * 缓存健康检查结果DTO

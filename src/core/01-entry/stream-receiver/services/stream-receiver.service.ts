@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger } from '../../../../app/config/logger.config';
 import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
 import { DataTransformerService } from '../../../02-processing/transformer/services/data-transformer.service';
@@ -14,7 +15,7 @@ import { StreamUnsubscribeDto } from '../dto/stream-unsubscribe.dto';
 import { DataTransformRequestDto } from '../../../02-processing/transformer/dto/data-transform-request.dto';
 import { StreamConnection, StreamConnectionParams } from '../../../03-fetching/stream-data-fetcher/interfaces';
 import { Subject } from 'rxjs';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { RateLimitService } from '../../../../auth/services/rate-limit.service';
 import { bufferTime, filter, mergeMap } from 'rxjs/operators';
 import { 
@@ -150,13 +151,15 @@ export class StreamReceiverService implements OnModuleDestroy {
   };
 
   constructor(
+    // 🎯 事件化监控核心依赖 - 符合监控规范
+    private readonly eventBus: EventEmitter2,
     // P1重构: 添加配置服务
     private readonly configService: ConfigService,
-    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService，现有5个核心依赖 + 1个可选依赖
+    // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService 和违规的 CollectorService
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
-    private readonly collectorService: CollectorService, // ✅ 替换为CollectorService (标准化：必填注入)
+    // ✅ 移除违规的直接 CollectorService 依赖，改用事件化监控
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
     @Inject(forwardRef(() => RateLimitService))
     private readonly rateLimitService?: RateLimitService, // P0修复: 连接频率限制服务 (可选)
@@ -164,12 +167,68 @@ export class StreamReceiverService implements OnModuleDestroy {
     // P1重构: 初始化配置管理
     this.config = this.initializeConfig();
     
-    this.logger.log('StreamReceiver P1重构完成 - 配置管理 + 精简依赖架构 + 统一监控 + 连接清理 + 频率限制 + 内存防护 + 动态批处理');
+    this.logger.log('StreamReceiver 重构完成 - 事件化监控 + 配置管理 + 精简依赖架构 + 连接清理 + 频率限制 + 内存防护 + 动态批处理');
     this.initializeBatchProcessing();
     this.setupSubscriptionChangeListener();
     this.initializeConnectionCleanup(); // ✅ 初始化连接清理机制
     this.initializeMemoryMonitoring(); // P0修复: 初始化内存监控
     this.initializeDynamicBatching(); // P1阶段2: 初始化动态批处理优化
+  }
+
+  // =============== 事件化监控辅助方法 ===============
+
+  /**
+   * 🎯 事件化监控核心方法 - 发送监控事件
+   * 符合监控组件集成说明的事件驱动架构
+   */
+  private emitMonitoringEvent(metricName: string, metricValue: number, tags: Record<string, any> = {}): void {
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'stream_receiver',
+          metricType: 'performance',
+          metricName,
+          metricValue,
+          tags: {
+            component: 'stream-receiver',
+            ...tags
+          }
+        });
+      } catch (error) {
+        // 监控事件发送失败不应影响业务逻辑
+        this.logger.warn('监控事件发送失败', { 
+          metricName, 
+          error: error.message 
+        });
+      }
+    });
+  }
+
+  /**
+   * 🎯 业务监控事件发送
+   */
+  private emitBusinessEvent(metricName: string, metricValue: number = 1, tags: Record<string, any> = {}): void {
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'stream_receiver',
+          metricType: 'business',
+          metricName,
+          metricValue,
+          tags: {
+            component: 'stream-receiver',
+            ...tags
+          }
+        });
+      } catch (error) {
+        this.logger.warn('业务监控事件发送失败', { 
+          metricName, 
+          error: error.message 
+        });
+      }
+    });
   }
 
   /**
@@ -585,39 +644,20 @@ export class StreamReceiverService implements OnModuleDestroy {
     loadLevel: number
   ): void {
     try {
-      // 使用现有的CollectorService记录调整事件
-      this.collectorService?.recordRequest(
-        'batch_interval_adjustment', 
-        'POST',
-        200,
-        0, // duration
-        {
-          oldInterval,
-          newInterval,
-          loadLevel,
-          adjustmentDirection: newInterval > oldInterval ? 'increase' : 'decrease',
-          timestamp: new Date(),
-        }
-      );
+      // ✅ 事件化监控 - 记录批处理间隔调整
+      this.emitMonitoringEvent('batch_interval_adjusted', newInterval, {
+        oldInterval,
+        newInterval,
+        loadLevel,
+        adjustmentDirection: newInterval > oldInterval ? 'increase' : 'decrease',
+      });
 
-      // 通过事件总线记录自定义指标
-      if ((this.collectorService as any)?.eventBus) {
-        (this.collectorService as any).eventBus.emit('METRIC_COLLECTED', {
-          timestamp: new Date(),
-          source: 'stream-receiver',
-          metricType: 'dynamic_batching',
-          metricName: 'batch_interval_adjusted',
-          metricValue: newInterval,
-          tags: {
-            oldInterval,
-            newInterval,
-            loadLevel,
-            adjustmentDirection: newInterval > oldInterval ? 'increase' : 'decrease',
-            totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,
-            throughput: this.dynamicBatchingMetrics.throughputPerSecond,
-          }
-        });
-      }
+      // ✅ 事件化监控 - 记录动态批处理详细指标
+      this.emitMonitoringEvent('dynamic_batching_adjusted', this.dynamicBatchingMetrics.totalAdjustments, {
+        adjustmentType: 'interval',
+        throughput: this.dynamicBatchingMetrics.throughputPerSecond,
+        avgResponseTime: this.dynamicBatchingMetrics.avgResponseTime,
+      });
 
     } catch (error) {
       this.logger.warn('记录批处理调整指标失败', { error: error.message });
@@ -757,26 +797,18 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private recordMemoryAlert(level: 'warning' | 'critical', heapUsed: number, connectionCount: number): void {
     try {
-      if (this.collectorService) {
-        this.collectorService.recordRequest(
-          '/internal/memory-alert',
-          'POST',
-          level === 'critical' ? 500 : 200,
-          0,
-          {
-            alertLevel: level,
-            heapUsedMB: Math.round(heapUsed / (1024 * 1024)),
-            connectionCount,
-            thresholdMB: level === 'critical' 
-              ? Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))
-              : Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024)),
-            componentType: 'stream-receiver',
-            operationType: 'memoryMonitoring',
-          }
-        );
-      }
+      // ✅ 事件化监控 - 内存告警事件发送
+      this.emitMonitoringEvent('memory_alert', Math.round(heapUsed / (1024 * 1024)), {
+        alertLevel: level,
+        heapUsedMB: Math.round(heapUsed / (1024 * 1024)),
+        connectionCount,
+        thresholdMB: level === 'critical' 
+          ? Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))
+          : Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024)),
+        severity: level === 'critical' ? 'high' : 'medium',
+      });
     } catch (error) {
-      this.logger.warn('内存告警指标记录失败', { error: error.message });
+      this.logger.warn('内存告警事件发送失败', { error: error.message });
     }
   }
 
@@ -1890,7 +1922,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * 记录管道性能指标
+   * ✅ 事件化监控 - 简化的流管道性能指标发送
    */
   private recordStreamPipelineMetrics(metrics: {
     provider: string;
@@ -1904,42 +1936,22 @@ export class StreamReceiverService implements OnModuleDestroy {
       broadcast: number;
     };
   }): void {
-    // 批处理监控异步化，避免阻塞管道处理
-    setImmediate(() => {
-      try {
-      // 使用 CollectorService 标准接口记录流管道性能
-      this.collectorService.recordRequest(
-        '/stream/pipeline',              // endpoint
-        'WebSocket',                     // method
-        200,                             // statusCode
-        metrics.durations.total,         // duration
-        {                               // metadata
-          provider: metrics.provider,
-          capability: metrics.capability,
-          quotesCount: metrics.quotesCount,
-          symbolsCount: metrics.symbolsCount,
-          componentType: 'stream-receiver',
-          operationType: 'pipeline',
-          performance: {
-            quotesPerSecond: Math.round((metrics.quotesCount / metrics.durations.total) * 1000),
-            symbolsPerSecond: Math.round((metrics.symbolsCount / metrics.durations.total) * 1000),
-            transformPercent: Math.round((metrics.durations.transform / metrics.durations.total) * 100),
-            cachePercent: Math.round((metrics.durations.cache / metrics.durations.total) * 100),
-            broadcastPercent: Math.round((metrics.durations.broadcast / metrics.durations.total) * 100)
-          }
-        }
-      );
+    // ✅ 事件化监控 - 发送管道性能事件
+    this.emitMonitoringEvent('pipeline_processed', metrics.durations.total, {
+      provider: metrics.provider,
+      capability: metrics.capability,
+      quotesCount: metrics.quotesCount,
+      symbolsCount: metrics.symbolsCount,
+      quotesPerSecond: Math.round((metrics.quotesCount / metrics.durations.total) * 1000),
+      symbolsPerSecond: Math.round((metrics.symbolsCount / metrics.durations.total) * 1000),
+    });
       
-      // 保留详细调试日志
-      this.logger.debug('流管道性能指标已记录', {
-        provider: metrics.provider,
-        capability: metrics.capability,
-        quotesCount: metrics.quotesCount,
-        totalDuration: metrics.durations.total,
-      });
-      } catch (error) {
-        this.logger.warn(`流管道监控记录失败: ${error.message}`, { provider: metrics.provider });
-      }
+    // 保留必要的调试日志
+    this.logger.debug('流管道性能事件已发送', {
+      provider: metrics.provider,
+      capability: metrics.capability,
+      quotesCount: metrics.quotesCount,
+      totalDuration: metrics.durations.total,
     });
   }
 
@@ -2731,20 +2743,13 @@ export class StreamReceiverService implements OnModuleDestroy {
       const provider = this.extractProviderFromSymbol(symbol);
       const market = this.inferMarketFromSymbol(symbol);
       
-      // 使用CollectorService记录请求指标（用于延迟统计）
-      this.collectorService.recordRequest(
-        '/stream/latency',               // endpoint
-        'WebSocket',                     // method
-        200,                             // statusCode
-        latencyMs,                       // duration
-        {                               // metadata
-          symbol,
-          componentType: 'stream-receiver',
-          operationType: 'streamLatency',
-          latencyCategory: this.categorizeLatency(latencyMs),
-          provider: this.extractProviderFromSymbol(symbol)
-        }
-      );
+      // ✅ 事件化监控 - 延迟监控事件发送
+      this.emitMonitoringEvent('stream_latency', latencyMs, {
+        symbol,
+        provider: this.extractProviderFromSymbol(symbol),
+        market: this.inferMarketFromSymbol(symbol),
+        latencyCategory: this.categorizeLatency(latencyMs),
+      });
 
       this.logger.debug('流延迟指标已记录', {
         symbol,
@@ -2762,58 +2767,39 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * ✅ 记录流连接状态指标
+   * ✅ 事件化监控 - 记录流连接状态变化
    */
   private recordConnectionMetrics(connectionId: string, provider: string, capability: string, isConnected: boolean): void {
     try {
-      // 使用 recordRequest 记录连接状态变化
-      this.collectorService.recordRequest(
-        '/stream/connection',              // endpoint
-        'WebSocket',                       // method
-        isConnected ? 200 : 500,          // statusCode
-        0,                                // duration
-        {                                 // metadata
-          connectionId,
-          provider,
-          capability,
-          connectionStatus: isConnected ? 'connected' : 'disconnected',
-          activeStreamConnections: this.activeConnections.size,
-          componentType: 'stream-receiver',
-          operationType: 'connectionChange'
-        }
-      );
+      // ✅ 事件化监控 - 连接状态变化事件
+      this.emitBusinessEvent('connection_status_changed', isConnected ? 1 : 0, {
+        connectionId,
+        provider,
+        capability,
+        status: isConnected ? 'connected' : 'disconnected',
+        activeConnections: this.activeConnections.size,
+      });
 
     } catch (error) {
-      this.logger.warn(`流连接监控记录失败: ${error.message}`, { connectionId, provider });
+      this.logger.warn(`流连接监控事件发送失败: ${error.message}`, { connectionId, provider });
     }
   }
 
   /**
-   * ✅ 记录批处理指标
+   * ✅ 事件化监控 - 记录批处理性能指标
    */
   private recordBatchProcessingMetrics(batchSize: number, processingTime: number, provider: string): void {
-    if (!this.collectorService) {
-      return; // 监控服务不可用
-    }
-
     try {
-      // 使用CollectorService记录批处理请求
-      this.collectorService.recordRequest(
-        '/internal/stream-batch-processing', // endpoint
-        'POST',                             // method
-        200,                               // statusCode
-        processingTime,                    // duration
-        {                                  // metadata
-          batchSize,
-          provider,
-          avgTimePerQuote: batchSize > 0 ? processingTime / batchSize : 0,
-          operation: 'batch_processing',
-          componentType: 'stream_receiver'
-        }
-      );
+      // ✅ 事件化监控 - 批处理性能事件
+      this.emitMonitoringEvent('batch_processed', processingTime, {
+        batchSize,
+        provider,
+        avgTimePerQuote: batchSize > 0 ? processingTime / batchSize : 0,
+        quotesPerSecond: batchSize > 0 ? Math.round((batchSize * 1000) / processingTime) : 0,
+      });
 
     } catch (error) {
-      this.logger.warn(`批处理监控记录失败: ${error.message}`, { batchSize, processingTime });
+      this.logger.warn(`批处理监控事件发送失败: ${error.message}`, { batchSize, processingTime });
     }
   }
 }

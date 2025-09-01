@@ -2,11 +2,11 @@ import { Injectable, NotFoundException, OnModuleDestroy, Inject } from '@nestjs/
 import { v4 as uuidv4 } from 'uuid';
 import { Subject, fromEvent, race, timer } from 'rxjs';
 import { takeUntil, first, map } from 'rxjs/operators';
-import { BaseFetcherService } from '../../../shared/services/base-fetcher.service';
 import { EnhancedCapabilityRegistryService } from '../../../../providers/services/enhanced-capability-registry.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
-import { MONITORING_COLLECTOR_TOKEN } from '../../../../monitoring/contracts';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { createLogger, sanitizeLogData } from '../../../../app/config/logger.config';
+import { BaseFetcherService } from '../../../shared/services/base-fetcher.service';
 import {
   IStreamDataFetcher,
   StreamConnectionParams,
@@ -22,8 +22,6 @@ import {
 import { StreamConnectionImpl } from './stream-connection.impl';
 import { StreamCacheService } from '../../../05-caching/stream-cache/services/stream-cache.service';
 import { StreamClientStateManager } from './stream-client-state-manager.service';
-import { StreamMetricsService } from './stream-metrics.service';
-import { StreamMonitoringService } from './stream-monitoring.service';
 import { ConnectionPoolManager } from './connection-pool-manager.service';
 
 /**
@@ -41,14 +39,14 @@ import { ConnectionPoolManager } from './connection-pool-manager.service';
  * - 数据存储（由 Storage 负责）
  * - 数据路由（由 StreamReceiver 负责）
  * 
- * 📋 继承关系：
- * - 继承 BaseFetcherService 复用错误处理和指标逻辑
+ * 📋 实现关系：
  * - 实现 IStreamDataFetcher 接口规范
+ * - 使用事件化驱动方式接入全局监控组件
  * 
  * 🔗 Pipeline 位置：WebSocket → StreamReceiver → **StreamDataFetcher** → Transformer → Storage
  */
 @Injectable()
-export class StreamDataFetcherService extends BaseFetcherService implements OnModuleDestroy {
+export class StreamDataFetcherService extends BaseFetcherService implements IStreamDataFetcher, OnModuleDestroy {
   protected readonly logger = createLogger('StreamDataFetcherService');
 
   // === Map 对象声明（内存泄漏修复目标） ===
@@ -128,17 +126,15 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
   };
 
   constructor(
-    @Inject('ENHANCED_CAPABILITY_REGISTRY_SERVICE') 
+    @Inject('ENHANCED_CAPABILITY_REGISTRY_SERVICE')
     private readonly capabilityRegistry: EnhancedCapabilityRegistryService,
     private readonly streamCache: StreamCacheService,
     private readonly clientStateManager: StreamClientStateManager,
-    private readonly streamMetrics: StreamMetricsService,
     private readonly connectionPoolManager: ConnectionPoolManager,
-    @Inject(MONITORING_COLLECTOR_TOKEN) protected readonly collectorService: CollectorService,
-    // P2-1: 注入专门的监控服务，优化依赖结构
-    private readonly streamMonitoringService: StreamMonitoringService,
+    // ✅ 事件化驱动监控 - 仅注入事件总线
+    protected readonly eventBus: EventEmitter2,
   ) {
-    super(collectorService);
+    super(eventBus);
     
     // P0-3: 启动定期清理机制
     this.startPeriodicMapCleanup();
@@ -146,7 +142,134 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     // P1-2: 启动自适应并发控制监控
     this.startAdaptiveConcurrencyMonitoring();
     
-    this.logger.debug('StreamDataFetcherService 已初始化，使用优化的依赖结构');
+    this.logger.debug('StreamDataFetcherService 已初始化，使用事件化驱动监控');
+  }
+
+  // === ✅ 事件化驱动监控方法 ===
+
+  /**
+   * 发送连接相关监控事件
+   * @param metricName 指标名称
+   * @param data 事件数据
+   */
+  private emitConnectionEvent(metricName: string, data: {
+    provider?: string;
+    capability?: string;
+    duration?: number;
+    count?: number;
+    status?: 'success' | 'error';
+    error_type?: string;
+    operation?: string;
+  }): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'stream_data_fetcher',
+        metricType: 'infrastructure',
+        metricName,
+        metricValue: data.duration || data.count || 1,
+        tags: {
+          provider: data.provider,
+          capability: data.capability,
+          operation: data.operation || 'connection',
+          status: data.status,
+          error_type: data.error_type
+        }
+      });
+    });
+  }
+
+  /**
+   * 发送订阅相关监控事件
+   * @param metricName 指标名称
+   * @param data 事件数据
+   */
+  private emitSubscriptionEvent(metricName: string, data: {
+    provider?: string;
+    capability?: string;
+    symbol_count?: number;
+    duration?: number;
+    status?: 'success' | 'error';
+    action?: 'subscribe' | 'unsubscribe';
+    error_type?: string;
+  }): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'stream_data_fetcher',
+        metricType: 'business',
+        metricName,
+        metricValue: data.symbol_count || data.duration || 1,
+        tags: {
+          provider: data.provider,
+          capability: data.capability,
+          operation: data.action || 'subscription',
+          status: data.status,
+          error_type: data.error_type,
+          symbol_count: data.symbol_count
+        }
+      });
+    });
+  }
+
+  /**
+   * 发送性能相关监控事件
+   * @param metricName 指标名称
+   * @param data 事件数据
+   */
+  private emitStreamPerformanceEvent(metricName: string, data: {
+    operation?: string;
+    duration?: number;
+    provider?: string;
+    connection_count?: number;
+    status?: 'success' | 'error' | 'warning';
+    threshold_exceeded?: boolean;
+  }): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'stream_data_fetcher',
+        metricType: 'performance',
+        metricName,
+        metricValue: data.duration || data.connection_count || 1,
+        tags: {
+          operation: data.operation,
+          provider: data.provider,
+          status: data.status,
+          threshold_exceeded: data.threshold_exceeded
+        }
+      });
+    });
+  }
+
+  /**
+   * 发送指标相关监控事件
+   * @param metricName 指标名称
+   * @param data 事件数据
+   */
+  private emitMetricsEvent(metricName: string, data: {
+    activeConnections?: number;
+    connectionMappings?: number;
+    requestId?: string;
+    operation?: string;
+    status?: 'success' | 'error' | 'info';
+  }): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'stream_data_fetcher',
+        metricType: 'metrics',
+        metricName,
+        metricValue: data.activeConnections || data.connectionMappings || 1,
+        tags: {
+          operation: data.operation || 'metrics',
+          status: data.status || 'info',
+          request_id: data.requestId,
+          active_connections: data.activeConnections,
+          connection_mappings: data.connectionMappings
+        }
+      });
+    });
   }
 
   // === P1-2: 自适应并发控制核心方法 ===
@@ -432,16 +555,36 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
 
   /**
    * Phase 1: 建立流式连接到提供商
-   * @param provider 数据提供商名称
-   * @param capability WebSocket能力名称
-   * @param config 连接配置
+   * @param params 连接参数
    * @returns 流连接实例
    */
+  async establishStreamConnection(
+    params: StreamConnectionParams,
+  ): Promise<StreamConnection>;
   async establishStreamConnection(
     provider: string,
     capability: string,
     config?: Partial<StreamConnectionConfig>,
+  ): Promise<StreamConnection>;
+  async establishStreamConnection(
+    paramsOrProvider: StreamConnectionParams | string,
+    capability?: string,
+    config?: Partial<StreamConnectionConfig>,
   ): Promise<StreamConnection> {
+    // Handle overloaded signatures
+    let provider: string;
+    let cap: string;
+    let connectionConfig: Partial<StreamConnectionConfig> | undefined;
+
+    if (typeof paramsOrProvider === 'string') {
+      provider = paramsOrProvider;
+      cap = capability!;
+      connectionConfig = config;
+    } else {
+      provider = paramsOrProvider.provider;
+      cap = paramsOrProvider.capability;
+      connectionConfig = paramsOrProvider.options;
+    }
     const operationStartTime = Date.now();
     let operationSuccess = false;
     
@@ -451,75 +594,61 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
       
       this.logger.debug('开始建立流式连接', {
         provider,
-        capability,
-        config: config ? { ...config, credentials: '[REDACTED]' } : undefined,
+        capability: cap,
+        config: connectionConfig ? { ...connectionConfig, credentials: '[REDACTED]' } : undefined,
       });
 
       // Phase 1.1: 获取流能力实例
-      const capabilityInstance = await this.getStreamCapability(provider, capability);
+      const capabilityInstance = await this.getStreamCapability(provider, cap);
 
       // Phase 1.2: 创建连接配置
-      const connectionConfig = {
+      const finalConfig = {
         provider,
-        capability,
-        maxReconnectAttempts: config?.maxReconnectAttempts || 3,
-        connectionTimeoutMs: config?.connectionTimeoutMs || 30000,
-        ...config,
+        capability: cap,
+        maxReconnectAttempts: connectionConfig?.maxReconnectAttempts || 3,
+        connectionTimeoutMs: connectionConfig?.connectionTimeoutMs || 30000,
+        ...connectionConfig,
       };
 
       // Phase 1.3: 建立WebSocket连接
-      const connection = await capabilityInstance.connect(connectionConfig);
+      const connection = await (capabilityInstance as { connect: (config: any) => Promise<StreamConnection> }).connect(finalConfig);
 
       if (!connection || !connection.id) {
         throw new StreamConnectionException(
           '连接建立失败：连接实例无效',
           undefined,
           provider,
-          capability,
+          cap,
         );
       }
 
       // Phase 1.4: 注册连接到管理器
-      const connectionKey = `${provider}:${capability}:${connection.id}`;
+      const connectionKey = `${provider}:${cap}:${connection.id}`;
       this.activeConnections.set(connectionKey, connection);
       this.connectionIdToKey.set(connection.id, connectionKey);
 
       // Phase 1.5: 向连接池管理器注册
       this.connectionPoolManager.registerConnection(connectionKey);
 
-      // Phase 1.6: 等待连接完全建立 - P2-1: 使用专门的监控服务
-      await this.streamMonitoringService.waitForConnectionEstablished(connection, connectionConfig.connectionTimeoutMs);
+      // Phase 1.6: 等待连接完全建立
+      await this.waitForConnectionReady(connection, finalConfig.connectionTimeoutMs);
 
-      // Phase 1.7: 设置连接监控 - P2-1: 使用专门的监控服务
-      this.streamMonitoringService.setupConnectionMonitoring(
-        connection,
-        (status) => {
-          // 状态变化回调
-          if (status === StreamConnectionStatus.CLOSED || status === StreamConnectionStatus.ERROR) {
-            this.cleanupConnectionFromMaps(connection.id);
-          }
-        },
-        (error) => {
-          // 错误回调
-          this.logger.warn('监控服务检测到连接错误', {
-            connectionId: connection.id.substring(0, 8),
-            error: error.message,
-          });
-        },
-        (connectionId) => {
-          // 清理回调
-          this.cleanupConnectionFromMaps(connectionId);
-        }
-      );
+      // Phase 1.7: 设置连接事件监听
+      this.setupConnectionEventHandlers(connection);
 
-      // 更新指标
-      this.recordConnectionMetrics('connected', provider);
-      this.updateActiveConnectionsCount(this.activeConnections.size, provider);
+      // 发送连接成功事件
+      this.emitConnectionEvent('connection_established', {
+        provider,
+        capability: cap,
+        duration: Date.now() - operationStartTime,
+        status: 'success',
+        count: this.activeConnections.size
+      });
 
       this.logger.log('流式连接建立成功', {
         connectionKey,
         provider,
-        capability,
+        capability: cap,
         connectionId: connection.id.substring(0, 8),
         totalConnections: this.activeConnections.size,
         establishmentTime: Date.now() - operationStartTime,
@@ -530,12 +659,19 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     } catch (error) {
       this.logger.error('流式连接建立失败', sanitizeLogData({
         provider,
-        capability,
+        capability: cap,
         error: error.message,
         duration: Date.now() - operationStartTime,
       }));
 
-      this.recordConnectionMetrics('failed', provider);
+      // 发送连接失败事件
+      this.emitConnectionEvent('connection_establishment_failed', {
+        provider,
+        capability: cap,
+        duration: Date.now() - operationStartTime,
+        status: 'error',
+        error_type: error.constructor.name
+      });
       throw error;
     } finally {
       // P1-2: 记录操作性能并减少活跃操作计数
@@ -553,7 +689,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
   async subscribeToSymbols(
     connection: StreamConnection,
     symbols: string[],
-  ): Promise<SubscriptionResult> {
+  ): Promise<void> {
     const operationStartTime = Date.now();
     let operationSuccess = false;
     
@@ -601,7 +737,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
       });
 
       operationSuccess = true;
-      return subscriptionResult;
+      // Note: Interface requires void return, but we log the result internally
     } catch (error) {
       this.logger.error('符号数据流订阅失败', sanitizeLogData({
         connectionId: connection.id.substring(0, 8),
@@ -611,8 +747,16 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
         duration: Date.now() - operationStartTime,
       }));
 
-      // TODO: Implement recordSubscriptionEvent method in StreamMetricsService
-      // this.streamMetrics.recordSubscriptionEvent('failed', connection.provider, symbols.length);
+      // 发送订阅失败事件
+      this.emitSubscriptionEvent('subscription_failed', {
+        provider: connection.provider,
+        capability: connection.capability,
+        symbol_count: symbols.length,
+        duration: Date.now() - operationStartTime,
+        status: 'error',
+        action: 'subscribe',
+        error_type: error.constructor.name
+      });
       throw error;
     } finally {
       // P1-2: 记录操作性能并减少活跃操作计数
@@ -630,7 +774,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
   async unsubscribeFromSymbols(
     connection: StreamConnection,
     symbols: string[],
-  ): Promise<UnsubscriptionResult> {
+  ): Promise<void> {
     const operationStartTime = Date.now();
     let operationSuccess = false;
     
@@ -667,7 +811,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
       });
 
       operationSuccess = true;
-      return unsubscriptionResult;
+      // Note: Interface requires void return, but we log the result internally
     } catch (error) {
       this.logger.error('符号数据流取消订阅失败', sanitizeLogData({
         connectionId: connection.id.substring(0, 8),
@@ -677,8 +821,16 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
         duration: Date.now() - operationStartTime,
       }));
 
-      // TODO: Implement recordSubscriptionEvent method in StreamMetricsService
-      // this.streamMetrics.recordSubscriptionEvent('failed', connection.provider, symbols.length);
+      // 发送订阅失败事件
+      this.emitSubscriptionEvent('subscription_failed', {
+        provider: connection.provider,
+        capability: connection.capability,
+        symbol_count: symbols.length,
+        duration: Date.now() - operationStartTime,
+        status: 'error',
+        action: 'subscribe',
+        error_type: error.constructor.name
+      });
       throw error;
     } finally {
       // P1-2: 记录操作性能并减少活跃操作计数
@@ -708,8 +860,13 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
         capability: connection.capability,
       });
 
-      // Phase 4.1: 停止监控服务 - P2-1: 使用专门的监控服务
-      this.streamMonitoringService.stopConnectionMonitoring(connection.id);
+      // Phase 4.1: 发送连接关闭监控事件
+      this.emitConnectionEvent('connection_monitoring_stopped', {
+        provider: connection.provider,
+        capability: connection.capability,
+        operation: 'stop_monitoring',
+        status: 'success'
+      });
 
       // Phase 4.2: 执行连接关闭
       await connection.close();
@@ -759,21 +916,27 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
 
   /**
    * Phase 5: 检查连接是否活跃
-   * @param connectionKey 连接键
+   * @param connection 连接实例或连接键
    * @returns 是否活跃
    */
-  isConnectionActive(connectionKey: string): boolean {
-    const connection = this.activeConnections.get(connectionKey);
-    return connection ? connection.isConnected : false;
+  isConnectionActive(connection: StreamConnection | string): boolean {
+    if (typeof connection === 'string') {
+      const conn = this.activeConnections.get(connection);
+      return conn ? conn.isConnected : false;
+    }
+    return connection.isConnected;
   }
 
   /**
    * Phase 5: 获取连接统计信息
-   * @param connectionKey 连接键
+   * @param connection 连接实例或连接键
    * @returns 连接统计
    */
-  getConnectionStats(connectionKey: string): any {
-    return this.activeConnections.get(connectionKey)?.getStats?.() || null;
+  getConnectionStats(connection: StreamConnection | string): StreamConnectionStats | null {
+    if (typeof connection === 'string') {
+      return this.activeConnections.get(connection)?.getStats?.() || null;
+    }
+    return connection.getStats?.() || null;
   }
 
   /**
@@ -1304,11 +1467,16 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
    * @param capability 能力名称
    * @returns 能力实例
    */
-  private async getStreamCapability(provider: string, capability: string): Promise<any> {
+  private async getStreamCapability(provider: string, capability: string): Promise<unknown> {
     try {
       // 使用现有的CapabilityRegistry获取能力
-      const capabilityInstance = (this.capabilityRegistry as any).getCapability?.(provider, capability) || 
-                                 (this.capabilityRegistry as any).get?.(provider, capability);
+      const registry = this.capabilityRegistry as {
+        getCapability?: (provider: string, capability: string) => unknown;
+        get?: (provider: string, capability: string) => unknown;
+      };
+      
+      const capabilityInstance = registry.getCapability?.(provider, capability) || 
+                                 registry.get?.(provider, capability);
       
       if (!capabilityInstance) {
         throw new NotFoundException(`流能力不存在: ${provider}/${capability}`);
@@ -1339,8 +1507,26 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
    * 获取流指标摘要 - 用于监控和调试
    * @returns 指标摘要信息
    */
-  getMetricsSummary(): any {
-    return this.streamMetrics.getMetricsSummary();
+  getMetricsSummary(): {
+    activeConnections: number;
+    connectionMappings: number;
+    timestamp: string;
+    status: string;
+  } {
+    // 通过事件发送指标摘要请求
+    this.emitMetricsEvent('metrics_summary_requested', {
+      activeConnections: this.activeConnections.size,
+      connectionMappings: this.connectionIdToKey.size,
+      requestId: Date.now().toString()
+    });
+    
+    // 返回当前状态摘要
+    return {
+      activeConnections: this.activeConnections.size,
+      connectionMappings: this.connectionIdToKey.size,
+      timestamp: new Date().toISOString(),
+      status: 'active'
+    };
   }
   
   /**
@@ -1380,8 +1566,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
       activeConnections: this.activeConnections.size,
       // P1-2: 添加自适应并发控制状态
       adaptiveConcurrency: this.getAdaptiveConcurrencyStats(),
-      // P2-1: 添加监控服务状态
-      monitoring: this.streamMonitoringService.getMonitoringStats(),
+      // 使用事件化监控，无需直接获取监控状态
+      eventDrivenMonitoring: true,
       timestamp: new Date().toISOString(),
     };
   }
@@ -1436,7 +1622,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     });
     
     // 1. 清理无效的连接映射（connectionIdToKey中有，但activeConnections中没有）
-    for (const [connectionId, connectionKey] of this.connectionIdToKey.entries()) {
+    const mappingEntries = Array.from(this.connectionIdToKey.entries());
+    for (const [connectionId, connectionKey] of mappingEntries) {
       if (!this.activeConnections.has(connectionKey)) {
         this.connectionIdToKey.delete(connectionId);
         cleanedMappings++;
@@ -1452,7 +1639,8 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
     const connectionsToRemove: string[] = [];
     
-    for (const [connectionKey, connection] of this.activeConnections.entries()) {
+    const connectionEntries = Array.from(this.activeConnections.entries());
+    for (const [connectionKey, connection] of connectionEntries) {
       try {
         // 检查连接是否已经断开且长时间无活动
         if (!connection.isConnected && connection.lastActiveAt.getTime() < thirtyMinutesAgo) {
@@ -1479,8 +1667,12 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     for (const connectionKey of connectionsToRemove) {
       const connection = this.activeConnections.get(connectionKey);
       if (connection) {
-        // P2-1: 停止监控服务
-        this.streamMonitoringService.stopConnectionMonitoring(connection.id);
+        // 发送清理监控事件
+        this.emitConnectionEvent('connection_cleanup', {
+          provider: connection.provider,
+          operation: 'cleanup_monitoring',
+          status: 'success'
+        });
         
         // 从映射表中清理
         this.connectionIdToKey.delete(connection.id);
@@ -1510,10 +1702,10 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
         remainingMappings: this.connectionIdToKey.size,
       });
       
-      // 更新连接数指标
-      for (const [, connection] of this.activeConnections.entries()) {
-        this.streamMetrics.updateActiveConnectionsCount(this.activeConnections.size, connection.provider);
-        break; // 只需要触发一次指标更新
+      // 更新连接数指标 - 使用事件化监控
+      if (this.activeConnections.size > 0) {
+        const connection = this.activeConnections.values().next().value;
+        this.updateActiveConnectionsCount(this.activeConnections.size, connection.provider);
       }
     } else {
       this.logger.debug('Map定期清理完成，无需清理项目', {
@@ -1555,8 +1747,13 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
     this.destroy$.next();
     this.destroy$.complete();
     
-    // P2-1: 优先清理监控服务
-    await this.streamMonitoringService.onModuleDestroy();
+    // 发送服务销毁监控事件
+    this.emitMetricsEvent('service_destroyed', {
+      activeConnections: this.activeConnections.size,
+      connectionMappings: this.connectionIdToKey.size,
+      operation: 'service_destroy',
+      status: 'info'
+    });
     
     // 关闭所有活跃连接
     const closePromises = Array.from(this.activeConnections.values()).map(connection => 
@@ -1576,10 +1773,14 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
       }, 10000); // 10秒超时
     });
     
-    await Promise.race([
-      Promise.allSettled(closePromises),
-      closeTimeout
-    ]);
+    try {
+      await Promise.race([
+        Promise.allSettled(closePromises),
+        closeTimeout
+      ]);
+    } catch (error) {
+      this.logger.error('连接关闭过程出错', { error: error.message });
+    }
     
     // 强制清理所有内存映射
     this.activeConnections.clear();
@@ -1599,6 +1800,139 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
   }
 
   // === 私有辅助方法 ===
+
+  /**
+   * 等待连接就绪
+   * @param connection 连接实例
+   * @param timeoutMs 超时时间
+   */
+  private async waitForConnectionReady(connection: StreamConnection, timeoutMs: number = 10000): Promise<void> {
+    const startTime = Date.now();
+    
+    return new Promise((resolve, reject) => {
+      // 如果已经连接，直接返回
+      if (connection.isConnected) {
+        this.emitConnectionEvent('connection_ready', {
+          provider: connection.provider,
+          capability: connection.capability,
+          duration: Date.now() - startTime,
+          status: 'success'
+        });
+        resolve();
+        return;
+      }
+
+      let resolved = false;
+      
+      // 状态变化监听
+      const handleStatusChange = (status: StreamConnectionStatus) => {
+        if (resolved) return;
+        
+        if (status === StreamConnectionStatus.CONNECTED || connection.isConnected) {
+          resolved = true;
+          this.emitConnectionEvent('connection_ready', {
+            provider: connection.provider,
+            capability: connection.capability,
+            duration: Date.now() - startTime,
+            status: 'success'
+          });
+          resolve();
+        }
+      };
+
+      // 错误监听
+      const handleError = (error: Error) => {
+        if (resolved) return;
+        resolved = true;
+        
+        this.emitConnectionEvent('connection_failed', {
+          provider: connection.provider,
+          capability: connection.capability,
+          duration: Date.now() - startTime,
+          status: 'error',
+          error_type: error.constructor.name
+        });
+        reject(error);
+      };
+
+      // 超时处理
+      const timeout = setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        
+        const error = new Error(`连接建立超时 (${timeoutMs}ms)`);
+        this.emitConnectionEvent('connection_timeout', {
+          provider: connection.provider,
+          capability: connection.capability,
+          duration: Date.now() - startTime,
+          status: 'error',
+          error_type: 'TimeoutError'
+        });
+        reject(error);
+      }, timeoutMs);
+
+      // 设置事件监听器
+      try {
+        connection.onStatusChange(handleStatusChange);
+        connection.onError(handleError);
+      } catch (error) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          reject(error);
+        }
+      }
+    });
+  }
+
+  /**
+   * 设置连接事件处理器
+   * @param connection 连接实例
+   */
+  private setupConnectionEventHandlers(connection: StreamConnection): void {
+    try {
+      // 状态变化处理
+      connection.onStatusChange((status: StreamConnectionStatus) => {
+        this.emitConnectionEvent('status_changed', {
+          provider: connection.provider,
+          capability: connection.capability,
+          status: status === StreamConnectionStatus.CLOSED || status === StreamConnectionStatus.ERROR ? 'error' : 'success',
+          operation: 'status_change'
+        });
+
+        // 连接关闭时清理
+        if (status === StreamConnectionStatus.CLOSED || status === StreamConnectionStatus.ERROR) {
+          this.cleanupConnectionFromMaps(connection.id);
+        }
+      });
+
+      // 错误处理
+      connection.onError((error) => {
+        this.logger.warn('连接错误', {
+          connectionId: connection.id.substring(0, 8),
+          provider: connection.provider,
+          error: error.message,
+        });
+
+        this.emitConnectionEvent('connection_error', {
+          provider: connection.provider,
+          capability: connection.capability,
+          status: 'error',
+          error_type: error.constructor.name,
+          operation: 'error_handling'
+        });
+
+        // 错误时清理连接
+        this.cleanupConnectionFromMaps(connection.id);
+      });
+
+    } catch (error) {
+      this.logger.warn('设置连接事件处理器失败', {
+        connectionId: connection.id.substring(0, 8),
+        error: error.message,
+      });
+    }
+  }
 
   /**
    * 执行订阅操作的内部实现
@@ -1626,22 +1960,22 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
    * 执行取消订阅操作的内部实现
    */
   private async performUnsubscription(_connection: StreamConnection, symbols: string[]): Promise<UnsubscriptionResult> {
-  try {
-    // 实际的取消订阅逻辑
-    return {
-      success: true,
-      unsubscribedSymbols: symbols,
-      failedSymbols: [],
-    };
-  } catch (error) {
-    return {
-      success: false,
-      unsubscribedSymbols: [],
-      failedSymbols: symbols,
-      error: error.message,
-    };
+    try {
+      // 实际的取消订阅逻辑
+      return {
+        success: true,
+        unsubscribedSymbols: symbols,
+        failedSymbols: [],
+      };
+    } catch (error) {
+      return {
+        success: false,
+        unsubscribedSymbols: [],
+        failedSymbols: symbols,
+        error: error.message,
+      };
+    }
   }
-}
 
   /**
    * 缓存订阅信息
@@ -1702,66 +2036,38 @@ export class StreamDataFetcherService extends BaseFetcherService implements OnMo
    * 记录连接指标
    */
   private recordConnectionMetrics(event: 'connected' | 'disconnected' | 'failed', provider: string): void {
-    try {
-      // 通过collectorService记录连接事件
-      this.collectorService.recordRequest(
-        `/internal/stream-connection/${event}`,
-        'POST',
-        200,
-        0,
-        {
-          provider,
-          event,
-          timestamp: Date.now(),
-        }
-      );
-    } catch (error) {
-      this.logger.warn('记录连接指标失败', { event, provider, error: error.message });
-    }
+    // 替换为事件化监控
+    this.emitConnectionEvent('connection_state_changed', {
+      provider,
+      operation: event,
+      status: event === 'failed' ? 'error' : 'success',
+      count: this.activeConnections.size
+    });
   }
 
   /**
    * 记录订阅指标
    */
   private recordSubscriptionMetrics(event: string, provider: string, symbolCount: number): void {
-    try {
-      // 通过collectorService记录订阅事件
-      this.collectorService.recordRequest(
-        `/internal/stream-subscription/${event}`,
-        'POST',
-        200,
-        0,
-        {
-          provider,
-          event,
-          symbolCount,
-          timestamp: Date.now(),
-        }
-      );
-    } catch (error) {
-      this.logger.warn('记录订阅指标失败', { event, provider, error: error.message });
-    }
+    // 替换为事件化监控
+    this.emitSubscriptionEvent('subscription_operation', {
+      provider,
+      symbol_count: symbolCount,
+      action: event === 'created' ? 'subscribe' : 'unsubscribe',
+      status: 'success'
+    });
   }
 
   /**
    * 更新活跃连接数指标
    */
   private updateActiveConnectionsCount(count: number, provider: string): void {
-    try {
-      // 通过collectorService记录活跃连接数
-      this.collectorService.recordRequest(
-        '/internal/stream-connections/active',
-        'GET',
-        200,
-        0,
-        {
-          provider,
-          activeConnections: count,
-          timestamp: Date.now(),
-        }
-      );
-    } catch (error) {
-      this.logger.warn('更新连接数指标失败', { count, provider, error: error.message });
-    }
+    // 替换为事件化监控
+    this.emitConnectionEvent('active_connections_updated', {
+      provider,
+      count,
+      operation: 'connection_count_update',
+      status: 'success'
+    });
   }
 }

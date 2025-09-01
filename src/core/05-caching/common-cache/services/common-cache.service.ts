@@ -1,5 +1,6 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { REDIS_SPECIAL_VALUES } from '../constants/cache.constants';
@@ -8,18 +9,14 @@ import { CacheCompressionService } from './cache-compression.service';
 import { createLogger } from '../../../../app/config/logger.config';
 import { AdaptiveDecompressionService } from './adaptive-decompression.service';
 import { BatchMemoryOptimizerService } from './batch-memory-optimizer.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { 
   ICacheOperation, 
   ICacheFallback, 
   ICacheMetadata 
 } from '../interfaces/cache-operation.interface';
 import { CacheMetadata } from '../interfaces/cache-metadata.interface';
-import {
-  CACHE_REDIS_CLIENT_TOKEN,
-  MONITORING_COLLECTOR_TOKEN
-} from '../../../../monitoring/contracts';
-import type { ICollector } from '../../../../monitoring/contracts';
+import { CACHE_REDIS_CLIENT_TOKEN } from '../../../../monitoring/contracts';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 /**
  * 缓存解压异常类
@@ -93,7 +90,7 @@ export class CommonCacheService {
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redis: Redis,
     private readonly configService: ConfigService,
     private readonly compressionService: CacheCompressionService,
-    @Inject(MONITORING_COLLECTOR_TOKEN) private readonly collectorService: ICollector, // ✅ 使用类型安全的依赖注入
+    private readonly eventBus: EventEmitter2, // ✅ 使用事件驱动方式替代直接依赖
     private readonly adaptiveDecompressionService: AdaptiveDecompressionService, // ✅ 新增自适应解压缩服务
     private readonly batchMemoryOptimizer: BatchMemoryOptimizerService, // ✅ 新增批量内存优化器
   ) {}
@@ -112,23 +109,29 @@ export class CommonCacheService {
 
   /**
    * 记录缓存操作指标
-   * 通过监控服务收集缓存性能数据
+   * 使用事件驱动方式收集缓存性能数据
    */
   private recordMetrics(operation: string, hit: boolean, duration: number, metadata?: any): void {
-    try {
-      this.collectorService.recordCacheOperation(operation, hit, duration, {
-        cacheType: 'common',
-        ...metadata
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'common_cache',
+        metricType: 'cache',
+        metricName: `cache_${operation}`,
+        metricValue: duration,
+        tags: {
+          operation,
+          hit: hit.toString(),
+          cacheType: 'common',
+          ...metadata
+        }
       });
-    } catch (error) {
-      // 监控记录失败不影响业务逻辑
-      this.logger.warn('记录缓存指标失败', { operation, error: error.message });
-    }
+    });
   }
 
   /**
    * 记录解压缩操作指标
-   * 专门用于监控解压缩性能和资源消耗
+   * 使用事件驱动方式监控解压缩性能和资源消耗
    */
   private recordDecompressionMetrics(
     success: boolean, 
@@ -136,18 +139,23 @@ export class CommonCacheService {
     originalSize?: number, 
     decompressedSize?: number
   ): void {
-    try {
-      this.collectorService.recordCacheOperation('decompress', success, duration, {
-        cacheType: 'common',
-        operation: 'decompress',
-        originalSize,
-        decompressedSize,
-        compressionRatio: originalSize && decompressedSize ? originalSize / decompressedSize : null
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'common_cache',
+        metricType: 'cache',
+        metricName: 'cache_decompress',
+        metricValue: duration,
+        tags: {
+          operation: 'decompress',
+          success: success.toString(),
+          cacheType: 'common',
+          originalSize,
+          decompressedSize,
+          compressionRatio: originalSize && decompressedSize ? originalSize / decompressedSize : null
+        }
       });
-    } catch (error) {
-      // 监控记录失败不影响业务逻辑
-      this.logger.warn('记录解压缩指标失败', { error: error.message });
-    }
+    });
   }
 
   /**

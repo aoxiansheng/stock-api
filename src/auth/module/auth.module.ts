@@ -4,7 +4,6 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 
 import { CacheModule } from "../../cache/module/cache.module";
-import { CollectorModule } from "../../monitoring/collector/collector.module";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 统一数据库模块
 
 import { AuthController } from "../controller/auth.controller";
@@ -31,7 +30,6 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     DatabaseModule,
     
     CacheModule,
-    CollectorModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
     // ❌ 删除 RedisModule - 使用全局注入的 RedisService
     JwtModule.registerAsync({

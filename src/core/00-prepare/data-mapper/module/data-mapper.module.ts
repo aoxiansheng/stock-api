@@ -3,10 +3,10 @@ import { MongooseModule } from "@nestjs/mongoose";
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
-import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { DataMapperCacheModule } from "../../../05-caching/data-mapper-cache/module/data-mapper-cache.module";
 import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 import { FeatureFlags } from "@config/feature-flags.config";
+import { MonitoringModule } from "../../../../monitoring/monitoring.module"; // ✅ 正确导入标准监控模块
 
 // 🚀 重构后的控制器（按职责分离）
 import { UserJsonPersistenceController } from "../controller/user-json-persistence.controller";
@@ -37,9 +37,11 @@ import {
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
     
+    // ✅ 标准监控模块导入 (替代原来的 EventEmitterModule)
+    MonitoringModule, // 统一监控模块，提供事件驱动监控功能
+    
     AuthModule,
     PaginationModule,
-    MonitoringModule, // 监控模块，提供CollectorService
     DataMapperCacheModule, // 专用DataMapper缓存模块，替换通用CacheModule
     
     // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)

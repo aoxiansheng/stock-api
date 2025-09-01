@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger } from '../../../../app/config/logger.config';
 import { SymbolMapperCacheService } from '../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { 
   SymbolTransformResult, 
   SymbolTransformForProviderResult 
@@ -26,7 +27,7 @@ export class SymbolTransformerService {
 
   constructor(
     private readonly symbolMapperCacheService: SymbolMapperCacheService,  // 缓存服务（含回源逻辑）
-    private readonly collectorService: CollectorService  // ✅ 标准监控依赖
+    private readonly eventBus: EventEmitter2  // ✅ 事件驱动监控（零耦合）
   ) {}
 
   /**
@@ -79,11 +80,11 @@ export class SymbolTransformerService {
         },
       };
 
-      // ✅ 使用标准的 CollectorService.recordRequest()
-      this.safeRecordMetrics(CONFIG.ENDPOINT, 'POST', 200, processingTime, {
-        operation: 'symbol-transformation',
-        provider: provider,
-        direction: direction,
+      // ✅ 事件驱动监控：异步、解耦、高性能
+      this.emitMonitoringEvent('symbol_transformation_completed', {
+        provider,
+        direction,
+        duration: processingTime,
         totalSymbols: symbolArray.length,
         successCount: response.metadata.successCount,
         failedCount: response.metadata.failedCount,
@@ -101,11 +102,11 @@ export class SymbolTransformerService {
     } catch (error) {
       const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
       
-      // ✅ 标准错误监控
-      this.safeRecordMetrics(CONFIG.ENDPOINT, 'POST', 500, processingTime, {
-        operation: 'symbol-transformation',
-        provider: provider,
-        direction: direction,
+      // ✅ 事件驱动错误监控
+      this.emitMonitoringEvent('symbol_transformation_failed', {
+        provider,
+        direction,
+        duration: processingTime,
         totalSymbols: symbolArray.length,
         error: error.message,
         errorType: error.constructor.name
@@ -324,14 +325,31 @@ export class SymbolTransformerService {
   }
 
   /**
-   * ✅ 安全监控包装 - 错误隔离机制
+   * ✅ 事件驱动监控 - 零耦合异步发送
    */
-  private safeRecordMetrics(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
-    try {
-      this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
-    } catch (error) {
-      // 监控失败仅记录日志，不影响业务
-      this.logger.warn(`监控记录失败: ${error.message}`, { endpoint, metadata });
-    }
+  private emitMonitoringEvent(metricName: string, data: any) {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'symbol_transformer',
+        metricType: 'business',
+        metricName,
+        metricValue: data.duration || data.symbolCount || 1,
+        tags: {
+          operation: 'symbol-transformation',
+          provider: data.provider,
+          direction: data.direction,
+          totalSymbols: data.totalSymbols,
+          successCount: data.successCount,
+          failedCount: data.failedCount,
+          successRate: data.successRate,
+          market: data.market,
+          status: metricName.includes('failed') ? 'error' : 'success',
+          // 添加更多业务上下文标签
+          ...(data.error && { error_message: data.error }),
+          ...(data.errorType && { error_type: data.errorType })
+        }
+      });
+    });
   }
 }

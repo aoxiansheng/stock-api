@@ -4,9 +4,11 @@ import {
   OnModuleDestroy,
   BadRequestException,
 } from "@nestjs/common";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { StringUtils } from "../../../shared/utils/string.util";
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 import { QueryConfigService } from '../config/query.config';
 import { QueryExecutorFactory } from '../factories/query-executor.factory';
@@ -27,7 +29,6 @@ import {
 } from "../dto/query-response.dto";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**
  * Query服务 - 查询编排器
@@ -50,7 +51,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
     private readonly queryConfig: QueryConfigService,
     private readonly queryExecutorFactory: QueryExecutorFactory,
     private readonly executionEngine: QueryExecutionEngine, // 用于向后兼容
@@ -83,8 +84,11 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const startTime = Date.now();
     const queryId = this.generateQueryId(request);
 
-    // 查询开始监控
-    this.recordQueryStartMetrics(request, queryId);
+    // ✅ 事件驱动监控：查询开始
+    this.emitQueryEvent('query_started', request, queryId, 0, {
+      symbolsCount: request.symbols?.length || 0,
+      queryTypeFilter: request.queryTypeFilter
+    });
 
     this.logger.log(
       QUERY_SUCCESS_MESSAGES.QUERY_EXECUTION_STARTED,
@@ -107,8 +111,12 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         Date.now() - startTime,
       );
 
-      // 记录查询成功监控指标
-      this.recordQueryCompleteMetrics(request, queryId, Date.now() - startTime, true, executionResult.cacheUsed);
+      // ✅ 事件驱动监控：查询成功
+      this.emitQueryEvent('query_completed', request, queryId, Date.now() - startTime, {
+        success: true,
+        cacheUsed: executionResult.cacheUsed,
+        resultsCount: executionResult.results?.length || 0
+      });
 
       return new QueryResponseDto(processedResult.data, processedResult.metadata);
     } catch (error) {
@@ -120,8 +128,13 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         false,
       );
 
-      // 记录查询失败监控指标
-      this.recordQueryCompleteMetrics(request, queryId, executionTime, false, false);
+      // ✅ 事件驱动监控：查询失败
+      this.emitQueryEvent('query_failed', request, queryId, executionTime, {
+        success: false,
+        cacheUsed: false,
+        error_type: error.constructor.name,
+        error_message: error.message
+      });
 
       this.logger.error(
         QUERY_ERROR_MESSAGES.QUERY_EXECUTION_FAILED,
@@ -348,62 +361,45 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     return this.statisticsService.getQueryStats();
   }
 
-  // =============== 监控辅助方法 ===============
+  // =============== 事件驱动监控方法 ===============
   
   /**
-   * 记录查询开始指标
+   * ✅ 统一的事件驱动监控方法
    */
-  private recordQueryStartMetrics(request: QueryRequestDto, queryId: string): void {
-    try {
-      this.collectorService.recordRequest(
-        '/internal/query-start',
-        'POST',
-        200,
-        0,
-        {
-          queryId,
-          queryType: request.queryType,
-          symbolsCount: request.symbols?.length || 0,
-          market: request.market,
-          operation: 'query_start',
-          componentType: 'query'
-        }
-      );
-    } catch (error) {
-      this.logger.warn(`查询开始监控记录失败: ${error.message}`, { queryId });
-    }
-  }
-
-  /**
-   * 记录查询完成指标
-   */
-  private recordQueryCompleteMetrics(
-    request: QueryRequestDto, 
-    queryId: string, 
-    duration: number, 
-    success: boolean,
-    cacheUsed: boolean
+  private emitQueryEvent(
+    eventType: string,
+    request: QueryRequestDto,
+    queryId: string,
+    duration: number,
+    additionalData: Record<string, any> = {}
   ): void {
-    try {
-      this.collectorService.recordRequest(
-        '/api/v1/query/data',
-        'POST',
-        success ? 200 : 500,
-        duration,
-        {
-          queryId,
-          queryType: request.queryType,
-          symbolsCount: request.symbols?.length || 0,
-          market: request.market,
-          cacheUsed,
-          success,
-          avgTimePerSymbol: (request.symbols?.length || 0) > 0 ? duration / (request.symbols?.length || 1) : 0,
-          operation: success ? 'query_complete' : 'query_failed',
-          componentType: 'query'
-        }
-      );
-    } catch (error) {
-      this.logger.warn(`查询完成监控记录失败: ${error.message}`, { queryId });
-    }
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'query_service',
+          metricType: 'business',
+          metricName: eventType,
+          metricValue: duration,
+          tags: {
+            queryId,
+            queryType: request.queryType,
+            market: request.market || 'unknown',
+            provider: request.provider || 'auto',
+            symbolsCount: request.symbols?.length || 0,
+            operation: eventType,
+            componentType: 'query',
+            ...additionalData
+          }
+        });
+      } catch (error) {
+        // 监控事件发送失败不应影响业务逻辑
+        this.logger.warn(`查询监控事件发送失败: ${error.message}`, { 
+          queryId, 
+          eventType,
+          error: error.message 
+        });
+      }
+    });
   }
 }

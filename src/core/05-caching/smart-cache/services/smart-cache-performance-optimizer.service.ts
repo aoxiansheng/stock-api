@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import  os from 'os';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import os from 'os';
+import { createLogger } from '@app/config/logger.config';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 /**
  * SmartCache 性能优化器服务
@@ -15,7 +17,7 @@ import { CollectorService } from '../../../../monitoring/collector/collector.ser
  */
 @Injectable()
 export class SmartCachePerformanceOptimizer {
-  private readonly logger = new Logger(SmartCachePerformanceOptimizer.name);
+  private readonly logger = createLogger(SmartCachePerformanceOptimizer.name);
   
   /** 系统资源监控相关 */
   private lastMemoryCheck = 0;
@@ -42,7 +44,7 @@ export class SmartCachePerformanceOptimizer {
   private isShuttingDown = false;
 
   constructor(
-    private readonly collectorService?: CollectorService,
+    private readonly eventBus?: EventEmitter2, // 事件化监控：可选注入事件总线
   ) {
     // 初始化默认并发数
     this.originalMaxConcurrency = Math.min(Math.max(2, os.cpus().length), 16);
@@ -142,20 +144,14 @@ export class SmartCachePerformanceOptimizer {
           
           this.logger.log(`Concurrency adjusted: ${oldConcurrency} → ${optimalConcurrency}`);
           
-          // 记录指标
-          if (this.collectorService) {
-            try {
-              await this.recordMetrics({
-                concurrencyAdjustment: {
-                  from: oldConcurrency,
-                  to: optimalConcurrency,
-                },
-                timestamp: new Date(),
-              });
-            } catch (error) {
-              this.logger.warn('Failed to record concurrency metrics', error);
-            }
-          }
+          // 记录并发数调整指标 - 事件化监控
+          this.emitMetrics('concurrency_adjusted', optimalConcurrency, {
+            oldConcurrency,
+            newConcurrency: optimalConcurrency,
+            memoryUsage: memoryUsage.toFixed(2),
+            cpuUsage: cpuUsage.toFixed(2),
+            adjustmentType: 'dynamic_optimization'
+          });
         }
       } catch (error) {
         this.logger.error('Dynamic concurrency adjustment failed', error);
@@ -205,20 +201,13 @@ export class SmartCachePerformanceOptimizer {
         memoryPressureEvents: this.performanceStats.memoryPressureEvents,
       });
 
-      // 记录内存压力处理事件
-      if (this.collectorService) {
-        try {
-          await this.recordMetrics({
-            memoryPressureHandled: {
-              newConcurrency,
-              events: this.performanceStats.memoryPressureEvents,
-            },
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          this.logger.warn('Failed to record memory pressure metrics', error);
-        }
-      }
+      // 记录内存压力处理事件 - 事件化监控
+      this.emitMetrics('memory_pressure_handled', newConcurrency, {
+        previousConcurrency: this.dynamicMaxConcurrency,
+        newConcurrency,
+        memoryPressureEvents: this.performanceStats.memoryPressureEvents,
+        pressureLevel: 'resolved'
+      });
 
       return { 
         handled: true, 
@@ -340,16 +329,25 @@ export class SmartCachePerformanceOptimizer {
   }
 
   /**
-   * 记录指标（兼容不同的指标格式）
+   * 记录指标 - 事件化监控
    */
-  private async recordMetrics(data: any): Promise<void> {
-    if (!this.collectorService) return;
+  private emitMetrics(metricName: string, metricValue: number, tags: any = {}): void {
+    if (!this.eventBus) return;
     
     try {
-      // 尝试使用 recordSystemMetrics，如果失败则静默处理
-      if (typeof this.collectorService.recordSystemMetrics === 'function') {
-        await this.collectorService.recordSystemMetrics(data);
-      }
+      setImmediate(() => {
+        this.eventBus!.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'smart_cache_performance_optimizer',
+          metricType: 'performance',
+          metricName,
+          metricValue,
+          tags: {
+            componentType: 'smart_cache_performance_optimizer',
+            ...tags
+          }
+        });
+      });
     } catch (error) {
       // 指标记录失败不应该影响主要功能
       this.logger.debug('Metrics recording failed', error);
@@ -389,13 +387,10 @@ export class SmartCachePerformanceOptimizer {
     const finalStats = this.getPerformanceStats();
     this.logger.log('Final performance statistics', finalStats);
     
-    if (this.collectorService) {
-      this.recordMetrics({
-        orchestratorShutdown: finalStats,
-        timestamp: new Date(),
-      }).catch(error => {
-        this.logger.debug('Failed to record final performance stats', error);
-      });
-    }
+    // 记录最终性能统计 - 事件化监控
+    this.emitMetrics('performance_optimizer_shutdown', 1, {
+      ...finalStats,
+      shutdownType: 'graceful'
+    });
   }
 }

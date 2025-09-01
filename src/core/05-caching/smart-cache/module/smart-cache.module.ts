@@ -1,4 +1,5 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { createLogger } from '@app/config/logger.config';
 import { StorageModule } from '../../../04-storage/storage/module/storage.module';
 import { SharedServicesModule } from '../../../shared/module/shared-services.module';
 import { CommonCacheModule } from '../../common-cache/module/common-cache.module';
@@ -10,7 +11,7 @@ import {
 } from '../interfaces/smart-cache-config.interface';
 import { SmartCacheConfigFactory } from '../config/smart-cache-config.factory';
 import { SmartCachePerformanceOptimizer } from '../services/smart-cache-performance-optimizer.service';
-import { CollectorModule } from '../../../../monitoring/collector/collector.module';
+// 移除 CollectorModule 依赖 - 事件化监控不再需要直接导入监控模块
 
 /**
  * 智能缓存模块
@@ -50,9 +51,7 @@ import { CollectorModule } from '../../../../monitoring/collector/collector.modu
     // - DataChangeDetectorService: 数据变化检测
     SharedServicesModule,
     
-    // 🔑 直接导入CollectorModule以解决依赖问题
-    // 提供CollectorService用于监控数据收集
-    CollectorModule,
+    // ✅ 已移除 CollectorModule - 使用事件化监控，SharedServicesModule 中的 EventEmitter2 已足够
   ],
   
   providers: [
@@ -81,7 +80,7 @@ import { CollectorModule } from '../../../../monitoring/collector/collector.modu
   ],
 })
 export class SmartCacheModule {
-  private readonly logger = new Logger(SmartCacheModule.name);
+  private readonly logger = createLogger(SmartCacheModule.name);
   
   constructor() {
     // 模块初始化日志

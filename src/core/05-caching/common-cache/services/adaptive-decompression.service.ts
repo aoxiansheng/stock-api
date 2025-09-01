@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 
 /**
@@ -54,7 +55,7 @@ export enum ConcurrencyStrategy {
  */
 @Injectable()
 export class AdaptiveDecompressionService {
-  private readonly logger = new Logger(AdaptiveDecompressionService.name);
+  private readonly logger = createLogger(AdaptiveDecompressionService.name);
 
   // 并发控制参数
   private currentMaxConcurrency: number;

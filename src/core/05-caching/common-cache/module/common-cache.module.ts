@@ -8,11 +8,7 @@ import { AdaptiveDecompressionService } from '../services/adaptive-decompression
 import { BatchMemoryOptimizerService } from '../services/batch-memory-optimizer.service';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { MonitoringModule } from '../../../../monitoring/monitoring.module';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
-import { 
-  MONITORING_COLLECTOR_TOKEN, 
-  CACHE_REDIS_CLIENT_TOKEN 
-} from '../../../../monitoring/contracts';
+import { CACHE_REDIS_CLIENT_TOKEN } from '../../../../monitoring/contracts';
 
 /**
  * 通用缓存模块
@@ -83,12 +79,6 @@ import {
         return redis;
       },
       inject: [ConfigService],
-    },
-
-    // ✅ 提供CollectorService（从 MonitoringModule 导入）
-    {
-      provide: MONITORING_COLLECTOR_TOKEN,
-      useExisting: CollectorService, // 使用类引用而不是字符串引用
     },
 
     // 核心服务

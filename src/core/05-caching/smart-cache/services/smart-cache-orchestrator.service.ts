@@ -1,9 +1,11 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { createLogger } from '@app/config/logger.config';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { CommonCacheService } from '../../common-cache/services/common-cache.service'; // Phase 5.2 重构：直接使用CommonCacheService
 import { DataChangeDetectorService } from '../../../shared/services/data-change-detector.service';
 import { MarketStatusService, MarketStatusResult } from '../../../shared/services/market-status.service';
 import { BackgroundTaskService } from '../../../../app/services/infrastructure/background-task.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
 import { Market } from '../../../../common/constants/market.constants';
 import { MarketStatus } from '../../../../common/constants/market-trading-hours.constants';
 import { 
@@ -47,7 +49,7 @@ import {
 
 @Injectable()
 export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(SmartCacheOrchestrator.name);
+  private readonly logger = createLogger(SmartCacheOrchestrator.name);
   
   /** 后台更新任务管理Map：cacheKey -> BackgroundUpdateTask */
   private readonly backgroundUpdateTasks = new Map<string, BackgroundUpdateTask>();
@@ -75,7 +77,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2, // 事件化监控：只注入事件总线
   ) {
     this.logger.log('SmartCacheOrchestrator service initializing...');
     
@@ -292,20 +294,23 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     if (this.activeTaskCount > 0) {
       this.logger.warn(`Graceful shutdown timeout reached. ${this.activeTaskCount} tasks still active.`);
       
-              // 记录告警指标
+              // 记录告警指标 - 事件化监控
         if (this.config.enableMetrics) {
-          // 使用CollectorService记录后台任务失败
-          this.collectorService.recordRequest(
-            '/internal/cache-background-task',
-            'POST',
-            500,
-            0,
-            {
-              operation: 'background_task_failed',
-              componentType: 'smart_cache_orchestrator',
-              activeTaskCount: this.activeTaskCount
-            }
-          );
+          setImmediate(() => {
+            this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+              timestamp: new Date(),
+              source: 'smart_cache_orchestrator',
+              metricType: 'cache',
+              metricName: 'background_task_failed',
+              metricValue: this.activeTaskCount,
+              tags: {
+                operation: 'background_task_failed',
+                componentType: 'smart_cache_orchestrator',
+                activeTaskCount: this.activeTaskCount,
+                reason: 'shutdown_timeout'
+              }
+            });
+          });
         }
     }
     
@@ -391,20 +396,22 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     this.activeTaskCount++;
     task.status = 'running';
 
-    // 更新活跃任务指标
+    // 更新活跃任务指标 - 事件化监控
     if (this.config.enableMetrics) {
-      // 使用CollectorService记录活跃任务数
-      this.collectorService.recordRequest(
-        '/internal/cache-active-tasks',
-        'GET',
-        200,
-        0,
-        {
-          operation: 'active_tasks_count',
-          activeTaskCount: this.activeTaskCount,
-          componentType: 'smart_cache_orchestrator'
-        }
-      );
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'smart_cache_orchestrator',
+          metricType: 'cache',
+          metricName: 'active_tasks_count',
+          metricValue: this.activeTaskCount,
+          tags: {
+            operation: 'active_tasks_count',
+            activeTaskCount: this.activeTaskCount,
+            componentType: 'smart_cache_orchestrator'
+          }
+        });
+      });
     }
 
     try {
@@ -499,20 +506,22 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       task.status = 'completed';
       this.logger.debug(`Background update completed for cache key: ${task.cacheKey}`);
 
-      // 更新完成指标
+      // 更新完成指标 - 事件化监控
       if (this.config.enableMetrics) {
-        // 使用CollectorService记录后台任务完成
-        this.collectorService.recordRequest(
-          '/internal/cache-background-task',
-          'POST',
-          200,
-          Date.now() - task.scheduledAt,
-          {
-            operation: 'background_task_completed',
-            cacheKey: task.cacheKey,
-            componentType: 'smart_cache_orchestrator'
-          }
-        );
+        setImmediate(() => {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: 'smart_cache_orchestrator',
+            metricType: 'cache',
+            metricName: 'background_task_completed',
+            metricValue: Date.now() - task.scheduledAt,
+            tags: {
+              operation: 'background_task_completed',
+              cacheKey: task.cacheKey,
+              componentType: 'smart_cache_orchestrator'
+            }
+          });
+        });
       }
       
     } catch (error) {
@@ -532,21 +541,23 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         this.logger.error(`Background update failed permanently for cache key: ${task.cacheKey} after ${task.maxRetries} retries`);
       }
 
-      // 更新失败指标
+      // 更新失败指标 - 事件化监控
       if (this.config.enableMetrics) {
-        // 使用CollectorService记录后台任务失败
-        this.collectorService.recordRequest(
-          '/internal/cache-background-task',
-          'POST',
-          500,
-          0,
-          {
-            operation: 'background_task_failed',
-            cacheKey: task.cacheKey,
-            error: error.message,
-            componentType: 'smart_cache_orchestrator'
-          }
-        );
+        setImmediate(() => {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: 'smart_cache_orchestrator',
+            metricType: 'cache',
+            metricName: 'background_task_failed',
+            metricValue: 1,
+            tags: {
+              operation: 'background_task_failed',
+              cacheKey: task.cacheKey,
+              error: error.message,
+              componentType: 'smart_cache_orchestrator'
+            }
+          });
+        });
       }
     } finally {
       this.activeTaskCount--;
@@ -556,22 +567,24 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         this.backgroundUpdateTasks.delete(task.cacheKey);
       }
 
-      // 更新活跃任务指标
+      // 更新活跃任务指标 - 事件化监控
       if (this.config.enableMetrics) {
-        // 使用CollectorService记录活跃任务数更新
-        this.collectorService.recordRequest(
-          '/internal/cache-active-tasks',
-          'GET',
-          200,
-          0,
-          {
-            operation: 'active_tasks_count_updated',
-            activeTaskCount: this.activeTaskCount,
-            componentType: 'smart_cache_orchestrator'
-          }
-        );
+        setImmediate(() => {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: 'smart_cache_orchestrator',
+            metricType: 'cache',
+            metricName: 'active_tasks_count_updated',
+            metricValue: this.activeTaskCount,
+            tags: {
+              operation: 'active_tasks_count_updated',
+              activeTaskCount: this.activeTaskCount,
+              componentType: 'smart_cache_orchestrator'
+            }
+          });
+        });
       }
-    }
+    } // finally 块结束
   }
 
   // ===================

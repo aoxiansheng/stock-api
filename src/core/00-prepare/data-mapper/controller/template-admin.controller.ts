@@ -94,40 +94,8 @@ export class TemplateAdminController {
     return stats;
   }
 
-  @Get('health')
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
-  @ApiOperation({ 
-    summary: '系统健康检查',
-    description: '检查模板管理系统的健康状态' 
-  })
-  @ApiResponse({ status: 200, description: '健康检查完成' })
-  @ApiStandardResponses()
-  @JwtAuthResponses()
-  async healthCheck() {
-    const templates = await this.persistedTemplateService.getAllPersistedTemplates();
-    
-    const issues = [];
-    
-    if (templates.length === 0) {
-      issues.push('没有持久化的模板');
-    }
-    
-    const inactiveCount = templates.filter(t => !t.isActive).length;
-    if (inactiveCount > templates.length * 0.5) {
-      issues.push('超过50%的模板处于非激活状态');
-    }
-    
-    return {
-      status: issues.length === 0 ? 'healthy' : 'warning',
-      timestamp: new Date().toISOString(),
-      templatesCount: templates.length,
-      issues,
-      recommendations: issues.length > 0 ? [
-        '建议运行预设模板持久化',
-        '检查模板配置的正确性',
-      ] : ['系统运行正常'],
-    };
-  }
+  // ❌ 健康检查端点已移除 - 由全局监控组件负责
+  // 原有的 /health 端点违反了架构分层原则，已迁移到全局监控组件
 
   @Get(':id')
   @ApiKeyAuth([Permission.DATA_READ])

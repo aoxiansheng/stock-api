@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createLogger } from '../../../../app/config/logger.config';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 
 /**
@@ -69,7 +70,7 @@ interface MemoryPoolItem {
  */
 @Injectable()
 export class BatchMemoryOptimizerService {
-  private readonly logger = new Logger(BatchMemoryOptimizerService.name);
+  private readonly logger = createLogger(BatchMemoryOptimizerService.name);
 
   // 配置参数
   private readonly defaultMaxBatchSize: number;

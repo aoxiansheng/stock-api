@@ -9,6 +9,9 @@ import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 // import { MarketStatus } from "@common/constants/market-trading-hours.constants";
 // import { Market } from "@common/constants/market.constants"; // 已由cache-request.utils提供
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
+
 import { RequestContext } from "../interfaces/request-context.interface";
 
 import { CapabilityRegistryService } from "../../../../providers/services/capability-registry.service";
@@ -23,7 +26,6 @@ import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/u
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 import {
   RECEIVER_ERROR_MESSAGES,
@@ -74,8 +76,8 @@ export class ReceiverService {
     private readonly capabilityRegistryService: CapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
     
-    // 📊 监控与优化依赖
-    private readonly collectorService: CollectorService, // ✅ 替换为CollectorService
+    // ✅ 事件化监控依赖 - 符合监控组件集成规范
+    private readonly eventBus: EventEmitter2, // 替换CollectorService，使用事件驱动监控
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
@@ -146,8 +148,8 @@ export class ReceiverService {
 
         const processingTime = Date.now() - startTime;
 
-        // ✅ 记录成功请求
-        this.recordRequestMetrics(
+        // ✅ 事件化监控 - 记录成功请求
+        this.emitRequestMetrics(
           '/api/v1/receiver/data',    // endpoint
           'POST',                     // method
           200,                        // statusCode
@@ -211,8 +213,8 @@ export class ReceiverService {
 
       const processingTime = Date.now() - startTime;
 
-      // ✅ 记录成功请求
-      this.recordRequestMetrics(
+      // ✅ 事件化监控 - 记录成功请求
+      this.emitRequestMetrics(
         '/api/v1/receiver/data',    // endpoint
         'POST',                     // method
         200,                        // statusCode
@@ -244,8 +246,8 @@ export class ReceiverService {
     } catch (error) {
       const processingTime = Date.now() - startTime;
 
-      // ✅ 记录失败请求
-      this.recordRequestMetrics(
+      // ✅ 事件化监控 - 记录失败请求
+      this.emitRequestMetrics(
         '/api/v1/receiver/data',    // endpoint
         'POST',                     // method
         500,                        // statusCode
@@ -784,61 +786,61 @@ export class ReceiverService {
 
 
   /**
-   * ✅ 使用CollectorService记录请求指标
+   * ✅ 事件化监控 - 记录请求指标
+   * 符合监控组件集成规范，使用事件驱动方式
    */
-  private recordRequestMetrics(
+  private emitRequestMetrics(
     endpoint: string,
     method: string,
     statusCode: number,
     processingTime: number,
     metadata: Record<string, any>
   ): void {
-    try {
-      // 使用CollectorService的标准接口
-      this.collectorService.recordRequest(
-        endpoint,           // endpoint
-        method,             // method  
-        statusCode,         // statusCode
-        processingTime,     // duration
-        metadata            // metadata
-      );
-    } catch (error) {
-      // 监控失败不影响业务
-      this.logger.warn(`监控记录失败: ${error.message}`, { endpoint, metadata });
-    }
+    // ✅ 使用 setImmediate 确保异步处理，不阻塞业务逻辑
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'receiver',
+        metricType: 'api',
+        metricName: 'request_processed',
+        metricValue: processingTime,
+        tags: {
+          endpoint,
+          method,
+          status_code: statusCode,
+          component: 'receiver',
+          operation: metadata.operation || 'unknown',
+          provider: metadata.provider || 'unknown',
+          symbols_count: metadata.symbolsCount || 0,
+          market: metadata.market || 'unknown'
+        }
+      });
+    });
   }
 
   /**
-   * ✅ 更新活跃连接监控
+   * ✅ 事件化监控 - 更新活跃连接监控
+   * 符合监控组件集成规范，使用事件驱动方式
    */
   private updateActiveConnections(delta: number): void {
     this.activeConnections = Math.max(0, this.activeConnections + delta);
     
-    try {
-      // 通过系统指标记录连接数
-      // 调用标准系统指标记录，符合 SystemMetricsDto 接口
-      this.collectorService.recordSystemMetrics({
-        memory: { used: 0, total: 0, percentage: 0 },
-        cpu: { usage: 0 },
-        uptime: process.uptime(),
-        timestamp: new Date()
-      });
-      
-      // 额外通过请求记录方式传递自定义指标
-      this.collectorService.recordRequest(
-        '/internal/active-connections',
-        'POST',
-        200,
-        0, // 无耗时
-        {
-          activeConnections: this.activeConnections,
-          componentType: 'receiver',
-          metricType: 'connection_count'
+    // ✅ 使用 setImmediate 确保异步处理，不阻塞业务逻辑
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'receiver',
+        metricType: 'connection',
+        metricName: 'active_connections',
+        metricValue: this.activeConnections,
+        tags: {
+          component: 'receiver',
+          operation: delta > 0 ? 'connect' : 'disconnect',
+          connection_delta: delta,
+          uptime: process.uptime()
         }
-      );
-    } catch (error) {
-      this.logger.warn(`活跃连接监控记录失败: ${error.message}`);
-    }
+      });
+    });
   }
 
 

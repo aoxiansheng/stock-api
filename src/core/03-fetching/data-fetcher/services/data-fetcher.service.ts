@@ -4,9 +4,10 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger, sanitizeLogData } from '@app/config/logger.config';
 import { CapabilityRegistryService } from '../../../../providers/services/capability-registry.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import {
   IDataFetcher,
   DataFetchParams,
@@ -58,7 +59,7 @@ export class DataFetcherService implements IDataFetcher {
 
   constructor(
     private readonly capabilityRegistryService: CapabilityRegistryService,
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -102,14 +103,23 @@ export class DataFetcherService implements IDataFetcher {
       const rawData = await cap.execute(executionParams);
       const apiDuration = Date.now() - apiStartTime;
       
-      // 记录API调用指标
-      this.collectorService.recordRequest(
-        'external_api',
-        `${provider}/${capability}`,
-        200, // 成功状态码
-        apiDuration,
-        { requestId, symbolsCount: symbols.length }
-      );
+      // 记录API调用指标 - 事件驱动方式
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_fetcher',
+          metricType: 'external_api',
+          metricName: 'api_call_completed',
+          metricValue: apiDuration,
+          tags: {
+            provider,
+            capability,
+            status: 'success',
+            requestId,
+            symbolsCount: symbols.length
+          }
+        });
+      });
       
       // 4. 处理返回数据格式
       const processedData = this.processRawData(rawData);
@@ -120,20 +130,24 @@ export class DataFetcherService implements IDataFetcher {
       // 📁 不得在业务组件中重复实现系统级监控功能
       // 🎯 组件级监控只记录业务相关的性能指标
       
-      // 记录额外的性能数据
-      this.collectorService.recordRequest(
-        '/internal/data-fetcher-metrics',
-        'POST',
-        200,
-        processingTime,
-        {
-          symbolsCount: symbols.length,
-          timePerSymbol: symbols.length > 0 ? processingTime / symbols.length : 0,
-          provider,
-          capability,
-          componentType: 'data_fetcher'
-        }
-      );
+      // 记录处理性能数据 - 事件驱动方式
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_fetcher',
+          metricType: 'business',
+          metricName: 'data_processing_completed',
+          metricValue: processingTime,
+          tags: {
+            provider,
+            capability,
+            symbolsCount: symbols.length,
+            timePerSymbol: symbols.length > 0 ? processingTime / symbols.length : 0,
+            componentType: 'data_fetcher',
+            requestId
+          }
+        });
+      });
       
       // 6. 构建结果
       const result: RawDataResult = {
@@ -163,22 +177,28 @@ export class DataFetcherService implements IDataFetcher {
     } catch (error) {
       const processingTime = Date.now() - startTime;
       
-      // 记录失败的外部API调用
-      try {
-        this.collectorService.recordRequest(
-          'external_api_error',
-          `${provider}/${capability}`,
-          500, // 错误状态码
-          processingTime,
-          { 
-            requestId, 
-            error: error.message, 
-            symbolsCount: symbols.length 
-          }
-        );
-      } catch(monitorError) {
-        // 忽略监控记录失败
-      }
+      // 记录失败的外部API调用 - 事件驱动方式
+      setImmediate(() => {
+        try {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: 'data_fetcher',
+            metricType: 'external_api',
+            metricName: 'api_call_failed',
+            metricValue: processingTime,
+            tags: {
+              provider,
+              capability,
+              status: 'error',
+              requestId,
+              error: error.message,
+              symbolsCount: symbols.length
+            }
+          });
+        } catch (monitorError) {
+          // 忽略监控事件发送失败
+        }
+      });
       
       this.logger.error('原始数据获取失败', 
         sanitizeLogData({
@@ -240,16 +260,21 @@ export class DataFetcherService implements IDataFetcher {
       const result = await providerInstance.getContextService();
       const duration = Date.now() - startTime;
 
-      // 记录数据库操作性能指标
-      this.collectorService.recordDatabaseOperation(
-        'provider_context_query',
-        duration,
-        true, // 成功标志
-        {
-          provider,
-          operation: 'get_context_service'
-        }
-      );
+      // 记录数据库操作性能指标 - 事件驱动方式
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_fetcher',
+          metricType: 'database',
+          metricName: 'provider_context_query',
+          metricValue: duration,
+          tags: {
+            provider,
+            operation: 'get_context_service',
+            status: 'success'
+          }
+        });
+      });
       
       return result;
       
@@ -335,20 +360,23 @@ export class DataFetcherService implements IDataFetcher {
     // 📁 复用现有监控组件，不得新建系统级监控功能
     // 🎯 此处保留业务级监控指标即可
     
-    // 记录批量处理详细指标
-    this.collectorService.recordRequest(
-      '/internal/batch-metrics',
-      'POST',
-      200,
-      0, // 无耗时
-      {
-        totalRequests: requests.length,
-        successCount: results.filter(r => !r.hasPartialFailures).length,
-        partialFailuresCount: results.filter(r => r.hasPartialFailures).length,
-        componentType: 'data_fetcher',
-        operation: 'batch_processing'
-      }
-    );
+    // 记录批量处理详细指标 - 事件驱动方式
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'data_fetcher',
+        metricType: 'business',
+        metricName: 'batch_processing_completed',
+        metricValue: results.length,
+        tags: {
+          totalRequests: requests.length,
+          successCount: results.filter(r => !r.hasPartialFailures).length,
+          partialFailuresCount: results.filter(r => r.hasPartialFailures).length,
+          componentType: 'data_fetcher',
+          operation: 'batch_processing'
+        }
+      });
+    });
     
     this.logger.debug('批量数据获取完成', {
       totalRequests: requests.length,

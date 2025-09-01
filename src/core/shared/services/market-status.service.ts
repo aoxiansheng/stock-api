@@ -4,9 +4,10 @@
  */
 
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@app/config/logger.config";
-import { CollectorService } from '../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 import {
   MarketStatus,
   MarketTradingHours,
@@ -57,7 +58,7 @@ export class MarketStatusService implements OnModuleDestroy {
   private readonly logger = createLogger(MarketStatusService.name);
 
   constructor(
-    private readonly collectorService: CollectorService, // ✅ 标准依赖注入
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
   ) {}
 
   // 🔧 Phase 1.3.1: 静态时区格式化器缓存（解决415-424行性能问题）
@@ -92,8 +93,8 @@ export class MarketStatusService implements OnModuleDestroy {
       if (cached) {
         cacheHit = true;
         
-        // ✅ 缓存命中监控
-        this.safeRecordCacheOperation('get', true, Date.now() - startTime, {
+        // ✅ 事件化缓存命中监控
+        this.emitCacheEvent('get', true, Date.now() - startTime, {
           market,
           operation: 'get_market_status',
           source: 'memory_cache'
@@ -114,8 +115,8 @@ export class MarketStatusService implements OnModuleDestroy {
       // 5. 缓存结果
       this.cacheStatus(market, finalStatus);
       
-      // ✅ 缓存未命中监控
-      this.safeRecordCacheOperation('get', false, Date.now() - startTime, {
+      // ✅ 事件化缓存未命中监控
+      this.emitCacheEvent('get', false, Date.now() - startTime, {
         market,
         operation: 'get_market_status',
         calculation_required: true
@@ -123,14 +124,12 @@ export class MarketStatusService implements OnModuleDestroy {
 
       return finalStatus;
     } catch (error) {
-      // ✅ 错误监控
-      this.safeRecordRequest(
-        `/internal/market-status/${market}`,
-        'GET',
+      // ✅ 事件化错误监控
+      this.emitRequestEvent(
+        'get_market_status',
         500,
         Date.now() - startTime,
         {
-          operation: 'get_market_status',
           market,
           cache_hit: cacheHit,
           error: error.message
@@ -178,14 +177,12 @@ export class MarketStatusService implements OnModuleDestroy {
         }
       });
 
-      // ✅ 批量操作监控
-      this.safeRecordRequest(
-        '/internal/market-status/batch',
-        'POST', 
+      // ✅ 事件化批量操作监控
+      this.emitRequestEvent(
+        'batch_market_status',
         errorCount > 0 ? 207 : 200, // 207=部分成功
         Date.now() - startTime,
         {
-          operation: 'batch_market_status',
           total_markets: markets.length,
           success_count: successCount,
           error_count: errorCount,
@@ -195,14 +192,12 @@ export class MarketStatusService implements OnModuleDestroy {
 
       return statusMap;
     } catch (error) {
-      // ✅ 批量操作失败监控
-      this.safeRecordRequest(
-        '/internal/market-status/batch',
-        'POST',
+      // ✅ 事件化批量操作失败监控
+      this.emitRequestEvent(
+        'batch_market_status_failed',
         500,
         Date.now() - startTime,
         {
-          operation: 'batch_market_status',
           total_markets: markets.length,
           error: error.message
         }
@@ -616,23 +611,45 @@ export class MarketStatusService implements OnModuleDestroy {
     MarketStatusService.formatters.clear();
   }
 
-  // ✅ 监控故障隔离方法
-  private safeRecordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+  // ✅ 事件驱动监控方法
+  private emitRequestEvent(operation: string, statusCode: number, duration: number, metadata: any) {
     setImmediate(() => {
       try {
-        this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'market_status_service',
+          metricType: 'business',
+          metricName: operation,
+          metricValue: duration,
+          tags: {
+            status_code: statusCode,
+            status: statusCode < 400 ? 'success' : 'error',
+            ...metadata
+          }
+        });
       } catch (error) {
-        this.logger.warn('监控记录失败', { error: error.message, endpoint, method });
+        this.logger.warn('事件发送失败', { error: error.message, operation });
       }
     });
   }
 
-  private safeRecordCacheOperation(operation: string, hit: boolean, duration: number, metadata: any) {
+  private emitCacheEvent(operation: string, hit: boolean, duration: number, metadata: any) {
     setImmediate(() => {
       try {
-        this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'market_status_service',
+          metricType: 'cache',
+          metricName: `cache_${operation}`,
+          metricValue: duration,
+          tags: {
+            hit: hit.toString(),
+            operation,
+            ...metadata
+          }
+        });
       } catch (error) {
-        this.logger.warn('缓存监控记录失败', { error: error.message, operation });
+        this.logger.warn('缓存事件发送失败', { error: error.message, operation });
       }
     });
   }

@@ -1,5 +1,6 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 
+import { createLogger } from "@app/config/logger.config";
 import { PermissionDecoratorValidator, ValidationResult } from '../validators/permission-decorator.validator';
 
 /**
@@ -9,7 +10,7 @@ import { PermissionDecoratorValidator, ValidationResult } from '../validators/pe
  */
 @Injectable()
 export class PermissionValidationService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(PermissionValidationService.name);
+  private readonly logger = createLogger(PermissionValidationService.name);
   private lastValidationResult: ValidationResult[] = [];
 
   constructor(

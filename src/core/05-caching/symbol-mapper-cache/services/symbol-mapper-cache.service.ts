@@ -2,7 +2,8 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/commo
 import { LRUCache } from 'lru-cache';
 import  crypto from 'crypto';
 import { FeatureFlags } from '@config/feature-flags.config';
-import { CollectorService } from '../../../../monitoring/collector/collector.service'; // ✅ 更换为CollectorService
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { SymbolMappingRepository } from '../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { SymbolMappingRule } from '../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { createLogger } from '@app/config/logger.config';
@@ -53,7 +54,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
-    private readonly collectorService: CollectorService, // 🗑️ 移除字符串token，直接使用CollectorService类
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动：仅注入事件总线
   ) {
     this.initializeCaches();
     this.initializeStats();
@@ -440,35 +441,50 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 📊 监控指标策略 - 避免指标类型冲突
+   * 📊 事件驱动监控指标记录 - 符合项目规范
    */
   private recordCacheMetrics(level: 'l1'|'l2'|'l3', isHit: boolean): void {
-    try {
-      // ✅ 使用CollectorService的业务语义化接口
-      this.collectorService.recordCacheOperation(
-        `symbol_mapping_${level}`, // 操作名
-        isHit,                     // 是否命中
-        0,                         // duration（符号映射缓存通常很快）
-        { 
+    // ✅ 事件驱动：异步发送监控事件
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'symbol_mapper_cache',
+        metricType: 'cache',
+        metricName: `cache_${isHit ? 'hit' : 'miss'}`,
+        metricValue: 1,
+        tags: {
+          layer: level,
           cacheType: 'symbol-mapper',
-          level: level,            // l1/l2/l3
-          layer: level             // 用于区分不同缓存层级
+          operation: isHit ? 'hit' : 'miss',
+          level: level
         }
-      );
-    } catch (error) {
-      // ✅ 监控失败不影响业务
-      this.logger.debug(`符号映射缓存监控记录失败: ${error.message}`);
-    }
+      });
+    });
   }
 
   /**
-   * 缓存禁用专用方法，避免产生 symbol_mapping_disabled 标签
+   * 缓存禁用事件记录 - 事件驱动模式
    */
   private recordCacheDisabled(): void {
     this.logger.warn('Symbol mapping cache disabled by feature flag', {
       reason: 'feature_flag_disabled',
       provider: 'symbol_mapper',
       timestamp: new Date().toISOString()
+    });
+    
+    // ✅ 事件驱动：发送缓存禁用事件
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'symbol_mapper_cache',
+        metricType: 'cache',
+        metricName: 'cache_disabled',
+        metricValue: 1,
+        tags: {
+          reason: 'feature_flag_disabled',
+          cacheType: 'symbol-mapper'
+        }
+      });
     });
   }
 
@@ -479,15 +495,33 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     cacheHits: number
   ): void {
     const hitRatio = (cacheHits / symbolsCount) * 100;
+    const cacheEfficiency = hitRatio > 80 ? 'high' : hitRatio > 50 ? 'medium' : 'low';
     
-    // 避免与Counter类型的streamCacheHitRate冲突
-    // 方式1：仅记录日志，不新增指标
+    // 日志记录
     this.logger.log('Symbol mapping performance', {
       provider: provider.toLowerCase(),
       symbolsCount,
       processingTime,
       hitRatio,
-      cacheEfficiency: hitRatio > 80 ? 'high' : hitRatio > 50 ? 'medium' : 'low'
+      cacheEfficiency
+    });
+    
+    // ✅ 事件驱动：发送性能指标事件
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'symbol_mapper_cache',
+        metricType: 'performance',
+        metricName: 'mapping_performance',
+        metricValue: processingTime,
+        tags: {
+          provider: provider.toLowerCase(),
+          symbolsCount: symbolsCount.toString(),
+          hitRatio: Math.round(hitRatio).toString(),
+          cacheEfficiency,
+          cacheType: 'symbol-mapper'
+        }
+      });
     });
   }
 

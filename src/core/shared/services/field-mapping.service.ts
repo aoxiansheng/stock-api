@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger } from '@app/config/logger.config';
-import { CollectorService } from '../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 import {
   ReceiverType,
   StorageClassification,
@@ -18,7 +19,7 @@ export class FieldMappingService {
   private readonly logger = createLogger(FieldMappingService.name);
 
   constructor(
-    private readonly collectorService: CollectorService, // ✅ 新增监控依赖
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
   ) {}
 
   /**
@@ -173,13 +174,24 @@ export class FieldMappingService {
     };
   }
 
-  // ✅ 监控故障隔离方法（为保持架构一致性而添加，虽然此服务监控需求较低）
-  private safeRecordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+  // ✅ 事件驱动监控方法（为保持架构一致性而添加，虽然此服务监控需求较低）
+  private emitMappingEvent(operation: string, statusCode: number, duration: number, metadata: any) {
     setImmediate(() => {
       try {
-        this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'field_mapping_service',
+          metricType: 'business',
+          metricName: operation,
+          metricValue: duration,
+          tags: {
+            status_code: statusCode,
+            status: statusCode < 400 ? 'success' : 'error',
+            ...metadata
+          }
+        });
       } catch (error) {
-        this.logger.warn('字段映射监控记录失败', { error: error.message });
+        this.logger.warn('字段映射事件发送失败', { error: error.message, operation });
       }
     });
   }

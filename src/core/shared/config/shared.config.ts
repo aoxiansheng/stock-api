@@ -7,6 +7,10 @@
  * 使用 TypeScript const 断言确保类型安全
  */
 
+import { createLogger } from '@app/config/logger.config';
+
+const logger = createLogger('SharedConfig');
+
 /**
  * Shared 组件统一配置
  */
@@ -179,7 +183,7 @@ export function validateConfig(config: Partial<SharedConfig>): boolean {
   }
   
   if (config.PERFORMANCE?.RETRY_CONFIG?.MAX_RETRIES && config.PERFORMANCE.RETRY_CONFIG.MAX_RETRIES > 10) {
-    console.warn('重试次数过多可能影响性能');
+    logger.warn('重试次数过多可能影响性能');
   }
   
   return true;

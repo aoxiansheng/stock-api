@@ -22,7 +22,6 @@ import { createLogger } from "@app/config/logger.config";
 import {
   ApiSuccessResponse,
   ApiStandardResponses,
-  ApiHealthResponse,
 } from "@common/core/decorators/swagger-responses.decorator";
 
 import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
@@ -592,83 +591,7 @@ export class QueryController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_HEALTH)
-  @Throttle({ default: { limit: 60, ttl: 60000 } })
-  @Get("health")
-  @ApiOperation({
-    summary: "查询服务健康检查",
-    description:
-      "测试查询服务功能和数据源连接状态，检查缓存、持久化存储和实时数据源的可用性（需要API Key认证）",
-  })
-  @ApiHealthResponse()
-  async healthCheck() {
-    this.logger.log(`API Request: Query service health check`);
-
-    const startTime = Date.now();
-
-    try {
-      // Test basic query functionality
-      const testQuery: QueryRequestDto = {
-        queryType: QueryType.BY_SYMBOLS,
-        symbols: ["TEST"],
-        queryTypeFilter: "get-stock-quote",
-        options: {
-          useCache: false,
-        },
-      };
-
-      const result = await this.queryService.executeQuery(testQuery);
-      const latency = Date.now() - startTime;
-
-      // The result might not succeed (TEST symbol doesn't exist), but service should respond
-      const queryServiceHealthy = result !== null;
-
-      const healthResult = {
-        queryService: {
-          available: queryServiceHealthy,
-          latency,
-        },
-        // 过滤敏感信息，只返回基础健康状态
-        overallHealth: {
-          healthy: queryServiceHealthy,
-          timestamp: new Date().toISOString(),
-        },
-      };
-
-      this.logger.log(`API Success: Query service health check completed`, {
-        queryServiceHealthy,
-        latency,
-        overallHealthy: healthResult.overallHealth.healthy,
-      });
-
-      // 遵循控制器编写规范：让拦截器自动处理响应格式化
-      return healthResult;
-    } catch (error: any) {
-      const latency = Date.now() - startTime;
-
-      this.logger.error(`API Error: Query service health check failed`, {
-        error: error.message,
-        latency,
-      });
-
-      const healthResult = {
-        queryService: {
-          available: false,
-          latency,
-        },
-        // 过滤敏感信息，只返回基础健康状态
-        overallHealth: {
-          healthy: false,
-          timestamp: new Date().toISOString(),
-        },
-      };
-
-      // 遵循控制器编写规范：让拦截器自动处理响应格式化，但需要抛出错误让系统处理
-      const healthError = new Error("查询服务健康检查失败");
-      (healthError as any).statusCode = 503;
-      (healthError as any).data = healthResult;
-      throw healthError;
-    }
-  }
+  // ✅ 自定义健康检查端点已移除
+  // 符合监控组件集成规范，健康检查统一由全局监控组件提供
+  // 请使用: /api/v1/monitoring/health/score
 }

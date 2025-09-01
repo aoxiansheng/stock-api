@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { DataMapperModule } from "../../../00-prepare/data-mapper/module/data-mapper.module";
@@ -11,6 +12,7 @@ import { DataTransformerService } from "../services/data-transformer.service";
   imports: [
     AuthModule, 
     DataMapperModule,
+    EventEmitterModule, // ✅ 事件驱动监控必需
     MonitoringModule, // ✅ 标准监控模块导入
   ],
   controllers: [DataTransformerController],

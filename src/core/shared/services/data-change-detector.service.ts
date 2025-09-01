@@ -4,9 +4,10 @@
  */
 
 import { Injectable } from "@nestjs/common";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@app/config/logger.config";
-import { CollectorService } from '../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 import {
   MarketStatus,
   CHANGE_DETECTION_THRESHOLDS,
@@ -81,7 +82,7 @@ export class DataChangeDetectorService {
   private readonly logger = createLogger(DataChangeDetectorService.name);
 
   constructor(
-    private readonly collectorService: CollectorService, // ✅ 新增监控依赖
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
   ) {}
 
   // 内存中的数据快照缓存（Redis故障时的降级方案）
@@ -113,14 +114,12 @@ export class DataChangeDetectorService {
         // 首次数据，直接认为有变化
         await this.saveSnapshot(symbol, newData);
         
-        // ✅ 首次检测监控
-        this.safeRecordRequest(
-          '/internal/change-detection',
-          'POST',
+        // ✅ 事件化首次检测监控
+        this.emitDetectionEvent(
+          'detect_significant_change_first_time',
           200,
           Date.now() - startTime,
           {
-            operation: 'detect_significant_change',
             symbol,
             market,
             market_status: marketStatus,
@@ -134,14 +133,12 @@ export class DataChangeDetectorService {
       // 2. 快速校验和比较（最快的检测方式）
       const newChecksum = this.calculateQuickChecksum(newData);
       if (newChecksum === lastSnapshot.checksum) {
-        // ✅ 无变化监控
-        this.safeRecordRequest(
-          '/internal/change-detection',
-          'POST',
+        // ✅ 事件化无变化监控
+        this.emitDetectionEvent(
+          'detect_no_change',
           200,
           Date.now() - startTime,
           {
-            operation: 'detect_significant_change',
             symbol,
             market,
             market_status: marketStatus,
@@ -167,14 +164,12 @@ export class DataChangeDetectorService {
         await this.saveSnapshot(symbol, newData);
       }
 
-      // ✅ 检测成功监控
-      this.safeRecordRequest(
-        '/internal/change-detection',
-        'POST',
+      // ✅ 事件化检测成功监控
+      this.emitDetectionEvent(
+        'detect_significant_change',
         200,
         Date.now() - startTime,
         {
-          operation: 'detect_significant_change',
           symbol,
           market,
           market_status: marketStatus,
@@ -190,14 +185,12 @@ export class DataChangeDetectorService {
       
       return changeResult;
     } catch (error) {
-      // ✅ 检测失败监控
-      this.safeRecordRequest(
-        '/internal/change-detection',
-        'POST',
+      // ✅ 事件化检测失败监控
+      this.emitDetectionEvent(
+        'detect_significant_change_failed',
         500,
         Date.now() - startTime,
         {
-          operation: 'detect_significant_change',
           symbol,
           market,
           error: error.message
@@ -425,8 +418,8 @@ export class DataChangeDetectorService {
       const snapshot = this.snapshotCache.get(symbol) || null;
       const hit = snapshot !== null;
       
-      // ✅ 缓存操作监控
-      this.safeRecordCacheOperation('get', hit, Date.now() - startTime, {
+      // ✅ 事件化缓存操作监控
+      this.emitCacheEvent('get', hit, Date.now() - startTime, {
         cache_type: 'memory',
         operation: 'get_snapshot',
         symbol
@@ -434,8 +427,8 @@ export class DataChangeDetectorService {
       
       return snapshot;
     } catch (error) {
-      // ✅ 缓存错误监控
-      this.safeRecordCacheOperation('get', false, Date.now() - startTime, {
+      // ✅ 事件化缓存错误监控
+      this.emitCacheEvent('get', false, Date.now() - startTime, {
         cache_type: 'memory',
         operation: 'get_snapshot',
         symbol,
@@ -538,23 +531,45 @@ export class DataChangeDetectorService {
     }
   }
 
-  // ✅ 监控故障隔离方法
-  private safeRecordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+  // ✅ 事件驱动监控方法
+  private emitDetectionEvent(operation: string, statusCode: number, duration: number, metadata: any) {
     setImmediate(() => {
       try {
-        this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_change_detector_service',
+          metricType: 'business',
+          metricName: operation,
+          metricValue: duration,
+          tags: {
+            status_code: statusCode,
+            status: statusCode < 400 ? 'success' : 'error',
+            ...metadata
+          }
+        });
       } catch (error) {
-        this.logger.warn('变化检测监控记录失败', { error: error.message });
+        this.logger.warn('检测事件发送失败', { error: error.message, operation });
       }
     });
   }
 
-  private safeRecordCacheOperation(operation: string, hit: boolean, duration: number, metadata: any) {
+  private emitCacheEvent(operation: string, hit: boolean, duration: number, metadata: any) {
     setImmediate(() => {
       try {
-        this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_change_detector_service',
+          metricType: 'cache',
+          metricName: `cache_${operation}`,
+          metricValue: duration,
+          tags: {
+            hit: hit.toString(),
+            operation,
+            ...metadata
+          }
+        });
       } catch (error) {
-        this.logger.warn('缓存操作监控记录失败', { error: error.message });
+        this.logger.warn('缓存事件发送失败', { error: error.message, operation });
       }
     });
   }

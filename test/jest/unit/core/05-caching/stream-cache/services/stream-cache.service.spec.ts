@@ -1,25 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StreamCacheService } from '../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
 import { StreamDataPoint, StreamCacheStats } from '../../../../../../../src/core/05-caching/stream-cache/interfaces/stream-cache.interface';
 import { DEFAULT_STREAM_CACHE_CONFIG } from '../../../../../../../src/core/05-caching/stream-cache/constants/stream-cache.constants';
+import { CACHE_REDIS_CLIENT_TOKEN, STREAM_CACHE_CONFIG_TOKEN } from '../../../../../../../src/monitoring/contracts';
 import Redis from 'ioredis';
 
-// Mock CollectorService class
-class MockCollectorService {
-  recordRequest = jest.fn();
-  recordDatabaseOperation = jest.fn();
-  recordCacheOperation = jest.fn();
-  recordSystemMetrics = jest.fn();
-  getRawMetrics = jest.fn();
-  getSystemMetrics = jest.fn();
-  flushBuffer = jest.fn();
-  cleanup = jest.fn();
+// Mock EventEmitter2 class
+class MockEventEmitter2 {
+  emit = jest.fn();
+  on = jest.fn();
+  off = jest.fn();
+  removeAllListeners = jest.fn();
 }
 
 describe('StreamCacheService', () => {
   let service: StreamCacheService;
   let mockRedisClient: jest.Mocked<Redis>;
-  let mockCollectorService: MockCollectorService;
+  let mockEventBus: MockEventEmitter2;
   let module: TestingModule;
 
   // 测试数据
@@ -49,22 +47,22 @@ describe('StreamCacheService', () => {
       providers: [
         StreamCacheService,
         {
-          provide: 'REDIS_CLIENT',
+          provide: CACHE_REDIS_CLIENT_TOKEN,
           useValue: mockRedisClient,
         },
         {
-          provide: 'STREAM_CACHE_CONFIG',
+          provide: STREAM_CACHE_CONFIG_TOKEN,
           useValue: DEFAULT_STREAM_CACHE_CONFIG,
         },
         {
-          provide: 'CollectorService',
-          useClass: MockCollectorService,
+          provide: EventEmitter2,
+          useClass: MockEventEmitter2,
         },
       ],
     }).compile();
 
     service = module.get<StreamCacheService>(StreamCacheService);
-    mockCollectorService = module.get('CollectorService');
+    mockEventBus = module.get<MockEventEmitter2>(EventEmitter2);
   });
 
   afterEach(async () => {
@@ -85,10 +83,10 @@ describe('StreamCacheService', () => {
       });
     });
 
-    it('应该正确注入CollectorService', () => {
-      expect(mockCollectorService).toBeDefined();
-      expect(mockCollectorService.recordCacheOperation).toBeDefined();
-      expect(typeof mockCollectorService.recordCacheOperation).toBe('function');
+    it('应该正确注入EventEmitter2', () => {
+      expect(mockEventBus).toBeDefined();
+      expect(mockEventBus.emit).toBeDefined();
+      expect(typeof mockEventBus.emit).toBe('function');
     });
   });
 
@@ -107,21 +105,30 @@ describe('StreamCacheService', () => {
       expect(result![0].s).toBe('AAPL.US');
       expect(result![1].s).toBe('TSLA.US');
       
-      // 验证统计信息（已迁移到监控系统）
+      // 验证统计信息（已迁移到事件驱动监控）
       const stats = service.getCacheStats();
-      expect(stats.hotCacheHits).toBe(0); // 已迁移到CollectorService
-      expect(stats.hotCacheMisses).toBe(0); // 已迁移到CollectorService
+      expect(stats.hotCacheHits).toBe(0); // 已迁移到事件监控
+      expect(stats.hotCacheMisses).toBe(0); // 已迁移到事件监控
       
-      // 验证CollectorService被调用
-      expect(mockCollectorService.recordCacheOperation).toHaveBeenCalledWith(
-        'get', 
-        true, 
-        expect.any(Number), 
-        {
-          cacheType: 'stream-cache', 
-          layer: 'hot'
-        }
-      );
+      // 等待事件发送（由于setImmediate是异步的）
+      await new Promise(resolve => setImmediate(resolve));
+      
+      // 验证事件被发送 (setData + getData = 2次调用)
+      expect(mockEventBus.emit).toHaveBeenCalledTimes(2);
+      
+      // 验证最后一次调用是getData的成功事件
+      const lastCall = mockEventBus.emit.mock.calls[mockEventBus.emit.mock.calls.length - 1];
+      expect(lastCall[0]).toBe('system-status.metric.collected');
+      expect(lastCall[1]).toMatchObject({
+        source: 'stream-cache',
+        metricType: 'cache',
+        metricName: 'cache_get_success',
+        tags: expect.objectContaining({
+          cacheType: 'stream-cache',
+          layer: 'hot',
+          success: 'true'
+        })
+      });
     });
 
     it('Warm Cache命中 - 应该从Redis获取并提升到Hot Cache', async () => {
@@ -339,7 +346,7 @@ describe('StreamCacheService', () => {
       mockRedisClient.del.mockRejectedValueOnce(new Error('Redis error'));
       
       // 不应该抛出异常
-      await expect(service.deleteData('test:delete')).resolves.not.toThrow();
+      await expect(service.deleteData('test:delete')).resolves.toBeUndefined();
     });
   });
 
@@ -375,7 +382,7 @@ describe('StreamCacheService', () => {
     it('没有键时应该正常处理', async () => {
       mockRedisClient.keys.mockResolvedValueOnce([]);
       
-      await expect(service.clearAll()).resolves.not.toThrow();
+      await expect(service.clearAll()).resolves.toBeUndefined();
       expect(mockRedisClient.del).not.toHaveBeenCalled();
     });
   });
@@ -407,8 +414,8 @@ describe('StreamCacheService', () => {
       // 设置较小的容量进行测试
       const smallConfigService = new StreamCacheService(
         mockRedisClient,
-        mockCollectorService,
-        DEFAULT_STREAM_CACHE_CONFIG
+        mockEventBus,
+        { ...DEFAULT_STREAM_CACHE_CONFIG, maxHotCacheSize: 2 }
       );
       
       mockRedisClient.setex.mockResolvedValue('OK');
@@ -429,8 +436,8 @@ describe('StreamCacheService', () => {
       // 使用短TTL进行测试
       const shortTtlService = new StreamCacheService(
         mockRedisClient,
-        mockCollectorService,
-        DEFAULT_STREAM_CACHE_CONFIG
+        mockEventBus,
+        { ...DEFAULT_STREAM_CACHE_CONFIG, hotCacheTTL: 50 }
       );
       
       await shortTtlService.setData('ttl:key', mockRawData, 'hot');

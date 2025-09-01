@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
@@ -20,6 +21,7 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
 
 @Module({
   imports: [
+    EventEmitterModule, // ✅ 事件驱动监控必需
     AuthModule, 
     StorageModule, 
     SharedServicesModule,
@@ -51,4 +53,9 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
     QueryExecutorFactory,
   ],
 })
-export class QueryModule {}
+export class QueryModule {
+  // ✅ 事件驱动监控架构已集成
+  // - 所有监控逻辑改为事件发送方式
+  // - 彻底移除直接CollectorService依赖
+  // - 符合全局监控器规范要求
+}

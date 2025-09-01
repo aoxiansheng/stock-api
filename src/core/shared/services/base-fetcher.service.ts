@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger, sanitizeLogData } from '@app/config/logger.config';
-import { CollectorService } from '../../../monitoring/collector/collector.service';
+import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 import { NotFoundException } from '@nestjs/common';
 
 /**
@@ -32,11 +33,11 @@ export abstract class BaseFetcherService {
   protected readonly logger = createLogger(this.constructor.name);
 
   /**
-   * 🎯 Phase 1: 使用 CollectorService 作为统一监控接口
-   * 遵循四层监控架构，shared组件只使用Collector层
+   * 🎯 事件驱动监控架构
+   * 使用 EventEmitter2 实现完全解耦的监控
    */
   constructor(
-    protected readonly collectorService: CollectorService,
+    protected readonly eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -61,10 +62,9 @@ export abstract class BaseFetcherService {
         const result = await operation();
         const duration = Date.now() - startTime;
         
-        // ✅ 成功监控 - 使用外部API调用监控
-        this.safeRecordExternalCall(
+        // ✅ 事件化成功监控
+        this.emitExternalCallEvent(
           context,
-          'POST', // 假设大多数操作是POST
           200,
           duration,
           {
@@ -90,10 +90,9 @@ export abstract class BaseFetcherService {
         lastError = error;
         
         if (attempt === maxRetries) {
-          // ✅ 最终失败监控
-          this.safeRecordExternalCall(
+          // ✅ 事件化最终失败监控
+          this.emitExternalCallEvent(
             context,
-            'POST',
             500,
             Date.now() - startTime,
             {
@@ -155,11 +154,9 @@ export abstract class BaseFetcherService {
         threshold: slowThresholdMs,
       }));
 
-      // ✅ 慢响应监控 - 使用HTTP请求监控记录
-      this.safeRecordExternalCall(
-        `/performance/${operation}`,
-        'GET',
-        200,
+      // ✅ 事件化慢响应监控
+      this.emitPerformanceEvent(
+        `${operation}_slow_response`,
         processingTime,
         {
           operation: operation,
@@ -203,13 +200,44 @@ export abstract class BaseFetcherService {
     );
   }
 
-  // ✅ 使用HTTP请求监控记录外部API调用
-  private safeRecordExternalCall(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
+  // ✅ 事件驱动外部API调用监控
+  private emitExternalCallEvent(operation: string, statusCode: number, duration: number, metadata: any) {
     setImmediate(() => {
       try {
-        this.collectorService.recordRequest(`/external/${endpoint}`, method, statusCode, duration, metadata);
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'base_fetcher_service',
+          metricType: 'external_api',
+          metricName: `external_call_${operation}`,
+          metricValue: duration,
+          tags: {
+            status_code: statusCode,
+            status: statusCode < 400 ? 'success' : 'error',
+            ...metadata
+          }
+        });
       } catch (error) {
-        this.logger.warn('外部调用监控记录失败', { error: error.message, endpoint });
+        this.logger.warn('外部调用事件发送失败', { error: error.message, operation });
+      }
+    });
+  }
+
+  private emitPerformanceEvent(metricName: string, duration: number, metadata: any) {
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'base_fetcher_service',
+          metricType: 'performance',
+          metricName,
+          metricValue: duration,
+          tags: {
+            status: 'warning',
+            ...metadata
+          }
+        });
+      } catch (error) {
+        this.logger.warn('性能事件发送失败', { error: error.message, metricName });
       }
     });
   }

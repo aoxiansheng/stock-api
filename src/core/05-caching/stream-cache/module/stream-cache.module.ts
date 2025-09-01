@@ -3,13 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { StreamCacheService } from '../services/stream-cache.service';
 import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/stream-cache.constants';
-import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 import { 
-  MONITORING_COLLECTOR_TOKEN, 
   CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN 
 } from '../../../../monitoring/contracts';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**
  * 流数据缓存模块
@@ -24,7 +21,7 @@ import { CollectorService } from '../../../../monitoring/collector/collector.ser
 @Module({
   imports: [
     // ConfigModule已通过AppConfigModule全局提供，无需重复导入
-    MonitoringModule, // ✅ 导入监控模块，提供真实CollectorService
+    // EventEmitterModule已通过AppModule全局导入，无需重复导入
   ],
   providers: [
     // Redis客户端提供者 - 专用于流数据缓存
@@ -104,13 +101,7 @@ import { CollectorService } from '../../../../monitoring/collector/collector.ser
       inject: [ConfigService],
     },
 
-    // ✅ 提供CollectorService（从 MonitoringModule 导入）
-    {
-      provide: MONITORING_COLLECTOR_TOKEN,
-      useExisting: CollectorService, // 使用类引用而不是字符串引用
-    },
-
-    // 核心流缓存服务
+    // 核心流缓存服务（使用事件驱动监控）
     StreamCacheService,
   ],
   exports: [

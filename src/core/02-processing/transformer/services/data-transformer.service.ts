@@ -11,7 +11,8 @@ import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
-import { CollectorService } from "../../../../monitoring/collector/collector.service"; // ✅ 新增标准监控依赖
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 import {
   DATATRANSFORM_ERROR_MESSAGES,
@@ -40,7 +41,7 @@ export class DataTransformerService {
 
   constructor(
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
-    private readonly collectorService: CollectorService, // ✅ 标准监控依赖
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
   ) {}
 
   /**
@@ -153,14 +154,24 @@ export class DataTransformerService {
         }),
       );
 
-      // ✅ 使用标准的 CollectorService.recordRequest()
-      this.safeRecordMetrics('/internal/data-transformation', 'POST', 200, processingTime, {
-        operation: 'data-transformation',
-        provider: request.provider,
-        transDataRuleListType: request.transDataRuleListType,
-        recordsProcessed: stats.recordsProcessed,
-        fieldsTransformed: stats.fieldsTransformed,
-        successRate: dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100
+      // ✅ 事件化监控：异步、解耦、高性能
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_transformer',
+          metricType: 'business',
+          metricName: 'transformation_completed',
+          metricValue: processingTime,
+          tags: {
+            operation: 'data-transformation',
+            provider: request.provider,
+            transDataRuleListType: request.transDataRuleListType,
+            status: 'success',
+            recordsProcessed: stats.recordsProcessed,
+            fieldsTransformed: stats.fieldsTransformed,
+            successRate: dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100
+          }
+        });
       });
 
       if (processingTime > DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
@@ -175,13 +186,23 @@ export class DataTransformerService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
 
-      // ✅ 标准错误监控
-      this.safeRecordMetrics('/internal/data-transformation', 'POST', 500, processingTime, {
-        operation: 'data-transformation',
-        provider: request.provider,
-        transDataRuleListType: request.transDataRuleListType,
-        error: error.message,
-        errorType: error.constructor.name
+      // ✅ 事件化错误监控
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'data_transformer',
+          metricType: 'business',
+          metricName: 'transformation_failed',
+          metricValue: processingTime,
+          tags: {
+            operation: 'data-transformation',
+            provider: request.provider,
+            transDataRuleListType: request.transDataRuleListType,
+            status: 'error',
+            error: error.message,
+            errorType: error.constructor.name
+          }
+        });
       });
 
       this.logger.error(
@@ -313,14 +334,24 @@ export class DataTransformerService {
 
     const processingTime = Date.now() - startTime;
 
-    // ✅ 批量操作监控
-    this.safeRecordMetrics('/internal/batch-transformation', 'POST', 200, processingTime, {
-      operation: 'batch-data-transformation',
-      batchSize: requests.length,
-      successCount: successCount,
-      failedCount: requests.length - successCount,
-      successRate: (successCount / requests.length) * 100,
-      providers: [...new Set(requests.map(r => r.provider))]
+    // ✅ 事件化批量操作监控
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'data_transformer',
+        metricType: 'business',
+        metricName: 'batch_transformation_completed',
+        metricValue: processingTime,
+        tags: {
+          operation: 'batch-data-transformation',
+          batchSize: requests.length,
+          successCount: successCount,
+          failedCount: requests.length - successCount,
+          successRate: (successCount / requests.length) * 100,
+          status: 'success',
+          providers: [...new Set(requests.map(r => r.provider))].join(',')
+        }
+      });
     });
 
     this.logger.log(
@@ -497,15 +528,4 @@ export class DataTransformerService {
     };
   }
 
-  /**
-   * ✅ 安全监控包装 - 错误隔离机制
-   */
-  private safeRecordMetrics(endpoint: string, method: string, statusCode: number, duration: number, metadata: any) {
-    try {
-      this.collectorService.recordRequest(endpoint, method, statusCode, duration, metadata);
-    } catch (error) {
-      // 监控失败仅记录日志，不影响业务
-      this.logger.warn(`监控记录失败: ${error.message}`, { endpoint, metadata });
-    }
-  }
 }

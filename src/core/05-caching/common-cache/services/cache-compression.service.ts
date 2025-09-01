@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { gzip, gunzip } from 'zlib';
 import { promisify } from 'util';
+import { createLogger } from '../../../../app/config/logger.config';
 import { CACHE_CONFIG } from '../constants/cache-config.constants';
 import { CacheMetadata } from '../interfaces/cache-metadata.interface';
 
@@ -12,7 +13,7 @@ const gunzipAsync = promisify(gunzip);
  */
 @Injectable()
 export class CacheCompressionService {
-  private readonly logger = new Logger(CacheCompressionService.name);
+  private readonly logger = createLogger(CacheCompressionService.name);
 
   /**
    * 压缩数据

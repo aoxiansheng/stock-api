@@ -7,23 +7,44 @@ import {
 import { Response } from "express";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@app/config/logger.config";
+import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
   private readonly logger = createLogger(ResponseInterceptor.name);
 
+  constructor(private readonly eventBus: EventEmitter2) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const startTime = Date.now();
     const req = context.switchToHttp().getRequest();
-    const label = `ResponseInterceptor耗时-${req.method} ${req.url}`;
-    console.time(label);
+    
     return next.handle().pipe(
       map((data) => {
-        console.timeEnd(label);
+        const duration = Date.now() - startTime;
         const response = context.switchToHttp().getResponse<Response>();
         const request = context.switchToHttp().getRequest();
         const statusCode = response.statusCode;
+
+        // ✅ 事件驱动性能监控
+        setImmediate(() => {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: 'response_interceptor',
+            metricType: 'performance',
+            metricName: 'http_request_duration',
+            metricValue: duration,
+            tags: {
+              method: req.method,
+              url: req.url,
+              status_code: statusCode,
+              status: statusCode < 400 ? 'success' : 'error'
+            }
+          });
+        });
 
         // 如果数据已经是标准格式，直接返回
         if (data && typeof data === "object" && "statusCode" in data && typeof data.statusCode === "number") {

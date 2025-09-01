@@ -82,8 +82,8 @@ batchResultCacheTtl: number;
 
 - `SymbolMappingRepository` - 数据访问层
 - `FeatureFlags` - 配置管理
-- `CollectorService` - 事件驱动监控数据收集
-- `SharedServicesModule` - 共享服务
+- `EventEmitter2` - 事件驱动架构的事件总线 (符合项目监控规范)
+- `DatabaseModule` - 统一数据库模块
 
 ## 测试
 
@@ -123,6 +123,33 @@ npm test test/jest/e2e/core/public/symbol-mapper-cache/
 // 旧的导入 (已废弃)
 import { SymbolMapperCacheService } from '@core/public/symbol-mapper/services/symbol-mapper-cache.service';
 
-// 新的导入
+// 新的导入（事件驱动架构）
 import { SymbolMapperCacheService } from '@core/public/symbol-mapper-cache/services/symbol-mapper-cache.service';
+
+## 监控集成说明
+
+本组件已升级为**事件驱动架构**，符合项目监控组件集成规范：
+
+### ✅ 事件驱动特性
+- 仅注入 `EventEmitter2`，不直接依赖监控服务
+- 使用 `setImmediate()` 异步发送监控事件
+- 使用标准 `SYSTEM_STATUS_EVENTS.METRIC_COLLECTED` 事件类型
+- 监控数据通过事件总线发送，实现完全解耦
+
+### 监控事件示例
+```typescript
+// 缓存命中/未命中事件
+{
+  timestamp: new Date(),
+  source: 'symbol_mapper_cache',
+  metricType: 'cache',
+  metricName: 'cache_hit', // 或 'cache_miss'
+  metricValue: 1,
+  tags: {
+    layer: 'l1', // l1/l2/l3
+    cacheType: 'symbol-mapper',
+    operation: 'hit' // 或 'miss'
+  }
+}
+```
 ```

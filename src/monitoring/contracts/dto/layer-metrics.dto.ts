@@ -1,17 +1,15 @@
 import { IsDate, IsNumber, IsString, IsOptional, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { LayerType } from '../enums/layer-type.enum';
 
 /**
  * 层间性能指标DTO定义
  * 用于监控各层之间的性能表现
+ * 
+ * @deprecated LayerType 枚举已移至 /src/monitoring/contracts/enums/layer-type.enum.ts
+ * 请直接从统一位置导入 LayerType
  */
-
-export enum LayerType {
-  COLLECTOR = 'collector',
-  ANALYZER = 'analyzer',
-  PRESENTER = 'presenter'
-}
 
 export enum OperationType {
   DATA_COLLECTION = 'data_collection',

@@ -2,8 +2,10 @@ import {
   Injectable,
   OnModuleInit,
 } from "@nestjs/common";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { Market } from "@common/constants/market.constants";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 
@@ -34,7 +36,6 @@ import {
 import { QueryRequestDto } from "../dto/query-request.dto";
 import { DataSourceType } from "../enums/data-source-type.enum";
 import { buildStorageKey } from "../utils/query.util";
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
 
 /**
  * Query执行引擎服务
@@ -61,7 +62,7 @@ export class QueryExecutionEngine implements OnModuleInit {
     private readonly marketStatusService: MarketStatusService,
     private readonly fieldMappingService: FieldMappingService,
     private readonly paginationService: PaginationService,
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,
     private readonly queryConfig: QueryConfigService,
     private readonly memoryMonitor: QueryMemoryMonitorService,
@@ -1003,34 +1004,51 @@ export class QueryExecutionEngine implements OnModuleInit {
     market: string,
     efficiency: number
   ): void {
-    try {
-      this.collectorService.recordRequest(
-        '/internal/query-batch-processing',
-        'POST',
-        200,
-        processingTime,
-        {
-          batchSize,
-          market,
-          efficiency,
-          avgTimePerBatch: batchSize > 0 ? processingTime / batchSize : 0,
-          operation: 'batch_processing',
-          componentType: 'query'
-        }
-      );
-    } catch (error) {
-      this.logger.warn(`批处理监控记录失败: ${error.message}`, { batchSize });
-    }
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'query_execution_engine',
+          metricType: 'performance',
+          metricName: 'batch_processing',
+          metricValue: processingTime,
+          tags: {
+            batchSize,
+            market,
+            efficiency,
+            avgTimePerBatch: batchSize > 0 ? processingTime / batchSize : 0,
+            operation: 'batch_processing',
+            componentType: 'query'
+          }
+        });
+      } catch (error) {
+        this.logger.warn(`批处理监控事件发送失败: ${error.message}`, { batchSize });
+      }
+    });
   }
 
   /**
-   * 记录缓存操作指标
+   * ✅ 记录缓存操作指标 - 事件驱动
    */
   private recordCacheMetrics(operation: string, hit: boolean, duration: number, metadata: any): void {
-    try {
-      this.collectorService.recordCacheOperation(operation, hit, duration, metadata);
-    } catch (error) {
-      this.logger.warn(`缓存监控记录失败: ${error.message}`, { operation, hit });
-    }
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'query_execution_engine',
+          metricType: 'cache',
+          metricName: operation,
+          metricValue: duration,
+          tags: {
+            hit,
+            operation,
+            componentType: 'query',
+            ...metadata
+          }
+        });
+      } catch (error) {
+        this.logger.warn(`缓存监控事件发送失败: ${error.message}`, { operation, hit });
+      }
+    });
   }
 }

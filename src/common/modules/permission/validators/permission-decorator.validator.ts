@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+import { createLogger } from "@app/config/logger.config";
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 
@@ -39,7 +41,7 @@ export interface PermissionViolation {
  */
 @Injectable()
 export class PermissionDecoratorValidator {
-  private readonly logger = new Logger(PermissionDecoratorValidator.name);
+  private readonly logger = createLogger(PermissionDecoratorValidator.name);
 
   constructor(
     private readonly discoveryService: DiscoveryService,

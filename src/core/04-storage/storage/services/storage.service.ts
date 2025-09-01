@@ -11,7 +11,8 @@ import {
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 
 import {
@@ -46,7 +47,7 @@ export class StorageService {
   constructor(
     private readonly storageRepository: StorageRepository,
     private readonly paginationService: PaginationService,
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -118,12 +119,12 @@ export class StorageService {
 
       const processingTime = Date.now() - startTime;
       
-      // ✅ 使用CollectorService标准化监控
-      this.collectorService.recordDatabaseOperation(
-        'upsert',                           // operation
-        processingTime,                     // duration
-        true,                              // success
-        {                                  // metadata
+      // ✅ 事件驱动监控：数据存储成功
+      this.emitDatabaseOperationEvent(
+        'upsert',
+        processingTime,
+        true,
+        {
           storage_type: 'persistent',
           data_size: dataSize,
           compressed: compressed,
@@ -154,12 +155,12 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // ✅ 错误情况监控
-      this.collectorService.recordDatabaseOperation(
-        'upsert',                           // operation
-        processingTime,                     // duration
-        false,                             // success
-        {                                  // metadata
+      // ✅ 事件驱动监控：数据存储失败
+      this.emitDatabaseOperationEvent(
+        'upsert',
+        processingTime,
+        false,
+        {
           storage_type: 'persistent',
           error_type: error.constructor.name,
           classification: request.storageClassification,
@@ -211,12 +212,12 @@ export class StorageService {
       // 🎯 重构后：直接从数据库检索
       const response = await this.tryRetrieveFromPersistent(request, startTime);
       if (response) {
-        // ✅ 成功检索监控
-        this.collectorService.recordDatabaseOperation(
-          'findOne',                        // operation
-          Date.now() - startTime,           // duration
-          true,                            // success
-          {                                // metadata
+        // ✅ 事件驱动监控：数据检索成功
+        this.emitDatabaseOperationEvent(
+          'findOne',
+          Date.now() - startTime,
+          true,
+          {
             storage_type: 'persistent',
             data_source: 'mongodb',
             key_pattern: this.extractKeyPattern(request.key),
@@ -237,12 +238,12 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // ✅ 检索失败监控
-      this.collectorService.recordDatabaseOperation(
-        'findOne',                          // operation
-        processingTime,                     // duration
-        false,                             // success
-        {                                  // metadata
+      // ✅ 事件驱动监控：数据检索失败
+      this.emitDatabaseOperationEvent(
+        'findOne',
+        processingTime,
+        false,
+        {
           storage_type: 'persistent',
           error_type: error.constructor.name,
           key_pattern: this.extractKeyPattern(request.key),
@@ -309,12 +310,12 @@ export class StorageService {
 
       const processingTime = Date.now() - startTime;
       
-      // ✅ 删除操作监控
-      this.collectorService.recordDatabaseOperation(
-        'deleteOne',                        // operation
-        processingTime,                     // duration
-        true,                              // success (操作本身成功)
-        {                                  // metadata
+      // ✅ 事件驱动监控：数据删除成功
+      this.emitDatabaseOperationEvent(
+        'deleteOne',
+        processingTime,
+        true,
+        {
           storage_type: 'persistent',
           deleted_count: persistentResult.deletedCount,
           actually_deleted: deleted,
@@ -332,12 +333,12 @@ export class StorageService {
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
       
-      // ✅ 删除失败监控
-      this.collectorService.recordDatabaseOperation(
-        'deleteOne',                        // operation
-        processingTime,                     // duration
-        false,                             // success
-        {                                  // metadata
+      // ✅ 事件驱动监控：数据删除失败
+      this.emitDatabaseOperationEvent(
+        'deleteOne',
+        processingTime,
+        false,
+        {
           storage_type: 'persistent',
           error_type: error.constructor.name,
           key_pattern: this.extractKeyPattern(key),
@@ -447,12 +448,12 @@ export class StorageService {
 
       const processingTime = Date.now() - startTime;
       
-      // ✅ 分页查询监控
-      this.collectorService.recordDatabaseOperation(
-        'findPaginated',                    // operation
-        processingTime,                     // duration
-        true,                              // success
-        {                                  // metadata
+      // ✅ 事件驱动监控：分页查询成功
+      this.emitDatabaseOperationEvent(
+        'findPaginated',
+        processingTime,
+        true,
+        {
           storage_type: 'persistent',
           page: query.page || 1,
           limit: query.limit || 10,
@@ -474,12 +475,12 @@ export class StorageService {
     } catch (error) {
       const processingTime = Date.now() - startTime;
       
-      // ✅ 分页查询失败监控
-      this.collectorService.recordDatabaseOperation(
-        'findPaginated',                    // operation
-        processingTime,                     // duration
-        false,                             // success
-        {                                  // metadata
+      // ✅ 事件驱动监控：分页查询失败
+      this.emitDatabaseOperationEvent(
+        'findPaginated',
+        processingTime,
+        false,
+        {
           storage_type: 'persistent',
           error_type: error.constructor.name,
           page: query.page || 1,
@@ -691,6 +692,32 @@ export class StorageService {
     // 🎯 重构后：数据库操作频率，由 Prometheus 指标提供  
     // 在生产环境中应通过 rate(storagePersistentOperationsTotal[1m]) 计算真实频率
     return 0; // 可从 Prometheus storagePersistentOperationsTotal 指标计算速率
+  }
+
+  /**
+   * ✅ 事件驱动监控：发送数据库操作监控事件
+   * 通过事件总线异步发送监控数据，实现业务逻辑与监控的完全解耦
+   */
+  private emitDatabaseOperationEvent(
+    operation: string,
+    duration: number,
+    success: boolean,
+    metadata: Record<string, any>
+  ): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'storage_service',
+        metricType: 'database',
+        metricName: success ? `${operation}_success` : `${operation}_failed`,
+        metricValue: duration,
+        tags: {
+          operation,
+          status: success ? 'success' : 'error',
+          ...metadata
+        }
+      });
+    });
   }
 
   // ✅ 新增键模式提取方法

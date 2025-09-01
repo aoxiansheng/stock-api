@@ -8,8 +8,10 @@ import {
 import { ValidationError } from "class-validator";
 import { Request, Response } from "express";
 import { MongoError } from "mongodb";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@app/config/logger.config";
+import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 import {
   AUTH_ERROR_MESSAGES,
   HTTP_ERROR_MESSAGES,
@@ -29,6 +31,8 @@ import { HttpHeadersUtil } from "../../utils/http-headers.util";
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = createLogger(GlobalExceptionFilter.name);
+
+  constructor(private readonly eventBus: EventEmitter2) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -246,6 +250,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         },
       },
     };
+
+    // ✅ 发送异常监控事件
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'global_exception_filter',
+        metricType: 'error',
+        metricName: 'http_exception',
+        metricValue: 1,
+        tags: {
+          error_type: errorType,
+          status_code: status,
+          method: request?.method,
+          url: request?.url ? this.sanitizePath(request.url) : 'unknown'
+        }
+      });
+    });
 
     try {
       response.status(status).json(errorResponse);

@@ -7,8 +7,8 @@ import {
 
 import { createLogger } from "@app/config/logger.config";
 
-import { DatabasePerformance } from "../../monitoring/infrastructure/decorators/infrastructure-database.decorator";
-import { CollectorService } from "../../monitoring/collector/collector.service";
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../monitoring/contracts/events/system-status.events';
 import {
   AUTH_OPERATIONS,
   AUTH_MESSAGES,
@@ -33,13 +33,31 @@ export class AuthService {
     private readonly apiKeyService: ApiKeyService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
-    private readonly performanceMonitor: CollectorService,
+    private readonly eventBus: EventEmitter2,
   ) {}
+
+  /**
+   * 发送业务监控事件（异步、非阻塞）
+   */
+  private emitBusinessEvent(metricName: string, success: boolean, metadata?: any) {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'auth',
+        metricType: 'business',
+        metricName,
+        metricValue: success ? 1 : 0,
+        tags: {
+          status: success ? 'success' : 'error',
+          ...metadata
+        }
+      });
+    });
+  }
 
   /**
    * 用户注册
    */
-  @DatabasePerformance("user_registration")
   async register(createUserDto: CreateUserDto): Promise<User> {
     const operation = AUTH_OPERATIONS.REGISTER;
     const {
@@ -66,6 +84,13 @@ export class AuthService {
         username,
         email,
       });
+      
+      // 发送注册失败监控事件
+      this.emitBusinessEvent('user_registration', false, {
+        operation: 'register',
+        reason: 'user_exists'
+      });
+      
       throw new ConflictException(ERROR_MESSAGES.USER_EXISTS);
     }
 
@@ -86,6 +111,12 @@ export class AuthService {
       userId: user.id,
     });
 
+    // 发送注册成功监控事件
+    this.emitBusinessEvent('user_registration', true, {
+      operation: 'register',
+      role: user.role
+    });
+
     // 使用 toJSON() 方法过滤敏感字段
     return user.toJSON() as User;
   }
@@ -93,7 +124,6 @@ export class AuthService {
   /**
    * 用户登录
    */
-  @DatabasePerformance("user_login")
   async login(
     loginDto: LoginDto,
   ): Promise<{ user: User; accessToken: string; refreshToken: string }> {
@@ -108,6 +138,13 @@ export class AuthService {
         operation,
         username,
       });
+      
+      // 发送登录失败监控事件
+      this.emitBusinessEvent('user_login', false, {
+        operation: 'login',
+        reason: user ? 'user_inactive' : 'user_not_found'
+      });
+      
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
@@ -124,6 +161,13 @@ export class AuthService {
         operation,
         username,
       });
+      
+      // 发送登录失败监控事件
+      this.emitBusinessEvent('user_login', false, {
+        operation: 'login',
+        reason: 'invalid_password'
+      });
+      
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
@@ -135,6 +179,12 @@ export class AuthService {
       username,
       userId: user.id,
       role: user.role,
+    });
+
+    // 发送登录成功监控事件
+    this.emitBusinessEvent('user_login', true, {
+      operation: 'login',
+      role: user.role
     });
 
     return {
@@ -271,15 +321,8 @@ export class AuthService {
    * @param limit - 每页数量
    * @param includeInactive - 是否包含非活跃用户
    */
-  @DatabasePerformance("get_all_users")
   async getAllUsers(page: number = 1, limit: number = 10, includeInactive: boolean = false) {
-    const operation = 'GET_ALL_USERS';
-
-    this.logger.log(`${operation}: 开始获取用户列表`, {
-      page,
-      limit,
-      includeInactive,
-    });
+    this.logger.log(`管理员获取用户列表: 页码${page}, 数量${limit}`);
 
     try {
       // 验证参数
@@ -295,17 +338,13 @@ export class AuthService {
       // 获取用户统计信息
       const stats = await this.userRepository.getUserStats();
 
-      this.logger.log(`${operation}: 用户列表获取成功`, {
+      this.logger.log(`用户列表获取成功: 第${result.page}页, ${result.users.length}条记录`);
+
+      // 发送管理操作成功监控事件
+      this.emitBusinessEvent('admin_get_users', true, {
+        operation: 'get_all_users',
         page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: result.totalPages,
-        userCount: result.users.length,
-        stats: {
-          totalUsers: stats.totalUsers,
-          activeUsers: stats.activeUsers,
-          roleDistribution: stats.roleDistribution,
-        },
+        recordCount: result.users.length
       });
 
       return {
@@ -313,13 +352,14 @@ export class AuthService {
         stats,
       };
     } catch (error: any) {
-      this.logger.error(`${operation}: 获取用户列表失败`, {
-        page,
-        limit,
-        includeInactive,
-        error: error.message,
-        errorType: error.constructor.name,
+      this.logger.error(`获取用户列表失败: ${error.message}`);
+      
+      // 发送管理操作失败监控事件
+      this.emitBusinessEvent('admin_get_users', false, {
+        operation: 'get_all_users',
+        error: error.message
       });
+      
       throw error;
     }
   }

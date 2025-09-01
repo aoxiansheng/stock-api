@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ProvidersModule } from '../../../../providers/module/providers.module';
-import { MonitoringModule } from '../../../../monitoring/monitoring.module';
 import { DataFetcherService } from '../services/data-fetcher.service';
 
 /**
@@ -12,7 +12,7 @@ import { DataFetcherService } from '../services/data-fetcher.service';
 @Module({
   imports: [
     ProvidersModule, // 导入提供商模块以访问CapabilityRegistryService
-    MonitoringModule, // 导入监控模块以访问CollectorService
+    EventEmitterModule, // 导入事件模块以访问EventEmitter2（事件驱动监控）
   ],
   providers: [DataFetcherService],
   exports: [DataFetcherService], // 导出服务供其他模块使用

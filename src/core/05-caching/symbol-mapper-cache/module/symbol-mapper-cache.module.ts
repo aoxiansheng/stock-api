@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { FeatureFlags } from '@config/feature-flags.config';
-import { MonitoringModule } from '../../../../monitoring/monitoring.module'; // ✅ 更换为监控模块
+// ✅ 事件驱动架构：不再直接依赖监控模块，EventEmitterModule 在 AppModule 中全局配置
 import { DatabaseModule } from '../../../../database/database.module'; // 🆕 统一数据库模块
 
 // 导入 symbol-mapper 相关的 Schema 和 Repository
@@ -24,21 +24,21 @@ import { SymbolMapperCacheService } from '../services/symbol-mapper-cache.servic
  * - LRU内存缓存管理
  * - 并发控制和防重复查询
  * - 内存水位监控和自动清理
- * - 使用CollectorService进行统一监控
+ * - 使用事件驱动架构进行监控数据收集
  */
 @Module({
   imports: [
     // 🎖️ 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
     
-    MonitoringModule, // ✅ 提供 CollectorService
+    // ✅ 事件驱动架构：不再直接导入 MonitoringModule
+    // EventEmitterModule 在 AppModule 中全局配置，此处无需导入
   ],
   providers: [
     SymbolMapperCacheService,
     SymbolMappingRepository, // 缓存服务需要访问数据库
     FeatureFlags,           // 缓存配置参数
-    // 🗑️ 全新项目：直接移除fallback mock
-    // 不再提供'CollectorService' mock，直接使用MonitoringModule提供的CollectorService
+    // ✅ 事件驱动架构：不再需要 CollectorService，使用 EventEmitter2 进行事件发送
   ],
   exports: [
     SymbolMapperCacheService, // 导出缓存服务供其他模块使用

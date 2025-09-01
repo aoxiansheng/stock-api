@@ -14,7 +14,8 @@ import {
 import { DataSourceTemplateService } from './data-source-template.service';
 import { MappingRuleCacheService } from './mapping-rule-cache.service';
 import { ObjectUtils } from '../../../shared/utils/object.util';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import { AsyncTaskLimiter } from '../utils/async-task-limiter';
 
 @Injectable()
@@ -30,7 +31,7 @@ export class FlexibleMappingRuleService {
     private readonly paginationService: PaginationService,
     private readonly templateService: DataSourceTemplateService,
     private readonly mappingRuleCacheService: MappingRuleCacheService,
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -219,17 +220,15 @@ export class FlexibleMappingRuleService {
       // 1. 尝试从缓存获取
       const cachedRule = await this.mappingRuleCacheService.getCachedRuleById(id);
       if (cachedRule) {
-        // ✅ 缓存命中监控
-        this.collectorService.recordCacheOperation(
-          'get',                              // operation
-          true,                               // hit
-          Date.now() - startTime,             // duration
-          {                                   // metadata
-            cacheType: 'redis',
-            key: `mapping_rule:${id}`,
-            service: 'FlexibleMappingRuleService'
-          }
-        );
+        // ✅ 缓存命中监控 - 事件驱动
+        this.emitMonitoringEvent('cache_hit', {
+          type: 'cache',
+          operation: 'get',
+          duration: Date.now() - startTime,
+          cacheType: 'redis',
+          key: `mapping_rule:${id}`,
+          success: true
+        });
         return cachedRule;
       }
 
@@ -237,33 +236,27 @@ export class FlexibleMappingRuleService {
       const rule = await this.ruleModel.findById(id);
       
       if (!rule) {
-        // ✅ 数据库查询失败监控
-        this.collectorService.recordDatabaseOperation(
-          'findById',                         // operation
-          Date.now() - startTime,             // duration
-          false,                              // success
-          {                                   // metadata
-            collection: 'flexibleMappingRules',
-            query: { _id: id },
-            service: 'FlexibleMappingRuleService',
-            error: 'Document not found'
-          }
-        );
+        // ✅ 数据库查询失败监控 - 事件驱动
+        this.emitMonitoringEvent('database_query_failed', {
+          type: 'database',
+          operation: 'findById',
+          duration: Date.now() - startTime,
+          collection: 'flexibleMappingRules',
+          success: false,
+          error: 'Document not found'
+        });
         throw new NotFoundException(`映射规则未找到: ${id}`);
       }
 
-      // ✅ 数据库查询成功监控
-      this.collectorService.recordDatabaseOperation(
-        'findById',                           // operation
-        Date.now() - startTime,               // duration
-        true,                                 // success
-        {                                     // metadata
-          collection: 'flexibleMappingRules',
-          query: { _id: id },
-          service: 'FlexibleMappingRuleService',
-          resultCount: 1
-        }
-      );
+      // ✅ 数据库查询成功监控 - 事件驱动
+      this.emitMonitoringEvent('database_query_success', {
+        type: 'database',
+        operation: 'findById',
+        duration: Date.now() - startTime,
+        collection: 'flexibleMappingRules',
+        success: true,
+        resultCount: 1
+      });
 
       const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
       
@@ -276,19 +269,15 @@ export class FlexibleMappingRuleService {
 
       return ruleDto;
     } catch (error) {
-      // ✅ 异常监控
-      this.collectorService.recordRequest(
-        '/internal/find-rule-by-id',          // endpoint
-        'GET',                                // method
-        500,                                  // statusCode
-        Date.now() - startTime,               // duration
-        {                                     // metadata
-          service: 'FlexibleMappingRuleService',
-          operation: 'findRuleById',
-          error: error.message,
-          ruleId: id
-        }
-      );
+      // ✅ 异常监控 - 事件驱动
+      this.emitMonitoringEvent('rule_query_error', {
+        type: 'business',
+        operation: 'findRuleById',
+        duration: Date.now() - startTime,
+        success: false,
+        error: error.message,
+        ruleId: id
+      });
       throw error;
     }
   }
@@ -312,17 +301,16 @@ export class FlexibleMappingRuleService {
         transDataRuleListType
       );
       if (cachedRule) {
-        // ✅ 缓存命中监控
-        this.collectorService.recordCacheOperation(
-          'get',                              // operation
-          true,                               // hit
-          Date.now() - startTime,             // duration
-          {                                   // metadata
-            cacheType: 'redis',
-            key: `best_matching_rule:${provider}:${apiType}:${transDataRuleListType}`,
-            service: 'FlexibleMappingRuleService'
-          }
-        );
+        // ✅ 缓存命中监控 - 事件驱动
+        this.emitMonitoringEvent('cache_hit', {
+          type: 'cache',
+          operation: 'get_best_matching',
+          duration: Date.now() - startTime,
+          cacheType: 'redis',
+          success: true,
+          provider,
+          apiType
+        });
         return cachedRule;
       }
 
@@ -356,18 +344,17 @@ export class FlexibleMappingRuleService {
 
       const ruleDto = rule ? FlexibleMappingRuleResponseDto.fromDocument(rule) : null;
       
-      // ✅ 数据库查询监控
-      this.collectorService.recordDatabaseOperation(
-        'findBestMatchingRule',               // operation
-        Date.now() - startTime,               // duration
-        !!ruleDto,                            // success
-        {                                     // metadata
-          collection: 'flexibleMappingRules',
-          query: { provider, apiType, transDataRuleListType },
-          service: 'FlexibleMappingRuleService',
-          resultCount: ruleDto ? 1 : 0
-        }
-      );
+      // ✅ 数据库查询监控 - 事件驱动
+      this.emitMonitoringEvent('best_matching_rule_query', {
+        type: 'database',
+        operation: 'findBestMatchingRule',
+        duration: Date.now() - startTime,
+        collection: 'flexibleMappingRules',
+        success: !!ruleDto,
+        provider,
+        apiType,
+        resultCount: ruleDto ? 1 : 0
+      });
       
       // 4. 缓存查询结果（仅在找到规则时） - 异步避免阻塞
       if (ruleDto) {
@@ -383,41 +370,31 @@ export class FlexibleMappingRuleService {
         });
       }
 
-      // ✅ 性能监控 - 关键业务操作
-      this.collectorService.recordRequest(
-        '/internal/find-best-matching-rule',  // endpoint
-        'GET',                                // method
-        ruleDto ? 200 : 404,                  // statusCode
-        Date.now() - startTime,               // duration
-        {                                     // metadata
-          service: 'FlexibleMappingRuleService',
-          operation: 'findBestMatchingRule',
-          provider,
-          apiType,
-          transDataRuleListType,
-          cacheHit: false,
-          ruleFound: !!ruleDto,
-          performance_category: 'critical_path' // 标记为关键路径
-        }
-      );
+      // ✅ 性能监控 - 关键业务操作 - 事件驱动
+      this.emitMonitoringEvent('critical_path_operation', {
+        type: 'business',
+        operation: 'findBestMatchingRule',
+        duration: Date.now() - startTime,
+        provider,
+        apiType,
+        success: !!ruleDto,
+        cacheHit: false,
+        ruleFound: !!ruleDto,
+        category: 'critical_path'
+      });
 
       return ruleDto;
     } catch (error) {
-      // ✅ 错误监控
-      this.collectorService.recordRequest(
-        '/internal/find-best-matching-rule',  // endpoint
-        'GET',                                // method
-        500,                                  // statusCode
-        Date.now() - startTime,               // duration
-        {                                     // metadata
-          service: 'FlexibleMappingRuleService',
-          operation: 'findBestMatchingRule',
-          provider,
-          apiType,
-          transDataRuleListType,
-          error: error.message
-        }
-      );
+      // ✅ 错误监控 - 事件驱动
+      this.emitMonitoringEvent('best_matching_rule_error', {
+        type: 'business',
+        operation: 'findBestMatchingRule',
+        duration: Date.now() - startTime,
+        provider,
+        apiType,
+        success: false,
+        error: error.message
+      });
       throw error;
     }
   }
@@ -550,25 +527,21 @@ export class FlexibleMappingRuleService {
     };
 
     try {
-      // ✅ 业务操作监控
-      this.collectorService.recordRequest(
-        '/internal/apply-mapping-rule',       // endpoint
-        'POST',                               // method
-        result.success ? 200 : 207,           // statusCode (207=部分成功)
-        Date.now() - startTime,               // duration
-        {                                     // metadata
-          service: 'FlexibleMappingRuleService',
-          operation: 'applyFlexibleMappingRule',
-          ruleId: rule._id?.toString(),
-          provider: rule.provider,
-          apiType: rule.apiType,
-          totalMappings,
-          successfulMappings,
-          failedMappings,
-          successRate: Math.round(successRate * 100) / 100,
-          performance_category: 'business_operation' // 标记为业务操作
-        }
-      );
+      // ✅ 业务操作监控 - 事件驱动
+      this.emitMonitoringEvent('rule_application', {
+        type: 'business',
+        operation: 'applyFlexibleMappingRule',
+        duration: Date.now() - startTime,
+        ruleId: rule._id?.toString(),
+        provider: rule.provider,
+        apiType: rule.apiType,
+        totalMappings,
+        successfulMappings,
+        failedMappings,
+        successRate: Math.round(successRate * 100) / 100,
+        success: result.success,
+        category: 'business_operation'
+      });
       
       // ✅ 异步更新规则统计（避免阻塞）
       setImmediate(() => {
@@ -683,31 +656,27 @@ export class FlexibleMappingRuleService {
         });
       }
 
-      // 监控记录
-      this.collectorService?.recordDatabaseOperation(
-        'updateRuleStats',
-        Date.now() - startTime,
-        true,
-        {
-          collection: 'flexibleMappingRules',
-          ruleId: dataMapperRuleId,
-          service: 'FlexibleMappingRuleService'
-        }
-      );
+      // 监控记录 - 事件驱动
+      this.emitMonitoringEvent('rule_stats_updated', {
+        type: 'database',
+        operation: 'updateRuleStats',
+        duration: Date.now() - startTime,
+        collection: 'flexibleMappingRules',
+        ruleId: dataMapperRuleId,
+        success: true
+      });
 
     } catch (error) {
-      // 监控记录失败情况
-      this.collectorService?.recordDatabaseOperation(
-        'updateRuleStats',
-        Date.now() - startTime,
-        false,
-        {
-          collection: 'flexibleMappingRules',
-          ruleId: dataMapperRuleId,
-          service: 'FlexibleMappingRuleService',
-          error: error.message
-        }
-      );
+      // 监控记录失败情况 - 事件驱动
+      this.emitMonitoringEvent('rule_stats_update_failed', {
+        type: 'database',
+        operation: 'updateRuleStats',
+        duration: Date.now() - startTime,
+        collection: 'flexibleMappingRules',
+        ruleId: dataMapperRuleId,
+        success: false,
+        error: error.message
+      });
       
       this.logger.error('更新规则统计失败', { dataMapperRuleId, success, error: error.message });
       throw error;
@@ -722,6 +691,41 @@ export class FlexibleMappingRuleService {
     
     const avgConfidence = fieldMappings.reduce((sum, mapping) => sum + mapping.confidence, 0) / fieldMappings.length;
     return Math.min(avgConfidence, 1.0);
+  }
+
+  /**
+   * 🎯 事件驱动监控事件发送
+   * 替代直接调用 CollectorService，使用事件总线异步发送监控事件
+   */
+  private emitMonitoringEvent(metricName: string, data: any) {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'data_mapper_rule',
+        metricType: data.type || 'business',
+        metricName,
+        metricValue: data.duration || data.value || 1,
+        tags: {
+          component: 'flexible-mapping-rule',
+          operation: data.operation,
+          status: data.success ? 'success' : 'error',
+          provider: data.provider,
+          apiType: data.apiType,
+          collection: data.collection,
+          cacheType: data.cacheType,
+          ruleId: data.ruleId,
+          category: data.category,
+          error: data.error,
+          resultCount: data.resultCount,
+          cacheHit: data.cacheHit,
+          ruleFound: data.ruleFound,
+          totalMappings: data.totalMappings,
+          successfulMappings: data.successfulMappings,
+          failedMappings: data.failedMappings,
+          successRate: data.successRate
+        }
+      });
+    });
   }
 
   /**

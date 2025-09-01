@@ -2,7 +2,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { createLogger } from '@app/config/logger.config';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CollectorService } from '../../../../monitoring/collector/collector.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-source-template.schema';
 import { FlexibleMappingRule, FlexibleMappingRuleDocument } from '../schemas/flexible-mapping-rule.schema';
@@ -61,30 +62,34 @@ export class RuleAlignmentService {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
-    private readonly collectorService: CollectorService, // ✅ 新增依赖注入
+    private readonly eventBus: EventEmitter2,
   ) {}
 
   /**
-   * ✅ 监控安全包装器 - 确保监控失败不影响业务流程
+   * ✅ 事件驱动监控事件发送
+   * 替代 CollectorService，使用事件总线异步发送监控事件
    */
-  private safeRecordOperation(
-    operation: string,
-    duration: number,
-    success: boolean,
-    metadata?: any
-  ) {
-    try {
-      this.collectorService.recordRequest(
-        `rule-alignment/${operation}`,
-        'POST',
-        success ? 200 : 500,
-        duration,
-        { service: 'RuleAlignmentService', ...metadata }
-      );
-    } catch (error) {
-      // 监控失败不应影响业务
-      this.logger.warn(`监控记录失败: ${error.message}`, { operation, metadata });
-    }
+  private emitMonitoringEvent(metricName: string, data: any) {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'data_mapper_alignment',
+        metricType: data.type || 'business',
+        metricName,
+        metricValue: data.duration || data.value || 1,
+        tags: {
+          component: 'rule-alignment',
+          operation: data.operation,
+          status: data.success ? 'success' : 'error',
+          templateId: data.templateId,
+          ruleId: data.ruleId,
+          transDataRuleListType: data.transDataRuleListType,
+          alignedFields: data.alignedFields,
+          totalChanges: data.totalChanges,
+          error: data.error
+        }
+      });
+    });
   }
 
   /**
@@ -171,31 +176,29 @@ export class RuleAlignmentService {
       totalFields: alignmentResult.totalFields,
     });
 
-    // ✅ 轻量级成功监控
-    this.safeRecordOperation(
-      'generate-rule',
-      Date.now() - startTime,
-      true,
-      {
-        templateId,
-        transDataRuleListType,
-        alignedFields: alignmentResult.alignedFields
-      }
-    );
+    // ✅ 轻量级成功监控 - 事件驱动
+    this.emitMonitoringEvent('rule_generated', {
+      type: 'business',
+      operation: 'generate-rule',
+      duration: Date.now() - startTime,
+      templateId,
+      transDataRuleListType,
+      alignedFields: alignmentResult.alignedFields,
+      success: true
+    });
     
     return { rule, alignmentResult };
     } catch (error) {
-      // ✅ 轻量级错误监控
-      this.safeRecordOperation(
-        'generate-rule',
-        Date.now() - startTime,
-        false,
-        {
-          templateId,
-          transDataRuleListType,
-          error: error.message
-        }
-      );
+      // ✅ 轻量级错误监控 - 事件驱动
+      this.emitMonitoringEvent('rule_generation_failed', {
+        type: 'business',
+        operation: 'generate-rule',
+        duration: Date.now() - startTime,
+        templateId,
+        transDataRuleListType,
+        error: error.message,
+        success: false
+      });
       throw error;
     }
   }
@@ -268,29 +271,27 @@ export class RuleAlignmentService {
       newMappingsCount: newFieldMappings.length,
     });
 
-    // ✅ 轻量级成功监控
-    this.safeRecordOperation(
-      'realign-rule',
-      Date.now() - startTime,
-      true,
-      {
-        ruleId: dataMapperRuleId,
-        totalChanges: changes.added.length + changes.removed.length + changes.modified.length
-      }
-    );
+    // ✅ 轻量级成功监控 - 事件驱动
+    this.emitMonitoringEvent('rule_realigned', {
+      type: 'business',
+      operation: 'realign-rule',
+      duration: Date.now() - startTime,
+      ruleId: dataMapperRuleId,
+      totalChanges: changes.added.length + changes.removed.length + changes.modified.length,
+      success: true
+    });
     
     return { rule: updatedRule, changes, alignmentResult };
     } catch (error) {
-      // ✅ 轻量级错误监控
-      this.safeRecordOperation(
-        'realign-rule',
-        Date.now() - startTime,
-        false,
-        {
-          ruleId: dataMapperRuleId,
-          error: error.message
-        }
-      );
+      // ✅ 轻量级错误监控 - 事件驱动
+      this.emitMonitoringEvent('rule_realign_failed', {
+        type: 'business',
+        operation: 'realign-rule',
+        duration: Date.now() - startTime,
+        ruleId: dataMapperRuleId,
+        error: error.message,
+        success: false
+      });
       throw error;
     }
   }

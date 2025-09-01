@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createLogger } from '../../../../app/config/logger.config';
 
 /**
  * 缓存配置验证结果接口
@@ -64,7 +65,7 @@ export interface CacheValidatedConfig {
  */
 @Injectable()
 export class CacheConfigValidator {
-  private readonly logger = new Logger(CacheConfigValidator.name);
+  private readonly logger = createLogger(CacheConfigValidator.name);
 
   constructor(private readonly configService: ConfigService) {}
 

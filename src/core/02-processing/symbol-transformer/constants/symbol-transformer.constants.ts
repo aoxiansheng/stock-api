@@ -43,9 +43,9 @@ export const ERROR_TYPES = {
 
 // 监控配置
 export const MONITORING_CONFIG = {
-  METRICS_ENDPOINT: '/internal/metrics/symbol-transformer',
-  PERFORMANCE_THRESHOLD_MS: 200,    // 性能阈值（毫秒）
-  ERROR_RATE_THRESHOLD: 0.01,       // 错误率阈值（1%）
+  // 移除 METRICS_ENDPOINT：事件驱动模式下不再需要直接端点
+  PERFORMANCE_THRESHOLD_MS: 200,    // 性能阈值（毫秒），用于业务判断
+  ERROR_RATE_THRESHOLD: 0.01,       // 错误率阈值（1%），用于业务判断
 } as const;
 
 // 重试配置

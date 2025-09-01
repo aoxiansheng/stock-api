@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, Inject, ServiceUnavailableException } from '@nestjs/common';
-import { createLogger } from '@app/config/logger.config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { createLogger } from '../../../../app/config/logger.config';
 import { 
   IStreamCache, 
   StreamDataPoint, 
@@ -21,11 +22,10 @@ interface StreamCacheHealthStatus {
 }
 import { STREAM_CACHE_CONFIG, DEFAULT_STREAM_CACHE_CONFIG } from '../constants/stream-cache.constants';
 import {
-  MONITORING_COLLECTOR_TOKEN,
   CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN
 } from '../../../../monitoring/contracts';
-import type { ICollector } from '../../../../monitoring/contracts';
+import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 import Redis from 'ioredis';
 
 /**
@@ -56,7 +56,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
 
   constructor(
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
-    @Inject(MONITORING_COLLECTOR_TOKEN) private readonly collectorService: ICollector,
+    private readonly eventBus: EventEmitter2,
     @Inject(STREAM_CACHE_CONFIG_TOKEN) config?: Partial<StreamCacheConfig>,
   ) {
     this.config = { ...DEFAULT_STREAM_CACHE_CONFIG, ...config };
@@ -77,6 +77,48 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       this.cacheCleanupInterval = null;
       this.logger.debug('缓存清理调度器已停止');
     }
+  }
+
+  // === 事件驱动监控方法 ===
+  
+  /**
+   * 发送缓存操作监控事件
+   */
+  private emitCacheMetric(operation: string, success: boolean, duration: number, metadata: any = {}): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'stream-cache',
+        metricType: 'cache',
+        metricName: `cache_${operation}_${success ? 'success' : 'failed'}`,
+        metricValue: duration,
+        tags: {
+          operation,
+          success: success.toString(),
+          component: 'StreamCache',
+          ...metadata
+        }
+      });
+    });
+  }
+
+  /**
+   * 发送系统指标监控事件
+   */
+  private emitSystemMetric(metricName: string, value: number, tags: any = {}): void {
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'stream-cache',
+        metricType: 'system',
+        metricName,
+        metricValue: value,
+        tags: {
+          component: 'StreamCache',
+          ...tags
+        }
+      });
+    });
   }
 
   // === 标准化异常处理方法 ===
@@ -136,8 +178,9 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       const hotCacheData = this.getFromHotCache(key);
       if (hotCacheData) {
         const duration = Date.now() - startTime;
-        this.collectorService.recordCacheOperation('get', true, duration, {
-          cacheType: 'stream-cache', layer: 'hot'
+        this.emitCacheMetric('get', true, duration, {
+          cacheType: 'stream-cache', 
+          layer: 'hot'
         });
         this.logger.debug('Hot cache命中', { key, duration });
         return hotCacheData;
@@ -147,8 +190,9 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       const warmCacheData = await this.getFromWarmCache(key);
       if (warmCacheData) {
         const duration = Date.now() - startTime;
-        this.collectorService.recordCacheOperation('get', true, duration, {
-          cacheType: 'stream-cache', layer: 'warm'
+        this.emitCacheMetric('get', true, duration, {
+          cacheType: 'stream-cache', 
+          layer: 'warm'
         });
         // 提升到 Hot Cache
         this.setToHotCache(key, warmCacheData);
@@ -157,8 +201,9 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       }
       
       const duration = Date.now() - startTime;
-      this.collectorService.recordCacheOperation('get', false, duration, {
-        cacheType: 'stream-cache', layer: 'miss'
+      this.emitCacheMetric('get', false, duration, {
+        cacheType: 'stream-cache', 
+        layer: 'miss'
       });
       this.logger.debug('缓存未命中', { key, duration });
       return null;
@@ -196,7 +241,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       await this.setToWarmCache(key, compressedData);
       
       const duration = Date.now() - startTime;
-      this.collectorService.recordCacheOperation('set', true, duration, {
+      this.emitCacheMetric('set', true, duration, {
         cacheType: 'stream-cache',
         layer: shouldUseHotCache ? 'both' : 'warm',
         dataSize,
@@ -270,15 +315,26 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
    */
   async deleteData(key: string): Promise<void> {
     try {
-      // 删除 Hot Cache
+      // 删除 Hot Cache (始终成功)
       this.hotCache.delete(key);
       
-      // 删除 Warm Cache
-      await this.redisClient.del(this.buildWarmCacheKey(key));
+      // 删除 Warm Cache (可能失败但不影响主流程)
+      try {
+        await this.redisClient.del(this.buildWarmCacheKey(key));
+      } catch (redisError) {
+        this.logger.warn('Warm cache删除失败，但Hot cache已成功删除', {
+          key,
+          error: redisError.message
+        });
+      }
       
       this.logger.debug('缓存数据已删除', { key });
     } catch (error) {
-      this.handleCriticalError('deleteData', error, key);
+      // 只有Hot cache操作失败才记录错误，但不抛出异常
+      this.logger.error('Hot cache删除失败', {
+        key,
+        error: error.message
+      });
     }
   }
 
@@ -287,29 +343,38 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
    */
   async clearAll(): Promise<void> {
     try {
+      // 清空 Hot Cache (始终成功)
       this.hotCache.clear();
       
-      // 清空 Warm Cache 中的流数据
-      const pattern = `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
-      const keys = await this.redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await this.redisClient.del(...keys);
+      // 清空 Warm Cache 中的流数据 (可能失败但不影响主流程)
+      try {
+        const pattern = `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
+        const keys = await this.redisClient.keys(pattern);
+        if (keys.length > 0) {
+          await this.redisClient.del(...keys);
+        }
+      } catch (redisError) {
+        this.logger.warn('Warm cache清空失败，但Hot cache已成功清空', {
+          error: redisError.message
+        });
       }
       
       this.logger.log('所有缓存已清空');
     } catch (error) {
-      this.handleCriticalError('clearAll', error);
+      // 只有Hot cache操作失败才记录错误，但不抛出异常
+      this.logger.error('Hot cache清空失败', {
+        error: error.message
+      });
     }
   }
 
   /**
    * 获取缓存统计信息
-   * @deprecated 已迁移到监控系统，通过CollectorService收集指标
+   * @deprecated 已迁移到事件驱动监控，使用reportSystemMetrics方法
    */
   getCacheStats(): StreamCacheStats {
     try {
-      // CollectorService 负责实际的指标收集
-      // 这里返回基础信息用于兼容性
+      // 返回基础信息用于兼容性，实际监控数据通过事件传递
       return {
         hotCacheHits: 0,
         hotCacheMisses: 0,
@@ -372,30 +437,48 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   }
 
   /**
-   * 集成到监控系统的指标报告
-   * 替代已弃用的getCacheStats方法
+   * 事件化监控指标报告
+   * 使用事件驱动方式上报系统指标
    */
-  async reportMetricsToCollector(): Promise<void> {
+  async reportSystemMetrics(): Promise<void> {
     try {
       const healthStatus = await this.getHealthStatus();
+      const memoryUsage = process.memoryUsage();
+      const cpuUsage = process.cpuUsage();
       
-      // 上报到CollectorService (使用正确的SystemMetricsDto格式)
-      if (this.collectorService && this.collectorService.recordSystemMetrics) {
-        this.collectorService.recordSystemMetrics({
-          memory: {
-            used: process.memoryUsage().heapUsed,
-            total: process.memoryUsage().heapTotal,
-            percentage: (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100
-          },
-          cpu: {
-            usage: process.cpuUsage().user / 1000000 // Convert microseconds to seconds
-          },
-          uptime: process.uptime(),
-          timestamp: new Date()
+      // 发送缓存统计指标
+      this.emitSystemMetric('cache_hot_size', this.hotCache.size, {
+        cache_type: 'hot',
+        cache_layer: 'memory'
+      });
+      
+      // 发送健康状态指标
+      this.emitSystemMetric('health_status', healthStatus.status === 'healthy' ? 1 : 0, {
+        status: healthStatus.status,
+        redis_connected: healthStatus.redisConnected.toString()
+      });
+      
+      // 发送性能指标
+      if (healthStatus.performance) {
+        this.emitSystemMetric('cache_hit_time_hot', healthStatus.performance.avgHotCacheHitTime, {
+          cache_layer: 'hot'
         });
+        this.emitSystemMetric('cache_hit_time_warm', healthStatus.performance.avgWarmCacheHitTime, {
+          cache_layer: 'warm'
+        });
+        this.emitSystemMetric('compression_ratio', healthStatus.performance.compressionRatio);
       }
+      
+      // 发送内存使用指标
+      this.emitSystemMetric('memory_usage', memoryUsage.heapUsed, {
+        memory_type: 'heap_used'
+      });
+      this.emitSystemMetric('memory_total', memoryUsage.heapTotal, {
+        memory_type: 'heap_total'
+      });
+      
     } catch (error) {
-      this.logger.debug('监控指标上报失败', {
+      this.logger.debug('系统指标上报失败', {
         error: error.message,
         impact: 'MetricsDataLoss'
       });
