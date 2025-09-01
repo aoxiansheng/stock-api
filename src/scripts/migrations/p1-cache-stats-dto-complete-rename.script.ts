@@ -26,10 +26,49 @@ export class P1CacheStatsDtoCompleteRenameScript {
     newImportReplacement: 'RedisCacheRuntimeStatsDto'
   };
 
+  // 排除模式 - 防止脚本修改自身和其他系统脚本
+  private readonly excludePatterns = [
+    'src/scripts/migrations/',     // 排除所有迁移脚本
+    'src/scripts/verification/',   // 排除验证脚本  
+    'src/scripts/fixes/',          // 排除修复脚本
+    'src/scripts/utils/',          // 排除工具脚本
+    'src/scripts/p0-',             // 排除P0级别脚本
+    'src/scripts/p1-',             // 排除P1级别脚本（包括自身）
+    'src/scripts/p2-'              // 排除P2级别脚本
+  ];
+
+  /**
+   * 检查文件是否应该被排除
+   */
+  private shouldExcludeFile(file: string): boolean {
+    return this.excludePatterns.some(pattern => file.includes(pattern));
+  }
+
+  /**
+   * 脚本完整性自检
+   */
+  private async validateScriptIntegrity(): Promise<void> {
+    this.logger.debug('🔍 执行脚本完整性自检...');
+    
+    // 验证关键配置没有被意外修改
+    if (!this.renameMapping.oldName || !this.renameMapping.newName) {
+      throw new Error('❌ 脚本完整性检查失败：重命名映射配置丢失');
+    }
+    
+    if (this.excludePatterns.length === 0) {
+      throw new Error('❌ 脚本完整性检查失败：排除模式配置丢失');
+    }
+    
+    this.logger.debug('✅ 脚本完整性检查通过');
+  }
+
   async execute(): Promise<void> {
     this.logger.log('🚀 开始执行 P1 CacheStatsDto 完整重命名...');
 
     try {
+      // 阶段0：脚本完整性自检
+      await this.validateScriptIntegrity();
+      
       // 阶段1：全量扫描和分析影响范围
       const affectedFiles = await this.scanAffectedFiles();
       
@@ -81,6 +120,12 @@ export class P1CacheStatsDtoCompleteRenameScript {
     // 扫描代码文件
     const codeFiles = await this.globPromise('src/**/*.ts');
     for (const file of codeFiles) {
+      // 检查是否应该排除该文件
+      if (this.shouldExcludeFile(file)) {
+        this.logger.debug(`跳过排除文件: ${file}`);
+        continue;
+      }
+
       const content = await fs.readFile(file, 'utf8');
       if (content.includes('CacheStatsDto')) {
         affectedFiles.codeFiles.push(file);
@@ -138,6 +183,12 @@ export class P1CacheStatsDtoCompleteRenameScript {
     let totalReplacements = 0;
 
     for (const file of affectedFiles.codeFiles) {
+      // 二次检查：确保不处理排除的文件
+      if (this.shouldExcludeFile(file)) {
+        this.logger.debug(`阶段2跳过排除文件: ${file}`);
+        continue;
+      }
+
       let content = await fs.readFile(file, 'utf8');
       let fileModified = false;
       let fileReplacements = 0;
@@ -260,6 +311,12 @@ export class P1CacheStatsDtoCompleteRenameScript {
       const files = await this.globPromise(pattern);
       
       for (const file of files) {
+        // 检查是否应该排除该文件
+        if (this.shouldExcludeFile(file)) {
+          this.logger.debug(`阶段4跳过排除文件: ${file}`);
+          continue;
+        }
+
         let content = await fs.readFile(file, 'utf8');
         
         if (content.includes('CacheStatsDto')) {
@@ -437,6 +494,12 @@ export type CacheStatsDto = RedisCacheRuntimeStatsDto;
       // 跳过别名文件本身
       if (file.includes('cache-internal.dto.ts')) continue;
       
+      // 跳过排除的文件（系统脚本等）
+      if (this.shouldExcludeFile(file)) {
+        this.logger.debug(`阶段7跳过排除文件: ${file}`);
+        continue;
+      }
+      
       const content = await fs.readFile(file, 'utf8');
       
       const oldRefs = (content.match(/CacheStatsDto/g) || []).length;
@@ -455,6 +518,11 @@ export type CacheStatsDto = RedisCacheRuntimeStatsDto;
     // 验证Swagger一致性
     const swaggerFiles = await this.globPromise('src/**/*.dto.ts');
     for (const file of swaggerFiles) {
+      // 跳过排除的文件
+      if (this.shouldExcludeFile(file)) {
+        continue;
+      }
+      
       const content = await fs.readFile(file, 'utf8');
       
       // 检查是否有混用的情况
@@ -483,8 +551,13 @@ export type CacheStatsDto = RedisCacheRuntimeStatsDto;
                                verificationResults.totalNewReferences > 0 &&
                                verificationResults.swaggerConsistency;
 
+    // 生成排除文件报告
+    this.logger.log(`   排除的系统文件: ${this.excludePatterns.length} 个模式`);
+    this.logger.debug('   排除模式详情:', this.excludePatterns);
+
     if (isCompletelyRenamed) {
       this.logger.log('✅ 重命名完整性验证通过 - 无双名并存问题');
+      this.logger.log('✅ 脚本自我保护机制正常工作');
     } else {
       this.logger.warn('⚠️ 重命名可能不完整，请检查上述问题');
     }

@@ -9,7 +9,7 @@ import { SymbolMappingRule } from '../../../00-prepare/symbol-mapper/schemas/sym
 import { createLogger } from '@app/config/logger.config';
 import { 
   BatchMappingResult,
-  CacheStatsDto 
+  RedisCacheRuntimeStatsDto 
 } from '../interfaces/cache-stats.interface';
 
 /**
@@ -309,7 +309,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   /**
    * 🔍 缓存统计信息 - 使用层内总次数作为分母，避免比例异常
    */
-  getCacheStats(): CacheStatsDto {
+  getCacheStats(): RedisCacheRuntimeStatsDto {
     const l1Total = this.cacheStats.l1.hits + this.cacheStats.l1.misses;
     const l2Total = this.cacheStats.l2.hits + this.cacheStats.l2.misses;
     const l3Total = this.cacheStats.l3.hits + this.cacheStats.l3.misses;

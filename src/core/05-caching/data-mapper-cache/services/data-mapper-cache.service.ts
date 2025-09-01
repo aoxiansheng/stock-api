@@ -10,7 +10,7 @@ import {
   DataMapperCacheOperation,
   DataMapperCacheMetrics 
 } from '../constants/data-mapper-cache.constants';
-import { DataMapperCacheStatsDto } from '../dto/data-mapper-cache.dto';
+import { DataMapperRedisCacheRuntimeStatsDto } from '../dto/data-mapper-cache.dto';
 import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
 /**
@@ -610,7 +610,7 @@ export class DataMapperCacheService implements IDataMapperCache {
   /**
    * 📊 获取缓存统计 (优化版 - 使用SCAN替代KEYS)
    */
-  async getCacheStats(): Promise<DataMapperCacheStatsDto> {
+  async getCacheStats(): Promise<DataMapperRedisCacheRuntimeStatsDto> {
     const startTime = Date.now();
     
     try {

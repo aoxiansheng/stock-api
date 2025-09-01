@@ -33,7 +33,7 @@ export interface BatchMappingResult {
 /**
  * 缓存统计信息
  */
-export interface CacheStatsDto {
+export interface RedisCacheRuntimeStatsDto {
   totalQueries: number;
   l1HitRatio: number; // L1规则缓存命中率
   l2HitRatio: number; // L2符号缓存命中率

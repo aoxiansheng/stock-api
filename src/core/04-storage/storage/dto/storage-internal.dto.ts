@@ -70,7 +70,7 @@ export class CacheInfoDto {
   ttlRemaining?: number;
 }
 
-export class StorageCacheStatsDto {
+export class StorageRedisCacheRuntimeStatsDto {
   @ApiProperty({ description: "缓存键总数" })
   @IsNumber()
   totalKeys: number;

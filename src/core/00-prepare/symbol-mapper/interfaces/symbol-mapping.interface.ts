@@ -36,4 +36,4 @@ export interface ISymbolMappingRuleList {
 
 // 缓存相关接口已迁移到 symbol-mapper-cache/interfaces/cache-stats.interface.ts
 // 如需使用这些接口，请从该位置导入:
-// import { SymbolMappingResult, BatchMappingResult, CacheStatsDto } from '../../symbol-mapper-cache/interfaces/cache-stats.interface';
+// import { SymbolMappingResult, BatchMappingResult, RedisCacheRuntimeStatsDto } from '../../symbol-mapper-cache/interfaces/cache-stats.interface';

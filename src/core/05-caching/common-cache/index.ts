@@ -23,7 +23,7 @@ export type {
 
 // DTO
 export { CacheRequestDto, BatchCacheRequestDto, CacheFallbackRequestDto } from './dto/cache-request.dto';
-export { CacheResultDto, BatchCacheResultDto, CacheStatsDto } from './dto/cache-result.dto';
+export { CacheResultDto, BatchCacheResultDto, RedisCacheRuntimeStatsDto } from './dto/cache-result.dto';
 export { CacheComputeOptionsDto, TtlComputeParamsDto } from './dto/cache-compute-options.dto';
 export { TtlComputeResultDto } from './dto/ttl-compute-params.dto';
 export { SmartCacheResultDto, BatchSmartCacheResultDto } from './dto/smart-cache-result.dto';

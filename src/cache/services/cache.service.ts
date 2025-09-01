@@ -32,13 +32,13 @@ const COMPRESSION_PREFIX = "COMPRESSED::";
 // 🎯 使用内部 DTO 类型替换原始接口定义
 import {
   CacheConfigDto,
-  CacheStatsDto,
+  RedisCacheRuntimeStatsDto,
   CacheHealthCheckResultDto,
 } from "../dto/cache-internal.dto";
 
 // 🎯 为了向后兼容，保留类型别名
 export type CacheConfig = CacheConfigDto;
-export type CacheStats = CacheStatsDto;
+export type CacheStats = RedisCacheRuntimeStatsDto;
 
 @Injectable()
 export class CacheService {

@@ -5,9 +5,9 @@ import { IsNumber } from "class-validator";
  * Redis缓存运行时统计信息DTO
  * 
  * 此DTO专门用于Redis缓存服务的实时统计数据
- * 与StorageCacheStatsDto区分：
+ * 与StorageRedisCacheRuntimeStatsDto区分：
  * - RedisCacheRuntimeStatsDto: Redis内存缓存的运行时统计
- * - StorageCacheStatsDto: 存储层整体缓存统计（包括持久化缓存）
+ * - StorageRedisCacheRuntimeStatsDto: 存储层整体缓存统计（包括持久化缓存）
  */
 export class RedisCacheRuntimeStatsDto {
   @ApiProperty({ description: "缓存命中次数" })

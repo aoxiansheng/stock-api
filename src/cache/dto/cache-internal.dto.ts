@@ -10,34 +10,8 @@ import {
   ValidateNested,
   IsEnum,
 } from "class-validator";
+import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 
-/**
- * 缓存配置DTO
- */
-export class CacheConfigDto {
-  @ApiProperty({ description: "生存时间（秒）" })
-  @IsNumber()
-  ttl: number;
-
-  @ApiProperty({ description: "最大内存使用（字节）", required: false })
-  @IsOptional()
-  @IsNumber()
-  maxMemory?: number;
-
-  @ApiProperty({ description: "压缩阈值（字节）", required: false })
-  @IsOptional()
-  @IsNumber()
-  compressionThreshold?: number;
-
-  @ApiProperty({
-    description: "序列化器类型",
-    enum: ["json", "msgpack"],
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(["json", "msgpack"])
-  serializer?: "json" | "msgpack";
-}
 
 /**
  * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
@@ -47,17 +21,66 @@ export class CacheConfigDto {
  * 旧导入：import { CacheStatsDto } from './cache-internal.dto'
  * 新导入：import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto'
  */
-import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
-
-/**
- * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
- */
 export type CacheStatsDto = RedisCacheRuntimeStatsDto;
 
+// 重新导出新的DTO类，便于导入
+export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
+
 /**
- * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
+ * 通用缓存配置DTO
+ * 
+ * 用于统一缓存操作的配置参数
+ * 包含序列化、压缩、TTL等核心配置
  */
-export const CacheStatsDto = RedisCacheRuntimeStatsDto;
+export class CacheConfigDto {
+  @ApiProperty({ 
+    description: "缓存TTL（秒）", 
+    required: false,
+    example: 3600 
+  })
+  @IsOptional()
+  @IsNumber()
+  ttl?: number;
+
+  @ApiProperty({ 
+    description: "最大缓存大小（字节）", 
+    required: false,
+    example: 1048576 
+  })
+  @IsOptional()
+  @IsNumber()
+  maxSize?: number;
+
+  @ApiProperty({ 
+    description: "是否启用缓存", 
+    required: false, 
+    default: true 
+  })
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @ApiProperty({ 
+    description: "序列化器类型", 
+    enum: ["json", "msgpack"],
+    required: false,
+    default: "json",
+    example: "json"
+  })
+  @IsOptional()
+  @IsEnum(["json", "msgpack"])
+  serializer?: "json" | "msgpack";
+
+  @ApiProperty({ 
+    description: "压缩阈值（字节，超过此大小将自动压缩）", 
+    required: false,
+    example: 1024,
+    minimum: 0
+  })
+  @IsOptional()
+  @IsNumber()
+  compressionThreshold?: number;
+}
 
 /**
  * 缓存健康检查结果DTO

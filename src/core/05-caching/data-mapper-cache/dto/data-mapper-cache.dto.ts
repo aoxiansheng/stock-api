@@ -31,7 +31,7 @@ export class DataMapperCacheConfigDto {
 /**
  * DataMapper 缓存统计 DTO
  */
-export class DataMapperCacheStatsDto {
+export class DataMapperRedisCacheRuntimeStatsDto {
   @ApiProperty({
     description: '最佳规则缓存数量',
     example: 25,

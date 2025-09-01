@@ -40,7 +40,7 @@ export class BatchCacheResultDto<T = any> {
 /**
  * 缓存操作统计DTO
  */
-export class CacheStatsDto {
+export class RedisCacheRuntimeStatsDto {
   @ApiProperty({ description: '总操作次数' })
   totalOperations: number;
 
