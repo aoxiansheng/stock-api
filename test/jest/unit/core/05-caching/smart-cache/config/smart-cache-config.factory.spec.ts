@@ -1,8 +1,8 @@
-import { SmartCacheConfigFactory } from '../../../../../../../src/core/05-caching/smart-cache/config/smart-cache-config.factory';
-import { CacheStrategy } from '../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
-import  os from 'os';
+import { SmartCacheConfigFactory } from "../../../../../../../src/core/05-caching/smart-cache/config/smart-cache-config.factory";
+import { CacheStrategy } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import os from "os";
 
-describe('SmartCacheConfigFactory', () => {
+describe("SmartCacheConfigFactory", () => {
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -15,11 +15,11 @@ describe('SmartCacheConfigFactory', () => {
     process.env = originalEnv;
   });
 
-  describe('createConfig', () => {
-    it('should create default configuration when no environment variables are set', () => {
+  describe("createConfig", () => {
+    it("should create default configuration when no environment variables are set", () => {
       // 清除所有SmartCache相关环境变量
-      Object.keys(process.env).forEach(key => {
-        if (key.startsWith('SMART_CACHE_') || key.startsWith('CACHE_')) {
+      Object.keys(process.env).forEach((key) => {
+        if (key.startsWith("SMART_CACHE_") || key.startsWith("CACHE_")) {
           delete process.env[key];
         }
       });
@@ -39,18 +39,20 @@ describe('SmartCacheConfigFactory', () => {
       // 验证策略配置
       expect(config.strategies[CacheStrategy.STRONG_TIMELINESS].ttl).toBe(60);
       expect(config.strategies[CacheStrategy.WEAK_TIMELINESS].ttl).toBe(300);
-      expect(config.strategies[CacheStrategy.MARKET_AWARE].openMarketTtl).toBe(30);
+      expect(config.strategies[CacheStrategy.MARKET_AWARE].openMarketTtl).toBe(
+        30,
+      );
       expect(config.strategies[CacheStrategy.ADAPTIVE].baseTtl).toBe(180);
     });
 
-    it('should use environment variables when provided', () => {
+    it("should use environment variables when provided", () => {
       // 设置环境变量
-      process.env.SMART_CACHE_MIN_UPDATE_INTERVAL = '45000';
-      process.env.SMART_CACHE_MAX_CONCURRENT = '12';
-      process.env.SMART_CACHE_SHUTDOWN_TIMEOUT = '60000';
-      process.env.SMART_CACHE_ENABLE_BACKGROUND_UPDATE = 'false';
-      process.env.CACHE_STRONG_TTL = '90';
-      process.env.CACHE_WEAK_TTL = '600';
+      process.env.SMART_CACHE_MIN_UPDATE_INTERVAL = "45000";
+      process.env.SMART_CACHE_MAX_CONCURRENT = "12";
+      process.env.SMART_CACHE_SHUTDOWN_TIMEOUT = "60000";
+      process.env.SMART_CACHE_ENABLE_BACKGROUND_UPDATE = "false";
+      process.env.CACHE_STRONG_TTL = "90";
+      process.env.CACHE_WEAK_TTL = "600";
 
       const config = SmartCacheConfigFactory.createConfig();
 
@@ -63,12 +65,12 @@ describe('SmartCacheConfigFactory', () => {
       expect(config.strategies[CacheStrategy.WEAK_TIMELINESS].ttl).toBe(600);
     });
 
-    it('should handle invalid environment variables gracefully', () => {
+    it("should handle invalid environment variables gracefully", () => {
       // 设置无效的环境变量
-      process.env.SMART_CACHE_MIN_UPDATE_INTERVAL = 'invalid-number';
-      process.env.SMART_CACHE_MAX_CONCURRENT = 'not-a-number';
-      process.env.CACHE_STRONG_TTL = 'invalid';
-      process.env.SMART_CACHE_ENABLE_BACKGROUND_UPDATE = 'invalid-boolean';
+      process.env.SMART_CACHE_MIN_UPDATE_INTERVAL = "invalid-number";
+      process.env.SMART_CACHE_MAX_CONCURRENT = "not-a-number";
+      process.env.CACHE_STRONG_TTL = "invalid";
+      process.env.SMART_CACHE_ENABLE_BACKGROUND_UPDATE = "invalid-boolean";
 
       const config = SmartCacheConfigFactory.createConfig();
       const cpuCores = os.cpus().length;
@@ -82,24 +84,24 @@ describe('SmartCacheConfigFactory', () => {
       expect(config.enableBackgroundUpdate).toBe(false);
     });
 
-    it('should parse boolean environment variables correctly', () => {
+    it("should parse boolean environment variables correctly", () => {
       // 测试各种布尔值格式
       const testCases = [
-        { value: 'true', expected: true },
-        { value: 'TRUE', expected: true },
-        { value: '1', expected: true },
-        { value: 'yes', expected: true },
-        { value: 'false', expected: false },
-        { value: 'FALSE', expected: false },
-        { value: '0', expected: false },
-        { value: 'no', expected: false },
-        { value: 'invalid', expected: false },
+        { value: "true", expected: true },
+        { value: "TRUE", expected: true },
+        { value: "1", expected: true },
+        { value: "yes", expected: true },
+        { value: "false", expected: false },
+        { value: "FALSE", expected: false },
+        { value: "0", expected: false },
+        { value: "no", expected: false },
+        { value: "invalid", expected: false },
       ];
 
       testCases.forEach(({ value, expected }) => {
         // 清理环境
-        Object.keys(process.env).forEach(key => {
-          if (key.startsWith('SMART_CACHE_') || key.startsWith('CACHE_')) {
+        Object.keys(process.env).forEach((key) => {
+          if (key.startsWith("SMART_CACHE_") || key.startsWith("CACHE_")) {
             delete process.env[key];
           }
         });
@@ -110,17 +112,17 @@ describe('SmartCacheConfigFactory', () => {
       });
     });
 
-    it('should validate configuration and throw errors for invalid config', () => {
+    it("should validate configuration and throw errors for invalid config", () => {
       // 设置导致验证失败的环境变量
-      process.env.SMART_CACHE_MIN_UPDATE_INTERVAL = '-1000';
-      process.env.CACHE_STRONG_THRESHOLD = '1.5'; // 超出0-1范围
+      process.env.SMART_CACHE_MIN_UPDATE_INTERVAL = "-1000";
+      process.env.CACHE_STRONG_THRESHOLD = "1.5"; // 超出0-1范围
 
       expect(() => {
         SmartCacheConfigFactory.createConfig();
       }).toThrow();
     });
 
-    it('should apply CPU core-based intelligent defaults', () => {
+    it("should apply CPU core-based intelligent defaults", () => {
       // 清除并发相关环境变量
       delete process.env.SMART_CACHE_MAX_CONCURRENT;
 
@@ -134,97 +136,97 @@ describe('SmartCacheConfigFactory', () => {
     });
   });
 
-  describe('getSystemInfo', () => {
-    it('should return system information', () => {
+  describe("getSystemInfo", () => {
+    it("should return system information", () => {
       const systemInfo = SmartCacheConfigFactory.getSystemInfo();
 
-      expect(systemInfo).toHaveProperty('cpuCores');
-      expect(systemInfo).toHaveProperty('totalMemoryMB');
-      expect(systemInfo).toHaveProperty('freeMemoryMB');
-      expect(systemInfo).toHaveProperty('platform');
-      expect(systemInfo).toHaveProperty('arch');
-      expect(systemInfo).toHaveProperty('nodeVersion');
+      expect(systemInfo).toHaveProperty("cpuCores");
+      expect(systemInfo).toHaveProperty("totalMemoryMB");
+      expect(systemInfo).toHaveProperty("freeMemoryMB");
+      expect(systemInfo).toHaveProperty("platform");
+      expect(systemInfo).toHaveProperty("arch");
+      expect(systemInfo).toHaveProperty("nodeVersion");
 
-      expect(typeof systemInfo.cpuCores).toBe('number');
-      expect(typeof systemInfo.totalMemoryMB).toBe('number');
-      expect(typeof systemInfo.freeMemoryMB).toBe('number');
-      expect(typeof systemInfo.platform).toBe('string');
-      expect(typeof systemInfo.arch).toBe('string');
-      expect(typeof systemInfo.nodeVersion).toBe('string');
+      expect(typeof systemInfo.cpuCores).toBe("number");
+      expect(typeof systemInfo.totalMemoryMB).toBe("number");
+      expect(typeof systemInfo.freeMemoryMB).toBe("number");
+      expect(typeof systemInfo.platform).toBe("string");
+      expect(typeof systemInfo.arch).toBe("string");
+      expect(typeof systemInfo.nodeVersion).toBe("string");
 
       expect(systemInfo.cpuCores).toBeGreaterThan(0);
       expect(systemInfo.totalMemoryMB).toBeGreaterThan(0);
     });
   });
 
-  describe('getCurrentEnvVars', () => {
-    it('should return current SmartCache environment variables', () => {
+  describe("getCurrentEnvVars", () => {
+    it("should return current SmartCache environment variables", () => {
       // 设置一些环境变量
-      process.env.SMART_CACHE_MAX_CONCURRENT = '8';
-      process.env.CACHE_STRONG_TTL = '120';
-      process.env.UNRELATED_VAR = 'should-not-appear';
+      process.env.SMART_CACHE_MAX_CONCURRENT = "8";
+      process.env.CACHE_STRONG_TTL = "120";
+      process.env.UNRELATED_VAR = "should-not-appear";
 
       const envVars = SmartCacheConfigFactory.getCurrentEnvVars();
 
       // 应该包含SmartCache相关变量
-      expect(envVars).toHaveProperty('SMART_CACHE_MAX_CONCURRENT', '8');
-      expect(envVars).toHaveProperty('CACHE_STRONG_TTL', '120');
-      
+      expect(envVars).toHaveProperty("SMART_CACHE_MAX_CONCURRENT", "8");
+      expect(envVars).toHaveProperty("CACHE_STRONG_TTL", "120");
+
       // 不应该包含不相关的变量
-      expect(envVars).not.toHaveProperty('UNRELATED_VAR');
+      expect(envVars).not.toHaveProperty("UNRELATED_VAR");
 
       // 验证返回的键名
-      Object.keys(envVars).forEach(key => {
-        expect(
-          key.startsWith('SMART_CACHE_') || key.startsWith('CACHE_')
-        ).toBe(true);
+      Object.keys(envVars).forEach((key) => {
+        expect(key.startsWith("SMART_CACHE_") || key.startsWith("CACHE_")).toBe(
+          true,
+        );
       });
     });
 
-    it('should include undefined values for unset variables', () => {
+    it("should include undefined values for unset variables", () => {
       delete process.env.SMART_CACHE_MIN_UPDATE_INTERVAL;
-      
+
       const envVars = SmartCacheConfigFactory.getCurrentEnvVars();
-      
-      expect(envVars).toHaveProperty('SMART_CACHE_MIN_UPDATE_INTERVAL');
+
+      expect(envVars).toHaveProperty("SMART_CACHE_MIN_UPDATE_INTERVAL");
       expect(envVars.SMART_CACHE_MIN_UPDATE_INTERVAL).toBeUndefined();
     });
   });
 
-  describe('Configuration Validation', () => {
-    it('should validate strong timeliness strategy config', () => {
-      process.env.CACHE_STRONG_TTL = '-10';
-      process.env.CACHE_STRONG_THRESHOLD = '2.0';
-      process.env.CACHE_STRONG_REFRESH_INTERVAL = '30'; // 小于TTL
+  describe("Configuration Validation", () => {
+    it("should validate strong timeliness strategy config", () => {
+      process.env.CACHE_STRONG_TTL = "-10";
+      process.env.CACHE_STRONG_THRESHOLD = "2.0";
+      process.env.CACHE_STRONG_REFRESH_INTERVAL = "30"; // 小于TTL
 
       expect(() => {
         SmartCacheConfigFactory.createConfig();
       }).toThrow(/validation failed/);
     });
 
-    it('should validate weak timeliness strategy config', () => {
-      process.env.CACHE_WEAK_TTL = '0';
-      process.env.CACHE_WEAK_MIN_UPDATE = '-60';
+    it("should validate weak timeliness strategy config", () => {
+      process.env.CACHE_WEAK_TTL = "0";
+      process.env.CACHE_WEAK_MIN_UPDATE = "-60";
 
       expect(() => {
         SmartCacheConfigFactory.createConfig();
       }).toThrow(/validation failed/);
     });
 
-    it('should validate market aware strategy config', () => {
-      process.env.CACHE_MARKET_OPEN_TTL = '0';
-      process.env.CACHE_MARKET_CLOSED_TTL = '-100';
-      process.env.CACHE_MARKET_OPEN_THRESHOLD = '1.5';
+    it("should validate market aware strategy config", () => {
+      process.env.CACHE_MARKET_OPEN_TTL = "0";
+      process.env.CACHE_MARKET_CLOSED_TTL = "-100";
+      process.env.CACHE_MARKET_OPEN_THRESHOLD = "1.5";
 
       expect(() => {
         SmartCacheConfigFactory.createConfig();
       }).toThrow(/validation failed/);
     });
 
-    it('should validate adaptive strategy config', () => {
-      process.env.CACHE_ADAPTIVE_MIN_TTL = '3600';
-      process.env.CACHE_ADAPTIVE_MAX_TTL = '1800'; // MIN > MAX
-      process.env.CACHE_ADAPTIVE_FACTOR = '-1.0';
+    it("should validate adaptive strategy config", () => {
+      process.env.CACHE_ADAPTIVE_MIN_TTL = "3600";
+      process.env.CACHE_ADAPTIVE_MAX_TTL = "1800"; // MIN > MAX
+      process.env.CACHE_ADAPTIVE_FACTOR = "-1.0";
 
       expect(() => {
         SmartCacheConfigFactory.createConfig();
@@ -232,11 +234,11 @@ describe('SmartCacheConfigFactory', () => {
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle extreme CPU core counts', () => {
+  describe("Edge Cases", () => {
+    it("should handle extreme CPU core counts", () => {
       // Mock极端情况
       const originalCpus = os.cpus;
-      
+
       // 测试单核系统
       (os as any).cpus = () => [{}];
       let config = SmartCacheConfigFactory.createConfig();
@@ -251,37 +253,45 @@ describe('SmartCacheConfigFactory', () => {
       (os as any).cpus = originalCpus;
     });
 
-    it('should handle memory information gracefully', () => {
+    it("should handle memory information gracefully", () => {
       const systemInfo = SmartCacheConfigFactory.getSystemInfo();
-      
+
       expect(systemInfo.totalMemoryMB).toBeGreaterThan(0);
       expect(systemInfo.freeMemoryMB).toBeGreaterThanOrEqual(0);
-      expect(systemInfo.freeMemoryMB).toBeLessThanOrEqual(systemInfo.totalMemoryMB);
+      expect(systemInfo.freeMemoryMB).toBeLessThanOrEqual(
+        systemInfo.totalMemoryMB,
+      );
     });
 
-    it('should create valid configuration for different deployment scenarios', () => {
+    it("should create valid configuration for different deployment scenarios", () => {
       // 开发环境场景
-      Object.keys(process.env).forEach(key => {
-        if (key.startsWith('SMART_CACHE_') || key.startsWith('CACHE_')) {
+      Object.keys(process.env).forEach((key) => {
+        if (key.startsWith("SMART_CACHE_") || key.startsWith("CACHE_")) {
           delete process.env[key];
         }
       });
-      process.env.SMART_CACHE_MAX_CONCURRENT = '4';
-      process.env.CACHE_STRONG_TTL = '30';
+      process.env.SMART_CACHE_MAX_CONCURRENT = "4";
+      process.env.CACHE_STRONG_TTL = "30";
 
       const devConfig = SmartCacheConfigFactory.createConfig();
       expect(devConfig.maxConcurrentUpdates).toBe(4);
-      expect(devConfig.strategies[CacheStrategy.STRONG_TIMELINESS].ttl).toBe(30);
+      expect(devConfig.strategies[CacheStrategy.STRONG_TIMELINESS].ttl).toBe(
+        30,
+      );
 
       // 生产环境场景
-      process.env.SMART_CACHE_MAX_CONCURRENT = '16';
-      process.env.CACHE_STRONG_TTL = '60';
-      process.env.CACHE_MARKET_CLOSED_TTL = '3600';
+      process.env.SMART_CACHE_MAX_CONCURRENT = "16";
+      process.env.CACHE_STRONG_TTL = "60";
+      process.env.CACHE_MARKET_CLOSED_TTL = "3600";
 
       const prodConfig = SmartCacheConfigFactory.createConfig();
       expect(prodConfig.maxConcurrentUpdates).toBe(16);
-      expect(prodConfig.strategies[CacheStrategy.STRONG_TIMELINESS].ttl).toBe(60);
-      expect(prodConfig.strategies[CacheStrategy.MARKET_AWARE].closedMarketTtl).toBe(3600);
+      expect(prodConfig.strategies[CacheStrategy.STRONG_TIMELINESS].ttl).toBe(
+        60,
+      );
+      expect(
+        prodConfig.strategies[CacheStrategy.MARKET_AWARE].closedMarketTtl,
+      ).toBe(3600);
     });
   });
 });

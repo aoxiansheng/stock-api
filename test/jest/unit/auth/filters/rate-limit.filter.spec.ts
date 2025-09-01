@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Test, TestingModule } from '@nestjs/testing';
-import { RateLimitExceptionFilter } from '../../../../../src/auth/filters/rate-limit.filter';
-import { HttpException, HttpStatus } from '@nestjs/common';
-import { ArgumentsHost } from '@nestjs/common';
+import { Test, TestingModule } from "@nestjs/testing";
+import { RateLimitExceptionFilter } from "../../../../../src/auth/filters/rate-limit.filter";
+import { HttpException, HttpStatus } from "@nestjs/common";
+import { ArgumentsHost } from "@nestjs/common";
 
-describe('RateLimitExceptionFilter', () => {
+describe("RateLimitExceptionFilter", () => {
   let filter: RateLimitExceptionFilter;
 
   // 在每个测试用例之前，创建一个新的测试模块
@@ -17,9 +17,9 @@ describe('RateLimitExceptionFilter', () => {
   });
 
   // 测试当异常不是 429 时的情况
-  it('should re-throw exception if not a 429', () => {
+  it("should re-throw exception if not a 429", () => {
     // 创建一个非 429 的异常
-    const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    const exception = new HttpException("Forbidden", HttpStatus.FORBIDDEN);
     // 创建一个模拟的 ArgumentsHost
     const host = {
       switchToHttp: () => ({
@@ -33,10 +33,10 @@ describe('RateLimitExceptionFilter', () => {
   });
 
   // 测试当异常是 429 时的情况
-  it('should handle a 429 exception', () => {
+  it("should handle a 429 exception", () => {
     // 创建一个 429 的异常
     const exception = new HttpException(
-      { message: 'Too Many Requests', details: { retryAfter: 60 } },
+      { message: "Too Many Requests", details: { retryAfter: 60 } },
       HttpStatus.TOO_MANY_REQUESTS,
     );
     // 创建一个模拟的 Response 对象
@@ -49,7 +49,7 @@ describe('RateLimitExceptionFilter', () => {
     const host = {
       switchToHttp: () => ({
         getResponse: () => response,
-        getRequest: () => ({ url: '/' }),
+        getRequest: () => ({ url: "/" }),
       }),
     } as ArgumentsHost;
 
@@ -60,6 +60,6 @@ describe('RateLimitExceptionFilter', () => {
     expect(response.status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
     expect(response.json).toHaveBeenCalledWith(expect.any(Object));
     // 断言设置了 Retry-After 响应头
-    expect(response.setHeader).toHaveBeenCalledWith('Retry-After', 60);
+    expect(response.setHeader).toHaveBeenCalledWith("Retry-After", 60);
   });
 });

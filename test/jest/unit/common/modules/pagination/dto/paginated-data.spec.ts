@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { PaginatedDataDto } from '../../../../../../../src/common/modules/pagination/dto/paginated-data';
+import { PaginatedDataDto } from "../../../../../../../src/common/modules/pagination/dto/paginated-data";
 
-describe('PaginatedDataDto', () => {
+describe("PaginatedDataDto", () => {
   // 测试构造函数是否正确初始化属性
-  it('should correctly initialize items and pagination properties', () => {
+  it("should correctly initialize items and pagination properties", () => {
     // 模拟数据项
-    const mockItems = [{ id: 1, name: 'Test1' }, { id: 2, name: 'Test2' }];
+    const mockItems = [
+      { id: 1, name: "Test1" },
+      { id: 2, name: "Test2" },
+    ];
     // 模拟分页信息
     const mockPagination = {
       page: 1,
@@ -27,7 +30,7 @@ describe('PaginatedDataDto', () => {
   });
 
   // 测试当 items 为空数组时的情况
-  it('should handle empty items array correctly', () => {
+  it("should handle empty items array correctly", () => {
     // 模拟空数据项
     const mockItems: any[] = [];
     // 模拟分页信息

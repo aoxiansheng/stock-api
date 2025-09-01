@@ -7,7 +7,7 @@ import {
   INotificationSender,
   INotificationTemplate,
   INotificationLog,
-} from '../../../../../src/alert/interfaces/notification-types';
+} from "../../../../../src/alert/interfaces/notification-types";
 
 import {
   NotificationChannel,
@@ -17,14 +17,14 @@ import {
   NotificationTemplate,
   NotificationLog,
   NotificationChannelType,
-} from '../../../../../src/alert/types/alert.types';
+} from "../../../../../src/alert/types/alert.types";
 
-describe('NotificationTypes Interface Re-exports', () => {
-  describe('Type Alias Compatibility', () => {
-    it('should correctly re-export INotificationChannel type', () => {
+describe("NotificationTypes Interface Re-exports", () => {
+  describe("Type Alias Compatibility", () => {
+    it("should correctly re-export INotificationChannel type", () => {
       // Arrange & Act - 验证类型别名
       const channel: INotificationChannel = {
-        name: 'Email Channel',
+        name: "Email Channel",
         type: NotificationChannelType.EMAIL,
         config: {},
         enabled: true,
@@ -36,13 +36,13 @@ describe('NotificationTypes Interface Re-exports', () => {
       expect(channel).toBe(originalChannel);
     });
 
-    it('should correctly re-export INotificationResult type', () => {
+    it("should correctly re-export INotificationResult type", () => {
       // Arrange
       const result: INotificationResult = {
         success: true,
-        channelId: 'channel-1',
+        channelId: "channel-1",
         channelType: NotificationChannelType.EMAIL,
-        message: '发送成功',
+        message: "发送成功",
         sentAt: new Date(),
         duration: 100,
       };
@@ -51,15 +51,15 @@ describe('NotificationTypes Interface Re-exports', () => {
 
       // Assert - 验证结果
       expect(result.success).toBe(true);
-      expect(result.channelId).toBe('channel-1');
+      expect(result.channelId).toBe("channel-1");
       expect(result.channelType).toBe(NotificationChannelType.EMAIL);
-      expect(result.message).toBe('发送成功');
+      expect(result.message).toBe("发送成功");
       expect(result.sentAt).toBeInstanceOf(Date);
       expect(result.duration).toBe(100);
       expect(result).toBe(originalResult);
     });
 
-    it('should correctly re-export IBatchNotificationResult type', () => {
+    it("should correctly re-export IBatchNotificationResult type", () => {
       // Arrange
       const batchResult: IBatchNotificationResult = {
         total: 5,
@@ -68,18 +68,18 @@ describe('NotificationTypes Interface Re-exports', () => {
         results: [
           {
             success: true,
-            channelId: 'channel-1',
+            channelId: "channel-1",
             channelType: NotificationChannelType.EMAIL,
-            message: '发送成功',
+            message: "发送成功",
             sentAt: new Date(),
             duration: 50,
           },
           {
             success: false,
-            channelId: 'channel-2',
+            channelId: "channel-2",
             channelType: NotificationChannelType.WEBHOOK,
-            message: '发送失败',
-            error: '网络错误',
+            message: "发送失败",
+            error: "网络错误",
             sentAt: new Date(),
             duration: 150,
           },
@@ -99,7 +99,7 @@ describe('NotificationTypes Interface Re-exports', () => {
       expect(batchResult).toBe(originalBatchResult);
     });
 
-    it('should correctly re-export INotificationSender type', () => {
+    it("should correctly re-export INotificationSender type", () => {
       // Arrange
       const sender: INotificationSender = {
         type: NotificationChannelType.EMAIL,
@@ -112,65 +112,65 @@ describe('NotificationTypes Interface Re-exports', () => {
 
       // Assert - 验证发送者
       expect(sender.type).toBe(NotificationChannelType.EMAIL);
-      expect(typeof sender.send).toBe('function');
-      expect(typeof sender.test).toBe('function');
-      expect(typeof sender.validateConfig).toBe('function');
+      expect(typeof sender.send).toBe("function");
+      expect(typeof sender.test).toBe("function");
+      expect(typeof sender.validateConfig).toBe("function");
       expect(sender).toBe(originalSender);
     });
 
-    it('should correctly re-export INotificationTemplate type', () => {
+    it("should correctly re-export INotificationTemplate type", () => {
       // Arrange
       const template: INotificationTemplate = {
-        subject: '测试主题',
-        body: '测试内容 {variable}',
-        variables: { var_iable: 'value' },
-        format: 'text',
+        subject: "测试主题",
+        body: "测试内容 {variable}",
+        variables: { var_iable: "value" },
+        format: "text",
       };
 
       const originalTemplate: NotificationTemplate = template;
 
       // Assert - 验证模板
-      expect(template.subject).toBe('测试主题');
-      expect(template.body).toBe('测试内容 {variable}');
-      expect(template.variables).toEqual({ var_iable: 'value' });
-      expect(template.format).toBe('text');
+      expect(template.subject).toBe("测试主题");
+      expect(template.body).toBe("测试内容 {variable}");
+      expect(template.variables).toEqual({ var_iable: "value" });
+      expect(template.format).toBe("text");
       expect(template).toBe(originalTemplate);
     });
 
-    it('should correctly re-export INotificationLog type', () => {
+    it("should correctly re-export INotificationLog type", () => {
       // Arrange
       const log: INotificationLog = {
-        id: 'log-789',
-        alertId: 'alert-123',
-        channelId: 'channel-1',
+        id: "log-789",
+        alertId: "alert-123",
+        channelId: "channel-1",
         channelType: NotificationChannelType.EMAIL,
         success: true,
-        message: '发送成功',
+        message: "发送成功",
         sentAt: new Date(),
         duration: 100,
         retryCount: 0,
-        metadata: { messageId: 'msg-abc' },
+        metadata: { messageId: "msg-abc" },
       };
 
       const originalLog: NotificationLog = log;
 
       // Assert - 验证日志
-      expect(log.id).toBe('log-789');
-      expect(log.alertId).toBe('alert-123');
-      expect(log.channelId).toBe('channel-1');
+      expect(log.id).toBe("log-789");
+      expect(log.alertId).toBe("alert-123");
+      expect(log.channelId).toBe("channel-1");
       expect(log.channelType).toBe(NotificationChannelType.EMAIL);
       expect(log.success).toBe(true);
-      expect(log.message).toBe('发送成功');
+      expect(log.message).toBe("发送成功");
       expect(log.sentAt).toBeInstanceOf(Date);
       expect(log.duration).toBe(100);
       expect(log.retryCount).toBe(0);
-      expect(log.metadata).toEqual({ messageId: 'msg-abc' });
+      expect(log.metadata).toEqual({ messageId: "msg-abc" });
       expect(log).toBe(originalLog);
     });
   });
 
-  describe('Backward Compatibility', () => {
-    it('should maintain backward compatibility for legacy code using I-prefixed types', () => {
+  describe("Backward Compatibility", () => {
+    it("should maintain backward compatibility for legacy code using I-prefixed types", () => {
       // Arrange - 模拟使用 I-prefixed 接口的旧代码
       function legacyFunction(
         channel: INotificationChannel,
@@ -192,14 +192,14 @@ describe('NotificationTypes Interface Re-exports', () => {
 
       // Act - 模拟传入新类型
       const channel: NotificationChannel = {
-        name: 'SMS Channel',
+        name: "SMS Channel",
         type: NotificationChannelType.SMS,
         config: {},
         enabled: true,
       };
       const result: NotificationResult = {
         success: true,
-        channelId: 'sms-channel',
+        channelId: "sms-channel",
         channelType: NotificationChannelType.SMS,
         sentAt: new Date(),
         duration: 50,
@@ -218,14 +218,14 @@ describe('NotificationTypes Interface Re-exports', () => {
         validateConfig: jest.fn(() => ({ valid: true, errors: [] })),
       };
       const template: NotificationTemplate = {
-        subject: 'SMS Subject',
-        body: 'SMS Body',
+        subject: "SMS Subject",
+        body: "SMS Body",
         variables: {},
       };
       const log: NotificationLog = {
-        id: 'log-legacy',
-        alertId: 'alert-legacy',
-        channelId: 'sms-channel',
+        id: "log-legacy",
+        alertId: "alert-legacy",
+        channelId: "sms-channel",
         channelType: NotificationChannelType.SMS,
         success: true,
         sentAt: new Date(),
@@ -247,14 +247,14 @@ describe('NotificationTypes Interface Re-exports', () => {
       expect(legacyResult.result.success).toBe(true);
       expect(legacyResult.batchResult.total).toBe(1);
       expect(legacyResult.sender.type).toBe(NotificationChannelType.SMS);
-      expect(legacyResult.template.subject).toBe('SMS Subject');
-      expect(legacyResult.log.id).toBe('log-legacy');
+      expect(legacyResult.template.subject).toBe("SMS Subject");
+      expect(legacyResult.log.id).toBe("log-legacy");
     });
 
-    it('should allow type interchangeability between I-prefixed and original types', () => {
+    it("should allow type interchangeability between I-prefixed and original types", () => {
       // Arrange & Act - 验证类型互换性
       const originalChannel: NotificationChannel = {
-        name: 'Push Channel',
+        name: "Push Channel",
         type: NotificationChannelType.WEBHOOK, // Changed from PUSH to WEBHOOK
         config: {},
         enabled: true,
@@ -269,35 +269,39 @@ describe('NotificationTypes Interface Re-exports', () => {
     });
   });
 
-  describe('Type Structure Validation', () => {
-    it('should validate NotificationChannel type values', () => {
+  describe("Type Structure Validation", () => {
+    it("should validate NotificationChannel type values", () => {
       // Arrange & Act
       const emailChannel: INotificationChannel = {
-        name: 'Email Channel',
+        name: "Email Channel",
         type: NotificationChannelType.EMAIL,
         config: {},
         enabled: true,
       };
       const smsChannel: INotificationChannel = {
-        name: 'SMS Channel',
+        name: "SMS Channel",
         type: NotificationChannelType.SMS,
         config: {},
         enabled: true,
       };
       const webhookChannel: INotificationChannel = {
-        name: 'Webhook Channel',
+        name: "Webhook Channel",
         type: NotificationChannelType.WEBHOOK,
         config: {},
         enabled: true,
       };
 
       // Assert - 验证枚举值
-      expect(Object.values(NotificationChannelType)).toContain(emailChannel.type);
+      expect(Object.values(NotificationChannelType)).toContain(
+        emailChannel.type,
+      );
       expect(Object.values(NotificationChannelType)).toContain(smsChannel.type);
-      expect(Object.values(NotificationChannelType)).toContain(webhookChannel.type);
+      expect(Object.values(NotificationChannelType)).toContain(
+        webhookChannel.type,
+      );
     });
 
-    it('should validate complex nested type structures', () => {
+    it("should validate complex nested type structures", () => {
       // Arrange
       const complexResult: IBatchNotificationResult = {
         total: 3,
@@ -306,25 +310,25 @@ describe('NotificationTypes Interface Re-exports', () => {
         results: [
           {
             success: true,
-            channelId: 'c1',
+            channelId: "c1",
             channelType: NotificationChannelType.EMAIL,
             sentAt: new Date(),
             duration: 10,
           },
           {
             success: true,
-            channelId: 'c2',
+            channelId: "c2",
             channelType: NotificationChannelType.SLACK,
             sentAt: new Date(),
             duration: 20,
           },
           {
             success: false,
-            channelId: 'c3',
+            channelId: "c3",
             channelType: NotificationChannelType.WEBHOOK,
             sentAt: new Date(),
             duration: 30,
-            error: 'failed',
+            error: "failed",
           },
         ],
         duration: 60,
@@ -335,28 +339,28 @@ describe('NotificationTypes Interface Re-exports', () => {
         complexResult.successful + complexResult.failed,
       );
       expect(complexResult.results).toHaveLength(complexResult.total);
-      expect(
-        complexResult.results.filter(r => r.success),
-      ).toHaveLength(complexResult.successful);
-      expect(
-        complexResult.results.filter(r => !r.success),
-      ).toHaveLength(complexResult.failed);
+      expect(complexResult.results.filter((r) => r.success)).toHaveLength(
+        complexResult.successful,
+      );
+      expect(complexResult.results.filter((r) => !r.success)).toHaveLength(
+        complexResult.failed,
+      );
       expect(complexResult.duration).toBe(60);
     });
   });
 
-  describe('File Migration Verification', () => {
-    it('should verify that types are correctly imported from the new location', () => {
+  describe("File Migration Verification", () => {
+    it("should verify that types are correctly imported from the new location", () => {
       // Act - 验证导入
       const testChannel: INotificationChannel = {
-        name: 'Test Channel',
+        name: "Test Channel",
         type: NotificationChannelType.EMAIL,
         config: {},
         enabled: true,
       };
       const testResult: INotificationResult = {
         success: true,
-        channelId: 'test-channel',
+        channelId: "test-channel",
         channelType: NotificationChannelType.EMAIL,
         sentAt: new Date(),
         duration: 1,
@@ -366,23 +370,23 @@ describe('NotificationTypes Interface Re-exports', () => {
       expect(testChannel).toBeDefined();
       expect(testResult).toBeDefined();
       expect(testResult.success).toBe(true);
-      expect(testResult.channelId).toBe('test-channel');
+      expect(testResult.channelId).toBe("test-channel");
     });
 
-    it('should maintain all original type properties and methods', () => {
+    it("should maintain all original type properties and methods", () => {
       // Arrange
       const template: INotificationTemplate = {
-        subject: 'Original Subject',
-        body: 'Original Body',
-        variables: { key: 'value' },
-        format: 'html',
+        subject: "Original Subject",
+        body: "Original Body",
+        variables: { key: "value" },
+        format: "html",
       };
 
       // Act & Assert - 验证属性和方法
-      expect(typeof template.subject).toBe('string');
-      expect(typeof template.body).toBe('string');
-      expect(typeof template.variables).toBe('object');
-      expect(typeof template.format).toBe('string');
+      expect(typeof template.subject).toBe("string");
+      expect(typeof template.body).toBe("string");
+      expect(typeof template.variables).toBe("object");
+      expect(typeof template.format).toBe("string");
     });
   });
 });

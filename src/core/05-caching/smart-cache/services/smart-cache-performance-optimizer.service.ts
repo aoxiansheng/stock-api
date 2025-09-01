@@ -148,8 +148,8 @@ export class SmartCachePerformanceOptimizer {
           this.emitMetrics('concurrency_adjusted', optimalConcurrency, {
             oldConcurrency,
             newConcurrency: optimalConcurrency,
-            memoryUsage: memoryUsage.toFixed(2),
-            cpuUsage: cpuUsage.toFixed(2),
+            memoryUsage: process.memoryUsage().heapUsed.toFixed(2),
+            cpuUsage: os.loadavg()[0].toFixed(2),
             adjustmentType: 'dynamic_optimization'
           });
         }

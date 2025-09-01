@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException } from "@nestjs/common";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 import {
@@ -51,7 +51,7 @@ describe("CacheService Optimization Features", () => {
       providers: [
         CacheService,
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: mockRedisService,
         },
       ],

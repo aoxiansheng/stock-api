@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import {
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { DataTransformerService } from "../../../../../../../src/core/02-processing/transformer/services/data-transformer.service";
 import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../../../../src/monitoring/contracts/events/system-status.events";
 import { DataTransformRequestDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-request.dto";
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
@@ -36,7 +33,11 @@ describe("DataTransformerService", () => {
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     fieldMappings: [
-      { sourceFieldPath: "last_done", targetField: "lastPrice", confidence: 0.9 },
+      {
+        sourceFieldPath: "last_done",
+        targetField: "lastPrice",
+        confidence: 0.9,
+      },
       { sourceFieldPath: "volume", targetField: "volume", confidence: 0.9 },
     ],
     isActive: true,
@@ -51,11 +52,11 @@ describe("DataTransformerService", () => {
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  
+
   const mockRuleDocument = {
-      id: "507f1f77bcf86cd799439011",
-      ...mockMappingRule,
-      toObject: () => mockMappingRule,
+    id: "507f1f77bcf86cd799439011",
+    ...mockMappingRule,
+    toObject: () => mockMappingRule,
   } as any;
 
   const validRequest: DataTransformRequestDto = {
@@ -88,9 +89,11 @@ describe("DataTransformerService", () => {
     service = module.get<DataTransformerService>(DataTransformerService);
     flexibleMappingRuleService = module.get(FlexibleMappingRuleService);
     mockEventBus = module.get(EventEmitter2);
-    
+
     // Setup the mock for getRuleDocumentById method
-    flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+    flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(
+      mockRuleDocument,
+    );
   });
 
   afterEach(() => {
@@ -99,60 +102,107 @@ describe("DataTransformerService", () => {
 
   describe("transform", () => {
     it("should transform data successfully", async () => {
-      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(
+        mockMappingRule,
+      );
       flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
         success: true,
         transformedData: { lastPrice: 150.5, volume: 100000 },
-        mappingStats: { successfulMappings: 2, failedMappings: 0, totalMappings: 2, successRate: 1 },
+        mappingStats: {
+          successfulMappings: 2,
+          failedMappings: 0,
+          totalMappings: 2,
+          successRate: 1,
+        },
       });
 
       const result = await service.transform(validRequest);
 
-      expect(result.transformedData).toEqual({ lastPrice: 150.5, volume: 100000 });
+      expect(result.transformedData).toEqual({
+        lastPrice: 150.5,
+        volume: 100000,
+      });
       expect(result.metadata.ruleId).toBe(mockMappingRule.id);
-      expect(flexibleMappingRuleService.findBestMatchingRule).toHaveBeenCalled();
-      expect(flexibleMappingRuleService.getRuleDocumentById).toHaveBeenCalledWith(mockMappingRule.id);
-      expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalled();
+      expect(
+        flexibleMappingRuleService.findBestMatchingRule,
+      ).toHaveBeenCalled();
+      expect(
+        flexibleMappingRuleService.getRuleDocumentById,
+      ).toHaveBeenCalledWith(mockMappingRule.id);
+      expect(
+        flexibleMappingRuleService.applyFlexibleMappingRule,
+      ).toHaveBeenCalled();
     });
 
     it("should handle array data by iterating and transforming each item", async () => {
-        const arrayRequest = { ...validRequest, rawData: [{ last_done: 150 }, { last_done: 151 }] };
-        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
-        flexibleMappingRuleService.applyFlexibleMappingRule
-            .mockResolvedValueOnce({
-                success: true,
-                transformedData: { lastPrice: 150 },
-                mappingStats: { successfulMappings: 1, failedMappings: 0, totalMappings: 1, successRate: 1 },
-            })
-            .mockResolvedValueOnce({
-                success: true,
-                transformedData: { lastPrice: 151 },
-                mappingStats: { successfulMappings: 1, failedMappings: 0, totalMappings: 1, successRate: 1 },
-            });
+      const arrayRequest = {
+        ...validRequest,
+        rawData: [{ last_done: 150 }, { last_done: 151 }],
+      };
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(
+        mockMappingRule,
+      );
+      flexibleMappingRuleService.applyFlexibleMappingRule
+        .mockResolvedValueOnce({
+          success: true,
+          transformedData: { lastPrice: 150 },
+          mappingStats: {
+            successfulMappings: 1,
+            failedMappings: 0,
+            totalMappings: 1,
+            successRate: 1,
+          },
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          transformedData: { lastPrice: 151 },
+          mappingStats: {
+            successfulMappings: 1,
+            failedMappings: 0,
+            totalMappings: 1,
+            successRate: 1,
+          },
+        });
 
-        const result = await service.transform(arrayRequest);
+      const result = await service.transform(arrayRequest);
 
-        expect(result.transformedData).toEqual([{ lastPrice: 150 }, { lastPrice: 151 }]);
-        expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalledTimes(2);
+      expect(result.transformedData).toEqual([
+        { lastPrice: 150 },
+        { lastPrice: 151 },
+      ]);
+      expect(
+        flexibleMappingRuleService.applyFlexibleMappingRule,
+      ).toHaveBeenCalledTimes(2);
     });
 
     it("should throw NotFoundException when no mapping rule is found", async () => {
       flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(null);
-      await expect(service.transform(validRequest)).rejects.toThrow(NotFoundException);
+      await expect(service.transform(validRequest)).rejects.toThrow(
+        NotFoundException,
+      );
     });
-    
+
     it("should handle database errors during rule lookup", async () => {
-      flexibleMappingRuleService.findBestMatchingRule.mockRejectedValue(new Error("DB Error"));
+      flexibleMappingRuleService.findBestMatchingRule.mockRejectedValue(
+        new Error("DB Error"),
+      );
       await expect(service.transform(validRequest)).rejects.toThrow("DB Error");
     });
 
     // ✅ 验证标准监控调用
     it("should record metrics on successful transformation", async () => {
-      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(
+        mockMappingRule,
+      );
       flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
         success: true,
         transformedData: { lastPrice: 150.5, volume: 100000 },
-        mappingStats: { successfulMappings: 2, failedMappings: 0, totalMappings: 2, successRate: 1 },
+        mappingStats: {
+          successfulMappings: 2,
+          failedMappings: 0,
+          totalMappings: 2,
+          successRate: 1,
+        },
       });
 
       await service.transform(validRequest);
@@ -162,25 +212,29 @@ describe("DataTransformerService", () => {
         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           timestamp: expect.any(Date),
-          source: 'data_transformer',
-          metricType: 'business',
-          metricName: 'transformation_completed',
+          source: "data_transformer",
+          metricType: "business",
+          metricName: "transformation_completed",
           metricValue: expect.any(Number),
           tags: expect.objectContaining({
-            operation: 'data-transformation',
+            operation: "data-transformation",
             provider: validRequest.provider,
             transDataRuleListType: validRequest.transDataRuleListType,
-            status: 'success'
-          })
-        })
+            status: "success",
+          }),
+        }),
       );
     });
 
     // ✅ 验证错误监控调用
     it("should record error metrics on transformation failure", async () => {
-      const transformError = new Error('Transform failed');
-      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
-      flexibleMappingRuleService.applyFlexibleMappingRule.mockRejectedValue(transformError);
+      const transformError = new Error("Transform failed");
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(
+        mockMappingRule,
+      );
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockRejectedValue(
+        transformError,
+      );
 
       await expect(service.transform(validRequest)).rejects.toThrow();
 
@@ -189,66 +243,99 @@ describe("DataTransformerService", () => {
         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           timestamp: expect.any(Date),
-          source: 'data_transformer',
-          metricType: 'business',
-          metricName: 'transformation_failed',
+          source: "data_transformer",
+          metricType: "business",
+          metricName: "transformation_failed",
           metricValue: expect.any(Number),
           tags: expect.objectContaining({
-            operation: 'data-transformation',
+            operation: "data-transformation",
             provider: validRequest.provider,
             transDataRuleListType: validRequest.transDataRuleListType,
-            status: 'error',
+            status: "error",
             error: transformError.message,
-            errorType: 'Error'
-          })
-        })
+            errorType: "Error",
+          }),
+        }),
       );
     });
   });
-  
+
   describe("transformBatch", () => {
-      it("should transform a batch successfully", async () => {
-          const batchRequest = [{...validRequest}, {...validRequest, rawData: {last_done: 200}}];
-          flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
-          flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
-            success: true,
-            transformedData: { lastPrice: 150.5 },
-            mappingStats: { successfulMappings: 1, failedMappings: 0, totalMappings: 1, successRate: 1 },
-          });
-
-          const results = await service.transformBatch({ requests: batchRequest });
-
-          expect(results).toHaveLength(2);
-          expect(flexibleMappingRuleService.findBestMatchingRule).toHaveBeenCalledTimes(1);
-          expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalledTimes(2);
+    it("should transform a batch successfully", async () => {
+      const batchRequest = [
+        { ...validRequest },
+        { ...validRequest, rawData: { last_done: 200 } },
+      ];
+      flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(
+        mockMappingRule,
+      );
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
+        success: true,
+        transformedData: { lastPrice: 150.5 },
+        mappingStats: {
+          successfulMappings: 1,
+          failedMappings: 0,
+          totalMappings: 1,
+          successRate: 1,
+        },
       });
+
+      const results = await service.transformBatch({ requests: batchRequest });
+
+      expect(results).toHaveLength(2);
+      expect(
+        flexibleMappingRuleService.findBestMatchingRule,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        flexibleMappingRuleService.applyFlexibleMappingRule,
+      ).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("_executeSingleTransform", () => {
-      it("should execute a single transform correctly", async () => {
-        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
-            success: true,
-            transformedData: { lastPrice: 150.5 },
-            mappingStats: { successfulMappings: 1, failedMappings: 0, totalMappings: 1, successRate: 1 },
-        });
-
-        const result = await (service as any)._executeSingleTransform(validRequest, mockMappingRule);
-
-        expect(result).toBeInstanceOf(DataTransformResponseDto);
-        expect(result.transformedData).toEqual({ lastPrice: 150.5 });
-        expect(flexibleMappingRuleService.getRuleDocumentById).toHaveBeenCalledWith(mockMappingRule.id);
-        expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalled();
+    it("should execute a single transform correctly", async () => {
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
+        success: true,
+        transformedData: { lastPrice: 150.5 },
+        mappingStats: {
+          successfulMappings: 1,
+          failedMappings: 0,
+          totalMappings: 1,
+          successRate: 1,
+        },
       });
 
-      it("should throw BadRequestException on transformation failure", async () => {
-        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
-            success: false,
-            errorMessage: "Transformation failed",
-            transformedData: {},
-            mappingStats: { successfulMappings: 0, failedMappings: 1, totalMappings: 1, successRate: 0 },
-        });
+      const result = await (service as any)._executeSingleTransform(
+        validRequest,
+        mockMappingRule,
+      );
 
-        await expect((service as any)._executeSingleTransform(validRequest, mockMappingRule)).rejects.toThrow(BadRequestException);
+      expect(result).toBeInstanceOf(DataTransformResponseDto);
+      expect(result.transformedData).toEqual({ lastPrice: 150.5 });
+      expect(
+        flexibleMappingRuleService.getRuleDocumentById,
+      ).toHaveBeenCalledWith(mockMappingRule.id);
+      expect(
+        flexibleMappingRuleService.applyFlexibleMappingRule,
+      ).toHaveBeenCalled();
+    });
+
+    it("should throw BadRequestException on transformation failure", async () => {
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue({
+        success: false,
+        errorMessage: "Transformation failed",
+        transformedData: {},
+        mappingStats: {
+          successfulMappings: 0,
+          failedMappings: 1,
+          totalMappings: 1,
+          successRate: 0,
+        },
       });
+
+      await expect(
+        (service as any)._executeSingleTransform(validRequest, mockMappingRule),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });

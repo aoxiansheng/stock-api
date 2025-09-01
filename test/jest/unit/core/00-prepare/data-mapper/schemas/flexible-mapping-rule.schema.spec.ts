@@ -7,7 +7,7 @@ import {
   FlexibleFieldMapping,
   FlexibleFieldMappingSchema,
   TransformRule,
-  TransformRuleSchema
+  TransformRuleSchema,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 
 describe("FlexibleMappingRuleSchema", () => {
@@ -18,8 +18,11 @@ describe("FlexibleMappingRuleSchema", () => {
     mongod = await MongoMemoryServer.create();
     const uri = mongod.getUri();
     await mongoose.connect(uri);
-    
-    model = mongoose.model<FlexibleMappingRule>('FlexibleMappingRule', FlexibleMappingRuleSchema);
+
+    model = mongoose.model<FlexibleMappingRule>(
+      "FlexibleMappingRule",
+      FlexibleMappingRuleSchema,
+    );
   });
 
   afterAll(async () => {
@@ -43,9 +46,9 @@ describe("FlexibleMappingRuleSchema", () => {
           {
             sourceFieldPath: "last_done",
             targetField: "lastPrice",
-            confidence: 0.95
-          }
-        ]
+            confidence: 0.95,
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -66,7 +69,7 @@ describe("FlexibleMappingRuleSchema", () => {
 
     it("should fail validation with missing required fields", async () => {
       const rule = new model({});
-      
+
       let error;
       try {
         await rule.save();
@@ -83,11 +86,11 @@ describe("FlexibleMappingRuleSchema", () => {
         name: "Test Rule",
         provider: "longport",
         apiType: "invalid",
-        transDataRuleListType: "quote_fields"
+        transDataRuleListType: "quote_fields",
       };
 
       const rule = new model(ruleData);
-      
+
       let error;
       try {
         await rule.save();
@@ -105,11 +108,11 @@ describe("FlexibleMappingRuleSchema", () => {
         provider: "longport",
         apiType: "rest",
         transDataRuleListType: "quote_fields",
-        overallConfidence: 1.5 // Invalid: > 1
+        overallConfidence: 1.5, // Invalid: > 1
       };
 
       const rule = new model(ruleData);
-      
+
       let error;
       try {
         await rule.save();
@@ -134,14 +137,14 @@ describe("FlexibleMappingRuleSchema", () => {
             confidence: 0.95,
             transform: {
               type: "multiply",
-              value: 1.0
-            }
+              value: 1.0,
+            },
           },
           {
             sourceFieldPath: "volume",
             targetField: "volume",
             confidence: 0.98,
-            isRequired: true
+            isRequired: true,
           },
           {
             sourceFieldPath: "timestamp",
@@ -149,12 +152,12 @@ describe("FlexibleMappingRuleSchema", () => {
             confidence: 0.99,
             transform: {
               type: "format",
-              format: "ISO8601"
-            }
-          }
+              format: "ISO8601",
+            },
+          },
         ],
         overallConfidence: 0.94,
-        version: "2.0.0"
+        version: "2.0.0",
       };
 
       const rule = new model(ruleData);
@@ -181,7 +184,7 @@ describe("FlexibleMappingRuleSchema", () => {
         successfulTransformations: 100,
         failedTransformations: 2,
         lastUsedAt: new Date(),
-        lastValidatedAt: new Date()
+        lastValidatedAt: new Date(),
       };
 
       const rule = new model(ruleData);
@@ -201,7 +204,7 @@ describe("FlexibleMappingRuleSchema", () => {
         name: "Timestamp Test",
         provider: "test",
         apiType: "rest",
-        transDataRuleListType: "quote_fields"
+        transDataRuleListType: "quote_fields",
       };
 
       const rule = new model(ruleData);
@@ -218,7 +221,7 @@ describe("FlexibleMappingRuleSchema", () => {
         name: "Update Test",
         provider: "test",
         apiType: "rest",
-        transDataRuleListType: "quote_fields"
+        transDataRuleListType: "quote_fields",
       };
 
       const rule = new model(ruleData);
@@ -226,11 +229,13 @@ describe("FlexibleMappingRuleSchema", () => {
       const originalUpdatedAt = savedRule.updatedAt;
 
       // Wait a moment and update
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       savedRule.usageCount = 1;
       const updatedRule = await savedRule.save();
 
-      expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+      expect(updatedRule.updatedAt.getTime()).toBeGreaterThan(
+        originalUpdatedAt.getTime(),
+      );
     });
 
     it("should calculate success rate virtual field", async () => {
@@ -240,7 +245,7 @@ describe("FlexibleMappingRuleSchema", () => {
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         successfulTransformations: 80,
-        failedTransformations: 20
+        failedTransformations: 20,
       };
 
       const rule = new model(ruleData);
@@ -257,7 +262,7 @@ describe("FlexibleMappingRuleSchema", () => {
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         successfulTransformations: 0,
-        failedTransformations: 0
+        failedTransformations: 0,
       };
 
       const rule = new model(ruleData);
@@ -278,10 +283,10 @@ describe("FlexibleMappingRuleSchema", () => {
           {
             sourceFieldPath: "last_done",
             targetField: "lastPrice",
-            confidence: 0.95
+            confidence: 0.95,
             // isRequired 未设置，应该使用默认值 false
-          }
-        ]
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -309,10 +314,10 @@ describe("FlexibleMappingRuleSchema", () => {
             transform: {
               type: "divide",
               value: 100,
-              description: "Convert cents to dollars"
-            }
-          }
-        ]
+              description: "Convert cents to dollars",
+            },
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -335,15 +340,15 @@ describe("FlexibleMappingRuleSchema", () => {
             sourceFieldPath: "field1",
             targetField: "targetField1",
             confidence: 0.9,
-            isRequired: true
+            isRequired: true,
           },
           {
             sourceFieldPath: "field2",
-            targetField: "targetField2", 
+            targetField: "targetField2",
             confidence: 0.8,
-            description: "Optional field mapping"
-          }
-        ]
+            description: "Optional field mapping",
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -352,7 +357,9 @@ describe("FlexibleMappingRuleSchema", () => {
       expect(savedRule.fieldMappings).toHaveLength(2);
       expect(savedRule.fieldMappings[0].sourceFieldPath).toBe("field1");
       expect(savedRule.fieldMappings[0].isRequired).toBe(true);
-      expect(savedRule.fieldMappings[1].description).toBe("Optional field mapping");
+      expect(savedRule.fieldMappings[1].description).toBe(
+        "Optional field mapping",
+      );
     });
   });
 
@@ -371,10 +378,10 @@ describe("FlexibleMappingRuleSchema", () => {
             transform: {
               type: "multiply",
               value: 100,
-              description: "Multiply by 100"
-            }
-          }
-        ]
+              description: "Multiply by 100",
+            },
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -400,10 +407,10 @@ describe("FlexibleMappingRuleSchema", () => {
             transform: {
               type: "format",
               format: "%.2f",
-              description: "Format to 2 decimal places"
-            }
-          }
-        ]
+              description: "Format to 2 decimal places",
+            },
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -429,10 +436,10 @@ describe("FlexibleMappingRuleSchema", () => {
             transform: {
               type: "divide",
               value: 100,
-              description: "Convert cents to dollars"
-            }
-          }
-        ]
+              description: "Convert cents to dollars",
+            },
+          },
+        ],
       };
 
       const rule = new model(ruleData);
@@ -441,7 +448,9 @@ describe("FlexibleMappingRuleSchema", () => {
       expect(savedRule.fieldMappings[0].transform).toBeDefined();
       expect(savedRule.fieldMappings[0].transform.type).toBe("divide");
       expect(savedRule.fieldMappings[0].transform.value).toBe(100);
-      expect(savedRule.fieldMappings[0].transform.description).toBe("Convert cents to dollars");
+      expect(savedRule.fieldMappings[0].transform.description).toBe(
+        "Convert cents to dollars",
+      );
     });
   });
 });

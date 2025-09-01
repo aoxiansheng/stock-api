@@ -17,7 +17,7 @@ describe("JwtStrategy", () => {
   let strategy: JwtStrategy;
   let tokenService: TokenService;
   let configService: ConfigService;
-  
+
   // 测试用JWT密钥
   const TEST_JWTSECRET = "test-jwt-secret-key-for-unit-tests";
 
@@ -45,7 +45,7 @@ describe("JwtStrategy", () => {
         throw new Error(`未找到配置: ${key}`);
       }),
     };
-    
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtStrategy,
@@ -94,7 +94,9 @@ describe("JwtStrategy", () => {
         role: UserRole.DEVELOPER,
       };
 
-      jest.spyOn(tokenService, 'validateUserFromPayload').mockResolvedValue(mockUser);
+      jest
+        .spyOn(tokenService, "validateUserFromPayload")
+        .mockResolvedValue(mockUser);
 
       // Act
       const result = await strategy.validate(payload);
@@ -114,9 +116,9 @@ describe("JwtStrategy", () => {
         role: UserRole.DEVELOPER,
       };
 
-      jest.spyOn(tokenService, 'validateUserFromPayload').mockRejectedValue(
-        new UnauthorizedException("用户无效或已被禁用")
-      );
+      jest
+        .spyOn(tokenService, "validateUserFromPayload")
+        .mockRejectedValue(new UnauthorizedException("用户无效或已被禁用"));
 
       // Act & Assert
       await expect(strategy.validate(payload)).rejects.toThrow(
@@ -136,9 +138,9 @@ describe("JwtStrategy", () => {
       };
 
       // 模拟AuthService抛出任意错误
-      jest.spyOn(tokenService, 'validateUserFromPayload').mockRejectedValue(
-        new Error("数据库连接失败")
-      );
+      jest
+        .spyOn(tokenService, "validateUserFromPayload")
+        .mockRejectedValue(new Error("数据库连接失败"));
 
       // Act & Assert
       await expect(strategy.validate(payload)).rejects.toThrow(
@@ -155,9 +157,9 @@ describe("JwtStrategy", () => {
         role: UserRole.DEVELOPER,
       } as any;
 
-      jest.spyOn(tokenService, 'validateUserFromPayload').mockRejectedValue(
-        new Error("缺少用户ID")
-      );
+      jest
+        .spyOn(tokenService, "validateUserFromPayload")
+        .mockRejectedValue(new Error("缺少用户ID"));
 
       // Act & Assert
       await expect(strategy.validate(incompletePayload)).rejects.toThrow(
@@ -169,9 +171,9 @@ describe("JwtStrategy", () => {
       // Arrange
       const emptyPayload = {} as any;
 
-      jest.spyOn(tokenService, 'validateUserFromPayload').mockRejectedValue(
-        new Error("载荷为空")
-      );
+      jest
+        .spyOn(tokenService, "validateUserFromPayload")
+        .mockRejectedValue(new Error("载荷为空"));
 
       // Act & Assert
       await expect(strategy.validate(emptyPayload)).rejects.toThrow(
@@ -183,9 +185,9 @@ describe("JwtStrategy", () => {
       // Arrange
       const nullPayload = null;
 
-      jest.spyOn(tokenService, 'validateUserFromPayload').mockRejectedValue(
-        new Error("载荷为null")
-      );
+      jest
+        .spyOn(tokenService, "validateUserFromPayload")
+        .mockRejectedValue(new Error("载荷为null"));
 
       // Act & Assert
       await expect(strategy.validate(nullPayload)).rejects.toThrow(

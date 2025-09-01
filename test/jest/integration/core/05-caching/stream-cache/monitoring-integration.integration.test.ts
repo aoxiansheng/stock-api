@@ -1,15 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
-import { StreamCacheService } from '../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
-import { StreamCacheModule } from '../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module';
-import { 
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
+import { StreamCacheService } from "../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service";
+import { StreamCacheModule } from "../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module";
+import {
   CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN,
-  MONITORING_COLLECTOR_TOKEN
-} from '../../../../../../src/monitoring/contracts';
+  MONITORING_COLLECTOR_TOKEN,
+} from "../../../../../../src/monitoring/contracts";
 
-describe('StreamCache Monitoring Integration', () => {
+describe("StreamCache Monitoring Integration", () => {
   let service: StreamCacheService;
   let module: TestingModule;
   let redisClient: Redis;
@@ -25,8 +25,8 @@ describe('StreamCache Monitoring Integration', () => {
 
   beforeEach(async () => {
     // Setup console spies
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
 
     mockCollectorService = createMockCollectorService();
 
@@ -34,7 +34,7 @@ describe('StreamCache Monitoring Integration', () => {
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
-          envFilePath: '.env.test',
+          envFilePath: ".env.test",
         }),
         // Import StreamCacheModule but override CollectorService for testing
       ],
@@ -44,16 +44,16 @@ describe('StreamCache Monitoring Integration', () => {
           provide: CACHE_REDIS_CLIENT_TOKEN,
           useFactory: (configService: ConfigService) => {
             const redis = new Redis({
-              host: configService.get<string>('redis.host', 'localhost'),
-              port: configService.get<number>('redis.port', 6379),
-              db: configService.get<number>('redis.stream_cache_db', 1),
+              host: configService.get<string>("redis.host", "localhost"),
+              port: configService.get<number>("redis.port", 6379),
+              db: configService.get<number>("redis.stream_cache_db", 1),
               lazyConnect: true,
             });
             return redis;
           },
           inject: [ConfigService],
         },
-        
+
         // Stream cache config provider
         {
           provide: STREAM_CACHE_CONFIG_TOKEN,
@@ -83,26 +83,26 @@ describe('StreamCache Monitoring Integration', () => {
     try {
       await redisClient.connect();
     } catch (error) {
-      console.warn('Redis connection failed, tests will check error handling');
+      console.warn("Redis connection failed, tests will check error handling");
     }
   });
 
   afterEach(async () => {
     // Cleanup
-    if (redisClient && redisClient.status === 'ready') {
+    if (redisClient && redisClient.status === "ready") {
       await redisClient.flushdb();
       await redisClient.quit();
     }
-    
+
     await module.close();
-    
+
     // Restore console methods
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });
 
-  describe('Health Status Reporting', () => {
-    it('应该成功获取健康状态并包含所需指标', async () => {
+  describe("Health Status Reporting", () => {
+    it("应该成功获取健康状态并包含所需指标", async () => {
       const healthStatus = await service.getHealthStatus();
 
       expect(healthStatus).toMatchObject({
@@ -122,40 +122,40 @@ describe('StreamCache Monitoring Integration', () => {
       }
     });
 
-    it('应该在Redis可用时报告健康状态', async () => {
-      if (redisClient.status !== 'ready') {
-        pending('Redis not available for this test');
+    it("应该在Redis可用时报告健康状态", async () => {
+      if (redisClient.status !== "ready") {
+        pending("Redis not available for this test");
         return;
       }
 
       const healthStatus = await service.getHealthStatus();
 
-      expect(healthStatus.status).toBe('healthy');
+      expect(healthStatus.status).toBe("healthy");
       expect(healthStatus.redisConnected).toBe(true);
       expect(healthStatus.lastError).toBeNull();
     });
 
-    it('应该在Redis不可用时报告不健康状态', async () => {
+    it("应该在Redis不可用时报告不健康状态", async () => {
       // 断开Redis连接来模拟故障
-      if (redisClient.status === 'ready') {
+      if (redisClient.status === "ready") {
         await redisClient.disconnect();
       }
 
       const healthStatus = await service.getHealthStatus();
 
-      expect(healthStatus.status).toBe('unhealthy');
+      expect(healthStatus.status).toBe("unhealthy");
       expect(healthStatus.redisConnected).toBe(false);
       expect(healthStatus.lastError).not.toBeNull();
     });
   });
 
-  describe('Monitoring Data Reporting', () => {
-    it('应该成功向CollectorService报告监控指标', async () => {
+  describe("Monitoring Data Reporting", () => {
+    it("应该成功向CollectorService报告监控指标", async () => {
       await service.reportMetricsToCollector();
 
       // 验证CollectorService.recordSystemHealth被调用
       expect(mockCollectorService.recordSystemHealth).toHaveBeenCalledWith({
-        component: 'StreamCache',
+        component: "StreamCache",
         status: expect.stringMatching(/^(healthy|unhealthy|degraded)$/),
         metrics: expect.objectContaining({
           hotCacheSize: expect.any(Number),
@@ -164,10 +164,10 @@ describe('StreamCache Monitoring Integration', () => {
       });
     });
 
-    it('应该在CollectorService失败时优雅处理', async () => {
+    it("应该在CollectorService失败时优雅处理", async () => {
       // 模拟CollectorService失败
       mockCollectorService.recordSystemHealth.mockRejectedValue(
-        new Error('Collector service unavailable')
+        new Error("Collector service unavailable"),
       );
 
       // 不应该抛出异常
@@ -178,9 +178,9 @@ describe('StreamCache Monitoring Integration', () => {
       expect(mockCollectorService.recordSystemHealth).toHaveBeenCalled();
     });
 
-    it('应该包含完整的性能指标数据', async () => {
-      if (redisClient.status !== 'ready') {
-        pending('Redis not available for this test');
+    it("应该包含完整的性能指标数据", async () => {
+      if (redisClient.status !== "ready") {
+        pending("Redis not available for this test");
         return;
       }
 
@@ -188,8 +188,8 @@ describe('StreamCache Monitoring Integration', () => {
 
       // 获取调用参数
       const callArgs = mockCollectorService.recordSystemHealth.mock.calls[0][0];
-      
-      expect(callArgs.component).toBe('StreamCache');
+
+      expect(callArgs.component).toBe("StreamCache");
       expect(callArgs.metrics).toMatchObject({
         hotCacheSize: expect.any(Number),
         redisConnected: expect.any(Boolean),
@@ -206,8 +206,8 @@ describe('StreamCache Monitoring Integration', () => {
     });
   });
 
-  describe('Monitoring Integration Error Handling', () => {
-    it('应该在监控系统不可用时仍然正常工作', async () => {
+  describe("Monitoring Integration Error Handling", () => {
+    it("应该在监控系统不可用时仍然正常工作", async () => {
       // 创建新的service实例，但没有CollectorService
       const moduleWithoutCollector = await Test.createTestingModule({
         imports: [ConfigModule.forRoot({ isGlobal: true })],
@@ -231,32 +231,35 @@ describe('StreamCache Monitoring Integration', () => {
         ],
       }).compile();
 
-      const serviceWithoutCollector = moduleWithoutCollector.get<StreamCacheService>(StreamCacheService);
+      const serviceWithoutCollector =
+        moduleWithoutCollector.get<StreamCacheService>(StreamCacheService);
 
       // 核心缓存功能应该仍然正常工作
-      const testData = [{ s: 'TEST', p: 100, v: 1000, t: Date.now() }];
-      await expect(serviceWithoutCollector.setData('test-key', testData)).resolves.toBeUndefined();
-      
-      const retrievedData = await serviceWithoutCollector.getData('test-key');
+      const testData = [{ s: "TEST", p: 100, v: 1000, t: Date.now() }];
+      await expect(
+        serviceWithoutCollector.setData("test-key", testData),
+      ).resolves.toBeUndefined();
+
+      const retrievedData = await serviceWithoutCollector.getData("test-key");
       expect(retrievedData).toEqual(testData);
 
       await moduleWithoutCollector.close();
     });
   });
 
-  describe('Real-time Monitoring Integration', () => {
-    it('应该在缓存操作时触发监控记录', async () => {
-      if (redisClient.status !== 'ready') {
-        pending('Redis not available for this test');
+  describe("Real-time Monitoring Integration", () => {
+    it("应该在缓存操作时触发监控记录", async () => {
+      if (redisClient.status !== "ready") {
+        pending("Redis not available for this test");
         return;
       }
 
-      const testData = [{ s: 'TEST', p: 100, v: 1000, t: Date.now() }];
-      
+      const testData = [{ s: "TEST", p: 100, v: 1000, t: Date.now() }];
+
       // 执行缓存操作
-      await service.setData('monitoring-test-key', testData);
-      const retrievedData = await service.getData('monitoring-test-key');
-      
+      await service.setData("monitoring-test-key", testData);
+      const retrievedData = await service.getData("monitoring-test-key");
+
       expect(retrievedData).toEqual(testData);
 
       // 手动触发监控报告
@@ -264,9 +267,10 @@ describe('StreamCache Monitoring Integration', () => {
 
       // 验证监控数据被正确报告
       expect(mockCollectorService.recordSystemHealth).toHaveBeenCalled();
-      
-      const reportedMetrics = mockCollectorService.recordSystemHealth.mock.calls[0][0];
-      expect(reportedMetrics.component).toBe('StreamCache');
+
+      const reportedMetrics =
+        mockCollectorService.recordSystemHealth.mock.calls[0][0];
+      expect(reportedMetrics.component).toBe("StreamCache");
       expect(reportedMetrics.metrics.hotCacheSize).toBeGreaterThan(0); // 应该包含刚添加的数据
     });
   });

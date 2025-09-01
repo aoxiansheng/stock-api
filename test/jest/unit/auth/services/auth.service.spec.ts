@@ -183,7 +183,8 @@ describe("AuthService", () => {
     apiKeyService = module.get(ApiKeyService);
     passwordService = module.get(PasswordService);
     tokenService = module.get(TokenService);
-    collectorService = module.get<jest.Mocked<CollectorService>>(CollectorService);
+    collectorService =
+      module.get<jest.Mocked<CollectorService>>(CollectorService);
   });
 
   afterEach(() => {

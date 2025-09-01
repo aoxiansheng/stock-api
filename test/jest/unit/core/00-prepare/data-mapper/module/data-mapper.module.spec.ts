@@ -13,10 +13,16 @@ import { UserJsonPersistenceController } from "../../../../../../../src/core/00-
 import { SystemPersistenceController } from "../../../../../../../src/core/00-prepare/data-mapper/controller/system-persistence.controller";
 import { TemplateAdminController } from "../../../../../../../src/core/00-prepare/data-mapper/controller/template-admin.controller";
 import { MappingRuleController } from "../../../../../../../src/core/00-prepare/data-mapper/controller/mapping-rule.controller";
-import { DataSourceTemplate, DataSourceTemplateDocument } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
-import { FlexibleMappingRule, FlexibleMappingRuleDocument } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
+import {
+  DataSourceTemplate,
+  DataSourceTemplateDocument,
+} from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
+import {
+  FlexibleMappingRule,
+  FlexibleMappingRuleDocument,
+} from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import { PaginationService } from "../../../../../../../src/common/modules/pagination/services/pagination.service";
-import { MetricsRegistryService } from '../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service';
+import { MetricsRegistryService } from "../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service";
 import { DataMapperCacheService } from "../../../../../../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service";
 import { FeatureFlags } from "../../../../../../../src/app/config/feature-flags.config";
 
@@ -64,15 +70,15 @@ describe("DataMapperModule Components", () => {
         },
       ],
     })
-    .overrideProvider(PaginationService)
-    .useValue(createMock<PaginationService>())
-    .overrideProvider(DataMapperCacheService)
-    .useValue(createMock<DataMapperCacheService>())
-    .overrideProvider(MetricsRegistryService)
-    .useValue(createMock<MetricsRegistryService>())
-    .overrideProvider(FeatureFlags)
-    .useValue(createMock<FeatureFlags>())
-    .compile();
+      .overrideProvider(PaginationService)
+      .useValue(createMock<PaginationService>())
+      .overrideProvider(DataMapperCacheService)
+      .useValue(createMock<DataMapperCacheService>())
+      .overrideProvider(MetricsRegistryService)
+      .useValue(createMock<MetricsRegistryService>())
+      .overrideProvider(FeatureFlags)
+      .useValue(createMock<FeatureFlags>())
+      .compile();
   });
 
   afterEach(async () => {
@@ -87,25 +93,33 @@ describe("DataMapperModule Components", () => {
 
   describe("Controllers", () => {
     it("should have UserJsonPersistenceController", () => {
-      const controller = module.get<UserJsonPersistenceController>(UserJsonPersistenceController);
+      const controller = module.get<UserJsonPersistenceController>(
+        UserJsonPersistenceController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(UserJsonPersistenceController);
     });
 
     it("should have SystemPersistenceController", () => {
-      const controller = module.get<SystemPersistenceController>(SystemPersistenceController);
+      const controller = module.get<SystemPersistenceController>(
+        SystemPersistenceController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(SystemPersistenceController);
     });
 
     it("should have TemplateAdminController", () => {
-      const controller = module.get<TemplateAdminController>(TemplateAdminController);
+      const controller = module.get<TemplateAdminController>(
+        TemplateAdminController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(TemplateAdminController);
     });
 
     it("should have MappingRuleController", () => {
-      const controller = module.get<MappingRuleController>(MappingRuleController);
+      const controller = module.get<MappingRuleController>(
+        MappingRuleController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(MappingRuleController);
     });
@@ -113,25 +127,33 @@ describe("DataMapperModule Components", () => {
 
   describe("Services", () => {
     it("should have DataSourceAnalyzerService", () => {
-      const service = module.get<DataSourceAnalyzerService>(DataSourceAnalyzerService);
+      const service = module.get<DataSourceAnalyzerService>(
+        DataSourceAnalyzerService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(DataSourceAnalyzerService);
     });
 
     it("should have DataSourceTemplateService", () => {
-      const service = module.get<DataSourceTemplateService>(DataSourceTemplateService);
+      const service = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(DataSourceTemplateService);
     });
 
     it("should have FlexibleMappingRuleService", () => {
-      const service = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
+      const service = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(FlexibleMappingRuleService);
     });
 
     it("should have PersistedTemplateService", () => {
-      const service = module.get<PersistedTemplateService>(PersistedTemplateService);
+      const service = module.get<PersistedTemplateService>(
+        PersistedTemplateService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(PersistedTemplateService);
     });
@@ -143,7 +165,9 @@ describe("DataMapperModule Components", () => {
     });
 
     it("should have MappingRuleCacheService", () => {
-      const service = module.get<MappingRuleCacheService>(MappingRuleCacheService);
+      const service = module.get<MappingRuleCacheService>(
+        MappingRuleCacheService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(MappingRuleCacheService);
     });
@@ -156,21 +180,27 @@ describe("DataMapperModule Components", () => {
 
   describe("Service Dependencies", () => {
     it("should inject dependencies correctly into DataSourceTemplateService", () => {
-      const service = module.get<DataSourceTemplateService>(DataSourceTemplateService);
+      const service = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
       expect(service).toBeDefined();
-      
+
       // Check that the service can be instantiated (implies dependencies are satisfied)
       expect(service).toBeInstanceOf(DataSourceTemplateService);
     });
 
     it("should inject dependencies correctly into FlexibleMappingRuleService", () => {
-      const service = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
+      const service = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(FlexibleMappingRuleService);
     });
 
     it("should inject dependencies correctly into MappingRuleCacheService", () => {
-      const service = module.get<MappingRuleCacheService>(MappingRuleCacheService);
+      const service = module.get<MappingRuleCacheService>(
+        MappingRuleCacheService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(MappingRuleCacheService);
     });
@@ -178,25 +208,33 @@ describe("DataMapperModule Components", () => {
 
   describe("Controller Dependencies", () => {
     it("should inject services into MappingRuleController", () => {
-      const controller = module.get<MappingRuleController>(MappingRuleController);
+      const controller = module.get<MappingRuleController>(
+        MappingRuleController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(MappingRuleController);
     });
 
     it("should inject services into TemplateAdminController", () => {
-      const controller = module.get<TemplateAdminController>(TemplateAdminController);
+      const controller = module.get<TemplateAdminController>(
+        TemplateAdminController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(TemplateAdminController);
     });
 
     it("should inject services into SystemPersistenceController", () => {
-      const controller = module.get<SystemPersistenceController>(SystemPersistenceController);
+      const controller = module.get<SystemPersistenceController>(
+        SystemPersistenceController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(SystemPersistenceController);
     });
 
     it("should inject services into UserJsonPersistenceController", () => {
-      const controller = module.get<UserJsonPersistenceController>(UserJsonPersistenceController);
+      const controller = module.get<UserJsonPersistenceController>(
+        UserJsonPersistenceController,
+      );
       expect(controller).toBeDefined();
       expect(controller).toBeInstanceOf(UserJsonPersistenceController);
     });
@@ -204,25 +242,33 @@ describe("DataMapperModule Components", () => {
 
   describe("Service Availability", () => {
     it("should provide DataSourceAnalyzerService", () => {
-      const service = module.get<DataSourceAnalyzerService>(DataSourceAnalyzerService);
+      const service = module.get<DataSourceAnalyzerService>(
+        DataSourceAnalyzerService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(DataSourceAnalyzerService);
     });
 
     it("should provide DataSourceTemplateService", () => {
-      const service = module.get<DataSourceTemplateService>(DataSourceTemplateService);
+      const service = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(DataSourceTemplateService);
     });
 
     it("should provide FlexibleMappingRuleService", () => {
-      const service = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
+      const service = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(FlexibleMappingRuleService);
     });
 
     it("should provide PersistedTemplateService", () => {
-      const service = module.get<PersistedTemplateService>(PersistedTemplateService);
+      const service = module.get<PersistedTemplateService>(
+        PersistedTemplateService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(PersistedTemplateService);
     });
@@ -234,7 +280,9 @@ describe("DataMapperModule Components", () => {
     });
 
     it("should provide MappingRuleCacheService", () => {
-      const service = module.get<MappingRuleCacheService>(MappingRuleCacheService);
+      const service = module.get<MappingRuleCacheService>(
+        MappingRuleCacheService,
+      );
       expect(service).toBeDefined();
       expect(service).toBeInstanceOf(MappingRuleCacheService);
     });
@@ -252,21 +300,32 @@ describe("DataMapperModule Components", () => {
     });
 
     it("should inject models into services that need them", () => {
-      const templateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
-      const ruleService = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      
+      const templateService = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
+      const ruleService = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
+
       expect(templateService).toBeDefined();
       expect(ruleService).toBeDefined();
     });
   });
 
   describe("Component Registration", () => {
-
     it("should have all controllers registered", () => {
-      const userJsonController = module.get<UserJsonPersistenceController>(UserJsonPersistenceController);
-      const systemController = module.get<SystemPersistenceController>(SystemPersistenceController);
-      const templateController = module.get<TemplateAdminController>(TemplateAdminController);
-      const mappingController = module.get<MappingRuleController>(MappingRuleController);
+      const userJsonController = module.get<UserJsonPersistenceController>(
+        UserJsonPersistenceController,
+      );
+      const systemController = module.get<SystemPersistenceController>(
+        SystemPersistenceController,
+      );
+      const templateController = module.get<TemplateAdminController>(
+        TemplateAdminController,
+      );
+      const mappingController = module.get<MappingRuleController>(
+        MappingRuleController,
+      );
 
       expect(userJsonController).toBeDefined();
       expect(systemController).toBeDefined();
@@ -275,12 +334,23 @@ describe("DataMapperModule Components", () => {
     });
 
     it("should have all services registered", () => {
-      const analyzerService = module.get<DataSourceAnalyzerService>(DataSourceAnalyzerService);
-      const templateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
-      const ruleService = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      const persistedService = module.get<PersistedTemplateService>(PersistedTemplateService);
-      const alignmentService = module.get<RuleAlignmentService>(RuleAlignmentService);
-      const cacheService = module.get<MappingRuleCacheService>(MappingRuleCacheService);
+      const analyzerService = module.get<DataSourceAnalyzerService>(
+        DataSourceAnalyzerService,
+      );
+      const templateService = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
+      const ruleService = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
+      const persistedService = module.get<PersistedTemplateService>(
+        PersistedTemplateService,
+      );
+      const alignmentService =
+        module.get<RuleAlignmentService>(RuleAlignmentService);
+      const cacheService = module.get<MappingRuleCacheService>(
+        MappingRuleCacheService,
+      );
 
       expect(analyzerService).toBeDefined();
       expect(templateService).toBeDefined();
@@ -292,10 +362,16 @@ describe("DataMapperModule Components", () => {
 
     it("should handle service interdependencies", () => {
       // Test that services can reference each other if needed
-      const templateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
-      const ruleService = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      const cacheService = module.get<MappingRuleCacheService>(MappingRuleCacheService);
-      
+      const templateService = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
+      const ruleService = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
+      const cacheService = module.get<MappingRuleCacheService>(
+        MappingRuleCacheService,
+      );
+
       expect(templateService).toBeDefined();
       expect(ruleService).toBeDefined();
       expect(cacheService).toBeDefined();
@@ -304,9 +380,13 @@ describe("DataMapperModule Components", () => {
 
   describe("Integration", () => {
     it("should allow services to be injected into controllers", () => {
-      const mappingController = module.get<MappingRuleController>(MappingRuleController);
-      const templateController = module.get<TemplateAdminController>(TemplateAdminController);
-      
+      const mappingController = module.get<MappingRuleController>(
+        MappingRuleController,
+      );
+      const templateController = module.get<TemplateAdminController>(
+        TemplateAdminController,
+      );
+
       // If controllers can be instantiated, their dependencies are satisfied
       expect(mappingController).toBeDefined();
       expect(templateController).toBeDefined();
@@ -314,10 +394,16 @@ describe("DataMapperModule Components", () => {
 
     it("should allow cross-service dependencies", () => {
       // Services that depend on other services should be able to get them
-      const ruleService = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      const cacheService = module.get<MappingRuleCacheService>(MappingRuleCacheService);
-      const templateService = module.get<DataSourceTemplateService>(DataSourceTemplateService);
-      
+      const ruleService = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
+      const cacheService = module.get<MappingRuleCacheService>(
+        MappingRuleCacheService,
+      );
+      const templateService = module.get<DataSourceTemplateService>(
+        DataSourceTemplateService,
+      );
+
       expect(ruleService).toBeDefined();
       expect(cacheService).toBeDefined();
       expect(templateService).toBeDefined();
@@ -336,23 +422,31 @@ describe("DataMapperModule Components", () => {
     });
 
     it("should maintain singleton pattern for services", () => {
-      const service1 = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      const service2 = module.get<FlexibleMappingRuleService>(FlexibleMappingRuleService);
-      
+      const service1 = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
+      const service2 = module.get<FlexibleMappingRuleService>(
+        FlexibleMappingRuleService,
+      );
+
       expect(service1).toBe(service2); // Should be the same instance
     });
 
     it("should maintain singleton pattern for controllers", () => {
-      const controller1 = module.get<MappingRuleController>(MappingRuleController);
-      const controller2 = module.get<MappingRuleController>(MappingRuleController);
-      
+      const controller1 = module.get<MappingRuleController>(
+        MappingRuleController,
+      );
+      const controller2 = module.get<MappingRuleController>(
+        MappingRuleController,
+      );
+
       expect(controller1).toBe(controller2); // Should be the same instance
     });
 
     it("should maintain singleton pattern for shared dependencies", () => {
       const featureFlags1 = module.get<FeatureFlags>(FeatureFlags);
       const featureFlags2 = module.get<FeatureFlags>(FeatureFlags);
-      
+
       expect(featureFlags1).toBe(featureFlags2); // Should be the same instance
     });
 
@@ -362,7 +456,7 @@ describe("DataMapperModule Components", () => {
       expect(() => module.get(SystemPersistenceController)).not.toThrow();
       expect(() => module.get(TemplateAdminController)).not.toThrow();
       expect(() => module.get(MappingRuleController)).not.toThrow();
-      
+
       // Services
       expect(() => module.get(DataSourceAnalyzerService)).not.toThrow();
       expect(() => module.get(DataSourceTemplateService)).not.toThrow();
@@ -370,11 +464,15 @@ describe("DataMapperModule Components", () => {
       expect(() => module.get(PersistedTemplateService)).not.toThrow();
       expect(() => module.get(RuleAlignmentService)).not.toThrow();
       expect(() => module.get(MappingRuleCacheService)).not.toThrow();
-      
+
       // Dependencies
       expect(() => module.get(FeatureFlags)).not.toThrow();
-      expect(() => module.get(getModelToken(DataSourceTemplate.name))).not.toThrow();
-      expect(() => module.get(getModelToken(FlexibleMappingRule.name))).not.toThrow();
+      expect(() =>
+        module.get(getModelToken(DataSourceTemplate.name)),
+      ).not.toThrow();
+      expect(() =>
+        module.get(getModelToken(FlexibleMappingRule.name)),
+      ).not.toThrow();
     });
   });
 });

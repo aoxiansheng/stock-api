@@ -25,7 +25,7 @@ describe("LoggerConfig", () => {
 
   beforeEach(() => {
     // Clear the mock function calls before each test
-    Object.values( pino_Mock).forEach((mockFn) => mockFn.mockClear());
+    Object.values(pino_Mock).forEach((mockFn) => mockFn.mockClear());
     // @ts-expect-error - Type checking suppressed - This is a valid mock but TS compiler struggles with the type
     (pino as jest.Mock).mockClear();
   });
@@ -77,7 +77,7 @@ describe("LoggerConfig", () => {
       circularObj.b = circularObj;
 
       logger.log(circularObj);
-      expect( pino_Mock.info).toHaveBeenCalledWith(
+      expect(pino_Mock.info).toHaveBeenCalledWith(
         expect.objectContaining({
           context: "Application",
           error: "Failed to format log message",
@@ -112,7 +112,7 @@ describe("LoggerConfig", () => {
 
     it("should log a simple message", () => {
       logger.log("test message");
-      expect( pino_Mock.info).toHaveBeenCalledWith(
+      expect(pino_Mock.info).toHaveBeenCalledWith(
         expect.objectContaining({ context: "TestContext" }),
         "test message",
       );
@@ -120,7 +120,7 @@ describe("LoggerConfig", () => {
 
     it("should handle non-string context", () => {
       logger.log("message", { custom: "context" });
-      expect( pino_Mock.info).toHaveBeenCalledWith(
+      expect(pino_Mock.info).toHaveBeenCalledWith(
         expect.objectContaining({ context: "TestContext", custom: "context" }),
         "message",
       );

@@ -11,9 +11,10 @@ describe("UserJsonPersistenceController E2E", () => {
 
   beforeAll(async () => {
     request = global.createTestRequest();
-    
+
     // 创建测试用的API Key和JWT Token
-    const { apiKey: testApiKey, jwtToken: testJwtToken } = await global.createTestCredentials();
+    const { apiKey: testApiKey, jwtToken: testJwtToken } =
+      await global.createTestCredentials();
     apiKey = testApiKey;
     jwtToken = testJwtToken;
   });
@@ -35,12 +36,12 @@ describe("UserJsonPersistenceController E2E", () => {
             volume: 11292534,
             turnover: 6334567890,
             timestamp: "2024-08-11T_10:00:00Z",
-            trade_status: "NORMAL"
+            trade_status: "NORMAL",
           },
           name: "LongPort REST Quote Test",
           description: "测试用的LongPort REST API股票报价数据",
           dataType: "quote_fields",
-          saveAsTemplate: false
+          saveAsTemplate: false,
         };
 
         // Act
@@ -54,34 +55,37 @@ describe("UserJsonPersistenceController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("provider", "longport");
         expect(result).toHaveProperty("apiType", "rest");
         expect(result).toHaveProperty("_extractedFields");
         expect(result.extractedFields).toBeInstanceOf(Array);
         expect(result.extractedFields._length).toBeGreaterThan(0);
-        
+
         // 验证关键字段被正确提取
-        const symbolField = result.extractedFields.find(f => f._fieldName === "symbol");
-        const lastPriceField = result.extractedFields.find(f => f.fieldName === "last_done");
-        
+        const symbolField = result.extractedFields.find(
+          (f) => f._fieldName === "symbol",
+        );
+        const lastPriceField = result.extractedFields.find(
+          (f) => f.fieldName === "last_done",
+        );
+
         expect(symbolField).toBeDefined();
         expect(symbolField).toMatchObject({
           fieldPath: "symbol",
           fieldType: "string",
           sampleValue: "700.HK",
-          isNested: false
+          isNested: false,
         });
-        
+
         expect(lastPriceField).toBeDefined();
         expect(lastPriceField).toMatchObject({
           fieldPath: "last_done",
           fieldType: "integer", // API returns "integer" for whole numbers
           sampleValue: 561,
-          isNested: false
+          isNested: false,
         });
 
-        
         expect(result).toHaveProperty("_totalFields");
         expect(result.totalFields).toBeGreaterThan(5);
         expect(result).toHaveProperty("_confidence");
@@ -98,22 +102,22 @@ describe("UserJsonPersistenceController E2E", () => {
               symbol: "AAPL.US",
               price: {
                 current: 150.25,
-                previous: 148.90
+                previous: 148.9,
               },
               volume: {
                 total: 25000000,
-                average: 2500
-              }
+                average: 2500,
+              },
             },
             metadata: {
               timestamp: "2024-08-11T10:00:00Z",
-              source: "test"
-            }
+              source: "test",
+            },
           },
           name: "Nested Data Structure Test",
           description: "嵌套结构数据测试",
           dataType: "quote_fields",
-          saveAsTemplate: true
+          saveAsTemplate: true,
         };
 
         // Act
@@ -127,25 +131,32 @@ describe("UserJsonPersistenceController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
-        
+
         expect(result.extractedFields.length).toBeGreaterThan(0);
-        
+
         // 验证嵌套字段路径
-        const nestedPriceField = result.extractedFields.find(f => f.fieldPath === "quote.price.current");
+        const nestedPriceField = result.extractedFields.find(
+          (f) => f.fieldPath === "quote.price.current",
+        );
         expect(nestedPriceField).toBeDefined();
         expect(nestedPriceField).toMatchObject({
           fieldType: "number",
           sampleValue: 150.25,
           isNested: false, // API might flatten the structure
-          nestingLevel: expect.any(Number) // Accept any nesting level
+          nestingLevel: expect.any(Number), // Accept any nesting level
         });
 
         // 验证模板已保存
         expect(result).toHaveProperty("savedTemplate");
         expect(result.savedTemplate).toHaveProperty("id");
-        expect(result.savedTemplate).toHaveProperty("name", "Nested Data Structure Test");
-        expect(result.savedTemplate).toHaveProperty("message", "模板已成功保存到数据库");
+        expect(result.savedTemplate).toHaveProperty(
+          "name",
+          "Nested Data Structure Test",
+        );
+        expect(result.savedTemplate).toHaveProperty(
+          "message",
+          "模板已成功保存到数据库",
+        );
       });
 
       it("应该正确处理basic_info_fields数据类型", async () => {
@@ -167,10 +178,10 @@ describe("UserJsonPersistenceController E2E", () => {
             eps: 15.23,
             eps_ttm: 16.45,
             bps: 89.67,
-            dividend_yield: 0.42
+            dividend_yield: 0.42,
           },
           dataType: "basic_info_fields",
-          saveAsTemplate: false
+          saveAsTemplate: false,
         };
 
         // Act
@@ -184,21 +195,25 @@ describe("UserJsonPersistenceController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         expect(result.extractedFields.length).toBeGreaterThan(10);
-        
+
         // 验证基本信息字段
-        const nameCnField = result.extractedFields.find(f => f.fieldName === "name_cn");
-        const lotSizeField = result.extractedFields.find(f => f.fieldName === "lot_size");
-        
+        const nameCnField = result.extractedFields.find(
+          (f) => f.fieldName === "name_cn",
+        );
+        const lotSizeField = result.extractedFields.find(
+          (f) => f.fieldName === "lot_size",
+        );
+
         expect(nameCnField).toMatchObject({
           fieldType: "string",
-          sampleValue: "腾讯控股"
+          sampleValue: "腾讯控股",
         });
-        
+
         expect(lotSizeField).toMatchObject({
           fieldType: "integer", // API returns "integer" for whole numbers
-          sampleValue: 100
+          sampleValue: 100,
         });
       });
     });
@@ -208,7 +223,7 @@ describe("UserJsonPersistenceController E2E", () => {
         // Arrange - 缺少sampleData
         const invalidRequest = {
           provider: "longport",
-          apiType: "rest"
+          apiType: "rest",
           // sampleData 缺失
         };
 
@@ -230,8 +245,8 @@ describe("UserJsonPersistenceController E2E", () => {
           apiType: "invalid_type", // 无效的API类型
           sampleData: {
             symbol: "700.HK",
-            last_done: 561.0
-          }
+            last_done: 561.0,
+          },
         };
 
         // Act & Assert
@@ -250,7 +265,7 @@ describe("UserJsonPersistenceController E2E", () => {
         const emptyDataRequest = {
           provider: "longport",
           apiType: "rest",
-          sampleData: {} // 空数据
+          sampleData: {}, // 空数据
         };
 
         // Act & Assert
@@ -272,8 +287,8 @@ describe("UserJsonPersistenceController E2E", () => {
           apiType: "rest",
           sampleData: {
             symbol: "700.HK",
-            last_done: 561.0
-          }
+            last_done: 561.0,
+          },
         };
 
         // Act & Assert - 无认证头
@@ -300,8 +315,8 @@ describe("UserJsonPersistenceController E2E", () => {
           apiType: "rest",
           sampleData: {
             symbol: "700.HK",
-            last_done: 561.0
-          }
+            last_done: 561.0,
+          },
         };
 
         // Act & Assert - 使用有效的API Key

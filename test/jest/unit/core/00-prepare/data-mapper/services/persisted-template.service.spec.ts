@@ -7,14 +7,14 @@ import { Model } from "mongoose";
 import { PersistedTemplateService } from "../../../../../../../src/core/00-prepare/data-mapper/services/persisted-template.service";
 import {
   DataSourceTemplate,
-  DataSourceTemplateDocument
+  DataSourceTemplateDocument,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
 import {
   FlexibleMappingRule,
-  FlexibleMappingRuleDocument
+  FlexibleMappingRuleDocument,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import { RuleAlignmentService } from "../../../../../../../src/core/00-prepare/data-mapper/services/rule-alignment.service";
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
+import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
 
 // Mock the logger
 jest.mock("../@app/config/logger.config", () => ({
@@ -48,23 +48,23 @@ describe("PersistedTemplateService", () => {
         fieldPath: "symbol",
         fieldName: "symbol",
         fieldType: "string",
-        confidence: 1.0
+        confidence: 1.0,
       },
       {
         fieldPath: "lastDone",
         fieldName: "lastDone",
         fieldType: "number",
-        confidence: 0.95
-      }
+        confidence: 0.95,
+      },
     ],
     save: jest.fn(),
     toObject: jest.fn(),
-    toJSON: jest.fn()
+    toJSON: jest.fn(),
   };
 
   const mockBasicInfoTemplate = {
     _id: "507f1f77bcf86cd799439012",
-    id: "507f1f77bcf86cd799439012", 
+    id: "507f1f77bcf86cd799439012",
     name: "LongPort REST 股票基础信息通用模板",
     provider: "longport",
     apiType: "rest",
@@ -75,24 +75,24 @@ describe("PersistedTemplateService", () => {
         fieldPath: "nameCn",
         fieldName: "nameCn",
         fieldType: "string",
-        confidence: 1.0
+        confidence: 1.0,
       },
       {
         fieldPath: "exchange",
-        fieldName: "exchange", 
+        fieldName: "exchange",
         fieldType: "string",
-        confidence: 0.9
+        confidence: 0.9,
       },
       {
         fieldPath: "lotSize",
         fieldName: "lotSize",
-        fieldType: "number", 
-        confidence: 0.9
-      }
+        fieldType: "number",
+        confidence: 0.9,
+      },
     ],
     save: jest.fn(),
     toObject: jest.fn(),
-    toJSON: jest.fn()
+    toJSON: jest.fn(),
   };
 
   const mockRule = {
@@ -102,7 +102,7 @@ describe("PersistedTemplateService", () => {
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     fieldMappings: [],
-    overallConfidence: 0.8
+    overallConfidence: 0.8,
   };
 
   beforeEach(async () => {
@@ -146,7 +146,7 @@ describe("PersistedTemplateService", () => {
     ruleModel = module.get(getModelToken(FlexibleMappingRule.name));
     mockRuleAlignmentService = module.get(RuleAlignmentService);
     mockCollectorService = module.get(CollectorService);
-    
+
     // 重置所有mock
     jest.clearAllMocks();
   });
@@ -183,13 +183,15 @@ describe("PersistedTemplateService", () => {
       let callCount = 0;
       templateModel.findOne.mockImplementation((() => {
         callCount++;
-        // First template doesn't exist, second fails to save  
-        return callCount === 1 ? Promise.resolve(null) : Promise.resolve(mockTemplate as any);
+        // First template doesn't exist, second fails to save
+        return callCount === 1
+          ? Promise.resolve(null)
+          : Promise.resolve(mockTemplate as any);
       }) as any);
 
       const saveError = new Error("Save failed");
       templateModel.constructor = jest.fn().mockImplementation(() => ({
-        save: jest.fn().mockRejectedValue(saveError)
+        save: jest.fn().mockRejectedValue(saveError),
       }));
 
       const result = await service.persistPresetTemplates();
@@ -220,10 +222,13 @@ describe("PersistedTemplateService", () => {
 
   describe("getAllPersistedTemplates", () => {
     it("should return all persisted templates", async () => {
-      const mockTemplates = [mockTemplate, { ...mockTemplate, id: "507f1f77bcf86cd799439012" }];
+      const mockTemplates = [
+        mockTemplate,
+        { ...mockTemplate, id: "507f1f77bcf86cd799439012" },
+      ];
       templateModel.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(mockTemplates)
+        exec: jest.fn().mockResolvedValue(mockTemplates),
       } as any);
 
       const result = await service.getAllPersistedTemplates();
@@ -235,7 +240,7 @@ describe("PersistedTemplateService", () => {
     it("should return empty array when no templates found", async () => {
       templateModel.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([])
+        exec: jest.fn().mockResolvedValue([]),
       } as any);
 
       const result = await service.getAllPersistedTemplates();
@@ -248,24 +253,29 @@ describe("PersistedTemplateService", () => {
     it("should return template by id", async () => {
       templateModel.findById.mockResolvedValue(mockTemplate as any);
 
-      const result = await service.getPersistedTemplateById("507f1f77bcf86cd799439011");
+      const result = await service.getPersistedTemplateById(
+        "507f1f77bcf86cd799439011",
+      );
 
       expect(result).toEqual(mockTemplate);
-      expect(templateModel.findById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(templateModel.findById).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+      );
     });
 
     it("should throw NotFoundException when template not found", async () => {
       templateModel.findById.mockResolvedValue(null);
 
-      await expect(service.getPersistedTemplateById("507f1f77bcf86cd799439099"))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.getPersistedTemplateById("507f1f77bcf86cd799439099"),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe("updatePersistedTemplate", () => {
     const updateData = {
       description: "Updated description",
-      extractedFields: []
+      extractedFields: [],
     };
 
     it("should update persisted template successfully", async () => {
@@ -273,21 +283,25 @@ describe("PersistedTemplateService", () => {
       templateModel.findOneAndUpdate.mockResolvedValue(updatedTemplate as any);
       templateModel.findByIdAndUpdate.mockResolvedValue(updatedTemplate as any);
 
-      const result = await service.updatePersistedTemplate("507f1f77bcf86cd799439011", updateData);
+      const result = await service.updatePersistedTemplate(
+        "507f1f77bcf86cd799439011",
+        updateData,
+      );
 
       expect(result).toEqual(updatedTemplate);
       expect(templateModel.findByIdAndUpdate).toHaveBeenCalledWith(
         "507f1f77bcf86cd799439011",
         updateData,
-        { new: true }
+        { new: true },
       );
     });
 
     it("should throw NotFoundException when template not found for update", async () => {
       templateModel.findByIdAndUpdate.mockResolvedValue(null);
 
-      await expect(service.updatePersistedTemplate("507f1f77bcf86cd799439099", updateData))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.updatePersistedTemplate("507f1f77bcf86cd799439099", updateData),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -295,17 +309,22 @@ describe("PersistedTemplateService", () => {
     it("should delete persisted template successfully", async () => {
       const nonPresetTemplate = { ...mockTemplate, isPreset: false };
       templateModel.findById.mockResolvedValue(nonPresetTemplate as any);
-      templateModel.findByIdAndDelete.mockResolvedValue(nonPresetTemplate as any);
+      templateModel.findByIdAndDelete.mockResolvedValue(
+        nonPresetTemplate as any,
+      );
 
       await service.deletePersistedTemplate("507f1f77bcf86cd799439011");
 
-      expect(templateModel.findByIdAndDelete).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(templateModel.findByIdAndDelete).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+      );
     });
 
     it("should throw NotFoundException when template not found for deletion", async () => {
       templateModel.findById.mockResolvedValue(null);
-      await expect(service.deletePersistedTemplate("507f1f77bcf86cd799439099"))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.deletePersistedTemplate("507f1f77bcf86cd799439099"),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -319,57 +338,74 @@ describe("PersistedTemplateService", () => {
           apiType: mockTemplate.apiType,
           isPreset: true,
           isActive: true,
-          extractedFields: []
-        }
+          extractedFields: [],
+        },
       ];
 
       templateModel.findById.mockResolvedValueOnce(mockTemplate as any);
       templateModel.findByIdAndUpdate.mockResolvedValue(mockTemplate as any);
       templateModel.findById.mockResolvedValueOnce(mockTemplate as any);
 
-      const result = await service.resetPresetTemplateById("507f1f77bcf86cd799439011");
+      const result = await service.resetPresetTemplateById(
+        "507f1f77bcf86cd799439011",
+      );
 
       expect(result).toBeDefined();
-      expect(templateModel.findById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(templateModel.findById).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+      );
       expect(templateModel.findByIdAndUpdate).toHaveBeenCalled();
     });
 
     it("should throw NotFoundException when preset template not found", async () => {
       templateModel.findById.mockResolvedValue(null);
 
-      await expect(service.resetPresetTemplateById("507f1f77bcf86cd799439099"))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.resetPresetTemplateById("507f1f77bcf86cd799439099"),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it("should handle template not being a preset", async () => {
       const nonPresetTemplate = { ...mockTemplate, isPreset: false };
       templateModel.findById.mockResolvedValue(nonPresetTemplate as any);
 
-      await expect(service.resetPresetTemplateById("507f1f77bcf86cd799439011"))
-        .rejects.toThrow();
+      await expect(
+        service.resetPresetTemplateById("507f1f77bcf86cd799439011"),
+      ).rejects.toThrow();
     });
   });
 
   describe("resetPresetTemplatesBulk", () => {
     it("should reset multiple preset templates", async () => {
-      const templateIds = ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"];
-      
+      const templateIds = [
+        "507f1f77bcf86cd799439011",
+        "507f1f77bcf86cd799439012",
+      ];
+
       // Mock resetPresetTemplateById to succeed for both templates
-      jest.spyOn(service, 'resetPresetTemplateById').mockResolvedValue(mockTemplate as any);
+      jest
+        .spyOn(service, "resetPresetTemplateById")
+        .mockResolvedValue(mockTemplate as any);
 
       const result = await service.resetPresetTemplatesBulk(templateIds);
 
       expect(result.reset).toBe(2);
       expect(result.failed).toBe(0);
       expect(result.details).toHaveLength(2);
-      expect(result.details.every(detail => detail.includes('已重置'))).toBe(true);
+      expect(result.details.every((detail) => detail.includes("已重置"))).toBe(
+        true,
+      );
     });
 
     it("should handle partial failures in bulk reset", async () => {
-      const templateIds = ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439099"];
-      
+      const templateIds = [
+        "507f1f77bcf86cd799439011",
+        "507f1f77bcf86cd799439099",
+      ];
+
       // Mock resetPresetTemplateById to succeed for first, fail for second
-      jest.spyOn(service, 'resetPresetTemplateById')
+      jest
+        .spyOn(service, "resetPresetTemplateById")
         .mockResolvedValueOnce(mockTemplate as any)
         .mockRejectedValueOnce(new NotFoundException("Template not found"));
 
@@ -378,8 +414,12 @@ describe("PersistedTemplateService", () => {
       expect(result.reset).toBe(1);
       expect(result.failed).toBe(1);
       expect(result.details).toHaveLength(2);
-      expect(result.details.some(detail => detail.includes('已重置'))).toBe(true);
-      expect(result.details.some(detail => detail.includes('失败'))).toBe(true);
+      expect(result.details.some((detail) => detail.includes("已重置"))).toBe(
+        true,
+      );
+      expect(result.details.some((detail) => detail.includes("失败"))).toBe(
+        true,
+      );
     });
 
     it("should handle empty template ids array", async () => {
@@ -399,39 +439,39 @@ describe("PersistedTemplateService", () => {
 
     it("should reset all preset templates", async () => {
       templateModel.deleteMany.mockResolvedValue({ deletedCount: 2 } as any);
-      
+
       // Mock persistPresetTemplates
-      jest.spyOn(service, 'persistPresetTemplates').mockResolvedValue({
+      jest.spyOn(service, "persistPresetTemplates").mockResolvedValue({
         created: 2,
         updated: 0,
         skipped: 0,
-        details: ['已创建: Template 1', '已创建: Template 2']
+        details: ["已创建: Template 1", "已创建: Template 2"],
       });
 
       const result = await service.resetPresetTemplates();
 
       expect(result.deleted).toBe(2);
       expect(result.recreated).toBe(2);
-      expect(result.message).toContain('删除了');
-      expect(result.message).toContain('重新创建了');
+      expect(result.message).toContain("删除了");
+      expect(result.message).toContain("重新创建了");
     });
 
     it("should handle no preset templates to reset", async () => {
       templateModel.deleteMany.mockResolvedValue({ deletedCount: 0 } as any);
-      
+
       // Mock persistPresetTemplates
-      jest.spyOn(service, 'persistPresetTemplates').mockResolvedValue({
+      jest.spyOn(service, "persistPresetTemplates").mockResolvedValue({
         created: 2,
         updated: 0,
         skipped: 0,
-        details: ['已创建: Template 1', '已创建: Template 2']
+        details: ["已创建: Template 1", "已创建: Template 2"],
       });
 
       const result = await service.resetPresetTemplates();
 
       expect(result.deleted).toBe(0);
       expect(result.recreated).toBe(2);
-      expect(result.message).toContain('重新创建了');
+      expect(result.message).toContain("重新创建了");
     });
   });
 
@@ -440,7 +480,7 @@ describe("PersistedTemplateService", () => {
       const dbError = new Error("Database connection failed");
       templateModel.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockRejectedValue(dbError)
+        exec: jest.fn().mockRejectedValue(dbError),
       } as any);
 
       await expect(service.getAllPersistedTemplates()).rejects.toThrow(dbError);
@@ -448,12 +488,12 @@ describe("PersistedTemplateService", () => {
 
     it("should handle validation errors during persistence", async () => {
       templateModel.findOne.mockResolvedValue(null);
-      
+
       const validationError = new Error("Validation failed");
       validationError.name = "ValidationError";
-      
+
       templateModel.constructor = jest.fn().mockImplementation(() => ({
-        save: jest.fn().mockRejectedValue(validationError)
+        save: jest.fn().mockRejectedValue(validationError),
       }));
 
       const result = await service.persistPresetTemplates();
@@ -465,10 +505,11 @@ describe("PersistedTemplateService", () => {
     it("should handle concurrent modification conflicts", async () => {
       const conflictError = new Error("Document was modified");
       conflictError.name = "VersionError";
-      
+
       templateModel.findByIdAndUpdate.mockRejectedValue(conflictError);
-      await expect(service.updatePersistedTemplate("507f1f77bcf86cd799439011", {}))
-        .rejects.toThrow(conflictError);
+      await expect(
+        service.updatePersistedTemplate("507f1f77bcf86cd799439011", {}),
+      ).rejects.toThrow(conflictError);
     });
   });
 
@@ -479,8 +520,9 @@ describe("PersistedTemplateService", () => {
         throw new Error("Malformed data");
       });
 
-      await expect(service.resetPresetTemplateById("507f1f77bcf86cd799439011"))
-        .rejects.toThrow();
+      await expect(
+        service.resetPresetTemplateById("507f1f77bcf86cd799439011"),
+      ).rejects.toThrow();
     });
 
     it("should handle very large extracted fields arrays", async () => {
@@ -488,16 +530,16 @@ describe("PersistedTemplateService", () => {
         fieldPath: `field${i}`,
         fieldName: `field${i}`,
         fieldType: "string",
-        confidence: 0.8
+        confidence: 0.8,
       }));
 
       const templateWithManyFields = {
         ...mockTemplate,
-        extractedFields: largeFieldsArray
+        extractedFields: largeFieldsArray,
       };
 
       templateModel.constructor = jest.fn().mockImplementation(() => ({
-        save: jest.fn().mockResolvedValue(templateWithManyFields)
+        save: jest.fn().mockResolvedValue(templateWithManyFields),
       }));
       templateModel.findOne.mockResolvedValue(null);
 
@@ -514,8 +556,8 @@ describe("PersistedTemplateService", () => {
           apiType: mockTemplate.apiType,
           isPreset: true,
           isActive: true,
-          extractedFields: []
-        }
+          extractedFields: [],
+        },
       ];
 
       // First call returns null (no existing), second call returns existing
@@ -529,7 +571,7 @@ describe("PersistedTemplateService", () => {
       }) as any);
 
       templateModel.constructor = jest.fn().mockImplementation(() => ({
-        save: jest.fn().mockRejectedValue(new Error("Duplicate key error"))
+        save: jest.fn().mockRejectedValue(new Error("Duplicate key error")),
       }));
 
       const result = await service.persistPresetTemplates();
@@ -545,17 +587,17 @@ describe("PersistedTemplateService", () => {
 
       // Mock模板查询
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockTemplates)
+        exec: jest.fn().mockResolvedValue(mockTemplates),
       } as any);
 
       // Mock规则查询 - 规则不存在
       ruleModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null)
+        exec: jest.fn().mockResolvedValue(null),
       } as any);
 
       // Mock智能对齐服务
       mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
-        rule: mockRule
+        rule: mockRule,
       } as any);
 
       // 执行测试
@@ -571,33 +613,39 @@ describe("PersistedTemplateService", () => {
       expect(templateModel.find).toHaveBeenCalledWith({ isPreset: true });
 
       // 【关键验证】智能对齐服务被正确调用
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledTimes(2);
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenNthCalledWith(
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).toHaveBeenNthCalledWith(
         1,
         mockTemplate._id.toString(),
         "quote_fields",
-        "longport_REST_港股_报价数据_规则"
+        "longport_REST_港股_报价数据_规则",
       );
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenNthCalledWith(
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).toHaveBeenNthCalledWith(
         2,
         mockBasicInfoTemplate._id.toString(),
-        "basic_info_fields", 
-        "longport_REST_股票基础信息_基础信息_规则"
+        "basic_info_fields",
+        "longport_REST_股票基础信息_基础信息_规则",
       );
 
       // 验证监控指标记录
       // ✅ 验证监控调用 - 使用新的CollectorService API
       expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
-        '/internal/initialize-preset-rules',
-        'POST',
+        "/internal/initialize-preset-rules",
+        "POST",
         200,
         expect.any(Number),
         expect.objectContaining({
-          service: 'PersistedTemplateService',
-          operation: 'initializePresetMappingRules_batch',
+          service: "PersistedTemplateService",
+          operation: "initializePresetMappingRules_batch",
           created: 2,
-          successRate: expect.any(Number)
-        })
+          successRate: expect.any(Number),
+        }),
       );
     });
 
@@ -605,24 +653,26 @@ describe("PersistedTemplateService", () => {
       const mockTemplates = [mockBasicInfoTemplate];
 
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockTemplates)
+        exec: jest.fn().mockResolvedValue(mockTemplates),
       } as any);
 
       ruleModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null)
+        exec: jest.fn().mockResolvedValue(null),
       } as any);
 
       mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
-        rule: mockRule
+        rule: mockRule,
       } as any);
 
       await service.initializePresetMappingRules();
 
       // 验证基础信息模板被正确识别为 basic_info_fields
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledWith(
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).toHaveBeenCalledWith(
         mockBasicInfoTemplate._id.toString(),
         "basic_info_fields",
-        expect.any(String)
+        expect.any(String),
       );
     });
 
@@ -636,32 +686,34 @@ describe("PersistedTemplateService", () => {
         isActive: true,
         extractedFields: [
           { fieldName: "symbol" },
-          { fieldName: "lotSize" },     // 基础信息指标
-          { fieldName: "totalShares" }, // 基础信息指标  
-          { fieldName: "exchange" },    // 基础信息指标
-          { fieldName: "currency" }     // 基础信息指标 (4个 >= 3个阈值)
-        ]
+          { fieldName: "lotSize" }, // 基础信息指标
+          { fieldName: "totalShares" }, // 基础信息指标
+          { fieldName: "exchange" }, // 基础信息指标
+          { fieldName: "currency" }, // 基础信息指标 (4个 >= 3个阈值)
+        ],
       };
 
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([mockUnknownTemplate])
+        exec: jest.fn().mockResolvedValue([mockUnknownTemplate]),
       } as any);
 
       ruleModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null)
+        exec: jest.fn().mockResolvedValue(null),
       } as any);
 
       mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
-        rule: mockRule
+        rule: mockRule,
       } as any);
 
       await service.initializePresetMappingRules();
 
       // 验证启发式判断：包含4个基础信息指标 >= 3，应判断为 basic_info_fields
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledWith(
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).toHaveBeenCalledWith(
         mockUnknownTemplate._id.toString(),
         "basic_info_fields",
-        expect.any(String)
+        expect.any(String),
       );
     });
 
@@ -669,7 +721,7 @@ describe("PersistedTemplateService", () => {
       const mockTemplates = [mockTemplate];
 
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockTemplates)
+        exec: jest.fn().mockResolvedValue(mockTemplates),
       } as any);
 
       // Mock规则查询 - 规则已存在
@@ -677,10 +729,10 @@ describe("PersistedTemplateService", () => {
         name: "longport_REST_港股_报价数据_规则",
         provider: "longport",
         apiType: "rest",
-        transDataRuleListType: "quote_fields"
+        transDataRuleListType: "quote_fields",
       };
       ruleModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(existingRule)
+        exec: jest.fn().mockResolvedValue(existingRule),
       } as any);
 
       const result = await service.initializePresetMappingRules();
@@ -688,23 +740,27 @@ describe("PersistedTemplateService", () => {
       // 验证跳过逻辑
       expect(result.created).toBe(0);
       expect(result.skipped).toBe(1);
-      expect(result.details).toContain('已跳过 LongPort REST 股票报价通用模板（港股/A股个股和指数）: 规则已存在');
+      expect(result.details).toContain(
+        "已跳过 LongPort REST 股票报价通用模板（港股/A股个股和指数）: 规则已存在",
+      );
 
       // 验证智能对齐服务未被调用
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).not.toHaveBeenCalled();
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).not.toHaveBeenCalled();
 
       // 验证跳过指标被记录
       // ✅ 验证跳过记录的监控调用
       expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
-        '/internal/initialize-preset-rule',
-        'POST',
+        "/internal/initialize-preset-rule",
+        "POST",
         409,
         expect.any(Number),
         expect.objectContaining({
-          service: 'PersistedTemplateService',
-          result: 'skipped',
-          reason: 'rule_already_exists'
-        })
+          service: "PersistedTemplateService",
+          result: "skipped",
+          reason: "rule_already_exists",
+        }),
       );
     });
 
@@ -712,15 +768,17 @@ describe("PersistedTemplateService", () => {
       const mockTemplates = [mockTemplate];
 
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockTemplates)
+        exec: jest.fn().mockResolvedValue(mockTemplates),
       } as any);
 
       ruleModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null)
+        exec: jest.fn().mockResolvedValue(null),
       } as any);
 
       // Mock智能对齐服务失败
-      mockRuleAlignmentService.generateRuleFromTemplate.mockRejectedValue(new Error('智能对齐失败'));
+      mockRuleAlignmentService.generateRuleFromTemplate.mockRejectedValue(
+        new Error("智能对齐失败"),
+      );
 
       const result = await service.initializePresetMappingRules();
 
@@ -728,29 +786,29 @@ describe("PersistedTemplateService", () => {
       expect(result.created).toBe(0);
       expect(result.skipped).toBe(0);
       expect(result.failed).toBe(1);
-      expect(result.details).toEqual(expect.arrayContaining([
-        expect.stringContaining('失败')
-      ]));
+      expect(result.details).toEqual(
+        expect.arrayContaining([expect.stringContaining("失败")]),
+      );
 
       // 验证失败指标被记录
       // ✅ 验证失败记录的监控调用
       expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
-        '/internal/initialize-preset-rule',
-        'POST',
+        "/internal/initialize-preset-rule",
+        "POST",
         500,
         expect.any(Number),
         expect.objectContaining({
-          service: 'PersistedTemplateService',
-          result: 'failed',
-          error: expect.any(String)
-        })
+          service: "PersistedTemplateService",
+          result: "failed",
+          error: expect.any(String),
+        }),
       );
     });
 
     it("应该处理没有预设模板的情况", async () => {
       // Mock没有预设模板
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([])
+        exec: jest.fn().mockResolvedValue([]),
       } as any);
 
       const result = await service.initializePresetMappingRules();
@@ -758,25 +816,29 @@ describe("PersistedTemplateService", () => {
       expect(result.created).toBe(0);
       expect(result.skipped).toBe(0);
       expect(result.failed).toBe(0);
-      expect(result.details).toContain('未找到预设模板，建议先执行预设模板持久化');
+      expect(result.details).toContain(
+        "未找到预设模板，建议先执行预设模板持久化",
+      );
 
       // 验证智能对齐服务未被调用
-      expect(mockRuleAlignmentService.generateRuleFromTemplate).not.toHaveBeenCalled();
+      expect(
+        mockRuleAlignmentService.generateRuleFromTemplate,
+      ).not.toHaveBeenCalled();
     });
 
     it("应该使用完整查重条件避免跨类型误判", async () => {
       const mockTemplates = [mockTemplate];
 
       templateModel.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockTemplates)
+        exec: jest.fn().mockResolvedValue(mockTemplates),
       } as any);
 
       ruleModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null)
+        exec: jest.fn().mockResolvedValue(null),
       } as any);
 
       mockRuleAlignmentService.generateRuleFromTemplate.mockResolvedValue({
-        rule: mockRule
+        rule: mockRule,
       } as any);
 
       await service.initializePresetMappingRules();
@@ -786,7 +848,7 @@ describe("PersistedTemplateService", () => {
         name: expect.any(String),
         provider: mockTemplate.provider,
         apiType: mockTemplate.apiType,
-        transDataRuleListType: "quote_fields"  // 【关键】避免跨类型同名误判
+        transDataRuleListType: "quote_fields", // 【关键】避免跨类型同名误判
       });
     });
   });
@@ -795,32 +857,42 @@ describe("PersistedTemplateService", () => {
   describe("私有方法测试", () => {
     it("应该正确生成规则名称", () => {
       // 测试报价模板命名
-      const quoteRuleName = (service as any).generateRuleName(mockTemplate, "quote_fields");
+      const quoteRuleName = (service as any).generateRuleName(
+        mockTemplate,
+        "quote_fields",
+      );
       expect(quoteRuleName).toBe("longport_REST_港股_报价数据_规则");
-      
+
       // 测试基础信息模板命名
-      const basicInfoRuleName = (service as any).generateRuleName(mockBasicInfoTemplate, "basic_info_fields");
-      expect(basicInfoRuleName).toBe("longport_REST_股票基础信息_基础信息_规则");
+      const basicInfoRuleName = (service as any).generateRuleName(
+        mockBasicInfoTemplate,
+        "basic_info_fields",
+      );
+      expect(basicInfoRuleName).toBe(
+        "longport_REST_股票基础信息_基础信息_规则",
+      );
     });
 
     it("应该正确判断规则类型", () => {
       // 测试基础信息类型判断
-      const basicInfoType = (service as any).determineRuleType(mockBasicInfoTemplate);
-      expect(basicInfoType).toBe('basic_info_fields');
-      
+      const basicInfoType = (service as any).determineRuleType(
+        mockBasicInfoTemplate,
+      );
+      expect(basicInfoType).toBe("basic_info_fields");
+
       // 测试报价类型判断（默认）
       const quoteType = (service as any).determineRuleType(mockTemplate);
-      expect(quoteType).toBe('quote_fields');
+      expect(quoteType).toBe("quote_fields");
     });
 
     it("应该基于模板名称关键词判断类型", () => {
       const basicInfoTemplate = {
         ...mockTemplate,
-        name: "LongPort REST 股票基础信息通用模板"
+        name: "LongPort REST 股票基础信息通用模板",
       };
-      
+
       const type = (service as any).determineRuleType(basicInfoTemplate);
-      expect(type).toBe('basic_info_fields');
+      expect(type).toBe("basic_info_fields");
     });
 
     it("应该基于字段内容启发式判断类型", () => {
@@ -829,25 +901,28 @@ describe("PersistedTemplateService", () => {
         name: "未知模板", // 不包含关键词
         extractedFields: [
           { fieldName: "nameCn" },
-          { fieldName: "exchange" }, 
+          { fieldName: "exchange" },
           { fieldName: "lotSize" },
-          { fieldName: "totalShares" } // 4个基础信息字段 > 阈值3
-        ]
+          { fieldName: "totalShares" }, // 4个基础信息字段 > 阈值3
+        ],
       };
-      
+
       const type = (service as any).determineRuleType(templateWithBasicFields);
-      expect(type).toBe('basic_info_fields');
+      expect(type).toBe("basic_info_fields");
     });
-    
+
     it("应该处理边缘命名情况", () => {
       const edgeCaseTemplate = {
         ...mockTemplate,
         name: "  LongPort   REST   美股专用报价模板 (含盘前盘后)  ",
         provider: "longport",
-        apiType: "rest"
+        apiType: "rest",
       };
-      
-      const ruleName = (service as any).generateRuleName(edgeCaseTemplate, "quote_fields");
+
+      const ruleName = (service as any).generateRuleName(
+        edgeCaseTemplate,
+        "quote_fields",
+      );
       expect(ruleName).toContain("美股专用");
       expect(ruleName).toContain("报价数据");
       expect(ruleName).toContain("规则");

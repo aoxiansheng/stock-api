@@ -129,7 +129,7 @@ describe("CacheService - Error Handling Branch Coverage", () => {
           useValue: mockConfigService,
         },
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: mockRedisService,
         },
       ],

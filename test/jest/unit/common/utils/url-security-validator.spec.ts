@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException } from "@nestjs/common";
 import { URLSecurityValidator } from "../../../../../src/common/utils/url-security-validator.util";
 
 describe("URLSecurityValidator", () => {

@@ -55,7 +55,9 @@ jest.mock("../../../../../src/auth/constants/permission.constants", () => ({
 // Mock permission utils
 jest.mock("../../../../../src/auth/utils/permission.utils", () => ({
   PermissionTemplateUtil: {
-    generateDetails: jest.fn((template, params) => `Mocked details for ${template}`),
+    generateDetails: jest.fn(
+      (template, params) => `Mocked details for ${template}`,
+    ),
   },
 }));
 
@@ -135,7 +137,7 @@ describe("PermissionService - Enhanced Coverage", () => {
       };
 
       cacheService.get.mockResolvedValue(cachedResult);
-      
+
       const result = await service.checkPermissions(subject, [
         Permission.DATA_READ,
       ]);

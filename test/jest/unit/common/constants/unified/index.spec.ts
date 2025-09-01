@@ -495,7 +495,7 @@ describe("Unified Constants Index - Function Coverage", () => {
   describe("Function integration and cross-module usage", () => {
     it("should allow combining functions from different modules", () => {
       // Use functions from multiple modules together
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const statusCodes = [200, 400, 500];
       const results = statusCodes.map((code) => ({

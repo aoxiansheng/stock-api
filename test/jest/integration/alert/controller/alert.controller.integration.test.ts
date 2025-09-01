@@ -35,7 +35,7 @@ describe("Alert Cache Integration", () => {
     // notificationService = app.get<NotificationService>(NotificationService);
     // ruleEngineService = app.get<RuleEngineService>(RuleEngineService);
     cacheService = app.get<CacheService>(CacheService);
-    redisClient = app.get('default_IORedisModuleConnectionToken');
+    redisClient = app.get("default_IORedisModuleConnectionToken");
   });
 
   beforeEach(async () => {

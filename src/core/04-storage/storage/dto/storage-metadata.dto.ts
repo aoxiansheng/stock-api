@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-import { StorageClassification, StorageType } from "../enums/storage-type.enum";
+import { StorageClassification } from '../../../shared/types/storage-classification.enum';
+import { StorageType } from '../enums/storage-type.enum';
 
 export class StorageMetadataDto {
   @ApiProperty({ description: "Storage key" })

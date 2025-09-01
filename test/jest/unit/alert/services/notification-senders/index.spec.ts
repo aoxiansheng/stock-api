@@ -1,63 +1,63 @@
-import * as NotificationSendersIndex from '../../../../../../src/alert/services/notification-senders/index';
-import { DingTalkSender } from '../../../../../../src/alert/services/notification-senders/dingtalk.sender';
-import { EmailSender } from '../../../../../../src/alert/services/notification-senders/email.sender';
-import { LogSender } from '../../../../../../src/alert/services/notification-senders/log.sender';
-import { SlackSender } from '../../../../../../src/alert/services/notification-senders/slack.sender';
-import { WebhookSender } from '../../../../../../src/alert/services/notification-senders/webhook.sender';
+import * as NotificationSendersIndex from "../../../../../../src/alert/services/notification-senders/index";
+import { DingTalkSender } from "../../../../../../src/alert/services/notification-senders/dingtalk.sender";
+import { EmailSender } from "../../../../../../src/alert/services/notification-senders/email.sender";
+import { LogSender } from "../../../../../../src/alert/services/notification-senders/log.sender";
+import { SlackSender } from "../../../../../../src/alert/services/notification-senders/slack.sender";
+import { WebhookSender } from "../../../../../../src/alert/services/notification-senders/webhook.sender";
 
-describe('Notification Senders Index', () => {
-  it('should export DingTalkSender', () => {
+describe("Notification Senders Index", () => {
+  it("should export DingTalkSender", () => {
     expect(NotificationSendersIndex.DingTalkSender).toBeDefined();
     expect(NotificationSendersIndex.DingTalkSender).toBe(DingTalkSender);
   });
 
-  it('should export EmailSender', () => {
+  it("should export EmailSender", () => {
     expect(NotificationSendersIndex.EmailSender).toBeDefined();
     expect(NotificationSendersIndex.EmailSender).toBe(EmailSender);
   });
 
-  it('should export LogSender', () => {
+  it("should export LogSender", () => {
     expect(NotificationSendersIndex.LogSender).toBeDefined();
     expect(NotificationSendersIndex.LogSender).toBe(LogSender);
   });
 
-  it('should export SlackSender', () => {
+  it("should export SlackSender", () => {
     expect(NotificationSendersIndex.SlackSender).toBeDefined();
     expect(NotificationSendersIndex.SlackSender).toBe(SlackSender);
   });
 
-  it('should export WebhookSender', () => {
+  it("should export WebhookSender", () => {
     expect(NotificationSendersIndex.WebhookSender).toBeDefined();
     expect(NotificationSendersIndex.WebhookSender).toBe(WebhookSender);
   });
 
-  it('should export all expected notification senders', () => {
+  it("should export all expected notification senders", () => {
     const expectedExports = [
-      'DingTalkSender',
-      'EmailSender', 
-      'LogSender',
-      'SlackSender',
-      'WebhookSender'
+      "DingTalkSender",
+      "EmailSender",
+      "LogSender",
+      "SlackSender",
+      "WebhookSender",
     ];
-    
-    expectedExports.forEach(exportName => {
+
+    expectedExports.forEach((exportName) => {
       expect(NotificationSendersIndex[exportName]).toBeDefined();
     });
   });
 
-  it('should not export undefined values', () => {
-    Object.values(NotificationSendersIndex).forEach(exportedValue => {
+  it("should not export undefined values", () => {
+    Object.values(NotificationSendersIndex).forEach((exportedValue) => {
       expect(exportedValue).toBeDefined();
     });
   });
 
-  it('should have all exports as constructors', () => {
-    Object.values(NotificationSendersIndex).forEach(exportedValue => {
-      expect(typeof exportedValue).toBe('function');
+  it("should have all exports as constructors", () => {
+    Object.values(NotificationSendersIndex).forEach((exportedValue) => {
+      expect(typeof exportedValue).toBe("function");
     });
   });
 
-  it('should support sender class references', () => {
+  it("should support sender class references", () => {
     expect(NotificationSendersIndex.DingTalkSender).toBeInstanceOf(Function);
     expect(NotificationSendersIndex.EmailSender).toBeInstanceOf(Function);
     expect(NotificationSendersIndex.LogSender).toBeInstanceOf(Function);
@@ -65,17 +65,17 @@ describe('Notification Senders Index', () => {
     expect(NotificationSendersIndex.WebhookSender).toBeInstanceOf(Function);
   });
 
-  it('should maintain sender naming consistency', () => {
+  it("should maintain sender naming consistency", () => {
     // All notification senders should end with 'Sender'
     const senderNames = Object.keys(NotificationSendersIndex);
-    senderNames.forEach(name => {
-      expect(name.endsWith('Sender')).toBe(true);
+    senderNames.forEach((name) => {
+      expect(name.endsWith("Sender")).toBe(true);
     });
   });
 
-  it('should support different notification channels', () => {
-    const channels = ['Dingtalk', 'Email', 'Log', 'Slack', 'Webhook'];
-    channels.forEach(channel => {
+  it("should support different notification channels", () => {
+    const channels = ["Dingtalk", "Email", "Log", "Slack", "Webhook"];
+    channels.forEach((channel) => {
       const senderName = `${channel}Sender`;
       expect(NotificationSendersIndex[senderName]).toBeDefined();
     });

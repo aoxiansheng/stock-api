@@ -38,7 +38,7 @@ describe("Storage E2E Tests", () => {
         "query:execute",
         "providers:read",
         "transformer:preview",
-       // "system:admin",
+        // "system:admin",
         "system:monitor",
         "system:health", // 修复: 添加健康检查权限
       ],

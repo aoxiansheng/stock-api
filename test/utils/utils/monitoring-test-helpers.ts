@@ -47,7 +47,12 @@ export class MonitoringTestHelper {
         const endpointMetric = requests.find(
           (m) => m.endpoint === endpointPath && m.method === method,
         );
-        return endpointMetric && requests.filter(r => r.endpoint === endpointPath && r.method === method).length >= expectedCount;
+        return (
+          endpointMetric &&
+          requests.filter(
+            (r) => r.endpoint === endpointPath && r.method === method,
+          ).length >= expectedCount
+        );
       },
       {
         timeout,
@@ -356,7 +361,9 @@ export class MonitoringTestHelper {
 
       // 清理Redis缓存（如果有Redis服务）
       try {
-        const redisService = this.app.get('default_IORedisModuleConnectionToken');
+        const redisService = this.app.get(
+          "default_IORedisModuleConnectionToken",
+        );
         const redisClient = redisService.getOrThrow();
 
         const testKeys = await redisClient.keys("test:*");
@@ -423,9 +430,7 @@ export class MonitoringTestHelper {
 export function createMonitoringTestHelper(
   app: INestApplication,
 ): MonitoringTestHelper {
-  const performanceMonitor = app.get<CollectorService>(
-    CollectorService,
-  );
+  const performanceMonitor = app.get<CollectorService>(CollectorService);
   const alertingService = app.get<AlertingService>(AlertingService);
   const alertHistoryService = app.get<AlertHistoryService>(AlertHistoryService);
 

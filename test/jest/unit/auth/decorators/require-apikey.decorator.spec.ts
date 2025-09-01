@@ -1,32 +1,35 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { Reflector } from '@nestjs/core';
-import { Controller, Get, Post } from '@nestjs/common';
-import { RequireApiKey, REQUIRE_API_KEY } from '../../../../../src/auth/decorators/require-apikey.decorator';
+import { Reflector } from "@nestjs/core";
+import { Controller, Get, Post } from "@nestjs/common";
+import {
+  RequireApiKey,
+  REQUIRE_API_KEY,
+} from "../../../../../src/auth/decorators/require-apikey.decorator";
 
 // 创建测试控制器用于装饰器测试
-@Controller('test')
+@Controller("test")
 class TestController {
   @RequireApiKey()
-  @Post('data')
+  @Post("data")
   dataEndpoint() {
-    return 'requires api key';
+    return "requires api key";
   }
 
-  @Get('public')
+  @Get("public")
   publicEndpoint() {
-    return 'no api key required';
+    return "no api key required";
   }
 
   @RequireApiKey()
-  @Get('protected')
+  @Get("protected")
   protectedEndpoint() {
-    return 'protected with api key';
+    return "protected with api key";
   }
 
   @RequireApiKey()
   async asyncMethod(): Promise<string> {
-    return 'async protected';
+    return "async protected";
   }
 
   @RequireApiKey()
@@ -40,7 +43,7 @@ class TestController {
   }
 }
 
-describe('RequireApiKey Decorator', () => {
+describe("RequireApiKey Decorator", () => {
   let reflector: Reflector;
   let testController: TestController;
 
@@ -49,8 +52,8 @@ describe('RequireApiKey Decorator', () => {
     testController = new TestController();
   });
 
-  describe('Metadata Setting', () => {
-    it('should set requireApiKey metadata to true for decorated methods', () => {
+  describe("Metadata Setting", () => {
+    it("should set requireApiKey metadata to true for decorated methods", () => {
       const requiresApiKey = reflector.get<boolean>(
         REQUIRE_API_KEY,
         testController.dataEndpoint,
@@ -58,7 +61,7 @@ describe('RequireApiKey Decorator', () => {
       expect(requiresApiKey).toBe(true);
     });
 
-    it('should not set metadata for non-decorated methods', () => {
+    it("should not set metadata for non-decorated methods", () => {
       const requiresApiKey = reflector.get<boolean>(
         REQUIRE_API_KEY,
         testController.publicEndpoint,
@@ -66,7 +69,7 @@ describe('RequireApiKey Decorator', () => {
       expect(requiresApiKey).toBeUndefined();
     });
 
-    it('should set metadata for different HTTP methods', () => {
+    it("should set metadata for different HTTP methods", () => {
       const requiresApiKeyPost = reflector.get<boolean>(
         REQUIRE_API_KEY,
         testController.dataEndpoint,
@@ -80,44 +83,59 @@ describe('RequireApiKey Decorator', () => {
     });
   });
 
-  describe('API Key Constant', () => {
-    it('should export correct API key constant', () => {
-      expect(REQUIRE_API_KEY).toBe('requireApiKey');
-      expect(typeof REQUIRE_API_KEY).toBe('string');
+  describe("API Key Constant", () => {
+    it("should export correct API key constant", () => {
+      expect(REQUIRE_API_KEY).toBe("requireApiKey");
+      expect(typeof REQUIRE_API_KEY).toBe("string");
     });
   });
 
-  describe('Decorator Function Properties', () => {
-    it('should return a function when called', () => {
+  describe("Decorator Function Properties", () => {
+    it("should return a function when called", () => {
       const decorator = RequireApiKey();
-      expect(typeof decorator).toBe('function');
+      expect(typeof decorator).toBe("function");
     });
 
-    it('should be a zero-parameter decorator', () => {
+    it("should be a zero-parameter decorator", () => {
       expect(() => {
         const decorator = RequireApiKey();
-        expect(typeof decorator).toBe('function');
+        expect(typeof decorator).toBe("function");
       }).not.toThrow();
     });
   });
 
-  describe('Multiple Method Decoration', () => {
-    it('should allow multiple methods to require API keys', () => {
+  describe("Multiple Method Decoration", () => {
+    it("should allow multiple methods to require API keys", () => {
       class MultiApiKeyController {
         @RequireApiKey()
-        _protectedMethod1() { return 'protected1'; }
+        _protectedMethod1() {
+          return "protected1";
+        }
 
         @RequireApiKey()
-        protectedMethod2() { return 'protected2'; }
+        protectedMethod2() {
+          return "protected2";
+        }
 
-        publicMethod() { return 'public'; }
+        publicMethod() {
+          return "public";
+        }
       }
 
       const controller = new MultiApiKeyController();
 
-      const requiresApiKey1 = reflector.get<boolean>(REQUIRE_API_KEY, controller._protectedMethod1);
-      const requiresApiKey2 = reflector.get<boolean>(REQUIRE_API_KEY, controller.protectedMethod2);
-      const publicMethod = reflector.get<boolean>(REQUIRE_API_KEY, controller.publicMethod);
+      const requiresApiKey1 = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller._protectedMethod1,
+      );
+      const requiresApiKey2 = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller.protectedMethod2,
+      );
+      const publicMethod = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller.publicMethod,
+      );
 
       expect(requiresApiKey1).toBe(true);
       expect(requiresApiKey2).toBe(true);
@@ -125,26 +143,41 @@ describe('RequireApiKey Decorator', () => {
     });
   });
 
-  describe('Real-world Usage Patterns', () => {
-    it('should work with data processing endpoints', () => {
+  describe("Real-world Usage Patterns", () => {
+    it("should work with data processing endpoints", () => {
       class DataProcessingController {
         @RequireApiKey()
-        @Post('receiver/data')
-        handleDataRequest() { return 'data processed'; }
+        @Post("receiver/data")
+        handleDataRequest() {
+          return "data processed";
+        }
 
         @RequireApiKey()
-        @Post('query/execute')
-        executeQuery() { return 'query executed'; }
+        @Post("query/execute")
+        executeQuery() {
+          return "query executed";
+        }
 
-        @Get('health')
-        healthCheck() { return 'healthy'; }
+        @Get("health")
+        healthCheck() {
+          return "healthy";
+        }
       }
 
       const controller = new DataProcessingController();
 
-      const dataEndpointProtected = reflector.get<boolean>(REQUIRE_API_KEY, controller.handleDataRequest);
-      const queryEndpointProtected = reflector.get<boolean>(REQUIRE_API_KEY, controller.executeQuery);
-      const healthEndpointPublic = reflector.get<boolean>(REQUIRE_API_KEY, controller.healthCheck);
+      const dataEndpointProtected = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller.handleDataRequest,
+      );
+      const queryEndpointProtected = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller.executeQuery,
+      );
+      const healthEndpointPublic = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller.healthCheck,
+      );
 
       expect(dataEndpointProtected).toBe(true);
       expect(queryEndpointProtected).toBe(true);
@@ -152,47 +185,63 @@ describe('RequireApiKey Decorator', () => {
     });
   });
 
-  describe('Integration with NestJS Metadata System', () => {
-    it('should work with NestJS Reflector to retrieve metadata', () => {
+  describe("Integration with NestJS Metadata System", () => {
+    it("should work with NestJS Reflector to retrieve metadata", () => {
       class IntegrationTestController {
         @RequireApiKey()
-        protectedMethod() { return 'protected'; }
+        protectedMethod() {
+          return "protected";
+        }
       }
 
       const controller = new IntegrationTestController();
 
-      const requiresApiKey = reflector.get<boolean>(REQUIRE_API_KEY, controller.protectedMethod);
+      const requiresApiKey = reflector.get<boolean>(
+        REQUIRE_API_KEY,
+        controller.protectedMethod,
+      );
 
       expect(requiresApiKey).toBe(true);
     });
 
-    it('should be compatible with other NestJS decorators', () => {
+    it("should be compatible with other NestJS decorators", () => {
       expect(() => {
         class CombinedDecoratorsController {
           @RequireApiKey()
-          @Post('combined')
-          combinedMethod() { return 'combined'; }
+          @Post("combined")
+          combinedMethod() {
+            return "combined";
+          }
         }
 
         const controller = new CombinedDecoratorsController();
-        const requiresApiKey = reflector.get<boolean>(REQUIRE_API_KEY, controller.combinedMethod);
+        const requiresApiKey = reflector.get<boolean>(
+          REQUIRE_API_KEY,
+          controller.combinedMethod,
+        );
 
         expect(requiresApiKey).toBe(true);
       }).not.toThrow();
     });
   });
 
-  describe('Metadata Value Consistency', () => {
-    it('should always set metadata value to true', () => {
+  describe("Metadata Value Consistency", () => {
+    it("should always set metadata value to true", () => {
       class ConsistencyTestController {
         @RequireApiKey()
-        method1() { return '1'; }
+        method1() {
+          return "1";
+        }
 
         @RequireApiKey()
-        method2() { return '2'; }
+        method2() {
+          return "2";
+        }
 
         @RequireApiKey()
-        method3() { return '3'; }
+        method3() {
+          return "3";
+        }
       }
 
       const controller = new ConsistencyTestController();
@@ -203,15 +252,15 @@ describe('RequireApiKey Decorator', () => {
         reflector.get<boolean>(REQUIRE_API_KEY, controller.method3),
       ];
 
-      values.forEach(value => {
+      values.forEach((value) => {
         expect(value).toBe(true);
-        expect(typeof value).toBe('boolean');
+        expect(typeof value).toBe("boolean");
       });
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle methods with complex signatures', () => {
+  describe("Edge Cases", () => {
+    it("should handle methods with complex signatures", () => {
       const asyncProtected = reflector.get<boolean>(
         REQUIRE_API_KEY,
         testController.asyncMethod,

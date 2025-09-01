@@ -4,8 +4,12 @@
  */
 
 import { createLogger } from '../../../app/config/logger.config';
+import { EventEmitter } from 'events';
 
 const logger = createLogger('PerformanceDecorators');
+
+// 模块级事件总线：供装饰器发送性能指标，由桥接层统一订阅
+export const performanceDecoratorBus = new EventEmitter();
 
 /**
  * 性能装饰器选项
@@ -18,16 +22,12 @@ export interface PerformanceOptions {
 }
 
 /**
- * 获取全局CollectorService实例
- * 兼容现有代码中的全局变量访问方式
+ * 创建独立的事件发射器用于装饰器监控
+ * 避免全局依赖，使用标准EventEmitter进行事件发送
  */
-function getCollectorService() {
-  try {
-    return global['CollectorService'];
-  } catch (error) {
-    logger.debug('CollectorService全局实例不可用，将跳过性能收集');
-    return null;
-  }
+function createDecoratorEventEmitter() {
+  // 兼容保留：返回模块级总线，避免每次新建实例
+  return performanceDecoratorBus;
 }
 
 
@@ -97,7 +97,7 @@ function createPerformanceDecorator(
 }
 
 /**
- * 记录性能数据
+ * 记录性能数据 - 完全事件化架构
  */
 async function recordPerformanceData(data: {
   decoratorName: string;
@@ -111,25 +111,27 @@ async function recordPerformanceData(data: {
   method: string;
 }) {
   try {
-    // 1. 通过CollectorService收集数据（事件驱动方式）
-    const collectorService = getCollectorService();
-    if (collectorService && typeof collectorService.collectPerformanceData === 'function') {
-      await collectorService.collectPerformanceData({
+    // ✅ 使用模块级事件总线发送监控事件（完全去全局化）
+    const decoratorEmitter = createDecoratorEventEmitter();
+    setImmediate(() => {
+      decoratorEmitter.emit('performance-metric', {
         timestamp: new Date(),
-        source: data.decoratorName,
-        layer: 'collector',
-        operation: data.operation,
-        duration: data.duration,
-        success: data.success,
-        metadata: {
-          type: data.metricType,
+        source: data.decoratorName.toLowerCase().replace(/([A-Z])/g, '_$1').substring(1),
+        metricType: 'performance',
+        metricName: `${data.metricType}_operation_processed`,
+        metricValue: data.duration,
+        tags: {
+          operation: data.operation,
+          success: data.success,
           target: data.target,
           method: data.method,
+          type: data.metricType,
           error: data.error?.message,
           threshold: data.options.threshold,
-        },
+          decorator_name: data.decoratorName
+        }
       });
-    }
+    });
 
     // 2. 记录慢操作日志
     if (data.duration > data.options.threshold) {

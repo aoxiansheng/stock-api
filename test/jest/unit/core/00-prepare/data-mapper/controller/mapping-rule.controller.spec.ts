@@ -4,7 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { MappingRuleController } from "../../../../../../../src/core/00-prepare/data-mapper/controller/mapping-rule.controller";
 import { FlexibleMappingRuleService } from "../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service";
@@ -14,7 +14,7 @@ import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
   TestFlexibleMappingRuleDto,
-  FlexibleMappingTestResultDto
+  FlexibleMappingTestResultDto,
 } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 
 describe("MappingRuleController", () => {
@@ -35,8 +35,8 @@ describe("MappingRuleController", () => {
       {
         sourceFieldPath: "last_done",
         targetField: "lastPrice",
-        confidence: 0.95
-      }
+        confidence: 0.95,
+      },
     ],
     isActive: true,
     isDefault: false,
@@ -46,11 +46,14 @@ describe("MappingRuleController", () => {
     successfulTransformations: 0,
     failedTransformations: 0,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 
   // 创建基础mock结果的工厂函数
-  const createMockTestResult = (originalData: any, executionTime?: number): FlexibleMappingTestResultDto => ({
+  const createMockTestResult = (
+    originalData: any,
+    executionTime?: number,
+  ): FlexibleMappingTestResultDto => ({
     dataMapperRuleId: "507f1f77bcf86cd799439011",
     ruleName: "Test Mapping Rule",
     originalData,
@@ -60,20 +63,23 @@ describe("MappingRuleController", () => {
       totalMappings: 2,
       successfulMappings: 2,
       failedMappings: 0,
-      successRate: 1.0
+      successRate: 1.0,
     },
     executionTime: executionTime || 15.5,
     errorMessage: undefined,
-    debugInfo: undefined
+    debugInfo: undefined,
   });
 
-  const mockTestResult = createMockTestResult({ lastdone: 561, symbol: "700.HK" });
+  const mockTestResult = createMockTestResult({
+    lastdone: 561,
+    symbol: "700.HK",
+  });
 
   const mockRuleDocument = {
     id: "507f1f77bcf86cd799439011",
     ...mockRule,
     save: jest.fn(),
-    toObject: jest.fn()
+    toObject: jest.fn(),
   } as any;
 
   beforeEach(async () => {
@@ -96,9 +102,14 @@ describe("MappingRuleController", () => {
     }).compile();
 
     controller = module.get<MappingRuleController>(MappingRuleController);
-    ruleService = module.get<DeepMocked<FlexibleMappingRuleService>>(FlexibleMappingRuleService);
-    ruleAlignmentService = module.get<DeepMocked<RuleAlignmentService>>(RuleAlignmentService);
-    persistedTemplateService = module.get<DeepMocked<PersistedTemplateService>>(PersistedTemplateService);
+    ruleService = module.get<DeepMocked<FlexibleMappingRuleService>>(
+      FlexibleMappingRuleService,
+    );
+    ruleAlignmentService =
+      module.get<DeepMocked<RuleAlignmentService>>(RuleAlignmentService);
+    persistedTemplateService = module.get<DeepMocked<PersistedTemplateService>>(
+      PersistedTemplateService,
+    );
   });
 
   describe("createFlexibleRule", () => {
@@ -111,9 +122,9 @@ describe("MappingRuleController", () => {
         {
           sourceFieldPath: "last_done",
           targetField: "lastPrice",
-          confidence: 0.95
-        }
-      ]
+          confidence: 0.95,
+        },
+      ],
     };
 
     it("should create a flexible mapping rule", async () => {
@@ -126,10 +137,13 @@ describe("MappingRuleController", () => {
     });
 
     it("should handle creation errors", async () => {
-      ruleService.createRule.mockRejectedValue(new BadRequestException("Rule already exists"));
+      ruleService.createRule.mockRejectedValue(
+        new BadRequestException("Rule already exists"),
+      );
 
-      await expect(controller.createFlexibleRule(createRuleDto))
-        .rejects.toThrow(BadRequestException);
+      await expect(
+        controller.createFlexibleRule(createRuleDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -139,7 +153,7 @@ describe("MappingRuleController", () => {
       apiType: "rest",
       transDataRuleListType: "quote_fields",
       page: 1,
-      limit: 10
+      limit: 10,
     };
 
     it("should return paginated rules", async () => {
@@ -151,8 +165,8 @@ describe("MappingRuleController", () => {
           total: 1,
           totalPages: 1,
           hasNext: false,
-          hasPrev: false
-        }
+          hasPrev: false,
+        },
       };
 
       ruleService.findRules.mockResolvedValue(mockPaginatedResult);
@@ -162,16 +176,16 @@ describe("MappingRuleController", () => {
         queryParams.limit,
         queryParams.provider,
         queryParams.apiType,
-        queryParams.transDataRuleListType
+        queryParams.transDataRuleListType,
       );
 
       expect(result).toEqual(mockPaginatedResult);
       expect(ruleService.findRules).toHaveBeenCalledWith(
-        queryParams.page, 
-        queryParams.limit, 
-        queryParams.provider, 
-        queryParams.apiType, 
-        queryParams.transDataRuleListType
+        queryParams.page,
+        queryParams.limit,
+        queryParams.provider,
+        queryParams.apiType,
+        queryParams.transDataRuleListType,
       );
     });
 
@@ -184,8 +198,8 @@ describe("MappingRuleController", () => {
           total: 0,
           totalPages: 0,
           hasNext: false,
-          hasPrev: false
-        }
+          hasPrev: false,
+        },
       };
 
       ruleService.findRules.mockResolvedValue(emptyResult);
@@ -195,7 +209,7 @@ describe("MappingRuleController", () => {
         queryParams.limit,
         queryParams.provider,
         queryParams.apiType,
-        queryParams.transDataRuleListType
+        queryParams.transDataRuleListType,
       );
 
       expect(result).toEqual(emptyResult);
@@ -209,38 +223,52 @@ describe("MappingRuleController", () => {
       const result = await controller.getRuleById("507f1f77bcf86cd799439011");
 
       expect(result).toEqual(mockRule);
-      expect(ruleService.findRuleById).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(ruleService.findRuleById).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+      );
     });
 
     it("should handle rule not found", async () => {
-      ruleService.findRuleById.mockRejectedValue(new NotFoundException("Rule not found"));
+      ruleService.findRuleById.mockRejectedValue(
+        new NotFoundException("Rule not found"),
+      );
 
-      await expect(controller.getRuleById("nonexistent"))
-        .rejects.toThrow(NotFoundException);
+      await expect(controller.getRuleById("nonexistent")).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe("_updateRule", () => {
     const updateData = {
       name: "Updated Rule Name",
-      description: "Updated description"
+      description: "Updated description",
     };
 
     it("should update rule successfully", async () => {
       const updatedRule = { ...mockRule, ...updateData };
       ruleService.updateRule.mockResolvedValue(updatedRule);
 
-      const result = await controller.updateRule("507f1f77bcf86cd799439011", updateData);
+      const result = await controller.updateRule(
+        "507f1f77bcf86cd799439011",
+        updateData,
+      );
 
       expect(result).toEqual(updatedRule);
-      expect(ruleService.updateRule).toHaveBeenCalledWith("507f1f77bcf86cd799439011", updateData);
+      expect(ruleService.updateRule).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+        updateData,
+      );
     });
 
     it("should handle update errors", async () => {
-      ruleService.updateRule.mockRejectedValue(new NotFoundException("Rule not found"));
+      ruleService.updateRule.mockRejectedValue(
+        new NotFoundException("Rule not found"),
+      );
 
-      await expect(controller.updateRule("nonexistent", updateData))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        controller.updateRule("nonexistent", updateData),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -250,14 +278,19 @@ describe("MappingRuleController", () => {
 
       await controller.deleteRule("507f1f77bcf86cd799439011");
 
-      expect(ruleService.deleteRule).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+      expect(ruleService.deleteRule).toHaveBeenCalledWith(
+        "507f1f77bcf86cd799439011",
+      );
     });
 
     it("should handle deletion errors", async () => {
-      ruleService.deleteRule.mockRejectedValue(new NotFoundException("Rule not found"));
+      ruleService.deleteRule.mockRejectedValue(
+        new NotFoundException("Rule not found"),
+      );
 
-      await expect(controller.deleteRule("nonexistent"))
-        .rejects.toThrow(NotFoundException);
+      await expect(controller.deleteRule("nonexistent")).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -268,7 +301,7 @@ describe("MappingRuleController", () => {
       provider: "longport",
       apiType: "rest" as const,
       transDataRuleListType: "quote_fields",
-      targetFields: ["lastPrice", "symbol"]
+      targetFields: ["lastPrice", "symbol"],
     };
 
     it("should generate rule from template", async () => {
@@ -283,42 +316,47 @@ describe("MappingRuleController", () => {
               sourceField: "last_done",
               suggestedTarget: "lastPrice",
               confidence: 0.95,
-              reasoning: "语义相似匹配"
-            }
-          ]
-        }
+              reasoning: "语义相似匹配",
+            },
+          ],
+        },
       };
 
-      ruleAlignmentService.generateRuleFromTemplate.mockResolvedValue(mockGenerationResult);
+      ruleAlignmentService.generateRuleFromTemplate.mockResolvedValue(
+        mockGenerationResult,
+      );
 
       const result = await controller.generateRuleFromTemplate(
         generateRequest.templateId,
         {
-          transDataRuleListType: generateRequest.transDataRuleListType as "quote_fields",
-          ruleName: generateRequest.ruleName
-        }
+          transDataRuleListType:
+            generateRequest.transDataRuleListType as "quote_fields",
+          ruleName: generateRequest.ruleName,
+        },
       );
 
       expect(result).toEqual(mockGenerationResult);
-      expect(ruleAlignmentService.generateRuleFromTemplate).toHaveBeenCalledWith(
+      expect(
+        ruleAlignmentService.generateRuleFromTemplate,
+      ).toHaveBeenCalledWith(
         generateRequest.templateId,
         generateRequest.transDataRuleListType,
-        generateRequest.ruleName
+        generateRequest.ruleName,
       );
     });
 
     it("should handle template not found", async () => {
       ruleAlignmentService.generateRuleFromTemplate.mockRejectedValue(
-        new NotFoundException("Template not found")
+        new NotFoundException("Template not found"),
       );
 
-      await expect(controller.generateRuleFromTemplate(
-        generateRequest.templateId,
-        {
-          transDataRuleListType: generateRequest.transDataRuleListType as "quote_fields",
-          ruleName: generateRequest.ruleName
-        }
-      )).rejects.toThrow(NotFoundException);
+      await expect(
+        controller.generateRuleFromTemplate(generateRequest.templateId, {
+          transDataRuleListType:
+            generateRequest.transDataRuleListType as "quote_fields",
+          ruleName: generateRequest.ruleName,
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -326,7 +364,7 @@ describe("MappingRuleController", () => {
     const previewRequest = {
       sourceFields: ["last_done", "symbol", "volume"],
       targetFields: ["lastPrice", "symbol", "volume"],
-      provider: "longport"
+      provider: "longport",
     };
 
     it("should preview field alignment through controller", async () => {
@@ -335,7 +373,7 @@ describe("MappingRuleController", () => {
           id: "template123",
           name: "Test Template",
           provider: "longport",
-          apiType: "rest"
+          apiType: "rest",
         },
         transDataRuleListType: "quote_fields" as const,
         alignmentPreview: {
@@ -347,10 +385,10 @@ describe("MappingRuleController", () => {
               sourceField: "last_done",
               suggestedTarget: "lastPrice",
               confidence: 0.85,
-              reasoning: "语义相似"
-            }
-          ]
-        }
+              reasoning: "语义相似",
+            },
+          ],
+        },
       };
 
       // Mock the controller method directly since we can't access private methods
@@ -366,15 +404,15 @@ describe("MappingRuleController", () => {
           id: "empty-template",
           name: "Empty Template",
           provider: "longport",
-          apiType: "rest"
+          apiType: "rest",
         },
         transDataRuleListType: "quote_fields" as const,
         alignmentPreview: {
           totalFields: 0,
           alignedFields: 0,
           unalignedFields: [],
-          suggestions: []
-        }
+          suggestions: [],
+        },
       };
 
       expect(emptyPreviewResult.alignmentPreview.suggestions).toEqual([]);
@@ -391,59 +429,74 @@ describe("MappingRuleController", () => {
         changes: {
           added: [],
           removed: [],
-          modified: []
+          modified: [],
         },
         alignmentResult: {
           totalFields: 2,
           alignedFields: 1,
           unalignedFields: [],
-          suggestions: []
-        }
+          suggestions: [],
+        },
       };
 
-      ruleAlignmentService.realignExistingRule.mockResolvedValue(mockRealignResult);
+      ruleAlignmentService.realignExistingRule.mockResolvedValue(
+        mockRealignResult,
+      );
 
       const result = await controller.realignExistingRule(ruleId);
 
       expect(result).toEqual(mockRealignResult);
-      expect(ruleAlignmentService.realignExistingRule).toHaveBeenCalledWith(ruleId);
+      expect(ruleAlignmentService.realignExistingRule).toHaveBeenCalledWith(
+        ruleId,
+      );
     });
 
     it("should handle rule not found during realignment", async () => {
       ruleAlignmentService.realignExistingRule.mockRejectedValue(
-        new NotFoundException("Rule not found")
+        new NotFoundException("Rule not found"),
       );
 
-      await expect(controller.realignExistingRule(ruleId))
-        .rejects.toThrow(NotFoundException);
+      await expect(controller.realignExistingRule(ruleId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe("_manualAdjustFieldMapping", () => {
     const ruleId = "507f1f77bcf86cd799439011";
-    const adjustments = [{
-      action: "modify" as const,
-      sourceField: "price",
-      newTargetField: "newTargetField",
-      confidence: 0.85
-    }];
+    const adjustments = [
+      {
+        action: "modify" as const,
+        sourceField: "price",
+        newTargetField: "newTargetField",
+        confidence: 0.85,
+      },
+    ];
 
     it("should manually adjust field mapping", async () => {
-      ruleAlignmentService.manualAdjustFieldMapping.mockResolvedValue(mockRule as any);
+      ruleAlignmentService.manualAdjustFieldMapping.mockResolvedValue(
+        mockRule as any,
+      );
 
-      const result = await controller.manualAdjustFieldMapping(ruleId, adjustments);
+      const result = await controller.manualAdjustFieldMapping(
+        ruleId,
+        adjustments,
+      );
 
       expect(result).toEqual(mockRule);
-      expect(ruleAlignmentService.manualAdjustFieldMapping).toHaveBeenCalledWith(ruleId, adjustments);
+      expect(
+        ruleAlignmentService.manualAdjustFieldMapping,
+      ).toHaveBeenCalledWith(ruleId, adjustments);
     });
 
     it("should handle field mapping not found", async () => {
       ruleAlignmentService.manualAdjustFieldMapping.mockRejectedValue(
-        new NotFoundException("Field mapping not found")
+        new NotFoundException("Field mapping not found"),
       );
 
-      await expect(controller.manualAdjustFieldMapping(ruleId, adjustments))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        controller.manualAdjustFieldMapping(ruleId, adjustments),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -468,15 +521,15 @@ describe("MappingRuleController", () => {
           targetField: "lastPrice",
           sourceValue: 561,
           transformedValue: 561,
-          success: true
+          success: true,
         },
         {
           sourceFieldPath: "symbol",
           targetField: "symbol",
           sourceValue: "700.HK",
           transformedValue: "700.HK",
-          success: true
-        }
+          success: true,
+        },
       ],
       errorMessage: undefined,
     };
@@ -487,11 +540,13 @@ describe("MappingRuleController", () => {
 
       const result = await controller.testMappingRule(testDto);
 
-      expect(ruleService.findRuleById).toHaveBeenCalledWith(testDto.dataMapperRuleId);
+      expect(ruleService.findRuleById).toHaveBeenCalledWith(
+        testDto.dataMapperRuleId,
+      );
       expect(ruleService.applyFlexibleMappingRule).toHaveBeenCalledWith(
         mockRule,
         testDto.testData,
-        false
+        false,
       );
       expect(result.dataMapperRuleId).toBe(testDto.dataMapperRuleId);
       expect(result.ruleName).toBe(mockRule.name);
@@ -502,38 +557,44 @@ describe("MappingRuleController", () => {
       expect(result.mappingStats.successfulMappings).toBe(2);
       expect(result.mappingStats.failedMappings).toBe(0);
       expect(result.mappingStats.successRate).toBe(100);
-      expect(typeof result.executionTime).toBe('number');
+      expect(typeof result.executionTime).toBe("number");
       expect(result.executionTime).toBeGreaterThanOrEqual(0);
     });
 
     it("should handle rule not found", async () => {
-      ruleService.findRuleById.mockRejectedValue(new NotFoundException("Rule not found"));
+      ruleService.findRuleById.mockRejectedValue(
+        new NotFoundException("Rule not found"),
+      );
 
-      await expect(controller.testMappingRule(testDto)).rejects.toThrow(NotFoundException);
+      await expect(controller.testMappingRule(testDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should handle empty debug info", async () => {
       const resultWithoutDebug = {
         ...mockApplyResult,
-        debugInfo: undefined
+        debugInfo: undefined,
       };
-      
+
       ruleService.findRuleById.mockResolvedValue(mockRule);
-      ruleService.applyFlexibleMappingRule.mockResolvedValue(resultWithoutDebug);
+      ruleService.applyFlexibleMappingRule.mockResolvedValue(
+        resultWithoutDebug,
+      );
 
       const result = await controller.testMappingRule(testDto);
 
       // 当debugInfo为undefined时，应该使用service返回的mappingStats
       expect(result.mappingStats).toEqual(mockApplyResult.mappingStats);
       expect(result.debugInfo).toBeUndefined();
-      expect(typeof result.executionTime).toBe('number');
+      expect(typeof result.executionTime).toBe("number");
     });
 
     it("should include debug info when requested", async () => {
       const dtoWithDebug: TestFlexibleMappingRuleDto = {
         dataMapperRuleId: "507f1f77bcf86cd799439011",
         testData: { last_done: 561, symbol: "700.HK" },
-        includeDebugInfo: true
+        includeDebugInfo: true,
       };
 
       const mockDebugInfo = [
@@ -542,15 +603,15 @@ describe("MappingRuleController", () => {
           targetField: "lastPrice",
           sourceValue: 561,
           transformedValue: 561,
-          success: true
+          success: true,
         },
         {
           sourceFieldPath: "symbol",
           targetField: "symbol",
           sourceValue: "700.HK",
           transformedValue: "700.HK",
-          success: true
-        }
+          success: true,
+        },
       ];
 
       ruleService.findRuleById.mockResolvedValue(mockRule);
@@ -561,10 +622,10 @@ describe("MappingRuleController", () => {
           totalMappings: 2,
           successfulMappings: 2,
           failedMappings: 0,
-          successRate: 1.0
+          successRate: 1.0,
         },
         debugInfo: mockDebugInfo,
-        errorMessage: undefined
+        errorMessage: undefined,
       });
 
       const result = await controller.testMappingRule(dtoWithDebug);
@@ -573,31 +634,34 @@ describe("MappingRuleController", () => {
       expect(result.dataMapperRuleId).toBe("507f1f77bcf86cd799439011");
       expect(result.ruleName).toBe("Test Mapping Rule");
       expect(result.originalData).toEqual({ last_done: 561, symbol: "700.HK" });
-      expect(result.transformedData).toEqual({ lastPrice: 561, symbol: "700.HK" });
+      expect(result.transformedData).toEqual({
+        lastPrice: 561,
+        symbol: "700.HK",
+      });
       expect(result.success).toBe(true);
       expect(result.errorMessage).toBeUndefined();
       expect(result.debugInfo).toEqual(mockDebugInfo);
-      expect(typeof result.executionTime).toBe('number');
-      
+      expect(typeof result.executionTime).toBe("number");
+
       // 当包含debugInfo时，mappingStats应该基于debugInfo重新计算
       expect(result.mappingStats).toEqual({
         totalMappings: 2,
         successfulMappings: 2,
         failedMappings: 0,
-        successRate: 100 // Controller中计算的百分比格式
+        successRate: 100, // Controller中计算的百分比格式
       });
-      
+
       expect(ruleService.applyFlexibleMappingRule).toHaveBeenCalledWith(
         mockRule,
         dtoWithDebug.testData,
-        true
+        true,
       );
     });
 
     it("should handle failed mapping scenarios", async () => {
       const dtoWithFailure: TestFlexibleMappingRuleDto = {
         dataMapperRuleId: "507f1f77bcf86cd799439011",
-        testData: { invalid_field: "test" }
+        testData: { invalid_field: "test" },
       };
 
       ruleService.findRuleById.mockResolvedValue(mockRule);
@@ -608,10 +672,10 @@ describe("MappingRuleController", () => {
           totalMappings: 2,
           successfulMappings: 0,
           failedMappings: 2,
-          successRate: 0
+          successRate: 0,
         },
         debugInfo: undefined,
-        errorMessage: "映射失败"
+        errorMessage: "映射失败",
       });
 
       const result = await controller.testMappingRule(dtoWithFailure);
@@ -627,25 +691,27 @@ describe("MappingRuleController", () => {
         totalMappings: 2,
         successfulMappings: 0,
         failedMappings: 2,
-        successRate: 0
+        successRate: 0,
       });
       expect(result.debugInfo).toBeUndefined();
-      expect(typeof result.executionTime).toBe('number');
+      expect(typeof result.executionTime).toBe("number");
     });
   });
-
 
   describe("error handling", () => {
     it("should handle service unavailable errors", async () => {
       const serviceError = new Error("Service temporarily unavailable");
       ruleService.findRules.mockRejectedValue(serviceError);
 
-      await expect(controller.getFlexibleRules(1, 10))
-        .rejects.toThrow(serviceError);
+      await expect(controller.getFlexibleRules(1, 10)).rejects.toThrow(
+        serviceError,
+      );
     });
 
     it("should handle validation errors", async () => {
-      const validationError = new BadRequestException("Invalid field mapping configuration");
+      const validationError = new BadRequestException(
+        "Invalid field mapping configuration",
+      );
       ruleService.createRule.mockRejectedValue(validationError);
 
       const invalidDto = {
@@ -653,11 +719,12 @@ describe("MappingRuleController", () => {
         provider: "longport",
         apiType: "rest" as const,
         transDataRuleListType: "quote_fields" as const,
-        fieldMappings: []
+        fieldMappings: [],
       };
 
-      await expect(controller.createFlexibleRule(invalidDto))
-        .rejects.toThrow(BadRequestException);
+      await expect(controller.createFlexibleRule(invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -670,7 +737,7 @@ describe("MappingRuleController", () => {
 
       const testWithLargeData: TestFlexibleMappingRuleDto = {
         dataMapperRuleId: "507f1f77bcf86cd799439011",
-        testData: largeTestData
+        testData: largeTestData,
       };
 
       ruleService.findRuleById.mockResolvedValue(mockRule);
@@ -681,10 +748,10 @@ describe("MappingRuleController", () => {
           totalMappings: 2,
           successfulMappings: 2,
           failedMappings: 0,
-          successRate: 1.0
+          successRate: 1.0,
         },
         debugInfo: undefined,
-        errorMessage: undefined
+        errorMessage: undefined,
       });
 
       const result = await controller.testMappingRule(testWithLargeData);
@@ -693,24 +760,27 @@ describe("MappingRuleController", () => {
       expect(result.dataMapperRuleId).toBe("507f1f77bcf86cd799439011");
       expect(result.ruleName).toBe("Test Mapping Rule");
       expect(result.originalData).toEqual(largeTestData); // 验证返回的是实际输入的大数据集
-      expect(result.transformedData).toEqual({ lastPrice: 561, symbol: "700.HK" });
+      expect(result.transformedData).toEqual({
+        lastPrice: 561,
+        symbol: "700.HK",
+      });
       expect(result.success).toBe(true);
       expect(result.mappingStats).toEqual({
         totalMappings: 2,
         successfulMappings: 2,
         failedMappings: 0,
-        successRate: 1.0
+        successRate: 1.0,
       });
       expect(result.errorMessage).toBeUndefined();
       expect(result.debugInfo).toBeUndefined();
-      expect(typeof result.executionTime).toBe('number');
+      expect(typeof result.executionTime).toBe("number");
       expect(result.executionTime).toBeGreaterThanOrEqual(0);
     });
 
     it("should handle rules with no field mappings", async () => {
       const ruleWithNoMappings = {
         ...mockRule,
-        fieldMappings: []
+        fieldMappings: [],
       };
 
       ruleService.findRuleById.mockResolvedValue(ruleWithNoMappings);
@@ -721,11 +791,14 @@ describe("MappingRuleController", () => {
     });
 
     it("should handle concurrent rule modifications", async () => {
-      const concurrentUpdateError = new Error("Document was modified by another process");
+      const concurrentUpdateError = new Error(
+        "Document was modified by another process",
+      );
       ruleService.updateRule.mockRejectedValue(concurrentUpdateError);
 
-      await expect(controller.updateRule("507f1f77bcf86cd799439011", { name: "New Name" }))
-        .rejects.toThrow(concurrentUpdateError);
+      await expect(
+        controller.updateRule("507f1f77bcf86cd799439011", { name: "New Name" }),
+      ).rejects.toThrow(concurrentUpdateError);
     });
   });
 });

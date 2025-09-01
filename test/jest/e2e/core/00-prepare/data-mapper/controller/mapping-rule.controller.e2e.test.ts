@@ -13,9 +13,10 @@ describe("MappingRuleController E2E", () => {
 
   beforeAll(async () => {
     request = global.createTestRequest();
-    
+
     // 获取测试凭证
-    const { apiKey: testApiKey, jwtToken: testJwtToken } = await global.createTestCredentials();
+    const { apiKey: testApiKey, jwtToken: testJwtToken } =
+      await global.createTestCredentials();
     apiKey = testApiKey;
     jwtToken = testJwtToken;
 
@@ -29,7 +30,7 @@ describe("MappingRuleController E2E", () => {
         symbol: "700.HK",
         last_done: 561.0,
         prev_close: 558.5,
-        volume: 11292534
+        volume: 11292534,
       },
       extractedFields: [
         {
@@ -39,7 +40,7 @@ describe("MappingRuleController E2E", () => {
           sampleValue: "700.HK",
           confidence: 0.95,
           isNested: false,
-          nestingLevel: 0
+          nestingLevel: 0,
         },
         {
           fieldPath: "last_done",
@@ -48,11 +49,11 @@ describe("MappingRuleController E2E", () => {
           sampleValue: 561.0,
           confidence: 0.9,
           isNested: false,
-          nestingLevel: 0
-        }
+          nestingLevel: 0,
+        },
       ],
-      
-      confidence: 0.9
+
+      confidence: 0.9,
     };
 
     try {
@@ -60,7 +61,7 @@ describe("MappingRuleController E2E", () => {
         .post("/api/v1/data-mapper/admin/templates")
         .set("Authorization", `Bearer ${jwtToken}`)
         .send(templateRequest);
-      
+
       if (templateResponse.status === 201) {
         templateId = templateResponse.body.data.id;
       }
@@ -86,36 +87,36 @@ describe("MappingRuleController E2E", () => {
               targetField: "symbol",
               confidence: 0.95,
               description: "股票代码映射",
-              isActive: true
+              isActive: true,
             },
             {
               sourceFieldPath: "last_done",
               targetField: "lastPrice",
               confidence: 0.9,
               description: "最新价格映射",
-              isActive: true
+              isActive: true,
             },
             {
               sourceFieldPath: "prev_close",
               targetField: "previousClose",
               confidence: 0.85,
               description: "昨收价映射",
-              isActive: true
+              isActive: true,
             },
             {
               sourceFieldPath: "volume",
               targetField: "volume",
               transform: {
                 type: "divide",
-                value: 1000
+                value: 1000,
               },
               confidence: 0.8,
               description: "成交量映射（转换为千股）",
-              isActive: true
-            }
+              isActive: true,
+            },
           ],
           isDefault: false,
-          version: "1.0.0"
+          version: "1.0.0",
         };
 
         // Act
@@ -128,7 +129,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("id");
         expect(result).toHaveProperty("name", "E2E Test Mapping Rule");
         expect(result).toHaveProperty("provider", "longport");
@@ -137,18 +138,20 @@ describe("MappingRuleController E2E", () => {
         expect(result).toHaveProperty("fieldMappings");
         expect(result).toHaveProperty("version", "1.0.0");
         expect(result).toHaveProperty("overallConfidence");
-        
+
         expect(result.fieldMappings).toBeInstanceOf(Array);
         expect(result.fieldMappings).toHaveLength(4);
-        
+
         // 验证包含转换规则的字段映射
-        const volumeMapping = result.fieldMappings.find(m => m.targetField === "volume");
+        const volumeMapping = result.fieldMappings.find(
+          (m) => m.targetField === "volume",
+        );
         expect(volumeMapping).toBeDefined();
         expect(volumeMapping.transform).toMatchObject({
           type: "divide",
-          value: 1000
+          value: 1000,
         });
-        
+
         // 保存创建的规则ID
         createdRuleId = result.id;
       });
@@ -168,7 +171,7 @@ describe("MappingRuleController E2E", () => {
               fallbackPaths: ["last_done", "current_price", "price"],
               confidence: 0.85,
               description: "价格映射（含回退路径）",
-              isActive: true
+              isActive: true,
             },
             {
               sourceFieldPath: "trade_volume",
@@ -176,11 +179,11 @@ describe("MappingRuleController E2E", () => {
               fallbackPaths: ["volume", "vol"],
               confidence: 0.8,
               description: "成交量映射（含回退路径）",
-              isActive: true
-            }
+              isActive: true,
+            },
           ],
           isDefault: false,
-          version: "1.0.0"
+          version: "1.0.0",
         };
 
         // Act
@@ -193,10 +196,16 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         // 验证回退路径
-        const priceMapping = result.fieldMappings.find(m => m.targetField === "lastPrice");
-        expect(priceMapping.fallbackPaths).toEqual(["last_done", "current_price", "price"]);
+        const priceMapping = result.fieldMappings.find(
+          (m) => m.targetField === "lastPrice",
+        );
+        expect(priceMapping.fallbackPaths).toEqual([
+          "last_done",
+          "current_price",
+          "price",
+        ]);
       });
 
       it("应该成功创建默认映射规则", async () => {
@@ -212,11 +221,11 @@ describe("MappingRuleController E2E", () => {
               sourceFieldPath: "test_field",
               targetField: "testField",
               confidence: 0.9,
-              isActive: true
-            }
+              isActive: true,
+            },
           ],
-          isDefault: true,  // 设置为默认规则
-          version: "1.0.0"
+          isDefault: true, // 设置为默认规则
+          version: "1.0.0",
         };
 
         // Act
@@ -240,7 +249,7 @@ describe("MappingRuleController E2E", () => {
           provider: "longport",
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          fieldMappings: []
+          fieldMappings: [],
         };
 
         // Act & Assert
@@ -265,9 +274,9 @@ describe("MappingRuleController E2E", () => {
               sourceFieldPath: "test",
               targetField: "test",
               confidence: 0.9,
-              isActive: true
-            }
-          ]
+              isActive: true,
+            },
+          ],
         };
 
         // Act & Assert
@@ -292,9 +301,9 @@ describe("MappingRuleController E2E", () => {
               sourceFieldPath: "test",
               targetField: "test",
               confidence: 0.9,
-              isActive: true
-            }
-          ]
+              isActive: true,
+            },
+          ],
         };
 
         // Act & Assert
@@ -314,7 +323,7 @@ describe("MappingRuleController E2E", () => {
           provider: "longport",
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          fieldMappings: []
+          fieldMappings: [],
         };
 
         // Act & Assert
@@ -339,13 +348,13 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("_items");
         expect(result).toHaveProperty("pagination");
         expect(result.pagination).toHaveProperty("total");
         expect(result.pagination).toHaveProperty("page");
         expect(result.pagination).toHaveProperty("limit");
-        
+
         expect(result.items).toBeInstanceOf(Array);
       });
 
@@ -360,9 +369,9 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         // 验证所有返回的规则都是longport提供商
-        result.items.forEach(rule => {
+        result.items.forEach((rule) => {
           expect(rule.provider).toBe("longport");
         });
       });
@@ -370,7 +379,9 @@ describe("MappingRuleController E2E", () => {
       it("应该支持规则类型筛选", async () => {
         // Act
         const response = await request
-          .get("/api/v1/data-mapper/rules?transDataRuleListType=quote_fields&page=1&limit=10")
+          .get(
+            "/api/v1/data-mapper/rules?transDataRuleListType=quote_fields&page=1&limit=10",
+          )
           .set("X-App-Key", apiKey.appKey)
           .set("X-Access-Token", apiKey.accessToken)
           .expect(200);
@@ -378,9 +389,9 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         // 验证所有返回的规则都是quote_fields类型
-        result.items.forEach(rule => {
+        result.items.forEach((rule) => {
           expect(rule.transDataRuleListType).toBe("quote_fields");
         });
       });
@@ -396,7 +407,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result.pagination.page).toBe(1);
         expect(result.pagination.limit).toBe(2);
         expect(result.items.length).toBeLessThanOrEqual(2);
@@ -406,9 +417,7 @@ describe("MappingRuleController E2E", () => {
     describe("❌ 失败场景", () => {
       it("应该在无认证时返回401错误", async () => {
         // Act & Assert
-        await request
-          .get("/api/v1/data-mapper/rules")
-          .expect(401);
+        await request.get("/api/v1/data-mapper/rules").expect(401);
       });
     });
   });
@@ -432,7 +441,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("id", createdRuleId);
         expect(result).toHaveProperty("name");
         expect(result).toHaveProperty("provider");
@@ -455,9 +464,7 @@ describe("MappingRuleController E2E", () => {
 
       it("应该在无认证时返回401错误", async () => {
         // Act & Assert
-        await request
-          .get("/api/v1/data-mapper/rules/some-id")
-          .expect(401);
+        await request.get("/api/v1/data-mapper/rules/some-id").expect(401);
       });
     });
   });
@@ -478,9 +485,9 @@ describe("MappingRuleController E2E", () => {
             symbol: "700.HK",
             last_done: 561.0,
             prev_close: 558.5,
-            volume: 11292534
+            volume: 11292534,
           },
-          includeDebugInfo: true
+          includeDebugInfo: true,
         };
 
         // Act
@@ -494,7 +501,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("dataMapperRuleId", createdRuleId);
         expect(result).toHaveProperty("ruleName");
         expect(result).toHaveProperty("originalData");
@@ -502,21 +509,21 @@ describe("MappingRuleController E2E", () => {
         expect(result).toHaveProperty("success");
         expect(result).toHaveProperty("mappingStats");
         expect(result).toHaveProperty("executionTime");
-        
+
         // 验证映射统计
         expect(result.mappingStats).toHaveProperty("totalMappings");
         expect(result.mappingStats).toHaveProperty("_successfulMappings");
         expect(result.mappingStats).toHaveProperty("_failedMappings");
         expect(result.mappingStats).toHaveProperty("successRate");
-        
+
         // 验证转换结果
         expect(result.transformedData).toHaveProperty("symbol", "700.HK");
         expect(result.transformedData).toHaveProperty("lastPrice", 561.0);
         expect(result.transformedData).toHaveProperty("previousClose", 558.5);
-        
+
         // 验证数量转换（volume / 1000）
         expect(result.transformedData).toHaveProperty("volume", 11292.534);
-        
+
         // 验证调试信息
         if (result.debugInfo) {
           expect(result.debugInfo).toBeInstanceOf(Array);
@@ -535,10 +542,10 @@ describe("MappingRuleController E2E", () => {
           dataMapperRuleId: createdRuleId,
           testData: {
             symbol: "AAPL.US",
-            last_done: 150.25
+            last_done: 150.25,
             // 缺少其他字段
           },
-          includeDebugInfo: false
+          includeDebugInfo: false,
         };
 
         // Act
@@ -552,7 +559,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         expect(result.mappingStats.failedMappings).toBeGreaterThan(0);
         expect(result.mappingStats.successfulMappings).toBeGreaterThan(0);
       });
@@ -563,7 +570,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const testRequest = {
           dataMapperRuleId: "aaaaaaaaaaaaaaaaaaaaaaaa",
-          testData: { test: "data" }
+          testData: { test: "data" },
         };
 
         // Act & Assert
@@ -580,7 +587,7 @@ describe("MappingRuleController E2E", () => {
       it("应该在缺少testData时返回400错误", async () => {
         // Arrange
         const invalidRequest = {
-          dataMapperRuleId: "some-rule-id"
+          dataMapperRuleId: "some-rule-id",
           // testData缺失
         };
 
@@ -599,7 +606,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const testRequest = {
           dataMapperRuleId: "some-rule-id",
-          testData: { test: "data" }
+          testData: { test: "data" },
         };
 
         // Act & Assert
@@ -623,12 +630,14 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const generateRequest = {
           transDataRuleListType: "quote_fields",
-          ruleName: "Generated from Template Rule"
+          ruleName: "Generated from Template Rule",
         };
 
         // Act
         const response = await request
-          .post(`/api/v1/data-mapper/rules/generate-from-template/${templateId}`)
+          .post(
+            `/api/v1/data-mapper/rules/generate-from-template/${templateId}`,
+          )
           .set("Authorization", `Bearer ${jwtToken}`)
           .send(generateRequest)
           .expect(201);
@@ -636,7 +645,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const { rule } = response.body.data;
-        
+
         expect(rule).toHaveProperty("id");
         expect(rule).toHaveProperty("name", "Generated from Template Rule");
         expect(rule).toHaveProperty("sourceTemplateId", templateId);
@@ -652,12 +661,14 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const generateRequest = {
           transDataRuleListType: "quote_fields",
-          ruleName: "Test Rule"
+          ruleName: "Test Rule",
         };
 
         // Act & Assert
         const response = await request
-          .post("/api/v1/data-mapper/rules/generate-from-template/aaaaaaaaaaaaaaaaaaaaaaaa")
+          .post(
+            "/api/v1/data-mapper/rules/generate-from-template/aaaaaaaaaaaaaaaaaaaaaaaa",
+          )
           .set("Authorization", `Bearer ${jwtToken}`)
           .send(generateRequest)
           .expect(404);
@@ -669,12 +680,14 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const generateRequest = {
           transDataRuleListType: "quote_fields",
-          ruleName: "Test Rule"
+          ruleName: "Test Rule",
         };
 
         // Act & Assert
         await request
-          .post("/api/v1/data-mapper/rules/generate-from-template/some-template-id")
+          .post(
+            "/api/v1/data-mapper/rules/generate-from-template/some-template-id",
+          )
           .send(generateRequest)
           .expect(401);
       });
@@ -700,16 +713,16 @@ describe("MappingRuleController E2E", () => {
               targetField: "symbol",
               confidence: 0.98, // 提高置信度
               description: "更新的股票代码映射",
-              isActive: true
+              isActive: true,
             },
             {
               sourceFieldPath: "last_done",
               targetField: "lastPrice",
               confidence: 0.95, // 提高置信度
               description: "更新的最新价格映射",
-              isActive: true
-            }
-          ]
+              isActive: true,
+            },
+          ],
         };
 
         // Act
@@ -722,7 +735,7 @@ describe("MappingRuleController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("id", createdRuleId);
         expect(result).toHaveProperty("name", "Updated E2E Test Rule");
         expect(result).toHaveProperty("description", "更新后的端到端测试规则");
@@ -734,7 +747,7 @@ describe("MappingRuleController E2E", () => {
       it("应该在规则不存在时返回404错误", async () => {
         // Arrange
         const updateRequest = {
-          name: "Updated Rule"
+          name: "Updated Rule",
         };
 
         // Act & Assert
@@ -750,7 +763,7 @@ describe("MappingRuleController E2E", () => {
       it("应该在无认证时返回401错误", async () => {
         // Arrange
         const updateRequest = {
-          name: "Updated Rule"
+          name: "Updated Rule",
         };
 
         // Act & Assert
@@ -770,9 +783,9 @@ describe("MappingRuleController E2E", () => {
       // 创建admin角色的凭证用于DELETE操作
       const { jwtToken: adminToken } = await global.createTestCredentials({
         username: "adminuser",
-        email: "admin@example.com", 
+        email: "admin@example.com",
         password: "password123",
-        role: "admin"
+        role: "admin",
       });
       adminJwtToken = adminToken;
 
@@ -787,9 +800,9 @@ describe("MappingRuleController E2E", () => {
             sourceFieldPath: "test",
             targetField: "test",
             confidence: 0.9,
-            isActive: true
-          }
-        ]
+            isActive: true,
+          },
+        ],
       };
 
       try {
@@ -845,9 +858,7 @@ describe("MappingRuleController E2E", () => {
 
       it("应该在无认证时返回401错误", async () => {
         // Act & Assert
-        await request
-          .delete("/api/v1/data-mapper/rules/some-id")
-          .expect(401);
+        await request.delete("/api/v1/data-mapper/rules/some-id").expect(401);
       });
     });
   });
@@ -858,21 +869,21 @@ describe("MappingRuleController E2E", () => {
       const apiKeyEndpoints = [
         "GET /api/v1/data-mapper/rules",
         "GET /api/v1/data-mapper/rules/some-id",
-        "POST /api/v1/data-mapper/rules/test"
+        "POST /api/v1/data-mapper/rules/test",
       ];
 
       // JWT认证端点
       const jwtEndpoints = [
         "POST /api/v1/data-mapper/rules",
-        "PUT /api/v1/data-mapper/rules/some-id", 
-        "DELETE /api/v1/data-mapper/rules/some-id"
+        "PUT /api/v1/data-mapper/rules/some-id",
+        "DELETE /api/v1/data-mapper/rules/some-id",
       ];
 
       // 测试API Key认证端点
       for (const endpoint of apiKeyEndpoints) {
         const [method, path] = endpoint.split(" ");
         const req = method === "GET" ? request.get(path) : request.post(path);
-        
+
         if (method === "POST") {
           await req.send({ test: "data" }).expect(401);
         } else {
@@ -884,7 +895,7 @@ describe("MappingRuleController E2E", () => {
       for (const endpoint of jwtEndpoints) {
         const [method, path] = endpoint.split(" ");
         let req;
-        
+
         switch (method) {
           case "POST":
             req = request.post(path);

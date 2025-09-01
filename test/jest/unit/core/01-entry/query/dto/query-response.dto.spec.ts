@@ -1,8 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { QueryMetadataDto, QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '@core/01-entry/query/dto/query-response.dto';
-import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { QueryErrorInfoDto } from '@core/01-entry/query/dto/query-internal.dto';
-import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
+import {
+  QueryMetadataDto,
+  QueryResponseDto,
+  BulkQueryResponseDto,
+  QueryStatsDto,
+} from "@core/01-entry/query/dto/query-response.dto";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { QueryErrorInfoDto } from "@core/01-entry/query/dto/query-internal.dto";
+import { QueryType } from "@core/01-entry/query/dto/query-types.dto";
 
 interface StockData {
   symbol: string;
@@ -27,10 +32,10 @@ interface NewsItem {
   publishedAt: string;
 }
 
-describe('Query Response DTOs', () => {
-  describe('QueryMetadataDto', () => {
-    describe('Constructor', () => {
-      it('should create instance with required parameters', () => {
+describe("Query Response DTOs", () => {
+  describe("QueryMetadataDto", () => {
+    describe("Constructor", () => {
+      it("should create instance with required parameters", () => {
         const queryType = QueryType.BY_SYMBOLS;
         const totalResults = 5;
         const returnedResults = 5;
@@ -58,16 +63,16 @@ describe('Query Response DTOs', () => {
         expect(metadata.dataSources.cache.hits).toBe(5);
         expect(metadata.dataSources.realtime.hits).toBe(0);
         expect(metadata.timestamp).toBeDefined();
-        expect(typeof metadata.timestamp).toBe('string');
+        expect(typeof metadata.timestamp).toBe("string");
       });
 
-      it('should create instance with errors', () => {
+      it("should create instance with errors", () => {
         const errors: QueryErrorInfoDto[] = [
           {
-            symbol: 'INVALID.SYMBOL',
-            reason: 'Symbol not found',
-            errorCode: 'SYMBOL_NOT_FOUND',
-            details: { provider: 'longport' },
+            symbol: "INVALID.SYMBOL",
+            reason: "Symbol not found",
+            errorCode: "SYMBOL_NOT_FOUND",
+            details: { provider: "longport" },
           },
         ];
 
@@ -85,12 +90,12 @@ describe('Query Response DTOs', () => {
         );
 
         expect(metadata.errors).toHaveLength(1);
-        expect(metadata.errors[0].symbol).toBe('INVALID.SYMBOL');
-        expect(metadata.errors[0].reason).toBe('Symbol not found');
-        expect(metadata.errors[0].errorCode).toBe('SYMBOL_NOT_FOUND');
+        expect(metadata.errors[0].symbol).toBe("INVALID.SYMBOL");
+        expect(metadata.errors[0].reason).toBe("Symbol not found");
+        expect(metadata.errors[0].errorCode).toBe("SYMBOL_NOT_FOUND");
       });
 
-      it('should auto-generate timestamp', () => {
+      it("should auto-generate timestamp", () => {
         const beforeTime = Date.now();
 
         const metadata = new QueryMetadataDto(
@@ -110,12 +115,14 @@ describe('Query Response DTOs', () => {
 
         expect(metadataTime).toBeGreaterThanOrEqual(beforeTime);
         expect(metadataTime).toBeLessThanOrEqual(afterTime);
-        expect(metadata.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+        expect(metadata.timestamp).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+        );
       });
     });
 
-    describe('Optional Properties', () => {
-      it('should handle queryParams correctly', () => {
+    describe("Optional Properties", () => {
+      it("should handle queryParams correctly", () => {
         const metadata = new QueryMetadataDto(
           QueryType.BY_SYMBOLS,
           2,
@@ -129,26 +136,28 @@ describe('Query Response DTOs', () => {
         );
 
         metadata.queryParams = {
-          symbols: ['00700.HK', 'AAPL.US'],
-          market: 'MIXED',
-          provider: 'longport',
-          queryTypeFilter: 'get-stock-quote',
+          symbols: ["00700.HK", "AAPL.US"],
+          market: "MIXED",
+          provider: "longport",
+          queryTypeFilter: "get-stock-quote",
           timeRange: {
-            start: '2.023-06-01T00:00:00Z',
-            end: '2023-06-01T23:59:59Z',
+            start: "2.023-06-01T00:00:00Z",
+            end: "2023-06-01T23:59:59Z",
           },
           queryFiltersCount: 3,
         };
 
-        expect(metadata.queryParams.symbols).toEqual(['00700.HK', 'AAPL.US']);
-        expect(metadata.queryParams.market).toBe('MIXED');
-        expect(metadata.queryParams.provider).toBe('longport');
-        expect(metadata.queryParams.queryTypeFilter).toBe('get-stock-quote');
-        expect(metadata.queryParams.timeRange.start).toBe('2023-06-01T00:00:00Z');
+        expect(metadata.queryParams.symbols).toEqual(["00700.HK", "AAPL.US"]);
+        expect(metadata.queryParams.market).toBe("MIXED");
+        expect(metadata.queryParams.provider).toBe("longport");
+        expect(metadata.queryParams.queryTypeFilter).toBe("get-stock-quote");
+        expect(metadata.queryParams.timeRange.start).toBe(
+          "2023-06-01T00:00:00Z",
+        );
         expect(metadata.queryParams.queryFiltersCount).toBe(3);
       });
 
-      it('should handle performance breakdown', () => {
+      it("should handle performance breakdown", () => {
         const metadata = new QueryMetadataDto(
           QueryType.BY_SYMBOLS,
           1,
@@ -174,15 +183,15 @@ describe('Query Response DTOs', () => {
         expect(metadata.performance.dataProcessingTime).toBe(40);
         expect(
           metadata.performance.cacheQueryTime +
-          metadata.performance.persistentQueryTime +
-          metadata.performance.realtimeQueryTime +
-          metadata.performance.dataProcessingTime
+            metadata.performance.persistentQueryTime +
+            metadata.performance.realtimeQueryTime +
+            metadata.performance.dataProcessingTime,
         ).toBe(200);
       });
     });
 
-    describe('Data Sources Statistics', () => {
-      it('should track cache statistics correctly', () => {
+    describe("Data Sources Statistics", () => {
+      it("should track cache statistics correctly", () => {
         const metadata = new QueryMetadataDto(
           QueryType.BY_MARKET,
           10,
@@ -201,7 +210,7 @@ describe('Query Response DTOs', () => {
         expect(metadata.dataSources.realtime.misses).toBe(0);
       });
 
-      it('should calculate hit rates correctly', () => {
+      it("should calculate hit rates correctly", () => {
         const metadata = new QueryMetadataDto(
           QueryType.BY_SYMBOLS,
           100,
@@ -214,10 +223,13 @@ describe('Query Response DTOs', () => {
           },
         );
 
-        const cacheHitRate = metadata.dataSources.cache.hits / 
+        const cacheHitRate =
+          metadata.dataSources.cache.hits /
           (metadata.dataSources.cache.hits + metadata.dataSources.cache.misses);
-        const realtimeHitRate = metadata.dataSources.realtime.hits / 
-          (metadata.dataSources.realtime.hits + metadata.dataSources.realtime.misses || 1);
+        const realtimeHitRate =
+          metadata.dataSources.realtime.hits /
+          (metadata.dataSources.realtime.hits +
+            metadata.dataSources.realtime.misses || 1);
 
         expect(cacheHitRate).toBe(0.7); // 70%
         expect(realtimeHitRate).toBe(1.0); // 100%
@@ -225,12 +237,12 @@ describe('Query Response DTOs', () => {
     });
   });
 
-  describe('QueryResponseDto', () => {
-    describe('Constructor', () => {
-      it('should create instance with data and metadata', () => {
+  describe("QueryResponseDto", () => {
+    describe("Constructor", () => {
+      it("should create instance with data and metadata", () => {
         const stockData: StockData[] = [
-          { symbol: '00700.HK', price: 425.6, volume: 1000000 },
-          { symbol: 'AAPL.US', price: 150.25, volume: 2000000 },
+          { symbol: "00700.HK", price: 425.6, volume: 1000000 },
+          { symbol: "AAPL.US", price: 150.25, volume: 2000000 },
         ];
 
         const paginatedData = new PaginatedDataDto<StockData>(stockData, {
@@ -254,7 +266,10 @@ describe('Query Response DTOs', () => {
           },
         );
 
-        const response = new QueryResponseDto<StockData>(paginatedData, metadata);
+        const response = new QueryResponseDto<StockData>(
+          paginatedData,
+          metadata,
+        );
 
         expect(response.data).toBe(paginatedData);
         expect(response.metadata).toBe(metadata);
@@ -262,7 +277,7 @@ describe('Query Response DTOs', () => {
         expect(response.metadata.queryType).toBe(QueryType.BY_SYMBOLS);
       });
 
-      it('should handle empty results', () => {
+      it("should handle empty results", () => {
         const emptyData = new PaginatedDataDto<any>([], {
           page: 1,
           limit: 10,
@@ -292,13 +307,13 @@ describe('Query Response DTOs', () => {
       });
     });
 
-    describe('Generic Type Support', () => {
-      it('should support typed data', () => {
+    describe("Generic Type Support", () => {
+      it("should support typed data", () => {
         const newsItems: NewsItem[] = [
           {
-            title: 'Market Update',
-            content: 'Market analysis...',
-            publishedAt: '2023-06-01T10:00:00Z',
+            title: "Market Update",
+            content: "Market analysis...",
+            publishedAt: "2023-06-01T10:00:00Z",
           },
         ];
 
@@ -323,39 +338,63 @@ describe('Query Response DTOs', () => {
           },
         );
 
-        const response = new QueryResponseDto<NewsItem>(paginatedData, metadata);
+        const response = new QueryResponseDto<NewsItem>(
+          paginatedData,
+          metadata,
+        );
 
-        expect(response.data.items[0].title).toBe('Market Update');
-        expect(response.data.items[0].content).toBe('Market analysis...');
-        expect(response.data.items[0].publishedAt).toBe('2023-06-01T10:00:00Z');
+        expect(response.data.items[0].title).toBe("Market Update");
+        expect(response.data.items[0].content).toBe("Market analysis...");
+        expect(response.data.items[0].publishedAt).toBe("2023-06-01T10:00:00Z");
       });
     });
   });
 
-  describe('BulkQueryResponseDto', () => {
-    describe('Constructor', () => {
-      it('should create instance with multiple query results', () => {
+  describe("BulkQueryResponseDto", () => {
+    describe("Constructor", () => {
+      it("should create instance with multiple query results", () => {
         const result1 = new QueryResponseDto<StockData>(
-          new PaginatedDataDto<StockData>([{ symbol: '00700.HK', price: 425.6 }], {
-            page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false,
-          }),
+          new PaginatedDataDto<StockData>(
+            [{ symbol: "00700.HK", price: 425.6 }],
+            {
+              page: 1,
+              limit: 1,
+              total: 1,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            },
+          ),
           new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 100, true, {
-            cache: { hits: 1, misses: 0 }, realtime: { hits: 0, misses: 0 },
+            cache: { hits: 1, misses: 0 },
+            realtime: { hits: 0, misses: 0 },
           }),
         );
 
         const result2 = new QueryResponseDto<StockData>(
-          new PaginatedDataDto<StockData>([{ symbol: 'AAPL.US', price: 150.25 }], {
-            page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false,
-          }),
+          new PaginatedDataDto<StockData>(
+            [{ symbol: "AAPL.US", price: 150.25 }],
+            {
+              page: 1,
+              limit: 1,
+              total: 1,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            },
+          ),
           new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 150, false, {
-            cache: { hits: 0, misses: 1 }, realtime: { hits: 1, misses: 0 },
+            cache: { hits: 0, misses: 1 },
+            realtime: { hits: 1, misses: 0 },
           }),
         );
 
         const totalQueriesAttempted = 2;
 
-        const bulkResponse = new BulkQueryResponseDto([result1, result2], totalQueriesAttempted);
+        const bulkResponse = new BulkQueryResponseDto(
+          [result1, result2],
+          totalQueriesAttempted,
+        );
 
         expect(bulkResponse.results).toHaveLength(2);
         expect(bulkResponse.summary.totalQueries).toBe(2);
@@ -364,11 +403,14 @@ describe('Query Response DTOs', () => {
         expect(bulkResponse.timestamp).toBeDefined();
       });
 
-      it('should handle empty results', () => {
+      it("should handle empty results", () => {
         const results: QueryResponseDto<any>[] = [];
         const totalQueriesAttempted = 5; // Some queries failed completely
 
-        const bulkResponse = new BulkQueryResponseDto(results, totalQueriesAttempted);
+        const bulkResponse = new BulkQueryResponseDto(
+          results,
+          totalQueriesAttempted,
+        );
 
         expect(bulkResponse.results).toHaveLength(0);
         expect(bulkResponse.summary.totalQueries).toBe(5);
@@ -376,19 +418,31 @@ describe('Query Response DTOs', () => {
         expect(bulkResponse.summary.averageExecutionTime).toBe(0);
       });
 
-      it('should handle partial failures', () => {
+      it("should handle partial failures", () => {
         const successResult = new QueryResponseDto<StockData>(
-          new PaginatedDataDto<StockData>([{ symbol: '00700.HK', price: 425.6 }], {
-            page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false,
-          }),
+          new PaginatedDataDto<StockData>(
+            [{ symbol: "00700.HK", price: 425.6 }],
+            {
+              page: 1,
+              limit: 1,
+              total: 1,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            },
+          ),
           new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 200, true, {
-            cache: { hits: 1, misses: 0 }, realtime: { hits: 0, misses: 0 },
+            cache: { hits: 1, misses: 0 },
+            realtime: { hits: 0, misses: 0 },
           }),
         );
 
         const totalQueriesAttempted = 3; // 1 success, 2 failures
 
-        const bulkResponse = new BulkQueryResponseDto([successResult], totalQueriesAttempted);
+        const bulkResponse = new BulkQueryResponseDto(
+          [successResult],
+          totalQueriesAttempted,
+        );
 
         expect(bulkResponse.results).toHaveLength(1);
         expect(bulkResponse.summary.totalQueries).toBe(3);
@@ -396,12 +450,20 @@ describe('Query Response DTOs', () => {
         expect(bulkResponse.summary.averageExecutionTime).toBe(200); // Only successful queries counted
       });
 
-      it('should auto-generate timestamp', () => {
+      it("should auto-generate timestamp", () => {
         const beforeTime = Date.now();
         const result = new QueryResponseDto<any>(
-          new PaginatedDataDto<any>([], { page: 1, limit: 10, total: 0, totalPages: 0, hasNext: false, hasPrev: false }),
+          new PaginatedDataDto<any>([], {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          }),
           new QueryMetadataDto(QueryType.BY_SYMBOLS, 0, 0, 50, false, {
-            cache: { hits: 0, misses: 0 }, realtime: { hits: 0, misses: 0 },
+            cache: { hits: 0, misses: 0 },
+            realtime: { hits: 0, misses: 0 },
           }),
         );
 
@@ -411,24 +473,56 @@ describe('Query Response DTOs', () => {
 
         expect(responseTime).toBeGreaterThanOrEqual(beforeTime);
         expect(responseTime).toBeLessThanOrEqual(afterTime);
-        expect(bulkResponse.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+        expect(bulkResponse.timestamp).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+        );
       });
     });
 
-    describe('Statistics Calculation', () => {
-      it('should calculate complex statistics correctly', () => {
+    describe("Statistics Calculation", () => {
+      it("should calculate complex statistics correctly", () => {
         const results = [
           new QueryResponseDto<any>(
-            new PaginatedDataDto<any>([{ id: 1 }], { page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false }),
-            new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 100, true, { cache: { hits: 1, misses: 0 }, realtime: { hits: 0, misses: 0 } }),
+            new PaginatedDataDto<any>([{ id: 1 }], {
+              page: 1,
+              limit: 1,
+              total: 1,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            }),
+            new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 100, true, {
+              cache: { hits: 1, misses: 0 },
+              realtime: { hits: 0, misses: 0 },
+            }),
           ),
           new QueryResponseDto<any>(
-            new PaginatedDataDto<any>([{ id: 2 }], { page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false }),
-            new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 200, false, { cache: { hits: 0, misses: 1 }, realtime: { hits: 1, misses: 0 } }),
+            new PaginatedDataDto<any>([{ id: 2 }], {
+              page: 1,
+              limit: 1,
+              total: 1,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            }),
+            new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 200, false, {
+              cache: { hits: 0, misses: 1 },
+              realtime: { hits: 1, misses: 0 },
+            }),
           ),
           new QueryResponseDto<any>(
-            new PaginatedDataDto<any>([{ id: 3 }], { page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false }),
-            new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 300, false, { cache: { hits: 0, misses: 1 }, realtime: { hits: 1, misses: 0 } }),
+            new PaginatedDataDto<any>([{ id: 3 }], {
+              page: 1,
+              limit: 1,
+              total: 1,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            }),
+            new QueryMetadataDto(QueryType.BY_SYMBOLS, 1, 1, 300, false, {
+              cache: { hits: 0, misses: 1 },
+              realtime: { hits: 1, misses: 0 },
+            }),
           ),
         ];
 
@@ -441,9 +535,9 @@ describe('Query Response DTOs', () => {
     });
   });
 
-  describe('QueryStatsDto', () => {
-    describe('Constructor', () => {
-      it('should create instance with auto-generated timestamp', () => {
+  describe("QueryStatsDto", () => {
+    describe("Constructor", () => {
+      it("should create instance with auto-generated timestamp", () => {
         const beforeTime = Date.now();
 
         const stats = new QueryStatsDto();
@@ -452,12 +546,14 @@ describe('Query Response DTOs', () => {
 
         expect(statsTime).toBeGreaterThanOrEqual(beforeTime);
         expect(statsTime).toBeLessThanOrEqual(afterTime);
-        expect(stats.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+        expect(stats.timestamp).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+        );
       });
     });
 
-    describe('Statistics Structure', () => {
-      it('should support comprehensive performance statistics', () => {
+    describe("Statistics Structure", () => {
+      it("should support comprehensive performance statistics", () => {
         const stats = new QueryStatsDto();
         stats.performance = {
           totalQueries: 10000,
@@ -474,7 +570,7 @@ describe('Query Response DTOs', () => {
         expect(stats.performance.queriesPerSecond).toBe(50);
       });
 
-      it('should support query type distribution', () => {
+      it("should support query type distribution", () => {
         const stats = new QueryStatsDto();
         stats.queryTypes = {
           [QueryType.BY_SYMBOLS]: {
@@ -499,7 +595,7 @@ describe('Query Response DTOs', () => {
         expect(stats.queryTypes[QueryType.BY_PROVIDER].successRate).toBe(0.97);
       });
 
-      it('should support data source statistics', () => {
+      it("should support data source statistics", () => {
         const stats = new QueryStatsDto();
         stats.dataSources = {
           cache: {
@@ -525,59 +621,61 @@ describe('Query Response DTOs', () => {
         expect(stats.dataSources.realtime.avgTime).toBe(300);
       });
 
-      it('should support popular query patterns', () => {
+      it("should support popular query patterns", () => {
         const stats = new QueryStatsDto();
         stats.popularQueries = [
           {
-            pattern: 'symbols:HK_stocks',
+            pattern: "symbols:HK_stocks",
             count: 2500,
             averageTime: 100,
-            lastExecuted: '2023-06-01T10:00:00Z',
+            lastExecuted: "2023-06-01T10:00:00Z",
           },
           {
-            pattern: 'market:US',
+            pattern: "market:US",
             count: 2000,
             averageTime: 180,
-            lastExecuted: '2023-06-01T09:30:00Z',
+            lastExecuted: "2023-06-01T09:30:00Z",
           },
           {
-            pattern: 'provider:longport',
+            pattern: "provider:longport",
             count: 1500,
             averageTime: 120,
-            lastExecuted: '2023-06-01T09:45:00Z',
+            lastExecuted: "2023-06-01T09:45:00Z",
           },
         ];
 
         expect(stats.popularQueries).toHaveLength(3);
-        expect(stats.popularQueries[0].pattern).toBe('symbols:HK_stocks');
+        expect(stats.popularQueries[0].pattern).toBe("symbols:HK_stocks");
         expect(stats.popularQueries[0].count).toBe(2500);
         expect(stats.popularQueries[1].averageTime).toBe(180);
-        expect(stats.popularQueries[2].lastExecuted).toBe('2023-06-01T09:45:00Z');
+        expect(stats.popularQueries[2].lastExecuted).toBe(
+          "2023-06-01T09:45:00Z",
+        );
       });
     });
   });
 
-  describe('Real-world Integration Scenarios', () => {
-    describe('Stock Market Query Response', () => {
-      it('should handle comprehensive stock query response', () => {
+  describe("Real-world Integration Scenarios", () => {
+    describe("Stock Market Query Response", () => {
+      it("should handle comprehensive stock query response", () => {
         const stockData: StockData[] = [
           {
-            symbol: '00700.HK',
+            symbol: "00700.HK",
             lastPrice: 425.6,
             change: 5.2,
             changePercent: 0.0124,
             volume: 12500000,
             turnover: 5312500000,
-            timestamp: '2023-06-01T10:00:00Z',
+            timestamp: "2023-06-01T10:00:00Z",
           },
           {
-            symbol: 'AAPL.US',
+            symbol: "AAPL.US",
             lastPrice: 150.25,
             change: -2.1,
             changePercent: -0.0138,
             volume: 45000000,
             turnover: 6761250000,
-            timestamp: '2023-06-01T10:00:00Z',
+            timestamp: "2023-06-01T10:00:00Z",
           },
         ];
 
@@ -603,8 +701,8 @@ describe('Query Response DTOs', () => {
         );
 
         metadata.queryParams = {
-          symbols: ['00700.HK', 'AAPL.US'],
-          queryTypeFilter: 'get-stock-quote',
+          symbols: ["00700.HK", "AAPL.US"],
+          queryTypeFilter: "get-stock-quote",
         };
 
         metadata.performance = {
@@ -614,50 +712,72 @@ describe('Query Response DTOs', () => {
           dataProcessingTime: 20,
         };
 
-        const response = new QueryResponseDto<StockData>(paginatedData, metadata);
+        const response = new QueryResponseDto<StockData>(
+          paginatedData,
+          metadata,
+        );
 
         expect(response.data.items).toHaveLength(2);
-        expect(response.data.items[0].symbol).toBe('00700.HK');
-        expect(response.data.items[1].symbol).toBe('AAPL.US');
+        expect(response.data.items[0].symbol).toBe("00700.HK");
+        expect(response.data.items[1].symbol).toBe("AAPL.US");
         expect(response.metadata.cacheUsed).toBe(true);
         expect(response.metadata.executionTime).toBe(185);
-        expect(response.metadata.queryParams.symbols).toEqual(['00700.HK', 'AAPL.US']);
+        expect(response.metadata.queryParams.symbols).toEqual([
+          "00700.HK",
+          "AAPL.US",
+        ]);
       });
 
-      it('should handle bulk market query response', () => {
+      it("should handle bulk market query response", () => {
         const hkResult = new QueryResponseDto<MarketData>(
-          new PaginatedDataDto<MarketData>([{ market: 'HK', count: 1000 }], {
-            page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false,
+          new PaginatedDataDto<MarketData>([{ market: "HK", count: 1000 }], {
+            page: 1,
+            limit: 1,
+            total: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
           }),
           new QueryMetadataDto(QueryType.BY_MARKET, 1, 1, 200, false, {
-            cache: { hits: 0, misses: 1 }, realtime: { hits: 1, misses: 0 },
+            cache: { hits: 0, misses: 1 },
+            realtime: { hits: 1, misses: 0 },
           }),
         );
 
         const usResult = new QueryResponseDto<MarketData>(
-          new PaginatedDataDto<MarketData>([{ market: 'US', count: 2000 }], {
-            page: 1, limit: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false,
+          new PaginatedDataDto<MarketData>([{ market: "US", count: 2000 }], {
+            page: 1,
+            limit: 1,
+            total: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
           }),
           new QueryMetadataDto(QueryType.BY_MARKET, 1, 1, 300, false, {
-            cache: { hits: 0, misses: 1 }, realtime: { hits: 1, misses: 0 },
+            cache: { hits: 0, misses: 1 },
+            realtime: { hits: 1, misses: 0 },
           }),
         );
 
         const bulkResponse = new BulkQueryResponseDto([hkResult, usResult], 2);
 
         expect(bulkResponse.results).toHaveLength(2);
-        expect((bulkResponse.results[0].data.items[0] as MarketData).market).toBe('HK');
-        expect((bulkResponse.results[1].data.items[0] as MarketData).market).toBe('US');
+        expect(
+          (bulkResponse.results[0].data.items[0] as MarketData).market,
+        ).toBe("HK");
+        expect(
+          (bulkResponse.results[1].data.items[0] as MarketData).market,
+        ).toBe("US");
         expect(bulkResponse.summary.totalQueries).toBe(2);
         expect(bulkResponse.summary.totalExecutionTime).toBe(500);
         expect(bulkResponse.summary.averageExecutionTime).toBe(250);
       });
     });
 
-    describe('Error Handling Scenarios', () => {
-      it('should handle query with partial errors', () => {
+    describe("Error Handling Scenarios", () => {
+      it("should handle query with partial errors", () => {
         const partialData: StockData[] = [
-          { symbol: '00700.HK', price: 425.6, status: 'success' },
+          { symbol: "00700.HK", price: 425.6, status: "success" },
         ];
 
         const paginatedData = new PaginatedDataDto<StockData>(partialData, {
@@ -671,14 +791,14 @@ describe('Query Response DTOs', () => {
 
         const errors: QueryErrorInfoDto[] = [
           {
-            symbol: 'INVALID.SYMBOL',
-            reason: 'Symbol not found in any provider',
-            errorCode: 'SYMBOL_NOT_FOUND',
+            symbol: "INVALID.SYMBOL",
+            reason: "Symbol not found in any provider",
+            errorCode: "SYMBOL_NOT_FOUND",
           },
           {
-            symbol: 'TIMEOUT.SYMBOL',
-            reason: 'Provider timeout',
-            errorCode: 'PROVIDER_TIMEOUT',
+            symbol: "TIMEOUT.SYMBOL",
+            reason: "Provider timeout",
+            errorCode: "PROVIDER_TIMEOUT",
           },
         ];
 
@@ -695,20 +815,23 @@ describe('Query Response DTOs', () => {
           errors,
         );
 
-        const response = new QueryResponseDto<StockData>(paginatedData, metadata);
+        const response = new QueryResponseDto<StockData>(
+          paginatedData,
+          metadata,
+        );
 
         expect(response.data.items).toHaveLength(1);
         expect(response.metadata.errors).toHaveLength(2);
-        expect(response.metadata.errors[0].symbol).toBe('INVALID.SYMBOL');
-        expect(response.metadata.errors[1].symbol).toBe('TIMEOUT.SYMBOL');
+        expect(response.metadata.errors[0].symbol).toBe("INVALID.SYMBOL");
+        expect(response.metadata.errors[1].symbol).toBe("TIMEOUT.SYMBOL");
         expect(response.metadata.dataSources.realtime.misses).toBe(2);
       });
     });
 
-    describe('Performance Analysis', () => {
-      it('should provide comprehensive performance statistics', () => {
+    describe("Performance Analysis", () => {
+      it("should provide comprehensive performance statistics", () => {
         const stats = new QueryStatsDto();
-        
+
         stats.performance = {
           totalQueries: 50000,
           averageExecutionTime: 125,
@@ -718,48 +841,83 @@ describe('Query Response DTOs', () => {
         };
 
         stats.queryTypes = {
-          [QueryType.BY_SYMBOLS]: { count: 30000, averageTime: 110, successRate: 0.985 },
-          [QueryType.BY_MARKET]: { count: 15000, averageTime: 150, successRate: 0.975 },
-          [QueryType.BY_PROVIDER]: { count: 5000, averageTime: 140, successRate: 0.980 },
+          [QueryType.BY_SYMBOLS]: {
+            count: 30000,
+            averageTime: 110,
+            successRate: 0.985,
+          },
+          [QueryType.BY_MARKET]: {
+            count: 15000,
+            averageTime: 150,
+            successRate: 0.975,
+          },
+          [QueryType.BY_PROVIDER]: {
+            count: 5000,
+            averageTime: 140,
+            successRate: 0.98,
+          },
         };
 
         stats.dataSources = {
           cache: { queries: 39000, avgTime: 12, successRate: 0.995 },
-          persistent: { queries: 8000, avgTime: 65, successRate: 0.990 },
-          realtime: { queries: 3000, avgTime: 280, successRate: 0.920 },
+          persistent: { queries: 8000, avgTime: 65, successRate: 0.99 },
+          realtime: { queries: 3000, avgTime: 280, successRate: 0.92 },
         };
 
         stats.popularQueries = [
-          { pattern: 'HK_tech_stocks', count: 8500, averageTime: 95, lastExecuted: '2023-06-01T10:00:00Z' },
-          { pattern: 'US_large_cap', count: 7200, averageTime: 130, lastExecuted: '2023-06-01T09:55:00Z' },
-          { pattern: 'market_overview', count: 5800, averageTime: 180, lastExecuted: '2023-06-01T09:50:00Z' },
+          {
+            pattern: "HK_tech_stocks",
+            count: 8500,
+            averageTime: 95,
+            lastExecuted: "2023-06-01T10:00:00Z",
+          },
+          {
+            pattern: "US_large_cap",
+            count: 7200,
+            averageTime: 130,
+            lastExecuted: "2023-06-01T09:55:00Z",
+          },
+          {
+            pattern: "market_overview",
+            count: 5800,
+            averageTime: 180,
+            lastExecuted: "2023-06-01T09:50:00Z",
+          },
         ];
 
         expect(stats.performance.cacheHitRate).toBeGreaterThan(0.75);
         expect(stats.performance.errorRate).toBeLessThan(0.02);
-        expect(stats.queryTypes[QueryType.BY_SYMBOLS].successRate).toBeGreaterThan(0.98);
+        expect(
+          stats.queryTypes[QueryType.BY_SYMBOLS].successRate,
+        ).toBeGreaterThan(0.98);
         expect(stats.dataSources.cache.avgTime).toBeLessThan(15);
         expect(stats.popularQueries[0].count).toBeGreaterThan(8000);
       });
     });
 
-    describe('Edge Cases and Boundary Testing', () => {
-      describe('Large Dataset Handling', () => {
-        it('should handle large paginated responses', () => {
-          const largeDataset: StockData[] = Array.from({ length: 1000 }, (_, i) => ({
-            id: i,
-            symbol: `STOCK${i}.HK`,
-            price: 100 + Math.random() * 400,
-          }));
+    describe("Edge Cases and Boundary Testing", () => {
+      describe("Large Dataset Handling", () => {
+        it("should handle large paginated responses", () => {
+          const largeDataset: StockData[] = Array.from(
+            { length: 1000 },
+            (_, i) => ({
+              id: i,
+              symbol: `STOCK${i}.HK`,
+              price: 100 + Math.random() * 400,
+            }),
+          );
 
-          const paginatedData = new PaginatedDataDto<StockData>(largeDataset.slice(0, 100), {
-            page: 1,
-            limit: 100,
-            total: 1000,
-            totalPages: 10,
-            hasNext: true,
-            hasPrev: false,
-          });
+          const paginatedData = new PaginatedDataDto<StockData>(
+            largeDataset.slice(0, 100),
+            {
+              page: 1,
+              limit: 100,
+              total: 1000,
+              totalPages: 10,
+              hasNext: true,
+              hasPrev: false,
+            },
+          );
 
           const metadata = new QueryMetadataDto(
             QueryType.BY_MARKET,
@@ -773,7 +931,10 @@ describe('Query Response DTOs', () => {
             },
           );
 
-          const response = new QueryResponseDto<StockData>(paginatedData, metadata);
+          const response = new QueryResponseDto<StockData>(
+            paginatedData,
+            metadata,
+          );
 
           expect(response.data.items).toHaveLength(100);
           expect(response.data.pagination.total).toBe(1000);
@@ -783,8 +944,8 @@ describe('Query Response DTOs', () => {
         });
       });
 
-      describe('Zero and Null Handling', () => {
-        it('should handle zero execution times', () => {
+      describe("Zero and Null Handling", () => {
+        it("should handle zero execution times", () => {
           const metadata = new QueryMetadataDto(
             QueryType.BY_SYMBOLS,
             1,
@@ -801,7 +962,7 @@ describe('Query Response DTOs', () => {
           expect(metadata.cacheUsed).toBe(true);
         });
 
-        it('should handle empty statistics in bulk response', () => {
+        it("should handle empty statistics in bulk response", () => {
           const bulkResponse = new BulkQueryResponseDto([], 0);
 
           expect(bulkResponse.results).toHaveLength(0);

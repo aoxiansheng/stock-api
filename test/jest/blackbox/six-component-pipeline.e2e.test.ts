@@ -3,12 +3,12 @@
  * 真实环境黑盒E2E测试：六组件核心架构流水线
  * 测试 Receiver → SymbolMapper → DataMapper → Transformer → Storage → Query 完整流程
  * 完全基于HTTP API，验证真实数据处理流水线
- * 
+ *
  * 注意：此测试需要项目实际运行在 http://localhost:3000
  * 启动命令：bun run dev
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from "axios";
 
 describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
   let httpClient: AxiosInstance;
@@ -18,8 +18,8 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
   beforeAll(async () => {
     // 配置真实环境连接
-    baseURL = process.env.TEST_BASE_URL || 'http://localhost:3000';
-    
+    baseURL = process.env.TEST_BASE_URL || "http://localhost:3000";
+
     httpClient = axios.create({
       baseURL,
       timeout: 30000,
@@ -30,22 +30,22 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
     // 验证项目是否运行
     await verifyProjectRunning();
-    
+
     // 设置认证
     await setupAuthentication();
   });
 
   async function verifyProjectRunning() {
     try {
-      const response = await httpClient.get('/api/v1/monitoring/health');
+      const response = await httpClient.get("/api/v1/monitoring/health");
       if (response.status !== 200) {
         throw new Error(`项目健康检查失败: ${response.status}`);
       }
-      console.log('✅ 项目运行状态验证成功');
+      console.log("✅ 项目运行状态验证成功");
     } catch (error) {
-      console.error('❌ 无法连接到项目，请确保项目正在运行:');
-      console.error('   启动命令: bun run dev');
-      console.error('   项目地址:', baseURL);
+      console.error("❌ 无法连接到项目，请确保项目正在运行:");
+      console.error("   启动命令: bun run dev");
+      console.error("   项目地址:", baseURL);
       throw new Error(`项目未运行或不可访问: ${error.message}`);
     }
   }
@@ -56,25 +56,30 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       const adminUserData = {
         username: `pipeline_admin_${Date.now()}`,
         email: `pipeline_admin_${Date.now()}@example.com`,
-        password: 'password123',
-        role: 'admin'
+        password: "password123",
+        role: "admin",
       };
 
-      const adminRegisterResponse = await httpClient.post('/api/v1/auth/register', adminUserData);
+      const adminRegisterResponse = await httpClient.post(
+        "/api/v1/auth/register",
+        adminUserData,
+      );
       if (adminRegisterResponse.status !== 201) {
-        console.warn('管理员注册失败，可能已存在，尝试直接登录');
+        console.warn("管理员注册失败，可能已存在，尝试直接登录");
       }
 
-      const adminLoginResponse = await httpClient.post('/api/v1/auth/login', {
+      const adminLoginResponse = await httpClient.post("/api/v1/auth/login", {
         username: adminUserData.username,
-        password: adminUserData.password
+        password: adminUserData.password,
       });
 
       if (adminLoginResponse.status !== 200) {
         throw new Error(`管理员登录失败: ${adminLoginResponse.status}`);
       }
 
-      adminJWT = adminLoginResponse.data.data?.accessToken || adminLoginResponse.data.accessToken;
+      adminJWT =
+        adminLoginResponse.data.data?.accessToken ||
+        adminLoginResponse.data.accessToken;
 
       // 创建具有所有必要权限的API Key
       const apiKeyData = {
@@ -88,7 +93,7 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
           // "mapping:read", // 修复：移除无效的权限
           "system:monitor",
           "system:health", // 添加健康检查权限
-          "config:read", 
+          "config:read",
         ],
         rateLimit: {
           requests: 500,
@@ -96,9 +101,13 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
         },
       };
 
-      const apiKeyResponse = await httpClient.post("/api/v1/auth/api-keys", apiKeyData, {
-        headers: { Authorization: `Bearer ${adminJWT}` }
-      });
+      const apiKeyResponse = await httpClient.post(
+        "/api/v1/auth/api-keys",
+        apiKeyData,
+        {
+          headers: { Authorization: `Bearer ${adminJWT}` },
+        },
+      );
 
       if (apiKeyResponse.status !== 201) {
         throw new Error(`创建API Key失败: ${apiKeyResponse.status}`);
@@ -109,13 +118,13 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       // 修复：为Transformer测试创建必要的数据映射规则
       await createDataMappingRule();
 
-      console.log('✅ 认证设置完成');
+      console.log("✅ 认证设置完成");
     } catch (error) {
-      console.error('❌ 认证设置失败:', error.message);
+      console.error("❌ 认证设置失败:", error.message);
       throw error;
     }
-  };
-  
+  }
+
   async function createDataMappingRule() {
     const mappingRuleData = {
       name: "E2E Test LongPort Quote Mapping",
@@ -124,33 +133,43 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       description: "Rule for E2E pipeline test",
       fieldMappings: [
         { sourceFieldPath: "symbol", targetField: "symbol", confidence: 1.0 },
-        { sourceFieldPath: "lastDone", targetField: "lastPrice", confidence: 1.0 },
-        { sourceFieldPath: "volume", targetField: "volume", confidence: 1.0 }
+        {
+          sourceFieldPath: "lastDone",
+          targetField: "lastPrice",
+          confidence: 1.0,
+        },
+        { sourceFieldPath: "volume", targetField: "volume", confidence: 1.0 },
       ],
-      apiType: 'rest',
+      apiType: "rest",
     };
 
     // 1) 先查询是否已存在匹配规则，若存在则补充 apiType = 'rest'
     try {
       const listResp = await httpClient.get("/api/v1/data-mapper/rules", {
         headers: {
-          "Authorization": `Bearer ${adminJWT}`,
+          Authorization: `Bearer ${adminJWT}`,
         },
         params: {
           provider: "longport",
           transDataRuleListType: "quote_fields",
-        }
+        },
       });
 
       if (listResp.status === 200 && Array.isArray(listResp.data.data)) {
-        const existing = listResp.data.data.find((r: any) => r.name === mappingRuleData.name);
+        const existing = listResp.data.data.find(
+          (r: any) => r.name === mappingRuleData.name,
+        );
         if (existing && existing.id) {
           // 补充/更新为 REST
-          await httpClient.put(`/api/v1/data-mapper/rules/${existing.id}`, { apiType: 'rest' }, {
-            headers: {
-              "Authorization": `Bearer ${adminJWT}`,
-            }
-          });
+          await httpClient.put(
+            `/api/v1/data-mapper/rules/${existing.id}`,
+            { apiType: "rest" },
+            {
+              headers: {
+                Authorization: `Bearer ${adminJWT}`,
+              },
+            },
+          );
         }
       }
     } catch (e) {
@@ -158,21 +177,25 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
     }
 
     // 2) 创建或确保存在 REST 规则
-    const response = await httpClient.post("/api/v1/data-mapper/rules", mappingRuleData, {
-      headers: {
-        "Authorization": `Bearer ${adminJWT}`,
-      }
-    });
+    const response = await httpClient.post(
+      "/api/v1/data-mapper/rules",
+      mappingRuleData,
+      {
+        headers: {
+          Authorization: `Bearer ${adminJWT}`,
+        },
+      },
+    );
 
     if (response.status !== 201) {
       // 如果规则已存在，可能返回409 Conflict，可以安全忽略
       if (response.status === 409) {
-        console.warn('数据映射规则已存在，跳过创建');
+        console.warn("数据映射规则已存在，跳过创建");
       } else {
         throw new Error(`创建数据映射规则失败: ${response.status}`);
       }
     } else {
-      console.log('✅ 数据映射规则创建成功 (REST)');
+      console.log("✅ 数据映射规则创建成功 (REST)");
     }
 
     // 3) 额外创建一个 STREAM 规则
@@ -183,43 +206,63 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       description: "Stream rule for E2E pipeline test",
       fieldMappings: [
         { sourceFieldPath: "symbol", targetField: "symbol", confidence: 1.0 },
-        { sourceFieldPath: "lastDone", targetField: "lastPrice", confidence: 1.0 },
+        {
+          sourceFieldPath: "lastDone",
+          targetField: "lastPrice",
+          confidence: 1.0,
+        },
         { sourceFieldPath: "volume", targetField: "volume", confidence: 1.0 },
-        { sourceFieldPath: "timestamp", targetField: "timestamp", confidence: 1.0 },
+        {
+          sourceFieldPath: "timestamp",
+          targetField: "timestamp",
+          confidence: 1.0,
+        },
       ],
-      apiType: 'stream',
+      apiType: "stream",
     };
 
-    const streamResp = await httpClient.post("/api/v1/data-mapper/rules", streamRuleData, {
-      headers: {
-        "Authorization": `Bearer ${adminJWT}`,
-      }
-    });
+    const streamResp = await httpClient.post(
+      "/api/v1/data-mapper/rules",
+      streamRuleData,
+      {
+        headers: {
+          Authorization: `Bearer ${adminJWT}`,
+        },
+      },
+    );
 
     if (streamResp.status !== 201 && streamResp.status !== 409) {
       throw new Error(`创建Stream映射规则失败: ${streamResp.status}`);
     } else {
-      console.log(streamResp.status === 201 ? '✅ 数据映射规则创建成功 (STREAM)' : '⚠️ Stream映射规则已存在，跳过创建');
+      console.log(
+        streamResp.status === 201
+          ? "✅ 数据映射规则创建成功 (STREAM)"
+          : "⚠️ Stream映射规则已存在，跳过创建",
+      );
     }
   }
 
   describe("完整六组件数据流水线测试", () => {
     it("应该完成从Receiver到Query的完整数据处理流", async () => {
-        const testSymbol = "AMD.US";
-  const testDataType = "get-stock-quote";
+      const testSymbol = "AMD.US";
+      const testDataType = "get-stock-quote";
 
-  // Step 1: Receiver - 数据接收和初始处理
-  console.log("Step 1: Testing Receiver component...");
-  const receiveResponse = await httpClient.post("/api/v1/receiver/data", {
-    symbols: [testSymbol],
-    receiverType: testDataType,
-    options: { realtime: true },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      // Step 1: Receiver - 数据接收和初始处理
+      console.log("Step 1: Testing Receiver component...");
+      const receiveResponse = await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: [testSymbol],
+          receiverType: testDataType,
+          options: { realtime: true },
+        },
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(receiveResponse.status).toBe(200);
       expect(receiveResponse.data.data).toBeDefined();
@@ -228,15 +271,19 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       // Step 2: SymbolMapper - 符号映射验证
       console.log("Step 2: Testing SymbolMapper component...");
-      const symbolResponse = await httpClient.post("/api/v1/symbol-mapper/transform", {
-        symbols: [testSymbol],
-        dataSourceName: "longport",
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      const symbolResponse = await httpClient.post(
+        "/api/v1/symbol-mapper/transform",
+        {
+          symbols: [testSymbol],
+          dataSourceName: "longport",
+        },
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(symbolResponse.status).toBe(201);
       expect(symbolResponse.data.data).toBeDefined();
@@ -246,16 +293,19 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       // Step 3: DataMapper - 字段映射规则验证
       console.log("Step 3: Testing DataMapper component...");
-      const mappingResponse = await httpClient.get("/api/v1/data-mapper/rules", {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
+      const mappingResponse = await httpClient.get(
+        "/api/v1/data-mapper/rules",
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+          params: {
+            provider: "longport",
+            transDataRuleListType: "quote_fields",
+          },
         },
-        params: {
-          provider: "longport",
-          transDataRuleListType: "quote_fields",
-        }
-      });
+      );
 
       expect(mappingResponse.status).toBe(200);
       expect(mappingResponse.data.data).toBeDefined();
@@ -266,17 +316,21 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       // Step 4: Transformer - 数据转换验证
       console.log("Step 4: Testing Transformer component...");
       if (originalData) {
-        const transformResponse = await httpClient.post("/api/v1/transformer/transform", {
-          provider: "longport",
-          apiType: "rest",
-          transDataRuleListType: "quote_fields",
-          rawData: originalData,
-        }, {
-          headers: {
-            "X-App-Key": apiKey.appKey,
-            "X-Access-Token": apiKey.accessToken,
-          }
-        });
+        const transformResponse = await httpClient.post(
+          "/api/v1/transformer/transform",
+          {
+            provider: "longport",
+            apiType: "rest",
+            transDataRuleListType: "quote_fields",
+            rawData: originalData,
+          },
+          {
+            headers: {
+              "X-App-Key": apiKey.appKey,
+              "X-Access-Token": apiKey.accessToken,
+            },
+          },
+        );
 
         expect([200, 201]).toContain(transformResponse.status);
         expect(transformResponse.data.data).toBeDefined();
@@ -287,12 +341,16 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       // Step 5: Storage - 存储系统健康验证
       console.log("Step 5: Testing Storage component...");
-      const storageHealthResponse = await httpClient.post("/api/v1/storage/health-check", {}, {
-        headers: { 
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      const storageHealthResponse = await httpClient.post(
+        "/api/v1/storage/health-check",
+        {},
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(storageHealthResponse.status).toBe(201);
       expect(storageHealthResponse.data.data).toBeDefined();
@@ -305,17 +363,21 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       // Step 6: Query - 最终查询验证
       console.log("Step 6: Testing Query component...");
-      const queryResponse = await httpClient.post("/api/v1/query/execute", {
-        queryType: "by_symbols",
-        symbols: [testSymbol],
-        queryTypeFilter: "get-stock-quote", // 使用硬编码的数据类型
-        // includeMetadata: true, // 移除可能导致问题的参数
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      const queryResponse = await httpClient.post(
+        "/api/v1/query/execute",
+        {
+          queryType: "by_symbols",
+          symbols: [testSymbol],
+          queryTypeFilter: "get-stock-quote", // 使用硬编码的数据类型
+          // includeMetadata: true, // 移除可能导致问题的参数
+        },
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(queryResponse.status).toBe(201);
       expect(queryResponse.data.data).toBeDefined();
@@ -327,7 +389,10 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
         expect(queryData.symbol).toBe(originalData.symbol);
 
         // 验证数据可追溯性
-        if (queryResponse.data.data.metadata && queryResponse.data.data.metadata.traceId) {
+        if (
+          queryResponse.data.data.metadata &&
+          queryResponse.data.data.metadata.traceId
+        ) {
           expect(typeof queryResponse.data.data.metadata.traceId).toBe(
             "string",
           );
@@ -359,7 +424,10 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       expect(receiverResponse.status).toBe(200);
       const receiverData = receiverResponse.data;
       console.log("receiverData 响应:", JSON.stringify(receiverData, null, 2));
-      console.log("receiverSymbols 原始数据:", receiverData.data?.data?.map((item: any) => item.symbol));
+      console.log(
+        "receiverSymbols 原始数据:",
+        receiverData.data?.data?.map((item: any) => item.symbol),
+      );
 
       // 通过Query获取处理后数据
       const queryResponse = await httpClient.post(
@@ -379,7 +447,10 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       expect(queryResponse.status).toBe(201);
       const queryData = queryResponse.data;
       console.log("queryData 响应:", JSON.stringify(queryData, null, 2));
-      console.log("querySymbols 处理后数据:", queryData.data?.data?.items?.map((item: any) => item.symbol));
+      console.log(
+        "querySymbols 处理后数据:",
+        queryData.data?.data?.items?.map((item: any) => item.symbol),
+      );
 
       // 验证数据传递一致性
       expect(receiverData.data.data).toBeDefined();
@@ -387,12 +458,18 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
 
       // 验证符号覆盖
       const receiverSymbols = receiverData.data.data
-        .flatMap((item: any) => item.secu_quote?.map((quote: any) => quote.symbol) || [])
+        .flatMap(
+          (item: any) =>
+            item.secu_quote?.map((quote: any) => quote.symbol) || [],
+        )
         .filter(Boolean);
       const querySymbols = queryData.data.data.items
-        .flatMap((item: any) => item.secu_quote?.map((quote: any) => quote.symbol) || [])
+        .flatMap(
+          (item: any) =>
+            item.secu_quote?.map((quote: any) => quote.symbol) || [],
+        )
         .filter(Boolean);
-        
+
       console.log("测试符号:", testSymbols);
       console.log("Receiver符号:", receiverSymbols);
       console.log("Query符号:", querySymbols);
@@ -401,8 +478,10 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       testSymbols.forEach((symbol) => {
         const foundInReceiver = receiverSymbols.includes(symbol);
         const foundInQuery = querySymbols.includes(symbol);
-        
-        console.log(`符号 ${symbol} - 在Receiver中: ${foundInReceiver}, 在Query中: ${foundInQuery}`);
+
+        console.log(
+          `符号 ${symbol} - 在Receiver中: ${foundInReceiver}, 在Query中: ${foundInQuery}`,
+        );
 
         // 至少在一个地方找到数据（考虑市场时间等因素）
         expect(foundInReceiver || foundInQuery).toBe(true);
@@ -415,24 +494,21 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       const concurrentRequests = 3;
 
       // 创建并发请求数组
-      const requests = Array.from(
-        { length: concurrentRequests },
-        () => {
-          return httpClient.post(
-            "/api/v1/receiver/data",
-            {
-              symbols: [`00700.HK`], // 使用合法的股票代码
-              receiverType: "get-stock-quote",
+      const requests = Array.from({ length: concurrentRequests }, () => {
+        return httpClient.post(
+          "/api/v1/receiver/data",
+          {
+            symbols: [`00700.HK`], // 使用合法的股票代码
+            receiverType: "get-stock-quote",
+          },
+          {
+            headers: {
+              "X-App-Key": apiKey.appKey,
+              "X-Access-Token": apiKey.accessToken,
             },
-            {
-              headers: {
-                "X-App-Key": apiKey.appKey,
-                "X-Access-Token": apiKey.accessToken,
-              },
-            },
-          );
-        },
-      );
+          },
+        );
+      });
 
       // 并发执行请求
       const startTime = Date.now();
@@ -531,9 +607,12 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       );
 
       // 检查系统指标
-      const metricsResponse = await httpClient.get("/api/v1/monitoring/performance", {
-        headers: { Authorization: `Bearer ${adminJWT}` },
-      });
+      const metricsResponse = await httpClient.get(
+        "/api/v1/monitoring/performance",
+        {
+          headers: { Authorization: `Bearer ${adminJWT}` },
+        },
+      );
       expect(metricsResponse.status).toBe(200);
 
       // 验证关键性能指标存在
@@ -543,8 +622,8 @@ describe("Real Environment Black-_box: Six Component Pipeline E2E", () => {
       expect(metrics.summary).toHaveProperty("totalRequests");
 
       if (metrics.summary) {
-        expect(typeof metrics.summary.averageResponseTime).toBe('number');
-        expect(typeof metrics.summary.totalRequests).toBe('number');
+        expect(typeof metrics.summary.averageResponseTime).toBe("number");
+        expect(typeof metrics.summary.totalRequests).toBe("number");
       }
     });
   });

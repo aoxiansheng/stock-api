@@ -90,7 +90,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
 
     describe("isValidAppKey", () => {
       it("should return true for valid app keys", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const validAppKeys = [
           "sk-12345678-1234-1234-1234-123456789012",
           "sk-abcdef00-9876-5432-1098-fedcba987654",
@@ -103,7 +103,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
       });
 
       it("should return false for invalid app keys", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const invalidAppKeys = [
           "invalid-key",
           "sk-12345678-1234-1234-1234-12345678901", // too short
@@ -123,7 +123,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
 
     describe("isValidAccessToken", () => {
       it("should return true for valid access tokens", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const validTokens = [
           "abcdefghijklmnopqrstuvwxyzABCDEF",
           "1234567890abcdefghijklmnopqrstuv",
@@ -136,7 +136,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
       });
 
       it("should return false for invalid access tokens", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const invalidTokens = [
           "short",
           "toolongaccesstokenthatisinvalid123456",
@@ -155,7 +155,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
 
     describe("isValidName", () => {
       it("should return true for valid names", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const validNames = [
           "A",
           "Test API Key",
@@ -171,7 +171,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
       });
 
       it("should return false for invalid names", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const invalidNames = [
           "", // too short
           "a".repeat(101), // too long
@@ -305,7 +305,7 @@ describe("API Key Constants - Enhanced Branch Coverage", () => {
 
     describe("sanitizeAccessToken", () => {
       it("should return *** for short tokens", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const shortTokens = [
           "",
           "a",

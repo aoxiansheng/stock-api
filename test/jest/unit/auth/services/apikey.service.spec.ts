@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException } from "@nestjs/common";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
@@ -42,14 +42,14 @@ describe("RateLimitService Optimization Features", () => {
       providers: [
         RateLimitService,
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: mockRedisService,
         },
       ],
     }).compile();
 
     service = module.get<RateLimitService>(RateLimitService);
-    redisService = module.get('default_IORedisModuleConnectionToken');
+    redisService = module.get("default_IORedisModuleConnectionToken");
 
     // Spy on logger
     loggerSpy = jest

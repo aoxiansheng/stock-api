@@ -186,7 +186,7 @@ export class TestDataManager {
    */
   async setRedisData(key: string, value: any, ttl?: number): Promise<void> {
     try {
-      const redisService = this.app.get('default_IORedisModuleConnectionToken');
+      const redisService = this.app.get("default_IORedisModuleConnectionToken");
       // Use redis client directly
 
       const testKey = `${this.testDataPrefix}:${key}`;
@@ -212,7 +212,7 @@ export class TestDataManager {
    */
   async getRedisData(key: string): Promise<any> {
     try {
-      const redisService = this.app.get('REDIS_CLIENT');
+      const redisService = this.app.get("REDIS_CLIENT");
       // Use redis client directly
 
       const testKey = `${this.testDataPrefix}:${key}`;
@@ -333,7 +333,7 @@ export class TestDataManager {
    */
   private async cleanupRedisData(): Promise<void> {
     try {
-      const redisService = this.app.get('REDIS_CLIENT');
+      const redisService = this.app.get("REDIS_CLIENT");
       // Use redis client directly
 
       if (this.createdRedisKeys.length > 0) {

@@ -5,7 +5,7 @@
  */
 
 import { INestApplication } from "@nestjs/common";
-import  request from "supertest";
+import request from "supertest";
 
 describe("Response Format Standardization Integration", () => {
   let app: INestApplication;
@@ -61,9 +61,12 @@ describe("Response Format Standardization Integration", () => {
 
     // 4. 创建符号映射规则 - 解决接收器模块测试中的400错误
     const { getModelToken } = await import("@nestjs/mongoose");
-    const symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"), {
-      strict: false,
-    });
+    const symbolMappingModel = app.get(
+      getModelToken("SymbolMappingRuleDocument"),
+      {
+        strict: false,
+      },
+    );
     if (symbolMappingModel) {
       await symbolMappingModel.create({
         dataSourceName: "longport",
@@ -292,9 +295,9 @@ describe("Response Format Standardization Integration", () => {
         expect(Array.isArray(response.body.data.data.items)).toBe(true);
         expect(response.body.data.metadata).toBeDefined();
         expect(response.body.data.metadata.queryType).toBe("by_symbols");
-        expect(response.body.data.metadata._totalResults).toBeGreaterThanOrEqual(
-          0,
-        );
+        expect(
+          response.body.data.metadata._totalResults,
+        ).toBeGreaterThanOrEqual(0);
         expect(response.body.data.metadata._executionTime).toBeGreaterThan(0);
       });
     });

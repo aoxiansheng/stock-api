@@ -65,10 +65,7 @@ describe("UnifiedPermissionsGuard", () => {
     permissions: Permission[] = [],
   ) => {
     jest
-      .spyOn(
-        (UnifiedPermissionsGuard as any).prototype,
-        "getRequiredRoles",
-      )
+      .spyOn((UnifiedPermissionsGuard as any).prototype, "getRequiredRoles")
       .mockReturnValue(roles);
     jest
       .spyOn(
@@ -131,9 +128,9 @@ describe("UnifiedPermissionsGuard", () => {
         details: "missing role",
       });
 
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it("should deny access if user is missing required permissions", async () => {
@@ -147,9 +144,9 @@ describe("UnifiedPermissionsGuard", () => {
         details: "missing permission",
       });
 
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow(ForbiddenException);
       try {
         await guard.canActivate(mockExecutionContext);
       } catch (e) {
@@ -193,9 +190,9 @@ describe("UnifiedPermissionsGuard", () => {
         details: "missing perm",
       });
 
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow(ForbiddenException);
       try {
         await guard.canActivate(mockExecutionContext);
       } catch (e) {
@@ -219,9 +216,9 @@ describe("UnifiedPermissionsGuard", () => {
         details: "no roles for api key",
       });
 
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -239,12 +236,12 @@ describe("UnifiedPermissionsGuard", () => {
         .spyOn(permissionService, "checkPermissions")
         .mockRejectedValue(new Error("Database error"));
 
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        ForbiddenException,
-      );
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        '权限验证失败，请稍后重试',
-      );
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow("权限验证失败，请稍后重试");
     });
 
     it("should rethrow ForbiddenException if it is thrown by permissionService", async () => {
@@ -263,9 +260,9 @@ describe("UnifiedPermissionsGuard", () => {
         .spyOn(permissionService, "checkPermissions")
         .mockRejectedValue(customException);
 
-      await expect(Promise.resolve().then(() => guard.canActivate(mockExecutionContext))).rejects.toThrow(
-        customException,
-      );
+      await expect(
+        Promise.resolve().then(() => guard.canActivate(mockExecutionContext)),
+      ).rejects.toThrow(customException);
     });
   });
 });

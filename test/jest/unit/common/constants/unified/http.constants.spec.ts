@@ -39,7 +39,7 @@ describe("HTTP_CONSTANTS", () => {
     it("should be immutable", () => {
       // 使用Object.freeze是否被正确应用的方式来测试
       expect(Object.isFrozen(HTTP_CONSTANTS.STATUS_CODES)).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const original_OK = HTTP_CONSTANTS.STATUS_CODES.OK;
 
       // 尝试修改并验证是否失败

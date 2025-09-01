@@ -47,23 +47,26 @@ describe("QueryController", () => {
   };
 
   const mockQueryResponse: QueryResponseDto = {
-    data: new PaginatedDataDto([
+    data: new PaginatedDataDto(
+      [
+        {
+          symbol: "AAPL",
+          price: 150.25,
+          change: 2.15,
+          changePercent: 1.45,
+          volume: 5234567,
+          market: "US",
+        },
+      ],
       {
-        symbol: "AAPL",
-        price: 150.25,
-        change: 2.15,
-        changePercent: 1.45,
-        volume: 5234567,
-        market: "US",
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
       },
-    ], {
-      page: 1,
-      limit: 10,
-      total: 1,
-      totalPages: 1,
-      hasNext: false,
-      hasPrev: false,
-    }),
+    ),
     metadata: {
       queryType: QueryType.BY_SYMBOLS,
       totalResults: 1,
@@ -160,7 +163,7 @@ describe("QueryController", () => {
           useValue: mockRateLimitService,
         },
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: mockRedisService,
         },
         {
@@ -189,10 +192,12 @@ describe("QueryController", () => {
       // 添加ThrottlerModule以提供必要的依赖
       imports: [
         ThrottlerModule.forRoot({
-          throttlers: [{
-            ttl: 60,
-            limit: 100,
-          }],
+          throttlers: [
+            {
+              ttl: 60,
+              limit: 100,
+            },
+          ],
         }),
       ],
     })
@@ -311,7 +316,7 @@ describe("QueryController", () => {
       // 验证请求仍然正常处理
       expect(result).toBe(mockQueryResponse);
       expect(queryService.executeQuery).toHaveBeenCalledWith(queryRequest);
-      
+
       // 验证应该有警告日志（controller应该有deprecation warning）
       // 这里只验证基本的日志记录，实际的deprecation warning在真实的controller中处理
       expect(mockLoggerInstance.log).toHaveBeenCalledWith(
@@ -454,15 +459,23 @@ describe("QueryController", () => {
     });
 
     it("should throw error when symbols parameter is missing", async () => {
-      await expect(controller.queryBySymbols("", "longport", "US", "quote", 10, 1, true)).rejects.toThrow(
-        "Symbols parameter is required",
-      );
+      await expect(
+        controller.queryBySymbols("", "longport", "US", "quote", 10, 1, true),
+      ).rejects.toThrow("Symbols parameter is required");
     });
 
     it("should handle symbols with whitespace and empty values", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols(" AAPL , MSFT , , GOOGL ", "longport", "US", "quote", 10, 1, true);
+      await controller.queryBySymbols(
+        " AAPL , MSFT , , GOOGL ",
+        "longport",
+        "US",
+        "quote",
+        10,
+        1,
+        true,
+      );
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -474,7 +487,15 @@ describe("QueryController", () => {
     it("should use default values for optional parameters", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols("AAPL", "longport", "US", "quote", 100, 1, true);
+      await controller.queryBySymbols(
+        "AAPL",
+        "longport",
+        "US",
+        "quote",
+        100,
+        1,
+        true,
+      );
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -514,7 +535,15 @@ describe("QueryController", () => {
     it("should log limited symbols in request log", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols("AAPL,MSFT,GOOGL,_TSLA,AMZN", "longport", "US", "quote", 10, 1, true);
+      await controller.queryBySymbols(
+        "AAPL,MSFT,GOOGL,_TSLA,AMZN",
+        "longport",
+        "US",
+        "quote",
+        10,
+        1,
+        true,
+      );
 
       expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Quick query by symbols",
@@ -555,9 +584,9 @@ describe("QueryController", () => {
     });
 
     it("should throw error when market parameter is missing", async () => {
-      await expect(controller.queryByMarket("", "longport", "quote", 100, 0)).rejects.toThrow(
-        "Market parameter is required",
-      );
+      await expect(
+        controller.queryByMarket("", "longport", "quote", 100, 0),
+      ).rejects.toThrow("Market parameter is required");
     });
 
     it("should use default values for optional parameters", async () => {
@@ -604,9 +633,9 @@ describe("QueryController", () => {
     });
 
     it("should throw error when provider parameter is missing", async () => {
-      await expect(controller.queryByProvider("", "longport", "quote", 100, 0)).rejects.toThrow(
-        "Provider parameter is required",
-      );
+      await expect(
+        controller.queryByProvider("", "longport", "quote", 100, 0),
+      ).rejects.toThrow("Provider parameter is required");
     });
 
     it("should use default values for optional parameters", async () => {
@@ -760,7 +789,15 @@ describe("QueryController", () => {
         .spyOn(controller, "executeQuery")
         .mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryBySymbols("AAPL,MSFT", "longport", "US", "quote", 100, 1, true);
+      const result = await controller.queryBySymbols(
+        "AAPL,MSFT",
+        "longport",
+        "US",
+        "quote",
+        100,
+        1,
+        true,
+      );
 
       expect(result).toBe(mockQueryResponse);
       expect(controller.executeQuery).toHaveBeenCalledWith(
@@ -776,7 +813,13 @@ describe("QueryController", () => {
         .spyOn(controller, "executeQuery")
         .mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryByMarket("US", "longport", "quote", 100, 1);
+      const result = await controller.queryByMarket(
+        "US",
+        "longport",
+        "quote",
+        100,
+        1,
+      );
 
       expect(result).toBe(mockQueryResponse);
       expect(controller.executeQuery).toHaveBeenCalledWith(
@@ -792,7 +835,13 @@ describe("QueryController", () => {
         .spyOn(controller, "executeQuery")
         .mockResolvedValue(mockQueryResponse);
 
-      const result = await controller.queryByProvider("longport", "US", "quote", 100, 1);
+      const result = await controller.queryByProvider(
+        "longport",
+        "US",
+        "quote",
+        100,
+        1,
+      );
 
       expect(result).toBe(mockQueryResponse);
       expect(controller.executeQuery).toHaveBeenCalledWith(
@@ -806,27 +855,43 @@ describe("QueryController", () => {
 
   describe("edge cases and parameter validation", () => {
     it("should handle undefined symbols parameter", async () => {
-      await expect(controller.queryBySymbols(undefined as any, "longport", "US", "quote", 100, 1, true)).rejects.toThrow(
-        "Symbols parameter is required",
-      );
+      await expect(
+        controller.queryBySymbols(
+          undefined as any,
+          "longport",
+          "US",
+          "quote",
+          100,
+          1,
+          true,
+        ),
+      ).rejects.toThrow("Symbols parameter is required");
     });
 
     it("should handle null market parameter", async () => {
-      await expect(controller.queryByMarket(null as any, "longport", "quote", 100, 0)).rejects.toThrow(
-        "Market parameter is required",
-      );
+      await expect(
+        controller.queryByMarket(null as any, "longport", "quote", 100, 0),
+      ).rejects.toThrow("Market parameter is required");
     });
 
     it("should handle null provider parameter", async () => {
-      await expect(controller.queryByProvider(null as any, "longport", "quote", 100, 0)).rejects.toThrow(
-        "Provider parameter is required",
-      );
+      await expect(
+        controller.queryByProvider(null as any, "longport", "quote", 100, 0),
+      ).rejects.toThrow("Provider parameter is required");
     });
 
     it("should filter out empty symbols after splitting", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols("AAPL,,MSFT,,,GOOGL,", "longport", "US", "quote", 100, 1, true);
+      await controller.queryBySymbols(
+        "AAPL,,MSFT,,,GOOGL,",
+        "longport",
+        "US",
+        "quote",
+        100,
+        1,
+        true,
+      );
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -841,7 +906,15 @@ describe("QueryController", () => {
       // Let's test that it behaves gracefully
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryBySymbols(", , ,", "longport", "US", "quote", 100, 1, true);
+      await controller.queryBySymbols(
+        ", , ,",
+        "longport",
+        "US",
+        "quote",
+        100,
+        1,
+        true,
+      );
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({

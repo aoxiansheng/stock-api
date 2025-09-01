@@ -7,7 +7,7 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { jest } from "@jest/globals";
-import  express from "express";
+import express from "express";
 
 // 动态导入AppModule
 import { AppModule } from "../../src/app.module";
@@ -79,8 +79,6 @@ beforeAll(async () => {
 
     app.use("/api", express.json({ limit: "10mb" }));
     app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
-
-
 
     app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
 

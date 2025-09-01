@@ -5,7 +5,7 @@
  */
 
 import { Test, TestingModule } from "@nestjs/testing";
-import  bcrypt from "bcrypt";
+import bcrypt from "bcrypt";
 
 import { PasswordService } from "../../../../../src/auth/services/password.service";
 

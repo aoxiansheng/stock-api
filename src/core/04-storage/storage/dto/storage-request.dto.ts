@@ -8,7 +8,8 @@ import {
   IsEnum,
   ValidateNested,
 } from "class-validator";
-import { StorageType, StorageClassification } from "../enums/storage-type.enum";
+import { StorageClassification } from '../../../shared/types/storage-classification.enum';
+import { StorageType } from '../enums/storage-type.enum';
 
 export class StorageOptionsDto {
   @ApiPropertyOptional({ description: "Cache TTL in seconds", default: 3600 })

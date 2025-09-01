@@ -41,7 +41,9 @@ describe("Transformer Constants", () => {
       expect(DATATRANSFORM_ERROR_MESSAGES.SAMPLE_DATA_EXTRACTION_FAILED).toBe(
         "样本数据提取失败",
       );
-      expect(DATATRANSFORM_ERROR_MESSAGES.FIELD_MAPPING_ERROR).toBe("字段映射错误");
+      expect(DATATRANSFORM_ERROR_MESSAGES.FIELD_MAPPING_ERROR).toBe(
+        "字段映射错误",
+      );
     });
 
     it("should be frozen", () => {
@@ -112,8 +114,12 @@ describe("Transformer Constants", () => {
       expect(DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS).toBe(
         5000,
       );
-      expect(DATATRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE).toBe(1000);
-      expect(DATATRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(200); // 更新为统一常量系统中的值
+      expect(DATATRANSFORM_PERFORMANCE_THRESHOLDS.LARGE_DATASET_SIZE).toBe(
+        1000,
+      );
+      expect(DATATRANSFORM_PERFORMANCE_THRESHOLDS.HIGH_MEMORY_USAGE_MB).toBe(
+        200,
+      ); // 更新为统一常量系统中的值
       expect(DATATRANSFORM_PERFORMANCE_THRESHOLDS.MAX_PROCESSING_TIME_MS).toBe(
         60000,
       );

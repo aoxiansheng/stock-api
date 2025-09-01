@@ -8,7 +8,7 @@ import {
   DataSourceTemplate,
   DataSourceTemplateSchema,
   ExtractedField,
-  ExtractedFieldSchema
+  ExtractedFieldSchema,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
 
 describe("DataSourceTemplateSchema", () => {
@@ -19,8 +19,11 @@ describe("DataSourceTemplateSchema", () => {
     mongod = await MongoMemoryServer.create();
     const uri = mongod.getUri();
     await mongoose.connect(uri);
-    
-    model = mongoose.model<DataSourceTemplate>('DataSourceTemplate', DataSourceTemplateSchema);
+
+    model = mongoose.model<DataSourceTemplate>(
+      "DataSourceTemplate",
+      DataSourceTemplateSchema,
+    );
   });
 
   afterAll(async () => {
@@ -42,7 +45,7 @@ describe("DataSourceTemplateSchema", () => {
         sampleData: {
           symbol: "700.HK",
           last_done: 561,
-          volume: 11292534
+          volume: 11292534,
         },
         extractedFields: [
           {
@@ -52,12 +55,12 @@ describe("DataSourceTemplateSchema", () => {
             sampleValue: "700.HK",
             confidence: 1.0,
             isNested: false,
-            nestingLevel: 0
-          }
+            nestingLevel: 0,
+          },
         ],
-        
+
         totalFields: 3,
-        confidence: 0.95
+        confidence: 0.95,
       };
 
       const template = new model(templateData);
@@ -75,7 +78,7 @@ describe("DataSourceTemplateSchema", () => {
 
     it("should fail validation with missing required fields", async () => {
       const template = new model({});
-      
+
       let error;
       try {
         await template.save();
@@ -93,12 +96,12 @@ describe("DataSourceTemplateSchema", () => {
         provider: "longport",
         apiType: "invalid",
         sampleData: { symbol: "700.HK" },
-        
-        confidence: 0.5
+
+        confidence: 0.5,
       };
 
       const template = new model(templateData);
-      
+
       let error;
       try {
         await template.save();
@@ -110,20 +113,18 @@ describe("DataSourceTemplateSchema", () => {
       expect(error.errors.apiType).toBeDefined();
     });
 
-
-
     it("should fail validation with confidence out of range", async () => {
       const templateData = {
         name: "Test Template",
         provider: "longport",
         apiType: "rest",
         sampleData: { symbol: "700.HK" },
-        
-        confidence: 1.5 // Invalid: > 1
+
+        confidence: 1.5, // Invalid: > 1
       };
 
       const template = new model(templateData);
-      
+
       let error;
       try {
         await template.save();
@@ -143,8 +144,8 @@ describe("DataSourceTemplateSchema", () => {
         sampleData: {
           quote: {
             symbol: "AAPL.US",
-            price: 150.25
-          }
+            price: 150.25,
+          },
         },
         extractedFields: [
           {
@@ -154,7 +155,7 @@ describe("DataSourceTemplateSchema", () => {
             sampleValue: "AAPL.US",
             confidence: 0.9,
             isNested: true,
-            nestingLevel: 1
+            nestingLevel: 1,
           },
           {
             fieldPath: "quote.price",
@@ -163,12 +164,12 @@ describe("DataSourceTemplateSchema", () => {
             sampleValue: 150.25,
             confidence: 0.95,
             isNested: true,
-            nestingLevel: 1
-          }
+            nestingLevel: 1,
+          },
         ],
-        
+
         totalFields: 2,
-        confidence: 0.92
+        confidence: 0.92,
       };
 
       const template = new model(templateData);
@@ -177,7 +178,6 @@ describe("DataSourceTemplateSchema", () => {
       expect(savedTemplate.extractedFields).toHaveLength(2);
       expect(savedTemplate.extractedFields[0].isNested).toBe(true);
       expect(savedTemplate.extractedFields[0].nestingLevel).toBe(1);
-      
     });
 
     it("should handle optional fields correctly", async () => {
@@ -186,11 +186,11 @@ describe("DataSourceTemplateSchema", () => {
         provider: "test",
         apiType: "rest",
         sampleData: { test: true },
-        
+
         confidence: 0.8,
         isDefault: true,
         isPreset: true,
-        usageCount: 10
+        usageCount: 10,
       };
 
       const template = new model(templateData);
@@ -209,8 +209,8 @@ describe("DataSourceTemplateSchema", () => {
         provider: "test",
         apiType: "rest",
         sampleData: { test: true },
-        
-        confidence: 0.5
+
+        confidence: 0.5,
       };
 
       const template = new model(templateData);
@@ -228,8 +228,8 @@ describe("DataSourceTemplateSchema", () => {
         provider: "test",
         apiType: "rest",
         sampleData: { test: true },
-        
-        confidence: 0.5
+
+        confidence: 0.5,
       };
 
       const template = new model(templateData);
@@ -237,11 +237,13 @@ describe("DataSourceTemplateSchema", () => {
       const originalUpdatedAt = savedTemplate.updatedAt;
 
       // Wait a moment and update
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       savedTemplate.usageCount = 1;
       const updatedTemplate = await savedTemplate.save();
 
-      expect(updatedTemplate.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+      expect(updatedTemplate.updatedAt.getTime()).toBeGreaterThan(
+        originalUpdatedAt.getTime(),
+      );
     });
   });
 
@@ -251,7 +253,7 @@ describe("DataSourceTemplateSchema", () => {
       field.fieldPath = "quote.data[0].price";
       field.fieldName = "price";
       field.fieldType = "number";
-      field.sampleValue = 100.50;
+      field.sampleValue = 100.5;
       field.confidence = 0.85;
       field.isNested = true;
       field.nestingLevel = 2;
@@ -259,7 +261,7 @@ describe("DataSourceTemplateSchema", () => {
       expect(field.fieldPath).toBe("quote.data[0].price");
       expect(field.isNested).toBe(true);
       expect(field.nestingLevel).toBe(2);
-      expect(field.sampleValue).toBe(100.50);
+      expect(field.sampleValue).toBe(100.5);
     });
 
     it("should be embedded in template correctly", async () => {
@@ -276,21 +278,21 @@ describe("DataSourceTemplateSchema", () => {
             sampleValue: "value1",
             confidence: 1.0,
             isNested: false,
-            nestingLevel: 0
+            nestingLevel: 0,
           },
           {
             fieldPath: "field2",
-            fieldName: "field2", 
+            fieldName: "field2",
             fieldType: "number",
             sampleValue: 123,
             confidence: 0.9,
             isNested: false,
-            nestingLevel: 0
-          }
+            nestingLevel: 0,
+          },
         ],
-        
+
         totalFields: 2,
-        confidence: 0.95
+        confidence: 0.95,
       };
 
       const template = new model(templateData);

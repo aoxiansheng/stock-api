@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { io, Socket } from 'socket.io-client';
+import { io, Socket } from "socket.io-client";
 
 // Type definitions for WebSocket responses
 interface SubscriptionResult {
@@ -54,7 +54,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
   beforeAll(async () => {
     httpServer = global.createTestRequest();
     await setupAuthentication();
-    
+
     // Get server address for WebSocket connection
     const port = process.env.TEST_PORT || 3333;
     serverAddress = `http://localhost:${port}`;
@@ -83,7 +83,8 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       password: userData.password,
     });
 
-    jwtToken = loginResponse.body.data?.accessToken || loginResponse.body.accessToken;
+    jwtToken =
+      loginResponse.body.data?.accessToken || loginResponse.body.accessToken;
 
     // 3. 创建API Key
     const apiKeyData = {
@@ -115,7 +116,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
   function createWebSocketClient(auth = true): Promise<Socket> {
     return new Promise((resolve, reject) => {
       const connectionOptions: any = {
-        transports: ['websocket'],
+        transports: ["websocket"],
         timeout: 10000,
       };
 
@@ -129,17 +130,17 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       // 修复路径问题：WebSocket网关已经定义了路径，这里只需要服务器地址
       const socket = io(serverAddress, {
         ...connectionOptions,
-        path: '/api/v1/stream-receiver/connect',
+        path: "/api/v1/stream-receiver/connect",
       });
 
       let timeoutId: NodeJS.Timeout;
 
-      socket.on('connect', () => {
+      socket.on("connect", () => {
         if (timeoutId) clearTimeout(timeoutId);
         resolve(socket);
       });
 
-      socket.on('connect_error', (error) => {
+      socket.on("connect_error", (error) => {
         if (timeoutId) clearTimeout(timeoutId);
         reject(error);
       });
@@ -148,7 +149,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       timeoutId = setTimeout(() => {
         if (!socket.connected) {
           socket.disconnect();
-          reject(new Error('WebSocket connection timeout'));
+          reject(new Error("WebSocket connection timeout"));
         }
       }, 10000);
     });
@@ -171,34 +172,37 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
     it("should handle connection with invalid credentials", async () => {
       try {
-        const invalidSocket = io(`${serverAddress}/api/v1/stream-receiver/connect`, {
-          transports: ['websocket'],
-          timeout: 5000,
-          auth: {
-            'X-App-Key': 'invalid-key',
-            'X-Access-Token': 'invalid-token',
+        const invalidSocket = io(
+          `${serverAddress}/api/v1/stream-receiver/connect`,
+          {
+            transports: ["websocket"],
+            timeout: 5000,
+            auth: {
+              "X-App-Key": "invalid-key",
+              "X-Access-Token": "invalid-token",
+            },
           },
-        });
+        );
 
         await new Promise((resolve, reject) => {
-          invalidSocket.on('connect', () => {
-            reject(new Error('Should not connect with invalid credentials'));
+          invalidSocket.on("connect", () => {
+            reject(new Error("Should not connect with invalid credentials"));
           });
 
-          invalidSocket.on('connect_error', (error) => {
+          invalidSocket.on("connect_error", (error) => {
             resolve(error);
           });
 
           const timeoutId = setTimeout(() => {
             invalidSocket.disconnect();
-            resolve('timeout');
+            resolve("timeout");
           }, 5000);
-          
+
           // 确保在连接成功或失败时清理定时器
-          invalidSocket.on('connect', () => {
+          invalidSocket.on("connect", () => {
             clearTimeout(timeoutId);
           });
-          invalidSocket.on('connect_error', () => {
+          invalidSocket.on("connect_error", () => {
             clearTimeout(timeoutId);
           });
         });
@@ -214,26 +218,29 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
         const connectionEvents: string[] = [];
 
-        clientSocket.on('connect', () => {
-          connectionEvents.push('connect');
+        clientSocket.on("connect", () => {
+          connectionEvents.push("connect");
         });
 
-        clientSocket.on('disconnect', (reason) => {
+        clientSocket.on("disconnect", (reason) => {
           connectionEvents.push(`disconnect:${reason}`);
         });
 
         // Wait for connection
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        expect(connectionEvents).toContain('connect');
+        expect(connectionEvents).toContain("connect");
 
         // Disconnect
         clientSocket.disconnect();
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         expect(clientSocket.connected).toBe(false);
       } catch (error) {
-        console.warn('WebSocket connection lifecycle test skipped:', error.message);
+        console.warn(
+          "WebSocket connection lifecycle test skipped:",
+          error.message,
+        );
       }
     });
   });
@@ -244,41 +251,48 @@ describe("Stream Receiver Gateway E2E Tests", () => {
     });
 
     it("should handle subscribe to stock symbols", async () => {
-
       const subscriptionPromise = new Promise((resolve) => {
-        clientSocket.on('subscriptionResult', (data) => {
+        clientSocket.on("subscriptionResult", (data) => {
           resolve(data);
         });
       });
 
       // Act
       const subscribeData = {
-        symbols: ['AAPL', '700.HK', '000001.SZ'],
-        streamType: 'stock-quote',
+        symbols: ["AAPL", "700.HK", "000001.SZ"],
+        streamType: "stock-quote",
         options: {
           realtime: true,
-          includeMetadata: true
-        }
+          includeMetadata: true,
+        },
       };
 
-      clientSocket.emit('subscribe', subscribeData);
+      clientSocket.emit("subscribe", subscribeData);
 
       try {
         // Wait for subscription result
-        const result = await Promise.race([
+        const result = (await Promise.race([
           subscriptionPromise,
-          new Promise<SubscriptionResult>(resolve => setTimeout(() => resolve({ timeout: true } as SubscriptionResult), 5000))
-        ]) as SubscriptionResult;
+          new Promise<SubscriptionResult>((resolve) =>
+            setTimeout(
+              () => resolve({ timeout: true } as SubscriptionResult),
+              5000,
+            ),
+          ),
+        ])) as SubscriptionResult;
 
         if (result && !result.timeout) {
-          expect(result).toHaveProperty('success');
-          expect(result).toHaveProperty('subscriptions');
+          expect(result).toHaveProperty("success");
+          expect(result).toHaveProperty("subscriptions");
           if (result.subscriptions) {
             expect(result.subscriptions).toBeInstanceOf(Array);
           }
         }
       } catch (error) {
-        console.warn('WebSocket subscription test inconclusive:', error.message);
+        console.warn(
+          "WebSocket subscription test inconclusive:",
+          error.message,
+        );
       }
     });
 
@@ -288,39 +302,47 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
       // First subscribe
       const subscribeData = {
-        symbols: ['AAPL'],
-        streamType: 'stock-quote'
+        symbols: ["AAPL"],
+        streamType: "stock-quote",
       };
-      clientSocket.emit('subscribe', subscribeData);
+      clientSocket.emit("subscribe", subscribeData);
 
       // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const unsubscriptionPromise = new Promise((resolve) => {
-        clientSocket.on('unsubscriptionResult', (data) => {
+        clientSocket.on("unsubscriptionResult", (data) => {
           resolve(data);
         });
       });
 
       // Act - Unsubscribe
       const unsubscribeData = {
-        symbols: ['AAPL'],
-        streamType: 'stock-quote'
+        symbols: ["AAPL"],
+        streamType: "stock-quote",
       };
 
-      clientSocket.emit('unsubscribe', unsubscribeData);
+      clientSocket.emit("unsubscribe", unsubscribeData);
 
       try {
-        const result = await Promise.race([
+        const result = (await Promise.race([
           unsubscriptionPromise,
-          new Promise<SubscriptionResult>(resolve => setTimeout(() => resolve({ timeout: true } as SubscriptionResult), 5000))
-        ]) as SubscriptionResult;
+          new Promise<SubscriptionResult>((resolve) =>
+            setTimeout(
+              () => resolve({ timeout: true } as SubscriptionResult),
+              5000,
+            ),
+          ),
+        ])) as SubscriptionResult;
 
         if (result && !result.timeout) {
-          expect(result).toHaveProperty('success');
+          expect(result).toHaveProperty("success");
         }
       } catch (error) {
-        console.warn('WebSocket unsubscription test inconclusive:', error.message);
+        console.warn(
+          "WebSocket unsubscription test inconclusive:",
+          error.message,
+        );
       }
     });
 
@@ -329,30 +351,32 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const errorPromise = new Promise((resolve) => {
-        clientSocket.on('subscribe-error', (error) => {
+        clientSocket.on("subscribe-error", (error) => {
           resolve(error);
         });
       });
 
       // Test invalid subscription data
       const invalidSubscriptions = [
-        { symbols: [], streamType: 'stock-quote' }, // Empty symbols
-        { symbols: ['AAPL'] }, // Missing streamType
-        { streamType: 'stock-quote' }, // Missing symbols
-        { symbols: ['AAPL'], streamType: 'invalid-type' } // Invalid streamType
+        { symbols: [], streamType: "stock-quote" }, // Empty symbols
+        { symbols: ["AAPL"] }, // Missing streamType
+        { streamType: "stock-quote" }, // Missing symbols
+        { symbols: ["AAPL"], streamType: "invalid-type" }, // Invalid streamType
       ];
 
       for (const invalidSub of invalidSubscriptions) {
-        clientSocket.emit('subscribe', invalidSub);
-        
+        clientSocket.emit("subscribe", invalidSub);
+
         try {
-          const error = await Promise.race([
+          const error = (await Promise.race([
             errorPromise,
-            new Promise<ErrorResult | null>(resolve => setTimeout(() => resolve(null), 2000))
-          ]) as ErrorResult | null;
+            new Promise<ErrorResult | null>((resolve) =>
+              setTimeout(() => resolve(null), 2000),
+            ),
+          ])) as ErrorResult | null;
 
           if (error) {
-            expect(error).toHaveProperty('message');
+            expect(error).toHaveProperty("message");
             expect(error.message).toBeDefined();
           }
         } catch (err) {
@@ -366,40 +390,48 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const streamTypes = [
-        'stock-quote',
-        'stock-depth', 
-        'stock-trade',
-        'index-quote'
+        "stock-quote",
+        "stock-depth",
+        "stock-trade",
+        "index-quote",
       ];
 
       for (const streamType of streamTypes) {
         const subscriptionPromise = new Promise((resolve) => {
-          clientSocket.on('subscriptionResult', (data) => {
+          clientSocket.on("subscriptionResult", (data) => {
             resolve(data);
           });
         });
 
         const subscribeData = {
-          symbols: ['AAPL'],
+          symbols: ["AAPL"],
           streamType,
-          options: { timeout: 3000 }
+          options: { timeout: 3000 },
         };
 
-        clientSocket.emit('subscribe', subscribeData);
+        clientSocket.emit("subscribe", subscribeData);
 
         try {
-          const result = await Promise.race([
+          const result = (await Promise.race([
             subscriptionPromise,
-            new Promise<SubscriptionResult>(resolve => setTimeout(() => resolve({ timeout: true } as SubscriptionResult), 3000))
-          ]) as SubscriptionResult;
+            new Promise<SubscriptionResult>((resolve) =>
+              setTimeout(
+                () => resolve({ timeout: true } as SubscriptionResult),
+                3000,
+              ),
+            ),
+          ])) as SubscriptionResult;
 
           // Different stream types may have different availability
           if (result && !result.timeout) {
-            expect(result).toHaveProperty('streamType', streamType);
+            expect(result).toHaveProperty("streamType", streamType);
           }
         } catch (error) {
           // Some stream types may not be supported
-          console.warn(`Stream type ${streamType} may not be supported:`, error.message);
+          console.warn(
+            `Stream type ${streamType} may not be supported:`,
+            error.message,
+          );
         }
       }
     });
@@ -410,40 +442,53 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
       const bulkSubscribeData = {
         symbols: [
-          'AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA',
-          '700.HK', '5.HK', '1299.HK',
-          '000001.SZ', '000002.SZ', '600000.SH'
+          "AAPL",
+          "GOOGL",
+          "MSFT",
+          "AMZN",
+          "TSLA",
+          "700.HK",
+          "5.HK",
+          "1299.HK",
+          "000001.SZ",
+          "000002.SZ",
+          "600000.SH",
         ],
-        streamType: 'stock-quote',
+        streamType: "stock-quote",
         options: {
           batchSize: 5,
-          continueOnError: true
-        }
+          continueOnError: true,
+        },
       };
 
       const subscriptionPromise = new Promise((resolve) => {
-        clientSocket.on('subscriptionResult', (data) => {
+        clientSocket.on("subscriptionResult", (data) => {
           resolve(data);
         });
       });
 
-      clientSocket.emit('subscribe', bulkSubscribeData);
+      clientSocket.emit("subscribe", bulkSubscribeData);
 
       try {
-        const result = await Promise.race([
+        const result = (await Promise.race([
           subscriptionPromise,
-          new Promise<SubscriptionResult>(resolve => setTimeout(() => resolve({ timeout: true } as SubscriptionResult), 10000))
-        ]) as SubscriptionResult;
+          new Promise<SubscriptionResult>((resolve) =>
+            setTimeout(
+              () => resolve({ timeout: true } as SubscriptionResult),
+              10000,
+            ),
+          ),
+        ])) as SubscriptionResult;
 
         if (result && !result.timeout) {
-          expect(result).toHaveProperty('subscriptions');
+          expect(result).toHaveProperty("subscriptions");
           if (result.subscriptions) {
             expect(result.subscriptions.length).toBeGreaterThan(0);
           }
-          expect(result).toHaveProperty('partial'); // May have partial failures
+          expect(result).toHaveProperty("partial"); // May have partial failures
         }
       } catch (error) {
-        console.warn('Bulk subscription test inconclusive:', error.message);
+        console.warn("Bulk subscription test inconclusive:", error.message);
       }
     });
   });
@@ -452,8 +497,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
     beforeEach(async () => {
       try {
         clientSocket = await createWebSocketClient(true);
-      } catch (error) {
-      }
+      } catch (error) {}
     });
 
     it("should receive real-time stock quote data", async () => {
@@ -461,31 +505,36 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const dataPromise = new Promise((resolve) => {
-        clientSocket.on('stockQuoteData', (data) => {
+        clientSocket.on("stockQuoteData", (data) => {
           resolve(data);
         });
       });
 
       // Subscribe first
       const subscribeData = {
-        symbols: ['AAPL'],
-        streamType: 'stock-quote'
+        symbols: ["AAPL"],
+        streamType: "stock-quote",
       };
-      clientSocket.emit('subscribe', subscribeData);
+      clientSocket.emit("subscribe", subscribeData);
 
       try {
-        const streamData = await Promise.race([
+        const streamData = (await Promise.race([
           dataPromise,
-          new Promise<StreamData>(resolve => setTimeout(() => resolve({ timeout: true } as StreamData), 15000))
-        ]) as StreamData;
+          new Promise<StreamData>((resolve) =>
+            setTimeout(() => resolve({ timeout: true } as StreamData), 15000),
+          ),
+        ])) as StreamData;
 
         if (streamData && !streamData.timeout) {
-          expect(streamData).toHaveProperty('symbol');
-          expect(streamData).toHaveProperty('timestamp');
-          expect(streamData).toHaveProperty('data');
+          expect(streamData).toHaveProperty("symbol");
+          expect(streamData).toHaveProperty("timestamp");
+          expect(streamData).toHaveProperty("data");
         }
       } catch (error) {
-        console.warn('Real-time data streaming test inconclusive:', error.message);
+        console.warn(
+          "Real-time data streaming test inconclusive:",
+          error.message,
+        );
       }
     });
 
@@ -494,9 +543,9 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const receivedData = new Map();
-      const symbols = ['AAPL', 'GOOGL', 'MSFT'];
+      const symbols = ["AAPL", "GOOGL", "MSFT"];
 
-      clientSocket.on('stockQuoteData', (data) => {
+      clientSocket.on("stockQuoteData", (data) => {
         if (data && data.symbol) {
           receivedData.set(data.symbol, data);
         }
@@ -505,19 +554,19 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       // Subscribe to multiple symbols
       const subscribeData = {
         symbols,
-        streamType: 'stock-quote'
+        streamType: "stock-quote",
       };
-      clientSocket.emit('subscribe', subscribeData);
+      clientSocket.emit("subscribe", subscribeData);
 
       // Wait for data
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 10000));
 
       // Check if we received data for multiple symbols
       if (receivedData.size > 0) {
         expect(receivedData.size).toBeGreaterThanOrEqual(1);
         receivedData.forEach((data, symbol) => {
           expect(symbols).toContain(symbol);
-          expect(data).toHaveProperty('timestamp');
+          expect(data).toHaveProperty("timestamp");
         });
       }
     });
@@ -527,39 +576,46 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const dataValidationPromise = new Promise((resolve) => {
-        clientSocket.on('stockQuoteData', (data) => {
+        clientSocket.on("stockQuoteData", (data) => {
           // Validate data structure
-          const isValid = (
+          const isValid =
             data &&
-            typeof data === 'object' &&
+            typeof data === "object" &&
             data.symbol &&
             data.timestamp &&
-            data.data
-          );
+            data.data;
           resolve({ isValid, data });
         });
       });
 
       // Subscribe
-      clientSocket.emit('subscribe', {
-        symbols: ['AAPL'],
-        streamType: 'stock-quote'
+      clientSocket.emit("subscribe", {
+        symbols: ["AAPL"],
+        streamType: "stock-quote",
       });
 
       try {
-        const validation = await Promise.race([
+        const validation = (await Promise.race([
           dataValidationPromise,
-          new Promise<ValidationResult>(resolve => setTimeout(() => resolve({ timeout: true } as ValidationResult), 10000))
-        ]) as ValidationResult;
+          new Promise<ValidationResult>((resolve) =>
+            setTimeout(
+              () => resolve({ timeout: true } as ValidationResult),
+              10000,
+            ),
+          ),
+        ])) as ValidationResult;
 
         if (validation && !validation.timeout && validation.isValid) {
           expect(validation.isValid).toBe(true);
-          expect(validation.data).toHaveProperty('symbol');
-          expect(validation.data).toHaveProperty('timestamp');
-          expect(validation.data).toHaveProperty('data');
+          expect(validation.data).toHaveProperty("symbol");
+          expect(validation.data).toHaveProperty("timestamp");
+          expect(validation.data).toHaveProperty("data");
         }
       } catch (error) {
-        console.warn('Stream data validation test inconclusive:', error.message);
+        console.warn(
+          "Stream data validation test inconclusive:",
+          error.message,
+        );
       }
     });
 
@@ -569,34 +625,34 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
       const connectionEvents: string[] = [];
 
-      clientSocket.on('disconnect', (reason) => {
+      clientSocket.on("disconnect", (reason) => {
         connectionEvents.push(`disconnect:${reason}`);
       });
 
-      clientSocket.on('connect', () => {
-        connectionEvents.push('reconnect');
+      clientSocket.on("connect", () => {
+        connectionEvents.push("reconnect");
       });
 
       // Subscribe first
-      clientSocket.emit('subscribe', {
-        symbols: ['AAPL'],
-        streamType: 'stock-quote'
+      clientSocket.emit("subscribe", {
+        symbols: ["AAPL"],
+        streamType: "stock-quote",
       });
 
       // Force disconnect and reconnect
       clientSocket.disconnect();
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       try {
         // Try to reconnect
         clientSocket.connect();
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         if (connectionEvents.length > 0) {
-          expect(connectionEvents).toContain('disconnect:io client disconnect');
+          expect(connectionEvents).toContain("disconnect:io client disconnect");
         }
       } catch (error) {
-        console.warn('Reconnection test inconclusive:', error.message);
+        console.warn("Reconnection test inconclusive:", error.message);
       }
     });
   });
@@ -605,8 +661,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
     beforeEach(async () => {
       try {
         clientSocket = await createWebSocketClient(true);
-      } catch (error) {
-      }
+      } catch (error) {}
     });
 
     it("should handle subscription rate limits", async () => {
@@ -614,32 +669,34 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       // Rapid subscription attempts
-      const rapidSubscriptions = Array(10).fill(null).map((_, i) => ({
-        symbols: [`RAPID_TEST_${i}`],
-        streamType: 'stock-quote'
-      }));
+      const rapidSubscriptions = Array(10)
+        .fill(null)
+        .map((_, i) => ({
+          symbols: [`RAPID_TEST_${i}`],
+          streamType: "stock-quote",
+        }));
 
       const results: any[] = [];
 
-      clientSocket.on('subscriptionResult', (data) => {
-        results.push({ success: data.success, type: 'result' });
+      clientSocket.on("subscriptionResult", (data) => {
+        results.push({ success: data.success, type: "result" });
       });
 
-      clientSocket.on('subscribe-error', (error) => {
-        results.push({ success: false, error: error.message, type: 'error' });
+      clientSocket.on("subscribe-error", (error) => {
+        results.push({ success: false, error: error.message, type: "error" });
       });
 
       // Send rapid subscriptions
       for (const subscription of rapidSubscriptions) {
-        clientSocket.emit('subscribe', subscription);
+        clientSocket.emit("subscribe", subscription);
       }
 
       // Wait for results
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       if (results.length > 0) {
         // Should have some form of rate limiting or throttling
-        const errors = results.filter(r => r.type === 'error');
+        const errors = results.filter((r) => r.type === "error");
         expect(results.length).toBeGreaterThan(0);
       }
     });
@@ -649,40 +706,48 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       // Try to subscribe to many symbols at once
-      const manySymbols = Array(100).fill(null).map((_, i) => `SYMBOL_${i}`);
+      const manySymbols = Array(100)
+        .fill(null)
+        .map((_, i) => `SYMBOL_${i}`);
 
       const subscriptionPromise = new Promise((resolve) => {
-        clientSocket.on('subscriptionResult', (data) => {
+        clientSocket.on("subscriptionResult", (data) => {
           resolve(data);
         });
 
-        clientSocket.on('subscribe-error', (error) => {
+        clientSocket.on("subscribe-error", (error) => {
           resolve({ error: error.message });
         });
       });
 
-      clientSocket.emit('subscribe', {
+      clientSocket.emit("subscribe", {
         symbols: manySymbols,
-        streamType: 'stock-quote'
+        streamType: "stock-quote",
       });
 
       try {
-        const result = await Promise.race([
+        const result = (await Promise.race([
           subscriptionPromise,
-          new Promise<SubscriptionResult & ErrorResult>(resolve => setTimeout(() => resolve({ timeout: true } as SubscriptionResult & ErrorResult), 10000))
-        ]) as SubscriptionResult & ErrorResult;
+          new Promise<SubscriptionResult & ErrorResult>((resolve) =>
+            setTimeout(
+              () =>
+                resolve({ timeout: true } as SubscriptionResult & ErrorResult),
+              10000,
+            ),
+          ),
+        ])) as SubscriptionResult & ErrorResult;
 
         if (result && !result.timeout) {
           if (result.error) {
             // Should handle limit exceeded gracefully
-            expect(result.error).toContain('limit');
+            expect(result.error).toContain("limit");
           } else {
             // Should succeed with reasonable limits
-            expect(result).toHaveProperty('subscriptions');
+            expect(result).toHaveProperty("subscriptions");
           }
         }
       } catch (error) {
-        console.warn('Symbol limit test inconclusive:', error.message);
+        console.warn("Symbol limit test inconclusive:", error.message);
       }
     });
 
@@ -692,12 +757,12 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
       const latencyMeasurements: number[] = [];
 
-      clientSocket.on('stockQuoteData', (data) => {
+      clientSocket.on("stockQuoteData", (data) => {
         if (data && data.timestamp) {
           const receiveTime = Date.now();
           const dataTime = new Date(data.timestamp).getTime();
           const latency = receiveTime - dataTime;
-          
+
           // Only record reasonable latencies (avoid clock skew issues)
           if (latency > 0 && latency < 60000) {
             latencyMeasurements.push(latency);
@@ -706,22 +771,26 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       });
 
       // Subscribe
-      clientSocket.emit('subscribe', {
-        symbols: ['AAPL'],
-        streamType: 'stock-quote'
+      clientSocket.emit("subscribe", {
+        symbols: ["AAPL"],
+        streamType: "stock-quote",
       });
 
       // Collect latency data
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 10000));
 
       if (latencyMeasurements.length > 0) {
-        const avgLatency = latencyMeasurements.reduce((a, b) => a + b, 0) / latencyMeasurements.length;
+        const avgLatency =
+          latencyMeasurements.reduce((a, b) => a + b, 0) /
+          latencyMeasurements.length;
         const maxLatency = Math.max(...latencyMeasurements);
-        
+
         expect(avgLatency).toBeGreaterThan(0);
         expect(avgLatency).toBeLessThan(30000); // Should be reasonable
-        
-        console.log(`Stream latency - Avg: ${avgLatency.toFixed(2)}ms, Max: ${maxLatency}ms, Samples: ${latencyMeasurements.length}`);
+
+        console.log(
+          `Stream latency - Avg: ${avgLatency.toFixed(2)}ms, Max: ${maxLatency}ms, Samples: ${latencyMeasurements.length}`,
+        );
       }
     });
   });
@@ -730,8 +799,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
     beforeEach(async () => {
       try {
         clientSocket = await createWebSocketClient(true);
-      } catch (error) {
-      }
+      } catch (error) {}
     });
 
     it("should handle malformed subscription messages", async () => {
@@ -739,11 +807,11 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const errorPromise = new Promise((resolve) => {
-        clientSocket.on('error', (error) => {
+        clientSocket.on("error", (error) => {
           resolve(error);
         });
 
-        clientSocket.on('subscribe-error', (error) => {
+        clientSocket.on("subscribe-error", (error) => {
           resolve(error);
         });
       });
@@ -754,12 +822,12 @@ describe("Stream Receiver Gateway E2E Tests", () => {
         undefined,
         "not an object",
         { malformed: "data" },
-        { symbols: "not an array", streamType: "stock-quote" }
+        { symbols: "not an array", streamType: "stock-quote" },
       ];
 
       for (const message of malformedMessages) {
         try {
-          clientSocket.emit('subscribe', message);
+          clientSocket.emit("subscribe", message);
         } catch (error) {
           // Expected to fail
         }
@@ -768,7 +836,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       try {
         const error = await Promise.race([
           errorPromise,
-          new Promise(resolve => setTimeout(() => resolve(null), 3000))
+          new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
         ]);
 
         if (error) {
@@ -784,36 +852,41 @@ describe("Stream Receiver Gateway E2E Tests", () => {
       }
 
       const resultPromise = new Promise((resolve) => {
-        clientSocket.on('subscriptionResult', (data) => {
+        clientSocket.on("subscriptionResult", (data) => {
           resolve(data);
         });
       });
 
       // Subscribe to clearly non-existent symbols
-      clientSocket.emit('subscribe', {
-        symbols: ['NONEXISTENT_SYMBOL_12345', 'FAKE_STOCK_99999'],
-        streamType: 'stock-quote',
+      clientSocket.emit("subscribe", {
+        symbols: ["NONEXISTENT_SYMBOL_12345", "FAKE_STOCK_99999"],
+        streamType: "stock-quote",
         options: {
-          continueOnError: true
-        }
+          continueOnError: true,
+        },
       });
 
       try {
-        const result = await Promise.race([
+        const result = (await Promise.race([
           resultPromise,
-          new Promise<SubscriptionResult>(resolve => setTimeout(() => resolve({ timeout: true } as SubscriptionResult), 5000))
-        ]) as SubscriptionResult;
+          new Promise<SubscriptionResult>((resolve) =>
+            setTimeout(
+              () => resolve({ timeout: true } as SubscriptionResult),
+              5000,
+            ),
+          ),
+        ])) as SubscriptionResult;
 
         if (result && !result.timeout) {
-          expect(result).toHaveProperty('subscriptions');
-          expect(result).toHaveProperty('failed');
+          expect(result).toHaveProperty("subscriptions");
+          expect(result).toHaveProperty("failed");
           // Should report failed subscriptions
           if (result.failed) {
             expect(result.failed.length).toBeGreaterThan(0);
           }
         }
       } catch (error) {
-        console.warn('Non-existent symbol test inconclusive:', error.message);
+        console.warn("Non-existent symbol test inconclusive:", error.message);
       }
     });
 
@@ -823,35 +896,37 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
       const networkEvents: string[] = [];
 
-      clientSocket.on('disconnect', (reason) => {
+      clientSocket.on("disconnect", (reason) => {
         networkEvents.push(`disconnect:${reason}`);
       });
 
-      clientSocket.on('connect_error', (error) => {
+      clientSocket.on("connect_error", (error) => {
         networkEvents.push(`connect_error:${error.message}`);
       });
 
-      clientSocket.on('reconnect', (attemptNumber) => {
+      clientSocket.on("reconnect", (attemptNumber) => {
         networkEvents.push(`reconnect:${attemptNumber}`);
       });
 
       // Simulate network interruption by forcing disconnect
       clientSocket.disconnect();
-      
+
       // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Try to reconnect
       try {
         clientSocket.connect();
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       } catch (error) {
         // Network issues expected in test environment
       }
 
       // Check that network events were properly handled
       expect(networkEvents.length).toBeGreaterThan(0);
-      expect(networkEvents.some(event => event.startsWith('disconnect'))).toBe(true);
+      expect(
+        networkEvents.some((event) => event.startsWith("disconnect")),
+      ).toBe(true);
     });
 
     it("should handle concurrent connections from same user", async () => {
@@ -868,24 +943,23 @@ describe("Stream Receiver Gateway E2E Tests", () => {
         expect(secondSocket.connected).toBe(true);
 
         // Both should be able to subscribe
-        clientSocket.emit('subscribe', {
-          symbols: ['AAPL'],
-          streamType: 'stock-quote'
+        clientSocket.emit("subscribe", {
+          symbols: ["AAPL"],
+          streamType: "stock-quote",
         });
 
-        secondSocket.emit('subscribe', {
-          symbols: ['GOOGL'],
-          streamType: 'stock-quote'
+        secondSocket.emit("subscribe", {
+          symbols: ["GOOGL"],
+          streamType: "stock-quote",
         });
 
         // Wait for operations
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         expect(clientSocket.connected).toBe(true);
         expect(secondSocket.connected).toBe(true);
-
       } catch (error) {
-        console.warn('Concurrent connection test inconclusive:', error.message);
+        console.warn("Concurrent connection test inconclusive:", error.message);
       } finally {
         if (secondSocket && secondSocket.connected) {
           secondSocket.disconnect();
@@ -903,30 +977,35 @@ describe("Stream Receiver Gateway E2E Tests", () => {
         }
 
         const healthPromise = new Promise((resolve) => {
-          clientSocket.on('healthCheck', (data) => {
+          clientSocket.on("healthCheck", (data) => {
             resolve(data);
           });
         });
 
         // Request health check
-        clientSocket.emit('healthCheck');
+        clientSocket.emit("healthCheck");
 
         try {
-          const health = await Promise.race([
+          const health = (await Promise.race([
             healthPromise,
-            new Promise<HealthResult>(resolve => setTimeout(() => resolve({ timeout: true } as HealthResult), 5000))
-          ]) as HealthResult;
+            new Promise<HealthResult>((resolve) =>
+              setTimeout(
+                () => resolve({ timeout: true } as HealthResult),
+                5000,
+              ),
+            ),
+          ])) as HealthResult;
 
           if (health && !health.timeout) {
-            expect(health).toHaveProperty('status');
-            expect(health).toHaveProperty('timestamp');
-            expect(health).toHaveProperty('connections');
+            expect(health).toHaveProperty("status");
+            expect(health).toHaveProperty("timestamp");
+            expect(health).toHaveProperty("connections");
           }
         } catch (error) {
-          console.warn('Health check test inconclusive:', error.message);
+          console.warn("Health check test inconclusive:", error.message);
         }
       } catch (error) {
-        console.warn('Health check test inconclusive:', error.message);
+        console.warn("Health check test inconclusive:", error.message);
       }
     });
 
@@ -939,29 +1018,31 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
         // Request connection stats
         const statsPromise = new Promise((resolve) => {
-          clientSocket.on('connectionStats', (data) => {
+          clientSocket.on("connectionStats", (data) => {
             resolve(data);
           });
         });
 
-        clientSocket.emit('getStats');
+        clientSocket.emit("getStats");
 
         try {
-          const stats = await Promise.race([
+          const stats = (await Promise.race([
             statsPromise,
-            new Promise<StatsResult>(resolve => setTimeout(() => resolve({ timeout: true } as StatsResult), 5000))
-          ]) as StatsResult;
+            new Promise<StatsResult>((resolve) =>
+              setTimeout(() => resolve({ timeout: true } as StatsResult), 5000),
+            ),
+          ])) as StatsResult;
 
           if (stats && !stats.timeout) {
-            expect(stats).toHaveProperty('totalConnections');
-            expect(stats).toHaveProperty('activeSubscriptions');
-            expect(stats).toHaveProperty('messagesPerSecond');
+            expect(stats).toHaveProperty("totalConnections");
+            expect(stats).toHaveProperty("activeSubscriptions");
+            expect(stats).toHaveProperty("messagesPerSecond");
           }
         } catch (error) {
-          console.warn('Connection stats test inconclusive:', error.message);
+          console.warn("Connection stats test inconclusive:", error.message);
         }
       } catch (error) {
-        console.warn('Connection statistics test skipped');
+        console.warn("Connection statistics test skipped");
       }
     });
   });

@@ -4,10 +4,10 @@ import { createLogger } from '@app/config/logger.config';
 import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
 import {
   ReceiverType,
-  StorageClassification,
   QueryTypeFilter,
   FIELD_MAPPING_CONFIG,
 } from '../types/field-naming.types';
+import { StorageClassification } from '../types/storage-classification.enum';
 
 /**
  * 字段映射转换服务

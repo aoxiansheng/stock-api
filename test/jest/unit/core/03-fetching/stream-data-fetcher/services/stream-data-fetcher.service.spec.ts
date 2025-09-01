@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Test, TestingModule } from '@nestjs/testing';
-import { v4 as uuidv4 } from 'uuid';
-import { StreamDataFetcherService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
-import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
-import { StreamMetricsService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-metrics.service';
-import { StreamCacheService } from '../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
-import { StreamClientStateManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service';
-import { ConnectionPoolManager } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/connection-pool-manager.service';
-import { StreamMonitoringService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-monitoring.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { v4 as uuidv4 } from "uuid";
+import { StreamDataFetcherService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { CapabilityRegistryService } from "../../../../../../../src/providers/services/capability-registry.service";
+import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
+import { StreamMetricsService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-metrics.service";
+import { StreamCacheService } from "../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service";
+import { StreamClientStateManager } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
+import { ConnectionPoolManager } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/connection-pool-manager.service";
+import { StreamMonitoringService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-monitoring.service";
 import {
   StreamConnectionParams,
   StreamConnection,
   StreamConnectionException,
   StreamSubscriptionException,
-} from '../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces';
+} from "../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces";
 
-describe('StreamDataFetcherService', () => {
+describe("StreamDataFetcherService", () => {
   let service: StreamDataFetcherService;
   let capabilityRegistry: jest.Mocked<CapabilityRegistryService>;
   let collectorService: jest.Mocked<CollectorService>;
@@ -41,8 +41,8 @@ describe('StreamDataFetcherService', () => {
     };
 
     mockContextService = {
-      id: 'test-context',
-      provider: 'test-provider',
+      id: "test-context",
+      provider: "test-provider",
     };
 
     const mockCapabilityRegistry = {
@@ -57,8 +57,18 @@ describe('StreamDataFetcherService', () => {
       recordSystemMetrics: jest.fn(),
       collectRequestMetrics: jest.fn().mockResolvedValue(undefined),
       collectPerformanceData: jest.fn().mockResolvedValue(undefined),
-      getRawMetrics: jest.fn().mockResolvedValue({ requests: [], database: [], cache: [], system: undefined }),
-      getSystemMetrics: jest.fn().mockResolvedValue({ memory: { used: 0, total: 0, percentage: 0 }, cpu: { usage: 0 }, uptime: 0, timestamp: new Date() }),
+      getRawMetrics: jest.fn().mockResolvedValue({
+        requests: [],
+        database: [],
+        cache: [],
+        system: undefined,
+      }),
+      getSystemMetrics: jest.fn().mockResolvedValue({
+        memory: { used: 0, total: 0, percentage: 0 },
+        cpu: { usage: 0 },
+        uptime: 0,
+        timestamp: new Date(),
+      }),
     };
 
     const mockStreamMetricsService = {
@@ -142,10 +152,10 @@ describe('StreamDataFetcherService', () => {
     jest.clearAllMocks();
   });
 
-  describe('establishStreamConnection', () => {
+  describe("establishStreamConnection", () => {
     const validParams: StreamConnectionParams = {
-      provider: 'longport',
-      capability: 'ws-stock-quote',
+      provider: "longport",
+      capability: "ws-stock-quote",
       contextService: mockContextService,
       requestId: uuidv4(),
       options: {
@@ -155,7 +165,7 @@ describe('StreamDataFetcherService', () => {
       },
     };
 
-    it('应该成功建立流连接', async () => {
+    it("应该成功建立流连接", async () => {
       // Arrange
       mockCapabilityInstance.isConnected
         .mockReturnValueOnce(false) // 第一次检查需要初始化
@@ -163,7 +173,11 @@ describe('StreamDataFetcherService', () => {
       capabilityRegistry.getCapability.mockReturnValue(mockCapabilityInstance);
 
       // Act
-      const connection = await service.establishStreamConnection(validParams.provider, validParams.capability, validParams.options);
+      const connection = await service.establishStreamConnection(
+        validParams.provider,
+        validParams.capability,
+        validParams.options,
+      );
 
       // Assert
       expect(connection).toBeDefined();
@@ -174,49 +188,63 @@ describe('StreamDataFetcherService', () => {
         validParams.provider,
         validParams.capability,
       );
-      expect(mockCapabilityInstance.initialize).toHaveBeenCalledWith(validParams.contextService);
+      expect(mockCapabilityInstance.initialize).toHaveBeenCalledWith(
+        validParams.contextService,
+      );
     });
 
-    it('应该在能力不存在时抛出异常', async () => {
+    it("应该在能力不存在时抛出异常", async () => {
       // Arrange
       capabilityRegistry.getCapability.mockReturnValue(null);
 
       // Act & Assert
-      await expect(service.establishStreamConnection(validParams.provider, validParams.capability, validParams.options)).rejects.toThrow(
-        StreamConnectionException,
-      );
+      await expect(
+        service.establishStreamConnection(
+          validParams.provider,
+          validParams.capability,
+          validParams.options,
+        ),
+      ).rejects.toThrow(StreamConnectionException);
       expect(capabilityRegistry.getCapability).toHaveBeenCalledWith(
         validParams.provider,
         validParams.capability,
       );
     });
 
-    it('应该在连接初始化失败时重试', async () => {
+    it("应该在连接初始化失败时重试", async () => {
       // Arrange - 让整个连接创建过程失败从而触发service级别的重试
       let attemptCount = 0;
       capabilityRegistry.getCapability.mockImplementation(() => {
         attemptCount++;
         if (attemptCount === 1) {
-          throw new Error('初始化失败'); // 第一次尝试失败
+          throw new Error("初始化失败"); // 第一次尝试失败
         }
         return mockCapabilityInstance; // 第二次尝试成功
       });
-      
+
       mockCapabilityInstance.isConnected
         .mockReturnValueOnce(false)
         .mockReturnValue(true);
 
       // Act
-      const connection = await service.establishStreamConnection(validParams.provider, validParams.capability, validParams.options);
+      const connection = await service.establishStreamConnection(
+        validParams.provider,
+        validParams.capability,
+        validParams.options,
+      );
 
       // Assert
       expect(connection).toBeDefined();
       expect(capabilityRegistry.getCapability).toHaveBeenCalledTimes(2); // 重试了一次
     });
 
-    it('应该记录连接建立指标', async () => {
+    it("应该记录连接建立指标", async () => {
       // Act
-      await service.establishStreamConnection(validParams.provider, validParams.capability, validParams.options);
+      await service.establishStreamConnection(
+        validParams.provider,
+        validParams.capability,
+        validParams.options,
+      );
 
       // Assert
       // 验证指标记录 - 连接建立成功时会通过CollectorService记录指标
@@ -224,21 +252,24 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('subscribeToSymbols', () => {
+  describe("subscribeToSymbols", () => {
     let connection: StreamConnection;
-    const testSymbols = ['700.HK', '0005.HK', 'AAPL.US'];
+    const testSymbols = ["700.HK", "0005.HK", "AAPL.US"];
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
-      connection = await service.establishStreamConnection(params.provider, params.capability);
+      connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
     });
 
-    it('应该成功订阅符号', async () => {
+    it("应该成功订阅符号", async () => {
       // Act
       await service.subscribeToSymbols(connection, testSymbols);
 
@@ -248,44 +279,44 @@ describe('StreamDataFetcherService', () => {
         mockContextService,
       );
       expect(connection.subscribedSymbols.size).toBe(testSymbols.length);
-      testSymbols.forEach(symbol => {
+      testSymbols.forEach((symbol) => {
         expect(connection.subscribedSymbols.has(symbol)).toBe(true);
       });
     });
 
-    it('应该在连接不活跃时抛出异常', async () => {
+    it("应该在连接不活跃时抛出异常", async () => {
       // Arrange
       connection.isConnected = false;
 
       // Act & Assert
-      await expect(service.subscribeToSymbols(connection, testSymbols)).rejects.toThrow(
-        StreamConnectionException,
-      );
+      await expect(
+        service.subscribeToSymbols(connection, testSymbols),
+      ).rejects.toThrow(StreamConnectionException);
       expect(mockCapabilityInstance.subscribe).not.toHaveBeenCalled();
     });
 
-    it('应该在符号列表为空时抛出异常', async () => {
+    it("应该在符号列表为空时抛出异常", async () => {
       // Act & Assert
       await expect(service.subscribeToSymbols(connection, [])).rejects.toThrow(
         StreamSubscriptionException,
       );
-      await expect(service.subscribeToSymbols(connection, null)).rejects.toThrow(
-        StreamSubscriptionException,
-      );
+      await expect(
+        service.subscribeToSymbols(connection, null),
+      ).rejects.toThrow(StreamSubscriptionException);
       expect(mockCapabilityInstance.subscribe).not.toHaveBeenCalled();
     });
 
-    it('应该在能力实例不支持订阅时抛出异常', async () => {
+    it("应该在能力实例不支持订阅时抛出异常", async () => {
       // Arrange
       delete mockCapabilityInstance.subscribe;
 
       // Act & Assert
-      await expect(service.subscribeToSymbols(connection, testSymbols)).rejects.toThrow(
-        StreamSubscriptionException,
-      );
+      await expect(
+        service.subscribeToSymbols(connection, testSymbols),
+      ).rejects.toThrow(StreamSubscriptionException);
     });
 
-    it('应该记录订阅指标', async () => {
+    it("应该记录订阅指标", async () => {
       // Act
       await service.subscribeToSymbols(connection, testSymbols);
 
@@ -295,24 +326,31 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('unsubscribeFromSymbols', () => {
+  describe("unsubscribeFromSymbols", () => {
     let connection: StreamConnection;
-    const testSymbols = ['700.HK', '0005.HK'];
+    const testSymbols = ["700.HK", "0005.HK"];
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
-      connection = await service.establishStreamConnection(params.provider, params.capability);
-      
+      connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
+
       // 先订阅符号
-      await service.subscribeToSymbols(connection, ['700.HK', '0005.HK', 'AAPL.US']);
+      await service.subscribeToSymbols(connection, [
+        "700.HK",
+        "0005.HK",
+        "AAPL.US",
+      ]);
     });
 
-    it('应该成功取消订阅符号', async () => {
+    it("应该成功取消订阅符号", async () => {
       // Act
       await service.unsubscribeFromSymbols(connection, testSymbols);
 
@@ -322,46 +360,49 @@ describe('StreamDataFetcherService', () => {
         mockContextService,
       );
       expect(connection.subscribedSymbols.size).toBe(1); // 只剩AAPL.US
-      expect(connection.subscribedSymbols.has('AAPL.US')).toBe(true);
-      testSymbols.forEach(symbol => {
+      expect(connection.subscribedSymbols.has("AAPL.US")).toBe(true);
+      testSymbols.forEach((symbol) => {
         expect(connection.subscribedSymbols.has(symbol)).toBe(false);
       });
     });
 
-    it('应该在连接不活跃时抛出异常', async () => {
+    it("应该在连接不活跃时抛出异常", async () => {
       // Arrange
       connection.isConnected = false;
 
       // Act & Assert
-      await expect(service.unsubscribeFromSymbols(connection, testSymbols)).rejects.toThrow(
-        StreamConnectionException,
-      );
+      await expect(
+        service.unsubscribeFromSymbols(connection, testSymbols),
+      ).rejects.toThrow(StreamConnectionException);
       expect(mockCapabilityInstance.unsubscribe).not.toHaveBeenCalled();
     });
 
-    it('应该在符号列表为空时抛出异常', async () => {
+    it("应该在符号列表为空时抛出异常", async () => {
       // Act & Assert
-      await expect(service.unsubscribeFromSymbols(connection, [])).rejects.toThrow(
-        StreamSubscriptionException,
-      );
+      await expect(
+        service.unsubscribeFromSymbols(connection, []),
+      ).rejects.toThrow(StreamSubscriptionException);
       expect(mockCapabilityInstance.unsubscribe).not.toHaveBeenCalled();
     });
   });
 
-  describe('closeConnection', () => {
+  describe("closeConnection", () => {
     let connection: StreamConnection;
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
-      connection = await service.establishStreamConnection(params.provider, params.capability);
+      connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
     });
 
-    it('应该成功关闭连接', async () => {
+    it("应该成功关闭连接", async () => {
       // Act
       await service.closeConnection(connection);
 
@@ -369,12 +410,14 @@ describe('StreamDataFetcherService', () => {
       expect(connection.isConnected).toBe(false);
       expect(connection.subscribedSymbols.size).toBe(0);
       expect(service.isConnectionActive(connection.id)).toBe(false);
-      expect(mockCapabilityInstance.close).toHaveBeenCalledWith(mockContextService);
+      expect(mockCapabilityInstance.close).toHaveBeenCalledWith(
+        mockContextService,
+      );
     });
 
-    it('应该在关闭失败时抛出异常', async () => {
+    it("应该在关闭失败时抛出异常", async () => {
       // Arrange
-      mockCapabilityInstance.close.mockRejectedValue(new Error('关闭失败'));
+      mockCapabilityInstance.close.mockRejectedValue(new Error("关闭失败"));
 
       // Act & Assert
       await expect(service.closeConnection(connection)).rejects.toThrow(
@@ -383,20 +426,23 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('isConnectionActive', () => {
+  describe("isConnectionActive", () => {
     let connection: StreamConnection;
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
-      connection = await service.establishStreamConnection(params.provider, params.capability);
+      connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
     });
 
-    it('应该正确检查连接活跃状态', () => {
+    it("应该正确检查连接活跃状态", () => {
       // Act & Assert
       expect(service.isConnectionActive(connection.id)).toBe(true);
 
@@ -406,20 +452,23 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('getConnectionStats', () => {
+  describe("getConnectionStats", () => {
     let connection: StreamConnection;
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
-      connection = await service.establishStreamConnection(params.provider, params.capability);
+      connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
     });
 
-    it('应该返回连接统计信息', () => {
+    it("应该返回连接统计信息", () => {
       // Act
       const stats = service.getConnectionStats(connection.id);
 
@@ -433,24 +482,30 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('getAllConnectionStats', () => {
-    it('应该返回所有活跃连接的统计信息', async () => {
+  describe("getAllConnectionStats", () => {
+    it("应该返回所有活跃连接的统计信息", async () => {
       // Arrange
       const params1: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
       const params2: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-option-quote',
+        provider: "longport",
+        capability: "ws-option-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      await service.establishStreamConnection(params1.provider, params1.capability);
-      await service.establishStreamConnection(params2.provider, params2.capability);
+      await service.establishStreamConnection(
+        params1.provider,
+        params1.capability,
+      );
+      await service.establishStreamConnection(
+        params2.provider,
+        params2.capability,
+      );
 
       // Act
       const allStats = service.getAllConnectionStats();
@@ -462,7 +517,7 @@ describe('StreamDataFetcherService', () => {
       expect(allStats[0].connectionId).not.toBe(allStats[1].connectionId);
     });
 
-    it('应该在没有活跃连接时返回空数组', () => {
+    it("应该在没有活跃连接时返回空数组", () => {
       // Act
       const allStats = service.getAllConnectionStats();
 
@@ -471,12 +526,12 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('错误处理和重试机制', () => {
-    it('应该在网络错误时重试连接', async () => {
+  describe("错误处理和重试机制", () => {
+    it("应该在网络错误时重试连接", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
@@ -486,7 +541,7 @@ describe('StreamDataFetcherService', () => {
       capabilityRegistry.getCapability.mockImplementation(() => {
         attemptCount++;
         if (attemptCount === 1) {
-          throw new Error('网络错误'); // 第一次尝试失败
+          throw new Error("网络错误"); // 第一次尝试失败
         }
         return mockCapabilityInstance; // 第二次尝试成功
       });
@@ -496,18 +551,21 @@ describe('StreamDataFetcherService', () => {
         .mockReturnValue(true);
 
       // Act
-      const connection = await service.establishStreamConnection(params.provider, params.capability);
+      const connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
       expect(connection).toBeDefined();
       expect(capabilityRegistry.getCapability).toHaveBeenCalledTimes(2); // 重试了一次
     });
 
-    it('应该记录操作失败指标', async () => {
+    it("应该记录操作失败指标", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
@@ -515,24 +573,29 @@ describe('StreamDataFetcherService', () => {
       capabilityRegistry.getCapability.mockReturnValue(null);
 
       // Act & Assert
-      await expect(service.establishStreamConnection(params.provider, params.capability)).rejects.toThrow();
+      await expect(
+        service.establishStreamConnection(params.provider, params.capability),
+      ).rejects.toThrow();
       // 验证失败指标记录
       expect(collectorService.recordRequest).toHaveBeenCalled();
     });
   });
 
-  describe('性能监控', () => {
-    it('应该记录处理时间指标', async () => {
+  describe("性能监控", () => {
+    it("应该记录处理时间指标", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Act
-      await service.establishStreamConnection(params.provider, params.capability);
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
       // 验证处理时间指标记录
@@ -540,46 +603,52 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('与现有CapabilityRegistry集成', () => {
-    it('应该正确使用CapabilityRegistryService获取能力', async () => {
+  describe("与现有CapabilityRegistry集成", () => {
+    it("应该正确使用CapabilityRegistryService获取能力", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Act
-      await service.establishStreamConnection(params.provider, params.capability);
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
       expect(capabilityRegistry.getCapability).toHaveBeenCalledWith(
-        'longport',
-        'ws-stock-quote',
+        "longport",
+        "ws-stock-quote",
       );
     });
 
-    it('应该检测并警告非流能力', async () => {
+    it("应该检测并警告非流能力", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'get-stock-quote', // 非WebSocket能力
+        provider: "longport",
+        capability: "get-stock-quote", // 非WebSocket能力
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      const loggerWarnSpy = jest.spyOn(service['logger'], 'warn');
+      const loggerWarnSpy = jest.spyOn(service["logger"], "warn");
 
       // Act
-      await service.establishStreamConnection(params.provider, params.capability);
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
       expect(loggerWarnSpy).toHaveBeenCalledWith(
-        '可能不是流能力',
+        "可能不是流能力",
         expect.objectContaining({
-          provider: 'longport',
-          capability: 'get-stock-quote',
+          provider: "longport",
+          capability: "get-stock-quote",
           suggestion: expect.stringContaining('流能力通常以"ws-"开头'),
         }),
       );
@@ -588,10 +657,10 @@ describe('StreamDataFetcherService', () => {
     });
   });
 
-  describe('P1-2: Adaptive Concurrency Control', () => {
+  describe("P1-2: Adaptive Concurrency Control", () => {
     beforeEach(() => {
       // Reset performance metrics before each test
-      service['performanceMetrics'] = {
+      service["performanceMetrics"] = {
         responseTimes: [],
         avgResponseTime: 0,
         p95ResponseTime: 0,
@@ -607,210 +676,241 @@ describe('StreamDataFetcherService', () => {
       };
     });
 
-    it('should initialize with proper performance metrics state', () => {
+    it("should initialize with proper performance metrics state", () => {
       // Assert
-      expect(service['performanceMetrics']).toBeDefined();
-      expect(service['performanceMetrics'].responseTimes).toEqual([]);
-      expect(service['performanceMetrics'].avgResponseTime).toBe(0);
-      expect(service['performanceMetrics'].successRate).toBe(100);
-      expect(service['performanceMetrics'].activeOperations).toBe(0);
+      expect(service["performanceMetrics"]).toBeDefined();
+      expect(service["performanceMetrics"].responseTimes).toEqual([]);
+      expect(service["performanceMetrics"].avgResponseTime).toBe(0);
+      expect(service["performanceMetrics"].successRate).toBe(100);
+      expect(service["performanceMetrics"].activeOperations).toBe(0);
     });
 
-    it('should record operation performance metrics', async () => {
+    it("should record operation performance metrics", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Act
-      await service.establishStreamConnection(params.provider, params.capability);
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
-      expect(service['performanceMetrics'].totalRequests).toBe(1);
-      expect(service['performanceMetrics'].successfulRequests).toBe(1);
-      expect(service['performanceMetrics'].responseTimes.length).toBe(1);
-      expect(service['performanceMetrics'].responseTimes[0]).toBeGreaterThan(0);
+      expect(service["performanceMetrics"].totalRequests).toBe(1);
+      expect(service["performanceMetrics"].successfulRequests).toBe(1);
+      expect(service["performanceMetrics"].responseTimes.length).toBe(1);
+      expect(service["performanceMetrics"].responseTimes[0]).toBeGreaterThan(0);
     });
 
-    it('should calculate average response time correctly', async () => {
+    it("should calculate average response time correctly", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Act - perform multiple operations
-      await service.establishStreamConnection(params.provider, params.capability);
-      await service.establishStreamConnection(params.provider, params.capability);
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
-      expect(service['performanceMetrics'].avgResponseTime).toBeGreaterThan(0);
-      expect(service['performanceMetrics'].totalRequests).toBe(2);
-      expect(service['performanceMetrics'].responseTimes.length).toBe(2);
+      expect(service["performanceMetrics"].avgResponseTime).toBeGreaterThan(0);
+      expect(service["performanceMetrics"].totalRequests).toBe(2);
+      expect(service["performanceMetrics"].responseTimes.length).toBe(2);
     });
 
-    it('should calculate P95 response time correctly', async () => {
+    it("should calculate P95 response time correctly", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Simulate multiple operations with varying response times
       const responseTimes = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-      service['performanceMetrics'].responseTimes = responseTimes;
+      service["performanceMetrics"].responseTimes = responseTimes;
 
       // Act
-      const p95 = service['calculateP95ResponseTime']();
+      const p95 = service["calculateP95ResponseTime"]();
 
       // Assert
       expect(p95).toBe(95); // P95 of [10,20,30,40,50,60,70,80,90,100] is 95
     });
 
-    it('should adjust concurrency based on performance metrics', () => {
+    it("should adjust concurrency based on performance metrics", () => {
       // Arrange - simulate poor performance
-      service['performanceMetrics'].avgResponseTime = 1000; // High response time
-      service['performanceMetrics'].successRate = 70; // Low success rate
-      const initialConcurrency = service['currentConcurrency'];
+      service["performanceMetrics"].avgResponseTime = 1000; // High response time
+      service["performanceMetrics"].successRate = 70; // Low success rate
+      const initialConcurrency = service["currentConcurrency"];
 
       // Act
-      const newConcurrency = service['calculateOptimalConcurrency']();
+      const newConcurrency = service["calculateOptimalConcurrency"]();
 
       // Assert
       expect(newConcurrency).toBeLessThanOrEqual(initialConcurrency);
     });
 
-    it('should increase concurrency when performance is good', () => {
+    it("should increase concurrency when performance is good", () => {
       // Arrange - simulate good performance
-      service['performanceMetrics'].avgResponseTime = 50; // Low response time
-      service['performanceMetrics'].successRate = 100; // High success rate
-      service['currentConcurrency'] = 10;
+      service["performanceMetrics"].avgResponseTime = 50; // Low response time
+      service["performanceMetrics"].successRate = 100; // High success rate
+      service["currentConcurrency"] = 10;
 
       // Act
-      const newConcurrency = service['calculateOptimalConcurrency']();
+      const newConcurrency = service["calculateOptimalConcurrency"]();
 
       // Assert
       expect(newConcurrency).toBeGreaterThan(10);
     });
 
-    it('should respect minimum and maximum concurrency limits', () => {
+    it("should respect minimum and maximum concurrency limits", () => {
       // Arrange - extreme conditions
-      service['performanceMetrics'].avgResponseTime = 10000; // Very high
-      service['performanceMetrics'].successRate = 0; // Complete failure
+      service["performanceMetrics"].avgResponseTime = 10000; // Very high
+      service["performanceMetrics"].successRate = 0; // Complete failure
 
       // Act
-      const newConcurrency = service['calculateOptimalConcurrency']();
+      const newConcurrency = service["calculateOptimalConcurrency"]();
 
       // Assert
-      expect(newConcurrency).toBeGreaterThanOrEqual(service['minConcurrency']);
-      expect(newConcurrency).toBeLessThanOrEqual(service['maxConcurrency']);
+      expect(newConcurrency).toBeGreaterThanOrEqual(service["minConcurrency"]);
+      expect(newConcurrency).toBeLessThanOrEqual(service["maxConcurrency"]);
     });
 
-    it('should implement circuit breaker functionality', () => {
+    it("should implement circuit breaker functionality", () => {
       // Arrange - simulate many failures
-      service['performanceMetrics'].failedRequests = 15;
-      service['performanceMetrics'].totalRequests = 20;
-      service['performanceMetrics'].successRate = 25; // 25% success rate
+      service["performanceMetrics"].failedRequests = 15;
+      service["performanceMetrics"].totalRequests = 20;
+      service["performanceMetrics"].successRate = 25; // 25% success rate
 
       // Act
-      const isCircuitOpen = service['shouldTriggerCircuitBreaker']();
+      const isCircuitOpen = service["shouldTriggerCircuitBreaker"]();
 
       // Assert
       expect(isCircuitOpen).toBe(true);
     });
 
-    it('should not trigger circuit breaker with good performance', () => {
+    it("should not trigger circuit breaker with good performance", () => {
       // Arrange - simulate good performance
-      service['performanceMetrics'].failedRequests = 1;
-      service['performanceMetrics'].totalRequests = 100;
-      service['performanceMetrics'].successRate = 99;
+      service["performanceMetrics"].failedRequests = 1;
+      service["performanceMetrics"].totalRequests = 100;
+      service["performanceMetrics"].successRate = 99;
 
       // Act
-      const isCircuitOpen = service['shouldTriggerCircuitBreaker']();
+      const isCircuitOpen = service["shouldTriggerCircuitBreaker"]();
 
       // Assert
       expect(isCircuitOpen).toBe(false);
     });
 
-    it('should track concurrency history for analysis', async () => {
+    it("should track concurrency history for analysis", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      const initialHistoryLength = service['performanceMetrics'].concurrencyHistory.length;
+      const initialHistoryLength =
+        service["performanceMetrics"].concurrencyHistory.length;
 
       // Act
-      await service.establishStreamConnection(params.provider, params.capability);
+      await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
-      expect(service['performanceMetrics'].concurrencyHistory.length).toBeGreaterThan(initialHistoryLength);
-      
-      const latestEntry = service['performanceMetrics'].concurrencyHistory[
-        service['performanceMetrics'].concurrencyHistory.length - 1
-      ];
-      expect(latestEntry).toHaveProperty('concurrency');
-      expect(latestEntry).toHaveProperty('timestamp');
-      expect(latestEntry).toHaveProperty('performance');
+      expect(
+        service["performanceMetrics"].concurrencyHistory.length,
+      ).toBeGreaterThan(initialHistoryLength);
+
+      const latestEntry =
+        service["performanceMetrics"].concurrencyHistory[
+          service["performanceMetrics"].concurrencyHistory.length - 1
+        ];
+      expect(latestEntry).toHaveProperty("concurrency");
+      expect(latestEntry).toHaveProperty("timestamp");
+      expect(latestEntry).toHaveProperty("performance");
     });
 
-    it('should maintain performance metrics window size', () => {
+    it("should maintain performance metrics window size", () => {
       // Arrange
-      const windowSize = service['performanceMetrics'].windowSize;
-      
+      const windowSize = service["performanceMetrics"].windowSize;
+
       // Fill response times beyond window size
       for (let i = 0; i < windowSize + 50; i++) {
-        service['performanceMetrics'].responseTimes.push(Math.random() * 100);
+        service["performanceMetrics"].responseTimes.push(Math.random() * 100);
       }
 
       // Act
-      service['maintainMetricsWindow']();
+      service["maintainMetricsWindow"]();
 
       // Assert
-      expect(service['performanceMetrics'].responseTimes.length).toBeLessThanOrEqual(windowSize);
+      expect(
+        service["performanceMetrics"].responseTimes.length,
+      ).toBeLessThanOrEqual(windowSize);
     });
   });
 
-  describe('P2-1: StreamMonitoringService Integration', () => {
-    it('should use StreamMonitoringService for connection monitoring', async () => {
+  describe("P2-1: StreamMonitoringService Integration", () => {
+    it("should use StreamMonitoringService for connection monitoring", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      const mockStreamMonitoringService = service['streamMonitoringService'];
+      const mockStreamMonitoringService = service["streamMonitoringService"];
 
       // Act
-      const connection = await service.establishStreamConnection(params.provider, params.capability);
+      const connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
-      expect(mockStreamMonitoringService.setupConnectionMonitoring).toHaveBeenCalledWith(connection, expect.any(Function), expect.any(Function), expect.any(Function));
+      expect(
+        mockStreamMonitoringService.setupConnectionMonitoring,
+      ).toHaveBeenCalledWith(
+        connection,
+        expect.any(Function),
+        expect.any(Function),
+        expect.any(Function),
+      );
     });
 
-    it('should stop monitoring connection when closing', async () => {
+    it("should stop monitoring connection when closing", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      const connection = await service.establishStreamConnection(params.provider, params.capability);
-      const mockStreamMonitoringService = service['streamMonitoringService'];
+      const connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
+      const mockStreamMonitoringService = service["streamMonitoringService"];
 
       // Act
       await service.closeConnection(connection);
@@ -819,167 +919,182 @@ describe('StreamDataFetcherService', () => {
       // Note: Monitoring cleanup is handled automatically via RxJS destroy$
     });
 
-    it('should handle monitoring service failures gracefully', async () => {
+    it("should handle monitoring service failures gracefully", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      const mockStreamMonitoringService = service['streamMonitoringService'];
-      jest.spyOn(mockStreamMonitoringService, 'setupConnectionMonitoring').mockImplementation(() => {});
+      const mockStreamMonitoringService = service["streamMonitoringService"];
+      jest
+        .spyOn(mockStreamMonitoringService, "setupConnectionMonitoring")
+        .mockImplementation(() => {});
 
-      const loggerWarnSpy = jest.spyOn(service['logger'], 'warn');
+      const loggerWarnSpy = jest.spyOn(service["logger"], "warn");
 
       // Act
-      const connection = await service.establishStreamConnection(params.provider, params.capability);
+      const connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
 
       // Assert
       expect(connection).toBeDefined();
       expect(loggerWarnSpy).toHaveBeenCalledWith(
-        '启动连接监控失败',
+        "启动连接监控失败",
         expect.objectContaining({
           connectionId: connection.id,
-        })
+        }),
       );
 
       loggerWarnSpy.mockRestore();
     });
   });
 
-  describe('Health Check Integration', () => {
-    it('should include performance metrics in health check', () => {
+  describe("Health Check Integration", () => {
+    it("should include performance metrics in health check", () => {
       // Arrange
-      service['performanceMetrics'].avgResponseTime = 150;
-      service['performanceMetrics'].successRate = 95;
-      service['performanceMetrics'].activeOperations = 5;
+      service["performanceMetrics"].avgResponseTime = 150;
+      service["performanceMetrics"].successRate = 95;
+      service["performanceMetrics"].activeOperations = 5;
 
       // Act
-      const healthInfo = service['getHealthInfo']();
+      const healthInfo = service["getHealthInfo"]();
 
       // Assert
-      expect(healthInfo).toHaveProperty('performance');
-      expect(healthInfo.performance).toHaveProperty('avgResponseTime', 150);
-      expect(healthInfo.performance).toHaveProperty('successRate', 95);
-      expect(healthInfo.performance).toHaveProperty('activeOperations', 5);
-      expect(healthInfo.performance).toHaveProperty('currentConcurrency');
+      expect(healthInfo).toHaveProperty("performance");
+      expect(healthInfo.performance).toHaveProperty("avgResponseTime", 150);
+      expect(healthInfo.performance).toHaveProperty("successRate", 95);
+      expect(healthInfo.performance).toHaveProperty("activeOperations", 5);
+      expect(healthInfo.performance).toHaveProperty("currentConcurrency");
     });
 
-    it('should include monitoring service status in health check', () => {
+    it("should include monitoring service status in health check", () => {
       // Arrange
-      const mockStreamMonitoringService = service['streamMonitoringService'];
+      const mockStreamMonitoringService = service["streamMonitoringService"];
       // Note: Connection count is managed by the main service, not monitoring service
       // Note: isDestroyed is handled by the monitoring service internally
 
       // Act
-      const healthInfo = service['getHealthInfo']();
+      const healthInfo = service["getHealthInfo"]();
 
       // Assert
-      expect(healthInfo).toHaveProperty('monitoring');
-      expect(healthInfo.monitoring).toHaveProperty('connectionCount', 3);
-      expect(healthInfo.monitoring).toHaveProperty('isDestroyed', false);
+      expect(healthInfo).toHaveProperty("monitoring");
+      expect(healthInfo.monitoring).toHaveProperty("connectionCount", 3);
+      expect(healthInfo.monitoring).toHaveProperty("isDestroyed", false);
     });
 
-    it('should report unhealthy status when circuit breaker is open', () => {
+    it("should report unhealthy status when circuit breaker is open", () => {
       // Arrange - simulate circuit breaker conditions
-      service['performanceMetrics'].failedRequests = 20;
-      service['performanceMetrics'].totalRequests = 25;
-      service['performanceMetrics'].successRate = 20;
+      service["performanceMetrics"].failedRequests = 20;
+      service["performanceMetrics"].totalRequests = 25;
+      service["performanceMetrics"].successRate = 20;
 
       // Act
-      const healthInfo = service['getHealthInfo']();
+      const healthInfo = service["getHealthInfo"]();
 
       // Assert
-      expect(healthInfo.status).toBe('unhealthy');
-      expect(healthInfo).toHaveProperty('circuitBreaker');
+      expect(healthInfo.status).toBe("unhealthy");
+      expect(healthInfo).toHaveProperty("circuitBreaker");
       expect(healthInfo.circuitBreaker.isOpen).toBe(true);
     });
 
-    it('should report healthy status under normal conditions', () => {
+    it("should report healthy status under normal conditions", () => {
       // Arrange - simulate normal conditions
-      service['performanceMetrics'].failedRequests = 2;
-      service['performanceMetrics'].totalRequests = 100;
-      service['performanceMetrics'].successRate = 98;
-      service['performanceMetrics'].avgResponseTime = 80;
+      service["performanceMetrics"].failedRequests = 2;
+      service["performanceMetrics"].totalRequests = 100;
+      service["performanceMetrics"].successRate = 98;
+      service["performanceMetrics"].avgResponseTime = 80;
 
       // Act
-      const healthInfo = service['getHealthInfo']();
+      const healthInfo = service["getHealthInfo"]();
 
       // Assert
-      expect(healthInfo.status).toBe('healthy');
+      expect(healthInfo.status).toBe("healthy");
       expect(healthInfo.circuitBreaker.isOpen).toBe(false);
     });
   });
 
-  describe('Error Handling and Recovery', () => {
-    it('should handle performance tracking errors gracefully', async () => {
+  describe("Error Handling and Recovery", () => {
+    it("should handle performance tracking errors gracefully", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Mock performance tracking to throw error
-      const originalRecordPerformance = service['recordOperationPerformance'];
-      service['recordOperationPerformance'] = jest.fn().mockImplementation(() => {
-        throw new Error('Performance tracking failed');
-      });
+      const originalRecordPerformance = service["recordOperationPerformance"];
+      service["recordOperationPerformance"] = jest
+        .fn()
+        .mockImplementation(() => {
+          throw new Error("Performance tracking failed");
+        });
 
-      const loggerErrorSpy = jest.spyOn(service['logger'], 'error');
+      const loggerErrorSpy = jest.spyOn(service["logger"], "error");
 
       // Act & Assert - should not throw, operation should complete
-      const connection = await service.establishStreamConnection(params.provider, params.capability);
+      const connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
       expect(connection).toBeDefined();
       expect(loggerErrorSpy).toHaveBeenCalledWith(
-        '记录性能指标失败',
-        expect.any(Object)
+        "记录性能指标失败",
+        expect.any(Object),
       );
 
       // Cleanup
-      service['recordOperationPerformance'] = originalRecordPerformance;
+      service["recordOperationPerformance"] = originalRecordPerformance;
       loggerErrorSpy.mockRestore();
     });
 
-    it('should continue operation if concurrency adjustment fails', async () => {
+    it("should continue operation if concurrency adjustment fails", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Mock concurrency calculation to throw error
-      const originalCalculateOptimal = service['calculateOptimalConcurrency'];
-      service['calculateOptimalConcurrency'] = jest.fn().mockImplementation(() => {
-        throw new Error('Concurrency calculation failed');
-      });
+      const originalCalculateOptimal = service["calculateOptimalConcurrency"];
+      service["calculateOptimalConcurrency"] = jest
+        .fn()
+        .mockImplementation(() => {
+          throw new Error("Concurrency calculation failed");
+        });
 
-      const loggerErrorSpy = jest.spyOn(service['logger'], 'error');
+      const loggerErrorSpy = jest.spyOn(service["logger"], "error");
 
       // Act & Assert - should not throw, operation should complete
-      const connection = await service.establishStreamConnection(params.provider, params.capability);
+      const connection = await service.establishStreamConnection(
+        params.provider,
+        params.capability,
+      );
       expect(connection).toBeDefined();
 
       // Cleanup
-      service['calculateOptimalConcurrency'] = originalCalculateOptimal;
+      service["calculateOptimalConcurrency"] = originalCalculateOptimal;
       loggerErrorSpy.mockRestore();
     });
   });
 
-  describe('Performance Optimization', () => {
-    it('should handle high-concurrency scenarios efficiently', async () => {
+  describe("Performance Optimization", () => {
+    it("should handle high-concurrency scenarios efficiently", async () => {
       // Arrange
       const concurrentRequests = 50;
       const promises: Promise<any>[] = [];
 
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
@@ -989,7 +1104,7 @@ describe('StreamDataFetcherService', () => {
       // Act
       for (let i = 0; i < concurrentRequests; i++) {
         promises.push(
-          service.establishStreamConnection(params.provider, params.capability)
+          service.establishStreamConnection(params.provider, params.capability),
         );
       }
 
@@ -1000,30 +1115,35 @@ describe('StreamDataFetcherService', () => {
       // Assert
       expect(connections).toHaveLength(concurrentRequests);
       expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
-      expect(service['performanceMetrics'].totalRequests).toBe(concurrentRequests);
+      expect(service["performanceMetrics"].totalRequests).toBe(
+        concurrentRequests,
+      );
     });
 
-    it('should maintain performance metrics accuracy under load', async () => {
+    it("should maintain performance metrics accuracy under load", async () => {
       // Arrange
       const operationCount = 100;
       const params: StreamConnectionParams = {
-        provider: 'longport',
-        capability: 'ws-stock-quote',
+        provider: "longport",
+        capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
       // Act
       for (let i = 0; i < operationCount; i++) {
-        await service.establishStreamConnection(params.provider, params.capability);
+        await service.establishStreamConnection(
+          params.provider,
+          params.capability,
+        );
       }
 
       // Assert
-      expect(service['performanceMetrics'].totalRequests).toBe(operationCount);
-      expect(service['performanceMetrics'].responseTimes.length).toBeLessThanOrEqual(
-        service['performanceMetrics'].windowSize
-      );
-      expect(service['performanceMetrics'].avgResponseTime).toBeGreaterThan(0);
+      expect(service["performanceMetrics"].totalRequests).toBe(operationCount);
+      expect(
+        service["performanceMetrics"].responseTimes.length,
+      ).toBeLessThanOrEqual(service["performanceMetrics"].windowSize);
+      expect(service["performanceMetrics"].avgResponseTime).toBeGreaterThan(0);
     });
   });
 });

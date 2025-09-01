@@ -1,27 +1,31 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
-import { DataFetcherService } from '../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service';
-import { CapabilityRegistryService } from '../../../../../../../src/providers/services/capability-registry.service';
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  NotFoundException,
+  BadRequestException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
+import { DataFetcherService } from "../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service";
+import { CapabilityRegistryService } from "../../../../../../../src/providers/services/capability-registry.service";
+import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
 import {
   DataFetchParams,
   RawDataResult,
-} from '../../../../../../../src/core/03-fetching/data-fetcher/interfaces/data-fetcher.interface';
+} from "../../../../../../../src/core/03-fetching/data-fetcher/interfaces/data-fetcher.interface";
 import {
   DataFetchRequestDto,
   ApiType,
-} from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-request.dto';
+} from "../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-request.dto";
 
-describe('DataFetcherService', () => {
+describe("DataFetcherService", () => {
   let service: DataFetcherService;
   let capabilityRegistryService: jest.Mocked<CapabilityRegistryService>;
 
   const mockCapability = {
-    name: 'get-stock-quote',
-    description: 'Mock capability for testing',
-    supportedMarkets: ['US', 'HK'],
-    supportedSymbolFormats: ['SYMBOL.MARKET', 'SYMBOL'],
+    name: "get-stock-quote",
+    description: "Mock capability for testing",
+    supportedMarkets: ["US", "HK"],
+    supportedSymbolFormats: ["SYMBOL.MARKET", "SYMBOL"],
     execute: jest.fn(),
   };
 
@@ -30,11 +34,11 @@ describe('DataFetcherService', () => {
   };
 
   const mockParams: DataFetchParams = {
-    provider: 'longport',
-    capability: 'get-stock-quote',
-    symbols: ['700.HK', 'AAPL.US'],
-    requestId: 'req_123456789',
-    apiType: 'rest',
+    provider: "longport",
+    capability: "get-stock-quote",
+    symbols: ["700.HK", "AAPL.US"],
+    requestId: "req_123456789",
+    apiType: "rest",
     options: { timeout: 5000 },
     contextService: mockProvider,
   };
@@ -73,12 +77,11 @@ describe('DataFetcherService', () => {
     jest.clearAllMocks();
   });
 
-  describe('fetchRawData', () => {
-
+  describe("fetchRawData", () => {
     const mockRawData = {
       secu_quote: [
         {
-          symbol: '700.HK',
+          symbol: "700.HK",
           last_done: 385.6,
           prev_close: 389.8,
           open: 387.2,
@@ -90,7 +93,7 @@ describe('DataFetcherService', () => {
           trade_status: 1,
         },
         {
-          symbol: 'AAPL.US',
+          symbol: "AAPL.US",
           last_done: 195.18,
           prev_close: 194.83,
           open: 195.1,
@@ -104,7 +107,7 @@ describe('DataFetcherService', () => {
       ],
     };
 
-    it('should successfully fetch raw data', async () => {
+    it("should successfully fetch raw data", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(mockRawData);
@@ -116,33 +119,33 @@ describe('DataFetcherService', () => {
       expect(result).toBeDefined();
       expect(result.data).toHaveLength(2);
       expect(result.data).toEqual(mockRawData.secu_quote);
-      expect(result.metadata.provider).toBe('longport');
-      expect(result.metadata.capability).toBe('get-stock-quote');
+      expect(result.metadata.provider).toBe("longport");
+      expect(result.metadata.capability).toBe("get-stock-quote");
       expect(result.metadata.symbolsProcessed).toBe(2);
       expect(result.metadata.processingTime).toBeGreaterThanOrEqual(0);
-      
+
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
-        'longport',
-        'get-stock-quote'
+        "longport",
+        "get-stock-quote",
       );
       expect(mockCapability.execute).toHaveBeenCalledWith({
         symbols: mockParams.symbols,
         contextService: mockParams.contextService,
         requestId: mockParams.requestId,
         options: {
-          apiType: 'rest',
+          apiType: "rest",
           ...mockParams.options,
         },
       });
     });
 
-    it('should handle array format raw data', async () => {
+    it("should handle array format raw data", async () => {
       // Arrange
       const arrayRawData = [
-        { symbol: '700.HK', price: 385.6 },
-        { symbol: 'AAPL.US', price: 195.18 },
+        { symbol: "700.HK", price: 385.6 },
+        { symbol: "AAPL.US", price: 195.18 },
       ];
-      
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(arrayRawData);
 
@@ -154,10 +157,10 @@ describe('DataFetcherService', () => {
       expect(result.data).toEqual(arrayRawData);
     });
 
-    it('should handle single object raw data', async () => {
+    it("should handle single object raw data", async () => {
       // Arrange
-      const singleRawData = { symbol: '700.HK', price: 385.6 };
-      
+      const singleRawData = { symbol: "700.HK", price: 385.6 };
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(singleRawData);
 
@@ -169,7 +172,7 @@ describe('DataFetcherService', () => {
       expect(result.data).toHaveLength(1);
     });
 
-    it('should handle empty raw data', async () => {
+    it("should handle empty raw data", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(null);
@@ -181,39 +184,39 @@ describe('DataFetcherService', () => {
       expect(result.data).toEqual([]);
     });
 
-    it('should throw BadRequestException when capability not found', async () => {
+    it("should throw BadRequestException when capability not found", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(null);
 
       // Act & Assert
       await expect(service.fetchRawData(mockParams)).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
       await expect(service.fetchRawData(mockParams)).rejects.toThrow(
-        '数据获取失败'
+        "数据获取失败",
       );
     });
 
-    it('should throw BadRequestException when capability execution fails', async () => {
+    it("should throw BadRequestException when capability execution fails", async () => {
       // Arrange
-      const sdkError = new Error('SDK连接失败');
+      const sdkError = new Error("SDK连接失败");
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockRejectedValue(sdkError);
 
       // Act & Assert
       await expect(service.fetchRawData(mockParams)).rejects.toThrow(
-        '数据获取失败: SDK连接失败'
+        "数据获取失败: SDK连接失败",
       );
       await expect(service.fetchRawData(mockParams)).rejects.toThrow(
-        '数据获取失败: SDK连接失败'
+        "数据获取失败: SDK连接失败",
       );
     });
 
-    it('should use default apiType when not provided', async () => {
+    it("should use default apiType when not provided", async () => {
       // Arrange
       const paramsWithoutApiType = { ...mockParams };
       delete paramsWithoutApiType.apiType;
-      
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(mockRawData);
 
@@ -224,13 +227,13 @@ describe('DataFetcherService', () => {
       expect(mockCapability.execute).toHaveBeenCalledWith(
         expect.objectContaining({
           options: expect.objectContaining({
-            apiType: 'rest',
+            apiType: "rest",
           }),
-        })
+        }),
       );
     });
 
-    it('should log performance warning for slow responses', async () => {
+    it("should log performance warning for slow responses", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockImplementation(() => {
@@ -247,126 +250,155 @@ describe('DataFetcherService', () => {
     });
   });
 
-  describe('supportsCapability', () => {
-    it('should return true when capability exists', async () => {
+  describe("supportsCapability", () => {
+    it("should return true when capability exists", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
 
       // Act
-      const result = await service.supportsCapability('longport', 'get-stock-quote');
+      const result = await service.supportsCapability(
+        "longport",
+        "get-stock-quote",
+      );
 
       // Assert
       expect(result).toBe(true);
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
-        'longport',
-        'get-stock-quote'
+        "longport",
+        "get-stock-quote",
       );
     });
 
-    it('should return false when capability does not exist', async () => {
+    it("should return false when capability does not exist", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockReturnValue(null);
 
       // Act
-      const result = await service.supportsCapability('longport', 'invalid-capability');
+      const result = await service.supportsCapability(
+        "longport",
+        "invalid-capability",
+      );
 
       // Assert
       expect(result).toBe(false);
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
-        'longport',
-        'invalid-capability'
+        "longport",
+        "invalid-capability",
       );
     });
 
-    it('should return false when getCapability throws error', async () => {
+    it("should return false when getCapability throws error", async () => {
       // Arrange
       capabilityRegistryService.getCapability.mockImplementation(() => {
-        throw new Error('Registry error');
+        throw new Error("Registry error");
       });
 
       // Act
-      const result = await service.supportsCapability('longport', 'get-stock-quote');
+      const result = await service.supportsCapability(
+        "longport",
+        "get-stock-quote",
+      );
 
       // Assert
       expect(result).toBe(false);
     });
   });
 
-  describe('getProviderContext', () => {
-    it('should return context service when provider supports it', async () => {
+  describe("getProviderContext", () => {
+    it("should return context service when provider supports it", async () => {
       // Arrange
-      const mockContextService = { apiKey: 'test-key' };
+      const mockContextService = { apiKey: "test-key" };
       mockProvider.getContextService.mockResolvedValue(mockContextService);
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
 
       // Act
-      const result = await service.getProviderContext('longport');
+      const result = await service.getProviderContext("longport");
 
       // Assert
       expect(result).toBe(mockContextService);
-      expect(capabilityRegistryService.getProvider).toHaveBeenCalledWith('longport');
+      expect(capabilityRegistryService.getProvider).toHaveBeenCalledWith(
+        "longport",
+      );
       expect(mockProvider.getContextService).toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException when provider does not exist', async () => {
+    it("should throw NotFoundException when provider does not exist", async () => {
       // Arrange
       capabilityRegistryService.getProvider.mockReturnValue(null);
 
       // Act & Assert
-      await expect(service.getProviderContext('nonexistent')).rejects.toThrow(NotFoundException);
-      await expect(service.getProviderContext('nonexistent')).rejects.toThrow('Provider nonexistent not registered');
+      await expect(service.getProviderContext("nonexistent")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getProviderContext("nonexistent")).rejects.toThrow(
+        "Provider nonexistent not registered",
+      );
     });
 
-    it('should throw NotFoundException when provider does not support getContextService', async () => {
+    it("should throw NotFoundException when provider does not support getContextService", async () => {
       // Arrange
       const providerWithoutContext = {};
-      capabilityRegistryService.getProvider.mockReturnValue(providerWithoutContext);
+      capabilityRegistryService.getProvider.mockReturnValue(
+        providerWithoutContext,
+      );
 
       // Act & Assert
-      await expect(service.getProviderContext('longport')).rejects.toThrow(NotFoundException);
-      await expect(service.getProviderContext('longport')).rejects.toThrow('Provider longport context service not available');
+      await expect(service.getProviderContext("longport")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getProviderContext("longport")).rejects.toThrow(
+        "Provider longport context service not available",
+      );
     });
 
-    it('should throw ServiceUnavailableException when getContextService throws error', async () => {
+    it("should throw ServiceUnavailableException when getContextService throws error", async () => {
       // Arrange
-      mockProvider.getContextService.mockRejectedValue(new Error('Context service error'));
+      mockProvider.getContextService.mockRejectedValue(
+        new Error("Context service error"),
+      );
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
 
       // Act & Assert
-      await expect(service.getProviderContext('longport')).rejects.toThrow(ServiceUnavailableException);
-      await expect(service.getProviderContext('longport')).rejects.toThrow('Provider longport context service failed: Context service error');
+      await expect(service.getProviderContext("longport")).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+      await expect(service.getProviderContext("longport")).rejects.toThrow(
+        "Provider longport context service failed: Context service error",
+      );
     });
   });
 
-  describe('fetchBatch', () => {
+  describe("fetchBatch", () => {
     const mockRequests: DataFetchRequestDto[] = [
       {
-        provider: 'longport',
-        capability: 'get-stock-quote',
-        symbols: ['700.HK'],
-        requestId: 'req_1',
+        provider: "longport",
+        capability: "get-stock-quote",
+        symbols: ["700.HK"],
+        requestId: "req_1",
         apiType: ApiType.REST,
         options: {},
       },
       {
-        provider: 'longport',
-        capability: 'get-stock-quote',
-        symbols: ['AAPL.US'],
-        requestId: 'req_2',
+        provider: "longport",
+        capability: "get-stock-quote",
+        symbols: ["AAPL.US"],
+        requestId: "req_2",
         apiType: ApiType.REST,
         options: {},
       },
     ];
 
-    it('should successfully process batch requests', async () => {
+    it("should successfully process batch requests", async () => {
       // Arrange
-      const mockRawData1 = { secu_quote: [{ symbol: '700.HK', price: 385.6 }] };
-      const mockRawData2 = { secu_quote: [{ symbol: 'AAPL.US', price: 195.18 }] };
-      
+      const mockRawData1 = { secu_quote: [{ symbol: "700.HK", price: 385.6 }] };
+      const mockRawData2 = {
+        secu_quote: [{ symbol: "AAPL.US", price: 195.18 }],
+      };
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getContextService.mockResolvedValue({ apiKey: 'test' });
-      
+      mockProvider.getContextService.mockResolvedValue({ apiKey: "test" });
+
       mockCapability.execute
         .mockResolvedValueOnce(mockRawData1)
         .mockResolvedValueOnce(mockRawData2);
@@ -382,17 +414,17 @@ describe('DataFetcherService', () => {
       expect(results[1].hasPartialFailures).toBe(false);
     });
 
-    it('should handle partial failures in batch requests', async () => {
+    it("should handle partial failures in batch requests", async () => {
       // Arrange
-      const mockRawData = { secu_quote: [{ symbol: '700.HK', price: 385.6 }] };
-      
+      const mockRawData = { secu_quote: [{ symbol: "700.HK", price: 385.6 }] };
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
-      mockProvider.getContextService.mockResolvedValue({ apiKey: 'test' });
-      
+      mockProvider.getContextService.mockResolvedValue({ apiKey: "test" });
+
       mockCapability.execute
         .mockResolvedValueOnce(mockRawData)
-        .mockRejectedValueOnce(new Error('SDK error for second request'));
+        .mockRejectedValueOnce(new Error("SDK error for second request"));
 
       // Act
       const results = await service.fetchBatch(mockRequests);
@@ -406,15 +438,17 @@ describe('DataFetcherService', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle symbols with various formats', async () => {
+  describe("edge cases", () => {
+    it("should handle symbols with various formats", async () => {
       // Arrange
       const params = {
         ...mockParams,
-        symbols: ['700.HK', 'AAPL', '00001.SZ', '600519.SH'],
+        symbols: ["700.HK", "AAPL", "00001.SZ", "600519.SH"],
       };
-      const mockData = { secu_quote: Array(4).fill({ symbol: 'test', price: 100 }) };
-      
+      const mockData = {
+        secu_quote: Array(4).fill({ symbol: "test", price: 100 }),
+      };
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(mockData);
 
@@ -425,17 +459,22 @@ describe('DataFetcherService', () => {
       expect(result.metadata.symbolsProcessed).toBe(4);
       expect(mockCapability.execute).toHaveBeenCalledWith(
         expect.objectContaining({
-          symbols: ['700.HK', 'AAPL', '00001.SZ', '600519.SH'],
-        })
+          symbols: ["700.HK", "AAPL", "00001.SZ", "600519.SH"],
+        }),
       );
     });
 
-    it('should handle large symbol lists', async () => {
+    it("should handle large symbol lists", async () => {
       // Arrange
-      const largeSymbolList = Array.from({ length: 100 }, (_, i) => `STOCK${i}.HK`);
+      const largeSymbolList = Array.from(
+        { length: 100 },
+        (_, i) => `STOCK${i}.HK`,
+      );
       const params = { ...mockParams, symbols: largeSymbolList };
-      const mockData = { secu_quote: Array(100).fill({ symbol: 'test', price: 100 }) };
-      
+      const mockData = {
+        secu_quote: Array(100).fill({ symbol: "test", price: 100 }),
+      };
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(mockData);
 
@@ -447,11 +486,11 @@ describe('DataFetcherService', () => {
       expect(result.data).toHaveLength(100);
     });
 
-    it('should handle empty symbol list', async () => {
+    it("should handle empty symbol list", async () => {
       // Arrange
       const params = { ...mockParams, symbols: [] };
       const mockData = { secu_quote: [] };
-      
+
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(mockData);
 

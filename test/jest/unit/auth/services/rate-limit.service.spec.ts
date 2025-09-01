@@ -83,7 +83,7 @@ describe("RateLimitService", () => {
           },
         },
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: {
             getOrThrow: jest.fn().mockReturnValue(mockRedis),
           },
@@ -348,7 +348,7 @@ describe("RateLimitService", () => {
     it("应该返回当前使用统计 - 滑动窗口", async () => {
       // Arrange
       mockRedis.zcard.mockResolvedValue(30);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const futureTimestamp = Date.now() + 3600000; // 1小时后
       mockRedis.zrange.mockResolvedValue([futureTimestamp.toString()]);

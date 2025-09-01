@@ -9,7 +9,7 @@ describe("Data-Mapper Workflow E2E", () => {
   let jwtToken: string;
   let adminJwtToken: string;
   let apiKey: any;
-  
+
   // 测试数据存储
   let templateId: string;
   let ruleId: string;
@@ -17,11 +17,12 @@ describe("Data-Mapper Workflow E2E", () => {
 
   beforeAll(async () => {
     request = global.createTestRequest();
-    
+
     // 获取开发者凭证（用于大部分操作）
-    const { apiKey: testApiKey, jwtToken: testJwtToken } = await global.createTestCredentials({
-      role: "developer"
-    });
+    const { apiKey: testApiKey, jwtToken: testJwtToken } =
+      await global.createTestCredentials({
+        role: "developer",
+      });
     apiKey = testApiKey;
     jwtToken = testJwtToken;
 
@@ -29,7 +30,7 @@ describe("Data-Mapper Workflow E2E", () => {
     const { jwtToken: testAdminJwtToken } = await global.createTestCredentials({
       username: "workflow_admin",
       email: "workflow.admin@example.com",
-      role: "admin"
+      role: "admin",
     });
     adminJwtToken = testAdminJwtToken;
   });
@@ -38,7 +39,7 @@ describe("Data-Mapper Workflow E2E", () => {
     it("应该完成完整的数据映射生命周期", async () => {
       // ==================== 阶段1: 分析用户数据源 ====================
       console.log("🔍 阶段1: 分析LongPort数据源");
-      
+
       const sampleLongPortData = {
         symbol: "700.HK",
         last_done: 561.0,
@@ -54,7 +55,7 @@ describe("Data-Mapper Workflow E2E", () => {
         post_market_price: 562.0,
         change: 2.5,
         change_rate: 0.0045,
-        lot_size: 100
+        lot_size: 100,
       };
 
       const analysisRequest = {
@@ -64,7 +65,7 @@ describe("Data-Mapper Workflow E2E", () => {
         name: "LongPort Complete Quote Data",
         description: "完整的LongPort股票报价数据源",
         dataType: "quote_fields",
-        saveAsTemplate: true
+        saveAsTemplate: true,
       };
 
       // 分析数据源
@@ -79,13 +80,15 @@ describe("Data-Mapper Workflow E2E", () => {
       analysisResult = analysisResponse.body.data;
       templateId = analysisResult.savedTemplate.id;
 
-      console.log(`✅ 数据分析完成，提取了 ${analysisResult.extractedFields._length} 个字段`);
+      console.log(
+        `✅ 数据分析完成，提取了 ${analysisResult.extractedFields._length} 个字段`,
+      );
       console.log(`✅ 模板已保存，ID: ${templateId}`);
 
       // 验证分析结果
       expect(analysisResult).toHaveProperty("extractedFields");
       expect(analysisResult.extractedFields.length).toBeGreaterThanOrEqual(10);
-      
+
       expect(analysisResult).toHaveProperty("confidence");
       expect(analysisResult.confidence).toBeGreaterThan(0.7);
 
@@ -94,7 +97,7 @@ describe("Data-Mapper Workflow E2E", () => {
 
       const generateRuleRequest = {
         transDataRuleListType: "quote_fields",
-        ruleName: "LongPort Complete Mapping Rule"
+        ruleName: "LongPort Complete Mapping Rule",
       };
 
       const generateRuleResponse = await request
@@ -115,10 +118,16 @@ describe("Data-Mapper Workflow E2E", () => {
       expect(generateResult).toHaveProperty("rule");
       expect(generateResult).toHaveProperty("alignmentResult");
       expect(generatedRule).toHaveProperty("id");
-      expect(generatedRule).toHaveProperty("name", "LongPort Complete Mapping Rule");
+      expect(generatedRule).toHaveProperty(
+        "name",
+        "LongPort Complete Mapping Rule",
+      );
       expect(generatedRule).toHaveProperty("provider", "longport");
       expect(generatedRule).toHaveProperty("apiType", "rest");
-      expect(generatedRule).toHaveProperty("transDataRuleListType", "quote_fields");
+      expect(generatedRule).toHaveProperty(
+        "transDataRuleListType",
+        "quote_fields",
+      );
       expect(generatedRule.fieldMappings).toBeInstanceOf(Array);
       expect(generatedRule.fieldMappings.length).toBeGreaterThan(5);
 
@@ -128,7 +137,7 @@ describe("Data-Mapper Workflow E2E", () => {
       const ruleTestRequest = {
         dataMapperRuleId: ruleId,
         testData: sampleLongPortData,
-        includeDebugInfo: true
+        includeDebugInfo: true,
       };
 
       const testResponse = await request
@@ -141,8 +150,12 @@ describe("Data-Mapper Workflow E2E", () => {
       global.expectSuccessResponse(testResponse, 201);
       const testResult = testResponse.body.data;
 
-      console.log(`✅ 规则测试完成，成功率: ${(testResult.mappingStats.successRate * 100).toFixed(1)}%`);
-      console.log(`✅ 成功映射: ${testResult.mappingStats.successfulMappings}/${testResult.mappingStats._totalMappings} 个字段`);
+      console.log(
+        `✅ 规则测试完成，成功率: ${(testResult.mappingStats.successRate * 100).toFixed(1)}%`,
+      );
+      console.log(
+        `✅ 成功映射: ${testResult.mappingStats.successfulMappings}/${testResult.mappingStats._totalMappings} 个字段`,
+      );
 
       // 验证测试结果
       expect(testResult).toHaveProperty("success", true);
@@ -162,7 +175,7 @@ describe("Data-Mapper Workflow E2E", () => {
 
       // 基于测试结果优化规则，添加一些手动调整
       // 清理原有的fieldMappings，移除MongoDB的内部属性
-      const cleanFieldMappings = generatedRule.fieldMappings.map(mapping => ({
+      const cleanFieldMappings = generatedRule.fieldMappings.map((mapping) => ({
         sourceFieldPath: mapping.sourceFieldPath,
         targetField: mapping.targetField,
         transform: mapping.transform,
@@ -170,7 +183,7 @@ describe("Data-Mapper Workflow E2E", () => {
         confidence: mapping.confidence,
         isRequired: mapping.isRequired || false,
         description: mapping.description,
-        isActive: mapping.isActive !== false
+        isActive: mapping.isActive !== false,
       }));
 
       const optimizedFieldMappings = [
@@ -178,22 +191,22 @@ describe("Data-Mapper Workflow E2E", () => {
         // 添加自定义映射
         {
           sourceFieldPath: "change_rate",
-          targetField: "changePercent", 
+          targetField: "changePercent",
           transform: {
             type: "multiply",
-            value: 100 // 转换为百分比
+            value: 100, // 转换为百分比
           },
           confidence: 0.95,
           isRequired: false,
           description: "涨跌幅转换为百分比",
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
 
       const updateRuleRequest = {
         name: "Optimized LongPort Mapping Rule",
         description: "优化后的LongPort映射规则，包含百分比转换",
-        fieldMappings: optimizedFieldMappings
+        fieldMappings: optimizedFieldMappings,
       };
 
       const updateResponse = await request
@@ -205,7 +218,9 @@ describe("Data-Mapper Workflow E2E", () => {
       global.expectSuccessResponse(updateResponse, 200);
       const optimizedRule = updateResponse.body.data;
 
-      console.log(`✅ 规则优化完成，现有 ${optimizedRule.fieldMappings.length} 个字段映射`);
+      console.log(
+        `✅ 规则优化完成，现有 ${optimizedRule.fieldMappings.length} 个字段映射`,
+      );
 
       // ==================== 阶段5: 验证优化后的规则 ====================
       console.log("✅ 阶段5: 验证优化后的规则");
@@ -213,7 +228,7 @@ describe("Data-Mapper Workflow E2E", () => {
       const finalTestRequest = {
         dataMapperRuleId: ruleId,
         testData: sampleLongPortData,
-        includeDebugInfo: false
+        includeDebugInfo: false,
       };
 
       const finalTestResponse = await request
@@ -226,13 +241,15 @@ describe("Data-Mapper Workflow E2E", () => {
       global.expectSuccessResponse(finalTestResponse, 201);
       const finalResult = finalTestResponse.body.data;
 
-      console.log(`✅ 最终测试完成，成功率: ${(finalResult.mappingStats.successRate * 100).toFixed(1)}%`);
+      console.log(
+        `✅ 最终测试完成，成功率: ${(finalResult.mappingStats.successRate * 100).toFixed(1)}%`,
+      );
 
       // 验证优化后的结果
       expect(finalResult.success).toBe(true);
-      expect(finalResult.mappingStats.successfulMappings).toBeGreaterThanOrEqual(
-        testResult.mappingStats._successfulMappings
-      );
+      expect(
+        finalResult.mappingStats.successfulMappings,
+      ).toBeGreaterThanOrEqual(testResult.mappingStats._successfulMappings);
 
       // 验证百分比转换
       const finalTransformedData = finalResult.transformedData;
@@ -251,16 +268,16 @@ describe("Data-Mapper Workflow E2E", () => {
           symbol: "AAPL.US",
           price: {
             current: 150.25,
-            previous: 148.90,
-            change: 1.35
+            previous: 148.9,
+            change: 1.35,
           },
           volume: {
             total: 25000000,
-            current: 2500
-          }
+            current: 2500,
+          },
         },
         timestamp: "2024-08-11T10:00:00Z",
-        market_status: "OPEN"
+        market_status: "OPEN",
       };
 
       // 1. 分析流式数据源
@@ -271,7 +288,7 @@ describe("Data-Mapper Workflow E2E", () => {
         name: "Custom Stream Data Source",
         description: "自定义流式数据源",
         dataType: "quote_fields",
-        saveAsTemplate: true
+        saveAsTemplate: true,
       };
 
       const streamAnalysisResponse = await request
@@ -289,11 +306,13 @@ describe("Data-Mapper Workflow E2E", () => {
       // 2. 生成流式映射规则
       const streamRuleRequest = {
         transDataRuleListType: "quote_fields",
-        ruleName: "Custom Stream Mapping Rule"
+        ruleName: "Custom Stream Mapping Rule",
       };
 
       const streamRuleResponse = await request
-        .post(`/api/v1/data-mapper/rules/generate-from-template/${streamTemplateId}`)
+        .post(
+          `/api/v1/data-mapper/rules/generate-from-template/${streamTemplateId}`,
+        )
         .set("Authorization", `Bearer ${jwtToken}`)
         .send(streamRuleRequest)
         .expect(201);
@@ -308,7 +327,7 @@ describe("Data-Mapper Workflow E2E", () => {
       const streamTestRequest = {
         dataMapperRuleId: streamRuleId,
         testData: streamSampleData,
-        includeDebugInfo: true
+        includeDebugInfo: true,
       };
 
       const streamTestResponse = await request
@@ -320,16 +339,21 @@ describe("Data-Mapper Workflow E2E", () => {
 
       const streamTestResult = streamTestResponse.body.data;
 
-      console.log(`✅ 流式规则测试完成，成功率: ${(streamTestResult.mappingStats.successRate * 100).toFixed(1)}%`);
+      console.log(
+        `✅ 流式规则测试完成，成功率: ${(streamTestResult.mappingStats.successRate * 100).toFixed(1)}%`,
+      );
 
       // 验证流式数据映射结果
       expect(streamTestResult.success).toBe(true);
-      expect(streamTestResult.transformedData).toHaveProperty("symbol", "AAPL.US");
-      
+      expect(streamTestResult.transformedData).toHaveProperty(
+        "symbol",
+        "AAPL.US",
+      );
+
       // 验证嵌套字段映射
       const debugInfo = streamTestResult.debugInfo;
-      const nestedFieldMapping = debugInfo.find(info => 
-        info.sourceFieldPath.includes("quote.price.current")
+      const nestedFieldMapping = debugInfo.find((info) =>
+        info.sourceFieldPath.includes("quote.price.current"),
       );
       expect(nestedFieldMapping).toBeDefined();
       expect(nestedFieldMapping.success).toBe(true);
@@ -347,7 +371,9 @@ describe("Data-Mapper Workflow E2E", () => {
         .expect(200);
 
       const templateStats = templateStatsResponse.body.data;
-      console.log(`📊 模板统计 - 总计: ${templateStats._totalTemplates}, 活跃: ${templateStats.activeTemplates}`);
+      console.log(
+        `📊 模板统计 - 总计: ${templateStats._totalTemplates}, 活跃: ${templateStats.activeTemplates}`,
+      );
 
       expect(templateStats.totalTemplates).toBeGreaterThan(0);
       expect(templateStats._templatesByProvider).toBeInstanceOf(Object);
@@ -361,7 +387,9 @@ describe("Data-Mapper Workflow E2E", () => {
         .expect(200);
 
       const rulesList = rulesListResponse.body.data;
-      console.log(`📊 规则统计 - 总计: ${rulesList.pagination.total} 个映射规则`);
+      console.log(
+        `📊 规则统计 - 总计: ${rulesList.pagination.total} 个映射规则`,
+      );
 
       expect(rulesList.pagination.total).toBeGreaterThan(0);
       expect(rulesList._items).toBeInstanceOf(Array);
@@ -385,7 +413,7 @@ describe("Data-Mapper Workflow E2E", () => {
       const cleanupResults = {
         deletedTemplates: 0,
         deletedRules: 0,
-        errors: []
+        errors: [],
       };
 
       // 清理创建的规则
@@ -395,7 +423,7 @@ describe("Data-Mapper Workflow E2E", () => {
             .delete(`/api/v1/data-mapper/rules/${ruleId}`)
             .set("Authorization", `Bearer ${jwtToken}`)
             .expect(200);
-          
+
           cleanupResults.deletedRules++;
           console.log(`🧹 已清理规则: ${ruleId}`);
         } catch (error) {
@@ -410,7 +438,7 @@ describe("Data-Mapper Workflow E2E", () => {
             .delete(`/api/v1/data-mapper/admin/templates/${templateId}`)
             .set("Authorization", `Bearer ${jwtToken}`)
             .expect(200);
-          
+
           cleanupResults.deletedTemplates++;
           console.log(`🧹 已清理模板: ${templateId}`);
         } catch (error) {
@@ -421,7 +449,7 @@ describe("Data-Mapper Workflow E2E", () => {
       console.log("🧹 测试数据清理完成:", {
         deletedTemplates: cleanupResults.deletedTemplates,
         deletedRules: cleanupResults.deletedRules,
-        errors: cleanupResults.errors
+        errors: cleanupResults.errors,
       });
 
       // 如果有错误，记录但不失败测试
@@ -442,10 +470,12 @@ describe("Data-Mapper Workflow E2E", () => {
         .expect(201);
 
       const persistResult = persistResponse.body.data;
-      console.log(`✅ 预设持久化完成 - 创建: ${persistResult.created}, 更新: ${persistResult.updated}, 跳过: ${persistResult.skipped}`);
+      console.log(
+        `✅ 预设持久化完成 - 创建: ${persistResult.created}, 更新: ${persistResult.updated}, 跳过: ${persistResult.skipped}`,
+      );
 
       expect(persistResult).toHaveProperty("created");
-      expect(persistResult).toHaveProperty("updated");  
+      expect(persistResult).toHaveProperty("updated");
       expect(persistResult).toHaveProperty("skipped");
 
       // 2. 验证预设模板可用
@@ -460,17 +490,21 @@ describe("Data-Mapper Workflow E2E", () => {
 
       if (presetsList.items.length > 0) {
         const firstPreset = presetsList.items[0];
-        console.log(`🎯 测试预设模板: ${firstPreset.name} (${firstPreset.provider})`);
+        console.log(
+          `🎯 测试预设模板: ${firstPreset.name} (${firstPreset.provider})`,
+        );
 
         // 3. 基于预设模板生成规则
         const presetRuleRequest = {
           transDataRuleListType: "quote_fields",
-          ruleName: `E2E Preset Rule - ${Date.now()}`
+          ruleName: `E2E Preset Rule - ${Date.now()}`,
         };
 
         try {
           const presetRuleResponse = await request
-            .post(`/api/v1/data-mapper/rules/generate-from-template/${firstPreset.id}`)
+            .post(
+              `/api/v1/data-mapper/rules/generate-from-template/${firstPreset.id}`,
+            )
             .set("Authorization", `Bearer ${jwtToken}`)
             .send(presetRuleRequest)
             .expect(201);

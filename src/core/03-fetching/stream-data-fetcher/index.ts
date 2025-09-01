@@ -11,7 +11,7 @@ export * from './services';
 export * from './config/stream-recovery.config';
 
 // 指标服务
-export * from './metrics/stream-recovery.metrics';
+//export * from './metrics/stream-recovery.metrics';
 
 // 提供者
 export * from './providers/websocket-server.provider';

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException } from "@nestjs/common";
 import { NotificationService } from "../../../../../src/alert/services/notification.service";
 import {
   EmailSender,
@@ -555,9 +555,9 @@ describe("NotificationService Optimization Features", () => {
       expect(NotificationTemplateUtil.isValidUrl("_https://example.com")).toBe(
         true,
       );
-      expect(NotificationTemplateUtil.isValidUrl("http://_localhost:3000")).toBe(
-        true,
-      );
+      expect(
+        NotificationTemplateUtil.isValidUrl("http://_localhost:3000"),
+      ).toBe(true);
       expect(NotificationTemplateUtil.isValidUrl("_ftp://example.com")).toBe(
         false,
       );

@@ -1,13 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { CommonCacheService } from '@core/05-caching/common-cache/services/common-cache.service';
-import { CacheCompressionService } from '@core/05-caching/common-cache/services/cache-compression.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
+import { CommonCacheService } from "@core/05-caching/common-cache/services/common-cache.service";
+import { CacheCompressionService } from "@core/05-caching/common-cache/services/cache-compression.service";
 // Mock CollectorService class
 class MockCollectorService {
   recordCacheOperation = jest.fn();
 }
 
-describe('CommonCacheService - Simple Monitoring Test', () => {
+describe("CommonCacheService - Simple Monitoring Test", () => {
   let service: CommonCacheService;
   let mockRedis: any;
   let mockCompressionService: any;
@@ -40,7 +40,7 @@ describe('CommonCacheService - Simple Monitoring Test', () => {
       providers: [
         CommonCacheService,
         {
-          provide: 'REDIS_CLIENT',
+          provide: "REDIS_CLIENT",
           useValue: mockRedis,
         },
         {
@@ -54,23 +54,23 @@ describe('CommonCacheService - Simple Monitoring Test', () => {
           useValue: mockCompressionService,
         },
         {
-          provide: 'CollectorService',
+          provide: "CollectorService",
           useClass: MockCollectorService,
         },
       ],
     }).compile();
 
     service = module.get<CommonCacheService>(CommonCacheService);
-    mockCollectorService = module.get('CollectorService');
+    mockCollectorService = module.get("CollectorService");
   });
 
-  describe('Service with CollectorService Integration', () => {
-    it('should be defined', () => {
+  describe("Service with CollectorService Integration", () => {
+    it("should be defined", () => {
       expect(service).toBeDefined();
     });
 
-    it('should use CollectorService for monitoring', async () => {
-      const key = 'test:key';
+    it("should use CollectorService for monitoring", async () => {
+      const key = "test:key";
       mockRedis.get.mockResolvedValue(null);
 
       await service.get(key);
@@ -79,11 +79,11 @@ describe('CommonCacheService - Simple Monitoring Test', () => {
       expect(mockCollectorService.recordCacheOperation).toHaveBeenCalled();
     });
 
-    it('should handle cache operations with monitoring', async () => {
-      const key = 'test:key';
-      const value = { test: 'data' };
+    it("should handle cache operations with monitoring", async () => {
+      const key = "test:key";
+      const value = { test: "data" };
 
-      mockRedis.setex.mockResolvedValue('OK');
+      mockRedis.setex.mockResolvedValue("OK");
 
       await service.set(key, value, 300);
 

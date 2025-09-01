@@ -8,7 +8,10 @@ import {
   AlertStatus,
   AlertSeverity,
 } from "../../../../../src/alert/types/alert.types";
-import { AlertHistoryUtil, ALERT_HISTORY_CONFIG } from "../../../../../src/alert/constants/alert-history.constants";
+import {
+  AlertHistoryUtil,
+  ALERT_HISTORY_CONFIG,
+} from "../../../../../src/alert/constants/alert-history.constants";
 
 describe("AlertHistoryService", () => {
   let service: AlertHistoryService;
@@ -76,7 +79,9 @@ describe("AlertHistoryService", () => {
   describe("createAlert", () => {
     it("should create an alert and cache it", async () => {
       alertHistoryRepository.create.mockResolvedValue(mockAlert);
-      jest.spyOn(AlertHistoryUtil, "generateAlertId").mockReturnValue("alert-123");
+      jest
+        .spyOn(AlertHistoryUtil, "generateAlertId")
+        .mockReturnValue("alert-123");
 
       const result = await service.createAlert({
         ruleId: "rule-abc",
@@ -90,10 +95,12 @@ describe("AlertHistoryService", () => {
         context: { host: "server1" },
       });
 
-      expect(alertHistoryRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        ruleId: "rule-abc",
-        status: AlertStatus.FIRING,
-      }));
+      expect(alertHistoryRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ruleId: "rule-abc",
+          status: AlertStatus.FIRING,
+        }),
+      );
       expect(cacheService.listPush).toHaveBeenCalled();
       expect(cacheService.listTrim).toHaveBeenCalled();
       expect(cacheService.expire).toHaveBeenCalled();
@@ -103,17 +110,19 @@ describe("AlertHistoryService", () => {
     it("should handle errors during alert creation", async () => {
       alertHistoryRepository.create.mockRejectedValue(new Error("DB error"));
 
-      await expect(service.createAlert({
-        ruleId: "rule-abc",
-        ruleName: "Test Rule", // 添加缺失的ruleName属性
-        severity: AlertSeverity.CRITICAL,
-        message: "Test Alert",
-        value: 100,
-        threshold: 90,
-        metric: "cpu_usage",
-        tags: { env: "prod" },
-        context: { host: "server1" },
-      })).rejects.toThrow("DB error");
+      await expect(
+        service.createAlert({
+          ruleId: "rule-abc",
+          ruleName: "Test Rule", // 添加缺失的ruleName属性
+          severity: AlertSeverity.CRITICAL,
+          message: "Test Alert",
+          value: 100,
+          threshold: 90,
+          metric: "cpu_usage",
+          tags: { env: "prod" },
+          context: { host: "server1" },
+        }),
+      ).rejects.toThrow("DB error");
     });
 
     it("should handle cache service errors gracefully during alert creation", async () => {
@@ -200,24 +209,40 @@ describe("AlertHistoryService", () => {
     it("should return null if alert not found for update", async () => {
       alertHistoryRepository.update.mockResolvedValue(null);
 
-      const result = await service.updateAlertStatus("non-existent-alert", AlertStatus.ACKNOWLEDGED);
+      const result = await service.updateAlertStatus(
+        "non-existent-alert",
+        AlertStatus.ACKNOWLEDGED,
+      );
 
       expect(result).toBeNull();
       expect(cacheService.listRange).not.toHaveBeenCalled();
     });
 
     it("should handle errors during alert status update", async () => {
-      alertHistoryRepository.update.mockRejectedValue(new Error("DB update error"));
+      alertHistoryRepository.update.mockRejectedValue(
+        new Error("DB update error"),
+      );
 
-      await expect(service.updateAlertStatus("alert-123", AlertStatus.ACKNOWLEDGED)).rejects.toThrow("DB update error");
+      await expect(
+        service.updateAlertStatus("alert-123", AlertStatus.ACKNOWLEDGED),
+      ).rejects.toThrow("DB update error");
     });
 
     it("should handle cache service errors gracefully during alert status update", async () => {
-      const updatedAlert = { ...mockAlert, status: AlertStatus.ACKNOWLEDGED, acknowledgedBy: "user1", acknowledgedAt: new Date() };
+      const updatedAlert = {
+        ...mockAlert,
+        status: AlertStatus.ACKNOWLEDGED,
+        acknowledgedBy: "user1",
+        acknowledgedAt: new Date(),
+      };
       alertHistoryRepository.update.mockResolvedValue(updatedAlert);
       cacheService.listRange.mockRejectedValue(new Error("Cache update error"));
 
-      const result = await service.updateAlertStatus("alert-123", AlertStatus.ACKNOWLEDGED, "user1");
+      const result = await service.updateAlertStatus(
+        "alert-123",
+        AlertStatus.ACKNOWLEDGED,
+        "user1",
+      );
 
       expect(result).toEqual(updatedAlert);
       expect(cacheService.listRange).toHaveBeenCalled();
@@ -229,7 +254,7 @@ describe("AlertHistoryService", () => {
       const mockQuery: IAlertQuery = { page: 1, limit: 10 };
       alertHistoryRepository.find.mockResolvedValue({
         alerts: [mockAlert],
-        total: 1
+        total: 1,
       });
       jest.spyOn(AlertHistoryUtil, "calculatePagination").mockReturnValue({
         total: 1,
@@ -238,7 +263,7 @@ describe("AlertHistoryService", () => {
         totalPages: 1,
         hasNext: false,
         hasPrev: false,
-        offset: 0
+        offset: 0,
       });
 
       const result = await service.queryAlerts(mockQuery);
@@ -257,13 +282,21 @@ describe("AlertHistoryService", () => {
 
   describe("getActiveAlerts", () => {
     it("should get active alerts from cache if available", async () => {
-      cacheService.getClient().keys = jest.fn().mockResolvedValue(["alert:history:timeseries:rule-abc"]);
+      cacheService.getClient().keys = jest
+        .fn()
+        .mockResolvedValue(["alert:history:timeseries:rule-abc"]);
       cacheService.listRange.mockResolvedValue([JSON.stringify(mockAlert)]);
 
       const result = await service.getActiveAlerts();
 
-      expect(cacheService.getClient().keys).toHaveBeenCalledWith("alert:history:timeseries:*");
-      expect(cacheService.listRange).toHaveBeenCalledWith("alert:history:timeseries:rule-abc", 0, 9);
+      expect(cacheService.getClient().keys).toHaveBeenCalledWith(
+        "alert:history:timeseries:*",
+      );
+      expect(cacheService.listRange).toHaveBeenCalledWith(
+        "alert:history:timeseries:rule-abc",
+        0,
+        9,
+      );
       expect(alertHistoryRepository.findActive).not.toHaveBeenCalled();
       expect(result).toEqual([mockAlert]);
     });
@@ -280,7 +313,9 @@ describe("AlertHistoryService", () => {
     });
 
     it("should get active alerts from database if cache fails", async () => {
-      cacheService.getClient().keys = jest.fn().mockRejectedValue(new Error("Cache keys error"));
+      cacheService.getClient().keys = jest
+        .fn()
+        .mockRejectedValue(new Error("Cache keys error"));
       alertHistoryRepository.findActive.mockResolvedValue([mockAlert]);
 
       const result = await service.getActiveAlerts();
@@ -292,9 +327,13 @@ describe("AlertHistoryService", () => {
 
     it("should handle errors during get active alerts", async () => {
       cacheService.getClient().keys = jest.fn().mockResolvedValue([]);
-      alertHistoryRepository.findActive.mockRejectedValue(new Error("DB active error"));
+      alertHistoryRepository.findActive.mockRejectedValue(
+        new Error("DB active error"),
+      );
 
-      await expect(service.getActiveAlerts()).rejects.toThrow("DB active error");
+      await expect(service.getActiveAlerts()).rejects.toThrow(
+        "DB active error",
+      );
     });
   });
 
@@ -323,7 +362,9 @@ describe("AlertHistoryService", () => {
     });
 
     it("should handle errors during get alert statistics", async () => {
-      alertHistoryRepository.getStatistics.mockRejectedValue(new Error("Stats error"));
+      alertHistoryRepository.getStatistics.mockRejectedValue(
+        new Error("Stats error"),
+      );
 
       await expect(service.getAlertStats()).rejects.toThrow("Stats error");
     });
@@ -348,9 +389,13 @@ describe("AlertHistoryService", () => {
     });
 
     it("should handle errors during get alert by ID", async () => {
-      alertHistoryRepository.findById.mockRejectedValue(new Error("Find by ID error"));
+      alertHistoryRepository.findById.mockRejectedValue(
+        new Error("Find by ID error"),
+      );
 
-      await expect(service.getAlertById("alert-123")).rejects.toThrow("Find by ID error");
+      await expect(service.getAlertById("alert-123")).rejects.toThrow(
+        "Find by ID error",
+      );
     });
   });
 
@@ -358,7 +403,9 @@ describe("AlertHistoryService", () => {
     it("should cleanup expired alerts", async () => {
       alertHistoryRepository.cleanup.mockResolvedValue(5);
       jest.spyOn(AlertHistoryUtil, "isValidCleanupDays").mockReturnValue(true);
-      jest.spyOn(AlertHistoryUtil, "calculateExecutionTime").mockReturnValue(100);
+      jest
+        .spyOn(AlertHistoryUtil, "calculateExecutionTime")
+        .mockReturnValue(100);
 
       const result = await service.cleanupExpiredAlerts(7);
 
@@ -370,7 +417,9 @@ describe("AlertHistoryService", () => {
     it("should use default cleanup days if invalid daysToKeep is provided", async () => {
       alertHistoryRepository.cleanup.mockResolvedValue(5);
       jest.spyOn(AlertHistoryUtil, "isValidCleanupDays").mockReturnValue(false);
-      jest.spyOn(AlertHistoryUtil, "calculateExecutionTime").mockReturnValue(100);
+      jest
+        .spyOn(AlertHistoryUtil, "calculateExecutionTime")
+        .mockReturnValue(100);
 
       const result = await service.cleanupExpiredAlerts(-1);
 
@@ -381,9 +430,13 @@ describe("AlertHistoryService", () => {
     });
 
     it("should handle errors during cleanup", async () => {
-      alertHistoryRepository.cleanup.mockRejectedValue(new Error("Cleanup error"));
+      alertHistoryRepository.cleanup.mockRejectedValue(
+        new Error("Cleanup error"),
+      );
 
-      await expect(service.cleanupExpiredAlerts(7)).rejects.toThrow("Cleanup error");
+      await expect(service.cleanupExpiredAlerts(7)).rejects.toThrow(
+        "Cleanup error",
+      );
     });
   });
 
@@ -391,14 +444,20 @@ describe("AlertHistoryService", () => {
     it("should batch update alert status successfully", async () => {
       jest.spyOn(AlertHistoryUtil, "isValidBatchSize").mockReturnValue(true);
       jest.spyOn(service, "updateAlertStatus").mockResolvedValue(mockAlert);
-      jest.spyOn(AlertHistoryUtil, "generateBatchResultSummary").mockReturnValue({
-        totalProcessed: 10,
-        successRate: 100,
-        hasErrors: false,
-        errorSummary: "", // 修改为errorSummary而非summary
-      });
+      jest
+        .spyOn(AlertHistoryUtil, "generateBatchResultSummary")
+        .mockReturnValue({
+          totalProcessed: 10,
+          successRate: 100,
+          hasErrors: false,
+          errorSummary: "", // 修改为errorSummary而非summary
+        });
 
-      const result = await service.batchUpdateAlertStatus(["alert-1", "alert-2"], AlertStatus.ACKNOWLEDGED, "user1");
+      const result = await service.batchUpdateAlertStatus(
+        ["alert-1", "alert-2"],
+        AlertStatus.ACKNOWLEDGED,
+        "user1",
+      );
 
       expect(service.updateAlertStatus).toHaveBeenCalledTimes(2);
       expect(result.successCount).toBe(2);
@@ -408,17 +467,24 @@ describe("AlertHistoryService", () => {
 
     it("should handle partial failures in batch update", async () => {
       jest.spyOn(AlertHistoryUtil, "isValidBatchSize").mockReturnValue(true);
-      jest.spyOn(service, "updateAlertStatus")
+      jest
+        .spyOn(service, "updateAlertStatus")
         .mockResolvedValueOnce(mockAlert)
         .mockRejectedValueOnce(new Error("Update failed"));
-      jest.spyOn(AlertHistoryUtil, "generateBatchResultSummary").mockReturnValue({
-        totalProcessed: 10,
-        successRate: 100,
-        hasErrors: false,
-        errorSummary: "", // 修改为errorSummary而非summary
-      });
+      jest
+        .spyOn(AlertHistoryUtil, "generateBatchResultSummary")
+        .mockReturnValue({
+          totalProcessed: 10,
+          successRate: 100,
+          hasErrors: false,
+          errorSummary: "", // 修改为errorSummary而非summary
+        });
 
-      const result = await service.batchUpdateAlertStatus(["alert-1", "alert-2"], AlertStatus.ACKNOWLEDGED, "user1");
+      const result = await service.batchUpdateAlertStatus(
+        ["alert-1", "alert-2"],
+        AlertStatus.ACKNOWLEDGED,
+        "user1",
+      );
 
       expect(service.updateAlertStatus).toHaveBeenCalledTimes(2);
       expect(result.successCount).toBe(1);
@@ -429,12 +495,19 @@ describe("AlertHistoryService", () => {
     it("should throw error if batch size is invalid", async () => {
       jest.spyOn(AlertHistoryUtil, "isValidBatchSize").mockReturnValue(false);
 
-      await expect(service.batchUpdateAlertStatus(Array(1000).fill("alert"), AlertStatus.ACKNOWLEDGED)).rejects.toThrow("批量大小超出限制");
+      await expect(
+        service.batchUpdateAlertStatus(
+          Array(1000).fill("alert"),
+          AlertStatus.ACKNOWLEDGED,
+        ),
+      ).rejects.toThrow("批量大小超出限制");
     });
 
     it("should handle errors during batch update", async () => {
       jest.spyOn(AlertHistoryUtil, "isValidBatchSize").mockReturnValue(true);
-      jest.spyOn(service, "updateAlertStatus").mockRejectedValue(new Error("Generic error"));
+      jest
+        .spyOn(service, "updateAlertStatus")
+        .mockRejectedValue(new Error("Generic error"));
 
       const result = await service.batchUpdateAlertStatus(
         ["alert-1"],
@@ -477,9 +550,11 @@ describe("AlertHistoryService", () => {
 
       const result = await service.getRecentAlerts();
 
-      expect(alertHistoryRepository.find).toHaveBeenCalledWith(expect.objectContaining({
-        limit: 10, // DEFAULT_RECENT_ALERTS_LIMIT
-      }));
+      expect(alertHistoryRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 10, // DEFAULT_RECENT_ALERTS_LIMIT
+        }),
+      );
       expect(result).toEqual([mockAlert]);
     });
 
@@ -491,9 +566,11 @@ describe("AlertHistoryService", () => {
 
       const result = await service.getRecentAlerts(2);
 
-      expect(alertHistoryRepository.find).toHaveBeenCalledWith(expect.objectContaining({
-        limit: 2,
-      }));
+      expect(alertHistoryRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 2,
+        }),
+      );
       expect(result).toEqual([mockAlert, mockAlert]);
     });
 
@@ -505,16 +582,22 @@ describe("AlertHistoryService", () => {
 
       const result = await service.getRecentAlerts(0); // Invalid limit
 
-      expect(alertHistoryRepository.find).toHaveBeenCalledWith(expect.objectContaining({
-        limit: 10, // DEFAULT_RECENT_ALERTS_LIMIT
-      }));
+      expect(alertHistoryRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 10, // DEFAULT_RECENT_ALERTS_LIMIT
+        }),
+      );
       expect(result).toEqual([mockAlert]);
     });
 
     it("should handle errors during get recent alerts", async () => {
-      alertHistoryRepository.find.mockRejectedValue(new Error("Recent alerts error"));
+      alertHistoryRepository.find.mockRejectedValue(
+        new Error("Recent alerts error"),
+      );
 
-      await expect(service.getRecentAlerts()).rejects.toThrow("Recent alerts error");
+      await expect(service.getRecentAlerts()).rejects.toThrow(
+        "Recent alerts error",
+      );
     });
   });
 

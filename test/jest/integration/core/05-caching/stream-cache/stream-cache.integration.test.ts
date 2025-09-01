@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { StreamCacheModule } from '../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module';
-import { StreamCacheService } from '../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service';
-import { StreamDataPoint } from '../../../../../../src/core/05-caching/stream-cache/interfaces/stream-cache.interface';
-import Redis from 'ioredis';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { StreamCacheModule } from "../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module";
+import { StreamCacheService } from "../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service";
+import { StreamDataPoint } from "../../../../../../src/core/05-caching/stream-cache/interfaces/stream-cache.interface";
+import Redis from "ioredis";
 
-describe('StreamCache Integration Tests', () => {
+describe("StreamCache Integration Tests", () => {
   let module: TestingModule;
   let streamCacheService: StreamCacheService;
   let redisClient: Redis;
@@ -13,14 +13,14 @@ describe('StreamCache Integration Tests', () => {
   // 测试用例配置
   const testConfig = {
     redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      db: parseInt(process.env.REDIS_TEST_DB || '15'), // 使用测试专用DB
+      host: process.env.REDIS_HOST || "localhost",
+      port: parseInt(process.env.REDIS_PORT || "6379"),
+      db: parseInt(process.env.REDIS_TEST_DB || "15"), // 使用测试专用DB
     },
     stream_cache: {
-      hot_ttl_ms: 2000,    // 2秒，便于测试
+      hot_ttl_ms: 2000, // 2秒，便于测试
       warm_ttl_seconds: 10, // 10秒，便于测试
-      max_hot_size: 5,     // 小容量，便于测试LRU
+      max_hot_size: 5, // 小容量，便于测试LRU
       cleanup_interval_ms: 1000, // 1秒清理间隔
     },
   };
@@ -36,11 +36,11 @@ describe('StreamCache Integration Tests', () => {
     }).compile();
 
     streamCacheService = module.get<StreamCacheService>(StreamCacheService);
-    redisClient = module.get<Redis>('REDIS_CLIENT');
+    redisClient = module.get<Redis>("REDIS_CLIENT");
 
     // 等待Redis连接建立
     await redisClient.ping();
-    
+
     // 清理测试DB
     await redisClient.flushdb();
   });
@@ -57,54 +57,59 @@ describe('StreamCache Integration Tests', () => {
     await streamCacheService.clearAll();
   });
 
-  describe('Redis连接集成', () => {
-    it('应该成功连接到Redis并使用正确的DB', async () => {
+  describe("Redis连接集成", () => {
+    it("应该成功连接到Redis并使用正确的DB", async () => {
       const pingResult = await redisClient.ping();
-      expect(pingResult).toBe('PONG');
+      expect(pingResult).toBe("PONG");
 
       // 验证使用的是测试DB
-      const info = await redisClient.info('server');
-      expect(info).toContain('redis_version');
+      const info = await redisClient.info("server");
+      expect(info).toContain("redis_version");
     });
 
-    it('应该能够直接操作Redis进行验证', async () => {
-      const testKey = 'stream:integration:test';
-      const testValue = 'test-value';
+    it("应该能够直接操作Redis进行验证", async () => {
+      const testKey = "stream:integration:test";
+      const testValue = "test-value";
 
       await redisClient.set(testKey, testValue);
       const result = await redisClient.get(testKey);
 
       expect(result).toBe(testValue);
-      
+
       // 清理
       await redisClient.del(testKey);
     });
   });
 
-  describe('双层缓存集成测试', () => {
+  describe("双层缓存集成测试", () => {
     const testData = [
-      { symbol: 'AAPL.US', price: 150.25, volume: 1000, timestamp: Date.now() },
-      { symbol: 'TSLA.US', price: 800.75, volume: 2000, timestamp: Date.now() + 1000 },
+      { symbol: "AAPL.US", price: 150.25, volume: 1000, timestamp: Date.now() },
+      {
+        symbol: "TSLA.US",
+        price: 800.75,
+        volume: 2000,
+        timestamp: Date.now() + 1000,
+      },
     ];
 
-    it('完整的缓存流程：设置 → Hot Cache命中 → Warm Cache命中', async () => {
-      const key = 'integration:full-flow';
+    it("完整的缓存流程：设置 → Hot Cache命中 → Warm Cache命中", async () => {
+      const key = "integration:full-flow";
 
       // 1. 设置数据
-      await streamCacheService.setData(key, testData, 'auto');
+      await streamCacheService.setData(key, testData, "auto");
 
       // 2. 立即获取 - 应该命中Hot Cache
       let result = await streamCacheService.getData(key);
       expect(result).toBeDefined();
       expect(result).toHaveLength(2);
-      expect(result![0].s).toBe('AAPL.US');
+      expect(result![0].s).toBe("AAPL.US");
 
       let stats = streamCacheService.getCacheStats();
       expect(stats.hotCacheHits).toBe(1);
       expect(stats.warmCacheHits).toBe(0);
 
       // 3. 等待Hot Cache过期
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      await new Promise((resolve) => setTimeout(resolve, 2500));
 
       // 4. 再次获取 - 应该命中Warm Cache并提升到Hot Cache
       result = await streamCacheService.getData(key);
@@ -122,33 +127,33 @@ describe('StreamCache Integration Tests', () => {
       expect(stats.hotCacheHits).toBe(2);
     });
 
-    it('Warm Cache数据持久性验证', async () => {
-      const key = 'integration:warm-persistence';
+    it("Warm Cache数据持久性验证", async () => {
+      const key = "integration:warm-persistence";
 
       // 1. 设置数据
-      await streamCacheService.setData(key, testData, 'warm');
+      await streamCacheService.setData(key, testData, "warm");
 
       // 2. 直接从Redis验证数据存在
-      const redisKey = 'stream_cache:integration:warm-persistence';
+      const redisKey = "stream_cache:integration:warm-persistence";
       const redisValue = await redisClient.get(redisKey);
       expect(redisValue).toBeDefined();
 
       const parsedData = JSON.parse(redisValue!);
       expect(parsedData).toHaveLength(2);
-      expect(parsedData[0].s).toBe('AAPL.US');
+      expect(parsedData[0].s).toBe("AAPL.US");
 
       // 3. 通过服务获取数据
       const result = await streamCacheService.getData(key);
       expect(result).toEqual(parsedData);
     });
 
-    it('Hot Cache LRU淘汰机制验证', async () => {
+    it("Hot Cache LRU淘汰机制验证", async () => {
       const keys = Array.from({ length: 7 }, (_, i) => `lru:key${i}`);
       const singleData = [testData[0]];
 
       // 填满Hot Cache (容量为5) + 2个额外条目
       for (const key of keys) {
-        await streamCacheService.setData(key, singleData, 'hot');
+        await streamCacheService.setData(key, singleData, "hot");
       }
 
       // 验证Hot Cache容量限制
@@ -161,22 +166,26 @@ describe('StreamCache Integration Tests', () => {
     });
   });
 
-  describe('数据一致性和并发测试', () => {
-    it('并发读写操作的数据一致性', async () => {
-      const key = 'integration:concurrent';
-      const baseData = [{ symbol: 'NVDA.US', price: 220.50, volume: 500, timestamp: Date.now() }];
+  describe("数据一致性和并发测试", () => {
+    it("并发读写操作的数据一致性", async () => {
+      const key = "integration:concurrent";
+      const baseData = [
+        { symbol: "NVDA.US", price: 220.5, volume: 500, timestamp: Date.now() },
+      ];
 
       // 并发写入
       const writePromises = Array.from({ length: 5 }, (_, i) => {
-        const data = [{ ...baseData[0], price: 220.50 + i, timestamp: Date.now() + i }];
+        const data = [
+          { ...baseData[0], price: 220.5 + i, timestamp: Date.now() + i },
+        ];
         return streamCacheService.setData(`${key}:${i}`, data);
       });
 
       await Promise.all(writePromises);
 
       // 并发读取
-      const readPromises = Array.from({ length: 5 }, (_, i) => 
-        streamCacheService.getData(`${key}:${i}`)
+      const readPromises = Array.from({ length: 5 }, (_, i) =>
+        streamCacheService.getData(`${key}:${i}`),
       );
 
       const results = await Promise.all(readPromises);
@@ -184,12 +193,12 @@ describe('StreamCache Integration Tests', () => {
       // 验证所有读取都成功
       results.forEach((result, i) => {
         expect(result).toBeDefined();
-        expect(result![0].s).toBe('NVDA.US');
-        expect(result![0].p).toBe(220.50 + i);
+        expect(result![0].s).toBe("NVDA.US");
+        expect(result![0].p).toBe(220.5 + i);
       });
     });
 
-    it('大批量数据处理性能', async () => {
+    it("大批量数据处理性能", async () => {
       const batchSize = 100;
       const largeBatch = Array.from({ length: batchSize }, (_, i) => ({
         symbol: `BATCH${i}.US`,
@@ -201,10 +210,12 @@ describe('StreamCache Integration Tests', () => {
       const startTime = Date.now();
 
       // 设置大批量数据
-      await streamCacheService.setData('integration:large-batch', largeBatch);
+      await streamCacheService.setData("integration:large-batch", largeBatch);
 
       // 获取数据
-      const result = await streamCacheService.getData('integration:large-batch');
+      const result = await streamCacheService.getData(
+        "integration:large-batch",
+      );
 
       const endTime = Date.now();
 
@@ -218,13 +229,13 @@ describe('StreamCache Integration Tests', () => {
     });
   });
 
-  describe('增量查询集成测试', () => {
-    it('时间序列数据的增量查询', async () => {
-      const key = 'integration:time-series';
+  describe("增量查询集成测试", () => {
+    it("时间序列数据的增量查询", async () => {
+      const key = "integration:time-series";
       const baseTime = Date.now();
-      
+
       const timeSeriesData = Array.from({ length: 10 }, (_, i) => ({
-        symbol: 'TIME.US',
+        symbol: "TIME.US",
         price: 100 + i,
         volume: 1000,
         timestamp: baseTime + i * 1000, // 每秒一个数据点
@@ -233,7 +244,10 @@ describe('StreamCache Integration Tests', () => {
       await streamCacheService.setData(key, timeSeriesData);
 
       // 获取5秒后的数据
-      const incrementalData = await streamCacheService.getDataSince(key, baseTime + 5000);
+      const incrementalData = await streamCacheService.getDataSince(
+        key,
+        baseTime + 5000,
+      );
 
       expect(incrementalData).toBeDefined();
       expect(incrementalData).toHaveLength(4); // 索引6-9的数据点
@@ -241,9 +255,9 @@ describe('StreamCache Integration Tests', () => {
       expect(incrementalData![3].p).toBe(109);
     });
 
-    it('实时数据追加场景模拟', async () => {
-      const key = 'integration:real-time';
-      const symbol = 'REAL.US';
+    it("实时数据追加场景模拟", async () => {
+      const key = "integration:real-time";
+      const symbol = "REAL.US";
 
       // 初始数据
       const initialData = [
@@ -262,7 +276,10 @@ describe('StreamCache Integration Tests', () => {
       await streamCacheService.setData(key, updatedData);
 
       // 获取增量数据
-      const incrementalData = await streamCacheService.getDataSince(key, Date.now() + 500);
+      const incrementalData = await streamCacheService.getDataSince(
+        key,
+        Date.now() + 500,
+      );
 
       expect(incrementalData).toBeDefined();
       expect(incrementalData).toHaveLength(1);
@@ -270,13 +287,15 @@ describe('StreamCache Integration Tests', () => {
     });
   });
 
-  describe('错误恢复和容错测试', () => {
-    it('Redis临时不可用时的优雅降级', async () => {
-      const key = 'integration:error-recovery';
-      const testData = [{ symbol: 'ERROR.US', price: 50, volume: 500, timestamp: Date.now() }];
+  describe("错误恢复和容错测试", () => {
+    it("Redis临时不可用时的优雅降级", async () => {
+      const key = "integration:error-recovery";
+      const testData = [
+        { symbol: "ERROR.US", price: 50, volume: 500, timestamp: Date.now() },
+      ];
 
       // 先设置数据到Hot Cache
-      await streamCacheService.setData(key, testData, 'hot');
+      await streamCacheService.setData(key, testData, "hot");
 
       // 验证Hot Cache工作正常
       let result = await streamCacheService.getData(key);
@@ -284,7 +303,9 @@ describe('StreamCache Integration Tests', () => {
 
       // 模拟Redis错误（通过直接关闭连接）
       const originalGet = redisClient.get;
-      redisClient.get = jest.fn().mockRejectedValue(new Error('Redis connection lost'));
+      redisClient.get = jest
+        .fn()
+        .mockRejectedValue(new Error("Redis connection lost"));
 
       // Hot Cache仍应工作
       result = await streamCacheService.getData(key);
@@ -298,9 +319,11 @@ describe('StreamCache Integration Tests', () => {
       expect(result).toBeDefined();
     });
 
-    it('缓存清理操作的原子性', async () => {
-      const keys = ['atomic:key1', 'atomic:key2', 'atomic:key3'];
-      const testData = [{ symbol: 'ATOMIC.US', price: 75, volume: 750, timestamp: Date.now() }];
+    it("缓存清理操作的原子性", async () => {
+      const keys = ["atomic:key1", "atomic:key2", "atomic:key3"];
+      const testData = [
+        { symbol: "ATOMIC.US", price: 75, volume: 750, timestamp: Date.now() },
+      ];
 
       // 设置多个缓存条目
       for (const key of keys) {
@@ -323,15 +346,17 @@ describe('StreamCache Integration Tests', () => {
       }
 
       // 验证Redis中的数据也被清理
-      const redisKeys = await redisClient.keys('stream_cache:atomic:*');
+      const redisKeys = await redisClient.keys("stream_cache:atomic:*");
       expect(redisKeys).toHaveLength(0);
     });
   });
 
-  describe('性能基准测试', () => {
-    it('高频访问性能测试', async () => {
-      const key = 'performance:high-frequency';
-      const testData = [{ symbol: 'PERF.US', price: 200, volume: 2000, timestamp: Date.now() }];
+  describe("性能基准测试", () => {
+    it("高频访问性能测试", async () => {
+      const key = "performance:high-frequency";
+      const testData = [
+        { symbol: "PERF.US", price: 200, volume: 2000, timestamp: Date.now() },
+      ];
 
       // 设置数据
       await streamCacheService.setData(key, testData);
@@ -340,15 +365,15 @@ describe('StreamCache Integration Tests', () => {
       const startTime = Date.now();
 
       // 高频访问测试
-      const promises = Array.from({ length: iterations }, () => 
-        streamCacheService.getData(key)
+      const promises = Array.from({ length: iterations }, () =>
+        streamCacheService.getData(key),
       );
 
       const results = await Promise.all(promises);
       const endTime = Date.now();
 
       // 验证所有访问都成功
-      expect(results.every(result => result !== null)).toBe(true);
+      expect(results.every((result) => result !== null)).toBe(true);
 
       // 性能要求：1000次访问应在500ms内完成
       const totalTime = endTime - startTime;
@@ -359,10 +384,12 @@ describe('StreamCache Integration Tests', () => {
       expect(stats.hotCacheHits).toBe(iterations);
       expect(stats.hotCacheMisses).toBe(0);
 
-      console.log(`高频访问性能: ${iterations}次访问耗时${totalTime}ms, 平均${totalTime/iterations}ms/次`);
+      console.log(
+        `高频访问性能: ${iterations}次访问耗时${totalTime}ms, 平均${totalTime / iterations}ms/次`,
+      );
     });
 
-    it('内存使用效率测试', async () => {
+    it("内存使用效率测试", async () => {
       const batchCount = 50;
       const itemsPerBatch = 20;
 
@@ -379,12 +406,14 @@ describe('StreamCache Integration Tests', () => {
       }
 
       const stats = streamCacheService.getCacheStats();
-      
+
       // 验证压缩效果
       expect(stats.compressionRatio).toBeGreaterThan(0);
       expect(stats.compressionRatio).toBeLessThan(1); // 应该有压缩效果
 
-      console.log(`内存效率: 压缩比${stats.compressionRatio.toFixed(3)}, Hot Cache大小${stats.totalSize}`);
+      console.log(
+        `内存效率: 压缩比${stats.compressionRatio.toFixed(3)}, Hot Cache大小${stats.totalSize}`,
+      );
     });
   });
 });

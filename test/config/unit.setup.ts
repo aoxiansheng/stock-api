@@ -15,22 +15,34 @@ beforeAll(() => {
   process.env.JWT_SECRET = "test-jwt-secret";
   process.env.MONGODB_URI = "mongodb://localhost:27017/test";
   process.env.REDIS_URL = "redis://localhost:6379";
-  
+
   // Mock NestJS Guards and Auth services globally to prevent dependency resolution issues
-  jest.doMock('@auth/guards/unified-permissions.guard', () => ({
+  jest.doMock("@auth/guards/unified-permissions.guard", () => ({
     UnifiedPermissionsGuard: class MockUnifiedPermissionsGuard {
-      canActivate() { return true; }
-    }
+      canActivate() {
+        return true;
+      }
+    },
   }));
-  
-  jest.doMock('@auth/services/permission.service', () => ({
+
+  jest.doMock("@auth/services/permission.service", () => ({
     PermissionService: class MockPermissionService {
-      hasPermission() { return true; }
-      checkPermissions() { return true; }
-      getUserPermissions() { return ['data:read', 'data:write']; }
-      validateApiKeyPermissions() { return true; }
-      validateUserRolePermissions() { return true; }
-    }
+      hasPermission() {
+        return true;
+      }
+      checkPermissions() {
+        return true;
+      }
+      getUserPermissions() {
+        return ["data:read", "data:write"];
+      }
+      validateApiKeyPermissions() {
+        return true;
+      }
+      validateUserRolePermissions() {
+        return true;
+      }
+    },
   }));
 });
 
@@ -77,28 +89,28 @@ global.createMockApiKey = () => ({
 const globalTestConfig = {
   // 默认超时时间
   DEFAULT_TIMEOUT: 5000,
-  
+
   // 性能基准
   PERFORMANCE_THRESHOLDS: {
-    STRING_SIMILARITY: 10,     // StringUtils.calculateSimilarity < 10ms
-    STRING_HASH: 5,            // StringUtils.generateHash < 5ms
-    OBJECT_TRAVERSE: 20,       // ObjectUtils深度遍历 < 20ms
-    MARKET_STATUS_CACHE_HIT: 5,        // 缓存命中 < 5ms (more realistic)
-    MARKET_STATUS_CACHE_MISS: 100,     // 缓存未命中 < 100ms
-    DATA_CHANGE_DETECTION: 50,         // 变更检测 < 50ms
-    QUICK_CHECKSUM: 10,                // 快速校验和 < 10ms
+    STRING_SIMILARITY: 10, // StringUtils.calculateSimilarity < 10ms
+    STRING_HASH: 5, // StringUtils.generateHash < 5ms
+    OBJECT_TRAVERSE: 20, // ObjectUtils深度遍历 < 20ms
+    MARKET_STATUS_CACHE_HIT: 5, // 缓存命中 < 5ms (more realistic)
+    MARKET_STATUS_CACHE_MISS: 100, // 缓存未命中 < 100ms
+    DATA_CHANGE_DETECTION: 50, // 变更检测 < 50ms
+    QUICK_CHECKSUM: 10, // 快速校验和 < 10ms
   },
-  
+
   // 缓存相关
   CACHE_CONFIG: {
-    MIN_HIT_RATE: 0.8,        // 最低缓存命中率80%
-    MAX_CACHE_SIZE: 1000,     // 测试用最大缓存大小
-    TEST_TTL: 1000,           // 测试用TTL 1秒
+    MIN_HIT_RATE: 0.8, // 最低缓存命中率80%
+    MAX_CACHE_SIZE: 1000, // 测试用最大缓存大小
+    TEST_TTL: 1000, // 测试用TTL 1秒
   },
-  
+
   // 测试数据配置
   TEST_DATA: {
-    SAMPLE_SYMBOLS: ['700.HK', 'AAPL.US', '000001.SZ', '600036.SH'],
+    SAMPLE_SYMBOLS: ["700.HK", "AAPL.US", "000001.SZ", "600036.SH"],
     LARGE_DATASET_SIZE: 1000,
     PERFORMANCE_TEST_ITERATIONS: 100,
   },

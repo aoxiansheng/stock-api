@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import  request from "supertest";
+import request from "supertest";
 import { INestApplication } from "@nestjs/common";
 
 import { AuthService } from "../../../../../../src/auth/services/auth.service";
@@ -100,7 +100,7 @@ describe("Monitoring Dashboard E2E Tests", () => {
       // Assert - 检查基本健康状态的字段
       global.expectSuccessResponse(healthResponse, 200);
       const healthData = healthResponse.body.data;
-      
+
       // 验证基本健康状态字段
       expect(healthData).toHaveProperty("status");
       expect(healthData).toHaveProperty("timestamp");
@@ -109,14 +109,20 @@ describe("Monitoring Dashboard E2E Tests", () => {
       expect(healthData).toHaveProperty("message");
 
       // 检查状态是否是有效值
-      expect(["operational", "degraded", "warning", "error", "unhealthy"]).toContain(healthData.status);
+      expect([
+        "operational",
+        "degraded",
+        "warning",
+        "error",
+        "unhealthy",
+      ]).toContain(healthData.status);
     });
   });
 
   describe("Detailed Health Monitoring", () => {
     let apiKeyAuth = {
       appKey: null,
-      accessToken: null
+      accessToken: null,
     };
 
     beforeAll(async () => {
@@ -146,7 +152,9 @@ describe("Monitoring Dashboard E2E Tests", () => {
     it("should provide detailed health information with issues and recommendations", async () => {
       // Skip test if no auth tokens
       if (!apiKeyAuth.appKey || !apiKeyAuth.accessToken) {
-        console.log("Skipping detailed health check test - no API tokens available");
+        console.log(
+          "Skipping detailed health check test - no API tokens available",
+        );
         return;
       }
 
@@ -163,8 +171,8 @@ describe("Monitoring Dashboard E2E Tests", () => {
         code: "FORBIDDEN",
         details: {
           path: "/api/v1/monitoring/health/detailed",
-          type: "ForbiddenException"
-        }
+          type: "ForbiddenException",
+        },
       });
       expect(detailedHealthResponse.body).toHaveProperty("message");
     });

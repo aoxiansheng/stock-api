@@ -4,56 +4,56 @@
  * K�X���(�pn ��a
  */
 
-import { validate } from 'class-validator';
+import { validate } from "class-validator";
 import {
   CacheResultDto,
   PersistentResultDto,
   CompressionResultDto,
   CacheInfoDto,
-  StorageCacheStatsDto,
+  StorageRedisCacheRuntimeStatsDto,
   PersistentStatsDto,
   PerformanceStatsDto,
-} from '../../../../../../../src/core/04-storage/storage/dto/storage-internal.dto';
+} from "../../../../../../../src/core/04-storage/storage/dto/storage-internal.dto";
 
-describe('Storage Internal DTOs', () => {
-  describe('CacheResultDto', () => {
+describe("Storage Internal DTOs", () => {
+  describe("CacheResultDto", () => {
     let dto: CacheResultDto;
 
     beforeEach(() => {
       dto = new CacheResultDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create instance with valid data', () => {
+    describe("Valid Data", () => {
+      it("should create instance with valid data", () => {
         // Arrange
-        dto.data = { symbol: '00700.HK', price: 425.6 };
+        dto.data = { symbol: "00700.HK", price: 425.6 };
         dto.ttl = 300;
         dto.metadata = {
           compressed: true,
-          storedAt: '2023-06-01T_10:00:00Z',
+          storedAt: "2023-06-01T_10:00:00Z",
         };
 
         // Assert
         expect(dto).toBeInstanceOf(CacheResultDto);
-        expect(dto.data).toEqual({ symbol: '00700.HK', price: 425.6 });
+        expect(dto.data).toEqual({ symbol: "00700.HK", price: 425.6 });
         expect(dto.ttl).toBe(300);
         expect(dto.metadata.compressed).toBe(true);
       });
 
-      it('should handle minimal required fields', () => {
+      it("should handle minimal required fields", () => {
         // Arrange
-        dto.data = 'simple string data';
+        dto.data = "simple string data";
         dto.ttl = 60;
 
         // Assert
-        expect(dto.data).toBe('simple string data');
+        expect(dto.data).toBe("simple string data");
         expect(dto.ttl).toBe(60);
         expect(dto.metadata).toBeUndefined();
       });
 
-      it('should validate TTL is a number', async () => {
+      it("should validate TTL is a number", async () => {
         // Arrange
-        dto.data = 'test';
+        dto.data = "test";
         dto.ttl = 120;
 
         // Act
@@ -64,43 +64,43 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with invalid TTL', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with invalid TTL", async () => {
         // Arrange
-        dto.data = 'test';
-        dto.ttl = 'invalid' as any;
+        dto.data = "test";
+        dto.ttl = "invalid" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors[0].property).toBe('ttl');
+        expect(errors[0].property).toBe("ttl");
       });
 
-      it('should fail validation with invalid metadata', async () => {
+      it("should fail validation with invalid metadata", async () => {
         // Arrange
-        dto.data = 'test';
+        dto.data = "test";
         dto.ttl = 60;
-        dto.metadata = 'invalid' as any;
+        dto.metadata = "invalid" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors[0].property).toBe('metadata');
+        expect(errors[0].property).toBe("metadata");
       });
     });
 
-    describe('Data Types', () => {
-      it('should handle various data types', () => {
+    describe("Data Types", () => {
+      it("should handle various data types", () => {
         // Arrange & Act & Assert
         const testCases = [
-          { data: 'string', expected: 'string' },
+          { data: "string", expected: "string" },
           { data: 123, expected: 123 },
           { data: true, expected: true },
-          { data: { object: 'value' }, expected: { object: 'value' } },
+          { data: { object: "value" }, expected: { object: "value" } },
           { data: [1, 2, 3], expected: [1, 2, 3] },
           { data: null, expected: null },
         ];
@@ -114,57 +114,57 @@ describe('Storage Internal DTOs', () => {
     });
   });
 
-  describe('PersistentResultDto', () => {
+  describe("PersistentResultDto", () => {
     let dto: PersistentResultDto;
 
     beforeEach(() => {
       dto = new PersistentResultDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create instance with complete metadata', () => {
+    describe("Valid Data", () => {
+      it("should create instance with complete metadata", () => {
         // Arrange
-        dto.data = { symbols: ['AAPL', 'GOOGL'], prices: [150, 2800] };
+        dto.data = { symbols: ["AAPL", "GOOGL"], prices: [150, 2800] };
         dto.metadata = {
-          storageClassification: 'stockquote',
-          provider: 'longport',
-          market: 'US',
+          storageClassification: "stockquote",
+          provider: "longport",
+          market: "US",
           dataSize: 1024,
           compressed: true,
-          tags: { version: '1.0', source: 'api' },
-          storedAt: new Date('2023-06-01T10:00:00Z'),
+          tags: { version: "1.0", source: "api" },
+          storedAt: new Date("2023-06-01T10:00:00Z"),
         };
 
         // Assert
         expect(dto.data).toBeDefined();
-        expect(dto.metadata.storageClassification).toBe('stock_quote');
-        expect(dto.metadata.provider).toBe('longport');
-        expect(dto.metadata.market).toBe('US');
+        expect(dto.metadata.storageClassification).toBe("stock_quote");
+        expect(dto.metadata.provider).toBe("longport");
+        expect(dto.metadata.market).toBe("US");
         expect(dto.metadata.dataSize).toBe(1024);
         expect(dto.metadata.compressed).toBe(true);
-        expect(dto.metadata.tags).toEqual({ version: '1.0', source: 'api' });
+        expect(dto.metadata.tags).toEqual({ version: "1.0", source: "api" });
         expect(dto.metadata.storedAt).toBeInstanceOf(Date);
       });
 
-      it('should handle partial metadata', () => {
+      it("should handle partial metadata", () => {
         // Arrange
-        dto.data = 'test data';
+        dto.data = "test data";
         dto.metadata = {
-          storageClassification: 'test_data',
+          storageClassification: "test_data",
         };
 
         // Assert
-        expect(dto.metadata.storageClassification).toBe('test_data');
+        expect(dto.metadata.storageClassification).toBe("test_data");
         expect(dto.metadata.provider).toBeUndefined();
         expect(dto.metadata.market).toBeUndefined();
       });
 
-      it('should validate metadata object', async () => {
+      it("should validate metadata object", async () => {
         // Arrange
-        dto.data = 'test';
+        dto.data = "test";
         dto.metadata = {
-          storageClassification: 'test',
-          provider: 'test_provider',
+          storageClassification: "test",
+          provider: "test_provider",
         };
 
         // Act
@@ -175,45 +175,45 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with invalid metadata type', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with invalid metadata type", async () => {
         // Arrange
-        dto.data = 'test';
-        dto.metadata = 'invalid' as any;
+        dto.data = "test";
+        dto.metadata = "invalid" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors[0].property).toBe('metadata');
+        expect(errors[0].property).toBe("metadata");
       });
     });
   });
 
-  describe('CompressionResultDto', () => {
+  describe("CompressionResultDto", () => {
     let dto: CompressionResultDto;
 
     beforeEach(() => {
       dto = new CompressionResultDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create instance with compression data', () => {
+    describe("Valid Data", () => {
+      it("should create instance with compression data", () => {
         // Arrange
-        dto.serializedData = 'H4sIAAAAAAAACouuVkosLUmtqI4FAA';
+        dto.serializedData = "H4sIAAAAAAAACouuVkosLUmtqI4FAA";
         dto.compressed = true;
         dto.dataSize = 256;
 
         // Assert
-        expect(dto.serializedData).toBe('H4sIAAAAAAAACouuVkosLUmtqI4FAA');
+        expect(dto.serializedData).toBe("H4sIAAAAAAAACouuVkosLUmtqI4FAA");
         expect(dto.compressed).toBe(true);
         expect(dto.dataSize).toBe(256);
       });
 
-      it('should handle uncompressed data', () => {
+      it("should handle uncompressed data", () => {
         // Arrange
-        dto.serializedData = JSON.stringify({ test: 'data' });
+        dto.serializedData = JSON.stringify({ test: "data" });
         dto.compressed = false;
         dto.dataSize = 16;
 
@@ -223,9 +223,9 @@ describe('Storage Internal DTOs', () => {
         expect(() => JSON.parse(dto.serializedData)).not.toThrow();
       });
 
-      it('should validate all fields', async () => {
+      it("should validate all fields", async () => {
         // Arrange
-        dto.serializedData = 'valid_string';
+        dto.serializedData = "valid_string";
         dto.compressed = true;
         dto.dataSize = 100;
 
@@ -237,8 +237,8 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with non-string serializedData', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with non-string serializedData", async () => {
         // Arrange
         dto.serializedData = 123 as any;
         dto.compressed = true;
@@ -249,13 +249,13 @@ describe('Storage Internal DTOs', () => {
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e.property === 'serializedData')).toBe(true);
+        expect(errors.some((e) => e.property === "serializedData")).toBe(true);
       });
 
-      it('should fail validation with non-boolean compressed', async () => {
+      it("should fail validation with non-boolean compressed", async () => {
         // Arrange
-        dto.serializedData = 'test';
-        dto.compressed = 'true' as any;
+        dto.serializedData = "test";
+        dto.compressed = "true" as any;
         dto.dataSize = 100;
 
         // Act
@@ -263,72 +263,72 @@ describe('Storage Internal DTOs', () => {
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e.property === 'compressed')).toBe(true);
+        expect(errors.some((e) => e.property === "compressed")).toBe(true);
       });
 
-      it('should fail validation with non-number dataSize', async () => {
+      it("should fail validation with non-number dataSize", async () => {
         // Arrange
-        dto.serializedData = 'test';
+        dto.serializedData = "test";
         dto.compressed = true;
-        dto.dataSize = '100' as any;
+        dto.dataSize = "100" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e.property === 'dataSize')).toBe(true);
+        expect(errors.some((e) => e.property === "dataSize")).toBe(true);
       });
     });
   });
 
-  describe('CacheInfoDto', () => {
+  describe("CacheInfoDto", () => {
     let dto: CacheInfoDto;
 
     beforeEach(() => {
       dto = new CacheInfoDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create cache hit info', () => {
+    describe("Valid Data", () => {
+      it("should create cache hit info", () => {
         // Arrange
         dto.hit = true;
-        dto.source = 'cache';
+        dto.source = "cache";
         dto.ttlRemaining = 240;
 
         // Assert
         expect(dto.hit).toBe(true);
-        expect(dto.source).toBe('cache');
+        expect(dto.source).toBe("cache");
         expect(dto.ttlRemaining).toBe(240);
       });
 
-      it('should create cache miss info', () => {
+      it("should create cache miss info", () => {
         // Arrange
         dto.hit = false;
-        dto.source = 'persistent';
+        dto.source = "persistent";
 
         // Assert
         expect(dto.hit).toBe(false);
-        expect(dto.source).toBe('persistent');
+        expect(dto.source).toBe("persistent");
         expect(dto.ttlRemaining).toBeUndefined();
       });
 
-      it('should handle not found case', () => {
+      it("should handle not found case", () => {
         // Arrange
         dto.hit = false;
-        dto.source = 'not_found';
+        dto.source = "not_found";
 
         // Assert
         expect(dto.hit).toBe(false);
-        expect(dto.source).toBe('not_found');
+        expect(dto.source).toBe("not_found");
       });
 
-      it('should validate with valid source values', async () => {
+      it("should validate with valid source values", async () => {
         // Arrange
-        const validSources = ['cache', 'persistent', 'not_found'];
+        const validSources = ["cache", "persistent", "not_found"];
 
         for (const source of validSources) {
-          dto.hit = source === 'cache';
+          dto.hit = source === "cache";
           dto.source = source as any;
 
           // Act
@@ -340,24 +340,24 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with invalid hit value', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with invalid hit value", async () => {
         // Arrange
-        dto.hit = 'true' as any;
-        dto.source = 'cache';
+        dto.hit = "true" as any;
+        dto.source = "cache";
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e.property === 'hit')).toBe(true);
+        expect(errors.some((e) => e.property === "hit")).toBe(true);
       });
 
-      it('should fail validation with invalid source', async () => {
+      it("should fail validation with invalid source", async () => {
         // Arrange
         dto.hit = true;
-        dto.source = 'invalid_source' as any;
+        dto.source = "invalid_source" as any;
 
         // Act
         const errors = await validate(dto);
@@ -369,15 +369,15 @@ describe('Storage Internal DTOs', () => {
     });
   });
 
-  describe('StorageCacheStatsDto', () => {
-    let dto: StorageCacheStatsDto;
+  describe("StorageRedisCacheRuntimeStatsDto", () => {
+    let dto: StorageRedisCacheRuntimeStatsDto;
 
     beforeEach(() => {
-      dto = new StorageCacheStatsDto();
+      dto = new StorageRedisCacheRuntimeStatsDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create stats with realistic values', () => {
+    describe("Valid Data", () => {
+      it("should create stats with realistic values", () => {
         // Arrange
         dto.totalKeys = 15000;
         dto.totalMemoryUsage = 52428800; // 50MB
@@ -391,7 +391,7 @@ describe('Storage Internal DTOs', () => {
         expect(dto.avgTtl).toBe(300);
       });
 
-      it('should validate all numeric fields', async () => {
+      it("should validate all numeric fields", async () => {
         // Arrange
         dto.totalKeys = 1000;
         dto.totalMemoryUsage = 1048576; // 1MB
@@ -406,28 +406,30 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with non-numeric values', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with non-numeric values", async () => {
         // Arrange
-        dto.totalKeys = 'many' as any;
-        dto.totalMemoryUsage = 'large' as any;
-        dto.hitRate = 'high' as any;
-        dto.avgTtl = 'long' as any;
+        dto.totalKeys = "many" as any;
+        dto.totalMemoryUsage = "large" as any;
+        dto.hitRate = "high" as any;
+        dto.avgTtl = "long" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBe(4);
-        expect(errors.some(e => e.property === 'totalKeys')).toBe(true);
-        expect(errors.some(e => e.property === 'totalMemoryUsage')).toBe(true);
-        expect(errors.some(e => e.property === 'hitRate')).toBe(true);
-        expect(errors.some(e => e.property === 'avgTtl')).toBe(true);
+        expect(errors.some((e) => e.property === "totalKeys")).toBe(true);
+        expect(errors.some((e) => e.property === "totalMemoryUsage")).toBe(
+          true,
+        );
+        expect(errors.some((e) => e.property === "hitRate")).toBe(true);
+        expect(errors.some((e) => e.property === "avgTtl")).toBe(true);
       });
     });
 
-    describe('Edge Cases', () => {
-      it('should handle zero values', () => {
+    describe("Edge Cases", () => {
+      it("should handle zero values", () => {
         // Arrange
         dto.totalKeys = 0;
         dto.totalMemoryUsage = 0;
@@ -441,7 +443,7 @@ describe('Storage Internal DTOs', () => {
         expect(dto.avgTtl).toBe(0);
       });
 
-      it('should handle perfect hit rate', () => {
+      it("should handle perfect hit rate", () => {
         // Arrange
         dto.totalKeys = 100;
         dto.totalMemoryUsage = 1024;
@@ -454,15 +456,15 @@ describe('Storage Internal DTOs', () => {
     });
   });
 
-  describe('PersistentStatsDto', () => {
+  describe("PersistentStatsDto", () => {
     let dto: PersistentStatsDto;
 
     beforeEach(() => {
       dto = new PersistentStatsDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create stats with counts and categories', () => {
+    describe("Valid Data", () => {
+      it("should create stats with counts and categories", () => {
         // Arrange
         dto.totalDocuments = 50000;
         dto.totalSizeBytes = 104857600; // 100MB
@@ -484,7 +486,7 @@ describe('Storage Internal DTOs', () => {
         expect(dto.providerCounts.longport).toBe(35000);
       });
 
-      it('should validate all fields', async () => {
+      it("should validate all fields", async () => {
         // Arrange
         dto.totalDocuments = 1000;
         dto.totalSizeBytes = 1048576;
@@ -499,26 +501,28 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with invalid object types', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with invalid object types", async () => {
         // Arrange
         dto.totalDocuments = 1000;
         dto.totalSizeBytes = 1024;
-        dto.categoriesCounts = 'invalid' as any;
-        dto.providerCounts = 'invalid' as any;
+        dto.categoriesCounts = "invalid" as any;
+        dto.providerCounts = "invalid" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBeGreaterThan(0);
-        expect(errors.some(e => e.property === 'categoriesCounts')).toBe(true);
-        expect(errors.some(e => e.property === 'providerCounts')).toBe(true);
+        expect(errors.some((e) => e.property === "categoriesCounts")).toBe(
+          true,
+        );
+        expect(errors.some((e) => e.property === "providerCounts")).toBe(true);
       });
     });
 
-    describe('Empty Collections', () => {
-      it('should handle empty count objects', () => {
+    describe("Empty Collections", () => {
+      it("should handle empty count objects", () => {
         // Arrange
         dto.totalDocuments = 0;
         dto.totalSizeBytes = 0;
@@ -532,15 +536,15 @@ describe('Storage Internal DTOs', () => {
     });
   });
 
-  describe('PerformanceStatsDto', () => {
+  describe("PerformanceStatsDto", () => {
     let dto: PerformanceStatsDto;
 
     beforeEach(() => {
       dto = new PerformanceStatsDto();
     });
 
-    describe('Valid Data', () => {
-      it('should create performance stats', () => {
+    describe("Valid Data", () => {
+      it("should create performance stats", () => {
         // Arrange
         dto.avgStorageTime = 25.5;
         dto.avgRetrievalTime = 12.3;
@@ -554,7 +558,7 @@ describe('Storage Internal DTOs', () => {
         expect(dto.errorRate).toBe(0.001);
       });
 
-      it('should validate all numeric fields', async () => {
+      it("should validate all numeric fields", async () => {
         // Arrange
         dto.avgStorageTime = 30;
         dto.avgRetrievalTime = 15;
@@ -569,28 +573,32 @@ describe('Storage Internal DTOs', () => {
       });
     });
 
-    describe('Invalid Data', () => {
-      it('should fail validation with non-numeric values', async () => {
+    describe("Invalid Data", () => {
+      it("should fail validation with non-numeric values", async () => {
         // Arrange
-        dto.avgStorageTime = 'slow' as any;
-        dto.avgRetrievalTime = 'fast' as any;
-        dto.operationsPerSecond = 'many' as any;
-        dto.errorRate = 'low' as any;
+        dto.avgStorageTime = "slow" as any;
+        dto.avgRetrievalTime = "fast" as any;
+        dto.operationsPerSecond = "many" as any;
+        dto.errorRate = "low" as any;
 
         // Act
         const errors = await validate(dto);
 
         // Assert
         expect(errors.length).toBe(4);
-        expect(errors.some(e => e.property === 'avgStorageTime')).toBe(true);
-        expect(errors.some(e => e.property === 'avgRetrievalTime')).toBe(true);
-        expect(errors.some(e => e.property === 'operationsPerSecond')).toBe(true);
-        expect(errors.some(e => e.property === 'errorRate')).toBe(true);
+        expect(errors.some((e) => e.property === "avgStorageTime")).toBe(true);
+        expect(errors.some((e) => e.property === "avgRetrievalTime")).toBe(
+          true,
+        );
+        expect(errors.some((e) => e.property === "operationsPerSecond")).toBe(
+          true,
+        );
+        expect(errors.some((e) => e.property === "errorRate")).toBe(true);
       });
     });
 
-    describe('Performance Metrics', () => {
-      it('should handle high performance metrics', () => {
+    describe("Performance Metrics", () => {
+      it("should handle high performance metrics", () => {
         // Arrange
         dto.avgStorageTime = 5.2;
         dto.avgRetrievalTime = 2.1;
@@ -604,7 +612,7 @@ describe('Storage Internal DTOs', () => {
         expect(dto.errorRate).toBeLessThan(0.001);
       });
 
-      it('should handle poor performance metrics', () => {
+      it("should handle poor performance metrics", () => {
         // Arrange
         dto.avgStorageTime = 200.5;
         dto.avgRetrievalTime = 150.3;
@@ -620,16 +628,16 @@ describe('Storage Internal DTOs', () => {
     });
   });
 
-  describe('Integration Tests', () => {
-    it('should work together in storage operations', () => {
+  describe("Integration Tests", () => {
+    it("should work together in storage operations", () => {
       // Arrange
       const cacheResult = new CacheResultDto();
-      cacheResult.data = { test: 'data' };
+      cacheResult.data = { test: "data" };
       cacheResult.ttl = 300;
 
       const cacheInfo = new CacheInfoDto();
       cacheInfo.hit = true;
-      cacheInfo.source = 'cache';
+      cacheInfo.source = "cache";
       cacheInfo.ttlRemaining = 240;
 
       const compressionResult = new CompressionResultDto();
@@ -638,14 +646,16 @@ describe('Storage Internal DTOs', () => {
       compressionResult.dataSize = compressionResult.serializedData.length;
 
       // Assert
-      expect(cacheResult.data).toEqual({ test: 'data' });
+      expect(cacheResult.data).toEqual({ test: "data" });
       expect(cacheInfo.hit).toBe(true);
-      expect(compressionResult.dataSize).toBe(JSON.stringify({ test: 'data' }).length);
+      expect(compressionResult.dataSize).toBe(
+        JSON.stringify({ test: "data" }).length,
+      );
     });
 
-    it('should provide comprehensive storage statistics', () => {
+    it("should provide comprehensive storage statistics", () => {
       // Arrange
-      const cacheStats = new StorageCacheStatsDto();
+      const cacheStats = new StorageRedisCacheRuntimeStatsDto();
       cacheStats.totalKeys = 10000;
       cacheStats.totalMemoryUsage = 10485760;
       cacheStats.hitRate = 0.85;
@@ -665,7 +675,9 @@ describe('Storage Internal DTOs', () => {
 
       // Assert
       expect(cacheStats.hitRate).toBeGreaterThan(0.8);
-      expect(persistentStats.totalDocuments).toBeGreaterThan(cacheStats.totalKeys);
+      expect(persistentStats.totalDocuments).toBeGreaterThan(
+        cacheStats.totalKeys,
+      );
       expect(performanceStats.operationsPerSecond).toBeGreaterThan(1000);
     });
   });

@@ -8,7 +8,7 @@ import { INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { Controller, Get, UseInterceptors, Req } from "@nestjs/common";
 import { Module } from "@nestjs/common";
-import  request from "supertest";
+import request from "supertest";
 
 import {
   Market,

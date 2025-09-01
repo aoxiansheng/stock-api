@@ -10,20 +10,20 @@ import {
   LongportQuoteResponse,
   LongportBasicInfo,
   LongportConfig,
-} from '../../../../../src/providers/longport/types';
+} from "../../../../../src/providers/longport/types";
 
-describe('LongPort Types', () => {
-  describe('LongportQuoteData', () => {
+describe("LongPort Types", () => {
+  describe("LongportQuoteData", () => {
     let quoteData: LongportQuoteData;
 
     beforeEach(() => {
       quoteData = {
-        symbol: '700.HK',
-        last_done: 320.50,
-        prev_close: 318.00,
-        open: 319.10,
-        high: 322.80,
-        low: 318.90,
+        symbol: "700.HK",
+        last_done: 320.5,
+        prev_close: 318.0,
+        open: 319.1,
+        high: 322.8,
+        low: 318.9,
         volume: 15000000,
         turnover: 4825000000,
         timestamp: 1640995200000,
@@ -31,75 +31,75 @@ describe('LongPort Types', () => {
       };
     });
 
-    describe('Basic Properties', () => {
-      it('should have required quote data properties', () => {
-        expect(quoteData).toHaveProperty('symbol');
-        expect(quoteData).toHaveProperty('last_done');
-        expect(quoteData).toHaveProperty('prev_close');
-        expect(quoteData).toHaveProperty('open');
-        expect(quoteData).toHaveProperty('high');
-        expect(quoteData).toHaveProperty('low');
-        expect(quoteData).toHaveProperty('volume');
-        expect(quoteData).toHaveProperty('turnover');
-        expect(quoteData).toHaveProperty('timestamp');
-        expect(quoteData).toHaveProperty('trade_status');
+    describe("Basic Properties", () => {
+      it("should have required quote data properties", () => {
+        expect(quoteData).toHaveProperty("symbol");
+        expect(quoteData).toHaveProperty("last_done");
+        expect(quoteData).toHaveProperty("prev_close");
+        expect(quoteData).toHaveProperty("open");
+        expect(quoteData).toHaveProperty("high");
+        expect(quoteData).toHaveProperty("low");
+        expect(quoteData).toHaveProperty("volume");
+        expect(quoteData).toHaveProperty("turnover");
+        expect(quoteData).toHaveProperty("timestamp");
+        expect(quoteData).toHaveProperty("trade_status");
       });
 
-      it('should accept valid data types', () => {
-        expect(typeof quoteData.symbol).toBe('string');
-        expect(typeof quoteData.volume).toBe('number');
-        expect(typeof quoteData.timestamp).toBe('number');
-        expect(typeof quoteData.trade_status).toBe('number');
+      it("should accept valid data types", () => {
+        expect(typeof quoteData.symbol).toBe("string");
+        expect(typeof quoteData.volume).toBe("number");
+        expect(typeof quoteData.timestamp).toBe("number");
+        expect(typeof quoteData.trade_status).toBe("number");
       });
 
-      it('should support both number and string for price fields', () => {
+      it("should support both number and string for price fields", () => {
         // Number values
-        quoteData.last_done = 320.50;
-        quoteData.prev_close = 318.00;
-        quoteData.open = 319.10;
-        quoteData.high = 322.80;
-        quoteData.low = 318.90;
+        quoteData.last_done = 320.5;
+        quoteData.prev_close = 318.0;
+        quoteData.open = 319.1;
+        quoteData.high = 322.8;
+        quoteData.low = 318.9;
         quoteData.turnover = 4825000000;
 
-        expect(typeof quoteData.last_done).toBe('number');
-        expect(typeof quoteData.prev_close).toBe('number');
-        expect(typeof quoteData.open).toBe('number');
-        expect(typeof quoteData.high).toBe('number');
-        expect(typeof quoteData.low).toBe('number');
-        expect(typeof quoteData.turnover).toBe('number');
+        expect(typeof quoteData.last_done).toBe("number");
+        expect(typeof quoteData.prev_close).toBe("number");
+        expect(typeof quoteData.open).toBe("number");
+        expect(typeof quoteData.high).toBe("number");
+        expect(typeof quoteData.low).toBe("number");
+        expect(typeof quoteData.turnover).toBe("number");
 
         // String values
-        quoteData.last_done = '320.50';
-        quoteData.prev_close = '318.00';
-        quoteData.open = '319.10';
-        quoteData.high = '322.80';
-        quoteData.low = '318.90';
-        quoteData.turnover = '4825000000';
+        quoteData.last_done = "320.50";
+        quoteData.prev_close = "318.00";
+        quoteData.open = "319.10";
+        quoteData.high = "322.80";
+        quoteData.low = "318.90";
+        quoteData.turnover = "4825000000";
 
-        expect(typeof quoteData.last_done).toBe('string');
-        expect(typeof quoteData.prev_close).toBe('string');
-        expect(typeof quoteData.open).toBe('string');
-        expect(typeof quoteData.high).toBe('string');
-        expect(typeof quoteData.low).toBe('string');
-        expect(typeof quoteData.turnover).toBe('string');
+        expect(typeof quoteData.last_done).toBe("string");
+        expect(typeof quoteData.prev_close).toBe("string");
+        expect(typeof quoteData.open).toBe("string");
+        expect(typeof quoteData.high).toBe("string");
+        expect(typeof quoteData.low).toBe("string");
+        expect(typeof quoteData.turnover).toBe("string");
       });
     });
 
-    describe('Market Support', () => {
-      it('should handle Hong Kong stock symbols', () => {
-        const hkSymbols = ['700.HK', '941.HK', '9988.HK', '3690.HK'];
-        
-        hkSymbols.forEach(symbol => {
+    describe("Market Support", () => {
+      it("should handle Hong Kong stock symbols", () => {
+        const hkSymbols = ["700.HK", "941.HK", "9988.HK", "3690.HK"];
+
+        hkSymbols.forEach((symbol) => {
           quoteData.symbol = symbol;
           expect(quoteData.symbol).toBe(symbol);
           expect(quoteData.symbol).toMatch(/^\d+\.HK$/);
         });
       });
 
-      it('should handle US stock symbols', () => {
-        const usSymbols = ['AAPL.US', 'GOOGL.US', 'MSFT.US', 'TSLA.US'];
-        
-        usSymbols.forEach(symbol => {
+      it("should handle US stock symbols", () => {
+        const usSymbols = ["AAPL.US", "GOOGL.US", "MSFT.US", "TSLA.US"];
+
+        usSymbols.forEach((symbol) => {
           quoteData.symbol = symbol;
           expect(quoteData.symbol).toBe(symbol);
           expect(quoteData.symbol).toMatch(/^[A-Z]+\.US$/);
@@ -108,7 +108,7 @@ describe('LongPort Types', () => {
     });
   });
 
-  describe('LongportExtendedQuote', () => {
+  describe("LongportExtendedQuote", () => {
     let extendedQuote: LongportExtendedQuote;
 
     beforeEach(() => {
@@ -117,52 +117,52 @@ describe('LongPort Types', () => {
         timestamp: 1640988000000,
         volume: 500000,
         turnover: 160225000,
-        high: 321.50,
-        low: 320.40,
-        prev_close: 320.50,
+        high: 321.5,
+        low: 320.4,
+        prev_close: 320.5,
       };
     });
 
-    it('should have all required properties', () => {
-      expect(extendedQuote).toHaveProperty('last_done');
-      expect(extendedQuote).toHaveProperty('timestamp');
-      expect(extendedQuote).toHaveProperty('volume');
-      expect(extendedQuote).toHaveProperty('turnover');
-      expect(extendedQuote).toHaveProperty('high');
-      expect(extendedQuote).toHaveProperty('low');
-      expect(extendedQuote).toHaveProperty('prev_close');
+    it("should have all required properties", () => {
+      expect(extendedQuote).toHaveProperty("last_done");
+      expect(extendedQuote).toHaveProperty("timestamp");
+      expect(extendedQuote).toHaveProperty("volume");
+      expect(extendedQuote).toHaveProperty("turnover");
+      expect(extendedQuote).toHaveProperty("high");
+      expect(extendedQuote).toHaveProperty("low");
+      expect(extendedQuote).toHaveProperty("prev_close");
     });
 
-    it('should support flexible price field types', () => {
+    it("should support flexible price field types", () => {
       // Test number values
       extendedQuote.last_done = 320.45;
       extendedQuote.turnover = 160225000;
 
-      expect(typeof extendedQuote.last_done).toBe('number');
-      expect(typeof extendedQuote.turnover).toBe('number');
+      expect(typeof extendedQuote.last_done).toBe("number");
+      expect(typeof extendedQuote.turnover).toBe("number");
 
       // Test string values
-      extendedQuote.last_done = '320.45';
-      extendedQuote.turnover = '160225000';
+      extendedQuote.last_done = "320.45";
+      extendedQuote.turnover = "160225000";
 
-      expect(typeof extendedQuote.last_done).toBe('string');
-      expect(typeof extendedQuote.turnover).toBe('string');
+      expect(typeof extendedQuote.last_done).toBe("string");
+      expect(typeof extendedQuote.turnover).toBe("string");
     });
   });
 
-  describe('LongportQuoteResponse', () => {
+  describe("LongportQuoteResponse", () => {
     let quoteResponse: LongportQuoteResponse;
 
     beforeEach(() => {
       quoteResponse = {
         secu_quote: [
           {
-            symbol: '700.HK',
-            last_done: 320.50,
-            prev_close: 318.00,
-            open: 319.10,
-            high: 322.80,
-            low: 318.90,
+            symbol: "700.HK",
+            last_done: 320.5,
+            prev_close: 318.0,
+            open: 319.1,
+            high: 322.8,
+            low: 318.9,
             volume: 15000000,
             turnover: 4825000000,
             timestamp: 1640995200000,
@@ -172,19 +172,19 @@ describe('LongPort Types', () => {
       };
     });
 
-    it('should contain secu_quote array', () => {
-      expect(quoteResponse).toHaveProperty('secu_quote');
+    it("should contain secu_quote array", () => {
+      expect(quoteResponse).toHaveProperty("secu_quote");
       expect(Array.isArray(quoteResponse.secu_quote)).toBe(true);
     });
 
-    it('should support multiple quotes in response', () => {
+    it("should support multiple quotes in response", () => {
       quoteResponse.secu_quote.push({
-        symbol: 'AAPL.US',
+        symbol: "AAPL.US",
         last_done: 150.25,
-        prev_close: 149.80,
-        open: 150.00,
-        high: 151.50,
-        low: 149.50,
+        prev_close: 149.8,
+        open: 150.0,
+        high: 151.5,
+        low: 149.5,
         volume: 50000000,
         turnover: 7512500000,
         timestamp: 1640995200000,
@@ -192,105 +192,105 @@ describe('LongPort Types', () => {
       });
 
       expect(quoteResponse.secu_quote).toHaveLength(2);
-      expect(quoteResponse.secu_quote[0].symbol).toBe('700.HK');
-      expect(quoteResponse.secu_quote[1].symbol).toBe('AAPL.US');
+      expect(quoteResponse.secu_quote[0].symbol).toBe("700.HK");
+      expect(quoteResponse.secu_quote[1].symbol).toBe("AAPL.US");
     });
   });
 
-  describe('LongportBasicInfo', () => {
-    it('should have all required basic info properties', () => {
+  describe("LongportBasicInfo", () => {
+    it("should have all required basic info properties", () => {
       const basicInfo: LongportBasicInfo = {
-        symbol: '700.HK',
-        name_cn: '腾讯控股',
-        name_en: 'Tencent Holdings Ltd',
-        name_hk: '騰訊控股',
-        listing_date: '2004-06-16',
+        symbol: "700.HK",
+        name_cn: "腾讯控股",
+        name_en: "Tencent Holdings Ltd",
+        name_hk: "騰訊控股",
+        listing_date: "2004-06-16",
         shares_outstanding: 9565000000,
         market_cap: 3065625000000,
-        sector: 'Communication Services',
-        industry: 'Interactive Media & Services',
+        sector: "Communication Services",
+        industry: "Interactive Media & Services",
       };
 
-      expect(basicInfo).toHaveProperty('symbol');
-      expect(basicInfo).toHaveProperty('name_cn');
-      expect(basicInfo).toHaveProperty('name_en');
-      expect(basicInfo).toHaveProperty('name_hk');
-      expect(basicInfo).toHaveProperty('listing_date');
-      expect(basicInfo).toHaveProperty('shares_outstanding');
-      expect(basicInfo).toHaveProperty('market_cap');
-      expect(basicInfo).toHaveProperty('sector');
-      expect(basicInfo).toHaveProperty('industry');
+      expect(basicInfo).toHaveProperty("symbol");
+      expect(basicInfo).toHaveProperty("name_cn");
+      expect(basicInfo).toHaveProperty("name_en");
+      expect(basicInfo).toHaveProperty("name_hk");
+      expect(basicInfo).toHaveProperty("listing_date");
+      expect(basicInfo).toHaveProperty("shares_outstanding");
+      expect(basicInfo).toHaveProperty("market_cap");
+      expect(basicInfo).toHaveProperty("sector");
+      expect(basicInfo).toHaveProperty("industry");
     });
 
-    it('should have correct data types', () => {
+    it("should have correct data types", () => {
       const basicInfo: LongportBasicInfo = {
-        symbol: '700.HK',
-        name_cn: '腾讯控股',
-        name_en: 'Tencent Holdings Ltd',
-        name_hk: '騰訊控股',
-        listing_date: '2004-06-16',
+        symbol: "700.HK",
+        name_cn: "腾讯控股",
+        name_en: "Tencent Holdings Ltd",
+        name_hk: "騰訊控股",
+        listing_date: "2004-06-16",
         shares_outstanding: 9565000000,
         market_cap: 3065625000000,
-        sector: 'Communication Services',
-        industry: 'Interactive Media & Services',
+        sector: "Communication Services",
+        industry: "Interactive Media & Services",
       };
 
-      expect(typeof basicInfo.symbol).toBe('string');
-      expect(typeof basicInfo.name_cn).toBe('string');
-      expect(typeof basicInfo.name_en).toBe('string');
-      expect(typeof basicInfo.name_hk).toBe('string');
-      expect(typeof basicInfo.listing_date).toBe('string');
-      expect(typeof basicInfo.shares_outstanding).toBe('number');
-      expect(typeof basicInfo.market_cap).toBe('number');
-      expect(typeof basicInfo.sector).toBe('string');
-      expect(typeof basicInfo.industry).toBe('string');
+      expect(typeof basicInfo.symbol).toBe("string");
+      expect(typeof basicInfo.name_cn).toBe("string");
+      expect(typeof basicInfo.name_en).toBe("string");
+      expect(typeof basicInfo.name_hk).toBe("string");
+      expect(typeof basicInfo.listing_date).toBe("string");
+      expect(typeof basicInfo.shares_outstanding).toBe("number");
+      expect(typeof basicInfo.market_cap).toBe("number");
+      expect(typeof basicInfo.sector).toBe("string");
+      expect(typeof basicInfo.industry).toBe("string");
     });
   });
 
-  describe('LongportConfig', () => {
-    it('should have required configuration properties', () => {
+  describe("LongportConfig", () => {
+    it("should have required configuration properties", () => {
       const config: LongportConfig = {
-        app_key: 'longport_app_key_123',
-        app_secret: 'longport_app_secret_456',
-        access_token: 'longport_access_token_789',
+        app_key: "longport_app_key_123",
+        app_secret: "longport_app_secret_456",
+        access_token: "longport_access_token_789",
       };
 
-      expect(config).toHaveProperty('app_key');
-      expect(config).toHaveProperty('app_secret');
-      expect(config).toHaveProperty('access_token');
+      expect(config).toHaveProperty("app_key");
+      expect(config).toHaveProperty("app_secret");
+      expect(config).toHaveProperty("access_token");
     });
 
-    it('should support optional endpoint configuration', () => {
+    it("should support optional endpoint configuration", () => {
       const config: LongportConfig = {
-        app_key: 'test_key',
-        app_secret: 'test_secret',
-        access_token: 'test_token',
-        endpoint: 'https://openapi.longportapp.com',
+        app_key: "test_key",
+        app_secret: "test_secret",
+        access_token: "test_token",
+        endpoint: "https://openapi.longportapp.com",
       };
 
-      expect(config.endpoint).toBe('https://openapi.longportapp.com');
+      expect(config.endpoint).toBe("https://openapi.longportapp.com");
     });
 
-    it('should work without optional endpoint', () => {
+    it("should work without optional endpoint", () => {
       const config: LongportConfig = {
-        app_key: 'test_key',
-        app_secret: 'test_secret',
-        access_token: 'test_token',
+        app_key: "test_key",
+        app_secret: "test_secret",
+        access_token: "test_token",
       };
 
       expect(config.endpoint).toBeUndefined();
     });
   });
 
-  describe('Type Integration', () => {
-    it('should work with JSON serialization', () => {
+  describe("Type Integration", () => {
+    it("should work with JSON serialization", () => {
       const quoteData: LongportQuoteData = {
-        symbol: '700.HK',
-        last_done: 320.50,
-        prev_close: 318.00,
-        open: 319.10,
-        high: 322.80,
-        low: 318.90,
+        symbol: "700.HK",
+        last_done: 320.5,
+        prev_close: 318.0,
+        open: 319.1,
+        high: 322.8,
+        low: 318.9,
         volume: 15000000,
         turnover: 4825000000,
         timestamp: 1640995200000,
@@ -305,24 +305,24 @@ describe('LongPort Types', () => {
       expect(deserialized.volume).toBe(quoteData.volume);
     });
 
-    it('should support extended quotes within quote data', () => {
+    it("should support extended quotes within quote data", () => {
       const extendedQuote: LongportExtendedQuote = {
         last_done: 319.95,
         timestamp: 1640988000000,
         volume: 500000,
         turnover: 159975000,
-        high: 320.00,
-        low: 319.90,
-        prev_close: 318.00,
+        high: 320.0,
+        low: 319.9,
+        prev_close: 318.0,
       };
 
       const quoteData: LongportQuoteData = {
-        symbol: '700.HK',
-        last_done: 320.50,
-        prev_close: 318.00,
-        open: 319.10,
-        high: 322.80,
-        low: 318.90,
+        symbol: "700.HK",
+        last_done: 320.5,
+        prev_close: 318.0,
+        open: 319.1,
+        high: 322.8,
+        low: 318.9,
         volume: 15000000,
         turnover: 4825000000,
         timestamp: 1640995200000,

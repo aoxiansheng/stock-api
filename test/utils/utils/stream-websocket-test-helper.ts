@@ -86,11 +86,11 @@ export class StreamWebSocketTestHelper {
       }, this.config.timeout);
 
       const wsURL = this.config.baseURL.replace("http", "ws");
-      
+
       this.client = io(wsURL, {
         path: "/api/v1/stream-receiver/connect",
         auth: this.config.auth,
-        transports: ['websocket'],
+        transports: ["websocket"],
         timeout: this.config.timeout,
         reconnection: this.config.reconnection,
         reconnectionAttempts: this.config.reconnectionAttempts,
@@ -103,7 +103,7 @@ export class StreamWebSocketTestHelper {
         this.stats.connected = true;
         this.stats.connectionId = this.client?.id;
         this.stats.connectTime = this.connectTime;
-        
+
         console.log(`✅ WebSocket连接建立: ${this.client?.id}`);
         resolve(this.stats);
       });
@@ -198,16 +198,16 @@ export class StreamWebSocketTestHelper {
 
     this._messageBuffer.push(message);
     this.stats.messagesReceived++;
-    
+
     // 计算延迟
     if (data.timestamp) {
       const dataTime = new Date(data.timestamp).getTime();
       const latency = now - dataTime;
       this.latencyMeasurements.push(latency);
-      
+
       // 更新平均延迟
-      this.stats.averageLatency = 
-        this.latencyMeasurements.reduce((sum, lat) => sum + lat, 0) / 
+      this.stats.averageLatency =
+        this.latencyMeasurements.reduce((sum, lat) => sum + lat, 0) /
         this.latencyMeasurements.length;
     }
 
@@ -218,7 +218,9 @@ export class StreamWebSocketTestHelper {
     }
     this.lastMessageTime = now;
 
-    console.log(`📊 收到${type}消息: ${message.symbol} (总计: ${this.stats.messagesReceived})`);
+    console.log(
+      `📊 收到${type}消息: ${message.symbol} (总计: ${this.stats.messagesReceived})`,
+    );
   }
 
   /**
@@ -301,7 +303,10 @@ export class StreamWebSocketTestHelper {
       }
 
       const timeout = setTimeout(() => {
-        resolve({ connected: this.client?.connected, connectionId: this.client?.id });
+        resolve({
+          connected: this.client?.connected,
+          connectionId: this.client?.id,
+        });
       }, 5000);
 
       // 监听状态响应
@@ -319,10 +324,17 @@ export class StreamWebSocketTestHelper {
   /**
    * 等待接收指定数量的消息
    */
-  async waitForMessages(count: number, timeoutMs: number = 30000): Promise<StreamMessage[]> {
+  async waitForMessages(
+    count: number,
+    timeoutMs: number = 30000,
+  ): Promise<StreamMessage[]> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`等待${count}条消息超时，实际收到${this._messageBuffer.length}条`));
+        reject(
+          new Error(
+            `等待${count}条消息超时，实际收到${this._messageBuffer.length}条`,
+          ),
+        );
       }, timeoutMs);
 
       const checkMessages = () => {
@@ -342,20 +354,27 @@ export class StreamWebSocketTestHelper {
    * 等待接收特定符号的消息
    */
   async waitForSymbolMessages(
-    symbols: string[], 
+    symbols: string[],
     minMessagesPerSymbol: number = 1,
-    timeoutMs: number = 30000
+    timeoutMs: number = 30000,
   ): Promise<Map<string, StreamMessage[]>> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         const result = this.getMessagesBySymbol(symbols);
-        reject(new Error(`等待符号消息超时，收到: ${Array.from(result.entries()).map(([sym, msgs]) => `${sym}:${msgs.length}`).join(", ")}`));
+        reject(
+          new Error(
+            `等待符号消息超时，收到: ${Array.from(result.entries())
+              .map(([sym, msgs]) => `${sym}:${msgs.length}`)
+              .join(", ")}`,
+          ),
+        );
       }, timeoutMs);
 
       const checkMessages = () => {
         const symbolMessages = this.getMessagesBySymbol(symbols);
-        const allSymbolsSatisfied = symbols.every(symbol => 
-          (symbolMessages.get(symbol)?.length || 0) >= minMessagesPerSymbol
+        const allSymbolsSatisfied = symbols.every(
+          (symbol) =>
+            (symbolMessages.get(symbol)?.length || 0) >= minMessagesPerSymbol,
         );
 
         if (allSymbolsSatisfied) {
@@ -375,7 +394,7 @@ export class StreamWebSocketTestHelper {
    */
   getMessagesBySymbol(symbols?: string[]): Map<string, StreamMessage[]> {
     const result = new Map<string, StreamMessage[]>();
-    
+
     for (const message of this._messageBuffer) {
       if (message.symbol) {
         if (!symbols || symbols.includes(message.symbol)) {
@@ -386,7 +405,7 @@ export class StreamWebSocketTestHelper {
         }
       }
     }
-    
+
     return result;
   }
 
@@ -490,7 +509,9 @@ export class StreamWebSocketTestHelper {
       recommendations.push("发生了重连，建议检查连接稳定性");
     }
     if (this.stats.errors.length > 0) {
-      recommendations.push(`发生了${this.stats.errors.length}个错误，需要检查日志`);
+      recommendations.push(
+        `发生了${this.stats.errors.length}个错误，需要检查日志`,
+      );
     }
 
     return {
@@ -514,7 +535,7 @@ export class StreamWebSocketTestHelper {
 export function createStreamWebSocketHelper(
   baseURL: string,
   auth: { appKey: string; accessToken: string },
-  options?: Partial<StreamWebSocketConfig>
+  options?: Partial<StreamWebSocketConfig>,
 ): StreamWebSocketTestHelper {
   return new StreamWebSocketTestHelper({
     baseURL,
@@ -538,21 +559,26 @@ export function validateStreamMessage(message: any): message is StreamMessage {
 /**
  * 生成测试符号列表的工具函数
  */
-export function generateTestSymbols(markets: string[] = ["HK", "US", "SZ"], count: number = 3): string[] {
+export function generateTestSymbols(
+  markets: string[] = ["HK", "US", "SZ"],
+  count: number = 3,
+): string[] {
   const symbolTemplates = {
     HK: (i: number) => `${700 + i}.HK`,
     US: (i: number) => `TEST${i}`,
     SZ: (i: number) => `00000${i}`.slice(-6),
   };
-  
+
   const symbols: string[] = [];
   for (let i = 0; i < count; i++) {
     for (const market of markets) {
       if (symbolTemplates[market as keyof typeof symbolTemplates]) {
-        symbols.push(symbolTemplates[market as keyof typeof symbolTemplates](i));
+        symbols.push(
+          symbolTemplates[market as keyof typeof symbolTemplates](i),
+        );
       }
     }
   }
-  
+
   return symbols.slice(0, count);
 }

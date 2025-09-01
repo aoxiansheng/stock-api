@@ -4,6 +4,7 @@ import { MetricsRegistryService } from '../metrics/metrics-registry.service';
 import { SYSTEM_STATUS_EVENTS } from '../../contracts/events/system-status.events';
 import { createLogger } from '../../../app/config/logger.config';
 import { EventBatcher, BatchResult } from './event-batcher';
+import { performanceDecoratorBus } from '../decorators/infrastructure-database.decorator';
 
 /**
  * 🎯 监控事件桥接层服务
@@ -38,6 +39,20 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
         'API_REQUEST_*'
       ]
     });
+
+    // 订阅装饰器性能事件，并桥接到系统事件总线
+    try {
+      performanceDecoratorBus.on('performance-metric', (payload) => {
+        try {
+          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, payload);
+        } catch (error) {
+          this.logger.debug('装饰器事件桥接失败', { error: error.message });
+        }
+      });
+      this.logger.debug('已订阅装饰器性能事件: performance-metric');
+    } catch (error) {
+      this.logger.debug('订阅装饰器性能事件失败', { error: error.message });
+    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import { Permission } from "../../../../../../src/auth/enums/user-role.enum";
-import  supertest from "supertest";
+import supertest from "supertest";
 import { UserRole } from "../../../../../../src/auth/enums/user-role.enum";
 
 /**

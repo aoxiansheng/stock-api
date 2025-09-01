@@ -169,8 +169,7 @@ describe("LongportContextService", () => {
       // Mock successful initialization but null context
       (QuoteContext.new as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.getQuoteContext()).rejects.toThrow(
-      );
+      await expect(service.getQuoteContext()).rejects.toThrow();
       await expect(service.getQuoteContext()).rejects.toThrow(
         "LongPort QuoteContext 未初始化",
       );
@@ -301,8 +300,7 @@ describe("LongportContextService", () => {
     it("should handle null error in initialization", async () => {
       (QuoteContext.new as jest.Mock).mockRejectedValue(null);
 
-      await expect(service.getQuoteContext()).rejects.toThrow(
-      );
+      await expect(service.getQuoteContext()).rejects.toThrow();
     });
 
     it("should handle undefined error in testConnection", async () => {

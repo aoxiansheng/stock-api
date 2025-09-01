@@ -28,7 +28,7 @@ import {
 } from "../dto/storage-internal.dto";
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
 import { StorageQueryDto } from "../dto/storage-query.dto";
-import { StorageType } from "../enums/storage-type.enum";
+import { StorageType } from '../enums/storage-type.enum';
 import {
   StorageResponseDto,
   StorageStatsDto,

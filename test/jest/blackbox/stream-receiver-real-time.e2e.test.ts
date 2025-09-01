@@ -147,12 +147,15 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
   async function verifyStreamReceiverAvailable() {
     try {
       // 检查流能力是否可用
-      const response = await httpClient.get("/api/v1/providers/stream-capabilities", {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
+      const response = await httpClient.get(
+        "/api/v1/providers/stream-capabilities",
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
         },
-      });
+      );
 
       if (response.status !== 200) {
         console.warn("流能力查询失败，可能端点不存在，继续测试...");
@@ -160,9 +163,14 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       }
 
       const streamCapabilities = response.data.data || response.data;
-      if (streamCapabilities.longport && streamCapabilities.longport.length > 0) {
+      if (
+        streamCapabilities.longport &&
+        streamCapabilities.longport.length > 0
+      ) {
         console.log("✅ Stream Receiver组件可用");
-        console.log(`   可用流能力: ${streamCapabilities.longport.map((c: any) => c.name).join(', ')}`);
+        console.log(
+          `   可用流能力: ${streamCapabilities.longport.map((c: any) => c.name).join(", ")}`,
+        );
       }
     } catch (error) {
       console.warn("⚠️ 无法验证Stream Receiver组件，继续测试:", error.message);
@@ -189,7 +197,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
           timeout: 10000,
         });
 
@@ -225,12 +233,12 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
           console.log("✅ WebSocket认证成功");
-          
+
           // 监听认证确认事件
           wsClient.on("authenticated", (data) => {
             clearTimeout(timeout);
@@ -273,7 +281,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: "invalid_key",
             accessToken: "invalid_token",
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -296,7 +304,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         });
 
         wsClient.on("disconnect", (reason) => {
-          if (reason === 'io server disconnect') {
+          if (reason === "io server disconnect") {
             clearTimeout(timeout);
             console.log("✅ 无效认证被服务器断开连接:", reason);
             resolve(true);
@@ -320,7 +328,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -348,16 +356,30 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       const requiredQuoteCount = 3; // 要求至少3次报价
       let receivedQuoteCount = 0;
       const quotePrices = []; // 记录每次报价的价格
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           if (receivedQuoteCount >= requiredQuoteCount) {
-            const validPrices = quotePrices.filter(p => p !== null && p !== undefined && !isNaN(p) && p > 0);
-            console.log(`🎉 成功收到 ${receivedQuoteCount} 次报价，满足最低要求 ${requiredQuoteCount} 次`);
-            console.log(`💰 价格变化记录: [${validPrices.join(', ')}] (${validPrices.length} 有效价格)`);
-            resolve({ success: true, quotesReceived: receivedQuoteCount, validPrices: validPrices });
+            const validPrices = quotePrices.filter(
+              (p) => p !== null && p !== undefined && !isNaN(p) && p > 0,
+            );
+            console.log(
+              `🎉 成功收到 ${receivedQuoteCount} 次报价，满足最低要求 ${requiredQuoteCount} 次`,
+            );
+            console.log(
+              `💰 价格变化记录: [${validPrices.join(", ")}] (${validPrices.length} 有效价格)`,
+            );
+            resolve({
+              success: true,
+              quotesReceived: receivedQuoteCount,
+              validPrices: validPrices,
+            });
           } else {
-            reject(new Error(`实时数据流订阅超时: 仅收到 ${receivedQuoteCount}/${requiredQuoteCount} 次报价`));
+            reject(
+              new Error(
+                `实时数据流订阅超时: 仅收到 ${receivedQuoteCount}/${requiredQuoteCount} 次报价`,
+              ),
+            );
           }
         }, 75000); // 增加到75秒超时时间，确保有足够时间收集10次报价并完成退订验证
 
@@ -365,25 +387,33 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("data", (data) => {
           receivedQuoteCount++;
           receivedMessages.push(data);
-          
+
           // 调试：显示完整数据结构
-          console.log(`🔍 [调试] 第${receivedQuoteCount}次数据结构:`, JSON.stringify(data, null, 2));
-          
+          console.log(
+            `🔍 [调试] 第${receivedQuoteCount}次数据结构:`,
+            JSON.stringify(data, null, 2),
+          );
+
           // 🆕 原始数据输出 - 不做任何格式化或解析
           console.log(`🔍 [原始数据] data:`, data);
           console.log(`🔍 [原始数据] data.data:`, data.data);
           console.log(`🔍 [原始数据] data.symbols:`, data.symbols);
-          
+
           // 提取价格信息用于日志
           let currentPrice = null;
           let volume = null;
           let timestamp = null;
-          
+
           // 尝试多种数据结构提取方式
           if (data.data && Array.isArray(data.data) && data.data.length > 0) {
             const quote = data.data[0];
             // 尝试多种可能的价格字段名称
-            currentPrice = quote.lastPrice || quote.last_done || quote.price || quote.last || quote.close;
+            currentPrice =
+              quote.lastPrice ||
+              quote.last_done ||
+              quote.price ||
+              quote.last ||
+              quote.close;
             volume = quote.volume || quote.vol;
             timestamp = quote.timestamp || quote.time || quote.ts;
           } else if (data.symbols && data.symbols.length > 0) {
@@ -391,75 +421,101 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             currentPrice = data.price || data.lastPrice || data.last_done;
             volume = data.volume || data.vol;
             timestamp = data.timestamp || data.time;
-          } else if (typeof data === 'object') {
+          } else if (typeof data === "object") {
             // 如果数据直接在根级别
-            currentPrice = data.lastPrice || data.last_done || data.price || data.last || data.close;
+            currentPrice =
+              data.lastPrice ||
+              data.last_done ||
+              data.price ||
+              data.last ||
+              data.close;
             volume = data.volume || data.vol;
             timestamp = data.timestamp || data.time || data.ts;
           }
-          
+
           if (currentPrice !== null && currentPrice !== undefined) {
             quotePrices.push(currentPrice);
           }
-          
-          console.log(`📊 [${receivedQuoteCount}/${requiredQuoteCount}] 收到 ${testSymbol} 实时报价:`);
-          console.log(`   💰 价格: $${currentPrice || 'N/A'}`);
-          console.log(`   📈 成交量: ${volume || 'N/A'}`);
-          console.log(`   ⏰ 时间: ${timestamp || 'N/A'}`);
-          console.log(`   🔄 处理链: 符号映射=${data.processingChain?._symbolMapped}, 规则映射=${data.processingChain?._mappingRulesUsed}, 数据转换=${data.processingChain?._dataTransformed}`);
-          
+
+          console.log(
+            `📊 [${receivedQuoteCount}/${requiredQuoteCount}] 收到 ${testSymbol} 实时报价:`,
+          );
+          console.log(`   💰 价格: $${currentPrice || "N/A"}`);
+          console.log(`   📈 成交量: ${volume || "N/A"}`);
+          console.log(`   ⏰ 时间: ${timestamp || "N/A"}`);
+          console.log(
+            `   🔄 处理链: 符号映射=${data.processingChain?._symbolMapped}, 规则映射=${data.processingChain?._mappingRulesUsed}, 数据转换=${data.processingChain?._dataTransformed}`,
+          );
+
           // 验证数据格式
           expect(data).toBeDefined();
           expect(data.symbols || data.data).toBeDefined();
-          expect(data.provider).toBe('longport');
-          expect(data.capability).toBe('stream-stock-quote');
+          expect(data.provider).toBe("longport");
+          expect(data.capability).toBe("stream-stock-quote");
           expect(data.timestamp).toBeDefined();
-          
+
           if (data.symbols && data.symbols.length > 0) {
             expect(data.symbols[0]).toBe(testSymbol);
-          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          } else if (
+            data.data &&
+            Array.isArray(data.data) &&
+            data.data.length > 0
+          ) {
             expect(data.data[0].symbol || data.data[0].code).toBeDefined();
           }
-          
+
           // 检查是否已收到足够的报价
           if (receivedQuoteCount >= requiredQuoteCount) {
             clearTimeout(timeout);
-            console.log(`🎯 达到目标报价次数 ${requiredQuoteCount}，开始退订流程！`);
-            
+            console.log(
+              `🎯 达到目标报价次数 ${requiredQuoteCount}，开始退订流程！`,
+            );
+
             // 计算统计数据
-            const validPrices = quotePrices.filter(p => p !== null && p !== undefined && !isNaN(p) && p > 0);
+            const validPrices = quotePrices.filter(
+              (p) => p !== null && p !== undefined && !isNaN(p) && p > 0,
+            );
             console.log(`📊 报价统计:`);
             console.log(`   总次数: ${receivedQuoteCount}`);
-            
+
             if (validPrices.length > 0) {
               const minPrice = Math.min(...validPrices);
               const maxPrice = Math.max(...validPrices);
-              const avgPrice = validPrices.reduce((a, b) => a + b, 0) / validPrices.length;
-              
-              console.log(`   价格范围: $${minPrice.toFixed(3)} - $${maxPrice.toFixed(3)}`);
+              const avgPrice =
+                validPrices.reduce((a, b) => a + b, 0) / validPrices.length;
+
+              console.log(
+                `   价格范围: $${minPrice.toFixed(3)} - $${maxPrice.toFixed(3)}`,
+              );
               console.log(`   平均价格: $${avgPrice.toFixed(3)}`);
-              console.log(`   有效价格数据: ${validPrices.length}/${receivedQuoteCount}`);
+              console.log(
+                `   有效价格数据: ${validPrices.length}/${receivedQuoteCount}`,
+              );
             } else {
               console.log(`   ⚠️ 警告: 未提取到有效价格数据，但数据流正常`);
-              console.log(`   💾 成交量数据正常: 最新成交量 ${volume || 'N/A'}`);
+              console.log(
+                `   💾 成交量数据正常: 最新成交量 ${volume || "N/A"}`,
+              );
             }
-            
+
             // 执行退订操作
             console.log(`🔄 发送退订请求: ${testSymbol}`);
-            
+
             // 设置退订后的数据监听
             let dataAfterUnsubscribe = false;
             const unsubscribeStartTime = Date.now();
-            
+
             // 监听退订确认
             const unsubscribeHandler = (unsubData) => {
               console.log(`✅ 退订确认收到:`, unsubData);
               expect(unsubData.symbols).toContain(testSymbol);
-              
+
               // 等待3秒检查是否还有数据推送
               setTimeout(() => {
-                console.log(`🕐 退订后等待3秒检查，是否收到额外数据: ${dataAfterUnsubscribe ? '是' : '否'}`);
-                
+                console.log(
+                  `🕐 退订后等待3秒检查，是否收到额外数据: ${dataAfterUnsubscribe ? "是" : "否"}`,
+                );
+
                 const finalStats: any = {
                   success: true,
                   quotesReceived: receivedQuoteCount,
@@ -467,51 +523,60 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
                   validPrices: validPrices,
                   unsubscribeSuccess: true,
                   dataAfterUnsubscribe: dataAfterUnsubscribe,
-                  unsubscribeTime: Date.now() - unsubscribeStartTime
+                  unsubscribeTime: Date.now() - unsubscribeStartTime,
                 };
-                
+
                 if (validPrices.length > 0) {
                   finalStats._priceRange = {
                     min: Math.min(...validPrices),
                     max: Math.max(...validPrices),
-                    avg: validPrices.reduce((a, b) => a + b, 0) / validPrices.length
+                    avg:
+                      validPrices.reduce((a, b) => a + b, 0) /
+                      validPrices.length,
                   };
                 } else {
-                  finalStats._warning = '价格字段提取失败，但数据流连接正常';
+                  finalStats._warning = "价格字段提取失败，但数据流连接正常";
                 }
-                
+
                 if (dataAfterUnsubscribe) {
                   console.log(`⚠️ 警告: 退订后仍收到数据推送`);
-                  finalStats.warning = (finalStats.warning || '') + '; 退订后仍收到数据';
+                  finalStats.warning =
+                    (finalStats.warning || "") + "; 退订后仍收到数据";
                 } else {
                   console.log(`✅ 退订成功: 退订后未收到额外数据推送`);
                 }
-                
-                console.log(`🏁 完整测试流程完成: 订阅 → 收集${receivedQuoteCount}次报价 → 退订 → 验证停止推送`);
+
+                console.log(
+                  `🏁 完整测试流程完成: 订阅 → 收集${receivedQuoteCount}次报价 → 退订 → 验证停止推送`,
+                );
                 resolve(finalStats);
               }, 3000);
             };
-            
+
             // 临时绑定退订确认监听器 (修复：使用正确的事件名称)
             wsClient.once("unsubscribe-ack", unsubscribeHandler);
-            
+
             // 重新定义data监听器来检测退订后的数据
             const originalDataHandler = wsClient.listeners("data");
             wsClient.removeAllListeners("data");
-            
+
             wsClient.on("data", (data) => {
               const now = Date.now();
-              if (now - unsubscribeStartTime > 1000) { // 退订1秒后收到的数据算异常
-                console.log(`🚨 退订后仍收到数据 (${now - unsubscribeStartTime}ms后):`, data.symbols || data.data);
+              if (now - unsubscribeStartTime > 1000) {
+                // 退订1秒后收到的数据算异常
+                console.log(
+                  `🚨 退订后仍收到数据 (${now - unsubscribeStartTime}ms后):`,
+                  data.symbols || data.data,
+                );
                 dataAfterUnsubscribe = true;
               }
             });
-            
+
             // 发送退订请求
             wsClient.emit("unsubscribe", {
               symbols: [testSymbol],
             });
-            
+
             // 设置退订超时保护
             setTimeout(() => {
               console.log(`⏰ 退订流程超时，强制完成测试`);
@@ -520,7 +585,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
                 quotesReceived: receivedQuoteCount,
                 validPrices: validPrices,
                 unsubscribeSuccess: false,
-                warning: '退订流程超时'
+                warning: "退订流程超时",
               });
             }, 10000); // 10秒退订超时
           }
@@ -528,7 +593,9 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.on("subscribe-ack", (data) => {
           console.log("✅ 订阅确认:", data);
-          console.log(`🎯 开始收集 ${testSymbol} 的实时报价，目标: ${requiredQuoteCount} 次`);
+          console.log(
+            `🎯 开始收集 ${testSymbol} 的实时报价，目标: ${requiredQuoteCount} 次`,
+          );
           expect(data.symbols).toContain(testSymbol);
         });
 
@@ -543,7 +610,9 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           wsCapabilityType: "stream-stock-quote",
         });
 
-        console.log(`📡 发送订阅请求: ${testSymbol} (目标收集 ${requiredQuoteCount} 次报价)`);
+        console.log(
+          `📡 发送订阅请求: ${testSymbol} (目标收集 ${requiredQuoteCount} 次报价)`,
+        );
       });
     }, 80000); // 增加Jest超时时间以匹配内部75秒超时 + 退订验证时间
 
@@ -551,24 +620,28 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       const testSymbols = ["AMD.US", "QQQ.US", "SPY.US"];
       const receivedSymbols = new Set();
       let dataReceived = false;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           if (receivedSymbols.size > 0) {
-            console.log(`✅ 收到 ${receivedSymbols.size}/${testSymbols.length} 个符号的数据`);
-            
+            console.log(
+              `✅ 收到 ${receivedSymbols.size}/${testSymbols.length} 个符号的数据`,
+            );
+
             // 执行退订操作
-            console.log(`🔄 发送多符号退订请求: ${Array.from(receivedSymbols).join(", ")}`);
+            console.log(
+              `🔄 发送多符号退订请求: ${Array.from(receivedSymbols).join(", ")}`,
+            );
             wsClient.emit("unsubscribe", {
               symbols: testSymbols,
             });
-            
+
             // 等待退订确认
             setTimeout(() => {
               resolve({
                 success: true,
                 symbolsReceived: Array.from(receivedSymbols),
-                unsubscribeSuccess: true
+                unsubscribeSuccess: true,
               });
             }, 3000);
           } else {
@@ -579,43 +652,55 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 监听实时数据
         wsClient.on("data", (data) => {
           dataReceived = true;
-          
+
           // 尝试从不同格式的数据结构中提取符号
           let symbol = null;
           if (data.symbol) {
             symbol = data.symbol;
           } else if (data.code) {
             symbol = data.code;
-          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          } else if (
+            data.data &&
+            Array.isArray(data.data) &&
+            data.data.length > 0
+          ) {
             symbol = data.data[0].symbol || data.data[0].code;
-          } else if (data.symbols && Array.isArray(data.symbols) && data.symbols.length > 0) {
+          } else if (
+            data.symbols &&
+            Array.isArray(data.symbols) &&
+            data.symbols.length > 0
+          ) {
             symbol = data.symbols[0];
           }
-          
+
           if (symbol && testSymbols.includes(symbol)) {
             receivedSymbols.add(symbol);
-            console.log(`📊 收到 ${symbol} 实时数据 (${receivedSymbols.size}/${testSymbols.length})`);
-            
+            console.log(
+              `📊 收到 ${symbol} 实时数据 (${receivedSymbols.size}/${testSymbols.length})`,
+            );
+
             // 如果收到足够多的符号的数据，提前完成
             if (receivedSymbols.size >= Math.min(2, testSymbols.length)) {
               clearTimeout(timeout);
-              
+
               // 执行退订操作
-              console.log(`🔄 发送多符号退订请求: ${Array.from(receivedSymbols).join(", ")}`);
+              console.log(
+                `🔄 发送多符号退订请求: ${Array.from(receivedSymbols).join(", ")}`,
+              );
               wsClient.emit("unsubscribe", {
                 symbols: testSymbols,
               });
-              
+
               // 监听退订确认
               wsClient.once("unsubscribe-ack", (unsubData) => {
                 console.log(`✅ 多符号退订确认:`, unsubData);
-                
+
                 // 等待3秒确认不再收到数据
                 setTimeout(() => {
                   resolve({
                     success: true,
                     symbolsReceived: Array.from(receivedSymbols),
-                    unsubscribeSuccess: true
+                    unsubscribeSuccess: true,
                   });
                 }, 3000);
               });
@@ -627,7 +712,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           console.log("✅ 多符号订阅确认:", data);
           expect(Array.isArray(data.symbols)).toBe(true);
           expect(data.symbols.length).toBeGreaterThan(0);
-          
+
           // 如果30秒内没有收到数据，也执行退订流程
           setTimeout(() => {
             if (!dataReceived) {
@@ -661,7 +746,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       let dataReceivedBeforeUnsubscribe = false;
       const requiredDataCount = 1; // 需要收到至少一条数据才能测试退订
       let dataCount = 0;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           if (dataReceivedBeforeUnsubscribe) {
@@ -670,7 +755,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               resolve({
                 success: true,
                 dataReceivedBeforeUnsubscribe,
-                dataReceivedAfterUnsubscribe
+                dataReceivedAfterUnsubscribe,
               });
             } else {
               reject(new Error("取消订阅失败，仍在接收数据"));
@@ -679,7 +764,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             console.log("⚠️ 测试超时，未收到任何数据，无法验证取消订阅");
             resolve({
               success: false,
-              reason: "未收到任何数据，无法验证取消订阅"
+              reason: "未收到任何数据，无法验证取消订阅",
             });
           }
         }, 30000);
@@ -695,23 +780,33 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             symbol = data.symbol;
           } else if (data.code) {
             symbol = data.code;
-          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          } else if (
+            data.data &&
+            Array.isArray(data.data) &&
+            data.data.length > 0
+          ) {
             symbol = data.data[0].symbol || data.data[0].code;
-          } else if (data.symbols && Array.isArray(data.symbols) && data.symbols.length > 0) {
+          } else if (
+            data.symbols &&
+            Array.isArray(data.symbols) &&
+            data.symbols.length > 0
+          ) {
             symbol = data.symbols[0];
           }
-          
+
           if (symbol === testSymbol) {
             const now = Date.now();
-            
+
             if (subscriptionActive) {
               dataCount++;
               dataReceivedBeforeUnsubscribe = true;
               console.log(`📊 订阅期间收到数据 #${dataCount}: ${symbol}`);
-              
+
               // 收到足够的数据后取消订阅
               if (dataCount >= requiredDataCount) {
-                console.log(`🔄 已收到 ${dataCount} 条数据，发送取消订阅请求: ${testSymbol}`);
+                console.log(
+                  `🔄 已收到 ${dataCount} 条数据，发送取消订阅请求: ${testSymbol}`,
+                );
                 wsClient.emit("unsubscribe", {
                   symbols: [testSymbol],
                 });
@@ -720,7 +815,9 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               }
             } else if (unsubscribeTime > 0 && now - unsubscribeTime > 1000) {
               // 只有在取消订阅1秒后收到的数据才算是退订失败
-              console.log(`⚠️ 取消订阅后 ${now - unsubscribeTime}ms 仍收到数据: ${symbol}`);
+              console.log(
+                `⚠️ 取消订阅后 ${now - unsubscribeTime}ms 仍收到数据: ${symbol}`,
+              );
               dataReceivedAfterUnsubscribe = true;
             }
           }
@@ -730,7 +827,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           console.log("✅ 订阅确认，等待实时数据");
           expect(data.symbols).toContain(testSymbol);
           subscriptionActive = true;
-          
+
           // 如果10秒内没有收到数据，自动取消订阅
           setTimeout(() => {
             if (subscriptionActive && dataCount === 0) {
@@ -747,7 +844,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("unsubscribe-ack", (data) => {
           console.log("✅ 取消订阅确认:", data);
           expect(data.symbols).toContain(testSymbol);
-          
+
           // 等待一段时间确保不再收到数据
           setTimeout(() => {
             clearTimeout(timeout);
@@ -756,7 +853,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               resolve({
                 success: true,
                 dataReceivedBeforeUnsubscribe,
-                dataReceivedAfterUnsubscribe: false
+                dataReceivedAfterUnsubscribe: false,
               });
             } else {
               console.log("❌ 退订后仍收到数据，取消订阅失败");
@@ -777,7 +874,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
     it("应该拒绝无效符号格式的订阅请求", async () => {
       const invalidSymbol = "AAPL0.US"; // 这是一个无效的符号格式
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error("测试超时：未收到订阅错误响应"));
@@ -786,14 +883,17 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 监听订阅错误事件
         wsClient.on("subscribe-error", (errorData) => {
           clearTimeout(timeout);
-          console.log("✅ 成功接收到订阅错误响应:", JSON.stringify(errorData, null, 2));
-          
+          console.log(
+            "✅ 成功接收到订阅错误响应:",
+            JSON.stringify(errorData, null, 2),
+          );
+
           // 验证错误响应
           expect(errorData).toBeDefined();
           expect(errorData.success).toBe(false);
           expect(errorData.message).toContain("无效的股票符号格式");
           expect(errorData.message).toContain(invalidSymbol);
-          
+
           resolve(true);
         });
 
@@ -826,7 +926,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -837,11 +937,11 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("status_response", (status) => {
           clearTimeout(timeout);
           console.log("✅ 连接状态检查成功:", status);
-          
+
           expect(status).toBeDefined();
           expect(status.connected).toBe(true);
           expect(status._connectionId).toBeDefined();
-          
+
           resolve(status);
         });
 
@@ -876,7 +976,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
           reconnection: true,
           reconnectionAttempts: 3,
           reconnectionDelay: 1000,
@@ -886,7 +986,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           if (reconnectCount === 0) {
             initialConnectionId = wsClient.id;
             console.log(`🔗 初始连接建立: ${initialConnectionId}`);
-            
+
             // 模拟断线（强制断开）
             setTimeout(() => {
               console.log("🔌 模拟断线...");
@@ -895,12 +995,12 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           } else {
             console.log(`🔄 重连成功 (第${reconnectCount}次): ${wsClient.id}`);
             clearTimeout(timeout);
-            
+
             expect(wsClient.connected).toBe(true);
             expect(wsClient.id).toBeDefined();
             // 重连后ID通常会变化
             expect(wsClient.id).not.toBe(initialConnectionId);
-            
+
             resolve(true);
           }
         });
@@ -958,12 +1058,12 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         performanceClient.on("connect", () => {
           console.log("🏁 性能测试连接建立");
-          
+
           // 订阅测试符号
           performanceClient.emit("subscribe", {
             symbols: [testSymbol],
@@ -974,7 +1074,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         performanceClient.on("data", (data) => {
           const receiveTime = Date.now();
           messageCount++;
-          
+
           // 计算延迟（如果数据包含时间戳）
           if (data.timestamp) {
             const dataTime = new Date(data.timestamp).getTime();
@@ -989,14 +1089,17 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
           if (messageCount >= targetMessages) {
             clearTimeout(timeout);
-            
+
             // 计算性能指标
-            const totalTime = measurements[measurements.length - 1] - measurements[0];
+            const totalTime =
+              measurements[measurements.length - 1] - measurements[0];
             const avgInterval = totalTime / (messageCount - 1);
-            const avgLatency = latencyMeasurements.length > 0 
-              ? latencyMeasurements.reduce((sum, lat) => sum + lat, 0) / latencyMeasurements.length 
-              : 0;
-            
+            const avgLatency =
+              latencyMeasurements.length > 0
+                ? latencyMeasurements.reduce((sum, lat) => sum + lat, 0) /
+                  latencyMeasurements.length
+                : 0;
+
             console.log(`📈 实时流性能测试结果:`);
             console.log(`   收到消息数: ${messageCount}`);
             console.log(`   总测试时间: ${totalTime}ms`);
@@ -1004,33 +1107,33 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             if (avgLatency > 0) {
               console.log(`   平均延迟: ${avgLatency.toFixed(1)}ms`);
             }
-            
+
             // 性能断言
             expect(messageCount).toBeGreaterThanOrEqual(1);
             if (latencyMeasurements.length > 0) {
               expect(avgLatency).toBeLessThan(5000); // 平均延迟小于5秒
             }
-            
+
             // 执行退订操作
             console.log(`🔄 性能测试完成，发送退订请求: ${testSymbol}`);
             performanceClient.emit("unsubscribe", {
               symbols: [testSymbol],
             });
-            
+
             // 等待退订确认后完成测试
             performanceClient.once("unsubscribe-ack", (unsubData) => {
               console.log(`✅ 性能测试退订确认:`, unsubData);
-              
+
               // 返回测试结果
               resolve({
                 messageCount,
                 totalTime,
                 avgInterval,
                 avgLatency,
-                unsubscribeSuccess: true
+                unsubscribeSuccess: true,
               });
             });
-            
+
             // 设置退订超时保护
             setTimeout(() => {
               console.log(`⚠️ 性能测试退订确认超时，强制完成测试`);
@@ -1039,7 +1142,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
                 totalTime,
                 avgInterval,
                 avgLatency,
-                unsubscribeSuccess: false
+                unsubscribeSuccess: false,
               });
             }, 5000);
           }
@@ -1076,7 +1179,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -1094,39 +1197,57 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     it("应该验证7组件数据处理链：符号映射→数据映射→转换器→存储跳过→实时输出", async () => {
       const testSymbol = "NVDA.US";
       let dataWithProcessingChain = null;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error("数据处理链验证超时"));
         }, 30000);
 
         wsClient.on("data", (data) => {
-          console.log("🔍 检查数据处理链:", JSON.stringify(data._processingChain, null, 2));
-          
+          console.log(
+            "🔍 检查数据处理链:",
+            JSON.stringify(data._processingChain, null, 2),
+          );
+
           if (data.processingChain) {
             dataWithProcessingChain = data;
             clearTimeout(timeout);
-            
+
             // 验证处理链状态
             expect(data.processingChain).toBeDefined();
-            expect(typeof data.processingChain.symbolMapped).toBe('boolean');
-            expect(typeof data.processingChain.mappingRulesUsed).toBe('boolean'); 
-            expect(typeof data.processingChain.dataTransformed).toBe('boolean');
-            
+            expect(typeof data.processingChain.symbolMapped).toBe("boolean");
+            expect(typeof data.processingChain.mappingRulesUsed).toBe(
+              "boolean",
+            );
+            expect(typeof data.processingChain.dataTransformed).toBe("boolean");
+
             // 验证实时流特有处理：跳过Storage，直接输出
-            expect(data.provider).toBe('longport');
-            expect(data.capability).toBe('stream-stock-quote');
+            expect(data.provider).toBe("longport");
+            expect(data.capability).toBe("stream-stock-quote");
             expect(data.timestamp).toBeDefined();
-            
+
             console.log("✅ 7组件数据处理链验证成功:");
-            console.log(`   符号映射: ${data.processingChain.symbolMapped ? '已执行' : '跳过'}`);
-            console.log(`   规则映射: ${data.processingChain.mappingRulesUsed ? '已应用' : '使用默认'}`);
-            console.log(`   数据转换: ${data.processingChain.dataTransformed ? '已转换' : '原始数据'}`);
+            console.log(
+              `   符号映射: ${data.processingChain.symbolMapped ? "已执行" : "跳过"}`,
+            );
+            console.log(
+              `   规则映射: ${data.processingChain.mappingRulesUsed ? "已应用" : "使用默认"}`,
+            );
+            console.log(
+              `   数据转换: ${data.processingChain.dataTransformed ? "已转换" : "原始数据"}`,
+            );
             console.log(`   实时输出: 绕过Storage直接推送`);
-            
+
             // 执行清理
             wsClient.emit("unsubscribe", { symbols: [testSymbol] });
-            setTimeout(() => resolve({ processingChainVerified: true, data: dataWithProcessingChain }), 2000);
+            setTimeout(
+              () =>
+                resolve({
+                  processingChainVerified: true,
+                  data: dataWithProcessingChain,
+                }),
+              2000,
+            );
           }
         });
 
@@ -1147,17 +1268,20 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         { symbol: "700.HK", market: "HK", expectedFormat: "00700" },
         { symbol: "TSLA.US", market: "US", expectedFormat: "TSLA" },
       ];
-      
+
       let processedMarkets = new Set();
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           if (processedMarkets.size > 0) {
             console.log(`✅ 处理了 ${processedMarkets.size} 个市场的符号转换`);
-            wsClient.emit("unsubscribe", { 
-              symbols: marketSymbols.map(m => m.symbol) 
+            wsClient.emit("unsubscribe", {
+              symbols: marketSymbols.map((m) => m.symbol),
             });
-            setTimeout(() => resolve({ marketsProcessed: Array.from(processedMarkets) }), 2000);
+            setTimeout(
+              () => resolve({ marketsProcessed: Array.from(processedMarkets) }),
+              2000,
+            );
           } else {
             reject(new Error("市场符号路由测试超时"));
           }
@@ -1166,40 +1290,52 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("data", (data) => {
           let detectedMarket = null;
           let receivedSymbol = null;
-          
+
           // 从数据中提取符号和市场信息
           if (data.symbols && data.symbols.length > 0) {
             receivedSymbol = data.symbols[0];
-          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          } else if (
+            data.data &&
+            Array.isArray(data.data) &&
+            data.data.length > 0
+          ) {
             receivedSymbol = data.data[0].symbol || data.data[0].code;
           }
-          
+
           // 匹配原始订阅符号确定市场
-          const matchedSymbol = marketSymbols.find(m => 
-            m.symbol === receivedSymbol || 
-            receivedSymbol?.includes(m.expectedFormat)
+          const matchedSymbol = marketSymbols.find(
+            (m) =>
+              m.symbol === receivedSymbol ||
+              receivedSymbol?.includes(m.expectedFormat),
           );
-          
+
           if (matchedSymbol) {
             detectedMarket = matchedSymbol.market;
             processedMarkets.add(detectedMarket);
-            
+
             console.log(`📊 收到 ${detectedMarket} 市场数据:`);
             console.log(`   原始订阅: ${matchedSymbol.symbol}`);
             console.log(`   接收符号: ${receivedSymbol}`);
-            console.log(`   符号映射: ${data.processingChain?.symbolMapped ? '已执行' : '跳过'}`);
+            console.log(
+              `   符号映射: ${data.processingChain?.symbolMapped ? "已执行" : "跳过"}`,
+            );
             console.log(`   提供商: ${data.provider}`);
-            
+
             // 如果处理了足够的市场，提前结束
-            if (processedMarkets.size >= 1) { // 至少验证一个市场
+            if (processedMarkets.size >= 1) {
+              // 至少验证一个市场
               clearTimeout(timeout);
-              wsClient.emit("unsubscribe", { 
-                symbols: marketSymbols.map(m => m.symbol) 
+              wsClient.emit("unsubscribe", {
+                symbols: marketSymbols.map((m) => m.symbol),
               });
-              setTimeout(() => resolve({ 
-                marketsProcessed: Array.from(processedMarkets),
-                symbolMapping: data.processingChain?.symbolMapped 
-              }), 2000);
+              setTimeout(
+                () =>
+                  resolve({
+                    marketsProcessed: Array.from(processedMarkets),
+                    symbolMapping: data.processingChain?.symbolMapped,
+                  }),
+                2000,
+              );
             }
           }
         });
@@ -1209,7 +1345,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         });
 
         wsClient.emit("subscribe", {
-          symbols: marketSymbols.map(m => m.symbol),
+          symbols: marketSymbols.map((m) => m.symbol),
           wsCapabilityType: "stream-stock-quote",
         });
       });
@@ -1235,7 +1371,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -1254,7 +1390,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       const testSymbol = "AMD.US";
       const preferredProvider = "longport";
       let providerVerified = false;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           if (providerVerified) {
@@ -1269,20 +1405,24 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           if (data.provider === preferredProvider) {
             providerVerified = true;
             clearTimeout(timeout);
-            
+
             console.log(`✅ 成功使用指定提供商: ${data.provider}`);
             console.log(`   能力类型: ${data.capability}`);
-            console.log(`   数据质量: ${data.data ? '有效' : '无效'}`);
-            
+            console.log(`   数据质量: ${data.data ? "有效" : "无效"}`);
+
             expect(data.provider).toBe(preferredProvider);
-            expect(data.capability).toBe('stream-stock-quote');
-            
+            expect(data.capability).toBe("stream-stock-quote");
+
             wsClient.emit("unsubscribe", { symbols: [testSymbol] });
-            setTimeout(() => resolve({ 
-              providerVerified: true, 
-              provider: data.provider,
-              capability: data.capability 
-            }), 2000);
+            setTimeout(
+              () =>
+                resolve({
+                  providerVerified: true,
+                  provider: data.provider,
+                  capability: data.capability,
+                }),
+              2000,
+            );
           }
         });
 
@@ -1306,7 +1446,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     it("应该处理提供商连接失败时的回退机制", async () => {
       const testSymbol = "MSFT.US";
       const invalidProvider = "invalid_provider";
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           resolve(true); // 如果没有错误，可能系统有其他回退机制
@@ -1315,7 +1455,9 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("subscription_error", (error) => {
           clearTimeout(timeout);
           console.log("✅ 无效提供商错误被正确处理:", error.message || error);
-          expect(error.message || error).toMatch(/provider|提供商|not found|未找到/i);
+          expect(error.message || error).toMatch(
+            /provider|提供商|not found|未找到/i,
+          );
           resolve({ errorHandled: true, message: error.message || error });
         });
 
@@ -1323,13 +1465,17 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 如果订阅成功，说明系统有回退机制
           clearTimeout(timeout);
           console.log("✅ 系统可能使用了回退提供商:", data);
-          
+
           // 验证后清理
           wsClient.emit("unsubscribe", { symbols: [testSymbol] });
-          setTimeout(() => resolve({ 
-            fallbackUsed: true, 
-            provider: data.provider || 'unknown' 
-          }), 2000);
+          setTimeout(
+            () =>
+              resolve({
+                fallbackUsed: true,
+                provider: data.provider || "unknown",
+              }),
+            2000,
+          );
         });
 
         wsClient.emit("subscribe", {
@@ -1343,7 +1489,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     it("应该能够测试不支持的流能力类型", async () => {
       const testSymbol = "GOOGL.US";
       const invalidCapability = "stream-invalid-capability";
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           resolve(true); // 超时认为测试通过
@@ -1351,8 +1497,13 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.on("subscription_error", (error) => {
           clearTimeout(timeout);
-          console.log("✅ 不支持的能力类型错误被正确处理:", error.message || error);
-          expect(error.message || error).toMatch(/capability|能力|support|支持/i);
+          console.log(
+            "✅ 不支持的能力类型错误被正确处理:",
+            error.message || error,
+          );
+          expect(error.message || error).toMatch(
+            /capability|能力|support|支持/i,
+          );
           resolve({ errorHandled: true, message: error.message || error });
         });
 
@@ -1391,7 +1542,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -1418,10 +1569,10 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           clearTimeout(timeout);
           pongReceived = true;
           console.log("✅ 心跳响应:", data);
-          
+
           expect(data).toBeDefined();
           expect(data.timestamp).toBeDefined();
-          
+
           resolve({ pongReceived: true, timestamp: data.timestamp });
         });
 
@@ -1440,16 +1591,16 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("connection-info", (info) => {
           clearTimeout(timeout);
           console.log("✅ 连接信息:", info);
-          
+
           expect(info).toBeDefined();
           expect(info.clientId).toBe(wsClient.id);
           expect(info.connected).toBe(true);
           expect(info._authType).toBeDefined();
           expect(info.timestamp).toBeDefined();
-          
+
           resolve({
             connectionInfo: info,
-            clientIdMatches: info.clientId === wsClient.id
+            clientIdMatches: info.clientId === wsClient.id,
           });
         });
 
@@ -1461,7 +1612,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
     it("应该能够获取当前订阅状态", async () => {
       const testSymbol = "META.US";
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error("订阅状态获取超时"));
@@ -1474,7 +1625,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           if (!subscriptionCompleted) {
             subscriptionCompleted = true;
             console.log("✅ 订阅完成，查询订阅状态");
-            
+
             // 查询订阅状态
             wsClient.emit("get-subscription");
           }
@@ -1483,22 +1634,26 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("subscription-status", (status) => {
           clearTimeout(timeout);
           console.log("✅ 订阅状态:", status);
-          
+
           expect(status).toBeDefined();
           expect(status.success).toBe(true);
-          
+
           if (status.data) {
             expect(status.data.symbols).toContain(testSymbol);
-            expect(status.data.wsCapabilityType).toBe('stream-stock-quote');
+            expect(status.data.wsCapabilityType).toBe("stream-stock-quote");
             expect(status.data._providerName).toBeDefined();
           }
-          
+
           // 清理订阅
           wsClient.emit("unsubscribe", { symbols: [testSymbol] });
-          setTimeout(() => resolve({ 
-            statusRetrieved: true, 
-            subscriptionData: status.data 
-          }), 2000);
+          setTimeout(
+            () =>
+              resolve({
+                statusRetrieved: true,
+                subscriptionData: status.data,
+              }),
+            2000,
+          );
         });
 
         // 开始测试
@@ -1530,13 +1685,17 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.on("subscription_error", (error) => {
           errorCount++;
-          console.log(`✅ 错误请求 #${errorCount} 被正确处理:`, error.message || error);
-          
-          if (errorCount >= Math.min(3, expectedErrors)) { // 至少处理3个错误或全部错误
+          console.log(
+            `✅ 错误请求 #${errorCount} 被正确处理:`,
+            error.message || error,
+          );
+
+          if (errorCount >= Math.min(3, expectedErrors)) {
+            // 至少处理3个错误或全部错误
             clearTimeout(timeout);
-            resolve({ 
-              errorsHandled: errorCount, 
-              totalRequests: expectedErrors 
+            resolve({
+              errorsHandled: errorCount,
+              totalRequests: expectedErrors,
             });
           }
         });
@@ -1581,7 +1740,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
@@ -1613,18 +1772,18 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           clearTimeout(timeout);
           console.log("✅ 无效符号订阅错误被正确处理:", error.message || error);
           expect(error).toBeDefined();
-          
+
           // 即使是无效符号，也尝试发送退订请求，确保清理
           console.log("🔄 发送无效符号退订请求");
           wsClient.emit("unsubscribe", {
             symbols: ["INVALID_SYMBOL", "ANOTHER_INVALID"],
           });
-          
+
           // 等待短暂时间后完成测试
           setTimeout(() => {
             resolve({
               success: true,
-              errorHandled: true
+              errorHandled: true,
             });
           }, 1000);
         });
@@ -1634,22 +1793,24 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           console.log("✅ 部分订阅成功（符号验证）:", data);
           expect(data.invalid_symbols).toBeDefined();
           expect(data.invalid_symbols.length).toBeGreaterThan(0);
-          
+
           // 如果有部分成功的符号，需要退订
           if (data.valid_symbols && data.valid_symbols.length > 0) {
-            console.log(`🔄 发送部分有效符号退订请求: ${data.valid_symbols.join(", ")}`);
+            console.log(
+              `🔄 发送部分有效符号退订请求: ${data.valid_symbols.join(", ")}`,
+            );
             wsClient.emit("unsubscribe", {
               symbols: data.valid_symbols,
             });
           }
-          
+
           // 等待短暂时间后完成测试
           setTimeout(() => {
             resolve({
               success: true,
               partialSuccess: true,
               validSymbols: data.valid_symbols || [],
-              invalidSymbols: data.invalid_symbols || []
+              invalidSymbols: data.invalid_symbols || [],
             });
           }, 1000);
         });
@@ -1669,7 +1830,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         // 创建超过限制的符号列表（LongPort限制500个）
         const manySymbols = Array.from({ length: 600 }, (_, i) => `SYM${i}.HK`);
-        
+
         wsClient.emit("subscribe", {
           symbols: manySymbols,
           wsCapabilityType: "stream-stock-quote",
@@ -1679,13 +1840,13 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           clearTimeout(timeout);
           console.log("✅ 订阅数量限制错误被正确处理:", error.message || error);
           expect(error.message || error).toMatch(/limit|限制|exceed/i);
-          
+
           // 测试完成后，不需要退订，因为订阅已被拒绝
           setTimeout(() => {
             resolve({
               success: true,
               errorHandled: true,
-              message: error.message || error
+              message: error.message || error,
             });
           }, 1000);
         });
@@ -1695,30 +1856,40 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           console.log("✅ 部分订阅成功（数量限制）:", data);
           expect(data.successful_count).toBeLessThan(600);
           expect(data.rejected_count).toBeGreaterThan(0);
-          
+
           // 如果有部分成功的符号，需要退订
           if (data.successful_symbols && data.successful_symbols.length > 0) {
-            console.log(`🔄 发送部分成功符号退订请求 (${data.successful_symbols.length} 个符号)`);
+            console.log(
+              `🔄 发送部分成功符号退订请求 (${data.successful_symbols.length} 个符号)`,
+            );
             wsClient.emit("unsubscribe", {
               symbols: data.successful_symbols,
             });
           } else if (data.successful_count > 0) {
             // 如果没有具体的成功符号列表，但有成功数量，使用原始符号列表的前N个
-            const manySymbols = Array.from({ length: 600 }, (_, i) => `SYM${i}.HK`);
-            const successfulSymbols = manySymbols.slice(0, data.successful_count);
-            console.log(`🔄 发送推断的成功符号退订请求 (${data.successful_count} 个符号)`);
+            const manySymbols = Array.from(
+              { length: 600 },
+              (_, i) => `SYM${i}.HK`,
+            );
+            const successfulSymbols = manySymbols.slice(
+              0,
+              data.successful_count,
+            );
+            console.log(
+              `🔄 发送推断的成功符号退订请求 (${data.successful_count} 个符号)`,
+            );
             wsClient.emit("unsubscribe", {
               symbols: successfulSymbols,
             });
           }
-          
+
           // 等待短暂时间后完成测试
           setTimeout(() => {
             resolve({
               success: true,
               partialSuccess: true,
               successfulCount: data.successful_count,
-              rejectedCount: data.rejected_count
+              rejectedCount: data.rejected_count,
             });
           }, 2000);
         });
@@ -1729,7 +1900,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         });
       });
     });
-    
+
     it("应该能够处理已订阅符号的重复订阅", async () => {
       // 使用独立的测试符号，确保测试的独立性
       const testSymbol = "AAPL.US";
@@ -1738,7 +1909,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       let dataReceived = false;
       let unsubscribeSuccess = false;
       let dataReceivedAfterUnsubscribe = false;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           // 如果测试超时，确保清理
@@ -1747,14 +1918,14 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             wsClient.emit("unsubscribe", {
               symbols: [testSymbol],
             });
-            
+
             setTimeout(() => {
               resolve({
                 success: false,
                 timeout: true,
                 firstSubscriptionSuccess,
                 resubscriptionSuccess,
-                dataReceived
+                dataReceived,
               });
             }, 2000);
           } else {
@@ -1771,7 +1942,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         // 记录退订时间点
         let unsubscribeTime = 0;
-        
+
         // 监听实时数据
         wsClient.on("data", (data) => {
           // 尝试从不同格式的数据结构中提取符号
@@ -1780,28 +1951,40 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             symbol = data.symbol;
           } else if (data.code) {
             symbol = data.code;
-          } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          } else if (
+            data.data &&
+            Array.isArray(data.data) &&
+            data.data.length > 0
+          ) {
             symbol = data.data[0].symbol || data.data[0].code;
-          } else if (data.symbols && Array.isArray(data.symbols) && data.symbols.length > 0) {
+          } else if (
+            data.symbols &&
+            Array.isArray(data.symbols) &&
+            data.symbols.length > 0
+          ) {
             symbol = data.symbols[0];
           }
-          
+
           if (symbol === testSymbol) {
             const now = Date.now();
-            
+
             // 检查是否是退订后收到的数据
             if (unsubscribeTime > 0 && now - unsubscribeTime > 1000) {
-              console.log(`⚠️ 退订后 ${now - unsubscribeTime}ms 仍收到数据: ${symbol}`);
+              console.log(
+                `⚠️ 退订后 ${now - unsubscribeTime}ms 仍收到数据: ${symbol}`,
+              );
               dataReceivedAfterUnsubscribe = true;
               return;
             }
-            
+
             dataReceived = true;
             console.log(`📊 收到 ${symbol} 实时数据`);
-            
+
             // 如果已经完成首次订阅但还未进行重复订阅，则触发重复订阅
             if (firstSubscriptionSuccess && !resubscriptionSuccess) {
-              console.log(`🔄 收到数据后，立即尝试重复订阅已订阅的符号: ${testSymbol}`);
+              console.log(
+                `🔄 收到数据后，立即尝试重复订阅已订阅的符号: ${testSymbol}`,
+              );
               wsClient.emit("subscribe", {
                 symbols: [testSymbol],
                 wsCapabilityType: "stream-stock-quote",
@@ -1816,7 +1999,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             console.log("✅ 首次订阅确认:", data);
             expect(data.symbols).toContain(testSymbol);
             firstSubscriptionSuccess = true;
-            
+
             // 首次订阅成功后，立即尝试重复订阅（不等待数据）
             console.log(`🔄 首次订阅成功后，立即尝试重复订阅: ${testSymbol}`);
             wsClient.emit("subscribe", {
@@ -1827,13 +2010,13 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             console.log("✅ 重复订阅确认:", data);
             expect(data.symbols).toContain(testSymbol);
             resubscriptionSuccess = true;
-            
+
             // 重复订阅成功后，等待可能的数据，然后执行退订
             setTimeout(() => {
               // 执行退订操作
               clearTimeout(timeout);
               console.log(`🔄 重复订阅测试完成，发送退订请求: ${testSymbol}`);
-              
+
               unsubscribeTime = Date.now();
               wsClient.emit("unsubscribe", {
                 symbols: [testSymbol],
@@ -1841,42 +2024,44 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             }, 3000);
           }
         });
-        
+
         // 监听退订确认
         wsClient.on("unsubscribe-ack", (data) => {
           console.log(`✅ 退订确认:`, data);
           expect(data.symbols).toContain(testSymbol);
           unsubscribeSuccess = true;
-          
+
           // 等待3秒检查是否还有数据推送
           setTimeout(() => {
             clearTimeout(timeout);
-            
-            console.log(`🕐 退订后等待3秒检查，是否收到额外数据: ${dataReceivedAfterUnsubscribe ? '是' : '否'}`);
-            
+
+            console.log(
+              `🕐 退订后等待3秒检查，是否收到额外数据: ${dataReceivedAfterUnsubscribe ? "是" : "否"}`,
+            );
+
             resolve({
               success: true,
               firstSubscriptionSuccess,
               resubscriptionSuccess,
               dataReceived,
               unsubscribeSuccess: true,
-              dataReceivedAfterUnsubscribe
+              dataReceivedAfterUnsubscribe,
             });
           }, 3000);
         });
 
         wsClient.on("subscription_error", (error) => {
           console.log("⚠️ 订阅错误:", error.message || error);
-          
+
           // 如果是重复订阅导致的错误，这可能是正常的
           if (firstSubscriptionSuccess) {
             console.log("✅ 重复订阅被拒绝（这可能是符合预期的行为）");
             resubscriptionSuccess = false;
-            
+
             // 执行退订
             clearTimeout(timeout);
             console.log(`🔄 重复订阅被拒绝，发送退订请求: ${testSymbol}`);
-            
+
             unsubscribeTime = Date.now();
             wsClient.emit("unsubscribe", {
               symbols: [testSymbol],
@@ -1886,7 +2071,6 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             reject(new Error(`首次订阅失败: ${error.message || error}`));
           }
         });
-
       });
     }, 40000);
   });
@@ -1909,24 +2093,34 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       const testSymbol = "TSLA.US";
       let connectedClients = 0;
       let clientsWithData = 0;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           if (connectedClients >= clientCount && clientsWithData > 0) {
-            console.log(`✅ ${connectedClients} 个客户端连接成功，${clientsWithData} 个收到数据`);
+            console.log(
+              `✅ ${connectedClients} 个客户端连接成功，${clientsWithData} 个收到数据`,
+            );
             // 执行清理
             multipleClients.forEach((client) => {
               if (client.connected) {
                 client.emit("unsubscribe", { symbols: [testSymbol] });
               }
             });
-            setTimeout(() => resolve({ 
-              connectedClients, 
-              clientsWithData,
-              concurrentSuccess: true 
-            }), 3000);
+            setTimeout(
+              () =>
+                resolve({
+                  connectedClients,
+                  clientsWithData,
+                  concurrentSuccess: true,
+                }),
+              3000,
+            );
           } else {
-            reject(new Error(`并发测试超时: ${connectedClients}/${clientCount} 客户端连接，${clientsWithData} 收到数据`));
+            reject(
+              new Error(
+                `并发测试超时: ${connectedClients}/${clientCount} 客户端连接，${clientsWithData} 收到数据`,
+              ),
+            );
           }
         }, 45000);
 
@@ -1938,14 +2132,16 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               appKey: apiKey.appKey,
               accessToken: apiKey.accessToken,
             },
-            transports: ['websocket'],
+            transports: ["websocket"],
           });
 
           multipleClients.push(client);
 
           client.on("connect", () => {
             connectedClients++;
-            console.log(`🔗 客户端 #${i + 1} 连接成功 (${connectedClients}/${clientCount})`);
+            console.log(
+              `🔗 客户端 #${i + 1} 连接成功 (${connectedClients}/${clientCount})`,
+            );
 
             // 每个客户端订阅同一个符号
             client.emit("subscribe", {
@@ -1955,28 +2151,38 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           });
 
           client.on("data", (data) => {
-            if (data.symbols?.includes(testSymbol) || 
-                data.data?.[0]?.symbol === testSymbol) {
+            if (
+              data.symbols?.includes(testSymbol) ||
+              data.data?.[0]?.symbol === testSymbol
+            ) {
               clientsWithData++;
-              console.log(`📊 客户端 #${i + 1} 收到数据 (总计: ${clientsWithData})`);
+              console.log(
+                `📊 客户端 #${i + 1} 收到数据 (总计: ${clientsWithData})`,
+              );
 
               // 如果足够的客户端收到数据，提前完成测试
               if (clientsWithData >= Math.min(2, clientCount)) {
                 clearTimeout(timeout);
-                console.log(`🎯 达到并发数据接收目标: ${clientsWithData} 个客户端`);
-                
+                console.log(
+                  `🎯 达到并发数据接收目标: ${clientsWithData} 个客户端`,
+                );
+
                 // 执行清理
-                multipleClients.forEach(c => {
+                multipleClients.forEach((c) => {
                   if (c.connected) {
                     c.emit("unsubscribe", { symbols: [testSymbol] });
                   }
                 });
-                
-                setTimeout(() => resolve({
-                  connectedClients,
-                  clientsWithData,
-                  concurrentSuccess: true
-                }), 3000);
+
+                setTimeout(
+                  () =>
+                    resolve({
+                      connectedClients,
+                      clientsWithData,
+                      concurrentSuccess: true,
+                    }),
+                  3000,
+                );
               }
             }
           });
@@ -1998,27 +2204,33 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         { clientId: 1, symbol: "GOOGL.US" },
         { clientId: 2, symbol: "MSFT.US" },
       ];
-      
+
       let clientDataReceived = new Map();
       let connectedClients = 0;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           const successfulClients = clientDataReceived.size;
           if (successfulClients > 0) {
             console.log(`✅ ${successfulClients} 个客户端收到独立数据流`);
-            
+
             // 执行清理
             multipleClients.forEach((client, index) => {
               if (client.connected && clientSymbols[index]) {
-                client.emit("unsubscribe", { symbols: [clientSymbols[index].symbol] });
+                client.emit("unsubscribe", {
+                  symbols: [clientSymbols[index].symbol],
+                });
               }
             });
-            
-            setTimeout(() => resolve({ 
-              clientsWithIndependentData: successfulClients,
-              dataReceived: Array.from(clientDataReceived.entries())
-            }), 3000);
+
+            setTimeout(
+              () =>
+                resolve({
+                  clientsWithIndependentData: successfulClients,
+                  dataReceived: Array.from(clientDataReceived.entries()),
+                }),
+              3000,
+            );
           } else {
             reject(new Error("独立数据流测试超时"));
           }
@@ -2032,7 +2244,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               appKey: apiKey.appKey,
               accessToken: apiKey.accessToken,
             },
-            transports: ['websocket'],
+            transports: ["websocket"],
           });
 
           multipleClients.push(client);
@@ -2049,10 +2261,14 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
           client.on("data", (data) => {
             let receivedSymbol = null;
-            
+
             if (data.symbols && data.symbols.length > 0) {
               receivedSymbol = data.symbols[0];
-            } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            } else if (
+              data.data &&
+              Array.isArray(data.data) &&
+              data.data.length > 0
+            ) {
               receivedSymbol = data.data[0].symbol || data.data[0].code;
             }
 
@@ -2060,32 +2276,47 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               if (!clientDataReceived.has(clientId)) {
                 clientDataReceived.set(clientId, { symbol, dataCount: 0 });
               }
-              
+
               clientDataReceived.get(clientId).dataCount++;
-              console.log(`📊 客户端 #${clientId + 1} 收到 ${symbol} 数据 (第${clientDataReceived.get(clientId).dataCount}次)`);
+              console.log(
+                `📊 客户端 #${clientId + 1} 收到 ${symbol} 数据 (第${clientDataReceived.get(clientId).dataCount}次)`,
+              );
 
               // 如果足够的客户端收到数据，提前完成
-              if (clientDataReceived.size >= Math.min(2, clientSymbols.length)) {
+              if (
+                clientDataReceived.size >= Math.min(2, clientSymbols.length)
+              ) {
                 clearTimeout(timeout);
-                console.log(`🎯 达到独立数据流目标: ${clientDataReceived.size} 个独立流`);
-                
+                console.log(
+                  `🎯 达到独立数据流目标: ${clientDataReceived.size} 个独立流`,
+                );
+
                 // 执行清理
                 multipleClients.forEach((c, idx) => {
                   if (c.connected && clientSymbols[idx]) {
-                    c.emit("unsubscribe", { symbols: [clientSymbols[idx].symbol] });
+                    c.emit("unsubscribe", {
+                      symbols: [clientSymbols[idx].symbol],
+                    });
                   }
                 });
-                
-                setTimeout(() => resolve({
-                  clientsWithIndependentData: clientDataReceived.size,
-                  dataReceived: Array.from(clientDataReceived.entries())
-                }), 3000);
+
+                setTimeout(
+                  () =>
+                    resolve({
+                      clientsWithIndependentData: clientDataReceived.size,
+                      dataReceived: Array.from(clientDataReceived.entries()),
+                    }),
+                  3000,
+                );
               }
             }
           });
 
           client.on("connect_error", (error) => {
-            console.error(`❌ 独立客户端 #${clientId + 1} 连接失败:`, error.message);
+            console.error(
+              `❌ 独立客户端 #${clientId + 1} 连接失败:`,
+              error.message,
+            );
           });
         });
       });
@@ -2103,7 +2334,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       const testSymbol = "NFLX.US";
       let subscriptionActive = false;
       let disconnectionHandled = false;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error("连接生命周期测试超时"));
@@ -2115,12 +2346,12 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
         });
 
         wsClient.on("connect", () => {
           console.log("🔗 连接建立，开始订阅");
-          
+
           wsClient.emit("subscribe", {
             symbols: [testSymbol],
             wsCapabilityType: "stream-stock-quote",
@@ -2130,7 +2361,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("subscribe-ack", () => {
           subscriptionActive = true;
           console.log("✅ 订阅成功，准备测试断开连接");
-          
+
           // 订阅成功后，等待一段时间再主动断开
           setTimeout(() => {
             console.log("🔌 主动断开WebSocket连接");
@@ -2141,17 +2372,17 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("disconnect", (reason) => {
           disconnectionHandled = true;
           console.log(`✅ 连接断开处理: ${reason}`);
-          
+
           clearTimeout(timeout);
-          
+
           // 验证断开连接的处理
           expect(subscriptionActive).toBe(true);
           expect(disconnectionHandled).toBe(true);
-          
+
           resolve({
             subscriptionActive,
             disconnectionHandled,
-            reason
+            reason,
           });
         });
 
@@ -2167,7 +2398,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
       let initialConnectionId = null;
       let reconnectionId = null;
       let dataReceivedAfterReconnect = false;
-      
+
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error("重连恢复测试超时"));
@@ -2180,7 +2411,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             appKey: apiKey.appKey,
             accessToken: apiKey.accessToken,
           },
-          transports: ['websocket'],
+          transports: ["websocket"],
           reconnection: false, // 禁用自动重连，手动控制
         });
 
@@ -2188,7 +2419,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           if (!initialConnectionId) {
             initialConnectionId = wsClient.id;
             console.log(`🔗 初始连接建立: ${initialConnectionId}`);
-            
+
             // 订阅测试符号
             wsClient.emit("subscribe", {
               symbols: [testSymbol],
@@ -2197,7 +2428,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           } else {
             reconnectionId = wsClient.id;
             console.log(`🔄 重连成功: ${reconnectionId}`);
-            
+
             // 重连后重新订阅
             wsClient.emit("subscribe", {
               symbols: [testSymbol],
@@ -2209,7 +2440,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("subscribe-ack", () => {
           if (!reconnectionId) {
             console.log("✅ 初始订阅确认，准备断开连接");
-            
+
             // 初始订阅成功后，断开连接
             setTimeout(() => {
               console.log("🔌 模拟断开连接");
@@ -2224,18 +2455,18 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           if (reconnectionId) {
             dataReceivedAfterReconnect = true;
             console.log("📊 重连后收到数据，测试成功");
-            
+
             clearTimeout(timeout);
-            
+
             // 清理订阅
             wsClient.emit("unsubscribe", { symbols: [testSymbol] });
-            
+
             setTimeout(() => {
               resolve({
                 initialConnectionId,
                 reconnectionId,
                 dataReceivedAfterReconnect,
-                connectionIdChanged: initialConnectionId !== reconnectionId
+                connectionIdChanged: initialConnectionId !== reconnectionId,
               });
             }, 2000);
           }
@@ -2244,7 +2475,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         wsClient.on("disconnect", (reason) => {
           if (initialConnectionId && !reconnectionId) {
             console.log(`🔌 初始连接断开: ${reason}`);
-            
+
             // 等待一段时间后重新连接
             setTimeout(() => {
               console.log("🔄 开始重新连接");
@@ -2254,45 +2485,44 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
                   appKey: apiKey.appKey,
                   accessToken: apiKey.accessToken,
                 },
-                transports: ['websocket'],
+                transports: ["websocket"],
                 reconnection: false,
               });
-              
+
               // 重新绑定事件监听器
               wsClient.on("connect", () => {
                 reconnectionId = wsClient.id;
                 console.log(`🔄 重连成功: ${reconnectionId}`);
-                
+
                 // 重连后重新订阅
                 wsClient.emit("subscribe", {
                   symbols: [testSymbol],
                   wsCapabilityType: "stream-stock-quote",
                 });
               });
-              
+
               wsClient.on("subscribe-ack", () => {
                 console.log("✅ 重连后订阅确认");
               });
-              
+
               wsClient.on("data", () => {
                 dataReceivedAfterReconnect = true;
                 console.log("📊 重连后收到数据，测试成功");
-                
+
                 clearTimeout(timeout);
-                
+
                 // 清理订阅
                 wsClient.emit("unsubscribe", { symbols: [testSymbol] });
-                
+
                 setTimeout(() => {
                   resolve({
                     initialConnectionId,
                     reconnectionId,
                     dataReceivedAfterReconnect,
-                    connectionIdChanged: initialConnectionId !== reconnectionId
+                    connectionIdChanged: initialConnectionId !== reconnectionId,
                   });
                 }, 2000);
               });
-              
             }, 2000);
           }
         });

@@ -63,8 +63,6 @@ jest.mock("../../../../../src/auth/guards/apikey-auth.guard", () => ({
   ApiKeyAuthGuard: jest.fn(),
 }));
 
-
-
 jest.mock("../../../../../src/auth/guards/rate-limit.guard", () => ({
   RateLimitGuard: jest.fn(),
 }));

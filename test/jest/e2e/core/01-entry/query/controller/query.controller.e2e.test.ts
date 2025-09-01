@@ -13,7 +13,7 @@ describe("Query Controller E2E Tests", () => {
     // 1. 注册测试用户
     const userData = {
       username: "queryuser",
-      email: "query@example.com", 
+      email: "query@example.com",
       password: "password123",
       role: "developer",
     };
@@ -26,16 +26,13 @@ describe("Query Controller E2E Tests", () => {
       password: userData.password,
     });
 
-    jwtToken = loginResponse.body.data?._accessToken || loginResponse.body.accessToken;
+    jwtToken =
+      loginResponse.body.data?._accessToken || loginResponse.body.accessToken;
 
     // 3. 创建API Key
     const apiKeyData = {
       name: "Query Test API Key",
-      permissions: [
-        "query:execute",
-        "system:monitor",
-        "system:health",
-      ],
+      permissions: ["query:execute", "system:monitor", "system:health"],
       rateLimit: {
         requests: 100,
         window: "1h",
@@ -64,8 +61,8 @@ describe("Query Controller E2E Tests", () => {
         maxAge: 300,
         options: {
           useCache: true,
-          includeMetadata: true
-        }
+          includeMetadata: true,
+        },
       };
 
       // Act
@@ -94,7 +91,7 @@ describe("Query Controller E2E Tests", () => {
     });
 
     it("should execute by_market query successfully", async () => {
-      // Arrange 
+      // Arrange
       const queryRequest = {
         queryType: "by_market",
         market: "US",
@@ -102,8 +99,8 @@ describe("Query Controller E2E Tests", () => {
         limit: 10,
         options: {
           useCache: true,
-          includeMetadata: true
-        }
+          includeMetadata: true,
+        },
       };
 
       // Act
@@ -121,14 +118,14 @@ describe("Query Controller E2E Tests", () => {
     it("should execute by_provider query successfully", async () => {
       // Arrange
       const queryRequest = {
-        queryType: "by_provider", 
+        queryType: "by_provider",
         provider: "longport",
         market: "US",
         limit: 5,
         options: {
           useCache: true,
-          includeMetadata: true
-        }
+          includeMetadata: true,
+        },
       };
 
       // Act
@@ -152,8 +149,8 @@ describe("Query Controller E2E Tests", () => {
         page: 1,
         options: {
           useCache: true,
-          includeMetadata: true
-        }
+          includeMetadata: true,
+        },
       };
 
       // Act
@@ -167,7 +164,9 @@ describe("Query Controller E2E Tests", () => {
       // Assert
       global.expectSuccessResponse(response, 201);
       expect(response.body.data.metadata).toHaveProperty("returnedResults");
-      expect(response.body.data.metadata.returnedResults).toBeLessThanOrEqual(2);
+      expect(response.body.data.metadata.returnedResults).toBeLessThanOrEqual(
+        2,
+      );
     });
 
     it("should validate required query parameters", async () => {
@@ -177,7 +176,7 @@ describe("Query Controller E2E Tests", () => {
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
         .send({
-          symbols: ["AAPL"]
+          symbols: ["AAPL"],
           // queryType missing
         })
         .expect(400);
@@ -188,11 +187,11 @@ describe("Query Controller E2E Tests", () => {
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
         .send({
-          queryType: "by_symbols"
+          queryType: "by_symbols",
           // symbols missing
         })
         .expect(201);
-      
+
       // 验证返回空结果
       expect(response.body.data.metadata.totalResults).toBe(0);
 
@@ -203,14 +202,13 @@ describe("Query Controller E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           queryType: "by_market",
-          market: "US"
+          market: "US",
         })
         .expect(400);
     });
 
     it("should handle cache options properly", async () => {
-      const cacheOptions = [
-      ];
+      const cacheOptions = [];
 
       for (const cacheOption of cacheOptions) {
         const queryRequest = {
@@ -218,8 +216,8 @@ describe("Query Controller E2E Tests", () => {
           symbols: ["AAPL.US"],
           options: {
             ...cacheOption,
-            includeMetadata: true
-          }
+            includeMetadata: true,
+          },
         };
 
         const response = await httpServer
@@ -238,7 +236,7 @@ describe("Query Controller E2E Tests", () => {
       // Arrange
       const queryRequest = {
         queryType: "by_symbols",
-        symbols: ["AAPL.US"]
+        symbols: ["AAPL.US"],
       };
 
       // Act & Assert
@@ -257,21 +255,21 @@ describe("Query Controller E2E Tests", () => {
           {
             queryType: "by_symbols",
             symbols: ["AAPL.US"],
-            options: { useCache: true }
+            options: { useCache: true },
           },
           {
-            queryType: "by_symbols", 
+            queryType: "by_symbols",
             symbols: ["GOOGL.US"],
-            options: { useCache: true }
+            options: { useCache: true },
           },
           {
             queryType: "by_symbols",
             symbols: ["MSFT.US"],
-            options: { useCache: true }
-          }
+            options: { useCache: true },
+          },
         ],
         parallel: true,
-        continueOnError: true
+        continueOnError: true,
       };
 
       // Act
@@ -298,16 +296,16 @@ describe("Query Controller E2E Tests", () => {
           {
             queryType: "by_symbols",
             symbols: ["AAPL.US"],
-            options: { useCache: true }
+            options: { useCache: true },
           },
           {
             queryType: "by_symbols",
             symbols: ["GOOGL.US"],
-            options: { useCache: true }
-          }
+            options: { useCache: true },
+          },
         ],
         parallel: false,
-        continueOnError: true
+        continueOnError: true,
       };
 
       // Act
@@ -330,15 +328,15 @@ describe("Query Controller E2E Tests", () => {
           {
             queryType: "by_symbols",
             symbols: ["AAPL.US"],
-            options: { useCache: true }
+            options: { useCache: true },
           },
           {
             queryType: "by_market", // 未实现的查询类型
-            market: "US"
-          }
+            market: "US",
+          },
         ],
         parallel: true,
-        continueOnError: true
+        continueOnError: true,
       };
 
       // Act
@@ -353,7 +351,7 @@ describe("Query Controller E2E Tests", () => {
       global.expectSuccessResponse(response, 201);
       expect(response.body.data).toHaveProperty("results");
       expect(response.body.data).toHaveProperty("summary");
-      
+
       // 验证每个结果都有错误信息
       const results = response.body.data.results;
       expect(results.length).toBe(2);
@@ -368,7 +366,7 @@ describe("Query Controller E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           queries: [],
-          parallel: true
+          parallel: true,
         })
         .expect(400);
 
@@ -378,7 +376,7 @@ describe("Query Controller E2E Tests", () => {
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
         .send({
-          parallel: true
+          parallel: true,
         })
         .expect(400);
     });
@@ -392,7 +390,7 @@ describe("Query Controller E2E Tests", () => {
         .query({
           symbols: "AAPL.US,GOOGL.US,MSFT.US",
           useCache: true,
-          limit: 10
+          limit: 10,
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
@@ -402,7 +400,10 @@ describe("Query Controller E2E Tests", () => {
       global.expectSuccessResponse(response, 200);
       expect(response.body.data).toHaveProperty("data");
       expect(response.body.data).toHaveProperty("metadata");
-      expect(response.body.data.metadata).toHaveProperty("queryType", "by_symbols");
+      expect(response.body.data.metadata).toHaveProperty(
+        "queryType",
+        "by_symbols",
+      );
     });
 
     it("should handle query parameters properly", async () => {
@@ -415,7 +416,7 @@ describe("Query Controller E2E Tests", () => {
           market: "US",
           queryTypeFilter: "get-stock-quote",
           limit: 5,
-          useCache: false
+          useCache: false,
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
@@ -441,7 +442,7 @@ describe("Query Controller E2E Tests", () => {
         .get("/api/v1/query/symbols")
         .query({
           symbols: "AAPL.US, GOOGL.US , MSFT.US ", // 含空格
-          limit: 5
+          limit: 5,
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
@@ -461,7 +462,7 @@ describe("Query Controller E2E Tests", () => {
         .query({
           market: "US",
           limit: 10,
-          queryTypeFilter: "get-stock-quote"
+          queryTypeFilter: "get-stock-quote",
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken);
@@ -482,13 +483,13 @@ describe("Query Controller E2E Tests", () => {
 
     it("should handle different markets", async () => {
       const markets = ["US", "HK", "SZ", "SH"];
-      
+
       for (const market of markets) {
         const response = await httpServer
           .get("/api/v1/query/market")
           .query({
             market,
-            limit: 5
+            limit: 5,
           })
           .set("X-App-Key", authTokens.apiKey)
           .set("X-Access-Token", authTokens.accessToken);
@@ -506,7 +507,7 @@ describe("Query Controller E2E Tests", () => {
         .get("/api/v1/query/provider")
         .query({
           provider: "longport",
-          limit: 10
+          limit: 10,
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken);
@@ -527,13 +528,13 @@ describe("Query Controller E2E Tests", () => {
 
     it("should handle different providers", async () => {
       const providers = ["longport", "itick", "test"];
-      
+
       for (const provider of providers) {
         const response = await httpServer
           .get("/api/v1/query/provider")
           .query({
             provider,
-            limit: 5
+            limit: 5,
           })
           .set("X-App-Key", authTokens.apiKey)
           .set("X-Access-Token", authTokens.accessToken);
@@ -558,7 +559,7 @@ describe("Query Controller E2E Tests", () => {
       expect(response.body.data).toHaveProperty("performance");
       expect(response.body.data).toHaveProperty("queryTypes");
       expect(response.body.data).toHaveProperty("dataSources");
-      
+
       // 验证性能统计结构
       const performance = response.body.data.performance;
       expect(performance).toHaveProperty("totalQueries");
@@ -603,12 +604,12 @@ describe("Query Controller E2E Tests", () => {
       global.expectSuccessResponse(response, 200);
       expect(response.body.data).toHaveProperty("queryService");
       expect(response.body.data).toHaveProperty("overallHealth");
-      
+
       // 验证健康检查结构
       const queryService = response.body.data.queryService;
       expect(queryService).toHaveProperty("available");
       expect(queryService).toHaveProperty("latency");
-      
+
       const overallHealth = response.body.data.overallHealth;
       expect(overallHealth).toHaveProperty("healthy");
       expect(overallHealth).toHaveProperty("timestamp");
@@ -616,19 +617,21 @@ describe("Query Controller E2E Tests", () => {
 
     it("should handle health check rate limiting", async () => {
       // 快速连续请求测试限流
-      const requests = Array(5).fill(null).map(() => 
-        httpServer
-          .get("/api/v1/query/health")
-          .set("X-App-Key", authTokens.apiKey)
-          .set("X-Access-Token", authTokens.accessToken)
-      );
+      const requests = Array(5)
+        .fill(null)
+        .map(() =>
+          httpServer
+            .get("/api/v1/query/health")
+            .set("X-App-Key", authTokens.apiKey)
+            .set("X-Access-Token", authTokens.accessToken),
+        );
 
       const responses = await Promise.all(requests);
-      
+
       // 大部分应该成功，但可能有限流
-      const successCount = responses.filter(r => r._status === 200).length;
-      const rateLimitCount = responses.filter(r => r.status === 429).length;
-      
+      const successCount = responses.filter((r) => r._status === 200).length;
+      const rateLimitCount = responses.filter((r) => r.status === 429).length;
+
       expect(successCount + rateLimitCount).toBe(5);
       expect(successCount).toBeGreaterThan(0); // 至少有一些成功
     });
@@ -659,22 +662,24 @@ describe("Query Controller E2E Tests", () => {
   describe("Query Performance & Edge Cases", () => {
     it("should handle concurrent queries efficiently", async () => {
       // 并发查询测试
-      const concurrentRequests = Array(5).fill(null).map((_, i) => 
-        httpServer
-          .post("/api/v1/query/execute")
-          .set("X-App-Key", authTokens.apiKey)
-          .set("X-Access-Token", authTokens.accessToken)
-          .send({
-            queryType: "by_symbols",
-            symbols: [`SYMBOL_${i}.US`],
-            options: { useCache: true }
-          })
-      );
+      const concurrentRequests = Array(5)
+        .fill(null)
+        .map((_, i) =>
+          httpServer
+            .post("/api/v1/query/execute")
+            .set("X-App-Key", authTokens.apiKey)
+            .set("X-Access-Token", authTokens.accessToken)
+            .send({
+              queryType: "by_symbols",
+              symbols: [`SYMBOL_${i}.US`],
+              options: { useCache: true },
+            }),
+        );
 
       const responses = await Promise.all(concurrentRequests);
-      
+
       // 所有请求都应该得到响应
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect([201, 404, 500]).toContain(response.status);
       });
     });
@@ -683,13 +688,15 @@ describe("Query Controller E2E Tests", () => {
       // 大型结果集分页测试
       const queryRequest = {
         queryType: "by_symbols",
-        symbols: Array(50).fill(null).map((_, i) => `TEST${i}.US`), // 50个测试符号
+        symbols: Array(50)
+          .fill(null)
+          .map((_, i) => `TEST${i}.US`), // 50个测试符号
         limit: 10,
         page: 1,
         options: {
           useCache: true,
-          includeMetadata: true
-        }
+          includeMetadata: true,
+        },
       };
 
       const response = await httpServer
@@ -700,17 +707,21 @@ describe("Query Controller E2E Tests", () => {
         .expect(201);
 
       global.expectSuccessResponse(response, 201);
-      expect(response.body.data.metadata.returnedResults).toBeLessThanOrEqual(10);
+      expect(response.body.data.metadata.returnedResults).toBeLessThanOrEqual(
+        10,
+      );
     });
 
     it("should handle query timeout scenarios", async () => {
       // 超时场景测试
       const queryRequest = {
         queryType: "by_symbols",
-        symbols: Array(100).fill(null).map((_, i) => `TIMEOUT_TEST_${i}.US`), // 大量符号可能导致超时
+        symbols: Array(100)
+          .fill(null)
+          .map((_, i) => `TIMEOUT_TEST_${i}.US`), // 大量符号可能导致超时
         options: {
-          useCache: false // 强制实时查询
-        }
+          useCache: false, // 强制实时查询
+        },
       };
 
       const startTime = Date.now();

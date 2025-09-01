@@ -18,7 +18,7 @@ describe("CacheService 容错机制集成测试", () => {
   beforeAll(async () => {
     app = (global as any).testApp;
     cacheService = app.get<CacheService>(CacheService);
-    redisClient = app.get('default_IORedisModuleConnectionToken');
+    redisClient = app.get("default_IORedisModuleConnectionToken");
   });
 
   beforeEach(async () => {

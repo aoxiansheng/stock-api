@@ -343,7 +343,7 @@ describe("RateLimitGuard", () => {
         expect.objectContaining({
           appKey: "test-app-key",
           endpoint: undefined,
-        })
+        }),
       );
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining("频率限制超出"),

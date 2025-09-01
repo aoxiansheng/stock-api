@@ -4,7 +4,7 @@
  * 用于控制HTTP连接数量和批量执行请求
  */
 
-import  request from "supertest";
+import request from "supertest";
 
 export interface BatchRequestConfig {
   endpoint: string;

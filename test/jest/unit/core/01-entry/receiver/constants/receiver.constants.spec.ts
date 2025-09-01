@@ -32,7 +32,9 @@ describe("Receiver Constants", () => {
       expect(RECEIVER_ERROR_MESSAGES.UNSUPPORTED_DATA_TYPE).toContain(
         "{receiverType}",
       );
-      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain("{receiverType}");
+      expect(RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND).toContain(
+        "{receiverType}",
+      );
       expect(RECEIVER_ERROR_MESSAGES.PROVIDER_NOT_SUPPORT_CAPABILITY).toContain(
         "{provider}",
       );
@@ -387,9 +389,10 @@ describe("Receiver Constants", () => {
       const receiverType = "get-stock-quote";
       const isSupported = SUPPORTED_CAPABILITY_TYPES.includes(receiverType);
       expect(isSupported).toBe(true);
-      
+
       const invalidDataType = "stock-quote" as any; // old format
-      const isUnsupported = SUPPORTED_CAPABILITY_TYPES.includes(invalidDataType);
+      const isUnsupported =
+        SUPPORTED_CAPABILITY_TYPES.includes(invalidDataType);
       expect(isUnsupported).toBe(false);
     });
 

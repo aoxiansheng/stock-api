@@ -3,12 +3,12 @@
  * 真实环境黑盒E2E测试：Provider能力导向架构
  * 测试LongPort生产数据源集成和自动发现机制
  * 验证多Provider能力注册和智能路由选择
- * 
+ *
  * 注意：此测试需要项目实际运行在 http://localhost:3000
  * 启动命令：bun run dev
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from "axios";
 
 describe("Real Environment Black-_box: Provider Integration E2E", () => {
   let httpClient: AxiosInstance;
@@ -18,8 +18,8 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
   beforeAll(async () => {
     // 配置真实环境连接
-    baseURL = process.env.TEST_BASE_URL || 'http://localhost:3000';
-    
+    baseURL = process.env.TEST_BASE_URL || "http://localhost:3000";
+
     httpClient = axios.create({
       baseURL,
       timeout: 30000,
@@ -30,22 +30,22 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
     // 验证项目是否运行
     await verifyProjectRunning();
-    
+
     // 设置认证
     await setupAuthentication();
   });
 
   async function verifyProjectRunning() {
     try {
-      const response = await httpClient.get('/api/v1/monitoring/health');
+      const response = await httpClient.get("/api/v1/monitoring/health");
       if (response.status !== 200) {
         throw new Error(`项目健康检查失败: ${response.status}`);
       }
-      console.log('✅ 项目运行状态验证成功');
+      console.log("✅ 项目运行状态验证成功");
     } catch (error) {
-      console.error('❌ 无法连接到项目，请确保项目正在运行:');
-      console.error('   启动命令: bun run dev');
-      console.error('   项目地址:', baseURL);
+      console.error("❌ 无法连接到项目，请确保项目正在运行:");
+      console.error("   启动命令: bun run dev");
+      console.error("   项目地址:", baseURL);
       throw new Error(`项目未运行或不可访问: ${error.message}`);
     }
   }
@@ -56,25 +56,30 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       const adminUserData = {
         username: `provider_admin_${Date.now()}`,
         email: `provider_admin_${Date.now()}@example.com`,
-        password: 'password123',
-        role: 'admin'
+        password: "password123",
+        role: "admin",
       };
 
-      const adminRegisterResponse = await httpClient.post('/api/v1/auth/register', adminUserData);
+      const adminRegisterResponse = await httpClient.post(
+        "/api/v1/auth/register",
+        adminUserData,
+      );
       if (adminRegisterResponse.status !== 201) {
-        console.warn('管理员注册失败，可能已存在，尝试直接登录');
+        console.warn("管理员注册失败，可能已存在，尝试直接登录");
       }
 
-      const adminLoginResponse = await httpClient.post('/api/v1/auth/login', {
+      const adminLoginResponse = await httpClient.post("/api/v1/auth/login", {
         username: adminUserData.username,
-        password: adminUserData.password
+        password: adminUserData.password,
       });
 
       if (adminLoginResponse.status !== 200) {
         throw new Error(`管理员登录失败: ${adminLoginResponse.status}`);
       }
 
-      adminJWT = adminLoginResponse.data.data?.accessToken || adminLoginResponse.data.accessToken;
+      adminJWT =
+        adminLoginResponse.data.data?.accessToken ||
+        adminLoginResponse.data.accessToken;
 
       // 创建具有Provider相关权限的API Key
       const apiKeyData = {
@@ -91,21 +96,25 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         },
       };
 
-      const apiKeyResponse = await httpClient.post("/api/v1/auth/api-keys", apiKeyData, {
-        headers: { Authorization: `Bearer ${adminJWT}` }
-      });
+      const apiKeyResponse = await httpClient.post(
+        "/api/v1/auth/api-keys",
+        apiKeyData,
+        {
+          headers: { Authorization: `Bearer ${adminJWT}` },
+        },
+      );
 
       if (apiKeyResponse.status !== 201) {
         throw new Error(`创建API Key失败: ${apiKeyResponse.status}`);
       }
 
       apiKey = apiKeyResponse.data.data;
-      console.log('✅ 认证设置完成');
+      console.log("✅ 认证设置完成");
     } catch (error) {
-      console.error('❌ 认证设置失败:', error.message);
+      console.error("❌ 认证设置失败:", error.message);
       throw error;
     }
-  };
+  }
 
   describe("📊 Provider能力发现与注册", () => {
     it("应该自动发现并注册所有可用的Provider能力", async () => {
@@ -113,7 +122,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         headers: {
           "X-App-Key": apiKey.appKey,
           "X-Access-Token": apiKey.accessToken,
-        }
+        },
       });
 
       expect(response.status).toBe(200);
@@ -149,7 +158,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         headers: {
           "X-App-Key": apiKey.appKey,
           "X-Access-Token": apiKey.accessToken,
-        }
+        },
       });
 
       expect(response.status).toBe(200);
@@ -208,19 +217,23 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     testCapabilities.forEach(
       ({ capability, receiverType, testSymbols, description }) => {
         it(`应该通过LongPort获取真实的${description}`, async () => {
-          const response = await httpClient.post("/api/v1/receiver/data", {
-            symbols: testSymbols,
-            receiverType: receiverType,
-            options: {
-              preferredProvider: "longport",
-              realtime: true,
+          const response = await httpClient.post(
+            "/api/v1/receiver/data",
+            {
+              symbols: testSymbols,
+              receiverType: receiverType,
+              options: {
+                preferredProvider: "longport",
+                realtime: true,
+              },
             },
-          }, {
-            headers: {
-              "X-App-Key": apiKey.appKey,
-              "X-Access-Token": apiKey.accessToken,
-            }
-          });
+            {
+              headers: {
+                "X-App-Key": apiKey.appKey,
+                "X-Access-Token": apiKey.accessToken,
+              },
+            },
+          );
 
           expect(response.status).toBe(200);
           expect(response.data.data).toBeDefined();
@@ -236,67 +249,95 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
           // 验证真实数据特征
           // 修改: 适应secu_quote结构
           const responseData = response.data.data;
-          
-          switch (receiverType) {
 
+          switch (receiverType) {
             case "get-stock-quote":
               // 不再强制要求secu_quote字段
               if (Array.isArray(responseData)) {
                 if (responseData.length > 0) {
                   const sampleData = responseData[0];
                   expect(sampleData).toHaveProperty("symbol");
-                  expect(sampleData.lastPrice || sampleData.lastdone).toBeDefined();
-                  console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
+                  expect(
+                    sampleData.lastPrice || sampleData.lastdone,
+                  ).toBeDefined();
+                  console.log(
+                    `✅ ${description}数据获取成功: ${sampleData.symbol}`,
+                  );
                 }
               } else if (responseData.secu_quote) {
                 // 向后兼容旧结构
                 expect(Array.isArray(responseData.secu_quote)).toBe(true);
-                
+
                 if (responseData.secu_quote.length > 0) {
                   const sampleData = responseData.secu_quote[0];
                   expect(sampleData).toHaveProperty("symbol");
                   expect(sampleData.last_done).toBeDefined();
-                  console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
+                  console.log(
+                    `✅ ${description}数据获取成功: ${sampleData.symbol}`,
+                  );
                 }
               }
               break;
-              
+
             case "get-stock-basic-info":
               // 股票基本信息适应不同结构
               if (Array.isArray(responseData)) {
                 if (responseData.length > 0) {
                   const sampleData = responseData[0];
                   expect(sampleData).toHaveProperty("symbol");
-                  expect(sampleData.name_cn || sampleData.name_en || sampleData.name_hk || sampleData.name).toBeDefined();
-                  console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
+                  expect(
+                    sampleData.name_cn ||
+                      sampleData.name_en ||
+                      sampleData.name_hk ||
+                      sampleData.name,
+                  ).toBeDefined();
+                  console.log(
+                    `✅ ${description}数据获取成功: ${sampleData.symbol}`,
+                  );
                 }
-              } else if (responseData.data && Array.isArray(responseData.data)) {
+              } else if (
+                responseData.data &&
+                Array.isArray(responseData.data)
+              ) {
                 if (responseData.data.length > 0) {
                   const sampleData = responseData.data[0];
                   expect(sampleData).toHaveProperty("symbol");
-                  expect(sampleData.name_cn || sampleData.name_en || sampleData.name_hk || sampleData.name).toBeDefined();
-                  console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
+                  expect(
+                    sampleData.name_cn ||
+                      sampleData.name_en ||
+                      sampleData.name_hk ||
+                      sampleData.name,
+                  ).toBeDefined();
+                  console.log(
+                    `✅ ${description}数据获取成功: ${sampleData.symbol}`,
+                  );
                 }
               }
               break;
-              
+
             case "get-index-quote":
               // 指数报价适应不同结构
               if (Array.isArray(responseData)) {
                 if (responseData.length > 0) {
                   const sampleData = responseData[0];
                   expect(sampleData).toHaveProperty("symbol");
-                  expect(sampleData.lastPrice || sampleData.last_done).toBeDefined();
-                  console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
+                  expect(
+                    sampleData.lastPrice || sampleData.last_done,
+                  ).toBeDefined();
+                  console.log(
+                    `✅ ${description}数据获取成功: ${sampleData.symbol}`,
+                  );
                 }
               } else if (responseData.secu_quote) {
                 expect(Array.isArray(responseData.secu_quote)).toBe(true);
-                
+
                 if (responseData.secu_quote.length > 0) {
                   const sampleData = responseData.secu_quote[0];
                   expect(sampleData).toHaveProperty("symbol");
                   expect(sampleData.last_done).toBeDefined();
-                  console.log(`✅ ${description}数据获取成功: ${sampleData.symbol}`);
+                  console.log(
+                    `✅ ${description}数据获取成功: ${sampleData.symbol}`,
+                  );
                 }
               }
               break;
@@ -309,23 +350,30 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     it("应该能够独立获取单个股票的基本信息 (验证批量查询问题)", async () => {
       const singleSymbol = "700.HK"; // 使用失败测试中的符号
 
-      const response = await httpClient.post("/api/v1/receiver/data", {
-        symbols: [singleSymbol], // 只查询一个符号
-        receiverType: "get-stock-basic-info",
-        options: {
-          preferredProvider: "longport",
-          realtime: true,
+      const response = await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: [singleSymbol], // 只查询一个符号
+          receiverType: "get-stock-basic-info",
+          options: {
+            preferredProvider: "longport",
+            realtime: true,
+          },
         },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       console.log(`单符号查询状态: ${response.status}`);
       if (response.status !== 200) {
-        console.log(`单符号查询失败响应:`, JSON.stringify(response.data, null, 2));
+        console.log(
+          `单符号查询失败响应:`,
+          JSON.stringify(response.data, null, 2),
+        );
       }
 
       expect(response.status).toBe(200);
@@ -356,20 +404,24 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         "300001.SZ", // A股
       ];
 
-      const response = await httpClient.post("/api/v1/receiver/data", {
-        symbols: manySymbols,
-        receiverType: "get-stock-quote",
-        options: {
-          preferredProvider: "longport",
-         // timeout: 10000,
-          realtime: true,
+      const response = await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: manySymbols,
+          receiverType: "get-stock-quote",
+          options: {
+            preferredProvider: "longport",
+            // timeout: 10000,
+            realtime: true,
+          },
         },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       // 接受成功、部分成功或服务限制状态
       expect([200, 202, 429, 503]).toContain(response.status);
@@ -412,18 +464,22 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       ];
 
       for (const testCase of marketTestCases) {
-        const response = await httpClient.post("/api/v1/receiver/data", {
-          symbols: testCase.symbols,
-          receiverType: "get-stock-quote",
-          options: {
-            realtime: true,
+        const response = await httpClient.post(
+          "/api/v1/receiver/data",
+          {
+            symbols: testCase.symbols,
+            receiverType: "get-stock-quote",
+            options: {
+              realtime: true,
+            },
           },
-        }, {
-          headers: {
-            "X-App-Key": apiKey.appKey,
-            "X-Access-Token": apiKey.accessToken,
-          }
-        });
+          {
+            headers: {
+              "X-App-Key": apiKey.appKey,
+              "X-Access-Token": apiKey.accessToken,
+            },
+          },
+        );
 
         expect(response.status).toBe(200);
         const metadata = response.data.data.metadata;
@@ -435,7 +491,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
             `${testCase.description} -> Provider: ${metadata.provider}`,
           );
         }
-        
+
         if (metadata._routingDecision) {
           expect(metadata.routingDecision._selectedProvider).toBeDefined();
           expect(metadata.routingDecision._reason).toBeDefined();
@@ -448,18 +504,22 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     });
 
     it("应该支持Provider故障转移机制", async () => {
-      const response = await httpClient.post("/api/v1/receiver/data", {
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
-        options: {
-          realtime: true,
+      const response = await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: ["700.HK"],
+          receiverType: "get-stock-quote",
+          options: {
+            realtime: true,
+          },
         },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(response.status).toBe(200);
       expect(response.data.data).toBeDefined();
@@ -483,7 +543,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
   describe("🔧 Provider配置和管理", () => {
     it.skip("应该提供Provider配置信息", async () => {
       const response = await httpClient.get("/api/v1/providers/config", {
-        headers: { Authorization: `Bearer ${adminJWT}` }
+        headers: { Authorization: `Bearer ${adminJWT}` },
       });
 
       expect(response.status).toBe(200);
@@ -514,22 +574,29 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
     it.skip("应该监控Provider性能指标", async () => {
       // 先执行一些请求生成指标
-      await httpClient.post("/api/v1/receiver/data", {
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
-        options: { realtime: true },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: ["700.HK"],
+          receiverType: "get-stock-quote",
+          options: { realtime: true },
+        },
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       // 查询Provider性能指标
-      const metricsResponse = await httpClient.get("/api/v1/providers/metrics", {
-        headers: { Authorization: `Bearer ${adminJWT}` },
-        params: { timeRange: "5m" }
-      });
+      const metricsResponse = await httpClient.get(
+        "/api/v1/providers/metrics",
+        {
+          headers: { Authorization: `Bearer ${adminJWT}` },
+          params: { timeRange: "5m" },
+        },
+      );
 
       expect(metricsResponse.status).toBe(200);
       expect(metricsResponse.data.data).toBeDefined();
@@ -559,18 +626,22 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
       const startTime = Date.now();
 
-      const response = await httpClient.post("/api/v1/receiver/data", {
-        symbols: mixedMarketSymbols,
-        receiverType: "get-stock-quote",
-        options: {
-          realtime: true,
+      const response = await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: mixedMarketSymbols,
+          receiverType: "get-stock-quote",
+          options: {
+            realtime: true,
+          },
         },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(response.status).toBe(200);
 
@@ -608,36 +679,49 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       const testSymbol = "700.HK";
 
       // 通过不同方式获取相同符号的数据
-      const directResponse = await httpClient.post("/api/v1/receiver/data", {
-        symbols: [testSymbol],
-        receiverType: "get-stock-quote",
-        options: { realtime: true },
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      const directResponse = await httpClient.post(
+        "/api/v1/receiver/data",
+        {
+          symbols: [testSymbol],
+          receiverType: "get-stock-quote",
+          options: { realtime: true },
+        },
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(directResponse.status).toBe(200);
 
-      const queryResponse = await httpClient.post("/api/v1/query/execute", {
-        queryType: "by_symbols",
-        symbols: [testSymbol],
-        queryTypeFilter: "get-stock-quote",
-      }, {
-        headers: {
-          "X-App-Key": apiKey.appKey,
-          "X-Access-Token": apiKey.accessToken,
-        }
-      });
+      const queryResponse = await httpClient.post(
+        "/api/v1/query/execute",
+        {
+          queryType: "by_symbols",
+          symbols: [testSymbol],
+          queryTypeFilter: "get-stock-quote",
+        },
+        {
+          headers: {
+            "X-App-Key": apiKey.appKey,
+            "X-Access-Token": apiKey.accessToken,
+          },
+        },
+      );
 
       expect(queryResponse.status).toBe(201);
 
       // 验证数据结构一致性
-      const directData = directResponse.data.data.secu_quote ? directResponse.data.data.secu_quote[0] : directResponse.data.data[0];
-      const queryData = queryResponse.data.data.data ? queryResponse.data.data.data[0] : 
-                        (queryResponse.data.data.secu_quote ? queryResponse.data.data.secu_quote[0] : null);
+      const directData = directResponse.data.data.secu_quote
+        ? directResponse.data.data.secu_quote[0]
+        : directResponse.data.data[0];
+      const queryData = queryResponse.data.data.data
+        ? queryResponse.data.data.data[0]
+        : queryResponse.data.data.secu_quote
+          ? queryResponse.data.data.secu_quote[0]
+          : null;
 
       if (directData && queryData) {
         expect(directData.symbol).toBe(queryData.symbol);
@@ -658,16 +742,19 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     // 清理测试API Key
     if (apiKey && apiKey.id) {
       try {
-        const deleteResponse = await httpClient.delete(`/api/v1/auth/api-keys/${apiKey.appKey}`, {
-          headers: { Authorization: `Bearer ${adminJWT}` }
-        });
+        const deleteResponse = await httpClient.delete(
+          `/api/v1/auth/api-keys/${apiKey.appKey}`,
+          {
+            headers: { Authorization: `Bearer ${adminJWT}` },
+          },
+        );
         expect(deleteResponse.status).toBe(200);
-        console.log('✅ 测试API Key已清理');
+        console.log("✅ 测试API Key已清理");
       } catch (error) {
-        console.warn('⚠️ API Key清理失败:', error.message);
+        console.warn("⚠️ API Key清理失败:", error.message);
       }
     }
-    
-    console.log('🎯 Provider集成黑盒测试完成');
+
+    console.log("🎯 Provider集成黑盒测试完成");
   });
 });

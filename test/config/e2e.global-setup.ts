@@ -5,7 +5,7 @@
 
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import  fs from "fs";
+import fs from "fs";
 
 let mongoServer: MongoMemoryServer;
 

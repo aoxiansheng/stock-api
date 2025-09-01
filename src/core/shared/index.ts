@@ -20,7 +20,7 @@ export * from './services/field-mapping.service';
 export * from './services/base-fetcher.service';
 
 // 类型定义
-export * from './types/field-naming.types';
+export * from './types/storage-classification.enum';
 export * from './types/storage-classification.enum';
 
 // 配置

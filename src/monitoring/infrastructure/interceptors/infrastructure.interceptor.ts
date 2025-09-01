@@ -5,19 +5,20 @@
 
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Observable, tap } from 'rxjs';
 import { Request, Response } from 'express';
 
 import { createLogger } from '../../../app/config/logger.config';
-import { CollectorService } from '../../collector/collector.service';
-// MetricsRegistryService已移除，使用CollectorService的事件驱动架构
+import { SYSTEM_STATUS_EVENTS } from '../../contracts/events/system-status.events';
+// 完全事件驱动架构，移除CollectorService直接依赖
 
 @Injectable()
 export class InfrastructureInterceptor implements NestInterceptor {
   private readonly logger = createLogger(InfrastructureInterceptor.name);
 
   constructor(
-    private readonly collectorService: CollectorService,
+    private readonly eventBus: EventEmitter2,
     private readonly reflector: Reflector,
   ) {}
 
@@ -74,21 +75,26 @@ export class InfrastructureInterceptor implements NestInterceptor {
     error?: string;
   }) {
     try {
-      // 通过CollectorService收集性能数据（事件驱动方式）
-      await this.collectorService.collectRequestMetrics({
-        timestamp: new Date(),
-        source: 'infrastructure-interceptor',
-        layer: 'collector',
-        operation: `${data.method} ${data.route}`,
-        duration: data.duration,
-        statusCode: data.statusCode,
-        success: data.success,
-        metadata: {
-          method: data.method,
-          handler: data.handler,
-          controller: data.controller,
-          error: data.error,
-        },
+      // ✅ 完全事件驱动的性能数据收集
+      setImmediate(() => {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: 'infrastructure_interceptor',
+          metricType: 'performance',
+          metricName: 'http_request_processed',
+          metricValue: data.duration,
+          tags: {
+            route: data.route,
+            method: data.method,
+            status_code: data.statusCode,
+            success: data.success,
+            handler: data.handler,
+            controller: data.controller,
+            error: data.error,
+            operation: `${data.method} ${data.route}`,
+            layer: 'infrastructure'
+          }
+        });
       });
 
       // 记录慢请求日志

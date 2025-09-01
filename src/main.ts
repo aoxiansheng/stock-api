@@ -1,6 +1,7 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import  express from "express";
 
 import { CustomLogger, getLogLevels } from "@app/config/logger.config";
@@ -13,8 +14,7 @@ import {
 import { AppModule } from "./app.module";
 import { InfrastructureInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure.interceptor";
 import { ApiMonitoringInterceptor } from "./monitoring/infrastructure/interceptors/api-monitoring.interceptor";
-import { CollectorService } from "./monitoring/collector/collector.service";
-// MetricsRegistryService已移除，使用事件驱动的CollectorService架构
+// 完全事件驱动架构，移除CollectorService直接依赖
 import { SecurityMiddleware } from "./auth/middleware/security.middleware";
 
 
@@ -49,8 +49,11 @@ async function bootstrap() {
     // 全局前缀
     app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
 
+    // 获取事件总线实例（统一事件化监控）
+    const eventBus = app.get(EventEmitter2);
+
     // 全局异常过滤器
-    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalFilters(new GlobalExceptionFilter(eventBus));
 
     // 全局验证管道
     app.useGlobalPipes(
@@ -68,12 +71,11 @@ async function bootstrap() {
     // 全局请求追踪拦截器（第一个执行）
     app.useGlobalInterceptors(new RequestTrackingInterceptor());
 
-    // 全局性能监控拦截器
-    const performanceMonitor = app.get(CollectorService);
+    // 全局性能监控拦截器 - 事件化重构
     const reflector = app.get("Reflector");
-    // metricsRegistry已移除，监控功能由CollectorService通过事件驱动方式提供
+    // 完全事件驱动架构，移除CollectorService直接依赖
     app.useGlobalInterceptors(
-      new InfrastructureInterceptor(performanceMonitor, reflector),
+      new InfrastructureInterceptor(eventBus, reflector),
     );
 
     // 🎯 事件驱动API监控拦截器（事件化重构）
@@ -81,10 +83,10 @@ async function bootstrap() {
     app.useGlobalInterceptors(apiMonitoringInterceptor);
 
     // 全局响应格式拦截器（最后执行）
-    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalInterceptors(new ResponseInterceptor(eventBus));
 
-    // 设置全局性能监控服务（供装饰器使用）
-    global["CollectorService"] = performanceMonitor;
+    // ✅ 完全事件驱动架构 - 所有监控通过依赖注入的EventEmitter2处理
+    // 不再需要全局变量暴露
 
     // CORS 配置
     app.enableCors({

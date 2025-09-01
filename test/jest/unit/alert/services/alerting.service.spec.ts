@@ -4,7 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import { AlertingService } from "../../../../../src/alert/services/alerting.service";
 import { AlertRuleRepository } from "../../../../../src/alert/repositories/alert-rule.repository";
 import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
@@ -13,10 +13,23 @@ import { AlertHistoryService } from "../../../../../src/alert/services/alert-his
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ConfigService } from "@nestjs/config";
-import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../../../../../src/alert/dto";
-import { IAlertRule, IMetricData, IRuleEvaluationResult } from "../../../../../src/alert/interfaces";
-import { AlertStatus, AlertSeverity } from "../../../../../src/alert/types/alert.types";
-import { ALERTING_MESSAGES, AlertingTemplateUtil } from "../../../../../src/alert/constants/alerting.constants";
+import {
+  CreateAlertRuleDto,
+  UpdateAlertRuleDto,
+} from "../../../../../src/alert/dto";
+import {
+  IAlertRule,
+  IMetricData,
+  IRuleEvaluationResult,
+} from "../../../../../src/alert/interfaces";
+import {
+  AlertStatus,
+  AlertSeverity,
+} from "../../../../../src/alert/types/alert.types";
+import {
+  ALERTING_MESSAGES,
+  AlertingTemplateUtil,
+} from "../../../../../src/alert/constants/alerting.constants";
 
 describe("AlertingService", () => {
   let service: AlertingService;
@@ -159,7 +172,9 @@ describe("AlertingService", () => {
     });
 
     it("should handle errors during loadActiveAlerts", async () => {
-      alertHistoryService.getActiveAlerts.mockRejectedValue(new Error("DB error"));
+      alertHistoryService.getActiveAlerts.mockRejectedValue(
+        new Error("DB error"),
+      );
       await expect(service.onModuleInit()).rejects.toThrow("DB error");
     });
   });
@@ -181,17 +196,28 @@ describe("AlertingService", () => {
     it("should create a rule successfully", async () => {
       ruleEngine.validateRule.mockReturnValue({ valid: true, errors: [] });
       alertRuleRepository.create.mockResolvedValue(mockAlertRule);
-      jest.spyOn(AlertingTemplateUtil, "generateRuleId").mockReturnValue("rule-1");
+      jest
+        .spyOn(AlertingTemplateUtil, "generateRuleId")
+        .mockReturnValue("rule-1");
 
       const result = await service.createRule(createDto);
-      expect(ruleEngine.validateRule).toHaveBeenCalledWith(expect.objectContaining({ name: "New Rule" }));
-      expect(alertRuleRepository.create).toHaveBeenCalledWith(expect.objectContaining({ name: "New Rule" }));
+      expect(ruleEngine.validateRule).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "New Rule" }),
+      );
+      expect(alertRuleRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "New Rule" }),
+      );
       expect(result).toEqual(mockAlertRule);
     });
 
     it("should throw BadRequestException if rule validation fails", async () => {
-      ruleEngine.validateRule.mockReturnValue({ valid: false, errors: ["Invalid threshold"] });
-      await expect(service.createRule(createDto)).rejects.toThrow(BadRequestException);
+      ruleEngine.validateRule.mockReturnValue({
+        valid: false,
+        errors: ["Invalid threshold"],
+      });
+      await expect(service.createRule(createDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it("should throw error if repository creation fails", async () => {
@@ -205,15 +231,23 @@ describe("AlertingService", () => {
     const updateDto: UpdateAlertRuleDto = { enabled: false };
 
     it("should update a rule successfully", async () => {
-      alertRuleRepository.update.mockResolvedValue({ ...mockAlertRule, enabled: false });
+      alertRuleRepository.update.mockResolvedValue({
+        ...mockAlertRule,
+        enabled: false,
+      });
       const result = await service.updateRule("rule-1", updateDto);
-      expect(alertRuleRepository.update).toHaveBeenCalledWith("rule-1", updateDto);
+      expect(alertRuleRepository.update).toHaveBeenCalledWith(
+        "rule-1",
+        updateDto,
+      );
       expect(result.enabled).toBe(false);
     });
 
     it("should throw error if repository update fails", async () => {
       alertRuleRepository.update.mockRejectedValue(new Error("DB error"));
-      await expect(service.updateRule("rule-1", updateDto)).rejects.toThrow("DB error");
+      await expect(service.updateRule("rule-1", updateDto)).rejects.toThrow(
+        "DB error",
+      );
     });
   });
 
@@ -255,7 +289,9 @@ describe("AlertingService", () => {
 
     it("should throw NotFoundException if rule not found", async () => {
       alertRuleRepository.findById.mockResolvedValue(null);
-      await expect(service.getRuleById("non-existent-rule")).rejects.toThrow(NotFoundException);
+      await expect(service.getRuleById("non-existent-rule")).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should throw error if repository findById fails", async () => {
@@ -274,12 +310,16 @@ describe("AlertingService", () => {
 
     it("should throw error if repository toggle fails", async () => {
       alertRuleRepository.toggle.mockRejectedValue(new Error("DB error"));
-      await expect(service.toggleRule("rule-1", true)).rejects.toThrow("DB error");
+      await expect(service.toggleRule("rule-1", true)).rejects.toThrow(
+        "DB error",
+      );
     });
   });
 
   describe("processMetrics", () => {
-    const metricData: IMetricData[] = [{ metric: "cpu_usage", value: 90, timestamp: new Date() }];
+    const metricData: IMetricData[] = [
+      { metric: "cpu_usage", value: 90, timestamp: new Date() },
+    ];
 
     it("should do nothing if no metrics are provided", async () => {
       await service.processMetrics([]);
@@ -294,27 +334,38 @@ describe("AlertingService", () => {
 
     it("should process metrics and handle rule evaluation", async () => {
       alertRuleRepository.findAllEnabled.mockResolvedValue([mockAlertRule]);
-      ruleEngine.evaluateRules.mockReturnValue([{ 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
-        context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
-      }]);
-      jest.spyOn(service as any, "handleRuleEvaluation").mockResolvedValue(undefined);
+      ruleEngine.evaluateRules.mockReturnValue([
+        {
+          ruleId: "rule-1",
+          triggered: true,
+          value: 90,
+          threshold: 80,
+          message: "Triggered",
+          context: {},
+          evaluatedAt: new Date(), // 添加evaluatedAt字段
+        },
+      ]);
+      jest
+        .spyOn(service as any, "handleRuleEvaluation")
+        .mockResolvedValue(undefined);
 
       await service.processMetrics(metricData);
       expect(alertRuleRepository.findAllEnabled).toHaveBeenCalled();
-      expect(ruleEngine.evaluateRules).toHaveBeenCalledWith([mockAlertRule], metricData);
+      expect(ruleEngine.evaluateRules).toHaveBeenCalledWith(
+        [mockAlertRule],
+        metricData,
+      );
       expect(service["handleRuleEvaluation"]).toHaveBeenCalled();
     });
 
     it("should throw error if rule evaluation fails", async () => {
       alertRuleRepository.findAllEnabled.mockResolvedValue([mockAlertRule]);
-      ruleEngine.evaluateRules.mockImplementation(() => { throw new Error("Evaluation error"); });
-      await expect(service.processMetrics(metricData)).rejects.toThrow("Evaluation error");
+      ruleEngine.evaluateRules.mockImplementation(() => {
+        throw new Error("Evaluation error");
+      });
+      await expect(service.processMetrics(metricData)).rejects.toThrow(
+        "Evaluation error",
+      );
     });
   });
 
@@ -324,7 +375,11 @@ describe("AlertingService", () => {
       alertHistoryService.getAlertById.mockResolvedValue(mockAlert);
 
       const result = await service.acknowledgeAlert("alert-1", "user1");
-      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.ACKNOWLEDGED, "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith(
+        "alert-1",
+        AlertStatus.ACKNOWLEDGED,
+        "user1",
+      );
       expect(result).toEqual(mockAlert);
     });
 
@@ -332,12 +387,18 @@ describe("AlertingService", () => {
       alertHistoryService.updateAlertStatus.mockResolvedValue(mockAlert);
       alertHistoryService.getAlertById.mockResolvedValue(null);
 
-      await expect(service.acknowledgeAlert("alert-1", "user1")).rejects.toThrow(NotFoundException);
+      await expect(
+        service.acknowledgeAlert("alert-1", "user1"),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it("should throw error if alert history update fails", async () => {
-      alertHistoryService.updateAlertStatus.mockRejectedValue(new Error("DB error"));
-      await expect(service.acknowledgeAlert("alert-1", "user1")).rejects.toThrow("DB error");
+      alertHistoryService.updateAlertStatus.mockRejectedValue(
+        new Error("DB error"),
+      );
+      await expect(
+        service.acknowledgeAlert("alert-1", "user1"),
+      ).rejects.toThrow("DB error");
     });
   });
 
@@ -347,25 +408,35 @@ describe("AlertingService", () => {
       cacheService.del.mockResolvedValue(1);
 
       const result = await service.resolveAlert("alert-1", "user1", "rule-1");
-      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith("alert-1", AlertStatus.RESOLVED, "user1");
+      expect(alertHistoryService.updateAlertStatus).toHaveBeenCalledWith(
+        "alert-1",
+        AlertStatus.RESOLVED,
+        "user1",
+      );
       expect(cacheService.del).toHaveBeenCalledWith("active-alert:rule-1");
       expect(result).toBe(true);
     });
 
     it("should throw NotFoundException if alert not found for resolution", async () => {
       alertHistoryService.updateAlertStatus.mockResolvedValue(null);
-      await expect(service.resolveAlert("non-existent-alert", "user1", "rule-1")).rejects.toThrow(NotFoundException);
+      await expect(
+        service.resolveAlert("non-existent-alert", "user1", "rule-1"),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it("should throw error if alert history update fails", async () => {
-      alertHistoryService.updateAlertStatus.mockRejectedValue(new Error("DB error"));
-      await expect(service.resolveAlert("alert-1", "user1", "rule-1")).rejects.toThrow("DB error");
+      alertHistoryService.updateAlertStatus.mockRejectedValue(
+        new Error("DB error"),
+      );
+      await expect(
+        service.resolveAlert("alert-1", "user1", "rule-1"),
+      ).rejects.toThrow("DB error");
     });
   });
 
   describe("getStats", () => {
     it("should return alert statistics", async () => {
-        alertHistoryService.getAlertStats.mockResolvedValue({
+      alertHistoryService.getAlertStats.mockResolvedValue({
         activeAlerts: 1,
         totalAlertsToday: 2,
         resolvedAlertsToday: 1,
@@ -373,7 +444,7 @@ describe("AlertingService", () => {
         criticalAlerts: 1,
         warningAlerts: 0,
         infoAlerts: 0,
-        statisticsTime: new Date() // 添加statisticsTime字段
+        statisticsTime: new Date(), // 添加statisticsTime字段
       });
       alertRuleRepository.countAll.mockResolvedValue(5);
       alertRuleRepository.countEnabled.mockResolvedValue(3);
@@ -385,14 +456,18 @@ describe("AlertingService", () => {
     });
 
     it("should handle errors during stats retrieval", async () => {
-      alertHistoryService.getAlertStats.mockRejectedValue(new Error("Stats error"));
+      alertHistoryService.getAlertStats.mockRejectedValue(
+        new Error("Stats error"),
+      );
       await expect(service.getStats()).rejects.toThrow("Stats error");
     });
   });
 
   describe("handleSystemEvent", () => {
     it("should process metrics if event converts to metric data", async () => {
-      jest.spyOn(service as any, "convertEventToMetric").mockReturnValue({ name: "test", value: 10, timestamp: new Date() });
+      jest
+        .spyOn(service as any, "convertEventToMetric")
+        .mockReturnValue({ name: "test", value: 10, timestamp: new Date() });
       jest.spyOn(service, "processMetrics").mockResolvedValue(undefined);
 
       await service.handleSystemEvent({ type: "test.event" });
@@ -410,8 +485,12 @@ describe("AlertingService", () => {
     });
 
     it("should log error but not rethrow if processMetrics fails", async () => {
-      jest.spyOn(service as any, "convertEventToMetric").mockReturnValue({ name: "test", value: 10, timestamp: new Date() });
-      jest.spyOn(service, "processMetrics").mockRejectedValue(new Error("Process metrics error"));
+      jest
+        .spyOn(service as any, "convertEventToMetric")
+        .mockReturnValue({ name: "test", value: 10, timestamp: new Date() });
+      jest
+        .spyOn(service, "processMetrics")
+        .mockRejectedValue(new Error("Process metrics error"));
       const errorSpy = jest.spyOn((service as any).logger, "error");
 
       await service.handleSystemEvent({ type: "test.event" });
@@ -427,7 +506,9 @@ describe("AlertingService", () => {
     });
 
     it("should log error but not rethrow if processMetrics fails", async () => {
-      jest.spyOn(service, "processMetrics").mockRejectedValue(new Error("Scheduled evaluation error"));
+      jest
+        .spyOn(service, "processMetrics")
+        .mockRejectedValue(new Error("Scheduled evaluation error"));
       const errorSpy = jest.spyOn((service as any).logger, "error");
 
       await service.evaluateRulesScheduled();
@@ -444,18 +525,21 @@ describe("AlertingService", () => {
       jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
       jest.spyOn(service as any, "resolveAlert").mockResolvedValue(undefined);
 
-      const result: IRuleEvaluationResult = { 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
+      const result: IRuleEvaluationResult = {
+        ruleId: "rule-1",
+        triggered: true,
+        value: 90,
+        threshold: 80,
+        message: "Triggered",
         context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
+        evaluatedAt: new Date(), // 添加evaluatedAt字段
       };
       await service["handleRuleEvaluation"](result, rules);
 
-      expect(service["createNewAlert"]).toHaveBeenCalledWith(result, mockAlertRule);
+      expect(service["createNewAlert"]).toHaveBeenCalledWith(
+        result,
+        mockAlertRule,
+      );
       expect(ruleEngine.setCooldown).toHaveBeenCalledWith("rule-1", 300);
       expect(service["resolveAlert"]).not.toHaveBeenCalled();
     });
@@ -465,19 +549,23 @@ describe("AlertingService", () => {
       jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
       jest.spyOn(service as any, "resolveAlert").mockResolvedValue(true);
 
-      const result: IRuleEvaluationResult = { 
-        ruleId: "rule-1", 
-        triggered: false, 
-        value: 70, 
-        threshold: 80, 
-        message: "Not Triggered", 
+      const result: IRuleEvaluationResult = {
+        ruleId: "rule-1",
+        triggered: false,
+        value: 70,
+        threshold: 80,
+        message: "Not Triggered",
         context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
+        evaluatedAt: new Date(), // 添加evaluatedAt字段
       };
       await service["handleRuleEvaluation"](result, rules);
 
       expect(service["createNewAlert"]).not.toHaveBeenCalled();
-      expect(service["resolveAlert"]).toHaveBeenCalledWith(mockAlert.id, "system", mockAlertRule.id);
+      expect(service["resolveAlert"]).toHaveBeenCalledWith(
+        mockAlert.id,
+        "system",
+        mockAlertRule.id,
+      );
     });
 
     it("should do nothing if rule not triggered and no existing alert", async () => {
@@ -485,14 +573,14 @@ describe("AlertingService", () => {
       jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
       jest.spyOn(service as any, "resolveAlert").mockResolvedValue(undefined);
 
-      const result: IRuleEvaluationResult = { 
-        ruleId: "rule-1", 
-        triggered: false, 
-        value: 70, 
-        threshold: 80, 
-        message: "Not Triggered", 
+      const result: IRuleEvaluationResult = {
+        ruleId: "rule-1",
+        triggered: false,
+        value: 70,
+        threshold: 80,
+        message: "Not Triggered",
         context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
+        evaluatedAt: new Date(), // 添加evaluatedAt字段
       };
       await service["handleRuleEvaluation"](result, rules);
 
@@ -505,14 +593,14 @@ describe("AlertingService", () => {
       ruleEngine.isInCooldown.mockResolvedValue(true);
       jest.spyOn(service as any, "createNewAlert").mockResolvedValue(undefined);
 
-      const result: IRuleEvaluationResult = { 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
+      const result: IRuleEvaluationResult = {
+        ruleId: "rule-1",
+        triggered: true,
+        value: 90,
+        threshold: 80,
+        message: "Triggered",
         context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
+        evaluatedAt: new Date(), // 添加evaluatedAt字段
       };
       await service["handleRuleEvaluation"](result, rules);
 
@@ -527,15 +615,18 @@ describe("AlertingService", () => {
       cacheService.set.mockResolvedValue(true);
       notificationService.sendBatchNotifications.mockResolvedValue(undefined);
 
-      await service["createNewAlert"]({ 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
-        context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
-      }, mockAlertRule);
+      await service["createNewAlert"](
+        {
+          ruleId: "rule-1",
+          triggered: true,
+          value: 90,
+          threshold: 80,
+          message: "Triggered",
+          context: {},
+          evaluatedAt: new Date(), // 添加evaluatedAt字段
+        },
+        mockAlertRule,
+      );
 
       expect(alertHistoryService.createAlert).toHaveBeenCalled();
       expect(cacheService.set).toHaveBeenCalledWith(
@@ -547,16 +638,23 @@ describe("AlertingService", () => {
     });
 
     it("should throw error if alert creation fails", async () => {
-      alertHistoryService.createAlert.mockRejectedValue(new Error("Alert creation failed"));
-      await expect(service["createNewAlert"]({ 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
-        context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
-      }, mockAlertRule)).rejects.toThrow("Alert creation failed");
+      alertHistoryService.createAlert.mockRejectedValue(
+        new Error("Alert creation failed"),
+      );
+      await expect(
+        service["createNewAlert"](
+          {
+            ruleId: "rule-1",
+            triggered: true,
+            value: 90,
+            threshold: 80,
+            message: "Triggered",
+            context: {},
+            evaluatedAt: new Date(), // 添加evaluatedAt字段
+          },
+          mockAlertRule,
+        ),
+      ).rejects.toThrow("Alert creation failed");
     });
 
     it("should log error but not rethrow if cache set fails", async () => {
@@ -565,33 +663,41 @@ describe("AlertingService", () => {
       notificationService.sendBatchNotifications.mockResolvedValue(undefined);
       const errorSpy = jest.spyOn((service as any).logger, "error");
 
-      await service["createNewAlert"]({ 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
-        context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
-      }, mockAlertRule);
+      await service["createNewAlert"](
+        {
+          ruleId: "rule-1",
+          triggered: true,
+          value: 90,
+          threshold: 80,
+          message: "Triggered",
+          context: {},
+          evaluatedAt: new Date(), // 添加evaluatedAt字段
+        },
+        mockAlertRule,
+      );
       expect(errorSpy).toHaveBeenCalled();
     });
 
     it("should log error but not rethrow if notification fails", async () => {
       alertHistoryService.createAlert.mockResolvedValue(mockAlert);
       cacheService.set.mockResolvedValue(true);
-      notificationService.sendBatchNotifications.mockRejectedValue(new Error("Notification error"));
+      notificationService.sendBatchNotifications.mockRejectedValue(
+        new Error("Notification error"),
+      );
       const errorSpy = jest.spyOn((service as any).logger, "error");
 
-      await service["createNewAlert"]({ 
-        ruleId: "rule-1", 
-        triggered: true, 
-        value: 90, 
-        threshold: 80, 
-        message: "Triggered", 
-        context: {},
-        evaluatedAt: new Date() // 添加evaluatedAt字段
-      }, mockAlertRule);
+      await service["createNewAlert"](
+        {
+          ruleId: "rule-1",
+          triggered: true,
+          value: 90,
+          threshold: 80,
+          message: "Triggered",
+          context: {},
+          evaluatedAt: new Date(), // 添加evaluatedAt字段
+        },
+        mockAlertRule,
+      );
       expect(errorSpy).toHaveBeenCalled();
     });
   });

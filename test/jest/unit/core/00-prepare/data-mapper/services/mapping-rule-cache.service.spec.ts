@@ -32,8 +32,8 @@ describe("MappingRuleCacheService", () => {
       {
         sourceFieldPath: "last_done",
         targetField: "lastPrice",
-        confidence: 0.95
-      }
+        confidence: 0.95,
+      },
     ],
     isActive: true,
     isDefault: false,
@@ -44,7 +44,7 @@ describe("MappingRuleCacheService", () => {
     failedTransformations: 0,
     sourceTemplateId: undefined as any,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {
@@ -71,58 +71,87 @@ describe("MappingRuleCacheService", () => {
     }).compile();
 
     service = module.get<MappingRuleCacheService>(MappingRuleCacheService);
-    dataMapperCacheService = module.get<DeepMocked<DataMapperCacheService>>(DataMapperCacheService);
+    dataMapperCacheService = module.get<DeepMocked<DataMapperCacheService>>(
+      DataMapperCacheService,
+    );
   });
 
   describe("cacheBestMatchingRule", () => {
     it("should cache best matching rule successfully", async () => {
       dataMapperCacheService.cacheBestMatchingRule.mockResolvedValue(undefined);
 
-      await service.cacheBestMatchingRule("longport", "rest", "quote_fields", mockRule);
+      await service.cacheBestMatchingRule(
+        "longport",
+        "rest",
+        "quote_fields",
+        mockRule,
+      );
 
       expect(dataMapperCacheService.cacheBestMatchingRule).toHaveBeenCalledWith(
         "longport",
-        "rest", 
+        "rest",
         "quote_fields",
-        mockRule
+        mockRule,
       );
     });
 
     it("should handle cache errors gracefully", async () => {
-      dataMapperCacheService.cacheBestMatchingRule.mockRejectedValue(new Error("Cache error"));
+      dataMapperCacheService.cacheBestMatchingRule.mockRejectedValue(
+        new Error("Cache error"),
+      );
 
       // Should throw error (delegate behavior)
-      await expect(service.cacheBestMatchingRule("longport", "rest", "quote_fields", mockRule))
-        .rejects.toThrow("Cache error");
+      await expect(
+        service.cacheBestMatchingRule(
+          "longport",
+          "rest",
+          "quote_fields",
+          mockRule,
+        ),
+      ).rejects.toThrow("Cache error");
     });
   });
 
   describe("getCachedBestMatchingRule", () => {
     it("should retrieve cached best matching rule", async () => {
-      dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(mockRule);
+      dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(
+        mockRule,
+      );
 
-      const result = await service.getCachedBestMatchingRule("longport", "rest", "quote_fields");
-
-      expect(result).toEqual(mockRule);
-      expect(dataMapperCacheService.getCachedBestMatchingRule).toHaveBeenCalledWith(
+      const result = await service.getCachedBestMatchingRule(
         "longport",
         "rest",
-        "quote_fields"
+        "quote_fields",
       );
+
+      expect(result).toEqual(mockRule);
+      expect(
+        dataMapperCacheService.getCachedBestMatchingRule,
+      ).toHaveBeenCalledWith("longport", "rest", "quote_fields");
     });
 
     it("should return null when cache miss", async () => {
       dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(null);
 
-      const result = await service.getCachedBestMatchingRule("longport", "rest", "quote_fields");
+      const result = await service.getCachedBestMatchingRule(
+        "longport",
+        "rest",
+        "quote_fields",
+      );
 
       expect(result).toBeNull();
     });
 
     it("should return whatever dataMapperCacheService returns", async () => {
-      dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(mockRule);
+      dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(
+        mockRule,
+      );
 
-      const result = await service.getCachedBestMatchingRule("longport", "rest", "quote_fields");
+      const result = await service.getCachedBestMatchingRule(
+        "longport",
+        "rest",
+        "quote_fields",
+      );
 
       // dataMapperCacheService已经处理序列化/反序列化，service直接返回结果
       expect(result).toEqual(mockRule);
@@ -135,7 +164,9 @@ describe("MappingRuleCacheService", () => {
 
       await service.cacheRuleById(mockRule);
 
-      expect(dataMapperCacheService.cacheRuleById).toHaveBeenCalledWith(mockRule);
+      expect(dataMapperCacheService.cacheRuleById).toHaveBeenCalledWith(
+        mockRule,
+      );
     });
 
     it("should handle rules without id via dataMapperCacheService", async () => {
@@ -145,7 +176,9 @@ describe("MappingRuleCacheService", () => {
       await service.cacheRuleById(ruleWithoutId);
 
       // DataMapperCacheService handles validation
-      expect(dataMapperCacheService.cacheRuleById).toHaveBeenCalledWith(ruleWithoutId);
+      expect(dataMapperCacheService.cacheRuleById).toHaveBeenCalledWith(
+        ruleWithoutId,
+      );
     });
   });
 
@@ -156,7 +189,9 @@ describe("MappingRuleCacheService", () => {
       const result = await service.getCachedRuleById(mockRule.id);
 
       expect(result).toEqual(mockRule);
-      expect(dataMapperCacheService.getCachedRuleById).toHaveBeenCalledWith(mockRule.id);
+      expect(dataMapperCacheService.getCachedRuleById).toHaveBeenCalledWith(
+        mockRule.id,
+      );
     });
 
     it("should return null when cache miss", async () => {
@@ -178,7 +213,7 @@ describe("MappingRuleCacheService", () => {
       expect(dataMapperCacheService.cacheProviderRules).toHaveBeenCalledWith(
         "longport",
         "rest",
-        rules
+        rules,
       );
     });
 
@@ -189,8 +224,8 @@ describe("MappingRuleCacheService", () => {
 
       expect(dataMapperCacheService.cacheProviderRules).toHaveBeenCalledWith(
         "longport",
-        "rest", 
-        []
+        "rest",
+        [],
       );
     });
   });
@@ -203,10 +238,9 @@ describe("MappingRuleCacheService", () => {
       const result = await service.getCachedProviderRules("longport", "rest");
 
       expect(result).toEqual(rules);
-      expect(dataMapperCacheService.getCachedProviderRules).toHaveBeenCalledWith(
-        "longport",
-        "rest"
-      );
+      expect(
+        dataMapperCacheService.getCachedProviderRules,
+      ).toHaveBeenCalledWith("longport", "rest");
     });
 
     it("should return null when cache miss", async () => {
@@ -224,24 +258,34 @@ describe("MappingRuleCacheService", () => {
 
       await service.invalidateRuleCache(mockRule.id, mockRule);
 
-      expect(dataMapperCacheService.invalidateRuleCache).toHaveBeenCalledWith(mockRule.id, mockRule);
+      expect(dataMapperCacheService.invalidateRuleCache).toHaveBeenCalledWith(
+        mockRule.id,
+        mockRule,
+      );
     });
 
     it("should handle cache errors during invalidation", async () => {
-      dataMapperCacheService.invalidateRuleCache.mockRejectedValue(new Error("Cache error"));
+      dataMapperCacheService.invalidateRuleCache.mockRejectedValue(
+        new Error("Cache error"),
+      );
 
-      await expect(service.invalidateRuleCache(mockRule.id))
-        .rejects.toThrow("Cache error");
+      await expect(service.invalidateRuleCache(mockRule.id)).rejects.toThrow(
+        "Cache error",
+      );
     });
   });
 
   describe("invalidateProviderCache", () => {
     it("should invalidate provider-specific cache entries", async () => {
-      dataMapperCacheService.invalidateProviderCache.mockResolvedValue(undefined);
+      dataMapperCacheService.invalidateProviderCache.mockResolvedValue(
+        undefined,
+      );
 
       await service.invalidateProviderCache("longport");
 
-      expect(dataMapperCacheService.invalidateProviderCache).toHaveBeenCalledWith("longport");
+      expect(
+        dataMapperCacheService.invalidateProviderCache,
+      ).toHaveBeenCalledWith("longport");
     });
   });
 
@@ -256,9 +300,9 @@ describe("MappingRuleCacheService", () => {
 
     it("should handle no cache entries to clear", async () => {
       dataMapperCacheService.clearAllRuleCache.mockResolvedValue(undefined);
-      
+
       await service.clearAllRuleCache();
-      
+
       expect(dataMapperCacheService.clearAllRuleCache).toHaveBeenCalled();
     });
   });
@@ -269,11 +313,11 @@ describe("MappingRuleCacheService", () => {
         bestRuleCacheSize: 5,
         ruleByIdCacheSize: 10,
         providerRulesCacheSize: 3,
-        totalCacheSize: 18
+        totalCacheSize: 18,
       };
-      
+
       dataMapperCacheService.getCacheStats.mockResolvedValue(mockStats);
-      
+
       const result = await service.getCacheStats();
 
       expect(result).toEqual(mockStats);
@@ -285,9 +329,9 @@ describe("MappingRuleCacheService", () => {
         bestRuleCacheSize: 0,
         ruleByIdCacheSize: 0,
         providerRulesCacheSize: 0,
-        totalCacheSize: 0
+        totalCacheSize: 0,
       };
-      
+
       dataMapperCacheService.getCacheStats.mockResolvedValue(errorStats);
 
       const result = await service.getCacheStats();
@@ -308,7 +352,7 @@ describe("MappingRuleCacheService", () => {
 
     it("should handle empty rules array in warmup", async () => {
       dataMapperCacheService.warmupCache.mockResolvedValue(undefined);
-      
+
       await service.warmupCache([]);
 
       expect(dataMapperCacheService.warmupCache).toHaveBeenCalledWith([]);
@@ -350,31 +394,49 @@ describe("MappingRuleCacheService", () => {
 
   describe("error resilience", () => {
     it("should return whatever dataMapperCacheService provides", async () => {
-      dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(mockRule);
+      dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(
+        mockRule,
+      );
 
-      const result = await service.getCachedBestMatchingRule("longport", "rest", "quote_fields");
+      const result = await service.getCachedBestMatchingRule(
+        "longport",
+        "rest",
+        "quote_fields",
+      );
 
       // dataMapperCacheService已经处理序列化/反序列化，service直接返回结果
       expect(result).toEqual(mockRule);
     });
 
     it("should propagate cache service failures during warmup", async () => {
-      dataMapperCacheService.warmupCache.mockRejectedValue(new Error("Redis connection failed"));
+      dataMapperCacheService.warmupCache.mockRejectedValue(
+        new Error("Redis connection failed"),
+      );
 
       // Service delegates error handling to DataMapperCacheService
-      await expect(service.warmupCache([mockRule])).rejects.toThrow("Redis connection failed");
+      await expect(service.warmupCache([mockRule])).rejects.toThrow(
+        "Redis connection failed",
+      );
     });
 
     it("should propagate cache service failures during regular caching", async () => {
-      dataMapperCacheService.cacheRuleById.mockRejectedValue(new Error("Redis connection failed"));
+      dataMapperCacheService.cacheRuleById.mockRejectedValue(
+        new Error("Redis connection failed"),
+      );
 
-      await expect(service.cacheRuleById(mockRule)).rejects.toThrow("Redis connection failed");
+      await expect(service.cacheRuleById(mockRule)).rejects.toThrow(
+        "Redis connection failed",
+      );
     });
 
     it("should propagate cache deletion failures", async () => {
-      dataMapperCacheService.invalidateRuleCache.mockRejectedValue(new Error("Delete failed"));
+      dataMapperCacheService.invalidateRuleCache.mockRejectedValue(
+        new Error("Delete failed"),
+      );
 
-      await expect(service.invalidateRuleCache("test" as any)).rejects.toThrow("Delete failed");
+      await expect(service.invalidateRuleCache("test" as any)).rejects.toThrow(
+        "Delete failed",
+      );
     });
   });
 });

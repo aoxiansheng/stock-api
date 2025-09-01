@@ -18,28 +18,11 @@ export type ReceiverType =
   | "get-stock-news"
   | "get-crypto-news";
 
-// Storage 组件的数据分类
-export enum StorageClassification {
-  STOCK_QUOTE = "stock_quote",
-  STOCK_CANDLE = "stock_candle",
-  STOCK_TICK = "stock_tick",
-  FINANCIAL_STATEMENT = "financial_statement",
-  STOCK_BASIC_INFO = "stock_basic_info",
-  MARKET_NEWS = "market_news",
-  TRADING_ORDER = "trading_order",
-  USER_PORTFOLIO = "user_portfolio",
-  GENERAL = "general",
-  INDEX_QUOTE = "index_quote",
-  MARKET_STATUS = "market_status",
-  TRADING_DAYS = "trading_days",
-  GLOBAL_STATE = "global_state",
-  CRYPTO_QUOTE = "crypto_quote",
-  CRYPTO_BASIC_INFO = "crypto_basic_info",
-  STOCK_LOGO = "stock_logo",
-  CRYPTO_LOGO = "crypto_logo",
-  STOCK_NEWS = "stock_news",
-  CRYPTO_NEWS = "crypto_news",
-}
+// 从统一位置导入
+import { StorageClassification } from './storage-classification.enum';
+
+// 重新导出以保持向后兼容
+export { StorageClassification };
 
 // Query 组件的过滤类型 (可以使用 ReceiverType 或 StorageClassification 的字符串值)
 export type QueryTypeFilter = string;

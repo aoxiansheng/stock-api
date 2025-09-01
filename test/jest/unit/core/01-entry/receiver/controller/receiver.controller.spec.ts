@@ -22,7 +22,7 @@ jest.mock("@app/config/logger.config", () => {
     debug: jest.fn(),
     verbose: jest.fn(),
   };
-  
+
   return {
     createLogger: jest.fn(() => mockLoggerInstance),
     sanitizeLogData: jest.fn((data) => data),
@@ -95,7 +95,7 @@ describe("ReceiverController", () => {
           useValue: mockRateLimitService,
         },
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: mockRedisService,
         },
         {
@@ -499,12 +499,15 @@ describe("ReceiverController", () => {
 
         return Promise.resolve({
           success: true,
-          data: [{ symbol: request.symbols[0], receiverType: request.receiverType }],
+          data: [
+            { symbol: request.symbols[0], receiverType: request.receiverType },
+          ],
           metadata: {
             requestId: `req_${Date.now()}`,
             provider: "longport",
             capability:
-              dataTypeToCapabilityMap[request.receiverType] || request.receiverType,
+              dataTypeToCapabilityMap[request.receiverType] ||
+              request.receiverType,
             processingTime: 100,
             timestamp: new Date().toISOString(),
           },

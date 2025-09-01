@@ -40,7 +40,8 @@ import {
 } from "../dto/receiver-internal.dto";
 import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
 import { StoreDataDto } from "../../../04-storage/storage/dto/storage-request.dto";
-import { StorageType, StorageClassification } from "../../../04-storage/storage/enums/storage-type.enum";
+import { StorageType } from '../../../04-storage/storage/enums/storage-type.enum';
+import { StorageClassification } from '../../../shared/types/storage-classification.enum';
 import { ValidationResultDto } from "../dto/validation.dto";
 import { MarketUtils } from "../utils/market.util";
 import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/data-fetcher.interface"; // 🔥 导入DataFetcher类型

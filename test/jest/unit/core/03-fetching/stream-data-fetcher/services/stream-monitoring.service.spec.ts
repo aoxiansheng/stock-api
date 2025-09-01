@@ -1,9 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamMonitoringService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-monitoring.service';
-import { StreamMetricsService } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-metrics.service';
-import { StreamConnection, StreamConnectionStatus } from '../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces';
+import { Test, TestingModule } from "@nestjs/testing";
+import { StreamMonitoringService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-monitoring.service";
+import { StreamMetricsService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-metrics.service";
+import {
+  StreamConnection,
+  StreamConnectionStatus,
+} from "../../../../../../../src/core/03-fetching/stream-data-fetcher/interfaces";
 
-describe('StreamMonitoringService', () => {
+describe("StreamMonitoringService", () => {
   let service: StreamMonitoringService;
   let mockStreamMetrics: jest.Mocked<StreamMetricsService>;
 
@@ -36,22 +39,22 @@ describe('StreamMonitoringService', () => {
     jest.clearAllMocks();
   });
 
-  describe('Initialization', () => {
-    it('should be defined', () => {
+  describe("Initialization", () => {
+    it("should be defined", () => {
       expect(service).toBeDefined();
     });
 
-    it('should initialize with proper state', () => {
-      expect(service['isServiceDestroyed']).toBe(false);
-      expect(service['connectionMonitors'].size).toBe(0);
+    it("should initialize with proper state", () => {
+      expect(service["isServiceDestroyed"]).toBe(false);
+      expect(service["connectionMonitors"].size).toBe(0);
     });
   });
 
-  describe('Connection Monitoring Setup', () => {
+  describe("Connection Monitoring Setup", () => {
     const createMockConnection = (id: string): StreamConnection => ({
       id,
-      provider: 'test-provider',
-      capability: 'test-capability',
+      provider: "test-provider",
+      capability: "test-capability",
       isConnected: true,
       createdAt: new Date(),
       lastActiveAt: new Date(),
@@ -66,9 +69,9 @@ describe('StreamMonitoringService', () => {
       close: jest.fn(),
     });
 
-    it('should setup connection monitoring successfully', () => {
+    it("should setup connection monitoring successfully", () => {
       // Arrange
-      const mockConnection = createMockConnection('test-connection-123');
+      const mockConnection = createMockConnection("test-connection-123");
       const mockStatusChangeCallback = jest.fn();
       const mockErrorCallback = jest.fn();
       const mockCleanupCallback = jest.fn();
@@ -78,55 +81,60 @@ describe('StreamMonitoringService', () => {
         mockConnection,
         mockStatusChangeCallback,
         mockErrorCallback,
-        mockCleanupCallback
+        mockCleanupCallback,
       );
 
       // Assert
-      expect(service['connectionMonitors'].has('test-connection-123')).toBe(true);
+      expect(service["connectionMonitors"].has("test-connection-123")).toBe(
+        true,
+      );
       expect(mockConnection.onStatusChange).toHaveBeenCalled();
       expect(mockConnection.onError).toHaveBeenCalled();
     });
 
-    it('should skip monitoring setup when service is destroyed', async () => {
+    it("should skip monitoring setup when service is destroyed", async () => {
       // Arrange
-      const mockConnection = createMockConnection('test-connection');
+      const mockConnection = createMockConnection("test-connection");
       await service.onModuleDestroy(); // Destroy service first
 
       // Act
       service.setupConnectionMonitoring(mockConnection);
 
       // Assert
-      expect(service['connectionMonitors'].has('test-connection')).toBe(false);
+      expect(service["connectionMonitors"].has("test-connection")).toBe(false);
       expect(mockConnection.onStatusChange).not.toHaveBeenCalled();
     });
 
-    it('should handle status change events correctly', () => {
+    it("should handle status change events correctly", () => {
       // Arrange
-      const mockConnection = createMockConnection('test-connection');
+      const mockConnection = createMockConnection("test-connection");
       const mockStatusChangeCallback = jest.fn();
       let statusChangeHandler: (status: string) => void;
 
-      mockConnection.onStatusChange = jest.fn().mockImplementation((handler) => {
-        statusChangeHandler = handler;
-      });
+      mockConnection.onStatusChange = jest
+        .fn()
+        .mockImplementation((handler) => {
+          statusChangeHandler = handler;
+        });
 
-      service.setupConnectionMonitoring(mockConnection, mockStatusChangeCallback);
+      service.setupConnectionMonitoring(
+        mockConnection,
+        mockStatusChangeCallback,
+      );
 
       // Act
-      statusChangeHandler('CONNECTED');
+      statusChangeHandler("CONNECTED");
 
       // Assert
-      expect(mockStatusChangeCallback).toHaveBeenCalledWith('CONNECTED');
-      expect(mockStreamMetrics.recordConnectionStatusChange).toHaveBeenCalledWith(
-        'test-provider',
-        'connecting',
-        'CONNECTED'
-      );
+      expect(mockStatusChangeCallback).toHaveBeenCalledWith("CONNECTED");
+      expect(
+        mockStreamMetrics.recordConnectionStatusChange,
+      ).toHaveBeenCalledWith("test-provider", "connecting", "CONNECTED");
     });
 
-    it('should handle error events correctly', () => {
+    it("should handle error events correctly", () => {
       // Arrange
-      const mockConnection = createMockConnection('test-connection');
+      const mockConnection = createMockConnection("test-connection");
       const mockErrorCallback = jest.fn();
       let errorHandler: (error: Error) => void;
 
@@ -134,45 +142,62 @@ describe('StreamMonitoringService', () => {
         errorHandler = handler;
       });
 
-      service.setupConnectionMonitoring(mockConnection, undefined, mockErrorCallback);
+      service.setupConnectionMonitoring(
+        mockConnection,
+        undefined,
+        mockErrorCallback,
+      );
 
       // Act
-      const testError = new Error('Test connection error');
+      const testError = new Error("Test connection error");
       errorHandler(testError);
 
       // Assert
       expect(mockErrorCallback).toHaveBeenCalledWith(testError);
-      expect(mockStreamMetrics.recordErrorEvent).toHaveBeenCalledWith('Error', 'test-provider');
-      expect(mockStreamMetrics.recordConnectionEvent).toHaveBeenCalledWith('failed', 'test-provider');
+      expect(mockStreamMetrics.recordErrorEvent).toHaveBeenCalledWith(
+        "Error",
+        "test-provider",
+      );
+      expect(mockStreamMetrics.recordConnectionEvent).toHaveBeenCalledWith(
+        "failed",
+        "test-provider",
+      );
     });
 
-    it('should trigger cleanup callback on connection closed', () => {
+    it("should trigger cleanup callback on connection closed", () => {
       // Arrange
-      const mockConnection = createMockConnection('test-connection');
+      const mockConnection = createMockConnection("test-connection");
       const mockCleanupCallback = jest.fn();
       let statusChangeHandler: (status: string) => void;
 
-      mockConnection.onStatusChange = jest.fn().mockImplementation((handler) => {
-        statusChangeHandler = handler;
-      });
+      mockConnection.onStatusChange = jest
+        .fn()
+        .mockImplementation((handler) => {
+          statusChangeHandler = handler;
+        });
 
-      service.setupConnectionMonitoring(mockConnection, undefined, undefined, mockCleanupCallback);
+      service.setupConnectionMonitoring(
+        mockConnection,
+        undefined,
+        undefined,
+        mockCleanupCallback,
+      );
 
       // Act
       statusChangeHandler(StreamConnectionStatus.CLOSED);
 
       // Assert
-      expect(mockCleanupCallback).toHaveBeenCalledWith('test-connection');
+      expect(mockCleanupCallback).toHaveBeenCalledWith("test-connection");
     });
 
-    it('should handle monitoring setup errors gracefully', () => {
+    it("should handle monitoring setup errors gracefully", () => {
       // Arrange
-      const mockConnection = createMockConnection('test-connection');
+      const mockConnection = createMockConnection("test-connection");
       mockConnection.onStatusChange = jest.fn().mockImplementation(() => {
-        throw new Error('Setup failed');
+        throw new Error("Setup failed");
       });
 
-      const loggerWarnSpy = jest.spyOn(service['logger'], 'warn');
+      const loggerWarnSpy = jest.spyOn(service["logger"], "warn");
 
       // Act & Assert - should not throw
       expect(() => {
@@ -180,21 +205,21 @@ describe('StreamMonitoringService', () => {
       }).not.toThrow();
 
       expect(loggerWarnSpy).toHaveBeenCalledWith(
-        '连接监控设置失败',
+        "连接监控设置失败",
         expect.objectContaining({
-          connectionId: expect.stringContaining('test-con'),
-        })
+          connectionId: expect.stringContaining("test-con"),
+        }),
       );
 
       loggerWarnSpy.mockRestore();
     });
   });
 
-  describe('Connection Establishment Waiting', () => {
+  describe("Connection Establishment Waiting", () => {
     const createMockConnection = (isConnected = false): StreamConnection => ({
-      id: 'test-connection',
-      provider: 'test-provider',
-      capability: 'test-capability',
+      id: "test-connection",
+      provider: "test-provider",
+      capability: "test-capability",
       isConnected,
       createdAt: new Date(),
       lastActiveAt: new Date(),
@@ -209,7 +234,7 @@ describe('StreamMonitoringService', () => {
       close: jest.fn(),
     });
 
-    it('should resolve immediately if connection is already established', async () => {
+    it("should resolve immediately if connection is already established", async () => {
       // Arrange
       const mockConnection = createMockConnection(true); // Already connected
 
@@ -222,22 +247,27 @@ describe('StreamMonitoringService', () => {
       expect(endTime - startTime).toBeLessThan(100); // Should complete quickly
     });
 
-    it('should wait for connection status change to CONNECTED', async () => {
+    it("should wait for connection status change to CONNECTED", async () => {
       // Arrange
       const mockConnection = createMockConnection(false); // Not connected
       let statusChangeHandler: (status: string) => void;
 
-      mockConnection.onStatusChange = jest.fn().mockImplementation((handler) => {
-        statusChangeHandler = handler;
-      });
+      mockConnection.onStatusChange = jest
+        .fn()
+        .mockImplementation((handler) => {
+          statusChangeHandler = handler;
+        });
 
       // Act
-      const waitPromise = service.waitForConnectionEstablished(mockConnection, 5000);
-      
+      const waitPromise = service.waitForConnectionEstablished(
+        mockConnection,
+        5000,
+      );
+
       // Simulate connection establishment after 100ms
       setTimeout(() => {
         mockConnection.isConnected = true;
-        statusChangeHandler('CONNECTED');
+        statusChangeHandler("CONNECTED");
       }, 100);
 
       await waitPromise;
@@ -246,7 +276,7 @@ describe('StreamMonitoringService', () => {
       expect(mockConnection.onStatusChange).toHaveBeenCalled();
     });
 
-    it('should timeout when connection is not established in time', async () => {
+    it("should timeout when connection is not established in time", async () => {
       // Arrange
       const mockConnection = createMockConnection(false);
       mockConnection.onStatusChange = jest.fn();
@@ -254,11 +284,11 @@ describe('StreamMonitoringService', () => {
 
       // Act & Assert
       await expect(
-        service.waitForConnectionEstablished(mockConnection, 100)
-      ).rejects.toThrow('连接建立超时');
+        service.waitForConnectionEstablished(mockConnection, 100),
+      ).rejects.toThrow("连接建立超时");
     }, 10000);
 
-    it('should reject on connection error', async () => {
+    it("should reject on connection error", async () => {
       // Arrange
       const mockConnection = createMockConnection(false);
       let errorHandler: (error: Error) => void;
@@ -269,26 +299,29 @@ describe('StreamMonitoringService', () => {
       });
 
       // Act
-      const waitPromise = service.waitForConnectionEstablished(mockConnection, 5000);
-      
+      const waitPromise = service.waitForConnectionEstablished(
+        mockConnection,
+        5000,
+      );
+
       // Simulate error after 100ms
       setTimeout(() => {
-        errorHandler(new Error('Connection failed'));
+        errorHandler(new Error("Connection failed"));
       }, 100);
 
       // Assert
-      await expect(waitPromise).rejects.toThrow('Connection failed');
+      await expect(waitPromise).rejects.toThrow("Connection failed");
     });
 
-    it('should fallback to polling when event setup fails', async () => {
+    it("should fallback to polling when event setup fails", async () => {
       // Arrange
       const mockConnection = createMockConnection(false);
       mockConnection.onStatusChange = jest.fn().mockImplementation(() => {
-        throw new Error('Event setup failed');
+        throw new Error("Event setup failed");
       });
 
-      const loggerWarnSpy = jest.spyOn(service['logger'], 'warn');
-      
+      const loggerWarnSpy = jest.spyOn(service["logger"], "warn");
+
       // Simulate connection establishment
       setTimeout(() => {
         mockConnection.isConnected = true;
@@ -299,21 +332,21 @@ describe('StreamMonitoringService', () => {
 
       // Assert
       expect(loggerWarnSpy).toHaveBeenCalledWith(
-        'RxJS事件流创建失败，回退到轮询模式',
-        expect.any(Object)
+        "RxJS事件流创建失败，回退到轮询模式",
+        expect.any(Object),
       );
 
       loggerWarnSpy.mockRestore();
     });
   });
 
-  describe('Connection Monitoring Management', () => {
-    it('should stop connection monitoring successfully', () => {
+  describe("Connection Monitoring Management", () => {
+    it("should stop connection monitoring successfully", () => {
       // Arrange
       const mockConnection: StreamConnection = {
-        id: 'test-connection',
-        provider: 'test-provider',
-        capability: 'test-capability',
+        id: "test-connection",
+        provider: "test-provider",
+        capability: "test-capability",
         isConnected: true,
         createdAt: new Date(),
         lastActiveAt: new Date(),
@@ -329,30 +362,30 @@ describe('StreamMonitoringService', () => {
       };
 
       service.setupConnectionMonitoring(mockConnection);
-      expect(service['connectionMonitors'].has('test-connection')).toBe(true);
+      expect(service["connectionMonitors"].has("test-connection")).toBe(true);
 
       // Act
-      service.stopConnectionMonitoring('test-connection');
+      service.stopConnectionMonitoring("test-connection");
 
       // Assert
-      expect(service['connectionMonitors'].has('test-connection')).toBe(false);
+      expect(service["connectionMonitors"].has("test-connection")).toBe(false);
     });
 
-    it('should handle stopping non-existent monitoring gracefully', () => {
+    it("should handle stopping non-existent monitoring gracefully", () => {
       // Act & Assert - should not throw
       expect(() => {
-        service.stopConnectionMonitoring('non-existent-id');
+        service.stopConnectionMonitoring("non-existent-id");
       }).not.toThrow();
     });
   });
 
-  describe('Monitoring Statistics', () => {
-    it('should return monitoring statistics', () => {
+  describe("Monitoring Statistics", () => {
+    it("should return monitoring statistics", () => {
       // Arrange
       const mockConnection: StreamConnection = {
-        id: 'test-connection',
-        provider: 'test-provider',
-        capability: 'test-capability',
+        id: "test-connection",
+        provider: "test-provider",
+        capability: "test-capability",
         isConnected: true,
         createdAt: new Date(),
         lastActiveAt: new Date(),
@@ -373,31 +406,31 @@ describe('StreamMonitoringService', () => {
       const stats = service.getMonitoringStats();
 
       // Assert
-      expect(stats).toHaveProperty('activeMonitors', 1);
-      expect(stats).toHaveProperty('avgMonitoringDuration');
-      expect(stats).toHaveProperty('longestMonitoringDuration');
-      expect(stats).toHaveProperty('streamMetricsSummary');
-      expect(stats).toHaveProperty('timestamp');
+      expect(stats).toHaveProperty("activeMonitors", 1);
+      expect(stats).toHaveProperty("avgMonitoringDuration");
+      expect(stats).toHaveProperty("longestMonitoringDuration");
+      expect(stats).toHaveProperty("streamMetricsSummary");
+      expect(stats).toHaveProperty("timestamp");
     });
 
-    it('should return empty statistics when no connections monitored', () => {
+    it("should return empty statistics when no connections monitored", () => {
       // Act
       const stats = service.getMonitoringStats();
 
       // Assert
       expect(stats.activeMonitors).toBe(0);
-      expect(stats.avgMonitoringDuration).toBe('0ms');
-      expect(stats.longestMonitoringDuration).toBe('0ms');
+      expect(stats.avgMonitoringDuration).toBe("0ms");
+      expect(stats.longestMonitoringDuration).toBe("0ms");
     });
   });
 
-  describe('Memory Leak Prevention', () => {
-    it('should properly cleanup resources on service destruction', async () => {
+  describe("Memory Leak Prevention", () => {
+    it("should properly cleanup resources on service destruction", async () => {
       // Arrange
       const mockConnection: StreamConnection = {
-        id: 'test-connection',
-        provider: 'test-provider',
-        capability: 'test-capability',
+        id: "test-connection",
+        provider: "test-provider",
+        capability: "test-capability",
         isConnected: true,
         createdAt: new Date(),
         lastActiveAt: new Date(),
@@ -413,20 +446,20 @@ describe('StreamMonitoringService', () => {
       };
 
       service.setupConnectionMonitoring(mockConnection);
-      expect(service['connectionMonitors'].size).toBe(1);
+      expect(service["connectionMonitors"].size).toBe(1);
 
       // Act
       await service.onModuleDestroy();
 
       // Assert
-      expect(service['isServiceDestroyed']).toBe(true);
-      expect(service['connectionMonitors'].size).toBe(0);
+      expect(service["isServiceDestroyed"]).toBe(true);
+      expect(service["connectionMonitors"].size).toBe(0);
     });
 
-    it('should complete destroy subject on module destruction', async () => {
+    it("should complete destroy subject on module destruction", async () => {
       // Arrange
-      const destroySubject = service['destroy$'];
-      const completeSpy = jest.spyOn(destroySubject, 'complete');
+      const destroySubject = service["destroy$"];
+      const completeSpy = jest.spyOn(destroySubject, "complete");
 
       // Act
       await service.onModuleDestroy();
@@ -437,14 +470,14 @@ describe('StreamMonitoringService', () => {
       completeSpy.mockRestore();
     });
 
-    it('should prevent operations after service destruction', async () => {
+    it("should prevent operations after service destruction", async () => {
       // Arrange
       await service.onModuleDestroy();
 
       const mockConnection: StreamConnection = {
-        id: 'test-after-destroy',
-        provider: 'test-provider',
-        capability: 'test-capability',
+        id: "test-after-destroy",
+        provider: "test-provider",
+        capability: "test-capability",
         isConnected: true,
         createdAt: new Date(),
         lastActiveAt: new Date(),
@@ -463,13 +496,13 @@ describe('StreamMonitoringService', () => {
       service.setupConnectionMonitoring(mockConnection);
 
       // Assert
-      expect(service['connectionMonitors'].size).toBe(0);
+      expect(service["connectionMonitors"].size).toBe(0);
       expect(mockConnection.onStatusChange).not.toHaveBeenCalled();
     });
   });
 
-  describe('Performance Characteristics', () => {
-    it('should handle multiple connections efficiently', () => {
+  describe("Performance Characteristics", () => {
+    it("should handle multiple connections efficiently", () => {
       // Arrange
       const connectionCount = 50;
       const startTime = Date.now();
@@ -478,8 +511,8 @@ describe('StreamMonitoringService', () => {
       for (let i = 0; i < connectionCount; i++) {
         const mockConnection: StreamConnection = {
           id: `conn-${i}`,
-          provider: 'test-provider',
-          capability: 'test-capability',
+          provider: "test-provider",
+          capability: "test-capability",
           isConnected: true,
           createdAt: new Date(),
           lastActiveAt: new Date(),
@@ -501,11 +534,11 @@ describe('StreamMonitoringService', () => {
       const duration = endTime - startTime;
 
       // Assert
-      expect(service['connectionMonitors'].size).toBe(connectionCount);
+      expect(service["connectionMonitors"].size).toBe(connectionCount);
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
     });
 
-    it('should cleanup resources efficiently for multiple connections', async () => {
+    it("should cleanup resources efficiently for multiple connections", async () => {
       // Arrange
       const connectionCount = 30;
       const connections: StreamConnection[] = [];
@@ -513,8 +546,8 @@ describe('StreamMonitoringService', () => {
       for (let i = 0; i < connectionCount; i++) {
         const mockConnection: StreamConnection = {
           id: `conn-${i}`,
-          provider: 'test-provider',
-          capability: 'test-capability',
+          provider: "test-provider",
+          capability: "test-capability",
           isConnected: true,
           createdAt: new Date(),
           lastActiveAt: new Date(),
@@ -542,19 +575,19 @@ describe('StreamMonitoringService', () => {
       const duration = endTime - startTime;
 
       // Assert
-      expect(service['connectionMonitors'].size).toBe(0);
-      expect(service['isServiceDestroyed']).toBe(true);
+      expect(service["connectionMonitors"].size).toBe(0);
+      expect(service["isServiceDestroyed"]).toBe(true);
       expect(duration).toBeLessThan(500); // Should cleanup within 500ms
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle errors in event callbacks gracefully', () => {
+  describe("Error Handling", () => {
+    it("should handle errors in event callbacks gracefully", () => {
       // Arrange
       const mockConnection: StreamConnection = {
-        id: 'error-test-conn',
-        provider: 'test-provider',
-        capability: 'test-capability',
+        id: "error-test-conn",
+        provider: "test-provider",
+        capability: "test-capability",
         isConnected: true,
         createdAt: new Date(),
         lastActiveAt: new Date(),
@@ -574,8 +607,8 @@ describe('StreamMonitoringService', () => {
         service.setupConnectionMonitoring(mockConnection);
       }).not.toThrow();
 
-      expect(service['connectionMonitors'].size).toBe(1);
-      expect(service['isServiceDestroyed']).toBe(false);
+      expect(service["connectionMonitors"].size).toBe(1);
+      expect(service["isServiceDestroyed"]).toBe(false);
     });
   });
 });

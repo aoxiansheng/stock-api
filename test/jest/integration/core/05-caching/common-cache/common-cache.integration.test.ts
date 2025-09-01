@@ -1,8 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule } from '@nestjs/config';
-import { CommonCacheModule, CommonCacheService } from '../../../../../../src/core/05-caching/common-cache';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigModule } from "@nestjs/config";
+import {
+  CommonCacheModule,
+  CommonCacheService,
+} from "../../../../../../src/core/05-caching/common-cache";
 
-describe('CommonCacheService Integration', () => {
+describe("CommonCacheService Integration", () => {
   let service: CommonCacheService;
   let module: TestingModule;
 
@@ -13,9 +16,9 @@ describe('CommonCacheService Integration', () => {
           load: [
             () => ({
               redis: {
-                host: process.env.REDIS_HOST || 'localhost',
-                port: parseInt(process.env.REDIS_PORT || '6379'),
-                db: parseInt(process.env.REDIS_TEST_DB || '15'), // 使用测试专用数据库
+                host: process.env.REDIS_HOST || "localhost",
+                port: parseInt(process.env.REDIS_PORT || "6379"),
+                db: parseInt(process.env.REDIS_TEST_DB || "15"), // 使用测试专用数据库
               },
             }),
           ],
@@ -33,54 +36,60 @@ describe('CommonCacheService Integration', () => {
     }
   });
 
-  describe('Health Check', () => {
-    it('should check Redis connectivity', async () => {
+  describe("Health Check", () => {
+    it("should check Redis connectivity", async () => {
       // 注意：此测试依赖于Redis实际运行
       // 如果Redis不可用，测试会失败，这是预期的行为
       try {
         const isHealthy = await service.isHealthy();
         // 在CI环境中Redis可能不可用，所以我们不强制要求健康检查通过
         console.log(`Redis health check result: ${isHealthy}`);
-        expect(typeof isHealthy).toBe('boolean');
+        expect(typeof isHealthy).toBe("boolean");
       } catch (error) {
-        console.log('Redis health check failed (expected in CI without Redis):', error.message);
+        console.log(
+          "Redis health check failed (expected in CI without Redis):",
+          error.message,
+        );
         // 在没有Redis的环境中，这是预期的行为
       }
     });
 
-    it('should get cache stats', async () => {
+    it("should get cache stats", async () => {
       try {
         const stats = await service.getStats();
-        expect(stats).toHaveProperty('connected');
-        expect(stats).toHaveProperty('usedMemory');
-        expect(stats).toHaveProperty('totalKeys');
-        console.log('Cache stats:', stats);
+        expect(stats).toHaveProperty("connected");
+        expect(stats).toHaveProperty("usedMemory");
+        expect(stats).toHaveProperty("totalKeys");
+        console.log("Cache stats:", stats);
       } catch (error) {
-        console.log('Get stats failed (expected in CI without Redis):', error.message);
+        console.log(
+          "Get stats failed (expected in CI without Redis):",
+          error.message,
+        );
         // 在没有Redis的环境中，这是预期的行为
       }
     });
   });
 
-  describe('Basic Operations (Skip if Redis unavailable)', () => {
+  describe("Basic Operations (Skip if Redis unavailable)", () => {
     beforeEach(async () => {
       // 检查Redis是否可用，如果不可用则跳过测试
       const isHealthy = await service.isHealthy().catch(() => false);
       if (!isHealthy) {
-        console.log('Skipping Redis-dependent tests - Redis not available');
+        console.log("Skipping Redis-dependent tests - Redis not available");
         return;
       }
     });
 
-    it('should set and get cache data', async () => {
+    it("should set and get cache data", async () => {
       const isHealthy = await service.isHealthy().catch(() => false);
       if (!isHealthy) {
-        console.log('Skipping test - Redis not available');
+        console.log("Skipping test - Redis not available");
         return;
       }
 
       const key = `test:integration:${Date.now()}`;
-      const testData = { message: 'integration test', timestamp: Date.now() };
+      const testData = { message: "integration test", timestamp: Date.now() };
       const ttl = 60; // 60秒
 
       try {
@@ -97,15 +106,15 @@ describe('CommonCacheService Integration', () => {
         // 清理测试数据
         await service.delete(key);
       } catch (error) {
-        console.log('Cache operation failed:', error.message);
+        console.log("Cache operation failed:", error.message);
         // 在测试环境中可能出现的预期错误
       }
     });
 
-    it('should handle cache miss gracefully', async () => {
+    it("should handle cache miss gracefully", async () => {
       const isHealthy = await service.isHealthy().catch(() => false);
       if (!isHealthy) {
-        console.log('Skipping test - Redis not available');
+        console.log("Skipping test - Redis not available");
         return;
       }
 
@@ -115,14 +124,14 @@ describe('CommonCacheService Integration', () => {
         const result = await service.get(nonExistentKey);
         expect(result).toBeNull();
       } catch (error) {
-        console.log('Cache miss test failed:', error.message);
+        console.log("Cache miss test failed:", error.message);
       }
     });
 
-    it('should handle batch operations', async () => {
+    it("should handle batch operations", async () => {
       const isHealthy = await service.isHealthy().catch(() => false);
       if (!isHealthy) {
-        console.log('Skipping test - Redis not available');
+        console.log("Skipping test - Redis not available");
         return;
       }
 
@@ -132,9 +141,9 @@ describe('CommonCacheService Integration', () => {
         `test:batch3:${Date.now()}`,
       ];
       const testData = [
-        { key: keys[0], value: { value: 'test1' } },
-        { key: keys[1], value: { value: 'test2' } },
-        { key: keys[2], value: { value: 'test3' } },
+        { key: keys[0], value: { value: "test1" } },
+        { key: keys[1], value: { value: "test2" } },
+        { key: keys[2], value: { value: "test3" } },
       ];
 
       try {
@@ -145,42 +154,46 @@ describe('CommonCacheService Integration', () => {
         const results = await service.mget(keys);
 
         expect(results).toHaveLength(3);
-        expect(results[0]?.data).toEqual({ value: 'test1' });
-        expect(results[1]?.data).toEqual({ value: 'test2' });
-        expect(results[2]?.data).toEqual({ value: 'test3' });
+        expect(results[0]?.data).toEqual({ value: "test1" });
+        expect(results[1]?.data).toEqual({ value: "test2" });
+        expect(results[2]?.data).toEqual({ value: "test3" });
 
         // 清理测试数据
-        await Promise.all(keys.map(key => service.delete(key)));
+        await Promise.all(keys.map((key) => service.delete(key)));
       } catch (error) {
-        console.log('Batch operations test failed:', error.message);
+        console.log("Batch operations test failed:", error.message);
       }
     });
 
-    it('should handle getWithFallback correctly', async () => {
+    it("should handle getWithFallback correctly", async () => {
       const isHealthy = await service.isHealthy().catch(() => false);
       if (!isHealthy) {
-        console.log('Skipping test - Redis not available');
+        console.log("Skipping test - Redis not available");
         return;
       }
 
       const key = `test:fallback:${Date.now()}`;
-      const fallbackData = { source: 'fallback', timestamp: Date.now() };
+      const fallbackData = { source: "fallback", timestamp: Date.now() };
       const fetchFn = jest.fn().mockResolvedValue(fallbackData);
 
       try {
         // 首次调用应该触发fallback
-        const result1 = await service.getWithFallback(key, fetchFn, { fallbackTTL: 60 });
-        
+        const result1 = await service.getWithFallback(key, fetchFn, {
+          fallbackTTL: 60,
+        });
+
         expect(result1.data).toEqual(fallbackData);
         expect(result1.fromFallback).toBe(true);
         expect(fetchFn).toHaveBeenCalledTimes(1);
 
         // 给缓存一些时间写入
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         // 第二次调用应该命中缓存
-        const result2 = await service.getWithFallback(key, fetchFn, { fallbackTTL: 60 });
-        
+        const result2 = await service.getWithFallback(key, fetchFn, {
+          fallbackTTL: 60,
+        });
+
         expect(result2.data).toEqual(fallbackData);
         expect(result2.fromCache).toBe(true);
         expect(fetchFn).toHaveBeenCalledTimes(1); // 仍然只调用一次
@@ -188,7 +201,7 @@ describe('CommonCacheService Integration', () => {
         // 清理测试数据
         await service.delete(key);
       } catch (error) {
-        console.log('Fallback test failed:', error.message);
+        console.log("Fallback test failed:", error.message);
       }
     });
   });

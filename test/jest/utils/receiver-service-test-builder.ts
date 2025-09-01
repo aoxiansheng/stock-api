@@ -3,7 +3,7 @@
  * 简化单元测试的依赖注入复杂度
  */
 
-import { ReceiverService } from '../../../src/core/01-entry/receiver/services/receiver.service';
+import { ReceiverService } from "../../../src/core/01-entry/receiver/services/receiver.service";
 
 // 定义依赖类型
 export interface ReceiverServiceDeps {
@@ -24,13 +24,15 @@ export interface ReceiverServiceDeps {
 export class ReceiverServiceTestBuilder {
   /**
    * 创建具有默认mock的ReceiverService实例
-   * 
+   *
    * @param overrides 覆盖特定依赖的mock实现
    * @returns ReceiverService实例
    */
-  static createWithDefaults(overrides: Partial<ReceiverServiceDeps> = {}): ReceiverService {
+  static createWithDefaults(
+    overrides: Partial<ReceiverServiceDeps> = {},
+  ): ReceiverService {
     const defaultMocks = ReceiverServiceTestBuilder.createDefaultMocks();
-    
+
     const finalDeps = {
       ...defaultMocks,
       ...overrides,
@@ -55,11 +57,11 @@ export class ReceiverServiceTestBuilder {
     return {
       symbolTransformerService: {
         transformSymbols: jest.fn().mockResolvedValue({
-          mappedSymbols: ['700.HK'],
+          mappedSymbols: ["700.HK"],
           mappingDetails: [],
           failedSymbols: [],
           metadata: {
-            provider: 'longport',
+            provider: "longport",
             totalSymbols: 1,
             successCount: 1,
             failedCount: 0,
@@ -67,46 +69,46 @@ export class ReceiverServiceTestBuilder {
           },
         }),
       },
-      
+
       dataFetcherService: {
         fetchRawData: jest.fn().mockResolvedValue({
-          data: [{ symbol: '700.HK', price: 100 }],
+          data: [{ symbol: "700.HK", price: 100 }],
           metadata: { processingTime: 50 },
         }),
       },
-      
+
       capabilityRegistryService: {
-        getBestProvider: jest.fn().mockReturnValue('longport'),
+        getBestProvider: jest.fn().mockReturnValue("longport"),
         getCapability: jest.fn().mockReturnValue({
-          supportedMarkets: ['HK', 'US'],
+          supportedMarkets: ["HK", "US"],
         }),
         getProvider: jest.fn(),
       },
-      
+
       marketStatusService: {
         getBatchMarketStatus: jest.fn().mockResolvedValue({
           HK: { isOpen: true, nextOpen: null, nextClose: null },
         }),
       },
-      
+
       dataTransformerService: {
         transform: jest.fn().mockResolvedValue({
-          transformedData: [{ symbol: '700.HK', lastPrice: 100 }],
+          transformedData: [{ symbol: "700.HK", lastPrice: 100 }],
         }),
       },
-      
+
       storageService: {
         storeData: jest.fn().mockResolvedValue(undefined),
       },
-      
+
       collectorService: {
         recordRequest: jest.fn(),
         recordSystemMetrics: jest.fn(),
       },
-      
+
       smartCacheOrchestrator: {
         getDataWithSmartCache: jest.fn().mockResolvedValue({
-          data: [{ symbol: '700.HK', lastPrice: 100 }],
+          data: [{ symbol: "700.HK", lastPrice: 100 }],
           fromCache: false,
         }),
       },
@@ -116,13 +118,15 @@ export class ReceiverServiceTestBuilder {
   /**
    * 创建只有特定mock的最小化实例
    * 用于专门测试某个特定功能
-   * 
+   *
    * @param specificMocks 特定的mock实现
    * @returns ReceiverService实例
    */
-  static createMinimal(specificMocks: Partial<ReceiverServiceDeps>): ReceiverService {
+  static createMinimal(
+    specificMocks: Partial<ReceiverServiceDeps>,
+  ): ReceiverService {
     const minimalMocks = ReceiverServiceTestBuilder.createMinimalMocks();
-    
+
     const finalDeps = {
       ...minimalMocks,
       ...specificMocks,
@@ -148,7 +152,7 @@ export class ReceiverServiceTestBuilder {
     return {
       symbolTransformerService: { transformSymbols: jest.fn() },
       dataFetcherService: { fetchRawData: jest.fn() },
-      capabilityRegistryService: { 
+      capabilityRegistryService: {
         getBestProvider: jest.fn(),
         getCapability: jest.fn(),
         getProvider: jest.fn(),
@@ -156,7 +160,7 @@ export class ReceiverServiceTestBuilder {
       marketStatusService: { getBatchMarketStatus: jest.fn() },
       dataTransformerService: { transform: jest.fn() },
       storageService: { storeData: jest.fn() },
-      collectorService: { 
+      collectorService: {
         recordRequest: jest.fn(),
         recordSystemMetrics: jest.fn(),
       },
@@ -168,23 +172,29 @@ export class ReceiverServiceTestBuilder {
 // 便利的工厂函数
 export const createMockSymbolTransformer = () => ({
   transformSymbols: jest.fn().mockResolvedValue({
-    mappedSymbols: ['MOCK_SYMBOL'],
+    mappedSymbols: ["MOCK_SYMBOL"],
     mappingDetails: [],
     failedSymbols: [],
-    metadata: { provider: 'mock', totalSymbols: 1, successCount: 1, failedCount: 0, processingTimeMs: 5 },
+    metadata: {
+      provider: "mock",
+      totalSymbols: 1,
+      successCount: 1,
+      failedCount: 0,
+      processingTimeMs: 5,
+    },
   }),
 });
 
 export const createMockDataFetcher = () => ({
   fetchRawData: jest.fn().mockResolvedValue({
-    data: [{ symbol: 'MOCK', price: 999 }],
+    data: [{ symbol: "MOCK", price: 999 }],
     metadata: { processingTime: 10 },
   }),
 });
 
 export const createMockCapabilityRegistry = () => ({
-  getBestProvider: jest.fn().mockReturnValue('mock-provider'),
-  getCapability: jest.fn().mockReturnValue({ supportedMarkets: ['MOCK'] }),
+  getBestProvider: jest.fn().mockReturnValue("mock-provider"),
+  getCapability: jest.fn().mockReturnValue({ supportedMarkets: ["MOCK"] }),
   getProvider: jest.fn(),
 });
 
@@ -194,7 +204,7 @@ export const createMockMarketStatus = () => ({
 
 export const createMockDataTransformer = () => ({
   transform: jest.fn().mockResolvedValue({
-    transformedData: [{ symbol: 'MOCK', lastPrice: 999 }],
+    transformedData: [{ symbol: "MOCK", lastPrice: 999 }],
   }),
 });
 
@@ -209,7 +219,7 @@ export const createMockCollector = () => ({
 
 export const createMockSmartCache = () => ({
   getDataWithSmartCache: jest.fn().mockResolvedValue({
-    data: [{ symbol: 'MOCK', lastPrice: 999 }],
+    data: [{ symbol: "MOCK", lastPrice: 999 }],
     fromCache: false,
   }),
 });

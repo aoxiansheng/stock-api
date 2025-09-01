@@ -31,7 +31,7 @@ import { SymbolMapperModule } from "../../src/core/00-prepare/symbol-mapper/modu
 import { DataMapperModule } from "../../src/core/00-prepare/data-mapper/module/data-mapper.module";
 // import { StorageModule } from "../../src/core/public/storage/module/storage.module"; // 移除：已通过SmartCacheModule提供
 import { SmartCacheModule } from "../../src/core/05-caching/smart-cache/module/smart-cache.module";
-import { QueryModule } from "../../src/core/01-entry/query/module/query.module"; 
+import { QueryModule } from "../../src/core/01-entry/query/module/query.module";
 import { TransformerModule } from "../../src/core/02-processing/transformer/module/data-transformer.module";
 import { ReceiverModule } from "../../src/core/01-entry/receiver/module/receiver.module";
 // Add the new SymbolTransformerModule
@@ -73,7 +73,7 @@ async function createTestApplication(): Promise<void> {
       }),
       MongooseModule.forRoot(mongoUri),
       RedisModule.forRoot({
-        type: 'single',
+        type: "single",
         url: "redis://localhost:6379/2",
         options: {
           maxRetriesPerRequest: 3,
@@ -100,7 +100,7 @@ async function createTestApplication(): Promise<void> {
       MonitoringModule,
       AlertModule,
       // CacheModule, // 已通过SharedServicesModule提供，移除重复导入
- 
+
       SymbolMapperModule,
       DataMapperModule,
       // StorageModule, // 已通过SmartCacheModule提供，移除重复导入
@@ -188,8 +188,9 @@ async function createTestApplication(): Promise<void> {
 jest.setTimeout(TestEnvironment.getTimeout(60000));
 
 // 确保设置必要的环境变量
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-for-integration-tests';
-process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+process.env.JWT_SECRET =
+  process.env.JWT_SECRET || "test-jwt-secret-for-integration-tests";
+process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
 
 // 全局设置 - 启动测试数据库和应用
 beforeAll(async () => {
@@ -229,9 +230,12 @@ beforeEach(async () => {
     // 通过应用实例获取所有注册的模型，确保上下文一致
     const userModel = app.get(getModelToken("User"), { strict: false });
     const apiKeyModel = app.get(getModelToken("ApiKey"), { strict: false });
-    const symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"), {
-      strict: false,
-    });
+    const symbolMappingModel = app.get(
+      getModelToken("SymbolMappingRuleDocument"),
+      {
+        strict: false,
+      },
+    );
     const dataMappingModel = app.get(getModelToken("DataMappingRule"), {
       strict: false,
     });
@@ -587,7 +591,7 @@ async function cleanupRedisData(): Promise<void> {
     const app = (global as any).testApp;
     if (!app) return;
 
-    const redis = app.get('default_IORedisModuleConnectionToken');
+    const redis = app.get("default_IORedisModuleConnectionToken");
     if (redis && redis.status === "ready") {
       // 清理测试相关的Redis键
       const testKeys = await redis.keys("test:*");
@@ -621,9 +625,12 @@ async function cleanupAllTestData(): Promise<void> {
     // 获取所有数据库模型
     const userModel = app.get(getModelToken("User"), { strict: false });
     const apiKeyModel = app.get(getModelToken("ApiKey"), { strict: false });
-    const symbolMappingModel = app.get(getModelToken("SymbolMappingRuleDocument"), {
-      strict: false,
-    });
+    const symbolMappingModel = app.get(
+      getModelToken("SymbolMappingRuleDocument"),
+      {
+        strict: false,
+      },
+    );
     const dataMappingModel = app.get(getModelToken("DataMappingRule"), {
       strict: false,
     });
@@ -696,7 +703,7 @@ global.getRedisClient = (): any | null => {
     const app = (global as any).testApp;
     if (!app) return null;
 
-    const redis = app.get('default_IORedisModuleConnectionToken');
+    const redis = app.get("default_IORedisModuleConnectionToken");
     return redis && redis.status === "ready" ? redis : null;
   } catch (error) {
     console.warn("⚠️ 获取Redis客户端失败:", error.message);

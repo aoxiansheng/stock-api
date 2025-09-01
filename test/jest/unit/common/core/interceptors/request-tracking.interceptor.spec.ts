@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { RequestTrackingInterceptor } from '@common/core/interceptors/request-tracking.interceptor';
-import { ExecutionContext, CallHandler } from '@nestjs/common';
-import { of } from 'rxjs';
+import { RequestTrackingInterceptor } from "@common/core/interceptors/request-tracking.interceptor";
+import { ExecutionContext, CallHandler } from "@nestjs/common";
+import { of } from "rxjs";
 
-describe('RequestTrackingInterceptor', () => {
+describe("RequestTrackingInterceptor", () => {
   let interceptor: RequestTrackingInterceptor;
 
   // 在每个测试用例之前，创建一个新的拦截器实例
@@ -12,9 +12,13 @@ describe('RequestTrackingInterceptor', () => {
   });
 
   // 测试 intercept 方法
-  it('should set request and correlation IDs and headers', () => {
+  it("should set request and correlation IDs and headers", () => {
     // 模拟 Request 和 Response 对象
-    const mockRequest: { headers: any; requestId?: string; correlationId?: string } = {
+    const mockRequest: {
+      headers: any;
+      requestId?: string;
+      correlationId?: string;
+    } = {
       headers: {},
     };
     const mockResponse = {
@@ -48,26 +52,30 @@ describe('RequestTrackingInterceptor', () => {
 
     // 断言响应头被设置
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'x-request-id',
+      "x-request-id",
       mockRequest.requestId,
     );
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'x-correlation-id',
+      "x-correlation-id",
       mockRequest.correlationId,
     );
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'x-request-timestamp',
+      "x-request-timestamp",
       expect.any(String),
     );
   });
 
   // 测试当 x-correlation-id 存在时的情况
-  it('should use existing x-correlation-id from headers', () => {
+  it("should use existing x-correlation-id from headers", () => {
     // 模拟 Request 对象，包含 x-correlation-id
-    const existingCorrelationId = 'existing-correlation-id';
-    const mockRequest: { headers: any; requestId?: string; correlationId?: string } = {
+    const existingCorrelationId = "existing-correlation-id";
+    const mockRequest: {
+      headers: any;
+      requestId?: string;
+      correlationId?: string;
+    } = {
       headers: {
-        'x-correlation-id': existingCorrelationId,
+        "x-correlation-id": existingCorrelationId,
       },
     };
     const mockResponse = {
@@ -98,7 +106,7 @@ describe('RequestTrackingInterceptor', () => {
     // 断言 correlationId 使用了现有的值
     expect(mockRequest.correlationId).toBe(existingCorrelationId);
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'x-correlation-id',
+      "x-correlation-id",
       existingCorrelationId,
     );
   });

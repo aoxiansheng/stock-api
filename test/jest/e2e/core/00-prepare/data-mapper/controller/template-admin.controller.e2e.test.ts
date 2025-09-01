@@ -13,21 +13,25 @@ describe("TemplateAdminController E2E", () => {
 
   beforeAll(async () => {
     request = global.createTestRequest();
-    
+
     // 获取开发者凭证（用于需要 DEVELOPER 权限的操作）
-    const { apiKey: testApiKey, jwtToken: testJwtToken } = await global.createTestCredentials({
-      role: "developer"
-    }, {
-      permissions: ["data:read", "_query:execute", "_providers:read"]
-    });
+    const { apiKey: testApiKey, jwtToken: testJwtToken } =
+      await global.createTestCredentials(
+        {
+          role: "developer",
+        },
+        {
+          permissions: ["data:read", "_query:execute", "_providers:read"],
+        },
+      );
     apiKey = testApiKey;
     jwtToken = testJwtToken;
 
     // 获取管理员凭证（用于需要 ADMIN 权限的操作）
     const { jwtToken: testAdminJwtToken } = await global.createTestCredentials({
       username: "admin_user",
-      email: "admin@example.com", 
-      role: "admin"
+      email: "admin@example.com",
+      role: "admin",
     });
     adminJwtToken = testAdminJwtToken;
   });
@@ -51,7 +55,7 @@ describe("TemplateAdminController E2E", () => {
             volume: 11292534,
             turnover: 6334567890,
             timestamp: "2024-08-11T10:00:00Z",
-            tradestatus: "NORMAL"
+            tradestatus: "NORMAL",
           },
           extractedFields: [
             {
@@ -61,7 +65,7 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: "700.HK",
               confidence: 0.95,
               isNested: false,
-              nestingLevel: 0
+              nestingLevel: 0,
             },
             {
               fieldPath: "last_done",
@@ -70,7 +74,7 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: 561.0,
               confidence: 0.9,
               isNested: false,
-              nestingLevel: 0
+              nestingLevel: 0,
             },
             {
               fieldPath: "volume",
@@ -79,12 +83,12 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: 11292534,
               confidence: 0.85,
               isNested: false,
-              nestingLevel: 0
-            }
+              nestingLevel: 0,
+            },
           ],
-          
+
           isDefault: false,
-          confidence: 0.9
+          confidence: 0.9,
         };
 
         // Act
@@ -97,17 +101,17 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("id");
         expect(result).toHaveProperty("name", "E2E Test Template");
         expect(result).toHaveProperty("provider", "longport");
         expect(result).toHaveProperty("apiType", "rest");
-        
+
         expect(result).toHaveProperty("confidence", 0.9);
         expect(result).toHaveProperty("extractedFields");
         expect(result.extractedFields).toBeInstanceOf(Array);
         expect(result.extractedFields.length).toBe(3);
-        
+
         // 保存创建的模板ID用于后续测试
         createdTemplateId = result.id;
       });
@@ -123,15 +127,15 @@ describe("TemplateAdminController E2E", () => {
             quote: {
               basic: {
                 symbol: "AAPL.US",
-                name: "Apple Inc"
+                name: "Apple Inc",
               },
               price: {
                 current: 150.25,
-                previous: 148.90,
-                change: 1.35
-              }
+                previous: 148.9,
+                change: 1.35,
+              },
             },
-            timestamp: "2024-08-11T10:00:00Z"
+            timestamp: "2024-08-11T10:00:00Z",
           },
           extractedFields: [
             {
@@ -141,7 +145,7 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: "AAPL.US",
               confidence: 0.95,
               isNested: true,
-              nestingLevel: 2
+              nestingLevel: 2,
             },
             {
               fieldPath: "quote.price.current",
@@ -150,7 +154,7 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: 150.25,
               confidence: 0.9,
               isNested: true,
-              nestingLevel: 2
+              nestingLevel: 2,
             },
             {
               fieldPath: "timestamp",
@@ -159,12 +163,12 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: "2024-08-11T10:00:00Z",
               confidence: 0.9,
               isNested: false,
-              nestingLevel: 0
-            }
+              nestingLevel: 0,
+            },
           ],
-          
+
           isDefault: false,
-          confidence: 0.88
+          confidence: 0.88,
         };
 
         // Act
@@ -177,16 +181,17 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
-        
-        
+
         expect(result.extractedFields).toHaveLength(3);
-        
+
         // 验证嵌套字段
-        const nestedField = result.extractedFields.find(f => f.fieldPath === "quote.price.current");
+        const nestedField = result.extractedFields.find(
+          (f) => f.fieldPath === "quote.price.current",
+        );
         expect(nestedField).toBeDefined();
         expect(nestedField).toMatchObject({
           isNested: true,
-          nestingLevel: 2
+          nestingLevel: 2,
         });
       });
 
@@ -206,12 +211,12 @@ describe("TemplateAdminController E2E", () => {
               sampleValue: "data",
               confidence: 0.9,
               isNested: false,
-              nestingLevel: 0
-            }
+              nestingLevel: 0,
+            },
           ],
-          
-          isDefault: true,  // 设置为默认模板
-          confidence: 0.9
+
+          isDefault: true, // 设置为默认模板
+          confidence: 0.9,
         };
 
         // Act
@@ -236,8 +241,8 @@ describe("TemplateAdminController E2E", () => {
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
-          
-          confidence: 0.9
+
+          confidence: 0.9,
         };
 
         // Act & Assert
@@ -258,8 +263,8 @@ describe("TemplateAdminController E2E", () => {
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
-          
-          confidence: 0.9
+
+          confidence: 0.9,
         };
 
         // Act & Assert
@@ -280,8 +285,8 @@ describe("TemplateAdminController E2E", () => {
           apiType: "invalid", // 无效的API类型
           sampleData: { test: "data" },
           extractedFields: [],
-          
-          confidence: 0.9
+
+          confidence: 0.9,
         };
 
         // Act & Assert
@@ -302,8 +307,8 @@ describe("TemplateAdminController E2E", () => {
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
-          
-          confidence: 0.9
+
+          confidence: 0.9,
         };
 
         // Act & Assert
@@ -328,7 +333,7 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("_items");
         expect(result).toHaveProperty("pagination");
         const { pagination } = result;
@@ -336,7 +341,7 @@ describe("TemplateAdminController E2E", () => {
         expect(pagination).toHaveProperty("page");
         expect(pagination).toHaveProperty("limit");
         expect(pagination).toHaveProperty("totalPages");
-        
+
         expect(result.items).toBeInstanceOf(Array);
         expect(pagination.total).toBeGreaterThanOrEqual(0);
       });
@@ -369,9 +374,9 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         // 验证所有返回的模板都是longport提供商
-        result.items.forEach(template => {
+        result.items.forEach((template) => {
           expect(template.provider).toBe("longport");
         });
       });
@@ -387,9 +392,9 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         // 验证所有返回的模板都是rest类型
-        result.items.forEach(template => {
+        result.items.forEach((template) => {
           expect(template.apiType).toBe("rest");
         });
       });
@@ -398,9 +403,7 @@ describe("TemplateAdminController E2E", () => {
     describe("❌ 失败场景", () => {
       it("应该在无认证时返回401错误", async () => {
         // Act & Assert
-        await request
-          .get("/api/v1/data-mapper/admin/templates")
-          .expect(401);
+        await request.get("/api/v1/data-mapper/admin/templates").expect(401);
       });
 
       it("应该自动标准化无效分页参数", async () => {
@@ -415,7 +418,7 @@ describe("TemplateAdminController E2E", () => {
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
         const { pagination } = result;
-        
+
         // 无效的page=-1应被标准化为1
         expect(pagination.page).toBe(1);
         // 无效的limit=0应被标准化为默认值10
@@ -443,7 +446,7 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("id", createdTemplateId);
         expect(result).toHaveProperty("name");
         expect(result).toHaveProperty("provider");
@@ -458,7 +461,7 @@ describe("TemplateAdminController E2E", () => {
       it("应该在模板不存在时返回404错误", async () => {
         // 使用有效的ObjectId格式但不存在的ID
         const nonExistentId = "507f1f77bcf86cd799439011";
-        
+
         // Act & Assert
         const response = await request
           .get(`/api/v1/data-mapper/admin/templates/${nonExistentId}`)
@@ -503,7 +506,7 @@ describe("TemplateAdminController E2E", () => {
         const updateRequest = {
           name: "Updated E2E Test Template",
           description: "更新后的端到端测试模板",
-          confidence: 0.95
+          confidence: 0.95,
         };
 
         // Act
@@ -516,7 +519,7 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("id", createdTemplateId);
         expect(result).toHaveProperty("name", "Updated E2E Test Template");
         expect(result).toHaveProperty("description", "更新后的端到端测试模板");
@@ -528,7 +531,7 @@ describe("TemplateAdminController E2E", () => {
       it("应该在无效ObjectId格式时返回400错误", async () => {
         // Arrange
         const updateRequest = {
-          name: "Updated Template"
+          name: "Updated Template",
         };
 
         // Act & Assert
@@ -545,7 +548,7 @@ describe("TemplateAdminController E2E", () => {
       it("应该在模板不存在时返回404错误", async () => {
         // Arrange
         const updateRequest = {
-          name: "Updated Template"
+          name: "Updated Template",
         };
         // 使用有效的ObjectId格式但不存在的ID
         const nonExistentId = "507f1f77bcf86cd799439011";
@@ -563,7 +566,7 @@ describe("TemplateAdminController E2E", () => {
       it("应该在无认证时返回401错误", async () => {
         // Arrange
         const updateRequest = {
-          name: "Updated Template"
+          name: "Updated Template",
         };
 
         // Act & Assert
@@ -593,11 +596,11 @@ describe("TemplateAdminController E2E", () => {
             sampleValue: "data",
             confidence: 0.9,
             isNested: false,
-            nestingLevel: 0
-          }
+            nestingLevel: 0,
+          },
         ],
-        
-        confidence: 0.9
+
+        confidence: 0.9,
       };
 
       const response = await request
@@ -644,7 +647,7 @@ describe("TemplateAdminController E2E", () => {
       it("应该在模板不存在时返回404错误", async () => {
         // 使用有效的ObjectId格式但不存在的ID
         const nonExistentId = "507f1f77bcf86cd799439011";
-        
+
         // Act & Assert
         const response = await request
           .delete(`/api/v1/data-mapper/admin/templates/${nonExistentId}`)
@@ -675,13 +678,13 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("_totalTemplates");
         expect(result).toHaveProperty("_templatesByProvider");
         expect(result).toHaveProperty("_templatesByApiType");
         expect(result).toHaveProperty("_activeTemplates");
         expect(result).toHaveProperty("_presetTemplates");
-        
+
         expect(typeof result.totalTemplates).toBe("number");
         expect(typeof result.templatesByProvider).toBe("object");
         expect(typeof result.templatesByApiType).toBe("object");
@@ -712,7 +715,7 @@ describe("TemplateAdminController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("status");
         expect(result).toHaveProperty("timestamp");
         expect(["healthy", "warning", "error"]).toContain(result.status);

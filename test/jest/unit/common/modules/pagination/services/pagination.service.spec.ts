@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Test, TestingModule } from '@nestjs/testing';
-import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { FeatureFlags } from '@config/feature-flags.config';
+import { Test, TestingModule } from "@nestjs/testing";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { FeatureFlags } from "@config/feature-flags.config";
 
-describe('PaginationService', () => {
+describe("PaginationService", () => {
   let service: PaginationService;
 
   beforeEach(async () => {
@@ -47,47 +47,47 @@ describe('PaginationService', () => {
     service = module.get<PaginationService>(PaginationService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('calculateSkip', () => {
-    it('should calculate skip correctly for first page', () => {
+  describe("calculateSkip", () => {
+    it("should calculate skip correctly for first page", () => {
       const result = service.calculateSkip(1, 10);
       expect(result).toBe(0);
     });
 
-    it('should calculate skip correctly for second page', () => {
+    it("should calculate skip correctly for second page", () => {
       const result = service.calculateSkip(2, 10);
       expect(result).toBe(10);
     });
 
-    it('should calculate skip correctly for different page sizes', () => {
+    it("should calculate skip correctly for different page sizes", () => {
       expect(service.calculateSkip(3, 20)).toBe(40);
       expect(service.calculateSkip(5, 5)).toBe(20);
     });
   });
 
-  describe('normalizePaginationQuery', () => {
-    it('should use default values when no query provided', () => {
+  describe("normalizePaginationQuery", () => {
+    it("should use default values when no query provided", () => {
       const result = service.normalizePaginationQuery({});
       expect(result).toEqual({ page: 1, limit: 10 });
     });
 
-    it('should use provided values when valid', () => {
+    it("should use provided values when valid", () => {
       const result = service.normalizePaginationQuery({ page: 2, limit: 20 });
       expect(result).toEqual({ page: 2, limit: 20 });
     });
 
-    it('should normalize invalid page to 1', () => {
+    it("should normalize invalid page to 1", () => {
       const result = service.normalizePaginationQuery({ page: 0 });
       expect(result.page).toBe(1);
-      
+
       const result2 = service.normalizePaginationQuery({ page: -1 });
       expect(result2.page).toBe(1);
     });
 
-    it('should normalize invalid limit to default and cap at max', () => {
+    it("should normalize invalid limit to default and cap at max", () => {
       const result = service.normalizePaginationQuery({ limit: 0 });
       expect(result.limit).toBe(10); // DEFAULT_LIMIT
 
@@ -99,8 +99,8 @@ describe('PaginationService', () => {
     });
   });
 
-  describe('createPagination', () => {
-    it('should create pagination info correctly', () => {
+  describe("createPagination", () => {
+    it("should create pagination info correctly", () => {
       const result = service.createPagination(1, 10, 25);
       expect(result).toEqual({
         page: 1,
@@ -112,7 +112,7 @@ describe('PaginationService', () => {
       });
     });
 
-    it('should handle last page correctly', () => {
+    it("should handle last page correctly", () => {
       const result = service.createPagination(3, 10, 25);
       expect(result).toEqual({
         page: 3,
@@ -124,7 +124,7 @@ describe('PaginationService', () => {
       });
     });
 
-    it('should handle middle page correctly', () => {
+    it("should handle middle page correctly", () => {
       const result = service.createPagination(2, 10, 50);
       expect(result).toEqual({
         page: 2,
@@ -136,7 +136,7 @@ describe('PaginationService', () => {
       });
     });
 
-    it('should handle empty results', () => {
+    it("should handle empty results", () => {
       const result = service.createPagination(1, 10, 0);
       expect(result).toEqual({
         page: 1,
@@ -148,7 +148,7 @@ describe('PaginationService', () => {
       });
     });
 
-    it('should handle exact page fit', () => {
+    it("should handle exact page fit", () => {
       const result = service.createPagination(2, 10, 20);
       expect(result).toEqual({
         page: 2,
@@ -161,9 +161,9 @@ describe('PaginationService', () => {
     });
   });
 
-  describe('createPaginatedResponse', () => {
-    it('should create paginated response correctly', () => {
-      const items = ['item1', 'item2', 'item3'];
+  describe("createPaginatedResponse", () => {
+    it("should create paginated response correctly", () => {
+      const items = ["item1", "item2", "item3"];
       const result = service.createPaginatedResponse(items, 1, 10, 25);
 
       expect(result).toBeInstanceOf(PaginatedDataDto);
@@ -179,9 +179,9 @@ describe('PaginationService', () => {
     });
   });
 
-  describe('createPaginatedResponseFromQuery', () => {
-    it('should create paginated response from query correctly', () => {
-      const items = ['item1', 'item2'];
+  describe("createPaginatedResponseFromQuery", () => {
+    it("should create paginated response from query correctly", () => {
+      const items = ["item1", "item2"];
       const query = { page: 2, limit: 5 };
       const result = service.createPaginatedResponseFromQuery(items, query, 15);
 
@@ -197,8 +197,8 @@ describe('PaginationService', () => {
       });
     });
 
-    it('should handle empty query', () => {
-      const items = ['item1'];
+    it("should handle empty query", () => {
+      const items = ["item1"];
       const result = service.createPaginatedResponseFromQuery(items, {}, 1);
 
       expect(result.pagination).toEqual({
@@ -212,62 +212,62 @@ describe('PaginationService', () => {
     });
   });
 
-  describe('validatePaginationParams', () => {
-    it('should validate correct parameters', () => {
+  describe("validatePaginationParams", () => {
+    it("should validate correct parameters", () => {
       const result = service.validatePaginationParams(1, 10, 100);
       expect(result).toEqual({ isValid: true });
     });
 
-    it('should reject invalid page', () => {
+    it("should reject invalid page", () => {
       const result = service.validatePaginationParams(0, 10, 100);
       expect(result).toEqual({
         isValid: false,
-        error: '页码必须大于0',
+        error: "页码必须大于0",
       });
 
       const result2 = service.validatePaginationParams(-1, 10, 100);
       expect(result2).toEqual({
         isValid: false,
-        error: '页码必须大于0',
+        error: "页码必须大于0",
       });
     });
 
-    it('should reject invalid limit', () => {
+    it("should reject invalid limit", () => {
       const result = service.validatePaginationParams(1, 0, 100);
       expect(result).toEqual({
         isValid: false,
-        error: '每页条数必须大于0',
+        error: "每页条数必须大于0",
       });
 
       const result2 = service.validatePaginationParams(1, -5, 100);
       expect(result2).toEqual({
         isValid: false,
-        error: '每页条数必须大于0',
+        error: "每页条数必须大于0",
       });
     });
 
-    it('should reject limit exceeding maximum', () => {
+    it("should reject limit exceeding maximum", () => {
       const result = service.validatePaginationParams(1, 150, 100);
       expect(result).toEqual({
         isValid: false,
-        error: '每页条数不能超过100',
+        error: "每页条数不能超过100",
       });
     });
 
-    it('should reject page exceeding total pages', () => {
+    it("should reject page exceeding total pages", () => {
       const result = service.validatePaginationParams(6, 10, 50); // total pages = 5
       expect(result).toEqual({
         isValid: false,
-        error: '页码不能超过总页数5',
+        error: "页码不能超过总页数5",
       });
     });
 
-    it('should handle edge case with zero total', () => {
+    it("should handle edge case with zero total", () => {
       const result = service.validatePaginationParams(1, 10, 0);
       expect(result).toEqual({ isValid: true });
     });
 
-    it('should allow page 1 when total is 0', () => {
+    it("should allow page 1 when total is 0", () => {
       const result = service.validatePaginationParams(1, 10, 0);
       expect(result).toEqual({ isValid: true });
     });

@@ -8,7 +8,7 @@ import {
   TestFlexibleMappingRuleDto,
   CreateMappingRuleFromSuggestionsDto,
   FlexibleMappingRuleResponseDto,
-  FlexibleMappingTestResultDto
+  FlexibleMappingTestResultDto,
 } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 
 describe("FlexibleMappingRuleDto", () => {
@@ -23,9 +23,9 @@ describe("FlexibleMappingRuleDto", () => {
           {
             sourceFieldPath: "last_done",
             targetField: "lastPrice",
-            confidence: 0.95
-          }
-        ]
+            confidence: 0.95,
+          },
+        ],
       });
 
       const errors = await validate(dto);
@@ -44,11 +44,11 @@ describe("FlexibleMappingRuleDto", () => {
         provider: "longport",
         apiType: "invalid",
         transDataRuleListType: "quote_fields",
-        fieldMappings: []
+        fieldMappings: [],
       });
 
       const errors = await validate(dto);
-      expect(errors.some(error => error.property === "apiType")).toBe(true);
+      expect(errors.some((error) => error.property === "apiType")).toBe(true);
     });
 
     it("should be valid with optional fields", async () => {
@@ -61,7 +61,7 @@ describe("FlexibleMappingRuleDto", () => {
         sourceTemplateId: "507f1f77bcf86cd799439011",
         fieldMappings: [],
         isDefault: true,
-        _version: "2.0.0"
+        _version: "2.0.0",
       });
 
       const errors = await validate(dto);
@@ -77,7 +77,7 @@ describe("FlexibleMappingRuleDto", () => {
       const dto = plainToClass(FlexibleFieldMappingDto, {
         sourceFieldPath: "last_done",
         targetField: "lastPrice",
-        confidence: 0.95
+        confidence: 0.95,
       });
 
       const errors = await validate(dto);
@@ -91,8 +91,8 @@ describe("FlexibleMappingRuleDto", () => {
         confidence: 0.85,
         transform: {
           type: "multiply",
-          value: 100
-        }
+          value: 100,
+        },
       });
 
       const errors = await validate(dto);
@@ -110,7 +110,7 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with multiply transform", async () => {
       const dto = plainToClass(TransformRuleDto, {
         type: "multiply",
-        value: 100
+        value: 100,
       });
 
       const errors = await validate(dto);
@@ -120,7 +120,7 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with divide transform", async () => {
       const dto = plainToClass(TransformRuleDto, {
         type: "divide",
-        value: 1000
+        value: 1000,
       });
 
       const errors = await validate(dto);
@@ -130,7 +130,7 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with format transform", async () => {
       const dto = plainToClass(TransformRuleDto, {
         type: "format",
-        format: "%.2f"
+        format: "%.2f",
       });
 
       const errors = await validate(dto);
@@ -140,11 +140,11 @@ describe("FlexibleMappingRuleDto", () => {
     it("should fail validation with invalid transform type", async () => {
       const dto = plainToClass(TransformRuleDto, {
         type: "invalid",
-        value: 100
+        value: 100,
       });
 
       const errors = await validate(dto);
-      expect(errors.some(error => error.property === "type")).toBe(true);
+      expect(errors.some((error) => error.property === "type")).toBe(true);
     });
   });
 
@@ -153,9 +153,9 @@ describe("FlexibleMappingRuleDto", () => {
       const dto = plainToClass(TestFlexibleMappingRuleDto, {
         dataMapperRuleId: "507f1f77bcf86cd799439011",
         testData: {
-          last_done: 100.50,
-          symbol: "700.HK"
-        }
+          last_done: 100.5,
+          symbol: "700.HK",
+        },
       });
 
       const errors = await validate(dto);
@@ -176,7 +176,7 @@ describe("FlexibleMappingRuleDto", () => {
         name: "Auto Generated Rule",
         selectedSuggestionIndexes: [0],
         description: "Generated from template",
-        isDefault: false
+        isDefault: false,
       });
 
       const errors = await validate(dto);
@@ -216,19 +216,22 @@ describe("FlexibleMappingRuleDto", () => {
       const dto = new FlexibleMappingTestResultDto();
       dto.dataMapperRuleId = "507f1f77bcf86cd799439011";
       dto.ruleName = "Test Rule";
-      dto.originalData = { last_done: 100.50, symbol: "700.HK" };
-      dto.transformedData = { lastPrice: 100.50, symbol: "700.HK" };
+      dto.originalData = { last_done: 100.5, symbol: "700.HK" };
+      dto.transformedData = { lastPrice: 100.5, symbol: "700.HK" };
       dto.success = true;
       dto.mappingStats = {
         totalMappings: 2,
         successfulMappings: 2,
         failedMappings: 0,
-        successRate: 1.0
+        successRate: 1.0,
       };
       dto.executionTime = 15.5;
 
       expect(dto.success).toBe(true);
-      expect(dto.transformedData).toEqual({ lastPrice: 100.50, symbol: "700.HK" });
+      expect(dto.transformedData).toEqual({
+        lastPrice: 100.5,
+        symbol: "700.HK",
+      });
       expect(dto.mappingStats.totalMappings).toBe(2);
       expect(dto.executionTime).toBe(15.5);
     });

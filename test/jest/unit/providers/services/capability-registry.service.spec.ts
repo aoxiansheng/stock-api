@@ -7,62 +7,65 @@
 import { Test, TestingModule } from "@nestjs/testing";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
-import  fs from "fs/promises";
+import fs from "fs/promises";
 
 // Mock fs/promises
 jest.mock("fs/promises");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
 // 正确模拟动态导入
 const mockDynamicImport = jest.fn();
-jest.mock("../../../../../src/providers/services/capability-registry.service", () => {
+jest.mock(
+  "../../../../../src/providers/services/capability-registry.service",
+  () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const originalModule = jest.requireActual(
-    "../../../../../src/providers/services/capability-registry.service",
-  );
-  return {
-    _esModule: true,
-    ...originalModule,
-    CapabilityRegistryService: class extends originalModule.CapabilityRegistryService {
-      async loadCapability(providerName: string, capabilityName: string) {
-        // 使用原始实现但替换动态导入
-        const logContext = {
-          provider: providerName,
-          capability: capabilityName,
-        };
-        try {
-          // 使用模拟的动态导入
-          const capabilityModule = await mockDynamicImport(
-            providerName,
-            capabilityName,
-          );
-          const camelCaseName = capabilityName.replace(/-(\w)/g, (_, c) =>
-            c.toUpperCase(),
-          );
-          const capability =
-            capabilityModule.default || capabilityModule[camelCaseName];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const originalModule = jest.requireActual(
+      "../../../../../src/providers/services/capability-registry.service",
+    );
+    return {
+      _esModule: true,
+      ...originalModule,
+      CapabilityRegistryService: class extends originalModule.CapabilityRegistryService {
+        async loadCapability(providerName: string, capabilityName: string) {
+          // 使用原始实现但替换动态导入
+          const logContext = {
+            provider: providerName,
+            capability: capabilityName,
+          };
+          try {
+            // 使用模拟的动态导入
+            const capabilityModule = await mockDynamicImport(
+              providerName,
+              capabilityName,
+            );
+            const camelCaseName = capabilityName.replace(/-(\w)/g, (_, c) =>
+              c.toUpperCase(),
+            );
+            const capability =
+              capabilityModule.default || capabilityModule[camelCaseName];
 
-          if (capability && typeof capability.execute === "function") {
-            this.registerCapability(providerName, capability, 1, true);
-          } else {
-            this.logger.warn(
-              logContext,
-              `能力 ${providerName}/${capabilityName} 格式不正确或未找到`,
+            if (capability && typeof capability.execute === "function") {
+              this.registerCapability(providerName, capability, 1, true);
+            } else {
+              this.logger.warn(
+                logContext,
+                `能力 ${providerName}/${capabilityName} 格式不正确或未找到`,
+              );
+            }
+          } catch (error) {
+            this.logger.error(
+              { ...logContext, error: error?.stack || String(error) },
+              `无法加载能力 ${providerName}/${capabilityName}`,
             );
           }
-        } catch (error) {
-          this.logger.error(
-            { ...logContext, error: error?.stack || String(error) },
-            `无法加载能力 ${providerName}/${capabilityName}`,
-          );
         }
-      }
-    },
-  };
-});
+      },
+    };
+  },
+);
 
 describe("CapabilityRegistryService", () => {
   let service: CapabilityRegistryService;
@@ -86,7 +89,7 @@ describe("CapabilityRegistryService", () => {
         { name: "longport", isDirectory: () => true },
         { name: "longport-sg", isDirectory: () => true },
         { name: "interfaces", isDirectory: () => true }, // 应该被排除
-        { name: "services", isDirectory: () => true }, // 应该被排除  
+        { name: "services", isDirectory: () => true }, // 应该被排除
         { name: "controller", isDirectory: () => true }, // 应该被排除
         { name: "module", isDirectory: () => true }, // 应该被排除
         { name: "node_modules", isDirectory: () => true }, // 应该被排除
@@ -136,15 +139,11 @@ describe("CapabilityRegistryService", () => {
       expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
         "interfaces",
       );
-      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
-        "services",
-      );
+      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith("services");
       expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
         "controller",
       );
-      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
-        "module",
-      );
+      expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith("module");
       expect(loadProviderCapabilitiesSpy).not.toHaveBeenCalledWith(
         "node_modules",
       );
@@ -164,7 +163,9 @@ describe("CapabilityRegistryService", () => {
       mockedFs.readdir.mockRejectedValue(new Error("Permission denied"));
 
       // Act & Assert - 应该抛出异常
-      await expect(service.discoverCapabilities()).rejects.toThrow("Permission denied");
+      await expect(service.discoverCapabilities()).rejects.toThrow(
+        "Permission denied",
+      );
     });
   });
 

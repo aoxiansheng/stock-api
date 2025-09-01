@@ -127,7 +127,7 @@ export function createSmartCacheModuleWithConfig(config: Partial<SmartCacheOrche
       StorageModule, 
       CommonCacheModule,
       SharedServicesModule,
-      CollectorModule,
+      //CollectorModule,
     ],
     providers: [
       SmartCacheOrchestrator,

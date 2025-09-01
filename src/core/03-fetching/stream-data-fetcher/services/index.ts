@@ -5,7 +5,7 @@
 export * from './stream-data-fetcher.service';
 export * from './stream-client-state-manager.service';
 export * from './stream-recovery-worker.service';
-export * from './stream-metrics.service';
+//export * from './stream-metrics.service';
 
 // 连接实现
 export * from './stream-connection.impl';

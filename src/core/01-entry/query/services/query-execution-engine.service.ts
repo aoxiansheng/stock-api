@@ -22,9 +22,10 @@ import { ReceiverService } from "../../../01-entry/receiver/services/receiver.se
 import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../01-entry/receiver/dto/data-response.dto";
 import {
-  StorageType,
+  
   StorageClassification,
-} from "../../../04-storage/storage/enums/storage-type.enum";
+} from '../../../shared/types/storage-classification.enum';
+import {StorageType} from '../../../04-storage/storage/enums/storage-type.enum';
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
 
 import {

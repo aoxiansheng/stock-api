@@ -1,13 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/stream-receiver.service';
-import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
-import { SymbolTransformerService } from '@core/02-processing/symbol-transformer/services/symbol-transformer.service';
-import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
-import { CollectorService } from '../../../../../../../src/monitoring/collector/collector.service';
-import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from "@nestjs/testing";
+import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
+import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { SymbolTransformerService } from "@core/02-processing/symbol-transformer/services/symbol-transformer.service";
+import { DataTransformerService } from "@core/02-processing/transformer/services/data-transformer.service";
+import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
+import { Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
-describe('StreamReceiverService', () => {
+describe("StreamReceiverService", () => {
   let service: StreamReceiverService;
   let streamDataFetcher: jest.Mocked<StreamDataFetcherService>;
   let symbolTransformer: jest.Mocked<SymbolTransformerService>;
@@ -15,8 +15,8 @@ describe('StreamReceiverService', () => {
   let collectorService: jest.Mocked<CollectorService>;
 
   // Mock test data
-  const mockClientId = 'test-client-123';
-  const mockSymbols = ['700.HK', 'AAPL.US', '000001.SZ'];
+  const mockClientId = "test-client-123";
+  const mockSymbols = ["700.HK", "AAPL.US", "000001.SZ"];
   const mockCallback = jest.fn();
 
   // Mock client state manager
@@ -27,8 +27,8 @@ describe('StreamReceiverService', () => {
     getClientStateStats: jest.fn(() => ({
       totalClients: 0,
       activeClients: 0,
-      totalSubscriptions: 0
-    }))
+      totalSubscriptions: 0,
+    })),
   };
 
   // Mock stream data cache
@@ -37,8 +37,8 @@ describe('StreamReceiverService', () => {
       hotCacheHits: 0,
       warmCacheHits: 0,
       hotCacheMisses: 0,
-      warmCacheMisses: 0
-    }))
+      warmCacheMisses: 0,
+    })),
   };
 
   beforeEach(async () => {
@@ -51,34 +51,36 @@ describe('StreamReceiverService', () => {
       getClientStateManager: jest.fn(() => mockClientStateManager),
       getStreamDataCache: jest.fn(() => mockStreamDataCache),
       getConnectionStatsByProvider: jest.fn(() => ({})),
-      establishStreamConnection: jest.fn(() => Promise.resolve({ 
-        id: 'mock-connection', 
-        isActive: true,
-        subscribe: jest.fn(),
-        unsubscribe: jest.fn(),
-        close: jest.fn(),
-        onData: jest.fn(),
-        onError: jest.fn(),
-        onClose: jest.fn(),
-        onStatusChange: jest.fn()
-      }))
+      establishStreamConnection: jest.fn(() =>
+        Promise.resolve({
+          id: "mock-connection",
+          isActive: true,
+          subscribe: jest.fn(),
+          unsubscribe: jest.fn(),
+          close: jest.fn(),
+          onData: jest.fn(),
+          onError: jest.fn(),
+          onClose: jest.fn(),
+          onStatusChange: jest.fn(),
+        }),
+      ),
     };
 
     const mockSymbolTransformer = {
       transformSymbolsForProvider: jest.fn(),
       getMarketFromSymbol: jest.fn(),
-      validateSymbol: jest.fn()
+      validateSymbol: jest.fn(),
     };
 
     const mockTransformer = {
       transform: jest.fn(),
-      validateDataStructure: jest.fn()
+      validateDataStructure: jest.fn(),
     };
 
     const mockCollectorService = {
       recordRequest: jest.fn(),
       recordSystemMetrics: jest.fn(),
-      getMetricsStats: jest.fn(() => ({}))
+      getMetricsStats: jest.fn(() => ({})),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -90,7 +92,7 @@ describe('StreamReceiverService', () => {
             symbolTransformer: SymbolTransformerService,
             transformer: DataTransformerService,
             streamDataFetcher: StreamDataFetcherService,
-            collectorService: CollectorService
+            collectorService: CollectorService,
           ) => {
             return new StreamReceiverService(
               configService,
@@ -98,10 +100,16 @@ describe('StreamReceiverService', () => {
               transformer,
               streamDataFetcher,
               collectorService, // required CollectorService
-              undefined  // optional StreamRecoveryWorkerService
+              undefined, // optional StreamRecoveryWorkerService
             );
           },
-          inject: [ConfigService, SymbolTransformerService, DataTransformerService, StreamDataFetcherService, CollectorService]
+          inject: [
+            ConfigService,
+            SymbolTransformerService,
+            DataTransformerService,
+            StreamDataFetcherService,
+            CollectorService,
+          ],
         },
         {
           provide: StreamDataFetcherService,
@@ -122,7 +130,7 @@ describe('StreamReceiverService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('test'),
+            get: jest.fn().mockReturnValue("test"),
           },
         },
         {
@@ -145,22 +153,22 @@ describe('StreamReceiverService', () => {
 
     // Setup default mock behaviors
     symbolTransformer.transformSymbolsForProvider.mockResolvedValue({
-      transformedSymbols: ['700.HK'],
+      transformedSymbols: ["700.HK"],
       mappingResults: {
-        transformedSymbols: { '700.HK': '700.HK' },
+        transformedSymbols: { "700.HK": "700.HK" },
         failedSymbols: [],
         metadata: {
-          provider: 'longport',
+          provider: "longport",
           totalSymbols: 1,
           successfulTransformations: 1,
           failedTransformations: 0,
-          processingTime: 10
-        }
-      }
+          processingTime: 10,
+        },
+      },
     });
     transformer.transform.mockResolvedValue({
       success: true,
-      data: { symbol: '700.HK', price: 350.5 }
+      data: { symbol: "700.HK", price: 350.5 },
     } as any);
     streamDataFetcher.subscribeToSymbols.mockResolvedValue(undefined);
     streamDataFetcher.batchHealthCheck.mockResolvedValue({ longport: true });
@@ -170,118 +178,118 @@ describe('StreamReceiverService', () => {
     jest.clearAllMocks();
   });
 
-  describe('Service Initialization', () => {
-    it('should be defined', () => {
+  describe("Service Initialization", () => {
+    it("should be defined", () => {
       expect(service).toBeDefined();
     });
 
-    it('should have proper service dependencies', () => {
+    it("should have proper service dependencies", () => {
       expect(streamDataFetcher).toBeDefined();
       expect(symbolTransformer).toBeDefined();
       expect(transformer).toBeDefined();
     });
   });
 
-  describe('Stream Subscription Management', () => {
-    it('should successfully subscribe to stream with required parameters', async () => {
+  describe("Stream Subscription Management", () => {
+    it("should successfully subscribe to stream with required parameters", async () => {
       const subscriptionData = {
         symbols: mockSymbols,
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       // Should not throw with proper parameters
       await expect(
-        service.subscribeStream(subscriptionData, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId),
       ).resolves.not.toThrow();
 
       expect(streamDataFetcher.getClientStateManager).toHaveBeenCalled();
       expect(streamDataFetcher.subscribeToSymbols).toHaveBeenCalled();
     });
 
-    it('should handle subscription with generated client ID', async () => {
+    it("should handle subscription with generated client ID", async () => {
       const subscriptionData = {
         symbols: mockSymbols,
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       // Test without providing clientId (should generate one)
       await expect(
-        service.subscribeStream(subscriptionData)
+        service.subscribeStream(subscriptionData),
       ).resolves.not.toThrow();
 
       expect(streamDataFetcher.getClientStateManager).toHaveBeenCalled();
     });
 
-    it('should handle subscription errors gracefully', async () => {
+    it("should handle subscription errors gracefully", async () => {
       const subscriptionData = {
         symbols: mockSymbols,
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       streamDataFetcher.subscribeToSymbols.mockRejectedValue(
-        new Error('Subscription failed')
+        new Error("Subscription failed"),
       );
 
       await expect(
-        service.subscribeStream(subscriptionData, mockClientId)
-      ).rejects.toThrow('Subscription failed');
+        service.subscribeStream(subscriptionData, mockClientId),
+      ).rejects.toThrow("Subscription failed");
     });
 
-    it('should successfully unsubscribe from stream', async () => {
+    it("should successfully unsubscribe from stream", async () => {
       const unsubscriptionData = {
         symbols: mockSymbols,
         clientId: mockClientId,
-        wsCapabilityType: 'quote'
+        wsCapabilityType: "quote",
       };
 
       await expect(
-        service.unsubscribeStream(unsubscriptionData)
+        service.unsubscribeStream(unsubscriptionData),
       ).resolves.not.toThrow();
 
       expect(streamDataFetcher.getClientStateManager).toHaveBeenCalled();
     });
   });
 
-  describe('Health Check and Statistics', () => {
-    it('should perform health check successfully', async () => {
+  describe("Health Check and Statistics", () => {
+    it("should perform health check successfully", async () => {
       streamDataFetcher.batchHealthCheck.mockResolvedValue({
         longport: true,
-        tushare: true
+        tushare: true,
       });
 
       const health = await service.healthCheck();
 
       expect(health).toEqual({
-        status: 'healthy',
+        status: "healthy",
         connections: 2,
         clients: 0,
-        cacheHitRate: 0
+        cacheHitRate: 0,
       });
     });
 
-    it('should report degraded status when connections are unhealthy', async () => {
+    it("should report degraded status when connections are unhealthy", async () => {
       streamDataFetcher.batchHealthCheck.mockResolvedValue({
         longport: true,
-        tushare: false // One connection failed
+        tushare: false, // One connection failed
       });
 
       const health = await service.healthCheck();
 
-      expect(health.status).toBe('degraded');
+      expect(health.status).toBe("degraded");
       expect(health.connections).toBe(2);
     });
 
-    it('should get client statistics', () => {
+    it("should get client statistics", () => {
       const stats = service.getClientStats();
 
       expect(stats).toEqual({
         clients: expect.any(Object),
         cache: expect.any(Object),
         connections: expect.any(Object),
-        batchProcessing: expect.any(Object)
+        batchProcessing: expect.any(Object),
       });
 
       expect(streamDataFetcher.getClientStateManager).toHaveBeenCalled();
@@ -290,37 +298,37 @@ describe('StreamReceiverService', () => {
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle service errors gracefully', async () => {
+  describe("Error Handling", () => {
+    it("should handle service errors gracefully", async () => {
       const subscriptionData = {
         symbols: [],
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       streamDataFetcher.getClientStateManager.mockImplementation(() => {
-        throw new Error('Service unavailable');
+        throw new Error("Service unavailable");
       });
 
       await expect(
-        service.subscribeStream(subscriptionData, mockClientId)
-      ).rejects.toThrow('Service unavailable');
+        service.subscribeStream(subscriptionData, mockClientId),
+      ).rejects.toThrow("Service unavailable");
     });
 
-    it('should handle transformer errors', async () => {
-      transformer.transform.mockRejectedValue(new Error('Transform failed'));
+    it("should handle transformer errors", async () => {
+      transformer.transform.mockRejectedValue(new Error("Transform failed"));
 
       // Should handle transform errors in data processing
       expect(transformer.transform).toBeDefined();
     });
   });
 
-  describe('Performance and Monitoring', () => {
-    it('should track subscription performance', async () => {
+  describe("Performance and Monitoring", () => {
+    it("should track subscription performance", async () => {
       const subscriptionData = {
         symbols: mockSymbols,
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       const startTime = Date.now();
@@ -331,9 +339,9 @@ describe('StreamReceiverService', () => {
       expect(endTime - startTime).toBeLessThan(1000);
     });
 
-    it('should maintain connection state correctly', () => {
+    it("should maintain connection state correctly", () => {
       const stats = service.getClientStats();
-      
+
       expect(stats.clients).toBeDefined();
       expect(stats.cache).toBeDefined();
       expect(stats.connections).toBeDefined();
@@ -341,54 +349,54 @@ describe('StreamReceiverService', () => {
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle empty symbol arrays', async () => {
+  describe("Edge Cases", () => {
+    it("should handle empty symbol arrays", async () => {
       symbolTransformer.transformSymbolsForProvider.mockResolvedValue({
         transformedSymbols: [],
         mappingResults: {
           transformedSymbols: {},
           failedSymbols: [],
           metadata: {
-            provider: 'longport',
+            provider: "longport",
             totalSymbols: 0,
             successfulTransformations: 0,
             failedTransformations: 0,
-            processingTime: 0
-          }
-        }
+            processingTime: 0,
+          },
+        },
       });
 
       const subscriptionData = {
         symbols: [],
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       // Should handle empty arrays gracefully
       await expect(
-        service.subscribeStream(subscriptionData, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId),
       ).resolves.not.toThrow();
     });
 
-    it('should handle null callback', async () => {
+    it("should handle null callback", async () => {
       const subscriptionData = {
         symbols: mockSymbols,
-        wsCapabilityType: 'quote',
-        preferredProvider: 'longport'
+        wsCapabilityType: "quote",
+        preferredProvider: "longport",
       };
 
       // Should handle valid subscription data
       await expect(
-        service.subscribeStream(subscriptionData, mockClientId)
+        service.subscribeStream(subscriptionData, mockClientId),
       ).resolves.not.toThrow();
     });
 
-    it('should handle provider failures gracefully', async () => {
+    it("should handle provider failures gracefully", async () => {
       streamDataFetcher.batchHealthCheck.mockResolvedValue({});
 
       const health = await service.healthCheck();
-      
-      expect(health.status).toBe('healthy'); // No connections = healthy by default
+
+      expect(health.status).toBe("healthy"); // No connections = healthy by default
       expect(health.connections).toBe(0);
     });
   });

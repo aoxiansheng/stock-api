@@ -2,7 +2,7 @@ import { plainToClass } from "class-transformer";
 import { validate } from "class-validator";
 import {
   CacheConfigDto,
-  CacheStatsDto,
+  RedisCacheRuntimeStatsDto,
   CacheHealthCheckResultDto,
   CacheOperationResultDto,
   BatchCacheOperationDto,
@@ -35,9 +35,9 @@ describe("CacheInternalDTOs", () => {
     });
   });
 
-  describe("CacheStatsDto", () => {
+  describe("RedisCacheRuntimeStatsDto", () => {
     it("should pass validation with valid data", async () => {
-      const dto = plainToClass(CacheStatsDto, {
+      const dto = plainToClass(RedisCacheRuntimeStatsDto, {
         hits: 100,
         misses: 20,
         hitRate: 0.83,

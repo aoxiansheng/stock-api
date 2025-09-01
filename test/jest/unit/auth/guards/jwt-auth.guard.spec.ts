@@ -81,30 +81,30 @@ describe("JwtAuthGuard", () => {
     it("should return true if requireApiKey is true", () => {
       // 首先为 IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // 然后为 REQUIRE_API_KEY 返回 true
       reflector.getAllAndOverride.mockReturnValueOnce(true);
 
       const result = guard.canActivate(mockExecutionContext);
 
       expect(result).toBe(true);
-      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(REQUIRE_API_KEY, [
-        mockExecutionContext.getHandler(),
-        mockExecutionContext.getClass(),
-      ]);
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
+        REQUIRE_API_KEY,
+        [mockExecutionContext.getHandler(), mockExecutionContext.getClass()],
+      );
     });
 
     it("should return true if request has API Key headers", () => {
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // 设置API Key头部
       mockRequest.headers = {
-        'x-app-key': 'test-app-key',
-        'x-access-token': 'test-access-token'
+        "x-app-key": "test-app-key",
+        "x-access-token": "test-access-token",
       };
 
       const result = guard.canActivate(mockExecutionContext);
@@ -117,16 +117,16 @@ describe("JwtAuthGuard", () => {
     it("should call super.canActivate for protected routes", () => {
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // 没有API Key头部
       mockRequest.headers = {};
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(true);
 
@@ -141,13 +141,13 @@ describe("JwtAuthGuard", () => {
     it("should call super.canActivate when isPublic is undefined", () => {
       // IS_PUBLIC_KEY 返回 undefined
       reflector.getAllAndOverride.mockReturnValueOnce(undefined);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(true);
 
@@ -162,13 +162,13 @@ describe("JwtAuthGuard", () => {
     it("should handle reflector returning null", () => {
       // IS_PUBLIC_KEY 返回 null
       reflector.getAllAndOverride.mockReturnValueOnce(null);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(true);
 
@@ -259,13 +259,13 @@ describe("JwtAuthGuard", () => {
       mockExecutionContext.getHandler.mockReturnValue(undefined);
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(true);
 
@@ -283,13 +283,13 @@ describe("JwtAuthGuard", () => {
       mockExecutionContext.getClass.mockReturnValue(undefined);
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(true);
 
@@ -316,13 +316,13 @@ describe("JwtAuthGuard", () => {
     it("should handle super.canActivate returning false", () => {
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(false);
 
@@ -336,13 +336,13 @@ describe("JwtAuthGuard", () => {
     it("should handle super.canActivate throwing an error", () => {
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockImplementation(() => {
         throw new Error("Super guard error");
@@ -358,13 +358,13 @@ describe("JwtAuthGuard", () => {
     it("should handle super.canActivate returning a Promise", async () => {
       // IS_PUBLIC_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
-      
+
       // REQUIRE_API_KEY 返回 false
       reflector.getAllAndOverride.mockReturnValueOnce(false);
 
       const superCanActivateSpy = jest.spyOn(
         Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-        "canActivate"
+        "canActivate",
       );
       superCanActivateSpy.mockReturnValue(Promise.resolve(true));
 

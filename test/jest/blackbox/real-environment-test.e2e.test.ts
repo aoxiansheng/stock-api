@@ -167,7 +167,9 @@ describe("Real Environment Black-box E2E Tests", () => {
       console.log(`系统问题: ${issues.length > 0 ? issues.join(", ") : "无"}`);
 
       // 真实环境应该是healthy/warning/degraded/operational，不应该是unhealthy
-      expect(["healthy", "warning", "degraded", "operational"]).toContain(systemStatus);
+      expect(["healthy", "warning", "degraded", "operational"]).toContain(
+        systemStatus,
+      );
     });
   });
 
@@ -213,7 +215,11 @@ describe("Real Environment Black-box E2E Tests", () => {
         expect(sample).toHaveProperty("symbol");
 
         // 真实股票数据应该有价格信息
-        const hasPrice = sample.last_done || sample.lastPrice || sample.price || sample.current;
+        const hasPrice =
+          sample.last_done ||
+          sample.lastPrice ||
+          sample.price ||
+          sample.current;
         expect(hasPrice).toBeDefined();
 
         console.log(`✅ 获取到真实股票数据: ${sample.symbol} = ${hasPrice}`);

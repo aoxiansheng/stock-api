@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { QueryProcessedResultDto } from '@core/01-entry/query/dto/query-processed-result.dto';
-import { QueryMetadataDto } from '@core/01-entry/query/dto/query-response.dto';
-import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
+import { QueryProcessedResultDto } from "@core/01-entry/query/dto/query-processed-result.dto";
+import { QueryMetadataDto } from "@core/01-entry/query/dto/query-response.dto";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { QueryType } from "@core/01-entry/query/dto/query-types.dto";
 
 interface StockData {
   symbol: string;
@@ -22,11 +22,11 @@ interface NewsData {
   publishedAt: string;
 }
 
-describe('QueryProcessedResultDto', () => {
-  describe('Interface Structure', () => {
-    it('should define correct interface structure', () => {
+describe("QueryProcessedResultDto", () => {
+  describe("Interface Structure", () => {
+    it("should define correct interface structure", () => {
       const paginatedData = new PaginatedDataDto<StockData>(
-        [{ symbol: '00700.HK', price: 425.6 }],
+        [{ symbol: "00700.HK", price: 425.6 }],
         {
           page: 1,
           limit: 10,
@@ -54,13 +54,13 @@ describe('QueryProcessedResultDto', () => {
         metadata: metadata,
       };
 
-      expect(processedResult).toHaveProperty('data');
-      expect(processedResult).toHaveProperty('metadata');
+      expect(processedResult).toHaveProperty("data");
+      expect(processedResult).toHaveProperty("metadata");
       expect(processedResult.data).toBeInstanceOf(PaginatedDataDto);
       expect(processedResult.metadata).toBeInstanceOf(QueryMetadataDto);
     });
 
-    it('should enforce required properties', () => {
+    it("should enforce required properties", () => {
       const paginatedData = new PaginatedDataDto<StockData>([], {
         page: 1,
         limit: 10,
@@ -92,11 +92,11 @@ describe('QueryProcessedResultDto', () => {
     });
   });
 
-  describe('Data Property Integration', () => {
-    it('should integrate with PaginatedDataDto correctly', () => {
+  describe("Data Property Integration", () => {
+    it("should integrate with PaginatedDataDto correctly", () => {
       const stockData: StockData[] = [
-        { symbol: '00700.HK', price: 425.6, volume: 1000000 },
-        { symbol: 'AAPL.US', price: 150.25, volume: 2000000 },
+        { symbol: "00700.HK", price: 425.6, volume: 1000000 },
+        { symbol: "AAPL.US", price: 150.25, volume: 2000000 },
       ];
 
       const paginatedData = new PaginatedDataDto<StockData>(stockData, {
@@ -126,13 +126,13 @@ describe('QueryProcessedResultDto', () => {
       };
 
       expect(processedResult.data.items).toHaveLength(2);
-      expect(processedResult.data.items[0].symbol).toBe('00700.HK');
-      expect(processedResult.data.items[1].symbol).toBe('AAPL.US');
+      expect(processedResult.data.items[0].symbol).toBe("00700.HK");
+      expect(processedResult.data.items[1].symbol).toBe("AAPL.US");
       expect(processedResult.data.pagination.total).toBe(2);
       expect(processedResult.data.pagination.page).toBe(1);
     });
 
-    it('should handle empty data correctly', () => {
+    it("should handle empty data correctly", () => {
       const emptyPaginatedData = new PaginatedDataDto<StockData>([], {
         page: 1,
         limit: 10,
@@ -166,10 +166,10 @@ describe('QueryProcessedResultDto', () => {
       expect(processedResult.metadata.returnedResults).toBe(0);
     });
 
-    it('should handle paginated data correctly', () => {
+    it("should handle paginated data correctly", () => {
       const pageData: StockData[] = [
-        { symbol: 'GOOGL.US', price: 2800.50 },
-        { symbol: 'MSFT.US', price: 350.75 },
+        { symbol: "GOOGL.US", price: 2800.5 },
+        { symbol: "MSFT.US", price: 350.75 },
       ];
 
       const paginatedData = new PaginatedDataDto<StockData>(pageData, {
@@ -206,9 +206,9 @@ describe('QueryProcessedResultDto', () => {
     });
   });
 
-  describe('Metadata Property Integration', () => {
-    it('should integrate with QueryMetadataDto correctly', () => {
-      const data = new PaginatedDataDto<{ test: string }>([{ test: 'data' }], {
+  describe("Metadata Property Integration", () => {
+    it("should integrate with QueryMetadataDto correctly", () => {
+      const data = new PaginatedDataDto<{ test: string }>([{ test: "data" }], {
         page: 1,
         limit: 1,
         total: 1,
@@ -230,10 +230,10 @@ describe('QueryProcessedResultDto', () => {
       );
 
       metadata.queryParams = {
-        symbols: ['00700.HK'],
-        market: 'HK',
-        provider: 'longport',
-        queryTypeFilter: 'get-stock-quote',
+        symbols: ["00700.HK"],
+        market: "HK",
+        provider: "longport",
+        queryTypeFilter: "get-stock-quote",
       };
 
       metadata.performance = {
@@ -252,11 +252,13 @@ describe('QueryProcessedResultDto', () => {
       expect(processedResult.metadata.executionTime).toBe(125);
       expect(processedResult.metadata.cacheUsed).toBe(true);
       expect(processedResult.metadata.dataSources.cache.hits).toBe(1);
-      expect(processedResult.metadata.queryParams.symbols).toEqual(['00700.HK']);
+      expect(processedResult.metadata.queryParams.symbols).toEqual([
+        "00700.HK",
+      ]);
       expect(processedResult.metadata.performance.cacheQueryTime).toBe(10);
     });
 
-    it('should handle metadata with errors', () => {
+    it("should handle metadata with errors", () => {
       const data = new PaginatedDataDto<StockData>([], {
         page: 1,
         limit: 10,
@@ -268,10 +270,10 @@ describe('QueryProcessedResultDto', () => {
 
       const errors = [
         {
-          symbol: 'INVALID.SYMBOL',
-          reason: 'Symbol not found',
-          errorCode: 'SYMBOL_NOT_FOUND',
-          details: { provider: 'longport', timestamp: '2023-06-01T10:00:00Z' },
+          symbol: "INVALID.SYMBOL",
+          reason: "Symbol not found",
+          errorCode: "SYMBOL_NOT_FOUND",
+          details: { provider: "longport", timestamp: "2023-06-01T10:00:00Z" },
         },
       ];
 
@@ -294,20 +296,27 @@ describe('QueryProcessedResultDto', () => {
       };
 
       expect(processedResult.metadata.errors).toHaveLength(1);
-      expect(processedResult.metadata.errors[0].symbol).toBe('INVALID.SYMBOL');
-      expect(processedResult.metadata.errors[0].reason).toBe('Symbol not found');
-      expect(processedResult.metadata.errors[0].errorCode).toBe('SYMBOL_NOT_FOUND');
+      expect(processedResult.metadata.errors[0].symbol).toBe("INVALID.SYMBOL");
+      expect(processedResult.metadata.errors[0].reason).toBe(
+        "Symbol not found",
+      );
+      expect(processedResult.metadata.errors[0].errorCode).toBe(
+        "SYMBOL_NOT_FOUND",
+      );
     });
 
-    it('should handle different query types', () => {
-      const data = new PaginatedDataDto<{ market: string; status: string }>([{ market: 'HK', status: 'open' }], {
-        page: 1,
-        limit: 1,
-        total: 1,
-        totalPages: 1,
-        hasNext: false,
-        hasPrev: false,
-      });
+    it("should handle different query types", () => {
+      const data = new PaginatedDataDto<{ market: string; status: string }>(
+        [{ market: "HK", status: "open" }],
+        {
+          page: 1,
+          limit: 1,
+          total: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      );
 
       const queryTypes = [
         QueryType.BY_SYMBOLS,
@@ -315,20 +324,16 @@ describe('QueryProcessedResultDto', () => {
         QueryType.BY_PROVIDER,
       ];
 
-      queryTypes.forEach(queryType => {
-        const metadata = new QueryMetadataDto(
-          queryType,
-          1,
-          1,
-          100,
-          false,
-          {
-            cache: { hits: 0, misses: 1 },
-            realtime: { hits: 1, misses: 0 },
-          },
-        );
+      queryTypes.forEach((queryType) => {
+        const metadata = new QueryMetadataDto(queryType, 1, 1, 100, false, {
+          cache: { hits: 0, misses: 1 },
+          realtime: { hits: 1, misses: 0 },
+        });
 
-        const processedResult: QueryProcessedResultDto<{ market: string; status: string }> = {
+        const processedResult: QueryProcessedResultDto<{
+          market: string;
+          status: string;
+        }> = {
           data: data,
           metadata: metadata,
         };
@@ -338,11 +343,11 @@ describe('QueryProcessedResultDto', () => {
     });
   });
 
-  describe('Type Safety and Generics', () => {
-    it('should support generic typing through PaginatedDataDto', () => {
+  describe("Type Safety and Generics", () => {
+    it("should support generic typing through PaginatedDataDto", () => {
       const stockItems: StockData[] = [
-        { symbol: '00700.HK', price: 425.6, volume: 1000000 },
-        { symbol: 'AAPL.US', price: 150.25, volume: 2000000 },
+        { symbol: "00700.HK", price: 425.6, volume: 1000000 },
+        { symbol: "AAPL.US", price: 150.25, volume: 2000000 },
       ];
 
       const paginatedData = new PaginatedDataDto<StockData>(stockItems, {
@@ -371,19 +376,19 @@ describe('QueryProcessedResultDto', () => {
         metadata: metadata,
       };
 
-      expect(processedResult.data.items[0].symbol).toBe('00700.HK');
+      expect(processedResult.data.items[0].symbol).toBe("00700.HK");
       expect(processedResult.data.items[0].price).toBe(425.6);
       expect(processedResult.data.items[0].volume).toBe(1000000);
-      expect(typeof processedResult.data.items[0].symbol).toBe('string');
-      expect(typeof processedResult.data.items[0].price).toBe('number');
+      expect(typeof processedResult.data.items[0].symbol).toBe("string");
+      expect(typeof processedResult.data.items[0].price).toBe("number");
     });
 
-    it('should support different data types', () => {
+    it("should support different data types", () => {
       const newsItems: NewsData[] = [
         {
-          title: 'Market Update',
-          content: 'Market analysis content...',
-          publishedAt: '2023-06-01T10:00:00Z',
+          title: "Market Update",
+          content: "Market analysis content...",
+          publishedAt: "2023-06-01T10:00:00Z",
         },
       ];
 
@@ -413,32 +418,34 @@ describe('QueryProcessedResultDto', () => {
         metadata: newsMetadata,
       };
 
-      expect(newsProcessedResult.data.items[0].title).toBe('Market Update');
-      expect(newsProcessedResult.data.items[0].content).toContain('Market analysis');
+      expect(newsProcessedResult.data.items[0].title).toBe("Market Update");
+      expect(newsProcessedResult.data.items[0].content).toContain(
+        "Market analysis",
+      );
     });
   });
 
-  describe('Real-world Usage Scenarios', () => {
-    describe('Stock Query Processing', () => {
-      it('should handle successful stock quote query result', () => {
+  describe("Real-world Usage Scenarios", () => {
+    describe("Stock Query Processing", () => {
+      it("should handle successful stock quote query result", () => {
         const stockQuotes: StockData[] = [
           {
-            symbol: '00700.HK',
+            symbol: "00700.HK",
             lastPrice: 425.6,
             change: 5.2,
             changePercent: 0.0124,
             volume: 12500000,
             turnover: 5312500000,
-            timestamp: '2023-06-01T10:00:00Z',
+            timestamp: "2023-06-01T10:00:00Z",
           },
           {
-            symbol: 'AAPL.US',
+            symbol: "AAPL.US",
             lastPrice: 150.25,
             change: -2.1,
             changePercent: -0.0138,
             volume: 45000000,
             turnover: 6761250000,
-            timestamp: '2023-06-01T10:00:00Z',
+            timestamp: "2023-06-01T10:00:00Z",
           },
         ];
 
@@ -464,8 +471,8 @@ describe('QueryProcessedResultDto', () => {
         );
 
         metadata.queryParams = {
-          symbols: ['00700.HK', 'AAPL.US'],
-          queryTypeFilter: 'get-stock-quote',
+          symbols: ["00700.HK", "AAPL.US"],
+          queryTypeFilter: "get-stock-quote",
         };
 
         metadata.performance = {
@@ -481,28 +488,31 @@ describe('QueryProcessedResultDto', () => {
         };
 
         expect(processedResult.data.items).toHaveLength(2);
-        expect(processedResult.data.items[0].symbol).toBe('00700.HK');
-        expect(processedResult.data.items[1].symbol).toBe('AAPL.US');
+        expect(processedResult.data.items[0].symbol).toBe("00700.HK");
+        expect(processedResult.data.items[1].symbol).toBe("AAPL.US");
         expect(processedResult.metadata.cacheUsed).toBe(true);
         expect(processedResult.metadata.queryParams.symbols).toHaveLength(2);
         expect(processedResult.metadata.performance.cacheQueryTime).toBe(15);
       });
 
-      it('should handle market-wide query result', () => {
+      it("should handle market-wide query result", () => {
         const marketData: StockData[] = Array.from({ length: 50 }, (_, i) => ({
-          symbol: `${String(i).padStart(5, '0')}.HK`,
+          symbol: `${String(i).padStart(5, "0")}.HK`,
           price: 100 + Math.random() * 500,
           volume: Math.floor(Math.random() * 10000000),
         }));
 
-        const paginatedData = new PaginatedDataDto<StockData>(marketData.slice(0, 20), {
-          page: 1,
-          limit: 20,
-          total: 50,
-          totalPages: 3,
-          hasNext: true,
-          hasPrev: false,
-        });
+        const paginatedData = new PaginatedDataDto<StockData>(
+          marketData.slice(0, 20),
+          {
+            page: 1,
+            limit: 20,
+            total: 50,
+            totalPages: 3,
+            hasNext: true,
+            hasPrev: false,
+          },
+        );
 
         const metadata = new QueryMetadataDto(
           QueryType.BY_MARKET,
@@ -517,8 +527,8 @@ describe('QueryProcessedResultDto', () => {
         );
 
         metadata.queryParams = {
-          market: 'HK',
-          queryTypeFilter: 'get-stock-quote',
+          market: "HK",
+          queryTypeFilter: "get-stock-quote",
         };
 
         const processedResult: QueryProcessedResultDto<StockData> = {
@@ -535,10 +545,10 @@ describe('QueryProcessedResultDto', () => {
       });
     });
 
-    describe('Error Handling Scenarios', () => {
-      it('should handle partial failure in multi-symbol query', () => {
+    describe("Error Handling Scenarios", () => {
+      it("should handle partial failure in multi-symbol query", () => {
         const successfulData: StockData[] = [
-          { symbol: '00700.HK', price: 425.6, status: 'success' },
+          { symbol: "00700.HK", price: 425.6, status: "success" },
         ];
 
         const paginatedData = new PaginatedDataDto<StockData>(successfulData, {
@@ -552,20 +562,20 @@ describe('QueryProcessedResultDto', () => {
 
         const errors = [
           {
-            symbol: 'INVALID.SYMBOL',
-            reason: 'Symbol not found in any provider',
-            errorCode: 'SYMBOL_NOT_FOUND',
+            symbol: "INVALID.SYMBOL",
+            reason: "Symbol not found in any provider",
+            errorCode: "SYMBOL_NOT_FOUND",
             details: {
-              attemptedProviders: ['longport', 'longport_sg'],
-              timestamp: '2023-06-01T10:00:00Z',
+              attemptedProviders: ["longport", "longport_sg"],
+              timestamp: "2023-06-01T10:00:00Z",
             },
           },
           {
-            symbol: 'TIMEOUT.SYMBOL',
-            reason: 'Provider timeout',
-            errorCode: 'PROVIDER_TIMEOUT',
+            symbol: "TIMEOUT.SYMBOL",
+            reason: "Provider timeout",
+            errorCode: "PROVIDER_TIMEOUT",
             details: {
-              provider: 'longport',
+              provider: "longport",
               timeout: 5000,
               retryCount: 3,
             },
@@ -592,12 +602,16 @@ describe('QueryProcessedResultDto', () => {
 
         expect(processedResult.data.items).toHaveLength(1);
         expect(processedResult.metadata.errors).toHaveLength(2);
-        expect(processedResult.metadata.errors[0].symbol).toBe('INVALID.SYMBOL');
-        expect(processedResult.metadata.errors[1].symbol).toBe('TIMEOUT.SYMBOL');
+        expect(processedResult.metadata.errors[0].symbol).toBe(
+          "INVALID.SYMBOL",
+        );
+        expect(processedResult.metadata.errors[1].symbol).toBe(
+          "TIMEOUT.SYMBOL",
+        );
         expect(processedResult.metadata.dataSources.realtime.misses).toBe(2);
       });
 
-      it('should handle complete query failure', () => {
+      it("should handle complete query failure", () => {
         const emptyData = new PaginatedDataDto<StockData>([], {
           page: 1,
           limit: 10,
@@ -609,12 +623,12 @@ describe('QueryProcessedResultDto', () => {
 
         const errors = [
           {
-            symbol: 'ALL.SYMBOLS',
-            reason: 'All providers unavailable',
-            errorCode: 'ALL_PROVIDERS_DOWN',
+            symbol: "ALL.SYMBOLS",
+            reason: "All providers unavailable",
+            errorCode: "ALL_PROVIDERS_DOWN",
             details: {
-              providers: ['longport', 'longport_sg', 'itick'],
-              lastChecked: '2023-06-01T10:00:00Z',
+              providers: ["longport", "longport_sg", "itick"],
+              lastChecked: "2023-06-01T10:00:00Z",
             },
           },
         ];
@@ -640,13 +654,15 @@ describe('QueryProcessedResultDto', () => {
         expect(processedResult.data.items).toHaveLength(0);
         expect(processedResult.metadata.totalResults).toBe(0);
         expect(processedResult.metadata.errors).toHaveLength(1);
-        expect(processedResult.metadata.errors[0].errorCode).toBe('ALL_PROVIDERS_DOWN');
+        expect(processedResult.metadata.errors[0].errorCode).toBe(
+          "ALL_PROVIDERS_DOWN",
+        );
       });
     });
 
-    describe('Performance Analysis Scenarios', () => {
-      it('should track high-performance cached query', () => {
-        const fastData: StockData[] = [{ symbol: '00700.HK', price: 425.6 }];
+    describe("Performance Analysis Scenarios", () => {
+      it("should track high-performance cached query", () => {
+        const fastData: StockData[] = [{ symbol: "00700.HK", price: 425.6 }];
 
         const paginatedData = new PaginatedDataDto<StockData>(fastData, {
           page: 1,
@@ -683,12 +699,16 @@ describe('QueryProcessedResultDto', () => {
 
         expect(processedResult.metadata.executionTime).toBeLessThan(50);
         expect(processedResult.metadata.cacheUsed).toBe(true);
-        expect(processedResult.metadata.performance.cacheQueryTime).toBeLessThan(10);
+        expect(
+          processedResult.metadata.performance.cacheQueryTime,
+        ).toBeLessThan(10);
         expect(processedResult.metadata.dataSources.cache.hits).toBe(1);
       });
 
-      it('should track slow realtime query', () => {
-        const realtimeData: StockData[] = [{ symbol: 'SLOW.SYMBOL', price: 100.0 }];
+      it("should track slow realtime query", () => {
+        const realtimeData: StockData[] = [
+          { symbol: "SLOW.SYMBOL", price: 100.0 },
+        ];
 
         const paginatedData = new PaginatedDataDto<StockData>(realtimeData, {
           page: 1,
@@ -725,20 +745,25 @@ describe('QueryProcessedResultDto', () => {
 
         expect(processedResult.metadata.executionTime).toBeGreaterThan(3000);
         expect(processedResult.metadata.cacheUsed).toBe(false);
-        expect(processedResult.metadata.performance.realtimeQueryTime).toBeGreaterThan(3000);
+        expect(
+          processedResult.metadata.performance.realtimeQueryTime,
+        ).toBeGreaterThan(3000);
         expect(processedResult.metadata.dataSources.realtime.hits).toBe(1);
       });
     });
 
-    describe('Data Consistency Validation', () => {
-      it('should maintain consistency between data and metadata counts', () => {
+    describe("Data Consistency Validation", () => {
+      it("should maintain consistency between data and metadata counts", () => {
         const items = [
-          { id: 1, value: 'first' },
-          { id: 2, value: 'second' },
-          { id: 3, value: 'third' },
+          { id: 1, value: "first" },
+          { id: 2, value: "second" },
+          { id: 3, value: "third" },
         ];
 
-        const paginatedData = new PaginatedDataDto<{ id: number; value: string }>(items, {
+        const paginatedData = new PaginatedDataDto<{
+          id: number;
+          value: string;
+        }>(items, {
           page: 1,
           limit: 10,
           total: 3,
@@ -759,20 +784,32 @@ describe('QueryProcessedResultDto', () => {
           },
         );
 
-        const processedResult: QueryProcessedResultDto<{ id: number; value: string }> = {
+        const processedResult: QueryProcessedResultDto<{
+          id: number;
+          value: string;
+        }> = {
           data: paginatedData,
           metadata: metadata,
         };
 
-        expect(processedResult.data.items.length).toBe(processedResult.metadata.returnedResults);
-        expect(processedResult.data.pagination.total).toBe(processedResult.metadata.totalResults);
-        expect(processedResult.metadata.dataSources.cache.hits).toBe(processedResult.metadata.totalResults);
+        expect(processedResult.data.items.length).toBe(
+          processedResult.metadata.returnedResults,
+        );
+        expect(processedResult.data.pagination.total).toBe(
+          processedResult.metadata.totalResults,
+        );
+        expect(processedResult.metadata.dataSources.cache.hits).toBe(
+          processedResult.metadata.totalResults,
+        );
       });
 
-      it('should handle inconsistent data gracefully', () => {
-        const items = [{ id: 1, value: 'only_one' }];
+      it("should handle inconsistent data gracefully", () => {
+        const items = [{ id: 1, value: "only_one" }];
 
-        const paginatedData = new PaginatedDataDto<{ id: number; value: string }>(items, {
+        const paginatedData = new PaginatedDataDto<{
+          id: number;
+          value: string;
+        }>(items, {
           page: 1,
           limit: 10,
           total: 5, // Total says 5 but we only have 1 item
@@ -793,7 +830,10 @@ describe('QueryProcessedResultDto', () => {
           },
         );
 
-        const processedResult: QueryProcessedResultDto<{ id: number; value: string }> = {
+        const processedResult: QueryProcessedResultDto<{
+          id: number;
+          value: string;
+        }> = {
           data: paginatedData,
           metadata: metadata,
         };

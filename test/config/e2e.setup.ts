@@ -133,7 +133,7 @@ beforeEach(async () => {
     }
 
     // 重置Redis缓存
-    const redis = testModule.get('default_IORedisModuleConnectionToken');
+    const redis = testModule.get("default_IORedisModuleConnectionToken");
     if (redis) {
       await redis.flushdb();
       await redis.config("RESETSTAT");
@@ -191,7 +191,7 @@ global.registerTestUser = async (userData: any = {}) => {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(7);
   const uniqueSuffix = `${timestamp}_${random}`;
-  
+
   const defaultUser = {
     username: `e2euser_${uniqueSuffix}`,
     email: `e2e_${uniqueSuffix}@example.com`,
@@ -296,19 +296,25 @@ global.expectErrorResponse = (response: any, expectedStatus: number = 400) => {
 };
 
 // Combined credential creation helper
-global.createTestCredentials = async (userData: any = {}, apiKeyData: any = {}) => {
+global.createTestCredentials = async (
+  userData: any = {},
+  apiKeyData: any = {},
+) => {
   // Register test user
   const user = await global.registerTestUser(userData);
-  
+
   // Login to get JWT token
   const loginData = await global.loginTestUser({
     username: user.username,
     password: userData.password || "password123",
   });
-  
+
   // Create API key
-  const apiKey = await global.createTestApiKey(loginData.accessToken, apiKeyData);
-  
+  const apiKey = await global.createTestApiKey(
+    loginData.accessToken,
+    apiKeyData,
+  );
+
   return {
     user,
     jwtToken: loginData.accessToken,

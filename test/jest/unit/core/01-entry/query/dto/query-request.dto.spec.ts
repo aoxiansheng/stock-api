@@ -151,9 +151,7 @@ describe("Query Request DTOs", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("symbols");
-      expect(errors[0].constraints).toHaveProperty(
-        "isNotEmpty",
-      );
+      expect(errors[0].constraints).toHaveProperty("isNotEmpty");
     });
 
     it("should validate limit constraints", async () => {
@@ -233,7 +231,8 @@ describe("Query Request DTOs", () => {
       }
     });
 
-    it("should validate maxAge constraints", async () => { // 修改测试名称
+    it("should validate maxAge constraints", async () => {
+      // 修改测试名称
       const testCases = [
         { maxAge: -1, shouldFail: true }, // Negative
         { maxAge: 0, shouldFail: true, message: "min" }, // Minimum valid
@@ -253,7 +252,8 @@ describe("Query Request DTOs", () => {
           expect(errors.length).toBeGreaterThan(0);
           expect(errors[0].property).toBe("maxAge"); // 修改字段名
         } else {
-          expect(errors.filter((e) => e.property === "maxAge")).toHaveLength( // 修改字段名
+          expect(errors.filter((e) => e.property === "maxAge")).toHaveLength(
+            // 修改字段名
             0,
           );
         }
@@ -346,9 +346,7 @@ describe("Query Request DTOs", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe("options");
       expect(errors[0].children[0].property).toBe("includeFields");
-      expect(errors[0].children[0].constraints).toHaveProperty(
-        "isString",
-      );
+      expect(errors[0].children[0].constraints).toHaveProperty("isString");
     });
 
     it("should validate boolean options correctly", async () => {
@@ -444,8 +442,7 @@ describe("Query Request DTOs", () => {
       // Test invalid type for updateCache
       const queryData = {
         queryType: QueryType.BY_MARKET,
-        options: {
-        },
+        options: {},
       };
 
       const dto = plainToClass(QueryRequestDto, queryData);

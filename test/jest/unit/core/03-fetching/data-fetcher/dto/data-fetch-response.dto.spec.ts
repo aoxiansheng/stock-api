@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { DataFetchResponseDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-response.dto';
-import { DataFetchMetadataDto } from '../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-metadata.dto';
+import { DataFetchResponseDto } from "../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-response.dto";
+import { DataFetchMetadataDto } from "../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-metadata.dto";
 
-describe('DataFetchResponseDto', () => {
+describe("DataFetchResponseDto", () => {
   const mockData = [
     {
-      symbol: '700.HK',
+      symbol: "700.HK",
       last_done: 385.6,
       prev_close: 389.8,
       open: 387.2,
@@ -19,14 +19,14 @@ describe('DataFetchResponseDto', () => {
   ];
 
   const mockMetadata = new DataFetchMetadataDto(
-    'longport',
-    'get-stock-quote',
+    "longport",
+    "get-stock-quote",
     150,
     1,
   );
 
-  describe('constructor', () => {
-    it('should create instance with all fields', () => {
+  describe("constructor", () => {
+    it("should create instance with all fields", () => {
       const dto = new DataFetchResponseDto(mockData, mockMetadata, false);
 
       expect(dto.data).toEqual(mockData);
@@ -34,7 +34,7 @@ describe('DataFetchResponseDto', () => {
       expect(dto.hasPartialFailures).toBe(false);
     });
 
-    it('should create instance with default hasPartialFailures', () => {
+    it("should create instance with default hasPartialFailures", () => {
       const dto = new DataFetchResponseDto(mockData, mockMetadata);
 
       expect(dto.data).toEqual(mockData);
@@ -43,19 +43,19 @@ describe('DataFetchResponseDto', () => {
     });
   });
 
-  describe('static success', () => {
-    it('should create successful response', () => {
+  describe("static success", () => {
+    it("should create successful response", () => {
       const response = DataFetchResponseDto.success(
         mockData,
-        'longport',
-        'get-stock-quote',
+        "longport",
+        "get-stock-quote",
         150,
         1,
       );
 
       expect(response.data).toEqual(mockData);
-      expect(response.metadata.provider).toBe('longport');
-      expect(response.metadata.capability).toBe('get-stock-quote');
+      expect(response.metadata.provider).toBe("longport");
+      expect(response.metadata.capability).toBe("get-stock-quote");
       expect(response.metadata.processingTime).toBe(150);
       expect(response.metadata.symbolsProcessed).toBe(1);
       expect(response.metadata.failedSymbols).toBeUndefined();
@@ -64,15 +64,15 @@ describe('DataFetchResponseDto', () => {
     });
   });
 
-  describe('static partialSuccess', () => {
-    it('should create partial success response', () => {
-      const failedSymbols = ['INVALID.XX'];
-      const errors = ['Symbol not found: INVALID.XX'];
+  describe("static partialSuccess", () => {
+    it("should create partial success response", () => {
+      const failedSymbols = ["INVALID.XX"];
+      const errors = ["Symbol not found: INVALID.XX"];
 
       const response = DataFetchResponseDto.partialSuccess(
         mockData,
-        'longport',
-        'get-stock-quote',
+        "longport",
+        "get-stock-quote",
         150,
         1,
         failedSymbols,
@@ -80,8 +80,8 @@ describe('DataFetchResponseDto', () => {
       );
 
       expect(response.data).toEqual(mockData);
-      expect(response.metadata.provider).toBe('longport');
-      expect(response.metadata.capability).toBe('get-stock-quote');
+      expect(response.metadata.provider).toBe("longport");
+      expect(response.metadata.capability).toBe("get-stock-quote");
       expect(response.metadata.processingTime).toBe(150);
       expect(response.metadata.symbolsProcessed).toBe(1);
       expect(response.metadata.failedSymbols).toEqual(failedSymbols);
@@ -90,12 +90,12 @@ describe('DataFetchResponseDto', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle empty data array', () => {
+  describe("edge cases", () => {
+    it("should handle empty data array", () => {
       const emptyData: any[] = [];
       const metadata = new DataFetchMetadataDto(
-        'longport',
-        'get-stock-quote',
+        "longport",
+        "get-stock-quote",
         50,
         0,
       );
@@ -107,7 +107,7 @@ describe('DataFetchResponseDto', () => {
       expect(dto.hasPartialFailures).toBe(false);
     });
 
-    it('should handle large data arrays', () => {
+    it("should handle large data arrays", () => {
       const largeData = Array.from({ length: 100 }, (_, i) => ({
         symbol: `STOCK${i}.HK`,
         price: 100 + i,
@@ -115,8 +115,8 @@ describe('DataFetchResponseDto', () => {
       }));
 
       const metadata = new DataFetchMetadataDto(
-        'longport',
-        'get-stock-quote',
+        "longport",
+        "get-stock-quote",
         500,
         100,
       );

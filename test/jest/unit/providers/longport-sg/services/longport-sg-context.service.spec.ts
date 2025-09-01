@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Test, TestingModule } from '@nestjs/testing';
-import { LongportSgContextService } from '../../../../../../src/providers/longport-sg/services/longport-sg-context.service';
-import { Config, QuoteContext } from 'longport';
+import { Test, TestingModule } from "@nestjs/testing";
+import { LongportSgContextService } from "../../../../../../src/providers/longport-sg/services/longport-sg-context.service";
+import { Config, QuoteContext } from "longport";
 
 // 模拟 longport 库
-jest.mock('longport', () => ({
+jest.mock("longport", () => ({
   Config: {
     fromEnv: jest.fn(() => ({})), // 模拟 fromEnv 方法
   },
@@ -16,7 +16,7 @@ jest.mock('longport', () => ({
   },
 }));
 
-describe('LongportSgContextService', () => {
+describe("LongportSgContextService", () => {
   let service: LongportSgContextService;
   let mockQuoteContext: any;
 
@@ -40,25 +40,25 @@ describe('LongportSgContextService', () => {
   });
 
   // 测试 onModuleInit 方法
-  it('should call initialize on module init', async () => {
+  it("should call initialize on module init", async () => {
     // 模拟 initialize 方法
-    const initializeSpy = jest.spyOn(service as any, 'initialize');
+    const initializeSpy = jest.spyOn(service as any, "initialize");
     await service.onModuleInit();
     // 断言 initialize 方法被调用
     expect(initializeSpy).toHaveBeenCalled();
   });
 
   // 测试 onModuleDestroy 方法
-  it('should call close on module destroy', async () => {
+  it("should call close on module destroy", async () => {
     // 模拟 close 方法
-    const closeSpy = jest.spyOn(service, 'close');
+    const closeSpy = jest.spyOn(service, "close");
     await service.onModuleDestroy();
     // 断言 close 方法被调用
     expect(closeSpy).toHaveBeenCalled();
   });
 
   // 测试 getQuoteContext 方法
-  it('should return QuoteContext after initialization', async () => {
+  it("should return QuoteContext after initialization", async () => {
     // 调用 getQuoteContext 方法
     const context = await service.getQuoteContext();
     // 断言返回的 context 是否正确
@@ -68,15 +68,15 @@ describe('LongportSgContextService', () => {
   });
 
   // 测试当初始化失败时 getQuoteContext 抛出错误
-  it('should throw error when initialization fails', async () => {
+  it("should throw error when initialization fails", async () => {
     // 模拟 QuoteContext.new 抛出错误
-    (QuoteContext.new as jest.Mock).mockRejectedValue(new Error('Init failed'));
+    (QuoteContext.new as jest.Mock).mockRejectedValue(new Error("Init failed"));
     // 调用 getQuoteContext 方法，期望捕获到错误
-    await expect(service.getQuoteContext()).rejects.toThrow('Init failed');
+    await expect(service.getQuoteContext()).rejects.toThrow("Init failed");
   });
 
   // 测试 close 方法
-  it('should close the QuoteContext connection', async () => {
+  it("should close the QuoteContext connection", async () => {
     // 先初始化
     await service.getQuoteContext();
     // 调用 close 方法
@@ -86,7 +86,7 @@ describe('LongportSgContextService', () => {
   });
 
   // 测试 testConnection 方法
-  it('should return true for a successful connection test', async () => {
+  it("should return true for a successful connection test", async () => {
     // 模拟 quote 方法成功
     mockQuoteContext.quote.mockResolvedValue([]);
     // 调用 testConnection 方法
@@ -94,13 +94,13 @@ describe('LongportSgContextService', () => {
     // 断言返回结果为 true
     expect(result).toBe(true);
     // 断言 quote 方法被调用
-    expect(mockQuoteContext.quote).toHaveBeenCalledWith(['HEALTHCHECK.TEST']);
+    expect(mockQuoteContext.quote).toHaveBeenCalledWith(["HEALTHCHECK.TEST"]);
   });
 
   // 测试 testConnection 方法当连接失败时
-  it('should return false for a failed connection test', async () => {
+  it("should return false for a failed connection test", async () => {
     // 模拟 quote 方法抛出错误
-    mockQuoteContext.quote.mockRejectedValue(new Error('Connection error'));
+    mockQuoteContext.quote.mockRejectedValue(new Error("Connection error"));
     // 调用 testConnection 方法
     const result = await service.testConnection();
     // 断言返回结果为 false
@@ -108,9 +108,11 @@ describe('LongportSgContextService', () => {
   });
 
   // 测试 testConnection 方法当返回 101004 错误时
-  it('should return true if connection test returns 101004 error', async () => {
+  it("should return true if connection test returns 101004 error", async () => {
     // 模拟 quote 方法抛出包含 101004 的错误
-    mockQuoteContext.quote.mockRejectedValue(new Error('Error 101004: Symbol not found'));
+    mockQuoteContext.quote.mockRejectedValue(
+      new Error("Error 101004: Symbol not found"),
+    );
     // 调用 testConnection 方法
     const result = await service.testConnection();
     // 断言返回结果为 true

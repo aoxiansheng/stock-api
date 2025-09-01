@@ -1,38 +1,45 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { Reflector } from '@nestjs/core';
-import { Controller, Post } from '@nestjs/common';
-import { RequirePermissions, PERMISSIONS_KEY } from '../../../../../src/auth/decorators/permissions.decorator';
-import { Permission } from '../../../../../src/auth/enums/user-role.enum';
+import { Reflector } from "@nestjs/core";
+import { Controller, Post } from "@nestjs/common";
+import {
+  RequirePermissions,
+  PERMISSIONS_KEY,
+} from "../../../../../src/auth/decorators/permissions.decorator";
+import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 
 // Test controller for the decorator
-@Controller('test')
+@Controller("test")
 class TestController {
   @RequirePermissions(Permission.DATA_READ)
-  @Post('single-permission')
+  @Post("single-permission")
   singlePermissionMethod() {
-    return 'test';
+    return "test";
   }
 
   @RequirePermissions(Permission.DATA_READ, Permission.QUERY_EXECUTE)
-  @Post('multiple-permissions')
+  @Post("multiple-permissions")
   multiplePermissionsMethod() {
-    return 'test';
+    return "test";
   }
 
-  @RequirePermissions(Permission.CONFIG_WRITE, Permission.PROVIDERS_READ, Permission.SYSTEM_MONITOR)
-  @Post('many-permissions')
+  @RequirePermissions(
+    Permission.CONFIG_WRITE,
+    Permission.PROVIDERS_READ,
+    Permission.SYSTEM_MONITOR,
+  )
+  @Post("many-permissions")
   manyPermissionsMethod() {
-    return 'test';
+    return "test";
   }
 
-  @Post('no-permissions')
+  @Post("no-permissions")
   noPermissionsMethod() {
-    return 'test';
+    return "test";
   }
 }
 
-describe('RequirePermissions Decorator', () => {
+describe("RequirePermissions Decorator", () => {
   let reflector: Reflector;
   let testController: TestController;
 
@@ -41,8 +48,8 @@ describe('RequirePermissions Decorator', () => {
     testController = new TestController();
   });
 
-  describe('Metadata Setting', () => {
-    it('should set metadata for single permission', () => {
+  describe("Metadata Setting", () => {
+    it("should set metadata for single permission", () => {
       // Act - get permission metadata
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
@@ -56,7 +63,7 @@ describe('RequirePermissions Decorator', () => {
       expect(permissions).toContain(Permission.DATA_READ);
     });
 
-    it('should set metadata for multiple permissions', () => {
+    it("should set metadata for multiple permissions", () => {
       // Act - get multiple permission metadata
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
@@ -71,7 +78,7 @@ describe('RequirePermissions Decorator', () => {
       expect(permissions).toContain(Permission.QUERY_EXECUTE);
     });
 
-    it('should set metadata for many permissions', () => {
+    it("should set metadata for many permissions", () => {
       // Act - get many permission metadata
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
@@ -87,7 +94,7 @@ describe('RequirePermissions Decorator', () => {
       expect(permissions).toContain(Permission.SYSTEM_MONITOR);
     });
 
-    it('should not set metadata when decorator is not used', () => {
+    it("should not set metadata when decorator is not used", () => {
       // Act - get metadata from method without decorator
       const permissions = reflector.get<Permission[]>(
         PERMISSIONS_KEY,
@@ -99,16 +106,16 @@ describe('RequirePermissions Decorator', () => {
     });
   });
 
-  describe('Permissions Key Constant', () => {
-    it('should export correct permissions key constant', () => {
+  describe("Permissions Key Constant", () => {
+    it("should export correct permissions key constant", () => {
       // Assert - check the key constant
-      expect(PERMISSIONS_KEY).toBe('permissions');
-      expect(typeof PERMISSIONS_KEY).toBe('string');
+      expect(PERMISSIONS_KEY).toBe("permissions");
+      expect(typeof PERMISSIONS_KEY).toBe("string");
     });
   });
 
-  describe('Permission Enum Values', () => {
-    it('should work with all defined permission values', () => {
+  describe("Permission Enum Values", () => {
+    it("should work with all defined permission values", () => {
       // Arrange - create a decorator with all permissions
       const allPermissions = [
         Permission.DATA_READ,
@@ -135,7 +142,7 @@ describe('RequirePermissions Decorator', () => {
       class AllPermissionsController {
         @RequirePermissions(...allPermissions)
         allPermissionsMethod() {
-          return 'test';
+          return "test";
         }
       }
 
@@ -150,35 +157,35 @@ describe('RequirePermissions Decorator', () => {
       // Assert - check all permission metadata
       expect(permissions).toBeDefined();
       expect(permissions).toHaveLength(allPermissions.length);
-      allPermissions.forEach(permission => {
+      allPermissions.forEach((permission) => {
         expect(permissions).toContain(permission);
       });
     });
   });
 
-  describe('Decorator Function Properties', () => {
-    it('should return a function when called', () => {
+  describe("Decorator Function Properties", () => {
+    it("should return a function when called", () => {
       // Act - call the decorator
       const decorator = RequirePermissions(Permission.DATA_READ);
 
       // Assert - it should return a function
-      expect(typeof decorator).toBe('function');
+      expect(typeof decorator).toBe("function");
     });
 
-    it('should be callable with no parameters', () => {
+    it("should be callable with no parameters", () => {
       // Act & Assert - call without parameters
       expect(() => {
         const decorator = RequirePermissions();
-        expect(typeof decorator).toBe('function');
+        expect(typeof decorator).toBe("function");
       }).not.toThrow();
     });
 
-    it('should handle empty permissions array', () => {
+    it("should handle empty permissions array", () => {
       // Arrange
       class EmptyPermissionsController {
         @RequirePermissions()
         emptyPermissionsMethod() {
-          return 'test';
+          return "test";
         }
       }
 
@@ -197,18 +204,18 @@ describe('RequirePermissions Decorator', () => {
     });
   });
 
-  describe('Metadata Inheritance and Overriding', () => {
-    it('should allow method-level permissions to be set independently', () => {
+  describe("Metadata Inheritance and Overriding", () => {
+    it("should allow method-level permissions to be set independently", () => {
       // Arrange
       class MultiMethodController {
         @RequirePermissions(Permission.DATA_READ)
         methodOne() {
-          return 'method1';
+          return "method1";
         }
 
         @RequirePermissions(Permission.CONFIG_WRITE)
         methodTwo() {
-          return 'method2';
+          return "method2";
         }
       }
 
@@ -231,8 +238,8 @@ describe('RequirePermissions Decorator', () => {
     });
   });
 
-  describe('Type Safety', () => {
-    it('should only accept Permission enum values', () => {
+  describe("Type Safety", () => {
+    it("should only accept Permission enum values", () => {
       // This is checked by TypeScript at compile time
       // This test ensures it doesn't throw at runtime
 
@@ -249,7 +256,7 @@ describe('RequirePermissions Decorator', () => {
       }).not.toThrow();
     });
 
-    it('should maintain permission enum string values', () => {
+    it("should maintain permission enum string values", () => {
       // Arrange & Act
       const testPermissions = [
         Permission.DATA_READ,
@@ -273,41 +280,44 @@ describe('RequirePermissions Decorator', () => {
       ];
 
       // Assert - check permission string format
-      testPermissions.forEach(permission => {
-        expect(typeof permission).toBe('string');
+      testPermissions.forEach((permission) => {
+        expect(typeof permission).toBe("string");
         expect(permission.length).toBeGreaterThan(0);
         expect(permission).toMatch(/^[a-z]+:[a-z]+$/); // e.g., "data:read"
       });
     });
   });
 
-  describe('Integration with NestJS Metadata System', () => {
-    it('should work with NestJS Reflector to retrieve metadata', () => {
+  describe("Integration with NestJS Metadata System", () => {
+    it("should work with NestJS Reflector to retrieve metadata", () => {
       // Arrange
       class IntegrationTestController {
         @RequirePermissions(Permission.SYSTEM_ADMIN)
         adminMethod() {
-          return 'admin';
+          return "admin";
         }
       }
 
       const controller = new IntegrationTestController();
 
       // Act - use NestJS Reflector to get metadata
-      const permissions = reflector.get<Permission[]>(PERMISSIONS_KEY, controller.adminMethod);
+      const permissions = reflector.get<Permission[]>(
+        PERMISSIONS_KEY,
+        controller.adminMethod,
+      );
 
       // Assert - check NestJS metadata retrieval
       expect(permissions).toBeDefined();
     });
 
-    it('should be compatible with other NestJS decorators', () => {
+    it("should be compatible with other NestJS decorators", () => {
       // Arrange & Act - check compatibility with other decorators
       expect(() => {
         class CombinedDecoratorsController {
           @RequirePermissions(Permission.DATA_READ)
-          @Post('combined')
+          @Post("combined")
           combinedMethod() {
-            return 'combined';
+            return "combined";
           }
         }
 
@@ -323,8 +333,8 @@ describe('RequirePermissions Decorator', () => {
     });
   });
 
-  describe('Performance and Memory', () => {
-    it('should not create excessive metadata overhead', () => {
+  describe("Performance and Memory", () => {
+    it("should not create excessive metadata overhead", () => {
       // Arrange
       const methodCount = 100;
 
@@ -342,14 +352,21 @@ describe('RequirePermissions Decorator', () => {
           configurable: true,
         };
         Object.defineProperty(targetPrototype, methodName, descriptor);
-        RequirePermissions(Permission.DATA_READ)(targetPrototype, methodName, descriptor);
+        RequirePermissions(Permission.DATA_READ)(
+          targetPrototype,
+          methodName,
+          descriptor,
+        );
       }
 
       // Assert: Check metadata for all dynamically created methods
       for (let i = 0; i < methodCount; i++) {
         const methodName = `method${i}`;
         const methodOnPrototype = (targetPrototype as any)[methodName];
-        const permissions = reflector.get<Permission[]>(PERMISSIONS_KEY, methodOnPrototype);
+        const permissions = reflector.get<Permission[]>(
+          PERMISSIONS_KEY,
+          methodOnPrototype,
+        );
         expect(permissions).toEqual([Permission.DATA_READ]);
       }
     });

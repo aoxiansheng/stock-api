@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { io, Socket } from 'socket.io-client';
+import { io, Socket } from "socket.io-client";
 
 describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
   let httpServer: any;
@@ -11,7 +11,7 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
   beforeAll(async () => {
     httpServer = global.createTestRequest();
     await setupAuthentication();
-    
+
     const port = process.env.TEST_PORT || 3333;
     serverAddress = `http://localhost:${port}`;
   });
@@ -37,7 +37,8 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
       password: userData.password,
     });
 
-    jwtToken = loginResponse.body.data?.accessToken || loginResponse.body.accessToken;
+    jwtToken =
+      loginResponse.body.data?.accessToken || loginResponse.body.accessToken;
 
     const apiKeyData = {
       name: "Stream Receiver Test API Key",
@@ -68,7 +69,7 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
   function createWebSocketClient(auth = true): Promise<Socket> {
     return new Promise((resolve, reject) => {
       const connectionOptions: any = {
-        transports: ['websocket'],
+        transports: ["websocket"],
         timeout: 10000,
       };
 
@@ -81,17 +82,17 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
 
       const socket = io(serverAddress, {
         ...connectionOptions,
-        path: '/api/v1/stream-receiver/connect',
+        path: "/api/v1/stream-receiver/connect",
       });
 
       let timeoutId: NodeJS.Timeout;
 
-      socket.on('connect', () => {
+      socket.on("connect", () => {
         if (timeoutId) clearTimeout(timeoutId);
         resolve(socket);
       });
 
-      socket.on('connect_error', (error) => {
+      socket.on("connect_error", (error) => {
         if (timeoutId) clearTimeout(timeoutId);
         reject(error);
       });
@@ -99,7 +100,7 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
       timeoutId = setTimeout(() => {
         if (!socket.connected) {
           socket.disconnect();
-          reject(new Error('WebSocket connection timeout'));
+          reject(new Error("WebSocket connection timeout"));
         }
       }, 10000);
     });
@@ -124,21 +125,21 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
 
     it("should handle subscribe to stock symbols", async () => {
       const subscribeData = {
-        symbols: ['AAPL'],
-        wsCapabilityType: 'stream-stock-quote'
+        symbols: ["AAPL"],
+        wsCapabilityType: "stream-stock-quote",
       };
-      
-      clientSocket.emit('subscribe', subscribeData);
+
+      clientSocket.emit("subscribe", subscribeData);
       expect(clientSocket.connected).toBe(true);
     });
 
     it("should validate subscription parameters", async () => {
       const invalidData = {
         symbols: "not an array",
-        wsCapabilityType: 'stream-stock-quote'
+        wsCapabilityType: "stream-stock-quote",
       };
-      
-      clientSocket.emit('subscribe', invalidData);
+
+      clientSocket.emit("subscribe", invalidData);
       expect(clientSocket.connected).toBe(true);
     });
   });
@@ -153,13 +154,13 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
         null,
         undefined,
         "not an object",
-        { malformed: "data" }
+        { malformed: "data" },
       ];
 
       for (const message of malformedMessages) {
-        clientSocket.emit('subscribe', message);
+        clientSocket.emit("subscribe", message);
       }
-      
+
       // Should still be connected
       expect(clientSocket.connected).toBe(true);
     });

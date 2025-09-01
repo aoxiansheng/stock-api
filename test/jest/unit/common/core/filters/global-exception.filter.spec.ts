@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import { ValidationError } from 'class-validator';
-import { Request, Response } from 'express';
-import { GlobalExceptionFilter } from '../../../../../../src/common/core/filters/global-exception.filter';
+import { ArgumentsHost, HttpException, HttpStatus } from "@nestjs/common";
+import { ValidationError } from "class-validator";
+import { Request, Response } from "express";
+import { GlobalExceptionFilter } from "../../../../../../src/common/core/filters/global-exception.filter";
 
-describe('GlobalExceptionFilter', () => {
+describe("GlobalExceptionFilter", () => {
   let filter: GlobalExceptionFilter;
   let mockArgumentsHost: jest.Mocked<ArgumentsHost>;
   let mockResponse: jest.Mocked<Response>;
@@ -21,13 +21,13 @@ describe('GlobalExceptionFilter', () => {
     } as any;
 
     mockRequest = {
-      method: 'GET',
-      url: '/api/test',
-      ip: '127.0.0.1',
+      method: "GET",
+      url: "/api/test",
+      ip: "127.0.0.1",
       headers: {
-        'user-agent': 'Test User Agent',
-        'x-request-id': 'test-request-id',
-        'x-correlation-id': 'test-correlation-id',
+        "user-agent": "Test User Agent",
+        "x-request-id": "test-request-id",
+        "x-correlation-id": "test-correlation-id",
       },
     } as any;
 
@@ -39,9 +39,9 @@ describe('GlobalExceptionFilter', () => {
     } as any;
 
     // Mock console methods to avoid output during tests
-    jest.spyOn(console, 'log').mockImplementation();
-    jest.spyOn(console, 'warn').mockImplementation();
-    jest.spyOn(console, 'error').mockImplementation();
+    jest.spyOn(console, "log").mockImplementation();
+    jest.spyOn(console, "warn").mockImplementation();
+    jest.spyOn(console, "error").mockImplementation();
   });
 
   afterEach(() => {
@@ -49,9 +49,12 @@ describe('GlobalExceptionFilter', () => {
     jest.restoreAllMocks();
   });
 
-  describe('HTTP Exceptions', () => {
-    it('should handle HttpException with string message', () => {
-      const exception = new HttpException('Test error message', HttpStatus.BAD_REQUEST);
+  describe("HTTP Exceptions", () => {
+    it("should handle HttpException with string message", () => {
+      const exception = new HttpException(
+        "Test error message",
+        HttpStatus.BAD_REQUEST,
+      );
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -59,28 +62,31 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 400,
-          message: 'Test error message',
+          message: "Test error message",
           data: null,
           timestamp: expect.any(String),
           error: expect.objectContaining({
-            code: 'BAD_REQUEST',
+            code: "BAD_REQUEST",
             details: expect.objectContaining({
-              type: 'HttpException',
-              path: '/api/test',
-              correlationId: 'test-correlation-id',
-              requestId: 'test-request-id',
+              type: "HttpException",
+              path: "/api/test",
+              correlationId: "test-correlation-id",
+              requestId: "test-request-id",
             }),
           }),
         }),
       );
     });
 
-    it('should handle HttpException with object response', () => {
+    it("should handle HttpException with object response", () => {
       const exceptionResponse = {
-        message: 'Validation failed',
-        error: 'Bad Request',
+        message: "Validation failed",
+        error: "Bad Request",
       };
-      const exception = new HttpException(exceptionResponse, HttpStatus.BAD_REQUEST);
+      const exception = new HttpException(
+        exceptionResponse,
+        HttpStatus.BAD_REQUEST,
+      );
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -88,19 +94,22 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 400,
-          message: 'Validation failed',
+          message: "Validation failed",
           error: expect.objectContaining({
-            code: 'BAD_REQUEST',
+            code: "BAD_REQUEST",
             details: expect.objectContaining({
-              type: 'Bad Request',
+              type: "Bad Request",
             }),
           }),
         }),
       );
     });
 
-    it('should handle UnauthorizedException', () => {
-      const exception = new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+    it("should handle UnauthorizedException", () => {
+      const exception = new HttpException(
+        "Unauthorized",
+        HttpStatus.UNAUTHORIZED,
+      );
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -108,19 +117,19 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 401,
-          message: '未授权访问',
+          message: "未授权访问",
           error: expect.objectContaining({
-            code: 'UNAUTHORIZED',
+            code: "UNAUTHORIZED",
             details: expect.objectContaining({
-              type: 'AuthenticationError',
+              type: "AuthenticationError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle ForbiddenException', () => {
-      const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    it("should handle ForbiddenException", () => {
+      const exception = new HttpException("Forbidden", HttpStatus.FORBIDDEN);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -128,24 +137,30 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 403,
-          message: '访问被禁止',
+          message: "访问被禁止",
           error: expect.objectContaining({
-            code: 'FORBIDDEN',
+            code: "FORBIDDEN",
             details: expect.objectContaining({
-              type: 'ForbiddenException',
+              type: "ForbiddenException",
             }),
           }),
         }),
       );
     });
 
-    it('should handle validation errors in HttpException', () => {
-      const validationMessages = ['Field1 is required', 'Field2 must be a number'];
+    it("should handle validation errors in HttpException", () => {
+      const validationMessages = [
+        "Field1 is required",
+        "Field2 must be a number",
+      ];
       const exceptionResponse = {
         message: validationMessages,
-        error: 'Bad Request',
+        error: "Bad Request",
       };
-      const exception = new HttpException(exceptionResponse, HttpStatus.BAD_REQUEST);
+      const exception = new HttpException(
+        exceptionResponse,
+        HttpStatus.BAD_REQUEST,
+      );
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -153,11 +168,11 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 400,
-          message: '验证失败:Field1 is required, Field2 must be a number',
+          message: "验证失败:Field1 is required, Field2 must be a number",
           error: expect.objectContaining({
-            code: 'VALIDATION_ERROR',
+            code: "VALIDATION_ERROR",
             details: expect.objectContaining({
-              type: 'ValidationError',
+              type: "ValidationError",
               fields: expect.any(Array),
             }),
           }),
@@ -166,21 +181,21 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Validation Errors', () => {
-    it('should handle ValidationError array', () => {
+  describe("Validation Errors", () => {
+    it("should handle ValidationError array", () => {
       const validationErrors: ValidationError[] = [
         {
-          property: 'email',
+          property: "email",
           const_raints: {
-            isEmail: 'email must be an email',
-            isNotEmpty: 'email should not be empty',
+            isEmail: "email must be an email",
+            isNotEmpty: "email should not be empty",
           },
           children: [],
         } as ValidationError,
         {
-          property: 'age',
+          property: "age",
           const_raints: {
-            isNumber: 'age must be a number',
+            isNumber: "age must be a number",
           },
           children: [],
         } as ValidationError,
@@ -194,18 +209,18 @@ describe('GlobalExceptionFilter', () => {
           statusCode: 400,
           message: expect.any(String),
           error: expect.objectContaining({
-            code: 'VALIDATION_ERROR',
+            code: "VALIDATION_ERROR",
             details: expect.objectContaining({
-              type: 'ValidationError',
+              type: "ValidationError",
               fields: expect.arrayContaining([
                 expect.objectContaining({
-                  field: 'email',
-                  code: 'isEmail',
+                  field: "email",
+                  code: "isEmail",
                   message: expect.any(String),
                 }),
                 expect.objectContaining({
-                  field: 'age',
-                  code: 'isNumber',
+                  field: "age",
+                  code: "isNumber",
                   message: expect.any(String),
                 }),
               ]),
@@ -215,7 +230,7 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    it('should handle empty ValidationError array', () => {
+    it("should handle empty ValidationError array", () => {
       const validationErrors: ValidationError[] = [];
 
       filter.catch(validationErrors, mockArgumentsHost);
@@ -224,15 +239,15 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
     });
 
-    it('should handle nested ValidationError', () => {
+    it("should handle nested ValidationError", () => {
       const nestedValidationError: ValidationError = {
-        property: 'address',
+        property: "address",
         const_raints: {},
         children: [
           {
-            property: 'street',
+            property: "street",
             const_raints: {
-              isNotEmpty: 'street should not be empty',
+              isNotEmpty: "street should not be empty",
             },
             children: [],
           } as ValidationError,
@@ -248,8 +263,8 @@ describe('GlobalExceptionFilter', () => {
             details: expect.objectContaining({
               fields: expect.arrayContaining([
                 expect.objectContaining({
-                  field: 'address.street',
-                  code: 'isNotEmpty',
+                  field: "address.street",
+                  code: "isNotEmpty",
                 }),
               ]),
             }),
@@ -259,12 +274,12 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('MongoDB Errors', () => {
-    it('should handle duplicate key error (code 11000)', () => {
+  describe("MongoDB Errors", () => {
+    it("should handle duplicate key error (code 11000)", () => {
       const mongoError = {
-        name: 'MongoError',
+        name: "MongoError",
         code: 11000,
-        message: 'Duplicate key error',
+        message: "Duplicate key error",
       };
 
       filter.catch(mongoError, mockArgumentsHost);
@@ -273,22 +288,22 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 409,
-          message: '数据已存在，无法重复创建',
+          message: "数据已存在，无法重复创建",
           error: expect.objectContaining({
-            code: 'RESOURCE_CONFLICT',
+            code: "RESOURCE_CONFLICT",
             details: expect.objectContaining({
-              type: 'DatabaseError',
+              type: "DatabaseError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle other MongoDB errors', () => {
+    it("should handle other MongoDB errors", () => {
       const mongoError = {
-        name: 'MongoError',
+        name: "MongoError",
         code: 121,
-        message: 'Document validation failed',
+        message: "Document validation failed",
       };
 
       filter.catch(mongoError, mockArgumentsHost);
@@ -298,9 +313,9 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           statusCode: 500,
           error: expect.objectContaining({
-            code: 'INTERNAL_SERVER_ERROR',
+            code: "INTERNAL_SERVER_ERROR",
             details: expect.objectContaining({
-              type: 'DatabaseError',
+              type: "DatabaseError",
             }),
           }),
         }),
@@ -308,11 +323,11 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('JWT Errors', () => {
-    it('should handle JsonWebTokenError', () => {
+  describe("JWT Errors", () => {
+    it("should handle JsonWebTokenError", () => {
       const jwtError = {
-        name: 'JsonWebTokenError',
-        message: 'invalid signature',
+        name: "JsonWebTokenError",
+        message: "invalid signature",
       };
 
       filter.catch(jwtError, mockArgumentsHost);
@@ -321,23 +336,23 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 401,
-          message: 'token无效',
+          message: "token无效",
           error: expect.objectContaining({
-            code: 'INVALID_TOKEN',
+            code: "INVALID_TOKEN",
             details: expect.objectContaining({
-              type: 'AuthenticationError',
-              tokenType: 'JWT',
-              errorName: 'JsonWebTokenError',
+              type: "AuthenticationError",
+              tokenType: "JWT",
+              errorName: "JsonWebTokenError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle TokenExpiredError', () => {
+    it("should handle TokenExpiredError", () => {
       const jwtError = {
-        name: 'TokenExpiredError',
-        message: 'jwt expired',
+        name: "TokenExpiredError",
+        message: "jwt expired",
         expiredAt: new Date(),
       };
 
@@ -347,23 +362,23 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 401,
-          message: 'token已过期',
+          message: "token已过期",
           error: expect.objectContaining({
-            code: 'TOKEN_EXPIRED',
+            code: "TOKEN_EXPIRED",
             details: expect.objectContaining({
-              type: 'AuthenticationError',
-              tokenType: 'JWT',
-              errorName: 'TokenExpiredError',
+              type: "AuthenticationError",
+              tokenType: "JWT",
+              errorName: "TokenExpiredError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle NotBeforeError', () => {
+    it("should handle NotBeforeError", () => {
       const jwtError = {
-        name: 'NotBeforeError',
-        message: 'jwt not active',
+        name: "NotBeforeError",
+        message: "jwt not active",
         date: new Date(),
       };
 
@@ -373,13 +388,13 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 401,
-          message: 'token尚未生效',
+          message: "token尚未生效",
           error: expect.objectContaining({
-            code: 'TOKEN_NOT_ACTIVE',
+            code: "TOKEN_NOT_ACTIVE",
             details: expect.objectContaining({
-              type: 'AuthenticationError',
-              tokenType: 'JWT',
-              errorName: 'NotBeforeError',
+              type: "AuthenticationError",
+              tokenType: "JWT",
+              errorName: "NotBeforeError",
             }),
           }),
         }),
@@ -387,12 +402,12 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Database Connection Errors', () => {
-    it('should handle ECONNREFUSED', () => {
+  describe("Database Connection Errors", () => {
+    it("should handle ECONNREFUSED", () => {
       const connError = {
-        name: 'Error',
-        code: 'ECONNREFUSED',
-        message: 'Connection refused',
+        name: "Error",
+        code: "ECONNREFUSED",
+        message: "Connection refused",
       };
 
       filter.catch(connError, mockArgumentsHost);
@@ -401,22 +416,22 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 503,
-          message: '数据库服务暂时不可用，请稍后重试',
+          message: "数据库服务暂时不可用，请稍后重试",
           error: expect.objectContaining({
-            code: 'SERVICE_UNAVAILABLE',
+            code: "SERVICE_UNAVAILABLE",
             details: expect.objectContaining({
-              type: 'DatabaseConnectionError',
+              type: "DatabaseConnectionError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle connection timeout', () => {
+    it("should handle connection timeout", () => {
       const timeoutError = {
-        name: 'Error',
-        code: 'ETIMEDOUT',
-        message: 'Connection timeout',
+        name: "Error",
+        code: "ETIMEDOUT",
+        message: "Connection timeout",
       };
 
       filter.catch(timeoutError, mockArgumentsHost);
@@ -425,11 +440,11 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 408,
-          message: '请求超时，请稍后重试',
+          message: "请求超时，请稍后重试",
           error: expect.objectContaining({
-            code: 'REQUEST_TIMEOUT',
+            code: "REQUEST_TIMEOUT",
             details: expect.objectContaining({
-              type: 'TimeoutError',
+              type: "TimeoutError",
             }),
           }),
         }),
@@ -437,10 +452,12 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('JSON Parsing Errors', () => {
-    it('should handle JSON syntax error', () => {
-      const jsonError = new SyntaxError('Unexpected token } in JSON at position 10');
-      jsonError.name = 'SyntaxError';
+  describe("JSON Parsing Errors", () => {
+    it("should handle JSON syntax error", () => {
+      const jsonError = new SyntaxError(
+        "Unexpected token } in JSON at position 10",
+      );
+      jsonError.name = "SyntaxError";
 
       filter.catch(jsonError, mockArgumentsHost);
 
@@ -448,12 +465,12 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 400,
-          message: 'JSON格式错误',
+          message: "JSON格式错误",
           error: expect.objectContaining({
-            code: 'BAD_REQUEST',
+            code: "BAD_REQUEST",
             details: expect.objectContaining({
-              type: 'InvalidJSON',
-              originalMessage: 'Unexpected token } in JSON at position 10',
+              type: "InvalidJSON",
+              originalMessage: "Unexpected token } in JSON at position 10",
               position: 10,
             }),
           }),
@@ -462,12 +479,12 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Custom Status Code Errors', () => {
-    it('should handle custom error with statusCode', () => {
+  describe("Custom Status Code Errors", () => {
+    it("should handle custom error with statusCode", () => {
       const customError = {
         statusCode: 422,
-        name: 'CustomValidationError',
-        message: 'Custom validation failed',
+        name: "CustomValidationError",
+        message: "Custom validation failed",
       };
 
       filter.catch(customError, mockArgumentsHost);
@@ -476,11 +493,11 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 422,
-          message: 'Custom validation failed',
+          message: "Custom validation failed",
           error: expect.objectContaining({
-            code: 'UNKNOWN_ERROR',
+            code: "UNKNOWN_ERROR",
             details: expect.objectContaining({
-              type: 'CustomValidationError',
+              type: "CustomValidationError",
             }),
           }),
         }),
@@ -488,9 +505,9 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Generic Error Handling', () => {
-    it('should handle generic Error', () => {
-      const genericError = new Error('Something went wrong');
+  describe("Generic Error Handling", () => {
+    it("should handle generic Error", () => {
+      const genericError = new Error("Something went wrong");
 
       filter.catch(genericError, mockArgumentsHost);
 
@@ -498,19 +515,19 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 500,
-          message: 'Something went wrong',
+          message: "Something went wrong",
           error: expect.objectContaining({
-            code: 'INTERNAL_SERVER_ERROR',
+            code: "INTERNAL_SERVER_ERROR",
             details: expect.objectContaining({
-              type: 'InternalServerError',
+              type: "InternalServerError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle unknown exception type', () => {
-      const unknownException = 'string exception';
+    it("should handle unknown exception type", () => {
+      const unknownException = "string exception";
 
       filter.catch(unknownException, mockArgumentsHost);
 
@@ -518,18 +535,18 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 500,
-          message: '服务器内部错误',
+          message: "服务器内部错误",
           error: expect.objectContaining({
-            code: 'INTERNAL_SERVER_ERROR',
+            code: "INTERNAL_SERVER_ERROR",
             details: expect.objectContaining({
-              type: 'UnknownError',
+              type: "UnknownError",
             }),
           }),
         }),
       );
     });
 
-    it('should handle null exception', () => {
+    it("should handle null exception", () => {
       filter.catch(null, mockArgumentsHost);
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
@@ -537,9 +554,9 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           statusCode: 500,
           error: expect.objectContaining({
-            code: 'INTERNAL_SERVER_ERROR',
+            code: "INTERNAL_SERVER_ERROR",
             details: expect.objectContaining({
-              type: 'UnknownError',
+              type: "UnknownError",
             }),
           }),
         }),
@@ -547,9 +564,9 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Request Context Handling', () => {
-    it('should handle request without user or apiKey', () => {
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+  describe("Request Context Handling", () => {
+    it("should handle request without user or apiKey", () => {
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -565,10 +582,10 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    it('should include user and apiKey info when available', () => {
-      mockRequest.user = { id: 'user-123' };
-      mockRequest.apiKey = { id: 'key-456' };
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+    it("should include user and apiKey info when available", () => {
+      mockRequest.user = { id: "user-123" };
+      mockRequest.apiKey = { id: "key-456" };
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -576,17 +593,20 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           error: expect.objectContaining({
             details: expect.objectContaining({
-              requestId: 'test-request-id',
-              correlationId: 'test-correlation-id',
+              requestId: "test-request-id",
+              correlationId: "test-correlation-id",
             }),
           }),
         }),
       );
     });
 
-    it('should include API key in error details for 401 errors', () => {
-      mockRequest.headers!['x-app-key'] = 'test-app-key';
-      const exception = new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+    it("should include API key in error details for 401 errors", () => {
+      mockRequest.headers!["x-app-key"] = "test-app-key";
+      const exception = new HttpException(
+        "Unauthorized",
+        HttpStatus.UNAUTHORIZED,
+      );
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -594,7 +614,7 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           error: expect.objectContaining({
             details: expect.objectContaining({
-              providedKey: 'test-app-key',
+              providedKey: "test-app-key",
             }),
           }),
         }),
@@ -602,10 +622,10 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Path Sanitization', () => {
-    it('should sanitize XSS attempts in path', () => {
+  describe("Path Sanitization", () => {
+    it("should sanitize XSS attempts in path", () => {
       mockRequest.url = '/api/test?_param=<script>alert("xss")</script>';
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -613,16 +633,16 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           error: expect.objectContaining({
             details: expect.objectContaining({
-              path: expect.stringContaining('[FILTERED]'),
+              path: expect.stringContaining("[FILTERED]"),
             }),
           }),
         }),
       );
     });
 
-    it('should sanitize SQL injection attempts in path', () => {
-      mockRequest.url = '/api/test?id=1 UNION SELECT * FROM users';
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+    it("should sanitize SQL injection attempts in path", () => {
+      mockRequest.url = "/api/test?id=1 UNION SELECT * FROM users";
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -630,16 +650,16 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           error: expect.objectContaining({
             details: expect.objectContaining({
-              path: expect.stringContaining('[FILTERED]'),
+              path: expect.stringContaining("[FILTERED]"),
             }),
           }),
         }),
       );
     });
 
-    it('should handle very long paths', () => {
-      mockRequest.url = '/api/test?' + 'a'.repeat(300);
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+    it("should handle very long paths", () => {
+      mockRequest.url = "/api/test?" + "a".repeat(300);
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -647,7 +667,7 @@ describe('GlobalExceptionFilter', () => {
         expect.objectContaining({
           error: expect.objectContaining({
             details: expect.objectContaining({
-              path: expect.stringContaining('[TRUNCATED]'),
+              path: expect.stringContaining("[TRUNCATED]"),
             }),
           }),
         }),
@@ -655,13 +675,15 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Response Write Errors', () => {
-    it('should handle response write failures gracefully', () => {
+  describe("Response Write Errors", () => {
+    it("should handle response write failures gracefully", () => {
       mockResponse.status.mockImplementation(() => {
-        throw new Error('Response already sent');
+        throw new Error("Response already sent");
       });
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
-      const loggerSpy = jest.spyOn((filter as any).logger, 'error').mockImplementation();
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
+      const loggerSpy = jest
+        .spyOn((filter as any).logger, "error")
+        .mockImplementation();
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -670,11 +692,11 @@ describe('GlobalExceptionFilter', () => {
       loggerSpy.mockRestore();
     });
 
-    it('should handle setHeader failures gracefully', () => {
+    it("should handle setHeader failures gracefully", () => {
       mockResponse.setHeader.mockImplementation(() => {
-        throw new Error('Headers already sent');
+        throw new Error("Headers already sent");
       });
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -683,33 +705,33 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Environment-specific Behavior', () => {
-    it('should hide error details in production', () => {
+  describe("Environment-specific Behavior", () => {
+    it("should hide error details in production", () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODEENV = 'production';
+      process.env.NODEENV = "production";
 
-      const error = new Error('Sensitive error details');
+      const error = new Error("Sensitive error details");
       filter.catch(error, mockArgumentsHost);
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: '服务器内部错误',
+          message: "服务器内部错误",
         }),
       );
 
       process.env.NODE_ENV = originalEnv;
     });
 
-    it('should show error details in development', () => {
+    it("should show error details in development", () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      process.env.NODE_ENV = "development";
 
-      const error = new Error('Detailed error message');
+      const error = new Error("Detailed error message");
       filter.catch(error, mockArgumentsHost);
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'Detailed error message',
+          message: "Detailed error message",
         }),
       );
 
@@ -717,10 +739,10 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle request without headers', () => {
+  describe("Edge Cases", () => {
+    it("should handle request without headers", () => {
       delete mockRequest.headers;
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
@@ -736,13 +758,13 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    it('should handle null request', () => {
+    it("should handle null request", () => {
       mockArgumentsHost.switchToHttp.mockReturnValue({
         getResponse: jest.fn().mockReturnValue(mockResponse),
         getRequest: jest.fn().mockReturnValue(null),
       } as any);
 
-      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+      const exception = new HttpException("Test error", HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 

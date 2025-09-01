@@ -22,7 +22,7 @@ import { RequirePermissions } from "../../../../auth/decorators/permissions.deco
 import { Permission } from "../../../../auth/enums/user-role.enum";
 
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
-import { StorageType } from "../enums/storage-type.enum";
+import { StorageType } from '../enums/storage-type.enum';
 import {
   StorageResponseDto,
   StorageStatsDto,

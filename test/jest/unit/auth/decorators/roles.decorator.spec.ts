@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { Reflector } from '@nestjs/core';
-import { Roles, ROLES_KEY } from '../../../../../src/auth/decorators/roles.decorator';
-import { UserRole } from '../../../../../src/auth/enums/user-role.enum';
+import { Reflector } from "@nestjs/core";
+import {
+  Roles,
+  ROLES_KEY,
+} from "../../../../../src/auth/decorators/roles.decorator";
+import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
 
-describe('Roles Decorator', () => {
+describe("Roles Decorator", () => {
   let reflector: Reflector;
 
   beforeEach(() => {
@@ -25,30 +28,42 @@ describe('Roles Decorator', () => {
     emptyRolesMethod() {}
   }
 
-  it('should set metadata for a single role', () => {
-    const roles = reflector.get<UserRole[]>(ROLES_KEY, TestClass.prototype.adminMethod);
+  it("should set metadata for a single role", () => {
+    const roles = reflector.get<UserRole[]>(
+      ROLES_KEY,
+      TestClass.prototype.adminMethod,
+    );
     expect(roles).toBeDefined();
     expect(roles).toEqual([UserRole.ADMIN]);
   });
 
-  it('should set metadata for multiple roles', () => {
-    const roles = reflector.get<UserRole[]>(ROLES_KEY, TestClass.prototype.adminDeveloperMethod);
+  it("should set metadata for multiple roles", () => {
+    const roles = reflector.get<UserRole[]>(
+      ROLES_KEY,
+      TestClass.prototype.adminDeveloperMethod,
+    );
     expect(roles).toBeDefined();
     expect(roles).toEqual([UserRole.ADMIN, UserRole.DEVELOPER]);
   });
 
-  it('should not set metadata when the decorator is not used', () => {
-    const roles = reflector.get<UserRole[]>(ROLES_KEY, TestClass.prototype.publicMethod);
+  it("should not set metadata when the decorator is not used", () => {
+    const roles = reflector.get<UserRole[]>(
+      ROLES_KEY,
+      TestClass.prototype.publicMethod,
+    );
     expect(roles).toBeUndefined();
   });
 
-  it('should return an empty array when no roles are passed to the decorator', () => {
-    const roles = reflector.get<UserRole[]>(ROLES_KEY, TestClass.prototype.emptyRolesMethod);
+  it("should return an empty array when no roles are passed to the decorator", () => {
+    const roles = reflector.get<UserRole[]>(
+      ROLES_KEY,
+      TestClass.prototype.emptyRolesMethod,
+    );
     expect(roles).toBeDefined();
     expect(roles).toEqual([]);
   });
 
-  it('should export the correct ROLES_KEY constant', () => {
-    expect(ROLES_KEY).toBe('roles');
+  it("should export the correct ROLES_KEY constant", () => {
+    expect(ROLES_KEY).toBe("roles");
   });
 });

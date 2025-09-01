@@ -110,7 +110,7 @@ describe("AlertConfig", () => {
 
     it('should be registered as "alert" config', () => {
       // Test that it's a NestJS config factory
-      expect(typeof alertConfig).toBe('function');
+      expect(typeof alertConfig).toBe("function");
     });
   });
 

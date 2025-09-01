@@ -11,11 +11,12 @@ describe("SystemPersistenceController E2E", () => {
 
   beforeAll(async () => {
     request = global.createTestRequest();
-    
+
     // 系统预设持久化需要管理员JWT认证
-    const { jwtToken: testJwtToken, apiKey: testApiKey } = await global.createTestCredentials({
-      role: "admin"  // 指定为管理员角色
-    });
+    const { jwtToken: testJwtToken, apiKey: testApiKey } =
+      await global.createTestCredentials({
+        role: "admin", // 指定为管理员角色
+      });
     jwtToken = testJwtToken;
     apiKey = testApiKey;
   });
@@ -32,17 +33,17 @@ describe("SystemPersistenceController E2E", () => {
         // Assert
         global.expectSuccessResponse(response, 200);
         const result = response.body.data;
-        
+
         expect(result).toHaveProperty("created");
         expect(result).toHaveProperty("updated");
         expect(result).toHaveProperty("skipped");
         expect(result).toHaveProperty("details");
-        
+
         expect(result.created).toBeGreaterThanOrEqual(0);
         expect(result.updated).toBeGreaterThanOrEqual(0);
         expect(result.skipped).toBeGreaterThanOrEqual(0);
         expect(result.details).toBeInstanceOf(Array);
-        
+
         // 验证总数合理
         const total = result.created + result.updated + result.skipped;
         expect(total).toBeGreaterThan(0);
@@ -64,9 +65,11 @@ describe("SystemPersistenceController E2E", () => {
         // Assert
         const firstResult = firstResponse.body.data;
         const secondResult = secondResponse.body.data;
-        
+
         // 第二次执行时，跳过的数量应该增加
-        expect(secondResult.skipped).toBeGreaterThanOrEqual(firstResult.created);
+        expect(secondResult.skipped).toBeGreaterThanOrEqual(
+          firstResult.created,
+        );
       });
     });
 
@@ -119,7 +122,7 @@ describe("SystemPersistenceController E2E", () => {
           .set("X-App-Key", apiKey.appKey)
           .set("X-Access-Token", apiKey.accessToken)
           .expect(200);
-        
+
         if (templatesResponse.body.data.items.length > 0) {
           templateId = templatesResponse.body.data.items[0].id;
         }
@@ -186,15 +189,17 @@ describe("SystemPersistenceController E2E", () => {
           .set("X-Access-Token", apiKey.accessToken)
           .expect(200);
 
-        const templateIds = templatesResponse.body.data.items.map(item => item.id);
-        
+        const templateIds = templatesResponse.body.data.items.map(
+          (item) => item.id,
+        );
+
         if (templateIds.length === 0) {
           console.log("跳过批量重置测试 - 没有可用的模板");
           return;
         }
 
         const resetRequest = {
-          ids: templateIds
+          ids: templateIds,
         };
 
         // Act
@@ -276,8 +281,8 @@ describe("SystemPersistenceController E2E", () => {
 
         // 确保至少有一些模板被创建或更新
         const persistResult = persistResponse.body.data;
-        const hasTemplates = (persistResult.created + persistResult.updated) > 0;
-        
+        const hasTemplates = persistResult.created + persistResult.updated > 0;
+
         if (!hasTemplates) {
           console.warn("警告：没有预设模板被创建或更新，跳过reset-all测试");
           return;
@@ -296,7 +301,7 @@ describe("SystemPersistenceController E2E", () => {
         expect(result).toHaveProperty("_recreated");
         expect(result).toHaveProperty("message");
         expect(result.deleted).toBeGreaterThanOrEqual(0);
-        
+
         // 预设模板应该被重新创建（硬编码的2个模板）
         expect(result.recreated).toBeGreaterThanOrEqual(2);
       });
@@ -324,14 +329,14 @@ describe("SystemPersistenceController E2E", () => {
         "POST /api/v1/data-mapper/system-persistence/persist-presets",
         "POST /api/v1/data-mapper/system-persistence/test-id/reset",
         "POST /api/v1/data-mapper/system-persistence/reset-bulk",
-        "POST /api/v1/data-mapper/system-persistence/reset-all"
+        "POST /api/v1/data-mapper/system-persistence/reset-all",
       ];
 
       // 所有端点在无认证时都应该返回401
       for (const endpoint of endpoints) {
         const [method, path] = endpoint.split(" ");
         const req = method === "POST" ? request.post(path) : request.get(path);
-        
+
         if (path.includes("reset-bulk")) {
           await req.send({ ids: [] }).expect(401);
         } else {

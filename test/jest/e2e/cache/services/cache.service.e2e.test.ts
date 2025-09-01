@@ -39,7 +39,7 @@ describe("Cache Operations E2E Tests", () => {
         "query:execute",
         "providers:read",
         "system:admin",
-       // "system:monitor", // 添加监控权限
+        // "system:monitor", // 添加监控权限
       ],
       rateLimit: {
         requests: 100,
@@ -227,14 +227,14 @@ describe("Cache Operations E2E Tests", () => {
       const healthData = response.body.data;
       // 移除对score字段的期望，因为基础健康检查接口不返回此字段
       // expect(healthData).toHaveProperty("score");
-      
+
       // 验证公开健康检查接口返回的基本字段
       expect(healthData).toHaveProperty("status");
       expect(healthData).toHaveProperty("timestamp");
       expect(healthData).toHaveProperty("uptime");
       expect(healthData).toHaveProperty("version");
       expect(healthData).toHaveProperty("message");
-      
+
       // 验证状态字段
       expect(healthData.status).toBe("operational");
 
@@ -258,7 +258,9 @@ describe("Cache Operations E2E Tests", () => {
     it.skip("should validate detailed cache health check for admin users", async () => {
       // Skip test if no auth tokens
       if (!authTokens || !authTokens.apiKey || !authTokens.accessToken) {
-        console.log("Skipping detailed health check test - no API tokens available");
+        console.log(
+          "Skipping detailed health check test - no API tokens available",
+        );
         return;
       }
 
@@ -274,11 +276,11 @@ describe("Cache Operations E2E Tests", () => {
         // Assert - 这个接口应该包含score字段
         global.expectSuccessResponse(response, 200);
         expect(response.body.data).toBeDefined();
-  
+
         const detailedHealth = response.body.data;
         expect(detailedHealth).toHaveProperty("score");
         expect(detailedHealth).toHaveProperty("status");
-        
+
         // 验证缓存组件状态（如果存在）
         if (detailedHealth.components && detailedHealth.components.cache) {
           expect(detailedHealth.components.cache).toHaveProperty("status");

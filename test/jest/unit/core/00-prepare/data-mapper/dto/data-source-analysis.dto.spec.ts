@@ -8,7 +8,7 @@ import {
   ExtractedFieldDto,
   FieldMappingSuggestionDto,
   SuggestFieldMappingsDto,
-  SuggestFieldMappingsResponseDto
+  SuggestFieldMappingsResponseDto,
 } from "../../../../../../../src/core/00-prepare/data-mapper/dto/data-source-analysis.dto";
 
 describe("DataSourceAnalysisDto", () => {
@@ -19,8 +19,8 @@ describe("DataSourceAnalysisDto", () => {
         sampleData: {
           symbol: "700.HK",
           last_done: 561,
-          volume: 11292534
-        }
+          volume: 11292534,
+        },
       });
 
       const errors = await validate(dto);
@@ -32,8 +32,8 @@ describe("DataSourceAnalysisDto", () => {
         apiType: "stream",
         sampleData: {
           symbol: "AAPL.US",
-          price: 150.25
-        }
+          price: 150.25,
+        },
       });
 
       const errors = await validate(dto);
@@ -49,12 +49,12 @@ describe("DataSourceAnalysisDto", () => {
         apiType: "stream",
         sampleData: {
           symbol: "700.HK",
-          last_done: 561
+          last_done: 561,
         },
         name: "LongPort Stream",
         description: "LongPort WebSocket stream data",
         dataType: "basic_info_fields",
-        saveAsTemplate: true
+        saveAsTemplate: true,
       });
 
       const errors = await validate(dto);
@@ -67,11 +67,11 @@ describe("DataSourceAnalysisDto", () => {
     it("should fail validation with invalid apiType", async () => {
       const dto = plainToClass(AnalyzeDataSourceDto, {
         apiType: "invalid",
-        sampleData: { symbol: "700.HK" }
+        sampleData: { symbol: "700.HK" },
       });
 
       const errors = await validate(dto);
-      expect(errors.some(error => error.property === "apiType")).toBe(true);
+      expect(errors.some((error) => error.property === "apiType")).toBe(true);
     });
 
     it("should fail validation with missing required fields", async () => {
@@ -84,11 +84,11 @@ describe("DataSourceAnalysisDto", () => {
       const dto = plainToClass(AnalyzeDataSourceDto, {
         apiType: "rest",
         sampleData: { symbol: "700.HK" },
-        dataType: "invalid"
+        dataType: "invalid",
       });
 
       const errors = await validate(dto);
-      expect(errors.some(error => error.property === "dataType")).toBe(true);
+      expect(errors.some((error) => error.property === "dataType")).toBe(true);
     });
   });
 
@@ -107,11 +107,11 @@ describe("DataSourceAnalysisDto", () => {
             sampleValue: "700.HK",
             confidence: 1,
             isNested: false,
-            nestingLevel: 0
-          }
+            nestingLevel: 0,
+          },
         ],
-        
-        confidence: 0.9
+
+        confidence: 0.9,
       });
 
       const errors = await validate(dto);
@@ -126,9 +126,9 @@ describe("DataSourceAnalysisDto", () => {
         description: "Custom data source template",
         sampleData: { symbol: "700.HK" },
         extractedFields: [],
-        
+
         isDefault: true,
-        confidence: 0.8
+        confidence: 0.8,
       });
 
       const errors = await validate(dto);
@@ -152,7 +152,7 @@ describe("DataSourceAnalysisDto", () => {
         sampleValue: 561,
         confidence: 0.8,
         isNested: false,
-        nestingLevel: 0
+        nestingLevel: 0,
       });
 
       const errors = await validate(dto);
@@ -167,7 +167,7 @@ describe("DataSourceAnalysisDto", () => {
         sampleValue: "700.HK",
         confidence: 0.95,
         isNested: false,
-        nestingLevel: 0
+        nestingLevel: 0,
       });
 
       const errors = await validate(dto);
@@ -184,7 +184,7 @@ describe("DataSourceAnalysisDto", () => {
         sampleValue: 10,
         confidence: 0.5,
         isNested: false,
-        nestingLevel: 0
+        nestingLevel: 0,
       });
 
       const errors = await validate(dto);
@@ -203,11 +203,11 @@ describe("DataSourceAnalysisDto", () => {
           sampleValue: 561,
           confidence: 0.95,
           isNested: false,
-          nestingLevel: 0
+          nestingLevel: 0,
         },
         targetField: "lastPrice",
         confidence: 0.95,
-        reasoning: "Field name similarity"
+        reasoning: "Field name similarity",
       });
 
       const errors = await validate(dto);
@@ -223,11 +223,11 @@ describe("DataSourceAnalysisDto", () => {
           sampleValue: 56100,
           confidence: 0.85,
           isNested: false,
-          nestingLevel: 0
+          nestingLevel: 0,
         },
         targetField: "lastPrice",
         confidence: 0.85,
-        reasoning: "Price field with unit conversion"
+        reasoning: "Price field with unit conversion",
       });
 
       const errors = await validate(dto);
@@ -243,15 +243,17 @@ describe("DataSourceAnalysisDto", () => {
           sampleValue: 561,
           confidence: 0.8,
           isNested: false,
-          nestingLevel: 0
+          nestingLevel: 0,
         },
         targetField: "lastPrice",
         confidence: 1.5,
-        reasoning: "Invalid confidence"
+        reasoning: "Invalid confidence",
       });
 
       const errors = await validate(dto);
-      expect(errors.some(error => error.property === "confidence")).toBe(true);
+      expect(errors.some((error) => error.property === "confidence")).toBe(
+        true,
+      );
     });
   });
 
@@ -278,7 +280,7 @@ describe("DataSourceAnalysisDto", () => {
 
     it("should fail validation when missing targetFields", async () => {
       const dto = plainToClass(SuggestFieldMappingsDto, {
-        templateId: "507f1f77bcf86cd799439011"
+        templateId: "507f1f77bcf86cd799439011",
       });
 
       const errors = await validate(dto);
@@ -300,10 +302,10 @@ describe("DataSourceAnalysisDto", () => {
           sampleValue: "700.HK",
           confidence: 0.95,
           isNested: false,
-          nestingLevel: 0
-        }
+          nestingLevel: 0,
+        },
       ];
-      
+
       dto.totalFields = 1;
       dto.confidence = 0.9;
       dto.analysisTimestamp = new Date();
@@ -311,7 +313,6 @@ describe("DataSourceAnalysisDto", () => {
       expect(dto.extractedFields).toHaveLength(1);
       expect(dto.totalFields).toBe(1);
       expect(dto.confidence).toBe(0.9);
-      
     });
   });
 
@@ -324,7 +325,7 @@ describe("DataSourceAnalysisDto", () => {
       dto.apiType = "rest";
       dto.sampleData = { symbol: "700.HK" };
       dto.extractedFields = [];
-      
+
       dto.totalFields = 0;
       dto.confidence = 0.8;
       dto.isActive = true;
@@ -353,12 +354,12 @@ describe("DataSourceAnalysisDto", () => {
             sampleValue: 561,
             confidence: 0.95,
             isNested: false,
-            nestingLevel: 0
+            nestingLevel: 0,
           },
           targetField: "lastPrice",
           confidence: 0.95,
-          reasoning: "Direct field mapping"
-        }
+          reasoning: "Direct field mapping",
+        },
       ];
       dto.generatedAt = new Date();
       dto.coverage = 0.75;

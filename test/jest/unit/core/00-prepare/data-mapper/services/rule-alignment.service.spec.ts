@@ -1,20 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { getModelToken } from "@nestjs/mongoose";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
 import { RuleAlignmentService } from "../../../../../../../src/core/00-prepare/data-mapper/services/rule-alignment.service";
 import {
   FlexibleMappingRule,
-  FlexibleMappingRuleDocument
+  FlexibleMappingRuleDocument,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
 import {
   DataSourceTemplate,
-  DataSourceTemplateDocument
+  DataSourceTemplateDocument,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/data-source-template.schema";
 
 // Mock the logger
@@ -44,15 +41,15 @@ describe("RuleAlignmentService", () => {
         fieldPath: "last_done",
         fieldName: "last_done",
         fieldType: "number",
-        confidence: 0.95
+        confidence: 0.95,
       },
       {
         fieldPath: "symbol",
         fieldName: "symbol",
         fieldType: "string",
-        confidence: 1.0
-      }
-    ]
+        confidence: 1.0,
+      },
+    ],
   };
 
   const mockRule = {
@@ -65,11 +62,11 @@ describe("RuleAlignmentService", () => {
       {
         sourceFieldPath: "last_done",
         targetField: "lastPrice",
-        confidence: 0.9
-      }
+        confidence: 0.9,
+      },
     ],
     overallConfidence: 0.9,
-    save: jest.fn()
+    save: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -92,17 +89,21 @@ describe("RuleAlignmentService", () => {
     templateModel = module.get(getModelToken(DataSourceTemplate.name));
   });
 
-describe("generateRuleFromTemplate", () => {
+  describe("generateRuleFromTemplate", () => {
     const templateId = "507f1f77bcf86cd799439011";
     const transDataRuleListType = "quote_fields" as const;
     const ruleName = "Generated Rule";
 
-it("should generate rule from template successfully", async () => {
+    it("should generate rule from template successfully", async () => {
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findOne.mockResolvedValue(null); // No existing rule
       ruleModel.create.mockResolvedValue(mockRule as any);
 
-      const result = await service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName);
+      const result = await service.generateRuleFromTemplate(
+        templateId,
+        transDataRuleListType,
+        ruleName,
+      );
 
       expect(result.rule).toBeDefined();
       expect(result.alignmentResult).toBeDefined();
@@ -114,35 +115,49 @@ it("should generate rule from template successfully", async () => {
     it("should throw NotFoundException when template not found", async () => {
       templateModel.findById.mockResolvedValue(null);
 
-      await expect(service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.generateRuleFromTemplate(
+          templateId,
+          transDataRuleListType,
+          ruleName,
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it("should throw BadRequestException when rule already exists", async () => {
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findOne.mockResolvedValue(mockRule as any);
 
-      await expect(service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName))
-        .rejects.toThrow(BadRequestException);
+      await expect(
+        service.generateRuleFromTemplate(
+          templateId,
+          transDataRuleListType,
+          ruleName,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
-it("should handle template with no extracted fields", async () => {
+    it("should handle template with no extracted fields", async () => {
       const emptyTemplate = { ...mockTemplate, extractedFields: [] };
       templateModel.findById.mockResolvedValue(emptyTemplate as any);
       ruleModel.findOne.mockResolvedValue(null); // No existing rule
       ruleModel.create.mockResolvedValue(mockRule as any);
 
-      const result = await service.generateRuleFromTemplate(templateId, transDataRuleListType, ruleName);
+      const result = await service.generateRuleFromTemplate(
+        templateId,
+        transDataRuleListType,
+        ruleName,
+      );
 
       expect(result.rule).toBeDefined();
       expect(result.alignmentResult.alignedFields).toBe(0);
     });
   });
 
-describe("realignExistingRule", () => {
+  describe("realignExistingRule", () => {
     const ruleId = "507f1f77bcf86cd799439012";
 
-it("should realign existing rule successfully", async () => {
+    it("should realign existing rule successfully", async () => {
       ruleModel.findById.mockResolvedValue(mockRule as any);
       templateModel.findById.mockResolvedValue(mockTemplate as any);
       ruleModel.findByIdAndUpdate.mockResolvedValue(mockRule as any);
@@ -158,11 +173,12 @@ it("should realign existing rule successfully", async () => {
     it("should throw NotFoundException when rule not found", async () => {
       ruleModel.findById.mockResolvedValue(null);
 
-      await expect(service.realignExistingRule(ruleId))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.realignExistingRule(ruleId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
-it("should handle rule with no existing field mappings", async () => {
+    it("should handle rule with no existing field mappings", async () => {
       const ruleWithoutMappings = { ...mockRule, fieldMappings: [] };
       ruleModel.findById.mockResolvedValue(ruleWithoutMappings as any);
       templateModel.findById.mockResolvedValue(mockTemplate as any);
@@ -174,14 +190,22 @@ it("should handle rule with no existing field mappings", async () => {
       expect(result.changes.removed).toHaveLength(0);
     });
 
-it("should handle rule realignment with template changes", async () => {
-      const ruleWithDifferentMappings = { 
-        ...mockRule, 
-        fieldMappings: [{ sourceFieldPath: "old_field", targetField: "oldTarget", confidence: 0.8 }] 
+    it("should handle rule realignment with template changes", async () => {
+      const ruleWithDifferentMappings = {
+        ...mockRule,
+        fieldMappings: [
+          {
+            sourceFieldPath: "old_field",
+            targetField: "oldTarget",
+            confidence: 0.8,
+          },
+        ],
       };
       ruleModel.findById.mockResolvedValue(ruleWithDifferentMappings as any);
       templateModel.findById.mockResolvedValue(mockTemplate as any);
-      ruleModel.findByIdAndUpdate.mockResolvedValue(ruleWithDifferentMappings as any);
+      ruleModel.findByIdAndUpdate.mockResolvedValue(
+        ruleWithDifferentMappings as any,
+      );
 
       const result = await service.realignExistingRule(ruleId);
 
@@ -190,16 +214,18 @@ it("should handle rule realignment with template changes", async () => {
     });
   });
 
-describe("manualAdjustFieldMapping", () => {
+  describe("manualAdjustFieldMapping", () => {
     const ruleId = "507f1f77bcf86cd799439012";
-    const adjustments = [{
-      action: "modify" as const,
-      sourceField: "price",
-      newTargetField: "newTargetField",
-      confidence: 0.85
-    }];
+    const adjustments = [
+      {
+        action: "modify" as const,
+        sourceField: "price",
+        newTargetField: "newTargetField",
+        confidence: 0.85,
+      },
+    ];
 
-it("should adjust field mapping successfully", async () => {
+    it("should adjust field mapping successfully", async () => {
       const ruleWithMapping = {
         ...mockRule,
         fieldMappings: [
@@ -207,33 +233,38 @@ it("should adjust field mapping successfully", async () => {
             id: "mapping123",
             sourceFieldPath: "price",
             targetField: "oldTarget",
-            confidence: 0.8
-          }
-        ]
+            confidence: 0.8,
+          },
+        ],
       };
-      
+
       ruleModel.findById.mockResolvedValue(ruleWithMapping as any);
       ruleModel.findByIdAndUpdate.mockResolvedValue(ruleWithMapping as any);
 
-      const result = await service.manualAdjustFieldMapping(ruleId, adjustments);
+      const result = await service.manualAdjustFieldMapping(
+        ruleId,
+        adjustments,
+      );
 
       expect(result).toBeDefined();
       expect(result.fieldMappings).toBeDefined();
       expect(ruleModel.findByIdAndUpdate).toHaveBeenCalled();
     });
 
-it("should throw NotFoundException when rule not found", async () => {
+    it("should throw NotFoundException when rule not found", async () => {
       ruleModel.findById.mockResolvedValue(null);
 
-      await expect(service.manualAdjustFieldMapping(ruleId, adjustments))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.manualAdjustFieldMapping(ruleId, adjustments),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it("should throw NotFoundException when field mapping not found", async () => {
       ruleModel.findById.mockResolvedValue(mockRule as any);
 
-      await expect(service.manualAdjustFieldMapping(ruleId, adjustments))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.manualAdjustFieldMapping(ruleId, adjustments),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -480,15 +511,15 @@ describe("preset field functionality", () => {
             fieldPath: "last_done",
             fieldName: "last_done",
             fieldType: "number",
-            confidence: 0.95
+            confidence: 0.95,
           },
           {
             fieldPath: "symbol",
-            fieldName: "symbol", 
+            fieldName: "symbol",
             fieldType: "string",
-            confidence: 1.0
-          }
-        ]
+            confidence: 1.0,
+          },
+        ],
       };
 
       // 模拟 autoAlignFields 私有方法的返回值
@@ -499,20 +530,25 @@ describe("preset field functionality", () => {
           {
             sourceFieldPath: "last_done",
             targetField: "lastPrice",
-            confidence: 0.9
+            confidence: 0.9,
           },
           {
             sourceFieldPath: "symbol",
             targetField: "symbol",
-            confidence: 1.0
-          }
-        ]
+            confidence: 1.0,
+          },
+        ],
       };
 
       // 通过 spy 来模拟私有方法
-      const autoAlignSpy = jest.spyOn(service as any, 'autoAlignFields').mockReturnValue(expectedResult);
+      const autoAlignSpy = jest
+        .spyOn(service as any, "autoAlignFields")
+        .mockReturnValue(expectedResult);
 
-      const result = await service.previewAlignment(template as any, "quote_fields");
+      const result = await service.previewAlignment(
+        template as any,
+        "quote_fields",
+      );
 
       expect(autoAlignSpy).toHaveBeenCalledWith(template, "quote_fields");
       expect(result).toEqual(expectedResult);
@@ -530,9 +566,9 @@ describe("preset field functionality", () => {
             fieldPath: "company_name",
             fieldName: "company_name",
             fieldType: "string",
-            confidence: 0.98
-          }
-        ]
+            confidence: 0.98,
+          },
+        ],
       };
 
       const expectedResult = {
@@ -542,59 +578,72 @@ describe("preset field functionality", () => {
           {
             sourceFieldPath: "company_name",
             targetField: "companyName",
-            confidence: 0.95
-          }
-        ]
+            confidence: 0.95,
+          },
+        ],
       };
 
-      const autoAlignSpy = jest.spyOn(service as any, 'autoAlignFields').mockReturnValue(expectedResult);
+      const autoAlignSpy = jest
+        .spyOn(service as any, "autoAlignFields")
+        .mockReturnValue(expectedResult);
 
-      const result = await service.previewAlignment(template as any, "basic_info_fields");
+      const result = await service.previewAlignment(
+        template as any,
+        "basic_info_fields",
+      );
 
       expect(autoAlignSpy).toHaveBeenCalledWith(template, "basic_info_fields");
       expect(result).toEqual(expectedResult);
     });
 
     it("should throw BadRequestException when template is missing", async () => {
-      await expect(service.previewAlignment(null as any, "quote_fields"))
-        .rejects.toThrow(BadRequestException);
-      
-      await expect(service.previewAlignment(undefined as any, "quote_fields"))
-        .rejects.toThrow(BadRequestException);
+      await expect(
+        service.previewAlignment(null as any, "quote_fields"),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.previewAlignment(undefined as any, "quote_fields"),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it("should throw BadRequestException when transDataRuleListType is missing", async () => {
       const template = { _id: "507f1f77bcf86cd799439011", name: "Test" };
-      
-      await expect(service.previewAlignment(template as any, null as any))
-        .rejects.toThrow(BadRequestException);
-      
-      await expect(service.previewAlignment(template as any, undefined as any))
-        .rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.previewAlignment(template as any, null as any),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.previewAlignment(template as any, undefined as any),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it("should throw BadRequestException for invalid transDataRuleListType", async () => {
       const template = { _id: "507f1f77bcf86cd799439011", name: "Test" };
-      
-      await expect(service.previewAlignment(template as any, "invalid_type" as any))
-        .rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.previewAlignment(template as any, "invalid_type" as any),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it("should handle autoAlignFields errors gracefully", async () => {
       const template = {
         _id: "507f1f77bcf86cd799439011",
         name: "Test Template",
-        provider: "longport"
+        provider: "longport",
       };
 
       const autoAlignError = new Error("Alignment process failed");
-      const autoAlignSpy = jest.spyOn(service as any, 'autoAlignFields').mockImplementation(() => {
-        throw autoAlignError;
-      });
+      const autoAlignSpy = jest
+        .spyOn(service as any, "autoAlignFields")
+        .mockImplementation(() => {
+          throw autoAlignError;
+        });
 
-      await expect(service.previewAlignment(template as any, "quote_fields"))
-        .rejects.toThrow(BadRequestException);
-      
+      await expect(
+        service.previewAlignment(template as any, "quote_fields"),
+      ).rejects.toThrow(BadRequestException);
+
       expect(autoAlignSpy).toHaveBeenCalledWith(template, "quote_fields");
     });
   });

@@ -1,4 +1,4 @@
-import { SmartCachePerformanceOptimizer } from '@core/05-caching/smart-cache/services/smart-cache-performance-optimizer.service';
+import { SmartCachePerformanceOptimizer } from "@core/05-caching/smart-cache/services/smart-cache-performance-optimizer.service";
 
 // 内存使用率监控工具
 class MemoryMonitor {
@@ -26,13 +26,14 @@ class MemoryMonitor {
 
     const initial = this.snapshots[0];
     const final = this.snapshots[this.snapshots.length - 1];
-    
+
     return {
       initialHeapUsed: initial.heapUsed,
       finalHeapUsed: final.heapUsed,
       heapGrowth: final.heapUsed - initial.heapUsed,
-      heapGrowthPercent: ((final.heapUsed - initial.heapUsed) / initial.heapUsed) * 100,
-      maxHeapUsed: Math.max(...this.snapshots.map(s => s.heapUsed)),
+      heapGrowthPercent:
+        ((final.heapUsed - initial.heapUsed) / initial.heapUsed) * 100,
+      maxHeapUsed: Math.max(...this.snapshots.map((s) => s.heapUsed)),
       snapshots: this.snapshots.length,
     };
   }
@@ -40,12 +41,12 @@ class MemoryMonitor {
   checkForMemoryLeak(thresholdPercent = 50) {
     const report = this.getMemoryReport();
     if (!report) return false;
-    
+
     return report.heapGrowthPercent > thresholdPercent;
   }
 }
 
-describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
+describe("SmartCache Performance Optimizer Memory Leak Detection", () => {
   let performanceOptimizer: SmartCachePerformanceOptimizer;
   let memoryMonitor: MemoryMonitor;
 
@@ -62,7 +63,7 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
 
   afterEach(() => {
     memoryMonitor.stopMonitoring();
-    
+
     // Stop optimization if running
     if (performanceOptimizer) {
       performanceOptimizer.stopOptimization();
@@ -74,14 +75,14 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
     }
   });
 
-  describe('Memory Leak Detection Tests', () => {
-    it('should not leak memory during repeated concurrency calculations', async () => {
+  describe("Memory Leak Detection Tests", () => {
+    it("should not leak memory during repeated concurrency calculations", async () => {
       memoryMonitor.startMonitoring(500);
 
       // Simulate repeated concurrency calculations
       for (let i = 0; i < 100; i++) {
         await performanceOptimizer.calculateOptimalConcurrency();
-        
+
         // Occasional garbage collection hint
         if (i % 20 === 0 && global.gc) {
           global.gc();
@@ -89,16 +90,16 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
       }
 
       // Wait for memory monitoring
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const report = memoryMonitor.getMemoryReport();
       expect(report).toBeDefined();
-      
+
       // Memory growth should not exceed 30%
       expect(report!.heapGrowthPercent).toBeLessThan(30);
     }, 15000);
 
-    it('should not leak memory during memory pressure checks', async () => {
+    it("should not leak memory during memory pressure checks", async () => {
       memoryMonitor.startMonitoring(500);
 
       // Simulate repeated memory pressure checks
@@ -108,16 +109,16 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
       }
 
       // Wait for memory monitoring
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       const report = memoryMonitor.getMemoryReport();
       expect(report).toBeDefined();
-      
+
       // Memory growth should be minimal
       expect(report!.heapGrowthPercent).toBeLessThan(25);
     }, 10000);
 
-    it('should not leak memory during batch size calculations', async () => {
+    it("should not leak memory during batch size calculations", async () => {
       memoryMonitor.startMonitoring(300);
 
       // Simulate repeated batch size calculations
@@ -127,43 +128,43 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
       }
 
       // Wait for memory monitoring
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const report = memoryMonitor.getMemoryReport();
       expect(report).toBeDefined();
-      
+
       // Memory growth should be minimal for calculations
       expect(report!.heapGrowthPercent).toBeLessThan(20);
     }, 8000);
 
-    it('should not leak memory during optimization lifecycle', async () => {
+    it("should not leak memory during optimization lifecycle", async () => {
       memoryMonitor.startMonitoring(500);
 
       // Simulate multiple optimization cycles
       for (let cycle = 0; cycle < 10; cycle++) {
         performanceOptimizer.startOptimization(8);
-        
+
         // Simulate some activity
         await performanceOptimizer.calculateOptimalConcurrency();
         await performanceOptimizer.getSystemMetrics();
-        
+
         performanceOptimizer.stopOptimization();
-        
+
         // Brief pause between cycles
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Wait for memory monitoring
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       const report = memoryMonitor.getMemoryReport();
       expect(report).toBeDefined();
-      
+
       // Memory growth should not exceed 35% for lifecycle operations
       expect(report!.heapGrowthPercent).toBeLessThan(35);
     }, 12000);
 
-    it('should handle system metrics collection without memory leaks', async () => {
+    it("should handle system metrics collection without memory leaks", async () => {
       memoryMonitor.startMonitoring(400);
 
       // Simulate repeated system metrics collection
@@ -175,16 +176,16 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
       await Promise.allSettled(promises);
 
       // Wait for memory monitoring
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
       const report = memoryMonitor.getMemoryReport();
       expect(report).toBeDefined();
-      
+
       // Memory growth should be controlled
       expect(report!.heapGrowthPercent).toBeLessThan(40);
     }, 10000);
 
-    it('should maintain stable memory usage over extended operation', async () => {
+    it("should maintain stable memory usage over extended operation", async () => {
       memoryMonitor.startMonitoring(1000);
 
       performanceOptimizer.startOptimization(4);
@@ -196,40 +197,40 @@ describe('SmartCache Performance Optimizer Memory Leak Detection', () => {
           performanceOptimizer.calculateOptimalConcurrency(),
           performanceOptimizer.checkMemoryPressure(),
         );
-        
+
         // Add delay between batches
         if (i % 5 === 0) {
           await Promise.all(operations);
           operations.length = 0;
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
 
       await Promise.all(operations);
 
       // Wait for final monitoring
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const report = memoryMonitor.getMemoryReport();
       expect(report).toBeDefined();
-      
+
       // Extended operation should maintain reasonable memory growth
       expect(report!.heapGrowthPercent).toBeLessThan(50);
-      
+
       performanceOptimizer.stopOptimization();
     }, 20000);
   });
 
-  describe('Performance Statistics Integrity', () => {
-    it('should maintain consistent performance statistics without memory leaks', () => {
+  describe("Performance Statistics Integrity", () => {
+    it("should maintain consistent performance statistics without memory leaks", () => {
       memoryMonitor.startMonitoring(200);
 
       // Access performance stats repeatedly
       for (let i = 0; i < 100; i++) {
         const stats = performanceOptimizer.getPerformanceStats();
         expect(stats).toBeDefined();
-        expect(typeof stats.dynamicMaxConcurrency).toBe('number');
-        expect(typeof stats.currentBatchSize).toBe('number');
+        expect(typeof stats.dynamicMaxConcurrency).toBe("number");
+        expect(typeof stats.currentBatchSize).toBe("number");
       }
 
       // Brief monitoring period
