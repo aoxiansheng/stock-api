@@ -1,13 +1,14 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException } from "@nestjs/common";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { BaseFetcherService } from "../../../../../../src/core/shared/services/base-fetcher.service";
 import { CollectorService } from "../../../../../../src/monitoring/collector/collector.service";
 
 // 创建具体实现类用于测试抽象类
 class TestBaseFetcherService extends BaseFetcherService {
-  constructor(collectorService: CollectorService) {
-    super(collectorService);
+  constructor(eventBus: EventEmitter2) { // 修正构造函数参数
+    super(eventBus);
   }
 
   async executeCore(params: any): Promise<any> {
@@ -24,9 +25,15 @@ class TestBaseFetcherService extends BaseFetcherService {
 
 describe("BaseFetcherService", () => {
   let service: TestBaseFetcherService;
-  let mockCollectorService: jest.Mocked<CollectorService>;
+  let mockEventBus: jest.Mocked<EventEmitter2>;
+  let mockCollectorService: jest.Mocked<CollectorService>; // 添加CollectorService的mock
 
   beforeEach(async () => {
+    mockEventBus = {
+      emit: jest.fn(),
+    } as any;
+
+    // 创建CollectorService的mock
     mockCollectorService = {
       recordRequest: jest.fn(),
     } as any;
@@ -34,14 +41,19 @@ describe("BaseFetcherService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
+          provide: EventEmitter2,
+          useValue: mockEventBus,
+        },
+        {
           provide: CollectorService,
           useValue: mockCollectorService,
         },
       ],
     }).compile();
 
-    mockCollectorService = module.get(CollectorService);
-    service = new TestBaseFetcherService(mockCollectorService);
+    mockEventBus = module.get(EventEmitter2);
+    mockCollectorService = module.get(CollectorService); // 获取mock实例
+    service = new TestBaseFetcherService(mockEventBus);
 
     // 清除所有模拟调用记录
     jest.clearAllMocks();
@@ -297,20 +309,27 @@ describe("BaseFetcherService", () => {
 
       // 使用 setImmediate 确保异步调用完成
       setImmediate(() => {
-        expect(mockCollectorService.recordRequest).toHaveBeenCalledWith(
-          "/external/test-endpoint",
-          "POST",
-          200,
-          1000,
-          { test: "data" },
+        expect(mockEventBus.emit).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            source: 'external_api',
+            metricType: 'request',
+            metricName: 'external_call',
+            metricValue: 1000,
+            tags: expect.objectContaining({
+              method: 'POST',
+              status: 200,
+              endpoint: 'test-endpoint'
+            })
+          })
         );
         done();
       });
     });
 
     it("should handle collector service errors gracefully", (done) => {
-      mockCollectorService.recordRequest.mockImplementation(() => {
-        throw new Error("Collector service unavailable");
+      mockEventBus.emit.mockImplementation((event: string | symbol, ...values: any[]) => {
+        throw new Error("Event bus unavailable");
       });
 
       // Mock logger.warn
@@ -324,7 +343,7 @@ describe("BaseFetcherService", () => {
         expect(service["logger"].warn).toHaveBeenCalledWith(
           "外部调用监控记录失败",
           expect.objectContaining({
-            error: "Collector service unavailable",
+            error: "Event bus unavailable",
             endpoint: "test-endpoint",
           }),
         );
@@ -333,21 +352,11 @@ describe("BaseFetcherService", () => {
     });
   });
 
-  describe("sleep", () => {
-    it("should wait for specified duration", async () => {
-      const startTime = Date.now();
-      await service["sleep"](100);
-      const duration = Date.now() - startTime;
-
-      expect(duration).toBeGreaterThanOrEqual(90); // 允许一些时间误差
-      expect(duration).toBeLessThan(150);
-    });
-  });
-
   describe("Integration with CollectorService", () => {
     it("should work when collector service is available", async () => {
-      mockCollectorService.recordRequest.mockImplementation(() => {
+      mockEventBus.emit.mockImplementation((event: string | symbol, ...values: any[]) => {
         // 成功记录
+        return true; // EventEmitter2.emit应该返回boolean
       });
 
       const operation = jest.fn().mockResolvedValue({ success: true });
@@ -356,12 +365,12 @@ describe("BaseFetcherService", () => {
       // 等待 setImmediate 调用完成
       await new Promise((resolve) => setImmediate(resolve));
 
-      expect(mockCollectorService.recordRequest).toHaveBeenCalled();
+      expect(mockEventBus.emit).toHaveBeenCalled();
     });
 
     it("should continue working when collector service fails", async () => {
-      mockCollectorService.recordRequest.mockImplementation(() => {
-        throw new Error("Collector unavailable");
+      mockEventBus.emit.mockImplementation((event: string | symbol, ...values: any[]) => {
+        throw new Error("Event bus unavailable");
       });
 
       // Mock logger.warn

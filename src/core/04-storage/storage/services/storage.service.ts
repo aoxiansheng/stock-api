@@ -14,7 +14,6 @@ import { PaginationService } from '@common/modules/pagination/services/paginatio
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
 
-
 import {
   STORAGE_CONFIG,
   STORAGE_ERROR_MESSAGES,
@@ -503,7 +502,6 @@ export class StorageService {
     }
   }
 
-
   private async tryRetrieveFromPersistent(
     request: RetrieveDataDto,
     startTime: number,
@@ -551,7 +549,6 @@ export class StorageService {
       }
     }
 
-
     const processingTime = Date.now() - startTime;
     
     this.logRetrievalSuccess(processingTime, request.key, "persistent");
@@ -572,7 +569,6 @@ export class StorageService {
     const cacheInfo: CacheInfoDto = { hit: true, source: "persistent" };
     return new StorageResponseDto(data, responseMetadata, cacheInfo);
   }
-
 
   private async getPersistentStats(): Promise<PersistentStatsDto> {
     const [totalDocs, categoryStats, providerStats, sizeStats] =
@@ -644,23 +640,23 @@ export class StorageService {
   }
 
   private logStorageSuccess(
-    processingTime: number,
+    processingTimeMs: number,
     key: string,
     dataSize: number,
     compressed: boolean,
   ) {
     const logLevel =
-      processingTime > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_STORAGE_MS
+      processingTimeMs > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_STORAGE_MS
         ? "warn"
         : "log";
     this.logger[logLevel](`数据存储成功: ${key}`, {
-      processingTime,
+      processingTimeMs,
       dataSize,
       compressed,
     });
     if (logLevel === "warn") {
       this.logger.warn(
-        `${STORAGE_WARNING_MESSAGES.SLOW_OPERATION}: ${processingTime}ms`,
+        `${STORAGE_WARNING_MESSAGES.SLOW_OPERATION}: ${processingTimeMs}ms`,
       );
     }
     if (dataSize > STORAGE_PERFORMANCE_THRESHOLDS.LARGE_DATA_SIZE_KB * 1024) {
@@ -671,22 +667,21 @@ export class StorageService {
   }
 
   private logRetrievalSuccess(
-    processingTime: number,
+    processingTimeMs: number,
     key: string,
     source: "persistent",
   ) {
     const logLevel =
-      processingTime > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_RETRIEVAL_MS
+      processingTimeMs > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_RETRIEVAL_MS
         ? "warn"
         : "log";
-    this.logger[logLevel](`数据检索成功: ${key}`, { processingTime, source });
+    this.logger[logLevel](`数据检索成功: ${key}`, { processingTimeMs, source });
     if (logLevel === "warn") {
       this.logger.warn(
-        `${STORAGE_WARNING_MESSAGES.SLOW_OPERATION}: ${processingTime}ms`,
+        `${STORAGE_WARNING_MESSAGES.SLOW_OPERATION}: ${processingTimeMs}ms`,
       );
     }
   }
-
 
   private calculateOperationsPerSecond(): number {
     // 🎯 重构后：数据库操作频率，由 Prometheus 指标提供  

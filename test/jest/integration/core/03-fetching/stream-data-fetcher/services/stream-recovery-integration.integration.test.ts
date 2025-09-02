@@ -19,7 +19,6 @@ import { StreamCacheService } from "../../../../../../../src/core/05-caching/str
 import { StreamCacheModule } from "../../../../../../../src/core/05-caching/stream-cache/module/stream-cache.module";
 import { StreamClientStateManager } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 import { StreamRecoveryConfigService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/config/stream-recovery.config";
-import { StreamRecoveryMetricsService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/metrics/stream-recovery.metrics";
 import { ApiKeyService } from "../../../../../../../src/auth/services/apikey.service";
 import { CacheService } from "../../../../../../../src/cache/services/cache.service";
 import { createLogger } from "../../../../../../../src/app/config/logger.config";
@@ -90,7 +89,6 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
         StreamRecoveryWorkerService,
         StreamClientStateManager,
         StreamRecoveryConfigService,
-        StreamRecoveryMetricsService,
         // Mock services for integration
         {
           provide: ApiKeyService,
@@ -489,39 +487,7 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
     });
   });
 
-  describe("Phase 3: 性能和监控集成", () => {
-    it("应该正确收集和报告Prometheus指标", () => {
-      // 获取指标服务实例
-      const metricsService = app.get(StreamRecoveryMetricsService);
-
-      // 模拟一些指标操作
-      metricsService.incrementJobSubmitted();
-      metricsService.incrementJobCompleted(1500, 50);
-      metricsService.recordBatchSent(25, 2048);
-      metricsService.recordRateLimitHit();
-
-      // 验证指标数据
-      const metrics = metricsService.getMetrics();
-      expect(metrics).toMatchObject({
-        jobs: expect.objectContaining({
-          totalJobs: expect.any(Number),
-        }),
-        data: expect.objectContaining({
-          totalBatchesSent: expect.any(Number),
-        }),
-        rateLimit: expect.objectContaining({
-          rateLimitHits: expect.any(Number),
-        }),
-      });
-
-      // 验证Prometheus导出格式
-      const prometheusMetrics = metricsService.getPrometheusMetrics();
-      expect(prometheusMetrics).toMatchObject({
-        stream_recovery_jobs_total: expect.any(Number),
-        stream_recovery_data_points_total: expect.any(Number),
-      });
-    });
-
+  describe("Phase 3: 系统健康状态", () => {
     it("应该提供详细的系统健康状态", async () => {
       await recoveryWorker.onModuleInit();
 
@@ -537,9 +503,8 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
             complet_ed: expect.any(Number),
             failed: expect.any(Number),
           }),
-          metrics: expect.any(Object),
         }),
       });
     });
-  });
+  })
 });

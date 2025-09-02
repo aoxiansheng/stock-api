@@ -3,6 +3,7 @@ import { ExecutionContext, CallHandler } from "@nestjs/common";
 import { Response } from "express";
 import { of } from "rxjs";
 import { ResponseInterceptor } from "../../../../../../src/common/core/interceptors/response.interceptor";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe("ResponseInterceptor", () => {
   let interceptor: ResponseInterceptor<any>;
@@ -10,9 +11,11 @@ describe("ResponseInterceptor", () => {
   let mockCallHandler: jest.Mocked<CallHandler>;
   let mockResponse: jest.Mocked<Response>;
   let mockRequest: any;
+  let mockEventEmitter: EventEmitter2;
 
   beforeEach(() => {
-    interceptor = new ResponseInterceptor();
+    mockEventEmitter = new EventEmitter2();
+    interceptor = new ResponseInterceptor(new EventEmitter2());
 
     mockRequest = {
       method: "GET",

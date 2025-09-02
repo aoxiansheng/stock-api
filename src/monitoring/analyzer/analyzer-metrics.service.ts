@@ -81,7 +81,7 @@ export class AnalyzerMetricsCalculator {
     let totalRequests = 0;
 
     for (const request of requests) {
-      totalTime += request.responseTime;
+      totalTime += (request.responseTime || 0);
       totalRequests++;
     }
 
@@ -147,7 +147,7 @@ export class AnalyzerMetricsCalculator {
         const [method, endpoint] = key.split(':');
         const requestCount = endpointRequests.length;
         const errorCount = endpointRequests.filter(r => r.statusCode >= 400).length;
-        const totalResponseTime = endpointRequests.reduce((sum, r) => sum + r.responseTime, 0);
+        const totalResponseTime = endpointRequests.reduce((sum, r) => sum + (r.responseTime || 0), 0);
         const lastUsed = new Date(Math.max(...endpointRequests.map(r => r.timestamp.getTime())));
 
         metrics.push({

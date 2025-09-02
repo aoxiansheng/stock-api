@@ -120,7 +120,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -147,7 +147,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -179,7 +179,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -247,7 +247,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -312,7 +312,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -357,7 +357,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -382,7 +382,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -409,7 +409,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -452,7 +452,7 @@ describe("QueryService - 后台更新优化测试", () => {
             market: "HK",
             dataSize: 1024,
             storedAt: new Date().toISOString(),
-            processingTime: 100,
+            processingTimeMs: 100,
           },
         })
         .mockRejectedValue(new Error("Storage overload"));
@@ -503,7 +503,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 
@@ -531,7 +531,7 @@ describe("QueryService - 后台更新优化测试", () => {
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
-          processingTime: 100,
+          processingTimeMs: 100,
         },
       });
 

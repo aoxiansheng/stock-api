@@ -11,16 +11,17 @@ import mongoose from "mongoose";
 import request from "supertest";
 import { jest } from "@jest/globals";
 import { InjectRedis } from "@nestjs-modules/ioredis";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 // 先加载E2E测试环境变量
 import "./e2e.env";
 
-import { CustomLogger, getLogLevels } from "@app/config/logger.config";
-import { GlobalExceptionFilter } from "@common/core/filters";
+// import { CustomLogger, getLogLevels } from "@app/config/logger.config"; // Commented out due to path alias issues
+import { GlobalExceptionFilter } from "../../src/common/core/filters";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
-} from "@common/core/interceptors";
+} from "../../src/common/core/interceptors";
 import { InfrastructureInterceptor } from "../../src/monitoring/infrastructure/interceptors/infrastructure.interceptor";
 import { CollectorService } from "../../src/monitoring/collector/collector.service";
 
@@ -58,18 +59,43 @@ beforeAll(async () => {
     }).compile();
 
     // 创建应用实例
-    app = testModule.createNestApplication({
-      logger: getLogLevels(),
-    });
+    app = testModule.createNestApplication();
 
-    // 使用自定义日志器
-    app.useLogger(new CustomLogger("E2E-Test"));
+    // 使用默认日志器 (logger imports commented out due to path issues)
+    // app.useLogger(new CustomLogger("E2E-Test"));
 
     // 全局前缀
     app.setGlobalPrefix("api/v1");
 
+    // 创建全局 EventEmitter2 模拟
+    const mockEventEmitter = {
+      emit: jest.fn(),
+      emitAsync: jest.fn(),
+      addListener: jest.fn(),
+      on: jest.fn(),
+      once: jest.fn(),
+      prependListener: jest.fn(),
+      prependOnceListener: jest.fn(),
+      removeListener: jest.fn(),
+      off: jest.fn(),
+      removeAllListeners: jest.fn(),
+      setMaxListeners: jest.fn(),
+      getMaxListeners: jest.fn(),
+      listeners: jest.fn(),
+      rawListeners: jest.fn(),
+      listenerCount: jest.fn(),
+      eventNames: jest.fn(),
+      onAny: jest.fn(),
+      prependAny: jest.fn(),
+      offAny: jest.fn(),
+      removeAllListenersAny: jest.fn(),
+      listenersAny: jest.fn(),
+      listenersAnyOnce: jest.fn(),
+      waitFor: jest.fn(),
+    } as unknown as EventEmitter2;
+
     // 全局异常过滤器
-    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalFilters(new GlobalExceptionFilter(mockEventEmitter));
 
     // 全局验证管道
     app.useGlobalPipes(
@@ -90,12 +116,13 @@ beforeAll(async () => {
     // 全局性能监控拦截器
     const performanceMonitor = app.get(CollectorService);
     const reflector = app.get(Reflector);
+    
     app.useGlobalInterceptors(
-      new InfrastructureInterceptor(performanceMonitor, reflector),
+      new InfrastructureInterceptor(mockEventEmitter, reflector),
     );
 
     // 全局响应格式拦截器（最后执行）
-    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalInterceptors(new ResponseInterceptor(mockEventEmitter));
 
     // 设置全局性能监控服务（供装饰器使用）
     global["CollectorService"] = performanceMonitor;

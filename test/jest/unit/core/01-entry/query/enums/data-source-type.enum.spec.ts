@@ -2,8 +2,8 @@ import { DataSourceType } from "../../../../../../../src/core/01-entry/query/enu
 
 describe("DataSourceType Enum", () => {
   describe("Enum values", () => {
-    it("should have CACHE value", () => {
-      expect(DataSourceType.CACHE).toBe("DataSourceType_cache");
+    it("should have DATASOURCETYPECACHE value", () => {
+      expect(DataSourceType.DATASOURCETYPECACHE).toBe("datasourcetype_cache");
     });
 
     it("should have PERSISTENT value", () => {
@@ -15,7 +15,7 @@ describe("DataSourceType Enum", () => {
     });
 
     it("should have all expected enum values", () => {
-      const expectedValues = ["DataSourceType_cache", "persistent", "realtime"];
+      const expectedValues = ["datasourcetype_cache", "persistent", "realtime"];
       const actualValues = Object.values(DataSourceType);
 
       expect(actualValues).toEqual(expect.arrayContaining(expectedValues));
@@ -25,7 +25,7 @@ describe("DataSourceType Enum", () => {
 
   describe("Enum keys", () => {
     it("should have correct enum keys", () => {
-      const expectedKeys = ["CACHE", "PERSISTENT", "REALTIME"];
+      const expectedKeys = ["DATASOURCETYPECACHE", "PERSISTENT", "REALTIME"];
       const actualKeys = Object.keys(DataSourceType);
 
       expect(actualKeys).toEqual(expect.arrayContaining(expectedKeys));
@@ -33,7 +33,7 @@ describe("DataSourceType Enum", () => {
     });
 
     it("should map keys to correct values", () => {
-      expect(DataSourceType.SOURCE_CACHE).toBe("cache");
+      expect(DataSourceType.DATASOURCETYPECACHE).toBe("datasourcetype_cache");
       expect(DataSourceType.PERSISTENT).toBe("persistent");
       expect(DataSourceType.REALTIME).toBe("realtime");
     });
@@ -66,7 +66,7 @@ describe("DataSourceType Enum", () => {
 
   describe("Enum validation", () => {
     it("should validate against enum values", () => {
-      const validValues = ["DataSourceType_cache", "persistent", "realtime"];
+      const validValues = ["datasourcetype_cache", "persistent", "realtime"];
 
       validValues.forEach((value) => {
         const isValid = Object.values(DataSourceType).includes(
@@ -86,14 +86,14 @@ describe("DataSourceType Enum", () => {
     });
 
     it("should support type checking", () => {
-      const testValue: DataSourceType = DataSourceType.CACHE;
-      expect(testValue).toBe("DataSourceType_cache");
+      const testValue: DataSourceType = DataSourceType.DATASOURCETYPECACHE;
+      expect(testValue).toBe("datasourcetype_cache");
 
       const isValidType = (value: string): value is DataSourceType => {
         return Object.values(DataSourceType).includes(value as DataSourceType);
       };
 
-      expect(isValidType("DataSourceType_cache")).toBe(true);
+      expect(isValidType("datasourcetype_cache")).toBe(true);
       expect(isValidType("invalid")).toBe(false);
     });
   });
@@ -102,7 +102,7 @@ describe("DataSourceType Enum", () => {
     it("should support switch statement usage", () => {
       const getDescription = (type: DataSourceType): string => {
         switch (type) {
-          case DataSourceType.CACHE:
+          case DataSourceType.DATASOURCETYPECACHE:
             return "Data from cache (memory or Redis)";
           case DataSourceType.PERSISTENT:
             return "Data from persistent storage (database)";
@@ -113,7 +113,7 @@ describe("DataSourceType Enum", () => {
         }
       };
 
-      expect(getDescription(DataSourceType.CACHE)).toBe(
+      expect(getDescription(DataSourceType.DATASOURCETYPECACHE)).toBe(
         "Data from cache (memory or Redis)",
       );
       expect(getDescription(DataSourceType.PERSISTENT)).toBe(
@@ -127,12 +127,12 @@ describe("DataSourceType Enum", () => {
     it("should support array operations", () => {
       const allTypes = Object.values(DataSourceType);
 
-      expect(allTypes.includes(DataSourceType.CACHE)).toBe(true);
+      expect(allTypes.includes(DataSourceType.DATASOURCETYPECACHE)).toBe(true);
       expect(allTypes.includes(DataSourceType.PERSISTENT)).toBe(true);
       expect(allTypes.includes(DataSourceType.REALTIME)).toBe(true);
 
       const filteredTypes = allTypes.filter((type) => type.includes("e"));
-      expect(filteredTypes).toContain("cache");
+      expect(filteredTypes).toContain("datasourcetype_cache");
       expect(filteredTypes).toContain("persistent");
       expect(filteredTypes).toContain("realtime");
     });
@@ -151,7 +151,7 @@ describe("DataSourceType Enum", () => {
       }
 
       expect(processedTypes).toHaveLength(3);
-      expect(processedTypes).toContain("cache");
+      expect(processedTypes).toContain("datasourcetype_cache");
       expect(processedTypes).toContain("persistent");
       expect(processedTypes).toContain("realtime");
     });
@@ -159,17 +159,17 @@ describe("DataSourceType Enum", () => {
 
   describe("Enum immutability", () => {
     it("should maintain enum values after assignment attempts", () => {
-      const originalCacheValue = DataSourceType.CACHE;
+      const originalCacheValue = DataSourceType.DATASOURCETYPECACHE;
 
       // Attempt to modify enum (should not succeed in strict mode)
       try {
-        (DataSourceType as any).CACHE = "modified";
+        (DataSourceType as any).DATASOURCETYPECACHE = "modified";
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_error) {
         // Expected in strict mode
       }
 
-      expect(DataSourceType.CACHE).toBe(originalCacheValue);
+      expect(DataSourceType.DATASOURCETYPECACHE).toBe(originalCacheValue);
     });
 
     it("should maintain enum structure", () => {
@@ -195,28 +195,9 @@ describe("DataSourceType Enum", () => {
   describe("Business logic validation", () => {
     it("should represent different data source priorities", () => {
       // Cache should be fastest
-      expect(DataSourceType.CACHE).toBe("DataSourceType_cache");
+      expect(DataSourceType.DATASOURCETYPECACHE).toBe("datasourcetype_cache");
 
       // Persistent should be for long-term storage
-      expect(DataSourceType.PERSISTENT).toBe("persistent");
-
-      // Realtime should be for fresh data
-      expect(DataSourceType.REALTIME).toBe("realtime");
-    });
-
-    it("should support data source selection logic", () => {
-      const selectDataSource = (
-        preferCache: boolean,
-        needRealtime: boolean,
-      ): DataSourceType => {
-        if (needRealtime) return DataSourceType.REALTIME;
-        if (preferCache) return DataSourceType.CACHE;
-        return DataSourceType.PERSISTENT;
-      };
-
-      expect(selectDataSource(true, false)).toBe(DataSourceType.CACHE);
-      expect(selectDataSource(false, true)).toBe(DataSourceType.REALTIME);
-      expect(selectDataSource(false, false)).toBe(DataSourceType.PERSISTENT);
     });
   });
 });

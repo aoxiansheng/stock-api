@@ -23,6 +23,7 @@ import {
 } from "../../../../../src/common/core/decorators/swagger-responses.decorator";
 import { ResponseInterceptor } from "../../../../../src/common/core/interceptors/response.interceptor";
 import { GlobalExceptionFilter } from "../../../../../src/common/core/filters/global-exception.filter";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // 测试控制器
 @Controller("test-common-utilities")
@@ -80,13 +81,9 @@ describe("common Utilities Integration", () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-
-    // 配置全局拦截器
-    app.useGlobalInterceptors(new ResponseInterceptor());
-
-    // 配置全局异常过滤器
-    app.useGlobalFilters(new GlobalExceptionFilter());
-
+    const eventEmitter = new EventEmitter2();
+    app.useGlobalInterceptors(new ResponseInterceptor(eventEmitter));
+    app.useGlobalFilters(new GlobalExceptionFilter(eventEmitter));
     await app.init();
     httpServer = app.getHttpServer();
   });

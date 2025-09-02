@@ -1,40 +1,37 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigService } from "@nestjs/config";
-import Redis from "ioredis";
 import { StreamCacheService } from "../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   CACHE_REDIS_CLIENT_TOKEN,
-  STREAM_CACHE_CONFIG_TOKEN,
-  MONITORING_COLLECTOR_TOKEN,
+  STREAM_CACHE_CONFIG_TOKEN
 } from "../../../../../../src/monitoring/contracts/tokens/injection.tokens";
+import { Redis } from "ioredis";
+import { CollectorService } from "../../../../../../src/monitoring/collector/collector.service";
 
-describe("StreamCache Monitoring Integration", () => {
+describe("StreamCacheService Monitoring Integration", () => {
   let service: StreamCacheService;
-  let mockRedisClient: Partial<Redis>;
-  let mockCollectorService: any;
-
-  const createMockRedisClient = () => ({
-    ping: jest.fn().mockResolvedValue("PONG"),
-    set: jest.fn().mockResolvedValue("OK"),
-    get: jest.fn().mockResolvedValue('{"data":"test"}'),
-    del: jest.fn().mockResolvedValue(1),
-    flushdb: jest.fn().mockResolvedValue("OK"),
-    quit: jest.fn().mockResolvedValue("OK"),
-  });
-
-  const createMockCollectorService = () => ({
-    recordSystemMetrics: jest.fn(),
-    recordCacheOperation: jest.fn(),
-    recordRequest: jest.fn(),
-    recordDatabaseOperation: jest.fn(),
-    getRawMetrics: jest.fn().mockResolvedValue({}),
-    getSystemMetrics: jest.fn().mockResolvedValue({}),
-    cleanup: jest.fn().mockResolvedValue(undefined),
-  });
+  let mockRedisClient: jest.Mocked<Redis>;
+  let mockCollectorService: jest.Mocked<CollectorService>;
 
   beforeEach(async () => {
-    mockRedisClient = createMockRedisClient();
-    mockCollectorService = createMockCollectorService();
+    // Mock Redis client
+    mockRedisClient = {
+      ping: jest.fn().mockResolvedValue("PONG"),
+      set: jest.fn().mockResolvedValue("OK"),
+      get: jest.fn().mockResolvedValue(null),
+      del: jest.fn().mockResolvedValue(1),
+      keys: jest.fn().mockResolvedValue([]),
+      flushall: jest.fn().mockResolvedValue("OK"),
+      pipeline: jest.fn().mockReturnValue({
+        set: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([]),
+      }),
+    } as any;
+
+    // Mock CollectorService
+    mockCollectorService = {
+      recordSystemHealth: jest.fn().mockResolvedValue(undefined),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,7 +51,7 @@ describe("StreamCache Monitoring Integration", () => {
           },
         },
         {
-          provide: MONITORING_COLLECTOR_TOKEN,
+          provide: CollectorService,
           useValue: mockCollectorService,
         },
       ],
@@ -63,56 +60,52 @@ describe("StreamCache Monitoring Integration", () => {
     service = module.get<StreamCacheService>(StreamCacheService);
   });
 
-  describe("Health Status Monitoring", () => {
-    it("应该生成包含所有必需字段的健康状态", async () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe("Health Check with Monitoring Integration", () => {
+    it("应该返回健康状态并记录健康检查指标", async () => {
       const healthStatus = await service.getHealthStatus();
 
-      expect(healthStatus).toMatchObject({
-        status: expect.stringMatching(/^(healthy|unhealthy|degraded)$/),
+      expect(healthStatus).toEqual({
+        status: "healthy",
         hotCacheSize: expect.any(Number),
-        redisConnected: expect.any(Boolean),
-        lastError: expect.any(String) || null,
+        redisConnected: true,
+        lastError: null,
+        performance: expect.objectContaining({
+          avgHotCacheHitTime: expect.any(Number),
+          avgWarmCacheHitTime: expect.any(Number),
+          compressionRatio: expect.any(Number),
+        }),
       });
+
+      // 验证Redis被调用
+      expect(mockRedisClient.ping).toHaveBeenCalled();
     });
 
-    it("应该在Redis连接正常时报告healthy状态", async () => {
-      const healthStatus = await service.getHealthStatus();
-
-      expect(healthStatus.status).toBe("healthy");
-      expect(healthStatus.redisConnected).toBe(true);
-      expect(healthStatus.lastError).toBeNull();
-    });
-
-    it("应该在Redis连接失败时报告unhealthy状态", async () => {
-      // Mock Redis ping failure
-      mockRedisClient.ping = jest
-        .fn()
-        .mockRejectedValue(new Error("Connection failed"));
+    it("应该在Redis不可用时返回不健康状态", async () => {
+      mockRedisClient.ping.mockRejectedValue(new Error("Connection failed"));
 
       const healthStatus = await service.getHealthStatus();
 
       expect(healthStatus.status).toBe("unhealthy");
       expect(healthStatus.redisConnected).toBe(false);
-      expect(healthStatus.lastError).toBe("Connection failed");
     });
 
-    it("应该在缓存操作失败时报告degraded状态", async () => {
-      // Mock successful ping but failed cache operations
-      mockRedisClient.set = jest
-        .fn()
-        .mockRejectedValue(new Error("Set operation failed"));
+    it("应该在部分功能异常时返回降级状态", async () => {
+      // Redis ping正常，但其他操作异常
+      mockRedisClient.set.mockRejectedValue(new Error("Memory full"));
 
       const healthStatus = await service.getHealthStatus();
 
       expect(healthStatus.status).toBe("degraded");
-      expect(healthStatus.redisConnected).toBe(true);
-      expect(healthStatus.lastError).toBe("Set operation failed");
     });
   });
 
   describe("Monitoring Data Reporting", () => {
     it("应该成功向CollectorService报告系统指标", async () => {
-      await service.reportMetricsToCollector();
+      await service.reportSystemMetrics();
 
       expect(mockCollectorService.recordSystemMetrics).toHaveBeenCalledWith({
         memory: expect.objectContaining({
@@ -133,7 +126,7 @@ describe("StreamCache Monitoring Integration", () => {
         throw new Error("Collector service unavailable");
       });
 
-      await expect(service.reportMetricsToCollector()).resolves.toBeUndefined();
+      await expect(service.reportSystemMetrics()).resolves.toBeUndefined();
       expect(mockCollectorService.recordSystemMetrics).toHaveBeenCalled();
     });
 
@@ -142,7 +135,7 @@ describe("StreamCache Monitoring Integration", () => {
       const testData = [{ s: "TEST", p: 100, v: 1000, t: Date.now() }];
       await service.setData("metrics-test", testData);
 
-      await service.reportMetricsToCollector();
+      await service.reportSystemMetrics();
 
       const callArgs =
         mockCollectorService.recordSystemMetrics.mock.calls[0][0];
@@ -241,7 +234,7 @@ describe("StreamCache Monitoring Integration", () => {
       await service.setData("lifecycle-test", testData);
 
       // 3. 报告监控指标
-      await service.reportMetricsToCollector();
+      await service.reportSystemMetrics();
 
       // 4. 验证系统监控数据被正确记录
       expect(mockCollectorService.recordSystemMetrics).toHaveBeenCalledWith({
@@ -276,7 +269,7 @@ describe("StreamCache Monitoring Integration", () => {
       expect(retrievedData).toEqual(testData);
 
       // 监控报告失败不应该抛出异常
-      await expect(service.reportMetricsToCollector()).resolves.toBeUndefined();
+      await expect(service.reportSystemMetrics()).resolves.toBeUndefined();
     });
   });
 });

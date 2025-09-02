@@ -27,7 +27,7 @@ export interface BatchMappingResult {
   direction: 'to_standard' | 'from_standard';
   totalProcessed: number;
   cacheHits: number;
-  processingTime: number;
+  processingTimeMs: number;
 }
 
 /**

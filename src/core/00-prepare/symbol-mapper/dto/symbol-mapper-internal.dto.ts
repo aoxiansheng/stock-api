@@ -64,7 +64,7 @@ export class InternalSymbolMappingDto {
 export class SymbolMapperPerformanceDto {
   @ApiProperty({ description: "处理时间（毫秒）" })
   @IsNumber()
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "股票代码数量" })
   @IsNumber()
@@ -98,7 +98,7 @@ export class SymbolMapperApplicationResultDto {
 
   @ApiProperty({ description: "处理时间（毫秒）" })
   @IsNumber()
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "数据源名称" })
   @IsString()
@@ -124,7 +124,7 @@ export class SymbolMapperTransformationLogDto {
 
   @ApiProperty({ description: "处理时间（毫秒）" })
   @IsNumber()
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "是否成功映射" })
   @IsBoolean()
@@ -179,7 +179,7 @@ export class SymbolMapperBatchTransformationLogDto {
 
   @ApiProperty({ description: "处理时间（毫秒）" })
   @IsNumber()
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "操作类型" })
   @IsString()

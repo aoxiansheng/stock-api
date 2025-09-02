@@ -56,7 +56,7 @@ describe("DataFetchResponseDto", () => {
       expect(response.data).toEqual(mockData);
       expect(response.metadata.provider).toBe("longport");
       expect(response.metadata.capability).toBe("get-stock-quote");
-      expect(response.metadata.processingTime).toBe(150);
+      expect(response.metadata.processingTimeMs).toBe(150);
       expect(response.metadata.symbolsProcessed).toBe(1);
       expect(response.metadata.failedSymbols).toBeUndefined();
       expect(response.metadata.errors).toBeUndefined();
@@ -82,7 +82,7 @@ describe("DataFetchResponseDto", () => {
       expect(response.data).toEqual(mockData);
       expect(response.metadata.provider).toBe("longport");
       expect(response.metadata.capability).toBe("get-stock-quote");
-      expect(response.metadata.processingTime).toBe(150);
+      expect(response.metadata.processingTimeMs).toBe(150);
       expect(response.metadata.symbolsProcessed).toBe(1);
       expect(response.metadata.failedSymbols).toEqual(failedSymbols);
       expect(response.metadata.errors).toEqual(errors);

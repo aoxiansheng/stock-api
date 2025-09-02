@@ -22,7 +22,7 @@ export class RequestMetricDto {
 
   @ApiProperty({ description: '响应时间（毫秒）' })
   @IsNumber()
-  responseTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: '时间戳' })
   @IsDate()

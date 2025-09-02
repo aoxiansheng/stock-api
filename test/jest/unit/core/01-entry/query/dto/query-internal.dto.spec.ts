@@ -258,13 +258,13 @@ describe("Query Internal DTOs", () => {
       it("should create instance with stock data", () => {
         // Arrange
         dto.data = { symbol: "00700.HK", price: 425.6, volume: 1000000 };
-        dto.source = DataSourceType.SOURCE_CACHE;
+        dto.source = DataSourceType.DATASOURCETYPECACHE;
         dto.timestamp = "2023-06-01T10:00:00Z";
         dto.ttlRemaining = 300;
 
         // Assert
         expect(dto.data.symbol).toBe("00700.HK");
-        expect(dto.source).toBe(DataSourceType.SOURCE_CACHE);
+        expect(dto.source).toBe(DataSourceType.DATASOURCETYPECACHE);
         expect(dto.timestamp).toBe("2023-06-01T10:00:00Z");
         expect(dto.ttlRemaining).toBe(300);
       });
@@ -272,7 +272,7 @@ describe("Query Internal DTOs", () => {
       it("should handle different data sources", () => {
         // Arrange
         const sources = [
-          DataSourceType.SOURCE_CACHE,
+          DataSourceType.DATASOURCETYPECACHE,
           DataSourceType.REALTIME,
           DataSourceType.PERSISTENT,
         ];
@@ -303,7 +303,7 @@ describe("Query Internal DTOs", () => {
           content: string;
         }>();
         newsDto.data = { title: "News", content: "Content" };
-        newsDto.source = DataSourceType.SOURCE_CACHE;
+        newsDto.source = DataSourceType.DATASOURCETYPECACHE;
         expect(newsDto.data.title).toBe("News");
       });
     });

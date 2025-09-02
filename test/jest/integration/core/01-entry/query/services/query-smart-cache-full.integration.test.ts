@@ -23,6 +23,7 @@ const createMockStorageMetadata = (overrides: Partial<any> = {}) => ({
   market: "US",
   dataSize: 1024,
   processingTime: 50,
+  processingTimeMs: 50,
   storedAt: new Date().toISOString(),
   ...overrides,
 });

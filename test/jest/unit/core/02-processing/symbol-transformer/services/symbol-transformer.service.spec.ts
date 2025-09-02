@@ -35,7 +35,7 @@ describe("SymbolTransformerService", () => {
     direction: "to_standard" as const,
     totalProcessed: 2,
     cacheHits: 0,
-    processingTime: 10,
+    processingTimeMs: 10,
   };
 
   beforeEach(async () => {
@@ -155,7 +155,7 @@ describe("SymbolTransformerService", () => {
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
-        processingTime: 5,
+        processingTimeMs: 5,
       });
 
       const result = await service.transformSymbols(
@@ -184,7 +184,7 @@ describe("SymbolTransformerService", () => {
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
-        processingTime: 5,
+        processingTimeMs: 5,
       });
 
       const result = await service.transformSingleSymbol(
@@ -234,7 +234,7 @@ describe("SymbolTransformerService", () => {
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
-        processingTime: 5,
+        processingTimeMs: 5,
       });
 
       const result = await service.mapSymbol("longport", "700.HK");

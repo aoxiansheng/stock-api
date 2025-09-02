@@ -287,7 +287,7 @@ export interface StreamDataMetadata {
   receivedAt: Date;
   
   /** 数据处理时间(毫秒) */
-  processingTime: number;
+  processingTimeMs: number;
   
   /** 连接ID */
   connectionId: string;

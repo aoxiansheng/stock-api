@@ -83,7 +83,7 @@ describe("DataTransformerController", () => {
         metadata: {
           recordsProcessed: 1,
           fieldsTransformed: 1,
-          processingTime: 10,
+          processingTimeMs: 10,
           ruleId: "test-rule-id",
           ruleName: "Test Rule",
           provider: "test-provider",
@@ -130,7 +130,7 @@ describe("DataTransformerController", () => {
           metadata: {
             recordsProcessed: 1,
             fieldsTransformed: 1,
-            processingTime: 10,
+            processingTimeMs: 10,
             ruleId: "test-rule-id-1",
             ruleName: "Test Rule 1",
             provider: "test-provider",
@@ -143,7 +143,7 @@ describe("DataTransformerController", () => {
           metadata: {
             recordsProcessed: 1,
             fieldsTransformed: 1,
-            processingTime: 12,
+            processingTimeMs: 12,
             ruleId: "test-rule-id-2",
             ruleName: "Test Rule 2",
             provider: "test-provider",

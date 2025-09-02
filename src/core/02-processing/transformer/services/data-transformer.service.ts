@@ -452,8 +452,6 @@ export class DataTransformerService {
 
   // createErrorResponse method removed - errors are now handled via exceptions
 
-
-
   /**
    * Find appropriate mapping rule
    */
@@ -497,8 +495,6 @@ export class DataTransformerService {
       return bestRule;
     }
   }
-
-
 
   /**
    * Calculate transformation statistics

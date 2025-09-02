@@ -20,10 +20,10 @@ export class DataFetchMetadataDto {
   capability: string;
 
   @ApiProperty({
-    description: '处理时间戳',
-    example: 1704110400000,
+    description: '处理时间（毫秒）',
+    example: 1500,
   })
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({
     description: '成功处理的股票代码数量',
@@ -48,14 +48,14 @@ export class DataFetchMetadataDto {
   constructor(
     provider: string,
     capability: string,
-    processingTime: number,
+    processingTimeMs: number,
     symbolsProcessed: number,
     failedSymbols?: string[],
     errors?: string[],
   ) {
     this.provider = provider;
     this.capability = capability;
-    this.processingTime = processingTime;
+    this.processingTimeMs = processingTimeMs;
     this.symbolsProcessed = symbolsProcessed;
     this.failedSymbols = failedSymbols;
     this.errors = errors;

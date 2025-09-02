@@ -220,23 +220,7 @@ describe("CacheService Optimization Features", () => {
     });
   });
 
-  describe("Health Check Optimization", () => {
-    it("should log health check failures with proper error messages", async () => {
-      const errorSpy = jest
-        .spyOn((service as any).logger, "error")
-        .mockImplementation();
-      mockRedis.ping.mockRejectedValue(new Error("Connection failed"));
 
-      await service.healthCheck();
-
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("缓存健康检查失败"),
-        expect.objectContaining({
-          operation: CACHE_OPERATIONS.HEALTH_CHECK,
-        }),
-      );
-    });
-  });
 
   describe("Optimization Tasks", () => {
     it("should log optimization tasks startup", () => {

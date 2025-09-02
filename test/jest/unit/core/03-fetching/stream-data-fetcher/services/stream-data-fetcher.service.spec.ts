@@ -4,11 +4,9 @@ import { v4 as uuidv4 } from "uuid";
 import { StreamDataFetcherService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import { CapabilityRegistryService } from "../../../../../../../src/providers/services/capability-registry.service";
 import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
-import { StreamMetricsService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-metrics.service";
 import { StreamCacheService } from "../../../../../../../src/core/05-caching/stream-cache/services/stream-cache.service";
 import { StreamClientStateManager } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 import { ConnectionPoolManager } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/connection-pool-manager.service";
-import { StreamMonitoringService } from "../../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-monitoring.service";
 import {
   StreamConnectionParams,
   StreamConnection,
@@ -71,15 +69,6 @@ describe("StreamDataFetcherService", () => {
       }),
     };
 
-    const mockStreamMetricsService = {
-      recordConnectionEvent: jest.fn(),
-      updateActiveConnectionsCount: jest.fn(),
-      recordSymbolProcessing: jest.fn(),
-      recordLatency: jest.fn(),
-      recordConnectionStatusChange: jest.fn(),
-      recordErrorEvent: jest.fn(),
-    };
-
     const mockStreamCacheService = {
       get: jest.fn(),
       set: jest.fn(),
@@ -102,13 +91,6 @@ describe("StreamDataFetcherService", () => {
       getAlerts: jest.fn().mockReturnValue([]),
     };
 
-    const mockStreamMonitoringService = {
-      startMonitoringConnection: jest.fn().mockReturnValue(true),
-      stopMonitoringConnection: jest.fn().mockReturnValue(true),
-      getConnectionCount: jest.fn().mockReturnValue(0),
-      isDestroyed: false,
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StreamDataFetcherService,
@@ -121,10 +103,6 @@ describe("StreamDataFetcherService", () => {
           useValue: mockCollectorService,
         },
         {
-          provide: StreamMetricsService,
-          useValue: mockStreamMetricsService,
-        },
-        {
           provide: StreamCacheService,
           useValue: mockStreamCacheService,
         },
@@ -135,10 +113,6 @@ describe("StreamDataFetcherService", () => {
         {
           provide: ConnectionPoolManager,
           useValue: mockConnectionPoolManager,
-        },
-        {
-          provide: StreamMonitoringService,
-          useValue: mockStreamMonitoringService,
         },
       ],
     }).compile();

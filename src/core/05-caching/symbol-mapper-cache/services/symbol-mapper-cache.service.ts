@@ -384,7 +384,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       cacheHits: 0,  // 没有缓存命中，因为缓存被禁用
       mappingDetails: results,
       failedSymbols,
-      processingTime: Date.now() - startTime
+      processingTimeMs: Date.now() - startTime
     };
   }
 
@@ -491,7 +491,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private recordPerformanceMetrics(
     provider: string, 
     symbolsCount: number, 
-    processingTime: number,
+    processingTimeMs: number,
     cacheHits: number
   ): void {
     const hitRatio = (cacheHits / symbolsCount) * 100;
@@ -501,7 +501,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Symbol mapping performance', {
       provider: provider.toLowerCase(),
       symbolsCount,
-      processingTime,
+      processingTimeMs,
       hitRatio,
       cacheEfficiency
     });
@@ -513,7 +513,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         source: 'symbol_mapper_cache',
         metricType: 'performance',
         metricName: 'mapping_performance',
-        metricValue: processingTime,
+        metricValue: processingTimeMs,
         tags: {
           provider: provider.toLowerCase(),
           symbolsCount: symbolsCount.toString(),
@@ -1043,7 +1043,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       cacheHits: cacheHits.size,
       mappingDetails,
       failedSymbols,
-      processingTime: Date.now() - startTime
+      processingTimeMs: Date.now() - startTime
     };
   }
 

@@ -43,7 +43,7 @@ describe("DataTransformationMetadataDto", () => {
     expect(metadata.transDataRuleListType).toBe(transDataRuleListType);
     expect(metadata.recordsProcessed).toBe(recordsProcessed);
     expect(metadata.fieldsTransformed).toBe(fieldsTransformed);
-    expect(metadata.processingTime).toBe(processingTime);
+    expect(metadata.processingTimeMs).toBe(processingTime);
     expect(metadata.transformationsApplied).toEqual(transformationsApplied);
 
     // 断言 timestamp 是否是一个有效的 ISO 字符串

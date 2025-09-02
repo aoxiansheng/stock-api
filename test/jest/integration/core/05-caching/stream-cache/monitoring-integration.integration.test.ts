@@ -149,63 +149,6 @@ describe("StreamCache Monitoring Integration", () => {
     });
   });
 
-  describe("Monitoring Data Reporting", () => {
-    it("应该成功向CollectorService报告监控指标", async () => {
-      await service.reportMetricsToCollector();
-
-      // 验证CollectorService.recordSystemHealth被调用
-      expect(mockCollectorService.recordSystemHealth).toHaveBeenCalledWith({
-        component: "StreamCache",
-        status: expect.stringMatching(/^(healthy|unhealthy|degraded)$/),
-        metrics: expect.objectContaining({
-          hotCacheSize: expect.any(Number),
-          redisConnected: expect.any(Boolean),
-        }),
-      });
-    });
-
-    it("应该在CollectorService失败时优雅处理", async () => {
-      // 模拟CollectorService失败
-      mockCollectorService.recordSystemHealth.mockRejectedValue(
-        new Error("Collector service unavailable"),
-      );
-
-      // 不应该抛出异常
-      await expect(service.reportMetricsToCollector()).resolves.toBeUndefined();
-
-      // 应该记录debug日志
-      // Note: 由于我们mock了console，可以检查是否有相应的日志调用
-      expect(mockCollectorService.recordSystemHealth).toHaveBeenCalled();
-    });
-
-    it("应该包含完整的性能指标数据", async () => {
-      if (redisClient.status !== "ready") {
-        pending("Redis not available for this test");
-        return;
-      }
-
-      await service.reportMetricsToCollector();
-
-      // 获取调用参数
-      const callArgs = mockCollectorService.recordSystemHealth.mock.calls[0][0];
-
-      expect(callArgs.component).toBe("StreamCache");
-      expect(callArgs.metrics).toMatchObject({
-        hotCacheSize: expect.any(Number),
-        redisConnected: expect.any(Boolean),
-      });
-
-      // 如果有性能数据，应该包含详细指标
-      if (callArgs.metrics.avgHotCacheHitTime !== undefined) {
-        expect(callArgs.metrics).toMatchObject({
-          avgHotCacheHitTime: expect.any(Number),
-          avgWarmCacheHitTime: expect.any(Number),
-          compressionRatio: expect.any(Number),
-        });
-      }
-    });
-  });
-
   describe("Monitoring Integration Error Handling", () => {
     it("应该在监控系统不可用时仍然正常工作", async () => {
       // 创建新的service实例，但没有CollectorService
@@ -244,34 +187,6 @@ describe("StreamCache Monitoring Integration", () => {
       expect(retrievedData).toEqual(testData);
 
       await moduleWithoutCollector.close();
-    });
-  });
-
-  describe("Real-time Monitoring Integration", () => {
-    it("应该在缓存操作时触发监控记录", async () => {
-      if (redisClient.status !== "ready") {
-        pending("Redis not available for this test");
-        return;
-      }
-
-      const testData = [{ s: "TEST", p: 100, v: 1000, t: Date.now() }];
-
-      // 执行缓存操作
-      await service.setData("monitoring-test-key", testData);
-      const retrievedData = await service.getData("monitoring-test-key");
-
-      expect(retrievedData).toEqual(testData);
-
-      // 手动触发监控报告
-      await service.reportMetricsToCollector();
-
-      // 验证监控数据被正确报告
-      expect(mockCollectorService.recordSystemHealth).toHaveBeenCalled();
-
-      const reportedMetrics =
-        mockCollectorService.recordSystemHealth.mock.calls[0][0];
-      expect(reportedMetrics.component).toBe("StreamCache");
-      expect(reportedMetrics.metrics.hotCacheSize).toBeGreaterThan(0); // 应该包含刚添加的数据
     });
   });
 });

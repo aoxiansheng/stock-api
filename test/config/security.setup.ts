@@ -27,6 +27,7 @@ import { ApiKeyService } from "../../src/auth/services/apikey.service";
 import { JwtService } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 import mongoose from "mongoose";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;
@@ -59,12 +60,7 @@ beforeAll(async () => {
     const testModule = await Test.createTestingModule({
       imports: [
         AppModule,
-        ThrottlerModule.forRoot([
-          {
-            ttl: 60000,
-            limit: 200, // 提高测试环境的全局速率限制，避免大部分测试被意外限流
-          },
-        ]),
+        // 注意：AppModule中已经配置了ThrottlerModule，这里不需要重复配置
       ],
     }).compile();
 
@@ -82,7 +78,10 @@ beforeAll(async () => {
 
     app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
 
-    app.useGlobalFilters(new GlobalExceptionFilter());
+    // 获取AppModule中配置的EventEmitter2实例
+    const eventEmitter = app.get(EventEmitter2);
+
+    app.useGlobalFilters(new GlobalExceptionFilter(eventEmitter));
 
     app.useGlobalPipes(
       new ValidationPipe({
@@ -97,15 +96,16 @@ beforeAll(async () => {
 
     app.useGlobalInterceptors(new RequestTrackingInterceptor());
 
-    const performanceMonitor = app.get(CollectorService);
     const reflector = app.get("Reflector");
     app.useGlobalInterceptors(
-      new InfrastructureInterceptor(performanceMonitor, reflector),
+      new InfrastructureInterceptor(eventEmitter, reflector), // 修正参数类型
     );
 
-    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalInterceptors(new ResponseInterceptor(eventEmitter));
 
-    global["CollectorService"] = performanceMonitor;
+    // 获取CollectorService实例
+    const collectorService = app.get(CollectorService);
+    global["CollectorService"] = collectorService;
 
     // 安全测试的CORS配置
     const whitelist = ["https://trusted.com", "http://localhost:3000"];
@@ -163,8 +163,8 @@ beforeEach(async () => {
     }
 
     // 清理Redis缓存
-    const redis = app.get("REDIS_CLIENT", { strict: false });
-    if (redis) {
+    const redis = app.get("default_IORedisModuleConnectionToken");
+    if (redis && redis.status === "ready") {
       await redis.flushdb();
     }
   } catch (error) {
@@ -183,19 +183,16 @@ afterAll(async () => {
 
   const cleanup = async () => {
     try {
-      // 1. 清理Redis连接 (最先清理，避免缓存阻塞)
-      console.log("🔄 [清理] 关闭Redis连接...");
+      // 1. 清理Redis数据
+      console.log("🔄 [清理] 清理Redis数据...");
       try {
-        const redis = app?.get("REDIS_CLIENT", { strict: false });
-        if (redis && typeof redis.quit === "function") {
-          await Promise.race([
-            redis.quit(),
-            new Promise((resolve) => setTimeout(resolve, 2000)),
-          ]);
+        const redis = app?.get("default_IORedisModuleConnectionToken");
+        if (redis && redis.status === "ready") {
+          await redis.flushdb();
         }
-        console.log("✅ [清理] Redis连接已关闭");
+        console.log("✅ [清理] Redis数据已清理");
       } catch (redisError) {
-        console.warn("⚠️ [清理] Redis关闭失败:", redisError.message);
+        console.warn("⚠️ [清理] Redis数据清理失败:", redisError.message);
       }
 
       // 2. 清理数据库连接

@@ -274,7 +274,7 @@ describe("QueryService - Smart Cache Integration", () => {
       expect(result.cacheHits).toBe(1); // AAPL从缓存命中
       expect(result.realtimeHits).toBe(1); // MSFT需要实时获取
       expect(result.data).toHaveLength(2);
-      expect(result.data[0].source).toBe(DataSourceType.SOURCE_CACHE);
+      expect(result.data[0].source).toBe(DataSourceType.DATASOURCETYPECACHE);
       expect(result.data[1].source).toBe(DataSourceType.REALTIME);
     });
 

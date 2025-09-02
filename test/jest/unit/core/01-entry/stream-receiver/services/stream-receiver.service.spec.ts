@@ -1,4 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
 import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import { SymbolTransformerService } from "@core/02-processing/symbol-transformer/services/symbol-transformer.service";
@@ -88,6 +89,7 @@ describe("StreamReceiverService", () => {
         {
           provide: StreamReceiverService,
           useFactory: (
+            eventBus: EventEmitter2,
             configService: ConfigService,
             symbolTransformer: SymbolTransformerService,
             transformer: DataTransformerService,
@@ -95,15 +97,16 @@ describe("StreamReceiverService", () => {
             collectorService: CollectorService,
           ) => {
             return new StreamReceiverService(
+              eventBus,
               configService,
               symbolTransformer,
               transformer,
               streamDataFetcher,
-              collectorService, // required CollectorService
-              undefined, // optional StreamRecoveryWorkerService
+              undefined, // optional StreamRecoveryWorkerService (移除collectorService参数)
             );
           },
           inject: [
+            EventEmitter2,
             ConfigService,
             SymbolTransformerService,
             DataTransformerService,
@@ -131,6 +134,17 @@ describe("StreamReceiverService", () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn().mockReturnValue("test"),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
+            emitAsync: jest.fn(),
+            on: jest.fn(),
+            once: jest.fn(),
+            off: jest.fn(),
+            removeAllListeners: jest.fn(),
           },
         },
         {

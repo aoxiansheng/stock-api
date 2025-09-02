@@ -62,7 +62,7 @@ export class DependenciesValidatorService {
           });
         } else {
           this.logger.debug(`${result.service} validation successful`, {
-            responseTime: result.responseTime,
+            responseTime: result.responseTime || 0,
             endpoint: result.endpoint
           });
         }

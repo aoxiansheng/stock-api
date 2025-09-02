@@ -118,7 +118,7 @@ describe("DataFetchMetadataDto", () => {
 
       expect(metadata.provider).toBe("longport");
       expect(metadata.capability).toBe("get-stock-quote");
-      expect(metadata.processingTime).toBe(150);
+      expect(metadata.processingTimeMs).toBe(150);
       expect(metadata.symbolsProcessed).toBe(2);
       expect(metadata.failedSymbols).toEqual(["INVALID.XX"]);
       expect(metadata.errors).toEqual(["Symbol not found: INVALID.XX"]);
@@ -134,7 +134,7 @@ describe("DataFetchMetadataDto", () => {
 
       expect(metadata.provider).toBe("longport");
       expect(metadata.capability).toBe("get-stock-quote");
-      expect(metadata.processingTime).toBe(150);
+      expect(metadata.processingTimeMs).toBe(150);
       expect(metadata.symbolsProcessed).toBe(2);
       expect(metadata.failedSymbols).toBeUndefined();
       expect(metadata.errors).toBeUndefined();

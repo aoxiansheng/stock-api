@@ -43,7 +43,7 @@ export class StorageMetadataDto {
   tags?: Record<string, string>;
 
   @ApiProperty({ description: "Processing time in milliseconds" })
-  processingTime: number;
+  processingTimeMs: number;
 
   constructor(
     key: string,
@@ -52,7 +52,7 @@ export class StorageMetadataDto {
     provider: string,
     market: string,
     dataSize: number,
-    processingTime: number,
+    processingTimeMs: number,
     compressed?: boolean,
     tags?: Record<string, string>,
     expiresAt?: string,
@@ -64,7 +64,7 @@ export class StorageMetadataDto {
     this.market = market;
     this.dataSize = dataSize;
     this.storedAt = new Date().toISOString();
-    this.processingTime = processingTime;
+    this.processingTimeMs = processingTimeMs;
     this.compressed = compressed;
     this.tags = tags;
     this.expiresAt = expiresAt;

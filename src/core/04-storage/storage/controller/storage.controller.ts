@@ -73,7 +73,7 @@ export class StorageController {
           metadata: {
             dataSize: 1024,
             compressed: true,
-            processingTime: 45,
+            processingTimeMs: 45,
             storageType: "both",
             cacheWritten: true,
             persistentWritten: true,
@@ -110,7 +110,7 @@ export class StorageController {
         success: true,
         dataSize: result.metadata.dataSize,
         compressed: result.metadata.compressed,
-        processingTime: result.metadata.processingTime,
+        processingTimeMs: result.metadata.processingTimeMs,
       });
 
       // 遵循控制器编写规范：让拦截器自动处理响应格式化
@@ -169,7 +169,7 @@ export class StorageController {
           metadata: {
             dataSize: 512,
             compressed: false,
-            processingTime: 12,
+            processingTimeMs: 12,
             source: "cache",
             storedAt: "2024-01-01T15:29:45.000Z",
           },
@@ -202,7 +202,7 @@ export class StorageController {
         source: result.cacheInfo?.source,
         cacheHit: result.cacheInfo?.hit,
         ttlRemaining: result.cacheInfo?.ttlRemaining,
-        processingTime: result.metadata.processingTime,
+        processingTimeMs: result.metadata.processingTimeMs,
       });
 
       // 遵循控制器编写规范：让拦截器自动处理响应格式化
@@ -265,7 +265,7 @@ export class StorageController {
           metadata: {
             dataSize: 486,
             compressed: false,
-            processingTime: 8,
+            processingTimeMs: 8,
             source: "cache",
             storedAt: "2024-01-01T15:28:30.000Z",
           },
@@ -470,5 +470,6 @@ export class StorageController {
       throw error;
     }
   }
-
 }
+
+

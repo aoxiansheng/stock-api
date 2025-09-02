@@ -15,9 +15,31 @@ import Redis from "ioredis";
 // Mock EventEmitter2 class
 class MockEventEmitter2 {
   emit = jest.fn();
+  emitAsync = jest.fn();
+  addListener = jest.fn();
   on = jest.fn();
   off = jest.fn();
   removeAllListeners = jest.fn();
+  prependListener = jest.fn();
+  once = jest.fn();
+  prependOnceListener = jest.fn();
+  removeListener = jest.fn();
+  listeners = jest.fn();
+  listenerCount = jest.fn();
+  eventNames = jest.fn();
+  getMaxListeners = jest.fn();
+  setMaxListeners = jest.fn();
+  rawListeners = jest.fn();
+  many = jest.fn();
+  prependMany = jest.fn();
+  onAny = jest.fn();
+  prependAny = jest.fn();
+  offAny = jest.fn();
+  listenersAny = jest.fn();
+  waitFor = jest.fn();
+  listenTo = jest.fn();
+  stopListeningTo = jest.fn();
+  hasListeners = jest.fn();
 }
 
 describe("StreamCacheService", () => {
@@ -61,6 +83,9 @@ describe("StreamCacheService", () => {
       disconnect: jest.fn(),
     } as any;
 
+    // 创建EventEmitter2实例Mock
+    mockEventBus = new MockEventEmitter2();
+
     module = await Test.createTestingModule({
       providers: [
         StreamCacheService,
@@ -74,13 +99,13 @@ describe("StreamCacheService", () => {
         },
         {
           provide: EventEmitter2,
-          useClass: MockEventEmitter2,
+          useValue: mockEventBus,
         },
       ],
     }).compile();
 
     service = module.get<StreamCacheService>(StreamCacheService);
-    mockEventBus = module.get<MockEventEmitter2>(EventEmitter2);
+    // mockEventBus 已经是实例了，不需要再获取
   });
 
   afterEach(async () => {

@@ -953,7 +953,7 @@ export class CommonCacheService {
                 metadata: this.normalizeMetadata({
                   batchIndex,
                   entryIndex: i,
-                  processingTime: processed.processingTime
+                  processingTime: processed.processingTime || 0
                 })
               });
             } else {
@@ -969,7 +969,7 @@ export class CommonCacheService {
                   entryIndex: i,
                   compressed: processed.compressed,
                   ttl: processed.ttl,
-                  processingTime: processed.processingTime
+                  processingTime: processed.processingTime || 0
                 })
               });
               

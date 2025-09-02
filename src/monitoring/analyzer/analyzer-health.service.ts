@@ -63,7 +63,7 @@ export class HealthAnalyzerService {
 
           // 计算详细组件指标
           const avgResponseTime = requests.length > 0 
-            ? requests.reduce((sum, r) => sum + r.responseTime, 0) / requests.length 
+            ? requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) / requests.length 
             : 0;
           const errorRate = requests.length > 0 
             ? requests.filter(r => r.statusCode >= 400).length / requests.length 
@@ -312,7 +312,7 @@ export class HealthAnalyzerService {
           criticalIssues.push(`API错误率过高: ${Math.round(errorRate * 100)}%`);
         }
 
-        const avgResponseTime = requests.reduce((sum, r) => sum + r.responseTime, 0) / requests.length;
+        const avgResponseTime = requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) / requests.length;
         if (avgResponseTime > 2000) {
           criticalIssues.push(`API响应时间过慢: ${Math.round(avgResponseTime)}ms`);
         }

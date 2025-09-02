@@ -411,7 +411,7 @@ describe("AlertHistoryService", () => {
 
       expect(alertHistoryRepository.cleanup).toHaveBeenCalledWith(7);
       expect(result.deletedCount).toBe(5);
-      expect(result.executionTime).toBe(100);
+      expect(result.executionTimeMs).toBe(100);
     });
 
     it("should use default cleanup days if invalid daysToKeep is provided", async () => {

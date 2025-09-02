@@ -1090,7 +1090,7 @@ export class StreamDataFetcherService extends BaseFetcherService implements IStr
         totalConnections,
         healthyConnections,
         healthRate: healthRate.toFixed(1) + '%',
-        processingTime: totalProcessingTime,
+        processingTimeMs: totalProcessingTime,
         adaptiveConcurrency,
         performance: {
           tier1: { passed: tier1Passed, failed: tier1Failed },

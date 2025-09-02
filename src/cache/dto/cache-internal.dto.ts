@@ -12,7 +12,6 @@ import {
 } from "class-validator";
 import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 
-
 /**
  * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
  * 此类已重命名为 RedisCacheRuntimeStatsDto 以解决与 StorageCacheStatsDto 的命名冲突
@@ -134,7 +133,7 @@ export class CacheOperationResultDto<T = any> {
 
   @ApiProperty({ description: "操作执行时间（毫秒）" })
   @IsNumber()
-  executionTime: number;
+  executionTimeMs: number;
 
   @ApiProperty({ description: "是否使用了压缩", required: false })
   @IsOptional()
@@ -342,7 +341,7 @@ export class CachePerformanceMonitoringDto {
 
   @ApiProperty({ description: "执行时间（毫秒）" })
   @IsNumber()
-  executionTime: number;
+  executionTimeMs: number;
 
   @ApiProperty({ description: "操作时间戳" })
   @IsNumber()

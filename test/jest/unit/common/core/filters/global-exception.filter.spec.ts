@@ -3,6 +3,7 @@
 import { ArgumentsHost, HttpException, HttpStatus } from "@nestjs/common";
 import { ValidationError } from "class-validator";
 import { Request, Response } from "express";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GlobalExceptionFilter } from "../../../../../../src/common/core/filters/global-exception.filter";
 
 describe("GlobalExceptionFilter", () => {
@@ -10,9 +11,11 @@ describe("GlobalExceptionFilter", () => {
   let mockArgumentsHost: jest.Mocked<ArgumentsHost>;
   let mockResponse: jest.Mocked<Response>;
   let mockRequest: jest.Mocked<Request> & { user?: any; apiKey?: any };
+  let mockEventEmitter: EventEmitter2;
 
   beforeEach(() => {
-    filter = new GlobalExceptionFilter();
+    mockEventEmitter = new EventEmitter2();
+    filter = new GlobalExceptionFilter(new EventEmitter2());
 
     mockResponse = {
       _status: jest.fn().mockReturnThis(),

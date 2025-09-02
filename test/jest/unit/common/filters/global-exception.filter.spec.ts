@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from "@nestjs/common";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe("GlobalExceptionFilter", () => {
   let filter: GlobalExceptionFilter;
@@ -14,57 +15,11 @@ describe("GlobalExceptionFilter", () => {
   let mockHttpArgumentsHost: any;
   let mockResponse: any;
   let mockRequest: any;
+  let mockEventEmitter: EventEmitter2;
 
-  beforeEach(async () => {
-    mockLogger = {
-      error: jest.fn(),
-      warn: jest.fn(),
-      log: jest.fn(),
-      debug: jest.fn(),
-      verbose: jest.fn(),
-    } as any;
-
-    mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      getHeader: jest.fn(),
-      setHeader: jest.fn(),
-    };
-
-    mockRequest = {
-      url: "/api/v1/test",
-      method: "POST",
-      ip: "192.168.1.1",
-      headers: {
-        "user-agent": "Test Agent",
-        "x-request-id": "req-123",
-      },
-      user: {
-        id: "user-123",
-        username: "testuser",
-      },
-      body: {
-        testData: "value",
-      },
-    };
-
-    mockHttpArgumentsHost = {
-      getRequest: jest.fn().mockReturnValue(mockRequest),
-      getResponse: jest.fn().mockReturnValue(mockResponse),
-    };
-
-    mockArgumentsHost = {
-      switchToHttp: jest.fn().mockReturnValue(mockHttpArgumentsHost),
-      getType: jest.fn().mockReturnValue("http"),
-      getArgs: jest.fn(),
-      getArgByIndex: jest.fn(),
-      switchToRpc: jest.fn(),
-      switchToWs: jest.fn(),
-    };
-
-    filter = new GlobalExceptionFilter();
-    // Replace the logger with our mock
-    (filter as any)._logger = mockLogger;
+  beforeEach(() => {
+    mockEventEmitter = new EventEmitter2();
+    filter = new GlobalExceptionFilter(new EventEmitter2());
   });
 
   it("should be defined", () => {

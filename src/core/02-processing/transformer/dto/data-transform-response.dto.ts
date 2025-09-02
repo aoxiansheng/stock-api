@@ -22,7 +22,7 @@ export class DataTransformationMetadataDto {
   @ApiProperty({
     description: "Transformation processing time in milliseconds",
   })
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "Transformation timestamp" })
   timestamp: string;
@@ -42,7 +42,7 @@ export class DataTransformationMetadataDto {
     transDataRuleListType: string,
     recordsProcessed: number,
     fieldsTransformed: number,
-    processingTime: number,
+    processingTimeMs: number,
     transformationsApplied?: Array<{
       sourceField: string;
       targetField: string;
@@ -56,7 +56,7 @@ export class DataTransformationMetadataDto {
     this.transDataRuleListType = transDataRuleListType;
     this.recordsProcessed = recordsProcessed;
     this.fieldsTransformed = fieldsTransformed;
-    this.processingTime = processingTime;
+    this.processingTimeMs = processingTimeMs;
     this.timestamp = new Date().toISOString();
     this.transformationsApplied = transformationsApplied;
   }

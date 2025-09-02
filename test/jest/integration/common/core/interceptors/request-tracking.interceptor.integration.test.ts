@@ -20,6 +20,7 @@ import request from "supertest";
 import { ResponseInterceptor } from "../../../../../../src/common/core/interceptors/response.interceptor";
 import { GlobalExceptionFilter } from "../../../../../../src/common/core/filters/global-exception.filter";
 import { RateLimitGuard } from "../../../../../../src/auth/guards/rate-limit.guard";
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // 测试用的控制器
 @Controller("test-global-interceptors")
@@ -150,20 +151,14 @@ describe("Global Interceptors Integration", () => {
   let httpServer: any;
 
   beforeAll(async () => {
-    console.log("【beforeAll】开始创建Nest应用");
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [TestModule],
-    })
-      .overrideProvider(RateLimitGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
-
-    // 配置全局拦截器和过滤器
-    app.useGlobalInterceptors(new ResponseInterceptor());
-    app.useGlobalFilters(new GlobalExceptionFilter());
-
+    const eventEmitter = new EventEmitter2();
+    app.useGlobalInterceptors(new ResponseInterceptor(eventEmitter));
+    app.useGlobalFilters(new GlobalExceptionFilter(eventEmitter));
     await app.init();
     httpServer = app.getHttpServer();
   });

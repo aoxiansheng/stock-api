@@ -10,6 +10,8 @@ import {
   QUERY_METRICS,
   QUERY_STATUS,
   QUERY_DEFAULTS,
+  QUERY_CACHE_TTL_CONFIG,
+  QUERY_TIMEOUT_CONFIG,
 } from "../../../../../../../src/core/01-entry/query/constants/query.constants";
 
 describe("Query Constants", () => {
@@ -133,15 +135,17 @@ describe("Query Constants", () => {
   describe("QUERY_PERFORMANCE_CONFIG", () => {
     it("should define all performance configuration", () => {
       expect(QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLD_MS).toBe(1000);
-      expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTL_SECONDS).toBe(3600);
-      expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS).toBe(300);
       expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_QUERY_LIMIT).toBe(100);
       expect(QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY).toBe(100);
       expect(QUERY_PERFORMANCE_CONFIG.LOG_SYMBOLS_LIMIT).toBe(3);
       expect(QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES).toBe(100);
-      expect(QUERY_PERFORMANCE_CONFIG.QUERY_TIMEOUT_MS).toBe(30000);
-      expect(QUERY_PERFORMANCE_CONFIG.CACHE_TIMEOUT_MS).toBe(5000);
-      expect(QUERY_PERFORMANCE_CONFIG.REALTIME_FETCH_TIMEOUT_MS).toBe(15000);
+      // 缓存TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
+      expect(QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS).toBe(3600);
+      expect(QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS).toBe(300);
+      // 超时配置已移动到 QUERY_TIMEOUT_CONFIG
+      expect(QUERY_TIMEOUT_CONFIG.QUERY_MS).toBe(30000);
+      expect(QUERY_TIMEOUT_CONFIG.CACHE_MS).toBe(5000);
+      expect(QUERY_TIMEOUT_CONFIG.REALTIME_FETCH_MS).toBe(15000);
     });
 
     it("should have reasonable performance values", () => {
@@ -149,17 +153,17 @@ describe("Query Constants", () => {
         0,
       );
       expect(
-        QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTL_SECONDS,
+        QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS,
       ).toBeGreaterThan(0);
       expect(
-        QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS,
+        QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS,
       ).toBeGreaterThan(0);
       expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_QUERY_LIMIT).toBeGreaterThan(0);
       expect(QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY).toBeGreaterThan(0);
       expect(QUERY_PERFORMANCE_CONFIG.LOG_SYMBOLS_LIMIT).toBeGreaterThan(0);
       expect(
-        QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS,
-      ).toBeLessThan(QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTL_SECONDS);
+        QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS,
+      ).toBeLessThan(QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS);
     });
 
     it("should be frozen", () => {
@@ -314,9 +318,11 @@ describe("Query Constants", () => {
     it("should define all default values", () => {
       expect(QUERY_DEFAULTS.PAGE_SIZE).toBe(100);
       expect(QUERY_DEFAULTS.PAGE_OFFSET).toBe(0);
-      expect(QUERY_DEFAULTS.CACHE_TTL_SECONDS).toBe(3600);
-      expect(QUERY_DEFAULTS.MAX_CACHE_AGE_SECONDS).toBe(300);
-      expect(QUERY_DEFAULTS.TIMEOUT_MS).toBe(30000);
+      // 缓存TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
+      expect(QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS).toBe(3600);
+      expect(QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS).toBe(300);
+      // 超时配置已移动到 QUERY_TIMEOUT_CONFIG
+      expect(QUERY_TIMEOUT_CONFIG.QUERY_MS).toBe(30000);
       expect(QUERY_DEFAULTS.RETRY_ATTEMPTS).toBe(3);
       expect(QUERY_DEFAULTS.LOG_LEVEL).toBe("info");
       expect(QUERY_DEFAULTS.ENABLE_CACHING).toBe(true);
@@ -331,9 +337,9 @@ describe("Query Constants", () => {
     it("should have reasonable default values", () => {
       expect(QUERY_DEFAULTS.PAGE_SIZE).toBeGreaterThan(0);
       expect(QUERY_DEFAULTS.PAGE_OFFSET).toBeGreaterThanOrEqual(0);
-      expect(QUERY_DEFAULTS.CACHE_TTL_SECONDS).toBeGreaterThan(0);
-      expect(QUERY_DEFAULTS.MAX_CACHE_AGE_SECONDS).toBeGreaterThan(0);
-      expect(QUERY_DEFAULTS.TIMEOUT_MS).toBeGreaterThan(0);
+      expect(QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS).toBeGreaterThan(0);
+      expect(QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS).toBeGreaterThan(0);
+      expect(QUERY_TIMEOUT_CONFIG.QUERY_MS).toBeGreaterThan(0);
       expect(QUERY_DEFAULTS.RETRY_ATTEMPTS).toBeGreaterThan(0);
       expect(typeof QUERY_DEFAULTS.ENABLE_CACHING).toBe("boolean");
       expect(typeof QUERY_DEFAULTS.ENABLE_PERFORMANCE_MONITORING).toBe(
@@ -395,12 +401,12 @@ describe("Query Constants", () => {
     it("should support cache configuration", () => {
       const cacheAge = 600; // 10 minutes
       const isExpired =
-        cacheAge > QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS;
+        cacheAge > QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS;
       expect(isExpired).toBe(true);
 
-      const cacheTtl = QUERY_PERFORMANCE_CONFIG.DEFAULT_CACHE_TTL_SECONDS;
+      const cacheTtl = QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS;
       expect(cacheTtl).toBeGreaterThan(
-        QUERY_PERFORMANCE_CONFIG.DEFAULT_MAX_CACHE_AGE_SECONDS,
+        QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS,
       );
     });
   });

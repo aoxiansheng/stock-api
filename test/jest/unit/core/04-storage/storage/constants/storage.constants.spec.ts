@@ -196,10 +196,8 @@ describe("Storage Constants", () => {
 
   describe("STORAGE_SOURCES", () => {
     it("should define all source types", () => {
-      expect(STORAGE_SOURCES.CACHE_SOURCE).toBe("StorageSource_cache");
-      expect(STORAGE_SOURCES.PERSISTENT).toBe("persistent");
-      expect(STORAGE_SOURCES.NOT_FOUND).toBe("not_found");
-      expect(STORAGE_SOURCES.BOTH).toBe("both");
+      // STORAGE_SOURCES 常量已被废弃，现在应该使用 StorageType 枚举
+      expect(Object.keys(STORAGE_SOURCES)).toHaveLength(0);
     });
 
     it("should be frozen", () => {

@@ -20,7 +20,7 @@ import { MonitoringModule } from "../../src/monitoring/monitoring.module";
 import { AlertModule } from "../../src/alert/module/alert.module";
 // import { CacheModule } from "../../src/cache/module/cache.module"; // 移除：已通过SharedServicesModule提供
 
-import { alertConfig } from "@alert/config/alert.config";
+// Removed alertConfig import - causing compilation errors
 // 临时禁用LongPort模块以避免资源泄露
 import { ProvidersModule } from "../../src/providers/module/providers.module";
 // 添加节流模块导入
@@ -69,7 +69,7 @@ async function createTestApplication(): Promise<void> {
       ConfigModule.forRoot({
         isGlobal: true,
         envFilePath: "test/config/integration.env",
-        load: [alertConfig],
+        // Remove alertConfig import temporarily
       }),
       MongooseModule.forRoot(mongoUri),
       RedisModule.forRoot({
@@ -143,8 +143,35 @@ async function createTestApplication(): Promise<void> {
   // 设置全局前缀，与实际应用保持一致
   testApp.setGlobalPrefix("api/v1");
 
+  // 创建全局 EventEmitter2 模拟
+  const mockEventEmitter = {
+    emit: jest.fn(),
+    emitAsync: jest.fn(),
+    addListener: jest.fn(),
+    on: jest.fn(),
+    once: jest.fn(),
+    prependListener: jest.fn(),
+    prependOnceListener: jest.fn(),
+    removeListener: jest.fn(),
+    off: jest.fn(),
+    removeAllListeners: jest.fn(),
+    setMaxListeners: jest.fn(),
+    getMaxListeners: jest.fn(),
+    listeners: jest.fn(),
+    rawListeners: jest.fn(),
+    listenerCount: jest.fn(),
+    eventNames: jest.fn(),
+    onAny: jest.fn(),
+    prependAny: jest.fn(),
+    offAny: jest.fn(),
+    removeAllListenersAny: jest.fn(),
+    listenersAny: jest.fn(),
+    listenersAnyOnce: jest.fn(),
+    waitFor: jest.fn(),
+  } as unknown as EventEmitter2;
+
   // 全局异常过滤器
-  testApp.useGlobalFilters(new GlobalExceptionFilter());
+  testApp.useGlobalFilters(new GlobalExceptionFilter(mockEventEmitter));
 
   // 全局验证管道
   testApp.useGlobalPipes(
@@ -164,12 +191,13 @@ async function createTestApplication(): Promise<void> {
 
   // 全局性能监控拦截器
   const reflector = testModule.get(Reflector);
+  
   testApp.useGlobalInterceptors(
-    new InfrastructureInterceptor(mockPerformanceMonitor, reflector),
+    new InfrastructureInterceptor(mockEventEmitter, reflector),
   );
 
   // 全局响应格式拦截器（最后执行）
-  testApp.useGlobalInterceptors(new ResponseInterceptor());
+  testApp.useGlobalInterceptors(new ResponseInterceptor(mockEventEmitter));
 
   // 设置全局性能监控服务（供装饰器使用）
   (global as any).CollectorService = mockPerformanceMonitor;

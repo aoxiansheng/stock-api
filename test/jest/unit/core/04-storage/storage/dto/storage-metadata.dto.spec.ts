@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
- * Storage Metadata DTO UCK�
- * K�X�Cpnpn ��a
+ * Storage Metadata DTO UCK
+ * KXCpnpn a
  */
 
 import { StorageMetadataDto } from "../../../../../../../src/core/04-storage/storage/dto/storage-metadata.dto";
@@ -19,7 +19,7 @@ describe("StorageMetadataDto", () => {
         const provider = "longport";
         const market = "HK";
         const dataSize = 1024;
-        const processingTime = 150;
+        const processingTimeMs = 150;
 
         // Act
         const dto = new StorageMetadataDto(
@@ -29,7 +29,7 @@ describe("StorageMetadataDto", () => {
           provider,
           market,
           dataSize,
-          processingTime,
+          processingTimeMs,
         );
 
         // Assert
@@ -42,7 +42,7 @@ describe("StorageMetadataDto", () => {
         expect(dto.provider).toBe(provider);
         expect(dto.market).toBe(market);
         expect(dto.dataSize).toBe(dataSize);
-        expect(dto.processingTime).toBe(processingTime);
+        expect(dto.processingTimeMs).toBe(processingTimeMs);
         expect(dto.storedAt).toBeDefined();
         expect(typeof dto.storedAt).toBe("string");
       });
@@ -54,7 +54,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "test_provider",
           "TEST",
@@ -84,7 +84,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.STOCK_CANDLE,
           "test_provider",
           "US",
@@ -147,7 +147,7 @@ describe("StorageMetadataDto", () => {
       it("should handle all storage types", () => {
         // Arrange & Act & Assert
         const storageTypes = [
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageType.PERSISTENT,
           StorageType.BOTH,
         ];
@@ -187,7 +187,7 @@ describe("StorageMetadataDto", () => {
         classifications.forEach((classification) => {
           const dto = new StorageMetadataDto(
             "test:key",
-            StorageType.DATA_CACHE,
+            StorageType.STORAGETYPECACHE,
             classification,
             "provider",
             "TEST",
@@ -210,7 +210,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           key,
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.STOCK_QUOTE,
           provider,
           market,
@@ -227,26 +227,26 @@ describe("StorageMetadataDto", () => {
       it("should handle numeric fields correctly", () => {
         // Arrange
         const testCases = [
-          { dataSize: 0, processingTime: 0 },
-          { dataSize: 1, processingTime: 1 },
-          { dataSize: 1048576, processingTime: 1000 }, // 1MB, 1s
-          { dataSize: 104857600, processingTime: 5000 }, // 100MB, 5s
+          { dataSize: 0, processingTimeMs: 0 },
+          { dataSize: 1, processingTimeMs: 1 },
+          { dataSize: 1048576, processingTimeMs: 1000 }, // 1MB, 1s
+          { dataSize: 104857600, processingTimeMs: 5000 }, // 100MB, 5s
         ];
 
         // Act & Assert
-        testCases.forEach(({ dataSize, processingTime }) => {
+        testCases.forEach(({ dataSize, processingTimeMs }) => {
           const dto = new StorageMetadataDto(
             "test:key",
-            StorageType.DATA_CACHE,
+            StorageType.STORAGETYPECACHE,
             StorageClassification.GENERAL,
             "provider",
             "TEST",
             dataSize,
-            processingTime,
+            processingTimeMs,
           );
 
           expect(dto.dataSize).toBe(dataSize);
-          expect(dto.processingTime).toBe(processingTime);
+          expect(dto.processingTimeMs).toBe(processingTimeMs);
         });
       });
 
@@ -254,7 +254,7 @@ describe("StorageMetadataDto", () => {
         // Arrange & Act & Assert
         const compressedDto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "provider",
           "TEST",
@@ -265,7 +265,7 @@ describe("StorageMetadataDto", () => {
 
         const uncompressedDto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "provider",
           "TEST",
@@ -284,7 +284,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "provider",
           "TEST",
@@ -341,7 +341,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "provider",
           "TEST",
@@ -367,7 +367,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "provider",
           "TEST",
@@ -388,7 +388,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "test:key",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "provider",
           "TEST",
@@ -472,7 +472,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "news:market:_global:20230601",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.MARKET_NEWS,
           "news_provider",
           "GLOBAL",
@@ -491,7 +491,7 @@ describe("StorageMetadataDto", () => {
         expect(dto.storageClassification).toBe(
           StorageClassification.MARKET_NEWS,
         );
-        expect(dto.storageType).toBe(StorageType.DATA_CACHE);
+        expect(dto.storageType).toBe(StorageType.STORAGETYPECACHE);
         expect(dto.market).toBe("GLOBAL");
         expect(dto.compressed).toBe(false);
         expect(dto.tags.category).toBe("market_update");
@@ -522,7 +522,7 @@ describe("StorageMetadataDto", () => {
         );
         expect(dto.storageType).toBe(StorageType.PERSISTENT);
         expect(dto.dataSize).toBe(51200);
-        expect(dto.processingTime).toBe(1200);
+        expect(dto.processingTimeMs).toBe(1200);
         expect(dto.tags.period).toBe("2023Q1");
       });
     });
@@ -548,7 +548,7 @@ describe("StorageMetadataDto", () => {
 
         // Assert
         expect(dto.dataSize).toBe(104857600);
-        expect(dto.processingTime).toBe(5000);
+        expect(dto.processingTimeMs).toBe(5000);
         expect(dto.compressed).toBe(true);
         expect(dto.tags.records_count).toBe("1000000");
       });
@@ -557,7 +557,7 @@ describe("StorageMetadataDto", () => {
         // Act
         const dto = new StorageMetadataDto(
           "_simple:_config:app_settings",
-          StorageType.DATA_CACHE,
+          StorageType.STORAGETYPECACHE,
           StorageClassification.GENERAL,
           "config_provider",
           "APP",
@@ -573,7 +573,7 @@ describe("StorageMetadataDto", () => {
 
         // Assert
         expect(dto.dataSize).toBe(256);
-        expect(dto.processingTime).toBe(5);
+        expect(dto.processingTimeMs).toBe(5);
         expect(dto.compressed).toBe(false);
         expect(dto.tags.type).toBe("configuration");
       });
@@ -588,7 +588,7 @@ describe("StorageMetadataDto", () => {
       // Act
       const dto = new StorageMetadataDto(
         longKey,
-        StorageType.DATA_CACHE,
+        StorageType.STORAGETYPECACHE,
         StorageClassification.GENERAL,
         "provider",
         "TEST",
@@ -615,14 +615,14 @@ describe("StorageMetadataDto", () => {
 
       // Assert
       expect(dto.dataSize).toBe(Number.MAX_SAFE_INTEGER);
-      expect(dto.processingTime).toBe(Number.MAX_SAFE_INTEGER);
+      expect(dto.processingTimeMs).toBe(Number.MAX_SAFE_INTEGER);
     });
 
     it("should handle special characters in provider and market", () => {
       // Act
       const dto = new StorageMetadataDto(
         "test:special",
-        StorageType.DATA_CACHE,
+        StorageType.STORAGETYPECACHE,
         StorageClassification.GENERAL,
         "provider-with-special-chars_123",
         "MARKET_CODE-2023",
@@ -684,7 +684,7 @@ describe("StorageMetadataDto", () => {
       expect(deserialized.provider).toBe(original.provider);
       expect(deserialized.market).toBe(original.market);
       expect(deserialized.dataSize).toBe(original.dataSize);
-      expect(deserialized.processingTime).toBe(original.processingTime);
+      expect(deserialized.processingTimeMs).toBe(original.processingTimeMs);
       expect(deserialized.compressed).toBe(original.compressed);
       expect(deserialized.tags).toEqual(original.tags);
       expect(deserialized.expiresAt).toBe(original.expiresAt);
@@ -694,7 +694,7 @@ describe("StorageMetadataDto", () => {
       // Arrange
       const dto = new StorageMetadataDto(
         "update:test",
-        StorageType.DATA_CACHE,
+        StorageType.STORAGETYPECACHE,
         StorageClassification.GENERAL,
         "provider",
         "TEST",
@@ -716,7 +716,7 @@ describe("StorageMetadataDto", () => {
       expect(dto.compressed).toBe(true);
       expect(dto.tags).toEqual({ updated: "true" });
       expect(dto.key).toBe("update:test"); // Original values preserved
-      expect(dto.storageType).toBe(StorageType.DATA_CACHE);
+      expect(dto.storageType).toBe(StorageType.STORAGETYPECACHE);
     });
   });
 });

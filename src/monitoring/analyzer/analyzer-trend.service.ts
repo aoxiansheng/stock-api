@@ -363,7 +363,7 @@ export class TrendAnalyzerService {
       throughput: number;
     };
   } {
-    const responseTimes = trends.map(t => t.responseTime.current);
+    const responseTimes = trends.map(t => t.responseTime ? t.responseTime.current : 0);
     const errorRates = trends.map(t => t.errorRate.current);
     const throughputs = trends.map(t => t.throughput.current);
 

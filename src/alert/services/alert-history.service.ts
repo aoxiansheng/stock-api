@@ -464,7 +464,7 @@ export class AlertHistoryService {
 
       const result: AlertCleanupResultDto = {
         deletedCount,
-        executionTime,
+        executionTimeMs: executionTime,
         startTime,
         endTime,
       };

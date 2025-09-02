@@ -118,8 +118,18 @@ export class ReceiverPerformanceDto {
   requestId: string;
 
   @ApiProperty({ description: "处理时间（毫秒）" })
+  /** @deprecated 使用 processingTimeMs 替代 */
+  
   @IsNumber()
   processingTime: number;
+
+  @ApiProperty({ 
+    description: "Transformer组件处理耗时字段（毫秒，推荐使用此字段）",
+    example: 150
+  })
+  @IsNumber()
+  @IsOptional() // 过渡期设为可选
+  processingTimeMs?: number;
 
   @ApiProperty({ description: "股票代码数量" })
   @IsNumber()
@@ -184,8 +194,18 @@ export class CapabilityExecutionResultDto {
   capability: string;
 
   @ApiProperty({ description: "执行时间（毫秒）" })
+  /** @deprecated 使用 executionTimeMs 替代 */
+  
   @IsNumber()
   executionTime: number;
+
+  @ApiProperty({ 
+    description: "Cache组件执行耗时字段（毫秒，推荐使用此字段）",
+    example: 150
+  })
+  @IsNumber()
+  @IsOptional() // 过渡期设为可选
+  executionTimeMs?: number;
 
   @ApiProperty({ description: "错误信息", required: false })
   @IsOptional()

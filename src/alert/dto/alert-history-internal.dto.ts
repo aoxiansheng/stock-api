@@ -243,7 +243,7 @@ export class AlertCleanupResultDto {
 
   @ApiProperty({ description: "清理耗时（毫秒）" })
   @IsNumber()
-  executionTime: number;
+  executionTimeMs: number;
 
   @ApiProperty({ description: "清理开始时间" })
   startTime: Date;

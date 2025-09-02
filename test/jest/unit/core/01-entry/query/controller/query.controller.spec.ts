@@ -653,12 +653,33 @@ describe("QueryController", () => {
   });
 
   describe("getQueryStats", () => {
-    it("should return query statistics successfully", async () => {
-      queryService.getQueryStats.mockResolvedValue(mockQueryStats);
+    it("should return query statistics when query service works", async () => {
+      const mockStats = {
+        performance: {
+          totalQueries: 1000,
+          averageExecutionTime: 50,
+          cacheHitRate: 0.9,
+          errorRate: 0.01,
+          queriesPerSecond: 10,
+        },
+        queryTypes: {
+          by_symbols: { count: 500, averageTime: 40, successRate: 0.99 },
+          by_market: { count: 300, averageTime: 60, successRate: 0.95 },
+        },
+        dataSources: {
+          cache: { queries: 800, avgTime: 10, successRate: 0.99 },
+          persistent: { queries: 200, avgTime: 100, successRate: 0.95 },
+          realtime: { queries: 100, avgTime: 50, successRate: 0.98 }, // 添加missing realtime字段
+        },
+        popularQueries: [],
+        timestamp: new Date().toISOString(),
+      };
+
+      queryService.getQueryStats.mockResolvedValue(mockStats);
 
       const result = await controller.getQueryStats();
 
-      expect(result).toBe(mockQueryStats);
+      expect(result).toEqual(mockStats);
       expect(queryService.getQueryStats).toHaveBeenCalled();
       expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Request: Get query statistics",
@@ -666,120 +687,24 @@ describe("QueryController", () => {
       expect(mockLoggerInstance.log).toHaveBeenCalledWith(
         "API Success: Query statistics generated",
         expect.objectContaining({
-          totalQueries: 15420,
-          averageExecutionTime: 127,
-          cacheHitRate: 0.82,
-          errorRate: 0.03,
-          queryTypesCount: 2,
+          totalQueries: 1000,
+          averageExecutionTime: 50,
         }),
       );
     });
 
-    it("should handle query stats errors", async () => {
-      const error = new Error("Failed to generate statistics");
+    it("should handle error when query service fails", async () => {
+      const error = new Error("Query stats unavailable");
       queryService.getQueryStats.mockRejectedValue(error);
 
-      await expect(controller.getQueryStats()).rejects.toThrow(
-        "Failed to generate statistics",
-      );
+      await expect(controller.getQueryStats()).rejects.toThrow(error);
+
       expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         "API Error: Failed to get query statistics",
         expect.objectContaining({
-          error: "Failed to generate statistics",
-          errorType: "Error",
+          error: "Query stats unavailable",
         }),
       );
-    });
-  });
-
-  describe("healthCheck", () => {
-    it("should return healthy status when query service works", async () => {
-      queryService.executeQuery.mockResolvedValue(mockQueryResponse);
-
-      const result = await controller.healthCheck();
-
-      expect(result).toEqual({
-        queryService: {
-          available: true,
-          latency: expect.any(Number),
-        },
-        overallHealth: {
-          healthy: true,
-          timestamp: expect.any(String),
-        },
-      });
-
-      expect(queryService.executeQuery).toHaveBeenCalledWith(
-        expect.objectContaining({
-          queryType: QueryType.BY_SYMBOLS,
-          symbols: ["TEST"],
-          queryTypeFilter: "get-stock-quote",
-          options: {
-            useCache: false,
-          },
-        }),
-      );
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        "API Request: Query service health check",
-      );
-      expect(mockLoggerInstance.log).toHaveBeenCalledWith(
-        "API Success: Query service health check completed",
-        expect.objectContaining({
-          queryServiceHealthy: true,
-          latency: expect.any(Number),
-          overallHealthy: true,
-        }),
-      );
-    });
-
-    it("should return unhealthy status and throw error when query service fails", async () => {
-      const error = new Error("Query service unavailable");
-      queryService.executeQuery.mockRejectedValue(error);
-
-      try {
-        await controller.healthCheck();
-        fail("Expected method to throw");
-      } catch (thrown) {
-        expect(thrown._message).toBe("查询服务健康检查失败");
-        expect(thrown._statusCode).toBe(503);
-        expect(thrown.data).toEqual({
-          queryService: {
-            available: false,
-            latency: expect.any(Number),
-          },
-          overallHealth: {
-            healthy: false,
-            timestamp: expect.any(String),
-          },
-        });
-      }
-
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        "API Error: Query service health check failed",
-        expect.objectContaining({
-          error: "Query service unavailable",
-          latency: expect.any(Number),
-        }),
-      );
-    });
-
-    it("should handle null response from query service", async () => {
-      queryService.executeQuery.mockResolvedValue(null);
-
-      const result = await controller.healthCheck();
-
-      const healthResult = {
-        queryService: {
-          available: false,
-          latency: expect.any(Number),
-        },
-        overallHealth: {
-          healthy: false,
-          timestamp: expect.any(String),
-        },
-      };
-
-      expect(result).toEqual(healthResult);
     });
   });
 

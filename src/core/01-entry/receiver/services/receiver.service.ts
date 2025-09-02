@@ -82,7 +82,6 @@ export class ReceiverService {
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,  // 🔑 关键: 注入智能缓存编排器
   ) {}
 
-
   /**
    * 处理数据请求的主入口方法 - 强时效接口
    * 🚀 1秒级缓存策略，面向实时交易场景
@@ -434,7 +433,6 @@ export class ReceiverService {
     );
   }
 
-
   /**
    * 确定最优数据提供商
    *
@@ -586,7 +584,6 @@ export class ReceiverService {
     return preferredProvider;
   }
 
-
   /**
    * 🔑 原始数据流执行方法 - 供智能缓存编排器调用
    * 封装了完整的数据获取、转换和存储流程
@@ -634,7 +631,6 @@ export class ReceiverService {
     // 4. 返回数据（编排器期望的格式）
     return response.data;
   }
-
 
   /**
    * 执行数据获取 (原有方法，保持兼容性)
@@ -783,9 +779,6 @@ export class ReceiverService {
     }
   }
 
-
-
-
   /**
    * ✅ 事件化监控 - 记录请求指标
    * 符合监控组件集成规范，使用事件驱动方式
@@ -843,7 +836,6 @@ export class ReceiverService {
       });
     });
   }
-
 
   /**
    * 获取提供商的上下文服务

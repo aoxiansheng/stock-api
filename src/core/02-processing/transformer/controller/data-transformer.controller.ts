@@ -78,7 +78,7 @@ export class DataTransformerController {
         success: true,
         recordsProcessed: result.metadata.recordsProcessed,
         fieldsTransformed: result.metadata.fieldsTransformed,
-        processingTime: result.metadata.processingTime,
+        processingTime: result.metadata.processingTimeMs,
         dataMapperRuleId: result.metadata.ruleId,
         ruleName: result.metadata.ruleName,
       });
@@ -152,7 +152,7 @@ export class DataTransformerController {
         successful,
         failed,
         totalProcessingTime: results.reduce(
-          (sum, r) => sum + r.metadata.processingTime,
+          (sum, r) => sum + r.metadata.processingTimeMs,
           0,
         ),
       });

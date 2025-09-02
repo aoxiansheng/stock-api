@@ -63,7 +63,7 @@ export class AnalyzerHealthScoreCalculator {
     const errorRate = errorRequests / totalRequests;
 
     // 计算平均响应时间
-    const avgResponseTime = requests.reduce((sum, r) => sum + r.responseTime, 0) / totalRequests;
+    const avgResponseTime = requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) / totalRequests;
 
     // 错误率评分 (0-40分)
     let errorScore = 40;
@@ -201,7 +201,7 @@ export class AnalyzerHealthScoreCalculator {
       const requests = rawMetrics.requests || [];
       if (requests.length > 0) {
         const errorRate = requests.filter(r => r.statusCode >= 400).length / requests.length;
-        const avgResponseTime = requests.reduce((sum, r) => sum + r.responseTime, 0) / requests.length;
+        const avgResponseTime = requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) / requests.length;
 
         if (errorRate > 0.05) {
           recommendations.push('API错误率过高，建议检查错误日志并优化错误处理');
