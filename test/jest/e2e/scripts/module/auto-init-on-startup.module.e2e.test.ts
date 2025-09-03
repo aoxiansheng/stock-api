@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // auto-init-on-startup.module.e2e.test.ts - 测试占位代码
 // 路径: e2e/scripts/module/auto-init-on-startup.module.e2e.test.ts
 

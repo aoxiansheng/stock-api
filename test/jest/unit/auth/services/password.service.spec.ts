@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * PasswordService 单元测试
  * 测试密码哈希和验证服务的核心逻辑

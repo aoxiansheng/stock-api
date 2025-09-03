@@ -1,23 +1,26 @@
-import { Module } from '@nestjs/common';
-import { StreamDataFetcherService } from '../services/stream-data-fetcher.service';
-import { StreamClientStateManager } from '../services/stream-client-state-manager.service';
-import { StreamRecoveryWorkerService } from '../services/stream-recovery-worker.service';
-import { ConnectionPoolManager } from '../services/connection-pool-manager.service';
-import { StreamRateLimitGuard } from '../guards/stream-rate-limit.guard';
-import { WebSocketRateLimitGuard } from '../guards/websocket-rate-limit.guard';
-import { ErrorSanitizerInterceptor } from '../interceptors/error-sanitizer.interceptor';
-import { StreamConfigService } from '../config/stream-config.service';
-import { StreamRecoveryConfigService } from '../config/stream-recovery.config';
-import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../providers/websocket-server.provider';
-import { SharedServicesModule } from '../../../shared/module/shared-services.module';
-import { ProvidersModule } from '../../../../providers/module/providers.module';
-import { MonitoringModule } from '../../../../monitoring/monitoring.module';
-import { StreamCacheModule } from '../../../05-caching/stream-cache/module/stream-cache.module';
+import { Module } from "@nestjs/common";
+import { StreamDataFetcherService } from "../services/stream-data-fetcher.service";
+import { StreamClientStateManager } from "../services/stream-client-state-manager.service";
+import { StreamRecoveryWorkerService } from "../services/stream-recovery-worker.service";
+import { ConnectionPoolManager } from "../services/connection-pool-manager.service";
+import { StreamRateLimitGuard } from "../guards/stream-rate-limit.guard";
+import { WebSocketRateLimitGuard } from "../guards/websocket-rate-limit.guard";
+import { ErrorSanitizerInterceptor } from "../interceptors/error-sanitizer.interceptor";
+import { StreamConfigService } from "../config/stream-config.service";
+import { StreamRecoveryConfigService } from "../config/stream-recovery.config";
+import {
+  WebSocketServerProvider,
+  WEBSOCKET_SERVER_TOKEN,
+} from "../providers/websocket-server.provider";
+import { SharedServicesModule } from "../../../shared/module/shared-services.module";
+import { ProvidersModule } from "../../../../providers/module/providers.module";
+import { MonitoringModule } from "../../../../monitoring/monitoring.module";
+import { StreamCacheModule } from "../../../05-caching/stream-cache/module/stream-cache.module";
 
 /**
  * StreamDataFetcher模块 - Phase 4+ 重构版本
  * 提供WebSocket流数据获取、客户端状态管理和Worker线程池功能
- * 
+ *
  * 重构变更：
  * - 移除对通用CacheModule的依赖
  * - 移除StreamDataCacheService (已迁移到StreamCacheModule)
@@ -64,7 +67,7 @@ import { StreamCacheModule } from '../../../05-caching/stream-cache/module/strea
     WEBSOCKET_SERVER_TOKEN,
     // ❌ 已移除所有自定义监控服务导出：
     // StreamMetricsService,
-    // StreamMonitoringService,  
+    // StreamMonitoringService,
     // StreamRecoveryMetricsService,
   ],
 })

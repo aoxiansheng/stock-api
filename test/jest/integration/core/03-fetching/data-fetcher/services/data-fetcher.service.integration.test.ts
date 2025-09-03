@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { DataFetcherService } from "../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service";
 import { DataFetcherModule } from "../../../../../../../src/core/03-fetching/data-fetcher/module/data-fetcher.module";

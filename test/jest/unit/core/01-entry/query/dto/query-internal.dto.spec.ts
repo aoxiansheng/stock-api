@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Query Internal DTO 单元测试
  * 测试查询内部数据传输对象

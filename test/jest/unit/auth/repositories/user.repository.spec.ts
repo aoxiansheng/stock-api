@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * UserRepository 单元测试
  * 测试用户数据访问层的所有方法

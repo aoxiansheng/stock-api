@@ -1,13 +1,14 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException } from "@nestjs/common";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { BaseFetcherService } from "../../../../../../src/core/shared/services/base-fetcher.service";
 import { CollectorService } from "../../../../../../src/monitoring/collector/collector.service";
 
 // 创建具体实现类用于测试抽象类
 class TestBaseFetcherService extends BaseFetcherService {
-  constructor(eventBus: EventEmitter2) { // 修正构造函数参数
+  constructor(eventBus: EventEmitter2) {
+    // 修正构造函数参数
     super(eventBus);
   }
 
@@ -312,25 +313,27 @@ describe("BaseFetcherService", () => {
         expect(mockEventBus.emit).toHaveBeenCalledWith(
           expect.any(String),
           expect.objectContaining({
-            source: 'external_api',
-            metricType: 'request',
-            metricName: 'external_call',
+            source: "external_api",
+            metricType: "request",
+            metricName: "external_call",
             metricValue: 1000,
             tags: expect.objectContaining({
-              method: 'POST',
+              method: "POST",
               status: 200,
-              endpoint: 'test-endpoint'
-            })
-          })
+              endpoint: "test-endpoint",
+            }),
+          }),
         );
         done();
       });
     });
 
     it("should handle collector service errors gracefully", (done) => {
-      mockEventBus.emit.mockImplementation((event: string | symbol, ...values: any[]) => {
-        throw new Error("Event bus unavailable");
-      });
+      mockEventBus.emit.mockImplementation(
+        (event: string | symbol, ...values: any[]) => {
+          throw new Error("Event bus unavailable");
+        },
+      );
 
       // Mock logger.warn
       jest.spyOn(service["logger"], "warn").mockImplementation();
@@ -354,10 +357,12 @@ describe("BaseFetcherService", () => {
 
   describe("Integration with CollectorService", () => {
     it("should work when collector service is available", async () => {
-      mockEventBus.emit.mockImplementation((event: string | symbol, ...values: any[]) => {
-        // 成功记录
-        return true; // EventEmitter2.emit应该返回boolean
-      });
+      mockEventBus.emit.mockImplementation(
+        (event: string | symbol, ...values: any[]) => {
+          // 成功记录
+          return true; // EventEmitter2.emit应该返回boolean
+        },
+      );
 
       const operation = jest.fn().mockResolvedValue({ success: true });
       await service["executeWithRetry"](operation, "integration-test");
@@ -369,9 +374,11 @@ describe("BaseFetcherService", () => {
     });
 
     it("should continue working when collector service fails", async () => {
-      mockEventBus.emit.mockImplementation((event: string | symbol, ...values: any[]) => {
-        throw new Error("Event bus unavailable");
-      });
+      mockEventBus.emit.mockImplementation(
+        (event: string | symbol, ...values: any[]) => {
+          throw new Error("Event bus unavailable");
+        },
+      );
 
       // Mock logger.warn
       jest.spyOn(service["logger"], "warn").mockImplementation();

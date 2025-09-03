@@ -223,32 +223,9 @@ export interface NotificationLog {
   metadata?: Record<string, any>;
 }
 
-/**
- * 告警统计接口
- */
-export interface AlertStats extends BaseStats {
-  totalRules: number;
-  enabledRules: number;
-  activeAlerts: number;
-  criticalAlerts: number;
-  warningAlerts: number;
-  infoAlerts: number;
-  totalAlertsToday: number;
-  resolvedAlertsToday: number;
-  averageResolutionTime: number;
-  topAlertRules: AlertRuleStats[];
-}
-
-/**
- * 告警规则统计接口
- */
-export interface AlertRuleStats {
-  ruleId: string;
-  ruleName: string;
-  triggerCount: number;
-  averageResolutionTime: number;
-  successRate: number;
-}
+// 注意: AlertStats 和 AlertRuleStats 接口已移除
+// 实际使用中请参考 IAlertStats (src/alert/interfaces/alert.interface.ts)
+// 如需扩展统计功能，建议基于 IAlertStats 创建新的扩展接口
 
 /**
  * 告警查询接口

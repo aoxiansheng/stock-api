@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getAutoInitConfig } from "../../../../../src/app/config/auto-init.config";
 
 describe("AutoInitConfig", () => {

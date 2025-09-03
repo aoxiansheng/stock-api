@@ -51,7 +51,7 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         error: error.message,
         stack: error.stack,
       });
-      
+
       // 不抛出异常，避免影响应用启动
     }
   }
@@ -62,23 +62,27 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
   private async initializePresetTemplates(): Promise<void> {
     try {
       this.logger.log("📋 开始初始化预设模板...");
-      
-      const persistedTemplateService = this.moduleRef.get(PersistedTemplateService, { strict: false });
-      
+
+      const persistedTemplateService = this.moduleRef.get(
+        PersistedTemplateService,
+        { strict: false },
+      );
+
       if (!persistedTemplateService) {
-        this.logger.warn("⚠️ PersistedTemplateService 未找到，跳过预设模板初始化");
+        this.logger.warn(
+          "⚠️ PersistedTemplateService 未找到，跳过预设模板初始化",
+        );
         return;
       }
 
       const result = await persistedTemplateService.persistPresetTemplates();
-      
+
       this.logger.log("✅ 预设模板初始化完成", {
         created: result.created,
         updated: result.updated,
         skipped: result.skipped,
-        details: result.details.slice(0, 5) // 只显示前5个详情，避免日志过长
+        details: result.details.slice(0, 5), // 只显示前5个详情，避免日志过长
       });
-
     } catch (error) {
       this.logger.error("❌ 预设模板初始化失败", {
         error: error.message,
@@ -93,23 +97,28 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
   private async initializePresetMappingRules(): Promise<void> {
     try {
       this.logger.log("🎯 开始初始化预设映射规则...");
-      
-      const persistedTemplateService = this.moduleRef.get(PersistedTemplateService, { strict: false });
-      
+
+      const persistedTemplateService = this.moduleRef.get(
+        PersistedTemplateService,
+        { strict: false },
+      );
+
       if (!persistedTemplateService) {
-        this.logger.warn("⚠️ PersistedTemplateService 未找到，跳过预设映射规则初始化");
+        this.logger.warn(
+          "⚠️ PersistedTemplateService 未找到，跳过预设映射规则初始化",
+        );
         return;
       }
 
-      const result = await persistedTemplateService.initializePresetMappingRules();
-      
+      const result =
+        await persistedTemplateService.initializePresetMappingRules();
+
       this.logger.log("✅ 预设映射规则初始化完成", {
         created: result.created,
         skipped: result.skipped,
         failed: result.failed,
-        details: result.details.slice(0, 5) // 只显示前5个详情，避免日志过长
+        details: result.details.slice(0, 5), // 只显示前5个详情，避免日志过长
       });
-
     } catch (error) {
       this.logger.error("❌ 预设映射规则初始化失败", {
         error: error.message,
@@ -130,9 +139,12 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
   }> {
     return {
       autoInitEnabled: this.config.enabled,
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || "development",
       services: {
-        persistedTemplateService: !!this.moduleRef.get(PersistedTemplateService, { strict: false }),
+        persistedTemplateService: !!this.moduleRef.get(
+          PersistedTemplateService,
+          { strict: false },
+        ),
       },
     };
   }

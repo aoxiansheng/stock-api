@@ -1,22 +1,22 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import Redis from 'ioredis';
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
-import { REDIS_SPECIAL_VALUES } from '../constants/cache.constants';
-import { RedisValueUtils } from '../utils/redis-value.utils';
-import { CacheCompressionService } from './cache-compression.service';
-import { createLogger } from '../../../../app/config/logger.config';
-import { AdaptiveDecompressionService } from './adaptive-decompression.service';
-import { BatchMemoryOptimizerService } from './batch-memory-optimizer.service';
-import { 
-  ICacheOperation, 
-  ICacheFallback, 
-  ICacheMetadata 
-} from '../interfaces/cache-operation.interface';
-import { CacheMetadata } from '../interfaces/cache-metadata.interface';
-import { CACHE_REDIS_CLIENT_TOKEN } from '../../../../monitoring/contracts';
-import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
+import { Injectable, Inject } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import Redis from "ioredis";
+import { CACHE_CONFIG } from "../constants/cache-config.constants";
+import { REDIS_SPECIAL_VALUES } from "../constants/cache.constants";
+import { RedisValueUtils } from "../utils/redis-value.utils";
+import { CacheCompressionService } from "./cache-compression.service";
+import { createLogger } from "../../../../app/config/logger.config";
+import { AdaptiveDecompressionService } from "./adaptive-decompression.service";
+import { BatchMemoryOptimizerService } from "./batch-memory-optimizer.service";
+import {
+  ICacheOperation,
+  ICacheFallback,
+  ICacheMetadata,
+} from "../interfaces/cache-operation.interface";
+import { CacheMetadata } from "../interfaces/cache-metadata.interface";
+import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../monitoring/contracts";
+import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 /**
  * 缓存解压异常类
@@ -24,12 +24,12 @@ import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/sy
  */
 export class CacheDecompressionException extends Error {
   constructor(
-    message: string, 
-    public readonly key?: string, 
-    public readonly originalError?: Error
+    message: string,
+    public readonly key?: string,
+    public readonly originalError?: Error,
   ) {
     super(message);
-    this.name = 'CacheDecompressionException';
+    this.name = "CacheDecompressionException";
   }
 }
 
@@ -40,22 +40,22 @@ export class CacheDecompressionException extends Error {
 class DecompressionSemaphore {
   private permits: number;
   private waiting: (() => void)[] = [];
-  
+
   constructor(permits: number = 10) {
     this.permits = permits;
   }
-  
+
   async acquire(): Promise<void> {
     if (this.permits > 0) {
       this.permits--;
       return;
     }
-    
-    return new Promise<void>(resolve => {
+
+    return new Promise<void>((resolve) => {
       this.waiting.push(resolve);
     });
   }
-  
+
   release(): void {
     if (this.waiting.length > 0) {
       const resolve = this.waiting.shift()!;
@@ -69,7 +69,7 @@ class DecompressionSemaphore {
 /**
  * 通用缓存服务 - Redis-based distributed cache
  * 提供完整的缓存操作能力，包含压缩、监控和容错机制
- * 
+ *
  * 核心特性：
  * - 智能压缩和解压缩（基于数据大小阈值）
  * - 并发控制（防止解压缩操作过载）
@@ -83,7 +83,7 @@ export class CommonCacheService {
 
   // ✅ 使用类型安全的并发控制
   private readonly decompressionSemaphore = new DecompressionSemaphore(
-    CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT
+    CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT,
   );
 
   constructor(
@@ -103,7 +103,7 @@ export class CommonCacheService {
    */
   private mapPttlToSeconds(pttl: number): number | null {
     if (pttl === -2) return null; // key不存在
-    if (pttl === -1) return -1;   // 永不过期
+    if (pttl === -1) return -1; // 永不过期
     return Math.ceil(pttl / 1000); // 转换为秒并向上取整
   }
 
@@ -111,20 +111,25 @@ export class CommonCacheService {
    * 记录缓存操作指标
    * 使用事件驱动方式收集缓存性能数据
    */
-  private recordMetrics(operation: string, hit: boolean, duration: number, metadata?: any): void {
+  private recordMetrics(
+    operation: string,
+    hit: boolean,
+    duration: number,
+    metadata?: any,
+  ): void {
     setImmediate(() => {
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
-        source: 'common_cache',
-        metricType: 'cache',
+        source: "common_cache",
+        metricType: "cache",
         metricName: `cache_${operation}`,
         metricValue: duration,
         tags: {
           operation,
           hit: hit.toString(),
-          cacheType: 'common',
-          ...metadata
-        }
+          cacheType: "common",
+          ...metadata,
+        },
       });
     });
   }
@@ -134,26 +139,29 @@ export class CommonCacheService {
    * 使用事件驱动方式监控解压缩性能和资源消耗
    */
   private recordDecompressionMetrics(
-    success: boolean, 
-    duration: number, 
-    originalSize?: number, 
-    decompressedSize?: number
+    success: boolean,
+    duration: number,
+    originalSize?: number,
+    decompressedSize?: number,
   ): void {
     setImmediate(() => {
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
-        source: 'common_cache',
-        metricType: 'cache',
-        metricName: 'cache_decompress',
+        source: "common_cache",
+        metricType: "cache",
+        metricName: "cache_decompress",
         metricValue: duration,
         tags: {
-          operation: 'decompress',
+          operation: "decompress",
           success: success.toString(),
-          cacheType: 'common',
+          cacheType: "common",
           originalSize,
           decompressedSize,
-          compressionRatio: originalSize && decompressedSize ? originalSize / decompressedSize : null
-        }
+          compressionRatio:
+            originalSize && decompressedSize
+              ? originalSize / decompressedSize
+              : null,
+        },
       });
     });
   }
@@ -164,11 +172,11 @@ export class CommonCacheService {
    */
   private classifyDecompressionError(error: Error): string {
     const message = error.message.toLowerCase();
-    if (message.includes('invalid')) return 'invalid_data';
-    if (message.includes('corrupt')) return 'corrupted_data';
-    if (message.includes('memory')) return 'memory_limit';
-    if (message.includes('timeout')) return 'timeout';
-    return 'unknown_error';
+    if (message.includes("invalid")) return "invalid_data";
+    if (message.includes("corrupt")) return "corrupted_data";
+    if (message.includes("memory")) return "memory_limit";
+    if (message.includes("timeout")) return "timeout";
+    return "unknown_error";
   }
 
   /**
@@ -177,10 +185,10 @@ export class CommonCacheService {
    */
   private getDataPreview(data: any, maxLength: number = 100): string {
     try {
-      const str = typeof data === 'string' ? data : JSON.stringify(data);
-      return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+      const str = typeof data === "string" ? data : JSON.stringify(data);
+      return str.length > maxLength ? str.substring(0, maxLength) + "..." : str;
     } catch {
-      return '[不可序列化的数据]';
+      return "[不可序列化的数据]";
     }
   }
 
@@ -190,10 +198,10 @@ export class CommonCacheService {
    */
   private normalizeMetadata(metadata: any): Record<string, any> {
     if (!metadata) return {};
-    
+
     return {
       timestamp: new Date().toISOString(),
-      ...metadata
+      ...metadata,
     };
   }
 
@@ -207,18 +215,18 @@ export class CommonCacheService {
     options: {
       enableDecompression?: boolean;
       metadata?: any;
-    } = {}
+    } = {},
   ): Promise<{ data: T | null; metadata: any }> {
     const startTime = Date.now();
-    
+
     if (rawData === null) {
-      return { 
-        data: null, 
-        metadata: this.normalizeMetadata({ 
-          ...options.metadata, 
+      return {
+        data: null,
+        metadata: this.normalizeMetadata({
+          ...options.metadata,
           cached: false,
-          duration: Date.now() - startTime
-        }) 
+          duration: Date.now() - startTime,
+        }),
       };
     }
 
@@ -227,7 +235,10 @@ export class CommonCacheService {
       let isDecompressed = false;
 
       // 检测和处理压缩数据
-      if (options.enableDecompression && this.compressionService.isCompressed(rawData)) {
+      if (
+        options.enableDecompression &&
+        this.compressionService.isCompressed(rawData)
+      ) {
         // 并发控制 - 获取解压缩许可
         await this.decompressionSemaphore.acquire();
 
@@ -240,40 +251,40 @@ export class CommonCacheService {
 
           // 记录解压缩指标
           this.recordDecompressionMetrics(
-            true, 
-            decompressionDuration, 
-            rawData.length, 
-            processedData.length
+            true,
+            decompressionDuration,
+            rawData.length,
+            processedData.length,
           );
 
           this.logger.debug(`解压缩完成: ${key}`, {
             originalSize: rawData.length,
             decompressedSize: processedData.length,
-            duration: decompressionDuration
+            duration: decompressionDuration,
           });
         } catch (decompressError) {
           const decompressionDuration = Date.now() - Date.now();
           const errorType = this.classifyDecompressionError(decompressError);
-          
+
           // 记录解压缩失败指标
           this.recordDecompressionMetrics(false, decompressionDuration);
 
           this.logger.error(`解压缩失败: ${key}`, {
             error: decompressError.message,
             errorType,
-            dataPreview: this.getDataPreview(rawData)
+            dataPreview: this.getDataPreview(rawData),
           });
 
           // 解压缩失败时返回null而不是抛出异常
-          return { 
-            data: null, 
+          return {
+            data: null,
             metadata: this.normalizeMetadata({
               ...options.metadata,
               cached: true,
               decompression_failed: true,
               error_type: errorType,
-              duration: Date.now() - startTime
-            })
+              duration: Date.now() - startTime,
+            }),
           };
         } finally {
           // 释放解压缩许可
@@ -290,24 +301,23 @@ export class CommonCacheService {
           ...options.metadata,
           cached: true,
           compressed: isDecompressed,
-          duration: Date.now() - startTime
-        })
+          duration: Date.now() - startTime,
+        }),
       };
-
     } catch (parseError) {
       this.logger.error(`数据解析失败: ${key}`, {
         error: parseError.message,
-        dataPreview: this.getDataPreview(rawData)
+        dataPreview: this.getDataPreview(rawData),
       });
 
-      return { 
-        data: null, 
+      return {
+        data: null,
         metadata: this.normalizeMetadata({
           ...options.metadata,
           cached: true,
           parse_failed: true,
-          duration: Date.now() - startTime
-        })
+          duration: Date.now() - startTime,
+        }),
       };
     }
   }
@@ -318,7 +328,10 @@ export class CommonCacheService {
    * @param enableDecompression 是否启用解压缩
    * @returns 缓存数据和元数据
    */
-  async get<T>(key: string, enableDecompression: boolean = true): Promise<{ data: T | null; metadata: any }> {
+  async get<T>(
+    key: string,
+    enableDecompression: boolean = true,
+  ): Promise<{ data: T | null; metadata: any }> {
     const startTime = Date.now();
 
     try {
@@ -326,31 +339,30 @@ export class CommonCacheService {
       const duration = Date.now() - startTime;
 
       // 记录缓存操作指标
-      this.recordMetrics('get', rawData !== null, duration, { key });
+      this.recordMetrics("get", rawData !== null, duration, { key });
 
       return await this.toBusinessData<T>(rawData, key, {
         enableDecompression,
-        metadata: { operation: 'get', key }
+        metadata: { operation: "get", key },
       });
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('get', false, duration, { 
-        key, 
-        error: error.message 
+
+      this.recordMetrics("get", false, duration, {
+        key,
+        error: error.message,
       });
 
       this.logger.error(`缓存获取失败: ${key}`, error);
-      
-      return { 
-        data: null, 
+
+      return {
+        data: null,
         metadata: this.normalizeMetadata({
-          operation: 'get',
+          operation: "get",
           key,
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -364,10 +376,10 @@ export class CommonCacheService {
    * @returns 操作结果和元数据
    */
   async set<T>(
-    key: string, 
-    data: T, 
-    ttlSeconds?: number, 
-    enableCompression: boolean = true
+    key: string,
+    data: T,
+    ttlSeconds?: number,
+    enableCompression: boolean = true,
   ): Promise<{ success: boolean; metadata: any }> {
     const startTime = Date.now();
 
@@ -376,58 +388,61 @@ export class CommonCacheService {
       let isCompressed = false;
 
       // 智能压缩
-      if (enableCompression && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
-        const compressedResult = await this.compressionService.compress(processedData);
+      if (
+        enableCompression &&
+        processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES
+      ) {
+        const compressedResult =
+          await this.compressionService.compress(processedData);
         processedData = compressedResult.compressedData;
         isCompressed = true;
       }
 
       // 设置缓存
-      const result = ttlSeconds 
+      const result = ttlSeconds
         ? await this.redis.setex(key, ttlSeconds, processedData)
         : await this.redis.set(key, processedData);
 
       const duration = Date.now() - startTime;
-      const success = result === 'OK';
+      const success = result === "OK";
 
       // 记录缓存操作指标
-      this.recordMetrics('set', success, duration, { 
-        key, 
+      this.recordMetrics("set", success, duration, {
+        key,
         compressed: isCompressed,
         dataSize: processedData.length,
-        ttl: ttlSeconds
+        ttl: ttlSeconds,
       });
 
       return {
         success,
         metadata: this.normalizeMetadata({
-          operation: 'set',
+          operation: "set",
           key,
           compressed: isCompressed,
           dataSize: processedData.length,
           ttl: ttlSeconds,
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('set', false, duration, { 
-        key, 
-        error: error.message 
+
+      this.recordMetrics("set", false, duration, {
+        key,
+        error: error.message,
       });
 
       this.logger.error(`缓存设置失败: ${key}`, error);
-      
+
       return {
         success: false,
         metadata: this.normalizeMetadata({
-          operation: 'set',
+          operation: "set",
           key,
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -437,7 +452,9 @@ export class CommonCacheService {
    * @param keys 要删除的缓存键（支持单个或多个）
    * @returns 删除结果和元数据
    */
-  async delete(keys: string | string[]): Promise<{ deletedCount: number; metadata: any }> {
+  async delete(
+    keys: string | string[],
+  ): Promise<{ deletedCount: number; metadata: any }> {
     const startTime = Date.now();
     const keyArray = Array.isArray(keys) ? keys : [keys];
 
@@ -446,39 +463,38 @@ export class CommonCacheService {
       const duration = Date.now() - startTime;
 
       // 记录缓存操作指标
-      this.recordMetrics('delete', deletedCount > 0, duration, { 
+      this.recordMetrics("delete", deletedCount > 0, duration, {
         keys: keyArray,
-        deletedCount
+        deletedCount,
       });
 
       return {
         deletedCount,
         metadata: this.normalizeMetadata({
-          operation: 'delete',
+          operation: "delete",
           keys: keyArray,
           deletedCount,
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('delete', false, duration, { 
-        keys: keyArray, 
-        error: error.message 
+
+      this.recordMetrics("delete", false, duration, {
+        keys: keyArray,
+        error: error.message,
       });
 
       this.logger.error(`缓存删除失败`, error);
-      
+
       return {
         deletedCount: 0,
         metadata: this.normalizeMetadata({
-          operation: 'delete',
+          operation: "delete",
           keys: keyArray,
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -489,7 +505,10 @@ export class CommonCacheService {
    * @param enableDecompression 是否启用解压缩
    * @returns 批量缓存数据和元数据
    */
-  async mget<T>(keys: string[], enableDecompression: boolean = true): Promise<{
+  async mget<T>(
+    keys: string[],
+    enableDecompression: boolean = true,
+  ): Promise<{
     data: Array<{ key: string; value: T | null }>;
     metadata: any;
   }> {
@@ -499,10 +518,10 @@ export class CommonCacheService {
       return {
         data: [],
         metadata: this.normalizeMetadata({
-          operation: 'mget',
+          operation: "mget",
           keys: [],
-          duration: 0
-        })
+          duration: 0,
+        }),
       };
     }
 
@@ -514,52 +533,53 @@ export class CommonCacheService {
       const results = await Promise.all(
         keys.map(async (key, index) => {
           const rawValue = rawResults[index];
-          const { data } = await this.toBusinessData<T>(rawValue, key, { enableDecompression });
+          const { data } = await this.toBusinessData<T>(rawValue, key, {
+            enableDecompression,
+          });
           return { key, value: data };
-        })
+        }),
       );
 
-      const hitCount = results.filter(r => r.value !== null).length;
+      const hitCount = results.filter((r) => r.value !== null).length;
 
       // 记录批量操作指标
-      this.recordMetrics('mget', hitCount > 0, duration, { 
+      this.recordMetrics("mget", hitCount > 0, duration, {
         keys,
         hitCount,
         totalCount: keys.length,
-        hitRate: hitCount / keys.length
+        hitRate: hitCount / keys.length,
       });
 
       return {
         data: results,
         metadata: this.normalizeMetadata({
-          operation: 'mget',
+          operation: "mget",
           keys,
           hitCount,
           totalCount: keys.length,
           hitRate: hitCount / keys.length,
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('mget', false, duration, { 
-        keys, 
-        error: error.message 
+
+      this.recordMetrics("mget", false, duration, {
+        keys,
+        error: error.message,
       });
 
       this.logger.error(`批量获取缓存失败`, error);
 
       // 返回所有null值而不是抛出异常
       return {
-        data: keys.map(key => ({ key, value: null })),
+        data: keys.map((key) => ({ key, value: null })),
         metadata: this.normalizeMetadata({
-          operation: 'mget',
+          operation: "mget",
           keys,
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -571,12 +591,12 @@ export class CommonCacheService {
    * @returns 增强的批量缓存数据
    */
   async mgetEnhanced<T>(
-    keys: string[], 
+    keys: string[],
     options: {
       enableDecompression?: boolean;
       includeTTL?: boolean;
       includeMetadata?: boolean;
-    } = {}
+    } = {},
   ): Promise<{
     data: Array<{
       key: string;
@@ -593,17 +613,21 @@ export class CommonCacheService {
     metadata: any;
   }> {
     const startTime = Date.now();
-    const { enableDecompression = true, includeTTL = false, includeMetadata = false } = options;
+    const {
+      enableDecompression = true,
+      includeTTL = false,
+      includeMetadata = false,
+    } = options;
 
     if (keys.length === 0) {
       return {
         data: [],
         summary: { total: 0, hits: 0, misses: 0, hitRate: 0 },
         metadata: this.normalizeMetadata({
-          operation: 'mgetEnhanced',
+          operation: "mgetEnhanced",
           keys: [],
-          duration: 0
-        })
+          duration: 0,
+        }),
       };
     }
 
@@ -611,7 +635,7 @@ export class CommonCacheService {
       // 并行执行 mget 和 pttl (如果需要)
       const promises: Promise<any>[] = [this.redis.mget(...keys)];
       if (includeTTL) {
-        promises.push(Promise.all(keys.map(key => this.redis.pttl(key))));
+        promises.push(Promise.all(keys.map((key) => this.redis.pttl(key))));
       }
 
       const results = await Promise.all(promises);
@@ -622,10 +646,14 @@ export class CommonCacheService {
       const processedData = await Promise.all(
         keys.map(async (key, index) => {
           const rawValue = rawValues[index];
-          const { data, metadata } = await this.toBusinessData<T>(rawValue, key, { 
-            enableDecompression,
-            metadata: { index }
-          });
+          const { data, metadata } = await this.toBusinessData<T>(
+            rawValue,
+            key,
+            {
+              enableDecompression,
+              metadata: { index },
+            },
+          );
 
           const result: any = { key, value: data };
 
@@ -638,22 +666,22 @@ export class CommonCacheService {
           }
 
           return result;
-        })
+        }),
       );
 
       const duration = Date.now() - startTime;
-      const hits = processedData.filter(item => item.value !== null).length;
+      const hits = processedData.filter((item) => item.value !== null).length;
       const misses = keys.length - hits;
       const hitRate = hits / keys.length;
 
       // 记录增强批量操作指标
-      this.recordMetrics('mgetEnhanced', hits > 0, duration, { 
+      this.recordMetrics("mgetEnhanced", hits > 0, duration, {
         keys,
         hits,
         misses,
         hitRate,
         includeTTL,
-        includeMetadata
+        includeMetadata,
       });
 
       return {
@@ -662,43 +690,42 @@ export class CommonCacheService {
           total: keys.length,
           hits,
           misses,
-          hitRate
+          hitRate,
         },
         metadata: this.normalizeMetadata({
-          operation: 'mgetEnhanced',
+          operation: "mgetEnhanced",
           keys,
           includeTTL,
           includeMetadata,
           summary: { hits, misses, hitRate },
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('mgetEnhanced', false, duration, { 
-        keys, 
-        error: error.message 
+
+      this.recordMetrics("mgetEnhanced", false, duration, {
+        keys,
+        error: error.message,
       });
 
       this.logger.error(`增强批量获取失败`, error);
 
       // 容错处理：返回所有null值
       return {
-        data: keys.map(key => ({ key, value: null })),
+        data: keys.map((key) => ({ key, value: null })),
         summary: {
           total: keys.length,
           hits: 0,
           misses: keys.length,
-          hitRate: 0
+          hitRate: 0,
         },
         metadata: this.normalizeMetadata({
-          operation: 'mgetEnhanced',
+          operation: "mgetEnhanced",
           keys,
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -711,10 +738,14 @@ export class CommonCacheService {
    * @returns 批量设置结果
    */
   async mset<T>(
-    entries: Array<{ key: string; value: T }>, 
-    ttlSeconds?: number, 
-    enableCompression: boolean = true
-  ): Promise<{ success: boolean; results: Array<{ key: string; success: boolean }>; metadata: any }> {
+    entries: Array<{ key: string; value: T }>,
+    ttlSeconds?: number,
+    enableCompression: boolean = true,
+  ): Promise<{
+    success: boolean;
+    results: Array<{ key: string; success: boolean }>;
+    metadata: any;
+  }> {
     const startTime = Date.now();
 
     if (entries.length === 0) {
@@ -722,10 +753,10 @@ export class CommonCacheService {
         success: true,
         results: [],
         metadata: this.normalizeMetadata({
-          operation: 'mset',
+          operation: "mset",
           entries: [],
-          duration: 0
-        })
+          duration: 0,
+        }),
       };
     }
 
@@ -736,19 +767,23 @@ export class CommonCacheService {
           let processedData = JSON.stringify(value);
           let isCompressed = false;
 
-          if (enableCompression && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
-            const compressedResult = await this.compressionService.compress(processedData);
+          if (
+            enableCompression &&
+            processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES
+          ) {
+            const compressedResult =
+              await this.compressionService.compress(processedData);
             processedData = compressedResult.compressedData;
             isCompressed = true;
           }
 
           return { key, data: processedData, compressed: isCompressed };
-        })
+        }),
       );
 
       // 执行批量设置
       const pipeline = this.redis.pipeline();
-      
+
       for (const { key, data } of processedEntries) {
         if (ttlSeconds) {
           pipeline.setex(key, ttlSeconds, data);
@@ -763,54 +798,53 @@ export class CommonCacheService {
       // 处理结果
       const operationResults = entries.map((entry, index) => ({
         key: entry.key,
-        success: results?.[index]?.[1] === 'OK'
+        success: results?.[index]?.[1] === "OK",
       }));
 
-      const successCount = operationResults.filter(r => r.success).length;
+      const successCount = operationResults.filter((r) => r.success).length;
       const overallSuccess = successCount === entries.length;
 
       // 记录批量设置指标
-      this.recordMetrics('mset', overallSuccess, duration, { 
-        keys: entries.map(e => e.key),
+      this.recordMetrics("mset", overallSuccess, duration, {
+        keys: entries.map((e) => e.key),
         successCount,
         totalCount: entries.length,
         successRate: successCount / entries.length,
         ttl: ttlSeconds,
-        enableCompression
+        enableCompression,
       });
 
       return {
         success: overallSuccess,
         results: operationResults,
         metadata: this.normalizeMetadata({
-          operation: 'mset',
-          entries: entries.map(e => e.key),
+          operation: "mset",
+          entries: entries.map((e) => e.key),
           successCount,
           totalCount: entries.length,
           successRate: successCount / entries.length,
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('mset', false, duration, { 
-        keys: entries.map(e => e.key), 
-        error: error.message 
+
+      this.recordMetrics("mset", false, duration, {
+        keys: entries.map((e) => e.key),
+        error: error.message,
       });
 
       this.logger.error(`批量设置缓存失败`, error);
 
       return {
         success: false,
-        results: entries.map(entry => ({ key: entry.key, success: false })),
+        results: entries.map((entry) => ({ key: entry.key, success: false })),
         metadata: this.normalizeMetadata({
-          operation: 'mset',
-          entries: entries.map(e => e.key),
+          operation: "mset",
+          entries: entries.map((e) => e.key),
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -833,7 +867,7 @@ export class CommonCacheService {
       defaultCompression?: boolean;
       continueOnError?: boolean;
       batchSize?: number;
-    } = {}
+    } = {},
   ): Promise<{
     success: boolean;
     results: Array<{
@@ -851,11 +885,11 @@ export class CommonCacheService {
     metadata: any;
   }> {
     const startTime = Date.now();
-    const { 
-      defaultTTL, 
-      defaultCompression = true, 
+    const {
+      defaultTTL,
+      defaultCompression = true,
       continueOnError = true,
-      batchSize = CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE
+      batchSize = CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE,
     } = options;
 
     if (entries.length === 0) {
@@ -864,15 +898,15 @@ export class CommonCacheService {
         results: [],
         summary: { total: 0, successful: 0, failed: 0, successRate: 1 },
         metadata: this.normalizeMetadata({
-          operation: 'msetEnhanced',
+          operation: "msetEnhanced",
           entries: [],
-          duration: 0
-        })
+          duration: 0,
+        }),
       };
     }
 
     // 分批处理大量数据
-    const batches: typeof entries[] = [];
+    const batches: (typeof entries)[] = [];
     for (let i = 0; i < entries.length; i += batchSize) {
       batches.push(entries.slice(i, i + batchSize));
     }
@@ -888,49 +922,54 @@ export class CommonCacheService {
       // 处理每个批次
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         const batch = batches[batchIndex];
-        
+
         try {
           // 预处理批次数据
           const processedBatch = await Promise.all(
             batch.map(async ({ key, value, ttl, enableCompression }) => {
               const entryStartTime = Date.now();
-              
+
               try {
                 let processedData = JSON.stringify(value);
                 let isCompressed = false;
                 const shouldCompress = enableCompression ?? defaultCompression;
-                
-                if (shouldCompress && processedData.length > CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES) {
-                  const compressedResult = await this.compressionService.compress(processedData);
+
+                if (
+                  shouldCompress &&
+                  processedData.length >
+                    CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES
+                ) {
+                  const compressedResult =
+                    await this.compressionService.compress(processedData);
                   processedData = compressedResult.compressedData;
                   isCompressed = true;
                 }
 
                 const finalTTL = ttl ?? defaultTTL;
-                
+
                 return {
                   key,
                   data: processedData,
                   ttl: finalTTL,
                   compressed: isCompressed,
-                  processingTime: Date.now() - entryStartTime
+                  processingTime: Date.now() - entryStartTime,
                 };
               } catch (processingError) {
                 return {
                   key,
                   error: processingError.message,
-                  processingTime: Date.now() - entryStartTime
+                  processingTime: Date.now() - entryStartTime,
                 };
               }
-            })
+            }),
           );
 
           // 执行批次操作
           const pipeline = this.redis.pipeline();
-          
+
           for (const processed of processedBatch) {
-            if ('error' in processed) continue;
-            
+            if ("error" in processed) continue;
+
             if (processed.ttl) {
               pipeline.setex(processed.key, processed.ttl, processed.data);
             } else {
@@ -944,8 +983,8 @@ export class CommonCacheService {
           // 处理批次结果
           for (let i = 0; i < processedBatch.length; i++) {
             const processed = processedBatch[i];
-            
-            if ('error' in processed) {
+
+            if ("error" in processed) {
               allResults.push({
                 key: processed.key,
                 success: false,
@@ -953,30 +992,31 @@ export class CommonCacheService {
                 metadata: this.normalizeMetadata({
                   batchIndex,
                   entryIndex: i,
-                  processingTime: processed.processingTime || 0
-                })
+                  processingTime: processed.processingTime || 0,
+                }),
               });
             } else {
               const pipelineResult = pipelineResults?.[pipelineIndex];
-              const success = pipelineResult?.[1] === 'OK';
-              
+              const success = pipelineResult?.[1] === "OK";
+
               allResults.push({
                 key: processed.key,
                 success,
-                error: success ? undefined : pipelineResult?.[0]?.message || '设置失败',
+                error: success
+                  ? undefined
+                  : pipelineResult?.[0]?.message || "设置失败",
                 metadata: this.normalizeMetadata({
                   batchIndex,
                   entryIndex: i,
                   compressed: processed.compressed,
                   ttl: processed.ttl,
-                  processingTime: processed.processingTime || 0
-                })
+                  processingTime: processed.processingTime || 0,
+                }),
               });
-              
+
               pipelineIndex++;
             }
           }
-
         } catch (batchError) {
           // 批次级错误处理
           if (continueOnError) {
@@ -988,8 +1028,8 @@ export class CommonCacheService {
                 error: batchError.message,
                 metadata: this.normalizeMetadata({
                   batchIndex,
-                  batchError: true
-                })
+                  batchError: true,
+                }),
               });
             }
           } else {
@@ -1000,19 +1040,19 @@ export class CommonCacheService {
       }
 
       const duration = Date.now() - startTime;
-      const successful = allResults.filter(r => r.success).length;
+      const successful = allResults.filter((r) => r.success).length;
       const failed = allResults.length - successful;
       const successRate = successful / allResults.length;
       const overallSuccess = failed === 0;
 
       // 记录增强批量设置指标
-      this.recordMetrics('msetEnhanced', overallSuccess, duration, { 
-        keys: entries.map(e => e.key),
+      this.recordMetrics("msetEnhanced", overallSuccess, duration, {
+        keys: entries.map((e) => e.key),
         successful,
         failed,
         successRate,
         batchCount: batches.length,
-        batchSize
+        batchSize,
       });
 
       return {
@@ -1022,35 +1062,34 @@ export class CommonCacheService {
           total: entries.length,
           successful,
           failed,
-          successRate
+          successRate,
         },
         metadata: this.normalizeMetadata({
-          operation: 'msetEnhanced',
-          entries: entries.map(e => e.key),
+          operation: "msetEnhanced",
+          entries: entries.map((e) => e.key),
           batchCount: batches.length,
           batchSize,
           summary: { successful, failed, successRate },
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('msetEnhanced', false, duration, { 
-        keys: entries.map(e => e.key), 
-        error: error.message 
+
+      this.recordMetrics("msetEnhanced", false, duration, {
+        keys: entries.map((e) => e.key),
+        error: error.message,
       });
 
       this.logger.error(`增强批量设置失败`, error);
 
       // 如果还没有处理任何结果，创建所有失败的结果
       if (allResults.length === 0) {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           allResults.push({
             key: entry.key,
             success: false,
-            error: error.message
+            error: error.message,
           });
         });
       }
@@ -1062,14 +1101,14 @@ export class CommonCacheService {
           total: entries.length,
           successful: 0,
           failed: entries.length,
-          successRate: 0
+          successRate: 0,
         },
         metadata: this.normalizeMetadata({
-          operation: 'msetEnhanced',
-          entries: entries.map(e => e.key),
+          operation: "msetEnhanced",
+          entries: entries.map((e) => e.key),
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -1081,12 +1120,12 @@ export class CommonCacheService {
    * @returns 包含完整元数据的批量结果
    */
   async mgetWithMetadata<T>(
-    keys: string[], 
+    keys: string[],
     options: {
       enableDecompression?: boolean;
       includeTTL?: boolean;
       includeSize?: boolean;
-    } = {}
+    } = {},
   ): Promise<{
     results: Array<{
       key: string;
@@ -1106,30 +1145,34 @@ export class CommonCacheService {
     metadata: any;
   }> {
     const startTime = Date.now();
-    const { enableDecompression = true, includeTTL = false, includeSize = false } = options;
+    const {
+      enableDecompression = true,
+      includeTTL = false,
+      includeSize = false,
+    } = options;
 
     if (keys.length === 0) {
       return {
         results: [],
         summary: { total: 0, hits: 0, misses: 0, hitRate: 0 },
         metadata: this.normalizeMetadata({
-          operation: 'mgetWithMetadata',
+          operation: "mgetWithMetadata",
           keys: [],
-          duration: 0
-        })
+          duration: 0,
+        }),
       };
     }
 
     try {
       // 构建并行查询
       const queries: Promise<any>[] = [this.redis.mget(...keys)];
-      
+
       if (includeTTL) {
-        queries.push(Promise.all(keys.map(key => this.redis.pttl(key))));
+        queries.push(Promise.all(keys.map((key) => this.redis.pttl(key))));
       }
-      
+
       if (includeSize) {
-        queries.push(Promise.all(keys.map(key => this.redis.strlen(key))));
+        queries.push(Promise.all(keys.map((key) => this.redis.strlen(key))));
       }
 
       const [rawValues, ttlValues, sizeValues] = await Promise.all(queries);
@@ -1138,16 +1181,20 @@ export class CommonCacheService {
       const results = await Promise.all(
         keys.map(async (key, index) => {
           const rawValue = rawValues[index];
-          const { data, metadata: itemMetadata } = await this.toBusinessData<T>(rawValue, key, { 
-            enableDecompression,
-            metadata: { index }
-          });
+          const { data, metadata: itemMetadata } = await this.toBusinessData<T>(
+            rawValue,
+            key,
+            {
+              enableDecompression,
+              metadata: { index },
+            },
+          );
 
           const result: any = {
             key,
             data,
             cached: rawValue !== null,
-            metadata: itemMetadata
+            metadata: itemMetadata,
           };
 
           if (includeTTL && ttlValues) {
@@ -1159,24 +1206,26 @@ export class CommonCacheService {
           }
 
           return result;
-        })
+        }),
       );
 
       const duration = Date.now() - startTime;
-      const hits = results.filter(r => r.cached).length;
+      const hits = results.filter((r) => r.cached).length;
       const misses = keys.length - hits;
       const hitRate = hits / keys.length;
-      const totalSize = includeSize ? results.reduce((sum, r) => sum + (r.size || 0), 0) : undefined;
+      const totalSize = includeSize
+        ? results.reduce((sum, r) => sum + (r.size || 0), 0)
+        : undefined;
 
       // 记录带元数据的批量获取指标
-      this.recordMetrics('mgetWithMetadata', hits > 0, duration, { 
+      this.recordMetrics("mgetWithMetadata", hits > 0, duration, {
         keys,
         hits,
         misses,
         hitRate,
         includeTTL,
         includeSize,
-        totalSize
+        totalSize,
       });
 
       return {
@@ -1186,46 +1235,45 @@ export class CommonCacheService {
           hits,
           misses,
           hitRate,
-          totalSize
+          totalSize,
         },
         metadata: this.normalizeMetadata({
-          operation: 'mgetWithMetadata',
+          operation: "mgetWithMetadata",
           keys,
           options,
           summary: { hits, misses, hitRate, totalSize },
-          duration
-        })
+          duration,
+        }),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
-      this.recordMetrics('mgetWithMetadata', false, duration, { 
-        keys, 
-        error: error.message 
+
+      this.recordMetrics("mgetWithMetadata", false, duration, {
+        keys,
+        error: error.message,
       });
 
       this.logger.error(`带元数据的批量获取失败`, error);
 
       return {
-        results: keys.map(key => ({
+        results: keys.map((key) => ({
           key,
           data: null,
           cached: false,
-          metadata: this.normalizeMetadata({ error: error.message })
+          metadata: this.normalizeMetadata({ error: error.message }),
         })),
         summary: {
           total: keys.length,
           hits: 0,
           misses: keys.length,
-          hitRate: 0
+          hitRate: 0,
         },
         metadata: this.normalizeMetadata({
-          operation: 'mgetWithMetadata',
+          operation: "mgetWithMetadata",
           keys,
           error: error.message,
-          duration
-        })
+          duration,
+        }),
       };
     }
   }
@@ -1244,14 +1292,23 @@ export class CommonCacheService {
       enableDecompression?: boolean;
       cacheFallbackResult?: boolean;
       fallbackTTL?: number;
-    } = {}
-  ): Promise<{ data: T | null; fromCache: boolean; fromFallback: boolean; metadata: any }> {
+    } = {},
+  ): Promise<{
+    data: T | null;
+    fromCache: boolean;
+    fromFallback: boolean;
+    metadata: any;
+  }> {
     const startTime = Date.now();
-    const { enableDecompression = true, cacheFallbackResult = true, fallbackTTL = 3600 } = options;
+    const {
+      enableDecompression = true,
+      cacheFallbackResult = true,
+      fallbackTTL = 3600,
+    } = options;
 
     // 尝试从缓存获取
     const cacheResult = await this.get<T>(key, enableDecompression);
-    
+
     if (cacheResult.data !== null) {
       return {
         data: cacheResult.data,
@@ -1259,10 +1316,10 @@ export class CommonCacheService {
         fromFallback: false,
         metadata: {
           ...cacheResult.metadata,
-          operation: 'getWithFallback',
-          source: 'cache',
-          duration: Date.now() - startTime
-        }
+          operation: "getWithFallback",
+          source: "cache",
+          duration: Date.now() - startTime,
+        },
       };
     }
 
@@ -1273,18 +1330,18 @@ export class CommonCacheService {
         fromCache: false,
         fromFallback: false,
         metadata: this.normalizeMetadata({
-          operation: 'getWithFallback',
-          source: 'none',
+          operation: "getWithFallback",
+          source: "none",
           cache_miss: true,
           no_fallback: true,
-          duration: Date.now() - startTime
-        })
+          duration: Date.now() - startTime,
+        }),
       };
     }
 
     try {
       const fallbackData = await fallbackFn();
-      
+
       // 缓存降级结果
       if (cacheFallbackResult && fallbackData !== null) {
         await this.set(key, fallbackData, fallbackTTL);
@@ -1295,14 +1352,13 @@ export class CommonCacheService {
         fromCache: false,
         fromFallback: true,
         metadata: this.normalizeMetadata({
-          operation: 'getWithFallback',
-          source: 'fallback',
+          operation: "getWithFallback",
+          source: "fallback",
           cache_miss: true,
           fallback_cached: cacheFallbackResult,
-          duration: Date.now() - startTime
-        })
+          duration: Date.now() - startTime,
+        }),
       };
-
     } catch (fallbackError) {
       this.logger.error(`降级策略执行失败: ${key}`, fallbackError);
 
@@ -1311,12 +1367,12 @@ export class CommonCacheService {
         fromCache: false,
         fromFallback: false,
         metadata: this.normalizeMetadata({
-          operation: 'getWithFallback',
-          source: 'none',
+          operation: "getWithFallback",
+          source: "none",
           cache_miss: true,
           fallback_error: fallbackError.message,
-          duration: Date.now() - startTime
-        })
+          duration: Date.now() - startTime,
+        }),
       };
     }
   }
@@ -1325,8 +1381,11 @@ export class CommonCacheService {
    * 生成缓存键
    * 提供标准化的缓存键生成逻辑
    */
-  private generateCacheKey(prefix: string, ...parts: (string | number)[]): string {
-    return [prefix, ...parts].join(':');
+  private generateCacheKey(
+    prefix: string,
+    ...parts: (string | number)[]
+  ): string {
+    return [prefix, ...parts].join(":");
   }
 
   /**
@@ -1335,8 +1394,8 @@ export class CommonCacheService {
    */
   static calculateOptimalTTL(
     dataSize: number,
-    accessPattern: 'hot' | 'warm' | 'cold' = 'warm',
-    customTTL?: number
+    accessPattern: "hot" | "warm" | "cold" = "warm",
+    customTTL?: number,
   ): number {
     // 如果提供了自定义TTL，直接使用
     if (customTTL !== undefined && customTTL > 0) {
@@ -1345,20 +1404,23 @@ export class CommonCacheService {
 
     // 基于访问模式的基础TTL
     const baseTTL = {
-      hot: 300,    // 5分钟
-      warm: 1800,  // 30分钟  
-      cold: 3600   // 1小时
+      hot: 300, // 5分钟
+      warm: 1800, // 30分钟
+      cold: 3600, // 1小时
     }[accessPattern];
 
     // 基于数据大小的调整因子
     let sizeFactor = 1.0;
-    
-    if (dataSize > 1024 * 1024) {        // > 1MB
-      sizeFactor = 0.5;  // 大数据缩短TTL
-    } else if (dataSize > 100 * 1024) {   // > 100KB
-      sizeFactor = 0.8;  // 中等数据稍微缩短TTL
-    } else if (dataSize < 1024) {        // < 1KB
-      sizeFactor = 1.5;  // 小数据延长TTL
+
+    if (dataSize > 1024 * 1024) {
+      // > 1MB
+      sizeFactor = 0.5; // 大数据缩短TTL
+    } else if (dataSize > 100 * 1024) {
+      // > 100KB
+      sizeFactor = 0.8; // 中等数据稍微缩短TTL
+    } else if (dataSize < 1024) {
+      // < 1KB
+      sizeFactor = 1.5; // 小数据延长TTL
     }
 
     // 时间因子：非工作时间可以延长TTL
@@ -1369,7 +1431,7 @@ export class CommonCacheService {
 
     // 计算最终TTL
     const finalTTL = Math.floor(baseTTL * sizeFactor * timeFactor);
-    
+
     // 确保TTL在合理范围内
     return Math.max(60, Math.min(finalTTL, 86400)); // 1分钟到24小时
   }
@@ -1398,28 +1460,28 @@ export class CommonCacheService {
   }> {
     try {
       const info = await this.redis.info();
-      const memory = await this.redis.info('memory');
-      
+      const memory = await this.redis.info("memory");
+
       return {
         redis: {
           connected: true,
-          info: this.parseRedisInfo(info)
+          info: this.parseRedisInfo(info),
         },
         memory: {
-          info: this.parseRedisInfo(memory)
+          info: this.parseRedisInfo(memory),
         },
         performance: {
           decompressionSemaphore: {
-            available: this.decompressionSemaphore['permits'],
-            max: this.decompressionSemaphore['maxPermits']
-          }
-        }
+            available: this.decompressionSemaphore["permits"],
+            max: this.decompressionSemaphore["maxPermits"],
+          },
+        },
       };
     } catch (error) {
       return {
         redis: { connected: false, error: error.message },
         memory: { error: error.message },
-        performance: { error: error.message }
+        performance: { error: error.message },
       };
     }
   }
@@ -1429,15 +1491,15 @@ export class CommonCacheService {
    */
   private parseRedisInfo(infoText: string): Record<string, any> {
     const result: Record<string, any> = {};
-    const lines = infoText.split('\r\n');
-    
+    const lines = infoText.split("\r\n");
+
     for (const line of lines) {
-      if (line.includes(':')) {
-        const [key, value] = line.split(':');
+      if (line.includes(":")) {
+        const [key, value] = line.split(":");
         result[key] = value;
       }
     }
-    
+
     return result;
   }
 }

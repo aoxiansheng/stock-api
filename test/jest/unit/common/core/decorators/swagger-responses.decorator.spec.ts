@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { applyDecorators, HttpStatus } from "@nestjs/common";
 import { ApiResponse } from "@nestjs/swagger";
 import {

@@ -50,7 +50,7 @@ export class StorageRepository {
     const filter: any = {};
 
     if (query.keySearch) {
-      filter.key = { $regex: query.keySearch, $options: 'i' };
+      filter.key = { $regex: query.keySearch, $options: "i" };
     }
 
     if (query.provider) {
@@ -138,13 +138,15 @@ export class StorageRepository {
     return this.storedDataModel.countDocuments();
   }
 
-  async getStorageClassificationStats(): Promise<{ _id: string; count: number }[]> {
+  async getStorageClassificationStats(): Promise<
+    { _id: string; count: number }[]
+  > {
     return this.storedDataModel.aggregate([
-      { 
-        $group: { 
-          _id: "$storageClassification", 
-          count: { $sum: 1 } 
-        } 
+      {
+        $group: {
+          _id: "$storageClassification",
+          count: { $sum: 1 },
+        },
       },
     ]);
   }

@@ -151,7 +151,10 @@ export class UserStatsDto {
   @ApiProperty({ description: "非活跃用户数" })
   inactiveUsers: number;
 
-  @ApiProperty({ description: "角色分布", example: { admin: 2, developer: 10, user: 5 } })
+  @ApiProperty({
+    description: "角色分布",
+    example: { admin: 2, developer: 10, user: 5 },
+  })
   roleDistribution: Record<string, number>;
 }
 

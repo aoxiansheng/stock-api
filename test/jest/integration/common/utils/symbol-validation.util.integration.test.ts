@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SymbolValidationUtils } from "../../../../../src/common/utils/symbol-validation.util";
 import { Market } from "../../../../../src/common/constants/market.constants";
 

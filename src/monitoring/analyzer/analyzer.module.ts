@@ -1,6 +1,6 @@
 /**
  * 🎯 数据分析模块
- * 
+ *
  * 负责分析和计算监控指标：
  * - 性能分析
  * - 健康评分
@@ -8,14 +8,14 @@
  * - 优化建议
  */
 
-import { Module } from '@nestjs/common';
-import { CollectorModule } from '../collector/collector.module';
-import { MonitoringCacheModule } from '../cache/monitoring-cache.module';
-import { AnalyzerService } from './analyzer.service';
-import { HealthAnalyzerService } from './analyzer-health.service';
-import { TrendAnalyzerService } from './analyzer-trend.service';
-import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
-import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
+import { Module } from "@nestjs/common";
+import { CollectorModule } from "../collector/collector.module";
+import { MonitoringCacheModule } from "../cache/monitoring-cache.module";
+import { AnalyzerService } from "./analyzer.service";
+import { HealthAnalyzerService } from "./analyzer-health.service";
+import { TrendAnalyzerService } from "./analyzer-trend.service";
+import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
+import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
   ],
   providers: [
     AnalyzerService,
-    HealthAnalyzerService, 
+    HealthAnalyzerService,
     TrendAnalyzerService,
     AnalyzerHealthScoreCalculator,
     AnalyzerMetricsCalculator,

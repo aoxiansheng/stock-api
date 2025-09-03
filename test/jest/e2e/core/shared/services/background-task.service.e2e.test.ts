@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // background-task.service.e2e.test.ts - 测试占位代码
 // 路径: e2e/core/public/shared/services/background-task.service.e2e.test.ts
 

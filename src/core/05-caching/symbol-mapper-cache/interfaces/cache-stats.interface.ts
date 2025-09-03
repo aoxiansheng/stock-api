@@ -11,7 +11,7 @@ export interface SymbolMappingResult {
   mappedSymbol?: string;
   originalSymbol: string;
   provider: string;
-  direction: 'to_standard' | 'from_standard';
+  direction: "to_standard" | "from_standard";
   cacheHit?: boolean;
   processingTime?: number;
 }
@@ -24,7 +24,7 @@ export interface BatchMappingResult {
   mappingDetails: Record<string, string>; // 原始符号 -> 映射结果
   failedSymbols: string[];
   provider: string;
-  direction: 'to_standard' | 'from_standard';
+  direction: "to_standard" | "from_standard";
   totalProcessed: number;
   cacheHits: number;
   processingTimeMs: number;

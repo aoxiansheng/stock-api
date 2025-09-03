@@ -11,123 +11,14 @@ import {
 } from "class-validator";
 
 import { NotificationChannelType } from "../types/alert.types";
+import { VALIDATION_LIMITS } from "../constants/validation.constants";
+
+// 导入各类型通知配置DTO
+export * from "./notification-channels";
 
 // ==================== 配置相关DTO ====================
-
-export class EmailConfigDto {
-  @ApiProperty({ description: "收件人邮箱" })
-  @IsString()
-  to: string;
-
-  @ApiProperty({ description: "邮件主题" })
-  @IsString()
-  subject: string;
-
-  @ApiPropertyOptional({ description: "抄送邮箱" })
-  @IsOptional()
-  @IsString()
-  cc?: string;
-
-  @ApiPropertyOptional({ description: "密送邮箱" })
-  @IsOptional()
-  @IsString()
-  bcc?: string;
-}
-
-export class WebhookConfigDto {
-  @ApiProperty({ description: "Webhook URL" })
-  @IsString()
-  url: string;
-
-  @ApiPropertyOptional({ description: "HTTP方法", default: "POST" })
-  @IsOptional()
-  @IsString()
-  method?: string;
-
-  @ApiPropertyOptional({
-    description: "请求头",
-    type: "object",
-    additionalProperties: { type: "string" },
-  })
-  @IsOptional()
-  headers?: Record<string, string>;
-
-  @ApiPropertyOptional({ description: "认证令牌" })
-  @IsOptional()
-  @IsString()
-  token?: string;
-}
-
-export class SlackConfigDto {
-  @ApiProperty({ description: "Slack Webhook URL" })
-  @IsString()
-  webhook_url: string;
-
-  @ApiProperty({ description: "频道名称" })
-  @IsString()
-  channel: string;
-
-  @ApiPropertyOptional({ description: "用户名" })
-  @IsOptional()
-  @IsString()
-  username?: string;
-
-  @ApiPropertyOptional({ description: "图标表情" })
-  @IsOptional()
-  @IsString()
-  icon_emoji?: string;
-}
-
-export class DingTalkConfigDto {
-  @ApiProperty({ description: "钉钉 Webhook URL" })
-  @IsString()
-  webhook_url: string;
-
-  @ApiProperty({ description: "安全密钥" })
-  @IsString()
-  secret: string;
-
-  @ApiPropertyOptional({ description: "@所有人", default: false })
-  @IsOptional()
-  @IsBoolean()
-  at_all?: boolean;
-
-  @ApiPropertyOptional({ description: "@指定用户手机号列表" })
-  @IsOptional()
-  at_mobiles?: string[];
-}
-
-export class SmsConfigDto {
-  @ApiProperty({ description: "手机号" })
-  @IsString()
-  phone: string;
-
-  @ApiProperty({ description: "短信模板ID" })
-  @IsString()
-  template: string;
-
-  @ApiPropertyOptional({
-    description: "模板参数",
-    type: "object",
-    additionalProperties: { type: "string" },
-  })
-  @IsOptional()
-  params?: Record<string, string>;
-}
-
-export class LogConfigDto {
-  @ApiProperty({
-    description: "日志级别",
-    enum: ["error", "warn", "info", "debug"],
-  })
-  @IsEnum(["error", "warn", "info", "debug"])
-  level: string;
-
-  @ApiPropertyOptional({ description: "日志标签" })
-  @IsOptional()
-  @IsString()
-  tag?: string;
-}
+// 注意: 各类型的通知配置DTO已拆分到 notification-channels/ 目录
+// 通过上方的导入语句统一导出，便于维护
 
 // ==================== 核心通知渠道DTO（统一定义） ====================
 
@@ -168,15 +59,15 @@ export class NotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  @Max(10)
+  @Min(VALIDATION_LIMITS.RETRIES.MIN)
+  @Max(VALIDATION_LIMITS.RETRIES.MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（秒）", default: 30 })
   @IsOptional()
   @IsNumber()
-  @Min(1)
-  @Max(300)
+  @Min(VALIDATION_LIMITS.TIMEOUT.MIN)
+  @Max(VALIDATION_LIMITS.TIMEOUT.MAX)
   timeout?: number;
 }
 
@@ -208,15 +99,15 @@ export class CreateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  @Max(10)
+  @Min(VALIDATION_LIMITS.RETRIES.MIN)
+  @Max(VALIDATION_LIMITS.RETRIES.MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（秒）", default: 30 })
   @IsOptional()
   @IsNumber()
-  @Min(1)
-  @Max(300)
+  @Min(VALIDATION_LIMITS.TIMEOUT.MIN)
+  @Max(VALIDATION_LIMITS.TIMEOUT.MAX)
   timeout?: number;
 
   @ApiPropertyOptional({ description: "优先级", default: 1 })
@@ -261,15 +152,15 @@ export class UpdateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数" })
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  @Max(10)
+  @Min(VALIDATION_LIMITS.RETRIES.MIN)
+  @Max(VALIDATION_LIMITS.RETRIES.MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(1)
-  @Max(300)
+  @Min(VALIDATION_LIMITS.TIMEOUT.MIN)
+  @Max(VALIDATION_LIMITS.TIMEOUT.MAX)
   timeout?: number;
 }
 

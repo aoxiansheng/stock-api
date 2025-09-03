@@ -145,7 +145,7 @@ export class SystemMetricsUnitConversionDto {
     eventLoopLag: number;
   }): SystemMetricsUnitConversionDto {
     const result = new SystemMetricsUnitConversionDto();
-    
+
     // 复制原始数据
     result.cpuUsage = metrics.cpuUsage || 0;
     result.memoryUsage = metrics.memoryUsage || 0;
@@ -153,15 +153,23 @@ export class SystemMetricsUnitConversionDto {
     result.heapTotal = metrics.heapTotal || 0;
     result.uptime = metrics.uptime || 0;
     result.eventLoopLag = metrics.eventLoopLag || 0;
-    
+
     // 单位转换
-    result.memoryUsageGB = SystemMetricsUnitConversionDto.bytesToGB(result.memoryUsage);
-    result.heapUsedGB = SystemMetricsUnitConversionDto.bytesToGB(result.heapUsed);
-    result.heapTotalGB = SystemMetricsUnitConversionDto.bytesToGB(result.heapTotal);
-    result.uptimeHours = SystemMetricsUnitConversionDto.secondsToHours(result.uptime);
-    
+    result.memoryUsageGB = SystemMetricsUnitConversionDto.bytesToGB(
+      result.memoryUsage,
+    );
+    result.heapUsedGB = SystemMetricsUnitConversionDto.bytesToGB(
+      result.heapUsed,
+    );
+    result.heapTotalGB = SystemMetricsUnitConversionDto.bytesToGB(
+      result.heapTotal,
+    );
+    result.uptimeHours = SystemMetricsUnitConversionDto.secondsToHours(
+      result.uptime,
+    );
+
     result.timestamp = new Date().toISOString();
-    
+
     return result;
   }
 

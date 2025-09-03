@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ForbiddenException } from "@nestjs/common";
 import {
   Permission,

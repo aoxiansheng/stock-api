@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '@app/config/logger.config';
-import { DataMapperCacheService } from '../../../05-caching/data-mapper-cache/services/data-mapper-cache.service';
-import { FlexibleMappingRuleResponseDto } from '../dto/flexible-mapping-rule.dto';
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "@app/config/logger.config";
+import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
+import { FlexibleMappingRuleResponseDto } from "../dto/flexible-mapping-rule.dto";
 
 /**
  * 🚀 映射规则缓存服务 (重构版)
  * 使用专用的 DataMapperCacheService，实现职责分离
- * 
+ *
  * 重构说明：
  * - 使用专用的 DataMapperCacheService
  * - 简化了缓存逻辑，专注于业务场景
@@ -25,15 +25,15 @@ export class MappingRuleCacheService {
    */
   async cacheBestMatchingRule(
     provider: string,
-    apiType: 'rest' | 'stream',
+    apiType: "rest" | "stream",
     transDataRuleListType: string,
-    rule: FlexibleMappingRuleResponseDto
+    rule: FlexibleMappingRuleResponseDto,
   ): Promise<void> {
     await this.dataMapperCacheService.cacheBestMatchingRule(
       provider,
       apiType,
       transDataRuleListType,
-      rule
+      rule,
     );
   }
 
@@ -42,13 +42,13 @@ export class MappingRuleCacheService {
    */
   async getCachedBestMatchingRule(
     provider: string,
-    apiType: 'rest' | 'stream',
-    transDataRuleListType: string
+    apiType: "rest" | "stream",
+    transDataRuleListType: string,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
     return await this.dataMapperCacheService.getCachedBestMatchingRule(
       provider,
       apiType,
-      transDataRuleListType
+      transDataRuleListType,
     );
   }
 
@@ -62,8 +62,12 @@ export class MappingRuleCacheService {
   /**
    * 🔍 获取缓存的规则内容
    */
-  async getCachedRuleById(dataMapperRuleId: string): Promise<FlexibleMappingRuleResponseDto | null> {
-    return await this.dataMapperCacheService.getCachedRuleById(dataMapperRuleId);
+  async getCachedRuleById(
+    dataMapperRuleId: string,
+  ): Promise<FlexibleMappingRuleResponseDto | null> {
+    return await this.dataMapperCacheService.getCachedRuleById(
+      dataMapperRuleId,
+    );
   }
 
   /**
@@ -71,10 +75,14 @@ export class MappingRuleCacheService {
    */
   async cacheProviderRules(
     provider: string,
-    apiType: 'rest' | 'stream',
-    rules: FlexibleMappingRuleResponseDto[]
+    apiType: "rest" | "stream",
+    rules: FlexibleMappingRuleResponseDto[],
   ): Promise<void> {
-    await this.dataMapperCacheService.cacheProviderRules(provider, apiType, rules);
+    await this.dataMapperCacheService.cacheProviderRules(
+      provider,
+      apiType,
+      rules,
+    );
   }
 
   /**
@@ -82,16 +90,25 @@ export class MappingRuleCacheService {
    */
   async getCachedProviderRules(
     provider: string,
-    apiType: 'rest' | 'stream'
+    apiType: "rest" | "stream",
   ): Promise<FlexibleMappingRuleResponseDto[] | null> {
-    return await this.dataMapperCacheService.getCachedProviderRules(provider, apiType);
+    return await this.dataMapperCacheService.getCachedProviderRules(
+      provider,
+      apiType,
+    );
   }
 
   /**
    * 🧹 失效规则相关缓存
    */
-  async invalidateRuleCache(dataMapperRuleId: string, rule?: FlexibleMappingRuleResponseDto): Promise<void> {
-    await this.dataMapperCacheService.invalidateRuleCache(dataMapperRuleId, rule);
+  async invalidateRuleCache(
+    dataMapperRuleId: string,
+    rule?: FlexibleMappingRuleResponseDto,
+  ): Promise<void> {
+    await this.dataMapperCacheService.invalidateRuleCache(
+      dataMapperRuleId,
+      rule,
+    );
   }
 
   /**
@@ -123,8 +140,9 @@ export class MappingRuleCacheService {
   /**
    * 🔄 预热缓存 - 缓存常用规则
    */
-  async warmupCache(commonRules: FlexibleMappingRuleResponseDto[]): Promise<void> {
+  async warmupCache(
+    commonRules: FlexibleMappingRuleResponseDto[],
+  ): Promise<void> {
     await this.dataMapperCacheService.warmupCache(commonRules);
   }
-
 }

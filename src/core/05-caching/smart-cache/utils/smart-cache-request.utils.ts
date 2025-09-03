@@ -1,6 +1,9 @@
-import  crypto from 'crypto';
-import { Market } from '@common/constants/market.constants';
-import { CacheStrategy, CacheOrchestratorRequest } from '../interfaces/smart-cache-orchestrator.interface';
+import crypto from "crypto";
+import { Market } from "@common/constants/market.constants";
+import {
+  CacheStrategy,
+  CacheOrchestratorRequest,
+} from "../interfaces/smart-cache-orchestrator.interface";
 
 /**
  * 智能缓存编排器请求构建工具
@@ -33,7 +36,7 @@ export function buildCacheOrchestratorRequest<T>(options: {
   const cacheKey = buildUnifiedCacheKey(
     `receiver:${options.receiverType}`,
     options.symbols,
-    { provider: options.provider }
+    { provider: options.provider },
   );
 
   return {
@@ -60,18 +63,18 @@ export function buildCacheOrchestratorRequest<T>(options: {
 export function buildUnifiedCacheKey(
   prefix: string,
   symbols: string[],
-  additionalParams?: Record<string, any>
+  additionalParams?: Record<string, any>,
 ): string {
   // 验证输入参数
-  if (!prefix || prefix.trim() === '') {
-    throw new Error('缓存键前缀不能为空');
-  }
-  
-  if (!symbols || symbols.length === 0) {
-    throw new Error('符号列表不能为空');
+  if (!prefix || prefix.trim() === "") {
+    throw new Error("缓存键前缀不能为空");
   }
 
-  let keyParts: string[] = [prefix];
+  if (!symbols || symbols.length === 0) {
+    throw new Error("符号列表不能为空");
+  }
+
+  const keyParts: string[] = [prefix];
 
   // 处理符号列表
   if (symbols.length === 1) {
@@ -79,7 +82,7 @@ export function buildUnifiedCacheKey(
     keyParts.push(symbols[0]);
   } else if (symbols.length <= 5) {
     // 少量符号直接拼接
-    keyParts.push(symbols.sort().join('|'));
+    keyParts.push(symbols.sort().join("|"));
   } else {
     // 大量符号使用哈希
     const symbolsHash = createStableSymbolsHash(symbols);
@@ -91,11 +94,11 @@ export function buildUnifiedCacheKey(
     const paramEntries = Object.entries(additionalParams)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, value]) => `${key}:${value}`)
-      .join('|');
+      .join("|");
     keyParts.push(paramEntries);
   }
 
-  return keyParts.join(':');
+  return keyParts.join(":");
 }
 
 /**
@@ -106,29 +109,29 @@ export function buildUnifiedCacheKey(
  */
 export function createStableSymbolsHash(symbols: string[]): string {
   // 验证crypto模块可用性
-  if (!crypto || typeof crypto.createHash !== 'function') {
-    throw new Error('Node.js crypto模块不可用');
+  if (!crypto || typeof crypto.createHash !== "function") {
+    throw new Error("Node.js crypto模块不可用");
   }
 
   if (!symbols || symbols.length === 0) {
-    throw new Error('符号列表不能为空');
+    throw new Error("符号列表不能为空");
   }
 
   // 标准化符号列表：排序并去重
   const normalizedSymbols = [...new Set(symbols)]
-    .map(symbol => symbol.trim().toUpperCase())
-    .filter(symbol => symbol.length > 0)
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter((symbol) => symbol.length > 0)
     .sort();
 
   if (normalizedSymbols.length === 0) {
-    throw new Error('有效符号列表不能为空');
+    throw new Error("有效符号列表不能为空");
   }
 
   // 使用SHA-1哈希算法
   const hash = crypto
-    .createHash('sha1')
-    .update(normalizedSymbols.join('|'), 'utf8')
-    .digest('hex');
+    .createHash("sha1")
+    .update(normalizedSymbols.join("|"), "utf8")
+    .digest("hex");
 
   // 返回前16位，减少键长度但保持足够的碰撞安全性
   return hash.substring(0, 16);
@@ -142,27 +145,29 @@ export function createStableSymbolsHash(symbols: string[]): string {
  */
 export function extractMarketFromSymbols(symbols: string[]): string {
   if (!symbols || symbols.length === 0) {
-    return 'UNKNOWN';
+    return "UNKNOWN";
   }
-  
+
   // 取第一个符号的市场后缀作为主要市场
   const firstSymbol = symbols[0];
-  if (firstSymbol.includes('.HK')) return 'HK';
-  if (firstSymbol.includes('.US')) return 'US';
-  if (firstSymbol.includes('.SZ')) return 'SZ';
-  if (firstSymbol.includes('.SH')) return 'SH';
-  
+  if (firstSymbol.includes(".HK")) return "HK";
+  if (firstSymbol.includes(".US")) return "US";
+  if (firstSymbol.includes(".SZ")) return "SZ";
+  if (firstSymbol.includes(".SH")) return "SH";
+
   // 如果没有后缀，尝试根据格式推断
   if (/^\d{5,6}$/.test(firstSymbol)) {
-    return firstSymbol.startsWith('00') || firstSymbol.startsWith('30') ? 'SZ' : 'SH';
+    return firstSymbol.startsWith("00") || firstSymbol.startsWith("30")
+      ? "SZ"
+      : "SH";
   }
-  
+
   // 纯字母判断为美股
   if (/^[A-Z]+$/.test(firstSymbol.toUpperCase())) {
-    return 'US';
+    return "US";
   }
-  
-  return 'UNKNOWN';
+
+  return "UNKNOWN";
 }
 
 /**
@@ -210,16 +215,16 @@ export function inferMarketFromSymbol(symbol: string): Market {
  * @returns 是否有效
  */
 export function validateCacheKey(cacheKey: string): boolean {
-  if (!cacheKey || typeof cacheKey !== 'string') {
+  if (!cacheKey || typeof cacheKey !== "string") {
     return false;
   }
 
   // 检查基本格式：至少包含前缀和内容
-  const parts = cacheKey.split(':');
+  const parts = cacheKey.split(":");
   if (parts.length < 2) {
     return false;
   }
 
   // 检查每个部分都不为空
-  return parts.every(part => part.trim().length > 0);
+  return parts.every((part) => part.trim().length > 0);
 }

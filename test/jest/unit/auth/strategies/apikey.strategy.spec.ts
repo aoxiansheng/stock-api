@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * ApiKeyStrategy 单元测试
  * 测试API Key认证策略的验证逻辑

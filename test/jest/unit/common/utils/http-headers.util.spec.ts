@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 
 describe("HttpHeadersUtil", () => {

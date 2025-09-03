@@ -67,25 +67,40 @@ export const ALERTING_RETRY_CONFIG = Object.freeze({
 
 **预计工作量**: 1小时
 
-### 🟡 步骤3: 统一统计接口定义（优先级：中）
+### 🟡 步骤3: 重新评估统计接口定义（优先级：中）
 
-**问题描述**: `AlertStats`和`IAlertStats`接口重复定义相同字段
+**问题重新分析**: 基于代码证据发现，`AlertStats`和`IAlertStats`存在重要差异:
+- `IAlertStats`: 9个基础统计字段，正在被实际使用（alerting.service.ts、alert.controller.ts）
+- `AlertStats`: 继承BaseStats + 额外topAlertRules字段，但未被实际使用
+- `AlertStatsDto`: 与IAlertStats结构完全一致
 
-**修复方案**:
+**修正后的修复方案**:
 ```typescript
-// 3.1 保留alert.types.ts中的AlertStats，删除alert.interface.ts中的IAlertStats
-// 3.2 更新所有引用IAlertStats的文件，改为使用AlertStats
-// 3.3 确保统一的接口命名规范（优先使用Types而非Interface前缀）
+// 方案A: 保持现状（推荐）
+// 保留IAlertStats作为实际使用的轻量级接口
+// 如果AlertStats没有使用场景，考虑移除
 
-// 替换示例：
-// ❌ 旧代码
-import { IAlertStats } from '../interfaces/alert.interface';
+// 方案B: 创建扩展接口（如需要完整统计）
+export interface IAlertStats {
+  // 保持现有9个基础字段
+  totalRules: number;
+  enabledRules: number;
+  // ... 其他字段
+}
 
-// ✅ 新代码  
-import { AlertStats } from '../types/alert.types';
+export interface IAlertStatsDetailed extends IAlertStats {
+  timestamp: Date;
+  period: string;
+  topAlertRules: AlertRuleStats[];
+}
 ```
 
-**预计工作量**: 45分钟
+**代码证据**:
+- `alerting.service.ts:412`: `async getStats(): Promise<IAlertStats>`
+- `alert.controller.ts:327`: `async getAlertStats(): Promise<IAlertStats>`
+- `AlertStats`类型定义存在但无实际引用
+
+**预计工作量**: 30分钟（评估） + 1小时（如需重构）
 
 ### 🔵 步骤4: 提取验证装饰器常量（优先级：低）
 
@@ -166,8 +181,11 @@ bun run dev
 ## 风险评估和注意事项
 
 - **低风险**: 常量替换不影响运行时逻辑
-- **中等风险**: 接口合并需要确保所有引用都已更新
-- **建议**: 在生产环境部署前进行充分的集成测试
+- **中等风险**: ~~接口合并需要确保所有引用都已更新~~ **已修正**: 基于使用场景分析，不建议强制合并接口
+- **高风险**: 错误的接口重构可能破坏现有API契约
+- **建议**: 
+  - 在生产环境部署前进行充分的集成测试
+  - **重要**: 基于实际使用情况而非接口相似性做重构决策
 
 ## 后续改进建议
 
@@ -176,4 +194,11 @@ bun run dev
 3. 定期进行代码重构和优化
 4. 建立共享常量库，统一管理项目级常量
 
-这份修复方案遵循NestJS最佳实践，确保代码质量和可维护性的同时，最小化对现有功能的影响。
+## 文档修正说明
+
+**重要更新**: 本文档基于深度代码分析进行了修正，特别是问题3的处理方案。修正原则：
+1. **代码证据优于表面相似性** - 通过实际使用情况分析接口设计
+2. **业务契约保护** - 避免破坏现有API接口契约
+3. **渐进式重构** - 优先处理明确的代码重复，谨慎处理设计差异
+
+这份修复方案遵循NestJS最佳实践和代码重构安全原则，确保代码质量和可维护性的同时，最小化对现有功能的影响。

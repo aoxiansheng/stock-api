@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Storage Internal DTO UCK�
  * K�X���(�pn ��a

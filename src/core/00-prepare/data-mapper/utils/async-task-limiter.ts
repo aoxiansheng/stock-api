@@ -20,7 +20,7 @@ export class AsyncTaskLimiter {
     }
 
     this.pendingCount++;
-    
+
     setImmediate(async () => {
       try {
         await task();

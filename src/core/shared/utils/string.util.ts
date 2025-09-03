@@ -43,12 +43,16 @@ export class StringUtils {
       const longer = s1.length > s2.length ? s1 : s2;
       const shorter = s1.length > s2.length ? s2 : s1;
       const lengthRatio = shorter.length / longer.length;
-      
+
       // Special case for "Apple Inc" vs "Apple Inc." - very high similarity
-      if (s1.startsWith('apple') && s2.startsWith('apple') && Math.abs(s1.length - s2.length) <= 1) {
+      if (
+        s1.startsWith("apple") &&
+        s2.startsWith("apple") &&
+        Math.abs(s1.length - s2.length) <= 1
+      ) {
         return 0.85;
       }
-      
+
       // Default substring match score
       return 0.8;
     }
@@ -56,19 +60,19 @@ export class StringUtils {
     // Levenshtein distance
     const distance = this.levenshteinDistance(s1, s2);
     const maxLength = Math.max(s1.length, s2.length);
-    
+
     const similarity = 1 - distance / maxLength;
-    
+
     // Handle edge cases: completely different single characters should return 0
     if (maxLength === 1 && distance === 1) {
       return 0;
     }
-    
+
     // For longer strings, ensure some minimum similarity for partial matches
     if (maxLength > 1 && similarity <= 0) {
       return 0.01; // Very small positive value for completely different longer strings
     }
-    
+
     return Math.max(similarity, 0);
   }
 

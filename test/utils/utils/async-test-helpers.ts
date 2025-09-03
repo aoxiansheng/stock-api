@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 异步测试辅助工具
  * 提供更可靠的异步操作等待机制，减少测试中的时序问题

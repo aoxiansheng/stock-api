@@ -51,8 +51,9 @@ export class SymbolMappingRuleDocument {
   createdBy?: string; // 创建者
 }
 
-export const SymbolMappingRuleDocumentSchema =
-  SchemaFactory.createForClass(SymbolMappingRuleDocument);
+export const SymbolMappingRuleDocumentSchema = SchemaFactory.createForClass(
+  SymbolMappingRuleDocument,
+);
 
 export type SymbolMappingRuleDocumentType = SymbolMappingRuleDocument &
   Document & {
@@ -73,6 +74,8 @@ SymbolMappingRuleDocumentSchema.methods.toJSON = function () {
 // 索引优化
 // 注意：dataSourceName 已在 @Prop 中定义为 unique，这里无需重复定义
 SymbolMappingRuleDocumentSchema.index({ isActive: 1 }); // 查询索引：是否启用
-SymbolMappingRuleDocumentSchema.index({ "SymbolMappingRule.standardSymbol": 1 }); // 查询索引：标准格式代码
+SymbolMappingRuleDocumentSchema.index({
+  "SymbolMappingRule.standardSymbol": 1,
+}); // 查询索引：标准格式代码
 SymbolMappingRuleDocumentSchema.index({ "SymbolMappingRule.market": 1 }); // 查询索引：市场
 SymbolMappingRuleDocumentSchema.index({ createdAt: -1 }); // 排序索引：创建时间

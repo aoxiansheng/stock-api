@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // slack.sender.e2e.test.ts - 测试占位代码
 // 路径: e2e/alert/services/notification-senders/slack.sender.e2e.test.ts
 

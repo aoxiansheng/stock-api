@@ -1,10 +1,10 @@
-import 'reflect-metadata';
-import { CapabilityMetadata } from './types/metadata.types';
-import { Capability } from './capability.decorator';
+import "reflect-metadata";
+import { CapabilityMetadata } from "./types/metadata.types";
+import { Capability } from "./capability.decorator";
 
 /**
  * 流能力装饰器 - WebSocket 能力的特化版本
- * 
+ *
  * @example
  * ```typescript
  * @StreamCapability({
@@ -18,9 +18,9 @@ import { Capability } from './capability.decorator';
  * }
  * ```
  */
-export function StreamCapability(metadata: Omit<CapabilityMetadata, 'type'>) {
+export function StreamCapability(metadata: Omit<CapabilityMetadata, "type">) {
   return Capability({
     ...metadata,
-    type: 'websocket'
+    type: "websocket",
   });
-} 
+}

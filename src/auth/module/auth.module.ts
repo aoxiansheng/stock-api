@@ -28,7 +28,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
   imports: [
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
-    
+
     CacheModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
     // ❌ 删除 RedisModule - 使用全局注入的 RedisService
@@ -42,7 +42,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
       }),
       inject: [ConfigService],
     }),
-    
+
     // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的AuthDatabaseModule)
     // MongooseModule.forFeature([
     //   { name: User.name, schema: UserSchema },
@@ -60,7 +60,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ApiKeyStrategy,
     JwtAuthGuard,
     ApiKeyAuthGuard,
-    
+
     UnifiedPermissionsGuard,
     RateLimitGuard, // 需要在providers中提供以便导出
     RateLimitExceptionFilter,
@@ -76,7 +76,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     TokenService,
     JwtAuthGuard,
     ApiKeyAuthGuard,
-    
+
     UnifiedPermissionsGuard,
     RateLimitGuard, // 需要导出以供AppModule的APP_GUARD使用
     RateLimitExceptionFilter,

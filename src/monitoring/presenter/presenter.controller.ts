@@ -27,7 +27,7 @@ import { ExtendedHealthService } from "../health/extended-health.service";
  * 展示层控制器
  * 职责：纯HTTP路由层，只负责请求参数验证、权限控制和响应格式化
  * 所有业务逻辑委托给PresenterService处理
- * 
+ *
  * 设计原则：
  * - 最小职责：只处理HTTP相关逻辑
  * - 无业务逻辑：所有业务逻辑委托给PresenterService
@@ -54,23 +54,21 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "性能分析数据获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        timestamp: { type: 'string', format: 'date-time' },
-        summary: { type: 'object', description: '性能摘要' },
-        healthScore: { type: 'number', description: '健康分数' },
-        trends: { type: 'object', description: '趋势分析' },
-        endpointMetrics: { type: 'array', description: '端点指标' },
-        databaseMetrics: { type: 'object', description: '数据库指标' },
-        cacheMetrics: { type: 'object', description: '缓存指标' }
-      }
-    }
+        timestamp: { type: "string", format: "date-time" },
+        summary: { type: "object", description: "性能摘要" },
+        healthScore: { type: "number", description: "健康分数" },
+        trends: { type: "object", description: "趋势分析" },
+        endpointMetrics: { type: "array", description: "端点指标" },
+        databaseMetrics: { type: "object", description: "数据库指标" },
+        cacheMetrics: { type: "object", description: "缓存指标" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async getPerformanceAnalysis(
-    @Query() query: GetDbPerformanceQueryDto,
-  ) {
+  async getPerformanceAnalysis(@Query() query: GetDbPerformanceQueryDto) {
     return this.presenterService.getPerformanceAnalysis(query);
   }
 
@@ -86,12 +84,12 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "健康评分获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        score: { type: 'number', minimum: 0, maximum: 100 },
-        timestamp: { type: 'string', format: 'date-time' }
-      }
-    }
+        score: { type: "number", minimum: 0, maximum: 100 },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -111,13 +109,13 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "健康报告获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        overall: { type: 'object', description: '整体健康状况' },
-        components: { type: 'object', description: '组件健康状况' },
-        recommendations: { type: 'array', description: '优化建议' }
-      }
-    }
+        overall: { type: "object", description: "整体健康状况" },
+        components: { type: "object", description: "组件健康状况" },
+        recommendations: { type: "array", description: "优化建议" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -135,27 +133,25 @@ export class PresenterController {
     description: "获取系统性能趋势分析数据",
   })
   @ApiQuery({
-    name: 'period',
+    name: "period",
     required: false,
-    description: '分析周期 (例如: 1h, 24h, 7d)',
-    example: '1h'
+    description: "分析周期 (例如: 1h, 24h, 7d)",
+    example: "1h",
   })
   @ApiSuccessResponse({
     description: "趋势分析获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        responseTime: { type: 'object', description: '响应时间趋势' },
-        errorRate: { type: 'object', description: '错误率趋势' },
-        throughput: { type: 'object', description: '吞吐量趋势' }
-      }
-    }
+        responseTime: { type: "object", description: "响应时间趋势" },
+        errorRate: { type: "object", description: "错误率趋势" },
+        throughput: { type: "object", description: "吞吐量趋势" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async getTrends(
-    @Query('period') period: string = '1h',
-  ) {
+  async getTrends(@Query("period") period: string = "1h") {
     return this.presenterService.getTrends(period);
   }
 
@@ -169,33 +165,31 @@ export class PresenterController {
     description: "获取API端点的性能指标数据",
   })
   @ApiQuery({
-    name: 'limit',
+    name: "limit",
     required: false,
-    description: '返回结果数量限制',
-    example: 50
+    description: "返回结果数量限制",
+    example: 50,
   })
   @ApiSuccessResponse({
     description: "端点指标获取成功",
     schema: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
+        type: "object",
         properties: {
-          endpoint: { type: 'string' },
-          method: { type: 'string' },
-          requestCount: { type: 'number' },
-          averageResponseTime: { type: 'number' },
-          errorRate: { type: 'number' },
-          lastUsed: { type: 'string', format: 'date-time' }
-        }
-      }
-    }
+          endpoint: { type: "string" },
+          method: { type: "string" },
+          requestCount: { type: "number" },
+          averageResponseTime: { type: "number" },
+          errorRate: { type: "number" },
+          lastUsed: { type: "string", format: "date-time" },
+        },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async getEndpointMetrics(
-    @Query('limit') limit?: string,
-  ) {
+  async getEndpointMetrics(@Query("limit") limit?: string) {
     return this.presenterService.getEndpointMetrics(limit);
   }
 
@@ -211,15 +205,15 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "数据库指标获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        totalOperations: { type: 'number' },
-        averageQueryTime: { type: 'number' },
-        slowQueries: { type: 'number' },
-        failedOperations: { type: 'number' },
-        failureRate: { type: 'number' }
-      }
-    }
+        totalOperations: { type: "number" },
+        averageQueryTime: { type: "number" },
+        slowQueries: { type: "number" },
+        failedOperations: { type: "number" },
+        failureRate: { type: "number" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -239,15 +233,15 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "缓存指标获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        totalOperations: { type: 'number' },
-        hits: { type: 'number' },
-        misses: { type: 'number' },
-        hitRate: { type: 'number' },
-        averageResponseTime: { type: 'number' }
-      }
-    }
+        totalOperations: { type: "number" },
+        hits: { type: "number" },
+        misses: { type: "number" },
+        hitRate: { type: "number" },
+        averageResponseTime: { type: "number" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -267,19 +261,22 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "优化建议获取成功",
     schema: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
+        type: "object",
         properties: {
-          category: { type: 'string', enum: ['performance', 'security', 'resource', 'optimization'] },
-          priority: { type: 'string', enum: ['high', 'medium', 'low'] },
-          title: { type: 'string' },
-          description: { type: 'string' },
-          action: { type: 'string' },
-          impact: { type: 'string' }
-        }
-      }
-    }
+          category: {
+            type: "string",
+            enum: ["performance", "security", "resource", "optimization"],
+          },
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+          title: { type: "string" },
+          description: { type: "string" },
+          action: { type: "string" },
+          impact: { type: "string" },
+        },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -299,14 +296,14 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "缓存统计获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        hitRate: { type: 'number' },
-        totalRequests: { type: 'number' },
-        totalHits: { type: 'number' },
-        totalMisses: { type: 'number' }
-      }
-    }
+        hitRate: { type: "number" },
+        totalRequests: { type: "number" },
+        totalHits: { type: "number" },
+        totalMisses: { type: "number" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -321,30 +318,46 @@ export class PresenterController {
   @Get("smart-cache/stats")
   @ApiOperation({
     summary: "获取SmartCache性能统计",
-    description: "获取SmartCache性能优化器的详细统计信息，包括并发控制和内存压力数据",
+    description:
+      "获取SmartCache性能优化器的详细统计信息，包括并发控制和内存压力数据",
   })
   @ApiSuccessResponse({
     description: "SmartCache统计获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        hitRate: { type: 'number', description: '缓存命中率' },
-        totalRequests: { type: 'number', description: '总请求数' },
+        hitRate: { type: "number", description: "缓存命中率" },
+        totalRequests: { type: "number", description: "总请求数" },
         smartCache: {
-          type: 'object',
+          type: "object",
           properties: {
-            concurrencyAdjustments: { type: 'number', description: '并发调整次数' },
-            memoryPressureEvents: { type: 'number', description: '内存压力事件' },
-            tasksCleared: { type: 'number', description: '任务清理数量' },
-            avgExecutionTime: { type: 'number', description: '平均执行时间(ms)' },
-            dynamicMaxConcurrency: { type: 'number', description: '动态最大并发数' },
-            originalMaxConcurrency: { type: 'number', description: '原始最大并发数' },
-            currentBatchSize: { type: 'number', description: '当前批次大小' }
-          }
+            concurrencyAdjustments: {
+              type: "number",
+              description: "并发调整次数",
+            },
+            memoryPressureEvents: {
+              type: "number",
+              description: "内存压力事件",
+            },
+            tasksCleared: { type: "number", description: "任务清理数量" },
+            avgExecutionTime: {
+              type: "number",
+              description: "平均执行时间(ms)",
+            },
+            dynamicMaxConcurrency: {
+              type: "number",
+              description: "动态最大并发数",
+            },
+            originalMaxConcurrency: {
+              type: "number",
+              description: "原始最大并发数",
+            },
+            currentBatchSize: { type: "number", description: "当前批次大小" },
+          },
         },
-        timestamp: { type: 'string', format: 'date-time' }
-      }
-    }
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -364,18 +377,21 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "SmartCache优化建议获取成功",
     schema: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
+        type: "object",
         properties: {
-          priority: { type: 'string', enum: ['high', 'medium', 'low'] },
-          category: { type: 'string', enum: ['memory', 'concurrency', 'performance', 'capacity'] },
-          title: { type: 'string' },
-          description: { type: 'string' },
-          recommendation: { type: 'string' }
-        }
-      }
-    }
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+          category: {
+            type: "string",
+            enum: ["memory", "concurrency", "performance", "capacity"],
+          },
+          title: { type: "string" },
+          description: { type: "string" },
+          recommendation: { type: "string" },
+        },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -396,15 +412,15 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "SmartCache仪表板创建成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        dashboardId: { type: 'string' },
-        title: { type: 'string' },
-        status: { type: 'string', enum: ['created'] },
-        timestamp: { type: 'string', format: 'date-time' },
-        url: { type: 'string' }
-      }
-    }
+        dashboardId: { type: "string" },
+        title: { type: "string" },
+        status: { type: "string", enum: ["created"] },
+        timestamp: { type: "string", format: "date-time" },
+        url: { type: "string" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -419,38 +435,42 @@ export class PresenterController {
   @Get("smart-cache/analysis")
   @ApiOperation({
     summary: "获取SmartCache详细分析报告",
-    description: "获取全面的SmartCache性能分析报告，包括健康评分、趋势分析和优化建议",
+    description:
+      "获取全面的SmartCache性能分析报告，包括健康评分、趋势分析和优化建议",
   })
   @ApiSuccessResponse({
     description: "SmartCache分析报告获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        timestamp: { type: 'string', format: 'date-time' },
-        healthScore: { type: 'number', minimum: 0, maximum: 100 },
+        timestamp: { type: "string", format: "date-time" },
+        healthScore: { type: "number", minimum: 0, maximum: 100 },
         summary: {
-          type: 'object',
+          type: "object",
           properties: {
-            status: { type: 'string', enum: ['excellent', 'good', 'fair', 'poor', 'critical'] },
-            totalTasks: { type: 'number' },
-            avgExecutionTime: { type: 'number' },
-            concurrencyOptimization: { type: 'object' },
-            memoryManagement: { type: 'object' }
-          }
+            status: {
+              type: "string",
+              enum: ["excellent", "good", "fair", "poor", "critical"],
+            },
+            totalTasks: { type: "number" },
+            avgExecutionTime: { type: "number" },
+            concurrencyOptimization: { type: "object" },
+            memoryManagement: { type: "object" },
+          },
         },
         performance: {
-          type: 'object',
+          type: "object",
           properties: {
-            concurrencyMetrics: { type: 'object' },
-            memoryMetrics: { type: 'object' },
-            systemMetrics: { type: 'object' }
-          }
+            concurrencyMetrics: { type: "object" },
+            memoryMetrics: { type: "object" },
+            systemMetrics: { type: "object" },
+          },
         },
-        optimizations: { type: 'array', items: { type: 'object' } },
-        recommendations: { type: 'array', items: { type: 'object' } },
-        trends: { type: 'object' }
-      }
-    }
+        optimizations: { type: "array", items: { type: "object" } },
+        recommendations: { type: "array", items: { type: "object" } },
+        trends: { type: "object" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -469,27 +489,25 @@ export class PresenterController {
     description: "手动失效分析器缓存，可指定失效模式",
   })
   @ApiQuery({
-    name: 'pattern',
+    name: "pattern",
     required: false,
-    description: '失效模式 (留空则失效所有缓存)',
-    example: 'health_*'
+    description: "失效模式 (留空则失效所有缓存)",
+    example: "health_*",
   })
   @ApiSuccessResponse({
     description: "缓存失效成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        message: { type: 'string' },
-        pattern: { type: 'string' },
-        timestamp: { type: 'string', format: 'date-time' }
-      }
-    }
+        message: { type: "string" },
+        pattern: { type: "string" },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async invalidateCache(
-    @Query('pattern') pattern?: string,
-  ) {
+  async invalidateCache(@Query("pattern") pattern?: string) {
     return this.presenterService.invalidateCache(pattern);
   }
 
@@ -517,104 +535,114 @@ export class PresenterController {
   @Get("health/extended")
   @ApiOperation({
     summary: "获取系统完整健康状态",
-    description: "获取系统完整健康状态，包括配置验证、依赖检查、启动状态等详细信息",
+    description:
+      "获取系统完整健康状态，包括配置验证、依赖检查、启动状态等详细信息",
   })
   @ApiSuccessResponse({
     description: "完整健康状态获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        status: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'] },
-        timestamp: { type: 'string', format: 'date-time' },
-        uptime: { type: 'number', description: '系统运行时间(秒)' },
-        version: { type: 'string' },
+        status: { type: "string", enum: ["healthy", "degraded", "unhealthy"] },
+        timestamp: { type: "string", format: "date-time" },
+        uptime: { type: "number", description: "系统运行时间(秒)" },
+        version: { type: "string" },
         system: {
-          type: 'object',
+          type: "object",
           properties: {
-            nodeVersion: { type: 'string' },
-            platform: { type: 'string' },
-            architecture: { type: 'string' },
+            nodeVersion: { type: "string" },
+            platform: { type: "string" },
+            architecture: { type: "string" },
             memory: {
-              type: 'object',
+              type: "object",
               properties: {
-                used: { type: 'number' },
-                total: { type: 'number' },
-                percentage: { type: 'number' }
-              }
+                used: { type: "number" },
+                total: { type: "number" },
+                percentage: { type: "number" },
+              },
             },
             cpu: {
-              type: 'object',
+              type: "object",
               properties: {
-                usage: { type: 'number' }
-              }
-            }
-          }
+                usage: { type: "number" },
+              },
+            },
+          },
         },
         configuration: {
-          type: 'object',
+          type: "object",
           properties: {
-            isValid: { type: 'boolean' },
-            errors: { type: 'array', items: { type: 'string' } },
-            warnings: { type: 'array', items: { type: 'string' } },
-            validatedAt: { type: 'string', format: 'date-time' }
-          }
+            isValid: { type: "boolean" },
+            errors: { type: "array", items: { type: "string" } },
+            warnings: { type: "array", items: { type: "string" } },
+            validatedAt: { type: "string", format: "date-time" },
+          },
         },
         dependencies: {
-          type: 'object',
+          type: "object",
           properties: {
             mongodb: {
-              type: 'object',
+              type: "object",
               properties: {
-                status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
-                responseTime: { type: 'number' },
-                error: { type: 'string' }
-              }
+                status: {
+                  type: "string",
+                  enum: ["connected", "disconnected", "error"],
+                },
+                responseTime: { type: "number" },
+                error: { type: "string" },
+              },
             },
             redis: {
-              type: 'object',
+              type: "object",
               properties: {
-                status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
-                responseTime: { type: 'number' },
-                error: { type: 'string' }
-              }
+                status: {
+                  type: "string",
+                  enum: ["connected", "disconnected", "error"],
+                },
+                responseTime: { type: "number" },
+                error: { type: "string" },
+              },
             },
             externalServices: {
-              type: 'object',
+              type: "object",
               properties: {
                 longport: {
-                  type: 'object',
+                  type: "object",
                   properties: {
-                    status: { type: 'string', enum: ['available', 'unavailable', 'not_configured'] },
-                    error: { type: 'string' }
-                  }
-                }
-              }
-            }
-          }
+                    status: {
+                      type: "string",
+                      enum: ["available", "unavailable", "not_configured"],
+                    },
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
         },
         startup: {
-          type: 'object',
+          type: "object",
           properties: {
-            lastCheck: { type: 'string', format: 'date-time' },
-            success: { type: 'boolean' },
+            lastCheck: { type: "string", format: "date-time" },
+            success: { type: "boolean" },
             phases: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'object',
+                type: "object",
                 properties: {
-                  name: { type: 'string' },
-                  success: { type: 'boolean' },
-                  duration: { type: 'number' },
-                  error: { type: 'string' }
-                }
-              }
-            }
-          }
+                  name: { type: "string" },
+                  success: { type: "boolean" },
+                  duration: { type: "number" },
+                  error: { type: "string" },
+                },
+              },
+            },
+          },
         },
-        healthScore: { type: 'number', minimum: 0, maximum: 100 },
-        recommendations: { type: 'array', items: { type: 'string' } }
-      }
-    }
+        healthScore: { type: "number", minimum: 0, maximum: 100 },
+        recommendations: { type: "array", items: { type: "string" } },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -634,14 +662,14 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "配置健康状态获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        isValid: { type: 'boolean' },
-        errors: { type: 'array', items: { type: 'string' } },
-        warnings: { type: 'array', items: { type: 'string' } },
-        validatedAt: { type: 'string', format: 'date-time' }
-      }
-    }
+        isValid: { type: "boolean" },
+        errors: { type: "array", items: { type: "string" } },
+        warnings: { type: "array", items: { type: "string" } },
+        validatedAt: { type: "string", format: "date-time" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -661,38 +689,47 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "依赖服务健康状态获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
         mongodb: {
-          type: 'object',
+          type: "object",
           properties: {
-            status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
-            responseTime: { type: 'number' },
-            error: { type: 'string' }
-          }
+            status: {
+              type: "string",
+              enum: ["connected", "disconnected", "error"],
+            },
+            responseTime: { type: "number" },
+            error: { type: "string" },
+          },
         },
         redis: {
-          type: 'object',
+          type: "object",
           properties: {
-            status: { type: 'string', enum: ['connected', 'disconnected', 'error'] },
-            responseTime: { type: 'number' },
-            error: { type: 'string' }
-          }
+            status: {
+              type: "string",
+              enum: ["connected", "disconnected", "error"],
+            },
+            responseTime: { type: "number" },
+            error: { type: "string" },
+          },
         },
         externalServices: {
-          type: 'object',
+          type: "object",
           properties: {
             longport: {
-              type: 'object',
+              type: "object",
               properties: {
-                status: { type: 'string', enum: ['available', 'unavailable', 'not_configured'] },
-                error: { type: 'string' }
-              }
-            }
-          }
-        }
-      }
-    }
+                status: {
+                  type: "string",
+                  enum: ["available", "unavailable", "not_configured"],
+                },
+                error: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -713,37 +750,37 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "启动健康检查完成",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        success: { type: 'boolean' },
+        success: { type: "boolean" },
         phases: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
+            type: "object",
             properties: {
-              name: { type: 'string' },
-              success: { type: 'boolean' },
-              duration: { type: 'number' },
-              error: { type: 'string' }
-            }
-          }
+              name: { type: "string" },
+              success: { type: "boolean" },
+              duration: { type: "number" },
+              error: { type: "string" },
+            },
+          },
         },
-        totalDuration: { type: 'number' },
+        totalDuration: { type: "number" },
         validationResult: {
-          type: 'object',
+          type: "object",
           properties: {
             overall: {
-              type: 'object',
+              type: "object",
               properties: {
-                isValid: { type: 'boolean' },
-                errors: { type: 'array', items: { type: 'string' } },
-                warnings: { type: 'array', items: { type: 'string' } }
-              }
-            }
-          }
-        }
-      }
-    }
+                isValid: { type: "boolean" },
+                errors: { type: "array", items: { type: "string" } },
+                warnings: { type: "array", items: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -763,16 +800,16 @@ export class PresenterController {
   @ApiSuccessResponse({
     description: "仪表板数据获取成功",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        timestamp: { type: 'string', format: 'date-time' },
-        healthScore: { type: 'number' },
-        performanceSummary: { type: 'object' },
-        trendsData: { type: 'object' },
-        criticalIssues: { type: 'array' },
-        suggestions: { type: 'array' }
-      }
-    }
+        timestamp: { type: "string", format: "date-time" },
+        healthScore: { type: "number" },
+        performanceSummary: { type: "object" },
+        trendsData: { type: "object" },
+        criticalIssues: { type: "array" },
+        suggestions: { type: "array" },
+      },
+    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()

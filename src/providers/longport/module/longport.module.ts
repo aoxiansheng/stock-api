@@ -18,6 +18,10 @@ import { LongportProvider } from "../longport.provider";
       inject: [ConfigService],
     },
   ],
-  exports: [LongportProvider, LongportContextService, LongportStreamContextService],
+  exports: [
+    LongportProvider,
+    LongportContextService,
+    LongportStreamContextService,
+  ],
 })
 export class LongportModule {}

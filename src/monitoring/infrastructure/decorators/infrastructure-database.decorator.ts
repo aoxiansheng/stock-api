@@ -3,10 +3,10 @@
  * 基于重构后的三层架构，集成到现有的监控体系中
  */
 
-import { createLogger } from '../../../app/config/logger.config';
-import { EventEmitter } from 'events';
+import { createLogger } from "../../../app/config/logger.config";
+import { EventEmitter } from "events";
 
-const logger = createLogger('PerformanceDecorators');
+const logger = createLogger("PerformanceDecorators");
 
 // 模块级事件总线：供装饰器发送性能指标，由桥接层统一订阅
 export const performanceDecoratorBus = new EventEmitter();
@@ -30,18 +30,21 @@ function createDecoratorEventEmitter() {
   return performanceDecoratorBus;
 }
 
-
 /**
  * 创建性能装饰器的通用工厂函数
  */
 function createPerformanceDecorator(
   decoratorName: string,
-  metricType: 'database' | 'cache' | 'auth'
+  metricType: "database" | "cache" | "auth",
 ) {
   return function (operationOrOptions?: string | PerformanceOptions) {
-    return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+    return function (
+      target: any,
+      propertyName: string,
+      descriptor: PropertyDescriptor,
+    ) {
       const originalMethod = descriptor.value;
-      
+
       // 解析参数
       let operation: string;
       let options: PerformanceOptions = {
@@ -50,10 +53,12 @@ function createPerformanceDecorator(
         recordError: true,
       };
 
-      if (typeof operationOrOptions === 'string') {
+      if (typeof operationOrOptions === "string") {
         operation = operationOrOptions;
       } else if (operationOrOptions) {
-        operation = operationOrOptions.operation || `${target.constructor.name}.${propertyName}`;
+        operation =
+          operationOrOptions.operation ||
+          `${target.constructor.name}.${propertyName}`;
         options = { ...options, ...operationOrOptions };
       } else {
         operation = `${target.constructor.name}.${propertyName}`;
@@ -73,7 +78,7 @@ function createPerformanceDecorator(
           throw err;
         } finally {
           const duration = Date.now() - startTime;
-          
+
           // 异步记录性能数据，不影响主业务流程
           setImmediate(() => {
             recordPerformanceData({
@@ -101,7 +106,7 @@ function createPerformanceDecorator(
  */
 async function recordPerformanceData(data: {
   decoratorName: string;
-  metricType: 'database' | 'cache' | 'auth';
+  metricType: "database" | "cache" | "auth";
   operation: string;
   duration: number;
   success: boolean;
@@ -114,10 +119,13 @@ async function recordPerformanceData(data: {
     // ✅ 使用模块级事件总线发送监控事件（完全去全局化）
     const decoratorEmitter = createDecoratorEventEmitter();
     setImmediate(() => {
-      decoratorEmitter.emit('performance-metric', {
+      decoratorEmitter.emit("performance-metric", {
         timestamp: new Date(),
-        source: data.decoratorName.toLowerCase().replace(/([A-Z])/g, '_$1').substring(1),
-        metricType: 'performance',
+        source: data.decoratorName
+          .toLowerCase()
+          .replace(/([A-Z])/g, "_$1")
+          .substring(1),
+        metricType: "performance",
         metricName: `${data.metricType}_operation_processed`,
         metricValue: data.duration,
         tags: {
@@ -128,8 +136,8 @@ async function recordPerformanceData(data: {
           type: data.metricType,
           error: data.error?.message,
           threshold: data.options.threshold,
-          decorator_name: data.decoratorName
-        }
+          decorator_name: data.decoratorName,
+        },
       });
     });
 
@@ -157,32 +165,30 @@ async function recordPerformanceData(data: {
         stack: data.error?.stack,
       });
     }
-
   } catch (recordError) {
-    logger.error('性能数据记录失败', {
+    logger.error("性能数据记录失败", {
       operation: data.operation,
       recordError: recordError.message,
     });
   }
 }
 
-
 /**
  * 数据库性能监控装饰器
  * @param operationOrOptions 操作名称或配置选项
  */
 export const DatabasePerformance = createPerformanceDecorator(
-  'DatabasePerformance',
-  'database'
+  "DatabasePerformance",
+  "database",
 );
 
 /**
- * 缓存性能监控装饰器  
+ * 缓存性能监控装饰器
  * @param operationOrOptions 操作名称或配置选项
  */
 export const CachePerformance = createPerformanceDecorator(
-  'CachePerformance',
-  'cache'
+  "CachePerformance",
+  "cache",
 );
 
 /**
@@ -190,8 +196,8 @@ export const CachePerformance = createPerformanceDecorator(
  * @param operationOrOptions 操作名称或配置选项
  */
 export const AuthPerformance = createPerformanceDecorator(
-  'AuthPerformance',
-  'auth'
+  "AuthPerformance",
+  "auth",
 );
 
 /**
@@ -200,7 +206,7 @@ export const AuthPerformance = createPerformanceDecorator(
  */
 export function createCustomPerformanceDecorator(
   name: string,
-  metricType: 'database' | 'cache' | 'auth'
+  metricType: "database" | "cache" | "auth",
 ) {
   return createPerformanceDecorator(name, metricType);
 }

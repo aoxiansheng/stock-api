@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 批量请求助手类
  * 用于控制HTTP连接数量和批量执行请求

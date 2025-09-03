@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 🎯 Prometheus 指标 E2E 测试
  *

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   QUERY_ERROR_MESSAGES,
   QUERY_WARNING_MESSAGES,
@@ -152,18 +151,14 @@ describe("Query Constants", () => {
       expect(QUERY_PERFORMANCE_CONFIG.SLOW_QUERY_THRESHOLD_MS).toBeGreaterThan(
         0,
       );
-      expect(
-        QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS,
-      ).toBeGreaterThan(0);
-      expect(
-        QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS,
-      ).toBeGreaterThan(0);
+      expect(QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS).toBeGreaterThan(0);
+      expect(QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS).toBeGreaterThan(0);
       expect(QUERY_PERFORMANCE_CONFIG.DEFAULT_QUERY_LIMIT).toBeGreaterThan(0);
       expect(QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY).toBeGreaterThan(0);
       expect(QUERY_PERFORMANCE_CONFIG.LOG_SYMBOLS_LIMIT).toBeGreaterThan(0);
-      expect(
-        QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS,
-      ).toBeLessThan(QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS);
+      expect(QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS).toBeLessThan(
+        QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS,
+      );
     });
 
     it("should be frozen", () => {
@@ -400,14 +395,11 @@ describe("Query Constants", () => {
 
     it("should support cache configuration", () => {
       const cacheAge = 600; // 10 minutes
-      const isExpired =
-        cacheAge > QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS;
+      const isExpired = cacheAge > QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS;
       expect(isExpired).toBe(true);
 
       const cacheTtl = QUERY_CACHE_TTL_CONFIG.DEFAULT_SECONDS;
-      expect(cacheTtl).toBeGreaterThan(
-        QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS,
-      );
+      expect(cacheTtl).toBeGreaterThan(QUERY_CACHE_TTL_CONFIG.MAX_AGE_SECONDS);
     });
   });
 });

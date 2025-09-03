@@ -20,7 +20,7 @@ import request from "supertest";
 import { ResponseInterceptor } from "../../../../../../src/common/core/interceptors/response.interceptor";
 import { GlobalExceptionFilter } from "../../../../../../src/common/core/filters/global-exception.filter";
 import { RateLimitGuard } from "../../../../../../src/auth/guards/rate-limit.guard";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 // 测试用的控制器
 @Controller("test-global-interceptors")

@@ -191,7 +191,7 @@ async function createTestApplication(): Promise<void> {
 
   // 全局性能监控拦截器
   const reflector = testModule.get(Reflector);
-  
+
   testApp.useGlobalInterceptors(
     new InfrastructureInterceptor(mockEventEmitter, reflector),
   );

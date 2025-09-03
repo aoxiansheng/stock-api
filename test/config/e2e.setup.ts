@@ -116,7 +116,7 @@ beforeAll(async () => {
     // 全局性能监控拦截器
     const performanceMonitor = app.get(CollectorService);
     const reflector = app.get(Reflector);
-    
+
     app.useGlobalInterceptors(
       new InfrastructureInterceptor(mockEventEmitter, reflector),
     );

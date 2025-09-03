@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   DATATRANSFORM_ERROR_MESSAGES,
   TRANSFORM_WARNING_MESSAGES,

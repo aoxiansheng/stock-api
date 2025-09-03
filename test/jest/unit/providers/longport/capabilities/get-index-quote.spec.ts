@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getIndexQuote } from "../../../../../../src/providers/longport/capabilities/get-index-quote";
 import { MARKETS } from "../../../../../../src/common/constants/market.constants";
 

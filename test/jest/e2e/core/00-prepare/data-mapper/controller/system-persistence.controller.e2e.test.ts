@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * SystemPersistenceController 端到端测试
  * 测试系统预设模板持久化功能

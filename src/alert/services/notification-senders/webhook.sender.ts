@@ -30,9 +30,7 @@ export class WebhookSender implements NotificationSender {
     // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
     const urlValidation = URLSecurityValidator.validateURL(config.url);
     if (!urlValidation.valid) {
-      throw new BadRequestException(
-        `URL安全检查失败: ${urlValidation.error}`,
-      );
+      throw new BadRequestException(`URL安全检查失败: ${urlValidation.error}`);
     }
 
     try {

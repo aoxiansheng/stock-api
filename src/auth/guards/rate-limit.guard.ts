@@ -55,9 +55,9 @@ export class RateLimitGuard implements CanActivate {
       return true;
     }
 
-    this.logger.debug('执行API Key频率限制检查', {
+    this.logger.debug("执行API Key频率限制检查", {
       appKey: apiKey.appKey,
-      endpoint: request.url
+      endpoint: request.url,
     });
 
     // 获取控制器和方法级别的频率限制配置

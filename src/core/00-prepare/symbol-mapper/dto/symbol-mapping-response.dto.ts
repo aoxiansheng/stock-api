@@ -80,4 +80,3 @@ export class SymbolMappingResponseDto {
     return dto;
   }
 }
-

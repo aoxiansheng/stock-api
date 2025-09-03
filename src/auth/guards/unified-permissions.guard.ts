@@ -136,7 +136,7 @@ export class UnifiedPermissionsGuard implements CanActivate {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-      throw new ForbiddenException('权限验证失败，请稍后重试');
+      throw new ForbiddenException("权限验证失败，请稍后重试");
     }
   }
 

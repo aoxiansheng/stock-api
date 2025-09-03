@@ -91,10 +91,7 @@ export class QueryResponseDto<T = unknown> {
   @ApiProperty({ description: "查询元信息", type: () => QueryMetadataDto })
   metadata: QueryMetadataDto;
 
-  constructor(
-    data: PaginatedDataDto<T>,
-    metadata: QueryMetadataDto,
-  ) {
+  constructor(data: PaginatedDataDto<T>, metadata: QueryMetadataDto) {
     this.data = data;
     this.metadata = metadata;
   }

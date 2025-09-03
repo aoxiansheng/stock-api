@@ -1,5 +1,5 @@
-import { Market } from '../../../../common/constants/market.constants';
-import { MarketStatusResult } from '../../../shared/services/market-status.service';
+import { Market } from "../../../../common/constants/market.constants";
+import { MarketStatusResult } from "../../../shared/services/market-status.service";
 
 /**
  * 智能缓存策略枚举
@@ -10,31 +10,31 @@ export enum CacheStrategy {
    * 强时效性缓存 - 适用于Receiver
    * 短TTL，快速失效，确保数据新鲜度
    */
-  STRONG_TIMELINESS = 'strong_timeliness',
-  
+  STRONG_TIMELINESS = "strong_timeliness",
+
   /**
-   * 弱时效性缓存 - 适用于Query  
+   * 弱时效性缓存 - 适用于Query
    * 长TTL，减少后台更新频率
    */
-  WEAK_TIMELINESS = 'weak_timeliness',
-  
+  WEAK_TIMELINESS = "weak_timeliness",
+
   /**
    * 市场感知缓存 - 根据市场状态动态调整
    * 开市时短TTL，闭市时长TTL
    */
-  MARKET_AWARE = 'market_aware',
-  
+  MARKET_AWARE = "market_aware",
+
   /**
    * 无缓存策略 - 直接获取数据
    * 用于需要实时数据的场景
    */
-  NO_CACHE = 'no_cache',
-  
+  NO_CACHE = "no_cache",
+
   /**
    * 自适应缓存 - 基于数据变化频率调整
    * 动态调整TTL和更新策略
    */
-  ADAPTIVE = 'adaptive'
+  ADAPTIVE = "adaptive",
 }
 
 /**
@@ -44,16 +44,16 @@ export enum CacheStrategy {
 export interface CacheOrchestratorRequest<T> {
   /** 缓存键 */
   cacheKey: string;
-  
+
   /** 缓存策略 */
   strategy: CacheStrategy;
-  
+
   /** 符号列表 */
   symbols: string[];
-  
+
   /** 数据获取函数 */
   fetchFn: () => Promise<T>;
-  
+
   /** 额外元数据 */
   metadata?: {
     /** 市场信息 */
@@ -74,25 +74,25 @@ export interface CacheOrchestratorRequest<T> {
 export interface CacheOrchestratorResult<T> {
   /** 返回的数据 */
   data: T;
-  
+
   /** 缓存命中信息 */
   hit: boolean;
-  
+
   /** TTL剩余时间（秒） */
   ttlRemaining?: number;
-  
+
   /** 动态TTL（秒） */
   dynamicTtl?: number;
-  
+
   /** 使用的策略 */
   strategy: CacheStrategy;
-  
+
   /** 缓存键 */
   storageKey: string;
-  
+
   /** 数据时间戳 */
   timestamp?: string;
-  
+
   /** 错误信息（如有） */
   error?: string;
 }
@@ -104,19 +104,19 @@ export interface CacheOrchestratorResult<T> {
 export interface DataProviderResult<T> {
   /** 返回的数据 */
   data: T;
-  
+
   /** 操作是否成功 */
   success: boolean;
-  
+
   /** 错误信息（如有） */
   error?: string;
-  
+
   /** 数据时间戳 */
   timestamp: string;
-  
+
   /** 数据来源 */
   source?: string;
-  
+
   /** 元数据 */
   metadata?: {
     /** 市场信息 */
@@ -135,37 +135,37 @@ export interface DataProviderResult<T> {
 export interface BackgroundUpdateTask {
   /** 任务ID */
   taskId: string;
-  
+
   /** 缓存键 */
   cacheKey: string;
-  
+
   /** 符号列表 */
   symbols: string[];
-  
+
   /** 数据获取函数 */
   fetchFn: () => Promise<any>;
-  
+
   /** 任务优先级 */
   priority: number;
-  
+
   /** 创建时间戳 */
   createdAt: number;
-  
+
   /** 预计执行时间 */
   scheduledAt: number;
-  
+
   /** 重试次数 */
   retryCount: number;
-  
+
   /** 最大重试次数 */
   maxRetries: number;
-  
+
   /** 任务状态 */
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  
+  status: "pending" | "running" | "completed" | "failed";
+
   /** 市场信息 */
   market?: Market;
-  
+
   /** 错误信息（如有） */
   error?: string;
 }
@@ -177,10 +177,10 @@ export interface BackgroundUpdateTask {
 export interface MarketStatusQueryResult {
   /** 市场状态映射 */
   marketStatus: Record<Market, MarketStatusResult>;
-  
+
   /** 查询时间戳 */
   timestamp: string;
-  
+
   /** 是否查询成功 */
   success: boolean;
 }
@@ -192,16 +192,16 @@ export interface MarketStatusQueryResult {
 export interface CacheConfigMetadata {
   /** 最小更新间隔（毫秒） */
   minUpdateInterval: number;
-  
+
   /** 最大并发更新数 */
   maxConcurrentUpdates: number;
-  
+
   /** 优雅关闭超时时间（毫秒） */
   gracefulShutdownTimeout: number;
-  
+
   /** 是否启用后台更新 */
   enableBackgroundUpdate: boolean;
-  
+
   /** 是否启用数据变化检测 */
   enableDataChangeDetection: boolean;
 }
@@ -217,14 +217,14 @@ export interface StrategyConfigMapping {
     enableBackgroundUpdate: boolean;
     updateThresholdRatio: number;
   };
-  
+
   /** 弱时效性策略配置 */
   [CacheStrategy.WEAK_TIMELINESS]: {
     ttl: number;
     enableBackgroundUpdate: boolean;
     updateThresholdRatio: number;
   };
-  
+
   /** 市场感知策略配置 */
   [CacheStrategy.MARKET_AWARE]: {
     openMarketTtl: number;
@@ -232,12 +232,12 @@ export interface StrategyConfigMapping {
     enableBackgroundUpdate: boolean;
     marketStatusCheckInterval: number;
   };
-  
+
   /** 无缓存策略配置 */
   [CacheStrategy.NO_CACHE]: {
     bypassCache: boolean;
   };
-  
+
   /** 自适应策略配置 */
   [CacheStrategy.ADAPTIVE]: {
     baseTtl: number;

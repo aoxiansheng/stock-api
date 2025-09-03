@@ -6,7 +6,7 @@
 import { Module, Global } from "@nestjs/common";
 
 import { CacheModule } from "../../../cache/module/cache.module";
-import { MonitoringModule } from '../../../monitoring/monitoring.module';
+import { MonitoringModule } from "../../../monitoring/monitoring.module";
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
@@ -20,17 +20,14 @@ import { FieldMappingService } from "../services/field-mapping.service";
  * - DataChangeDetectorService: 数据变化检测逻辑
  * - MarketStatusService: 市场状态和交易时间计算
  * - FieldMappingService: 组件间字段映射转换
- * 
+ *
  * 保留 @Global() 是因为这些服务包含业务逻辑，需要在core组件间共享。
  * 纯工具类已迁移到 SharedUtilsModule
  * 基础设施服务已迁移到 src/app/services/infrastructure/
  */
 @Global()
 @Module({
-  imports: [
-    CacheModule,
-    MonitoringModule,
-  ],
+  imports: [CacheModule, MonitoringModule],
   providers: [
     DataChangeDetectorService,
     MarketStatusService,

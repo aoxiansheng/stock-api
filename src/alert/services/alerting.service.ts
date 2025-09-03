@@ -561,7 +561,7 @@ export class AlertingService implements OnModuleInit {
           { ttl: this.config.activeAlertTtlSeconds },
         );
       } catch (cacheError) {
-        this.logger.error('告警缓存设置失败', {
+        this.logger.error("告警缓存设置失败", {
           operation,
           ruleName: rule.name,
           alertId: alert.id,
@@ -583,7 +583,7 @@ export class AlertingService implements OnModuleInit {
           rule,
         );
       } catch (notificationError) {
-        this.logger.error('告警通知发送失败', {
+        this.logger.error("告警通知发送失败", {
           operation,
           ruleName: rule.name,
           alertId: alert.id,
@@ -625,19 +625,19 @@ export class AlertingService implements OnModuleInit {
             );
             return { success: true, alertId: alert.id };
           } catch (error) {
-            this.logger.error('活跃告警缓存设置失败', {
-              operation: 'loadActiveAlerts',
+            this.logger.error("活跃告警缓存设置失败", {
+              operation: "loadActiveAlerts",
               alertId: alert.id,
               ruleId: alert.ruleId,
               error: error.message,
             });
             return { success: false, alertId: alert.id, error: error.message };
           }
-        })
+        }),
       );
 
-      const successCount = cacheResults.filter(result => 
-        result.status === 'fulfilled' && result.value.success
+      const successCount = cacheResults.filter(
+        (result) => result.status === "fulfilled" && result.value.success,
       ).length;
       const failureCount = activeAlerts.length - successCount;
 
@@ -648,7 +648,7 @@ export class AlertingService implements OnModuleInit {
         failed: failureCount,
       });
     } else {
-      this.logger.log('没有活跃告警需要加载到缓存', {
+      this.logger.log("没有活跃告警需要加载到缓存", {
         operation: "loadActiveAlerts",
         count: 0,
       });

@@ -3,8 +3,8 @@
  */
 
 // Metadata keys for reflect-metadata
-export const PROVIDER_METADATA_KEY = Symbol('provider:metadata');
-export const CAPABILITY_METADATA_KEY = Symbol('capability:metadata');
+export const PROVIDER_METADATA_KEY = Symbol("provider:metadata");
+export const CAPABILITY_METADATA_KEY = Symbol("capability:metadata");
 
 export interface CapabilityMetadata {
   /** 能力名称，对应 receiverType */
@@ -22,7 +22,7 @@ export interface CapabilityMetadata {
   /** 支持的股票代码格式 */
   symbolFormats?: string[];
   /** 能力类型：REST 或 WebSocket */
-  type?: 'rest' | 'websocket';
+  type?: "rest" | "websocket";
   /** 额外配置 */
   config?: Record<string, any>;
 }
@@ -43,7 +43,7 @@ export interface ProviderMetadata {
 }
 
 export interface StreamCapabilityMetadata extends CapabilityMetadata {
-  type: 'websocket';
+  type: "websocket";
   /** 连接URL模板 */
   connectionUrl?: string;
   /** 重连配置 */
@@ -102,10 +102,17 @@ export interface ProviderLoadResult {
  * 约定违规类型
  */
 export interface ConventionViolation {
-  type: 'missing_file' | 'missing_directory' | 'invalid_structure' | 'naming_convention' | 'missing_export' | 'interface_error' | 'scan_error';
+  type:
+    | "missing_file"
+    | "missing_directory"
+    | "invalid_structure"
+    | "naming_convention"
+    | "missing_export"
+    | "interface_error"
+    | "scan_error";
   path: string;
   message: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
+  severity?: "low" | "medium" | "high" | "critical";
   autoFixable?: boolean;
   suggestion?: string;
 }

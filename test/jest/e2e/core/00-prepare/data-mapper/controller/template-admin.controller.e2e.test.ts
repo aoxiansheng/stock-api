@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * TemplateAdminController 端到端测试
  * 测试数据源模板管理功能

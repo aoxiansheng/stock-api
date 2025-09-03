@@ -192,10 +192,10 @@ export const QUERY_DATA_SOURCE_TYPES = Object.freeze({
  * 合并了之前分散在多个地方的超时设置
  */
 export const QUERY_TIMEOUT_CONFIG = Object.freeze({
-  QUERY_MS: 30000,           // 统一查询超时（30秒）
-  CACHE_MS: 5000,            // 统一缓存操作超时（5秒）  
-  REALTIME_FETCH_MS: 15000,  // 实时数据获取超时（15秒）
-  HEALTH_CHECK_MS: 5000,     // 健康检查超时（5秒）
+  QUERY_MS: 30000, // 统一查询超时（30秒）
+  CACHE_MS: 5000, // 统一缓存操作超时（5秒）
+  REALTIME_FETCH_MS: 15000, // 实时数据获取超时（15秒）
+  HEALTH_CHECK_MS: 5000, // 健康检查超时（5秒）
 } as const);
 
 /**
@@ -203,8 +203,8 @@ export const QUERY_TIMEOUT_CONFIG = Object.freeze({
  * 合并了之前在多个地方重复定义的缓存TTL设置
  */
 export const QUERY_CACHE_TTL_CONFIG = Object.freeze({
-  DEFAULT_SECONDS: 3600,     // 统一默认TTL（1小时）
-  MAX_AGE_SECONDS: 300,      // 统一最大年龄（5分钟）
+  DEFAULT_SECONDS: 3600, // 统一默认TTL（1小时）
+  MAX_AGE_SECONDS: 300, // 统一最大年龄（5分钟）
 } as const);
 
 /**

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 日志配置集成测试
  * 测试 common/config/logger.config.ts 的日志功能

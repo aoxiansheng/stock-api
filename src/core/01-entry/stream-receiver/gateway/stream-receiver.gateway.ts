@@ -8,28 +8,33 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
   WsException,
-} from '@nestjs/websockets';
-import { UsePipes, ValidationPipe, Optional } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
-import { createLogger } from '@app/config/logger.config';
-import { StreamReceiverService } from '../services/stream-receiver.service';
-import { StreamSubscribeDto, StreamUnsubscribeDto } from '../dto';
-import { Permission } from '../../../../auth/enums/user-role.enum';
-import { ApiKeyService } from '../../../../auth/services/apikey.service';
-import { StreamRecoveryWorkerService } from '../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
-import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider';
-import { Inject } from '@nestjs/common';
+} from "@nestjs/websockets";
+import { UsePipes, ValidationPipe, Optional } from "@nestjs/common";
+import { Server, Socket } from "socket.io";
+import { createLogger } from "@app/config/logger.config";
+import { StreamReceiverService } from "../services/stream-receiver.service";
+import { StreamSubscribeDto, StreamUnsubscribeDto } from "../dto";
+import { Permission } from "../../../../auth/enums/user-role.enum";
+import { ApiKeyService } from "../../../../auth/services/apikey.service";
+import { StreamRecoveryWorkerService } from "../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service";
+import {
+  WebSocketServerProvider,
+  WEBSOCKET_SERVER_TOKEN,
+} from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
+import { Inject } from "@nestjs/common";
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
+    origin: "*",
+    methods: ["GET", "POST"],
     credentials: true,
   },
-  path: '/api/v1/stream-receiver/connect',
-  transports: ['websocket'],
+  path: "/api/v1/stream-receiver/connect",
+  transports: ["websocket"],
 })
-export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class StreamReceiverGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -38,48 +43,54 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
   constructor(
     private readonly streamReceiverService: StreamReceiverService,
     private readonly apiKeyService: ApiKeyService,
-    @Optional() private readonly streamRecoveryWorker?: StreamRecoveryWorkerService,
-    @Inject(WEBSOCKET_SERVER_TOKEN) private readonly webSocketProvider?: WebSocketServerProvider,
+    @Optional()
+    private readonly streamRecoveryWorker?: StreamRecoveryWorkerService,
+    @Inject(WEBSOCKET_SERVER_TOKEN)
+    private readonly webSocketProvider?: WebSocketServerProvider,
   ) {}
 
   afterInit(server: Server) {
     // 🎯 CRITICAL FIX: 注入WebSocket服务器到WebSocketServerProvider (Gateway模式)
     if (this.webSocketProvider) {
       this.webSocketProvider.setGatewayServer(server);
-      this.logger.log('✅ Gateway服务器已集成到WebSocketServerProvider', {
+      this.logger.log("✅ Gateway服务器已集成到WebSocketServerProvider", {
         serverPath: server.path(),
-        engineConnectionCount: server.engine?.clientsCount || 0
+        engineConnectionCount: server.engine?.clientsCount || 0,
       });
     } else {
-      this.logger.warn('⚠️ WebSocketServerProvider未注入，Gateway集成失败');
+      this.logger.warn("⚠️ WebSocketServerProvider未注入，Gateway集成失败");
     }
 
     // Phase 3 Critical Fix: 注入WebSocket服务器到StreamRecoveryWorker
-    if (this.streamRecoveryWorker && typeof (this.streamRecoveryWorker as any).setWebSocketServer === 'function') {
+    if (
+      this.streamRecoveryWorker &&
+      typeof (this.streamRecoveryWorker as any).setWebSocketServer ===
+        "function"
+    ) {
       (this.streamRecoveryWorker as any).setWebSocketServer(server);
-      this.logger.log('WebSocket服务器已注入到StreamRecoveryWorker');
+      this.logger.log("WebSocket服务器已注入到StreamRecoveryWorker");
     }
 
     // 添加认证中间件，在连接建立前进行认证检查
     server.use(async (socket, next) => {
       try {
         const authResult = await this.authenticateConnection(socket);
-        
+
         if (!authResult.success) {
           this.logger.warn({
-            message: 'WebSocket 连接认证失败（中间件）',
+            message: "WebSocket 连接认证失败（中间件）",
             clientId: socket.id,
             reason: authResult.reason,
           });
-          
+
           // 创建认证错误并阻止连接
           const error = new Error(authResult.reason);
-          error.name = 'AuthenticationError';
+          error.name = "AuthenticationError";
           return next(error);
         }
 
         this.logger.log({
-          message: 'WebSocket 连接认证成功（中间件）',
+          message: "WebSocket 连接认证成功（中间件）",
           clientId: socket.id,
           apiKeyName: authResult.apiKey?.name,
         });
@@ -87,13 +98,13 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         next();
       } catch (error) {
         this.logger.error({
-          message: 'WebSocket 认证中间件处理失败',
+          message: "WebSocket 认证中间件处理失败",
           clientId: socket.id,
           error: error.message,
         });
-        
-        const authError = new Error('连接认证失败');
-        authError.name = 'AuthenticationError';
+
+        const authError = new Error("连接认证失败");
+        authError.name = "AuthenticationError";
         next(authError);
       }
     });
@@ -105,14 +116,14 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    */
   async handleConnection(client: Socket) {
     this.logger.log({
-      message: 'WebSocket 客户端连接',
+      message: "WebSocket 客户端连接",
       clientId: client.id,
       remoteAddress: client.handshake.address,
     });
 
     // 发送连接成功消息
-    client.emit('connected', {
-      message: '连接成功',
+    client.emit("connected", {
+      message: "连接成功",
       clientId: client.id,
       timestamp: Date.now(),
     });
@@ -123,17 +134,19 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    */
   async handleDisconnect(client: Socket) {
     this.logger.log({
-      message: 'WebSocket 客户端断开连接',
+      message: "WebSocket 客户端断开连接",
       clientId: client.id,
     });
 
     // 清理客户端订阅
     try {
       // Client cleanup is handled by StreamClientStateManager automatically
-      this.logger.debug('客户端断开连接，状态管理器将自动清理', { clientId: client.id });
+      this.logger.debug("客户端断开连接，状态管理器将自动清理", {
+        clientId: client.id,
+      });
     } catch (error) {
       this.logger.error({
-        message: '清理客户端订阅失败',
+        message: "清理客户端订阅失败",
         clientId: client.id,
         error: error.message,
       });
@@ -144,14 +157,21 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 订阅股票数据流
    * 使用连接级别认证，无需重复验证
    */
-  @SubscribeMessage('subscribe')
-  @UsePipes(new ValidationPipe({ 
-    transform: true, 
-    whitelist: true,
-    exceptionFactory: (errors) => {
-      return new WsException('数据验证失败: ' + errors.map(e => Object.values(e.constraints || {}).join(', ')).join('; '));
-    }
-  }))
+  @SubscribeMessage("subscribe")
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      exceptionFactory: (errors) => {
+        return new WsException(
+          "数据验证失败: " +
+            errors
+              .map((e) => Object.values(e.constraints || {}).join(", "))
+              .join("; "),
+        );
+      },
+    }),
+  )
   async handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamSubscribeDto,
@@ -159,46 +179,45 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
     try {
       // 连接级别认证已完成，直接使用已验证的信息
       this.logger.log({
-        message: '收到 WebSocket 订阅请求',
+        message: "收到 WebSocket 订阅请求",
         clientId: client.id,
         symbols: data.symbols,
         wsCapabilityType: data.wsCapabilityType,
-        apiKeyName: client.data?.apiKey?.name || '未知',
+        apiKeyName: client.data?.apiKey?.name || "未知",
       });
 
       // 执行订阅 - ✅ Legacy messageCallback已移除，通过Gateway直接广播
       await this.streamReceiverService.subscribeStream(
         data,
-        client.id // WebSocket客户端ID
+        client.id, // WebSocket客户端ID
       );
-      
+
       // 注册客户端数据推送监听 - 通过Gateway事件系统
-      this.logger.debug('客户端订阅已建立，通过Gateway广播推送数据', {
+      this.logger.debug("客户端订阅已建立，通过Gateway广播推送数据", {
         clientId: client.id,
         symbols: data.symbols,
         wsCapabilityType: data.wsCapabilityType,
-        message: 'messageCallback功能已由Gateway广播替代'
+        message: "messageCallback功能已由Gateway广播替代",
       });
 
       // 发送订阅成功确认
-      client.emit('subscribe-ack', {
+      client.emit("subscribe-ack", {
         success: true,
-        message: '订阅成功',
+        message: "订阅成功",
         symbols: data.symbols,
         wsCapabilityType: data.wsCapabilityType,
         timestamp: Date.now(),
       });
-
     } catch (error) {
       // 处理 WsException
       if (error instanceof WsException) {
         this.logger.warn({
-          message: 'WebSocket 订阅验证失败',
+          message: "WebSocket 订阅验证失败",
           clientId: client.id,
           error: error.getError(),
         });
-        
-        client.emit('subscribe-error', {
+
+        client.emit("subscribe-error", {
           success: false,
           message: error.getError(),
           timestamp: Date.now(),
@@ -207,15 +226,15 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
       }
 
       this.logger.error({
-        message: 'WebSocket 订阅处理失败',
+        message: "WebSocket 订阅处理失败",
         clientId: client.id,
         error: error.message,
       });
 
       // 发送错误消息
-      client.emit('subscribe-error', {
+      client.emit("subscribe-error", {
         success: false,
-        message: error.message || '订阅处理失败',
+        message: error.message || "订阅处理失败",
         symbols: data?.symbols || [],
         timestamp: Date.now(),
       });
@@ -226,39 +245,38 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 取消订阅股票数据流
    * 使用连接级别认证，无需重复验证
    */
-  @SubscribeMessage('unsubscribe')
+  @SubscribeMessage("unsubscribe")
   async handleUnsubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamUnsubscribeDto,
   ) {
     try {
       this.logger.log({
-        message: '收到 WebSocket 取消订阅请求',
+        message: "收到 WebSocket 取消订阅请求",
         clientId: client.id,
         symbols: data.symbols,
-        apiKeyName: client.data?.apiKey?.name || '未知',
+        apiKeyName: client.data?.apiKey?.name || "未知",
       });
 
       // 执行取消订阅 - ✅ Phase 3 - P2: 传递WebSocket客户端ID
       await this.streamReceiverService.unsubscribeStream(data, client.id);
 
       // 发送取消订阅成功确认
-      client.emit('unsubscribe-ack', {
+      client.emit("unsubscribe-ack", {
         success: true,
-        message: '取消订阅成功',
+        message: "取消订阅成功",
         symbols: data.symbols,
         timestamp: Date.now(),
       });
-
     } catch (error) {
       this.logger.error({
-        message: 'WebSocket 取消订阅处理失败',
+        message: "WebSocket 取消订阅处理失败",
         clientId: client.id,
         error: error.message,
       });
 
       // 发送错误消息
-      client.emit('unsubscribe-error', {
+      client.emit("unsubscribe-error", {
         success: false,
         message: error.message,
         symbols: data.symbols,
@@ -271,31 +289,32 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 获取订阅状态
    * 使用连接级别认证，无需重复验证
    */
-  @SubscribeMessage('get-subscription')
+  @SubscribeMessage("get-subscription")
   async handleGetSubscription(@ConnectedSocket() client: Socket) {
     try {
       // Note: Direct client subscription access not available in new architecture
       // Using stats API instead
       const subscription = null; // TODO: Implement client-specific subscription lookup
 
-      client.emit('subscription-status', {
+      client.emit("subscription-status", {
         success: true,
-        data: subscription ? {
-          symbols: Array.from(subscription.symbols),
-          wsCapabilityType: subscription.wsCapabilityType,
-          providerName: subscription.providerName,
-        } : null,
+        data: subscription
+          ? {
+              symbols: Array.from(subscription.symbols),
+              wsCapabilityType: subscription.wsCapabilityType,
+              providerName: subscription.providerName,
+            }
+          : null,
         timestamp: Date.now(),
       });
-
     } catch (error) {
       this.logger.error({
-        message: '获取订阅状态失败',
+        message: "获取订阅状态失败",
         clientId: client.id,
         error: error.message,
       });
 
-      client.emit('subscription-status', {
+      client.emit("subscription-status", {
         success: false,
         message: error.message,
         timestamp: Date.now(),
@@ -307,9 +326,9 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 心跳检测
    * 连接级别已认证，无需额外验证
    */
-  @SubscribeMessage('ping')
+  @SubscribeMessage("ping")
   async handlePing(@ConnectedSocket() client: Socket) {
-    client.emit('pong', {
+    client.emit("pong", {
       timestamp: Date.now(),
     });
   }
@@ -318,14 +337,14 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 客户端重连请求处理 - Phase 3 Recovery Integration
    * 客户端可以主动请求数据补发
    */
-  @SubscribeMessage('request-recovery')
+  @SubscribeMessage("request-recovery")
   async handleRecoveryRequest(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { symbols: string[], lastReceiveTimestamp: number }
+    @MessageBody() data: { symbols: string[]; lastReceiveTimestamp: number },
   ) {
     try {
       this.logger.log({
-        message: '收到客户端补发请求',
+        message: "收到客户端补发请求",
         clientId: client.id,
         symbols: data.symbols,
         lastReceiveTimestamp: data.lastReceiveTimestamp,
@@ -333,10 +352,11 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
       // 验证时间戳有效性
       const timeDiff = Date.now() - data.lastReceiveTimestamp;
-      if (timeDiff > 86400000) { // 24小时
-        client.emit('recovery-error', {
-          type: 'invalid_request',
-          message: '补发时间窗口过大，最多支持24小时内的数据补发',
+      if (timeDiff > 86400000) {
+        // 24小时
+        client.emit("recovery-error", {
+          type: "invalid_request",
+          message: "补发时间窗口过大，最多支持24小时内的数据补发",
           timestamp: Date.now(),
         });
         return;
@@ -347,28 +367,27 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         clientId: client.id,
         symbols: data.symbols,
         lastReceiveTimestamp: data.lastReceiveTimestamp,
-        wsCapabilityType: 'quote', // 默认能力类型
-        reason: 'manual',
+        wsCapabilityType: "quote", // 默认能力类型
+        reason: "manual",
       });
 
       // 发送补发已启动的确认
-      client.emit('recovery-started', {
-        message: '数据补发已启动，请等待数据传输',
+      client.emit("recovery-started", {
+        message: "数据补发已启动，请等待数据传输",
         symbols: data.symbols,
-        estimatedDataPoints: timeDiff < 300000 ? '< 1000' : '可能较多', // 5分钟内估计数据量
+        estimatedDataPoints: timeDiff < 300000 ? "< 1000" : "可能较多", // 5分钟内估计数据量
         timestamp: Date.now(),
       });
-
     } catch (error) {
       this.logger.error({
-        message: '处理客户端补发请求失败',
+        message: "处理客户端补发请求失败",
         clientId: client.id,
         error: error.message,
       });
 
-      client.emit('recovery-error', {
-        type: 'processing_error',
-        message: '补发请求处理失败: ' + error.message,
+      client.emit("recovery-error", {
+        type: "processing_error",
+        message: "补发请求处理失败: " + error.message,
         timestamp: Date.now(),
       });
     }
@@ -377,7 +396,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
   /**
    * 获取补发状态
    */
-  @SubscribeMessage('get-recovery-status')
+  @SubscribeMessage("get-recovery-status")
   async handleGetRecoveryStatus(@ConnectedSocket() client: Socket) {
     try {
       // TODO: 从StreamRecoveryWorker获取客户端补发状态
@@ -389,20 +408,19 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         pendingJobs: 0, // TODO: 获取待处理补发任务数
       };
 
-      client.emit('recovery-status', {
+      client.emit("recovery-status", {
         success: true,
         data: status,
         timestamp: Date.now(),
       });
-
     } catch (error) {
       this.logger.error({
-        message: '获取补发状态失败',
+        message: "获取补发状态失败",
         clientId: client.id,
         error: error.message,
       });
 
-      client.emit('recovery-status', {
+      client.emit("recovery-status", {
         success: false,
         message: error.message,
         timestamp: Date.now(),
@@ -414,15 +432,15 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    * 获取连接信息
    * 连接级别已认证，无需额外验证
    */
-  @SubscribeMessage('get-info')
+  @SubscribeMessage("get-info")
   async handleGetInfo(@ConnectedSocket() client: Socket) {
     const authInfo = client.data?.apiKey || null;
-    
-    client.emit('connection-info', {
+
+    client.emit("connection-info", {
       clientId: client.id,
       connected: true,
-      authType: authInfo?.authType || 'apikey',
-      apiKeyName: authInfo?.name || '未知',
+      authType: authInfo?.authType || "apikey",
+      apiKeyName: authInfo?.name || "未知",
       timestamp: Date.now(),
     });
   }
@@ -442,29 +460,31 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
       if (!authData.apiKey || !authData.accessToken) {
         return {
           success: false,
-          reason: 'Missing API Key or Access Token',
+          reason: "Missing API Key or Access Token",
         };
       }
 
       // 验证API Key
       const apiKeyDoc = await this.apiKeyService.validateApiKey(
         authData.apiKey,
-        authData.accessToken
+        authData.accessToken,
       );
 
       if (!apiKeyDoc) {
         return {
           success: false,
-          reason: 'Invalid API Key or Access Token',
+          reason: "Invalid API Key or Access Token",
         };
       }
 
       // 检查流权限
-      const hasStreamPermission = this.checkStreamPermissions(apiKeyDoc.permissions);
+      const hasStreamPermission = this.checkStreamPermissions(
+        apiKeyDoc.permissions,
+      );
       if (!hasStreamPermission) {
         return {
           success: false,
-          reason: 'Insufficient stream permissions',
+          reason: "Insufficient stream permissions",
         };
       }
 
@@ -473,14 +493,13 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
         id: apiKeyDoc._id,
         name: apiKeyDoc.name,
         permissions: apiKeyDoc.permissions,
-        authType: 'apikey',
+        authType: "apikey",
       };
 
       return {
         success: true,
         apiKey: apiKeyDoc,
       };
-
     } catch (error) {
       return {
         success: false,
@@ -494,7 +513,7 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
    */
   private extractAuthFromConnection(client: Socket) {
     const handshake = client.handshake;
-    
+
     // 从auth字段获取（Socket.IO标准方式）
     if (handshake.auth?.appKey && handshake.auth?.accessToken) {
       return {
@@ -513,8 +532,8 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
 
     // 从头部获取
     return {
-      apiKey: handshake.headers['x-app-key'],
-      accessToken: handshake.headers['x-access-token'],
+      apiKey: handshake.headers["x-app-key"],
+      accessToken: handshake.headers["x-access-token"],
     };
   }
 
@@ -527,8 +546,8 @@ export class StreamReceiverGateway implements OnGatewayInit, OnGatewayConnection
       Permission.STREAM_SUBSCRIBE,
     ];
 
-    return permissions.some(permission => 
-      requiredStreamPermissions.includes(permission as Permission)
+    return permissions.some((permission) =>
+      requiredStreamPermissions.includes(permission as Permission),
     );
   }
 }

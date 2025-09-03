@@ -33,9 +33,9 @@ import { PaginationService } from "@common/modules/pagination/services/paginatio
 import { Auth } from "../decorators/auth.decorator";
 import { Public } from "../decorators/public.decorator";
 import { CreateApiKeyDto, ApiKeyResponseDto } from "../dto/apikey.dto";
-import { 
-  CreateUserDto, 
-  LoginDto, 
+import {
+  CreateUserDto,
+  LoginDto,
   LoginResponseDto,
   PaginatedUsersDto,
 } from "../dto/auth.dto";
@@ -473,7 +473,11 @@ export class AuthController {
     });
 
     try {
-      const result = await this.authService.getAllUsers(page, limit, includeInactive);
+      const result = await this.authService.getAllUsers(
+        page,
+        limit,
+        includeInactive,
+      );
 
       this.logger.log(`用户列表获取成功`, {
         total: result.total,
@@ -486,7 +490,7 @@ export class AuthController {
 
       // 映射用户数据到响应DTO格式
       const response: PaginatedUsersDto = {
-        users: result.users.map(user => ({
+        users: result.users.map((user) => ({
           id: user._id?.toString() || user.id,
           username: user.username,
           email: user.email,

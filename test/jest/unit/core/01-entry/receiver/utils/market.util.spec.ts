@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { MarketUtils } from "../../../../../../../src/core/01-entry/receiver/utils/market.util";
 import { Market } from "../../../../../../../src/common/constants/market.constants";
 

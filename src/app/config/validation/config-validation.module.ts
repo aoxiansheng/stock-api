@@ -3,11 +3,11 @@
  * 🎯 提供完整的配置验证服务
  */
 
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
-import { ConfigValidatorService } from './config-validator.service';
-import { EnvironmentValidatorService } from './environment-validator.service';
-import { DependenciesValidatorService } from './dependencies-validator.service';
+import { ConfigValidatorService } from "./config-validator.service";
+import { EnvironmentValidatorService } from "./environment-validator.service";
+import { DependenciesValidatorService } from "./dependencies-validator.service";
 
 /**
  * 配置验证模块
@@ -17,7 +17,7 @@ import { DependenciesValidatorService } from './dependencies-validator.service';
  * - EnvironmentValidatorService: 环境变量验证
  * - DependenciesValidatorService: 外部依赖验证
  * - ConfigValidatorService: 统一验证入口
- * 
+ *
  * 使用场景：
  * - 应用启动前验证
  * - 运行时配置检查

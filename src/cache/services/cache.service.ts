@@ -11,8 +11,8 @@ import {
 import Redis from "ioredis";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SYSTEM_STATUS_EVENTS } from '../../monitoring/contracts/events/system-status.events';
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
 
 import {
   CACHE_ERROR_MESSAGES,
@@ -82,7 +82,10 @@ export class CacheService {
       const result = await this.redis.setex(key, options.ttl, compressedValue);
 
       // 🎯 事件驱动监控
-      this.emitCacheEvent('set', key, startTime, { ttl: options.ttl, compressed: compressedValue !== serializedValue });
+      this.emitCacheEvent("set", key, startTime, {
+        ttl: options.ttl,
+        compressed: compressedValue !== serializedValue,
+      });
 
       // 检查慢操作
       const duration = Date.now() - startTime;
@@ -124,12 +127,14 @@ export class CacheService {
 
       if (value === null) {
         // 🎯 事件驱动监控 - 缓存未命中
-        this.emitCacheEvent('get_miss', key, startTime);
+        this.emitCacheEvent("get_miss", key, startTime);
         return null;
       }
 
       // 🎯 事件驱动监控 - 缓存命中
-      this.emitCacheEvent('get_hit', key, startTime, { compressed: this.isCompressed(value) });
+      this.emitCacheEvent("get_hit", key, startTime, {
+        compressed: this.isCompressed(value),
+      });
 
       // 解压缩和反序列化
       const decompressedValue = this.isCompressed(value)
@@ -154,7 +159,7 @@ export class CacheService {
         sanitizeLogData({ error }),
       );
       // 🎯 事件驱动监控 - 错误导致未命中
-      this.emitCacheEvent('get_miss', key, startTime, { error: error.message });
+      this.emitCacheEvent("get_miss", key, startTime, { error: error.message });
       // 🎯 修正: 抛出标准异常
       throw new ServiceUnavailableException(
         `${CACHE_ERROR_MESSAGES.GET_FAILED}: ${error.message}`,
@@ -485,14 +490,17 @@ export class CacheService {
 
         if (value !== null) {
           // 🎯 事件驱动监控 - mget 命中
-          this.emitCacheEvent('get_hit', key, startTime, { compressed: this.isCompressed(value), batch: true });
+          this.emitCacheEvent("get_hit", key, startTime, {
+            compressed: this.isCompressed(value),
+            batch: true,
+          });
           const decompressedValue = this.isCompressed(value)
             ? await this.decompress(value)
             : value;
           result.set(key, this.deserialize(decompressedValue));
         } else {
           // 🎯 事件驱动监控 - mget 未命中
-          this.emitCacheEvent('get_miss', key, startTime, { batch: true });
+          this.emitCacheEvent("get_miss", key, startTime, { batch: true });
         }
       }
 
@@ -512,7 +520,12 @@ export class CacheService {
         sanitizeLogData({ error }),
       );
       // 🎯 事件驱动监控 - mget 错误导致未命中
-      keys.forEach((key) => this.emitCacheEvent('get_miss', key, startTime, { error: error.message, batch: true }));
+      keys.forEach((key) =>
+        this.emitCacheEvent("get_miss", key, startTime, {
+          error: error.message,
+          batch: true,
+        }),
+      );
       // 🎯 修正: 抛出标准异常
       throw new ServiceUnavailableException(
         `${CACHE_ERROR_MESSAGES.BATCH_GET_FAILED}: ${error.message}`,
@@ -548,7 +561,7 @@ export class CacheService {
         const serializedValue = this.serialize(value);
         pipeline.setex(key, ttl, serializedValue);
         // 🎯 事件驱动监控 - mset 操作
-        this.emitCacheEvent('mset', key, startTime, { ttl, batch: true });
+        this.emitCacheEvent("mset", key, startTime, { ttl, batch: true });
       }
 
       const results = await pipeline.exec();
@@ -642,8 +655,6 @@ export class CacheService {
       this.logger.error(CACHE_ERROR_MESSAGES.WARMUP_FAILED, error);
     }
   }
-
-
 
   /**
    * 获取缓存统计信息
@@ -769,7 +780,6 @@ export class CacheService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-
   private extractKeyPattern(key: string): string {
     // 简化处理，可根据实际情况扩展
     const parts = key.split(":");
@@ -783,23 +793,23 @@ export class CacheService {
    * 🎯 事件驱动监控 - 替代内部统计系统
    */
   private emitCacheEvent(
-    operation: 'set' | 'get_hit' | 'get_miss' | 'del' | 'mget' | 'mset',
+    operation: "set" | "get_hit" | "get_miss" | "del" | "mget" | "mset",
     key: string,
     startTime?: number,
-    additionalData?: Record<string, any>
+    additionalData?: Record<string, any>,
   ): void {
     setImmediate(() => {
       const eventData = {
         timestamp: new Date(),
-        source: 'cache_service',
-        metricType: 'cache' as const,
+        source: "cache_service",
+        metricType: "cache" as const,
         metricName: `cache_${operation}`,
         metricValue: startTime ? Date.now() - startTime : 0,
         tags: {
           operation,
           key_pattern: this.extractKeyPattern(key),
-          ...additionalData
-        }
+          ...additionalData,
+        },
       };
 
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, eventData);

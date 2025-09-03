@@ -33,8 +33,8 @@ export class SymbolMappingRepository {
 
   async findById(id: string): Promise<SymbolMappingRuleDocumentType | null> {
     // 🛡️ ObjectId格式验证
-    DatabaseValidationUtils.validateObjectId(id, '映射配置ID');
-    
+    DatabaseValidationUtils.validateObjectId(id, "映射配置ID");
+
     return this.symbolMappingRuleModel.findById(id).exec();
   }
 
@@ -64,9 +64,17 @@ export class SymbolMappingRepository {
       filter.$or = [
         { dataSourceName: { $regex: query.search, $options: "i" } },
         { description: { $regex: query.search, $options: "i" } },
-        { "SymbolMappingRule.standardSymbol": { $regex: query.search, $options: "i" } },
         {
-          "SymbolMappingRule.sdkSymbol": { $regex: query.search, $options: "i" },
+          "SymbolMappingRule.standardSymbol": {
+            $regex: query.search,
+            $options: "i",
+          },
+        },
+        {
+          "SymbolMappingRule.sdkSymbol": {
+            $regex: query.search,
+            $options: "i",
+          },
         },
       ];
     }
@@ -80,7 +88,8 @@ export class SymbolMappingRepository {
       filter["SymbolMappingRule.symbolType"] = query.symbolType;
     }
 
-    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+    const { page, limit } =
+      this.paginationService.normalizePaginationQuery(query);
     const skip = this.paginationService.calculateSkip(page, limit);
 
     const [items, total] = await Promise.all([
@@ -102,8 +111,8 @@ export class SymbolMappingRepository {
     updateDto: UpdateSymbolMappingDto,
   ): Promise<SymbolMappingRuleDocument | null> {
     // 🛡️ ObjectId格式验证
-    DatabaseValidationUtils.validateObjectId(id, '映射配置ID');
-    
+    DatabaseValidationUtils.validateObjectId(id, "映射配置ID");
+
     return this.symbolMappingRuleModel
       .findByIdAndUpdate(id, updateDto, { new: true })
       .exec();
@@ -111,8 +120,8 @@ export class SymbolMappingRepository {
 
   async deleteById(id: string): Promise<SymbolMappingRuleDocument | null> {
     // 🛡️ ObjectId格式验证
-    DatabaseValidationUtils.validateObjectId(id, '映射配置ID');
-    
+    DatabaseValidationUtils.validateObjectId(id, "映射配置ID");
+
     return this.symbolMappingRuleModel.findByIdAndDelete(id).exec();
   }
 
@@ -121,18 +130,18 @@ export class SymbolMappingRepository {
     if (!dataSourceName?.trim()) {
       return false;
     }
-    
+
     // 🚀 使用findOne替代countDocuments，性能提升40-60%
     const doc = await this.symbolMappingRuleModel
-      .findOne({ 
-        dataSourceName: dataSourceName.trim(), 
-        isActive: true  // 添加isActive过滤条件
+      .findOne({
+        dataSourceName: dataSourceName.trim(),
+        isActive: true, // 添加isActive过滤条件
       })
-      .select('_id')  // 仅选择_id字段，减少数据传输
-      .lean()         // 使用lean()提高性能
+      .select("_id") // 仅选择_id字段，减少数据传输
+      .lean() // 使用lean()提高性能
       .hint({ dataSourceName: 1, isActive: 1 }) // 指定复合索引
       .exec();
-      
+
     return !!doc;
   }
 
@@ -179,7 +188,8 @@ export class SymbolMappingRepository {
     // 过滤匹配的映射规则
     return result.SymbolMappingRule.filter(
       (rule) =>
-        standardSymbols.includes(rule.standardSymbol) && rule.isActive !== false,
+        standardSymbols.includes(rule.standardSymbol) &&
+        rule.isActive !== false,
     );
   }
 
@@ -295,15 +305,18 @@ export class SymbolMappingRepository {
    * 🎯 监听数据变化 (Change Stream)
    */
   watchChanges(): any {
-    return this.symbolMappingRuleModel.watch([
+    return this.symbolMappingRuleModel.watch(
+      [
+        {
+          $match: {
+            operationType: { $in: ["insert", "update", "delete"] },
+          },
+        },
+      ],
       {
-        $match: {
-          operationType: { $in: ['insert', 'update', 'delete'] }
-        }
-      }
-    ], {
-      fullDocument: 'updateLookup'
-    });
+        fullDocument: "updateLookup",
+      },
+    );
   }
 
   /**
@@ -311,19 +324,19 @@ export class SymbolMappingRepository {
    */
   async getDataSourceVersions(): Promise<Map<string, Date>> {
     const versions = new Map<string, Date>();
-    
+
     const dataSources = await this.symbolMappingRuleModel
       .find({ isActive: true })
-      .select('dataSourceName updatedAt')
+      .select("dataSourceName updatedAt")
       .exec();
-    
+
     for (const doc of dataSources) {
       const currentVersion = versions.get(doc.dataSourceName);
       if (!currentVersion || doc.updatedAt > currentVersion) {
         versions.set(doc.dataSourceName, doc.updatedAt);
       }
     }
-    
+
     return versions;
   }
 }

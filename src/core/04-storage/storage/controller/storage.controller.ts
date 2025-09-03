@@ -8,7 +8,13 @@ import {
   Query,
   ValidationPipe,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiQuery } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiConsumes,
+  ApiQuery,
+} from "@nestjs/swagger";
 
 import { createLogger } from "@app/config/logger.config";
 import {
@@ -22,7 +28,7 @@ import { RequirePermissions } from "../../../../auth/decorators/permissions.deco
 import { Permission } from "../../../../auth/enums/user-role.enum";
 
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
-import { StorageType } from '../enums/storage-type.enum';
+import { StorageType } from "../enums/storage-type.enum";
 import {
   StorageResponseDto,
   StorageStatsDto,
@@ -471,5 +477,3 @@ export class StorageController {
     }
   }
 }
-
-

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Storage Metadata DTO UCK
  * KXCpnpn a

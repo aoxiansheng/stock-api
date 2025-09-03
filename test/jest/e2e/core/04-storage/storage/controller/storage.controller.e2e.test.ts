@@ -305,7 +305,7 @@ describe("Storage E2E Tests with Admin Role", () => {
     };
 
     // Act 1: Store data
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const storeResponse = await httpServer
       .post("/api/v1/storage/store")
       .set("X-App-Key", adminAuthTokens.apiKey)

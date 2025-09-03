@@ -2,10 +2,10 @@
 // 提供类型安全的公共接口
 
 // 核心接口
-export * from './stream-data-fetcher.interface';
+export * from "./stream-data-fetcher.interface";
 
 // 重连协议接口
-export * from './reconnection-protocol.interface';
+export * from "./reconnection-protocol.interface";
 
 // 接口导出规范:
 // 1. 只导出公共接口，不导出内部类型

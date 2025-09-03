@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
+import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Config, QuoteContext } from "longport";
 
 import { createLogger } from "@app/config/logger.config";
@@ -59,9 +55,7 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
           "LongPort SDK 连接初始化失败",
         );
         this.initializationPromise = null; // 允许下次调用时重试
-        throw new Error(
-          `LongPort SDK 连接初始化失败: ${errorMessage}`
-        );
+        throw new Error(`LongPort SDK 连接初始化失败: ${errorMessage}`);
       }
     })();
 

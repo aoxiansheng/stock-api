@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * LongPort SG Types Unit Tests
  * K�LongPort��apn�{��I�_cn'�|�'

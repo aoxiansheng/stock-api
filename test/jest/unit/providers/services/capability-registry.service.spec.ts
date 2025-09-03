@@ -3,16 +3,14 @@
  * 测试能力发现、注册和Provider管理功能
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Test, TestingModule } from "@nestjs/testing";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
 import fs from "fs/promises";
 
 // Mock fs/promises
 jest.mock("fs/promises");
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
 // 正确模拟动态导入
@@ -20,8 +18,6 @@ const mockDynamicImport = jest.fn();
 jest.mock(
   "../../../../../src/providers/services/capability-registry.service",
   () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const originalModule = jest.requireActual(
       "../../../../../src/providers/services/capability-registry.service",
     );

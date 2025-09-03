@@ -1,12 +1,12 @@
-import { join, dirname } from 'path';
-import { existsSync, readFileSync } from 'fs';
-import { createLogger } from '@app/config/logger.config';
+import { join, dirname } from "path";
+import { existsSync, readFileSync } from "fs";
+import { createLogger } from "@app/config/logger.config";
 
 /**
  * 智能路径解析器 - 解决不同环境下的路径问题
  */
 export class SmartPathResolver {
-  private static readonly logger = createLogger('SmartPathResolver');
+  private static readonly logger = createLogger("SmartPathResolver");
   private static cachedProjectRoot: string | null = null;
 
   /**
@@ -21,7 +21,7 @@ export class SmartPathResolver {
       () => this.getFromEnvironment(),
       () => this.findPackageJsonRoot(),
       () => this.findSrcRoot(),
-      () => this.getFallbackPath()
+      () => this.getFallbackPath(),
     ];
 
     for (const strategy of strategies) {
@@ -39,7 +39,7 @@ export class SmartPathResolver {
     }
 
     throw new Error(
-      '无法确定项目根路径，请设置 PROJECT_ROOT 环境变量或确保项目结构正确'
+      "无法确定项目根路径，请设置 PROJECT_ROOT 环境变量或确保项目结构正确",
     );
   }
 
@@ -47,7 +47,7 @@ export class SmartPathResolver {
    * 获取提供商目录路径
    */
   static getProvidersPath(): string {
-    return join(this.getProjectRoot(), 'src', 'providers');
+    return join(this.getProjectRoot(), "src", "providers");
   }
 
   /**
@@ -61,7 +61,7 @@ export class SmartPathResolver {
    * 获取特定提供商的能力目录路径
    */
   static getProviderCapabilitiesPath(providerName: string): string {
-    return join(this.getProviderPath(providerName), 'capabilities');
+    return join(this.getProviderPath(providerName), "capabilities");
   }
 
   /**
@@ -98,7 +98,7 @@ export class SmartPathResolver {
     const searchPaths = [
       process.cwd(),
       startDir || __dirname,
-      join(__dirname, '..', '..', '..'), // 从 src/providers/utils 向上3级
+      join(__dirname, "..", "..", ".."), // 从 src/providers/utils 向上3级
     ];
 
     for (const searchStart of searchPaths) {
@@ -106,7 +106,7 @@ export class SmartPathResolver {
       const rootPath = dirname(current);
 
       while (current !== rootPath) {
-        const packagePath = join(current, 'package.json');
+        const packagePath = join(current, "package.json");
         if (existsSync(packagePath)) {
           // 验证这是正确的 package.json
           if (this.isCorrectPackageJson(packagePath)) {
@@ -118,7 +118,7 @@ export class SmartPathResolver {
       }
     }
 
-    throw new Error('未找到有效的 package.json');
+    throw new Error("未找到有效的 package.json");
   }
 
   /**
@@ -129,7 +129,7 @@ export class SmartPathResolver {
     const searchPaths = [
       process.cwd(),
       startDir || __dirname,
-      join(__dirname, '..', '..', '..'), // 从 src/providers/utils 向上3级
+      join(__dirname, "..", "..", ".."), // 从 src/providers/utils 向上3级
     ];
 
     for (const searchStart of searchPaths) {
@@ -137,10 +137,10 @@ export class SmartPathResolver {
       const rootPath = dirname(current);
 
       while (current !== rootPath) {
-        const srcPath = join(current, 'src');
+        const srcPath = join(current, "src");
         if (existsSync(srcPath)) {
           // 验证 src 目录结构
-          const providersPath = join(srcPath, 'providers');
+          const providersPath = join(srcPath, "providers");
           if (existsSync(providersPath)) {
             this.logger.debug(`找到 src 目录: ${srcPath}`);
             return current;
@@ -150,7 +150,7 @@ export class SmartPathResolver {
       }
     }
 
-    throw new Error('未找到有效的 src 目录');
+    throw new Error("未找到有效的 src 目录");
   }
 
   /**
@@ -158,14 +158,14 @@ export class SmartPathResolver {
    */
   private static getFallbackPath(): string {
     const cwd = process.cwd();
-    const srcPath = join(cwd, 'src');
-    
+    const srcPath = join(cwd, "src");
+
     if (existsSync(srcPath)) {
       this.logger.debug(`使用工作目录: ${cwd}`);
       return cwd;
     }
 
-    throw new Error('工作目录中未找到 src 目录');
+    throw new Error("工作目录中未找到 src 目录");
   }
 
   /**
@@ -173,9 +173,9 @@ export class SmartPathResolver {
    */
   private static validateProjectStructure(rootPath: string): boolean {
     const requiredPaths = [
-      join(rootPath, 'src'),
-      join(rootPath, 'src', 'providers'),
-      join(rootPath, 'package.json')
+      join(rootPath, "src"),
+      join(rootPath, "src", "providers"),
+      join(rootPath, "package.json"),
     ];
 
     for (const path of requiredPaths) {
@@ -193,23 +193,23 @@ export class SmartPathResolver {
    */
   private static isCorrectPackageJson(packagePath: string): boolean {
     try {
-      const content = readFileSync(packagePath, 'utf-8');
+      const content = readFileSync(packagePath, "utf-8");
       const packageJson = JSON.parse(content);
-      
+
       // 检查是否包含NestJS相关依赖
-      const dependencies = { 
-        ...packageJson.dependencies, 
-        ...packageJson.devDependencies 
+      const dependencies = {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
       };
-      
+
       const nestjsIndicators = [
-        '@nestjs/core',
-        '@nestjs/common',
-        '@nestjs/platform-express'
+        "@nestjs/core",
+        "@nestjs/common",
+        "@nestjs/platform-express",
       ];
 
-      return nestjsIndicators.some(indicator => 
-        dependencies && dependencies[indicator]
+      return nestjsIndicators.some(
+        (indicator) => dependencies && dependencies[indicator],
       );
     } catch (error) {
       this.logger.debug(`解析 package.json 失败: ${error.message}`);
@@ -222,7 +222,7 @@ export class SmartPathResolver {
    */
   static getRelativePath(absolutePath: string): string {
     const root = this.getProjectRoot();
-    return absolutePath.replace(root, '').replace(/^\//, '');
+    return absolutePath.replace(root, "").replace(/^\//, "");
   }
 
   /**
@@ -230,12 +230,12 @@ export class SmartPathResolver {
    */
   static buildSafePath(basePath: string, ...segments: string[]): string {
     const fullPath = join(basePath, ...segments);
-    
+
     // 确保路径在基础路径内
     if (!fullPath.startsWith(basePath)) {
       throw new Error(`不安全的路径: ${fullPath}`);
     }
-    
+
     return fullPath;
   }
 
@@ -247,23 +247,27 @@ export class SmartPathResolver {
       return {
         currentWorkingDirectory: process.cwd(),
         dirname: __dirname,
-        projectRoot: this.cachedProjectRoot || 'not determined',
-        providersPath: this.cachedProjectRoot ? this.getProvidersPath() : 'not determined',
+        projectRoot: this.cachedProjectRoot || "not determined",
+        providersPath: this.cachedProjectRoot
+          ? this.getProvidersPath()
+          : "not determined",
         environmentVariables: {
-          PROJECT_ROOT: process.env.PROJECT_ROOT || 'not set',
-          NODE_ENV: process.env.NODE_ENV || 'not set'
+          PROJECT_ROOT: process.env.PROJECT_ROOT || "not set",
+          NODE_ENV: process.env.NODE_ENV || "not set",
         },
-        pathValidation: this.cachedProjectRoot ? {
-          projectRootExists: existsSync(this.cachedProjectRoot),
-          srcExists: existsSync(join(this.cachedProjectRoot, 'src')),
-          providersExists: existsSync(this.getProvidersPath())
-        } : 'project root not determined'
+        pathValidation: this.cachedProjectRoot
+          ? {
+              projectRootExists: existsSync(this.cachedProjectRoot),
+              srcExists: existsSync(join(this.cachedProjectRoot, "src")),
+              providersExists: existsSync(this.getProvidersPath()),
+            }
+          : "project root not determined",
       };
     } catch (error) {
       return {
         error: error.message,
         currentWorkingDirectory: process.cwd(),
-        dirname: __dirname
+        dirname: __dirname,
       };
     }
   }

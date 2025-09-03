@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // query.constants.e2e.test.ts - 测试占位代码
 // 路径: e2e/core/restapi/query/constants/query.constants.e2e.test.ts
 

@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { Server } from 'socket.io';
-import { createLogger } from '../../../../app/config/logger.config';
+import { Injectable } from "@nestjs/common";
+import { Server } from "socket.io";
+import { createLogger } from "../../../../app/config/logger.config";
 
 /**
  * WebSocketServerProvider - 强类型WebSocket服务器提供者
- * 
+ *
  * 🎯 解决问题：
  * - 移除 forwardRef 循环依赖
  * - 提供强类型支持
@@ -13,7 +13,7 @@ import { createLogger } from '../../../../app/config/logger.config';
  */
 @Injectable()
 export class WebSocketServerProvider {
-  private readonly logger = createLogger('WebSocketServerProvider');
+  private readonly logger = createLogger("WebSocketServerProvider");
   private server: Server | null = null;
   private gatewayServer: Server | null = null; // 新增：Gateway服务器引用
   private isInitialized = false;
@@ -26,12 +26,12 @@ export class WebSocketServerProvider {
     this.gatewayServer = server;
     this.server = server; // 兼容现有API
     this.isInitialized = true;
-    
-    this.logger.log('Gateway服务器已集成到Provider', {
+
+    this.logger.log("Gateway服务器已集成到Provider", {
       hasServer: !!server,
       serverPath: server?.path(),
-      source: 'gateway',
-      engineConnectionCount: server?.engine?.clientsCount || 0
+      source: "gateway",
+      engineConnectionCount: server?.engine?.clientsCount || 0,
     });
   }
 
@@ -41,10 +41,10 @@ export class WebSocketServerProvider {
    */
   setServer(server: Server): void {
     if (this.server && this.isInitialized) {
-      this.logger.warn('WebSocket服务器已经初始化，覆盖现有实例', {
+      this.logger.warn("WebSocket服务器已经初始化，覆盖现有实例", {
         hasExistingServer: !!this.server,
         newServerNamespace: server.path(),
-        isGatewayServer: !!this.gatewayServer
+        isGatewayServer: !!this.gatewayServer,
       });
     }
 
@@ -52,12 +52,12 @@ export class WebSocketServerProvider {
     if (!this.gatewayServer) {
       this.server = server;
       this.isInitialized = true;
-      
-      this.logger.log('WebSocket服务器实例已设置 (Legacy模式)', {
+
+      this.logger.log("WebSocket服务器实例已设置 (Legacy模式)", {
         hasServer: !!server,
         serverPath: server?.path(),
-        source: 'legacy',
-        engineConnectionCount: server?.engine?.clientsCount || 0
+        source: "legacy",
+        engineConnectionCount: server?.engine?.clientsCount || 0,
       });
     }
   }
@@ -87,28 +87,30 @@ export class WebSocketServerProvider {
     connectedClients: number;
     serverPath: string;
     namespaces: any[];
-    serverSource: 'gateway' | 'legacy' | 'none';
+    serverSource: "gateway" | "legacy" | "none";
   } {
     const activeServer = this.getServer();
-    
+
     if (!activeServer) {
       return {
         isAvailable: false,
         connectedClients: 0,
-        serverPath: '',
+        serverPath: "",
         namespaces: [],
-        serverSource: 'none'
+        serverSource: "none",
       };
     }
 
-    const namespaces = Array.from(activeServer.of('/').adapter.rooms.keys() || []);
-    
+    const namespaces = Array.from(
+      activeServer.of("/").adapter.rooms.keys() || [],
+    );
+
     return {
       isAvailable: this.isInitialized,
       connectedClients: activeServer.engine?.clientsCount || 0,
       serverPath: activeServer.path(),
       namespaces,
-      serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+      serverSource: this.gatewayServer ? "gateway" : "legacy",
     };
   }
 
@@ -119,14 +121,18 @@ export class WebSocketServerProvider {
    * @param data 消息数据
    * @returns 是否发送成功
    */
-  async emitToClient(clientId: string, event: string, data: any): Promise<boolean> {
+  async emitToClient(
+    clientId: string,
+    event: string,
+    data: any,
+  ): Promise<boolean> {
     const activeServer = this.getServer();
-    
+
     if (!this.isServerAvailable() || !activeServer) {
-      this.logger.warn('WebSocket服务器不可用，无法发送消息', { 
-        clientId, 
+      this.logger.warn("WebSocket服务器不可用，无法发送消息", {
+        clientId,
         event,
-        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+        serverSource: this.gatewayServer ? "gateway" : "legacy",
       });
       return false;
     }
@@ -134,24 +140,23 @@ export class WebSocketServerProvider {
     try {
       const clientSocket = activeServer.sockets.sockets.get(clientId);
       if (!clientSocket) {
-        this.logger.warn('客户端Socket连接不存在', { clientId, event });
+        this.logger.warn("客户端Socket连接不存在", { clientId, event });
         return false;
       }
 
       if (!clientSocket.connected) {
-        this.logger.warn('客户端Socket已断开连接', { clientId, event });
+        this.logger.warn("客户端Socket已断开连接", { clientId, event });
         return false;
       }
 
       clientSocket.emit(event, data);
       return true;
-      
     } catch (error) {
-      this.logger.error('发送消息到客户端失败', {
+      this.logger.error("发送消息到客户端失败", {
         clientId,
         event,
         error: error.message,
-        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+        serverSource: this.gatewayServer ? "gateway" : "legacy",
       });
       return false;
     }
@@ -164,36 +169,39 @@ export class WebSocketServerProvider {
    * @param data 消息数据
    * @returns 是否广播成功
    */
-  async broadcastToRoom(room: string, event: string, data: any): Promise<boolean> {
+  async broadcastToRoom(
+    room: string,
+    event: string,
+    data: any,
+  ): Promise<boolean> {
     const activeServer = this.getServer();
-    
+
     if (!this.isServerAvailable() || !activeServer) {
-      this.logger.warn('WebSocket服务器不可用，无法广播消息', { 
-        room, 
+      this.logger.warn("WebSocket服务器不可用，无法广播消息", {
+        room,
         event,
-        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+        serverSource: this.gatewayServer ? "gateway" : "legacy",
       });
       return false;
     }
 
     try {
       activeServer.to(room).emit(event, data);
-      
-      this.logger.debug('消息已广播到房间', {
+
+      this.logger.debug("消息已广播到房间", {
         room,
         event,
         dataSize: JSON.stringify(data).length,
-        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+        serverSource: this.gatewayServer ? "gateway" : "legacy",
       });
-      
+
       return true;
-      
     } catch (error) {
-      this.logger.error('广播消息到房间失败', {
+      this.logger.error("广播消息到房间失败", {
         room,
         event,
         error: error.message,
-        serverSource: this.gatewayServer ? 'gateway' : 'legacy'
+        serverSource: this.gatewayServer ? "gateway" : "legacy",
       });
       return false;
     }
@@ -206,7 +214,7 @@ export class WebSocketServerProvider {
     this.server = null;
     this.gatewayServer = null;
     this.isInitialized = false;
-    this.logger.log('WebSocket服务器实例已重置');
+    this.logger.log("WebSocket服务器实例已重置");
   }
 
   /**
@@ -214,41 +222,41 @@ export class WebSocketServerProvider {
    * @returns 健康检查结果
    */
   healthCheck(): {
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     details: any;
   } {
     const activeServer = this.getServer();
-    
+
     if (!activeServer) {
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         details: {
-          reason: 'No server instance',
+          reason: "No server instance",
           isInitialized: this.isInitialized,
           hasGatewayServer: !!this.gatewayServer,
-          hasLegacyServer: !!this.server
-        }
+          hasLegacyServer: !!this.server,
+        },
       };
     }
 
     if (!this.isInitialized) {
       return {
-        status: 'degraded',
+        status: "degraded",
         details: {
-          reason: 'Server not fully initialized',
+          reason: "Server not fully initialized",
           hasServer: !!activeServer,
-          serverSource: this.gatewayServer ? 'gateway' : 'legacy'
-        }
+          serverSource: this.gatewayServer ? "gateway" : "legacy",
+        },
       };
     }
 
     const stats = this.getServerStats();
     return {
-      status: 'healthy',
+      status: "healthy",
       details: {
         ...stats,
-        uptime: process.uptime()
-      }
+        uptime: process.uptime(),
+      },
     };
   }
 
@@ -263,13 +271,13 @@ export class WebSocketServerProvider {
     details: any;
   } {
     const healthStatus = this.healthCheck();
-    
+
     // 必须是healthy状态
-    if (healthStatus.status !== 'healthy') {
+    if (healthStatus.status !== "healthy") {
       return {
         ready: false,
         reason: `Gateway状态不健康: ${healthStatus.status}`,
-        details: healthStatus.details
+        details: healthStatus.details,
       };
     }
 
@@ -277,12 +285,12 @@ export class WebSocketServerProvider {
     if (!this.gatewayServer) {
       return {
         ready: false,
-        reason: 'Gateway服务器未集成，仍使用Legacy模式',
+        reason: "Gateway服务器未集成，仍使用Legacy模式",
         details: {
           hasGatewayServer: !!this.gatewayServer,
           hasLegacyServer: !!this.server,
-          serverSource: healthStatus.details.serverSource
-        }
+          serverSource: healthStatus.details.serverSource,
+        },
       };
     }
 
@@ -291,16 +299,18 @@ export class WebSocketServerProvider {
     if (connectedClients < 0) {
       return {
         ready: false,
-        reason: '无法获取客户端连接数',
-        details: { connectedClients }
+        reason: "无法获取客户端连接数",
+        details: { connectedClients },
       };
     }
 
     // 验证Gateway功能完整性
     try {
       const serverPath = this.gatewayServer.path();
-      const namespaces = Array.from(this.gatewayServer.of('/').adapter.rooms.keys() || []);
-      
+      const namespaces = Array.from(
+        this.gatewayServer.of("/").adapter.rooms.keys() || [],
+      );
+
       return {
         ready: true,
         details: {
@@ -309,15 +319,15 @@ export class WebSocketServerProvider {
             serverPath,
             namespaceCount: namespaces.length,
             connectedClients,
-            validationTime: new Date().toISOString()
-          }
-        }
+            validationTime: new Date().toISOString(),
+          },
+        },
       };
     } catch (error) {
       return {
         ready: false,
         reason: `Gateway功能验证失败: ${error.message}`,
-        details: { error: error.message }
+        details: { error: error.message },
       };
     }
   }
@@ -326,4 +336,4 @@ export class WebSocketServerProvider {
 /**
  * WebSocket服务器Token常量
  */
-export const WEBSOCKET_SERVER_TOKEN = 'WEBSOCKET_SERVER_PROVIDER';
+export const WEBSOCKET_SERVER_TOKEN = "WEBSOCKET_SERVER_PROVIDER";

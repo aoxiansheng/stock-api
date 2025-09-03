@@ -46,7 +46,6 @@ describe("CapabilityRegistryService - Integration", () => {
   });
 
   beforeEach(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const module: TestingModule = await Test.createTestingModule({
       providers: [CapabilityRegistryService],
     }).compile();

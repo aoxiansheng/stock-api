@@ -232,7 +232,7 @@ export class SortConfigDto {
   field: string;
 
   @ApiProperty({ description: "排序方向", enum: ["ASC", "DESC"] })
-  @IsIn(['ASC', 'DESC'])
+  @IsIn(["ASC", "DESC"])
   @IsString()
   direction: "ASC" | "DESC";
 }

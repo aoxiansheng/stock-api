@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Query Controller E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;

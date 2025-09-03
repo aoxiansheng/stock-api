@@ -71,7 +71,7 @@ export class StorageStatsDto {
 
 /**
  * 存储项目分页列表DTO
- * 
+ *
  * 这是每个存储项目的简化表示，用于分页列表显示
  */
 export class PaginatedStorageItemDto {

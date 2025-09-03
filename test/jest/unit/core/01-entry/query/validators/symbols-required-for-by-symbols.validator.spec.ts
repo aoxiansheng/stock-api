@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * SymbolsRequiredForBySymbolsQueryConstraint 单元测试
  * 测试根据查询类型验证必需字段的验证器

@@ -20,7 +20,7 @@ import { AutoInitOnStartupService } from "../services/auto-init-on-startup.servi
   imports: [
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
-    
+
     // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
     // MongooseModule.forFeature([
     //   // FlexibleMappingRule和SymbolMappingRuleDocument已在CoreDatabaseModule中注册

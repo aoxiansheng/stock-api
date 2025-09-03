@@ -1,5 +1,5 @@
-import { Module, Global } from '@nestjs/common';
-import { PaginationService } from '../services/pagination.service';
+import { Module, Global } from "@nestjs/common";
+import { PaginationService } from "../services/pagination.service";
 
 /**
  * 分页服务全局模块
@@ -10,4 +10,4 @@ import { PaginationService } from '../services/pagination.service';
   providers: [PaginationService],
   exports: [PaginationService],
 })
-export class PaginationModule {} 
+export class PaginationModule {}

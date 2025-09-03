@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { LongportSgContextService } from "../../../../../../src/providers/longport-sg/services/longport-sg-context.service";
 import { Config, QuoteContext } from "longport";

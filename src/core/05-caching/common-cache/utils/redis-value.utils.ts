@@ -1,5 +1,8 @@
-import { RedisEnvelope, CacheMetadata } from '../interfaces/cache-metadata.interface';
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
+import {
+  RedisEnvelope,
+  CacheMetadata,
+} from "../interfaces/cache-metadata.interface";
+import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
 /**
  * Redis值序列化/反序列化工具类
@@ -13,14 +16,18 @@ export class RedisValueUtils {
    * @param metadata 可选元数据
    * @returns 序列化后的字符串
    */
-  static serialize<T>(data: T, compressed: boolean = false, metadata?: Partial<CacheMetadata>): string {
+  static serialize<T>(
+    data: T,
+    compressed: boolean = false,
+    metadata?: Partial<CacheMetadata>,
+  ): string {
     const envelope: RedisEnvelope<T> = {
       data,
       storedAt: Date.now(),
       compressed,
       metadata,
     };
-    
+
     try {
       return JSON.stringify(envelope);
     } catch (error) {
@@ -29,20 +36,25 @@ export class RedisValueUtils {
   }
 
   /**
-   * ✅ 统一解析：避免多处重复解析逻辑  
+   * ✅ 统一解析：避免多处重复解析逻辑
    * @param value Redis中存储的字符串值
    * @returns 解析结果
    */
-  static parse<T>(value: string): { data: T; storedAt?: number; compressed?: boolean; metadata?: Partial<CacheMetadata> } {
+  static parse<T>(value: string): {
+    data: T;
+    storedAt?: number;
+    compressed?: boolean;
+    metadata?: Partial<CacheMetadata>;
+  } {
     if (!value) {
-      throw new Error('Cannot parse empty or null value');
+      throw new Error("Cannot parse empty or null value");
     }
 
     try {
       const parsed = JSON.parse(value);
-      
+
       // 新格式：包含元数据的envelope
-      if (parsed.data !== undefined && typeof parsed === 'object') {
+      if (parsed.data !== undefined && typeof parsed === "object") {
         return {
           data: parsed.data,
           storedAt: parsed.storedAt || Date.now(),
@@ -50,7 +62,7 @@ export class RedisValueUtils {
           metadata: parsed.metadata,
         };
       }
-      
+
       // 历史格式：直接业务数据（兼容处理）
       return {
         data: parsed,
@@ -70,9 +82,10 @@ export class RedisValueUtils {
   static validateDataSize(data: any): boolean {
     try {
       const serialized = JSON.stringify(data);
-      const sizeInBytes = Buffer.byteLength(serialized, 'utf8');
-      const maxSizeInBytes = CACHE_CONFIG.MEMORY.MAX_VALUE_SIZE_MB * 1024 * 1024;
-      
+      const sizeInBytes = Buffer.byteLength(serialized, "utf8");
+      const maxSizeInBytes =
+        CACHE_CONFIG.MEMORY.MAX_VALUE_SIZE_MB * 1024 * 1024;
+
       return sizeInBytes <= maxSizeInBytes;
     } catch {
       return false;
@@ -87,7 +100,7 @@ export class RedisValueUtils {
   static getDataSize(data: any): number {
     try {
       const serialized = JSON.stringify(data);
-      return Buffer.byteLength(serialized, 'utf8');
+      return Buffer.byteLength(serialized, "utf8");
     } catch {
       return 0;
     }
@@ -99,7 +112,10 @@ export class RedisValueUtils {
    * @param compressedSize 压缩后大小
    * @returns 元数据对象
    */
-  static createCompressionMetadata(originalSize: number, compressedSize?: number): CacheMetadata {
+  static createCompressionMetadata(
+    originalSize: number,
+    compressedSize?: number,
+  ): CacheMetadata {
     return {
       storedAt: Date.now(),
       compressed: compressedSize !== undefined,
@@ -130,10 +146,12 @@ export class RedisValueUtils {
   static isValidEnvelope(value: string): boolean {
     try {
       const parsed = JSON.parse(value);
-      return typeof parsed === 'object' && 
-             parsed !== null && 
-             'data' in parsed && 
-             'storedAt' in parsed;
+      return (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        "data" in parsed &&
+        "storedAt" in parsed
+      );
     } catch {
       return false;
     }
@@ -154,7 +172,11 @@ export class RedisValueUtils {
    * @param value Redis值
    * @returns 元数据信息
    */
-  static extractMetadata(value: string): { storedAt?: number; compressed?: boolean; metadata?: Partial<CacheMetadata> } {
+  static extractMetadata(value: string): {
+    storedAt?: number;
+    compressed?: boolean;
+    metadata?: Partial<CacheMetadata>;
+  } {
     try {
       const parsed = this.parse(value);
       return {

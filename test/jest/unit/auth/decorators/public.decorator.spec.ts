@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { Reflector } from "@nestjs/core";
 import { Controller, Get, Post } from "@nestjs/common";
 import {

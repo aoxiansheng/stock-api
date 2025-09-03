@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：市场状态感知缓存系统
  * 测试基于市场状态的动态缓存策略和37字段变化检测

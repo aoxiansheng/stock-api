@@ -1,11 +1,14 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from "@nestjs/common";
 
 import { createLogger } from "@app/config/logger.config";
-import { PermissionDecoratorValidator, ValidationResult } from '../validators/permission-decorator.validator';
+import {
+  PermissionDecoratorValidator,
+  ValidationResult,
+} from "../validators/permission-decorator.validator";
 
 /**
  * 权限验证服务
- * 
+ *
  * 在应用启动时自动验证权限装饰器，并提供手动验证接口
  */
 @Injectable()
@@ -22,10 +25,10 @@ export class PermissionValidationService implements OnApplicationBootstrap {
    */
   async onApplicationBootstrap() {
     try {
-      this.logger.log('应用启动完成后进行权限装饰器验证...');
+      this.logger.log("应用启动完成后进行权限装饰器验证...");
       await this.validatePermissions();
     } catch (error: any) {
-      this.logger.error('权限装饰器验证失败', {
+      this.logger.error("权限装饰器验证失败", {
         error: error.message,
         errorType: error.constructor.name,
       });
@@ -36,16 +39,22 @@ export class PermissionValidationService implements OnApplicationBootstrap {
    * 执行权限验证
    */
   async validatePermissions(): Promise<ValidationResult[]> {
-    this.logger.log('开始执行权限装饰器验证...');
-    
+    this.logger.log("开始执行权限装饰器验证...");
+
     const startTime = Date.now();
     const results = await this.permissionValidator.validateAllControllers();
     const duration = Date.now() - startTime;
 
     this.lastValidationResult = results;
 
-    const totalViolations = results.reduce((sum, result) => sum + result.violations.length, 0);
-    const totalRoutes = results.reduce((sum, result) => sum + result.totalRoutes, 0);
+    const totalViolations = results.reduce(
+      (sum, result) => sum + result.violations.length,
+      0,
+    );
+    const totalRoutes = results.reduce(
+      (sum, result) => sum + result.totalRoutes,
+      0,
+    );
 
     if (totalViolations === 0) {
       this.logger.log(`✅ 权限装饰器验证通过`, {
@@ -58,13 +67,13 @@ export class PermissionValidationService implements OnApplicationBootstrap {
         totalControllers: results.length,
         totalRoutes,
         totalViolations,
-        violationRate: `${(totalViolations / totalRoutes * 100).toFixed(2)}%`,
+        violationRate: `${((totalViolations / totalRoutes) * 100).toFixed(2)}%`,
         duration: `${duration}ms`,
       });
 
       // 输出详细的违规信息
       const report = this.permissionValidator.generateReport(results);
-      this.logger.warn('权限装饰器验证报告:', report);
+      this.logger.warn("权限装饰器验证报告:", report);
     }
 
     return results;
@@ -82,17 +91,29 @@ export class PermissionValidationService implements OnApplicationBootstrap {
    */
   getValidationStats() {
     const totalControllers = this.lastValidationResult.length;
-    const totalViolations = this.lastValidationResult.reduce((sum, result) => sum + result.violations.length, 0);
-    const totalRoutes = this.lastValidationResult.reduce((sum, result) => sum + result.totalRoutes, 0);
-    const validControllers = this.lastValidationResult.filter(r => r.isValid).length;
+    const totalViolations = this.lastValidationResult.reduce(
+      (sum, result) => sum + result.violations.length,
+      0,
+    );
+    const totalRoutes = this.lastValidationResult.reduce(
+      (sum, result) => sum + result.totalRoutes,
+      0,
+    );
+    const validControllers = this.lastValidationResult.filter(
+      (r) => r.isValid,
+    ).length;
 
     return {
       totalControllers,
       totalRoutes,
       totalViolations,
       validControllers,
-      violationRate: totalRoutes > 0 ? (totalViolations / totalRoutes * 100) : 0,
-      complianceRate: totalControllers > 0 ? (validControllers / totalControllers * 100) : 100,
+      violationRate:
+        totalRoutes > 0 ? (totalViolations / totalRoutes) * 100 : 0,
+      complianceRate:
+        totalControllers > 0
+          ? (validControllers / totalControllers) * 100
+          : 100,
       lastValidation: new Date().toISOString(),
     };
   }
@@ -101,8 +122,8 @@ export class PermissionValidationService implements OnApplicationBootstrap {
    * 检查是否有高危险级别的违规
    */
   hasHighSeverityViolations(): boolean {
-    return this.lastValidationResult.some(result => 
-      result.violations.some(violation => violation.severity === 'high')
+    return this.lastValidationResult.some((result) =>
+      result.violations.some((violation) => violation.severity === "high"),
     );
   }
 
@@ -111,9 +132,11 @@ export class PermissionValidationService implements OnApplicationBootstrap {
    */
   getHighSeverityViolations() {
     const highSeverityViolations = [];
-    
+
     for (const result of this.lastValidationResult) {
-      const highViolations = result.violations.filter(v => v.severity === 'high');
+      const highViolations = result.violations.filter(
+        (v) => v.severity === "high",
+      );
       if (highViolations.length > 0) {
         highSeverityViolations.push({
           controller: result.controller,

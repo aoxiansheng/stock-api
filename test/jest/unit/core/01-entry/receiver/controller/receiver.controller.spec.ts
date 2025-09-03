@@ -12,7 +12,7 @@ import { getModelToken } from "@nestjs/mongoose";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 
 // Mock createLogger for core modules - use var for hoisting compatibility
-var mockLoggerInstance: any;
+let mockLoggerInstance: any;
 
 jest.mock("@app/config/logger.config", () => {
   mockLoggerInstance = {

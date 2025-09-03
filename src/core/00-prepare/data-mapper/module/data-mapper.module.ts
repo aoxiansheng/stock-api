@@ -36,14 +36,14 @@ import {
   imports: [
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
-    
+
     // ✅ 标准监控模块导入 (替代原来的 EventEmitterModule)
     MonitoringModule, // 统一监控模块，提供事件驱动监控功能
-    
+
     AuthModule,
     PaginationModule,
     DataMapperCacheModule, // 专用DataMapper缓存模块，替换通用CacheModule
-    
+
     // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
     // MongooseModule.forFeature([
     //   // 核心Schema - DataSourceTemplate和FlexibleMappingRule已在CoreDatabaseModule中注册
@@ -52,29 +52,29 @@ import {
     // ]),
   ],
   controllers: [
-    UserJsonPersistenceController,  // 用户JSON持久化控制器
-    SystemPersistenceController,    // 系统持久化控制器（专注预设模板持久化）
-    TemplateAdminController,        // 模板管理控制器（完整CRUD功能）
-    MappingRuleController,          // 映射规则控制器
+    UserJsonPersistenceController, // 用户JSON持久化控制器
+    SystemPersistenceController, // 系统持久化控制器（专注预设模板持久化）
+    TemplateAdminController, // 模板管理控制器（完整CRUD功能）
+    MappingRuleController, // 映射规则控制器
   ],
   providers: [
     FeatureFlags,
     // 核心服务 - 专注于数据映射的核心功能
-    DataSourceAnalyzerService,      // 数据源分析服务
-    DataSourceTemplateService,      // 数据源模板服务  
-    FlexibleMappingRuleService,     // 灵活映射规则服务
-    PersistedTemplateService,       // 预设模板持久化服务
-    RuleAlignmentService,           // 规则对齐服务
-    MappingRuleCacheService,        // 映射规则Redis缓存服务
+    DataSourceAnalyzerService, // 数据源分析服务
+    DataSourceTemplateService, // 数据源模板服务
+    FlexibleMappingRuleService, // 灵活映射规则服务
+    PersistedTemplateService, // 预设模板持久化服务
+    RuleAlignmentService, // 规则对齐服务
+    MappingRuleCacheService, // 映射规则Redis缓存服务
   ],
   exports: [
     // 导出核心服务供其他模块使用
-    DataSourceAnalyzerService,      // 导出分析服务，供其他模块使用
-    DataSourceTemplateService,      // 导出模板服务
-    FlexibleMappingRuleService,     // 导出灵活映射规则服务
-    PersistedTemplateService,       // 导出预设模板持久化服务
-    RuleAlignmentService,           // 导出规则对齐服务
-    MappingRuleCacheService,        // 导出映射规则缓存服务
+    DataSourceAnalyzerService, // 导出分析服务，供其他模块使用
+    DataSourceTemplateService, // 导出模板服务
+    FlexibleMappingRuleService, // 导出灵活映射规则服务
+    PersistedTemplateService, // 导出预设模板持久化服务
+    RuleAlignmentService, // 导出规则对齐服务
+    MappingRuleCacheService, // 导出映射规则缓存服务
   ],
 })
 export class DataMapperModule {}

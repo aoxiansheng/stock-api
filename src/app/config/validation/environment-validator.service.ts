@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '@app/config/logger.config';
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "@app/config/logger.config";
 import {
   ValidationResult,
   ConfigValidationRule,
   ValidationMessage,
-  ValidationSeverity
-} from './validation.interfaces';
+  ValidationSeverity,
+} from "./validation.interfaces";
 
 @Injectable()
 export class EnvironmentValidatorService {
@@ -17,85 +17,103 @@ export class EnvironmentValidatorService {
   private readonly validationRules: ConfigValidationRule[] = [
     // 数据库配置
     {
-      key: 'MONGODB_URI',
+      key: "MONGODB_URI",
       required: true,
-      validator: (value) => typeof value === 'string' && value.startsWith('mongodb://'),
-      errorMessage: 'MONGODB_URI must be a valid MongoDB connection string starting with mongodb://'
+      validator: (value) =>
+        typeof value === "string" && value.startsWith("mongodb://"),
+      errorMessage:
+        "MONGODB_URI must be a valid MongoDB connection string starting with mongodb://",
     },
     {
-      key: 'REDIS_HOST',
+      key: "REDIS_HOST",
       required: false,
-      validator: (value) => !value || typeof value === 'string',
-      warningMessage: 'REDIS_HOST not set, using default localhost'
+      validator: (value) => !value || typeof value === "string",
+      warningMessage: "REDIS_HOST not set, using default localhost",
     },
     {
-      key: 'REDIS_PORT',
+      key: "REDIS_PORT",
       required: false,
-      validator: (value) => !value || (!isNaN(parseInt(value, 10)) && parseInt(value, 10) > 0),
-      errorMessage: 'REDIS_PORT must be a valid positive integer'
+      validator: (value) =>
+        !value || (!isNaN(parseInt(value, 10)) && parseInt(value, 10) > 0),
+      errorMessage: "REDIS_PORT must be a valid positive integer",
     },
 
     // 安全配置
     {
-      key: 'JWT_SECRET',
+      key: "JWT_SECRET",
       required: true,
-      validator: (value) => typeof value === 'string' && value.length >= 32,
-      errorMessage: 'JWT_SECRET must be at least 32 characters long for security'
+      validator: (value) => typeof value === "string" && value.length >= 32,
+      errorMessage:
+        "JWT_SECRET must be at least 32 characters long for security",
     },
     {
-      key: 'JWT_EXPIRES_IN',
+      key: "JWT_EXPIRES_IN",
       required: false,
       validator: (value) => !value || /^(\d+[smhd]|\d+)$/.test(value),
-      errorMessage: 'JWT_EXPIRES_IN must be in format like "1h", "30m", "7d", or "3600"'
+      errorMessage:
+        'JWT_EXPIRES_IN must be in format like "1h", "30m", "7d", or "3600"',
     },
 
     // 应用配置
     {
-      key: 'NODE_ENV',
+      key: "NODE_ENV",
       required: true,
-      validator: (value) => ['development', 'production', 'test'].includes(value),
-      errorMessage: 'NODE_ENV must be "development", "production", or "test"'
+      validator: (value) =>
+        ["development", "production", "test"].includes(value),
+      errorMessage: 'NODE_ENV must be "development", "production", or "test"',
     },
     {
-      key: 'PORT',
+      key: "PORT",
       required: false,
-      validator: (value) => !value || (!isNaN(parseInt(value, 10)) && parseInt(value, 10) > 0 && parseInt(value, 10) < 65536),
-      errorMessage: 'PORT must be a valid port number (1-65535)'
+      validator: (value) =>
+        !value ||
+        (!isNaN(parseInt(value, 10)) &&
+          parseInt(value, 10) > 0 &&
+          parseInt(value, 10) < 65536),
+      errorMessage: "PORT must be a valid port number (1-65535)",
     },
 
     // LongPort API配置
     {
-      key: 'LONGPORT_APP_KEY',
+      key: "LONGPORT_APP_KEY",
       required: false,
-      validator: (value) => !value || (typeof value === 'string' && value.length > 0),
-      warningMessage: 'LONGPORT_APP_KEY not set, LongPort provider will be disabled'
+      validator: (value) =>
+        !value || (typeof value === "string" && value.length > 0),
+      warningMessage:
+        "LONGPORT_APP_KEY not set, LongPort provider will be disabled",
     },
     {
-      key: 'LONGPORT_APP_SECRET',
+      key: "LONGPORT_APP_SECRET",
       required: false,
-      validator: (value) => !value || (typeof value === 'string' && value.length > 0),
-      warningMessage: 'LONGPORT_APP_SECRET not set, LongPort provider will be disabled'
+      validator: (value) =>
+        !value || (typeof value === "string" && value.length > 0),
+      warningMessage:
+        "LONGPORT_APP_SECRET not set, LongPort provider will be disabled",
     },
     {
-      key: 'LONGPORT_ACCESS_TOKEN',
+      key: "LONGPORT_ACCESS_TOKEN",
       required: false,
-      validator: (value) => !value || (typeof value === 'string' && value.length > 0),
-      warningMessage: 'LONGPORT_ACCESS_TOKEN not set, LongPort provider will be disabled'
+      validator: (value) =>
+        !value || (typeof value === "string" && value.length > 0),
+      warningMessage:
+        "LONGPORT_ACCESS_TOKEN not set, LongPort provider will be disabled",
     },
 
     // 功能开关
     {
-      key: 'AUTO_INIT_ENABLED',
+      key: "AUTO_INIT_ENABLED",
       required: false,
-      validator: (value) => !value || ['true', 'false'].includes(value.toLowerCase()),
-      errorMessage: 'AUTO_INIT_ENABLED must be "true" or "false"'
+      validator: (value) =>
+        !value || ["true", "false"].includes(value.toLowerCase()),
+      errorMessage: 'AUTO_INIT_ENABLED must be "true" or "false"',
     },
     {
-      key: 'MONITORING_ENABLED',
+      key: "MONITORING_ENABLED",
       required: false,
-      validator: (value) => !value || ['true', 'false'].includes(value.toLowerCase()),
-      errorMessage: 'MONITORING_ENABLED must be "true" or "false"'
-    }
+      validator: (value) =>
+        !value || ["true", "false"].includes(value.toLowerCase()),
+      errorMessage: 'MONITORING_ENABLED must be "true" or "false"',
+    },
   ];
 
   /**
@@ -105,20 +123,22 @@ export class EnvironmentValidatorService {
     const messages: ValidationMessage[] = [];
     const startTime = Date.now();
 
-    this.logger.debug('Starting environment validation...');
+    this.logger.debug("Starting environment validation...");
 
     try {
       for (const rule of this.validationRules) {
         const value = process.env[rule.key];
-        
+
         // 检查必需字段
         if (rule.required && !value) {
           messages.push({
             severity: ValidationSeverity.ERROR,
             key: rule.key,
-            message: rule.errorMessage || `Required environment variable ${rule.key} is not set`,
+            message:
+              rule.errorMessage ||
+              `Required environment variable ${rule.key} is not set`,
             value,
-            suggestion: `Set ${rule.key} in your environment variables`
+            suggestion: `Set ${rule.key} in your environment variables`,
           });
           continue;
         }
@@ -130,7 +150,7 @@ export class EnvironmentValidatorService {
             key: rule.key,
             message: rule.errorMessage || `Invalid value for ${rule.key}`,
             value: this.sanitizeValue(rule.key, value),
-            suggestion: `Check the format and value of ${rule.key}`
+            suggestion: `Check the format and value of ${rule.key}`,
           });
           continue;
         }
@@ -141,7 +161,7 @@ export class EnvironmentValidatorService {
             severity: ValidationSeverity.WARNING,
             key: rule.key,
             message: rule.warningMessage,
-            suggestion: `Consider setting ${rule.key} for production use`
+            suggestion: `Consider setting ${rule.key} for production use`,
           });
         }
       }
@@ -150,36 +170,41 @@ export class EnvironmentValidatorService {
       this.validateDevelopmentConfig(messages);
 
       // 检查生产环境特定配置
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         this.validateProductionConfig(messages);
       }
 
-      const errors = messages.filter(m => m.severity === ValidationSeverity.ERROR).map(m => m.message);
-      const warnings = messages.filter(m => m.severity === ValidationSeverity.WARNING).map(m => m.message);
+      const errors = messages
+        .filter((m) => m.severity === ValidationSeverity.ERROR)
+        .map((m) => m.message);
+      const warnings = messages
+        .filter((m) => m.severity === ValidationSeverity.WARNING)
+        .map((m) => m.message);
 
       const result: ValidationResult = {
         isValid: errors.length === 0,
         errors,
         warnings,
-        validatedAt: new Date()
+        validatedAt: new Date(),
       };
 
       const duration = Date.now() - startTime;
       this.logger.debug(`Environment validation completed in ${duration}ms`, {
         valid: result.isValid,
         errorCount: errors.length,
-        warningCount: warnings.length
+        warningCount: warnings.length,
       });
 
       return result;
-
     } catch (error) {
-      this.logger.error('Environment validation failed', { error: error.message });
+      this.logger.error("Environment validation failed", {
+        error: error.message,
+      });
       return {
         isValid: false,
         errors: [`Environment validation failed: ${error.message}`],
         warnings: [],
-        validatedAt: new Date()
+        validatedAt: new Date(),
       };
     }
   }
@@ -188,14 +213,14 @@ export class EnvironmentValidatorService {
    * 验证开发环境配置
    */
   private validateDevelopmentConfig(messages: ValidationMessage[]): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       // 开发环境可以使用弱密钥，但给出警告
-      if (process.env.JWT_SECRET === 'dev-secret-key') {
+      if (process.env.JWT_SECRET === "dev-secret-key") {
         messages.push({
           severity: ValidationSeverity.WARNING,
-          key: 'JWT_SECRET',
-          message: 'Using default JWT_SECRET in development mode',
-          suggestion: 'Use a strong secret key in production'
+          key: "JWT_SECRET",
+          message: "Using default JWT_SECRET in development mode",
+          suggestion: "Use a strong secret key in production",
         });
       }
     }
@@ -207,29 +232,29 @@ export class EnvironmentValidatorService {
   private validateProductionConfig(messages: ValidationMessage[]): void {
     // 生产环境必须设置的配置
     const productionRequired = [
-      'LONGPORT_APP_KEY',
-      'LONGPORT_APP_SECRET', 
-      'LONGPORT_ACCESS_TOKEN'
+      "LONGPORT_APP_KEY",
+      "LONGPORT_APP_SECRET",
+      "LONGPORT_ACCESS_TOKEN",
     ];
 
-    productionRequired.forEach(key => {
+    productionRequired.forEach((key) => {
       if (!process.env[key]) {
         messages.push({
           severity: ValidationSeverity.WARNING,
           key,
           message: `${key} is recommended for production environment`,
-          suggestion: `Set ${key} for full functionality in production`
+          suggestion: `Set ${key} for full functionality in production`,
         });
       }
     });
 
     // 检查是否使用默认值
-    if (process.env.JWT_SECRET === 'dev-secret-key') {
+    if (process.env.JWT_SECRET === "dev-secret-key") {
       messages.push({
         severity: ValidationSeverity.ERROR,
-        key: 'JWT_SECRET',
-        message: 'Cannot use default JWT_SECRET in production',
-        suggestion: 'Set a strong, unique JWT_SECRET for production'
+        key: "JWT_SECRET",
+        message: "Cannot use default JWT_SECRET in production",
+        suggestion: "Set a strong, unique JWT_SECRET for production",
       });
     }
   }
@@ -238,13 +263,17 @@ export class EnvironmentValidatorService {
    * 清理敏感信息用于日志记录
    */
   private sanitizeValue(key: string, value: string): string {
-    const sensitiveKeys = ['SECRET', 'TOKEN', 'PASSWORD', 'KEY'];
-    const isSensitive = sensitiveKeys.some(sensitiveKey => key.toUpperCase().includes(sensitiveKey));
-    
+    const sensitiveKeys = ["SECRET", "TOKEN", "PASSWORD", "KEY"];
+    const isSensitive = sensitiveKeys.some((sensitiveKey) =>
+      key.toUpperCase().includes(sensitiveKey),
+    );
+
     if (isSensitive) {
-      return value.length > 8 ? `${value.substring(0, 4)}...${value.substring(value.length - 4)}` : '[HIDDEN]';
+      return value.length > 8
+        ? `${value.substring(0, 4)}...${value.substring(value.length - 4)}`
+        : "[HIDDEN]";
     }
-    
+
     return value;
   }
 }

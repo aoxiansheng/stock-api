@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { QueryResultProcessorService } from "@core/01-entry/query/services/query-result-processor.service";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";

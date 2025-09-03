@@ -1,17 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { Redis } from 'ioredis';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { createLogger } from '../../../../app/config/logger.config';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { FlexibleMappingRuleResponseDto } from '../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
-import { IDataMapperCache } from '../interfaces/data-mapper-cache.interface';
-import { 
-  DATA_MAPPER_CACHE_CONSTANTS, 
+import { Injectable } from "@nestjs/common";
+import { Redis } from "ioredis";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { createLogger } from "../../../../app/config/logger.config";
+import { InjectRedis } from "@nestjs-modules/ioredis";
+import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
+import { IDataMapperCache } from "../interfaces/data-mapper-cache.interface";
+import {
+  DATA_MAPPER_CACHE_CONSTANTS,
   DataMapperCacheOperation,
-  DataMapperCacheMetrics 
-} from '../constants/data-mapper-cache.constants';
-import { DataMapperRedisCacheRuntimeStatsDto } from '../dto/data-mapper-cache.dto';
-import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
+  DataMapperCacheMetrics,
+} from "../constants/data-mapper-cache.constants";
+import { DataMapperRedisCacheRuntimeStatsDto } from "../dto/data-mapper-cache.dto";
+import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 /**
  * DataMapper 专用缓存服务
@@ -24,10 +24,8 @@ export class DataMapperCacheService implements IDataMapperCache {
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    private readonly eventBus: EventEmitter2,  // 事件驱动监控
+    private readonly eventBus: EventEmitter2, // 事件驱动监控
   ) {}
-
-
 
   // 添加空值保护，处理可选注入场景
   /**
@@ -36,54 +34,72 @@ export class DataMapperCacheService implements IDataMapperCache {
    * @param metricValue 指标值（响应时间、数量等）
    * @param tags 标签数据
    */
-  private emitMonitoringEvent(metricName: string, metricValue: number, tags: any): void {
+  private emitMonitoringEvent(
+    metricName: string,
+    metricValue: number,
+    tags: any,
+  ): void {
     try {
       // 使用 setImmediate 实现真正的异步发送，不阻塞业务逻辑
       setImmediate(() => {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'data_mapper_cache',
-          metricType: 'cache',
+          source: "data_mapper_cache",
+          metricType: "cache",
           metricName,
           metricValue,
           tags: {
-            service: 'DataMapperCacheService',
-            ...tags
-          }
+            service: "DataMapperCacheService",
+            ...tags,
+          },
         });
       });
     } catch (error) {
       // 事件发送失败不应影响业务逻辑，仅记录调试日志
-      this.logger.debug('监控事件发送失败', { metricName, error: error.message });
+      this.logger.debug("监控事件发送失败", {
+        metricName,
+        error: error.message,
+      });
     }
   }
 
   /**
    * 优化的SCAN实现，支持超时和错误处理
    */
-  private async scanKeysWithTimeout(pattern: string, timeoutMs: number = 5000): Promise<string[]> {
+  private async scanKeysWithTimeout(
+    pattern: string,
+    timeoutMs: number = 5000,
+  ): Promise<string[]> {
     const keys: string[] = [];
-    let cursor = '0';
+    let cursor = "0";
     const startTime = Date.now();
-    
+
     try {
       do {
         // 检查超时
         if (Date.now() - startTime > timeoutMs) {
-          this.logger.warn('SCAN操作超时', { pattern, scannedKeys: keys.length, timeoutMs });
+          this.logger.warn("SCAN操作超时", {
+            pattern,
+            scannedKeys: keys.length,
+            timeoutMs,
+          });
           break;
         }
 
-        const result = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        const result = await this.redis.scan(
+          cursor,
+          "MATCH",
+          pattern,
+          "COUNT",
+          100,
+        );
         cursor = result[0];
         keys.push(...result[1]);
-        
-      } while (cursor !== '0' && keys.length < 10000); // 防止内存过度使用
+      } while (cursor !== "0" && keys.length < 10000); // 防止内存过度使用
 
       return keys;
-      
     } catch (error) {
-      this.logger.error('SCAN操作失败', { pattern, error: error.message });
+      this.logger.error("SCAN操作失败", { pattern, error: error.message });
       // 降级到空数组，而不是抛出异常
       return [];
     }
@@ -97,7 +113,7 @@ export class DataMapperCacheService implements IDataMapperCache {
 
     const BATCH_SIZE = 100;
     const batches = [];
-    
+
     for (let i = 0; i < keys.length; i += BATCH_SIZE) {
       batches.push(keys.slice(i, i + BATCH_SIZE));
     }
@@ -107,9 +123,12 @@ export class DataMapperCacheService implements IDataMapperCache {
       try {
         await this.redis.del(...batch);
         // 批次间短暂延迟，降低Redis负载
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       } catch (error) {
-        this.logger.warn('批量删除失败', { batchSize: batch.length, error: error.message });
+        this.logger.warn("批量删除失败", {
+          batchSize: batch.length,
+          error: error.message,
+        });
       }
     }
   }
@@ -119,63 +138,59 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async cacheBestMatchingRule(
     provider: string,
-    apiType: 'rest' | 'stream',
+    apiType: "rest" | "stream",
     transDataRuleListType: string,
-    rule: FlexibleMappingRuleResponseDto
+    rule: FlexibleMappingRuleResponseDto,
   ): Promise<void> {
     const startTime = Date.now();
-    const cacheKey = this.buildBestRuleKey(provider, apiType, transDataRuleListType);
-    
+    const cacheKey = this.buildBestRuleKey(
+      provider,
+      apiType,
+      transDataRuleListType,
+    );
+
     try {
       await this.redis.setex(
         cacheKey,
         DATA_MAPPER_CACHE_CONSTANTS.TTL.BEST_RULE,
-        JSON.stringify(rule)
+        JSON.stringify(rule),
       );
-      
-      this.logger.debug('最佳匹配规则已缓存', {
+
+      this.logger.debug("最佳匹配规则已缓存", {
         provider,
         apiType,
         transDataRuleListType,
         dataMapperRuleId: rule.id,
-        cacheKey
+        cacheKey,
       });
 
       // ✅ 事件化监控：缓存设置成功
-      this.emitMonitoringEvent(
-        'cache_set_success',
-        Date.now() - startTime,
-        {
-          cacheType: 'redis',
-          operation: 'set',
-          layer: 'L2_best_matching_rule',
-          key: cacheKey,
-          ttl: DATA_MAPPER_CACHE_CONSTANTS.TTL.BEST_RULE,
-          status: 'success'
-        }
-      );
+      this.emitMonitoringEvent("cache_set_success", Date.now() - startTime, {
+        cacheType: "redis",
+        operation: "set",
+        layer: "L2_best_matching_rule",
+        key: cacheKey,
+        ttl: DATA_MAPPER_CACHE_CONSTANTS.TTL.BEST_RULE,
+        status: "success",
+      });
     } catch (error) {
-      this.logger.warn('缓存最佳匹配规则失败', {
+      this.logger.warn("缓存最佳匹配规则失败", {
         provider,
         apiType,
         transDataRuleListType,
-        error: error.message
+        error: error.message,
       });
-      
+
       // ✅ 事件化监控：缓存设置失败
-      this.emitMonitoringEvent(
-        'cache_set_failed',
-        Date.now() - startTime,
-        {
-          cacheType: 'redis',
-          operation: 'set',
-          layer: 'L2_best_matching_rule',
-          key: cacheKey,
-          status: 'error',
-          error: error.message
-        }
-      );
-      
+      this.emitMonitoringEvent("cache_set_failed", Date.now() - startTime, {
+        cacheType: "redis",
+        operation: "set",
+        layer: "L2_best_matching_rule",
+        key: cacheKey,
+        status: "error",
+        error: error.message,
+      });
+
       throw error;
     }
   }
@@ -185,76 +200,68 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async getCachedBestMatchingRule(
     provider: string,
-    apiType: 'rest' | 'stream',
-    transDataRuleListType: string
+    apiType: "rest" | "stream",
+    transDataRuleListType: string,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
     const startTime = Date.now();
-    const cacheKey = this.buildBestRuleKey(provider, apiType, transDataRuleListType);
-    
+    const cacheKey = this.buildBestRuleKey(
+      provider,
+      apiType,
+      transDataRuleListType,
+    );
+
     try {
       const cachedValue = await this.redis.get(cacheKey);
-      
+
       if (cachedValue) {
         // ✅ 缓存命中已通过事件驱动记录
-        this.logger.debug('最佳匹配规则缓存命中', {
+        this.logger.debug("最佳匹配规则缓存命中", {
           provider,
           apiType,
-          transDataRuleListType
+          transDataRuleListType,
         });
-        
+
         // ✅ 事件化监控：缓存命中
-        this.emitMonitoringEvent(
-          'cache_get_hit',
-          Date.now() - startTime,
-          {
-            cacheType: 'redis',
-            operation: 'get',
-            layer: 'L2_best_matching_rule',
-            key: cacheKey,
-            status: 'success'
-          }
-        );
-        
+        this.emitMonitoringEvent("cache_get_hit", Date.now() - startTime, {
+          cacheType: "redis",
+          operation: "get",
+          layer: "L2_best_matching_rule",
+          key: cacheKey,
+          status: "success",
+        });
+
         const rule = JSON.parse(cachedValue) as FlexibleMappingRuleResponseDto;
         return rule;
       }
-      
+
       // ✅ 事件化监控：缓存未命中
-      this.emitMonitoringEvent(
-        'cache_get_miss',
-        Date.now() - startTime,
-        {
-          cacheType: 'redis',
-          operation: 'get',
-          layer: 'L2_best_matching_rule',
-          key: cacheKey,
-          status: 'miss'
-        }
-      );
-      
+      this.emitMonitoringEvent("cache_get_miss", Date.now() - startTime, {
+        cacheType: "redis",
+        operation: "get",
+        layer: "L2_best_matching_rule",
+        key: cacheKey,
+        status: "miss",
+      });
+
       return null;
     } catch (error) {
-      this.logger.warn('获取最佳匹配规则缓存失败', {
+      this.logger.warn("获取最佳匹配规则缓存失败", {
         provider,
         apiType,
         transDataRuleListType,
-        error: error.message
+        error: error.message,
       });
-      
+
       // ✅ 事件化监控：缓存获取错误
-      this.emitMonitoringEvent(
-        'cache_get_error',
-        Date.now() - startTime,
-        {
-          cacheType: 'redis',
-          operation: 'get',
-          layer: 'L2_best_matching_rule',
-          key: cacheKey,
-          status: 'error',
-          error: error.message
-        }
-      );
-      
+      this.emitMonitoringEvent("cache_get_error", Date.now() - startTime, {
+        cacheType: "redis",
+        operation: "get",
+        layer: "L2_best_matching_rule",
+        key: cacheKey,
+        status: "error",
+        error: error.message,
+      });
+
       return null;
     }
   }
@@ -264,34 +271,34 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async cacheRuleById(rule: FlexibleMappingRuleResponseDto): Promise<void> {
     if (!rule.id) {
-      this.logger.warn('尝试缓存没有ID的规则，已跳过', {
+      this.logger.warn("尝试缓存没有ID的规则，已跳过", {
         ruleName: rule.name,
-        provider: rule.provider
+        provider: rule.provider,
       });
       return;
     }
 
     const startTime = Date.now();
     const cacheKey = this.buildRuleByIdKey(rule.id);
-    
+
     try {
       await this.redis.setex(
         cacheKey,
         DATA_MAPPER_CACHE_CONSTANTS.TTL.RULE_BY_ID,
-        JSON.stringify(rule)
+        JSON.stringify(rule),
       );
-      
-      this.logger.debug('规则内容已缓存', {
+
+      this.logger.debug("规则内容已缓存", {
         dataMapperRuleId: rule.id,
         ruleName: rule.name,
-        provider: rule.provider
+        provider: rule.provider,
       });
 
       // ✅ 监控已通过CollectorService记录
     } catch (error) {
-      this.logger.warn('缓存规则内容失败', {
+      this.logger.warn("缓存规则内容失败", {
         dataMapperRuleId: rule.id,
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -300,29 +307,31 @@ export class DataMapperCacheService implements IDataMapperCache {
   /**
    * 🔍 获取缓存的规则内容
    */
-  async getCachedRuleById(dataMapperRuleId: string): Promise<FlexibleMappingRuleResponseDto | null> {
+  async getCachedRuleById(
+    dataMapperRuleId: string,
+  ): Promise<FlexibleMappingRuleResponseDto | null> {
     const startTime = Date.now();
     const cacheKey = this.buildRuleByIdKey(dataMapperRuleId);
-    
+
     try {
       const cachedValue = await this.redis.get(cacheKey);
-      
+
       if (cachedValue) {
         // ✅ 缓存命中已通过事件驱动记录
-        this.logger.debug('规则内容缓存命中', { dataMapperRuleId });
-        
+        this.logger.debug("规则内容缓存命中", { dataMapperRuleId });
+
         const rule = JSON.parse(cachedValue) as FlexibleMappingRuleResponseDto;
         // ✅ 监控已通过事件驱动记录
         return rule;
       }
-      
+
       // ✅ 缓存未命中已通过事件驱动记录
       // ✅ 监控已通过CollectorService记录
       return null;
     } catch (error) {
-      this.logger.warn('获取规则内容缓存失败', {
+      this.logger.warn("获取规则内容缓存失败", {
         dataMapperRuleId,
-        error: error.message
+        error: error.message,
       });
       // ✅ 缓存未命中已通过事件驱动记录
       return null;
@@ -334,31 +343,31 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async cacheProviderRules(
     provider: string,
-    apiType: 'rest' | 'stream',
-    rules: FlexibleMappingRuleResponseDto[]
+    apiType: "rest" | "stream",
+    rules: FlexibleMappingRuleResponseDto[],
   ): Promise<void> {
     const startTime = Date.now();
     const cacheKey = this.buildProviderRulesKey(provider, apiType);
-    
+
     try {
       await this.redis.setex(
         cacheKey,
         DATA_MAPPER_CACHE_CONSTANTS.TTL.PROVIDER_RULES,
-        JSON.stringify(rules)
+        JSON.stringify(rules),
       );
-      
-      this.logger.debug('提供商规则列表已缓存', {
+
+      this.logger.debug("提供商规则列表已缓存", {
         provider,
         apiType,
-        rulesCount: rules.length
+        rulesCount: rules.length,
       });
 
       // ✅ 监控已通过CollectorService记录
     } catch (error) {
-      this.logger.warn('缓存提供商规则列表失败', {
+      this.logger.warn("缓存提供商规则列表失败", {
         provider,
         apiType,
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -369,35 +378,37 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async getCachedProviderRules(
     provider: string,
-    apiType: 'rest' | 'stream'
+    apiType: "rest" | "stream",
   ): Promise<FlexibleMappingRuleResponseDto[] | null> {
     const startTime = Date.now();
     const cacheKey = this.buildProviderRulesKey(provider, apiType);
-    
+
     try {
       const cachedValue = await this.redis.get(cacheKey);
-      
+
       if (cachedValue) {
         // ✅ 缓存命中已通过事件驱动记录
-        const rules = JSON.parse(cachedValue) as FlexibleMappingRuleResponseDto[];
-        this.logger.debug('提供商规则列表缓存命中', {
+        const rules = JSON.parse(
+          cachedValue,
+        ) as FlexibleMappingRuleResponseDto[];
+        this.logger.debug("提供商规则列表缓存命中", {
           provider,
           apiType,
-          rulesCount: rules.length
+          rulesCount: rules.length,
         });
-        
+
         // ✅ 监控已通过事件驱动记录
         return rules;
       }
-      
+
       // ✅ 缓存未命中已通过事件驱动记录
       // ✅ 监控已通过CollectorService记录
       return null;
     } catch (error) {
-      this.logger.warn('获取提供商规则列表缓存失败', {
+      this.logger.warn("获取提供商规则列表缓存失败", {
         provider,
         apiType,
-        error: error.message
+        error: error.message,
       });
       // ✅ 缓存未命中已通过事件驱动记录
       return null;
@@ -407,7 +418,10 @@ export class DataMapperCacheService implements IDataMapperCache {
   /**
    * 🧹 失效规则相关缓存
    */
-  async invalidateRuleCache(dataMapperRuleId: string, rule?: FlexibleMappingRuleResponseDto): Promise<void> {
+  async invalidateRuleCache(
+    dataMapperRuleId: string,
+    rule?: FlexibleMappingRuleResponseDto,
+  ): Promise<void> {
     try {
       const keysToDelete: string[] = [];
 
@@ -416,34 +430,38 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       if (rule) {
         // 失效最佳匹配缓存
-        keysToDelete.push(this.buildBestRuleKey(
-          rule.provider,
-          rule.apiType as 'rest' | 'stream',
-          rule.transDataRuleListType
-        ));
+        keysToDelete.push(
+          this.buildBestRuleKey(
+            rule.provider,
+            rule.apiType as "rest" | "stream",
+            rule.transDataRuleListType,
+          ),
+        );
 
         // 失效提供商规则列表缓存
-        keysToDelete.push(this.buildProviderRulesKey(
-          rule.provider,
-          rule.apiType as 'rest' | 'stream'
-        ));
+        keysToDelete.push(
+          this.buildProviderRulesKey(
+            rule.provider,
+            rule.apiType as "rest" | "stream",
+          ),
+        );
       }
 
       // 批量删除
       if (keysToDelete.length > 0) {
         await this.redis.del(...keysToDelete);
-        
-        this.logger.log('规则相关缓存已失效', {
+
+        this.logger.log("规则相关缓存已失效", {
           dataMapperRuleId,
-          invalidatedKeys: keysToDelete.length
+          invalidatedKeys: keysToDelete.length,
         });
 
         // ✅ 删除操作监控已通过事件驱动记录
       }
     } catch (error) {
-      this.logger.error('失效规则缓存失败', {
+      this.logger.error("失效规则缓存失败", {
         dataMapperRuleId,
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -454,7 +472,7 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async invalidateProviderCache(provider: string): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       const patterns = [
         `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:${provider}:*`,
@@ -462,7 +480,7 @@ export class DataMapperCacheService implements IDataMapperCache {
       ];
 
       let totalDeleted = 0;
-      
+
       for (const pattern of patterns) {
         const keys = await this.scanKeysWithTimeout(pattern, 3000);
         await this.batchDelete(keys);
@@ -471,34 +489,39 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       // 事件化监控：提供商缓存失效成功
       this.emitMonitoringEvent(
-        'cache_invalidate_provider_success',
+        "cache_invalidate_provider_success",
         Date.now() - startTime,
         {
-          cacheType: 'redis',
-          operation: 'delete',
+          cacheType: "redis",
+          operation: "delete",
           provider,
           deletedKeys: totalDeleted,
-          status: 'success'
-        }
+          status: "success",
+        },
       );
 
-      this.logger.log('提供商缓存失效完成', { provider, deletedKeys: totalDeleted });
-      
+      this.logger.log("提供商缓存失效完成", {
+        provider,
+        deletedKeys: totalDeleted,
+      });
     } catch (error) {
       // 事件化监控：提供商缓存失效失败
       this.emitMonitoringEvent(
-        'cache_invalidate_provider_error',
+        "cache_invalidate_provider_error",
         Date.now() - startTime,
         {
-          cacheType: 'redis',
-          operation: 'delete',
+          cacheType: "redis",
+          operation: "delete",
           provider,
-          status: 'error',
-          error: error.message
-        }
+          status: "error",
+          error: error.message,
+        },
       );
-      
-      this.logger.error('失效提供商缓存失败', { provider, error: error.message });
+
+      this.logger.error("失效提供商缓存失败", {
+        provider,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -508,11 +531,13 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async clearAllRuleCache(): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
-      const patterns = Object.values(DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS).map(prefix => `${prefix}:*`);
+      const patterns = Object.values(
+        DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS,
+      ).map((prefix) => `${prefix}:*`);
       let totalDeleted = 0;
-      
+
       for (const pattern of patterns) {
         const keys = await this.scanKeysWithTimeout(pattern, 5000);
         await this.batchDelete(keys);
@@ -521,31 +546,31 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       // 事件化监控：清空所有缓存成功
       this.emitMonitoringEvent(
-        'cache_clear_all_success',
+        "cache_clear_all_success",
         Date.now() - startTime,
         {
-          cacheType: 'redis',
-          operation: 'delete',
+          cacheType: "redis",
+          operation: "delete",
           deletedKeys: totalDeleted,
-          status: 'success'
-        }
+          status: "success",
+        },
       );
 
-      this.logger.log('所有规则缓存已清空', { deletedKeys: totalDeleted });
+      this.logger.log("所有规则缓存已清空", { deletedKeys: totalDeleted });
     } catch (error) {
       // 事件化监控：清空所有缓存失败
       this.emitMonitoringEvent(
-        'cache_clear_all_error',
+        "cache_clear_all_error",
         Date.now() - startTime,
         {
-          cacheType: 'redis',
-          operation: 'delete',
-          status: 'error',
-          error: error.message
-        }
+          cacheType: "redis",
+          operation: "delete",
+          status: "error",
+          error: error.message,
+        },
       );
-      
-      this.logger.error('清空规则缓存失败', { error: error.message });
+
+      this.logger.error("清空规则缓存失败", { error: error.message });
       throw error;
     }
   }
@@ -553,8 +578,10 @@ export class DataMapperCacheService implements IDataMapperCache {
   /**
    * 🔥 缓存预热
    */
-  async warmupCache(commonRules: FlexibleMappingRuleResponseDto[]): Promise<void> {
-    this.logger.log('开始规则缓存预热', { rulesCount: commonRules.length });
+  async warmupCache(
+    commonRules: FlexibleMappingRuleResponseDto[],
+  ): Promise<void> {
+    this.logger.log("开始规则缓存预热", { rulesCount: commonRules.length });
 
     const startTime = Date.now();
     let cached = 0;
@@ -564,9 +591,9 @@ export class DataMapperCacheService implements IDataMapperCache {
     for (const rule of commonRules) {
       if (!rule.id) {
         skipped++;
-        this.logger.warn('预热缓存时跳过没有ID的规则', {
+        this.logger.warn("预热缓存时跳过没有ID的规则", {
           ruleName: rule.name,
-          provider: rule.provider
+          provider: rule.provider,
         });
         continue;
       }
@@ -579,29 +606,29 @@ export class DataMapperCacheService implements IDataMapperCache {
         if (rule.isDefault) {
           await this.cacheBestMatchingRule(
             rule.provider,
-            rule.apiType as 'rest' | 'stream',
+            rule.apiType as "rest" | "stream",
             rule.transDataRuleListType,
-            rule
+            rule,
           );
         }
 
         cached++;
       } catch (error) {
         failed++;
-        this.logger.warn('预热规则缓存失败', {
+        this.logger.warn("预热规则缓存失败", {
           dataMapperRuleId: rule.id,
-          error: error.message
+          error: error.message,
         });
       }
     }
 
     const duration = Date.now() - startTime;
-    this.logger.log('规则缓存预热完成', { 
-      cached, 
-      failed, 
-      skipped, 
+    this.logger.log("规则缓存预热完成", {
+      cached,
+      failed,
+      skipped,
       total: commonRules.length,
-      duration: `${duration}ms`
+      duration: `${duration}ms`,
     });
 
     // ✅ 预热操作监控已通过事件驱动记录
@@ -612,25 +639,39 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async getCacheStats(): Promise<DataMapperRedisCacheRuntimeStatsDto> {
     const startTime = Date.now();
-    
+
     try {
       // 获取各类型缓存的数量 - 使用SCAN替代KEYS
-      const [bestRuleKeys, ruleByIdKeys, providerRulesKeys] = await Promise.all([
-        this.scanKeysWithTimeout(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:*`, 2000),
-        this.scanKeysWithTimeout(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:*`, 2000),
-        this.scanKeysWithTimeout(`${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:*`, 2000),
-      ]);
+      const [bestRuleKeys, ruleByIdKeys, providerRulesKeys] = await Promise.all(
+        [
+          this.scanKeysWithTimeout(
+            `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:*`,
+            2000,
+          ),
+          this.scanKeysWithTimeout(
+            `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:*`,
+            2000,
+          ),
+          this.scanKeysWithTimeout(
+            `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:*`,
+            2000,
+          ),
+        ],
+      );
 
       // 事件化监控：缓存统计扫描成功
       this.emitMonitoringEvent(
-        'cache_stats_scan_success',
+        "cache_stats_scan_success",
         Date.now() - startTime,
         {
-          cacheType: 'redis',
-          operation: 'scan',
-          scannedKeys: bestRuleKeys.length + ruleByIdKeys.length + providerRulesKeys.length,
-          status: 'success'
-        }
+          cacheType: "redis",
+          operation: "scan",
+          scannedKeys:
+            bestRuleKeys.length +
+            ruleByIdKeys.length +
+            providerRulesKeys.length,
+          status: "success",
+        },
       );
 
       // ✅ 统计数据现在由事件驱动监控提供，这里只返回缓存大小信息
@@ -638,24 +679,21 @@ export class DataMapperCacheService implements IDataMapperCache {
         bestRuleCacheSize: bestRuleKeys.length,
         ruleByIdCacheSize: ruleByIdKeys.length,
         providerRulesCacheSize: providerRulesKeys.length,
-        totalCacheSize: bestRuleKeys.length + ruleByIdKeys.length + providerRulesKeys.length,
+        totalCacheSize:
+          bestRuleKeys.length + ruleByIdKeys.length + providerRulesKeys.length,
         hitRate: 0, // ✅ 由事件驱动监控提供统计数据
         avgResponseTime: 0, // ✅ 由事件驱动监控提供性能数据
       };
     } catch (error) {
       // 事件化监控：统计获取失败
-      this.emitMonitoringEvent(
-        'cache_stats_error',
-        Date.now() - startTime,
-        {
-          cacheType: 'redis',
-          operation: 'scan',
-          status: 'error',
-          error: error.message
-        }
-      );
-      
-      this.logger.error('获取缓存统计失败', { error: error.message });
+      this.emitMonitoringEvent("cache_stats_error", Date.now() - startTime, {
+        cacheType: "redis",
+        operation: "scan",
+        status: "error",
+        error: error.message,
+      });
+
+      this.logger.error("获取缓存统计失败", { error: error.message });
       return {
         bestRuleCacheSize: 0,
         ruleByIdCacheSize: 0,
@@ -672,7 +710,11 @@ export class DataMapperCacheService implements IDataMapperCache {
   /**
    * 构建最佳规则缓存键
    */
-  private buildBestRuleKey(provider: string, apiType: string, transDataRuleListType: string): string {
+  private buildBestRuleKey(
+    provider: string,
+    apiType: string,
+    transDataRuleListType: string,
+  ): string {
     return `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:${provider}:${apiType}:${transDataRuleListType}`;
   }
 

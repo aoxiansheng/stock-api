@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * WebSocketServerProvider单元测试
  * 验证Gateway集成和健康检查功能

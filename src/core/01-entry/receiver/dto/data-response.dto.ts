@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class FailureDetailDto {
-  @ApiProperty({ description: '失败的符号' })
+  @ApiProperty({ description: "失败的符号" })
   symbol: string;
-  
-  @ApiPropertyOptional({ description: '失败原因' })
+
+  @ApiPropertyOptional({ description: "失败原因" })
   reason?: string;
 }
 
@@ -64,9 +64,9 @@ export class DataResponseDto<T = unknown> {
   @ApiProperty({ description: "数据处理元信息", type: ResponseMetadataDto })
   metadata: ResponseMetadataDto;
 
-  @ApiPropertyOptional({ 
-    description: '失败的符号明细',
-    type: [FailureDetailDto]
+  @ApiPropertyOptional({
+    description: "失败的符号明细",
+    type: [FailureDetailDto],
   })
   failures?: FailureDetailDto[];
 

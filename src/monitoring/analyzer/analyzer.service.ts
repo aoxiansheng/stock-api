@@ -1,7 +1,7 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { createLogger } from '../../app/config/logger.config';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { 
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { createLogger } from "../../app/config/logger.config";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import {
   IAnalyzer,
   AnalysisOptions,
   PerformanceAnalysisDto,
@@ -10,21 +10,19 @@ import {
   EndpointMetricsDto,
   DatabaseMetricsDto,
   CacheMetricsDto,
-  SuggestionDto
-} from '../contracts/interfaces/analyzer.interface';
-import { 
-  SYSTEM_STATUS_EVENTS,
-} from '../contracts/events/system-status.events';
-import type { 
+  SuggestionDto,
+} from "../contracts/interfaces/analyzer.interface";
+import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
+import type {
   DataRequestEvent,
-  DataResponseEvent 
-} from '../contracts/events/system-status.events';
-import { AnalyzerMetricsCalculator } from './analyzer-metrics.service';
-import { AnalyzerHealthScoreCalculator } from './analyzer-score.service';
-import { HealthAnalyzerService } from './analyzer-health.service';
-import { TrendAnalyzerService } from './analyzer-trend.service';
-import { MonitoringCacheService } from '../cache/monitoring-cache.service';
-import { v4 as uuidv4 } from 'uuid';
+  DataResponseEvent,
+} from "../contracts/events/system-status.events";
+import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
+import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
+import { HealthAnalyzerService } from "./analyzer-health.service";
+import { TrendAnalyzerService } from "./analyzer-trend.service";
+import { MonitoringCacheService } from "../cache/monitoring-cache.service";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * 主分析器服务
@@ -32,16 +30,21 @@ import { v4 as uuidv4 } from 'uuid';
  * 协调各个专业分析服务，统一缓存管理和事件发布
  */
 @Injectable()
-export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy {
+export class AnalyzerService
+  implements IAnalyzer, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = createLogger(AnalyzerService.name);
   private eventHandlers = new Map<string, Function>();
-  
+
   // 事件驱动数据请求管理
-  private dataRequestPromises = new Map<string, {
-    resolve: (data: any) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }>();
+  private dataRequestPromises = new Map<
+    string,
+    {
+      resolve: (data: any) => void;
+      reject: (error: Error) => void;
+      timeout: NodeJS.Timeout;
+    }
+  >();
   private readonly requestTimeoutMs = 5000; // 5秒超时
 
   constructor(
@@ -52,7 +55,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
     private readonly monitoringCache: MonitoringCacheService,
     private readonly eventBus: EventEmitter2,
   ) {
-    this.logger.log('AnalyzerService initialized - 事件驱动分析器服务已启动');
+    this.logger.log("AnalyzerService initialized - 事件驱动分析器服务已启动");
   }
 
   /**
@@ -60,7 +63,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   onModuleInit(): void {
     this.setupEventListeners();
-    this.logger.log('事件监听器已注册');
+    this.logger.log("事件监听器已注册");
   }
 
   /**
@@ -71,15 +74,15 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       this.eventBus.off(event, handler as any);
     });
     this.eventHandlers.clear();
-    
+
     // 清理待处理的数据请求
     this.dataRequestPromises.forEach(({ reject, timeout }, requestId) => {
       clearTimeout(timeout);
-      reject(new Error('AnalyzerService shutting down'));
+      reject(new Error("AnalyzerService shutting down"));
     });
     this.dataRequestPromises.clear();
-    
-    this.logger.log('事件监听器已清理');
+
+    this.logger.log("事件监听器已清理");
   }
 
   /**
@@ -89,18 +92,18 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
   handleDataResponse(responseEvent: DataResponseEvent): void {
     const { requestId, data } = responseEvent;
     const pendingRequest = this.dataRequestPromises.get(requestId);
-    
+
     if (pendingRequest) {
       clearTimeout(pendingRequest.timeout);
       this.dataRequestPromises.delete(requestId);
       pendingRequest.resolve(data);
-      
-      this.logger.debug('数据响应处理完成', { 
+
+      this.logger.debug("数据响应处理完成", {
         requestId,
-        dataSize: responseEvent.dataSize 
+        dataSize: responseEvent.dataSize,
       });
     } else {
-      this.logger.warn('收到未知请求ID的数据响应', { requestId });
+      this.logger.warn("收到未知请求ID的数据响应", { requestId });
     }
   }
 
@@ -111,13 +114,13 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
   handleDataNotAvailable(errorEvent: any): void {
     const { requestId, metadata } = errorEvent;
     const pendingRequest = this.dataRequestPromises.get(requestId);
-    
+
     if (pendingRequest) {
       clearTimeout(pendingRequest.timeout);
       this.dataRequestPromises.delete(requestId);
-      pendingRequest.reject(new Error(metadata?.error || '数据不可用'));
-      
-      this.logger.debug('数据不可用事件处理完成', { requestId });
+      pendingRequest.reject(new Error(metadata?.error || "数据不可用"));
+
+      this.logger.debug("数据不可用事件处理完成", { requestId });
     }
   }
 
@@ -125,63 +128,74 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    * 事件驱动的数据请求方法
    * 替代原来的直接调用collectorService.getRawMetrics()
    */
-  private async requestRawMetrics(startTime?: Date, endTime?: Date): Promise<any> {
+  private async requestRawMetrics(
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<any> {
     const requestId = `analyzer_${Date.now()}_${uuidv4().substring(0, 8)}`;
-    
+
     return new Promise((resolve, reject) => {
       // 设置请求超时
       const timeout = setTimeout(() => {
         this.dataRequestPromises.delete(requestId);
-        reject(new Error('数据请求超时'));
+        reject(new Error("数据请求超时"));
       }, this.requestTimeoutMs);
 
       // 存储请求Promise
       this.dataRequestPromises.set(requestId, {
         resolve,
         reject,
-        timeout
+        timeout,
       });
 
       // 发射数据请求事件
       const requestEvent: DataRequestEvent = {
         timestamp: new Date(),
-        source: 'analyzer',
+        source: "analyzer",
         requestId,
-        requestType: 'raw_metrics',
+        requestType: "raw_metrics",
         startTime,
         endTime,
         metadata: {
-          requester: 'AnalyzerService'
-        }
+          requester: "AnalyzerService",
+        },
       };
 
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_REQUEST, requestEvent);
-      
-      this.logger.debug('已发送数据请求', { requestId, requestType: 'raw_metrics' });
+
+      this.logger.debug("已发送数据请求", {
+        requestId,
+        requestType: "raw_metrics",
+      });
     });
   }
 
   /**
    * 获取性能分析数据
    */
-  async getPerformanceAnalysis(options?: AnalysisOptions): Promise<PerformanceAnalysisDto> {
+  async getPerformanceAnalysis(
+    options?: AnalysisOptions,
+  ): Promise<PerformanceAnalysisDto> {
     try {
-      this.logger.debug('开始性能分析', { options });
+      this.logger.debug("开始性能分析", { options });
 
       // 获取原始指标数据
       const rawMetrics = await this.requestRawMetrics(
         options?.startTime,
-        options?.endTime
+        options?.endTime,
       );
 
       // 计算性能摘要
-      const summary = this.metricsCalculator.calculatePerformanceSummary(rawMetrics);
-      const averageResponseTime = this.metricsCalculator.calculateAverageResponseTime(rawMetrics);
+      const summary =
+        this.metricsCalculator.calculatePerformanceSummary(rawMetrics);
+      const averageResponseTime =
+        this.metricsCalculator.calculateAverageResponseTime(rawMetrics);
       const errorRate = this.metricsCalculator.calculateErrorRate(rawMetrics);
       const throughput = this.metricsCalculator.calculateThroughput(rawMetrics);
-      
+
       // 计算健康分
-      const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
+      const healthScore =
+        this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
 
       // 根据选项决定是否包含详细信息
       let trends: TrendsDto | undefined;
@@ -190,9 +204,11 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       let cacheMetrics: CacheMetricsDto | undefined;
 
       if (options?.includeDetails !== false) {
-        trends = await this.calculateTrends('1h');
-        endpointMetrics = this.metricsCalculator.calculateEndpointMetrics(rawMetrics);
-        databaseMetrics = this.metricsCalculator.calculateDatabaseMetrics(rawMetrics);
+        trends = await this.calculateTrends("1h");
+        endpointMetrics =
+          this.metricsCalculator.calculateEndpointMetrics(rawMetrics);
+        databaseMetrics =
+          this.metricsCalculator.calculateDatabaseMetrics(rawMetrics);
         cacheMetrics = this.metricsCalculator.calculateCacheMetrics(rawMetrics);
       }
 
@@ -206,38 +222,37 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
         trends,
         endpointMetrics,
         databaseMetrics,
-        cacheMetrics
+        cacheMetrics,
       };
 
       // 发射分析完成事件
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.ANALYSIS_COMPLETED, {
         timestamp: new Date(),
-        source: 'analyzer',
-        metadata: { 
-          type: 'performance_analysis',
+        source: "analyzer",
+        metadata: {
+          type: "performance_analysis",
           healthScore,
           dataPoints: rawMetrics.requests?.length || 0,
-          includeDetails: options?.includeDetails !== false
-        }
+          includeDetails: options?.includeDetails !== false,
+        },
       });
 
-      this.logger.debug('性能分析完成', { 
-        healthScore, 
+      this.logger.debug("性能分析完成", {
+        healthScore,
         totalRequests: summary.totalRequests,
         averageResponseTime,
-        errorRate
+        errorRate,
       });
 
       return analysis;
-
     } catch (error) {
-      this.logger.error('性能分析失败', error.stack);
-      
+      this.logger.error("性能分析失败", error.stack);
+
       // 发射错误事件
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.ANALYSIS_ERROR, {
         timestamp: new Date(),
-        source: 'analyzer',
-        metadata: { error: error.message, operation: 'getPerformanceAnalysis' }
+        source: "analyzer",
+        metadata: { error: error.message, operation: "getPerformanceAnalysis" },
       });
 
       throw error;
@@ -251,28 +266,33 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
     try {
       // 使用getOrSet热点路径，自动获得分布式锁与缓存回填
       return await this.monitoringCache.getOrSetHealthData<number>(
-        'score',
+        "score",
         async () => {
           const rawMetrics = await this.requestRawMetrics();
-          const healthScore = this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
-          
+          const healthScore =
+            this.healthScoreCalculator.calculateOverallHealthScore(rawMetrics);
+
           // 发射健康分更新事件
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.HEALTH_SCORE_UPDATED, {
             timestamp: new Date(),
-            source: 'analyzer',
-            metadata: { 
+            source: "analyzer",
+            metadata: {
               healthScore,
               previousScore: 50, // 简化实现
-              trend: healthScore >= 70 ? 'healthy' : healthScore >= 40 ? 'warning' : 'critical'
-            }
+              trend:
+                healthScore >= 70
+                  ? "healthy"
+                  : healthScore >= 40
+                    ? "warning"
+                    : "critical",
+            },
           });
-          
-          return healthScore;
-        }
-      );
 
+          return healthScore;
+        },
+      );
     } catch (error) {
-      this.logger.error('健康分获取失败', error.stack);
+      this.logger.error("健康分获取失败", error.stack);
       return 50; // 默认中等健康分
     }
   }
@@ -285,7 +305,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       const rawMetrics = await this.requestRawMetrics();
       return await this.healthAnalyzer.generateHealthReport(rawMetrics);
     } catch (error) {
-      this.logger.error('健康报告获取失败', error.stack);
+      this.logger.error("健康报告获取失败", error.stack);
       throw error;
     }
   }
@@ -296,26 +316,31 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
   async calculateTrends(period: string): Promise<TrendsDto> {
     try {
       const cacheKey = `trends_${period}`;
-      
+
       // 使用getOrSet热点路径优化
       return await this.monitoringCache.getOrSetTrendData<TrendsDto>(
         cacheKey,
         async () => {
           const currentMetrics = await this.requestRawMetrics();
-          
+
           // 获取历史数据作为对比基线（简化实现）
-          const previousTime = new Date(Date.now() - this.parsePeriodToMs(period));
-          const previousMetrics = await this.requestRawMetrics(previousTime, new Date(previousTime.getTime() + 60000));
+          const previousTime = new Date(
+            Date.now() - this.parsePeriodToMs(period),
+          );
+          const previousMetrics = await this.requestRawMetrics(
+            previousTime,
+            new Date(previousTime.getTime() + 60000),
+          );
 
           return await this.trendAnalyzer.calculatePerformanceTrends(
             currentMetrics,
             previousMetrics.requests?.length ? previousMetrics : undefined,
-            period
+            period,
           );
-        }
+        },
       );
     } catch (error) {
-      this.logger.error('趋势分析失败', error.stack);
+      this.logger.error("趋势分析失败", error.stack);
       return this.getDefaultTrends();
     }
   }
@@ -326,11 +351,12 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
   async getEndpointMetrics(limit?: number): Promise<EndpointMetricsDto[]> {
     try {
       const rawMetrics = await this.requestRawMetrics();
-      const endpointMetrics = this.metricsCalculator.calculateEndpointMetrics(rawMetrics);
-      
+      const endpointMetrics =
+        this.metricsCalculator.calculateEndpointMetrics(rawMetrics);
+
       return limit ? endpointMetrics.slice(0, limit) : endpointMetrics;
     } catch (error) {
-      this.logger.error('端点指标获取失败', error.stack);
+      this.logger.error("端点指标获取失败", error.stack);
       return [];
     }
   }
@@ -343,13 +369,13 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       const rawMetrics = await this.requestRawMetrics();
       return this.metricsCalculator.calculateDatabaseMetrics(rawMetrics);
     } catch (error) {
-      this.logger.error('数据库指标获取失败', error.stack);
+      this.logger.error("数据库指标获取失败", error.stack);
       return {
         totalOperations: 0,
         averageQueryTime: 0,
         slowQueries: 0,
         failedOperations: 0,
-        failureRate: 0
+        failureRate: 0,
       };
     }
   }
@@ -362,13 +388,13 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       const rawMetrics = await this.requestRawMetrics();
       return this.metricsCalculator.calculateCacheMetrics(rawMetrics);
     } catch (error) {
-      this.logger.error('缓存指标获取失败', error.stack);
+      this.logger.error("缓存指标获取失败", error.stack);
       return {
         totalOperations: 0,
         hits: 0,
         misses: 0,
         hitRate: 0,
-        averageResponseTime: 0
+        averageResponseTime: 0,
       };
     }
   }
@@ -378,19 +404,23 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   async getOptimizationSuggestions(): Promise<SuggestionDto[]> {
     try {
-      this.logger.debug('生成优化建议');
+      this.logger.debug("生成优化建议");
 
       // 检查缓存
-      const cacheKey = 'optimization_suggestions';
-      const cachedSuggestions = await this.monitoringCache.getPerformanceData<SuggestionDto[]>(cacheKey);
-      
+      const cacheKey = "optimization_suggestions";
+      const cachedSuggestions =
+        await this.monitoringCache.getPerformanceData<SuggestionDto[]>(
+          cacheKey,
+        );
+
       if (cachedSuggestions) {
         return cachedSuggestions;
       }
 
       const rawMetrics = await this.requestRawMetrics();
-      const healthReport = await this.healthAnalyzer.generateHealthReport(rawMetrics);
-      
+      const healthReport =
+        await this.healthAnalyzer.generateHealthReport(rawMetrics);
+
       const suggestions: SuggestionDto[] = [];
 
       // 基于健康报告生成建议
@@ -398,17 +428,24 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
         healthReport.recommendations.forEach((recommendation, index) => {
           suggestions.push({
             category: this.categorizeRecommendation(recommendation),
-            priority: this.prioritizeRecommendation(recommendation, healthReport.overall.score),
+            priority: this.prioritizeRecommendation(
+              recommendation,
+              healthReport.overall.score,
+            ),
             title: `建议 ${index + 1}`,
             description: recommendation,
             action: this.generateAction(recommendation),
-            impact: this.estimateImpact(recommendation, healthReport.overall.score)
+            impact: this.estimateImpact(
+              recommendation,
+              healthReport.overall.score,
+            ),
           });
         });
       }
 
       // 基于性能指标生成额外建议
-      const performanceSuggestions = await this.generatePerformanceSuggestions(rawMetrics);
+      const performanceSuggestions =
+        await this.generatePerformanceSuggestions(rawMetrics);
       suggestions.push(...performanceSuggestions);
 
       // 缓存结果
@@ -416,9 +453,8 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
 
       this.logger.debug(`优化建议生成完成: ${suggestions.length} 条建议`);
       return suggestions;
-
     } catch (error) {
-      this.logger.error('优化建议生成失败', error.stack);
+      this.logger.error("优化建议生成失败", error.stack);
       return [];
     }
   }
@@ -430,11 +466,11 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
     try {
       if (pattern) {
         // 根据模式选择性失效缓存
-        if (pattern.includes('health')) {
+        if (pattern.includes("health")) {
           await this.monitoringCache.invalidateHealthCache();
-        } else if (pattern.includes('trend')) {
+        } else if (pattern.includes("trend")) {
           await this.monitoringCache.invalidateTrendCache();
-        } else if (pattern.includes('performance')) {
+        } else if (pattern.includes("performance")) {
           await this.monitoringCache.invalidatePerformanceCache();
         } else {
           // 其他模式失效所有缓存
@@ -452,13 +488,13 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
       // 发射缓存失效事件
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_INVALIDATED, {
         timestamp: new Date(),
-        source: 'analyzer',
-        metadata: { pattern: pattern || 'all', reason: 'manual_invalidation' }
+        source: "analyzer",
+        metadata: { pattern: pattern || "all", reason: "manual_invalidation" },
       });
 
-      this.logger.debug(`缓存失效完成: ${pattern || 'all'}`);
+      this.logger.debug(`缓存失效完成: ${pattern || "all"}`);
     } catch (error) {
-      this.logger.error('缓存失效失败', error.stack);
+      this.logger.error("缓存失效失败", error.stack);
     }
   }
 
@@ -474,7 +510,7 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
     try {
       const healthCheck = await this.monitoringCache.healthCheck();
       const stats = this.monitoringCache.getMetrics();
-      
+
       // 从实际统计中获取命中率
       const totalRequests = stats.operations.total;
       const totalHits = stats.operations.hits;
@@ -485,15 +521,15 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
         hitRate: Math.round(hitRate * 10000) / 10000,
         totalRequests,
         totalHits,
-        totalMisses
+        totalMisses,
       };
     } catch (error) {
-      this.logger.error('缓存统计获取失败', error.stack);
+      this.logger.error("缓存统计获取失败", error.stack);
       return {
         hitRate: 0,
         totalRequests: 0,
         totalHits: 0,
-        totalMisses: 0
+        totalMisses: 0,
       };
     }
   }
@@ -504,28 +540,42 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
   private setupEventListeners(): void {
     // 监听数据收集完成事件
     const collectionCompletedHandler = async (data) => {
-      this.logger.debug('数据收集完成，触发分析流程', data);
-      
+      this.logger.debug("数据收集完成，触发分析流程", data);
+
       // 可以在这里触发自动分析
       try {
         await this.getHealthScore();
       } catch (error) {
-        this.logger.error('自动健康分析失败', error.stack);
+        this.logger.error("自动健康分析失败", error.stack);
       }
     };
-    
-    this.eventBus.on(SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED, collectionCompletedHandler);
-    this.eventHandlers.set(SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED, collectionCompletedHandler);
+
+    this.eventBus.on(
+      SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED,
+      collectionCompletedHandler,
+    );
+    this.eventHandlers.set(
+      SYSTEM_STATUS_EVENTS.COLLECTION_COMPLETED,
+      collectionCompletedHandler,
+    );
 
     // 监听数据收集错误事件
     const collectionErrorHandler = async (data) => {
-      this.logger.warn('数据收集错误，可能影响分析准确性', data);
+      this.logger.warn("数据收集错误，可能影响分析准确性", data);
     };
-    
-    this.eventBus.on(SYSTEM_STATUS_EVENTS.COLLECTION_ERROR, collectionErrorHandler);
-    this.eventHandlers.set(SYSTEM_STATUS_EVENTS.COLLECTION_ERROR, collectionErrorHandler);
 
-    this.logger.log(`分析器事件监听器已设置，共 ${this.eventHandlers.size} 个监听器`);
+    this.eventBus.on(
+      SYSTEM_STATUS_EVENTS.COLLECTION_ERROR,
+      collectionErrorHandler,
+    );
+    this.eventHandlers.set(
+      SYSTEM_STATUS_EVENTS.COLLECTION_ERROR,
+      collectionErrorHandler,
+    );
+
+    this.logger.log(
+      `分析器事件监听器已设置，共 ${this.eventHandlers.size} 个监听器`,
+    );
   }
 
   /**
@@ -539,11 +589,16 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
     const unit = match[2];
 
     switch (unit) {
-      case 's': return value * 1000;
-      case 'm': return value * 60 * 1000;
-      case 'h': return value * 60 * 60 * 1000;
-      case 'd': return value * 24 * 60 * 60 * 1000;
-      default: return 3600000;
+      case "s":
+        return value * 1000;
+      case "m":
+        return value * 60 * 1000;
+      case "h":
+        return value * 60 * 60 * 1000;
+      case "d":
+        return value * 24 * 60 * 60 * 1000;
+      default:
+        return 3600000;
     }
   }
 
@@ -552,37 +607,75 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    */
   private getDefaultTrends(): TrendsDto {
     return {
-      responseTime: { current: 0, previous: 0, trend: 'stable', changePercentage: 0 },
-      errorRate: { current: 0, previous: 0, trend: 'stable', changePercentage: 0 },
-      throughput: { current: 0, previous: 0, trend: 'stable', changePercentage: 0 }
+      responseTime: {
+        current: 0,
+        previous: 0,
+        trend: "stable",
+        changePercentage: 0,
+      },
+      errorRate: {
+        current: 0,
+        previous: 0,
+        trend: "stable",
+        changePercentage: 0,
+      },
+      throughput: {
+        current: 0,
+        previous: 0,
+        trend: "stable",
+        changePercentage: 0,
+      },
     };
   }
 
   /**
    * 分类建议
    */
-  private categorizeRecommendation(recommendation: string): 'performance' | 'security' | 'resource' | 'optimization' {
-    if (recommendation.includes('响应时间') || recommendation.includes('性能')) {
-      return 'performance';
-    } else if (recommendation.includes('内存') || recommendation.includes('CPU') || recommendation.includes('资源')) {
-      return 'resource';
-    } else if (recommendation.includes('安全') || recommendation.includes('权限')) {
-      return 'security';
+  private categorizeRecommendation(
+    recommendation: string,
+  ): "performance" | "security" | "resource" | "optimization" {
+    if (
+      recommendation.includes("响应时间") ||
+      recommendation.includes("性能")
+    ) {
+      return "performance";
+    } else if (
+      recommendation.includes("内存") ||
+      recommendation.includes("CPU") ||
+      recommendation.includes("资源")
+    ) {
+      return "resource";
+    } else if (
+      recommendation.includes("安全") ||
+      recommendation.includes("权限")
+    ) {
+      return "security";
     } else {
-      return 'optimization';
+      return "optimization";
     }
   }
 
   /**
    * 优先级建议
    */
-  private prioritizeRecommendation(recommendation: string, healthScore: number): 'high' | 'medium' | 'low' {
-    if (healthScore < 40 || recommendation.includes('严重') || recommendation.includes('关键')) {
-      return 'high';
-    } else if (healthScore < 70 || recommendation.includes('重要') || recommendation.includes('建议')) {
-      return 'medium';
+  private prioritizeRecommendation(
+    recommendation: string,
+    healthScore: number,
+  ): "high" | "medium" | "low" {
+    if (
+      healthScore < 40 ||
+      recommendation.includes("严重") ||
+      recommendation.includes("关键")
+    ) {
+      return "high";
+    } else if (
+      healthScore < 70 ||
+      recommendation.includes("重要") ||
+      recommendation.includes("建议")
+    ) {
+      return "medium";
     } else {
-      return 'low';
+      return "low";
     }
   }
 
@@ -590,18 +683,18 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    * 生成行动建议
    */
   private generateAction(recommendation: string): string {
-    if (recommendation.includes('响应时间')) {
-      return '优化查询逻辑，添加索引，或增加缓存';
-    } else if (recommendation.includes('错误率')) {
-      return '检查错误日志，修复代码问题，改进错误处理';
-    } else if (recommendation.includes('CPU')) {
-      return '优化计算密集型操作，考虑增加服务器资源';
-    } else if (recommendation.includes('内存')) {
-      return '检查内存泄漏，优化内存使用，增加内存容量';
-    } else if (recommendation.includes('缓存')) {
-      return '优化缓存策略，调整TTL设置，增加缓存容量';
+    if (recommendation.includes("响应时间")) {
+      return "优化查询逻辑，添加索引，或增加缓存";
+    } else if (recommendation.includes("错误率")) {
+      return "检查错误日志，修复代码问题，改进错误处理";
+    } else if (recommendation.includes("CPU")) {
+      return "优化计算密集型操作，考虑增加服务器资源";
+    } else if (recommendation.includes("内存")) {
+      return "检查内存泄漏，优化内存使用，增加内存容量";
+    } else if (recommendation.includes("缓存")) {
+      return "优化缓存策略，调整TTL设置，增加缓存容量";
     } else {
-      return '详细分析问题原因，制定针对性解决方案';
+      return "详细分析问题原因，制定针对性解决方案";
     }
   }
 
@@ -609,13 +702,14 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
    * 估算影响
    */
   private estimateImpact(recommendation: string, healthScore: number): string {
-    const severityMultiplier = healthScore < 40 ? '高' : healthScore < 70 ? '中' : '低';
-    
-    if (recommendation.includes('响应时间')) {
+    const severityMultiplier =
+      healthScore < 40 ? "高" : healthScore < 70 ? "中" : "低";
+
+    if (recommendation.includes("响应时间")) {
       return `${severityMultiplier}影响 - 改善用户体验，提升系统性能`;
-    } else if (recommendation.includes('错误率')) {
+    } else if (recommendation.includes("错误率")) {
       return `${severityMultiplier}影响 - 提高系统稳定性，减少故障`;
-    } else if (recommendation.includes('资源')) {
+    } else if (recommendation.includes("资源")) {
       return `${severityMultiplier}影响 - 提升系统容量，避免资源瓶颈`;
     } else {
       return `${severityMultiplier}影响 - 整体系统优化`;
@@ -625,52 +719,54 @@ export class AnalyzerService implements IAnalyzer, OnModuleInit, OnModuleDestroy
   /**
    * 生成性能建议
    */
-  private async generatePerformanceSuggestions(rawMetrics: any): Promise<SuggestionDto[]> {
+  private async generatePerformanceSuggestions(
+    rawMetrics: any,
+  ): Promise<SuggestionDto[]> {
     const suggestions: SuggestionDto[] = [];
 
     try {
-      const avgResponseTime = this.metricsCalculator.calculateAverageResponseTime(rawMetrics);
+      const avgResponseTime =
+        this.metricsCalculator.calculateAverageResponseTime(rawMetrics);
       const errorRate = this.metricsCalculator.calculateErrorRate(rawMetrics);
       const throughput = this.metricsCalculator.calculateThroughput(rawMetrics);
 
       // 响应时间建议
       if (avgResponseTime > 1000) {
         suggestions.push({
-          category: 'performance',
-          priority: avgResponseTime > 2000 ? 'high' : 'medium',
-          title: '响应时间优化',
+          category: "performance",
+          priority: avgResponseTime > 2000 ? "high" : "medium",
+          title: "响应时间优化",
           description: `平均响应时间${avgResponseTime}ms，建议优化`,
-          action: '检查慢查询，优化数据库索引，增加缓存',
-          impact: '显著提升用户体验和系统性能'
+          action: "检查慢查询，优化数据库索引，增加缓存",
+          impact: "显著提升用户体验和系统性能",
         });
       }
 
       // 错误率建议
       if (errorRate > 0.05) {
         suggestions.push({
-          category: 'performance',
-          priority: 'high',
-          title: '错误率过高',
+          category: "performance",
+          priority: "high",
+          title: "错误率过高",
           description: `系统错误率${(errorRate * 100).toFixed(2)}%，需要关注`,
-          action: '分析错误日志，修复代码缺陷，改进异常处理',
-          impact: '提高系统稳定性和可靠性'
+          action: "分析错误日志，修复代码缺陷，改进异常处理",
+          impact: "提高系统稳定性和可靠性",
         });
       }
 
       // 吞吐量建议
       if (throughput < 10) {
         suggestions.push({
-          category: 'optimization',
-          priority: 'medium',
-          title: '吞吐量优化',
+          category: "optimization",
+          priority: "medium",
+          title: "吞吐量优化",
           description: `系统吞吐量${throughput}/min较低，可能存在性能瓶颈`,
-          action: '分析性能瓶颈，优化业务逻辑，考虑水平扩展',
-          impact: '提升系统处理能力和并发性能'
+          action: "分析性能瓶颈，优化业务逻辑，考虑水平扩展",
+          impact: "提升系统处理能力和并发性能",
         });
       }
-
     } catch (error) {
-      this.logger.error('性能建议生成失败', error.stack);
+      this.logger.error("性能建议生成失败", error.stack);
     }
 
     return suggestions;

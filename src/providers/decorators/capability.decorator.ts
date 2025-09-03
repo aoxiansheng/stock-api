@@ -1,10 +1,10 @@
-import 'reflect-metadata';
-import { CapabilityMetadata, Constructor } from './types/metadata.types';
-import { CapabilityCollector } from './capability-collector';
+import "reflect-metadata";
+import { CapabilityMetadata, Constructor } from "./types/metadata.types";
+import { CapabilityCollector } from "./capability-collector";
 
 /**
  * 能力装饰器 - 自动注册数据源能力
- * 
+ *
  * @example
  * ```typescript
  * @Capability({
@@ -26,23 +26,24 @@ export function Capability(metadata: CapabilityMetadata) {
     const finalMetadata: CapabilityMetadata = {
       priority: 1,
       enabled: true,
-      type: 'rest',
+      type: "rest",
       markets: [],
       symbolFormats: [],
-      ...metadata
+      ...metadata,
     };
 
     // 如果没有提供商名称，尝试自动推断
     if (!finalMetadata.provider) {
-      finalMetadata.provider = extractProviderFromPath() || extractProviderFromClassName(target.name);
+      finalMetadata.provider =
+        extractProviderFromPath() || extractProviderFromClassName(target.name);
     }
 
     // 注册到收集器
     CapabilityCollector.registerCapability(finalMetadata, target);
 
     // 存储元数据到类上，供运行时使用
-    Reflect.defineMetadata('capability:metadata', finalMetadata, target);
-    Reflect.defineMetadata('capability:registered', true, target);
+    Reflect.defineMetadata("capability:metadata", finalMetadata, target);
+    Reflect.defineMetadata("capability:registered", true, target);
 
     return target;
   };
@@ -51,15 +52,17 @@ export function Capability(metadata: CapabilityMetadata) {
 /**
  * 获取类上的能力元数据
  */
-export function getCapabilityMetadata(target: any): CapabilityMetadata | undefined {
-  return Reflect.getMetadata('capability:metadata', target);
+export function getCapabilityMetadata(
+  target: any,
+): CapabilityMetadata | undefined {
+  return Reflect.getMetadata("capability:metadata", target);
 }
 
 /**
  * 检查类是否已注册为能力
  */
 export function isCapabilityRegistered(target: any): boolean {
-  return Reflect.getMetadata('capability:registered', target) === true;
+  return Reflect.getMetadata("capability:registered", target) === true;
 }
 
 /**
@@ -68,10 +71,10 @@ export function isCapabilityRegistered(target: any): boolean {
 function extractProviderFromPath(): string | undefined {
   try {
     // 获取调用栈中的文件路径
-    const stack = (new Error()).stack;
+    const stack = new Error().stack;
     if (!stack) return undefined;
 
-    const lines = stack.split('\n');
+    const lines = stack.split("\n");
     // 查找第一个包含 providers/ 的文件路径
     for (const line of lines) {
       const match = line.match(/providers\/([^\/]+)\//);
@@ -91,14 +94,12 @@ function extractProviderFromPath(): string | undefined {
 function extractProviderFromClassName(className: string): string | undefined {
   // 移除常见后缀
   const cleanName = className
-    .replace(/Capability$/, '')
-    .replace(/Provider$/, '')
-    .replace(/Service$/, '');
+    .replace(/Capability$/, "")
+    .replace(/Provider$/, "")
+    .replace(/Service$/, "");
 
   // 转换为小写并用连字符分隔
-  const kebabCase = cleanName
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .toLowerCase();
+  const kebabCase = cleanName.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 
   // 尝试提取提供商前缀
   const prefixMatch = kebabCase.match(/^([a-z]+)-?/);
@@ -108,7 +109,9 @@ function extractProviderFromClassName(className: string): string | undefined {
 /**
  * 工具函数：批量注册能力
  */
-export function registerCapabilities(capabilities: Array<{ metadata: CapabilityMetadata; target: Constructor }>) {
+export function registerCapabilities(
+  capabilities: Array<{ metadata: CapabilityMetadata; target: Constructor }>,
+) {
   for (const { metadata, target } of capabilities) {
     CapabilityCollector.registerCapability(metadata, target);
   }
@@ -116,7 +119,7 @@ export function registerCapabilities(capabilities: Array<{ metadata: CapabilityM
 
 /**
  * 能力注入装饰器 - 在提供商中注入特定能力
- * 
+ *
  * @example
  * ```typescript
  * export class LongportProvider {
@@ -128,18 +131,25 @@ export function registerCapabilities(capabilities: Array<{ metadata: CapabilityM
 export function InjectCapability(capabilityName: string) {
   return function (target: any, propertyKey: string | symbol) {
     // 存储注入信息，在运行时解析
-    const existingInjections = Reflect.getMetadata('capability:injections', target.constructor) || [];
+    const existingInjections =
+      Reflect.getMetadata("capability:injections", target.constructor) || [];
     existingInjections.push({
       propertyKey,
-      capabilityName
+      capabilityName,
     });
-    Reflect.defineMetadata('capability:injections', existingInjections, target.constructor);
+    Reflect.defineMetadata(
+      "capability:injections",
+      existingInjections,
+      target.constructor,
+    );
   };
 }
 
 /**
  * 获取类上的能力注入信息
  */
-export function getCapabilityInjections(target: any): Array<{ propertyKey: string | symbol; capabilityName: string }> {
-  return Reflect.getMetadata('capability:injections', target) || [];
+export function getCapabilityInjections(
+  target: any,
+): Array<{ propertyKey: string | symbol; capabilityName: string }> {
+  return Reflect.getMetadata("capability:injections", target) || [];
 }

@@ -506,5 +506,5 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
         }),
       });
     });
-  })
+  });
 });

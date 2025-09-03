@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // query.constants.integration.test.ts - 测试占位代码
 // 路径: integration/core/restapi/query/constants/query.constants.integration.test.ts
 

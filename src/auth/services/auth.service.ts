@@ -7,8 +7,8 @@ import {
 
 import { createLogger } from "@app/config/logger.config";
 
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SYSTEM_STATUS_EVENTS } from '../../monitoring/contracts/events/system-status.events';
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
 import {
   AUTH_OPERATIONS,
   AUTH_MESSAGES,
@@ -39,18 +39,22 @@ export class AuthService {
   /**
    * 发送业务监控事件（异步、非阻塞）
    */
-  private emitBusinessEvent(metricName: string, success: boolean, metadata?: any) {
+  private emitBusinessEvent(
+    metricName: string,
+    success: boolean,
+    metadata?: any,
+  ) {
     setImmediate(() => {
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
-        source: 'auth',
-        metricType: 'business',
+        source: "auth",
+        metricType: "business",
         metricName,
         metricValue: success ? 1 : 0,
         tags: {
-          status: success ? 'success' : 'error',
-          ...metadata
-        }
+          status: success ? "success" : "error",
+          ...metadata,
+        },
       });
     });
   }
@@ -84,13 +88,13 @@ export class AuthService {
         username,
         email,
       });
-      
+
       // 发送注册失败监控事件
-      this.emitBusinessEvent('user_registration', false, {
-        operation: 'register',
-        reason: 'user_exists'
+      this.emitBusinessEvent("user_registration", false, {
+        operation: "register",
+        reason: "user_exists",
       });
-      
+
       throw new ConflictException(ERROR_MESSAGES.USER_EXISTS);
     }
 
@@ -112,9 +116,9 @@ export class AuthService {
     });
 
     // 发送注册成功监控事件
-    this.emitBusinessEvent('user_registration', true, {
-      operation: 'register',
-      role: user.role
+    this.emitBusinessEvent("user_registration", true, {
+      operation: "register",
+      role: user.role,
     });
 
     // 使用 toJSON() 方法过滤敏感字段
@@ -138,13 +142,13 @@ export class AuthService {
         operation,
         username,
       });
-      
+
       // 发送登录失败监控事件
-      this.emitBusinessEvent('user_login', false, {
-        operation: 'login',
-        reason: user ? 'user_inactive' : 'user_not_found'
+      this.emitBusinessEvent("user_login", false, {
+        operation: "login",
+        reason: user ? "user_inactive" : "user_not_found",
       });
-      
+
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
@@ -161,13 +165,13 @@ export class AuthService {
         operation,
         username,
       });
-      
+
       // 发送登录失败监控事件
-      this.emitBusinessEvent('user_login', false, {
-        operation: 'login',
-        reason: 'invalid_password'
+      this.emitBusinessEvent("user_login", false, {
+        operation: "login",
+        reason: "invalid_password",
       });
-      
+
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
@@ -182,9 +186,9 @@ export class AuthService {
     });
 
     // 发送登录成功监控事件
-    this.emitBusinessEvent('user_login', true, {
-      operation: 'login',
-      role: user.role
+    this.emitBusinessEvent("user_login", true, {
+      operation: "login",
+      role: user.role,
     });
 
     return {
@@ -255,18 +259,21 @@ export class AuthService {
   /**
    * 获取API Key使用统计
    */
-  async getApiKeyUsage(appKey: string, userId: string): Promise<ApiKeyUsageDto> {
+  async getApiKeyUsage(
+    appKey: string,
+    userId: string,
+  ): Promise<ApiKeyUsageDto> {
     try {
       // 验证API Key存在且属于该用户
       const apiKeyData = await this.apiKeyService.findByAppKey(appKey);
       if (!apiKeyData || apiKeyData.userId.toString() !== userId) {
-        throw new ForbiddenException('无权访问此API Key的使用统计');
+        throw new ForbiddenException("无权访问此API Key的使用统计");
       }
 
       // TODO: 从性能监控服务获取使用统计 (需要实现 getApiKeyStats 方法)
       // const stats = await this.performanceMonitor.getApiKeyStats(appKey);
       const stats = null; // 临时处理，等待实现
-      
+
       const usage: ApiKeyUsageDto = {
         apiKeyId: apiKeyData._id.toString(),
         appKey: apiKeyData.appKey,
@@ -280,7 +287,7 @@ export class AuthService {
         lastUsedAt: apiKeyData.lastUsedAt,
         createdAt: apiKeyData.createdAt,
         usageByHour: stats?.usageByHour || {},
-        errorStats: stats?.errorStats || {}
+        errorStats: stats?.errorStats || {},
       };
 
       this.logger.log(`获取API Key使用统计成功: ${appKey}`);
@@ -294,19 +301,22 @@ export class AuthService {
   /**
    * 重置API Key频率限制
    */
-  async resetApiKeyRateLimit(appKey: string, userId: string): Promise<{ success: boolean }> {
+  async resetApiKeyRateLimit(
+    appKey: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
     try {
-      // 验证API Key存在且属于该用户  
+      // 验证API Key存在且属于该用户
       const apiKeyData = await this.apiKeyService.findByAppKey(appKey);
       if (!apiKeyData || apiKeyData.userId.toString() !== userId) {
-        throw new ForbiddenException('无权重置此API Key的频率限制');
+        throw new ForbiddenException("无权重置此API Key的频率限制");
       }
 
       // TODO: 通过性能监控服务重置频率限制 (需要实现 resetRateLimit 方法)
       // await this.performanceMonitor.resetRateLimit(appKey);
       // 临时处理：记录重置操作
       this.logger.warn(`频率限制重置功能尚未实现: ${appKey}`);
-      
+
       this.logger.log(`重置API Key频率限制成功: ${appKey}`);
       return { success: true };
     } catch (error) {
@@ -321,7 +331,11 @@ export class AuthService {
    * @param limit - 每页数量
    * @param includeInactive - 是否包含非活跃用户
    */
-  async getAllUsers(page: number = 1, limit: number = 10, includeInactive: boolean = false) {
+  async getAllUsers(
+    page: number = 1,
+    limit: number = 10,
+    includeInactive: boolean = false,
+  ) {
     this.logger.log(`管理员获取用户列表: 页码${page}, 数量${limit}`);
 
     try {
@@ -329,19 +343,21 @@ export class AuthService {
       const result = await this.userRepository.findAllPaginated(
         page,
         limit,
-        includeInactive
+        includeInactive,
       );
 
       // 获取用户统计信息
       const stats = await this.userRepository.getUserStats();
 
-      this.logger.log(`用户列表获取成功: 第${result.page}页, ${result.users.length}条记录`);
+      this.logger.log(
+        `用户列表获取成功: 第${result.page}页, ${result.users.length}条记录`,
+      );
 
       // 发送管理操作成功监控事件
-      this.emitBusinessEvent('admin_get_users', true, {
-        operation: 'get_all_users',
+      this.emitBusinessEvent("admin_get_users", true, {
+        operation: "get_all_users",
         page: result.page,
-        recordCount: result.users.length
+        recordCount: result.users.length,
       });
 
       return {
@@ -350,13 +366,13 @@ export class AuthService {
       };
     } catch (error: any) {
       this.logger.error(`获取用户列表失败: ${error.message}`);
-      
+
       // 发送管理操作失败监控事件
-      this.emitBusinessEvent('admin_get_users', false, {
-        operation: 'get_all_users',
-        error: error.message
+      this.emitBusinessEvent("admin_get_users", false, {
+        operation: "get_all_users",
+        error: error.message,
       });
-      
+
       throw error;
     }
   }

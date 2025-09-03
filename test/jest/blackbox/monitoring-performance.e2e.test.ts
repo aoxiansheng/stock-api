@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：监控与性能系统
  * 测试系统健康监控、性能指标收集和告警机制

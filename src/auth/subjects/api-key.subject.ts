@@ -67,7 +67,7 @@ export class ApiKeySubject implements AuthSubject {
     if (!validPermissions.includes(permission)) {
       return false;
     }
-    
+
     // 直接匹配
     if (this.permissions.includes(permission)) {
       return true;

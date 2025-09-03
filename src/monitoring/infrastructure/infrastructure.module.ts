@@ -1,6 +1,6 @@
 /**
  * 🎯 基础设施模块
- * 
+ *
  * 提供监控基础能力：
  * - Prometheus 指标注册表
  * - 性能监控装饰器
@@ -8,14 +8,14 @@
  * - 事件驱动指标桥接
  */
 
-import { Module, forwardRef } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { MetricsModule } from './metrics/metrics.module';
-import { MonitoringEventBridgeService } from './bridge/monitoring-event-bridge.service';
-import { ApiMonitoringInterceptor } from './interceptors/api-monitoring.interceptor';
+import { Module, forwardRef } from "@nestjs/common";
+import { ModuleRef } from "@nestjs/core";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { MetricsModule } from "./metrics/metrics.module";
+import { MonitoringEventBridgeService } from "./bridge/monitoring-event-bridge.service";
+import { ApiMonitoringInterceptor } from "./interceptors/api-monitoring.interceptor";
 // import { MetricsRegistryService } from './metrics/metrics-registry.service'; // 🔧 Phase 1: 移除未使用的 import
-import { FeatureFlags } from '@app/config/feature-flags.config';
+import { FeatureFlags } from "@app/config/feature-flags.config";
 
 @Module({
   imports: [MetricsModule],
@@ -32,16 +32,16 @@ import { FeatureFlags } from '@app/config/feature-flags.config';
           return moduleRef.get(EventEmitter2, { strict: false });
         } catch (error) {
           // 如果获取失败，创建本地实例（降级方案）
-          console.warn('无法获取全局EventEmitter2，创建本地实例');
+          console.warn("无法获取全局EventEmitter2，创建本地实例");
           return new EventEmitter2();
         }
       },
       inject: [ModuleRef],
-    }
+    },
   ],
   exports: [
     MetricsModule, // 🔧 导出 MetricsModule
-    FeatureFlags,  // 🔧 Phase 2.4: 导出 FeatureFlags 供其他模块使用
+    FeatureFlags, // 🔧 Phase 2.4: 导出 FeatureFlags 供其他模块使用
     MonitoringEventBridgeService, // 🎯 导出事件桥接服务供其他模块使用
     ApiMonitoringInterceptor, // 导出 ApiMonitoringInterceptor 供 main.ts 使用
   ],

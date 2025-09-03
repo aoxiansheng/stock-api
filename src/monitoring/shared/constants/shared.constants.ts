@@ -4,18 +4,18 @@
 
 // 监控指标类型
 export const MONITORING_METRIC_TYPES = {
-  COUNTER: 'counter',
-  GAUGE: 'gauge', 
-  HISTOGRAM: 'histogram',
-  SUMMARY: 'summary',
+  COUNTER: "counter",
+  GAUGE: "gauge",
+  HISTOGRAM: "histogram",
+  SUMMARY: "summary",
 } as const;
 
 // 监控组件层级
 export const MONITORING_LAYERS = {
-  INFRASTRUCTURE: 'infrastructure',
-  COLLECTOR: 'collector',
-  ANALYZER: 'analyzer',
-  PRESENTER: 'presenter',
+  INFRASTRUCTURE: "infrastructure",
+  COLLECTOR: "collector",
+  ANALYZER: "analyzer",
+  PRESENTER: "presenter",
 } as const;
 
 // 性能阈值
@@ -29,16 +29,16 @@ export const PERFORMANCE_THRESHOLDS = {
 
 // 健康状态
 export const HEALTH_STATUS = {
-  HEALTHY: 'healthy',
-  DEGRADED: 'degraded', 
-  UNHEALTHY: 'unhealthy',
+  HEALTHY: "healthy",
+  DEGRADED: "degraded",
+  UNHEALTHY: "unhealthy",
 } as const;
 
 // 指标标签
 export const METRIC_LABELS = {
-  COMPONENT: 'component',
-  OPERATION: 'operation',
-  STATUS: 'status',
-  ERROR_TYPE: 'error_type',
-  PROVIDER: 'provider',
+  COMPONENT: "component",
+  OPERATION: "operation",
+  STATUS: "status",
+  ERROR_TYPE: "error_type",
+  PROVIDER: "provider",
 } as const;

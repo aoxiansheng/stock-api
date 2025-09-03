@@ -1,5 +1,5 @@
-import { CACHE_KEY_PREFIXES } from '../constants/cache.constants';
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
+import { CACHE_KEY_PREFIXES } from "../constants/cache.constants";
+import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
 /**
  * 缓存键生成工具类
@@ -13,13 +13,15 @@ export class CacheKeyUtils {
    */
   static generateCacheKey(prefix: string, ...parts: string[]): string {
     const validParts = parts.filter(Boolean);
-    const key = `${prefix}:${validParts.join(':')}`;
-    
+    const key = `${prefix}:${validParts.join(":")}`;
+
     // 验证键长度
     if (key.length > CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH) {
-      throw new Error(`Cache key too long: ${key.length} > ${CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH}`);
+      throw new Error(
+        `Cache key too long: ${key.length} > ${CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH}`,
+      );
     }
-    
+
     return key;
   }
 
@@ -30,7 +32,11 @@ export class CacheKeyUtils {
    * @param market 市场
    * @returns 股票报价缓存键
    */
-  static generateStockQuoteKey(symbol: string, provider: string, market?: string): string {
+  static generateStockQuoteKey(
+    symbol: string,
+    provider: string,
+    market?: string,
+  ): string {
     const parts = [symbol, provider];
     if (market) {
       parts.push(market);
@@ -58,8 +64,15 @@ export class CacheKeyUtils {
    * @param targetFormat 目标格式
    * @returns 符号映射缓存键
    */
-  static generateSymbolMappingKey(sourceSymbol: string, targetFormat: string): string {
-    return this.generateCacheKey(CACHE_KEY_PREFIXES.SYMBOL_MAPPING, sourceSymbol, targetFormat);
+  static generateSymbolMappingKey(
+    sourceSymbol: string,
+    targetFormat: string,
+  ): string {
+    return this.generateCacheKey(
+      CACHE_KEY_PREFIXES.SYMBOL_MAPPING,
+      sourceSymbol,
+      targetFormat,
+    );
   }
 
   /**
@@ -69,8 +82,17 @@ export class CacheKeyUtils {
    * @param identifier 标识符
    * @returns 提供商数据缓存键
    */
-  static generateProviderDataKey(provider: string, dataType: string, identifier: string): string {
-    return this.generateCacheKey(CACHE_KEY_PREFIXES.PROVIDER_DATA, provider, dataType, identifier);
+  static generateProviderDataKey(
+    provider: string,
+    dataType: string,
+    identifier: string,
+  ): string {
+    return this.generateCacheKey(
+      CACHE_KEY_PREFIXES.PROVIDER_DATA,
+      provider,
+      dataType,
+      identifier,
+    );
   }
 
   /**
@@ -79,9 +101,11 @@ export class CacheKeyUtils {
    * @returns 处理后的键数组
    */
   static prepareBatchKeys(keys: string[]): string[] {
-    return keys.map(key => {
+    return keys.map((key) => {
       if (key.length > CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH) {
-        throw new Error(`Cache key too long: ${key.length} > ${CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH}`);
+        throw new Error(
+          `Cache key too long: ${key.length} > ${CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH}`,
+        );
       }
       return key;
     });
@@ -93,15 +117,15 @@ export class CacheKeyUtils {
    * @returns 解析结果
    */
   static parseKey(key: string): { prefix: string; parts: string[] } {
-    const firstColonIndex = key.indexOf(':');
+    const firstColonIndex = key.indexOf(":");
     if (firstColonIndex === -1) {
       return { prefix: key, parts: [] };
     }
-    
+
     const prefix = key.substring(0, firstColonIndex);
     const remainingPart = key.substring(firstColonIndex + 1);
-    const parts = remainingPart.split(':'); // 即使是空字符串也分割，保持一致性
-    
+    const parts = remainingPart.split(":"); // 即使是空字符串也分割，保持一致性
+
     return { prefix, parts };
   }
 
@@ -111,20 +135,20 @@ export class CacheKeyUtils {
    * @returns 是否有效
    */
   static isValidKey(key: string): boolean {
-    if (!key || typeof key !== 'string') {
+    if (!key || typeof key !== "string") {
       return false;
     }
-    
+
     if (key.length > CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH) {
       return false;
     }
-    
+
     // 检查是否包含非法字符（空格、换行符、回车符、制表符）
     const illegalChars = /[ \n\r\t]/;
     if (illegalChars.test(key)) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -134,7 +158,7 @@ export class CacheKeyUtils {
    * @param pattern 模式
    * @returns 通配符键
    */
-  static generatePatternKey(prefix: string, pattern: string = '*'): string {
+  static generatePatternKey(prefix: string, pattern: string = "*"): string {
     return `${prefix}:${pattern}`;
   }
 
@@ -146,7 +170,7 @@ export class CacheKeyUtils {
   static normalizeKey(key: string): string {
     return key
       .toLowerCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_:.-]/g, '');
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_:.-]/g, "");
   }
 }

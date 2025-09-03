@@ -17,7 +17,7 @@ import { LongportStreamContextService } from "./services/longport-stream-context
   description: "LongPort 长桥证券数据提供商",
   autoRegister: true,
   healthCheck: true,
-  initPriority: 1
+  initPriority: 1,
 })
 export class LongportProvider implements IDataProvider {
   private readonly logger = createLogger(LongportProvider.name);
@@ -36,9 +36,8 @@ export class LongportProvider implements IDataProvider {
     private streamContextService: LongportStreamContextService,
   ) {
     // 工厂提供者已确保注入的是单例实例，无需额外检查
-    this.logger.log('LongportProvider 构造函数完成，使用工厂提供者保证的单例');
+    this.logger.log("LongportProvider 构造函数完成，使用工厂提供者保证的单例");
   }
-
 
   async initialize(): Promise<void> {
     this.logger.log("初始化 LongPort 提供商...");

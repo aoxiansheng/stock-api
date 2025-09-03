@@ -135,11 +135,7 @@ export function ApiKeyAuth(permissions?: Permission[]) {
 export function MixedAuth(roles?: UserRole[], permissions?: Permission[]) {
   const decorators = [
     // RateLimitGuard 现在是全局守卫，不需要在这里重复使用
-    UseGuards(
-      JwtAuthGuard,
-      ApiKeyAuthGuard,
-      UnifiedPermissionsGuard,
-    ),
+    UseGuards(JwtAuthGuard, ApiKeyAuthGuard, UnifiedPermissionsGuard),
     ApiBearerAuth(),
     ApiSecurity("ApiKey"),
     ApiSecurity("AccessToken"),

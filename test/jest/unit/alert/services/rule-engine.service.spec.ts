@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { ConfigService } from "@nestjs/config";

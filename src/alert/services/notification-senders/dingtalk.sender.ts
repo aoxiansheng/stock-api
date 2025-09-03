@@ -1,4 +1,4 @@
-import  crypto from "crypto";
+import crypto from "crypto";
 
 import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
@@ -30,9 +30,7 @@ export class DingTalkSender implements NotificationSender {
     const startTime = Date.now();
 
     // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
-    const urlValidation = URLSecurityValidator.validateURL(
-      config.webhook_url,
-    );
+    const urlValidation = URLSecurityValidator.validateURL(config.webhook_url);
     if (!urlValidation.valid) {
       throw new BadRequestException(
         `DingTalk Webhook URL安全检查失败: ${urlValidation.error}`,
@@ -73,7 +71,7 @@ export class DingTalkSender implements NotificationSender {
           success: false,
           channelId: config.id || "dingtalk",
           channelType: this.type,
-          message: `钉钉API返回错误码: ${response.data?.errcode || 'unknown'}`,
+          message: `钉钉API返回错误码: ${response.data?.errcode || "unknown"}`,
           sentAt: new Date(),
           duration: Date.now() - startTime,
         };

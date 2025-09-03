@@ -130,7 +130,7 @@ export const MARKET_RECOGNITION_RULES = Object.freeze({
       MARKET_CODE: "SH",
     }),
   }),
-  
+
   // 向后兼容的别名（已弃用，建议使用MARKETS）
   HK_PATTERNS: Object.freeze({
     SUFFIX: ".HK",

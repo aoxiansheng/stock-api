@@ -3,18 +3,18 @@
  * 整合各模块配置，提供类型安全的配置访问
  */
 
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from "@nestjs/config";
 
 export interface AppConfig {
   // 应用基础配置
   app: {
     name: string;
     version: string;
-    environment: 'development' | 'production' | 'test';
+    environment: "development" | "production" | "test";
     port: number;
     globalPrefix: string;
   };
-  
+
   // 数据库配置
   database: {
     mongodb: {
@@ -27,7 +27,7 @@ export interface AppConfig {
       password?: string;
     };
   };
-  
+
   // 安全配置
   security: {
     jwt: {
@@ -44,14 +44,14 @@ export interface AppConfig {
       credentials: boolean;
     };
   };
-  
+
   // 缓存配置
   cache: {
     defaultTtl: number;
     maxItems: number;
     compressionThreshold: number;
   };
-  
+
   // 告警配置
   alert: {
     enabled: boolean;
@@ -61,7 +61,7 @@ export interface AppConfig {
       notification: number;
     };
   };
-  
+
   // 监控配置
   monitoring: {
     enabled: boolean;
@@ -76,59 +76,69 @@ export interface AppConfig {
  */
 export const createAppConfig = (): Partial<AppConfig> => ({
   app: {
-    name: process.env.APP_NAME || 'Smart Stock Data API',
-    version: process.env.APP_VERSION || '1.0.0',
-    environment: (process.env.NODE_ENV as any) || 'development',
-    port: parseInt(process.env.PORT || '3000', 10),
-    globalPrefix: process.env.API_PREFIX || 'api/v1',
+    name: process.env.APP_NAME || "Smart Stock Data API",
+    version: process.env.APP_VERSION || "1.0.0",
+    environment: (process.env.NODE_ENV as any) || "development",
+    port: parseInt(process.env.PORT || "3000", 10),
+    globalPrefix: process.env.API_PREFIX || "api/v1",
   },
-  
+
   database: {
     mongodb: {
-      uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/smart-stock-data',
+      uri:
+        process.env.MONGODB_URI || "mongodb://localhost:27017/smart-stock-data",
     },
     redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      host: process.env.REDIS_HOST || "localhost",
+      port: parseInt(process.env.REDIS_PORT || "6379", 10),
       password: process.env.REDIS_PASSWORD,
     },
   },
-  
+
   security: {
     jwt: {
-      secret: process.env.JWT_SECRET || 'dev-secret-key',
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+      secret: process.env.JWT_SECRET || "dev-secret-key",
+      expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
     },
     apiKey: {
-      headerName: 'X-App-Key',
-      accessTokenHeaderName: 'X-Access-Token',
+      headerName: "X-App-Key",
+      accessTokenHeaderName: "X-Access-Token",
     },
     cors: {
-      origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+      origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3000"],
       credentials: true,
     },
   },
-  
+
   cache: {
-    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL || '300', 10),
-    maxItems: parseInt(process.env.CACHE_MAX_ITEMS || '10000', 10),
-    compressionThreshold: parseInt(process.env.CACHE_COMPRESSION_THRESHOLD || '1024', 10),
+    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL || "300", 10),
+    maxItems: parseInt(process.env.CACHE_MAX_ITEMS || "10000", 10),
+    compressionThreshold: parseInt(
+      process.env.CACHE_COMPRESSION_THRESHOLD || "1024",
+      10,
+    ),
   },
-  
+
   alert: {
-    enabled: process.env.ALERT_ENABLED !== 'false',
-    notificationChannels: process.env.ALERT_CHANNELS?.split(',') || ['email'],
+    enabled: process.env.ALERT_ENABLED !== "false",
+    notificationChannels: process.env.ALERT_CHANNELS?.split(",") || ["email"],
     rateLimits: {
-      triggerEvaluation: parseInt(process.env.ALERT_TRIGGER_RATE_LIMIT || '5', 10),
-      notification: parseInt(process.env.ALERT_NOTIFICATION_RATE_LIMIT || '10', 10),
+      triggerEvaluation: parseInt(
+        process.env.ALERT_TRIGGER_RATE_LIMIT || "5",
+        10,
+      ),
+      notification: parseInt(
+        process.env.ALERT_NOTIFICATION_RATE_LIMIT || "10",
+        10,
+      ),
     },
   },
-  
+
   monitoring: {
-    enabled: process.env.MONITORING_ENABLED !== 'false',
-    performanceMonitoring: process.env.PERFORMANCE_MONITORING !== 'false',
-    metricsEndpoint: process.env.METRICS_ENDPOINT || '/metrics',
+    enabled: process.env.MONITORING_ENABLED !== "false",
+    performanceMonitoring: process.env.PERFORMANCE_MONITORING !== "false",
+    metricsEndpoint: process.env.METRICS_ENDPOINT || "/metrics",
   },
 });
 
@@ -142,28 +152,28 @@ export const appConfig = () => createAppConfig();
  */
 export class TypedConfigService {
   constructor(private readonly configService: ConfigService<AppConfig>) {}
-  
+
   get app() {
-    return this.configService.get('app', { infer: true })!;
+    return this.configService.get("app", { infer: true })!;
   }
-  
+
   get database() {
-    return this.configService.get('database', { infer: true })!;
+    return this.configService.get("database", { infer: true })!;
   }
-  
+
   get security() {
-    return this.configService.get('security', { infer: true })!;
+    return this.configService.get("security", { infer: true })!;
   }
-  
+
   get cache() {
-    return this.configService.get('cache', { infer: true })!;
+    return this.configService.get("cache", { infer: true })!;
   }
-  
+
   get alert() {
-    return this.configService.get('alert', { infer: true })!;
+    return this.configService.get("alert", { infer: true })!;
   }
-  
+
   get monitoring() {
-    return this.configService.get('monitoring', { infer: true })!;
+    return this.configService.get("monitoring", { infer: true })!;
   }
 }

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
+import { Injectable } from "@nestjs/common";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 
 export interface PaginationInfo {
   page: number;
@@ -42,12 +42,12 @@ export class PaginationService {
   } {
     const page = Math.max(1, query.page || this.DEFAULT_PAGE);
     let limit = query.limit;
-    
+
     // 如果limit无效（undefined、null、0或负数），使用默认值
     if (!limit || limit <= 0) {
       limit = this.DEFAULT_LIMIT;
     }
-    
+
     // 限制最大值
     limit = Math.min(this.MAX_LIMIT, limit);
 
@@ -123,11 +123,11 @@ export class PaginationService {
     total: number,
   ): { isValid: boolean; error?: string } {
     if (page < 1) {
-      return { isValid: false, error: '页码必须大于0' };
+      return { isValid: false, error: "页码必须大于0" };
     }
 
     if (limit < 1) {
-      return { isValid: false, error: '每页条数必须大于0' };
+      return { isValid: false, error: "每页条数必须大于0" };
     }
 
     if (limit > this.MAX_LIMIT) {

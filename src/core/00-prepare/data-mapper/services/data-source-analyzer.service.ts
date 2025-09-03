@@ -1,9 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '@app/config/logger.config';
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "@app/config/logger.config";
 
-import { 
-  DataSourceAnalysisResponseDto,
-} from '../dto/data-source-analysis.dto';
+import { DataSourceAnalysisResponseDto } from "../dto/data-source-analysis.dto";
 
 /**
  * 🔍 简化的数据源分析器服务
@@ -20,17 +18,17 @@ export class DataSourceAnalyzerService {
   async analyzeDataSource(
     sampleData: any,
     provider: string,
-    apiType: 'rest' | 'stream'
+    apiType: "rest" | "stream",
   ): Promise<DataSourceAnalysisResponseDto> {
     this.logger.log(`开始分析数据源`, { provider, apiType });
 
     try {
       // 1. 基础字段提取
       const extractedFields = this.extractFieldsFromData(sampleData);
-      
+
       // 2. 计算分析置信度
       const confidence = this.calculateAnalysisConfidence(extractedFields);
-      
+
       const analysisResult: DataSourceAnalysisResponseDto = {
         provider,
         apiType,
@@ -45,7 +43,7 @@ export class DataSourceAnalyzerService {
         provider,
         apiType,
         totalFields: extractedFields.length,
-        confidence
+        confidence,
       });
 
       return analysisResult;
@@ -53,7 +51,7 @@ export class DataSourceAnalyzerService {
       this.logger.error(`数据源分析失败`, {
         provider,
         apiType,
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -62,17 +60,20 @@ export class DataSourceAnalyzerService {
   /**
    * 🔍 从数据中提取字段信息
    */
-  private extractFieldsFromData(data: any, parentPath: string = ''): any[] {
+  private extractFieldsFromData(data: any, parentPath: string = ""): any[] {
     const fields: any[] = [];
 
-    if (!data || typeof data !== 'object') {
+    if (!data || typeof data !== "object") {
       return fields;
     }
 
     if (Array.isArray(data)) {
       // 处理数组：分析第一个元素的结构
       if (data.length > 0) {
-        const arrayElementFields = this.extractFieldsFromData(data[0], `${parentPath}[0]`);
+        const arrayElementFields = this.extractFieldsFromData(
+          data[0],
+          `${parentPath}[0]`,
+        );
         fields.push(...arrayElementFields);
       }
       return fields;
@@ -89,12 +90,16 @@ export class DataSourceAnalyzerService {
         fieldType,
         sampleValue: this.getSampleValue(value),
         confidence: 0.9,
-        isNested: typeof value === 'object' && value !== null,
-        nestingLevel: fieldPath.split('.').length - 1,
+        isNested: typeof value === "object" && value !== null,
+        nestingLevel: fieldPath.split(".").length - 1,
       });
 
       // 递归处理嵌套对象
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
         const nestedFields = this.extractFieldsFromData(value, fieldPath);
         fields.push(...nestedFields);
       }
@@ -108,42 +113,42 @@ export class DataSourceAnalyzerService {
    */
   private determineFieldType(value: any): string {
     if (value === null || value === undefined) {
-      return 'unknown';
+      return "unknown";
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       // 检查是否为日期格式
       if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
-        return 'date';
+        return "date";
       }
-      return 'string';
+      return "string";
     }
 
-    if (typeof value === 'number') {
-      return Number.isInteger(value) ? 'integer' : 'number';
+    if (typeof value === "number") {
+      return Number.isInteger(value) ? "integer" : "number";
     }
 
-    if (typeof value === 'boolean') {
-      return 'boolean';
+    if (typeof value === "boolean") {
+      return "boolean";
     }
 
     if (Array.isArray(value)) {
-      return 'array';
+      return "array";
     }
 
-    if (typeof value === 'object') {
-      return 'object';
+    if (typeof value === "object") {
+      return "object";
     }
 
-    return 'unknown';
+    return "unknown";
   }
 
   /**
    * 🎯 获取示例值
    */
   private getSampleValue(value: any): any {
-    if (typeof value === 'object' && value !== null) {
-      return Array.isArray(value) ? '[...]' : '{...}';
+    if (typeof value === "object" && value !== null) {
+      return Array.isArray(value) ? "[...]" : "{...}";
     }
     return value;
   }
@@ -165,15 +170,14 @@ export class DataSourceAnalyzerService {
     }
 
     // 数据完整性检查
-    const nonNullFields = extractedFields.filter(f => 
-      f.sampleValue !== null && f.sampleValue !== undefined
+    const nonNullFields = extractedFields.filter(
+      (f) => f.sampleValue !== null && f.sampleValue !== undefined,
     );
-    
+
     const completenessRatio = nonNullFields.length / extractedFields.length;
     confidence += completenessRatio * 0.2;
 
     // 确保置信度在0-1之间
     return Math.min(Math.max(confidence, 0), 1);
   }
-
 }

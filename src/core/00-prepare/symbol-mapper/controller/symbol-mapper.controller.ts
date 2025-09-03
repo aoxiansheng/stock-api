@@ -23,18 +23,18 @@ import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
 import { Permission } from "../../../../auth/enums/user-role.enum";
 
-import { CreateSymbolMappingDto } from '../dto/create-symbol-mapping.dto';
-import { SymbolMappingQueryDto } from '../dto/symbol-mapping-query.dto';
-import { SymbolMappingResponseDto } from '../dto/symbol-mapping-response.dto';
+import { CreateSymbolMappingDto } from "../dto/create-symbol-mapping.dto";
+import { SymbolMappingQueryDto } from "../dto/symbol-mapping-query.dto";
+import { SymbolMappingResponseDto } from "../dto/symbol-mapping-response.dto";
 import {
   UpdateSymbolMappingDto,
   TransformSymbolsDto,
   TransformSymbolsResponseDto,
   AddSymbolMappingRuleDto,
   UpdateSymbolMappingRuleDto,
-} from '../dto/update-symbol-mapping.dto';
-import { SymbolMapperService } from '../services/symbol-mapper.service';
-import { SymbolTransformerService } from '../../../02-processing/symbol-transformer/services/symbol-transformer.service';
+} from "../dto/update-symbol-mapping.dto";
+import { SymbolMapperService } from "../services/symbol-mapper.service";
+import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 
 @ApiTags("🔄 符号映射器")
 @Controller("symbol-mapper")
@@ -91,11 +91,12 @@ export class SymbolMapperController {
   async mapSymbol(
     @Body() body: { symbol: string; fromProvider: string; toProvider: string },
   ) {
-    const mappedSymbol = await this.symbolTransformerService.transformSingleSymbol(
-      body.toProvider,
-      body.symbol,
-      'from_standard',  // 修正方向语义：standard→provider
-    );
+    const mappedSymbol =
+      await this.symbolTransformerService.transformSingleSymbol(
+        body.toProvider,
+        body.symbol,
+        "from_standard", // 修正方向语义：standard→provider
+      );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return {
       originalSymbol: body.symbol,
@@ -161,7 +162,7 @@ export class SymbolMapperController {
       const result = await this.symbolTransformerService.transformSymbols(
         transformDto.dataSourceName,
         transformDto.symbols,
-        'from_standard'  // 修正方向语义：standard→provider
+        "from_standard", // 修正方向语义：standard→provider
       );
 
       this.logger.log(`API响应: 代码转换成功`, {
@@ -175,7 +176,7 @@ export class SymbolMapperController {
         dataSourceName: result.metadata.provider,
         transformedSymbols: result.mappingDetails,
         failedSymbols: result.failedSymbols,
-        processingTimeMs: result.metadata.processingTimeMs
+        processingTimeMs: result.metadata.processingTimeMs,
       };
     } catch (error: any) {
       this.logger.error(`API错误: 代码转换失败`, {
@@ -194,7 +195,9 @@ export class SymbolMapperController {
   @ApiOperation({ summary: "添加映射规则到现有数据源" })
   @ApiSuccessResponse({ type: SymbolMappingResponseDto })
   @ApiStandardResponses()
-  async addSymbolMappingRule(@Body(ValidationPipe) addDto: AddSymbolMappingRuleDto) {
+  async addSymbolMappingRule(
+    @Body(ValidationPipe) addDto: AddSymbolMappingRuleDto,
+  ) {
     this.logger.log(`API请求: 添加映射规则`, {
       dataSourceName: addDto.dataSourceName,
       standardSymbol: addDto.symbolMappingRule.standardSymbol,
@@ -202,7 +205,8 @@ export class SymbolMapperController {
     });
 
     try {
-      const result = await this.symbolMapperService.addSymbolMappingRule(addDto);
+      const result =
+        await this.symbolMapperService.addSymbolMappingRule(addDto);
 
       this.logger.log(`API响应: 映射规则添加成功`, {
         dataSourceName: addDto.dataSourceName,
@@ -228,7 +232,8 @@ export class SymbolMapperController {
   @ApiPaginatedResponse(SymbolMappingResponseDto)
   @ApiStandardResponses()
   async getMappings(@Query(ValidationPipe) query: SymbolMappingQueryDto) {
-    const result = await this.symbolMapperService.getSymbolMappingsPaginated(query);
+    const result =
+      await this.symbolMapperService.getSymbolMappingsPaginated(query);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }
@@ -280,7 +285,9 @@ export class SymbolMapperController {
     @Param("dataSourceName") dataSourceName: string,
   ) {
     const result =
-      await this.symbolMapperService.getSymbolMappingByDataSource(dataSourceName);
+      await this.symbolMapperService.getSymbolMappingByDataSource(
+        dataSourceName,
+      );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }
@@ -288,7 +295,7 @@ export class SymbolMapperController {
   @ApiKeyAuth()
   @RequirePermissions(Permission.MAPPING_WRITE)
   @Get("rules")
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "🔄 获取所有符号映射规则",
     description: `
 ### 功能说明
@@ -309,7 +316,7 @@ export class SymbolMapperController {
 - 映射规则审计
 - 数据源管理
 - 系统配置概览
-    `
+    `,
   })
   @ApiSuccessResponse({
     description: "符号映射规则获取成功",
@@ -328,17 +335,17 @@ export class SymbolMapperController {
               totalRules: 89,
               SymbolMappingRule: [],
               createdAt: "2024-01-01T12:00:00.000Z",
-              updatedAt: "2024-01-01T12:00:00.000Z"
-            }
+              updatedAt: "2024-01-01T12:00:00.000Z",
+            },
           },
           summary: {
             mostRulesProvider: "longport",
-            averageRulesPerProvider: 52
-          }
+            averageRulesPerProvider: 52,
+          },
         },
-        timestamp: "2024-01-01T12:00:00.000Z"
-      }
-    }
+        timestamp: "2024-01-01T12:00:00.000Z",
+      },
+    },
   })
   @ApiStandardResponses()
   async getAllSymbolMappingRule() {
@@ -371,7 +378,8 @@ export class SymbolMapperController {
   @ApiSuccessResponse()
   @ApiStandardResponses()
   async getSymbolMappingRule(@Param("provider") provider: string) {
-    const result = await this.symbolMapperService.getSymbolMappingRule(provider);
+    const result =
+      await this.symbolMapperService.getSymbolMappingRule(provider);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }
@@ -400,7 +408,10 @@ export class SymbolMapperController {
     @Param("id") id: string,
     @Body(ValidationPipe) updateDto: UpdateSymbolMappingDto,
   ) {
-    const result = await this.symbolMapperService.updateSymbolMapping(id, updateDto);
+    const result = await this.symbolMapperService.updateSymbolMapping(
+      id,
+      updateDto,
+    );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }
@@ -424,7 +435,8 @@ export class SymbolMapperController {
       standardSymbol,
       symbolMappingRule,
     };
-    const result = await this.symbolMapperService.updateSymbolMappingRule(updateDto);
+    const result =
+      await this.symbolMapperService.updateSymbolMappingRule(updateDto);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }

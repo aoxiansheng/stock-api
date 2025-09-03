@@ -178,14 +178,8 @@ export const ALERTING_THRESHOLDS = Object.freeze({
   WARNING_ALERT_THRESHOLD: 50,
 });
 
-// 🔄 重试配置常量
-export const ALERTING_RETRY_CONFIG = Object.freeze({
-  MAX_RETRIES: 3,
-  INITIAL_DELAY_MS: 1000,
-  BACKOFF_MULTIPLIER: 2,
-  MAX_DELAY_MS: 10000,
-  TIMEOUT_MS: 30000,
-});
+// 🔄 重试配置常量 - 使用共享基础配置
+export { ALERTING_RETRY_CONFIG } from "./retry.constants";
 
 /**
  * 告警模板工具函数

@@ -13,6 +13,9 @@ import {
 } from "class-validator";
 
 import { AlertSeverity } from "../types/alert.types";
+import { VALID_OPERATORS } from "../constants/alert.constants";
+import type { Operator } from "../constants/alert.constants";
+import { VALIDATION_LIMITS } from "../constants/validation.constants";
 
 import { NotificationChannelDto } from "./notification-channel.dto";
 
@@ -32,11 +35,11 @@ export class CreateAlertRuleDto {
 
   @ApiProperty({
     description: "比较操作符",
-    enum: ["gt", "lt", "eq", "gte", "lte", "ne"],
+    enum: VALID_OPERATORS,
     default: "gt",
   })
-  @IsEnum(["gt", "lt", "eq", "gte", "lte", "ne"])
-  operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
+  @IsEnum(VALID_OPERATORS)
+  operator: Operator;
 
   @ApiProperty({ description: "阈值" })
   @IsNumber()
@@ -44,8 +47,8 @@ export class CreateAlertRuleDto {
 
   @ApiProperty({ description: "持续时间（秒）", default: 60 })
   @IsNumber()
-  @Min(1)
-  @Max(3600)
+  @Min(VALIDATION_LIMITS.DURATION.MIN)
+  @Max(VALIDATION_LIMITS.DURATION.MAX)
   duration: number;
 
   @ApiProperty({
@@ -68,8 +71,8 @@ export class CreateAlertRuleDto {
 
   @ApiProperty({ description: "冷却时间（秒）", default: 300 })
   @IsNumber()
-  @Min(0)
-  @Max(86400)
+  @Min(VALIDATION_LIMITS.COOLDOWN.MIN)
+  @Max(VALIDATION_LIMITS.COOLDOWN.MAX)
   cooldown: number;
 
   @ApiPropertyOptional({
@@ -99,11 +102,11 @@ export class UpdateAlertRuleDto {
 
   @ApiPropertyOptional({
     description: "比较操作符",
-    enum: ["gt", "lt", "eq", "gte", "lte", "ne"],
+    enum: VALID_OPERATORS,
   })
   @IsOptional()
-  @IsEnum(["gt", "lt", "eq", "gte", "lte", "ne"])
-  operator?: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
+  @IsEnum(VALID_OPERATORS)
+  operator?: Operator;
 
   @ApiPropertyOptional({ description: "阈值" })
   @IsOptional()
@@ -113,8 +116,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "持续时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(1)
-  @Max(3600)
+  @Min(VALIDATION_LIMITS.DURATION.MIN)
+  @Max(VALIDATION_LIMITS.DURATION.MAX)
   duration?: number;
 
   @ApiPropertyOptional({
@@ -143,8 +146,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "冷却时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  @Max(86400)
+  @Min(VALIDATION_LIMITS.COOLDOWN.MIN)
+  @Max(VALIDATION_LIMITS.COOLDOWN.MAX)
   cooldown?: number;
 
   @ApiPropertyOptional({

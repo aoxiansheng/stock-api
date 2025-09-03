@@ -95,7 +95,8 @@ export class ApiKeyService {
    * 根据AppKey查找API Key (不验证accessToken)
    */
   async findByAppKey(appKey: string): Promise<ApiKeyDocument | null> {
-    const operation = APIKEY_OPERATIONS.FIND_API_KEY_BY_ID || 'FIND_API_KEY_BY_ID';
+    const operation =
+      APIKEY_OPERATIONS.FIND_API_KEY_BY_ID || "FIND_API_KEY_BY_ID";
 
     this.logger.debug(`查找API Key: ${appKey}`, {
       operation,
@@ -212,9 +213,7 @@ export class ApiKeyService {
         userId,
         error: error.stack,
       });
-      throw new BadRequestException(
-        ERROR_MESSAGES.CREATE_API_KEY_FAILED,
-      );
+      throw new BadRequestException(ERROR_MESSAGES.CREATE_API_KEY_FAILED);
     }
   }
 
@@ -288,7 +287,6 @@ export class ApiKeyService {
         requestedPermissions,
         error: error.stack,
       });
-
     }
   }
 
@@ -321,9 +319,7 @@ export class ApiKeyService {
         userId,
         error: error.stack,
       });
-      throw new BadRequestException(
-        ERROR_MESSAGES.GET_USER_API_KEYS_FAILED,
-      );
+      throw new BadRequestException(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED);
     }
   }
 
@@ -364,9 +360,7 @@ export class ApiKeyService {
         userId,
         error: error.stack,
       });
-      throw new BadRequestException(
-        ERROR_MESSAGES.REVOKE_API_KEY_FAILED,
-      );
+      throw new BadRequestException(ERROR_MESSAGES.REVOKE_API_KEY_FAILED);
     }
   }
 }

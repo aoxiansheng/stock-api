@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Request } from "express";
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 

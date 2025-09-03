@@ -20,23 +20,23 @@ import { ProvidersController } from "../controller/providers-controller";
     // 提供别名以保持向后兼容性 - 让旧代码继续使用 CapabilityRegistryService
     {
       provide: CapabilityRegistryService,
-      useExisting: EnhancedCapabilityRegistryService
+      useExisting: EnhancedCapabilityRegistryService,
     },
     // 为增强服务提供别名
     {
-      provide: 'ENHANCED_CAPABILITY_REGISTRY',
-      useExisting: EnhancedCapabilityRegistryService
+      provide: "ENHANCED_CAPABILITY_REGISTRY",
+      useExisting: EnhancedCapabilityRegistryService,
     },
     // 为StreamDataFetcherService提供正确的token
     {
-      provide: 'ENHANCED_CAPABILITY_REGISTRY_SERVICE',
-      useExisting: EnhancedCapabilityRegistryService
-    }
+      provide: "ENHANCED_CAPABILITY_REGISTRY_SERVICE",
+      useExisting: EnhancedCapabilityRegistryService,
+    },
   ],
   exports: [
-    CapabilityRegistryService, 
+    CapabilityRegistryService,
     EnhancedCapabilityRegistryService,
-    'ENHANCED_CAPABILITY_REGISTRY_SERVICE' // 导出新添加的token
+    "ENHANCED_CAPABILITY_REGISTRY_SERVICE", // 导出新添加的token
   ],
 })
 export class ProvidersModule implements OnModuleInit {
@@ -53,19 +53,19 @@ export class ProvidersModule implements OnModuleInit {
     if (this.initialized) {
       return;
     }
-    
+
     // 等待注册表初始化完成后再注册提供商实例
     await this.waitForRegistriesInitialization();
-    
+
     // 🎯 只使用统一的注册服务 - 消除重复注册
     await this.registerProviders();
-    
+
     this.initialized = true;
   }
 
   private async waitForRegistriesInitialization(): Promise<void> {
     // 等待增强注册表完成初始化
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   private async registerProviders(): Promise<void> {

@@ -1,17 +1,17 @@
-import { createLogger } from '@app/config/logger.config';
-import { 
-  CapabilityMetadata, 
-  ProviderMetadata, 
+import { createLogger } from "@app/config/logger.config";
+import {
+  CapabilityMetadata,
+  ProviderMetadata,
   CapabilityCollectionItem,
   ProviderCollectionItem,
-  Constructor
-} from './types/metadata.types';
+  Constructor,
+} from "./types/metadata.types";
 
 /**
  * 能力收集器 - 使用装饰器收集所有注册的能力和提供商
  */
 export class CapabilityCollector {
-  private static readonly logger = createLogger('CapabilityCollector');
+  private static readonly logger = createLogger("CapabilityCollector");
   private static capabilities = new Map<string, CapabilityCollectionItem>();
   private static providers = new Map<string, ProviderCollectionItem>();
   private static initialized = false;
@@ -25,8 +25,8 @@ export class CapabilityCollector {
       metadata.provider = this.extractProviderName(target.name);
     }
 
-    const key = `${metadata.provider || 'unknown'}:${metadata.name}`;
-    
+    const key = `${metadata.provider || "unknown"}:${metadata.name}`;
+
     if (this.capabilities.has(key)) {
       this.logger.warn(`能力已存在，将被覆盖: ${key}`);
     }
@@ -34,7 +34,7 @@ export class CapabilityCollector {
     this.capabilities.set(key, {
       metadata,
       target,
-      provider: metadata.provider
+      provider: metadata.provider,
     });
 
     this.logger.debug(`能力注册成功: ${key}`);
@@ -50,7 +50,7 @@ export class CapabilityCollector {
 
     this.providers.set(metadata.name, {
       metadata,
-      target
+      target,
     });
 
     this.logger.debug(`提供商注册成功: ${metadata.name}`);
@@ -73,22 +73,30 @@ export class CapabilityCollector {
   /**
    * 根据提供商名称获取能力
    */
-  static getCapabilitiesByProvider(providerName: string): CapabilityCollectionItem[] {
+  static getCapabilitiesByProvider(
+    providerName: string,
+  ): CapabilityCollectionItem[] {
     const capabilities: CapabilityCollectionItem[] = [];
-    
+
     for (const [key, item] of this.capabilities) {
-      if (item.provider === providerName || key.startsWith(`${providerName}:`)) {
+      if (
+        item.provider === providerName ||
+        key.startsWith(`${providerName}:`)
+      ) {
         capabilities.push(item);
       }
     }
-    
+
     return capabilities;
   }
 
   /**
    * 获取特定能力
    */
-  static getCapability(providerName: string, capabilityName: string): CapabilityCollectionItem | undefined {
+  static getCapability(
+    providerName: string,
+    capabilityName: string,
+  ): CapabilityCollectionItem | undefined {
     const key = `${providerName}:${capabilityName}`;
     return this.capabilities.get(key);
   }
@@ -114,9 +122,9 @@ export class CapabilityCollector {
    */
   static getStats() {
     const providerStats = new Map<string, number>();
-    
+
     for (const [, item] of this.capabilities) {
-      const provider = item.provider || 'unknown';
+      const provider = item.provider || "unknown";
       providerStats.set(provider, (providerStats.get(provider) || 0) + 1);
     }
 
@@ -125,7 +133,7 @@ export class CapabilityCollector {
       totalProviders: this.providers.size,
       capabilitiesByProvider: Object.fromEntries(providerStats),
       capabilities: Array.from(this.capabilities.keys()),
-      providers: Array.from(this.providers.keys())
+      providers: Array.from(this.providers.keys()),
     };
   }
 
@@ -135,20 +143,20 @@ export class CapabilityCollector {
   private static extractProviderName(className: string): string | undefined {
     // 去除常见后缀
     const cleanName = className
-      .replace(/Capability$/, '')
-      .replace(/Provider$/, '')
-      .replace(/Service$/, '');
+      .replace(/Capability$/, "")
+      .replace(/Provider$/, "")
+      .replace(/Service$/, "");
 
     // 转换为kebab-case
     const kebabCase = cleanName
-      .replace(/([A-Z])/g, '-$1')
+      .replace(/([A-Z])/g, "-$1")
       .toLowerCase()
-      .replace(/^-/, '');
+      .replace(/^-/, "");
 
     // 尝试提取提供商名称的模式
     const patterns = [
-      /^([a-z-]+)-/,  // longport-get-stock-quote -> longport
-      /^([a-z]+)/     // longportgetstockquote -> longport
+      /^([a-z-]+)-/, // longport-get-stock-quote -> longport
+      /^([a-z]+)/, // longportgetstockquote -> longport
     ];
 
     for (const pattern of patterns) {
@@ -186,7 +194,7 @@ export class CapabilityCollector {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

@@ -1,57 +1,59 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { MetricsRegistryService } from '../metrics/metrics-registry.service';
-import { SYSTEM_STATUS_EVENTS } from '../../contracts/events/system-status.events';
-import { createLogger } from '../../../app/config/logger.config';
-import { EventBatcher, BatchResult } from './event-batcher';
-import { performanceDecoratorBus } from '../decorators/infrastructure-database.decorator';
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { MetricsRegistryService } from "../metrics/metrics-registry.service";
+import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
+import { createLogger } from "../../../app/config/logger.config";
+import { EventBatcher, BatchResult } from "./event-batcher";
+import { performanceDecoratorBus } from "../decorators/infrastructure-database.decorator";
 
 /**
  * 🎯 监控事件桥接层服务
- * 
+ *
  * 职责：将系统事件转换为 Prometheus 指标
  * 设计理念：最小化、高性能、错误隔离
  */
 @Injectable()
-export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestroy {
+export class MonitoringEventBridgeService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = createLogger(MonitoringEventBridgeService.name);
   private eventCounter = 0;
   private lastFlush = Date.now();
   private readonly batcher = new EventBatcher(100, 100, 10000); // 100ms间隔，100个批次大小，10000最大队列
-  
+
   constructor(
     private readonly eventBus: EventEmitter2,
     private readonly metricsRegistry: MetricsRegistryService,
   ) {}
 
   async onModuleDestroy() {
-    this.logger.log('监控事件桥接层正在关闭...');
+    this.logger.log("监控事件桥接层正在关闭...");
     await this.batcher.shutdown();
-    this.logger.log('事件批处理器已关闭');
+    this.logger.log("事件批处理器已关闭");
   }
 
   onModuleInit() {
-    this.logger.log('监控事件桥接层已启动', {
+    this.logger.log("监控事件桥接层已启动", {
       eventsSupported: [
-        'METRIC_COLLECTED',
-        'CACHE_HIT/MISS',
-        'ANALYSIS_COMPLETED',
-        'API_REQUEST_*'
-      ]
+        "METRIC_COLLECTED",
+        "CACHE_HIT/MISS",
+        "ANALYSIS_COMPLETED",
+        "API_REQUEST_*",
+      ],
     });
 
     // 订阅装饰器性能事件，并桥接到系统事件总线
     try {
-      performanceDecoratorBus.on('performance-metric', (payload) => {
+      performanceDecoratorBus.on("performance-metric", (payload) => {
         try {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, payload);
         } catch (error) {
-          this.logger.debug('装饰器事件桥接失败', { error: error.message });
+          this.logger.debug("装饰器事件桥接失败", { error: error.message });
         }
       });
-      this.logger.debug('已订阅装饰器性能事件: performance-metric');
+      this.logger.debug("已订阅装饰器性能事件: performance-metric");
     } catch (error) {
-      this.logger.debug('订阅装饰器性能事件失败', { error: error.message });
+      this.logger.debug("订阅装饰器性能事件失败", { error: error.message });
     }
   }
 
@@ -62,34 +64,34 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleMetricCollected(event: any) {
     try {
       const { metricType, metricName, metricValue, tags } = event;
-      
+
       // 高频事件使用批处理
-      const batchResult = this.batcher.add(metricType || 'unknown', event);
-      
+      const batchResult = this.batcher.add(metricType || "unknown", event);
+
       if (!batchResult.accepted) {
-        this.logger.warn('事件批处理队列已满，事件被丢弃', {
+        this.logger.warn("事件批处理队列已满，事件被丢弃", {
           reason: batchResult.reason,
-          droppedCount: batchResult.droppedCount
+          droppedCount: batchResult.droppedCount,
         });
         return;
       }
-      
+
       // 如果需要立即刷新，处理该类型的批次
       if (batchResult.shouldFlush) {
-        this.processBatch(metricType || 'unknown');
+        this.processBatch(metricType || "unknown");
       }
-      
+
       this.eventCounter++;
-      
+
       // 定期刷新所有批次
       if (this.eventCounter >= 1000 || Date.now() - this.lastFlush > 5000) {
         this.flushAllBatches();
       }
     } catch (error) {
       // 静默处理，不影响主流程
-      this.logger.debug('事件处理失败', { 
-        eventType: 'METRIC_COLLECTED',
-        error: error.message 
+      this.logger.debug("事件处理失败", {
+        eventType: "METRIC_COLLECTED",
+        error: error.message,
       });
     }
   }
@@ -100,20 +102,20 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   private processBatch(eventType: string) {
     const batch = this.batcher.flushType(eventType);
     if (!batch) return;
-    
+
     try {
       // 聚合相同类型的事件并批量更新指标
       const aggregatedMetrics = this.aggregateEvents(batch.events);
       this.updateMetricsBatch(eventType, aggregatedMetrics);
-      
+
       this.logger.debug(`批次处理完成: ${eventType}`, {
         eventCount: batch.count,
-        duration: batch.lastTimestamp - batch.firstTimestamp
+        duration: batch.lastTimestamp - batch.firstTimestamp,
       });
     } catch (error) {
-      this.logger.debug(`批处理失败: ${eventType}`, { 
+      this.logger.debug(`批处理失败: ${eventType}`, {
         error: error.message,
-        eventCount: batch.count
+        eventCount: batch.count,
       });
     }
   }
@@ -121,70 +123,81 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   /**
    * 聚合事件数据
    */
-  private aggregateEvents(events: any[]): Map<string, { count: number; value: number; tags: any }> {
+  private aggregateEvents(
+    events: any[],
+  ): Map<string, { count: number; value: number; tags: any }> {
     const aggregated = new Map();
-    
-    events.forEach(event => {
+
+    events.forEach((event) => {
       const { metricName, metricValue, tags } = event;
       const key = JSON.stringify({ metricName, tags });
-      
+
       if (aggregated.has(key)) {
         const existing = aggregated.get(key);
         existing.count += 1;
-        existing.value += (metricValue || 0);
+        existing.value += metricValue || 0;
       } else {
         aggregated.set(key, {
           count: 1,
           value: metricValue || 0,
           tags: tags || {},
-          metricName
+          metricName,
         });
       }
     });
-    
+
     return aggregated;
   }
 
   /**
    * 批量更新指标
    */
-  private updateMetricsBatch(eventType: string, aggregatedMetrics: Map<string, any>) {
+  private updateMetricsBatch(
+    eventType: string,
+    aggregatedMetrics: Map<string, any>,
+  ) {
     aggregatedMetrics.forEach(({ count, value, tags, metricName }) => {
       try {
         switch (eventType) {
-          case 'request':
+          case "request":
             // 对于计数器类型，使用聚合的count
             this.metricsRegistry.receiverRequestsTotal.inc(tags, count);
             break;
-          case 'cache':
+          case "cache":
             // 🔧 修正：标签白名单筛选，避免 prom-client 未知标签错误
             const cacheLabels = {
-              cache_type: tags.cache_type || tags.storage_type || 'unknown',
-              operation: tags.operation || 'unknown'
+              cache_type: tags.cache_type || tags.storage_type || "unknown",
+              operation: tags.operation || "unknown",
             };
             // 对于gauge类型，使用平均值
-            this.metricsRegistry.storageCacheEfficiency.set(cacheLabels, value / count);
+            this.metricsRegistry.storageCacheEfficiency.set(
+              cacheLabels,
+              value / count,
+            );
             break;
-          case 'database':
+          case "database":
             this.metricsRegistry.storageOperationsTotal.inc(tags, count);
             break;
-          case 'stream':
+          case "stream":
             this.metricsRegistry.streamSymbolsProcessedTotal.inc(tags, count);
             break;
-          case 'query':
+          case "query":
             this.metricsRegistry.querySymbolsProcessedTotal.inc(tags, count);
             break;
           default:
-            this.metricsRegistry.receiverRequestsTotal.inc({
-              ...tags,
-              metric_type: eventType
-            }, count);
+            this.metricsRegistry.receiverRequestsTotal.inc(
+              {
+                ...tags,
+                metric_type: eventType,
+              },
+              count,
+            );
         }
       } catch (error) {
-        this.logger.debug('批量指标更新失败', {
+        this.logger.debug("批量指标更新失败", {
           eventType,
           metricName,
-          error: error.message
+          error: error.message,
         });
       }
     });
@@ -195,25 +208,25 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
    */
   private flushAllBatches() {
     const allBatches = this.batcher.flushAll();
-    
-    allBatches.forEach(batch => {
+
+    allBatches.forEach((batch) => {
       try {
         const aggregatedMetrics = this.aggregateEvents(batch.events);
         this.updateMetricsBatch(batch.type, aggregatedMetrics);
       } catch (error) {
         this.logger.debug(`批量刷新失败: ${batch.type}`, {
           error: error.message,
-          eventCount: batch.count
+          eventCount: batch.count,
         });
       }
     });
-    
+
     this.eventCounter = 0;
     this.lastFlush = Date.now();
-    
-    this.logger.debug('所有批次已刷新', {
+
+    this.logger.debug("所有批次已刷新", {
       batchCount: allBatches.length,
-      totalEvents: allBatches.reduce((sum, batch) => sum + batch.count, 0)
+      totalEvents: allBatches.reduce((sum, batch) => sum + batch.count, 0),
     });
   }
 
@@ -225,26 +238,25 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleCacheEvent(event: any) {
     try {
       const isHit = event.type === SYSTEM_STATUS_EVENTS.CACHE_HIT;
-      const cacheType = event.metadata?.cache_type || 'monitoring';
-      
+      const cacheType = event.metadata?.cache_type || "monitoring";
+
       this.metricsRegistry.storageCacheEfficiency.set(
-        { 
-          cache_type: cacheType, 
-          operation: event.key || 'unknown'
+        {
+          cache_type: cacheType,
+          operation: event.key || "unknown",
         },
-        isHit ? 1 : 0
+        isHit ? 1 : 0,
       );
-      
+
       // 记录缓存操作总数
       this.metricsRegistry.storageOperationsTotal.inc({
-        operation: isHit ? 'cache_hit' : 'cache_miss',
-        storage_type: 'redis'
+        operation: isHit ? "cache_hit" : "cache_miss",
+        storage_type: "redis",
       });
-      
     } catch (error) {
-      this.logger.debug('缓存事件处理失败', {
-        eventType: 'CACHE_EVENT',
-        error: error.message
+      this.logger.debug("缓存事件处理失败", {
+        eventType: "CACHE_EVENT",
+        error: error.message,
       });
     }
   }
@@ -256,24 +268,24 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleCacheSetEvent(event: any) {
     try {
       this.metricsRegistry.storageOperationsTotal.inc({
-        operation: 'cache_set',
-        storage_type: 'redis'
+        operation: "cache_set",
+        storage_type: "redis",
       });
-      
+
       // 记录缓存数据量
       if (event.metadata?.size) {
         this.metricsRegistry.storageDataVolume.set(
           {
-            data_type: 'cache',
-            storage_type: 'redis'
+            data_type: "cache",
+            storage_type: "redis",
           },
-          event.metadata.size
+          event.metadata.size,
         );
       }
     } catch (error) {
-      this.logger.debug('缓存设置事件处理失败', {
-        eventType: 'CACHE_SET',
-        error: error.message
+      this.logger.debug("缓存设置事件处理失败", {
+        eventType: "CACHE_SET",
+        error: error.message,
       });
     }
   }
@@ -285,13 +297,13 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleCacheInvalidatedEvent(event: any) {
     try {
       this.metricsRegistry.storageOperationsTotal.inc({
-        operation: 'cache_invalidated',
-        storage_type: 'redis'
+        operation: "cache_invalidated",
+        storage_type: "redis",
       });
     } catch (error) {
-      this.logger.debug('缓存失效事件处理失败', {
-        eventType: 'CACHE_INVALIDATED', 
-        error: error.message
+      this.logger.debug("缓存失效事件处理失败", {
+        eventType: "CACHE_INVALIDATED",
+        error: error.message,
       });
     }
   }
@@ -303,19 +315,19 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleCacheErrorEvent(event: any) {
     try {
       this.metricsRegistry.storageOperationsTotal.inc({
-        operation: 'cache_error',
-        storage_type: 'redis'
+        operation: "cache_error",
+        storage_type: "redis",
       });
-      
+
       // 更新错误率
       this.metricsRegistry.receiverErrorRate.set(
-        { error_type: 'cache' },
-        1 // 表示有错误发生
+        { error_type: "cache" },
+        1, // 表示有错误发生
       );
     } catch (error) {
-      this.logger.debug('缓存错误事件处理失败', {
-        eventType: 'CACHE_ERROR',
-        error: error.message
+      this.logger.debug("缓存错误事件处理失败", {
+        eventType: "CACHE_ERROR",
+        error: error.message,
       });
     }
   }
@@ -327,37 +339,36 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleAnalysisCompleted(event: any) {
     try {
       const { duration, dataPoints, analysisType } = event;
-      
+
       // 使用现有的通用处理时间指标
       this.metricsRegistry.receiverProcessingDuration.observe(
-        { 
-          method: 'analysis',
-          provider: 'internal',
-          operation: analysisType || 'general',
-          status: 'success',
-          attempt: '1'
+        {
+          method: "analysis",
+          provider: "internal",
+          operation: analysisType || "general",
+          status: "success",
+          attempt: "1",
         },
-        duration / 1000
+        duration / 1000,
       );
-      
+
       // 记录数据分析操作
       this.metricsRegistry.transformerOperationsTotal.inc({
-        operation_type: `analysis_${analysisType || 'general'}`,
-        provider: 'internal'
+        operation_type: `analysis_${analysisType || "general"}`,
+        provider: "internal",
       });
-      
+
       // 记录处理的数据点数量
       if (dataPoints) {
         this.metricsRegistry.transformerBatchSize.observe(
-          { operation_type: 'analysis' },
-          dataPoints
+          { operation_type: "analysis" },
+          dataPoints,
         );
       }
-      
     } catch (error) {
-      this.logger.debug('分析事件处理失败', {
-        eventType: 'ANALYSIS_COMPLETED',
-        error: error.message
+      this.logger.debug("分析事件处理失败", {
+        eventType: "ANALYSIS_COMPLETED",
+        error: error.message,
       });
     }
   }
@@ -369,19 +380,19 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleApiRequestStarted(event: any) {
     try {
       this.metricsRegistry.receiverActiveConnections.inc({
-        connection_type: 'api'
+        connection_type: "api",
       });
-      
+
       this.metricsRegistry.receiverRequestsTotal.inc({
-        method: event.method || 'unknown',
-        status: 'started',
-        provider: 'api',
-        operation: event.endpoint || 'unknown'
+        method: event.method || "unknown",
+        status: "started",
+        provider: "api",
+        operation: event.endpoint || "unknown",
       });
     } catch (error) {
-      this.logger.debug('API请求开始事件处理失败', {
-        eventType: 'API_REQUEST_STARTED',
-        error: error.message
+      this.logger.debug("API请求开始事件处理失败", {
+        eventType: "API_REQUEST_STARTED",
+        error: error.message,
       });
     }
   }
@@ -393,34 +404,34 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleApiRequestCompleted(event: any) {
     try {
       const { duration, statusCode, method, endpoint } = event;
-      
+
       this.metricsRegistry.receiverActiveConnections.dec({
-        connection_type: 'api'
+        connection_type: "api",
       });
-      
+
       this.metricsRegistry.receiverRequestsTotal.inc({
-        method: method || 'unknown',
-        status: `${statusCode}` || 'unknown',
-        provider: 'api',
-        operation: endpoint || 'unknown'
+        method: method || "unknown",
+        status: `${statusCode}` || "unknown",
+        provider: "api",
+        operation: endpoint || "unknown",
       });
-      
+
       if (duration) {
         this.metricsRegistry.receiverProcessingDuration.observe(
           {
-            method: method || 'unknown',
-            provider: 'api',
-            operation: endpoint || 'unknown',
-            status: statusCode >= 400 ? 'error' : 'success',
-            attempt: '1'
+            method: method || "unknown",
+            provider: "api",
+            operation: endpoint || "unknown",
+            status: statusCode >= 400 ? "error" : "success",
+            attempt: "1",
           },
-          duration / 1000
+          duration / 1000,
         );
       }
     } catch (error) {
-      this.logger.debug('API请求完成事件处理失败', {
-        eventType: 'API_REQUEST_COMPLETED',
-        error: error.message
+      this.logger.debug("API请求完成事件处理失败", {
+        eventType: "API_REQUEST_COMPLETED",
+        error: error.message,
       });
     }
   }
@@ -432,41 +443,38 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleApiRequestError(event: any) {
     try {
       const { duration, statusCode, method, endpoint } = event;
-      
+
       this.metricsRegistry.receiverActiveConnections.dec({
-        connection_type: 'api'
+        connection_type: "api",
       });
-      
+
       this.metricsRegistry.receiverRequestsTotal.inc({
-        method: method || 'unknown',
-        status: 'error',
-        provider: 'api',
-        operation: endpoint || 'unknown',
-        error_type: event.metadata?.errorType || 'unknown'
+        method: method || "unknown",
+        status: "error",
+        provider: "api",
+        operation: endpoint || "unknown",
+        error_type: event.metadata?.errorType || "unknown",
       });
-      
+
       if (duration) {
         this.metricsRegistry.receiverProcessingDuration.observe(
           {
-            method: method || 'unknown',
-            provider: 'api',
-            operation: endpoint || 'unknown',
-            status: 'error',
-            attempt: '1'
+            method: method || "unknown",
+            provider: "api",
+            operation: endpoint || "unknown",
+            status: "error",
+            attempt: "1",
           },
-          duration / 1000
+          duration / 1000,
         );
       }
-      
+
       // 更新错误率
-      this.metricsRegistry.receiverErrorRate.set(
-        { error_type: 'api' },
-        1
-      );
+      this.metricsRegistry.receiverErrorRate.set({ error_type: "api" }, 1);
     } catch (error) {
-      this.logger.debug('API请求错误事件处理失败', {
-        eventType: 'API_REQUEST_ERROR',
-        error: error.message
+      this.logger.debug("API请求错误事件处理失败", {
+        eventType: "API_REQUEST_ERROR",
+        error: error.message,
       });
     }
   }
@@ -478,22 +486,21 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleHealthScoreUpdated(event: any) {
     try {
       const { component, score, status } = event;
-      
+
       // 将健康分数映射到系统CPU使用率指标（作为健康度表示）
       this.metricsRegistry.systemCpuUsagePercent.set(
-        score / 100 // 归一化到0-1
+        score / 100, // 归一化到0-1
       );
-      
+
       // 记录健康检查操作
       this.metricsRegistry.storageOperationsTotal.inc({
-        operation: 'health_check',
-        storage_type: component || 'system'
+        operation: "health_check",
+        storage_type: component || "system",
       });
-      
     } catch (error) {
-      this.logger.debug('健康检查事件处理失败', {
-        eventType: 'HEALTH_SCORE_UPDATED',
-        error: error.message
+      this.logger.debug("健康检查事件处理失败", {
+        eventType: "HEALTH_SCORE_UPDATED",
+        error: error.message,
       });
     }
   }
@@ -505,29 +512,27 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   handleTrendDetected(event: any) {
     try {
       const { metric, trendType, changePercentage, severity } = event;
-      
+
       // 记录趋势分析操作
       this.metricsRegistry.transformerOperationsTotal.inc({
-        operation_type: 'trend_analysis',
-        provider: 'internal'
+        operation_type: "trend_analysis",
+        provider: "internal",
       });
-      
+
       // 使用流处理错误率来表示趋势异常程度
-      if (severity === 'high') {
+      if (severity === "high") {
         this.metricsRegistry.streamErrorRate.set(
-          { error_category: 'trend_anomaly' },
-          Math.abs(changePercentage) / 100
+          { error_category: "trend_anomaly" },
+          Math.abs(changePercentage) / 100,
         );
       }
-      
     } catch (error) {
-      this.logger.debug('趋势检测事件处理失败', {
-        eventType: 'TREND_DETECTED',
-        error: error.message
+      this.logger.debug("趋势检测事件处理失败", {
+        eventType: "TREND_DETECTED",
+        error: error.message,
       });
     }
   }
-
 
   /**
    * 获取事件桥接统计信息
@@ -535,16 +540,16 @@ export class MonitoringEventBridgeService implements OnModuleInit, OnModuleDestr
   getEventBridgeMetrics() {
     const batcherMetrics = this.batcher.getMetrics();
     const batcherStatus = this.batcher.getStatus();
-    
+
     return {
       totalEventsProcessed: this.eventCounter,
       lastFlushTime: new Date(this.lastFlush).toISOString(),
-      status: 'active',
+      status: "active",
       batcher: {
         metrics: batcherMetrics,
         status: batcherStatus.status,
-        reason: batcherStatus.reason
-      }
+        reason: batcherStatus.reason,
+      },
     };
   }
 

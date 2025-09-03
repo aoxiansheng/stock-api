@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getModelToken } from "@nestjs/mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { NotFoundException } from "@nestjs/common";

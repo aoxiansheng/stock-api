@@ -174,17 +174,17 @@ export class ApiKeyUsageDto {
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
 
-  @ApiProperty({ 
-    description: "使用频率统计", 
-    type: 'object', 
-    additionalProperties: { type: 'number' }
+  @ApiProperty({
+    description: "使用频率统计",
+    type: "object",
+    additionalProperties: { type: "number" },
   })
   usageByHour: Record<string, number>;
 
-  @ApiProperty({ 
-    description: "错误统计", 
-    type: 'object', 
-    additionalProperties: { type: 'number' }
+  @ApiProperty({
+    description: "错误统计",
+    type: "object",
+    additionalProperties: { type: "number" },
   })
   errorStats: Record<string, number>;
 }
@@ -230,9 +230,13 @@ export class UserStatsDto {
   createdAt: Date;
 
   @ApiProperty({ description: "账户状态" })
-  accountStatus: 'active' | 'inactive' | 'suspended';
+  accountStatus: "active" | "inactive" | "suspended";
 
-  @ApiProperty({ description: "使用的权限列表", enum: Permission, isArray: true })
+  @ApiProperty({
+    description: "使用的权限列表",
+    enum: Permission,
+    isArray: true,
+  })
   usedPermissions: Permission[];
 }
 

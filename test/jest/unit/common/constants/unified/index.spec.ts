@@ -1,24 +1,18 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {
   // 顶层常量对象（从索引导入）
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   SYSTEM_CONSTANTS,
   HTTP_CONSTANTS,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   PERFORMANCE_CONSTANTS,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   CACHE_CONSTANTS,
   OPERATION_CONSTANTS,
   UNIFIED_CONSTANTS,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   CONSTANTS_VERSION,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   CONSTANTS_META,
 } from "../../../../../../src/common/constants/unified/index";
 
 // 从系统常量模块导入
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import {
   OperationStatus,
   getAllOperationStatuses,
@@ -28,29 +22,25 @@ import {
 } from "../../../../../../src/common/constants/unified/system.constants";
 
 // 从HTTP常量模块导入
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isSuccessStatusCode,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isClientErrorStatusCode,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isServerErrorStatusCode,
   getErrorTypeByStatusCode,
 } from "../../../../../../src/common/constants/unified/http.constants";
 
 // 从性能常量模块导入
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import {
   getTimeoutFromEnv,
   calculateRetryDelay,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isSlowResponse,
   getResponseTimeLevel,
 } from "../../../../../../src/common/constants/unified/performance.constants";
 
 // 从缓存常量模块导入
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import {
   buildCacheKey,
   parseCacheKey,
@@ -60,15 +50,12 @@ import {
 } from "../../../../../../src/common/constants/unified/unified-cache-config.constants";
 
 // 从操作常量模块导入
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import {
   getSuccessMessage,
   getFailureMessage,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isQueryOperation,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isMutationOperation,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isBatchOperation,
   shouldRefreshData,
   getPriorityWeight,
@@ -495,8 +482,7 @@ describe("Unified Constants Index - Function Coverage", () => {
   describe("Function integration and cross-module usage", () => {
     it("should allow combining functions from different modules", () => {
       // Use functions from multiple modules together
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const statusCodes = [200, 400, 500];
       const results = statusCodes.map((code) => ({
         code,

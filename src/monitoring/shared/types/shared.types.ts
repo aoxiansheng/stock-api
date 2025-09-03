@@ -3,13 +3,21 @@
  */
 
 // 监控指标类型
-export type MonitoringMetricType = 'counter' | 'gauge' | 'histogram' | 'summary';
+export type MonitoringMetricType =
+  | "counter"
+  | "gauge"
+  | "histogram"
+  | "summary";
 
 // 健康状态类型
-export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+export type HealthStatus = "healthy" | "degraded" | "unhealthy";
 
 // 监控组件层级类型
-export type MonitoringLayer = 'infrastructure' | 'collector' | 'analyzer' | 'presenter';
+export type MonitoringLayer =
+  | "infrastructure"
+  | "collector"
+  | "analyzer"
+  | "presenter";
 
 // 性能指标
 export interface PerformanceMetrics {
@@ -35,10 +43,10 @@ export class MonitoringError extends Error {
     public readonly code: string,
     public readonly component: MonitoringLayer,
     message: string,
-    public readonly details?: any
+    public readonly details?: any,
   ) {
     super(message);
-    this.name = 'MonitoringError';
+    this.name = "MonitoringError";
   }
 }
 

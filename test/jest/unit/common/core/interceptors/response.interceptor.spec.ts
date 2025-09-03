@@ -3,7 +3,7 @@ import { ExecutionContext, CallHandler } from "@nestjs/common";
 import { Response } from "express";
 import { of } from "rxjs";
 import { ResponseInterceptor } from "../../../../../../src/common/core/interceptors/response.interceptor";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 describe("ResponseInterceptor", () => {
   let interceptor: ResponseInterceptor<any>;

@@ -1,10 +1,5 @@
 import { PartialType, ApiProperty } from "@nestjs/swagger";
-import {
-  IsNotEmpty,
-  IsString,
-  IsArray,
-  ArrayNotEmpty,
-} from "class-validator";
+import { IsNotEmpty, IsString, IsArray, ArrayNotEmpty } from "class-validator";
 
 import {
   CreateSymbolMappingDto,

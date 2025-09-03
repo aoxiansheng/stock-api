@@ -49,7 +49,7 @@ import { AppCoreModule } from "./app";
 
     // Redis连接
     RedisModule.forRoot({
-      type: 'single',
+      type: "single",
       url: `redis://${process.env.REDIS_HOST || "localhost"}:${parseInt(process.env.REDIS_PORT) || 6379}`,
       options: {
         enableReadyCheck: false,
@@ -78,12 +78,12 @@ import { AppCoreModule } from "./app";
     AppCoreModule,
     // 核心模块
     ReceiverModule,
-    StreamReceiverModule,  // WebSocket 流接收器
+    StreamReceiverModule, // WebSocket 流接收器
     SymbolMapperModule,
     DataMapperModule,
     TransformerModule,
     StorageModule,
-    SmartCacheModule,      // 智能缓存编排器模块（可选导入，不影响DI可见性）
+    SmartCacheModule, // 智能缓存编排器模块（可选导入，不影响DI可见性）
     QueryModule,
 
     // 数据源模块
@@ -100,8 +100,6 @@ import { AppCoreModule } from "./app";
 
     // 告警模块
     AlertModule,
-
- 
 
     // 权限验证模块
     PermissionValidationModule,

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * LongPort Types Unit Tests
  * 测试LongPort数据源类型定义的正确性和兼容性

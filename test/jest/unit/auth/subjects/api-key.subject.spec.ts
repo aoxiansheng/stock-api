@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 import { AuthSubjectType } from "../../../../../src/auth/interfaces/auth-subject.interface";
 import { ApiKeySubject } from "../../../../../src/auth/subjects/api-key.subject";

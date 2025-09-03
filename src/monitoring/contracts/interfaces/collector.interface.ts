@@ -4,7 +4,7 @@
  */
 
 export interface RawMetric {
-  type: 'request' | 'database' | 'cache' | 'system';
+  type: "request" | "database" | "cache" | "system";
   endpoint?: string;
   method?: string;
   statusCode?: number;
@@ -61,33 +61,49 @@ export interface ICollector {
   /**
    * 记录HTTP请求指标
    */
-  recordRequest(endpoint: string, method: string, statusCode: number, duration: number, metadata?: Record<string, any>): void;
-  
+  recordRequest(
+    endpoint: string,
+    method: string,
+    statusCode: number,
+    duration: number,
+    metadata?: Record<string, any>,
+  ): void;
+
   /**
    * 记录数据库操作指标
    */
-  recordDatabaseOperation(operation: string, duration: number, success: boolean, metadata?: Record<string, any>): void;
-  
+  recordDatabaseOperation(
+    operation: string,
+    duration: number,
+    success: boolean,
+    metadata?: Record<string, any>,
+  ): void;
+
   /**
    * 记录缓存操作指标
    */
-  recordCacheOperation(operation: string, hit: boolean, duration: number, metadata?: Record<string, any>): void;
-  
+  recordCacheOperation(
+    operation: string,
+    hit: boolean,
+    duration: number,
+    metadata?: Record<string, any>,
+  ): void;
+
   /**
    * 记录系统指标
    */
   recordSystemMetrics(metrics: SystemMetricsDto): void;
-  
+
   /**
    * 获取原始指标数据（无任何计算）
    */
   getRawMetrics(startTime?: Date, endTime?: Date): Promise<RawMetricsDto>;
-  
+
   /**
    * 获取系统指标
    */
   getSystemMetrics(): Promise<SystemMetricsDto>;
-  
+
   /**
    * 清理过期数据
    */

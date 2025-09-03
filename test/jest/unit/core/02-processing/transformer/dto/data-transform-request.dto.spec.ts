@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import { DataTransformRequestDto } from "@core/02-processing/transformer/dto/data-transform-request.dto";

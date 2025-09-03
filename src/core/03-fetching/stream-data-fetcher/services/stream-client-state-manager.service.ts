@@ -1,6 +1,6 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { createLogger } from '../../../../app/config/logger.config';
-import { GatewayBroadcastError } from '../exceptions/gateway-broadcast.exception';
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { createLogger } from "../../../../app/config/logger.config";
+import { GatewayBroadcastError } from "../exceptions/gateway-broadcast.exception";
 
 /**
  * 客户端订阅信息
@@ -31,7 +31,7 @@ export interface ClientStateStats {
 export interface SubscriptionChangeEvent {
   clientId: string;
   symbols: string[];
-  action: 'subscribe' | 'unsubscribe';
+  action: "subscribe" | "unsubscribe";
   provider: string;
   capability: string;
   timestamp: number;
@@ -39,14 +39,14 @@ export interface SubscriptionChangeEvent {
 
 /**
  * StreamClientStateManager - 客户端状态管理器
- * 
+ *
  * 🎯 核心功能：
  * - 客户端订阅状态跟踪
  * - 符号订阅聚合和去重
  * - 客户端活跃状态监控
  * - 订阅变更事件通知
  * - 批量状态查询和统计
- * 
+ *
  * 📊 管理数据：
  * - 客户端 → 订阅符号映射
  * - 符号 → 订阅客户端映射
@@ -55,24 +55,29 @@ export interface SubscriptionChangeEvent {
  */
 @Injectable()
 export class StreamClientStateManager implements OnModuleDestroy {
-  private readonly logger = createLogger('StreamClientStateManager');
-  
+  private readonly logger = createLogger("StreamClientStateManager");
+
   // 客户端订阅信息
-  private readonly clientSubscriptions = new Map<string, ClientSubscriptionInfo>();
-  
+  private readonly clientSubscriptions = new Map<
+    string,
+    ClientSubscriptionInfo
+  >();
+
   // 符号到客户端的反向映射 - 用于快速查找哪些客户端订阅了某个符号
   private readonly symbolToClients = new Map<string, Set<string>>();
-  
+
   // 提供商到客户端的映射
   private readonly providerToClients = new Map<string, Set<string>>();
-  
+
   // 订阅变更事件监听器
-  private readonly changeListeners: ((event: SubscriptionChangeEvent) => void)[] = [];
-  
+  private readonly changeListeners: ((
+    event: SubscriptionChangeEvent,
+  ) => void)[] = [];
+
   // 客户端活跃性检查间隔 (5分钟)
   private readonly clientTimeoutMs = 5 * 60 * 1000;
   private readonly CLEANUP_INTERVAL = 5 * 60 * 1000; // 5分钟清理间隔
-  
+
   // 定时器管理
   private cleanupInterval: NodeJS.Timeout | null = null;
 
@@ -96,7 +101,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
       gatewayBroadcastErrors: 0,
       lastGatewayError: null as Date | null,
       lastErrorReason: null as string | null,
-    }
+    },
   };
 
   constructor() {
@@ -110,7 +115,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-      this.logger.debug('客户端清理调度器已停止');
+      this.logger.debug("客户端清理调度器已停止");
     }
   }
 
@@ -125,10 +130,10 @@ export class StreamClientStateManager implements OnModuleDestroy {
     clientId: string,
     symbols: string[],
     wsCapabilityType: string,
-    providerName: string
+    providerName: string,
   ): void {
     const now = Date.now();
-    
+
     // 更新或创建客户端订阅信息
     let clientSub = this.clientSubscriptions.get(clientId);
     if (!clientSub) {
@@ -145,11 +150,11 @@ export class StreamClientStateManager implements OnModuleDestroy {
 
     // 添加新的订阅符号
     const newSymbols: string[] = [];
-    symbols.forEach(symbol => {
+    symbols.forEach((symbol) => {
       if (!clientSub!.symbols.has(symbol)) {
         clientSub!.symbols.add(symbol);
         newSymbols.push(symbol);
-        
+
         // 更新符号到客户端的映射
         if (!this.symbolToClients.has(symbol)) {
           this.symbolToClients.set(symbol, new Set());
@@ -172,14 +177,14 @@ export class StreamClientStateManager implements OnModuleDestroy {
       this.emitSubscriptionChange({
         clientId,
         symbols: newSymbols,
-        action: 'subscribe',
+        action: "subscribe",
         provider: providerName,
         capability: wsCapabilityType,
         timestamp: now,
       });
     }
 
-    this.logger.debug('客户端订阅已添加', {
+    this.logger.debug("客户端订阅已添加", {
       clientId,
       newSymbolsCount: newSymbols.length,
       totalSymbols: clientSub.symbols.size,
@@ -196,7 +201,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
   removeClientSubscription(clientId: string, symbols?: string[]): void {
     const clientSub = this.clientSubscriptions.get(clientId);
     if (!clientSub) {
-      this.logger.warn('尝试移除不存在的客户端订阅', { clientId });
+      this.logger.warn("尝试移除不存在的客户端订阅", { clientId });
       return;
     }
 
@@ -209,11 +214,11 @@ export class StreamClientStateManager implements OnModuleDestroy {
       this.cleanupClientSubscription(clientId);
     } else {
       // 移除指定符号
-      symbols.forEach(symbol => {
+      symbols.forEach((symbol) => {
         if (clientSub.symbols.has(symbol)) {
           clientSub.symbols.delete(symbol);
           removedSymbols.push(symbol);
-          
+
           // 更新符号到客户端的映射
           const symbolClients = this.symbolToClients.get(symbol);
           if (symbolClients) {
@@ -236,14 +241,14 @@ export class StreamClientStateManager implements OnModuleDestroy {
       this.emitSubscriptionChange({
         clientId,
         symbols: removedSymbols,
-        action: 'unsubscribe',
+        action: "unsubscribe",
         provider: clientSub.providerName,
         capability: clientSub.wsCapabilityType,
         timestamp: now,
       });
     }
 
-    this.logger.debug('客户端订阅已移除', {
+    this.logger.debug("客户端订阅已移除", {
       clientId,
       removedSymbolsCount: removedSymbols.length,
       remainingSymbols: clientSub?.symbols?.size || 0,
@@ -287,18 +292,18 @@ export class StreamClientStateManager implements OnModuleDestroy {
    */
   getAllRequiredSymbols(provider?: string, capability?: string): string[] {
     const symbols = new Set<string>();
-    
+
     for (const [, clientSub] of this.clientSubscriptions.entries()) {
       // 提供商过滤
       if (provider && clientSub.providerName !== provider) continue;
-      
+
       // 能力过滤
       if (capability && clientSub.wsCapabilityType !== capability) continue;
-      
+
       // 添加符号
-      clientSub.symbols.forEach(symbol => symbols.add(symbol));
+      clientSub.symbols.forEach((symbol) => symbols.add(symbol));
     }
-    
+
     return Array.from(symbols);
   }
 
@@ -329,24 +334,23 @@ export class StreamClientStateManager implements OnModuleDestroy {
 
     for (const [, clientSub] of this.clientSubscriptions.entries()) {
       stats.totalSubscriptions += clientSub.symbols.size;
-      
+
       // 活跃客户端检查
       if (now - clientSub.lastActiveTime < this.clientTimeoutMs) {
         stats.activeClients++;
       }
-      
+
       // 提供商分布统计
-      stats.providerBreakdown[clientSub.providerName] = 
+      stats.providerBreakdown[clientSub.providerName] =
         (stats.providerBreakdown[clientSub.providerName] || 0) + 1;
-      
+
       // 能力分布统计
-      stats.capabilityBreakdown[clientSub.wsCapabilityType] = 
+      stats.capabilityBreakdown[clientSub.wsCapabilityType] =
         (stats.capabilityBreakdown[clientSub.wsCapabilityType] || 0) + 1;
     }
 
     return stats;
   }
-
 
   /**
    * 新的统一广播方法 - 通过WebSocket Gateway
@@ -354,58 +358,70 @@ export class StreamClientStateManager implements OnModuleDestroy {
    * @param data 消息数据
    * @param webSocketProvider WebSocket服务器提供者
    */
-  async broadcastToSymbolViaGateway(symbol: string, data: any, webSocketProvider?: any): Promise<void> {
+  async broadcastToSymbolViaGateway(
+    symbol: string,
+    data: any,
+    webSocketProvider?: any,
+  ): Promise<void> {
     // 更新统计：总尝试次数
     this.broadcastStats.total.attempts++;
     const attemptTime = new Date();
 
     if (!webSocketProvider || !webSocketProvider.isServerAvailable()) {
-      const healthStatus = webSocketProvider?.healthCheck() || { status: 'unavailable', details: { reason: 'Provider not injected' } };
-      
+      const healthStatus = webSocketProvider?.healthCheck() || {
+        status: "unavailable",
+        details: { reason: "Provider not injected" },
+      };
+
       // 更新错误统计
       this.broadcastStats.gateway.failure++;
       this.broadcastStats.gateway.lastFailure = attemptTime;
       this.broadcastStats.errors.gatewayBroadcastErrors++;
       this.broadcastStats.errors.lastGatewayError = attemptTime;
-      this.broadcastStats.errors.lastErrorReason = healthStatus.details?.reason || '未知原因';
-      
-      this.logger.error('Gateway不可用，广播失败', { 
-        symbol, 
+      this.broadcastStats.errors.lastErrorReason =
+        healthStatus.details?.reason || "未知原因";
+
+      this.logger.error("Gateway不可用，广播失败", {
+        symbol,
         healthStatus,
         migrationComplete: true,
-        broadcastStats: this.getBroadcastStats()
+        broadcastStats: this.getBroadcastStats(),
       });
-      
+
       throw new GatewayBroadcastError(
         symbol,
         healthStatus,
-        healthStatus.details?.reason || '未知原因'
+        healthStatus.details?.reason || "未知原因",
       );
     }
 
     try {
       // 统一通过Gateway广播
-      const success = await webSocketProvider.broadcastToRoom(`symbol:${symbol}`, 'data', {
-        symbol,
-        timestamp: new Date().toISOString(),
-        data
-      });
+      const success = await webSocketProvider.broadcastToRoom(
+        `symbol:${symbol}`,
+        "data",
+        {
+          symbol,
+          timestamp: new Date().toISOString(),
+          data,
+        },
+      );
 
       if (success) {
         // 更新成功统计
         this.broadcastStats.gateway.success++;
         this.broadcastStats.gateway.lastSuccess = attemptTime;
-        
+
         // 更新客户端活动状态
         const clientIds = this.getClientsForSymbol(symbol);
-        clientIds.forEach(clientId => this.updateClientActivity(clientId));
+        clientIds.forEach((clientId) => this.updateClientActivity(clientId));
 
-        this.logger.debug('Gateway广播成功', {
+        this.logger.debug("Gateway广播成功", {
           symbol,
           clientCount: clientIds.length,
           dataSize: JSON.stringify(data).length,
-          method: 'gateway',
-          broadcastStats: this.getBroadcastStats()
+          method: "gateway",
+          broadcastStats: this.getBroadcastStats(),
         });
       } else {
         // 更新失败统计
@@ -413,50 +429,52 @@ export class StreamClientStateManager implements OnModuleDestroy {
         this.broadcastStats.gateway.lastFailure = attemptTime;
         this.broadcastStats.errors.gatewayBroadcastErrors++;
         this.broadcastStats.errors.lastGatewayError = attemptTime;
-        this.broadcastStats.errors.lastErrorReason = 'Gateway广播返回失败状态';
-        
+        this.broadcastStats.errors.lastErrorReason = "Gateway广播返回失败状态";
+
         const healthStatus = webSocketProvider.healthCheck();
-        this.logger.error('Gateway广播失败', { 
-          symbol, 
+        this.logger.error("Gateway广播失败", {
+          symbol,
           healthStatus,
           migrationComplete: true,
-          broadcastStats: this.getBroadcastStats()
+          broadcastStats: this.getBroadcastStats(),
         });
-        
+
         throw new GatewayBroadcastError(
           symbol,
           healthStatus,
-          'Gateway广播返回失败状态'
+          "Gateway广播返回失败状态",
         );
       }
-      
     } catch (error) {
       // 如果是我们自己抛出的GatewayBroadcastError，直接重新抛出
       if (error instanceof GatewayBroadcastError) {
         throw error;
       }
-      
+
       // 更新异常统计
       this.broadcastStats.gateway.failure++;
       this.broadcastStats.gateway.lastFailure = attemptTime;
       this.broadcastStats.errors.gatewayBroadcastErrors++;
       this.broadcastStats.errors.lastGatewayError = attemptTime;
       this.broadcastStats.errors.lastErrorReason = `Gateway广播异常: ${error.message}`;
-      
+
       // 其他异常转换为GatewayBroadcastError
-      const healthStatus = webSocketProvider?.healthCheck() || { status: 'error', details: { reason: 'Unknown health status' } };
-      this.logger.error('Gateway广播异常', {
+      const healthStatus = webSocketProvider?.healthCheck() || {
+        status: "error",
+        details: { reason: "Unknown health status" },
+      };
+      this.logger.error("Gateway广播异常", {
         symbol,
         error: error.message,
         healthStatus,
         migrationComplete: true,
-        broadcastStats: this.getBroadcastStats()
+        broadcastStats: this.getBroadcastStats(),
       });
-      
+
       throw new GatewayBroadcastError(
         symbol,
         healthStatus,
-        `Gateway广播异常: ${error.message}`
+        `Gateway广播异常: ${error.message}`,
       );
     }
   }
@@ -468,7 +486,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
   getBroadcastStats(): {
     gatewayUsageRate: number;
     errorRate: number;
-    healthStatus: 'excellent' | 'good' | 'warning' | 'critical';
+    healthStatus: "excellent" | "good" | "warning" | "critical";
     stats: typeof this.broadcastStats;
     analysis: {
       totalBroadcasts: number;
@@ -478,41 +496,41 @@ export class StreamClientStateManager implements OnModuleDestroy {
     };
   } {
     const totalAttempts = this.broadcastStats.total.attempts;
-    const totalGateway = this.broadcastStats.gateway.success + this.broadcastStats.gateway.failure;
+    const totalGateway =
+      this.broadcastStats.gateway.success + this.broadcastStats.gateway.failure;
     const totalLegacy = this.broadcastStats.legacy.calls;
     const totalErrors = this.broadcastStats.errors.gatewayBroadcastErrors;
-    
+
     // 计算Gateway使用率 (Gateway调用 / 总调用)
-    const gatewayUsageRate = totalAttempts > 0 
-      ? (totalGateway * 100) / totalAttempts 
-      : 100; // 没有调用时假设100%
-    
+    const gatewayUsageRate =
+      totalAttempts > 0 ? (totalGateway * 100) / totalAttempts : 100; // 没有调用时假设100%
+
     // 计算错误率 (错误数 / Gateway尝试数)
-    const errorRate = totalGateway > 0 
-      ? (totalErrors * 100) / totalGateway 
-      : 0;
-    
+    const errorRate = totalGateway > 0 ? (totalErrors * 100) / totalGateway : 0;
+
     // 计算成功率
-    const successRate = totalGateway > 0 
-      ? (this.broadcastStats.gateway.success * 100) / totalGateway 
-      : 100;
-    
+    const successRate =
+      totalGateway > 0
+        ? (this.broadcastStats.gateway.success * 100) / totalGateway
+        : 100;
+
     // 计算运行时间
-    const uptime = (Date.now() - this.broadcastStats.total.startTime.getTime()) / 1000 / 60; // 分钟
-    
+    const uptime =
+      (Date.now() - this.broadcastStats.total.startTime.getTime()) / 1000 / 60; // 分钟
+
     // 健康状态判断
-    let healthStatus: 'excellent' | 'good' | 'warning' | 'critical';
-    
+    let healthStatus: "excellent" | "good" | "warning" | "critical";
+
     if (errorRate > 10 || gatewayUsageRate < 80) {
-      healthStatus = 'critical';
+      healthStatus = "critical";
     } else if (errorRate > 5 || gatewayUsageRate < 90) {
-      healthStatus = 'warning';
+      healthStatus = "warning";
     } else if (errorRate > 1 || gatewayUsageRate < 95) {
-      healthStatus = 'good';
+      healthStatus = "good";
     } else {
-      healthStatus = 'excellent';
+      healthStatus = "excellent";
     }
-    
+
     return {
       gatewayUsageRate: Math.round(gatewayUsageRate * 100) / 100,
       errorRate: Math.round(errorRate * 100) / 100,
@@ -523,13 +541,13 @@ export class StreamClientStateManager implements OnModuleDestroy {
         gateway: { ...this.broadcastStats.gateway },
         legacy: { ...this.broadcastStats.legacy },
         total: { ...this.broadcastStats.total },
-        errors: { ...this.broadcastStats.errors }
+        errors: { ...this.broadcastStats.errors },
       },
       analysis: {
         totalBroadcasts: totalAttempts,
         successRate: Math.round(successRate * 100) / 100,
-        uptime: Math.round(uptime * 100) / 100
-      }
+        uptime: Math.round(uptime * 100) / 100,
+      },
     };
   }
 
@@ -548,15 +566,17 @@ export class StreamClientStateManager implements OnModuleDestroy {
     this.broadcastStats.errors.gatewayBroadcastErrors = 0;
     this.broadcastStats.errors.lastGatewayError = null;
     this.broadcastStats.errors.lastErrorReason = null;
-    
-    this.logger.log('Gateway广播统计已重置');
+
+    this.logger.log("Gateway广播统计已重置");
   }
 
   /**
    * 添加订阅变更监听器
    * @param listener 监听器函数
    */
-  addSubscriptionChangeListener(listener: (event: SubscriptionChangeEvent) => void): void {
+  addSubscriptionChangeListener(
+    listener: (event: SubscriptionChangeEvent) => void,
+  ): void {
     this.changeListeners.push(listener);
   }
 
@@ -564,7 +584,9 @@ export class StreamClientStateManager implements OnModuleDestroy {
    * 移除订阅变更监听器
    * @param listener 监听器函数
    */
-  removeSubscriptionChangeListener(listener: (event: SubscriptionChangeEvent) => void): void {
+  removeSubscriptionChangeListener(
+    listener: (event: SubscriptionChangeEvent) => void,
+  ): void {
     const index = this.changeListeners.indexOf(listener);
     if (index > -1) {
       this.changeListeners.splice(index, 1);
@@ -578,7 +600,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
     this.clientSubscriptions.clear();
     this.symbolToClients.clear();
     this.providerToClients.clear();
-    this.logger.log('所有客户端订阅已清理');
+    this.logger.log("所有客户端订阅已清理");
   }
 
   // === 私有方法 ===
@@ -591,7 +613,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
     if (!clientSub) return;
 
     // 从符号映射中移除客户端
-    clientSub.symbols.forEach(symbol => {
+    clientSub.symbols.forEach((symbol) => {
       const symbolClients = this.symbolToClients.get(symbol);
       if (symbolClients) {
         symbolClients.delete(clientId);
@@ -618,11 +640,11 @@ export class StreamClientStateManager implements OnModuleDestroy {
    * 发送订阅变更事件
    */
   private emitSubscriptionChange(event: SubscriptionChangeEvent): void {
-    this.changeListeners.forEach(listener => {
+    this.changeListeners.forEach((listener) => {
       try {
         listener(event);
       } catch (error) {
-        this.logger.error('订阅变更监听器执行失败', {
+        this.logger.error("订阅变更监听器执行失败", {
           error: error.message,
           event,
         });
@@ -637,9 +659,9 @@ export class StreamClientStateManager implements OnModuleDestroy {
     this.cleanupInterval = setInterval(() => {
       this.cleanupInactiveClients();
     }, this.CLEANUP_INTERVAL);
-    
-    this.logger.debug('客户端清理调度器已启动', { 
-      interval: this.CLEANUP_INTERVAL 
+
+    this.logger.debug("客户端清理调度器已启动", {
+      interval: this.CLEANUP_INTERVAL,
     });
   }
 
@@ -657,8 +679,8 @@ export class StreamClientStateManager implements OnModuleDestroy {
     }
 
     // 清理非活跃客户端
-    inactiveClients.forEach(clientId => {
-      this.logger.debug('清理非活跃客户端', { clientId });
+    inactiveClients.forEach((clientId) => {
+      this.logger.debug("清理非活跃客户端", { clientId });
       this.removeClientSubscription(clientId);
     });
 

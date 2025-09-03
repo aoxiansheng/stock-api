@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { notificationConfig } from "../../../../../src/app/config/notification.config";
 
 describe("NotificationConfig", () => {

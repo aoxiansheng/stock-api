@@ -1,8 +1,8 @@
 /**
  * Feature Flags Configuration
- * 
+ *
  * 🎯 统一管理系统功能开关，支持缓存优化、批量处理等特性的动态控制
- * 
+ *
  * Environment Variables:
  * - SYMBOL_MAPPING_CACHE_ENABLED: 符号映射缓存开关 (default: true)
  * - DATA_TRANSFORM_CACHE_ENABLED: 数据转换缓存开关 (default: true)
@@ -14,54 +14,72 @@
  * - BATCH_RESULT_CACHE_TTL: L3批量结果缓存生存时间ms (default: 7200000)
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class FeatureFlags {
   // 🎯 Symbol-Mapper 缓存优化开关
-  readonly symbolMappingCacheEnabled: boolean = process.env.SYMBOL_MAPPING_CACHE_ENABLED !== 'false';
-  
+  readonly symbolMappingCacheEnabled: boolean =
+    process.env.SYMBOL_MAPPING_CACHE_ENABLED !== "false";
+
   // 🎯 Data-Mapper 缓存优化开关
-  readonly dataTransformCacheEnabled: boolean = process.env.DATA_TRANSFORM_CACHE_ENABLED !== 'false';
-  
+  readonly dataTransformCacheEnabled: boolean =
+    process.env.DATA_TRANSFORM_CACHE_ENABLED !== "false";
+
   // 🎯 对象池优化开关
-  readonly objectPoolEnabled: boolean = process.env.OBJECT_POOL_ENABLED !== 'false';
-  
+  readonly objectPoolEnabled: boolean =
+    process.env.OBJECT_POOL_ENABLED !== "false";
+
   // 🎯 规则编译优化开关
-  readonly ruleCompilationEnabled: boolean = process.env.RULE_COMPILATION_ENABLED !== 'false';
-  
+  readonly ruleCompilationEnabled: boolean =
+    process.env.RULE_COMPILATION_ENABLED !== "false";
+
   // 🎯 动态日志级别开关
-  readonly dynamicLogLevelEnabled: boolean = process.env.DYNAMIC_LOG_LEVEL_ENABLED !== 'false';
-  
+  readonly dynamicLogLevelEnabled: boolean =
+    process.env.DYNAMIC_LOG_LEVEL_ENABLED !== "false";
+
   // 🎯 指标双写兼容模式开关
-  readonly metricsLegacyModeEnabled: boolean = process.env.METRICS_LEGACY_MODE_ENABLED !== 'false';
+  readonly metricsLegacyModeEnabled: boolean =
+    process.env.METRICS_LEGACY_MODE_ENABLED !== "false";
 
   // 🎯 Symbol-Mapper 缓存配置参数 (调整为长期缓存策略)
-  readonly symbolCacheMaxSize: number = Number(process.env.SYMBOL_CACHE_MAX_SIZE) || 2000;
-  readonly symbolCacheTtl: number = Number(process.env.SYMBOL_CACHE_TTL) || 12 * 60 * 60 * 1000; // 12小时 (L2)
-  
+  readonly symbolCacheMaxSize: number =
+    Number(process.env.SYMBOL_CACHE_MAX_SIZE) || 2000;
+  readonly symbolCacheTtl: number =
+    Number(process.env.SYMBOL_CACHE_TTL) || 12 * 60 * 60 * 1000; // 12小时 (L2)
+
   // 🎯 Data-Mapper 缓存配置参数 (调整为长期缓存策略)
-  readonly ruleCacheMaxSize: number = Number(process.env.RULE_CACHE_MAX_SIZE) || 100;
-  readonly ruleCacheTtl: number = Number(process.env.RULE_CACHE_TTL) || 24 * 60 * 60 * 1000; // 24小时 (L1)
-  
+  readonly ruleCacheMaxSize: number =
+    Number(process.env.RULE_CACHE_MAX_SIZE) || 100;
+  readonly ruleCacheTtl: number =
+    Number(process.env.RULE_CACHE_TTL) || 24 * 60 * 60 * 1000; // 24小时 (L1)
+
   // 🎯 对象池配置参数
   readonly objectPoolSize: number = Number(process.env.OBJECT_POOL_SIZE) || 100;
-  
+
   // 🎯 批量处理配置参数
-  readonly batchSizeThreshold: number = Number(process.env.BATCH_SIZE_THRESHOLD) || 10;
-  readonly batchTimeWindowMs: number = Number(process.env.BATCH_TIME_WINDOW_MS) || 1;
+  readonly batchSizeThreshold: number =
+    Number(process.env.BATCH_SIZE_THRESHOLD) || 10;
+  readonly batchTimeWindowMs: number =
+    Number(process.env.BATCH_TIME_WINDOW_MS) || 1;
 
   // 🎯 L3批量结果缓存配置参数 (Symbol Mapper 重构新增)
-  readonly batchResultCacheMaxSize: number = Number(process.env.BATCH_RESULT_CACHE_MAX_SIZE) || 1000;
-  readonly batchResultCacheTtl: number = Number(process.env.BATCH_RESULT_CACHE_TTL) || 2 * 60 * 60 * 1000; // 2小时
-  
+  readonly batchResultCacheMaxSize: number =
+    Number(process.env.BATCH_RESULT_CACHE_MAX_SIZE) || 1000;
+  readonly batchResultCacheTtl: number =
+    Number(process.env.BATCH_RESULT_CACHE_TTL) || 2 * 60 * 60 * 1000; // 2小时
+
   // 🎯 Symbol Mapper 查询超时配置（补位建议2：显式化配置）
-  readonly symbolMapperQueryTimeoutMs: number = Number(process.env.SYMBOL_MAPPER_QUERY_TIMEOUT_MS) || 5000; // 默认5秒
-  
+  readonly symbolMapperQueryTimeoutMs: number =
+    Number(process.env.SYMBOL_MAPPER_QUERY_TIMEOUT_MS) || 5000; // 默认5秒
+
   // 🎯 Symbol Mapper 内存水位监控配置（补位建议1：内存监控）
-  readonly symbolMapperMemoryCheckInterval: number = Number(process.env.SYMBOL_MAPPER_MEMORY_CHECK_INTERVAL) || 60000; // 默认1分钟检查一次
-  readonly symbolMapperMemoryWarningThreshold: number = Number(process.env.SYMBOL_MAPPER_MEMORY_WARNING_THRESHOLD) || 70; // 70%内存警告
-  readonly symbolMapperMemoryCriticalThreshold: number = Number(process.env.SYMBOL_MAPPER_MEMORY_CRITICAL_THRESHOLD) || 80; // 80%内存临界，触发清理
+  readonly symbolMapperMemoryCheckInterval: number =
+    Number(process.env.SYMBOL_MAPPER_MEMORY_CHECK_INTERVAL) || 60000; // 默认1分钟检查一次
+  readonly symbolMapperMemoryWarningThreshold: number =
+    Number(process.env.SYMBOL_MAPPER_MEMORY_WARNING_THRESHOLD) || 70; // 70%内存警告
+  readonly symbolMapperMemoryCriticalThreshold: number =
+    Number(process.env.SYMBOL_MAPPER_MEMORY_CRITICAL_THRESHOLD) || 80; // 80%内存临界，触发清理
 
   /**
    * 获取所有当前生效的 Feature Flags
@@ -97,9 +115,11 @@ export class FeatureFlags {
    * 检查是否启用了任何性能优化
    */
   isPerformanceOptimizationEnabled(): boolean {
-    return this.isCacheOptimizationEnabled() || 
-           this.objectPoolEnabled ||
-           this.ruleCompilationEnabled;
+    return (
+      this.isCacheOptimizationEnabled() ||
+      this.objectPoolEnabled ||
+      this.ruleCompilationEnabled
+    );
   }
 
   /**
@@ -107,12 +127,12 @@ export class FeatureFlags {
    */
   static getEmergencyRollbackEnvVars(): Record<string, string> {
     return {
-      SYMBOL_MAPPING_CACHE_ENABLED: 'false',
-      DATA_TRANSFORM_CACHE_ENABLED: 'false',
-      OBJECT_POOL_ENABLED: 'false',
-      RULE_COMPILATION_ENABLED: 'false',
-      DYNAMIC_LOG_LEVEL_ENABLED: 'false',
-      METRICS_LEGACY_MODE_ENABLED: 'false',
+      SYMBOL_MAPPING_CACHE_ENABLED: "false",
+      DATA_TRANSFORM_CACHE_ENABLED: "false",
+      OBJECT_POOL_ENABLED: "false",
+      RULE_COMPILATION_ENABLED: "false",
+      DYNAMIC_LOG_LEVEL_ENABLED: "false",
+      METRICS_LEGACY_MODE_ENABLED: "false",
     };
   }
 }

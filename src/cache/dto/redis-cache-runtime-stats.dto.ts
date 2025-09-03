@@ -3,7 +3,7 @@ import { IsNumber } from "class-validator";
 
 /**
  * Redis缓存运行时统计信息DTO
- * 
+ *
  * 此DTO专门用于Redis缓存服务的实时统计数据
  * 与StorageRedisCacheRuntimeStatsDto区分：
  * - RedisCacheRuntimeStatsDto: Redis内存缓存的运行时统计
@@ -43,7 +43,7 @@ export class RedisCacheRuntimeStatsDto {
     hitRate: number = 0,
     memoryUsage: number = 0,
     keyCount: number = 0,
-    avgTtl: number = 0
+    avgTtl: number = 0,
   ) {
     this.hits = hits;
     this.misses = misses;
@@ -79,7 +79,7 @@ export class RedisCacheRuntimeStatsDto {
    * 格式化字节数为可读格式
    */
   private formatBytes(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB'];
+    const units = ["B", "KB", "MB", "GB"];
     let size = bytes;
     let unitIndex = 0;
 

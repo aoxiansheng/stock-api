@@ -1,8 +1,8 @@
-import { mkdir, writeFile } from 'fs/promises';
-import { join, dirname } from 'path';
-import { createLogger } from '@app/config/logger.config';
-import { SmartPathResolver } from './smart-path-resolver';
-import { ConventionViolation } from '../decorators/types/metadata.types';
+import { mkdir, writeFile } from "fs/promises";
+import { join, dirname } from "path";
+import { createLogger } from "@app/config/logger.config";
+import { SmartPathResolver } from "./smart-path-resolver";
+import { ConventionViolation } from "../decorators/types/metadata.types";
 
 export interface AutoFixResult {
   success: boolean;
@@ -12,15 +12,24 @@ export interface AutoFixResult {
 }
 
 export interface ErrorAnalysis {
-  errorType: 'missing_file' | 'missing_directory' | 'import_error' | 'interface_error' | 'unknown';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  errorType:
+    | "missing_file"
+    | "missing_directory"
+    | "import_error"
+    | "interface_error"
+    | "unknown";
+  severity: "low" | "medium" | "high" | "critical";
   autoFixable: boolean;
   suggestions: string[];
   fixes: AutoFix[];
 }
 
 export interface AutoFix {
-  type: 'create_file' | 'create_directory' | 'update_file' | 'install_dependency';
+  type:
+    | "create_file"
+    | "create_directory"
+    | "update_file"
+    | "install_dependency";
   description: string;
   action: () => Promise<void>;
 }
@@ -29,42 +38,51 @@ export interface AutoFix {
  * 智能错误处理和自动修复器
  */
 export class SmartErrorHandler {
-  private static readonly logger = createLogger('SmartErrorHandler');
+  private static readonly logger = createLogger("SmartErrorHandler");
 
   /**
    * 分析提供商加载错误并提供修复建议
    */
-  static analyzeProviderError(providerName: string, error: Error): ErrorAnalysis {
+  static analyzeProviderError(
+    providerName: string,
+    error: Error,
+  ): ErrorAnalysis {
     const errorMessage = error.message.toLowerCase();
-    
-    if (errorMessage.includes('cannot find module')) {
+
+    if (errorMessage.includes("cannot find module")) {
       return this.handleModuleNotFoundError(providerName);
     }
-    
-    if (errorMessage.includes('does not implement') || errorMessage.includes('interface')) {
+
+    if (
+      errorMessage.includes("does not implement") ||
+      errorMessage.includes("interface")
+    ) {
       return this.handleInterfaceError(providerName);
     }
-    
-    if (errorMessage.includes('缺少') && errorMessage.includes('目录')) {
+
+    if (errorMessage.includes("缺少") && errorMessage.includes("目录")) {
       return this.handleMissingDirectoryError(providerName);
     }
-    
+
     return this.handleUnknownError(providerName);
   }
 
   /**
    * 自动修复提供商问题
    */
-  static async autoFixProvider(providerName: string, analysis: ErrorAnalysis): Promise<AutoFixResult> {
+  static async autoFixProvider(
+    providerName: string,
+    analysis: ErrorAnalysis,
+  ): Promise<AutoFixResult> {
     const result: AutoFixResult = {
       success: false,
       fixedIssues: [],
       remainingIssues: [],
-      generatedFiles: []
+      generatedFiles: [],
     };
 
     if (!analysis.autoFixable) {
-      result.remainingIssues.push('错误不可自动修复');
+      result.remainingIssues.push("错误不可自动修复");
       return result;
     }
 
@@ -92,28 +110,32 @@ export class SmartErrorHandler {
   /**
    * 批量修复约定违规
    */
-  static async autoFixViolations(violations: ConventionViolation[]): Promise<AutoFixResult> {
+  static async autoFixViolations(
+    violations: ConventionViolation[],
+  ): Promise<AutoFixResult> {
     const result: AutoFixResult = {
       success: false,
       fixedIssues: [],
       remainingIssues: [],
-      generatedFiles: []
+      generatedFiles: [],
     };
 
-    const autoFixableViolations = violations.filter(v => v.autoFixable);
-    
+    const autoFixableViolations = violations.filter((v) => v.autoFixable);
+
     for (const violation of autoFixableViolations) {
       try {
         await this.fixViolation(violation);
         result.fixedIssues.push(`修复约定违规: ${violation.message}`);
       } catch (error) {
-        result.remainingIssues.push(`修复失败: ${violation.message} - ${error.message}`);
+        result.remainingIssues.push(
+          `修复失败: ${violation.message} - ${error.message}`,
+        );
       }
     }
 
     // 处理不可自动修复的违规
-    const nonFixableViolations = violations.filter(v => !v.autoFixable);
-    result.remainingIssues.push(...nonFixableViolations.map(v => v.message));
+    const nonFixableViolations = violations.filter((v) => !v.autoFixable);
+    result.remainingIssues.push(...nonFixableViolations.map((v) => v.message));
 
     result.success = result.remainingIssues.length === 0;
     return result;
@@ -129,14 +151,14 @@ export class SmartErrorHandler {
       withTests?: boolean;
       withDocs?: boolean;
       description?: string;
-    } = {}
+    } = {},
   ): Promise<string[]> {
     const generatedFiles: string[] = [];
     const {
-      capabilities = ['get-stock-quote'],
+      capabilities = ["get-stock-quote"],
       withTests = false,
       withDocs = true,
-      description = `${providerName} 数据源`
+      description = `${providerName} 数据源`,
     } = options;
 
     try {
@@ -145,25 +167,31 @@ export class SmartErrorHandler {
       await mkdir(providerPath, { recursive: true });
 
       // 生成主提供商文件
-      const mainFile = await this.generateProviderMainFile(providerName, description);
-      const mainFilePath = join(providerPath, 'index.ts');
+      const mainFile = await this.generateProviderMainFile(
+        providerName,
+        description,
+      );
+      const mainFilePath = join(providerPath, "index.ts");
       await writeFile(mainFilePath, mainFile);
       generatedFiles.push(mainFilePath);
 
       // 生成NestJS模块文件
       const moduleFile = await this.generateProviderModule(providerName);
-      const moduleDir = join(providerPath, 'module');
+      const moduleDir = join(providerPath, "module");
       await mkdir(moduleDir, { recursive: true });
       const moduleFilePath = join(moduleDir, `${providerName}.module.ts`);
       await writeFile(moduleFilePath, moduleFile);
       generatedFiles.push(moduleFilePath);
 
       // 创建能力目录和文件
-      const capabilitiesPath = join(providerPath, 'capabilities');
+      const capabilitiesPath = join(providerPath, "capabilities");
       await mkdir(capabilitiesPath, { recursive: true });
 
       for (const capability of capabilities) {
-        const capabilityFile = await this.generateCapabilityFile(providerName, capability);
+        const capabilityFile = await this.generateCapabilityFile(
+          providerName,
+          capability,
+        );
         const capabilityFilePath = join(capabilitiesPath, `${capability}.ts`);
         await writeFile(capabilityFilePath, capabilityFile);
         generatedFiles.push(capabilityFilePath);
@@ -171,14 +199,18 @@ export class SmartErrorHandler {
 
       // 生成类型定义文件
       const typesFile = await this.generateTypesFile(providerName);
-      const typesFilePath = join(providerPath, 'types.ts');
+      const typesFilePath = join(providerPath, "types.ts");
       await writeFile(typesFilePath, typesFile);
       generatedFiles.push(typesFilePath);
 
       // 生成文档
       if (withDocs) {
-        const readmeFile = await this.generateReadmeFile(providerName, capabilities, description);
-        const readmeFilePath = join(providerPath, 'README.md');
+        const readmeFile = await this.generateReadmeFile(
+          providerName,
+          capabilities,
+          description,
+        );
+        const readmeFilePath = join(providerPath, "README.md");
         await writeFile(readmeFilePath, readmeFile);
         generatedFiles.push(readmeFilePath);
       }
@@ -194,7 +226,9 @@ export class SmartErrorHandler {
         }
       }
 
-      this.logger.log(`提供商模板生成成功: ${providerName}, 生成了 ${generatedFiles.length} 个文件`);
+      this.logger.log(
+        `提供商模板生成成功: ${providerName}, 生成了 ${generatedFiles.length} 个文件`,
+      );
       return generatedFiles;
     } catch (error) {
       this.logger.error(`生成提供商模板失败: ${error.message}`);
@@ -205,38 +239,40 @@ export class SmartErrorHandler {
   /**
    * 处理模块未找到错误
    */
-  private static handleModuleNotFoundError(providerName: string): ErrorAnalysis {
+  private static handleModuleNotFoundError(
+    providerName: string,
+  ): ErrorAnalysis {
     const suggestions = [
       `确保 ${providerName} 目录存在`,
       `创建主文件: index.ts 或 ${providerName}.provider.ts`,
       `实现 IDataProvider 接口`,
-      `添加必要的导出`
+      `添加必要的导出`,
     ];
 
     const fixes: AutoFix[] = [
       {
-        type: 'create_directory',
+        type: "create_directory",
         description: `创建提供商目录 ${providerName}`,
         action: async () => {
           const providerPath = SmartPathResolver.getProviderPath(providerName);
           await mkdir(providerPath, { recursive: true });
-        }
+        },
       },
       {
-        type: 'create_file',
+        type: "create_file",
         description: `生成提供商模板文件`,
         action: async () => {
           await this.generateProviderTemplate(providerName);
-        }
-      }
+        },
+      },
     ];
 
     return {
-      errorType: 'missing_file',
-      severity: 'high',
+      errorType: "missing_file",
+      severity: "high",
       autoFixable: true,
       suggestions,
-      fixes
+      fixes,
     };
   }
 
@@ -246,56 +282,66 @@ export class SmartErrorHandler {
   private static handleInterfaceError(providerName: string): ErrorAnalysis {
     const suggestions = [
       `确保提供商 ${providerName} 类实现了 IDataProvider 接口`,
-      '检查所有必需方法是否已实现',
-      '验证方法签名是否正确',
-      '参考现有提供商实现'
+      "检查所有必需方法是否已实现",
+      "验证方法签名是否正确",
+      "参考现有提供商实现",
     ];
 
     return {
-      errorType: 'interface_error',
-      severity: 'high',
+      errorType: "interface_error",
+      severity: "high",
       autoFixable: false,
       suggestions,
-      fixes: []
+      fixes: [],
     };
   }
 
   /**
    * 处理缺少目录错误
    */
-  private static handleMissingDirectoryError(providerName: string): ErrorAnalysis {
+  private static handleMissingDirectoryError(
+    providerName: string,
+  ): ErrorAnalysis {
     const suggestions = [
       `创建 capabilities 目录`,
       `添加至少一个能力文件`,
-      `确保目录结构符合约定`
+      `确保目录结构符合约定`,
     ];
 
     const fixes: AutoFix[] = [
       {
-        type: 'create_directory',
+        type: "create_directory",
         description: `创建 capabilities 目录`,
         action: async () => {
-          const capabilitiesPath = SmartPathResolver.getProviderCapabilitiesPath(providerName);
+          const capabilitiesPath =
+            SmartPathResolver.getProviderCapabilitiesPath(providerName);
           await mkdir(capabilitiesPath, { recursive: true });
-        }
+        },
       },
       {
-        type: 'create_file',
+        type: "create_file",
         description: `生成示例能力文件`,
         action: async () => {
-          const capabilitiesPath = SmartPathResolver.getProviderCapabilitiesPath(providerName);
-          const capabilityFile = await this.generateCapabilityFile(providerName, 'get-stock-quote');
-          await writeFile(join(capabilitiesPath, 'get-stock-quote.ts'), capabilityFile);
-        }
-      }
+          const capabilitiesPath =
+            SmartPathResolver.getProviderCapabilitiesPath(providerName);
+          const capabilityFile = await this.generateCapabilityFile(
+            providerName,
+            "get-stock-quote",
+          );
+          await writeFile(
+            join(capabilitiesPath, "get-stock-quote.ts"),
+            capabilityFile,
+          );
+        },
+      },
     ];
 
     return {
-      errorType: 'missing_directory',
-      severity: 'medium',
+      errorType: "missing_directory",
+      severity: "medium",
       autoFixable: true,
       suggestions,
-      fixes
+      fixes,
     };
   }
 
@@ -306,32 +352,34 @@ export class SmartErrorHandler {
     const suggestions = [
       `检查提供商 ${providerName} 的错误日志了解详细信息`,
       `验证提供商 ${providerName} 结构完整性`,
-      '确保所有依赖已正确安装',
-      '参考文档或联系技术支持'
+      "确保所有依赖已正确安装",
+      "参考文档或联系技术支持",
     ];
 
     return {
-      errorType: 'unknown',
-      severity: 'medium',
+      errorType: "unknown",
+      severity: "medium",
       autoFixable: false,
       suggestions,
-      fixes: []
+      fixes: [],
     };
   }
 
   /**
    * 修复单个约定违规
    */
-  private static async fixViolation(violation: ConventionViolation): Promise<void> {
+  private static async fixViolation(
+    violation: ConventionViolation,
+  ): Promise<void> {
     switch (violation.type) {
-      case 'missing_directory':
+      case "missing_directory":
         await mkdir(violation.path, { recursive: true });
         break;
-      case 'missing_file':
+      case "missing_file":
         // 根据路径推断需要创建的文件类型
-        if (violation.path.includes('capabilities')) {
+        if (violation.path.includes("capabilities")) {
           // 创建示例能力文件
-          const content = '// TODO: 实现能力逻辑\n';
+          const content = "// TODO: 实现能力逻辑\n";
           await writeFile(violation.path, content);
         }
         break;
@@ -341,9 +389,12 @@ export class SmartErrorHandler {
   }
 
   // 以下是模板生成方法
-  private static async generateProviderMainFile(providerName: string, description: string): Promise<string> {
-    const className = this.toPascalCase(providerName) + 'Provider';
-    
+  private static async generateProviderMainFile(
+    providerName: string,
+    description: string,
+  ): Promise<string> {
+    const className = this.toPascalCase(providerName) + "Provider";
+
     return `import { Injectable } from '@nestjs/common';
 import { Provider } from '../../decorators';
 import { IDataProvider } from '../../interfaces/provider.interface';
@@ -380,10 +431,12 @@ export default ${className};
 `;
   }
 
-  private static async generateProviderModule(providerName: string): Promise<string> {
-    const className = this.toPascalCase(providerName) + 'Provider';
-    const moduleName = this.toPascalCase(providerName) + 'Module';
-    
+  private static async generateProviderModule(
+    providerName: string,
+  ): Promise<string> {
+    const className = this.toPascalCase(providerName) + "Provider";
+    const moduleName = this.toPascalCase(providerName) + "Module";
+
     return `import { Module } from '@nestjs/common';
 import { ${className} } from '../index';
 
@@ -395,9 +448,13 @@ export class ${moduleName} {}
 `;
   }
 
-  private static async generateCapabilityFile(providerName: string, capabilityName: string): Promise<string> {
-    const className = this.toPascalCase(capabilityName.replace(/-/g, ' ')) + 'Capability';
-    
+  private static async generateCapabilityFile(
+    providerName: string,
+    capabilityName: string,
+  ): Promise<string> {
+    const className =
+      this.toPascalCase(capabilityName.replace(/-/g, " ")) + "Capability";
+
     return `import { Capability } from '../../../decorators';
 import { ICapability } from '../../../interfaces/capability.interface';
 import { DataRequest, DataResponse } from '../../../interfaces/data.interface';
@@ -424,7 +481,9 @@ export default ${className};
 `;
   }
 
-  private static async generateTypesFile(providerName: string): Promise<string> {
+  private static async generateTypesFile(
+    providerName: string,
+  ): Promise<string> {
     return `/**
  * ${providerName} 数据源类型定义
  */
@@ -447,9 +506,9 @@ export interface ${this.toPascalCase(providerName)}Response {
   }
 
   private static async generateReadmeFile(
-    providerName: string, 
-    capabilities: string[], 
-    description: string
+    providerName: string,
+    capabilities: string[],
+    description: string,
   ): Promise<string> {
     return `# ${this.toPascalCase(providerName)} 数据源
 
@@ -457,7 +516,7 @@ ${description}
 
 ## 支持的能力
 
-${capabilities.map(cap => `- \`${cap}\``).join('\n')}
+${capabilities.map((cap) => `- \`${cap}\``).join("\n")}
 
 ## 配置说明
 
@@ -490,11 +549,14 @@ npm test -- ${providerName}
   /**
    * 重新扫描并刷新注册表
    */
-  private static async generateTestFiles(providerName: string): Promise<Record<string, string>> {
+  private static async generateTestFiles(
+    providerName: string,
+  ): Promise<Record<string, string>> {
     const files: Record<string, string> = {};
-    
+
     // 提供商测试文件
-    files[`tests/${providerName}.provider.spec.ts`] = `import { Test, TestingModule } from '@nestjs/testing';
+    files[`tests/${providerName}.provider.spec.ts`] =
+      `import { Test, TestingModule } from '@nestjs/testing';
 import { ${this.toPascalCase(providerName)}Provider } from '../index';
 
 describe('${this.toPascalCase(providerName)}Provider', () => {
@@ -529,7 +591,7 @@ describe('${this.toPascalCase(providerName)}Provider', () => {
   private static toPascalCase(str: string): string {
     return str
       .split(/[-\s_]+/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join('');
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join("");
   }
 }

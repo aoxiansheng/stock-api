@@ -6,7 +6,13 @@ import {
   ApiStandardResponses,
   ApiKeyAuthResponses,
 } from "@common/core/decorators/swagger-responses.decorator";
-import { Controller, Post, Body, ValidationPipe, BadRequestException } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  ValidationPipe,
+  BadRequestException,
+} from "@nestjs/common";
 import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
 import { Permission } from "../../../../auth/enums/user-role.enum";
 
@@ -19,7 +25,9 @@ import { DataTransformerService } from "../services/data-transformer.service";
 export class DataTransformerController {
   private readonly logger = createLogger(DataTransformerController.name);
 
-  constructor(private readonly dataTransformerService: DataTransformerService) {}
+  constructor(
+    private readonly dataTransformerService: DataTransformerService,
+  ) {}
 
   @ApiKeyAuth([Permission.DATA_READ])
   @Post("data-transform")
@@ -127,16 +135,27 @@ export class DataTransformerController {
   @ApiKeyAuthResponses()
   @ApiStandardResponses()
   @ApiConsumes("application/json")
-  async transformBatch(@Body(new ValidationPipe({ validateCustomDecorators: true, transform: true, whitelist: true })) requests: DataTransformRequestDto[]) {
+  async transformBatch(
+    @Body(
+      new ValidationPipe({
+        validateCustomDecorators: true,
+        transform: true,
+        whitelist: true,
+      }),
+    )
+    requests: DataTransformRequestDto[],
+  ) {
     // 验证请求体是数组
     if (!Array.isArray(requests)) {
-      throw new BadRequestException('批量请求必须是TransformRequestDto数组');
+      throw new BadRequestException("批量请求必须是TransformRequestDto数组");
     }
 
     this.logger.log(`API Request: Batch transform data`, {
       batchSize: requests.length,
       providers: [...new Set(requests.map((r) => r.provider))],
-      transDataRuleListTypes: [...new Set(requests.map((r) => r.transDataRuleListType))],
+      transDataRuleListTypes: [
+        ...new Set(requests.map((r) => r.transDataRuleListType)),
+      ],
     });
 
     try {

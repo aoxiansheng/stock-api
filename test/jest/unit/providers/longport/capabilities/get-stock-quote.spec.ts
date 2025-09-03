@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockQuote } from "../../../../../../src/providers/longport/capabilities/get-stock-quote";
 import { MARKETS } from "../../../../../../src/common/constants/market.constants";
 

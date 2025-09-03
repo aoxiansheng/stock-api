@@ -4,5 +4,4 @@
  */
 
 // 基础设施服务
-export * from './infrastructure';
-
+export * from "./infrastructure";

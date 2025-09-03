@@ -7,8 +7,14 @@ import { createLogger } from "@app/config/logger.config";
 
 import { ICapability } from "../interfaces/capability.interface";
 import { ICapabilityRegistration } from "../interfaces/provider.interface";
-import { IStreamCapability, IStreamCapabilityRegistration } from "../interfaces/stream-capability.interface";
-import { getProviderScanConfig, shouldExcludeDirectory } from "../config/provider-scan.config";
+import {
+  IStreamCapability,
+  IStreamCapabilityRegistration,
+} from "../interfaces/stream-capability.interface";
+import {
+  getProviderScanConfig,
+  shouldExcludeDirectory,
+} from "../config/provider-scan.config";
 
 const toCamelCase = (str: string) =>
   str.replace(/-(\w)/g, (_, c) => c.toUpperCase());
@@ -33,13 +39,13 @@ export class CapabilityRegistryService implements OnModuleInit {
   async onModuleInit() {
     // 防止重复初始化 - 使用单例模式
     if (CapabilityRegistryService.discoveryPromise) {
-      this.logger.debug('等待现有能力发现完成...');
+      this.logger.debug("等待现有能力发现完成...");
       await CapabilityRegistryService.discoveryPromise;
       return;
     }
 
     if (this.initialized) {
-      this.logger.debug('能力注册表已初始化，跳过重复初始化');
+      this.logger.debug("能力注册表已初始化，跳过重复初始化");
       return;
     }
 
@@ -87,7 +93,12 @@ export class CapabilityRegistryService implements OnModuleInit {
   private async loadProviderCapabilities(providerName: string): Promise<void> {
     try {
       // 修复路径：从 services/ 目录上升到 providers/ 目录，然后进入提供商目录
-      const capabilitiesPath = join(__dirname, "..", providerName, "capabilities");
+      const capabilitiesPath = join(
+        __dirname,
+        "..",
+        providerName,
+        "capabilities",
+      );
 
       if (!(await this.directoryExists(capabilitiesPath))) {
         this.logger.warn({
@@ -129,7 +140,8 @@ export class CapabilityRegistryService implements OnModuleInit {
         `../${providerName}/capabilities/${capabilityName}`
       );
       const camelCaseName = toCamelCase(capabilityName);
-      const capability = capabilityModule.default || capabilityModule[camelCaseName];
+      const capability =
+        capabilityModule.default || capabilityModule[camelCaseName];
 
       if (!capability) {
         this.logger.warn(
@@ -140,8 +152,12 @@ export class CapabilityRegistryService implements OnModuleInit {
       }
 
       // 检查是否为 WebSocket 流能力
-      if (capabilityName.startsWith('stream-')) {
-        await this.loadStreamCapability(providerName, capabilityName, capability);
+      if (capabilityName.startsWith("stream-")) {
+        await this.loadStreamCapability(
+          providerName,
+          capabilityName,
+          capability,
+        );
       } else {
         // 传统 REST 能力
         if (typeof capability.execute === "function") {
@@ -166,8 +182,12 @@ export class CapabilityRegistryService implements OnModuleInit {
     capabilityName: string,
     capability: IStreamCapability,
   ): Promise<void> {
-    const logContext = { provider: providerName, capability: capabilityName, type: 'stream' };
-    
+    const logContext = {
+      provider: providerName,
+      capability: capabilityName,
+      type: "stream",
+    };
+
     try {
       // 验证流能力接口
       if (
@@ -321,14 +341,16 @@ export class CapabilityRegistryService implements OnModuleInit {
       capability,
       priority,
       isEnabled,
-      connectionStatus: 'disconnected',
+      connectionStatus: "disconnected",
       errorCount: 0,
     };
 
-    this.streamCapabilities.get(providerName)!.set(capability.name, registration);
-    
+    this.streamCapabilities
+      .get(providerName)!
+      .set(capability.name, registration);
+
     this.logger.log({
-      message: '流能力注册成功',
+      message: "流能力注册成功",
       provider: providerName,
       capability: capability.name,
       priority,
@@ -351,12 +373,18 @@ export class CapabilityRegistryService implements OnModuleInit {
   /**
    * 获取最佳流提供商
    */
-  getBestStreamProvider(capabilityName: string, market?: string): string | null {
+  getBestStreamProvider(
+    capabilityName: string,
+    market?: string,
+  ): string | null {
     const candidates: { provider: string; priority: number }[] = [];
 
     for (const [providerName, capabilities] of this.streamCapabilities) {
       const registration = capabilities.get(capabilityName);
-      if (registration?.isEnabled && registration.connectionStatus !== 'error') {
+      if (
+        registration?.isEnabled &&
+        registration.connectionStatus !== "error"
+      ) {
         const capability = registration.capability;
         if (!market || capability.supportedMarkets.includes(market)) {
           candidates.push({
@@ -377,7 +405,10 @@ export class CapabilityRegistryService implements OnModuleInit {
   /**
    * 获取所有流能力
    */
-  getAllStreamCapabilities(): Map<string, Map<string, IStreamCapabilityRegistration>> {
+  getAllStreamCapabilities(): Map<
+    string,
+    Map<string, IStreamCapabilityRegistration>
+  > {
     return this.streamCapabilities;
   }
 
@@ -387,20 +418,20 @@ export class CapabilityRegistryService implements OnModuleInit {
   updateStreamCapabilityStatus(
     providerName: string,
     capabilityName: string,
-    status: 'disconnected' | 'connecting' | 'connected' | 'error',
+    status: "disconnected" | "connecting" | "connected" | "error",
     error?: string,
   ): void {
     const registration = this.streamCapabilities
       .get(providerName)
       ?.get(capabilityName);
-    
+
     if (registration) {
       registration.connectionStatus = status;
-      
-      if (status === 'connected') {
+
+      if (status === "connected") {
         registration.lastConnectedAt = new Date();
         registration.errorCount = 0;
-      } else if (status === 'error') {
+      } else if (status === "error") {
         registration.errorCount++;
         if (error) {
           registration.lastError = error;
@@ -408,7 +439,7 @@ export class CapabilityRegistryService implements OnModuleInit {
       }
 
       this.logger.log({
-        message: '流能力状态更新',
+        message: "流能力状态更新",
         provider: providerName,
         capability: capabilityName,
         status,

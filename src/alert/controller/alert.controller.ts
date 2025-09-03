@@ -14,7 +14,10 @@ import {
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
 import { createLogger } from "@app/config/logger.config";
-import { ALERT_RATE_LIMIT, ALERT_RATE_LIMIT_MESSAGES } from "@common/constants/alert-rate-limit.constants";
+import {
+  ALERT_RATE_LIMIT,
+  ALERT_RATE_LIMIT_MESSAGES,
+} from "@common/constants/alert-rate-limit.constants";
 
 import {
   ApiSuccessResponse,
@@ -57,8 +60,10 @@ export class AlertController {
     string,
     { count: number; lastReset: number }
   >();
-  private readonly TRIGGER_RATE_LIMIT = ALERT_RATE_LIMIT.TRIGGER_EVALUATION.MAX_REQUESTS_PER_MINUTE;
-  private readonly RATE_LIMIT_WINDOW = ALERT_RATE_LIMIT.TRIGGER_EVALUATION.WINDOW_MS;
+  private readonly TRIGGER_RATE_LIMIT =
+    ALERT_RATE_LIMIT.TRIGGER_EVALUATION.MAX_REQUESTS_PER_MINUTE;
+  private readonly RATE_LIMIT_WINDOW =
+    ALERT_RATE_LIMIT.TRIGGER_EVALUATION.WINDOW_MS;
 
   constructor(
     private readonly alertingService: AlertingService,
@@ -315,7 +320,7 @@ export class AlertController {
       result.alerts.map(AlertResponseDto.fromEntity),
       page,
       limit,
-      result.total
+      result.total,
     );
   }
 
@@ -467,7 +472,9 @@ export class AlertController {
 
       // 检查是否超过限制
       if (rateData.count >= this.TRIGGER_RATE_LIMIT) {
-        throw new BadRequestException(ALERT_RATE_LIMIT_MESSAGES.TRIGGER_RATE_EXCEEDED);
+        throw new BadRequestException(
+          ALERT_RATE_LIMIT_MESSAGES.TRIGGER_RATE_EXCEEDED,
+        );
       }
 
       rateData.count++;

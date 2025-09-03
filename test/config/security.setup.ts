@@ -27,7 +27,7 @@ import { ApiKeyService } from "../../src/auth/services/apikey.service";
 import { JwtService } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 import mongoose from "mongoose";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 let app: INestApplication;
 let mongoServer: MongoMemoryServer;

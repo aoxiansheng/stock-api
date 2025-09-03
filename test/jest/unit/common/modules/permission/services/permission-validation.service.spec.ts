@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { Test, TestingModule } from "@nestjs/testing";
 import { PermissionValidationService } from "../../../../../../../src/common/modules/permission/services/permission-validation.service";
 import {

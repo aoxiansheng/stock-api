@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createLogger } from '../../../../app/config/logger.config';
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { createLogger } from "../../../../app/config/logger.config";
+import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
 /**
  * 内存使用统计接口
@@ -59,7 +59,7 @@ interface MemoryPoolItem {
 
 /**
  * 批量内存优化器服务
- * 
+ *
  * 专门用于优化批量缓存操作的内存使用，特性包括：
  * - 智能批量大小调整
  * - 内存使用监控和限制
@@ -76,12 +76,12 @@ export class BatchMemoryOptimizerService {
   private readonly defaultMaxBatchSize: number;
   private readonly defaultMaxMemoryUsage: number; // bytes
   private readonly compressionThreshold: number;
-  
+
   // 内存池管理
   private memoryPool: Map<string, MemoryPoolItem> = new Map();
   private readonly maxPoolSize: number = 1000;
   private poolCleanupInterval: NodeJS.Timeout | null = null;
-  
+
   // 内存统计
   private stats: MemoryStats;
   private memoryHistory: Array<{ timestamp: Date; usage: number }> = [];
@@ -95,18 +95,18 @@ export class BatchMemoryOptimizerService {
   constructor(private readonly configService: ConfigService) {
     // 初始化配置
     this.defaultMaxBatchSize = this.configService.get<number>(
-      'cache.batch.maxBatchSize', 
-      CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE
+      "cache.batch.maxBatchSize",
+      CACHE_CONFIG.BATCH_LIMITS.MAX_BATCH_SIZE,
     );
-    
+
     this.defaultMaxMemoryUsage = this.configService.get<number>(
-      'cache.batch.maxMemoryUsage', 
-      50 * 1024 * 1024 // 50MB
+      "cache.batch.maxMemoryUsage",
+      50 * 1024 * 1024, // 50MB
     );
-    
+
     this.compressionThreshold = this.configService.get<number>(
-      'cache.compression.thresholdBytes',
-      CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES
+      "cache.compression.thresholdBytes",
+      CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES,
     );
 
     this.currentOptimalBatchSize = this.defaultMaxBatchSize;
@@ -119,16 +119,16 @@ export class BatchMemoryOptimizerService {
       operationCount: 0,
       averageItemSize: 0,
       compressionRatio: 1.0,
-      lastCleanup: null
+      lastCleanup: null,
     };
 
     // 启动内存池清理
     this.startMemoryPoolCleanup();
 
-    this.logger.log('BatchMemoryOptimizerService initialized', {
+    this.logger.log("BatchMemoryOptimizerService initialized", {
       defaultMaxBatchSize: this.defaultMaxBatchSize,
       defaultMaxMemoryUsage: this.defaultMaxMemoryUsage,
-      compressionThreshold: this.compressionThreshold
+      compressionThreshold: this.compressionThreshold,
     });
   }
 
@@ -142,7 +142,7 @@ export class BatchMemoryOptimizerService {
   async optimizeBatch<T, R>(
     items: T[],
     processor: (items: T[]) => Promise<R[]>,
-    options: BatchProcessOptions = {}
+    options: BatchProcessOptions = {},
   ): Promise<BatchProcessResult<T, R>> {
     const startTime = Date.now();
     const startMemory = this.getCurrentMemoryUsage();
@@ -152,17 +152,18 @@ export class BatchMemoryOptimizerService {
       maxBatchSize: options.maxBatchSize || this.getOptimalBatchSize(),
       maxMemoryUsage: options.maxMemoryUsage || this.defaultMaxMemoryUsage,
       enableCompression: options.enableCompression !== false,
-      compressionThreshold: options.compressionThreshold || this.compressionThreshold,
+      compressionThreshold:
+        options.compressionThreshold || this.compressionThreshold,
       retryFailedItems: options.retryFailedItems !== false,
       maxRetries: options.maxRetries || 2,
       prioritizeMemoryEfficiency: options.prioritizeMemoryEfficiency || false,
-      ...options
+      ...options,
     };
 
-    this.logger.debug('Starting batch optimization', {
+    this.logger.debug("Starting batch optimization", {
       itemCount: items.length,
       optimalBatchSize: opts.maxBatchSize,
-      maxMemoryUsage: opts.maxMemoryUsage
+      maxMemoryUsage: opts.maxMemoryUsage,
     });
 
     const successful: R[] = [];
@@ -172,18 +173,18 @@ export class BatchMemoryOptimizerService {
     try {
       // 智能分批处理
       const batches = await this.createOptimalBatches(items, opts);
-      
+
       for (const batch of batches) {
         const batchStartMemory = this.getCurrentMemoryUsage();
-        
+
         try {
           // 检查内存限制
           if (batchStartMemory > opts.maxMemoryUsage) {
             await this.performMemoryCleanup();
-            
+
             // 如果清理后仍然超限，减小批量大小
             if (this.getCurrentMemoryUsage() > opts.maxMemoryUsage) {
-              throw new Error('Memory usage exceeds limit even after cleanup');
+              throw new Error("Memory usage exceeds limit even after cleanup");
             }
           }
 
@@ -193,16 +194,18 @@ export class BatchMemoryOptimizerService {
 
           // 更新内存使用统计
           const batchEndMemory = this.getCurrentMemoryUsage();
-          const batchMemoryUsed = Math.max(0, batchEndMemory - batchStartMemory);
+          const batchMemoryUsed = Math.max(
+            0,
+            batchEndMemory - batchStartMemory,
+          );
           totalMemoryUsed += batchMemoryUsed;
 
           // 记录成功处理的批次大小用于优化
           this.recordBatchSize(batch.items.length, true);
-
         } catch (error) {
-          this.logger.warn('Batch processing failed', {
+          this.logger.warn("Batch processing failed", {
             batchSize: batch.items.length,
-            error: error.message
+            error: error.message,
           });
 
           // 记录失败的批次大小
@@ -211,14 +214,14 @@ export class BatchMemoryOptimizerService {
           // 如果启用重试，尝试单独处理失败的项目
           if (opts.retryFailedItems) {
             await this.retryFailedItems(
-              batch.items, 
-              processor, 
-              failed, 
-              successful, 
-              opts.maxRetries
+              batch.items,
+              processor,
+              failed,
+              successful,
+              opts.maxRetries,
             );
           } else {
-            batch.items.forEach(item => {
+            batch.items.forEach((item) => {
               failed.push({ item, error: error.message });
             });
           }
@@ -229,14 +232,15 @@ export class BatchMemoryOptimizerService {
           await this.performIntermediateCleanup();
         }
       }
-
     } catch (error) {
-      this.logger.error('Batch optimization failed', error);
-      
+      this.logger.error("Batch optimization failed", error);
+
       // 将所有未处理的项目标记为失败
-      items.forEach(item => {
-        if (!successful.includes(item as any) && 
-            !failed.some(f => f.item === item)) {
+      items.forEach((item) => {
+        if (
+          !successful.includes(item as any) &&
+          !failed.some((f) => f.item === item)
+        ) {
           failed.push({ item, error: error.message });
         }
       });
@@ -246,7 +250,11 @@ export class BatchMemoryOptimizerService {
     const avgItemSize = totalMemoryUsed / Math.max(1, successful.length);
 
     // 更新统计
-    this.updateStats(totalMemoryUsed, successful.length + failed.length, avgItemSize);
+    this.updateStats(
+      totalMemoryUsed,
+      successful.length + failed.length,
+      avgItemSize,
+    );
 
     const result: BatchProcessResult<T, R> = {
       successful,
@@ -257,11 +265,11 @@ export class BatchMemoryOptimizerService {
         failureCount: failed.length,
         processingTime,
         memoryUsed: totalMemoryUsed,
-        avgItemSize
-      }
+        avgItemSize,
+      },
     };
 
-    this.logger.debug('Batch optimization completed', result.metrics);
+    this.logger.debug("Batch optimization completed", result.metrics);
 
     return result;
   }
@@ -270,44 +278,49 @@ export class BatchMemoryOptimizerService {
    * 创建优化的批次
    */
   private async createOptimalBatches<T>(
-    items: T[], 
-    options: BatchProcessOptions
+    items: T[],
+    options: BatchProcessOptions,
   ): Promise<Array<{ items: T[]; estimatedMemory: number }>> {
     const batches: Array<{ items: T[]; estimatedMemory: number }> = [];
     const itemSize = this.estimateItemSize(items[0]);
-    
+
     let currentBatch: T[] = [];
     let currentBatchMemory = 0;
-    
+
     for (const item of items) {
       const estimatedItemMemory = this.estimateItemSize(item);
-      
+
       // 检查是否需要开始新批次
       const wouldExceedBatchSize = currentBatch.length >= options.maxBatchSize!;
-      const wouldExceedMemory = currentBatchMemory + estimatedItemMemory > (options.maxMemoryUsage! * 0.8);
-      
-      if (currentBatch.length > 0 && (wouldExceedBatchSize || wouldExceedMemory)) {
+      const wouldExceedMemory =
+        currentBatchMemory + estimatedItemMemory >
+        options.maxMemoryUsage! * 0.8;
+
+      if (
+        currentBatch.length > 0 &&
+        (wouldExceedBatchSize || wouldExceedMemory)
+      ) {
         batches.push({
           items: [...currentBatch],
-          estimatedMemory: currentBatchMemory
+          estimatedMemory: currentBatchMemory,
         });
-        
+
         currentBatch = [];
         currentBatchMemory = 0;
       }
-      
+
       currentBatch.push(item);
       currentBatchMemory += estimatedItemMemory;
     }
-    
+
     // 添加最后一个批次
     if (currentBatch.length > 0) {
       batches.push({
         items: currentBatch,
-        estimatedMemory: currentBatchMemory
+        estimatedMemory: currentBatchMemory,
       });
     }
-    
+
     return batches;
   }
 
@@ -319,14 +332,14 @@ export class BatchMemoryOptimizerService {
     processor: (items: T[]) => Promise<R[]>,
     failed: Array<{ item: T; error: string }>,
     successful: R[],
-    maxRetries: number
+    maxRetries: number,
   ): Promise<void> {
     let retryCount = 0;
     let itemsToRetry = [...items];
 
     while (retryCount < maxRetries && itemsToRetry.length > 0) {
       const retryResults: T[] = [];
-      
+
       // 单独处理每个项目以隔离错误
       for (const item of itemsToRetry) {
         try {
@@ -342,7 +355,7 @@ export class BatchMemoryOptimizerService {
     }
 
     // 将仍然失败的项目添加到失败列表
-    itemsToRetry.forEach(item => {
+    itemsToRetry.forEach((item) => {
       failed.push({ item, error: `Failed after ${maxRetries} retries` });
     });
   }
@@ -379,15 +392,19 @@ export class BatchMemoryOptimizerService {
     }
 
     const recentSizes = this.optimalBatchSizeHistory.slice(-10);
-    const avgSize = recentSizes.reduce((sum, size) => sum + size, 0) / recentSizes.length;
-    
+    const avgSize =
+      recentSizes.reduce((sum, size) => sum + size, 0) / recentSizes.length;
+
     // 渐进式调整
     this.currentOptimalBatchSize = Math.floor(
-      (this.currentOptimalBatchSize * 0.8) + (avgSize * 0.2)
+      this.currentOptimalBatchSize * 0.8 + avgSize * 0.2,
     );
-    
+
     // 确保在合理范围内
-    return Math.max(10, Math.min(this.currentOptimalBatchSize, this.defaultMaxBatchSize));
+    return Math.max(
+      10,
+      Math.min(this.currentOptimalBatchSize, this.defaultMaxBatchSize),
+    );
   }
 
   /**
@@ -396,7 +413,7 @@ export class BatchMemoryOptimizerService {
   private recordBatchSize(batchSize: number, successful: boolean): void {
     if (successful) {
       this.optimalBatchSizeHistory.push(batchSize);
-      
+
       if (this.optimalBatchSizeHistory.length > this.batchSizeHistoryLimit) {
         this.optimalBatchSizeHistory.shift();
       }
@@ -412,24 +429,24 @@ export class BatchMemoryOptimizerService {
    */
   private async performMemoryCleanup(): Promise<void> {
     const beforeCleanup = this.getCurrentMemoryUsage();
-    
+
     // 清理内存池
     await this.cleanupMemoryPool(true);
-    
+
     // 强制垃圾回收（如果可用）
     if (global.gc) {
       global.gc();
     }
-    
+
     const afterCleanup = this.getCurrentMemoryUsage();
     const memoryFreed = beforeCleanup - afterCleanup;
-    
+
     this.stats.lastCleanup = new Date();
-    
-    this.logger.debug('Memory cleanup completed', {
+
+    this.logger.debug("Memory cleanup completed", {
       memoryFreed,
       beforeCleanup,
-      afterCleanup
+      afterCleanup,
     });
   }
 
@@ -440,7 +457,8 @@ export class BatchMemoryOptimizerService {
     // 轻量级清理，不影响性能
     const oldItems = Array.from(this.memoryPool.entries())
       .filter(([_, item]) => {
-        const ageMinutes = (Date.now() - item.timestamp.getTime()) / (1000 * 60);
+        const ageMinutes =
+          (Date.now() - item.timestamp.getTime()) / (1000 * 60);
         return ageMinutes > 5; // 5分钟以上的项目
       })
       .slice(0, 10); // 每次最多清理10个项目
@@ -479,16 +497,16 @@ export class BatchMemoryOptimizerService {
       const sortedItems = Array.from(this.memoryPool.entries())
         .sort((a, b) => a[1].accessCount - b[1].accessCount)
         .slice(0, this.memoryPool.size - this.maxPoolSize);
-      
+
       sortedItems.forEach(([key]) => itemsToRemove.push(key));
     }
 
-    itemsToRemove.forEach(key => this.memoryPool.delete(key));
+    itemsToRemove.forEach((key) => this.memoryPool.delete(key));
 
     if (itemsToRemove.length > 0) {
-      this.logger.debug('Cleaned up memory pool', {
+      this.logger.debug("Cleaned up memory pool", {
         itemsRemoved: itemsToRemove.length,
-        poolSize: this.memoryPool.size
+        poolSize: this.memoryPool.size,
       });
     }
   }
@@ -496,21 +514,29 @@ export class BatchMemoryOptimizerService {
   /**
    * 更新统计信息
    */
-  private updateStats(memoryUsed: number, operationCount: number, avgItemSize: number): void {
+  private updateStats(
+    memoryUsed: number,
+    operationCount: number,
+    avgItemSize: number,
+  ): void {
     this.stats.totalAllocated += memoryUsed;
     this.stats.currentUsage = this.getCurrentMemoryUsage();
-    this.stats.peakUsage = Math.max(this.stats.peakUsage, this.stats.currentUsage);
+    this.stats.peakUsage = Math.max(
+      this.stats.peakUsage,
+      this.stats.currentUsage,
+    );
     this.stats.operationCount += operationCount;
-    
+
     // 更新平均项目大小（移动平均）
-    this.stats.averageItemSize = (this.stats.averageItemSize * 0.9) + (avgItemSize * 0.1);
-    
+    this.stats.averageItemSize =
+      this.stats.averageItemSize * 0.9 + avgItemSize * 0.1;
+
     // 记录内存历史
     this.memoryHistory.push({
       timestamp: new Date(),
-      usage: this.stats.currentUsage
+      usage: this.stats.currentUsage,
     });
-    
+
     if (this.memoryHistory.length > this.historyLimit) {
       this.memoryHistory.shift();
     }
@@ -538,24 +564,26 @@ export class BatchMemoryOptimizerService {
     const recommendations: string[] = [];
     const stats = this.getMemoryStats();
 
-    if (stats.averageItemSize > 10240) { // 10KB
-      recommendations.push('平均项目大小较大，建议启用压缩');
+    if (stats.averageItemSize > 10240) {
+      // 10KB
+      recommendations.push("平均项目大小较大，建议启用压缩");
     }
 
     if (this.currentOptimalBatchSize < this.defaultMaxBatchSize * 0.5) {
-      recommendations.push('最优批次大小偏小，可能存在内存碎片问题');
+      recommendations.push("最优批次大小偏小，可能存在内存碎片问题");
     }
 
     const recentMemory = this.memoryHistory.slice(-10);
     if (recentMemory.length >= 5) {
-      const memoryTrend = recentMemory[recentMemory.length - 1].usage / recentMemory[0].usage;
+      const memoryTrend =
+        recentMemory[recentMemory.length - 1].usage / recentMemory[0].usage;
       if (memoryTrend > 1.5) {
-        recommendations.push('内存使用呈上升趋势，建议增加清理频率');
+        recommendations.push("内存使用呈上升趋势，建议增加清理频率");
       }
     }
 
     if (this.memoryPool.size > this.maxPoolSize * 0.8) {
-      recommendations.push('内存池使用率较高，建议调整清理策略');
+      recommendations.push("内存池使用率较高，建议调整清理策略");
     }
 
     return recommendations;
@@ -572,14 +600,14 @@ export class BatchMemoryOptimizerService {
       operationCount: 0,
       averageItemSize: 0,
       compressionRatio: 1.0,
-      lastCleanup: null
+      lastCleanup: null,
     };
-    
+
     this.memoryHistory = [];
     this.optimalBatchSizeHistory = [];
     this.currentOptimalBatchSize = this.defaultMaxBatchSize;
-    
-    this.logger.log('Memory optimizer stats reset');
+
+    this.logger.log("Memory optimizer stats reset");
   }
 
   /**
@@ -590,10 +618,10 @@ export class BatchMemoryOptimizerService {
       clearInterval(this.poolCleanupInterval);
       this.poolCleanupInterval = null;
     }
-    
+
     this.memoryPool.clear();
     this.resetStats();
-    
-    this.logger.log('BatchMemoryOptimizerService cleaned up');
+
+    this.logger.log("BatchMemoryOptimizerService cleaned up");
   }
 }

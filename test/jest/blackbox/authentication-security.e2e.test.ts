@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：三层认证体系与安全机制
  * 测试API Key、JWT、公开访问三层认证系统

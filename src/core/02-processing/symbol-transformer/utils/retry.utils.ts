@@ -1,15 +1,15 @@
-import { RETRY_CONFIG } from '../constants/symbol-transformer.constants';
+import { RETRY_CONFIG } from "../constants/symbol-transformer.constants";
 
 /**
  * 错误类型枚举
  */
 export enum ErrorType {
-  NETWORK = 'NETWORK',
-  TIMEOUT = 'TIMEOUT', 
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  VALIDATION = 'VALIDATION',
-  SYSTEM = 'SYSTEM',
-  UNKNOWN = 'UNKNOWN',
+  NETWORK = "NETWORK",
+  TIMEOUT = "TIMEOUT",
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
+  VALIDATION = "VALIDATION",
+  SYSTEM = "SYSTEM",
+  UNKNOWN = "UNKNOWN",
 }
 
 /**
@@ -39,9 +39,9 @@ export interface RetryResult<T> {
  * 断路器状态枚举
  */
 export enum CircuitState {
-  CLOSED = 'CLOSED',
-  OPEN = 'OPEN', 
-  HALF_OPEN = 'HALF_OPEN',
+  CLOSED = "CLOSED",
+  OPEN = "OPEN",
+  HALF_OPEN = "HALF_OPEN",
 }
 
 /**
@@ -68,7 +68,7 @@ export class RetryUtils {
    */
   static async withRetry<T>(
     fn: () => Promise<T>,
-    options: RetryOptions = {}
+    options: RetryOptions = {},
   ): Promise<RetryResult<T>> {
     const config = {
       maxAttempts: options.maxAttempts ?? RETRY_CONFIG.MAX_ATTEMPTS,
@@ -97,9 +97,9 @@ export class RetryUtils {
         };
       } catch (error) {
         lastError = error as Error;
-        
+
         const errorType = this.classifyError(error as Error);
-        
+
         // 检查是否为可重试错误
         if (!config.retryableErrors.includes(errorType)) {
           return {
@@ -121,7 +121,7 @@ export class RetryUtils {
           attempt,
           config.backoffFactor,
           config.maxDelay,
-          config.jitterFactor
+          config.jitterFactor,
         );
 
         totalDelay += delay;
@@ -152,10 +152,10 @@ export class RetryUtils {
       successThreshold: 3,
       timeout: 10000,
       resetTimeout: 60000,
-    }
+    },
   ): Promise<T> {
     let breaker = this.circuitBreakers.get(key);
-    
+
     if (!breaker) {
       breaker = new CircuitBreakerState(options);
       this.circuitBreakers.set(key, breaker);
@@ -176,11 +176,11 @@ export class RetryUtils {
     key: string,
     fn: () => Promise<T>,
     retryOptions?: RetryOptions,
-    circuitOptions?: CircuitBreakerOptions
+    circuitOptions?: CircuitBreakerOptions,
   ): Promise<RetryResult<T>> {
     return this.withRetry(
       () => this.withCircuitBreaker(key, fn, circuitOptions),
-      retryOptions
+      retryOptions,
     );
   }
 
@@ -191,27 +191,27 @@ export class RetryUtils {
    */
   private static classifyError(error: Error): ErrorType {
     const message = error.message.toLowerCase();
-    
-    if (message.includes('network') || message.includes('connect')) {
+
+    if (message.includes("network") || message.includes("connect")) {
       return ErrorType.NETWORK;
     }
-    
-    if (message.includes('timeout')) {
+
+    if (message.includes("timeout")) {
       return ErrorType.TIMEOUT;
     }
-    
-    if (message.includes('service unavailable') || message.includes('503')) {
+
+    if (message.includes("service unavailable") || message.includes("503")) {
       return ErrorType.SERVICE_UNAVAILABLE;
     }
-    
-    if (message.includes('validation') || message.includes('invalid')) {
+
+    if (message.includes("validation") || message.includes("invalid")) {
       return ErrorType.VALIDATION;
     }
-    
-    if (error.name === 'SystemError') {
+
+    if (error.name === "SystemError") {
       return ErrorType.SYSTEM;
     }
-    
+
     return ErrorType.UNKNOWN;
   }
 
@@ -223,17 +223,17 @@ export class RetryUtils {
     attempt: number,
     backoffFactor: number,
     maxDelay: number,
-    jitterFactor: number
+    jitterFactor: number,
   ): number {
     // 指数退避
     const exponentialDelay = baseDelay * Math.pow(backoffFactor, attempt - 1);
-    
+
     // 应用最大延迟限制
     const clampedDelay = Math.min(exponentialDelay, maxDelay);
-    
+
     // 添加抖动
     const jitter = clampedDelay * jitterFactor * Math.random();
-    
+
     return Math.floor(clampedDelay + jitter);
   }
 
@@ -241,7 +241,7 @@ export class RetryUtils {
    * 异步睡眠
    */
   private static sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -273,7 +273,7 @@ class CircuitBreakerState {
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (this.state === CircuitState.OPEN) {
       if (Date.now() - this.lastFailureTime < this.options.resetTimeout) {
-        throw new Error('Circuit breaker is OPEN');
+        throw new Error("Circuit breaker is OPEN");
       } else {
         this.state = CircuitState.HALF_OPEN;
         this.successCount = 0;
@@ -294,14 +294,17 @@ class CircuitBreakerState {
     return Promise.race([
       fn(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Operation timeout')), this.options.timeout)
+        setTimeout(
+          () => reject(new Error("Operation timeout")),
+          this.options.timeout,
+        ),
       ),
     ]);
   }
 
   private onSuccess(): void {
     this.failureCount = 0;
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.successCount++;
       if (this.successCount >= this.options.successThreshold) {
@@ -313,7 +316,7 @@ class CircuitBreakerState {
   private onFailure(): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
-    
+
     if (this.failureCount >= this.options.failureThreshold) {
       this.state = CircuitState.OPEN;
     }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // http.constants.e2e.test.ts - 测试占位代码
 // 路径: e2e/common/constants/unified/http.constants.e2e.test.ts
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Gateway健康检查集成测试
  * 验证Gateway状态是否准备好移除Legacy代码

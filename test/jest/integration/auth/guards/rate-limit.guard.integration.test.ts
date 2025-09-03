@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // rate-limit.guard.integration.test.ts - 测试占位代码
 // 路径: integration/auth/guards/rate-limit.guard.integration.test.ts
 

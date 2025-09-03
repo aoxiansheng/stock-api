@@ -65,7 +65,7 @@ export interface IStreamCapabilityRegistration {
   capability: IStreamCapability;
   priority: number;
   isEnabled: boolean;
-  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
+  connectionStatus: "disconnected" | "connecting" | "connected" | "error";
   lastConnectedAt?: Date;
   errorCount: number;
   lastError?: string;

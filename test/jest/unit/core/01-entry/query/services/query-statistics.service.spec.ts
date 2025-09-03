@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { QueryStatisticsService } from "@core/01-entry/query/services/query-statistics.service";
 import { QueryType } from "@core/01-entry/query/dto/query-types.dto";

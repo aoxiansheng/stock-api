@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 真实环境黑盒E2E测试：双时效接口系统
  * 测试强时效(Receiver)和弱时效(Query)接口的完整业务场景

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // stream-recovery.metrics.spec.ts - 测试占位代码
 // 路径: unit/core/stream/stream-data-fetcher/metrics/stream-recovery.metrics.spec.ts
 

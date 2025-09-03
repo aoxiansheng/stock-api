@@ -186,7 +186,11 @@ export class AlertHistoryService {
       });
 
       // 使用通用分页服务计算分页信息
-      const pagination = this.paginationService.createPagination(page, limit, total);
+      const pagination = this.paginationService.createPagination(
+        page,
+        limit,
+        total,
+      );
 
       this.logger.debug(
         ALERT_HISTORY_MESSAGES.ALERTS_QUERIED,

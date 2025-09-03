@@ -1,22 +1,22 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { 
-  IsEnum, 
-  IsOptional, 
-  IsString, 
-  IsNumber, 
-  Min, 
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
   IsArray,
-  IsDate
-} from 'class-validator';
+  IsDate,
+} from "class-validator";
 
-import { StorageClassification } from '../../../shared/types/storage-classification.enum';
-import { StorageType } from '../enums/storage-type.enum';
+import { StorageClassification } from "../../../shared/types/storage-classification.enum";
+import { StorageType } from "../enums/storage-type.enum";
 
 export class StorageQueryDto {
-  @ApiPropertyOptional({ 
-    description: '页码，默认为1',
-    default: 1 
+  @ApiPropertyOptional({
+    description: "页码，默认为1",
+    default: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -24,9 +24,9 @@ export class StorageQueryDto {
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ 
-    description: '每页条数，默认为10',
-    default: 10 
+  @ApiPropertyOptional({
+    description: "每页条数，默认为10",
+    default: 10,
   })
   @IsOptional()
   @Type(() => Number)
@@ -34,63 +34,63 @@ export class StorageQueryDto {
   @Min(1)
   limit?: number;
 
-  @ApiPropertyOptional({ 
-    description: '按键名搜索',
+  @ApiPropertyOptional({
+    description: "按键名搜索",
   })
   @IsOptional()
   @IsString()
   keySearch?: string;
 
-  @ApiPropertyOptional({ 
-    description: '按存储类型筛选',
-    enum: StorageType 
+  @ApiPropertyOptional({
+    description: "按存储类型筛选",
+    enum: StorageType,
   })
   @IsOptional()
   @IsEnum(StorageType)
   storageType?: StorageType;
 
-  @ApiPropertyOptional({ 
-    description: '按数据分类筛选',
-    enum: StorageClassification 
+  @ApiPropertyOptional({
+    description: "按数据分类筛选",
+    enum: StorageClassification,
   })
   @IsOptional()
   @IsEnum(StorageClassification)
   storageClassification?: StorageClassification;
 
-  @ApiPropertyOptional({ 
-    description: '按提供商筛选' 
+  @ApiPropertyOptional({
+    description: "按提供商筛选",
   })
   @IsOptional()
   @IsString()
   provider?: string;
 
-  @ApiPropertyOptional({ 
-    description: '按市场筛选' 
+  @ApiPropertyOptional({
+    description: "按市场筛选",
   })
   @IsOptional()
   @IsString()
   market?: string;
 
-  @ApiPropertyOptional({ 
-    description: '按标签筛选' 
+  @ApiPropertyOptional({
+    description: "按标签筛选",
   })
   @IsOptional()
   @IsArray()
   tags?: string[];
 
-  @ApiPropertyOptional({ 
-    description: '开始日期' 
+  @ApiPropertyOptional({
+    description: "开始日期",
   })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
   startDate?: Date;
 
-  @ApiPropertyOptional({ 
-    description: '结束日期' 
+  @ApiPropertyOptional({
+    description: "结束日期",
   })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
   endDate?: Date;
-} 
+}

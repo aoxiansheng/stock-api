@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PermissionTemplateUtil } from "../../../../../src/auth/utils/permission.utils";
 import {
   PERMISSION_DETAIL_TEMPLATES,

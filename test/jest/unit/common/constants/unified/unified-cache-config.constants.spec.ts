@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   CACHE_CONSTANTS,
   buildCacheKey,

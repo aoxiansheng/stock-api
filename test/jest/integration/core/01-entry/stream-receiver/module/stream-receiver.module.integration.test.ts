@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // stream-receiver.module.integration.test.ts - 测试占位代码
 // 路径: integration/core/01-entry/stream-receiver/module/stream-receiver.module.integration.test.ts
 

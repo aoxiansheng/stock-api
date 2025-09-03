@@ -178,11 +178,5 @@ export const NOTIFICATION_ALERT_THRESHOLDS = deepFreeze({
   MAX_PROCESSING_TIME_MS: 30000,
 });
 
-// 🔄 重试配置常量
-export const NOTIFICATION_RETRY_CONFIG = deepFreeze({
-  MAX_RETRIES: 3,
-  INITIAL_DELAY_MS: 1000,
-  BACKOFF_MULTIPLIER: 2,
-  MAX_DELAY_MS: 10000,
-  JITTER_FACTOR: 0.1,
-});
+// 🔄 重试配置常量 - 使用共享基础配置
+export { NOTIFICATION_RETRY_CONFIG } from "./retry.constants";

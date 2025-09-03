@@ -11,20 +11,16 @@ import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 import {
   DATATRANSFORM_ERROR_MESSAGES,
   DATATRANSFORM_CONFIG,
   DATATRANSFORM_PERFORMANCE_THRESHOLDS,
 } from "../constants/data-transformer.constants";
-import {
-  DataTransformationStatsDto,
-} from "../dto/data-transform-interfaces.dto";
-import {
-  DataBatchTransformOptionsDto,
-} from "../dto/data-transform-preview.dto";
+import { DataTransformationStatsDto } from "../dto/data-transform-interfaces.dto";
+import { DataBatchTransformOptionsDto } from "../dto/data-transform-preview.dto";
 import { DataTransformRequestDto } from "../dto/data-transform-request.dto";
 import {
   DataTransformResponseDto,
@@ -47,7 +43,9 @@ export class DataTransformerService {
   /**
    * Transform raw data using mapping rules
    */
-  async transform(request: DataTransformRequestDto): Promise<DataTransformResponseDto> {
+  async transform(
+    request: DataTransformRequestDto,
+  ): Promise<DataTransformResponseDto> {
     const startTime = Date.now();
     const apiTypeCtx = request.apiType;
 
@@ -67,7 +65,10 @@ export class DataTransformerService {
         ? request.rawData
         : [request.rawData].filter(Boolean);
 
-      if (dataToProcess.length === 0 && (request.rawData === null || request.rawData === undefined)) {
+      if (
+        dataToProcess.length === 0 &&
+        (request.rawData === null || request.rawData === undefined)
+      ) {
         const metadata = new DataTransformationMetadataDto(
           "",
           "",
@@ -95,30 +96,37 @@ export class DataTransformerService {
           `${DATATRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', transDataRuleListType '${request.transDataRuleListType}'`,
         );
       }
-      
-      const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(transformMappingRule.id);
+
+      const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(
+        transformMappingRule.id,
+      );
 
       const transformedResults = [];
       let successfulTransformations = 0;
 
       for (const item of dataToProcess) {
-        const result = await this.flexibleMappingRuleService.applyFlexibleMappingRule(
-          ruleDoc,
-          item,
-          request.options?.includeDebugInfo || false,
-        );
-        
+        const result =
+          await this.flexibleMappingRuleService.applyFlexibleMappingRule(
+            ruleDoc,
+            item,
+            request.options?.includeDebugInfo || false,
+          );
+
         if (result.success) {
-            successfulTransformations++;
+          successfulTransformations++;
         }
         transformedResults.push(result.transformedData);
       }
 
       if (successfulTransformations === 0 && dataToProcess.length > 0) {
-          throw new BadRequestException('Transformation failed for all items in the request.');
+        throw new BadRequestException(
+          "Transformation failed for all items in the request.",
+        );
       }
 
-      const finalData = Array.isArray(request.rawData) ? transformedResults : transformedResults[0];
+      const finalData = Array.isArray(request.rawData)
+        ? transformedResults
+        : transformedResults[0];
 
       const stats = this.calculateTransformationStats(
         finalData,
@@ -141,7 +149,8 @@ export class DataTransformerService {
       );
 
       const logLevel =
-        processingTime > DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+        processingTime >
+        DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
           ? "warn"
           : "log";
       this.logger[logLevel](
@@ -158,23 +167,29 @@ export class DataTransformerService {
       setImmediate(() => {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'data_transformer',
-          metricType: 'business',
-          metricName: 'transformation_completed',
+          source: "data_transformer",
+          metricType: "business",
+          metricName: "transformation_completed",
           metricValue: processingTime,
           tags: {
-            operation: 'data-transformation',
+            operation: "data-transformation",
             provider: request.provider,
             transDataRuleListType: request.transDataRuleListType,
-            status: 'success',
+            status: "success",
             recordsProcessed: stats.recordsProcessed,
             fieldsTransformed: stats.fieldsTransformed,
-            successRate: dataToProcess.length > 0 ? (successfulTransformations / dataToProcess.length) * 100 : 100
-          }
+            successRate:
+              dataToProcess.length > 0
+                ? (successfulTransformations / dataToProcess.length) * 100
+                : 100,
+          },
         });
       });
 
-      if (processingTime > DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
+      if (
+        processingTime >
+        DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+      ) {
         this.logger.warn(`数据转换性能警告: ${processingTime}ms`, {
           provider: request.provider,
           transDataRuleListType: request.transDataRuleListType,
@@ -190,18 +205,18 @@ export class DataTransformerService {
       setImmediate(() => {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'data_transformer',
-          metricType: 'business',
-          metricName: 'transformation_failed',
+          source: "data_transformer",
+          metricType: "business",
+          metricName: "transformation_failed",
           metricValue: processingTime,
           tags: {
-            operation: 'data-transformation',
+            operation: "data-transformation",
             provider: request.provider,
             transDataRuleListType: request.transDataRuleListType,
-            status: 'error',
+            status: "error",
             error: error.message,
-            errorType: error.constructor.name
-          }
+            errorType: error.constructor.name,
+          },
         });
       });
 
@@ -218,10 +233,12 @@ export class DataTransformerService {
 
       // 🎯 区分业务逻辑异常和系统异常
       // 业务逻辑异常应该直接传播，不重新包装
-      if (error instanceof NotFoundException || 
-          error instanceof BadRequestException || 
-          error instanceof UnauthorizedException ||
-          error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof ForbiddenException
+      ) {
         throw error; // 直接传播业务逻辑异常
       }
 
@@ -271,7 +288,8 @@ export class DataTransformerService {
     const requestsByRule = new Map<string, DataTransformRequestDto[]>();
     for (const request of requests) {
       const key =
-        request.mappingOutRuleId || `${request.provider}::${request.transDataRuleListType}`;
+        request.mappingOutRuleId ||
+        `${request.provider}::${request.transDataRuleListType}`;
       if (!requestsByRule.has(key)) {
         requestsByRule.set(key, []);
       }
@@ -338,19 +356,19 @@ export class DataTransformerService {
     setImmediate(() => {
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
-        source: 'data_transformer',
-        metricType: 'business',
-        metricName: 'batch_transformation_completed',
+        source: "data_transformer",
+        metricType: "business",
+        metricName: "batch_transformation_completed",
         metricValue: processingTime,
         tags: {
-          operation: 'batch-data-transformation',
+          operation: "batch-data-transformation",
           batchSize: requests.length,
           successCount: successCount,
           failedCount: requests.length - successCount,
           successRate: (successCount / requests.length) * 100,
-          status: 'success',
-          providers: [...new Set(requests.map(r => r.provider))].join(',')
-        }
+          status: "success",
+          providers: [...new Set(requests.map((r) => r.provider))].join(","),
+        },
       });
     });
 
@@ -373,20 +391,23 @@ export class DataTransformerService {
   ): Promise<DataTransformResponseDto> {
     const startTime = Date.now();
     try {
-      const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(transformMappingRule.id);
-
-      const result = await this.flexibleMappingRuleService.applyFlexibleMappingRule(
-        ruleDoc,
-        request.rawData,
-        request.options?.includeDebugInfo || false,
+      const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(
+        transformMappingRule.id,
       );
+
+      const result =
+        await this.flexibleMappingRuleService.applyFlexibleMappingRule(
+          ruleDoc,
+          request.rawData,
+          request.options?.includeDebugInfo || false,
+        );
 
       if (!result.success) {
         throw new BadRequestException(
-          result.errorMessage || 'Transformation failed'
+          result.errorMessage || "Transformation failed",
         );
       }
-      
+
       const transformedData = result.transformedData;
 
       const stats = this.calculateTransformationStats(
@@ -409,7 +430,8 @@ export class DataTransformerService {
       );
 
       const logLevel =
-        processingTime > DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+        processingTime >
+        DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
           ? "warn"
           : "log";
       this.logger[logLevel](
@@ -421,7 +443,10 @@ export class DataTransformerService {
         }),
       );
 
-      if (processingTime > DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS) {
+      if (
+        processingTime >
+        DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
+      ) {
         this.logger.warn(`单次数据转换性能警告: ${processingTime}ms`, {
           dataMapperRuleId: transformMappingRule.id,
           processingTime,
@@ -440,13 +465,14 @@ export class DataTransformerService {
 
       // 🎯 区分业务逻辑异常和系统异常
       // 业务逻辑异常应该直接传播，不重新包装
-      if (error instanceof NotFoundException || 
-          error instanceof BadRequestException || 
-          error instanceof UnauthorizedException ||
-          error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof ForbiddenException
+      ) {
         throw error; // 直接传播业务逻辑异常
       }
-
     }
   }
 
@@ -459,7 +485,7 @@ export class DataTransformerService {
     provider: string,
     transDataRuleListType: string,
     ruleId?: string,
-    apiType: 'rest' | 'stream' = 'rest',
+    apiType: "rest" | "stream" = "rest",
     rawDataSample?: any,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
     if (ruleId) {
@@ -467,31 +493,37 @@ export class DataTransformerService {
       return await this.flexibleMappingRuleService.findRuleById(ruleId);
     } else {
       // 获取最佳匹配规则
-      const bestRule = await this.flexibleMappingRuleService.findBestMatchingRule(
-        provider,
-        apiType,
-        transDataRuleListType,
-      );
+      const bestRule =
+        await this.flexibleMappingRuleService.findBestMatchingRule(
+          provider,
+          apiType,
+          transDataRuleListType,
+        );
 
-      
       if (bestRule && rawDataSample) {
         // 验证规则与原始数据的兼容性
         const mappings = bestRule.fieldMappings || [];
         const hits = mappings.reduce((cnt, m) => {
-          const val = ObjectUtils.getValueFromPath(rawDataSample, m.sourceFieldPath);
+          const val = ObjectUtils.getValueFromPath(
+            rawDataSample,
+            m.sourceFieldPath,
+          );
           return cnt + (val !== undefined ? 1 : 0);
         }, 0);
-        
-        this.logger.debug('选择的映射规则命中统计', sanitizeLogData({
-          provider,
-          transDataRuleListType,
-          apiType,
-          selectedRule: { id: bestRule.id, name: bestRule.name },
-          hits,
-          totalMappings: mappings.length,
-        }));
+
+        this.logger.debug(
+          "选择的映射规则命中统计",
+          sanitizeLogData({
+            provider,
+            transDataRuleListType,
+            apiType,
+            selectedRule: { id: bestRule.id, name: bestRule.name },
+            hits,
+            totalMappings: mappings.length,
+          }),
+        );
       }
-      
+
       return bestRule;
     }
   }
@@ -508,12 +540,14 @@ export class DataTransformerService {
       : [transformedData];
     const recordsProcessed = dataArray.length;
 
-    const transformationsApplied = transformMappingRule.fieldMappings.map((mapping) => ({
-      sourceField: mapping.sourceFieldPath,
-      targetField: mapping.targetField,
-      transformType: mapping.transform?.type,
-      transformValue: mapping.transform?.value,
-    }));
+    const transformationsApplied = transformMappingRule.fieldMappings.map(
+      (mapping) => ({
+        sourceField: mapping.sourceFieldPath,
+        targetField: mapping.targetField,
+        transformType: mapping.transform?.type,
+        transformValue: mapping.transform?.value,
+      }),
+    );
 
     const fieldsTransformed = transformMappingRule.fieldMappings.length;
 
@@ -523,5 +557,4 @@ export class DataTransformerService {
       transformationsApplied,
     };
   }
-
 }

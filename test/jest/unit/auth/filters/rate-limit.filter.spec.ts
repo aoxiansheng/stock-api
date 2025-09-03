@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { RateLimitExceptionFilter } from "../../../../../src/auth/filters/rate-limit.filter";
 import { HttpException, HttpStatus } from "@nestjs/common";

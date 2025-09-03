@@ -10,12 +10,12 @@ import {
   ValidateNested,
   IsEnum,
 } from "class-validator";
-import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
+import { RedisCacheRuntimeStatsDto } from "./redis-cache-runtime-stats.dto";
 
 /**
  * @deprecated 使用 RedisCacheRuntimeStatsDto 替代
  * 此类已重命名为 RedisCacheRuntimeStatsDto 以解决与 StorageCacheStatsDto 的命名冲突
- * 
+ *
  * 迁移指南：
  * 旧导入：import { CacheStatsDto } from './cache-internal.dto'
  * 新导入：import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto'
@@ -23,58 +23,58 @@ import { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 export type CacheStatsDto = RedisCacheRuntimeStatsDto;
 
 // 重新导出新的DTO类，便于导入
-export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
+export { RedisCacheRuntimeStatsDto } from "./redis-cache-runtime-stats.dto";
 
 /**
  * 通用缓存配置DTO
- * 
+ *
  * 用于统一缓存操作的配置参数
  * 包含序列化、压缩、TTL等核心配置
  */
 export class CacheConfigDto {
-  @ApiProperty({ 
-    description: "缓存TTL（秒）", 
+  @ApiProperty({
+    description: "缓存TTL（秒）",
     required: false,
-    example: 3600 
+    example: 3600,
   })
   @IsOptional()
   @IsNumber()
   ttl?: number;
 
-  @ApiProperty({ 
-    description: "最大缓存大小（字节）", 
+  @ApiProperty({
+    description: "最大缓存大小（字节）",
     required: false,
-    example: 1048576 
+    example: 1048576,
   })
   @IsOptional()
   @IsNumber()
   maxSize?: number;
 
-  @ApiProperty({ 
-    description: "是否启用缓存", 
-    required: false, 
-    default: true 
+  @ApiProperty({
+    description: "是否启用缓存",
+    required: false,
+    default: true,
   })
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
 
-  @ApiProperty({ 
-    description: "序列化器类型", 
+  @ApiProperty({
+    description: "序列化器类型",
     enum: ["json", "msgpack"],
     required: false,
     default: "json",
-    example: "json"
+    example: "json",
   })
   @IsOptional()
   @IsEnum(["json", "msgpack"])
   serializer?: "json" | "msgpack";
 
-  @ApiProperty({ 
-    description: "压缩阈值（字节，超过此大小将自动压缩）", 
+  @ApiProperty({
+    description: "压缩阈值（字节，超过此大小将自动压缩）",
     required: false,
     example: 1024,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @IsNumber()

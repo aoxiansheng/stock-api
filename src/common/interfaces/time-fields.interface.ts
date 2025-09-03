@@ -1,6 +1,6 @@
 /**
  * 时间字段标准化接口集合
- * 
+ *
  * 此文件定义了系统中时间相关字段的标准化接口，解决以下问题：
  * 1. 处理时间字段命名不一致（processingTime vs processingTimeMs）
  * 2. 统一时间戳字段的格式和类型
@@ -47,8 +47,9 @@ export interface TimestampFields {
  * 完整时间字段接口
  * 组合了处理时间和时间戳字段
  */
-export interface CompleteTimeFields extends ProcessingTimeFields, TimestampFields {
-}
+export interface CompleteTimeFields
+  extends ProcessingTimeFields,
+    TimestampFields {}
 
 /**
  * 时间窗口字段接口
@@ -118,7 +119,9 @@ export interface CacheTimeFields extends TimestampFields {
  * 统计时间字段接口
  * 用于统计数据相关的时间字段
  */
-export interface StatisticsTimeFields extends TimeWindowFields, TimestampFields {
+export interface StatisticsTimeFields
+  extends TimeWindowFields,
+    TimestampFields {
   /**
    * 统计计算耗时（毫秒）
    */
@@ -144,7 +147,7 @@ export class TimeFieldsUtils {
    * 验证处理时间是否有效（非负数）
    */
   static isValidProcessingTime(processingTimeMs: number): boolean {
-    return typeof processingTimeMs === 'number' && processingTimeMs >= 0;
+    return typeof processingTimeMs === "number" && processingTimeMs >= 0;
   }
 
   /**
@@ -201,12 +204,12 @@ export class TimeFieldsUtils {
    */
   static migrateProcessingTimeField(data: any): ProcessingTimeFields {
     // 如果已经有 processingTimeMs，直接使用
-    if (typeof data.processingTimeMs === 'number') {
+    if (typeof data.processingTimeMs === "number") {
       return { processingTimeMs: data.processingTimeMs };
     }
 
     // 如果有旧的 processingTime 字段，进行迁移
-    if (typeof data.processingTime === 'number') {
+    if (typeof data.processingTime === "number") {
       return { processingTimeMs: data.processingTime };
     }
 
@@ -217,15 +220,20 @@ export class TimeFieldsUtils {
   /**
    * 验证完整的时间字段对象
    */
-  static validateCompleteTimeFields(fields: Partial<CompleteTimeFields>): string[] {
+  static validateCompleteTimeFields(
+    fields: Partial<CompleteTimeFields>,
+  ): string[] {
     const errors: string[] = [];
 
-    if (fields.processingTimeMs !== undefined && !this.isValidProcessingTime(fields.processingTimeMs)) {
-      errors.push('processingTimeMs must be a non-negative number');
+    if (
+      fields.processingTimeMs !== undefined &&
+      !this.isValidProcessingTime(fields.processingTimeMs)
+    ) {
+      errors.push("processingTimeMs must be a non-negative number");
     }
 
     if (fields.timestamp && !this.isValidTimestamp(fields.timestamp)) {
-      errors.push('timestamp must be a valid ISO 8601 string');
+      errors.push("timestamp must be a valid ISO 8601 string");
     }
 
     return errors;
@@ -241,7 +249,7 @@ export type ProcessingTimeMigration = {
    * @deprecated 使用 processingTimeMs 替代
    */
   processingTime?: number;
-  
+
   /**
    * 标准化的处理时间字段（毫秒）
    */

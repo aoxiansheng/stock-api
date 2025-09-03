@@ -1,4 +1,4 @@
-import { SymbolTransformResult } from './symbol-transform-result.interface';
+import { SymbolTransformResult } from "./symbol-transform-result.interface";
 
 /**
  * 符号转换器接口
@@ -15,7 +15,7 @@ export interface ISymbolTransformer {
   transformSymbols(
     provider: string,
     symbols: string | string[],
-    direction: 'to_standard' | 'from_standard'
+    direction: "to_standard" | "from_standard",
   ): Promise<SymbolTransformResult>;
 
   /**
@@ -28,7 +28,7 @@ export interface ISymbolTransformer {
   transformSingleSymbol(
     provider: string,
     symbol: string,
-    direction: 'to_standard' | 'from_standard'
+    direction: "to_standard" | "from_standard",
   ): Promise<string>;
 
   /**
@@ -38,7 +38,10 @@ export interface ISymbolTransformer {
    * @returns 转换结果
    * @deprecated 使用 transformSymbols 替代
    */
-  mapSymbols(provider: string, symbols: string | string[]): Promise<SymbolTransformResult>;
+  mapSymbols(
+    provider: string,
+    symbols: string | string[],
+  ): Promise<SymbolTransformResult>;
 
   /**
    * 向后兼容方法 - mapSymbol
@@ -127,7 +130,7 @@ export interface ISymbolTransformMonitor {
     provider: string,
     symbolCount: number,
     duration: number,
-    success: boolean
+    success: boolean,
   ): void;
 
   /**
@@ -205,12 +208,14 @@ export interface ISymbolTransformerFactory {
 /**
  * Token定义（用于依赖注入）
  */
-export const SYMBOL_TRANSFORMER_TOKEN = Symbol('ISymbolTransformer');
-export const SYMBOL_FORMAT_VALIDATOR_TOKEN = Symbol('ISymbolFormatValidator');
-export const SYMBOL_TRANSFORM_CACHE_TOKEN = Symbol('ISymbolTransformCache');
+export const SYMBOL_TRANSFORMER_TOKEN = Symbol("ISymbolTransformer");
+export const SYMBOL_FORMAT_VALIDATOR_TOKEN = Symbol("ISymbolFormatValidator");
+export const SYMBOL_TRANSFORM_CACHE_TOKEN = Symbol("ISymbolTransformCache");
 /**
  * @deprecated 监控功能已由事件驱动模式替代
  */
-export const SYMBOL_TRANSFORM_MONITOR_TOKEN = Symbol('ISymbolTransformMonitor');
-export const SYMBOL_TRANSFORM_CONFIG_TOKEN = Symbol('ISymbolTransformConfig');
-export const SYMBOL_TRANSFORMER_FACTORY_TOKEN = Symbol('ISymbolTransformerFactory');
+export const SYMBOL_TRANSFORM_MONITOR_TOKEN = Symbol("ISymbolTransformMonitor");
+export const SYMBOL_TRANSFORM_CONFIG_TOKEN = Symbol("ISymbolTransformConfig");
+export const SYMBOL_TRANSFORMER_FACTORY_TOKEN = Symbol(
+  "ISymbolTransformerFactory",
+);

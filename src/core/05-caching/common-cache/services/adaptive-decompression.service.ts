@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createLogger } from '../../../../app/config/logger.config';
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { createLogger } from "../../../../app/config/logger.config";
+import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
 /**
  * 解压缩性能指标接口
@@ -29,22 +29,22 @@ export interface DecompressionTask {
   resolve: (result: string) => void;
   reject: (error: Error) => void;
   retryCount: number;
-  priority: 'low' | 'normal' | 'high';
+  priority: "low" | "normal" | "high";
 }
 
 /**
  * 动态并发控制策略枚举
  */
 export enum ConcurrencyStrategy {
-  CONSERVATIVE = 'conservative', // 保守策略：低并发，高稳定性
-  BALANCED = 'balanced',         // 平衡策略：中等并发，平衡性能和稳定性
-  AGGRESSIVE = 'aggressive',     // 激进策略：高并发，追求最大性能
-  ADAPTIVE = 'adaptive'          // 自适应策略：根据系统状态动态调整
+  CONSERVATIVE = "conservative", // 保守策略：低并发，高稳定性
+  BALANCED = "balanced", // 平衡策略：中等并发，平衡性能和稳定性
+  AGGRESSIVE = "aggressive", // 激进策略：高并发，追求最大性能
+  ADAPTIVE = "adaptive", // 自适应策略：根据系统状态动态调整
 }
 
 /**
  * 自适应解压缩服务
- * 
+ *
  * 提供动态并发控制的解压缩操作，特性包括：
  * - 实时性能监控和并发调整
  * - 基于系统资源的智能限流
@@ -62,7 +62,7 @@ export class AdaptiveDecompressionService {
   private readonly initialMaxConcurrency: number;
   private readonly minConcurrency: number = 1;
   private readonly maxConcurrency: number;
-  
+
   // 任务管理
   private activeTasks: Map<string, DecompressionTask> = new Map();
   private taskQueue: DecompressionTask[] = [];
@@ -70,7 +70,11 @@ export class AdaptiveDecompressionService {
 
   // 性能指标
   private metrics: DecompressionMetrics;
-  private performanceHistory: Array<{ timestamp: Date; duration: number; success: boolean }> = [];
+  private performanceHistory: Array<{
+    timestamp: Date;
+    duration: number;
+    success: boolean;
+  }> = [];
   private readonly historyLimit = 1000;
 
   // 自适应调整参数
@@ -80,26 +84,26 @@ export class AdaptiveDecompressionService {
 
   // 性能阈值配置
   private readonly performanceThresholds = {
-    highCpuUsage: 0.8,         // CPU使用率超过80%
-    highMemoryUsage: 0.8,      // 内存使用率超过80%
-    lowSuccessRate: 0.9,       // 成功率低于90%
+    highCpuUsage: 0.8, // CPU使用率超过80%
+    highMemoryUsage: 0.8, // 内存使用率超过80%
+    lowSuccessRate: 0.9, // 成功率低于90%
     highAverageDuration: 5000, // 平均处理时间超过5秒
-    maxQueueSize: 100          // 最大队列长度
+    maxQueueSize: 100, // 最大队列长度
   };
 
   constructor(private readonly configService: ConfigService) {
     // 初始化配置
     this.initialMaxConcurrency = this.configService.get<number>(
-      'cache.decompression.maxConcurrent', 
-      CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT
+      "cache.decompression.maxConcurrent",
+      CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT,
     );
     this.maxConcurrency = Math.max(this.initialMaxConcurrency * 2, 50); // 最大可扩展到初始值的2倍或50
     this.currentMaxConcurrency = this.initialMaxConcurrency;
 
     // 初始化策略
     this.strategy = this.configService.get<ConcurrencyStrategy>(
-      'cache.decompression.strategy', 
-      ConcurrencyStrategy.ADAPTIVE
+      "cache.decompression.strategy",
+      ConcurrencyStrategy.ADAPTIVE,
     );
 
     // 初始化指标
@@ -113,16 +117,16 @@ export class AdaptiveDecompressionService {
       queueSize: 0,
       memoryUsage: 0,
       cpuUsage: 0,
-      lastAdjustment: null
+      lastAdjustment: null,
     };
 
     // 启动定期性能监控
     this.startPerformanceMonitoring();
-    
-    this.logger.log('AdaptiveDecompressionService initialized', {
+
+    this.logger.log("AdaptiveDecompressionService initialized", {
       initialMaxConcurrency: this.initialMaxConcurrency,
       maxConcurrency: this.maxConcurrency,
-      strategy: this.strategy
+      strategy: this.strategy,
     });
   }
 
@@ -132,7 +136,10 @@ export class AdaptiveDecompressionService {
    * @param priority 任务优先级
    * @returns 解压缩后的数据
    */
-  async decompress(data: string, priority: 'low' | 'normal' | 'high' = 'normal'): Promise<string> {
+  async decompress(
+    data: string,
+    priority: "low" | "normal" | "high" = "normal",
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const taskId = `decomp_${++this.taskIdCounter}_${Date.now()}`;
       const task: DecompressionTask = {
@@ -142,12 +149,12 @@ export class AdaptiveDecompressionService {
         resolve,
         reject,
         retryCount: 0,
-        priority
+        priority,
       };
 
       // 检查队列大小限制
       if (this.taskQueue.length >= this.performanceThresholds.maxQueueSize) {
-        reject(new Error('Decompression queue is full'));
+        reject(new Error("Decompression queue is full"));
         return;
       }
 
@@ -162,11 +169,13 @@ export class AdaptiveDecompressionService {
    */
   private addTaskToQueue(task: DecompressionTask): void {
     const priorityOrder = { high: 0, normal: 1, low: 2 };
-    
+
     // 找到正确的插入位置
     let insertIndex = this.taskQueue.length;
     for (let i = 0; i < this.taskQueue.length; i++) {
-      if (priorityOrder[task.priority] < priorityOrder[this.taskQueue[i].priority]) {
+      if (
+        priorityOrder[task.priority] < priorityOrder[this.taskQueue[i].priority]
+      ) {
         insertIndex = i;
         break;
       }
@@ -180,7 +189,10 @@ export class AdaptiveDecompressionService {
    * 处理任务队列
    */
   private async processQueue(): Promise<void> {
-    while (this.taskQueue.length > 0 && this.activeTasks.size < this.currentMaxConcurrency) {
+    while (
+      this.taskQueue.length > 0 &&
+      this.activeTasks.size < this.currentMaxConcurrency
+    ) {
       const task = this.taskQueue.shift();
       if (!task) break;
 
@@ -194,25 +206,27 @@ export class AdaptiveDecompressionService {
    */
   private async executeTask(task: DecompressionTask): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       // 模拟解压缩操作（实际实现应调用压缩服务）
       const result = await this.performDecompression(task.data);
-      
+
       const duration = Date.now() - startTime;
-      
+
       // 记录性能数据
       this.recordPerformance(duration, true);
-      
+
       // 任务成功完成
       task.resolve(result);
-      
-      this.logger.debug(`Decompression task ${task.id} completed successfully`, {
-        duration,
-        priority: task.priority,
-        dataSize: task.data.length
-      });
 
+      this.logger.debug(
+        `Decompression task ${task.id} completed successfully`,
+        {
+          duration,
+          priority: task.priority,
+          dataSize: task.data.length,
+        },
+      );
     } catch (error) {
       const duration = Date.now() - startTime;
       this.recordPerformance(duration, false);
@@ -220,27 +234,30 @@ export class AdaptiveDecompressionService {
       // 检查是否需要重试
       if (task.retryCount < 2) {
         task.retryCount++;
-        
+
         this.logger.warn(`Decompression task ${task.id} failed, retrying`, {
           error: error.message,
-          retryCount: task.retryCount
+          retryCount: task.retryCount,
         });
 
         // 重新添加到队列
         this.addTaskToQueue(task);
       } else {
         task.reject(error);
-        
-        this.logger.error(`Decompression task ${task.id} failed after retries`, {
-          error: error.message,
-          totalRetries: task.retryCount
-        });
+
+        this.logger.error(
+          `Decompression task ${task.id} failed after retries`,
+          {
+            error: error.message,
+            totalRetries: task.retryCount,
+          },
+        );
       }
     } finally {
       // 清理活跃任务
       this.activeTasks.delete(task.id);
       this.updateMetrics();
-      
+
       // 继续处理队列
       setImmediate(() => this.processQueue());
     }
@@ -253,11 +270,12 @@ export class AdaptiveDecompressionService {
   private async performDecompression(data: string): Promise<string> {
     // 模拟解压缩延迟
     const delay = Math.random() * 100 + 50; // 50-150ms
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     // 模拟偶尔的解压缩失败
-    if (Math.random() < 0.05) { // 5%失败率
-      throw new Error('Decompression failed: corrupted data');
+    if (Math.random() < 0.05) {
+      // 5%失败率
+      throw new Error("Decompression failed: corrupted data");
     }
 
     // 模拟解压缩结果
@@ -271,7 +289,7 @@ export class AdaptiveDecompressionService {
     this.performanceHistory.push({
       timestamp: new Date(),
       duration,
-      success
+      success,
     });
 
     // 限制历史记录大小
@@ -289,7 +307,9 @@ export class AdaptiveDecompressionService {
 
     // 更新平均持续时间
     const recentOperations = this.performanceHistory.slice(-100);
-    this.metrics.averageDuration = recentOperations.reduce((sum, op) => sum + op.duration, 0) / recentOperations.length;
+    this.metrics.averageDuration =
+      recentOperations.reduce((sum, op) => sum + op.duration, 0) /
+      recentOperations.length;
   }
 
   /**
@@ -311,13 +331,16 @@ export class AdaptiveDecompressionService {
   private updateSystemMetrics(): void {
     try {
       const memUsage = process.memoryUsage();
-      const totalMemory = require('os').totalmem();
+      const totalMemory = require("os").totalmem();
       this.metrics.memoryUsage = memUsage.rss / totalMemory;
 
       // CPU使用率简化计算
-      this.metrics.cpuUsage = Math.min(this.activeTasks.size / this.currentMaxConcurrency, 1);
+      this.metrics.cpuUsage = Math.min(
+        this.activeTasks.size / this.currentMaxConcurrency,
+        1,
+      );
     } catch (error) {
-      this.logger.warn('Failed to update system metrics', error);
+      this.logger.warn("Failed to update system metrics", error);
     }
   }
 
@@ -340,7 +363,10 @@ export class AdaptiveDecompressionService {
     }
 
     const now = Date.now();
-    if (this.lastAdjustmentTime && (now - this.lastAdjustmentTime.getTime()) < this.adjustmentCooldown) {
+    if (
+      this.lastAdjustmentTime &&
+      now - this.lastAdjustmentTime.getTime() < this.adjustmentCooldown
+    ) {
       return; // 冷却期内不调整
     }
 
@@ -361,8 +387,12 @@ export class AdaptiveDecompressionService {
     const recentOperations = this.performanceHistory.slice(-50);
     if (recentOperations.length < 10) return false;
 
-    const successRate = recentOperations.filter(op => op.success).length / recentOperations.length;
-    const avgDuration = recentOperations.reduce((sum, op) => sum + op.duration, 0) / recentOperations.length;
+    const successRate =
+      recentOperations.filter((op) => op.success).length /
+      recentOperations.length;
+    const avgDuration =
+      recentOperations.reduce((sum, op) => sum + op.duration, 0) /
+      recentOperations.length;
 
     return (
       this.currentMaxConcurrency < this.maxConcurrency &&
@@ -381,17 +411,19 @@ export class AdaptiveDecompressionService {
     const recentOperations = this.performanceHistory.slice(-50);
     if (recentOperations.length < 10) return false;
 
-    const successRate = recentOperations.filter(op => op.success).length / recentOperations.length;
-    const avgDuration = recentOperations.reduce((sum, op) => sum + op.duration, 0) / recentOperations.length;
+    const successRate =
+      recentOperations.filter((op) => op.success).length /
+      recentOperations.length;
+    const avgDuration =
+      recentOperations.reduce((sum, op) => sum + op.duration, 0) /
+      recentOperations.length;
 
     return (
       this.currentMaxConcurrency > this.minConcurrency &&
-      (
-        successRate < 0.9 ||
+      (successRate < 0.9 ||
         avgDuration > 4000 ||
         this.metrics.memoryUsage > 0.8 ||
-        this.metrics.cpuUsage > 0.8
-      )
+        this.metrics.cpuUsage > 0.8)
     );
   }
 
@@ -402,7 +434,7 @@ export class AdaptiveDecompressionService {
     const oldConcurrency = this.currentMaxConcurrency;
     this.currentMaxConcurrency = Math.min(
       this.currentMaxConcurrency + 1,
-      this.maxConcurrency
+      this.maxConcurrency,
     );
 
     this.lastAdjustmentTime = new Date();
@@ -410,7 +442,7 @@ export class AdaptiveDecompressionService {
     this.logger.log(`Increased decompression concurrency`, {
       from: oldConcurrency,
       to: this.currentMaxConcurrency,
-      reason: 'Good performance metrics'
+      reason: "Good performance metrics",
     });
 
     // 处理等待的任务
@@ -424,7 +456,7 @@ export class AdaptiveDecompressionService {
     const oldConcurrency = this.currentMaxConcurrency;
     this.currentMaxConcurrency = Math.max(
       this.currentMaxConcurrency - 1,
-      this.minConcurrency
+      this.minConcurrency,
     );
 
     this.lastAdjustmentTime = new Date();
@@ -432,7 +464,7 @@ export class AdaptiveDecompressionService {
     this.logger.log(`Decreased decompression concurrency`, {
       from: oldConcurrency,
       to: this.currentMaxConcurrency,
-      reason: 'Performance degradation detected'
+      reason: "Performance degradation detected",
     });
   }
 
@@ -441,16 +473,22 @@ export class AdaptiveDecompressionService {
    */
   setConcurrencyStrategy(strategy: ConcurrencyStrategy): void {
     this.strategy = strategy;
-    
+
     switch (strategy) {
       case ConcurrencyStrategy.CONSERVATIVE:
-        this.currentMaxConcurrency = Math.max(1, Math.floor(this.initialMaxConcurrency * 0.5));
+        this.currentMaxConcurrency = Math.max(
+          1,
+          Math.floor(this.initialMaxConcurrency * 0.5),
+        );
         break;
       case ConcurrencyStrategy.BALANCED:
         this.currentMaxConcurrency = this.initialMaxConcurrency;
         break;
       case ConcurrencyStrategy.AGGRESSIVE:
-        this.currentMaxConcurrency = Math.min(this.maxConcurrency, this.initialMaxConcurrency * 1.5);
+        this.currentMaxConcurrency = Math.min(
+          this.maxConcurrency,
+          this.initialMaxConcurrency * 1.5,
+        );
         break;
       case ConcurrencyStrategy.ADAPTIVE:
         // 保持当前值，让自适应算法调整
@@ -458,7 +496,7 @@ export class AdaptiveDecompressionService {
     }
 
     this.logger.log(`Concurrency strategy changed to ${strategy}`, {
-      newConcurrency: this.currentMaxConcurrency
+      newConcurrency: this.currentMaxConcurrency,
     });
   }
 
@@ -483,22 +521,30 @@ export class AdaptiveDecompressionService {
 
     // 检查性能指标
     if (metrics.memoryUsage > this.performanceThresholds.highMemoryUsage) {
-      issues.push(`High memory usage: ${(metrics.memoryUsage * 100).toFixed(1)}%`);
+      issues.push(
+        `High memory usage: ${(metrics.memoryUsage * 100).toFixed(1)}%`,
+      );
     }
 
     if (metrics.cpuUsage > this.performanceThresholds.highCpuUsage) {
       issues.push(`High CPU usage: ${(metrics.cpuUsage * 100).toFixed(1)}%`);
     }
 
-    const successRate = metrics.totalOperations > 0 ? 
-      metrics.successfulOperations / metrics.totalOperations : 1;
-    
+    const successRate =
+      metrics.totalOperations > 0
+        ? metrics.successfulOperations / metrics.totalOperations
+        : 1;
+
     if (successRate < this.performanceThresholds.lowSuccessRate) {
       issues.push(`Low success rate: ${(successRate * 100).toFixed(1)}%`);
     }
 
-    if (metrics.averageDuration > this.performanceThresholds.highAverageDuration) {
-      issues.push(`High average duration: ${metrics.averageDuration.toFixed(0)}ms`);
+    if (
+      metrics.averageDuration > this.performanceThresholds.highAverageDuration
+    ) {
+      issues.push(
+        `High average duration: ${metrics.averageDuration.toFixed(0)}ms`,
+      );
     }
 
     if (metrics.queueSize >= this.performanceThresholds.maxQueueSize) {
@@ -508,7 +554,7 @@ export class AdaptiveDecompressionService {
     return {
       healthy: issues.length === 0,
       issues,
-      metrics
+      metrics,
     };
   }
 
@@ -517,8 +563,8 @@ export class AdaptiveDecompressionService {
    */
   cleanup(): void {
     // 拒绝所有等待中的任务
-    this.taskQueue.forEach(task => {
-      task.reject(new Error('Service is shutting down'));
+    this.taskQueue.forEach((task) => {
+      task.reject(new Error("Service is shutting down"));
     });
     this.taskQueue = [];
 
@@ -538,9 +584,9 @@ export class AdaptiveDecompressionService {
       queueSize: 0,
       memoryUsage: 0,
       cpuUsage: 0,
-      lastAdjustment: null
+      lastAdjustment: null,
     };
 
-    this.logger.log('AdaptiveDecompressionService cleaned up');
+    this.logger.log("AdaptiveDecompressionService cleaned up");
   }
 }

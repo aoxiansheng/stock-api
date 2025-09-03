@@ -2,7 +2,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import  express from "express";
+import express from "express";
 
 import { CustomLogger, getLogLevels } from "@app/config/logger.config";
 import { GlobalExceptionFilter } from "@common/core/filters";
@@ -16,7 +16,6 @@ import { InfrastructureInterceptor } from "./monitoring/infrastructure/intercept
 import { ApiMonitoringInterceptor } from "./monitoring/infrastructure/interceptors/api-monitoring.interceptor";
 // 完全事件驱动架构，移除CollectorService直接依赖
 import { SecurityMiddleware } from "./auth/middleware/security.middleware";
-
 
 async function bootstrap() {
   const nodeEnv = process.env.NODE_ENV || "development";
@@ -321,7 +320,7 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
     }
 
     const port = process.env.PORT || 3000;
-    
+
     // 添加更详细的错误处理
     try {
       await app.listen(port);
@@ -348,12 +347,12 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
   `);
     } catch (error) {
       // 检查是否是端口占用错误
-      if (error.message && error.message.includes('port')) {
+      if (error.message && error.message.includes("port")) {
         logger.error(`❌ 端口 ${port} 已被占用！`, {
           suggestion: `请尝试以下方法：
 1. 使用 'lsof -i :${port}' 查找占用端口的进程
 2. 使用 'kill -9 <PID>' 终止占用进程
-3. 或设置环境变量 PORT 使用其他端口：PORT=3001 bun run dev`
+3. 或设置环境变量 PORT 使用其他端口：PORT=3001 bun run dev`,
         });
       } else {
         logger.error("❌ 应用启动失败", {
@@ -373,15 +372,15 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
 }
 
 // 添加全局未捕获异常处理
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 未处理的Promise拒绝:', reason);
-  console.error('Promise:', promise);
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("🚨 未处理的Promise拒绝:", reason);
+  console.error("Promise:", promise);
   process.exit(1);
 });
 
-process.on('uncaughtException', (error) => {
-  console.error('🚨 未捕获的异常:', error);
-  console.error('Stack:', error.stack);
+process.on("uncaughtException", (error) => {
+  console.error("🚨 未捕获的异常:", error);
+  console.error("Stack:", error.stack);
   process.exit(1);
 });
 

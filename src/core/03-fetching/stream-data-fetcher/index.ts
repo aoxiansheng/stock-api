@@ -2,22 +2,22 @@
 // 按功能分组的Barrel导出策略
 
 // 公共接口定义
-export * from './interfaces';
+export * from "./interfaces";
 
 // 核心服务 - 主要对外API
-export * from './services';
+export * from "./services";
 
 // 配置服务
-export * from './config/stream-recovery.config';
+export * from "./config/stream-recovery.config";
 
 // 指标服务
 //export * from './metrics/stream-recovery.metrics';
 
 // 提供者
-export * from './providers/websocket-server.provider';
+export * from "./providers/websocket-server.provider";
 
 // NestJS模块
-export * from './module/stream-data-fetcher.module';
+export * from "./module/stream-data-fetcher.module";
 
 // 导出规范说明:
 // 1. 优先导出接口和公共API

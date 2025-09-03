@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // jwt-user.subject.e2e.test.ts - 测试占位代码
 // 路径: e2e/auth/subjects/jwt-user.subject.e2e.test.ts
 

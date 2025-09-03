@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '../../app/config/logger.config';
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "../../app/config/logger.config";
 
 /**
  * 收集器存储库
@@ -10,7 +10,7 @@ export class CollectorRepository {
   private readonly logger = createLogger(CollectorRepository.name);
 
   constructor() {
-    this.logger.log('CollectorRepository initialized - 收集器存储库已启动');
+    this.logger.log("CollectorRepository initialized - 收集器存储库已启动");
   }
 
   /**
@@ -18,13 +18,16 @@ export class CollectorRepository {
    */
   async saveRawMetrics(metrics: any): Promise<void> {
     // 实现数据存储逻辑
-    this.logger.debug('原始指标数据已保存');
+    this.logger.debug("原始指标数据已保存");
   }
 
   /**
    * 获取历史指标数据
    */
-  async getHistoricalMetrics(timeRange: { start: Date; end: Date }): Promise<any[]> {
+  async getHistoricalMetrics(timeRange: {
+    start: Date;
+    end: Date;
+  }): Promise<any[]> {
     // 实现历史数据检索逻辑
     this.logger.debug(`获取历史数据: ${timeRange.start} - ${timeRange.end}`);
     return [];
@@ -33,14 +36,17 @@ export class CollectorRepository {
   /**
    * 查找指标数据
    */
-  async findMetrics(startTime: Date, endTime: Date): Promise<{ requests: any[], database: any[], cache: any[], system?: any }> {
+  async findMetrics(
+    startTime: Date,
+    endTime: Date,
+  ): Promise<{ requests: any[]; database: any[]; cache: any[]; system?: any }> {
     // 实现指标查找逻辑
     this.logger.debug(`查找指标数据: ${startTime} - ${endTime}`);
     return {
       requests: [],
       database: [],
       cache: [],
-      system: null
+      system: null,
     };
   }
 

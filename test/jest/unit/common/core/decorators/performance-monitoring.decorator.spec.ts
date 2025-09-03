@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { SetMetadata } from "@nestjs/common";
 import {
   PerformanceMonitoring,

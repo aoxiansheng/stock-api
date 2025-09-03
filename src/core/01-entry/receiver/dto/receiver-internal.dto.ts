@@ -29,7 +29,11 @@ export class RequestOptionsDto {
   @IsString()
   market?: string;
 
-  @ApiProperty({ description: "是否启用智能缓存", required: false, default: true })
+  @ApiProperty({
+    description: "是否启用智能缓存",
+    required: false,
+    default: true,
+  })
   @IsOptional()
   @IsBoolean()
   useSmartCache?: boolean;
@@ -88,7 +92,11 @@ export class DataFetchingParamsDto {
   @IsObject()
   contextService?: any;
 
-  @ApiPropertyOptional({ description: "执行上下文（透传给下游能力/转换器）", type: "object", additionalProperties: true })
+  @ApiPropertyOptional({
+    description: "执行上下文（透传给下游能力/转换器）",
+    type: "object",
+    additionalProperties: true,
+  })
   @IsOptional()
   @IsObject()
   context?: Record<string, any>;
@@ -119,13 +127,12 @@ export class ReceiverPerformanceDto {
 
   @ApiProperty({ description: "处理时间（毫秒）" })
   /** @deprecated 使用 processingTimeMs 替代 */
-  
   @IsNumber()
   processingTime: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: "Transformer组件处理耗时字段（毫秒，推荐使用此字段）",
-    example: 150
+    example: 150,
   })
   @IsNumber()
   @IsOptional() // 过渡期设为可选
@@ -195,13 +202,12 @@ export class CapabilityExecutionResultDto {
 
   @ApiProperty({ description: "执行时间（毫秒）" })
   /** @deprecated 使用 executionTimeMs 替代 */
-  
   @IsNumber()
   executionTime: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: "Cache组件执行耗时字段（毫秒，推荐使用此字段）",
-    example: 150
+    example: 150,
   })
   @IsNumber()
   @IsOptional() // 过渡期设为可选

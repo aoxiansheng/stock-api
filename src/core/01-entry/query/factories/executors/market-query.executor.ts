@@ -1,23 +1,23 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable, NotImplementedException } from "@nestjs/common";
 
-import { QueryRequestDto } from '../../dto/query-request.dto';
-import { QueryExecutionResultDto } from '../../dto/query-internal.dto';
-import { QueryExecutor } from '../../interfaces/query-executor.interface';
-import { createLogger } from '../../../../../app/config/logger.config';
+import { QueryRequestDto } from "../../dto/query-request.dto";
+import { QueryExecutionResultDto } from "../../dto/query-internal.dto";
+import { QueryExecutor } from "../../interfaces/query-executor.interface";
+import { createLogger } from "../../../../../app/config/logger.config";
 
 /**
  * 基于市场的查询执行器
- * 
+ *
  * 负责处理BY_MARKET类型的查询请求，支持按市场维度进行数据查询。
- * 
+ *
  * 设计目标：
  * - 支持整个市场的股票数据查询（如获取所有港股数据）
  * - 市场状态感知的查询优化
  * - 大批量数据的分页和流式处理
  * - 市场特定的数据源路由
- * 
+ *
  * 当前状态：占位实现，为未来扩展预留接口
- * 
+ *
  * 未来实现计划：
  * 1. 市场符号枚举和发现
  * 2. 市场状态检查和优化策略
@@ -30,20 +30,20 @@ export class MarketQueryExecutor implements QueryExecutor {
 
   /**
    * 执行基于市场的查询
-   * 
+   *
    * @param request 查询请求DTO，应包含market字段
    * @returns 查询执行结果
    * @throws NotImplementedException 当前为占位实现
    */
   async execute(request: QueryRequestDto): Promise<QueryExecutionResultDto> {
-    this.logger.warn('MarketQueryExecutor当前为占位实现', {
+    this.logger.warn("MarketQueryExecutor当前为占位实现", {
       queryType: request.queryType,
       market: request.market,
     });
 
     // 当前为占位实现，未来将实现完整的市场查询逻辑
     throw new NotImplementedException(
-      'BY_MARKET查询类型暂未实现，请使用BY_SYMBOLS查询类型或等待未来版本支持'
+      "BY_MARKET查询类型暂未实现，请使用BY_SYMBOLS查询类型或等待未来版本支持",
     );
 
     /*

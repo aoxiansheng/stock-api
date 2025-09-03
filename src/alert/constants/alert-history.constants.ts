@@ -231,7 +231,6 @@ export class AlertHistoryUtil {
     );
   }
 
-
   /**
    * 格式化执行时间
    * @param startTime 开始时间

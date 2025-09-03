@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // symbol-validation.util.e2e.test.ts - 测试占位代码
 // 路径: e2e/common/utils/symbol-validation.util.e2e.test.ts
 

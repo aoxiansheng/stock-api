@@ -3,9 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 
-import {
-  QUERY_OPERATIONS,
-} from "../constants/query.constants";
+import { QUERY_OPERATIONS } from "../constants/query.constants";
 import { QueryExecutionResultDto } from "../dto/query-internal.dto";
 import { QueryRequestDto, SortDirection } from "../dto/query-request.dto";
 import { QueryMetadataDto } from "../dto/query-response.dto";
@@ -48,7 +46,8 @@ export class QueryResultProcessorService {
     );
 
     // 构建元数据
-    const totalRecords = executionResult.pagination?.total ?? executionResult.results.length;
+    const totalRecords =
+      executionResult.pagination?.total ?? executionResult.results.length;
     const metadata = new QueryMetadataDto(
       request.queryType,
       totalRecords, // 使用分页信息中的总记录数，如果没有分页信息则回退到结果长度

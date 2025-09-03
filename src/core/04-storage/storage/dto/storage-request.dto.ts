@@ -8,8 +8,8 @@ import {
   IsEnum,
   ValidateNested,
 } from "class-validator";
-import { StorageClassification } from '../../../shared/types/storage-classification.enum';
-import { StorageType } from '../enums/storage-type.enum';
+import { StorageClassification } from "../../../shared/types/storage-classification.enum";
+import { StorageType } from "../enums/storage-type.enum";
 
 export class StorageOptionsDto {
   @ApiPropertyOptional({ description: "Cache TTL in seconds", default: 3600 })
@@ -17,7 +17,10 @@ export class StorageOptionsDto {
   @IsNumber()
   cacheTtl?: number;
 
-  @ApiPropertyOptional({ description: "Persistent storage TTL in seconds (undefined means never expire)" })
+  @ApiPropertyOptional({
+    description:
+      "Persistent storage TTL in seconds (undefined means never expire)",
+  })
   @IsOptional()
   @IsNumber()
   persistentTtlSeconds?: number;
@@ -96,5 +99,4 @@ export class RetrieveDataDto {
   @IsOptional()
   @IsEnum(StorageType)
   preferredType?: StorageType;
-
 }

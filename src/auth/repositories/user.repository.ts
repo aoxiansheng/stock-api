@@ -56,20 +56,28 @@ export class UserRepository {
    * @param includeInactive - 是否包含非活跃用户
    * @returns 分页结果
    */
-  async findAllPaginated(page: number = 1, limit: number = 10, includeInactive: boolean = false) {
+  async findAllPaginated(
+    page: number = 1,
+    limit: number = 10,
+    includeInactive: boolean = false,
+  ) {
     // 使用通用分页服务标准化参数
-    const { page: normalizedPage, limit: normalizedLimit } = this.paginationService.normalizePaginationQuery({
-      page,
-      limit,
-    });
-    
-    const skip = this.paginationService.calculateSkip(normalizedPage, normalizedLimit);
+    const { page: normalizedPage, limit: normalizedLimit } =
+      this.paginationService.normalizePaginationQuery({
+        page,
+        limit,
+      });
+
+    const skip = this.paginationService.calculateSkip(
+      normalizedPage,
+      normalizedLimit,
+    );
     const filter = includeInactive ? {} : { isActive: true };
 
     const [users, total] = await Promise.all([
       this.userModel
         .find(filter)
-        .select('-passwordHash') // 排除密码哈希
+        .select("-passwordHash") // 排除密码哈希
         .sort({ createdAt: -1 }) // 按创建时间倒序
         .skip(skip)
         .limit(normalizedLimit)
@@ -78,7 +86,11 @@ export class UserRepository {
     ]);
 
     // 使用通用分页服务创建分页信息
-    const pagination = this.paginationService.createPagination(normalizedPage, normalizedLimit, total);
+    const pagination = this.paginationService.createPagination(
+      normalizedPage,
+      normalizedLimit,
+      total,
+    );
 
     return {
       users,
@@ -94,14 +106,16 @@ export class UserRepository {
     const [totalUsers, activeUsers, usersByRole] = await Promise.all([
       this.userModel.countDocuments().exec(),
       this.userModel.countDocuments({ isActive: true }).exec(),
-      this.userModel.aggregate([
-        {
-          $group: {
-            _id: '$role',
-            count: { $sum: 1 },
+      this.userModel
+        .aggregate([
+          {
+            $group: {
+              _id: "$role",
+              count: { $sum: 1 },
+            },
           },
-        },
-      ]).exec(),
+        ])
+        .exec(),
     ]);
 
     const roleStats = usersByRole.reduce((acc, item) => {

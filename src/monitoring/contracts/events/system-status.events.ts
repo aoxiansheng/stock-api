@@ -5,82 +5,84 @@
 
 export const SYSTEM_STATUS_EVENTS = {
   // 数据收集层事件（Collector Layer）
-  METRIC_COLLECTED: 'system-status.metric.collected',
-  COLLECTION_STARTED: 'system-status.collection.started',
-  COLLECTION_COMPLETED: 'system-status.collection.completed',
-  COLLECTION_ERROR: 'system-status.collection.error',
-  COLLECTION_BUFFER_FULL: 'system-status.collection.buffer.full',
-  COLLECTION_CLEANUP: 'system-status.collection.cleanup',
+  METRIC_COLLECTED: "system-status.metric.collected",
+  COLLECTION_STARTED: "system-status.collection.started",
+  COLLECTION_COMPLETED: "system-status.collection.completed",
+  COLLECTION_ERROR: "system-status.collection.error",
+  COLLECTION_BUFFER_FULL: "system-status.collection.buffer.full",
+  COLLECTION_CLEANUP: "system-status.collection.cleanup",
 
   // 数据分析层事件（Analyzer Layer）
-  ANALYSIS_STARTED: 'system-status.analysis.started',
-  ANALYSIS_COMPLETED: 'system-status.analysis.completed',
-  ANALYSIS_ERROR: 'system-status.analysis.error',
-  ANALYSIS_CACHE_HIT: 'system-status.analysis.cache.hit',
-  ANALYSIS_CACHE_MISS: 'system-status.analysis.cache.miss',
-  CALCULATION_COMPLETED: 'system-status.calculation.completed',
+  ANALYSIS_STARTED: "system-status.analysis.started",
+  ANALYSIS_COMPLETED: "system-status.analysis.completed",
+  ANALYSIS_ERROR: "system-status.analysis.error",
+  ANALYSIS_CACHE_HIT: "system-status.analysis.cache.hit",
+  ANALYSIS_CACHE_MISS: "system-status.analysis.cache.miss",
+  CALCULATION_COMPLETED: "system-status.calculation.completed",
 
   // 数据请求/响应事件（Data Request/Response）
-  DATA_REQUEST: 'system-status.data.request',
-  DATA_RESPONSE: 'system-status.data.response',
-  DATA_NOT_AVAILABLE: 'system-status.data.not-available',
+  DATA_REQUEST: "system-status.data.request",
+  DATA_RESPONSE: "system-status.data.response",
+  DATA_NOT_AVAILABLE: "system-status.data.not-available",
 
   // 缓存相关事件
-  CACHE_HIT: 'system-status.cache.hit',
-  CACHE_MISS: 'system-status.cache.miss',
-  CACHE_SET: 'system-status.cache.set',
-  CACHE_INVALIDATED: 'system-status.cache.invalidated',
-  CACHE_EXPIRED: 'system-status.cache.expired',
-  CACHE_ERROR: 'system-status.cache.error',
+  CACHE_HIT: "system-status.cache.hit",
+  CACHE_MISS: "system-status.cache.miss",
+  CACHE_SET: "system-status.cache.set",
+  CACHE_INVALIDATED: "system-status.cache.invalidated",
+  CACHE_EXPIRED: "system-status.cache.expired",
+  CACHE_ERROR: "system-status.cache.error",
 
   // 健康检查事件
-  HEALTH_SCORE_UPDATED: 'system-status.health.score.updated',
-  HEALTH_CHECK_STARTED: 'system-status.health.check.started',
-  HEALTH_CHECK_COMPLETED: 'system-status.health.check.completed',
-  HEALTH_CHECK_FAILED: 'system-status.health.check.failed',
-  HEALTH_THRESHOLD_BREACHED: 'system-status.health.threshold.breached',
+  HEALTH_SCORE_UPDATED: "system-status.health.score.updated",
+  HEALTH_CHECK_STARTED: "system-status.health.check.started",
+  HEALTH_CHECK_COMPLETED: "system-status.health.check.completed",
+  HEALTH_CHECK_FAILED: "system-status.health.check.failed",
+  HEALTH_THRESHOLD_BREACHED: "system-status.health.threshold.breached",
 
   // 趋势分析事件
-  TREND_ANALYSIS_STARTED: 'system-status.trend.analysis.started',
-  TREND_ANALYSIS_COMPLETED: 'system-status.trend.analysis.completed',
-  TREND_DETECTED: 'system-status.trend.detected',
-  TREND_ALERT: 'system-status.trend.alert',
+  TREND_ANALYSIS_STARTED: "system-status.trend.analysis.started",
+  TREND_ANALYSIS_COMPLETED: "system-status.trend.analysis.completed",
+  TREND_DETECTED: "system-status.trend.detected",
+  TREND_ALERT: "system-status.trend.alert",
 
   // 展示层事件（Presenter Layer）
-  API_REQUEST_STARTED: 'system-status.api.request.started',
-  API_REQUEST_COMPLETED: 'system-status.api.request.completed',
-  API_REQUEST_ERROR: 'system-status.api.request.error',
-  
+  API_REQUEST_STARTED: "system-status.api.request.started",
+  API_REQUEST_COMPLETED: "system-status.api.request.completed",
+  API_REQUEST_ERROR: "system-status.api.request.error",
+
   // 系统级事件
-  SYSTEM_PERFORMANCE_ALERT: 'system-status.system.performance.alert',
-  SYSTEM_RESOURCE_WARNING: 'system-status.system.resource.warning',
-  SYSTEM_OPTIMIZATION_SUGGESTION: 'system-status.system.optimization.suggestion',
+  SYSTEM_PERFORMANCE_ALERT: "system-status.system.performance.alert",
+  SYSTEM_RESOURCE_WARNING: "system-status.system.resource.warning",
+  SYSTEM_OPTIMIZATION_SUGGESTION:
+    "system-status.system.optimization.suggestion",
 
   // 错误处理事件
-  ERROR_OCCURRED: 'system-status.error.occurred',
-  ERROR_HANDLED: 'system-status.error.handled',
-  WARNING_LOGGED: 'system-status.warning.logged',
-  CRITICAL_ERROR: 'system-status.error.critical',
-  CRITICAL_ERROR_DETECTED: 'system-status.error.critical.detected',
-  BUSINESS_ERROR_OCCURRED: 'system-status.error.business.occurred',
-  ANOMALY_DETECTED: 'system-status.anomaly.detected',
+  ERROR_OCCURRED: "system-status.error.occurred",
+  ERROR_HANDLED: "system-status.error.handled",
+  WARNING_LOGGED: "system-status.warning.logged",
+  CRITICAL_ERROR: "system-status.error.critical",
+  CRITICAL_ERROR_DETECTED: "system-status.error.critical.detected",
+  BUSINESS_ERROR_OCCURRED: "system-status.error.business.occurred",
+  ANOMALY_DETECTED: "system-status.anomaly.detected",
 
   // 跨层性能事件
-  CROSS_LAYER_OPERATION_STARTED: 'system-status.cross-layer.operation.started',
-  CROSS_LAYER_OPERATION_COMPLETED: 'system-status.cross-layer.operation.completed',
-  LAYER_PERFORMANCE_MEASURED: 'system-status.layer.performance.measured'
+  CROSS_LAYER_OPERATION_STARTED: "system-status.cross-layer.operation.started",
+  CROSS_LAYER_OPERATION_COMPLETED:
+    "system-status.cross-layer.operation.completed",
+  LAYER_PERFORMANCE_MEASURED: "system-status.layer.performance.measured",
 } as const;
 
 // 事件数据基础接口
 export interface SystemStatusEventData {
   timestamp: Date;
-  source: 'collector' | 'analyzer' | 'presenter';
+  source: "collector" | "analyzer" | "presenter";
   metadata?: Record<string, any>;
 }
 
 // 指标收集事件数据
 export interface MetricCollectedEvent extends SystemStatusEventData {
-  metricType: 'request' | 'database' | 'cache' | 'system';
+  metricType: "request" | "database" | "cache" | "system";
   metricName: string;
   metricValue: number;
   tags?: Record<string, string>;
@@ -97,23 +99,23 @@ export interface AnalysisCompletedEvent extends SystemStatusEventData {
 // 数据请求事件数据
 export interface DataRequestEvent extends SystemStatusEventData {
   requestId: string;
-  requestType: 'raw_metrics' | 'health_report' | 'performance_data';
+  requestType: "raw_metrics" | "health_report" | "performance_data";
   startTime?: Date;
   endTime?: Date;
   filters?: Record<string, any>;
 }
 
-// 数据响应事件数据  
+// 数据响应事件数据
 export interface DataResponseEvent extends SystemStatusEventData {
   requestId: string;
-  responseType: 'raw_metrics' | 'health_report' | 'performance_data';
+  responseType: "raw_metrics" | "health_report" | "performance_data";
   data: any;
   dataSize: number;
 }
 
 // 缓存操作事件数据
 export interface CacheOperationEvent extends SystemStatusEventData {
-  operation: 'hit' | 'miss' | 'set' | 'invalidate' | 'expire';
+  operation: "hit" | "miss" | "set" | "invalidate" | "expire";
   key?: string;
   pattern?: string;
   ttl?: number;
@@ -122,9 +124,9 @@ export interface CacheOperationEvent extends SystemStatusEventData {
 
 // 健康检查事件数据
 export interface HealthCheckEvent extends SystemStatusEventData {
-  component: 'api' | 'database' | 'cache' | 'system' | 'overall';
+  component: "api" | "database" | "cache" | "system" | "overall";
   score: number;
-  status: 'healthy' | 'warning' | 'critical';
+  status: "healthy" | "warning" | "critical";
   previousScore?: number;
   threshold?: number;
 }
@@ -132,9 +134,9 @@ export interface HealthCheckEvent extends SystemStatusEventData {
 // 趋势检测事件数据
 export interface TrendDetectedEvent extends SystemStatusEventData {
   metric: string;
-  trendType: 'up' | 'down' | 'stable';
+  trendType: "up" | "down" | "stable";
   changePercentage: number;
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
   period: string;
 }
 
@@ -149,17 +151,17 @@ export interface ApiRequestEvent extends SystemStatusEventData {
 
 // 错误处理事件数据
 export interface ErrorHandledEvent extends SystemStatusEventData {
-  errorType: 'business' | 'system' | 'validation' | 'network';
+  errorType: "business" | "system" | "validation" | "network";
   errorCode?: string;
   errorMessage: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: "low" | "medium" | "high" | "critical";
   operation?: string;
 }
 
 // 跨层操作事件数据
 export interface CrossLayerOperationEvent extends SystemStatusEventData {
-  sourceLayer: 'collector' | 'analyzer' | 'presenter';
-  targetLayer: 'collector' | 'analyzer' | 'presenter';
+  sourceLayer: "collector" | "analyzer" | "presenter";
+  targetLayer: "collector" | "analyzer" | "presenter";
   operation: string;
   duration?: number;
   dataSize?: number;
@@ -168,8 +170,8 @@ export interface CrossLayerOperationEvent extends SystemStatusEventData {
 
 // 系统性能告警事件数据
 export interface SystemPerformanceAlertEvent extends SystemStatusEventData {
-  alertType: 'performance' | 'resource' | 'availability';
-  severity: 'warning' | 'critical';
+  alertType: "performance" | "resource" | "availability";
+  severity: "warning" | "critical";
   metric: string;
   currentValue: number;
   threshold: number;

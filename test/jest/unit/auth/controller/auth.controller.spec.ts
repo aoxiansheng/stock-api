@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * AuthController 单元测试
  * 测试认证控制器的API端点，所有依赖服务均为Mock

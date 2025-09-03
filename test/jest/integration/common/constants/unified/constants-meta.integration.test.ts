@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 响应格式标准化集成测试
  * 测试系统范围内的响应格式一致性

@@ -61,10 +61,14 @@ export class ProvidersController {
    * 统一处理不存在的提供商场景
    */
   private getFormattedProviderInfo(providerName: string, capability: string) {
-    const providerCapabilities = this.capabilityRegistry.getAllCapabilities().get(providerName);
+    const providerCapabilities = this.capabilityRegistry
+      .getAllCapabilities()
+      .get(providerName);
     const registration = providerCapabilities?.get(capability);
-    
-    return registration ? this.formatCapabilityRegistration(registration) : null;
+
+    return registration
+      ? this.formatCapabilityRegistration(registration)
+      : null;
   }
 
   @ApiKeyAuth()
@@ -115,7 +119,7 @@ export class ProvidersController {
 
     for (const [providerName, providerCapabilities] of capabilities) {
       result[providerName] = Array.from(providerCapabilities.values()).map(
-        (reg) => this.formatCapabilityRegistration(reg)
+        (reg) => this.formatCapabilityRegistration(reg),
       );
     }
 
@@ -157,13 +161,17 @@ export class ProvidersController {
   @ApiStandardResponses()
   getAllStreamCapabilities() {
     this.logger.debug("getAllStreamCapabilities 方法被调用");
-    const streamCapabilities = this.capabilityRegistry.getAllStreamCapabilities();
+    const streamCapabilities =
+      this.capabilityRegistry.getAllStreamCapabilities();
     const result = {};
 
-    for (const [providerName, providerStreamCapabilities] of streamCapabilities) {
-      result[providerName] = Array.from(providerStreamCapabilities.values()).map(
-        (reg) => this.formatStreamCapabilityRegistration(reg)
-      );
+    for (const [
+      providerName,
+      providerStreamCapabilities,
+    ] of streamCapabilities) {
+      result[providerName] = Array.from(
+        providerStreamCapabilities.values(),
+      ).map((reg) => this.formatStreamCapabilityRegistration(reg));
     }
 
     return result;
@@ -223,11 +231,11 @@ export class ProvidersController {
       capability,
       undefined,
     );
-    
-    const bestProvider = bestProviderName 
+
+    const bestProvider = bestProviderName
       ? this.getFormattedProviderInfo(bestProviderName, capability)
       : null;
-    
+
     return {
       capability,
       market: null,
@@ -298,11 +306,11 @@ export class ProvidersController {
       capability,
       market,
     );
-    
-    const bestProvider = bestProviderName 
+
+    const bestProvider = bestProviderName
       ? this.getFormattedProviderInfo(bestProviderName, capability)
       : null;
-    
+
     return {
       capability,
       market,
@@ -377,8 +385,8 @@ export class ProvidersController {
 
     return {
       provider,
-      capabilities: Array.from(providerCapabilities.values()).map(
-        (reg) => this.formatCapabilityRegistration(reg)
+      capabilities: Array.from(providerCapabilities.values()).map((reg) =>
+        this.formatCapabilityRegistration(reg),
       ),
     };
   }

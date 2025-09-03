@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // query-response.dto.e2e.test.ts - 测试占位代码
 // 路径: e2e/core/restapi/query/dto/query-response.dto.e2e.test.ts
 

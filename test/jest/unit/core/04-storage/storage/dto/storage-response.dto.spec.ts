@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PaginatedDataDto } from "../../../../../../../src/common/modules/pagination/dto/paginated-data";
 
 describe("Common Response DTOs", () => {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { LogSender } from "../../../../../../src/alert/services/notification-senders/log.sender";
 import {

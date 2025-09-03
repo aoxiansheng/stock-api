@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   ALERT_HISTORY_OPERATIONS,
   ALERT_HISTORY_MESSAGES,
@@ -464,7 +463,6 @@ describe("Alert History Constants", () => {
         expect(AlertHistoryUtil.isValidCleanupDays(-1)).toBe(false);
       });
     });
-
 
     describe("calculateExecutionTime", () => {
       it("应正确计算执行时间", () => {

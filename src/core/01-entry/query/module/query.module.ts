@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { EventEmitterModule } from "@nestjs/event-emitter";
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
@@ -22,10 +22,10 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
 @Module({
   imports: [
     EventEmitterModule, // ✅ 事件驱动监控必需
-    AuthModule, 
-    StorageModule, 
+    AuthModule,
+    StorageModule,
     SharedServicesModule,
-    SmartCacheModule,    // 🔑 关键: 导入SmartCacheModule，否则DI注入失败
+    SmartCacheModule, // 🔑 关键: 导入SmartCacheModule，否则DI注入失败
     ReceiverModule,
     MonitoringModule, // ✅ 导入监控模块
   ],

@@ -1,47 +1,47 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 /**
  * 数据获取元数据DTO
- * 
+ *
  * 独立的元数据定义，用于响应DTO和其他组件使用
  * 解耦请求DTO与响应DTO的依赖关系
  */
 export class DataFetchMetadataDto {
   @ApiProperty({
-    description: '数据提供商名称',
-    example: 'longport',
+    description: "数据提供商名称",
+    example: "longport",
   })
   provider: string;
 
   @ApiProperty({
-    description: '能力名称',
-    example: 'get-stock-quote',
+    description: "能力名称",
+    example: "get-stock-quote",
   })
   capability: string;
 
   @ApiProperty({
-    description: '处理时间（毫秒）',
+    description: "处理时间（毫秒）",
     example: 1500,
   })
   processingTimeMs: number;
 
   @ApiProperty({
-    description: '成功处理的股票代码数量',
+    description: "成功处理的股票代码数量",
     example: 2,
   })
   symbolsProcessed: number;
 
   @ApiPropertyOptional({
-    description: '失败的股票代码列表',
+    description: "失败的股票代码列表",
     type: [String],
-    example: ['INVALID.XX'],
+    example: ["INVALID.XX"],
   })
   failedSymbols?: string[];
 
   @ApiPropertyOptional({
-    description: '错误信息列表',
+    description: "错误信息列表",
     type: [String],
-    example: ['Symbol not found: INVALID.XX'],
+    example: ["Symbol not found: INVALID.XX"],
   })
   errors?: string[];
 

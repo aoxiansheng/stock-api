@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Auth模块数据库集成测试
  * 测试认证服务与MongoDB和Redis的真实交互

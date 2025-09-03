@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // stream-data-fetcher.interface.integration.test.ts - 测试占位代码
 // 路径: integration/core/stream/stream-data-fetcher/interfaces/stream-data-fetcher.interface.integration.test.ts
 

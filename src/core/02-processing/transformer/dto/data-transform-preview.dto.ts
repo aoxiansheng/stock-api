@@ -55,7 +55,10 @@ export class TransformFieldMappingPreviewDto {
 }
 
 export class TransformPreviewDto {
-  @ApiProperty({ description: "映射规则信息", type: TransformMappingRuleInfoDto })
+  @ApiProperty({
+    description: "映射规则信息",
+    type: TransformMappingRuleInfoDto,
+  })
   @ValidateNested()
   @Type(() => TransformMappingRuleInfoDto)
   @IsObject()

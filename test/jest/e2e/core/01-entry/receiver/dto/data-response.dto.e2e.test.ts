@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // data-response.dto.e2e.test.ts - 测试占位代码
 // 路径: e2e/core/01-entry/receiver/dto/data-response.dto.e2e.test.ts
 

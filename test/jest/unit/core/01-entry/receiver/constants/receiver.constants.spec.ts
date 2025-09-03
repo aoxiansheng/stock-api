@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,

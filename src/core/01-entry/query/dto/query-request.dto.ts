@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsString,
   IsOptional,
@@ -14,27 +14,27 @@ import {
   IsObject,
   ArrayMinSize,
   ArrayMaxSize,
-} from 'class-validator';
+} from "class-validator";
 
-import { QueryType } from './query-types.dto';
+import { QueryType } from "./query-types.dto";
 
 /**
  * 排序方向
  */
 export enum SortDirection {
-  ASC = 'asc',
-  DESC = 'desc',
+  ASC = "asc",
+  DESC = "desc",
 }
 
 /**
  * 排序选项
  */
 class SortOptionsDto {
-  @ApiProperty({ description: '排序字段' })
+  @ApiProperty({ description: "排序字段" })
   @IsString()
   field: string;
 
-  @ApiProperty({ description: '排序方向', enum: SortDirection })
+  @ApiProperty({ description: "排序方向", enum: SortDirection })
   @IsEnum(SortDirection)
   direction: SortDirection;
 }
@@ -44,7 +44,7 @@ class SortOptionsDto {
  */
 export class QueryOptionsDto {
   @ApiPropertyOptional({
-    description: '是否使用缓存',
+    description: "是否使用缓存",
     example: true,
     default: true,
   })
@@ -52,9 +52,8 @@ export class QueryOptionsDto {
   @IsBoolean()
   useCache?: boolean;
 
-
   @ApiPropertyOptional({
-    description: '是否包含元数据',
+    description: "是否包含元数据",
     example: false,
     default: false,
   })
@@ -62,13 +61,13 @@ export class QueryOptionsDto {
   @IsBoolean()
   includeMetadata?: boolean;
 
-  @ApiPropertyOptional({ description: '要包含在响应中的字段' })
+  @ApiPropertyOptional({ description: "要包含在响应中的字段" })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   includeFields?: string[];
 
-  @ApiPropertyOptional({ description: '要从响应中排除的字段' })
+  @ApiPropertyOptional({ description: "要从响应中排除的字段" })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -80,7 +79,7 @@ export class QueryOptionsDto {
  */
 export class QueryRequestDto {
   @ApiProperty({
-    description: '查询类型',
+    description: "查询类型",
     enum: QueryType,
     example: QueryType.BY_SYMBOLS,
   })
@@ -89,8 +88,8 @@ export class QueryRequestDto {
   queryType: QueryType;
 
   @ApiPropertyOptional({
-    description: '股票代码列表，当queryType为by_symbols时必需',
-    example: ['AAPL', 'GOOGL'],
+    description: "股票代码列表，当queryType为by_symbols时必需",
+    example: ["AAPL", "GOOGL"],
   })
   @IsOptional()
   @IsArray()
@@ -99,48 +98,48 @@ export class QueryRequestDto {
   symbols?: string[];
 
   @ApiPropertyOptional({
-    description: '市场，当queryType为by_market时必需',
-    example: 'US',
+    description: "市场，当queryType为by_market时必需",
+    example: "US",
   })
   @IsOptional()
   @IsString()
   market?: string;
 
   @ApiPropertyOptional({
-    description: '数据提供商',
-    example: 'longport',
+    description: "数据提供商",
+    example: "longport",
   })
   @IsOptional()
   @IsString()
   provider?: string;
 
   @ApiPropertyOptional({
-    description: '标签，当queryType为by_tag时必需',
-    example: 'AI',
+    description: "标签，当queryType为by_tag时必需",
+    example: "AI",
   })
   @IsOptional()
   @IsString()
   tag?: string;
 
   @ApiPropertyOptional({
-    description: '开始时间，当queryType为by_time_range时必需',
-    example: '2023-01-01T00:00:00Z',
+    description: "开始时间，当queryType为by_time_range时必需",
+    example: "2023-01-01T00:00:00Z",
   })
   @IsOptional()
   @IsString()
   startTime?: string;
 
   @ApiPropertyOptional({
-    description: '结束时间，当queryType为by_time_range时必需',
-    example: '2023-01-31T23:59:59Z',
+    description: "结束时间，当queryType为by_time_range时必需",
+    example: "2023-01-31T23:59:59Z",
   })
   @IsOptional()
   @IsString()
   endTime?: string;
 
   @ApiPropertyOptional({
-    description: '高级查询参数，当queryType为advanced时必需',
-    type: 'object',
+    description: "高级查询参数，当queryType为advanced时必需",
+    type: "object",
     additionalProperties: true,
   })
   @IsOptional()
@@ -148,7 +147,7 @@ export class QueryRequestDto {
   advancedQuery?: Record<string, any>;
 
   @ApiPropertyOptional({
-    description: '缓存最大年龄（秒）',
+    description: "缓存最大年龄（秒）",
     example: 300,
   })
   @IsOptional()
@@ -157,7 +156,7 @@ export class QueryRequestDto {
   maxAge?: number;
 
   @ApiPropertyOptional({
-    description: '返回结果数量限制',
+    description: "返回结果数量限制",
     example: 100,
     default: 100,
   })
@@ -169,7 +168,7 @@ export class QueryRequestDto {
   limit?: number;
 
   @ApiPropertyOptional({
-    description: '页码，用于分页',
+    description: "页码，用于分页",
     example: 1,
     default: 1,
   })
@@ -180,15 +179,15 @@ export class QueryRequestDto {
   page?: number;
 
   @ApiPropertyOptional({
-    description: '数据类型过滤器（用于过滤特定类型的数据）',
-    example: 'get-stock-quote',
+    description: "数据类型过滤器（用于过滤特定类型的数据）",
+    example: "get-stock-quote",
   })
   @IsOptional()
   @IsString()
   queryTypeFilter?: string;
 
   @ApiPropertyOptional({
-    description: '查询选项',
+    description: "查询选项",
     type: QueryOptionsDto,
   })
   @IsOptional()
@@ -196,7 +195,7 @@ export class QueryRequestDto {
   @Type(() => QueryOptionsDto)
   options?: QueryOptionsDto;
 
-  @ApiPropertyOptional({ description: '排序选项' })
+  @ApiPropertyOptional({ description: "排序选项" })
   @IsOptional()
   @ValidateNested()
   @Type(() => SortOptionsDto)
@@ -208,7 +207,7 @@ export class QueryRequestDto {
  */
 export class BulkQueryRequestDto {
   @ApiProperty({
-    description: '查询请求列表',
+    description: "查询请求列表",
     type: [QueryRequestDto],
   })
   @IsArray()
@@ -219,7 +218,7 @@ export class BulkQueryRequestDto {
   queries: QueryRequestDto[];
 
   @ApiPropertyOptional({
-    description: '是否并行执行',
+    description: "是否并行执行",
     default: true,
   })
   @IsOptional()
@@ -227,7 +226,7 @@ export class BulkQueryRequestDto {
   parallel?: boolean = true;
 
   @ApiPropertyOptional({
-    description: '出错时是否继续执行',
+    description: "出错时是否继续执行",
     default: false,
   })
   @IsOptional()

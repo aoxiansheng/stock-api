@@ -1269,7 +1269,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         { symbol: "TSLA.US", market: "US", expectedFormat: "TSLA" },
       ];
 
-      let processedMarkets = new Set();
+      const processedMarkets = new Set();
 
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -1681,7 +1681,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         ];
 
         let errorCount = 0;
-        let expectedErrors = invalidRequests.length;
+        const expectedErrors = invalidRequests.length;
 
         wsClient.on("subscription_error", (error) => {
           errorCount++;
@@ -2205,7 +2205,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         { clientId: 2, symbol: "MSFT.US" },
       ];
 
-      let clientDataReceived = new Map();
+      const clientDataReceived = new Map();
       let connectedClients = 0;
 
       return new Promise((resolve, reject) => {

@@ -20,7 +20,9 @@ export interface ICacheOperation {
   /**
    * 批量获取缓存数据
    */
-  mget<T>(keys: string[]): Promise<Array<{ data: T; ttlRemaining: number } | null>>;
+  mget<T>(
+    keys: string[],
+  ): Promise<Array<{ data: T; ttlRemaining: number } | null>>;
 
   /**
    * 批量设置缓存数据
@@ -38,7 +40,7 @@ export interface ICacheFallback {
   getWithFallback<T>(
     key: string,
     fetchFn: () => Promise<T>,
-    ttl: number
+    ttl: number,
   ): Promise<{ data: T; hit: boolean; ttlRemaining?: number }>;
 }
 
@@ -50,6 +52,6 @@ export interface ICacheMetadata {
    * 带元数据的批量获取
    */
   mgetWithMetadata<T>(
-    keys: string[]
+    keys: string[],
   ): Promise<Array<{ data: T; ttlRemaining: number; storedAt: number } | null>>;
 }

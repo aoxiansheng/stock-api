@@ -3,7 +3,7 @@
 import { ArgumentsHost, HttpException, HttpStatus } from "@nestjs/common";
 import { ValidationError } from "class-validator";
 import { Request, Response } from "express";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { GlobalExceptionFilter } from "../../../../../../src/common/core/filters/global-exception.filter";
 
 describe("GlobalExceptionFilter", () => {

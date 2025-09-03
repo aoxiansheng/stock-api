@@ -7,10 +7,10 @@
  * 压缩数据点格式 - 流数据专用格式
  */
 export interface StreamDataPoint {
-  s: string;  // symbol
-  p: number;  // price
-  v: number;  // volume
-  t: number;  // timestamp
+  s: string; // symbol
+  p: number; // price
+  v: number; // volume
+  t: number; // timestamp
   c?: number; // change
   cp?: number; // change percent
 }
@@ -31,10 +31,10 @@ export interface StreamCacheStats {
  * 流缓存配置
  */
 export interface StreamCacheConfig {
-  hotCacheTTL: number;        // Hot Cache TTL (毫秒)
-  warmCacheTTL: number;       // Warm Cache TTL (秒)
-  maxHotCacheSize: number;    // Hot Cache 最大条目数
-  cleanupInterval: number;    // 清理间隔 (毫秒)
+  hotCacheTTL: number; // Hot Cache TTL (毫秒)
+  warmCacheTTL: number; // Warm Cache TTL (秒)
+  maxHotCacheSize: number; // Hot Cache 最大条目数
+  cleanupInterval: number; // 清理间隔 (毫秒)
   compressionThreshold: number; // 压缩阈值 (字节)
 }
 
@@ -50,7 +50,11 @@ export interface IStreamCache {
   /**
    * 设置数据到缓存 - 智能存储策略
    */
-  setData(key: string, data: any[], priority?: 'hot' | 'warm' | 'auto'): Promise<void>;
+  setData(
+    key: string,
+    data: any[],
+    priority?: "hot" | "warm" | "auto",
+  ): Promise<void>;
 
   /**
    * 获取自指定时间戳以来的数据 - 增量查询
@@ -60,7 +64,9 @@ export interface IStreamCache {
   /**
    * 批量获取数据
    */
-  getBatchData(keys: string[]): Promise<Record<string, StreamDataPoint[] | null>>;
+  getBatchData(
+    keys: string[],
+  ): Promise<Record<string, StreamDataPoint[] | null>>;
 
   /**
    * 删除缓存数据

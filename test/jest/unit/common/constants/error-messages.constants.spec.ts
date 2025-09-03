@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 分支覆盖率增强测试
  * 专门测试常量验证和边界条件中的分支逻辑

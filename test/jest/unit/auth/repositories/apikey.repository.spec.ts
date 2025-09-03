@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * ApiKeyRepository 单元测试
  * 测试API密钥数据访问层的所有方法

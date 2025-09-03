@@ -1,20 +1,20 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DataFetchMetadataDto } from './data-fetch-metadata.dto';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { DataFetchMetadataDto } from "./data-fetch-metadata.dto";
 
 /**
  * 数据获取响应DTO
  */
 export class DataFetchResponseDto {
   @ApiProperty({
-    description: '获取到的原始数据',
-    type: 'array',
+    description: "获取到的原始数据",
+    type: "array",
     items: {
-      type: 'object',
+      type: "object",
       additionalProperties: true,
     },
     example: [
       {
-        symbol: '700.HK',
+        symbol: "700.HK",
         last_done: 385.6,
         prev_close: 389.8,
         open: 387.2,
@@ -30,13 +30,13 @@ export class DataFetchResponseDto {
   data: any[];
 
   @ApiProperty({
-    description: '数据获取元数据',
+    description: "数据获取元数据",
     type: DataFetchMetadataDto,
   })
   metadata: DataFetchMetadataDto;
 
   @ApiPropertyOptional({
-    description: '是否存在部分失败',
+    description: "是否存在部分失败",
     example: false,
   })
   hasPartialFailures?: boolean;

@@ -23,9 +23,9 @@ import { ReceiverService } from "../services/receiver.service";
     DataFetcherModule, // 🔥 新增DataFetcher模块
     TransformerModule,
     StorageModule,
-    SmartCacheModule,    // 🔑 关键: 导入SmartCacheModule，支持智能缓存编排器
+    SmartCacheModule, // 🔑 关键: 导入SmartCacheModule，支持智能缓存编排器
     ProvidersModule,
-   // CacheModule,
+    // CacheModule,
     SharedServicesModule,
     MonitoringModule, // ✅ 导入监控模块
   ],

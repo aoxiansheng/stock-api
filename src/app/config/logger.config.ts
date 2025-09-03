@@ -18,12 +18,12 @@ class PinoLoggerSingleton {
         PinoLoggerSingleton.isCreating = false;
       }
     }
-    
+
     // 如果实例还在创建中，等待或返回一个基础的 pino logger
     if (!PinoLoggerSingleton.instance) {
-      return pino({ name: 'fallback-logger' });
+      return pino({ name: "fallback-logger" });
     }
-    
+
     return PinoLoggerSingleton.instance;
   }
 
@@ -56,9 +56,12 @@ class PinoLoggerSingleton {
     if (isDevelopment) {
       // 创建自定义的 pretty print destination
       const prettyStream = pino.destination({ sync: false });
-      const logger = pino({
-        ...baseConfig,
-      }, prettyStream);
+      const logger = pino(
+        {
+          ...baseConfig,
+        },
+        prettyStream,
+      );
 
       return logger;
     }
@@ -76,15 +79,20 @@ class PinoLoggerSingleton {
 
   static getLogLevel(): string {
     const level = process.env.LOG_LEVEL;
-    if (level && ['fatal', 'error', 'warn', 'info', 'debug', 'trace'].includes(level.toLowerCase())) {
+    if (
+      level &&
+      ["fatal", "error", "warn", "info", "debug", "trace"].includes(
+        level.toLowerCase(),
+      )
+    ) {
       return level.toLowerCase();
     }
-    
+
     // 根据环境设置默认级别
-    if (process.env.NODE_ENV === 'production') {
-      return 'info';
-    } else if (process.env.NODE_ENV === 'test') {
-      return 'warn';
+    if (process.env.NODE_ENV === "production") {
+      return "info";
+    } else if (process.env.NODE_ENV === "test") {
+      return "warn";
     }
     return "debug";
   }
@@ -110,7 +118,6 @@ export class CustomLogger implements LoggerService {
     this.context = context;
     this.pinoLogger = PinoLoggerSingleton.getInstance();
   }
-
 
   /**
    * 记录普通日志

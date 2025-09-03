@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * CONSTANTSVERSION 单元测试
  * 测试常量版本信息的结构和内容

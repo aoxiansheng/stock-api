@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import { StorageQueryDto } from "@core/04-storage/storage/dto/storage-query.dto";

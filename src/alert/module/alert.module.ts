@@ -17,14 +17,11 @@ import {
   NotificationLog,
   NotificationLogSchema,
 } from "../schemas/notification-log.schema";
-import { 
-  AlertRule, 
-  AlertRuleSchema,
- } from "../schemas/alert-rule.schema";
-import { 
-  AlertHistory, 
-  AlertHistorySchema
- } from "../schemas/alert-history.schema";
+import { AlertRule, AlertRuleSchema } from "../schemas/alert-rule.schema";
+import {
+  AlertHistory,
+  AlertHistorySchema,
+} from "../schemas/alert-history.schema";
 import {
   AlertHistoryService,
   AlertingService,
@@ -43,7 +40,7 @@ import {
   imports: [
     // 🆕 试点：统一数据库模块
     DatabaseModule,
-    
+
     // 基础模块
     AuthModule,
     CacheModule,

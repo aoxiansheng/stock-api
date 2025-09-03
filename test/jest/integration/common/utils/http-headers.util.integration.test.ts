@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * common 常量和工具函数集成测试
  * 测试 common 模块中的常量、工具函数和装饰器
@@ -23,7 +22,7 @@ import {
 } from "../../../../../src/common/core/decorators/swagger-responses.decorator";
 import { ResponseInterceptor } from "../../../../../src/common/core/interceptors/response.interceptor";
 import { GlobalExceptionFilter } from "../../../../../src/common/core/filters/global-exception.filter";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 // 测试控制器
 @Controller("test-common-utilities")

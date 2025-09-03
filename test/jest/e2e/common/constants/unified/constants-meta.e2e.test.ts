@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Response Formatting E2E Tests", () => {
   let httpServer: any;
   let adminToken: string;

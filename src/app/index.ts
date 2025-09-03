@@ -4,13 +4,13 @@
  */
 
 // 配置管理
-export * from './config';
+export * from "./config";
 
 // 应用级服务
-export * from './services';
+export * from "./services";
 
 // 应用级模块
-export * from './modules';
+export * from "./modules";
 
 // 启动管理
-export * from './startup';
+export * from "./startup";

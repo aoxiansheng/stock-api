@@ -1,11 +1,11 @@
-import 'reflect-metadata';
-import { Injectable } from '@nestjs/common';
-import { ProviderMetadata, Constructor } from './types/metadata.types';
-import { CapabilityCollector } from './capability-collector';
+import "reflect-metadata";
+import { Injectable } from "@nestjs/common";
+import { ProviderMetadata, Constructor } from "./types/metadata.types";
+import { CapabilityCollector } from "./capability-collector";
 
 /**
  * 提供商装饰器 - 自动注册数据源提供商
- * 
+ *
  * @example
  * ```typescript
  * @Provider({
@@ -29,7 +29,7 @@ export function Provider(metadata: ProviderMetadata) {
       autoRegister: true,
       healthCheck: true,
       initPriority: 1,
-      ...metadata
+      ...metadata,
     };
 
     // 验证必填字段
@@ -41,8 +41,8 @@ export function Provider(metadata: ProviderMetadata) {
     CapabilityCollector.registerProvider(finalMetadata, target);
 
     // 存储元数据到类上
-    Reflect.defineMetadata('provider:metadata', finalMetadata, target);
-    Reflect.defineMetadata('provider:registered', true, target);
+    Reflect.defineMetadata("provider:metadata", finalMetadata, target);
+    Reflect.defineMetadata("provider:registered", true, target);
 
     // 自动应用 @Injectable 装饰器，确保可以被依赖注入
     return Injectable()(target);
@@ -53,19 +53,19 @@ export function Provider(metadata: ProviderMetadata) {
  * 获取类上的提供商元数据
  */
 export function getProviderMetadata(target: any): ProviderMetadata | undefined {
-  return Reflect.getMetadata('provider:metadata', target);
+  return Reflect.getMetadata("provider:metadata", target);
 }
 
 /**
  * 检查类是否已注册为提供商
  */
 export function isProviderRegistered(target: any): boolean {
-  return Reflect.getMetadata('provider:registered', target) === true;
+  return Reflect.getMetadata("provider:registered", target) === true;
 }
 
 /**
  * 提供商配置装饰器 - 为提供商添加配置选项
- * 
+ *
  * @example
  * ```typescript
  * @ProviderConfig({
@@ -80,11 +80,11 @@ export function isProviderRegistered(target: any): boolean {
  */
 export function ProviderConfig(config: Record<string, any>) {
   return function <T extends Constructor>(target: T) {
-    const existingConfig = Reflect.getMetadata('provider:config', target) || {};
+    const existingConfig = Reflect.getMetadata("provider:config", target) || {};
     const finalConfig = { ...existingConfig, ...config };
-    
-    Reflect.defineMetadata('provider:config', finalConfig, target);
-    
+
+    Reflect.defineMetadata("provider:config", finalConfig, target);
+
     return target;
   };
 }
@@ -93,12 +93,12 @@ export function ProviderConfig(config: Record<string, any>) {
  * 获取提供商配置
  */
 export function getProviderConfig(target: any): Record<string, any> {
-  return Reflect.getMetadata('provider:config', target) || {};
+  return Reflect.getMetadata("provider:config", target) || {};
 }
 
 /**
  * 提供商健康检查装饰器
- * 
+ *
  * @example
  * ```typescript
  * export class LongportProvider {
@@ -110,21 +110,32 @@ export function getProviderConfig(target: any): Record<string, any> {
  * }
  * ```
  */
-export function HealthCheck(options: { interval?: number; timeout?: number } = {}) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+export function HealthCheck(
+  options: { interval?: number; timeout?: number } = {},
+) {
+  return function (
+    target: any,
+    propertyName: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const defaultOptions = {
       interval: 60000, // 1分钟
-      timeout: 10000,  // 10秒
-      ...options
+      timeout: 10000, // 10秒
+      ...options,
     };
 
     // 存储健康检查方法信息
-    const existingChecks = Reflect.getMetadata('provider:healthChecks', target.constructor) || [];
+    const existingChecks =
+      Reflect.getMetadata("provider:healthChecks", target.constructor) || [];
     existingChecks.push({
       methodName: propertyName,
-      options: defaultOptions
+      options: defaultOptions,
     });
-    Reflect.defineMetadata('provider:healthChecks', existingChecks, target.constructor);
+    Reflect.defineMetadata(
+      "provider:healthChecks",
+      existingChecks,
+      target.constructor,
+    );
 
     return descriptor;
   };
@@ -133,13 +144,15 @@ export function HealthCheck(options: { interval?: number; timeout?: number } = {
 /**
  * 获取提供商健康检查方法
  */
-export function getProviderHealthChecks(target: any): Array<{ methodName: string; options: any }> {
-  return Reflect.getMetadata('provider:healthChecks', target) || [];
+export function getProviderHealthChecks(
+  target: any,
+): Array<{ methodName: string; options: any }> {
+  return Reflect.getMetadata("provider:healthChecks", target) || [];
 }
 
 /**
  * 提供商初始化装饰器 - 标记初始化方法
- * 
+ *
  * @example
  * ```typescript
  * export class LongportProvider {
@@ -150,18 +163,28 @@ export function getProviderHealthChecks(target: any): Array<{ methodName: string
  * }
  * ```
  */
-export function Initialize(options: { priority?: number; timeout?: number } = {}) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+export function Initialize(
+  options: { priority?: number; timeout?: number } = {},
+) {
+  return function (
+    target: any,
+    propertyName: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const defaultOptions = {
       priority: 1,
       timeout: 30000, // 30秒
-      ...options
+      ...options,
     };
 
-    Reflect.defineMetadata('provider:initMethod', {
-      methodName: propertyName,
-      options: defaultOptions
-    }, target.constructor);
+    Reflect.defineMetadata(
+      "provider:initMethod",
+      {
+        methodName: propertyName,
+        options: defaultOptions,
+      },
+      target.constructor,
+    );
 
     return descriptor;
   };
@@ -170,14 +193,18 @@ export function Initialize(options: { priority?: number; timeout?: number } = {}
 /**
  * 获取提供商初始化方法信息
  */
-export function getProviderInitMethod(target: any): { methodName: string; options: any } | undefined {
-  return Reflect.getMetadata('provider:initMethod', target);
+export function getProviderInitMethod(
+  target: any,
+): { methodName: string; options: any } | undefined {
+  return Reflect.getMetadata("provider:initMethod", target);
 }
 
 /**
  * 工具函数：批量注册提供商
  */
-export function registerProviders(providers: Array<{ metadata: ProviderMetadata; target: Constructor }>) {
+export function registerProviders(
+  providers: Array<{ metadata: ProviderMetadata; target: Constructor }>,
+) {
   for (const { metadata, target } of providers) {
     CapabilityCollector.registerProvider(metadata, target);
   }

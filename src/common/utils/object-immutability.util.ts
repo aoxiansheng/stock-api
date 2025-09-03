@@ -44,7 +44,7 @@ export function deepFreeze<T>(
   // 在冻结对象本身之前，递归冻结所有属性
   for (const name of propNames) {
     // RegExp 对象的 lastIndex 属性需要保持可变，以支持 test() 和 exec() 方法
-    if (object instanceof RegExp && name === 'lastIndex') {
+    if (object instanceof RegExp && name === "lastIndex") {
       continue;
     }
 
@@ -65,7 +65,7 @@ export function deepFreeze<T>(
     // 冻结除了 lastIndex 之外的所有属性
     const propNames = Object.getOwnPropertyNames(object);
     for (const name of propNames) {
-      if (name !== 'lastIndex') {
+      if (name !== "lastIndex") {
         const descriptor = Object.getOwnPropertyDescriptor(object, name);
         if (descriptor && descriptor.configurable) {
           Object.defineProperty(object, name, {
@@ -127,14 +127,19 @@ export function isDeepFrozen(
 
   return propNames.every((name) => {
     // RegExp 对象的 lastIndex 属性允许保持可变状态
-    if (object instanceof RegExp && name === 'lastIndex') {
+    if (object instanceof RegExp && name === "lastIndex") {
       return true;
     }
 
     // 函数对象的内置属性不需要深度检查
-    if (typeof object === 'function' && 
-        (name === 'prototype' || name === 'length' || name === 'name' || 
-         name === 'arguments' || name === 'caller')) {
+    if (
+      typeof object === "function" &&
+      (name === "prototype" ||
+        name === "length" ||
+        name === "name" ||
+        name === "arguments" ||
+        name === "caller")
+    ) {
       return true;
     }
 

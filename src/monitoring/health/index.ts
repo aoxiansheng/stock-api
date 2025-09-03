@@ -4,7 +4,7 @@
  */
 
 // 扩展健康检查服务
-export * from './extended-health.service';
+export * from "./extended-health.service";
 
 // 健康检查模块
-export * from './health.module';
+export * from "./health.module";

@@ -74,7 +74,9 @@ export const ApiPaginatedResponse = (
               items: {
                 type: "array",
                 items: itemSchemaType
-                  ? { $ref: `#/components/schemas/${(itemSchemaType as any).name}` }
+                  ? {
+                      $ref: `#/components/schemas/${(itemSchemaType as any).name}`,
+                    }
                   : { type: "object" },
               },
               pagination: {

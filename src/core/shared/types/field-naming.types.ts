@@ -4,7 +4,7 @@
  */
 
 // Receiver 组件的能力类型
-export type ReceiverType = 
+export type ReceiverType =
   | "get-stock-quote"
   | "get-stock-basic-info"
   | "get-index-quote"
@@ -19,7 +19,7 @@ export type ReceiverType =
   | "get-crypto-news";
 
 // 从统一位置导入
-import { StorageClassification } from './storage-classification.enum';
+import { StorageClassification } from "./storage-classification.enum";
 
 // 重新导出以保持向后兼容
 export { StorageClassification };
@@ -71,4 +71,3 @@ export const FIELD_MAPPING_CONFIG = {
     [StorageClassification.GENERAL]: "get-global-state",
   } as const,
 } as const;
-

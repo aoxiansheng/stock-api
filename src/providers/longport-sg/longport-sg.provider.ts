@@ -16,7 +16,7 @@ import { LongportSgContextService } from "./services/longport-sg-context.service
   description: "LongPort SG 长桥证券新加坡数据提供商",
   autoRegister: true,
   healthCheck: true,
-  initPriority: 2
+  initPriority: 2,
 })
 export class LongportSgProvider implements IDataProvider {
   private readonly logger = createLogger(LongportSgProvider.name);

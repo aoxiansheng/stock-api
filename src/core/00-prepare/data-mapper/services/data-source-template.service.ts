@@ -1,15 +1,23 @@
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { createLogger } from '@app/config/logger.config';
-import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
-import { DataSourceTemplate, DataSourceTemplateDocument } from '../schemas/data-source-template.schema';
-import { DataSourceAnalyzerService } from './data-source-analyzer.service';
-import { 
-  CreateDataSourceTemplateDto, 
+import { InjectModel } from "@nestjs/mongoose";
+import { Model, Types } from "mongoose";
+import { createLogger } from "@app/config/logger.config";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from "@nestjs/common";
+import {
+  DataSourceTemplate,
+  DataSourceTemplateDocument,
+} from "../schemas/data-source-template.schema";
+import { DataSourceAnalyzerService } from "./data-source-analyzer.service";
+import {
+  CreateDataSourceTemplateDto,
   DataSourceTemplateResponseDto,
-} from '../dto/data-source-analysis.dto';
+} from "../dto/data-source-analysis.dto";
 
 @Injectable()
 export class DataSourceTemplateService {
@@ -25,7 +33,9 @@ export class DataSourceTemplateService {
   /**
    * 🎯 创建数据源模板
    */
-  async createTemplate(dto: CreateDataSourceTemplateDto): Promise<DataSourceTemplateResponseDto> {
+  async createTemplate(
+    dto: CreateDataSourceTemplateDto,
+  ): Promise<DataSourceTemplateResponseDto> {
     this.logger.log(`创建数据源模板: ${dto.name}`);
 
     // 检查是否已存在相同名称的模板
@@ -43,7 +53,7 @@ export class DataSourceTemplateService {
     if (dto.isDefault) {
       await this.templateModel.updateMany(
         { provider: dto.provider, apiType: dto.apiType, isDefault: true },
-        { $set: { isDefault: false } }
+        { $set: { isDefault: false } },
       );
     }
 
@@ -56,7 +66,7 @@ export class DataSourceTemplateService {
     });
 
     const saved = await template.save();
-    
+
     this.logger.log(`数据源模板创建成功: ${saved._id}`);
     return DataSourceTemplateResponseDto.fromDocument(saved);
   }
@@ -69,16 +79,17 @@ export class DataSourceTemplateService {
     limit?: number,
     provider?: string,
     apiType?: string,
-    isActive?: boolean
+    isActive?: boolean,
   ): Promise<PaginatedDataDto<DataSourceTemplateResponseDto>> {
     // 使用PaginationService标准化分页参数
-    const { page: normalizedPage, limit: normalizedLimit } = this.paginationService.normalizePaginationQuery({
-      page,
-      limit
-    });
+    const { page: normalizedPage, limit: normalizedLimit } =
+      this.paginationService.normalizePaginationQuery({
+        page,
+        limit,
+      });
 
     const filter: any = {};
-    
+
     if (provider) filter.provider = provider;
     if (apiType) filter.apiType = apiType;
     if (isActive !== undefined) filter.isActive = isActive;
@@ -92,15 +103,15 @@ export class DataSourceTemplateService {
       this.templateModel.countDocuments(filter),
     ]);
 
-    const responseItems = templates.map(template => 
-      DataSourceTemplateResponseDto.fromDocument(template)
+    const responseItems = templates.map((template) =>
+      DataSourceTemplateResponseDto.fromDocument(template),
     );
 
     return this.paginationService.createPaginatedResponse(
-      responseItems,     
+      responseItems,
       normalizedPage,
       normalizedLimit,
-      total
+      total,
     );
   }
 
@@ -115,7 +126,7 @@ export class DataSourceTemplateService {
 
     try {
       const template = await this.templateModel.findById(id);
-      
+
       if (!template) {
         throw new NotFoundException(`数据源模板未找到: ${id}`);
       }
@@ -127,10 +138,13 @@ export class DataSourceTemplateService {
 
       return DataSourceTemplateResponseDto.fromDocument(template);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      
+
       this.logger.error(`查找模板时发生错误`, { id, error: error.message });
       throw new BadRequestException(`查找模板失败: ${error.message}`);
     }
@@ -140,8 +154,8 @@ export class DataSourceTemplateService {
    * 🎯 查找最佳匹配模板
    */
   async findBestMatchingTemplate(
-    provider: string, 
-    apiType: 'rest' | 'stream'
+    provider: string,
+    apiType: "rest" | "stream",
   ): Promise<DataSourceTemplateResponseDto | null> {
     this.logger.debug(`查找最佳匹配模板`, { provider, apiType });
 
@@ -163,22 +177,24 @@ export class DataSourceTemplateService {
           apiType,
           isActive: true,
         })
-        .sort({ 
-          usageCount: -1, 
+        .sort({
+          usageCount: -1,
           confidence: -1,
-          createdAt: -1 
+          createdAt: -1,
         });
     }
 
-    return template ? DataSourceTemplateResponseDto.fromDocument(template) : null;
+    return template
+      ? DataSourceTemplateResponseDto.fromDocument(template)
+      : null;
   }
 
   /**
    * ✏️ 更新模板
    */
   async updateTemplate(
-    id: string, 
-    updateData: Partial<CreateDataSourceTemplateDto>
+    id: string,
+    updateData: Partial<CreateDataSourceTemplateDto>,
   ): Promise<DataSourceTemplateResponseDto> {
     // 验证ObjectId格式
     if (!Types.ObjectId.isValid(id)) {
@@ -189,7 +205,7 @@ export class DataSourceTemplateService {
       const template = await this.templateModel.findByIdAndUpdate(
         id,
         { ...updateData },
-        { new: true }
+        { new: true },
       );
 
       if (!template) {
@@ -199,10 +215,13 @@ export class DataSourceTemplateService {
       this.logger.log(`数据源模板更新成功: ${id}`);
       return DataSourceTemplateResponseDto.fromDocument(template);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      
+
       this.logger.error(`更新模板时发生错误`, { id, error: error.message });
       throw new BadRequestException(`更新模板失败: ${error.message}`);
     }
@@ -219,17 +238,20 @@ export class DataSourceTemplateService {
 
     try {
       const template = await this.templateModel.findByIdAndDelete(id);
-      
+
       if (!template) {
         throw new NotFoundException(`数据源模板未找到: ${id}`);
       }
 
       this.logger.log(`数据源模板删除成功: ${id}`);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      
+
       this.logger.error(`删除模板时发生错误`, { id, error: error.message });
       throw new BadRequestException(`删除模板失败: ${error.message}`);
     }
@@ -248,10 +270,10 @@ export class DataSourceTemplateService {
     const [total, byProvider, byApiType, active, defaults] = await Promise.all([
       this.templateModel.countDocuments(),
       this.templateModel.aggregate([
-        { $group: { _id: '$provider', count: { $sum: 1 } } }
+        { $group: { _id: "$provider", count: { $sum: 1 } } },
       ]),
       this.templateModel.aggregate([
-        { $group: { _id: '$apiType', count: { $sum: 1 } } }
+        { $group: { _id: "$apiType", count: { $sum: 1 } } },
       ]),
       this.templateModel.countDocuments({ isActive: true }),
       this.templateModel.countDocuments({ isDefault: true }),
@@ -259,8 +281,8 @@ export class DataSourceTemplateService {
 
     return {
       totalTemplates: total,
-      byProvider: Object.fromEntries(byProvider.map(p => [p._id, p.count])),
-      byApiType: Object.fromEntries(byApiType.map(a => [a._id, a.count])),
+      byProvider: Object.fromEntries(byProvider.map((p) => [p._id, p.count])),
+      byApiType: Object.fromEntries(byApiType.map((a) => [a._id, a.count])),
       activeTemplates: active,
       defaultTemplates: defaults,
     };
@@ -272,7 +294,7 @@ export class DataSourceTemplateService {
   async createTemplateFromAnalysis(dto: {
     name: string;
     provider: string;
-    apiType: 'rest' | 'stream';
+    apiType: "rest" | "stream";
     sampleData: any;
     description?: string;
   }): Promise<DataSourceTemplateResponseDto> {
@@ -282,7 +304,7 @@ export class DataSourceTemplateService {
     const analysis = await this.analyzerService.analyzeDataSource(
       dto.sampleData,
       dto.provider,
-      dto.apiType
+      dto.apiType,
     );
 
     // 2. 创建模板

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
-import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
+import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 
 @Injectable()
 export class BackgroundTaskService {
@@ -21,9 +21,9 @@ export class BackgroundTaskService {
   run(task: () => Promise<any>, description: string): void {
     const taskId = `${description}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startTime = Date.now();
-    
+
     this.logger.debug(`Executing background task: ${description}`);
-    
+
     // 更新任务计数
     const currentCount = this.taskCounter.get(description) || 0;
     this.taskCounter.set(description, currentCount + 1);
@@ -35,23 +35,23 @@ export class BackgroundTaskService {
         .then(task)
         .then(() => {
           // ✅ 任务成功监控 - 事件化
-          this.emitTaskEvent('background_task_completed', {
+          this.emitTaskEvent("background_task_completed", {
             duration: Date.now() - startTime,
             task_type: description,
             task_id: taskId,
-            status: 'success'
+            status: "success",
           });
         })
         .catch((error) => {
           // ✅ 任务失败监控 - 事件化
-          this.emitTaskEvent('background_task_failed', {
+          this.emitTaskEvent("background_task_failed", {
             duration: Date.now() - startTime,
             task_type: description,
             task_id: taskId,
-            status: 'error',
-            error: error.message
+            status: "error",
+            error: error.message,
           });
-          
+
           // 保持原有错误日志
           this.logger.error(
             `Background task "${description}" failed.`,
@@ -83,31 +83,37 @@ export class BackgroundTaskService {
    * @param metricName 事件名称
    * @param data 事件数据
    */
-  private emitTaskEvent(metricName: string, data: {
-    duration?: number;
-    task_type?: string;
-    task_id?: string;
-    status?: string;
-    error?: string;
-  }): void {
+  private emitTaskEvent(
+    metricName: string,
+    data: {
+      duration?: number;
+      task_type?: string;
+      task_id?: string;
+      status?: string;
+      error?: string;
+    },
+  ): void {
     setImmediate(() => {
       try {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'background_task_service',
-          metricType: 'business',
+          source: "background_task_service",
+          metricType: "business",
           metricName,
           metricValue: data.duration || 1,
           tags: {
-            operation: 'background_task',
+            operation: "background_task",
             task_type: data.task_type,
             task_id: data.task_id,
             status: data.status,
-            error: data.error
-          }
+            error: data.error,
+          },
         });
       } catch (error) {
-        this.logger.warn('后台任务监控事件发送失败', { error: error.message, metricName });
+        this.logger.warn("后台任务监控事件发送失败", {
+          error: error.message,
+          metricName,
+        });
       }
     });
   }

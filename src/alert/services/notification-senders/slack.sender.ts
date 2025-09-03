@@ -29,9 +29,7 @@ export class SlackSender implements NotificationSender {
     const startTime = Date.now();
 
     // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
-    const urlValidation = URLSecurityValidator.validateURL(
-      config.webhook_url,
-    );
+    const urlValidation = URLSecurityValidator.validateURL(config.webhook_url);
     if (!urlValidation.valid) {
       throw new BadRequestException(
         `Slack Webhook URL安全检查失败: ${urlValidation.error}`,

@@ -4,7 +4,7 @@
  */
 
 export interface ErrorContext {
-  layer: 'collector' | 'analyzer' | 'presenter';
+  layer: "collector" | "analyzer" | "presenter";
   operation: string;
   userId?: string;
   componentName?: string;
@@ -32,21 +32,21 @@ export interface IErrorHandler {
    * @param context 错误上下文
    */
   handleError(error: Error, context: ErrorContext): void;
-  
+
   /**
    * 处理业务错误
    * @param details 错误详情
    * @param context 错误上下文
    */
   handleBusinessError(details: ErrorDetails, context: ErrorContext): void;
-  
+
   /**
    * 记录警告
    * @param message 警告消息
    * @param context 错误上下文
    */
   logWarning(message: string, context: ErrorContext): void;
-  
+
   /**
    * 检查是否为致命错误
    * @param error 错误对象
@@ -65,17 +65,21 @@ export interface ISystemStatusErrorHandler {
    * @param context 错误上下文
    */
   handleError(error: Error, context: ErrorContext): void;
-  
+
   /**
    * 处理业务错误（扩展版本）
    */
-  handleBusinessError(error: Error, context: ErrorContext, businessData?: any): void;
-  
+  handleBusinessError(
+    error: Error,
+    context: ErrorContext,
+    businessData?: any,
+  ): void;
+
   /**
    * 记录警告（扩展版本）
    */
   logWarning(message: string, context: ErrorContext, data?: any): void;
-  
+
   /**
    * 检查是否为致命错误（扩展版本）
    */

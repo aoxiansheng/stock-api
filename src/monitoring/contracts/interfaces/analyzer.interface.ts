@@ -34,7 +34,7 @@ export interface PerformanceAnalysisDto {
 export interface HealthReportDto {
   overall: {
     score: number;
-    status: 'healthy' | 'warning' | 'critical';
+    status: "healthy" | "warning" | "critical";
     timestamp: Date;
   };
   components: {
@@ -66,19 +66,19 @@ export interface TrendsDto {
   responseTime: {
     current: number;
     previous: number;
-    trend: 'up' | 'down' | 'stable';
+    trend: "up" | "down" | "stable";
     changePercentage: number;
   };
   errorRate: {
     current: number;
     previous: number;
-    trend: 'up' | 'down' | 'stable';
+    trend: "up" | "down" | "stable";
     changePercentage: number;
   };
   throughput: {
     current: number;
     previous: number;
-    trend: 'up' | 'down' | 'stable';
+    trend: "up" | "down" | "stable";
     changePercentage: number;
   };
 }
@@ -109,8 +109,8 @@ export interface CacheMetricsDto {
 }
 
 export interface SuggestionDto {
-  category: 'performance' | 'security' | 'resource' | 'optimization';
-  priority: 'high' | 'medium' | 'low';
+  category: "performance" | "security" | "resource" | "optimization";
+  priority: "high" | "medium" | "low";
   title: string;
   description: string;
   action?: string;
@@ -125,48 +125,50 @@ export interface IAnalyzer {
   /**
    * 获取性能分析数据
    */
-  getPerformanceAnalysis(options?: AnalysisOptions): Promise<PerformanceAnalysisDto>;
-  
+  getPerformanceAnalysis(
+    options?: AnalysisOptions,
+  ): Promise<PerformanceAnalysisDto>;
+
   /**
    * 获取健康评分
    */
   getHealthScore(): Promise<number>;
-  
+
   /**
    * 获取健康报告
    */
   getHealthReport(): Promise<HealthReportDto>;
-  
+
   /**
    * 计算趋势分析
    */
   calculateTrends(period: string): Promise<TrendsDto>;
-  
+
   /**
    * 获取端点指标
    */
   getEndpointMetrics(limit?: number): Promise<EndpointMetricsDto[]>;
-  
+
   /**
    * 获取数据库指标
    */
   getDatabaseMetrics(): Promise<DatabaseMetricsDto>;
-  
+
   /**
    * 获取缓存指标
    */
   getCacheMetrics(): Promise<CacheMetricsDto>;
-  
+
   /**
    * 获取优化建议
    */
   getOptimizationSuggestions(): Promise<SuggestionDto[]>;
-  
+
   /**
    * 缓存失效
    */
   invalidateCache(pattern?: string): Promise<void>;
-  
+
   /**
    * 获取缓存统计
    */

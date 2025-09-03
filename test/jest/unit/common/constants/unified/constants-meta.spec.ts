@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * CONSTANTS_META 单元测试
  * 测试常量元信息的结构和内容

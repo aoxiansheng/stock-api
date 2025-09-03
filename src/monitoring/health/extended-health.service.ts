@@ -1,15 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { createLogger } from '@app/config/logger.config';
-import Redis from 'ioredis';
-import { ConfigValidatorService, FullValidationResult } from '../../app/config/validation/config-validator.service';
-import { StartupHealthCheckerService, StartupResult } from '../../app/startup/health-checker.service';
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "@app/config/logger.config";
+import Redis from "ioredis";
+import {
+  ConfigValidatorService,
+  FullValidationResult,
+} from "../../app/config/validation/config-validator.service";
+import {
+  StartupHealthCheckerService,
+  StartupResult,
+} from "../../app/startup/health-checker.service";
 
 export interface ExtendedHealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   uptime: number;
   version: string;
-  
+
   // 基础系统信息
   system: {
     nodeVersion: string;
@@ -36,18 +42,18 @@ export interface ExtendedHealthStatus {
   // 依赖服务状态
   dependencies?: {
     mongodb: {
-      status: 'connected' | 'disconnected' | 'error';
+      status: "connected" | "disconnected" | "error";
       responseTime?: number;
       error?: string;
     };
     redis: {
-      status: 'connected' | 'disconnected' | 'error';
+      status: "connected" | "disconnected" | "error";
       responseTime?: number;
       error?: string;
     };
     externalServices: {
       longport: {
-        status: 'available' | 'unavailable' | 'not_configured';
+        status: "available" | "unavailable" | "not_configured";
         error?: string;
       };
     };
@@ -67,7 +73,7 @@ export interface ExtendedHealthStatus {
 
   // 整体健康评分
   healthScore: number;
-  
+
   // 建议操作
   recommendations: string[];
 }
@@ -88,66 +94,82 @@ export class ExtendedHealthService {
    */
   async getFullHealthStatus(): Promise<ExtendedHealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       // 并行获取各项健康状态
       const [configResult, systemInfo] = await Promise.allSettled([
         this.getConfigurationHealth(),
-        this.getSystemInfo()
+        this.getSystemInfo(),
       ]);
 
       const dependenciesInfo = await this.getDependenciesHealth();
-      const healthScore = this.calculateHealthScore(configResult, dependenciesInfo);
-      const recommendations = this.generateRecommendations(configResult, dependenciesInfo);
+      const healthScore = this.calculateHealthScore(
+        configResult,
+        dependenciesInfo,
+      );
+      const recommendations = this.generateRecommendations(
+        configResult,
+        dependenciesInfo,
+      );
 
       const status: ExtendedHealthStatus = {
         status: this.determineOverallStatus(healthScore),
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        version: process.env.APP_VERSION || '1.0.0',
-        
-        system: systemInfo.status === 'fulfilled' ? systemInfo.value : {
-          nodeVersion: process.version,
-          platform: process.platform,
-          architecture: process.arch,
-          memory: { used: 0, total: 0, percentage: 0 },
-          cpu: { usage: 0 }
-        },
+        version: process.env.APP_VERSION || "1.0.0",
 
-        configuration: configResult.status === 'fulfilled' ? {
-          isValid: configResult.value.overall.isValid,
-          errors: configResult.value.overall.errors,
-          warnings: configResult.value.overall.warnings,
-          validatedAt: configResult.value.overall.validatedAt.toISOString()
-        } : undefined,
+        system:
+          systemInfo.status === "fulfilled"
+            ? systemInfo.value
+            : {
+                nodeVersion: process.version,
+                platform: process.platform,
+                architecture: process.arch,
+                memory: { used: 0, total: 0, percentage: 0 },
+                cpu: { usage: 0 },
+              },
+
+        configuration:
+          configResult.status === "fulfilled"
+            ? {
+                isValid: configResult.value.overall.isValid,
+                errors: configResult.value.overall.errors,
+                warnings: configResult.value.overall.warnings,
+                validatedAt:
+                  configResult.value.overall.validatedAt.toISOString(),
+              }
+            : undefined,
 
         dependencies: dependenciesInfo,
-        startup: this.lastStartupCheck ? {
-          lastCheck: new Date().toISOString(),
-          success: this.lastStartupCheck.success,
-          phases: this.lastStartupCheck.phases
-        } : undefined,
+        startup: this.lastStartupCheck
+          ? {
+              lastCheck: new Date().toISOString(),
+              success: this.lastStartupCheck.success,
+              phases: this.lastStartupCheck.phases,
+            }
+          : undefined,
 
         healthScore,
-        recommendations
+        recommendations,
       };
 
-      this.logger.debug('Extended health check completed', {
+      this.logger.debug("Extended health check completed", {
         status: status.status,
         healthScore,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       });
 
       return status;
-
     } catch (error) {
-      this.logger.error('Extended health check failed', { error: error.message });
+      this.logger.error("Extended health check failed", {
+        error: error.message,
+      });
       return this.getFailureHealthStatus(error);
     }
   }
 
   /**
-   * 获取配置健康状态 
+   * 获取配置健康状态
    */
   async getConfigHealthStatus(): Promise<{
     isValid: boolean;
@@ -159,7 +181,7 @@ export class ExtendedHealthService {
       if (!this.lastConfigValidation || this.isValidationStale()) {
         this.lastConfigValidation = await this.configValidator.validateAll({
           timeout: 5000,
-          ignoreWarnings: false
+          ignoreWarnings: false,
         });
       }
 
@@ -167,14 +189,15 @@ export class ExtendedHealthService {
         isValid: this.lastConfigValidation.overall.isValid,
         errors: this.lastConfigValidation.overall.errors,
         warnings: this.lastConfigValidation.overall.warnings,
-        validatedAt: this.lastConfigValidation.overall.validatedAt.toISOString()
+        validatedAt:
+          this.lastConfigValidation.overall.validatedAt.toISOString(),
       };
     } catch (error) {
       return {
         isValid: false,
         errors: [`Configuration validation failed: ${error.message}`],
         warnings: [],
-        validatedAt: new Date().toISOString()
+        validatedAt: new Date().toISOString(),
       };
     }
   }
@@ -182,7 +205,9 @@ export class ExtendedHealthService {
   /**
    * 获取依赖服务健康状态
    */
-  async getDependenciesHealthStatus(): Promise<ExtendedHealthStatus['dependencies']> {
+  async getDependenciesHealthStatus(): Promise<
+    ExtendedHealthStatus["dependencies"]
+  > {
     return this.getDependenciesHealth();
   }
 
@@ -194,7 +219,7 @@ export class ExtendedHealthService {
       this.lastStartupCheck = await this.startupChecker.performQuickCheck();
       return this.lastStartupCheck;
     } catch (error) {
-      this.logger.error('Startup check failed', { error: error.message });
+      this.logger.error("Startup check failed", { error: error.message });
       throw error;
     }
   }
@@ -206,7 +231,7 @@ export class ExtendedHealthService {
     if (!this.lastConfigValidation || this.isValidationStale()) {
       this.lastConfigValidation = await this.configValidator.validateAll({
         timeout: 5000,
-        ignoreWarnings: false
+        ignoreWarnings: false,
       });
     }
     return this.lastConfigValidation;
@@ -215,11 +240,12 @@ export class ExtendedHealthService {
   /**
    * 获取系统信息
    */
-  private async getSystemInfo(): Promise<ExtendedHealthStatus['system']> {
+  private async getSystemInfo(): Promise<ExtendedHealthStatus["system"]> {
     const memUsage = process.memoryUsage();
-    
+
     // 获取系统总内存（简化版本）
-    const totalMemory = memUsage.heapTotal + memUsage.external + (memUsage.arrayBuffers || 0);
+    const totalMemory =
+      memUsage.heapTotal + memUsage.external + (memUsage.arrayBuffers || 0);
     const usedMemory = memUsage.heapUsed;
 
     return {
@@ -229,46 +255,62 @@ export class ExtendedHealthService {
       memory: {
         used: usedMemory,
         total: totalMemory,
-        percentage: Math.round((usedMemory / totalMemory) * 100)
+        percentage: Math.round((usedMemory / totalMemory) * 100),
       },
       cpu: {
-        usage: process.cpuUsage().user / 1000000 // 转换为秒
-      }
+        usage: process.cpuUsage().user / 1000000, // 转换为秒
+      },
     };
   }
 
   /**
    * 获取依赖服务健康状态
    */
-  private async getDependenciesHealth(): Promise<ExtendedHealthStatus['dependencies']> {
+  private async getDependenciesHealth(): Promise<
+    ExtendedHealthStatus["dependencies"]
+  > {
     const results = await Promise.allSettled([
       this.checkMongoDBHealth(),
       this.checkRedisHealth(),
-      this.checkLongPortHealth()
+      this.checkLongPortHealth(),
     ]);
 
     return {
-      mongodb: results[0].status === 'fulfilled' ? results[0].value : { status: 'error', error: 'Check failed' },
-      redis: results[1].status === 'fulfilled' ? results[1].value : { status: 'error', error: 'Check failed' },
+      mongodb:
+        results[0].status === "fulfilled"
+          ? results[0].value
+          : { status: "error", error: "Check failed" },
+      redis:
+        results[1].status === "fulfilled"
+          ? results[1].value
+          : { status: "error", error: "Check failed" },
       externalServices: {
-        longport: results[2].status === 'fulfilled' ? results[2].value : { status: 'unavailable', error: 'Check failed' }
-      }
+        longport:
+          results[2].status === "fulfilled"
+            ? results[2].value
+            : { status: "unavailable", error: "Check failed" },
+      },
     };
   }
 
   /**
    * 检查MongoDB健康状态
    */
-  private async checkMongoDBHealth(): Promise<{ status: 'connected' | 'disconnected' | 'error'; responseTime?: number; error?: string; }> {
+  private async checkMongoDBHealth(): Promise<{
+    status: "connected" | "disconnected" | "error";
+    responseTime?: number;
+    error?: string;
+  }> {
     const startTime = Date.now();
-    
+
     try {
-      const { MongoClient } = await import('mongodb');
-      const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/smart-stock-data';
-      
+      const { MongoClient } = await import("mongodb");
+      const uri =
+        process.env.MONGODB_URI || "mongodb://localhost:27017/smart-stock-data";
+
       const client = new MongoClient(uri, {
         serverSelectionTimeoutMS: 3000,
-        connectTimeoutMS: 3000
+        connectTimeoutMS: 3000,
       });
 
       await client.connect();
@@ -276,14 +318,14 @@ export class ExtendedHealthService {
       await client.close();
 
       return {
-        status: 'connected',
-        responseTime: Date.now() - startTime
+        status: "connected",
+        responseTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
-        status: 'error',
+        status: "error",
         error: error.message,
-        responseTime: Date.now() - startTime
+        responseTime: Date.now() - startTime,
       };
     }
   }
@@ -291,19 +333,22 @@ export class ExtendedHealthService {
   /**
    * 检查Redis健康状态
    */
-  private async checkRedisHealth(): Promise<{ status: 'connected' | 'disconnected' | 'error'; responseTime?: number; error?: string; }> {
+  private async checkRedisHealth(): Promise<{
+    status: "connected" | "disconnected" | "error";
+    responseTime?: number;
+    error?: string;
+  }> {
     const startTime = Date.now();
-    
-    try {
 
-      const host = process.env.REDIS_HOST || 'localhost';
-      const port = parseInt(process.env.REDIS_PORT || '6379', 10);
-      
+    try {
+      const host = process.env.REDIS_HOST || "localhost";
+      const port = parseInt(process.env.REDIS_PORT || "6379", 10);
+
       const client = new Redis({
         host,
         port,
         connectTimeout: 3000,
-        lazyConnect: true
+        lazyConnect: true,
       });
 
       await client.connect();
@@ -311,14 +356,14 @@ export class ExtendedHealthService {
       await client.disconnect();
 
       return {
-        status: 'connected',
-        responseTime: Date.now() - startTime
+        status: "connected",
+        responseTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
-        status: 'error',
+        status: "error",
         error: error.message,
-        responseTime: Date.now() - startTime
+        responseTime: Date.now() - startTime,
       };
     }
   }
@@ -326,22 +371,25 @@ export class ExtendedHealthService {
   /**
    * 检查LongPort健康状态
    */
-  private async checkLongPortHealth(): Promise<{ status: 'available' | 'unavailable' | 'not_configured'; error?: string; }> {
+  private async checkLongPortHealth(): Promise<{
+    status: "available" | "unavailable" | "not_configured";
+    error?: string;
+  }> {
     const appKey = process.env.LONGPORT_APP_KEY;
     const appSecret = process.env.LONGPORT_APP_SECRET;
     const accessToken = process.env.LONGPORT_ACCESS_TOKEN;
 
     if (!appKey || !appSecret || !accessToken) {
-      return { status: 'not_configured' };
+      return { status: "not_configured" };
     }
 
     try {
       // 简单检查配置完整性（实际项目中可以进行API调用测试）
-      return { status: 'available' };
+      return { status: "available" };
     } catch (error) {
       return {
-        status: 'unavailable',
-        error: error.message
+        status: "unavailable",
+        error: error.message,
       };
     }
   }
@@ -349,11 +397,14 @@ export class ExtendedHealthService {
   /**
    * 计算健康评分
    */
-  private calculateHealthScore(configResult: PromiseSettledResult<FullValidationResult>, dependencies: ExtendedHealthStatus['dependencies']): number {
+  private calculateHealthScore(
+    configResult: PromiseSettledResult<FullValidationResult>,
+    dependencies: ExtendedHealthStatus["dependencies"],
+  ): number {
     let score = 100;
 
     // 配置验证影响分数
-    if (configResult.status === 'fulfilled') {
+    if (configResult.status === "fulfilled") {
       const config = configResult.value;
       score -= config.overall.errors.length * 15; // 每个错误扣15分
       score -= config.overall.warnings.length * 5; // 每个警告扣5分
@@ -363,8 +414,8 @@ export class ExtendedHealthService {
 
     // 依赖服务影响分数
     if (dependencies) {
-      if (dependencies.mongodb?.status !== 'connected') score -= 25;
-      if (dependencies.redis?.status !== 'connected') score -= 20;
+      if (dependencies.mongodb?.status !== "connected") score -= 25;
+      if (dependencies.redis?.status !== "connected") score -= 20;
       // LongPort是可选的，不影响核心分数
     }
 
@@ -374,44 +425,53 @@ export class ExtendedHealthService {
   /**
    * 确定整体状态
    */
-  private determineOverallStatus(healthScore: number): 'healthy' | 'degraded' | 'unhealthy' {
-    if (healthScore >= 80) return 'healthy';
-    if (healthScore >= 50) return 'degraded';
-    return 'unhealthy';
+  private determineOverallStatus(
+    healthScore: number,
+  ): "healthy" | "degraded" | "unhealthy" {
+    if (healthScore >= 80) return "healthy";
+    if (healthScore >= 50) return "degraded";
+    return "unhealthy";
   }
 
   /**
    * 生成建议
    */
-  private generateRecommendations(configResult: PromiseSettledResult<FullValidationResult>, dependencies: ExtendedHealthStatus['dependencies']): string[] {
+  private generateRecommendations(
+    configResult: PromiseSettledResult<FullValidationResult>,
+    dependencies: ExtendedHealthStatus["dependencies"],
+  ): string[] {
     const recommendations: string[] = [];
 
     // 配置相关建议
-    if (configResult.status === 'fulfilled') {
+    if (configResult.status === "fulfilled") {
       const config = configResult.value;
       if (config.overall.errors.length > 0) {
-        recommendations.push('Fix configuration errors before production deployment');
+        recommendations.push(
+          "Fix configuration errors before production deployment",
+        );
       }
       if (config.overall.warnings.length > 0) {
-        recommendations.push('Review configuration warnings for optimal setup');
+        recommendations.push("Review configuration warnings for optimal setup");
       }
     } else {
-      recommendations.push('Fix configuration validation system');
+      recommendations.push("Fix configuration validation system");
     }
 
     // 依赖服务相关建议
-    if (dependencies?.mongodb?.status !== 'connected') {
-      recommendations.push('Ensure MongoDB is running and accessible');
+    if (dependencies?.mongodb?.status !== "connected") {
+      recommendations.push("Ensure MongoDB is running and accessible");
     }
-    if (dependencies?.redis?.status !== 'connected') {
-      recommendations.push('Ensure Redis is running and accessible');
+    if (dependencies?.redis?.status !== "connected") {
+      recommendations.push("Ensure Redis is running and accessible");
     }
-    if (dependencies?.externalServices?.longport?.status === 'not_configured') {
-      recommendations.push('Consider configuring LongPort API for full functionality');
+    if (dependencies?.externalServices?.longport?.status === "not_configured") {
+      recommendations.push(
+        "Consider configuring LongPort API for full functionality",
+      );
     }
 
     if (recommendations.length === 0) {
-      recommendations.push('System is operating normally');
+      recommendations.push("System is operating normally");
     }
 
     return recommendations;
@@ -422,19 +482,19 @@ export class ExtendedHealthService {
    */
   private getFailureHealthStatus(error: Error): ExtendedHealthStatus {
     return {
-      status: 'unhealthy',
+      status: "unhealthy",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: process.env.APP_VERSION || '1.0.0',
+      version: process.env.APP_VERSION || "1.0.0",
       system: {
         nodeVersion: process.version,
         platform: process.platform,
         architecture: process.arch,
         memory: { used: 0, total: 0, percentage: 0 },
-        cpu: { usage: 0 }
+        cpu: { usage: 0 },
       },
       healthScore: 0,
-      recommendations: [`Health check system error: ${error.message}`]
+      recommendations: [`Health check system error: ${error.message}`],
     };
   }
 
@@ -443,11 +503,12 @@ export class ExtendedHealthService {
    */
   private isValidationStale(): boolean {
     if (!this.lastConfigValidation) return true;
-    
+
     const staleTime = 5 * 60 * 1000; // 5分钟过期
     const now = Date.now();
-    const validatedTime = this.lastConfigValidation.overall.validatedAt.getTime();
-    
-    return (now - validatedTime) > staleTime;
+    const validatedTime =
+      this.lastConfigValidation.overall.validatedAt.getTime();
+
+    return now - validatedTime > staleTime;
   }
 }

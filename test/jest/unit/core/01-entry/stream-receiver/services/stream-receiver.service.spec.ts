@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
 import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import { SymbolTransformerService } from "@core/02-processing/symbol-transformer/services/symbol-transformer.service";

@@ -220,8 +220,6 @@ describe("CacheService Optimization Features", () => {
     });
   });
 
-
-
   describe("Optimization Tasks", () => {
     it("should log optimization tasks startup", () => {
       const logSpy = jest

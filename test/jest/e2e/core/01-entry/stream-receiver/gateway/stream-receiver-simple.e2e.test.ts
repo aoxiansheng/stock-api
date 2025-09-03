@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { io, Socket } from "socket.io-client";
 
 describe("Stream Receiver Gateway E2E Tests - Simplified", () => {

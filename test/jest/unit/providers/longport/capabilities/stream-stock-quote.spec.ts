@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // Import removed as TestingModule is not used in this test file
 import { createLogger } from "@app/config/logger.config";
 import { MARKETS } from "@common/constants/market.constants";

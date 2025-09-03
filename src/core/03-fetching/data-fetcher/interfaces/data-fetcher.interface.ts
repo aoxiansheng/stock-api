@@ -1,6 +1,6 @@
 /**
  * 数据获取服务接口定义
- * 
+ *
  * 定义第三方SDK数据获取的标准接口，支持多种数据源和获取方式
  */
 
@@ -21,14 +21,13 @@ export interface DataFetchParams {
    * API类型 ('rest' | 'stream')
    * @deprecated 后端已拆分REST与流式能力，请使用专用的stream-data-fetcher服务处理流式数据
    */
-  apiType?: 'rest' | 'stream';
+  apiType?: "rest" | "stream";
 
   /** 提供商上下文服务 */
   contextService?: any;
 
   /** 请求ID，用于日志追踪 */
   requestId: string;
-
 
   /** 其他选项 */
   options?: Record<string, any>;
@@ -69,7 +68,7 @@ export interface RawDataResult {
 export interface IDataFetcher {
   /**
    * 从第三方SDK获取原始数据
-   * 
+   *
    * @param params 获取参数
    * @returns 原始数据结果
    */
@@ -77,7 +76,7 @@ export interface IDataFetcher {
 
   /**
    * 检查提供商是否支持指定的能力
-   * 
+   *
    * @param provider 提供商名称
    * @param capability 能力名称
    * @returns 是否支持
@@ -86,7 +85,7 @@ export interface IDataFetcher {
 
   /**
    * 获取提供商的上下文服务
-   * 
+   *
    * @param provider 提供商名称
    * @returns 上下文服务实例
    */

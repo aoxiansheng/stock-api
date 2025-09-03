@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from "crypto";
 
 /**
  * RequestId 生成工具类
@@ -11,7 +11,7 @@ export class RequestIdUtils {
    * @param prefix 前缀（默认为'transform'）
    * @returns 唯一RequestId
    */
-  static generate(prefix = 'transform'): string {
+  static generate(prefix = "transform"): string {
     // UUID保证全局唯一，无需复杂逻辑
     return `${prefix}_${randomUUID()}`;
   }
@@ -22,22 +22,22 @@ export class RequestIdUtils {
    * @param prefix 前缀（默认为'transform'）
    * @returns 带时间戳的RequestId
    */
-  static generateWithTimestamp(prefix = 'transform'): string {
+  static generateWithTimestamp(prefix = "transform"): string {
     const timestamp = Date.now();
-    const uuid = randomUUID().split('-')[0]; // 取UUID前8位
+    const uuid = randomUUID().split("-")[0]; // 取UUID前8位
     return `${prefix}_${timestamp}_${uuid}`;
   }
-  
+
   /**
    * 验证RequestId格式
    * @param requestId RequestId
    * @returns 是否有效
    */
   static isValid(requestId: string): boolean {
-    if (!requestId || typeof requestId !== 'string') {
+    if (!requestId || typeof requestId !== "string") {
       return false;
     }
-    
+
     // 支持两种格式：prefix_uuid 或 prefix_timestamp_uuid_short
     return /^\w+_[\w-]+$/.test(requestId);
   }

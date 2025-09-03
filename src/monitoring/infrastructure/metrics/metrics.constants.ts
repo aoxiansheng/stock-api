@@ -3,37 +3,37 @@
  */
 
 // Prometheus 指标名称前缀
-export const METRICS_PREFIX = 'newstock_';
+export const METRICS_PREFIX = "newstock_";
 
 // 指标类别
 export const METRIC_CATEGORIES = {
-  STREAM: 'stream',
-  QUERY: 'query', 
-  RECEIVER: 'receiver',
-  TRANSFORMER: 'transformer',
-  STORAGE: 'storage',
-  DATA_MAPPER: 'data_mapper',
-  SYSTEM: 'system',
+  STREAM: "stream",
+  QUERY: "query",
+  RECEIVER: "receiver",
+  TRANSFORMER: "transformer",
+  STORAGE: "storage",
+  DATA_MAPPER: "data_mapper",
+  SYSTEM: "system",
 } as const;
 
 // Stream Recovery 指标名称
 export const STREAM_RECOVERY_METRICS = {
-  JOBS_TOTAL: 'stream_recovery_jobs_total',
-  JOBS_PENDING: 'stream_recovery_jobs_pending', 
-  JOBS_ACTIVE: 'stream_recovery_jobs_active',
-  JOBS_COMPLETED: 'stream_recovery_jobs_completed_total',
-  JOBS_FAILED: 'stream_recovery_jobs_failed_total',
-  LATENCY_SECONDS: 'stream_recovery_latency_seconds',
-  DATA_POINTS_TOTAL: 'stream_recovery_data_points_total',
-  BATCHES_SENT_TOTAL: 'stream_recovery_batches_sent_total',
-  HEALTH_STATUS: 'stream_recovery_health_status',
-  WORKER_STATUS: 'stream_recovery_worker_status',
+  JOBS_TOTAL: "stream_recovery_jobs_total",
+  JOBS_PENDING: "stream_recovery_jobs_pending",
+  JOBS_ACTIVE: "stream_recovery_jobs_active",
+  JOBS_COMPLETED: "stream_recovery_jobs_completed_total",
+  JOBS_FAILED: "stream_recovery_jobs_failed_total",
+  LATENCY_SECONDS: "stream_recovery_latency_seconds",
+  DATA_POINTS_TOTAL: "stream_recovery_data_points_total",
+  BATCHES_SENT_TOTAL: "stream_recovery_batches_sent_total",
+  HEALTH_STATUS: "stream_recovery_health_status",
+  WORKER_STATUS: "stream_recovery_worker_status",
 } as const;
 
 // 默认标签
 export const DEFAULT_LABELS = {
-  APP: 'newstock-api',
-  VERSION: process.env.npm_package_version || '1.0.0',
+  APP: "newstock-api",
+  VERSION: process.env.npm_package_version || "1.0.0",
 } as const;
 
 // Histogram 桶配置

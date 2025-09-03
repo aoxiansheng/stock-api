@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockBasicInfo } from "../../../../../../src/providers/longport-sg/capabilities/get-stock-basic-info";
 
 describe("LongportSgGetStockBasicInfo Capability", () => {

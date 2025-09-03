@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { ValidationResultDto } from "../../../../../../../src/core/01-entry/receiver/dto/validation.dto";
 
 describe("ValidationResultDto", () => {

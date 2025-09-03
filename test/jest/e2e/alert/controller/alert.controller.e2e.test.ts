@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Comprehensive Alerting E2E Tests", () => {
   let httpServer: any;
   let jwtToken: string;

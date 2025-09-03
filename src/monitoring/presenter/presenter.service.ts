@@ -1,9 +1,9 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from "@nestjs/common";
 
-import { GetDbPerformanceQueryDto } from './dto/presenter-query.dto';
-import { AnalyzerService } from '../analyzer/analyzer.service';
-import { PresenterErrorHandlerService } from './presenter-error.service';
-import { createLogger } from '../../app/config/logger.config';
+import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
+import { AnalyzerService } from "../analyzer/analyzer.service";
+import { PresenterErrorHandlerService } from "./presenter-error.service";
+import { createLogger } from "../../app/config/logger.config";
 
 /**
  * 展示层业务服务
@@ -17,7 +17,7 @@ export class PresenterService {
     private readonly analyzer: AnalyzerService,
     private readonly errorHandler: PresenterErrorHandlerService,
   ) {
-    this.logger.log('PresenterService initialized - 展示层业务服务已启动');
+    this.logger.log("PresenterService initialized - 展示层业务服务已启动");
   }
 
   /**
@@ -28,7 +28,7 @@ export class PresenterService {
       const options = {
         startTime: query.startDate ? new Date(query.startDate) : undefined,
         endTime: query.endDate ? new Date(query.endDate) : undefined,
-        includeDetails: true
+        includeDetails: true,
       };
 
       const analysis = await this.analyzer.getPerformanceAnalysis(options);
@@ -41,9 +41,9 @@ export class PresenterService {
       return analysis;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getPerformanceAnalysis',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getPerformanceAnalysis",
+        userId: "admin",
       });
       throw error;
     }
@@ -55,16 +55,16 @@ export class PresenterService {
   async getHealthScore() {
     try {
       const score = await this.analyzer.getHealthScore();
-      
+
       return {
         score,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getHealthScore',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getHealthScore",
+        userId: "admin",
       });
       throw error;
     }
@@ -76,19 +76,19 @@ export class PresenterService {
   async getHealthReport() {
     try {
       const report = await this.analyzer.getHealthReport();
-      
+
       this.logger.debug("健康报告获取成功", {
         overallScore: report.overall.score,
         status: report.overall.status,
-        recommendationsCount: report.recommendations?.length || 0
+        recommendationsCount: report.recommendations?.length || 0,
       });
 
       return report;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getHealthReport',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getHealthReport",
+        userId: "admin",
       });
       throw error;
     }
@@ -97,23 +97,25 @@ export class PresenterService {
   /**
    * 获取趋势分析
    */
-  async getTrends(period: string = '1h') {
+  async getTrends(period: string = "1h") {
     try {
       // 简单参数验证
       if (period && !/^(\d+)([smhd])$/.test(period)) {
-        throw new BadRequestException('无效的时间周期格式，支持格式：1s, 5m, 1h, 1d');
+        throw new BadRequestException(
+          "无效的时间周期格式，支持格式：1s, 5m, 1h, 1d",
+        );
       }
 
       const trends = await this.analyzer.calculateTrends(period);
-      
+
       this.logger.debug("趋势分析获取成功", { period });
 
       return trends;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getTrends',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getTrends",
+        userId: "admin",
       });
       throw error;
     }
@@ -125,27 +127,27 @@ export class PresenterService {
   async getEndpointMetrics(limit?: string) {
     try {
       let limitNum: number | undefined;
-      
+
       if (limit) {
         limitNum = parseInt(limit, 10);
         if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
-          throw new BadRequestException('limit必须在1-1000之间');
+          throw new BadRequestException("limit必须在1-1000之间");
         }
       }
 
       const metrics = await this.analyzer.getEndpointMetrics(limitNum);
-      
-      this.logger.debug("端点指标获取成功", { 
+
+      this.logger.debug("端点指标获取成功", {
         count: metrics.length,
-        limit: limitNum 
+        limit: limitNum,
       });
 
       return metrics;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getEndpointMetrics',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getEndpointMetrics",
+        userId: "admin",
       });
       throw error;
     }
@@ -157,18 +159,18 @@ export class PresenterService {
   async getDatabaseMetrics() {
     try {
       const metrics = await this.analyzer.getDatabaseMetrics();
-      
+
       this.logger.debug("数据库指标获取成功", {
         totalOperations: metrics.totalOperations,
-        averageQueryTime: metrics.averageQueryTime
+        averageQueryTime: metrics.averageQueryTime,
       });
 
       return metrics;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getDatabaseMetrics',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getDatabaseMetrics",
+        userId: "admin",
       });
       throw error;
     }
@@ -180,18 +182,18 @@ export class PresenterService {
   async getCacheMetrics() {
     try {
       const metrics = await this.analyzer.getCacheMetrics();
-      
+
       this.logger.debug("缓存指标获取成功", {
         hitRate: metrics.hitRate,
-        totalOperations: metrics.totalOperations
+        totalOperations: metrics.totalOperations,
       });
 
       return metrics;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getCacheMetrics',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getCacheMetrics",
+        userId: "admin",
       });
       throw error;
     }
@@ -203,18 +205,18 @@ export class PresenterService {
   async getOptimizationSuggestions() {
     try {
       const suggestions = await this.analyzer.getOptimizationSuggestions();
-      
-      this.logger.debug("优化建议获取成功", { 
+
+      this.logger.debug("优化建议获取成功", {
         count: suggestions.length,
-        highPriority: suggestions.filter(s => s.priority === 'high').length
+        highPriority: suggestions.filter((s) => s.priority === "high").length,
       });
 
       return suggestions;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getOptimizationSuggestions',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getOptimizationSuggestions",
+        userId: "admin",
       });
       throw error;
     }
@@ -226,18 +228,18 @@ export class PresenterService {
   async getCacheStats() {
     try {
       const stats = await this.analyzer.getCacheStats();
-      
-      this.logger.debug("缓存统计获取成功", { 
+
+      this.logger.debug("缓存统计获取成功", {
         hitRate: stats.hitRate,
-        totalRequests: stats.totalRequests
+        totalRequests: stats.totalRequests,
       });
 
       return stats;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getCacheStats',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getCacheStats",
+        userId: "admin",
       });
       throw error;
     }
@@ -251,25 +253,25 @@ export class PresenterService {
       // 获取SmartCache性能优化器的统计信息
       const smartCacheStats = await this.getSmartCachePerformanceStats();
       const cacheMetrics = await this.analyzer.getCacheStats();
-      
+
       const result = {
         ...cacheMetrics,
         smartCache: smartCacheStats,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       this.logger.debug("SmartCache统计获取成功", {
         hitRate: result.hitRate,
         concurrencyAdjustments: result.smartCache.concurrencyAdjustments,
-        memoryPressureEvents: result.smartCache.memoryPressureEvents
+        memoryPressureEvents: result.smartCache.memoryPressureEvents,
       });
 
       return result;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getSmartCacheStats',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getSmartCacheStats",
+        userId: "admin",
       });
       throw error;
     }
@@ -286,55 +288,55 @@ export class PresenterService {
       // 根据统计数据生成优化建议
       if (performanceStats.memoryPressureEvents > 50) {
         suggestions.push({
-          priority: 'high',
-          category: 'memory',
-          title: 'SmartCache内存压力过高',
+          priority: "high",
+          category: "memory",
+          title: "SmartCache内存压力过高",
           description: `检测到${performanceStats.memoryPressureEvents}次内存压力事件，建议优化内存使用`,
-          recommendation: '考虑增加系统内存或减少缓存TTL时间'
+          recommendation: "考虑增加系统内存或减少缓存TTL时间",
         });
       }
 
       if (performanceStats.concurrencyAdjustments > 100) {
         suggestions.push({
-          priority: 'medium',
-          category: 'concurrency',
-          title: 'SmartCache并发调整频繁',
+          priority: "medium",
+          category: "concurrency",
+          title: "SmartCache并发调整频繁",
           description: `检测到${performanceStats.concurrencyAdjustments}次并发调整，系统负载波动较大`,
-          recommendation: '检查负载模式，考虑调整基础并发配置'
+          recommendation: "检查负载模式，考虑调整基础并发配置",
         });
       }
 
       if (performanceStats.avgExecutionTime > 1000) {
         suggestions.push({
-          priority: 'high',
-          category: 'performance',
-          title: 'SmartCache执行时间过长',
+          priority: "high",
+          category: "performance",
+          title: "SmartCache执行时间过长",
           description: `平均执行时间为${performanceStats.avgExecutionTime.toFixed(2)}ms，超出预期范围`,
-          recommendation: '检查缓存键设计和数据库查询性能'
+          recommendation: "检查缓存键设计和数据库查询性能",
         });
       }
 
       if (performanceStats.dynamicMaxConcurrency < 5) {
         suggestions.push({
-          priority: 'low',
-          category: 'capacity',
-          title: 'SmartCache并发度偏低',
+          priority: "low",
+          category: "capacity",
+          title: "SmartCache并发度偏低",
           description: `当前动态并发度为${performanceStats.dynamicMaxConcurrency}，可能限制了性能`,
-          recommendation: '检查系统资源利用率，考虑提高并发配置'
+          recommendation: "检查系统资源利用率，考虑提高并发配置",
         });
       }
 
       this.logger.debug("SmartCache优化建议生成成功", {
         suggestionsCount: suggestions.length,
-        highPriority: suggestions.filter(s => s.priority === 'high').length
+        highPriority: suggestions.filter((s) => s.priority === "high").length,
       });
 
       return suggestions;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getSmartCacheOptimizationSuggestions',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getSmartCacheOptimizationSuggestions",
+        userId: "admin",
       });
       throw error;
     }
@@ -346,80 +348,83 @@ export class PresenterService {
   async createSmartCacheDashboard() {
     try {
       const dashboardConfig = {
-        title: 'SmartCache性能监控',
-        description: 'SmartCache性能优化器实时监控面板',
-        category: 'performance',
+        title: "SmartCache性能监控",
+        description: "SmartCache性能优化器实时监控面板",
+        category: "performance",
         panels: [
           {
-            title: '并发控制指标',
-            type: 'graph',
+            title: "并发控制指标",
+            type: "graph",
             metrics: [
-              'smart_cache_dynamic_concurrency',
-              'smart_cache_concurrency_adjustments',
-              'smart_cache_original_concurrency'
+              "smart_cache_dynamic_concurrency",
+              "smart_cache_concurrency_adjustments",
+              "smart_cache_original_concurrency",
             ],
             thresholds: {
               warning: { concurrency_adjustments: 50 },
-              critical: { concurrency_adjustments: 100 }
-            }
+              critical: { concurrency_adjustments: 100 },
+            },
           },
           {
-            title: '内存压力监控',
-            type: 'graph',
+            title: "内存压力监控",
+            type: "graph",
             metrics: [
-              'smart_cache_memory_pressure_events',
-              'smart_cache_memory_usage_percent',
-              'smart_cache_tasks_cleared'
+              "smart_cache_memory_pressure_events",
+              "smart_cache_memory_usage_percent",
+              "smart_cache_tasks_cleared",
             ],
             thresholds: {
               warning: { memory_pressure_events: 20 },
-              critical: { memory_pressure_events: 50 }
-            }
+              critical: { memory_pressure_events: 50 },
+            },
           },
           {
-            title: '性能统计',
-            type: 'stat',
+            title: "性能统计",
+            type: "stat",
             metrics: [
-              'smart_cache_avg_execution_time',
-              'smart_cache_total_tasks',
-              'smart_cache_current_batch_size'
+              "smart_cache_avg_execution_time",
+              "smart_cache_total_tasks",
+              "smart_cache_current_batch_size",
             ],
             thresholds: {
               warning: { avg_execution_time: 500 },
-              critical: { avg_execution_time: 1000 }
-            }
+              critical: { avg_execution_time: 1000 },
+            },
           },
           {
-            title: '系统资源',
-            type: 'gauge',
+            title: "系统资源",
+            type: "gauge",
             metrics: [
-              'smart_cache_cpu_usage',
-              'smart_cache_memory_total_mb',
-              'smart_cache_system_load'
+              "smart_cache_cpu_usage",
+              "smart_cache_memory_total_mb",
+              "smart_cache_system_load",
             ],
             thresholds: {
               warning: { cpu_usage: 70 },
-              critical: { cpu_usage: 90 }
-            }
-          }
+              critical: { cpu_usage: 90 },
+            },
+          },
         ],
-        refreshInterval: '30s',
-        autoRefresh: true
+        refreshInterval: "30s",
+        autoRefresh: true,
       };
 
-      const result = await this.createDashboard('smart-cache-monitoring', dashboardConfig);
-      
+      const result = await this.createDashboard(
+        "smart-cache-monitoring",
+        dashboardConfig,
+      );
+
       this.logger.log("SmartCache专用仪表板创建成功", {
         dashboardId: result.dashboardId,
-        panelsCount: dashboardConfig.panels.length
+        panelsCount: dashboardConfig.panels.length,
       });
 
       return result;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'createSmartCacheDashboard',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "createSmartCacheDashboard",
+        userId: "admin",
       });
       throw error;
     }
@@ -433,11 +438,14 @@ export class PresenterService {
       const [performanceStats, suggestions, systemMetrics] = await Promise.all([
         this.getSmartCachePerformanceStats(),
         this.getSmartCacheOptimizationSuggestions(),
-        this.getSmartCacheSystemMetrics()
+        this.getSmartCacheSystemMetrics(),
       ]);
 
       // 计算健康评分
-      const healthScore = this.calculateSmartCacheHealthScore(performanceStats, systemMetrics);
+      const healthScore = this.calculateSmartCacheHealthScore(
+        performanceStats,
+        systemMetrics,
+      );
 
       const report = {
         timestamp: new Date().toISOString(),
@@ -449,46 +457,49 @@ export class PresenterService {
           concurrencyOptimization: {
             current: performanceStats.dynamicMaxConcurrency,
             original: performanceStats.originalMaxConcurrency,
-            adjustments: performanceStats.concurrencyAdjustments
+            adjustments: performanceStats.concurrencyAdjustments,
           },
           memoryManagement: {
             pressureEvents: performanceStats.memoryPressureEvents,
             tasksCleared: performanceStats.tasksCleared,
-            currentBatchSize: performanceStats.currentBatchSize
-          }
+            currentBatchSize: performanceStats.currentBatchSize,
+          },
         },
         performance: {
           concurrencyMetrics: {
             dynamicMaxConcurrency: performanceStats.dynamicMaxConcurrency,
             originalMaxConcurrency: performanceStats.originalMaxConcurrency,
             concurrencyAdjustments: performanceStats.concurrencyAdjustments,
-            efficiency: this.calculateConcurrencyEfficiency(performanceStats)
+            efficiency: this.calculateConcurrencyEfficiency(performanceStats),
           },
           memoryMetrics: {
             memoryPressureEvents: performanceStats.memoryPressureEvents,
             tasksCleared: performanceStats.tasksCleared,
             currentBatchSize: performanceStats.currentBatchSize,
-            memoryUtilization: systemMetrics?.memory?.percentage || 0
+            memoryUtilization: systemMetrics?.memory?.percentage || 0,
           },
-          systemMetrics: systemMetrics || {}
+          systemMetrics: systemMetrics || {},
         },
         optimizations: suggestions,
-        recommendations: this.generateSmartCacheRecommendations(performanceStats, systemMetrics),
-        trends: await this.calculateSmartCacheTrends()
+        recommendations: this.generateSmartCacheRecommendations(
+          performanceStats,
+          systemMetrics,
+        ),
+        trends: await this.calculateSmartCacheTrends(),
       };
 
       this.logger.debug("SmartCache分析报告生成成功", {
         healthScore: report.healthScore,
         optimizationsCount: report.optimizations.length,
-        recommendationsCount: report.recommendations.length
+        recommendationsCount: report.recommendations.length,
       });
 
       return report;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getSmartCacheAnalysisReport',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getSmartCacheAnalysisReport",
+        userId: "admin",
       });
       throw error;
     }
@@ -502,7 +513,7 @@ export class PresenterService {
       // 这里应该从SmartCachePerformanceOptimizer获取实际统计数据
       // 由于我们没有直接依赖，这里返回模拟数据
       // 在实际实现中，应该注入SmartCachePerformanceOptimizer或通过事件系统获取数据
-      
+
       return {
         concurrencyAdjustments: Math.floor(Math.random() * 50),
         memoryPressureEvents: Math.floor(Math.random() * 20),
@@ -511,7 +522,7 @@ export class PresenterService {
         totalTasks: Math.floor(Math.random() * 1000) + 500,
         dynamicMaxConcurrency: Math.floor(Math.random() * 8) + 4,
         originalMaxConcurrency: 10,
-        currentBatchSize: Math.floor(Math.random() * 20) + 10
+        currentBatchSize: Math.floor(Math.random() * 20) + 10,
       };
     } catch (error) {
       this.logger.warn("获取SmartCache性能统计失败，返回默认值", error);
@@ -523,7 +534,7 @@ export class PresenterService {
         totalTasks: 0,
         dynamicMaxConcurrency: 10,
         originalMaxConcurrency: 10,
-        currentBatchSize: 10
+        currentBatchSize: 10,
       };
     }
   }
@@ -533,24 +544,24 @@ export class PresenterService {
    */
   private async getSmartCacheSystemMetrics(): Promise<any> {
     try {
-      const os = require('os');
-      
+      const os = require("os");
+
       return {
         cpu: {
           usage: os.loadavg()[0] / os.cpus().length,
           cores: os.cpus().length,
-          loadAvg: os.loadavg()
+          loadAvg: os.loadavg(),
         },
         memory: {
           totalMB: Math.round(os.totalmem() / 1024 / 1024),
           freeMB: Math.round(os.freemem() / 1024 / 1024),
-          percentage: (os.totalmem() - os.freemem()) / os.totalmem()
+          percentage: (os.totalmem() - os.freemem()) / os.totalmem(),
         },
         system: {
           uptime: os.uptime(),
           platform: os.platform(),
-          arch: os.arch()
-        }
+          arch: os.arch(),
+        },
       };
     } catch (error) {
       this.logger.warn("获取系统指标失败", error);
@@ -561,7 +572,10 @@ export class PresenterService {
   /**
    * 计算SmartCache健康评分 (私有方法)
    */
-  private calculateSmartCacheHealthScore(performanceStats: any, systemMetrics: any): number {
+  private calculateSmartCacheHealthScore(
+    performanceStats: any,
+    systemMetrics: any,
+  ): number {
     let score = 100;
 
     // 内存压力影响 (最多扣30分)
@@ -576,7 +590,10 @@ export class PresenterService {
 
     // 并发调整频率影响 (最多扣20分)
     if (performanceStats.concurrencyAdjustments > 50) {
-      score -= Math.min((performanceStats.concurrencyAdjustments - 50) * 0.2, 20);
+      score -= Math.min(
+        (performanceStats.concurrencyAdjustments - 50) * 0.2,
+        20,
+      );
     }
 
     // 系统资源使用影响 (最多扣15分)
@@ -596,11 +613,11 @@ export class PresenterService {
    * 获取SmartCache状态 (私有方法)
    */
   private getSmartCacheStatus(healthScore: number): string {
-    if (healthScore >= 90) return 'excellent';
-    if (healthScore >= 75) return 'good';
-    if (healthScore >= 60) return 'fair';
-    if (healthScore >= 40) return 'poor';
-    return 'critical';
+    if (healthScore >= 90) return "excellent";
+    if (healthScore >= 75) return "good";
+    if (healthScore >= 60) return "fair";
+    if (healthScore >= 40) return "poor";
+    return "critical";
   }
 
   /**
@@ -608,60 +625,68 @@ export class PresenterService {
    */
   private calculateConcurrencyEfficiency(performanceStats: any): number {
     if (performanceStats.originalMaxConcurrency === 0) return 100;
-    
-    const utilizationRate = performanceStats.dynamicMaxConcurrency / performanceStats.originalMaxConcurrency;
-    const adjustmentPenalty = Math.min(performanceStats.concurrencyAdjustments / 100, 0.2);
-    
-    return Math.max((utilizationRate * 100) - (adjustmentPenalty * 100), 0);
+
+    const utilizationRate =
+      performanceStats.dynamicMaxConcurrency /
+      performanceStats.originalMaxConcurrency;
+    const adjustmentPenalty = Math.min(
+      performanceStats.concurrencyAdjustments / 100,
+      0.2,
+    );
+
+    return Math.max(utilizationRate * 100 - adjustmentPenalty * 100, 0);
   }
 
   /**
    * 生成SmartCache优化建议 (私有方法)
    */
-  private generateSmartCacheRecommendations(performanceStats: any, systemMetrics: any): any[] {
+  private generateSmartCacheRecommendations(
+    performanceStats: any,
+    systemMetrics: any,
+  ): any[] {
     const recommendations = [];
 
     // 性能优化建议
     if (performanceStats.avgExecutionTime > 1000) {
       recommendations.push({
-        type: 'performance',
-        priority: 'high',
-        title: '优化缓存执行性能',
-        description: '平均执行时间超过1秒，建议检查缓存键设计和数据库查询',
-        action: 'review_cache_design'
+        type: "performance",
+        priority: "high",
+        title: "优化缓存执行性能",
+        description: "平均执行时间超过1秒，建议检查缓存键设计和数据库查询",
+        action: "review_cache_design",
       });
     }
 
     // 内存管理建议
     if (performanceStats.memoryPressureEvents > 20) {
       recommendations.push({
-        type: 'memory',
-        priority: 'medium',
-        title: '优化内存使用策略',
-        description: '内存压力事件频繁，建议调整缓存TTL或增加系统内存',
-        action: 'optimize_memory_usage'
+        type: "memory",
+        priority: "medium",
+        title: "优化内存使用策略",
+        description: "内存压力事件频繁，建议调整缓存TTL或增加系统内存",
+        action: "optimize_memory_usage",
       });
     }
 
     // 并发控制建议
     if (performanceStats.concurrencyAdjustments > 100) {
       recommendations.push({
-        type: 'concurrency',
-        priority: 'medium',
-        title: '稳定并发配置',
-        description: '并发调整过于频繁，建议分析负载模式并调整基础配置',
-        action: 'stabilize_concurrency'
+        type: "concurrency",
+        priority: "medium",
+        title: "稳定并发配置",
+        description: "并发调整过于频繁，建议分析负载模式并调整基础配置",
+        action: "stabilize_concurrency",
       });
     }
 
     // 系统资源建议
     if (systemMetrics?.cpu?.usage > 0.8) {
       recommendations.push({
-        type: 'system',
-        priority: 'high',
-        title: '降低CPU使用率',
-        description: 'CPU使用率过高，建议优化算法或增加CPU资源',
-        action: 'optimize_cpu_usage'
+        type: "system",
+        priority: "high",
+        title: "降低CPU使用率",
+        description: "CPU使用率过高，建议优化算法或增加CPU资源",
+        action: "optimize_cpu_usage",
       });
     }
 
@@ -676,20 +701,20 @@ export class PresenterService {
     // 由于是演示，返回模拟趋势数据
     return {
       concurrency: {
-        trend: 'stable',
+        trend: "stable",
         change: Math.random() * 10 - 5, // -5% to +5%
-        period: '1h'
+        period: "1h",
       },
       memory: {
-        trend: 'improving',
+        trend: "improving",
         change: Math.random() * -5, // -5% to 0% (improving)
-        period: '1h'
+        period: "1h",
       },
       performance: {
-        trend: 'stable',
+        trend: "stable",
         change: Math.random() * 6 - 3, // -3% to +3%
-        period: '1h'
-      }
+        period: "1h",
+      },
     };
   }
 
@@ -699,21 +724,21 @@ export class PresenterService {
   async invalidateCache(pattern?: string) {
     try {
       await this.analyzer.invalidateCache(pattern);
-      
+
       const result = {
-        message: '缓存失效成功',
-        pattern: pattern || 'all',
-        timestamp: new Date().toISOString()
+        message: "缓存失效成功",
+        pattern: pattern || "all",
+        timestamp: new Date().toISOString(),
       };
 
-      this.logger.debug("缓存失效操作完成", { pattern: pattern || 'all' });
+      this.logger.debug("缓存失效操作完成", { pattern: pattern || "all" });
 
       return result;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'invalidateCache',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "invalidateCache",
+        userId: "admin",
       });
       throw error;
     }
@@ -757,12 +782,13 @@ export class PresenterService {
   async getDashboardData() {
     try {
       // 并行获取仪表板所需的各种数据
-      const [healthScore, performanceAnalysis, trends, suggestions] = await Promise.all([
-        this.analyzer.getHealthScore(),
-        this.analyzer.getPerformanceAnalysis({ includeDetails: false }),
-        this.analyzer.calculateTrends('1h'),
-        this.analyzer.getOptimizationSuggestions()
-      ]);
+      const [healthScore, performanceAnalysis, trends, suggestions] =
+        await Promise.all([
+          this.analyzer.getHealthScore(),
+          this.analyzer.getPerformanceAnalysis({ includeDetails: false }),
+          this.analyzer.calculateTrends("1h"),
+          this.analyzer.getOptimizationSuggestions(),
+        ]);
 
       const result = {
         timestamp: new Date().toISOString(),
@@ -771,25 +797,25 @@ export class PresenterService {
           totalRequests: performanceAnalysis.summary.totalRequests,
           averageResponseTime: performanceAnalysis.averageResponseTime,
           errorRate: performanceAnalysis.errorRate,
-          throughput: performanceAnalysis.throughput
+          throughput: performanceAnalysis.throughput,
         },
         trendsData: trends,
-        criticalIssues: suggestions.filter(s => s.priority === 'high'),
-        suggestions: suggestions.slice(0, 5) // 只返回前5个建议
+        criticalIssues: suggestions.filter((s) => s.priority === "high"),
+        suggestions: suggestions.slice(0, 5), // 只返回前5个建议
       };
 
       this.logger.debug("仪表板数据获取成功", {
         healthScore,
         totalRequests: result.performanceSummary.totalRequests,
-        criticalIssues: result.criticalIssues.length
+        criticalIssues: result.criticalIssues.length,
       });
 
       return result;
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getDashboardData',
-        userId: 'admin'
+        layer: "presenter",
+        operation: "getDashboardData",
+        userId: "admin",
       });
       throw error;
     }
@@ -802,35 +828,34 @@ export class PresenterService {
     try {
       this.logger.log(`注册自定义监控指标: ${componentName}`, {
         metricsCount: Object.keys(config.dataMapperMetrics || {}).length,
-        alertRulesCount: config.alertingRules?.criticalErrors?.length || 0
+        alertRulesCount: config.alertingRules?.criticalErrors?.length || 0,
       });
 
       // 存储组件配置到内存 (实际应用可能需要持久化存储)
       if (!this.customMetricsConfig) {
         this.customMetricsConfig = new Map();
       }
-      
+
       this.customMetricsConfig.set(componentName, {
         config,
         registeredAt: new Date(),
-        enabled: true
+        enabled: true,
       });
 
       this.logger.log(`✅ 自定义监控指标注册成功: ${componentName}`);
-      
+
       return {
         componentName,
-        status: 'registered',
+        status: "registered",
         timestamp: new Date().toISOString(),
-        metricsRegistered: true
+        metricsRegistered: true,
       };
-      
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'registerCustomMetrics',
+        layer: "presenter",
+        operation: "registerCustomMetrics",
         componentName,
-        userId: 'admin'
+        userId: "admin",
       });
       throw error;
     }
@@ -846,22 +871,24 @@ export class PresenterService {
       }
 
       const componentConfig = this.customMetricsConfig.get(componentName);
-      
+
       // 模拟获取实际指标数据 (实际应用需要从监控后端获取)
-      const mockMetrics = this.generateMockMetricsData(componentName, componentConfig.config);
+      const mockMetrics = this.generateMockMetricsData(
+        componentName,
+        componentConfig.config,
+      );
 
       this.logger.debug(`获取组件监控指标: ${componentName}`, {
-        metricsCount: mockMetrics.length
+        metricsCount: mockMetrics.length,
       });
 
       return mockMetrics;
-      
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getMetrics',
+        layer: "presenter",
+        operation: "getMetrics",
         componentName,
-        userId: 'admin'
+        userId: "admin",
       });
       throw error;
     }
@@ -874,37 +901,36 @@ export class PresenterService {
     try {
       this.logger.log(`创建监控仪表盘: ${dashboardId}`, {
         panelsCount: dashboardConfig.panels?.length || 0,
-        title: dashboardConfig.title
+        title: dashboardConfig.title,
       });
 
       // 存储仪表盘配置
       if (!this.dashboardConfigs) {
         this.dashboardConfigs = new Map();
       }
-      
+
       this.dashboardConfigs.set(dashboardId, {
         config: dashboardConfig,
         createdAt: new Date(),
         enabled: true,
-        viewCount: 0
+        viewCount: 0,
       });
 
       this.logger.log(`✅ 监控仪表盘创建成功: ${dashboardId}`);
-      
+
       return {
         dashboardId,
         title: dashboardConfig.title,
-        status: 'created',
+        status: "created",
         timestamp: new Date().toISOString(),
-        url: `/monitoring/dashboard/${dashboardId}`
+        url: `/monitoring/dashboard/${dashboardId}`,
       };
-      
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'createDashboard',
+        layer: "presenter",
+        operation: "createDashboard",
         dashboardId,
-        userId: 'admin'
+        userId: "admin",
       });
       throw error;
     }
@@ -920,16 +946,19 @@ export class PresenterService {
       }
 
       const dashboard = this.dashboardConfigs.get(dashboardId);
-      
+
       // 增加访问计数
       dashboard.viewCount += 1;
-      
+
       // 生成仪表盘实时数据
-      const dashboardData = await this.generateDashboardData(dashboardId, dashboard.config);
+      const dashboardData = await this.generateDashboardData(
+        dashboardId,
+        dashboard.config,
+      );
 
       this.logger.debug(`获取仪表盘数据: ${dashboardId}`, {
         panelsCount: dashboardData.panels?.length || 0,
-        viewCount: dashboard.viewCount
+        viewCount: dashboard.viewCount,
       });
 
       return {
@@ -939,16 +968,15 @@ export class PresenterService {
           title: dashboard.config.title,
           createdAt: dashboard.createdAt,
           lastViewedAt: new Date(),
-          viewCount: dashboard.viewCount
-        }
+          viewCount: dashboard.viewCount,
+        },
       };
-      
     } catch (error) {
       this.errorHandler.handleError(error, {
-        layer: 'presenter',
-        operation: 'getDashboard',
+        layer: "presenter",
+        operation: "getDashboard",
         dashboardId,
-        userId: 'admin'
+        userId: "admin",
       });
       throw error;
     }
@@ -965,57 +993,60 @@ export class PresenterService {
     const now = Date.now();
     const metrics = [];
 
-    if (componentName === 'data-mapper' && config.dataMapperMetrics) {
+    if (componentName === "data-mapper" && config.dataMapperMetrics) {
       // 数据库查询指标
       metrics.push({
-        name: 'data_mapper_database_query_duration',
+        name: "data_mapper_database_query_duration",
         value: Math.random() * 200 + 100, // 100-300ms
-        unit: 'ms',
+        unit: "ms",
         timestamp: now,
-        labels: { service: 'FlexibleMappingRuleService', operation: 'updateRuleStats' }
+        labels: {
+          service: "FlexibleMappingRuleService",
+          operation: "updateRuleStats",
+        },
       });
 
       metrics.push({
-        name: 'data_mapper_database_query_success_rate',
+        name: "data_mapper_database_query_success_rate",
         value: Math.random() * 5 + 95, // 95-100%
-        unit: '%',
+        unit: "%",
         timestamp: now,
-        labels: { service: 'FlexibleMappingRuleService' }
+        labels: { service: "FlexibleMappingRuleService" },
       });
 
       // 缓存操作指标
       metrics.push({
-        name: 'data_mapper_cache_operation_duration',
+        name: "data_mapper_cache_operation_duration",
         value: Math.random() * 500 + 200, // 200-700ms
-        unit: 'ms',
+        unit: "ms",
         timestamp: now,
-        labels: { service: 'DataMapperCacheService', operation: 'scanKeys' }
+        labels: { service: "DataMapperCacheService", operation: "scanKeys" },
       });
 
       metrics.push({
-        name: 'data_mapper_cache_hit_rate',
+        name: "data_mapper_cache_hit_rate",
         value: Math.random() * 10 + 85, // 85-95%
-        unit: '%',
+        unit: "%",
         timestamp: now,
-        labels: { service: 'DataMapperCacheService' }
+        labels: { service: "DataMapperCacheService" },
       });
 
       // 业务逻辑指标
       metrics.push({
-        name: 'data_mapper_mapping_success_rate',
+        name: "data_mapper_mapping_success_rate",
         value: Math.random() * 3 + 97, // 97-100%
-        unit: '%',
+        unit: "%",
         timestamp: now,
-        labels: { service: 'DataMapperService' }
+        labels: { service: "DataMapperService" },
       });
 
       // 任务限流器指标
       metrics.push({
-        name: 'data_mapper_task_limiter_pending_count',
+        name: "data_mapper_task_limiter_pending_count",
         value: Math.floor(Math.random() * 20), // 0-19
-        unit: 'count',
+        unit: "count",
         timestamp: now,
-        labels: { service: 'AsyncTaskLimiter' }
+        labels: { service: "AsyncTaskLimiter" },
       });
     }
 
@@ -1025,9 +1056,12 @@ export class PresenterService {
   /**
    * 生成仪表盘数据 (私有方法)
    */
-  private async generateDashboardData(dashboardId: string, config: any): Promise<any> {
+  private async generateDashboardData(
+    dashboardId: string,
+    config: any,
+  ): Promise<any> {
     const panels = [];
-    
+
     if (config.panels) {
       for (const panelConfig of config.panels) {
         const panelData = {
@@ -1035,7 +1069,7 @@ export class PresenterService {
           type: panelConfig.type,
           data: this.generatePanelData(panelConfig),
           thresholds: panelConfig.thresholds,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         };
         panels.push(panelData);
       }
@@ -1044,7 +1078,7 @@ export class PresenterService {
     return {
       title: config.title,
       panels,
-      refreshedAt: new Date().toISOString()
+      refreshedAt: new Date().toISOString(),
     };
   }
 
@@ -1054,33 +1088,36 @@ export class PresenterService {
   private generatePanelData(panelConfig: any): any {
     const mockData = [];
     const now = Date.now();
-    
+
     // 生成最近1小时的模拟数据点
     for (let i = 59; i >= 0; i--) {
       const timestamp = now - i * 60000; // 每分钟一个数据点
-      
+
       panelConfig.metrics.forEach((metricName: string) => {
         let value;
-        
+
         // 根据指标类型生成不同范围的模拟数据
-        if (metricName.includes('duration') || metricName.includes('time')) {
+        if (metricName.includes("duration") || metricName.includes("time")) {
           value = Math.random() * 500 + 100; // 100-600ms
-        } else if (metricName.includes('rate') || metricName.includes('success')) {
+        } else if (
+          metricName.includes("rate") ||
+          metricName.includes("success")
+        ) {
           value = Math.random() * 10 + 90; // 90-100%
-        } else if (metricName.includes('count')) {
+        } else if (metricName.includes("count")) {
           value = Math.floor(Math.random() * 50); // 0-49
         } else {
           value = Math.random() * 100; // 0-100
         }
-        
+
         mockData.push({
           metric: metricName,
           timestamp,
-          value
+          value,
         });
       });
     }
-    
+
     return mockData;
   }
 }

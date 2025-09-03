@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Transform Interfaces DTO UCK�
  * K�pnlb��pn ��a

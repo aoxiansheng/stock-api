@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // rule-engine.service.e2e.test.ts - 测试占位代码
 // 路径: e2e/alert/services/rule-engine.service.e2e.test.ts
 

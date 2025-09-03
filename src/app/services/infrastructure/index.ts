@@ -4,4 +4,4 @@
  */
 
 // 后台任务处理服务
-export * from './background-task.service';
+export * from "./background-task.service";

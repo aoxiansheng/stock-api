@@ -39,10 +39,10 @@ export class DataTransformRequestDto {
   @IsString()
   provider: string;
 
-  @ApiProperty({ 
-    description: "API类型", 
+  @ApiProperty({
+    description: "API类型",
     example: "rest",
-    enum: ["rest", "stream"] 
+    enum: ["rest", "stream"],
   })
   @IsEnum(["rest", "stream"])
   apiType: "rest" | "stream";

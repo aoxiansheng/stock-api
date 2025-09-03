@@ -33,7 +33,8 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
 
     // 检查请求中是否包含API Key头部
     const request = context.switchToHttp().getRequest();
-    const hasApiKeyHeaders = request.headers['x-app-key'] && request.headers['x-access-token'];
+    const hasApiKeyHeaders =
+      request.headers["x-app-key"] && request.headers["x-access-token"];
 
     // 如果需要API Key或请求中已包含API Key头部，跳过JWT认证
     if (requireApiKey || hasApiKeyHeaders) {

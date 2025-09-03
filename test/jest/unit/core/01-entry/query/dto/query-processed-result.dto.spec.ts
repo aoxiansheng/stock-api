@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { QueryProcessedResultDto } from "@core/01-entry/query/dto/query-processed-result.dto";
 import { QueryMetadataDto } from "@core/01-entry/query/dto/query-response.dto";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";

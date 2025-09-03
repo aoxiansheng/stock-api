@@ -19,7 +19,12 @@ export const buildStorageKey = (
   queryTypeFilter?: string,
   market?: string,
 ): string => {
-  const parts = [market ?? "*", provider ?? "*", queryTypeFilter ?? "*", symbol];
+  const parts = [
+    market ?? "*",
+    provider ?? "*",
+    queryTypeFilter ?? "*",
+    symbol,
+  ];
   return parts.join(":");
 };
 

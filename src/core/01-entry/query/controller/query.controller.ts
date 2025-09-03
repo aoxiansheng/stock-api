@@ -318,7 +318,6 @@ export class QueryController {
     example: 10,
     required: false,
   })
-  
   @ApiQuery({
     name: "useCache",
     description: "是否使用缓存",

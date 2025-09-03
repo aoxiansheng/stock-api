@@ -33,9 +33,9 @@ export interface ValidationOptions {
 }
 
 export enum ValidationSeverity {
-  ERROR = 'error',
-  WARNING = 'warning',
-  INFO = 'info'
+  ERROR = "error",
+  WARNING = "warning",
+  INFO = "info",
 }
 
 export interface ValidationMessage {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getStockBasicInfo } from "../../../../../../src/providers/longport/capabilities/get-stock-basic-info";
 import { MARKETS } from "../../../../../../src/common/constants/market.constants";
 

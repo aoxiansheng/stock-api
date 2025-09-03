@@ -1,10 +1,16 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import {
+  InternalServerErrorException,
+  NotFoundException,
+} from "@nestjs/common";
 import { StorageController } from "../../../../../../../src/core/04-storage/storage/controller/storage.controller";
 import { StorageService } from "../../../../../../../src/core/04-storage/storage/services/storage.service";
 import { StoreDataDto } from "../../../../../../../src/core/04-storage/storage/dto/storage-request.dto";
 import { RetrieveDataDto } from "../../../../../../../src/core/04-storage/storage/dto/storage-request.dto";
-import { StorageStatsDto, StorageResponseDto } from "../../../../../../../src/core/04-storage/storage/dto/storage-response.dto";
+import {
+  StorageStatsDto,
+  StorageResponseDto,
+} from "../../../../../../../src/core/04-storage/storage/dto/storage-response.dto";
 import { StorageType } from "../../../../../../../src/core/04-storage/storage/enums/storage-type.enum";
 import { StorageClassification } from "../../../../../../../src/core/shared/types/storage-classification.enum";
 
@@ -73,9 +79,9 @@ describe("StorageController", () => {
       storageService.storeData.mockRejectedValue(
         new InternalServerErrorException("Storage failed"),
       );
-      await expect(
-        controller.storeData(mockStoreDataDto),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.storeData(mockStoreDataDto)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -217,9 +223,9 @@ describe("StorageController", () => {
       storageService.deleteData.mockRejectedValue(
         new InternalServerErrorException("Delete failed"),
       );
-      await expect(
-        controller.deleteData("test-key"),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.deleteData("test-key")).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -257,9 +263,9 @@ describe("StorageController", () => {
       storageService.getStorageStats.mockRejectedValue(
         new InternalServerErrorException("Stats retrieval failed"),
       );
-      await expect(
-        controller.getStorageStats(),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.getStorageStats()).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

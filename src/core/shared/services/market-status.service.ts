@@ -4,10 +4,10 @@
  */
 
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@app/config/logger.config";
-import { SYSTEM_STATUS_EVENTS } from '../../../monitoring/contracts/events/system-status.events';
+import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import {
   MarketStatus,
   MarketTradingHours,
@@ -92,14 +92,14 @@ export class MarketStatusService implements OnModuleDestroy {
       const cached = this.getCachedStatus(market);
       if (cached) {
         cacheHit = true;
-        
+
         // ✅ 事件化缓存命中监控
-        this.emitCacheEvent('get', true, Date.now() - startTime, {
+        this.emitCacheEvent("get", true, Date.now() - startTime, {
           market,
-          operation: 'get_market_status',
-          source: 'memory_cache'
+          operation: "get_market_status",
+          source: "memory_cache",
         });
-        
+
         return cached;
       }
 
@@ -114,28 +114,23 @@ export class MarketStatusService implements OnModuleDestroy {
 
       // 5. 缓存结果
       this.cacheStatus(market, finalStatus);
-      
+
       // ✅ 事件化缓存未命中监控
-      this.emitCacheEvent('get', false, Date.now() - startTime, {
+      this.emitCacheEvent("get", false, Date.now() - startTime, {
         market,
-        operation: 'get_market_status',
-        calculation_required: true
+        operation: "get_market_status",
+        calculation_required: true,
       });
 
       return finalStatus;
     } catch (error) {
       // ✅ 事件化错误监控
-      this.emitRequestEvent(
-        'get_market_status',
-        500,
-        Date.now() - startTime,
-        {
-          market,
-          cache_hit: cacheHit,
-          error: error.message
-        }
-      );
-      
+      this.emitRequestEvent("get_market_status", 500, Date.now() - startTime, {
+        market,
+        cache_hit: cacheHit,
+        error: error.message,
+      });
+
       this.logger.error("获取市场状态失败", { market, error: error.message });
 
       // 降级到本地计算
@@ -179,30 +174,30 @@ export class MarketStatusService implements OnModuleDestroy {
 
       // ✅ 事件化批量操作监控
       this.emitRequestEvent(
-        'batch_market_status',
+        "batch_market_status",
         errorCount > 0 ? 207 : 200, // 207=部分成功
         Date.now() - startTime,
         {
           total_markets: markets.length,
           success_count: successCount,
           error_count: errorCount,
-          markets: markets.join(',')
-        }
+          markets: markets.join(","),
+        },
       );
 
       return statusMap;
     } catch (error) {
       // ✅ 事件化批量操作失败监控
       this.emitRequestEvent(
-        'batch_market_status_failed',
+        "batch_market_status_failed",
         500,
         Date.now() - startTime,
         {
           total_markets: markets.length,
-          error: error.message
-        }
+          error: error.message,
+        },
       );
-      
+
       throw error;
     }
   }
@@ -612,44 +607,57 @@ export class MarketStatusService implements OnModuleDestroy {
   }
 
   // ✅ 事件驱动监控方法
-  private emitRequestEvent(operation: string, statusCode: number, duration: number, metadata: any) {
+  private emitRequestEvent(
+    operation: string,
+    statusCode: number,
+    duration: number,
+    metadata: any,
+  ) {
     setImmediate(() => {
       try {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'market_status_service',
-          metricType: 'business',
+          source: "market_status_service",
+          metricType: "business",
           metricName: operation,
           metricValue: duration,
           tags: {
             status_code: statusCode,
-            status: statusCode < 400 ? 'success' : 'error',
-            ...metadata
-          }
+            status: statusCode < 400 ? "success" : "error",
+            ...metadata,
+          },
         });
       } catch (error) {
-        this.logger.warn('事件发送失败', { error: error.message, operation });
+        this.logger.warn("事件发送失败", { error: error.message, operation });
       }
     });
   }
 
-  private emitCacheEvent(operation: string, hit: boolean, duration: number, metadata: any) {
+  private emitCacheEvent(
+    operation: string,
+    hit: boolean,
+    duration: number,
+    metadata: any,
+  ) {
     setImmediate(() => {
       try {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'market_status_service',
-          metricType: 'cache',
+          source: "market_status_service",
+          metricType: "cache",
           metricName: `cache_${operation}`,
           metricValue: duration,
           tags: {
             hit: hit.toString(),
             operation,
-            ...metadata
-          }
+            ...metadata,
+          },
         });
       } catch (error) {
-        this.logger.warn('缓存事件发送失败', { error: error.message, operation });
+        this.logger.warn("缓存事件发送失败", {
+          error: error.message,
+          operation,
+        });
       }
     });
   }

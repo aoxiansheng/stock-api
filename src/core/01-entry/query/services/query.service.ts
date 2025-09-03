@@ -4,24 +4,22 @@ import {
   OnModuleDestroy,
   BadRequestException,
 } from "@nestjs/common";
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { StringUtils } from "../../../shared/utils/string.util";
-import { SYSTEM_STATUS_EVENTS } from '../../../../monitoring/contracts/events/system-status.events';
+import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
-import { QueryConfigService } from '../config/query.config';
-import { QueryExecutorFactory } from '../factories/query-executor.factory';
-import { QueryExecutionEngine } from './query-execution-engine.service';
+import { QueryConfigService } from "../config/query.config";
+import { QueryExecutorFactory } from "../factories/query-executor.factory";
+import { QueryExecutionEngine } from "./query-execution-engine.service";
 
 import {
   QUERY_ERROR_MESSAGES,
   QUERY_SUCCESS_MESSAGES,
   QUERY_OPERATIONS,
 } from "../constants/query.constants";
-import {
-  QueryExecutionResultDto,
-} from "../dto/query-internal.dto";
+import { QueryExecutionResultDto } from "../dto/query-internal.dto";
 import { QueryRequestDto, BulkQueryRequestDto } from "../dto/query-request.dto";
 import {
   QueryResponseDto,
@@ -32,13 +30,13 @@ import { QueryStatisticsService } from "./query-statistics.service";
 
 /**
  * Query服务 - 查询编排器
- * 
+ *
  * 重构后职责：
  * - 查询请求的编排和路由
  * - 使用工厂模式分发查询到合适的执行器
  * - 管理查询统计和监控
  * - 处理批量查询请求
- * 
+ *
  * 不再负责：
  * - 具体的查询执行逻辑（已移至QueryExecutionEngine）
  * - 批量处理管道实现（已移至QueryExecutionEngine）
@@ -68,12 +66,12 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('QueryService模块正在关闭');
+    this.logger.log("QueryService模块正在关闭");
   }
 
   /**
    * 执行单个查询请求
-   * 
+   *
    * 职责：
    * 1. 记录查询开始监控
    * 2. 使用工厂创建合适的执行器
@@ -85,9 +83,9 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     const queryId = this.generateQueryId(request);
 
     // ✅ 事件驱动监控：查询开始
-    this.emitQueryEvent('query_started', request, queryId, 0, {
+    this.emitQueryEvent("query_started", request, queryId, 0, {
       symbolsCount: request.symbols?.length || 0,
-      queryTypeFilter: request.queryTypeFilter
+      queryTypeFilter: request.queryTypeFilter,
     });
 
     this.logger.log(
@@ -112,13 +110,22 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       );
 
       // ✅ 事件驱动监控：查询成功
-      this.emitQueryEvent('query_completed', request, queryId, Date.now() - startTime, {
-        success: true,
-        cacheUsed: executionResult.cacheUsed,
-        resultsCount: executionResult.results?.length || 0
-      });
+      this.emitQueryEvent(
+        "query_completed",
+        request,
+        queryId,
+        Date.now() - startTime,
+        {
+          success: true,
+          cacheUsed: executionResult.cacheUsed,
+          resultsCount: executionResult.results?.length || 0,
+        },
+      );
 
-      return new QueryResponseDto(processedResult.data, processedResult.metadata);
+      return new QueryResponseDto(
+        processedResult.data,
+        processedResult.metadata,
+      );
     } catch (error) {
       const executionTime = Date.now() - startTime;
       this.statisticsService.recordQueryPerformance(
@@ -129,11 +136,11 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       );
 
       // ✅ 事件驱动监控：查询失败
-      this.emitQueryEvent('query_failed', request, queryId, executionTime, {
+      this.emitQueryEvent("query_failed", request, queryId, executionTime, {
         success: false,
         cacheUsed: false,
         error_type: error.constructor.name,
-        error_message: error.message
+        error_message: error.message,
       });
 
       this.logger.error(
@@ -174,7 +181,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         results,
         request.queries.length,
       );
-      
+
       this.logger.log(
         QUERY_SUCCESS_MESSAGES.BULK_QUERY_EXECUTION_COMPLETED,
         sanitizeLogData({
@@ -184,7 +191,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           totalTime: Date.now() - startTime,
         }),
       );
-      
+
       return bulkResponse;
     } catch (error) {
       this.logger.error(
@@ -200,7 +207,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 使用工厂模式执行查询
-   * 
+   *
    * 核心改进：
    * - 不再直接处理查询逻辑
    * - 使用工厂创建合适的执行器
@@ -216,15 +223,13 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException(
-        `查询执行器创建失败: ${error.message}`,
-      );
+      throw new BadRequestException(`查询执行器创建失败: ${error.message}`);
     }
   }
 
   /**
    * executeSymbolBasedQuery - 向后兼容方法
-   * 
+   *
    * 保留此方法以确保向后兼容性
    * 实际执行已委托给QueryExecutionEngine
    */
@@ -269,7 +274,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           queryId,
           0,
         );
-        
+
         return new QueryResponseDto(errorResult.data, errorResult.metadata);
       }
     });
@@ -335,8 +340,10 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
           queryId,
           0,
         );
-        
-        results.push(new QueryResponseDto(errorResult.data, errorResult.metadata));
+
+        results.push(
+          new QueryResponseDto(errorResult.data, errorResult.metadata),
+        );
       }
     }
 
@@ -362,7 +369,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   }
 
   // =============== 事件驱动监控方法 ===============
-  
+
   /**
    * ✅ 统一的事件驱动监控方法
    */
@@ -371,33 +378,33 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     request: QueryRequestDto,
     queryId: string,
     duration: number,
-    additionalData: Record<string, any> = {}
+    additionalData: Record<string, any> = {},
   ): void {
     setImmediate(() => {
       try {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
-          source: 'query_service',
-          metricType: 'business',
+          source: "query_service",
+          metricType: "business",
           metricName: eventType,
           metricValue: duration,
           tags: {
             queryId,
             queryType: request.queryType,
-            market: request.market || 'unknown',
-            provider: request.provider || 'auto',
+            market: request.market || "unknown",
+            provider: request.provider || "auto",
             symbolsCount: request.symbols?.length || 0,
             operation: eventType,
-            componentType: 'query',
-            ...additionalData
-          }
+            componentType: "query",
+            ...additionalData,
+          },
         });
       } catch (error) {
         // 监控事件发送失败不应影响业务逻辑
-        this.logger.warn(`查询监控事件发送失败: ${error.message}`, { 
-          queryId, 
+        this.logger.warn(`查询监控事件发送失败: ${error.message}`, {
+          queryId,
           eventType,
-          error: error.message 
+          error: error.message,
         });
       }
     });

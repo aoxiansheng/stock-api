@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * ApiKeyUtil 单元测试
  * 测试 API Key 工具类的各种功能

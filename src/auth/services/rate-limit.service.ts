@@ -1,8 +1,5 @@
 import { InjectRedis } from "@nestjs-modules/ioredis";
-import {
-  Injectable,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { Redis } from "ioredis";
 
 import { createLogger } from "@app/config/logger.config";
@@ -36,8 +33,6 @@ export class RateLimitService {
   private readonly config = securityConfig.rateLimit;
 
   constructor(@InjectRedis() private readonly redis: Redis) {}
-
-
 
   /**
    * 检查API Key的频率限制

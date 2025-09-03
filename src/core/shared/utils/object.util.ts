@@ -17,9 +17,9 @@ export class ObjectUtils {
    */
   public static getValueFromPath(obj: any, path: string): any {
     if (obj === null || obj === undefined || !path) return undefined;
-    
+
     // Type check for path
-    if (typeof path !== 'string') return undefined;
+    if (typeof path !== "string") return undefined;
 
     try {
       const keys = path.split(/[.\[\]]/).filter((key) => key !== "");
@@ -54,7 +54,11 @@ export class ObjectUtils {
         // Case 2: Current result is an object (or not an array) and key is a property name
         if (!found) {
           // Try exact match
-          if (typeof result === 'object' && result !== null && Object.prototype.hasOwnProperty.call(result, key)) {
+          if (
+            typeof result === "object" &&
+            result !== null &&
+            Object.prototype.hasOwnProperty.call(result, key)
+          ) {
             result = result[key];
             found = true;
           } else {
@@ -64,7 +68,11 @@ export class ObjectUtils {
                 $1.toUpperCase().replace("-", "").replace("_", ""),
               );
             const camelCaseKey = toCamelCase(key);
-            if (typeof result === 'object' && result !== null && Object.prototype.hasOwnProperty.call(result, camelCaseKey)) {
+            if (
+              typeof result === "object" &&
+              result !== null &&
+              Object.prototype.hasOwnProperty.call(result, camelCaseKey)
+            ) {
               result = result[camelCaseKey];
               found = true;
             }
