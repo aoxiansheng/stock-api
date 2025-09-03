@@ -465,39 +465,6 @@ describe("Alert History Constants", () => {
       });
     });
 
-    describe("calculatePagination", () => {
-      it("应正确计算分页信息", () => {
-        const result = AlertHistoryUtil.calculatePagination(100, 2, 20);
-        expect(result).toEqual({
-          total: 100,
-          page: 2,
-          limit: 20,
-          totalPages: 5,
-          hasNext: true,
-          hasPrev: true,
-          _offset: 20,
-        });
-      });
-
-      it("应处理第一页", () => {
-        const result = AlertHistoryUtil.calculatePagination(50, 1, 10);
-        expect(result.hasPrev).toBe(false);
-        expect(result.hasNext).toBe(true);
-        expect(result.offset).toBe(0);
-      });
-
-      it("应处理最后一页", () => {
-        const result = AlertHistoryUtil.calculatePagination(50, 5, 10);
-        expect(result.hasPrev).toBe(true);
-        expect(result.hasNext).toBe(false);
-        expect(result.totalPages).toBe(5);
-      });
-
-      it("应处理不整除的情况", () => {
-        const result = AlertHistoryUtil.calculatePagination(23, 3, 10);
-        expect(result.totalPages).toBe(3);
-      });
-    });
 
     describe("calculateExecutionTime", () => {
       it("应正确计算执行时间", () => {

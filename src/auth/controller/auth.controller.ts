@@ -27,11 +27,18 @@ import {
   ApiStandardResponses,
   JwtAuthResponses,
 } from "@common/core/decorators/swagger-responses.decorator";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
 import { Auth } from "../decorators/auth.decorator";
 import { Public } from "../decorators/public.decorator";
 import { CreateApiKeyDto, ApiKeyResponseDto } from "../dto/apikey.dto";
-import { CreateUserDto, LoginDto, LoginResponseDto } from "../dto/auth.dto";
+import { 
+  CreateUserDto, 
+  LoginDto, 
+  LoginResponseDto,
+  PaginatedUsersDto,
+} from "../dto/auth.dto";
 import { UserRole } from "../enums/user-role.enum";
 import { AuthService } from "../services/auth.service";
 
@@ -40,7 +47,10 @@ import { AuthService } from "../services/auth.service";
 export class AuthController {
   private readonly logger = createLogger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly paginationService: PaginationService,
+  ) {}
 
   /**
    * 用户注册
@@ -433,8 +443,8 @@ export class AuthController {
           page: 1,
           limit: 10,
           totalPages: 3,
-          hasNextPage: true,
-          hasPrevPage: false,
+          hasNext: true,
+          hasPrev: false,
           stats: {
             totalUsers: 25,
             activeUsers: 23,
@@ -455,7 +465,7 @@ export class AuthController {
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 10,
     @Query("includeInactive") includeInactive: boolean = false,
-  ) {
+  ): Promise<PaginatedUsersDto> {
     this.logger.log(`管理员获取用户列表请求`, {
       page,
       limit,
@@ -474,8 +484,28 @@ export class AuthController {
         activeUsers: result.stats.activeUsers,
       });
 
+      // 映射用户数据到响应DTO格式
+      const response: PaginatedUsersDto = {
+        users: result.users.map(user => ({
+          id: user._id?.toString() || user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          lastLoginAt: user.lastLoginAt,
+        })),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+        hasNext: result.hasNext,
+        hasPrev: result.hasPrev,
+        stats: result.stats,
+      };
+
       // 遵循控制器编写规范：让拦截器自动处理响应格式化
-      return result;
+      return response;
     } catch (error: any) {
       this.logger.error(`获取用户列表失败`, {
         page,

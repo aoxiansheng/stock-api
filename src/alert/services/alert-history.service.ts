@@ -4,6 +4,8 @@ import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 
 // 🎯 引入缓存服务用于时序数据存储
 import { CacheService } from "../../cache/services/cache.service";
+// 🎯 引入通用分页服务
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import {
   ALERT_HISTORY_OPERATIONS,
   ALERT_HISTORY_MESSAGES,
@@ -35,6 +37,8 @@ export class AlertHistoryService {
     private readonly alertHistoryRepository: AlertHistoryRepository,
     // 🎯 注入缓存服务用于时序数据存储
     private readonly cacheService: CacheService,
+    // 🎯 注入通用分页服务
+    private readonly paginationService: PaginationService,
   ) {}
 
   /**
@@ -176,15 +180,13 @@ export class AlertHistoryService {
 
     try {
       const { alerts, total } = await this.alertHistoryRepository.find(query);
-      const page = query.page || 1;
-      const limit = query.limit || ALERT_HISTORY_CONFIG.DEFAULT_PAGE_LIMIT;
+      const { page, limit } = this.paginationService.normalizePaginationQuery({
+        page: query.page,
+        limit: query.limit || ALERT_HISTORY_CONFIG.DEFAULT_PAGE_LIMIT,
+      });
 
-      // 使用工具类计算分页信息
-      const pagination = AlertHistoryUtil.calculatePagination(
-        total,
-        page,
-        limit,
-      );
+      // 使用通用分页服务计算分页信息
+      const pagination = this.paginationService.createPagination(page, limit, total);
 
       this.logger.debug(
         ALERT_HISTORY_MESSAGES.ALERTS_QUERIED,

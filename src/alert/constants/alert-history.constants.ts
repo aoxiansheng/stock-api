@@ -231,25 +231,6 @@ export class AlertHistoryUtil {
     );
   }
 
-  /**
-   * 计算分页信息
-   * @param total 总数
-   * @param page 当前页
-   * @param limit 每页数量
-   * @returns 分页信息
-   */
-  static calculatePagination(total: number, page: number, limit: number) {
-    const totalPages = Math.ceil(total / limit);
-    return {
-      total,
-      page,
-      limit,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      offset: (page - 1) * limit,
-    };
-  }
 
   /**
    * 格式化执行时间

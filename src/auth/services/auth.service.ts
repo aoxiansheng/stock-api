@@ -325,13 +325,10 @@ export class AuthService {
     this.logger.log(`管理员获取用户列表: 页码${page}, 数量${limit}`);
 
     try {
-      // 验证参数
-      const validatedPage = Math.max(1, Math.floor(page));
-      const validatedLimit = Math.min(100, Math.max(1, Math.floor(limit))); // 限制最大100条/页
-
+      // 直接使用 UserRepository，参数验证已在其内部通过 PaginationService 处理
       const result = await this.userRepository.findAllPaginated(
-        validatedPage,
-        validatedLimit,
+        page,
+        limit,
         includeInactive
       );
 

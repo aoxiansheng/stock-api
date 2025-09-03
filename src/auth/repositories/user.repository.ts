@@ -2,11 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+
 import { User, UserDocument } from "../schemas/user.schema";
 @Injectable()
 export class UserRepository {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async create(
@@ -54,7 +57,13 @@ export class UserRepository {
    * @returns 分页结果
    */
   async findAllPaginated(page: number = 1, limit: number = 10, includeInactive: boolean = false) {
-    const skip = (page - 1) * limit;
+    // 使用通用分页服务标准化参数
+    const { page: normalizedPage, limit: normalizedLimit } = this.paginationService.normalizePaginationQuery({
+      page,
+      limit,
+    });
+    
+    const skip = this.paginationService.calculateSkip(normalizedPage, normalizedLimit);
     const filter = includeInactive ? {} : { isActive: true };
 
     const [users, total] = await Promise.all([
@@ -63,19 +72,17 @@ export class UserRepository {
         .select('-passwordHash') // 排除密码哈希
         .sort({ createdAt: -1 }) // 按创建时间倒序
         .skip(skip)
-        .limit(limit)
+        .limit(normalizedLimit)
         .exec(),
       this.userModel.countDocuments(filter).exec(),
     ]);
 
+    // 使用通用分页服务创建分页信息
+    const pagination = this.paginationService.createPagination(normalizedPage, normalizedLimit, total);
+
     return {
       users,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      ...pagination,
     };
   }
 

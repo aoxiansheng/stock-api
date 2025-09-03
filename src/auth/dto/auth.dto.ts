@@ -111,3 +111,75 @@ export class RefreshTokenDto {
   @IsNotEmpty()
   refreshToken: string;
 }
+
+/**
+ * 用户响应DTO
+ */
+export class UserResponseDto {
+  @ApiProperty({ description: "用户ID" })
+  id: string;
+
+  @ApiProperty({ description: "用户名" })
+  username: string;
+
+  @ApiProperty({ description: "邮箱" })
+  email: string;
+
+  @ApiProperty({ description: "用户角色", enum: UserRole })
+  role: UserRole;
+
+  @ApiProperty({ description: "是否激活" })
+  isActive: boolean;
+
+  @ApiProperty({ description: "创建时间" })
+  createdAt: Date;
+
+  @ApiProperty({ description: "最后登录时间", required: false })
+  lastLoginAt?: Date;
+}
+
+/**
+ * 用户统计信息DTO
+ */
+export class UserStatsDto {
+  @ApiProperty({ description: "用户总数" })
+  totalUsers: number;
+
+  @ApiProperty({ description: "活跃用户数" })
+  activeUsers: number;
+
+  @ApiProperty({ description: "非活跃用户数" })
+  inactiveUsers: number;
+
+  @ApiProperty({ description: "角色分布", example: { admin: 2, developer: 10, user: 5 } })
+  roleDistribution: Record<string, number>;
+}
+
+/**
+ * 用户列表分页响应DTO
+ */
+export class PaginatedUsersDto {
+  @ApiProperty({ description: "用户列表", type: [UserResponseDto] })
+  users: UserResponseDto[];
+
+  @ApiProperty({ description: "总记录数" })
+  total: number;
+
+  @ApiProperty({ description: "当前页码" })
+  page: number;
+
+  @ApiProperty({ description: "每页数量" })
+  limit: number;
+
+  @ApiProperty({ description: "总页数" })
+  totalPages: number;
+
+  @ApiProperty({ description: "是否有下一页" })
+  hasNext: boolean;
+
+  @ApiProperty({ description: "是否有上一页" })
+  hasPrev: boolean;
+
+  @ApiProperty({ description: "用户统计信息", type: UserStatsDto })
+  stats: UserStatsDto;
+}

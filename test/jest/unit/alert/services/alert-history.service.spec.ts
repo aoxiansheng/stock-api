@@ -3,6 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { AlertHistoryService } from "../../../../../src/alert/services/alert-history.service";
 import { AlertHistoryRepository } from "../../../../../src/alert/repositories/alert-history.repository";
 import { CacheService } from "../../../../../src/cache/services/cache.service";
+import { PaginationService } from "../../../../../src/common/modules/pagination/services/pagination.service";
 import { IAlert, IAlertQuery } from "../../../../../src/alert/interfaces";
 import {
   AlertStatus,
@@ -17,6 +18,7 @@ describe("AlertHistoryService", () => {
   let service: AlertHistoryService;
   let alertHistoryRepository: jest.Mocked<AlertHistoryRepository>;
   let cacheService: jest.Mocked<CacheService>;
+  let paginationService: jest.Mocked<PaginationService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -47,12 +49,21 @@ describe("AlertHistoryService", () => {
             _del: jest.fn(),
           },
         },
+        {
+          provide: PaginationService,
+          useValue: {
+            normalizePaginationQuery: jest.fn(),
+            createPagination: jest.fn(),
+            createPaginatedResponse: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AlertHistoryService>(AlertHistoryService);
     alertHistoryRepository = module.get(AlertHistoryRepository);
     cacheService = module.get(CacheService);
+    paginationService = module.get(PaginationService);
   });
 
   afterEach(() => {
@@ -256,19 +267,27 @@ describe("AlertHistoryService", () => {
         alerts: [mockAlert],
         total: 1,
       });
-      jest.spyOn(AlertHistoryUtil, "calculatePagination").mockReturnValue({
-        total: 1,
+      paginationService.normalizePaginationQuery.mockReturnValue({
         page: 1,
         limit: 10,
+      });
+      paginationService.createPagination.mockReturnValue({
+        page: 1,
+        limit: 10,
+        total: 1,
         totalPages: 1,
         hasNext: false,
         hasPrev: false,
-        offset: 0,
       });
 
       const result = await service.queryAlerts(mockQuery);
 
       expect(alertHistoryRepository.find).toHaveBeenCalledWith(mockQuery);
+      expect(paginationService.normalizePaginationQuery).toHaveBeenCalledWith({
+        page: 1,
+        limit: 10,
+      });
+      expect(paginationService.createPagination).toHaveBeenCalledWith(1, 10, 1);
       expect(result.alerts).toEqual([mockAlert]);
       expect(result.total).toBe(1); // 使用total而非totalItems
     });
