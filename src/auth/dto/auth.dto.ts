@@ -11,44 +11,14 @@ import {
 } from "class-validator";
 
 import { UserRole } from "../enums/user-role.enum";
+import { AUTH_CONFIG, AUTH_VALIDATION_RULES } from "../constants/auth.constants";
+import { BaseUserDto, BasePasswordDto } from "./base-auth.dto";
 
 /**
  * 用户注册DTO
+ * 继承BaseUserDto，自动包含用户名、密码和邮箱验证
  */
-export class CreateUserDto {
-  @ApiProperty({
-    description: "用户名",
-    example: "admin",
-    minLength: 3,
-    maxLength: 50,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(50)
-  @Matches(/^[a-zA-Z0-9_-]+$/, {
-    message: "用户名只能包含字母、数字、下划线和连字符",
-  })
-  username: string;
-
-  @ApiProperty({
-    description: "邮箱地址",
-    example: "admin@example.com",
-  })
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @ApiProperty({
-    description: "密码",
-    example: "password123",
-    minLength: 6,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  password: string;
-
+export class CreateUserDto extends BaseUserDto {
   @ApiProperty({
     description: "用户角色",
     enum: UserRole,
@@ -62,23 +32,12 @@ export class CreateUserDto {
 
 /**
  * 用户登录DTO
+ * 继承BasePasswordDto，自动包含用户名和密码验证
+ * 但不需要邮箱验证
  */
-export class LoginDto {
-  @ApiProperty({
-    description: "用户名",
-    example: "admin",
-  })
-  @IsString()
-  @IsNotEmpty()
-  username: string;
-
-  @ApiProperty({
-    description: "密码",
-    example: "password123",
-  })
-  @IsString()
-  @IsNotEmpty()
-  password: string;
+export class LoginDto extends BasePasswordDto {
+  // 继承的用户名和密码字段自动包含对应的ApiProperty和验证
+  // 无需重复定义
 }
 
 /**

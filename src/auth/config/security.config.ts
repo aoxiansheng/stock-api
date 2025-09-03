@@ -1,4 +1,5 @@
 import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
+import { AUTH_CONFIG } from "../constants/auth.constants";
 
 /**
  * 集中化的安全配置
@@ -8,11 +9,12 @@ import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
  */
 export const securityConfig = {
   passwordPolicy: {
-    minLength: 8,
-    requireUppercase: true,
-    requireLowercase: true,
+    minLength: AUTH_CONFIG.MIN_PASSWORD_LENGTH,
+    maxLength: AUTH_CONFIG.MAX_PASSWORD_LENGTH,
+    requireUppercase: false, // 修正：根据新的密码策略，不强制要求大写
+    requireLowercase: false, // 修正：根据新的密码策略，不强制要求小写
     requireNumbers: true,
-    requireSpecialChars: true,
+    requireSpecialChars: false, // 修正：根据新的密码策略，不强制要求特殊字符
     maxAgeDays: 90,
   },
   session: {

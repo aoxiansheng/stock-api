@@ -240,6 +240,29 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
     MAX_REQUESTS: parseInt(process.env.IP_RATE_LIMIT_MAX) || 1000,
     WINDOW_MS: parseInt(process.env.IP_RATE_LIMIT_WINDOW) || 60000, // 1分钟
   },
+
+  // === 系统级时间间隔配置 ===
+  SYSTEM_INTERVALS: {
+    // 认证模块清理间隔
+    AUTH_TOKEN_CLEANUP: 3600000,        // 1小时 - Token清理
+    AUTH_SESSION_CLEANUP: 1800000,      // 30分钟 - Session清理
+    AUTH_LOGIN_ATTEMPT_RESET: 900000,   // 15分钟 - 登录尝试重置
+    AUTH_PASSWORD_EXPIRY_CHECK: 86400000, // 24小时 - 密码过期检查
+    AUTH_ACCOUNT_LOCK_CHECK: 300000,    // 5分钟 - 账户锁定检查
+
+    // 权限模块清理间隔
+    PERMISSION_CACHE_CLEANUP: 1800000,  // 30分钟 - 权限缓存清理
+    PERMISSION_REFRESH: 3600000,        // 1小时 - 权限刷新
+
+    // API Key模块清理间隔
+    APIKEY_CLEANUP: 300000,             // 5分钟 - API Key清理
+    APIKEY_USAGE_RESET: 3600000,        // 1小时 - 使用统计重置
+
+    // 通用系统清理间隔
+    LOG_CLEANUP: 604800000,             // 7天 - 日志清理
+    METRICS_COLLECTION: 60000,          // 1分钟 - 指标收集
+    HEALTH_CHECK: 30000,                // 30秒 - 健康检查
+  },
 });
 
 /**

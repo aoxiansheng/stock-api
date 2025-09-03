@@ -4,6 +4,8 @@
  */
 
 import { UserRole } from "../../auth/enums/user-role.enum";
+import { buildCacheKey } from "@common/constants/unified/unified-cache-config.constants";
+import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
 
 // 📝 操作名称常量
 export const AUTH_OPERATIONS = Object.freeze({
@@ -79,7 +81,7 @@ export const AUTH_CONFIG = Object.freeze({
   MIN_PASSWORD_LENGTH: 8,
   MAX_PASSWORD_LENGTH: 128,
   MIN_USERNAME_LENGTH: 3,
-  MAX_USERNAME_LENGTH: 50,
+  MAX_USERNAME_LENGTH: 20, // 修正：与DTO验证保持一致，从50改为20
   PASSWORD_HASH_ROUNDS: 12,
   TOKEN_EXPIRY_HOURS: 24,
   REFRESH_TOKEN_EXPIRY_DAYS: 7,
@@ -153,34 +155,34 @@ export const AUTH_METRICS = Object.freeze({
 export const AUTH_VALIDATION_RULES = Object.freeze({
   USERNAME_PATTERN: /^[a-zA-Z0-9_-]+$/,
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PASSWORD_PATTERN:
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+  PASSWORD_PATTERN: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/, // 修正：简化为要求至少一个字母和一个数字，8位以上
   PHONE_PATTERN: /^\+?[1-9]\d{1,14}$/,
   API_KEY_PATTERN: /^[a-zA-Z0-9]{32,64}$/,
   TOKEN_PATTERN: /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/,
 });
 
-// 🎛️ 缓存键常量
+// 🎛️ 缓存键常量 - 使用统一的buildCacheKey函数
 export const AUTH_CACHE_KEYS = Object.freeze({
-  USER_SESSION: "auth:session:",
-  LOGIN_ATTEMPTS: "auth:attempts:",
-  PASSWORD_RESET: "auth:reset:",
-  EMAIL_VERIFICATION: "auth:verify:",
-  API_KEY_CACHE: "auth:apikey:",
-  USER_PERMISSIONS: "auth:permissions:",
-  REFRESH_TOKEN: "auth:refresh:",
-  TWO_FACTOR_CODE: "auth:2fa:",
-  ACCOUNT_LOCK: "auth:lock:",
-  USER_PROFILE: "auth:profile:",
+  // 使用统一的 buildCacheKey 函数生成缓存键
+  USER_SESSION: (userId: string) => buildCacheKey('AUTH', userId, 'session'),
+  LOGIN_ATTEMPTS: (ip: string) => buildCacheKey('AUTH', ip, 'attempts'),
+  PASSWORD_RESET: (userId: string) => buildCacheKey('AUTH', userId, 'reset'),
+  EMAIL_VERIFICATION: (userId: string) => buildCacheKey('AUTH', userId, 'verify'),
+  API_KEY_CACHE: (keyId: string) => buildCacheKey('API_KEY', keyId),
+  USER_PERMISSIONS: (userId: string) => buildCacheKey('PERMISSION', userId),
+  REFRESH_TOKEN: (tokenId: string) => buildCacheKey('AUTH', tokenId, 'refresh'),
+  TWO_FACTOR_CODE: (userId: string) => buildCacheKey('AUTH', userId, '2fa'),
+  ACCOUNT_LOCK: (userId: string) => buildCacheKey('AUTH', userId, 'lock'),
+  USER_PROFILE: (userId: string) => buildCacheKey('AUTH', userId, 'profile'),
 });
 
-// ⏱️ 时间间隔常量
+// ⏱️ 时间间隔常量 - 使用统一的RATE_LIMIT_CONFIG.SYSTEM_INTERVALS
 export const AUTH_INTERVALS = Object.freeze({
-  TOKEN_CLEANUP_INTERVAL_MS: 3600000, // 1小时
-  SESSION_CLEANUP_INTERVAL_MS: 1800000, // 30分钟
-  LOGIN_ATTEMPT_RESET_INTERVAL_MS: 900000, // 15分钟
-  PASSWORD_EXPIRY_CHECK_INTERVAL_MS: 86400000, // 24小时
-  ACCOUNT_LOCK_CHECK_INTERVAL_MS: 300000, // 5分钟
+  TOKEN_CLEANUP_INTERVAL_MS: RATE_LIMIT_CONFIG.SYSTEM_INTERVALS.AUTH_TOKEN_CLEANUP,
+  SESSION_CLEANUP_INTERVAL_MS: RATE_LIMIT_CONFIG.SYSTEM_INTERVALS.AUTH_SESSION_CLEANUP,
+  LOGIN_ATTEMPT_RESET_INTERVAL_MS: RATE_LIMIT_CONFIG.SYSTEM_INTERVALS.AUTH_LOGIN_ATTEMPT_RESET,
+  PASSWORD_EXPIRY_CHECK_INTERVAL_MS: RATE_LIMIT_CONFIG.SYSTEM_INTERVALS.AUTH_PASSWORD_EXPIRY_CHECK,
+  ACCOUNT_LOCK_CHECK_INTERVAL_MS: RATE_LIMIT_CONFIG.SYSTEM_INTERVALS.AUTH_ACCOUNT_LOCK_CHECK,
 });
 
 // 🔄 重试配置常量
