@@ -9,7 +9,10 @@
  * - 统一性：确保整个应用的错误消息风格一致
  */
 
-import { deepFreeze } from "@common/utils/object-immutability.util";
+import { deepFreeze } from "../../utils/object-immutability.util";
+import { OPERATION_CONSTANTS } from "./operations.constants";
+import { AUTH_ERROR_MESSAGES } from "../error-messages.constants";
+import { QUICK_MESSAGES } from "./message-templates.constants";
 
 export const HTTP_CONSTANTS = deepFreeze({
   // HTTP状态码
@@ -42,9 +45,9 @@ export const HTTP_CONSTANTS = deepFreeze({
   ERROR_MESSAGES: {
     // 通用HTTP错误
     BAD_REQUEST: "请求参数错误",
-    UNAUTHORIZED: "未授权访问",
+    UNAUTHORIZED: AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS, // 引用统一定义，避免重复
     FORBIDDEN: "访问被禁止",
-    NOT_FOUND: "资源不存在",
+    NOT_FOUND: QUICK_MESSAGES.RESOURCE_NOT_FOUND, // 使用模板，避免重复
     METHOD_NOT_ALLOWED: "请求方法不被允许",
     CONFLICT: "请求冲突",
     UNPROCESSABLE_ENTITY: "请求参数验证失败",
@@ -55,10 +58,10 @@ export const HTTP_CONSTANTS = deepFreeze({
 
     // 认证相关错误
     INVALID_CREDENTIALS: "用户名或密码错误",
-    USER_NOT_FOUND: "用户不存在",
+    USER_NOT_FOUND: QUICK_MESSAGES.USER_NOT_FOUND, // 使用模板，避免重复
     TOKEN_EXPIRED: "token已过期",
     TOKEN_INVALID: "token无效",
-    API_KEY_NOT_FOUND: "API Key不存在",
+    API_KEY_NOT_FOUND: QUICK_MESSAGES.API_KEY_NOT_FOUND, // 使用模板，避免重复
     API_KEY_INVALID: "API Key无效",
     API_KEY_EXPIRED: "API Key已过期",
     INSUFFICIENT_PERMISSIONS: "权限不足",
@@ -66,12 +69,12 @@ export const HTTP_CONSTANTS = deepFreeze({
 
     // 业务操作错误
     OPERATION_FAILED: "操作失败",
-    DATA_NOT_FOUND: "数据不存在",
+    DATA_NOT_FOUND: QUICK_MESSAGES.DATA_NOT_FOUND, // 使用模板，避免重复
     VALIDATION_FAILED: "验证失败",
     PROCESSING_FAILED: "处理失败",
 
     // 资源相关错误
-    RESOURCE_NOT_FOUND: "资源不存在",
+    RESOURCE_NOT_FOUND: QUICK_MESSAGES.RESOURCE_NOT_FOUND, // 使用模板，避免重复
     RESOURCE_ALREADY_EXISTS: "资源已存在",
     RESOURCE_LOCKED: "资源被锁定",
     RESOURCE_EXPIRED: "资源已过期",
@@ -91,9 +94,10 @@ export const HTTP_CONSTANTS = deepFreeze({
   // 成功消息
   SUCCESS_MESSAGES: {
     OPERATION_SUCCESS: "操作成功",
-    CREATE_SUCCESS: "创建成功",
-    UPDATE_SUCCESS: "更新成功",
-    DELETE_SUCCESS: "删除成功",
+    // CRUD操作消息引用统一定义，避免重复
+    CREATE_SUCCESS: OPERATION_CONSTANTS.CRUD_MESSAGES.CREATE_SUCCESS,
+    UPDATE_SUCCESS: OPERATION_CONSTANTS.CRUD_MESSAGES.UPDATE_SUCCESS,
+    DELETE_SUCCESS: OPERATION_CONSTANTS.CRUD_MESSAGES.DELETE_SUCCESS,
     QUERY_SUCCESS: "查询成功",
     VALIDATION_SUCCESS: "验证成功",
     PROCESS_SUCCESS: "处理成功",

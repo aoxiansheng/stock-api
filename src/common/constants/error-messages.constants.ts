@@ -4,7 +4,8 @@
  *
  * 这个文件统一管理所有系统错误消息，避免在多个地方重复定义相同的错误消息
  */
-import { deepFreeze } from "@common/utils/object-immutability.util";
+import { deepFreeze } from "../utils/object-immutability.util";
+import { QUICK_MESSAGES } from "./unified/message-templates.constants";
 
 // 📢 认证和授权错误消息
 export const AUTH_ERROR_MESSAGES = deepFreeze({
@@ -16,7 +17,7 @@ export const AUTH_ERROR_MESSAGES = deepFreeze({
 
   // 用户认证错误
   INVALID_CREDENTIALS: "用户名或密码错误",
-  USER_NOT_FOUND: "用户不存在",
+  USER_NOT_FOUND: QUICK_MESSAGES.USER_NOT_FOUND, // 使用模板，避免重复
   USER_INACTIVE: "用户账户已停用",
   USER_LOCKED: "用户账户已锁定",
   USER_EXISTS: "用户名或邮箱已存在",
@@ -34,7 +35,7 @@ export const AUTH_ERROR_MESSAGES = deepFreeze({
   API_CREDENTIALS_INVALID: "API凭证无效",
   API_CREDENTIALS_EXPIRED: "API凭证已过期",
   API_CREDENTIALS_REVOKED: "API凭证已被撤销",
-  API_KEY_NOT_FOUND: "API Key不存在",
+  API_KEY_NOT_FOUND: QUICK_MESSAGES.API_KEY_NOT_FOUND, // 使用模板，避免重复
   API_KEY_ALREADY_REVOKED: "API Key已被撤销",
   API_KEY_NOT_FOUND_OR_NO_PERMISSION: "API Key不存在或无权限操作",
   API_KEY_VALIDATION_FAILED: "API Key验证失败",
@@ -108,7 +109,7 @@ export const BUSINESS_ERROR_MESSAGES = deepFreeze({
   INVALID_VALUE: "值无效",
 
   // 资源错误
-  RESOURCE_NOT_FOUND: "资源不存在",
+  RESOURCE_NOT_FOUND: QUICK_MESSAGES.RESOURCE_NOT_FOUND, // 使用模板，避免重复
   RESOURCE_ALREADY_EXISTS: "资源已存在",
   RESOURCE_CONFLICT: "资源冲突",
   RESOURCE_LOCKED: "资源已锁定",
@@ -139,7 +140,7 @@ export const BUSINESS_ERROR_MESSAGES = deepFreeze({
   TOO_MANY_REQUESTS: "请求过于频繁",
 
   // 数据相关错误
-  DATA_NOT_FOUND: "数据不存在",
+  DATA_NOT_FOUND: QUICK_MESSAGES.DATA_NOT_FOUND, // 使用模板，避免重复
   DATA_CORRUPTED: "数据损坏",
   DATA_PROCESSING_FAILED: "数据处理失败",
 });
@@ -176,9 +177,9 @@ export const SYSTEM_ERROR_MESSAGES = deepFreeze({
 export const HTTP_ERROR_MESSAGES = deepFreeze({
   // 4xx 客户端错误
   BAD_REQUEST: "请求参数错误",
-  HTTP_UNAUTHORIZED: "未授权访问", // 重命名，避免与AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS重复
+  HTTP_UNAUTHORIZED: AUTH_ERROR_MESSAGES.UNAUTHORIZED_ACCESS, // 引用统一定义，避免重复
   FORBIDDEN: "访问被禁止",
-  NOT_FOUND: "资源不存在",
+  NOT_FOUND: QUICK_MESSAGES.RESOURCE_NOT_FOUND, // 使用模板，避免重复
   METHOD_NOT_ALLOWED: "请求方法不允许",
   CONFLICT: "请求冲突",
   PAYLOAD_TOO_LARGE: "请求体过大",

@@ -9,7 +9,8 @@
  * - 国际化就绪：为多语言支持预留接口
  */
 
-import { deepFreeze } from "@common/utils/object-immutability.util";
+import { deepFreeze } from "../../utils/object-immutability.util";
+import { QUICK_MESSAGES } from "./message-templates.constants";
 export const OPERATION_CONSTANTS = deepFreeze({
   // CRUD操作消息
   CRUD_MESSAGES: {
@@ -40,7 +41,7 @@ export const OPERATION_CONSTANTS = deepFreeze({
     BUSINESS_VALIDATION_FAILED: "业务规则验证失败",
 
     // 资源状态消息
-    RESOURCE_NOT_FOUND: "资源不存在",
+    RESOURCE_NOT_FOUND: QUICK_MESSAGES.RESOURCE_NOT_FOUND, // 使用模板，避免重复
     RESOURCE_ALREADY_EXISTS: "资源已存在",
     RESOURCE_LOCKED: "资源被锁定",
     RESOURCE_EXPIRED: "资源已过期",
