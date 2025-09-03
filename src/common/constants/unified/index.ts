@@ -7,11 +7,16 @@
  * 基本用法：
  * ```typescript
  * // 导入顶级常量
- * import { SYSTEM_CONSTANTS, HTTP_CONSTANTS } from '@common/constants/unified';
+ * import { SYSTEM_CONSTANTS, HTTP_CONSTANTS, MESSAGE_TEMPLATES } from '@common/constants/unified';
  *
  * // 导入具体函数或类型（直接从子模块导入）
  * import { isValidLogLevel } from '@common/constants/unified/system.constants';
  * import { isSuccessStatusCode } from '@common/constants/unified/http.constants';
+ *
+ * // 使用消息模板
+ * import { QUICK_MESSAGES, MessageTemplateUtil } from '@common/constants/unified';
+ * const userNotFound = QUICK_MESSAGES.USER_NOT_FOUND;
+ * const customMessage = MESSAGE_TEMPLATES.NOT_FOUND("自定义资源");
  * ```
  */
 
@@ -21,6 +26,15 @@ export { HTTP_CONSTANTS } from "./http.constants";
 export { PERFORMANCE_CONSTANTS } from "./performance.constants";
 export { CACHE_CONSTANTS } from "./unified-cache-config.constants";
 export { OPERATION_CONSTANTS } from "./operations.constants";
+
+// 消息模板系统 - 新增
+export { 
+  MESSAGE_TEMPLATES, 
+  RESOURCE_TYPES, 
+  OPERATION_TYPES,
+  QUICK_MESSAGES,
+  MessageTemplateUtil 
+} from "./message-templates.constants";
 
 // 统一常量集合
 export { UNIFIED_CONSTANTS } from "./unified-constants-collection";
