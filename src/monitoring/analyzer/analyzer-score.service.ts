@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "../../app/config/logger.config";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
+import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 
 /**
  * 健康分计算器
@@ -207,10 +208,10 @@ export class AnalyzerHealthScoreCalculator {
   /**
    * 获取健康状态
    */
-  getHealthStatus(score: number): "healthy" | "warning" | "critical" {
-    if (score >= 70) return "healthy";
-    if (score >= 40) return "warning";
-    return "critical";
+  getHealthStatus(score: number): ExtendedHealthStatus {
+    if (score >= 70) return MONITORING_HEALTH_STATUS.HEALTHY;
+    if (score >= 40) return MONITORING_HEALTH_STATUS.WARNING;
+    return MONITORING_HEALTH_STATUS.UNHEALTHY; // Map "critical" to "unhealthy" for consistency
   }
 
   /**

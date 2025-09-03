@@ -22,12 +22,16 @@ import {
   CACHE_KEYS,
   CACHE_OPERATIONS,
   CACHE_CONSTANTS,
+  CACHE_DATA_FORMATS,
+  SerializerType,
+  SERIALIZER_TYPE_VALUES,
 } from "../constants/cache.constants";
 
 // 🎯 Gzip 压缩/解压缩
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
-const COMPRESSION_PREFIX = "COMPRESSED::";
+// 🎯 使用统一的压缩前缀常量，替代硬编码魔法字符串
+// const COMPRESSION_PREFIX = "COMPRESSED::"; // 已移除硬编码
 
 // 🎯 使用内部 DTO 类型替换原始接口定义
 import {
@@ -116,7 +120,7 @@ export class CacheService {
    */
   async get<T>(
     key: string,
-    deserializer?: "json" | "msgpack",
+    deserializer?: SerializerType,
   ): Promise<T | null> {
     // 检查键长度
     this.validateKeyLength(key);
@@ -667,7 +671,7 @@ export class CacheService {
   // 私有辅助方法
   private serialize<T>(
     value: T,
-    serializerType: "json" | "msgpack" = "json",
+    serializerType: SerializerType = CACHE_DATA_FORMATS.SERIALIZATION.JSON,
   ): string {
     if (value === undefined) {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
@@ -696,7 +700,7 @@ export class CacheService {
 
   private deserialize<T>(
     value: string,
-    deserializerType: "json" | "msgpack" = "json",
+    deserializerType: SerializerType = CACHE_DATA_FORMATS.SERIALIZATION.JSON,
   ): T {
     if (value === null) {
       return null;
@@ -720,7 +724,7 @@ export class CacheService {
     try {
       const compressedBuffer = await gzip(value);
       // 🎯 添加前缀以标识压缩数据
-      return COMPRESSION_PREFIX + compressedBuffer.toString("base64");
+      return CACHE_DATA_FORMATS.COMPRESSION_PREFIX + compressedBuffer.toString("base64");
     } catch (error) {
       this.logger.error(
         CACHE_ERROR_MESSAGES.COMPRESSION_FAILED,
@@ -734,7 +738,7 @@ export class CacheService {
   private async decompress(value: string): Promise<string> {
     try {
       // 🎯 移除前缀并解压
-      const compressedData = value.substring(COMPRESSION_PREFIX.length);
+      const compressedData = value.substring(CACHE_DATA_FORMATS.COMPRESSION_PREFIX.length);
       const buffer = Buffer.from(compressedData, "base64");
       const decompressedBuffer = await gunzip(buffer);
       return decompressedBuffer.toString("utf8");
@@ -750,7 +754,7 @@ export class CacheService {
 
   private isCompressed(value: string): boolean {
     // 🎯 通过前缀判断是否压缩
-    return value.startsWith(COMPRESSION_PREFIX);
+    return value.startsWith(CACHE_DATA_FORMATS.COMPRESSION_PREFIX);
   }
 
   private async releaseLock(lockKey: string, lockValue: string): Promise<void> {

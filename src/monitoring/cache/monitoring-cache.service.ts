@@ -7,6 +7,7 @@ import {
   getMonitoringConfigForEnvironment,
 } from "../config/monitoring.config";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
+import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 
 /**
  * 监控专用缓存服务
@@ -783,7 +784,7 @@ export class MonitoringCacheService {
 
   // 监控缓存自身的健康检查（暴露内部健康指标）
   async healthCheck(): Promise<{
-    status: "healthy" | "degraded" | "unhealthy";
+    status: ExtendedHealthStatus;
     metrics: {
       hitRate: number;
       errorRate: number;
@@ -818,7 +819,7 @@ export class MonitoringCacheService {
       const latencyStats = this.calculateLatencyPercentiles();
 
       return {
-        status: retrieved && errorRate < 0.1 ? "healthy" : "degraded",
+        status: retrieved && errorRate < 0.1 ? MONITORING_HEALTH_STATUS.HEALTHY : MONITORING_HEALTH_STATUS.DEGRADED,
         metrics: {
           hitRate,
           errorRate,
@@ -831,7 +832,7 @@ export class MonitoringCacheService {
       };
     } catch (error) {
       return {
-        status: "unhealthy",
+        status: MONITORING_HEALTH_STATUS.UNHEALTHY,
         metrics: {
           hitRate: 0,
           errorRate: 1,
@@ -865,7 +866,7 @@ export class MonitoringCacheService {
       },
       latency: latencyStats,
       uptime: Date.now() - this.metrics.startTime,
-      status: errorRate < 0.1 ? "healthy" : "degraded",
+      status: errorRate < 0.1 ? MONITORING_HEALTH_STATUS.HEALTHY : MONITORING_HEALTH_STATUS.DEGRADED,
     };
   }
 }

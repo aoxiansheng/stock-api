@@ -5,6 +5,7 @@ import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.event
 import { createLogger } from "../../../app/config/logger.config";
 import { EventBatcher, BatchResult } from "./event-batcher";
 import { performanceDecoratorBus } from "../decorators/infrastructure-database.decorator";
+import { MonitoringSerializer } from "../../utils/monitoring-serializer";
 
 /**
  * 🎯 监控事件桥接层服务
@@ -130,7 +131,7 @@ export class MonitoringEventBridgeService
 
     events.forEach((event) => {
       const { metricName, metricValue, tags } = event;
-      const key = JSON.stringify({ metricName, tags });
+      const key = MonitoringSerializer.generateCacheKey(metricName, tags || {});
 
       if (aggregated.has(key)) {
         const existing = aggregated.get(key);

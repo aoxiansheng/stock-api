@@ -6,6 +6,7 @@ import { TrendsDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
+import { MonitoringSerializer } from "../utils/monitoring-serializer";
 
 /**
  * 趋势分析服务
@@ -598,12 +599,15 @@ export class TrendAnalyzerService {
    * 生成指标哈希
    */
   private generateMetricsHash(metrics: RawMetricsDto): string {
-    const content = JSON.stringify({
+    const metricsData = {
       requestsCount: metrics.requests?.length || 0,
       databaseCount: metrics.database?.length || 0,
       cacheCount: metrics.cache?.length || 0,
       hasSystem: !!metrics.system,
-    });
+    };
+    
+    const serializationResult = MonitoringSerializer.serializeTags(metricsData);
+    const content = serializationResult.serialized;
 
     return Buffer.from(content).toString("base64").substring(0, 8);
   }

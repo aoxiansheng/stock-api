@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
 import Redis from "ioredis";
+import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 import {
   ConfigValidatorService,
   FullValidationResult,
@@ -10,8 +11,8 @@ import {
   StartupResult,
 } from "../../app/startup/health-checker.service";
 
-export interface ExtendedHealthStatus {
-  status: "healthy" | "degraded" | "unhealthy";
+export interface ExtendedHealthReport {
+  status: ExtendedHealthStatus;
   timestamp: string;
   uptime: number;
   version: string;
@@ -92,7 +93,7 @@ export class ExtendedHealthService {
   /**
    * 获取完整的健康状态
    */
-  async getFullHealthStatus(): Promise<ExtendedHealthStatus> {
+  async getFullHealthStatus(): Promise<ExtendedHealthReport> {
     const startTime = Date.now();
 
     try {
@@ -112,7 +113,7 @@ export class ExtendedHealthService {
         dependenciesInfo,
       );
 
-      const status: ExtendedHealthStatus = {
+      const status: ExtendedHealthReport = {
         status: this.determineOverallStatus(healthScore),
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
@@ -206,7 +207,7 @@ export class ExtendedHealthService {
    * 获取依赖服务健康状态
    */
   async getDependenciesHealthStatus(): Promise<
-    ExtendedHealthStatus["dependencies"]
+    ExtendedHealthReport["dependencies"]
   > {
     return this.getDependenciesHealth();
   }
@@ -240,7 +241,7 @@ export class ExtendedHealthService {
   /**
    * 获取系统信息
    */
-  private async getSystemInfo(): Promise<ExtendedHealthStatus["system"]> {
+  private async getSystemInfo(): Promise<ExtendedHealthReport["system"]> {
     const memUsage = process.memoryUsage();
 
     // 获取系统总内存（简化版本）
@@ -267,7 +268,7 @@ export class ExtendedHealthService {
    * 获取依赖服务健康状态
    */
   private async getDependenciesHealth(): Promise<
-    ExtendedHealthStatus["dependencies"]
+    ExtendedHealthReport["dependencies"]
   > {
     const results = await Promise.allSettled([
       this.checkMongoDBHealth(),
@@ -399,7 +400,7 @@ export class ExtendedHealthService {
    */
   private calculateHealthScore(
     configResult: PromiseSettledResult<FullValidationResult>,
-    dependencies: ExtendedHealthStatus["dependencies"],
+    dependencies: ExtendedHealthReport["dependencies"],
   ): number {
     let score = 100;
 
@@ -427,10 +428,10 @@ export class ExtendedHealthService {
    */
   private determineOverallStatus(
     healthScore: number,
-  ): "healthy" | "degraded" | "unhealthy" {
-    if (healthScore >= 80) return "healthy";
-    if (healthScore >= 50) return "degraded";
-    return "unhealthy";
+  ): ExtendedHealthStatus {
+    if (healthScore >= 80) return MONITORING_HEALTH_STATUS.HEALTHY;
+    if (healthScore >= 50) return MONITORING_HEALTH_STATUS.DEGRADED;
+    return MONITORING_HEALTH_STATUS.UNHEALTHY;
   }
 
   /**
@@ -438,7 +439,7 @@ export class ExtendedHealthService {
    */
   private generateRecommendations(
     configResult: PromiseSettledResult<FullValidationResult>,
-    dependencies: ExtendedHealthStatus["dependencies"],
+    dependencies: ExtendedHealthReport["dependencies"],
   ): string[] {
     const recommendations: string[] = [];
 
@@ -480,9 +481,9 @@ export class ExtendedHealthService {
   /**
    * 获取失败时的健康状态
    */
-  private getFailureHealthStatus(error: Error): ExtendedHealthStatus {
+  private getFailureHealthStatus(error: Error): ExtendedHealthReport {
     return {
-      status: "unhealthy",
+      status: MONITORING_HEALTH_STATUS.UNHEALTHY,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       version: process.env.APP_VERSION || "1.0.0",

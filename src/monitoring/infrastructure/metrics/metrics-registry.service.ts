@@ -15,6 +15,7 @@ import {
   collectDefaultMetrics,
   Registry,
 } from "prom-client";
+import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../../constants";
 
 @Injectable()
 export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
@@ -720,22 +721,22 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
    * 🎯 健康检查
    */
   getHealthStatus(): {
-    status: "healthy" | "degraded" | "unhealthy";
+    status: ExtendedHealthStatus;
     metricsCount: number;
     errors: string[];
   } {
     const errors: string[] = [];
-    let status: "healthy" | "degraded" | "unhealthy" = "healthy";
+    let status: ExtendedHealthStatus = MONITORING_HEALTH_STATUS.HEALTHY;
 
     try {
       const metricsCount = this.registry.getMetricsAsArray().length;
 
       if (metricsCount === 0) {
         errors.push("No metrics registered");
-        status = "unhealthy";
+        status = MONITORING_HEALTH_STATUS.UNHEALTHY;
       } else if (metricsCount < 10) {
         errors.push("Low metrics count");
-        status = "degraded";
+        status = MONITORING_HEALTH_STATUS.DEGRADED;
       }
 
       return {
@@ -745,7 +746,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (error) {
       return {
-        status: "unhealthy",
+        status: MONITORING_HEALTH_STATUS.UNHEALTHY,
         metricsCount: 0,
         errors: [`Registry error: ${error.message}`],
       };

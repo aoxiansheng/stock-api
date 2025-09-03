@@ -6,6 +6,10 @@ import {
   ErrorContext,
 } from "../contracts/interfaces/error-handler.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
+import { MONITORING_MESSAGE_SEVERITY } from "../constants";
+
+// 错误级别类型定义（基于消息严重性常量）
+type ErrorLevel = keyof typeof MONITORING_MESSAGE_SEVERITY;
 
 /**
  * 展示层错误处理服务
@@ -31,13 +35,13 @@ export class PresenterErrorHandlerService implements ISystemStatusErrorHandler {
 
       // 根据错误级别选择日志方法
       switch (errorLevel) {
-        case "critical":
+        case "CRITICAL":
           this.logger.error(errorMessage, error.stack);
           break;
-        case "warning":
+        case "WARNING":
           this.logger.warn(errorMessage);
           break;
-        case "info":
+        case "INFO":
           this.logger.debug(errorMessage);
           break;
         default:
@@ -212,9 +216,9 @@ export class PresenterErrorHandlerService implements ISystemStatusErrorHandler {
   private determineErrorLevel(
     error: Error,
     context: ErrorContext,
-  ): "critical" | "warning" | "info" {
+  ): ErrorLevel {
     if (this.isCriticalError(error, context)) {
-      return "critical";
+      return "CRITICAL";
     }
 
     // 用户输入错误通常是警告级别
@@ -222,7 +226,7 @@ export class PresenterErrorHandlerService implements ISystemStatusErrorHandler {
       error.name === "BadRequestException" ||
       error.name === "ValidationError"
     ) {
-      return "warning";
+      return "WARNING";
     }
 
     // 权限错误
@@ -230,21 +234,21 @@ export class PresenterErrorHandlerService implements ISystemStatusErrorHandler {
       error.name === "UnauthorizedException" ||
       error.name === "ForbiddenException"
     ) {
-      return "warning";
+      return "WARNING";
     }
 
     // 业务逻辑错误
     if (error.name === "BusinessException" || error.message.includes("业务")) {
-      return "warning";
+      return "WARNING";
     }
 
     // Presenter层错误通常不太严重
     if (context.layer === "presenter") {
-      return "warning";
+      return "WARNING";
     }
 
     // 默认为警告级别
-    return "warning";
+    return "WARNING";
   }
 
   /**

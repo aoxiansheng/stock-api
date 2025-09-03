@@ -3,6 +3,8 @@
  * 职责：所有计算和分析逻辑，统一缓存管理，事件发射中心
  */
 
+import { ExtendedHealthStatus } from "../../constants";
+
 export interface AnalysisOptions {
   startTime?: Date;
   endTime?: Date;
@@ -34,7 +36,7 @@ export interface PerformanceAnalysisDto {
 export interface HealthReportDto {
   overall: {
     score: number;
-    status: "healthy" | "warning" | "critical";
+    status: ExtendedHealthStatus;
     timestamp: Date;
   };
   components: {

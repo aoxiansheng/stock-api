@@ -1,73 +1,63 @@
 /**
- * 缓存服务常量
+ * 缓存服务常量 - 向后兼容接口
  * 🎯 统一定义缓存相关的常量，确保系统一致性
+ * ⚠️  本文件保持向后兼容，推荐使用模块化导入
+ * 
+ * 新的模块化结构：
+ * - config/ : 配置相关常量（数据格式、TTL、键值）
+ * - operations/ : 操作相关常量（核心、扩展、内部）
+ * - status/ : 状态相关常量（缓存状态、健康状态）
+ * - messages/ : 消息相关常量（错误、警告、成功）
+ * - metrics/ : 指标相关常量（Prometheus指标）
  */
 
 import { CACHE_CONSTANTS } from "../../common/constants/unified/unified-cache-config.constants";
 
-/**
- * 缓存错误消息常量
- */
-export const CACHE_ERROR_MESSAGES = Object.freeze({
-  SET_FAILED: "缓存设置失败",
-  GET_FAILED: "缓存获取失败",
-  GET_OR_SET_FAILED: "带回调的缓存获取或设置失败",
-  DELETE_FAILED: "缓存删除失败",
-  PATTERN_DELETE_FAILED: "模式删除缓存失败",
-  BATCH_GET_FAILED: "批量缓存获取失败",
-  BATCH_SET_FAILED: "批量缓存设置失败",
-  WARMUP_FAILED: "缓存预热失败",
-  LOCK_RELEASE_FAILED: "释放锁失败",
-  COMPRESSION_FAILED: "数据压缩失败",
-  DECOMPRESSION_FAILED: "数据解压失败",
-  SERIALIZATION_FAILED: "数据序列化失败",
-  DESERIALIZATION_FAILED: "数据反序列化失败",
-  HEALTH_CHECK_FAILED: "缓存健康检查失败",
-  REDIS_CONNECTION_FAILED: "Redis连接失败",
-  REDIS_PING_FAILED: "Redis PING 命令失败",
-  MEMORY_USAGE_HIGH: "Redis 内存使用率超过90%",
-  STATS_RETRIEVAL_FAILED: "获取缓存统计信息失败",
-  INVALID_KEY_LENGTH: "缓存键长度无效",
-} as const);
+// 导入模块化常量定义
+import type { SerializerType } from './config/data-formats.constants';
+import { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES } from './config/data-formats.constants';
+import { CACHE_TTL_CONFIG, CACHE_TTL } from './config/ttl-config.constants';
+import { CACHE_KEYS as MODULAR_CACHE_KEYS, CACHE_KEY_GENERATORS } from './config/cache-keys.constants';
+import { CACHE_CORE_OPERATIONS } from './operations/core-operations.constants';
+import { CACHE_EXTENDED_OPERATIONS } from './operations/extended-operations.constants';
+import { CACHE_INTERNAL_OPERATIONS } from './operations/internal-operations.constants';
+import { CACHE_STATUS } from './status/cache-status.constants';
+import type { BasicHealthStatus, ExtendedHealthStatus } from './status/health-status.constants';
+import { BASIC_HEALTH_STATUS_VALUES, EXTENDED_HEALTH_STATUS_VALUES, mapInternalToExternalStatus } from './status/health-status.constants';
+import { CACHE_MESSAGES } from './messages/cache-messages.constants';
+import { CACHE_METRICS as MODULAR_CACHE_METRICS } from './metrics/cache-metrics.constants';
+
+// ============================================================================
+// 向后兼容导出 - 重新导出模块化常量
+// ============================================================================
 
 /**
- * 缓存警告消息常量
+ * 缓存错误消息常量
+ * @deprecated 推荐使用 import { CACHE_MESSAGES } from './messages/cache-messages.constants'
  */
-export const CACHE_WARNING_MESSAGES = Object.freeze({
-  CACHE_MISS: "缓存未命中",
-  LOCK_ACQUISITION_FAILED: "获取锁失败",
-  COMPRESSION_SKIPPED: "跳过数据压缩",
-  MEMORY_USAGE_WARNING: "内存使用率较高",
-  SLOW_OPERATION: "缓存操作响应较慢",
-  HEALTH_CHECK_WARNING: "缓存健康检查异常",
-  STATS_CLEANUP_WARNING: "缓存统计清理异常",
-  LARGE_VALUE_WARNING: "缓存值较大",
-  HIGH_MISS_RATE: "缓存未命中率较高",
-  LOCK_TIMEOUT: "锁等待超时",
-} as const);
+export const CACHE_ERROR_MESSAGES = CACHE_MESSAGES.ERRORS;
+
+/**
+ * 缓存警告消息常量  
+ * @deprecated 推荐使用 import { CACHE_MESSAGES } from './messages/cache-messages.constants'
+ */
+export const CACHE_WARNING_MESSAGES = CACHE_MESSAGES.WARNINGS;
 
 /**
  * 缓存成功消息常量
+ * @deprecated 推荐使用 import { CACHE_MESSAGES } from './messages/cache-messages.constants'  
  */
-export const CACHE_SUCCESS_MESSAGES = Object.freeze({
-  SET_SUCCESS: "缓存设置成功",
-  GET_SUCCESS: "缓存获取成功",
-  DELETE_SUCCESS: "缓存删除成功",
-  BATCH_OPERATION_SUCCESS: "批量缓存操作成功",
-  WARMUP_STARTED: "开始缓存预热",
-  WARMUP_COMPLETED: "缓存预热完成",
-  LOCK_ACQUIRED: "获取锁成功",
-  LOCK_RELEASED: "释放锁成功",
-  HEALTH_CHECK_PASSED: "缓存健康检查通过",
-  STATS_CLEANUP_COMPLETED: "缓存统计清理完成",
-  OPTIMIZATION_TASKS_STARTED: "缓存优化任务启动",
-} as const);
+export const CACHE_SUCCESS_MESSAGES = CACHE_MESSAGES.SUCCESS;
 
 /**
- * 缓存键常量
+ * 缓存键常量 - 合并模块化和业务键值
  * 注：更多通用键前缀请使用 CACHE_CONSTANTS.KEY_PREFIXES
+ * @deprecated 推荐使用 import { CACHE_KEYS } from './config/cache-keys.constants'
  */
 export const CACHE_KEYS = Object.freeze({
+  // 从模块化常量导入
+  ...MODULAR_CACHE_KEYS,
+  // 保留原有业务键值以确保向后兼容
   STOCK_QUOTE: "stock:quote:",
   STOCK_BASIC_INFO: "stock:basic:",
   INDEX_QUOTE: "index:quote:",
@@ -78,59 +68,56 @@ export const CACHE_KEYS = Object.freeze({
   HEALTH_CHECK_PREFIX: CACHE_CONSTANTS.KEY_PREFIXES.HEALTH,
 } as const);
 
-/**
- * 缓存TTL常量 - 模块特定TTL设置
- * 注：通用TTL设置请使用 CACHE_CONSTANTS.TTL_SETTINGS
- */
-export const CACHE_TTL = Object.freeze({
-  REALTIME_DATA: CACHE_CONSTANTS.TTL_SETTINGS.REALTIME_DATA_TTL,
-  BASIC_INFO: CACHE_CONSTANTS.TTL_SETTINGS.BASIC_INFO_TTL,
-  MARKET_STATUS: 60, // 1分钟
-  MAPPING_RULES: CACHE_CONSTANTS.TTL_SETTINGS.MAPPING_CONFIG_TTL,
-  DEFAULT: CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL,
-  LOCK_TTL: 30, // 30秒锁
-  HEALTH_CHECK_TTL: CACHE_CONSTANTS.TTL_SETTINGS.HEALTH_CHECK_TTL,
-} as const);
+// 重新导出TTL配置
+export { CACHE_TTL_CONFIG, CACHE_TTL };
+
+// 重新导出操作常量
+export { CACHE_CORE_OPERATIONS, CACHE_EXTENDED_OPERATIONS, CACHE_INTERNAL_OPERATIONS };
 
 /**
- * 缓存操作常量
+ * 缓存操作常量（统一入口）
+ * @deprecated 使用分层的 CACHE_CORE_OPERATIONS, CACHE_EXTENDED_OPERATIONS, CACHE_INTERNAL_OPERATIONS 替代
+ * 
+ * 🎯 废弃原因：
+ * 1. 语义混乱：将高频核心操作与低频扩展操作混合定义
+ * 2. 暴露过多：内部实现操作不应对外暴露
+ * 3. 可维护性：单一大对象难以按用途管理
+ * 
+ * 🔄 迁移指南：
+ * ```typescript
+ * // ❌ 旧方式（已废弃）
+ * import { CACHE_OPERATIONS } from './cache.constants'
+ * const operation = CACHE_OPERATIONS.SET;
+ * 
+ * // ✅ 新方式（推荐）
+ * import { CACHE_CORE_OPERATIONS } from './cache.constants'
+ * const operation = CACHE_CORE_OPERATIONS.SET;
+ * ```
+ * 
+ * ⚠️  兼容性说明：
+ * - 此对象将在 v2.0 版本中移除
+ * - 所有操作已迁移到分层常量中
+ * - 数据结构完全兼容，无需修改业务逻辑
+ * 
+ * @since v1.2.0 废弃
+ * @removed v2.0.0 计划移除
  */
 export const CACHE_OPERATIONS = Object.freeze({
-  SET: "set",
-  GET: "get",
-  GET_OR_SET: "getOrSet",
-  MGET: "mget",
-  MSET: "mset",
-  DELETE: "del",
-  PATTERN_DELETE: "delByPattern",
-  WARMUP: "warmup",
-  HEALTH_CHECK: "healthCheck",
-  GET_STATS: "getStats",
-  ACQUIRE_LOCK: "acquireLock",
-  RELEASE_LOCK: "releaseLock",
-  COMPRESS: "compress",
-  DECOMPRESS: "decompress",
-  SERIALIZE: "serialize",
-  DESERIALIZE: "deserialize",
-  UPDATE_METRICS: "updateCacheMetrics",
-  CLEANUP_STATS: "cleanupStats",
-  CHECK_AND_LOG_HEALTH: "checkAndLogHealth",
+  // 核心操作
+  ...CACHE_CORE_OPERATIONS,
+  // 扩展操作
+  ...CACHE_EXTENDED_OPERATIONS,
+  // 内部操作
+  ...CACHE_INTERNAL_OPERATIONS,
 } as const);
 
-/**
- * 缓存状态常量
- */
-export const CACHE_STATUS = Object.freeze({
-  HEALTHY: "healthy",
-  WARNING: "warning",
-  UNHEALTHY: "unhealthy",
-  CONNECTED: "connected",
-  DISCONNECTED: "disconnected",
-  DEGRADED: "degraded",
-} as const);
+// 重新导出状态相关常量和类型
+export { CACHE_STATUS };
+export { BasicHealthStatus, ExtendedHealthStatus, BASIC_HEALTH_STATUS_VALUES, EXTENDED_HEALTH_STATUS_VALUES, mapInternalToExternalStatus };
 
 /**
  * 缓存性能指标常量
+ * @deprecated 推荐使用 import { CACHE_METRICS } from './metrics/cache-metrics.constants'
  */
 export const CACHE_METRICS = Object.freeze({
   HITS: "cache_hits",
@@ -147,6 +134,9 @@ export const CACHE_METRICS = Object.freeze({
   ERROR_COUNT: "cache_error_count",
   SLOW_OPERATIONS: "cache_slow_operations",
 } as const);
+
+// 重新导出数据格式常量和类型
+export { CACHE_DATA_FORMATS, SerializerType, SERIALIZER_TYPE_VALUES };
 
 // 移除以下重复的常量，改为导出通用配置
 export { CACHE_CONSTANTS };

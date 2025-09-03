@@ -6,6 +6,7 @@ import { HealthReportDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
+import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 
 /**
  * 健康分析服务
@@ -166,7 +167,7 @@ export class HealthAnalyzerService {
                 metadata: {
                   healthScore,
                   previousScore: 50, // 简化实现，实际应该记录历史分数
-                  trend: "critical",
+                  trend: MONITORING_HEALTH_STATUS.UNHEALTHY,
                   recommendations: report.recommendations,
                 },
               });
@@ -208,7 +209,7 @@ export class HealthAnalyzerService {
   async quickHealthCheck(rawMetrics: RawMetricsDto): Promise<{
     isHealthy: boolean;
     score: number;
-    status: "healthy" | "warning" | "critical";
+    status: ExtendedHealthStatus;
     criticalIssues: string[];
   }> {
     try {
@@ -231,7 +232,7 @@ export class HealthAnalyzerService {
       );
 
       return {
-        isHealthy: healthStatus === "healthy",
+        isHealthy: healthStatus === MONITORING_HEALTH_STATUS.HEALTHY,
         score: healthScore,
         status: healthStatus,
         criticalIssues,
@@ -241,7 +242,7 @@ export class HealthAnalyzerService {
       return {
         isHealthy: false,
         score: 0,
-        status: "critical",
+        status: MONITORING_HEALTH_STATUS.UNHEALTHY, // Use unhealthy for critical errors
         criticalIssues: ["健康检查系统异常"],
       };
     }
@@ -459,7 +460,7 @@ export class HealthAnalyzerService {
     return {
       overall: {
         score: 50,
-        status: "warning",
+        status: MONITORING_HEALTH_STATUS.WARNING,
         timestamp: new Date(),
       },
       components: {

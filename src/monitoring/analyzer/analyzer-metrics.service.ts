@@ -8,6 +8,7 @@ import {
   CacheMetricsDto,
   TrendsDto,
 } from "../contracts/interfaces/analyzer.interface";
+import { MONITORING_KEY_TEMPLATES } from "../constants";
 
 /**
  * 指标计算器
@@ -135,7 +136,7 @@ export class AnalyzerMetricsCalculator {
       const endpointGroups = new Map<string, typeof requests>();
 
       for (const request of requests) {
-        const key = `${request.method}:${request.endpoint}`;
+        const key = MONITORING_KEY_TEMPLATES.REQUEST_KEY(request.method, request.endpoint);
         if (!endpointGroups.has(key)) {
           endpointGroups.set(key, []);
         }
