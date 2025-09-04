@@ -4,6 +4,7 @@
  */
 
 import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 /**
  * 股票代码映射错误消息常量
@@ -125,7 +126,7 @@ export const SYMBOL_MAPPER_METRICS = Object.freeze({
 export const SYMBOL_MAPPER_STATUS = Object.freeze({
   ACTIVE: "active",
   INACTIVE: "inactive",
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
   PROCESSING: "processing",
   COMPLETED: "completed",
   FAILED: "failed",

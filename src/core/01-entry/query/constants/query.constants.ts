@@ -4,6 +4,7 @@
  */
 
 import { BATCH_CONSTANTS } from "@common/constants/unified";
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 /**
  * 查询错误消息常量
@@ -184,7 +185,7 @@ export const QUERY_METRICS = Object.freeze({
  * 查询状态常量
  */
 export const QUERY_STATUS = Object.freeze({
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
   VALIDATING: "validating",
   EXECUTING: "executing",
   PROCESSING_RESULTS: "processing_results",

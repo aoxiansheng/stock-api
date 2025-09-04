@@ -3,6 +3,8 @@
  * 包含能力类型、操作类型、状态、事件、指标等
  */
 
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
+
 /**
  * 支持的能力类型常量（用于数据提供商路由和能力匹配）
  * 重构说明：从 SUPPORTED_DATA_TYPES 重命名为 SUPPORTED_CAPABILITY_TYPES
@@ -42,7 +44,7 @@ export const RECEIVER_OPERATIONS = Object.freeze({
  * 数据接收状态常量
  */
 export const RECEIVER_STATUS = Object.freeze({
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
   VALIDATING: "validating",
   SELECTING_PROVIDER: "selecting_provider",
   TRANSFORMING_SYMBOLS: "transforming_symbols",

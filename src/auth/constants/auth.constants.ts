@@ -6,6 +6,8 @@
 import { UserRole } from "../../auth/enums/user-role.enum";
 import { buildCacheKey } from "@common/constants/unified/unified-cache-config.constants";
 import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
+import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 // 📝 操作名称常量
 export const AUTH_OPERATIONS = Object.freeze({
@@ -187,10 +189,10 @@ export const AUTH_INTERVALS = Object.freeze({
 
 // 🔄 重试配置常量
 export const AUTH_RETRY_CONFIG = Object.freeze({
-  MAX_RETRY_ATTEMPTS: 3,
-  RETRY_DELAY_MS: 1000,
-  EXPONENTIAL_BACKOFF_FACTOR: 2,
-  MAX_RETRY_DELAY_MS: 10000,
+  MAX_RETRY_ATTEMPTS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS,
+  RETRY_DELAY_MS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.RETRY_DELAY_MS,
+  EXPONENTIAL_BACKOFF_FACTOR: 2, // 保留auth特定的退避因子
+  MAX_RETRY_DELAY_MS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_DELAY_MS,
   CIRCUIT_BREAKER_THRESHOLD: 5,
   CIRCUIT_BREAKER_TIMEOUT_MS: 60000,
 });
@@ -201,7 +203,7 @@ export const AUTH_RESPONSE_STATUS = Object.freeze({
   ERROR: "error",
   WARNING: "warning",
   INFO: "info",
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
   EXPIRED: "expired",
   INVALID: "invalid",
   LOCKED: "locked",

@@ -4,6 +4,7 @@
  */
 
 import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 /**
  * 存储错误消息常量
@@ -105,22 +106,6 @@ export const STORAGE_OPERATIONS = Object.freeze({
   STATS_GENERATION: "stats_generation",
 } as const);
 
-/**
- * 存储源类型常量
- * 注意：STORAGETYPECACHE、PERSISTENT、BOTH 已移到 StorageType 枚举中
- * NOT_FOUND 已移到 STORAGE_STATUS 中
- * 此常量对象现在为空，将被废弃
- */
-export const STORAGE_SOURCES = Object.freeze({
-  // STORAGETYPECACHE 已移动到 StorageType 枚举中，此常量将被废弃
-  // 请使用 StorageType.STORAGETYPECACHE 替代
-  // PERSISTENT 已移动到 StorageType 枚举中，此常量将被废弃
-  // 请使用 StorageType.PERSISTENT 替代
-  // BOTH 已移动到 StorageType 枚举中，此常量将被废弃
-  // 请使用 StorageType.BOTH 替代
-  // NOT_FOUND 已移动到 STORAGE_STATUS 中，此常量将被废弃
-  // 请使用 STORAGE_STATUS.NOT_FOUND 替代
-} as const);
 
 /**
  * 存储状态常量
@@ -131,7 +116,7 @@ export const STORAGE_STATUS = Object.freeze({
   PARTIAL_SUCCESS: "partial_success",
   TIMEOUT: "timeout",
   CANCELLED: "cancelled",
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
   PROCESSING: "processing",
   NOT_FOUND: "not_found", // 从 STORAGE_SOURCES 迁移而来，语义上属于操作状态
 } as const);

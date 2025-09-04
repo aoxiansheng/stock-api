@@ -16,6 +16,9 @@ import { CACHE_CONSTANTS } from "../../common/constants/unified/unified-cache-co
 // 导入模块化常量定义
 import type { SerializerType } from './config/data-formats.constants';
 import { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES } from './config/data-formats.constants';
+
+// 导出类型以供外部使用
+export type { SerializerType };
 import { CACHE_TTL_CONFIG, CACHE_TTL } from './config/ttl-config.constants';
 import { CACHE_KEYS as MODULAR_CACHE_KEYS, CACHE_KEY_GENERATORS } from './config/cache-keys.constants';
 import { CACHE_CORE_OPERATIONS } from './operations/core-operations.constants';
@@ -136,7 +139,7 @@ export const CACHE_METRICS = Object.freeze({
 } as const);
 
 // 重新导出数据格式常量和类型
-export { CACHE_DATA_FORMATS, SerializerType, SERIALIZER_TYPE_VALUES };
+export { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES };
 
 // 移除以下重复的常量，改为导出通用配置
 export { CACHE_CONSTANTS };

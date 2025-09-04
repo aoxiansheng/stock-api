@@ -5,6 +5,7 @@
 
 // 导入统一常量系统，避免重复定义
 import { PERFORMANCE_CONSTANTS } from "@common/constants/unified";
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 // 复用 data-mapper 的转换类型常量，避免重复定义
 import { 
   TRANSFORMATION_TYPES, 
@@ -88,7 +89,7 @@ export const TRANSFORM_METRICS = Object.freeze({
  * 转换状态常量
  */
 export const TRANSFORM_STATUS = Object.freeze({
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
   PROCESSING: "processing",
   SUCCESS: "success",
   FAILED: "failed",

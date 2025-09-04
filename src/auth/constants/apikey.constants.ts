@@ -4,6 +4,7 @@
  */
 
 import { deepFreeze } from "@common/utils/object-immutability.util";
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 // 📝 操作名称常量
 export const APIKEY_OPERATIONS = deepFreeze({
@@ -91,7 +92,7 @@ export const APIKEY_STATUS = deepFreeze({
   EXPIRED: "expired",
   REVOKED: "revoked",
   SUSPENDED: "suspended",
-  PENDING: "pending",
+  PENDING: OperationStatus.PENDING,
 });
 
 // 🏷️ API Key 类型常量

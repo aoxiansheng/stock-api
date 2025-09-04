@@ -42,7 +42,7 @@
 **步骤 1.1.1**: 验证现有统一配置
 ```bash
 # 检查现有的统一性能配置
-cat src/common/constants/unified/performance.constants.ts | grep -A 10 "RETRY_SETTINGS"
+cat src/common/constants/unified/retry.constants.ts | grep -A 20 "DEFAULT_SETTINGS"
 ```
 
 **步骤 1.1.2**: 更新 symbol-transformer.constants.ts
@@ -62,10 +62,13 @@ export const RETRY_CONFIG = {
 */
 
 // 替换为：
-import { PERFORMANCE_CONSTANTS } from '../../../../common/constants/unified/performance.constants';
+import { RETRY_CONSTANTS } from '../../../../common/constants/unified/retry.constants';
 
 // 创建别名以保持向后兼容
-export const RETRY_CONFIG = PERFORMANCE_CONSTANTS.RETRY_SETTINGS;
+export const RETRY_CONFIG = RETRY_CONSTANTS.DEFAULT_SETTINGS;
+
+// 如果需要symbol-transformer特定的重试配置，可以使用：
+// export const RETRY_CONFIG = RETRY_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_MAPPER;
 ```
 
 **步骤 1.1.3**: 更新其他重复文件
@@ -81,12 +84,12 @@ export const RETRY_CONFIG = PERFORMANCE_CONSTANTS.RETRY_SETTINGS;
 // 原代码：src/core/shared/config/shared.config.ts
 // 将内嵌的 RETRY_CONFIG 替换为引用
 
-import { PERFORMANCE_CONSTANTS } from '../../../common/constants/unified/performance.constants';
+import { RETRY_CONSTANTS } from '../../../common/constants/unified/retry.constants';
 
 // 在配置对象中使用：
 const sharedConfig = {
   // ... 其他配置
-  retry: PERFORMANCE_CONSTANTS.RETRY_SETTINGS,
+  retry: RETRY_CONSTANTS.DEFAULT_SETTINGS,
   // ... 其他配置
 };
 ```
@@ -97,9 +100,12 @@ const sharedConfig = {
 - 同一模块内存在两套错误类型系统
 - 常量对象 vs 枚举，增加使用混淆
 
+**优化建议**：
+项目中已存在 [ErrorType](file:///Users/honor/Documents/code/newstockapi/backend/src/core/02-processing/symbol-transformer/utils/retry.utils.ts#L5-L12) 枚举定义，建议统一使用枚举以获得更好的类型安全性。
+
 **修复步骤**：
 
-**步骤 1.2.1**: 保留枚举定义，删除常量定义
+**步骤 1.2.1**: 统一使用枚举定义，保持向后兼容
 ```typescript
 // 文件：src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants.ts
 // 删除重复的 ERROR_TYPES 常量：
@@ -112,10 +118,9 @@ export const ERROR_TYPES = {
 } as const;
 */
 
-// 添加从枚举导出的类型别名：
-export { ErrorType as SymbolTransformErrorType } from '../utils/retry.utils';
+// 添加从枚举导出的类型别名以保持向后兼容：
+import { ErrorType } from '../utils/retry.utils';
 
-// 如果需要保持向后兼容，可以创建映射：
 export const ERROR_TYPES = {
   VALIDATION_ERROR: ErrorType.VALIDATION,
   TIMEOUT_ERROR: ErrorType.TIMEOUT,
@@ -138,6 +143,9 @@ grep -r "ERROR_TYPES" src/core/02-processing/symbol-transformer/ --include="*.ts
 **问题分析**：
 - 多个文件中存在相同的超时值
 - `REQUEST_TIMEOUT: 10000` 和 `DEFAULT_TIMEOUT_MS: 30000` 重复
+
+**优化建议**：
+项目中已存在统一的超时配置中心 [PERFORMANCE_CONSTANTS.TIMEOUTS](file:///Users/honor/Documents/code/newstockapi/backend/src/common/constants/unified/performance.constants.ts#L37-L65)，建议直接引用。
 
 **修复步骤**：
 
@@ -170,6 +178,9 @@ export const CONFIG = {
 **问题分析**：
 - Token 命名冗长：`SYMBOL_TRANSFORMER_TOKEN`, `SYMBOL_FORMAT_VALIDATOR_TOKEN`
 - 可能与其他模块冲突
+
+**优化建议**：
+建立命名空间模式，使用 Symbol 类型确保唯一性。
 
 **修复步骤**：
 
@@ -209,6 +220,9 @@ export { INJECTION_TOKENS } from '../constants/injection-tokens.constants';
 - `MONITORING_CONFIG` 使用与来源分散
 - 需要收敛监控阈值到统一配置中心
 
+**优化建议**：
+建议在统一配置中心创建监控相关常量，并在各模块中引用。
+
 **修复步骤**：
 
 **步骤 2.2.1**: 创建统一监控配置
@@ -216,7 +230,7 @@ export { INJECTION_TOKENS } from '../constants/injection-tokens.constants';
 // 文件：src/common/constants/unified/monitoring.constants.ts
 // 新建统一监控配置文件
 
-export const MONITORING_CONSTANTS = deepFreeze({
+export const MONITORING_CONSTANTS = Object.freeze({
   // Symbol Transformer 监控配置
   SYMBOL_TRANSFORMER: {
     ERROR_THRESHOLD: 0.05, // 5% 错误率阈值
@@ -257,6 +271,9 @@ export const MONITORING_CONFIG = MONITORING_CONSTANTS.SYMBOL_TRANSFORMER;
 - 断路器配置在 `retry.utils.ts` 中定义，其他模块可能需要相似配置
 - 应提取为共享配置
 
+**优化建议**：
+在统一配置中心创建断路器相关常量，并在各模块中引用。
+
 **修复步骤**：
 
 **步骤 2.3.1**: 创建共享断路器配置
@@ -264,7 +281,7 @@ export const MONITORING_CONFIG = MONITORING_CONSTANTS.SYMBOL_TRANSFORMER;
 // 文件：src/common/constants/unified/circuit-breaker.constants.ts
 // 新建断路器统一配置文件
 
-export const CIRCUIT_BREAKER_CONSTANTS = deepFreeze({
+export const CIRCUIT_BREAKER_CONSTANTS = Object.freeze({
   DEFAULT: {
     FAILURE_THRESHOLD: 5, // 失败阈值
     SUCCESS_THRESHOLD: 2, // 成功阈值
@@ -312,7 +329,7 @@ export interface BaseModuleConstants {
     readonly REQUEST_TIMEOUT: number;
     readonly ENDPOINT: string;
   };
-  readonly RETRY_CONFIG: typeof PERFORMANCE_CONSTANTS.RETRY_SETTINGS;
+  readonly RETRY_CONFIG: typeof RETRY_CONSTANTS.DEFAULT_SETTINGS;
   readonly MONITORING_CONFIG: {
     readonly ERROR_THRESHOLD: number;
     readonly SLOW_OPERATION_MS: number;
@@ -323,12 +340,15 @@ export abstract class BaseConstants {
   static createModuleConstants<T extends BaseModuleConstants>(overrides: Partial<T>): T {
     return {
       CONFIG: {
-        MAX_BATCH_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE,
+        MAX_BATCH_SIZE: 1000, // 默认值
         REQUEST_TIMEOUT: PERFORMANCE_CONSTANTS.TIMEOUTS.HTTP_REQUEST_TIMEOUT_MS,
         ENDPOINT: overrides.CONFIG?.ENDPOINT || '/api/default',
       },
-      RETRY_CONFIG: PERFORMANCE_CONSTANTS.RETRY_SETTINGS,
-      MONITORING_CONFIG: MONITORING_CONSTANTS.COMMON,
+      RETRY_CONFIG: RETRY_CONSTANTS.DEFAULT_SETTINGS,
+      MONITORING_CONFIG: {
+        ERROR_THRESHOLD: 0.05,
+        SLOW_OPERATION_MS: 100,
+      },
       ...overrides,
     } as T;
   }
@@ -339,6 +359,8 @@ export abstract class BaseConstants {
 ```typescript
 // 文件：src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants.ts
 import { BaseConstants, BaseModuleConstants } from '../../../../common/constants/base/base.constants';
+import { RETRY_CONSTANTS, PERFORMANCE_CONSTANTS } from '../../../../common/constants/unified';
+import { ErrorType } from '../utils/retry.utils';
 
 interface SymbolTransformerConstants extends BaseModuleConstants {
   readonly SYMBOL_PATTERNS: typeof symbolPatterns;
@@ -378,7 +400,10 @@ export const SYMBOL_TRANSFORMER_CONSTANTS = BaseConstants.createModuleConstants<
   SYMBOL_PATTERNS: symbolPatterns,
   MARKET_TYPES: marketTypes,
   ERROR_TYPES: errorTypes,
-  MONITORING_CONFIG: MONITORING_CONSTANTS.SYMBOL_TRANSFORMER,
+  MONITORING_CONFIG: {
+    ERROR_THRESHOLD: 0.01, // 保持原有值
+    SLOW_OPERATION_MS: 200, // 保持原有值
+  },
 });
 
 // 保持向后兼容的导出
@@ -394,14 +419,14 @@ export const { SYMBOL_PATTERNS, MARKET_TYPES, CONFIG, RETRY_CONFIG, MONITORING_C
 // 文件：test/jest/unit/core/02-processing/symbol-transformer/constants/symbol-transformer.constants.spec.ts
 
 import { SYMBOL_TRANSFORMER_CONSTANTS, RETRY_CONFIG, ERROR_TYPES } from '../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants';
-import { PERFORMANCE_CONSTANTS } from '../../../../../../../src/common/constants/unified/performance.constants';
+import { RETRY_CONSTANTS, PERFORMANCE_CONSTANTS } from '../../../../../../../src/common/constants/unified';
 
 describe('SymbolTransformerConstants', () => {
   describe('重复配置统一化测试', () => {
     it('should use unified retry configuration', () => {
-      expect(RETRY_CONFIG).toBe(PERFORMANCE_CONSTANTS.RETRY_SETTINGS);
-      expect(RETRY_CONFIG.MAX_ATTEMPTS).toBe(3);
-      expect(RETRY_CONFIG.BASE_DELAY).toBe(1000);
+      expect(RETRY_CONFIG).toBe(RETRY_CONSTANTS.DEFAULT_SETTINGS);
+      expect(RETRY_CONFIG.MAX_RETRY_ATTEMPTS).toBe(3);
+      expect(RETRY_CONFIG.RETRY_DELAY_MS).toBe(1000);
     });
 
     it('should use unified timeout configuration', () => {
@@ -410,10 +435,10 @@ describe('SymbolTransformerConstants', () => {
     });
 
     it('should have consistent error types', () => {
-      expect(ERROR_TYPES.VALIDATION_ERROR).toBeDefined();
-      expect(ERROR_TYPES.TIMEOUT_ERROR).toBeDefined();
-      expect(ERROR_TYPES.NETWORK_ERROR).toBeDefined();
-      expect(ERROR_TYPES.SYSTEM_ERROR).toBeDefined();
+      expect(ERROR_TYPES.VALIDATION_ERROR).toBe('VALIDATION');
+      expect(ERROR_TYPES.TIMEOUT_ERROR).toBe('TIMEOUT');
+      expect(ERROR_TYPES.NETWORK_ERROR).toBe('NETWORK');
+      expect(ERROR_TYPES.SYSTEM_ERROR).toBe('SYSTEM');
     });
   });
 
@@ -452,7 +477,7 @@ describe('Constants Consistency Integration', () => {
 
     for (const module of modules) {
       const constants = await import(`../../src/path/to/${module}.constants`);
-      expect(constants.RETRY_CONFIG).toEqual(PERFORMANCE_CONSTANTS.RETRY_SETTINGS);
+      expect(constants.RETRY_CONFIG).toEqual(RETRY_CONSTANTS.DEFAULT_SETTINGS);
     }
   });
 
@@ -539,7 +564,7 @@ fi
 ## 验收标准
 
 ### 功能验收
-1. ✅ 所有重复的 RETRY_CONFIG 统一引用 `PERFORMANCE_CONSTANTS.RETRY_SETTINGS`
+1. ✅ 所有重复的 RETRY_CONFIG 统一引用 `RETRY_CONSTANTS.DEFAULT_SETTINGS`
 2. ✅ ERROR_TYPES 合并为单一枚举定义
 3. ✅ 超时配置统一引用 `PERFORMANCE_CONSTANTS.TIMEOUTS`
 4. ✅ 依赖注入 Token 使用命名空间模式
@@ -625,7 +650,6 @@ npm run test:performance
 ### 定期审查
 - 季度常量使用情况审查
 - 半年度架构优化评估
-
 
 ## 总结
 

@@ -5,7 +5,6 @@ import {
   STORAGE_PERFORMANCE_THRESHOLDS,
   STORAGE_METRICS,
   STORAGE_OPERATIONS,
-  STORAGE_SOURCES,
   STORAGE_STATUS,
   STORAGE_DEFAULTS,
   STORAGE_KEY_PATTERNS,
@@ -194,16 +193,6 @@ describe("Storage Constants", () => {
     });
   });
 
-  describe("STORAGE_SOURCES", () => {
-    it("should define all source types", () => {
-      // STORAGE_SOURCES 常量已被废弃，现在应该使用 StorageType 枚举
-      expect(Object.keys(STORAGE_SOURCES)).toHaveLength(0);
-    });
-
-    it("should be frozen", () => {
-      expect(Object.isFrozen(STORAGE_SOURCES)).toBe(true);
-    });
-  });
 
   describe("STORAGE_STATUS", () => {
     it("should define all status values", () => {

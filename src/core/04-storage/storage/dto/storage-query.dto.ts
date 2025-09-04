@@ -10,7 +10,7 @@ import {
 
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
 import { StorageType } from "../enums/storage-type.enum";
-import { BaseQueryDto } from "../../../00-prepare/data-mapper/dto/common/base-query.dto";
+import { BaseQueryDto } from "@common/dto/base-query.dto";
 
 export class StorageQueryDto extends BaseQueryDto {
 

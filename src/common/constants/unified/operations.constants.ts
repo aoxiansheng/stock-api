@@ -9,6 +9,8 @@
  * - 国际化就绪：为多语言支持预留接口
  */
 
+import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
+
 import { deepFreeze } from "../../utils/object-immutability.util";
 import { QUICK_MESSAGES } from "./message-templates.constants";
 export const OPERATION_CONSTANTS = deepFreeze({
@@ -104,7 +106,7 @@ export const OPERATION_CONSTANTS = deepFreeze({
     CACHED: "cached", // 缓存数据
     PERSISTED: "persisted", // 持久化数据
     SYNCHRONIZED: "synchronized", // 已同步数据
-    PENDING: "pending", // 待处理数据
+    PENDING: OperationStatus.PENDING, // 待处理数据
     PROCESSING: "processing", // 处理中数据
     CORRUPTED: "corrupted", // 损坏数据
   } as const,

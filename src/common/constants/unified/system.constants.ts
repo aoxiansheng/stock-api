@@ -18,7 +18,7 @@ export const SYSTEM_CONSTANTS = deepFreeze({
   OPERATION_STATUS: {
     SUCCESS: "success",
     FAILED: "failed",
-    PENDING: "pending",
+    PENDING: OperationStatus.PENDING,
     PROCESSING: "processing",
     CANCELLED: "cancelled",
     TIMEOUT: "timeout",

@@ -58,7 +58,7 @@ export class StoreDataDto {
   @ApiProperty({
     description: "Storage type",
     enum: StorageType,
-    example: StorageType.BOTH,
+    example: StorageType.STORAGETYPECACHE,
   })
   @IsEnum(StorageType)
   storageType: StorageType;
@@ -94,7 +94,7 @@ export class RetrieveDataDto {
   @ApiPropertyOptional({
     description: "Preferred storage type to check first",
     enum: StorageType,
-    default: StorageType.STORAGETYPECACHE,
+    default: StorageType.CACHE,
   })
   @IsOptional()
   @IsEnum(StorageType)
