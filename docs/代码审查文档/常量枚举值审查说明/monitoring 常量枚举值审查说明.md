@@ -23,7 +23,7 @@
    - 实际重复内容:
      ```typescript
      // monitoring/shared/constants/shared.constants.ts
-     HEALTHY: 'healthy', DEGRADED: 'degraded', UNHEALTHY: 'unhealthy'
+     HEALTH_STATUS = { HEALTHY: 'healthy', DEGRADED: 'degraded', UNHEALTHY: 'unhealthy' }
      
      // cache/constants/cache.constants.ts  
      HEALTHY: "healthy", DEGRADED: "degraded", UNHEALTHY: "unhealthy"
@@ -135,3 +135,91 @@ export { OperationStatus }; // 重导出，不是重复定义
 4. **配置和令牌管理无需改进**
 
 monitoring 组件的常量枚举管理总体上是**良好的**，符合 NestJS 最佳实践，仅需要少量优化。原报告过度渲染了问题严重性，可能基于过时信息或不完整的代码分析。
+
+## 审核修复文档
+
+### 步骤 1: 审查文档中老旧代码问题清单，通过代码库比对验证问题是否属实
+
+经过详细代码审查，确认以下问题属实：
+
+1. **健康状态重复定义**: ✅ 确认存在
+   - `/monitoring/shared/constants/shared.constants.ts` 中定义了 [HEALTHY, DEGRADED, UNHEALTHY]
+   - `/cache/constants/cache.constants.ts` 中也定义了相同的基础状态值
+   - 但各模块都有自己的扩展状态，这种设计是合理的
+
+2. **操作状态设计**: ✅ 确认合理
+   - `/monitoring/contracts/enums/operation-status.enum.ts` 中定义了完整的操作状态枚举
+   - `/common/constants/unified/system.constants.ts` 中是重导出，不是重复定义
+
+3. **指标类型定义**: ✅ 确认存在语义重复
+   - 常量定义和类型定义存在重复，但可以通过类型推导优化
+
+4. **缓存操作概念**: ✅ 确认部分重复但合理
+   - monitoring 和 cache 模块的操作定义有不同用途，分离是合理的
+
+### 步骤 2: 评估每个问题的修复方案，检查技术可行性、效率影响和组件通信兼容性
+
+1. **健康状态统一方案**:
+   - 技术可行性: ✅ 高
+   - 效率影响: ✅ 低（仅减少少量重复代码）
+   - 组件通信兼容性: ✅ 高（各模块可保持自己的扩展状态）
+
+2. **类型定义优化方案**:
+   - 技术可行性: ✅ 高
+   - 效率影响: ✅ 无（仅改进代码维护性）
+   - 组件通信兼容性: ✅ 高（保持接口不变）
+
+3. **缓存操作概念统一**:
+   - 技术可行性: ⚠️ 中（用途不同，统一可能造成混淆）
+   - 效率影响: ⚠️ 中（可能需要重构部分代码）
+   - 组件通信兼容性: ⚠️ 中（可能影响现有接口）
+
+### 步骤 3: 针对可行方案，提出优化替代方案或确认最佳选择，并附理由
+
+#### 推荐优化方案
+
+1. **统一基础健康状态** (优先级: 高)
+   ```typescript
+   // 创建统一的健康状态常量
+   // shared/constants/health.constants.ts
+   export const BASE_HEALTH_STATUS = {
+     HEALTHY: "healthy",
+     DEGRADED: "degraded", 
+     UNHEALTHY: "unhealthy"
+   } as const;
+   
+   // 各模块导入并扩展
+   // monitoring/shared/constants/shared.constants.ts
+   import { BASE_HEALTH_STATUS } from '@shared/constants/health.constants';
+   export const HEALTH_STATUS = {
+     ...BASE_HEALTH_STATUS
+   } as const;
+   
+   // cache/constants/status/health-status.constants.ts
+   import { BASE_HEALTH_STATUS } from '@shared/constants/health.constants';
+   export const BASIC_HEALTH_STATUS_VALUES: BasicHealthStatus[] = [
+     BASE_HEALTH_STATUS.HEALTHY,
+     BASE_HEALTH_STATUS.DEGRADED,
+     BASE_HEALTH_STATUS.UNHEALTHY
+   ];
+   ```
+
+2. **类型定义优化** (优先级: 中)
+   ```typescript
+   // monitoring/shared/types/shared.types.ts
+   import { MONITORING_METRIC_TYPES } from '../constants/shared.constants';
+   
+   // 从常量推导类型定义
+   export type MonitoringMetricType = typeof MONITORING_METRIC_TYPES[keyof typeof MONITORING_METRIC_TYPES];
+   ```
+
+#### 保留当前设计的方案
+
+1. **操作状态设计**: 保持当前的枚举定义 + 重导出模式，这是合理的架构设计
+2. **缓存操作分离**: 保持 monitoring 和 cache 模块的操作常量分离，因为它们有不同的用途
+
+#### 理由总结
+
+- **统一基础健康状态**可以减少重复代码，提高维护性，同时不影响各模块的扩展能力
+- **类型定义优化**可以避免常量和类型定义不同步的问题，提高类型安全性
+- **保留现有合理设计**可以避免不必要的重构，保持代码稳定性和清晰性
