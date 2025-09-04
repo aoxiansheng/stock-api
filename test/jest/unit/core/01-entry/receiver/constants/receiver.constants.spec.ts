@@ -209,39 +209,39 @@ describe("Receiver Constants", () => {
 
   describe("MARKET_RECOGNITION_RULES", () => {
     it("should define all market recognition rules", () => {
-      expect(MARKET_RECOGNITION_RULES.HK_PATTERNS.SUFFIX).toBe(".HK");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.HK.SUFFIX).toBe(".HK");
       expect(
-        MARKET_RECOGNITION_RULES.HK_PATTERNS.NUMERIC_PATTERN,
+        MARKET_RECOGNITION_RULES.MARKETS.HK.NUMERIC_PATTERN,
       ).toBeInstanceOf(RegExp);
-      expect(MARKET_RECOGNITION_RULES.HK_PATTERNS.MARKET_CODE).toBe("HK");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.HK.MARKET_CODE).toBe("HK");
 
-      expect(MARKET_RECOGNITION_RULES.US_PATTERNS.SUFFIX).toBe(".US");
-      expect(MARKET_RECOGNITION_RULES.US_PATTERNS.ALPHA_PATTERN).toBeInstanceOf(
+      expect(MARKET_RECOGNITION_RULES.MARKETS.US.SUFFIX).toBe(".US");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.US.ALPHA_PATTERN).toBeInstanceOf(
         RegExp,
       );
-      expect(MARKET_RECOGNITION_RULES.US_PATTERNS.MARKET_CODE).toBe("US");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.US.MARKET_CODE).toBe("US");
 
-      expect(MARKET_RECOGNITION_RULES.SZ_PATTERNS.SUFFIX).toBe(".SZ");
-      expect(MARKET_RECOGNITION_RULES.SZ_PATTERNS.PREFIX_PATTERNS).toEqual([
+      expect(MARKET_RECOGNITION_RULES.MARKETS.SZ.SUFFIX).toBe(".SZ");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.SZ.PREFIX_PATTERNS).toEqual([
         "00",
         "30",
       ]);
-      expect(MARKET_RECOGNITION_RULES.SZ_PATTERNS.MARKET_CODE).toBe("SZ");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.SZ.MARKET_CODE).toBe("SZ");
 
-      expect(MARKET_RECOGNITION_RULES.SH_PATTERNS.SUFFIX).toBe(".SH");
-      expect(MARKET_RECOGNITION_RULES.SH_PATTERNS.PREFIX_PATTERNS).toEqual([
+      expect(MARKET_RECOGNITION_RULES.MARKETS.SH.SUFFIX).toBe(".SH");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.SH.PREFIX_PATTERNS).toEqual([
         "60",
         "68",
       ]);
-      expect(MARKET_RECOGNITION_RULES.SH_PATTERNS.MARKET_CODE).toBe("SH");
+      expect(MARKET_RECOGNITION_RULES.MARKETS.SH.MARKET_CODE).toBe("SH");
     });
 
     it("should be frozen", () => {
       expect(Object.isFrozen(MARKET_RECOGNITION_RULES)).toBe(true);
-      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.HK_PATTERNS)).toBe(true);
-      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.US_PATTERNS)).toBe(true);
-      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.SZ_PATTERNS)).toBe(true);
-      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.SH_PATTERNS)).toBe(true);
+      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.MARKETS.HK)).toBe(true);
+      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.MARKETS.US)).toBe(true);
+      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.MARKETS.SZ)).toBe(true);
+      expect(Object.isFrozen(MARKET_RECOGNITION_RULES.MARKETS.SH)).toBe(true);
     });
   });
 
@@ -410,12 +410,12 @@ describe("Receiver Constants", () => {
     it("should support market recognition", () => {
       const hkSymbol = "00700";
       const isHkPattern =
-        MARKET_RECOGNITION_RULES.HK_PATTERNS.NUMERIC_PATTERN.test(hkSymbol);
+        MARKET_RECOGNITION_RULES.MARKETS.HK.NUMERIC_PATTERN.test(hkSymbol);
       expect(isHkPattern).toBe(true);
 
       const usSymbol = "AAPL";
       const isUsPattern =
-        MARKET_RECOGNITION_RULES.US_PATTERNS.ALPHA_PATTERN.test(usSymbol);
+        MARKET_RECOGNITION_RULES.MARKETS.US.ALPHA_PATTERN.test(usSymbol);
       expect(isUsPattern).toBe(true);
     });
   });

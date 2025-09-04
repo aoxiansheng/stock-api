@@ -3,6 +3,8 @@
  * 🎯 统一定义查询相关的常量，确保系统一致性
  */
 
+import { BATCH_CONSTANTS } from "@common/constants/unified";
+
 /**
  * 查询错误消息常量
  */

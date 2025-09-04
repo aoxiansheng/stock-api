@@ -5,7 +5,6 @@ import {
   IsString,
   IsOptional,
   IsBoolean,
-  IsNumber,
   ValidateNested,
   ArrayNotEmpty,
   ArrayMaxSize,
@@ -19,8 +18,10 @@ import {
   RECEIVER_VALIDATION_RULES,
 } from "../constants/receiver.constants";
 import { IsValidSymbolFormat } from "@common/validators/symbol-format.validator";
+import { BaseRequestOptionsDto } from "./common/base-request-options.dto";
+import { StorageMode, StorageModeUtils } from "../enums/storage-mode.enum";
 
-export class RequestOptionsDto {
+export class RequestOptionsDto extends BaseRequestOptionsDto {
   @ApiPropertyOptional({ description: "首选数据提供商" })
   @IsOptional()
   @IsString()
@@ -42,28 +43,16 @@ export class RequestOptionsDto {
   @IsString()
   market?: string;
 
-  @ApiPropertyOptional({ description: "请求超时时间(毫秒)", example: 5000 })
-  @IsOptional()
-  @IsNumber()
-  timeout?: number;
-
   @ApiPropertyOptional({
     description: "存储模式：none=不存储，short_ttl=短时效存储，both=双存储",
-    enum: ["none", "short_ttl", "both"],
+    enum: StorageModeUtils.getAllModes(),
+    default: StorageModeUtils.getDefault()
   })
   @IsOptional()
-  @IsIn(["none", "short_ttl", "both"])
-  storageMode?: "none" | "short_ttl" | "both";
-
-  @ApiPropertyOptional({ description: "是否使用智能缓存", default: true })
-  @IsOptional()
-  @IsBoolean()
-  useSmartCache?: boolean;
-
-  @ApiPropertyOptional({ description: "是否启用后台更新", default: false })
-  @IsOptional()
-  @IsBoolean()
-  enableBackgroundUpdate?: boolean;
+  @IsIn(StorageModeUtils.getAllModes(), {
+    message: `存储模式必须是以下值之一: ${StorageModeUtils.getAllModes().join(', ')}`
+  })
+  storageMode?: StorageMode = StorageModeUtils.getDefault();
 }
 
 export class DataRequestDto {

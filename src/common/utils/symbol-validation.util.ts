@@ -84,7 +84,7 @@ export class SymbolValidationUtils {
 
     // .HK 后缀格式：700.HK, 00700.HK, 09618.HK（支持1-5位数字，包含前导零）
     // 特殊支持：HSI.HK（恒生指数）
-    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.HK_PATTERNS.SUFFIX)) {
+    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.MARKETS.HK.SUFFIX)) {
       const prefix = upperSymbol.slice(0, -3); // 去掉 .HK
 
       // 特殊处理指数代码
@@ -115,7 +115,7 @@ export class SymbolValidationUtils {
     const upperSymbol = symbol.toUpperCase();
 
     // .US 后缀格式：AAPL.US, BRK.A.US, SPY.US
-    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.US_PATTERNS.SUFFIX)) {
+    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.MARKETS.US.SUFFIX)) {
       const prefix = upperSymbol.slice(0, -3); // 去掉 .US
 
       // 特殊处理ETF和指数代码
@@ -142,17 +142,17 @@ export class SymbolValidationUtils {
     const upperSymbol = symbol.toUpperCase();
 
     // .SZ 后缀格式：000001.SZ
-    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.SZ_PATTERNS.SUFFIX)) {
+    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.MARKETS.SZ.SUFFIX)) {
       const prefix = upperSymbol.slice(0, -3); // 去掉 .SZ
       return (
-        MARKET_RECOGNITION_RULES.SZ_PATTERNS.PREFIX_PATTERNS.some((p) =>
+        MARKET_RECOGNITION_RULES.MARKETS.SZ.PREFIX_PATTERNS.some((p) =>
           prefix.startsWith(p),
         ) && /^\d{6}$/.test(prefix)
       );
     }
 
     // 纯数字格式：000001, 300001
-    return MARKET_RECOGNITION_RULES.SZ_PATTERNS.PREFIX_PATTERNS.some(
+    return MARKET_RECOGNITION_RULES.MARKETS.SZ.PREFIX_PATTERNS.some(
       (prefix) => symbol.startsWith(prefix) && /^\d{6}$/.test(symbol),
     );
   }
@@ -164,17 +164,17 @@ export class SymbolValidationUtils {
     const upperSymbol = symbol.toUpperCase();
 
     // .SH 后缀格式：600000.SH
-    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.SH_PATTERNS.SUFFIX)) {
+    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.MARKETS.SH.SUFFIX)) {
       const prefix = upperSymbol.slice(0, -3); // 去掉 .SH
       return (
-        MARKET_RECOGNITION_RULES.SH_PATTERNS.PREFIX_PATTERNS.some((p) =>
+        MARKET_RECOGNITION_RULES.MARKETS.SH.PREFIX_PATTERNS.some((p) =>
           prefix.startsWith(p),
         ) && /^\d{6}$/.test(prefix)
       );
     }
 
     // 纯数字格式：600000, 688001
-    return MARKET_RECOGNITION_RULES.SH_PATTERNS.PREFIX_PATTERNS.some(
+    return MARKET_RECOGNITION_RULES.MARKETS.SH.PREFIX_PATTERNS.some(
       (prefix) => symbol.startsWith(prefix) && /^\d{6}$/.test(symbol),
     );
   }
