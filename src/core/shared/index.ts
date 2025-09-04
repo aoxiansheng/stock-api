@@ -21,7 +21,9 @@ export * from "./services/base-fetcher.service";
 
 // 类型定义
 export * from "./types/storage-classification.enum";
-export * from "./types/storage-classification.enum";
+
+// 常量定义
+export * from "./constants/cache.constants";
 
 // 配置
 export * from "./config/shared.config";

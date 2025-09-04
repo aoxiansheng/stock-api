@@ -24,8 +24,11 @@ import { StorageClassification } from "./storage-classification.enum";
 // 重新导出以保持向后兼容
 export { StorageClassification };
 
-// Query 组件的过滤类型 (可以使用 ReceiverType 或 StorageClassification 的字符串值)
-export type QueryTypeFilter = string;
+/**
+ * Query 组件的过滤类型
+ * 支持直接使用 StorageClassification 或 ReceiverType，以及特殊值
+ */
+export type QueryTypeFilter = StorageClassification | ReceiverType | 'all' | 'none';
 
 /**
  * 字段映射关系配置

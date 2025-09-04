@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from "@app/config/logger.config";
+import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
 
 const logger = createLogger("SharedConfig");
 
@@ -30,7 +31,7 @@ export const SHARED_CONFIG = {
     /**
      * 最大缓存大小限制
      */
-    MAX_CACHE_SIZE: 10000,
+    MAX_CACHE_SIZE: SHARED_CACHE_CONSTANTS.MAX_CACHE_SIZE,
 
     /**
      * 缓存清理间隔

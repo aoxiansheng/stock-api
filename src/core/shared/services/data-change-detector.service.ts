@@ -13,6 +13,7 @@ import {
   CHANGE_DETECTION_THRESHOLDS,
 } from "@common/constants/market-trading-hours.constants";
 import { Market } from "@common/constants/market.constants";
+import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
 
 /**
  * 关键字段配置 - 按重要性排序，优先检测高频变化字段
@@ -89,7 +90,7 @@ export class DataChangeDetectorService {
   private readonly snapshotCache = new Map<string, DataSnapshot>();
 
   // 最大缓存大小（防止内存溢出）
-  private readonly MAX_CACHE_SIZE = 10000;
+  // 现在使用统一的缓存常量定义
 
   /**
    * 高效检测数据是否发生显著变化
@@ -455,7 +456,7 @@ export class DataChangeDetectorService {
       this.snapshotCache.set(symbol, snapshot);
 
       // 内存缓存大小控制
-      if (this.snapshotCache.size > this.MAX_CACHE_SIZE) {
+      if (this.snapshotCache.size > SHARED_CACHE_CONSTANTS.MAX_CACHE_SIZE) {
         this.cleanupOldSnapshots();
       }
 
@@ -487,7 +488,7 @@ export class DataChangeDetectorService {
    * 清理旧快照（LRU策略）
    */
   private cleanupOldSnapshots(): void {
-    if (this.snapshotCache.size <= this.MAX_CACHE_SIZE) {
+    if (this.snapshotCache.size <= SHARED_CACHE_CONSTANTS.MAX_CACHE_SIZE) {
       return;
     }
 
@@ -495,7 +496,7 @@ export class DataChangeDetectorService {
     entries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
 
     // 精确删除超出限制数量的条目
-    const deleteCount = entries.length - this.MAX_CACHE_SIZE;
+    const deleteCount = entries.length - SHARED_CACHE_CONSTANTS.MAX_CACHE_SIZE;
     for (let i = 0; i < deleteCount; i++) {
       this.snapshotCache.delete(entries[i][0]);
     }
