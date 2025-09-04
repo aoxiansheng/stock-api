@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
+import { API_TYPE_VALUES } from "../constants/data-mapper.constants";
 
 // 🆕 提取字段的子Schema
 @Schema({ _id: false })
@@ -38,7 +39,7 @@ export class DataSourceTemplate extends Document {
   @Prop({ required: true, trim: true, lowercase: true })
   provider: string; // 提供商: "longport", "futu", "itick"
 
-  @Prop({ required: true, enum: ["rest", "stream"] })
+  @Prop({ required: true, enum: API_TYPE_VALUES })
   apiType: string; // API类型: "rest" | "stream"
 
   @Prop({ trim: true })

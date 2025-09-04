@@ -7,14 +7,8 @@ import {
   IsEnum,
   ArrayNotEmpty,
 } from "class-validator";
-
-/**
- * API类型枚举
- */
-export enum ApiType {
-  REST = "rest",
-  WEBSOCKET = "websocket",
-}
+import { API_TYPE_VALUES } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
+import type { ApiType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 
 /**
  * 数据获取请求DTO
@@ -50,11 +44,11 @@ export class DataFetchRequestDto {
   @ApiPropertyOptional({
     description: "API类型",
     example: "rest",
-    enum: ["rest", "stream"],
+    enum: API_TYPE_VALUES,
     deprecated: true,
   })
   @IsOptional()
-  @IsEnum(["rest", "stream"])
+  @IsEnum(API_TYPE_VALUES)
   apiType?: "rest" | "stream";
 
   @ApiProperty({

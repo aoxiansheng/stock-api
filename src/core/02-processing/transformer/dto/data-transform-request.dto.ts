@@ -9,6 +9,8 @@ import {
   IsNotEmpty,
   ValidateNested,
 } from "class-validator";
+import { API_TYPE_VALUES } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
+import type { ApiType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 
 class TransformOptionsDto {
   @ApiPropertyOptional({ description: "是否验证输出数据" })
@@ -42,10 +44,10 @@ export class DataTransformRequestDto {
   @ApiProperty({
     description: "API类型",
     example: "rest",
-    enum: ["rest", "stream"],
+    enum: API_TYPE_VALUES,
   })
-  @IsEnum(["rest", "stream"])
-  apiType: "rest" | "stream";
+  @IsEnum(API_TYPE_VALUES)
+  apiType: ApiType;
 
   @ApiProperty({
     description: "数据映射规则列表类型（用于查找对应的映射规则）",

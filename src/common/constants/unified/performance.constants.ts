@@ -27,6 +27,12 @@ export const PERFORMANCE_CONSTANTS = deepFreeze({
     SLOW_TRANSFORMATION_MS: 5000, // 数据转换慢阈值
     SLOW_AUTHENTICATION_MS: 300, // 认证操作慢阈值
     SLOW_CACHE_MS: 50, // 缓存操作慢阈值
+    
+    // 业务特定阈值
+    DATA_FETCHER: {
+      SLOW_RESPONSE_MS: 2000, // 数据获取场景允许更高的延迟阈值
+      EXPLANATION: "数据获取场景允许更高的延迟阈值",
+    },
   },
 
   // 超时配置 (毫秒)
@@ -39,6 +45,32 @@ export const PERFORMANCE_CONSTANTS = deepFreeze({
     HTTP_REQUEST_TIMEOUT_MS: 15000, // HTTP请求超时：15秒
     AUTHENTICATION_TIMEOUT_MS: 5000, // 认证超时：5秒
     FILE_UPLOAD_TIMEOUT_MS: 120000, // 文件上传超时：2分钟
+    
+    // 业务场景特定超时 (按需扩展)
+    DATA_FETCHER: {
+      BASE_TIMEOUT_MS: 30000, // 数据获取基础超时
+      // 未来可扩展: STREAM_TIMEOUT_MS, BATCH_TIMEOUT_MS
+    },
+    
+    RECEIVER: {
+      REQUEST_TIMEOUT_MS: 30000, // 接收器请求超时
+    },
+    
+    STORAGE: {
+      OPERATION_TIMEOUT_MS: 30000, // 存储操作超时
+    },
+    
+    SYMBOL_MAPPER: {
+      MAPPING_TIMEOUT_MS: 30000, // 符号映射超时
+    },
+    
+    DATA_MAPPER: {
+      MAPPING_TIMEOUT_MS: 30000, // 数据映射超时
+    },
+    
+    NOTIFICATION: {
+      SEND_TIMEOUT_MS: 30000, // 通知发送超时
+    },
   },
 
   // 重试配置
@@ -48,6 +80,20 @@ export const PERFORMANCE_CONSTANTS = deepFreeze({
     EXPONENTIAL_BACKOFF_BASE: 2, // 指数退避基数
     MAX_RETRY_DELAY_MS: 10000, // 最大重试延迟：10秒
     JITTER_FACTOR: 0.1, // 抖动因子，避免惊群效应
+    
+    // 业务特定重试策略
+    BUSINESS_SCENARIOS: {
+      DATA_FETCHER: {
+        MAX_RETRY_ATTEMPTS: 1, // 保留当前业务逻辑
+        EXPLANATION: "数据获取失败快速响应，避免累积延迟",
+        RETRY_DELAY_MS: 500,
+      },
+      
+      CRITICAL_OPERATIONS: {
+        MAX_RETRY_ATTEMPTS: 5, // 关键操作更多重试
+        RETRY_DELAY_MS: 2000,
+      },
+    },
   },
 
   // 批量处理限制
@@ -113,7 +159,8 @@ export function getTimeoutFromEnv(
     return Number(envValue);
   }
 
-  return defaultValue ?? PERFORMANCE_CONSTANTS.TIMEOUTS[key];
+  const timeoutValue = (PERFORMANCE_CONSTANTS.TIMEOUTS as any)[key];
+  return defaultValue ?? (typeof timeoutValue === 'number' ? timeoutValue : 30000);
 }
 
 /**
@@ -149,9 +196,9 @@ export function isSlowResponse(
   responseTime: number,
   threshold: ResponseTimeThreshold = "SLOW_REQUEST_MS",
 ): boolean {
-  return (
-    responseTime > PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS[threshold]
-  );
+  const thresholdValue = (PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS as any)[threshold];
+  const actualThreshold = typeof thresholdValue === 'number' ? thresholdValue : 1000;
+  return responseTime > actualThreshold;
 }
 
 /**

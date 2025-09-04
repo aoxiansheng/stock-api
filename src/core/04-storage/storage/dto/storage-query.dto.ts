@@ -4,35 +4,15 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsNumber,
-  Min,
   IsArray,
   IsDate,
 } from "class-validator";
 
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
 import { StorageType } from "../enums/storage-type.enum";
+import { BaseQueryDto } from "../../../00-prepare/data-mapper/dto/common/base-query.dto";
 
-export class StorageQueryDto {
-  @ApiPropertyOptional({
-    description: "页码，默认为1",
-    default: 1,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number;
-
-  @ApiPropertyOptional({
-    description: "每页条数，默认为10",
-    default: 10,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number;
+export class StorageQueryDto extends BaseQueryDto {
 
   @ApiPropertyOptional({
     description: "按键名搜索",

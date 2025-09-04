@@ -5,18 +5,18 @@
 
 // 导入统一常量系统，避免重复定义
 import { PERFORMANCE_CONSTANTS } from "@common/constants/unified";
+// 复用 data-mapper 的转换类型常量，避免重复定义
+import { 
+  TRANSFORMATION_TYPES, 
+  TRANSFORMATION_TYPE_VALUES 
+} from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
+import type { TransformationType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 
 /**
- * 转换操作类型常量
+ * @deprecated 使用 TRANSFORMATION_TYPES 替代，保持向后兼容
+ * 转换操作类型常量（重新导出 data-mapper 的常量）
  */
-export const TRANSFORM_TYPES = Object.freeze({
-  MULTIPLY: "multiply",
-  DIVIDE: "divide",
-  ADD: "add",
-  SUBTRACT: "subtract",
-  FORMAT: "format",
-  CUSTOM: "custom",
-} as const);
+export const TRANSFORM_TYPES = TRANSFORMATION_TYPES;
 
 /**
  * 转换错误消息常量

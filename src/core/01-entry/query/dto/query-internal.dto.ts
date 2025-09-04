@@ -8,10 +8,11 @@ import {
   IsObject,
   IsArray,
   ValidateNested,
-  IsIn,
+  IsEnum,
 } from "class-validator";
 
 import { DataSourceType } from "../enums/data-source-type.enum";
+import { SortDirection } from "./query-request.dto";
 
 /**
  * 查询统计记录DTO
@@ -231,10 +232,9 @@ export class SortConfigDto {
   @IsString()
   field: string;
 
-  @ApiProperty({ description: "排序方向", enum: ["ASC", "DESC"] })
-  @IsIn(["ASC", "DESC"])
-  @IsString()
-  direction: "ASC" | "DESC";
+  @ApiProperty({ description: "排序方向", enum: SortDirection })
+  @IsEnum(SortDirection)
+  direction: SortDirection;
 }
 
 /**

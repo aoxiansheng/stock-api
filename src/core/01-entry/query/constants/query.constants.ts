@@ -71,9 +71,21 @@ export const QUERY_PERFORMANCE_CONFIG = Object.freeze({
   SLOW_QUERY_THRESHOLD_MS: 1000, // 慢查询阈值（毫秒）
   // 缓存TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
   DEFAULT_QUERY_LIMIT: 100, // 默认查询限制
-  MAX_SYMBOLS_PER_QUERY: 100, // 单次查询最大股票数量
+  /**
+   * 单次查询支持的最大股票代码数量
+   * 用途：限制单个查询请求中symbols数组的长度
+   * 适用场景：by_symbols查询类型，防止单次请求处理过多股票数据
+   * 注意：这是针对单个查询操作的限制，不影响批量查询的总数
+   */
+  MAX_SYMBOLS_PER_QUERY: 100,
   LOG_SYMBOLS_LIMIT: 3, // 日志中显示的股票数量限制
-  MAX_BULK_QUERIES: 100, // 最大批量查询数量
+  /**
+   * 批量查询请求支持的最大子查询数量
+   * 用途：限制BulkQueryRequestDto中queries数组的长度  
+   * 适用场景：批量查询操作，防止单次批量请求包含过多子查询
+   * 注意：每个子查询仍受MAX_SYMBOLS_PER_QUERY限制，两者独立生效
+   */
+  MAX_BULK_QUERIES: 100,
   // 超时配置已移动到 QUERY_TIMEOUT_CONFIG
 } as const);
 
@@ -101,7 +113,11 @@ export const QUERY_VALIDATION_RULES = Object.freeze({
   MIN_QUERY_LIMIT: 1, // 最小查询限制
   MAX_QUERY_LIMIT: 1000, // 最大查询限制
   MIN_QUERY_OFFSET: 0, // 最小查询偏移量
-  MAX_BULK_QUERIES: 100, // 最大批量查询数量
+  /**
+   * 最大批量查询数量（与QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES保持一致）
+   * 用于数据验证规则，确保批量查询请求不超过系统限制
+   */
+  MAX_BULK_QUERIES: 100,
   SYMBOL_PATTERN: /^[A-Za-z0-9._-]+$/, // 股票代码格式模式
   QUERY_ID_PATTERN: /^[a-zA-Z0-9-]+$/, // 查询ID格式模式
 } as const);
@@ -265,4 +281,33 @@ export const QUERY_HEALTH_CONFIG = Object.freeze({
   METRICS_WINDOW_SIZE: 100, // 指标窗口大小
   ERROR_RATE_THRESHOLD: 0.1, // 错误率阈值（10%）
   RESPONSE_TIME_THRESHOLD: 2000, // 响应时间阈值（2秒）
+} as const);
+
+/**
+ * 查询限制聚合导出
+ * 提供统一的查询限制访问接口，便于外部组件使用
+ */
+export const QUERY_LIMITS = Object.freeze({
+  /**
+   * 单次查询最大股票代码数量
+   * @see QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY
+   */
+  SYMBOLS_PER_QUERY: QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY,
+  /**
+   * 批量查询最大子查询数量
+   * @see QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES
+   */
+  BULK_QUERIES: QUERY_PERFORMANCE_CONFIG.MAX_BULK_QUERIES,
+  /**
+   * 获取限制配置的方法
+   * @returns 包含所有查询限制的对象
+   */
+  get ALL_LIMITS() {
+    return {
+      SYMBOLS_PER_QUERY: this.SYMBOLS_PER_QUERY,
+      BULK_QUERIES: this.BULK_QUERIES,
+      QUERY_LIMIT_MAX: QUERY_VALIDATION_RULES.MAX_QUERY_LIMIT,
+      QUERY_LIMIT_MIN: QUERY_VALIDATION_RULES.MIN_QUERY_LIMIT,
+    };
+  }
 } as const);

@@ -68,7 +68,7 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   private async scanKeysWithTimeout(
     pattern: string,
-    timeoutMs: number = 5000,
+    timeoutMs: number = DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.DEFAULT_SCAN_MS,
   ): Promise<string[]> {
     const keys: string[] = [];
     let cursor = "0";
@@ -91,11 +91,11 @@ export class DataMapperCacheService implements IDataMapperCache {
           "MATCH",
           pattern,
           "COUNT",
-          100,
+          DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.REDIS_SCAN_COUNT,
         );
         cursor = result[0];
         keys.push(...result[1]);
-      } while (cursor !== "0" && keys.length < 10000); // 防止内存过度使用
+      } while (cursor !== "0" && keys.length < DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.MAX_KEYS_PREVENTION); // 防止内存过度使用
 
       return keys;
     } catch (error) {
@@ -111,7 +111,7 @@ export class DataMapperCacheService implements IDataMapperCache {
   private async batchDelete(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
 
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.DELETE_BATCH_SIZE;
     const batches = [];
 
     for (let i = 0; i < keys.length; i += BATCH_SIZE) {
@@ -123,7 +123,9 @@ export class DataMapperCacheService implements IDataMapperCache {
       try {
         await this.redis.del(...batch);
         // 批次间短暂延迟，降低Redis负载
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise((resolve) => 
+          setTimeout(resolve, DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.INTER_BATCH_DELAY_MS)
+        );
       } catch (error) {
         this.logger.warn("批量删除失败", {
           batchSize: batch.length,
@@ -482,7 +484,10 @@ export class DataMapperCacheService implements IDataMapperCache {
       let totalDeleted = 0;
 
       for (const pattern of patterns) {
-        const keys = await this.scanKeysWithTimeout(pattern, 3000);
+        const keys = await this.scanKeysWithTimeout(
+          pattern, 
+          DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.PROVIDER_INVALIDATE_MS
+        );
         await this.batchDelete(keys);
         totalDeleted += keys.length;
       }
@@ -646,15 +651,15 @@ export class DataMapperCacheService implements IDataMapperCache {
         [
           this.scanKeysWithTimeout(
             `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:*`,
-            2000,
+            DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.STATS_SCAN_MS,
           ),
           this.scanKeysWithTimeout(
             `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:*`,
-            2000,
+            DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.STATS_SCAN_MS,
           ),
           this.scanKeysWithTimeout(
             `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:*`,
-            2000,
+            DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.STATS_SCAN_MS,
           ),
         ],
       );
@@ -708,6 +713,25 @@ export class DataMapperCacheService implements IDataMapperCache {
   // ===== 私有方法 =====
 
   /**
+   * 验证缓存键的有效性
+   * @private
+   */
+  private validateCacheKey(key: string): void {
+    if (!key || typeof key !== 'string') {
+      throw new Error(DATA_MAPPER_CACHE_CONSTANTS.ERROR_MESSAGES.INVALID_RULE_ID);
+    }
+    
+    if (key.length > DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH) {
+      throw new Error(`缓存键长度超过限制: ${key.length}/${DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH}`);
+    }
+    
+    // 检查键格式（不应包含空格或特殊字符）
+    if (!/^[a-zA-Z0-9:_-]+$/.test(key)) {
+      throw new Error(`缓存键包含无效字符: ${key}`);
+    }
+  }
+
+  /**
    * 构建最佳规则缓存键
    */
   private buildBestRuleKey(
@@ -715,21 +739,27 @@ export class DataMapperCacheService implements IDataMapperCache {
     apiType: string,
     transDataRuleListType: string,
   ): string {
-    return `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:${provider}:${apiType}:${transDataRuleListType}`;
+    const cacheKey = `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:${provider}:${apiType}:${transDataRuleListType}`;
+    this.validateCacheKey(cacheKey);
+    return cacheKey;
   }
 
   /**
    * 构建规则ID缓存键
    */
   private buildRuleByIdKey(dataMapperRuleId: string): string {
-    return `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:${dataMapperRuleId}`;
+    const cacheKey = `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:${dataMapperRuleId}`;
+    this.validateCacheKey(cacheKey);
+    return cacheKey;
   }
 
   /**
    * 构建提供商规则列表缓存键
    */
   private buildProviderRulesKey(provider: string, apiType: string): string {
-    return `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:${provider}:${apiType}`;
+    const cacheKey = `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:${provider}:${apiType}`;
+    this.validateCacheKey(cacheKey);
+    return cacheKey;
   }
 
   // ✅ 已迁移到事件驱动监控，实现完全解耦的监控架构

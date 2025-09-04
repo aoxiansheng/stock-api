@@ -19,6 +19,8 @@
     "// ========== 代码质量命令 ==========": "",
     "lint": "bun eslint \"{src,test}/**/*.ts\" --fix",
     "lint:common": "bun eslint \"{src,test}/**/*.ts\" --config .eslintrc.common-compliance.js",
+    "lint:duplicates": "bun run scripts/lint/detect-duplicate-constants.mjs",
+    "lint:constants": "npm run lint:duplicates && npm run lint",
     "format": "bun prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "bun prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "compliance:check": "chmod +x scripts/check-common-compliance.sh && ./scripts/check-common-compliance.sh",

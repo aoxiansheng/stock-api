@@ -3,6 +3,8 @@
  * 🎯 统一定义数据接收相关的常量，确保系统一致性
  */
 
+import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+
 /**
  * 数据接收错误消息常量
  */
@@ -87,7 +89,7 @@ export const RECEIVER_PERFORMANCE_THRESHOLDS = Object.freeze({
   LARGE_SYMBOL_COUNT_WARNING: 50, // 大量股票代码警告阈值
   PROVIDER_SELECTION_TIMEOUT_MS: 5000, // 提供商选择超时（5秒）
   SYMBOL_TRANSFORMATION_TIMEOUT_MS: 10000, // 股票代码转换超时（10秒）
-  DATA_FETCHING_TIMEOUT_MS: 30000, // 数据获取超时（30秒）
+  DATA_FETCHING_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.RECEIVER.REQUEST_TIMEOUT_MS, // 数据获取超时 - 使用统一配置
 } as const);
 
 /**
@@ -158,9 +160,9 @@ export const MARKET_RECOGNITION_RULES = Object.freeze({
  * 数据接收配置常量
  */
 export const RECEIVER_CONFIG = Object.freeze({
-  DEFAULT_TIMEOUT_MS: 30000, // 默认超时时间（30秒）
-  MAX_RETRY_ATTEMPTS: 3, // 最大重试次数
-  RETRY_DELAY_MS: 1000, // 重试延迟（1秒）
+  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.RECEIVER.REQUEST_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
+  MAX_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.RECEIVER.MAX_RETRY_ATTEMPTS, // 最大重试次数 - 使用统一配置
+  RETRY_DELAY_MS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.RECEIVER.RETRY_DELAY_MS, // 重试延迟 - 使用统一配置
   MAX_CONCURRENT_REQUESTS: 10, // 最大并发请求数
   REQUEST_ID_LENGTH: 36, // 请求ID长度（UUID）
   LOG_TRUNCATE_LENGTH: 1000, // 日志截断长度
@@ -217,7 +219,7 @@ export const RECEIVER_EVENTS = Object.freeze({
  * 数据接收默认值常量
  */
 export const RECEIVER_DEFAULTS = Object.freeze({
-  TIMEOUT_MS: 30000, // 默认超时时间
+  TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.RECEIVER.REQUEST_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
   RETRY_ATTEMPTS: 3, // 默认重试次数
   LOG_LEVEL: "info", // 默认日志级别
   ENABLE_PERFORMANCE_MONITORING: true, // 默认启用性能监控
@@ -284,7 +286,7 @@ export const RECEIVER_CACHE_CONFIG = Object.freeze({
  * 数据接收健康检查配置常量
  */
 export const RECEIVER_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: 30000, // 健康检查间隔（30秒）
+  CHECK_INTERVAL_MS: PERFORMANCE_CONSTANTS.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔 - 使用统一配置
   TIMEOUT_MS: 5000, // 健康检查超时（5秒）
   MAX_FAILURES: 3, // 最大失败次数
   RECOVERY_THRESHOLD: 5, // 恢复阈值

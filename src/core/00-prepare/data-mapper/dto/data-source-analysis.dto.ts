@@ -9,9 +9,16 @@ import {
   Max,
   IsArray,
   ValidateNested,
+  MaxLength,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
+import {
+  API_TYPE_VALUES,
+  COMMON_RULE_LIST_TYPE_VALUES,
+  DATA_MAPPER_CONFIG,
+} from "../constants/data-mapper.constants";
+import type { ApiType } from "../constants/data-mapper.constants";
 
 // 🆕 数据源分析请求DTO
 export class AnalyzeDataSourceDto {
@@ -27,10 +34,10 @@ export class AnalyzeDataSourceDto {
   @ApiProperty({
     description: "API类型",
     example: "stream",
-    enum: ["rest", "stream"],
+    enum: API_TYPE_VALUES,
   })
-  @IsEnum(["rest", "stream"])
-  apiType: "rest" | "stream";
+  @IsEnum(API_TYPE_VALUES)
+  apiType: ApiType;
 
   @ApiProperty({
     description: "示例数据对象，用于分析字段结构",
@@ -64,10 +71,10 @@ export class AnalyzeDataSourceDto {
   @ApiProperty({
     description: "数据类型",
     example: "quote_fields",
-    enum: ["quote_fields", "basic_info_fields"],
+    enum: COMMON_RULE_LIST_TYPE_VALUES,
     required: false,
   })
-  @IsEnum(["quote_fields", "basic_info_fields"])
+  @IsEnum(COMMON_RULE_LIST_TYPE_VALUES)
   @IsOptional()
   dataType?: "quote_fields" | "basic_info_fields" = "quote_fields";
 
@@ -127,7 +134,7 @@ export class DataSourceAnalysisResponseDto {
   provider: string;
 
   @ApiProperty({ description: "API类型", example: "stream" })
-  @IsEnum(["rest", "stream"])
+  @IsEnum(API_TYPE_VALUES)
   apiType: string;
 
   @ApiProperty({ description: "示例数据" })
@@ -182,20 +189,23 @@ export class CreateDataSourceTemplateDto {
   @ApiProperty({
     description: "模板名称",
     example: "LongPort WebSocket 报价流",
+    maxLength: DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH,
   })
   @IsString()
+  @MaxLength(DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH)
   name: string;
 
   @ApiProperty({ description: "数据提供商", example: "longport" })
   @IsString()
   provider: string;
 
-  @ApiProperty({ description: "API类型", enum: ["rest", "stream"] })
-  @IsEnum(["rest", "stream"])
-  apiType: "rest" | "stream";
+  @ApiProperty({ description: "API类型", enum: API_TYPE_VALUES })
+  @IsEnum(API_TYPE_VALUES)
+  apiType: ApiType;
 
-  @ApiProperty({ description: "模板描述", required: false })
+  @ApiProperty({ description: "模板描述", required: false, maxLength: DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH })
   @IsString()
+  @MaxLength(DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH)
   @IsOptional()
   description?: string;
 
@@ -326,7 +336,7 @@ export class DataSourceTemplateResponseDto {
   provider: string;
 
   @ApiProperty({ description: "API类型" })
-  @IsEnum(["rest", "stream"])
+  @IsEnum(API_TYPE_VALUES)
   apiType: string;
 
   @ApiProperty({ description: "模板描述" })

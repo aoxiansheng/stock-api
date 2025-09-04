@@ -21,6 +21,7 @@ import {
   DataSourceCounterDto,
 } from "../../../../../../../src/core/01-entry/query/dto/query-internal.dto";
 import { DataSourceType } from "../../../../../../../src/core/01-entry/query/enums/data-source-type.enum";
+import { SortDirection } from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 
 describe("Query Internal DTOs", () => {
   describe("QueryStatsRecordDto", () => {
@@ -388,27 +389,27 @@ describe("Query Internal DTOs", () => {
       it("should create instance with ascending sort", () => {
         // Arrange
         dto.field = "price";
-        dto.direction = "ASC";
+        dto.direction = SortDirection.ASC;
 
         // Assert
         expect(dto.field).toBe("price");
-        expect(dto.direction).toBe("ASC");
+        expect(dto.direction).toBe(SortDirection.ASC);
       });
 
       it("should create instance with descending sort", () => {
         // Arrange
         dto.field = "timestamp";
-        dto.direction = "DESC";
+        dto.direction = SortDirection.DESC;
 
         // Assert
         expect(dto.field).toBe("timestamp");
-        expect(dto.direction).toBe("DESC");
+        expect(dto.direction).toBe(SortDirection.DESC);
       });
 
       it("should validate successfully", async () => {
         // Arrange
         dto.field = "volume";
-        dto.direction = "ASC";
+        dto.direction = SortDirection.ASC;
 
         // Act
         const errors = await validate(dto);
@@ -450,7 +451,7 @@ describe("Query Internal DTOs", () => {
         };
         dto.sort = {
           field: "price",
-          direction: "DESC",
+          direction: SortDirection.DESC,
         };
         dto.limit = 50;
         dto.offset = 0;
@@ -482,7 +483,7 @@ describe("Query Internal DTOs", () => {
 
         const sort = new SortConfigDto();
         sort.field = "timestamp";
-        sort.direction = "ASC";
+        sort.direction = SortDirection.ASC;
 
         dto.fieldSelection = fieldSelection;
         dto.sort = sort;
@@ -842,7 +843,7 @@ describe("Query Internal DTOs", () => {
           },
           sort: {
             field: "price",
-            direction: "DESC",
+            direction: SortDirection.DESC,
           },
           limit: "50",
           offset: "0",

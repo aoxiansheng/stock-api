@@ -28,6 +28,7 @@ import { ObjectUtils } from "../../../shared/utils/object.util";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { AsyncTaskLimiter } from "../utils/async-task-limiter";
+import { TRANSFORMATION_TYPES } from "../constants/data-mapper.constants";
 
 @Injectable()
 export class FlexibleMappingRuleService {
@@ -629,27 +630,27 @@ export class FlexibleMappingRuleService {
     const numericValue = Number(value);
 
     switch (transform.type) {
-      case "multiply":
+      case TRANSFORMATION_TYPES.MULTIPLY:
         if (!isNaN(numericValue)) {
           return numericValue * (Number(transform.value) || 1);
         }
         break;
-      case "divide":
+      case TRANSFORMATION_TYPES.DIVIDE:
         if (!isNaN(numericValue) && transform.value !== 0) {
           return numericValue / (Number(transform.value) || 1);
         }
         break;
-      case "add":
+      case TRANSFORMATION_TYPES.ADD:
         if (!isNaN(numericValue)) {
           return numericValue + (Number(transform.value) || 0);
         }
         break;
-      case "subtract":
+      case TRANSFORMATION_TYPES.SUBTRACT:
         if (!isNaN(numericValue)) {
           return numericValue - (Number(transform.value) || 0);
         }
         break;
-      case "format":
+      case TRANSFORMATION_TYPES.FORMAT:
         const template = String(transform.value || "{value}");
         return template.replace(/\{value\}/g, String(value));
       default:

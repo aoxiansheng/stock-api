@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { QUERY_TIMEOUT_CONFIG } from "../constants/query.constants";
 
 /**
  * Query组件配置服务
@@ -33,12 +34,12 @@ export class QueryConfigService {
 
   /** 市场级并行处理超时时间（毫秒） */
   get marketParallelTimeout(): number {
-    return Number(this.configService.get("QUERY_MARKET_TIMEOUT", 30000));
+    return Number(this.configService.get("QUERY_MARKET_TIMEOUT", QUERY_TIMEOUT_CONFIG.QUERY_MS));
   }
 
   /** Receiver批次超时时间（毫秒） */
   get receiverBatchTimeout(): number {
-    return Number(this.configService.get("QUERY_RECEIVER_TIMEOUT", 15000));
+    return Number(this.configService.get("QUERY_RECEIVER_TIMEOUT", QUERY_TIMEOUT_CONFIG.REALTIME_FETCH_MS));
   }
 
   // =============== 内存监控配置 ===============

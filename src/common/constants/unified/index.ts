@@ -26,6 +26,8 @@ export { HTTP_CONSTANTS } from "./http.constants";
 export { PERFORMANCE_CONSTANTS } from "./performance.constants";
 export { CACHE_CONSTANTS } from "./unified-cache-config.constants";
 export { OPERATION_CONSTANTS } from "./operations.constants";
+export { RETRY_CONSTANTS } from "./retry.constants";
+export { BATCH_CONSTANTS } from "./batch.constants";
 
 // 消息模板系统 - 新增
 export { 
@@ -44,3 +46,14 @@ export { CONSTANTS_VERSION } from "./constants-version";
 
 // 常量元信息
 export { CONSTANTS_META } from "./constants-meta";
+
+// 导入用于创建便利别名
+import { PERFORMANCE_CONSTANTS } from "./performance.constants";
+import { RETRY_CONSTANTS } from "./retry.constants";
+import { BATCH_CONSTANTS } from "./batch.constants";
+
+// 便利导入别名
+export const TIMEOUTS = PERFORMANCE_CONSTANTS.TIMEOUTS;
+export const THRESHOLDS = PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS;
+export const RETRY_SETTINGS = RETRY_CONSTANTS.DEFAULT_SETTINGS;
+export const BATCH_SETTINGS = BATCH_CONSTANTS.DEFAULT_SETTINGS;

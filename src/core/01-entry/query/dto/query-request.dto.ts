@@ -17,6 +17,7 @@ import {
 } from "class-validator";
 
 import { QueryType } from "./query-types.dto";
+import { QUERY_LIMITS } from "../constants/query.constants";
 
 /**
  * 排序方向
@@ -212,7 +213,7 @@ export class BulkQueryRequestDto {
   })
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(100) // 添加此行
+  @ArrayMaxSize(QUERY_LIMITS.BULK_QUERIES) // 使用常量限制批量查询数量
   @ValidateNested({ each: true })
   @Type(() => QueryRequestDto)
   queries: QueryRequestDto[];

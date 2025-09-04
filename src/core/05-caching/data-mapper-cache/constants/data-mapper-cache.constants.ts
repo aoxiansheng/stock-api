@@ -1,3 +1,5 @@
+import { DATA_MAPPER_CACHE_CONFIG } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
+
 /**
  * DataMapper 缓存常量配置
  * 专用于映射规则缓存的配置项
@@ -11,12 +13,12 @@ export const DATA_MAPPER_CACHE_CONSTANTS = {
     RULE_STATS: "dm:rule_stats", // 规则统计信息
   },
 
-  // ⏰ TTL 配置 (秒) - 基于业务需求优化
+  // ⏰ TTL 配置 (秒) - 使用统一配置
   TTL: {
-    BEST_RULE: 1800, // 30分钟 - 最佳规则相对稳定
-    RULE_BY_ID: 3600, // 1小时 - 规则内容较少变更
-    PROVIDER_RULES: 900, // 15分钟 - 规则列表可能变更
-    RULE_STATS: 300, // 5分钟 - 统计信息更新频繁
+    BEST_RULE: DATA_MAPPER_CACHE_CONFIG.RULE_CACHE_TTL, // 使用统一规则缓存TTL
+    RULE_BY_ID: DATA_MAPPER_CACHE_CONFIG.RULE_CACHE_TTL, // 使用统一规则缓存TTL
+    PROVIDER_RULES: DATA_MAPPER_CACHE_CONFIG.SUGGESTION_CACHE_TTL, // 使用建议缓存TTL（更新更频繁）
+    RULE_STATS: DATA_MAPPER_CACHE_CONFIG.SUGGESTION_CACHE_TTL, // 统计信息更新频繁
   },
 
   // 📊 性能阈值配置
@@ -24,6 +26,22 @@ export const DATA_MAPPER_CACHE_CONSTANTS = {
     SLOW_OPERATION_MS: 100, // 慢操作阈值 (毫秒)
     MAX_BATCH_SIZE: 100, // 批量操作最大数量
     STATS_CLEANUP_INTERVAL_MS: 300000, // 统计清理间隔 (5分钟)
+  },
+
+  // ⏱️ 操作超时配置
+  OPERATION_TIMEOUTS: {
+    DEFAULT_SCAN_MS: 5000,        // scanKeysWithTimeout 默认超时
+    PROVIDER_INVALIDATE_MS: 3000, // 提供商缓存失效扫描超时
+    STATS_SCAN_MS: 2000,          // 统计信息扫描超时
+    CLEAR_ALL_MS: 5000,           // 清理所有缓存超时
+  },
+
+  // 🔄 批处理操作配置
+  BATCH_OPERATIONS: {
+    REDIS_SCAN_COUNT: 100,        // Redis SCAN命令的COUNT参数
+    DELETE_BATCH_SIZE: 100,       // 批量删除的批次大小
+    MAX_KEYS_PREVENTION: 10000,   // 防止内存过度使用的键数限制
+    INTER_BATCH_DELAY_MS: 10,     // 批次间延迟毫秒数，降低Redis负载
   },
 
   // 📏 大小限制

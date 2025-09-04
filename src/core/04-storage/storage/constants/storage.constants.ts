@@ -3,6 +3,8 @@
  * 🎯 统一定义存储相关的常量，确保系统一致性
  */
 
+import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+
 /**
  * 存储错误消息常量
  */
@@ -51,9 +53,9 @@ export const STORAGE_CONFIG = Object.freeze({
     parseFloat(process.env.STORAGE_COMPRESS_RATIO) || 0.8, // 默认压缩比例（80%）
   MAX_KEY_LENGTH: 250, // 最大键长度
   MAX_DATA_SIZE_MB: 16, // 最大数据大小（16MB）
-  MAX_BATCH_SIZE: 1000, // 最大批量操作大小
-  DEFAULT_RETRY_ATTEMPTS: 3, // 默认重试次数
-  DEFAULT_TIMEOUT_MS: 30000, // 默认超时时间（30秒）
+  MAX_BATCH_SIZE: BATCH_CONSTANTS.BUSINESS_SCENARIOS.STORAGE.BULK_INSERT_SIZE, // 最大批量操作大小 - 使用统一配置
+  DEFAULT_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.STORAGE.MAX_RETRY_ATTEMPTS, // 默认重试次数 - 使用统一配置
+  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.STORAGE.OPERATION_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
   STATS_SAMPLE_SIZE: 100, // 统计样本大小
 } as const);
 
@@ -210,7 +212,7 @@ export const STORAGE_BATCH_CONFIG = Object.freeze({
  * 存储健康检查配置常量
  */
 export const STORAGE_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: 30000, // 健康检查间隔（30秒）
+  CHECK_INTERVAL_MS: PERFORMANCE_CONSTANTS.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔 - 使用统一配置
   TIMEOUT_MS: 5000, // 健康检查超时（5秒）
   MAX_FAILURES: 3, // 最大失败次数
   RECOVERY_THRESHOLD: 5, // 恢复阈值

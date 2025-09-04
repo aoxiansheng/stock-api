@@ -9,19 +9,27 @@ import {
   IsArray,
   ValidateNested,
   IsObject,
+  MaxLength,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
+import {
+  TRANSFORMATION_TYPE_VALUES,
+  API_TYPE_VALUES,
+  RULE_LIST_TYPE_VALUES,
+  DATA_MAPPER_CONFIG,
+} from "../constants/data-mapper.constants";
+import type { TransformationType, ApiType, RuleListType } from "../constants/data-mapper.constants";
 
 // 🆕 转换规则DTO
 export class TransformRuleDto {
   @ApiProperty({
     description: "转换类型",
-    enum: ["multiply", "divide", "add", "subtract", "format", "custom"],
+    enum: TRANSFORMATION_TYPE_VALUES,
     example: "multiply",
   })
-  @IsEnum(["multiply", "divide", "add", "subtract", "format", "custom"])
-  type: string;
+  @IsEnum(TRANSFORMATION_TYPE_VALUES)
+  type: TransformationType;
 
   @ApiProperty({
     description: "转换值",
@@ -68,77 +76,54 @@ export class FlexibleFieldMappingDto {
 
   @ApiProperty({
     description: "回退路径列表",
-    type: [String],
-    example: ["last_price", "current_price"],
+    example: ["fallback.price", "last_trade.price"],
     required: false,
   })
   @IsArray()
-  @IsString({ each: true })
   @IsOptional()
   fallbackPaths?: string[];
 
   @ApiProperty({
-    description: "映射可靠性评分",
-    example: 0.85,
-    minimum: 0,
-    maximum: 1,
-  })
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  confidence: number;
-
-  @ApiProperty({
-    description: "映射描述",
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiProperty({
     description: "是否启用此字段映射",
-    default: true,
+    example: true,
+    required: false,
   })
   @IsBoolean()
   @IsOptional()
-  isActive?: boolean = true;
+  enabled?: boolean;
 }
 
-// 🆕 创建灵活映射规则请求DTO
-export class CreateFlexibleMappingRuleDto {
+// 🆕 数据源分析请求DTO（简化）
+export class AnalyzeDataSourceDto {
   @ApiProperty({
-    description: "规则名称",
-    example: "LongPort WebSocket 报价映射规则",
-  })
-  @IsString()
-  name: string;
-
-  @ApiProperty({
-    description: "数据提供商",
+    description: "提供商",
     example: "longport",
   })
   @IsString()
   provider: string;
 
   @ApiProperty({
-    description: "API类型",
-    enum: ["rest", "stream"],
-    example: "stream",
+    description: "API 类型",
+    enum: API_TYPE_VALUES,
+    example: "rest",
   })
-  @IsEnum(["rest", "stream"])
-  apiType: "rest" | "stream";
+  @IsEnum(API_TYPE_VALUES)
+  apiType: ApiType;
+}
 
+// 🆕 创建灵活映射规则DTO（简化）
+export class CreateFlexibleMappingRuleDto {
   @ApiProperty({
-    description: "规则类型",
-    enum: ["quote_fields", "basic_info_fields", "index_fields"],
-    example: "quote_fields",
+    description: "规则名称",
+    example: "basic_info_to_quote_mapping",
   })
-  @IsEnum(["quote_fields", "basic_info_fields", "index_fields"])
-  transDataRuleListType: "quote_fields" | "basic_info_fields" | "index_fields";
+  @IsString()
+  @MaxLength(DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH)
+  name: string;
 
   @ApiProperty({
     description: "规则描述",
+    example: "将基础信息字段映射到行情字段",
     required: false,
   })
   @IsString()
@@ -146,37 +131,44 @@ export class CreateFlexibleMappingRuleDto {
   description?: string;
 
   @ApiProperty({
-    description: "数据源模板ID",
-    required: false, // 临时设为可选，用于测试
+    description: "提供商",
+    example: "longport",
   })
   @IsString()
-  @IsOptional()
-  sourceTemplateId?: string;
+  provider: string;
+
+  @ApiProperty({
+    description: "API 类型",
+    enum: API_TYPE_VALUES,
+    example: "rest",
+  })
+  @IsEnum(API_TYPE_VALUES)
+  apiType: ApiType;
+
+  @ApiProperty({
+    description: "转换字段集合类型",
+    enum: RULE_LIST_TYPE_VALUES,
+    example: "quote_fields",
+  })
+  @IsEnum(RULE_LIST_TYPE_VALUES)
+  transDataRuleListType: RuleListType;
 
   @ApiProperty({
     description: "字段映射列表",
     type: [FlexibleFieldMappingDto],
   })
-  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FlexibleFieldMappingDto)
   fieldMappings: FlexibleFieldMappingDto[];
 
   @ApiProperty({
-    description: "是否设为默认规则",
-    default: false,
+    description: "是否启用规则",
+    example: true,
+    required: false,
   })
   @IsBoolean()
   @IsOptional()
-  isDefault?: boolean = false;
-
-  @ApiProperty({
-    description: "版本号",
-    default: "1.0.0",
-  })
-  @IsString()
-  @IsOptional()
-  version?: string = "1.0.0";
+  enabled?: boolean;
 }
 
 // 🆕 灵活映射规则响应DTO

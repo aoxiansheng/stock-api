@@ -1,12 +1,13 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
+import { TRANSFORMATION_TYPE_VALUES, API_TYPE_VALUES } from "../constants/data-mapper.constants";
 
 // 🆕 转换规则子Schema
 @Schema({ _id: false })
 export class TransformRule {
   @Prop({
     required: true,
-    enum: ["multiply", "divide", "add", "subtract", "format", "custom"],
+    enum: TRANSFORMATION_TYPE_VALUES,
   })
   type: string;
 
@@ -65,7 +66,7 @@ export class FlexibleMappingRule extends Document {
   @Prop({ required: true, trim: true, lowercase: true })
   provider: string; // 数据提供商
 
-  @Prop({ required: true, enum: ["rest", "stream"] })
+  @Prop({ required: true, enum: API_TYPE_VALUES })
   apiType: string; // API类型
 
   @Prop({ required: true, trim: true })

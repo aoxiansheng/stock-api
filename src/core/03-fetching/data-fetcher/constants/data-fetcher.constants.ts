@@ -2,6 +2,8 @@
  * DataFetcher模块常量定义
  */
 
+import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+
 /**
  * 数据获取操作类型
  */
@@ -37,14 +39,14 @@ export const DATA_FETCHER_WARNING_MESSAGES = {
  * 数据获取性能阈值
  */
 export const DATA_FETCHER_PERFORMANCE_THRESHOLDS = {
-  /** 慢响应阈值 (毫秒) */
-  SLOW_RESPONSE_MS: 2000,
+  /** 慢响应阈值 (毫秒) - 使用统一配置 */
+  SLOW_RESPONSE_MS: PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.DATA_FETCHER.SLOW_RESPONSE_MS,
 
   /** 每个符号的最大处理时间 (毫秒) */
   MAX_TIME_PER_SYMBOL_MS: 500,
 
-  /** 批量处理的最大符号数量 */
-  MAX_SYMBOLS_PER_BATCH: 50,
+  /** 批量处理的最大符号数量 - 使用统一配置 */
+  MAX_SYMBOLS_PER_BATCH: BATCH_CONSTANTS.BUSINESS_SCENARIOS.DATA_FETCHER.MAX_BATCH_SIZE,
 
   /** 日志记录的符号数量限制 */
   LOG_SYMBOLS_LIMIT: 10,
@@ -57,14 +59,14 @@ export const DATA_FETCHER_DEFAULT_CONFIG = {
   /** 默认API类型 */
   DEFAULT_API_TYPE: "rest",
 
-  /** 默认超时时间 (毫秒) */
-  DEFAULT_TIMEOUT_MS: 30000,
+  /** 默认超时时间 (毫秒) - 使用统一配置 */
+  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DATA_FETCHER.BASE_TIMEOUT_MS,
 
-  /** 默认重试次数 */
-  DEFAULT_RETRY_COUNT: 1,
+  /** 默认重试次数 - 使用统一配置 */
+  DEFAULT_RETRY_COUNT: RETRY_CONSTANTS.BUSINESS_SCENARIOS.DATA_FETCHER.MAX_RETRY_ATTEMPTS,
 
-  /** 默认批量大小 */
-  DEFAULT_BATCH_SIZE: 20,
+  /** 默认批量大小 - 使用统一配置 */
+  DEFAULT_BATCH_SIZE: BATCH_CONSTANTS.BUSINESS_SCENARIOS.DATA_FETCHER.DEFAULT_BATCH_SIZE,
 } as const;
 
 /**
