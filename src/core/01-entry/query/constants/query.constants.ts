@@ -5,6 +5,7 @@
 
 import { BATCH_CONSTANTS } from "@common/constants/unified";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
+import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
 
 /**
  * 查询错误消息常量
@@ -211,7 +212,7 @@ export const QUERY_DATA_SOURCE_TYPES = Object.freeze({
  * 合并了之前分散在多个地方的超时设置
  */
 export const QUERY_TIMEOUT_CONFIG = Object.freeze({
-  QUERY_MS: 30000, // 统一查询超时（30秒）
+  QUERY_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS, // 统一查询超时（使用统一配置）
   CACHE_MS: 5000, // 统一缓存操作超时（5秒）
   REALTIME_FETCH_MS: 15000, // 实时数据获取超时（15秒）
   HEALTH_CHECK_MS: 5000, // 健康检查超时（5秒）
@@ -234,7 +235,7 @@ export const QUERY_DEFAULTS = Object.freeze({
   PAGE_OFFSET: 0,
   // 缓存TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
   // TIMEOUT_MS 已移动到 QUERY_TIMEOUT_CONFIG.QUERY_MS
-  RETRY_ATTEMPTS: 3,
+  RETRY_ATTEMPTS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS,
   LOG_LEVEL: "info",
   ENABLE_CACHING: true,
   ENABLE_PERFORMANCE_MONITORING: true,
@@ -277,7 +278,7 @@ export const QUERY_CACHE_CONFIG = Object.freeze({
  * 查询健康检查配置常量
  */
 export const QUERY_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: 30000, // 健康检查间隔（30秒）
+  CHECK_INTERVAL_MS: PERFORMANCE_CONSTANTS.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔（使用统一配置）
   // TIMEOUT_MS 已移动到 QUERY_TIMEOUT_CONFIG.HEALTH_CHECK_MS
   MAX_FAILURES: 3, // 最大失败次数
   RECOVERY_THRESHOLD: 5, // 恢复阈值

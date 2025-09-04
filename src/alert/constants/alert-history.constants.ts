@@ -3,6 +3,8 @@
  * 🎯 符合开发规范指南 - 统一常量管理
  */
 
+import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
+
 // 📝 操作名称常量
 export const ALERT_HISTORY_OPERATIONS = Object.freeze({
   CREATE_ALERT: "createAlert",
@@ -137,7 +139,7 @@ export const ALERT_HISTORY_VALIDATION_RULES = Object.freeze({
 
 // ⏰ 时间配置常量
 export const ALERT_HISTORY_TIME_CONFIG = Object.freeze({
-  DEFAULT_QUERY_TIMEOUT_MS: 30000,
+  DEFAULT_QUERY_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS,
   BATCH_UPDATE_TIMEOUT_MS: 60000,
   CLEANUP_TIMEOUT_MS: 300000, // 5分钟
   STATISTICS_CALCULATION_TIMEOUT_MS: 60000,

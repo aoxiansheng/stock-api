@@ -190,7 +190,7 @@ export const TRANSFORM_EVENTS = Object.freeze({
 export const TRANSFORM_DEFAULTS = Object.freeze({
   BATCH_SIZE: 100, // 默认批量大小
   TIMEOUT_MS: 10000, // 默认超时时间（10秒）
-  RETRY_ATTEMPTS: 3, // 默认重试次数
+  RETRY_ATTEMPTS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS, // 默认重试次数（使用统一配置）
   VALIDATE_OUTPUT: true, // 默认启用输出验证
   INCLUDE_METADATA: false, // 默认不包含元数据
   CONTINUE_ON_ERROR: false, // 默认遇错停止

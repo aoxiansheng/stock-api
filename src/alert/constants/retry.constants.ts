@@ -3,6 +3,8 @@
  * 用于统一管理所有重试相关的配置，避免重复定义
  */
 
+import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
+
 /**
  * 基础重试配置
  * 包含所有通用的重试参数
@@ -29,7 +31,7 @@ export const NOTIFICATION_RETRY_CONFIG = Object.freeze({
  */
 export const ALERTING_RETRY_CONFIG = Object.freeze({
   ...BASE_RETRY_CONFIG,
-  TIMEOUT_MS: 30000,
+  TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS,
 });
 
 /**
