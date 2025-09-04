@@ -1,4 +1,7 @@
 import { CacheStrategy } from "./smart-cache-orchestrator.interface";
+import { SMART_CACHE_CONSTANTS, SmartCacheConstantsType } from '../constants/smart-cache.constants';
+import { SMART_CACHE_COMPONENT } from '../constants/smart-cache.component.constants';
+import { SmartCacheConfigValidator } from '../validators/smart-cache-config.validator';
 
 /**
  * 智能缓存编排器配置令牌
@@ -179,131 +182,130 @@ export interface AdaptiveConfig {
 }
 
 /**
- * 默认配置常量
- * 提供各策略的默认配置值
+ * 使用常量定义默认配置，提供类型安全和单一数据源
+ * 替换原有的硬编码默认配置（第184-234行）
  */
-export const DEFAULT_SMART_CACHE_CONFIG: SmartCacheOrchestratorConfig = {
-  defaultMinUpdateInterval: 30000, // 30秒，沿用Query现网值
-  maxConcurrentUpdates: 10,
-  gracefulShutdownTimeout: 30000, // 30秒，与QueryService保持一致
+export const DEFAULT_SMART_CACHE_CONFIG = Object.freeze({
+  // 基础配置 - 使用明确命名的常量
+  defaultMinUpdateInterval: SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
+  maxConcurrentUpdates: SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
+  gracefulShutdownTimeout: SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
   enableBackgroundUpdate: true,
   enableDataChangeDetection: true,
   enableMetrics: true,
 
   strategies: {
-    [CacheStrategy.STRONG_TIMELINESS]: {
-      ttl: 60, // 1分钟
+    // 强时效性策略配置
+    [CacheStrategy.STRONG_TIMELINESS]: Object.freeze({
+      ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
       enableBackgroundUpdate: true,
-      updateThresholdRatio: 0.3, // TTL剩余30%时更新
-      forceRefreshInterval: 300, // 5分钟强制刷新
+      updateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO,
+      forceRefreshInterval: SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
       enableDataChangeDetection: true,
-    },
+    }),
 
-    [CacheStrategy.WEAK_TIMELINESS]: {
-      ttl: 300, // 5分钟
+    // 弱时效性策略配置
+    [CacheStrategy.WEAK_TIMELINESS]: Object.freeze({
+      ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
       enableBackgroundUpdate: true,
-      updateThresholdRatio: 0.2, // TTL剩余20%时更新
-      minUpdateInterval: 60, // 最小1分钟更新间隔
+      updateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.WEAK_UPDATE_RATIO,
+      minUpdateInterval: SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S * 12, // 60秒
       enableDataChangeDetection: true,
-    },
+    }),
 
-    [CacheStrategy.MARKET_AWARE]: {
-      openMarketTtl: 30, // 开市时30秒
-      closedMarketTtl: 1800, // 闭市时30分钟
+    // 市场感知策略配置
+    [CacheStrategy.MARKET_AWARE]: Object.freeze({
+      openMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S,
+      closedMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
       enableBackgroundUpdate: true,
-      marketStatusCheckInterval: 300, // 5分钟检查市场状态
-      openMarketUpdateThresholdRatio: 0.3,
-      closedMarketUpdateThresholdRatio: 0.1,
+      marketStatusCheckInterval: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S, // 300秒
+      openMarketUpdateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_OPEN_UPDATE_RATIO,
+      closedMarketUpdateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_CLOSED_UPDATE_RATIO,
       enableDataChangeDetection: true,
-    },
+    }),
 
-    [CacheStrategy.NO_CACHE]: {
+    [CacheStrategy.NO_CACHE]: Object.freeze({
       bypassCache: true,
       enableMetrics: true,
-    },
+    }),
 
-    [CacheStrategy.ADAPTIVE]: {
-      baseTtl: 180, // 3分钟基础TTL
-      minTtl: 30, // 最小30秒
-      maxTtl: 3600, // 最大1小时
+    // 自适应策略配置
+    [CacheStrategy.ADAPTIVE]: Object.freeze({
+      baseTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_BASE_DEFAULT_S,
+      minTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S,
+      maxTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S,
       adaptationFactor: 1.5,
       enableBackgroundUpdate: true,
-      changeDetectionWindow: 3600, // 1小时检测窗口
+      changeDetectionWindow: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S, // 3600秒
       enableDataChangeDetection: true,
-    },
+    }),
   },
-};
+} as const);
+
+// 从默认配置推导接口类型，确保类型一致性
+export type SmartCacheOrchestratorConfigType = typeof DEFAULT_SMART_CACHE_CONFIG;
 
 /**
  * 配置验证函数
- * 验证配置参数的有效性
+ * 使用统一验证器提供类型安全和常量化的验证
  */
 export function validateSmartCacheConfig(
-  config: SmartCacheOrchestratorConfig,
+  config: SmartCacheOrchestratorConfigType,
 ): string[] {
   const errors: string[] = [];
 
-  // 验证基础配置
-  if (config.defaultMinUpdateInterval <= 0) {
-    errors.push("defaultMinUpdateInterval must be positive");
-  }
+  // 基础配置验证 - 使用统一验证器
+  errors.push(...SmartCacheConfigValidator.validateInterval(
+    config.defaultMinUpdateInterval,
+    'defaultMinUpdateInterval'
+  ));
 
-  if (config.maxConcurrentUpdates <= 0) {
-    errors.push("maxConcurrentUpdates must be positive");
-  }
+  errors.push(...SmartCacheConfigValidator.validateConcurrency(
+    config.maxConcurrentUpdates
+  ));
 
-  if (config.gracefulShutdownTimeout <= 0) {
-    errors.push("gracefulShutdownTimeout must be positive");
-  }
+  errors.push(...SmartCacheConfigValidator.validateInterval(
+    config.gracefulShutdownTimeout,
+    'gracefulShutdownTimeout'
+  ));
 
-  // 验证策略配置
+  // 策略配置验证 - 使用统一验证器
   Object.entries(config.strategies).forEach(([strategy, strategyConfig]) => {
     switch (strategy as CacheStrategy) {
       case CacheStrategy.STRONG_TIMELINESS:
         const strongConfig = strategyConfig as StrongTimelinessConfig;
-        if (strongConfig.ttl <= 0) {
-          errors.push(`${strategy}: ttl must be positive`);
-        }
-        if (
-          strongConfig.updateThresholdRatio < 0 ||
-          strongConfig.updateThresholdRatio > 1
-        ) {
-          errors.push(
-            `${strategy}: updateThresholdRatio must be between 0 and 1`,
-          );
-        }
+        errors.push(...SmartCacheConfigValidator.validateTTL(strongConfig.ttl, strategy));
+        errors.push(...SmartCacheConfigValidator.validateThresholdRatio(
+          strongConfig.updateThresholdRatio, 
+          strategy
+        ));
         break;
 
       case CacheStrategy.WEAK_TIMELINESS:
         const weakConfig = strategyConfig as WeakTimelinessConfig;
-        if (weakConfig.ttl <= 0) {
-          errors.push(`${strategy}: ttl must be positive`);
-        }
-        if (weakConfig.minUpdateInterval <= 0) {
-          errors.push(`${strategy}: minUpdateInterval must be positive`);
-        }
+        errors.push(...SmartCacheConfigValidator.validateTTL(weakConfig.ttl, strategy));
+        errors.push(...SmartCacheConfigValidator.validateInterval(
+          weakConfig.minUpdateInterval * 1000, // 转换为毫秒
+          `${strategy}.minUpdateInterval`
+        ));
         break;
 
       case CacheStrategy.MARKET_AWARE:
         const marketConfig = strategyConfig as MarketAwareConfig;
-        if (
-          marketConfig.openMarketTtl <= 0 ||
-          marketConfig.closedMarketTtl <= 0
-        ) {
-          errors.push(`${strategy}: TTL values must be positive`);
-        }
-        if (marketConfig.marketStatusCheckInterval <= 0) {
-          errors.push(
-            `${strategy}: marketStatusCheckInterval must be positive`,
-          );
-        }
+        errors.push(...SmartCacheConfigValidator.validateMarketAwareConfig(
+          marketConfig.openMarketTtl,
+          marketConfig.closedMarketTtl,
+          marketConfig.marketStatusCheckInterval
+        ));
         break;
 
       case CacheStrategy.ADAPTIVE:
         const adaptiveConfig = strategyConfig as AdaptiveConfig;
-        if (adaptiveConfig.minTtl >= adaptiveConfig.maxTtl) {
-          errors.push(`${strategy}: minTtl must be less than maxTtl`);
-        }
+        errors.push(...SmartCacheConfigValidator.validateAdaptiveTtlRange(
+          adaptiveConfig.minTtl,
+          adaptiveConfig.maxTtl,
+          adaptiveConfig.baseTtl
+        ));
         if (adaptiveConfig.adaptationFactor <= 0) {
           errors.push(`${strategy}: adaptationFactor must be positive`);
         }

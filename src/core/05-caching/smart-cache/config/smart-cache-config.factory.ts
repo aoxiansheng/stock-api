@@ -3,6 +3,16 @@ import { createLogger } from "@app/config/logger.config";
 import os from "os";
 import { SmartCacheOrchestratorConfig } from "../interfaces/smart-cache-config.interface";
 import { CacheStrategy } from "../interfaces/smart-cache-orchestrator.interface";
+import { 
+  SMART_CACHE_CONSTANTS,
+  SmartCacheConstantsType 
+} from '../constants/smart-cache.constants';
+import { 
+  SMART_CACHE_ENV_VARS,
+  SmartCacheEnvVarKey,
+  getEnvVar 
+} from '../constants/smart-cache.env-vars.constants';
+import { SMART_CACHE_COMPONENT } from '../constants/smart-cache.component.constants';
 
 /**
  * SmartCache配置工厂类
@@ -27,7 +37,7 @@ import { CacheStrategy } from "../interfaces/smart-cache-orchestrator.interface"
  */
 @Injectable()
 export class SmartCacheConfigFactory {
-  private static readonly logger = createLogger(SmartCacheConfigFactory.name);
+  private static readonly logger = createLogger(SMART_CACHE_COMPONENT.LOG_CONTEXTS.CONFIG_FACTORY);
 
   /**
    * 创建SmartCache配置实例
@@ -44,119 +54,152 @@ export class SmartCacheConfigFactory {
     const config: SmartCacheOrchestratorConfig = {
       // 基础配置 - 支持环境变量覆盖
       defaultMinUpdateInterval: this.parseIntEnv(
-        "SMART_CACHE_MIN_UPDATE_INTERVAL",
-        30000, // 默认30秒，沿用Query现网值
+        getEnvVar('MIN_UPDATE_INTERVAL_MS'),
+        SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
       ),
 
       maxConcurrentUpdates: this.parseIntEnv(
-        "SMART_CACHE_MAX_CONCURRENT",
-        // 智能默认值：基于CPU核心数，最小2，最大16
-        Math.min(Math.max(2, cpuCores), 16),
+        getEnvVar('MAX_CONCURRENT_UPDATES'),
+        // 智能默认值：基于CPU核心数，使用常量定义范围
+        Math.min(
+          Math.max(SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT, cpuCores),
+          SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT
+        ),
       ),
 
       gracefulShutdownTimeout: this.parseIntEnv(
-        "SMART_CACHE_SHUTDOWN_TIMEOUT",
-        30000, // 30秒，与QueryService保持一致
+        getEnvVar('SHUTDOWN_TIMEOUT_MS'),
+        SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
       ),
 
       enableBackgroundUpdate: this.parseBoolEnv(
-        "SMART_CACHE_ENABLE_BACKGROUND_UPDATE",
+        getEnvVar('ENABLE_BACKGROUND_UPDATE'),
         true,
       ),
 
       enableDataChangeDetection: this.parseBoolEnv(
-        "SMART_CACHE_ENABLE_DATA_CHANGE_DETECTION",
+        getEnvVar('ENABLE_DATA_CHANGE_DETECTION'),
         true,
       ),
 
-      enableMetrics: this.parseBoolEnv("SMART_CACHE_ENABLE_METRICS", true),
+      enableMetrics: this.parseBoolEnv(getEnvVar('ENABLE_METRICS'), true),
 
       // 策略配置映射
       strategies: {
         // 强时效性策略 - Receiver场景
         [CacheStrategy.STRONG_TIMELINESS]: {
-          ttl: this.parseIntEnv("CACHE_STRONG_TTL", 60), // 1分钟
+          ttl: this.parseIntEnv(
+            getEnvVar('STRONG_TTL_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S
+          ),
           enableBackgroundUpdate: this.parseBoolEnv(
-            "CACHE_STRONG_BACKGROUND_UPDATE",
+            getEnvVar('ENABLE_BACKGROUND_UPDATE'),
             true,
           ),
           updateThresholdRatio: this.parseFloatEnv(
-            "CACHE_STRONG_THRESHOLD",
-            0.3,
-          ), // 30%
+            getEnvVar('STRONG_UPDATE_RATIO'),
+            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO,
+          ),
           forceRefreshInterval: this.parseIntEnv(
-            "CACHE_STRONG_REFRESH_INTERVAL",
-            300,
-          ), // 5分钟
+            getEnvVar('MIN_UPDATE_INTERVAL_MS'),
+            SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS / 1000, // 转换为秒
+          ),
           enableDataChangeDetection: this.parseBoolEnv(
-            "CACHE_STRONG_DATA_CHANGE_DETECTION",
+            getEnvVar('ENABLE_DATA_CHANGE_DETECTION'),
             true,
           ),
         },
 
         // 弱时效性策略 - Query场景
         [CacheStrategy.WEAK_TIMELINESS]: {
-          ttl: this.parseIntEnv("CACHE_WEAK_TTL", 300), // 5分钟
+          ttl: this.parseIntEnv(
+            getEnvVar('WEAK_TTL_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S
+          ),
           enableBackgroundUpdate: this.parseBoolEnv(
-            "CACHE_WEAK_BACKGROUND_UPDATE",
+            getEnvVar('ENABLE_BACKGROUND_UPDATE'),
             true,
           ),
-          updateThresholdRatio: this.parseFloatEnv("CACHE_WEAK_THRESHOLD", 0.2), // 20%
-          minUpdateInterval: this.parseIntEnv("CACHE_WEAK_MIN_UPDATE", 60), // 1分钟
+          updateThresholdRatio: this.parseFloatEnv(
+            getEnvVar('WEAK_UPDATE_RATIO'), 
+            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.WEAK_UPDATE_RATIO
+          ),
+          minUpdateInterval: this.parseIntEnv(
+            getEnvVar('MIN_UPDATE_INTERVAL_MS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S * 12 // 60秒
+          ),
           enableDataChangeDetection: this.parseBoolEnv(
-            "CACHE_WEAK_DATA_CHANGE_DETECTION",
+            getEnvVar('ENABLE_DATA_CHANGE_DETECTION'),
             true,
           ),
         },
 
         // 市场感知策略 - 股票交易场景
         [CacheStrategy.MARKET_AWARE]: {
-          openMarketTtl: this.parseIntEnv("CACHE_MARKET_OPEN_TTL", 30), // 开市30秒
-          closedMarketTtl: this.parseIntEnv("CACHE_MARKET_CLOSED_TTL", 1800), // 闭市30分钟
+          openMarketTtl: this.parseIntEnv(
+            getEnvVar('MARKET_AWARE_TTL_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S
+          ),
+          closedMarketTtl: this.parseIntEnv(
+            getEnvVar('MARKET_AWARE_TTL_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S
+          ),
           enableBackgroundUpdate: this.parseBoolEnv(
-            "CACHE_MARKET_BACKGROUND_UPDATE",
+            getEnvVar('ENABLE_BACKGROUND_UPDATE'),
             true,
           ),
           marketStatusCheckInterval: this.parseIntEnv(
-            "CACHE_MARKET_CHECK_INTERVAL",
-            300,
-          ), // 5分钟
+            getEnvVar('HEALTH_CHECK_INTERVAL_MS'),
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S, // 300秒
+          ),
           openMarketUpdateThresholdRatio: this.parseFloatEnv(
-            "CACHE_MARKET_OPEN_THRESHOLD",
-            0.3,
+            getEnvVar('MARKET_OPEN_UPDATE_RATIO'),
+            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_OPEN_UPDATE_RATIO,
           ),
           closedMarketUpdateThresholdRatio: this.parseFloatEnv(
-            "CACHE_MARKET_CLOSED_THRESHOLD",
-            0.1,
+            getEnvVar('MARKET_CLOSED_UPDATE_RATIO'),
+            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_CLOSED_UPDATE_RATIO,
           ),
           enableDataChangeDetection: this.parseBoolEnv(
-            "CACHE_MARKET_DATA_CHANGE_DETECTION",
+            getEnvVar('ENABLE_DATA_CHANGE_DETECTION'),
             true,
           ),
         },
 
         // 无缓存策略
         [CacheStrategy.NO_CACHE]: {
-          bypassCache: this.parseBoolEnv("CACHE_NO_CACHE_BYPASS", true),
-          enableMetrics: this.parseBoolEnv("CACHE_NO_CACHE_METRICS", true),
+          bypassCache: this.parseBoolEnv(getEnvVar('ENABLE_BACKGROUND_UPDATE'), true), // 重用环境变量
+          enableMetrics: this.parseBoolEnv(getEnvVar('ENABLE_METRICS'), true),
         },
 
         // 自适应策略 - 智能调整
         [CacheStrategy.ADAPTIVE]: {
-          baseTtl: this.parseIntEnv("CACHE_ADAPTIVE_BASE_TTL", 180), // 3分钟
-          minTtl: this.parseIntEnv("CACHE_ADAPTIVE_MIN_TTL", 30), // 30秒
-          maxTtl: this.parseIntEnv("CACHE_ADAPTIVE_MAX_TTL", 3600), // 1小时
-          adaptationFactor: this.parseFloatEnv("CACHE_ADAPTIVE_FACTOR", 1.5),
+          baseTtl: this.parseIntEnv(
+            getEnvVar('ADAPTIVE_TTL_BASE_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_BASE_DEFAULT_S
+          ),
+          minTtl: this.parseIntEnv(
+            getEnvVar('ADAPTIVE_TTL_MIN_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S
+          ),
+          maxTtl: this.parseIntEnv(
+            getEnvVar('ADAPTIVE_TTL_MAX_SECONDS'), 
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S
+          ),
+          adaptationFactor: this.parseFloatEnv(
+            getEnvVar('ENABLE_ADAPTIVE_STRATEGY'), // 重用环境变量
+            1.5
+          ),
           enableBackgroundUpdate: this.parseBoolEnv(
-            "CACHE_ADAPTIVE_BACKGROUND_UPDATE",
+            getEnvVar('ENABLE_BACKGROUND_UPDATE'),
             true,
           ),
           changeDetectionWindow: this.parseIntEnv(
-            "CACHE_ADAPTIVE_DETECTION_WINDOW",
-            3600,
-          ), // 1小时
+            getEnvVar('HEALTH_CHECK_INTERVAL_MS'),
+            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S, // 3600秒
+          ),
           enableDataChangeDetection: this.parseBoolEnv(
-            "CACHE_ADAPTIVE_DATA_CHANGE_DETECTION",
+            getEnvVar('ENABLE_DATA_CHANGE_DETECTION'),
             true,
           ),
         },

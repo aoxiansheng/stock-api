@@ -31,7 +31,18 @@ import {
   AdaptiveConfig,
   MarketAwareConfig,
   NoCacheConfig,
+  DEFAULT_SMART_CACHE_CONFIG,
 } from "../interfaces/smart-cache-config.interface";
+import { 
+  SMART_CACHE_CONSTANTS,
+  SmartCacheConstantsType 
+} from '../constants/smart-cache.constants';
+import { 
+  SMART_CACHE_COMPONENT,
+  LogContext,
+  OperationType,
+  MetricType 
+} from '../constants/smart-cache.component.constants';
 
 /**
  * 智能缓存编排器服务 - Phase 5.2 重构版
@@ -57,7 +68,7 @@ import {
 
 @Injectable()
 export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = createLogger(SmartCacheOrchestrator.name);
+  private readonly logger = createLogger(SMART_CACHE_COMPONENT.LOG_CONTEXTS.ORCHESTRATOR_SERVICE);
 
   /** 后台更新任务管理Map：cacheKey -> BackgroundUpdateTask */
   private readonly backgroundUpdateTasks = new Map<
@@ -104,53 +115,8 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    */
   private validateAndInitializeConfig(): void {
     try {
-      // 提供默认配置保护 - 使用与接口一致的配置结构
-      const defaultConfig: SmartCacheOrchestratorConfig = {
-        defaultMinUpdateInterval: 30000, // 30秒默认间隔
-        maxConcurrentUpdates: 3, // 默认最大3个并发更新
-        enableBackgroundUpdate: true,
-        enableDataChangeDetection: false,
-        enableMetrics: true,
-        gracefulShutdownTimeout: 30000, // 30秒优雅关闭超时
-        strategies: {
-          [CacheStrategy.STRONG_TIMELINESS]: {
-            ttl: 5,
-            enableBackgroundUpdate: true,
-            updateThresholdRatio: 0.3,
-            forceRefreshInterval: 300,
-            enableDataChangeDetection: false,
-          },
-          [CacheStrategy.WEAK_TIMELINESS]: {
-            ttl: 300,
-            enableBackgroundUpdate: true,
-            updateThresholdRatio: 0.5,
-            minUpdateInterval: 60,
-            enableDataChangeDetection: false,
-          },
-          [CacheStrategy.ADAPTIVE]: {
-            baseTtl: 180,
-            minTtl: 30,
-            maxTtl: 3600,
-            adaptationFactor: 1.5,
-            enableBackgroundUpdate: true,
-            changeDetectionWindow: 3600,
-            enableDataChangeDetection: false,
-          },
-          [CacheStrategy.MARKET_AWARE]: {
-            openMarketTtl: 30,
-            closedMarketTtl: 1800,
-            enableBackgroundUpdate: true,
-            marketStatusCheckInterval: 60,
-            openMarketUpdateThresholdRatio: 0.3,
-            closedMarketUpdateThresholdRatio: 0.1,
-            enableDataChangeDetection: false,
-          },
-          [CacheStrategy.NO_CACHE]: {
-            bypassCache: true,
-            enableMetrics: true,
-          },
-        },
-      };
+      // 提供默认配置保护 - 使用统一常量定义的默认配置
+      const defaultConfig: SmartCacheOrchestratorConfig = DEFAULT_SMART_CACHE_CONFIG;
 
       // 合并配置，使用默认值作为回退
       this.config = {
@@ -158,13 +124,13 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           this.rawConfig?.defaultMinUpdateInterval,
           defaultConfig.defaultMinUpdateInterval,
           5000,
-          300000,
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS * 10, // 300000ms
         ),
         maxConcurrentUpdates: this.validateNumber(
           this.rawConfig?.maxConcurrentUpdates,
           defaultConfig.maxConcurrentUpdates,
-          1,
-          10,
+          SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
+          SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
         ),
         enableBackgroundUpdate:
           this.rawConfig?.enableBackgroundUpdate ??
@@ -178,7 +144,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           this.rawConfig?.gracefulShutdownTimeout,
           defaultConfig.gracefulShutdownTimeout,
           10000,
-          120000,
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS * 4, // 120000ms
         ),
         strategies: {
           ...defaultConfig.strategies,
@@ -198,43 +164,43 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         error,
       );
 
-      // 紧急默认配置
+      // 紧急默认配置 - 使用常量定义的保守配置
       this.config = {
-        defaultMinUpdateInterval: 60000,
-        maxConcurrentUpdates: 2,
+        defaultMinUpdateInterval: SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS * 2, // 60000ms
+        maxConcurrentUpdates: SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
         enableBackgroundUpdate: false, // 保守地禁用后台更新
         enableDataChangeDetection: false,
         enableMetrics: false,
-        gracefulShutdownTimeout: 30000,
+        gracefulShutdownTimeout: SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
         strategies: {
           [CacheStrategy.STRONG_TIMELINESS]: {
-            ttl: 5,
+            ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
             enableBackgroundUpdate: false,
             updateThresholdRatio: 0.5,
             forceRefreshInterval: 600,
             enableDataChangeDetection: false,
           },
           [CacheStrategy.WEAK_TIMELINESS]: {
-            ttl: 300,
+            ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
             enableBackgroundUpdate: false,
             updateThresholdRatio: 0.5,
             minUpdateInterval: 120,
             enableDataChangeDetection: false,
           },
           [CacheStrategy.ADAPTIVE]: {
-            baseTtl: 300,
-            minTtl: 60,
-            maxTtl: 1800,
+            baseTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
+            minTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S * 2, // 60s
+            maxTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
             adaptationFactor: 1.0,
             enableBackgroundUpdate: false,
-            changeDetectionWindow: 1800,
+            changeDetectionWindow: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
             enableDataChangeDetection: false,
           },
           [CacheStrategy.MARKET_AWARE]: {
-            openMarketTtl: 60,
-            closedMarketTtl: 3600,
+            openMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S * 2, // 60s
+            closedMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S,
             enableBackgroundUpdate: false,
-            marketStatusCheckInterval: 300,
+            marketStatusCheckInterval: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
             openMarketUpdateThresholdRatio: 0.5,
             closedMarketUpdateThresholdRatio: 0.2,
             enableDataChangeDetection: false,
@@ -338,13 +304,13 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         setImmediate(() => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
-            source: "smart_cache_orchestrator",
+            source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             metricType: "cache",
             metricName: "background_task_failed",
             metricValue: this.activeTaskCount,
             tags: {
               operation: "background_task_failed",
-              componentType: "smart_cache_orchestrator",
+              componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
               activeTaskCount: this.activeTaskCount,
               reason: "shutdown_timeout",
             },
@@ -592,14 +558,14 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         setImmediate(() => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
-            source: "smart_cache_orchestrator",
+            source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             metricType: "cache",
             metricName: "background_task_completed",
             metricValue: Date.now() - task.scheduledAt,
             tags: {
               operation: "background_task_completed",
               cacheKey: task.cacheKey,
-              componentType: "smart_cache_orchestrator",
+              componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             },
           });
         });
@@ -617,7 +583,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       // 重试逻辑
       if (task.retryCount < task.maxRetries) {
         task.status = "pending";
-        task.scheduledAt = Date.now() + task.retryCount * 30000; // 递增延迟重试
+        task.scheduledAt = Date.now() + task.retryCount * SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS; // 递增延迟重试
         this.updateQueue.push(task);
         this.logger.log(
           `Scheduled retry ${task.retryCount}/${task.maxRetries} for cache key: ${task.cacheKey}`,
@@ -633,7 +599,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         setImmediate(() => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
-            source: "smart_cache_orchestrator",
+            source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             metricType: "cache",
             metricName: "background_task_failed",
             metricValue: 1,
@@ -641,7 +607,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               operation: "background_task_failed",
               cacheKey: task.cacheKey,
               error: error.message,
-              componentType: "smart_cache_orchestrator",
+              componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             },
           });
         });
@@ -659,14 +625,14 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         setImmediate(() => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
-            source: "smart_cache_orchestrator",
+            source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             metricType: "cache",
             metricName: "active_tasks_count_updated",
             metricValue: this.activeTaskCount,
             tags: {
               operation: "active_tasks_count_updated",
               activeTaskCount: this.activeTaskCount,
-              componentType: "smart_cache_orchestrator",
+              componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             },
           });
         });
@@ -1663,7 +1629,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       cacheResult.metadata?.dynamicTtl
     ) {
       const thresholdRatio =
-        (strategyConfig as any).updateThresholdRatio || 0.3;
+        (strategyConfig as any).updateThresholdRatio || SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO;
       const remainingRatio =
         cacheResult.metadata.ttlRemaining / cacheResult.metadata.dynamicTtl;
 
