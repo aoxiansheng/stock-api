@@ -206,16 +206,14 @@ export interface ISymbolTransformerFactory {
 }
 
 /**
- * Token定义（用于依赖注入）
+ * Token定义（从集中化的injection-tokens导入）
+ * @deprecated 直接使用这些Token已弃用，请使用 INJECTION_TOKENS 对象
  */
-export const SYMBOL_TRANSFORMER_TOKEN = Symbol("ISymbolTransformer");
-export const SYMBOL_FORMAT_VALIDATOR_TOKEN = Symbol("ISymbolFormatValidator");
-export const SYMBOL_TRANSFORM_CACHE_TOKEN = Symbol("ISymbolTransformCache");
-/**
- * @deprecated 监控功能已由事件驱动模式替代
- */
-export const SYMBOL_TRANSFORM_MONITOR_TOKEN = Symbol("ISymbolTransformMonitor");
-export const SYMBOL_TRANSFORM_CONFIG_TOKEN = Symbol("ISymbolTransformConfig");
-export const SYMBOL_TRANSFORMER_FACTORY_TOKEN = Symbol(
-  "ISymbolTransformerFactory",
-);
+export {
+  SYMBOL_TRANSFORMER_TOKEN,
+  SYMBOL_FORMAT_VALIDATOR_TOKEN,
+  SYMBOL_TRANSFORM_CACHE_TOKEN,
+  SYMBOL_TRANSFORM_MONITOR_TOKEN,
+  SYMBOL_TRANSFORM_CONFIG_TOKEN,
+  SYMBOL_TRANSFORMER_FACTORY_TOKEN,
+} from "../constants/injection-tokens.constants";

@@ -9,6 +9,7 @@
 
 import { createLogger } from "@app/config/logger.config";
 import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
+import { RETRY_CONSTANTS } from "@common/constants/unified/retry.constants";
 
 const logger = createLogger("SharedConfig");
 
@@ -62,14 +63,9 @@ export const SHARED_CONFIG = {
     SLOW_THRESHOLD_MS: 5000,
 
     /**
-     * 重试配置
+     * 重试配置 - 引用统一配置
      */
-    RETRY_CONFIG: {
-      MAX_RETRIES: 2,
-      INITIAL_DELAY: 1000,
-      BACKOFF_MULTIPLIER: 1.5,
-      MAX_DELAY: 10000,
-    },
+    RETRY_CONFIG: RETRY_CONSTANTS.DEFAULT_SETTINGS,
 
     /**
      * 并发限制
@@ -184,8 +180,8 @@ export function validateConfig(config: Partial<SharedConfig>): boolean {
   }
 
   if (
-    config.PERFORMANCE?.RETRY_CONFIG?.MAX_RETRIES &&
-    config.PERFORMANCE.RETRY_CONFIG.MAX_RETRIES > 10
+    config.PERFORMANCE?.RETRY_CONFIG?.MAX_RETRY_ATTEMPTS &&
+    config.PERFORMANCE.RETRY_CONFIG.MAX_RETRY_ATTEMPTS > 10
   ) {
     logger.warn("重试次数过多可能影响性能");
   }

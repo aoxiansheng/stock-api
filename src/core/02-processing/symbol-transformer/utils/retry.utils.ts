@@ -1,4 +1,9 @@
 import { RETRY_CONFIG } from "../constants/symbol-transformer.constants";
+import { 
+  CIRCUIT_BREAKER_CONSTANTS,
+  CircuitState,
+  type CircuitBreakerConfig,
+} from "@common/constants/unified/circuit-breaker.constants";
 
 /**
  * 错误类型枚举
@@ -36,23 +41,12 @@ export interface RetryResult<T> {
 }
 
 /**
- * 断路器状态枚举
+ * 断路器相关类型和配置（引用统一配置）
  */
-export enum CircuitState {
-  CLOSED = "CLOSED",
-  OPEN = "OPEN",
-  HALF_OPEN = "HALF_OPEN",
-}
-
-/**
- * 断路器配置接口
- */
-export interface CircuitBreakerOptions {
-  failureThreshold: number;
-  successThreshold: number;
-  timeout: number;
-  resetTimeout: number;
-}
+export {
+  CircuitState,
+  type CircuitBreakerConfig as CircuitBreakerOptions,
+} from "@common/constants/unified/circuit-breaker.constants";
 
 /**
  * 重试和断路器工具类
@@ -71,10 +65,10 @@ export class RetryUtils {
     options: RetryOptions = {},
   ): Promise<RetryResult<T>> {
     const config = {
-      maxAttempts: options.maxAttempts ?? RETRY_CONFIG.MAX_ATTEMPTS,
-      baseDelay: options.baseDelay ?? RETRY_CONFIG.BASE_DELAY,
-      backoffFactor: options.backoffFactor ?? RETRY_CONFIG.BACKOFF_FACTOR,
-      maxDelay: options.maxDelay ?? RETRY_CONFIG.MAX_DELAY,
+      maxAttempts: options.maxAttempts ?? RETRY_CONFIG.MAX_RETRY_ATTEMPTS,
+      baseDelay: options.baseDelay ?? RETRY_CONFIG.RETRY_DELAY_MS,
+      backoffFactor: options.backoffFactor ?? RETRY_CONFIG.BACKOFF_MULTIPLIER,
+      maxDelay: options.maxDelay ?? RETRY_CONFIG.MAX_RETRY_DELAY_MS,
       jitterFactor: options.jitterFactor ?? RETRY_CONFIG.JITTER_FACTOR,
       retryableErrors: options.retryableErrors ?? [
         ErrorType.NETWORK,
@@ -147,12 +141,7 @@ export class RetryUtils {
   static async withCircuitBreaker<T>(
     key: string,
     fn: () => Promise<T>,
-    options: CircuitBreakerOptions = {
-      failureThreshold: 5,
-      successThreshold: 3,
-      timeout: 10000,
-      resetTimeout: 60000,
-    },
+    options: CircuitBreakerConfig = CIRCUIT_BREAKER_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_TRANSFORMER,
   ): Promise<T> {
     let breaker = this.circuitBreakers.get(key);
 
@@ -176,7 +165,7 @@ export class RetryUtils {
     key: string,
     fn: () => Promise<T>,
     retryOptions?: RetryOptions,
-    circuitOptions?: CircuitBreakerOptions,
+    circuitOptions?: CircuitBreakerConfig,
   ): Promise<RetryResult<T>> {
     return this.withRetry(
       () => this.withCircuitBreaker(key, fn, circuitOptions),
@@ -268,7 +257,7 @@ class CircuitBreakerState {
   private successCount = 0;
   private lastFailureTime = 0;
 
-  constructor(private options: CircuitBreakerOptions) {}
+  constructor(private options: CircuitBreakerConfig) {}
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (this.state === CircuitState.OPEN) {

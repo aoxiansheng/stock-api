@@ -7,6 +7,7 @@ import { UserRole } from "../../auth/enums/user-role.enum";
 import { buildCacheKey } from "@common/constants/unified/unified-cache-config.constants";
 import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
 import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
+import { RETRY_CONSTANTS } from "@common/constants/unified/retry.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 // 📝 操作名称常量
@@ -187,15 +188,12 @@ export const AUTH_INTERVALS = Object.freeze({
   ACCOUNT_LOCK_CHECK_INTERVAL_MS: RATE_LIMIT_CONFIG.SYSTEM_INTERVALS.AUTH_ACCOUNT_LOCK_CHECK,
 });
 
-// 🔄 重试配置常量
-export const AUTH_RETRY_CONFIG = Object.freeze({
-  MAX_RETRY_ATTEMPTS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS,
-  RETRY_DELAY_MS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.RETRY_DELAY_MS,
-  EXPONENTIAL_BACKOFF_FACTOR: 2, // 保留auth特定的退避因子
-  MAX_RETRY_DELAY_MS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_DELAY_MS,
+// 🔄 重试配置常量 - 引用统一配置，保持向后兼容
+export const AUTH_RETRY_CONFIG = {
+  ...RETRY_CONSTANTS.DEFAULT_SETTINGS,
   CIRCUIT_BREAKER_THRESHOLD: 5,
   CIRCUIT_BREAKER_TIMEOUT_MS: 60000,
-});
+} as const;
 
 // 🎯 响应状态常量
 export const AUTH_RESPONSE_STATUS = Object.freeze({

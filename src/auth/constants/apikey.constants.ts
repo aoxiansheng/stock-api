@@ -4,6 +4,7 @@
  */
 
 import { deepFreeze } from "@common/utils/object-immutability.util";
+import { RETRY_CONSTANTS } from "@common/constants/unified/retry.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 // 📝 操作名称常量
@@ -147,13 +148,10 @@ export const APIKEY_ALERT_THRESHOLDS = deepFreeze({
   RATE_LIMIT_WARNING_PERCENTAGE: 90,
 });
 
-// 🔄 重试配置常量
+// 🔄 重试配置常量 - 引用统一配置，保持向后兼容
 export const APIKEY_RETRY_CONFIG = deepFreeze({
-  MAX_RETRIES: 3,
-  INITIAL_DELAY_MS: 100,
-  BACKOFF_MULTIPLIER: 2,
-  MAX_DELAY_MS: 5000,
-  TIMEOUT_MS: 10000,
+  ...RETRY_CONSTANTS.DEFAULT_SETTINGS,
+  TIMEOUT_MS: 10000, // 保留API Key特定的超时配置
 });
 
 // 📋 错误代码常量
