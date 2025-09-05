@@ -52,7 +52,7 @@ export { RedisValueUtils } from "./utils/redis-value.utils";
 // 常量
 export {
   CACHE_KEY_PREFIXES,
-  CACHE_OPERATIONS,
+  // CACHE_OPERATIONS 已迁移到系统级，使用 import { CACHE_CORE_OPERATIONS } from '../../../cache/constants/cache.constants'
   CACHE_RESULT_STATUS,
   CACHE_PRIORITY,
   DATA_SOURCE,

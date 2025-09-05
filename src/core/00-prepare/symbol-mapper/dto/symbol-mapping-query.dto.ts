@@ -3,13 +3,11 @@ import { Type } from "class-transformer";
 import {
   IsOptional,
   IsString,
-  IsNumber,
-  Min,
-  Max,
   IsBoolean,
 } from "class-validator";
+import { BaseQueryDto } from "@common/dto/base-query.dto";
 
-export class SymbolMappingQueryDto {
+export class SymbolMappingQueryDto extends BaseQueryDto {
   @ApiProperty({ description: "数据源名称", required: false })
   @IsOptional()
   @IsString()
@@ -31,23 +29,10 @@ export class SymbolMappingQueryDto {
   @Type(() => Boolean)
   isActive?: boolean;
 
-  @ApiProperty({ description: "页码", example: 1, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Type(() => Number)
-  page?: number;
-
-  @ApiProperty({ description: "每页数量", example: 10, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  @Type(() => Number)
-  limit?: number;
-
   @ApiProperty({ description: "搜索关键词", required: false })
   @IsOptional()
   @IsString()
   search?: string;
+
+  // 注意：page, limit 字段已从 BaseQueryDto 基类继承，无需重复定义
 }

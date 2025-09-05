@@ -71,12 +71,6 @@ export interface RecoveryMetrics {
   qps: number;
 }
 
-// QPS限流配置
-// interface RateLimitConfig {
-//   maxQPS: number;
-//   burstSize: number;
-//   window: number; // 毫秒
-// }
 
 @Injectable()
 export class StreamRecoveryWorkerService

@@ -12,7 +12,7 @@ import { createLogger } from "@app/config/logger.config";
 import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
-import { RateLimitConfig } from "../interfaces/rate-limit.interface";
+import { AuthRateLimitConfig } from "../interfaces/rate-limit.interface";
 import { ApiKeyDocument } from "../schemas/apikey.schema";
 import { RateLimitService } from "../services/rate-limit.service";
 
@@ -24,8 +24,8 @@ export const RATE_LIMIT_KEY = "rate_limit";
 /**
  * 频率限制装饰器
  */
-export const RateLimit = (config: RateLimitConfig = {}) =>
-  Reflector.createDecorator<RateLimitConfig>({
+export const RateLimit = (config: AuthRateLimitConfig = {}) =>
+  Reflector.createDecorator<AuthRateLimitConfig>({
     transform: (opts) => ({ ...opts, ...config }),
   });
 
@@ -62,7 +62,7 @@ export class RateLimitGuard implements CanActivate {
 
     // 获取控制器和方法级别的频率限制配置
     const config =
-      this.reflector.getAllAndOverride<RateLimitConfig>(RATE_LIMIT_KEY, [
+      this.reflector.getAllAndOverride<AuthRateLimitConfig>(RATE_LIMIT_KEY, [
         context.getHandler(),
         context.getClass(),
       ]) || {};

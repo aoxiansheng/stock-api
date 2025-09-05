@@ -1,7 +1,10 @@
 /**
  * 缓存相关接口定义
  * 从 symbol-mapping.interface.ts 中提取的缓存专用接口
+ * 更新使用新的枚举和类型定义
  */
+
+import { MappingDirection } from '../constants/cache.constants';
 
 /**
  * 单符号映射结果
@@ -11,7 +14,7 @@ export interface SymbolMappingResult {
   mappedSymbol?: string;
   originalSymbol: string;
   provider: string;
-  direction: "to_standard" | "from_standard";
+  direction: MappingDirection;
   cacheHit?: boolean;
   processingTime?: number;
 }
@@ -24,7 +27,7 @@ export interface BatchMappingResult {
   mappingDetails: Record<string, string>; // 原始符号 -> 映射结果
   failedSymbols: string[];
   provider: string;
-  direction: "to_standard" | "from_standard";
+  direction: MappingDirection;
   totalProcessed: number;
   cacheHits: number;
   processingTimeMs: number;

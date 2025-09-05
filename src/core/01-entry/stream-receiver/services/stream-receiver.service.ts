@@ -26,6 +26,12 @@ import {
   StreamConnectionParams,
 } from "../../../03-fetching/stream-data-fetcher/interfaces";
 import { Subject } from "rxjs";
+import { 
+  STREAM_RECEIVER_TIMEOUTS 
+} from '../constants/stream-receiver-timeouts.constants';
+import { 
+  STREAM_RECEIVER_METRICS 
+} from '../constants/stream-receiver-metrics.constants';
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { RateLimitService } from "../../../../auth/services/rate-limit.service";
 import { bufferTime, filter, mergeMap } from "rxjs/operators";
@@ -387,7 +393,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     this.logger.log("StreamReceiver配置已初始化", {
       maxConnections: config.maxConnections,
-      cleanupInterval: `${config.connectionCleanupInterval / 1000}s`,
+      cleanupInterval: `${config.connectionCleanupInterval / STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS}s`,
       batchProcessing: {
         baseInterval: `${config.batchProcessingInterval}ms`,
         dynamicEnabled: config.dynamicBatching.enabled,
@@ -399,7 +405,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       },
       rateLimit: {
         connections: config.rateLimit.maxConnectionsPerMinute,
-        window: `${config.rateLimit.windowSize / 1000}s`,
+        window: `${config.rateLimit.windowSize / STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS}s`,
       },
     });
 
@@ -470,7 +476,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     }, this.config.memoryMonitoring.checkInterval);
 
     this.logger.log("内存监控机制已初始化", {
-      checkInterval: `${this.config.memoryMonitoring.checkInterval / 1000}s`,
+      checkInterval: `${this.config.memoryMonitoring.checkInterval / STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS}s`,
       warningThreshold: `${Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024))}MB`,
       criticalThreshold: `${Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))}MB`,
     });
@@ -674,9 +680,9 @@ export class StreamReceiverService implements OnModuleDestroy {
       currentTime - this.dynamicBatchingMetrics.lastThroughputCheck;
 
     // 每秒更新一次负载统计
-    if (timeDiff >= 1000) {
+    if (timeDiff >= STREAM_RECEIVER_METRICS.THROUGHPUT_CALCULATION_WINDOW_MS) {
       const batchesPerSecond =
-        (this.dynamicBatchingMetrics.batchCountInWindow * 1000) / timeDiff;
+        (this.dynamicBatchingMetrics.batchCountInWindow * STREAM_RECEIVER_METRICS.BATCH_RATE_CALCULATION_UNIT_MS) / timeDiff;
 
       // 添加到负载采样
       this.dynamicBatchingState.loadSamples.push(batchesPerSecond);
@@ -1146,7 +1152,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       // 6. 判断是否需要补发数据
       const timeDiff = Date.now() - lastReceiveTimestamp;
-      const maxRecoveryWindow = 300000; // 5分钟
+      const maxRecoveryWindow = STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS;
 
       let recoveryJobId: string | undefined;
       const willRecover =
@@ -1194,7 +1200,7 @@ export class StreamReceiverService implements OnModuleDestroy {
           provider: providerName,
           connectionId: connection.id,
           serverTimestamp: Date.now(),
-          heartbeatInterval: 30000,
+          heartbeatInterval: STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_INTERVAL_MS,
         },
         instructions: {
           action: willRecover ? "wait_for_recovery" : "none",
@@ -1229,7 +1235,7 @@ export class StreamReceiverService implements OnModuleDestroy {
           provider: providerName,
           connectionId: "",
           serverTimestamp: Date.now(),
-          heartbeatInterval: 30000,
+          heartbeatInterval: STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_INTERVAL_MS,
         },
         instructions: {
           action: "resubscribe",
@@ -1249,7 +1255,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       .getClientStateManager()
       .getClientStateStats();
     const now = Date.now();
-    const heartbeatTimeout = 60000; // 60秒心跳超时
+    const heartbeatTimeout = STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_TIMEOUT_MS;
 
     this.logger.debug("开始断线检测", {
       totalClients: allClients.totalClients,
@@ -1379,7 +1385,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     reason: string,
   ): Promise<void> {
     const now = Date.now();
-    const lastReceiveTimestamp = clientInfo.lastActiveTime || now - 60000; // 默认1分钟前
+    const lastReceiveTimestamp = clientInfo.lastActiveTime || now - STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_TIMEOUT_MS;
 
     const recoveryJob: RecoveryJob = {
       clientId: clientInfo.clientId,
@@ -1587,7 +1593,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       options: {
         autoReconnect: true,
         maxReconnectAttempts: 3,
-        heartbeatIntervalMs: 30000,
+        heartbeatIntervalMs: STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_INTERVAL_MS,
       },
     };
 
@@ -1596,9 +1602,9 @@ export class StreamReceiverService implements OnModuleDestroy {
       capability,
       {
         maxReconnectAttempts: 3,
-        connectionTimeoutMs: 30000,
+        connectionTimeoutMs: STREAM_RECEIVER_TIMEOUTS.CONNECTION_TIMEOUT_MS,
         autoReconnect: true,
-        heartbeatIntervalMs: 30000,
+        heartbeatIntervalMs: STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_INTERVAL_MS,
       },
     );
     this.activeConnections.set(connectionKey, connection);
@@ -1991,23 +1997,23 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     // 分析能力字符串的语义组件
     const semanticPatterns = [
-      { pattern: /quote|price|ticker/, ruleType: "quote_fields" },
-      { pattern: /option|derivative/, ruleType: "option_fields" },
-      { pattern: /futures|forward/, ruleType: "futures_fields" },
-      { pattern: /forex|currency|fx/, ruleType: "forex_fields" },
-      { pattern: /crypto|digital/, ruleType: "crypto_fields" },
-      { pattern: /info|detail|basic/, ruleType: "basic_info_fields" },
-      { pattern: /company|profile/, ruleType: "company_info_fields" },
-      { pattern: /market|exchange/, ruleType: "market_info_fields" },
-      { pattern: /historical|history/, ruleType: "historical_data_fields" },
-      { pattern: /news|article/, ruleType: "news_fields" },
-      { pattern: /announcement|notice/, ruleType: "announcement_fields" },
-      { pattern: /trading|trade/, ruleType: "trading_data_fields" },
+      { pattern: /quote|price|ticker/, transDataRuleListType: "quote_fields" },
+      { pattern: /option|derivative/, transDataRuleListType: "option_fields" },
+      { pattern: /futures|forward/, transDataRuleListType: "futures_fields" },
+      { pattern: /forex|currency|fx/, transDataRuleListType: "forex_fields" },
+      { pattern: /crypto|digital/, transDataRuleListType: "crypto_fields" },
+      { pattern: /info|detail|basic/, transDataRuleListType: "basic_info_fields" },
+      { pattern: /company|profile/, transDataRuleListType: "company_info_fields" },
+      { pattern: /market|exchange/, transDataRuleListType: "market_info_fields" },
+      { pattern: /historical|history/, transDataRuleListType: "historical_data_fields" },
+      { pattern: /news|article/, transDataRuleListType: "news_fields" },
+      { pattern: /announcement|notice/, transDataRuleListType: "announcement_fields" },
+      { pattern: /trading|trade/, transDataRuleListType: "trading_data_fields" },
     ];
 
-    for (const { pattern, ruleType } of semanticPatterns) {
+    for (const { pattern, transDataRuleListType } of semanticPatterns) {
       if (pattern.test(lowerCapability)) {
-        return ruleType;
+        return transDataRuleListType;
       }
     }
 
@@ -2131,7 +2137,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       quotesCount: metrics.quotesCount,
       symbolsCount: metrics.symbolsCount,
       quotesPerSecond: Math.round(
-        (metrics.quotesCount / metrics.durations.total) * 1000,
+        (metrics.quotesCount / metrics.durations.total) * STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS,
       ),
       symbolsPerSecond: Math.round(
         (metrics.symbolsCount / metrics.durations.total) * 1000,
@@ -2383,7 +2389,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       connectionConfig: {
         autoReconnect: true,
         maxReconnectAttempts: 3,
-        heartbeatIntervalMs: 30000,
+        heartbeatIntervalMs: STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_INTERVAL_MS,
         connectionTimeoutMs: 10000,
       },
 
@@ -2847,7 +2853,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     this.circuitBreakerState.successes++;
 
     // 重置计数器防止溢出
-    if (this.circuitBreakerState.successes > 1000) {
+    if (this.circuitBreakerState.successes > STREAM_RECEIVER_METRICS.CIRCUIT_BREAKER_RESET_THRESHOLD) {
       this.circuitBreakerState.successes = Math.floor(
         this.circuitBreakerState.successes / 2,
       );
@@ -3064,7 +3070,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         provider,
         avgTimePerQuote: batchSize > 0 ? processingTime / batchSize : 0,
         quotesPerSecond:
-          batchSize > 0 ? Math.round((batchSize * 1000) / processingTime) : 0,
+          batchSize > 0 ? Math.round((batchSize * STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS) / processingTime) : 0,
       });
     } catch (error) {
       this.logger.warn(`批处理监控事件发送失败: ${error.message}`, {

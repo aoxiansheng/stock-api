@@ -94,13 +94,13 @@ export const SYMBOL_MAPPER_PERFORMANCE_CONFIG = Object.freeze({
  * 股票代码映射配置常量
  */
 export const SYMBOL_MAPPER_CONFIG = Object.freeze({
-  DEFAULT_PAGE_SIZE: 10, // 默认分页大小
-  MAX_PAGE_SIZE: 100, // 最大分页大小
+  // 删除未使用的分页常量，完全依赖 PaginationService
+  
   DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.SYMBOL_MAPPER.MAPPING_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
   MAX_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_MAPPER.MAX_RETRY_ATTEMPTS, // 最大重试次数 - 使用统一配置
   RETRY_DELAY_MS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_MAPPER.RETRY_DELAY_MS, // 重试延迟 - 使用统一配置
-  MAX_DATA_SOURCE_NAME_LENGTH: 100, // 最大数据源名称长度
-  MAX_SYMBOL_LENGTH: 50, // 最大股票代码长度
+  
+  // 模块特有配置
   MAX_MAPPING_RULES_PER_SOURCE: 10000, // 每个数据源最大映射规则数
 } as const);
 

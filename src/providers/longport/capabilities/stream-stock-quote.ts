@@ -3,13 +3,14 @@ import { MARKETS } from "@common/constants/market.constants";
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { IStreamCapability } from "../../interfaces/stream-capability.interface";
 import { LongportStreamContextService } from "../services/longport-stream-context.service";
+import { PROVIDER_TIMEOUT, CAPABILITY_NAMES } from "../../constants";
 
 /**
  * LongPort 股票报价 WebSocket 流能力
  * 基于 LongPort WebSocket API 实现无缓存的实时数据流
  */
 export const streamStockQuote: IStreamCapability = {
-  name: "stream-stock-quote",
+  name: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
   description: "获取股票实时报价数据流（WebSocket）",
   supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
   supportedSymbolFormats: [
@@ -25,8 +26,8 @@ export const streamStockQuote: IStreamCapability = {
   rateLimit: {
     maxConnections: 100,
     maxSubscriptionsPerConnection: 200,
-    reconnectDelay: 1000,
-    maxReconnectAttempts: 5,
+    reconnectDelay: PROVIDER_TIMEOUT.RECONNECT_DELAY_MS,
+    maxReconnectAttempts: PROVIDER_TIMEOUT.MAX_RECONNECT_ATTEMPTS,
   },
 
   /**

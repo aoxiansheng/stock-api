@@ -16,6 +16,7 @@ import {
   BatchMappingResult,
   RedisCacheRuntimeStatsDto,
 } from "../interfaces/cache-stats.interface";
+import { CACHE_CLEANUP, MEMORY_MONITORING, MappingDirection } from "../constants/cache.constants";
 
 /**
  * Symbol Mapper 统一缓存服务
@@ -187,7 +188,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   async mapSymbols(
     provider: string,
     symbols: string | string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
     requestId?: string,
   ): Promise<BatchMappingResult> {
     const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
@@ -435,7 +436,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     symbols: string[],
     results: Record<string, string>,
     provider: string,
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
     startTime: number,
   ): BatchMappingResult {
     const failedSymbols = symbols.filter((s) => !results[s]);
@@ -487,7 +488,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private getSymbolCacheKey(
     provider: string,
     symbol: string,
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): string {
     // 标准化provider名称（小写）避免大小写导致的缓存miss
     const normalizedProvider = provider.toLowerCase();
@@ -501,7 +502,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     prefix: string,
     provider: string,
     symbols: string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): string {
     const normalizedProvider = provider.toLowerCase();
     const sortedSymbols = [...symbols].sort().join(",");
@@ -515,7 +516,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private getBatchCacheKey(
     provider: string,
     symbols: string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): string {
     return this.generateConsistentKey("batch", provider, symbols, direction);
   }
@@ -523,7 +524,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private getPendingQueryKey(
     provider: string,
     symbols: string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): string {
     return this.generateConsistentKey("pending", provider, symbols, direction);
   }
@@ -659,7 +660,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private createTimeoutProtectedQuery(
     provider: string,
     symbols: string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
     queryKey: string,
   ): Promise<Record<string, string>> {
     // 使用显式配置的查询超时时间
@@ -717,7 +718,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private async executeUncachedQuery(
     provider: string,
     symbols: string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): Promise<Record<string, string>> {
     this.logger.debug("Executing uncached query", {
       provider,
@@ -760,7 +761,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private applyMappingRules(
     symbol: string,
     rules: SymbolMappingRule[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): string | null {
     // 根据方向选择匹配字段
     const sourceField =
@@ -787,7 +788,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private backfillSingleSymbolCache(
     provider: string,
     uncachedResults: Record<string, string>,
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): void {
     // uncachedResults 格式：{ [originalSymbol]: mappedSymbol }
     // 遍历成功映射的结果，失败项不回填
@@ -810,7 +811,9 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
 
       // 同步双向回填：缓存反向映射
       const reverseDirection =
-        direction === "to_standard" ? "from_standard" : "to_standard";
+        direction === MappingDirection.TO_STANDARD 
+          ? MappingDirection.FROM_STANDARD 
+          : MappingDirection.TO_STANDARD;
       const reverseKey = this.getSymbolCacheKey(
         provider,
         mappedSymbol,
@@ -1157,7 +1160,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     uncachedResults: Record<string, string>,
     originalSymbols: string[],
     provider: string,
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
     startTime: number,
   ): BatchMappingResult {
     const mappingDetails: Record<string, string> = {};
@@ -1190,18 +1193,19 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 💾 启动内存监控
+   * 💾 启动内存监控 - 使用FeatureFlags配置
    */
   private startMemoryMonitoring(): void {
-    // 每5分钟检查一次内存使用
-    const memoryCheckInterval = 5 * 60 * 1000; // 5分钟
+    // 使用FeatureFlags中的配置，与常量保持一致
+    const memoryCheckInterval = this.featureFlags.symbolMapperMemoryCheckInterval; // 60秒(1分钟)
 
     this.memoryCheckTimer = setInterval(() => {
       this.checkMemoryUsage();
     }, memoryCheckInterval);
 
-    this.logger.debug("Memory monitoring started", {
+    this.logger.debug("Memory monitoring started with FeatureFlags config", {
       checkIntervalMs: memoryCheckInterval,
+      source: 'FeatureFlags.symbolMapperMemoryCheckInterval'
     });
   }
 
@@ -1228,8 +1232,8 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         lastCleanup: this.lastMemoryCleanup.toISOString(),
       });
 
-      // 简单的内存压力检测：如果堆使用率超过80%，执行清理
-      const memoryPressureThreshold = 0.8;
+      // 使用常量中定义的内存压力阈值
+      const memoryPressureThreshold = MEMORY_MONITORING.CLEANUP_THRESHOLD; // 0.85 (85%)
       if (heapUsedMB / heapTotalMB > memoryPressureThreshold) {
         this.logger.warn("Memory pressure detected, performing cache cleanup", {
           heapUsedMB,
@@ -1252,29 +1256,157 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
    * 💾 执行渐进式缓存清理
    */
   private performGradualCleanup(): void {
+    const gradualCleanupStartTime = Date.now();
     const beforeStats = this.getCacheStats();
 
     // 阶段1：清理L3批量结果缓存（影响最小）
+    const l3CleanupStart = Date.now();
     this.batchResultCache.clear();
+    const l3CleanupTime = Date.now() - l3CleanupStart;
 
     // 阶段2：部分清理L2符号缓存（保留25%最热门的）
     const l2Size = this.symbolMappingCache.size;
-    const keepCount = Math.floor(l2Size * 0.25);
+    const keepCount = Math.floor(l2Size * CACHE_CLEANUP.RETENTION_RATIO);
+    const l2CleanupStart = Date.now();
 
     if (l2Size > keepCount) {
-      // 简单策略：清空后让LRU自然重建
-      this.symbolMappingCache.clear();
+      // 高级LRU清理算法：仅删除最少使用的条目，保留热门条目
+      this.performAdvancedLRUCleanup(keepCount);
     }
+    const l2CleanupTime = Date.now() - l2CleanupStart;
 
     const afterStats = this.getCacheStats();
+    const totalCleanupTime = Date.now() - gradualCleanupStartTime;
+
+    // 计算清理效率指标
+    const freedL2Items = beforeStats.cacheSize.l2 - afterStats.cacheSize.l2;
+    const freedL3Items = beforeStats.cacheSize.l3 - afterStats.cacheSize.l3;
+    const totalFreedItems = freedL2Items + freedL3Items;
+    const memoryReductionRatio = totalFreedItems / (beforeStats.cacheSize.l2 + beforeStats.cacheSize.l3);
 
     this.logger.log("Gradual cache cleanup completed", {
       before: beforeStats.cacheSize,
       after: afterStats.cacheSize,
       freedItems: {
-        l2: beforeStats.cacheSize.l2 - afterStats.cacheSize.l2,
-        l3: beforeStats.cacheSize.l3 - afterStats.cacheSize.l3,
+        l2: freedL2Items,
+        l3: freedL3Items,
+        total: totalFreedItems,
       },
+      performanceMetrics: {
+        totalCleanupTimeMs: totalCleanupTime,
+        l2CleanupTimeMs: l2CleanupTime,
+        l3CleanupTimeMs: l3CleanupTime,
+        cleanupEfficiency: totalFreedItems / (totalCleanupTime || 1) * 1000, // 每秒清理的条目数
+        memoryReductionRatio: Math.round(memoryReductionRatio * 100), // 内存减少百分比
+        retentionRatio: CACHE_CLEANUP.RETENTION_RATIO,
+        cleanupStrategy: CACHE_CLEANUP.CLEANUP_STRATEGY
+      },
+      hitRatioImpactEstimate: {
+        beforeHitRatio: beforeStats.l2HitRatio,
+        expectedImprovementPercent: Math.round((1 - CACHE_CLEANUP.RETENTION_RATIO) * 10) // 预估命中率改善
+      }
     });
+  }
+
+  /**
+   * 高级LRU清理算法
+   * 替换简单的cache.clear()策略，实现智能的增量清理
+   * 根据LRU顺序保留最热门的缓存条目，删除最少使用的条目
+   * 
+   * @param keepCount 需要保留的条目数量
+   * @private
+   */
+  private performAdvancedLRUCleanup(keepCount: number): void {
+    const cleanupStartTime = Date.now();
+    const currentSize = this.symbolMappingCache.size;
+    
+    if (currentSize <= keepCount) {
+      this.logger.log('No cleanup needed', {
+        currentSize,
+        keepCount,
+        cleanupStrategy: CACHE_CLEANUP.CLEANUP_STRATEGY,
+        processingTimeMs: Date.now() - cleanupStartTime
+      });
+      return;
+    }
+
+    const toDeleteCount = currentSize - keepCount;
+    
+    try {
+      // 获取所有缓存条目，按LRU顺序排序
+      // LRU缓存的entries()返回的是按访问时间排序的，最近使用的在前
+      const allEntries = Array.from(this.symbolMappingCache.entries());
+      
+      // 反转数组以获得最少使用的条目在前的顺序
+      allEntries.reverse();
+      
+      // 分批处理以避免大数据集性能问题
+      const batchSize = CACHE_CLEANUP.LRU_SORT_BATCH_SIZE;
+      let deletedCount = 0;
+      
+      for (let i = 0; i < toDeleteCount && i < allEntries.length; i += batchSize) {
+        const batchEnd = Math.min(i + batchSize, toDeleteCount);
+        const batch = allEntries.slice(i, batchEnd);
+        
+        // 删除这一批最少使用的条目
+        batch.forEach(([key]) => {
+          if (this.symbolMappingCache.delete(key)) {
+            deletedCount++;
+          }
+        });
+        
+        // 记录批处理进度（仅在大批量时）
+        if (toDeleteCount > batchSize) {
+          this.logger.debug('LRU cleanup batch completed', {
+            batchStart: i,
+            batchEnd,
+            deletedInBatch: batch.length,
+            totalDeleted: deletedCount,
+            remaining: toDeleteCount - deletedCount
+          });
+        }
+      }
+      
+      const cleanupEndTime = Date.now();
+      const processingTimeMs = cleanupEndTime - cleanupStartTime;
+      
+      this.logger.log('Advanced LRU cleanup completed', {
+        originalSize: currentSize,
+        targetSize: keepCount,
+        actualSize: this.symbolMappingCache.size,
+        deletedCount,
+        retentionRatio: CACHE_CLEANUP.RETENTION_RATIO,
+        cleanupStrategy: CACHE_CLEANUP.CLEANUP_STRATEGY,
+        processingTimeMs,
+        performanceMetrics: {
+          deletionRate: deletedCount / (processingTimeMs || 1) * 1000, // 每秒删除条目数
+          memoryFreedRatio: deletedCount / currentSize,
+          batchProcessingEnabled: toDeleteCount > CACHE_CLEANUP.LRU_SORT_BATCH_SIZE
+        }
+      });
+      
+    } catch (error) {
+      const failureTime = Date.now();
+      const processingTimeMs = failureTime - cleanupStartTime;
+      
+      this.logger.error('Advanced LRU cleanup failed, falling back to simple clear', {
+        error: error.message,
+        currentSize,
+        keepCount,
+        processingTimeMs,
+        fallbackStrategy: 'simple_clear'
+      });
+      
+      // 失败时回退到简单策略
+      this.symbolMappingCache.clear();
+      
+      // 记录回退策略的完成情况
+      this.logger.log('Fallback cleanup completed', {
+        originalSize: currentSize,
+        finalSize: this.symbolMappingCache.size,
+        totalProcessingTimeMs: Date.now() - cleanupStartTime,
+        strategy: 'simple_clear_fallback'
+      });
+    }
   }
 }

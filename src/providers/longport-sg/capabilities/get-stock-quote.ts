@@ -3,13 +3,14 @@ import { MARKETS } from "@common/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";
 import { LongportQuoteResponse } from "../types";
+import { CAPABILITY_NAMES } from "../../constants";
 
 /**
  * LongPort 股票报价获取能力
  * 注意：此函数需要与 LongportContextService 配合使用
  */
 export const getStockQuote: ICapability = {
-  name: "get-stock-quote", // receiverType
+  name: CAPABILITY_NAMES.GET_STOCK_QUOTE, // receiverType
   description: "获取股票实时报价数据",
   supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
   supportedSymbolFormats: ["700.HK", "000001.SZ", "600000.SH", "AAPL.US"],

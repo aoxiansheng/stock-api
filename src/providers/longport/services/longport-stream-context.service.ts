@@ -1,33 +1,12 @@
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@app/config/logger.config";
+import { PROVIDER_TIMEOUT, ConnectionStatus, IConnectionState, CONNECTION_CONFIG } from "../../constants";
 
 // LongPort SDK 导入
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Config, QuoteContext, SubType } = require("longport");
 
-/**
- * 连接状态枚举
- */
-export enum ConnectionStatus {
-  NOT_STARTED = "not_started",
-  INITIALIZING = "initializing",
-  CONNECTED = "connected",
-  DISCONNECTED = "disconnected",
-  FAILED = "failed",
-}
-
-/**
- * 连接状态接口
- */
-export interface IConnectionState {
-  status: ConnectionStatus;
-  isInitialized: boolean;
-  lastConnectionTime: number | null;
-  subscriptionCount: number;
-  connectionId: string | null;
-  healthStatus: "healthy" | "degraded" | "failed";
-}
 
 /**
  * LongPort WebSocket 流上下文服务
@@ -46,7 +25,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
   // === 单例模式实现 ===
   private static instance: LongportStreamContextService | null = null;
   private static initializationLock = false;
-  private static readonly lockTimeout = 10000; // 10秒初始化超时
+  private static readonly lockTimeout = PROVIDER_TIMEOUT.LOCK_TIMEOUT_MS;
 
   // === 连接管理 ===
   private quoteContext: any | null = null; // LongPort QuoteContext
@@ -57,13 +36,13 @@ export class LongportStreamContextService implements OnModuleDestroy {
     lastConnectionTime: null,
     subscriptionCount: 0,
     connectionId: null,
-    healthStatus: "healthy",
+    healthStatus: CONNECTION_CONFIG.HEALTH_STATUS.HEALTHY,
   };
 
   // === 重连机制 ===
   private reconnectAttempts = 0;
-  private readonly maxReconnectAttempts = 5;
-  private readonly reconnectDelay = 1000; // 1秒
+  private readonly maxReconnectAttempts = PROVIDER_TIMEOUT.MAX_RECONNECT_ATTEMPTS;
+  private readonly reconnectDelay = PROVIDER_TIMEOUT.RECONNECT_DELAY_MS;
 
   // === 回调和订阅管理 ===
   private messageCallbacks: ((data: any) => void)[] = [];
@@ -172,7 +151,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
           this.config = new Config(appKey, appSecret, accessToken);
         } else {
           this.connectionState.status = ConnectionStatus.FAILED;
-          this.connectionState.healthStatus = "failed";
+          this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
           throw new Error(
             "LongPort 配置不完整：缺少 APP_KEY、APP_SECRET 或 ACCESS_TOKEN",
           );
@@ -203,7 +182,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
         lastConnectionTime: currentTime,
         subscriptionCount: this.subscribedSymbols.size,
         connectionId: `longport_${currentTime}`, // 生成连接ID
-        healthStatus: "healthy",
+        healthStatus: CONNECTION_CONFIG.HEALTH_STATUS.HEALTHY,
       };
 
       this.reconnectAttempts = 0;
@@ -219,7 +198,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
     } catch (error) {
       // 更新失败状态
       this.connectionState.status = ConnectionStatus.FAILED;
-      this.connectionState.healthStatus = "failed";
+      this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
 
       this.logger.error({
         message: "LongPort WebSocket 初始化失败",
@@ -243,7 +222,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
     // 更新连接状态
     this.connectionState.status = ConnectionStatus.DISCONNECTED;
     this.connectionState.subscriptionCount = 0;
-    this.connectionState.healthStatus = "degraded";
+    this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
     this.connectionState.connectionId = null;
 
     this.logger.log({
@@ -264,7 +243,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
     this.connectionState.connectionId = `longport_${currentTime}`;
     this.connectionState.lastConnectionTime = currentTime;
     this.connectionState.status = ConnectionStatus.CONNECTED;
-    this.connectionState.healthStatus = "healthy";
+    this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.HEALTHY;
 
     this.logger.log({
       message: "连接恢复处理完成",
@@ -356,7 +335,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       });
     } catch (error) {
       // 更新健康状态
-      this.connectionState.healthStatus = "degraded";
+      this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
 
       this.logger.error({
         message: "LongPort WebSocket 订阅失败",
@@ -800,7 +779,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
         lastConnectionTime: null,
         subscriptionCount: 0,
         connectionId: null,
-        healthStatus: "healthy",
+        healthStatus: CONNECTION_CONFIG.HEALTH_STATUS.HEALTHY,
       };
 
       // 4. 清理回调和订阅记录
@@ -825,7 +804,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       // 即使清理失败，也要重置基本状态
       this.connectionState.status = ConnectionStatus.FAILED;
-      this.connectionState.healthStatus = "failed";
+      this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
     }
   }
 

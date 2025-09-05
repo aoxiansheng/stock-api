@@ -1078,7 +1078,7 @@ export class PersistedTemplateService {
   ): string {
     const provider = template.provider;
     const apiType = template.apiType.toUpperCase();
-    const ruleTypeLabel =
+    const transDataRuleListTypeLabel =
       transDataRuleListType === "quote_fields" ? "报价数据" : "基础信息";
 
     // 基于模板名称简化
@@ -1103,6 +1103,6 @@ export class PersistedTemplateService {
       }
     }
 
-    return `${provider}_${apiType}_${templateNameSimplified}_${ruleTypeLabel}_规则`;
+    return `${provider}_${apiType}_${templateNameSimplified}_${transDataRuleListTypeLabel}_规则`;
   }
 }

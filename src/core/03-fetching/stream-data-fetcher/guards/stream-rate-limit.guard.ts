@@ -11,7 +11,7 @@ import { createLogger } from "@app/config/logger.config";
 /**
  * DoS防护参数配置接口
  */
-interface RateLimitConfig {
+interface ApiRateLimitConfig {
   /** 时间窗口（秒） */
   ttl: number;
   /** 请求数量限制 */
@@ -30,7 +30,7 @@ interface RateLimitConfig {
 import { SetMetadata } from "@nestjs/common";
 
 export const STREAM_RATE_LIMIT_KEY = "streamRateLimit";
-export const StreamRateLimit = (config: RateLimitConfig) =>
+export const StreamRateLimit = (config: ApiRateLimitConfig) =>
   SetMetadata(STREAM_RATE_LIMIT_KEY, config);
 
 /**
@@ -65,7 +65,7 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   private isDestroyed = false;
 
   // 默认配置
-  private readonly defaultConfig: RateLimitConfig = {
+  private readonly defaultConfig: ApiRateLimitConfig = {
     ttl: 60, // 1分钟窗口
     limit: 100, // 每分钟100次请求
     burst: 20, // 突发请求上限20次
@@ -200,7 +200,7 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   private checkRateLimit(
     type: "ip" | "user",
     identifier: string,
-    config: RateLimitConfig,
+    config: ApiRateLimitConfig,
   ): boolean {
     if (this.isDestroyed) return false;
 
@@ -233,7 +233,7 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   /**
    * 检查突发请求限制
    */
-  private checkBurstLimit(clientIP: string, config: RateLimitConfig): boolean {
+  private checkBurstLimit(clientIP: string, config: ApiRateLimitConfig): boolean {
     if (!config.burst || this.isDestroyed) return true;
 
     const now = Date.now();

@@ -21,10 +21,11 @@ export const STREAM_CACHE_CONFIG = {
     MAX_CLEANUP_ITEMS: 100, // 单次清理最大条目数
   },
 
-  // 压缩配置
+  // 压缩配置 - 使用分级压缩策略
   COMPRESSION: {
-    THRESHOLD_BYTES: 1024, // 压缩阈值: 1KB
+    THRESHOLD_BYTES: 1024, // 流数据压缩阈值: 1KB (优先实时性)
     ENABLED: true, // 是否启用压缩
+    STRATEGY: 'REALTIME', // 使用实时数据压缩策略
   },
 
   // 性能监控
@@ -33,11 +34,11 @@ export const STREAM_CACHE_CONFIG = {
     STATS_LOG_INTERVAL_MS: 60000, // 统计日志间隔: 1分钟
   },
 
-  // 缓存键前缀
+  // 缓存键前缀 - 使用统一命名规范
   KEYS: {
-    WARM_CACHE_PREFIX: "stream_cache:",
-    HOT_CACHE_PREFIX: "hot:",
-    LOCK_PREFIX: "stream_lock:",
+    WARM_CACHE_PREFIX: "stream_cache_warm", // 统一命名: 模块_功能_类型
+    HOT_CACHE_PREFIX: "stream_cache_hot",   // 优化: 去除冗余冒号
+    LOCK_PREFIX: "stream_cache_lock",       // 一致性: 下划线分隔
   },
 } as const;
 

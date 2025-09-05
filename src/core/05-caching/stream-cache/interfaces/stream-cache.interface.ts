@@ -3,6 +3,8 @@
  * 专用于实时流数据的缓存操作
  */
 
+import { StreamCacheConfig as BaseStreamCacheConfig } from '../../common-cache/interfaces/base-cache-config.interface';
+
 /**
  * 压缩数据点格式 - 流数据专用格式
  */
@@ -28,15 +30,22 @@ export interface StreamCacheStats {
 }
 
 /**
- * 流缓存配置
+ * 流缓存配置 - 继承基础配置接口
+ * 弃用原有定义，使用统一的基础配置接口
+ * @deprecated 使用 import { StreamCacheConfig } from '../../../common-cache/interfaces/base-cache-config.interface' 替代
  */
-export interface StreamCacheConfig {
+export interface StreamCacheConfigLegacy {
   hotCacheTTL: number; // Hot Cache TTL (毫秒)
   warmCacheTTL: number; // Warm Cache TTL (秒)
   maxHotCacheSize: number; // Hot Cache 最大条目数
   cleanupInterval: number; // 清理间隔 (毫秒)
   compressionThreshold: number; // 压缩阈值 (字节)
 }
+
+/**
+ * 流缓存配置 - 新版本，继承基础配置
+ */
+export type StreamCacheConfig = BaseStreamCacheConfig;
 
 /**
  * 流缓存核心接口

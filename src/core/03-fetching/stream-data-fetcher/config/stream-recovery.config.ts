@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { RATE_LIMIT_CONSTANTS } from '../constants/rate-limit.constants';
 
 /**
  * StreamRecovery 配置类 - Phase 3 Critical Fix
@@ -6,7 +7,7 @@ import { Injectable } from "@nestjs/common";
  * 独立的配置管理，支持环境变量覆盖和动态配置
  */
 
-export interface RateLimitConfig {
+export interface StreamRecoveryRateLimitConfig {
   maxQPS: number;
   burstSize: number;
   window: number; // 毫秒
@@ -38,8 +39,8 @@ export interface StreamRecoveryConfig {
 
   // QPS 限流配置
   rateLimit: {
-    default: RateLimitConfig;
-    providers: Record<string, RateLimitConfig>;
+    default: StreamRecoveryRateLimitConfig;
+    providers: Record<string, StreamRecoveryRateLimitConfig>;
   };
 
   // 优先级权重
@@ -107,12 +108,12 @@ export class StreamRecoveryConfigService {
           longport: {
             maxQPS: parseInt(process.env.RECOVERY_LONGPORT_QPS || "200"),
             burstSize: parseInt(process.env.RECOVERY_LONGPORT_BURST || "250"),
-            window: 1000,
+            window: RATE_LIMIT_CONSTANTS.DEFAULT_WINDOW_MS,
           },
           itick: {
             maxQPS: parseInt(process.env.RECOVERY_ITICK_QPS || "50"),
             burstSize: parseInt(process.env.RECOVERY_ITICK_BURST || "75"),
-            window: 1000,
+            window: RATE_LIMIT_CONSTANTS.DEFAULT_WINDOW_MS,
           },
         },
       },
@@ -170,7 +171,7 @@ export class StreamRecoveryConfigService {
   /**
    * 获取指定提供商的限流配置
    */
-  getRateLimitConfig(provider: string): RateLimitConfig {
+  getRateLimitConfig(provider: string): StreamRecoveryRateLimitConfig {
     return (
       this.config.rateLimit.providers[provider] || this.config.rateLimit.default
     );
@@ -219,7 +220,7 @@ export class StreamRecoveryConfigService {
   /**
    * 动态更新配置 (用于运行时调整)
    */
-  updateRateLimit(provider: string, config: RateLimitConfig): void {
+  updateRateLimit(provider: string, config: StreamRecoveryRateLimitConfig): void {
     this.config.rateLimit.providers[provider] = config;
   }
 

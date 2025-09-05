@@ -14,6 +14,7 @@ import {
   ScanStats,
   ScanResult,
 } from "../decorators/types/metadata.types";
+import { PROVIDER_TIMEOUT } from "../constants";
 
 /**
  * 约定优于配置的目录扫描器 - 单例模式防止重复扫描
@@ -61,11 +62,11 @@ export class ConventionScanner {
     const cacheKey = `${providersPath}:${JSON.stringify(finalOptions)}`;
 
     // 检查缓存（5分钟内的扫描结果直接返回）
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const cacheThreshold = new Date(Date.now() - PROVIDER_TIMEOUT.CACHE_DURATION_MS);
     if (
       ConventionScanner.scanCache.has(cacheKey) &&
       ConventionScanner.lastScanTime &&
-      ConventionScanner.lastScanTime > fiveMinutesAgo
+      ConventionScanner.lastScanTime > cacheThreshold
     ) {
       ConventionScanner.logger.debug("使用缓存的扫描结果");
       return ConventionScanner.scanCache.get(cacheKey)!;

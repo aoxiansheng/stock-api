@@ -15,7 +15,7 @@ import type { RateLimitStrategy } from "../../common/constants/rate-limit.consta
 /**
  * 频率限制配置接口
  */
-export interface RateLimitConfig {
+export interface AuthRateLimitConfig {
   strategy?: RateLimitStrategy;
   skipSuccessfulRequests?: boolean;
   skipFailedRequests?: boolean;

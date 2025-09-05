@@ -4,6 +4,7 @@ import { ApiKeyService } from "../../../../auth/services/apikey.service";
 import { RateLimitService } from "../../../../auth/services/rate-limit.service";
 import { Socket } from "socket.io";
 import { Permission } from "../../../../auth/enums/user-role.enum";
+import { STREAM_PERMISSIONS } from '../constants/stream-permissions.constants';
 import { RateLimitStrategy } from "@common/constants/rate-limit.constants";
 
 /**
@@ -106,8 +107,7 @@ export class WsAuthGuard implements CanActivate {
           message: "API Key 缺少 WebSocket 流权限",
           apiKey: apiKey.substring(0, 8) + "***",
           requiredPermissions: [
-            Permission.STREAM_READ,
-            Permission.STREAM_SUBSCRIBE,
+            ...STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS,
             Permission.STREAM_WRITE,
           ],
           clientId: client.id,
@@ -151,10 +151,7 @@ export class WsAuthGuard implements CanActivate {
    */
   private checkStreamPermissions(permissions: string[]): boolean {
     // WebSocket流需要专门的流权限，至少需要读取或订阅权限
-    const requiredStreamPermissions = [
-      Permission.STREAM_READ,
-      Permission.STREAM_SUBSCRIBE,
-    ];
+    const requiredStreamPermissions = STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS;
 
     return permissions.some((permission) =>
       requiredStreamPermissions.includes(permission as Permission),

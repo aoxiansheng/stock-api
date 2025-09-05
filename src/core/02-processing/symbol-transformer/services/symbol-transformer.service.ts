@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "../../../../app/config/logger.config";
 import { SymbolMapperCacheService } from "../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
+import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import {
   SymbolTransformResult,
@@ -37,9 +38,7 @@ export class SymbolTransformerService {
   async transformSymbols(
     provider: string,
     symbols: string | string[],
-    direction:
-      | "to_standard"
-      | "from_standard" = TRANSFORM_DIRECTIONS.TO_STANDARD,
+    direction: MappingDirection = MappingDirection.TO_STANDARD,
   ): Promise<SymbolTransformResult> {
     const startTime = process.hrtime.bigint();
 
@@ -144,9 +143,7 @@ export class SymbolTransformerService {
   async transformSingleSymbol(
     provider: string,
     symbol: string,
-    direction:
-      | "to_standard"
-      | "from_standard" = TRANSFORM_DIRECTIONS.TO_STANDARD,
+    direction: MappingDirection = MappingDirection.TO_STANDARD,
   ): Promise<string> {
     const result = await this.transformSymbols(provider, [symbol], direction);
     return result.mappedSymbols[0] || symbol;
@@ -184,7 +181,7 @@ export class SymbolTransformerService {
       const result = await this.transformSymbols(
         provider,
         symbolsToTransform,
-        "to_standard",
+        MappingDirection.TO_STANDARD,
       );
       mappingResult = {
         transformedSymbols: result.mappingDetails,
@@ -230,14 +227,14 @@ export class SymbolTransformerService {
    * 向后兼容的方法名 - mapSymbols
    */
   async mapSymbols(provider: string, symbols: string | string[]) {
-    return await this.transformSymbols(provider, symbols, "to_standard");
+    return await this.transformSymbols(provider, symbols, MappingDirection.TO_STANDARD);
   }
 
   /**
    * 向后兼容的方法名 - mapSymbol
    */
   async mapSymbol(provider: string, symbol: string) {
-    return await this.transformSingleSymbol(provider, symbol, "to_standard");
+    return await this.transformSingleSymbol(provider, symbol, MappingDirection.TO_STANDARD);
   }
 
   /**
@@ -246,7 +243,7 @@ export class SymbolTransformerService {
   private validateInput(
     provider: string,
     symbols: string[],
-    direction: "to_standard" | "from_standard",
+    direction: MappingDirection,
   ): void {
     // 提供商验证
     if (

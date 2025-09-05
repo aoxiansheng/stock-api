@@ -22,6 +22,8 @@ import {
   WEBSOCKET_SERVER_TOKEN,
 } from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
 import { Inject } from "@nestjs/common";
+import { STREAM_RECEIVER_TIMEOUTS } from '../constants/stream-receiver-timeouts.constants';
+import { STREAM_PERMISSIONS, hasStreamPermissions } from '../constants/stream-permissions.constants';
 
 @WebSocketGateway({
   cors: {
@@ -375,7 +377,7 @@ export class StreamReceiverGateway
       client.emit("recovery-started", {
         message: "数据补发已启动，请等待数据传输",
         symbols: data.symbols,
-        estimatedDataPoints: timeDiff < 300000 ? "< 1000" : "可能较多", // 5分钟内估计数据量
+        estimatedDataPoints: timeDiff < STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS ? "< 1000" : "可能较多",
         timestamp: Date.now(),
       });
     } catch (error) {
@@ -478,8 +480,8 @@ export class StreamReceiverGateway
       }
 
       // 检查流权限
-      const hasStreamPermission = this.checkStreamPermissions(
-        apiKeyDoc.permissions,
+      const hasStreamPermission = hasStreamPermissions(
+        apiKeyDoc.permissions as Permission[],
       );
       if (!hasStreamPermission) {
         return {
@@ -541,13 +543,9 @@ export class StreamReceiverGateway
    * 检查流权限
    */
   private checkStreamPermissions(permissions: string[]): boolean {
-    const requiredStreamPermissions = [
-      Permission.STREAM_READ,
-      Permission.STREAM_SUBSCRIBE,
-    ];
-
-    return permissions.some((permission) =>
-      requiredStreamPermissions.includes(permission as Permission),
+    return hasStreamPermissions(
+      permissions as Permission[], 
+      STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS
     );
   }
 }
