@@ -5,6 +5,7 @@ import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { Market } from "@common/constants/market.constants";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
 
 import { QueryConfigService } from "../config/query.config";
 import { QueryMemoryMonitorService } from "./query-memory-monitor.service";
@@ -736,7 +737,7 @@ export class QueryExecutionEngine implements OnModuleInit {
       const batchRequests = symbols.map((symbol) =>
         buildCacheOrchestratorRequest({
           symbols: [symbol],
-          receiverType: request.queryTypeFilter || "get-stock-quote",
+          receiverType: request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
           provider: request.provider,
           queryId: `${queryId}_${symbol}`,
           marketStatus,
@@ -790,7 +791,7 @@ export class QueryExecutionEngine implements OnModuleInit {
             data: [result.data],
             metadata: {
               provider: request.provider || "auto",
-              capability: request.queryTypeFilter || "get-stock-quote",
+              capability: request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
               timestamp: new Date().toISOString(),
               requestId: queryId,
               processingTime: 0,
@@ -860,7 +861,7 @@ export class QueryExecutionEngine implements OnModuleInit {
   ): DataRequestDto {
     return {
       symbols,
-      receiverType: queryRequest.queryTypeFilter || "get-stock-quote",
+      receiverType: queryRequest.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
       options: {
         preferredProvider: queryRequest.provider,
         realtime: true,

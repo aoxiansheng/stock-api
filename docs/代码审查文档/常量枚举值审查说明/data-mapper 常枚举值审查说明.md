@@ -6,16 +6,7 @@
 - 字段总数: 159
 - 重复率: 4.4%
 
-## 发现的问题
-
-### 🟢 优秀（无关键问题）
-
-本模块在常量和枚举值管理方面整体表现优秀，符合NestJS最佳实践：
-
-1. **统一常量文件**: 所有常量集中在 `data-mapper.constants.ts` 中，避免了分散定义
-2. **类型安全**: 使用 `Object.freeze()` 和 TypeScript 联合类型确保类型安全
-3. **文档完备**: 每个常量块都有详细的 JSDoc 注释和使用示例
-4. **命名规范**: 遵循 `{MODULE}_{TYPE}_{NAME}` 的命名约定
+## 仍存在的问题
 
 ### 🟡 警告（建议修复）
 
@@ -44,7 +35,7 @@
 #### 1. 未完全实施的常量集合
 以下常量定义完备但实际使用有限，建议按计划实施：
 
-- `DATA_MAPPER_PERFORMANCE_THRESHOLDS`: 性能阈值常量（7个指标）
+- `DATA_MAPPER_PERFORMANCE_THRESHOLDS`: 性能阈值常量（5个指标）
 - `DATA_MAPPER_METRICS`: 指标收集常量（8个指标）
 - `DATA_MAPPER_STATUS`: 状态管理常量（6种状态）
 - `DATA_MAPPER_EVENTS`: 事件系统常量（9种事件）
@@ -119,7 +110,7 @@ export type TransformationType = typeof TRANSFORMATION_TYPES[keyof typeof TRANSF
 export const TRANSFORMATION_TYPE_VALUES = Object.values(TRANSFORMATION_TYPES);
 ```
 
-## 改进建议
+## 待处理的改进建议
 
 ### 短期改进（1周内）
 

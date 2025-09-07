@@ -8,11 +8,22 @@ import {
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { BaseTrendMetric } from "../interfaces/base.interface";
 
 /**
  * 展示层DTO定义
  * 用于presenter层的API响应
  */
+
+/**
+ * 性能趋势数据接口
+ * 使用通用 BaseTrendMetric 简化复杂嵌套结构
+ */
+export interface PerformanceTrends {
+  responseTime: BaseTrendMetric<number>;
+  errorRate: BaseTrendMetric<number>;
+  throughput: BaseTrendMetric<number>;
+}
 
 export class PerformanceQueryDto {
   @ApiPropertyOptional({ description: "开始时间" })
@@ -42,11 +53,11 @@ export class EndpointQueryDto {
 
   @ApiPropertyOptional({
     description: "排序字段",
-    enum: ["requestCount", "averageResponseTime", "errorRate"],
+    enum: ["totalOperations", "responseTimeMs", "errorRate"],
   })
   @IsOptional()
-  @IsEnum(["requestCount", "averageResponseTime", "errorRate"])
-  sortBy?: "requestCount" | "averageResponseTime" | "errorRate";
+  @IsEnum(["totalOperations", "responseTimeMs", "errorRate"])
+  sortBy?: "totalOperations" | "responseTimeMs" | "errorRate";
 
   @ApiPropertyOptional({ description: "排序方向", enum: ["asc", "desc"] })
   @IsOptional()
@@ -63,23 +74,24 @@ export class CacheInvalidationDto {
 
 export class PerformanceResponseDto {
   @ApiProperty({ description: "分析时间戳" })
-  @IsString()
-  timestamp: string;
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
 
   @ApiProperty({ description: "性能摘要" })
   @ValidateNested()
   @Type(() => Object)
   summary: {
-    totalRequests: number;
+    totalOperations: number;
     successfulRequests: number;
     failedRequests: number;
-    averageResponseTime: number;
+    responseTimeMs: number;
     errorRate: number;
   };
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
-  averageResponseTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "错误率（0-1）" })
   @IsNumber()
@@ -97,34 +109,15 @@ export class PerformanceResponseDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => Object)
-  trends?: {
-    responseTime: {
-      current: number;
-      previous: number;
-      trend: "up" | "down" | "stable";
-      changePercentage: number;
-    };
-    errorRate: {
-      current: number;
-      previous: number;
-      trend: "up" | "down" | "stable";
-      changePercentage: number;
-    };
-    throughput: {
-      current: number;
-      previous: number;
-      trend: "up" | "down" | "stable";
-      changePercentage: number;
-    };
-  };
+  trends?: PerformanceTrends;
 
   @ApiPropertyOptional({ description: "端点指标" })
   @IsOptional()
   endpointMetrics?: Array<{
     endpoint: string;
     method: string;
-    requestCount: number;
-    averageResponseTime: number;
+    totalOperations: number;
+    responseTimeMs: number;
     errorRate: number;
     lastUsed: Date;
   }>;
@@ -135,10 +128,10 @@ export class PerformanceResponseDto {
   @Type(() => Object)
   databaseMetrics?: {
     totalOperations: number;
-    averageQueryTime: number;
+    responseTimeMs: number;
     slowQueries: number;
     failedOperations: number;
-    failureRate: number;
+    errorRate: number;
   };
 
   @ApiPropertyOptional({ description: "缓存指标" })
@@ -150,20 +143,20 @@ export class PerformanceResponseDto {
     hits: number;
     misses: number;
     hitRate: number;
-    averageResponseTime: number;
+    responseTimeMs: number;
   };
 }
 
 export class HealthResponseDto {
   @ApiProperty({ description: "健康评分（0-100）" })
   @IsNumber()
-  score: number;
+  healthScore: number;
 
   @ApiProperty({ description: "整体健康状态" })
   @ValidateNested()
   @Type(() => Object)
   overall: {
-    score: number;
+    healthScore: number;
     status: "healthy" | "warning" | "critical";
     timestamp: Date;
   };
@@ -173,22 +166,22 @@ export class HealthResponseDto {
   @Type(() => Object)
   components: {
     api: {
-      score: number;
-      responseTime: number;
+      healthScore: number;
+      responseTimeMs: number;
       errorRate: number;
     };
     database: {
-      score: number;
-      averageQueryTime: number;
-      failureRate: number;
+      healthScore: number;
+      responseTimeMs: number;
+      errorRate: number;
     };
     cache: {
-      score: number;
+      healthScore: number;
       hitRate: number;
-      averageResponseTime: number;
+      responseTimeMs: number;
     };
     system: {
-      score: number;
+      healthScore: number;
       memoryUsage: number;
       cpuUsage: number;
     };
@@ -210,11 +203,11 @@ export class EndpointMetricsResponseDto {
 
   @ApiProperty({ description: "请求数量" })
   @IsNumber()
-  requestCount: number;
+  totalOperations: number;
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
-  averageResponseTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "错误率（0-1）" })
   @IsNumber()

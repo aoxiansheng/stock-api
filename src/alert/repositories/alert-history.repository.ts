@@ -7,6 +7,8 @@ import { createLogger } from "@app/config/logger.config";
 import { IAlert, IAlertQuery } from "../interfaces";
 import { AlertHistory, AlertHistoryDocument } from "../schemas";
 import { AlertStatus } from "../types/alert.types";
+import { ALERT_BUSINESS_RULES } from "../constants/business-rules.constants";
+import { ALERT_DEFAULTS } from "../constants/defaults.constants";
 
 type AlertCreateData = Omit<IAlert, "id" | "startTime" | "status">;
 type AlertUpdateData = Partial<Omit<IAlert, "id">>;
@@ -63,7 +65,7 @@ export class AlertHistoryRepository {
     }
 
     const page = query.page || 1;
-    const limit = query.limit || 20;
+    const limit = query.limit || ALERT_DEFAULTS.PAGINATION.limit;
     const skip = (page - 1) * limit;
 
     const sortField = query.sortBy || "startTime";
@@ -124,7 +126,7 @@ export class AlertHistoryRepository {
               status: AlertStatus.RESOLVED,
               resolvedAt: { $exists: true },
               startTime: {
-                $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                $gte: new Date(Date.now() - ALERT_BUSINESS_RULES.INTERVALS.CLEANUP_INTERVAL * 1000 * 48), // 约7天
               },
             },
           },

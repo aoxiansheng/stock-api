@@ -1,4 +1,5 @@
 import { SetMetadata } from "@nestjs/common";
+import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 
 /**
  * 性能监控装饰器的元数据键
@@ -38,7 +39,7 @@ export function PerformanceMonitoring(
   const defaultConfig: PerformanceMonitoringConfig = {
     enabled: true,
     trackSlowRequests: true,
-    slowRequestThreshold: 1000,
+    slowRequestThreshold: MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS,
     recordMetrics: true,
     sampleRate: 1.0,
     ...config,

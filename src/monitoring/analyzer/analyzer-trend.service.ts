@@ -7,6 +7,7 @@ import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
 /**
  * 趋势分析服务
@@ -116,11 +117,11 @@ export class TrendAnalyzerService {
   ): Promise<{
     trends: TrendsDto[];
     summary: {
-      averageResponseTime: number;
+      averageResponseTimeMs: number;
       averageErrorRate: number;
       averageThroughput: number;
       volatility: {
-        responseTime: number;
+        responseTimeMs: number;
         errorRate: number;
         throughput: number;
       };
@@ -211,8 +212,8 @@ export class TrendAnalyzerService {
 
       // 响应时间异常检测
       const responseTimeDeviation =
-        Math.abs(currentResponseTime - baseline.averageResponseTime) /
-        baseline.averageResponseTime;
+        Math.abs(currentResponseTime - baseline.averageResponseTimeMs) /
+        baseline.averageResponseTimeMs;
       if (responseTimeDeviation > defaultThresholds.responseTimeThreshold) {
         anomalies.push({
           type: "response_time",
@@ -220,14 +221,14 @@ export class TrendAnalyzerService {
           currentValue: currentResponseTime,
           expectedRange: {
             min:
-              baseline.averageResponseTime *
+              baseline.averageResponseTimeMs *
               (1 - defaultThresholds.responseTimeThreshold),
             max:
-              baseline.averageResponseTime *
+              baseline.averageResponseTimeMs *
               (1 + defaultThresholds.responseTimeThreshold),
           },
           deviation: responseTimeDeviation,
-          description: `响应时间异常: 当前${currentResponseTime}ms, 预期范围${Math.round(baseline.averageResponseTime * (1 - defaultThresholds.responseTimeThreshold))}-${Math.round(baseline.averageResponseTime * (1 + defaultThresholds.responseTimeThreshold))}ms`,
+          description: `响应时间异常: 当前${currentResponseTime}ms, 预期范围${Math.round(baseline.averageResponseTimeMs * (1 - defaultThresholds.responseTimeThreshold))}-${Math.round(baseline.averageResponseTimeMs * (1 + defaultThresholds.responseTimeThreshold))}ms`,
         });
       }
 
@@ -251,7 +252,7 @@ export class TrendAnalyzerService {
               (1 + defaultThresholds.errorRateThreshold),
           },
           deviation: errorRateDeviation,
-          description: `错误率异常: 当前${(currentErrorRate * 100).toFixed(2)}%, 预期范围${(Math.max(0, baseline.averageErrorRate * (1 - defaultThresholds.errorRateThreshold)) * 100).toFixed(2)}-${(baseline.averageErrorRate * (1 + defaultThresholds.errorRateThreshold) * 100).toFixed(2)}%`,
+          description: `错误率异常: 当前${(currentErrorRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2)}%, 预期范围${(Math.max(0, baseline.averageErrorRate * (1 - defaultThresholds.errorRateThreshold)) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2)}-${(baseline.averageErrorRate * (1 + defaultThresholds.errorRateThreshold) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2)}%`,
         });
       }
 
@@ -386,7 +387,7 @@ export class TrendAnalyzerService {
    * 计算基线指标
    */
   private calculateBaseline(historicalMetrics: RawMetricsDto[]): {
-    averageResponseTime: number;
+    averageResponseTimeMs: number;
     averageErrorRate: number;
     averageThroughput: number;
   } {
@@ -401,7 +402,7 @@ export class TrendAnalyzerService {
     );
 
     return {
-      averageResponseTime:
+      averageResponseTimeMs:
         responseTimes.reduce((sum, val) => sum + val, 0) / responseTimes.length,
       averageErrorRate:
         errorRates.reduce((sum, val) => sum + val, 0) / errorRates.length,
@@ -414,30 +415,30 @@ export class TrendAnalyzerService {
    * 计算趋势汇总
    */
   private calculateTrendsSummary(trends: TrendsDto[]): {
-    averageResponseTime: number;
+    averageResponseTimeMs: number;
     averageErrorRate: number;
     averageThroughput: number;
     volatility: {
-      responseTime: number;
+      responseTimeMs: number;
       errorRate: number;
       throughput: number;
     };
   } {
     const responseTimes = trends.map((t) =>
-      t.responseTime ? t.responseTime.current : 0,
+      t.responseTimeMs ? t.responseTimeMs.current : 0,
     );
     const errorRates = trends.map((t) => t.errorRate.current);
     const throughputs = trends.map((t) => t.throughput.current);
 
     return {
-      averageResponseTime:
+      averageResponseTimeMs:
         responseTimes.reduce((sum, val) => sum + val, 0) / responseTimes.length,
       averageErrorRate:
         errorRates.reduce((sum, val) => sum + val, 0) / errorRates.length,
       averageThroughput:
         throughputs.reduce((sum, val) => sum + val, 0) / throughputs.length,
       volatility: {
-        responseTime: this.calculateVolatility(responseTimes),
+        responseTimeMs: this.calculateVolatility(responseTimes),
         errorRate: this.calculateVolatility(errorRates),
         throughput: this.calculateVolatility(throughputs),
       },
@@ -617,7 +618,7 @@ export class TrendAnalyzerService {
    */
   private getDefaultTrends(): TrendsDto {
     return {
-      responseTime: {
+      responseTimeMs: {
         current: 0,
         previous: 0,
         trend: "stable",
@@ -644,11 +645,11 @@ export class TrendAnalyzerService {
   private getDefaultHistoricalTrends(): {
     trends: TrendsDto[];
     summary: {
-      averageResponseTime: number;
+      averageResponseTimeMs: number;
       averageErrorRate: number;
       averageThroughput: number;
       volatility: {
-        responseTime: number;
+        responseTimeMs: number;
         errorRate: number;
         throughput: number;
       };
@@ -657,11 +658,11 @@ export class TrendAnalyzerService {
     return {
       trends: [],
       summary: {
-        averageResponseTime: 0,
+        averageResponseTimeMs: 0,
         averageErrorRate: 0,
         averageThroughput: 0,
         volatility: {
-          responseTime: 0,
+          responseTimeMs: 0,
           errorRate: 0,
           throughput: 0,
         },

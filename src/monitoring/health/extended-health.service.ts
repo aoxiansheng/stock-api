@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
 import Redis from "ioredis";
 import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 import {
   ConfigValidatorService,
   FullValidationResult,
@@ -505,7 +506,7 @@ export class ExtendedHealthService {
   private isValidationStale(): boolean {
     if (!this.lastConfigValidation) return true;
 
-    const staleTime = 5 * 60 * 1000; // 5分钟过期
+    const staleTime = MONITORING_SYSTEM_LIMITS.MONITORING_CACHE_STALE_TIME_MS; // 5分钟过期
     const now = Date.now();
     const validatedTime =
       this.lastConfigValidation.overall.validatedAt.getTime();

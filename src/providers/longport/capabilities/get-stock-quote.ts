@@ -1,9 +1,9 @@
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";
 import { LongportQuoteResponse } from "../types";
-import { CAPABILITY_NAMES } from "../../constants";
+import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../constants";
 
 /**
  * LongPort 股票报价获取能力
@@ -12,8 +12,8 @@ import { CAPABILITY_NAMES } from "../../constants";
 export const getStockQuote: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_QUOTE, // receiverType
   description: "获取股票实时报价数据",
-  supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
-  supportedSymbolFormats: ["700.HK", "000001.SZ", "600000.SH", "AAPL.US"],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
+  supportedSymbolFormats: SYMBOL_FORMATS.COMMON_MARKETS,
   rateLimit: {
     requestsPerSecond: 10,
     requestsPerDay: 10000,

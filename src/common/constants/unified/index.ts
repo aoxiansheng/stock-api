@@ -21,6 +21,15 @@
  */
 
 // 只导出顶层常量对象
+export { 
+  BASE_MESSAGES, 
+  BASE_STATUS_CODES, 
+  BASE_TIMEOUTS, 
+  BASE_LIMITS,
+  StatusCodeUtils,
+  ValidationUtils,
+  ConstantInheritanceUtils
+} from "./base.constants";
 export { SYSTEM_CONSTANTS } from "./system.constants";
 export { HTTP_CONSTANTS } from "./http.constants";
 export { PERFORMANCE_CONSTANTS } from "./performance.constants";

@@ -54,5 +54,5 @@ export class RedisCacheRuntimeStatsDto {
   successRate: number;
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
-  averageResponseTime: number;
+  averageResponseTimeMs: number;
 }

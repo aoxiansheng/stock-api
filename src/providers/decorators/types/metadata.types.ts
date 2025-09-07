@@ -2,9 +2,12 @@
  * 装饰器元数据类型定义
  */
 
-// Metadata keys for reflect-metadata
-export const PROVIDER_METADATA_KEY = Symbol("provider:metadata");
-export const CAPABILITY_METADATA_KEY = Symbol("capability:metadata");
+// 元数据键值已移至 constants/metadata.constants.ts 统一管理
+// 为了兼容性，从常量文件导入
+import { PROVIDER_METADATA_KEY, CAPABILITY_METADATA_KEY } from '../../constants/metadata.constants';
+import { ProviderConfig, CapabilityConfig, StreamConfig } from '../../types/config.types';
+
+export { PROVIDER_METADATA_KEY, CAPABILITY_METADATA_KEY };
 
 export interface CapabilityMetadata {
   /** 能力名称，对应 receiverType */
@@ -24,7 +27,7 @@ export interface CapabilityMetadata {
   /** 能力类型：REST 或 WebSocket */
   type?: "rest" | "websocket";
   /** 额外配置 */
-  config?: Record<string, any>;
+  config?: CapabilityConfig;
 }
 
 export interface ProviderMetadata {
@@ -39,19 +42,13 @@ export interface ProviderMetadata {
   /** 初始化优先级 */
   initPriority?: number;
   /** 提供商配置 */
-  config?: Record<string, any>;
+  config?: ProviderConfig;
 }
 
 export interface StreamCapabilityMetadata extends CapabilityMetadata {
   type: "websocket";
-  /** 连接URL模板 */
-  connectionUrl?: string;
-  /** 重连配置 */
-  reconnect?: {
-    maxRetries?: number;
-    interval?: number;
-    backoff?: number;
-  };
+  /** 流配置 */
+  config?: StreamConfig;
 }
 
 /**
@@ -99,17 +96,13 @@ export interface ProviderLoadResult {
 }
 
 /**
- * 约定违规类型
+ * 约定违规类型（简化为3种主要类别）
  */
 export interface ConventionViolation {
   type:
-    | "missing_file"
-    | "missing_directory"
-    | "invalid_structure"
-    | "naming_convention"
-    | "missing_export"
-    | "interface_error"
-    | "scan_error";
+    | "structural"     // 结构问题：missing_file, missing_directory, invalid_structure
+    | "naming"         // 命名问题：naming_convention
+    | "interface"      // 接口问题：missing_export, interface_error, scan_error
   path: string;
   message: string;
   severity?: "low" | "medium" | "high" | "critical";

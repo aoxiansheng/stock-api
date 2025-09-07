@@ -11,7 +11,7 @@ import {
   IStreamCapability,
   StreamDataCallbackParams,
 } from "../../../../../src/providers/interfaces/stream-capability.interface";
-import { ProvidersModule } from "../../../../../src/providers/module/providers.module";
+import { ProvidersModule } from "../../../../../src/providers/module/providers-sg.module";
 import { AppModule } from "../../../../../src/app.module";
 
 // Mock logger

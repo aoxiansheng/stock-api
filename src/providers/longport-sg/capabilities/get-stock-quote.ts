@@ -1,19 +1,19 @@
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";
 import { LongportQuoteResponse } from "../types";
-import { CAPABILITY_NAMES } from "../../constants";
+import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../constants";
 
 /**
  * LongPort 股票报价获取能力
- * 注意：此函数需要与 LongportContextService 配合使用
+ * 注意：此函数需要与 LongportSgContextService 配合使用
  */
 export const getStockQuote: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_QUOTE, // receiverType
   description: "获取股票实时报价数据",
-  supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
-  supportedSymbolFormats: ["700.HK", "000001.SZ", "600000.SH", "AAPL.US"],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
+  supportedSymbolFormats: SYMBOL_FORMATS.COMMON_MARKETS,
   rateLimit: {
     requestsPerSecond: 10,
     requestsPerDay: 10000,
@@ -23,37 +23,24 @@ export const getStockQuote: ICapability = {
     symbols: string[];
     contextService?: any;
   }): Promise<LongportQuoteResponse> {
-    const logger = createLogger("LongportSgGetStockQuote");
+    const logger = createLogger("LongportGetStockQuote");
     try {
       logger.debug("调用 LongPort SDK 获取股票报价", {
         symbols: params.symbols,
       });
 
       if (!params.contextService) {
-        throw new Error("LongportContextService 未提供");
+        throw new Error("LongportSgContextService 未提供");
       }
 
       // 获取共享的 QuoteContext
       const ctx = await params.contextService.getQuoteContext();
       const quotes = await ctx.quote(params.symbols);
 
-      // 转换为标准格式
-      const secu_quote = quotes.map((quote) => ({
-        symbol: quote.symbol,
-        last_done: quote.lastDone,
-        prev_close: quote.prevClose,
-        open: quote.open,
-        high: quote.high,
-        low: quote.low,
-        volume: quote.volume,
-        turnover: quote.turnover,
-        timestamp: quote.timestamp,
-        trade_status: quote.tradeStatus,
-      }));
-
-      return { secu_quote };
+      // 直接返回SDK原始格式，不做任何字段名转换
+      return { secu_quote: quotes };
     } catch (error) {
-      throw new Error(`LongPort 获取股票报价失败: ${error.message}`);
+      throw new Error(`LongPort 获取股票报价失败了: ${error.message}`);
     }
   },
 };

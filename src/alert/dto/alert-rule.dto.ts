@@ -16,6 +16,7 @@ import { AlertSeverity } from "../types/alert.types";
 import { VALID_OPERATORS } from "../constants/alert.constants";
 import type { Operator } from "../constants/alert.constants";
 import { VALIDATION_LIMITS } from "../constants/validation.constants";
+import { ALERT_DEFAULTS } from "../constants/defaults.constants";
 
 import { NotificationChannelDto } from "./notification-channel.dto";
 
@@ -36,7 +37,7 @@ export class CreateAlertRuleDto {
   @ApiProperty({
     description: "比较操作符",
     enum: VALID_OPERATORS,
-    default: "gt",
+    default: ALERT_DEFAULTS.RULE.operator,
   })
   @IsEnum(VALID_OPERATORS)
   operator: Operator;
@@ -45,7 +46,10 @@ export class CreateAlertRuleDto {
   @IsNumber()
   threshold: number;
 
-  @ApiProperty({ description: "持续时间（秒）", default: 60 })
+  @ApiProperty({ 
+    description: "持续时间（秒）", 
+    default: ALERT_DEFAULTS.RULE.duration 
+  })
   @IsNumber()
   @Min(VALIDATION_LIMITS.DURATION.MIN)
   @Max(VALIDATION_LIMITS.DURATION.MAX)
@@ -54,12 +58,15 @@ export class CreateAlertRuleDto {
   @ApiProperty({
     description: "告警严重级别",
     enum: AlertSeverity,
-    default: AlertSeverity.WARNING,
+    default: ALERT_DEFAULTS.RULE.severity,
   })
   @IsEnum(AlertSeverity)
   severity: AlertSeverity;
 
-  @ApiProperty({ description: "是否启用", default: true })
+  @ApiProperty({ 
+    description: "是否启用", 
+    default: ALERT_DEFAULTS.RULE.enabled 
+  })
   @IsBoolean()
   enabled: boolean;
 
@@ -69,7 +76,10 @@ export class CreateAlertRuleDto {
   @Type(() => NotificationChannelDto)
   channels: NotificationChannelDto[];
 
-  @ApiProperty({ description: "冷却时间（秒）", default: 300 })
+  @ApiProperty({ 
+    description: "冷却时间（秒）", 
+    default: ALERT_DEFAULTS.RULE.cooldown 
+  })
   @IsNumber()
   @Min(VALIDATION_LIMITS.COOLDOWN.MIN)
   @Max(VALIDATION_LIMITS.COOLDOWN.MAX)

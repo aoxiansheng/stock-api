@@ -5,6 +5,7 @@ import { Model } from "mongoose";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
 import { User, UserDocument } from "../schemas/user.schema";
+import { CommonStatus } from "../enums/common-status.enum";
 @Injectable()
 export class UserRepository {
   constructor(
@@ -15,7 +16,7 @@ export class UserRepository {
   async create(
     userDto: Pick<
       User,
-      "username" | "email" | "passwordHash" | "role" | "isActive"
+      "username" | "email" | "passwordHash" | "role" | "status"
     >,
   ): Promise<UserDocument> {
     const user = new this.userModel(userDto);
@@ -72,7 +73,7 @@ export class UserRepository {
       normalizedPage,
       normalizedLimit,
     );
-    const filter = includeInactive ? {} : { isActive: true };
+    const filter = includeInactive ? {} : { status: CommonStatus.ACTIVE };
 
     const [users, total] = await Promise.all([
       this.userModel
@@ -105,7 +106,7 @@ export class UserRepository {
   async getUserStats() {
     const [totalUsers, activeUsers, usersByRole] = await Promise.all([
       this.userModel.countDocuments().exec(),
-      this.userModel.countDocuments({ isActive: true }).exec(),
+      this.userModel.countDocuments({ status: CommonStatus.ACTIVE }).exec(),
       this.userModel
         .aggregate([
           {
@@ -126,7 +127,6 @@ export class UserRepository {
     return {
       totalUsers,
       activeUsers,
-      inactiveUsers: totalUsers - activeUsers,
       roleDistribution: roleStats,
     };
   }

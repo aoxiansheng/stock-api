@@ -200,18 +200,12 @@ export class CapabilityExecutionResultDto {
   @IsString()
   capability: string;
 
-  @ApiProperty({ description: "执行时间（毫秒）" })
-  /** @deprecated 使用 executionTimeMs 替代 */
-  @IsNumber()
-  executionTime: number;
-
   @ApiProperty({
-    description: "Cache组件执行耗时字段（毫秒，推荐使用此字段）",
+    description: "执行时间（毫秒）",
     example: 150,
   })
   @IsNumber()
-  @IsOptional() // 过渡期设为可选
-  executionTimeMs?: number;
+  executionTimeMs: number;
 
   @ApiProperty({ description: "错误信息", required: false })
   @IsOptional()

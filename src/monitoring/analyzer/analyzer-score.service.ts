@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "../../app/config/logger.config";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
-import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
+import { MONITORING_HEALTH_STATUS } from "../constants";
+import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
+import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
 
 /**
  * 健康分计算器
@@ -35,7 +37,7 @@ export class AnalyzerHealthScoreCalculator {
         cacheScore * weights.cache +
         systemScore * weights.system;
 
-      const finalScore = Math.round(Math.max(0, Math.min(100, overallScore)));
+      const finalScore = Math.round(Math.max(0, Math.min(MONITORING_SYSTEM_LIMITS.FULL_SCORE, overallScore)));
 
       this.logger.debug("健康分计算完成", {
         overall: finalScore,
@@ -61,16 +63,16 @@ export class AnalyzerHealthScoreCalculator {
     const requests = rawMetrics.requests || [];
 
     if (requests.length === 0) {
-      return 100; // 没有请求认为是健康的
+      return MONITORING_SYSTEM_LIMITS.FULL_SCORE; // 没有请求认为是健康的
     }
 
     const totalRequests = requests.length;
-    const errorRequests = requests.filter((r) => r.statusCode >= 400).length;
+    const errorRequests = requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length;
     const errorRate = errorRequests / totalRequests;
 
     // 计算平均响应时间
     const avgResponseTime =
-      requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) /
+      requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
       totalRequests;
 
     // 错误率评分 (0-40分)
@@ -85,7 +87,7 @@ export class AnalyzerHealthScoreCalculator {
     let responseScore = 60;
     if (avgResponseTime > 2000)
       responseScore = 0; // >2秒
-    else if (avgResponseTime > 1000)
+    else if (MonitoringSystemLimitUtils.isSlowRequest(avgResponseTime))
       responseScore = 20; // >1秒
     else if (avgResponseTime > 500) responseScore = 40; // >500ms
 
@@ -99,26 +101,26 @@ export class AnalyzerHealthScoreCalculator {
     const dbOps = rawMetrics.database || [];
 
     if (dbOps.length === 0) {
-      return 100; // 没有数据库操作认为是健康的
+      return MONITORING_SYSTEM_LIMITS.FULL_SCORE; // 没有数据库操作认为是健康的
     }
 
     const totalOps = dbOps.length;
     const failedOps = dbOps.filter((op) => !op.success).length;
-    const failureRate = failedOps / totalOps;
+    const errorRate = failedOps / totalOps;
 
     // 计算平均查询时间
     const avgQueryTime =
-      dbOps.reduce((sum, op) => sum + op.duration, 0) / totalOps;
+      dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0) / totalOps;
 
     // 失败率评分 (0-50分)
     let failureScore = 50;
-    if (failureRate > 0.1)
+    if (errorRate > 0.1)
       failureScore = 0; // 失败率>10%
-    else if (failureRate > 0.05) failureScore = 25; // 失败率>5%
+    else if (errorRate > 0.05) failureScore = 25; // 失败率>5%
 
     // 查询时间评分 (0-50分)
     let queryScore = 50;
-    if (avgQueryTime > 1000)
+    if (MonitoringSystemLimitUtils.isSlowQuery(avgQueryTime))
       queryScore = 0; // >1秒
     else if (avgQueryTime > 500) queryScore = 25; // >500ms
 
@@ -132,7 +134,7 @@ export class AnalyzerHealthScoreCalculator {
     const cacheOps = rawMetrics.cache || [];
 
     if (cacheOps.length === 0) {
-      return 100; // 没有缓存操作认为是健康的
+      return MONITORING_SYSTEM_LIMITS.FULL_SCORE; // 没有缓存操作认为是健康的
     }
 
     const totalOps = cacheOps.length;
@@ -141,7 +143,7 @@ export class AnalyzerHealthScoreCalculator {
 
     // 计算平均缓存响应时间
     const avgCacheTime =
-      cacheOps.reduce((sum, op) => sum + op.duration, 0) / totalOps;
+      cacheOps.reduce((sum, op) => sum + op.responseTimeMs, 0) / totalOps;
 
     // 命中率评分 (0-70分)
     let hitScore = 0;
@@ -153,7 +155,7 @@ export class AnalyzerHealthScoreCalculator {
 
     // 响应时间评分 (0-30分)
     let responseScore = 30;
-    if (avgCacheTime > 100)
+    if (avgCacheTime > MONITORING_SYSTEM_LIMITS.API_RESPONSE_TIME_MS)
       responseScore = 0; // >100ms
     else if (avgCacheTime > 50) responseScore = 15; // >50ms
 
@@ -167,7 +169,7 @@ export class AnalyzerHealthScoreCalculator {
     const system = rawMetrics.system;
 
     if (!system) {
-      return 100; // 没有系统指标认为是健康的
+      return MONITORING_SYSTEM_LIMITS.FULL_SCORE; // 没有系统指标认为是健康的
     }
 
     // CPU使用率评分 (0-40分)
@@ -225,15 +227,15 @@ export class AnalyzerHealthScoreCalculator {
       const requests = rawMetrics.requests || [];
       if (requests.length > 0) {
         const errorRate =
-          requests.filter((r) => r.statusCode >= 400).length / requests.length;
+          requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length / requests.length;
         const avgResponseTime =
-          requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) /
+          requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
           requests.length;
 
         if (errorRate > 0.05) {
           recommendations.push("API错误率过高，建议检查错误日志并优化错误处理");
         }
-        if (avgResponseTime > 1000) {
+        if (MonitoringSystemLimitUtils.isSlowRequest(avgResponseTime)) {
           recommendations.push("API响应时间过慢，建议优化查询逻辑或增加缓存");
         }
       }
@@ -242,14 +244,14 @@ export class AnalyzerHealthScoreCalculator {
       const dbOps = rawMetrics.database || [];
       if (dbOps.length > 0) {
         const avgQueryTime =
-          dbOps.reduce((sum, op) => sum + op.duration, 0) / dbOps.length;
-        const failureRate =
+          dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0) / dbOps.length;
+        const errorRate =
           dbOps.filter((op) => !op.success).length / dbOps.length;
 
         if (avgQueryTime > 500) {
           recommendations.push("数据库查询时间过长，建议优化索引或查询语句");
         }
-        if (failureRate > 0.05) {
+        if (errorRate > 0.05) {
           recommendations.push(
             "数据库操作失败率过高，建议检查连接池配置和网络状况",
           );

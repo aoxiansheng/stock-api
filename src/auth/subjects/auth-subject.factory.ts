@@ -101,7 +101,7 @@ export class AuthSubjectFactory {
 
     // API Key需要额外检查有效性
     if (
-      subject.type === AuthSubjectType.API_KEY &&
+      subject.type === AuthSubjectType.API_KEY_SUBJECT &&
       subject instanceof ApiKeySubject
     ) {
       return subject.isValid();

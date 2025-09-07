@@ -1680,7 +1680,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           // 默认为闭市状态
           marketStatus[market] = {
             market: market as Market,
-            status: MarketStatus.CLOSED,
+            status: MarketStatus.MARKET_CLOSED,
             currentTime: new Date(),
             marketTime: new Date(),
             timezone: "UTC",

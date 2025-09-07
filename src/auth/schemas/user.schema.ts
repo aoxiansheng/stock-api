@@ -2,6 +2,8 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
 import { UserRole } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
+import { PASSWORD_CONSTRAINTS, USERNAME_CONSTRAINTS } from "../constants/validation.constants";
 
 export type UserDocument = User & Document;
 
@@ -16,15 +18,18 @@ export class User {
     required: true,
     unique: true,
     trim: true,
-    minlength: 3,
-    maxlength: 50,
+    minlength: USERNAME_CONSTRAINTS.MIN_LENGTH,
+    maxlength: USERNAME_CONSTRAINTS.MAX_LENGTH,
   })
   username: string;
 
   @Prop({ required: true, unique: true, trim: true, lowercase: true })
   email: string;
 
-  @Prop({ required: true, minlength: 6 })
+  @Prop({ 
+    required: true, 
+    minlength: PASSWORD_CONSTRAINTS.MIN_LENGTH 
+  })
   passwordHash: string;
 
   @Prop({
@@ -35,27 +40,27 @@ export class User {
   })
   role: UserRole;
 
-  @Prop({ default: true })
-  isActive: boolean;
+  @Prop({
+    type: String,
+    enum: Object.values(CommonStatus),
+    default: CommonStatus.ACTIVE
+  })
+  status: CommonStatus;
 
-  @Prop({ default: Date.now })
-  lastLoginAt: Date;
+  @Prop()
+  lastAccessedAt?: Date;
 
   @Prop()
   refreshToken?: string;
 
-  @Prop({ default: Date.now })
-  createdAt: Date;
-
-  @Prop({ default: Date.now })
-  updatedAt: Date;
+  // 时间戳字段由 @Schema({timestamps: true}) 自动管理，无需手动定义
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
 // 创建索引 (unique字段已通过@Prop装饰器自动创建索引)
 UserSchema.index({ role: 1 });
-UserSchema.index({ isActive: 1 });
+UserSchema.index({ status: 1 });
 
 // 自定义JSON序列化 - 遵循开发规范
 UserSchema.methods.toJSON = function () {

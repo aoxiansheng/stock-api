@@ -8,6 +8,7 @@ import { createLogger } from "../../app/config/logger.config";
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 import { CollectorService } from "./collector.service";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
 /**
  * 收集器拦截器
@@ -38,9 +39,9 @@ export class CollectorInterceptor implements NestInterceptor {
             source: "http-interceptor",
             layer: "controller",
             operation: request.route?.path || request.url,
-            duration: responseTime,
+            responseTimeMs: responseTime,
             statusCode: response.statusCode,
-            success: response.statusCode < 400,
+            success: response.statusCode < MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
             metadata: {
               method: request.method,
               endpoint: request.route?.path || request.url,

@@ -6,7 +6,9 @@ import { HealthReportDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
-import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
+import { MONITORING_HEALTH_STATUS,  } from "../constants";
+import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
 /**
  * 健康分析服务
@@ -87,18 +89,18 @@ export class HealthAnalyzerService {
             // 计算详细组件指标
             const avgResponseTime =
               requests.length > 0
-                ? requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) /
+                ? requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
                   requests.length
                 : 0;
             const errorRate =
               requests.length > 0
-                ? requests.filter((r) => r.statusCode >= 400).length /
+                ? requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length /
                   requests.length
                 : 0;
 
             const avgQueryTime =
               dbOps.length > 0
-                ? dbOps.reduce((sum, op) => sum + op.duration, 0) / dbOps.length
+                ? dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0) / dbOps.length
                 : 0;
             const dbFailureRate =
               dbOps.length > 0
@@ -111,35 +113,35 @@ export class HealthAnalyzerService {
                 : 0;
             const cacheAvgResponseTime =
               cacheOps.length > 0
-                ? cacheOps.reduce((sum, op) => sum + op.duration, 0) /
+                ? cacheOps.reduce((sum, op) => sum + op.responseTimeMs, 0) /
                   cacheOps.length
                 : 0;
 
             // 构建健康报告
             const report: HealthReportDto = {
               overall: {
-                score: healthScore,
+                healthScore: healthScore,
                 status: healthStatus,
                 timestamp: new Date(),
               },
               components: {
                 api: {
-                  score: componentScores.api,
-                  responseTime: Math.round(avgResponseTime),
+                  healthScore: componentScores.api,
+                  responseTimeMs: Math.round(avgResponseTime),
                   errorRate: Math.round(errorRate * 10000) / 10000,
                 },
                 database: {
-                  score: componentScores.database,
-                  averageQueryTime: Math.round(avgQueryTime),
-                  failureRate: Math.round(dbFailureRate * 10000) / 10000,
+                  healthScore: componentScores.database,
+                  responseTimeMs: Math.round(avgQueryTime),
+                  errorRate: Math.round(dbFailureRate * 10000) / 10000,
                 },
                 cache: {
-                  score: componentScores.cache,
+                  healthScore: componentScores.cache,
                   hitRate: Math.round(cacheHitRate * 10000) / 10000,
-                  averageResponseTime: Math.round(cacheAvgResponseTime),
+                  responseTimeMs: Math.round(cacheAvgResponseTime),
                 },
                 system: {
-                  score: componentScores.system,
+                  healthScore: componentScores.system,
                   memoryUsage: system?.memory.percentage || 0,
                   cpuUsage: system?.cpu.usage || 0,
                 },
@@ -208,7 +210,7 @@ export class HealthAnalyzerService {
    */
   async quickHealthCheck(rawMetrics: RawMetricsDto): Promise<{
     isHealthy: boolean;
-    score: number;
+    healthScore: number;
     status: ExtendedHealthStatus;
     criticalIssues: string[];
   }> {
@@ -233,7 +235,7 @@ export class HealthAnalyzerService {
 
       return {
         isHealthy: healthStatus === MONITORING_HEALTH_STATUS.HEALTHY,
-        score: healthScore,
+        healthScore: healthScore,
         status: healthStatus,
         criticalIssues,
       };
@@ -241,7 +243,7 @@ export class HealthAnalyzerService {
       this.logger.error("快速健康检查失败", error.stack);
       return {
         isHealthy: false,
-        score: 0,
+        healthScore: 0,
         status: MONITORING_HEALTH_STATUS.UNHEALTHY, // Use unhealthy for critical errors
         criticalIssues: ["健康检查系统异常"],
       };
@@ -284,7 +286,7 @@ export class HealthAnalyzerService {
       // 计算变化百分比
       const changePercentage =
         ((currentScore - averageHistoricalScore) / averageHistoricalScore) *
-        100;
+        MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER;
 
       // 确定趋势
       let trend: "improving" | "stable" | "declining";
@@ -299,7 +301,7 @@ export class HealthAnalyzerService {
       return {
         currentScore,
         trend,
-        changePercentage: Math.round(changePercentage * 100) / 100,
+        changePercentage: Math.round(changePercentage * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER) / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
         periodComparison: `相比过去${historicalMetrics.length}个周期`,
       };
     } catch (error) {
@@ -353,13 +355,13 @@ export class HealthAnalyzerService {
       const requests = rawMetrics.requests || [];
       if (requests.length > 0) {
         const errorRate =
-          requests.filter((r) => r.statusCode >= 400).length / requests.length;
+          requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length / requests.length;
         if (errorRate > 0.1) {
-          criticalIssues.push(`API错误率过高: ${Math.round(errorRate * 100)}%`);
+          criticalIssues.push(`API错误率过高: ${Math.round(errorRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER)}%`);
         }
 
         const avgResponseTime =
-          requests.reduce((sum, r) => sum + (r.responseTime || 0), 0) /
+          requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
           requests.length;
         if (avgResponseTime > 2000) {
           criticalIssues.push(
@@ -375,7 +377,7 @@ export class HealthAnalyzerService {
           dbOps.filter((op) => !op.success).length / dbOps.length;
         if (dbFailureRate > 0.05) {
           criticalIssues.push(
-            `数据库失败率过高: ${Math.round(dbFailureRate * 100)}%`,
+            `数据库失败率过高: ${Math.round(dbFailureRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER)}%`,
           );
         }
       }
@@ -384,12 +386,12 @@ export class HealthAnalyzerService {
       if (rawMetrics.system) {
         if (rawMetrics.system.cpu.usage > 0.9) {
           criticalIssues.push(
-            `CPU使用率过高: ${Math.round(rawMetrics.system.cpu.usage * 100)}%`,
+            `CPU使用率过高: ${Math.round(rawMetrics.system.cpu.usage * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER)}%`,
           );
         }
         if (rawMetrics.system.memory.percentage > 0.9) {
           criticalIssues.push(
-            `内存使用率过高: ${Math.round(rawMetrics.system.memory.percentage * 100)}%`,
+            `内存使用率过高: ${Math.round(rawMetrics.system.memory.percentage * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER)}%`,
           );
         }
       }
@@ -459,28 +461,28 @@ export class HealthAnalyzerService {
   private getDefaultHealthReport(): HealthReportDto {
     return {
       overall: {
-        score: 50,
+        healthScore: 50,
         status: MONITORING_HEALTH_STATUS.WARNING,
         timestamp: new Date(),
       },
       components: {
         api: {
-          score: 50,
-          responseTime: 0,
+          healthScore: 50,
+          responseTimeMs: 0,
           errorRate: 0,
         },
         database: {
-          score: 50,
-          averageQueryTime: 0,
-          failureRate: 0,
+          healthScore: 50,
+          responseTimeMs: 0,
+          errorRate: 0,
         },
         cache: {
-          score: 50,
+          healthScore: 50,
           hitRate: 0,
-          averageResponseTime: 0,
+          responseTimeMs: 0,
         },
         system: {
-          score: 50,
+          healthScore: 50,
           memoryUsage: 0,
           cpuUsage: 0,
         },

@@ -27,5 +27,4 @@ export {
   
   // 增强功能导出
   SYMBOL_TRANSFORMER_ENHANCED,
-  getSymbolTransformerConstants,
 } from './symbol-transformer-enhanced.constants';

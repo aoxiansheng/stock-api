@@ -28,7 +28,7 @@ export interface CacheMetrics {
   /** 总请求数 */
   totalRequests: number;
   /** 平均响应时间（毫秒） */
-  averageResponseTime: number;
+  averageResponseTimeMs: number;
   /** 错误次数 */
   errorCount: number;
   /** 最后更新时间 */

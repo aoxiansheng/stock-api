@@ -14,16 +14,6 @@ export enum Market {
   CRYPTO = "CRYPTO", // 加密货币市场
 }
 
-/**
- * 市场常量 - 兼容原有代码
- */
-export const MARKETS = Object.freeze({
-  HK: Market.HK,
-  SZ: Market.SZ,
-  SH: Market.SH,
-  US: Market.US,
-  CRYPTO: Market.CRYPTO,
-} as const);
 
 /**
  * 市场名称映射

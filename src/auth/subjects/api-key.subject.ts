@@ -1,4 +1,5 @@
 import { Permission } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 import {
   AuthSubject,
   AuthSubjectType,
@@ -17,7 +18,7 @@ import { ApiKey } from "../schemas/apikey.schema";
  *   id: '123',
  *   name: 'Trading Bot',
  *   permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
- *   rateLimit: { requests: 1000, window: '1h' }
+ *   rateLimit: { requestLimit: 1000, window: '1h' }
  * };
  * const subject = new ApiKeySubject(apiKey);
  *
@@ -26,7 +27,7 @@ import { ApiKey } from "../schemas/apikey.schema";
  * ```
  */
 export class ApiKeySubject implements AuthSubject {
-  public readonly type = AuthSubjectType.API_KEY;
+  public readonly type = AuthSubjectType.API_KEY_SUBJECT;
   public readonly id: string;
   public readonly permissions: Permission[];
   public readonly metadata: Record<string, any>;
@@ -41,10 +42,10 @@ export class ApiKeySubject implements AuthSubject {
       appKey: apiKey.appKey,
       userId: apiKey.userId?.toString(),
       rateLimit: apiKey.rateLimit,
-      isActive: apiKey.isActive,
+      status: apiKey.status,
       expiresAt: apiKey.expiresAt,
-      usageCount: apiKey.usageCount,
-      lastUsedAt: apiKey.lastUsedAt,
+      totalRequestCount: apiKey.totalRequestCount,
+      lastAccessedAt: apiKey.lastAccessedAt,
       createdAt: apiKey.createdAt,
     };
 
@@ -115,7 +116,7 @@ export class ApiKeySubject implements AuthSubject {
    */
   isValid(): boolean {
     // 检查是否激活
-    if (!this.metadata.isActive) {
+    if (this.metadata.status !== CommonStatus.ACTIVE) {
       return false;
     }
 
@@ -133,7 +134,7 @@ export class ApiKeySubject implements AuthSubject {
   /**
    * 获取频率限制配置
    */
-  getRateLimit(): { requests: number; window: string } | null {
+  getRateLimit(): { requestLimit: number; window: string } | null {
     return this.metadata.rateLimit || null;
   }
 
@@ -141,14 +142,14 @@ export class ApiKeySubject implements AuthSubject {
    * 获取API Key的统计信息
    */
   getUsageStats(): {
-    usageCount: number;
-    lastUsedAt: Date | null;
+    totalRequestCount: number;
+    lastAccessedAt: Date | null;
     createdAt: Date;
   } {
     return {
-      usageCount: this.metadata.usageCount || 0,
-      lastUsedAt: this.metadata.lastUsedAt
-        ? new Date(this.metadata.lastUsedAt)
+      totalRequestCount: this.metadata.totalRequestCount || 0,
+      lastAccessedAt: this.metadata.lastAccessedAt
+        ? new Date(this.metadata.lastAccessedAt)
         : null,
       createdAt: new Date(this.metadata.createdAt),
     };
@@ -173,7 +174,7 @@ export class ApiKeySubject implements AuthSubject {
         name: this.metadata.name,
         appKey: this.metadata.appKey,
         userId: this.metadata.userId,
-        isActive: this.metadata.isActive,
+        status: this.metadata.status,
         expiresAt: this.metadata.expiresAt,
         rateLimit: this.metadata.rateLimit,
       },

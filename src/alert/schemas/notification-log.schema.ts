@@ -1,8 +1,9 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
-import { INotificationLog } from "../interfaces";
-import { NotificationChannelType } from "../types/alert.types";
+import { NotificationChannelType, NotificationLog as INotificationLog } from "../types/alert.types";
+import type { NotificationMetadata } from "../types/context.types";
+import { TIMING_CONSTANTS } from "../constants/timing.constants";
 
 export type NotificationLogDocument = NotificationLog & Document;
 
@@ -47,13 +48,16 @@ export class NotificationLog implements INotificationLog {
 
   // 额外的元数据
   @Prop({ type: Object })
-  metadata?: Record<string, any>;
+  metadata?: NotificationMetadata; // 🎯 运行时元数据：通知发送过程中的技术指标和状态信息
 
-  @Prop()
-  userAgent?: string;
+  // 语义化访问器 - 提供统一的时间字段访问方式
+  get notificationCreatedAt(): Date {
+    return this.sentAt;
+  }
 
-  @Prop()
-  ipAddress?: string;
+  get notificationProcessedAt(): Date {
+    return this.sentAt;
+  }
 }
 
 export const NotificationLogSchema =
@@ -66,8 +70,8 @@ NotificationLogSchema.index({ sentAt: -1 });
 NotificationLogSchema.index({ success: 1, sentAt: -1 });
 NotificationLogSchema.index({ channelId: 1, sentAt: -1 });
 
-// TTL 索引 - 自动删除30天前的通知日志
+// TTL 索引 - 自动删除日志 (使用预计算常量值优化性能)
 NotificationLogSchema.index(
   { sentAt: 1 },
-  { expireAfterSeconds: 30 * 24 * 60 * 60 },
+  { expireAfterSeconds: TIMING_CONSTANTS.DB_TTL.NOTIFICATION_LOG_SECONDS }, // 30天保留，预计算值
 );

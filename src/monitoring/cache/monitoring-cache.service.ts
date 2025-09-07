@@ -7,7 +7,9 @@ import {
   getMonitoringConfigForEnvironment,
 } from "../config/monitoring.config";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
-import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
+import { MONITORING_HEALTH_STATUS } from "../constants";
+import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
 /**
  * 监控专用缓存服务
@@ -74,8 +76,8 @@ export class MonitoringCacheService {
       throw new Error(`监控缓存类别过长 (>${50}): ${category}`);
     }
 
-    if (key.length > 100) {
-      throw new Error(`监控缓存键名过长 (>${100}): ${key}`);
+    if (key.length > MONITORING_SYSTEM_LIMITS.MAX_KEY_LENGTH) {
+      throw new Error(`监控缓存键名过长 (>${MONITORING_SYSTEM_LIMITS.MAX_KEY_LENGTH}): ${key}`);
     }
 
     return `${this.config.cache.namespace}:${category}:${key}`;
@@ -477,9 +479,9 @@ export class MonitoringCacheService {
   // 性能指标计算
   private recordOperationTime(duration: number): void {
     this.metrics.operationTimes.push(duration);
-    // 保持最近1000次操作的记录
-    if (this.metrics.operationTimes.length > 1000) {
-      this.metrics.operationTimes = this.metrics.operationTimes.slice(-1000);
+    // 保持最近MAX_OPERATION_TIMES次操作的记录
+    if (this.metrics.operationTimes.length > MONITORING_SYSTEM_LIMITS.MAX_OPERATION_TIMES) {
+      this.metrics.operationTimes = this.metrics.operationTimes.slice(-MONITORING_SYSTEM_LIMITS.MAX_OPERATION_TIMES);
     }
   }
 
@@ -656,8 +658,8 @@ export class MonitoringCacheService {
       });
 
       // 如果操作时间过长，记录警告
-      if (duration > 1000) {
-        // 1秒以上认为过长
+      if (duration > MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS) {
+        // SLOW_REQUEST_THRESHOLD_MS以上认为过长
         this.logger.warn("KEYS模式删除耗时过长", {
           pattern,
           duration,
@@ -743,7 +745,7 @@ export class MonitoringCacheService {
         });
 
         // 批次间间隔防止压力过大（仅在大批量时）
-        if (keys.length > 100 && batchIndex < totalBatches) {
+        if (keys.length > MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE && batchIndex < totalBatches) {
           await new Promise((resolve) => setTimeout(resolve, 10)); // 10ms 间隔
         }
       } catch (error) {
@@ -764,15 +766,15 @@ export class MonitoringCacheService {
       failureCount,
       totalTime,
       averageTimePerKey: totalTime / keys.length,
-      successRate: ((successCount / keys.length) * 100).toFixed(2) + "%",
+      successRate: ((successCount / keys.length) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2) + "%",
     });
 
     // 如果失败率过高，记录警告
-    const failureRate = failureCount / keys.length;
-    if (failureRate > 0.1) {
+    const errorRate = failureCount / keys.length;
+    if (errorRate > 0.1) {
       // 10%以上认为异常
       this.logger.warn("批量删除失败率过高", {
-        failureRate: (failureRate * 100).toFixed(2) + "%",
+        errorRate: (errorRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2) + "%",
         failureCount,
         totalKeys: keys.length,
         suggestion: "请检查Redis连接状态或网络状况",

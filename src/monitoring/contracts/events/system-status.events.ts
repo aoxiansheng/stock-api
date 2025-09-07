@@ -125,7 +125,7 @@ export interface CacheOperationEvent extends SystemStatusEventData {
 // 健康检查事件数据
 export interface HealthCheckEvent extends SystemStatusEventData {
   component: "api" | "database" | "cache" | "system" | "overall";
-  score: number;
+  healthScore: number;
   status: "healthy" | "warning" | "critical";
   previousScore?: number;
   threshold?: number;

@@ -9,10 +9,11 @@ import {
   TrendsDto,
 } from "../contracts/interfaces/analyzer.interface";
 import { MONITORING_KEY_TEMPLATES } from "../constants";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
 /**
  * 指标计算器
- * 职责：集中所有指标计算逻辑（从collector层迁移过来）
+ * 职责：集中所有指标计算逻辑
  */
 @Injectable()
 export class AnalyzerMetricsCalculator {
@@ -20,7 +21,6 @@ export class AnalyzerMetricsCalculator {
 
   /**
    * 计算性能摘要
-   * 迁移自collector层的calculateOverallAverageResponseTime等方法
    */
   calculatePerformanceSummary(rawMetrics: RawMetricsDto): PerformanceSummary {
     try {
@@ -28,42 +28,42 @@ export class AnalyzerMetricsCalculator {
 
       if (requests.length === 0) {
         return {
-          totalRequests: 0,
+          totalOperations: 0,
           successfulRequests: 0,
           failedRequests: 0,
-          averageResponseTime: 0,
+          responseTimeMs: 0,
           errorRate: 0,
         };
       }
 
       const totalRequests = requests.length;
       const successfulRequests = requests.filter(
-        (r) => r.statusCode < 400,
+        (r) => r.statusCode < MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
       ).length;
       const failedRequests = totalRequests - successfulRequests;
-      const averageResponseTime = this.calculateAverageResponseTime(rawMetrics);
+      const responseTimeMs = this.calculateAverageResponseTime(rawMetrics);
       const errorRate = this.calculateErrorRate(rawMetrics);
 
       this.logger.debug("性能摘要计算完成", {
         totalRequests,
-        averageResponseTime,
+        responseTimeMs,
         errorRate,
       });
 
       return {
-        totalRequests,
+        totalOperations: totalRequests,
         successfulRequests,
         failedRequests,
-        averageResponseTime,
+        responseTimeMs: responseTimeMs,
         errorRate,
       };
     } catch (error) {
       this.logger.error("性能摘要计算失败", error.stack);
       return {
-        totalRequests: 0,
+        totalOperations: 0,
         successfulRequests: 0,
         failedRequests: 0,
-        averageResponseTime: 0,
+        responseTimeMs: 0,
         errorRate: 0,
       };
     }
@@ -71,7 +71,6 @@ export class AnalyzerMetricsCalculator {
 
   /**
    * 计算平均响应时间
-   * 迁移自collector层的calculateOverallAverageResponseTime方法
    */
   calculateAverageResponseTime(rawMetrics: RawMetricsDto): number {
     const requests = rawMetrics.requests || [];
@@ -84,7 +83,7 @@ export class AnalyzerMetricsCalculator {
     let totalRequests = 0;
 
     for (const request of requests) {
-      totalTime += request.responseTime || 0;
+      totalTime += request.responseTimeMs || 0;
       totalRequests++;
     }
 
@@ -93,7 +92,6 @@ export class AnalyzerMetricsCalculator {
 
   /**
    * 计算错误率
-   * 迁移自collector层的calculateOverallErrorRate方法
    */
   calculateErrorRate(rawMetrics: RawMetricsDto): number {
     const requests = rawMetrics.requests || [];
@@ -102,7 +100,7 @@ export class AnalyzerMetricsCalculator {
       return 0;
     }
 
-    const errorRequests = requests.filter((r) => r.statusCode >= 400).length;
+    const errorRequests = requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length;
     return Math.round((errorRequests / requests.length) * 10000) / 10000; // 保留4位小数
   }
 
@@ -150,10 +148,10 @@ export class AnalyzerMetricsCalculator {
         const [method, endpoint] = key.split(":");
         const requestCount = endpointRequests.length;
         const errorCount = endpointRequests.filter(
-          (r) => r.statusCode >= 400,
+          (r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
         ).length;
         const totalResponseTime = endpointRequests.reduce(
-          (sum, r) => sum + (r.responseTime || 0),
+          (sum, r) => sum + (r.responseTimeMs || 0),
           0,
         );
         const lastUsed = new Date(
@@ -163,15 +161,15 @@ export class AnalyzerMetricsCalculator {
         metrics.push({
           endpoint,
           method,
-          requestCount,
-          averageResponseTime: Math.round(totalResponseTime / requestCount),
+          totalOperations: requestCount,
+          responseTimeMs: Math.round(totalResponseTime / requestCount),
           errorRate: Math.round((errorCount / requestCount) * 10000) / 10000,
           lastUsed,
         });
       }
 
       // 按请求数量排序
-      metrics.sort((a, b) => b.requestCount - a.requestCount);
+      metrics.sort((a, b) => b.totalOperations - a.totalOperations);
 
       this.logger.debug(`端点指标计算完成: ${metrics.length} 个端点`);
       return metrics;
@@ -191,43 +189,43 @@ export class AnalyzerMetricsCalculator {
       if (dbOps.length === 0) {
         return {
           totalOperations: 0,
-          averageQueryTime: 0,
+          responseTimeMs: 0,
           slowQueries: 0,
           failedOperations: 0,
-          failureRate: 0,
+          errorRate: 0,
         };
       }
 
       const totalOperations = dbOps.length;
-      const totalTime = dbOps.reduce((sum, op) => sum + op.duration, 0);
-      const averageQueryTime = Math.round(totalTime / totalOperations);
-      const slowQueries = dbOps.filter((op) => op.duration > 1000).length; // >1秒认为是慢查询
+      const totalTime = dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0);
+      const responseTimeMs = Math.round(totalTime / totalOperations);
+      const slowQueries = dbOps.filter((op) => op.responseTimeMs > MONITORING_SYSTEM_LIMITS.SLOW_QUERY_THRESHOLD_MS).length; // >SLOW_QUERY_THRESHOLD_MS认为是慢查询
       const failedOperations = dbOps.filter((op) => !op.success).length;
-      const failureRate =
+      const errorRate =
         Math.round((failedOperations / totalOperations) * 10000) / 10000;
 
       this.logger.debug("数据库指标计算完成", {
         totalOperations,
-        averageQueryTime,
+        responseTimeMs,
         slowQueries,
-        failureRate,
+        errorRate,
       });
 
       return {
         totalOperations,
-        averageQueryTime,
+        responseTimeMs,
         slowQueries,
         failedOperations,
-        failureRate,
+        errorRate,
       };
     } catch (error) {
       this.logger.error("数据库指标计算失败", error.stack);
       return {
         totalOperations: 0,
-        averageQueryTime: 0,
+        responseTimeMs: 0,
         slowQueries: 0,
         failedOperations: 0,
-        failureRate: 0,
+        errorRate: 0,
       };
     }
   }
@@ -245,7 +243,7 @@ export class AnalyzerMetricsCalculator {
           hits: 0,
           misses: 0,
           hitRate: 0,
-          averageResponseTime: 0,
+          responseTimeMs: 0,
         };
       }
 
@@ -253,14 +251,14 @@ export class AnalyzerMetricsCalculator {
       const hits = cacheOps.filter((op) => op.hit).length;
       const misses = totalOperations - hits;
       const hitRate = Math.round((hits / totalOperations) * 10000) / 10000;
-      const totalTime = cacheOps.reduce((sum, op) => sum + op.duration, 0);
-      const averageResponseTime = Math.round(totalTime / totalOperations);
+      const totalTime = cacheOps.reduce((sum, op) => sum + op.responseTimeMs, 0);
+      const responseTimeMs = Math.round(totalTime / totalOperations);
 
       this.logger.debug("缓存指标计算完成", {
         totalOperations,
         hits,
         hitRate,
-        averageResponseTime,
+        responseTimeMs,
       });
 
       return {
@@ -268,7 +266,7 @@ export class AnalyzerMetricsCalculator {
         hits,
         misses,
         hitRate,
-        averageResponseTime,
+        responseTimeMs,
       };
     } catch (error) {
       this.logger.error("缓存指标计算失败", error.stack);
@@ -277,7 +275,7 @@ export class AnalyzerMetricsCalculator {
         hits: 0,
         misses: 0,
         hitRate: 0,
-        averageResponseTime: 0,
+        responseTimeMs: 0,
       };
     }
   }
@@ -293,7 +291,7 @@ export class AnalyzerMetricsCalculator {
       if (!previousMetrics) {
         // 没有历史数据，返回稳定趋势
         return {
-          responseTime: {
+          responseTimeMs: {
             current: 0,
             previous: 0,
             trend: "stable",
@@ -344,7 +342,7 @@ export class AnalyzerMetricsCalculator {
       });
 
       return {
-        responseTime: {
+        responseTimeMs: {
           current: currentAvgResponse,
           previous: previousAvgResponse,
           trend: this.getTrend(responseChange),
@@ -366,7 +364,7 @@ export class AnalyzerMetricsCalculator {
     } catch (error) {
       this.logger.error("趋势分析计算失败", error.stack);
       return {
-        responseTime: {
+        responseTimeMs: {
           current: 0,
           previous: 0,
           trend: "stable",
@@ -393,7 +391,7 @@ export class AnalyzerMetricsCalculator {
    */
   private calculateChangePercentage(current: number, previous: number): number {
     if (previous === 0) {
-      return current > 0 ? 100 : 0;
+      return current > 0 ? MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER : 0;
     }
     return Math.round(((current - previous) / previous) * 10000) / 100; // 保留2位小数的百分比
   }
@@ -416,7 +414,7 @@ export class AnalyzerMetricsCalculator {
     if (values.length === 0) return 0;
 
     const sorted = [...values].sort((a, b) => a - b);
-    const index = Math.floor((percentile / 100) * sorted.length);
+    const index = Math.floor((percentile / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER) * sorted.length);
     return sorted[Math.min(index, sorted.length - 1)];
   }
 

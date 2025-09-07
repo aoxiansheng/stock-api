@@ -22,7 +22,7 @@ import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbo
 import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
 import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
 import { MonitoringModule } from "./monitoring/monitoring.module";
-import { ProvidersModule } from "./providers/module/providers.module";
+import { ProvidersModule } from "./providers/module/providers-sg.module";
 import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
 
 import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";

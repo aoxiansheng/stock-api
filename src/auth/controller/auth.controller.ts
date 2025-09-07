@@ -18,6 +18,7 @@ import {
   ApiParam,
   ApiQuery,
 } from "@nestjs/swagger";
+import { HTTP_STATUS_CODES } from "../constants/http-status.constants";
 
 import { createLogger } from "@app/config/logger.config";
 import {
@@ -73,7 +74,7 @@ export class AuthController {
           username: "developer01",
           email: "developer@example.com",
           role: "developer",
-          isActive: true,
+          status: "active",
           createdAt: "2024-01-01T12:00:00.000Z",
         },
         timestamp: "2024-01-01T12:00:00.000Z",
@@ -125,7 +126,7 @@ export class AuthController {
             username: "developer01",
             email: "developer@example.com",
             role: "developer",
-            isActive: true,
+            status: "active",
             createdAt: "2024-01-01T12:00:00.000Z",
           },
           accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -136,11 +137,11 @@ export class AuthController {
     },
   })
   @ApiResponse({
-    status: 401,
+    status: HTTP_STATUS_CODES.UNAUTHORIZED,
     description: "用户名或密码错误",
     schema: {
       example: {
-        statusCode: 401,
+        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
         message: "用户名或密码错误，请检查后重试",
         error: "Unauthorized",
         timestamp: "2024-01-01T12:00:00.000Z",
@@ -178,9 +179,9 @@ export class AuthController {
           username: "developer01",
           email: "developer@example.com",
           role: "developer",
-          isActive: true,
+          status: "active",
           createdAt: "2024-01-01T12:00:00.000Z",
-          lastLoginAt: "2024-01-01T11:30:00.000Z",
+          lastAccessedAt: "2024-01-01T11:30:00.000Z",
         },
         timestamp: "2024-01-01T12:00:00.000Z",
       },
@@ -221,7 +222,7 @@ export class AuthController {
             requestsPerMinute: 1000,
             requestsPerDay: 50000,
           },
-          isActive: true,
+          status: "active",
           expiresAt: "2025-01-01T12:00:00.000Z",
           createdAt: "2024-01-01T12:00:00.000Z",
         },
@@ -263,9 +264,9 @@ export class AuthController {
             name: "My Trading Bot API Key",
             keyPrefix: "ak_live_",
             permissions: ["query:read", "storage:read"],
-            isActive: true,
+            status: "active",
             createdAt: "2024-01-01T12:00:00.000Z",
-            lastUsedAt: "2024-01-01T11:30:00.000Z",
+            lastAccessedAt: "2024-01-01T11:30:00.000Z",
           },
         ],
         timestamp: "2024-01-01T12:00:00.000Z",
@@ -412,6 +413,12 @@ export class AuthController {
     description: "是否包含非活跃用户",
     example: false,
   })
+  @ApiQuery({
+    name: "includeStats",
+    required: false,
+    description: "是否包含统计信息（用于性能优化）",
+    example: true,
+  })
   @ApiPaginatedResponse({
     description: "获取成功",
     schema: {
@@ -425,18 +432,18 @@ export class AuthController {
               username: "developer01",
               email: "developer@example.com",
               role: "developer",
-              isActive: true,
+              status: "active",
               createdAt: "2024-01-01T12:00:00.000Z",
-              lastLoginAt: "2024-01-01T11:30:00.000Z",
+              lastAccessedAt: "2024-01-01T11:30:00.000Z",
             },
             {
               id: "507f1f77bcf86cd799439012",
               username: "admin",
               email: "admin@example.com",
               role: "admin",
-              isActive: true,
+              status: "active",
               createdAt: "2024-01-01T10:00:00.000Z",
-              lastLoginAt: "2024-01-01T12:00:00.000Z",
+              lastAccessedAt: "2024-01-01T12:00:00.000Z",
             },
           ],
           total: 25,
@@ -448,7 +455,6 @@ export class AuthController {
           stats: {
             totalUsers: 25,
             activeUsers: 23,
-            inactiveUsers: 2,
             roleDistribution: {
               admin: 2,
               developer: 18,
@@ -465,11 +471,13 @@ export class AuthController {
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 10,
     @Query("includeInactive") includeInactive: boolean = false,
+    @Query("includeStats") includeStats: boolean = true,
   ): Promise<PaginatedUsersDto> {
     this.logger.log(`管理员获取用户列表请求`, {
       page,
       limit,
       includeInactive,
+      includeStats,
     });
 
     try {
@@ -477,6 +485,7 @@ export class AuthController {
         page,
         limit,
         includeInactive,
+        includeStats,
       );
 
       this.logger.log(`用户列表获取成功`, {
@@ -495,9 +504,9 @@ export class AuthController {
           username: user.username,
           email: user.email,
           role: user.role,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-          lastLoginAt: user.lastLoginAt,
+          status: user.status,
+          createdAt: (user as any).createdAt || new Date(),
+          lastAccessedAt: user.lastAccessedAt,
         })),
         total: result.total,
         page: result.page,
@@ -505,7 +514,7 @@ export class AuthController {
         totalPages: result.totalPages,
         hasNext: result.hasNext,
         hasPrev: result.hasPrev,
-        stats: result.stats,
+        ...(includeStats && { stats: result.stats }),
       };
 
       // 遵循控制器编写规范：让拦截器自动处理响应格式化

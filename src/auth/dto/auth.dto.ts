@@ -11,6 +11,7 @@ import {
 } from "class-validator";
 
 import { UserRole } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 import { AUTH_CONFIG, AUTH_VALIDATION_RULES } from "../constants/auth.constants";
 import { BaseUserDto, BasePasswordDto } from "./base-auth.dto";
 
@@ -50,7 +51,7 @@ export class LoginResponseDto {
     username: string;
     email: string;
     role: UserRole;
-    isActive: boolean;
+    status: CommonStatus;
     createdAt: Date;
   };
 
@@ -87,14 +88,14 @@ export class UserResponseDto {
   @ApiProperty({ description: "用户角色", enum: UserRole })
   role: UserRole;
 
-  @ApiProperty({ description: "是否激活" })
-  isActive: boolean;
+  @ApiProperty({ description: "用户状态", enum: Object.values(CommonStatus) })
+  status: CommonStatus;
 
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
 
-  @ApiProperty({ description: "最后登录时间", required: false })
-  lastLoginAt?: Date;
+  @ApiProperty({ description: "最后访问时间", required: false })
+  lastAccessedAt?: Date;
 }
 
 /**
@@ -106,9 +107,6 @@ export class UserStatsDto {
 
   @ApiProperty({ description: "活跃用户数" })
   activeUsers: number;
-
-  @ApiProperty({ description: "非活跃用户数" })
-  inactiveUsers: number;
 
   @ApiProperty({
     description: "角色分布",
@@ -142,6 +140,6 @@ export class PaginatedUsersDto {
   @ApiProperty({ description: "是否有上一页" })
   hasPrev: boolean;
 
-  @ApiProperty({ description: "用户统计信息", type: UserStatsDto })
-  stats: UserStatsDto;
+  @ApiProperty({ description: "用户统计信息", type: UserStatsDto, required: false })
+  stats?: UserStatsDto;
 }

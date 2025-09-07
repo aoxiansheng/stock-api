@@ -20,7 +20,7 @@ export class EmailSender implements NotificationSender {
     rule: AlertRule,
     config: Record<string, any>,
   ): Promise<NotificationResult> {
-    const startTime = Date.now();
+    const executionStart = Date.now();
 
     try {
       // 这里应该集成实际的邮件服务
@@ -34,7 +34,7 @@ export class EmailSender implements NotificationSender {
         channelType: this.type,
         message: `邮件已发送到 ${config.to}`,
         sentAt: new Date(),
-        duration: Date.now() - startTime,
+        duration: Date.now() - executionStart,
       };
     } catch (error) {
       this.logger.error({ error: error.stack }, "邮件发送失败");
@@ -44,7 +44,7 @@ export class EmailSender implements NotificationSender {
         channelType: this.type,
         error: error.message,
         sentAt: new Date(),
-        duration: Date.now() - startTime,
+        duration: Date.now() - executionStart,
       };
     }
   }

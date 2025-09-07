@@ -1,5 +1,5 @@
 import { HttpModule } from "@nestjs/axios";
-import { Module } from "@nestjs/common";
+import { Module, OnModuleInit, Logger } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 // 🔧 移除未使用的 EventEmitterModule 导入
 import { MongooseModule } from "@nestjs/mongoose";
@@ -9,6 +9,7 @@ import { DatabaseModule } from "../../database/database.module"; // 🆕 试点�
 import { AuthModule } from "../../auth/module/auth.module";
 import { CacheModule } from "../../cache/module/cache.module";
 import { alertConfig } from "@alert/config/alert.config";
+import { AlertConstantsValidator } from "../utils/constants-validator.util";
 
 import { AlertController } from "../controller/alert.controller";
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
@@ -93,4 +94,30 @@ import {
     AlertHistoryRepository,
   ],
 })
-export class AlertModule {}
+export class AlertModule implements OnModuleInit {
+  private readonly logger = new Logger(AlertModule.name);
+
+  /**
+   * 模块初始化时执行常量验证
+   * 确保Alert模块的所有常量配置合理性
+   */
+  async onModuleInit(): Promise<void> {
+    this.logger.log('Alert模块正在初始化...');
+    
+    try {
+      // 执行完整的常量验证
+      const validationResult = AlertConstantsValidator.validateAll();
+      
+      if (!validationResult.isValid) {
+        // 在生产环境中，常量验证失败会阻止应用启动
+        // 这在 AlertConstantsValidator.validateAll() 中已处理
+        this.logger.error('Alert模块常量验证失败，请检查配置');
+      } else {
+        this.logger.log('Alert模块常量验证通过，模块初始化完成 ✅');
+      }
+    } catch (error) {
+      this.logger.error(`Alert模块初始化过程中发生异常: ${error.message}`);
+      throw error;
+    }
+  }
+}

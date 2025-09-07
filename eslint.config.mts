@@ -92,5 +92,51 @@ export default defineConfig([
         }
       ]
     }
+  },
+  {
+    name: "time-fields-standardization",
+    files: ["src/**/*.{ts,js}"],
+    ignores: ["**/constants/**/*.{ts,js}", "**/*.constants.{ts,js}", "**/migration/**/*.{ts,js}", "**/legacy/**/*.{ts,js}"],
+    rules: {
+      // 时间字段标准化规则
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Property[key.name='responseTime'][value.type!='TSTypeReference']",
+          message: "使用 responseTimeMs 代替 responseTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+        },
+        {
+          selector: "Property[key.name='averageResponseTime'][value.type!='TSTypeReference']",
+          message: "使用 averageResponseTimeMs 代替 averageResponseTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+        },
+        {
+          selector: "Property[key.name='averageQueryTime'][value.type!='TSTypeReference']",
+          message: "使用 queryTimeMs 代替 averageQueryTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+        },
+        {
+          selector: "Property[key.name='processingTime'][value.type!='TSTypeReference']",
+          message: "使用 processingTimeMs 代替 processingTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+        }
+      ]
+    }
+  },
+  {
+    name: "time-interfaces-promotion",
+    files: ["src/**/*.{ts,js}"],
+    ignores: ["**/constants/**/*.{ts,js}", "**/*.constants.{ts,js}", "**/interfaces/**/*.{ts,js}"],
+    rules: {
+      // 推广使用标准时间接口
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "TSInterfaceDeclaration:has(TSPropertySignature[key.name='responseTimeMs']):not(:has(TSExpressionWithTypeArguments[expression.name='ResponseTimeFields']))",
+          message: "考虑继承 ResponseTimeFields 接口以获得标准化的时间字段定义。导入路径: 'common/interfaces/time-fields.interface'"
+        },
+        {
+          selector: "TSInterfaceDeclaration:has(TSPropertySignature[key.name='processingTimeMs']):not(:has(TSExpressionWithTypeArguments[expression.name='ProcessingTimeFields']))",
+          message: "考虑继承 ProcessingTimeFields 接口以获得标准化的时间字段定义。导入路径: 'common/interfaces/time-fields.interface'"
+        }
+      ]
+    }
   }
 ]);

@@ -424,7 +424,7 @@ export class MarketStatusService implements OnModuleDestroy {
 
     // 其他时间为休市
     return {
-      status: MarketStatus.CLOSED,
+      status: MarketStatus.MARKET_CLOSED,
       currentSession: null,
       nextSession: config.tradingSessions[0],
       nextSessionStart: null,
@@ -445,7 +445,7 @@ export class MarketStatusService implements OnModuleDestroy {
     // Provider状态映射
     const providerStatusMap: Record<string, MarketStatus> = {
       OPEN: MarketStatus.TRADING,
-      CLOSED: MarketStatus.CLOSED,
+      CLOSED: MarketStatus.MARKET_CLOSED,
       PRE_OPEN: MarketStatus.PRE_MARKET,
       POST_CLOSE: MarketStatus.AFTER_HOURS,
       HOLIDAY: MarketStatus.HOLIDAY,

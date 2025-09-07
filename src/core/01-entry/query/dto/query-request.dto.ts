@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
+import { CAPABILITY_NAMES } from '../../../../providers/constants/capability-names.constants';
 import {
   IsString,
   IsOptional,
@@ -18,6 +19,7 @@ import {
 
 import { QueryType } from "./query-types.dto";
 import { QUERY_LIMITS } from "../constants/query.constants";
+import { BaseQueryDto } from "@common/dto/base-query.dto";
 
 /**
  * 排序方向
@@ -78,7 +80,7 @@ export class QueryOptionsDto {
 /**
  * 单个查询请求的数据传输对象
  */
-export class QueryRequestDto {
+export class QueryRequestDto extends BaseQueryDto {
   @ApiProperty({
     description: "查询类型",
     enum: QueryType,
@@ -156,32 +158,10 @@ export class QueryRequestDto {
   @Min(1)
   maxAge?: number;
 
-  @ApiPropertyOptional({
-    description: "返回结果数量限制",
-    example: 100,
-    default: 100,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(1000)
-  limit?: number;
-
-  @ApiPropertyOptional({
-    description: "页码，用于分页",
-    example: 1,
-    default: 1,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number;
 
   @ApiPropertyOptional({
     description: "数据类型过滤器（用于过滤特定类型的数据）",
-    example: "get-stock-quote",
+    example: CAPABILITY_NAMES.GET_STOCK_QUOTE,
   })
   @IsOptional()
   @IsString()

@@ -11,7 +11,8 @@
 
 import type { DataState } from "./operations.constants";
 import { OperationStatus } from "../../../monitoring/contracts/enums/operation-status.enum";
-import { deepFreeze } from "@common/utils/object-immutability.util";
+import { deepFreeze } from "../../utils/object-immutability.util";
+import { LogLevel, Environment } from "../../types/enums/shared-base.enum";
 
 export const SYSTEM_CONSTANTS = deepFreeze({
   // 通用操作状态
@@ -27,30 +28,27 @@ export const SYSTEM_CONSTANTS = deepFreeze({
     INACTIVE: "inactive",
   } as const,
 
-  // 通用日志级别
+  // 通用日志级别 - 使用共享枚举消除重复
   LOG_LEVELS: {
-    TRACE: "trace",
-    DEBUG: "debug",
-    INFO: "info",
-    WARN: "warn",
-    ERROR: "error",
-    FATAL: "fatal",
+    TRACE: LogLevel.TRACE,
+    DEBUG: LogLevel.DEBUG,
+    INFO: LogLevel.INFO,
+    WARN: LogLevel.WARN,
+    ERROR: LogLevel.ERROR,
+    FATAL: LogLevel.FATAL,
   } as const,
 
-  // 环境相关
+  // 环境相关 - 使用共享枚举消除重复
   ENVIRONMENTS: {
-    DEVELOPMENT: "development",
-    STAGING: "staging",
-    PRODUCTION: "production",
-    TEST: "test",
+    DEVELOPMENT: Environment.DEVELOPMENT,
+    STAGING: Environment.STAGING,
+    PRODUCTION: Environment.PRODUCTION,
+    TEST: Environment.TEST,
   } as const,
 });
 
-// 导出类型定义
-export type LogLevel =
-  (typeof SYSTEM_CONSTANTS.LOG_LEVELS)[keyof typeof SYSTEM_CONSTANTS.LOG_LEVELS];
-export type Environment =
-  (typeof SYSTEM_CONSTANTS.ENVIRONMENTS)[keyof typeof SYSTEM_CONSTANTS.ENVIRONMENTS];
+// 导出类型定义 - 使用共享枚举类型
+export type { LogLevel, Environment } from "../../types/enums/shared-base.enum";
 // DataState 类型从 operations.constants.ts 导入，不再重复定义
 export type { DataState };
 // OperationStatus 现在从 metrics enum 导入
@@ -73,15 +71,6 @@ export function isValidOperationStatus(
 }
 
 /**
- * 获取所有可用的日志级别
+ * 获取所有可用的日志级别 - 使用共享枚举函数
  */
-export function getAllLogLevels(): LogLevel[] {
-  return Object.values(SYSTEM_CONSTANTS.LOG_LEVELS);
-}
-
-/**
- * 检查是否为有效的日志级别
- */
-export function isValidLogLevel(level: string): level is LogLevel {
-  return Object.values(SYSTEM_CONSTANTS.LOG_LEVELS).includes(level as LogLevel);
-}
+export { getAllLogLevels, isValidLogLevel } from "../../types/enums/shared-base.enum";

@@ -5,11 +5,12 @@ import {
   IsNumber,
   IsOptional,
 } from "class-validator";
+import { KeyPattern } from "../shared/key-pattern.interface";
 
 /**
  * 缓存指标更新DTO
  */
-export class CacheMetricsUpdateDto {
+export class CacheMetricsUpdateDto implements KeyPattern {
   @ApiProperty({ description: "缓存键" })
   @IsString()
   key: string;
@@ -29,5 +30,5 @@ export class CacheMetricsUpdateDto {
   @ApiProperty({ description: "执行时间（毫秒）", required: false })
   @IsOptional()
   @IsNumber()
-  executionTime?: number;
+  executionTimeMs?: number;
 }

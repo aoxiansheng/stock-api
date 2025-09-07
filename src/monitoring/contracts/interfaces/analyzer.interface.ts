@@ -3,7 +3,8 @@
  * 职责：所有计算和分析逻辑，统一缓存管理，事件发射中心
  */
 
-import { ExtendedHealthStatus } from "../../constants";
+import type { ExtendedHealthStatus } from "../../constants/status/monitoring-status.constants";
+import { BaseTrendMetric } from "./base.interface";
 
 export interface AnalysisOptions {
   startTime?: Date;
@@ -13,17 +14,17 @@ export interface AnalysisOptions {
 }
 
 export interface PerformanceSummary {
-  totalRequests: number;
+  totalOperations: number;
   successfulRequests: number;
   failedRequests: number;
-  averageResponseTime: number;
+  responseTimeMs: number;
   errorRate: number;
 }
 
 export interface PerformanceAnalysisDto {
-  timestamp: string;
+  timestamp: Date;
   summary: PerformanceSummary;
-  averageResponseTime: number;
+  responseTimeMs: number;
   errorRate: number;
   throughput: number;
   healthScore: number;
@@ -35,28 +36,28 @@ export interface PerformanceAnalysisDto {
 
 export interface HealthReportDto {
   overall: {
-    score: number;
+    healthScore: number;
     status: ExtendedHealthStatus;
     timestamp: Date;
   };
   components: {
     api: {
-      score: number;
-      responseTime: number;
+      healthScore: number;
+      responseTimeMs: number;
       errorRate: number;
     };
     database: {
-      score: number;
-      averageQueryTime: number;
-      failureRate: number;
+      healthScore: number;
+      responseTimeMs: number;
+      errorRate: number;
     };
     cache: {
-      score: number;
+      healthScore: number;
       hitRate: number;
-      averageResponseTime: number;
+      responseTimeMs: number;
     };
     system: {
-      score: number;
+      healthScore: number;
       memoryUsage: number;
       cpuUsage: number;
     };
@@ -65,41 +66,26 @@ export interface HealthReportDto {
 }
 
 export interface TrendsDto {
-  responseTime: {
-    current: number;
-    previous: number;
-    trend: "up" | "down" | "stable";
-    changePercentage: number;
-  };
-  errorRate: {
-    current: number;
-    previous: number;
-    trend: "up" | "down" | "stable";
-    changePercentage: number;
-  };
-  throughput: {
-    current: number;
-    previous: number;
-    trend: "up" | "down" | "stable";
-    changePercentage: number;
-  };
+  responseTimeMs: BaseTrendMetric<number>;
+  errorRate: BaseTrendMetric<number>;
+  throughput: BaseTrendMetric<number>;
 }
 
 export interface EndpointMetricsDto {
   endpoint: string;
   method: string;
-  requestCount: number;
-  averageResponseTime: number;
+  totalOperations: number;
+  responseTimeMs: number;
   errorRate: number;
   lastUsed: Date;
 }
 
 export interface DatabaseMetricsDto {
   totalOperations: number;
-  averageQueryTime: number;
+  responseTimeMs: number;
   slowQueries: number;
   failedOperations: number;
-  failureRate: number;
+  errorRate: number;
 }
 
 export interface CacheMetricsDto {
@@ -107,7 +93,7 @@ export interface CacheMetricsDto {
   hits: number;
   misses: number;
   hitRate: number;
-  averageResponseTime: number;
+  responseTimeMs: number;
 }
 
 export interface SuggestionDto {
@@ -176,7 +162,7 @@ export interface IAnalyzer {
    */
   getCacheStats(): Promise<{
     hitRate: number;
-    totalRequests: number;
+    totalOperations: number;
     totalHits: number;
     totalMisses: number;
   }>;

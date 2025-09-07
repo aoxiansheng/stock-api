@@ -9,20 +9,21 @@ import { Provider } from "../decorators/provider.decorator";
 import { getIndexQuote } from "./capabilities/get-index-quote";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getStockQuote } from "./capabilities/get-stock-quote";
-import { LongportSgContextService } from "./services/longport-sg-context.service";
+import { LongportSgContextService } from "./services/longport-context.service";
+import { LongportSgStreamContextService } from "./services/longport-stream-context.service";
 
 @Provider({
-  name: "longport-sg",
-  description: "LongPort SG 长桥证券新加坡数据提供商",
+  name: "longportsg",
+  description: "LongPort 长桥证券数据提供商 (SG)",
   autoRegister: true,
   healthCheck: true,
-  initPriority: 2,
+  initPriority: 1,
 })
 export class LongportSgProvider implements IDataProvider {
   private readonly logger = createLogger(LongportSgProvider.name);
 
-  readonly name = "longport-sg";
-  readonly description = "LongPort SG 长桥证券新加坡数据提供商";
+  readonly name = "longportsg";
+  readonly description = "LongPort 长桥证券数据提供商 (SG)";
   readonly capabilities: ICapability[] = [
     getStockQuote,
     getStockBasicInfo,
@@ -32,12 +33,16 @@ export class LongportSgProvider implements IDataProvider {
   constructor(
     private configService: ConfigService,
     private contextService: LongportSgContextService,
-  ) {}
+    private streamContextService: LongportSgStreamContextService,
+  ) {
+    // 工厂提供者已确保注入的是单例实例，无需额外检查
+    this.logger.log("LongportSgProvider 构造函数完成，使用工厂提供者保证的单例");
+  }
 
   async initialize(): Promise<void> {
-    this.logger.log("初始化 LongPort SG 提供商...");
+    this.logger.log("初始化 LongPort 提供商...");
     // 上下文服务会在模块初始化时自动初始化
-    this.logger.log("LongPort SG 提供商初始化完成");
+    this.logger.log("LongPort 提供商初始化完成");
   }
 
   async testConnection(): Promise<boolean> {
@@ -50,5 +55,9 @@ export class LongportSgProvider implements IDataProvider {
 
   getContextService(): LongportSgContextService {
     return this.contextService;
+  }
+
+  getStreamContextService(): LongportSgStreamContextService {
+    return this.streamContextService;
   }
 }

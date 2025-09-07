@@ -146,6 +146,11 @@ export function buildCacheKey(
 }
 
 /**
+ * 预编译的缓存键前缀数组，避免每次调用时重新创建
+ */
+const COMPILED_PREFIXES = [...Object.values(CACHE_CONSTANTS.KEY_PREFIXES), "cache:"];
+
+/**
  * 解析缓存键，提取前缀和标识符
  * @param cacheKey 缓存键
  */
@@ -156,8 +161,7 @@ export function parseCacheKey(
     return null;
   }
 
-  const prefixes = [...Object.values(CACHE_CONSTANTS.KEY_PREFIXES), "cache:"];
-  const matchedPrefix = prefixes.find((prefix) => cacheKey.startsWith(prefix));
+  const matchedPrefix = COMPILED_PREFIXES.find((prefix) => cacheKey.startsWith(prefix));
 
   if (!matchedPrefix) {
     return null;

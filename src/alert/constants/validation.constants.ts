@@ -3,24 +3,26 @@
  * 用于统一管理DTO验证装饰器中的数值限制，避免重复定义
  */
 
+import { TIMING_CONSTANTS } from './timing.constants';
+
 /**
- * 时间相关验证限制
+ * 时间相关验证限制 - 引用统一时间配置
  */
 export const TIME_VALIDATION_LIMITS = {
-  /** 持续时间限制（秒） */
+  /** 持续时间限制（秒） - 引用统一配置 */
   DURATION: {
-    MIN: 1, // 最短1秒
-    MAX: 3600, // 最长1小时
+    MIN: TIMING_CONSTANTS.DURATION.MIN_SECONDS,
+    MAX: TIMING_CONSTANTS.DURATION.MAX_SECONDS,
   },
-  /** 冷却时间限制（秒） */
+  /** 冷却时间限制（秒） - 引用统一配置 */
   COOLDOWN: {
-    MIN: 0, // 最短0秒（无冷却）
-    MAX: 86400, // 最长24小时
+    MIN: TIMING_CONSTANTS.COOLDOWN.MIN_SECONDS,
+    MAX: TIMING_CONSTANTS.COOLDOWN.MAX_SECONDS,
   },
-  /** 超时时间限制（秒） */
+  /** 超时时间限制（秒） - 引用统一配置 */
   TIMEOUT: {
-    MIN: 1, // 最短1秒
-    MAX: 300, // 最长5分钟
+    MIN: TIMING_CONSTANTS.TIMEOUT.MIN_SECONDS,
+    MAX: TIMING_CONSTANTS.TIMEOUT.MAX_SECONDS,
   },
 } as const;
 

@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 
 import { securityConfig } from "@auth/config/security.config";
 import { UserRole } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 import { UserRepository } from "../repositories/user.repository";
 import { User } from "../schemas/user.schema";
 export interface JwtPayload {
@@ -50,7 +51,7 @@ export class TokenService {
    */
   async validateUserFromPayload(payload: JwtPayload): Promise<User> {
     const user = await this.userRepository.findById(payload.sub);
-    if (!user || !user.isActive) {
+    if (!user || user.status !== CommonStatus.ACTIVE) {
       throw new UnauthorizedException("来自令牌的用户无效或已被禁用");
     }
     // 使用 toJSON() 方法过滤敏感字段

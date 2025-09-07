@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { DataFetcherService } from "../../../../../../../src/core/03-fetching/data-fetcher/services/data-fetcher.service";
 import { DataFetcherModule } from "../../../../../../../src/core/03-fetching/data-fetcher/module/data-fetcher.module";
-import { ProvidersModule } from "../../../../../../../src/providers/module/providers.module";
+import { ProvidersModule } from "../../../../../../../src/providers/module/providers-sg.module";
 import { CapabilityRegistryService } from "../../../../../../../src/providers/services/capability-registry.service";
 import {
   DataFetchParams,

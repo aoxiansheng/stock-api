@@ -11,6 +11,7 @@ import {
 } from "class-validator";
 
 import { AlertStatus } from "../types/alert.types";
+import { BaseQueryDto } from "../../common/dto/base-query.dto";
 
 /**
  * 创建告警数据DTO
@@ -97,16 +98,7 @@ export class AlertStatusUpdateDataDto {
 /**
  * 告警查询参数DTO
  */
-export class AlertQueryParamsDto {
-  @ApiProperty({ description: "页码", required: false })
-  @IsOptional()
-  @IsNumber()
-  page?: number;
-
-  @ApiProperty({ description: "每页数量", required: false })
-  @IsOptional()
-  @IsNumber()
-  limit?: number;
+export class AlertQueryParamsDto extends BaseQueryDto {
 
   @ApiProperty({ description: "告警状态", enum: AlertStatus, required: false })
   @IsOptional()

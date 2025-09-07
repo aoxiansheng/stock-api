@@ -6,43 +6,7 @@
 - 字段总数: 65+ (包含常量、配置、接口定义)
 - 重复率: 4.8%
 
-## 发现的问题
-
-### 🔴 严重（必须修复）
-
-#### 1. Magic Numbers硬编码问题
-- **位置**: stream-cache.service.ts:264, 439
-- **影响**: 代码可维护性差，逻辑不清晰
-- **建议**: 定义为命名常量
-
-具体问题代码：
-```typescript
-// stream-cache.service.ts:264
-const shouldUseHotCache = 
-  priority === "hot" ||
-  (priority === "auto" && dataSize < 10000 && data.length < 100); // 硬编码数值
-
-// stream-cache.service.ts:439
-const testData = [{ s: "TEST", p: 100, v: 1000, t: Date.now() }]; // 硬编码测试数据
-```
-
-**建议改进：**
-```typescript
-export const STREAM_DATA_THRESHOLDS = {
-  AUTO_HOT_CACHE_SIZE_LIMIT: 10000,    // 自动热缓存数据大小阈值
-  AUTO_HOT_CACHE_LENGTH_LIMIT: 100,    // 自动热缓存数据长度阈值
-  HEALTH_CHECK_TEST_PRICE: 100,        // 健康检查测试价格
-  HEALTH_CHECK_TEST_VOLUME: 1000,      // 健康检查测试成交量
-} as const;
-```
-
-#### 2. TTL配置高度重复
-- **位置**: 
-  - `STREAM_CACHE_CONFIG.TTL.HOT_CACHE_MS: 5000`
-  - `unified-cache.REALTIME_DATA_TTL: 5` 
-  - `smart-cache.STRONG_TIMELINESS_DEFAULT_S: 5`
-- **影响**: 相同概念的常量在多处定义，维护困难
-- **建议**: 统一使用 unified-cache 的定义
+## 仍存在的问题
 
 ### 🟡 警告（建议修复）
 
@@ -113,40 +77,13 @@ timestamp = now + (index * 10); // 间隔10ms，更符合实际情况
 | 重复率 | 4.8% | <5% | 🟢 |
 | 继承使用率 | 60% | >70% | 🟡 |
 | 命名规范符合率 | 75% | 100% | 🟡 |
-| Magic Numbers | 4处 | 0处 | 🔴 |
+| Magic Numbers | 0处 | 0处 | 🟢 |
 
 ## 改进建议
 
-### 1. 立即行动项（P0）
+### 1. 短期优化项（P1）
 
-#### 1.1 消除所有Magic Numbers
-```typescript
-// 新增到 stream-cache.constants.ts
-export const STREAM_DATA_THRESHOLDS = {
-  AUTO_HOT_CACHE_SIZE_LIMIT: 10000,    // 10KB数据大小阈值
-  AUTO_HOT_CACHE_LENGTH_LIMIT: 100,    // 100条数据长度阈值
-  HEALTH_CHECK_TEST_PRICE: 100,        // 健康检查测试价格
-  HEALTH_CHECK_TEST_VOLUME: 1000,      // 健康检查测试成交量
-  TIMESTAMP_INCREMENT_MS: 10,          // 时间戳回退时的递增间隔
-} as const;
-```
-
-#### 1.2 统一TTL配置定义
-```typescript
-import { CACHE_CONSTANTS } from '@common/constants/unified/unified-cache-config.constants';
-
-export const STREAM_CACHE_CONFIG = {
-  TTL: {
-    HOT_CACHE_MS: CACHE_CONSTANTS.TTL_SETTINGS.REALTIME_DATA_TTL * 1000,
-    WARM_CACHE_SECONDS: CACHE_CONSTANTS.TTL_SETTINGS.SHORT_TTL,
-  },
-  // 其他配置...
-} as const;
-```
-
-### 2. 短期优化项（P1）
-
-#### 2.1 统一缓存键命名规范
+#### 1.1 统一缓存键命名规范
 ```typescript
 export const STREAM_CACHE_KEYS = {
   WARM_CACHE_PREFIX: "stream:warm:",     // 统一使用冒号分隔
@@ -155,7 +92,7 @@ export const STREAM_CACHE_KEYS = {
 } as const;
 ```
 
-#### 2.2 建立批量配置统一标准
+#### 1.2 建立批量配置统一标准
 ```typescript
 // 在 unified-cache 中定义标准
 export const BATCH_CONFIG = {
@@ -165,9 +102,9 @@ export const BATCH_CONFIG = {
 } as const;
 ```
 
-### 3. 长期架构优化（P2）
+### 2. 长期架构优化（P2）
 
-#### 3.1 完善接口继承体系
+#### 2.1 完善接口继承体系
 ```typescript
 // 清理legacy接口
 export interface StreamCacheConfig extends BaseCacheConfig {
@@ -178,7 +115,7 @@ export interface StreamCacheConfig extends BaseCacheConfig {
 // 移除StreamCacheConfigLegacy接口
 ```
 
-#### 3.2 统一监控指标定义
+#### 2.2 统一监控指标定义
 ```typescript
 // 在 performance.constants.ts 中统一定义
 export const PERFORMANCE_THRESHOLDS = {
@@ -188,11 +125,11 @@ export const PERFORMANCE_THRESHOLDS = {
 } as const;
 ```
 
-#### 3.3 改进时间戳生成策略
+#### 2.3 改进时间戳生成策略
 ```typescript
 private generateFallbackTimestamp(baseTime: number, index: number): number {
   // 使用更合理的时间间隔，避免时序混乱
-  return baseTime + (index * STREAM_DATA_THRESHOLDS.TIMESTAMP_INCREMENT_MS);
+  return baseTime + (index * 10);
 }
 ```
 
@@ -239,13 +176,12 @@ stream-cache 组件在架构设计上表现优秀，采用了合理的双层缓�
 - 事件驱动的监控设计符合现代架构理念
 
 **需要改进：**
-- **4处Magic Numbers** 需要立即定义为命名常量
-- **TTL配置重复** 需要统一使用 unified-cache 定义
 - **命名规范不一致** 需要统一缓存键前缀格式
+- **配置语义重复** 需要明确区分不同用途的相同数值
+- **批量配置不统一** 需要建立统一的批量配置标准
 
 **建议实施优先级：**
-1. **立即处理**：消除Magic Numbers，统一TTL配置
-2. **短期优化**：统一命名规范，建立批量配置标准
-3. **长期改进**：完善监控指标体系，优化时间戳生成策略
+1. **短期优化**：统一命名规范，建立批量配置标准
+2. **长期改进**：完善监控指标体系，优化时间戳生成策略
 
 通过实施上述改进建议，预计可以将重复率进一步降低至3%以下，并显著提升代码的可维护性和一致性。

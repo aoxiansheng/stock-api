@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 
 import { Permission } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 
 export type ApiKeyDocument = ApiKey & Document;
 
@@ -11,7 +12,7 @@ export type ApiKeyDocument = ApiKey & Document;
 @Schema({ _id: false })
 export class RateLimit {
   @Prop({ type: Number, required: true, min: 1 })
-  requests: number;
+  requestLimit: number;
 
   @Prop({ type: String, required: true })
   window: string; // 时间窗口，如 '1h', '1d', '1m'
@@ -50,33 +51,33 @@ export class ApiKey {
   @Prop({ type: RateLimitSchema, required: true })
   rateLimit: RateLimit;
 
-  @Prop({ default: true })
-  isActive: boolean;
+  @Prop({
+    type: String,
+    enum: Object.values(CommonStatus),
+    default: CommonStatus.ACTIVE
+  })
+  status: CommonStatus;
 
   @Prop({ index: true })
   expiresAt?: Date;
 
   @Prop({ default: 0 })
-  usageCount: number;
+  totalRequestCount: number;
 
   @Prop()
-  lastUsedAt?: Date;
+  lastAccessedAt?: Date;
 
   @Prop({ trim: true, maxlength: 500 })
   description?: string;
 
-  @Prop({ default: Date.now })
-  createdAt: Date;
-
-  @Prop({ default: Date.now })
-  updatedAt: Date;
+  // 时间戳字段由 @Schema({timestamps: true}) 自动管理，无需手动定义
 }
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);
 
 // 创建索引 (unique字段已通过@Prop装饰器自动创建索引)
 ApiKeySchema.index({ userId: 1 });
-ApiKeySchema.index({ isActive: 1 });
+ApiKeySchema.index({ status: 1 });
 ApiKeySchema.index({ createdAt: 1 });
 
 // 组合索引用于验证

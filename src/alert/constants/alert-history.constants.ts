@@ -4,6 +4,10 @@
  */
 
 import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
+import { DEFAULT_ALERT_STATS, type BaseAlertStats } from '../interfaces/alert-stats.interface';
+import { TIMING_CONSTANTS } from './timing.constants';
+import { ALERT_DEFAULTS } from './defaults.constants';
+import { SHARED_BATCH_LIMITS, SHARED_VALIDATION_RULES } from './shared.constants';
 
 // 📝 操作名称常量
 export const ALERT_HISTORY_OPERATIONS = Object.freeze({
@@ -19,7 +23,6 @@ export const ALERT_HISTORY_OPERATIONS = Object.freeze({
   GET_RECENT_ALERTS: "getRecentAlerts",
   GET_SERVICE_STATS: "getServiceStats",
   GENERATE_ALERT_ID: "generateAlertId",
-  CALCULATE_STATISTICS: "calculateStatistics",
   VALIDATE_QUERY_PARAMS: "validateQueryParams",
   PROCESS_BATCH_RESULTS: "processBatchResults",
 });
@@ -78,9 +81,8 @@ export const ALERT_HISTORY_MESSAGES = Object.freeze({
 export const ALERT_HISTORY_CONFIG = Object.freeze({
   ALERT_ID_PREFIX: "alrt_",
   DEFAULT_CLEANUP_DAYS: 90,
-  DEFAULT_PAGE_LIMIT: 20,
   DEFAULT_RECENT_ALERTS_LIMIT: 10,
-  MAX_PAGE_LIMIT: 100,
+  // 分页常量已迁移到 ALERT_DEFAULTS.PAGINATION 中统一管理
   MIN_PAGE_LIMIT: 1,
   MAX_CLEANUP_DAYS: 365,
   MIN_CLEANUP_DAYS: 1,
@@ -88,29 +90,17 @@ export const ALERT_HISTORY_CONFIG = Object.freeze({
   TIMESTAMP_BASE: 36,
   RANDOM_LENGTH: 6,
   RANDOM_START: 2,
-  BATCH_SIZE_LIMIT: 1000,
-  STATISTICS_CACHE_TTL_SECONDS: 300, // 5分钟
-  CLEANUP_CHUNK_SIZE: 1000,
-  BATCH_UPDATE_LIMIT: 1000,
+  BATCH_SIZE_LIMIT: SHARED_BATCH_LIMITS.BATCH_SIZE_LIMIT,
+  STATISTICS_CACHE_TTL_SECONDS: TIMING_CONSTANTS.CACHE_TTL.STATS_SECONDS, // 5分钟 - 使用统一时间常量
+  CLEANUP_CHUNK_SIZE: SHARED_BATCH_LIMITS.CLEANUP_BATCH_SIZE,
+  BATCH_UPDATE_LIMIT: SHARED_BATCH_LIMITS.MAX_BATCH_UPDATE_SIZE,
 });
 
-// 📊 默认统计值常量
-export const ALERT_HISTORY_DEFAULT_STATS = Object.freeze({
-  activeAlerts: 0,
-  criticalAlerts: 0,
-  warningAlerts: 0,
-  infoAlerts: 0,
-  totalAlertsToday: 0,
-  resolvedAlertsToday: 0,
-  averageResolutionTime: 0,
-});
+// 📊 默认统计值常量 - 使用共享统计接口
+export const ALERT_HISTORY_DEFAULT_STATS: BaseAlertStats = DEFAULT_ALERT_STATS;
 
-// 🏷️ 告警状态映射常量
-export const ALERT_STATUS_MAPPING = Object.freeze({
-  FIRING: "firing",
-  ACKNOWLEDGED: "acknowledged",
-  RESOLVED: "resolved",
-});
+// 🏷️ 告警状态映射常量 - 已迁移到 alert.types.ts 的 AlertStatus
+// 使用 AlertStatus 枚举而不是重复定义状态字符串
 
 // 📈 告警历史指标常量
 export const ALERT_HISTORY_METRICS = Object.freeze({
@@ -127,14 +117,18 @@ export const ALERT_HISTORY_METRICS = Object.freeze({
 });
 
 // 🔍 验证规则常量
+// 基于 SHARED_VALIDATION_RULES 构建，保持向后兼容性
 export const ALERT_HISTORY_VALIDATION_RULES = Object.freeze({
+  // 告警历史特有的ID模式
   ALERT_ID_PATTERN: /^alrt_[a-z0-9]+_[a-z0-9]{6}$/,
-  MIN_ALERT_ID_LENGTH: 15,
-  MAX_ALERT_ID_LENGTH: 50,
-  MIN_RULE_ID_LENGTH: 1,
-  MAX_RULE_ID_LENGTH: 100,
-  MIN_MESSAGE_LENGTH: 1,
-  MAX_MESSAGE_LENGTH: 1000,
+  // 使用共享的ID长度规则
+  MIN_ALERT_ID_LENGTH: SHARED_VALIDATION_RULES.ID_LENGTH.TYPICAL_MIN,
+  MAX_ALERT_ID_LENGTH: SHARED_VALIDATION_RULES.ID_LENGTH.TYPICAL_MAX,
+  MIN_RULE_ID_LENGTH: SHARED_VALIDATION_RULES.ID_LENGTH.MIN,
+  MAX_RULE_ID_LENGTH: SHARED_VALIDATION_RULES.ID_LENGTH.MAX,
+  // 使用共享的消息长度规则
+  MIN_MESSAGE_LENGTH: SHARED_VALIDATION_RULES.MESSAGE_LENGTH.MIN,
+  MAX_MESSAGE_LENGTH: SHARED_VALIDATION_RULES.MESSAGE_LENGTH.MAX,
 });
 
 // ⏰ 时间配置常量
@@ -150,15 +144,16 @@ export const ALERT_HISTORY_TIME_CONFIG = Object.freeze({
 // 🚨 告警阈值常量
 export const ALERT_HISTORY_THRESHOLDS = Object.freeze({
   MAX_ACTIVE_ALERTS: 10000,
-  MAX_ALERTS_PER_RULE: 1000,
-  MAX_BATCH_UPDATE_SIZE: 1000,
-  CLEANUP_BATCH_SIZE: 1000,
+  MAX_ALERTS_PER_RULE: SHARED_BATCH_LIMITS.MAX_ALERTS_PER_RULE,
+  MAX_BATCH_UPDATE_SIZE: SHARED_BATCH_LIMITS.MAX_BATCH_UPDATE_SIZE,
+  CLEANUP_BATCH_SIZE: SHARED_BATCH_LIMITS.CLEANUP_BATCH_SIZE,
   STATISTICS_REFRESH_INTERVAL_MS: 300000, // 5分钟
 });
 
 /**
  * 告警历史工具函数
  */
+
 export class AlertHistoryUtil {
   /**
    * 生成告警ID
@@ -211,8 +206,8 @@ export class AlertHistoryUtil {
       errors.push(`每页数量不能少于${ALERT_HISTORY_CONFIG.MIN_PAGE_LIMIT}`);
     }
 
-    if (limit > ALERT_HISTORY_CONFIG.MAX_PAGE_LIMIT) {
-      errors.push(`每页数量不能超过${ALERT_HISTORY_CONFIG.MAX_PAGE_LIMIT}`);
+    if (limit > ALERT_DEFAULTS.PAGINATION.maxLimit) {
+      errors.push(`每页数量不能超过${ALERT_DEFAULTS.PAGINATION.maxLimit}`);
     }
 
     return {

@@ -3,6 +3,8 @@
  * 🎯 统一定义所有告警相关的类型，解决循环依赖问题
  */
 
+import type { Operator } from "../constants/alert.constants";
+
 /**
  * 基础实体接口
  */
@@ -89,7 +91,7 @@ export interface AlertRule extends BaseEntity {
   name: string;
   description?: string;
   metric: string;
-  operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
+  operator: Operator;
   threshold: number;
   duration: number; // 持续时间（秒）
   severity: AlertSeverity;
@@ -105,15 +107,7 @@ export interface AlertRule extends BaseEntity {
  */
 export interface AlertCondition {
   field: string;
-  operator:
-    | "gt"
-    | "lt"
-    | "eq"
-    | "gte"
-    | "lte"
-    | "ne"
-    | "contains"
-    | "not_contains";
+  operator: Operator | "contains" | "not_contains";
   value: any;
   logicalOperator?: "and" | "or";
 }

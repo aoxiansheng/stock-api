@@ -16,6 +16,7 @@ import { Request, Response } from "express";
 
 import { createLogger } from "../../../app/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
+import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 // 完全事件驱动架构，移除CollectorService直接依赖
 
 @Injectable()
@@ -58,7 +59,7 @@ export class InfrastructureInterceptor implements NestInterceptor {
             route,
             method,
             duration,
-            statusCode: response.statusCode || 500,
+            statusCode: response.statusCode || MONITORING_SYSTEM_LIMITS.HTTP_SERVER_ERROR_THRESHOLD,
             success: false,
             handler: handler.name,
             controller: controller.name,
@@ -103,7 +104,7 @@ export class InfrastructureInterceptor implements NestInterceptor {
       });
 
       // 记录慢请求日志
-      if (data.duration > 1000) {
+      if (data.duration > MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS) {
         // 超过1秒的请求
         this.logger.warn("慢请求检测", {
           route: data.route,

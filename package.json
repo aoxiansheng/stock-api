@@ -276,6 +276,7 @@
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
     "bun-types": "^1.2.19",
+    "depcheck": "^1.4.7",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -293,6 +294,8 @@
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "ts-prune": "^0.10.3",
+    "typescript": "^5.9.2",
+    "unimported": "^1.31.0"
   }
 }

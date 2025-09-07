@@ -6,6 +6,7 @@
 import { BATCH_CONSTANTS } from "@common/constants/unified";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 import { PERFORMANCE_CONSTANTS } from "@common/constants/unified/performance.constants";
+import { CACHE_CONSTANTS } from "@common/constants/unified/unified-cache-config.constants";
 
 /**
  * 查询错误消息常量
@@ -223,8 +224,8 @@ export const QUERY_TIMEOUT_CONFIG = Object.freeze({
  * 合并了之前在多个地方重复定义的缓存TTL设置
  */
 export const QUERY_CACHE_TTL_CONFIG = Object.freeze({
-  DEFAULT_SECONDS: 3600, // 统一默认TTL（1小时）
-  MAX_AGE_SECONDS: 300, // 统一最大年龄（5分钟）
+  DEFAULT_SECONDS: CACHE_CONSTANTS.TTL_SETTINGS.DEFAULT_TTL, // 统一默认TTL（1小时）
+  MAX_AGE_SECONDS: CACHE_CONSTANTS.TTL_SETTINGS.SHORT_TTL, // 统一最大年龄（5分钟）
 } as const);
 
 /**

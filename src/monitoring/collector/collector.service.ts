@@ -13,6 +13,7 @@ import type {
   DataResponseEvent,
 } from "../contracts/events/system-status.events";
 import { CollectorRepository } from "./collector.repository";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 import os from "os";
 import v8 from "v8";
 import { v4 as uuidv4 } from "uuid";
@@ -28,7 +29,7 @@ export class CollectorService
 {
   private readonly logger = createLogger(CollectorService.name);
   private readonly metricsBuffer: RawMetric[] = [];
-  private readonly maxBufferSize = 1000;
+  private readonly maxBufferSize = MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE;
 
   constructor(
     private readonly repository: CollectorRepository,
@@ -131,7 +132,7 @@ export class CollectorService
     endpoint: string,
     method: string,
     statusCode: number,
-    duration: number,
+    responseTimeMs: number,
     metadata?: Record<string, any>,
   ): void {
     const metric: RawMetric = {
@@ -139,7 +140,7 @@ export class CollectorService
       endpoint,
       method,
       statusCode,
-      duration,
+      responseTimeMs,
       timestamp: new Date(),
       metadata,
     };
@@ -152,7 +153,7 @@ export class CollectorService
       source: "collector",
       metricType: "request",
       metricName: "http_request",
-      metricValue: duration,
+      metricValue: responseTimeMs,
       tags: {
         method: method.toLowerCase(),
         status: statusCode.toString(),
@@ -163,7 +164,7 @@ export class CollectorService
     });
 
     this.logger.debug(
-      `记录HTTP请求: ${method} ${endpoint} - ${statusCode} (${duration}ms)`,
+      `记录HTTP请求: ${method} ${endpoint} - ${statusCode} (${responseTimeMs}ms)`,
     );
   }
 
@@ -172,13 +173,13 @@ export class CollectorService
    */
   recordDatabaseOperation(
     operation: string,
-    duration: number,
+    responseTimeMs: number,
     success: boolean,
     metadata?: Record<string, any>,
   ): void {
     const metric: RawMetric = {
       type: "database",
-      duration,
+      responseTimeMs,
       timestamp: new Date(),
       metadata: {
         operation,
@@ -195,7 +196,7 @@ export class CollectorService
       source: "collector",
       metricType: "database",
       metricName: "database_operation",
-      metricValue: duration,
+      metricValue: responseTimeMs,
       tags: {
         operation: operation,
         storage_type: "database",
@@ -204,7 +205,7 @@ export class CollectorService
     });
 
     this.logger.debug(
-      `记录数据库操作: ${operation} - ${success ? "成功" : "失败"} (${duration}ms)`,
+      `记录数据库操作: ${operation} - ${success ? "成功" : "失败"} (${responseTimeMs}ms)`,
     );
   }
 
@@ -214,12 +215,12 @@ export class CollectorService
   recordCacheOperation(
     operation: string,
     hit: boolean,
-    duration: number,
+    responseTimeMs: number,
     metadata?: Record<string, any>,
   ): void {
     const metric: RawMetric = {
       type: "cache",
-      duration,
+      responseTimeMs,
       timestamp: new Date(),
       metadata: {
         operation,
@@ -242,12 +243,12 @@ export class CollectorService
         storage_type: "cache",
         cache_layer: "redis",
         hit,
-        duration,
+        responseTimeMs,
       },
     });
 
     this.logger.debug(
-      `记录缓存操作: ${operation} - ${hit ? "命中" : "未命中"} (${duration}ms)`,
+      `记录缓存操作: ${operation} - ${hit ? "命中" : "未命中"} (${responseTimeMs}ms)`,
     );
   }
 
@@ -257,7 +258,7 @@ export class CollectorService
   recordSystemMetrics(metrics: SystemMetricsDto): void {
     const metric: RawMetric = {
       type: "system",
-      duration: 0,
+      responseTimeMs: 0,
       timestamp: new Date(),
       metadata: {
         memory: metrics.memory,
@@ -295,7 +296,7 @@ export class CollectorService
     source: string;
     layer: string;
     operation: string;
-    duration: number;
+    responseTimeMs: number;
     statusCode: number;
     success: boolean;
     metadata?: Record<string, any>;
@@ -305,7 +306,7 @@ export class CollectorService
       endpoint: data.operation,
       method: data.metadata?.method || "unknown",
       statusCode: data.statusCode,
-      duration: data.duration,
+      responseTimeMs: data.responseTimeMs,
       timestamp: data.timestamp,
       metadata: {
         source: data.source,
@@ -323,7 +324,7 @@ export class CollectorService
       source: data.source,
       metricType: "request",
       metricName: "performance_request",
-      metricValue: data.duration,
+      metricValue: data.responseTimeMs,
       tags: {
         method: data.metadata?.method || "unknown",
         status: data.statusCode.toString(),
@@ -334,7 +335,7 @@ export class CollectorService
     });
 
     this.logger.debug(
-      `收集请求性能数据: ${data.operation} - ${data.success ? "成功" : "失败"} (${data.duration}ms)`,
+      `收集请求性能数据: ${data.operation} - ${data.success ? "成功" : "失败"} (${data.responseTimeMs}ms)`,
     );
   }
 
@@ -346,7 +347,7 @@ export class CollectorService
     source: string;
     layer: string;
     operation: string;
-    duration: number;
+    responseTimeMs: number;
     success: boolean;
     metadata?: Record<string, any>;
   }): Promise<void> {
@@ -354,7 +355,7 @@ export class CollectorService
 
     const metric: RawMetric = {
       type: metricType,
-      duration: data.duration,
+      responseTimeMs: data.responseTimeMs,
       timestamp: data.timestamp,
       metadata: {
         operation: data.operation,
@@ -373,7 +374,7 @@ export class CollectorService
       source: data.source,
       metricType: metricType,
       metricName: data.operation,
-      metricValue: data.duration,
+      metricValue: data.responseTimeMs,
       tags: {
         operation_type: data.operation,
         provider: "internal",
@@ -382,7 +383,7 @@ export class CollectorService
     });
 
     this.logger.debug(
-      `收集性能数据: ${data.operation} [${metricType}] - ${data.success ? "成功" : "失败"} (${data.duration}ms)`,
+      `收集性能数据: ${data.operation} [${metricType}] - ${data.success ? "成功" : "失败"} (${data.responseTimeMs}ms)`,
     );
   }
 
@@ -489,7 +490,7 @@ export class CollectorService
   async cleanup(olderThan?: Date): Promise<void> {
     try {
       const cutoffDate =
-        olderThan || new Date(Date.now() - 24 * 60 * 60 * 1000); // 默认24小时前
+        olderThan || new Date(Date.now() - MONITORING_SYSTEM_LIMITS.DAY_IN_MS); // 默认24小时前
 
       await this.repository.deleteOldMetrics(cutoffDate);
 

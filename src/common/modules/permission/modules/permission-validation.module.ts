@@ -3,6 +3,11 @@ import { DiscoveryModule } from "@nestjs/core";
 
 import { PermissionDecoratorValidator } from "../validators/permission-decorator.validator";
 import { PermissionValidationService } from "../services/permission-validation.service";
+import { 
+  AuthPermissionValidationService,
+  AuthPermissionConstants, 
+  AuthPermissionMetadataExtractor 
+} from "../adapters/auth-permission.adapter";
 
 /**
  * 权限验证模块
@@ -11,7 +16,17 @@ import { PermissionValidationService } from "../services/permission-validation.s
  */
 @Module({
   imports: [DiscoveryModule],
-  providers: [PermissionDecoratorValidator, PermissionValidationService],
-  exports: [PermissionDecoratorValidator, PermissionValidationService],
+  providers: [
+    PermissionDecoratorValidator, 
+    PermissionValidationService,
+    AuthPermissionValidationService,
+    AuthPermissionConstants,
+    AuthPermissionMetadataExtractor,
+  ],
+  exports: [
+    PermissionDecoratorValidator, 
+    PermissionValidationService,
+    AuthPermissionValidationService,
+  ],
 })
 export class PermissionValidationModule {}

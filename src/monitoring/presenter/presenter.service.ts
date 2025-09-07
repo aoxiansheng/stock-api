@@ -3,6 +3,7 @@ import { Injectable, Inject, BadRequestException } from "@nestjs/common";
 import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
 import { AnalyzerService } from "../analyzer/analyzer.service";
 import { PresenterErrorHandlerService } from "./presenter-error.service";
+import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 import { createLogger } from "../../app/config/logger.config";
 
 /**
@@ -35,7 +36,7 @@ export class PresenterService {
 
       this.logger.debug("性能分析数据获取成功", {
         healthScore: analysis.healthScore,
-        totalRequests: analysis.summary.totalRequests,
+        totalOperations: analysis.summary.totalOperations,
       });
 
       return analysis;
@@ -78,7 +79,7 @@ export class PresenterService {
       const report = await this.analyzer.getHealthReport();
 
       this.logger.debug("健康报告获取成功", {
-        overallScore: report.overall.score,
+        overallScore: report.overall.healthScore,
         status: report.overall.status,
         recommendationsCount: report.recommendations?.length || 0,
       });
@@ -130,8 +131,8 @@ export class PresenterService {
 
       if (limit) {
         limitNum = parseInt(limit, 10);
-        if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
-          throw new BadRequestException("limit必须在1-1000之间");
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > MONITORING_SYSTEM_LIMITS.MAX_QUERY_LIMIT) {
+          throw new BadRequestException(`limit必须在1-${MONITORING_SYSTEM_LIMITS.MAX_QUERY_LIMIT}之间`);
         }
       }
 
@@ -162,7 +163,7 @@ export class PresenterService {
 
       this.logger.debug("数据库指标获取成功", {
         totalOperations: metrics.totalOperations,
-        averageQueryTime: metrics.averageQueryTime,
+        responseTimeMs: metrics.responseTimeMs,
       });
 
       return metrics;
@@ -231,7 +232,7 @@ export class PresenterService {
 
       this.logger.debug("缓存统计获取成功", {
         hitRate: stats.hitRate,
-        totalRequests: stats.totalRequests,
+        totalOperations: stats.totalOperations,
       });
 
       return stats;
@@ -296,7 +297,7 @@ export class PresenterService {
         });
       }
 
-      if (performanceStats.concurrencyAdjustments > 100) {
+      if (performanceStats.concurrencyAdjustments > MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE) {
         suggestions.push({
           priority: "medium",
           category: "concurrency",
@@ -306,7 +307,7 @@ export class PresenterService {
         });
       }
 
-      if (performanceStats.avgExecutionTime > 1000) {
+      if (performanceStats.avgExecutionTime > MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS) {
         suggestions.push({
           priority: "high",
           category: "performance",
@@ -362,7 +363,7 @@ export class PresenterService {
             ],
             thresholds: {
               warning: { concurrency_adjustments: 50 },
-              critical: { concurrency_adjustments: 100 },
+              critical: { concurrency_adjustments: MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE },
             },
           },
           {
@@ -388,7 +389,7 @@ export class PresenterService {
             ],
             thresholds: {
               warning: { avg_execution_time: 500 },
-              critical: { avg_execution_time: 1000 },
+              critical: { avg_execution_time: MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS },
             },
           },
           {
@@ -519,7 +520,7 @@ export class PresenterService {
         memoryPressureEvents: Math.floor(Math.random() * 20),
         tasksCleared: Math.floor(Math.random() * 10),
         avgExecutionTime: Math.random() * 500 + 200,
-        totalTasks: Math.floor(Math.random() * 1000) + 500,
+        totalTasks: Math.floor(Math.random() * MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE) + 500,
         dynamicMaxConcurrency: Math.floor(Math.random() * 8) + 4,
         originalMaxConcurrency: 10,
         currentBatchSize: Math.floor(Math.random() * 20) + 10,
@@ -576,7 +577,7 @@ export class PresenterService {
     performanceStats: any,
     systemMetrics: any,
   ): number {
-    let score = 100;
+    let score = MONITORING_SYSTEM_LIMITS.FULL_SCORE;
 
     // 内存压力影响 (最多扣30分)
     if (performanceStats.memoryPressureEvents > 0) {
@@ -624,17 +625,17 @@ export class PresenterService {
    * 计算并发效率 (私有方法)
    */
   private calculateConcurrencyEfficiency(performanceStats: any): number {
-    if (performanceStats.originalMaxConcurrency === 0) return 100;
+    if (performanceStats.originalMaxConcurrency === 0) return MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER;
 
     const utilizationRate =
       performanceStats.dynamicMaxConcurrency /
       performanceStats.originalMaxConcurrency;
     const adjustmentPenalty = Math.min(
-      performanceStats.concurrencyAdjustments / 100,
+      performanceStats.concurrencyAdjustments / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
       0.2,
     );
 
-    return Math.max(utilizationRate * 100 - adjustmentPenalty * 100, 0);
+    return Math.max(utilizationRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER - adjustmentPenalty * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER, 0);
   }
 
   /**
@@ -647,7 +648,7 @@ export class PresenterService {
     const recommendations = [];
 
     // 性能优化建议
-    if (performanceStats.avgExecutionTime > 1000) {
+    if (performanceStats.avgExecutionTime > MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS) {
       recommendations.push({
         type: "performance",
         priority: "high",
@@ -669,7 +670,7 @@ export class PresenterService {
     }
 
     // 并发控制建议
-    if (performanceStats.concurrencyAdjustments > 100) {
+    if (performanceStats.concurrencyAdjustments > MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE) {
       recommendations.push({
         type: "concurrency",
         priority: "medium",
@@ -794,9 +795,9 @@ export class PresenterService {
         timestamp: new Date().toISOString(),
         healthScore,
         performanceSummary: {
-          totalRequests: performanceAnalysis.summary.totalRequests,
-          averageResponseTime: performanceAnalysis.averageResponseTime,
-          errorRate: performanceAnalysis.errorRate,
+          totalOperations: performanceAnalysis.summary.totalOperations,
+          responseTimeMs: performanceAnalysis.summary.responseTimeMs,
+          errorRate: performanceAnalysis.summary.errorRate,
           throughput: performanceAnalysis.throughput,
         },
         trendsData: trends,
@@ -806,7 +807,7 @@ export class PresenterService {
 
       this.logger.debug("仪表板数据获取成功", {
         healthScore,
-        totalRequests: result.performanceSummary.totalRequests,
+        totalOperations: result.performanceSummary.totalOperations,
         criticalIssues: result.criticalIssues.length,
       });
 

@@ -15,6 +15,7 @@ import {
   getProviderScanConfig,
   shouldExcludeDirectory,
 } from "../config/provider-scan.config";
+import { ConnectionStatus } from "../constants/connection.constants";
 
 const toCamelCase = (str: string) =>
   str.replace(/-(\w)/g, (_, c) => c.toUpperCase());
@@ -341,7 +342,7 @@ export class CapabilityRegistryService implements OnModuleInit {
       capability,
       priority,
       isEnabled,
-      connectionStatus: "disconnected",
+      connectionStatus: ConnectionStatus.DISCONNECTED,
       errorCount: 0,
     };
 
@@ -383,7 +384,7 @@ export class CapabilityRegistryService implements OnModuleInit {
       const registration = capabilities.get(capabilityName);
       if (
         registration?.isEnabled &&
-        registration.connectionStatus !== "error"
+        registration.connectionStatus !== ConnectionStatus.FAILED
       ) {
         const capability = registration.capability;
         if (!market || capability.supportedMarkets.includes(market)) {
@@ -418,7 +419,7 @@ export class CapabilityRegistryService implements OnModuleInit {
   updateStreamCapabilityStatus(
     providerName: string,
     capabilityName: string,
-    status: "disconnected" | "connecting" | "connected" | "error",
+    status: ConnectionStatus,
     error?: string,
   ): void {
     const registration = this.streamCapabilities
@@ -428,10 +429,10 @@ export class CapabilityRegistryService implements OnModuleInit {
     if (registration) {
       registration.connectionStatus = status;
 
-      if (status === "connected") {
+      if (status === ConnectionStatus.CONNECTED) {
         registration.lastConnectedAt = new Date();
         registration.errorCount = 0;
-      } else if (status === "error") {
+      } else if (status === ConnectionStatus.FAILED) {
         registration.errorCount++;
         if (error) {
           registration.lastError = error;

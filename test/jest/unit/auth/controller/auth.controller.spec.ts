@@ -80,7 +80,6 @@ describe("AuthController", () => {
           stats: {
             totalUsers: 0,
             activeUsers: 0,
-            inactiveUsers: 0,
             roleDistribution: {},
           },
         };

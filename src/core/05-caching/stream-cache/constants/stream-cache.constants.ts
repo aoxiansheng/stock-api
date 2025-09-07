@@ -46,9 +46,38 @@ export const STREAM_CACHE_CONFIG = {
  * 流缓存默认配置
  */
 export const DEFAULT_STREAM_CACHE_CONFIG = {
+  // 流缓存特有配置
   hotCacheTTL: STREAM_CACHE_CONFIG.TTL.HOT_CACHE_MS,
   warmCacheTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_SECONDS,
   maxHotCacheSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_HOT_CACHE_SIZE,
+  streamBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
+  connectionTimeout: 5000, // 5秒连接超时
+  heartbeatInterval: 30000, // 30秒心跳间隔
+  
+  // 基础配置
+  defaultTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_SECONDS,
+  minTTL: 1,
+  maxTTL: 86400, // 24小时
+  maxCacheSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_HOT_CACHE_SIZE,
+  maxBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
   cleanupInterval: STREAM_CACHE_CONFIG.CLEANUP.INTERVAL_MS,
+  maxCleanupItems: STREAM_CACHE_CONFIG.CLEANUP.MAX_CLEANUP_ITEMS,
+  memoryCleanupThreshold: 0.85,
+  
+  // 压缩配置
   compressionThreshold: STREAM_CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES,
+  compressionEnabled: STREAM_CACHE_CONFIG.COMPRESSION.ENABLED,
+  compressionDataType: 'stream' as const,
+  
+  // 性能监控配置
+  slowOperationThreshold: STREAM_CACHE_CONFIG.MONITORING.SLOW_OPERATION_MS,
+  statsLogInterval: STREAM_CACHE_CONFIG.MONITORING.STATS_LOG_INTERVAL_MS,
+  performanceMonitoring: true,
+  verboseLogging: false,
+  
+  // 错误处理配置
+  maxRetryAttempts: 3,
+  retryBaseDelay: 100,
+  retryDelayMultiplier: 2,
+  enableFallback: true,
 };

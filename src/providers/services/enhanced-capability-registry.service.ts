@@ -18,6 +18,7 @@ import {
   CapabilityCollectionItem,
   ProviderCollectionItem,
 } from "../decorators/types/metadata.types";
+import { ConnectionStatus } from "../constants/connection.constants";
 
 export interface RegistryStats {
   totalCapabilities: number;
@@ -287,7 +288,7 @@ export class EnhancedCapabilityRegistryService implements OnModuleInit {
           capability: this.createLegacyStreamCapability(item),
           priority: item.metadata.priority || 1,
           isEnabled: item.metadata.enabled !== false,
-          connectionStatus: "disconnected",
+          connectionStatus: ConnectionStatus.DISCONNECTED,
           errorCount: 0,
         };
 

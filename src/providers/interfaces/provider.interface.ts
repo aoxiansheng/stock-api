@@ -1,4 +1,5 @@
 import { ICapability } from "./capability.interface";
+import { ProviderConfig, ProviderCredentials } from '../types/config.types';
 
 /**
  * 数据源提供商接口
@@ -19,8 +20,8 @@ export interface IProviderConfig {
   name: string;
   isEnabled: boolean;
   priority: number;
-  config: Record<string, any>;
-  credentials: Record<string, any>;
+  config: ProviderConfig;
+  credentials: ProviderCredentials;
 }
 
 /**

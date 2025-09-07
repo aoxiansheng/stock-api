@@ -12,13 +12,3 @@ export interface ICapability {
   };
   execute(params: any): Promise<any>;
 }
-
-/**
- * 能力注册信息
- */
-export interface ICapabilityRegistration {
-  providerName: string;
-  capability: ICapability;
-  priority: number;
-  isEnabled: boolean;
-}

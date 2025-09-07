@@ -12,7 +12,6 @@
  * - analytics/ : 分析统计相关DTO（键模式分析）
  * - monitoring/ : 监控相关DTO（性能监控）
  * - metrics/ : 指标相关DTO（指标更新）
- * - deprecated/ : 废弃的DTO（过渡期保留）
  */
 
 // ============================================================================
@@ -37,7 +36,7 @@ export { CacheMetricsUpdateDto } from './metrics/metrics-update.dto';
 // ============================================================================
 
 // 重新导出废弃的DTO，保持兼容性
-export { CacheStatsDto, RedisCacheRuntimeStatsDto } from './deprecated/cache-stats.dto';
+export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 
 // ============================================================================
 // 过渡期辅助工具
@@ -73,6 +72,5 @@ export const CACHE_DTO_MIGRATION_GUIDE = Object.freeze({
     "CacheKeyPatternAnalysisDto": "analytics/key-pattern-analysis.dto.ts",
     "CachePerformanceMonitoringDto": "monitoring/performance-monitoring.dto.ts",
     "CacheMetricsUpdateDto": "metrics/metrics-update.dto.ts",
-    "CacheStatsDto": "deprecated/cache-stats.dto.ts (已废弃)",
   }
 } as const);

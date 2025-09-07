@@ -22,7 +22,7 @@ import { AlertModule } from "../../src/alert/module/alert.module";
 
 // Removed alertConfig import - causing compilation errors
 // 临时禁用LongPort模块以避免资源泄露
-import { ProvidersModule } from "../../src/providers/module/providers.module";
+import { ProvidersModule } from "../../src/providers/module/providers-sg.module";
 // 添加节流模块导入
 import { ThrottlerModule } from "@nestjs/throttler";
 

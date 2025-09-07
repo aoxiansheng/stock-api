@@ -1,5 +1,5 @@
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/market.constants";
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { IStreamCapability } from "../../interfaces/stream-capability.interface";
 import { LongportStreamContextService } from "../services/longport-stream-context.service";
@@ -12,7 +12,7 @@ import { PROVIDER_TIMEOUT, CAPABILITY_NAMES } from "../../constants";
 export const streamStockQuote: IStreamCapability = {
   name: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
   description: "获取股票实时报价数据流（WebSocket）",
-  supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
   supportedSymbolFormats: [
     "700.HK",
     "00700.HK",

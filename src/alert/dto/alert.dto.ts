@@ -15,14 +15,17 @@ import {
   IsObject,
 } from "class-validator";
 
-import { IAlert } from "../interfaces";
+import { IAlert, IAlertStats } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
+import { ALERT_BUSINESS_RULES } from "../constants/business-rules.constants";
+import { ALERT_DEFAULTS } from "../constants/defaults.constants";
+import { BaseQueryDto } from "../../common/dto/base-query.dto";
 
-export class AlertQueryDto {
+export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "告警规则ID" })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_RULE_NAME_LENGTH)
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
     message: "规则ID只能包含字母、数字、横线和下划线",
   })
@@ -57,29 +60,14 @@ export class AlertQueryDto {
   @ApiPropertyOptional({ description: "监控指标名称" })
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_TAG_LENGTH)
   @Matches(/^[a-zA-Z0-9\-_.]+$/, { message: "监控指标名称格式无效" })
   metric?: string;
-
-  @ApiPropertyOptional({ description: "页码", default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @ApiPropertyOptional({ description: "每页数量", default: 20 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
 
   @ApiPropertyOptional({ description: "排序字段", default: "startTime" })
   @IsOptional()
   @IsString()
-  @MaxLength(30)
+  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_TAG_LENGTH)
   @Matches(/^[a-zA-Z0-9_]+$/, { message: "排序字段格式无效" })
   sortBy?: string = "startTime";
 
@@ -120,7 +108,7 @@ export class ResolveAlertDto {
   note?: string;
 }
 
-export class AlertStatsDto {
+export class AlertStatsDto implements IAlertStats {
   @ApiProperty({ description: "总规则数" })
   totalRules: number;
 
@@ -175,7 +163,7 @@ export class TriggerAlertDto {
   @ApiPropertyOptional({ description: "指定触发的规则ID" })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_RULE_NAME_LENGTH)
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
     message: "规则ID只能包含字母、数字、横线和下划线",
   })

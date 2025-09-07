@@ -7,72 +7,47 @@ import {
   IsArray,
   IsEnum,
 } from "class-validator";
+import { ResponseTimeFields } from "../../../common/interfaces/time-fields.interface";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { 
+  BaseHealthMetrics, 
+  BaseTimestamp, 
+  BasePerformanceSummary, 
+  BaseEndpointIdentifier, 
+  BaseCacheMetrics, 
+  BaseTrendMetric 
+} from "../interfaces/base.interface";
 
 /**
  * 分析后数据的DTO定义
  * 用于analyzer层的数据传输
  */
 
-export class PerformanceSummaryDto {
-  @ApiProperty({ description: "总请求数" })
+export class PerformanceSummaryDto implements BasePerformanceSummary {
+  @ApiProperty({ description: "总操作数" })
   @IsNumber()
-  totalRequests: number;
+  totalOperations: number;
 
-  @ApiProperty({ description: "成功请求数" })
+  @ApiProperty({ description: "成功操作数" })
   @IsNumber()
-  successfulRequests: number;
+  successfulOperations: number;
 
-  @ApiProperty({ description: "失败请求数" })
+  @ApiProperty({ description: "失败操作数" })
   @IsNumber()
-  failedRequests: number;
+  failedOperations: number;
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
-  averageResponseTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "错误率（0-1）" })
   @IsNumber()
   errorRate: number;
 }
 
-export class TrendDto {
-  @ApiProperty({ description: "当前值" })
-  @IsNumber()
-  current: number;
 
-  @ApiProperty({ description: "上一期值" })
-  @IsNumber()
-  previous: number;
-
-  @ApiProperty({ description: "趋势方向", enum: ["up", "down", "stable"] })
-  @IsEnum(["up", "down", "stable"])
-  trend: "up" | "down" | "stable";
-
-  @ApiProperty({ description: "变化百分比" })
-  @IsNumber()
-  changePercentage: number;
-}
-
-export class TrendsDataDto {
-  @ApiProperty({ description: "响应时间趋势", type: TrendDto })
-  @ValidateNested()
-  @Type(() => TrendDto)
-  responseTime: TrendDto;
-
-  @ApiProperty({ description: "错误率趋势", type: TrendDto })
-  @ValidateNested()
-  @Type(() => TrendDto)
-  errorRate: TrendDto;
-
-  @ApiProperty({ description: "吞吐量趋势", type: TrendDto })
-  @ValidateNested()
-  @Type(() => TrendDto)
-  throughput: TrendDto;
-}
-
-export class EndpointMetricDto {
+export class EndpointMetricDto implements BaseEndpointIdentifier {
   @ApiProperty({ description: "端点路径" })
   @IsString()
   endpoint: string;
@@ -81,13 +56,13 @@ export class EndpointMetricDto {
   @IsString()
   method: string;
 
-  @ApiProperty({ description: "请求数量" })
+  @ApiProperty({ description: "总操作数" })
   @IsNumber()
-  requestCount: number;
+  totalOperations: number;
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
-  averageResponseTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "错误率（0-1）" })
   @IsNumber()
@@ -99,14 +74,14 @@ export class EndpointMetricDto {
   lastUsed: Date;
 }
 
-export class DatabaseAnalysisDto {
+export class DatabaseAnalysisDto implements ResponseTimeFields {
   @ApiProperty({ description: "总操作数" })
   @IsNumber()
   totalOperations: number;
 
-  @ApiProperty({ description: "平均查询时间（毫秒）" })
+  @ApiProperty({ description: "响应时间（毫秒）" })
   @IsNumber()
-  averageQueryTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "慢查询数量" })
   @IsNumber()
@@ -118,10 +93,10 @@ export class DatabaseAnalysisDto {
 
   @ApiProperty({ description: "失败率（0-1）" })
   @IsNumber()
-  failureRate: number;
+  errorRate: number;
 }
 
-export class CacheAnalysisDto {
+export class CacheAnalysisDto implements ResponseTimeFields, BaseCacheMetrics {
   @ApiProperty({ description: "总操作数" })
   @IsNumber()
   totalOperations: number;
@@ -140,76 +115,109 @@ export class CacheAnalysisDto {
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
-  averageResponseTime: number;
+  responseTimeMs: number;
+
 }
 
-export class ComponentHealthDto {
+// 基础健康状态
+export class BaseHealthDto implements Partial<BaseHealthMetrics> {
   @ApiProperty({ description: "健康评分（0-100）" })
   @IsNumber()
-  score: number;
-
-  @ApiPropertyOptional({ description: "响应时间（毫秒）" })
-  @IsOptional()
-  @IsNumber()
-  responseTime?: number;
-
-  @ApiPropertyOptional({ description: "错误率（0-1）" })
-  @IsOptional()
-  @IsNumber()
-  errorRate?: number;
-
-  @ApiPropertyOptional({ description: "命中率（0-1）" })
-  @IsOptional()
-  @IsNumber()
-  hitRate?: number;
-
-  @ApiPropertyOptional({ description: "内存使用率（0-1）" })
-  @IsOptional()
-  @IsNumber()
-  memoryUsage?: number;
-
-  @ApiPropertyOptional({ description: "CPU使用率（0-1）" })
-  @IsOptional()
-  @IsNumber()
-  cpuUsage?: number;
-
-  @ApiPropertyOptional({ description: "平均查询时间（毫秒）" })
-  @IsOptional()
-  @IsNumber()
-  averageQueryTime?: number;
-
-  @ApiPropertyOptional({ description: "失败率（0-1）" })
-  @IsOptional()
-  @IsNumber()
-  failureRate?: number;
+  healthScore: number;
 }
 
-export class HealthReportDataDto {
-  @ApiProperty({ description: "整体健康状态" })
-  @ValidateNested()
-  @Type(() => Object)
-  overall: {
-    score: number;
-    status: "healthy" | "warning" | "critical";
-    timestamp: Date;
-  };
+// API组件健康状态
+export class ApiHealthDto extends BaseHealthDto implements ResponseTimeFields {
+  @ApiProperty({ description: "响应时间（毫秒）" })
+  @IsNumber()
+  responseTimeMs: number;
 
-  @ApiProperty({ description: "各组件健康状态" })
-  @ValidateNested()
-  @Type(() => Object)
-  components: {
-    api: ComponentHealthDto;
-    database: ComponentHealthDto;
-    cache: ComponentHealthDto;
-    system: ComponentHealthDto;
-  };
-
-  @ApiPropertyOptional({ description: "优化建议" })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  recommendations?: string[];
+  @ApiProperty({ description: "错误率（0-1）" })
+  @IsNumber()
+  errorRate: number;
 }
+
+// 数据库组件健康状态
+export class DatabaseHealthDto extends BaseHealthDto implements ResponseTimeFields {
+  @ApiProperty({ description: "平均响应时间（毫秒）" })
+  @IsNumber()
+  responseTimeMs: number;
+
+  @ApiProperty({ description: "失败率（0-1）" })
+  @IsNumber()
+  errorRate: number;
+}
+
+// 缓存组件健康状态
+export class CacheHealthDto extends BaseHealthDto implements ResponseTimeFields {
+  @ApiProperty({ description: "命中次数" })
+  @IsNumber()
+  hits: number;
+
+  @ApiProperty({ description: "未命中次数" })
+  @IsNumber()
+  misses: number;
+
+  @ApiProperty({ description: "平均响应时间（毫秒）" })
+  @IsNumber()
+  responseTimeMs: number;
+
+}
+
+// 系统组件健康状态
+export class SystemHealthDto extends BaseHealthDto {
+  @ApiProperty({ description: "内存使用率（0-1）" })
+  @IsNumber()
+  memoryUsage: number;
+
+  @ApiProperty({ description: "CPU使用率（0-1）" })
+  @IsNumber()
+  cpuUsage: number;
+}
+
+
+/**
+ * 系统组件健康状态集合DTO - 简化嵌套结构
+ */
+export class SystemComponentsHealthDto {
+  @ApiProperty({ description: "API组件健康状态", type: ApiHealthDto })
+  @ValidateNested()
+  @Type(() => ApiHealthDto)
+  api: ApiHealthDto;
+
+  @ApiProperty({ description: "数据库组件健康状态", type: DatabaseHealthDto })
+  @ValidateNested()
+  @Type(() => DatabaseHealthDto)
+  database: DatabaseHealthDto;
+
+  @ApiProperty({ description: "缓存组件健康状态", type: CacheHealthDto })
+  @ValidateNested()
+  @Type(() => CacheHealthDto)
+  cache: CacheHealthDto;
+
+  @ApiProperty({ description: "系统组件健康状态", type: SystemHealthDto })
+  @ValidateNested()
+  @Type(() => SystemHealthDto)
+  system: SystemHealthDto;
+}
+
+/**
+ * 性能摘要DTO - 简化嵌套结构
+ */
+export class PerformanceSummaryDataDto {
+  @ApiProperty({ description: "响应时间（毫秒）" })
+  @IsNumber()
+  responseTimeMs: number;
+
+  @ApiProperty({ description: "失败操作数" })
+  @IsNumber()
+  failedOperations: number;
+
+  @ApiProperty({ description: "系统负载（0-1）" })
+  @IsNumber()
+  systemLoad: number;
+}
+
 
 export class OptimizationSuggestionDto {
   @ApiProperty({
@@ -235,17 +243,13 @@ export class OptimizationSuggestionDto {
   @IsOptional()
   @IsString()
   action?: string;
-
-  @ApiPropertyOptional({ description: "预期影响" })
-  @IsOptional()
-  @IsString()
-  impact?: string;
 }
 
-export class AnalyzedDataDto {
+export class AnalyzedDataDto implements ResponseTimeFields {
   @ApiProperty({ description: "分析时间戳" })
-  @IsString()
-  timestamp: string;
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
 
   @ApiProperty({ description: "性能摘要", type: PerformanceSummaryDto })
   @ValidateNested()
@@ -254,7 +258,7 @@ export class AnalyzedDataDto {
 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
-  averageResponseTime: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "错误率（0-1）" })
   @IsNumber()
@@ -268,11 +272,13 @@ export class AnalyzedDataDto {
   @IsNumber()
   healthScore: number;
 
-  @ApiPropertyOptional({ description: "趋势分析", type: TrendsDataDto })
+  @ApiPropertyOptional({ description: "趋势分析" })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => TrendsDataDto)
-  trends?: TrendsDataDto;
+  trends?: {
+    responseTimeTrend: number[];
+    errorRateTrend: number[];
+    throughputTrend: number[];
+  };
 
   @ApiPropertyOptional({ description: "端点指标", type: [EndpointMetricDto] })
   @IsOptional()

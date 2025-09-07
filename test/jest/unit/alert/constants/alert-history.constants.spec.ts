@@ -3,13 +3,13 @@ import {
   ALERT_HISTORY_MESSAGES,
   ALERT_HISTORY_CONFIG,
   ALERT_HISTORY_DEFAULT_STATS,
-  ALERT_STATUS_MAPPING,
   ALERT_HISTORY_METRICS,
   ALERT_HISTORY_VALIDATION_RULES,
   ALERT_HISTORY_TIME_CONFIG,
   ALERT_HISTORY_THRESHOLDS,
   AlertHistoryUtil,
 } from "../../../../../src/alert/constants/alert-history.constants";
+import { AlertStatus } from "../../../../../src/alert/types/alert.types";
 
 describe("Alert History Constants", () => {
   describe("ALERT_HISTORY_OPERATIONS", () => {
@@ -210,15 +210,17 @@ describe("Alert History Constants", () => {
     });
   });
 
-  describe("ALERT_STATUS_MAPPING", () => {
-    it("应包含所有状态映射", () => {
-      expect(ALERT_STATUS_MAPPING.FIRING).toBe("firing");
-      expect(ALERT_STATUS_MAPPING.ACKNOWLEDGED).toBe("acknowledged");
-      expect(ALERT_STATUS_MAPPING.RESOLVED).toBe("resolved");
+  // 告警状态测试已迁移到使用 AlertStatus 枚举 (alert.types.ts)
+  describe("AlertStatus 集成", () => {
+    it("应使用统一的告警状态枚举", () => {
+      expect(AlertStatus.FIRING).toBe("firing");
+      expect(AlertStatus.ACKNOWLEDGED).toBe("acknowledged");
+      expect(AlertStatus.RESOLVED).toBe("resolved");
+      expect(AlertStatus.SUPPRESSED).toBe("suppressed");
     });
 
-    it("应是不可变对象", () => {
-      expect(Object.isFrozen(ALERT_STATUS_MAPPING)).toBe(true);
+    it("AlertStatus 应是不可变对象", () => {
+      expect(Object.isFrozen(AlertStatus)).toBe(true);
     });
   });
 
@@ -606,11 +608,11 @@ describe("Alert History Constants", () => {
         ALERT_HISTORY_MESSAGES,
         ALERT_HISTORY_CONFIG,
         ALERT_HISTORY_DEFAULT_STATS,
-        ALERT_STATUS_MAPPING,
         ALERT_HISTORY_METRICS,
         ALERT_HISTORY_VALIDATION_RULES,
         ALERT_HISTORY_TIME_CONFIG,
         ALERT_HISTORY_THRESHOLDS,
+        AlertStatus, // 使用统一的告警状态枚举
       ];
 
       constants.forEach((constant) => {

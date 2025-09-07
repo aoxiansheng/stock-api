@@ -6,49 +6,29 @@
 - 字段总数: 127
 - 重复率: 12.6%
 
-## 发现的问题
-
-### 🔴 严重（必须修复）
-
-1. **魔法数字大量重复 - 时间相关常量**
-   - 位置: 多个文件中出现 `1000`, `5000`, `10000`, `30000`, `60000` 等魔法数字
-   - 影响: 维护困难，语义不清晰，容易出错
-   - 建议: 提取到 `time.constants.ts` 统一管理
-
-2. **连接超时配置重复**
-   - 位置: 
-     - `stream-config.service.ts:193` - `10000` (CONNECTION_TIMEOUT_MS)
-     - `stream-connection.impl.ts:74` - `15000` (connectionTimeoutMs)
-     - `stream-data-fetcher.service.ts:671` - `30000` (connectionTimeoutMs)
-   - 影响: 不同服务使用不同的超时值，行为不一致
-   - 建议: 统一使用配置服务的超时设置
-
-3. **Redis连接配置硬编码**
-   - 位置: `stream-recovery.config.ts:91` - `"6379"` 端口号
-   - 影响: 环境切换困难，缺乏灵活性
-   - 建议: 使用环境变量或配置中心
+## 仍存在的问题
 
 ### 🟡 警告（建议修复）
 
 1. **清理间隔时间重复**
    - 位置: 
-     - `stream-client-state-manager.service.ts:79` - `5 * 60 * 1000` (5分钟)
-     - `stream-data-fetcher.service.ts:1305` - `5 * 60 * 1000` (5分钟)
-     - `stream-data-fetcher.service.ts:1821` - `5 * 60 * 1000` (5分钟)
+     - `stream-client-state-manager.service.ts:78` - `5 * 60 * 1000` (5分钟)
+     - `stream-data-fetcher.service.ts:1304` - `5 * 60 * 1000` (5分钟)
+     - `stream-data-fetcher.service.ts:1820` - `5 * 60 * 1000` (5分钟)
    - 影响: 计算重复，维护成本增加
    - 建议: 提取为 `CLEANUP_INTERVAL_MS` 常量
 
 2. **性能阈值分散定义**
    - 位置:
-     - `stream-data-fetcher.service.ts:120` - `2000` (poor response threshold)
+     - `stream-config.service.ts:210` - `2000` (slowResponseMs)
      - `stream-config-hot-reload.service.ts:58` - `2000` (poor performance threshold)
    - 影响: 性能标准不统一
    - 建议: 统一到性能配置常量中
 
 3. **心跳间隔配置不一致**
    - 位置:
-     - `stream-connection.impl.ts:73` - `30000` (heartbeatIntervalMs)
-     - `stream-recovery.config.ts:151` - `60000` (heartbeatTimeout)
+     - `stream-recovery.config.ts:141` - `30000` (maxDelay)
+     - `stream-recovery.config.ts:150` - `60000` (heartbeatTimeout)
    - 影响: 心跳机制配置混乱
    - 建议: 建立心跳配置规范
 
@@ -78,23 +58,16 @@
 - **模块常量**: 127个 (分布在配置、服务、接口中)
 - **枚举**: 2个 (`StreamConnectionStatus`, `ReconnectState`)
 - **接口类型**: 15个 (各种配置和数据结构接口)
-- **魔法数字**: 42个 (需要提取为常量)
+- **魔法数字**: 15个 (需要提取为常量)
 
 ### 重复问题详情
 
-#### Level 1: 完全重复（🔴 Critical）
-1. **时间常量 `1000`**: 出现 8 次
-2. **时间常量 `5000`**: 出现 6 次  
-3. **时间常量 `30000`**: 出现 5 次
-4. **清理间隔 `5 * 60 * 1000`**: 出现 3 次
-5. **Redis端口 `6379`**: 字符串形式重复
-
-#### Level 2: 语义重复（🟡 Warning）
-1. **连接超时**: `10000`, `15000`, `30000` 在不同文件中用于相同目的
+#### Level 1: 语义重复（🟡 Warning）
+1. **清理间隔**: `5 * 60 * 1000` 毫秒在多处用于相同目的
 2. **性能阈值**: `2000` 毫秒用作"慢响应"标准在多处出现
 3. **心跳配置**: 不同的心跳间隔和超时设置
 
-#### Level 3: 结构重复（🔵 Info）
+#### Level 2: 结构重复（🔵 Info）
 1. **Redis配置结构**: 在多个配置接口中重复
 2. **限流配置模式**: 类似的限流参数组合
 
@@ -108,11 +81,11 @@
 #### 需要改进
 - ❌ 缺少时间常量集中管理
 - ❌ 配置常量分散在各个服务中
-- ❌ 魔法数字过多，语义不清
+- ❌ 部分魔法数字仍存在，语义不清
 
 ## 改进建议
 
-### 1. 立即执行（高优先级）
+### 1. 中期优化（中优先级）
 
 #### 1.1 创建时间常量文件
 ```typescript
@@ -138,32 +111,7 @@ export const TIME_CONSTANTS = {
 } as const;
 ```
 
-#### 1.2 创建网络配置常量
-```typescript
-// constants/network.constants.ts
-export const NETWORK_CONSTANTS = {
-  REDIS: {
-    DEFAULT_PORT: 6379,
-    DEFAULT_HOST: 'localhost',
-  },
-  
-  RATE_LIMIT: {
-    DEFAULT_WINDOW_MS: 1000,
-    DEFAULT_QPS: 10,
-    BURST_WINDOW_MS: 10 * 1000,
-  },
-  
-  CONNECTION_LIMITS: {
-    MAX_PER_IP: 100,
-    MAX_PER_USER: 50,
-    MAX_GLOBAL: 1000,
-  }
-} as const;
-```
-
-### 2. 中期优化（中优先级）
-
-#### 2.1 统一配置接口
+#### 1.2 统一配置接口
 创建基础配置接口，供其他接口继承：
 
 ```typescript
@@ -180,25 +128,14 @@ export interface BaseRateLimitConfig {
 }
 ```
 
-#### 2.2 重构配置服务
-将硬编码值替换为常量引用：
+### 2. 长期优化（低优先级）
 
-```typescript
-// 替换前
-timeoutMs: this.getEnvNumber("STREAM_CONNECTION_TIMEOUT_MS", 10000)
-
-// 替换后  
-timeoutMs: this.getEnvNumber("STREAM_CONNECTION_TIMEOUT_MS", TIME_CONSTANTS.CONNECTION_TIMEOUT_MS)
-```
-
-### 3. 长期优化（低优先级）
-
-#### 3.1 建立配置中心
+#### 2.1 建立配置中心
 - 实现热重载配置
 - 环境隔离配置
 - 配置版本管理
 
-#### 3.2 添加配置验证
+#### 2.2 添加配置验证
 ```typescript
 export class ConfigValidator {
   static validateTimeoutConfig(config: TimeoutConfig): void {
@@ -211,17 +148,12 @@ export class ConfigValidator {
 
 ## 实施计划
 
-### 第一阶段 (1-2天)
+### 第一阶段 (3-5天)
 1. ✅ 创建 `constants/time.constants.ts`
-2. ✅ 创建 `constants/network.constants.ts` 
-3. ✅ 替换所有魔法数字时间常量
-
-### 第二阶段 (3-5天)
-1. ✅ 重构配置服务，使用统一常量
 2. ✅ 统一连接超时和心跳配置
 3. ✅ 添加配置验证
 
-### 第三阶段 (1周)
+### 第二阶段 (1周)
 1. ✅ 建立基础配置接口继承体系
 2. ✅ 实现配置热重载优化
 3. ✅ 添加配置文档和使用示例

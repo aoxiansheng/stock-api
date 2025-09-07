@@ -3,6 +3,8 @@ import { Document } from "mongoose";
 
 import { IAlert } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
+import type { AlertContext } from "../types/context.types";
+import { TIMING_CONSTANTS } from "../constants/timing.constants";
 
 export type AlertHistoryDocument = AlertHistory & Document;
 
@@ -69,19 +71,35 @@ export class AlertHistory implements IAlert {
   tags?: Record<string, string>;
 
   @Prop({ type: Object, default: {} })
-  context?: Record<string, any>;
+  context?: AlertContext; // 🎯 业务上下文：告警触发时的业务场景和环境信息
 
-  // 计算字段
-  get duration(): number {
-    if (!this.endTime) return 0;
-    return this.endTime.getTime() - this.startTime.getTime();
+  // 语义化访问器 - 提供统一的时间字段访问方式
+  get alertCreatedAt(): Date {
+    return this.startTime;
   }
 
-  get isActive(): boolean {
-    return (
-      this.status === AlertStatus.FIRING ||
-      this.status === AlertStatus.ACKNOWLEDGED
-    );
+  get alertProcessedAt(): Date | undefined {
+    return this.acknowledgedAt || this.resolvedAt;
+  }
+
+  get alertEndedAt(): Date | undefined {
+    return this.endTime;
+  }
+
+  // 语义化访问器 - 提供统一的用户字段访问方式
+  // 获取处理告警的人员（优先返回解决者）
+  get alertHandler(): string | undefined {
+    return this.resolvedBy || this.acknowledgedBy;
+  }
+
+  // 获取确认告警的人员
+  get alertAcknowledger(): string | undefined {
+    return this.acknowledgedBy;
+  }
+
+  // 获取解决告警的人员
+  get alertResolver(): string | undefined {
+    return this.resolvedBy;
   }
 }
 
@@ -96,8 +114,8 @@ AlertHistorySchema.index({ metric: 1, startTime: -1 });
 AlertHistorySchema.index({ "tags.environment": 1 });
 AlertHistorySchema.index({ "tags.service": 1 });
 
-// TTL 索引 - 自动删除90天前的告警历史
+// TTL 索引 - 自动删除告警历史 (使用预计算常量值优化性能)
 AlertHistorySchema.index(
   { startTime: 1 },
-  { expireAfterSeconds: 90 * 24 * 60 * 60 },
+  { expireAfterSeconds: TIMING_CONSTANTS.DB_TTL.ALERT_HISTORY_SECONDS }, // 约90天，预计算值
 );

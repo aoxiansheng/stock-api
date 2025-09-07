@@ -4,8 +4,8 @@
  */
 
 import { deepFreeze } from "@common/utils/object-immutability.util";
-import { RETRY_CONSTANTS } from "@common/constants/unified/retry.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 
 // 📝 操作名称常量
 export const APIKEY_OPERATIONS = deepFreeze({
@@ -61,7 +61,7 @@ export const APIKEY_DEFAULTS = deepFreeze({
   APP_KEY_PREFIX: "sk-",
   ACCESS_TOKEN_LENGTH: 32,
   DEFAULT_RATE_LIMIT: {
-    requests: 200,
+    requestLimit: 200,
     window: "1m",
   },
   DEFAULT_ACTIVE_STATUS: true,
@@ -86,39 +86,6 @@ export const APIKEY_CONFIG = deepFreeze({
   STATISTICS_CACHE_TTL_SECONDS: 300,
 });
 
-// 📊 API Key 状态常量
-export const APIKEY_STATUS = deepFreeze({
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  EXPIRED: "expired",
-  REVOKED: "revoked",
-  SUSPENDED: "suspended",
-  PENDING: OperationStatus.PENDING,
-});
-
-// 🏷️ API Key 类型常量
-export const APIKEY_TYPES = deepFreeze({
-  STANDARD: "standard",
-  PREMIUM: "premium",
-  ENTERPRISE: "enterprise",
-  TRIAL: "trial",
-  DEVELOPMENT: "development",
-  PRODUCTION: "production",
-});
-
-// 📈 API Key 指标常量
-export const APIKEY_METRICS = deepFreeze({
-  VALIDATION_COUNT: "apikey_validation_count",
-  VALIDATION_SUCCESS_COUNT: "apikey_validation_success_count",
-  VALIDATION_FAILURE_COUNT: "apikey_validation_failure_count",
-  CREATION_COUNT: "apikey_creation_count",
-  REVOCATION_COUNT: "apikey_revocation_count",
-  USAGE_UPDATE_COUNT: "apikey_usage_update_count",
-  AVERAGE_VALIDATION_TIME: "apikey_avg_validation_time",
-  ACTIVE_API_KEYS_COUNT: "apikey_active_count",
-  EXPIRED_API_KEYS_COUNT: "apikey_expired_count",
-  TOTAL_USAGE_COUNT: "apikey_total_usage_count",
-});
 
 // 🔍 验证规则常量
 export const APIKEY_VALIDATION_RULES = deepFreeze({
@@ -137,54 +104,4 @@ export const APIKEY_TIME_CONFIG = deepFreeze({
   VALIDATION_TIMEOUT_MS: 3000,
   STATISTICS_UPDATE_INTERVAL_MS: 300000, // 5分钟
   CACHE_REFRESH_INTERVAL_MS: 600000, // 10分钟
-});
-
-// 🚨 告警阈值常量
-export const APIKEY_ALERT_THRESHOLDS = deepFreeze({
-  HIGH_USAGE_PERCENTAGE: 80,
-  CRITICAL_USAGE_PERCENTAGE: 95,
-  VALIDATION_FAILURE_RATE: 0.1,
-  UNUSUAL_ACTIVITY_THRESHOLD: 1000,
-  RATE_LIMIT_WARNING_PERCENTAGE: 90,
-});
-
-// 🔄 重试配置常量 - 引用统一配置，保持向后兼容
-export const APIKEY_RETRY_CONFIG = deepFreeze({
-  ...RETRY_CONSTANTS.DEFAULT_SETTINGS,
-  TIMEOUT_MS: 10000, // 保留API Key特定的超时配置
-});
-
-// 📋 错误代码常量
-export const APIKEY_ERROR_CODES = deepFreeze({
-  INVALID_CREDENTIALS: "APIKEY_001",
-  EXPIRED_CREDENTIALS: "APIKEY_002",
-  INSUFFICIENT_PERMISSIONS: "APIKEY_003",
-  NOT_FOUND: "APIKEY_004",
-  CREATION_FAILED: "APIKEY_005",
-  UPDATE_FAILED: "APIKEY_006",
-  REVOCATION_FAILED: "APIKEY_007",
-  VALIDATION_FAILED: "APIKEY_008",
-  RATE_LIMIT_EXCEEDED: "APIKEY_009",
-  GENERATION_FAILED: "APIKEY_010",
-});
-
-// 🎯 缓存键常量
-export const APIKEY_CACHE_KEYS = deepFreeze({
-  VALIDATION: "apikey:validation:",
-  USAGE_STATS: "apikey:usage:",
-  USER_KEYS: "apikey:user:",
-  PERMISSIONS: "apikey:permissions:",
-  RATE_LIMIT: "apikey:ratelimit:",
-  STATISTICS: "apikey:stats:",
-});
-
-// 🎨 日志级别映射常量
-export const APIKEY_LOG_LEVELS = deepFreeze({
-  VALIDATION_SUCCESS: "debug",
-  VALIDATION_FAILURE: "warn",
-  CREATION: "info",
-  REVOCATION: "info",
-  ERROR: "error",
-  USAGE_UPDATE: "debug",
-  STATISTICS: "debug",
 });

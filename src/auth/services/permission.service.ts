@@ -7,8 +7,9 @@ import { securityConfig } from "@auth/config/security.config";
 // 更新导入路径，从utils导入PermissionTemplateUtil
 import {
   PERMISSION_OPERATIONS,
-  PERMISSION_MESSAGES,
+  PERMISSION_EXTENDED_MESSAGES,
 } from "../constants/permission.constants";
+import { PERMISSION_MESSAGES } from "@common/constants/unified/permission-message.constants";
 
 // 从工具文件导入PermissionTemplateUtil
 import { PermissionTemplateUtil } from "../utils/permission.utils";
@@ -58,7 +59,7 @@ export class PermissionService {
     const operation = PERMISSION_OPERATIONS.CHECK_PERMISSIONS;
     const startTime = Date.now();
 
-    this.logger.debug(PERMISSION_MESSAGES.PERMISSION_CHECK_STARTED, {
+    this.logger.debug(PERMISSION_EXTENDED_MESSAGES.PERMISSION_CHECK_STARTED, {
       operation,
       subject: subject.getDisplayName(),
       requiredPermissions,
@@ -77,14 +78,14 @@ export class PermissionService {
       const cachedResult =
         await this.cacheService.get<PermissionCheckResult>(cacheKey);
       if (cachedResult) {
-        this.logger.debug(PERMISSION_MESSAGES.CACHE_HIT, {
+        this.logger.debug(PERMISSION_EXTENDED_MESSAGES.CACHE_HIT, {
           operation,
           subject: subject.getDisplayName(),
           cache: "hit",
         });
         return cachedResult;
       } else {
-        this.logger.debug(PERMISSION_MESSAGES.CACHE_MISS, {
+        this.logger.debug(PERMISSION_EXTENDED_MESSAGES.CACHE_MISS, {
           operation,
           subject: subject.getDisplayName(),
           cache: "miss",
@@ -114,7 +115,7 @@ export class PermissionService {
 
       return result;
     } catch (error) {
-      this.logger.error(PERMISSION_MESSAGES.CHECK_FAILED, {
+      this.logger.error(PERMISSION_EXTENDED_MESSAGES.CHECK_FAILED, {
         operation,
         subject: subject.getDisplayName(),
         requiredPermissions,
@@ -229,21 +230,21 @@ export class PermissionService {
       const deletedCount = await this.cacheService.delByPattern(pattern);
 
       if (deletedCount > 0) {
-        this.logger.log(PERMISSION_MESSAGES.CACHE_INVALIDATED, {
+        this.logger.log(PERMISSION_EXTENDED_MESSAGES.CACHE_INVALIDATED, {
           operation,
           subject: subject.getDisplayName(),
           deletedCount,
           pattern,
         });
       } else {
-        this.logger.debug(PERMISSION_MESSAGES.NO_CACHE_TO_INVALIDATE, {
+        this.logger.debug(PERMISSION_EXTENDED_MESSAGES.NO_CACHE_TO_INVALIDATE, {
           operation,
           subject: subject.getDisplayName(),
           pattern,
         });
       }
     } catch (error) {
-      this.logger.error(PERMISSION_MESSAGES.CACHE_INVALIDATION_FAILED, {
+      this.logger.error(PERMISSION_EXTENDED_MESSAGES.CACHE_INVALIDATION_FAILED, {
         operation,
         subject: subject.getDisplayName(),
         pattern,
@@ -322,8 +323,8 @@ export class PermissionService {
   ): void {
     const logLevel = result.allowed ? "debug" : "warn";
     const message = result.allowed
-      ? PERMISSION_MESSAGES.CHECK_PASSED
-      : PERMISSION_MESSAGES.CHECK_FAILED;
+      ? PERMISSION_EXTENDED_MESSAGES.CHECK_PASSED
+      : PERMISSION_EXTENDED_MESSAGES.CHECK_FAILED;
 
     this.logger[logLevel]({
       subject: subject.getDisplayName(),

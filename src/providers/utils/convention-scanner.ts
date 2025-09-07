@@ -14,7 +14,7 @@ import {
   ScanStats,
   ScanResult,
 } from "../decorators/types/metadata.types";
-import { PROVIDER_TIMEOUT } from "../constants";
+import { PROVIDER_TIMEOUT, CAPABILITY_NAMES } from "../constants";
 
 /**
  * 约定优于配置的目录扫描器 - 单例模式防止重复扫描
@@ -152,7 +152,7 @@ export class ConventionScanner {
     try {
       if (!SmartPathResolver.pathExists(capabilitiesPath)) {
         violations.push({
-          type: "missing_directory",
+          type: "structural",
           path: capabilitiesPath,
           message: `提供商 ${providerName} 缺少 capabilities 目录`,
           suggestion: `创建目录: ${capabilitiesPath}`,
@@ -181,7 +181,7 @@ export class ConventionScanner {
       return { capabilities, violations };
     } catch (error) {
       violations.push({
-        type: "invalid_structure",
+        type: "structural",
         path: capabilitiesPath,
         message: `扫描能力失败: ${error.message}`,
       });
@@ -356,13 +356,13 @@ export class ConventionScanner {
     // 检查命名约定
     if (!this.isValidCapabilityName(capabilityName)) {
       violations.push({
-        type: "naming_convention",
+        type: "naming", 
         path: join(
           SmartPathResolver.getProviderCapabilitiesPath(providerName),
           filename,
         ),
         message: `能力名称 ${capabilityName} 不符合命名约定`,
-        suggestion: "能力名称应使用 kebab-case 格式，如: get-stock-quote",
+        suggestion: `能力名称应使用 kebab-case 格式，如: ${CAPABILITY_NAMES.GET_STOCK_QUOTE}`,
       });
     }
 
@@ -392,7 +392,7 @@ export class ConventionScanner {
       // 检查提供商名称约定
       if (!this.isValidProviderName(provider.name)) {
         violations.push({
-          type: "naming_convention",
+          type: "naming", 
           path: SmartPathResolver.getProviderPath(provider.name),
           message: `提供商名称 ${provider.name} 不符合命名约定`,
           suggestion: "提供商名称应使用 kebab-case 格式",
@@ -402,7 +402,7 @@ export class ConventionScanner {
       // 检查是否有能力
       if (provider.capabilities.length === 0) {
         violations.push({
-          type: "missing_file",
+          type: "structural",
           path: SmartPathResolver.getProviderCapabilitiesPath(provider.name),
           message: `提供商 ${provider.name} 没有任何能力`,
           suggestion: "至少实现一个能力文件",
@@ -429,7 +429,7 @@ export class ConventionScanner {
     error: Error,
   ): ConventionViolation {
     return {
-      type: "invalid_structure",
+      type: "structural",
       path: SmartPathResolver.getProviderPath(providerName),
       message: `提供商 ${providerName} 加载失败: ${error.message}`,
       suggestion: "检查提供商结构和文件完整性",

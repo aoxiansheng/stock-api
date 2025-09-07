@@ -3,6 +3,8 @@
  * 🎯 符合开发规范指南 - 统一常量管理
  */
 import { deepFreeze } from "@common/utils/object-immutability.util";
+import { CommonStatus } from "../enums/common-status.enum";
+import { PERMISSION_MESSAGES } from "@common/constants/unified/permission-message.constants";
 
 // 📝 操作名称常量
 export const PERMISSION_OPERATIONS = deepFreeze({
@@ -20,21 +22,25 @@ export const PERMISSION_OPERATIONS = deepFreeze({
   VALIDATE_ROLES: "validateRoles",
 });
 
-// 📢 消息常量
-export const PERMISSION_MESSAGES = deepFreeze({
+// 📢 消息常量 - 引用统一权限消息常量
+// 注意：PERMISSION_MESSAGES 现在从 @common/constants/unified/permission.constants 导入
+// 这里保留权限系统特有的扩展消息
+export const PERMISSION_EXTENDED_MESSAGES = deepFreeze({
   // 成功消息
   CHECK_PASSED: "权限检查通过",
-  CACHE_HIT: "权限检查命中缓存",
+  CACHE_HIT: "权限检查命中缓存", 
   CACHE_INVALIDATED: "权限缓存已失效",
   CONTEXT_CREATED: "权限上下文创建成功",
   EFFECTIVE_PERMISSIONS_RETRIEVED: "有效权限获取成功",
   PERMISSIONS_COMBINED: "权限列表合并成功",
   CACHE_KEY_GENERATED: "缓存键生成成功",
 
-  // 错误消息
+  // 错误消息 - 使用统一消息常量
   CHECK_FAILED: "权限检查失败",
+  INSUFFICIENT_PERMISSIONS: PERMISSION_MESSAGES.INSUFFICIENT,
+  API_KEY_INSUFFICIENT_PERMISSIONS: PERMISSION_MESSAGES.API_KEY_INSUFFICIENT,
   CACHE_INVALIDATION_FAILED: "权限缓存失效失败",
-  CONTEXT_CREATION_FAILED: "权限上下文创建失败",
+  CONTEXT_CREATION_FAILED: "权限上下文创建失败", 
   PERMISSION_VALIDATION_FAILED: "权限验证失败",
   ROLE_VALIDATION_FAILED: "角色验证失败",
   SUBJECT_VALIDATION_FAILED: "主体验证失败",
@@ -42,7 +48,7 @@ export const PERMISSION_MESSAGES = deepFreeze({
 
   // 警告消息
   MISSING_PERMISSIONS_DETECTED: "检测到缺失权限",
-  MISSING_ROLES_DETECTED: "检测到缺失角色",
+  MISSING_ROLES_DETECTED: "检测到缺失角色", 
   CACHE_MISS: "权限检查缓存未命中",
   SLOW_PERMISSION_CHECK: "权限检查响应较慢",
   INVALID_SUBJECT: "无效的权限主体",
@@ -51,11 +57,14 @@ export const PERMISSION_MESSAGES = deepFreeze({
   // 信息消息
   NO_CACHE_TO_INVALIDATE: "未找到需要失效的权限缓存",
   PERMISSION_CHECK_STARTED: "开始权限检查",
-  CACHE_INVALIDATION_STARTED: "开始权限缓存失效",
+  CACHE_INVALIDATION_STARTED: "开始权限缓存失效", 
   CONTEXT_CREATION_STARTED: "开始创建权限上下文",
   EFFECTIVE_PERMISSIONS_LOOKUP: "查询有效权限",
   PERMISSIONS_COMBINATION_STARTED: "开始合并权限列表",
 });
+
+// 为了向后兼容，导出统一的 PERMISSION_MESSAGES，合并扩展消息
+export { PERMISSION_MESSAGES };
 
 // 🎯 详情模板常量
 export const PERMISSION_DETAIL_TEMPLATES = deepFreeze({
@@ -83,14 +92,15 @@ export const PERMISSION_CONFIG = deepFreeze({
   ROLE_LIST_SEPARATOR: ",",
 });
 
-// 📊 权限检查状态常量
+// 📊 权限检查状态常量 - 简化为3个核心状态
 export const PERMISSION_CHECK_STATUS = deepFreeze({
+  /** 权限检查通过 */
   ALLOWED: "allowed",
-  DENIED: "denied",
-  PARTIAL: "partial",
+  /** 权限检查被拒绝 */
+  DENIED: "denied", 
+  /** 权限检查过程出错 */
   ERROR: "error",
-  CACHED: "cached",
-  FRESH: "fresh",
+  // 已移除: PARTIAL, CACHED, FRESH (复杂度过高，使用率低)
 });
 
 // 🏷️ 权限主体类型常量
@@ -103,29 +113,7 @@ export const PERMISSION_SUBJECT_TYPES = deepFreeze({
   ADMIN: "admin",
 });
 
-// 📈 权限指标常量
-export const PERMISSION_METRICS = deepFreeze({
-  CHECK_COUNT: "permission_check_count",
-  CHECK_DURATION: "permission_check_duration",
-  CACHE_HIT_RATE: "permission_cache_hit_rate",
-  CACHE_MISS_RATE: "permission_cache_miss_rate",
-  DENIED_COUNT: "permission_denied_count",
-  ALLOWED_COUNT: "permission_allowed_count",
-  SLOW_CHECK_COUNT: "permission_slow_check_count",
-  CACHE_INVALIDATION_COUNT: "permission_cache_invalidation_count",
-  CONTEXT_CREATION_COUNT: "permission_context_creation_count",
-  EFFECTIVE_PERMISSIONS_COUNT: "permission_effective_count",
-});
 
-// 🎛️ 缓存键前缀常量
-export const PERMISSION_CACHE_KEYS = deepFreeze({
-  PERMISSION_CHECK: "permission:check:",
-  EFFECTIVE_PERMISSIONS: "permission:effective:",
-  ROLE_PERMISSIONS: "permission:role:",
-  SUBJECT_CACHE: "permission:subject:",
-  CONTEXT_CACHE: "permission:context:",
-  VALIDATION_CACHE: "permission:validation:",
-});
 
 // 🔍 权限验证规则常量
 export const PERMISSION_VALIDATION_RULES = deepFreeze({
@@ -191,19 +179,7 @@ export const PERMISSION_TIMING = deepFreeze({
   METRICS_COLLECTION_INTERVAL_MS: 300000, // 5分钟
 });
 
-// 🚨 权限错误代码常量
-export const PERMISSION_ERROR_CODES = deepFreeze({
-  PERMISSION_DENIED: "PERM_001",
-  ROLE_REQUIRED: "PERM_002",
-  INVALID_SUBJECT: "PERM_003",
-  CACHE_ERROR: "PERM_004",
-  VALIDATION_ERROR: "PERM_005",
-  TIMEOUT_ERROR: "PERM_006",
-  CONFIGURATION_ERROR: "PERM_007",
-  INHERITANCE_ERROR: "PERM_008",
-  CONTEXT_ERROR: "PERM_009",
-  SYSTEM_ERROR: "PERM_010",
-});
+// 🚨 权限错误代码常量 - 已移除，请使用 UNIFIED_ERROR_CODES
 
 // 🎨 权限日志级别常量
 export const PERMISSION_LOG_LEVELS = deepFreeze({

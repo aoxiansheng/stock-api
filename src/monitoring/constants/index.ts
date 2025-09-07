@@ -8,8 +8,7 @@
 export {
   MONITORING_KEY_TEMPLATES,
   MONITORING_KEY_PREFIXES,
-  MONITORING_KEY_SEPARATORS,
-  MonitoringKeyGenerator
+  MONITORING_KEY_SEPARATORS
 } from './config/monitoring-keys.constants';
 
 export {
@@ -25,31 +24,37 @@ export {
   checkMetricThreshold
 } from './config/monitoring-metrics.constants';
 
-// ========================= 状态层常量 =========================
+// 系统限制常量
 export {
+  MONITORING_SYSTEM_LIMITS,
+  MonitoringSystemLimitUtils
+} from './config/monitoring-system.constants';
+
+// 健康状态常量（新增）
+export {
+  MONITORING_HEALTH_STATUS,
   BASIC_HEALTH_STATUS_VALUES,
   EXTENDED_HEALTH_STATUS_VALUES,
-  MONITORING_HEALTH_STATUS,
   MONITORING_BASIC_HEALTH_STATUS_VALUES,
   MONITORING_EXTENDED_HEALTH_STATUS_VALUES,
-  mapInternalToExternalStatus,
+  MonitoringHealthUtils,
   isValidMonitoringStatus,
-  getMonitoringStatusSeverity
-} from './status/monitoring-status.constants';
+  getMonitoringStatusSeverity,
+  mapInternalToExternalStatus,
+  MONITORING_STATUS_DESCRIPTIONS,
+  MONITORING_STATUS_COLORS
+} from './config/monitoring-health.constants';
 
+// ========================= 状态层常量（向后兼容导出） =========================
 export type {
+  MonitoringHealthStatus,
   BasicHealthStatus,
   ExtendedHealthStatus
 } from './status/monitoring-status.constants';
 
 // ========================= 消息层常量 =========================
 export {
-  MONITORING_OPERATION_MESSAGES,
-  MONITORING_ERROR_MESSAGES,
-  MONITORING_LOG_MESSAGES,
-  MONITORING_NOTIFICATION_MESSAGES,
-  MONITORING_STATUS_DESCRIPTIONS,
-  MONITORING_ACTION_PROMPTS,
+  MONITORING_MESSAGE_STATUS_DESCRIPTIONS,
   MONITORING_MESSAGE_TYPES,
   MONITORING_MESSAGE_SEVERITY,
   MonitoringMessageFormatter
@@ -62,8 +67,10 @@ export { MonitoringSerializer, MonitoringDataSerializer } from '../utils/monitor
 export type { MonitoringKeyTemplate } from './config/monitoring-keys.constants';
 export type { PerformanceMetricType } from './config/monitoring-metrics.constants';
 export type {
-  MonitoringOperationMessage,
-  MonitoringErrorMessage,
+  MonitoringSystemLimitKeys,
+  MonitoringSystemLimits
+} from './config/monitoring-system.constants';
+export type {
   MonitoringMessageType,
   MonitoringMessageSeverity
 } from './messages/monitoring-messages.constants';

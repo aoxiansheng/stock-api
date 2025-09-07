@@ -26,7 +26,7 @@ export interface AuthRateLimitConfig {
  * API Key 使用统计接口
  */
 export interface ApiKeyUsageStats {
-  current: number;
+  currentPeriodRequestCount: number;
   limit: number;
   remaining: number;
   resetTime: number;
@@ -36,8 +36,8 @@ export interface ApiKeyUsageStats {
  * 详细使用统计接口
  */
 export interface DetailedUsageStats {
-  totalRequests: number;
-  currentPeriodRequests: number;
+  totalRequestCount: number;
+  currentPeriodRequestCount: number;
   lastRequestTime?: Date;
   averageRequestsPerHour: number;
 }

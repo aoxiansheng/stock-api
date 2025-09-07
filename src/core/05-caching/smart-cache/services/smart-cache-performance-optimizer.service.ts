@@ -30,7 +30,7 @@ export class SmartCachePerformanceOptimizer {
   /** 动态配置管理 */
   private dynamicMaxConcurrency: number;
   private originalMaxConcurrency: number;
-  private currentBatchSize = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
+  private currentBatchSize: number = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
 
   /** 性能统计 */
   private performanceStats = {

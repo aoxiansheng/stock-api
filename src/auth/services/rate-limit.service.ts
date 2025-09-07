@@ -8,11 +8,12 @@ import { securityConfig } from "@auth/config/security.config";
 import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
-  RATE_LIMIT_LUA_SCRIPTS,
+  RATE_LIMIT_LUA_SCRIPT_NAMES,
   RATE_LIMIT_TIME_MULTIPLIERS,
   RateLimitTemplateUtil,
   RateLimitStrategy,
 } from "../../common/constants/rate-limit.constants";
+import { RateLimitLuaScriptsService } from "../../common/scripts/lua/rate-limit-lua-scripts.service";
 import { RateLimitResult } from "../interfaces/rate-limit.interface";
 import { ApiKey } from "../schemas/apikey.schema";
 
@@ -31,6 +32,7 @@ export class RateLimitService {
   private readonly logger = createLogger(RateLimitService.name);
   // 🎯 使用集中化配置
   private readonly config = securityConfig.rateLimit;
+  private readonly luaScriptsService = new RateLimitLuaScriptsService();
 
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
@@ -53,7 +55,7 @@ export class RateLimitService {
       operation,
       appKey,
       strategy,
-      limit: rateLimit.requests,
+      limit: rateLimit.requestLimit,
       window: rateLimit.window,
       redisKey: key,
     });
@@ -74,13 +76,13 @@ export class RateLimitService {
         case RateLimitStrategy.FIXED_WINDOW:
           return await this.checkFixedWindow(
             key,
-            rateLimit.requests,
+            rateLimit.requestLimit,
             windowSeconds,
           );
         case RateLimitStrategy.SLIDING_WINDOW:
           return await this.checkSlidingWindow(
             key,
-            rateLimit.requests,
+            rateLimit.requestLimit,
             windowSeconds,
           );
       }
@@ -102,9 +104,9 @@ export class RateLimitService {
 
       return {
         allowed: true,
-        limit: rateLimit.requests,
+        limit: rateLimit.requestLimit,
         current: 0,
-        remaining: rateLimit.requests,
+        remaining: rateLimit.requestLimit,
         resetTime: Date.now() + windowSeconds * 1000,
         retryAfter: undefined,
       };
@@ -186,7 +188,7 @@ export class RateLimitService {
       windowSeconds,
     });
 
-    const luaScript = RATE_LIMIT_LUA_SCRIPTS.SLIDING_WINDOW;
+    const luaScript = this.luaScriptsService.getSlidingWindowScript();
 
     const result = (await this.redis.eval(
       luaScript,
@@ -271,7 +273,7 @@ export class RateLimitService {
     const { rateLimit, appKey } = apiKey;
     const windowSeconds = this.parseWindowToSeconds(rateLimit.window);
     const key = this.generateRedisKey(appKey, rateLimit.window);
-    const limit = rateLimit.requests;
+    const limit = rateLimit.requestLimit;
     const currentTime = Date.now();
 
     let current = 0;
@@ -351,27 +353,27 @@ export class RateLimitService {
     apiKey: ApiKey,
     strategy: RateLimitStrategy,
   ): Promise<{
-    totalRequests: number;
-    currentPeriodRequests: number;
+    totalRequestCount: number;
+    currentPeriodRequestCount: number;
     lastRequestTime?: Date;
     averageRequestsPerHour: number;
   }> {
-    const totalRequests = apiKey.usageCount || 0;
-    const lastRequestTime = apiKey.lastUsedAt;
+    const totalRequestCount = apiKey.totalRequestCount || 0;
+    const lastRequestTime = apiKey.lastAccessedAt;
 
     const currentUsage = await this.getCurrentUsage(apiKey, strategy);
-    const currentPeriodRequests = currentUsage.current;
+    const currentPeriodRequestCount = currentUsage.current;
 
-    const createdAt = apiKey.createdAt;
+    const createdAt = (apiKey as any).createdAt || new Date();
     const hoursElapsed = Math.max(
       1,
       (Date.now() - createdAt.getTime()) / (1000 * 60 * 60),
     );
-    const averageRequestsPerHour = totalRequests / hoursElapsed;
+    const averageRequestsPerHour = totalRequestCount / hoursElapsed;
 
     return {
-      totalRequests,
-      currentPeriodRequests,
+      totalRequestCount,
+      currentPeriodRequestCount,
       lastRequestTime,
       averageRequestsPerHour: Math.round(averageRequestsPerHour * 100) / 100,
     };

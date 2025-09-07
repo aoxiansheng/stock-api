@@ -6,6 +6,8 @@ import {
   IsEnum,
 } from "class-validator";
 import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/cache.constants";
+import { CacheConfigSizeInfo } from "../shared/size-fields.interface";
+import { OptionalTTL } from "../shared/ttl-fields.interface";
 
 /**
  * 通用缓存配置DTO
@@ -13,7 +15,7 @@ import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/cache.co
  * 用于统一缓存操作的配置参数
  * 包含序列化、压缩、TTL等核心配置
  */
-export class CacheConfigDto {
+export class CacheConfigDto implements CacheConfigSizeInfo, OptionalTTL {
   @ApiProperty({
     description: "缓存TTL（秒）",
     required: false,
@@ -43,7 +45,7 @@ export class CacheConfigDto {
 
   @ApiProperty({
     description: "序列化器类型",
-    enum: ["json", "msgpack"],
+    enum: SERIALIZER_TYPE_VALUES,
     required: false,
     default: "json",
     example: "json",

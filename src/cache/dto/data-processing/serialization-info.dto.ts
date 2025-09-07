@@ -7,11 +7,12 @@ import {
   IsString,
 } from "class-validator";
 import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/cache.constants";
+import { SerializationSizeInfo } from "../shared/size-fields.interface";
 
 /**
  * 缓存序列化信息DTO
  */
-export class CacheSerializationInfoDto {
+export class CacheSerializationInfoDto implements SerializationSizeInfo {
   @ApiProperty({ description: "序列化类型", enum: SERIALIZER_TYPE_VALUES })
   @IsEnum(SERIALIZER_TYPE_VALUES)
   type: SerializerType;
@@ -22,7 +23,7 @@ export class CacheSerializationInfoDto {
 
   @ApiProperty({ description: "序列化时间（毫秒）" })
   @IsNumber()
-  serializationTime: number;
+  serializationTimeMs: number;
 
   @ApiProperty({ description: "是否序列化成功" })
   @IsBoolean()

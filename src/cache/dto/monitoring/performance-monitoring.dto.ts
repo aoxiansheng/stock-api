@@ -6,18 +6,19 @@ import {
   IsOptional,
   IsObject,
 } from "class-validator";
+import { ProcessingTimeFields } from "../../../common/interfaces/time-fields.interface";
 
 /**
  * 缓存性能监控DTO
  */
-export class CachePerformanceMonitoringDto {
+export class CachePerformanceMonitoringDto implements ProcessingTimeFields {
   @ApiProperty({ description: "操作类型" })
   @IsString()
   operation: string;
 
-  @ApiProperty({ description: "执行时间（毫秒）" })
+  @ApiProperty({ description: "处理时间（毫秒）" })
   @IsNumber()
-  executionTimeMs: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "操作时间戳" })
   @IsNumber()

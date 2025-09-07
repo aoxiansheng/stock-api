@@ -3,11 +3,13 @@ import {
   IsString,
   IsNumber,
 } from "class-validator";
+import { CacheStatistics } from "../shared/cache-statistics.interface";
+import { KeyPattern } from "../shared/key-pattern.interface";
 
 /**
  * 缓存键模式分析DTO
  */
-export class CacheKeyPatternAnalysisDto {
+export class CacheKeyPatternAnalysisDto implements CacheStatistics, KeyPattern {
   @ApiProperty({ description: "键模式" })
   @IsString()
   pattern: string;

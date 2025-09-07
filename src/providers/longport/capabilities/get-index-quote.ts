@@ -1,18 +1,19 @@
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";
 import { LongportQuoteResponse } from "../types";
+import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../constants";
 
 /**
  * LongPort 指数报价获取能力
  * 注意：此函数需要与 LongportContextService 配合使用
  */
 export const getIndexQuote: ICapability = {
-  name: "get-index-quote", // receiverType
+  name: CAPABILITY_NAMES.GET_INDEX_QUOTE, // receiverType
   description: "获取指数实时报价数据",
-  supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH],
-  supportedSymbolFormats: ["HSI.HI", "000001.SH", "399001.SZ"],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH],
+  supportedSymbolFormats: SYMBOL_FORMATS.INDEX_FORMATS,
   rateLimit: {
     requestsPerSecond: 10,
     requestsPerDay: 5000,

@@ -3,7 +3,7 @@
  * 🎯 符合开发规范指南 - 统一常量管理
  */
 import { deepFreeze } from "@common/utils/object-immutability.util";
-import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+// Imports for notification constants
 // 📝 操作名称常量
 export const NOTIFICATION_OPERATIONS = deepFreeze({
   SEND_NOTIFICATION: "sendNotification",
@@ -70,8 +70,9 @@ export const NOTIFICATION_ERROR_TEMPLATES = deepFreeze({
   TIMEOUT_ERROR: "操作超时: {operation} 耗时超过 {timeout}ms",
 });
 
-// 📋 模板变量常量
+// 📋 模板变量常量（核心变量）
 export const NOTIFICATION_TEMPLATE_VARIABLES = deepFreeze({
+  // 告警基础信息
   ALERT_ID: "alertId",
   RULE_NAME: "ruleName",
   METRIC: "metric",
@@ -80,103 +81,53 @@ export const NOTIFICATION_TEMPLATE_VARIABLES = deepFreeze({
   SEVERITY: "severity",
   STATUS: "status",
   MESSAGE: "message",
+  
+  // 时间相关
   START_TIME: "startTime",
   END_TIME: "endTime",
   DURATION: "duration",
+  
+  // 额外信息
   TAGS: "tags",
   RULE_ID: "ruleId",
-  RULE_DESCRIPTION: "ruleDescription",
-  ALERT_URL: "alertUrl",
-  DASHBOARD_URL: "dashboardUrl",
+  RULE_DESCRIPTION: "ruleDescription"
 });
 
-// 🎨 模板格式化常量 - 修改为字符串模式
+// 🎨 简化的模板格式化常量
+/**
+ * 通知模板变量替换（简化版）
+ * 
+ * 仅支持基础的变量替换功能:
+ * 
+ * ## 变量替换 (Variable Substitution)
+ * 语法: {{variableName}}
+ * 用途: 在模板中插入动态变量值
+ * 
+ * 示例:
+ * ```
+ * 模板: "告警: {{alertName}} 在 {{timestamp}} 触发"
+ * 数据: { alertName: "CPU使用率过高", timestamp: "2025-09-06 10:30:00" }
+ * 结果: "告警: CPU使用率过高 在 2025-09-06 10:30:00 触发"
+ * ```
+ */
 export const NOTIFICATION_TEMPLATE_PATTERNS = deepFreeze({
-  // 存储正则模式字符串和标志，而非正则对象
-  VARIABLE_PATTERN_SOURCE: "\\{\\{(\\w+)\\}\\}",
-  VARIABLE_PATTERN_FLAGS: "g",
-
-  IF_BLOCK_PATTERN_SOURCE:
-    "\\{\\{#if (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/if\\}\\}",
-  IF_BLOCK_PATTERN_FLAGS: "g",
-
-  UNLESS_BLOCK_PATTERN_SOURCE:
-    "\\{\\{#unless (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/unless\\}\\}",
-  UNLESS_BLOCK_PATTERN_FLAGS: "g",
-
-  EACH_BLOCK_PATTERN_SOURCE:
-    "\\{\\{#each (\\w+)\\}\\}([\\s\\S]*?)\\{\\{\\/each\\}\\}",
-  EACH_BLOCK_PATTERN_FLAGS: "g",
-
-  COMMENT_PATTERN_SOURCE: "\\{\\{!--[\\s\\S]*?--\\}\\}",
-  COMMENT_PATTERN_FLAGS: "g",
+  // 变量模式: {{variableName}} -> 替换为对应的变量值
+  VARIABLE_PATTERN: /\{\{(\w+)\}\}/g,
 });
 
-// 🔧 通知配置常量
-export const NOTIFICATION_CONFIG = deepFreeze({
-  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.NOTIFICATION.SEND_TIMEOUT_MS, // 使用统一配置
-  MAX_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.NOTIFICATION.MAX_RETRY_ATTEMPTS, // 使用统一配置
-  RETRY_DELAY_MS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.NOTIFICATION.RETRY_DELAY_MS, // 使用统一配置
-  BATCH_SIZE_LIMIT: BATCH_CONSTANTS.BUSINESS_SCENARIOS.NOTIFICATION.DEFAULT_BATCH_SIZE, // 使用统一配置
-  TEMPLATE_CACHE_TTL_MS: 300000, // 5分钟
-  SENDER_HEALTH_CHECK_INTERVAL_MS: 60000, // 1分钟
-  MAX_TEMPLATE_SIZE_BYTES: 10240, // 10KB
-  MAX_VARIABLE_COUNT: 50,
-});
-
-// 📊 通知类型优先级常量
-export const NOTIFICATION_TYPE_PRIORITY = deepFreeze({
-  EMAIL: 1,
-  SLACK: 2,
-  WEBHOOK: 3,
-  DINGTALK: 4,
-  LOG: 5,
-});
-
-// 📈 通知指标常量
-export const NOTIFICATION_METRICS = deepFreeze({
-  NOTIFICATION_SENT_COUNT: "notification_sent_count",
-  NOTIFICATION_FAILED_COUNT: "notification_failed_count",
-  BATCH_PROCESSING_COUNT: "notification_batch_processing_count",
-  TEMPLATE_GENERATION_COUNT: "notification_template_generation_count",
-  CHANNEL_TEST_COUNT: "notification_channel_test_count",
-  AVERAGE_SEND_DURATION: "notification_avg_send_duration",
-  AVERAGE_BATCH_DURATION: "notification_avg_batch_duration",
-  SENDER_AVAILABILITY: "notification_sender_availability",
-  TEMPLATE_CACHE_HIT_RATE: "notification_template_cache_hit_rate",
-});
 
 // 🔍 验证规则常量
 export const NOTIFICATION_VALIDATION_RULES = deepFreeze({
-  MIN_TEMPLATE_LENGTH: 1,
-  MAX_TEMPLATE_LENGTH: 10000,
+  VARIABLE_NAME_PATTERN_SOURCE: '^[a-zA-Z][a-zA-Z0-9_]*$',
+  VARIABLE_NAME_PATTERN_FLAGS: 'g',
   MIN_VARIABLE_NAME_LENGTH: 1,
   MAX_VARIABLE_NAME_LENGTH: 50,
-  VARIABLE_NAME_PATTERN_SOURCE: "^[a-zA-Z][a-zA-Z0-9_]*$",
-  VARIABLE_NAME_PATTERN_FLAGS: "",
-  EMAIL_PATTERN_SOURCE: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
-  EMAIL_PATTERN_FLAGS: "",
-  URL_PATTERN_SOURCE: "^https?:\\/\\/.+",
-  URL_PATTERN_FLAGS: "",
-});
-
-// ⏰ 时间配置常量
-export const NOTIFICATION_TIME_CONFIG = deepFreeze({
-  DEFAULT_SEND_TIMEOUT_MS: 10000,
-  BATCH_PROCESSING_TIMEOUT_MS: 60000,
-  TEMPLATE_GENERATION_TIMEOUT_MS: 5000,
-  CHANNEL_TEST_TIMEOUT_MS: 15000,
-  SENDER_INITIALIZATION_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.NOTIFICATION.SEND_TIMEOUT_MS, // 使用统一配置
-  HEALTH_CHECK_TIMEOUT_MS: 5000,
-});
-
-// 🚨 告警阈值常量
-export const NOTIFICATION_ALERT_THRESHOLDS = deepFreeze({
-  MAX_FAILED_PERCENTAGE: 10,
-  MAX_RESPONSE_TIME_MS: 5000,
-  MIN_SUCCESS_RATE: 0.95,
-  MAX_QUEUE_SIZE: 1000,
-  MAX_PROCESSING_TIME_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.NOTIFICATION.SEND_TIMEOUT_MS, // 使用统一配置
+  MIN_TEMPLATE_LENGTH: 1,
+  MAX_TEMPLATE_LENGTH: 2000,
+  EMAIL_PATTERN_SOURCE: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+  EMAIL_PATTERN_FLAGS: 'i',
+  URL_PATTERN_SOURCE: '^https?://[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(/.*)?$',
+  URL_PATTERN_FLAGS: 'i',
 });
 
 // 🔄 重试配置常量 - 使用共享基础配置

@@ -8,7 +8,7 @@ export interface RawMetric {
   endpoint?: string;
   method?: string;
   statusCode?: number;
-  duration: number;
+  responseTimeMs: number;
   timestamp: Date;
   metadata?: Record<string, any>;
 }
@@ -31,14 +31,14 @@ export interface RawMetricsDto {
     endpoint: string;
     method: string;
     statusCode: number;
-    responseTime: number;
+    responseTimeMs: number;
     timestamp: Date;
     authType?: string;
     userId?: string;
   }>;
   database?: Array<{
     operation: string;
-    duration: number;
+    responseTimeMs: number;
     success: boolean;
     timestamp: Date;
     collection?: string;
@@ -46,7 +46,7 @@ export interface RawMetricsDto {
   cache?: Array<{
     operation: string;
     hit: boolean;
-    duration: number;
+    responseTimeMs: number;
     timestamp: Date;
     key?: string;
   }>;
@@ -65,7 +65,7 @@ export interface ICollector {
     endpoint: string,
     method: string,
     statusCode: number,
-    duration: number,
+    responseTimeMs: number,
     metadata?: Record<string, any>,
   ): void;
 
@@ -74,7 +74,7 @@ export interface ICollector {
    */
   recordDatabaseOperation(
     operation: string,
-    duration: number,
+    responseTimeMs: number,
     success: boolean,
     metadata?: Record<string, any>,
   ): void;
@@ -85,7 +85,7 @@ export interface ICollector {
   recordCacheOperation(
     operation: string,
     hit: boolean,
-    duration: number,
+    responseTimeMs: number,
     metadata?: Record<string, any>,
   ): void;
 

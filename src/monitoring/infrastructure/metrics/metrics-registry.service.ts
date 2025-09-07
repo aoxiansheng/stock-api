@@ -15,7 +15,9 @@ import {
   collectDefaultMetrics,
   Registry,
 } from "prom-client";
-import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../../constants";
+import { MONITORING_HEALTH_STATUS } from "../../constants";
+import type { ExtendedHealthStatus } from "../../constants/status/monitoring-status.constants";
+import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 
 @Injectable()
 export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
@@ -179,7 +181,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       name: "newstock_stream_recovery_batch_size",
       help: "Distribution of recovery batch sizes",
       labelNames: ["provider"],
-      buckets: [10, 25, 50, 100, 250, 500, 1000, 2500],
+      buckets: [10, 25, 50, 100, 250, 500, MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE, 2500],
       registers: [this.registry],
     });
 
@@ -301,7 +303,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       name: "newstock_stream_push_latency_ms",
       help: "End-to-end latency for stream data push operations in milliseconds",
       labelNames: ["symbol", "provider", "latency_category"],
-      buckets: [1, 5, 10, 20, 50, 100, 200, 500, 1000, 2000], // 延迟分桶：1ms 到 2秒
+      buckets: [1, 5, 10, 20, 50, 100, 200, 500, MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS, 2000], // 延迟分桶：1ms 到 2秒
       registers: [this.registry],
     });
 

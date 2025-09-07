@@ -579,4 +579,134 @@ describe("Alerting Constants", () => {
       expect(ALERTING_RETRY_CONFIG.TIMEOUT_MS).toBe(30000);
     });
   });
+
+  // 新增：工具类方法测试
+  describe("AlertingTemplateUtil - 使用监控功能测试", () => {
+    beforeEach(() => {
+      // 重置使用统计
+      AlertingTemplateUtil.resetUsageStatistics();
+    });
+
+    describe("使用统计监控", () => {
+      it("应正确记录方法调用次数", () => {
+        // 调用几个方法
+        AlertingTemplateUtil.generateRuleId();
+        AlertingTemplateUtil.generateRuleId();
+        AlertingTemplateUtil.isValidRuleName("测试规则");
+        
+        const stats = AlertingTemplateUtil.getUsageStatistics();
+        expect(stats.generateRuleId.callCount).toBe(2);
+        expect(stats.isValidRuleName.callCount).toBe(1);
+        expect(stats.generateRuleId.lastUsed).toBeInstanceOf(Date);
+      });
+
+      it("应能重置使用统计", () => {
+        AlertingTemplateUtil.generateRuleId();
+        let stats = AlertingTemplateUtil.getUsageStatistics();
+        expect(stats.generateRuleId.callCount).toBe(1);
+
+        AlertingTemplateUtil.resetUsageStatistics();
+        stats = AlertingTemplateUtil.getUsageStatistics();
+        expect(Object.keys(stats)).toHaveLength(0);
+      });
+    });
+
+    describe("规则ID生成", () => {
+      it("应生成符合格式的规则ID", () => {
+        const ruleId = AlertingTemplateUtil.generateRuleId();
+        expect(ruleId).toMatch(/^rule_[a-z0-9]+_[a-z0-9]{6}$/);
+        
+        // 验证使用监控
+        const stats = AlertingTemplateUtil.getUsageStatistics();
+        expect(stats.generateRuleId.callCount).toBe(1);
+      });
+
+      it("应生成唯一的规则ID", () => {
+        const id1 = AlertingTemplateUtil.generateRuleId();
+        const id2 = AlertingTemplateUtil.generateRuleId();
+        expect(id1).not.toBe(id2);
+        
+        // 验证调用计数
+        const stats = AlertingTemplateUtil.getUsageStatistics();
+        expect(stats.generateRuleId.callCount).toBe(2);
+      });
+    });
+
+    describe("规则名称验证", () => {
+      it("应验证有效的规则名称", () => {
+        expect(AlertingTemplateUtil.isValidRuleName("CPU使用率告警")).toBe(true);
+        expect(AlertingTemplateUtil.isValidRuleName("Memory_Alert_001")).toBe(true);
+        expect(AlertingTemplateUtil.isValidRuleName("API响应时间监控")).toBe(true);
+      });
+
+      it("应拒绝无效的规则名称", () => {
+        expect(AlertingTemplateUtil.isValidRuleName("")).toBe(false);
+        expect(AlertingTemplateUtil.isValidRuleName("   ")).toBe(false);
+        expect(AlertingTemplateUtil.isValidRuleName(null as any)).toBe(false);
+        expect(AlertingTemplateUtil.isValidRuleName(undefined as any)).toBe(false);
+      });
+
+      it("应记录验证方法的使用情况", () => {
+        AlertingTemplateUtil.isValidRuleName("测试规则1");
+        AlertingTemplateUtil.isValidRuleName("测试规则2");
+        AlertingTemplateUtil.isValidRuleName("无效规则");
+
+        const stats = AlertingTemplateUtil.getUsageStatistics();
+        expect(stats.isValidRuleName.callCount).toBe(3);
+      });
+    });
+
+    describe("指标名称验证", () => {
+      it("应验证有效的指标名称", () => {
+        expect(AlertingTemplateUtil.isValidMetricName("cpu_usage")).toBe(true);
+        expect(AlertingTemplateUtil.isValidMetricName("memory.used")).toBe(true);
+        expect(AlertingTemplateUtil.isValidMetricName("api_response_time")).toBe(true);
+      });
+
+      it("应拒绝无效的指标名称", () => {
+        expect(AlertingTemplateUtil.isValidMetricName("")).toBe(false);
+        expect(AlertingTemplateUtil.isValidMetricName("invalid-metric")).toBe(false);
+        expect(AlertingTemplateUtil.isValidMetricName("metric with spaces")).toBe(false);
+      });
+    });
+
+    describe("阈值验证", () => {
+      it("应验证有效的阈值", () => {
+        expect(AlertingTemplateUtil.isValidThreshold(0)).toBe(true);
+        expect(AlertingTemplateUtil.isValidThreshold(100)).toBe(true);
+        expect(AlertingTemplateUtil.isValidThreshold(99.99)).toBe(true);
+        expect(AlertingTemplateUtil.isValidThreshold(Number.MAX_SAFE_INTEGER)).toBe(true);
+      });
+
+      it("应拒绝无效的阈值", () => {
+        expect(AlertingTemplateUtil.isValidThreshold(-1)).toBe(false);
+        expect(AlertingTemplateUtil.isValidThreshold(null as any)).toBe(false);
+        expect(AlertingTemplateUtil.isValidThreshold(undefined as any)).toBe(false);
+        expect(AlertingTemplateUtil.isValidThreshold(NaN)).toBe(false);
+        expect(AlertingTemplateUtil.isValidThreshold(Infinity)).toBe(false);
+      });
+    });
+
+    describe("告警消息格式化", () => {
+      it("应正确格式化告警消息", () => {
+        const template = "告警: {{alertName}} 在 {{timestamp}} 触发，当前值: {{value}}";
+        const context = {
+          alertName: "CPU使用率过高",
+          timestamp: "2025-09-06 10:30:00",
+          value: "85%"
+        };
+
+        const result = AlertingTemplateUtil.formatAlertMessage(template, context);
+        expect(result).toBe("告警: CPU使用率过高 在 2025-09-06 10:30:00 触发，当前值: 85%");
+      });
+
+      it("应处理缺失的变量", () => {
+        const template = "告警: {{alertName}} - {{missingVar}}";
+        const context = { alertName: "测试告警" };
+
+        const result = AlertingTemplateUtil.formatAlertMessage(template, context);
+        expect(result).toBe("告警: 测试告警 - {{missingVar}}");
+      });
+    });
+  });
 });

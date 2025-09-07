@@ -6,51 +6,35 @@
 - 字段总数: 47
 - 重复率: 8.5%
 
-## 发现的问题
+## 仍存在的问题
 
-### 🔴 严重（必须修复）
+### 🟡 警告（建议修复）
 
 1. **Circuit Breaker 实现重复**
    - 位置: `enums/circuit-breaker-state.enum.ts` vs `src/common/constants/unified/circuit-breaker.constants.ts`
    - 影响: 两套不同的熔断器实现可能导致行为不一致，增加维护复杂度
    - 建议: 统一使用 `common/constants/unified/circuit-breaker.constants.ts` 中的实现，删除本地枚举定义
 
-2. **30000ms 超时值重复定义**
-   - 位置: 
-     - `constants/stream-receiver-timeouts.constants.ts:7` (HEARTBEAT_INTERVAL_MS)
-     - `constants/stream-receiver-timeouts.constants.ts:9` (HEARTBEAT_CHECK_INTERVAL_MS) 
-     - `constants/stream-receiver-timeouts.constants.ts:12` (CONNECTION_TIMEOUT_MS)
-     - `constants/stream-receiver-timeouts.constants.ts:17` (RECOVERY_RETRY_INTERVAL_MS)
-   - 影响: 相同的超时值重复定义4次，违反DRY原则
-   - 建议: 提取为基础超时常量 `BASE_TIMEOUT_30S = 30000`，其他常量引用该值
-
-### 🟡 警告（建议修复）
-
-3. **DTO默认值重复**
+2. **DTO默认值重复**
    - 位置: 
      - `dto/stream-subscribe.dto.ts:32` (`wsCapabilityType = "stream-stock-quote"`)
      - `dto/stream-unsubscribe.dto.ts:25` (`wsCapabilityType = "stream-stock-quote"`)
    - 影响: 相同的默认能力类型在两个DTO中重复
    - 建议: 提取为常量 `DEFAULT_WS_CAPABILITY_TYPE = "stream-stock-quote"`
 
-4. **验证限制值存在语义重复**
-   - 位置: `constants/stream-validation.constants.ts`
-   - 影响: 多个1000ms相关的验证值可能存在关联但分散定义
-   - 建议: 检查 `MIN_RATE_LIMIT_WINDOW_MS`、`MIN_ADJUSTMENT_FREQUENCY_MS` 等是否可以统一基准
-
-5. **数组大小限制缺乏常量化**
+3. **数组大小限制缺乏常量化**
    - 位置: `dto/stream-subscribe.dto.ts:21` (`@ArrayMaxSize(50)`)
    - 影响: 魔法数字50直接写在装饰器中
    - 建议: 提取为常量 `MAX_SUBSCRIBE_SYMBOLS = 50`
 
 ### 🔵 提示（可选优化）
 
-6. **权限数组可进一步组合**
+1. **权限数组可进一步组合**
    - 位置: `constants/stream-permissions.constants.ts`
    - 影响: `REQUIRED_STREAM_PERMISSIONS` 在多个权限数组中重复出现
    - 建议: 使用扩展语法避免重复：`[...REQUIRED_STREAM_PERMISSIONS, Permission.STREAM_WRITE]`
 
-7. **枚举状态转换映射可简化**
+2. **枚举状态转换映射可简化**
    - 位置: `enums/stream-connection-state.enum.ts:18-43`
    - 影响: 状态转换映射较长，可读性有待提升
    - 建议: 考虑使用状态机库或提取转换逻辑到独立的工具函数
@@ -79,17 +63,15 @@
 
 ### 重复模式分析
 
-#### Level 1: 完全重复 (2项)
+#### Level 1: 完全重复 (1项)
 - Circuit Breaker 实现重复
-- 30000ms 超时值重复
 
-#### Level 2: 语义重复 (3项)  
+#### Level 2: 语义重复 (2项)  
 - DTO默认值重复
-- 1000ms基准时间重复
-- 权限数组部分重复
+- 数组大小限制缺乏常量化
 
 #### Level 3: 结构重复 (1项)
-- 验证函数模式重复
+- 权限数组部分重复
 
 ### 架构一致性评估
 - **符合模块边界**: ✅ 常量限定在stream-receiver模块内
@@ -105,22 +87,7 @@
    import { CircuitBreakerState, CIRCUIT_BREAKER_CONFIG } from '@common/constants/unified/circuit-breaker.constants';
    ```
 
-2. **提取基础时间常量**
-   ```typescript
-   // constants/stream-receiver-timeouts.constants.ts
-   const BASE_TIMEOUTS = {
-     STANDARD_30S: 30000,
-     STANDARD_5S: 5000,
-   } as const;
-   
-   export const STREAM_RECEIVER_TIMEOUTS = {
-     HEARTBEAT_INTERVAL_MS: BASE_TIMEOUTS.STANDARD_30S,
-     CONNECTION_TIMEOUT_MS: BASE_TIMEOUTS.STANDARD_30S,
-     // ...
-   } as const;
-   ```
-
-3. **创建统一导出文件**
+2. **创建统一导出文件**
    ```typescript
    // constants/index.ts
    export * from './stream-receiver-timeouts.constants';
@@ -204,14 +171,14 @@ npm run test:integration:stream-receiver
 
 ### 重构风险
 - **高风险**: Circuit Breaker实现变更可能影响现有的熔断逻辑
-- **中风险**: 时间常量修改需要回归测试验证超时行为
-- **低风险**: DTO基类提取，影响范围有限
+- **中风险**: DTO基类提取，影响范围有限
+- **低风险**: 常量提取和权限数组优化，影响范围小
 
 ### 建议重构顺序
-1. 先提取简单的常量重复（时间值、默认值）
+1. 先处理简单的常量提取（DTO默认值、数组大小限制）
 2. 再处理复杂的逻辑重复（Circuit Breaker）
 3. 最后进行结构性改进（DTO继承）
 
 ---
 
-**审核结论**: stream-receiver组件在常量和枚举管理方面总体架构合理，但存在一定程度的重复问题，特别是Circuit Breaker的双重实现和时间常量的多次定义。建议优先解决完全重复问题，逐步提升代码复用率和维护性。
+**审核结论**: stream-receiver组件在常量和枚举管理方面总体架构合理，但存在一定程度的重复问题，特别是Circuit Breaker的双重实现。建议优先解决完全重复问题，逐步提升代码复用率和维护性。

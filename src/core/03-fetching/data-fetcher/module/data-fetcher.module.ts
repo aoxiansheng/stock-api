@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { EventEmitterModule } from "@nestjs/event-emitter";
-import { ProvidersModule } from "../../../../providers/module/providers.module";
+import { ProvidersModule } from "../../../../providers/module/providers-sg.module";
 import { DataFetcherService } from "../services/data-fetcher.service";
 
 /**

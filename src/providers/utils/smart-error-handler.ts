@@ -3,6 +3,7 @@ import { join, dirname } from "path";
 import { createLogger } from "@app/config/logger.config";
 import { SmartPathResolver } from "./smart-path-resolver";
 import { ConventionViolation } from "../decorators/types/metadata.types";
+import { CAPABILITY_NAMES } from '../constants/capability-names.constants';
 
 export interface AutoFixResult {
   success: boolean;
@@ -155,7 +156,7 @@ export class SmartErrorHandler {
   ): Promise<string[]> {
     const generatedFiles: string[] = [];
     const {
-      capabilities = ["get-stock-quote"],
+      capabilities = [CAPABILITY_NAMES.GET_STOCK_QUOTE],
       withTests = false,
       withDocs = true,
       description = `${providerName} 数据源`,
@@ -326,10 +327,10 @@ export class SmartErrorHandler {
             SmartPathResolver.getProviderCapabilitiesPath(providerName);
           const capabilityFile = await this.generateCapabilityFile(
             providerName,
-            "get-stock-quote",
+            CAPABILITY_NAMES.GET_STOCK_QUOTE,
           );
           await writeFile(
-            join(capabilitiesPath, "get-stock-quote.ts"),
+            join(capabilitiesPath, `${CAPABILITY_NAMES.GET_STOCK_QUOTE}.ts`),
             capabilityFile,
           );
         },
@@ -372,16 +373,27 @@ export class SmartErrorHandler {
     violation: ConventionViolation,
   ): Promise<void> {
     switch (violation.type) {
-      case "missing_directory":
-        await mkdir(violation.path, { recursive: true });
-        break;
-      case "missing_file":
-        // 根据路径推断需要创建的文件类型
-        if (violation.path.includes("capabilities")) {
-          // 创建示例能力文件
-          const content = "// TODO: 实现能力逻辑\n";
-          await writeFile(violation.path, content);
+      case "structural":
+        // Handle both missing directories and files
+        if (violation.path.includes('.')) {
+          // It's a file
+          if (violation.path.includes("capabilities")) {
+            // 创建示例能力文件
+            const content = "// TODO: 实现能力逻辑\n";
+            await writeFile(violation.path, content);
+          }
+        } else {
+          // It's a directory
+          await mkdir(violation.path, { recursive: true });
         }
+        break;
+      case "naming":
+        // Naming violations typically require manual intervention
+        SmartErrorHandler.logger.warn(`命名约定违规需要手动修复: ${violation.message}`);
+        break;
+      case "interface":
+        // Interface violations typically require manual intervention
+        SmartErrorHandler.logger.warn(`接口问题需要手动修复: ${violation.message}`);
         break;
       default:
         throw new Error(`不支持的自动修复类型: ${violation.type}`);

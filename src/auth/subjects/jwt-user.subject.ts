@@ -34,8 +34,8 @@ export class JwtUserSubject implements AuthSubject {
     this.metadata = {
       username: user.username,
       email: user.email,
-      isActive: user.isActive,
-      lastLoginAt: user.lastLoginAt,
+      status: user.status,
+      lastAccessedAt: user.lastAccessedAt,
     };
 
     // 验证必要字段
@@ -114,7 +114,7 @@ export class JwtUserSubject implements AuthSubject {
       permissions: this.permissions,
       metadata: {
         username: this.metadata.username,
-        isActive: this.metadata.isActive,
+        status: this.metadata.status,
       },
     };
   }

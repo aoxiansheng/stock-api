@@ -7,6 +7,7 @@ export * from './timeout.constants';
 export * from './capability-names.constants';  
 export * from './connection.constants';
 export * from './metadata.constants';
+export * from './symbol-formats.constants';
 
 // 常量验证函数
 export function validateConstants(): boolean {

@@ -5,9 +5,9 @@
 import {
   NOTIFICATION_ERROR_TEMPLATES,
   NOTIFICATION_TEMPLATE_PATTERNS,
-  NOTIFICATION_VALIDATION_RULES,
   NOTIFICATION_TEMPLATE_VARIABLES,
   NOTIFICATION_RETRY_CONFIG,
+  NOTIFICATION_VALIDATION_RULES,
 } from "../constants/notification.constants";
 
 /**
@@ -46,7 +46,8 @@ export class NotificationTemplateUtil {
   }
 
   /**
-   * 格式化模板字符串
+   * 格式化模板字符串（简化版）
+   * 仅支持基础的变量替换
    * @param template 模板字符串
    * @param variables 变量对象
    * @returns 格式化后的字符串
@@ -55,43 +56,10 @@ export class NotificationTemplateUtil {
     template: string,
     variables: Record<string, any>,
   ): string {
-    let result = template;
-
-    // 处理注释
-    const commentPattern = new RegExp(
-      NOTIFICATION_TEMPLATE_PATTERNS.COMMENT_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.COMMENT_PATTERN_FLAGS,
-    );
-    result = result.replace(commentPattern, "");
-
-    // 处理变量替换
-    const variablePattern = new RegExp(
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS,
-    );
-    result = result.replace(variablePattern, (match, key) => {
+    // 仅支持基础的变量替换
+    return template.replace(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN, (match, key) => {
       return variables[key] !== undefined ? String(variables[key]) : match;
     });
-
-    // 处理 if 块
-    const ifBlockPattern = new RegExp(
-      NOTIFICATION_TEMPLATE_PATTERNS.IF_BLOCK_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.IF_BLOCK_PATTERN_FLAGS,
-    );
-    result = result.replace(ifBlockPattern, (match, key, content) => {
-      return variables[key] ? content : "";
-    });
-
-    // 处理 unless 块
-    const unlessBlockPattern = new RegExp(
-      NOTIFICATION_TEMPLATE_PATTERNS.UNLESS_BLOCK_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.UNLESS_BLOCK_PATTERN_FLAGS,
-    );
-    result = result.replace(unlessBlockPattern, (match, key, content) => {
-      return !variables[key] ? content : "";
-    });
-
-    return result;
   }
 
   /**
@@ -132,11 +100,7 @@ export class NotificationTemplateUtil {
    */
   static extractVariables(template: string): string[] {
     const variables = new Set<string>();
-    const variablePattern = new RegExp(
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_SOURCE,
-      NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN_FLAGS,
-    );
-    const matches = template.matchAll(variablePattern);
+    const matches = template.matchAll(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN);
 
     for (const match of matches) {
       if (match[1]) {

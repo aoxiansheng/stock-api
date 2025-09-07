@@ -1,18 +1,19 @@
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";
 import { LongportBasicInfo } from "../types";
+import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../constants";
 
 /**
  * LongPort 股票基本信息获取能力
  * 注意：此函数需要与 LongportContextService 配合使用
  */
 export const getStockBasicInfo: ICapability = {
-  name: "get-stock-basic-info", // receiverType
+  name: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO, // receiverType
   description: "获取股票基本信息",
-  supportedMarkets: [MARKETS.HK, MARKETS.SZ, MARKETS.SH, MARKETS.US],
-  supportedSymbolFormats: ["700.HK", "000001.SZ", "600000.SH", "AAPL.US"],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
+  supportedSymbolFormats: SYMBOL_FORMATS.COMMON_MARKETS,
   rateLimit: {
     requestsPerSecond: 5,
     requestsPerDay: 1000,

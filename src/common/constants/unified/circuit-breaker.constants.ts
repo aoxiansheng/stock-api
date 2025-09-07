@@ -182,21 +182,24 @@ export const CIRCUIT_BREAKER_CONSTANTS = {
   },
 
   /**
-   * 断路器键名模板
-   * 用于生成一致的断路器标识
+   * 断路器键名常量 - 简化版本
+   * 复杂的键生成逻辑已移至专用工具类
+   * @see CircuitBreakerKeyUtil - 位于 src/common/utils/circuit-breaker-key.util.ts
    */
-  KEY_TEMPLATES: {
-    PROVIDER_API: (provider: string, capability: string) => 
-      `circuit:provider:${provider}:${capability}`,
-    SERVICE_METHOD: (service: string, method: string) => 
-      `circuit:service:${service}:${method}`,
-    DATABASE_OPERATION: (collection: string, operation: string) => 
-      `circuit:db:${collection}:${operation}`,
-    CACHE_OPERATION: (cacheType: string, operation: string) => 
-      `circuit:cache:${cacheType}:${operation}`,
-    EXTERNAL_API: (apiName: string, endpoint: string) => 
-      `circuit:external:${apiName}:${endpoint}`,
-  },
+  KEY_CONFIG: {
+    /** 键名前缀 */
+    PREFIX: 'circuit',
+    /** 键名分隔符 */
+    SEPARATOR: ':',
+    /** 可用的键类型 */
+    TYPES: {
+      PROVIDER_API: 'provider',
+      SERVICE_METHOD: 'service',
+      DATABASE_OPERATION: 'db', 
+      CACHE_OPERATION: 'cache',
+      EXTERNAL_API: 'external',
+    } as const,
+  } as const,
 
   /**
    * 监控阈值配置

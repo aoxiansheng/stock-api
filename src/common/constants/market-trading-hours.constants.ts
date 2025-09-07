@@ -9,7 +9,7 @@ import { Market } from "./market.constants";
  * 市场状态枚举
  */
 export enum MarketStatus {
-  CLOSED = "CLOSED", // 休市
+  MARKET_CLOSED = "MARKET_CLOSED", // 休市
   PRE_MARKET = "PRE_MARKET", // 盘前交易
   TRADING = "TRADING", // 正常交易
   LUNCH_BREAK = "LUNCH_BREAK", // 午休（港股、A股）
@@ -143,7 +143,7 @@ export const CACHE_TTL_BY_MARKET_STATUS = {
     [MarketStatus.PRE_MARKET]: 5, // 盘前：5秒
     [MarketStatus.AFTER_HOURS]: 10, // 盘后：10秒
     [MarketStatus.LUNCH_BREAK]: 30, // 午休：30秒
-    [MarketStatus.CLOSED]: 60, // 休市：1分钟
+    [MarketStatus.MARKET_CLOSED]: 60, // 休市：1分钟
     [MarketStatus.WEEKEND]: 300, // 周末：5分钟
     [MarketStatus.HOLIDAY]: 600, // 假日：10分钟
   },
@@ -154,7 +154,7 @@ export const CACHE_TTL_BY_MARKET_STATUS = {
     [MarketStatus.PRE_MARKET]: 300, // 盘前：5分钟
     [MarketStatus.AFTER_HOURS]: 600, // 盘后：10分钟
     [MarketStatus.LUNCH_BREAK]: 900, // 午休：15分钟
-    [MarketStatus.CLOSED]: 3600, // 休市：1小时
+    [MarketStatus.MARKET_CLOSED]: 3600, // 休市：1小时
     [MarketStatus.WEEKEND]: 7200, // 周末：2小时
     [MarketStatus.HOLIDAY]: 14400, // 假日：4小时
   },
@@ -170,7 +170,7 @@ export const CHANGE_DETECTION_THRESHOLDS = {
     [MarketStatus.PRE_MARKET]: 0.001, // 盘前：0.1%
     [MarketStatus.AFTER_HOURS]: 0.001, // 盘后：0.1%
     [MarketStatus.LUNCH_BREAK]: 0.005, // 午休：0.5%
-    [MarketStatus.CLOSED]: 0.01, // 休市：1%
+    [MarketStatus.MARKET_CLOSED]: 0.01, // 休市：1%
     [MarketStatus.WEEKEND]: 0.02, // 周末：2%
     [MarketStatus.HOLIDAY]: 0.02, // 假日：2%
   },
@@ -181,7 +181,7 @@ export const CHANGE_DETECTION_THRESHOLDS = {
     [MarketStatus.PRE_MARKET]: 0.01, // 盘前：1%
     [MarketStatus.AFTER_HOURS]: 0.01, // 盘后：1%
     [MarketStatus.LUNCH_BREAK]: 0.05, // 午休：5%
-    [MarketStatus.CLOSED]: 0.1, // 休市：10%
+    [MarketStatus.MARKET_CLOSED]: 0.1, // 休市：10%
     [MarketStatus.WEEKEND]: 0.2, // 周末：20%
     [MarketStatus.HOLIDAY]: 0.2, // 假日：20%
   },

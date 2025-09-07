@@ -1,4 +1,5 @@
 import { IAlertRule } from "./alert.interface";
+import type { Operator } from "../constants/alert.constants";
 
 /**
  * 指标数据接口
@@ -63,7 +64,7 @@ export interface IRuleEngine {
  * 告警触发条件接口
  */
 export interface IAlertTriggerCondition {
-  operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
+  operator: Operator;
   threshold: number;
   duration: number;
   aggregation?: "avg" | "sum" | "min" | "max" | "count";

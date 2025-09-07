@@ -26,7 +26,7 @@ export const CONNECTION_CONFIG = {
   HEALTH_STATUS: {
     HEALTHY: 'healthy',
     DEGRADED: 'degraded', 
-    FAILED: 'failed',
+    FAILED: 'health_failed',
   } as const,
   
   // 重连配置

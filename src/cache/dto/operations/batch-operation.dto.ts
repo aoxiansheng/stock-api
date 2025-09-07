@@ -7,11 +7,13 @@ import {
   ValidateNested,
 } from "class-validator";
 import { CacheConfigDto } from "../config/cache-config.dto";
+import { BatchSizeInfo } from "../shared/size-fields.interface";
+import { BaseTTL } from "../shared/ttl-fields.interface";
 
 /**
  * 批量缓存操作DTO
  */
-export class BatchCacheOperationDto<T = any> {
+export class BatchCacheOperationDto<T = any> implements BatchSizeInfo, BaseTTL {
   @ApiProperty({ description: "缓存键值对" })
   @IsObject()
   entries: Map<string, T>;

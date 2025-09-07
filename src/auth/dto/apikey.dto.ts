@@ -14,6 +14,7 @@ import {
 } from "class-validator";
 
 import { Permission } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 
 /**
  * 速率限制DTO
@@ -26,7 +27,7 @@ export class RateLimitDto {
   })
   @IsNumber()
   @Min(1)
-  requests: number;
+  requestLimit: number;
 
   @ApiProperty({
     description: "时间窗口 (1m=1分钟, 1h=1小时, 1d=1天)",
@@ -121,17 +122,17 @@ export class ApiKeyResponseDto {
   @ApiProperty({ description: "速率限制配置" })
   rateLimit: RateLimitDto;
 
-  @ApiProperty({ description: "是否激活" })
-  isActive: boolean;
+  @ApiProperty({ description: "状态", enum: CommonStatus })
+  status: CommonStatus;
 
   @ApiProperty({ description: "过期时间" })
   expiresAt?: Date;
 
-  @ApiProperty({ description: "使用次数" })
-  usageCount: number;
+  @ApiProperty({ description: "总请求次数" })
+  totalRequestCount: number;
 
-  @ApiProperty({ description: "最后使用时间" })
-  lastUsedAt?: Date;
+  @ApiProperty({ description: "最后访问时间" })
+  lastAccessedAt?: Date;
 
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
@@ -151,7 +152,7 @@ export class ApiKeyUsageDto {
   name: string;
 
   @ApiProperty({ description: "总请求次数" })
-  totalRequests: number;
+  totalRequestCount: number;
 
   @ApiProperty({ description: "今日请求次数" })
   todayRequests: number;
@@ -166,33 +167,20 @@ export class ApiKeyUsageDto {
   failedRequests: number;
 
   @ApiProperty({ description: "平均响应时间(ms)" })
-  averageResponseTime: number;
+  averageResponseTimeMs: number;
 
-  @ApiProperty({ description: "最后使用时间" })
-  lastUsedAt?: Date;
+  @ApiProperty({ description: "最后访问时间" })
+  lastAccessedAt?: Date;
 
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
 
-  @ApiProperty({
-    description: "使用频率统计",
-    type: "object",
-    additionalProperties: { type: "number" },
-  })
-  usageByHour: Record<string, number>;
-
-  @ApiProperty({
-    description: "错误统计",
-    type: "object",
-    additionalProperties: { type: "number" },
-  })
-  errorStats: Record<string, number>;
 }
 
 /**
- * 用户统计信息DTO
+ * 用户详细统计信息DTO
  */
-export class UserStatsDto {
+export class UserDetailedStatsDto {
   @ApiProperty({ description: "用户ID" })
   userId: string;
 
@@ -209,7 +197,7 @@ export class UserStatsDto {
   activeApiKeys: number;
 
   @ApiProperty({ description: "总请求次数" })
-  totalRequests: number;
+  totalRequestCount: number;
 
   @ApiProperty({ description: "今日请求次数" })
   todayRequests: number;
@@ -220,24 +208,12 @@ export class UserStatsDto {
   @ApiProperty({ description: "失败请求次数" })
   failedRequests: number;
 
-  @ApiProperty({ description: "成功率(%)" })
-  successRate: number;
-
-  @ApiProperty({ description: "最后登录时间" })
-  lastLoginAt?: Date;
+  @ApiProperty({ description: "最后访问时间" })
+  lastAccessedAt?: Date;
 
   @ApiProperty({ description: "注册时间" })
   createdAt: Date;
 
-  @ApiProperty({ description: "账户状态" })
-  accountStatus: "active" | "inactive" | "suspended";
-
-  @ApiProperty({
-    description: "使用的权限列表",
-    enum: Permission,
-    isArray: true,
-  })
-  usedPermissions: Permission[];
 }
 
 /**
@@ -286,11 +262,13 @@ export class UpdateApiKeyDto {
   rateLimit?: RateLimitDto;
 
   @ApiProperty({
-    description: "是否激活",
+    description: "状态",
+    enum: CommonStatus,
     required: false,
   })
   @IsOptional()
-  isActive?: boolean;
+  @IsEnum(CommonStatus)
+  status?: CommonStatus;
 
   @ApiProperty({
     description: "过期时间",

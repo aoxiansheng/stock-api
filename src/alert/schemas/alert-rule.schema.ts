@@ -3,18 +3,9 @@ import { Document } from "mongoose";
 
 import { IAlertRule } from "../interfaces/alert.interface";
 import { AlertSeverity, NotificationChannelType } from "../types/alert.types";
-
-// 临时定义避免循环依赖
-interface NotificationChannel {
-  id?: string;
-  name: string;
-  type: NotificationChannelType;
-  config: Record<string, any>;
-  enabled: boolean;
-  retryCount?: number;
-  timeout?: number;
-  priority?: number;
-}
+import type { NotificationChannel } from "../types/alert.types";
+import { ALERT_DEFAULTS } from "../constants/defaults.constants";
+import { VALID_OPERATORS, type Operator } from "../constants/alert.constants";
 
 export type AlertRuleDocument = AlertRule & Document;
 
@@ -36,33 +27,34 @@ export class AlertRule implements IAlertRule {
   metric: string;
 
   @Prop({
+    type: String,
     required: true,
-    enum: ["gt", "lt", "eq", "gte", "lte", "ne"],
-    default: "gt",
+    enum: VALID_OPERATORS,
+    default: ALERT_DEFAULTS.RULE.operator,
   })
-  operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
+  operator: Operator;
 
   @Prop({ required: true })
   threshold: number;
 
-  @Prop({ required: true, default: 60 })
+  @Prop({ required: true, default: ALERT_DEFAULTS.RULE.duration })
   duration: number; // 持续时间（秒）
 
   @Prop({
     required: true,
     type: String,
     enum: Object.values(AlertSeverity),
-    default: AlertSeverity.WARNING,
+    default: ALERT_DEFAULTS.RULE.severity,
   })
   severity: AlertSeverity;
 
-  @Prop({ default: true })
+  @Prop({ default: ALERT_DEFAULTS.RULE.enabled })
   enabled: boolean;
 
   @Prop({ type: [Object], default: [] })
   channels: NotificationChannel[];
 
-  @Prop({ default: 300 })
+  @Prop({ default: ALERT_DEFAULTS.RULE.cooldown })
   cooldown: number; // 冷却时间（秒）
 
   @Prop({ type: Object, default: {} })
@@ -76,6 +68,24 @@ export class AlertRule implements IAlertRule {
 
   @Prop()
   updatedAt: Date;
+
+  // 语义化访问器 - 提供统一的时间字段访问方式
+  get ruleCreatedAt(): Date {
+    return this.createdAt;
+  }
+
+  get ruleUpdatedAt(): Date {
+    return this.updatedAt;
+  }
+
+  // 语义化访问器 - 提供统一的用户字段访问方式
+  get ruleCreator(): string | undefined {
+    return this.createdBy;
+  }
+
+  get ruleOperator(): string | undefined {
+    return this.createdBy; // 规则只有创建者概念
+  }
 }
 
 export const AlertRuleSchema = SchemaFactory.createForClass(AlertRule);

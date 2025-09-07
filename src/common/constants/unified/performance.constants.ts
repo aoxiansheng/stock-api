@@ -7,7 +7,10 @@
  * - 分层设计：按严重程度分级定义阈值
  * - 可扩展性：便于添加新的性能指标
  * - 实用性：基于实际生产环境经验设定合理默认值
+ * - 一致性：引用BASE_TIMEOUTS避免重复定义
  */
+
+import { BASE_TIMEOUTS } from "./base.constants";
 
 import { deepFreeze } from "@common/utils/object-immutability.util";
 
@@ -38,13 +41,13 @@ export const PERFORMANCE_CONSTANTS = deepFreeze({
   // 超时配置 (毫秒)
   TIMEOUTS: {
     DEFAULT_TIMEOUT_MS: 30000, // 默认超时时间：30秒
-    QUICK_TIMEOUT_MS: 5000, // 快速操作超时：5秒
+    QUICK_TIMEOUT_MS: BASE_TIMEOUTS.NETWORK.NORMAL, // 快速操作超时：引用统一配置
     LONG_TIMEOUT_MS: 60000, // 长时间操作超时：60秒
-    DATABASE_TIMEOUT_MS: 10000, // 数据库操作超时：10秒
-    CACHE_TIMEOUT_MS: 3000, // 缓存操作超时：3秒
-    HTTP_REQUEST_TIMEOUT_MS: 15000, // HTTP请求超时：15秒
+    DATABASE_TIMEOUT_MS: BASE_TIMEOUTS.DATABASE.QUERY, // 数据库操作超时：引用统一配置
+    CACHE_TIMEOUT_MS: BASE_TIMEOUTS.CACHE.CONNECT, // 缓存操作超时：引用统一配置
+    HTTP_REQUEST_TIMEOUT_MS: BASE_TIMEOUTS.NETWORK.SLOW, // HTTP请求超时：引用统一配置
     AUTHENTICATION_TIMEOUT_MS: 5000, // 认证超时：5秒
-    FILE_UPLOAD_TIMEOUT_MS: 120000, // 文件上传超时：2分钟
+    FILE_UPLOAD_TIMEOUT_MS: BASE_TIMEOUTS.NETWORK.DOWNLOAD, // 文件上传超时：引用统一配置
     
     // 业务场景特定超时 (按需扩展)
     DATA_FETCHER: {

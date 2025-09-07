@@ -6,6 +6,7 @@ import { createLogger } from "../../../app/config/logger.config";
 import { EventBatcher, BatchResult } from "./event-batcher";
 import { performanceDecoratorBus } from "../decorators/infrastructure-database.decorator";
 import { MonitoringSerializer } from "../../utils/monitoring-serializer";
+import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../../constants/config/monitoring-system.constants";
 
 /**
  * 🎯 监控事件桥接层服务
@@ -20,7 +21,11 @@ export class MonitoringEventBridgeService
   private readonly logger = createLogger(MonitoringEventBridgeService.name);
   private eventCounter = 0;
   private lastFlush = Date.now();
-  private readonly batcher = new EventBatcher(100, 100, 10000); // 100ms间隔，100个批次大小，10000最大队列
+  private readonly batcher = new EventBatcher(
+    MONITORING_SYSTEM_LIMITS.DEFAULT_FLUSH_INTERVAL_MS, 
+    MONITORING_SYSTEM_LIMITS.DEFAULT_BATCH_SIZE, 
+    MONITORING_SYSTEM_LIMITS.MAX_QUEUE_SIZE
+  ); // 使用系统配置的批处理参数
 
   constructor(
     private readonly eventBus: EventEmitter2,
@@ -85,7 +90,7 @@ export class MonitoringEventBridgeService
       this.eventCounter++;
 
       // 定期刷新所有批次
-      if (this.eventCounter >= 1000 || Date.now() - this.lastFlush > 5000) {
+      if (this.eventCounter >= MONITORING_SYSTEM_LIMITS.EVENT_COUNTER_THRESHOLD || Date.now() - this.lastFlush > MONITORING_SYSTEM_LIMITS.FORCE_FLUSH_INTERVAL_MS) {
         this.flushAllBatches();
       }
     } catch (error) {
@@ -350,7 +355,7 @@ export class MonitoringEventBridgeService
           status: "success",
           attempt: "1",
         },
-        duration / 1000,
+        MonitoringSystemLimitUtils.msToSeconds(duration),
       );
 
       // 记录数据分析操作
@@ -423,10 +428,10 @@ export class MonitoringEventBridgeService
             method: method || "unknown",
             provider: "api",
             operation: endpoint || "unknown",
-            status: statusCode >= 400 ? "error" : "success",
+            status: statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD ? "error" : "success",
             attempt: "1",
           },
-          duration / 1000,
+          MonitoringSystemLimitUtils.msToSeconds(duration),
         );
       }
     } catch (error) {
@@ -466,7 +471,7 @@ export class MonitoringEventBridgeService
             status: "error",
             attempt: "1",
           },
-          duration / 1000,
+          MonitoringSystemLimitUtils.msToSeconds(duration),
         );
       }
 

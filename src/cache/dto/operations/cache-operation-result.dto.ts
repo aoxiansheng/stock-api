@@ -5,11 +5,12 @@ import {
   IsNumber,
   IsOptional,
 } from "class-validator";
+import { ProcessingTimeFields } from "../../../common/interfaces/time-fields.interface";
 
 /**
  * 缓存操作结果DTO
  */
-export class CacheOperationResultDto<T = any> {
+export class CacheOperationResultDto<T = any> implements ProcessingTimeFields {
   @ApiProperty({ description: "操作是否成功" })
   @IsBoolean()
   success: boolean;
@@ -21,9 +22,9 @@ export class CacheOperationResultDto<T = any> {
   @IsString()
   source: "cache" | "callback";
 
-  @ApiProperty({ description: "操作执行时间（毫秒）" })
+  @ApiProperty({ description: "处理时间（毫秒）" })
   @IsNumber()
-  executionTimeMs: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "是否使用了压缩", required: false })
   @IsOptional()

@@ -19,7 +19,6 @@ export const ALERT_RATE_LIMIT = {
 
   // 批量操作限制
   BATCH_OPERATIONS: {
-    MAX_ITEMS_PER_REQUEST: 100, // 单次批量操作最多100项
     MAX_REQUESTS_PER_MINUTE: 3, // 每分钟最多3次批量操作
     WINDOW_MS: 60 * 1000,
   },

@@ -21,6 +21,8 @@ import {
   CACHE_TTL,
   CACHE_KEYS,
   CACHE_OPERATIONS,
+  CACHE_EXTENDED_OPERATIONS,
+  CACHE_INTERNAL_OPERATIONS,
   CACHE_CONSTANTS,
   CACHE_DATA_FORMATS,
   SerializerType,
@@ -186,7 +188,7 @@ export class CacheService {
     }
 
     // 使用分布式锁防止缓存击穿
-    const lockKey = `${CACHE_KEYS.LOCK_PREFIX}${key}`;
+    const lockKey = `${CACHE_KEYS.PREFIXES.LOCK}${key}`;
     const lockValue = `${Date.now()}-${Math.random()}`;
     const lockTtl = CACHE_TTL.LOCK_TTL;
 
@@ -688,7 +690,7 @@ export class CacheService {
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_WARNING_MESSAGES.LARGE_VALUE_WARNING, {
-        operation: CACHE_OPERATIONS.SERIALIZE,
+        operation: CACHE_INTERNAL_OPERATIONS.SERIALIZE,
         sizeInBytes,
         maxSizeBytes,
         sizeMB: Math.round((sizeInBytes / (1024 * 1024)) * 100) / 100,
@@ -772,7 +774,7 @@ export class CacheService {
       this.logger.error(
         CACHE_ERROR_MESSAGES.LOCK_RELEASE_FAILED,
         sanitizeLogData({
-          operation: CACHE_OPERATIONS.RELEASE_LOCK,
+          operation: CACHE_EXTENDED_OPERATIONS.RELEASE_LOCK,
           lockKey,
           error: error.message,
         }),

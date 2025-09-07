@@ -4,6 +4,8 @@
  * 提供分类管理和类型安全的指标定义
  */
 
+import { MONITORING_SYSTEM_LIMITS } from "./monitoring-system.constants";
+
 /**
  * 核心性能指标常量
  * 定义系统监控的基础指标类型
@@ -160,7 +162,7 @@ export const MONITORING_METRIC_UNITS = Object.freeze({
  */
 export const MONITORING_METRIC_THRESHOLDS = Object.freeze({
   [MONITORING_METRICS.RESPONSE_TIME]: {
-    warning: 1000,  // 1秒
+    warning: MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS,  // 1秒
     critical: 5000  // 5秒
   },
   [MONITORING_METRICS.CPU_USAGE]: {

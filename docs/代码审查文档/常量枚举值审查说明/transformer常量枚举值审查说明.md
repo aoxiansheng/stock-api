@@ -6,29 +6,7 @@
 - 字段总数: 127
 - 重复率: 8.66%
 
-## 发现的问题
-
-### 🔴 严重（必须修复）
-
-1. **日志级别常量重复**
-   - 位置: 
-     - `src/core/02-processing/transformer/constants/data-transformer.constants.ts:165-171`
-     - `src/auth/constants/permission.constants.ts:209-216`
-     - `src/common/constants/unified/system.constants.ts:31-38`
-   - 影响: LOG_LEVELS 常量在多个模块中完全重复定义，违反 DRY 原则
-   - 建议: 使用 `SYSTEM_CONSTANTS.LOG_LEVELS` 统一替代所有模块的日志级别定义
-
-2. **验证规则常量语义重复**
-   - 位置:
-     - `src/core/02-processing/transformer/constants/data-transformer.constants.ts:104-115` (`FIELD_VALIDATION_RULES`)
-     - `src/core/00-prepare/data-mapper/constants/data-mapper.constants.ts:535-542` (`DATA_MAPPER_FIELD_VALIDATION_RULES`)
-   - 影响: 两个模块都定义了字段验证规则，但内容不同，可能导致验证逻辑不一致
-   - 建议: 提取到 `@common/constants/validation.constants.ts` 统一管理
-
-3. **弃用常量未清理**
-   - 位置: `src/core/02-processing/transformer/constants/data-transformer.constants.ts:17-20`
-   - 影响: `TRANSFORM_TYPES` 标记为 `@deprecated` 但仍在使用，存在技术债务
-   - 建议: 替换所有使用处为 `TRANSFORMATION_TYPES`，然后删除弃用常量
+## 仍存在的问题
 
 ### 🟡 警告（建议修复）
 
@@ -78,51 +56,7 @@
 
 ## 改进建议
 
-### 1. 立即修复项（高优先级）
-
-**清理重复的日志级别常量**
-```typescript
-// ❌ 当前：在多个模块重复定义
-export const TRANSFORM_LOG_LEVELS = Object.freeze({
-  DEBUG: "debug",
-  INFO: "info",
-  WARN: "warn",
-  ERROR: "error",
-  FATAL: "fatal",
-});
-
-// ✅ 建议：统一引用
-import { SYSTEM_CONSTANTS } from "@common/constants/unified";
-export const TRANSFORM_DEFAULTS = Object.freeze({
-  LOG_LEVEL: SYSTEM_CONSTANTS.LOG_LEVELS.INFO,
-});
-```
-
-**统一验证规则常量**
-```typescript
-// 新建: src/common/constants/validation.constants.ts
-export const VALIDATION_RULES = Object.freeze({
-  FIELD_TYPES: {
-    REQUIRED: "required",
-    OPTIONAL: "optional",
-    NUMERIC: "numeric",
-    STRING: "string",
-    BOOLEAN: "boolean",
-    DATE: "date",
-    ARRAY: "array",
-    OBJECT: "object",
-    EMAIL: "email",
-    URL: "url",
-  },
-  FIELD_PATTERNS: {
-    FIELD_NAME: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
-    PATH: /^[a-zA-Z_][a-zA-Z0-9_.\[\]]*$/,
-    PROVIDER: /^[a-zA-Z][a-zA-Z0-9_-]*$/,
-  }
-});
-```
-
-### 2. 结构优化项（中优先级）
+### 1. 结构优化项（中优先级）
 
 **常量文件重构**
 ```
@@ -148,7 +82,7 @@ export class DataBatchTransformOptionsDto extends BaseOptionsDto {
 }
 ```
 
-### 3. 长期改进项（低优先级）
+### 2. 长期改进项（低优先级）
 
 **类型安全增强**
 ```typescript
@@ -168,17 +102,12 @@ export type TransformStatus = typeof TRANSFORM_STATUS[keyof typeof TRANSFORM_STA
 
 ## 实施路径
 
-### 阶段1：重复清理（预计工作量：4小时）
-1. 替换所有 `TRANSFORM_LOG_LEVELS` 为 `SYSTEM_CONSTANTS.LOG_LEVELS`
-2. 删除 `@deprecated` 的 `TRANSFORM_TYPES` 常量
-3. 统一验证规则常量到 common 模块
-
-### 阶段2：结构优化（预计工作量：6小时）
+### 阶段1：结构优化（预计工作量：6小时）
 1. 拆分 `data-transformer.constants.ts` 文件
 2. 实施 DTO 基类继承
 3. 优化缓存配置结构
 
-### 阶段3：类型安全提升（预计工作量：2小时）
+### 阶段2：类型安全提升（预计工作量：2小时）
 1. 添加 `as const` 断言
 2. 导出类型定义
 3. 更新相关服务的类型引用
@@ -193,7 +122,6 @@ export type TransformStatus = typeof TRANSFORM_STATUS[keyof typeof TRANSFORM_STA
 ## 验收标准
 
 - [ ] 重复率降低至 5% 以下
-- [ ] 所有弃用常量清理完成
 - [ ] DTO 继承使用率达到 50% 以上
 - [ ] 常量文件组织符合模块化标准
 - [ ] 所有变更通过现有测试套件

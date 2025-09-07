@@ -17,11 +17,12 @@ import {
   NotificationResult,
   BatchNotificationResult,
   NotificationTemplate,
-  NotificationChannel,
   NotificationChannelType,
   Alert,
   AlertRule,
 } from "../types/alert.types";
+
+import type { NotificationChannel} from "../types/alert.types";
 
 // 🎯 引入新配置和 Senders
 
@@ -87,7 +88,7 @@ export class NotificationService implements OnModuleInit {
     }
 
     // 🎯 修复: 直接调用 sender，让异常自然抛出。
-    // sender.send() 在成功时会返回 INotificationResult，失败时应抛出异常。
+    // sender.send() 在成功时会返回 NotificationResult，失败时应抛出异常。
     // 这将由调用方 (sendBatchNotifications) 捕获。
     const result = await sender.send(alert, rule, channelConfig.config);
 
@@ -109,7 +110,7 @@ export class NotificationService implements OnModuleInit {
     rule: AlertRule,
   ): Promise<BatchNotificationResult> {
     const operation = NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS;
-    const startTime = Date.now();
+    const executionStart = Date.now();
     const results: NotificationResult[] = [];
 
     this.logger.debug(NOTIFICATION_MESSAGES.BATCH_PROCESSING_STARTED, {
@@ -167,7 +168,7 @@ export class NotificationService implements OnModuleInit {
 
     const successful = results.filter((r) => r.success).length;
     const failed = results.length - successful;
-    const duration = Date.now() - startTime;
+    const duration = Date.now() - executionStart;
 
     this.logger.debug(NOTIFICATION_MESSAGES.BATCH_NOTIFICATIONS_COMPLETED, {
       operation,

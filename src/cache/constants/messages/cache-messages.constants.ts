@@ -78,37 +78,4 @@ export const CACHE_MESSAGES = Object.freeze({
     PERFORMANCE_DEGRADED: "缓存性能下降",
   },
   
-  /**
-   * 信息消息
-   */
-  INFO: {
-    CACHE_HIT: "缓存命中",
-    CACHE_MISS: "缓存未命中",
-    CACHE_WARMUP: "缓存预热中",
-    STATS_UPDATED: "统计信息已更新",
-    CLEANUP_COMPLETED: "清理操作完成",
-  }
-} as const);
-
-/**
- * 消息模板工具函数
- */
-export const CACHE_MESSAGE_TEMPLATES = Object.freeze({
-  /**
-   * 操作结果消息模板
-   */
-  operationResult: (operation: string, result: 'success' | 'failed', details?: string): string => 
-    `缓存操作 [${operation}] ${result === 'success' ? '成功' : '失败'}${details ? `: ${details}` : ''}`,
-  
-  /**
-   * 性能指标消息模板
-   */
-  performanceMetric: (metric: string, value: number, unit: string): string =>
-    `缓存性能指标 [${metric}]: ${value} ${unit}`,
-  
-  /**
-   * 健康状态消息模板
-   */
-  healthStatus: (component: string, status: string, message?: string): string =>
-    `缓存组件 [${component}] 状态: ${status}${message ? ` - ${message}` : ''}`,
 } as const);

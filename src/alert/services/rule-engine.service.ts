@@ -136,7 +136,7 @@ export class RuleEngineService implements IRuleEngine {
     metricData: IMetricData[],
   ): IRuleEvaluationResult[] {
     const operation = ALERTING_OPERATIONS.EVALUATE_RULES_SCHEDULED;
-    const startTime = Date.now();
+    const executionStart = Date.now();
 
     this.logger.debug(
       ALERTING_MESSAGES.RULE_EVALUATION_STARTED,
@@ -184,7 +184,7 @@ export class RuleEngineService implements IRuleEngine {
           }
         });
 
-      const executionTime = Date.now() - startTime;
+      const executionTime = Date.now() - executionStart;
       const triggeredCount = results.filter((r) => r.triggered).length;
 
       // 🎯 记录性能指标
@@ -203,7 +203,7 @@ export class RuleEngineService implements IRuleEngine {
 
       return results;
     } catch (error) {
-      const executionTime = Date.now() - startTime;
+      const executionTime = Date.now() - executionStart;
       this.logger.error(
         ALERTING_MESSAGES.RULE_EVALUATION_FAILED,
         sanitizeLogData({

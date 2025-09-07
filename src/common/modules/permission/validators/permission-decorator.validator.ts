@@ -4,9 +4,7 @@ import { createLogger } from "@app/config/logger.config";
 import { DiscoveryService, MetadataScanner, Reflector } from "@nestjs/core";
 import { InstanceWrapper } from "@nestjs/core/injector/instance-wrapper";
 
-import { REQUIRE_API_KEY } from "../../../../auth/decorators/require-apikey.decorator";
-import { PERMISSIONS_KEY } from "../../../../auth/decorators/permissions.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { AuthPermissionValidationService } from "../adapters/auth-permission.adapter";
 
 /**
  * 权限装饰器验证结果
@@ -50,6 +48,7 @@ export class PermissionDecoratorValidator {
     private readonly discoveryService: DiscoveryService,
     private readonly metadataScanner: MetadataScanner,
     private readonly reflector: Reflector,
+    private readonly permissionValidationService: AuthPermissionValidationService,
   ) {}
 
   /**
@@ -215,7 +214,7 @@ export class PermissionDecoratorValidator {
    * 检查是否有 @ApiKeyAuth 装饰器
    */
   private hasApiKeyAuth(route: { handler: (...args: any[]) => any }): boolean {
-    return this.reflector.get(REQUIRE_API_KEY, route.handler) === true;
+    return this.permissionValidationService.hasApiKeyAuth(route.handler);
   }
 
   /**
@@ -224,11 +223,7 @@ export class PermissionDecoratorValidator {
   private hasRequirePermissions(route: {
     handler: (...args: any[]) => any;
   }): boolean {
-    const permissions = this.reflector.get<Permission[]>(
-      PERMISSIONS_KEY,
-      route.handler,
-    );
-    return Array.isArray(permissions) && permissions.length > 0;
+    return this.permissionValidationService.hasPermissionRequirements(route.handler);
   }
 
   /**
@@ -236,87 +231,59 @@ export class PermissionDecoratorValidator {
    */
   private getRequiredPermissions(route: {
     handler: (...args: any[]) => any;
-  }): Permission[] {
-    return (
-      this.reflector.get<Permission[]>(PERMISSIONS_KEY, route.handler) || []
-    );
+  }): string[] {
+    return this.permissionValidationService.getRequiredPermissions(route.handler);
   }
 
   /**
    * 验证权限级别是否合理
    */
   private validatePermissionLevel(
-    permissions: Permission[],
+    permissions: string[],
     route: { path: string; method: string },
   ): PermissionViolation | null {
-    if (permissions.length === 0) {
+    const validation = this.permissionValidationService.validatePermissionLevel(permissions);
+    
+    if (validation.isValid) {
       return null;
     }
 
-    // 检查是否有权限级别不匹配的情况
-    const hasHighLevelPermission = permissions.some(
-      (p) => p === Permission.SYSTEM_ADMIN || p === Permission.MAPPING_WRITE,
-    );
-    const hasLowLevelPermission = permissions.some(
-      (p) => p === Permission.DATA_READ || p === Permission.CONFIG_READ,
-    );
-
-    if (hasHighLevelPermission && hasLowLevelPermission) {
-      return {
-        type: "permission_level_inconsistency",
-        route: route.path,
-        method: route.method,
-        message: "权限级别不一致：同时包含高级和低级权限",
-        severity: "medium",
-        recommendation: "使用单一权限级别或建立权限继承关系",
-      };
-    }
-
-    return null;
+    return {
+      type: "permission_level_inconsistency",
+      route: route.path,
+      method: route.method,
+      message: validation.issues.join('; '),
+      severity: "medium",
+      recommendation: "使用单一权限级别或建立权限继承关系",
+    };
   }
 
   /**
    * 验证权限组合是否有效
    */
   private validatePermissionCombination(
-    permissions: Permission[],
+    permissions: string[],
     route: { path: string; method: string },
   ): PermissionViolation | null {
-    if (permissions.length <= 1) {
+    const validation = this.permissionValidationService.validatePermissionCombination(permissions);
+    
+    if (validation.isValid) {
       return null;
     }
 
-    // 检查是否有冲突的权限组合
-    const readPermissions = permissions.filter((p) =>
-      p.toString().includes("READ"),
-    );
-    const writePermissions = permissions.filter((p) =>
-      p.toString().includes("WRITE"),
-    );
+    // 根据问题类型确定严重程度
+    const severity = validation.issues.some(issue => 
+      issue.includes("冲突") || issue.includes("管理员")
+    ) ? "medium" : "low";
 
-    if (readPermissions.length > 1) {
-      return {
-        type: "invalid_permission_combination",
-        route: route.path,
-        method: route.method,
-        message: "存在多个读取权限，可能造成权限冗余",
-        severity: "low",
-        recommendation: "使用最高级别的读取权限",
-      };
-    }
-
-    if (writePermissions.length > 1) {
-      return {
-        type: "invalid_permission_combination",
-        route: route.path,
-        method: route.method,
-        message: "存在多个写入权限，可能造成权限冲突",
-        severity: "medium",
-        recommendation: "使用最高级别的写入权限",
-      };
-    }
-
-    return null;
+    return {
+      type: "invalid_permission_combination",
+      route: route.path,
+      method: route.method,
+      message: validation.issues.join('; '),
+      severity,
+      recommendation: "简化权限组合，使用最高级别的必要权限",
+    };
   }
 
   /**

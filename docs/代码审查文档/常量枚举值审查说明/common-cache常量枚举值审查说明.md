@@ -6,19 +6,7 @@
 - **字段总数**: 302
 - **重复率**: 6.8%
 
-## 发现的问题
-
-### 🔴 严重（必须修复）
-
-1. **压缩阈值三重定义**
-   - 位置: `cache-config.constants.ts:45`, `cache.constants.ts:89`, `compression-thresholds.constants.ts:12`
-   - 影响: 同一概念存在三个不同的定义源，可能导致配置冲突和行为不一致
-   - 建议: 建立单一权威数据源，其他位置通过引用获取
-
-2. **硬编码魔法数字分散**
-   - 位置: `adaptive-decompression.service.ts:156`, `cache-compression.service.ts:89`, `cache-key.utils.ts:45`
-   - 影响: 性能阈值(80%)、调整冷却期(5000ms)、历史记录限制(1000)等关键参数未集中管理
-   - 建议: 提取到统一的性能配置常量文件
+## 仍存在的问题
 
 ### 🟡 警告（建议修复）
 
@@ -27,12 +15,7 @@
    - 影响: 新旧两套缓存键前缀并存，增加维护复杂度
    - 建议: 完成迁移后移除旧版本定义，仅保留向后兼容映射
 
-2. **TTL配置重复**
-   - 位置: `cache-config.constants.ts:78-84`, `cache.constants.ts:91-93`
-   - 影响: 默认TTL值在两处定义，可能出现不一致
-   - 建议: 统一使用CACHE_CONFIG作为唯一配置源
-
-3. **DTO验证规则硬编码**
+2. **DTO验证规则硬编码**
    - 位置: `cache-request.dto.ts:23`, `ttl-compute-params.dto.ts:18`
    - 影响: TTL范围(30-86400)、批量限制(100)等直接写在装饰器中
    - 建议: 从常量文件引用验证规则参数
@@ -59,82 +42,11 @@
 | 常量组织合理性 | 72% | >85% | 🟡 待优化 |
 | 类型安全覆盖率 | 89% | >95% | 🟡 待提升 |
 
-## 改进建议
+## 待处理的改进建议
 
-### 1. 立即行动项（优先级高）
+### 1. 中期改进项（优先级中）
 
-#### 1.1 建立统一的配置层次结构
-```typescript
-// constants/master-config.constants.ts
-export const MASTER_CACHE_CONFIG = Object.freeze({
-  // 压缩配置 - 唯一定义源
-  COMPRESSION: {
-    THRESHOLD_BYTES: 10240,
-    ALGORITHMS: ['gzip', 'deflate', 'brotli'] as const,
-    LEVELS: {
-      STREAM: 1024,
-      BATCH: 10240, 
-      STATIC: 16384,
-      LARGE_FILES: 51200,
-    }
-  },
-  
-  // TTL配置 - 唯一定义源  
-  TTL: {
-    DEFAULT: 300,
-    MIN: 30,
-    MAX: 86400,
-    STRATEGIES: {
-      REAL_TIME: 5,
-      NEAR_REAL_TIME: 60,
-      DELAYED: 300,
-      STATIC: 3600,
-    }
-  },
-  
-  // 性能阈值 - 新增集中管理
-  PERFORMANCE: {
-    CPU_THRESHOLD_PERCENT: 80,
-    MEMORY_THRESHOLD_PERCENT: 80,
-    ADJUSTMENT_COOLDOWN_MS: 5000,
-    HISTORY_LIMIT: 1000,
-  }
-});
-```
-
-#### 1.2 创建验证规则常量
-```typescript
-// constants/validation.constants.ts
-export const CACHE_VALIDATION = Object.freeze({
-  TTL: {
-    MIN: MASTER_CACHE_CONFIG.TTL.MIN,
-    MAX: MASTER_CACHE_CONFIG.TTL.MAX,
-  },
-  BATCH: {
-    MAX_SIZE: 100,
-    MIN_SIZE: 1,
-  },
-  TIMEOUT: {
-    MIN_MS: 1000,
-    MAX_MS: 30000,
-  }
-});
-
-// 在DTO中使用
-export class CacheRequestDto {
-  @Min(CACHE_VALIDATION.TTL.MIN)
-  @Max(CACHE_VALIDATION.TTL.MAX)
-  ttl?: number;
-  
-  @Min(CACHE_VALIDATION.BATCH.MIN_SIZE)  
-  @Max(CACHE_VALIDATION.BATCH.MAX_SIZE)
-  batchSize?: number;
-}
-```
-
-### 2. 中期改进项（优先级中）
-
-#### 2.1 重构枚举定义
+#### 1.1 重构枚举定义
 ```typescript
 // enums/cache-enums.ts
 export const CacheResultStatus = {
@@ -167,7 +79,39 @@ export const CacheEnumUtils = {
 };
 ```
 
-#### 2.2 实现常量验证器
+#### 1.2 创建验证规则常量
+```typescript
+// constants/validation.constants.ts
+export const CACHE_VALIDATION = Object.freeze({
+  TTL: {
+    MIN: MASTER_CACHE_CONFIG.TTL.MIN,
+    MAX: MASTER_CACHE_CONFIG.TTL.MAX,
+  },
+  BATCH: {
+    MAX_SIZE: 100,
+    MIN_SIZE: 1,
+  },
+  TIMEOUT: {
+    MIN_MS: 1000,
+    MAX_MS: 30000,
+  }
+});
+
+// 在DTO中使用
+export class CacheRequestDto {
+  @Min(CACHE_VALIDATION.TTL.MIN)
+  @Max(CACHE_VALIDATION.TTL.MAX)
+  ttl?: number;
+  
+  @Min(CACHE_VALIDATION.BATCH.MIN_SIZE)  
+  @Max(CACHE_VALIDATION.BATCH.MAX_SIZE)
+  batchSize?: number;
+}
+```
+
+### 2. 长期优化项（优先级低）
+
+#### 2.1 实现常量验证器
 ```typescript
 // validators/constants.validator.ts
 export class CacheConstantsValidator {
@@ -207,9 +151,7 @@ export class CommonCacheModule implements OnModuleInit {
 }
 ```
 
-### 3. 长期优化项（优先级低）
-
-#### 3.1 实现动态配置能力
+#### 2.2 实现动态配置能力
 ```typescript
 // services/dynamic-config.service.ts
 @Injectable()
@@ -228,7 +170,7 @@ export class DynamicConfigService {
 }
 ```
 
-#### 3.2 添加配置使用统计
+#### 2.3 添加配置使用统计
 ```typescript
 // tools/config-usage-analyzer.ts  
 export class ConfigUsageAnalyzer {
@@ -306,7 +248,7 @@ common-cache组件的常量管理体现了**良好的模块化设计思想**，�
 - 使用了现代TypeScript特性（as const断言）
 
 ⚠️ **需改进**：
-- **重复率偏高(6.8%)**：压缩阈值和TTL配置存在多处定义
+- **重复率偏高(6.8%)**：部分配置存在多处定义
 - **硬编码分散**：性能参数等关键常量未集中管理
 - **类型安全不足**：部分枚举混用enum和const assertion
 - **验证规则硬编码**：DTO中的限制值直接写在装饰器中

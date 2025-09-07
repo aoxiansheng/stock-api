@@ -1,6 +1,10 @@
 import { IsString, IsEmail, MinLength, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AUTH_CONFIG, AUTH_VALIDATION_RULES } from '../constants/auth.constants';
+import { AUTH_VALIDATION_RULES } from '../constants/auth.constants';
+import { 
+  PASSWORD_CONSTRAINTS, 
+  USERNAME_CONSTRAINTS 
+} from '../constants/validation.constants';
 
 /**
  * 基础认证DTO类
@@ -10,12 +14,12 @@ export abstract class BaseAuthDto {
   @ApiProperty({
     description: '用户名',
     example: 'admin',
-    minLength: AUTH_CONFIG.MIN_USERNAME_LENGTH,
-    maxLength: AUTH_CONFIG.MAX_USERNAME_LENGTH,
+    minLength: USERNAME_CONSTRAINTS.MIN_LENGTH,
+    maxLength: USERNAME_CONSTRAINTS.MAX_LENGTH,
   })
   @IsString()
-  @MinLength(AUTH_CONFIG.MIN_USERNAME_LENGTH)
-  @MaxLength(AUTH_CONFIG.MAX_USERNAME_LENGTH)
+  @MinLength(USERNAME_CONSTRAINTS.MIN_LENGTH)
+  @MaxLength(USERNAME_CONSTRAINTS.MAX_LENGTH)
   @Matches(AUTH_VALIDATION_RULES.USERNAME_PATTERN, {
     message: '用户名只能包含字母、数字、下划线和连字符',
   })
@@ -30,13 +34,13 @@ export abstract class BasePasswordDto extends BaseAuthDto {
   @ApiProperty({
     description: '密码',
     example: 'password123',
-    minLength: AUTH_CONFIG.MIN_PASSWORD_LENGTH,
+    minLength: PASSWORD_CONSTRAINTS.MIN_LENGTH,
   })
   @IsString()
-  @MinLength(AUTH_CONFIG.MIN_PASSWORD_LENGTH, {
-    message: `密码长度不能少于 ${AUTH_CONFIG.MIN_PASSWORD_LENGTH} 位`,
+  @MinLength(PASSWORD_CONSTRAINTS.MIN_LENGTH, {
+    message: `密码长度不能少于 ${PASSWORD_CONSTRAINTS.MIN_LENGTH} 位`,
   })
-  @MaxLength(AUTH_CONFIG.MAX_PASSWORD_LENGTH)
+  @MaxLength(PASSWORD_CONSTRAINTS.MAX_LENGTH)
   @Matches(AUTH_VALIDATION_RULES.PASSWORD_PATTERN, {
     message: '密码必须包含至少一个字母和一个数字',
   })

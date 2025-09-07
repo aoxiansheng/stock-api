@@ -19,7 +19,7 @@ export interface CapabilityExecuteResult {
     provider: string;
 
     /** 处理时间 (毫秒) */
-    processingTime: number;
+    processingTimeMs: number;
 
     /** 原始数据格式标识 (如: secu_quote, array, object) */
     sourceFormat?: string;

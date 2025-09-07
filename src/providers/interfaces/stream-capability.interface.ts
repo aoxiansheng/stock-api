@@ -1,3 +1,5 @@
+import { ConnectionStatus } from '../constants/connection.constants';
+
 /**
  * WebSocket 流数据能力接口
  * 与 ICapability 接口相对应，专门用于实时流数据处理
@@ -65,7 +67,7 @@ export interface IStreamCapabilityRegistration {
   capability: IStreamCapability;
   priority: number;
   isEnabled: boolean;
-  connectionStatus: "disconnected" | "connecting" | "connected" | "error";
+  connectionStatus: ConnectionStatus;
   lastConnectedAt?: Date;
   errorCount: number;
   lastError?: string;

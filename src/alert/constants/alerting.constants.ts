@@ -3,6 +3,10 @@
  * 🎯 符合开发规范指南 - 统一常量管理
  */
 
+import { TIMING_CONSTANTS } from './timing.constants';
+import { DEFAULT_ALERT_STATS, type BaseAlertStats } from '../interfaces/alert-stats.interface';
+import { SHARED_VALIDATION_RULES } from './shared.constants';
+
 // 📝 操作名称常量
 export const ALERTING_OPERATIONS = Object.freeze({
   CREATE_RULE: "createRule",
@@ -18,10 +22,7 @@ export const ALERTING_OPERATIONS = Object.freeze({
   HANDLE_SYSTEM_EVENT: "handleSystemEvent",
   EVALUATE_RULES_SCHEDULED: "evaluateRulesScheduled",
   CREATE_NEW_ALERT: "createNewAlert",
-  LOAD_ACTIVE_ALERTS: "loadActiveAlerts",
   HANDLE_RULE_EVALUATION: "handleRuleEvaluation",
-  CONVERT_EVENT_TO_METRIC: "convertEventToMetric",
-  GENERATE_RULE_ID: "generateRuleId",
 });
 
 // 📢 消息常量
@@ -54,7 +55,6 @@ export const ALERTING_MESSAGES = Object.freeze({
   GET_STATS_FAILED: "获取告警统计失败",
   HANDLE_EVENT_FAILED: "处理系统事件失败",
   CREATE_ALERT_FAILED: "创建新告警失败",
-  LOAD_ACTIVE_ALERTS_FAILED: "加载活跃告警失败",
   RULE_EVALUATION_FAILED: "规则评估失败",
 
   // 警告消息
@@ -87,7 +87,6 @@ export const ALERTING_ERROR_TEMPLATES = Object.freeze({
   RULE_OPERATION_FAILED: "规则操作失败: {operation}，规则ID: {ruleId}",
   ALERT_OPERATION_FAILED: "告警操作失败: {operation}，告警ID: {alertId}",
   METRIC_PROCESSING_ERROR: "处理指标 {metric} 时发生错误: {error}",
-  CACHE_OPERATION_FAILED: "缓存操作失败: {operation}，键: {key}",
 });
 
 // 🔧 告警配置常量
@@ -96,32 +95,30 @@ export const ALERTING_CONFIG = Object.freeze({
   RULE_ID_TIMESTAMP_BASE: 36,
   RULE_ID_RANDOM_LENGTH: 6,
   RULE_ID_RANDOM_START: 2,
-  DEFAULT_COOLDOWN_SECONDS: 300, // 5分钟
+  DEFAULT_COOLDOWN_SECONDS: TIMING_CONSTANTS.COOLDOWN.DEFAULT_SECONDS, // 引用统一配置
   MAX_RULE_NAME_LENGTH: 100,
   MAX_RULE_DESCRIPTION_LENGTH: 500,
   MAX_TAGS_COUNT: 10,
   MAX_TAG_LENGTH: 50,
 });
 
-// 📊 默认统计值常量
-export const ALERTING_DEFAULT_STATS = Object.freeze({
-  activeAlerts: 0,
-  criticalAlerts: 0,
-  warningAlerts: 0,
-  infoAlerts: 0,
-  totalAlertsToday: 0,
-  resolvedAlertsToday: 0,
-  averageResolutionTime: 0,
+// 📊 默认统计值常量 - 使用共享统计接口
+export const ALERTING_DEFAULT_STATS: BaseAlertStats = DEFAULT_ALERT_STATS;
+
+// ⏰ 告警时间配置常量
+export const ALERTING_TIME_CONFIG = Object.freeze({
+  ALERT_TTL_SECONDS: 86400, // 24 小时
+  COOLDOWN_SECONDS: 300,    // 5 分钟
+  EVALUATION_INTERVAL: 60,   // 1 分钟
 });
 
-// 🏷️ 告警严重程度常量
-export const ALERTING_SEVERITY_LEVELS = Object.freeze({
-  CRITICAL: "critical",
-  HIGH: "high",
-  MEDIUM: "medium",
-  LOW: "low",
-  INFO: "info",
+// 🎯 缓存模式常量
+export const ALERTING_CACHE_PATTERNS = Object.freeze({
+  RULE_COOLDOWN: "alert:cooldown:{ruleId}",
+  ACTIVE_ALERTS: "alert:active:{ruleId}",
+  RULE_STATS: "alert:stats:{ruleId}",
 });
+
 
 // 📈 告警指标常量
 export const ALERTING_METRICS = Object.freeze({
@@ -139,43 +136,20 @@ export const ALERTING_METRICS = Object.freeze({
   ACTIVE_RULES_COUNT: "alerting_active_rules_count",
 });
 
-// 🎛️ 缓存键模式常量
-export const ALERTING_CACHE_PATTERNS = Object.freeze({
-  ACTIVE_ALERT: "alert:active:{ruleId}",
-  RULE_COOLDOWN: "alert:cooldown:{ruleId}",
-  RULE_CACHE: "alert:rule:{ruleId}",
-  STATS_CACHE: "alert:stats",
-  EVALUATION_RESULT: "alert:evaluation:{ruleId}",
-});
-
 // 🔍 验证规则常量
+// 基于 SHARED_VALIDATION_RULES 构建，保持向后兼容性
 export const ALERTING_VALIDATION_RULES = Object.freeze({
-  RULE_NAME_PATTERN:
-    /^[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef\u3000-\u303fa-zA-Z0-9\s\-_\.]+$/,
+  // 使用共享的通用名称模式（支持中文、英文、数字、符号）
+  RULE_NAME_PATTERN: SHARED_VALIDATION_RULES.TEXT_PATTERNS.GENERAL_NAME,
+  // 告警规则特有的ID模式
   RULE_ID_PATTERN: /^rule_[a-z0-9]+_[a-z0-9]{6}$/,
-  METRIC_NAME_PATTERN: /^[a-zA-Z0-9_\.]+$/,
-  TAG_PATTERN: /^[a-zA-Z0-9_-]+$/,
-  THRESHOLD_MIN: 0,
-  THRESHOLD_MAX: Number.MAX_SAFE_INTEGER,
-});
-
-// ⏰ 时间配置常量
-export const ALERTING_TIME_CONFIG = Object.freeze({
-  DEFAULT_EVALUATION_INTERVAL_MS: 60000, // 1分钟
-  MIN_COOLDOWN_SECONDS: 60, // 1分钟
-  MAX_COOLDOWN_SECONDS: 86400, // 24小时
-  ALERT_TTL_SECONDS: 3600, // 1小时
-  STATS_CACHE_TTL_SECONDS: 300, // 5分钟
-  RULE_CACHE_TTL_SECONDS: 1800, // 30分钟
-});
-
-// 🚨 告警阈值常量
-export const ALERTING_THRESHOLDS = Object.freeze({
-  MAX_ACTIVE_ALERTS: 1000,
-  MAX_RULES_PER_USER: 50,
-  MAX_ALERTS_PER_RULE_PER_HOUR: 10,
-  CRITICAL_ALERT_THRESHOLD: 100,
-  WARNING_ALERT_THRESHOLD: 50,
+  // 使用共享的标识符模式
+  METRIC_NAME_PATTERN: SHARED_VALIDATION_RULES.TEXT_PATTERNS.IDENTIFIER,
+  // 使用共享的标签模式
+  TAG_PATTERN: SHARED_VALIDATION_RULES.TEXT_PATTERNS.TAG,
+  // 使用共享的阈值范围
+  THRESHOLD_MIN: SHARED_VALIDATION_RULES.NUMERIC_RANGE.THRESHOLD_MIN,
+  THRESHOLD_MAX: SHARED_VALIDATION_RULES.NUMERIC_RANGE.THRESHOLD_MAX,
 });
 
 // 🔄 重试配置常量 - 使用共享基础配置
@@ -184,6 +158,7 @@ export { ALERTING_RETRY_CONFIG } from "./retry.constants";
 /**
  * 告警模板工具函数
  */
+
 export class AlertingTemplateUtil {
   /**
    * 替换错误消息模板中的占位符
@@ -249,14 +224,6 @@ export class AlertingTemplateUtil {
     );
   }
 
-  /**
-   * 验证规则ID格式
-   * @param ruleId 规则ID
-   * @returns 是否有效
-   */
-  static isValidRuleId(ruleId: string): boolean {
-    return ALERTING_VALIDATION_RULES.RULE_ID_PATTERN.test(ruleId);
-  }
 
   /**
    * 验证指标名称格式
@@ -299,29 +266,4 @@ export class AlertingTemplateUtil {
     return this.replaceErrorTemplate(template, context);
   }
 
-  /**
-   * 计算告警优先级分数
-   * @param severity 严重程度
-   * @param value 当前值
-   * @param threshold 阈值
-   * @returns 优先级分数
-   */
-  static calculatePriorityScore(
-    severity: string,
-    value: number,
-    threshold: number,
-  ): number {
-    const severityWeights = {
-      [ALERTING_SEVERITY_LEVELS.CRITICAL]: 100,
-      [ALERTING_SEVERITY_LEVELS.HIGH]: 80,
-      [ALERTING_SEVERITY_LEVELS.MEDIUM]: 60,
-      [ALERTING_SEVERITY_LEVELS.LOW]: 40,
-      [ALERTING_SEVERITY_LEVELS.INFO]: 20,
-    };
-
-    const baseScore = severityWeights[severity] || 0;
-    const thresholdRatio = threshold > 0 ? Math.min(value / threshold, 2) : 1;
-
-    return Math.round(baseScore * thresholdRatio);
-  }
 }

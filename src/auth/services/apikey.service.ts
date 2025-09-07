@@ -21,6 +21,7 @@ import { CreateApiKeyDto } from "../dto/apikey.dto";
 import { ApiKey, ApiKeyDocument } from "../schemas/apikey.schema";
 import { UserRepository } from "../repositories/user.repository";
 import { RolePermissions, Permission } from "../enums/user-role.enum";
+import { CommonStatus } from "../enums/common-status.enum";
 
 // 🎯 引入 API Key 服务常量
 
@@ -53,7 +54,7 @@ export class ApiKeyService {
       .findOne({
         appKey,
         accessToken,
-        isActive: true,
+        status: CommonStatus.ACTIVE,
       })
       .exec();
 
@@ -107,7 +108,7 @@ export class ApiKeyService {
       const apiKey = await this.apiKeyModel
         .findOne({
           appKey,
-          isActive: true,
+          status: CommonStatus.ACTIVE,
         })
         .exec();
 
@@ -148,8 +149,8 @@ export class ApiKeyService {
 
     try {
       await this.apiKeyModel.findByIdAndUpdate(apiKeyId, {
-        $inc: { usageCount: 1 },
-        $set: { lastUsedAt: new Date() },
+        $inc: { totalRequestCount: 1 },
+        $set: { lastAccessedAt: new Date() },
       });
 
       this.logger.debug(APIKEY_MESSAGES.API_KEY_USAGE_UPDATED, {
@@ -192,7 +193,7 @@ export class ApiKeyService {
       userId,
       permissions,
       rateLimit: rateLimit || APIKEY_DEFAULTS.DEFAULT_RATE_LIMIT,
-      isActive: APIKEY_DEFAULTS.DEFAULT_ACTIVE_STATUS,
+      status: CommonStatus.ACTIVE,
       expiresAt,
     });
 
@@ -303,7 +304,7 @@ export class ApiKeyService {
 
     try {
       const apiKeys = await this.apiKeyModel
-        .find({ userId, isActive: true })
+        .find({ userId, status: CommonStatus.ACTIVE })
         .exec();
 
       this.logger.debug(APIKEY_MESSAGES.USER_API_KEYS_RETRIEVED, {
@@ -338,12 +339,12 @@ export class ApiKeyService {
     try {
       const result = await this.apiKeyModel.updateOne(
         { appKey: appKey, userId },
-        { isActive: false },
+        { status: CommonStatus.INACTIVE },
       );
 
       if (result.matchedCount === 0) {
         throw new NotFoundException(
-          ERROR_MESSAGES.API_KEY_NOT_FOUND_OR_NO_PERMISSION,
+          ERROR_MESSAGES.API_KEY_INVALID_OR_NO_PERM,
         );
       }
 

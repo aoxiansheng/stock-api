@@ -86,7 +86,7 @@ export class PresenterController {
     schema: {
       type: "object",
       properties: {
-        score: { type: "number", minimum: 0, maximum: 100 },
+        healthScore: { type: "number", minimum: 0, maximum: 100 },
         timestamp: { type: "string", format: "date-time" },
       },
     },
@@ -179,8 +179,8 @@ export class PresenterController {
         properties: {
           endpoint: { type: "string" },
           method: { type: "string" },
-          requestCount: { type: "number" },
-          averageResponseTime: { type: "number" },
+          totalOperations: { type: "number" },
+          responseTimeMs: { type: "number" },
           errorRate: { type: "number" },
           lastUsed: { type: "string", format: "date-time" },
         },
@@ -208,10 +208,10 @@ export class PresenterController {
       type: "object",
       properties: {
         totalOperations: { type: "number" },
-        averageQueryTime: { type: "number" },
+        responseTimeMs: { type: "number" },
         slowQueries: { type: "number" },
         failedOperations: { type: "number" },
-        failureRate: { type: "number" },
+        errorRate: { type: "number" },
       },
     },
   })
@@ -239,7 +239,7 @@ export class PresenterController {
         hits: { type: "number" },
         misses: { type: "number" },
         hitRate: { type: "number" },
-        averageResponseTime: { type: "number" },
+        responseTimeMs: { type: "number" },
       },
     },
   })
@@ -632,7 +632,7 @@ export class PresenterController {
                 properties: {
                   name: { type: "string" },
                   success: { type: "boolean" },
-                  duration: { type: "number" },
+                  responseTimeMs: { type: "number" },
                   error: { type: "string" },
                 },
               },
@@ -760,7 +760,7 @@ export class PresenterController {
             properties: {
               name: { type: "string" },
               success: { type: "boolean" },
-              duration: { type: "number" },
+              responseTimeMs: { type: "number" },
               error: { type: "string" },
             },
           },

@@ -27,8 +27,6 @@ export enum OperationStatus {
 
   // 安全相关状态
   BLOCKED = "blocked",
-  SUSPICIOUS = "suspicious",
-  RATE_LIMITED = "rate_limited",
 
   // 系统状态
   ACTIVE = "active",
@@ -39,7 +37,6 @@ export enum OperationStatus {
   // 数据操作状态
   CREATED = "created",
   UPDATED = "updated",
-  DELETED = "deleted",
   RETRIEVED = "retrieved",
 
   // 网络相关状态
@@ -54,16 +51,6 @@ export enum OperationStatus {
   ABORTED = "aborted",
 }
 
-/**
- * 操作结果类型
- * 简化的操作结果分类
- */
-export enum OperationResult {
-  SUCCESS = "success",
-  FAILURE = "failure",
-  PARTIAL = "partial",
-  UNKNOWN = "unknown",
-}
 
 /**
  * 检查操作是否成功
@@ -116,28 +103,9 @@ export function isInProgressOperation(status: OperationStatus): boolean {
   return inProgressStatuses.includes(status);
 }
 
-/**
- * 获取操作结果
- */
-export function getOperationResult(status: OperationStatus): OperationResult {
-  if (isSuccessOperation(status)) {
-    return OperationResult.SUCCESS;
-  }
-  if (isFailureOperation(status)) {
-    return OperationResult.FAILURE;
-  }
-  if (isInProgressOperation(status)) {
-    return OperationResult.PARTIAL;
-  }
-  return OperationResult.UNKNOWN;
-}
 
 /**
  * 所有操作状态值数组
  */
 export const ALL_OPERATION_STATUSES = Object.values(OperationStatus);
 
-/**
- * 所有操作结果值数组
- */
-export const ALL_OPERATION_RESULTS = Object.values(OperationResult);

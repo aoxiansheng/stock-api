@@ -7,6 +7,7 @@ import {
   SECURITY_LIMITS,
 } from "@common/constants/rate-limit.constants";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
+import { HTTP_STATUS_CODES } from "../constants/http-status.constants";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const xss = require("xss");
@@ -24,8 +25,8 @@ export class SecurityMiddleware implements NestMiddleware {
           maxAllowed: SECURITY_LIMITS.MAX_PAYLOAD_SIZE_STRING,
         });
 
-        res.status(413).json({
-          statusCode: 413,
+        res.status(HTTP_STATUS_CODES.PAYLOAD_TOO_LARGE).json({
+          statusCode: HTTP_STATUS_CODES.PAYLOAD_TOO_LARGE,
           message: `请求体过大，最大允许${SECURITY_LIMITS.MAX_PAYLOAD_SIZE_STRING}`,
           error: "Payload Too Large",
           timestamp: new Date().toISOString(),
@@ -41,8 +42,8 @@ export class SecurityMiddleware implements NestMiddleware {
           reason: contentTypeResult.reason,
         });
 
-        res.status(415).json({
-          statusCode: 415,
+        res.status(HTTP_STATUS_CODES.UNSUPPORTED_MEDIA_TYPE).json({
+          statusCode: HTTP_STATUS_CODES.UNSUPPORTED_MEDIA_TYPE,
           message: "不支持的媒体类型",
           error: "Unsupported Media Type",
           details: {
@@ -62,8 +63,8 @@ export class SecurityMiddleware implements NestMiddleware {
           details: validationResult.details,
         });
 
-        res.status(400).json({
-          statusCode: 400,
+        res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+          statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
           message: "请求包含不安全的内容",
           error: "Bad Request",
           details: {
@@ -92,8 +93,8 @@ export class SecurityMiddleware implements NestMiddleware {
         error: error.stack,
       });
 
-      res.status(500).json({
-        statusCode: 500,
+      res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
         message: "内部服务器错误",
         timestamp: new Date().toISOString(),
       });
@@ -766,8 +767,8 @@ export class CSRFMiddleware implements NestMiddleware {
           userAgent: HttpHeadersUtil.getUserAgent(req),
         });
 
-        res.status(403).json({
-          statusCode: 403,
+        res.status(HTTP_STATUS_CODES.FORBIDDEN).json({
+          statusCode: HTTP_STATUS_CODES.FORBIDDEN,
           message: "请求被拒绝: CSRF保护",
           timestamp: new Date().toISOString(),
         });

@@ -31,8 +31,8 @@ export class CacheHealthCheckResultDto {
 
   @ApiProperty({ description: "健康检查时间戳", required: false })
   @IsOptional()
-  @IsString()
-  timestamp?: string;
+  @IsNumber()
+  timestamp?: number;
 
   @ApiProperty({ description: "内存使用详情", required: false })
   @IsOptional()

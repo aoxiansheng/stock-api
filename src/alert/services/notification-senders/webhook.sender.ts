@@ -25,7 +25,7 @@ export class WebhookSender implements NotificationSender {
     rule: AlertRule,
     config: Record<string, any>,
   ): Promise<NotificationResult> {
-    const startTime = Date.now();
+    const executionStart = Date.now();
 
     // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
     const urlValidation = URLSecurityValidator.validateURL(config.url);
@@ -60,7 +60,7 @@ export class WebhookSender implements NotificationSender {
           channelType: this.type,
           message: `Webhook 调用成功: ${response.status}`,
           sentAt: new Date(),
-          duration: Date.now() - startTime,
+          duration: Date.now() - executionStart,
         };
       } else {
         return {
@@ -69,7 +69,7 @@ export class WebhookSender implements NotificationSender {
           channelType: this.type,
           message: `Webhook 返回状态码: ${response.status}`,
           sentAt: new Date(),
-          duration: Date.now() - startTime,
+          duration: Date.now() - executionStart,
         };
       }
     } catch (error) {
@@ -80,7 +80,7 @@ export class WebhookSender implements NotificationSender {
         channelType: this.type,
         error: error.message,
         sentAt: new Date(),
-        duration: Date.now() - startTime,
+        duration: Date.now() - executionStart,
       };
     }
   }

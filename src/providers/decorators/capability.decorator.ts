@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { CapabilityMetadata, Constructor } from "./types/metadata.types";
 import { CapabilityCollector } from "./capability-collector";
+import { METADATA_KEYS } from "../constants/metadata.constants";
 
 /**
  * 能力装饰器 - 自动注册数据源能力
@@ -42,7 +43,7 @@ export function Capability(metadata: CapabilityMetadata) {
     CapabilityCollector.registerCapability(finalMetadata, target);
 
     // 存储元数据到类上，供运行时使用
-    Reflect.defineMetadata("capability:metadata", finalMetadata, target);
+    Reflect.defineMetadata(METADATA_KEYS.CAPABILITY_METADATA, finalMetadata, target);
     Reflect.defineMetadata("capability:registered", true, target);
 
     return target;
@@ -55,7 +56,7 @@ export function Capability(metadata: CapabilityMetadata) {
 export function getCapabilityMetadata(
   target: any,
 ): CapabilityMetadata | undefined {
-  return Reflect.getMetadata("capability:metadata", target);
+  return Reflect.getMetadata(METADATA_KEYS.CAPABILITY_METADATA, target);
 }
 
 /**

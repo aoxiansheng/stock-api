@@ -7,13 +7,14 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ResponseTimeFields } from "../../../common/interfaces/time-fields.interface";
 
 /**
  * 原始收集数据的DTO定义
  * 用于collector层的数据传输
  */
 
-export class RequestMetricDto {
+export class RequestMetricDto implements ResponseTimeFields {
   @ApiProperty({ description: "请求端点" })
   @IsString()
   endpoint: string;
@@ -51,9 +52,9 @@ export class DatabaseMetricDto {
   @IsString()
   operation: string;
 
-  @ApiProperty({ description: "操作持续时间（毫秒）" })
+  @ApiProperty({ description: "响应时间（毫秒）" })
   @IsNumber()
-  duration: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "操作是否成功" })
   success: boolean;
@@ -77,9 +78,9 @@ export class CacheMetricDto {
   @ApiProperty({ description: "是否命中缓存" })
   hit: boolean;
 
-  @ApiProperty({ description: "操作持续时间（毫秒）" })
+  @ApiProperty({ description: "响应时间（毫秒）" })
   @IsNumber()
-  duration: number;
+  responseTimeMs: number;
 
   @ApiProperty({ description: "时间戳" })
   @IsDate()

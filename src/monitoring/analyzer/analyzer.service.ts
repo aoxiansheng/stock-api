@@ -22,6 +22,7 @@ import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
 import { HealthAnalyzerService } from "./analyzer-health.service";
 import { TrendAnalyzerService } from "./analyzer-trend.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
+import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -188,7 +189,7 @@ export class AnalyzerService
       // 计算性能摘要
       const summary =
         this.metricsCalculator.calculatePerformanceSummary(rawMetrics);
-      const averageResponseTime =
+      const responseTimeMs =
         this.metricsCalculator.calculateAverageResponseTime(rawMetrics);
       const errorRate = this.metricsCalculator.calculateErrorRate(rawMetrics);
       const throughput = this.metricsCalculator.calculateThroughput(rawMetrics);
@@ -213,9 +214,9 @@ export class AnalyzerService
       }
 
       const analysis: PerformanceAnalysisDto = {
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
         summary,
-        averageResponseTime,
+        responseTimeMs: responseTimeMs,
         errorRate,
         throughput,
         healthScore,
@@ -239,8 +240,8 @@ export class AnalyzerService
 
       this.logger.debug("性能分析完成", {
         healthScore,
-        totalRequests: summary.totalRequests,
-        averageResponseTime,
+        totalOperations: summary.totalOperations,
+        responseTimeMs,
         errorRate,
       });
 
@@ -372,10 +373,10 @@ export class AnalyzerService
       this.logger.error("数据库指标获取失败", error.stack);
       return {
         totalOperations: 0,
-        averageQueryTime: 0,
+        responseTimeMs: 0,
         slowQueries: 0,
         failedOperations: 0,
-        failureRate: 0,
+        errorRate: 0,
       };
     }
   }
@@ -394,7 +395,7 @@ export class AnalyzerService
         hits: 0,
         misses: 0,
         hitRate: 0,
-        averageResponseTime: 0,
+        responseTimeMs: 0,
       };
     }
   }
@@ -430,14 +431,14 @@ export class AnalyzerService
             category: this.categorizeRecommendation(recommendation),
             priority: this.prioritizeRecommendation(
               recommendation,
-              healthReport.overall.score,
+              healthReport.overall.healthScore,
             ),
             title: `建议 ${index + 1}`,
             description: recommendation,
             action: this.generateAction(recommendation),
             impact: this.estimateImpact(
               recommendation,
-              healthReport.overall.score,
+              healthReport.overall.healthScore,
             ),
           });
         });
@@ -503,7 +504,7 @@ export class AnalyzerService
    */
   async getCacheStats(): Promise<{
     hitRate: number;
-    totalRequests: number;
+    totalOperations: number;
     totalHits: number;
     totalMisses: number;
   }> {
@@ -518,8 +519,8 @@ export class AnalyzerService
       const hitRate = totalRequests > 0 ? totalHits / totalRequests : 0;
 
       return {
-        hitRate: Math.round(hitRate * 10000) / 10000,
-        totalRequests,
+        hitRate: Math.round(hitRate * MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR) / MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
+        totalOperations: totalRequests,
         totalHits,
         totalMisses,
       };
@@ -527,7 +528,7 @@ export class AnalyzerService
       this.logger.error("缓存统计获取失败", error.stack);
       return {
         hitRate: 0,
-        totalRequests: 0,
+        totalOperations: 0,
         totalHits: 0,
         totalMisses: 0,
       };
@@ -590,13 +591,13 @@ export class AnalyzerService
 
     switch (unit) {
       case "s":
-        return value * 1000;
+        return MonitoringSystemLimitUtils.secondsToMs(value);
       case "m":
-        return value * 60 * 1000;
+        return value * MONITORING_SYSTEM_LIMITS.MINUTE_IN_MS;
       case "h":
-        return value * 60 * 60 * 1000;
+        return value * MONITORING_SYSTEM_LIMITS.HOUR_IN_MS;
       case "d":
-        return value * 24 * 60 * 60 * 1000;
+        return value * MONITORING_SYSTEM_LIMITS.DAY_IN_MS;
       default:
         return 3600000;
     }
@@ -607,7 +608,7 @@ export class AnalyzerService
    */
   private getDefaultTrends(): TrendsDto {
     return {
-      responseTime: {
+      responseTimeMs: {
         current: 0,
         previous: 0,
         trend: "stable",
@@ -731,7 +732,7 @@ export class AnalyzerService
       const throughput = this.metricsCalculator.calculateThroughput(rawMetrics);
 
       // 响应时间建议
-      if (avgResponseTime > 1000) {
+      if (MonitoringSystemLimitUtils.isSlowRequest(avgResponseTime)) {
         suggestions.push({
           category: "performance",
           priority: avgResponseTime > 2000 ? "high" : "medium",
@@ -748,7 +749,7 @@ export class AnalyzerService
           category: "performance",
           priority: "high",
           title: "错误率过高",
-          description: `系统错误率${(errorRate * 100).toFixed(2)}%，需要关注`,
+          description: `系统错误率${(errorRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2)}%，需要关注`,
           action: "分析错误日志，修复代码缺陷，改进异常处理",
           impact: "提高系统稳定性和可靠性",
         });

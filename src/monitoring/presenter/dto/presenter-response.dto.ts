@@ -5,6 +5,10 @@
  */
 
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import { IsDate } from "class-validator";
+import { TimestampFields } from "../../../common/interfaces/time-fields.interface";
+import { TrendDataInterface } from "../../contracts/interfaces/trend-data.interface";
 
 /**
  * 标准监控响应DTO
@@ -20,7 +24,9 @@ export class PresenterResponseDto<T = any> {
   data: T;
 
   @ApiProperty({ description: "时间戳" })
-  timestamp: string;
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
 
   @ApiProperty({ description: "请求ID", required: false })
   requestId?: string;
@@ -29,7 +35,7 @@ export class PresenterResponseDto<T = any> {
     this.statusCode = 200;
     this.message = message;
     this.data = data;
-    this.timestamp = new Date().toISOString();
+    this.timestamp = new Date();
   }
 }
 
@@ -44,13 +50,15 @@ export class HealthStatusResponseDto {
   status: "healthy" | "degraded" | "unhealthy";
 
   @ApiProperty({ description: "健康评分", minimum: 0, maximum: 100 })
-  score: number;
+  healthScore: number;
 
   @ApiProperty({ description: "组件状态" })
   components: Record<string, any>;
 
   @ApiProperty({ description: "检查时间戳" })
-  timestamp: string;
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
 
   @ApiProperty({ description: "详细信息", required: false })
   details?: any;
@@ -62,7 +70,7 @@ export class HealthStatusResponseDto {
 export class PerformanceAnalysisResponseDto {
   @ApiProperty({ description: "性能摘要" })
   summary: {
-    avgResponseTime: number;
+    responseTimeMs: number;
     errorRate: number;
     throughput: number;
     uptime: number;
@@ -73,37 +81,89 @@ export class PerformanceAnalysisResponseDto {
 
   @ApiProperty({ description: "趋势分析" })
   trends: {
-    responseTime: any;
-    errorRate: any;
-    throughput: any;
+    responseTimeMs: number[];
+    errorRate: number[];
+    throughput: number[];
   };
 
   @ApiProperty({ description: "端点指标" })
   endpointMetrics: Array<{
     endpoint: string;
     method: string;
-    requestCount: number;
-    avgResponseTime: number;
+    totalOperations: number;
+    responseTimeMs: number;
     errorRate: number;
   }>;
 
   @ApiProperty({ description: "数据库指标" })
   databaseMetrics: {
     totalOperations: number;
-    avgQueryTime: number;
+    responseTimeMs: number;
     slowQueries: number;
-    failureRate: number;
+    errorRate: number;
   };
 
   @ApiProperty({ description: "缓存指标" })
   cacheMetrics: {
     totalOperations: number;
     hitRate: number;
-    avgResponseTime: number;
+    responseTimeMs: number;
   };
 
   @ApiProperty({ description: "分析时间戳" })
-  timestamp: string;
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
+}
+
+/**
+ * 趋势数据DTO - 简化嵌套结构
+ */
+export class TrendsDataDto implements TrendDataInterface {
+  @ApiProperty({ description: "响应时间趋势", type: [Number] })
+  responseTimeTrend: number[];
+
+  @ApiProperty({ description: "错误率趋势", type: [Number] })
+  errorRateTrend: number[];
+
+  @ApiProperty({ description: "吞吐量趋势", type: [Number] })
+  throughputTrend: number[];
+}
+
+/**
+ * 关键问题DTO - 简化嵌套结构
+ */
+export class CriticalIssueDto {
+  @ApiProperty({ description: "严重程度", enum: ["high", "medium", "low"] })
+  severity: "high" | "medium" | "low";
+
+  @ApiProperty({ description: "问题类别" })
+  category: string;
+
+  @ApiProperty({ description: "问题描述" })
+  message: string;
+
+  @ApiProperty({ description: "发生时间" })
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
+}
+
+/**
+ * 优化建议DTO - 简化嵌套结构
+ */
+export class OptimizationSuggestionDto {
+  @ApiProperty({ description: "优先级", enum: ["high", "medium", "low"] })
+  priority: "high" | "medium" | "low";
+
+  @ApiProperty({ description: "建议标题" })
+  title: string;
+
+  @ApiProperty({ description: "详细描述" })
+  description: string;
+
+  @ApiProperty({ description: "推荐操作" })
+  action: string;
 }
 
 /**
@@ -115,36 +175,27 @@ export class DashboardResponseDto {
 
   @ApiProperty({ description: "性能摘要" })
   performanceSummary: {
-    responseTime: number;
+    responseTimeMs: number;
     errorRate: number;
     throughput: number;
     memoryUsage: number;
     cpuUsage: number;
   };
 
-  @ApiProperty({ description: "趋势数据" })
-  trendsData: {
-    responseTimeTrend: number[];
-    errorRateTrend: number[];
-    throughputTrend: number[];
-  };
+  @ApiProperty({ description: "趋势数据", type: TrendsDataDto })
+  @Type(() => TrendsDataDto)
+  trendsData: TrendsDataDto;
 
-  @ApiProperty({ description: "关键问题" })
-  criticalIssues: Array<{
-    severity: "high" | "medium" | "low";
-    category: string;
-    message: string;
-    timestamp: string;
-  }>;
+  @ApiProperty({ description: "关键问题", type: [CriticalIssueDto] })
+  @Type(() => CriticalIssueDto)
+  criticalIssues: CriticalIssueDto[];
 
-  @ApiProperty({ description: "优化建议" })
-  suggestions: Array<{
-    priority: "high" | "medium" | "low";
-    title: string;
-    description: string;
-    action: string;
-  }>;
+  @ApiProperty({ description: "优化建议", type: [OptimizationSuggestionDto] })
+  @Type(() => OptimizationSuggestionDto)
+  suggestions: OptimizationSuggestionDto[];
 
   @ApiProperty({ description: "仪表板时间戳" })
-  timestamp: string;
+  @IsDate()
+  @Type(() => Date)
+  timestamp: Date;
 }

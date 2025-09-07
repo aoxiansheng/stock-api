@@ -10,15 +10,21 @@
  */
 
 import { deepFreeze } from "@common/utils/object-immutability.util";
+import { 
+  PROCESSING_BASE_CONSTANTS,
+  calculateBaseRetryDelay,
+  isBaseRetryableError,
+  isBaseRetryableHttpCode
+} from "./processing-base.constants";
 
 export const RETRY_CONSTANTS = deepFreeze({
-  // 默认重试配置
+  // 默认重试配置（继承基础配置）
   DEFAULT_SETTINGS: {
-    MAX_RETRY_ATTEMPTS: 3,           // 最大重试次数
-    RETRY_DELAY_MS: 1000,            // 初始重试延迟：1秒
-    BACKOFF_MULTIPLIER: 2,           // 退避倍数
-    MAX_RETRY_DELAY_MS: 10000,       // 最大重试延迟：10秒
-    JITTER_FACTOR: 0.1,              // 抖动因子（0.1 = ±10%）
+    ...PROCESSING_BASE_CONSTANTS.RETRY,
+    
+    // 重试特定的扩展配置
+    CIRCUIT_BREAKER_ENABLED: false,   // 熔断器默认关闭
+    RETRY_ON_TIMEOUT_ENABLED: true,   // 超时重试默认开启
   },
   
   // 业务场景特定重试策略
@@ -101,37 +107,13 @@ export const RETRY_CONSTANTS = deepFreeze({
     },
   },
   
-  // 重试条件配置
+  // 重试条件配置（继承基础错误处理配置）
   RETRY_CONDITIONS: {
-    // 可重试的HTTP状态码
-    RETRYABLE_HTTP_CODES: [
-      408,  // Request Timeout
-      429,  // Too Many Requests
-      500,  // Internal Server Error
-      502,  // Bad Gateway
-      503,  // Service Unavailable
-      504,  // Gateway Timeout
-    ],
+    ...PROCESSING_BASE_CONSTANTS.ERROR_HANDLING,
     
-    // 可重试的错误类型
-    RETRYABLE_ERROR_TYPES: [
-      'ECONNREFUSED',
-      'ENOTFOUND',
-      'ETIMEDOUT',
-      'ECONNRESET',
-      'EPIPE',
-      'EHOSTUNREACH',
-      'EAI_AGAIN',
-    ],
-    
-    // 不可重试的业务错误码
-    NON_RETRYABLE_BUSINESS_CODES: [
-      'INVALID_CREDENTIALS',
-      'PERMISSION_DENIED',
-      'RESOURCE_NOT_FOUND',
-      'INVALID_PARAMETERS',
-      'QUOTA_EXCEEDED',
-    ],
+    // 重试特定的额外条件
+    RETRY_ON_BUSINESS_ERROR: false,   // 业务错误默认不重试
+    RETRY_ON_VALIDATION_ERROR: false, // 验证错误不重试
   },
 });
 
@@ -140,7 +122,7 @@ export type RetryScenario = keyof typeof RETRY_CONSTANTS.BUSINESS_SCENARIOS;
 export type RetrySettings = typeof RETRY_CONSTANTS.DEFAULT_SETTINGS;
 
 /**
- * 计算带抖动的重试延迟
+ * 计算带抖动的重试延迟（基于基础配置）
  * @param attempt 当前重试次数（从0开始）
  * @param scenario 业务场景
  */
@@ -148,23 +130,16 @@ export function calculateRetryDelay(
   attempt: number,
   scenario: RetryScenario = 'DATA_FETCHER'
 ): number {
-  const settings: any = RETRY_CONSTANTS.BUSINESS_SCENARIOS[scenario];
+  const settings = RETRY_CONSTANTS.BUSINESS_SCENARIOS[scenario];
   const {
     RETRY_DELAY_MS = RETRY_CONSTANTS.DEFAULT_SETTINGS.RETRY_DELAY_MS,
     BACKOFF_MULTIPLIER = RETRY_CONSTANTS.DEFAULT_SETTINGS.BACKOFF_MULTIPLIER,
     MAX_RETRY_DELAY_MS = RETRY_CONSTANTS.DEFAULT_SETTINGS.MAX_RETRY_DELAY_MS,
+    JITTER_FACTOR = RETRY_CONSTANTS.DEFAULT_SETTINGS.JITTER_FACTOR,
   } = settings;
   
-  // 指数退避计算
-  const baseDelay = RETRY_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, attempt);
-  
-  // 添加抖动
-  const jitterRange = baseDelay * RETRY_CONSTANTS.DEFAULT_SETTINGS.JITTER_FACTOR;
-  const jitter = (Math.random() - 0.5) * 2 * jitterRange;
-  const delayWithJitter = baseDelay + jitter;
-  
-  // 限制最大延迟
-  return Math.min(Math.max(0, delayWithJitter), MAX_RETRY_DELAY_MS);
+  // 使用基础配置的计算方法
+  return calculateBaseRetryDelay(attempt, RETRY_DELAY_MS, BACKOFF_MULTIPLIER, MAX_RETRY_DELAY_MS, JITTER_FACTOR);
 }
 
 /**
@@ -176,39 +151,39 @@ export function shouldRetry(
   attempt: number,
   scenario: RetryScenario = 'DATA_FETCHER'
 ): boolean {
-  const settings: any = RETRY_CONSTANTS.BUSINESS_SCENARIOS[scenario];
+  const settings = RETRY_CONSTANTS.BUSINESS_SCENARIOS[scenario];
   const maxAttempts = settings?.MAX_RETRY_ATTEMPTS ?? RETRY_CONSTANTS.DEFAULT_SETTINGS.MAX_RETRY_ATTEMPTS;
   return attempt <= maxAttempts;
 }
 
 /**
- * 判断HTTP状态码是否可重试
+ * 判断HTTP状态码是否可重试（基于基础配置）
  * @param statusCode HTTP状态码
  */
 export function isRetryableHttpCode(statusCode: number): boolean {
-  return RETRY_CONSTANTS.RETRY_CONDITIONS.RETRYABLE_HTTP_CODES.includes(statusCode);
+  return isBaseRetryableHttpCode(statusCode);
 }
 
 /**
- * 判断错误类型是否可重试
+ * 判断错误类型是否可重试（基于基础配置）
  * @param errorCode 错误代码
  */
 export function isRetryableError(errorCode: string): boolean {
-  return RETRY_CONSTANTS.RETRY_CONDITIONS.RETRYABLE_ERROR_TYPES.includes(errorCode);
+  return isBaseRetryableError(errorCode);
 }
 
 /**
- * 判断业务错误是否可重试
+ * 判断业务错误是否可重试（基于基础配置）
  * @param businessCode 业务错误码
  */
 export function isRetryableBusinessError(businessCode: string): boolean {
-  return !RETRY_CONSTANTS.RETRY_CONDITIONS.NON_RETRYABLE_BUSINESS_CODES.includes(businessCode);
+  return !PROCESSING_BASE_CONSTANTS.ERROR_HANDLING.NON_RETRYABLE_BUSINESS_CODES.includes(businessCode);
 }
 
 /**
  * 获取特定场景的重试配置
  * @param scenario 业务场景
  */
-export function getRetrySettings(scenario: RetryScenario): any {
+export function getRetrySettings(scenario: RetryScenario): Record<string, unknown> {
   return RETRY_CONSTANTS.BUSINESS_SCENARIOS[scenario] || RETRY_CONSTANTS.DEFAULT_SETTINGS;
 }

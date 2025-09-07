@@ -10,23 +10,19 @@
  */
 
 import { deepFreeze } from "@common/utils/object-immutability.util";
+import { 
+  PROCESSING_BASE_CONSTANTS, 
+  calculateBaseBatchSize
+} from "./processing-base.constants";
 
 export const BATCH_CONSTANTS = deepFreeze({
-  // 默认批量配置
+  // 默认批量配置（继承基础配置）
   DEFAULT_SETTINGS: {
-    MAX_BATCH_SIZE: 1000,              // 最大批量大小
-    DEFAULT_BATCH_SIZE: 100,           // 默认批量大小
-    MIN_BATCH_SIZE: 1,                 // 最小批量大小
-    OPTIMAL_BATCH_SIZE: 50,            // 最优批量大小（平衡性能与资源）
+    ...PROCESSING_BASE_CONSTANTS.BATCH,
     
-    // 并发控制
-    MAX_CONCURRENT_BATCHES: 5,         // 最大并发批次数
-    MAX_CONCURRENT_OPERATIONS: 10,     // 最大并发操作数
-    
-    // 分页配置
-    DEFAULT_PAGE_SIZE: 10,             // 默认分页大小
-    MAX_PAGE_SIZE: 100,               // 最大分页大小
-    MIN_PAGE_SIZE: 1,                  // 最小分页大小
+    // 批处理特定的扩展配置
+    PROCESSOR_CONCURRENCY: 3,          // 处理器并发数
+    CHUNK_PROCESSING_DELAY_MS: 100,    // 块处理延迟
   },
   
   // 业务场景特定批量配置
@@ -112,56 +108,40 @@ export const BATCH_CONSTANTS = deepFreeze({
     },
   },
   
-  // 批量处理策略
+  // 批量处理策略（继承基础策略配置并扩展）
   BATCH_STRATEGIES: {
-    // 固定大小策略
-    FIXED_SIZE: {
-      TYPE: 'FIXED',
-      DESCRIPTION: '使用固定的批量大小',
-    },
+    ...PROCESSING_BASE_CONSTANTS.STRATEGIES.BATCH_STRATEGY_TYPES,
     
-    // 动态调整策略
-    DYNAMIC: {
-      TYPE: 'DYNAMIC',
-      DESCRIPTION: '根据性能指标动态调整批量大小',
-      MIN_ADJUSTMENT: 0.5,              // 最小调整比例
-      MAX_ADJUSTMENT: 2.0,              // 最大调整比例
-      ADJUSTMENT_INTERVAL_MS: 60000,    // 调整间隔：1分钟
-    },
-    
-    // 自适应策略
-    ADAPTIVE: {
-      TYPE: 'ADAPTIVE',
-      DESCRIPTION: '根据系统负载自适应调整',
-      LOAD_THRESHOLDS: {
-        LOW: 0.3,                       // 低负载阈值
-        MEDIUM: 0.6,                    // 中负载阈值
-        HIGH: 0.8,                      // 高负载阈值
+    // 批处理特定策略详细配置
+    STRATEGY_CONFIGS: {
+      [PROCESSING_BASE_CONSTANTS.STRATEGIES.BATCH_STRATEGY_TYPES.FIXED]: {
+        DESCRIPTION: '使用固定的批量大小',
+        RECOMMENDED_USE: 'stable workloads'
       },
-    },
-    
-    // 时间窗口策略
-    TIME_WINDOW: {
-      TYPE: 'TIME_WINDOW',
-      DESCRIPTION: '在固定时间窗口内处理尽可能多的项目',
-      WINDOW_SIZE_MS: 1000,             // 时间窗口大小：1秒
-      MIN_ITEMS: 1,                     // 最小处理项目数
+      [PROCESSING_BASE_CONSTANTS.STRATEGIES.BATCH_STRATEGY_TYPES.DYNAMIC]: {
+        DESCRIPTION: '根据性能指标动态调整批量大小', 
+        ...PROCESSING_BASE_CONSTANTS.PERFORMANCE.ADJUSTMENT_FACTORS,
+      },
+      [PROCESSING_BASE_CONSTANTS.STRATEGIES.BATCH_STRATEGY_TYPES.ADAPTIVE]: {
+        DESCRIPTION: '根据系统负载自适应调整',
+        ...PROCESSING_BASE_CONSTANTS.PERFORMANCE.LOAD_THRESHOLDS,
+      },
+      [PROCESSING_BASE_CONSTANTS.STRATEGIES.BATCH_STRATEGY_TYPES.TIME_WINDOW]: {
+        DESCRIPTION: '在固定时间窗口内处理尽可能多的项目',
+        ...PROCESSING_BASE_CONSTANTS.PERFORMANCE.TIME_WINDOWS,
+        MIN_ITEMS: 1,                   // 最小处理项目数
+      },
     },
   },
   
-  // 批量操作限制
+  // 批量操作限制（继承基础错误处理配置）
   BATCH_LIMITS: {
-    // 内存限制
-    MAX_MEMORY_PER_BATCH_MB: 100,      // 每批次最大内存使用
-    MAX_TOTAL_MEMORY_MB: 500,          // 总内存使用限制
+    // 内存和时间限制（继承基础配置）
+    ...PROCESSING_BASE_CONSTANTS.BATCH,
+    MAX_TOTAL_MEMORY_MB: 500,          // 总内存使用限制（批处理特定）
     
-    // 时间限制
-    MAX_BATCH_PROCESSING_TIME_MS: 30000, // 单批次最大处理时间
-    BATCH_TIMEOUT_MS: 60000,           // 批处理超时时间
-    
-    // 错误限制
-    MAX_ERRORS_PER_BATCH: 10,          // 每批次最大错误数
-    ERROR_RATE_THRESHOLD: 0.1,         // 错误率阈值（10%）
+    // 错误限制（继承基础错误处理）
+    ...PROCESSING_BASE_CONSTANTS.ERROR_HANDLING,
   },
 });
 
@@ -173,12 +153,12 @@ export type BatchStrategy = keyof typeof BATCH_CONSTANTS.BATCH_STRATEGIES;
  * 获取特定场景的批量配置
  * @param scenario 业务场景
  */
-export function getBatchSettings(scenario: BatchScenario): any {
+export function getBatchSettings(scenario: BatchScenario): Record<string, unknown> {
   return BATCH_CONSTANTS.BUSINESS_SCENARIOS[scenario] || BATCH_CONSTANTS.DEFAULT_SETTINGS;
 }
 
 /**
- * 计算最优批量大小
+ * 计算最优批量大小（基于基础配置）
  * @param totalItems 总项目数
  * @param scenario 业务场景
  */
@@ -186,21 +166,11 @@ export function calculateOptimalBatchSize(
   totalItems: number,
   scenario: BatchScenario = 'DATA_FETCHER'
 ): number {
-  const settings: any = getBatchSettings(scenario);
-  const defaultSize = settings.DEFAULT_BATCH_SIZE || BATCH_CONSTANTS.DEFAULT_SETTINGS.DEFAULT_BATCH_SIZE;
+  const settings = getBatchSettings(scenario);
   const maxSize = settings.MAX_BATCH_SIZE || BATCH_CONSTANTS.DEFAULT_SETTINGS.MAX_BATCH_SIZE;
   
-  // 如果总数很小，直接返回总数
-  if (totalItems <= defaultSize) {
-    return totalItems;
-  }
-  
-  // 计算批次数，尽量保持在5-10批之间
-  const idealBatches = 5;
-  const calculatedSize = Math.ceil(totalItems / idealBatches);
-  
-  // 限制在最小和最大值之间
-  return Math.min(maxSize, Math.max(defaultSize, calculatedSize));
+  // 使用基础配置的计算方法
+  return calculateBaseBatchSize(totalItems, maxSize);
 }
 
 /**
@@ -228,7 +198,7 @@ export function isValidBatchSize(
   batchSize: number,
   scenario: BatchScenario = 'DATA_FETCHER'
 ): boolean {
-  const settings: any = getBatchSettings(scenario);
+  const settings = getBatchSettings(scenario);
   const minSize = BATCH_CONSTANTS.DEFAULT_SETTINGS.MIN_BATCH_SIZE;
   const maxSize = settings.MAX_BATCH_SIZE || BATCH_CONSTANTS.DEFAULT_SETTINGS.MAX_BATCH_SIZE;
   
@@ -240,7 +210,7 @@ export function isValidBatchSize(
  * @param scenario 业务场景
  */
 export function getConcurrencyLimit(scenario: BatchScenario = 'DATA_FETCHER'): number {
-  const settings: any = getBatchSettings(scenario);
+  const settings = getBatchSettings(scenario);
   return (
     settings.MAX_CONCURRENT_OPERATIONS ||
     settings.MAX_CONCURRENT_REQUESTS ||

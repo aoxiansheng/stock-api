@@ -136,6 +136,34 @@ export const MESSAGE_TEMPLATES = deepFreeze({
   TIMEOUT: (operation: string = "操作") => `${operation}超时`,
 
   /**
+   * 请求超时消息模板（带重试提示）
+   * @param resource 资源名称，默认为"请求"
+   * @returns 格式化的请求超时消息
+   */
+  REQUEST_TIMEOUT: (resource: string = "请求") => `${resource}超时，请稍后重试`,
+
+  /**
+   * 操作超时消息模板
+   * @param operation 操作名称，默认为"操作"
+   * @returns 格式化的操作超时消息
+   */
+  OPERATION_TIMEOUT: (operation: string = "操作") => `${operation}超时`,
+
+  /**
+   * 连接超时消息模板
+   * @param target 连接目标，默认为"服务"
+   * @returns 格式化的连接超时消息
+   */
+  CONNECTION_TIMEOUT: (target: string = "服务") => `连接${target}超时`,
+
+  /**
+   * 服务不可用消息模板
+   * @param service 服务名称，默认为"服务"
+   * @returns 格式化的服务不可用消息
+   */
+  SERVICE_UNAVAILABLE: (service: string = "服务") => `${service}暂时不可用`,
+
+  /**
    * 配置错误消息模板
    * @param configItem 配置项名称，默认为"配置"
    * @returns 格式化的配置错误消息
@@ -155,6 +183,27 @@ export const MESSAGE_TEMPLATES = deepFreeze({
    * @returns 格式化的资源过期消息
    */
   RESOURCE_EXPIRED: (resource: string = RESOURCE_TYPES.RESOURCE) => `${resource}已过期`,
+
+  /**
+   * 资源已存在消息模板
+   * @param resource 资源类型，默认为"资源"
+   * @returns 格式化的资源已存在消息
+   */
+  RESOURCE_EXISTS: (resource: string = RESOURCE_TYPES.RESOURCE) => `${resource}已存在`,
+
+  /**
+   * 无效值消息模板
+   * @param field 字段名称，默认为"值"
+   * @returns 格式化的无效值消息
+   */
+  INVALID_VALUE: (field: string = "值") => `无效的${field}`,
+
+  /**
+   * 授权失败消息模板
+   * @param resource 资源或操作，默认为"操作"
+   * @returns 格式化的授权失败消息
+   */
+  AUTHORIZATION_FAILED: (resource: string = "操作") => `${resource}授权失败`,
 } as const);
 
 /**
@@ -182,6 +231,35 @@ export const QUICK_MESSAGES = deepFreeze({
   INSUFFICIENT_READ_PERMISSION: MESSAGE_TEMPLATES.INSUFFICIENT_PERMISSION("读取此资源"),
   INSUFFICIENT_WRITE_PERMISSION: MESSAGE_TEMPLATES.INSUFFICIENT_PERMISSION("修改此资源"),
   INSUFFICIENT_DELETE_PERMISSION: MESSAGE_TEMPLATES.INSUFFICIENT_PERMISSION("删除此资源"),
+
+  // 常见超时消息
+  OPERATION_TIMEOUT: MESSAGE_TEMPLATES.OPERATION_TIMEOUT(),
+  REQUEST_TIMEOUT: MESSAGE_TEMPLATES.REQUEST_TIMEOUT(),
+  CONNECTION_TIMEOUT: MESSAGE_TEMPLATES.CONNECTION_TIMEOUT(),
+  DATABASE_TIMEOUT: MESSAGE_TEMPLATES.CONNECTION_TIMEOUT("数据库"),
+  API_TIMEOUT: MESSAGE_TEMPLATES.REQUEST_TIMEOUT("API"),
+
+  // 常见服务不可用消息
+  SERVICE_UNAVAILABLE: MESSAGE_TEMPLATES.SERVICE_UNAVAILABLE(),
+  DATABASE_UNAVAILABLE: MESSAGE_TEMPLATES.SERVICE_UNAVAILABLE("数据库"),
+  API_SERVICE_UNAVAILABLE: MESSAGE_TEMPLATES.SERVICE_UNAVAILABLE("API服务"),
+
+  // 常见失败消息
+  OPERATION_FAILED: MESSAGE_TEMPLATES.OPERATION_FAILED(),
+  CREATION_FAILED: MESSAGE_TEMPLATES.OPERATION_FAILED("创建"),
+  DELETION_FAILED: MESSAGE_TEMPLATES.OPERATION_FAILED("删除"),
+  CONNECTION_FAILED: MESSAGE_TEMPLATES.CONNECTION_FAILED(),
+  AUTHORIZATION_FAILED: MESSAGE_TEMPLATES.AUTHORIZATION_FAILED(),
+
+  // 常见已存在消息
+  RESOURCE_EXISTS: MESSAGE_TEMPLATES.RESOURCE_EXISTS(),
+  USER_EXISTS: MESSAGE_TEMPLATES.RESOURCE_EXISTS("用户"),
+  API_KEY_EXISTS: MESSAGE_TEMPLATES.RESOURCE_EXISTS("API Key"),
+
+  // 常见无效值消息
+  INVALID_VALUE: MESSAGE_TEMPLATES.INVALID_VALUE(),
+  INVALID_PARAMETER: MESSAGE_TEMPLATES.INVALID_VALUE("参数"),
+  INVALID_FORMAT: MESSAGE_TEMPLATES.INVALID_VALUE("格式"),
 } as const);
 
 // 导出类型定义

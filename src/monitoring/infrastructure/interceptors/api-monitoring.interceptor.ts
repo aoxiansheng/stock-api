@@ -9,6 +9,7 @@ import { tap, catchError } from "rxjs/operators";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
 import { createLogger } from "../../../app/config/logger.config";
+import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 
 /**
  * 🎯 API监控拦截器
@@ -79,7 +80,7 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
             source: "api",
             endpoint: request.path,
             method: request.method,
-            statusCode: error.status || 500,
+            statusCode: error.status || MONITORING_SYSTEM_LIMITS.HTTP_SERVER_ERROR_THRESHOLD,
             duration,
             requestId,
             metadata: {

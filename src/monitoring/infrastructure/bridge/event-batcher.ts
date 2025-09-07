@@ -5,6 +5,8 @@
  * 设计理念：非阻塞、内存安全、可监控
  */
 
+import { MONITORING_SYSTEM_LIMITS } from '../../constants/config/monitoring-system.constants';
+
 interface BatchedEvent {
   type: string;
   events: any[];
@@ -43,7 +45,7 @@ export class EventBatcher {
 
   constructor(
     private readonly flushIntervalMs = 100,
-    private readonly maxBatchSize = 100,
+    private readonly maxBatchSize = MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE,
     private readonly maxQueueSize = 10000,
   ) {
     this.maxTotalEvents = maxQueueSize;
@@ -152,7 +154,7 @@ export class EventBatcher {
       droppedEvents: this.droppedEvents,
       batchCount: this.batches.size,
       isShuttingDown: this.isShuttingDown,
-      queueUtilization: (this.totalEventCount / this.maxTotalEvents) * 100,
+      queueUtilization: (this.totalEventCount / this.maxTotalEvents) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
     };
   }
 
@@ -188,7 +190,7 @@ export class EventBatcher {
     return (
       !this.isShuttingDown &&
       this.totalEventCount < this.maxTotalEvents &&
-      this.droppedEvents < 100
+      this.droppedEvents < MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE
     ); // 丢弃事件少于100个认为健康
   }
 

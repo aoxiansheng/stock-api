@@ -9,10 +9,13 @@
  * - 国际化就绪：为多语言支持预留接口
  */
 
-import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
+import { OperationStatus } from "../../../monitoring/contracts/enums/operation-status.enum";
 
 import { deepFreeze } from "../../utils/object-immutability.util";
 import { QUICK_MESSAGES } from "./message-templates.constants";
+import { BASE_MESSAGES } from "./base.constants";
+import { PERMISSION_MESSAGES } from "./permission-message.constants";
+import { NotificationType, DataState as SharedDataState, OperationStatus as SharedOperationStatus } from "../../types/enums/shared-base.enum";
 export const OPERATION_CONSTANTS = deepFreeze({
   // CRUD操作消息
   CRUD_MESSAGES: {
@@ -51,8 +54,8 @@ export const OPERATION_CONSTANTS = deepFreeze({
     RESOURCE_CONFLICT: "资源冲突",
 
     // 权限相关消息
-    PERMISSION_DENIED: "权限不足",
-    ACCESS_DENIED: "访问被拒绝",
+    PERMISSION_DENIED: BASE_MESSAGES.PERMISSION.INSUFFICIENT_PRIVILEGES,
+    ACCESS_DENIED: PERMISSION_MESSAGES.ACCESS_DENIED,
     AUTHENTICATION_REQUIRED: "需要身份验证",
     AUTHORIZATION_FAILED: "授权失败",
 
@@ -98,17 +101,19 @@ export const OPERATION_CONSTANTS = deepFreeze({
     MAINTENANCE: "maintenance",
   } as const,
 
-  // 数据状态定义
+  // 数据状态定义 - 使用共享枚举消除重复
   DATA_STATES: {
     FRESH: "fresh", // 新鲜数据
     STALE: "stale", // 过期数据
     DIRTY: "dirty", // 脏数据
-    CACHED: "cached", // 缓存数据
+    CACHED: SharedDataState.CACHED, // 缓存数据 - 使用共享值
     PERSISTED: "persisted", // 持久化数据
     SYNCHRONIZED: "synchronized", // 已同步数据
-    PENDING: OperationStatus.PENDING, // 待处理数据
-    PROCESSING: "processing", // 处理中数据
+    PENDING: SharedDataState.PENDING, // 待处理数据 - 使用共享值
+    PROCESSING: SharedDataState.PROCESSING, // 处理中数据 - 使用共享值
     CORRUPTED: "corrupted", // 损坏数据
+    FAILED: SharedDataState.FAILED, // 失败状态 - 使用共享值
+    EXPIRED: SharedDataState.EXPIRED, // 过期状态 - 使用共享值
   } as const,
 
   // 业务优先级定义
@@ -138,13 +143,13 @@ export const OPERATION_CONSTANTS = deepFreeze({
     ON_DEMAND: "on_demand", // 按需处理
   } as const,
 
-  // 通知类型
+  // 通知类型 - 使用共享枚举消除重复
   NOTIFICATION_TYPES: {
-    INFO: "info", // 信息通知
-    SUCCESS: "success", // 成功通知
-    WARNING: "warning", // 警告通知
-    ERROR: "error", // 错误通知
-    CRITICAL: "critical", // 严重通知
+    INFO: NotificationType.INFO, // 信息通知 - 使用共享值
+    SUCCESS: NotificationType.SUCCESS, // 成功通知 - 使用共享值
+    WARNING: NotificationType.WARNING, // 警告通知 - 使用共享值
+    ERROR: NotificationType.ERROR, // 错误通知 - 使用共享值
+    CRITICAL: NotificationType.CRITICAL, // 严重通知 - 使用共享值
   } as const,
 });
 
@@ -161,8 +166,8 @@ export type QualityLevel =
   (typeof OPERATION_CONSTANTS.QUALITY_LEVELS)[keyof typeof OPERATION_CONSTANTS.QUALITY_LEVELS];
 export type ProcessingMode =
   (typeof OPERATION_CONSTANTS.PROCESSING_MODES)[keyof typeof OPERATION_CONSTANTS.PROCESSING_MODES];
-export type NotificationType =
-  (typeof OPERATION_CONSTANTS.NOTIFICATION_TYPES)[keyof typeof OPERATION_CONSTANTS.NOTIFICATION_TYPES];
+// 使用共享枚举的通知类型
+export { NotificationType } from "../../types/enums/shared-base.enum";
 
 /**
  * 根据操作类型获取对应的成功消息

@@ -20,12 +20,12 @@ export interface LongportQuoteData {
 
 export interface LongportExtendedQuote {
   last_done: number | string;
-  timestamp: number;
-  volume: number;
-  turnover: number | string;
+  prev_close: number | string;
   high: number | string;
   low: number | string;
-  prev_close: number | string;
+  volume: number;
+  turnover: number | string;
+  timestamp: number;
 }
 
 export interface LongportQuoteResponse {
@@ -37,7 +37,7 @@ export interface LongportBasicInfo {
   name_cn: string;
   name_en: string;
   name_hk: string;
-  listing_date: string;
+  listingDate: string;
   shares_outstanding: number;
   market_cap: number;
   sector: string;
@@ -45,8 +45,8 @@ export interface LongportBasicInfo {
 }
 
 export interface LongportConfig {
-  app_key: string;
-  app_secret: string;
-  access_token: string;
+  apiKey: string;
+  apiSecret: string;
+  accessToken: string;
   endpoint?: string;
 }

@@ -13,6 +13,7 @@ import {
   AlertHistoryUtil,
 } from "../constants/alert-history.constants";
 import { IAlert, IAlertQuery } from "../interfaces";
+import { ALERT_DEFAULTS } from "../constants/defaults.constants";
 
 // 🎯 引入仓储层
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
@@ -182,7 +183,7 @@ export class AlertHistoryService {
       const { alerts, total } = await this.alertHistoryRepository.find(query);
       const { page, limit } = this.paginationService.normalizePaginationQuery({
         page: query.page,
-        limit: query.limit || ALERT_HISTORY_CONFIG.DEFAULT_PAGE_LIMIT,
+        limit: query.limit || ALERT_DEFAULTS.PAGINATION.limit,
       });
 
       // 使用通用分页服务计算分页信息
@@ -516,7 +517,7 @@ export class AlertHistoryService {
     updatedBy?: string,
   ): Promise<{ successCount: number; failedCount: number; errors: string[] }> {
     const operation = ALERT_HISTORY_OPERATIONS.BATCH_UPDATE_ALERT_STATUS;
-    const startTime = Date.now();
+    const executionStart = Date.now();
 
     // 验证批量大小
     if (!AlertHistoryUtil.isValidBatchSize(alertIds.length)) {
@@ -552,7 +553,7 @@ export class AlertHistoryService {
 
       await Promise.all(promises);
 
-      const executionTime = Date.now() - startTime;
+      const executionTime = Date.now() - executionStart;
       const summary = AlertHistoryUtil.generateBatchResultSummary(
         successCount,
         failedCount,
@@ -572,7 +573,7 @@ export class AlertHistoryService {
 
       return { successCount, failedCount, errors };
     } catch (error) {
-      const executionTime = Date.now() - startTime;
+      const executionTime = Date.now() - executionStart;
       this.logger.error(
         ALERT_HISTORY_MESSAGES.BATCH_UPDATE_FAILED,
         sanitizeLogData({
@@ -638,7 +639,7 @@ export class AlertHistoryService {
     const operation = ALERT_HISTORY_OPERATIONS.GET_RECENT_ALERTS;
 
     // 验证限制参数
-    if (limit <= 0 || limit > ALERT_HISTORY_CONFIG.MAX_PAGE_LIMIT) {
+    if (limit <= 0 || limit > ALERT_DEFAULTS.PAGINATION.maxLimit) {
       limit = ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT;
     }
 

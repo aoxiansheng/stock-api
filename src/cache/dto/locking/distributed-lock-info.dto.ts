@@ -5,11 +5,12 @@ import {
   IsBoolean,
   IsOptional,
 } from "class-validator";
+import { LockTTL } from "../shared/ttl-fields.interface";
 
 /**
  * 分布式锁信息DTO
  */
-export class DistributedLockInfoDto {
+export class DistributedLockInfoDto implements LockTTL {
   @ApiProperty({ description: "锁键" })
   @IsString()
   lockKey: string;
@@ -30,8 +31,4 @@ export class DistributedLockInfoDto {
   @IsNumber()
   acquiredAt: number;
 
-  @ApiProperty({ description: "重试次数", required: false })
-  @IsOptional()
-  @IsNumber()
-  retryCount?: number;
 }

@@ -1,8 +1,9 @@
 import {
   AlertSeverity,
   AlertStatus,
-  NotificationChannel,
 } from "../types/alert.types";
+import type { NotificationChannel } from "../types/alert.types";
+import type { Operator } from "../constants/alert.constants";
 
 /**
  * 告警规则接口
@@ -12,7 +13,7 @@ export interface IAlertRule {
   name: string;
   description?: string;
   metric: string;
-  operator: "gt" | "lt" | "eq" | "gte" | "lte" | "ne";
+  operator: Operator;
   threshold: number;
   duration: number; // 持续时间（秒）
   severity: AlertSeverity;
@@ -48,19 +49,17 @@ export interface IAlert {
   context?: Record<string, any>;
 }
 
+import { BaseAlertStats } from './alert-stats.interface';
+
 /**
  * 告警统计接口
+ * 继承BaseAlertStats消除重复字段定义
  */
-export interface IAlertStats {
+export interface IAlertStats extends BaseAlertStats {
+  /** 总规则数量 */
   totalRules: number;
+  /** 启用规则数量 */
   enabledRules: number;
-  activeAlerts: number;
-  criticalAlerts: number;
-  warningAlerts: number;
-  infoAlerts: number;
-  totalAlertsToday: number;
-  resolvedAlertsToday: number;
-  averageResolutionTime: number;
 }
 
 /**

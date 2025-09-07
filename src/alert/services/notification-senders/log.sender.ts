@@ -20,7 +20,7 @@ export class LogSender implements NotificationSender {
     rule: AlertRule,
     config: Record<string, any>,
   ): Promise<NotificationResult> {
-    const startTime = Date.now();
+    const executionStart = Date.now();
 
     try {
       const logMessage = `[ALERT] ${rule.name}: ${alert.message}`;
@@ -54,7 +54,7 @@ export class LogSender implements NotificationSender {
         channelType: this.type,
         message: "日志记录成功",
         sentAt: new Date(),
-        duration: Date.now() - startTime,
+        duration: Date.now() - executionStart,
       };
     } catch (error) {
       this.logger.error({ error: error.stack }, "日志发送失败");
@@ -64,7 +64,7 @@ export class LogSender implements NotificationSender {
         channelType: this.type,
         error: error.message,
         sentAt: new Date(),
-        duration: Date.now() - startTime,
+        duration: Date.now() - executionStart,
       };
     }
   }

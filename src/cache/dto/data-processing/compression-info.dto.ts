@@ -5,11 +5,12 @@ import {
   IsOptional,
   IsString,
 } from "class-validator";
+import { CompressionSizeInfo } from "../shared/size-fields.interface";
 
 /**
  * 缓存压缩信息DTO
  */
-export class CacheCompressionInfoDto {
+export class CacheCompressionInfoDto implements CompressionSizeInfo {
   @ApiProperty({ description: "是否需要压缩" })
   @IsBoolean()
   shouldCompress: boolean;
@@ -18,10 +19,10 @@ export class CacheCompressionInfoDto {
   @IsNumber()
   originalSize: number;
 
-  @ApiProperty({ description: "压缩后大小（字节）", required: false })
+  @ApiProperty({ description: "处理后数据大小（字节，用于表示压缩后大小）", required: false })
   @IsOptional()
   @IsNumber()
-  compressedSize?: number;
+  processedSize?: number;
 
   @ApiProperty({ description: "压缩比率", required: false })
   @IsOptional()

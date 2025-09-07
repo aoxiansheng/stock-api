@@ -13,7 +13,7 @@ import {
   WEBSOCKET_SERVER_TOKEN,
 } from "../providers/websocket-server.provider";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-import { ProvidersModule } from "../../../../providers/module/providers.module";
+import { ProvidersModule } from "../../../../providers/module/providers-sg.module";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { StreamCacheModule } from "../../../05-caching/stream-cache/module/stream-cache.module";
 

@@ -3,6 +3,8 @@
  * 🎯 符合开发规范指南 - 统一常量管理
  */
 
+import { LogLevel } from "../types/enums/shared-base.enum";
+
 /**
  * 频率限制策略枚举
  */
@@ -103,65 +105,23 @@ export const RATE_LIMIT_ERROR_TEMPLATES = Object.freeze({
   WINDOW_TOO_SMALL: "时间窗口过小: {window}，最小支持 {minWindow}",
 });
 
-// 🔧 Lua 脚本常量
-export const RATE_LIMIT_LUA_SCRIPTS = Object.freeze({
-  SLIDING_WINDOW: `
-    local key = KEYS[1]
-    local now = tonumber(ARGV[1])
-    local window = tonumber(ARGV[2])
-    local limit = tonumber(ARGV[3])
-    local expire_buffer = tonumber(ARGV[4])
-    local window_start = now - window * 1000
-    
-    -- 清理过期的时间戳
-    redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
-    
-    -- 获取当前窗口内的请求数
-    local current = redis.call('ZCARD', key)
-    
-    if current < limit then
-      -- 允许请求，添加当前时间戳
-      redis.call('ZADD', key, now, now)
-      redis.call('EXPIRE', key, window + expire_buffer)
-      return {1, current + 1, limit - current - 1, 0}
-    else
-      -- 拒绝请求，计算重试时间
-      local oldest_ts = redis.call('ZRANGE', key, 0, 0)
-      local retry_after = window
-      if oldest_ts[1] then
-        retry_after = math.ceil(((tonumber(oldest_ts[1]) + window * 1000) - now) / 1000)
-      end
-      return {0, current, 0, retry_after}
-    end
-  `,
-
-  SLIDING_WINDOW_COUNT_ONLY: `
-    local key = KEYS[1]
-    local now = tonumber(ARGV[1])
-    local window = tonumber(ARGV[2])
-    local window_start = now - window * 1000
-    
-    -- 清理过期的时间戳
-    redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
-    
-    -- 返回当前窗口内的请求数
-    return redis.call('ZCARD', key)
-  `,
-
-  BATCH_CLEANUP: `
-    local pattern = ARGV[1]
-    local batch_size = tonumber(ARGV[2])
-    local keys = redis.call('KEYS', pattern)
-    local deleted = 0
-    
-    for i = 1, math.min(#keys, batch_size) do
-      redis.call('DEL', keys[i])
-      deleted = deleted + 1
-    end
-    
-    return deleted
-  `,
-});
+// 🔧 Lua 脚本引用 - 简化常量文件，将复杂脚本移至专用服务
+/**
+ * Lua脚本现已移至专用服务类中管理
+ * @see RateLimitLuaScriptsService - 位于 src/common/scripts/lua/rate-limit-lua-scripts.service.ts
+ * 
+ * 可用脚本：
+ * - sliding_window: 滑动窗口限流脚本
+ * - sliding_window_count_only: 滑动窗口计数脚本  
+ * - batch_cleanup: 批量清理过期键脚本
+ * - fixed_window: 固定窗口限流脚本
+ */
+export const RATE_LIMIT_LUA_SCRIPT_NAMES = Object.freeze({
+  SLIDING_WINDOW: 'sliding_window',
+  SLIDING_WINDOW_COUNT_ONLY: 'sliding_window_count_only', 
+  BATCH_CLEANUP: 'batch_cleanup',
+  FIXED_WINDOW: 'fixed_window',
+} as const);
 
 // ⏰ 时间单位常量
 export const RATE_LIMIT_TIME_UNITS = Object.freeze({
@@ -366,14 +326,14 @@ export const RATE_LIMIT_ALERT_THRESHOLDS = Object.freeze({
   REDIS_CONNECTION_TIMEOUT_MS: 5000,
 });
 
-// 🎨 日志级别映射常量
+// 🎨 日志级别映射常量 - 使用共享枚举消除重复
 export const RATE_LIMIT_LOG_LEVELS = Object.freeze({
-  ALLOWED: "debug",
-  DENIED: "warn",
-  ERROR: "error",
-  RESET: "info",
-  STATISTICS: "debug",
-  CONFIGURATION: "info",
+  ALLOWED: LogLevel.DEBUG,
+  DENIED: LogLevel.WARN,
+  ERROR: LogLevel.ERROR,
+  RESET: LogLevel.INFO,
+  STATISTICS: LogLevel.DEBUG,
+  CONFIGURATION: LogLevel.INFO,
 });
 
 /**
