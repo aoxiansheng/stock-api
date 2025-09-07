@@ -1,5 +1,5 @@
 import { IAlertRule } from "./alert.interface";
-import type { Operator } from "../constants/alert.constants";
+import type { Operator } from "../constants";
 
 /**
  * 指标数据接口

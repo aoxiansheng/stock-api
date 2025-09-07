@@ -4,8 +4,7 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { TIMING_CONSTANTS } from '../constants/timing.constants';
-import { ALERT_DEFAULTS } from '../constants/defaults.constants';
+import { CORE_TIMEOUTS, ALERT_DEFAULTS } from '../constants';
 
 /**
  * 验证结果接口
@@ -37,7 +36,10 @@ export class AlertConstantsValidator {
 
     try {
       // 1. 验证时间配置基本范围
-      const { COOLDOWN, DURATION, TIMEOUT } = TIMING_CONSTANTS;
+      const { BASIC_SECONDS } = CORE_TIMEOUTS;
+const COOLDOWN = { MIN_SECONDS: BASIC_SECONDS.COOLDOWN_MIN, MAX_SECONDS: BASIC_SECONDS.COOLDOWN_MAX };
+const DURATION = { MIN_SECONDS: BASIC_SECONDS.DURATION_MIN, MAX_SECONDS: BASIC_SECONDS.DURATION_MAX };
+const TIMEOUT = { MIN_SECONDS: BASIC_SECONDS.MIN, MAX_SECONDS: BASIC_SECONDS.MAX };
       
       if (COOLDOWN.MIN_SECONDS >= COOLDOWN.MAX_SECONDS) {
         errors.push('冷却时间配置错误: MIN不能大于等于MAX');

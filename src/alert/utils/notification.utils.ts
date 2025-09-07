@@ -4,11 +4,8 @@
  */
 import {
   NOTIFICATION_ERROR_TEMPLATES,
-  NOTIFICATION_TEMPLATE_PATTERNS,
-  NOTIFICATION_TEMPLATE_VARIABLES,
-  NOTIFICATION_RETRY_CONFIG,
-  NOTIFICATION_VALIDATION_RULES,
-} from "../constants/notification.constants";
+  NOTIFICATION_CONSTANTS,
+} from "../constants";
 
 /**
  * 通知模板工具函数类
@@ -57,7 +54,7 @@ export class NotificationTemplateUtil {
     variables: Record<string, any>,
   ): string {
     // 仅支持基础的变量替换
-    return template.replace(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN, (match, key) => {
+    return template.replace(NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLE_PATTERN, (match, key) => {
       return variables[key] !== undefined ? String(variables[key]) : match;
     });
   }
@@ -69,15 +66,15 @@ export class NotificationTemplateUtil {
    */
   static isValidVariableName(variableName: string): boolean {
     const variableNamePattern = new RegExp(
-      NOTIFICATION_VALIDATION_RULES.VARIABLE_NAME_PATTERN_SOURCE,
-      NOTIFICATION_VALIDATION_RULES.VARIABLE_NAME_PATTERN_FLAGS,
+      NOTIFICATION_CONSTANTS.VALIDATION.VARIABLE_NAME_PATTERN_SOURCE,
+      NOTIFICATION_CONSTANTS.VALIDATION.VARIABLE_NAME_PATTERN_FLAGS,
     );
     return (
       variableNamePattern.test(variableName) &&
       variableName.length >=
-        NOTIFICATION_VALIDATION_RULES.MIN_VARIABLE_NAME_LENGTH &&
+        NOTIFICATION_CONSTANTS.VALIDATION.MIN_VARIABLE_NAME_LENGTH &&
       variableName.length <=
-        NOTIFICATION_VALIDATION_RULES.MAX_VARIABLE_NAME_LENGTH
+        NOTIFICATION_CONSTANTS.VALIDATION.MAX_VARIABLE_NAME_LENGTH
     );
   }
 
@@ -88,8 +85,8 @@ export class NotificationTemplateUtil {
    */
   static isValidTemplateLength(template: string): boolean {
     return (
-      template.length >= NOTIFICATION_VALIDATION_RULES.MIN_TEMPLATE_LENGTH &&
-      template.length <= NOTIFICATION_VALIDATION_RULES.MAX_TEMPLATE_LENGTH
+      template.length >= NOTIFICATION_CONSTANTS.VALIDATION.MIN_TEMPLATE_LENGTH &&
+      template.length <= NOTIFICATION_CONSTANTS.VALIDATION.MAX_TEMPLATE_LENGTH
     );
   }
 
@@ -100,7 +97,7 @@ export class NotificationTemplateUtil {
    */
   static extractVariables(template: string): string[] {
     const variables = new Set<string>();
-    const matches = template.matchAll(NOTIFICATION_TEMPLATE_PATTERNS.VARIABLE_PATTERN);
+    const matches = template.matchAll(NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLE_PATTERN);
 
     for (const match of matches) {
       if (match[1]) {
@@ -118,8 +115,8 @@ export class NotificationTemplateUtil {
    */
   static isValidEmail(email: string): boolean {
     const emailPattern = new RegExp(
-      NOTIFICATION_VALIDATION_RULES.EMAIL_PATTERN_SOURCE,
-      NOTIFICATION_VALIDATION_RULES.EMAIL_PATTERN_FLAGS,
+      NOTIFICATION_CONSTANTS.VALIDATION.EMAIL_PATTERN_SOURCE,
+      NOTIFICATION_CONSTANTS.VALIDATION.EMAIL_PATTERN_FLAGS,
     );
     return emailPattern.test(email);
   }
@@ -131,8 +128,8 @@ export class NotificationTemplateUtil {
    */
   static isValidUrl(url: string): boolean {
     const urlPattern = new RegExp(
-      NOTIFICATION_VALIDATION_RULES.URL_PATTERN_SOURCE,
-      NOTIFICATION_VALIDATION_RULES.URL_PATTERN_FLAGS,
+      NOTIFICATION_CONSTANTS.VALIDATION.URL_PATTERN_SOURCE,
+      NOTIFICATION_CONSTANTS.VALIDATION.URL_PATTERN_FLAGS,
     );
     return urlPattern.test(url);
   }
@@ -148,7 +145,7 @@ export class NotificationTemplateUtil {
       BACKOFF_MULTIPLIER,
       MAX_DELAY_MS,
       JITTER_FACTOR,
-    } = NOTIFICATION_RETRY_CONFIG;
+    } = NOTIFICATION_CONSTANTS.RETRY;
 
     const baseDelay = Math.min(
       INITIAL_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, attempt),
@@ -171,28 +168,28 @@ export class NotificationTemplateUtil {
   static generateTemplateVariables(alert: any, rule: any): Record<string, any> {
     const contextVariables = alert.context || {};
     const baseVariables = {
-      [NOTIFICATION_TEMPLATE_VARIABLES.ALERT_ID]: alert.id,
-      [NOTIFICATION_TEMPLATE_VARIABLES.RULE_NAME]: rule.name,
-      [NOTIFICATION_TEMPLATE_VARIABLES.METRIC]: alert.metric,
-      [NOTIFICATION_TEMPLATE_VARIABLES.VALUE]: alert.value,
-      [NOTIFICATION_TEMPLATE_VARIABLES.THRESHOLD]: alert.threshold,
-      [NOTIFICATION_TEMPLATE_VARIABLES.SEVERITY]: alert.severity,
-      [NOTIFICATION_TEMPLATE_VARIABLES.STATUS]: alert.status,
-      [NOTIFICATION_TEMPLATE_VARIABLES.MESSAGE]: alert.message,
-      [NOTIFICATION_TEMPLATE_VARIABLES.START_TIME]:
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.ALERT_ID]: alert.id,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.RULE_NAME]: rule.name,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.METRIC]: alert.metric,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.VALUE]: alert.value,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.THRESHOLD]: alert.threshold,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.SEVERITY]: alert.severity,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.STATUS]: alert.status,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.MESSAGE]: alert.message,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.START_TIME]:
         alert.startTime?.toLocaleString(),
-      [NOTIFICATION_TEMPLATE_VARIABLES.END_TIME]:
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.END_TIME]:
         alert.endTime?.toLocaleString(),
-      [NOTIFICATION_TEMPLATE_VARIABLES.DURATION]: alert.endTime
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.DURATION]: alert.endTime
         ? Math.round(
             (alert.endTime.getTime() - alert.startTime.getTime()) / 1000,
           )
         : Math.round((Date.now() - alert.startTime.getTime()) / 1000),
-      [NOTIFICATION_TEMPLATE_VARIABLES.TAGS]: alert.tags
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.TAGS]: alert.tags
         ? JSON.stringify(alert.tags, null, 2)
         : undefined,
-      [NOTIFICATION_TEMPLATE_VARIABLES.RULE_ID]: rule.id,
-      [NOTIFICATION_TEMPLATE_VARIABLES.RULE_DESCRIPTION]: rule.description,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.RULE_ID]: rule.id,
+      [NOTIFICATION_CONSTANTS.TEMPLATE.VARIABLES.RULE_DESCRIPTION]: rule.description,
     };
     // 合并上下文变量，基础变量优先
     return { ...contextVariables, ...baseVariables };

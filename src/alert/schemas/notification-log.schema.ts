@@ -3,7 +3,7 @@ import { Document } from "mongoose";
 
 import { NotificationChannelType, NotificationLog as INotificationLog } from "../types/alert.types";
 import type { NotificationMetadata } from "../types/context.types";
-import { TIMING_CONSTANTS } from "../constants/timing.constants";
+import { CORE_TIMEOUTS } from "../constants";
 
 export type NotificationLogDocument = NotificationLog & Document;
 
@@ -73,5 +73,5 @@ NotificationLogSchema.index({ channelId: 1, sentAt: -1 });
 // TTL 索引 - 自动删除日志 (使用预计算常量值优化性能)
 NotificationLogSchema.index(
   { sentAt: 1 },
-  { expireAfterSeconds: TIMING_CONSTANTS.DB_TTL.NOTIFICATION_LOG_SECONDS }, // 30天保留，预计算值
+  { expireAfterSeconds: CORE_TIMEOUTS.DB_TTL_SECONDS.NOTIFICATION_LOG }, // 30天保留，预计算值
 );

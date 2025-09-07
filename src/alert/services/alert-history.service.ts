@@ -9,11 +9,11 @@ import { PaginationService } from "@common/modules/pagination/services/paginatio
 import {
   ALERT_HISTORY_OPERATIONS,
   ALERT_HISTORY_MESSAGES,
-  ALERT_HISTORY_CONFIG,
+  ALERT_HISTORY_CONSTANTS,
   AlertHistoryUtil,
-} from "../constants/alert-history.constants";
+  ALERT_DEFAULTS,
+} from "../constants";
 import { IAlert, IAlertQuery } from "../interfaces";
-import { ALERT_DEFAULTS } from "../constants/defaults.constants";
 
 // 🎯 引入仓储层
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
@@ -442,14 +442,14 @@ export class AlertHistoryService {
    * 删除过期告警
    */
   async cleanupExpiredAlerts(
-    daysToKeep: number = ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS,
+    daysToKeep: number = ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_CLEANUP_DAYS,
   ): Promise<AlertCleanupResultDto> {
     const operation = ALERT_HISTORY_OPERATIONS.CLEANUP_EXPIRED_ALERTS;
     const startTime = new Date();
 
     // 验证清理天数
     if (!AlertHistoryUtil.isValidCleanupDays(daysToKeep)) {
-      daysToKeep = ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS;
+      daysToKeep = ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_CLEANUP_DAYS;
     }
 
     this.logger.log(
@@ -522,7 +522,7 @@ export class AlertHistoryService {
     // 验证批量大小
     if (!AlertHistoryUtil.isValidBatchSize(alertIds.length)) {
       throw new Error(
-        `批量大小超出限制，最大允许 ${ALERT_HISTORY_CONFIG.BATCH_SIZE_LIMIT} 个`,
+        `批量大小超出限制，最大允许 ${ALERT_HISTORY_CONSTANTS.BUSINESS_LIMITS.BATCH_SIZE_LIMIT} 个`,
       );
     }
 
@@ -634,13 +634,13 @@ export class AlertHistoryService {
    * 获取最近的告警记录
    */
   async getRecentAlerts(
-    limit: number = ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT,
+    limit: number = ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT,
   ): Promise<IAlert[]> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_RECENT_ALERTS;
 
     // 验证限制参数
     if (limit <= 0 || limit > ALERT_DEFAULTS.PAGINATION.maxLimit) {
-      limit = ALERT_HISTORY_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT;
+      limit = ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT;
     }
 
     this.logger.debug(
@@ -700,9 +700,9 @@ export class AlertHistoryService {
 
     return {
       supportedStatuses: Object.values(AlertStatus),
-      defaultCleanupDays: ALERT_HISTORY_CONFIG.DEFAULT_CLEANUP_DAYS,
-      idPrefixFormat: ALERT_HISTORY_CONFIG.ID_FORMAT_TEMPLATE,
-      maxBatchUpdateSize: ALERT_HISTORY_CONFIG.BATCH_UPDATE_LIMIT,
+      defaultCleanupDays: ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_CLEANUP_DAYS,
+      idPrefixFormat: ALERT_HISTORY_CONSTANTS.IDENTIFIERS.ID_TEMPLATE,
+      maxBatchUpdateSize: ALERT_HISTORY_CONSTANTS.BUSINESS_LIMITS.MAX_BATCH_UPDATE_SIZE,
     };
   }
 

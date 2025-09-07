@@ -7,16 +7,12 @@ import { CacheService } from "../../cache/services/cache.service";
 import {
   VALID_OPERATORS,
   OPERATOR_SYMBOLS,
-  Operator,
-} from "../constants/alert.constants";
-import {
-  ALERTING_OPERATIONS,
-  ALERTING_MESSAGES,
-  ALERTING_TIME_CONFIG,
-  ALERTING_CACHE_PATTERNS,
-  ALERTING_METRICS,
-  AlertingTemplateUtil,
-} from "../constants/alerting.constants";
+  type Operator,
+  ALERT_OPERATIONS,
+  ALERT_MESSAGES,
+  ALERT_METRICS,
+  AlertRuleUtil,
+} from "../constants";
 import {
   IAlertRule,
   IRuleEngine,
@@ -44,7 +40,7 @@ export class RuleEngineService implements IRuleEngine {
     rule: IAlertRule,
     metricData: IMetricData[],
   ): IRuleEvaluationResult {
-    const operation = ALERTING_OPERATIONS.EVALUATE_RULES_SCHEDULED;
+    const operation = ALERT_OPERATIONS.RULES.EVALUATE_RULES_SCHEDULED;
 
     try {
       // 过滤相关的指标数据，并确保数据点有效
@@ -57,7 +53,7 @@ export class RuleEngineService implements IRuleEngine {
       );
 
       if (relevantData.length === 0) {
-        const message = AlertingTemplateUtil.formatAlertMessage(
+        const message = AlertRuleUtil.formatAlertMessage(
           "没有找到指标 {metric} 的数据",
           { metric: rule.metric },
         );
@@ -85,7 +81,7 @@ export class RuleEngineService implements IRuleEngine {
       );
 
       const message = triggered
-        ? AlertingTemplateUtil.formatAlertMessage(
+        ? AlertRuleUtil.formatAlertMessage(
             "告警触发: {metric} {operator} {threshold}, 当前值: {value}",
             {
               metric: rule.metric,
@@ -94,7 +90,7 @@ export class RuleEngineService implements IRuleEngine {
               value: latestData.value,
             },
           )
-        : AlertingTemplateUtil.formatAlertMessage("正常: {metric} = {value}", {
+        : AlertRuleUtil.formatAlertMessage("正常: {metric} = {value}", {
             metric: rule.metric,
             value: latestData.value,
           });
@@ -114,7 +110,7 @@ export class RuleEngineService implements IRuleEngine {
       };
     } catch (error) {
       this.logger.error(
-        ALERTING_MESSAGES.RULE_EVALUATION_FAILED,
+        ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED,
         sanitizeLogData({
           operation,
           ruleId: rule.id,
@@ -135,11 +131,11 @@ export class RuleEngineService implements IRuleEngine {
     rules: IAlertRule[],
     metricData: IMetricData[],
   ): IRuleEvaluationResult[] {
-    const operation = ALERTING_OPERATIONS.EVALUATE_RULES_SCHEDULED;
+    const operation = ALERT_OPERATIONS.RULES.EVALUATE_RULES_SCHEDULED;
     const executionStart = Date.now();
 
     this.logger.debug(
-      ALERTING_MESSAGES.RULE_EVALUATION_STARTED,
+      ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED,
       sanitizeLogData({
         operation,
         rulesCount: rules.length,
@@ -156,7 +152,7 @@ export class RuleEngineService implements IRuleEngine {
             return this.evaluateRule(rule, metricData);
           } catch (error) {
             this.logger.error(
-              ALERTING_MESSAGES.RULE_EVALUATION_FAILED,
+              ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED,
               sanitizeLogData({
                 operation,
                 ruleId: rule.id,
@@ -170,7 +166,7 @@ export class RuleEngineService implements IRuleEngine {
               triggered: false,
               value: 0,
               threshold: rule.threshold,
-              message: AlertingTemplateUtil.formatAlertMessage(
+              message: AlertRuleUtil.formatAlertMessage(
                 "规则评估失败: {error}",
                 { error: error.message },
               ),
@@ -189,14 +185,14 @@ export class RuleEngineService implements IRuleEngine {
 
       // 🎯 记录性能指标
       this.logger.debug(
-        ALERTING_MESSAGES.METRICS_PROCESSED,
+        ALERT_MESSAGES.RULES.METRICS_PROCESSED,
         sanitizeLogData({
           operation,
           rulesProcessed: results.length,
           triggeredCount,
           executionTime,
-          [ALERTING_METRICS.RULE_EVALUATION_COUNT]: results.length,
-          [ALERTING_METRICS.AVERAGE_RULE_EVALUATION_TIME]:
+          [ALERT_METRICS.RULES.RULE_EVALUATION_COUNT]: results.length,
+          [ALERT_METRICS.RULES.AVERAGE_RULE_EVALUATION_TIME]:
             results.length > 0 ? executionTime / results.length : 0,
         }),
       );
@@ -205,7 +201,7 @@ export class RuleEngineService implements IRuleEngine {
     } catch (error) {
       const executionTime = Date.now() - executionStart;
       this.logger.error(
-        ALERTING_MESSAGES.RULE_EVALUATION_FAILED,
+        ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED,
         sanitizeLogData({
           operation,
           rulesCount: rules.length,
@@ -221,7 +217,7 @@ export class RuleEngineService implements IRuleEngine {
    * 检查规则是否在冷却期
    */
   async isInCooldown(ruleId: string): Promise<boolean> {
-    const operation = ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION;
+    const operation = ALERT_OPERATIONS.RULES.HANDLE_RULE_EVALUATION;
 
     try {
       const cacheKey = this.getCooldownCacheKey(ruleId);
@@ -256,7 +252,7 @@ export class RuleEngineService implements IRuleEngine {
    * 设置规则冷却
    */
   async setCooldown(ruleId: string, cooldownSeconds: number): Promise<void> {
-    const operation = ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION;
+    const operation = ALERT_OPERATIONS.RULES.HANDLE_RULE_EVALUATION;
 
     if (cooldownSeconds <= 0) {
       this.logger.debug(
@@ -301,7 +297,7 @@ export class RuleEngineService implements IRuleEngine {
    * 验证规则配置
    */
   validateRule(rule: IAlertRule): { valid: boolean; errors: string[] } {
-    const operation = ALERTING_OPERATIONS.CREATE_RULE;
+    const operation = ALERT_OPERATIONS.RULES.CREATE_RULE;
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -315,17 +311,17 @@ export class RuleEngineService implements IRuleEngine {
     );
 
     // 🎯 使用 common 模块的验证工具
-    if (!AlertingTemplateUtil.isValidRuleName(rule.name)) {
+    if (!AlertRuleUtil.isValidRuleName(rule.name)) {
       errors.push(
-        AlertingTemplateUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
+        AlertRuleUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
           errors: "规则名称格式无效或为空",
         }),
       );
     }
 
-    if (!AlertingTemplateUtil.isValidMetricName(rule.metric)) {
+    if (!AlertRuleUtil.isValidMetricName(rule.metric)) {
       errors.push(
-        AlertingTemplateUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
+        AlertRuleUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
           errors: "监控指标名称格式无效或为空",
         }),
       );
@@ -333,15 +329,15 @@ export class RuleEngineService implements IRuleEngine {
 
     if (!VALID_OPERATORS.includes(rule.operator as Operator)) {
       errors.push(
-        AlertingTemplateUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
+        AlertRuleUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
           errors: `无效的比较操作符: ${rule.operator}`,
         }),
       );
     }
 
-    if (!AlertingTemplateUtil.isValidThreshold(rule.threshold)) {
+    if (!AlertRuleUtil.isValidThreshold(rule.threshold)) {
       errors.push(
-        AlertingTemplateUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
+        AlertRuleUtil.generateErrorMessage("RULE_VALIDATION_FAILED", {
           errors: "阈值必须是有效数字",
         }),
       );
@@ -356,7 +352,7 @@ export class RuleEngineService implements IRuleEngine {
       rule.duration > duration.max
     ) {
       errors.push(
-        AlertingTemplateUtil.formatAlertMessage(
+        AlertRuleUtil.formatAlertMessage(
           "持续时间必须在{min}-{max}秒之间",
           { min: duration.min, max: duration.max },
         ),
@@ -369,7 +365,7 @@ export class RuleEngineService implements IRuleEngine {
       rule.cooldown > cooldown.max
     ) {
       errors.push(
-        AlertingTemplateUtil.formatAlertMessage(
+        AlertRuleUtil.formatAlertMessage(
           "冷却时间必须在{min}-{max}秒之间",
           { min: cooldown.min, max: cooldown.max },
         ),
@@ -384,12 +380,12 @@ export class RuleEngineService implements IRuleEngine {
     // 🎯 使用标准化的时间常量进行警告检查
     if (
       rule.cooldown &&
-      rule.cooldown > ALERTING_TIME_CONFIG.ALERT_TTL_SECONDS
+      rule.cooldown > ALERT_DEFAULTS.RETENTION.historyDays * 86400
     ) {
       warnings.push(
-        AlertingTemplateUtil.formatAlertMessage(
+        AlertRuleUtil.formatAlertMessage(
           "冷却时间超过{hours}小时，可能会延迟重要告警",
-          { hours: ALERTING_TIME_CONFIG.ALERT_TTL_SECONDS / 3600 },
+          { hours: ALERT_DEFAULTS.RETENTION.historyDays * 86400 / 3600 },
         ),
       );
     }
@@ -465,7 +461,7 @@ export class RuleEngineService implements IRuleEngine {
    * 🎯 使用 common 模块的标准化缓存模式
    */
   private getCooldownCacheKey(ruleId: string): string {
-    return ALERTING_CACHE_PATTERNS.RULE_COOLDOWN.replace("{ruleId}", ruleId);
+    return AlertRuleUtil.generateCooldownCacheKey(ruleId);
   }
 
   /**
@@ -474,7 +470,7 @@ export class RuleEngineService implements IRuleEngine {
   async getCooldownStatus(
     ruleId: string,
   ): Promise<{ inCooldown: boolean; remainingSeconds?: number }> {
-    const operation = ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION;
+    const operation = ALERT_OPERATIONS.RULES.HANDLE_RULE_EVALUATION;
 
     try {
       const cacheKey = this.getCooldownCacheKey(ruleId);
@@ -505,7 +501,7 @@ export class RuleEngineService implements IRuleEngine {
   async batchCheckCooldown(
     ruleIds: string[],
   ): Promise<Record<string, boolean>> {
-    const operation = ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION;
+    const operation = ALERT_OPERATIONS.RULES.HANDLE_RULE_EVALUATION;
     const results: Record<string, boolean> = {};
     let hasErrors = false;
 
@@ -562,7 +558,7 @@ export class RuleEngineService implements IRuleEngine {
    * 清除规则的冷却状态
    */
   async clearCooldown(ruleId: string): Promise<void> {
-    const operation = ALERTING_OPERATIONS.HANDLE_RULE_EVALUATION;
+    const operation = ALERT_OPERATIONS.RULES.HANDLE_RULE_EVALUATION;
 
     try {
       const cacheKey = this.getCooldownCacheKey(ruleId);

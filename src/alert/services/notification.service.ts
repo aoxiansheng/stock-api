@@ -6,7 +6,7 @@ import { notificationConfig } from "@app/config/notification.config";
 import {
   NOTIFICATION_OPERATIONS,
   NOTIFICATION_MESSAGES,
-} from "../constants/notification.constants";
+} from "../constants";
 
 // 从工具文件导入NotificationTemplateUtil
 import { NotificationTemplateUtil } from "../utils/notification.utils";

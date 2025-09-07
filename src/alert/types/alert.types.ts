@@ -3,7 +3,7 @@
  * 🎯 统一定义所有告警相关的类型，解决循环依赖问题
  */
 
-import type { Operator } from "../constants/alert.constants";
+import type { Operator } from "../constants";
 
 /**
  * 基础实体接口

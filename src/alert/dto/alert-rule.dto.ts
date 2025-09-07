@@ -13,10 +13,7 @@ import {
 } from "class-validator";
 
 import { AlertSeverity } from "../types/alert.types";
-import { VALID_OPERATORS } from "../constants/alert.constants";
-import type { Operator } from "../constants/alert.constants";
-import { VALIDATION_LIMITS } from "../constants/validation.constants";
-import { ALERT_DEFAULTS } from "../constants/defaults.constants";
+import { VALID_OPERATORS, type Operator, VALIDATION_LIMITS, ALERT_DEFAULTS } from "../constants";
 
 import { NotificationChannelDto } from "./notification-channel.dto";
 
@@ -51,8 +48,8 @@ export class CreateAlertRuleDto {
     default: ALERT_DEFAULTS.RULE.duration 
   })
   @IsNumber()
-  @Min(VALIDATION_LIMITS.DURATION.MIN)
-  @Max(VALIDATION_LIMITS.DURATION.MAX)
+  @Min(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MIN)
+  @Max(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MAX)
   duration: number;
 
   @ApiProperty({
@@ -81,8 +78,8 @@ export class CreateAlertRuleDto {
     default: ALERT_DEFAULTS.RULE.cooldown 
   })
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COOLDOWN.MIN)
-  @Max(VALIDATION_LIMITS.COOLDOWN.MAX)
+  @Min(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MIN)
+  @Max(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MAX)
   cooldown: number;
 
   @ApiPropertyOptional({
@@ -126,8 +123,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "持续时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.DURATION.MIN)
-  @Max(VALIDATION_LIMITS.DURATION.MAX)
+  @Min(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MIN)
+  @Max(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MAX)
   duration?: number;
 
   @ApiPropertyOptional({
@@ -156,8 +153,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "冷却时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COOLDOWN.MIN)
-  @Max(VALIDATION_LIMITS.COOLDOWN.MAX)
+  @Min(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MIN)
+  @Max(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MAX)
   cooldown?: number;
 
   @ApiPropertyOptional({

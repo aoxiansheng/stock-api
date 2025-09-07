@@ -4,8 +4,7 @@ import { Document } from "mongoose";
 import { IAlertRule } from "../interfaces/alert.interface";
 import { AlertSeverity, NotificationChannelType } from "../types/alert.types";
 import type { NotificationChannel } from "../types/alert.types";
-import { ALERT_DEFAULTS } from "../constants/defaults.constants";
-import { VALID_OPERATORS, type Operator } from "../constants/alert.constants";
+import { ALERT_DEFAULTS, VALID_OPERATORS, type Operator } from "../constants";
 
 export type AlertRuleDocument = AlertRule & Document;
 

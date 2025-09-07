@@ -17,15 +17,14 @@ import {
 
 import { IAlert, IAlertStats } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
-import { ALERT_BUSINESS_RULES } from "../constants/business-rules.constants";
-import { ALERT_DEFAULTS } from "../constants/defaults.constants";
+import { ALERT_RULE_CONSTANTS, ALERT_DEFAULTS } from "../constants";
 import { BaseQueryDto } from "../../common/dto/base-query.dto";
 
 export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "告警规则ID" })
   @IsOptional()
   @IsString()
-  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_RULE_NAME_LENGTH)
+  @MaxLength(ALERT_RULE_CONSTANTS.VALIDATION.NAME_MAX_LENGTH)
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
     message: "规则ID只能包含字母、数字、横线和下划线",
   })
@@ -60,14 +59,14 @@ export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "监控指标名称" })
   @IsOptional()
   @IsString()
-  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_TAG_LENGTH)
+  @MaxLength(ALERT_RULE_CONSTANTS.VALIDATION.TAG_MAX_LENGTH)
   @Matches(/^[a-zA-Z0-9\-_.]+$/, { message: "监控指标名称格式无效" })
   metric?: string;
 
   @ApiPropertyOptional({ description: "排序字段", default: "startTime" })
   @IsOptional()
   @IsString()
-  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_TAG_LENGTH)
+  @MaxLength(ALERT_RULE_CONSTANTS.VALIDATION.TAG_MAX_LENGTH)
   @Matches(/^[a-zA-Z0-9_]+$/, { message: "排序字段格式无效" })
   sortBy?: string = "startTime";
 
@@ -163,7 +162,7 @@ export class TriggerAlertDto {
   @ApiPropertyOptional({ description: "指定触发的规则ID" })
   @IsOptional()
   @IsString()
-  @MaxLength(ALERT_BUSINESS_RULES.STRING_LIMITS.MAX_RULE_NAME_LENGTH)
+  @MaxLength(ALERT_RULE_CONSTANTS.VALIDATION.NAME_MAX_LENGTH)
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
     message: "规则ID只能包含字母、数字、横线和下划线",
   })

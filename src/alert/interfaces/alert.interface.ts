@@ -3,7 +3,7 @@ import {
   AlertStatus,
 } from "../types/alert.types";
 import type { NotificationChannel } from "../types/alert.types";
-import type { Operator } from "../constants/alert.constants";
+import type { Operator } from "../constants";
 
 /**
  * 告警规则接口
