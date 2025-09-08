@@ -13,6 +13,7 @@ import express from "express";
 import { AppModule } from "../../src/app.module";
 import { CustomLogger } from "../../src/app/config/logger.config";
 import { GlobalExceptionFilter } from "../../src/common/core/filters";
+import { HTTP_METHOD_ARRAYS } from "../../src/common/constants/semantic";
 import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
@@ -117,7 +118,7 @@ beforeAll(async () => {
           callback(new Error("Not allowed by CORS"));
         }
       },
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      methods: HTTP_METHOD_ARRAYS.CORS_COMMON,
       allowedHeaders: [
         "Content-Type",
         "Authorization",

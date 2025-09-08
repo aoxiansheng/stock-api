@@ -5,6 +5,7 @@
  */
 
 import { CORE_VALUES, CORE_TIMEOUTS, CORE_LIMITS } from '../foundation';
+import { MESSAGE_SEMANTICS, MESSAGE_TEMPLATE_SEMANTICS } from './message-semantics.constants';
 
 /**
  * HTTP状态码语义分类
@@ -198,6 +199,48 @@ export const HTTP_METHODS = Object.freeze({
 });
 
 /**
+ * HTTP方法数组形式
+ * 🎯 为了方便在代码中使用，提供数组形式的方法组
+ */
+export const HTTP_METHOD_ARRAYS = Object.freeze({
+  // 所有标准HTTP方法数组
+  ALL_STANDARD: Object.values(HTTP_METHODS.ALL),
+  
+  // CORS常用方法数组
+  CORS_COMMON: [
+    HTTP_METHODS.ALL.GET,
+    HTTP_METHODS.ALL.POST, 
+    HTTP_METHODS.ALL.PUT,
+    HTTP_METHODS.ALL.DELETE,
+    HTTP_METHODS.ALL.OPTIONS,
+    HTTP_METHODS.ALL.PATCH,
+  ],
+  
+  // 无请求体的方法数组 
+  NO_BODY_METHODS: [
+    HTTP_METHODS.SAFE.GET,
+    HTTP_METHODS.IDEMPOTENT.DELETE,
+    HTTP_METHODS.SAFE.HEAD,
+    HTTP_METHODS.SAFE.OPTIONS,
+  ],
+  
+  // 测试常用方法数组
+  TEST_METHODS: [
+    HTTP_METHODS.ALL.GET,
+    HTTP_METHODS.ALL.POST,
+    HTTP_METHODS.ALL.PUT, 
+    HTTP_METHODS.ALL.DELETE,
+    HTTP_METHODS.ALL.PATCH,
+  ],
+  
+  // 安全方法数组
+  SAFE_METHODS: Object.values(HTTP_METHODS.SAFE),
+  
+  // 幂等方法数组
+  IDEMPOTENT_METHODS: Object.values(HTTP_METHODS.IDEMPOTENT),
+} as const);
+
+/**
  * HTTP内容类型语义
  */
 export const HTTP_CONTENT_TYPES = Object.freeze({
@@ -281,9 +324,9 @@ export class HttpSemanticsUtil {
 export const HTTP_ERROR_MESSAGES = Object.freeze({
   // 通用HTTP错误
   BAD_REQUEST: "请求参数错误",
-  UNAUTHORIZED: "未授权访问",
+  UNAUTHORIZED: MESSAGE_SEMANTICS.PERMISSION.UNAUTHORIZED_ACCESS,
   FORBIDDEN: "访问被禁止", 
-  NOT_FOUND: "资源未找到",
+  NOT_FOUND: MESSAGE_SEMANTICS.RESOURCE.NOT_FOUND,
   METHOD_NOT_ALLOWED: "请求方法不被允许",
   CONFLICT: "请求冲突",
   UNPROCESSABLE_ENTITY: "请求参数验证失败",
@@ -298,16 +341,16 @@ export const HTTP_ERROR_MESSAGES = Object.freeze({
   TOKEN_INVALID: "token无效", 
   API_KEY_INVALID: "API Key无效",
   API_KEY_EXPIRED: "API Key已过期",
-  INSUFFICIENT_PERMISSIONS: "权限不足",
+  INSUFFICIENT_PERMISSIONS: MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT,
   ACCESS_DENIED: "访问被拒绝",
 
   // 业务操作错误
-  OPERATION_FAILED: "操作失败",
+  OPERATION_FAILED: MESSAGE_SEMANTICS.OPERATION.FAILED,
   VALIDATION_FAILED: "验证失败",
   PROCESSING_FAILED: "处理失败",
 
   // 资源相关错误
-  RESOURCE_ALREADY_EXISTS: "资源已存在",
+  RESOURCE_ALREADY_EXISTS: MESSAGE_SEMANTICS.RESOURCE.ALREADY_EXISTS,
   RESOURCE_LOCKED: "资源被锁定",
   RESOURCE_EXPIRED: "资源已过期",
 
@@ -334,9 +377,9 @@ export const HTTP_SUCCESS_MESSAGES = Object.freeze({
   SYNC_SUCCESS: "同步成功",
   
   // CRUD操作成功消息 - 引用其他语义层
-  CREATE_SUCCESS: "创建成功",
-  UPDATE_SUCCESS: "更新成功", 
-  DELETE_SUCCESS: "删除成功",
+  CREATE_SUCCESS: MESSAGE_TEMPLATE_SEMANTICS.QUICK.CREATED,
+  UPDATE_SUCCESS: MESSAGE_TEMPLATE_SEMANTICS.QUICK.UPDATED,
+  DELETE_SUCCESS: MESSAGE_TEMPLATE_SEMANTICS.QUICK.DELETED,
 });
 
 /**

@@ -8,6 +8,7 @@
 export { CORE_VALUES } from './core-values.constants';
 export { CORE_TIMEOUTS, CORE_TTL } from './core-timeouts.constants';
 export { CORE_LIMITS } from './core-limits.constants';
+export { CORE_TIMEZONES, CORE_TRADING_TIMES, TimezoneUtil } from './core-timezones.constants';
 export { 
   PROCESSING_BASE_CONSTANTS,
   PROCESSING_BATCH_SETTINGS,
@@ -40,6 +41,11 @@ export type {
 } from './core-limits.constants';
 
 export type { 
+  CoreTimezones, 
+  CoreTradingTimes 
+} from './core-timezones.constants';
+
+export type { 
   ProcessingBaseConstants,
   ProcessingBatchSettings,
   ProcessingRetrySettings,
@@ -55,6 +61,7 @@ export type {
 import { CORE_VALUES } from './core-values.constants';
 import { CORE_TIMEOUTS, CORE_TTL } from './core-timeouts.constants';
 import { CORE_LIMITS } from './core-limits.constants';
+import { CORE_TIMEZONES, CORE_TRADING_TIMES } from './core-timezones.constants';
 import { PROCESSING_BASE_CONSTANTS } from './processing-base.constants';
 
 // Foundation层统一常量对象
@@ -63,6 +70,8 @@ export const FOUNDATION_CONSTANTS = Object.freeze({
   TIMEOUTS: CORE_TIMEOUTS,
   TTL: CORE_TTL,
   LIMITS: CORE_LIMITS,
+  TIMEZONES: CORE_TIMEZONES,
+  TRADING_TIMES: CORE_TRADING_TIMES,
   PROCESSING_BASE: PROCESSING_BASE_CONSTANTS,
 } as const);
 

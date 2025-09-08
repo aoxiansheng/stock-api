@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
 import { DiscoveryService, MetadataScanner, Reflector } from "@nestjs/core";
 import { InstanceWrapper } from "@nestjs/core/injector/instance-wrapper";
+import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 
 import { AuthPermissionValidationService } from "../adapters/auth-permission.adapter";
 
@@ -173,15 +174,7 @@ export class PermissionDecoratorValidator {
 
       if (typeof method === "function") {
         // 检查是否有HTTP方法装饰器（GET, POST, PUT, DELETE等）
-        const httpMethods = [
-          "GET",
-          "POST",
-          "PUT",
-          "PATCH",
-          "DELETE",
-          "OPTIONS",
-          "HEAD",
-        ];
+        const httpMethods = HTTP_METHOD_ARRAYS.ALL_STANDARD;
         let routeMethod = "";
         let routePath = "";
 

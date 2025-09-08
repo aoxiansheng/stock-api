@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { HTTP_METHOD_ARRAYS } from "../../../../../src/common/constants/semantic";
 
 describe("GlobalExceptionFilter", () => {
   let filter: GlobalExceptionFilter;
@@ -529,7 +530,7 @@ describe("GlobalExceptionFilter", () => {
     });
 
     it("should handle different HTTP methods", () => {
-      const methods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+      const methods = HTTP_METHOD_ARRAYS.TEST_METHODS;
 
       methods.forEach((method) => {
         const requestWithMethod = { ...mockRequest, method };

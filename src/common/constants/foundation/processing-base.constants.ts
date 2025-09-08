@@ -5,7 +5,9 @@
  * 🆕 从Unified层processing-base.constants.ts迁移
  */
 
-import { CORE_VALUES, CORE_TIMEOUTS, CORE_LIMITS } from './';
+import { CORE_VALUES } from './core-values.constants';
+import { CORE_TIMEOUTS } from './core-timeouts.constants';
+import { CORE_LIMITS } from './core-limits.constants';
 
 /**
  * 基础批量处理配置

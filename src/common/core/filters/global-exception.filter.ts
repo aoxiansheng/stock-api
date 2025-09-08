@@ -731,7 +731,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // 精确匹配的HTTP错误消息映射
     const translations: Record<string, string> = {
       "Bad Request": HTTP_ERROR_MESSAGES.BAD_REQUEST,
-      Unauthorized: HTTP_ERROR_MESSAGES.HTTP_UNAUTHORIZED,
+      Unauthorized: HTTP_ERROR_MESSAGES.UNAUTHORIZED,
       Forbidden: HTTP_ERROR_MESSAGES.FORBIDDEN,
       "Not Found": HTTP_ERROR_MESSAGES.NOT_FOUND,
       "Method Not Allowed": HTTP_ERROR_MESSAGES.METHOD_NOT_ALLOWED,

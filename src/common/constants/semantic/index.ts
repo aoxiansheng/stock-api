@@ -11,6 +11,7 @@ export {
   HTTP_BATCH_SEMANTICS,
   HTTP_HEADERS,
   HTTP_METHODS,
+  HTTP_METHOD_ARRAYS,
   HTTP_CONTENT_TYPES,
   HttpSemanticsUtil
 } from './http-semantics.constants';

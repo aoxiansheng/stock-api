@@ -9,6 +9,10 @@ import {
   CACHE_TTL_SEMANTICS,
   BATCH_SIZE_SEMANTICS 
 } from '../semantic';
+import { 
+  CORE_TIMEZONES, 
+  CORE_TRADING_TIMES 
+} from '../foundation';
 
 /**
  * 市场枚举
@@ -54,12 +58,12 @@ export const MARKET_DOMAIN_CONFIG = Object.freeze({
 
   // 市场时区映射
   TIMEZONES: {
-    [Market.HK]: "Asia/Hong_Kong",
-    [Market.SZ]: "Asia/Shanghai",
-    [Market.SH]: "Asia/Shanghai", 
-    [Market.US]: "America/New_York",
-    [Market.CRYPTO]: "UTC",
-    [Market.CN]: "Asia/Shanghai",
+    [Market.HK]: CORE_TIMEZONES.ASIA.HONG_KONG,
+    [Market.SZ]: CORE_TIMEZONES.ASIA.SHANGHAI,
+    [Market.SH]: CORE_TIMEZONES.ASIA.SHANGHAI, 
+    [Market.US]: CORE_TIMEZONES.AMERICA.NEW_YORK,
+    [Market.CRYPTO]: CORE_TIMEZONES.UTC,
+    [Market.CN]: CORE_TIMEZONES.ASIA.SHANGHAI,
   } as const,
 
   // 市场货币映射
@@ -199,12 +203,12 @@ export const MARKET_TRADING_HOURS: Record<Market, MarketTradingHours> = Object.f
   // 🇭🇰 香港市场
   [Market.HK]: {
     market: Market.HK,
-    timezone: "Asia/Hong_Kong",
+    timezone: CORE_TIMEZONES.ASIA.HONG_KONG,
     tradingSessions: [
-      { start: "09:30", end: "12:00", name: "上午交易" },
-      { start: "13:00", end: "16:00", name: "下午交易" },
+      { start: CORE_TRADING_TIMES.HONG_KONG.MARKET_OPEN, end: CORE_TRADING_TIMES.HONG_KONG.LUNCH_BREAK_START, name: "上午交易" },
+      { start: CORE_TRADING_TIMES.HONG_KONG.LUNCH_BREAK_END, end: CORE_TRADING_TIMES.HONG_KONG.MARKET_CLOSE, name: "下午交易" },
     ],
-    preMarket: { start: "09:00", end: "09:30", name: "盘前竞价" },
+    preMarket: { start: CORE_TRADING_TIMES.HONG_KONG.PRE_MARKET_START, end: CORE_TRADING_TIMES.HONG_KONG.MARKET_OPEN, name: "盘前竞价" },
     tradingDays: [1, 2, 3, 4, 5], // 周一到周五
     dstSupport: false, // 香港不使用夏令时
   },
@@ -212,10 +216,10 @@ export const MARKET_TRADING_HOURS: Record<Market, MarketTradingHours> = Object.f
   // 🇺🇸 美国市场
   [Market.US]: {
     market: Market.US,
-    timezone: "America/New_York",
-    tradingSessions: [{ start: "09:30", end: "16:00", name: "正常交易" }],
-    preMarket: { start: "04:00", end: "09:30", name: "盘前交易" },
-    afterHours: { start: "16:00", end: "20:00", name: "盘后交易" },
+    timezone: CORE_TIMEZONES.AMERICA.NEW_YORK,
+    tradingSessions: [{ start: CORE_TRADING_TIMES.US.MARKET_OPEN, end: CORE_TRADING_TIMES.US.MARKET_CLOSE, name: "正常交易" }],
+    preMarket: { start: CORE_TRADING_TIMES.US.PRE_MARKET_START, end: CORE_TRADING_TIMES.US.MARKET_OPEN, name: "盘前交易" },
+    afterHours: { start: CORE_TRADING_TIMES.US.MARKET_CLOSE, end: CORE_TRADING_TIMES.US.AFTER_HOURS_END, name: "盘后交易" },
     tradingDays: [1, 2, 3, 4, 5],
     dstSupport: true,
     dstStart: "03-08", // 3月第二个周日
@@ -226,12 +230,12 @@ export const MARKET_TRADING_HOURS: Record<Market, MarketTradingHours> = Object.f
   // 🇨🇳 深圳市场
   [Market.SZ]: {
     market: Market.SZ,
-    timezone: "Asia/Shanghai",
+    timezone: CORE_TIMEZONES.ASIA.SHANGHAI,
     tradingSessions: [
-      { start: "09:30", end: "11:30", name: "上午交易" },
-      { start: "13:00", end: "15:00", name: "下午交易" },
+      { start: CORE_TRADING_TIMES.CHINA.MARKET_OPEN, end: CORE_TRADING_TIMES.CHINA.MORNING_CLOSE, name: "上午交易" },
+      { start: CORE_TRADING_TIMES.CHINA.AFTERNOON_OPEN, end: CORE_TRADING_TIMES.CHINA.MARKET_CLOSE, name: "下午交易" },
     ],
-    preMarket: { start: "09:15", end: "09:30", name: "集合竞价" },
+    preMarket: { start: CORE_TRADING_TIMES.CHINA.PRE_MARKET_START, end: CORE_TRADING_TIMES.CHINA.MARKET_OPEN, name: "集合竞价" },
     tradingDays: [1, 2, 3, 4, 5],
     dstSupport: false, // 中国不使用夏令时
   },
@@ -239,12 +243,12 @@ export const MARKET_TRADING_HOURS: Record<Market, MarketTradingHours> = Object.f
   // 🇨🇳 上海市场
   [Market.SH]: {
     market: Market.SH,
-    timezone: "Asia/Shanghai",
+    timezone: CORE_TIMEZONES.ASIA.SHANGHAI,
     tradingSessions: [
-      { start: "09:30", end: "11:30", name: "上午交易" },
-      { start: "13:00", end: "15:00", name: "下午交易" },
+      { start: CORE_TRADING_TIMES.CHINA.MARKET_OPEN, end: CORE_TRADING_TIMES.CHINA.MORNING_CLOSE, name: "上午交易" },
+      { start: CORE_TRADING_TIMES.CHINA.AFTERNOON_OPEN, end: CORE_TRADING_TIMES.CHINA.MARKET_CLOSE, name: "下午交易" },
     ],
-    preMarket: { start: "09:15", end: "09:30", name: "集合竞价" },
+    preMarket: { start: CORE_TRADING_TIMES.CHINA.PRE_MARKET_START, end: CORE_TRADING_TIMES.CHINA.MARKET_OPEN, name: "集合竞价" },
     tradingDays: [1, 2, 3, 4, 5],
     dstSupport: false,
   },
@@ -252,12 +256,12 @@ export const MARKET_TRADING_HOURS: Record<Market, MarketTradingHours> = Object.f
   // 🇨🇳 中国A股市场（统称）
   [Market.CN]: {
     market: Market.CN,
-    timezone: "Asia/Shanghai",
+    timezone: CORE_TIMEZONES.ASIA.SHANGHAI,
     tradingSessions: [
-      { start: "09:30", end: "11:30", name: "上午交易" },
-      { start: "13:00", end: "15:00", name: "下午交易" },
+      { start: CORE_TRADING_TIMES.CHINA.MARKET_OPEN, end: CORE_TRADING_TIMES.CHINA.MORNING_CLOSE, name: "上午交易" },
+      { start: CORE_TRADING_TIMES.CHINA.AFTERNOON_OPEN, end: CORE_TRADING_TIMES.CHINA.MARKET_CLOSE, name: "下午交易" },
     ],
-    preMarket: { start: "09:15", end: "09:30", name: "集合竞价" },
+    preMarket: { start: CORE_TRADING_TIMES.CHINA.PRE_MARKET_START, end: CORE_TRADING_TIMES.CHINA.MARKET_OPEN, name: "集合竞价" },
     tradingDays: [1, 2, 3, 4, 5],
     dstSupport: false,
   },
@@ -265,12 +269,12 @@ export const MARKET_TRADING_HOURS: Record<Market, MarketTradingHours> = Object.f
   // 🪙 加密货币市场
   [Market.CRYPTO]: {
     market: Market.CRYPTO,
-    timezone: "UTC",
+    timezone: CORE_TIMEZONES.UTC,
     tradingSessions: [{ start: "00:00", end: "23:59", name: "24小时交易" }],
     tradingDays: [0, 1, 2, 3, 4, 5, 6], // 7天24小时
     dstSupport: false,
   },
-});
+});;
 
 /**
  * 基于市场状态的缓存TTL配置

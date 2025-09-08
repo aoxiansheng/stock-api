@@ -10,6 +10,7 @@ import {
   ResponseInterceptor,
   RequestTrackingInterceptor,
 } from "@common/core/interceptors";
+import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 
 import { AppModule } from "./app.module";
 import { InfrastructureInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure.interceptor";
@@ -90,7 +91,7 @@ async function bootstrap() {
     // CORS 配置
     app.enableCors({
       origin: process.env.CORS_ORIGIN?.split(",") || true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      methods: HTTP_METHOD_ARRAYS.CORS_COMMON,
       allowedHeaders: [
         "Content-Type",
         "Authorization",

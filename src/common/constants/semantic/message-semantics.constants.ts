@@ -18,7 +18,7 @@ export const MESSAGE_SEMANTICS = Object.freeze({
     INSUFFICIENT: "权限不足",
     DENIED: "权限被拒绝",
     ACCESS_DENIED: "访问被拒绝",
-    INSUFFICIENT_PRIVILEGES: "权限不足", 
+    INSUFFICIENT_PRIVILEGES: "权限级别不足", 
     UNAUTHORIZED_ACCESS: "未授权访问",
     FORBIDDEN_OPERATION: "禁止的操作",
     AUTHENTICATION_REQUIRED: "需要身份验证",
@@ -443,8 +443,8 @@ export const MESSAGE_TEMPLATE_FUNCTIONS = Object.freeze({
   OPERATION_FAILED: (operation: string = "操作") => `${operation}失败`,
   OPERATION_TIMEOUT: (operation: string = "操作") => `${operation}超时`,
 
-  // 权限相关模板函数
-  INSUFFICIENT_PERMISSION: (action: string = "执行此操作") => `权限不足，无法${action}`,
+  // 权限相关模板函数 - 引用基础语义定义避免重复
+  INSUFFICIENT_PERMISSION: (action: string = "执行此操作") => `${MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT}，无法${action}`,
   AUTHORIZATION_FAILED: (resource: string = "操作") => `${resource}授权失败`,
 
   // 连接和超时模板函数
@@ -567,10 +567,10 @@ export class MessageTemplateSemanticsUtil {
 
 /**
  * 🆕 权限消息兼容性别名 - 从permission-message.constants.ts迁移
- * 为了向后兼容，提供常用的别名
+ * 为了向后兼容，提供常用的别名 - 引用基础语义避免重复
  */
 export const PERMISSION_MESSAGE_ALIASES = Object.freeze({
-  // 与现有代码兼容的别名
+  // 与现有代码兼容的别名 - 引用基础定义避免重复
   INSUFFICIENT_PERMISSIONS: MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT,
   PERMISSION_DENIED: MESSAGE_SEMANTICS.PERMISSION.DENIED,
   ROLE_INSUFFICIENT: MESSAGE_SEMANTICS.PERMISSION.ROLE_INSUFFICIENT,

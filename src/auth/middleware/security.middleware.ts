@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 
 import { createLogger } from "@app/config/logger.config";
 import { CONSTANTS } from "@common/constants";
+import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 
 // Extract rate limit and security constants for backward compatibility
 const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
@@ -362,7 +363,7 @@ export class SecurityMiddleware implements NestMiddleware {
     details?: any;
   } {
     // 跳过GET、DELETE等没有请求体的方法
-    if (["GET", "DELETE", "HEAD", "OPTIONS"].includes(req.method)) {
+    if (HTTP_METHOD_ARRAYS.NO_BODY_METHODS.includes(req.method as any)) {
       return { isValid: true };
     }
 

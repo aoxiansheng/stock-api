@@ -204,7 +204,15 @@
     "test:api": "npm run test:e2e:core && npm run test:perf:api:all",
     "// ========== 其他工具 ==========": "",
     "cli": "bun src/providers/cli/index.ts",
-    "typecheck:file": "node scripts/tsc-single-file.js"
+    "typecheck:file": "node scripts/tsc-single-file.js",
+    "// ========== 常量系统优化命令 ==========": "",
+    "optimize:constants": "bun tools/constants-validator/optimize.ts optimize",
+    "optimize:constants:dry-run": "bun tools/constants-validator/optimize.ts preview",
+    "optimize:constants:phase": "bun tools/constants-validator/optimize.ts optimize --phase",
+    "optimize:constants:validate": "bun tools/constants-validator/optimize.ts validate",
+    "optimize:constants:cleanup": "bun tools/constants-validator/system-cleaner.ts optimize",
+    "validate:constants": "bun tools/constants-validator/constants-validator.util.ts",
+    "validate:constants:report": "bun tools/constants-validator/system-cleaner.ts report"
   },
   "overrides": {
     "form-data": "^4.0.0"
