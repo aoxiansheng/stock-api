@@ -14,7 +14,7 @@ import {
   AUTH_MESSAGES,
   AUTH_DEFAULTS,
 } from "../constants/auth.constants";
-import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
+import { ERROR_MESSAGES } from "../../common/constants/semantic/error-messages.constants";
 import { CreateUserDto, LoginDto } from "../dto/auth.dto";
 import { ApiKeyUsageDto } from "../dto/apikey.dto";
 import { UserRepository } from "../repositories/user.repository";

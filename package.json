@@ -203,7 +203,8 @@
     "test:cache": "npm run test:unit:cache && npm run test:integration && npm run test:e2e:cache",
     "test:api": "npm run test:e2e:core && npm run test:perf:api:all",
     "// ========== 其他工具 ==========": "",
-    "cli": "bun src/providers/cli/index.ts"
+    "cli": "bun src/providers/cli/index.ts",
+    "typecheck:file": "node scripts/tsc-single-file.js"
   },
   "overrides": {
     "form-data": "^4.0.0"
@@ -256,6 +257,7 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "@eslint/js": "^9.35.0",
     "@golevelup/ts-jest": "^0.7.0",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
@@ -277,7 +279,7 @@
     "@typescript-eslint/parser": "^8.41.0",
     "bun-types": "^1.2.19",
     "depcheck": "^1.4.7",
-    "eslint": "^8.57.1",
+    "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
@@ -296,6 +298,7 @@
     "ts-node": "^10.9.2",
     "ts-prune": "^0.10.3",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0",
     "unimported": "^1.31.0"
   }
 }

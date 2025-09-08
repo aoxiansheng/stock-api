@@ -3,15 +3,16 @@
  * 包含基础配置、重试配置、缓存配置、健康检查配置等
  */
 
-import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS } from "@common/constants/unified";
+import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
 
 /**
  * 数据接收基础配置常量 - 避免重复定义
  */
 const RECEIVER_BASE_CONFIG = Object.freeze({
-  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.RECEIVER.REQUEST_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
-  MAX_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.RECEIVER.MAX_RETRY_ATTEMPTS, // 最大重试次数 - 使用统一配置  
-  RETRY_DELAY_MS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.RECEIVER.RETRY_DELAY_MS, // 重试延迟 - 使用统一配置
+  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认超时时间 - 使用统一配置
+  MAX_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.RECEIVER.maxAttempts, // 最大重试次数 - 使用统一配置  
+  RETRY_DELAY_MS: RETRY_BUSINESS_SCENARIOS.RECEIVER.initialDelayMs, // 重试延迟 - 使用统一配置
 } as const);
 
 /**
@@ -87,8 +88,8 @@ export const RECEIVER_CACHE_CONFIG = Object.freeze({
  * 数据接收健康检查配置常量
  */
 export const RECEIVER_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: PERFORMANCE_CONSTANTS.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔 - 使用统一配置
-  TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.QUICK_TIMEOUT_MS, // 健康检查超时 - 使用统一配置
+  CHECK_INTERVAL_MS: CORE_VALUES.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔 - 使用统一配置
+  TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.QUICK, // 健康检查超时 - 使用统一配置
   MAX_FAILURES: 3, // 最大失败次数
   RECOVERY_THRESHOLD: 5, // 恢复阈值
   METRICS_WINDOW_SIZE: 100, // 指标窗口大小

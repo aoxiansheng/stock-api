@@ -2,10 +2,12 @@ import { Injectable, NestMiddleware } from "@nestjs/common";
 import { Request, Response, NextFunction } from "express";
 
 import { createLogger } from "@app/config/logger.config";
-import {
-  RATE_LIMIT_CONFIG,
-  SECURITY_LIMITS,
-} from "@common/constants/rate-limit.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract rate limit and security constants for backward compatibility
+const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
+const IP_RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT_CONFIG.IP_RATE_LIMIT;
+const SECURITY_LIMITS = CONSTANTS.DOMAIN.SECURITY_LIMITS;
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import { HTTP_STATUS_CODES } from "../constants/http-status.constants";
 
@@ -824,10 +826,10 @@ export class RateLimitByIPMiddleware implements NestMiddleware {
   >();
 
   // 支持环境变量配置的IP级别限速
-  private readonly enabled = RATE_LIMIT_CONFIG.IP_RATE_LIMIT.ENABLED;
+  private readonly enabled = IP_RATE_LIMIT_CONFIG.ENABLED;
   private readonly maxRequestsPerMinute =
-    RATE_LIMIT_CONFIG.IP_RATE_LIMIT.MAX_REQUESTS;
-  private readonly windowMs = RATE_LIMIT_CONFIG.IP_RATE_LIMIT.WINDOW_MS;
+    IP_RATE_LIMIT_CONFIG.MAX_REQUESTS;
+  private readonly windowMs = IP_RATE_LIMIT_CONFIG.WINDOW_MS;
 
   use(req: Request, res: Response, next: NextFunction) {
     // 如果IP级别限速被禁用，直接跳过

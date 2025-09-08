@@ -35,6 +35,7 @@ import {
 } from "../dto/update-symbol-mapping.dto";
 import { SymbolMapperService } from "../services/symbol-mapper.service";
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
+import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 
 @ApiTags("🔄 符号映射器")
 @Controller("symbol-mapper")
@@ -95,7 +96,7 @@ export class SymbolMapperController {
       await this.symbolTransformerService.transformSingleSymbol(
         body.toProvider,
         body.symbol,
-        "from_standard", // 修正方向语义：standard→provider
+        MappingDirection.FROM_STANDARD, // 修正方向语义：standard→provider
       );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return {
@@ -162,7 +163,7 @@ export class SymbolMapperController {
       const result = await this.symbolTransformerService.transformSymbols(
         transformDto.dataSourceName,
         transformDto.symbols,
-        "from_standard", // 修正方向语义：standard→provider
+        MappingDirection.FROM_STANDARD, // 修正方向语义：standard→provider
       );
 
       this.logger.log(`API响应: 代码转换成功`, {

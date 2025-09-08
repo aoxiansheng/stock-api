@@ -96,8 +96,8 @@ export class FieldMappingService {
   ): QueryTypeFilter {
     return (
       FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY[classification] ||
-      classification.toString()
-    );
+      classification
+    ) as QueryTypeFilter;
   }
 
   /**

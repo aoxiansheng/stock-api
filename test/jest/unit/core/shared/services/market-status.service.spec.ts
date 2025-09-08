@@ -4,8 +4,8 @@ import {
   MarketStatusResult,
 } from "@core/shared/services/market-status.service";
 import { CollectorService } from "@monitoring/collector/collector.service";
-import { Market } from "@common/constants/market.constants";
-import { MarketStatus } from "@common/constants/market-trading-hours.constants";
+import { Market } from "@common/constants/domian/";
+import { MarketStatus } from "../../../../../../src/common/constants/domain/market-domain.constants";
 import { TestUtils } from "../../../../shared/test-utils";
 
 describe("MarketStatusService", () => {

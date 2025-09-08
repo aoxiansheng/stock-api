@@ -42,7 +42,8 @@
  * @lastModified 2025-09-04
  */
 
-import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "../../../../common/constants/unified";
+import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 
 /**
  * 数据映射错误消息常量
@@ -180,7 +181,7 @@ export const DATA_MAPPER_CONFIG = Object.freeze({
   MAX_ARRAY_SIZE: 1000, // 最大数组大小
   DEFAULT_PAGE_SIZE: 10, // 默认分页大小
   MAX_PAGE_SIZE: 100, // 最大分页大小
-  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DATA_MAPPER.MAPPING_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
+  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认超时时间 - 使用统一配置
   MAX_RULE_NAME_LENGTH: 100, // 最大规则名称长度
   MAX_DESCRIPTION_LENGTH: 500, // 最大描述长度
 } as const);
@@ -491,7 +492,7 @@ export const DATA_MAPPER_DEFAULTS = Object.freeze({
   SIMILARITY_THRESHOLD: FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD,
   MAX_SUGGESTIONS: FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS,
   TIMEOUT_MS: DATA_MAPPER_CONFIG.DEFAULT_TIMEOUT_MS,
-  RETRY_ATTEMPTS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS,
+  RETRY_ATTEMPTS: CORE_VALUES.RETRY.MAX_ATTEMPTS,
   ENABLE_CACHING: true,
   LOG_LEVEL: "info",
 } as const);

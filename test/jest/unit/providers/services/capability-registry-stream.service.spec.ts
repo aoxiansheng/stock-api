@@ -3,7 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { createLogger } from "@app/config/logger.config";
 import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
 import { IStreamCapability } from "../../../../../src/providers/interfaces/stream-capability.interface";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/domian/";
 
 // Mock logger
 jest.mock("@app/config/logger.config");

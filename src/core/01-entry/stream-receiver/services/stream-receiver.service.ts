@@ -32,6 +32,7 @@ import {
 import { 
   STREAM_RECEIVER_METRICS 
 } from '../constants/stream-receiver-metrics.constants';
+import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { RateLimitService } from "../../../../auth/services/rate-limit.service";
 import { bufferTime, filter, mergeMap } from "rxjs/operators";
@@ -1515,7 +1516,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         await this.symbolTransformerService.transformSymbols(
           providerName,
           symbols, // 批量输入所有符号
-          "to_standard", // 明确转换方向
+          MappingDirection.TO_STANDARD, // 明确转换方向
         );
 
       // 构建结果，保持顺序一致性
@@ -1543,7 +1544,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       const result = await this.symbolTransformerService.transformSymbols(
         provider,
         symbols,
-        "to_standard",
+        MappingDirection.TO_STANDARD,
       );
       return symbols.map((symbol) => result.mappingDetails[symbol] || symbol);
     } catch (error) {

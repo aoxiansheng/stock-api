@@ -1,9 +1,9 @@
 import { RETRY_CONFIG } from "../constants/symbol-transformer.constants";
 import { 
-  CIRCUIT_BREAKER_CONSTANTS,
   CircuitState,
-  type CircuitBreakerConfig,
-} from "@common/constants/unified/circuit-breaker.constants";
+  CircuitBreakerConfig,
+  CIRCUIT_BREAKER_BUSINESS_SCENARIOS
+} from "@common/constants/domain/circuit-breaker-domain.constants";
 
 /**
  * 错误类型枚举
@@ -41,12 +41,12 @@ export interface RetryResult<T> {
 }
 
 /**
- * 断路器相关类型和配置（引用统一配置）
+ * 断路器相关类型和配置（引用Domain层配置）
  */
 export {
   CircuitState,
   type CircuitBreakerConfig as CircuitBreakerOptions,
-} from "@common/constants/unified/circuit-breaker.constants";
+} from "@common/constants/domain/circuit-breaker-domain.constants";
 
 /**
  * 重试和断路器工具类
@@ -141,7 +141,7 @@ export class RetryUtils {
   static async withCircuitBreaker<T>(
     key: string,
     fn: () => Promise<T>,
-    options: CircuitBreakerConfig = CIRCUIT_BREAKER_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_TRANSFORMER,
+    options: CircuitBreakerConfig = CIRCUIT_BREAKER_BUSINESS_SCENARIOS.SYMBOL_TRANSFORMER,
   ): Promise<T> {
     let breaker = this.circuitBreakers.get(key);
 

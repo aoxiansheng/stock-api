@@ -6,8 +6,10 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
-// import { MarketStatus } from "@common/constants/market-trading-hours.constants";
-// import { Market } from "@common/constants/market.constants"; // 已由cache-request.utils提供
+import { CONSTANTS } from "@common/constants";
+import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
+// import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+// Market enum is now provided by cache-request.utils via the new four-layer architecture
 
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
@@ -105,7 +107,7 @@ export class ReceiverService {
         requestId,
         symbols: request.symbols?.slice(
           0,
-          RECEIVER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT,
+          CONSTANTS.FOUNDATION.VALUES.QUANTITIES.THREE,
         ),
         receiverType: request.receiverType,
         symbolsCount: request.symbols?.length || 0,
@@ -201,7 +203,7 @@ export class ReceiverService {
         await this.symbolTransformerService.transformSymbols(
           provider,
           request.symbols,
-          "from_standard",
+          MappingDirection.FROM_STANDARD,
         );
 
       // 转换为兼容的格式
@@ -385,7 +387,7 @@ export class ReceiverService {
           requestId,
           errors: validationResult.errors,
           warnings: validationResult.warnings,
-          symbols: request.symbols?.slice(0, 5),
+          symbols: request.symbols?.slice(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE),
           operation: "validateRequest",
         }),
       );
@@ -523,7 +525,7 @@ export class ReceiverService {
           error: error.message,
           receiverType,
           market,
-          symbols: symbols.slice(0, 3),
+          symbols: symbols.slice(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.THREE),
           operation: "determineOptimalProvider",
         }),
       );
@@ -628,7 +630,7 @@ export class ReceiverService {
     const mappingResult = await this.symbolTransformerService.transformSymbols(
       provider,
       request.symbols,
-      "from_standard",
+      MappingDirection.FROM_STANDARD,
     );
 
     // 转换为兼容的格式
@@ -993,12 +995,12 @@ export class ReceiverService {
   private calculateStorageCacheTTL(symbols: string[]): number {
     // 根据市场开盘状态调整缓存时间
     // 开盘时间使用短缓存(1-5秒)，闭市使用长缓存(30-300秒)
-    const defaultTTL = 60; // 60秒默认缓存
+    const defaultTTL = CONSTANTS.SEMANTIC.CACHE.TTL.DATA_TYPE.FREQUENT_UPDATE_SEC; // 默认缓存
 
     // 使用 symbols 数量做简单 TTL 调整示例（避免未使用变量警告）
     const symbolCount = symbols?.length || 0;
-    if (symbolCount > 20) {
-      return Math.max(defaultTTL, 120); // 大批量请求给更长 TTL
+    if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
+      return Math.max(defaultTTL, CONSTANTS.SEMANTIC.CACHE.TTL.BASIC.SHORT_SEC / CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE * 2); // 大批量请求给更长 TTL
     }
 
     // 这里可以根据symbols判断市场，然后设置不同的TTL

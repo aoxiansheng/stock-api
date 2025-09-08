@@ -3,7 +3,9 @@
  * 🎯 统一定义股票代码映射相关的常量，确保系统一致性
  */
 
-import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
+import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 /**
@@ -96,9 +98,9 @@ export const SYMBOL_MAPPER_PERFORMANCE_CONFIG = Object.freeze({
 export const SYMBOL_MAPPER_CONFIG = Object.freeze({
   // 删除未使用的分页常量，完全依赖 PaginationService
   
-  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.SYMBOL_MAPPER.MAPPING_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
-  MAX_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_MAPPER.MAX_RETRY_ATTEMPTS, // 最大重试次数 - 使用统一配置
-  RETRY_DELAY_MS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.SYMBOL_MAPPER.RETRY_DELAY_MS, // 重试延迟 - 使用统一配置
+  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认超时时间 - 使用Foundation层配置
+  MAX_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.maxAttempts, // 最大重试次数 - 使用统一配置
+  RETRY_DELAY_MS: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.initialDelayMs, // 重试延迟 - 使用统一配置
   
   // 模块特有配置
   MAX_MAPPING_RULES_PER_SOURCE: 10000, // 每个数据源最大映射规则数
@@ -165,12 +167,12 @@ export const SYMBOL_MAPPER_OPERATIONS = Object.freeze({
 export const SYMBOL_MAPPER_DEFAULTS = Object.freeze({
   PAGE_NUMBER: 1,
   PAGE_SIZE: 10,
-  TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.SYMBOL_MAPPER.MAPPING_TIMEOUT_MS, // 使用统一配置
+  TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 使用Foundation层配置
   RETRY_ATTEMPTS: 3,
   LOG_LEVEL: "info",
   ENABLE_PERFORMANCE_MONITORING: true,
   ENABLE_CACHING: true,
-  BATCH_SIZE: 100,
+  BATCH_SIZE: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE,
   PROCESSING_TIME: 0,
   SUCCESS_RATE: 1.0,
   ERROR_RATE: 0.0,

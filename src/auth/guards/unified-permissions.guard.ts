@@ -16,7 +16,7 @@ import { Permission, UserRole } from "../enums/user-role.enum";
 import { AuthSubjectType } from "../interfaces/auth-subject.interface";
 import { PermissionService } from "../services/permission.service";
 import { AuthSubjectFactory } from "../subjects/auth-subject.factory";
-import { PERMISSION_MESSAGES } from "@common/constants/unified/permission-message.constants";
+import { PERMISSION_MESSAGES } from "@common/constants/semantic/message-semantics.constants";
 
 /**
  * 统一权限验证守卫

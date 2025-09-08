@@ -169,6 +169,33 @@ export class CreateFlexibleMappingRuleDto {
   @IsBoolean()
   @IsOptional()
   enabled?: boolean;
+
+  @ApiProperty({
+    description: "数据源模板ID",
+    example: "507f1f77bcf86cd799439011",
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  sourceTemplateId?: string;
+
+  @ApiProperty({
+    description: "是否为默认规则",
+    example: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isDefault?: boolean;
+
+  @ApiProperty({
+    description: "规则版本",
+    example: "1.0.0",
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  version?: string;
 }
 
 // 🆕 灵活映射规则响应DTO

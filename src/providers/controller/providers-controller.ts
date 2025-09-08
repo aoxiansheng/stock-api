@@ -17,7 +17,7 @@ import {
 import { ApiKeyAuth } from "../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../auth/decorators/permissions.decorator";
 import { Permission } from "../../auth/enums/user-role.enum";
-import { RATE_LIMIT_CONFIG } from "../../common/constants/rate-limit.constants";
+import { RATE_LIMIT_CONFIG } from "@common/constants/domain/rate-limit-domain.constants";
 
 import { CapabilityRegistryService } from "../services/capability-registry.service";
 
@@ -73,7 +73,7 @@ export class ProvidersController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Throttle({ default: RATE_LIMIT_CONFIG.ENDPOINTS.PROVIDER_CAPABILITIES })
+  @Throttle({ default: { ttl: 60000, limit: 100 } })
   @Get("capabilities")
   @ApiOperation({
     summary: "获取所有可用能力",
@@ -128,7 +128,7 @@ export class ProvidersController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Throttle({ default: RATE_LIMIT_CONFIG.ENDPOINTS.PROVIDER_CAPABILITIES })
+  @Throttle({ default: { ttl: 60000, limit: 100 } })
   @Get("stream-capabilities")
   @ApiOperation({
     summary: "获取所有可用流能力",

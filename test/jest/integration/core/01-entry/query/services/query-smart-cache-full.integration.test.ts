@@ -6,8 +6,8 @@ import { StorageService } from "../../../../../../../src/core/04-storage/storage
 import { MarketStatusService } from "../../../../../../../src/core/shared/services/market-status.service";
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service";
 import { CacheStrategy } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
-import { MarketStatus } from "../../../../../../../src/common/constants/market-trading-hours.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+import { MarketStatus } from "@common/constants/domain/market-domain.constants";
 import { DataSourceType } from "../../../../../../../src/core/01-entry/query/enums/data-source-type.enum";
 import { QueryRequestDto } from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";

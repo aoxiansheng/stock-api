@@ -13,7 +13,7 @@ import { RateLimitService } from "../../../../../src/auth/services/rate-limit.se
 import { TokenService } from "../../../../../src/auth/services/token.service";
 import { UserRole } from "../../../../../src/auth/enums/user-role.enum";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
-import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
+import { RateLimitStrategy } from "@common/constants/domain/rate-limit-domain.constants";
 
 describe("Auth Database Integration", () => {
   let app: INestApplication;

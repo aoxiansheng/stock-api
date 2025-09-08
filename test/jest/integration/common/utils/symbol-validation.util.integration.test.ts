@@ -1,5 +1,5 @@
 import { SymbolValidationUtils } from "../../../../../src/common/utils/symbol-validation.util";
-import { Market } from "../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("SymbolValidationUtils Integration", () => {
   describe("Market Recognition Integration", () => {

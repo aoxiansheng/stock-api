@@ -16,7 +16,7 @@ import {
   APIKEY_DEFAULTS,
 } from "../constants/apikey.constants";
 import { ApiKeyUtil } from "../utils/apikey.utils";
-import { ERROR_MESSAGES } from "../../common/constants/error-messages.constants";
+import { ERROR_MESSAGES } from "../../common/constants/semantic/error-messages.constants";
 import { CreateApiKeyDto } from "../dto/apikey.dto";
 import { ApiKey, ApiKeyDocument } from "../schemas/apikey.schema";
 import { UserRepository } from "../repositories/user.repository";

@@ -12,15 +12,17 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@app/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
-import {
-  AUTH_ERROR_MESSAGES,
-  HTTP_ERROR_MESSAGES,
-  DB_ERROR_MESSAGES,
-  VALIDATION_MESSAGES,
-  VALIDATION_TRANSLATIONS,
-  SYSTEM_ERROR_MESSAGES,
-  BUSINESS_ERROR_MESSAGES,
-} from "@common/constants/error-messages.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract error messages from semantic layer
+const ERROR_MESSAGES = CONSTANTS.SEMANTIC.ERROR_MESSAGES;
+const AUTH_ERROR_MESSAGES = CONSTANTS.SEMANTIC.AUTH_ERROR_MESSAGES;
+const HTTP_ERROR_MESSAGES = CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES;
+const DB_ERROR_MESSAGES = CONSTANTS.SEMANTIC.DB_ERROR_MESSAGES;
+const VALIDATION_MESSAGES = CONSTANTS.SEMANTIC.VALIDATION_MESSAGES;
+const VALIDATION_TRANSLATIONS = CONSTANTS.SEMANTIC.VALIDATION_TRANSLATIONS;
+const SYSTEM_ERROR_MESSAGES = CONSTANTS.SEMANTIC.SYSTEM_ERROR_MESSAGES;
+const BUSINESS_ERROR_MESSAGES = CONSTANTS.SEMANTIC.BUSINESS_ERROR_MESSAGES;
 
 import { HttpHeadersUtil } from "../../utils/http-headers.util";
 

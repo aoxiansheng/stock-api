@@ -7,7 +7,7 @@ import {
   IsOptional,
   IsObject,
 } from "class-validator";
-import { BasicHealthStatus, BASIC_HEALTH_STATUS_VALUES } from "../../constants/cache.constants";
+import { BasicHealthStatus, BASIC_HEALTH_STATUSES } from "../../constants/status/unified-health-status.constants";
 
 /**
  * 缓存健康检查结果DTO
@@ -15,9 +15,9 @@ import { BasicHealthStatus, BASIC_HEALTH_STATUS_VALUES } from "../../constants/c
 export class CacheHealthCheckResultDto {
   @ApiProperty({
     description: "健康状态",
-    enum: BASIC_HEALTH_STATUS_VALUES,
+    enum: BASIC_HEALTH_STATUSES,
   })
-  @IsEnum(BASIC_HEALTH_STATUS_VALUES)
+  @IsEnum(BASIC_HEALTH_STATUSES)
   status: BasicHealthStatus;
 
   @ApiProperty({ description: "延迟时间（毫秒）" })

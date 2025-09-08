@@ -3,7 +3,9 @@
  * 🎯 统一定义存储相关的常量，确保系统一致性
  */
 
-import { PERFORMANCE_CONSTANTS, RETRY_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
+import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 /**
@@ -54,9 +56,9 @@ export const STORAGE_CONFIG = Object.freeze({
     parseFloat(process.env.STORAGE_COMPRESS_RATIO) || 0.8, // 默认压缩比例（80%）
   MAX_KEY_LENGTH: 250, // 最大键长度
   MAX_DATA_SIZE_MB: 16, // 最大数据大小（16MB）
-  MAX_BATCH_SIZE: BATCH_CONSTANTS.BUSINESS_SCENARIOS.STORAGE.BULK_INSERT_SIZE, // 最大批量操作大小 - 使用统一配置
-  DEFAULT_RETRY_ATTEMPTS: RETRY_CONSTANTS.BUSINESS_SCENARIOS.STORAGE.MAX_RETRY_ATTEMPTS, // 默认重试次数 - 使用统一配置
-  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.STORAGE.OPERATION_TIMEOUT_MS, // 默认超时时间 - 使用统一配置
+  MAX_BATCH_SIZE: PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE, // 最大批量操作大小 - 使用统一配置
+  DEFAULT_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.STORAGE.maxAttempts, // 默认重试次数 - 使用统一配置
+  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认超时时间 - 使用统一配置
   STATS_SAMPLE_SIZE: 100, // 统计样本大小
 } as const);
 
@@ -64,11 +66,11 @@ export const STORAGE_CONFIG = Object.freeze({
  * 存储性能阈值常量
  */
 export const STORAGE_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_STORAGE_MS: 1000, // 慢存储操作阈值（1秒）
-  SLOW_RETRIEVAL_MS: 500, // 慢检索操作阈值（500毫秒）
+  SLOW_STORAGE_MS: CORE_VALUES.PERFORMANCE_MS.SLOW_STORAGE, // 慢存储操作阈值
+  SLOW_RETRIEVAL_MS: CORE_VALUES.PERFORMANCE_MS.SLOW, // 慢检索操作阈值
   HIGH_ERROR_RATE: 0.05, // 高错误率阈值（5%）
   LOW_CACHE_HIT_RATE: 0.7, // 低缓存命中率阈值（70%）
-  HIGH_MEMORY_USAGE_MB: 1024, // 高内存使用阈值（1GB）
+  HIGH_MEMORY_USAGE_MB: CORE_VALUES.MEMORY_MB.HIGH_USAGE, // 高内存使用阈值
   LARGE_DATA_SIZE_KB: 100, // 大数据阈值（100KB）
 } as const);
 
@@ -197,7 +199,7 @@ export const STORAGE_BATCH_CONFIG = Object.freeze({
  * 存储健康检查配置常量
  */
 export const STORAGE_HEALTH_CONFIG = Object.freeze({
-  CHECK_INTERVAL_MS: PERFORMANCE_CONSTANTS.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔 - 使用统一配置
+  CHECK_INTERVAL_MS: CORE_VALUES.MONITORING.HEALTH_CHECK_INTERVAL_MS, // 健康检查间隔 - 使用统一配置
   TIMEOUT_MS: 5000, // 健康检查超时（5秒）
   MAX_FAILURES: 3, // 最大失败次数
   RECOVERY_THRESHOLD: 5, // 恢复阈值

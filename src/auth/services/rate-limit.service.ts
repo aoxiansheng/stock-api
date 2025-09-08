@@ -12,7 +12,7 @@ import {
   RATE_LIMIT_TIME_MULTIPLIERS,
   RateLimitTemplateUtil,
   RateLimitStrategy,
-} from "../../common/constants/rate-limit.constants";
+} from "../../common/constants/domain/rate-limit-domain.constants";
 import { RateLimitLuaScriptsService } from "../../common/scripts/lua/rate-limit-lua-scripts.service";
 import { RateLimitResult } from "../interfaces/rate-limit.interface";
 import { ApiKey } from "../schemas/apikey.schema";

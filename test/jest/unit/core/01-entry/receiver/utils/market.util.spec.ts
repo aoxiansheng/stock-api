@@ -1,5 +1,5 @@
 import { MarketUtils } from "../../../../../../../src/core/01-entry/receiver/utils/market.util";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("MarketUtils", () => {
   describe("getMarketFromSymbol", () => {

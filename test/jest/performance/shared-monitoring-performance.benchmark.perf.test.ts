@@ -8,7 +8,7 @@ import { MarketStatusService } from "../../../src/core/shared/services/market-st
 import { DataChangeDetectorService } from "../../../src/core/shared/services/data-change-detector.service";
 import { BackgroundTaskService } from "../../../src/app/services/infrastructure/background-task.service";
 import { CollectorService } from "../../../src/monitoring/collector/collector.service";
-import { Market } from "../../../src/common/constants/market.constants";
+import { Market } from "../../../src/common/constants/domain/market-domain.constants";
 import { MarketStatus } from "../../../src/common/constants/market-trading-hours.constants";
 
 describe("Shared Components Monitoring Performance Impact", () => {

@@ -15,8 +15,8 @@ import { BackgroundTaskService } from "../../../../../../../src/app/services/inf
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { QueryRequestDto } from "@core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "@core/01-entry/query/dto/query-types.dto";
-import { Market } from "@common/constants/market.constants";
-import { MarketStatus } from "@common/constants/market-trading-hours.constants";
+import { Market } from "@common/constants/domian/";
+import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 import { StorageClassification } from "../../../../../../../src/core/shared/types/storage-classification.enum";
 import { StorageType } from "../../../../../../../src/core/04-storage/storage/enums/storage-type.enum";
 

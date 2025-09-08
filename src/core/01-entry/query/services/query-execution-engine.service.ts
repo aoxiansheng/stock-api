@@ -3,7 +3,8 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { Market } from "@common/constants/market.constants";
+import { CONSTANTS } from "@common/constants";
+import { Market } from "@common/constants/domain";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
 
@@ -371,7 +372,7 @@ export class QueryExecutionEngine implements OnModuleInit {
       // 记录批量处理效率监控指标
       const processingTime = Date.now() - startTime;
       const symbolsPerSecond =
-        totalSymbolsCount / Math.max(processingTime / 1000, 0.001);
+        totalSymbolsCount / Math.max(processingTime / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND, 0.001);
       this.recordBatchProcessingMetrics(
         totalSymbolsCount,
         processingTime,
@@ -383,7 +384,7 @@ export class QueryExecutionEngine implements OnModuleInit {
       const totalRequests = totalCacheHits + totalRealtimeHits;
       if (totalRequests > 0) {
         const cacheHitRatio = totalCacheHits / totalRequests;
-        this.recordCacheMetrics("batch_cache_hit", cacheHitRatio > 0.5, 0, {
+        this.recordCacheMetrics("batch_cache_hit", cacheHitRatio > (CONSTANTS.SEMANTIC.CACHE.PERFORMANCE.HIT_RATE_THRESHOLDS.POOR / CONSTANTS.FOUNDATION.VALUES.PERCENTAGES.MAX), 0, {
           hitRatio: cacheHitRatio,
           totalRequests,
           queryType: request.queryType,
@@ -753,13 +754,13 @@ export class QueryExecutionEngine implements OnModuleInit {
         await this.smartCacheOrchestrator.batchGetDataWithSmartCache(
           batchRequests,
         );
-      const orchestratorDuration = (Date.now() - orchestratorStartTime) / 1000;
+      const orchestratorDuration = (Date.now() - orchestratorStartTime) / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND;
 
       // 记录智能缓存编排器调用完成监控
       this.recordCacheMetrics(
         "orchestrator_call_complete",
         true,
-        orchestratorDuration * 1000,
+        orchestratorDuration * CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND,
         {
           market,
           symbolsCount: symbols.length,
@@ -867,7 +868,7 @@ export class QueryExecutionEngine implements OnModuleInit {
         realtime: true,
         fields: queryRequest.options?.includeFields,
         market: queryRequest.market,
-        timeout: queryRequest.maxAge ? queryRequest.maxAge * 1000 : undefined,
+        timeout: queryRequest.maxAge ? queryRequest.maxAge * CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND : undefined,
         storageMode: "none", // 关键：禁止Receiver存储，由Query管理缓存
       },
     };
@@ -942,7 +943,7 @@ export class QueryExecutionEngine implements OnModuleInit {
         data: standardizedData,
         storageType: StorageType.BOTH,
         storageClassification: (this.fieldMappingService.filterToClassification(
-          request.queryTypeFilter,
+          request.queryTypeFilter as any,
         ) ?? StorageClassification.GENERAL) as StorageClassification,
         provider:
           receiverResponse.metadata?.provider || request.provider || "auto",
@@ -974,11 +975,11 @@ export class QueryExecutionEngine implements OnModuleInit {
         await this.marketStatusService.getMarketStatus(market as Market);
 
       if (status === "TRADING") {
-        return 60; // 交易时间1分钟缓存
+        return CONSTANTS.SEMANTIC.CACHE.TTL.DATA_TYPE.FREQUENT_UPDATE_SEC; // 交易时间1分钟缓存
       } else if (isHoliday) {
-        return 3600; // 假日1小时缓存
+        return CONSTANTS.SEMANTIC.CACHE.TTL.DATA_TYPE.SLOW_UPDATE_SEC; // 假日1小时缓存
       } else {
-        return 1800; // 闭市30分钟缓存
+        return CONSTANTS.SEMANTIC.CACHE.TTL.BASIC.MEDIUM_SEC; // 闭市30分钟缓存
       }
     } catch (error) {
       this.logger.warn(`TTL计算失败，使用默认值`, {
@@ -986,7 +987,7 @@ export class QueryExecutionEngine implements OnModuleInit {
         symbols,
         error: error.message,
       });
-      return 300; // 默认5分钟缓存
+      return CONSTANTS.SEMANTIC.CACHE.TTL.BASIC.SHORT_SEC; // 默认5分钟缓存
     }
   }
 

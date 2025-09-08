@@ -14,10 +14,11 @@ import {
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
 import { createLogger } from "@app/config/logger.config";
-import {
-  ALERT_RATE_LIMIT,
-  ALERT_RATE_LIMIT_MESSAGES,
-} from "@common/constants/alert-rate-limit.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract alert constants for backward compatibility
+const ALERT_RATE_LIMIT = CONSTANTS.DOMAIN.ALERT.RATE_LIMIT;
+const ALERT_RATE_LIMIT_MESSAGES = CONSTANTS.DOMAIN.ALERT.MESSAGES.RATE_LIMIT;
 
 import {
   ApiSuccessResponse,

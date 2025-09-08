@@ -10,8 +10,8 @@ import { StorageService } from "../../../../../../../src/core/04-storage/storage
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service";
 import { SmartCacheOrchestrator } from "../../../../../../../src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service";
 import { CacheStrategy } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
-import { MarketStatus } from "../../../../../../../src/common/constants/market-trading-hours.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 import { StorageClassification } from "../../../../../../../src/core/shared/types/storage-classification.enum";
 import { StorageType } from "../../../../../../../src/core/04-storage/storage/enums/storage-type.enum";
 import { DataRequestDto } from "../../../../../../../src/core/01-entry/receiver/dto/data-request.dto";

@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsOptional, IsNumber, Min, Max } from "class-validator";
-import { PERFORMANCE_CONSTANTS } from "../constants/unified/performance.constants";
+import { CORE_VALUES } from "../constants/foundation/core-values.constants";
 
 /**
  * 基础查询DTO
@@ -24,16 +24,16 @@ export class BaseQueryDto {
 
   @ApiPropertyOptional({
     description: "每页条数，默认为10",
-    example: PERFORMANCE_CONSTANTS.BATCH_LIMITS.DEFAULT_PAGE_SIZE,
+    example: CORE_VALUES.BATCH_LIMITS.DEFAULT_PAGE_SIZE,
     minimum: 1,
-    maximum: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_PAGE_SIZE,
-    default: PERFORMANCE_CONSTANTS.BATCH_LIMITS.DEFAULT_PAGE_SIZE,
+    maximum: CORE_VALUES.BATCH_LIMITS.MAX_PAGE_SIZE,
+    default: CORE_VALUES.BATCH_LIMITS.DEFAULT_PAGE_SIZE,
     type: Number
   })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({}, { message: "每页条数必须为数字" })
   @Min(1, { message: "每页条数必须大于0" })
-  @Max(PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_PAGE_SIZE, { message: "每页条数不能超过100" })
-  limit?: number = PERFORMANCE_CONSTANTS.BATCH_LIMITS.DEFAULT_PAGE_SIZE;
+  @Max(CORE_VALUES.BATCH_LIMITS.MAX_PAGE_SIZE, { message: "每页条数不能超过100" })
+  limit?: number = CORE_VALUES.BATCH_LIMITS.DEFAULT_PAGE_SIZE;
 }

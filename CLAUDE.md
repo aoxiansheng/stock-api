@@ -515,3 +515,4 @@ L3: batch:{symbols-hash}
 - WebSocket server overrides (check initialization order)  
 - Provider registration loops (consolidation needed)
 - Auto-init 409 conflicts (normal, but monitor frequency)
+- 测试某个ts文件是否有编译错误,使用的命令是 DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/application/index.ts

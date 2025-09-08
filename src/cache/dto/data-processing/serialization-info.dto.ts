@@ -6,13 +6,13 @@ import {
   IsOptional,
   IsString,
 } from "class-validator";
-import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/cache.constants";
-import { SerializationSizeInfo } from "../shared/size-fields.interface";
+import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/config/data-formats.constants";
+import { SizeFields } from "../shared/size-fields.interface";
 
 /**
  * 缓存序列化信息DTO
  */
-export class CacheSerializationInfoDto implements SerializationSizeInfo {
+export class CacheSerializationInfoDto implements SizeFields {
   @ApiProperty({ description: "序列化类型", enum: SERIALIZER_TYPE_VALUES })
   @IsEnum(SERIALIZER_TYPE_VALUES)
   type: SerializerType;

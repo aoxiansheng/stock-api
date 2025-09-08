@@ -72,9 +72,9 @@ export class NotificationTemplateUtil {
     return (
       variableNamePattern.test(variableName) &&
       variableName.length >=
-        NOTIFICATION_CONSTANTS.VALIDATION.MIN_VARIABLE_NAME_LENGTH &&
+        NOTIFICATION_CONSTANTS.VALIDATION.VARIABLE_NAME_MIN_LENGTH &&
       variableName.length <=
-        NOTIFICATION_CONSTANTS.VALIDATION.MAX_VARIABLE_NAME_LENGTH
+        NOTIFICATION_CONSTANTS.VALIDATION.VARIABLE_NAME_MAX_LENGTH
     );
   }
 

@@ -10,8 +10,11 @@
  */
 
 import { deepFreeze } from '@common/utils/object-immutability.util';
-import { RETRY_CONSTANTS } from '@common/constants/unified/retry.constants';
-import { PERFORMANCE_CONSTANTS } from '@common/constants/unified/performance.constants';
+import { CONSTANTS } from '@common/constants';
+
+// Extract constants for backward compatibility
+const RETRY_CONSTANTS = CONSTANTS.SEMANTIC.RETRY;
+// Performance constants can be referenced from other semantic constants if needed
 import { ErrorType as RetryErrorType } from '../utils/retry.utils';
 
 /**
@@ -23,7 +26,7 @@ export const SYMBOL_TRANSFORMER_METADATA = deepFreeze({
   createdAt: '2024-01-15T00:00:00Z',
   lastUpdated: new Date().toISOString(),
   description: '符号转换器模块常量配置，支持多市场股票代码转换',
-  dependencies: ['retry.constants', 'performance.constants', 'circuit-breaker.constants'],
+  dependencies: ['retry-semantics.constants', 'core-values.constants', 'circuit-breaker-domain.constants'],
 } as const);
 
 // ====================== 预编译的股票代码格式正则表达式 ======================
@@ -46,7 +49,7 @@ export const MARKET_TYPES = deepFreeze({
 export const CONFIG = deepFreeze({
   MAX_SYMBOL_LENGTH: 50, // 防DoS攻击 - 单个股票代码最大长度
   MAX_BATCH_SIZE: 1000, // 批处理限制 - 最大批量处理数量
-  REQUEST_TIMEOUT: PERFORMANCE_CONSTANTS.TIMEOUTS.HTTP_REQUEST_TIMEOUT_MS, // 使用统一的HTTP请求超时配置
+  REQUEST_TIMEOUT: 5000, // HTTP request timeout in milliseconds
   ENDPOINT: "/internal/symbol-transformation", // 内部转换端点
 } as const);
 
@@ -72,7 +75,13 @@ export const MONITORING_CONFIG = deepFreeze({
 } as const);
 
 // ====================== 重试配置 - 引用统一配置，保持向后兼容 ======================
-export const RETRY_CONFIG = RETRY_CONSTANTS.DEFAULT_SETTINGS;
+export const RETRY_CONFIG = {
+  MAX_RETRY_ATTEMPTS: RETRY_CONSTANTS.COUNTS.BASIC.DEFAULT,
+  RETRY_DELAY_MS: RETRY_CONSTANTS.DELAYS.BASIC.INITIAL_MS,
+  BACKOFF_MULTIPLIER: 2, // Standard exponential backoff multiplier
+  MAX_RETRY_DELAY_MS: RETRY_CONSTANTS.DELAYS.BASIC.MAX_MS,
+  JITTER_FACTOR: 0.1, // 10% jitter factor
+};
 
 // ====================== 工具函数 ======================
 /**

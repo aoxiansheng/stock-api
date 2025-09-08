@@ -634,13 +634,13 @@ export class AlertHistoryService {
    * 获取最近的告警记录
    */
   async getRecentAlerts(
-    limit: number = ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT,
+    limit: number = ALERT_HISTORY_CONSTANTS.BUSINESS_LIMITS.DEFAULT_RECENT_ALERTS_LIMIT,
   ): Promise<IAlert[]> {
     const operation = ALERT_HISTORY_OPERATIONS.GET_RECENT_ALERTS;
 
     // 验证限制参数
     if (limit <= 0 || limit > ALERT_DEFAULTS.PAGINATION.maxLimit) {
-      limit = ALERT_HISTORY_CONSTANTS.TIME_CONFIG.DEFAULT_RECENT_ALERTS_LIMIT;
+      limit = ALERT_HISTORY_CONSTANTS.BUSINESS_LIMITS.DEFAULT_RECENT_ALERTS_LIMIT;
     }
 
     this.logger.debug(

@@ -1,5 +1,5 @@
 import { securityConfig } from "../../../../../src/auth/config/security.config";
-import { RATE_LIMIT_CONFIG } from "../../../../../src/common/constants/rate-limit.constants";
+import { RATE_LIMIT_CONFIG } from "@common/constants/domain/rate-limit-domain.constants";
 
 describe("SecurityConfig", () => {
   describe("password policy", () => {

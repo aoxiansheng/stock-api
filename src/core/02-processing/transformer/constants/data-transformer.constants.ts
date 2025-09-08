@@ -4,7 +4,9 @@
  */
 
 // 导入统一常量系统，避免重复定义
-import { PERFORMANCE_CONSTANTS } from "@common/constants/unified";
+
+import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 // 复用 data-mapper 的转换类型常量，避免重复定义
 import { 
@@ -51,10 +53,10 @@ export const TRANSFORM_WARNING_MESSAGES = Object.freeze({
  * 转换配置常量
  */
 export const DATATRANSFORM_CONFIG = Object.freeze({
-  MAX_BATCH_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE, // 批量转换最大数量
+  MAX_BATCH_SIZE: PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE, // 批量转换最大数量
   MAX_FIELD_MAPPINGS: 100, // 单个规则最大字段映射数
   MAX_SAMPLE_SIZE: 10, // 预览样本最大数量
-  DEFAULT_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DEFAULT_TIMEOUT_MS, // 默认转换超时时间
+  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认转换超时时间
   MAX_NESTED_DEPTH: 10, // 最大嵌套深度
   MAX_STRING_LENGTH: 10000, // 最大字符串长度
   MAX_ARRAY_LENGTH: 10000, // 最大数组长度
@@ -65,11 +67,11 @@ export const DATATRANSFORM_CONFIG = Object.freeze({
  */
 export const DATATRANSFORM_PERFORMANCE_THRESHOLDS = Object.freeze({
   SLOW_TRANSFORMATION_MS:
-    PERFORMANCE_CONSTANTS.RESPONSE_TIME_THRESHOLDS.SLOW_TRANSFORMATION_MS, // 慢转换阈值
-  LARGE_DATASET_SIZE: PERFORMANCE_CONSTANTS.BATCH_LIMITS.MAX_BATCH_SIZE, // 大数据集阈值
+    CORE_VALUES.PERFORMANCE_MS.SLOW_TRANSFORMATION, // 慢转换阈值
+  LARGE_DATASET_SIZE: PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE, // 大数据集阈值
   HIGH_MEMORY_USAGE_MB:
-    PERFORMANCE_CONSTANTS.MEMORY_THRESHOLDS.HIGH_MEMORY_USAGE_MB, // 高内存使用阈值
-  MAX_PROCESSING_TIME_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.LONG_TIMEOUT_MS, // 最大处理时间
+    CORE_VALUES.MEMORY_MB.HIGH_USAGE, // 高内存使用阈值
+  MAX_PROCESSING_TIME_MS: CORE_VALUES.TIMEOUT_MS.LONG, // 最大处理时间
 } as const);
 
 /**
@@ -188,9 +190,9 @@ export const TRANSFORM_EVENTS = Object.freeze({
  * 默认转换配置常量
  */
 export const TRANSFORM_DEFAULTS = Object.freeze({
-  BATCH_SIZE: 100, // 默认批量大小
+  BATCH_SIZE: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE, // 默认批量大小
   TIMEOUT_MS: 10000, // 默认超时时间（10秒）
-  RETRY_ATTEMPTS: PERFORMANCE_CONSTANTS.RETRY_SETTINGS.MAX_RETRY_ATTEMPTS, // 默认重试次数（使用统一配置）
+  RETRY_ATTEMPTS: CORE_VALUES.RETRY.MAX_ATTEMPTS, // 默认重试次数（使用统一配置）
   VALIDATE_OUTPUT: true, // 默认启用输出验证
   INCLUDE_METADATA: false, // 默认不包含元数据
   CONTINUE_ON_ERROR: false, // 默认遇错停止

@@ -22,8 +22,8 @@ import { CacheService } from "../../../../../../../src/cache/services/cache.serv
 import { QueryRequestDto } from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 import { CacheStrategy } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
-import { MarketStatus } from "../../../../../../../src/common/constants/market-trading-hours.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 // 移除未使用的类型导入以通过lint
 import { DataChangeDetectorService } from "../../../../../../../src/core/shared/services/data-change-detector.service";
 import { FieldMappingService } from "../../../../../../../src/core/shared/services/field-mapping.service";

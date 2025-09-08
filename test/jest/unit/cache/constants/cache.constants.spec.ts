@@ -26,9 +26,12 @@ describe("Cache Constants", () => {
     });
 
     it("should be readonly object", () => {
-      expect(() => {
-        (CACHE_KEYS as any).NEWKEY = "new:key:";
-      }).toThrow();
+      const attemptModification = () => {
+        const keys: any = CACHE_KEYS;
+        keys.NEWKEY = "new:key:";
+      };
+      
+      expect(attemptModification).toThrow();
     });
 
     it("should have all required cache key types", () => {
@@ -72,9 +75,12 @@ describe("Cache Constants", () => {
     });
 
     it("should be readonly object", () => {
-      expect(() => {
-        (CACHE_TTL as any).NEW_TTL = 123;
-      }).toThrow();
+      const attemptModification = () => {
+        const ttl: any = CACHE_TTL;
+        ttl.NEW_TTL = 123;
+      };
+      
+      expect(attemptModification).toThrow();
     });
 
     it("should have all numeric values", () => {

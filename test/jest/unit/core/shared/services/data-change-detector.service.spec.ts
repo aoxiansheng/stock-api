@@ -4,11 +4,11 @@ import {
   ChangeDetectionResult,
 } from "@core/shared/services/data-change-detector.service";
 import { CollectorService } from "../../../../../../src/monitoring/collector/collector.service";
-import { Market } from "@common/constants/market.constants";
+import { Market } from "@common/constants/domian/";
 import {
   MarketStatus,
   CHANGE_DETECTION_THRESHOLDS,
-} from "@common/constants/market-trading-hours.constants";
+} from "../../../../../../src/common/constants/domain/market-domain.constants";
 import { TestUtils } from "../../../../shared/test-utils";
 
 describe("DataChangeDetectorService", () => {

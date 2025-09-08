@@ -22,8 +22,8 @@ import { DataChangeDetectorService } from "../../../../../../../src/core/shared/
 import { MarketStatusService } from "../../../../../../../src/core/shared/services/market-status.service";
 import { BackgroundTaskService } from "../../../../../../../src/app/services/infrastructure/background-task.service";
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
-import { MarketStatus } from "../../../../../../../src/common/constants/market-trading-hours.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 // 简化的测试用请求构建器
 function buildTestCacheRequest<T>(

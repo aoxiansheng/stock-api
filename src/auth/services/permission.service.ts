@@ -8,8 +8,9 @@ import { securityConfig } from "@auth/config/security.config";
 import {
   PERMISSION_OPERATIONS,
   PERMISSION_EXTENDED_MESSAGES,
+  PERMISSION_MESSAGES,
 } from "../constants/permission.constants";
-import { PERMISSION_MESSAGES } from "@common/constants/unified/permission-message.constants";
+import { PERMISSION_MESSAGES as SEMANTIC_PERMISSION_MESSAGES } from "@common/constants/semantic/message-semantics.constants";
 
 // 从工具文件导入PermissionTemplateUtil
 import { PermissionTemplateUtil } from "../utils/permission.utils";

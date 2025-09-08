@@ -3,7 +3,8 @@
  * 包含验证规则、性能阈值等配置
  */
 
-import { PERFORMANCE_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unified";
+import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 
 /**
  * 数据接收验证规则常量
@@ -11,7 +12,7 @@ import { PERFORMANCE_CONSTANTS, BATCH_CONSTANTS } from "@common/constants/unifie
 export const RECEIVER_VALIDATION_RULES = Object.freeze({
   MIN_SYMBOL_LENGTH: 1, // 最小股票代码长度
   MAX_SYMBOL_LENGTH: 20, // 最大股票代码长度
-  MAX_SYMBOLS_COUNT: BATCH_CONSTANTS.BUSINESS_SCENARIOS.RECEIVER.DEFAULT_BATCH_SIZE, // 最大股票代码数量 - 使用统一配置
+  MAX_SYMBOLS_COUNT: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE, // 最大股票代码数量 - 使用统一配置
   MIN_DATA_TYPE_LENGTH: 1, // 最小数据类型长度
   MAX_DATA_TYPE_LENGTH: 50, // 最大数据类型长度
   SYMBOL_PATTERN: /^[A-Za-z0-9._-]+$/, // 股票代码格式模式
@@ -23,12 +24,12 @@ export const RECEIVER_VALIDATION_RULES = Object.freeze({
  */
 export const RECEIVER_PERFORMANCE_THRESHOLDS = Object.freeze({
   SLOW_REQUEST_MS: 1000, // 慢请求阈值（毫秒）
-  MAX_SYMBOLS_PER_REQUEST: BATCH_CONSTANTS.BUSINESS_SCENARIOS.RECEIVER.DEFAULT_BATCH_SIZE, // 单次请求最大股票数量 - 使用统一配置
+  MAX_SYMBOLS_PER_REQUEST: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE, // 单次请求最大股票数量 - 使用统一配置
   LOG_SYMBOLS_LIMIT: 10, // 日志中显示的股票数量限制
   LARGE_SYMBOL_COUNT_WARNING: 50, // 大量股票代码警告阈值
-  PROVIDER_SELECTION_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.QUICK_TIMEOUT_MS, // 提供商选择超时 - 使用统一配置
-  SYMBOL_TRANSFORMATION_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.DATABASE_TIMEOUT_MS, // 股票代码转换超时 - 使用统一配置
-  DATA_FETCHING_TIMEOUT_MS: PERFORMANCE_CONSTANTS.TIMEOUTS.RECEIVER.REQUEST_TIMEOUT_MS, // 数据获取超时 - 使用统一配置
+  PROVIDER_SELECTION_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.QUICK, // 提供商选择超时 - 使用统一配置
+  SYMBOL_TRANSFORMATION_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 股票代码转换超时 - 使用统一配置
+  DATA_FETCHING_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 数据获取超时 - 使用统一配置
 } as const);
 
 /**

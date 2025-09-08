@@ -3,13 +3,13 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
-import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
+import { RateLimitStrategy } from "@common/constants/domain/rate-limit-domain.constants";
 import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
   RATE_LIMIT_LUA_SCRIPTS,
   RateLimitTemplateUtil,
-} from "../../../../../src/common/constants/rate-limit.constants";
+} from "@common/constants/domain/rate-limit-domain.constants";
 
 describe("RateLimitService Optimization Features", () => {
   let service: RateLimitService;

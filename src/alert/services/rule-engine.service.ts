@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
-import { createLogger, sanitizeLogData } from "@app/config/logger.config";
+import { createLogger, sanitizeLogData } from "../../app/config/logger.config";
 
 import { CacheService } from "../../cache/services/cache.service";
 import {
@@ -11,6 +11,7 @@ import {
   ALERT_OPERATIONS,
   ALERT_MESSAGES,
   ALERT_METRICS,
+  ALERT_DEFAULTS,
   AlertRuleUtil,
 } from "../constants";
 import {

@@ -31,4 +31,7 @@ export class CacheMetricsUpdateDto implements KeyPattern {
   @IsOptional()
   @IsNumber()
   executionTimeMs?: number;
+
+  // 实现 KeyPattern 接口所需的属性
+  lastAccessTime: number = Date.now();
 }

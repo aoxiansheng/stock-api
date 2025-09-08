@@ -12,7 +12,7 @@ import {
   ApiType,
 } from "../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-request.dto";
 import { ICapability } from "../../../../../../../src/providers/interfaces/capability.interface";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("DataFetcherService Integration", () => {
   let service: DataFetcherService;

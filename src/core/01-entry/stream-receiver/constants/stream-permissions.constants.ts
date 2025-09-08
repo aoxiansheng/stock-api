@@ -16,7 +16,7 @@ export const STREAM_PERMISSIONS = {
     Permission.STREAM_READ,
     Permission.STREAM_SUBSCRIBE,
     Permission.STREAM_WRITE,
-    Permission.STREAM_ADMIN,
+    Permission.SYSTEM_ADMIN,
   ],
   
   // 只读流权限
@@ -28,7 +28,7 @@ export const STREAM_PERMISSIONS = {
 // 权限检查辅助函数
 export const hasStreamPermissions = (
   userPermissions: Permission[], 
-  requiredPermissions: Permission[] = STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS
+  requiredPermissions: readonly Permission[] = STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS
 ): boolean => {
   return requiredPermissions.every(permission => 
     userPermissions.includes(permission)

@@ -1,4 +1,7 @@
-import { Market } from "@common/constants/market.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract Market type for backward compatibility
+type Market = keyof typeof CONSTANTS.DOMAIN.MARKET.ENUMS.Market;
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 
 /**

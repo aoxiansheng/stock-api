@@ -2,9 +2,10 @@
  * 权限服务常量定义
  * 🎯 符合开发规范指南 - 统一常量管理
  */
-import { deepFreeze } from "@common/utils/object-immutability.util";
-import { CommonStatus } from "../enums/common-status.enum";
-import { PERMISSION_MESSAGES } from "@common/constants/unified/permission-message.constants";
+import { deepFreeze } from "../../common/utils/object-immutability.util";
+
+import { CONSTANTS } from "../../common/constants";
+import { PERMISSION_MESSAGES as SEMANTIC_PERMISSION_MESSAGES } from "@common/constants/semantic/message-semantics.constants";
 
 // 📝 操作名称常量
 export const PERMISSION_OPERATIONS = deepFreeze({
@@ -23,7 +24,7 @@ export const PERMISSION_OPERATIONS = deepFreeze({
 });
 
 // 📢 消息常量 - 引用统一权限消息常量
-// 注意：PERMISSION_MESSAGES 现在从 @common/constants/unified/permission.constants 导入
+// 注意：PERMISSION_MESSAGES 现在从 @common/constants/semantic/message-semantics.constants 导入
 // 这里保留权限系统特有的扩展消息
 export const PERMISSION_EXTENDED_MESSAGES = deepFreeze({
   // 成功消息
@@ -37,8 +38,8 @@ export const PERMISSION_EXTENDED_MESSAGES = deepFreeze({
 
   // 错误消息 - 使用统一消息常量
   CHECK_FAILED: "权限检查失败",
-  INSUFFICIENT_PERMISSIONS: PERMISSION_MESSAGES.INSUFFICIENT,
-  API_KEY_INSUFFICIENT_PERMISSIONS: PERMISSION_MESSAGES.API_KEY_INSUFFICIENT,
+  INSUFFICIENT_PERMISSIONS: SEMANTIC_PERMISSION_MESSAGES.INSUFFICIENT,
+  API_KEY_INSUFFICIENT_PERMISSIONS: SEMANTIC_PERMISSION_MESSAGES.API_KEY_INSUFFICIENT,
   CACHE_INVALIDATION_FAILED: "权限缓存失效失败",
   CONTEXT_CREATION_FAILED: "权限上下文创建失败", 
   PERMISSION_VALIDATION_FAILED: "权限验证失败",
@@ -64,7 +65,7 @@ export const PERMISSION_EXTENDED_MESSAGES = deepFreeze({
 });
 
 // 为了向后兼容，导出统一的 PERMISSION_MESSAGES，合并扩展消息
-export { PERMISSION_MESSAGES };
+export { SEMANTIC_PERMISSION_MESSAGES as PERMISSION_MESSAGES };
 
 // 🎯 详情模板常量
 export const PERMISSION_DETAIL_TEMPLATES = deepFreeze({
@@ -112,8 +113,6 @@ export const PERMISSION_SUBJECT_TYPES = deepFreeze({
   GUEST: "guest",
   ADMIN: "admin",
 });
-
-
 
 // 🔍 权限验证规则常量
 export const PERMISSION_VALIDATION_RULES = deepFreeze({

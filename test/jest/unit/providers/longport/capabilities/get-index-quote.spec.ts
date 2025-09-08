@@ -1,5 +1,5 @@
 import { getIndexQuote } from "../../../../../../src/providers/longport/capabilities/get-index-quote";
-import { MARKETS } from "../../../../../../src/common/constants/market.constants";
+import { MARKETS } from "../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("getIndexQuote", () => {
   const mockQuoteContext = {

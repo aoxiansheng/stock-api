@@ -17,7 +17,7 @@ import { SmartCacheOrchestrator } from "../../../../../../../src/core/05-caching
 import { StorageService } from "../../../../../../../src/core/04-storage/storage/services/storage.service";
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service";
 import { DataRequestDto } from "../../../../../../../src/core/01-entry/receiver/dto/data-request.dto";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 // 全局测试应用实例（由集成测试环境提供）
 declare const global: {

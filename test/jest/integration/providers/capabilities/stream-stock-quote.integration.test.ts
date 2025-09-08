@@ -2,7 +2,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ModuleMetadata } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/domian/";
 
 // 导入需要测试的服务和接口
 import { AppModule } from "../../../../../src/app.module";

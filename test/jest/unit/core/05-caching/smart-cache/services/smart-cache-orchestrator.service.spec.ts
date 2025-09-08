@@ -11,8 +11,8 @@ import {
   CacheOrchestratorRequest,
 } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
 import { DEFAULT_SMART_CACHE_CONFIG } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-config.interface";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
-import { MarketStatus } from "../../../../../../../src/common/constants/market-trading-hours.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 // Mock token for config injection
 const SMART_CACHE_ORCHESTRATOR_CONFIG = "SMART_CACHE_ORCHESTRATOR_CONFIG";

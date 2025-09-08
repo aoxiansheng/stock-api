@@ -2,7 +2,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ModuleMetadata } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/domian/";
 
 // 导入测试目标服务
 import { EnhancedCapabilityRegistryService } from "../../../../../src/providers/services/enhanced-capability-registry.service";

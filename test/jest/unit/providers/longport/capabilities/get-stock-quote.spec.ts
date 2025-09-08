@@ -1,5 +1,5 @@
 import { getStockQuote } from "../../../../../../src/providers/longport/capabilities/get-stock-quote";
-import { MARKETS } from "../../../../../../src/common/constants/market.constants";
+import { MARKETS } from "../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("getStockQuote", () => {
   const mockQuoteContext = {

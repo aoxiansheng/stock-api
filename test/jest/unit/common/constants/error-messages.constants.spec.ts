@@ -9,7 +9,7 @@ import {
   BUSINESS_ERROR_MESSAGES,
   SYSTEM_ERROR_MESSAGES,
   HTTP_ERROR_MESSAGES,
-} from "../../../../../src/common/constants/error-messages.constants";
+} from "../../../../../src/common/constants/semantic/error-messages.constants";
 
 describe("Error Messages Constants - Branch Coverage Enhancement", () => {
   describe("Error message structure validation", () => {

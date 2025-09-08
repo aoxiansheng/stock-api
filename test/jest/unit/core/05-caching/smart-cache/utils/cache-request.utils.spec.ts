@@ -6,7 +6,7 @@ import {
   inferMarketFromSymbol,
 } from "../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils";
 import { CacheStrategy } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("Cache Request Utils", () => {
   describe("createStableSymbolsHash", () => {

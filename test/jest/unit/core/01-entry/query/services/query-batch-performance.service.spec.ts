@@ -15,7 +15,7 @@ import { BackgroundTaskService } from "../../../../../../../src/app/services/inf
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { QueryRequestDto } from "@core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "@core/01-entry/query/dto/query-types.dto";
-import { Market } from "@common/constants/market.constants";
+import { Market } from "@common/constants/domian/";
 
 describe("QueryService - 批量处理性能基准测试", () => {
   let service: QueryService;

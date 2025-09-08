@@ -1,7 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNumber } from "class-validator";
 import { CacheStatistics } from "./shared/cache-statistics.interface";
-import { AverageTTL } from "./shared/ttl-fields.interface";
 
 /**
  * Redis缓存运行时统计信息DTO
@@ -11,7 +10,7 @@ import { AverageTTL } from "./shared/ttl-fields.interface";
  * - RedisCacheRuntimeStatsDto: Redis内存缓存的运行时统计
  * - StorageRedisCacheRuntimeStatsDto: 存储层整体缓存统计（包括持久化缓存）
  */
-export class RedisCacheRuntimeStatsDto implements CacheStatistics, AverageTTL {
+export class RedisCacheRuntimeStatsDto implements CacheStatistics {
   @ApiProperty({ description: "缓存命中次数" })
   @IsNumber()
   hits: number;
@@ -32,10 +31,6 @@ export class RedisCacheRuntimeStatsDto implements CacheStatistics, AverageTTL {
   @IsNumber()
   keyCount: number;
 
-  @ApiProperty({ description: "平均TTL时间（秒）" })
-  @IsNumber()
-  avgTtl: number;
-
   /**
    * 总请求数 (计算属性，满足CacheStatistics接口)
    */
@@ -52,14 +47,12 @@ export class RedisCacheRuntimeStatsDto implements CacheStatistics, AverageTTL {
     hitRate: number = 0,
     memoryUsage: number = 0,
     keyCount: number = 0,
-    avgTtl: number = 0,
   ) {
     this.hits = hits;
     this.misses = misses;
     this.hitRate = hitRate;
     this.memoryUsage = memoryUsage;
     this.keyCount = keyCount;
-    this.avgTtl = avgTtl;
   }
 
   /**

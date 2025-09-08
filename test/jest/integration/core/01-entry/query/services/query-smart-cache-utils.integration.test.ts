@@ -17,7 +17,7 @@ import {
   inferMarketFromSymbol,
   validateCacheKey,
 } from "../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils";
-import { Market } from "../../../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("Query Smart Cache Utils Integration Tests", () => {
   describe("缓存键构建工具验证", () => {

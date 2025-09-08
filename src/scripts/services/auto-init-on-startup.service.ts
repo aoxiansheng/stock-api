@@ -4,7 +4,7 @@ import { ModuleRef } from "@nestjs/core";
 import { getAutoInitConfig } from "@config/auto-init.config";
 import { createLogger } from "@app/config/logger.config";
 import { PersistedTemplateService } from "../../core/00-prepare/data-mapper/services/persisted-template.service";
-import { ConstantsValidator } from "../../common/utils/constants-validator.util";
+import { AlertConstantsValidator } from "../../alert/utils/constants-validator.util";
 
 /**
  * 简化的启动时自动初始化服务
@@ -139,19 +139,17 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
     try {
       this.logger.log("🔍 开始验证常量定义...");
       
-      const validationResult = ConstantsValidator.validateConstants();
+      const validationResult = AlertConstantsValidator.validateAll();
       
       if (validationResult.isValid) {
         this.logger.log("✅ 常量验证通过", {
-          totalConstants: validationResult.statistics.totalConstants,
-          duplicates: validationResult.statistics.duplicates,
-          duplicationRate: `${validationResult.statistics.duplicationRate}%`
+          errors: validationResult.errors.length,
+          warnings: validationResult.warnings.length
         });
       } else {
         this.logger.warn("⚠️ 常量验证发现问题", {
           errors: validationResult.errors.length,
-          warnings: validationResult.warnings.length,
-          duplicationRate: `${validationResult.statistics.duplicationRate}%`
+          warnings: validationResult.warnings.length
         });
         
         // 记录错误和警告
@@ -161,11 +159,6 @@ export class AutoInitOnStartupService implements OnApplicationBootstrap {
         
         validationResult.warnings.forEach(warning => {
           this.logger.warn(`⚠️ 常量警告: ${warning}`);
-        });
-        
-        // 记录重复项详情（只显示前5个）
-        validationResult.duplicateDetails.slice(0, 5).forEach((duplicate, index) => {
-          this.logger.warn(`🔄 重复项 ${index + 1}: "${duplicate.value}" (${duplicate.count}次) - ${duplicate.keys.join(', ')}`);
         });
       }
       

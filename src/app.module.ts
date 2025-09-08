@@ -25,7 +25,7 @@ import { MonitoringModule } from "./monitoring/monitoring.module";
 import { ProvidersModule } from "./providers/module/providers-sg.module";
 import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
 
-import { RATE_LIMIT_CONFIG } from "./common/constants/rate-limit.constants";
+import { RATE_LIMIT_CONFIG } from "@common/constants/domain/rate-limit-domain.constants";
 import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
 import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
 import { AppCoreModule } from "./app";

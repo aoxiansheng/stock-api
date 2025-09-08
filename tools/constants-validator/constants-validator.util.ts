@@ -9,7 +9,21 @@
  * - 生成重复检测报告
  */
 
-import { UNIFIED_CONSTANTS } from '../constants/unified/unified-constants-collection';
+// 修复导入路径问题 - 使用新的四层架构
+import { CORE_VALUES } from '../../src/common/constants/foundation/core-values.constants';
+import { HTTP_STATUS_CODES } from '../../src/common/constants/semantic/http-semantics.constants';
+import { CACHE_TTL_SEMANTICS } from '../../src/common/constants/semantic/cache-semantics.constants';
+import { RETRY_COUNT_SEMANTICS } from '../../src/common/constants/semantic/retry-semantics.constants';
+import { SYSTEM_APPLICATION_CONFIG } from '../../src/common/constants/application/system-application.constants';
+
+// 创建一个包含所有常量的对象，用于验证
+const ALL_CONSTANTS = {
+  CORE: CORE_VALUES,
+  HTTP: HTTP_STATUS_CODES,
+  CACHE: CACHE_TTL_SEMANTICS,
+  RETRY: RETRY_COUNT_SEMANTICS,
+  SYSTEM: SYSTEM_APPLICATION_CONFIG,
+};
 
 /**
  * 重复检测结果接口
@@ -99,7 +113,7 @@ export class ConstantsValidator {
    * @param constants 要检查的常量对象
    * @returns 重复项列表
    */
-  static findDuplicateValues(constants: any = UNIFIED_CONSTANTS): DuplicateResult[] {
+  static findDuplicateValues(constants: any = ALL_CONSTANTS): DuplicateResult[] {
     const valueMap = this.extractStringValues(constants);
     const duplicates: DuplicateResult[] = [];
 
@@ -122,7 +136,7 @@ export class ConstantsValidator {
    * @param constants 要验证的常量对象
    * @returns 验证结果
    */
-  static validateConstants(constants: any = UNIFIED_CONSTANTS): ValidationResult {
+  static validateConstants(constants: any = ALL_CONSTANTS): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -219,7 +233,7 @@ export class ConstantsValidator {
    * @param constants 要检查的常量对象
    * @returns 格式化的报告字符串
    */
-  static generateReport(constants: any = UNIFIED_CONSTANTS): string {
+  static generateReport(constants: any = ALL_CONSTANTS): string {
     const result = this.validateConstants(constants);
     const lines: string[] = [];
 
@@ -295,7 +309,7 @@ export class ConstantsValidator {
    * @returns 匹配的重复项
    */
   static findPatternDuplicates(
-    constants: any = UNIFIED_CONSTANTS,
+    constants: any = ALL_CONSTANTS,
     pattern: RegExp
   ): DuplicateResult[] {
     const duplicates = this.findDuplicateValues(constants);
@@ -307,7 +321,7 @@ export class ConstantsValidator {
    * @param constants 常量对象
    * @returns 统计信息
    */
-  static getStatistics(constants: any = UNIFIED_CONSTANTS): ValidationResult['statistics'] {
+  static getStatistics(constants: any = ALL_CONSTANTS): ValidationResult['statistics'] {
     const result = this.validateConstants(constants);
     return result.statistics;
   }
@@ -317,7 +331,7 @@ export class ConstantsValidator {
    * @param constants 常量对象
    * @returns 是否存在重复
    */
-  static hasDuplicates(constants: any = UNIFIED_CONSTANTS): boolean {
+  static hasDuplicates(constants: any = ALL_CONSTANTS): boolean {
     const duplicates = this.findDuplicateValues(constants);
     return duplicates.length > 0;
   }

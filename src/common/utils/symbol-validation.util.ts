@@ -1,4 +1,7 @@
-import { Market } from "@common/constants/market.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract Market enum for backward compatibility
+const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
 import {
   MARKET_RECOGNITION_RULES,
   RECEIVER_VALIDATION_RULES,
@@ -193,7 +196,7 @@ export class SymbolValidationUtils {
    * 从股票代码推断市场
    * 按照优先级顺序进行市场判断，避免格式冲突
    */
-  public static getMarketFromSymbol(symbol: string): Market | undefined {
+  public static getMarketFromSymbol(symbol: string): typeof Market[keyof typeof Market] | undefined {
     if (!symbol) return undefined;
 
     const upperSymbol = symbol.toUpperCase().trim();

@@ -38,6 +38,14 @@ export class RequestOptionsDto {
   @IsBoolean()
   useSmartCache?: boolean;
 
+  @ApiProperty({
+    description: "请求超时时间（毫秒）",
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  timeout?: number;
+
   @ApiPropertyOptional({
     description: "其他动态选项，以键值对形式提供",
     type: "object",

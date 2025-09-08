@@ -1,6 +1,6 @@
 // Import removed as TestingModule is not used in this test file
 import { createLogger } from "@app/config/logger.config";
-import { MARKETS } from "@common/constants/market.constants";
+import { Market } from "@common/constants/domian/";
 import streamStockQuote from "../../../../../../src/providers/longport/capabilities/stream-stock-quote";
 
 // Mock logger
@@ -41,10 +41,10 @@ describe("StreamStockQuote Capability", () => {
 
     it("should support correct markets", () => {
       expect(streamStockQuote.supportedMarkets).toEqual([
-        MARKETS.HK,
-        MARKETS.SZ,
-        MARKETS.SH,
-        MARKETS.US,
+        Market.HK,
+        Market.SZ,
+        Market.SH,
+        Market.US,
       ]);
     });
 

@@ -57,11 +57,11 @@ export class AlertingService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    this.logger.log(ALERT_MESSAGES.RULES.SERVICE_INITIALIZED);
+    this.logger.log(ALERT_MESSAGES.SYSTEM.SERVICE_INITIALIZED);
     try {
       await this.loadActiveAlerts();
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.INITIALIZATION_FAILED, {
+      this.logger.error(ALERT_MESSAGES.SYSTEM.INITIALIZATION_FAILED, {
         error: error.stack,
       });
       // 在初始化阶段失败，需要抛出异常以使应用启动失败
@@ -192,7 +192,7 @@ export class AlertingService implements OnModuleInit {
     try {
       const rules = await this.alertRuleRepository.findAll();
 
-      this.logger.debug(ALERT_MESSAGES.RULES.STATS_RETRIEVED, {
+      this.logger.debug(ALERT_MESSAGES.RULES.METRICS_PROCESSED, {
         operation,
         count: rules.length,
       });
@@ -268,13 +268,13 @@ export class AlertingService implements OnModuleInit {
    */
   async processMetrics(metricData: IMetricData[]): Promise<void> {
     if (metricData.length === 0) {
-      this.logger.debug(ALERT_MESSAGES.RULES.NO_METRICS_TO_PROCESS);
+      this.logger.debug(ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED);
       return;
     }
 
     const operation = ALERT_OPERATIONS.RULES.PROCESS_METRICS;
 
-    this.logger.debug(ALERT_MESSAGES.RULES.METRICS_PROCESSING_STARTED, {
+    this.logger.debug(ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED, {
       operation,
       metricCount: metricData.length,
     });
@@ -301,7 +301,7 @@ export class AlertingService implements OnModuleInit {
         ruleCount: rules.length,
       });
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.PROCESS_METRICS_FAILED, {
+      this.logger.error(ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED, {
         operation,
         error: error.stack,
       });
@@ -319,7 +319,7 @@ export class AlertingService implements OnModuleInit {
   ): Promise<IAlert> {
     const operation = ALERT_OPERATIONS.RULES.ACKNOWLEDGE_ALERT;
 
-    this.logger.debug(ALERT_MESSAGES.RULES.ALERT_ACKNOWLEDGMENT_STARTED, {
+    this.logger.debug(ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED, {
       operation,
       alertId,
       acknowledgedBy,
@@ -332,7 +332,7 @@ export class AlertingService implements OnModuleInit {
         acknowledgedBy,
       );
 
-      this.logger.log(ALERT_MESSAGES.RULES.ALERT_ACKNOWLEDGED, {
+      this.logger.log(ALERT_MESSAGES.RULES.RULE_STATUS_TOGGLED, {
         operation,
         alertId,
         acknowledgedBy,
@@ -345,7 +345,7 @@ export class AlertingService implements OnModuleInit {
       }
       return updatedAlert;
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.ACKNOWLEDGE_ALERT_FAILED, {
+      this.logger.error(ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED, {
         operation,
         alertId,
         error: error.stack,
@@ -364,7 +364,7 @@ export class AlertingService implements OnModuleInit {
   ): Promise<boolean> {
     const operation = ALERT_OPERATIONS.RULES.RESOLVE_ALERT;
 
-    this.logger.debug(ALERT_MESSAGES.RULES.ALERT_RESOLUTION_STARTED, {
+    this.logger.debug(ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED, {
       operation,
       alertId,
       resolvedBy,
@@ -389,7 +389,7 @@ export class AlertingService implements OnModuleInit {
 
       await this.cacheService.del(`${this.config.activeAlertPrefix}:${ruleId}`);
 
-      this.logger.log(ALERT_MESSAGES.RULES.ALERT_RESOLVED, {
+      this.logger.log(ALERT_MESSAGES.RULES.RULE_STATUS_TOGGLED, {
         operation,
         alertId,
         resolvedBy,
@@ -397,7 +397,7 @@ export class AlertingService implements OnModuleInit {
 
       return true;
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.RESOLVE_ALERT_FAILED, {
+      this.logger.error(ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED, {
         operation,
         alertId,
         error: error.stack,
@@ -412,7 +412,7 @@ export class AlertingService implements OnModuleInit {
   async getStats(): Promise<IAlertStats> {
     const operation = ALERT_OPERATIONS.RULES.GET_STATS;
 
-    this.logger.debug(ALERT_MESSAGES.RULES.STATS_CALCULATION_STARTED, {
+    this.logger.debug(ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED, {
       operation,
     });
 
@@ -431,7 +431,7 @@ export class AlertingService implements OnModuleInit {
         enabledRules,
       };
 
-      this.logger.debug(ALERT_MESSAGES.RULES.STATS_RETRIEVED, {
+      this.logger.debug(ALERT_MESSAGES.RULES.METRICS_PROCESSED, {
         operation,
         activeAlerts: stats.activeAlerts,
         totalRules,
@@ -440,7 +440,7 @@ export class AlertingService implements OnModuleInit {
 
       return stats;
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.GET_STATS_FAILED, {
+      this.logger.error(ALERT_MESSAGES.RULES.GET_RULES_FAILED, {
         operation,
         error: error.stack,
       });
@@ -459,7 +459,7 @@ export class AlertingService implements OnModuleInit {
   async handleSystemEvent(event: any): Promise<void> {
     const operation = ALERT_OPERATIONS.RULES.HANDLE_SYSTEM_EVENT;
 
-    this.logger.debug(ALERT_MESSAGES.RULES.SYSTEM_EVENT_RECEIVED, {
+    this.logger.debug(ALERT_MESSAGES.RULES.RULE_EVALUATION_STARTED, {
       operation,
       eventType: event.type,
     });
@@ -469,13 +469,13 @@ export class AlertingService implements OnModuleInit {
       if (metricData) {
         await this.processMetrics([metricData]);
 
-        this.logger.debug(ALERT_MESSAGES.RULES.SYSTEM_EVENT_PROCESSED, {
+        this.logger.debug(ALERT_MESSAGES.RULES.METRICS_PROCESSED, {
           operation,
           eventType: event.type,
         });
       }
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.HANDLE_EVENT_FAILED, {
+      this.logger.error(ALERT_MESSAGES.RULES.RULE_EVALUATION_FAILED, {
         operation,
         error: error.stack,
       });
@@ -533,9 +533,9 @@ export class AlertingService implements OnModuleInit {
     result: IRuleEvaluationResult,
     rule: IAlertRule,
   ): Promise<void> {
-    const operation = ALERT_OPERATIONS.RULES.CREATE_NEW_ALERT;
+    const operation = ALERT_OPERATIONS.RULES.CREATE_RULE;
 
-    this.logger.debug(ALERT_MESSAGES.RULES.ALERT_CREATION_STARTED, {
+    this.logger.debug(ALERT_MESSAGES.RULES.RULE_CREATION_STARTED, {
       operation,
       ruleId: rule.id,
       ruleName: rule.name,
@@ -591,13 +591,13 @@ export class AlertingService implements OnModuleInit {
         });
       }
 
-      this.logger.warn(ALERT_MESSAGES.RULES.NEW_ALERT_TRIGGERED, {
+      this.logger.warn(ALERT_MESSAGES.RULES.RULE_CREATED, {
         operation,
         ruleName: rule.name,
         message: result.message,
       });
     } catch (error) {
-      this.logger.error(ALERT_MESSAGES.RULES.CREATE_ALERT_FAILED, {
+      this.logger.error(ALERT_MESSAGES.RULES.CREATE_RULE_DB_FAILED, {
         operation,
         ruleName: rule.name,
         error: error.stack,

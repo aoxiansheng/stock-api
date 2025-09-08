@@ -10,7 +10,7 @@ export interface RateLimitResult {
   retryAfter?: number;
 }
 
-import type { RateLimitStrategy } from "../../common/constants/rate-limit.constants";
+import type { RateLimitStrategy } from "@common/constants/domain/rate-limit-domain.constants";
 
 /**
  * 频率限制配置接口

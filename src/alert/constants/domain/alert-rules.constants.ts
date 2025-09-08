@@ -123,6 +123,11 @@ export const ALERT_RULE_OPERATIONS = Object.freeze({
   TOGGLE_RULE: "toggleRule",
   EVALUATE_RULES_SCHEDULED: "evaluateRulesScheduled",
   HANDLE_RULE_EVALUATION: "handleRuleEvaluation",
+  PROCESS_METRICS: "processMetrics",
+  ACKNOWLEDGE_ALERT: "acknowledgeAlert",
+  RESOLVE_ALERT: "resolveAlert",
+  GET_STATS: "getStats",
+  HANDLE_SYSTEM_EVENT: "handleSystemEvent",
 });
 
 /**
@@ -155,6 +160,24 @@ export const ALERT_RULE_MESSAGES = Object.freeze({
   NO_ENABLED_RULES: "没有启用的告警规则",
   RULE_VALIDATION_FAILED: "规则验证失败",
   RULE_IN_COOLDOWN: "规则处于冷却期",
+  METRICS_PROCESSED: "指标数据处理完成",
+  
+  // 新增的消息
+  STATS_RETRIEVED: "统计信息获取成功",
+  NO_METRICS_TO_PROCESS: "没有指标数据需要处理",
+  METRICS_PROCESSING_STARTED: "开始处理指标数据",
+  PROCESS_METRICS_FAILED: "处理指标数据失败",
+  ALERT_ACKNOWLEDGMENT_STARTED: "开始确认告警",
+  ALERT_ACKNOWLEDGED: "告警确认成功",
+  ACKNOWLEDGE_ALERT_FAILED: "告警确认失败",
+  ALERT_RESOLUTION_STARTED: "开始解决告警",
+  ALERT_RESOLVED: "告警解决成功",
+  RESOLVE_ALERT_FAILED: "告警解决失败",
+  STATS_CALCULATION_STARTED: "开始计算统计信息",
+  GET_STATS_FAILED: "获取统计信息失败",
+  SYSTEM_EVENT_RECEIVED: "收到系统事件",
+  SYSTEM_EVENT_PROCESSED: "系统事件处理完成",
+  HANDLE_EVENT_FAILED: "处理系统事件失败",
 });
 
 /**
@@ -260,6 +283,23 @@ export class AlertRuleUtil {
    */
   static generateStatsCacheKey(ruleId: string): string {
     return ALERT_RULE_CONSTANTS.CACHE_CONFIG.STATS_KEY_PATTERN.replace("{ruleId}", ruleId);
+  }
+
+  /**
+   * 格式化告警消息
+   */
+  static formatAlertMessage(template: string, variables: Record<string, any>): string {
+    return template.replace(/\{(\w+)\}/g, (match, key) => {
+      return variables[key] !== undefined ? String(variables[key]) : match;
+    });
+  }
+
+  /**
+   * 生成错误消息
+   */
+  static generateErrorMessage(messageKey: string, params?: Record<string, any>): string {
+    const template = ALERT_RULE_MESSAGES[messageKey as keyof typeof ALERT_RULE_MESSAGES] || messageKey;
+    return params ? this.formatAlertMessage(template, params) : template;
   }
 }
 

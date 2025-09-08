@@ -8,11 +8,12 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@app/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+// Import from the new Market Domain layer
 import {
+  Market,
   MarketStatus,
-  CHANGE_DETECTION_THRESHOLDS,
-} from "@common/constants/market-trading-hours.constants";
-import { Market } from "@common/constants/market.constants";
+  CHANGE_DETECTION_THRESHOLDS
+} from "../../../common/constants/domain/market-domain.constants";
 import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
 
 /**

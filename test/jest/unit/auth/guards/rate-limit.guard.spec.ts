@@ -12,8 +12,8 @@ import {
   RATE_LIMIT_KEY,
 } from "../../../../../src/auth/guards/rate-limit.guard";
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
-import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
-import { RateLimitConfig } from "../../../../../src/auth/interfaces/rate-limit.interface";
+import { RateLimitStrategy } from "@common/constants/domain/rate-limit-domain.constants";
+import { AuthRateLimitConfig } from "../../../../../src/auth/interfaces/rate-limit.interface";
 import { ApiKeyDocument } from "../../../../../src/auth/schemas/apikey.schema";
 import { Permission } from "../../../../../src/auth/enums/user-role.enum";
 import { Types } from "mongoose";
@@ -220,7 +220,7 @@ describe("RateLimitGuard", () => {
     });
 
     it("should use custom rate limit strategy from decorator", async () => {
-      const config: RateLimitConfig = {
+      const config: AuthRateLimitConfig = {
         strategy: RateLimitStrategy.SLIDING_WINDOW,
       };
 
@@ -287,7 +287,7 @@ describe("RateLimitGuard", () => {
     });
 
     it("should get rate limit configuration from method and class decorators", async () => {
-      const mockConfig: RateLimitConfig = {
+      const mockConfig: AuthRateLimitConfig = {
         strategy: RateLimitStrategy.SLIDING_WINDOW,
         skipSuccessfulRequests: true,
       };

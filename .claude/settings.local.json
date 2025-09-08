@@ -222,7 +222,20 @@
       "WebSearch",
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/alert/**/*.ts)",
       "Bash(DISABLE_AUTO_INIT=true npx jest src/auth --testTimeout=30000 --config test/config/jest.unit.config.js --passWithNoTests)",
-      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck src/alert/constants/*.ts src/alert/utils/constants-validator.util.ts)"
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --skipLibCheck src/alert/constants/*.ts src/alert/utils/constants-validator.util.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit src/alert/services/rule-engine.service.ts --skipLibCheck)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/core/filters/global-exception.filter.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/utils/symbol-validation.util.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/circuit-breaker-domain.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/symbol-mapper/controller/symbol-mapper.controller.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/01-entry/query/services/query-execution-engine.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/01-entry/receiver/services/receiver.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/01-entry/stream-receiver/constants/stream-permissions.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/01-entry/stream-receiver/gateway/stream-receiver.gateway.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --isolatedModules src/core/01-entry/stream-receiver/gateway/stream-receiver.gateway.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/01-entry/stream-receiver/guards/ws-auth.guard.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/01-entry/stream-receiver/services/stream-receiver.service.ts)"
     ],
     "deny": []
   }

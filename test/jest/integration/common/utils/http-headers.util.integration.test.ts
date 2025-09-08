@@ -14,7 +14,7 @@ import {
   MARKETS,
   MARKET_NAMES,
   MARKET_TIMEZONES,
-} from "../../../../../src/common/constants/market.constants";
+} from "../../../../../src/common/constants/domain/market-domain.constants";
 import { HttpHeadersUtil } from "../../../../../src/common/utils/http-headers.util";
 import {
   ApiSuccessResponse,

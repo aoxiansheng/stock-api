@@ -1,7 +1,6 @@
 export interface CacheStatistics {
-  hitCount: number;
-  missCount: number;
+  hits: number;
+  misses: number;
   totalRequests: number;
   hitRate: number;
-  averageResponseTime: number;
 }

@@ -7,7 +7,7 @@ import { SymbolTransformerService } from "../../../../../../src/core/02-processi
 import { ReceiverService } from "../../../../../../src/core/01-entry/receiver/services/receiver.service";
 import { CapabilityRegistryService } from "../../../../../../src/providers/services/capability-registry.service";
 import { ICapability } from "../../../../../../src/providers/interfaces/capability.interface";
-import { Market } from "../../../../../../src/common/constants/market.constants";
+import { Market } from "../../../../../../src/common/constants/domain/market-domain.constants";
 
 describe("DataFetcher Pipeline E2E", () => {
   let app: INestApplication;

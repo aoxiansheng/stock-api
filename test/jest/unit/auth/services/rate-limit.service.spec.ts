@@ -11,7 +11,7 @@ import { InjectRedis } from "@nestjs-modules/ioredis";
 
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 
-import { RateLimitStrategy } from "../../../../../src/common/constants/rate-limit.constants";
+import { RateLimitStrategy } from "@common/constants/domain/rate-limit-domain.constants";
 
 import { ApiKey } from "../../../../../src/auth/schemas/apikey.schema";
 

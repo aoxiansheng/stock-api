@@ -1,5 +1,8 @@
 import { createLogger } from "@app/config/logger.config";
-import { Market } from "@common/constants/market.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract Market enum for backward compatibility
+const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { IStreamCapability } from "../../interfaces/stream-capability.interface";
 import { LongportStreamContextService } from "../services/longport-stream-context.service";

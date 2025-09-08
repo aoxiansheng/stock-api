@@ -9,7 +9,10 @@ import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
 
 import { createLogger } from "@app/config/logger.config";
-import { RATE_LIMIT_CONFIG } from "@common/constants/rate-limit.constants";
+import { CONSTANTS } from "@common/constants";
+
+// Extract rate limit config for backward compatibility
+const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
 import { AuthRateLimitConfig } from "../interfaces/rate-limit.interface";
@@ -71,7 +74,7 @@ export class RateLimitGuard implements CanActivate {
       // 执行频率限制检查
       const result = await this.rateLimitService.checkRateLimit(
         apiKey,
-        config.strategy || RATE_LIMIT_CONFIG.API_KEY.DEFAULT_STRATEGY,
+        config.strategy || RATE_LIMIT_CONFIG.ENUMS.RateLimitStrategy.SLIDING_WINDOW,
       );
 
       // 设置响应头

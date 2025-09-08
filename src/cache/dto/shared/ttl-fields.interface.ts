@@ -3,3 +3,11 @@ export interface TTLFields {
   expiresAt?: Date;
   remainingTime?: number;
 }
+
+export interface OptionalTTL {
+  ttl?: number;
+}
+
+export interface BaseTTL {
+  ttl: number;
+}
