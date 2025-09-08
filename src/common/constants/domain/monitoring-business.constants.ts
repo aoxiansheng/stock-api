@@ -32,7 +32,6 @@ export const MONITORING_BUSINESS = Object.freeze({
    * 🔥 解决数字 5 在变化百分比判断中的重复
    */
   CHANGE_DETECTION: {
-    MINIMAL_CHANGE_PERCENT: 5,     // 5% - 最小变化阈值
     SIGNIFICANT_CHANGE_PERCENT: 10, // 10% - 显著变化
     MAJOR_CHANGE_PERCENT: 20,      // 20% - 重大变化
     CRITICAL_CHANGE_PERCENT: 50,   // 50% - 关键变化
@@ -45,7 +44,6 @@ export const MONITORING_BUSINESS = Object.freeze({
   SAMPLING_CONFIG: {
     RECENT_METRICS_COUNT: 5,       // 最近数据点数量 - slice(-5)
     MIN_DATA_POINTS: 5,            // 最小数据要求 - < 5 判断
-    DEFAULT_SUGGESTION_LIMIT: 5,   // 建议数量限制 - slice(0, 5)
     SAMPLE_SIZE_SMALL: 10,         // 小样本大小
     SAMPLE_SIZE_MEDIUM: 50,        // 中等样本大小  
     SAMPLE_SIZE_LARGE: 100,        // 大样本大小
@@ -56,17 +54,12 @@ export const MONITORING_BUSINESS = Object.freeze({
    * 🔥 解决 90, 95 等评分阈值的重复
    */
   PERFORMANCE_BENCHMARKS: {
-    POOR_SCORE_THRESHOLD: 60,      // 60分以下为差
     FAIR_SCORE_THRESHOLD: 70,      // 70分以上为一般
     GOOD_SCORE_THRESHOLD: 80,      // 80分以上为良好
     EXCELLENT_SCORE_THRESHOLD: 90, // 90分以上为优秀
     PERFECT_SCORE_THRESHOLD: 95,   // 95分以上为完美
     
     // 缓存命中率阈值
-    CACHE_HIT_POOR: 30,           // 30% 缓存命中率差
-    CACHE_HIT_FAIR: 50,           // 50% 缓存命中率一般
-    CACHE_HIT_GOOD: 70,           // 70% 缓存命中率良好
-    CACHE_HIT_EXCELLENT: 90,      // 90% 缓存命中率优秀
   },
   
   /**
@@ -74,17 +67,8 @@ export const MONITORING_BUSINESS = Object.freeze({
    * 🔥 统一健康状态判断标准
    */
   HEALTH_THRESHOLDS: {
-    RESPONSE_TIME_GOOD_MS: CORE_VALUES.PERFORMANCE_MS.FAST,      // 100ms
-    RESPONSE_TIME_WARNING_MS: CORE_VALUES.PERFORMANCE_MS.SLOW,   // 1000ms
-    RESPONSE_TIME_CRITICAL_MS: CORE_VALUES.PERFORMANCE_MS.CRITICAL, // 10000ms
     
-    CPU_USAGE_NORMAL: 70,         // 70% CPU使用率正常
-    CPU_USAGE_WARNING: 85,        // 85% CPU使用率警告
-    CPU_USAGE_CRITICAL: 95,       // 95% CPU使用率严重
     
-    MEMORY_USAGE_NORMAL: 70,      // 70% 内存使用率正常
-    MEMORY_USAGE_WARNING: 85,     // 85% 内存使用率警告  
-    MEMORY_USAGE_CRITICAL: 90,    // 90% 内存使用率严重
   },
   
   /**
@@ -94,8 +78,6 @@ export const MONITORING_BUSINESS = Object.freeze({
   ALERT_FREQUENCY: {
     MAX_ALERTS_PER_MINUTE: 5,     // 每分钟最大告警数
     MAX_ALERTS_PER_HOUR: 60,      // 每小时最大告警数
-    COOL_DOWN_MINUTES: 5,         // 告警冷却时间(分钟)
-    ESCALATION_THRESHOLD: 3,      // 升级阈值(连续次数)
   },
   
   /**
@@ -103,10 +85,6 @@ export const MONITORING_BUSINESS = Object.freeze({
    * 🔥 统一趋势判断标准
    */
   TREND_ANALYSIS: {
-    STABLE_VARIANCE_THRESHOLD: 5,  // 5% 稳定性方差阈值
-    TREND_WINDOW_HOURS: 24,        // 24小时趋势窗口
-    ANOMALY_DETECTION_SIGMA: 3,    // 3σ 异常检测标准
-    SEASONAL_WINDOW_DAYS: 7,       // 7天季节性窗口
   }
 } as const);
 

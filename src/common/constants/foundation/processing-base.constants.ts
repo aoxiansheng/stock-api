@@ -18,21 +18,13 @@ export const PROCESSING_BATCH_SETTINGS = Object.freeze({
   DEFAULT_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,    // 100
   MIN_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE,            // 1
   MAX_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,            // 1000
-  OPTIMAL_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,    // 50
 
   // 并发控制配置 - 基于Foundation层核心值
-  MAX_CONCURRENT_OPERATIONS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS, // 6
-  MAX_CONCURRENT_BATCHES: CORE_VALUES.QUANTITIES.FIVE,                // 5
 
   // 分页配置 - 基于Foundation层核心值
   DEFAULT_PAGE_SIZE: CORE_LIMITS.PAGINATION.DEFAULT_PAGE_SIZE,        // 6
-  MAX_PAGE_SIZE: CORE_LIMITS.PAGINATION.MAX_PAGE_SIZE,                // 100
-  MIN_PAGE_SIZE: CORE_LIMITS.PAGINATION.MIN_PAGE_SIZE,                // 1
 
   // 性能和资源限制 - 基于Foundation层核心值
-  MAX_MEMORY_PER_BATCH_MB: CORE_VALUES.SIZES.MEDIUM,                  // 100MB
-  MAX_BATCH_PROCESSING_TIME_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS,      // 60000ms
-  BATCH_TIMEOUT_MS: CORE_TIMEOUTS.OPERATION.BACKGROUND_MS,             // 600000ms
 });
 
 /**
@@ -41,24 +33,17 @@ export const PROCESSING_BATCH_SETTINGS = Object.freeze({
  */
 export const PROCESSING_RETRY_SETTINGS = Object.freeze({
   // 重试次数配置 - 基于Foundation层核心值
-  MAX_RETRY_ATTEMPTS: CORE_LIMITS.RATE_LIMITS.DEFAULT_RETRIES,        // 3
-  MIN_RETRY_ATTEMPTS: CORE_LIMITS.RATE_LIMITS.MIN_RETRIES,            // 0
-  CRITICAL_MAX_RETRY_ATTEMPTS: CORE_VALUES.QUANTITIES.FIVE,           // 5
 
   // 延迟配置 - 基于Foundation层核心值
   RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,               // 1000ms
   MIN_RETRY_DELAY_MS: CORE_VALUES.TIME_MS.ONE_SECOND / 10,                // 100ms
   MAX_RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.MAX_DELAY_MS,               // 10000ms
-  CRITICAL_MAX_RETRY_DELAY_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS,       // 60000ms
 
   // 退避策略配置 - 基于Foundation层核心值
   BACKOFF_MULTIPLIER: 2,                  // 2
-  MIN_BACKOFF_MULTIPLIER: 1.1,                 // 1.1 (近似)
-  MAX_BACKOFF_MULTIPLIER: CORE_VALUES.QUANTITIES.THREE,               // 3
 
   // 抖动配置 - 基于Foundation层核心值
   JITTER_FACTOR: 10 / 100, // 0.1 (10%)
-  MAX_JITTER_FACTOR: 50 / 100, // 0.5 (50%)
 });
 
 /**
@@ -68,25 +53,15 @@ export const PROCESSING_RETRY_SETTINGS = Object.freeze({
 export const PROCESSING_STRATEGIES = Object.freeze({
   // 批量处理策略类型
   BATCH_STRATEGY_TYPES: {
-    FIXED: 'FIXED',                   // 固定大小策略
-    DYNAMIC: 'DYNAMIC',               // 动态调整策略
     ADAPTIVE: 'ADAPTIVE',             // 自适应策略
-    TIME_WINDOW: 'TIME_WINDOW',       // 时间窗口策略
   },
 
   // 重试策略类型
   RETRY_STRATEGY_TYPES: {
-    LINEAR: 'LINEAR',                 // 线性重试
-    EXPONENTIAL: 'EXPONENTIAL',       // 指数退避
-    FIBONACCI: 'FIBONACCI',           // 斐波那契退避
-    CUSTOM: 'CUSTOM',                 // 自定义策略
   },
 
   // 失败处理策略
   FAILURE_STRATEGIES: {
-    FAIL_FAST: 'FAIL_FAST',          // 快速失败
-    CONTINUE: 'CONTINUE',             // 继续处理
-    CIRCUIT_BREAKER: 'CIRCUIT_BREAKER', // 熔断策略
   },
 });
 
@@ -96,9 +71,6 @@ export const PROCESSING_STRATEGIES = Object.freeze({
  */
 export const PROCESSING_ERROR_HANDLING = Object.freeze({
   // 错误限制 - 基于Foundation层核心值
-  MAX_ERRORS_PER_BATCH: CORE_VALUES.QUANTITIES.TEN,                   // 10
-  ERROR_RATE_THRESHOLD: 10 / 100, // 0.1 (10%)
-  CIRCUIT_BREAKER_THRESHOLD: 50 / 100, // 0.5 (50%)
 
   // 可重试的错误类型
   RETRYABLE_ERROR_TYPES: [
@@ -122,7 +94,7 @@ export const PROCESSING_ERROR_HANDLING = Object.freeze({
   ],
 
   // 不可重试的业务错误
-  NON_RETRYABLE_BUSINESS_CODES: [
+  NON_RETRYABLE_ERRORS: [
     'INVALID_CREDENTIALS',            // 无效凭证
     'PERMISSION_DENIED',              // 权限被拒绝
     'RESOURCE_NOT_FOUND',             // 资源未找到
@@ -141,21 +113,14 @@ export const PROCESSING_PERFORMANCE_SETTINGS = Object.freeze({
     LOW: 30 / 100,    // 0.3 (30%)
     MEDIUM: 60 / 100, // 0.6 (60%)
     HIGH: 80 / 100, // 0.8 (80%)
-    CRITICAL: 90 / 100, // 0.9 (90%)
   },
 
   // 调整参数 - 基于Foundation层核心值
   ADJUSTMENT_FACTORS: {
-    MIN_ADJUSTMENT: 50 / 100,  // 0.5
-    MAX_ADJUSTMENT: 2.0,                               // 2.0
-    ADJUSTMENT_INTERVAL_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,         // 60000ms (1分钟)
   },
 
   // 时间窗口配置 - 基于Foundation层时间值
   TIME_WINDOWS: {
-    DEFAULT_WINDOW_MS: CORE_TIMEOUTS.CONNECTION.ESTABLISH_MS,                      // 10000ms
-    MIN_WINDOW_MS: CORE_VALUES.TIME_MS.ONE_SECOND,                             // 1000ms
-    MAX_WINDOW_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,                 // 60000ms
   },
 });
 
@@ -166,8 +131,6 @@ export const PROCESSING_PERFORMANCE_SETTINGS = Object.freeze({
 export const PROCESSING_BASE_CONSTANTS = Object.freeze({
   BATCH: PROCESSING_BATCH_SETTINGS,
   RETRY: PROCESSING_RETRY_SETTINGS,
-  STRATEGIES: PROCESSING_STRATEGIES,
-  ERROR_HANDLING: PROCESSING_ERROR_HANDLING,
   PERFORMANCE: PROCESSING_PERFORMANCE_SETTINGS,
 });
 

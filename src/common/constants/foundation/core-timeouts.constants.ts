@@ -17,9 +17,7 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   CONNECTION: {
     ESTABLISH_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,     // 建立连接
-    IDLE_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS,       // 空闲连接
     KEEP_ALIVE_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,     // 连接保活
-    POOL_ACQUIRE_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,  // 连接池获取
   },
 
   /**
@@ -30,7 +28,6 @@ export const CORE_TIMEOUTS = Object.freeze({
     FAST_MS: CORE_VALUES.TIME_MS.FIVE_SECONDS,         // 快速请求
     NORMAL_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS,     // 普通请求
     SLOW_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,           // 慢请求
-    BATCH_MS: CORE_VALUES.TIME_MS.FIVE_MINUTES,        // 批量请求
   },
 
   /**
@@ -38,9 +35,6 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一GATEWAY_TIMEOUT命名
    */
   GATEWAY: {
-    PROXY_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,          // 代理超时
-    LOAD_BALANCER_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS, // 负载均衡
-    API_GATEWAY_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,    // API网关
   },
 
   /**
@@ -50,8 +44,6 @@ export const CORE_TIMEOUTS = Object.freeze({
   DATABASE: {
     QUERY_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,         // 查询超时
     TRANSACTION_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS, // 事务超时
-    MIGRATION_MS: CORE_VALUES.TIME_MS.TEN_MINUTES,     // 迁移超时
-    BACKUP_MS: CORE_VALUES.TIME_MS.ONE_HOUR,           // 备份超时
   },
 
   /**
@@ -82,9 +74,6 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   CACHE: {
     GET_MS: CORE_VALUES.TIME_MS.ONE_SECOND,            // 缓存读取
-    SET_MS: CORE_VALUES.TIME_MS.ONE_SECOND,            // 缓存写入
-    DELETE_MS: CORE_VALUES.TIME_MS.ONE_SECOND,         // 缓存删除
-    FLUSH_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,         // 缓存刷新
   },
 });
 
@@ -97,21 +86,16 @@ export const CORE_TTL = Object.freeze({
    * 缓存TTL配置 (秒)
    */
   CACHE: {
-    VERY_SHORT_SEC: CORE_VALUES.TIME_SECONDS.FIVE_SECONDS,    // 极短期
-    SHORT_SEC: CORE_VALUES.TIME_SECONDS.FIVE_MINUTES,         // 短期
-    MEDIUM_SEC: CORE_VALUES.TIME_SECONDS.THIRTY_MINUTES,      // 中期
-    LONG_SEC: CORE_VALUES.TIME_SECONDS.ONE_HOUR,              // 长期
-    VERY_LONG_SEC: CORE_VALUES.TIME_SECONDS.ONE_DAY,          // 极长期
+    REALTIME_SEC: 5,        // 实时数据缓存5秒
+    FREQUENT_SEC: 60,       // 频繁访问数据缓存60秒
+    NORMAL_SEC: 300,        // 普通数据缓存300秒
+    STATIC_SEC: 86400,      // 静态数据缓存1天
   },
 
   /**
    * 会话TTL配置 (秒)  
    */
   SESSION: {
-    ACCESS_TOKEN_SEC: CORE_VALUES.TIME_SECONDS.TEN_MINUTES,   // 访问令牌
-    REFRESH_TOKEN_SEC: CORE_VALUES.TIME_SECONDS.THIRTY_DAYS,  // 刷新令牌
-    API_KEY_SEC: CORE_VALUES.TIME_SECONDS.NINETY_DAYS,        // API Key
-    SESSION_SEC: CORE_VALUES.TIME_SECONDS.ONE_HOUR,           // 会话
   },
 });
 

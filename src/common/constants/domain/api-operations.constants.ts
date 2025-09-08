@@ -25,18 +25,12 @@ export const API_OPERATIONS = Object.freeze({
     // 基础查询操作
     GET_QUOTE: 'get-stock-quote',        // 获取股票报价 (26次重复)
     GET_INFO: 'get-stock-info',          // 获取股票基本信息
-    GET_BASIC_INFO: 'get-stock-basic-info', // 获取股票基础信息
     GET_REALTIME: 'get-stock-realtime',  // 获取股票实时数据
     
     // 流式数据操作
     STREAM_QUOTE: 'stream-stock-quote',  // 流式股票报价
-    STREAM_REALTIME: 'stream-stock-realtime', // 流式实时数据
-    STREAM_PRICE: 'stream-stock-price',  // 流式价格数据
     
     // 批量操作
-    BATCH_QUOTE: 'batch-stock-quote',    // 批量获取报价
-    BATCH_INFO: 'batch-stock-info',      // 批量获取信息
-    BATCH_SYMBOLS: 'batch-symbols-query', // 批量符号查询
   },
   
   /**
@@ -44,10 +38,6 @@ export const API_OPERATIONS = Object.freeze({
    * 🔧 统一指数相关API操作
    */
   INDEX_DATA: {
-    GET_QUOTE: 'get-index-quote',        // 获取指数报价
-    GET_INFO: 'get-index-info',          // 获取指数信息
-    STREAM_QUOTE: 'stream-index-quote',  // 流式指数报价
-    BATCH_QUOTE: 'batch-index-quote',    // 批量指数报价
   },
   
   /**
@@ -56,15 +46,6 @@ export const API_OPERATIONS = Object.freeze({
    */
   DATA_TYPES: {
     QUOTE: 'quote',                      // 报价数据 (32次重复)
-    INFO: 'info',                        // 基本信息数据
-    BASIC_INFO: 'basic-info',            // 基础信息数据
-    REALTIME: 'realtime',                // 实时数据
-    CHART: 'chart',                      // 图表数据
-    NEWS: 'news',                        // 新闻数据
-    FUNDAMENTAL: 'fundamental',          // 基本面数据
-    TECHNICAL: 'technical',              // 技术分析数据
-    HISTORICAL: 'historical',            // 历史数据
-    INTRADAY: 'intraday',                // 日内数据
   },
   
   /**
@@ -75,9 +56,6 @@ export const API_OPERATIONS = Object.freeze({
     HK: 'hk',                           // 香港市场
     US: 'us',                           // 美国市场
     CN: 'cn',                           // 中国市场
-    SG: 'sg',                           // 新加坡市场
-    UK: 'uk',                           // 英国市场
-    JP: 'jp',                           // 日本市场
   },
   
   /**
@@ -85,12 +63,8 @@ export const API_OPERATIONS = Object.freeze({
    * 🔧 统一数据获取模式标识
    */
   FETCH_MODES: {
-    REST: 'rest',                       // REST API方式
-    WEBSOCKET: 'websocket',             // WebSocket方式
     STREAM: 'stream',                   // 流式数据
     BATCH: 'batch',                     // 批量获取
-    POLL: 'poll',                       // 轮询方式
-    PUSH: 'push',                       // 推送方式
   },
   
   /**
@@ -100,21 +74,11 @@ export const API_OPERATIONS = Object.freeze({
   BUSINESS_SCENARIOS: {
     // 交易相关
     TRADING: 'trading',                 // 交易场景
-    PORTFOLIO: 'portfolio',             // 投资组合
-    WATCHLIST: 'watchlist',             // 观察列表
-    ANALYSIS: 'analysis',               // 数据分析
     
     // 监控相关
     MONITORING: 'monitoring',           // 系统监控
-    ALERTING: 'alerting',              // 告警通知
-    REPORTING: 'reporting',            // 报告生成
-    DASHBOARD: 'dashboard',            // 仪表盘
     
     // 研发相关
-    TESTING: 'testing',                // 测试场景
-    DEBUGGING: 'debugging',            // 调试场景
-    DEVELOPMENT: 'development',        // 开发场景
-    BENCHMARKING: 'benchmarking',      // 基准测试
   },
   
   /**
@@ -122,12 +86,8 @@ export const API_OPERATIONS = Object.freeze({
    * 🔧 统一操作优先级标识
    */
   PRIORITIES: {
-    REAL_TIME: 'real-time',            // 实时优先
     HIGH: 'high',                      // 高优先级
-    NORMAL: 'normal',                  // 普通优先级
     LOW: 'low',                        // 低优先级
-    BACKGROUND: 'background',          // 后台处理
-    BATCH_LOW: 'batch-low',           // 批量低优先级
   },
   
   /**
@@ -135,12 +95,6 @@ export const API_OPERATIONS = Object.freeze({
    * 🔧 统一缓存策略类型
    */
   CACHE_STRATEGIES: {
-    STRONG_TIMELINESS: 'strong-timeliness',    // 强时效性
-    WEAK_TIMELINESS: 'weak-timeliness',        // 弱时效性
-    MARKET_AWARE: 'market-aware',              // 市场感知
-    NO_CACHE: 'no-cache',                      // 不缓存
-    FORCE_REFRESH: 'force-refresh',            // 强制刷新
-    CACHE_FIRST: 'cache-first',                // 缓存优先
   }
 } as const);
 

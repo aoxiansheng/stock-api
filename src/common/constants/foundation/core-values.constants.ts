@@ -27,10 +27,8 @@ export const CORE_VALUES = Object.freeze({
     FIVE_HUNDRED: 500,    // 🆕 从Unified迁移
     THOUSAND: 1000,       // 🎯 解决1000重复定义
     TWO_THOUSAND: 2000,   // 🆕 从Unified迁移
-    THREE_THOUSAND: 3000, // 🆕 从Unified迁移
     FIVE_THOUSAND: 5000,  // 🆕 从Unified迁移
     TEN_THOUSAND: 10000,  // 🎯 解决10000重复定义
-    FIFTEEN_THOUSAND: 15000, // 🆕 从Unified迁移
     ONE_HUNDRED_THOUSAND: 100000,
   },
 
@@ -48,9 +46,7 @@ export const CORE_VALUES = Object.freeze({
     THREE_MINUTES: 180000,    // 🆕 为circuit-breaker添加
     FIVE_MINUTES: 300000,
     TEN_MINUTES: 600000,
-    THIRTY_MINUTES: 1800000,
     ONE_HOUR: 3600000,
-    ONE_DAY: 86400000,
   },
 
   /**
@@ -59,7 +55,6 @@ export const CORE_VALUES = Object.freeze({
   TIME_SECONDS: {
     ONE_SECOND: 1,
     FIVE_SECONDS: 5,
-    TEN_SECONDS: 10,
     THIRTY_SECONDS: 30,
     ONE_MINUTE: 60,
     FIVE_MINUTES: 300,
@@ -69,7 +64,6 @@ export const CORE_VALUES = Object.freeze({
     ONE_DAY: 86400,
     THIRTY_DAYS: 2628000,
     NINETY_DAYS: 7884000,
-    ONE_YEAR: 31536000,
   },
 
   /**
@@ -103,19 +97,12 @@ export const CORE_VALUES = Object.freeze({
    */
   MATH: {
     MAX_SAFE_INTEGER: Number.MAX_SAFE_INTEGER,
-    MIN_SAFE_INTEGER: Number.MIN_SAFE_INTEGER,
-    POSITIVE_INFINITY: Number.POSITIVE_INFINITY,
-    NEGATIVE_INFINITY: Number.NEGATIVE_INFINITY,
   },
 
   /**
    * 基数值 - 用于进制转换
    */
   RADIX: {
-    BINARY: 2,
-    OCTAL: 8,
-    DECIMAL: 10,
-    HEX: 16,
     BASE_36: 36,
   },
 
@@ -124,16 +111,6 @@ export const CORE_VALUES = Object.freeze({
    * 🆕 从Unified层迁移，解决文件大小重复定义
    */
   FILE_SIZE_BYTES: {
-    ONE_KB: 1024,
-    TEN_KB: 10240,          // 10KB
-    FIFTY_KB: 51200,        // 50KB
-    ONE_HUNDRED_KB: 102400, // 100KB
-    FIVE_HUNDRED_KB: 512000, // 500KB
-    ONE_MB: 1048576,        // 1MB
-    TWO_MB: 2097152,        // 2MB
-    TEN_MB: 10485760,       // 10MB
-    FIFTY_MB: 52428800,     // 50MB
-    ONE_HUNDRED_MB: 104857600, // 100MB
     FIVE_HUNDRED_MB: 524288000, // 500MB
   },
 
@@ -141,11 +118,7 @@ export const CORE_VALUES = Object.freeze({
    * 网络相关基础值
    */
   NETWORK: {
-    DEFAULT_PORT: 3000,
-    HTTP_PORT: 80,
-    HTTPS_PORT: 443,
     DEFAULT_RETRIES: 3,
-    DEFAULT_CONNECTIONS: 10,
   },
 
   /**
@@ -159,15 +132,9 @@ export const CORE_VALUES = Object.freeze({
     SLOW: 1000,         // 🎯 统一慢操作阈值 - 查询/存储阈值
     VERY_SLOW: 5000,    // 非常慢的操作 - 数据转换/认证超时
     CRITICAL: 10000,    // 关键慢操作阈值 - 最大重试延迟
-    FAST_REQUEST: 100,  // 快速请求阈值
     SLOW_REQUEST: 1000, // 慢请求阈值
-    CRITICAL_SLOW: 5000, // 严重慢请求阈值
-    SLOW_QUERY: 1000,   // 数据库查询慢阈值
     SLOW_STORAGE: 1000, // 存储操作慢阈值
-    SLOW_MAPPING: 100,  // 符号映射慢阈值
     SLOW_TRANSFORMATION: 5000, // 数据转换慢阈值
-    SLOW_AUTHENTICATION: 300,  // 认证操作慢阈值
-    SLOW_CACHE: 50,     // 缓存操作慢阈值
     DATA_FETCHER_SLOW: 2000,   // 数据获取慢阈值
   },
 
@@ -179,10 +146,7 @@ export const CORE_VALUES = Object.freeze({
     QUICK: 5000,        // 快速操作超时：5秒
     DEFAULT: 30000,     // 默认超时时间：30秒
     LONG: 60000,        // 长时间操作超时：60秒
-    AUTHENTICATION: 5000, // 认证超时：5秒
     CONNECTION: 5000,   // 连接超时：5秒
-    ACQUIRE: 10000,     // 获取连接超时：10秒
-    IDLE: 300000,       // 空闲连接超时：5分钟
   },
 
   /**
@@ -191,14 +155,9 @@ export const CORE_VALUES = Object.freeze({
    */
   RETRY: {
     MAX_ATTEMPTS: 3,    // 最大重试次数
-    DELAY_MS: 1000,     // 重试延迟时间：1秒
     BACKOFF_BASE: 2,    // 指数退避基数
     MAX_DELAY_MS: 10000, // 最大重试延迟：10秒
     CRITICAL_MAX_ATTEMPTS: 5, // 关键操作最大重试次数
-    DATA_FETCHER_MAX_ATTEMPTS: 1, // 数据获取最大重试次数
-    DATA_FETCHER_DELAY_MS: 500,   // 数据获取重试延迟
-    CRITICAL_DELAY_MS: 2000,      // 关键操作重试延迟
-    JITTER_FACTOR_DECIMAL: 0.1,   // 抖动因子
   },
 
   /**
@@ -210,8 +169,6 @@ export const CORE_VALUES = Object.freeze({
     DEFAULT_PAGE_SIZE: 10,   // 默认分页大小
     MAX_PAGE_SIZE: 100,      // 最大分页大小
     MAX_CONCURRENT: 10,      // 最大并发操作数
-    BULK_INSERT_SIZE: 500,   // 批量插入大小
-    BULK_UPDATE_SIZE: 200,   // 批量更新大小
   },
 
   /**
@@ -241,11 +198,7 @@ export const CORE_VALUES = Object.freeze({
    * 🆕 从performance.constants.ts迁移，解决监控配置重复定义
    */
   MONITORING: {
-    METRICS_INTERVAL_MS: 10000,     // 指标收集间隔：10秒
     HEALTH_CHECK_INTERVAL_MS: 30000, // 健康检查间隔：30秒
-    SAMPLE_RATE_DECIMAL: 0.1,       // 采样率：10%
-    ERROR_SAMPLE_RATE_DECIMAL: 1.0, // 错误采样率：100%
-    SLOW_REQUEST_SAMPLE_RATE_DECIMAL: 1.0, // 慢请求采样率：100%
   },
 });;
 

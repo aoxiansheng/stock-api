@@ -14,7 +14,6 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
   // 基础批量大小配置
   BASIC: {
     MIN_SIZE: CORE_LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE,          // 1 - 最小批量大小
-    DEFAULT_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,  // 100 - 默认批量大小
     OPTIMAL_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,  // 50 - 最优批量大小
     MAX_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,          // 1000 - 最大批量大小 🎯
   },
@@ -23,24 +22,15 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
   SCENARIO: {
     // 数据库操作
     DATABASE_INSERT: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,     // 50 - 数据库插入
-    DATABASE_UPDATE: CORE_VALUES.SIZES.SMALL / 2,                     // 25 - 数据库更新
-    DATABASE_DELETE: CORE_VALUES.SIZES.SMALL / 5,                     // 10 - 数据库删除
     
     // API请求处理
     API_REQUEST_PROCESSING: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE, // 100 - API请求处理
-    API_RESPONSE_BATCH: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,   // 50 - API响应批量
     
     // 文件操作
-    FILE_READING: CORE_VALUES.SIZES.LARGE,                            // 500 - 文件读取
-    FILE_WRITING: CORE_VALUES.SIZES.MEDIUM,                           // 100 - 文件写入
-    FILE_PROCESSING: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,     // 50 - 文件处理
     
     // 缓存操作
-    CACHE_BATCH_GET: CORE_VALUES.SIZES.MEDIUM,                        // 100 - 缓存批量读取
-    CACHE_BATCH_SET: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,     // 50 - 缓存批量写入
     
     // 消息处理
-    MESSAGE_PROCESSING: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,  // 100 - 消息处理
     NOTIFICATION_BATCH: CORE_VALUES.SIZES.SMALL,                      // 50 - 通知批量发送
   },
 
@@ -61,50 +51,37 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
 export const CONCURRENCY_SEMANTICS = Object.freeze({
   // 基础并发配置
   BASIC: {
-    MIN_WORKERS: CORE_LIMITS.CONCURRENCY.MIN_WORKERS,          // 1 - 最小工作进程数
     DEFAULT_WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,  // 6 - 默认工作进程数
-    MAX_WORKERS: CORE_LIMITS.CONCURRENCY.MAX_WORKERS,          // 50 - 最大工作进程数
   },
 
   // 场景特定并发配置
   SCENARIO: {
     // I/O密集型操作
     IO_INTENSIVE: {
-      WORKERS: CORE_VALUES.SIZES.SMALL,                        // 50 - I/O密集型工作进程
-      QUEUE_SIZE: CORE_VALUES.SIZES.HUGE,                      // 1000 - I/O队列大小
     },
     
     // CPU密集型操作
     CPU_INTENSIVE: {
-      WORKERS: CORE_VALUES.SIZES.TINY,                         // 6 - CPU密集型工作进程
-      QUEUE_SIZE: CORE_VALUES.SIZES.MEDIUM,                    // 100 - CPU队列大小
     },
     
     // 网络请求
     NETWORK_REQUEST: {
-      WORKERS: CORE_VALUES.SIZES.SMALL / 2,                    // 25 - 网络请求工作进程
-      QUEUE_SIZE: CORE_VALUES.SIZES.LARGE,                     // 500 - 网络队列大小
     },
     
     // 数据库连接
     DATABASE_CONNECTION: {
-      WORKERS: CORE_VALUES.SIZES.TINY,                         // 6 - 数据库连接工作进程
-      QUEUE_SIZE: CORE_VALUES.SIZES.MEDIUM,                    // 100 - 数据库队列大小
     },
   },
 
   // 资源限制分级
   RESOURCE_LIMITS: {
     LOW_RESOURCE: {
-      WORKERS: CORE_VALUES.QUANTITIES.TWO,                     // 2 - 低资源工作进程
       BATCH_SIZE: CORE_VALUES.SIZES.TINY,                      // 6 - 低资源批量大小
     },
     MEDIUM_RESOURCE: {
-      WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,        // 6 - 中等资源工作进程
       BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE, // 50 - 中等资源批量大小
     },
     HIGH_RESOURCE: {
-      WORKERS: CORE_VALUES.SIZES.SMALL / 2,                    // 25 - 高资源工作进程
       BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE, // 100 - 高资源批量大小
     },
   },
@@ -127,9 +104,6 @@ export const BATCH_TIMEOUT_SEMANTICS = Object.freeze({
   SCENARIO: {
     DATABASE_BATCH_MS: CORE_TIMEOUTS.DATABASE.TRANSACTION_MS,  // 30000ms - 数据库批量操作
     API_BATCH_MS: CORE_TIMEOUTS.REQUEST.BATCH_MS,              // 300000ms - API批量请求
-    FILE_BATCH_MS: CORE_VALUES.TIME_MS.TEN_MINUTES,            // 600000ms - 文件批量处理
-    CACHE_BATCH_MS: CORE_TIMEOUTS.OPERATION.QUICK_MS * 5,      // 5000ms - 缓存批量操作
-    NETWORK_BATCH_MS: CORE_TIMEOUTS.REQUEST.SLOW_MS * 2,       // 120000ms - 网络批量请求
   },
 
   // 批量大小相关超时策略（毫秒）
@@ -151,7 +125,6 @@ export const BATCH_STRATEGY_SEMANTICS = Object.freeze({
   PROCESSING_STRATEGIES: {
     SEQUENTIAL: 'sequential',            // 顺序处理
     PARALLEL: 'parallel',               // 并行处理
-    PIPELINE: 'pipeline',               // 流水线处理
     ADAPTIVE: 'adaptive',               // 自适应处理
   },
 
@@ -165,18 +138,10 @@ export const BATCH_STRATEGY_SEMANTICS = Object.freeze({
 
   // 内存管理策略
   MEMORY_STRATEGIES: {
-    FIXED_SIZE: 'fixed-size',           // 固定大小
-    ADAPTIVE_SIZE: 'adaptive-size',     // 自适应大小
-    MEMORY_AWARE: 'memory-aware',       // 内存感知
-    STREAM_PROCESSING: 'stream-processing', // 流式处理
   },
 
   // 优先级策略
   PRIORITY_STRATEGIES: {
-    FIFO: 'fifo',                      // 先进先出
-    LIFO: 'lifo',                      // 后进先出
-    PRIORITY_QUEUE: 'priority-queue',   // 优先级队列
-    WEIGHTED_ROUND_ROBIN: 'weighted-round-robin', // 加权轮询
   },
 });
 

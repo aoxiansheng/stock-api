@@ -16,9 +16,7 @@ export const HTTP_STATUS_SEMANTICS = Object.freeze({
   SUCCESS: {
     OK: CORE_VALUES.QUANTITIES.TWO_HUNDRED,              // 200
     CREATED: 201,                                         // 201 - 创建成功
-    ACCEPTED: 202,                                        // 202 - 已接受
     NO_CONTENT: 204,                                      // 204 - 无内容
-    PARTIAL_CONTENT: 206,                                 // 206 - 部分内容
   },
 
   // 重定向状态码 (3xx)
@@ -26,8 +24,6 @@ export const HTTP_STATUS_SEMANTICS = Object.freeze({
     MOVED_PERMANENTLY: 301,                              // 301 - 永久重定向
     FOUND: 302,                                          // 302 - 临时重定向
     NOT_MODIFIED: 304,                                   // 304 - 未修改
-    TEMPORARY_REDIRECT: 307,                             // 307 - 临时重定向
-    PERMANENT_REDIRECT: 308,                             // 308 - 永久重定向
   },
 
   // 客户端错误状态码 (4xx)
@@ -37,10 +33,7 @@ export const HTTP_STATUS_SEMANTICS = Object.freeze({
     FORBIDDEN: 403,                                      // 403 - 禁止访问
     NOT_FOUND: 404,                                      // 404 - 未找到
     METHOD_NOT_ALLOWED: 405,                             // 405 - 方法不允许
-    NOT_ACCEPTABLE: 406,                                 // 406 - 不接受
-    REQUEST_TIMEOUT: 408,                                // 408 - 请求超时
     CONFLICT: 409,                                       // 409 - 冲突
-    GONE: 410,                                           // 410 - 已删除
     PAYLOAD_TOO_LARGE: 413,                             // 413 - 负载过大
     UNPROCESSABLE_ENTITY: 422,                          // 422 - 无法处理的实体
     TOO_MANY_REQUESTS: 429,                             // 429 - 请求过多
@@ -53,23 +46,10 @@ export const HTTP_STATUS_SEMANTICS = Object.freeze({
     BAD_GATEWAY: 502,                                    // 502 - 网关错误
     SERVICE_UNAVAILABLE: 503,                            // 503 - 服务不可用
     GATEWAY_TIMEOUT: 504,                                // 504 - 网关超时
-    HTTP_VERSION_NOT_SUPPORTED: 505,                     // 505 - HTTP版本不支持
-    INSUFFICIENT_STORAGE: 507,                           // 507 - 存储不足
-    NETWORK_AUTHENTICATION_REQUIRED: 511,               // 511 - 需要网络认证
   },
 
   // 业务状态码 (自定义) - 基于Foundation层
   BUSINESS: {
-    OPERATION_SUCCESS: CORE_VALUES.QUANTITIES.THOUSAND,          // 1000 - 操作成功
-    OPERATION_FAILED: CORE_VALUES.QUANTITIES.THOUSAND + 1,       // 1001 - 操作失败  
-    VALIDATION_ERROR: CORE_VALUES.QUANTITIES.THOUSAND + 2,       // 1002 - 验证错误
-    BUSINESS_RULE_VIOLATION: CORE_VALUES.QUANTITIES.THOUSAND + 3, // 1003 - 业务规则违规
-    RESOURCE_CONFLICT: CORE_VALUES.QUANTITIES.THOUSAND + 4,      // 1004 - 资源冲突
-    PERMISSION_DENIED: CORE_VALUES.QUANTITIES.THOUSAND + 5,      // 1005 - 权限拒绝
-    QUOTA_EXCEEDED: CORE_VALUES.QUANTITIES.THOUSAND + 6,         // 1006 - 配额超限
-    RATE_LIMITED: CORE_VALUES.QUANTITIES.THOUSAND + 7,           // 1007 - 限流
-    MAINTENANCE_MODE: CORE_VALUES.QUANTITIES.THOUSAND + 8,       // 1008 - 维护模式
-    FEATURE_DISABLED: CORE_VALUES.QUANTITIES.THOUSAND + 9,       // 1009 - 功能禁用
   },
 });
 
@@ -90,18 +70,20 @@ export const STATUS_CODE_SEMANTICS = Object.freeze({
 
   // 状态码语义分组
   GROUPS: {
-    CACHEABLE: [
+    SUCCESS_CODES: [
       HTTP_STATUS_SEMANTICS.SUCCESS.OK,
       HTTP_STATUS_SEMANTICS.REDIRECT.NOT_MODIFIED,
       HTTP_STATUS_SEMANTICS.REDIRECT.MOVED_PERMANENTLY,
     ],
-    RETRY_SAFE: [
+    
+    SERVER_ERROR_CODES: [
       HTTP_STATUS_SEMANTICS.SERVER_ERROR.INTERNAL_SERVER_ERROR,
       HTTP_STATUS_SEMANTICS.SERVER_ERROR.BAD_GATEWAY,
       HTTP_STATUS_SEMANTICS.SERVER_ERROR.SERVICE_UNAVAILABLE,
       HTTP_STATUS_SEMANTICS.SERVER_ERROR.GATEWAY_TIMEOUT,
     ],
-    CLIENT_FAULT: [
+    
+    CLIENT_ERROR_CODES: [
       HTTP_STATUS_SEMANTICS.CLIENT_ERROR.BAD_REQUEST,
       HTTP_STATUS_SEMANTICS.CLIENT_ERROR.UNAUTHORIZED,
       HTTP_STATUS_SEMANTICS.CLIENT_ERROR.FORBIDDEN,

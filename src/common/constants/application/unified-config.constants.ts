@@ -29,9 +29,6 @@ export const UNIFIED_CONFIG = Object.freeze({
    */
   SEMANTIC: {
     HTTP_STATUS_CODES: SEMANTIC_CONSTANTS.HTTP.STATUS_CODES,
-    HTTP_TIMEOUTS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS,
-    HTTP_HEADERS: SEMANTIC_CONSTANTS.HTTP.HEADERS,
-    HTTP_CONTENT_TYPES: SEMANTIC_CONSTANTS.HTTP.CONTENT_TYPES,
     // 注意：HTTP_METHODS 不在这里重复导出，避免在 Application 层产生重复
     // 需要 HTTP_METHODS 时请直接使用 SEMANTIC_CONSTANTS.HTTP.METHODS
     CACHE: SEMANTIC_CONSTANTS.CACHE,
@@ -55,35 +52,33 @@ export const UNIFIED_CONFIG = Object.freeze({
   QUICK_ACCESS: {
     // 常用超时配置
     TIMEOUTS: {
-      FAST_REQUEST_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.FAST_MS,           // 5秒
-      NORMAL_REQUEST_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.NORMAL_MS,       // 30秒
-      SLOW_REQUEST_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.SLOW_MS,           // 60秒
-      DATABASE_QUERY_MS: FOUNDATION_CONSTANTS.TIMEOUTS.DATABASE.QUERY_MS,          // 10秒
-      CACHE_OPERATION_MS: FOUNDATION_CONSTANTS.TIMEOUTS.CACHE.GET_MS,              // 1秒
+      FAST_REQUEST_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.FAST_MS,           // 5000ms
+      NORMAL_REQUEST_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.NORMAL_MS,       // 30000ms
+      SLOW_REQUEST_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.SLOW_MS,           // 60000ms
+      DATABASE_QUERY_MS: FOUNDATION_CONSTANTS.TIMEOUTS.DATABASE.QUERY_MS,          // 10000ms
+      CACHE_OPERATION_MS: FOUNDATION_CONSTANTS.TIMEOUTS.CACHE.GET_MS,              // 1000ms
     },
 
     // 常用批量大小配置
     BATCH_SIZES: {
-      SMALL: SEMANTIC_CONSTANTS.BATCH.SIZES.PERFORMANCE.SMALL_BATCH,               // 25
+      SMALL: FOUNDATION_CONSTANTS.LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE,              // 1
       MEDIUM: SEMANTIC_CONSTANTS.BATCH.SIZES.PERFORMANCE.MEDIUM_BATCH,             // 50
-      LARGE: SEMANTIC_CONSTANTS.BATCH.SIZES.PERFORMANCE.LARGE_BATCH,               // 100
-      OPTIMAL: FOUNDATION_CONSTANTS.LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,        // 50
+      LARGE: FOUNDATION_CONSTANTS.LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE / 2,          // 500
+      OPTIMAL: SEMANTIC_CONSTANTS.BATCH.SIZES.BASIC.OPTIMAL_SIZE,                  // 50
       MAX: FOUNDATION_CONSTANTS.LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,                // 1000
     },
 
     // 常用缓存TTL配置
     CACHE_TTL: {
-      REALTIME_SEC: SEMANTIC_CONSTANTS.CACHE.TTL.DATA_TYPE.REALTIME_SEC,           // 5秒
-      FREQUENT_SEC: SEMANTIC_CONSTANTS.CACHE.TTL.DATA_TYPE.FREQUENT_UPDATE_SEC,    // 1分钟
-      NORMAL_SEC: SEMANTIC_CONSTANTS.CACHE.TTL.DATA_TYPE.NORMAL_UPDATE_SEC,        // 10分钟
-      SLOW_SEC: SEMANTIC_CONSTANTS.CACHE.TTL.DATA_TYPE.SLOW_UPDATE_SEC,            // 1小时
-      STATIC_SEC: SEMANTIC_CONSTANTS.CACHE.TTL.DATA_TYPE.STATIC_SEC,               // 1天
+      REALTIME_SEC: FOUNDATION_CONSTANTS.TTL.CACHE.REALTIME_SEC,                   // 5秒
+      FREQUENT_SEC: FOUNDATION_CONSTANTS.TTL.CACHE.FREQUENT_SEC,                   // 60秒
+      NORMAL_SEC: FOUNDATION_CONSTANTS.TTL.CACHE.NORMAL_SEC,                       // 300秒
+      STATIC_SEC: FOUNDATION_CONSTANTS.TTL.CACHE.STATIC_SEC,                       // 86400秒
     },
 
     // 常用HTTP状态码
     HTTP_STATUS: {
       OK: SEMANTIC_CONSTANTS.HTTP.STATUS_CODES.SUCCESS.OK,                         // 200
-      CREATED: SEMANTIC_CONSTANTS.HTTP.STATUS_CODES.SUCCESS.CREATED,               // 201
       BAD_REQUEST: SEMANTIC_CONSTANTS.HTTP.STATUS_CODES.CLIENT_ERROR.BAD_REQUEST,  // 400
       UNAUTHORIZED: SEMANTIC_CONSTANTS.HTTP.STATUS_CODES.CLIENT_ERROR.UNAUTHORIZED, // 401
       FORBIDDEN: SEMANTIC_CONSTANTS.HTTP.STATUS_CODES.CLIENT_ERROR.FORBIDDEN,      // 403
@@ -94,10 +89,9 @@ export const UNIFIED_CONFIG = Object.freeze({
 
     // 常用重试配置
     RETRY_CONFIG: {
-      NETWORK_OPERATION: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.NETWORK_OPERATION,
-      DATABASE_OPERATION: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.DATABASE_OPERATION,
-      EXTERNAL_API: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.EXTERNAL_API,
-      CRITICAL_OPERATION: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.CRITICAL_OPERATION,
+      NETWORK_OPERATION: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.NETWORK_OPERATION,     // 网络操作重试模板
+      DATABASE_OPERATION: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.DATABASE_OPERATION,   // 数据库操作重试模板
+      CACHE_OPERATION: SEMANTIC_CONSTANTS.RETRY.TEMPLATES.CACHE_OPERATION,         // 缓存操作重试模板
     },
   },
 
@@ -108,42 +102,18 @@ export const UNIFIED_CONFIG = Object.freeze({
   ENVIRONMENT_SPECIFIC: {
     // 开发环境配置
     DEVELOPMENT: {
-      LOG_LEVEL: 'debug',
-      CACHE_TTL_MULTIPLIER: 0.1,                    // 开发环境缓存时间缩短
-      BATCH_SIZE_MULTIPLIER: 0.5,                   // 开发环境批量大小减半
-      TIMEOUT_MULTIPLIER: 2,                        // 开发环境超时时间加倍
-      ENABLE_DETAILED_LOGS: true,
-      ENABLE_PERFORMANCE_METRICS: true,
     },
 
     // 测试环境配置
     TESTING: {
-      LOG_LEVEL: 'info',
-      CACHE_TTL_MULTIPLIER: 0.5,                    // 测试环境缓存时间减半
-      BATCH_SIZE_MULTIPLIER: 0.3,                   // 测试环境批量大小更小
-      TIMEOUT_MULTIPLIER: 1.5,                      // 测试环境超时时间增加
-      ENABLE_DETAILED_LOGS: true,
-      ENABLE_PERFORMANCE_METRICS: true,
     },
 
     // 预发布环境配置
     STAGING: {
-      LOG_LEVEL: 'warn',
-      CACHE_TTL_MULTIPLIER: 0.8,                    // 预发布环境缓存时间略微缩短
-      BATCH_SIZE_MULTIPLIER: 0.8,                   // 预发布环境批量大小略小
-      TIMEOUT_MULTIPLIER: 1.2,                      // 预发布环境超时时间略增加
-      ENABLE_DETAILED_LOGS: false,
-      ENABLE_PERFORMANCE_METRICS: true,
     },
 
     // 生产环境配置
     PRODUCTION: {
-      LOG_LEVEL: 'error',
-      CACHE_TTL_MULTIPLIER: 1.0,                    // 生产环境使用标准配置
-      BATCH_SIZE_MULTIPLIER: 1.0,                   // 生产环境使用标准配置
-      TIMEOUT_MULTIPLIER: 1.0,                      // 生产环境使用标准配置
-      ENABLE_DETAILED_LOGS: false,
-      ENABLE_PERFORMANCE_METRICS: false,
     },
   },
 
@@ -154,34 +124,18 @@ export const UNIFIED_CONFIG = Object.freeze({
   FEATURE_FLAGS: {
     // 缓存特性
     CACHE_FEATURES: {
-      ENABLE_L2_CACHE: true,                        // 启用二级缓存
-      ENABLE_CACHE_WARMING: true,                   // 启用缓存预热
-      ENABLE_CACHE_COMPRESSION: false,              // 启用缓存压缩
-      ENABLE_DISTRIBUTED_CACHE: true,               // 启用分布式缓存
     },
 
     // 性能特性
     PERFORMANCE_FEATURES: {
-      ENABLE_REQUEST_BATCHING: true,                // 启用请求批量处理
-      ENABLE_CONNECTION_POOLING: true,              // 启用连接池
-      ENABLE_LAZY_LOADING: true,                    // 启用懒加载
-      ENABLE_PARALLEL_PROCESSING: true,             // 启用并行处理
     },
 
     // 安全特性
     SECURITY_FEATURES: {
-      ENABLE_RATE_LIMITING: true,                   // 启用频率限制
-      ENABLE_IP_WHITELIST: false,                   // 启用IP白名单
-      ENABLE_API_KEY_VALIDATION: true,              // 启用API Key验证
-      ENABLE_REQUEST_SIGNING: false,                // 启用请求签名
     },
 
     // 监控特性
     MONITORING_FEATURES: {
-      ENABLE_METRICS_COLLECTION: true,              // 启用指标收集
-      ENABLE_DISTRIBUTED_TRACING: true,             // 启用分布式追踪
-      ENABLE_HEALTH_CHECKS: true,                   // 启用健康检查
-      ENABLE_ALERTING: true,                        // 启用告警
     },
   },
 
@@ -192,38 +146,21 @@ export const UNIFIED_CONFIG = Object.freeze({
   INTEGRATIONS: {
     // 数据库集成
     DATABASE: {
-      CONNECTION_POOL_SIZE: FOUNDATION_CONSTANTS.LIMITS.CONCURRENCY.DEFAULT_WORKERS * 2,      // 12
-      QUERY_TIMEOUT_MS: FOUNDATION_CONSTANTS.TIMEOUTS.DATABASE.QUERY_MS,                      // 10秒
-      TRANSACTION_TIMEOUT_MS: FOUNDATION_CONSTANTS.TIMEOUTS.DATABASE.TRANSACTION_MS,          // 30秒
-      RETRY_ATTEMPTS: SEMANTIC_CONSTANTS.RETRY.COUNTS.SCENARIO.DATABASE_OPERATION,            // 2
       BATCH_SIZE: DOMAIN_CONSTANTS.ALERT.BATCH.RULE_PROCESSING.EVALUATION_BATCH_SIZE,        // 50
     },
 
     // 缓存集成
     CACHE: {
-      REDIS_POOL_SIZE: FOUNDATION_CONSTANTS.LIMITS.CONCURRENCY.MAX_WORKERS,                   // 50
-      REDIS_TIMEOUT_MS: FOUNDATION_CONSTANTS.TIMEOUTS.CACHE.GET_MS,                           // 1秒
-      DEFAULT_TTL_SEC: SEMANTIC_CONSTANTS.CACHE.TTL.BASIC.MEDIUM_SEC,                         // 30分钟
-      MAX_KEY_SIZE: FOUNDATION_CONSTANTS.LIMITS.STRING_LENGTH.URL_MAX_LENGTH,                 // 2048
-      MAX_VALUE_SIZE: FOUNDATION_CONSTANTS.LIMITS.STORAGE.MAX_JSON_SIZE_BYTES,                // 1MB
     },
 
     // 外部API集成
     EXTERNAL_API: {
-      DEFAULT_TIMEOUT_MS: SEMANTIC_CONSTANTS.HTTP.TIMEOUTS.REQUEST.NORMAL_MS,                 // 30秒
-      MAX_RETRIES: SEMANTIC_CONSTANTS.RETRY.COUNTS.SCENARIO.EXTERNAL_API,                     // 5
-      RATE_LIMIT_PER_MINUTE: DOMAIN_CONSTANTS.RATE_LIMIT.TIERED_LIMITS.premium.REQUESTS_PER_MINUTE, // 500
       BATCH_SIZE: DOMAIN_CONSTANTS.MARKET.BATCH.STOCK_DATA.QUOTE_BATCH_SIZE,                  // 100
-      CONCURRENT_REQUESTS: SEMANTIC_CONSTANTS.BATCH.CONCURRENCY.SCENARIO.NETWORK_REQUEST.WORKERS, // 25
     },
 
     // 消息队列集成
     MESSAGE_QUEUE: {
-      QUEUE_SIZE: FOUNDATION_CONSTANTS.LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,                     // 1000
       BATCH_SIZE: SEMANTIC_CONSTANTS.BATCH.SIZES.PERFORMANCE.MEDIUM_BATCH,                    // 50
-      PROCESSING_TIMEOUT_MS: SEMANTIC_CONSTANTS.BATCH.TIMEOUTS.BASIC.STANDARD_BATCH_MS,       // 10秒
-      RETRY_ATTEMPTS: SEMANTIC_CONSTANTS.RETRY.COUNTS.BASIC.DEFAULT,                          // 3
-      DEAD_LETTER_QUEUE_ENABLED: true,
     },
   },
 } as const);
@@ -239,7 +176,7 @@ export class UnifiedConfigManager {
 
   private constructor() {
     this.environment = process.env.NODE_ENV || 'development';
-    this.featureFlags = new Map();
+    this.featureFlags = new Map<string, boolean>();
     this.initializeFeatureFlags();
   }
 
@@ -261,22 +198,22 @@ export class UnifiedConfigManager {
     
     // 缓存特性开关
     Object.entries(flags.CACHE_FEATURES).forEach(([key, value]) => {
-      this.featureFlags.set(`cache.${key.toLowerCase()}`, value);
+      this.featureFlags.set(`cache.${key.toLowerCase()}`, value as boolean);
     });
 
     // 性能特性开关
     Object.entries(flags.PERFORMANCE_FEATURES).forEach(([key, value]) => {
-      this.featureFlags.set(`performance.${key.toLowerCase()}`, value);
+      this.featureFlags.set(`performance.${key.toLowerCase()}`, value as boolean);
     });
 
     // 安全特性开关
     Object.entries(flags.SECURITY_FEATURES).forEach(([key, value]) => {
-      this.featureFlags.set(`security.${key.toLowerCase()}`, value);
+      this.featureFlags.set(`security.${key.toLowerCase()}`, value as boolean);
     });
 
     // 监控特性开关
     Object.entries(flags.MONITORING_FEATURES).forEach(([key, value]) => {
-      this.featureFlags.set(`monitoring.${key.toLowerCase()}`, value);
+      this.featureFlags.set(`monitoring.${key.toLowerCase()}`, value as boolean);
     });
   }
 

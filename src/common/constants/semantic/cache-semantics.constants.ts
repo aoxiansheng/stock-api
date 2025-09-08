@@ -14,7 +14,6 @@ import { CORE_VALUES, CORE_TTL, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation
 export const CACHE_TTL_SEMANTICS = Object.freeze({
   // 基础TTL分类（秒）
   BASIC: {
-    VERY_SHORT_SEC: CORE_TTL.CACHE.VERY_SHORT_SEC,              // 5秒 - 极短期
     SHORT_SEC: CORE_TTL.CACHE.SHORT_SEC,                        // 5分钟 - 短期
     MEDIUM_SEC: CORE_TTL.CACHE.MEDIUM_SEC,                      // 30分钟 - 中期
     LONG_SEC: CORE_TTL.CACHE.LONG_SEC,                          // 1小时 - 长期
@@ -48,13 +47,11 @@ export const CACHE_KEY_SEMANTICS = Object.freeze({
   // 键前缀分类
   PREFIXES: {
     USER: 'user',
-    SESSION: 'session', 
     API: 'api',
     DATA: 'data',
     QUERY: 'query',
     TEMP: 'temp',
     LOCK: 'lock',
-    COUNTER: 'counter',
     CONFIG: 'config',
     CACHE: 'cache',
   },
@@ -63,7 +60,6 @@ export const CACHE_KEY_SEMANTICS = Object.freeze({
   SEPARATORS: {
     NAMESPACE: ':',           // 命名空间分隔符
     FIELD: '.',              // 字段分隔符  
-    PARAM: '-',              // 参数分隔符
     LIST: '_',               // 列表分隔符
   },
 
@@ -86,32 +82,22 @@ export const CACHE_STRATEGY_SEMANTICS = Object.freeze({
   STRATEGIES: {
     // 缓存优先策略
     CACHE_FIRST: 'cache-first',           // 优先读缓存，缓存未命中时读源
-    CACHE_ONLY: 'cache-only',             // 仅读缓存，不回源
     
     // 源优先策略
-    SOURCE_FIRST: 'source-first',         // 优先读源，源失败时读缓存
-    SOURCE_ONLY: 'source-only',           // 仅读源，不使用缓存
     
     // 写策略
     WRITE_THROUGH: 'write-through',       // 写透策略，同时写缓存和源
-    WRITE_BEHIND: 'write-behind',         // 写回策略，先写缓存后异步写源
     WRITE_AROUND: 'write-around',         // 绕写策略，直接写源不写缓存
   },
 
   // 失效策略
   EVICTION: {
     LRU: 'lru',                          // 最近最少使用
-    LFU: 'lfu',                          // 最少频次使用
-    FIFO: 'fifo',                        // 先进先出
     TTL: 'ttl',                          // 基于TTL
-    MANUAL: 'manual',                    // 手动清除
   },
 
   // 一致性级别
   CONSISTENCY: {
-    STRONG: 'strong',                    // 强一致性
-    EVENTUAL: 'eventual',                // 最终一致性
-    WEAK: 'weak',                        // 弱一致性
   },
 });
 
@@ -122,25 +108,19 @@ export const CACHE_STRATEGY_SEMANTICS = Object.freeze({
 export const CACHE_SIZE_SEMANTICS = Object.freeze({
   // 内存缓存大小限制
   MEMORY: {
-    SMALL_ENTRIES: CORE_VALUES.SIZES.MEDIUM,                    // 100 - 小型缓存
-    MEDIUM_ENTRIES: CORE_VALUES.SIZES.LARGE,                    // 500 - 中型缓存
     LARGE_ENTRIES: CORE_VALUES.SIZES.HUGE,                      // 1000 - 大型缓存
-    HUGE_ENTRIES: CORE_VALUES.SIZES.MASSIVE,                    // 10000 - 巨型缓存
   },
 
   // 单个缓存项大小限制（字节）
   ENTRY_SIZE: {
     SMALL_BYTES: CORE_VALUES.SIZES.SMALL * 1024,                // 50KB - 小项
     MEDIUM_BYTES: CORE_VALUES.SIZES.MEDIUM * 1024,              // 100KB - 中项
-    LARGE_BYTES: CORE_VALUES.SIZES.LARGE * 1024,                // 500KB - 大项
     MAX_BYTES: CORE_LIMITS.STORAGE.MAX_JSON_SIZE_BYTES,         // 1MB - 最大项
   },
 
   // 批量操作大小
   BATCH_OPERATIONS: {
-    OPTIMAL_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,  // 50 - 最优批量
     MAX_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,          // 1000 - 最大批量
-    MIN_SIZE: CORE_LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE,          // 1 - 最小批量
   },
 });
 
@@ -150,18 +130,13 @@ export const CACHE_SIZE_SEMANTICS = Object.freeze({
 export const CACHE_PERFORMANCE_SEMANTICS = Object.freeze({
   // 命中率阈值
   HIT_RATE_THRESHOLDS: {
-    EXCELLENT: CORE_VALUES.PERCENTAGES.MAX * 0.9,               // 90% - 优秀
     GOOD: CORE_VALUES.PERCENTAGES.MAX * 0.8,                    // 80% - 良好
-    FAIR: CORE_VALUES.PERCENTAGES.MAX * 0.7,                    // 70% - 一般
     POOR: CORE_VALUES.PERCENTAGES.MAX * 0.5,                    // 50% - 较差
   },
 
   // 响应时间阈值（毫秒）
   RESPONSE_TIME_THRESHOLDS: {
-    VERY_FAST_MS: CORE_VALUES.PERFORMANCE_MS.VERY_FAST,         // 50ms - 极快
     FAST_MS: CORE_VALUES.PERFORMANCE_MS.FAST,                   // 100ms - 快速
-    NORMAL_MS: CORE_VALUES.PERFORMANCE_MS.NORMAL,               // 500ms - 正常
-    SLOW_MS: CORE_VALUES.PERFORMANCE_MS.SLOW,                   // 1000ms - 慢速
   },
 
   // 内存使用率阈值
@@ -169,7 +144,6 @@ export const CACHE_PERFORMANCE_SEMANTICS = Object.freeze({
     LOW: CORE_VALUES.PERCENTAGES.HALF * 0.5,                    // 25% - 低使用率
     MEDIUM: CORE_VALUES.PERCENTAGES.HALF,                       // 50% - 中等使用率
     HIGH: CORE_VALUES.PERCENTAGES.THREE_QUARTERS,               // 75% - 高使用率
-    CRITICAL: CORE_VALUES.PERCENTAGES.MAX * 0.9,                // 90% - 临界使用率
   },
 });
 
@@ -182,32 +156,19 @@ export const CACHE_OPERATIONS = Object.freeze({
     GET: 'get',
     SET: 'set',
     DELETE: 'delete',
-    EXISTS: 'exists',
-    EXPIRE: 'expire',
     TTL: 'ttl',
   },
 
   // 批量操作  
   BATCH: {
-    MGET: 'mget',
-    MSET: 'mset',
-    MDEL: 'mdel',
   },
 
   // 高级操作
   ADVANCED: {
-    INCREMENT: 'incr',
-    DECREMENT: 'decr',
-    APPEND: 'append',
-    PREPEND: 'prepend',
   },
 
   // 管理操作
   ADMIN: {
-    FLUSH: 'flush',
-    FLUSH_ALL: 'flushall',
-    INFO: 'info',
-    STATS: 'stats',
     PING: 'ping',
   },
 });
@@ -269,17 +230,10 @@ export const CACHE_CONNECTION_SEMANTICS = Object.freeze({
     MAX_RETRIES: CORE_VALUES.NETWORK.DEFAULT_RETRIES,               // 3 - 最大重试次数
     RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,          // 1000ms - 重试延迟
     CONNECTION_TIMEOUT_MS: CORE_TIMEOUTS.CONNECTION.ESTABLISH_MS,     // 5000ms - 连接超时
-    COMMAND_TIMEOUT_MS: CORE_TIMEOUTS.OPERATION.QUICK_MS,          // 3000ms - 命令超时
-    KEEPALIVE_MS: CORE_TIMEOUTS.CONNECTION.KEEP_ALIVE_MS,             // 30000ms - 保活时间
-    MAX_CONNECTIONS: CORE_VALUES.SIZES.SMALL,                      // 50 - 最大连接数（调整为更合理值）
-    MIN_CONNECTIONS: CORE_VALUES.QUANTITIES.FIVE,                  // 5 - 最小连接数
   },
 
   // 连接池配置
   POOL: {
-    INITIAL_SIZE: CORE_VALUES.QUANTITIES.FIVE,                     // 5 - 初始连接数
-    MAX_IDLE_TIME_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS,      // 300000ms - 最大空闲时间
-    HEALTH_CHECK_INTERVAL_MS: CORE_TIMEOUTS.OPERATION.STANDARD_MS, // 30000ms - 健康检查间隔
   },
 });
 
@@ -291,18 +245,12 @@ export const CACHE_MONITORING_SEMANTICS = Object.freeze({
   // 监控配置
   MONITORING: {
     ENABLE_METRICS: true,                                           // 启用指标收集
-    METRICS_INTERVAL_MS: CORE_TIMEOUTS.OPERATION.BACKGROUND_MS, // 10000ms - 指标收集间隔
     ALERT_THRESHOLD_PERCENT: CORE_VALUES.PERCENTAGES.THREE_QUARTERS * 1.2, // 90% - 告警阈值
-    LOG_SLOW_OPERATIONS: true,                                      // 记录慢操作
     SLOW_OPERATION_MS: CORE_VALUES.PERFORMANCE_MS.FAST,           // 100ms - 慢操作阈值
   },
 
   // 性能指标阈值
   PERFORMANCE_THRESHOLDS: {
-    CACHE_HIT_RATE_TARGET: CORE_VALUES.PERCENTAGES.THREE_QUARTERS, // 75% - 缓存命中率目标
-    RESPONSE_TIME_TARGET_MS: CORE_VALUES.PERFORMANCE_MS.VERY_FAST, // 50ms - 响应时间目标
-    MEMORY_USAGE_WARNING: CORE_VALUES.PERCENTAGES.THREE_QUARTERS,  // 75% - 内存使用警告
-    MEMORY_USAGE_CRITICAL: CORE_VALUES.PERCENTAGES.MAX * 0.9,     // 90% - 内存使用临界
   },
 });
 
@@ -327,7 +275,6 @@ export const CACHE_KEY_PREFIX_SEMANTICS = Object.freeze({
     API_KEY: 'api_key',
     PERMISSION: 'permission',
     RATE_LIMIT: 'rate_limit',
-    SESSION: 'session',
   },
 
   // 监控和指标前缀
@@ -349,7 +296,6 @@ export const CACHE_KEY_PREFIX_SEMANTICS = Object.freeze({
   UTILITY_MODULES: {
     TEMP: 'temp',
     LOCK: 'lock',
-    QUEUE: 'queue',
   },
 });
 
@@ -361,29 +307,21 @@ export const CACHE_ADVANCED_STRATEGY_SEMANTICS = Object.freeze({
   // 预热配置
   WARMUP: {
     BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,       // 50 - 预热批量大小
-    DELAY_MS: CORE_VALUES.TIME_MS.ONE_SECOND,                     // 100ms - 预热延迟
-    ENABLE_AUTO_WARMUP: true,                                       // 启用自动预热
   },
 
   // 压缩配置
   COMPRESSION: {
     ENABLE_COMPRESSION: true,                                       // 启用压缩
     ALGORITHM: 'gzip',                                              // 压缩算法
-    THRESHOLD_KB: CORE_VALUES.SIZES.TINY,                         // 6KB - 压缩阈值
     THRESHOLD_BYTES: CORE_VALUES.SIZES.TINY * 1024,               // 6KB转字节
   },
 
   // 更新策略
   UPDATE_STRATEGY: {
-    UPDATE_ON_ACCESS: true,                                         // 访问时更新TTL
-    LAZY_EXPIRATION: true,                                          // 延迟过期
-    BACKGROUND_REFRESH: true,                                       // 后台刷新
   },
 
   // 驱逐策略
   EVICTION_POLICIES: {
-    DEFAULT_POLICY: 'allkeys-lru',                                 // 默认LRU驱逐策略
-    AVAILABLE_POLICIES: ['allkeys-lru', 'allkeys-lfu', 'volatile-lru', 'volatile-lfu'],
   },
 });
 

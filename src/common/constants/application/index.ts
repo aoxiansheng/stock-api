@@ -72,17 +72,11 @@ export const APPLICATION_CONSTANTS = Object.freeze({
   // 环境配置
   ENVIRONMENT: {
     ENUMS: { Environment, LogLevel },
-    DETECTION: ENVIRONMENT_DETECTION,
-    FEATURES: ENVIRONMENT_FEATURES,
-    RESOURCE_LIMITS: ENVIRONMENT_RESOURCE_LIMITS,
   },
 
   // 元信息
   META: {
     VERSION: '1.0.0',
-    ARCHITECTURE: 'Foundation → Semantic → Domain → Application',
-    LAYER_COUNT: 4,
-    CREATED_DATE: new Date().toISOString(),
   },
 } as const);
 

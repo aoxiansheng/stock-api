@@ -17,13 +17,10 @@
 export const REFERENCE_DATA = Object.freeze({
   /**
    * 测试时间戳配置
-   * 🔥 解决 "2024-01-01T12:00:00.000Z" 的73次重复
    */
   TEST_TIMESTAMPS: {
     // 标准参考时间 - 用于示例和测试
     REFERENCE_DATE: '2024-01-01T12:00:00.000Z',    // 2024年开始中午时间 (73次重复)
-    REFERENCE_DATE_START: '2024-01-01T00:00:00.000Z', // 2024年开始零点
-    REFERENCE_DATE_END: '2024-01-01T23:59:59.999Z',   // 2024年开始结束
     
     // 年度时间范围
     YEAR_START: '2024-01-01T00:00:00.000Z',        // 年度开始
@@ -40,18 +37,10 @@ export const REFERENCE_DATA = Object.freeze({
     Q4_END: '2024-12-31T23:59:59.999Z',            // Q4结束
     
     // 特殊测试时间点
-    TRADING_START: '2024-01-02T09:30:00.000Z',     // 交易开始时间
-    TRADING_END: '2024-01-02T16:00:00.000Z',       // 交易结束时间
-    LUNCH_START: '2024-01-02T12:00:00.000Z',       // 午休开始
-    LUNCH_END: '2024-01-02T13:00:00.000Z',         // 午休结束
     
     // 历史时间点
-    EPOCH_START: '1970-01-01T00:00:00.000Z',       // Unix时间戳起点
-    MILLENNIUM_START: '2000-01-01T00:00:00.000Z',  // 千年开始
     
     // 未来时间点
-    FUTURE_DATE: '2030-12-31T23:59:59.999Z',       // 未来参考时间
-    EXPIRY_FAR_FUTURE: '2099-12-31T23:59:59.999Z', // 远期过期时间
   },
   
   /**
@@ -81,9 +70,6 @@ export const REFERENCE_DATA = Object.freeze({
     CN_ALIBABA_SW: '688688.SH',    // 阿里软件 - 上海科创板
     
     // 特殊格式测试
-    INVALID_SYMBOL: 'INVALID',      // 无效股票代码
-    EMPTY_SYMBOL: '',               // 空股票代码
-    LONG_SYMBOL: 'VERY_LONG_SYMBOL_NAME_FOR_TESTING', // 长股票代码
   },
   
   /**
@@ -98,16 +84,8 @@ export const REFERENCE_DATA = Object.freeze({
     LONGPORT_US: 'longport-us',    // 长桥美国
     
     // 其他提供商
-    YAHOO_FINANCE: 'yahoo',        // 雅虎财经
-    BLOOMBERG: 'bloomberg',        // 彭博
-    REUTERS: 'reuters',            // 路透社
-    QUANDL: 'quandl',             // Quandl数据
-    ALPHA_VANTAGE: 'alphavantage', // Alpha Vantage
     
     // 测试提供商
-    TEST_PROVIDER: 'test-provider', // 测试提供商
-    MOCK_PROVIDER: 'mock-provider', // 模拟提供商
-    FAKE_PROVIDER: 'fake-provider', // 假数据提供商
   },
   
   /**
@@ -139,10 +117,6 @@ export const REFERENCE_DATA = Object.freeze({
     
     // 测试API密钥
     TEST_API_KEYS: {
-      VALID_KEY: 'test-api-key-valid-123456789',
-      EXPIRED_KEY: 'test-api-key-expired-123456789',
-      INVALID_KEY: 'test-api-key-invalid-123456789',
-      ADMIN_KEY: 'test-api-key-admin-123456789',
     }
   },
   
@@ -153,23 +127,23 @@ export const REFERENCE_DATA = Object.freeze({
   TEST_DATASETS: {
     // 股票价格测试数据
     SAMPLE_PRICES: {
-      TENCENT_PRICE: 320.50,        // 腾讯参考价格
-      APPLE_PRICE: 175.25,          // 苹果参考价格
-      TESLA_PRICE: 248.75,          // 特斯拉参考价格
+      TENCENT_PRICE: 350.50,
+      APPLE_PRICE: 182.30,
+      TESLA_PRICE: 245.75,
     },
     
     // 交易量测试数据
     SAMPLE_VOLUMES: {
-      LOW_VOLUME: 1000,             // 低交易量
-      NORMAL_VOLUME: 50000,         // 正常交易量
-      HIGH_VOLUME: 1000000,         // 高交易量
+      LOW_VOLUME: 1000,
+      NORMAL_VOLUME: 10000,
+      HIGH_VOLUME: 100000,
     },
     
     // 市值测试数据
     SAMPLE_MARKET_CAPS: {
-      SMALL_CAP: 1000000000,        // 10亿 - 小盘股
-      MID_CAP: 10000000000,         // 100亿 - 中盘股
-      LARGE_CAP: 100000000000,      // 1000亿 - 大盘股
+      SMALL_CAP: 2000000000,
+      MID_CAP: 10000000000,
+      LARGE_CAP: 100000000000,
     }
   },
   
@@ -208,24 +182,12 @@ export const REFERENCE_DATA = Object.freeze({
    */
   ERROR_SCENARIOS: {
     // 网络错误
-    NETWORK_TIMEOUT: 'NETWORK_TIMEOUT',
-    CONNECTION_REFUSED: 'CONNECTION_REFUSED', 
-    DNS_RESOLUTION_FAILED: 'DNS_RESOLUTION_FAILED',
     
     // 数据错误  
-    INVALID_SYMBOL_FORMAT: 'INVALID_SYMBOL_FORMAT',
-    SYMBOL_NOT_FOUND: 'SYMBOL_NOT_FOUND',
-    DATA_NOT_AVAILABLE: 'DATA_NOT_AVAILABLE',
     
     // 认证错误
-    INVALID_API_KEY: 'INVALID_API_KEY',
-    EXPIRED_TOKEN: 'EXPIRED_TOKEN',
-    INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
     
     // 限制错误
-    RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-    QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
-    SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
   }
 } as const);
 

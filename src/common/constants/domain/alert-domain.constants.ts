@@ -70,32 +70,22 @@ export const ALERT_RATE_LIMIT_CONFIG = Object.freeze({
   TRIGGER_EVALUATION: {
     MAX_REQUESTS_PER_MINUTE: 5,                                      // 每分钟最多5次
     WINDOW_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC * 1000, // 1分钟窗口
-    COOLDOWN_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC * 1000 / 2,    // 5分钟冷却期
   },
 
   // 告警通知频率限制
   NOTIFICATION: {
-    MAX_REQUESTS_PER_MINUTE: 10,                                     // 每分钟最多10次通知
-    WINDOW_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC * 1000, // 1分钟窗口
-    COOLDOWN_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC * 1000 / 2,    // 5分钟冷却期
   },
 
   // 批量操作限制
   BATCH_OPERATIONS: {
-    MAX_REQUESTS_PER_MINUTE: 3,                                      // 每分钟最多3次批量操作
-    WINDOW_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC * 1000, // 1分钟窗口
     MAX_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH,   // 50 - 批量操作大小限制
   },
 
   // 严重程度相关限制
   SEVERITY_BASED: {
     [AlertSeverity.EMERGENCY]: {
-      MAX_PER_HOUR: 100,                                             // 紧急告警每小时限制
-      MIN_INTERVAL_MS: 30 * 1000,                                    // 最小间隔30秒
     },
     [AlertSeverity.CRITICAL]: {
-      MAX_PER_HOUR: 50,                                              // 严重告警每小时限制
-      MIN_INTERVAL_MS: 60 * 1000,                                    // 最小间隔1分钟
     },
     [AlertSeverity.HIGH]: {
       MAX_PER_HOUR: 20,                                              // 高级告警每小时限制
@@ -119,23 +109,14 @@ export const ALERT_RATE_LIMIT_CONFIG = Object.freeze({
 export const ALERT_CACHE_CONFIG = Object.freeze({
   // 告警规则缓存
   RULES: {
-    ACTIVE_RULES_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,      // 10分钟 - 活跃规则
-    RULE_CONFIG_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC,  // 1小时 - 规则配置
-    RULE_STATS_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,        // 10分钟 - 规则统计
   },
 
   // 告警历史缓存
   HISTORY: {
-    RECENT_ALERTS_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC, // 1分钟 - 最近告警
-    ALERT_LOG_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,         // 10分钟 - 告警日志
-    STATISTICS_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC,   // 1小时 - 告警统计
   },
 
   // 通知缓存
   NOTIFICATIONS: {
-    TEMPLATE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,          // 1天 - 通知模板
-    CHANNEL_CONFIG_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC, // 1小时 - 渠道配置
-    DELIVERY_STATUS_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,   // 10分钟 - 发送状态
   },
 });
 
@@ -146,25 +127,14 @@ export const ALERT_CACHE_CONFIG = Object.freeze({
 export const ALERT_API_TIMEOUTS = Object.freeze({
   // 规则操作超时
   RULE_OPERATIONS: {
-    CREATE_RULE_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,            // 30秒 - 创建规则
-    UPDATE_RULE_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,            // 30秒 - 更新规则
-    DELETE_RULE_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,              // 5秒 - 删除规则
-    EVALUATE_RULE_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,            // 60秒 - 规则评估
   },
 
   // 告警处理超时
   ALERT_PROCESSING: {
-    TRIGGER_ALERT_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,            // 5秒 - 触发告警
-    RESOLVE_ALERT_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,            // 5秒 - 解决告警
-    BATCH_PROCESS_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,            // 60秒 - 批量处理
   },
 
   // 通知发送超时
   NOTIFICATION: {
-    EMAIL_SEND_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,             // 30秒 - 邮件发送
-    SMS_SEND_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS * 2,             // 10秒 - 短信发送
-    WEBHOOK_SEND_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,             // 5秒 - Webhook发送
-    PUSH_SEND_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,                // 5秒 - 推送发送
   },
 });
 
@@ -176,22 +146,16 @@ export const ALERT_BATCH_CONFIG = Object.freeze({
   // 规则批量处理
   RULE_PROCESSING: {
     EVALUATION_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH,    // 50 - 规则评估批量
-    UPDATE_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,         // 25 - 规则更新批量
-    DELETE_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,         // 25 - 规则删除批量
   },
 
   // 告警批量处理
   ALERT_PROCESSING: {
     TRIGGER_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH,        // 100 - 告警触发批量
-    RESOLVE_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH,       // 50 - 告警解决批量
-    CLEANUP_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH,        // 100 - 告警清理批量
   },
 
   // 通知批量发送
   NOTIFICATION_BATCH: {
     EMAIL_BATCH_SIZE: BATCH_SIZE_SEMANTICS.SCENARIO.NOTIFICATION_BATCH,      // 50 - 邮件批量发送
-    SMS_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,            // 25 - 短信批量发送
-    WEBHOOK_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH,       // 50 - Webhook批量发送
   },
 });
 
@@ -232,42 +196,19 @@ export const ALERT_RETRY_CONFIG = Object.freeze({
 export const ALERT_MESSAGES = Object.freeze({
   // 成功消息
   SUCCESS: {
-    RULE_CREATED: "告警规则创建成功",
-    RULE_UPDATED: "告警规则更新成功", 
-    RULE_DELETED: "告警规则删除成功",
-    RULE_STATUS_TOGGLED: "切换告警规则状态成功",
-    NOTIFICATION_SENT: "通知发送成功",
-    ALERT_RESOLVED: "告警已解决",
   },
 
   // 错误消息
   ERRORS: {
-    RULE_NOT_FOUND: "告警规则不存在",
-    RULE_CREATION_FAILED: "创建告警规则失败",
-    RULE_UPDATE_FAILED: "更新告警规则失败",
-    RULE_DELETE_FAILED: "删除告警规则失败",
-    NOTIFICATION_FAILED: "通知发送失败",
-    EVALUATION_FAILED: "规则评估失败",
-    INVALID_RULE_CONFIG: "无效的规则配置",
-    RATE_LIMIT_EXCEEDED: "操作频率超出限制",
   },
 
   // 状态消息
   STATUS: {
-    RULE_ACTIVE: "规则已激活",
-    RULE_INACTIVE: "规则已停用", 
-    ALERT_TRIGGERED: "告警已触发",
-    ALERT_PENDING: "告警待处理",
-    NOTIFICATION_QUEUED: "通知已加入队列",
     PROCESSING: "处理中...",
   },
 
   // 频率限制消息
   RATE_LIMIT: {
-    TRIGGER_RATE_EXCEEDED: "手动触发频率过高，请稍后再试",
-    NOTIFICATION_RATE_EXCEEDED: "通知发送频率过高，请稍后再试",
-    BATCH_RATE_EXCEEDED: "批量操作频率过高，请稍后再试",
-    SEVERITY_RATE_EXCEEDED: "该严重程度告警频率超限，请稍后再试",
   },
 });
 
@@ -287,19 +228,16 @@ export const ALERT_VALIDATION_RULES = Object.freeze({
   THRESHOLD: {
     MIN_VALUE: 0,
     MAX_VALUE: Number.MAX_SAFE_INTEGER,
-    DECIMAL_PLACES: 6,
   },
 
   // 时间间隔验证
   INTERVAL: {
     MIN_SECONDS: 30,                               // 最小30秒间隔
     MAX_SECONDS: 24 * 60 * 60,                     // 最大24小时间隔
-    DEFAULT_SECONDS: 300,                          // 默认5分钟间隔
   },
 
   // 批量操作验证
   BATCH: {
-    MIN_SIZE: 1,
     MAX_SIZE: ALERT_BATCH_CONFIG.ALERT_PROCESSING.TRIGGER_BATCH_SIZE,
   },
 });

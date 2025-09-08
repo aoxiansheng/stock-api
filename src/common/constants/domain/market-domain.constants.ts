@@ -95,22 +95,16 @@ export const MARKET_CACHE_CONFIG = Object.freeze({
   // 实时数据缓存TTL（秒）
   REALTIME_DATA: {
     QUOTE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,        // 5秒 - 股价数据
-    ORDER_BOOK_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,   // 5秒 - 订单簿数据
-    TRADE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,        // 5秒 - 交易数据
   },
 
   // 基础信息缓存TTL（秒）
   BASIC_INFO: {
     COMPANY_INFO_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,   // 1天 - 公司基本信息
-    FINANCIAL_DATA_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC, // 1小时 - 财务数据
-    MARKET_STATUS_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,  // 10分钟 - 市场状态
   },
 
   // 历史数据缓存TTL（秒）
   HISTORICAL: {
     DAILY_KLINE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,    // 1天 - 日K线数据
-    MINUTE_KLINE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC, // 1分钟 - 分钟K线
-    VOLUME_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,         // 10分钟 - 成交量数据
   },
 });
 
@@ -121,23 +115,14 @@ export const MARKET_CACHE_CONFIG = Object.freeze({
 export const MARKET_API_TIMEOUTS = Object.freeze({
   // 实时数据API超时
   REALTIME: {
-    QUOTE_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,          // 5秒 - 股价请求
-    ORDER_BOOK_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,             // 5秒 - 订单簿请求
-    TRADE_STREAM_MS: HTTP_TIMEOUTS.CONNECTION.KEEP_ALIVE_MS,  // 60秒 - 交易流连接
   },
 
   // 历史数据API超时
   HISTORICAL: {
-    KLINE_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,        // 30秒 - K线数据请求
-    VOLUME_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,       // 30秒 - 成交量请求
-    FINANCIAL_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,      // 60秒 - 财务数据请求
   },
 
   // 批量操作超时
   BATCH: {
-    MULTI_QUOTE_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,            // 60秒 - 批量股价请求
-    SYMBOL_LIST_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,          // 30秒 - 股票列表请求
-    MARKET_OVERVIEW_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,      // 30秒 - 市场概览请求
   },
 });
 
@@ -155,16 +140,10 @@ export const MARKET_BATCH_CONFIG = Object.freeze({
 
   // 市场概览批量处理
   MARKET_OVERVIEW: {
-    SECTOR_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,        // 25 - 行业数据批量
-    INDEX_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,         // 25 - 指数数据批量
-    TOP_STOCKS_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH,         // 50 - 热门股票数量
   },
 
   // 数据同步批量处理
   DATA_SYNC: {
-    REALTIME_SYNC_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.HUGE_BATCH,        // 500 - 实时同步批量
-    HISTORICAL_SYNC_SIZE: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,              // 1000 - 历史同步批量
-    CLEANUP_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH,       // 100 - 清理批量
   },
 });
 
@@ -339,23 +318,14 @@ export const CHANGE_DETECTION_THRESHOLDS = Object.freeze({
 export const MARKET_DATA_QUALITY = Object.freeze({
   // 数据完整性检查
   COMPLETENESS: {
-    MIN_REQUIRED_FIELDS: 5,        // 最少必需字段数
-    MAX_MISSING_RATE: 0.05,        // 最大缺失率 5%
-    REQUIRED_FIELDS: ['symbol', 'price', 'volume', 'timestamp', 'market'],
   },
 
   // 数据时效性检查
   TIMELINESS: {
-    MAX_DELAY_SECONDS: 30,         // 最大延迟30秒
-    STALE_DATA_THRESHOLD: 300,     // 过期数据阈值5分钟
-    REALTIME_THRESHOLD: 10,        // 实时数据阈值10秒
   },
 
   // 数据准确性检查
   ACCURACY: {
-    PRICE_CHANGE_THRESHOLD: 0.5,   // 价格变动阈值50%
-    VOLUME_SPIKE_THRESHOLD: 10,    // 成交量突增阈值10倍
-    OUTLIER_DETECTION: true,       // 启用异常值检测
   },
 });
 

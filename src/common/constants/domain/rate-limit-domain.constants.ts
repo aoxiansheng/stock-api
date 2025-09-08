@@ -75,11 +75,11 @@ export const RATE_LIMIT_STRATEGY_USE_CASES = Object.freeze({
 export const TIERED_RATE_LIMITS = Object.freeze({
   // 免费用户限制
   [RateLimitTier.FREE]: {
-    REQUESTS_PER_MINUTE: 60,                                         // 每分钟60次
+    REQUESTS_PER_MINUTE: 100,                                        // 每分钟100次
     REQUESTS_PER_HOUR: 1000,                                         // 每小时1000次
-    REQUESTS_PER_DAY: 10000,                                         // 每天10000次
+    REQUESTS_PER_DAY: 5000,                                          // 每天5000次
     CONCURRENT_REQUESTS: 5,                                          // 并发5个请求
-    BURST_ALLOWANCE: 10,                                             // 突发允许10次
+    BURST_ALLOWANCE: 20,                                             // 突发允许20次
   },
 
   // 基础用户限制
@@ -127,58 +127,30 @@ export const ENDPOINT_RATE_LIMITS = Object.freeze({
   // 认证相关端点
   AUTHENTICATION: {
     LOGIN: {
-      REQUESTS_PER_MINUTE: 10,                                       // 登录每分钟10次
-      REQUESTS_PER_HOUR: 50,                                         // 登录每小时50次
-      LOCKOUT_DURATION_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC * 1000 * 3, // 30分钟锁定
     },
     REGISTER: {
-      REQUESTS_PER_MINUTE: 5,                                        // 注册每分钟5次
-      REQUESTS_PER_HOUR: 20,                                         // 注册每小时20次
-      LOCKOUT_DURATION_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC * 1000, // 1小时锁定
     },
     PASSWORD_RESET: {
-      REQUESTS_PER_MINUTE: 3,                                        // 密码重置每分钟3次
-      REQUESTS_PER_HOUR: 10,                                         // 密码重置每小时10次
-      LOCKOUT_DURATION_MS: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC * 1000, // 1天锁定
     },
   },
 
   // 数据查询端点
   DATA_QUERY: {
     STOCK_QUOTE: {
-      REQUESTS_PER_MINUTE: 300,                                      // 股价查询每分钟300次
-      REQUESTS_PER_HOUR: 10000,                                      // 股价查询每小时10000次
-      BATCH_SIZE_LIMIT: BATCH_SIZE_SEMANTICS.SCENARIO.API_REQUEST_PROCESSING, // 批量限制100
     },
     MARKET_DATA: {
-      REQUESTS_PER_MINUTE: 200,                                      // 市场数据每分钟200次
-      REQUESTS_PER_HOUR: 5000,                                       // 市场数据每小时5000次
-      BATCH_SIZE_LIMIT: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH, // 批量限制50
     },
     HISTORICAL_DATA: {
-      REQUESTS_PER_MINUTE: 100,                                      // 历史数据每分钟100次
-      REQUESTS_PER_HOUR: 2000,                                       // 历史数据每小时2000次
-      BATCH_SIZE_LIMIT: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH, // 批量限制25
     },
   },
 
   // 写操作端点
   WRITE_OPERATIONS: {
     CREATE_ALERT: {
-      REQUESTS_PER_MINUTE: 20,                                       // 创建告警每分钟20次
-      REQUESTS_PER_HOUR: 200,                                        // 创建告警每小时200次
-      DAILY_LIMIT: 1000,                                            // 每天创建1000个告警
     },
     UPDATE_PROFILE: {
-      REQUESTS_PER_MINUTE: 10,                                       // 更新资料每分钟10次
-      REQUESTS_PER_HOUR: 100,                                        // 更新资料每小时100次
-      DAILY_LIMIT: 500,                                             // 每天更新500次
     },
     FILE_UPLOAD: {
-      REQUESTS_PER_MINUTE: 5,                                        // 文件上传每分钟5次
-      REQUESTS_PER_HOUR: 50,                                         // 文件上传每小时50次
-      DAILY_LIMIT: 100,                                             // 每天上传100个文件
-      SIZE_LIMIT_MB: 10,                                            // 单文件大小限制10MB
     },
   },
 });
@@ -191,21 +163,15 @@ export const RATE_LIMIT_CACHE_CONFIG = Object.freeze({
   // 计数器缓存
   COUNTERS: {
     WINDOW_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC * 2,    // 2分钟 - 计数器窗口
-    RESET_MARKER_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,           // 10分钟 - 重置标记
-    BURST_ALLOWANCE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC, // 1分钟 - 突发允许
   },
 
   // 锁定状态缓存
   LOCKOUTS: {
-    IP_LOCKOUT_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC,        // 1小时 - IP锁定
     USER_LOCKOUT_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC * 3,       // 30分钟 - 用户锁定
-    API_KEY_LOCKOUT_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC,   // 1小时 - API Key锁定
   },
 
   // 白名单缓存
   WHITELIST: {
-    IP_WHITELIST_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,           // 1天 - IP白名单
-    API_KEY_WHITELIST_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,      // 1天 - API Key白名单
     CONFIG_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC,            // 1小时 - 配置缓存
   },
 });
@@ -217,23 +183,14 @@ export const RATE_LIMIT_CACHE_CONFIG = Object.freeze({
 export const RATE_LIMIT_TIMEOUTS = Object.freeze({
   // 检查操作超时
   CHECK_OPERATIONS: {
-    RATE_LIMIT_CHECK_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS / 5,          // 1秒 - 频率限制检查
-    CACHE_LOOKUP_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS / 10,             // 500ms - 缓存查询
-    COUNTER_UPDATE_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS / 5,            // 1秒 - 计数器更新
   },
 
   // 清理操作超时
   CLEANUP_OPERATIONS: {
-    EXPIRED_CLEANUP_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,               // 60秒 - 过期数据清理
-    RESET_COUNTERS_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,              // 30秒 - 计数器重置
-    STATISTICS_UPDATE_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,           // 30秒 - 统计更新
   },
 
   // 管理操作超时
   ADMIN_OPERATIONS: {
-    CONFIG_UPDATE_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,               // 30秒 - 配置更新
-    WHITELIST_UPDATE_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,              // 5秒 - 白名单更新
-    STATISTICS_EXPORT_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,             // 60秒 - 统计导出
   },
 });
 
@@ -268,7 +225,6 @@ export const RATE_LIMIT_RETRY_CONFIG = Object.freeze({
 export const RATE_LIMIT_MESSAGES = Object.freeze({
   // 限制触发消息
   LIMIT_EXCEEDED: {
-    GENERAL: "请求频率超出限制，请稍后再试",
     PER_MINUTE: "每分钟请求次数超出限制，请等待 {remaining} 秒后再试",
     PER_HOUR: "每小时请求次数超出限制，请等待 {remaining} 分钟后再试",
     PER_DAY: "每日请求次数超出限制，请明天再试",
@@ -314,26 +270,14 @@ export const RATE_LIMIT_MESSAGES = Object.freeze({
 export const RATE_LIMIT_STATISTICS = Object.freeze({
   // 统计指标
   METRICS: {
-    TOTAL_REQUESTS: "total_requests",                                // 总请求数
-    BLOCKED_REQUESTS: "blocked_requests",                           // 被阻止的请求数
-    ALLOWED_REQUESTS: "allowed_requests",                           // 允许的请求数
-    AVERAGE_REQUEST_RATE: "average_request_rate",                   // 平均请求速率
-    PEAK_REQUEST_RATE: "peak_request_rate",                         // 峰值请求速率
   },
 
   // 统计时间窗口
   TIME_WINDOWS: {
-    REAL_TIME: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,          // 5秒 - 实时统计
-    SHORT_TERM: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC,  // 1分钟 - 短期统计
-    MEDIUM_TERM: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,          // 10分钟 - 中期统计
-    LONG_TERM: CACHE_TTL_SEMANTICS.DATA_TYPE.SLOW_UPDATE_SEC,       // 1小时 - 长期统计
   },
 
   // 报告频率
   REPORTING: {
-    REAL_TIME_INTERVAL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,     // 5秒更新
-    SUMMARY_INTERVAL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.NORMAL_UPDATE_SEC,         // 10分钟汇总
-    DAILY_REPORT_HOUR: 23,                                                  // 每天23点生成日报
   },
 });
 
@@ -447,14 +391,6 @@ export const RATE_LIMIT_OPERATIONS = Object.freeze({
   CHECK_FIXED_WINDOW: "checkFixedWindow",
   CHECK_SLIDING_WINDOW: "checkSlidingWindow",
   RESET_RATE_LIMIT: "resetRateLimit",
-  GET_CURRENT_USAGE: "getCurrentUsage",
-  GET_USAGE_STATISTICS: "getUsageStatistics",
-  GENERATE_REDIS_KEY: "generateRedisKey",
-  PARSE_WINDOW_TO_SECONDS: "parseWindowToSeconds",
-  VALIDATE_STRATEGY: "validateStrategy",
-  VALIDATE_WINDOW_FORMAT: "validateWindowFormat",
-  EXECUTE_LUA_SCRIPT: "executeLuaScript",
-  CLEANUP_EXPIRED_KEYS: "cleanupExpiredKeys",
 });
 
 /**
@@ -477,10 +413,6 @@ export const RATE_LIMIT_ERROR_TEMPLATES = Object.freeze({
  * 🎯 频率限制相关的Redis Lua脚本标识
  */
 export const RATE_LIMIT_LUA_SCRIPT_NAMES = Object.freeze({
-  SLIDING_WINDOW: 'sliding_window',
-  SLIDING_WINDOW_COUNT_ONLY: 'sliding_window_count_only', 
-  BATCH_CLEANUP: 'batch_cleanup',
-  FIXED_WINDOW: 'fixed_window',
 } as const);
 
 /**
@@ -522,12 +454,6 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
 
   // === API Key 级别限流配置 ===
   API_KEY: {
-    DEFAULT_STRATEGY: (process.env.API_RATE_LIMIT_STRATEGY as RateLimitStrategy) || RateLimitStrategy.FIXED_WINDOW,
-    DEFAULT_WINDOW: process.env.API_RATE_LIMIT_DEFAULT_WINDOW || "1m",
-    DEFAULT_REQUESTS: getDefaultApiKeyRequests(), // 动态计算
-    MIN_REQUESTS: 1,
-    MAX_REQUESTS: 1000000,
-    WARNING_PERCENTAGE: 90, // 告警阈值
   },
 
   // === 窗口时间配置 ===
@@ -540,7 +466,6 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
   // === Redis 相关配置 ===
   REDIS: {
     EXPIRE_BUFFER_SECONDS: 10,
-    BATCH_CLEANUP_SIZE: 100,
     CONNECTION_TIMEOUT: 10000,
     COMMAND_TIMEOUT: 5000,
     MAX_RETRIES: 3,
@@ -548,39 +473,23 @@ export const RATE_LIMIT_CONFIG = Object.freeze({
 
   // === 性能相关配置 ===
   PERFORMANCE: {
-    STATISTICS_PRECISION: 2,
     TEST_MODE: process.env.PERFORMANCE_TEST_MODE === "true",
     MULTIPLIER: parseInt(process.env.RATE_LIMIT_MULTIPLIER) || 1,
   },
 
   // === IP 级别限流配置 ===
   IP_RATE_LIMIT: {
-    ENABLED: process.env.IP_RATE_LIMIT_ENABLED !== "false",
-    MAX_REQUESTS: parseInt(process.env.IP_RATE_LIMIT_MAX) || 1000,
-    WINDOW_MS: parseInt(process.env.IP_RATE_LIMIT_WINDOW) || 60000, // 1分钟
   },
 
   // === 系统级时间间隔配置 ===
   SYSTEM_INTERVALS: {
     // 认证模块清理间隔
-    AUTH_TOKEN_CLEANUP: 3600000,        // 1小时 - Token清理
-    AUTH_SESSION_CLEANUP: 1800000,      // 30分钟 - Session清理
-    AUTH_LOGIN_ATTEMPT_RESET: 900000,   // 15分钟 - 登录尝试重置
-    AUTH_PASSWORD_EXPIRY_CHECK: 86400000, // 24小时 - 密码过期检查
-    AUTH_ACCOUNT_LOCK_CHECK: 300000,    // 5分钟 - 账户锁定检查
 
     // 权限模块清理间隔
-    PERMISSION_CACHE_CLEANUP: 1800000,  // 30分钟 - 权限缓存清理
-    PERMISSION_REFRESH: 3600000,        // 1小时 - 权限刷新
 
     // API Key模块清理间隔
-    APIKEY_CLEANUP: 300000,             // 5分钟 - API Key清理
-    APIKEY_USAGE_RESET: 3600000,        // 1小时 - 使用统计重置
 
     // 通用系统清理间隔
-    LOG_CLEANUP: 604800000,             // 7天 - 日志清理
-    METRICS_COLLECTION: 60000,          // 1分钟 - 指标收集
-    HEALTH_CHECK: 30000,                // 30秒 - 健康检查
   },
 });
 
@@ -633,7 +542,6 @@ export const RATE_LIMIT_VALIDATION_RULES = Object.freeze({
   APP_KEY_PATTERN: /^[a-zA-Z0-9_-]+$/,
   MIN_APP_KEY_LENGTH: 3,
   MAX_APP_KEY_LENGTH: 64,
-  REDIS_KEY_MAX_LENGTH: 512,
 });
 
 /**

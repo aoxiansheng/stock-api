@@ -22,16 +22,13 @@ export const RETRY_DELAY_SEMANTICS = Object.freeze({
   // 场景特定延迟（毫秒）
   SCENARIO: {
     NETWORK_FAILURE_MS: CORE_VALUES.TIME_MS.ONE_SECOND,         // 1000ms - 网络故障
-    SERVICE_UNAVAILABLE_MS: CORE_VALUES.TIME_MS.FIVE_SECONDS,   // 5000ms - 服务不可用
     RATE_LIMIT_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,             // 10000ms - 频率限制
     DATABASE_ERROR_MS: CORE_VALUES.TIME_MS.ONE_SECOND * 2,      // 2000ms - 数据库错误
-    TIMEOUT_ERROR_MS: CORE_VALUES.TIME_MS.ONE_SECOND * 3,       // 3000ms - 超时错误
   },
 
   // 退避策略延迟（毫秒）
   BACKOFF: {
     LINEAR_STEP_MS: CORE_VALUES.TIME_MS.ONE_SECOND,             // 1000ms - 线性退避步长
-    EXPONENTIAL_BASE_MS: CORE_VALUES.TIME_MS.ONE_SECOND,        // 1000ms - 指数退避基数
     EXPONENTIAL_MAX_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS,     // 30000ms - 指数退避上限
     RANDOM_JITTER_MAX_MS: CORE_VALUES.TIME_MS.ONE_SECOND,       // 1000ms - 随机抖动上限
   },
@@ -54,7 +51,6 @@ export const RETRY_COUNT_SEMANTICS = Object.freeze({
     NETWORK_OPERATION: CORE_VALUES.QUANTITIES.THREE,            // 3 - 网络操作
     DATABASE_OPERATION: CORE_VALUES.QUANTITIES.TWO,             // 2 - 数据库操作
     EXTERNAL_API: CORE_VALUES.QUANTITIES.FIVE,                  // 5 - 外部API调用
-    FILE_OPERATION: CORE_VALUES.QUANTITIES.THREE,               // 3 - 文件操作
     CACHE_OPERATION: CORE_VALUES.QUANTITIES.TWO,                // 2 - 缓存操作
   },
 
@@ -86,15 +82,11 @@ export const RETRY_STRATEGY_SEMANTICS = Object.freeze({
     ON_TIMEOUT: 'on-timeout',           // 仅超时重试
     ON_NETWORK_ERROR: 'on-network-error', // 仅网络错误重试
     ON_SERVER_ERROR: 'on-server-error', // 仅服务器错误重试
-    ON_RATE_LIMIT: 'on-rate-limit',     // 仅频率限制重试
   },
 
   // 重试终止条件
   STOP_CONDITIONS: {
-    MAX_ATTEMPTS: 'max-attempts',        // 达到最大重试次数
-    MAX_DURATION: 'max-duration',        // 达到最大重试时长
     SUCCESS: 'success',                  // 成功执行
-    PERMANENT_FAILURE: 'permanent-failure', // 永久性失败
   },
 });
 
@@ -118,6 +110,8 @@ export const RETRYABLE_ERROR_SEMANTICS = Object.freeze({
       523, // Origin Is Unreachable
       524, // A Timeout Occurred
     ],
+    
+    // 不可重试的HTTP状态码 (客户端错误)
     NON_RETRYABLE: [
       400, // Bad Request
       401, // Unauthorized
@@ -141,6 +135,7 @@ export const RETRYABLE_ERROR_SEMANTICS = Object.freeze({
       'GatewayTimeoutError',
       'ServerError',
     ],
+    
     NON_RETRYABLE: [
       'ValidationError',
       'AuthenticationError', 
@@ -160,6 +155,7 @@ export const RETRYABLE_ERROR_SEMANTICS = Object.freeze({
       'ENOTFOUND',     // DNS解析失败
       'ECONNABORTED',  // 连接中止
     ],
+    
     NON_RETRYABLE: [
       'EACCES',        // 权限拒绝
       'EADDRINUSE',    // 地址已使用
@@ -187,6 +183,15 @@ export const RETRY_CONFIG_TEMPLATES = Object.freeze({
     maxAttempts: RETRY_COUNT_SEMANTICS.SCENARIO.DATABASE_OPERATION,
     initialDelayMs: RETRY_DELAY_SEMANTICS.SCENARIO.DATABASE_ERROR_MS,
     maxDelayMs: RETRY_DELAY_SEMANTICS.BACKOFF.LINEAR_STEP_MS * 3,
+    backoffStrategy: RETRY_STRATEGY_SEMANTICS.BACKOFF_STRATEGIES.LINEAR,
+    retryOn: RETRY_STRATEGY_SEMANTICS.RETRY_CONDITIONS.ON_FAILURE,
+  },
+
+  // 缓存操作重试配置
+  CACHE_OPERATION: {
+    maxAttempts: RETRY_COUNT_SEMANTICS.SCENARIO.CACHE_OPERATION,
+    initialDelayMs: RETRY_DELAY_SEMANTICS.BASIC.INITIAL_MS,
+    maxDelayMs: RETRY_DELAY_SEMANTICS.BACKOFF.LINEAR_STEP_MS * 2,
     backoffStrategy: RETRY_STRATEGY_SEMANTICS.BACKOFF_STRATEGIES.LINEAR,
     retryOn: RETRY_STRATEGY_SEMANTICS.RETRY_CONDITIONS.ON_FAILURE,
   },
@@ -351,10 +356,6 @@ export const RETRY_BUSINESS_SCENARIOS = Object.freeze({
  */
 export const RETRY_CONDITION_SEMANTICS = Object.freeze({
   // 基础重试开关
-  CIRCUIT_BREAKER_ENABLED: false,      // 熔断器默认关闭
-  RETRY_ON_TIMEOUT_ENABLED: true,      // 超时重试默认开启
-  RETRY_ON_BUSINESS_ERROR: false,      // 业务错误默认不重试
-  RETRY_ON_VALIDATION_ERROR: false,    // 验证错误不重试
 
   // 重试默认设置
   DEFAULT_SETTINGS: {

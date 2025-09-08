@@ -14,9 +14,6 @@ import { Environment, LogLevel } from '../../types/enums/shared-base.enum';
 export const ENVIRONMENT_DETECTION = Object.freeze({
   // 环境变量映射
   ENV_VAR_MAPPING: {
-    NODE_ENV: ['development', 'test', 'testing', 'staging', 'production'],
-    APP_ENV: ['dev', 'test', 'stage', 'prod'],
-    DEPLOY_ENV: ['local', 'dev', 'test', 'staging', 'production'],
   } as const,
 
   // 环境标识符映射
@@ -48,38 +45,18 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
   [Environment.DEVELOPMENT]: {
     // 调试功能
     DEBUG: {
-      ENABLE_DEBUG_LOGS: true,
-      ENABLE_VERBOSE_ERRORS: true,
-      ENABLE_STACK_TRACES: true,
-      ENABLE_REQUEST_LOGGING: true,
-      ENABLE_SQL_LOGGING: true,
-      ENABLE_CACHE_LOGGING: true,
     },
     
     // 性能优化
     PERFORMANCE: {
-      ENABLE_HOT_RELOAD: true,
-      ENABLE_SOURCE_MAPS: true,
-      DISABLE_MINIFICATION: true,
-      DISABLE_COMPRESSION: true,
-      SKIP_AUTH_FOR_TESTING: false, // 开发环境也要验证认证
     },
     
     // 开发工具
     DEV_TOOLS: {
-      ENABLE_API_DOCS: true,
-      ENABLE_SWAGGER_UI: true,
-      ENABLE_GRAPHQL_PLAYGROUND: true,
-      ENABLE_METRICS_ENDPOINT: true,
-      ENABLE_DEBUG_ENDPOINT: true,
     },
     
     // 安全设置（开发环境宽松一些）
     SECURITY: {
-      CORS_ALLOW_ALL: true,
-      DISABLE_CSRF: true,
-      ALLOW_HTTP: true,
-      RELAXED_VALIDATION: true,
     },
   },
 
@@ -209,24 +186,12 @@ export const ENVIRONMENT_RESOURCE_LIMITS = Object.freeze({
   // 开发环境资源限制
   [Environment.DEVELOPMENT]: {
     MEMORY: {
-      MAX_HEAP_SIZE_MB: 512,           // 512MB堆内存
-      MAX_CACHE_SIZE_MB: 128,          // 128MB缓存
-      GC_THRESHOLD_MB: 256,            // 256MB触发GC
     },
     CPU: {
-      MAX_WORKERS: 2,                  // 最多2个工作进程
-      MAX_CONCURRENT_REQUESTS: 10,     // 最多10个并发请求
-      REQUEST_TIMEOUT_MS: 60000,       // 60秒请求超时
     },
     STORAGE: {
-      MAX_LOG_SIZE_MB: 100,            // 100MB日志大小
-      MAX_TEMP_SIZE_MB: 500,           // 500MB临时文件
-      LOG_RETENTION_DAYS: 7,           // 7天日志保留
     },
     NETWORK: {
-      MAX_CONNECTIONS: 50,             // 50个最大连接
-      CONNECTION_POOL_SIZE: 5,         // 5个连接池大小
-      SOCKET_TIMEOUT_MS: 30000,        // 30秒Socket超时
     },
   },
 

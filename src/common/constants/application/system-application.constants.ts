@@ -17,25 +17,12 @@ export const SYSTEM_OPERATION_STATUS = Object.freeze({
   // 基础操作状态
   SUCCESS: 'success',
   FAILED: 'failed',
-  PENDING: OperationStatus.PENDING,
   PROCESSING: 'processing',
-  CANCELLED: 'cancelled',
   TIMEOUT: 'timeout',
-  COMPLETED: 'completed',
   ACTIVE: 'active',
   INACTIVE: 'inactive',
   
   // 扩展状态
-  INITIALIZING: 'initializing',
-  TERMINATING: 'terminating',
-  SUSPENDED: 'suspended',
-  RESUMED: 'resumed',
-  RETRYING: 'retrying',
-  QUEUED: 'queued',
-  SCHEDULED: 'scheduled',
-  EXECUTING: 'executing',
-  ABORTED: 'aborted',
-  PARTIAL: 'partial',
 });
 
 /**
@@ -43,12 +30,8 @@ export const SYSTEM_OPERATION_STATUS = Object.freeze({
  * 🎯 使用共享枚举消除重复
  */
 export const SYSTEM_LOG_LEVELS = Object.freeze({
-  TRACE: LogLevel.TRACE,
-  DEBUG: LogLevel.DEBUG,
-  INFO: LogLevel.INFO,
   WARN: LogLevel.WARN,
   ERROR: LogLevel.ERROR,
-  FATAL: LogLevel.FATAL,
   
   // 日志级别优先级映射
   PRIORITY: {
@@ -77,9 +60,6 @@ export const SYSTEM_LOG_LEVELS = Object.freeze({
  * 🎯 使用共享枚举消除重复
  */
 export const SYSTEM_ENVIRONMENTS = Object.freeze({
-  DEVELOPMENT: Environment.DEVELOPMENT,
-  STAGING: Environment.STAGING,
-  PRODUCTION: Environment.PRODUCTION,
   TEST: Environment.TEST,
   
   // 环境特性配置
@@ -124,25 +104,16 @@ export const SYSTEM_ENVIRONMENTS = Object.freeze({
  */
 export const SYSTEM_APPLICATION_CONFIG = Object.freeze({
   // 系统标识
-  SYSTEM_ID: 'newstockapi',
-  VERSION: process.env.npm_package_version || '1.0.0',
   
   // 操作状态
-  OPERATION_STATUS: SYSTEM_OPERATION_STATUS,
   
   // 日志配置
-  LOG_LEVELS: SYSTEM_LOG_LEVELS,
   
   // 环境配置
-  ENVIRONMENTS: SYSTEM_ENVIRONMENTS,
   
   // 系统限制
   LIMITS: {
-    MAX_REQUEST_SIZE: CORE_VALUES.MEMORY_MB.MAX_REQUEST_SIZE * 1024 * 1024, // 转换为字节
-    MAX_RESPONSE_SIZE: CORE_VALUES.MEMORY_MB.HIGH_USAGE * 1024 * 1024, // 200MB 转换为字节
-    MAX_CONCURRENT_REQUESTS: 1000,
     MAX_QUEUE_SIZE: 10000,
-    MAX_RETRY_ATTEMPTS: CORE_VALUES.RETRY.MAX_ATTEMPTS,
   },
   
   // 系统超时配置
@@ -150,12 +121,10 @@ export const SYSTEM_APPLICATION_CONFIG = Object.freeze({
     DEFAULT: CORE_VALUES.TIMEOUT_MS.DEFAULT,
     QUICK: CORE_VALUES.TIMEOUT_MS.QUICK,
     LONG: CORE_VALUES.TIMEOUT_MS.LONG,
-    SHUTDOWN_GRACE_PERIOD: CORE_VALUES.TIME_MS.THIRTY_SECONDS,
   },
   
   // 系统路径
   PATHS: {
-    LOGS: process.env.LOG_PATH || './logs',
     TEMP: process.env.TEMP_PATH || './temp',
     CACHE: process.env.CACHE_PATH || './cache',
     DATA: process.env.DATA_PATH || './data',
@@ -239,9 +208,7 @@ export class SystemApplicationUtil {
  * @deprecated 使用新的结构化导出
  */
 export const SYSTEM_CONSTANTS = Object.freeze({
-  OPERATION_STATUS: SYSTEM_OPERATION_STATUS,
   LOG_LEVELS: SYSTEM_LOG_LEVELS,
-  ENVIRONMENTS: SYSTEM_ENVIRONMENTS,
 });
 
 /**

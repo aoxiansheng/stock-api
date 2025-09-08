@@ -13,30 +13,19 @@ export const CORE_TIMEZONES = Object.freeze({
   ASIA: {
     SHANGHAI: "Asia/Shanghai",       // 中国标准时间 (CST) UTC+8
     HONG_KONG: "Asia/Hong_Kong",     // 香港时间 (HKT) UTC+8  
-    TOKYO: "Asia/Tokyo",             // 日本标准时间 (JST) UTC+9
-    SINGAPORE: "Asia/Singapore",     // 新加坡时间 (SGT) UTC+8
-    SEOUL: "Asia/Seoul",             // 韩国标准时间 (KST) UTC+9
   },
 
   // 美洲时区
   AMERICA: {
     NEW_YORK: "America/New_York",    // 美国东部时间 (EST/EDT) UTC-5/-4
-    CHICAGO: "America/Chicago",      // 美国中部时间 (CST/CDT) UTC-6/-5
-    LOS_ANGELES: "America/Los_Angeles", // 美国太平洋时间 (PST/PDT) UTC-8/-7
-    TORONTO: "America/Toronto",      // 加拿大东部时间 (EST/EDT) UTC-5/-4
   },
 
   // 欧洲时区  
   EUROPE: {
-    LONDON: "Europe/London",         // 格林威治时间 (GMT/BST) UTC+0/+1
-    PARIS: "Europe/Paris",           // 中欧时间 (CET/CEST) UTC+1/+2
-    ZURICH: "Europe/Zurich",         // 中欧时间 (CET/CEST) UTC+1/+2
-    FRANKFURT: "Europe/Berlin",      // 中欧时间 (CET/CEST) UTC+1/+2
   },
 
   // 特殊时区
   UTC: "UTC",                        // 协调世界时 UTC+0
-  GMT: "GMT",                        // 格林威治标准时间 UTC+0
 } as const);
 
 /**

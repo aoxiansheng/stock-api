@@ -193,11 +193,7 @@ export const CIRCUIT_BREAKER_KEY_CONFIG = Object.freeze({
   SEPARATOR: ':',
   /** 可用的键类型 */
   TYPES: {
-    PROVIDER_API: 'provider',
-    SERVICE_METHOD: 'service',
-    DATABASE_OPERATION: 'db', 
     CACHE_OPERATION: 'cache',
-    EXTERNAL_API: 'external',
   } as const,
 } as const);
 
@@ -211,9 +207,7 @@ export const CIRCUIT_BREAKER_MONITORING_THRESHOLDS = Object.freeze({
   /** 恢复时间过长告警阈值（毫秒） */
   RECOVERY_TIME_ALERT: CORE_VALUES.TIME_MS.FIVE_MINUTES,                  // 5分钟
   /** 失败率告警阈值 */
-  FAILURE_RATE_ALERT: 0.5,                                                // 50%
   /** 性能下降告警阈值 */
-  PERFORMANCE_DEGRADATION_ALERT: CORE_VALUES.PERFORMANCE_MS.VERY_SLOW,    // 5000ms
 });
 
 /**
@@ -335,10 +329,5 @@ export type KeyType = keyof typeof CIRCUIT_BREAKER_KEY_CONFIG.TYPES;
  * 🎯 保持与原Unified层的API兼容性
  */
 export const CIRCUIT_BREAKER_CONSTANTS = Object.freeze({
-  DEFAULT_CONFIG: DEFAULT_CIRCUIT_BREAKER_CONFIG,
   BUSINESS_SCENARIOS: CIRCUIT_BREAKER_BUSINESS_SCENARIOS,
-  PERFORMANCE_LEVELS: CIRCUIT_BREAKER_PERFORMANCE_LEVELS,
-  ENVIRONMENT_CONFIGS: CIRCUIT_BREAKER_ENVIRONMENT_CONFIGS,
-  KEY_CONFIG: CIRCUIT_BREAKER_KEY_CONFIG,
-  MONITORING_THRESHOLDS: CIRCUIT_BREAKER_MONITORING_THRESHOLDS,
 });
