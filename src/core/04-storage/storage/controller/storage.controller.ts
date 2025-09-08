@@ -1,3 +1,5 @@
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   Controller,
   Post,
@@ -90,7 +92,7 @@ export class StorageController {
             ttlSet: 3600,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -186,7 +188,7 @@ export class StorageController {
             key: "stock:AAPL:quote",
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -282,7 +284,7 @@ export class StorageController {
             key: "stock:GOOGL:quote",
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -355,7 +357,7 @@ export class StorageController {
             persistentDeleted: 1,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -447,7 +449,7 @@ export class StorageController {
             throughput: 156.7,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })

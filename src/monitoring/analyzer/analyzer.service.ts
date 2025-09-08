@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { createLogger } from "../../app/config/logger.config";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+
+import { MONITORING_BUSINESS } from '@common/constants/domain';
 import {
   IAnalyzer,
   AnalysisOptions,
@@ -744,7 +746,7 @@ export class AnalyzerService
       }
 
       // 错误率建议
-      if (errorRate > 0.05) {
+      if (errorRate > MONITORING_BUSINESS.ERROR_THRESHOLDS.ACCEPTABLE_RATE) {
         suggestions.push({
           category: "performance",
           priority: "high",

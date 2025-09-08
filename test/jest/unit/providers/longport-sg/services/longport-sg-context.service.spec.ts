@@ -1,9 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { LongportSgContextService } from "../../../../../../src/providers/longport-sg/services/longport-sg-context.service";
-import { Config, QuoteContext } from "longport";
+import { Config, QuoteContext } from REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // 模拟 longport 库
-jest.mock("longport", () => ({
+jest.mock(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, () => ({
   Config: {
     fromEnv: jest.fn(() => ({})), // 模拟 fromEnv 方法
   },

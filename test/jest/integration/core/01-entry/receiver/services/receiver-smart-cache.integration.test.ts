@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * Receiver服务智能缓存集成测试
  * 验证强时效缓存和SDK调用频率优化
@@ -78,10 +80,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该为美股实时数据使用Receiver API端点", async () => {
       const requestPayload: DataRequestDto = {
         symbols: ["AAPL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
         },
       };
@@ -118,10 +120,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该在重复请求时验证缓存行为", async () => {
       const requestPayload: DataRequestDto = {
         symbols: ["MSFT"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -173,10 +175,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该验证批量请求的缓存策略", async () => {
       const requestPayload: DataRequestDto = {
         symbols: ["TSLA", "NVDA", "GOOGL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -209,10 +211,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
       const symbol = "GOOGL";
       const requestPayload: DataRequestDto = {
         symbols: [symbol],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -260,10 +262,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
       const promises = symbols.map(async (symbol) => {
         const requestPayload: DataRequestDto = {
           symbols: [symbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             useSmartCache: true,
-            preferredProvider: "longport",
+            preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           },
         };
 
@@ -302,11 +304,11 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该在实时模式下优先获取最新数据", async () => {
       const requestPayload: DataRequestDto = {
         symbols: ["AMD"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
           realtime: true, // 明确要求实时数据
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -338,7 +340,7 @@ describe("Receiver Smart Cache Integration Tests", () => {
           description: "美股",
         },
         {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           market: Market.HK,
           description: "港股",
         },
@@ -347,10 +349,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
       for (const { symbol, description } of testCases) {
         const requestPayload: DataRequestDto = {
           symbols: [symbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             useSmartCache: true,
-            preferredProvider: "longport",
+            preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           },
         };
 
@@ -400,10 +402,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该记录详细的性能指标", async () => {
       const requestPayload: DataRequestDto = {
         symbols: ["INTC"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -433,10 +435,10 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该在无效符号时优雅处理错误", async () => {
       const requestPayload: DataRequestDto = {
         symbols: ["INVALID_SYMBOL_TEST"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useSmartCache: true,
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -454,7 +456,7 @@ describe("Receiver Smart Cache Integration Tests", () => {
     it("应该在缺少必需参数时返回验证错误", async () => {
       const invalidPayload = {
         symbols: [], // 空数组应该触发验证错误
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const response = await request(app.getHttpServer())

@@ -106,6 +106,13 @@ export class DuplicateAnalyzer {
     let match;
     while ((match = this.numberPattern.exec(line)) !== null) {
       const number = parseInt(match[0]);
+      const matchStart = match.index;
+      const matchEnd = match.index + match[0].length;
+      
+      // 检查是否为完整的独立数字（不是小数或更大数字的一部分）
+      if (!this.isIndependentNumber(line, matchStart, matchEnd, match[0])) {
+        continue;
+      }
       
       // 忽略行号、单个数字、版本号等
       if (number <= 1 || number === lineNumber || this.isVersionNumber(line) || this.isIgnorableNumber(number, line)) {
@@ -116,8 +123,6 @@ export class DuplicateAnalyzer {
       const context = this.extractContext(line, match.index, match[0].length);
       
       this.addDuplicate(key, {
-        value: number,
-        type: 'number',
         file: filePath,
         line: lineNumber,
         context,
@@ -127,6 +132,58 @@ export class DuplicateAnalyzer {
     
     // 重置正则表达式的lastIndex
     this.numberPattern.lastIndex = 0;
+  }
+
+  /**
+   * 检查数字是否为独立数字（不是小数或更大数字的一部分，且不在注释中）
+   */
+  private isIndependentNumber(line: string, start: number, end: number, numberStr: string): boolean {
+    // 检查前面的字符
+    const prevChar = start > 0 ? line[start - 1] : '';
+    const nextChar = end < line.length ? line[end] : '';
+    
+    // 如果前面是数字或小数点，说明是更大数字的一部分
+    if (/\d|\./.test(prevChar)) {
+      return false;
+    }
+    
+    // 如果后面是数字或小数点，说明是更大数字的一部分
+    if (/\d|\./.test(nextChar)) {
+      return false;
+    }
+    
+    // 检查是否在注释中
+    if (this.isInComment(line, start)) {
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * 检查指定位置是否在注释中
+   */
+  private isInComment(line: string, position: number): boolean {
+    // 检查单行注释 //
+    const singleLineCommentIndex = line.indexOf('//');
+    if (singleLineCommentIndex !== -1 && position > singleLineCommentIndex) {
+      return true;
+    }
+    
+    // 检查多行注释 /* */ (简单检查，假设注释在同一行内)
+    const multiLineStartIndex = line.indexOf('/*');
+    const multiLineEndIndex = line.indexOf('*/');
+    
+    if (multiLineStartIndex !== -1) {
+      // 如果有结束标记，检查是否在注释区间内
+      if (multiLineEndIndex !== -1 && multiLineEndIndex > multiLineStartIndex) {
+        return position > multiLineStartIndex && position < multiLineEndIndex;
+      }
+      // 如果没有结束标记，假设注释延续到行尾
+      return position > multiLineStartIndex;
+    }
+    
+    return false;
   }
 
   /**
@@ -185,8 +242,6 @@ export class DuplicateAnalyzer {
       const context = this.extractContext(line, match.index, match[0].length);
       
       this.addDuplicate(key, {
-        value: string,
-        type: 'string',
         file: filePath,
         line: lineNumber,
         context,
@@ -215,8 +270,6 @@ export class DuplicateAnalyzer {
       const context = this.extractContext(line, match.index, fieldName.length);
       
       this.addDuplicate(key, {
-        value: fieldName,
-        type: 'field_name',
         file: filePath,
         line: lineNumber,
         context,
@@ -239,8 +292,6 @@ export class DuplicateAnalyzer {
       const context = this.extractContext(line, match.index, constantName.length);
       
       this.addDuplicate(key, {
-        value: constantName,
-        type: 'constant_name',
         file: filePath,
         line: lineNumber,
         context,
@@ -594,7 +645,7 @@ async function main() {
 }
 
 // 如果直接运行此脚本，执行分析
-if (import.meta.main) {
+if (require.main === module) {
   main().catch(console.error);
 }
 

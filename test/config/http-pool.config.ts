@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * HTTP连接池配置
  * 优化测试中的HTTP连接管理
@@ -7,7 +8,7 @@ export const httpPoolConfig = {
   // 连接池配置
   maxSockets: 10, // 最大并发连接数
   maxFreeSockets: 5, // 最大空闲连接数
-  timeout: 30000, // 连接超时时间
+  timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST, // 连接超时时间
   keepAlive: true, // 启用Keep-Alive
   keepAliveMsecs: 1000, // Keep-Alive间隔
 

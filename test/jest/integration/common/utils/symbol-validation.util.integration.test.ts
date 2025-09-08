@@ -1,5 +1,6 @@
 import { SymbolValidationUtils } from "../../../../../src/common/utils/symbol-validation.util";
 import { Market } from "../../../../../src/common/constants/domain/market-domain.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("SymbolValidationUtils Integration", () => {
   describe("Market Recognition Integration", () => {
@@ -84,7 +85,7 @@ describe("SymbolValidationUtils Integration", () => {
   describe("Symbol Format Validation Integration", () => {
     it("should validate mixed symbol formats correctly", () => {
       const mixedSymbols = [
-        { symbol: "700.HK", expected: true, market: Market.HK },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, expected: true, market: Market.HK },
         { symbol: "AAPL.US", expected: true, market: Market.US },
         { symbol: "000001.SZ", expected: true, market: Market.SZ },
         { symbol: "600000.SH", expected: true, market: Market.SH },
@@ -106,7 +107,7 @@ describe("SymbolValidationUtils Integration", () => {
 
     it("should handle bulk symbol validation", () => {
       const symbols = [
-        "700.HK", // 有效
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // 有效
         "AAPL.US", // 有效
         "000001.SZ", // 有效
         "600000.SH", // 有效
@@ -120,7 +121,7 @@ describe("SymbolValidationUtils Integration", () => {
       expect(result.valid).toHaveLength(4);
       expect(result.invalid).toHaveLength(3);
       expect(result.valid).toEqual([
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "AAPL.US",
         "000001.SZ",
         "600000.SH",
@@ -298,7 +299,7 @@ describe("SymbolValidationUtils Integration", () => {
     });
 
     it("should validate individual symbols quickly", () => {
-      const symbols = ["700.HK", "AAPL.US", "000001.SZ", "600000.SH"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ", "600000.SH"];
 
       symbols.forEach((symbol) => {
         const startTime = Date.now();
@@ -316,7 +317,7 @@ describe("SymbolValidationUtils Integration", () => {
     it("should validate popular real symbols correctly", () => {
       const popularSymbols = [
         // 香港市场热门股票
-        "700.HK", // 腾讯控股
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // 腾讯控股
         "9988.HK", // 阿里巴巴
         "3690.HK", // 美团
         "1810.HK", // 小米集团
@@ -347,7 +348,7 @@ describe("SymbolValidationUtils Integration", () => {
       // 测试不同交易时段的符号格式
       const sessionSymbols = [
         // 香港市场
-        { symbol: "700.HK", market: Market.HK },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, market: Market.HK },
         { symbol: "00700", market: Market.HK }, // 夜盘格式
 
         // 美国市场

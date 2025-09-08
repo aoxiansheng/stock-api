@@ -1,4 +1,5 @@
 import {
+import { API_OPERATIONS } from '@common/constants/domain';
   QUERY_ERROR_MESSAGES,
   QUERY_WARNING_MESSAGES,
   QUERY_SUCCESS_MESSAGES,
@@ -172,7 +173,7 @@ describe("Query Constants", () => {
       expect(QUERY_CONFIG.QUERY_ID_LENGTH).toBe(8);
       expect(QUERY_CONFIG.MAX_QUERY_LIMIT).toBe(1000);
       expect(QUERY_CONFIG.MIN_QUERY_LIMIT).toBe(1);
-      expect(QUERY_CONFIG.DEFAULT_DATA_TYPE).toBe("get-stock-quote");
+      expect(QUERY_CONFIG.DEFAULT_DATA_TYPE).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(QUERY_CONFIG.DEFAULT_PROVIDER).toBe("unknown");
       expect(QUERY_CONFIG.DEFAULT_MARKET).toBe("unknown");
       expect(QUERY_CONFIG.CACHE_SOURCE_TAG).toBe("realtime");

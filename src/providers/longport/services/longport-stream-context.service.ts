@@ -2,11 +2,11 @@ import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@app/config/logger.config";
 import { PROVIDER_TIMEOUT, ConnectionStatus, IConnectionState, CONNECTION_CONFIG } from "../../constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // LongPort SDK 导入
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Config, QuoteContext, SubType } = require("longport");
-
+const { Config, QuoteContext, SubType } = require(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
 /**
  * LongPort WebSocket 流上下文服务
@@ -660,7 +660,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
           parsedQuoteData: quoteData,
           extractedSymbol: symbol,
         },
-        _provider: "longport",
+        _provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // 验证必要字段
@@ -696,7 +696,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
           originalEvent: event,
           error: error.message,
         },
-        _provider: "longport",
+        _provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         _error: "parse_failed",
       };
     }

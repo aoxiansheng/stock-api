@@ -5,6 +5,8 @@ import { QueryService } from "../../../../../../../../src/core/01-entry/query/se
 import { QueryRequestDto } from "../../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import { QueryExecutionResultDto } from "../../../../../../../../src/core/01-entry/query/dto/query-internal.dto";
 import { QueryType } from "../../../../../../../../src/core/01-entry/query/dto/query-types.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("SymbolQueryExecutor", () => {
   let executor: SymbolQueryExecutor;
@@ -34,8 +36,8 @@ describe("SymbolQueryExecutor", () => {
       // Arrange
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["AAPL.US", "700.HK"],
-        queryTypeFilter: "get-stock-quote",
+        symbols: ["AAPL.US", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const expectedResult: QueryExecutionResultDto = {
@@ -45,7 +47,7 @@ describe("SymbolQueryExecutor", () => {
             source: "CACHE" as any,
           },
           {
-            data: { symbol: "700.HK", price: 350.0 },
+            data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 350.0 },
             source: "REALTIME" as any,
           },
         ],
@@ -75,7 +77,7 @@ describe("SymbolQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["INVALID.SYMBOL"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const expectedError = new Error("符号格式无效");
@@ -93,7 +95,7 @@ describe("SymbolQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const expectedResult: QueryExecutionResultDto = {
@@ -127,7 +129,7 @@ describe("SymbolQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: largeSymbolList,
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const expectedResult: QueryExecutionResultDto = {
@@ -161,8 +163,8 @@ describe("SymbolQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US"],
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         market: "US",
         options: {
           includeFields: ["lastPrice", "volume"],

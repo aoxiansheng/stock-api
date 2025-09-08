@@ -7,6 +7,7 @@ import { DataTransformerService } from "@core/02-processing/transformer/services
 import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
 import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("StreamReceiverService", () => {
   let service: StreamReceiverService;
@@ -17,7 +18,7 @@ describe("StreamReceiverService", () => {
 
   // Mock test data
   const mockClientId = "test-client-123";
-  const mockSymbols = ["700.HK", "AAPL.US", "000001.SZ"];
+  const mockSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ"];
   const mockCallback = jest.fn();
 
   // Mock client state manager
@@ -167,12 +168,12 @@ describe("StreamReceiverService", () => {
 
     // Setup default mock behaviors
     symbolTransformer.transformSymbolsForProvider.mockResolvedValue({
-      transformedSymbols: ["700.HK"],
+      transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       mappingResults: {
-        transformedSymbols: { "700.HK": "700.HK" },
+        transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         failedSymbols: [],
         metadata: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           totalSymbols: 1,
           successfulTransformations: 1,
           failedTransformations: 0,
@@ -182,7 +183,7 @@ describe("StreamReceiverService", () => {
     });
     transformer.transform.mockResolvedValue({
       success: true,
-      data: { symbol: "700.HK", price: 350.5 },
+      data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 350.5 },
     } as any);
     streamDataFetcher.subscribeToSymbols.mockResolvedValue(undefined);
     streamDataFetcher.batchHealthCheck.mockResolvedValue({ longport: true });
@@ -209,7 +210,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: mockSymbols,
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // Should not throw with proper parameters
@@ -225,7 +226,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: mockSymbols,
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // Test without providing clientId (should generate one)
@@ -240,7 +241,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: mockSymbols,
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       streamDataFetcher.subscribeToSymbols.mockRejectedValue(
@@ -317,7 +318,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: [],
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       streamDataFetcher.getClientStateManager.mockImplementation(() => {
@@ -342,7 +343,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: mockSymbols,
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       const startTime = Date.now();
@@ -371,7 +372,7 @@ describe("StreamReceiverService", () => {
           transformedSymbols: {},
           failedSymbols: [],
           metadata: {
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             totalSymbols: 0,
             successfulTransformations: 0,
             failedTransformations: 0,
@@ -383,7 +384,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: [],
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // Should handle empty arrays gracefully
@@ -396,7 +397,7 @@ describe("StreamReceiverService", () => {
       const subscriptionData = {
         symbols: mockSymbols,
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // Should handle valid subscription data

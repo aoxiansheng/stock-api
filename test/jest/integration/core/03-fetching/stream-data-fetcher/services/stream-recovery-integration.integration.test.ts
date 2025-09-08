@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 🎯 Stream Recovery Integration Tests - Phase 3 Complete Recovery Chain
@@ -78,7 +80,7 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
   const testApiKey = "test-integration-key";
   const testAccessToken = "test-integration-token";
   const testClientId = "integration-client-001";
-  const testSymbols = ["AAPL.US", "700.HK"];
+  const testSymbols = ["AAPL.US", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -131,7 +133,7 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
             mapSymbolToProvider: jest.fn().mockImplementation((symbol) => ({
               originalSymbol: symbol,
               mappedSymbol: symbol,
-              provider: "longport",
+              provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             })),
           },
         },
@@ -225,7 +227,7 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
         // 4. 订阅数据流
         clientSocket.emit("subscribe", {
           symbols: testSymbols,
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
       });
 
@@ -389,8 +391,8 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
         clientId: "worker-test-client",
         symbols: ["WORKER.TEST"],
         lastReceiveTimestamp: Date.now() - 30000,
-        provider: "longport",
-        capability: "stream-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         priority: "normal" as const,
       };
 
@@ -419,8 +421,8 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
         clientId: `rate-limit-client-${i}`,
         symbols: ["RATE.TEST"],
         lastReceiveTimestamp: Date.now() - 10000,
-        provider: "longport",
-        capability: "stream-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         priority: "normal" as const,
       }));
 
@@ -472,8 +474,8 @@ describe("Stream Recovery Integration Tests - Phase 3 Complete Chain", () => {
         clientId: "cache-error-test",
         symbols: ["CACHE.ERROR"],
         lastReceiveTimestamp: Date.now() - 30000,
-        provider: "longport",
-        capability: "stream-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         priority: "normal" as const,
       };
 

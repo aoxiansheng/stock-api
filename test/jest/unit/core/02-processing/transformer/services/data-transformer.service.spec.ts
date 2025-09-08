@@ -8,6 +8,8 @@ import { DataTransformRequestDto } from "../../../../../../../src/core/02-proces
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { DataTransformResponseDto } from "../../../../../../../src/core/02-processing/transformer/dto/data-transform-response.dto";
 import { DeepMocked, createMock } from "@golevelup/ts-jest";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 // Mock the logger
 jest.mock("../@app/config/logger.config", () => ({
@@ -28,7 +30,7 @@ describe("DataTransformerService", () => {
   const mockMappingRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     fieldMappings: [
@@ -59,9 +61,9 @@ describe("DataTransformerService", () => {
   } as any;
 
   const validRequest: DataTransformRequestDto = {
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
-    transDataRuleListType: "get-stock-quote",
+    transDataRuleListType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     rawData: { last_done: 150.5, volume: 100000 },
   };
 

@@ -21,8 +21,6 @@ export const CAPABILITY_METADATA_KEY = METADATA_KEYS.CAPABILITY_METADATA;
 // 类型定义
 export type MetadataKey = typeof METADATA_KEYS[keyof typeof METADATA_KEYS];
 
-
-
 /**
  * 元数据键值验证函数
  */

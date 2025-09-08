@@ -1,8 +1,10 @@
+import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   Injectable,
   NotFoundException,
   OnModuleDestroy,
-  Inject,
+  Inject
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 import { Subject, fromEvent, race, timer } from "rxjs";
@@ -604,7 +606,7 @@ export class StreamDataFetcherService
         triggeredAt: this.concurrencyControl.circuitBreaker.triggeredAt,
         recoveryDelay: this.concurrencyControl.circuitBreaker.recoveryDelay,
       },
-      recentAdjustments: this.performanceMetrics.concurrencyHistory.slice(-5),
+      recentAdjustments: this.performanceMetrics.concurrencyHistory.slice(-MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT),
       lastUpdate: new Date(
         this.performanceMetrics.lastMetricsUpdate,
       ).toISOString(),
@@ -1141,7 +1143,7 @@ export class StreamDataFetcherService
       // P1-2: 使用自适应并发控制
       const adaptiveConcurrency = this.getCurrentConcurrency();
       const {
-        timeoutMs = 5000,
+        timeoutMs = OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         retries = 1,
         skipUnresponsive = true,
         tieredEnabled = true,
@@ -1512,7 +1514,7 @@ export class StreamDataFetcherService
     // P1-2: 使用自适应并发控制
     const adaptiveConcurrency = this.getCurrentConcurrency();
     const {
-      timeoutMs = 5000,
+      timeoutMs = OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       concurrency = adaptiveConcurrency, // 使用自适应并发限制
       retries = 1,
       skipUnresponsive = true,

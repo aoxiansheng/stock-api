@@ -3,6 +3,7 @@ import { SymbolTransformerService } from "../../../../../../../src/core/02-proce
 import { SymbolMapperCacheService } from "../../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
 import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   TRANSFORM_DIRECTIONS,
   CONFIG,
 } from "../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants";
@@ -45,11 +46,11 @@ describe("SymbolTransformerService Integration Test", () => {
       const mockResponse = {
         success: true,
         mappingDetails: {
-          "700.HK": "00700",
+          REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700",
           "AAPL.US": "AAPL",
         },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 2,
         cacheHits: 1,
@@ -61,15 +62,15 @@ describe("SymbolTransformerService Integration Test", () => {
       );
 
       const result = await service.transformSymbols(
-        "longport",
-        ["700.HK", "AAPL.US"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 
       // Verify service depends on SymbolMapperCacheService
       expect(symbolMapperCacheService.mapSymbols).toHaveBeenCalledWith(
-        "longport",
-        ["700.HK", "AAPL.US"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
         "to_standard",
         expect.any(String), // UUID request ID
       );
@@ -78,12 +79,12 @@ describe("SymbolTransformerService Integration Test", () => {
       expect(result).toEqual({
         mappedSymbols: ["00700", "AAPL"],
         mappingDetails: {
-          "700.HK": "00700",
+          REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700",
           "AAPL.US": "AAPL",
         },
         failedSymbols: [],
         metadata: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           totalSymbols: 2,
           successCount: 2,
           failedCount: 0,
@@ -95,9 +96,9 @@ describe("SymbolTransformerService Integration Test", () => {
     it("should integrate with CollectorService for monitoring", async () => {
       const mockResponse = {
         success: true,
-        mappingDetails: { "700.HK": "00700" },
+        mappingDetails: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700" },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
@@ -109,8 +110,8 @@ describe("SymbolTransformerService Integration Test", () => {
       );
 
       await service.transformSymbols(
-        "longport",
-        ["700.HK"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 
@@ -122,7 +123,7 @@ describe("SymbolTransformerService Integration Test", () => {
         expect.any(Number),
         expect.objectContaining({
           operation: "symbol-transformation",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           direction: "to_standard",
           totalSymbols: 1,
           successCount: 1,
@@ -140,8 +141,8 @@ describe("SymbolTransformerService Integration Test", () => {
       );
 
       const result = await service.transformSymbols(
-        "longport",
-        ["700.HK"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 
@@ -149,9 +150,9 @@ describe("SymbolTransformerService Integration Test", () => {
       expect(result).toEqual({
         mappedSymbols: [],
         mappingDetails: {},
-        failedSymbols: ["700.HK"],
+        failedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         metadata: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           totalSymbols: 1,
           successCount: 0,
           failedCount: 1,
@@ -175,9 +176,9 @@ describe("SymbolTransformerService Integration Test", () => {
     it("should handle CollectorService failures gracefully", async () => {
       const mockResponse = {
         success: true,
-        mappingDetails: { "700.HK": "00700" },
+        mappingDetails: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700" },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
@@ -193,8 +194,8 @@ describe("SymbolTransformerService Integration Test", () => {
 
       // Should not throw when monitoring fails
       const result = await service.transformSymbols(
-        "longport",
-        ["700.HK"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 
@@ -208,7 +209,7 @@ describe("SymbolTransformerService Integration Test", () => {
 
       await expect(
         service.transformSymbols(
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           oversizedBatch,
           TRANSFORM_DIRECTIONS.TO_STANDARD,
         ),
@@ -223,9 +224,9 @@ describe("SymbolTransformerService Integration Test", () => {
     it("should use UUID-based request IDs in cache service calls", async () => {
       const mockResponse = {
         success: true,
-        mappingDetails: { "700.HK": "00700" },
+        mappingDetails: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700" },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
@@ -237,8 +238,8 @@ describe("SymbolTransformerService Integration Test", () => {
       );
 
       await service.transformSymbols(
-        "longport",
-        ["700.HK"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 

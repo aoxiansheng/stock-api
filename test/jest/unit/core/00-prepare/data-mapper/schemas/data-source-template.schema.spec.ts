@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import mongoose from "mongoose";
 import { validate } from "class-validator";
@@ -39,11 +40,11 @@ describe("DataSourceTemplateSchema", () => {
     it("should create a valid data source template", async () => {
       const templateData = {
         name: "LongPort WebSocket Quote Stream",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "stream",
         description: "Real-time stock quote stream from LongPort",
         sampleData: {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           last_done: 561,
           volume: 11292534,
         },
@@ -52,7 +53,7 @@ describe("DataSourceTemplateSchema", () => {
             fieldPath: "symbol",
             fieldName: "symbol",
             fieldType: "string",
-            sampleValue: "700.HK",
+            sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             confidence: 1.0,
             isNested: false,
             nestingLevel: 0,
@@ -68,7 +69,7 @@ describe("DataSourceTemplateSchema", () => {
 
       expect(savedTemplate._id).toBeDefined();
       expect(savedTemplate.name).toBe("LongPort WebSocket Quote Stream");
-      expect(savedTemplate.provider).toBe("longport");
+      expect(savedTemplate.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(savedTemplate.apiType).toBe("stream");
       expect(savedTemplate.confidence).toBe(0.95);
       expect(savedTemplate.isActive).toBe(true); // default value
@@ -93,9 +94,9 @@ describe("DataSourceTemplateSchema", () => {
     it("should fail validation with invalid apiType", async () => {
       const templateData = {
         name: "Test Template",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "invalid",
-        sampleData: { symbol: "700.HK" },
+        sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
 
         confidence: 0.5,
       };
@@ -116,9 +117,9 @@ describe("DataSourceTemplateSchema", () => {
     it("should fail validation with confidence out of range", async () => {
       const templateData = {
         name: "Test Template",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
-        sampleData: { symbol: "700.HK" },
+        sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
 
         confidence: 1.5, // Invalid: > 1
       };

@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
@@ -101,7 +104,7 @@ describe("StreamReceiverGateway Integration", () => {
     it("should establish WebSocket connection successfully", (done) => {
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       });
 
       clientSocket.on("connect", () => {
@@ -118,7 +121,7 @@ describe("StreamReceiverGateway Integration", () => {
     it("should receive connection confirmation message", (done) => {
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       });
 
       clientSocket.on("connected", (data) => {
@@ -138,7 +141,7 @@ describe("StreamReceiverGateway Integration", () => {
     it("should handle disconnection gracefully", (done) => {
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       });
 
       clientSocket.on("connect", () => {
@@ -162,7 +165,7 @@ describe("StreamReceiverGateway Integration", () => {
     beforeEach((done) => {
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       });
 
       clientSocket.on("connect", () => {
@@ -248,7 +251,7 @@ describe("StreamReceiverGateway Integration", () => {
 
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         auth: {
           appKey: testApiKey,
           accessToken: testAccessToken,
@@ -279,7 +282,7 @@ describe("StreamReceiverGateway Integration", () => {
     it("should reject invalid authentication", (done) => {
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         auth: {
           appKey: "invalid-key",
           accessToken: "invalid-token",
@@ -291,8 +294,8 @@ describe("StreamReceiverGateway Integration", () => {
       clientSocket.on("connect", () => {
         // 触发需要认证的事件
         clientSocket.emit("subscribe", {
-          symbols: ["700.HK"],
-          wsCapabilityType: "stream-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
       });
 
@@ -331,7 +334,7 @@ describe("StreamReceiverGateway Integration", () => {
 
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         auth: {
           appKey: testApiKey,
           accessToken: testAccessToken,
@@ -355,8 +358,8 @@ describe("StreamReceiverGateway Integration", () => {
       }
 
       const subscribeData = {
-        symbols: ["700.HK", "AAPL.US", "INVALID_SYMBOL"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "INVALID_SYMBOL"],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       clientSocket.emit("subscribe", subscribeData);
@@ -384,7 +387,7 @@ describe("StreamReceiverGateway Integration", () => {
       }
 
       const symbolsToTest = [
-        "700.HK", // 香港市场带后缀
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // 香港市场带后缀
         "00700", // 香港市场5位数字
         "AAPL.US", // 美股带后缀
         "AAPL", // 美股纯字母
@@ -394,7 +397,7 @@ describe("StreamReceiverGateway Integration", () => {
 
       const subscribeData = {
         symbols: symbolsToTest,
-        wsCapabilityType: "stream-stock-quote",
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       clientSocket.emit("subscribe", subscribeData);
@@ -425,7 +428,7 @@ describe("StreamReceiverGateway Integration", () => {
 
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         auth: {
           appKey: testApiKey,
           accessToken: testAccessToken,
@@ -475,7 +478,7 @@ describe("StreamReceiverGateway Integration", () => {
 
       const subscribeData = {
         symbols: ["NONEXISTENT.XX", "FAKE.SYMBOL"],
-        wsCapabilityType: "stream-stock-quote",
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       clientSocket.emit("subscribe", subscribeData);
@@ -503,8 +506,8 @@ describe("StreamReceiverGateway Integration", () => {
       }
 
       const subscribeData = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       let subscriptionConfirmed = false;
@@ -524,7 +527,7 @@ describe("StreamReceiverGateway Integration", () => {
           // 重新连接并验证订阅状态
           const newSocket = io(`http://localhost:${port}/stream`, {
             transports: ["websocket"],
-            timeout: 5000,
+            timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
           });
 
           newSocket.on("connect", () => {
@@ -556,7 +559,7 @@ describe("StreamReceiverGateway Integration", () => {
         const promise = new Promise<void>((resolve, reject) => {
           const socket = io(`http://localhost:${port}/stream`, {
             transports: ["websocket"],
-            timeout: 5000,
+            timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
           });
 
           socket.on("connect", () => {
@@ -602,7 +605,7 @@ describe("StreamReceiverGateway Integration", () => {
     it("should handle rapid subscription and unsubscription", (done) => {
       clientSocket = io(`http://localhost:${port}/stream`, {
         transports: ["websocket"],
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       });
 
       let operationCount = 0;
@@ -616,8 +619,8 @@ describe("StreamReceiverGateway Integration", () => {
 
         const isSubscribe = operationCount % 2 === 0;
         const data = {
-          symbols: ["700.HK"],
-          wsCapabilityType: "stream-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         };
 
         if (isSubscribe) {

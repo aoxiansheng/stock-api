@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * 异步测试辅助工具
  * 提供更可靠的异步操作等待机制，减少测试中的时序问题
@@ -22,7 +23,7 @@ export async function waitForCondition(
   options: WaitForConditionOptions = {},
 ): Promise<void> {
   const {
-    timeout = 5000,
+    timeout = OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
     interval = 50,
     timeoutMessage = "Condition not met within timeout",
   } = options;
@@ -111,7 +112,7 @@ export async function waitForEvent(
   eventName: string,
   options: { timeout?: number } = {},
 ): Promise<any[]> {
-  const { timeout = 5000 } = options;
+  const { timeout = OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST } = options;
 
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {

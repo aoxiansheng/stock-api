@@ -1,4 +1,6 @@
 import { QueryType } from "@core/01-entry/query/dto/query-types.dto";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("QueryType Enum", () => {
   describe("Enum Values", () => {
@@ -337,7 +339,7 @@ describe("QueryType Enum", () => {
           QueryType.BY_SYMBOLS,
         );
         expect(detectQueryType({ market: "US" })).toBe(QueryType.BY_MARKET);
-        expect(detectQueryType({ provider: "longport" })).toBe(
+        expect(detectQueryType({ provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })).toBe(
           QueryType.BY_PROVIDER,
         );
         expect(detectQueryType({ tags: ["tech"] })).toBe(QueryType.BY_CATEGORY);
@@ -368,7 +370,7 @@ describe("QueryType Enum", () => {
             case QueryType.BY_CATEGORY:
               return { ttl: 1800, priority: "low" }; // 30 minutes, low priority
             case QueryType.BY_TIME_RANGE:
-              return { ttl: 3600, priority: "low" }; // 1 hour, low priority
+              return { ttl: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE, priority: "low" }; // 1 hour, low priority
             case QueryType.ADVANCED:
               return { ttl: 600, priority: "low" }; // 10 minutes, low priority
             default:
@@ -393,7 +395,7 @@ describe("QueryType Enum", () => {
           priority: "low",
         });
         expect(getCacheStrategy(QueryType.BY_TIME_RANGE)).toEqual({
-          ttl: 3600,
+          ttl: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE,
           priority: "low",
         });
         expect(getCacheStrategy(QueryType.ADVANCED)).toEqual({

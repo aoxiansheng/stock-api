@@ -1,3 +1,6 @@
+
+import { REFERENCE_DATA } from '@common/constants/domain';
+
 import {
   Controller,
   Post,
@@ -75,9 +78,9 @@ export class AuthController {
           email: "developer@example.com",
           role: "developer",
           status: "active",
-          createdAt: "2024-01-01T12:00:00.000Z",
+          createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -89,7 +92,7 @@ export class AuthController {
         statusCode: 409,
         message: "用户名已存在，请选择其他用户名",
         error: "Conflict",
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/auth/register",
       },
     },
@@ -127,12 +130,12 @@ export class AuthController {
             email: "developer@example.com",
             role: "developer",
             status: "active",
-            createdAt: "2024-01-01T12:00:00.000Z",
+            createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
           },
           accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
           refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -144,7 +147,7 @@ export class AuthController {
         statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
         message: "用户名或密码错误，请检查后重试",
         error: "Unauthorized",
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/auth/login",
       },
     },
@@ -180,10 +183,10 @@ export class AuthController {
           email: "developer@example.com",
           role: "developer",
           status: "active",
-          createdAt: "2024-01-01T12:00:00.000Z",
+          createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
           lastAccessedAt: "2024-01-01T11:30:00.000Z",
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -224,9 +227,9 @@ export class AuthController {
           },
           status: "active",
           expiresAt: "2025-01-01T12:00:00.000Z",
-          createdAt: "2024-01-01T12:00:00.000Z",
+          createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -265,11 +268,11 @@ export class AuthController {
             keyPrefix: "ak_live_",
             permissions: ["query:read", "storage:read"],
             status: "active",
-            createdAt: "2024-01-01T12:00:00.000Z",
+            createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
             lastAccessedAt: "2024-01-01T11:30:00.000Z",
           },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -294,7 +297,7 @@ export class AuthController {
         statusCode: 200,
         message: "API Key撤销成功",
         data: { success: true },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -322,7 +325,7 @@ export class AuthController {
         data: {
           message: "功能开发中，即将上线",
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -353,7 +356,7 @@ export class AuthController {
         statusCode: 200,
         message: "频率限制重置成功",
         data: { success: true },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -433,7 +436,7 @@ export class AuthController {
               email: "developer@example.com",
               role: "developer",
               status: "active",
-              createdAt: "2024-01-01T12:00:00.000Z",
+              createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
               lastAccessedAt: "2024-01-01T11:30:00.000Z",
             },
             {
@@ -443,7 +446,7 @@ export class AuthController {
               role: "admin",
               status: "active",
               createdAt: "2024-01-01T10:00:00.000Z",
-              lastAccessedAt: "2024-01-01T12:00:00.000Z",
+              lastAccessedAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
             },
           ],
           total: 25,
@@ -462,7 +465,7 @@ export class AuthController {
             },
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })

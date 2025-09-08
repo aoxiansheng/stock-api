@@ -51,7 +51,6 @@ export enum OperationStatus {
   ABORTED = "aborted",
 }
 
-
 /**
  * 检查操作是否成功
  */
@@ -102,7 +101,6 @@ export function isInProgressOperation(status: OperationStatus): boolean {
   ];
   return inProgressStatuses.includes(status);
 }
-
 
 /**
  * 所有操作状态值数组

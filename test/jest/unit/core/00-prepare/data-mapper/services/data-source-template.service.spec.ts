@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   BadRequestException,
   NotFoundException,
   ConflictException,
@@ -51,16 +52,16 @@ describe("DataSourceTemplateService", () => {
   const mockTemplate: DataSourceTemplateResponseDto = {
     id: "507f1f77bcf86cd799439011",
     name: "LongPort Quote Template",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     description: "LongPort stock quote template",
-    sampleData: { symbol: "700.HK", last_done: 561 },
+    sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, last_done: 561 },
     extractedFields: [
       {
         fieldPath: "symbol",
         fieldName: "symbol",
         fieldType: "string",
-        sampleValue: "700.HK",
+        sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         confidence: 1.0,
         isNested: false,
         nestingLevel: 0,
@@ -136,9 +137,9 @@ describe("DataSourceTemplateService", () => {
   describe("createTemplate", () => {
     const createTemplateDto: CreateDataSourceTemplateDto = {
       name: "Test Template",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
-      sampleData: { symbol: "700.HK" },
+      sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
 
       confidence: 0.9,
       extractedFields: [
@@ -146,7 +147,7 @@ describe("DataSourceTemplateService", () => {
           fieldName: "symbol",
           fieldPath: "symbol",
           fieldType: "string",
-          sampleValue: "700.HK",
+          sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           confidence: 1,
           isNested: false,
           nestingLevel: 0,
@@ -229,7 +230,7 @@ describe("DataSourceTemplateService", () => {
         mockPaginatedResult,
       );
 
-      const result = await service.findTemplates(1, 10, "longport");
+      const result = await service.findTemplates(1, 10, REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(paginationService.createPaginatedResponse).toHaveBeenCalled();
       expect(result).toEqual(mockPaginatedResult);
@@ -237,7 +238,7 @@ describe("DataSourceTemplateService", () => {
 
     it("should apply filters correctly", async () => {
       const filters = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         isActive: true,
         page: 1,
@@ -330,11 +331,11 @@ describe("DataSourceTemplateService", () => {
       templateModel.findOne.mockReturnValue(mockQuery as any);
       mockTemplateDocument.toJSON.mockReturnValue(mockTemplate);
 
-      const result = await service.findBestMatchingTemplate("longport", "rest");
+      const result = await service.findBestMatchingTemplate(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
 
       expect(result).toEqual(mockTemplate);
       expect(templateModel.findOne).toHaveBeenCalledWith({
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         isActive: true,
         isDefault: true,
@@ -348,7 +349,7 @@ describe("DataSourceTemplateService", () => {
       };
       templateModel.findOne.mockReturnValue(mockQuery as any);
 
-      const result = await service.findBestMatchingTemplate("longport", "rest");
+      const result = await service.findBestMatchingTemplate(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
 
       expect(result).toBeNull();
     });
@@ -363,11 +364,11 @@ describe("DataSourceTemplateService", () => {
         .fn()
         .mockReturnValue({ ...mockTemplate, isDefault: true });
 
-      const result = await service.findBestMatchingTemplate("longport", "rest");
+      const result = await service.findBestMatchingTemplate(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
 
       expect(result.isDefault).toBe(true);
       expect(templateModel.findOne).toHaveBeenCalledWith({
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         isActive: true,
         isDefault: true,
@@ -458,7 +459,7 @@ describe("DataSourceTemplateService", () => {
         const groupStage = pipeline[0] as any;
         if (groupStage?.$group?._id === "$provider") {
           return Promise.resolve([
-            { id: "longport", count: 5 },
+            { id: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, count: 5 },
             { id: "custom", count: 5 },
           ]);
         }
@@ -502,15 +503,15 @@ describe("DataSourceTemplateService", () => {
   describe("createTemplateFromAnalysis", () => {
     const analysisData = {
       name: "Analysis Template",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest" as const,
-      sampleData: { symbol: "700.HK", price: 561 },
+      sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 561 },
       extractedFields: [
         {
           fieldPath: "symbol",
           fieldName: "symbol",
           fieldType: "string",
-          sampleValue: "700.HK",
+          sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           confidence: 1.0,
           isNested: false,
           nestingLevel: 0,
@@ -557,7 +558,7 @@ describe("DataSourceTemplateService", () => {
             fieldPath: "quote.symbol",
             fieldName: "symbol",
             fieldType: "string",
-            sampleValue: "700.HK",
+            sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             confidence: 0.9,
             isNested: true,
             nestingLevel: 1,
@@ -619,7 +620,7 @@ describe("DataSourceTemplateService", () => {
 
       const createDto: CreateDataSourceTemplateDto = {
         name: "",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         sampleData: {},
 

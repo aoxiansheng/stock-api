@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * StringUtils 测试套件
  * 测试字符串工具类的所有功能：相似度计算、Levenshtein距离、哈希生成
@@ -123,7 +124,7 @@ describe("StringUtils", () => {
 
     describe("实际使用场景测试", () => {
       it("should work correctly for stock symbols", () => {
-        expect(StringUtils.calculateSimilarity("700.HK", "700.hk")).toBe(1.0);
+        expect(StringUtils.calculateSimilarity(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "700.hk")).toBe(1.0);
         expect(StringUtils.calculateSimilarity("AAPL.US", "AAPL")).toBe(0.8);
         expect(StringUtils.calculateSimilarity("000001.SZ", "000001")).toBe(
           0.8,
@@ -314,8 +315,8 @@ describe("StringUtils", () => {
 
     describe("实际使用场景测试", () => {
       it("should work for caching keys", () => {
-        const data1 = { symbol: "700.HK", price: 350.5 };
-        const data2 = { symbol: "700.HK", price: 351.0 };
+        const data1 = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 350.5 };
+        const data2 = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 351.0 };
 
         const key1 = StringUtils.generateSimpleHash(JSON.stringify(data1));
         const key2 = StringUtils.generateSimpleHash(JSON.stringify(data2));

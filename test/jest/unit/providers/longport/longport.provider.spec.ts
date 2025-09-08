@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
@@ -50,7 +52,7 @@ describe("LongportProvider", () => {
   });
 
   it("should have correct provider metadata", () => {
-    expect(provider.name).toBe("longport");
+    expect(provider.name).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
     expect(provider.description).toBe("LongPort 长桥证券数据提供商");
     expect(provider.capabilities).toBeDefined();
     expect(Array.isArray(provider.capabilities)).toBe(true);
@@ -59,7 +61,7 @@ describe("LongportProvider", () => {
   it("should have expected capabilities", () => {
     expect(provider.capabilities).toHaveLength(3);
     const capabilityNames = provider.capabilities.map((cap) => cap.name);
-    expect(capabilityNames).toContain("get-stock-quote");
+    expect(capabilityNames).toContain(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
     expect(capabilityNames).toContain("get-stock-basic-info");
     expect(capabilityNames).toContain("get-index-quote");
   });
@@ -76,9 +78,9 @@ describe("LongportProvider", () => {
   });
 
   it("should return existing capability by name", () => {
-    const stockQuoteCapability = provider.getCapability("get-stock-quote");
+    const stockQuoteCapability = provider.getCapability(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
     expect(stockQuoteCapability).not.toBeNull();
-    expect(stockQuoteCapability?.name).toBe("get-stock-quote");
+    expect(stockQuoteCapability?.name).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
   });
 
   it("should return null for non-existent capability", () => {

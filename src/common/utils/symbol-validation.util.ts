@@ -1,4 +1,5 @@
 import { CONSTANTS } from "@common/constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Extract Market enum for backward compatibility
 const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
@@ -292,7 +293,7 @@ export class SymbolValidationUtils {
   public static getSupportedFormatExamples(): Record<string, string[]> {
     return {
       HK: [
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "00700.HK",
         "09618.HK",
         "HSI.HK",

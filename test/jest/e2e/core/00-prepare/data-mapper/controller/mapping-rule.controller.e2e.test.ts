@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * MappingRuleController 端到端测试
@@ -23,11 +24,11 @@ describe("MappingRuleController E2E", () => {
     // 创建一个测试用模板
     const templateRequest = {
       name: "Mapping Rule Test Template",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       description: "用于映射规则测试的模板",
       sampleData: {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         last_done: 561.0,
         prev_close: 558.5,
         volume: 11292534,
@@ -37,7 +38,7 @@ describe("MappingRuleController E2E", () => {
           fieldPath: "symbol",
           fieldName: "symbol",
           fieldType: "string",
-          sampleValue: "700.HK",
+          sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           confidence: 0.95,
           isNested: false,
           nestingLevel: 0,
@@ -76,7 +77,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const ruleRequest = {
           name: "E2E Test Mapping Rule",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           transDataRuleListType: "quote_fields",
           description: "端到端测试用映射规则",
@@ -132,7 +133,7 @@ describe("MappingRuleController E2E", () => {
 
         expect(result).toHaveProperty("id");
         expect(result).toHaveProperty("name", "E2E Test Mapping Rule");
-        expect(result).toHaveProperty("provider", "longport");
+        expect(result).toHaveProperty("provider", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(result).toHaveProperty("apiType", "rest");
         expect(result).toHaveProperty("transDataRuleListType", "quote_fields");
         expect(result).toHaveProperty("fieldMappings");
@@ -160,7 +161,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const ruleWithFallbackRequest = {
           name: "Fallback Test Rule",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "stream",
           transDataRuleListType: "quote_fields",
           description: "带回退路径的映射规则",
@@ -246,7 +247,7 @@ describe("MappingRuleController E2E", () => {
       it("应该在缺少必需字段时返回400错误", async () => {
         // Arrange - 缺少name字段
         const invalidRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           transDataRuleListType: "quote_fields",
           fieldMappings: [],
@@ -266,7 +267,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange - 使用已存在的名称
         const duplicateRequest = {
           name: "E2E Test Mapping Rule", // 重复名称
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           transDataRuleListType: "quote_fields",
           fieldMappings: [
@@ -293,7 +294,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const invalidTypeRequest = {
           name: "Invalid Type Rule",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           transDataRuleListType: "invalid_type", // 无效类型
           fieldMappings: [
@@ -320,7 +321,7 @@ describe("MappingRuleController E2E", () => {
         // Arrange
         const ruleRequest = {
           name: "Test Rule",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           transDataRuleListType: "quote_fields",
           fieldMappings: [],
@@ -372,7 +373,7 @@ describe("MappingRuleController E2E", () => {
 
         // 验证所有返回的规则都是longport提供商
         result.items.forEach((rule) => {
-          expect(rule.provider).toBe("longport");
+          expect(rule.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         });
       });
 
@@ -482,7 +483,7 @@ describe("MappingRuleController E2E", () => {
         const testRequest = {
           dataMapperRuleId: createdRuleId,
           testData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 561.0,
             prev_close: 558.5,
             volume: 11292534,
@@ -517,7 +518,7 @@ describe("MappingRuleController E2E", () => {
         expect(result.mappingStats).toHaveProperty("successRate");
 
         // 验证转换结果
-        expect(result.transformedData).toHaveProperty("symbol", "700.HK");
+        expect(result.transformedData).toHaveProperty("symbol", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
         expect(result.transformedData).toHaveProperty("lastPrice", 561.0);
         expect(result.transformedData).toHaveProperty("previousClose", 558.5);
 

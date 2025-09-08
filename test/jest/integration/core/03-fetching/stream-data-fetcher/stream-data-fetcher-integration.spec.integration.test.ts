@@ -1,3 +1,5 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { v4 as uuidv4 } from "uuid";
@@ -58,7 +60,7 @@ describe("StreamDataFetcher Integration Tests", () => {
 
     const mockCapabilityRegistry = {
       getCapability: jest.fn().mockImplementation((provider, capability) => {
-        if (provider === "longport") return mockLongportCapability;
+        if (provider === REFERENCE_DATA.PROVIDER_IDS.LONGPORT) return mockLongportCapability;
         if (provider === "itick") return mockItickCapability;
         return null;
       }),
@@ -121,13 +123,13 @@ describe("StreamDataFetcher Integration Tests", () => {
       // Phase 2 TODO: 完整实现数据接收测试
 
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
 
-      const testSymbols = ["700.HK", "AAPL.US"];
+      const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
       const mockDataReceived: any[] = [];
 
       // Arrange - 设置数据接收回调
@@ -135,7 +137,7 @@ describe("StreamDataFetcher Integration Tests", () => {
       mockLongportCapability.onData.mockImplementation((callback: any) => {
         // TODO Phase 2: 模拟实际数据接收
         // setTimeout(() => {
-        //   const mockData = { symbol: '700.HK', price: 350.5, timestamp: Date.now() };
+        //   const mockData = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 350.5, timestamp: Date.now() };
         //   callback(mockData);
         //   mockDataReceived.push(mockData);
         // }, 100);
@@ -166,14 +168,14 @@ describe("StreamDataFetcher Integration Tests", () => {
 
       // TODO Phase 2: 验证数据接收
       // expect(mockDataReceived).toHaveLength(1);
-      // expect(mockDataReceived[0]).toHaveProperty('symbol', '700.HK');
+      // expect(mockDataReceived[0]).toHaveProperty('symbol', REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
     });
   });
 
   describe("重试逻辑集成测试", () => {
     it("应该在首次连接失败后成功重试", async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -207,7 +209,7 @@ describe("StreamDataFetcher Integration Tests", () => {
   describe("多Provider同时订阅测试", () => {
     it("应该支持多个provider同时建立连接和订阅", async () => {
       const longportParams: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -237,14 +239,14 @@ describe("StreamDataFetcher Integration Tests", () => {
 
       // 分别订阅不同的符号
       await service.subscribeToSymbols(longportConnection, [
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "0005.HK",
       ]);
       await service.subscribeToSymbols(itickConnection, ["AAPL.US", "MSFT.US"]);
 
       // Assert - 验证连接池状态
       const allStats = service.getAllConnectionStats();
-      const longportStats = service.getConnectionStatsByProvider("longport");
+      const longportStats = service.getConnectionStatsByProvider(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       const itickStats = service.getConnectionStatsByProvider("itick");
 
       expect(allStats).toHaveLength(2);
@@ -264,7 +266,7 @@ describe("StreamDataFetcher Integration Tests", () => {
       // Arrange - 建立多个连接
       const connections: StreamConnection[] = [];
 
-      for (const provider of ["longport", "itick"]) {
+      for (const provider of [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick"]) {
         const params: StreamConnectionParams = {
           provider,
           capability: "ws-stock-quote",
@@ -272,7 +274,7 @@ describe("StreamDataFetcher Integration Tests", () => {
           requestId: uuidv4(),
         };
 
-        if (provider === "longport") {
+        if (provider === REFERENCE_DATA.PROVIDER_IDS.LONGPORT) {
           mockLongportCapability.isConnected.mockReturnValue(false);
         } else {
           mockItickCapability.isConnected.mockReturnValue(false);
@@ -286,7 +288,7 @@ describe("StreamDataFetcher Integration Tests", () => {
       }
 
       // Act - 执行批量健康检查
-      const healthResults = await service.batchHealthCheck({ timeoutMs: 1000 });
+      const healthResults = await service.batchHealthCheck({ timeoutMs: OPERATION_LIMITS.TIMEOUTS_MS.QUICK_OPERATION });
 
       // Assert
       expect(Object.keys(healthResults)).toHaveLength(2);
@@ -303,7 +305,7 @@ describe("StreamDataFetcher Integration Tests", () => {
   describe("连接复用测试", () => {
     it("应该能够复用相同provider+capability的连接", async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -322,7 +324,7 @@ describe("StreamDataFetcher Integration Tests", () => {
 
       // Assert
       expect(existingConnection).toBe(connection);
-      expect(existingConnection?.provider).toBe("longport");
+      expect(existingConnection?.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(existingConnection?.capability).toBe("ws-stock-quote");
 
       // 清理

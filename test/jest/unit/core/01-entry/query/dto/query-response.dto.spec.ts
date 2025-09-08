@@ -1,5 +1,6 @@
-import {
-  QueryMetadataDto,
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { import { API_OPERATIONS } from '@common/constants/domain';ueryMetadataDto,
   QueryResponseDto,
   BulkQueryResponseDto,
   QueryStatsDto,
@@ -71,7 +72,7 @@ describe("Query Response DTOs", () => {
             symbol: "INVALID.SYMBOL",
             reason: "Symbol not found",
             errorCode: "SYMBOL_NOT_FOUND",
-            details: { provider: "longport" },
+            details: { provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
           },
         ];
 
@@ -137,8 +138,8 @@ describe("Query Response DTOs", () => {
         metadata.queryParams = {
           symbols: ["00700.HK", "AAPL.US"],
           market: "MIXED",
-          provider: "longport",
-          queryTypeFilter: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           timeRange: {
             start: "2.023-06-01T00:00:00Z",
             end: "2023-06-01T23:59:59Z",
@@ -148,8 +149,8 @@ describe("Query Response DTOs", () => {
 
         expect(metadata.queryParams.symbols).toEqual(["00700.HK", "AAPL.US"]);
         expect(metadata.queryParams.market).toBe("MIXED");
-        expect(metadata.queryParams.provider).toBe("longport");
-        expect(metadata.queryParams.queryTypeFilter).toBe("get-stock-quote");
+        expect(metadata.queryParams.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+        expect(metadata.queryParams.queryTypeFilter).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
         expect(metadata.queryParams.timeRange.start).toBe(
           "2023-06-01T00:00:00Z",
         );
@@ -701,7 +702,7 @@ describe("Query Response DTOs", () => {
 
         metadata.queryParams = {
           symbols: ["00700.HK", "AAPL.US"],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         };
 
         metadata.performance = {
@@ -910,7 +911,7 @@ describe("Query Response DTOs", () => {
             largeDataset.slice(0, 100),
             {
               page: 1,
-              limit: 100,
+              limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
               total: 1000,
               totalPages: 10,
               hasNext: true,

@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import {
@@ -51,7 +52,7 @@ describe("FlexibleMappingRuleService", () => {
   const mockRule: FlexibleMappingRuleResponseDto = {
     id: "_507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     description: "Test description",
@@ -163,7 +164,7 @@ describe("FlexibleMappingRuleService", () => {
   describe("createRule", () => {
     const createRuleDto: CreateFlexibleMappingRuleDto = {
       name: "Test Mapping Rule",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "quote_fields",
       fieldMappings: [
@@ -310,7 +311,7 @@ describe("FlexibleMappingRuleService", () => {
         mockPaginatedResult,
       );
 
-      const result = await service.findRules(1, 10, "longport");
+      const result = await service.findRules(1, 10, REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(paginationService.createPaginatedResponse).toHaveBeenCalledWith(
         [mockRule],
@@ -359,14 +360,14 @@ describe("FlexibleMappingRuleService", () => {
       cacheService.getCachedBestMatchingRule.mockResolvedValue(mockRule);
 
       const result = await service.findBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
 
       expect(result).toEqual(mockRule);
       expect(cacheService.getCachedBestMatchingRule).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -384,21 +385,21 @@ describe("FlexibleMappingRuleService", () => {
       cacheService.cacheBestMatchingRule.mockResolvedValue(undefined);
 
       const result = await service.findBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
 
       expect(result).toEqual(mockRule);
       expect(ruleModel.findOne).toHaveBeenCalledWith({
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         isActive: true,
         isDefault: true,
       });
       expect(cacheService.cacheBestMatchingRule).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
         mockRule,
@@ -413,7 +414,7 @@ describe("FlexibleMappingRuleService", () => {
       } as any);
 
       const result = await service.findBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -526,7 +527,7 @@ describe("FlexibleMappingRuleService", () => {
   describe("applyFlexibleMappingRule", () => {
     const testData = {
       last_done: 100.5,
-      symbol: "700.HK",
+      symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       volume: 1000000,
     };
 
@@ -553,7 +554,7 @@ describe("FlexibleMappingRuleService", () => {
       );
 
       expect(result.transformedData.lastPrice).toBe(100.5);
-      expect(result.transformedData.symbol).toBe("700.HK");
+      expect(result.transformedData.symbol).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(result.success).toBe(true);
       expect(result.mappingStats.successfulMappings).toBe(2);
     });
@@ -585,7 +586,7 @@ describe("FlexibleMappingRuleService", () => {
     it("should calculate confidence through public methods", async () => {
       const createRuleDto: CreateFlexibleMappingRuleDto = {
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest" as const,
         transDataRuleListType: "quote_fields",
         fieldMappings: [
@@ -648,7 +649,7 @@ describe("FlexibleMappingRuleService", () => {
       const mockRuleDoc = {
         _id: validRuleId,
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         fieldMappings: [

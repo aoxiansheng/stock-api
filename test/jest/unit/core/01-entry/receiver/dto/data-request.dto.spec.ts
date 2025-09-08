@@ -2,11 +2,12 @@ import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import { DataRequestDto } from "../../../../../../../src/core/01-entry/receiver/dto/data-request.dto";
 import { SUPPORTED_CAPABILITY_TYPES } from "../../../../../../../src/core/01-entry/receiver/constants/receiver.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("DataRequestDto", () => {
   // 创建一个有效的请求体
   const createValidDto = () => ({
-    symbols: ["700.HK", "AAPL.US"],
+    symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
     receiverType: SUPPORTED_CAPABILITY_TYPES[0], // 使用支持的第一个类型
     options: {
       preferredProvider: "test",
@@ -49,7 +50,7 @@ describe("DataRequestDto", () => {
     });
 
     it("当 symbols 列表过长时应无法通过验证", async () => {
-      const longList = Array(101).fill("700.HK");
+      const longList = Array(101).fill(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       const invalidDto = { ...createValidDto(), symbols: longList };
       const dto = plainToClass(DataRequestDto, invalidDto);
       const errors = await validate(dto);

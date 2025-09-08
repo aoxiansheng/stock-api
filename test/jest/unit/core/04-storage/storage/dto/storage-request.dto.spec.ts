@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Storage Request DTO UCK�
@@ -186,7 +187,7 @@ describe("Storage Request DTOs", () => {
         dto.data = { symbol: "00700.HK", price: 425.6 };
         dto.storageType = StorageType.BOTH;
         dto.storageClassification = StorageClassification.STOCK_QUOTE;
-        dto.provider = "longport";
+        dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         dto.market = "HK";
 
         // Assert
@@ -196,7 +197,7 @@ describe("Storage Request DTOs", () => {
         expect(dto.storageClassification).toBe(
           StorageClassification.STOCK_QUOTE,
         );
-        expect(dto.provider).toBe("longport");
+        expect(dto.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(dto.market).toBe("HK");
       });
 
@@ -561,7 +562,7 @@ describe("Storage Request DTOs", () => {
           data: { transformed: true },
           storageType: "both",
           storageClassification: "stock_quote",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           options: {
             cacheTtl: "3600",
@@ -649,7 +650,7 @@ describe("Storage Request DTOs", () => {
         };
         dto.storageType = StorageType.BOTH;
         dto.storageClassification = StorageClassification.STOCK_QUOTE;
-        dto.provider = "longport";
+        dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         dto.market = "HK";
         dto.options = {
           cacheTtl: 300, // 5 minutes

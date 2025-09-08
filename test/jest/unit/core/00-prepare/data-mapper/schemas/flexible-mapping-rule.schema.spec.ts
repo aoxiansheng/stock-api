@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
@@ -38,7 +39,7 @@ describe("FlexibleMappingRuleSchema", () => {
     it("should create a valid mapping rule", async () => {
       const ruleData = {
         name: "LongPort Quote Mapping",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         description: "Maps LongPort quote fields to standard format",
@@ -56,7 +57,7 @@ describe("FlexibleMappingRuleSchema", () => {
 
       expect(savedRule._id).toBeDefined();
       expect(savedRule.name).toBe("LongPort Quote Mapping");
-      expect(savedRule.provider).toBe("longport");
+      expect(savedRule.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(savedRule.apiType).toBe("rest");
       expect(savedRule.isActive).toBe(true); // default value
       expect(savedRule.isDefault).toBe(false); // default value
@@ -84,7 +85,7 @@ describe("FlexibleMappingRuleSchema", () => {
     it("should fail validation with invalid apiType", async () => {
       const ruleData = {
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "invalid",
         transDataRuleListType: "quote_fields",
       };
@@ -105,7 +106,7 @@ describe("FlexibleMappingRuleSchema", () => {
     it("should fail validation with overallConfidence out of range", async () => {
       const ruleData = {
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         overallConfidence: 1.5, // Invalid: > 1
@@ -127,7 +128,7 @@ describe("FlexibleMappingRuleSchema", () => {
     it("should create rule with complex field mappings", async () => {
       const ruleData = {
         name: "Complex Mapping Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "stream",
         transDataRuleListType: "quote_fields",
         fieldMappings: [

@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * Transform Interfaces DTO UCK�
  * K�pnlb��pn ��a
@@ -125,7 +126,7 @@ describe("Transform Interfaces DTOs", () => {
         // Arrange
         dto.id = "rule-longport-stock-quote-001";
         dto.name = "LongPort Stock Quote Mapping";
-        dto.provider = "longport";
+        dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         dto.transDataRuleListType = "quote_fields";
         dto.sharedDataFieldMappings = [
           {
@@ -149,7 +150,7 @@ describe("Transform Interfaces DTOs", () => {
         // Assert
         expect(dto.id).toBe("rule-longport-stock-quote-001");
         expect(dto.name).toBe("LongPort Stock Quote Mapping");
-        expect(dto.provider).toBe("longport");
+        expect(dto.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(dto.transDataRuleListType).toBe("quote_fields");
         expect(dto.sharedDataFieldMappings).toHaveLength(3);
         expect(dto.sharedDataFieldMappings[0].sourceField).toBe(
@@ -204,7 +205,7 @@ describe("Transform Interfaces DTOs", () => {
         transDataRuleListTypes.forEach((transDataRuleListType) => {
           dto.id = `rule-${transDataRuleListType}`;
           dto.name = `${transDataRuleListType} mapping`;
-          dto.provider = "longport";
+          dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
           dto.transDataRuleListType = transDataRuleListType;
           dto.sharedDataFieldMappings = [];
 
@@ -465,7 +466,7 @@ describe("Transform Interfaces DTOs", () => {
         const rule = new DataTransformRuleDto();
         rule.id = "longport-hk-stock-quote";
         rule.name = "LongPort HK Stock Quote Transformation";
-        rule.provider = "longport";
+        rule.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         rule.transDataRuleListType = "quote_fields";
         rule.sharedDataFieldMappings = [
           {
@@ -515,7 +516,7 @@ describe("Transform Interfaces DTOs", () => {
         );
 
         // Assert
-        expect(rule.provider).toBe("longport");
+        expect(rule.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(rule.transDataRuleListType).toBe("quote_fields");
         expect(rule.sharedDataFieldMappings).toHaveLength(5);
         expect(stats.recordsProcessed).toBe(1);
@@ -530,7 +531,7 @@ describe("Transform Interfaces DTOs", () => {
         const marketRule = new DataTransformRuleDto();
         marketRule.id = "market-status-transformation";
         marketRule.name = "Market Status Data Transformation";
-        marketRule.provider = "longport";
+        marketRule.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         marketRule.transDataRuleListType = "market_status_fields";
         marketRule.sharedDataFieldMappings = [
           {

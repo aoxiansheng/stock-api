@@ -5,6 +5,7 @@ import { CacheCompressionService } from "@core/05-caching/common-cache/services/
 import { ICollector } from "../../../../../../../src/monitoring/contracts/interfaces/collector.interface";
 import { CACHE_CONFIG } from "@core/05-caching/common-cache/constants/cache-config.constants";
 import { REDIS_SPECIAL_VALUES } from "@core/05-caching/common-cache/constants/cache.constants";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 
 describe("CommonCacheService", () => {
   let service: CommonCacheService;
@@ -147,7 +148,7 @@ describe("CommonCacheService", () => {
       const key = "cache-key";
       const cachedData = { message: "from cache" };
       const fetchFn = jest.fn();
-      const ttl = 3600;
+      const ttl = OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE;
 
       mockRedis.get.mockResolvedValue(
         JSON.stringify({
@@ -174,7 +175,7 @@ describe("CommonCacheService", () => {
       const key = "cache-miss-key";
       const fetchedData = { message: "from fetch" };
       const fetchFn = jest.fn().mockResolvedValue(fetchedData);
-      const ttl = 3600;
+      const ttl = OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE;
 
       mockRedis.get.mockResolvedValue(null);
       mockRedis.setex.mockResolvedValue("OK");
@@ -196,7 +197,7 @@ describe("CommonCacheService", () => {
       const key = "error-key";
       const fetchError = new Error("Fetch failed");
       const fetchFn = jest.fn().mockRejectedValue(fetchError);
-      const ttl = 3600;
+      const ttl = OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE;
 
       mockRedis.get.mockResolvedValue(null);
 

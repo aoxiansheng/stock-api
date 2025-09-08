@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * Storage Metadata DTO UCK
  * KXCpnpn a
@@ -15,7 +16,7 @@ describe("StorageMetadataDto", () => {
         const key = "stock:00700.HK:quote";
         const storageType = StorageType.BOTH;
         const storageClassification = StorageClassification.STOCK_QUOTE;
-        const provider = "longport";
+        const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         const market = "HK";
         const dataSize = 1024;
         const processingTimeMs = 150;
@@ -412,7 +413,7 @@ describe("StorageMetadataDto", () => {
           "quote:00700.HK:longport",
           StorageType.BOTH,
           StorageClassification.STOCK_QUOTE,
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           "HK",
           2048,
           156,
@@ -442,7 +443,7 @@ describe("StorageMetadataDto", () => {
           "_candle:AAPL.US:1d:longport",
           StorageType.PERSISTENT,
           StorageClassification.STOCK_CANDLE,
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           "US",
           15360,
           245,

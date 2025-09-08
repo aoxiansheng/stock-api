@@ -1,6 +1,7 @@
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   CreateFlexibleMappingRuleDto,
   FlexibleFieldMappingDto,
   TransformRuleDto,
@@ -15,7 +16,7 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with correct data", async () => {
       const dto = plainToClass(CreateFlexibleMappingRuleDto, {
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         fieldMappings: [
@@ -40,7 +41,7 @@ describe("FlexibleMappingRuleDto", () => {
     it("should fail validation with invalid apiType", async () => {
       const dto = plainToClass(CreateFlexibleMappingRuleDto, {
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "invalid",
         transDataRuleListType: "quote_fields",
         fieldMappings: [],
@@ -53,7 +54,7 @@ describe("FlexibleMappingRuleDto", () => {
     it("should be valid with optional fields", async () => {
       const dto = plainToClass(CreateFlexibleMappingRuleDto, {
         name: "Test Rule",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "stream",
         transDataRuleListType: "quote_fields",
         description: "Test description",
@@ -153,7 +154,7 @@ describe("FlexibleMappingRuleDto", () => {
         dataMapperRuleId: "507f1f77bcf86cd799439011",
         testData: {
           last_done: 100.5,
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         },
       });
 
@@ -194,7 +195,7 @@ describe("FlexibleMappingRuleDto", () => {
       const dto = new FlexibleMappingRuleResponseDto();
       dto.id = "507f1f77bcf86cd799439011";
       dto.name = "Test Rule";
-      dto.provider = "longport";
+      dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       dto.apiType = "rest";
       dto.transDataRuleListType = "quote_fields";
       dto.fieldMappings = [];
@@ -205,7 +206,7 @@ describe("FlexibleMappingRuleDto", () => {
 
       expect(dto.id).toBe("507f1f77bcf86cd799439011");
       expect(dto.name).toBe("Test Rule");
-      expect(dto.provider).toBe("longport");
+      expect(dto.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(dto.isActive).toBe(true);
     });
   });
@@ -215,8 +216,8 @@ describe("FlexibleMappingRuleDto", () => {
       const dto = new FlexibleMappingTestResultDto();
       dto.dataMapperRuleId = "507f1f77bcf86cd799439011";
       dto.ruleName = "Test Rule";
-      dto.originalData = { last_done: 100.5, symbol: "700.HK" };
-      dto.transformedData = { lastPrice: 100.5, symbol: "700.HK" };
+      dto.originalData = { last_done: 100.5, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT };
+      dto.transformedData = { lastPrice: 100.5, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT };
       dto.success = true;
       dto.mappingStats = {
         totalMappings: 2,
@@ -229,7 +230,7 @@ describe("FlexibleMappingRuleDto", () => {
       expect(dto.success).toBe(true);
       expect(dto.transformedData).toEqual({
         lastPrice: 100.5,
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       });
       expect(dto.mappingStats.totalMappings).toBe(2);
       expect(dto.executionTime).toBe(15.5);

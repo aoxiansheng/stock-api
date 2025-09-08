@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
 import Redis from "ioredis";
+
+import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   ValidationResult,
   DependencyValidationResult,
@@ -19,7 +21,7 @@ export class DependenciesValidatorService {
   async validateDependencies(
     options: ValidationOptions = {},
   ): Promise<ValidationResult> {
-    const { timeout = 5000, retries = 3 } = options;
+    const { timeout = OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST, retries = 3 } = options;
     const messages: ValidationMessage[] = [];
     const dependencyResults: DependencyValidationResult[] = [];
     const startTime = Date.now();

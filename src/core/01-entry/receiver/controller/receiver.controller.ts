@@ -1,9 +1,11 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   Controller,
   Post,
   Body,
   ValidationPipe,
-  HttpCode,
+  HttpCode
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
@@ -69,8 +71,8 @@ export class ReceiverController {
 ### 📝 示例请求
 \`\`\`json
 {
-  "symbols": ["AAPL", "700.HK", "000001.SZ"],
-  "receiverType": "get-stock-quote",
+  "symbols": ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ"],
+  "receiverType": API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   "options": {
     "realtime": true,
     "timeout": 3000
@@ -106,7 +108,7 @@ export class ReceiverController {
               timestamp: "2024-01-01T15:30:01.123Z", // 毫秒级时间戳
             },
             {
-              symbol: "700.HK",
+              symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
               lastPrice: 385.6,
               change: -4.2,
               changePercent: -1.08,
@@ -120,7 +122,7 @@ export class ReceiverController {
           ],
           metadata: {
             requestId: "req_realtime_1704110400123",
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             processingTime: 23, // 超快响应时间
             cacheUsed: false, // 强时效优先获取最新数据
             cacheTTL: 1, // 1秒缓存

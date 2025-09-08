@@ -19,6 +19,8 @@ import { DataSourceType } from "../../../../../../../src/core/01-entry/query/enu
 import { QueryRequestDto } from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 import { ResponseMetadataDto } from "../../../../../../../src/core/01-entry/receiver/dto/data-response.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 // Mock the external utilities
 jest.mock(
@@ -87,7 +89,7 @@ describe("QueryService", () => {
   };
 
   const mockSymbolData = {
-    symbol: "700.HK",
+    symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
     lastPrice: 100.5,
     volume: 1000000,
     market: "HK",
@@ -96,8 +98,8 @@ describe("QueryService", () => {
   const mockReceiverResponse = {
     data: [mockSymbolData],
     metadata: new ResponseMetadataDto(
-      "longport",
-      "get-stock-quote",
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       "test-request-id",
       100,
     ),
@@ -253,11 +255,11 @@ describe("QueryService", () => {
     cacheUtils.buildCacheOrchestratorRequest.mockReturnValue({
       cacheKey: "test:cache:key",
       strategy: CacheStrategy.WEAK_TIMELINESS,
-      symbols: ["700.HK"],
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       fetchFn: expect.any(Function),
       metadata: {
         marketStatus: mockMarketStatus,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         requestId: "test-123",
       },
     });
@@ -296,9 +298,9 @@ describe("QueryService", () => {
   describe("fetchSymbolData", () => {
     const mockRequest: QueryRequestDto = {
       queryType: QueryType.BY_SYMBOLS,
-      symbols: ["700.HK"],
-      queryTypeFilter: "get-stock-quote",
-      provider: "longport",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+      queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       options: {
         useCache: true,
       },
@@ -307,7 +309,7 @@ describe("QueryService", () => {
     it("should fetch symbol data using smart cache orchestrator", async () => {
       // Call the private method via reflection for testing
       const fetchSymbolData = (service as any).fetchSymbolData.bind(service);
-      const result = await fetchSymbolData("700.HK", mockRequest, "test-123");
+      const result = await fetchSymbolData(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, mockRequest, "test-123");
 
       expect(result).toEqual({
         data: mockSymbolData,
@@ -319,11 +321,11 @@ describe("QueryService", () => {
         {
           cacheKey: "test:cache:key",
           strategy: CacheStrategy.WEAK_TIMELINESS,
-          symbols: ["700.HK"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           fetchFn: expect.any(Function),
           metadata: {
             marketStatus: mockMarketStatus,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             requestId: "test-123",
           },
         },
@@ -331,7 +333,7 @@ describe("QueryService", () => {
 
       // Verify market status service was called
       expect(marketStatusService.getMarketStatus).toHaveBeenCalledWith([
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       ]);
     });
 
@@ -347,13 +349,13 @@ describe("QueryService", () => {
       buildCacheOrchestratorRequest.mockReturnValue({
         cacheKey: "test:cache:key",
         strategy: CacheStrategy.NO_CACHE,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         fetchFn: expect.any(Function),
         metadata: expect.any(Object),
       });
 
       const fetchSymbolData = (service as any).fetchSymbolData.bind(service);
-      await fetchSymbolData("700.HK", noCacheRequest, "test-123");
+      await fetchSymbolData(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, noCacheRequest, "test-123");
 
       expect(buildCacheOrchestratorRequest).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -376,7 +378,7 @@ describe("QueryService", () => {
       );
 
       const fetchSymbolData = (service as any).fetchSymbolData.bind(service);
-      const result = await fetchSymbolData("700.HK", mockRequest, "test-123");
+      const result = await fetchSymbolData(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, mockRequest, "test-123");
 
       expect(result).toEqual({
         data: mockSymbolData,
@@ -392,7 +394,7 @@ describe("QueryService", () => {
       const fetchSymbolData = (service as any).fetchSymbolData.bind(service);
 
       await expect(
-        fetchSymbolData("700.HK", mockRequest, "test-123"),
+        fetchSymbolData(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, mockRequest, "test-123"),
       ).rejects.toThrow("Cache orchestrator error");
     });
   });
@@ -400,9 +402,9 @@ describe("QueryService", () => {
   describe("executeOriginalDataFlow", () => {
     const mockRequest: QueryRequestDto = {
       queryType: QueryType.BY_SYMBOLS,
-      symbols: ["700.HK"],
-      queryTypeFilter: "get-stock-quote",
-      provider: "longport",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+      queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     };
 
     it("should execute original data flow successfully", async () => {
@@ -411,7 +413,7 @@ describe("QueryService", () => {
       ).executeOriginalDataFlow.bind(service);
       const result = await executeOriginalDataFlow(
         {},
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         mockRequest,
         "test-123",
       );
@@ -430,12 +432,12 @@ describe("QueryService", () => {
       const executeOriginalDataFlow = (
         service as any
       ).executeOriginalDataFlow.bind(service);
-      await executeOriginalDataFlow({}, "700.HK", mockRequest, "test-123");
+      await executeOriginalDataFlow({}, REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, mockRequest, "test-123");
 
       expect(buildStorageKey).toHaveBeenCalledWith(
-        "700.HK",
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         undefined,
       );
     });
@@ -445,9 +447,9 @@ describe("QueryService", () => {
     it("should convert query request to receiver request format correctly", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK", "AAPL"],
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         market: Market.HK,
         maxAge: 60,
         options: {
@@ -458,13 +460,13 @@ describe("QueryService", () => {
       const convertFunction = (
         service as any
       ).convertQueryToReceiverRequest.bind(service);
-      const result = convertFunction(queryRequest, ["700.HK", "AAPL"]);
+      const result = convertFunction(queryRequest, [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"]);
 
       expect(result).toEqual({
-        symbols: ["700.HK", "AAPL"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
           fields: ["lastPrice", "volume"],
           market: Market.HK,
@@ -477,27 +479,27 @@ describe("QueryService", () => {
     it("should use default receiverType when queryTypeFilter is not provided", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       };
 
       const convertFunction = (
         service as any
       ).convertQueryToReceiverRequest.bind(service);
-      const result = convertFunction(queryRequest, ["700.HK"]);
+      const result = convertFunction(queryRequest, [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
 
-      expect(result.receiverType).toBe("get-stock-quote");
+      expect(result.receiverType).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
     });
 
     it("should handle missing optional fields", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       };
 
       const convertFunction = (
         service as any
       ).convertQueryToReceiverRequest.bind(service);
-      const result = convertFunction(queryRequest, ["700.HK"]);
+      const result = convertFunction(queryRequest, [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
 
       expect(result.options.preferredProvider).toBeUndefined();
       expect(result.options.timeout).toBeUndefined();
@@ -509,9 +511,9 @@ describe("QueryService", () => {
   describe("fetchFromRealtime", () => {
     const mockRequest: QueryRequestDto = {
       queryType: QueryType.BY_SYMBOLS,
-      symbols: ["700.HK"],
-      queryTypeFilter: "get-stock-quote",
-      provider: "longport",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+      queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     };
 
     it("should fetch realtime data successfully", async () => {
@@ -519,7 +521,7 @@ describe("QueryService", () => {
         service,
       );
       const result = await fetchFromRealtime(
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "storage:key",
         mockRequest,
         "test-123",
@@ -538,10 +540,10 @@ describe("QueryService", () => {
       });
 
       expect(receiverService.handleRequest).toHaveBeenCalledWith({
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: expect.objectContaining({
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
           storageMode: "none",
         }),
@@ -552,8 +554,8 @@ describe("QueryService", () => {
       receiverService.handleRequest.mockResolvedValueOnce({
         data: [],
         metadata: new ResponseMetadataDto(
-          "longport",
-          "get-stock-quote",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           "test-request-id",
           100,
         ),
@@ -573,7 +575,7 @@ describe("QueryService", () => {
         service,
       );
       const result = await fetchFromRealtime(
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "storage:key",
         mockRequest,
         "test-123",
@@ -582,7 +584,7 @@ describe("QueryService", () => {
       expect(result.data).toEqual(mockSymbolData);
       expect(result.metadata.source).toBe(DataSourceType.REALTIME);
       expect(tryGetFromCacheSpy).toHaveBeenCalledWith(
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "storage:key:persistent",
         expect.objectContaining({ maxAge: undefined }),
         "test-123",
@@ -593,8 +595,8 @@ describe("QueryService", () => {
       receiverService.handleRequest.mockResolvedValueOnce({
         data: [],
         metadata: new ResponseMetadataDto(
-          "longport",
-          "get-stock-quote",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           "test-request-id",
           100,
         ),
@@ -608,7 +610,7 @@ describe("QueryService", () => {
       );
 
       await expect(
-        fetchFromRealtime("700.HK", "storage:key", mockRequest, "test-123"),
+        fetchFromRealtime(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "storage:key", mockRequest, "test-123"),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -622,7 +624,7 @@ describe("QueryService", () => {
       );
 
       await expect(
-        fetchFromRealtime("700.HK", "storage:key", mockRequest, "test-123"),
+        fetchFromRealtime(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "storage:key", mockRequest, "test-123"),
       ).rejects.toThrow("Receiver error");
     });
   });
@@ -631,7 +633,7 @@ describe("QueryService", () => {
     it("should generate query ID correctly", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       };
 
       const generateQueryId = (service as any).generateQueryId.bind(service);
@@ -645,11 +647,11 @@ describe("QueryService", () => {
         service as any
       ).inferMarketFromSymbols.bind(service);
 
-      expect(inferMarketFromSymbols(["700.HK", "9988.HK"])).toBe("HK");
+      expect(inferMarketFromSymbols([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "9988.HK"])).toBe("HK");
       expect(inferMarketFromSymbols(["AAPL", "TSLA"])).toBe("US");
       expect(inferMarketFromSymbols(["600000.SH"])).toBe("SH");
       expect(inferMarketFromSymbols(["000001.SZ"])).toBe("SZ");
-      expect(inferMarketFromSymbols(["700.HK", "AAPL"])).toBe("MIXED");
+      expect(inferMarketFromSymbols([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"])).toBe("MIXED");
       expect(inferMarketFromSymbols([])).toBe("UNKNOWN");
     });
 
@@ -683,7 +685,7 @@ describe("QueryService", () => {
         confidence: 1.0,
       });
 
-      const ttl = await calculateCacheTTLByMarket(Market.HK, ["700.HK"]);
+      const ttl = await calculateCacheTTLByMarket(Market.HK, [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
       expect(ttl).toBe(5); // realtime TTL for trading hours
     });
   });
@@ -696,15 +698,15 @@ describe("QueryService", () => {
 
       const mockRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       const fetchSymbolData = (service as any).fetchSymbolData.bind(service);
 
       await expect(
-        fetchSymbolData("700.HK", mockRequest, "test-123"),
+        fetchSymbolData(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, mockRequest, "test-123"),
       ).rejects.toThrow("Market status error");
     });
 
@@ -718,15 +720,15 @@ describe("QueryService", () => {
 
       const mockRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       const fetchSymbolData = (service as any).fetchSymbolData.bind(service);
 
       await expect(
-        fetchSymbolData("700.HK", mockRequest, "test-123"),
+        fetchSymbolData(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, mockRequest, "test-123"),
       ).rejects.toThrow("Build cache request error");
     });
   });
@@ -735,9 +737,9 @@ describe("QueryService", () => {
     it("should track metrics during query execution", async () => {
       const mockRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       const executeQuery = (service as any).executeQuery?.bind(service);

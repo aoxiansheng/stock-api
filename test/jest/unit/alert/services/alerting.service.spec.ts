@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import {
@@ -167,7 +168,7 @@ describe("AlertingService", () => {
       expect(cacheService.set).toHaveBeenCalledWith(
         `active-alert:${mockAlert.ruleId}`,
         mockAlert,
-        { ttl: 3600 },
+        { ttl: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE },
       );
     });
 
@@ -632,7 +633,7 @@ describe("AlertingService", () => {
       expect(cacheService.set).toHaveBeenCalledWith(
         `active-alert:${mockAlert.ruleId}`,
         expect.objectContaining({ id: mockAlert.id }),
-        { ttl: 3600 },
+        { ttl: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE },
       );
       expect(notificationService.sendBatchNotifications).toHaveBeenCalled();
     });
@@ -712,7 +713,7 @@ describe("AlertingService", () => {
       expect(cacheService.set).toHaveBeenCalledWith(
         `active-alert:${mockAlert.ruleId}`,
         mockAlert,
-        { ttl: 3600 },
+        { ttl: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE },
       );
     });
 

@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
@@ -77,7 +80,7 @@ describe("QueryController", () => {
         cache: { hits: 1, misses: 0 },
         realtime: { hits: 0, misses: 0 },
       },
-      timestamp: "2024-01-01T12:00:00.000Z",
+      timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
     },
   };
 
@@ -88,7 +91,7 @@ describe("QueryController", () => {
       totalExecutionTime: 156,
       averageExecutionTime: 156,
     },
-    timestamp: "2024-01-01T12:00:00.000Z",
+    timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
   };
 
   const mockQueryStats: QueryStatsDto = {
@@ -124,7 +127,7 @@ describe("QueryController", () => {
         lastExecuted: "2024-01-01T11:55:00.000Z",
       },
     ],
-    timestamp: "2024-01-01T12:00:00.000Z",
+    timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
   };
 
   beforeEach(async () => {
@@ -195,7 +198,7 @@ describe("QueryController", () => {
           throttlers: [
             {
               ttl: 60,
-              limit: 100,
+              limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
             },
           ],
         }),
@@ -225,7 +228,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "MSFT.US"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useCache: true,
           includeMetadata: true,
@@ -243,7 +246,7 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["AAPL.US", "MSFT.US"],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         }),
       );
       expect(mockLoggerInstance.log).toHaveBeenCalledWith(
@@ -259,7 +262,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["INVALID.US"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const error = new Error("Query execution failed");
@@ -282,7 +285,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US", "MSFT.US", "GOOGL.US", "TSLA.US", "AMZN.US"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
@@ -302,7 +305,7 @@ describe("QueryController", () => {
       const queryRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL.US"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useCache: true,
           includeMetadata: false,
@@ -324,7 +327,7 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["AAPL.US"],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         }),
       );
     });
@@ -337,12 +340,12 @@ describe("QueryController", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["AAPL.US"],
-            queryTypeFilter: "get-stock-quote",
+            queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["MSFT.US"],
-            queryTypeFilter: "get-stock-quote",
+            queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
         ],
         parallel: true,
@@ -371,7 +374,7 @@ describe("QueryController", () => {
           {
             queryType: QueryType.BY_SYMBOLS,
             symbols: ["INVALID.US"],
-            queryTypeFilter: "get-stock-quote",
+            queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
         ],
         parallel: false,
@@ -432,7 +435,7 @@ describe("QueryController", () => {
 
       const result = await controller.queryBySymbols(
         "AAPL,MSFT,GOOGL",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         10,
@@ -445,9 +448,9 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_SYMBOLS,
           symbols: ["AAPL", "MSFT", "GOOGL"],
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "US",
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           limit: 10,
           page: 1,
           options: {
@@ -460,7 +463,7 @@ describe("QueryController", () => {
 
     it("should throw error when symbols parameter is missing", async () => {
       await expect(
-        controller.queryBySymbols("", "longport", "US", "quote", 10, 1, true),
+        controller.queryBySymbols("", REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "US", "quote", 10, 1, true),
       ).rejects.toThrow("Symbols parameter is required");
     });
 
@@ -469,7 +472,7 @@ describe("QueryController", () => {
 
       await controller.queryBySymbols(
         " AAPL , MSFT , , GOOGL ",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         10,
@@ -489,7 +492,7 @@ describe("QueryController", () => {
 
       await controller.queryBySymbols(
         "AAPL",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         100,
@@ -499,7 +502,7 @@ describe("QueryController", () => {
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
-          limit: 100,
+          limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
           page: 1,
           options: {
             useCache: true,
@@ -537,7 +540,7 @@ describe("QueryController", () => {
 
       await controller.queryBySymbols(
         "AAPL,MSFT,GOOGL,_TSLA,AMZN",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         10,
@@ -560,7 +563,7 @@ describe("QueryController", () => {
 
       const result = await controller.queryByMarket(
         "US",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "quote",
         50,
         10,
@@ -571,8 +574,8 @@ describe("QueryController", () => {
         expect.objectContaining({
           queryType: QueryType.BY_MARKET,
           market: "US",
-          provider: "longport",
-          queryTypeFilter: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           limit: 50,
           page: 10,
           options: {
@@ -585,18 +588,18 @@ describe("QueryController", () => {
 
     it("should throw error when market parameter is missing", async () => {
       await expect(
-        controller.queryByMarket("", "longport", "quote", 100, 0),
+        controller.queryByMarket("", REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quote", 100, 0),
       ).rejects.toThrow("Market parameter is required");
     });
 
     it("should use default values for optional parameters", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryByMarket("HK", "longport", "quote", 100, 0);
+      await controller.queryByMarket("HK", REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quote", 100, 0);
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
-          limit: 100,
+          limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
           page: 1,
         }),
       );
@@ -608,7 +611,7 @@ describe("QueryController", () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
       const result = await controller.queryByProvider(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         25,
@@ -619,9 +622,9 @@ describe("QueryController", () => {
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_PROVIDER,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "US",
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           limit: 25,
           page: 5,
           options: {
@@ -634,18 +637,18 @@ describe("QueryController", () => {
 
     it("should throw error when provider parameter is missing", async () => {
       await expect(
-        controller.queryByProvider("", "longport", "quote", 100, 0),
+        controller.queryByProvider("", REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quote", 100, 0),
       ).rejects.toThrow("Provider parameter is required");
     });
 
     it("should use default values for optional parameters", async () => {
       queryService.executeQuery.mockResolvedValue(mockQueryResponse);
 
-      await controller.queryByProvider("futu", "longport", "quote", 100, 0);
+      await controller.queryByProvider("futu", REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quote", 100, 0);
 
       expect(queryService.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
-          limit: 100,
+          limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
           page: 1,
         }),
       );
@@ -716,7 +719,7 @@ describe("QueryController", () => {
 
       const result = await controller.queryBySymbols(
         "AAPL,MSFT",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         100,
@@ -740,7 +743,7 @@ describe("QueryController", () => {
 
       const result = await controller.queryByMarket(
         "US",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "quote",
         100,
         1,
@@ -761,7 +764,7 @@ describe("QueryController", () => {
         .mockResolvedValue(mockQueryResponse);
 
       const result = await controller.queryByProvider(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         100,
@@ -772,7 +775,7 @@ describe("QueryController", () => {
       expect(controller.executeQuery).toHaveBeenCalledWith(
         expect.objectContaining({
           queryType: QueryType.BY_PROVIDER,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         }),
       );
     });
@@ -783,7 +786,7 @@ describe("QueryController", () => {
       await expect(
         controller.queryBySymbols(
           undefined as any,
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           "US",
           "quote",
           100,
@@ -795,13 +798,13 @@ describe("QueryController", () => {
 
     it("should handle null market parameter", async () => {
       await expect(
-        controller.queryByMarket(null as any, "longport", "quote", 100, 0),
+        controller.queryByMarket(null as any, REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quote", 100, 0),
       ).rejects.toThrow("Market parameter is required");
     });
 
     it("should handle null provider parameter", async () => {
       await expect(
-        controller.queryByProvider(null as any, "longport", "quote", 100, 0),
+        controller.queryByProvider(null as any, REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quote", 100, 0),
       ).rejects.toThrow("Provider parameter is required");
     });
 
@@ -810,7 +813,7 @@ describe("QueryController", () => {
 
       await controller.queryBySymbols(
         "AAPL,,MSFT,,,GOOGL,",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         100,
@@ -833,7 +836,7 @@ describe("QueryController", () => {
 
       await controller.queryBySymbols(
         ", , ,",
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "US",
         "quote",
         100,

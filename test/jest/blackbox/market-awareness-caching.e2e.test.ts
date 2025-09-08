@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 真实环境黑盒E2E测试：市场状态感知缓存系统
  * 测试基于市场状态的动态缓存策略和37字段变化检测
@@ -21,7 +24,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true, // 不要自动抛出错误，让我们手动处理
     });
 
@@ -118,7 +121,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
         expectedMarket: "US",
         description: "美股多字母符号",
       },
-      { symbol: "700.HK", expectedMarket: "HK", description: "港股.HK后缀" },
+      { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, expectedMarket: "HK", description: "港股.HK后缀" },
       { symbol: "00700.HK", expectedMarket: "HK", description: "港股5位数字" },
       {
         symbol: "000001.SZ",
@@ -148,7 +151,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: [testCase.symbol],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {
@@ -180,13 +183,13 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
     });
 
     it("应该支持混合市场批量查询", async () => {
-      const mixedSymbols = ["AAPL.US", "700.HK", "000001.SZ", "600000.SH"];
+      const mixedSymbols = ["AAPL.US", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ", "600000.SH"];
 
       const response = await httpClient.post(
         "/api/v1/receiver/data",
         {
           symbols: mixedSymbols,
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -221,7 +224,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
     it("应该根据市场时间调整缓存TTL", async () => {
       const testCases = [
         { symbol: "AAPL.US", market: "US" },
-        { symbol: "700.HK", market: "HK" },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, market: "HK" },
         { symbol: "000001.SZ", market: "SZ" },
       ];
 
@@ -230,7 +233,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: [testCase.symbol],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {
@@ -262,7 +265,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
     });
 
     it("应该在交易时间和非交易时间使用不同的TTL", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
       const measurements = [];
 
       // 连续多次请求，观察TTL变化
@@ -271,7 +274,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: [testSymbol],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {
@@ -312,14 +315,14 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
 
   describe("🔍 37字段变化检测测试", () => {
     it("应该检测股票价格字段变化", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
 
       // 第一次查询
       const firstResponse = await httpClient.post(
         "/api/v1/receiver/data",
         {
           symbols: [testSymbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -339,7 +342,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
         {
           queryType: "by_symbols",
           symbols: [testSymbol],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             includeMetadata: true,
           },
@@ -375,7 +378,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
     });
 
     it("应该检测多只股票的字段变化", async () => {
-      const testSymbols = ["700.HK", "AAPL.US"];
+      const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
 
       const response = await httpClient.post(
         "/api/v1/query/execute",
@@ -383,7 +386,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
           queryType: "by_symbols",
 
           symbols: testSymbols,
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             includeMetadata: true,
           },
@@ -434,7 +437,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
 
   describe("⚡ 缓存性能优化测试", () => {
     it("应该通过缓存提升重复查询性能", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
       const measurements = [];
 
       // 第一次查询（冷启动）
@@ -443,7 +446,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: [testSymbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -467,7 +470,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: [testSymbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -501,7 +504,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
     it("应该支持不同市场的独立缓存", async () => {
       const marketSymbols = [
         { symbol: "AAPL.US", market: "US" },
-        { symbol: "700.HK", market: "HK" },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, market: "HK" },
         { symbol: "000001.SZ", market: "SZ" },
       ];
 
@@ -513,7 +516,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: [test.symbol],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {
@@ -530,7 +533,7 @@ describe("Real Environment Black-_box: Market Awareness & Caching E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: [test.symbol],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {

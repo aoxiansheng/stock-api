@@ -1,6 +1,7 @@
 import { CacheKeyUtils } from "@core/05-caching/common-cache/utils/cache-key.utils";
 import { CACHE_KEY_PREFIXES } from "@core/05-caching/common-cache/constants/cache.constants";
 import { CACHE_CONFIG } from "@core/05-caching/common-cache/constants/cache-config.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("CacheKeyUtils", () => {
   describe("generateCacheKey", () => {
@@ -39,14 +40,14 @@ describe("CacheKeyUtils", () => {
 
   describe("generateStockQuoteKey", () => {
     it("should generate stock quote key with symbol and provider", () => {
-      const result = CacheKeyUtils.generateStockQuoteKey("AAPL", "longport");
+      const result = CacheKeyUtils.generateStockQuoteKey("AAPL", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(result).toBe(`${CACHE_KEY_PREFIXES.STOCK_QUOTE}:AAPL:longport`);
     });
 
     it("should generate stock quote key with market", () => {
       const result = CacheKeyUtils.generateStockQuoteKey(
-        "700.HK",
-        "longport",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "HK",
       );
       expect(result).toBe(
@@ -69,7 +70,7 @@ describe("CacheKeyUtils", () => {
 
   describe("generateSymbolMappingKey", () => {
     it("should generate symbol mapping key", () => {
-      const result = CacheKeyUtils.generateSymbolMappingKey("AAPL", "longport");
+      const result = CacheKeyUtils.generateSymbolMappingKey("AAPL", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(result).toBe(`${CACHE_KEY_PREFIXES.SYMBOL_MAPPING}:AAPL:longport`);
     });
   });
@@ -77,7 +78,7 @@ describe("CacheKeyUtils", () => {
   describe("generateProviderDataKey", () => {
     it("should generate provider data key", () => {
       const result = CacheKeyUtils.generateProviderDataKey(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "quote",
         "AAPL",
       );

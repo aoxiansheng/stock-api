@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 真实环境黑盒E2E测试：连接到实际运行的项目
  *
@@ -26,7 +29,7 @@ describe("Real Environment Black-box E2E Tests", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true, // 不要自动抛出错误，让我们手动处理
     });
 
@@ -174,13 +177,13 @@ describe("Real Environment Black-box E2E Tests", () => {
 
   describe("🎯 真实数据源测试", () => {
     it("应该从真实LongPort获取股票数据", async () => {
-      const testSymbols = ["700.HK", "AAPL.US", "000001.SZ"];
+      const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ"];
 
       const response = await httpClient.post(
         "/api/v1/receiver/data",
         {
           symbols: testSymbols,
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             preferredProvider: "longport",
             realtime: true,
@@ -202,7 +205,7 @@ describe("Real Environment Black-box E2E Tests", () => {
 
       // 验证使用了真实的LongPort Provider
       expect(responseData.metadata.provider).toBe("longport");
-      expect(responseData.metadata.capability).toBe("get-stock-quote");
+      expect(responseData.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
 
       // 调整为实际返回的数据结构
       // 验证获得了真实数据
@@ -243,7 +246,7 @@ describe("Real Environment Black-box E2E Tests", () => {
 
       // 验证真实的LongPort能力
       const expectedCapabilities = [
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "get-stock-basic-info",
         "get-index-quote",
       ];
@@ -263,8 +266,8 @@ describe("Real Environment Black-box E2E Tests", () => {
       const dataResponse = await httpClient.post(
         "/api/v1/receiver/data",
         {
-          symbols: ["700.HK"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -287,8 +290,8 @@ describe("Real Environment Black-box E2E Tests", () => {
       const unauthorizedResponse = await httpClient.post(
         "/api/v1/receiver/data",
         {
-          symbols: ["700.HK"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
       );
 
@@ -361,8 +364,8 @@ describe("Real Environment Black-box E2E Tests", () => {
         const response = await httpClient.post(
           "/api/v1/receiver/data",
           {
-            symbols: ["700.HK"],
-            receiverType: "get-stock-quote",
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {

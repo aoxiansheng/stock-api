@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import {
@@ -26,7 +27,7 @@ describe("MappingRuleController", () => {
   const mockRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     description: "Test description",
@@ -57,7 +58,7 @@ describe("MappingRuleController", () => {
     dataMapperRuleId: "507f1f77bcf86cd799439011",
     ruleName: "Test Mapping Rule",
     originalData,
-    transformedData: { lastPrice: 561, symbol: "700.HK" },
+    transformedData: { lastPrice: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
     success: true,
     mappingStats: {
       totalMappings: 2,
@@ -72,7 +73,7 @@ describe("MappingRuleController", () => {
 
   const mockTestResult = createMockTestResult({
     lastdone: 561,
-    symbol: "700.HK",
+    symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
   });
 
   const mockRuleDocument = {
@@ -115,7 +116,7 @@ describe("MappingRuleController", () => {
   describe("createFlexibleRule", () => {
     const createRuleDto: CreateFlexibleMappingRuleDto = {
       name: "Test Rule",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "quote_fields",
       fieldMappings: [
@@ -149,7 +150,7 @@ describe("MappingRuleController", () => {
 
   describe("getFlexibleRules", () => {
     const queryParams = {
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "quote_fields",
       page: 1,
@@ -298,7 +299,7 @@ describe("MappingRuleController", () => {
     const generateRequest = {
       templateId: "507f1f77bcf86cd799439011",
       ruleName: "Generated Rule",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest" as const,
       transDataRuleListType: "quote_fields",
       targetFields: ["lastPrice", "symbol"],
@@ -364,7 +365,7 @@ describe("MappingRuleController", () => {
     const previewRequest = {
       sourceFields: ["last_done", "symbol", "volume"],
       targetFields: ["lastPrice", "symbol", "volume"],
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     };
 
     it("should preview field alignment through controller", async () => {
@@ -372,7 +373,7 @@ describe("MappingRuleController", () => {
         template: {
           id: "template123",
           name: "Test Template",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
         },
         transDataRuleListType: "quote_fields" as const,
@@ -403,7 +404,7 @@ describe("MappingRuleController", () => {
         template: {
           id: "empty-template",
           name: "Empty Template",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
         },
         transDataRuleListType: "quote_fields" as const,
@@ -503,12 +504,12 @@ describe("MappingRuleController", () => {
   describe("testMappingRule", () => {
     const testDto: TestFlexibleMappingRuleDto = {
       dataMapperRuleId: "507f1f77bcf86cd799439011",
-      testData: { last_done: 561, symbol: "700.HK" },
+      testData: { last_done: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
     };
 
     const mockApplyResult = {
       success: true,
-      transformedData: { lastPrice: 561, symbol: "700.HK" },
+      transformedData: { lastPrice: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
       mappingStats: {
         totalMappings: 2,
         successfulMappings: 2,
@@ -526,8 +527,8 @@ describe("MappingRuleController", () => {
         {
           sourceFieldPath: "symbol",
           targetField: "symbol",
-          sourceValue: "700.HK",
-          transformedValue: "700.HK",
+          sourceValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+          transformedValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           success: true,
         },
       ],
@@ -593,7 +594,7 @@ describe("MappingRuleController", () => {
     it("should include debug info when requested", async () => {
       const dtoWithDebug: TestFlexibleMappingRuleDto = {
         dataMapperRuleId: "507f1f77bcf86cd799439011",
-        testData: { last_done: 561, symbol: "700.HK" },
+        testData: { last_done: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         includeDebugInfo: true,
       };
 
@@ -608,8 +609,8 @@ describe("MappingRuleController", () => {
         {
           sourceFieldPath: "symbol",
           targetField: "symbol",
-          sourceValue: "700.HK",
-          transformedValue: "700.HK",
+          sourceValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+          transformedValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           success: true,
         },
       ];
@@ -617,7 +618,7 @@ describe("MappingRuleController", () => {
       ruleService.findRuleById.mockResolvedValue(mockRule);
       ruleService.applyFlexibleMappingRule.mockResolvedValue({
         success: true,
-        transformedData: { lastPrice: 561, symbol: "700.HK" },
+        transformedData: { lastPrice: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         mappingStats: {
           totalMappings: 2,
           successfulMappings: 2,
@@ -633,10 +634,10 @@ describe("MappingRuleController", () => {
       // 验证完整的返回结构
       expect(result.dataMapperRuleId).toBe("507f1f77bcf86cd799439011");
       expect(result.ruleName).toBe("Test Mapping Rule");
-      expect(result.originalData).toEqual({ last_done: 561, symbol: "700.HK" });
+      expect(result.originalData).toEqual({ last_done: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT });
       expect(result.transformedData).toEqual({
         lastPrice: 561,
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       });
       expect(result.success).toBe(true);
       expect(result.errorMessage).toBeUndefined();
@@ -716,7 +717,7 @@ describe("MappingRuleController", () => {
 
       const invalidDto = {
         name: "",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest" as const,
         transDataRuleListType: "quote_fields" as const,
         fieldMappings: [],
@@ -743,7 +744,7 @@ describe("MappingRuleController", () => {
       ruleService.findRuleById.mockResolvedValue(mockRule);
       ruleService.applyFlexibleMappingRule.mockResolvedValue({
         success: true,
-        transformedData: { lastPrice: 561, symbol: "700.HK" },
+        transformedData: { lastPrice: 561, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         mappingStats: {
           totalMappings: 2,
           successfulMappings: 2,
@@ -762,7 +763,7 @@ describe("MappingRuleController", () => {
       expect(result.originalData).toEqual(largeTestData); // 验证返回的是实际输入的大数据集
       expect(result.transformedData).toEqual({
         lastPrice: 561,
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       });
       expect(result.success).toBe(true);
       expect(result.mappingStats).toEqual({

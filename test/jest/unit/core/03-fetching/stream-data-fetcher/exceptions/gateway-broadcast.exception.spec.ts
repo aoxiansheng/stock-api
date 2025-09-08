@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * GatewayBroadcastError异常单元测试
  */
@@ -180,7 +181,7 @@ describe("GatewayBroadcastError", () => {
       };
 
       const error = new GatewayBroadcastError(
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         healthStatus,
         "WebSocket服务器不可用",
       );

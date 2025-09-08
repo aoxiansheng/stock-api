@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { CapabilityMetadata } from "./types/metadata.types";
 import { Capability } from "./capability.decorator";
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * 流能力装饰器 - WebSocket 能力的特化版本
@@ -8,7 +9,7 @@ import { Capability } from "./capability.decorator";
  * @example
  * ```typescript
  * @StreamCapability({
- *   name: 'stream-stock-quote',
+ *   name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
  *   markets: ['US', 'HK'],
  *   connectionUrl: 'wss://api.example.com/stream',
  *   reconnect: { maxRetries: 5 }

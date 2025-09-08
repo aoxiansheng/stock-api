@@ -1,11 +1,12 @@
 import { MarketUtils } from "../../../../../../../src/core/01-entry/receiver/utils/market.util";
 import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("MarketUtils", () => {
   describe("getMarketFromSymbol", () => {
     // 香港市场测试
     it("应能正确识别香港市场股票", () => {
-      expect(MarketUtils.getMarketFromSymbol("700.HK")).toBe(Market.HK);
+      expect(MarketUtils.getMarketFromSymbol(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT)).toBe(Market.HK);
       expect(MarketUtils.getMarketFromSymbol("00700")).toBe(Market.HK);
       expect(MarketUtils.getMarketFromSymbol("9988.hk")).toBe(Market.HK); // 测试小写
     });
@@ -45,12 +46,12 @@ describe("MarketUtils", () => {
 
   describe("inferMarketFromSymbols", () => {
     it("应能从列表中推断出主导市场", () => {
-      const symbols = ["AAPL.US", "GOOGL", "700.HK"];
+      const symbols = ["AAPL.US", "GOOGL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       expect(MarketUtils.inferMarketFromSymbols(symbols)).toBe(Market.US);
     });
 
     it("当市场数量相同时，应返回其中一个", () => {
-      const symbols = ["AAPL.US", "700.HK"];
+      const symbols = ["AAPL.US", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       const result = MarketUtils.inferMarketFromSymbols(symbols);
       // 结果可能是 US 或 HK，取决于 Map 迭代的顺序，只要有返回即可
       expect([Market.US, Market.HK]).toContain(result);

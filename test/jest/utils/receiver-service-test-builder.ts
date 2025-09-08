@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * ReceiverService测试工具类
  * 简化单元测试的依赖注入复杂度
@@ -57,11 +58,11 @@ export class ReceiverServiceTestBuilder {
     return {
       symbolTransformerService: {
         transformSymbols: jest.fn().mockResolvedValue({
-          mappedSymbols: ["700.HK"],
+          mappedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           mappingDetails: [],
           failedSymbols: [],
           metadata: {
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             totalSymbols: 1,
             successCount: 1,
             failedCount: 0,
@@ -72,13 +73,13 @@ export class ReceiverServiceTestBuilder {
 
       dataFetcherService: {
         fetchRawData: jest.fn().mockResolvedValue({
-          data: [{ symbol: "700.HK", price: 100 }],
+          data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 100 }],
           metadata: { processingTime: 50 },
         }),
       },
 
       capabilityRegistryService: {
-        getBestProvider: jest.fn().mockReturnValue("longport"),
+        getBestProvider: jest.fn().mockReturnValue(REFERENCE_DATA.PROVIDER_IDS.LONGPORT),
         getCapability: jest.fn().mockReturnValue({
           supportedMarkets: ["HK", "US"],
         }),
@@ -93,7 +94,7 @@ export class ReceiverServiceTestBuilder {
 
       dataTransformerService: {
         transform: jest.fn().mockResolvedValue({
-          transformedData: [{ symbol: "700.HK", lastPrice: 100 }],
+          transformedData: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 100 }],
         }),
       },
 
@@ -108,7 +109,7 @@ export class ReceiverServiceTestBuilder {
 
       smartCacheOrchestrator: {
         getDataWithSmartCache: jest.fn().mockResolvedValue({
-          data: [{ symbol: "700.HK", lastPrice: 100 }],
+          data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 100 }],
           fromCache: false,
         }),
       },

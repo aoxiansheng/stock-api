@@ -7,7 +7,6 @@ import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-syst
 // Prometheus 指标名称前缀
 export const METRICS_PREFIX = "newstock_";
 
-
 // Stream Recovery 指标名称
 export const STREAM_RECOVERY_METRICS = {
   JOBS_TOTAL: "stream_recovery_jobs_total",

@@ -1,3 +1,5 @@
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   IsString,
   IsEnum,
@@ -24,8 +26,8 @@ import type { ApiType } from "../constants/data-mapper.constants";
 export class AnalyzeDataSourceDto {
   @ApiProperty({
     description: "数据提供商名称",
-    example: "longport",
-    enum: ["longport", "futu", "itick", "custom"],
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    enum: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "futu", "itick", "custom"],
   })
   @IsString()
   @IsOptional()
@@ -42,7 +44,7 @@ export class AnalyzeDataSourceDto {
   @ApiProperty({
     description: "示例数据对象，用于分析字段结构",
     example: {
-      symbol: "700.HK",
+      symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       last_done: 561,
       volume: 11292534,
       timestamp: "2025-08-08T07:39:55Z",
@@ -129,7 +131,7 @@ export class ExtractedFieldDto {
 
 // 🆕 数据源分析结果响应DTO
 export class DataSourceAnalysisResponseDto {
-  @ApiProperty({ description: "数据提供商", example: "longport" })
+  @ApiProperty({ description: "数据提供商", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
   @IsString()
   provider: string;
 
@@ -195,7 +197,7 @@ export class CreateDataSourceTemplateDto {
   @MaxLength(DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH)
   name: string;
 
-  @ApiProperty({ description: "数据提供商", example: "longport" })
+  @ApiProperty({ description: "数据提供商", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
   @IsString()
   provider: string;
 

@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * DTO结构一致性自动化测试
  * 验证Query模块中DTO的结构一致性和分页字段使用情况
@@ -20,7 +21,7 @@ describe("DTO Structure Consistency", () => {
       
       // 验证字段类型
       dto.page = 1;
-      dto.limit = 100;
+      dto.limit = OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE;
       
       expect(typeof dto.page).toBe("number");
       expect(typeof dto.limit).toBe("number");
@@ -61,7 +62,7 @@ describe("DTO Structure Consistency", () => {
       dto.queryType = "by_symbols" as any;
       dto.symbols = ["AAPL"];
       dto.page = 1;
-      dto.limit = 100;
+      dto.limit = OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE;
       
       const errors = await validate(dto);
       const paginationErrors = errors.filter(error => 
@@ -133,7 +134,7 @@ describe("DTO Structure Consistency", () => {
       
       // 分配数字值应该正常
       queryDto.page = 1;
-      queryDto.limit = 100;
+      queryDto.limit = OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE;
       
       expect(typeof queryDto.page).toBe("number");
       expect(typeof queryDto.limit).toBe("number");

@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 数据接收操作相关常量
  * 包含能力类型、操作类型、状态、事件、指标等
@@ -11,7 +12,7 @@ import { OperationStatus } from "@monitoring/contracts/enums/operation-status.en
  * 以更准确地反映其在能力映射中的作用
  */
 export const SUPPORTED_CAPABILITY_TYPES = Object.freeze([
-  "get-stock-quote",
+  API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   "get-stock-basic-info",
   "get-index-quote",
   "get-market-status",

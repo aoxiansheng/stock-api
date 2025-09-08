@@ -11,9 +11,10 @@ import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getStockQuote } from "./capabilities/get-stock-quote";
 import { LongportContextService } from "./services/longport-context.service";
 import { LongportStreamContextService } from "./services/longport-stream-context.service";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 @Provider({
-  name: "longport",
+  name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   description: "LongPort 长桥证券数据提供商",
   autoRegister: true,
   healthCheck: true,
@@ -22,7 +23,7 @@ import { LongportStreamContextService } from "./services/longport-stream-context
 export class LongportProvider implements IDataProvider {
   private readonly logger = createLogger(LongportProvider.name);
 
-  readonly name = "longport";
+  readonly name = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
   readonly description = "LongPort 长桥证券数据提供商";
   readonly capabilities: ICapability[] = [
     getStockQuote,

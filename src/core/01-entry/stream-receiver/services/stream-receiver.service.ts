@@ -1,3 +1,7 @@
+import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS
+} from '@common/constants/domain';
 import {
   Injectable,
   OnModuleDestroy,
@@ -744,7 +748,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       loadState: {
         isHighLoad: this.dynamicBatchingState.isHighLoad,
         isLowLoad: this.dynamicBatchingState.isLowLoad,
-        recentLoadSamples: this.dynamicBatchingState.loadSamples.slice(-5),
+        recentLoadSamples: this.dynamicBatchingState.loadSamples.slice(-MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT),
       },
       metrics: {
         totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,
@@ -1929,14 +1933,14 @@ export class StreamReceiverService implements OnModuleDestroy {
       "ws-crypto-quote": "crypto_fields",
 
       // REST API 能力映射
-      "get-stock-quote": "quote_fields",
+      [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",
       "get-option-quote": "option_fields",
       "get-futures-quote": "futures_fields",
       "get-forex-quote": "forex_fields",
       "get-crypto-quote": "crypto_fields",
 
       // 实时数据流能力
-      "stream-stock-quote": "quote_fields",
+      [API_OPERATIONS.STOCK_DATA.STREAM_QUOTE]: "quote_fields",
       "stream-option-quote": "option_fields",
       "stream-market-data": "market_data_fields",
       "stream-trading-data": "trading_data_fields",
@@ -2228,9 +2232,9 @@ export class StreamReceiverService implements OnModuleDestroy {
       this.logger.warn("提供商推断失败，使用默认提供商", {
         symbol,
         error: error.message,
-        fallback: "longport",
+        fallback: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       });
-      return "longport"; // 安全的默认值
+      return REFERENCE_DATA.PROVIDER_IDS.LONGPORT; // 安全的默认值
     }
   }
 
@@ -2315,9 +2319,9 @@ export class StreamReceiverService implements OnModuleDestroy {
     } catch (error) {
       this.logger.warn("Provider选择失败，使用默认", {
         error: error.message,
-        fallback: "longport",
+        fallback: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       });
-      return "longport"; // 安全回退
+      return REFERENCE_DATA.PROVIDER_IDS.LONGPORT; // 安全回退
     }
   }
 
@@ -2351,14 +2355,14 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private getProviderByMarketPriority(market: string): string {
     const marketProviderPriority: Record<string, string> = {
-      HK: "longport", // 港股优先LongPort
-      US: "longport", // 美股优先LongPort
-      CN: "longport", // A股优先LongPort
-      SG: "longport", // 新加坡优先LongPort
-      UNKNOWN: "longport", // 未知市场默认LongPort
+      HK: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 港股优先LongPort
+      US: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 美股优先LongPort
+      CN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // A股优先LongPort
+      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 新加坡优先LongPort
+      UNKNOWN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 未知市场默认LongPort
     };
 
-    return marketProviderPriority[market] || "longport";
+    return marketProviderPriority[market] || REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
   }
 
   /**
@@ -2440,14 +2444,14 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       // 临时实现：基于已知的市场-提供商映射
       const marketProviderMap: Record<string, string[]> = {
-        HK: ["longport", "itick"],
-        US: ["longport", "alpaca"],
-        CN: ["longport", "tushare"],
-        SG: ["longport"],
-        UNKNOWN: ["longport"],
+        HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick"],
+        US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "alpaca"],
+        CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "tushare"],
+        SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+        UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
       };
 
-      const candidateProviders = marketProviderMap[market] || ["longport"];
+      const candidateProviders = marketProviderMap[market] || [REFERENCE_DATA.PROVIDER_IDS.LONGPORT];
 
       // 返回第一个候选提供商 (优先级最高)
       return candidateProviders[0] || null;
@@ -2467,18 +2471,18 @@ export class StreamReceiverService implements OnModuleDestroy {
   private getProviderByHeuristics(symbol: string, market: string): string {
     // 基于市场的提供商优先级映射
     const marketProviderPriority: Record<string, string[]> = {
-      HK: ["longport", "itick"], // 港股优先LongPort
-      US: ["longport", "alpaca"], // 美股优先LongPort
-      CN: ["longport", "tushare"], // A股优先LongPort
-      SG: ["longport"], // 新加坡优先LongPort
-      UNKNOWN: ["longport"], // 未知市场默认LongPort
+      HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick"], // 港股优先LongPort
+      US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "alpaca"], // 美股优先LongPort
+      CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "tushare"], // A股优先LongPort
+      SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 新加坡优先LongPort
+      UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 未知市场默认LongPort
     };
 
     // 特殊符号的自定义映射
     const symbolSpecificMapping: Record<string, string> = {
       // 可以在这里添加特定符号的提供商映射
       // 'AAPL.US': 'alpaca',
-      // '00700.HK': 'longport',
+      // '00700.HK': REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     };
 
     // 1. 首先检查特定符号映射

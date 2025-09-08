@@ -1,4 +1,5 @@
 import {
+import { OPERATION_LIMITS } from '@common/constants/domain';
   PERFORMANCE_CONSTANTS,
   getTimeoutFromEnv,
   calculateRetryDelay,
@@ -238,7 +239,7 @@ describe("calculateRetryDelay", () => {
 
   it("should calculate delay for first attempt (attempt 0)", () => {
     const delay = calculateRetryDelay(0);
-    // Base delay: 1000 * 2^0 = 1000
+    // Base delay: OPERATION_LIMITS.TIMEOUTS_MS.QUICK_OPERATION * 2^0 = 1000
     // Jitter: 1000 * 0.1 * 0.5 = 50
     // Total: 1000 + 50 = 1050
     expect(delay).toBe(1050);
@@ -246,7 +247,7 @@ describe("calculateRetryDelay", () => {
 
   it("should calculate delay for second attempt (attempt 1)", () => {
     const delay = calculateRetryDelay(1);
-    // Base delay: 1000 * 2^1 = 2000
+    // Base delay: OPERATION_LIMITS.TIMEOUTS_MS.QUICK_OPERATION * 2^1 = 2000
     // Jitter: 2000 * 0.1 * 0.5 = 100
     // Total: 2000 + 100 = 2100
     expect(delay).toBe(2100);
@@ -254,7 +255,7 @@ describe("calculateRetryDelay", () => {
 
   it("should calculate delay for third attempt (attempt 2)", () => {
     const delay = calculateRetryDelay(2);
-    // Base delay: 1000 * 2^2 = 4000
+    // Base delay: OPERATION_LIMITS.TIMEOUTS_MS.QUICK_OPERATION * 2^2 = 4000
     // Jitter: 4000 * 0.1 * 0.5 = 200
     // Total: 4000 + 200 = 4200
     expect(delay).toBe(4200);

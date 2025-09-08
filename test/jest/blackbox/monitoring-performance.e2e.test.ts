@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * 真实环境黑盒E2E测试：监控与性能系统
  * 测试系统健康监控、性能指标收集和告警机制
@@ -21,7 +22,7 @@ describe("Real Environment Black-_box: Monitoring & Performance E2E", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true, // 不要自动抛出错误，让我们手动处理
     });
 

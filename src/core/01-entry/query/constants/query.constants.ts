@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 查询服务常量
  * 🎯 统一定义查询相关的常量，确保系统一致性
@@ -100,7 +101,7 @@ export const QUERY_CONFIG = Object.freeze({
   QUERY_ID_LENGTH: 8, // 查询ID长度
   MAX_QUERY_LIMIT: CONSTANTS.SEMANTIC.BATCH.SIZES.PERFORMANCE.LARGE_BATCH, // 最大查询限制 (100)
   MIN_QUERY_LIMIT: CONSTANTS.FOUNDATION.LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE, // 最小查询限制 (1)
-  DEFAULT_DATA_TYPE: "get-stock-quote", // 默认数据类型
+  DEFAULT_DATA_TYPE: API_OPERATIONS.STOCK_DATA.GET_QUOTE, // 默认数据类型
   DEFAULT_PROVIDER: "unknown", // 默认提供商
   DEFAULT_MARKET: "unknown", // 默认市场
   CACHE_SOURCE_TAG: "realtime", // 缓存源标签

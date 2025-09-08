@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * CommonCacheService增强版批量操作单元测试 (简化版)
  * 测试Phase 4.1.2的mgetEnhanced和msetEnhanced功能
@@ -153,7 +154,7 @@ describe("CommonCacheService - Enhanced Operations (Simplified)", () => {
       expect(result.summary.failed).toBe(101);
       expect(result.results.every((d) => !d.success)).toBe(true);
       expect(result.results[0].error).toContain(
-        "Batch size 101 exceeds limit 100",
+        "Batch size 101 exceeds limit OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE",
       );
     });
   });

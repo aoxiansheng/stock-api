@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * Storage Internal DTO UCK�
  * K�X���(�pn ��a
@@ -126,7 +127,7 @@ describe("Storage Internal DTOs", () => {
         dto.data = { symbols: ["AAPL", "GOOGL"], prices: [150, 2800] };
         dto.metadata = {
           storageClassification: "stockquote",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "US",
           dataSize: 1024,
           compressed: true,
@@ -137,7 +138,7 @@ describe("Storage Internal DTOs", () => {
         // Assert
         expect(dto.data).toBeDefined();
         expect(dto.metadata.storageClassification).toBe("stock_quote");
-        expect(dto.metadata.provider).toBe("longport");
+        expect(dto.metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(dto.metadata.market).toBe("US");
         expect(dto.metadata.dataSize).toBe(1024);
         expect(dto.metadata.compressed).toBe(true);

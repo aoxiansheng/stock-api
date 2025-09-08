@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * Query服务智能缓存集成测试
  * 验证缓存命中率、后台更新机制和缓存策略效果
@@ -245,7 +247,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: {
@@ -307,7 +309,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["MSFT"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: { useCache: true },
@@ -373,7 +375,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const requests = symbols.map((symbol) => ({
         queryType: QueryType.BY_SYMBOLS,
         symbols: [symbol],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: { useCache: true },
@@ -453,7 +455,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["TSLA"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: { useCache: true },
@@ -501,7 +503,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [symbol],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: { useCache: true },
@@ -538,7 +540,7 @@ describe("Query Smart Cache Integration Tests", () => {
           market: Market.HK,
           status: MarketStatus.CLOSED,
           expectedStrategy: CacheStrategy.WEAK_TIMELINESS,
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         },
         {
           market: Market.SH,
@@ -592,7 +594,7 @@ describe("Query Smart Cache Integration Tests", () => {
         const request: QueryRequestDto = {
           queryType: QueryType.BY_SYMBOLS,
           symbols: [testCase.symbol],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           limit: 10,
           page: 1,
           options: { useCache: true },
@@ -636,8 +638,8 @@ describe("Query Smart Cache Integration Tests", () => {
       (receiverService.handleRequest as jest.Mock).mockResolvedValue({
         data: mockDirectData,
         metadata: {
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           requestId: "fallback-123",
           processingTime: 250,
         },
@@ -646,7 +648,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AMD"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: { useCache: true },
@@ -661,7 +663,7 @@ describe("Query Smart Cache Integration Tests", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           symbols: ["AMD"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         }),
       );
 
@@ -696,7 +698,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [symbol],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: { useCache: true },
@@ -750,7 +752,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["DEPRECATED_TEST"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: {
@@ -794,7 +796,7 @@ describe("Query Smart Cache Integration Tests", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["MODERN_TEST"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
         options: {

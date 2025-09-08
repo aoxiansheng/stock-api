@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * 监控键模板常量测试
  * 🎯 验证键模板常量的功能性和解决魔法字符串问题的有效性
@@ -107,7 +108,7 @@ describe('MonitoringKeysConstants', () => {
           query_type: 'SELECT',
           table: 'users',
           slow_query: true,
-          timeout: 5000
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST
         };
         const key = MONITORING_KEY_TEMPLATES.CACHE_KEY(metricName, tags);
         

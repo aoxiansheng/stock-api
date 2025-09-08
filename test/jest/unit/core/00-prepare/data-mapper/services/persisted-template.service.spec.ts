@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException, ConflictException } from "@nestjs/common";
@@ -39,7 +40,7 @@ describe("PersistedTemplateService", () => {
     _id: "507f1f77bcf86cd799439011",
     id: "507f1f77bcf86cd799439011",
     name: "LongPort REST 股票报价通用模板（港股/A股个股和指数）",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     isPreset: true,
     isActive: true,
@@ -66,7 +67,7 @@ describe("PersistedTemplateService", () => {
     _id: "507f1f77bcf86cd799439012",
     id: "507f1f77bcf86cd799439012",
     name: "LongPort REST 股票基础信息通用模板",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     isPreset: true,
     isActive: true,
@@ -98,7 +99,7 @@ describe("PersistedTemplateService", () => {
   const mockRule = {
     _id: "507f1f77bcf86cd799439013",
     name: "longport_REST_港股/A股个股和指数_报价数据_规则",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     fieldMappings: [],
@@ -727,7 +728,7 @@ describe("PersistedTemplateService", () => {
       // Mock规则查询 - 规则已存在
       const existingRule = {
         name: "longport_REST_港股_报价数据_规则",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
       };
@@ -915,7 +916,7 @@ describe("PersistedTemplateService", () => {
       const edgeCaseTemplate = {
         ...mockTemplate,
         name: "  LongPort   REST   美股专用报价模板 (含盘前盘后)  ",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
       };
 

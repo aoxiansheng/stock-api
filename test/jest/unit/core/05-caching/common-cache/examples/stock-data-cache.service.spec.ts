@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 // import { StockDataCacheService } from '@core/05-caching/common-cache/examples/stock-data-cache.service';
 import { CommonCacheService } from "@core/05-caching/common-cache/services/common-cache.service";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe.skip("StockDataCacheService", () => {
   let service: any; // StockDataCacheService;
@@ -42,7 +43,7 @@ describe.skip("StockDataCacheService", () => {
     it("should get stock quote with fallback", async () => {
       const mockData = {
         symbol: "AAPL",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         price: 150,
         timestamp: Date.now(),
       };
@@ -53,7 +54,7 @@ describe.skip("StockDataCacheService", () => {
         metadata: {},
       });
 
-      const result = await service.getStockQuote("AAPL", "longport");
+      const result = await service.getStockQuote("AAPL", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(result.data).toEqual(mockData);
       expect(result.fromCache).toBe(true);
@@ -68,20 +69,20 @@ describe.skip("StockDataCacheService", () => {
       const error = new Error("Cache error");
       mockCommonCache.getWithFallback.mockRejectedValue(error);
 
-      await expect(service.getStockQuote("AAPL", "longport")).rejects.toThrow(
+      await expect(service.getStockQuote("AAPL", REFERENCE_DATA.PROVIDER_IDS.LONGPORT)).rejects.toThrow(
         "Cache error",
       );
     });
 
     it("should generate correct cache key with market", async () => {
       mockCommonCache.getWithFallback.mockResolvedValue({
-        data: { symbol: "700.HK" },
+        data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         fromCache: false,
         fromFallback: true,
         metadata: {},
       });
 
-      await service.getStockQuote("700.HK", "longport", "HK");
+      await service.getStockQuote(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "HK");
 
       expect(mockCommonCache.getWithFallback).toHaveBeenCalledWith(
         "stock_quote:700.HK:longport:HK",
@@ -94,9 +95,9 @@ describe.skip("StockDataCacheService", () => {
   describe("getBatchStockQuotes", () => {
     it("should handle batch requests with mixed cache hits/misses", async () => {
       const requests = [
-        { symbol: "AAPL", provider: "longport" },
-        { symbol: "GOOGL", provider: "longport" },
-        { symbol: "MSFT", provider: "longport" },
+        { symbol: "AAPL", provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
+        { symbol: "GOOGL", provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
+        { symbol: "MSFT", provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
       ];
 
       // 模拟部分命中的情况
@@ -178,8 +179,8 @@ describe.skip("StockDataCacheService", () => {
   describe("setBatchSymbolMappings", () => {
     it("should set batch symbol mappings", async () => {
       const mappings = [
-        { source: "AAPL", target: "longport", data: { mapped: "AAPL.US" } },
-        { source: "700", target: "longport", data: { mapped: "700.HK" } },
+        { source: "AAPL", target: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, data: { mapped: "AAPL.US" } },
+        { source: "700", target: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, data: { mapped: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT } },
       ];
       mockCommonCache.mset.mockResolvedValue(undefined);
 
@@ -193,7 +194,7 @@ describe.skip("StockDataCacheService", () => {
         },
         {
           key: "symbol_mapping:700:longport",
-          value: { mapped: "700.HK" },
+          value: { mapped: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         },
       ]);
     });
@@ -206,7 +207,7 @@ describe.skip("StockDataCacheService", () => {
         metadata: {},
       });
 
-      const result = await service.clearStockCache("AAPL", "longport");
+      const result = await service.clearStockCache("AAPL", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(result).toBe(true);
       expect(mockCommonCache.delete).toHaveBeenCalledWith(

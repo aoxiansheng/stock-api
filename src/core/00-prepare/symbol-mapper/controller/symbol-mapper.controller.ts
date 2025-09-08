@@ -1,3 +1,5 @@
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   Controller,
   Get,
@@ -136,7 +138,7 @@ export class SymbolMapperController {
 ### 示例请求
 \`\`\`json
 {
-  "dataSourceName": "longport",
+  "dataSourceName": REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   "symbols": ["AAPL", "GOOGL", "700", "000001"]
 }
 \`\`\`
@@ -326,25 +328,25 @@ export class SymbolMapperController {
         statusCode: 200,
         message: "获取所有符号映射规则成功",
         data: {
-          providers: ["longport", "iexcloud", "twelvedata"],
+          providers: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "iexcloud", "twelvedata"],
           totalProviders: 3,
           totalRules: 156,
           rulesByProvider: {
             longport: {
-              dataSourceName: "longport",
+              dataSourceName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
               description: "LongPort 符号映射规则",
               totalRules: 89,
               SymbolMappingRule: [],
-              createdAt: "2024-01-01T12:00:00.000Z",
-              updatedAt: "2024-01-01T12:00:00.000Z",
+              createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
+              updatedAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
             },
           },
           summary: {
-            mostRulesProvider: "longport",
+            mostRulesProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             averageRulesPerProvider: 52,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })

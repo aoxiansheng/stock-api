@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   IsNotEmpty,
   IsString,
@@ -17,7 +19,7 @@ import {
 export class SymbolMappingRuleDto {
   @ApiProperty({
     description: "系统标准格式代码",
-    example: "700.HK",
+    example: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
     minLength: 1,
     maxLength: 20,
   })
@@ -85,7 +87,7 @@ export class SymbolMappingRuleDto {
 export class CreateSymbolMappingDto {
   @ApiProperty({
     description: "数据源名称",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     minLength: 1,
     maxLength: 50,
   })

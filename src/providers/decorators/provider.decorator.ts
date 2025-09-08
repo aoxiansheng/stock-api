@@ -3,6 +3,8 @@ import { Injectable } from "@nestjs/common";
 import { ProviderMetadata, Constructor } from "./types/metadata.types";
 import { CapabilityCollector } from "./capability-collector";
 import { METADATA_KEYS } from "../constants/metadata.constants";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 /**
  * 提供商装饰器 - 自动注册数据源提供商
@@ -10,7 +12,7 @@ import { METADATA_KEYS } from "../constants/metadata.constants";
  * @example
  * ```typescript
  * @Provider({
- *   name: 'longport',
+ *   name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
  *   description: 'LongPort数据源',
  *   autoRegister: true,
  *   healthCheck: true
@@ -71,7 +73,7 @@ export function isProviderRegistered(target: any): boolean {
  * ```typescript
  * @ProviderConfig({
  *   apiUrl: 'https://api.longport.com',
- *   timeout: 5000,
+ *   timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
  *   retries: 3
  * })
  * export class LongportProvider {
@@ -103,7 +105,7 @@ export function getProviderConfig(target: any): Record<string, any> {
  * @example
  * ```typescript
  * export class LongportProvider {
- *   @HealthCheck({ interval: 30000, timeout: 5000 })
+ *   @HealthCheck({ interval: 30000, timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST })
  *   async checkHealth(): Promise<boolean> {
  *     // 健康检查逻辑
  *     return true;
@@ -121,7 +123,7 @@ export function HealthCheck(
   ) {
     const defaultOptions = {
       interval: 60000, // 1分钟
-      timeout: 10000, // 10秒
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION, // 10秒
       ...options,
     };
 
@@ -157,7 +159,7 @@ export function getProviderHealthChecks(
  * @example
  * ```typescript
  * export class LongportProvider {
- *   @Initialize({ priority: 1, timeout: 10000 })
+ *   @Initialize({ priority: 1, timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION })
  *   async setup() {
  *     // 初始化逻辑
  *   }
@@ -174,7 +176,7 @@ export function Initialize(
   ) {
     const defaultOptions = {
       priority: 1,
-      timeout: 30000, // 30秒
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST, // 30秒
       ...options,
     };
 

@@ -1,6 +1,7 @@
 import { Permission } from "../../../../../../src/auth/enums/user-role.enum";
 import supertest from "supertest";
 import { UserRole } from "../../../../../../src/auth/enums/user-role.enum";
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * 基础设施安全测试
@@ -497,7 +498,7 @@ describe("Infrastructure Security Tests", () => {
           .set("X-Access-Token", global.securityTestApiToken)
           .send({
             symbols: [payload],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           });
 
         // 应该安全处理Unicode字符
@@ -554,7 +555,7 @@ describe("Infrastructure Security Tests", () => {
           .set("Content-Type", contentType)
           .set("X-App-Key", global.securityTestApiKey)
           .set("X-Access-Token", global.securityTestApiToken)
-          .send('{"symbols":["AAPL.US"],"receiverType":"get-stock-quote"}');
+          .send('{"symbols":["AAPL.US"],"receiverType":API_OPERATIONS.STOCK_DATA.GET_QUOTE}');
 
         // 应该拒绝或安全处理非预期的内容类型
         if (contentType !== "application/json") {

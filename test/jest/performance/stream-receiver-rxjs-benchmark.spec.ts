@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * StreamReceiver RxJS bufferTime 性能基准测试
@@ -38,14 +40,14 @@ const PERFORMANCE_TEST_CONFIG = {
 // Mock services with performance-focused implementations
 const createMockServices = () => ({
   mockCapabilityRegistry: {
-    getBestStreamProvider: jest.fn().mockReturnValue("longport"),
+    getBestStreamProvider: jest.fn().mockReturnValue(REFERENCE_DATA.PROVIDER_IDS.LONGPORT),
     getStreamCapability: jest.fn(),
     getProvider: jest.fn(),
   },
 
   mockSymbolMapperService: {
     transformSymbols: jest.fn().mockResolvedValue({
-      transformedSymbols: { "700.HK": "00700.HK" },
+      transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700.HK" },
     }),
     mapSymbol: jest
       .fn()
@@ -58,7 +60,7 @@ const createMockServices = () => ({
     findBestMatchingRule: jest.fn().mockResolvedValue({
       id: "test-rule",
       fieldMappings: [],
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "stream",
       transDataRuleListType: "quote_fields",
       sourceTemplateId: "template1",
@@ -378,7 +380,7 @@ describe("StreamReceiver RxJS Batch Processing - Performance Benchmarks", () => 
  */
 function generateQuoteData(count: number) {
   const symbols = [
-    "700.HK",
+    REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
     "09988.HK",
     "AAPL.US",
     "TSLA.US",
@@ -394,8 +396,8 @@ function generateQuoteData(count: number) {
       volume: Math.floor(Math.random() * 1000000),
       timestamp: Date.now() + index,
     },
-    providerName: "longport",
-    wsCapabilityType: "stream-stock-quote",
+    providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
     timestamp: Date.now() + index,
   }));
 }

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 import { API_TYPE_VALUES } from "../constants/data-mapper.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // 🆕 提取字段的子Schema
 @Schema({ _id: false })
@@ -37,7 +38,7 @@ export class DataSourceTemplate extends Document {
   name: string; // 模板名称: "LongPort WebSocket 报价流"
 
   @Prop({ required: true, trim: true, lowercase: true })
-  provider: string; // 提供商: "longport", "futu", "itick"
+  provider: string; // 提供商: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "futu", "itick"
 
   @Prop({ required: true, enum: API_TYPE_VALUES })
   apiType: string; // API类型: "rest" | "stream"

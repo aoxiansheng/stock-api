@@ -54,7 +54,6 @@ export const EMAIL_CONSTRAINTS = deepFreeze({
   REQUIRE_VERIFICATION: true,
 } as const);
 
-
 /**
  * API Key 约束配置
  * @description 定义API Key验证规则

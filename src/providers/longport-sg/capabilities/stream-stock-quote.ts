@@ -1,5 +1,6 @@
 import { createLogger } from "@app/config/logger.config";
 import { CONSTANTS } from "@common/constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Extract Market enum for backward compatibility
 const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
@@ -17,7 +18,7 @@ export const streamStockQuote: IStreamCapability = {
   description: "获取股票实时报价数据流（WebSocket）",
   supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
   supportedSymbolFormats: [
-    "700.HK",
+    REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
     "00700.HK",
     "09618.HK",
     "00700",

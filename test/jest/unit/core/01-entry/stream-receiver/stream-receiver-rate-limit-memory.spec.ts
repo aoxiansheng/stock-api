@@ -7,6 +7,8 @@ import { CollectorService } from "../../../../../../src/monitoring/collector/col
 import { StreamRecoveryWorkerService } from "../../../../../../src/core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service";
 import { RateLimitService } from "../../../../../../src/auth/services/rate-limit.service";
 import { StreamSubscribeDto } from "../../../../../../src/core/01-entry/stream-receiver/dto/stream-subscribe.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("StreamReceiverService - Rate Limiting & Memory Protection Integration", () => {
   let service: StreamReceiverService;
@@ -100,8 +102,8 @@ describe("StreamReceiverService - Rate Limiting & Memory Protection Integration"
         .mockResolvedValue(true);
 
       const subscribeDto: StreamSubscribeDto = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
       const clientIp = "192.168.1.100";
 
@@ -129,8 +131,8 @@ describe("StreamReceiverService - Rate Limiting & Memory Protection Integration"
 
       const loggerSpy = jest.spyOn(service["logger"], "warn");
       const subscribeDto: StreamSubscribeDto = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       // Mock the other methods
@@ -160,8 +162,8 @@ describe("StreamReceiverService - Rate Limiting & Memory Protection Integration"
         .mockResolvedValue(false);
 
       const subscribeDto: StreamSubscribeDto = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       // Act & Assert
@@ -187,8 +189,8 @@ describe("StreamReceiverService - Rate Limiting & Memory Protection Integration"
       }
 
       const subscribeDto: StreamSubscribeDto = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       // Act & Assert

@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 字段命名重构相关的类型定义
  * 用于统一管理和映射不同组件间的字段关系
@@ -5,7 +6,7 @@
 
 // Receiver 组件的能力类型
 export type ReceiverType =
-  | "get-stock-quote"
+  | "get-stock-quote"  // API_OPERATIONS.STOCK_DATA.GET_QUOTE
   | "get-stock-basic-info"
   | "get-index-quote"
   | "get-market-status"
@@ -36,7 +37,7 @@ export type QueryTypeFilter = StorageClassification | ReceiverType | 'all' | 'no
 export const FIELD_MAPPING_CONFIG = {
   // Receiver 能力类型到 Storage 数据分类的映射
   CAPABILITY_TO_CLASSIFICATION: {
-    "get-stock-quote": StorageClassification.STOCK_QUOTE,
+    "get-stock-quote": StorageClassification.STOCK_QUOTE,  // API_OPERATIONS.STOCK_DATA.GET_QUOTE
     "get-stock-basic-info": StorageClassification.STOCK_BASIC_INFO,
     "get-index-quote": StorageClassification.INDEX_QUOTE,
     "get-market-status": StorageClassification.MARKET_STATUS,
@@ -52,7 +53,7 @@ export const FIELD_MAPPING_CONFIG = {
 
   // Storage 数据分类到 Receiver 能力类型的反向映射
   CLASSIFICATION_TO_CAPABILITY: {
-    [StorageClassification.STOCK_QUOTE]: "get-stock-quote",
+    [StorageClassification.STOCK_QUOTE]: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     [StorageClassification.STOCK_BASIC_INFO]: "get-stock-basic-info",
     [StorageClassification.INDEX_QUOTE]: "get-index-quote",
     [StorageClassification.MARKET_STATUS]: "get-market-status",
@@ -65,8 +66,8 @@ export const FIELD_MAPPING_CONFIG = {
     [StorageClassification.STOCK_NEWS]: "get-stock-news",
     [StorageClassification.CRYPTO_NEWS]: "get-crypto-news",
     // Add missing mappings
-    [StorageClassification.STOCK_CANDLE]: "get-stock-quote",
-    [StorageClassification.STOCK_TICK]: "get-stock-quote",
+    [StorageClassification.STOCK_CANDLE]: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+    [StorageClassification.STOCK_TICK]: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     [StorageClassification.FINANCIAL_STATEMENT]: "get-stock-basic-info",
     [StorageClassification.MARKET_NEWS]: "get-stock-news",
     [StorageClassification.TRADING_ORDER]: "get-global-state",

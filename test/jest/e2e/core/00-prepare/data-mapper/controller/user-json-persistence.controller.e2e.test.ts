@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * UserJsonPersistenceController 端到端测试
@@ -24,10 +25,10 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该成功分析LongPort REST API股票报价数据", async () => {
         // Arrange
         const analysisRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 561.0,
             prev_close: 558.5,
             open: 560.0,
@@ -56,7 +57,7 @@ describe("UserJsonPersistenceController E2E", () => {
         global.expectSuccessResponse(response, 201);
         const result = response.body.data;
 
-        expect(result).toHaveProperty("provider", "longport");
+        expect(result).toHaveProperty("provider", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(result).toHaveProperty("apiType", "rest");
         expect(result).toHaveProperty("_extractedFields");
         expect(result.extractedFields).toBeInstanceOf(Array);
@@ -74,7 +75,7 @@ describe("UserJsonPersistenceController E2E", () => {
         expect(symbolField).toMatchObject({
           fieldPath: "symbol",
           fieldType: "string",
-          sampleValue: "700.HK",
+          sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           isNested: false,
         });
 
@@ -162,10 +163,10 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该正确处理basic_info_fields数据类型", async () => {
         // Arrange
         const basicInfoRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             name_cn: "腾讯控股",
             name_en: "Tencent Holdings",
             name_hk: "騰訊控股",
@@ -222,7 +223,7 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该在缺少必需字段时返回400错误", async () => {
         // Arrange - 缺少sampleData
         const invalidRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           // sampleData 缺失
         };
@@ -241,10 +242,10 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该在无效的apiType时返回400错误", async () => {
         // Arrange
         const invalidApiTypeRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "invalid_type", // 无效的API类型
           sampleData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 561.0,
           },
         };
@@ -263,7 +264,7 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该在空的sampleData时返回400错误", async () => {
         // Arrange
         const emptyDataRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: {}, // 空数据
         };
@@ -283,10 +284,10 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该在无效认证信息时返回401错误", async () => {
         // Arrange
         const analysisRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 561.0,
           },
         };
@@ -311,10 +312,10 @@ describe("UserJsonPersistenceController E2E", () => {
       it("应该验证API Key权限要求", async () => {
         // Arrange
         const analysisRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 561.0,
           },
         };

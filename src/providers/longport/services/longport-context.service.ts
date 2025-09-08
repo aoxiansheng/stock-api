@@ -1,7 +1,8 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { Config, QuoteContext } from "longport";
+import { Config, QuoteContext } from "longport"; // REFERENCE_DATA.PROVIDER_IDS.LONGPORT
 
 import { createLogger } from "@app/config/logger.config";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 /**
  * LongPort 上下文服务 - 单例模式管理 SDK 连接

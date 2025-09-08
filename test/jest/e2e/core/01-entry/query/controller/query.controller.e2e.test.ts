@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 describe("Query Controller E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -56,7 +58,7 @@ describe("Query Controller E2E Tests", () => {
       const queryRequest = {
         queryType: "by_symbols",
         symbols: ["AAPL.US", "GOOGL.US", "MSFT.US"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         maxAge: 300,
         options: {
           useCache: true,
@@ -94,7 +96,7 @@ describe("Query Controller E2E Tests", () => {
       const queryRequest = {
         queryType: "by_market",
         market: "US",
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         options: {
           useCache: true,
@@ -118,7 +120,7 @@ describe("Query Controller E2E Tests", () => {
       // Arrange
       const queryRequest = {
         queryType: "by_provider",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         market: "US",
         limit: 5,
         options: {
@@ -411,9 +413,9 @@ describe("Query Controller E2E Tests", () => {
         .get("/api/v1/query/symbols")
         .query({
           symbols: "AAPL.US,GOOGL.US",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "US",
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           limit: 5,
           useCache: false,
         })
@@ -461,7 +463,7 @@ describe("Query Controller E2E Tests", () => {
         .query({
           market: "US",
           limit: 10,
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken);
@@ -505,7 +507,7 @@ describe("Query Controller E2E Tests", () => {
       const response = await httpServer
         .get("/api/v1/query/provider")
         .query({
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           limit: 10,
         })
         .set("X-App-Key", authTokens.apiKey)
@@ -526,7 +528,7 @@ describe("Query Controller E2E Tests", () => {
     });
 
     it("should handle different providers", async () => {
-      const providers = ["longport", "itick", "test"];
+      const providers = [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick", "test"];
 
       for (const provider of providers) {
         const response = await httpServer

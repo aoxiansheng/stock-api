@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { CommonCacheService } from "../../../../../../../src/core/05-caching/common-cache/services/common-cache.service";
 import { RedisValueUtils } from "../../../../../../../src/core/05-caching/common-cache/utils/redis-value.utils";
 import { ICollector } from "../../../../../../../src/monitoring/contracts/interfaces/collector.interface";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 
 // Mock RedisValueUtils
 jest.mock(
@@ -232,7 +233,7 @@ describe("CommonCacheService - Enhanced Operations", () => {
       expect(result.summary.failed).toBe(101);
       expect(result.results.every((d) => !d.success)).toBe(true);
       expect(result.results[0].error).toContain(
-        "Batch size 101 exceeds limit 100",
+        "Batch size 101 exceeds limit OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE",
       );
     });
 

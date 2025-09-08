@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 响应格式标准化集成测试
  * 测试系统范围内的响应格式一致性
@@ -68,11 +70,11 @@ describe("Response Format Standardization Integration", () => {
     );
     if (symbolMappingModel) {
       await symbolMappingModel.create({
-        dataSourceName: "longport",
+        dataSourceName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         description: "长桥证券数据源映射配置",
         SymbolMappingRule: [
           {
-            standardSymbol: "700.HK",
+            standardSymbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             sdkSymbol: "00700.HK",
             market: "HK",
             symbolType: "stock",
@@ -220,8 +222,8 @@ describe("Response Format Standardization Integration", () => {
           .set("x-app-key", apiKey)
           .set("x-access-token", accessToken)
           .send({
-            symbols: ["700.HK"], // 使用系统中配置的映射格式
-            receiverType: "get-stock-quote",
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], // 使用系统中配置的映射格式
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           })
           .expect(200);
 
@@ -247,8 +249,8 @@ describe("Response Format Standardization Integration", () => {
           .post("/api/v1/receiver/data")
           .set("X-App-Key", "invalid-key")
           .send({
-            symbols: ["700.HK"],
-            receiverType: "get-stock-quote",
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           })
           .expect(401);
 
@@ -276,7 +278,7 @@ describe("Response Format Standardization Integration", () => {
           .set("x-access-token", accessToken)
           .send({
             _queryType: "by_symbols",
-            symbols: ["700.HK", "AAPL.US"],
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
           })
           .expect(201);
 

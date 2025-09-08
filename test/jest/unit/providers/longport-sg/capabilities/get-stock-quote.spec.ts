@@ -1,11 +1,12 @@
 import { getStockQuote } from "../../../../../../src/providers/longport-sg/capabilities/get-stock-quote";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("LongportSgGetStockQuote Capability", () => {
   // 测试当 contextService 未提供时的情况
   it("should throw an error if contextService is not provided", async () => {
     // 调用 execute 方法，期望捕获到错误
     await expect(
-      getStockQuote.execute({ symbols: ["700.HK"] }),
+      getStockQuote.execute({ symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT] }),
     ).rejects.toThrow("LongportContextService 未提供");
   });
 
@@ -20,7 +21,7 @@ describe("LongportSgGetStockQuote Capability", () => {
     // 调用 execute 方法，期望捕获到错误
     await expect(
       getStockQuote.execute({
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         contextService: mockContextService,
       }),
     ).rejects.toThrow("LongPort 获取股票报价失败: Failed to get context");
@@ -39,7 +40,7 @@ describe("LongportSgGetStockQuote Capability", () => {
     // 调用 execute 方法，期望捕获到错误
     await expect(
       getStockQuote.execute({
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         contextService: mockContextService,
       }),
     ).rejects.toThrow("LongPort 获取股票报价失败: Failed to get quote");
@@ -50,7 +51,7 @@ describe("LongportSgGetStockQuote Capability", () => {
     // 创建一个模拟的报价数据
     const mockQuotes = [
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         lastDone: 100,
         prevClose: 99,
         open: 99.5,
@@ -73,12 +74,12 @@ describe("LongportSgGetStockQuote Capability", () => {
 
     // 调用 execute 方法
     const result = await getStockQuote.execute({
-      symbols: ["700.HK"],
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       contextService: mockContextService,
     });
 
     // 断言返回的结果是否正确
     expect(result.secu_quote).toHaveLength(1);
-    expect(result.secu_quote[0].symbol).toBe("700.HK");
+    expect(result.secu_quote[0].symbol).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
   });
 });

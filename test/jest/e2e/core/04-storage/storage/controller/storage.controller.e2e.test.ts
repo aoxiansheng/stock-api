@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 describe("Storage E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -70,7 +71,7 @@ describe("Storage E2E Tests", () => {
         provider: "test-provider",
         market: "HK",
         data: {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           price: 503.0,
           timestamp: new Date().toISOString(),
         },
@@ -299,7 +300,7 @@ describe("Storage E2E Tests with Admin Role", () => {
       provider: "test-provider",
       market: "HK",
       data: {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         price: 503.0,
       },
     };

@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * SymbolsRequiredForBySymbolsQueryConstraint 单元测试
  * 测试根据查询类型验证必需字段的验证器
@@ -23,13 +24,13 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
         const mockArgs: ValidationArguments = {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",
-          value: ["AAPL", "700.HK"],
+          value: ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           constraints: [],
           targetName: "QueryRequestDto",
         };
 
         // Act
-        const result = validator.validate(["AAPL", "700.HK"], mockArgs);
+        const result = validator.validate(["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], mockArgs);
 
         // Assert
         expect(result).toBe(true);
@@ -105,7 +106,7 @@ describe("SymbolsRequiredForBySymbolsQueryConstraint", () => {
 
       it("应该接受包含有效符号的数组", () => {
         // Arrange
-        const validSymbols = ["AAPL", "MSFT", "700.HK", "000001.SZ"];
+        const validSymbols = ["AAPL", "MSFT", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ"];
         const mockArgs: ValidationArguments = {
           object: { queryType: QueryType.BY_SYMBOLS } as QueryRequestDto,
           property: "symbols",

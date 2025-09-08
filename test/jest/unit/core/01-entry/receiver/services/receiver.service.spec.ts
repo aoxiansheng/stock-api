@@ -15,8 +15,9 @@ import { MarketStatus } from "../../../../../../../src/common/constants/domain/m
 import { StorageClassification } from "../../../../../../../src/core/shared/types/storage-classification.enum";
 import { StorageType } from "../../../../../../../src/core/04-storage/storage/enums/storage-type.enum";
 import { DataRequestDto } from "../../../../../../../src/core/01-entry/receiver/dto/data-request.dto";
-import {
-  DataResponseDto,
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { import { API_OPERATIONS } from '@common/constants/domain';ataResponseDto,
   ResponseMetadataDto,
 } from "../../../../../../../src/core/01-entry/receiver/dto/data-response.dto";
 
@@ -45,11 +46,11 @@ describe("ReceiverService", () => {
 
   // Mock data
   const mockSymbolMappingResult = {
-    mappedSymbols: ["700.HK", "AAPL"],
-    originalSymbols: ["700.HK", "AAPL"],
+    mappedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+    originalSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
     mappingErrors: [],
     metadata: {
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       totalSymbols: 2,
       successfulMappings: 2,
       failedMappings: 0,
@@ -59,7 +60,7 @@ describe("ReceiverService", () => {
   const mockRawData = {
     data: [
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         lastPrice: 100.5,
         volume: 1000000,
       },
@@ -70,8 +71,8 @@ describe("ReceiverService", () => {
       },
     ],
     metadata: {
-      provider: "longport",
-      capability: "get-stock-quote",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       processingTime: 500,
       symbolsProcessed: 2,
       failedSymbols: [],
@@ -82,7 +83,7 @@ describe("ReceiverService", () => {
   const mockTransformedData = {
     transformedData: [
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         lastPrice: 100.5,
         volume: 1000000,
         market: "HK",
@@ -95,7 +96,7 @@ describe("ReceiverService", () => {
       },
     ],
     metadata: {
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       rulesApplied: ["quote_fields"],
       transformationTime: 50,
     },
@@ -149,7 +150,7 @@ describe("ReceiverService", () => {
     };
 
     const mockCapabilityRegistryService = {
-      getBestProvider: jest.fn().mockReturnValue("longport"),
+      getBestProvider: jest.fn().mockReturnValue(REFERENCE_DATA.PROVIDER_IDS.LONGPORT),
     };
 
     const mockMarketStatusService = {
@@ -227,11 +228,11 @@ describe("ReceiverService", () => {
     buildCacheOrchestratorRequest.mockReturnValue({
       cacheKey: "test:cache:key",
       strategy: CacheStrategy.STRONG_TIMELINESS,
-      symbols: ["700.HK", "AAPL"],
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
       fetchFn: expect.any(Function),
       metadata: {
         marketStatus: mockMarketStatus,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         requestId: "test-uuid-123",
       },
     });
@@ -253,10 +254,10 @@ describe("ReceiverService", () => {
 
   describe("handleRequest", () => {
     const validRequest: DataRequestDto = {
-      symbols: ["700.HK", "AAPL"],
-      receiverType: "get-stock-quote",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+      receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       options: {
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         fields: ["lastPrice", "volume"],
       },
     };
@@ -267,8 +268,8 @@ describe("ReceiverService", () => {
       expect(result).toBeInstanceOf(DataResponseDto);
       expect(result.data).toEqual(mockTransformedData.transformedData);
       expect(result.metadata).toBeInstanceOf(ResponseMetadataDto);
-      expect(result.metadata.provider).toBe("longport");
-      expect(result.metadata.capability).toBe("get-stock-quote");
+      expect(result.metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+      expect(result.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(result.metadata.requestId).toBe("test-uuid-123");
       expect(result.metadata.hasPartialFailures).toBe(false);
 
@@ -277,7 +278,7 @@ describe("ReceiverService", () => {
         expect.objectContaining({
           cacheKey: "test:cache:key",
           strategy: CacheStrategy.STRONG_TIMELINESS,
-          symbols: ["700.HK", "AAPL"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
         }),
       );
 
@@ -340,7 +341,7 @@ describe("ReceiverService", () => {
       const requestWithPreferredProvider: DataRequestDto = {
         ...validRequest,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -349,13 +350,13 @@ describe("ReceiverService", () => {
         service as any,
         "validatePreferredProvider",
       );
-      validatePreferredProviderSpy.mockResolvedValue("longport");
+      validatePreferredProviderSpy.mockResolvedValue(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       await service.handleRequest(requestWithPreferredProvider);
 
       expect(validatePreferredProviderSpy).toHaveBeenCalledWith(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         undefined,
         "test-uuid-123",
       );
@@ -364,10 +365,10 @@ describe("ReceiverService", () => {
 
   describe("executeOriginalDataFlow", () => {
     const request: DataRequestDto = {
-      symbols: ["700.HK", "AAPL"],
-      receiverType: "get-stock-quote",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+      receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       options: {
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         fields: ["lastPrice", "volume"],
       },
     };
@@ -383,26 +384,26 @@ describe("ReceiverService", () => {
 
       // Verify symbol transformation was called
       expect(symbolTransformerService.transformSymbols).toHaveBeenCalledWith(
-        "longport",
-        ["700.HK", "AAPL"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
       );
 
       // Verify data fetcher was called
       expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith({
-        provider: "longport",
-        capability: "get-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         symbols: mockSymbolMappingResult.mappedSymbols,
         requestId: "test-123",
         apiType: "rest",
         options: {
-          timeout: 5000,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
           fields: ["lastPrice", "volume"],
         },
       });
 
       // Verify transformer was called
       expect(dataTransformerService.transform).toHaveBeenCalledWith({
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         transDataRuleListType: "quote_fields",
         rawData: mockRawData,
@@ -417,7 +418,7 @@ describe("ReceiverService", () => {
         expect.objectContaining({
           key: "receiver:get-stock-quote:longport:700.HK,AAPL",
           market: "HK", // First symbol's market
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           storageClassification: StorageClassification.STOCK_QUOTE,
           storageType: StorageType.BOTH,
           data: mockTransformedData.transformedData,
@@ -498,7 +499,7 @@ describe("ReceiverService", () => {
         service as any
       ).mapReceiverTypeToTransDataRuleListType.bind(service);
 
-      expect(mapFunction("get-stock-quote")).toBe("quote_fields");
+      expect(mapFunction(API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBe("quote_fields");
       expect(mapFunction("get-stock-basic-info")).toBe("basic_info_fields");
       expect(mapFunction("get-stock-realtime")).toBe("quote_fields");
       expect(mapFunction("get-stock-history")).toBe("quote_fields");
@@ -512,7 +513,7 @@ describe("ReceiverService", () => {
         service as any
       ).mapReceiverTypeToStorageClassification.bind(service);
 
-      expect(mapFunction("get-stock-quote")).toBe(
+      expect(mapFunction(API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBe(
         StorageClassification.STOCK_QUOTE,
       );
       expect(mapFunction("get-stock-basic-info")).toBe(
@@ -540,8 +541,8 @@ describe("ReceiverService", () => {
         service,
       );
 
-      expect(extractFunction(["700.HK", "AAPL"])).toBe("HK");
-      expect(extractFunction(["AAPL", "700.HK"])).toBe("MIXED"); // No .US suffix, mixed
+      expect(extractFunction([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"])).toBe("HK");
+      expect(extractFunction(["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT])).toBe("MIXED"); // No .US suffix, mixed
       expect(extractFunction(["600000.SH"])).toBe("SH");
       expect(extractFunction(["000001.SZ"])).toBe("SZ");
       expect(extractFunction(["000001"])).toBe("SZ"); // Starts with 00
@@ -554,7 +555,7 @@ describe("ReceiverService", () => {
         service,
       );
 
-      expect(calculateFunction(["700.HK", "AAPL"])).toBe(60); // Default TTL
+      expect(calculateFunction([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"])).toBe(60); // Default TTL
       expect(calculateFunction(new Array(25).fill("AAPL"))).toBe(120); // Large batch gets longer TTL
       expect(calculateFunction([])).toBe(60); // Empty array gets default TTL
     });
@@ -563,8 +564,8 @@ describe("ReceiverService", () => {
   describe("Request Validation", () => {
     it("should validate request successfully with no issues", async () => {
       const validRequest: DataRequestDto = {
-        symbols: ["700.HK", "AAPL"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const validateFunction = (service as any).performRequestValidation.bind(
@@ -579,8 +580,8 @@ describe("ReceiverService", () => {
 
     it("should detect duplicate symbols", async () => {
       const requestWithDuplicates: DataRequestDto = {
-        symbols: ["700.HK", "AAPL", "700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const validateFunction = (service as any).performRequestValidation.bind(
@@ -595,7 +596,7 @@ describe("ReceiverService", () => {
     it("should detect symbols with whitespace", async () => {
       const requestWithWhitespace: DataRequestDto = {
         symbols: [" 700.HK ", "AAPL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const validateFunction = (service as any).performRequestValidation.bind(
@@ -614,16 +615,16 @@ describe("ReceiverService", () => {
         service,
       );
       const result = await determineFunction(
-        ["700.HK", "AAPL"],
-        "get-stock-quote",
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         undefined,
         undefined,
         "test-123",
       );
 
-      expect(result).toBe("longport");
+      expect(result).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(capabilityRegistryService.getBestProvider).toHaveBeenCalledWith(
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "MIXED", // Mixed market inferred from symbols
       );
     });
@@ -633,23 +634,23 @@ describe("ReceiverService", () => {
         service as any,
         "validatePreferredProvider",
       );
-      validatePreferredProviderSpy.mockResolvedValue("longport");
+      validatePreferredProviderSpy.mockResolvedValue(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       const determineFunction = (service as any).determineOptimalProvider.bind(
         service,
       );
       const result = await determineFunction(
-        ["700.HK"],
-        "get-stock-quote",
-        "longport",
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "HK",
         "test-123",
       );
 
-      expect(result).toBe("longport");
+      expect(result).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(validatePreferredProviderSpy).toHaveBeenCalledWith(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "HK",
         "test-123",
       );
@@ -686,8 +687,8 @@ describe("ReceiverService", () => {
       );
 
       const validRequest: DataRequestDto = {
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       await service.handleRequest(validRequest);
@@ -696,7 +697,7 @@ describe("ReceiverService", () => {
         "test-uuid-123",
         expect.any(Number), // processingTime
         1, // symbolsCount
-        "longport", // provider
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // provider
         true, // success
       );
     });
@@ -711,8 +712,8 @@ describe("ReceiverService", () => {
       );
 
       const validRequest: DataRequestDto = {
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       try {

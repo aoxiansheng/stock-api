@@ -1,6 +1,8 @@
 import { PartialType, ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString, IsArray, ArrayNotEmpty } from "class-validator";
 
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   CreateSymbolMappingDto,
   SymbolMappingRuleDto,
@@ -11,14 +13,14 @@ export class UpdateSymbolMappingDto extends PartialType(
 ) {}
 
 export class TransformSymbolsDto {
-  @ApiProperty({ description: "数据源名称", example: "longport" })
+  @ApiProperty({ description: "数据源名称", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
   @IsNotEmpty({ message: "dataSourceName 不能为空" })
   @IsString()
   dataSourceName: string;
 
   @ApiProperty({
     description: "需要转换的股票代码列表",
-    example: ["700.HK", "AAPL.US"],
+    example: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
   })
   @IsArray()
   @ArrayNotEmpty({ message: "股票代码列表不能为空" })
@@ -42,7 +44,7 @@ export class TransformSymbolsResponseDto {
 }
 
 export class AddSymbolMappingRuleDto {
-  @ApiProperty({ description: "数据源名称", example: "longport" })
+  @ApiProperty({ description: "数据源名称", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
   @IsNotEmpty()
   @IsString()
   dataSourceName: string;
@@ -53,12 +55,12 @@ export class AddSymbolMappingRuleDto {
 }
 
 export class UpdateSymbolMappingRuleDto {
-  @ApiProperty({ description: "数据源名称", example: "longport" })
+  @ApiProperty({ description: "数据源名称", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
   @IsNotEmpty()
   @IsString()
   dataSourceName: string;
 
-  @ApiProperty({ description: "系统标准格式代码", example: "700.HK" })
+  @ApiProperty({ description: "系统标准格式代码", example: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT })
   @IsNotEmpty()
   @IsString()
   standardSymbol: string;

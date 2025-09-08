@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import {
@@ -22,7 +25,7 @@ describe("DataFetcherService", () => {
   let capabilityRegistryService: jest.Mocked<CapabilityRegistryService>;
 
   const mockCapability = {
-    name: "get-stock-quote",
+    name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     description: "Mock capability for testing",
     supportedMarkets: ["US", "HK"],
     supportedSymbolFormats: ["SYMBOL.MARKET", "SYMBOL"],
@@ -34,12 +37,12 @@ describe("DataFetcherService", () => {
   };
 
   const mockParams: DataFetchParams = {
-    provider: "longport",
-    capability: "get-stock-quote",
-    symbols: ["700.HK", "AAPL.US"],
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+    symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
     requestId: "req_123456789",
     apiType: "rest",
-    options: { timeout: 5000 },
+    options: { timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST },
     contextService: mockProvider,
   };
 
@@ -81,7 +84,7 @@ describe("DataFetcherService", () => {
     const mockRawData = {
       secu_quote: [
         {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           last_done: 385.6,
           prev_close: 389.8,
           open: 387.2,
@@ -119,14 +122,14 @@ describe("DataFetcherService", () => {
       expect(result).toBeDefined();
       expect(result.data).toHaveLength(2);
       expect(result.data).toEqual(mockRawData.secu_quote);
-      expect(result.metadata.provider).toBe("longport");
-      expect(result.metadata.capability).toBe("get-stock-quote");
+      expect(result.metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+      expect(result.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(result.metadata.symbolsProcessed).toBe(2);
       expect(result.metadata.processingTime).toBeGreaterThanOrEqual(0);
 
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(mockCapability.execute).toHaveBeenCalledWith({
         symbols: mockParams.symbols,
@@ -142,7 +145,7 @@ describe("DataFetcherService", () => {
     it("should handle array format raw data", async () => {
       // Arrange
       const arrayRawData = [
-        { symbol: "700.HK", price: 385.6 },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 385.6 },
         { symbol: "AAPL.US", price: 195.18 },
       ];
 
@@ -159,7 +162,7 @@ describe("DataFetcherService", () => {
 
     it("should handle single object raw data", async () => {
       // Arrange
-      const singleRawData = { symbol: "700.HK", price: 385.6 };
+      const singleRawData = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 385.6 };
 
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       mockCapability.execute.mockResolvedValue(singleRawData);
@@ -257,15 +260,15 @@ describe("DataFetcherService", () => {
 
       // Act
       const result = await service.supportsCapability(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
 
       // Assert
       expect(result).toBe(true);
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
     });
 
@@ -275,14 +278,14 @@ describe("DataFetcherService", () => {
 
       // Act
       const result = await service.supportsCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "invalid-capability",
       );
 
       // Assert
       expect(result).toBe(false);
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "invalid-capability",
       );
     });
@@ -295,8 +298,8 @@ describe("DataFetcherService", () => {
 
       // Act
       const result = await service.supportsCapability(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
 
       // Assert
@@ -312,12 +315,12 @@ describe("DataFetcherService", () => {
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
 
       // Act
-      const result = await service.getProviderContext("longport");
+      const result = await service.getProviderContext(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       // Assert
       expect(result).toBe(mockContextService);
       expect(capabilityRegistryService.getProvider).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       );
       expect(mockProvider.getContextService).toHaveBeenCalled();
     });
@@ -343,10 +346,10 @@ describe("DataFetcherService", () => {
       );
 
       // Act & Assert
-      await expect(service.getProviderContext("longport")).rejects.toThrow(
+      await expect(service.getProviderContext(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.getProviderContext("longport")).rejects.toThrow(
+      await expect(service.getProviderContext(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)).rejects.toThrow(
         "Provider longport context service not available",
       );
     });
@@ -359,10 +362,10 @@ describe("DataFetcherService", () => {
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
 
       // Act & Assert
-      await expect(service.getProviderContext("longport")).rejects.toThrow(
+      await expect(service.getProviderContext(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)).rejects.toThrow(
         ServiceUnavailableException,
       );
-      await expect(service.getProviderContext("longport")).rejects.toThrow(
+      await expect(service.getProviderContext(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)).rejects.toThrow(
         "Provider longport context service failed: Context service error",
       );
     });
@@ -371,16 +374,16 @@ describe("DataFetcherService", () => {
   describe("fetchBatch", () => {
     const mockRequests: DataFetchRequestDto[] = [
       {
-        provider: "longport",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "req_1",
         apiType: ApiType.REST,
         options: {},
       },
       {
-        provider: "longport",
-        capability: "get-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         symbols: ["AAPL.US"],
         requestId: "req_2",
         apiType: ApiType.REST,
@@ -390,7 +393,7 @@ describe("DataFetcherService", () => {
 
     it("should successfully process batch requests", async () => {
       // Arrange
-      const mockRawData1 = { secu_quote: [{ symbol: "700.HK", price: 385.6 }] };
+      const mockRawData1 = { secu_quote: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 385.6 }] };
       const mockRawData2 = {
         secu_quote: [{ symbol: "AAPL.US", price: 195.18 }],
       };
@@ -416,7 +419,7 @@ describe("DataFetcherService", () => {
 
     it("should handle partial failures in batch requests", async () => {
       // Arrange
-      const mockRawData = { secu_quote: [{ symbol: "700.HK", price: 385.6 }] };
+      const mockRawData = { secu_quote: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 385.6 }] };
 
       capabilityRegistryService.getCapability.mockReturnValue(mockCapability);
       capabilityRegistryService.getProvider.mockReturnValue(mockProvider);
@@ -443,7 +446,7 @@ describe("DataFetcherService", () => {
       // Arrange
       const params = {
         ...mockParams,
-        symbols: ["700.HK", "AAPL", "00001.SZ", "600519.SH"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "00001.SZ", "600519.SH"],
       };
       const mockData = {
         secu_quote: Array(4).fill({ symbol: "test", price: 100 }),
@@ -459,7 +462,7 @@ describe("DataFetcherService", () => {
       expect(result.metadata.symbolsProcessed).toBe(4);
       expect(mockCapability.execute).toHaveBeenCalledWith(
         expect.objectContaining({
-          symbols: ["700.HK", "AAPL", "00001.SZ", "600519.SH"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "00001.SZ", "600519.SH"],
         }),
       );
     });

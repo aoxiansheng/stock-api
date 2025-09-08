@@ -1,10 +1,12 @@
 import { DataFetchResponseDto } from "../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-response.dto";
 import { DataFetchMetadataDto } from "../../../../../../../src/core/03-fetching/data-fetcher/dto/data-fetch-metadata.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("DataFetchResponseDto", () => {
   const mockData = [
     {
-      symbol: "700.HK",
+      symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       last_done: 385.6,
       prev_close: 389.8,
       open: 387.2,
@@ -18,8 +20,8 @@ describe("DataFetchResponseDto", () => {
   ];
 
   const mockMetadata = new DataFetchMetadataDto(
-    "longport",
-    "get-stock-quote",
+    REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     150,
     1,
   );
@@ -46,15 +48,15 @@ describe("DataFetchResponseDto", () => {
     it("should create successful response", () => {
       const response = DataFetchResponseDto.success(
         mockData,
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         150,
         1,
       );
 
       expect(response.data).toEqual(mockData);
-      expect(response.metadata.provider).toBe("longport");
-      expect(response.metadata.capability).toBe("get-stock-quote");
+      expect(response.metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+      expect(response.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(response.metadata.processingTimeMs).toBe(150);
       expect(response.metadata.symbolsProcessed).toBe(1);
       expect(response.metadata.failedSymbols).toBeUndefined();
@@ -70,8 +72,8 @@ describe("DataFetchResponseDto", () => {
 
       const response = DataFetchResponseDto.partialSuccess(
         mockData,
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         150,
         1,
         failedSymbols,
@@ -79,8 +81,8 @@ describe("DataFetchResponseDto", () => {
       );
 
       expect(response.data).toEqual(mockData);
-      expect(response.metadata.provider).toBe("longport");
-      expect(response.metadata.capability).toBe("get-stock-quote");
+      expect(response.metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+      expect(response.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(response.metadata.processingTimeMs).toBe(150);
       expect(response.metadata.symbolsProcessed).toBe(1);
       expect(response.metadata.failedSymbols).toEqual(failedSymbols);
@@ -93,8 +95,8 @@ describe("DataFetchResponseDto", () => {
     it("should handle empty data array", () => {
       const emptyData: any[] = [];
       const metadata = new DataFetchMetadataDto(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         50,
         0,
       );
@@ -114,8 +116,8 @@ describe("DataFetchResponseDto", () => {
       }));
 
       const metadata = new DataFetchMetadataDto(
-        "longport",
-        "get-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         500,
         100,
       );

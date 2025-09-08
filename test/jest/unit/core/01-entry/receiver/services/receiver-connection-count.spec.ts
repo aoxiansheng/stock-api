@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * ReceiverService连接计数清理机制测试
  * 验证P0修复：确保finally块正确清理连接计数
@@ -74,15 +76,15 @@ describe("ReceiverService - Connection Count Management", () => {
 
   describe("🔧 P0修复验证：连接计数清理机制", () => {
     const mockRequest: DataRequestDto = {
-      symbols: ["700.HK"],
-      receiverType: "get-stock-quote",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+      receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       options: { useSmartCache: false }, // 测试传统流程
     };
 
     it("应该在方法开始时增加连接计数", async () => {
       // 模拟验证失败，快速抛出异常
       mockServices.capabilityRegistryService.getBestProvider.mockReturnValue(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       );
 
       try {
@@ -98,14 +100,14 @@ describe("ReceiverService - Connection Count Management", () => {
     it("应该在finally块中减少连接计数（成功路径）", async () => {
       // 模拟成功的处理流程
       mockServices.capabilityRegistryService.getBestProvider.mockReturnValue(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       );
       mockServices.symbolTransformerService.transformSymbols.mockResolvedValue({
-        mappedSymbols: ["700.HK"],
+        mappedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         mappingDetails: [],
         failedSymbols: [],
         metadata: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           totalSymbols: 1,
           successCount: 1,
           failedCount: 0,
@@ -114,12 +116,12 @@ describe("ReceiverService - Connection Count Management", () => {
       });
 
       mockServices.dataFetcherService.fetchRawData.mockResolvedValue({
-        data: [{ symbol: "700.HK", price: 100 }],
+        data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 100 }],
         metadata: { processingTime: 50 },
       });
 
       mockServices.dataTransformerService.transform.mockResolvedValue({
-        transformedData: [{ symbol: "700.HK", lastPrice: 100 }],
+        transformedData: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 100 }],
       });
 
       try {
@@ -194,7 +196,7 @@ describe("ReceiverService - Connection Count Management", () => {
     it("应该确保连接计数调用序列正确", async () => {
       // 模拟正常的处理流程，在中间某处抛出异常
       mockServices.capabilityRegistryService.getBestProvider.mockReturnValue(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       );
       mockServices.symbolTransformerService.transformSymbols.mockImplementation(
         () => {
@@ -221,7 +223,7 @@ describe("ReceiverService - Connection Count Management", () => {
     it("应该保持原有的错误处理逻辑", async () => {
       const mockRequest: DataRequestDto = {
         symbols: [], // 空数组应该引发验证错误
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       await expect(service.handleRequest(mockRequest)).rejects.toThrow();
@@ -235,13 +237,13 @@ describe("ReceiverService - Connection Count Management", () => {
     it("应该保持原有的成功响应格式", async () => {
       // 这是一个基本的回归测试，确保修改没有破坏响应格式
       mockServices.capabilityRegistryService.getBestProvider.mockReturnValue(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       );
 
       try {
         await service.handleRequest({
           symbols: ["TEST"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         });
       } catch (error) {
         // 预期可能会有其他错误，但连接计数应该正确

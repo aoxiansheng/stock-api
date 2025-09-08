@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   DataChangeDetectorService,
   ChangeDetectionResult,
 } from "@core/shared/services/data-change-detector.service";
@@ -16,7 +17,7 @@ describe("DataChangeDetectorService", () => {
   let mockCollectorService: jest.Mocked<CollectorService>;
 
   // Test data constants
-  const TEST_SYMBOL = "700.HK";
+  const TEST_SYMBOL = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
   const SAMPLE_STOCK_DATA = {
     lastPrice: 320.5,
     price: 320.5,

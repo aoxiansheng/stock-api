@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { ExtendedHealthService } from "@monitoring/health/extended-health.service";
 import { ConfigValidatorService } from "../../../../../src/app/config/validation/config-validator.service";
 import { StartupHealthCheckerService } from "../../../../../src/app/startup/health-checker.service";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Mock external modules
 jest.mock("mongodb", () => ({
@@ -327,7 +328,7 @@ describe("ExtendedHealthService", () => {
       expect(result).toHaveProperty("mongodb");
       expect(result).toHaveProperty("redis");
       expect(result).toHaveProperty("externalServices");
-      expect(result.externalServices).toHaveProperty("longport");
+      expect(result.externalServices).toHaveProperty(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
     });
   });
 

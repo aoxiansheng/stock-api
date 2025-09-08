@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Stream Receiver 实时流黑盒E2E测试：WebSocket真实环境完整测试
@@ -34,7 +37,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true,
     });
 
@@ -198,7 +201,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             accessToken: apiKey.accessToken,
           },
           transports: ["websocket"],
-          timeout: 10000,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION,
         });
 
         wsClient.on("connect", () => {
@@ -450,8 +453,8 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 验证数据格式
           expect(data).toBeDefined();
           expect(data.symbols || data.data).toBeDefined();
-          expect(data.provider).toBe("longport");
-          expect(data.capability).toBe("stream-stock-quote");
+          expect(data.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+          expect(data.capability).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
           expect(data.timestamp).toBeDefined();
 
           if (data.symbols && data.symbols.length > 0) {
@@ -607,7 +610,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
 
         console.log(
@@ -732,7 +735,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送多符号订阅请求
         wsClient.emit("subscribe", {
           symbols: testSymbols,
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
 
         console.log(`📡 发送多符号订阅请求: ${testSymbols.join(", ")}`);
@@ -865,7 +868,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
 
         console.log(`📡 开始测试取消订阅: ${testSymbol}`);
@@ -901,7 +904,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         console.log(`🔄 发送无效符号订阅请求: ${invalidSymbol}`);
         wsClient.emit("subscribe", {
           symbols: [invalidSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
       });
     });
@@ -1067,7 +1070,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
           // 订阅测试符号
           performanceClient.emit("subscribe", {
             symbols: [testSymbol],
-            wsCapabilityType: "stream-stock-quote",
+            wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
           });
         });
 
@@ -1222,8 +1225,8 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             expect(typeof data.processingChain.dataTransformed).toBe("boolean");
 
             // 验证实时流特有处理：跳过Storage，直接输出
-            expect(data.provider).toBe("longport");
-            expect(data.capability).toBe("stream-stock-quote");
+            expect(data.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+            expect(data.capability).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
             expect(data.timestamp).toBeDefined();
 
             console.log("✅ 7组件数据处理链验证成功:");
@@ -1257,7 +1260,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
       });
     }, 35000);
@@ -1265,7 +1268,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
     it("应该验证不同市场符号的智能路由和格式转换", async () => {
       // 测试多个市场的符号转换能力
       const marketSymbols = [
-        { symbol: "700.HK", market: "HK", expectedFormat: "00700" },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, market: "HK", expectedFormat: "00700" },
         { symbol: "TSLA.US", market: "US", expectedFormat: "TSLA" },
       ];
 
@@ -1346,7 +1349,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.emit("subscribe", {
           symbols: marketSymbols.map((m) => m.symbol),
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
       });
     }, 40000);
@@ -1388,7 +1391,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
     it("应该能够指定特定提供商进行流订阅", async () => {
       const testSymbol = "AMD.US";
-      const preferredProvider = "longport";
+      const preferredProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       let providerVerified = false;
 
       return new Promise((resolve, reject) => {
@@ -1411,7 +1414,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             console.log(`   数据质量: ${data.data ? "有效" : "无效"}`);
 
             expect(data.provider).toBe(preferredProvider);
-            expect(data.capability).toBe("stream-stock-quote");
+            expect(data.capability).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
 
             wsClient.emit("unsubscribe", { symbols: [testSymbol] });
             setTimeout(
@@ -1437,7 +1440,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
           preferredProvider: preferredProvider,
         });
       });
@@ -1480,7 +1483,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
           preferredProvider: invalidProvider,
         });
       });
@@ -1640,7 +1643,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
           if (status.data) {
             expect(status.data.symbols).toContain(testSymbol);
-            expect(status.data.wsCapabilityType).toBe("stream-stock-quote");
+            expect(status.data.wsCapabilityType).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
             expect(status.data._providerName).toBeDefined();
           }
 
@@ -1659,7 +1662,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 开始测试
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
       });
     }, 25000);
@@ -1674,9 +1677,9 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         const invalidRequests = [
           {}, // 空对象
           { symbols: [] }, // 空符号列表
-          { wsCapabilityType: "stream-stock-quote" }, // 缺少symbols
+          { wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE }, // 缺少symbols
           { symbols: ["AMD.US"] }, // 缺少wsCapabilityType
-          { symbols: null, wsCapabilityType: "stream-stock-quote" }, // null符号
+          { symbols: null, wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE }, // null符号
           { symbols: ["AMD.US"], wsCapabilityType: null }, // null能力类型
         ];
 
@@ -1765,7 +1768,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 订阅无效符号
         wsClient.emit("subscribe", {
           symbols: ["INVALID_SYMBOL", "ANOTHER_INVALID"],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
 
         wsClient.on("subscription_error", (error) => {
@@ -1833,7 +1836,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
         wsClient.emit("subscribe", {
           symbols: manySymbols,
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
 
         wsClient.on("subscription_error", (error) => {
@@ -1936,7 +1939,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
         // 发送首次订阅请求
         wsClient.emit("subscribe", {
           symbols: [testSymbol],
-          wsCapabilityType: "stream-stock-quote",
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
         console.log(`📡 发送首次订阅请求: ${testSymbol}`);
 
@@ -1987,7 +1990,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
               );
               wsClient.emit("subscribe", {
                 symbols: [testSymbol],
-                wsCapabilityType: "stream-stock-quote",
+                wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
               });
             }
           }
@@ -2004,7 +2007,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             console.log(`🔄 首次订阅成功后，立即尝试重复订阅: ${testSymbol}`);
             wsClient.emit("subscribe", {
               symbols: [testSymbol],
-              wsCapabilityType: "stream-stock-quote",
+              wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
             });
           } else {
             console.log("✅ 重复订阅确认:", data);
@@ -2146,7 +2149,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             // 每个客户端订阅同一个符号
             client.emit("subscribe", {
               symbols: [testSymbol],
-              wsCapabilityType: "stream-stock-quote",
+              wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
             });
           });
 
@@ -2255,7 +2258,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
             client.emit("subscribe", {
               symbols: [symbol],
-              wsCapabilityType: "stream-stock-quote",
+              wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
             });
           });
 
@@ -2354,7 +2357,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
 
           wsClient.emit("subscribe", {
             symbols: [testSymbol],
-            wsCapabilityType: "stream-stock-quote",
+            wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
           });
         });
 
@@ -2423,7 +2426,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             // 订阅测试符号
             wsClient.emit("subscribe", {
               symbols: [testSymbol],
-              wsCapabilityType: "stream-stock-quote",
+              wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
             });
           } else {
             reconnectionId = wsClient.id;
@@ -2432,7 +2435,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
             // 重连后重新订阅
             wsClient.emit("subscribe", {
               symbols: [testSymbol],
-              wsCapabilityType: "stream-stock-quote",
+              wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
             });
           }
         });
@@ -2497,7 +2500,7 @@ describe("Stream Receiver Real-time Black-box E2E Tests", () => {
                 // 重连后重新订阅
                 wsClient.emit("subscribe", {
                   symbols: [testSymbol],
-                  wsCapabilityType: "stream-stock-quote",
+                  wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
                 });
               });
 

@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * Query服务智能缓存工具函数集成测试
  * 专注于工具函数验证，避免复杂的依赖注入
@@ -65,8 +66,8 @@ describe("Query Smart Cache Utils Integration Tests", () => {
     });
 
     it("应该支持额外参数的缓存键", () => {
-      const cacheKey = buildUnifiedCacheKey("receiver:stock-data", ["700.HK"], {
-        provider: "longport",
+      const cacheKey = buildUnifiedCacheKey("receiver:stock-data", [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], {
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         market: "HK",
       });
 
@@ -135,7 +136,7 @@ describe("Query Smart Cache Utils Integration Tests", () => {
 
     it("应该正确推断香港市场符号", () => {
       const testCases = [
-        { symbol: "700.HK", expected: Market.HK },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, expected: Market.HK },
         { symbol: "00700", expected: Market.HK },
         { symbol: "09988", expected: Market.HK },
         { symbol: "01810", expected: Market.HK },
@@ -166,7 +167,7 @@ describe("Query Smart Cache Utils Integration Tests", () => {
     });
 
     it("应该批量推断混合市场符号", () => {
-      const symbols = ["AAPL", "700.HK", "600000.SH", "000001.SZ"];
+      const symbols = ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "600000.SH", "000001.SZ"];
       const market = extractMarketFromSymbols(symbols);
 
       // 取第一个符号的市场（美股）

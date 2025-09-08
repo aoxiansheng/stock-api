@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 describe("Response Formatting E2E Tests", () => {
   let httpServer: any;
   let adminToken: string;
@@ -225,7 +226,7 @@ describe("Response Formatting E2E Tests", () => {
         .set("X-Access-Token", userAccessToken)
         .send({
           symbols: ["NONEXISTENT.US"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         });
 
       // Assert - 验证null值处理
@@ -246,7 +247,7 @@ describe("Response Formatting E2E Tests", () => {
         .set("X-Access-Token", userAccessToken)
         .send({
           symbols: ["AAPL.US"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         });
 
       // Assert - 验证数值格式化
@@ -277,7 +278,7 @@ describe("Response Formatting E2E Tests", () => {
         {
           path: "/api/v1/receiver/data",
           method: "POST",
-          body: { symbols: ["AAPL.US"], receiverType: "get-stock-quote" },
+          body: { symbols: ["AAPL.US"], receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE },
           headers: {
             "X-App-Key": userApiKey,
             "X-Access-Token": userAccessToken,

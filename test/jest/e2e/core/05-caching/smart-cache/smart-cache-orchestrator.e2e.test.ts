@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 智能缓存编排器端到端测试
@@ -37,8 +39,8 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
   // 测试数据
   const testSymbols = {
     US: ["AAPL", "GOOGL", "MSFT"],
-    HK: ["700.HK", "175.HK", "3690.HK"],
-    Mixed: ["AAPL", "700.HK", "BABA"],
+    HK: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "175.HK", "3690.HK"],
+    Mixed: ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "BABA"],
   };
 
   const metricsSnapshot = {
@@ -77,7 +79,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       // Arrange
       const requestPayload = {
         symbols: testSymbols.US,
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           realtime: true,
           timeout: 3000,
@@ -150,7 +152,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       // Arrange
       const requestPayload = {
         symbols: testSymbols.Mixed,
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           realtime: false,
           timeout: 3000,
@@ -204,7 +206,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       const queryPayload = {
         queryType: "by_symbols",
         symbols: testSymbols.HK,
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useCache: true,
           includeMetadata: true,
@@ -264,7 +266,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       const queryPayload = {
         queryType: "by_market",
         market: "HK",
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           useCache: true,
           includeMetadata: true,
@@ -332,7 +334,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
           .set("X-Access-Token", testAccessToken)
           .send({
             symbols: ["TSLA"],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             options: { timeout: 3000 },
           }),
 
@@ -344,7 +346,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
           .send({
             queryType: "by_symbols",
             symbols: ["NVDA"],
-            queryTypeFilter: "get-stock-quote",
+            queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           }),
       ];
 
@@ -396,7 +398,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       const testSymbol = "META";
       const requestPayload = {
         symbols: [testSymbol],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           timeout: 3000,
         },
@@ -447,7 +449,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       // Arrange
       const requestPayload = {
         symbols: ["AMZN"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           timeout: 3000,
           enableBackgroundUpdate: true,
@@ -499,7 +501,7 @@ describe("Smart Cache Orchestrator E2E Tests", () => {
       // Arrange - 使用无效的数据源配置
       const requestPayload = {
         symbols: ["INVALID_SYMBOL_FORMAT"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           timeout: 3000,
         },

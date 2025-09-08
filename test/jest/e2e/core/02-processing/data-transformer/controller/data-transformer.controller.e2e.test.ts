@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 describe("Transformer Controller E2E Tests", () => {
   let httpServer: any;
@@ -59,7 +60,7 @@ describe("Transformer Controller E2E Tests", () => {
     const template1 = {
       name: "LongPort REST Quote Template",
       description: "Template for LongPort REST quote data",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       sampleData: {
         symbol: "AAPL",
@@ -85,7 +86,7 @@ describe("Transformer Controller E2E Tests", () => {
     const template2 = {
       name: "LongPort REST Basic Info Template",
       description: "Template for LongPort REST basic info data",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       sampleData: {
         symbol: "AAPL",
@@ -109,7 +110,7 @@ describe("Transformer Controller E2E Tests", () => {
     const template3 = {
       name: "LongPort REST Index Template",
       description: "Template for LongPort REST index data",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       sampleData: {
         symbol: "SPY",
@@ -159,7 +160,7 @@ describe("Transformer Controller E2E Tests", () => {
     const longportRestQuoteRule = {
       name: "LongPort REST Quote Fields Test Rule",
       description: "Test mapping rule for longport REST quote fields",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "quote_fields",
       fieldMappings: [
@@ -223,7 +224,7 @@ describe("Transformer Controller E2E Tests", () => {
     const longportQuoteRule = {
       name: "LongPort Quote Fields Test Rule",
       description: "Test mapping rule for longport quote fields",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "stream",
       transDataRuleListType: "quote_fields",
       // sourceTemplateId 现在是可选的
@@ -285,7 +286,7 @@ describe("Transformer Controller E2E Tests", () => {
     const basicInfoRule = {
       name: "LongPort Basic Info Test Rule",
       description: "Test mapping rule for basic info fields",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "basic_info_fields",
       // sourceTemplateId 现在是可选的
@@ -323,7 +324,7 @@ describe("Transformer Controller E2E Tests", () => {
     const indexRule = {
       name: "LongPort Index Fields Test Rule",
       description: "Test mapping rule for index fields",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "index_fields",
       // sourceTemplateId 现在是可选的
@@ -367,7 +368,7 @@ describe("Transformer Controller E2E Tests", () => {
     const nestedQuoteRule = {
       name: "LongPort Nested Quote Fields Test Rule",
       description: "Test mapping rule for nested quote data structure",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "stream",
       transDataRuleListType: "quote_fields",
       fieldMappings: [
@@ -432,7 +433,7 @@ describe("Transformer Controller E2E Tests", () => {
         },
         apiType: "rest",
         transDataRuleListType: "quote_fields",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         options: {
           includeMetadata: true,
           validateOutput: true,
@@ -461,7 +462,7 @@ describe("Transformer Controller E2E Tests", () => {
       expect(metadata).toHaveProperty("_fieldsTransformed");
       expect(metadata).toHaveProperty("processingTime");
       expect(metadata).toHaveProperty("provider");
-      expect(metadata.provider).toBe("longport");
+      expect(metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
     });
 
     it("should handle different rule types", async () => {
@@ -498,7 +499,7 @@ describe("Transformer Controller E2E Tests", () => {
           rawData: testCase.rawData,
           apiType: "rest",
           transDataRuleListType: testCase.transDataRuleListType,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         };
 
         const response = await httpServer
@@ -523,7 +524,7 @@ describe("Transformer Controller E2E Tests", () => {
         },
         apiType: "rest",
         transDataRuleListType: "quote_fields",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         options: {
           validateOutput: true,
           includeMetadata: true,
@@ -551,7 +552,7 @@ describe("Transformer Controller E2E Tests", () => {
         .send({
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           // rawData missing
         })
         .expect(400);
@@ -564,7 +565,7 @@ describe("Transformer Controller E2E Tests", () => {
         .send({
           apiType: "rest",
           rawData: { symbol: "AAPL" },
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           // transDataRuleListType missing
         })
         .expect(400);
@@ -590,7 +591,7 @@ describe("Transformer Controller E2E Tests", () => {
         .send({
           rawData: { symbol: "AAPL" },
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           // apiType missing
         })
         .expect(400);
@@ -600,7 +601,7 @@ describe("Transformer Controller E2E Tests", () => {
       // Arrange
       const complexData = {
         security: {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           name: "Tencent Holdings",
           market: "HK",
         },
@@ -623,7 +624,7 @@ describe("Transformer Controller E2E Tests", () => {
         rawData: complexData,
         apiType: "stream",
         transDataRuleListType: "quote_fields",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         options: {
           includeMetadata: true,
           validateOutput: false,
@@ -650,7 +651,7 @@ describe("Transformer Controller E2E Tests", () => {
         rawData: { symbol: "AAPL" },
         apiType: "rest",
         transDataRuleListType: "quote_fields",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // Act & Assert
@@ -673,7 +674,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           options: {
             includeMetadata: true,
           },
@@ -686,7 +687,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           options: {
             includeMetadata: true,
           },
@@ -699,7 +700,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           options: {
             includeMetadata: true,
           },
@@ -738,7 +739,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
         {
           rawData: {
@@ -747,7 +748,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
         {
           rawData: {
@@ -756,7 +757,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       ];
 
@@ -786,7 +787,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         }));
 
       const startTime = Date.now();
@@ -823,7 +824,7 @@ describe("Transformer Controller E2E Tests", () => {
         .send({
           rawDataList: [],
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         })
         .expect(400);
     });
@@ -840,7 +841,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         }));
 
       // Act
@@ -875,7 +876,7 @@ describe("Transformer Controller E2E Tests", () => {
           },
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         }));
 
       // Act
@@ -904,7 +905,7 @@ describe("Transformer Controller E2E Tests", () => {
           rawData: malformedData,
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         };
 
         const response = await httpServer
@@ -931,7 +932,7 @@ describe("Transformer Controller E2E Tests", () => {
           rawData: testCase.data,
           apiType: "rest",
           transDataRuleListType: "quote_fields",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         };
 
         const response = await httpServer
@@ -970,7 +971,7 @@ describe("Transformer Controller E2E Tests", () => {
               },
               apiType: "rest",
               transDataRuleListType: "quote_fields",
-              provider: "longport",
+              provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             }),
         );
 

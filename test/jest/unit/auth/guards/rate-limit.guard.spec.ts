@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import {
+import { OPERATION_LIMITS } from '@common/constants/domain';
   ExecutionContext,
   HttpException,
   HttpStatus,
@@ -61,7 +62,7 @@ describe("RateLimitGuard", () => {
 
   const mockRateLimitResult = {
     allowed: true,
-    limit: 100,
+    limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
     current: 10,
     remaining: 90,
     resetTime: Date.now() + 3600000, // 1 hour from now
@@ -209,7 +210,7 @@ describe("RateLimitGuard", () => {
           message: "API Key请求频率超出限制",
           error: "Too Many Requests",
           details: {
-            limit: 100,
+            limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
             current: 101,
             remaining: 0,
             resetTime: expect.any(Number),
@@ -348,7 +349,7 @@ describe("RateLimitGuard", () => {
         expect.stringContaining("频率限制超出"),
         expect.objectContaining({
           appKey: "test-app-key",
-          limit: 100,
+          limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
           current: 101,
         }),
       );
@@ -450,7 +451,7 @@ describe("RateLimitGuard", () => {
   describe("setRateLimitHeaders", () => {
     it("should set all required rate limit headers", () => {
       const result = {
-        limit: 100,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         remaining: 50,
         resetTime: 1640995200000, // Unix timestamp
         retryAfter: null,
@@ -479,7 +480,7 @@ describe("RateLimitGuard", () => {
 
     it("should set Retry-After header when retryAfter is provided", () => {
       const result = {
-        limit: 100,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         remaining: 0,
         resetTime: 1640995200000,
         retryAfter: 300,
@@ -492,7 +493,7 @@ describe("RateLimitGuard", () => {
 
     it("should handle fractional reset time correctly", () => {
       const result = {
-        limit: 100,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         remaining: 25,
         resetTime: 1640995200500, // .5 seconds
         retryAfter: null,

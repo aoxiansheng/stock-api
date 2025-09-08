@@ -1,14 +1,16 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   buildStorageKey,
-  validateDataFreshness,
+  validateDataFreshness
 } from "../../../../../../../src/core/01-entry/query/utils/query.util";
 
 describe("Query Utils", () => {
   describe("buildStorageKey", () => {
     it("应该使用所有提供的参数构建存储键", () => {
       const symbol = "AAPL.US";
-      const provider = "longport";
-      const queryTypeFilter = "get-stock-quote";
+      const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+      const queryTypeFilter = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const market = "US";
 
       const key = buildStorageKey(symbol, provider, queryTypeFilter, market);
@@ -26,7 +28,7 @@ describe("Query Utils", () => {
 
     it("应该处理部分缺少的参数", () => {
       const symbol = "AAPL.US";
-      const provider = "longport";
+      const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
 
       const key = buildStorageKey(symbol, provider);
 
@@ -35,8 +37,8 @@ describe("Query Utils", () => {
 
     it("应该正确处理包含冒号的符号", () => {
       const symbol = "700:HK";
-      const provider = "longport";
-      const queryTypeFilter = "get-stock-quote";
+      const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+      const queryTypeFilter = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const market = "HK";
 
       const key = buildStorageKey(symbol, provider, queryTypeFilter, market);

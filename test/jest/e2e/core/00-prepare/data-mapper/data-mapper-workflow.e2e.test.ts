@@ -1,3 +1,5 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Data-Mapper 工作流程端到端测试
@@ -41,7 +43,7 @@ describe("Data-Mapper Workflow E2E", () => {
       console.log("🔍 阶段1: 分析LongPort数据源");
 
       const sampleLongPortData = {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         last_done: 561.0,
         prev_close: 558.5,
         open: 560.0,
@@ -59,7 +61,7 @@ describe("Data-Mapper Workflow E2E", () => {
       };
 
       const analysisRequest = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
         sampleData: sampleLongPortData,
         name: "LongPort Complete Quote Data",
@@ -122,7 +124,7 @@ describe("Data-Mapper Workflow E2E", () => {
         "name",
         "LongPort Complete Mapping Rule",
       );
-      expect(generatedRule).toHaveProperty("provider", "longport");
+      expect(generatedRule).toHaveProperty("provider", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(generatedRule).toHaveProperty("apiType", "rest");
       expect(generatedRule).toHaveProperty(
         "transDataRuleListType",
@@ -165,7 +167,7 @@ describe("Data-Mapper Workflow E2E", () => {
 
       // 验证关键字段转换
       const transformedData = testResult.transformedData;
-      expect(transformedData).toHaveProperty("symbol", "700.HK");
+      expect(transformedData).toHaveProperty("symbol", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(transformedData).toHaveProperty("lastPrice", 561.0);
       expect(transformedData).toHaveProperty("previousClose", 558.5);
       expect(transformedData).toHaveProperty("volume", 11292534);
@@ -381,7 +383,7 @@ describe("Data-Mapper Workflow E2E", () => {
 
       // 2. 获取规则列表统计
       const rulesListResponse = await request
-        .get("/api/v1/data-mapper/rules?limit=100")
+        .get("/api/v1/data-mapper/rules?limit=OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE")
         .set("X-App-Key", apiKey.appKey)
         .set("X-Access-Token", apiKey.accessToken)
         .expect(200);

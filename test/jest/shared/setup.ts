@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * Shared组件测试通用设置
  * 在每个测试文件执行前运行
@@ -108,7 +109,7 @@ const globalTestConfig = {
 
   // 测试数据配置
   TEST_DATA: {
-    SAMPLE_SYMBOLS: ["700.HK", "AAPL.US", "000001.SZ", "600036.SH"],
+    SAMPLE_SYMBOLS: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ", "600036.SH"],
     LARGE_DATASET_SIZE: 1000,
     PERFORMANCE_TEST_ITERATIONS: 100,
   },

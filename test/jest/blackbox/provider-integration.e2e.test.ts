@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 真实环境黑盒E2E测试：Provider能力导向架构
  * 测试LongPort生产数据源集成和自动发现机制
@@ -21,7 +24,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true, // 不要自动抛出错误，让我们手动处理
     });
 
@@ -132,14 +135,14 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       expect(typeof capabilities).toBe("object");
 
       // 验证LongPort Provider存在
-      expect(capabilities).toHaveProperty("longport");
+      expect(capabilities).toHaveProperty(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       const longportCapabilities = capabilities.longport;
       expect(Array.isArray(longportCapabilities)).toBe(true);
 
       // 验证3个核心能力存在
       const expectedCapabilities = [
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "get-stock-basic-info",
         "get-index-quote",
       ];
@@ -194,15 +197,15 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
   describe("🚀 LongPort生产数据源集成", () => {
     const testCapabilities = [
       {
-        capability: "get-stock-quote",
-        receiverType: "get-stock-quote",
-        testSymbols: ["700.HK", "AAPL.US", "000001.SZ"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        testSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ"],
         description: "实时股票报价",
       },
       {
         capability: "get-stock-basic-info",
         receiverType: "get-stock-basic-info",
-        testSymbols: ["700.HK", "AAPL.US"],
+        testSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
         description: "股票基本信息",
       },
       {
@@ -222,7 +225,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
               symbols: testSymbols,
               receiverType: receiverType,
               options: {
-                preferredProvider: "longport",
+                preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 realtime: true,
               },
             },
@@ -239,7 +242,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
           const metadata = response.data.data.metadata;
           if (metadata.provider) {
-            expect(metadata.provider).toBe("longport");
+            expect(metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
           }
           if (metadata.capability) {
             expect(metadata.capability).toBe(capability);
@@ -250,7 +253,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
           const responseData = response.data.data;
 
           switch (receiverType) {
-            case "get-stock-quote":
+            case API_OPERATIONS.STOCK_DATA.GET_QUOTE:
               // 不再强制要求secu_quote字段
               if (Array.isArray(responseData)) {
                 if (responseData.length > 0) {
@@ -347,7 +350,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
     // 独立验证测试：检查单符号基本信息查询
     it("应该能够独立获取单个股票的基本信息 (验证批量查询问题)", async () => {
-      const singleSymbol = "700.HK"; // 使用失败测试中的符号
+      const singleSymbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT; // 使用失败测试中的符号
 
       const response = await httpClient.post(
         "/api/v1/receiver/data",
@@ -355,7 +358,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
           symbols: [singleSymbol], // 只查询一个符号
           receiverType: "get-stock-basic-info",
           options: {
-            preferredProvider: "longport",
+            preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             realtime: true,
           },
         },
@@ -380,7 +383,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
       const metadata = response.data.data.metadata;
       if (metadata.provider) {
-        expect(metadata.provider).toBe("longport");
+        expect(metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       }
 
       console.log(`✅ 单符号基本信息查询成功: ${singleSymbol}`);
@@ -394,7 +397,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         "MSFT.US",
         "TSLA.US",
         "AMZN.US", // 美股
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "388.HK",
         "175.HK",
         "981.HK", // 港股
@@ -407,10 +410,10 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: manySymbols,
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
-            preferredProvider: "longport",
-            // timeout: 10000,
+            preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            // timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION,
             realtime: true,
           },
         },
@@ -454,7 +457,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
           description: "美股市场",
         },
         {
-          symbols: ["700.HK", "388.HK"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "388.HK"],
           expectedMarket: "HK",
           description: "港股市场",
         },
@@ -467,7 +470,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: testCase.symbols,
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             options: {
               realtime: true,
             },
@@ -506,8 +509,8 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       const response = await httpClient.post(
         "/api/v1/receiver/data",
         {
-          symbols: ["700.HK"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             realtime: true,
           },
@@ -576,8 +579,8 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
       await httpClient.post(
         "/api/v1/receiver/data",
         {
-          symbols: ["700.HK"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: { realtime: true },
         },
         {
@@ -619,7 +622,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
     it("应该支持多Provider并发数据获取", async () => {
       const mixedMarketSymbols = [
         "AAPL.US", // 美股 - 可能路由到LongPort
-        "700.HK", // 港股 - 可能路由到LongPort
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // 港股 - 可能路由到LongPort
         "000001.SZ", // A股 - 可能路由到LongPort
       ];
 
@@ -629,7 +632,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         "/api/v1/receiver/data",
         {
           symbols: mixedMarketSymbols,
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             realtime: true,
           },
@@ -675,14 +678,14 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
 
   describe("🔄 Provider数据一致性验证", () => {
     it("应该确保相同符号在不同Provider间的数据一致性", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
 
       // 通过不同方式获取相同符号的数据
       const directResponse = await httpClient.post(
         "/api/v1/receiver/data",
         {
           symbols: [testSymbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: { realtime: true },
         },
         {
@@ -700,7 +703,7 @@ describe("Real Environment Black-_box: Provider Integration E2E", () => {
         {
           queryType: "by_symbols",
           symbols: [testSymbol],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {

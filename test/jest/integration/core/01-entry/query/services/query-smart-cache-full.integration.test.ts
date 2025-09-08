@@ -13,13 +13,15 @@ import { QueryRequestDto } from "../../../../../../../src/core/01-entry/query/dt
 import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 import { StorageType } from "../../../../../../../src/core/04-storage/storage/enums/storage-type.enum";
 import { StorageClassification } from "../../../../../../../src/core/shared/types/storage-classification.enum";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 // Helper function to create StorageMetadataDto
 const createMockStorageMetadata = (overrides: Partial<any> = {}) => ({
   key: "test:cache:key",
   storageType: StorageType.STORAGETYPECACHE,
   storageClassification: StorageClassification.STOCK_QUOTE,
-  provider: "longport",
+  provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   market: "US",
   dataSize: 1024,
   processingTime: 50,
@@ -38,9 +40,9 @@ describe("QueryService - Smart Cache Full Integration", () => {
 
   const mockQueryRequest: QueryRequestDto = {
     queryType: QueryType.BY_SYMBOLS,
-    symbols: ["AAPL", "MSFT", "700.HK"],
-    queryTypeFilter: "get-stock-quote",
-    provider: "longport",
+    symbols: ["AAPL", "MSFT", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+    queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     options: {
       includeFields: ["lastPrice", "volume"],
       useCache: true,
@@ -216,8 +218,8 @@ describe("QueryService - Smart Cache Full Integration", () => {
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: "AAPL", lastPrice: 150.0 }],
         metadata: {
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           timestamp: new Date().toISOString(),
           requestId: "test-request-id",
           processingTime: 50,
@@ -245,7 +247,7 @@ describe("QueryService - Smart Cache Full Integration", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           symbols: ["AAPL"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: expect.objectContaining({
             market: Market.US,
             // 关键验证：应该允许Receiver使用自己的缓存
@@ -286,7 +288,7 @@ describe("QueryService - Smart Cache Full Integration", () => {
 
     it("应该处理批量请求中的混合缓存情况", async () => {
       // Arrange - 模拟混合缓存情况
-      // const symbols = ['AAPL', 'MSFT', '700.HK']; // 未使用变量移除
+      // const symbols = ['AAPL', 'MSFT', REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]; // 未使用变量移除
 
       // AAPL: Query层缓存命中
       // MSFT: Query层缓存缺失，Receiver层命中
@@ -320,8 +322,8 @@ describe("QueryService - Smart Cache Full Integration", () => {
           // MSFT - Receiver处理
           data: [{ symbol: "MSFT", lastPrice: 300.0 }],
           metadata: {
-            provider: "longport",
-            capability: "get-stock-quote",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             timestamp: new Date().toISOString(),
             requestId: "test-request-id",
             processingTime: 50,
@@ -329,10 +331,10 @@ describe("QueryService - Smart Cache Full Integration", () => {
         })
         .mockResolvedValueOnce({
           // 700.HK - 实时获取
-          data: [{ symbol: "700.HK", lastPrice: 320.0 }],
+          data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 320.0 }],
           metadata: {
-            provider: "longport",
-            capability: "get-stock-quote",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             timestamp: new Date().toISOString(),
             requestId: "test-request-id",
             processingTime: 200,

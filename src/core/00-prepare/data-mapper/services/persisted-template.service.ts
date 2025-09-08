@@ -1,6 +1,8 @@
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { createLogger } from "@app/config/logger.config";
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   Injectable,
   NotFoundException,
@@ -77,14 +79,14 @@ export class PersistedTemplateService {
   private readonly BASIC_PRESET_TEMPLATES = [
     {
       name: "LongPort REST 股票报价通用模板（港股/A股个股和指数）",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest" as const,
       isPreset: true,
       isDefault: true,
       description:
         "LongPort REST API 股票报价数据通用模板(适用所有市场基础字段)",
       sampleData: {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         high: "562.500",
         lastDone: "561.000",
         low: "553.500",
@@ -184,7 +186,7 @@ export class PersistedTemplateService {
     },
     {
       name: "LongPort REST 美股专用报价模板(含盘前盘后)",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest" as const,
       isPreset: true,
       isDefault: false,
@@ -375,13 +377,13 @@ export class PersistedTemplateService {
     },
     {
       name: "LongPort WebSocket 报价流通用模板(适用于港股/A股/美股所有市场的个股与指数报价)",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "stream" as const,
       isPreset: true,
       isDefault: true,
       description: "LongPort WebSocket 实时报价流通用数据模板",
       sampleData: {
-        symbol: "700.HK", // 示例可以是任何市场：700.HK, AAPL.US, 000001.SZ, 688273.SH
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // 示例可以是任何市场：700.HK, AAPL.US, 000001.SZ, 688273.SH
         data: {
           currentTurnover: "614350.000",
           currentVolume: 1100,
@@ -476,14 +478,14 @@ export class PersistedTemplateService {
     },
     {
       name: "LongPort REST 股票基础信息通用模板(适用于港股/A股/美股所有市场的个股与指数报价)",
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest" as const,
       isPreset: true,
       isDefault: false,
       description:
         "LongPort REST API 股票基础信息通用数据模板(适用于港股/美股/A股所有市场的个股基础信息)",
       sampleData: {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         board: "HKEquity",
         bps: "123.1693466433353942",
         circulatingShares: 9153739354,

@@ -1,5 +1,7 @@
 import { getStockQuote } from "../../../../../../src/providers/longport/capabilities/get-stock-quote";
 import { MARKETS } from "../../../../../../src/common/constants/domain/market-domain.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("getStockQuote", () => {
   const mockQuoteContext = {
@@ -15,7 +17,7 @@ describe("getStockQuote", () => {
   });
 
   it("should have correct _name, _description, and supported markets/formats", () => {
-    expect(getStockQuote.name).toBe("get-stock-quote");
+    expect(getStockQuote.name).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
     expect(getStockQuote.description).toBe("获取股票实时报价数据");
     expect(getStockQuote.supportedMarkets).toEqual([
       MARKETS.HK,
@@ -24,7 +26,7 @@ describe("getStockQuote", () => {
       MARKETS.US,
     ]);
     expect(getStockQuote.supportedSymbolFormats).toEqual([
-      "700.HK",
+      REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       "000001.SZ",
       "600000.SH",
       "AAPL.US",
@@ -36,10 +38,10 @@ describe("getStockQuote", () => {
   });
 
   it("should successfully fetch and format stock quotes", async () => {
-    const symbols = ["700.HK", "AAPL.US"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
     const mockLongportQuotes = [
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         lastDone: 300,
         prevClose: 290,
         open: 295,
@@ -76,7 +78,7 @@ describe("getStockQuote", () => {
     expect(result).toEqual({
       secu_quote: [
         {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           lastdone: 300,
           prevclose: 290,
           open: 295,
@@ -104,14 +106,14 @@ describe("getStockQuote", () => {
   });
 
   it("should throw an error if contextService is not provided", async () => {
-    const symbols = ["700.HK"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
     await expect(getStockQuote.execute({ symbols })).rejects.toThrow(
       "LongportContextService 未提供",
     );
   });
 
   it("should throw an error if getQuoteContext fails", async () => {
-    const symbols = ["700.HK"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
     mockContextService.getQuoteContext.mockRejectedValue(
       new Error("Quote API error"),
     );
@@ -122,7 +124,7 @@ describe("getStockQuote", () => {
   });
 
   it("should throw an error if quote call fails", async () => {
-    const symbols = ["700.HK"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
     mockQuoteContext.quote.mockRejectedValue(new Error("Quote API error"));
 
     await expect(

@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * 自动初始化配置
  *
@@ -66,7 +67,7 @@ export interface AutoInitConfig {
      * 用途：不同数据源的股票代码格式转换
      *
      * 示例：
-     * - 输入 "700.HK" → 输出 "00700.HK" (LongPort格式)
+     * - 输入 REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT → 输出 "00700.HK" (LongPort格式)
      * - 输入 "AAPL" → 输出 "AAPL.US" (标准化格式)
      *
      * 环境变量：AUTO_INIT_SYMBOL_MAPPINGS

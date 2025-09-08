@@ -1,6 +1,8 @@
 import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@app/config/logger.config";
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   ApiSuccessResponse,
   ApiStandardResponses,
@@ -45,7 +47,7 @@ export class DataTransformerController {
           success: true,
           transformedData: [
             {
-              symbol: "700.HK",
+              symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
               lastPrice: 385.6,
               change: -4.2,
               changePercent: -1.08,
@@ -58,10 +60,10 @@ export class DataTransformerController {
             processingTime: 25,
             dataMapperRuleId: "rule_123",
             ruleName: "LongPort股票行情映射",
-            timestamp: "2024-01-01T12:00:00.000Z",
+            timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -119,7 +121,7 @@ export class DataTransformerController {
         data: [
           {
             success: true,
-            transformedData: [{ symbol: "700.HK", lastPrice: 385.6 }],
+            transformedData: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 385.6 }],
             metadata: { recordsProcessed: 1, processingTime: 25 },
           },
           {
@@ -128,7 +130,7 @@ export class DataTransformerController {
             metadata: { recordsProcessed: 1, processingTime: 28 },
           },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })

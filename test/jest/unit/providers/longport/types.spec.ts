@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * LongPort Types Unit Tests
  * 测试LongPort数据源类型定义的正确性和兼容性
@@ -17,7 +18,7 @@ describe("LongPort Types", () => {
 
     beforeEach(() => {
       quoteData = {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         last_done: 320.5,
         prev_close: 318.0,
         open: 319.1,
@@ -86,7 +87,7 @@ describe("LongPort Types", () => {
 
     describe("Market Support", () => {
       it("should handle Hong Kong stock symbols", () => {
-        const hkSymbols = ["700.HK", "941.HK", "9988.HK", "3690.HK"];
+        const hkSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "941.HK", "9988.HK", "3690.HK"];
 
         hkSymbols.forEach((symbol) => {
           quoteData.symbol = symbol;
@@ -156,7 +157,7 @@ describe("LongPort Types", () => {
       quoteResponse = {
         secu_quote: [
           {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 320.5,
             prev_close: 318.0,
             open: 319.1,
@@ -191,7 +192,7 @@ describe("LongPort Types", () => {
       });
 
       expect(quoteResponse.secu_quote).toHaveLength(2);
-      expect(quoteResponse.secu_quote[0].symbol).toBe("700.HK");
+      expect(quoteResponse.secu_quote[0].symbol).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(quoteResponse.secu_quote[1].symbol).toBe("AAPL.US");
     });
   });
@@ -199,7 +200,7 @@ describe("LongPort Types", () => {
   describe("LongportBasicInfo", () => {
     it("should have all required basic info properties", () => {
       const basicInfo: LongportBasicInfo = {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         name_cn: "腾讯控股",
         name_en: "Tencent Holdings Ltd",
         name_hk: "騰訊控股",
@@ -223,7 +224,7 @@ describe("LongPort Types", () => {
 
     it("should have correct data types", () => {
       const basicInfo: LongportBasicInfo = {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         name_cn: "腾讯控股",
         name_en: "Tencent Holdings Ltd",
         name_hk: "騰訊控股",
@@ -284,7 +285,7 @@ describe("LongPort Types", () => {
   describe("Type Integration", () => {
     it("should work with JSON serialization", () => {
       const quoteData: LongportQuoteData = {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         last_done: 320.5,
         prev_close: 318.0,
         open: 319.1,
@@ -316,7 +317,7 @@ describe("LongPort Types", () => {
       };
 
       const quoteData: LongportQuoteData = {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         last_done: 320.5,
         prev_close: 318.0,
         open: 319.1,

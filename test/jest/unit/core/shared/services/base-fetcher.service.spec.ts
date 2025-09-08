@@ -4,6 +4,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { BaseFetcherService } from "../../../../../../src/core/shared/services/base-fetcher.service";
 import { CollectorService } from "../../../../../../src/monitoring/collector/collector.service";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // 创建具体实现类用于测试抽象类
 class TestBaseFetcherService extends BaseFetcherService {
@@ -266,16 +267,16 @@ describe("BaseFetcherService", () => {
 
       expect(() => {
         service["standardizeError"](originalError, "fetch-data", {
-          provider: "longport",
-          symbol: "700.HK",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         });
       }).toThrow("fetch-data失败: Network timeout");
 
       expect(service["logger"].error).toHaveBeenCalledWith(
         "fetch-data失败",
         expect.objectContaining({
-          provider: "longport",
-          symbol: "700.HK",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           error: "Network timeout",
           errorType: "Error",
           operation: "fetch-data",

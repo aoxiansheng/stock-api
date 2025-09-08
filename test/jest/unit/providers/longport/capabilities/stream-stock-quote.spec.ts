@@ -2,6 +2,8 @@
 import { createLogger } from "@app/config/logger.config";
 import { Market } from "@common/constants/domian/";
 import streamStockQuote from "../../../../../../src/providers/longport/capabilities/stream-stock-quote";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 // Mock logger
 jest.mock("@app/config/logger.config");
@@ -30,7 +32,7 @@ describe("StreamStockQuote Capability", () => {
 
   describe("Basic Properties", () => {
     it("should have correct capability name", () => {
-      expect(streamStockQuote.name).toBe("stream-stock-quote");
+      expect(streamStockQuote.name).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
     });
 
     it("should have correct description", () => {
@@ -50,7 +52,7 @@ describe("StreamStockQuote Capability", () => {
 
     it("should support correct symbol formats", () => {
       expect(streamStockQuote.supportedSymbolFormats).toEqual([
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "00700.HK",
         "09618.HK",
         "00700",
@@ -110,7 +112,7 @@ describe("StreamStockQuote Capability", () => {
   });
 
   describe("subscribe()", () => {
-    const testSymbols = ["700.HK", "AAPL.US", "TSLA.US"];
+    const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "TSLA.US"];
 
     it("should subscribe to symbols successfully", async () => {
       mockContextService.subscribe.mockResolvedValue(undefined);
@@ -152,7 +154,7 @@ describe("StreamStockQuote Capability", () => {
     });
 
     it("should reject subscription when invalid symbols are present", async () => {
-      const symbolsWithInvalid = ["700.HK", "INVALID_SYMBOL", "AAPL.US"];
+      const symbolsWithInvalid = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "INVALID_SYMBOL", "AAPL.US"];
       mockContextService.subscribe.mockResolvedValue(undefined);
 
       // 期望抛出错误，因为实际实现会拒绝包含无效符号的订阅
@@ -190,7 +192,7 @@ describe("StreamStockQuote Capability", () => {
   });
 
   describe("unsubscribe()", () => {
-    const testSymbols = ["700.HK", "AAPL.US"];
+    const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
 
     it("should unsubscribe from symbols successfully", async () => {
       mockContextService.unsubscribe.mockResolvedValue(undefined);
@@ -320,7 +322,7 @@ describe("StreamStockQuote Capability", () => {
 describe("Symbol Validation Helper", () => {
   // 由于 isValidSymbol 是内部函数，我们通过能力测试间接验证
   it("should identify valid HK symbols", async () => {
-    const validHKSymbols = ["700.HK", "00700", "09988"];
+    const validHKSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "00700", "09988"];
     mockContextService.subscribe.mockResolvedValue(undefined);
 
     await streamStockQuote.subscribe(validHKSymbols, mockContextService);

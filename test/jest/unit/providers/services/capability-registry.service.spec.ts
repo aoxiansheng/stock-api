@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * CapabilityRegistryService 单元测试
  * 测试能力发现、注册和Provider管理功能
@@ -82,7 +84,7 @@ describe("CapabilityRegistryService", () => {
     it("应该排除系统目录（interfaces, services, controller, module）", async () => {
       // Arrange - 模拟目录结构
       const mockDirents = [
-        { name: "longport", isDirectory: () => true },
+        { name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, isDirectory: () => true },
         { name: "longport-sg", isDirectory: () => true },
         { name: "interfaces", isDirectory: () => true }, // 应该被排除
         { name: "services", isDirectory: () => true }, // 应该被排除
@@ -128,7 +130,7 @@ describe("CapabilityRegistryService", () => {
 
       // Assert - 验证只有有效的提供商目录被处理
       expect(loadProviderCapabilitiesSpy).toHaveBeenCalledTimes(2);
-      expect(loadProviderCapabilitiesSpy).toHaveBeenCalledWith("longport");
+      expect(loadProviderCapabilitiesSpy).toHaveBeenCalledWith(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(loadProviderCapabilitiesSpy).toHaveBeenCalledWith("longport-sg");
 
       // 验证系统目录没有被处理
@@ -169,7 +171,7 @@ describe("CapabilityRegistryService", () => {
     it("应该成功注册能力", () => {
       // Arrange
       const mockCapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -182,7 +184,7 @@ describe("CapabilityRegistryService", () => {
       // Assert
       const registeredCapability = service.getCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(registeredCapability).toBe(mockCapability);
     });
@@ -192,7 +194,7 @@ describe("CapabilityRegistryService", () => {
     it("应该返回已注册且启用的能力", () => {
       // Arrange
       const mockCapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -201,7 +203,7 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("test-provider", mockCapability, 1, true);
 
       // Act
-      const result = service.getCapability("test-provider", "get-stock-quote");
+      const result = service.getCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE);
 
       // Assert
       expect(result).toBe(mockCapability);
@@ -210,7 +212,7 @@ describe("CapabilityRegistryService", () => {
     it("应该对禁用的能力返回 null", () => {
       // Arrange
       const mockCapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -219,7 +221,7 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("test-provider", mockCapability, 1, false);
 
       // Act
-      const result = service.getCapability("test-provider", "get-stock-quote");
+      const result = service.getCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE);
 
       // Assert
       expect(result).toBeNull();
@@ -241,14 +243,14 @@ describe("CapabilityRegistryService", () => {
     it("应该返回最高优先级的提供商", () => {
       // Arrange
       const capability1 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability 1",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
         execute: jest.fn(),
       };
       const capability2 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability 2",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -259,7 +261,7 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("provider2", capability2, 1, true);
 
       // Act
-      const result = service.getBestProvider("get-stock-quote", "HK");
+      const result = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "HK");
 
       // Assert
       expect(result).toBe("provider2"); // 优先级更高（数字更小）
@@ -268,14 +270,14 @@ describe("CapabilityRegistryService", () => {
     it("应该考虑市场支持", () => {
       // Arrange
       const capability1 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability 1",
         supportedMarkets: ["US"],
         supportedSymbolFormats: ["US_FORMAT"],
         execute: jest.fn(),
       };
       const capability2 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Test capability 2",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -286,7 +288,7 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("provider2", capability2, 2, true);
 
       // Act
-      const result = service.getBestProvider("get-stock-quote", "HK");
+      const result = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "HK");
 
       // Assert
       expect(result).toBe("provider2"); // 只有 provider2 支持 HK 市场
@@ -305,7 +307,7 @@ describe("CapabilityRegistryService", () => {
     it("应该成功加载能力模块", async () => {
       // Arrange
       const mockCapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Mock capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -320,7 +322,7 @@ describe("CapabilityRegistryService", () => {
       const registerCapabilitySpy = jest.spyOn(service, "registerCapability");
 
       // Act
-      await (service as any).loadCapability("test-provider", "get-stock-quote");
+      await (service as any).loadCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE);
 
       // Assert
       expect(registerCapabilitySpy).toHaveBeenCalledWith(
@@ -368,7 +370,7 @@ describe("CapabilityRegistryService", () => {
     it("应该支持camelCase导出的能力模块", async () => {
       // Arrange
       const mockCapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Mock capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -382,7 +384,7 @@ describe("CapabilityRegistryService", () => {
       const registerCapabilitySpy = jest.spyOn(service, "registerCapability");
 
       // Act
-      await (service as any).loadCapability("test-provider", "get-stock-quote");
+      await (service as any).loadCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE);
 
       // Assert
       expect(registerCapabilitySpy).toHaveBeenCalledWith(
@@ -703,7 +705,7 @@ describe("CapabilityRegistryService", () => {
       expect(loadCapabilitySpy).toHaveBeenCalledTimes(2); // 只加载.ts文件
       expect(loadCapabilitySpy).toHaveBeenCalledWith(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(loadCapabilitySpy).toHaveBeenCalledWith(
         "test-provider",
@@ -763,14 +765,14 @@ describe("CapabilityRegistryService", () => {
     it("应该在没有指定市场时返回最优提供商", () => {
       // Arrange
       const capability1 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Provider 1 capability",
         supportedMarkets: ["HK", "US"],
         supportedSymbolFormats: ["FORMAT1"],
         execute: jest.fn(),
       };
       const capability2 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Provider 2 capability",
         supportedMarkets: ["CN"],
         supportedSymbolFormats: ["FORMAT2"],
@@ -781,7 +783,7 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("provider2", capability2, 1, true);
 
       // Act - 不指定市场
-      const result = service.getBestProvider("get-stock-quote");
+      const result = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
 
       // Assert
       expect(result).toBe("provider2"); // 优先级更高
@@ -790,14 +792,14 @@ describe("CapabilityRegistryService", () => {
     it("应该正确处理禁用的提供商", () => {
       // Arrange
       const capability1 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Disabled capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["FORMAT1"],
         execute: jest.fn(),
       };
       const capability2 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Enabled capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["FORMAT2"],
@@ -808,7 +810,7 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("enabled-provider", capability2, 2, true); // 启用
 
       // Act
-      const result = service.getBestProvider("get-stock-quote", "HK");
+      const result = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "HK");
 
       // Assert
       expect(result).toBe("enabled-provider"); // 跳过禁用的提供商
@@ -824,7 +826,7 @@ describe("CapabilityRegistryService", () => {
 
       capabilities.forEach(({ name, priority }) => {
         const capability = {
-          name: "get-stock-quote",
+          name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           description: `${name} capability`,
           supportedMarkets: ["HK"],
           supportedSymbolFormats: ["FORMAT"],
@@ -834,7 +836,7 @@ describe("CapabilityRegistryService", () => {
       });
 
       // Act
-      const result = service.getBestProvider("get-stock-quote", "HK");
+      const result = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "HK");
 
       // Assert
       expect(result).toBe("provider-high"); // 优先级1最高
@@ -845,14 +847,14 @@ describe("CapabilityRegistryService", () => {
     it("应该能覆盖同一提供商的同名能力", () => {
       // Arrange
       const capability1 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Original capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["FORMAT1"],
         execute: jest.fn(),
       };
       const capability2 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Updated capability",
         supportedMarkets: ["US"],
         supportedSymbolFormats: ["FORMAT2"],
@@ -864,13 +866,13 @@ describe("CapabilityRegistryService", () => {
       service.registerCapability("test-provider", capability2, 2, false);
 
       // Assert
-      const result = service.getCapability("test-provider", "get-stock-quote");
+      const result = service.getCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(result).toBeNull(); // 因为第二次注册时_isEnabled=false
 
       const allCapabilities = service.getAllCapabilities();
       const providerCapabilities = allCapabilities.get("test-provider");
       expect(providerCapabilities?.size).toBe(1); // 覆盖了原来的能力
-      expect(providerCapabilities?.get("get-stock-quote")?.capability).toBe(
+      expect(providerCapabilities?.get(API_OPERATIONS.STOCK_DATA.GET_QUOTE)?.capability).toBe(
         capability2,
       );
     });
@@ -897,7 +899,7 @@ describe("CapabilityRegistryService", () => {
     it("应该处理完整的能力发现和注册流程", async () => {
       // Arrange
       const mockDirents = [
-        { name: "longport", isDirectory: () => true },
+        { name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, isDirectory: () => true },
         { name: "test-provider", isDirectory: () => true },
       ];
 
@@ -918,7 +920,7 @@ describe("CapabilityRegistryService", () => {
       });
 
       const mockCapability1 = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Stock quote capability",
         supportedMarkets: ["HK"],
         supportedSymbolFormats: ["HK_FORMAT"],
@@ -935,7 +937,7 @@ describe("CapabilityRegistryService", () => {
 
       mockDynamicImport.mockImplementation(
         async (providerName: string, capabilityName: string) => {
-          if (capabilityName === "get-stock-quote") {
+          if (capabilityName === API_OPERATIONS.STOCK_DATA.GET_QUOTE) {
             return { default: mockCapability1 };
           } else if (capabilityName === "get-market-info") {
             return { getMarketInfo: mockCapability2 }; // camelCase export
@@ -952,13 +954,13 @@ describe("CapabilityRegistryService", () => {
       expect(allCapabilities.size).toBe(2); // longport 和 test-provider
 
       // 验证能力被正确注册
-      expect(service.getCapability("longport", "get-stock-quote")).toBe(
+      expect(service.getCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBe(
         mockCapability1,
       );
-      expect(service.getCapability("longport", "get-market-info")).toBe(
+      expect(service.getCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "get-market-info")).toBe(
         mockCapability2,
       );
-      expect(service.getCapability("test-provider", "get-stock-quote")).toBe(
+      expect(service.getCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBe(
         mockCapability1,
       );
       expect(service.getCapability("test-provider", "get-market-info")).toBe(
@@ -966,8 +968,8 @@ describe("CapabilityRegistryService", () => {
       );
 
       // 验证getBestProvider工作正常
-      expect(service.getBestProvider("get-stock-quote", "HK")).toBe("longport"); // 第一个注册的
-      expect(service.getBestProvider("get-market-info", "US")).toBe("longport");
+      expect(service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "HK")).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT); // 第一个注册的
+      expect(service.getBestProvider("get-market-info", "US")).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
     });
 
     it("应该正确处理混合的成功和失败场景", async () => {

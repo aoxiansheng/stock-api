@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { DataFetchMetadataDto } from "./data-fetch-metadata.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 /**
  * 数据获取响应DTO
@@ -14,7 +15,7 @@ export class DataFetchResponseDto {
     },
     example: [
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         last_done: 385.6,
         prev_close: 389.8,
         open: 387.2,

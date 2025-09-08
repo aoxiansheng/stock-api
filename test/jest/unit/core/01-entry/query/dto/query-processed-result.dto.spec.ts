@@ -2,6 +2,9 @@ import { QueryProcessedResultDto } from "@core/01-entry/query/dto/query-processe
 import { QueryMetadataDto } from "@core/01-entry/query/dto/query-response.dto";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { QueryType } from "@core/01-entry/query/dto/query-types.dto";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 interface StockData {
   symbol: string;
@@ -231,8 +234,8 @@ describe("QueryProcessedResultDto", () => {
       metadata.queryParams = {
         symbols: ["00700.HK"],
         market: "HK",
-        provider: "longport",
-        queryTypeFilter: "get-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       metadata.performance = {
@@ -272,7 +275,7 @@ describe("QueryProcessedResultDto", () => {
           symbol: "INVALID.SYMBOL",
           reason: "Symbol not found",
           errorCode: "SYMBOL_NOT_FOUND",
-          details: { provider: "longport", timestamp: "2023-06-01T10:00:00Z" },
+          details: { provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, timestamp: "2023-06-01T10:00:00Z" },
         },
       ];
 
@@ -471,7 +474,7 @@ describe("QueryProcessedResultDto", () => {
 
         metadata.queryParams = {
           symbols: ["00700.HK", "AAPL.US"],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         };
 
         metadata.performance = {
@@ -527,7 +530,7 @@ describe("QueryProcessedResultDto", () => {
 
         metadata.queryParams = {
           market: "HK",
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         };
 
         const processedResult: QueryProcessedResultDto<StockData> = {
@@ -565,7 +568,7 @@ describe("QueryProcessedResultDto", () => {
             reason: "Symbol not found in any provider",
             errorCode: "SYMBOL_NOT_FOUND",
             details: {
-              attemptedProviders: ["longport", "longport_sg"],
+              attemptedProviders: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "longport_sg"],
               timestamp: "2023-06-01T10:00:00Z",
             },
           },
@@ -574,8 +577,8 @@ describe("QueryProcessedResultDto", () => {
             reason: "Provider timeout",
             errorCode: "PROVIDER_TIMEOUT",
             details: {
-              provider: "longport",
-              timeout: 5000,
+              provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+              timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
               retryCount: 3,
             },
           },
@@ -626,7 +629,7 @@ describe("QueryProcessedResultDto", () => {
             reason: "All providers unavailable",
             errorCode: "ALL_PROVIDERS_DOWN",
             details: {
-              providers: ["longport", "longport_sg", "itick"],
+              providers: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "longport_sg", "itick"],
               lastChecked: "2023-06-01T10:00:00Z",
             },
           },

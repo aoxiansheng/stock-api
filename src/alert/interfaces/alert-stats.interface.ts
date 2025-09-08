@@ -25,7 +25,6 @@ export interface BaseAlertStats {
   averageResolutionTime: number;
 }
 
-
 /**
  * 默认统计值常量
  * 提供统一的默认统计数据

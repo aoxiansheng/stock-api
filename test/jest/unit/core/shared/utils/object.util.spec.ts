@@ -1,5 +1,6 @@
 import { ObjectUtils } from "@core/shared/utils/object.util";
 import { TestUtils } from "../../../../shared/test-utils";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("ObjectUtils", () => {
   describe("getValueFromPath", () => {
@@ -366,7 +367,7 @@ describe("ObjectUtils", () => {
           data: {
             quotes: [
               {
-                symbol: "700.HK",
+                symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
                 last_done: 350.2,
                 volume: 1000000,
                 market_info: {
@@ -389,7 +390,7 @@ describe("ObjectUtils", () => {
 
         expect(
           ObjectUtils.getValueFromPath(apiResponse, "data.quotes[0].symbol"),
-        ).toBe("700.HK");
+        ).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
         expect(
           ObjectUtils.getValueFromPath(apiResponse, "data.quotes[1].last_done"),
         ).toBe(150.5);

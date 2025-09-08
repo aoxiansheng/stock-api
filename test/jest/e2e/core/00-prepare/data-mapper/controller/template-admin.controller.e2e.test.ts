@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * TemplateAdminController 端到端测试
  * 测试数据源模板管理功能
@@ -41,11 +42,11 @@ describe("TemplateAdminController E2E", () => {
         // Arrange
         const templateRequest = {
           name: "E2E Test Template",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           description: "端到端测试用模板",
           sampleData: {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 561.0,
             prev_close: 558.5,
             open: 560.0,
@@ -61,7 +62,7 @@ describe("TemplateAdminController E2E", () => {
               fieldPath: "symbol",
               fieldName: "symbol",
               fieldType: "string",
-              sampleValue: "700.HK",
+              sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
               confidence: 0.95,
               isNested: false,
               nestingLevel: 0,
@@ -103,7 +104,7 @@ describe("TemplateAdminController E2E", () => {
 
         expect(result).toHaveProperty("id");
         expect(result).toHaveProperty("name", "E2E Test Template");
-        expect(result).toHaveProperty("provider", "longport");
+        expect(result).toHaveProperty("provider", REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         expect(result).toHaveProperty("apiType", "rest");
 
         expect(result).toHaveProperty("confidence", 0.9);
@@ -236,7 +237,7 @@ describe("TemplateAdminController E2E", () => {
       it("应该在缺少必需字段时返回400错误", async () => {
         // Arrange - 缺少name字段
         const invalidRequest = {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
@@ -258,7 +259,7 @@ describe("TemplateAdminController E2E", () => {
         // Arrange - 使用已存在的名称
         const duplicateRequest = {
           name: "E2E Test Template", // 重复名称
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
@@ -280,7 +281,7 @@ describe("TemplateAdminController E2E", () => {
         // Arrange
         const invalidApiTypeRequest = {
           name: "Invalid API Type Template",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "invalid", // 无效的API类型
           sampleData: { test: "data" },
           extractedFields: [],
@@ -302,7 +303,7 @@ describe("TemplateAdminController E2E", () => {
         // Arrange
         const templateRequest = {
           name: "Test Template",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           apiType: "rest",
           sampleData: { test: "data" },
           extractedFields: [],
@@ -376,7 +377,7 @@ describe("TemplateAdminController E2E", () => {
 
         // 验证所有返回的模板都是longport提供商
         result.items.forEach((template) => {
-          expect(template.provider).toBe("longport");
+          expect(template.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         });
       });
 

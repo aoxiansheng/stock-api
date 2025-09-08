@@ -1,4 +1,5 @@
 import {
+import { API_OPERATIONS } from '@common/constants/domain';
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,
   RECEIVER_SUCCESS_MESSAGES,
@@ -110,7 +111,7 @@ describe("Receiver Constants", () => {
 
   describe("SUPPORTED_CAPABILITY_TYPES", () => {
     it("should define all supported data types", () => {
-      expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-stock-quote");
+      expect(SUPPORTED_CAPABILITY_TYPES).toContain(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-stock-basic-info");
       expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-index-quote");
       expect(SUPPORTED_CAPABILITY_TYPES).toContain("get-market-status");
@@ -385,7 +386,7 @@ describe("Receiver Constants", () => {
     });
 
     it("should support data type validation", () => {
-      const receiverType = "get-stock-quote";
+      const receiverType = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const isSupported = SUPPORTED_CAPABILITY_TYPES.includes(receiverType);
       expect(isSupported).toBe(true);
 

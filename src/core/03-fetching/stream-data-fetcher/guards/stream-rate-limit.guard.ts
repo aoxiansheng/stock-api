@@ -1,3 +1,5 @@
+
+import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   Injectable,
   CanActivate,
@@ -67,7 +69,7 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   // 默认配置
   private readonly defaultConfig: ApiRateLimitConfig = {
     ttl: 60, // 1分钟窗口
-    limit: 100, // 每分钟100次请求
+    limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE, // 每分钟100次请求
     burst: 20, // 突发请求上限20次
     perIP: true,
     perUser: true,

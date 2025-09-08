@@ -1,3 +1,5 @@
+
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   Injectable,
   BadRequestException,
@@ -926,7 +928,7 @@ export class ReceiverService {
    */
   private mapReceiverTypeToTransDataRuleListType(receiverType: string): string {
     const mapping: Record<string, string> = {
-      "get-stock-quote": "quote_fields",
+      [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",
       "get-stock-basic-info": "basic_info_fields",
       "get-stock-realtime": "quote_fields",
       "get-stock-history": "quote_fields",
@@ -953,7 +955,7 @@ export class ReceiverService {
     receiverType: string,
   ): StorageClassification {
     const mapping: Record<string, StorageClassification> = {
-      "get-stock-quote": StorageClassification.STOCK_QUOTE,
+      [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: StorageClassification.STOCK_QUOTE,
       "get-stock-basic-info": StorageClassification.STOCK_BASIC_INFO,
       "get-stock-realtime": StorageClassification.STOCK_QUOTE,
       "get-stock-history": StorageClassification.STOCK_CANDLE,

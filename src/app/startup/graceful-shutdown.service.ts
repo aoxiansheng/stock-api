@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationShutdown } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
 import { StartupConfig } from "../config/startup.config";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 
 export interface ShutdownHook {
   name: string;
@@ -219,7 +220,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
       this.registerShutdownHook({
         name: "close-database-connections",
         priority: 10,
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         execute: async () => {
           this.logger.debug("Closing database connections...");
           try {

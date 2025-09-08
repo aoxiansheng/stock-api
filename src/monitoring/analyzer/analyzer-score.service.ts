@@ -4,6 +4,7 @@ import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
+import { MONITORING_BUSINESS } from '@common/constants/domain';
 
 /**
  * 健康分计算器
@@ -79,7 +80,7 @@ export class AnalyzerHealthScoreCalculator {
     let errorScore = 40;
     if (errorRate > 0.1)
       errorScore = 0; // 错误率>10%
-    else if (errorRate > 0.05)
+    else if (errorRate > MONITORING_BUSINESS.ERROR_THRESHOLDS.ACCEPTABLE_RATE)
       errorScore = 20; // 错误率>5%
     else if (errorRate > 0.01) errorScore = 35; // 错误率>1%
 
@@ -116,7 +117,7 @@ export class AnalyzerHealthScoreCalculator {
     let failureScore = 50;
     if (errorRate > 0.1)
       failureScore = 0; // 失败率>10%
-    else if (errorRate > 0.05) failureScore = 25; // 失败率>5%
+    else if (errorRate > MONITORING_BUSINESS.ERROR_THRESHOLDS.ACCEPTABLE_RATE) failureScore = 25; // 失败率>5%
 
     // 查询时间评分 (0-50分)
     let queryScore = 50;
@@ -232,7 +233,7 @@ export class AnalyzerHealthScoreCalculator {
           requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
           requests.length;
 
-        if (errorRate > 0.05) {
+        if (errorRate > MONITORING_BUSINESS.ERROR_THRESHOLDS.ACCEPTABLE_RATE) {
           recommendations.push("API错误率过高，建议检查错误日志并优化错误处理");
         }
         if (MonitoringSystemLimitUtils.isSlowRequest(avgResponseTime)) {
@@ -251,7 +252,7 @@ export class AnalyzerHealthScoreCalculator {
         if (avgQueryTime > 500) {
           recommendations.push("数据库查询时间过长，建议优化索引或查询语句");
         }
-        if (errorRate > 0.05) {
+        if (errorRate > MONITORING_BUSINESS.ERROR_THRESHOLDS.ACCEPTABLE_RATE) {
           recommendations.push(
             "数据库操作失败率过高，建议检查连接池配置和网络状况",
           );

@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * Query组件压力测试套件
  *
@@ -33,7 +34,7 @@ const mockReceiverService = {
     })),
     metadata: {
       provider: "mock",
-      capability: "get-stock-quote",
+      capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       timestamp: new Date().toISOString(),
       requestId: "test",
       processingTime: 50,
@@ -430,7 +431,7 @@ describe("Query Component Stress Tests", () => {
         })),
         metadata: {
           provider: "mock",
-          capability: "get-stock-quote",
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           timestamp: new Date().toISOString(),
           requestId: "test",
           processingTime: 50,

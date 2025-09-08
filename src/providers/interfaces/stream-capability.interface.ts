@@ -1,11 +1,12 @@
 import { ConnectionStatus } from '../constants/connection.constants';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * WebSocket 流数据能力接口
  * 与 ICapability 接口相对应，专门用于实时流数据处理
  */
 export interface IStreamCapability {
-  name: string; // 能力名称，如 "stream-stock-quote"
+  name: string; // 能力名称，如 API_OPERATIONS.STOCK_DATA.STREAM_QUOTE
   description: string; // 能力描述
   supportedMarkets: string[]; // 支持的市场列表
   supportedSymbolFormats: string[]; // 支持的符号格式

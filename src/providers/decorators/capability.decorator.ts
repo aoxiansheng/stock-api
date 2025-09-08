@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { CapabilityMetadata, Constructor } from "./types/metadata.types";
 import { CapabilityCollector } from "./capability-collector";
 import { METADATA_KEYS } from "../constants/metadata.constants";
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * 能力装饰器 - 自动注册数据源能力
@@ -9,7 +10,7 @@ import { METADATA_KEYS } from "../constants/metadata.constants";
  * @example
  * ```typescript
  * @Capability({
- *   name: 'get-stock-quote',
+ *   name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
  *   markets: ['US', 'HK'],
  *   priority: 1,
  *   description: '获取股票实时报价'
@@ -124,7 +125,7 @@ export function registerCapabilities(
  * @example
  * ```typescript
  * export class LongportProvider {
- *   @InjectCapability('get-stock-quote')
+ *   @InjectCapability(API_OPERATIONS.STOCK_DATA.GET_QUOTE)
  *   stockQuote: GetStockQuoteCapability;
  * }
  * ```

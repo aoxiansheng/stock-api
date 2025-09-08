@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 集成测试全局设置
  * 设置真实的数据库连接和Redis连接
@@ -561,7 +563,7 @@ export class TestDataHelper {
   // receiverType 到 transDataRuleListType 的映射（统一使用get-前缀格式）
   static mapReceiverTypeToRuleListType(receiverType: string): string {
     const mapping = {
-      "get-stock-quote": "quote_fields",
+      API_OPERATIONS.STOCK_DATA.GET_QUOTE: "quote_fields",
       "get-stock-basic-info": "basic_info_fields",
       "get-index-quote": "index_fields",
       "get-market-status": "market_status_fields",
@@ -706,7 +708,7 @@ global.createLongportMock = () => ({
       // @ts-expect-error - Jest mock return type not matching expected interface
       quote: jest.fn().mockResolvedValue([
         {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           last_done: 503.0,
           open: 500.0,
           high: 505.0,

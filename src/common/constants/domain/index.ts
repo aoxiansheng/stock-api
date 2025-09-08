@@ -23,6 +23,79 @@ export type {
   MarketTradingHours
 } from './market-domain.constants';
 
+// 导出新增的业务常量
+export {
+  MONITORING_BUSINESS,
+  MonitoringBusinessUtil
+} from './monitoring-business.constants';
+export type {
+  ErrorRateLevel,
+  ChangeLevel,
+  PerformanceLevel,
+  DataVolume as MonitoringDataVolume,
+  MonitoringBusinessConstants,
+  ErrorThresholds,
+  ChangeDetection,
+  SamplingConfig,
+  PerformanceBenchmarks
+} from './monitoring-business.constants';
+
+export {
+  OPERATION_LIMITS,
+  OperationLimitsUtil
+} from './operation-limits.constants';
+export type {
+  OperationType,
+  DataVolume as OperationDataVolume,
+  CacheDataType,
+  OperationLimitsConstants,
+  TimeoutsMS,
+  BatchSizes,
+  CacheTTL,
+  ConcurrencyLimits,
+  RetryLimits,
+  MemoryLimits
+} from './operation-limits.constants';
+
+export {
+  REFERENCE_DATA,
+  ReferenceDataUtil
+} from './reference-data.constants';
+export type {
+  ReferenceMarket,
+  Quarter,
+  TestUser,
+  ReferenceDataConstants,
+  TestTimestamps,
+  SampleSymbols,
+  TestAccounts,
+  ProviderIds,
+  TestDatasets,
+  ErrorScenarios
+} from './reference-data.constants';
+
+export {
+  API_OPERATIONS,
+  ApiOperationsUtil
+} from './api-operations.constants';
+export type {
+  ApiDataType,
+  ApiMarketType,
+  ApiFetchMode,
+  ApiBusinessScenario,
+  ApiPriority,
+  ApiCacheStrategy,
+  ApiOperationsConstants,
+  StockDataOperations,
+  IndexDataOperations,
+  DataTypes,
+  MarketTypes,
+  FetchModes,
+  BusinessScenarios,
+  Priorities,
+  CacheStrategies
+} from './api-operations.constants';
+
 export {
   AlertType,
   AlertSeverity,
@@ -128,6 +201,26 @@ import {
   RateLimitDomainUtil
 } from './rate-limit-domain.constants';
 
+import {
+  MONITORING_BUSINESS,
+  MonitoringBusinessUtil
+} from './monitoring-business.constants';
+
+import {
+  OPERATION_LIMITS,
+  OperationLimitsUtil
+} from './operation-limits.constants';
+
+import {
+  REFERENCE_DATA,
+  ReferenceDataUtil
+} from './reference-data.constants';
+
+import {
+  API_OPERATIONS,
+  ApiOperationsUtil
+} from './api-operations.constants';
+
 // Domain层统一常量对象
 export const DOMAIN_CONSTANTS = Object.freeze({
   // 市场领域
@@ -172,6 +265,50 @@ export const DOMAIN_CONSTANTS = Object.freeze({
 
   // 安全限制配置（单独导出以便直接访问）
   SECURITY_LIMITS: SECURITY_LIMITS,
+
+  // 新增的业务常量
+  // 监控业务
+  MONITORING: {
+    ERROR_THRESHOLDS: MONITORING_BUSINESS.ERROR_THRESHOLDS,
+    CHANGE_DETECTION: MONITORING_BUSINESS.CHANGE_DETECTION,
+    SAMPLING_CONFIG: MONITORING_BUSINESS.SAMPLING_CONFIG,
+    PERFORMANCE_BENCHMARKS: MONITORING_BUSINESS.PERFORMANCE_BENCHMARKS,
+    HEALTH_THRESHOLDS: MONITORING_BUSINESS.HEALTH_THRESHOLDS,
+    ALERT_FREQUENCY: MONITORING_BUSINESS.ALERT_FREQUENCY,
+    TREND_ANALYSIS: MONITORING_BUSINESS.TREND_ANALYSIS,
+  },
+
+  // 操作限制
+  OPERATION: {
+    TIMEOUTS_MS: OPERATION_LIMITS.TIMEOUTS_MS,
+    BATCH_SIZES: OPERATION_LIMITS.BATCH_SIZES,
+    CACHE_TTL_SECONDS: OPERATION_LIMITS.CACHE_TTL_SECONDS,
+    CONCURRENCY_LIMITS: OPERATION_LIMITS.CONCURRENCY_LIMITS,
+    RETRY_LIMITS: OPERATION_LIMITS.RETRY_LIMITS,
+    MEMORY_LIMITS: OPERATION_LIMITS.MEMORY_LIMITS,
+  },
+
+  // 参考数据
+  REFERENCE: {
+    TEST_TIMESTAMPS: REFERENCE_DATA.TEST_TIMESTAMPS,
+    SAMPLE_SYMBOLS: REFERENCE_DATA.SAMPLE_SYMBOLS,
+    TEST_ACCOUNTS: REFERENCE_DATA.TEST_ACCOUNTS,
+    PROVIDER_IDS: REFERENCE_DATA.PROVIDER_IDS,
+    TEST_DATASETS: REFERENCE_DATA.TEST_DATASETS,
+    ERROR_SCENARIOS: REFERENCE_DATA.ERROR_SCENARIOS,
+  },
+
+  // API操作
+  API: {
+    STOCK_DATA: API_OPERATIONS.STOCK_DATA,
+    INDEX_DATA: API_OPERATIONS.INDEX_DATA,
+    DATA_TYPES: API_OPERATIONS.DATA_TYPES,
+    MARKET_TYPES: API_OPERATIONS.MARKET_TYPES,
+    FETCH_MODES: API_OPERATIONS.FETCH_MODES,
+    BUSINESS_SCENARIOS: API_OPERATIONS.BUSINESS_SCENARIOS,
+    PRIORITIES: API_OPERATIONS.PRIORITIES,
+    CACHE_STRATEGIES: API_OPERATIONS.CACHE_STRATEGIES,
+  },
 } as const);
 
 /**
@@ -186,6 +323,10 @@ export class DomainUtils {
       Market: MarketDomainUtil,
       Alert: AlertDomainUtil,
       RateLimit: RateLimitDomainUtil,
+      Monitoring: MonitoringBusinessUtil,
+      Operation: OperationLimitsUtil,
+      Reference: ReferenceDataUtil,
+      Api: ApiOperationsUtil,
     };
   }
 

@@ -3,6 +3,7 @@ import { createLogger } from "@app/config/logger.config";
 import { SmartErrorHandler } from "../utils/smart-error-handler";
 import { SmartPathResolver } from "../utils/smart-path-resolver";
 import { ConventionScanner } from "../utils/convention-scanner";
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * 提供商生成器CLI工具
@@ -21,7 +22,7 @@ export class ProviderGeneratorCLI {
       .option(
         "-c, --capabilities <capabilities>",
         "能力列表（逗号分隔）",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       )
       .option("-d, --description <description>", "提供商描述")
       .option("--with-tests", "生成测试文件", false)

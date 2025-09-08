@@ -6,6 +6,7 @@ import { AxiosHeaders } from "axios";
 
 import { WebhookSender } from "../../../../../../src/alert/services/notification-senders/webhook.sender";
 import {
+import { OPERATION_LIMITS } from '@common/constants/domain';
   NotificationChannelType,
   AlertSeverity,
   AlertStatus,
@@ -69,7 +70,7 @@ describe("WebhookSender", () => {
     id: "webhook-channel-1",
     url: "http://example.com/webhook",
     headers: { "X-Custom-Header": "value" },
-    timeout: 5000,
+    timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
   };
 
   beforeEach(async () => {
@@ -162,7 +163,7 @@ describe("WebhookSender", () => {
         expect.any(Object),
         expect.objectContaining({
           headers: {},
-          timeout: 30000,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
         }),
       );
     });
@@ -228,7 +229,7 @@ describe("WebhookSender", () => {
       expect(httpService.get).toHaveBeenCalledWith(
         mockConfig.url,
         expect.objectContaining({
-          timeout: 5000,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         }),
       );
     });
@@ -286,7 +287,7 @@ describe("WebhookSender", () => {
     it("should return valid: true for a valid configuration", () => {
       const config = {
         url: "http://valid.com/webhook",
-        timeout: 10000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION,
         headers: { "Content-Type": "application/json" },
       };
       const result = sender.validateConfig(config);

@@ -5,6 +5,7 @@ import { ApiKeyService } from "../../../../../../../src/auth/services/apikey.ser
 import { Logger } from "@nestjs/common";
 import { Socket, Server } from "socket.io";
 import { Permission } from "../../../../../../../src/auth/enums/user-role.enum";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Mock Socket.IO types - simplified to avoid strict type checking
 interface MockSocket {
@@ -44,7 +45,7 @@ describe("StreamReceiverGateway", () => {
 
   // Test constants
   const mockClientId = "test-client-123";
-  const mockSymbols = ["700.HK", "AAPL.US", "000001.SZ"];
+  const mockSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ"];
   const mockApiKey = "test-api-key";
   const mockAccessToken = "test-access-token";
 
@@ -344,7 +345,7 @@ describe("StreamReceiverGateway", () => {
       const subscriptionData = {
         symbols: mockSymbols,
         wsCapabilityType: "quote",
-        preferredProvider: "longport",
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       await gateway.handleSubscribe(

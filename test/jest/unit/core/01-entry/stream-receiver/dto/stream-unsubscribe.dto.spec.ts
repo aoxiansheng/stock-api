@@ -1,5 +1,7 @@
 import { validate } from "class-validator";
 import { StreamUnsubscribeDto } from "../../../../../../../src/core/01-entry/stream-receiver/dto/stream-unsubscribe.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("StreamUnsubscribeDto", () => {
   let dto: StreamUnsubscribeDto;
@@ -14,13 +16,13 @@ describe("StreamUnsubscribeDto", () => {
     });
 
     it("should have default wsCapabilityType", () => {
-      expect(dto.wsCapabilityType).toBe("stream-stock-quote");
+      expect(dto.wsCapabilityType).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
     });
   });
 
   describe("symbols validation", () => {
     it("should validate with valid symbols array", async () => {
-      dto.symbols = ["700.HK", "AAPL.US"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
@@ -46,7 +48,7 @@ describe("StreamUnsubscribeDto", () => {
     });
 
     it("should validate that all symbols are strings", async () => {
-      dto.symbols = ["700.HK", 123 as any, "AAPL.US"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, 123 as any, "AAPL.US"];
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
@@ -56,7 +58,7 @@ describe("StreamUnsubscribeDto", () => {
 
     it("should accept valid symbol formats", async () => {
       const validSymbols = [
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "AAPL.US",
         "000001.SZ",
         "600000.SH",
@@ -80,15 +82,15 @@ describe("StreamUnsubscribeDto", () => {
 
   describe("wsCapabilityType validation", () => {
     it("should validate string wsCapabilityType", async () => {
-      dto.symbols = ["700.HK"];
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
 
     it("should accept custom capability types", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.wsCapabilityType = "stream-custom-data";
 
       const errors = await validate(dto);
@@ -96,7 +98,7 @@ describe("StreamUnsubscribeDto", () => {
     });
 
     it("should reject non-string capability type", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.wsCapabilityType = 123 as any;
 
       const errors = await validate(dto);
@@ -110,15 +112,15 @@ describe("StreamUnsubscribeDto", () => {
 
   describe("Optional preferredProvider field", () => {
     it("should accept preferredProvider", async () => {
-      dto.symbols = ["700.HK"];
-      dto.preferredProvider = "longport";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
+      dto.preferredProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
 
     it("should validate string type for preferredProvider", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.preferredProvider = 123 as any;
 
       const errors = await validate(dto);
@@ -130,7 +132,7 @@ describe("StreamUnsubscribeDto", () => {
     });
 
     it("should work without preferredProvider (optional)", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       // No preferredProvider set
 
       const errors = await validate(dto);
@@ -140,16 +142,16 @@ describe("StreamUnsubscribeDto", () => {
 
   describe("Complete DTO validation", () => {
     it("should validate complete DTO with all fields", async () => {
-      dto.symbols = ["700.HK", "AAPL.US"];
-      dto.wsCapabilityType = "stream-stock-quote";
-      dto.preferredProvider = "longport";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
+      dto.preferredProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
 
     it("should validate minimal DTO", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
@@ -169,9 +171,9 @@ describe("StreamUnsubscribeDto", () => {
 
     it("should support object spread", () => {
       const data = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
-        preferredProvider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       Object.assign(dto, data);

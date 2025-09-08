@@ -8,6 +8,7 @@ import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
+import { MONITORING_BUSINESS } from '@common/constants/domain';
 
 /**
  * 趋势分析服务
@@ -479,7 +480,7 @@ export class TrendAnalyzerService {
     throughput: { value: number; confidence: number };
   } {
     // 简化实现：基于最近的趋势进行线性外推
-    const recentMetrics = historicalMetrics.slice(-5); // 使用最近5个数据点
+    const recentMetrics = historicalMetrics.slice(-MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT); // 使用最近5个数据点
 
     if (recentMetrics.length < 2) {
       const latest = historicalMetrics[historicalMetrics.length - 1];

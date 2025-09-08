@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   Controller,
   Post,
@@ -6,7 +8,7 @@ import {
   Query as QueryParam,
   ValidationPipe,
   HttpStatus,
-  HttpCode,
+  HttpCode
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -114,8 +116,8 @@ export class QueryController {
 \`\`\`json
 {
   "queryType": "by_symbols",
-  "symbols": ["AAPL", "MSFT", "700.HK"],
-  "queryTypeFilter": "get-stock-quote",
+  "symbols": ["AAPL", "MSFT", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+  "queryTypeFilter": API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   "maxAge": 300,
   "options": {
     "useCache": true,
@@ -175,10 +177,10 @@ export class QueryController {
               dualStorage: true, // 双存储
               marketAware: true, // 市场感知
             },
-            timestamp: "2024-01-01T12:00:00.000Z",
+            timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -197,7 +199,7 @@ export class QueryController {
             message: "queryType不能为空",
           },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/query/execute",
       },
     },
@@ -297,7 +299,7 @@ export class QueryController {
   @ApiQuery({
     name: "provider",
     description: "指定数据提供商（可选）",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     required: false,
   })
   @ApiQuery({
@@ -309,7 +311,7 @@ export class QueryController {
   @ApiQuery({
     name: "queryTypeFilter",
     description: "数据类别（可选）",
-    example: "get-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     required: false,
   })
   @ApiQuery({
@@ -362,10 +364,10 @@ export class QueryController {
               persistent: 0,
               realtime: 0,
             },
-            timestamp: "2024-01-01T12:00:00.000Z",
+            timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -377,7 +379,7 @@ export class QueryController {
         statusCode: 400,
         message: "symbols参数是必需的",
         error: "Bad Request",
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/query/symbols",
       },
     },
@@ -558,9 +560,9 @@ export class QueryController {
               lastExecuted: "2024-01-01T11:55:00.000Z",
             },
           ],
-          timestamp: "2024-01-01T12:00:00.000Z",
+          timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })

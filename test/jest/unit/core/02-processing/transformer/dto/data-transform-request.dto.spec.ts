@@ -1,13 +1,14 @@
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import { DataTransformRequestDto } from "@core/02-processing/transformer/dto/data-transform-request.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // 由于 TransformOptionsDto 是 DataTransformRequestDto 的一部分，我们将通过测试 DataTransformRequestDto 来间接测试它。
 
 describe("DataTransformRequestDto", () => {
   // 创建一个有效的请求体
   const createValidRequest = () => ({
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     rawData: { price: 100, volume: 1000 },

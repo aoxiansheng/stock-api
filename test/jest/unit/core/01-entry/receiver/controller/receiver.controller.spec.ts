@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { Reflector } from "@nestjs/core";
@@ -45,7 +47,7 @@ describe("ReceiverController", () => {
         timestamp: "2024-01-01T15:30:00.000Z",
       },
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         lastPrice: 385.6,
         change: -4.2,
         changePercent: -1.08,
@@ -56,10 +58,10 @@ describe("ReceiverController", () => {
     ],
     metadata: {
       requestId: "req_1704110400000_abc123",
-      provider: "longport",
-      capability: "get-stock-quote",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       processingTime: 156,
-      timestamp: "2024-01-01T12:00:00.000Z",
+      timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
     },
   };
 
@@ -141,10 +143,10 @@ describe("ReceiverController", () => {
   describe("handleDataRequest", () => {
     it("should handle data request successfully", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ["AAPL", "700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
         },
       };
@@ -156,17 +158,17 @@ describe("ReceiverController", () => {
       expect(result).toBe(mockDataResponse);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
-        symbols: ["AAPL", "700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
         },
       });
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
         requestId: "req_1704110400000_abc123",
         success: true,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         processingTime: 156,
       });
     });
@@ -187,7 +189,7 @@ describe("ReceiverController", () => {
         ],
         metadata: {
           requestId: "req_1704110400001_def456",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           capability: "get-stock-basic-info",
           processingTime: 89,
           timestamp: "2024-01-01T12:01:00.000Z",
@@ -209,10 +211,10 @@ describe("ReceiverController", () => {
 
     it("should handle multiple symbols of different markets", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ["AAPL", "700.HK", "000001.SZ", "600036.SH"],
-        receiverType: "get-stock-quote",
+        symbols: ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ", "600036.SH"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: false,
           market: "ALL",
         },
@@ -226,7 +228,7 @@ describe("ReceiverController", () => {
             market: "US",
           },
           {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             lastPrice: 385.6,
             market: "HK",
           },
@@ -243,8 +245,8 @@ describe("ReceiverController", () => {
         ],
         metadata: {
           requestId: "req_1704110400002_ghi789",
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           processingTime: 234,
           timestamp: "2024-01-01T12:02:00.000Z",
         },
@@ -259,7 +261,7 @@ describe("ReceiverController", () => {
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
         requestId: "req_1704110400002_ghi789",
         success: true,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         processingTime: 234,
       });
     });
@@ -269,7 +271,7 @@ describe("ReceiverController", () => {
         symbols: ["HSI.HK", "SPX.US"],
         receiverType: "get-index-quote",
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
         },
       };
@@ -293,7 +295,7 @@ describe("ReceiverController", () => {
         ],
         metadata: {
           requestId: "req_1704110400003_jkl012",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           capability: "get-index-quote",
           processingTime: 178,
           timestamp: "2024-01-01T12:03:00.000Z",
@@ -311,7 +313,7 @@ describe("ReceiverController", () => {
     it("should handle request errors gracefully", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["INVALID_SYMBOL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const error = new Error("Failed to fetch data from provider");
@@ -327,7 +329,7 @@ describe("ReceiverController", () => {
           error: "Failed to fetch data from provider",
           stack: expect.any(String),
           symbols: ["INVALID_SYMBOL"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
       );
     });
@@ -335,9 +337,9 @@ describe("ReceiverController", () => {
     it("should handle network timeout errors", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
       };
 
@@ -354,14 +356,14 @@ describe("ReceiverController", () => {
         expect.objectContaining({
           error: "Request timeout",
           symbols: ["AAPL"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         }),
       );
     });
 
     it("should handle service unavailable errors", async () => {
       const dataRequest: DataRequestDto = {
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         receiverType: "get-stock-basic-info",
       };
 
@@ -378,7 +380,7 @@ describe("ReceiverController", () => {
         "数据请求处理失败",
         expect.objectContaining({
           error: "Provider service unavailable",
-          symbols: ["700.HK"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           receiverType: "get-stock-basic-info",
         }),
       );
@@ -388,9 +390,9 @@ describe("ReceiverController", () => {
       const manySymbols = Array.from({ length: 50 }, (_, i) => `STOCK${i}`);
       const dataRequest: DataRequestDto = {
         symbols: manySymbols,
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           fields: ["lastPrice", "market"],
         },
       };
@@ -403,8 +405,8 @@ describe("ReceiverController", () => {
         })),
         metadata: {
           requestId: "req_1704110400004_mno345",
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           processingTime: 567,
           timestamp: "2024-01-01T12:04:00.000Z",
         },
@@ -418,9 +420,9 @@ describe("ReceiverController", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(dataRequest);
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: manySymbols,
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           fields: ["lastPrice", "market"],
         },
       });
@@ -429,7 +431,7 @@ describe("ReceiverController", () => {
     it("should handle partial success responses", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["AAPL", "INVALID", "MSFT"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const partialResponse: DataResponseDto = {
@@ -447,8 +449,8 @@ describe("ReceiverController", () => {
         ],
         metadata: {
           requestId: "req_1704110400005_pqr678",
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           processingTime: 298,
           timestamp: "2024-01-01T12:05:00.000Z",
           hasPartialFailures: true,
@@ -465,7 +467,7 @@ describe("ReceiverController", () => {
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("数据请求处理完成", {
         requestId: "req_1704110400005_pqr678",
         success: false,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         processingTime: 298,
         totalRequested: 3,
         successfullyProcessed: 2,
@@ -476,11 +478,11 @@ describe("ReceiverController", () => {
     it("should handle requests with different data types", async () => {
       const stockQuoteRequest: DataRequestDto = {
         symbols: ["AAPL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const basicInfoRequest: DataRequestDto = {
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         receiverType: "get-stock-basic-info",
       };
 
@@ -492,7 +494,7 @@ describe("ReceiverController", () => {
       receiverService.handleRequest.mockImplementation((request) => {
         // 映射 receiverType 到正确的 capability 名称
         const dataTypeToCapabilityMap: Record<string, string> = {
-          "get-stock-quote": "get-stock-quote",
+          API_OPERATIONS.STOCK_DATA.GET_QUOTE: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           "get-stock-basic-info": "get-stock-basic-info",
           "get-index-quote": "get-index-quote",
         };
@@ -504,7 +506,7 @@ describe("ReceiverController", () => {
           ],
           metadata: {
             requestId: `req_${Date.now()}`,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             capability:
               dataTypeToCapabilityMap[request.receiverType] ||
               request.receiverType,
@@ -539,22 +541,22 @@ describe("ReceiverController", () => {
       const requestConfigs = [
         {
           symbols: ["AAPL"],
-          receiverType: "get-stock-quote" as const,
-          options: { preferredProvider: "longport" },
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE as const,
+          options: { preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
         },
         {
           symbols: ["MSFT"],
-          receiverType: "get-stock-quote" as const,
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE as const,
           options: { preferredProvider: "futu", realtime: true },
         },
         {
           symbols: ["GOOGL"],
-          receiverType: "get-stock-quote" as const,
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE as const,
           options: { market: "US", realtime: false },
         },
         {
           symbols: ["TSLA"],
-          receiverType: "get-stock-quote" as const,
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE as const,
           options: { fields: ["lastPrice", "volume"], realtime: true },
         },
       ];
@@ -565,8 +567,8 @@ describe("ReceiverController", () => {
           data: [],
           metadata: {
             requestId: "test",
-            provider: "longport",
-            capability: "get-stock-quote",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             processingTime: 100,
             timestamp: new Date().toISOString(),
           },
@@ -588,8 +590,8 @@ describe("ReceiverController", () => {
     it("should log request and response details correctly", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["TEST"],
-        receiverType: "get-stock-quote",
-        options: { preferredProvider: "longport" },
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        options: { preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
       };
 
       receiverService.handleRequest.mockResolvedValue(mockDataResponse);
@@ -599,8 +601,8 @@ describe("ReceiverController", () => {
       // Verify request logging
       expect(mockLoggerInstance.log).toHaveBeenCalledWith("接收数据请求", {
         symbols: ["TEST"],
-        receiverType: "get-stock-quote",
-        options: { preferredProvider: "longport" },
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        options: { preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT },
       });
 
       // Verify success logging
@@ -615,7 +617,7 @@ describe("ReceiverController", () => {
     it("should log error details correctly", async () => {
       const dataRequest: DataRequestDto = {
         symbols: ["ERROR_TEST"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const testError = new Error("Test error message");
@@ -632,7 +634,7 @@ describe("ReceiverController", () => {
           error: "Test error message",
           stack: "Error stack trace",
           symbols: ["ERROR_TEST"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
       );
     });

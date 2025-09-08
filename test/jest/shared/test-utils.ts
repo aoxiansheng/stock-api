@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * 共享测试工具类
  * 提供统一的Mock对象、数据生成器和测试辅助函数
@@ -23,7 +24,7 @@ export class TestUtils {
    */
   static generateMarketData(overrides: Partial<any> = {}) {
     return {
-      symbol: "700.HK",
+      symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       price: 350.5,
       volume: 1000000,
       timestamp: Date.now(),

@@ -1,10 +1,11 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { Config, QuoteContext } from "longport";
+import { Config, QuoteContext } from REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
 
 import { LongportContextService } from "../../../../../../src/providers/longport/services/longport-context.service";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Mock longport SDK
-jest.mock("longport", () => ({
+jest.mock(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, () => ({
   Config: {
     fromEnv: jest.fn(),
   },

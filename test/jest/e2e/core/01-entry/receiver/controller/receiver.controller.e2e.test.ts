@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 describe("Receiver Controller E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -53,7 +56,7 @@ describe("Receiver Controller E2E Tests", () => {
 
   async function setupFlexibleMappingRule() {
     const quoteRuleData = {
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "quote_fields",
       name: "E2E Test - Longport Quote Rule",
@@ -118,7 +121,7 @@ describe("Receiver Controller E2E Tests", () => {
       .send(quoteRuleData);
 
     const basicInfoRuleData = {
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
       transDataRuleListType: "basic_info_fields",
       name: "E2E Test - Longport Basic Info Rule",
@@ -156,11 +159,11 @@ describe("Receiver Controller E2E Tests", () => {
     it("should handle stock quote request successfully", async () => {
       // Arrange
       const dataRequest = {
-        symbols: ["AAPL.US", "700.HK", "000001.SZ"],
-        receiverType: "get-stock-quote",
+        symbols: ["AAPL.US", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           realtime: true,
-          timeout: 5000,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         },
       };
 
@@ -214,8 +217,8 @@ describe("Receiver Controller E2E Tests", () => {
     it("should handle mixed market symbols", async () => {
       // Arrange
       const dataRequest = {
-        symbols: ["AAPL.US", "700.HK", "000001.SZ", "600000.SH"], // 多市场混合
-        receiverType: "get-stock-quote",
+        symbols: ["AAPL.US", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ", "600000.SH"], // 多市场混合
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Act
@@ -239,7 +242,7 @@ describe("Receiver Controller E2E Tests", () => {
       // Arrange
       const dataRequest = {
         symbols: ["INVALID_SYMBOL_12345", "ANOTHER_INVALID"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Act
@@ -257,7 +260,7 @@ describe("Receiver Controller E2E Tests", () => {
       // Arrange
       const dataRequest = {
         symbols: ["AAPL.US"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Act & Assert
@@ -274,7 +277,7 @@ describe("Receiver Controller E2E Tests", () => {
         .set("X-App-Key", authTokens.apiKey)
         .set("X-Access-Token", authTokens.accessToken)
         .send({
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           // symbols missing
         })
         .expect(400);
@@ -297,7 +300,7 @@ describe("Receiver Controller E2E Tests", () => {
         .set("X-Access-Token", authTokens.accessToken)
         .send({
           symbols: [],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .expect(400);
     });
@@ -306,9 +309,9 @@ describe("Receiver Controller E2E Tests", () => {
       // Arrange
       const dataRequest = {
         symbols: ["AAPL.US"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
-          timeout: 1000, // 1秒超时
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.QUICK_OPERATION, // 1秒超时
         },
       };
 
@@ -331,7 +334,7 @@ describe("Receiver Controller E2E Tests", () => {
 
     it("should support different receiver types", async () => {
       const receiverTypes = [
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "get-stock-basic-info",
         // "get-index-quote" 不支持 AAPL.US 美股，应该使用合适的指数符号
       ];
@@ -364,7 +367,7 @@ describe("Receiver Controller E2E Tests", () => {
         "MSFT.US",
         "AMZN.US",
         "TSLA.US",
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "5.HK",
         "1299.HK",
         "9988.HK",
@@ -378,7 +381,7 @@ describe("Receiver Controller E2E Tests", () => {
 
       const dataRequest = {
         symbols,
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Act
@@ -399,7 +402,7 @@ describe("Receiver Controller E2E Tests", () => {
     it("should auto-detect market and route to appropriate provider", async () => {
       const marketTests = [
         { symbols: ["AAPL.US"], expectedMarket: "US" },
-        { symbols: ["700.HK"], expectedMarket: "HK" },
+        { symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], expectedMarket: "HK" },
         { symbols: ["000001.SZ"], expectedMarket: "SZ" },
         { symbols: ["600000.SH"], expectedMarket: "SH" },
       ];
@@ -407,7 +410,7 @@ describe("Receiver Controller E2E Tests", () => {
       for (const test of marketTests) {
         const dataRequest = {
           symbols: test.symbols,
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         };
 
         const response = await httpServer
@@ -429,7 +432,7 @@ describe("Receiver Controller E2E Tests", () => {
     it("should handle provider capability matrix", async () => {
       // Test different capabilities with various providers
       const capabilityTests = [
-        { receiverType: "get-stock-quote", symbols: ["AAPL.US"] },
+        { receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE, symbols: ["AAPL.US"] },
         { receiverType: "get-stock-basic-info", symbols: ["GOOGL.US"] },
         // 移除 get-index-quote，因为 .IXIC 格式不被支持，应该用正确的港股指数格式
       ];
@@ -454,7 +457,7 @@ describe("Receiver Controller E2E Tests", () => {
       // Arrange
       const dataRequest = {
         symbols: ["AAPL.US"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Act
@@ -481,7 +484,7 @@ describe("Receiver Controller E2E Tests", () => {
       for (const testCase of testCases) {
         const dataRequest = {
           symbols: ["AAPL.US"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: testCase.options,
         };
 
@@ -504,7 +507,7 @@ describe("Receiver Controller E2E Tests", () => {
       // Test with potentially unavailable providers
       const dataRequest = {
         symbols: ["UNAVAILABLE_SYMBOL"],
-        receiverType: "get-stock-quote",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       const response = await httpServer
@@ -535,9 +538,9 @@ describe("Receiver Controller E2E Tests", () => {
 
     it("should handle malformed request data", async () => {
       const malformedRequests = [
-        { symbols: "not-an-array", receiverType: "get-stock-quote" },
-        { symbols: [123, 456], receiverType: "get-stock-quote" }, // 数字而非字符串
-        { symbols: [""], receiverType: "get-stock-quote" }, // 空字符串
+        { symbols: "not-an-array", receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE },
+        { symbols: [123, 456], receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE }, // 数字而非字符串
+        { symbols: [""], receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE }, // 空字符串
         { symbols: ["AAPL.US"], receiverType: "invalid-receiver-type" }, // receiverType无效类型
       ];
 

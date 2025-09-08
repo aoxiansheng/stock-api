@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Gateway Legacy移除验证集成测试
@@ -142,7 +143,7 @@ describe("Gateway Legacy移除验证测试", () => {
       await new Promise<void>((resolve) => {
         clientSocket.emit("subscribe", {
           symbols: [testSymbol],
-          capability: "stream-stock-quote",
+          capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         });
 
         clientSocket.on("subscribed", (data) => {

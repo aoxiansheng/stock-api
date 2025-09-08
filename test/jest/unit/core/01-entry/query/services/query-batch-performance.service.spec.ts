@@ -1,3 +1,5 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * QueryService批量处理性能基准测试
  * 验证里程碑5.1-5.3的性能优化：批量处理>3倍性能提升，支持100+符号查询
@@ -128,7 +130,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
           timestamp: new Date().toISOString(),
         })) || [],
       metadata: {
-        capability: req.receiverType || "get-stock-quote",
+        capability: req.receiverType || API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         timestamp: new Date().toISOString(),
         requestId: `test-${Date.now()}`,
         processingTime: Math.floor(Math.random() * 100),
@@ -149,8 +151,8 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const batchRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
-        limit: 100,
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         page: 1,
       };
 
@@ -181,8 +183,8 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
-        limit: 100,
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         page: 1,
       };
 
@@ -215,7 +217,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 200,
         page: 1,
       };
@@ -259,7 +261,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 400,
         page: 1,
       };
@@ -305,7 +307,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 1000,
         page: 1,
       };
@@ -352,8 +354,8 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const batchRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
-        limit: 100,
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         page: 1,
       };
 
@@ -405,7 +407,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
         const request: QueryRequestDto = {
           queryType: QueryType.BY_SYMBOLS,
           symbols,
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           limit: testCase.count * 2,
           page: 1,
         };
@@ -447,7 +449,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: allSymbols,
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 200,
         page: 1,
       };
@@ -500,7 +502,7 @@ describe("QueryService - 批量处理性能基准测试", () => {
               timestamp: new Date().toISOString(),
             })) || [],
           metadata: {
-            capability: req.receiverType || "get-stock-quote",
+            capability: req.receiverType || API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             timestamp: new Date().toISOString(),
             requestId: `test-${Date.now()}`,
             processingTime: Math.floor(Math.random() * 100),
@@ -512,8 +514,8 @@ describe("QueryService - 批量处理性能基准测试", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
         symbols,
-        queryTypeFilter: "get-stock-quote",
-        limit: 100,
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
         page: 1,
       };
 

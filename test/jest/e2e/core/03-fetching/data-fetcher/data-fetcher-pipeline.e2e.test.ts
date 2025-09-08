@@ -8,6 +8,9 @@ import { ReceiverService } from "../../../../../../src/core/01-entry/receiver/se
 import { CapabilityRegistryService } from "../../../../../../src/providers/services/capability-registry.service";
 import { ICapability } from "../../../../../../src/providers/interfaces/capability.interface";
 import { Market } from "../../../../../../src/common/constants/domain/market-domain.constants";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("DataFetcher Pipeline E2E", () => {
   let app: INestApplication;
@@ -18,10 +21,10 @@ describe("DataFetcher Pipeline E2E", () => {
 
   // Mock capability for testing
   const mockCapability: ICapability & { execute: jest.Mock } = {
-    name: "get-stock-quote",
+    name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     description: "E2E Test Stock Quote Capability",
     supportedMarkets: [Market.HK, Market.US],
-    supportedSymbolFormats: ["700.HK", "AAPL.US"],
+    supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
     execute: jest.fn(),
   };
 
@@ -68,7 +71,7 @@ describe("DataFetcher Pipeline E2E", () => {
         success: true,
         data: [
           {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             price: 320.5,
             volume: 1500000,
             change: 2.5,
@@ -76,7 +79,7 @@ describe("DataFetcher Pipeline E2E", () => {
             timestamp: new Date().toISOString(),
           },
           {
-            symbol: "700.HK", // Mapped from 00700
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // Mapped from 00700
             price: 320.5,
             volume: 1500000,
             change: 2.5,
@@ -97,9 +100,9 @@ describe("DataFetcher Pipeline E2E", () => {
       jest
         .spyOn(symbolTransformerService, "transformSymbolsForProvider")
         .mockResolvedValue({
-          transformedSymbols: ["700.HK"],
+          transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           mappingResults: {
-            transformedSymbols: { "700.HK": "700.HK", "00700": "700.HK" },
+            transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "00700": REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
             failedSymbols: [],
             metadata: {
               provider: "test-provider",
@@ -120,8 +123,8 @@ describe("DataFetcher Pipeline E2E", () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/receiver/data")
         .send({
-          symbols: ["700.HK", "00700"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "00700"],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .expect(200);
 
@@ -134,7 +137,7 @@ describe("DataFetcher Pipeline E2E", () => {
         symbolTransformerService.transformSymbolsForProvider,
       ).toHaveBeenCalledWith(
         "test-provider",
-        ["700.HK", "00700"],
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "00700"],
         expect.any(String),
       );
       expect(mockCapability.execute).toHaveBeenCalled();
@@ -145,9 +148,9 @@ describe("DataFetcher Pipeline E2E", () => {
       jest
         .spyOn(symbolTransformerService, "transformSymbolsForProvider")
         .mockResolvedValue({
-          transformedSymbols: ["700.HK"],
+          transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           mappingResults: {
-            transformedSymbols: { "700.HK": "700.HK" },
+            transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
             failedSymbols: ["INVALID_SYMBOL"],
             metadata: {
               provider: "test-provider",
@@ -161,7 +164,7 @@ describe("DataFetcher Pipeline E2E", () => {
 
       mockCapability.execute.mockResolvedValue({
         success: true,
-        data: [{ symbol: "700.HK", price: 320.5 }],
+        data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 320.5 }],
       });
 
       jest
@@ -171,8 +174,8 @@ describe("DataFetcher Pipeline E2E", () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/receiver/data")
         .send({
-          symbols: ["700.HK", "INVALID_SYMBOL"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "INVALID_SYMBOL"],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .expect(200);
 
@@ -190,9 +193,9 @@ describe("DataFetcher Pipeline E2E", () => {
       jest
         .spyOn(symbolTransformerService, "transformSymbolsForProvider")
         .mockResolvedValue({
-          transformedSymbols: ["700.HK"],
+          transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           mappingResults: {
-            transformedSymbols: { "700.HK": "700.HK" },
+            transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
             failedSymbols: [],
             metadata: {
               provider: "test-provider",
@@ -214,8 +217,8 @@ describe("DataFetcher Pipeline E2E", () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/receiver/data")
         .send({
-          symbols: ["700.HK"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .expect(500);
 
@@ -228,7 +231,7 @@ describe("DataFetcher Pipeline E2E", () => {
     it("should fetch data directly through DataFetcher service", async () => {
       const mockData = {
         success: true,
-        data: [{ symbol: "700.HK", price: 320.5 }],
+        data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 320.5 }],
         metadata: { provider: "test-provider" },
       };
 
@@ -236,21 +239,21 @@ describe("DataFetcher Pipeline E2E", () => {
 
       const result = await dataFetcherService.fetchRawData({
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "e2e-test-001",
       });
 
       expect(result.data).toEqual(mockData);
       expect(result.metadata.provider).toBe("test-provider");
-      expect(result.metadata.capability).toBe("get-stock-quote");
+      expect(result.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(result.metadata.symbolsProcessed).toBe(1);
     });
 
     it("should handle batch data fetching", async () => {
       const mockQuoteData = {
         success: true,
-        data: [{ symbol: "700.HK", price: 320.5 }],
+        data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 320.5 }],
       };
 
       const mockInfoCapability: ICapability & { execute: jest.Mock } = {
@@ -279,8 +282,8 @@ describe("DataFetcher Pipeline E2E", () => {
       const requests = [
         {
           provider: "test-provider",
-          capability: "get-stock-quote",
-          symbols: ["700.HK"],
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           params: {},
           requestId: "batch-1",
         },
@@ -307,9 +310,9 @@ describe("DataFetcher Pipeline E2E", () => {
     it("should transform symbols using enhanced transformSymbolsForProvider method", async () => {
       // Setup mock symbol mapping data
       const mockMappingResult = {
-        transformedSymbols: ["700.HK"],
+        transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         mappingResults: {
-          transformedSymbols: { "00700": "700.HK" },
+          transformedSymbols: { "00700": REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
           failedSymbols: [],
           metadata: {
             provider: "test-provider",
@@ -327,25 +330,25 @@ describe("DataFetcher Pipeline E2E", () => {
 
       const result = await symbolTransformerService.transformSymbolsForProvider(
         "test-provider",
-        ["700.HK", "00700"],
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "00700"],
         "test-request-id",
       );
 
-      expect(result.mappingResults.transformedSymbols["00700"]).toBe("700.HK");
+      expect(result.mappingResults.transformedSymbols["00700"]).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(result.mappingResults.metadata.provider).toBe("test-provider");
       expect(result.mappingResults.metadata.processingTime).toBeGreaterThan(0);
     });
 
     it("should handle mixed symbol formats correctly", async () => {
-      const mixedSymbols = ["700.HK", "00700", "AAPL.US", "600000"];
+      const mixedSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "00700", "AAPL.US", "600000"];
 
       jest
         .spyOn(symbolTransformerService, "transformSymbolsForProvider")
         .mockResolvedValue({
-          transformedSymbols: ["700.HK", "600000.SH", "AAPL.US"],
+          transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "600000.SH", "AAPL.US"],
           mappingResults: {
             transformedSymbols: {
-              "00700": "700.HK",
+              "00700": REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
               "600000": "600000.SH",
             },
             failedSymbols: [],
@@ -369,7 +372,7 @@ describe("DataFetcher Pipeline E2E", () => {
         "00700",
         "600000",
       ]);
-      expect(result.mappingResults.transformedSymbols["00700"]).toBe("700.HK");
+      expect(result.mappingResults.transformedSymbols["00700"]).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(result.mappingResults.transformedSymbols["600000"]).toBe(
         "600000.SH",
       );
@@ -384,7 +387,7 @@ describe("DataFetcher Pipeline E2E", () => {
         dataFetcherService.fetchRawData({
           provider: "nonexistent-provider",
           capability: "nonexistent-capability",
-          symbols: ["700.HK"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           requestId: "error-test-001",
         }),
       ).rejects.toThrow("Capability not found");
@@ -401,9 +404,9 @@ describe("DataFetcher Pipeline E2E", () => {
       try {
         await dataFetcherService.fetchRawData({
           provider: "test-provider",
-          capability: "get-stock-quote",
-          symbols: ["700.HK"],
-          options: { timeout: 1000 },
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          options: { timeout: OPERATION_LIMITS.TIMEOUTS_MS.QUICK_OPERATION },
           requestId: "timeout-test-001",
         });
       } catch {
@@ -417,9 +420,9 @@ describe("DataFetcher Pipeline E2E", () => {
       jest
         .spyOn(symbolTransformerService, "transformSymbolsForProvider")
         .mockResolvedValue({
-          transformedSymbols: ["700.HK"],
+          transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           mappingResults: {
-            transformedSymbols: { "700.HK": "700.HK" },
+            transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
             failedSymbols: ["INVALID"],
             metadata: {
               provider: "test-provider",
@@ -433,7 +436,7 @@ describe("DataFetcher Pipeline E2E", () => {
 
       mockCapability.execute.mockResolvedValue({
         success: true,
-        data: [{ symbol: "700.HK", price: 320.5 }],
+        data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 320.5 }],
       });
 
       jest
@@ -443,14 +446,14 @@ describe("DataFetcher Pipeline E2E", () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/receiver/data")
         .send({
-          symbols: ["700.HK", "INVALID"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "INVALID"],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .expect(200);
 
       expect(response.body.statusCode).toBe(200);
       expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0].symbol).toBe("700.HK");
+      expect(response.body.data[0].symbol).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(response.body.warnings).toBeDefined();
     });
   });
@@ -499,7 +502,7 @@ describe("DataFetcher Pipeline E2E", () => {
         .post("/api/v1/receiver/data")
         .send({
           symbols: largeSymbolSet,
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         })
         .expect(200);
 
@@ -513,15 +516,15 @@ describe("DataFetcher Pipeline E2E", () => {
     it("should maintain consistent performance under concurrent requests", async () => {
       mockCapability.execute.mockResolvedValue({
         success: true,
-        data: [{ symbol: "700.HK", price: 320.5 }],
+        data: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 320.5 }],
       });
 
       jest
         .spyOn(symbolTransformerService, "transformSymbolsForProvider")
         .mockResolvedValue({
-          transformedSymbols: ["700.HK"],
+          transformedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           mappingResults: {
-            transformedSymbols: { "700.HK": "700.HK" },
+            transformedSymbols: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
             failedSymbols: [],
             metadata: {
               provider: "test-provider",
@@ -541,8 +544,8 @@ describe("DataFetcher Pipeline E2E", () => {
         request(app.getHttpServer())
           .post("/api/v1/receiver/data")
           .send({
-            symbols: ["700.HK"],
-            receiverType: "get-stock-quote",
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           }),
       );
 

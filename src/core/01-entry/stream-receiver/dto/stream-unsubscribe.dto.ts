@@ -1,5 +1,7 @@
 import { IsArray, IsString, IsOptional, ArrayMinSize } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * WebSocket 取消订阅请求 DTO
@@ -7,7 +9,7 @@ import { ApiProperty } from "@nestjs/swagger";
 export class StreamUnsubscribeDto {
   @ApiProperty({
     description: "要取消订阅的股票符号列表",
-    example: ["700.HK", "AAPL.US"],
+    example: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
     type: [String],
   })
   @IsArray()
@@ -17,16 +19,16 @@ export class StreamUnsubscribeDto {
 
   @ApiProperty({
     description: "WebSocket 能力类型",
-    example: "stream-stock-quote",
-    default: "stream-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+    default: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
   })
   @IsString()
   @IsOptional()
-  wsCapabilityType: string = "stream-stock-quote";
+  wsCapabilityType: string = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
   @ApiProperty({
     description: "首选数据提供商",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsString()
   @IsOptional()

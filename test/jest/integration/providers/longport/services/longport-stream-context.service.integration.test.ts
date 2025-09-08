@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
@@ -20,7 +21,7 @@ let isLongPortAvailable = false;
 
 try {
   // 尝试加载真实的LongPort SDK
-  const longport = eval("require")("longport");
+  const longport = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
   if (longport && longport.Config && longport.QuoteContext) {
     isLongPortAvailable = true;
   }
@@ -41,7 +42,7 @@ try {
 
 // 如果LongPort不可用，进行mock
 if (!isLongPortAvailable) {
-  jest.mock("longport", () => mockLongPort);
+  jest.mock(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, () => mockLongPort);
 }
 
 describe("LongportStreamContextService Integration", () => {
@@ -147,7 +148,7 @@ describe("LongportStreamContextService Integration", () => {
     it("should initialize WebSocket connection", async () => {
       if (!isLongPortAvailable) {
         // Mock环境下的测试
-        const { Config, QuoteContext } = eval("require")("longport");
+        const { Config, QuoteContext } = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         Config.fromEnv.mockReturnValue({ test: "config" });
 
         const mockQuoteContext = {
@@ -180,7 +181,7 @@ describe("LongportStreamContextService Integration", () => {
 
     it("should handle connection initialization failure", async () => {
       if (!isLongPortAvailable) {
-        const { Config } = eval("require")("longport");
+        const { Config } = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         Config.fromEnv.mockImplementation(() => {
           throw new Error("Configuration error");
         });
@@ -199,7 +200,7 @@ describe("LongportStreamContextService Integration", () => {
     it("should prevent duplicate initialization", async () => {
       if (!isLongPortAvailable) {
         // Mock已连接状态
-        const { Config, QuoteContext } = eval("require")("longport");
+        const { Config, QuoteContext } = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         Config.fromEnv.mockReturnValue({ test: "config" });
         QuoteContext.new.mockResolvedValue({
           setOnQuote: jest.fn(),
@@ -222,7 +223,7 @@ describe("LongportStreamContextService Integration", () => {
   describe("Symbol Subscription Management", () => {
     beforeEach(async () => {
       if (!isLongPortAvailable) {
-        const { Config, QuoteContext } = eval("require")("longport");
+        const { Config, QuoteContext } = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         Config.fromEnv.mockReturnValue({ test: "config" });
 
         const mockQuoteContext = {
@@ -238,7 +239,7 @@ describe("LongportStreamContextService Integration", () => {
     });
 
     it("should subscribe to symbols successfully", async () => {
-      const symbols = ["700.HK", "AAPL.US"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
 
       if (!isLongPortAvailable) {
         await service.subscribe(symbols);
@@ -278,19 +279,19 @@ describe("LongportStreamContextService Integration", () => {
     });
 
     it("should filter duplicate symbols", async () => {
-      const symbols = ["700.HK", "700.HK", "AAPL.US"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
 
       if (!isLongPortAvailable) {
         await service.subscribe(symbols);
         // 第二次订阅相同符号应该被跳过
-        await service.subscribe(["700.HK"]);
+        await service.subscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
 
         expect(mockLogger.log).toHaveBeenCalledWith("所有符号已订阅，跳过");
       }
     });
 
     it("should unsubscribe from symbols", async () => {
-      const symbols = ["700.HK", "AAPL.US"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
 
       if (!isLongPortAvailable) {
         // 先订阅
@@ -298,13 +299,13 @@ describe("LongportStreamContextService Integration", () => {
         expect(service.getSubscribedSymbols()).toEqual(symbols);
 
         // 然后取消订阅
-        await service.unsubscribe(["700.HK"]);
+        await service.unsubscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
         expect(service.getSubscribedSymbols()).toEqual(["AAPL.US"]);
 
         expect(mockLogger.log).toHaveBeenCalledWith(
           expect.objectContaining({
             message: "LongPort WebSocket 取消订阅成功",
-            symbols: ["700.HK"],
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
             totalSubscribed: 1,
           }),
         );
@@ -333,7 +334,7 @@ describe("LongportStreamContextService Integration", () => {
       if (!isLongPortAvailable) {
         // 模拟报价事件
         const mockEvent = {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           lastdone: 350.5,
           volume: 1000,
           timestamp: Date.now(),
@@ -347,18 +348,18 @@ describe("LongportStreamContextService Integration", () => {
 
         expect(callback1).toHaveBeenCalledWith(
           expect.objectContaining({
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 350.5,
             volume: 1000,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           }),
         );
         expect(callback2).toHaveBeenCalledWith(
           expect.objectContaining({
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 350.5,
             volume: 1000,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           }),
         );
       }
@@ -372,7 +373,7 @@ describe("LongportStreamContextService Integration", () => {
       service.onQuoteUpdate(errorCallback);
 
       if (!isLongPortAvailable) {
-        const mockEvent = { symbol: "700.HK" };
+        const mockEvent = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT };
         const handleQuoteUpdate = (service as any).handleQuoteUpdate.bind(
           service,
         );
@@ -397,7 +398,7 @@ describe("LongportStreamContextService Integration", () => {
       if (!isLongPortAvailable) {
         // 测试对象格式事件
         const objectEvent = {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           last_done: 350.5,
           prevclose: 340.0,
           volume: 1000,
@@ -411,12 +412,12 @@ describe("LongportStreamContextService Integration", () => {
 
         expect(callback).toHaveBeenCalledWith(
           expect.objectContaining({
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 350.5,
             prev_close: 340.0,
             volume: 1000,
             timestamp: 1640995200000,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             raw: objectEvent,
           }),
         );
@@ -439,7 +440,7 @@ describe("LongportStreamContextService Integration", () => {
         expect(callback).toHaveBeenCalledWith(
           expect.objectContaining({
             symbol: "UNKNOWN",
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             error: "parse_failed",
             raw: invalidEvent,
           }),
@@ -460,7 +461,7 @@ describe("LongportStreamContextService Integration", () => {
       if (!isLongPortAvailable) {
         // 测试不同字段名的映射
         const eventWithAlternativeFields = {
-          code: "700.HK", // 应该映射到 symbol
+          code: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, // 应该映射到 symbol
           price: 350.5, // 应该映射到 last_done
           lastPrice: 351.0, // 应该优先于 price
           prevClose: 340.0, // 应该映射到 prev_close
@@ -474,11 +475,11 @@ describe("LongportStreamContextService Integration", () => {
 
         expect(callback).toHaveBeenCalledWith(
           expect.objectContaining({
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             last_done: 351.0, // lastPrice 优先于 price
             prev_close: 340.0,
             volume: 1000,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           }),
         );
       }
@@ -488,7 +489,7 @@ describe("LongportStreamContextService Integration", () => {
   describe("Error Handling and Recovery", () => {
     it("should handle subscription failures", async () => {
       if (!isLongPortAvailable) {
-        const { QuoteContext } = eval("require")("longport");
+        const { QuoteContext } = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         const mockQuoteContext = {
           setOnQuote: jest.fn(),
           setOnConnected: jest.fn(),
@@ -499,7 +500,7 @@ describe("LongportStreamContextService Integration", () => {
 
         await service.initializeWebSocket();
 
-        await expect(service.subscribe(["700.HK"])).rejects.toThrow(/订阅失败/);
+        await expect(service.subscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT])).rejects.toThrow(/订阅失败/);
         expect(mockLogger.error).toHaveBeenCalledWith(
           expect.objectContaining({
             message: "LongPort WebSocket 订阅失败",
@@ -528,7 +529,7 @@ describe("LongportStreamContextService Integration", () => {
   describe("Cleanup and Resource Management", () => {
     it("should cleanup resources properly", async () => {
       if (!isLongPortAvailable) {
-        const symbols = ["700.HK", "AAPL.US"];
+        const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
         await service.subscribe(symbols);
 
         await service.cleanup();
@@ -543,11 +544,11 @@ describe("LongportStreamContextService Integration", () => {
 
     it("should handle cleanup errors gracefully", async () => {
       if (!isLongPortAvailable) {
-        const symbols = ["700.HK"];
+        const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
         await service.subscribe(symbols);
 
         // Mock unsubscribe to fail
-        const { QuoteContext } = eval("require")("longport");
+        const { QuoteContext } = eval("require")(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
         const mockContext =
           QuoteContext.new.mock.results[
             QuoteContext.new.mock.results.length - 1
@@ -587,8 +588,8 @@ describe("LongportStreamContextService Integration", () => {
           expect(service.isWebSocketConnected()).toBe(true);
 
           // 测试订阅真实符号
-          await service.subscribe(["700.HK"]);
-          expect(service.getSubscribedSymbols()).toContain("700.HK");
+          await service.subscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
+          expect(service.getSubscribedSymbols()).toContain(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
 
           // 清理
           await service.cleanup();

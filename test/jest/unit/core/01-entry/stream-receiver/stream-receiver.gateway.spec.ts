@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { createLogger } from "@app/config/logger.config";
@@ -168,8 +170,8 @@ describe("StreamReceiverGateway", () => {
 
   describe("handleSubscribe()", () => {
     const subscribeDto: StreamSubscribeDto = {
-      symbols: ["700.HK", "AAPL.US"],
-      wsCapabilityType: "stream-stock-quote",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
+      wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
     };
 
     it("should handle subscription request successfully", async () => {
@@ -180,7 +182,7 @@ describe("StreamReceiverGateway", () => {
           // Simulate callback invocation
           callback({
             symbols: dto.symbols,
-            data: { symbol: "700.HK", lastPrice: 350.5 },
+            data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 350.5 },
             timestamp: Date.now(),
           });
           return Promise.resolve();
@@ -241,11 +243,11 @@ describe("StreamReceiverGateway", () => {
       // Setup
       const client = createMockSocket();
       const streamData = {
-        symbols: ["700.HK"],
-        data: { symbol: "700.HK", lastPrice: 350.5 },
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 350.5 },
         timestamp: Date.now(),
-        provider: "longport",
-        capability: "stream-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       mockStreamReceiverService._subscribeSymbols.mockImplementation(
@@ -254,7 +256,7 @@ describe("StreamReceiverGateway", () => {
           callback(streamData);
           callback({
             ...streamData,
-            data: { symbol: "700.HK", lastPrice: 351.0 },
+            data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 351.0 },
           });
           return Promise.resolve();
         },
@@ -267,7 +269,7 @@ describe("StreamReceiverGateway", () => {
       expect(client.emit).toHaveBeenCalledWith("data", streamData);
       expect(client.emit).toHaveBeenCalledWith("data", {
         ...streamData,
-        data: { symbol: "700.HK", lastPrice: 351.0 },
+        data: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 351.0 },
       });
       expect(client.emit).toHaveBeenCalledTimes(3); // 2 data + 1 ack
     });
@@ -275,8 +277,8 @@ describe("StreamReceiverGateway", () => {
 
   describe("handleUnsubscribe()", () => {
     const unsubscribeDto: StreamUnsubscribeDto = {
-      symbols: ["700.HK", "AAPL.US"],
-      wsCapabilityType: "stream-stock-quote",
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
+      wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
     };
 
     it("should handle unsubscription request successfully", async () => {
@@ -337,9 +339,9 @@ describe("StreamReceiverGateway", () => {
       const client = createMockSocket();
       const mockSubscription = {
         clientId: client.id,
-        symbols: new Set(["700.HK", "AAPL.US"]),
-        wsCapabilityType: "stream-stock-quote",
-        providerName: "longport",
+        symbols: new Set([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"]),
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+        providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: {},
         contextService: {},
       };
@@ -357,9 +359,9 @@ describe("StreamReceiverGateway", () => {
       expect(client.emit).toHaveBeenCalledWith("subscription-status", {
         success: true,
         data: {
-          symbols: ["700.HK", "AAPL.US"],
-          wsCapabilityType: "stream-stock-quote",
-          providerName: "longport",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
+          wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+          providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         },
         timestamp: expect.any(Number),
       });
@@ -556,9 +558,9 @@ describe("StreamReceiverGateway", () => {
       mockStreamReceiverService._subscribeSymbols.mockResolvedValue(undefined);
 
       const validDto: StreamSubscribeDto = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
-        preferredProvider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       // Execute
@@ -580,8 +582,8 @@ describe("StreamReceiverGateway", () => {
       );
 
       const validDto: StreamUnsubscribeDto = {
-        symbols: ["700.HK", "AAPL.US"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       // Execute
@@ -599,8 +601,8 @@ describe("StreamReceiverGateway", () => {
       // Setup
       const client = createMockSocket();
       const subscribeDto: StreamSubscribeDto = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       // Mock synchronous error

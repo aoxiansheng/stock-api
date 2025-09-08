@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
 import Redis from "ioredis";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   ConfigValidatorService,
   FullValidationResult,
@@ -166,7 +167,7 @@ export class StartupHealthCheckerService {
       {
         name: "critical-config",
         description: "Critical configuration check",
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         required: true,
         execute: () => this.validateCriticalConfig(),
       },
@@ -188,11 +189,11 @@ export class StartupHealthCheckerService {
       healthCheck: {
         enabled: true,
         interval: 30000,
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         retries: 3,
       },
       shutdown: {
-        timeout: 10000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION,
         signals: ["SIGTERM", "SIGINT"],
       },
     };

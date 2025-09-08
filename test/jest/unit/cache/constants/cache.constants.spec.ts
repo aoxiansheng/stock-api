@@ -1,4 +1,5 @@
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   CACHE_KEYS,
   CACHE_TTL,
   CACHE_CONSTANTS,
@@ -121,7 +122,7 @@ describe("Cache Constants", () => {
 
   describe("Cache key generation patterns", () => {
     it("should support key concatenation for stock quotes", () => {
-      const symbol = "700.HK";
+      const symbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
       const fullKey = `${CACHE_KEYS.STOCK_QUOTE}${symbol}`;
       expect(fullKey).toBe("stock:quote:700.HK");
     });
@@ -139,8 +140,8 @@ describe("Cache Constants", () => {
     });
 
     it("should support key concatenation for symbol mappings", () => {
-      const provider = "longport";
-      const symbol = "700.HK";
+      const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+      const symbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
       const fullKey = `${CACHE_KEYS.SYMBOL_MAPPING}${provider}:${symbol}`;
       expect(fullKey).toBe("symbol:mapping:longport:700.HK");
     });

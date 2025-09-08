@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ModuleMetadata } from "@nestjs/common";
@@ -25,7 +27,7 @@ const mockLogger = {
 (createLogger as jest.Mock).mockReturnValue(mockLogger);
 
 // Mock LongPort SDK
-jest.mock("longport", () => {
+jest.mock(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, () => {
   const mockSubType = {
     Quote: "quote",
     Depth: "depth",
@@ -113,8 +115,8 @@ describe("StreamStockQuote Capability Integration", () => {
     while (retryCount < maxRetries) {
       const allStreamCaps =
         capabilityRegistryService.getAllStreamCapabilities();
-      const longportCaps = allStreamCaps.get("longport");
-      const streamQuoteCap = longportCaps?.get("stream-stock-quote");
+      const longportCaps = allStreamCaps.get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+      const streamQuoteCap = longportCaps?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
 
       if (streamQuoteCap) {
         break;
@@ -126,10 +128,10 @@ describe("StreamStockQuote Capability Integration", () => {
 
     // 获取流能力
     const provider =
-      capabilityRegistryService.getBestStreamProvider("stream-stock-quote");
+      capabilityRegistryService.getBestStreamProvider(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
     streamCapability = capabilityRegistryService.getStreamCapability(
       provider,
-      "stream-stock-quote",
+      API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
     );
   }, 30000);
 
@@ -144,7 +146,7 @@ describe("StreamStockQuote Capability Integration", () => {
   describe("基本功能测试", () => {
     it("应该正确获取stream-stock-quote能力", () => {
       expect(streamCapability).toBeDefined();
-      expect(streamCapability.name).toBe("stream-stock-quote");
+      expect(streamCapability.name).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(Array.isArray(streamCapability.supportedMarkets)).toBe(true);
       expect(streamCapability.supportedMarkets).toContain(MARKETS.HK);
     });
@@ -160,7 +162,7 @@ describe("StreamStockQuote Capability Integration", () => {
 
   describe("订阅和数据流测试", () => {
     it("应该能订阅单个股票符号", async () => {
-      const symbols = ["700.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       await streamCapability.subscribe(symbols, longportStreamService);
 
       expect(mockLogger.log).toHaveBeenCalledWith(
@@ -173,7 +175,7 @@ describe("StreamStockQuote Capability Integration", () => {
     });
 
     it("应该能订阅多个股票符号", async () => {
-      const symbols = ["700.HK", "AAPL.US", "09988.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "09988.HK"];
       await streamCapability.subscribe(symbols, longportStreamService);
 
       expect(mockLogger.log).toHaveBeenCalledWith(
@@ -186,7 +188,7 @@ describe("StreamStockQuote Capability Integration", () => {
     });
 
     it("应该验证符号格式并拒绝无效符号", async () => {
-      const symbols = ["700.HK", "INVALID_FORMAT", "09988.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "INVALID_FORMAT", "09988.HK"];
 
       await streamCapability.subscribe(symbols, longportStreamService);
 
@@ -212,7 +214,7 @@ describe("StreamStockQuote Capability Integration", () => {
     });
 
     it("应该能取消订阅符号", async () => {
-      const symbols = ["700.HK", "AAPL.US"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
       await streamCapability.subscribe(symbols, longportStreamService);
       await streamCapability.unsubscribe(symbols, longportStreamService);
 
@@ -257,7 +259,7 @@ describe("StreamStockQuote Capability Integration", () => {
   describe("流数据集成测试", () => {
     it("应该通过LongportStreamContextService注册回调", async () => {
       // 订阅符号
-      await streamCapability.subscribe(["700.HK"], longportStreamService);
+      await streamCapability.subscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], longportStreamService);
 
       // 设置回调
       const mockCallback = jest.fn();
@@ -295,7 +297,7 @@ describe("StreamStockQuote Capability Integration", () => {
         .mockRejectedValue(new Error("订阅失败"));
 
       await expect(
-        streamCapability.subscribe(["700.HK"], longportStreamService),
+        streamCapability.subscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], longportStreamService),
       ).rejects.toThrow("LongPort 流订阅失败");
 
       // 还原原始方法
@@ -310,7 +312,7 @@ describe("StreamStockQuote Capability Integration", () => {
         .mockRejectedValue(new Error("取消订阅失败"));
 
       await expect(
-        streamCapability.unsubscribe(["700.HK"], longportStreamService),
+        streamCapability.unsubscribe([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], longportStreamService),
       ).rejects.toThrow("LongPort 流取消订阅失败");
 
       // 还原原始方法

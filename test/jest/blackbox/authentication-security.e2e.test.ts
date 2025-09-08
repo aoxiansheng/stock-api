@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 真实环境黑盒E2E测试：三层认证体系与安全机制
  * 测试API Key、JWT、公开访问三层认证系统
@@ -21,7 +24,7 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true, // 不要自动抛出错误，让我们手动处理
     });
 
@@ -126,13 +129,13 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
         permission: "data:read",
         endpoint: "/api/v1/receiver/data",
         method: "post",
-        testData: { symbols: ["700.HK"], receiverType: "get-stock-quote" },
+        testData: { symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT], receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE },
       },
       {
         permission: "query:execute",
         endpoint: "/api/v1/query/execute",
         method: "post",
-        testData: { queryType: "by_symbols", symbols: ["700.HK"] },
+        testData: { queryType: "by_symbols", symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT] },
       },
       {
         permission: "providers:read",
@@ -350,8 +353,8 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
 
     it("应该在缺少API凭证时拒绝访问", async () => {
       const response = await httpClient.post("/api/v1/receiver/data", {
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       });
 
       expect(response.status).toBe(401);
@@ -362,8 +365,8 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
       const response = await httpClient.post(
         "/api/v1/receiver/data",
         {
-          symbols: ["700.HK"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -630,13 +633,13 @@ describe("Real Environment Black-_box: Authentication & Security E2E", () => {
 
       // 测试恶意负载
       const maliciousPayloads = [
-        { symbols: null, receiverType: "get-stock-quote" }, // null values
+        { symbols: null, receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE }, // null values
         { symbols: [""], receiverType: "" }, // empty strings
         {
           symbols: ['<script>alert("xss")</script>'],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         }, // XSS attempt
-        { symbols: [{}], receiverType: "get-stock-quote" }, // wrong data types
+        { symbols: [{}], receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE }, // wrong data types
       ];
 
       for (const payload of maliciousPayloads) {

@@ -14,6 +14,7 @@ import { AlertConstantsValidator } from "../utils/constants-validator.util";
 import { AlertController } from "../controller/alert.controller";
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
 import { AlertRuleRepository } from "../repositories/alert-rule.repository";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   NotificationLog,
   NotificationLogSchema,
@@ -56,7 +57,7 @@ import {
 
     // HTTP 客户端用于 Webhook 通知
     HttpModule.register({
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       maxRedirects: 3,
     }),
 

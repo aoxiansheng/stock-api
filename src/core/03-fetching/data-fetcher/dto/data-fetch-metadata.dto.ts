@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 /**
  * 数据获取元数据DTO
@@ -9,13 +11,13 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 export class DataFetchMetadataDto {
   @ApiProperty({
     description: "数据提供商名称",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   provider: string;
 
   @ApiProperty({
     description: "能力名称",
-    example: "get-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   })
   capability: string;
 

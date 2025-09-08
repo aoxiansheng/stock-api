@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * Query Internal DTO 单元测试
  * 测试查询内部数据传输对象
@@ -205,8 +208,8 @@ describe("Query Internal DTOs", () => {
         dto.reason = "Provider timeout";
         dto.errorCode = "TIMEOUT_ERROR";
         dto.details = {
-          _provider: "longport",
-          timeout: 5000,
+          _provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
           retryCount: 3,
         };
 
@@ -214,7 +217,7 @@ describe("Query Internal DTOs", () => {
         expect(dto.symbol).toBe("00700.HK");
         expect(dto.reason).toBe("Provider timeout");
         expect(dto.errorCode).toBe("TIMEOUT_ERROR");
-        expect(dto.details.provider).toBe("longport");
+        expect(dto.details.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       });
 
       it("should validate successfully", async () => {
@@ -487,7 +490,7 @@ describe("Query Internal DTOs", () => {
 
         dto.fieldSelection = fieldSelection;
         dto.sort = sort;
-        dto.limit = 100;
+        dto.limit = OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE;
         dto.offset = 0;
 
         // Act
@@ -605,14 +608,14 @@ describe("Query Internal DTOs", () => {
       it("should create instance with all parameters", () => {
         // Arrange
         dto.symbol = "00700.HK";
-        dto.provider = "longport";
-        dto.queryTypeFilter = "get-stock-quote";
+        dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+        dto.queryTypeFilter = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
         dto.market = "HK";
 
         // Assert
         expect(dto.symbol).toBe("00700.HK");
-        expect(dto.provider).toBe("longport");
-        expect(dto.queryTypeFilter).toBe("get-stock-quote");
+        expect(dto.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+        expect(dto.queryTypeFilter).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
         expect(dto.market).toBe("HK");
       });
 
@@ -632,7 +635,7 @@ describe("Query Internal DTOs", () => {
       it("should support HK stock keys", () => {
         // Arrange
         dto.symbol = "00700.HK";
-        dto.provider = "longport";
+        dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         dto.market = "HK";
 
         // Assert
@@ -643,7 +646,7 @@ describe("Query Internal DTOs", () => {
       it("should support US stock keys", () => {
         // Arrange
         dto.symbol = "AAPL.US";
-        dto.provider = "longport";
+        dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
         dto.market = "US";
 
         // Assert
@@ -666,7 +669,7 @@ describe("Query Internal DTOs", () => {
         dto.parallel = true;
         dto.continueOnError = true;
         dto.maxConcurrency = 10;
-        dto.timeout = 5000;
+        dto.timeout = OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST;
 
         // Assert
         expect(dto.parallel).toBe(true);
@@ -707,7 +710,7 @@ describe("Query Internal DTOs", () => {
         dto.parallel = true;
         dto.continueOnError = true;
         dto.maxConcurrency = 20;
-        dto.timeout = 10000;
+        dto.timeout = OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION;
 
         // Assert
         expect(dto.parallel).toBe(true);
@@ -719,7 +722,7 @@ describe("Query Internal DTOs", () => {
         // Arrange
         dto.parallel = false;
         dto.continueOnError = false;
-        dto.timeout = 30000;
+        dto.timeout = OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST;
 
         // Assert
         expect(dto.parallel).toBe(false);

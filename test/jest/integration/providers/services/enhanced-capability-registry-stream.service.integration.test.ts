@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ModuleMetadata } from "@nestjs/common";
@@ -34,10 +36,10 @@ import { readdir, stat } from "fs/promises";
 
 // Mock stream capability
 const mockStreamCapability: IStreamCapability = {
-  name: "stream-stock-quote",
+  name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
   description: "获取股票实时报价数据流",
   supportedMarkets: [MARKETS.HK, MARKETS.US],
-  supportedSymbolFormats: ["700.HK", "AAPL.US"],
+  supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
   rateLimit: {
     maxConnections: 100,
     maxSubscriptionsPerConnection: 200,
@@ -100,7 +102,7 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
       // 执行
       // 注册流能力（模拟装饰器或手动注册）
       legacyService.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -108,8 +110,8 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
 
       // 验证
       const capability = legacyService.getStreamCapability(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
       expect(capability).toBe(mockStreamCapability);
     });
@@ -118,7 +120,7 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
       // 设置
       const capability1 = {
         ...mockStreamCapability,
-        name: "stream-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
       const capability2 = {
         ...mockStreamCapability,
@@ -126,15 +128,15 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
       };
 
       // 执行
-      legacyService.registerStreamCapability("longport", capability1, 1, true);
-      legacyService.registerStreamCapability("longport", capability2, 2, true);
+      legacyService.registerStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, capability1, 1, true);
+      legacyService.registerStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, capability2, 2, true);
 
       // 验证
       expect(
-        legacyService.getStreamCapability("longport", "stream-stock-quote"),
+        legacyService.getStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, API_OPERATIONS.STOCK_DATA.STREAM_QUOTE),
       ).toBe(capability1);
       expect(
-        legacyService.getStreamCapability("longport", "stream-index-quote"),
+        legacyService.getStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "stream-index-quote"),
       ).toBe(capability2);
     });
   });
@@ -143,7 +145,7 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
     it("should find best provider for a stream capability", async () => {
       // 设置
       legacyService.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         2,
         true,
@@ -157,7 +159,7 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
 
       // 执行
       const bestProvider =
-        legacyService.getBestStreamProvider("stream-stock-quote");
+        legacyService.getBestStreamProvider(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
 
       // 验证
       expect(bestProvider).toBe("longport-sg"); // 优先级更高（数字更小）
@@ -189,11 +191,11 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
 
       // 执行
       const hkProvider = legacyService.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.HK,
       );
       const usProvider = legacyService.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.US,
       );
 
@@ -207,7 +209,7 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
     it("should update and track stream capability status", async () => {
       // 设置
       legacyService.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -215,16 +217,16 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
 
       // 执行 - 连接成功
       legacyService.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "connected",
       );
 
       // 验证
       const capabilities = legacyService.getAllStreamCapabilities();
       const registration = capabilities
-        .get("longport")
-        ?.get("stream-stock-quote");
+        .get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)
+        ?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(registration?.connectionStatus).toBe("connected");
       expect(registration?.errorCount).toBe(0);
     });
@@ -232,7 +234,7 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
     it("should track error counts and reset on successful connection", async () => {
       // 设置
       legacyService.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -240,34 +242,34 @@ describe("EnhancedCapabilityRegistryService - Stream Capabilities Integration", 
 
       // 执行 - 发生错误
       legacyService.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
       legacyService.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
 
       // 验证
       let capabilities = legacyService.getAllStreamCapabilities();
       let registration = capabilities
-        .get("longport")
-        ?.get("stream-stock-quote");
+        .get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)
+        ?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(registration?.connectionStatus).toBe("error");
       expect(registration?.errorCount).toBe(2);
 
       // 执行 - 成功连接
       legacyService.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "connected",
       );
 
       // 验证
       capabilities = legacyService.getAllStreamCapabilities();
-      registration = capabilities.get("longport")?.get("stream-stock-quote");
+      registration = capabilities.get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(registration?.connectionStatus).toBe("connected");
       expect(registration?.errorCount).toBe(0); // 错误计数被重置
     });

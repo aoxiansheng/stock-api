@@ -5,6 +5,7 @@ import { DataMapperCacheService } from "../../../../../../../src/core/05-caching
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import { FlexibleMappingRuleResponseDto } from "../../../../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { DATA_MAPPER_CACHE_CONSTANTS } from "../../../../../../../src/core/05-caching/data-mapper-cache/constants/data-mapper-cache.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Mock the logger
 jest.mock("../@app/config/logger.config", () => ({
@@ -25,7 +26,7 @@ describe("DataMapperCacheService", () => {
   const mockRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     description: "Test description",
@@ -69,7 +70,7 @@ describe("DataMapperCacheService", () => {
       mockRedis.setex.mockResolvedValue("OK");
 
       await service.cacheBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
         mockRule,
@@ -88,7 +89,7 @@ describe("DataMapperCacheService", () => {
 
       await expect(
         service.cacheBestMatchingRule(
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           "rest",
           "quote_fields",
           mockRule,
@@ -103,7 +104,7 @@ describe("DataMapperCacheService", () => {
       mockRedis.get.mockResolvedValue(serializedRule);
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -118,7 +119,7 @@ describe("DataMapperCacheService", () => {
       mockRedis.get.mockResolvedValue(null);
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -131,7 +132,7 @@ describe("DataMapperCacheService", () => {
       mockRedis.get.mockRejectedValue(error);
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -189,7 +190,7 @@ describe("DataMapperCacheService", () => {
       const rules = [mockRule];
       mockRedis.setex.mockResolvedValue("OK");
 
-      await service.cacheProviderRules("longport", "rest", rules);
+      await service.cacheProviderRules(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest", rules);
 
       expect(mockRedis.setex).toHaveBeenCalledWith(
         "dm:provider_rules:longport:rest",
@@ -205,7 +206,7 @@ describe("DataMapperCacheService", () => {
       const serializedRules = JSON.stringify(rules);
       mockRedis.get.mockResolvedValue(serializedRules);
 
-      const result = await service.getCachedProviderRules("longport", "rest");
+      const result = await service.getCachedProviderRules(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
 
       expect(result).toEqual(JSON.parse(serializedRules));
       expect(mockRedis.get).toHaveBeenCalledWith(
@@ -246,7 +247,7 @@ describe("DataMapperCacheService", () => {
       mockRedis.keys.mockResolvedValueOnce(["dm:provider_rules:longport:rest"]);
       mockRedis.del.mockResolvedValue(2);
 
-      await service.invalidateProviderCache("longport");
+      await service.invalidateProviderCache(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(mockRedis.keys).toHaveBeenCalledWith("dm:best_rule:longport:*");
       expect(mockRedis.keys).toHaveBeenCalledWith(

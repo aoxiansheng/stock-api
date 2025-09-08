@@ -1,3 +1,6 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 真实环境黑盒E2E测试：双时效接口系统
  * 测试强时效(Receiver)和弱时效(Query)接口的完整业务场景
@@ -21,7 +24,7 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
 
     httpClient = axios.create({
       baseURL,
-      timeout: 30000,
+      timeout: OPERATION_LIMITS.TIMEOUTS_MS.API_REQUEST,
       validateStatus: () => true, // 不要自动抛出错误，让我们手动处理
     });
 
@@ -140,8 +143,8 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
       const response = await httpClient.post(
         "/api/v1/receiver/data",
         {
-          symbols: ["700.HK", "AAPL.US", "000001.SZ"],
-          receiverType: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ"],
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             realtime: true,
             // 移除不支持的timeout参数
@@ -215,7 +218,7 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
     it("应该根据市场状态动态调整缓存TTL", async () => {
       const marketTests = [
         { symbol: "AAPL.US", expectedMarket: "US" },
-        { symbol: "700.HK", expectedMarket: "HK" },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, expectedMarket: "HK" },
         { symbol: "000001.SZ", expectedMarket: "SZ" },
       ];
 
@@ -224,7 +227,7 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
           "/api/v1/receiver/data",
           {
             symbols: [test.symbol],
-            receiverType: "get-stock-quote",
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {
@@ -259,8 +262,8 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
         "/api/v1/query/execute",
         {
           queryType: "by_symbols",
-          symbols: ["700.HK", "AAPL.US"],
-          queryTypeFilter: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: {
             includeMetadata: true,
             // 移除不支持的includeChangeDetection参数
@@ -314,8 +317,8 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
         "/api/v1/query/execute",
         {
           queryType: "by_symbols",
-          symbols: ["700.HK", "AAPL.US", "000001.SZ", "600000.SH"],
-          queryTypeFilter: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ", "600000.SH"],
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           // 移除不支持的batchSize参数
         },
         {
@@ -359,14 +362,14 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
 
   describe("双接口数据一致性验证", () => {
     it("应该在强时效和弱时效接口间保持数据一致性", async () => {
-      const testSymbol = "700.HK";
+      const testSymbol = REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT;
 
       // 通过强时效接口获取数据
       const realtimeResponse = await httpClient.post(
         "/api/v1/receiver/data",
         {
           symbols: [testSymbol],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -393,7 +396,7 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
         {
           queryType: "by_symbols",
           symbols: [testSymbol],
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {
@@ -469,8 +472,8 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
         const response = await httpClient.post(
           "/api/v1/receiver/data",
           {
-            symbols: ["700.HK"],
-            receiverType: "get-stock-quote",
+            symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+            receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           },
           {
             headers: {
@@ -505,8 +508,8 @@ describe("Real Environment Black-_box: Dual Interface System E2E", () => {
         "/api/v1/query/execute",
         {
           queryType: "by_symbols",
-          symbols: ["700.HK", "AAPL.US", "000001.SZ", "600000.SH", "00175.HK"],
-          queryTypeFilter: "get-stock-quote",
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ", "600000.SH", "00175.HK"],
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         },
         {
           headers: {

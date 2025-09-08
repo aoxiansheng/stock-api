@@ -4,10 +4,6 @@
  * 提供多语言支持和消息分类管理
  */
 
-
-
-
-
 /**
  * 消息状态描述 - 临时占位符  
  * 注：健康状态描述请使用 monitoring-health.constants.ts 中的 MONITORING_STATUS_DESCRIPTIONS
@@ -15,7 +11,6 @@
 export const MONITORING_MESSAGE_STATUS_DESCRIPTIONS = Object.freeze({
   PLACEHOLDER: "placeholder"
 } as const);
-
 
 /**
  * 消息格式化器 - 临时占位符
@@ -41,7 +36,6 @@ export const MONITORING_METRIC_STATUS_DESCRIPTIONS = Object.freeze({
   METRIC_IMPROVING: "指标趋势正在改善",
   METRIC_DETERIORATING: "指标趋势正在恶化"
 } as const);
-
 
 /**
  * 消息类型枚举

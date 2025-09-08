@@ -3,6 +3,8 @@ import { createLogger } from "@app/config/logger.config";
 import Redis from "ioredis";
 import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
+
+import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   ConfigValidatorService,
   FullValidationResult,
@@ -182,7 +184,7 @@ export class ExtendedHealthService {
     try {
       if (!this.lastConfigValidation || this.isValidationStale()) {
         this.lastConfigValidation = await this.configValidator.validateAll({
-          timeout: 5000,
+          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
           ignoreWarnings: false,
         });
       }
@@ -232,7 +234,7 @@ export class ExtendedHealthService {
   private async getConfigurationHealth(): Promise<FullValidationResult> {
     if (!this.lastConfigValidation || this.isValidationStale()) {
       this.lastConfigValidation = await this.configValidator.validateAll({
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         ignoreWarnings: false,
       });
     }

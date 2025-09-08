@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * Query架构重构验证E2E测试
  * 验证Query组件重构后是否正常工作
@@ -62,7 +63,7 @@ describe("Query架构重构验证 E2E", () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
       };
@@ -100,7 +101,7 @@ describe("Query架构重构验证 E2E", () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL", "GOOGL", "MSFT"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
       };
@@ -132,7 +133,7 @@ describe("Query架构重构验证 E2E", () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: [],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 10,
         page: 1,
       };
@@ -162,7 +163,7 @@ describe("Query架构重构验证 E2E", () => {
       const queryRequest = {
         queryType: QueryType.BY_SYMBOLS,
         symbols: ["AAPL"],
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         limit: 1,
         page: 1,
       };

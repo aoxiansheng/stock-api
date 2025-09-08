@@ -5,6 +5,7 @@ import { SymbolTransformerService } from "../../../../../../../src/core/02-proce
 import { SymbolMapperCacheService } from "../../../../../../../src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
 import { CollectorService } from "../../../../../../../src/monitoring/collector/collector.service";
 import { TRANSFORM_DIRECTIONS } from "../../../../../../../src/core/02-processing/symbol-transformer/constants/symbol-transformer.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("SymbolTransformerService E2E Test", () => {
   let app: INestApplication;
@@ -53,12 +54,12 @@ describe("SymbolTransformerService E2E Test", () => {
       const mockCacheResponse = {
         success: true,
         mappingDetails: {
-          "700.HK": "00700",
+          REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700",
           "AAPL.US": "AAPL",
           "600000.SS": "600000",
         },
         failedSymbols: ["INVALID"],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 4,
         cacheHits: 2,
@@ -71,8 +72,8 @@ describe("SymbolTransformerService E2E Test", () => {
 
       // Execute the full transformation workflow
       const result = await symbolTransformerService.transformSymbols(
-        "longport",
-        ["700.HK", "AAPL.US", "600000.SS", "INVALID"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "600000.SS", "INVALID"],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 
@@ -80,13 +81,13 @@ describe("SymbolTransformerService E2E Test", () => {
       expect(result).toEqual({
         mappedSymbols: ["00700", "AAPL", "600000"],
         mappingDetails: {
-          "700.HK": "00700",
+          REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700",
           "AAPL.US": "AAPL",
           "600000.SS": "600000",
         },
         failedSymbols: ["INVALID"],
         metadata: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           totalSymbols: 4,
           successCount: 3,
           failedCount: 1,
@@ -96,8 +97,8 @@ describe("SymbolTransformerService E2E Test", () => {
 
       // Verify cache service integration
       expect(symbolMapperCacheService.mapSymbols).toHaveBeenCalledWith(
-        "longport",
-        ["700.HK", "AAPL.US", "600000.SS", "INVALID"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "600000.SS", "INVALID"],
         "to_standard",
         expect.stringMatching(
           /^transform_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
@@ -112,7 +113,7 @@ describe("SymbolTransformerService E2E Test", () => {
           "000001.SZ": "000001", // Only one successful
         },
         failedSymbols: ["UNKNOWN1", "UNKNOWN2", "INVALID@SYMBOL"],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 4,
         cacheHits: 0,
@@ -124,7 +125,7 @@ describe("SymbolTransformerService E2E Test", () => {
       );
 
       const result = await symbolTransformerService.transformSymbols(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         ["000001.SZ", "UNKNOWN1", "UNKNOWN2", "INVALID@SYMBOL"],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
@@ -146,8 +147,8 @@ describe("SymbolTransformerService E2E Test", () => {
       );
 
       const result = await symbolTransformerService.transformSymbols(
-        "longport",
-        ["700.HK", "AAPL"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 
@@ -155,9 +156,9 @@ describe("SymbolTransformerService E2E Test", () => {
       expect(result).toEqual({
         mappedSymbols: [],
         mappingDetails: {},
-        failedSymbols: ["700.HK", "AAPL"],
+        failedSymbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
         metadata: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           totalSymbols: 2,
           successCount: 0,
           failedCount: 2,
@@ -171,9 +172,9 @@ describe("SymbolTransformerService E2E Test", () => {
     it("should maintain backward compatibility through mapSymbols method", async () => {
       const mockCacheResponse = {
         success: true,
-        mappingDetails: { "700.HK": "00700" },
+        mappingDetails: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700" },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 1,
@@ -185,14 +186,14 @@ describe("SymbolTransformerService E2E Test", () => {
       );
 
       // Test backward compatible method
-      const result = await symbolTransformerService.mapSymbols("longport", [
-        "700.HK",
+      const result = await symbolTransformerService.mapSymbols(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, [
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       ]);
 
       expect(result.mappedSymbols).toEqual(["00700"]);
       expect(symbolMapperCacheService.mapSymbols).toHaveBeenCalledWith(
-        "longport",
-        ["700.HK"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         "to_standard", // Should default to 'to_standard'
         expect.any(String),
       );
@@ -203,7 +204,7 @@ describe("SymbolTransformerService E2E Test", () => {
         success: true,
         mappingDetails: { TSLA: "TSLA" },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 0,
@@ -215,7 +216,7 @@ describe("SymbolTransformerService E2E Test", () => {
       );
 
       const result = await symbolTransformerService.mapSymbol(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "TSLA",
       );
 
@@ -230,7 +231,7 @@ describe("SymbolTransformerService E2E Test", () => {
 
       await expect(
         symbolTransformerService.transformSymbols(
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           oversizedBatch,
           TRANSFORM_DIRECTIONS.TO_STANDARD,
         ),
@@ -245,7 +246,7 @@ describe("SymbolTransformerService E2E Test", () => {
 
       await expect(
         symbolTransformerService.transformSymbols(
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           [oversizedSymbol],
           TRANSFORM_DIRECTIONS.TO_STANDARD,
         ),
@@ -267,7 +268,7 @@ describe("SymbolTransformerService E2E Test", () => {
       // Test invalid direction
       await expect(
         symbolTransformerService.transformSymbols(
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           ["AAPL"],
           "invalid" as any,
         ),
@@ -281,9 +282,9 @@ describe("SymbolTransformerService E2E Test", () => {
     it("should demonstrate proper separation of concerns", async () => {
       const mockCacheResponse = {
         success: true,
-        mappingDetails: { "700.HK": "00700" },
+        mappingDetails: { REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT: "00700" },
         failedSymbols: [],
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         direction: "to_standard" as const,
         totalProcessed: 1,
         cacheHits: 1,
@@ -295,8 +296,8 @@ describe("SymbolTransformerService E2E Test", () => {
       );
 
       await symbolTransformerService.transformSymbols(
-        "longport",
-        ["700.HK"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         TRANSFORM_DIRECTIONS.TO_STANDARD,
       );
 

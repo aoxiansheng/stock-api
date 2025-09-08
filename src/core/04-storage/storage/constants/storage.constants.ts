@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /**
  * 存储服务常量
  * 🎯 统一定义存储相关的常量，确保系统一致性
@@ -108,7 +109,6 @@ export const STORAGE_OPERATIONS = Object.freeze({
   STATS_GENERATION: "stats_generation",
 } as const);
 
-
 /**
  * 存储状态常量
  */
@@ -147,7 +147,7 @@ export const STORAGE_DEFAULTS = Object.freeze({
   DATA_SIZE: 0,
   PROCESSING_TIME: 0,
   COMPRESSED: false,
-  TTL: 3600, // 1小时
+  TTL: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE, // 1小时
   CACHE_HIT_RATE: 0.85, // 85%默认命中率
   OPERATIONS_PER_SECOND: 0,
   ERROR_RATE: 0,

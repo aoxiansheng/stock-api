@@ -1,5 +1,7 @@
 import { validate } from "class-validator";
 import { StreamSubscribeDto } from "../../../../../../../src/core/01-entry/stream-receiver/dto/stream-subscribe.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("StreamSubscribeDto", () => {
   let dto: StreamSubscribeDto;
@@ -14,21 +16,21 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should have default wsCapabilityType", () => {
-      expect(dto.wsCapabilityType).toBe("stream-stock-quote");
+      expect(dto.wsCapabilityType).toBe(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
     });
   });
 
   describe("symbols validation", () => {
     it("should validate with valid symbols array", async () => {
-      dto.symbols = ["700.HK", "AAPL.US"];
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
 
     it("should require symbols array", async () => {
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
       // symbols not set
 
       const errors = await validate(dto);
@@ -38,7 +40,7 @@ describe("StreamSubscribeDto", () => {
 
     it("should require at least one symbol", async () => {
       dto.symbols = [];
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
@@ -51,7 +53,7 @@ describe("StreamSubscribeDto", () => {
 
     it("should limit maximum symbols to 50", async () => {
       dto.symbols = new Array(51).fill("TEST.US");
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
@@ -63,8 +65,8 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should validate that all symbols are strings", async () => {
-      dto.symbols = ["700.HK", 123 as any, "AAPL.US"];
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, 123 as any, "AAPL.US"];
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
@@ -74,7 +76,7 @@ describe("StreamSubscribeDto", () => {
 
     it("should accept valid symbol formats", async () => {
       const validSymbols = [
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "AAPL.US",
         "000001.SZ",
         "600000.SH",
@@ -83,7 +85,7 @@ describe("StreamSubscribeDto", () => {
       ];
 
       dto.symbols = validSymbols;
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
@@ -92,15 +94,15 @@ describe("StreamSubscribeDto", () => {
 
   describe("wsCapabilityType validation", () => {
     it("should validate string wsCapabilityType", async () => {
-      dto.symbols = ["700.HK"];
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
 
     it("should accept custom capability types", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.wsCapabilityType = "stream-custom-data";
 
       const errors = await validate(dto);
@@ -108,7 +110,7 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should reject non-string capability type", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.wsCapabilityType = 123 as any;
 
       const errors = await validate(dto);
@@ -122,7 +124,7 @@ describe("StreamSubscribeDto", () => {
 
   describe("Optional authentication fields", () => {
     it("should accept JWT token", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.token =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
@@ -131,7 +133,7 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should accept API key authentication", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.apiKey = "app_key_12345";
       dto.accessToken = "access_token_67890";
 
@@ -140,7 +142,7 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should validate string types for auth fields", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.apiKey = 123 as any;
 
       const errors = await validate(dto);
@@ -150,7 +152,7 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should work without auth fields (optional)", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       // No auth fields set
 
       const errors = await validate(dto);
@@ -160,15 +162,15 @@ describe("StreamSubscribeDto", () => {
 
   describe("Optional fields", () => {
     it("should accept preferredProvider", async () => {
-      dto.symbols = ["700.HK"];
-      dto.preferredProvider = "longport";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
+      dto.preferredProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
     });
 
     it("should accept options object", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       dto.options = {
         includeAfterHours: true,
         updateFrequency: 1000,
@@ -180,7 +182,7 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should work without optional fields", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
@@ -189,12 +191,12 @@ describe("StreamSubscribeDto", () => {
 
   describe("Complete DTO validation", () => {
     it("should validate complete DTO with all fields", async () => {
-      dto.symbols = ["700.HK", "AAPL.US"];
-      dto.wsCapabilityType = "stream-stock-quote";
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
+      dto.wsCapabilityType = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
       dto.token = "jwt_token_example";
       dto.apiKey = "api_key_example";
       dto.accessToken = "access_token_example";
-      dto.preferredProvider = "longport";
+      dto.preferredProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       dto.options = { includeAfterHours: true };
 
       const errors = await validate(dto);
@@ -202,7 +204,7 @@ describe("StreamSubscribeDto", () => {
     });
 
     it("should validate minimal DTO", async () => {
-      dto.symbols = ["700.HK"];
+      dto.symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
@@ -222,9 +224,9 @@ describe("StreamSubscribeDto", () => {
 
     it("should support object spread", () => {
       const data = {
-        symbols: ["700.HK"],
-        wsCapabilityType: "stream-stock-quote",
-        preferredProvider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+        preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       Object.assign(dto, data);

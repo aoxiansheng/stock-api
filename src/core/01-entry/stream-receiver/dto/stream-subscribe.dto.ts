@@ -1,9 +1,11 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   IsArray,
   IsString,
   IsOptional,
   ArrayMinSize,
-  ArrayMaxSize,
+  ArrayMaxSize
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
@@ -13,7 +15,7 @@ import { ApiProperty } from "@nestjs/swagger";
 export class StreamSubscribeDto {
   @ApiProperty({
     description: "要订阅的股票符号列表",
-    example: ["700.HK", "AAPL.US", "TSLA.US"],
+    example: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "TSLA.US"],
     type: [String],
   })
   @IsArray()
@@ -24,12 +26,12 @@ export class StreamSubscribeDto {
 
   @ApiProperty({
     description: "WebSocket 能力类型",
-    example: "stream-stock-quote",
-    default: "stream-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+    default: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
   })
   @IsString()
   @IsOptional()
-  wsCapabilityType: string = "stream-stock-quote";
+  wsCapabilityType: string = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
 
   @ApiProperty({
     description: "认证令牌（JWT Token 或 API Key）",
@@ -57,7 +59,7 @@ export class StreamSubscribeDto {
 
   @ApiProperty({
     description: "首选数据提供商",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsString()
   @IsOptional()

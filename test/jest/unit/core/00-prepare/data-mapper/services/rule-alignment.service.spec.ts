@@ -5,6 +5,7 @@ import { createMock, DeepMocked } from "@golevelup/ts-jest";
 import { Model } from "mongoose";
 import { RuleAlignmentService } from "../../../../../../../src/core/00-prepare/data-mapper/services/rule-alignment.service";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   FlexibleMappingRule,
   FlexibleMappingRuleDocument,
 } from "../../../../../../../src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema";
@@ -33,7 +34,7 @@ describe("RuleAlignmentService", () => {
   const mockTemplate = {
     id: "507f1f77bcf86cd799439011",
     name: "Test Template",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     extractedFields: [
       {
@@ -54,7 +55,7 @@ describe("RuleAlignmentService", () => {
   const mockRule = {
     id: "507f1f77bcf86cd799439012",
     name: "Test Rule",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     fieldMappings: [
@@ -276,7 +277,7 @@ describe("RuleAlignmentService", () => {
         { fieldPath: "volume", fieldName: "volume" },
         { fieldPath: "timestamp", fieldName: "timestamp" },
       ],
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       apiType: "rest",
     };
 
@@ -504,7 +505,7 @@ describe("preset field functionality", () => {
       const template = {
         _id: "507f1f77bcf86cd799439011",
         name: "Test Template",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         extractedFields: [
           {
             fieldPath: "last_done",
@@ -559,7 +560,7 @@ describe("preset field functionality", () => {
       const template = {
         _id: "507f1f77bcf86cd799439011",
         name: "Test Template",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         extractedFields: [
           {
             fieldPath: "company_name",
@@ -629,7 +630,7 @@ describe("preset field functionality", () => {
       const template = {
         _id: "507f1f77bcf86cd799439011",
         name: "Test Template",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
 
       const autoAlignError = new Error("Alignment process failed");

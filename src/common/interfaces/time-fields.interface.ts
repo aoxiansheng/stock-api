@@ -51,7 +51,6 @@ export interface CompleteTimeFields
   extends ProcessingTimeFields,
     TimestampFields {}
 
-
 /**
  * 响应时间字段接口
  * 用于标准化响应时间相关的字段
@@ -75,7 +74,6 @@ export interface ResponseTimeFields {
    */
   queryTimeMs?: number;
 }
-
 
 /**
  * 完整响应时间字段接口

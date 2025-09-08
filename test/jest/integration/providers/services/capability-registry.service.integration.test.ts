@@ -4,6 +4,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { CapabilityRegistryService } from "../../../../../src/providers/services/capability-registry.service";
 import { ICapability } from "../../../../../src/providers/interfaces/capability.interface";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("CapabilityRegistryService - Integration", () => {
   let service: CapabilityRegistryService;
@@ -15,7 +17,7 @@ describe("CapabilityRegistryService - Integration", () => {
 
   // Mock capabilities for testing
   const mockCapability1: ICapability = {
-    name: "get-stock-quote",
+    name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     description: "Get stock quote data",
     supportedMarkets: ["US", "HK"],
     supportedSymbolFormats: ["TICKER.EXCHANGE"],
@@ -73,10 +75,10 @@ describe("CapabilityRegistryService - Integration", () => {
 
       const registeredCapability = service.getCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(registeredCapability).toBeTruthy();
-      expect(registeredCapability?.name).toBe("get-stock-quote");
+      expect(registeredCapability?.name).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(registeredCapability?.description).toBe("Get stock quote data");
     });
 
@@ -85,7 +87,7 @@ describe("CapabilityRegistryService - Integration", () => {
 
       const registeredCapability = service.getCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(registeredCapability).toBeNull(); // Should return null for disabled capabilities
     });
@@ -95,7 +97,7 @@ describe("CapabilityRegistryService - Integration", () => {
       service.registerCapability("test-provider", mockCapability2, 2, true);
 
       expect(
-        service.getCapability("test-provider", "get-stock-quote"),
+        service.getCapability("test-provider", API_OPERATIONS.STOCK_DATA.GET_QUOTE),
       ).toBeTruthy();
       expect(
         service.getCapability("test-provider", "get-market-data"),
@@ -107,10 +109,10 @@ describe("CapabilityRegistryService - Integration", () => {
       service.registerCapability("provider-b", mockCapability1, 2, true);
 
       expect(
-        service.getCapability("provider-a", "get-stock-quote"),
+        service.getCapability("provider-a", API_OPERATIONS.STOCK_DATA.GET_QUOTE),
       ).toBeTruthy();
       expect(
-        service.getCapability("provider-b", "get-stock-quote"),
+        service.getCapability("provider-b", API_OPERATIONS.STOCK_DATA.GET_QUOTE),
       ).toBeTruthy();
     });
   });
@@ -139,7 +141,7 @@ describe("CapabilityRegistryService - Integration", () => {
     });
 
     it("should return provider with highest priority (lowest number)", () => {
-      const bestProvider = service.getBestProvider("get-stock-quote");
+      const bestProvider = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(bestProvider).toBe("high-priority-provider");
     });
 
@@ -152,12 +154,12 @@ describe("CapabilityRegistryService - Integration", () => {
       service.registerCapability("cn-only-provider", cnOnlyCapability, 0, true); // Highest priority
 
       // Should return CN provider for CN market
-      expect(service.getBestProvider("get-stock-quote", "CN")).toBe(
+      expect(service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "CN")).toBe(
         "cn-only-provider",
       );
 
       // Should return US provider for US market (CN provider doesn't support US)
-      expect(service.getBestProvider("get-stock-quote", "US")).toBe(
+      expect(service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "US")).toBe(
         "high-priority-provider",
       );
     });
@@ -169,7 +171,7 @@ describe("CapabilityRegistryService - Integration", () => {
 
     it("should return null when no providers support the specified market", () => {
       const bestProvider = service.getBestProvider(
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "UNSUPPORTED_MARKET",
       );
       expect(bestProvider).toBeNull();
@@ -184,7 +186,7 @@ describe("CapabilityRegistryService - Integration", () => {
         false,
       );
 
-      const bestProvider = service.getBestProvider("get-stock-quote");
+      const bestProvider = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(bestProvider).toBe("medium-priority-provider"); // Next best available
     });
   });
@@ -258,7 +260,7 @@ describe("CapabilityRegistryService - Integration", () => {
     it("should return null for non-existent provider", () => {
       const capability = service.getCapability(
         "non-existent",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(capability).toBeNull();
     });
@@ -279,7 +281,7 @@ describe("CapabilityRegistryService - Integration", () => {
     it("should return capability for valid provider and capability name", () => {
       const capability = service.getCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(capability).toBe(mockCapability1);
     });
@@ -354,7 +356,7 @@ describe("CapabilityRegistryService - Integration", () => {
       // Should overwrite the previous capability
       const retrieved = service.getCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(retrieved?.description).toBe("Updated description");
     });
@@ -415,7 +417,7 @@ describe("CapabilityRegistryService - Integration", () => {
       service.registerCapability("provider-a", mockCapability1, 1, true);
       service.registerCapability("provider-b", mockCapability1, 1, true);
 
-      const bestProvider = service.getBestProvider("get-stock-quote");
+      const bestProvider = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       // Should return one of them consistently (based on Map iteration order)
       expect(["provider-a", "provider-b"]).toContain(bestProvider);
     });
@@ -451,7 +453,7 @@ describe("CapabilityRegistryService - Integration", () => {
     it("should work with typical provider capability structure", () => {
       // Simulate a real provider structure
       const longPortQuoteCapability: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Get real-time stock quote from LongPort",
         supportedMarkets: ["HK", "US", "CN"],
         supportedSymbolFormats: ["TICKER.EXCHANGE", "NUMBER.EXCHANGE"],
@@ -469,7 +471,7 @@ describe("CapabilityRegistryService - Integration", () => {
       };
 
       const iTick: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "Get stock quote from iTick",
         supportedMarkets: ["US"],
         supportedSymbolFormats: ["TICKER.EXCHANGE"],
@@ -486,16 +488,16 @@ describe("CapabilityRegistryService - Integration", () => {
       };
 
       // Register with different priorities
-      service.registerCapability("longport", longPortQuoteCapability, 1, true);
+      service.registerCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, longPortQuoteCapability, 1, true);
       service.registerCapability("itick", iTick, 2, true);
 
       // Test market-specific selection
-      expect(service.getBestProvider("get-stock-quote", "HK")).toBe("longport");
-      expect(service.getBestProvider("get-stock-quote", "US")).toBe("longport"); // Higher priority
-      expect(service.getBestProvider("get-stock-quote", "CN")).toBe("longport");
+      expect(service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "HK")).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+      expect(service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "US")).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT); // Higher priority
+      expect(service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "CN")).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       // Test execution
-      const hkCapability = service.getCapability("longport", "get-stock-quote");
+      const hkCapability = service.getCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(hkCapability).toBeTruthy();
       expect(typeof hkCapability?.execute).toBe("function");
     });

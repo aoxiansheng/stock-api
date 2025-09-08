@@ -1,7 +1,8 @@
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
-import {
-  QueryRequestDto,
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { import { API_OPERATIONS } from '@common/constants/domain';ueryRequestDto,
   BulkQueryRequestDto,
   SortDirection,
   QueryOptionsDto,
@@ -28,7 +29,7 @@ describe("Query Request DTOs", () => {
         symbols: ["AAPL.US", "GOOGL.US"],
         market: "US",
         provider: "LongPort",
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         startTime: "2023-01-01T00:00:00Z",
         endTime: "2023-01-02T00:00:00Z",
         advancedQuery: {
@@ -157,7 +158,7 @@ describe("Query Request DTOs", () => {
       const testCases = [
         { limit: 0, shouldFail: true, message: "min" }, // Below minimum
         { limit: 1, shouldFail: false }, // Minimum valid
-        { limit: 100, shouldFail: false }, // Normal value
+        { limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE, shouldFail: false }, // Normal value
         { limit: 1001, shouldFail: true, message: "max" }, // Above maximum
       ];
 
@@ -423,7 +424,7 @@ describe("Query Request DTOs", () => {
       // Test 3: updateCache undefined (modern usage)
       const queryData3 = {
         queryType: QueryType.BY_PROVIDER,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         options: {
           useCache: true,
           // updateCache字段应该不被设置（现代用法）

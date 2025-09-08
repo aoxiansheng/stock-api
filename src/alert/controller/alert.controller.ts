@@ -1,3 +1,5 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   Controller,
   Get,
@@ -9,7 +11,7 @@ import {
   Query,
   BadRequestException,
   NotFoundException,
-  Req,
+  Req
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
@@ -120,9 +122,9 @@ export class AlertController {
           threshold: 80,
           severity: "warning",
           enabled: true,
-          createdAt: "2024-01-01T12:00:00.000Z",
+          createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -170,7 +172,7 @@ export class AlertController {
             triggerCount: 5,
           },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -273,7 +275,7 @@ export class AlertController {
             acknowledged: false,
           },
         ],
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -377,7 +379,7 @@ export class AlertController {
     // 先获取告警信息来获取 ruleId
     const alerts = await this.alertHistoryService.queryAlerts({
       page: 1,
-      limit: 100,
+      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
     });
     const alert = alerts.alerts.find((a: any) => a.id === alertId);
     if (!alert) {
@@ -446,10 +448,10 @@ export class AlertController {
         message: "告警评估已触发",
         data: {
           message: "告警评估已触发",
-          triggeredAt: "2024-01-01T12:00:00.000Z",
+          triggeredAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
           estimatedDuration: "5-10秒",
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })

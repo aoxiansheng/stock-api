@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { CAPABILITY_NAMES } from '../../../../providers/constants/capability-names.constants';
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   IsString,
   IsOptional,
@@ -110,7 +112,7 @@ export class QueryRequestDto extends BaseQueryDto {
 
   @ApiPropertyOptional({
     description: "数据提供商",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsOptional()
   @IsString()

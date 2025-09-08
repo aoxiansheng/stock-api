@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * 流数据获取器接口定义
  * 专门处理WebSocket流式数据的获取和连接管理
@@ -64,7 +65,7 @@ export interface IStreamDataFetcher {
  * 流连接建立参数
  */
 export interface StreamConnectionParams {
-  /** 提供商名称 (如: 'longport', 'itick') */
+  /** 提供商名称 (如: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, 'itick') */
   provider: string;
 
   /** WebSocket能力类型 (如: 'ws-stock-quote', 'ws-option-quote') */

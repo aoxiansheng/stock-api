@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * QueryService后台更新功能单元测试
  * 验证里程碑4.1-4.3的实现：去重机制、变动检测、性能调优
@@ -31,7 +33,7 @@ describe("QueryService - 后台更新优化测试", () => {
   const mockRequest: QueryRequestDto = {
     queryType: QueryType.BY_SYMBOLS,
     symbols: ["AAPL"],
-    queryTypeFilter: "get-stock-quote",
+    queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     limit: 10,
     page: 1,
     options: { useCache: true },
@@ -116,7 +118,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -143,7 +145,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -175,7 +177,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -187,8 +189,8 @@ describe("QueryService - 后台更新优化测试", () => {
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: "AAPL", price: 155 }],
         metadata: {
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           requestId: "test-request-id",
           processingTime: 100,
           timestamp: new Date().toISOString(),
@@ -228,7 +230,7 @@ describe("QueryService - 后台更新优化测试", () => {
       expect(receiverService.handleRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           symbols: ["AAPL"],
-          receiverType: "get-stock-quote",
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           options: expect.objectContaining({
             storageMode: "none",
           }),
@@ -243,7 +245,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -254,8 +256,8 @@ describe("QueryService - 后台更新优化测试", () => {
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: "AAPL", price: 150.01 }], // 微小变化
         metadata: {
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           requestId: "test-request-id",
           processingTime: 100,
           timestamp: new Date().toISOString(),
@@ -308,7 +310,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -338,7 +340,7 @@ describe("QueryService - 后台更新优化测试", () => {
       };
       const hkRequest = {
         ...mockRequest,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         market: Market.HK,
       };
       const shRequest = {
@@ -353,7 +355,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -378,7 +380,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -405,7 +407,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -448,7 +450,7 @@ describe("QueryService - 后台更新优化测试", () => {
             key: "test-key",
             storageType: StorageType.BOTH,
             storageClassification: StorageClassification.STOCK_QUOTE,
-            provider: "longport",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             market: "HK",
             dataSize: 1024,
             storedAt: new Date().toISOString(),
@@ -461,8 +463,8 @@ describe("QueryService - 后台更新优化测试", () => {
         .mockResolvedValueOnce({
           data: [{ symbol: "AAPL", price: 155 }],
           metadata: {
-            provider: "longport",
-            capability: "get-stock-quote",
+            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             requestId: "test-request-id",
             processingTime: 100,
             timestamp: new Date().toISOString(),
@@ -499,7 +501,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -527,7 +529,7 @@ describe("QueryService - 后台更新优化测试", () => {
           key: "test-key",
           storageType: StorageType.BOTH,
           storageClassification: StorageClassification.STOCK_QUOTE,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           market: "HK",
           dataSize: 1024,
           storedAt: new Date().toISOString(),
@@ -538,8 +540,8 @@ describe("QueryService - 后台更新优化测试", () => {
       receiverService.handleRequest.mockResolvedValue({
         data: [{ symbol: "AAPL", price: 155 }],
         metadata: {
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           requestId: "test-request-id",
           processingTime: 100,
           timestamp: new Date().toISOString(),

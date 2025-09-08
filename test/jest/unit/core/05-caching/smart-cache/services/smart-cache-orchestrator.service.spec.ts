@@ -7,6 +7,7 @@ import { BackgroundTaskService } from "../../../../../../../src/app/services/inf
 import { MetricsRegistryService } from "../../../../../../../src/monitoring/infrastructure/metrics/metrics-registry.service";
 import { CommonCacheService } from "../../../../../../../src/core/05-caching/common-cache/services/common-cache.service";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   CacheStrategy,
   CacheOrchestratorRequest,
 } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
@@ -58,8 +59,8 @@ describe("SmartCacheOrchestrator", () => {
     },
   };
 
-  const mockCacheData = { quote: { lastPrice: 100, symbol: "700.HK" } };
-  const mockTransformedData = { lastPrice: 100, symbol: "700.HK" };
+  const mockCacheData = { quote: { lastPrice: 100, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT } };
+  const mockTransformedData = { lastPrice: 100, symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT };
 
   beforeEach(async () => {
     const mockStorageService = {
@@ -328,11 +329,11 @@ describe("SmartCacheOrchestrator", () => {
     const mockRequest: CacheOrchestratorRequest<any> = {
       cacheKey: "test:cache:key",
       strategy: CacheStrategy.STRONG_TIMELINESS,
-      symbols: ["700.HK"],
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       fetchFn: jest.fn().mockResolvedValue(mockTransformedData),
       metadata: {
         marketStatus: mockMarketStatus,
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "test-123",
       },
     };
@@ -438,7 +439,7 @@ describe("SmartCacheOrchestrator", () => {
       const mockRequest: CacheOrchestratorRequest<any> = {
         cacheKey: "storage:error:key",
         strategy: CacheStrategy.STRONG_TIMELINESS,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         fetchFn: jest.fn().mockResolvedValue(mockTransformedData),
       };
 

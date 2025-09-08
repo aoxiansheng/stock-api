@@ -25,7 +25,6 @@ export const MONITORING_KEY_TEMPLATES = Object.freeze({
  */
 export type MonitoringKeyTemplate = typeof MONITORING_KEY_TEMPLATES[keyof typeof MONITORING_KEY_TEMPLATES];
 
-
 /**
  * 键前缀常量
  * 🎯 统一管理键前缀，避免硬编码

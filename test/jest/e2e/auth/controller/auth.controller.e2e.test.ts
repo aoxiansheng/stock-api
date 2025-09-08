@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /**
  * 认证流程端到端测试
  * 测试完整的用户认证和API Key管理流程
@@ -254,8 +256,8 @@ describe("Authentication E2E Flow", () => {
     it("应该成功使用API Key请求股票数据", async () => {
       // Arrange
       const dataRequest = {
-        symbols: ["700.HK", "AAPL.US"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: {
           realtime: false,
         },
@@ -275,7 +277,7 @@ describe("Authentication E2E Flow", () => {
       expect(response.body.data.metadata).toHaveProperty("provider");
       expect(response.body.data.metadata).toHaveProperty(
         "capability",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
       expect(response.body.data.metadata).toHaveProperty("requestId");
       expect(response.body.data.metadata).toHaveProperty("processingTime");

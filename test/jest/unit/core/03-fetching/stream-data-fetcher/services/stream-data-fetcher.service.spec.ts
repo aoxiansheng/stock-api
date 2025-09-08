@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { v4 as uuidv4 } from "uuid";
@@ -128,7 +130,7 @@ describe("StreamDataFetcherService", () => {
 
   describe("establishStreamConnection", () => {
     const validParams: StreamConnectionParams = {
-      provider: "longport",
+      provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       capability: "ws-stock-quote",
       contextService: mockContextService,
       requestId: uuidv4(),
@@ -228,11 +230,11 @@ describe("StreamDataFetcherService", () => {
 
   describe("subscribeToSymbols", () => {
     let connection: StreamConnection;
-    const testSymbols = ["700.HK", "0005.HK", "AAPL.US"];
+    const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "0005.HK", "AAPL.US"];
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -302,11 +304,11 @@ describe("StreamDataFetcherService", () => {
 
   describe("unsubscribeFromSymbols", () => {
     let connection: StreamConnection;
-    const testSymbols = ["700.HK", "0005.HK"];
+    const testSymbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "0005.HK"];
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -318,7 +320,7 @@ describe("StreamDataFetcherService", () => {
 
       // 先订阅符号
       await service.subscribeToSymbols(connection, [
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         "0005.HK",
         "AAPL.US",
       ]);
@@ -365,7 +367,7 @@ describe("StreamDataFetcherService", () => {
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -405,7 +407,7 @@ describe("StreamDataFetcherService", () => {
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -431,7 +433,7 @@ describe("StreamDataFetcherService", () => {
 
     beforeEach(async () => {
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -460,13 +462,13 @@ describe("StreamDataFetcherService", () => {
     it("应该返回所有活跃连接的统计信息", async () => {
       // Arrange
       const params1: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
       };
       const params2: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-option-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -504,7 +506,7 @@ describe("StreamDataFetcherService", () => {
     it("应该在网络错误时重试连接", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -538,7 +540,7 @@ describe("StreamDataFetcherService", () => {
     it("应该记录操作失败指标", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -559,7 +561,7 @@ describe("StreamDataFetcherService", () => {
     it("应该记录处理时间指标", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -581,7 +583,7 @@ describe("StreamDataFetcherService", () => {
     it("应该正确使用CapabilityRegistryService获取能力", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -595,7 +597,7 @@ describe("StreamDataFetcherService", () => {
 
       // Assert
       expect(capabilityRegistry.getCapability).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "ws-stock-quote",
       );
     });
@@ -603,8 +605,8 @@ describe("StreamDataFetcherService", () => {
     it("应该检测并警告非流能力", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
-        capability: "get-stock-quote", // 非WebSocket能力
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE, // 非WebSocket能力
         contextService: mockContextService,
         requestId: uuidv4(),
       };
@@ -621,8 +623,8 @@ describe("StreamDataFetcherService", () => {
       expect(loggerWarnSpy).toHaveBeenCalledWith(
         "可能不是流能力",
         expect.objectContaining({
-          provider: "longport",
-          capability: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           suggestion: expect.stringContaining('流能力通常以"ws-"开头'),
         }),
       );
@@ -662,7 +664,7 @@ describe("StreamDataFetcherService", () => {
     it("should record operation performance metrics", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -684,7 +686,7 @@ describe("StreamDataFetcherService", () => {
     it("should calculate average response time correctly", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -709,7 +711,7 @@ describe("StreamDataFetcherService", () => {
     it("should calculate P95 response time correctly", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -794,7 +796,7 @@ describe("StreamDataFetcherService", () => {
     it("should track concurrency history for analysis", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -846,7 +848,7 @@ describe("StreamDataFetcherService", () => {
     it("should use StreamMonitoringService for connection monitoring", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -874,7 +876,7 @@ describe("StreamDataFetcherService", () => {
     it("should stop monitoring connection when closing", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -896,7 +898,7 @@ describe("StreamDataFetcherService", () => {
     it("should handle monitoring service failures gracefully", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -996,7 +998,7 @@ describe("StreamDataFetcherService", () => {
     it("should handle performance tracking errors gracefully", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -1031,7 +1033,7 @@ describe("StreamDataFetcherService", () => {
     it("should continue operation if concurrency adjustment fails", async () => {
       // Arrange
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -1067,7 +1069,7 @@ describe("StreamDataFetcherService", () => {
       const promises: Promise<any>[] = [];
 
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),
@@ -1098,7 +1100,7 @@ describe("StreamDataFetcherService", () => {
       // Arrange
       const operationCount = 100;
       const params: StreamConnectionParams = {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: "ws-stock-quote",
         contextService: mockContextService,
         requestId: uuidv4(),

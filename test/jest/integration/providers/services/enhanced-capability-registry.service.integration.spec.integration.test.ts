@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Test, TestingModule } from "@nestjs/testing";
@@ -27,9 +28,9 @@ const MOCK_PROVIDER_ONE_CAPS_PATH = path.join(
 );
 
 // Mock Capability 1: get-stock-quote
-@Capability({ name: "get-stock-quote", description: "Get stock quote" })
+@Capability({ name: API_OPERATIONS.STOCK_DATA.GET_QUOTE, description: "Get stock quote" })
 class MockGetStockQuoteCapability implements ICapability {
-  name = "get-stock-quote";
+  name = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
   description = "Get stock quote";
   supportedMarkets = ["US"];
   supportedSymbolFormats = ["SYMBOL"];
@@ -80,9 +81,9 @@ describe("EnhancedCapabilityRegistryService Integration Test", () => {
       `
         import { Capability } from '../../../../../../src/providers/decorators';
         import { ICapability } from '../../../../../../src/providers/interfaces/capability.interface';
-        @Capability({ name: 'get-stock-quote', provider: 'mock-provider-one' })
+        @Capability({ name: API_OPERATIONS.STOCK_DATA.GET_QUOTE, provider: 'mock-provider-one' })
         export class GetStockQuoteCapability implements ICapability {
-          name = 'get-stock-quote';
+          name = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
           supportedMarkets = ['US'];
           supportedSymbolFormats = ['SYMBOL'];
           execute = async () => ({ success: true, data: {} });
@@ -167,7 +168,7 @@ describe("EnhancedCapabilityRegistryService Integration Test", () => {
     // Check capabilities registration
     const providerCaps = allCaps.get("mock-provider-one");
     expect(providerCaps).toBeDefined();
-    expect(providerCaps.has("get-stock-quote")).toBe(true);
+    expect(providerCaps.has(API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBe(true);
     expect(providerCaps.has("stream-live-trades")).toBe(true);
 
     // Check stats
@@ -187,7 +188,7 @@ describe("EnhancedCapabilityRegistryService Integration Test", () => {
   });
 
   it("getBestProvider should work correctly for decorator-registered capabilities", () => {
-    const bestProvider = service.getBestProvider("get-stock-quote", "US");
+    const bestProvider = service.getBestProvider(API_OPERATIONS.STOCK_DATA.GET_QUOTE, "US");
     expect(bestProvider).toBe("mock-provider-one");
   });
 
@@ -196,12 +197,12 @@ describe("EnhancedCapabilityRegistryService Integration Test", () => {
     const streamCaps = (service as any).streamCapabilities;
 
     const providerCaps = allCaps.get("mock-provider-one");
-    expect(providerCaps.get("get-stock-quote")).toBeDefined();
+    expect(providerCaps.get(API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBeDefined();
     expect(providerCaps.get("stream-live-trades")).toBeDefined();
 
     const providerStreamCaps = streamCaps.get("mock-provider-one");
     expect(providerStreamCaps).toBeDefined();
     expect(providerStreamCaps.has("stream-live-trades")).toBe(true);
-    expect(providerStreamCaps.has("get-stock-quote")).toBe(false);
+    expect(providerStreamCaps.has(API_OPERATIONS.STOCK_DATA.GET_QUOTE)).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { ConfigService } from "@nestjs/config";
 import { RuleEngineService } from "../../../../../src/alert/services/rule-engine.service";
 import {
+import { OPERATION_LIMITS } from '@common/constants/domain';
   AlertSeverity,
   NotificationChannelType,
 } from "../../../../../src/alert/types/alert.types";
@@ -531,7 +532,7 @@ describe("RuleEngineService Comprehensive Coverage", () => {
       expect(cacheService.set).toHaveBeenCalledWith(
         cacheKey,
         expect.any(String), // JSON stringified compiled rule
-        { ttl: 3600 }, // 1 hour cache
+        { ttl: OPERATION_LIMITS.CACHE_TTL_SECONDS.HOURLY_CACHE }, // 1 hour cache
       );
 
       // Second evaluation should use cache

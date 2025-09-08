@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 
 import { FieldMappingService } from "../../../../../../src/core/shared/services/field-mapping.service";
 import { CollectorService } from "@monitoring/collector/collector.service";
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("FieldMappingService", () => {
   let service: FieldMappingService;
@@ -34,7 +35,7 @@ describe("FieldMappingService", () => {
     it("should convert valid receiver type to storage classification", () => {
       // Test with a known mapping - this will depend on actual FIELD_MAPPING_CONFIG
       const result = service.capabilityToClassification(
-        "get-stock-quote" as any,
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE as any,
       );
       expect(result).toBeDefined();
     });
@@ -104,7 +105,7 @@ describe("FieldMappingService", () => {
 
   describe("batch operations", () => {
     it("should batch convert capabilities to classifications", () => {
-      const receiverTypes = ["get-stock-quote", "get-stock-info"] as any[];
+      const receiverTypes = [API_OPERATIONS.STOCK_DATA.GET_QUOTE, "get-stock-info"] as any[];
       const result = service.batchCapabilityToClassification(receiverTypes);
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(2);

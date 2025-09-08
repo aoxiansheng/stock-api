@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { createMock, DeepMocked } from "@golevelup/ts-jest";
@@ -24,7 +25,7 @@ describe("MappingRuleCacheService", () => {
   const mockRule: FlexibleMappingRuleResponseDto = {
     id: "507f1f77bcf86cd799439011",
     name: "Test Mapping Rule",
-    provider: "longport",
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     apiType: "rest",
     transDataRuleListType: "quote_fields",
     description: "Test description",
@@ -81,14 +82,14 @@ describe("MappingRuleCacheService", () => {
       dataMapperCacheService.cacheBestMatchingRule.mockResolvedValue(undefined);
 
       await service.cacheBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
         mockRule,
       );
 
       expect(dataMapperCacheService.cacheBestMatchingRule).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
         mockRule,
@@ -103,7 +104,7 @@ describe("MappingRuleCacheService", () => {
       // Should throw error (delegate behavior)
       await expect(
         service.cacheBestMatchingRule(
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           "rest",
           "quote_fields",
           mockRule,
@@ -119,7 +120,7 @@ describe("MappingRuleCacheService", () => {
       );
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -127,14 +128,14 @@ describe("MappingRuleCacheService", () => {
       expect(result).toEqual(mockRule);
       expect(
         dataMapperCacheService.getCachedBestMatchingRule,
-      ).toHaveBeenCalledWith("longport", "rest", "quote_fields");
+      ).toHaveBeenCalledWith(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest", "quote_fields");
     });
 
     it("should return null when cache miss", async () => {
       dataMapperCacheService.getCachedBestMatchingRule.mockResolvedValue(null);
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -148,7 +149,7 @@ describe("MappingRuleCacheService", () => {
       );
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );
@@ -208,10 +209,10 @@ describe("MappingRuleCacheService", () => {
       const rules = [mockRule];
       dataMapperCacheService.cacheProviderRules.mockResolvedValue(undefined);
 
-      await service.cacheProviderRules("longport", "rest", rules);
+      await service.cacheProviderRules(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest", rules);
 
       expect(dataMapperCacheService.cacheProviderRules).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         rules,
       );
@@ -220,10 +221,10 @@ describe("MappingRuleCacheService", () => {
     it("should handle empty rules array", async () => {
       dataMapperCacheService.cacheProviderRules.mockResolvedValue(undefined);
 
-      await service.cacheProviderRules("longport", "rest", []);
+      await service.cacheProviderRules(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest", []);
 
       expect(dataMapperCacheService.cacheProviderRules).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         [],
       );
@@ -235,18 +236,18 @@ describe("MappingRuleCacheService", () => {
       const rules = [mockRule];
       dataMapperCacheService.getCachedProviderRules.mockResolvedValue(rules);
 
-      const result = await service.getCachedProviderRules("longport", "rest");
+      const result = await service.getCachedProviderRules(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
 
       expect(result).toEqual(rules);
       expect(
         dataMapperCacheService.getCachedProviderRules,
-      ).toHaveBeenCalledWith("longport", "rest");
+      ).toHaveBeenCalledWith(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
     });
 
     it("should return null when cache miss", async () => {
       dataMapperCacheService.getCachedProviderRules.mockResolvedValue(null);
 
-      const result = await service.getCachedProviderRules("longport", "rest");
+      const result = await service.getCachedProviderRules(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "rest");
 
       expect(result).toBeNull();
     });
@@ -281,11 +282,11 @@ describe("MappingRuleCacheService", () => {
         undefined,
       );
 
-      await service.invalidateProviderCache("longport");
+      await service.invalidateProviderCache(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(
         dataMapperCacheService.invalidateProviderCache,
-      ).toHaveBeenCalledWith("longport");
+      ).toHaveBeenCalledWith(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
     });
   });
 
@@ -399,7 +400,7 @@ describe("MappingRuleCacheService", () => {
       );
 
       const result = await service.getCachedBestMatchingRule(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "rest",
         "quote_fields",
       );

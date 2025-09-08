@@ -1,3 +1,4 @@
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
@@ -51,7 +52,7 @@ describe("LongportSgProvider", () => {
   it("should have expected capabilities", () => {
     expect(provider.capabilities).toHaveLength(3);
     const capabilityNames = provider.capabilities.map((cap) => cap.name);
-    expect(capabilityNames).toContain("get-stock-quote");
+    expect(capabilityNames).toContain(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
     expect(capabilityNames).toContain("get-stock-basic-info");
     expect(capabilityNames).toContain("get-index-quote");
   });
@@ -68,9 +69,9 @@ describe("LongportSgProvider", () => {
   });
 
   it("should return existing capability by name", () => {
-    const stockQuoteCapability = provider.getCapability("get-stock-quote");
+    const stockQuoteCapability = provider.getCapability(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
     expect(stockQuoteCapability).not.toBeNull();
-    expect(stockQuoteCapability?.name).toBe("get-stock-quote");
+    expect(stockQuoteCapability?.name).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
   });
 
   it("should return null for non-existent capability", () => {

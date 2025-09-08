@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   IsArray,
   IsString,
@@ -10,7 +12,7 @@ import {
   ArrayMaxSize,
   IsNotEmpty,
   MaxLength,
-  IsIn,
+  IsIn
 } from "class-validator";
 
 import {
@@ -58,7 +60,7 @@ export class RequestOptionsDto extends BaseRequestOptionsDto {
 export class DataRequestDto {
   @ApiProperty({
     description: "股票代码列表",
-    example: ["700.HK", "AAPL.US", "000001.SZ"],
+    example: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "000001.SZ"],
     type: [String],
   })
   @IsArray({ message: "股票代码必须是一个数组" })
@@ -79,7 +81,7 @@ export class DataRequestDto {
 
   @ApiProperty({
     description: "能力类型（用于提供商路由和能力匹配）",
-    example: "get-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     enum: SUPPORTED_CAPABILITY_TYPES,
   })
   @IsString({ message: "能力类型必须是字符串" })

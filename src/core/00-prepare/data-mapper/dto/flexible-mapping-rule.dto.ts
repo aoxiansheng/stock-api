@@ -1,3 +1,5 @@
+
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
   IsString,
   IsEnum,
@@ -97,7 +99,7 @@ export class FlexibleFieldMappingDto {
 export class AnalyzeDataSourceDto {
   @ApiProperty({
     description: "提供商",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsString()
   provider: string;
@@ -132,7 +134,7 @@ export class CreateFlexibleMappingRuleDto {
 
   @ApiProperty({
     description: "提供商",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsString()
   provider: string;
@@ -295,7 +297,7 @@ export class TestFlexibleMappingRuleDto {
   @ApiProperty({
     description: "测试数据",
     example: {
-      symbol: "700.HK",
+      symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       last_done: 561,
       volume: 11292534,
     },

@@ -8,6 +8,7 @@ import { RateLimitService } from "../../../../../../../src/auth/services/rate-li
 import { Permission } from "../../../../../../../src/auth/enums/user-role.enum";
 
 import { createLogger } from "@app/config/logger.config";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 
 /**
  * WsAuthGuard 单元测试
@@ -153,7 +154,7 @@ describe("WsAuthGuard 单元测试", () => {
     });
     mockRateLimitService.checkRateLimit.mockResolvedValue({
       allowed: false,
-      limit: 100,
+      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
       current: 200,
     });
 
@@ -177,7 +178,7 @@ describe("WsAuthGuard 单元测试", () => {
     });
     mockRateLimitService.checkRateLimit.mockResolvedValue({
       allowed: true,
-      limit: 100,
+      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
       current: 10,
     });
 

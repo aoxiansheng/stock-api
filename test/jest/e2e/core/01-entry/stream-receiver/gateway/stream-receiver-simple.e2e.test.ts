@@ -1,4 +1,6 @@
 import { io, Socket } from "socket.io-client";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
   let httpServer: any;
@@ -69,7 +71,7 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
     return new Promise((resolve, reject) => {
       const connectionOptions: any = {
         transports: ["websocket"],
-        timeout: 10000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION,
       };
 
       if (auth) {
@@ -125,7 +127,7 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
     it("should handle subscribe to stock symbols", async () => {
       const subscribeData = {
         symbols: ["AAPL"],
-        wsCapabilityType: "stream-stock-quote",
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       clientSocket.emit("subscribe", subscribeData);
@@ -135,7 +137,7 @@ describe("Stream Receiver Gateway E2E Tests - Simplified", () => {
     it("should validate subscription parameters", async () => {
       const invalidData = {
         symbols: "not an array",
-        wsCapabilityType: "stream-stock-quote",
+        wsCapabilityType: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
 
       clientSocket.emit("subscribe", invalidData);

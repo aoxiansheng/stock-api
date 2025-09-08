@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 describe("Cache Operations E2E Tests", () => {
   let httpServer: any;
   let authTokens: any;
@@ -112,13 +113,13 @@ describe("Cache Operations E2E Tests", () => {
       const storeRequest = {
         key: "cache-test-key",
         data: {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           price: 500.0,
           timestamp: new Date().toISOString(),
         },
         storageType: "both",
         storageClassification: "stock_quote",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         market: "HK",
         options: {
           cacheTtl: 3600,

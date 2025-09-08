@@ -1,3 +1,4 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { DataTransformerController } from "@core/02-processing/transformer/controller/data-transformer.controller";
@@ -42,7 +43,7 @@ describe("DataTransformerController", () => {
           useValue: {
             checkRateLimit: jest.fn().mockResolvedValue({
               allowed: true,
-              limit: 100,
+              limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
               remaining: 99,
               resetTime: new Date().getTime() + 60000,
             }),

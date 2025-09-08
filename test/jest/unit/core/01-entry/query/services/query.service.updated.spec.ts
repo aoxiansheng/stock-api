@@ -19,6 +19,8 @@ import { DataSourceType } from "../../../../../../../src/core/01-entry/query/enu
 import { QueryRequestDto } from "../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "../../../../../../../src/core/01-entry/query/dto/query-types.dto";
 import { ResponseMetadataDto } from "../../../../../../../src/core/01-entry/receiver/dto/data-response.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 // Mock the external utilities
 jest.mock(
@@ -74,7 +76,7 @@ describe("QueryService - Updated Tests", () => {
   };
 
   const mockSymbolData = {
-    symbol: "700.HK",
+    symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
     lastPrice: 100.5,
     volume: 1000000,
     market: "HK",
@@ -83,8 +85,8 @@ describe("QueryService - Updated Tests", () => {
   const mockReceiverResponse = {
     data: [mockSymbolData],
     metadata: new ResponseMetadataDto(
-      "longport",
-      "get-stock-quote",
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       "test-request-id",
       100,
     ),
@@ -101,9 +103,9 @@ describe("QueryService - Updated Tests", () => {
 
   const mockRequest: QueryRequestDto = {
     queryType: QueryType.BY_SYMBOLS,
-    symbols: ["700.HK"],
-    queryTypeFilter: "get-stock-quote",
-    provider: "longport",
+    symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+    queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+    provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     market: Market.HK,
     options: {
       useCache: true,
@@ -184,12 +186,12 @@ describe("QueryService - Updated Tests", () => {
     cacheUtils.buildCacheOrchestratorRequest.mockReturnValue({
       cacheKey: "test:cache:key",
       strategy: CacheStrategy.WEAK_TIMELINESS,
-      symbols: ["700.HK"],
+      symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       fetchFn: expect.any(Function),
       metadata: {
         marketStatus: mockMarketStatus,
         requestId: "test-123",
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       },
     });
 
@@ -233,7 +235,7 @@ describe("QueryService - Updated Tests", () => {
     });
 
     it("should handle single symbol query", async () => {
-      const singleSymbolRequest = { ...mockRequest, symbols: ["700.HK"] };
+      const singleSymbolRequest = { ...mockRequest, symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT] };
 
       const result = await service.executeQuery(singleSymbolRequest);
 
@@ -244,7 +246,7 @@ describe("QueryService - Updated Tests", () => {
     it("should handle multiple symbols query", async () => {
       const multiSymbolRequest = {
         ...mockRequest,
-        symbols: ["700.HK", "AAPL", "600000.SH"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "600000.SH"],
       };
 
       smartCacheOrchestrator.batchGetDataWithSmartCache.mockResolvedValue([
@@ -311,7 +313,7 @@ describe("QueryService - Updated Tests", () => {
       cacheUtils.buildCacheOrchestratorRequest.mockReturnValue({
         cacheKey: "test:cache:key",
         strategy: CacheStrategy.NO_CACHE,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         fetchFn: expect.any(Function),
         metadata: expect.any(Object),
       });
@@ -328,7 +330,7 @@ describe("QueryService - Updated Tests", () => {
 
   describe("TTL Strategy Verification", () => {
     it("should calculate correct cache TTL for HK market during trading hours", async () => {
-      const symbols = ["700.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       marketStatusService.getMarketStatus.mockResolvedValue({
         ...mockMarketStatus[Market.HK],
         status: MarketStatus.TRADING,
@@ -365,7 +367,7 @@ describe("QueryService - Updated Tests", () => {
       );
 
       const ttl = await (service as any).calculateCacheTTLByMarket(Market.HK, [
-        "700.HK",
+        REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       ]);
 
       expect(ttl).toBe(60); // Should fallback to default TTL
@@ -376,7 +378,7 @@ describe("QueryService - Updated Tests", () => {
     it("should generate unique query IDs", () => {
       const mockRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       };
       const mockRequest2: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
@@ -394,7 +396,7 @@ describe("QueryService - Updated Tests", () => {
     });
 
     it("should infer market from symbols correctly", () => {
-      expect((service as any).inferMarketFromSymbols(["700.HK"])).toBe(
+      expect((service as any).inferMarketFromSymbols([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT])).toBe(
         Market.HK,
       );
       expect((service as any).inferMarketFromSymbols(["AAPL"])).toBe(Market.US);
@@ -404,7 +406,7 @@ describe("QueryService - Updated Tests", () => {
       expect((service as any).inferMarketFromSymbols(["000001.SZ"])).toBe(
         Market.SZ,
       );
-      expect((service as any).inferMarketFromSymbols(["700.HK", "AAPL"])).toBe(
+      expect((service as any).inferMarketFromSymbols([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"])).toBe(
         "MIXED",
       );
       expect((service as any).inferMarketFromSymbols([])).toBe("UNKNOWN");
@@ -422,20 +424,20 @@ describe("QueryService - Updated Tests", () => {
     it("should convert query to receiver request correctly", () => {
       const testRequest: QueryRequestDto = {
         queryType: QueryType.BY_SYMBOLS,
-        symbols: ["700.HK"],
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       };
       const receiverRequest = (service as any).convertQueryToReceiverRequest(
         testRequest,
-        ["700.HK"],
+        [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
       );
 
       expect(receiverRequest).toEqual({
-        symbols: ["700.HK"],
-        receiverType: "get-stock-quote",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         options: expect.objectContaining({
-          preferredProvider: "longport",
+          preferredProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           realtime: true,
           storageMode: "none",
         }),
@@ -482,7 +484,7 @@ describe("QueryService - Updated Tests", () => {
     it("should track batch size metrics for multi-symbol queries", async () => {
       const multiBatchRequest = {
         ...mockRequest,
-        symbols: ["700.HK", "AAPL", "600000.SH", "000001.SZ", "GOOGL"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "600000.SH", "000001.SZ", "GOOGL"],
       };
 
       smartCacheOrchestrator.batchGetDataWithSmartCache.mockResolvedValue(

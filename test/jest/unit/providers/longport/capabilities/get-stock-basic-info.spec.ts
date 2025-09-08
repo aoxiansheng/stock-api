@@ -1,5 +1,6 @@
 import { getStockBasicInfo } from "../../../../../../src/providers/longport/capabilities/get-stock-basic-info";
 import { MARKETS } from "../../../../../../src/common/constants/domain/market-domain.constants";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("getStockBasicInfo", () => {
   const mockQuoteContext = {
@@ -24,7 +25,7 @@ describe("getStockBasicInfo", () => {
       MARKETS.US,
     ]);
     expect(getStockBasicInfo.supportedSymbolFormats).toEqual([
-      "700.HK",
+      REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
       "000001.SZ",
       "600000.SH",
       "AAPL.US",
@@ -36,10 +37,10 @@ describe("getStockBasicInfo", () => {
   });
 
   it("should successfully fetch and format stock basic info", async () => {
-    const symbols = ["700.HK", "AAPL.US"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"];
     const mockLongportStaticInfos = [
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         nameCn: "腾讯控股",
         nameEn: "Tencent Holdings Ltd",
         nameHk: "騰訊控股",
@@ -73,7 +74,7 @@ describe("getStockBasicInfo", () => {
     expect(mockQuoteContext.staticInfo).toHaveBeenCalledWith(symbols);
     expect(result).toEqual([
       {
-        symbol: "700.HK",
+        symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         namecn: "腾讯控股",
         nameen: "Tencent Holdings Ltd",
         namehk: "騰訊控股",
@@ -136,14 +137,14 @@ describe("getStockBasicInfo", () => {
   });
 
   it("should throw an error if contextService is not provided", async () => {
-    const symbols = ["700.HK"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
     await expect(getStockBasicInfo.execute({ symbols })).rejects.toThrow(
       "LongportContextService 未提供",
     );
   });
 
   it("should throw an error if getQuoteContext fails", async () => {
-    const symbols = ["700.HK"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
     mockContextService.getQuoteContext.mockRejectedValue(
       new Error("Quote API error"),
     );
@@ -157,7 +158,7 @@ describe("getStockBasicInfo", () => {
   });
 
   it("should throw an error if staticInfo call fails", async () => {
-    const symbols = ["700.HK"];
+    const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
     mockQuoteContext.staticInfo.mockRejectedValue(
       new Error("Static info API error"),
     );

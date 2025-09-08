@@ -4,6 +4,8 @@ import { NotImplementedException } from "@nestjs/common";
 import { MarketQueryExecutor } from "../../../../../../../../src/core/01-entry/query/factories/executors/market-query.executor";
 import { QueryRequestDto } from "../../../../../../../../src/core/01-entry/query/dto/query-request.dto";
 import { QueryType } from "../../../../../../../../src/core/01-entry/query/dto/query-types.dto";
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("MarketQueryExecutor", () => {
   let executor: MarketQueryExecutor;
@@ -22,7 +24,7 @@ describe("MarketQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_MARKET,
         market: "HK",
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Act & Assert
@@ -39,7 +41,7 @@ describe("MarketQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_MARKET,
         market: "US",
-        queryTypeFilter: "get-stock-quote",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       };
 
       // Mock logger to capture logs
@@ -67,7 +69,7 @@ describe("MarketQueryExecutor", () => {
         const request: QueryRequestDto = {
           queryType: QueryType.BY_MARKET,
           market: market,
-          queryTypeFilter: "get-stock-quote",
+          queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         };
 
         await expect(executor.execute(request)).rejects.toThrow(
@@ -81,8 +83,8 @@ describe("MarketQueryExecutor", () => {
       const request: QueryRequestDto = {
         queryType: QueryType.BY_MARKET,
         market: "HK",
-        queryTypeFilter: "get-stock-quote",
-        provider: "longport",
+        queryTypeFilter: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         options: {
           includeFields: ["lastPrice", "volume", "marketCap"],
         },

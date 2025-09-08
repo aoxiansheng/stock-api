@@ -8,6 +8,7 @@ import { RateLimitService } from "../../../../../../../src/auth/services/rate-li
 import { Permission } from "../../../../../../../src/auth/enums/user-role.enum";
 
 import { createLogger } from "../../../../../../../src/app/config/logger.config";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 
 /**
  * WsAuthGuard 集成测试
@@ -201,7 +202,7 @@ describe("WsAuthGuard Integration (API Key)", () => {
     });
     (rateLimitService.checkRateLimit as jest.Mock).mockResolvedValue({
       allowed: false,
-      limit: 100,
+      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
       current: 120,
       remaining: 0,
       resetTime: Date.now() + 60000,

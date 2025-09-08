@@ -10,6 +10,9 @@ import { RateLimitGuard } from "../../../../../src/auth/guards/rate-limit.guard"
 import { RateLimitService } from "../../../../../src/auth/services/rate-limit.service";
 import { Reflector } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 
 describe("ProvidersController", () => {
   let controller: ProvidersController;
@@ -24,20 +27,20 @@ describe("ProvidersController", () => {
     const mockProviderCapabilities = new Map();
 
     // 添加get-stock-quote能力到longport提供商
-    mockProviderCapabilities.set("get-stock-quote", {
-      providerName: "longport",
+    mockProviderCapabilities.set(API_OPERATIONS.STOCK_DATA.GET_QUOTE, {
+      providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       capability: {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       },
       priority: 1,
       isEnabled: true,
     });
 
-    mockCapabilitiesMap.set("longport", mockProviderCapabilities);
+    mockCapabilitiesMap.set(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, mockProviderCapabilities);
 
     mockCapabilityRegistryService.getAllCapabilities.mockReturnValue(
       mockCapabilitiesMap,
@@ -80,7 +83,7 @@ describe("ProvidersController", () => {
           useValue: {
             checkRateLimit: jest
               .fn()
-              .mockResolvedValue({ allowed: true, limit: 100, current: 1 }),
+              .mockResolvedValue({ allowed: true, limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE, current: 1 }),
             consume: jest.fn().mockResolvedValue({}),
           },
         },
@@ -129,17 +132,17 @@ describe("ProvidersController", () => {
   describe("getAllCapabilities", () => {
     it("should return all capabilities grouped by provider", () => {
       const mockCapability1: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapability2: ICapability = {
         name: "get-stock-basic-info",
         description: "获取股票基本信息",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapability3: ICapability = {
@@ -155,12 +158,12 @@ describe("ProvidersController", () => {
         Map<string, ICapabilityRegistration>
       >([
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability1,
                 priority: 1,
                 isEnabled: true,
@@ -169,7 +172,7 @@ describe("ProvidersController", () => {
             [
               "get-stock-basic-info",
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability2,
                 priority: 1,
                 isEnabled: true,
@@ -205,7 +208,7 @@ describe("ProvidersController", () => {
       expect(result).toEqual({
         longport: [
           {
-            name: "get-stock-quote",
+            name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             description: "获取股票报价数据",
             supportedMarkets: ["HK", "US"],
             priority: 1,
@@ -262,14 +265,14 @@ describe("ProvidersController", () => {
 
   describe("getBestProviderWithoutMarket", () => {
     it("should return best provider for capability without market", () => {
-      const capability = "get-stock-quote";
+      const capability = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const mockBestProvider: ICapabilityRegistration = {
-        providerName: "longport",
+        providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: {
-          name: "get-stock-quote",
+          name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           description: "获取股票报价数据",
           supportedMarkets: ["HK", "US"],
-          supportedSymbolFormats: ["700.HK"],
+          supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           execute: jest.fn(),
         },
         priority: 1,
@@ -284,8 +287,8 @@ describe("ProvidersController", () => {
       // 准备一个模拟的能力映射
       const mockCapabilitiesMap = new Map();
       const mockProviderCapabilities = new Map();
-      mockProviderCapabilities.set("get-stock-quote", mockBestProvider);
-      mockCapabilitiesMap.set("longport", mockProviderCapabilities);
+      mockProviderCapabilities.set(API_OPERATIONS.STOCK_DATA.GET_QUOTE, mockBestProvider);
+      mockCapabilitiesMap.set(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, mockProviderCapabilities);
       capabilityRegistryService.getAllCapabilities.mockReturnValue(
         mockCapabilitiesMap,
       );
@@ -346,15 +349,15 @@ describe("ProvidersController", () => {
 
   describe("getBestProviderWithMarket", () => {
     it("should return best provider for capability with specific market", () => {
-      const capability = "get-stock-quote";
+      const capability = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const market = "HK";
       const mockBestProvider: ICapabilityRegistration = {
-        providerName: "longport",
+        providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: {
-          name: "get-stock-quote",
+          name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           description: "获取股票报价数据",
           supportedMarkets: ["HK", "US"],
-          supportedSymbolFormats: ["700.HK"],
+          supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           execute: jest.fn(),
         },
         priority: 1,
@@ -369,8 +372,8 @@ describe("ProvidersController", () => {
       // 准备一个模拟的能力映射
       const mockCapabilitiesMap = new Map();
       const mockProviderCapabilities = new Map();
-      mockProviderCapabilities.set("get-stock-quote", mockBestProvider);
-      mockCapabilitiesMap.set("longport", mockProviderCapabilities);
+      mockProviderCapabilities.set(API_OPERATIONS.STOCK_DATA.GET_QUOTE, mockBestProvider);
+      mockCapabilitiesMap.set(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, mockProviderCapabilities);
       capabilityRegistryService.getAllCapabilities.mockReturnValue(
         mockCapabilitiesMap,
       );
@@ -395,12 +398,12 @@ describe("ProvidersController", () => {
     });
 
     it("should handle US market requests", () => {
-      const capability = "get-stock-quote";
+      const capability = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const market = "US";
       const mockBestProvider: ICapabilityRegistration = {
-        providerName: "longport",
+        providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         capability: {
-          name: "get-stock-quote",
+          name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           description: "获取股票报价数据",
           supportedMarkets: ["HK", "US"],
           supportedSymbolFormats: ["AAPL.US"],
@@ -418,8 +421,8 @@ describe("ProvidersController", () => {
       // 准备一个模拟的能力映射
       const mockCapabilitiesMap = new Map();
       const mockProviderCapabilities = new Map();
-      mockProviderCapabilities.set("get-stock-quote", mockBestProvider);
-      mockCapabilitiesMap.set("longport", mockProviderCapabilities);
+      mockProviderCapabilities.set(API_OPERATIONS.STOCK_DATA.GET_QUOTE, mockBestProvider);
+      mockCapabilitiesMap.set(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, mockProviderCapabilities);
       capabilityRegistryService.getAllCapabilities.mockReturnValue(
         mockCapabilitiesMap,
       );
@@ -444,7 +447,7 @@ describe("ProvidersController", () => {
     });
 
     it("should handle unsupported market", () => {
-      const capability = "get-stock-quote";
+      const capability = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const market = "UNKNOWN";
       capabilityRegistryService.getBestProvider.mockReturnValue(null);
 
@@ -482,19 +485,19 @@ describe("ProvidersController", () => {
 
   describe("getProviderCapabilities", () => {
     it("should return capabilities for existing provider", () => {
-      const provider = "longport";
+      const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       const mockCapability1: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapability2: ICapability = {
         name: "get-stock-basic-info",
         description: "获取股票基本信息",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
 
@@ -503,12 +506,12 @@ describe("ProvidersController", () => {
         Map<string, ICapabilityRegistration>
       >([
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability1,
                 priority: 1,
                 isEnabled: true,
@@ -517,7 +520,7 @@ describe("ProvidersController", () => {
             [
               "get-stock-basic-info",
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability2,
                 priority: 1,
                 isEnabled: true,
@@ -554,7 +557,7 @@ describe("ProvidersController", () => {
         provider,
         capabilities: [
           {
-            name: "get-stock-quote",
+            name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
             description: "获取股票报价数据",
             supportedMarkets: ["HK", "US"],
             priority: 1,
@@ -578,17 +581,17 @@ describe("ProvidersController", () => {
         Map<string, ICapabilityRegistration>
       >([
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: {
-                  name: "get-stock-quote",
+                  name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
                   description: "获取股票报价数据",
                   supportedMarkets: ["HK", "US"],
-                  supportedSymbolFormats: ["700.HK"],
+                  supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
                   execute: jest.fn(),
                 },
                 priority: 1,
@@ -622,17 +625,17 @@ describe("ProvidersController", () => {
       >([
         ["empty_provider", new Map()],
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: {
-                  name: "get-stock-quote",
+                  name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
                   description: "获取股票报价数据",
                   supportedMarkets: ["HK", "US"],
-                  supportedSymbolFormats: ["700.HK"],
+                  supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
                   execute: jest.fn(),
                 },
                 priority: 1,
@@ -675,14 +678,14 @@ describe("ProvidersController", () => {
   describe("Integration Scenarios", () => {
     it("should handle multiple providers with overlapping capabilities", () => {
       const mockCapability1: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapability2: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取新加坡股票报价数据",
         supportedMarkets: ["SG"],
         supportedSymbolFormats: ["D05.SG"],
@@ -694,12 +697,12 @@ describe("ProvidersController", () => {
         Map<string, ICapabilityRegistration>
       >([
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability1,
                 priority: 1,
                 isEnabled: true,
@@ -711,7 +714,7 @@ describe("ProvidersController", () => {
           "longport_sg",
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
                 providerName: "longport_sg",
                 capability: mockCapability2,
@@ -729,24 +732,24 @@ describe("ProvidersController", () => {
 
       const result = controller.getAllCapabilities();
 
-      expect(result).toHaveProperty("longport");
+      expect(result).toHaveProperty(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(result).toHaveProperty("longport_sg");
-      expect(result["longport"][0].name).toBe("get-stock-quote");
-      expect(result["longport_sg"][0].name).toBe("get-stock-quote");
-      expect(result["longport"][0].supportedMarkets).toEqual(["HK", "US"]);
+      expect(result[REFERENCE_DATA.PROVIDER_IDS.LONGPORT][0].name).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
+      expect(result["longport_sg"][0].name).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
+      expect(result[REFERENCE_DATA.PROVIDER_IDS.LONGPORT][0].supportedMarkets).toEqual(["HK", "US"]);
       expect(result["longport_sg"][0].supportedMarkets).toEqual(["SG"]);
     });
 
     it("should handle provider selection logic correctly", () => {
-      const capability = "get-stock-quote";
+      const capability = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       const market = "HK";
 
-      const mockBestProviderName = "longport";
+      const mockBestProviderName = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       const mockBestProviderCapability: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
 
@@ -766,7 +769,7 @@ describe("ProvidersController", () => {
       // 准备一个模拟的能力映射
       const mockCapabilitiesMap = new Map();
       const mockProviderCapabilities = new Map();
-      mockProviderCapabilities.set("get-stock-quote", mockRegistration);
+      mockProviderCapabilities.set(API_OPERATIONS.STOCK_DATA.GET_QUOTE, mockRegistration);
       mockCapabilitiesMap.set(mockBestProviderName, mockProviderCapabilities);
       capabilityRegistryService.getAllCapabilities.mockReturnValue(
         mockCapabilitiesMap,
@@ -794,10 +797,10 @@ describe("ProvidersController", () => {
     it("should handle disabled providers correctly", () => {
       const provider = "disabled_provider";
       const mockCapability: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapabilities = new Map<
@@ -808,7 +811,7 @@ describe("ProvidersController", () => {
           "disabled_provider",
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
                 providerName: "disabled_provider",
                 capability: mockCapability,
@@ -842,7 +845,7 @@ describe("ProvidersController", () => {
     });
 
     it("should handle getBestProvider exceptions", () => {
-      const capability = "get-stock-quote";
+      const capability = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
       capabilityRegistryService.getBestProvider.mockImplementation(() => {
         throw new Error("Provider lookup failed");
       });
@@ -895,10 +898,10 @@ describe("ProvidersController", () => {
 
     it("should handle concurrent requests efficiently", async () => {
       const mockCapability1: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapabilities = new Map<
@@ -906,12 +909,12 @@ describe("ProvidersController", () => {
         Map<string, ICapabilityRegistration>
       >([
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability1,
                 priority: 1,
                 isEnabled: true,
@@ -932,8 +935,8 @@ describe("ProvidersController", () => {
       const results = await Promise.all(promises);
 
       results.forEach((result) => {
-        expect(result).toHaveProperty("longport");
-        expect(result["longport"]).toHaveLength(1);
+        expect(result).toHaveProperty(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+        expect(result[REFERENCE_DATA.PROVIDER_IDS.LONGPORT]).toHaveLength(1);
       });
       expect(
         capabilityRegistryService.getAllCapabilities,
@@ -943,12 +946,12 @@ describe("ProvidersController", () => {
 
   describe("Real-world Usage Scenarios", () => {
     it("should support typical stock quote provider lookup", () => {
-      const mockBestProviderName = "longport";
+      const mockBestProviderName = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       const mockBestProviderCapability: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
 
@@ -968,18 +971,18 @@ describe("ProvidersController", () => {
       // 准备一个模拟的能力映射
       const mockCapabilitiesMap = new Map();
       const mockProviderCapabilities = new Map();
-      mockProviderCapabilities.set("get-stock-quote", mockRegistration);
+      mockProviderCapabilities.set(API_OPERATIONS.STOCK_DATA.GET_QUOTE, mockRegistration);
       mockCapabilitiesMap.set(mockBestProviderName, mockProviderCapabilities);
       capabilityRegistryService.getAllCapabilities.mockReturnValue(
         mockCapabilitiesMap,
       );
 
       const hkResult = controller.getBestProviderWithMarket(
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "HK",
       );
       const usResult = controller.getBestProviderWithMarket(
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "US",
       );
 
@@ -1000,17 +1003,17 @@ describe("ProvidersController", () => {
 
     it("should support provider capability discovery", () => {
       const mockCapability1: ICapability = {
-        name: "get-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         description: "获取股票报价数据",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapability2: ICapability = {
         name: "get-stock-basic-info",
         description: "获取股票基本信息",
         supportedMarkets: ["HK", "US"],
-        supportedSymbolFormats: ["700.HK"],
+        supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         execute: jest.fn(),
       };
       const mockCapability3: ICapability = {
@@ -1026,12 +1029,12 @@ describe("ProvidersController", () => {
         Map<string, ICapabilityRegistration>
       >([
         [
-          "longport",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           new Map([
             [
-              "get-stock-quote",
+              API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability1,
                 priority: 1,
                 isEnabled: true,
@@ -1040,7 +1043,7 @@ describe("ProvidersController", () => {
             [
               "get-stock-basic-info",
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability2,
                 priority: 1,
                 isEnabled: true,
@@ -1049,7 +1052,7 @@ describe("ProvidersController", () => {
             [
               "get-index-quote",
               {
-                providerName: "longport",
+                providerName: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
                 capability: mockCapability3,
                 priority: 1,
                 isEnabled: true,
@@ -1063,11 +1066,11 @@ describe("ProvidersController", () => {
         mockAllCapabilities,
       );
 
-      const result = controller.getProviderCapabilities("longport");
+      const result = controller.getProviderCapabilities(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
 
       expect(result.capabilities).toHaveLength(3);
       expect(result.capabilities.map((c) => c.name)).toEqual([
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         "get-stock-basic-info",
         "get-index-quote",
       ]);

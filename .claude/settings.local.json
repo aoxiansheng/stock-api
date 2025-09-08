@@ -243,7 +243,11 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/common --testTimeout=30000 --config test/config/jest.unit.config.js)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/common/constants/error-messages.constants.spec.ts --testTimeout=30000)",
       "Bash(DISABLE_AUTO_INIT=true npx tsc --noEmit --project .)",
-      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/semantic/message-semantics.constants.ts)"
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/semantic/message-semantics.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/api-operations.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/monitoring-business.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/operation-limits.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/reference-data.constants.ts)"
     ],
     "deny": []
   }

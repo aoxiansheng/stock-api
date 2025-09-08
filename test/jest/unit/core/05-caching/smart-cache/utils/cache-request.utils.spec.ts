@@ -1,9 +1,11 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import {
   buildCacheOrchestratorRequest,
   buildUnifiedCacheKey,
   createStableSymbolsHash,
   extractMarketFromSymbols,
-  inferMarketFromSymbol,
+  inferMarketFromSymbol
 } from "../../../../../../../src/core/05-caching/smart-cache/utils/smart-cache-request.utils";
 import { CacheStrategy } from "../../../../../../../src/core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
 import { Market } from "../../../../../../../src/common/constants/domain/market-domain.constants";
@@ -11,7 +13,7 @@ import { Market } from "../../../../../../../src/common/constants/domain/market-
 describe("Cache Request Utils", () => {
   describe("createStableSymbolsHash", () => {
     it("should generate consistent hash for same symbols in same order", () => {
-      const symbols = ["700.HK", "AAPL", "000001.SZ"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "000001.SZ"];
       const hash1 = createStableSymbolsHash(symbols);
       const hash2 = createStableSymbolsHash(symbols);
 
@@ -20,8 +22,8 @@ describe("Cache Request Utils", () => {
     });
 
     it("should generate consistent hash for same symbols in different order", () => {
-      const symbols1 = ["700.HK", "AAPL", "000001.SZ"];
-      const symbols2 = ["AAPL", "000001.SZ", "700.HK"];
+      const symbols1 = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "000001.SZ"];
+      const symbols2 = ["AAPL", "000001.SZ", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       const hash1 = createStableSymbolsHash(symbols1);
       const hash2 = createStableSymbolsHash(symbols2);
 
@@ -29,8 +31,8 @@ describe("Cache Request Utils", () => {
     });
 
     it("should generate different hash for different symbols", () => {
-      const symbols1 = ["700.HK", "AAPL"];
-      const symbols2 = ["700.HK", "TSLA"];
+      const symbols1 = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"];
+      const symbols2 = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "TSLA"];
       const hash1 = createStableSymbolsHash(symbols1);
       const hash2 = createStableSymbolsHash(symbols2);
 
@@ -42,7 +44,7 @@ describe("Cache Request Utils", () => {
     });
 
     it("should handle single symbol", () => {
-      const hash = createStableSymbolsHash(["700.HK"]);
+      const hash = createStableSymbolsHash([REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT]);
       expect(hash).toMatch(/^[a-f0-9]{16}$/);
     });
 
@@ -55,7 +57,7 @@ describe("Cache Request Utils", () => {
 
   describe("buildUnifiedCacheKey", () => {
     it("should build cache key for single symbol", () => {
-      const symbols = ["700.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       const prefix = "get-stock-quote:longport";
 
       const cacheKey = buildUnifiedCacheKey(prefix, symbols);
@@ -63,7 +65,7 @@ describe("Cache Request Utils", () => {
     });
 
     it("should build cache key for multiple symbols (≤5)", () => {
-      const symbols = ["700.HK", "AAPL"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"];
       const prefix = "get-stock-quote:longport";
 
       const cacheKey = buildUnifiedCacheKey(prefix, symbols);
@@ -71,7 +73,7 @@ describe("Cache Request Utils", () => {
     });
 
     it("should build cache key with additional parameters", () => {
-      const symbols = ["700.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       const prefix = "get-stock-quote:longport";
       const additionalParams = {
         queryId: "test-123",
@@ -111,7 +113,7 @@ describe("Cache Request Utils", () => {
     });
 
     it("should throw error for empty prefix", () => {
-      const symbols = ["700.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT];
       const prefix = "";
 
       expect(() => buildUnifiedCacheKey(prefix, symbols)).toThrow(
@@ -131,7 +133,7 @@ describe("Cache Request Utils", () => {
 
   describe("inferMarketFromSymbol", () => {
     it("should infer HK market correctly", () => {
-      expect(inferMarketFromSymbol("700.HK")).toBe(Market.HK);
+      expect(inferMarketFromSymbol(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT)).toBe(Market.HK);
       expect(inferMarketFromSymbol("00700.HK")).toBe(Market.HK);
       expect(inferMarketFromSymbol("9988.HK")).toBe(Market.HK);
     });
@@ -171,14 +173,14 @@ describe("Cache Request Utils", () => {
 
   describe("extractMarketFromSymbols", () => {
     it("should extract market from first symbol", () => {
-      const symbols = ["700.HK", "AAPL", "000001.SZ", "600000.SH", "TSLA"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "000001.SZ", "600000.SH", "TSLA"];
       const market = extractMarketFromSymbols(symbols);
 
       expect(market).toBe("HK"); // Returns string based on first symbol
     });
 
     it("should handle HK symbols", () => {
-      const symbols = ["700.HK", "9988.HK", "0005.HK"];
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "9988.HK", "0005.HK"];
       const market = extractMarketFromSymbols(symbols);
 
       expect(market).toBe("HK");
@@ -250,9 +252,9 @@ describe("Cache Request Utils", () => {
 
     it("should build complete orchestrator request", () => {
       const options = {
-        symbols: ["700.HK", "AAPL"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "test-123",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.STRONG_TIMELINESS,
@@ -266,12 +268,12 @@ describe("Cache Request Utils", () => {
           /^receiver:get-stock-quote:700\.HK\|AAPL:provider:longport$/,
         ),
         strategy: CacheStrategy.STRONG_TIMELINESS,
-        symbols: ["700.HK", "AAPL"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
         fetchFn: mockExecuteOriginalDataFlow,
         metadata: {
           marketStatus: mockMarketStatus,
-          provider: "longport",
-          receiverType: "get-stock-quote",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           queryId: "test-123",
         },
       });
@@ -279,9 +281,9 @@ describe("Cache Request Utils", () => {
 
     it("should generate stable cache key for same inputs", () => {
       const options = {
-        symbols: ["700.HK", "AAPL"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "test-123",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.STRONG_TIMELINESS,
@@ -297,8 +299,8 @@ describe("Cache Request Utils", () => {
     it("should handle different strategies", () => {
       const options = {
         symbols: ["600000.SH"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "test-456",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.MARKET_AWARE,
@@ -336,8 +338,8 @@ describe("Cache Request Utils", () => {
       const customFetchFn = jest.fn().mockResolvedValue({ custom: "data" });
       const options = {
         symbols: ["TSLA"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "test-789",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.NO_CACHE,
@@ -352,8 +354,8 @@ describe("Cache Request Utils", () => {
     it("should include all metadata correctly", () => {
       const options = {
         symbols: ["MSFT"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "metadata-test",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.ADAPTIVE,
@@ -364,8 +366,8 @@ describe("Cache Request Utils", () => {
 
       expect(request.metadata).toEqual({
         marketStatus: mockMarketStatus,
-        provider: "longport",
-        receiverType: "get-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         queryId: "metadata-test",
       });
     });
@@ -373,8 +375,8 @@ describe("Cache Request Utils", () => {
     it("should handle single symbol correctly", () => {
       const options = {
         symbols: ["GOOGL"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "single-symbol",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.STRONG_TIMELINESS,
@@ -391,9 +393,9 @@ describe("Cache Request Utils", () => {
 
     it("should handle multiple symbols with different markets", () => {
       const options = {
-        symbols: ["700.HK", "AAPL", "000001.SZ", "600000.SH"],
-        receiverType: "get-stock-quote",
-        provider: "longport",
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "000001.SZ", "600000.SH"],
+        receiverType: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         queryId: "multi-market",
         marketStatus: mockMarketStatus,
         strategy: CacheStrategy.MARKET_AWARE,
@@ -411,9 +413,9 @@ describe("Cache Request Utils", () => {
 
   describe("Integration Tests", () => {
     it("should work together to build complete cache request", () => {
-      const symbols = ["700.HK", "AAPL", "000001.SZ"];
-      const receiverType = "get-stock-quote";
-      const provider = "longport";
+      const symbols = [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL", "000001.SZ"];
+      const receiverType = API_OPERATIONS.STOCK_DATA.GET_QUOTE;
+      const provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       const queryId = "integration-test";
 
       // Step 1: Extract market (returns string from first symbol)

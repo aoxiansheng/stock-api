@@ -1,4 +1,8 @@
 import { Controller, Get, Param } from "@nestjs/common";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS
+} from '@common/constants/domain';
 import {
   ApiTags,
   ApiOperation,
@@ -73,7 +77,7 @@ export class ProvidersController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Throttle({ default: { ttl: 60000, limit: 100 } })
+  @Throttle({ default: { ttl: 60000, limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE } })
   @Get("capabilities")
   @ApiOperation({
     summary: "获取所有可用能力",
@@ -90,7 +94,7 @@ export class ProvidersController {
         data: {
           longport: [
             {
-              name: "get-stock-quote",
+              name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               description: "获取股票实时报价",
               supportedMarkets: ["HK", "US"],
               priority: 1,
@@ -107,7 +111,7 @@ export class ProvidersController {
             },
           ],
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -128,7 +132,7 @@ export class ProvidersController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Throttle({ default: { ttl: 60000, limit: 100 } })
+  @Throttle({ default: { ttl: 60000, limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE } })
   @Get("stream-capabilities")
   @ApiOperation({
     summary: "获取所有可用流能力",
@@ -145,7 +149,7 @@ export class ProvidersController {
         data: {
           longport: [
             {
-              name: "stream-stock-quote",
+              name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
               description: "LongPort实时股票报价流",
               supportedMarkets: ["HK", "US", "SZ", "SH"],
               supportedSymbolFormats: ["{symbol}.{market}", "{symbol}"],
@@ -154,7 +158,7 @@ export class ProvidersController {
             },
           ],
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -188,7 +192,7 @@ export class ProvidersController {
   @ApiParam({
     name: "capability",
     description: "能力名称",
-    example: "get-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   })
   @ApiSecurity("ApiKey")
   @ApiSuccessResponse({
@@ -198,17 +202,17 @@ export class ProvidersController {
         statusCode: 200,
         message: "获取最佳提供商成功",
         data: {
-          capability: "get-stock-quote",
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           market: null,
           bestProvider: {
-            name: "longport",
+            name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             priority: 1,
             isEnabled: true,
             supportedMarkets: ["HK", "US"],
             description: "获取股票实时报价",
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -220,7 +224,7 @@ export class ProvidersController {
         statusCode: 404,
         message: "未找到支持该能力的提供商",
         error: "Not Found",
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/providers/best-provider/invalid-capability",
       },
     },
@@ -254,7 +258,7 @@ export class ProvidersController {
   @ApiParam({
     name: "capability",
     description: "能力名称",
-    example: "get-stock-quote",
+    example: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   })
   @ApiParam({
     name: "market",
@@ -270,17 +274,17 @@ export class ProvidersController {
         statusCode: 200,
         message: "获取最佳提供商成功",
         data: {
-          capability: "get-stock-quote",
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           market: "HK",
           bestProvider: {
-            name: "longport",
+            name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
             priority: 1,
             isEnabled: true,
             supportedMarkets: ["HK", "US"],
             description: "获取股票实时报价",
           },
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -292,7 +296,7 @@ export class ProvidersController {
         statusCode: 404,
         message: "未找到支持该能力的提供商",
         error: "Not Found",
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/providers/best-provider/invalid-capability/HK",
       },
     },
@@ -329,7 +333,7 @@ export class ProvidersController {
   @ApiParam({
     name: "provider",
     description: "提供商名称",
-    example: "longport",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @ApiSecurity("ApiKey")
   @ApiSuccessResponse({
@@ -339,10 +343,10 @@ export class ProvidersController {
         statusCode: 200,
         message: "获取提供商能力列表成功",
         data: {
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           capabilities: [
             {
-              name: "get-stock-quote",
+              name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
               description: "获取股票实时报价",
               supportedMarkets: ["HK", "US"],
               priority: 1,
@@ -357,7 +361,7 @@ export class ProvidersController {
             },
           ],
         },
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
     },
   })
@@ -369,7 +373,7 @@ export class ProvidersController {
         statusCode: 404,
         message: "提供商不存在",
         error: "Not Found",
-        timestamp: "2024-01-01T12:00:00.000Z",
+        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
         path: "/providers/invalid-provider/capabilities",
       },
     },

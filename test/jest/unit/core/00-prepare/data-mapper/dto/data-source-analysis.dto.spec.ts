@@ -1,6 +1,7 @@
 import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import {
+import { REFERENCE_DATA } from '@common/constants/domain';
   AnalyzeDataSourceDto,
   CreateDataSourceTemplateDto,
   DataSourceAnalysisResponseDto,
@@ -17,7 +18,7 @@ describe("DataSourceAnalysisDto", () => {
       const dto = plainToClass(AnalyzeDataSourceDto, {
         apiType: "rest",
         sampleData: {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           last_done: 561,
           volume: 11292534,
         },
@@ -45,10 +46,10 @@ describe("DataSourceAnalysisDto", () => {
 
     it("should be valid with all optional fields", async () => {
       const dto = plainToClass(AnalyzeDataSourceDto, {
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "stream",
         sampleData: {
-          symbol: "700.HK",
+          symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           last_done: 561,
         },
         name: "LongPort Stream",
@@ -59,7 +60,7 @@ describe("DataSourceAnalysisDto", () => {
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
-      expect(dto.provider).toBe("longport");
+      expect(dto.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(dto.dataType).toBe("basic_info_fields");
       expect(dto.saveAsTemplate).toBe(true);
     });
@@ -67,7 +68,7 @@ describe("DataSourceAnalysisDto", () => {
     it("should fail validation with invalid apiType", async () => {
       const dto = plainToClass(AnalyzeDataSourceDto, {
         apiType: "invalid",
-        sampleData: { symbol: "700.HK" },
+        sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
       });
 
       const errors = await validate(dto);
@@ -83,7 +84,7 @@ describe("DataSourceAnalysisDto", () => {
     it("should fail validation with invalid dataType", async () => {
       const dto = plainToClass(AnalyzeDataSourceDto, {
         apiType: "rest",
-        sampleData: { symbol: "700.HK" },
+        sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         dataType: "invalid",
       });
 
@@ -96,15 +97,15 @@ describe("DataSourceAnalysisDto", () => {
     it("should be valid with correct data", async () => {
       const dto = plainToClass(CreateDataSourceTemplateDto, {
         name: "LongPort Quote Template",
-        provider: "longport",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         apiType: "rest",
-        sampleData: { symbol: "700.HK" },
+        sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         extractedFields: [
           {
             fieldName: "symbol",
             fieldPath: "symbol",
             fieldType: "string",
-            sampleValue: "700.HK",
+            sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             confidence: 1,
             isNested: false,
             nestingLevel: 0,
@@ -124,7 +125,7 @@ describe("DataSourceAnalysisDto", () => {
         provider: "custom",
         apiType: "stream",
         description: "Custom data source template",
-        sampleData: { symbol: "700.HK" },
+        sampleData: { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT },
         extractedFields: [],
 
         isDefault: true,
@@ -164,7 +165,7 @@ describe("DataSourceAnalysisDto", () => {
         fieldName: "symbol",
         fieldPath: "symbol",
         fieldType: "string",
-        sampleValue: "700.HK",
+        sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
         confidence: 0.95,
         isNested: false,
         nestingLevel: 0,
@@ -172,7 +173,7 @@ describe("DataSourceAnalysisDto", () => {
 
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);
-      expect(dto.sampleValue).toBe("700.HK");
+      expect(dto.sampleValue).toBe(REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT);
       expect(dto.confidence).toBe(0.95);
     });
 
@@ -291,15 +292,15 @@ describe("DataSourceAnalysisDto", () => {
   describe("DataSourceAnalysisResponseDto", () => {
     it("should create response dto correctly", () => {
       const dto = new DataSourceAnalysisResponseDto();
-      dto.provider = "longport";
+      dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       dto.apiType = "rest";
-      dto.sampleData = { symbol: "700.HK" };
+      dto.sampleData = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT };
       dto.extractedFields = [
         {
           fieldName: "symbol",
           fieldPath: "symbol",
           fieldType: "string",
-          sampleValue: "700.HK",
+          sampleValue: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           confidence: 0.95,
           isNested: false,
           nestingLevel: 0,
@@ -321,9 +322,9 @@ describe("DataSourceAnalysisDto", () => {
       const dto = new DataSourceTemplateResponseDto();
       dto.id = "507f1f77bcf86cd799439011";
       dto.name = "LongPort Template";
-      dto.provider = "longport";
+      dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       dto.apiType = "rest";
-      dto.sampleData = { symbol: "700.HK" };
+      dto.sampleData = { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT };
       dto.extractedFields = [];
 
       dto.totalFields = 0;

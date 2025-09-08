@@ -1,3 +1,5 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from "@nestjs/testing";
 import { createLogger } from "@app/config/logger.config";
@@ -28,10 +30,10 @@ const mockStat = stat as jest.MockedFunction<typeof stat>;
 
 // Mock stream capability
 const mockStreamCapability: IStreamCapability = {
-  name: "stream-stock-quote",
+  name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
   description: "获取股票实时报价数据流",
   supportedMarkets: [MARKETS.HK, MARKETS.US],
-  supportedSymbolFormats: ["700.HK", "AAPL.US"],
+  supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
   rateLimit: {
     maxConnections: 100,
     maxSubscriptionsPerConnection: 200,
@@ -79,7 +81,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should register stream capability successfully", () => {
       // Execute
       service.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -87,14 +89,14 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify
       const retrievedCapability = service.getStreamCapability(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
       expect(retrievedCapability).toBe(mockStreamCapability);
       expect(mockLogger.log).toHaveBeenCalledWith({
         message: "流能力注册成功",
-        provider: "longport",
-        capability: "stream-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         priority: 1,
       });
     });
@@ -103,7 +105,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Setup
       const capability1 = {
         ...mockStreamCapability,
-        name: "stream-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
       const capability2 = {
         ...mockStreamCapability,
@@ -111,22 +113,22 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       };
 
       // Execute
-      service.registerStreamCapability("longport", capability1, 1, true);
-      service.registerStreamCapability("longport", capability2, 2, true);
+      service.registerStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, capability1, 1, true);
+      service.registerStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, capability2, 2, true);
 
       // Verify
       expect(
-        service.getStreamCapability("longport", "stream-stock-quote"),
+        service.getStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, API_OPERATIONS.STOCK_DATA.STREAM_QUOTE),
       ).toBe(capability1);
       expect(
-        service.getStreamCapability("longport", "stream-index-quote"),
+        service.getStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "stream-index-quote"),
       ).toBe(capability2);
     });
 
     it("should register stream capabilities for multiple providers", () => {
       // Execute
       service.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -140,17 +142,17 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify
       expect(
-        service.getStreamCapability("longport", "stream-stock-quote"),
+        service.getStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, API_OPERATIONS.STOCK_DATA.STREAM_QUOTE),
       ).toBe(mockStreamCapability);
       expect(
-        service.getStreamCapability("longport-sg", "stream-stock-quote"),
+        service.getStreamCapability("longport-sg", API_OPERATIONS.STOCK_DATA.STREAM_QUOTE),
       ).toBe(mockStreamCapability);
     });
 
     it("should handle disabled stream capabilities", () => {
       // Execute
       service.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         false,
@@ -158,8 +160,8 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify
       const retrievedCapability = service.getStreamCapability(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
       expect(retrievedCapability).toBeNull();
     });
@@ -168,7 +170,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
   describe("getStreamCapability()", () => {
     beforeEach(() => {
       service.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -178,8 +180,8 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should return stream capability when exists and enabled", () => {
       // Execute
       const capability = service.getStreamCapability(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
 
       // Verify
@@ -190,7 +192,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Execute
       const capability = service.getStreamCapability(
         "non-existent",
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
 
       // Verify
@@ -200,7 +202,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should return null when capability does not exist", () => {
       // Execute
       const capability = service.getStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         "non-existent-capability",
       );
 
@@ -220,7 +222,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Execute
       const capability = service.getStreamCapability(
         "disabled-provider",
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
 
       // Verify
@@ -233,7 +235,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Clear any existing registrations and setup fresh providers
       // Note: We use a clean service instance per test to avoid cross-test contamination
       service.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         2,
         true,
@@ -254,7 +256,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
     it("should return provider with highest priority (lowest number)", () => {
       // Execute
-      const bestProvider = service.getBestStreamProvider("stream-stock-quote");
+      const bestProvider = service.getBestStreamProvider(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
 
       // Verify
       expect(bestProvider).toBe("longport-sg"); // priority 1
@@ -275,11 +277,11 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Execute
       const bestProviderForHK = service.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.HK,
       );
       const bestProviderForSZ = service.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.SZ,
       );
 
@@ -292,15 +294,15 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Setup - update status to error
       service.updateStreamCapabilityStatus(
         "longport-sg",
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
 
       // Execute
-      const bestProvider = service.getBestStreamProvider("stream-stock-quote");
+      const bestProvider = service.getBestStreamProvider(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
 
       // Verify
-      expect(bestProvider).toBe("longport"); // Skip longport-sg due to error status
+      expect(bestProvider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT); // Skip longport-sg due to error status
     });
 
     it("should return null when no providers available", () => {
@@ -330,7 +332,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       );
 
       // Execute
-      const bestProvider = service2.getBestStreamProvider("stream-stock-quote");
+      const bestProvider = service2.getBestStreamProvider(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
 
       // Verify
       expect(bestProvider).toBeNull();
@@ -375,15 +377,15 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Execute
       const hkProvider = freshService.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.HK,
       );
       const usProvider = freshService.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.US,
       );
       const szProvider = freshService.getBestStreamProvider(
-        "stream-stock-quote",
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         MARKETS.SZ,
       );
 
@@ -411,15 +413,15 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Setup
       const capability1 = {
         ...mockStreamCapability,
-        name: "stream-stock-quote",
+        name: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       };
       const capability2 = {
         ...mockStreamCapability,
         name: "stream-index-quote",
       };
 
-      service.registerStreamCapability("longport", capability1, 1, true);
-      service.registerStreamCapability("longport", capability2, 2, true);
+      service.registerStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, capability1, 1, true);
+      service.registerStreamCapability(REFERENCE_DATA.PROVIDER_IDS.LONGPORT, capability2, 2, true);
       service.registerStreamCapability("other-provider", capability1, 1, true);
 
       // Execute
@@ -427,7 +429,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify
       expect(capabilities.size).toBe(2); // 2 providers
-      expect(capabilities.get("longport")?.size).toBe(2); // 2 capabilities for longport
+      expect(capabilities.get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)?.size).toBe(2); // 2 capabilities for longport
       expect(capabilities.get("other-provider")?.size).toBe(1); // 1 capability for other-provider
     });
   });
@@ -435,7 +437,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
   describe("updateStreamCapabilityStatus()", () => {
     beforeEach(() => {
       service.registerStreamCapability(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -445,23 +447,23 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should update status to connected", () => {
       // Execute
       service.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "connected",
       );
 
       // Verify
       const capabilities = service.getAllStreamCapabilities();
       const registration = capabilities
-        .get("longport")
-        ?.get("stream-stock-quote");
+        .get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)
+        ?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(registration?.connectionStatus).toBe("connected");
       expect(registration?.lastConnectedAt).toBeInstanceOf(Date);
       expect(registration?.errorCount).toBe(0);
       expect(mockLogger.log).toHaveBeenCalledWith({
         message: "流能力状态更新",
-        provider: "longport",
-        capability: "stream-stock-quote",
+        provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        capability: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         status: "connected",
         errorCount: 0,
       });
@@ -470,21 +472,21 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should update status to error and increment error count", () => {
       // Execute
       service.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
       service.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
 
       // Verify
       const capabilities = service.getAllStreamCapabilities();
       const registration = capabilities
-        .get("longport")
-        ?.get("stream-stock-quote");
+        .get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)
+        ?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(registration?.connectionStatus).toBe("error");
       expect(registration?.errorCount).toBe(2);
     });
@@ -492,28 +494,28 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should reset error count when connecting successfully", () => {
       // Setup - set error status first
       service.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
       service.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "error",
       );
 
       // Execute - connect successfully
       service.updateStreamCapabilityStatus(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         "connected",
       );
 
       // Verify
       const capabilities = service.getAllStreamCapabilities();
       const registration = capabilities
-        .get("longport")
-        ?.get("stream-stock-quote");
+        .get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)
+        ?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
       expect(registration?.connectionStatus).toBe("connected");
       expect(registration?.errorCount).toBe(0);
     });
@@ -542,16 +544,16 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       statuses.forEach((status) => {
         // Execute
         service.updateStreamCapabilityStatus(
-          "longport",
-          "stream-stock-quote",
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
           status,
         );
 
         // Verify
         const capabilities = service.getAllStreamCapabilities();
         const registration = capabilities
-          .get("longport")
-          ?.get("stream-stock-quote");
+          .get(REFERENCE_DATA.PROVIDER_IDS.LONGPORT)
+          ?.get(API_OPERATIONS.STOCK_DATA.STREAM_QUOTE);
         expect(registration?.connectionStatus).toBe(status);
       });
     });
@@ -571,7 +573,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
       // Setup mock for discovery
       mockReaddir
         .mockResolvedValueOnce([
-          { name: "longport", isDirectory: () => true } as any,
+          { name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, isDirectory: () => true } as any,
         ] as any) // Provider directories
         .mockResolvedValueOnce([
           "stream-stock-quote.ts",
@@ -622,16 +624,16 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify
       expect(loadCapabilitySpy).toHaveBeenCalledWith(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
       );
       expect(loadStreamSpy).toHaveBeenCalledWith(
-        "longport",
-        "stream-stock-quote",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
         mockStreamCapability,
       );
       expect(registerStreamSpy).toHaveBeenCalledWith(
-        "longport",
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
         mockStreamCapability,
         1,
         true,
@@ -730,7 +732,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
     it("should correctly identify stream capabilities by name prefix", async () => {
       // Note: This test demonstrates the concept of stream vs REST capability distinction
       // Stream capabilities use the 'stream-' prefix in their names
-      // REST capabilities use standard names like 'get-stock-quote'
+      // REST capabilities use standard names like API_OPERATIONS.STOCK_DATA.GET_QUOTE
 
       // The actual capability loading would require complex dynamic import mocking
       // This logic is tested indirectly through the integration tests above
@@ -784,7 +786,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify registration
       expect(
-        service.getStreamCapability("temp-provider", "stream-stock-quote"),
+        service.getStreamCapability("temp-provider", API_OPERATIONS.STOCK_DATA.STREAM_QUOTE),
       ).toBe(mockStreamCapability);
 
       // Manual cleanup (since there's no explicit cleanup method)
@@ -793,7 +795,7 @@ describe("CapabilityRegistryService - Stream Capabilities", () => {
 
       // Verify cleanup
       expect(
-        service.getStreamCapability("temp-provider", "stream-stock-quote"),
+        service.getStreamCapability("temp-provider", API_OPERATIONS.STOCK_DATA.STREAM_QUOTE),
       ).toBeNull();
     });
   });

@@ -1,3 +1,5 @@
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { io, Socket } from "socket.io-client";
 
@@ -117,7 +119,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
     return new Promise((resolve, reject) => {
       const connectionOptions: any = {
         transports: ["websocket"],
-        timeout: 10000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.DATABASE_OPERATION,
       };
 
       if (auth) {
@@ -176,7 +178,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
           `${serverAddress}/api/v1/stream-receiver/connect`,
           {
             transports: ["websocket"],
-            timeout: 5000,
+            timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
             auth: {
               "X-App-Key": "invalid-key",
               "X-Access-Token": "invalid-token",
@@ -259,7 +261,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
 
       // Act
       const subscribeData = {
-        symbols: ["AAPL", "700.HK", "000001.SZ"],
+        symbols: ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ"],
         streamType: "stock-quote",
         options: {
           realtime: true,
@@ -447,7 +449,7 @@ describe("Stream Receiver Gateway E2E Tests", () => {
           "MSFT",
           "AMZN",
           "TSLA",
-          "700.HK",
+          REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
           "5.HK",
           "1299.HK",
           "000001.SZ",

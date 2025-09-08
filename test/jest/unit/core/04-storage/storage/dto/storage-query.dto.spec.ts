@@ -2,6 +2,7 @@ import { validate } from "class-validator";
 import { plainToClass } from "class-transformer";
 import { StorageQueryDto } from "@core/04-storage/storage/dto/storage-query.dto";
 import { StorageClassification } from "../../../../../../../src/core/shared/types/storage-classification.enum";
+import { REFERENCE_DATA } from '@common/constants/domain';
 
 describe("StorageQueryDto", () => {
   describe("Validation Rules", () => {
@@ -32,7 +33,7 @@ describe("StorageQueryDto", () => {
     it("should pass validation with valid string fields", async () => {
       const dto = new StorageQueryDto();
       dto.keySearch = "valid-key";
-      dto.provider = "longport";
+      dto.provider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
       dto.market = "HK";
       const errors = await validate(dto);
       expect(errors.length).toBe(0);

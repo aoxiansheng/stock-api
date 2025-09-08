@@ -3,7 +3,11 @@ import { DataFetcherService } from "../../../../../../../src/core/03-fetching/da
 import { DataFetcherModule } from "../../../../../../../src/core/03-fetching/data-fetcher/module/data-fetcher.module";
 import { ProvidersModule } from "../../../../../../../src/providers/module/providers-sg.module";
 import { CapabilityRegistryService } from "../../../../../../../src/providers/services/capability-registry.service";
+import { OPERATION_LIMITS } from '@common/constants/domain';
+import { REFERENCE_DATA } from '@common/constants/domain';
 import {
+  import { API_OPERATIONS
+} from '@common/constants/domain';
   DataFetchParams,
   RawDataResult,
 } from "../../../../../../../src/core/03-fetching/data-fetcher/interfaces/data-fetcher.interface";
@@ -21,10 +25,10 @@ describe("DataFetcherService Integration", () => {
 
   // Mock capability that simulates a real provider capability
   const mockCapability: ICapability & { execute: jest.Mock } = {
-    name: "get-stock-quote",
+    name: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     description: "Mock stock quote capability for testing",
     supportedMarkets: [Market.HK, Market.US],
-    supportedSymbolFormats: ["700.HK", "AAPL.US"],
+    supportedSymbolFormats: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
     execute: jest.fn(),
   };
 
@@ -66,7 +70,7 @@ describe("DataFetcherService Integration", () => {
       const mockRawData = {
         secu_quote: [
           {
-            symbol: "700.HK",
+            symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
             lastdone: 320.5,
             volume: 1500000,
             prev_close: 318.0,
@@ -94,8 +98,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK", "AAPL.US"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
         requestId: "integration-test-001",
         apiType: "rest",
         options: { includeAfterHours: true },
@@ -107,17 +111,17 @@ describe("DataFetcherService Integration", () => {
       expect(result.data).toEqual(mockRawData.secu_quote);
       expect(result.metadata).toBeDefined();
       expect(result.metadata.provider).toBe("test-provider");
-      expect(result.metadata.capability).toBe("get-stock-quote");
+      expect(result.metadata.capability).toBe(API_OPERATIONS.STOCK_DATA.GET_QUOTE);
       expect(result.metadata.symbolsProcessed).toBe(2);
       expect(result.metadata.processingTime).toBeGreaterThan(0);
 
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
 
       expect(mockCapability.execute).toHaveBeenCalledWith({
-        symbols: ["700.HK", "AAPL.US"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
         contextService: { apiKey: "test-key" },
         requestId: "integration-test-001",
         context: {
@@ -133,8 +137,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "integration-test-002",
         contextService: { apiKey: "test-key" },
       };
@@ -152,7 +156,7 @@ describe("DataFetcherService Integration", () => {
       const params: DataFetchParams = {
         provider: "nonexistent-provider",
         capability: "nonexistent-capability",
-        symbols: ["700.HK"],
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "integration-test-003",
         contextService: null,
       };
@@ -165,7 +169,7 @@ describe("DataFetcherService Integration", () => {
     it("should process different data formats correctly", async () => {
       // Test array format
       const arrayData = [
-        { symbol: "700.HK", price: 320.5 },
+        { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, price: 320.5 },
         { symbol: "AAPL.US", price: 175.25 },
       ];
 
@@ -173,8 +177,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK", "AAPL.US"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US"],
         requestId: "integration-test-004",
         contextService: { apiKey: "test-key" },
       };
@@ -194,13 +198,13 @@ describe("DataFetcherService Integration", () => {
 
       const isSupported = await service.supportsCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
 
       expect(isSupported).toBe(true);
       expect(capabilityRegistryService.getCapability).toHaveBeenCalledWith(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
     });
 
@@ -226,7 +230,7 @@ describe("DataFetcherService Integration", () => {
 
       const isSupported = await service.supportsCapability(
         "test-provider",
-        "get-stock-quote",
+        API_OPERATIONS.STOCK_DATA.GET_QUOTE,
       );
 
       expect(isSupported).toBe(false);
@@ -238,7 +242,7 @@ describe("DataFetcherService Integration", () => {
       const mockContextService = {
         apiKey: "test-key",
         endpoint: "https://api.test.com",
-        timeout: 5000,
+        timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
       };
 
       mockProvider.getContextService.mockResolvedValue(mockContextService);
@@ -293,7 +297,7 @@ describe("DataFetcherService Integration", () => {
   describe("batch processing integration", () => {
     it("should process multiple requests concurrently", async () => {
       const mockQuoteData = {
-        secu_quote: [{ symbol: "700.HK", last_done: 320.5 }],
+        secu_quote: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, last_done: 320.5 }],
       };
 
       const mockInfoData = {
@@ -316,14 +320,14 @@ describe("DataFetcherService Integration", () => {
       const requests: DataFetchRequestDto[] = [
         {
           provider: "test-provider",
-          capability: "get-stock-quote",
-          symbols: ["700.HK"],
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           requestId: "batch-1",
           apiType: ApiType.REST,
         },
         {
           provider: "test-provider",
-          capability: "get-stock-quote",
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           symbols: ["AAPL.US"],
           requestId: "batch-2",
           apiType: ApiType.REST,
@@ -341,7 +345,7 @@ describe("DataFetcherService Integration", () => {
 
     it("should handle mixed success/failure in batch operations", async () => {
       const mockSuccessData = {
-        secu_quote: [{ symbol: "700.HK", last_done: 320.5 }],
+        secu_quote: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, last_done: 320.5 }],
       };
 
       // First call succeeds
@@ -355,14 +359,14 @@ describe("DataFetcherService Integration", () => {
       const requests: DataFetchRequestDto[] = [
         {
           provider: "test-provider",
-          capability: "get-stock-quote",
-          symbols: ["700.HK"],
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           requestId: "batch-success",
           apiType: ApiType.REST,
         },
         {
           provider: "nonexistent-provider",
-          capability: "get-stock-quote",
+          capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
           symbols: ["INVALID"],
           requestId: "batch-failure",
           apiType: ApiType.REST,
@@ -386,7 +390,7 @@ describe("DataFetcherService Integration", () => {
         // Simulate realistic network delay
         await new Promise((resolve) => setTimeout(resolve, 100));
         return {
-          secu_quote: [{ symbol: "700.HK", last_done: 320.5 }],
+          secu_quote: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, last_done: 320.5 }],
         };
       });
 
@@ -394,8 +398,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "perf-test-001",
         contextService: { apiKey: "test-key" },
       };
@@ -419,8 +423,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "timing-test-001",
         contextService: { apiKey: "test-key" },
       };
@@ -438,13 +442,13 @@ describe("DataFetcherService Integration", () => {
       // Simulate a slow response (over 2000ms threshold)
       mockCapability.execute.mockImplementation(async () => {
         await new Promise((resolve) => setTimeout(resolve, 2100));
-        return { secu_quote: [{ symbol: "700.HK", last_done: 320.5 }] };
+        return { secu_quote: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, last_done: 320.5 }] };
       });
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "slow-response-test",
         contextService: { apiKey: "test-key" },
       };
@@ -463,8 +467,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "error-test-001",
         contextService: { apiKey: "test-key" },
       };
@@ -483,8 +487,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
         requestId: "null-data-test",
         contextService: { apiKey: "test-key" },
       };
@@ -500,7 +504,7 @@ describe("DataFetcherService Integration", () => {
     it("should handle mixed symbol formats from different markets", async () => {
       const mockMixedData = {
         secu_quote: [
-          { symbol: "700.HK", last_done: 320.5, market: "HK" },
+          { symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, last_done: 320.5, market: "HK" },
           { symbol: "AAPL.US", last_done: 175.25, market: "US" },
           { symbol: "00001.SZ", last_done: 12.5, market: "SZ" },
           { symbol: "600519.SH", last_done: 1890.0, market: "SH" },
@@ -511,8 +515,8 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
-        symbols: ["700.HK", "AAPL.US", "00001.SZ", "600519.SH"],
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+        symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "AAPL.US", "00001.SZ", "600519.SH"],
         requestId: "mixed-markets-test",
         contextService: { apiKey: "test-key" },
       };
@@ -544,7 +548,7 @@ describe("DataFetcherService Integration", () => {
 
       const params: DataFetchParams = {
         provider: "test-provider",
-        capability: "get-stock-quote",
+        capability: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
         symbols: largeSymbolList,
         requestId: "large-batch-test",
         contextService: { apiKey: "test-key" },

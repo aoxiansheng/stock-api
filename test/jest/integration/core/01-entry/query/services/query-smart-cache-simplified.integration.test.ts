@@ -1,3 +1,4 @@
+import { REFERENCE_DATA } from '@common/constants/domain';
 /**
  * Query服务智能缓存简化集成测试
  * 验证SmartCacheOrchestrator与QueryService集成的核心功能
@@ -153,7 +154,7 @@ describe("Query Smart Cache Simplified Integration Tests", () => {
           description: "美股交易时间",
         },
         {
-          symbols: ["700.HK"],
+          symbols: [REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT],
           expectedStrategy: CacheStrategy.WEAK_TIMELINESS,
           description: "港股非交易时间",
         },
@@ -243,7 +244,7 @@ describe("Query Smart Cache Simplified Integration Tests", () => {
         mockFetchFn,
         {
           marketStatus: mockMarketStatus,
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           requestId: "test-123",
         },
       );
@@ -253,7 +254,7 @@ describe("Query Smart Cache Simplified Integration Tests", () => {
       expect(request.strategy).toBe(testStrategy);
       expect(request.symbols).toEqual(testSymbols);
       expect(request.fetchFn).toBe(mockFetchFn);
-      expect(request.metadata.provider).toBe("longport");
+      expect(request.metadata.provider).toBe(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
       expect(request.metadata.requestId).toBe("test-123");
 
       console.log(`🔑 缓存键生成: ${request.cacheKey}`);
@@ -296,7 +297,7 @@ describe("Query Smart Cache Simplified Integration Tests", () => {
         metadata: {
           key: "cache:test:INTC,AMD",
           storageType: "REDIS",
-          provider: "longport",
+          provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
           storedAt: new Date(Date.now() - 30000).toISOString(), // 30秒前存储
           processingTime: 15,
         },
