@@ -12,7 +12,7 @@
  * - 3600, 86400 缓存TTL (46, 32次重复)
  */
 
-import { CORE_VALUES } from '../foundation';
+import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
 
 /**
  * 操作限制配置常量
@@ -110,7 +110,7 @@ export const OPERATION_LIMITS = Object.freeze({
   RETRY_LIMITS: {
     // 基础重试配置
     MAX_RETRIES: CORE_VALUES.RETRY.MAX_ATTEMPTS,           // 最大重试次数 - 3
-    RETRY_DELAY_MS: CORE_VALUES.RETRY.DELAY_MS,            // 重试延迟 - 1000ms
+    RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,            // 重试延迟 - 1000ms
     MAX_RETRY_DELAY_MS: CORE_VALUES.RETRY.MAX_DELAY_MS,    // 最大重试延迟 - 10000ms
     BACKOFF_MULTIPLIER: CORE_VALUES.RETRY.BACKOFF_BASE,    // 退避乘数 - 2
     

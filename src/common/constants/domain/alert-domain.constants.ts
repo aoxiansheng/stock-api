@@ -84,8 +84,12 @@ export const ALERT_RATE_LIMIT_CONFIG = Object.freeze({
   // 严重程度相关限制
   SEVERITY_BASED: {
     [AlertSeverity.EMERGENCY]: {
+      MAX_PER_HOUR: 100,                                             // 紧急告警每小时限制
+      MIN_INTERVAL_MS: 60 * 1000,                                    // 最小间隔1分钟
     },
     [AlertSeverity.CRITICAL]: {
+      MAX_PER_HOUR: 50,                                              // 严重告警每小时限制
+      MIN_INTERVAL_MS: 120 * 1000,                                   // 最小间隔2分钟
     },
     [AlertSeverity.HIGH]: {
       MAX_PER_HOUR: 20,                                              // 高级告警每小时限制

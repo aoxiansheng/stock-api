@@ -17,7 +17,7 @@ export const AUTH_ERROR_MESSAGES = deepFreeze({
 
   // 用户认证错误
   INVALID_CREDENTIALS: "用户名或密码错误",
-  USER_NOT_FOUND: QUICK_MESSAGE_SEMANTICS.USER_NOT_FOUND, // 使用语义模板，避免重复
+  USER_NOT_FOUND: "用户不存在", // 修复：使用直接字符串值替代已删除的语义模板引用
   USER_INACTIVE: "用户账户已停用",
   USER_LOCKED: "用户账户已锁定",
   USER_EXISTS: "用户名或邮箱已存在",

@@ -20,6 +20,8 @@ export const MESSAGE_SEMANTICS = Object.freeze({
     UNAUTHORIZED_ACCESS: "未授权访问",
     
     // 角色权限消息
+    ROLE_INSUFFICIENT: "角色权限不足",
+    DENIED: "权限被拒绝",
     
     // API Key权限消息
     API_KEY_INSUFFICIENT: "API Key权限不足",
@@ -35,6 +37,7 @@ export const MESSAGE_SEMANTICS = Object.freeze({
   // 资源相关基础消息语义
   RESOURCE: {
     NOT_FOUND: "资源未找到",
+    ALREADY_EXISTS: "资源已存在",
   },
 
   // 操作相关基础消息语义
@@ -62,6 +65,7 @@ export const MESSAGE_SEMANTICS = Object.freeze({
   // 验证相关基础消息语义
   VALIDATION: {
     FAILED: "验证失败",
+    INVALID_FORMAT: "格式无效",
   },
 
   // 时间相关基础消息语义
@@ -360,6 +364,7 @@ export const QUICK_MESSAGE_SEMANTICS = Object.freeze({
   // 常见资源不存在消息
   DATA_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(RESOURCE_TYPE_SEMANTICS.DATA),
   RESOURCE_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(RESOURCE_TYPE_SEMANTICS.RESOURCE),
+  API_KEY_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(RESOURCE_TYPE_SEMANTICS.API_KEY),
 
   // 常见操作成功消息
 
@@ -373,6 +378,7 @@ export const QUICK_MESSAGE_SEMANTICS = Object.freeze({
   // 常见服务不可用消息
   DATABASE_UNAVAILABLE: MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("数据库"),
   API_SERVICE_UNAVAILABLE: MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("API服务"),
+  SERVICE_UNAVAILABLE: MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("服务"),
 
   // 常见失败消息
 

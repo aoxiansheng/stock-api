@@ -58,18 +58,22 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
   SCENARIO: {
     // I/O密集型操作
     IO_INTENSIVE: {
+      WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,  // 6 - I/O密集型默认工作进程数
     },
     
     // CPU密集型操作
     CPU_INTENSIVE: {
+      WORKERS: CORE_VALUES.SIZES.TINY / 2,  // 3 - CPU密集型较少工作进程数
     },
     
     // 网络请求
     NETWORK_REQUEST: {
+      WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,  // 6 - 网络请求默认工作进程数
     },
     
     // 数据库连接
     DATABASE_CONNECTION: {
+      WORKERS: CORE_VALUES.SIZES.TINY,  // 6 - 数据库连接工作进程数
     },
   },
 
@@ -77,12 +81,15 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
   RESOURCE_LIMITS: {
     LOW_RESOURCE: {
       BATCH_SIZE: CORE_VALUES.SIZES.TINY,                      // 6 - 低资源批量大小
+      WORKERS: CORE_LIMITS.CONCURRENCY.MIN_WORKERS,            // 1 - 低资源工作进程数
     },
     MEDIUM_RESOURCE: {
       BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE, // 50 - 中等资源批量大小
+      WORKERS: CORE_VALUES.SIZES.TINY,                         // 6 - 中等资源工作进程数
     },
     HIGH_RESOURCE: {
       BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE, // 100 - 高资源批量大小
+      WORKERS: CORE_LIMITS.CONCURRENCY.MAX_WORKERS,            // 50 - 高资源工作进程数
     },
   },
 });
@@ -103,7 +110,7 @@ export const BATCH_TIMEOUT_SEMANTICS = Object.freeze({
   // 场景特定超时（毫秒）
   SCENARIO: {
     DATABASE_BATCH_MS: CORE_TIMEOUTS.DATABASE.TRANSACTION_MS,  // 30000ms - 数据库批量操作
-    API_BATCH_MS: CORE_TIMEOUTS.REQUEST.BATCH_MS,              // 300000ms - API批量请求
+    API_BATCH_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS,     // 60000ms - API批量请求（使用长运行超时）
   },
 
   // 批量大小相关超时策略（毫秒）
