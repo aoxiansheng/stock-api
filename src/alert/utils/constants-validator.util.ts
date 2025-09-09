@@ -4,7 +4,7 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { CORE_TIMEOUTS, ALERT_DEFAULTS } from '../constants';
+import { ALERT_CORE_TIMEOUTS, ALERT_DEFAULTS } from '../constants';
 
 /**
  * 验证结果接口
@@ -36,7 +36,7 @@ export class AlertConstantsValidator {
 
     try {
       // 1. 验证时间配置基本范围
-      const { BASIC_SECONDS } = CORE_TIMEOUTS;
+      const { BASIC_SECONDS } = ALERT_CORE_TIMEOUTS;
 const COOLDOWN = { MIN_SECONDS: BASIC_SECONDS.COOLDOWN_MIN, MAX_SECONDS: BASIC_SECONDS.COOLDOWN_MAX };
 const DURATION = { MIN_SECONDS: BASIC_SECONDS.DURATION_MIN, MAX_SECONDS: BASIC_SECONDS.DURATION_MAX };
 const TIMEOUT = { MIN_SECONDS: BASIC_SECONDS.MIN, MAX_SECONDS: BASIC_SECONDS.MAX };

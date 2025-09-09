@@ -4,11 +4,8 @@
  * 📚 基于核心层构建，专注于历史记录业务逻辑
  */
 
-import { NUMERIC_CONSTANTS } from '@common/constants/core';
-import { CORE_VALUES } from '../core/values.constants';
-import { CORE_LIMITS } from '../core/limits.constants';
 import { CORE_PATTERNS, STRING_FORMATS } from '../core/patterns.constants';
-import { CORE_TIMEOUTS } from '../core/timeouts.constants';
+
 
 /**
  * 告警历史常量
@@ -21,8 +18,8 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
     ID_PREFIX: "alrt_",
     ID_TEMPLATE: STRING_FORMATS.ID_TEMPLATES.ALERT_HISTORY,
     ID_PATTERN: CORE_PATTERNS.ID_FORMATS.ALERT_HISTORY,
-    TIMESTAMP_BASE: NUMERIC_CONSTANTS.N_36,
-    RANDOM_LENGTH: CORE_LIMITS.ID_LENGTH.RANDOM_PART,                   // 6
+    TIMESTAMP_BASE: 36,
+    RANDOM_LENGTH: 6,                   // 6
     RANDOM_START: 2,
   },
 
@@ -32,14 +29,14 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
   VALIDATION: {
     // 告警ID验证
     ALERT_ID_PATTERN: CORE_PATTERNS.ID_FORMATS.ALERT_HISTORY,
-    MIN_ALERT_ID_LENGTH: CORE_LIMITS.ID_LENGTH.TYPICAL_MIN,            // 15
-    MAX_ALERT_ID_LENGTH: CORE_LIMITS.ID_LENGTH.TYPICAL_MAX,            // 50
+    MIN_ALERT_ID_LENGTH: 15,            // 15
+    MAX_ALERT_ID_LENGTH: 50,            // 50
     
     // 规则ID验证
     
     // 消息验证
-    MIN_MESSAGE_LENGTH: CORE_LIMITS.STRING_LENGTH.MIN_LENGTH,          // 1
-    MAX_MESSAGE_LENGTH: CORE_LIMITS.STRING_LENGTH.MESSAGE_MAX,         // 1000
+    MIN_MESSAGE_LENGTH: 1,          // 1
+    MAX_MESSAGE_LENGTH: 1000,         // 1000
   },
 
   /**
@@ -47,13 +44,13 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
    */
   BUSINESS_LIMITS: {
     // 批量操作限制
-    BATCH_SIZE_LIMIT: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,     // 1000
-    MAX_BATCH_UPDATE_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_UPDATE,  // 1000
-    CLEANUP_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.CLEANUP_BATCH_SIZE,   // 1000
+    BATCH_SIZE_LIMIT: 1000,     // 1000
+    MAX_BATCH_UPDATE_SIZE: 1000,  // 1000
+    CLEANUP_BATCH_SIZE: 1000,   // 1000
     
     // 查询限制
-    MIN_PAGE_LIMIT: NUMERIC_CONSTANTS.N_1,                        // 1
-    DEFAULT_RECENT_ALERTS_LIMIT: CORE_LIMITS.BATCH_LIMITS.TINY_BATCH_SIZE, // 10
+    MIN_PAGE_LIMIT: 1,                        // 1
+    DEFAULT_RECENT_ALERTS_LIMIT: 10, // 10
     
     // 活跃告警限制
   },
@@ -64,13 +61,13 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
   TIME_CONFIG: {
     // 数据保留配置
     DEFAULT_CLEANUP_DAYS: 90,
-    MIN_CLEANUP_DAYS: NUMERIC_CONSTANTS.N_1,                      // 1
+    MIN_CLEANUP_DAYS: 1,                      // 1
     MAX_CLEANUP_DAYS: 365,
     
     // 缓存配置
     
     // 操作超时配置
-    DB_QUERY_TIMEOUT_MS: CORE_TIMEOUTS.OPERATION_TIMEOUTS_MS.DB_QUERY_TIMEOUT,        // 5000ms
+    DB_QUERY_TIMEOUT_MS: 5000,        // 5000ms
     
     // 统计刷新间隔
   },

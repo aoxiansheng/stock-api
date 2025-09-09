@@ -31,13 +31,6 @@ export const CORE_TIMEOUTS = Object.freeze({
   },
 
   /**
-   * 网关相关超时 (毫秒)  
-   * 🎯 统一GATEWAY_TIMEOUT命名
-   */
-  GATEWAY: {
-  },
-
-  /**
    * 数据库相关超时 (毫秒)
    * 🎯 统一DATABASE_TIMEOUT命名
    */
@@ -68,13 +61,6 @@ export const CORE_TIMEOUTS = Object.freeze({
     BACKGROUND_MS: NUMERIC_CONSTANTS.N_600000,          // 后台操作
   },
 
-  /**
-   * 缓存相关超时 (毫秒)
-   * 🎯 统一CACHE_TIMEOUT命名
-   */
-  CACHE: {
-    GET_MS: NUMERIC_CONSTANTS.N_1000,            // 缓存读取
-  },
 });
 
 /**
@@ -92,11 +78,6 @@ export const CORE_TTL = Object.freeze({
     STATIC_SEC: 86400,      // 静态数据缓存1天
   },
 
-  /**
-   * 会话TTL配置 (秒)  
-   */
-  SESSION: {
-  },
 });
 
 /**

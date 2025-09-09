@@ -8,7 +8,6 @@ import { securityConfig } from "@auth/config/security.config";
 import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
-  RATE_LIMIT_LUA_SCRIPT_NAMES,
   RATE_LIMIT_TIME_MULTIPLIERS,
   RateLimitTemplateUtil,
   RateLimitStrategy,

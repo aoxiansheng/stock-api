@@ -766,7 +766,7 @@ ${(() => {
 #### \`${stat.constant.name}\`
 - **Defined in**: \`${relative(CONFIG.BACKEND_SRC_DIR, stat.constant.sourceFile)}\`
 - **Referenced by ${internalFiles.length} internal file(s)**:
-${internalFiles.slice(0, 5).map(f => `  - \`${f}\``).join('\n')}${internalFiles.length > 5 ? `\n  - ... and ${internalFiles.length - 5} more files` : ''}
+${internalFiles.map(f => `  - \`${f}\``).join('\n')}
 - **Total internal references**: ${internalUsages.length}
 `;
   }).join('');
@@ -786,7 +786,7 @@ ${(() => {
 #### \`${stat.constant.name}\`
 - **Defined in**: \`${relative(CONFIG.BACKEND_SRC_DIR, stat.constant.sourceFile)}\`
 - **Referenced by ${externalFiles.length} external component(s)**:
-${externalFiles.slice(0, 5).map(f => `  - \`${f}\``).join('\n')}${externalFiles.length > 5 ? `\n  - ... and ${externalFiles.length - 5} more files` : ''}
+${externalFiles.map(f => `  - \`${f}\``).join('\n')}
 - **Total external references**: ${externalUsages.length}
 `;
   }).join('');
@@ -930,7 +930,7 @@ ${(() => {
 #### \`${stat.constant.name}\`
 - **定义在**: \`${relative(CONFIG.BACKEND_SRC_DIR, stat.constant.sourceFile)}\`
 - **被 ${internalFiles.length} 个内部文件引用**:
-${internalFiles.slice(0, 5).map(f => `  - \`${f}\``).join('\n')}${internalFiles.length > 5 ? `\n  - ... 还有 ${internalFiles.length - 5} 个文件` : ''}
+${internalFiles.map(f => `  - \`${f}\``).join('\n')}
 - **内部引用总次数**: ${internalUsages.length}
 `;
   }).join('');
@@ -950,7 +950,7 @@ ${(() => {
 #### \`${stat.constant.name}\`
 - **定义在**: \`${relative(CONFIG.BACKEND_SRC_DIR, stat.constant.sourceFile)}\`
 - **被 ${externalFiles.length} 个外部组件引用**:
-${externalFiles.slice(0, 5).map(f => `  - \`${f}\``).join('\n')}${externalFiles.length > 5 ? `\n  - ... 还有 ${externalFiles.length - 5} 个文件` : ''}
+${externalFiles.map(f => `  - \`${f}\``).join('\n')}
 - **外部引用总次数**: ${externalUsages.length}
 `;
   }).join('');

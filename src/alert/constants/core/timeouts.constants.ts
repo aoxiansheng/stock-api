@@ -4,46 +4,43 @@
  * ⏱️ 避免重复定义相同的时间值，提供时间单位转换
  */
 
-import { NUMERIC_CONSTANTS } from '@common/constants/core';
-import { CORE_VALUES } from './values.constants';
-import { CORE_LIMITS } from './limits.constants';
 
 /**
  * 核心时间配置
  */
-export const CORE_TIMEOUTS = Object.freeze({
+export const ALERT_CORE_TIMEOUTS = Object.freeze({
   /**
    * 基础时间配置 (秒)
    */
   BASIC_SECONDS: {
     // 基础超时
-    DEFAULT: CORE_LIMITS.TIME_SECONDS.TIMEOUT_DEFAULT,     // 30秒
-    MIN: CORE_LIMITS.TIME_SECONDS.TIMEOUT_MIN,             // 1秒  
-    MAX: CORE_LIMITS.TIME_SECONDS.TIMEOUT_MAX,             // 300秒
+    DEFAULT: 30,     // 30秒
+    MIN: 1,             // 1秒  
+    MAX: 300,             // 300秒
 
     // 持续时间配置
-    DURATION_DEFAULT: CORE_LIMITS.TIME_SECONDS.DURATION_DEFAULT, // 60秒
-    DURATION_MIN: CORE_LIMITS.TIME_SECONDS.DURATION_MIN,         // 1秒
-    DURATION_MAX: CORE_LIMITS.TIME_SECONDS.DURATION_MAX,         // 3600秒
+    DURATION_DEFAULT: 60, // 60秒
+    DURATION_MIN: 1,         // 1秒
+    DURATION_MAX: 3600,         // 3600秒
 
     // 冷却时间配置
-    COOLDOWN_DEFAULT: CORE_LIMITS.TIME_SECONDS.COOLDOWN_DEFAULT, // 300秒
-    COOLDOWN_MIN: CORE_LIMITS.TIME_SECONDS.COOLDOWN_MIN,         // 60秒
-    COOLDOWN_MAX: CORE_LIMITS.TIME_SECONDS.COOLDOWN_MAX,         // 86400秒
+    COOLDOWN_DEFAULT: 300, // 300秒
+    COOLDOWN_MIN: 60,         // 60秒
+    COOLDOWN_MAX: 86400,         // 86400秒
   },
 
   /**
    * 评估和调度间隔 (毫秒)
    */
   EVALUATION_INTERVALS_MS: {
-    DEFAULT: NUMERIC_CONSTANTS.N_60000,    // 60000ms - 1分钟
-    MIN: NUMERIC_CONSTANTS.N_1000,        // 1000ms - 1秒
-    MAX: NUMERIC_CONSTANTS.N_600000,       // 600000ms - 10分钟
+    DEFAULT: 60000,    // 60000ms - 1分钟
+    MIN: 1000,        // 1000ms - 1秒
+    MAX: 600000,       // 600000ms - 10分钟
     
     // 特定评估间隔
-    RULE_EVALUATION: NUMERIC_CONSTANTS.N_60000,      // 60000ms - 规则评估
-    METRICS_COLLECTION: NUMERIC_CONSTANTS.N_60000,   // 60000ms - 指标收集
-    CLEANUP_TASK: NUMERIC_CONSTANTS.N_600000,        // 600000ms - 清理任务
+    RULE_EVALUATION: 60000,      // 60000ms - 规则评估
+    METRICS_COLLECTION: 60000,   // 60000ms - 指标收集
+    CLEANUP_TASK: 600000,        // 600000ms - 清理任务
   },
 
   /**
@@ -51,10 +48,10 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   CACHE_TTL_SECONDS: {
     // 基础缓存TTL
-    ALERT: CORE_LIMITS.CACHE_LIMITS.ALERT_TTL,            // 3600秒 - 告警缓存
-    STATS: CORE_LIMITS.CACHE_LIMITS.STATS_TTL,            // 300秒 - 统计缓存  
-    HISTORY: CORE_LIMITS.CACHE_LIMITS.HISTORY_TTL,        // 7200秒 - 历史缓存
-    RULE: CORE_LIMITS.CACHE_LIMITS.RULE_TTL,              // 1800秒 - 规则缓存
+    ALERT: 3600,            // 3600秒 - 告警缓存
+    STATS: 300,            // 300秒 - 统计缓存  
+    HISTORY: 7200,        // 7200秒 - 历史缓存
+    RULE: 1800,              // 1800秒 - 规则缓存
   },
 
   /**
@@ -62,9 +59,9 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   DB_TTL_SECONDS: {
     // 告警历史保留期
-    ALERT_HISTORY: NUMERIC_CONSTANTS.N_7776000,  // 7776000秒 - 90天
+    ALERT_HISTORY: 7776000,  // 7776000秒 - 90天
     // 通知日志保留期  
-    NOTIFICATION_LOG: NUMERIC_CONSTANTS.N_2592000, // 2592000秒 - 30天
+    NOTIFICATION_LOG: 2592000, // 2592000秒 - 30天
   },
 
   /**
@@ -72,8 +69,8 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   RETRY_TIMING: {
     // 基础重试延迟 (毫秒)
-    INITIAL_DELAY_MS: NUMERIC_CONSTANTS.N_1000,     // 1000ms
-    MAX_DELAY_MS: NUMERIC_CONSTANTS.N_10000,        // 10000ms
+    INITIAL_DELAY_MS: 1000,     // 1000ms
+    MAX_DELAY_MS: 10000,        // 10000ms
     
     // 退避乘数
     BACKOFF_MULTIPLIER: 2,
@@ -111,14 +108,14 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   SECURITY_TIMEOUTS_SECONDS: {
     // JWT相关
-    JWT_EXPIRES: NUMERIC_CONSTANTS.N_3600,      // 3600秒 - JWT过期时间
-    REFRESH_TOKEN_EXPIRES: NUMERIC_CONSTANTS.N_86400, // 86400秒 - 刷新令牌
+    JWT_EXPIRES: 3600,      // 3600秒 - JWT过期时间
+    REFRESH_TOKEN_EXPIRES: 86400, // 86400秒 - 刷新令牌
     
     // 账户锁定
-    ACCOUNT_LOCKOUT: NUMERIC_CONSTANTS.N_1800, // 1800秒 - 账户锁定时间
+    ACCOUNT_LOCKOUT: 1800, // 1800秒 - 账户锁定时间
     
     // 速率限制窗口
-    RATE_LIMIT_WINDOW: NUMERIC_CONSTANTS.N_60,   // 60秒 - 限流窗口
+    RATE_LIMIT_WINDOW: 60,   // 60秒 - 限流窗口
   },
 });
 
@@ -130,35 +127,35 @@ export class TimeConverter {
    * 秒转毫秒
    */
   static secondsToMs(seconds: number): number {
-    return seconds * NUMERIC_CONSTANTS.N_1000;
+    return seconds * 1000;
   }
 
   /**
    * 毫秒转秒 (向下取整)
    */
   static msToSeconds(milliseconds: number): number {
-    return Math.floor(milliseconds / NUMERIC_CONSTANTS.N_1000);
+    return Math.floor(milliseconds / 1000);
   }
 
   /**
    * 分钟转秒
    */
   static minutesToSeconds(minutes: number): number {
-    return minutes * NUMERIC_CONSTANTS.N_60;
+    return minutes * 60;
   }
 
   /**
    * 小时转秒
    */
   static hoursToSeconds(hours: number): number {
-    return hours * NUMERIC_CONSTANTS.N_3600;
+    return hours * 3600;
   }
 
   /**
    * 天转秒
    */
   static daysToSeconds(days: number): number {
-    return days * NUMERIC_CONSTANTS.N_86400;
+    return days * 86400;
   }
 
   /**
@@ -196,8 +193,8 @@ export class TimeValidator {
   static isValidCooldown(cooldownSeconds: number): boolean {
     return this.isValidTimeRange(
       cooldownSeconds,
-      CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_MIN,
-      CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_MAX
+      ALERT_CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_MIN,
+      ALERT_CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_MAX
     );
   }
 
@@ -207,8 +204,8 @@ export class TimeValidator {
   static isValidDuration(durationSeconds: number): boolean {
     return this.isValidTimeRange(
       durationSeconds,
-      CORE_TIMEOUTS.BASIC_SECONDS.DURATION_MIN,
-      CORE_TIMEOUTS.BASIC_SECONDS.DURATION_MAX
+      ALERT_CORE_TIMEOUTS.BASIC_SECONDS.DURATION_MIN,
+      ALERT_CORE_TIMEOUTS.BASIC_SECONDS.DURATION_MAX
     );
   }
 
@@ -218,8 +215,8 @@ export class TimeValidator {
   static isValidTimeout(timeoutSeconds: number): boolean {
     return this.isValidTimeRange(
       timeoutSeconds,
-      CORE_TIMEOUTS.BASIC_SECONDS.MIN,
-      CORE_TIMEOUTS.BASIC_SECONDS.MAX
+      ALERT_CORE_TIMEOUTS.BASIC_SECONDS.MIN,
+      ALERT_CORE_TIMEOUTS.BASIC_SECONDS.MAX
     );
   }
 
@@ -229,8 +226,8 @@ export class TimeValidator {
   static isValidEvaluationInterval(intervalMs: number): boolean {
     return this.isValidTimeRange(
       intervalMs,
-      CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.MIN,
-      CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.MAX
+      ALERT_CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.MIN,
+      ALERT_CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.MAX
     );
   }
 }
@@ -238,4 +235,8 @@ export class TimeValidator {
 /**
  * 类型定义
  */
-export type CoreTimeouts = typeof CORE_TIMEOUTS;
+export type AlertCoreTimeouts = typeof ALERT_CORE_TIMEOUTS;
+
+// 向后兼容性导出 - 让Alert组件内部代码继续使用CORE_TIMEOUTS名称
+//export const CORE_TIMEOUTS = ALERT_CORE_TIMEOUTS;
+//export type CoreTimeouts = AlertCoreTimeouts;

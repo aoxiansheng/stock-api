@@ -46,12 +46,6 @@ export {
 };
 
 // 导出类型定义
-export type {
-  EnvironmentFeatures,
-  EnvironmentResourceLimits
-} from './environment-config.constants';
-
-
 /**
  * Application层完整常量对象
  * 🎯 提供整个常量系统的最终统一接口

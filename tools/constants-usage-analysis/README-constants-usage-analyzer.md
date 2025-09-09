@@ -4,15 +4,15 @@ A comprehensive TypeScript tool that analyzes constant files usage patterns in t
 
 ## Features
 
-✅ **AST-based Analysis**: Uses TypeScript AST parsing for accurate code analysis
-✅ **Complete Coverage**: Scans all `.ts` files in constants directory and entire `backend/src`
-✅ **Usage Tracking**: Identifies which constants are imported and used by other files
-✅ **Statistical Analysis**: Generates detailed usage statistics for each constant
-✅ **Pattern Recognition**: Identifies single-reference vs multi-reference constants
-✅ **Path Tracking**: Records exact file paths that import each constant
-✅ **Comprehensive Reports**: Generates detailed markdown reports with recommendations
-✅ **Redundancy Detection**: Identifies potentially redundant constants
-✅ **Consolidation Recommendations**: Suggests constants that can be consolidated
+✅ **基于 AST 的分析**：利用 TypeScript 的 AST 解析技术进行精确的代码分析
+✅ **全面覆盖**：扫描常量目录中的所有 `.ts` 文件以及整个 `backend/src` 目录
+✅ **使用追踪**：识别哪些常量被其他文件导入和使用
+✅ **统计分析**：为每个常量生成详细的使用统计信息
+✅ **模式识别**：区分单引用常量和多引用常量
+✅ **路径追踪**：记录导入每个常量的确切文件路径
+✅ **全面报告**：生成包含建议的详细 Markdown 报告
+✅ **冗余检测**：识别可能存在的冗余常量
+✅ **合并建议**：提出可以合并的常量建议
 
 ## Installation & Requirements
 

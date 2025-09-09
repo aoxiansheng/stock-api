@@ -4,7 +4,7 @@
  */
 
 // 核心数值常量
-export * from './values.constants';
+
 
 // 核心模式常量  
 export * from './patterns.constants';
@@ -16,20 +16,20 @@ export * from './limits.constants';
 export * from './timeouts.constants';
 
 // 导入用于重新导出
-import { CORE_VALUES } from './values.constants';
+
 import { CORE_PATTERNS, STRING_FORMATS, PatternValidator } from './patterns.constants';
 import { CORE_LIMITS, LimitValidator } from './limits.constants';
-import { CORE_TIMEOUTS, TimeConverter, TimeValidator } from './timeouts.constants';
+import { ALERT_CORE_TIMEOUTS, TimeConverter, TimeValidator } from './timeouts.constants';
 
 /**
  * 核心层常量汇总
  * 便于统一访问所有核心常量
  */
 export const CORE_CONSTANTS = {
-  VALUES: CORE_VALUES,
+
   PATTERNS: CORE_PATTERNS,
   LIMITS: CORE_LIMITS,
-  TIMEOUTS: CORE_TIMEOUTS,
+  TIMEOUTS: ALERT_CORE_TIMEOUTS,
 } as const;
 
 /**

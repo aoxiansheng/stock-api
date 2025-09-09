@@ -29,15 +29,7 @@ export {
   MonitoringBusinessUtil
 } from './monitoring-business.constants';
 export type {
-  ErrorRateLevel,
-  ChangeLevel,
-  PerformanceLevel,
-  DataVolume as MonitoringDataVolume,
-  MonitoringBusinessConstants,
-  ErrorThresholds,
-  ChangeDetection,
-  SamplingConfig,
-  PerformanceBenchmarks
+  DataVolume as MonitoringDataVolume
 } from './monitoring-business.constants';
 
 export {
@@ -47,33 +39,13 @@ export {
 export type {
   OperationType,
   DataVolume as OperationDataVolume,
-  CacheDataType,
-  OperationLimitsConstants,
-  TimeoutsMS,
-  BatchSizes,
-  CacheTTL,
-  ConcurrencyLimits,
-  RetryLimits,
-  MemoryLimits
+  CacheDataType
 } from './operation-limits.constants';
 
 export {
   REFERENCE_DATA,
   ReferenceDataUtil
 } from './reference-data.constants';
-export type {
-  ReferenceMarket,
-  Quarter,
-  TestUser,
-  ReferenceDataConstants,
-  TestTimestamps,
-  SampleSymbols,
-  TestAccounts,
-  ProviderIds,
-  TestDatasets,
-  ErrorScenarios
-} from './reference-data.constants';
-
 export {
   API_OPERATIONS,
   ApiOperationsUtil
@@ -83,17 +55,7 @@ export type {
   ApiMarketType,
   ApiFetchMode,
   ApiBusinessScenario,
-  ApiPriority,
-  ApiCacheStrategy,
-  ApiOperationsConstants,
-  StockDataOperations,
-  IndexDataOperations,
-  DataTypes,
-  MarketTypes,
-  FetchModes,
-  BusinessScenarios,
-  Priorities,
-  CacheStrategies
+  ApiCacheStrategy
 } from './api-operations.constants';
 
 export {
@@ -137,24 +99,6 @@ export {
 } from './rate-limit-domain.constants';
 
 // 导出类型定义
-export type { 
-  MarketDomainConfig, 
-  MarketCacheConfig, 
-  MarketApiTimeouts 
-} from './market-domain.constants';
-
-export type { 
-  AlertRateLimitConfig, 
-  AlertCacheConfig, 
-  AlertApiTimeouts 
-} from './alert-domain.constants';
-
-export type { 
-  TieredRateLimits, 
-  EndpointRateLimits, 
-  RateLimitCacheConfig 
-} from './rate-limit-domain.constants';
-
 // 导入用于对象定义
 import {
   Market,

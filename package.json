@@ -211,8 +211,9 @@
  
     "// ========== 常量使用分析工具 ==========": "",
     "analyze:constants-usage": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts",
-    "analyze:constants-usage:report": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts docs/constants-usage-analysis.md",
-    "analyze:constants-usage:custom": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts"
+    "analyze:constants-usage:report": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts docs",
+    "analyze:constants-usage:custom": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts",
+    "remove:unused-constants": "bun run tools/unused-delete/remove-unused-constants-advanced.ts"
   },
   "overrides": {
     "form-data": "^4.0.0"

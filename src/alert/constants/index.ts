@@ -92,10 +92,10 @@ export {
 
 // 从 timing.constants.ts 迁移
 export {
-  CORE_TIMEOUTS as TIMING_CONSTANTS,
+  ALERT_CORE_TIMEOUTS as TIMING_CONSTANTS,
   TimeConverter as TimingUtil,
   TimeValidator,
-  type CoreTimeouts as TimingConstants,
+  type AlertCoreTimeouts as TimingConstants,
 } from './core/timeouts.constants';
 
 // 从 retry.constants.ts 迁移

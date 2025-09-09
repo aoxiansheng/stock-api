@@ -1,21 +1,10 @@
-import { RETRY_CONFIG } from "../constants/symbol-transformer.constants";
+import { RETRY_CONFIG } from "../constants/symbol-transformer-enhanced.constants";
 import { 
   CircuitState,
   CircuitBreakerConfig,
   CIRCUIT_BREAKER_BUSINESS_SCENARIOS
 } from "@common/constants/domain/circuit-breaker-domain.constants";
-
-/**
- * 错误类型枚举
- */
-export enum ErrorType {
-  NETWORK = "NETWORK",
-  TIMEOUT = "TIMEOUT",
-  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
-  VALIDATION = "VALIDATION",
-  SYSTEM = "SYSTEM",
-  UNKNOWN = "UNKNOWN",
-}
+import { ErrorType } from "../constants/symbol-transformer-enhanced.constants";
 
 /**
  * 重试配置接口

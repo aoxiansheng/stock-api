@@ -13,6 +13,7 @@ export {
   HTTP_METHODS,
   HTTP_METHOD_ARRAYS,
   HTTP_CONTENT_TYPES,
+  HTTP_SUCCESS_MESSAGES,
   HttpSemanticsUtil
 } from './http-semantics.constants';
 
@@ -70,30 +71,6 @@ export {
 } from './error-messages.constants';
 
 // 导出类型定义
-export type { 
-  HttpStatusCodes, 
-  HttpTimeouts, 
-  HttpBatchSemantics 
-} from './http-semantics.constants';
-
-export type { 
-  CacheTTLSemantics, 
-  CacheKeySemantics, 
-  CacheStrategySemantics 
-} from './cache-semantics.constants';
-
-export type { 
-  RetryDelaySemantics, 
-  RetryCountSemantics, 
-  RetryStrategySemantics 
-} from './retry-semantics.constants';
-
-export type { 
-  BatchSizeSemantics, 
-  ConcurrencySemantics, 
-  BatchTimeoutSemantics 
-} from './batch-semantics.constants';
-
 // 导入所有工具类
 import { HttpSemanticsUtil } from './http-semantics.constants';
 import { CacheSemanticsUtil } from './cache-semantics.constants';
@@ -110,7 +87,8 @@ import {
   HTTP_BATCH_SEMANTICS,
   HTTP_HEADERS,
   HTTP_METHODS,
-  HTTP_CONTENT_TYPES
+  HTTP_CONTENT_TYPES,
+  HTTP_SUCCESS_MESSAGES
 } from './http-semantics.constants';
 
 import {
@@ -157,6 +135,7 @@ export const SEMANTIC_CONSTANTS = Object.freeze({
     TIMEOUTS: HTTP_TIMEOUTS,
     BATCH: HTTP_BATCH_SEMANTICS,
     METHODS: HTTP_METHODS,
+    SUCCESS_MESSAGES: HTTP_SUCCESS_MESSAGES,
   },
   
   // 缓存语义

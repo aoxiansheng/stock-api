@@ -8,7 +8,7 @@ import { ALERT_RULE_CONSTANTS } from '../domain/alert-rules.constants';
 import { NOTIFICATION_CONSTANTS } from '../domain/notifications.constants';
 import { ALERT_HISTORY_CONSTANTS } from '../domain/alert-history.constants';
 import { CORE_LIMITS } from '../core/limits.constants';
-import { CORE_TIMEOUTS } from '../core/timeouts.constants';
+import { ALERT_CORE_TIMEOUTS } from '../core/timeouts.constants';
 import { AlertSeverity } from '../../types/alert.types';
 
 /**
@@ -80,7 +80,7 @@ export const ALERT_DEFAULTS = Object.freeze({
   PERFORMANCE: {
     // 缓存配置
     cacheEnabled: true,
-    cacheTTL: CORE_TIMEOUTS.CACHE_TTL_SECONDS.STATS,                   // 300秒
+    cacheTTL: ALERT_CORE_TIMEOUTS.CACHE_TTL_SECONDS.STATS,                   // 300秒
     
     // 批处理配置
     batchSize: 20,
@@ -101,14 +101,14 @@ export const ALERT_DEFAULTS = Object.freeze({
     
     // 登录限制
     maxLoginAttempts: CORE_LIMITS.RETRY_LIMITS.NOTIFICATION_MAX_RETRIES, // 5
-    accountLockoutSeconds: CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.ACCOUNT_LOCKOUT, // 1800秒
+    accountLockoutSeconds: ALERT_CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.ACCOUNT_LOCKOUT, // 1800秒
     
     // JWT配置
-    jwtExpiresSeconds: CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.JWT_EXPIRES, // 3600秒
-    refreshTokenExpiresSeconds: CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.REFRESH_TOKEN_EXPIRES, // 86400秒
+    jwtExpiresSeconds: ALERT_CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.JWT_EXPIRES, // 3600秒
+    refreshTokenExpiresSeconds: ALERT_CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.REFRESH_TOKEN_EXPIRES, // 86400秒
     
     // 速率限制
-    rateLimitWindowSeconds: CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.RATE_LIMIT_WINDOW, // 60秒
+    rateLimitWindowSeconds: ALERT_CORE_TIMEOUTS.SECURITY_TIMEOUTS_SECONDS.RATE_LIMIT_WINDOW, // 60秒
     rateLimitMaxRequests: CORE_LIMITS.STRING_LENGTH.NAME_MAX,           // 100
   },
 });

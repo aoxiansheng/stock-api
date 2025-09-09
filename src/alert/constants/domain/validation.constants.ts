@@ -4,8 +4,6 @@
  * 🔍 基于核心层构建，专注于数据验证逻辑
  */
 
-import { CORE_LIMITS } from '../core/limits.constants';
-import { CORE_TIMEOUTS } from '../core/timeouts.constants';
 
 /**
  * 验证限制常量
@@ -17,16 +15,16 @@ export const VALIDATION_LIMITS = Object.freeze({
    */
   TIME_SECONDS: {
     // 持续时间限制
-    DURATION_MIN: CORE_LIMITS.TIME_SECONDS.DURATION_MIN,               // 1秒
-    DURATION_MAX: CORE_LIMITS.TIME_SECONDS.DURATION_MAX,               // 3600秒
+    DURATION_MIN: 1,               // 1秒
+    DURATION_MAX: 3600,               // 3600秒
     
     // 冷却时间限制  
-    COOLDOWN_MIN: CORE_LIMITS.TIME_SECONDS.COOLDOWN_MIN,               // 60秒
-    COOLDOWN_MAX: CORE_LIMITS.TIME_SECONDS.COOLDOWN_MAX,               // 86400秒
+    COOLDOWN_MIN: 60,               // 60秒
+    COOLDOWN_MAX: 86400,               // 86400秒
     
     // 超时时间限制
-    TIMEOUT_MIN: CORE_LIMITS.TIME_SECONDS.TIMEOUT_MIN,                 // 1秒
-    TIMEOUT_MAX: CORE_LIMITS.TIME_SECONDS.TIMEOUT_MAX,                 // 300秒
+    TIMEOUT_MIN: 1,                 // 1秒
+    TIMEOUT_MAX: 300,                 // 300秒
   },
 
   /**
@@ -34,16 +32,16 @@ export const VALIDATION_LIMITS = Object.freeze({
    */
   COUNT_LIMITS: {
     // 重试次数限制
-    RETRIES_MIN: CORE_LIMITS.RETRY_LIMITS.MIN_RETRIES,                 // 0次
-    RETRIES_MAX: CORE_LIMITS.RETRY_LIMITS.MAX_RETRIES,                 // 10次
+    RETRIES_MIN: 0,                 // 0次
+    RETRIES_MAX: 10,                 // 10次
     
     // 百分比限制
-    PERCENTAGE_MIN: CORE_LIMITS.NUMERIC_RANGE.PERCENTAGE_MIN,          // 1%
-    PERCENTAGE_MAX: CORE_LIMITS.NUMERIC_RANGE.PERCENTAGE_MAX,          // 100%
+    PERCENTAGE_MIN: 0,          // 0%
+    PERCENTAGE_MAX: 100,          // 100%
     
     // 优先级限制
-    PRIORITY_MIN: CORE_LIMITS.NUMERIC_RANGE.MIN_VALUE,                 // 0
-    PRIORITY_MAX: CORE_LIMITS.BATCH_LIMITS.SMALL_BATCH_SIZE,           // 50
+    PRIORITY_MIN: 0,                 // 0
+    PRIORITY_MAX: 50,           // 50
   },
 
   /**
@@ -51,18 +49,18 @@ export const VALIDATION_LIMITS = Object.freeze({
    */
   STRING_LENGTH: {
     // 基础长度限制
-    MIN_LENGTH: CORE_LIMITS.STRING_LENGTH.MIN_LENGTH,                  // 1
+    MIN_LENGTH: 1,                  // 1
     
     // 不同用途的长度限制
-    NAME_MAX: CORE_LIMITS.STRING_LENGTH.NAME_MAX,                      // 100
-    TAG_MAX: CORE_LIMITS.STRING_LENGTH.TAG_MAX,                        // 50
-    DESCRIPTION_MAX: CORE_LIMITS.STRING_LENGTH.DESCRIPTION_MAX,        // 500
-    MESSAGE_MAX: CORE_LIMITS.STRING_LENGTH.MESSAGE_MAX,                // 1000
-    TEMPLATE_MAX: CORE_LIMITS.STRING_LENGTH.TEMPLATE_MAX,              // 2000
+    NAME_MAX: 100,                      // 100
+    TAG_MAX: 50,                        // 50
+    DESCRIPTION_MAX: 500,        // 500
+    MESSAGE_MAX: 1000,                // 1000
+    TEMPLATE_MAX: 10000,              // 10000
     
     // 网络相关长度限制
-    EMAIL_MAX: CORE_LIMITS.STRING_LENGTH.EMAIL_MAX,                    // 320
-    URL_MAX: CORE_LIMITS.STRING_LENGTH.URL_MAX,                        // 2048
+    EMAIL_MAX: 320,                    // 320
+    URL_MAX: 2048,                        // 2048
   },
 
   /**
@@ -70,11 +68,11 @@ export const VALIDATION_LIMITS = Object.freeze({
    */
   NUMERIC_RANGE: {
     // 阈值范围
-    THRESHOLD_MIN: CORE_LIMITS.NUMERIC_RANGE.THRESHOLD_MIN,            // 0
-    THRESHOLD_MAX: CORE_LIMITS.NUMERIC_RANGE.THRESHOLD_MAX,            // MAX_SAFE_INTEGER
+    THRESHOLD_MIN: 0,            // 0
+    THRESHOLD_MAX: 9007199254740991,            // MAX_SAFE_INTEGER
     
     // 通用数值范围
-    MIN_VALUE: CORE_LIMITS.NUMERIC_RANGE.MIN_VALUE,                    // 0
+    MIN_VALUE: 0,                    // 0
     
     // 计数范围
   },
@@ -84,13 +82,13 @@ export const VALIDATION_LIMITS = Object.freeze({
    */
   BATCH_LIMITS: {
     // 分页限制
-    PAGE_MIN: CORE_LIMITS.BATCH_LIMITS.TINY_BATCH_SIZE,                // 1
-    LIMIT_MIN: CORE_LIMITS.BATCH_LIMITS.TINY_BATCH_SIZE,               // 1
-    LIMIT_MAX: CORE_LIMITS.STRING_LENGTH.NAME_MAX,                     // 100
+    PAGE_MIN: 1,                // 1
+    LIMIT_MIN: 1,               // 1
+    LIMIT_MAX: 100,                     // 100
     
     // 批量操作大小限制
-    BATCH_SIZE_MAX: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,       // 1000
-    SMALL_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.SMALL_BATCH_SIZE,       // 50
+    BATCH_SIZE_MAX: 1000,       // 1000
+    SMALL_BATCH_SIZE: 50,       // 50
   },
 
   /**
@@ -98,12 +96,12 @@ export const VALIDATION_LIMITS = Object.freeze({
    */
   OBJECT_LIMITS: {
     // 规则相关限制
-    MAX_RULES_PER_USER: CORE_LIMITS.OBJECT_LIMITS.MAX_RULES_PER_USER,  // 100
-    MAX_CONDITIONS_PER_RULE: CORE_LIMITS.OBJECT_LIMITS.MAX_CONDITIONS_PER_RULE, // 10
-    MAX_ACTIONS_PER_RULE: CORE_LIMITS.OBJECT_LIMITS.MAX_ACTIONS_PER_RULE, // 5
+    MAX_RULES_PER_USER: 100,  // 100
+    MAX_CONDITIONS_PER_RULE: 10, // 10
+    MAX_ACTIONS_PER_RULE: 5, // 5
     
     // 标签相关限制
-    MAX_TAGS_COUNT: CORE_LIMITS.OBJECT_LIMITS.MAX_TAGS_COUNT,          // 10
+    MAX_TAGS_COUNT: 10,          // 10
     
     // 查询相关限制
   },
@@ -112,10 +110,10 @@ export const VALIDATION_LIMITS = Object.freeze({
    * ID长度验证限制
    */
   ID_LENGTH: {
-    MIN: CORE_LIMITS.ID_LENGTH.MIN,                                    // 1
-    MAX: CORE_LIMITS.ID_LENGTH.MAX,                                    // 100
-    TYPICAL_MIN: CORE_LIMITS.ID_LENGTH.TYPICAL_MIN,                    // 15
-    TYPICAL_MAX: CORE_LIMITS.ID_LENGTH.TYPICAL_MAX,                    // 50
+    MIN: 1,                                    // 1
+    MAX: 100,                                    // 100
+    TYPICAL_MIN: 15,                    // 15
+    TYPICAL_MAX: 50,                    // 50
   },
 });
 

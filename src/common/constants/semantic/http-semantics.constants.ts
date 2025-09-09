@@ -299,11 +299,28 @@ export const HTTP_ERROR_MESSAGES = Object.freeze({
 
 /**
  * HTTP成功消息语义常量
- * 🎯 从Unified层迁移的HTTP成功消息，提供业务无关的成功语义
+ * 🎯 提供HTTP成功响应的标准化消息
  */
 export const HTTP_SUCCESS_MESSAGES = Object.freeze({
+  // 2xx 成功响应消息
+  OK: "请求成功",
+  CREATED: "资源创建成功",
+  ACCEPTED: "请求已接受",
+  NO_CONTENT: "请求成功但无返回内容",
   
-  // CRUD操作成功消息 - 引用其他语义层
+  // 特定业务场景成功消息
+  DATA_FETCHED: "数据获取成功",
+  DATA_UPDATED: "数据更新成功",
+  DATA_DELETED: "数据删除成功",
+  OPERATION_COMPLETED: "操作完成",
+  
+  // 批量操作成功消息
+  BATCH_PROCESSED: "批量处理完成",
+  BATCH_CREATED: "批量创建完成",
+  
+  // 缓存相关成功消息
+  CACHE_UPDATED: "缓存更新成功",
+  CACHE_CLEARED: "缓存清除成功",
 });
 
 /**

@@ -37,22 +37,19 @@ export const MESSAGE_SEMANTICS = Object.freeze({
   // 资源相关基础消息语义
   RESOURCE: {
     NOT_FOUND: "资源未找到",
-    ALREADY_EXISTS: "资源已存在",
-  },
+    ALREADY_EXISTS: "资源已存在"},
 
   // 操作相关基础消息语义
   OPERATION: {
     SUCCESS: "操作成功",
     FAILED: "操作失败",
     PROCESSING: "操作处理中",
-    TIMEOUT: "操作超时",
-  },
+    TIMEOUT: "操作超时"},
 
   // 服务相关基础消息语义
   SERVICE: {
     ERROR: "服务错误",
-    TIMEOUT: "服务超时",
-  },
+    TIMEOUT: "服务超时"},
 
   // 网络相关基础消息语义
   NETWORK: {
@@ -65,18 +62,15 @@ export const MESSAGE_SEMANTICS = Object.freeze({
   // 验证相关基础消息语义
   VALIDATION: {
     FAILED: "验证失败",
-    INVALID_FORMAT: "格式无效",
-  },
+    INVALID_FORMAT: "格式无效"},
 
   // 时间相关基础消息语义
   TIME: {
-    TIMEOUT: "超时",
-  },
+    TIMEOUT: "超时"},
 
   // 配置相关基础消息语义
   CONFIG: {
-  },
-});
+  }});
 
 /**
  * 消息模板参数化工具
@@ -94,8 +88,7 @@ export const MESSAGE_TEMPLATE_SEMANTICS = Object.freeze({
     SERVICE_TIMEOUT: "{service}服务响应超时({timeout}ms)",
     DATA_SIZE_EXCEEDED: "数据大小({actualSize})超出限制({maxSize})",
     INVALID_PARAMETER: "参数'{parameter}'无效: {expected}",
-    QUOTA_EXCEEDED: "{resource}配额已满({current}/{limit})",
-  },
+    QUOTA_EXCEEDED: "{resource}配额已满({current}/{limit})"},
 
   // 快速消息(无参数)
   QUICK: {
@@ -118,8 +111,7 @@ export const MESSAGE_TEMPLATE_SEMANTICS = Object.freeze({
     PROCESSING: "处理中...",
     PENDING: "待处理",
     COMPLETED: "已完成",
-    IN_PROGRESS: "进行中",
-  },
+    IN_PROGRESS: "进行中"},
 
   // 消息优先级语义
   PRIORITIES: {
@@ -127,8 +119,7 @@ export const MESSAGE_TEMPLATE_SEMANTICS = Object.freeze({
     NORMAL: 2, 
     HIGH: 3,
     CRITICAL: 4,
-    EMERGENCY: 5,
-  },
+    EMERGENCY: 5},
 
   // 消息类型语义
   TYPES: {
@@ -136,9 +127,7 @@ export const MESSAGE_TEMPLATE_SEMANTICS = Object.freeze({
     SUCCESS: "success",
     WARNING: "warning", 
     ERROR: "error",
-    DEBUG: "debug",
-  },
-});
+    DEBUG: "debug"}});
 
 /**
  * 消息格式化语义
@@ -160,8 +149,7 @@ export const MESSAGE_FORMAT_SEMANTICS = Object.freeze({
     FIELD: " | ",           // 字段分隔
     LIST: ", ",             // 列表分隔
     NAMESPACE: "::",        // 命名空间分隔
-  },
-});
+  }});
 
 /**
  * 消息语义工具函数类
@@ -209,8 +197,7 @@ export class MessageSemanticsUtil {
     const templates = {
       not_found: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.RESOURCE_NOT_FOUND,
       already_exists: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.RESOURCE_ALREADY_EXISTS,
-      access_denied: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.PERMISSION_DENIED_RESOURCE,
-    };
+      access_denied: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.PERMISSION_DENIED_RESOURCE};
     
     return this.formatTemplate(templates[operation], { resource });
   }
@@ -305,8 +292,7 @@ export const RESOURCE_TYPE_SEMANTICS = Object.freeze({
   PROVIDER: "提供商",
   MARKET: "市场",
   STOCK: "股票",
-  QUOTE: "报价",
-});
+  QUOTE: "报价"});
 
 /**
  * 从Unified层迁移：操作类型常量
@@ -317,8 +303,7 @@ export const OPERATION_TYPE_SEMANTICS = Object.freeze({
   UPDATE: "更新",
   DELETE: "删除",
   QUERY: "查询",
-  PROCESS: "处理",
-});
+  PROCESS: "处理"});
 
 /**
  * 从Unified层迁移：消息模板函数集合
@@ -353,8 +338,7 @@ export const MESSAGE_TEMPLATE_FUNCTIONS = Object.freeze({
 
   // 验证相关模板函数
   VALIDATION_FAILED: (field: string = "数据") => `${field}验证失败`,
-  INVALID_VALUE: (field: string = "值") => `无效的${field}`,
-});
+  INVALID_VALUE: (field: string = "值") => `无效的${field}`});
 
 /**
  * 从Unified层迁移：常用消息快捷方式
@@ -434,13 +418,6 @@ export class MessageTemplateSemanticsUtil {
   }
 }
 
-/**
- * 🆕 权限消息兼容性别名 - 从permission-message.constants.ts迁移
- * 为了向后兼容，提供常用的别名 - 引用基础语义避免重复
- */
-export const PERMISSION_MESSAGE_ALIASES = Object.freeze({
-  // 与现有代码兼容的别名 - 引用基础定义避免重复
-});
 
 /**
  * 🆕 权限消息常量 - 从permission-message.constants.ts迁移的向后兼容导出
@@ -453,8 +430,7 @@ export const PERMISSION_MESSAGES = MESSAGE_SEMANTICS.PERMISSION;
 export const PERMISSION_UTILS = Object.freeze({
   getResourceDeniedMessage: MessageSemanticsUtil.getResourceDeniedMessage,
   getOperationDeniedMessage: MessageSemanticsUtil.getOperationDeniedMessage,
-  getRolePermissionMessage: MessageSemanticsUtil.getRolePermissionMessage,
-});
+  getRolePermissionMessage: MessageSemanticsUtil.getRolePermissionMessage});
 
 /**
  * 类型定义
@@ -470,4 +446,3 @@ export type QuickMessageSemantics = typeof QUICK_MESSAGE_SEMANTICS;
 // 🆕 权限消息相关类型定义 - 从permission-message.constants.ts迁移
 export type PermissionMessageKey = keyof typeof MESSAGE_SEMANTICS.PERMISSION;
 export type PermissionMessages = typeof PERMISSION_MESSAGES;
-export type PermissionMessageAliases = typeof PERMISSION_MESSAGE_ALIASES;

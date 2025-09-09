@@ -14,8 +14,19 @@ import { CONSTANTS } from '@common/constants';
 
 // Extract constants for backward compatibility
 const RETRY_CONSTANTS = CONSTANTS.SEMANTIC.RETRY;
-// Performance constants can be referenced from other semantic constants if needed
-import { ErrorType as RetryErrorType } from '../utils/retry.utils';
+
+/**
+ * 错误类型枚举
+ * 从utils/retry.utils.ts迁移到常量文件，统一管理
+ */
+export enum ErrorType {
+  NETWORK = "NETWORK",
+  TIMEOUT = "TIMEOUT",
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
+  VALIDATION = "VALIDATION",
+  SYSTEM = "SYSTEM",
+  UNKNOWN = "UNKNOWN",
+}
 
 /**
  * 模块元数据定义
@@ -61,10 +72,12 @@ export const TRANSFORM_DIRECTIONS = deepFreeze({
 
 // ====================== 错误类型常量 - 统一使用枚举定义，保持向后兼容 ======================
 export const ERROR_TYPES = deepFreeze({
-  VALIDATION_ERROR: RetryErrorType.VALIDATION, // 验证错误
-  TIMEOUT_ERROR: RetryErrorType.TIMEOUT, // 超时错误
-  NETWORK_ERROR: RetryErrorType.NETWORK, // 网络错误
-  SYSTEM_ERROR: RetryErrorType.SYSTEM, // 系统错误
+  VALIDATION_ERROR: ErrorType.VALIDATION, // 验证错误
+  TIMEOUT_ERROR: ErrorType.TIMEOUT, // 超时错误
+  NETWORK_ERROR: ErrorType.NETWORK, // 网络错误
+  SERVICE_UNAVAILABLE_ERROR: ErrorType.SERVICE_UNAVAILABLE, // 服务不可用错误
+  SYSTEM_ERROR: ErrorType.SYSTEM, // 系统错误
+  UNKNOWN_ERROR: ErrorType.UNKNOWN, // 未知错误
 } as const);
 
 // ====================== 监控配置 ======================
@@ -152,19 +165,20 @@ export const inferMarketType = (symbol: string): keyof typeof MARKET_TYPES => {
  * @param errorType 错误类型
  * @returns 是否可重试
  */
-export const isRetryableError = (errorType: string): boolean => {
+export const isRetryableError = (errorType: string | ErrorType): boolean => {
   const retryableTypes = [
-    ERROR_TYPES.NETWORK_ERROR,
-    ERROR_TYPES.TIMEOUT_ERROR,
-    ERROR_TYPES.SYSTEM_ERROR,
+    ErrorType.NETWORK,
+    ErrorType.TIMEOUT,
+    ErrorType.SERVICE_UNAVAILABLE,
+    ErrorType.SYSTEM,
   ];
-  return retryableTypes.includes(errorType as any);
+  return retryableTypes.includes(errorType as ErrorType);
 };
 
 // ====================== 类型定义 ======================
 export type MarketType = typeof MARKET_TYPES[keyof typeof MARKET_TYPES];
 export type TransformDirection = typeof TRANSFORM_DIRECTIONS[keyof typeof TRANSFORM_DIRECTIONS];
-export type ErrorType = typeof ERROR_TYPES[keyof typeof ERROR_TYPES];
+// ErrorType is already defined as enum above
 
 // ====================== 汇总导出 ======================
 /**
@@ -178,6 +192,7 @@ export const SYMBOL_TRANSFORMER_ENHANCED = deepFreeze({
   CONFIG,
   TRANSFORM_DIRECTIONS,
   ERROR_TYPES,
+  ErrorType, // 添加枚举导出
   MONITORING_CONFIG,
   RETRY_CONFIG,
   

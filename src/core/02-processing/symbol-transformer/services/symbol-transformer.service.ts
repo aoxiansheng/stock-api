@@ -14,7 +14,7 @@ import {
   MARKET_TYPES,
   TRANSFORM_DIRECTIONS,
   MONITORING_CONFIG,
-} from "../constants/symbol-transformer.constants";
+} from "../constants/symbol-transformer-enhanced.constants";
 import { RequestIdUtils } from "../utils/request-id.utils";
 
 /**

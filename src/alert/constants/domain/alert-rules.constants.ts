@@ -4,11 +4,7 @@
  * 🔧 基于核心层构建，专注于告警规则业务逻辑
  */
 
-import { NUMERIC_CONSTANTS } from '@common/constants/core';
-import { CORE_VALUES } from '../core/values.constants';
-import { CORE_LIMITS } from '../core/limits.constants';
 import { CORE_PATTERNS, STRING_FORMATS } from '../core/patterns.constants';
-import { CORE_TIMEOUTS } from '../core/timeouts.constants';
 
 /**
  * 告警规则常量
@@ -21,8 +17,8 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
     ID_PREFIX: "rule_",
     ID_TEMPLATE: STRING_FORMATS.ID_TEMPLATES.ALERT_RULE,
     ID_PATTERN: CORE_PATTERNS.ID_FORMATS.ALERT_RULE,
-    ID_TIMESTAMP_BASE: NUMERIC_CONSTANTS.N_36,
-    ID_RANDOM_LENGTH: CORE_LIMITS.ID_LENGTH.RANDOM_PART,    // 6
+    ID_TIMESTAMP_BASE: 36,
+    ID_RANDOM_LENGTH: 6,    // 6
     ID_RANDOM_START: 2,
   },
 
@@ -32,8 +28,8 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
   VALIDATION: {
     // 名称验证
     NAME_PATTERN: CORE_PATTERNS.TEXT.GENERAL_NAME,
-    NAME_MIN_LENGTH: CORE_LIMITS.STRING_LENGTH.MIN_LENGTH,  // 1
-    NAME_MAX_LENGTH: CORE_LIMITS.STRING_LENGTH.NAME_MAX,    // 100
+    NAME_MIN_LENGTH: 1,  // 1
+    NAME_MAX_LENGTH: 100,    // 100
     
     // 描述验证
     
@@ -41,20 +37,20 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
     METRIC_NAME_PATTERN: CORE_PATTERNS.TEXT.IDENTIFIER,
     
     // 标签验证
-    MAX_TAGS_COUNT: CORE_LIMITS.OBJECT_LIMITS.MAX_TAGS_COUNT,          // 10
-    TAG_MAX_LENGTH: CORE_LIMITS.STRING_LENGTH.TAG_MAX,                 // 50
+    MAX_TAGS_COUNT: 10,          // 10
+    TAG_MAX_LENGTH: 50,                 // 50
     
     // 阈值验证
-    THRESHOLD_MIN: CORE_LIMITS.NUMERIC_RANGE.THRESHOLD_MIN,            // 0
-    THRESHOLD_MAX: CORE_LIMITS.NUMERIC_RANGE.THRESHOLD_MAX,            // MAX_SAFE_INTEGER
+    THRESHOLD_MIN: 0,            // 0
+    THRESHOLD_MAX: 9007199254740991,            // MAX_SAFE_INTEGER
   },
 
   /**
    * 规则业务限制
    */
   BUSINESS_LIMITS: {
-    MAX_CONDITIONS_PER_RULE: CORE_LIMITS.OBJECT_LIMITS.MAX_CONDITIONS_PER_RULE, // 10
-    MAX_ACTIONS_PER_RULE: CORE_LIMITS.OBJECT_LIMITS.MAX_ACTIONS_PER_RULE,    // 5
+    MAX_CONDITIONS_PER_RULE: 10, // 10
+    MAX_ACTIONS_PER_RULE: 5,    // 5
   },
 
   /**
@@ -62,17 +58,17 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
    */
   TIME_CONFIG: {
     // 持续时间配置
-    DURATION_DEFAULT: CORE_TIMEOUTS.BASIC_SECONDS.DURATION_DEFAULT,    // 60秒
-    DURATION_MIN: CORE_TIMEOUTS.BASIC_SECONDS.DURATION_MIN,            // 1秒
-    DURATION_MAX: CORE_TIMEOUTS.BASIC_SECONDS.DURATION_MAX,            // 3600秒
+    DURATION_DEFAULT: 60,    // 60秒
+    DURATION_MIN: 1,            // 1秒
+    DURATION_MAX: 3600,            // 3600秒
     
     // 冷却时间配置
-    COOLDOWN_DEFAULT: CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_DEFAULT,    // 300秒
-    COOLDOWN_MIN: CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_MIN,            // 60秒
-    COOLDOWN_MAX: CORE_TIMEOUTS.BASIC_SECONDS.COOLDOWN_MAX,            // 86400秒
+    COOLDOWN_DEFAULT: 300,    // 300秒
+    COOLDOWN_MIN: 60,            // 60秒
+    COOLDOWN_MAX: 86400,            // 86400秒
     
     // 评估间隔配置
-    EVALUATION_DEFAULT_MS: CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.DEFAULT,     // 60000ms
+    EVALUATION_DEFAULT_MS: 60000,     // 60000ms
   },
 
   /**
@@ -82,7 +78,7 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
     COOLDOWN_KEY_PATTERN: STRING_FORMATS.CACHE_KEY_PATTERNS.RULE_COOLDOWN,   // "alert:cooldown:{ruleId}"
     ACTIVE_ALERTS_KEY_PATTERN: STRING_FORMATS.CACHE_KEY_PATTERNS.ACTIVE_ALERTS, // "alert:active:{ruleId}"
     STATS_KEY_PATTERN: STRING_FORMATS.CACHE_KEY_PATTERNS.RULE_STATS,         // "alert:stats:{ruleId}"
-    RULE_TTL_SECONDS: CORE_TIMEOUTS.CACHE_TTL_SECONDS.RULE,                  // 1800秒
+    RULE_TTL_SECONDS: 1800,                  // 1800秒
   },
 
   /**
