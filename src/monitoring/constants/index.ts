@@ -2,7 +2,25 @@
  * 监控常量统一导出入口
  * 🎯 提供监控模块所有常量的集中式导出，简化导入路径
  * 采用分层架构设计，确保清晰的模块化组织
+ * 
+ * 新增：从 common 常量剥离的业务常量 - MONITORING_BUSINESS
  */
+
+// ========================= 从 common 常量剥离的业务常量 =========================
+export * from './business';
+export { 
+  MONITORING_BUSINESS, 
+  MonitoringBusinessUtil,
+  type ErrorRateLevel,
+  type ChangeLevel,
+  type PerformanceLevel,
+  type HealthLevel,
+  type DataVolume,
+  type AlertLevel,
+  type CollectionPriority,
+  type DataType,
+  type MonitoringBusinessConstants
+} from './business';
 
 // ========================= 配置层常量 =========================
 export {
