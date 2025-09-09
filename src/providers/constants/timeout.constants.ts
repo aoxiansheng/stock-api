@@ -11,15 +11,10 @@ export const PROVIDER_TIMEOUT = {
   
   // 缓存配置
   CACHE_DURATION_MS: 5 * 60 * 1000,  // 5分钟缓存
-  CACHE_CLEANUP_INTERVAL_MS: 30_000, // 30秒清理间隔
   
   // WebSocket配置
-  HEARTBEAT_INTERVAL_MS: 10_000,     // 10秒心跳间隔
-  CONNECTION_TIMEOUT_MS: 15_000,     // 15秒连接超时
   
   // Stream处理配置
-  STREAM_BUFFER_SIZE: 100,           // 流缓冲区大小
-  STREAM_BATCH_TIMEOUT_MS: 500,      // 批处理超时
 } as const;
 
 // 类型导出

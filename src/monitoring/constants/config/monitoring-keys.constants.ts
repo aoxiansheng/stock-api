@@ -32,9 +32,7 @@ export type MonitoringKeyTemplate = typeof MONITORING_KEY_TEMPLATES[keyof typeof
 export const MONITORING_KEY_PREFIXES = Object.freeze({
   METRICS: 'metrics',
   HEALTH: 'health',
-  ALERTS: 'alerts',
   EVENTS: 'events',
-  SESSIONS: 'sessions',
   CACHE: 'cache',
   TEMP: 'temp'
 } as const);
@@ -45,6 +43,5 @@ export const MONITORING_KEY_PREFIXES = Object.freeze({
 export const MONITORING_KEY_SEPARATORS = Object.freeze({
   NAMESPACE: ':',
   COMPONENT: '.',
-  PARAMETER: '_',
   LIST: '|'
 } as const);

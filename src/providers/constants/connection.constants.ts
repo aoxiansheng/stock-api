@@ -31,16 +31,11 @@ export const CONNECTION_CONFIG = {
   
   // 重连配置
   RECONNECT: {
-    MAX_ATTEMPTS: PROVIDER_TIMEOUT.MAX_RECONNECT_ATTEMPTS,
-    DELAY_MS: PROVIDER_TIMEOUT.RECONNECT_DELAY_MS,
-    BACKOFF_MULTIPLIER: 1.5,
   } as const,
 
   // 连接池配置
   POOL: {
-    MIN_SIZE: 1,
     MAX_SIZE: 10,
-    IDLE_TIMEOUT_MS: 30_000,
   } as const,
 } as const;
 

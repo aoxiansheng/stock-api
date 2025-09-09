@@ -35,13 +35,11 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
     NAME_MAX_LENGTH: CORE_LIMITS.STRING_LENGTH.NAME_MAX,    // 100
     
     // 描述验证
-    DESCRIPTION_MAX_LENGTH: CORE_LIMITS.STRING_LENGTH.DESCRIPTION_MAX, // 500
     
     // 指标名称验证
     METRIC_NAME_PATTERN: CORE_PATTERNS.TEXT.IDENTIFIER,
     
     // 标签验证
-    TAG_PATTERN: CORE_PATTERNS.TEXT.TAG,
     MAX_TAGS_COUNT: CORE_LIMITS.OBJECT_LIMITS.MAX_TAGS_COUNT,          // 10
     TAG_MAX_LENGTH: CORE_LIMITS.STRING_LENGTH.TAG_MAX,                 // 50
     
@@ -54,7 +52,6 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
    * 规则业务限制
    */
   BUSINESS_LIMITS: {
-    MAX_RULES_PER_USER: CORE_LIMITS.OBJECT_LIMITS.MAX_RULES_PER_USER,        // 100
     MAX_CONDITIONS_PER_RULE: CORE_LIMITS.OBJECT_LIMITS.MAX_CONDITIONS_PER_RULE, // 10
     MAX_ACTIONS_PER_RULE: CORE_LIMITS.OBJECT_LIMITS.MAX_ACTIONS_PER_RULE,    // 5
   },
@@ -75,8 +72,6 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
     
     // 评估间隔配置
     EVALUATION_DEFAULT_MS: CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.DEFAULT,     // 60000ms
-    EVALUATION_MIN_MS: CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.MIN,             // 1000ms
-    EVALUATION_MAX_MS: CORE_TIMEOUTS.EVALUATION_INTERVALS_MS.MAX,             // 600000ms
   },
 
   /**
@@ -115,19 +110,6 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
  * 告警规则操作常量
  */
 export const ALERT_RULE_OPERATIONS = Object.freeze({
-  CREATE_RULE: "createRule",
-  UPDATE_RULE: "updateRule", 
-  DELETE_RULE: "deleteRule",
-  GET_RULES: "getRules",
-  GET_RULE_BY_ID: "getRuleById",
-  TOGGLE_RULE: "toggleRule",
-  EVALUATE_RULES_SCHEDULED: "evaluateRulesScheduled",
-  HANDLE_RULE_EVALUATION: "handleRuleEvaluation",
-  PROCESS_METRICS: "processMetrics",
-  ACKNOWLEDGE_ALERT: "acknowledgeAlert",
-  RESOLVE_ALERT: "resolveAlert",
-  GET_STATS: "getStats",
-  HANDLE_SYSTEM_EVENT: "handleSystemEvent",
 });
 
 /**
@@ -135,61 +117,20 @@ export const ALERT_RULE_OPERATIONS = Object.freeze({
  */
 export const ALERT_RULE_MESSAGES = Object.freeze({
   // 成功消息
-  RULE_CREATED: "告警规则创建成功",
-  RULE_UPDATED: "告警规则更新成功", 
-  RULE_DELETED: "告警规则删除成功",
-  RULE_STATUS_TOGGLED: "切换告警规则状态成功",
   
   // 错误消息
-  CREATE_RULE_DB_FAILED: "创建告警规则数据库操作失败",
-  UPDATE_RULE_FAILED: "更新告警规则失败",
-  DELETE_RULE_FAILED: "删除告警规则失败",
-  GET_RULES_FAILED: "获取所有告警规则失败",
-  GET_RULE_FAILED: "获取单个告警规则失败",
-  TOGGLE_RULE_FAILED: "切换告警规则状态失败",
-  RULE_EVALUATION_FAILED: "规则评估失败",
   
   // 信息消息
-  RULE_CREATION_STARTED: "开始创建告警规则",
-  RULE_UPDATE_STARTED: "开始更新告警规则",
-  RULE_DELETION_STARTED: "开始删除告警规则",
-  RULE_EVALUATION_STARTED: "开始规则评估",
   
   // 警告消息
-  RULE_STATUS_UNCHANGED: "尝试切换不存在的规则状态或状态未改变",
-  NO_ENABLED_RULES: "没有启用的告警规则",
-  RULE_VALIDATION_FAILED: "规则验证失败",
-  RULE_IN_COOLDOWN: "规则处于冷却期",
-  METRICS_PROCESSED: "指标数据处理完成",
   
   // 新增的消息
-  STATS_RETRIEVED: "统计信息获取成功",
-  NO_METRICS_TO_PROCESS: "没有指标数据需要处理",
-  METRICS_PROCESSING_STARTED: "开始处理指标数据",
-  PROCESS_METRICS_FAILED: "处理指标数据失败",
-  ALERT_ACKNOWLEDGMENT_STARTED: "开始确认告警",
-  ALERT_ACKNOWLEDGED: "告警确认成功",
-  ACKNOWLEDGE_ALERT_FAILED: "告警确认失败",
-  ALERT_RESOLUTION_STARTED: "开始解决告警",
-  ALERT_RESOLVED: "告警解决成功",
-  RESOLVE_ALERT_FAILED: "告警解决失败",
-  STATS_CALCULATION_STARTED: "开始计算统计信息",
-  GET_STATS_FAILED: "获取统计信息失败",
-  SYSTEM_EVENT_RECEIVED: "收到系统事件",
-  SYSTEM_EVENT_PROCESSED: "系统事件处理完成",
-  HANDLE_EVENT_FAILED: "处理系统事件失败",
 });
 
 /**
  * 告警规则指标常量
  */
 export const ALERT_RULE_METRICS = Object.freeze({
-  RULE_CREATION_COUNT: "alerting_rule_creation_count",
-  RULE_UPDATE_COUNT: "alerting_rule_update_count", 
-  RULE_DELETION_COUNT: "alerting_rule_deletion_count",
-  RULE_EVALUATION_COUNT: "alerting_rule_evaluation_count",
-  AVERAGE_RULE_EVALUATION_TIME: "alerting_avg_rule_evaluation_time",
-  ACTIVE_RULES_COUNT: "alerting_active_rules_count",
 });
 
 /**

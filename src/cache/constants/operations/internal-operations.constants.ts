@@ -5,9 +5,5 @@
  */
 
 export const CACHE_INTERNAL_OPERATIONS = Object.freeze({
-  COMPRESS: "compress",               // 数据压缩
-  DECOMPRESS: "decompress",           // 数据解压
   SERIALIZE: "serialize",             // 数据序列化
-  DESERIALIZE: "deserialize",         // 数据反序列化
-  UPDATE_METRICS: "updateCacheMetrics", // 更新缓存指标
 } as const);

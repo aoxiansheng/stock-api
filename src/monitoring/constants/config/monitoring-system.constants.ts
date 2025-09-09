@@ -49,13 +49,11 @@ export const MONITORING_SYSTEM_LIMITS = {
    * 数据库查询时间阈值
    * @description 数据库查询时间基准阈值
    */
-  DB_QUERY_TIME_MS: 50 as const,
   
   /**
    * 性能监控慢请求阈值
    * @description 性能装饰器默认慢请求阈值
    */
-  PERFORMANCE_SLOW_REQUEST_MS: 500 as const,
   
   // ========================= 系统限制 =========================
   /**
@@ -112,13 +110,11 @@ export const MONITORING_SYSTEM_LIMITS = {
    * 小时秒数
    * @description 一小时的秒数
    */
-  HOUR_IN_SECONDS: 3600 as const,
   
   /**
    * 天秒数
    * @description 一天的秒数
    */
-  DAY_IN_SECONDS: 86400 as const,
   
   /**
    * 分钟毫秒数
@@ -149,19 +145,16 @@ export const MONITORING_SYSTEM_LIMITS = {
    * 缓存命中率最小值
    * @description 缓存命中率合格最小值
    */
-  CACHE_HIT_RATE_MIN: 0.8 as const,
   
   /**
    * 错误率最大值
    * @description 系统错误率警告阈值
    */
-  ERROR_RATE_MAX: 0.01 as const,
   
   /**
    * 内存使用最大MB
    * @description 内存使用警告阈值
    */
-  MEMORY_USAGE_MAX_MB: 512 as const,
   
   // ========================= 批处理配置 =========================
   /**
@@ -193,19 +186,16 @@ export const MONITORING_SYSTEM_LIMITS = {
    * P99关键阈值
    * @description P99响应时间关键阈值（毫秒）
    */
-  P99_CRITICAL_MS: 500 as const,
   
   /**
    * 数据库阈值
    * @description 数据库监控装饰器默认阈值（毫秒）
    */
-  DATABASE_THRESHOLD_MS: 100 as const,
   
   /**
    * 系统正常运行时间阈值
    * @description 系统正常运行时间阈值（秒）
    */
-  SYSTEM_UPTIME_THRESHOLD_S: 3600 as const,
   
   /**
    * 监控缓存过期时间

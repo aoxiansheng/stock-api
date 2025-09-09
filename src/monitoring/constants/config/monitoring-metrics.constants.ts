@@ -188,15 +188,10 @@ export const MONITORING_METRIC_THRESHOLDS = Object.freeze({
  * 🎯 定义指标的聚合计算方式
  */
 export const MONITORING_AGGREGATION_TYPES = Object.freeze({
-  AVG: 'average',
-  SUM: 'sum', 
   MAX: 'maximum',
   MIN: 'minimum',
   COUNT: 'count',
   RATE: 'rate',
-  P50: 'percentile_50',
-  P95: 'percentile_95',
-  P99: 'percentile_99'
 } as const);
 
 /**
@@ -204,12 +199,6 @@ export const MONITORING_AGGREGATION_TYPES = Object.freeze({
  * 🎯 标准化时间窗口，用于指标聚合
  */
 export const MONITORING_TIME_WINDOWS = Object.freeze({
-  REAL_TIME: 0,      // 实时
-  ONE_MINUTE: 60,    // 1分钟
-  FIVE_MINUTES: 300, // 5分钟
-  FIFTEEN_MINUTES: 900, // 15分钟
-  ONE_HOUR: 3600,    // 1小时
-  ONE_DAY: 86400     // 1天
 } as const);
 
 /**
@@ -217,7 +206,6 @@ export const MONITORING_TIME_WINDOWS = Object.freeze({
  * 🎯 定义指标的监控优先级
  */
 export const MONITORING_METRIC_PRIORITIES = Object.freeze({
-  CRITICAL: 1,  // 关键指标，必须监控
   HIGH: 2,      // 高优先级指标
   MEDIUM: 3,    // 中等优先级指标
   LOW: 4        // 低优先级指标，可选监控

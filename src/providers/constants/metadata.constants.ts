@@ -10,7 +10,6 @@
 export const METADATA_KEYS = {
   PROVIDER_METADATA: Symbol('provider:metadata'),
   CAPABILITY_METADATA: Symbol('capability:metadata'), 
-  STREAM_METADATA: Symbol('stream:metadata'),
   HEALTH_CHECK_METADATA: Symbol('health-check:metadata'),
 } as const;
 

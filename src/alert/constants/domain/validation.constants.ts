@@ -63,7 +63,6 @@ export const VALIDATION_LIMITS = Object.freeze({
     // 网络相关长度限制
     EMAIL_MAX: CORE_LIMITS.STRING_LENGTH.EMAIL_MAX,                    // 320
     URL_MAX: CORE_LIMITS.STRING_LENGTH.URL_MAX,                        // 2048
-    FILENAME_MAX: CORE_LIMITS.STRING_LENGTH.FILENAME_MAX,              // 255
   },
 
   /**
@@ -76,11 +75,8 @@ export const VALIDATION_LIMITS = Object.freeze({
     
     // 通用数值范围
     MIN_VALUE: CORE_LIMITS.NUMERIC_RANGE.MIN_VALUE,                    // 0
-    MAX_VALUE: CORE_LIMITS.NUMERIC_RANGE.MAX_VALUE,                    // MAX_SAFE_INTEGER
     
     // 计数范围
-    COUNT_MIN: CORE_LIMITS.NUMERIC_RANGE.COUNT_MIN,                    // 0
-    COUNT_MAX: CORE_LIMITS.NUMERIC_RANGE.COUNT_MAX,                    // MAX_SAFE_INTEGER
   },
 
   /**
@@ -110,7 +106,6 @@ export const VALIDATION_LIMITS = Object.freeze({
     MAX_TAGS_COUNT: CORE_LIMITS.OBJECT_LIMITS.MAX_TAGS_COUNT,          // 10
     
     // 查询相关限制
-    MAX_QUERY_LIMIT: CORE_LIMITS.OBJECT_LIMITS.MAX_QUERY_LIMIT,        // 100
   },
 
   /**

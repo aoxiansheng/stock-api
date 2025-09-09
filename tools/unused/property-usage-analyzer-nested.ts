@@ -49,7 +49,7 @@ class NestedPropertyUsageAnalyzer {
 
   constructor() {
     this.rootDir = process.cwd();
-    this.constantsDir = join(this.rootDir, 'src/common/constants');
+    this.constantsDir = join(this.rootDir, 'src/providers/constants');
     this.srcDir = join(this.rootDir, 'src');
     this.testDir = join(this.rootDir, 'test');
     this.outputFile = join(this.rootDir, 'property-usage-analysis-nested.json');
@@ -132,7 +132,7 @@ class NestedPropertyUsageAnalyzer {
    * 扫描嵌套属性定义 - 改进版
    */
   private async scanNestedPropertyDefinitions(): Promise<void> {
-    const categories = ['foundation', 'semantic', 'domain', 'application'];
+    const categories = ['foundation', 'semantic', 'domain', 'application', '/', 'config', 'messages', 'status', 'operations'];
     
     for (const category of categories) {
       const categoryDir = join(this.constantsDir, category);

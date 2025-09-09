@@ -11,7 +11,6 @@ export const CACHE_DATA_FORMATS = Object.freeze({
   COMPRESSION_PREFIX: "COMPRESSED::",
   SERIALIZATION: {
     JSON: "json" as const,
-    MSGPACK: "msgpack" as const
   }
 } as const);
 

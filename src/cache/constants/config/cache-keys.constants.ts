@@ -10,7 +10,6 @@ export const CACHE_KEYS = Object.freeze({
    */
   PREFIXES: {
     HEALTH: "cache:health:",
-    STATS: "cache:stats:",
     METRICS: "cache:metrics:",
     LOCK: "cache:lock:",
     CONFIG: "cache:config:",

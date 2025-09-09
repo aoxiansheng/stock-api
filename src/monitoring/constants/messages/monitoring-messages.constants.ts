@@ -9,7 +9,6 @@
  * 注：健康状态描述请使用 monitoring-health.constants.ts 中的 MONITORING_STATUS_DESCRIPTIONS
  */
 export const MONITORING_MESSAGE_STATUS_DESCRIPTIONS = Object.freeze({
-  PLACEHOLDER: "placeholder"
 } as const);
 
 /**
@@ -30,11 +29,6 @@ export const MONITORING_METRIC_STATUS_DESCRIPTIONS = Object.freeze({
   /**
    * 指标状态描述
    */
-  METRIC_NORMAL: "指标值在正常范围内",
-  METRIC_WARNING: "指标值接近警告阈值",
-  METRIC_CRITICAL: "指标值超过严重阈值",
-  METRIC_IMPROVING: "指标趋势正在改善",
-  METRIC_DETERIORATING: "指标趋势正在恶化"
 } as const);
 
 /**
@@ -55,10 +49,8 @@ export const MONITORING_MESSAGE_TYPES = Object.freeze({
  * 用于消息优先级排序
  */
 export const MONITORING_MESSAGE_SEVERITY = Object.freeze({
-  INFO: 0,
   WARNING: 1,
   ERROR: 2,
-  CRITICAL: 3
 } as const);
 
 /**
