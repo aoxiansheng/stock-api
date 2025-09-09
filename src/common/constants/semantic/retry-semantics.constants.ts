@@ -4,6 +4,7 @@
  * 🔄 基于Foundation层构建，解决RETRY_DELAY_MS等重复定义问题
  */
 
+import { NUMERIC_CONSTANTS } from '../core';
 import { CORE_VALUES, CORE_TIMEOUTS, CORE_LIMITS } from '../foundation';
 
 /**
@@ -21,16 +22,16 @@ export const RETRY_DELAY_SEMANTICS = Object.freeze({
 
   // 场景特定延迟（毫秒）
   SCENARIO: {
-    NETWORK_FAILURE_MS: CORE_VALUES.TIME_MS.ONE_SECOND,         // 1000ms - 网络故障
-    RATE_LIMIT_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,             // 10000ms - 频率限制
-    DATABASE_ERROR_MS: CORE_VALUES.TIME_MS.ONE_SECOND * 2,      // 2000ms - 数据库错误
+    NETWORK_FAILURE_MS: NUMERIC_CONSTANTS.N_1000,         // 1000ms - 网络故障
+    RATE_LIMIT_MS: NUMERIC_CONSTANTS.N_10000,             // 10000ms - 频率限制
+    DATABASE_ERROR_MS: NUMERIC_CONSTANTS.N_1000 * 2,      // 2000ms - 数据库错误
   },
 
   // 退避策略延迟（毫秒）
   BACKOFF: {
-    LINEAR_STEP_MS: CORE_VALUES.TIME_MS.ONE_SECOND,             // 1000ms - 线性退避步长
-    EXPONENTIAL_MAX_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS,     // 30000ms - 指数退避上限
-    RANDOM_JITTER_MAX_MS: CORE_VALUES.TIME_MS.ONE_SECOND,       // 1000ms - 随机抖动上限
+    LINEAR_STEP_MS: NUMERIC_CONSTANTS.N_1000,             // 1000ms - 线性退避步长
+    EXPONENTIAL_MAX_MS: NUMERIC_CONSTANTS.N_30000,     // 30000ms - 指数退避上限
+    RANDOM_JITTER_MAX_MS: NUMERIC_CONSTANTS.N_1000,       // 1000ms - 随机抖动上限
   },
 });
 
@@ -48,18 +49,18 @@ export const RETRY_COUNT_SEMANTICS = Object.freeze({
 
   // 场景特定重试次数
   SCENARIO: {
-    NETWORK_OPERATION: CORE_VALUES.QUANTITIES.THREE,            // 3 - 网络操作
-    DATABASE_OPERATION: CORE_VALUES.QUANTITIES.TWO,             // 2 - 数据库操作
-    EXTERNAL_API: CORE_VALUES.QUANTITIES.FIVE,                  // 5 - 外部API调用
-    CACHE_OPERATION: CORE_VALUES.QUANTITIES.TWO,                // 2 - 缓存操作
+    NETWORK_OPERATION: NUMERIC_CONSTANTS.N_3,            // 3 - 网络操作
+    DATABASE_OPERATION: NUMERIC_CONSTANTS.N_2,             // 2 - 数据库操作
+    EXTERNAL_API: NUMERIC_CONSTANTS.N_5,                  // 5 - 外部API调用
+    CACHE_OPERATION: NUMERIC_CONSTANTS.N_2,                // 2 - 缓存操作
   },
 
   // 严重程度分级重试次数
   SEVERITY: {
-    CRITICAL: CORE_VALUES.QUANTITIES.ONE,                       // 1 - 关键操作（快速失败）
-    HIGH: CORE_VALUES.QUANTITIES.TWO,                           // 2 - 高优先级
-    MEDIUM: CORE_VALUES.QUANTITIES.THREE,                       // 3 - 中等优先级
-    LOW: CORE_VALUES.QUANTITIES.FIVE,                           // 5 - 低优先级（多次重试）
+    CRITICAL: NUMERIC_CONSTANTS.N_1,                       // 1 - 关键操作（快速失败）
+    HIGH: NUMERIC_CONSTANTS.N_2,                           // 2 - 高优先级
+    MEDIUM: NUMERIC_CONSTANTS.N_3,                       // 3 - 中等优先级
+    LOW: NUMERIC_CONSTANTS.N_5,                           // 5 - 低优先级（多次重试）
   },
 });
 
@@ -253,7 +254,7 @@ export class RetrySemanticsUtil {
   /**
    * 获取推荐的重试配置
    */
-  static getRecommendedConfig(operationType: keyof typeof RETRY_CONFIG_TEMPLATES): typeof RETRY_CONFIG_TEMPLATES.NETWORK_OPERATION {
+  static getRecommendedConfig(operationType: keyof typeof RETRY_CONFIG_TEMPLATES) {
     return RETRY_CONFIG_TEMPLATES[operationType];
   }
 
@@ -345,7 +346,7 @@ export const RETRY_BUSINESS_SCENARIOS = Object.freeze({
     maxAttempts: 10,                                             // WebSocket需要更多重连尝试
     initialDelayMs: RETRY_DELAY_SEMANTICS.BASIC.INITIAL_MS,      // 1000ms
     backoffMultiplier: 1.5,
-    maxDelayMs: CORE_VALUES.TIME_MS.ONE_MINUTE,                  // 60000ms
+    maxDelayMs: NUMERIC_CONSTANTS.N_60000,                  // 60000ms
     explanation: "WebSocket连接需要持续重连能力",
   },
 });

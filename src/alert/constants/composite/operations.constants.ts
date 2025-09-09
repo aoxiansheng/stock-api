@@ -10,22 +10,40 @@ import { ALERT_HISTORY_OPERATIONS, ALERT_HISTORY_MESSAGES, ALERT_HISTORY_METRICS
 import { deepFreeze } from "../../../common/utils/object-immutability.util";
 
 /**
- * 统一操作名称常量
+ * 统一操作常量
  * 整合所有领域的操作定义
  */
 export const ALERT_OPERATIONS = deepFreeze({
   /**
-   * 告警规则相关操作
+   * 告警规则操作
    */
-  RULES: ALERT_RULE_OPERATIONS,
+  RULES: {
+    CREATE_RULE: "createRule",
+    UPDATE_RULE: "updateRule",
+    DELETE_RULE: "deleteRule",
+    GET_RULES: "getRules",
+    GET_RULE_BY_ID: "getRuleById",
+    TOGGLE_RULE: "toggleRule",
+    PROCESS_METRICS: "processMetrics",
+    ACKNOWLEDGE_ALERT: "acknowledgeAlert",
+    RESOLVE_ALERT: "resolveAlert",
+    GET_STATS: "getStats",
+    HANDLE_SYSTEM_EVENT: "handleSystemEvent",
+    HANDLE_RULE_EVALUATION: "handleRuleEvaluation",
+    EVALUATE_RULES_SCHEDULED: "evaluateRulesScheduled",
+    RULE_CREATION_STARTED: "ruleCreationStarted",
+    RULE_UPDATE_STARTED: "ruleUpdateStarted",
+    RULE_DELETION_STARTED: "ruleDeletionStarted",
+    RULE_EVALUATION_STARTED: "ruleEvaluationStarted",
+  },
 
   /**
-   * 通知系统相关操作
+   * 通知系统操作
    */
   NOTIFICATIONS: NOTIFICATION_OPERATIONS,
 
   /**
-   * 告警历史相关操作
+   * 告警历史操作
    */
   HISTORY: ALERT_HISTORY_OPERATIONS,
 

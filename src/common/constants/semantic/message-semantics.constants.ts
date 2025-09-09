@@ -5,7 +5,7 @@
  * 🆕 从Unified层迁移，解决消息模板重复定义问题
  */
 
-import { CORE_VALUES } from '../foundation';
+import { NUMERIC_CONSTANTS } from '../core';
 
 /**
  * 基础消息语义模板
@@ -151,8 +151,8 @@ export const MESSAGE_FORMAT_SEMANTICS = Object.freeze({
 
   // 消息长度限制语义 - 基于Foundation层
   LENGTH_LIMITS: {
-    MEDIUM_MESSAGE: CORE_VALUES.QUANTITIES.FIVE_HUNDRED, // 500字符 - 中等消息  
-    DESCRIPTION: CORE_VALUES.QUANTITIES.TWO_THOUSAND,   // 2000字符 - 描述信息
+    MEDIUM_MESSAGE: NUMERIC_CONSTANTS.N_500, // 500字符 - 中等消息  
+    DESCRIPTION: NUMERIC_CONSTANTS.N_2000,              // 2000字符 - 描述信息
   },
 
   // 消息分隔符语义

@@ -4,14 +4,8 @@
  * 🔧 整合所有层级，提供最终的统一配置接口
  */
 
-// 导出所有应用层常量和工具
-export {
-  UNIFIED_CONFIG,
-  UnifiedConfigManager,
-  UnifiedConfigUtil
-} from './unified-config.constants';
-
-export {
+// 导入环境配置
+import {
   ENVIRONMENT_DETECTION,
   ENVIRONMENT_FEATURES,
   ENVIRONMENT_RESOURCE_LIMITS,
@@ -19,59 +13,56 @@ export {
   EnvironmentConfigUtil
 } from './environment-config.constants';
 
-export {
-  BATCH_APPLICATION_CONFIG,
-  BatchApplicationUtil
-} from './batch-application.constants';
+// 导入核心常量用于QUICK配置
+import { NUMERIC_CONSTANTS } from '../core/numeric.constants';
+import { CORE_VALUES } from '../foundation/core-values.constants';
+import { CACHE_TTL_SEMANTICS } from '../semantic/cache-semantics.constants';
+import { HTTP_TIMEOUTS } from '../semantic/http-semantics.constants';
+import { BATCH_SIZE_SEMANTICS } from '../semantic/batch-semantics.constants';
+import { HTTP_STATUS_CODES } from '../semantic/http-semantics.constants';
 
+// 导入枚举类型
+const Environment = {
+  DEVELOPMENT: 'development',
+  TEST: 'test',
+  STAGING: 'staging',
+  PRODUCTION: 'production'
+} as const;
+
+const LogLevel = {
+  ERROR: 'error',
+  WARN: 'warn',
+  INFO: 'info',
+  DEBUG: 'debug'
+} as const;
+
+// 导出环境配置相关
 export {
-  SYSTEM_OPERATION_STATUS,
-  SYSTEM_LOG_LEVELS,
-  SYSTEM_ENVIRONMENTS,
-  SYSTEM_APPLICATION_CONFIG,
-  SYSTEM_CONSTANTS,
-  SystemApplicationUtil,
-  getAllOperationStatuses,
-  isValidOperationStatus,
-  type SystemOperationStatus,
-  type SystemConfig,
-  type DataState,
-  OperationStatus
-} from './system-application.constants';
+  ENVIRONMENT_DETECTION,
+  ENVIRONMENT_FEATURES,
+  ENVIRONMENT_RESOURCE_LIMITS,
+  EnvironmentConfigManager,
+  EnvironmentConfigUtil
+};
 
 // 导出类型定义
-export type {
-  UnifiedConfigType,
-  QuickAccessConfig,
-  IntegrationConfig
-} from './unified-config.constants';
-
 export type {
   EnvironmentFeatures,
   EnvironmentResourceLimits
 } from './environment-config.constants';
 
-// 导入用于统一配置对象
-import { UNIFIED_CONFIG, UnifiedConfigManager, UnifiedConfigUtil } from './unified-config.constants';
-import {
-  ENVIRONMENT_DETECTION,
-  ENVIRONMENT_FEATURES,
-  ENVIRONMENT_RESOURCE_LIMITS,
-  EnvironmentConfigManager
-} from './environment-config.constants';
-import { Environment, LogLevel } from './system-application.constants';
 
 /**
  * Application层完整常量对象
  * 🎯 提供整个常量系统的最终统一接口
  */
 export const APPLICATION_CONSTANTS = Object.freeze({
-  // 统一配置
-  UNIFIED: UNIFIED_CONFIG,
-
   // 环境配置
   ENVIRONMENT: {
     ENUMS: { Environment, LogLevel },
+    DETECTION: ENVIRONMENT_DETECTION,
+    FEATURES: ENVIRONMENT_FEATURES,
+    RESOURCE_LIMITS: ENVIRONMENT_RESOURCE_LIMITS,
   },
 
   // 元信息
@@ -86,11 +77,9 @@ export const APPLICATION_CONSTANTS = Object.freeze({
  */
 export class ConstantSystemManager {
   private static instance: ConstantSystemManager;
-  private unifiedConfigManager: UnifiedConfigManager;
   private environmentConfigManager: EnvironmentConfigManager;
 
   private constructor() {
-    this.unifiedConfigManager = UnifiedConfigManager.getInstance();
     this.environmentConfigManager = EnvironmentConfigManager.getInstance();
   }
 
@@ -108,11 +97,9 @@ export class ConstantSystemManager {
    * 获取完整的系统配置
    */
   getFullSystemConfig(): any {
-    const unifiedConfig = this.unifiedConfigManager.getFullConfig();
     const environmentConfig = this.environmentConfigManager.getConfigSummary();
     
     return {
-      unified: unifiedConfig,
       environment: environmentConfig,
       meta: APPLICATION_CONSTANTS.META,
       timestamp: new Date().toISOString(),
@@ -125,78 +112,13 @@ export class ConstantSystemManager {
   getRuntimeConfig(): any {
     const envConfig = this.environmentConfigManager.getEnvironmentFeatures();
     const resourceLimits = this.environmentConfigManager.getResourceLimits();
-    const quickAccess = this.unifiedConfigManager.getQuickConfig();
-    const integrations = this.unifiedConfigManager.getIntegrationConfig();
 
     return {
-      // 快速访问配置（经过环境调整）
-      quickAccess: {
-        timeouts: {
-          fastRequest: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.TIMEOUTS.FAST_REQUEST_MS,
-            'timeout'
-          ),
-          normalRequest: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.TIMEOUTS.NORMAL_REQUEST_MS,
-            'timeout'
-          ),
-          slowRequest: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.TIMEOUTS.SLOW_REQUEST_MS,
-            'timeout'
-          ),
-          databaseQuery: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.TIMEOUTS.DATABASE_QUERY_MS,
-            'timeout'
-          ),
-        },
-        
-        batchSizes: {
-          small: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.BATCH_SIZES.SMALL,
-            'batch'
-          ),
-          medium: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.BATCH_SIZES.MEDIUM,
-            'batch'
-          ),
-          large: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.BATCH_SIZES.LARGE,
-            'batch'
-          ),
-          optimal: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.BATCH_SIZES.OPTIMAL,
-            'batch'
-          ),
-        },
-        
-        cacheTtl: {
-          realtime: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.CACHE_TTL.REALTIME_SEC,
-            'cache_ttl'
-          ),
-          frequent: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.CACHE_TTL.FREQUENT_SEC,
-            'cache_ttl'
-          ),
-          normal: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.CACHE_TTL.NORMAL_SEC,
-            'cache_ttl'
-          ),
-          static: this.unifiedConfigManager.getAdjustedValue(
-            quickAccess.CACHE_TTL.STATIC_SEC,
-            'cache_ttl'
-          ),
-        },
-      },
-
       // 环境特性
       features: envConfig,
 
       // 资源限制
       resourceLimits,
-
-      // 集成配置
-      integrations,
 
       // 环境信息
       environment: {
@@ -214,10 +136,6 @@ export class ConstantSystemManager {
   validateSystem(): { valid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = [];
     const warnings: string[] = [];
-
-    // 验证统一配置
-    const unifiedValidation = this.unifiedConfigManager.validateConfig();
-    errors.push(...unifiedValidation.errors);
 
     // 验证环境配置
     const envValidation = this.environmentConfigManager.validateEnvironmentConfig();
@@ -272,20 +190,16 @@ export class ConstantSystemManager {
    * 获取系统统计信息
    */
   getSystemStats(): any {
-    const unifiedStats = this.unifiedConfigManager.getConfigStats();
     const envStats = this.environmentConfigManager.getConfigSummary();
 
     return {
       // 常量系统统计
       system: {
-        totalLayers: 4,
+        totalLayers: 3, // Foundation, Semantic, Domain
         totalDomains: 3, // Market, Alert, RateLimit
         architecture: 'Foundation → Semantic → Domain → Application',
         version: APPLICATION_CONSTANTS.META.VERSION,
       },
-
-      // 统一配置统计
-      unifiedConfig: unifiedStats,
 
       // 环境配置统计
       environmentConfig: {
@@ -310,26 +224,18 @@ export class ConstantSystemManager {
   /**
    * 获取推荐配置
    */
-  getRecommendedConfig(scenario?: string): any {
-    if (scenario) {
-      return UnifiedConfigUtil.getRecommendedConfig(scenario as any);
-    }
-
-    // 基于当前环境推荐配置
+  getRecommendedConfig(_scenario?: string): any {
     const env = this.environmentConfigManager.getCurrentEnvironment();
     
-    switch (env) {
-      case Environment.DEVELOPMENT:
-        return UnifiedConfigUtil.getRecommendedConfig('development');
-      case Environment.TEST:
-        return UnifiedConfigUtil.getRecommendedConfig('high_reliability');
-      case Environment.STAGING:
-        return UnifiedConfigUtil.getRecommendedConfig('high_reliability');
-      case Environment.PRODUCTION:
-        return UnifiedConfigUtil.getRecommendedConfig('high_performance');
-      default:
-        return UnifiedConfigUtil.getRecommendedConfig('development');
-    }
+    // 基于环境返回简化的推荐配置
+    const baseConfig = {
+      environment: env,
+      features: this.environmentConfigManager.getEnvironmentFeatures(),
+      resourceLimits: this.environmentConfigManager.getResourceLimits(),
+      logLevel: this.environmentConfigManager.getRecommendedLogLevel(),
+    };
+
+    return baseConfig;
   }
 
   /**
@@ -397,14 +303,51 @@ export const CONFIG = {
   // 系统管理器实例
   SYSTEM: ConstantSystemManager.getInstance(),
   
-  // 快速访问配置
-  QUICK: UnifiedConfigManager.getInstance().getQuickConfig(),
-  
   // 环境配置
   ENV: EnvironmentConfigManager.getInstance(),
   
   // 完整应用配置
   APP: APPLICATION_CONSTANTS,
+  
+  // 快速访问配置 - 修复TS2339错误
+  QUICK: {
+    // 超时配置
+    TIMEOUTS: {
+      FAST_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,        // 5秒
+      NORMAL_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,    // 30秒
+      DATABASE_QUERY_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT,     // 30秒
+      SLOW_OPERATION_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,      // 60秒
+    },
+    
+    // 批量大小配置
+    BATCH_SIZES: {
+      SMALL: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,     // 25
+      OPTIMAL: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,        // 50
+      MAX: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,                // 1000
+    },
+    
+    // 缓存TTL配置
+    CACHE_TTL: {
+      REALTIME_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,    // 5秒
+      FREQUENT_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC, // 1分钟
+      STATIC_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,        // 1天
+    },
+    
+    // HTTP状态码
+    HTTP_STATUS: {
+      OK: HTTP_STATUS_CODES.SUCCESS.OK,                    // 200
+      BAD_REQUEST: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST, // 400
+      INTERNAL_ERROR: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR, // 500
+    },
+    
+    // 常用数值
+    VALUES: {
+      ONE_SECOND_MS: NUMERIC_CONSTANTS.N_1000,             // 1000ms
+      TEN_SECONDS_MS: NUMERIC_CONSTANTS.N_10000,           // 10000ms
+      DEFAULT_RETRIES: NUMERIC_CONSTANTS.N_3,              // 3
+      MAX_RETRIES: NUMERIC_CONSTANTS.N_5,                  // 5
+    }
+  }
 } as const;
 
 /**

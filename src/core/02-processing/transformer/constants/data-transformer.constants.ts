@@ -5,8 +5,9 @@
 
 // 导入统一常量系统，避免重复定义
 
-import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
-import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
+import { NUMERIC_CONSTANTS } from "@common/constants/core";
+import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
+import { CORE_LIMITS } from "@common/constants/foundation";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 // 复用 data-mapper 的转换类型常量，避免重复定义
 import { 
@@ -53,10 +54,10 @@ export const TRANSFORM_WARNING_MESSAGES = Object.freeze({
  * 转换配置常量
  */
 export const DATATRANSFORM_CONFIG = Object.freeze({
-  MAX_BATCH_SIZE: PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE, // 批量转换最大数量
+  MAX_BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE, // 批量转换最大数量
   MAX_FIELD_MAPPINGS: 100, // 单个规则最大字段映射数
   MAX_SAMPLE_SIZE: 10, // 预览样本最大数量
-  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认转换超时时间
+  DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 默认转换超时时间
   MAX_NESTED_DEPTH: 10, // 最大嵌套深度
   MAX_STRING_LENGTH: 10000, // 最大字符串长度
   MAX_ARRAY_LENGTH: 10000, // 最大数组长度
@@ -66,12 +67,10 @@ export const DATATRANSFORM_CONFIG = Object.freeze({
  * 转换性能阈值常量
  */
 export const DATATRANSFORM_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_TRANSFORMATION_MS:
-    CORE_VALUES.PERFORMANCE_MS.SLOW_TRANSFORMATION, // 慢转换阈值
-  LARGE_DATASET_SIZE: PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE, // 大数据集阈值
-  HIGH_MEMORY_USAGE_MB:
-    CORE_VALUES.MEMORY_MB.HIGH_USAGE, // 高内存使用阈值
-  MAX_PROCESSING_TIME_MS: CORE_VALUES.TIMEOUT_MS.LONG, // 最大处理时间
+  SLOW_TRANSFORMATION_MS: NUMERIC_CONSTANTS.N_1000, // 慢转换阈值
+  LARGE_DATASET_SIZE: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE, // 大数据集阈值
+  HIGH_MEMORY_USAGE_MB: NUMERIC_CONSTANTS.N_100, // 高内存使用阈值
+  MAX_PROCESSING_TIME_MS: NUMERIC_CONSTANTS.N_60000, // 最大处理时间
 } as const);
 
 /**
@@ -190,9 +189,9 @@ export const TRANSFORM_EVENTS = Object.freeze({
  * 默认转换配置常量
  */
 export const TRANSFORM_DEFAULTS = Object.freeze({
-  BATCH_SIZE: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE, // 默认批量大小
+  BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE, // 默认批量大小
   TIMEOUT_MS: 10000, // 默认超时时间（10秒）
-  RETRY_ATTEMPTS: CORE_VALUES.RETRY.MAX_ATTEMPTS, // 默认重试次数（使用统一配置）
+  RETRY_ATTEMPTS: CORE_LIMITS.RATE_LIMITS.MAX_RETRIES, // 默认重试次数（使用统一配置）
   VALIDATE_OUTPUT: true, // 默认启用输出验证
   INCLUDE_METADATA: false, // 默认不包含元数据
   CONTINUE_ON_ERROR: false, // 默认遇错停止

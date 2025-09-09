@@ -11,6 +11,7 @@ import {
   RETRY_BUSINESS_SCENARIOS,
   RETRY_CONDITION_SEMANTICS
 } from '../semantic/retry-semantics.constants';
+import { NUMERIC_CONSTANTS } from '../core';
 import { CORE_VALUES } from '../foundation';
 
 /**
@@ -51,7 +52,7 @@ export const CIRCUIT_BREAKER_BUSINESS_SCENARIOS = Object.freeze({
     failureThreshold: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.maxAttempts,  // 3次失败即熔断
     successThreshold: 2,                                                   // 2次成功即恢复
     timeout: HTTP_TIMEOUTS.REQUEST.FAST_MS,                               // 5秒超时
-    resetTimeout: CORE_VALUES.TIME_MS.THIRTY_SECONDS,                     // 30秒后重试
+    resetTimeout: NUMERIC_CONSTANTS.N_30000,                     // 30秒后重试
   } as CircuitBreakerConfig,
 
   /**
@@ -62,7 +63,7 @@ export const CIRCUIT_BREAKER_BUSINESS_SCENARIOS = Object.freeze({
     failureThreshold: 8,                                                   // 8次失败后熔断
     successThreshold: RETRY_BUSINESS_SCENARIOS.DATA_FETCHER.maxAttempts,   // 5次成功后恢复
     timeout: HTTP_TIMEOUTS.REQUEST.SLOW_MS / 4,                           // 15秒超时
-    resetTimeout: CORE_VALUES.TIME_MS.TWO_MINUTES,                        // 2分钟后重试
+    resetTimeout: NUMERIC_CONSTANTS.N_120000,                        // 2分钟后重试
   } as CircuitBreakerConfig,
 
   /**
@@ -73,7 +74,7 @@ export const CIRCUIT_BREAKER_BUSINESS_SCENARIOS = Object.freeze({
     failureThreshold: 10,                                                  // 10次失败后熔断
     successThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts, // 3次成功后恢复
     timeout: HTTP_TIMEOUTS.REQUEST.FAST_MS / 2,                           // 3秒超时
-    resetTimeout: CORE_VALUES.TIME_MS.THIRTY_SECONDS,                     // 30秒后重试
+    resetTimeout: NUMERIC_CONSTANTS.N_30000,                     // 30秒后重试
   } as CircuitBreakerConfig,
 
   /**
@@ -84,7 +85,7 @@ export const CIRCUIT_BREAKER_BUSINESS_SCENARIOS = Object.freeze({
     failureThreshold: RETRY_BUSINESS_SCENARIOS.EXTERNAL_API.maxAttempts,  // 5次失败即熔断
     successThreshold: RETRY_BUSINESS_SCENARIOS.EXTERNAL_API.maxAttempts,  // 5次成功才恢复
     timeout: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,                             // 30秒超时
-    resetTimeout: CORE_VALUES.TIME_MS.FIVE_MINUTES,                       // 5分钟后重试
+    resetTimeout: NUMERIC_CONSTANTS.N_300000,                       // 5分钟后重试
   } as CircuitBreakerConfig,
 
   /**
@@ -95,7 +96,7 @@ export const CIRCUIT_BREAKER_BUSINESS_SCENARIOS = Object.freeze({
     failureThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts + 2, // 5次失败后熔断
     successThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts,     // 3次成功后恢复
     timeout: HTTP_TIMEOUTS.REQUEST.SLOW_MS / 3,                           // 20秒超时
-    resetTimeout: CORE_VALUES.TIME_MS.ONE_MINUTE,                         // 1分钟后重试
+    resetTimeout: NUMERIC_CONSTANTS.N_60000,                         // 1分钟后重试
   } as CircuitBreakerConfig,
 
   /**
@@ -106,7 +107,7 @@ export const CIRCUIT_BREAKER_BUSINESS_SCENARIOS = Object.freeze({
     failureThreshold: 2,                                                   // 2次失败即熔断
     successThreshold: 1,                                                   // 1次成功即恢复
     timeout: HTTP_TIMEOUTS.REQUEST.FAST_MS,                               // 5秒超时
-    resetTimeout: CORE_VALUES.TIME_MS.TEN_SECONDS,                        // 10秒后重试
+    resetTimeout: NUMERIC_CONSTANTS.N_10000,                        // 10秒后重试
   } as CircuitBreakerConfig,
 });
 
@@ -121,8 +122,8 @@ export const CIRCUIT_BREAKER_PERFORMANCE_LEVELS = Object.freeze({
   HIGH_PERFORMANCE: {
     failureThreshold: 2,
     successThreshold: 1,
-    timeout: CORE_VALUES.PERFORMANCE_MS.VERY_FAST * 60,                   // 3秒
-    resetTimeout: CORE_VALUES.TIME_MS.FIFTEEN_SECONDS,                    // 15秒
+    timeout: NUMERIC_CONSTANTS.N_3000,                   // 3秒
+    resetTimeout: NUMERIC_CONSTANTS.N_15000,                    // 15秒
   } as CircuitBreakerConfig,
 
   /**
@@ -131,8 +132,8 @@ export const CIRCUIT_BREAKER_PERFORMANCE_LEVELS = Object.freeze({
   STANDARD_PERFORMANCE: {
     failureThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts + 2, // 5
     successThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts,     // 3
-    timeout: CORE_VALUES.PERFORMANCE_MS.SLOW,                             // 10秒
-    resetTimeout: CORE_VALUES.TIME_MS.ONE_MINUTE,                         // 60秒
+    timeout: NUMERIC_CONSTANTS.N_1000,                             // 10秒
+    resetTimeout: NUMERIC_CONSTANTS.N_60000,                         // 60秒
   } as CircuitBreakerConfig,
 
   /**
@@ -141,8 +142,8 @@ export const CIRCUIT_BREAKER_PERFORMANCE_LEVELS = Object.freeze({
   LOW_PERFORMANCE: {
     failureThreshold: 10,
     successThreshold: 5,
-    timeout: CORE_VALUES.TIME_MS.THIRTY_SECONDS,                          // 30秒
-    resetTimeout: CORE_VALUES.TIME_MS.THREE_MINUTES,                      // 3分钟
+    timeout: NUMERIC_CONSTANTS.N_30000,                          // 30秒
+    resetTimeout: NUMERIC_CONSTANTS.N_180000,                      // 3分钟
   } as CircuitBreakerConfig,
 });
 
@@ -157,8 +158,8 @@ export const CIRCUIT_BREAKER_ENVIRONMENT_CONFIGS = Object.freeze({
   DEVELOPMENT: {
     failureThreshold: 10,
     successThreshold: 2,
-    timeout: CORE_VALUES.TIME_MS.THIRTY_SECONDS,                          // 30秒
-    resetTimeout: CORE_VALUES.TIME_MS.THIRTY_SECONDS,                     // 30秒
+    timeout: NUMERIC_CONSTANTS.N_30000,                          // 30秒
+    resetTimeout: NUMERIC_CONSTANTS.N_30000,                     // 30秒
   } as CircuitBreakerConfig,
 
   /**
@@ -168,7 +169,7 @@ export const CIRCUIT_BREAKER_ENVIRONMENT_CONFIGS = Object.freeze({
     failureThreshold: 2,
     successThreshold: 1,
     timeout: HTTP_TIMEOUTS.REQUEST.FAST_MS,                               // 5秒
-    resetTimeout: CORE_VALUES.TIME_MS.TEN_SECONDS,                        // 10秒
+    resetTimeout: NUMERIC_CONSTANTS.N_10000,                        // 10秒
   } as CircuitBreakerConfig,
 
   /**
@@ -178,7 +179,7 @@ export const CIRCUIT_BREAKER_ENVIRONMENT_CONFIGS = Object.freeze({
     failureThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts + 2, // 5
     successThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts + 2, // 5
     timeout: HTTP_TIMEOUTS.REQUEST.SLOW_MS / 4,                           // 15秒
-    resetTimeout: CORE_VALUES.TIME_MS.TWO_MINUTES,                        // 2分钟
+    resetTimeout: NUMERIC_CONSTANTS.N_120000,                        // 2分钟
   } as CircuitBreakerConfig,
 });
 
@@ -205,7 +206,7 @@ export const CIRCUIT_BREAKER_MONITORING_THRESHOLDS = Object.freeze({
   /** 熔断率告警阈值（超过此比例发出告警） */
   CIRCUIT_OPEN_RATE_ALERT: 0.1, // 10%
   /** 恢复时间过长告警阈值（毫秒） */
-  RECOVERY_TIME_ALERT: CORE_VALUES.TIME_MS.FIVE_MINUTES,                  // 5分钟
+  RECOVERY_TIME_ALERT: NUMERIC_CONSTANTS.N_300000,                  // 5分钟
   /** 失败率告警阈值 */
   /** 性能下降告警阈值 */
 });
@@ -218,7 +219,7 @@ export const DEFAULT_CIRCUIT_BREAKER_CONFIG: CircuitBreakerConfig = Object.freez
   failureThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts + 2, // 5次失败后熔断
   successThreshold: RETRY_CONDITION_SEMANTICS.DEFAULT_SETTINGS.maxAttempts,     // 3次成功后恢复
   timeout: HTTP_TIMEOUTS.REQUEST.NORMAL_MS / 3,                          // 10秒操作超时
-  resetTimeout: CORE_VALUES.TIME_MS.ONE_MINUTE,                          // 60秒后尝试恢复
+  resetTimeout: NUMERIC_CONSTANTS.N_60000,                          // 60秒后尝试恢复
 });
 
 /**
@@ -310,9 +311,9 @@ export class CircuitBreakerDomainUtil {
    */
   static calculateResetTimeout(failureThreshold: number): number {
     // 基于失败阈值动态计算重置时间
-    const baseTimeout = CORE_VALUES.TIME_MS.ONE_MINUTE;
+    const baseTimeout = NUMERIC_CONSTANTS.N_60000;
     const multiplier = Math.ceil(failureThreshold / 3);
-    return Math.min(baseTimeout * multiplier, CORE_VALUES.TIME_MS.FIVE_MINUTES);
+    return Math.min(baseTimeout * multiplier, NUMERIC_CONSTANTS.N_300000);
   }
 }
 

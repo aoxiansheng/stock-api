@@ -3,9 +3,9 @@
  * 🎯 统一定义股票代码映射相关的常量，确保系统一致性
  */
 
-import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { NUMERIC_CONSTANTS } from "@common/constants/core";
+import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
 import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
-import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
 /**
@@ -98,7 +98,7 @@ export const SYMBOL_MAPPER_PERFORMANCE_CONFIG = Object.freeze({
 export const SYMBOL_MAPPER_CONFIG = Object.freeze({
   // 删除未使用的分页常量，完全依赖 PaginationService
   
-  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 默认超时时间 - 使用Foundation层配置
+  DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 默认超时时间 - 使用Foundation层配置
   MAX_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.maxAttempts, // 最大重试次数 - 使用统一配置
   RETRY_DELAY_MS: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.initialDelayMs, // 重试延迟 - 使用统一配置
   
@@ -167,12 +167,12 @@ export const SYMBOL_MAPPER_OPERATIONS = Object.freeze({
 export const SYMBOL_MAPPER_DEFAULTS = Object.freeze({
   PAGE_NUMBER: 1,
   PAGE_SIZE: 10,
-  TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT, // 使用Foundation层配置
+  TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 使用Foundation层配置
   RETRY_ATTEMPTS: 3,
   LOG_LEVEL: "info",
   ENABLE_PERFORMANCE_MONITORING: true,
   ENABLE_CACHING: true,
-  BATCH_SIZE: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE,
+  BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,
   PROCESSING_TIME: 0,
   SUCCESS_RATE: 1.0,
   ERROR_RATE: 0.0,

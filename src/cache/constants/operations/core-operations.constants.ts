@@ -9,4 +9,8 @@ export const CACHE_CORE_OPERATIONS = Object.freeze({
   GET: "get",           // 获取缓存值
   GET_OR_SET: "getOrSet", // 获取或设置（缓存未命中时执行回调）
   DELETE: "del",        // 删除缓存
+  
+  // 批量操作
+  MGET: "mget",         // 批量获取
+  MSET: "mset",         // 批量设置
 } as const);

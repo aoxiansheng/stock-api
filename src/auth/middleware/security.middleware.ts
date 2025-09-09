@@ -4,11 +4,16 @@ import { Request, Response, NextFunction } from "express";
 import { createLogger } from "@app/config/logger.config";
 import { CONSTANTS } from "@common/constants";
 import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
+import { SECURITY_LIMITS } from "@common/constants/domain/rate-limit-domain.constants";
 
 // Extract rate limit and security constants for backward compatibility
 const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
-const IP_RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT_CONFIG.IP_RATE_LIMIT;
-const SECURITY_LIMITS = CONSTANTS.DOMAIN.SECURITY_LIMITS;
+// 修复IP_RATE_LIMIT_CONFIG引用，提供默认值
+const IP_RATE_LIMIT_CONFIG = {
+  ENABLED: process.env.IP_RATE_LIMIT_ENABLED !== 'false', // 默认启用
+  MAX_REQUESTS: parseInt(process.env.IP_RATE_LIMIT_MAX_REQUESTS) || 1000, // 默认每分钟1000次
+  WINDOW_MS: parseInt(process.env.IP_RATE_LIMIT_WINDOW_MS) || 60000, // 默认1分钟窗口
+};
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import { HTTP_STATUS_CODES } from "../constants/http-status.constants";
 
@@ -18,6 +23,11 @@ const xss = require("xss");
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {
   private readonly logger = createLogger(SecurityMiddleware.name);
+  
+  // 修复SECURITY_LIMITS引用
+  private readonly enabled = IP_RATE_LIMIT_CONFIG.ENABLED;
+  private readonly maxRequests = IP_RATE_LIMIT_CONFIG.MAX_REQUESTS;
+  private readonly windowMs = IP_RATE_LIMIT_CONFIG.WINDOW_MS;
 
   use(req: Request, res: Response, next: NextFunction) {
     try {

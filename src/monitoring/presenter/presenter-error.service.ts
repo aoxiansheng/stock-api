@@ -35,14 +35,11 @@ export class PresenterErrorHandlerService implements ISystemStatusErrorHandler {
 
       // 根据错误级别选择日志方法
       switch (errorLevel) {
-        case "CRITICAL":
+        case "ERROR":
           this.logger.error(errorMessage, error.stack);
           break;
         case "WARNING":
           this.logger.warn(errorMessage);
-          break;
-        case "INFO":
-          this.logger.debug(errorMessage);
           break;
         default:
           this.logger.error(errorMessage, error.stack);
@@ -218,7 +215,7 @@ export class PresenterErrorHandlerService implements ISystemStatusErrorHandler {
     context: ErrorContext,
   ): ErrorLevel {
     if (this.isCriticalError(error, context)) {
-      return "CRITICAL";
+      return "ERROR";
     }
 
     // 用户输入错误通常是警告级别

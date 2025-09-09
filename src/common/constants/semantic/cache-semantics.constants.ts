@@ -5,6 +5,7 @@
  * 🔄 整合unified-cache-config.constants.ts配置
  */
 
+import { NUMERIC_CONSTANTS } from '../core';
 import { CORE_VALUES, CORE_TTL, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation';
 
 /**
@@ -14,28 +15,28 @@ import { CORE_VALUES, CORE_TTL, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation
 export const CACHE_TTL_SEMANTICS = Object.freeze({
   // 基础TTL分类（秒）
   BASIC: {
-    SHORT_SEC: CORE_VALUES.TIME_SECONDS.FIVE_MINUTES,               // 5分钟 - 短期
-    MEDIUM_SEC: CORE_VALUES.TIME_SECONDS.TEN_MINUTES,               // 10分钟 - 中期
-    LONG_SEC: CORE_VALUES.TIME_SECONDS.ONE_HOUR,                    // 1小时 - 长期
-    VERY_LONG_SEC: CORE_VALUES.TIME_SECONDS.ONE_DAY,                // 1天 - 极长期
+    SHORT_SEC: NUMERIC_CONSTANTS.N_300,               // 5分钟 - 短期
+    MEDIUM_SEC: NUMERIC_CONSTANTS.N_600,               // 10分钟 - 中期
+    LONG_SEC: NUMERIC_CONSTANTS.N_3600,                    // 1小时 - 长期
+    VERY_LONG_SEC: NUMERIC_CONSTANTS.N_86400,                // 1天 - 极长期
   },
 
   // 数据类型特定TTL（秒）
   DATA_TYPE: {
-    REALTIME_SEC: CORE_VALUES.TIME_SECONDS.FIVE_SECONDS,            // 5秒 - 实时数据
-    FREQUENT_UPDATE_SEC: CORE_VALUES.TIME_SECONDS.ONE_MINUTE,       // 1分钟 - 频繁更新
-    NORMAL_UPDATE_SEC: CORE_VALUES.TIME_SECONDS.TEN_MINUTES,        // 10分钟 - 普通更新
-    SLOW_UPDATE_SEC: CORE_VALUES.TIME_SECONDS.ONE_HOUR,             // 1小时 - 缓慢更新
-    STATIC_SEC: CORE_VALUES.TIME_SECONDS.ONE_DAY,                   // 1天 - 静态数据
+    REALTIME_SEC: NUMERIC_CONSTANTS.N_5,            // 5秒 - 实时数据
+    FREQUENT_UPDATE_SEC: NUMERIC_CONSTANTS.N_60,       // 1分钟 - 频繁更新
+    NORMAL_UPDATE_SEC: NUMERIC_CONSTANTS.N_600,        // 10分钟 - 普通更新
+    SLOW_UPDATE_SEC: NUMERIC_CONSTANTS.N_3600,             // 1小时 - 缓慢更新
+    STATIC_SEC: NUMERIC_CONSTANTS.N_86400,                   // 1天 - 静态数据
   },
 
   // 业务场景特定TTL（秒）
   BUSINESS: {
-    USER_SESSION_SEC: CORE_VALUES.TIME_SECONDS.THIRTY_MINUTES,      // 30分钟 - 用户会话
-    API_RESPONSE_SEC: CORE_VALUES.TIME_SECONDS.FIVE_MINUTES,        // 5分钟 - API响应
-    DATABASE_QUERY_SEC: CORE_VALUES.TIME_SECONDS.TEN_MINUTES,       // 10分钟 - 数据库查询
-    COMPUTATION_RESULT_SEC: CORE_VALUES.TIME_SECONDS.ONE_HOUR,      // 1小时 - 计算结果
-    FILE_CONTENT_SEC: CORE_VALUES.TIME_SECONDS.ONE_DAY,             // 1天 - 文件内容
+    USER_SESSION_SEC: NUMERIC_CONSTANTS.N_1800,      // 30分钟 - 用户会话
+    API_RESPONSE_SEC: NUMERIC_CONSTANTS.N_300,        // 5分钟 - API响应
+    DATABASE_QUERY_SEC: NUMERIC_CONSTANTS.N_600,       // 10分钟 - 数据库查询
+    COMPUTATION_RESULT_SEC: NUMERIC_CONSTANTS.N_3600,      // 1小时 - 计算结果
+    FILE_CONTENT_SEC: NUMERIC_CONSTANTS.N_86400,             // 1天 - 文件内容
   },
 });
 
@@ -108,13 +109,13 @@ export const CACHE_STRATEGY_SEMANTICS = Object.freeze({
 export const CACHE_SIZE_SEMANTICS = Object.freeze({
   // 内存缓存大小限制
   MEMORY: {
-    LARGE_ENTRIES: CORE_VALUES.SIZES.HUGE,                      // 1000 - 大型缓存
+    LARGE_ENTRIES: NUMERIC_CONSTANTS.N_1000,                      // 1000 - 大型缓存
   },
 
   // 单个缓存项大小限制（字节）
   ENTRY_SIZE: {
-    SMALL_BYTES: CORE_VALUES.SIZES.SMALL * 1024,                // 50KB - 小项
-    MEDIUM_BYTES: CORE_VALUES.SIZES.MEDIUM * 1024,              // 100KB - 中项
+    SMALL_BYTES: NUMERIC_CONSTANTS.N_50 * 1024,                // 50KB - 小项
+    MEDIUM_BYTES: NUMERIC_CONSTANTS.N_100 * 1024,              // 100KB - 中项
     MAX_BYTES: CORE_LIMITS.STORAGE.MAX_JSON_SIZE_BYTES,         // 1MB - 最大项
   },
 
@@ -130,20 +131,20 @@ export const CACHE_SIZE_SEMANTICS = Object.freeze({
 export const CACHE_PERFORMANCE_SEMANTICS = Object.freeze({
   // 命中率阈值
   HIT_RATE_THRESHOLDS: {
-    GOOD: CORE_VALUES.PERCENTAGES.MAX * 0.8,                    // 80% - 良好
-    POOR: CORE_VALUES.PERCENTAGES.MAX * 0.5,                    // 50% - 较差
+    GOOD: NUMERIC_CONSTANTS.N_100 * 0.8,                    // 80% - 良好
+    POOR: NUMERIC_CONSTANTS.N_100 * 0.5,                    // 50% - 较差
   },
 
   // 响应时间阈值（毫秒）
   RESPONSE_TIME_THRESHOLDS: {
-    FAST_MS: CORE_VALUES.PERFORMANCE_MS.FAST,                   // 100ms - 快速
+    FAST_MS: NUMERIC_CONSTANTS.N_100,                   // 100ms - 快速
   },
 
   // 内存使用率阈值
   MEMORY_USAGE_THRESHOLDS: {
-    LOW: CORE_VALUES.PERCENTAGES.HALF * 0.5,                    // 25% - 低使用率
-    MEDIUM: CORE_VALUES.PERCENTAGES.HALF,                       // 50% - 中等使用率
-    HIGH: CORE_VALUES.PERCENTAGES.THREE_QUARTERS,               // 75% - 高使用率
+    LOW: NUMERIC_CONSTANTS.N_HALF * 0.5,                    // 25% - 低使用率
+    MEDIUM: NUMERIC_CONSTANTS.N_HALF,                       // 50% - 中等使用率
+    HIGH: NUMERIC_CONSTANTS.N_THREE_QUARTERS,               // 75% - 高使用率
   },
 });
 
@@ -227,7 +228,7 @@ export class CacheSemanticsUtil {
 export const CACHE_CONNECTION_SEMANTICS = Object.freeze({
   // Redis连接配置
   REDIS: {
-    MAX_RETRIES: CORE_VALUES.NETWORK.DEFAULT_RETRIES,               // 3 - 最大重试次数
+    MAX_RETRIES: NUMERIC_CONSTANTS.N_3,               // 3 - 最大重试次数
     RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,          // 1000ms - 重试延迟
     CONNECTION_TIMEOUT_MS: CORE_TIMEOUTS.CONNECTION.ESTABLISH_MS,     // 5000ms - 连接超时
   },
@@ -245,15 +246,15 @@ export const CACHE_MONITORING_SEMANTICS = Object.freeze({
   // 监控配置
   MONITORING: {
     ENABLE_METRICS: true,                                           // 启用指标收集
-    ALERT_THRESHOLD_PERCENT: CORE_VALUES.PERCENTAGES.THREE_QUARTERS * 1.2, // 90% - 告警阈值
-    SLOW_OPERATION_MS: CORE_VALUES.PERFORMANCE_MS.FAST,           // 100ms - 慢操作阈值
+    ALERT_THRESHOLD_PERCENT: NUMERIC_CONSTANTS.N_THREE_QUARTERS * 1.2, // 90% - 告警阈值
+    SLOW_OPERATION_MS: NUMERIC_CONSTANTS.N_100,           // 100ms - 慢操作阈值
   },
 
   // 性能指标阈值
   PERFORMANCE_THRESHOLDS: {
-    CACHE_HIT_RATE_TARGET: CORE_VALUES.PERCENTAGES.THREE_QUARTERS,  // 75% - 缓存命中率目标
-    RESPONSE_TIME_TARGET_MS: CORE_VALUES.PERFORMANCE_MS.FAST,       // 100ms - 响应时间目标
-    MEMORY_USAGE_WARNING: CORE_VALUES.PERCENTAGES.HALF,             // 50% - 内存使用率警告阈值
+    CACHE_HIT_RATE_TARGET: NUMERIC_CONSTANTS.N_THREE_QUARTERS,  // 75% - 缓存命中率目标
+    RESPONSE_TIME_TARGET_MS: NUMERIC_CONSTANTS.N_100,       // 100ms - 响应时间目标
+    MEMORY_USAGE_WARNING: NUMERIC_CONSTANTS.N_HALF,             // 50% - 内存使用率警告阈值
   },
 });
 
@@ -316,7 +317,7 @@ export const CACHE_ADVANCED_STRATEGY_SEMANTICS = Object.freeze({
   COMPRESSION: {
     ENABLE_COMPRESSION: true,                                       // 启用压缩
     ALGORITHM: 'gzip',                                              // 压缩算法
-    THRESHOLD_BYTES: CORE_VALUES.SIZES.TINY * 1024,               // 6KB转字节
+    THRESHOLD_BYTES: NUMERIC_CONSTANTS.N_6 * 1024,               // 6KB转字节
   },
 
   // 更新策略

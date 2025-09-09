@@ -4,6 +4,7 @@
  * ⏱️ 避免重复定义相同的时间值，提供时间单位转换
  */
 
+import { NUMERIC_CONSTANTS } from '@common/constants/core';
 import { CORE_VALUES } from './values.constants';
 import { CORE_LIMITS } from './limits.constants';
 
@@ -35,14 +36,14 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 评估和调度间隔 (毫秒)
    */
   EVALUATION_INTERVALS_MS: {
-    DEFAULT: CORE_VALUES.TIME_MILLISECONDS.ONE_MINUTE,    // 60000ms - 1分钟
-    MIN: CORE_VALUES.TIME_MILLISECONDS.ONE_SECOND,        // 1000ms - 1秒
-    MAX: CORE_VALUES.TIME_MILLISECONDS.TEN_MINUTES,       // 600000ms - 10分钟
+    DEFAULT: NUMERIC_CONSTANTS.N_60000,    // 60000ms - 1分钟
+    MIN: NUMERIC_CONSTANTS.N_1000,        // 1000ms - 1秒
+    MAX: NUMERIC_CONSTANTS.N_600000,       // 600000ms - 10分钟
     
     // 特定评估间隔
-    RULE_EVALUATION: CORE_VALUES.TIME_MILLISECONDS.ONE_MINUTE,      // 60000ms - 规则评估
-    METRICS_COLLECTION: CORE_VALUES.TIME_MILLISECONDS.ONE_MINUTE,   // 60000ms - 指标收集
-    CLEANUP_TASK: CORE_VALUES.TIME_MILLISECONDS.TEN_MINUTES,        // 600000ms - 清理任务
+    RULE_EVALUATION: NUMERIC_CONSTANTS.N_60000,      // 60000ms - 规则评估
+    METRICS_COLLECTION: NUMERIC_CONSTANTS.N_60000,   // 60000ms - 指标收集
+    CLEANUP_TASK: NUMERIC_CONSTANTS.N_600000,        // 600000ms - 清理任务
   },
 
   /**
@@ -61,9 +62,9 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   DB_TTL_SECONDS: {
     // 告警历史保留期
-    ALERT_HISTORY: CORE_VALUES.TIME_SECONDS.NINETY_DAYS,  // 7884000秒 - 90天
+    ALERT_HISTORY: NUMERIC_CONSTANTS.N_7776000,  // 7776000秒 - 90天
     // 通知日志保留期  
-    NOTIFICATION_LOG: CORE_VALUES.TIME_SECONDS.THIRTY_DAYS, // 2628000秒 - 30天
+    NOTIFICATION_LOG: NUMERIC_CONSTANTS.N_2592000, // 2592000秒 - 30天
   },
 
   /**
@@ -71,8 +72,8 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   RETRY_TIMING: {
     // 基础重试延迟 (毫秒)
-    INITIAL_DELAY_MS: CORE_VALUES.TIME_MILLISECONDS.ONE_SECOND,     // 1000ms
-    MAX_DELAY_MS: CORE_VALUES.TIME_MILLISECONDS.TEN_SECONDS,        // 10000ms
+    INITIAL_DELAY_MS: NUMERIC_CONSTANTS.N_1000,     // 1000ms
+    MAX_DELAY_MS: NUMERIC_CONSTANTS.N_10000,        // 10000ms
     
     // 退避乘数
     BACKOFF_MULTIPLIER: 2,
@@ -110,14 +111,14 @@ export const CORE_TIMEOUTS = Object.freeze({
    */
   SECURITY_TIMEOUTS_SECONDS: {
     // JWT相关
-    JWT_EXPIRES: CORE_VALUES.TIME_SECONDS.ONE_HOUR,      // 3600秒 - JWT过期时间
-    REFRESH_TOKEN_EXPIRES: CORE_VALUES.TIME_SECONDS.ONE_DAY, // 86400秒 - 刷新令牌
+    JWT_EXPIRES: NUMERIC_CONSTANTS.N_3600,      // 3600秒 - JWT过期时间
+    REFRESH_TOKEN_EXPIRES: NUMERIC_CONSTANTS.N_86400, // 86400秒 - 刷新令牌
     
     // 账户锁定
-    ACCOUNT_LOCKOUT: CORE_VALUES.TIME_SECONDS.THIRTY_MINUTES, // 1800秒 - 账户锁定时间
+    ACCOUNT_LOCKOUT: NUMERIC_CONSTANTS.N_1800, // 1800秒 - 账户锁定时间
     
     // 速率限制窗口
-    RATE_LIMIT_WINDOW: CORE_VALUES.TIME_SECONDS.ONE_MINUTE,   // 60秒 - 限流窗口
+    RATE_LIMIT_WINDOW: NUMERIC_CONSTANTS.N_60,   // 60秒 - 限流窗口
   },
 });
 
@@ -129,35 +130,35 @@ export class TimeConverter {
    * 秒转毫秒
    */
   static secondsToMs(seconds: number): number {
-    return seconds * CORE_VALUES.TIME_MILLISECONDS.ONE_SECOND;
+    return seconds * NUMERIC_CONSTANTS.N_1000;
   }
 
   /**
    * 毫秒转秒 (向下取整)
    */
   static msToSeconds(milliseconds: number): number {
-    return Math.floor(milliseconds / CORE_VALUES.TIME_MILLISECONDS.ONE_SECOND);
+    return Math.floor(milliseconds / NUMERIC_CONSTANTS.N_1000);
   }
 
   /**
    * 分钟转秒
    */
   static minutesToSeconds(minutes: number): number {
-    return minutes * CORE_VALUES.TIME_SECONDS.ONE_MINUTE;
+    return minutes * NUMERIC_CONSTANTS.N_60;
   }
 
   /**
    * 小时转秒
    */
   static hoursToSeconds(hours: number): number {
-    return hours * CORE_VALUES.TIME_SECONDS.ONE_HOUR;
+    return hours * NUMERIC_CONSTANTS.N_3600;
   }
 
   /**
    * 天转秒
    */
   static daysToSeconds(days: number): number {
-    return days * CORE_VALUES.TIME_SECONDS.ONE_DAY;
+    return days * NUMERIC_CONSTANTS.N_86400;
   }
 
   /**

@@ -4,6 +4,7 @@
  * 🔧 基于核心层构建，专注于告警规则业务逻辑
  */
 
+import { NUMERIC_CONSTANTS } from '@common/constants/core';
 import { CORE_VALUES } from '../core/values.constants';
 import { CORE_LIMITS } from '../core/limits.constants';
 import { CORE_PATTERNS, STRING_FORMATS } from '../core/patterns.constants';
@@ -20,7 +21,7 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
     ID_PREFIX: "rule_",
     ID_TEMPLATE: STRING_FORMATS.ID_TEMPLATES.ALERT_RULE,
     ID_PATTERN: CORE_PATTERNS.ID_FORMATS.ALERT_RULE,
-    ID_TIMESTAMP_BASE: CORE_VALUES.RADIX.BASE_36,
+    ID_TIMESTAMP_BASE: NUMERIC_CONSTANTS.N_36,
     ID_RANDOM_LENGTH: CORE_LIMITS.ID_LENGTH.RANDOM_PART,    // 6
     ID_RANDOM_START: 2,
   },
@@ -110,6 +111,18 @@ export const ALERT_RULE_CONSTANTS = Object.freeze({
  * 告警规则操作常量
  */
 export const ALERT_RULE_OPERATIONS = Object.freeze({
+  CREATE_RULE: "createRule",
+  UPDATE_RULE: "updateRule",
+  DELETE_RULE: "deleteRule",
+  GET_RULES: "getRules",
+  GET_RULE_BY_ID: "getRuleById",
+  TOGGLE_RULE: "toggleRule",
+  PROCESS_METRICS: "processMetrics",
+  ACKNOWLEDGE_ALERT: "acknowledgeAlert",
+  RESOLVE_ALERT: "resolveAlert",
+  GET_STATS: "getStats",
+  HANDLE_SYSTEM_EVENT: "handleSystemEvent",
+  HANDLE_RULE_EVALUATION: "handleRuleEvaluation",
 });
 
 /**
@@ -117,20 +130,46 @@ export const ALERT_RULE_OPERATIONS = Object.freeze({
  */
 export const ALERT_RULE_MESSAGES = Object.freeze({
   // 成功消息
+  RULE_CREATED: "告警规则创建成功",
+  RULE_UPDATED: "告警规则更新成功",
+  RULE_DELETED: "告警规则删除成功",
+  RULE_STATUS_TOGGLED: "告警规则状态切换成功",
   
   // 错误消息
+  RULE_CREATION_FAILED: "告警规则创建失败",
+  RULE_UPDATE_FAILED: "告警规则更新失败",
+  RULE_DELETION_FAILED: "告警规则删除失败",
+  RULE_TOGGLE_FAILED: "告警规则状态切换失败",
+  RULE_NOT_FOUND: "告警规则未找到",
+  RULE_VALIDATION_FAILED: "告警规则验证失败: {errors}",
+  CREATE_RULE_DB_FAILED: "数据库创建规则失败",
+  UPDATE_RULE_FAILED: "数据库更新规则失败",
+  DELETE_RULE_FAILED: "数据库删除规则失败",
+  GET_RULE_FAILED: "数据库获取规则失败",
+  GET_RULES_FAILED: "数据库获取规则列表失败",
+  TOGGLE_RULE_FAILED: "数据库切换规则状态失败",
+  RULE_EVALUATION_FAILED: "告警规则评估失败",
   
   // 信息消息
+  RULE_CREATION_STARTED: "开始创建告警规则",
+  RULE_UPDATE_STARTED: "开始更新告警规则",
+  RULE_DELETION_STARTED: "开始删除告警规则",
+  RULE_EVALUATION_STARTED: "开始评估告警规则",
   
   // 警告消息
+  RULE_STATUS_UNCHANGED: "告警规则状态未发生变化",
+  NO_ENABLED_RULES: "没有启用的告警规则",
   
   // 新增的消息
+  METRICS_PROCESSED: "指标数据处理完成",
 });
 
 /**
  * 告警规则指标常量
  */
 export const ALERT_RULE_METRICS = Object.freeze({
+  RULE_EVALUATION_COUNT: "alert_rule_evaluation_count",
+  AVERAGE_RULE_EVALUATION_TIME: "alert_average_rule_evaluation_time_ms",
 });
 
 /**

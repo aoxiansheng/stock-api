@@ -2,9 +2,9 @@
  * DataFetcher模块常量定义
  */
 
-import { CORE_VALUES } from "@common/constants/foundation/core-values.constants";
+import { NUMERIC_CONSTANTS } from "@common/constants/core";
+import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
 import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
-import { PROCESSING_BATCH_SETTINGS } from "@common/constants/foundation/processing-base.constants";
 
 /**
  * 数据获取操作类型
@@ -42,13 +42,13 @@ export const DATA_FETCHER_WARNING_MESSAGES = {
  */
 export const DATA_FETCHER_PERFORMANCE_THRESHOLDS = {
   /** 慢响应阈值 (毫秒) - 使用统一配置 */
-  SLOW_RESPONSE_MS: CORE_VALUES.PERFORMANCE_MS.DATA_FETCHER_SLOW,
+  SLOW_RESPONSE_MS: NUMERIC_CONSTANTS.N_1000,
 
   /** 每个符号的最大处理时间 (毫秒) */
-  MAX_TIME_PER_SYMBOL_MS: 500,
+  MAX_TIME_PER_SYMBOL_MS: NUMERIC_CONSTANTS.N_500,
 
   /** 批量处理的最大符号数量 - 使用统一配置 */
-  MAX_SYMBOLS_PER_BATCH: PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE,
+  MAX_SYMBOLS_PER_BATCH: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,
 
   /** 日志记录的符号数量限制 */
   LOG_SYMBOLS_LIMIT: 10,
@@ -62,13 +62,13 @@ export const DATA_FETCHER_DEFAULT_CONFIG = {
   DEFAULT_API_TYPE: "rest",
 
   /** 默认超时时间 (毫秒) - 使用统一配置 */
-  DEFAULT_TIMEOUT_MS: CORE_VALUES.TIMEOUT_MS.DEFAULT,
+  DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,
 
   /** 默认重试次数 - 使用统一配置 */
   DEFAULT_RETRY_COUNT: RETRY_BUSINESS_SCENARIOS.DATA_FETCHER.maxAttempts,
 
   /** 默认批量大小 - 使用统一配置 */
-  DEFAULT_BATCH_SIZE: PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE,
+  DEFAULT_BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,
 } as const;
 
 /**

@@ -5,7 +5,8 @@
  * 🆕 从Unified层processing-base.constants.ts迁移
  */
 
-import { CORE_VALUES } from './core-values.constants';
+import { NUMERIC_CONSTANTS } from '../core';
+import { BATCH_SIZE_SEMANTICS } from '../semantic';
 import { CORE_TIMEOUTS } from './core-timeouts.constants';
 import { CORE_LIMITS } from './core-limits.constants';
 
@@ -36,7 +37,7 @@ export const PROCESSING_RETRY_SETTINGS = Object.freeze({
 
   // 延迟配置 - 基于Foundation层核心值
   RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,               // 1000ms
-  MIN_RETRY_DELAY_MS: CORE_VALUES.TIME_MS.ONE_SECOND / 10,                // 100ms
+  MIN_RETRY_DELAY_MS: NUMERIC_CONSTANTS.N_1000 / 10,                // 100ms
   MAX_RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.MAX_DELAY_MS,               // 10000ms
 
   // 退避策略配置 - 基于Foundation层核心值
@@ -157,10 +158,10 @@ export type FailureStrategyType = keyof typeof PROCESSING_STRATEGIES.FAILURE_STR
  */
 export function calculateBaseBatchSize(
   totalItems: number,
-  maxBatchSize: number = PROCESSING_BATCH_SETTINGS.MAX_BATCH_SIZE,
-  optimalBatches: number = CORE_VALUES.QUANTITIES.FIVE
+  maxBatchSize: number = BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH,
+  optimalBatches: number = NUMERIC_CONSTANTS.N_5
 ): number {
-  if (totalItems <= PROCESSING_BATCH_SETTINGS.DEFAULT_BATCH_SIZE) {
+  if (totalItems <= BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE) {
     return totalItems;
   }
 

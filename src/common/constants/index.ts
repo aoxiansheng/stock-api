@@ -165,7 +165,7 @@ export class ConstantSystemUtil {
       },
       toNew: {
         solutions: [
-          '✅ 单一数值源：CORE_VALUES.QUANTITIES.THOUSAND',
+          '✅ 单一数值源：NUMERIC_CONSTANTS.N_1000',
           '✅ 标准命名：SEMANTIC_CONSTANTS.RETRY.DELAYS.INITIAL_MS',
           '✅ 严格依赖：Foundation → Semantic → Domain → Application', 
           '✅ 清晰语义：HTTP_TIMEOUTS.CONNECTION.ESTABLISH_MS',

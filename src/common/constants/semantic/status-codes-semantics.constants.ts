@@ -5,7 +5,7 @@
  * 🆕 从Unified层迁移，解决状态码重复定义问题
  */
 
-import { CORE_VALUES } from '../foundation';
+import { NUMERIC_CONSTANTS } from '../core';
 
 /**
  * HTTP标准状态码语义分类
@@ -14,7 +14,7 @@ import { CORE_VALUES } from '../foundation';
 export const HTTP_STATUS_SEMANTICS = Object.freeze({
   // 成功状态码 (2xx) - 使用Foundation层基础值
   SUCCESS: {
-    OK: CORE_VALUES.QUANTITIES.TWO_HUNDRED,              // 200
+    OK: NUMERIC_CONSTANTS.N_200,                         // 200
     CREATED: 201,                                         // 201 - 创建成功
     NO_CONTENT: 204,                                      // 204 - 无内容
   },
@@ -41,7 +41,7 @@ export const HTTP_STATUS_SEMANTICS = Object.freeze({
 
   // 服务器错误状态码 (5xx)
   SERVER_ERROR: {
-    INTERNAL_SERVER_ERROR: CORE_VALUES.QUANTITIES.FIVE_HUNDRED, // 500
+    INTERNAL_SERVER_ERROR: NUMERIC_CONSTANTS.N_500, // 500
     NOT_IMPLEMENTED: 501,                                // 501 - 未实现
     BAD_GATEWAY: 502,                                    // 502 - 网关错误
     SERVICE_UNAVAILABLE: 503,                            // 503 - 服务不可用
@@ -60,12 +60,12 @@ export const HTTP_STATUS_SEMANTICS = Object.freeze({
 export const STATUS_CODE_SEMANTICS = Object.freeze({
   // 状态码范围语义
   RANGES: {
-    INFORMATIONAL: { MIN: CORE_VALUES.QUANTITIES.HUNDRED, MAX: 199 },      // 1xx
-    SUCCESS: { MIN: CORE_VALUES.QUANTITIES.TWO_HUNDRED, MAX: 299 },        // 2xx  
-    REDIRECT: { MIN: CORE_VALUES.QUANTITIES.THREE_HUNDRED, MAX: 399 },     // 3xx
+    INFORMATIONAL: { MIN: NUMERIC_CONSTANTS.N_100, MAX: 199 },      // 1xx
+    SUCCESS: { MIN: NUMERIC_CONSTANTS.N_200, MAX: 299 },                   // 2xx  
+    REDIRECT: { MIN: NUMERIC_CONSTANTS.N_300, MAX: 399 },                  // 3xx
     CLIENT_ERROR: { MIN: 400, MAX: 499 },                                  // 4xx
-    SERVER_ERROR: { MIN: CORE_VALUES.QUANTITIES.FIVE_HUNDRED, MAX: 599 }, // 5xx
-    BUSINESS: { MIN: CORE_VALUES.QUANTITIES.THOUSAND, MAX: 1999 },         // 1xxx 业务码
+    SERVER_ERROR: { MIN: NUMERIC_CONSTANTS.N_500, MAX: 599 }, // 5xx
+    BUSINESS: { MIN: NUMERIC_CONSTANTS.N_1000, MAX: 1999 },         // 1xxx 业务码
   },
 
   // 状态码语义分组

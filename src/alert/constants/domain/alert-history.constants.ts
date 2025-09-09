@@ -4,6 +4,7 @@
  * 📚 基于核心层构建，专注于历史记录业务逻辑
  */
 
+import { NUMERIC_CONSTANTS } from '@common/constants/core';
 import { CORE_VALUES } from '../core/values.constants';
 import { CORE_LIMITS } from '../core/limits.constants';
 import { CORE_PATTERNS, STRING_FORMATS } from '../core/patterns.constants';
@@ -20,7 +21,7 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
     ID_PREFIX: "alrt_",
     ID_TEMPLATE: STRING_FORMATS.ID_TEMPLATES.ALERT_HISTORY,
     ID_PATTERN: CORE_PATTERNS.ID_FORMATS.ALERT_HISTORY,
-    TIMESTAMP_BASE: CORE_VALUES.RADIX.BASE_36,
+    TIMESTAMP_BASE: NUMERIC_CONSTANTS.N_36,
     RANDOM_LENGTH: CORE_LIMITS.ID_LENGTH.RANDOM_PART,                   // 6
     RANDOM_START: 2,
   },
@@ -51,7 +52,7 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
     CLEANUP_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.CLEANUP_BATCH_SIZE,   // 1000
     
     // 查询限制
-    MIN_PAGE_LIMIT: CORE_VALUES.QUANTITIES.ONE,                        // 1
+    MIN_PAGE_LIMIT: NUMERIC_CONSTANTS.N_1,                        // 1
     DEFAULT_RECENT_ALERTS_LIMIT: CORE_LIMITS.BATCH_LIMITS.TINY_BATCH_SIZE, // 10
     
     // 活跃告警限制
@@ -63,7 +64,7 @@ export const ALERT_HISTORY_CONSTANTS = Object.freeze({
   TIME_CONFIG: {
     // 数据保留配置
     DEFAULT_CLEANUP_DAYS: 90,
-    MIN_CLEANUP_DAYS: CORE_VALUES.QUANTITIES.ONE,                      // 1
+    MIN_CLEANUP_DAYS: NUMERIC_CONSTANTS.N_1,                      // 1
     MAX_CLEANUP_DAYS: 365,
     
     // 缓存配置

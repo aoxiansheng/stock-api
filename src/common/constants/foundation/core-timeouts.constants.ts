@@ -4,7 +4,7 @@
  * ⏰ 解决RETRY_DELAY_MS、CONNECTION_TIMEOUT等命名不一致问题
  */
 
-import { CORE_VALUES } from './core-values.constants';
+import { NUMERIC_CONSTANTS } from '../core';
 
 /**
  * 核心超时配置
@@ -16,8 +16,8 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一CONNECTION_TIMEOUT命名
    */
   CONNECTION: {
-    ESTABLISH_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,     // 建立连接
-    KEEP_ALIVE_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,     // 连接保活
+    ESTABLISH_MS: NUMERIC_CONSTANTS.N_10000,     // 建立连接
+    KEEP_ALIVE_MS: NUMERIC_CONSTANTS.N_60000,     // 连接保活
   },
 
   /**
@@ -25,9 +25,9 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一REQUEST_TIMEOUT命名
    */
   REQUEST: {
-    FAST_MS: CORE_VALUES.TIME_MS.FIVE_SECONDS,         // 快速请求
-    NORMAL_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS,     // 普通请求
-    SLOW_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,           // 慢请求
+    FAST_MS: NUMERIC_CONSTANTS.N_5000,         // 快速请求
+    NORMAL_MS: NUMERIC_CONSTANTS.N_30000,     // 普通请求
+    SLOW_MS: NUMERIC_CONSTANTS.N_60000,           // 慢请求
   },
 
   /**
@@ -42,8 +42,8 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一DATABASE_TIMEOUT命名
    */
   DATABASE: {
-    QUERY_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,         // 查询超时
-    TRANSACTION_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS, // 事务超时
+    QUERY_MS: NUMERIC_CONSTANTS.N_10000,         // 查询超时
+    TRANSACTION_MS: NUMERIC_CONSTANTS.N_30000, // 事务超时
   },
 
   /**
@@ -51,10 +51,10 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一RETRY_DELAY_MS命名，解决重复定义
    */
   RETRY: {
-    INITIAL_DELAY_MS: CORE_VALUES.TIME_MS.ONE_SECOND,  // 初始延迟
-    MIN_DELAY_MS: CORE_VALUES.TIME_MS.ONE_SECOND,      // 最小延迟
-    MAX_DELAY_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,     // 最大延迟
-    EXPONENTIAL_BASE_MS: CORE_VALUES.TIME_MS.ONE_SECOND, // 指数退避基数
+    INITIAL_DELAY_MS: NUMERIC_CONSTANTS.N_1000,  // 初始延迟
+    MIN_DELAY_MS: NUMERIC_CONSTANTS.N_1000,      // 最小延迟
+    MAX_DELAY_MS: NUMERIC_CONSTANTS.N_10000,     // 最大延迟
+    EXPONENTIAL_BASE_MS: NUMERIC_CONSTANTS.N_1000, // 指数退避基数
   },
 
   /**
@@ -62,10 +62,10 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一OPERATION_TIMEOUT命名
    */
   OPERATION: {
-    QUICK_MS: CORE_VALUES.TIME_MS.ONE_SECOND,          // 快速操作
-    STANDARD_MS: CORE_VALUES.TIME_MS.TEN_SECONDS,      // 标准操作
-    LONG_RUNNING_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,   // 长时间运行
-    BACKGROUND_MS: CORE_VALUES.TIME_MS.TEN_MINUTES,    // 后台操作
+    QUICK_MS: NUMERIC_CONSTANTS.N_1000,          // 快速操作
+    STANDARD_MS: NUMERIC_CONSTANTS.N_10000,      // 标准操作
+    LONG_RUNNING_MS: NUMERIC_CONSTANTS.N_60000,   // 长时间运行
+    BACKGROUND_MS: NUMERIC_CONSTANTS.N_600000,          // 后台操作
   },
 
   /**
@@ -73,7 +73,7 @@ export const CORE_TIMEOUTS = Object.freeze({
    * 🎯 统一CACHE_TIMEOUT命名
    */
   CACHE: {
-    GET_MS: CORE_VALUES.TIME_MS.ONE_SECOND,            // 缓存读取
+    GET_MS: NUMERIC_CONSTANTS.N_1000,            // 缓存读取
   },
 });
 

@@ -12,7 +12,8 @@
  * - 3600, 86400 缓存TTL (46, 32次重复)
  */
 
-import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
+import { NUMERIC_CONSTANTS } from '../core';
+import { CORE_TIMEOUTS, CORE_LIMITS } from '../foundation';
 
 /**
  * 操作限制配置常量
@@ -109,10 +110,10 @@ export const OPERATION_LIMITS = Object.freeze({
    */
   RETRY_LIMITS: {
     // 基础重试配置
-    MAX_RETRIES: CORE_VALUES.RETRY.MAX_ATTEMPTS,           // 最大重试次数 - 3
+    MAX_RETRIES: CORE_LIMITS.RATE_LIMITS.MAX_RETRIES,         // 最大重试次数 - 6
     RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,            // 重试延迟 - 1000ms
-    MAX_RETRY_DELAY_MS: CORE_VALUES.RETRY.MAX_DELAY_MS,    // 最大重试延迟 - 10000ms
-    BACKOFF_MULTIPLIER: CORE_VALUES.RETRY.BACKOFF_BASE,    // 退避乘数 - 2
+    MAX_RETRY_DELAY_MS: NUMERIC_CONSTANTS.N_10000,    // 最大重试延迟 - 10000ms
+    BACKOFF_MULTIPLIER: NUMERIC_CONSTANTS.N_2,             // 退避乘数 - 2
     
     // 特殊场景重试
   },
@@ -123,8 +124,8 @@ export const OPERATION_LIMITS = Object.freeze({
    */
   MEMORY_LIMITS: {
     // 内存使用阈值 (MB)
-    HIGH_MEMORY_MB: CORE_VALUES.MEMORY_MB.HIGH_USAGE,     // 200MB
-    CRITICAL_MEMORY_MB: CORE_VALUES.MEMORY_MB.CRITICAL_USAGE, // 500MB
+    HIGH_MEMORY_MB: NUMERIC_CONSTANTS.N_100,     // 200MB
+    CRITICAL_MEMORY_MB: NUMERIC_CONSTANTS.N_500,           // 500MB
     
     // 对象大小限制 (MB)
     

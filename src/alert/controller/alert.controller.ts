@@ -20,6 +20,7 @@ import { CONSTANTS } from "@common/constants";
 
 // Extract alert constants for backward compatibility
 const ALERT_RATE_LIMIT = CONSTANTS.DOMAIN.ALERT.RATE_LIMIT;
+// 修复ALERT_RATE_LIMIT_MESSAGES引用，使用正确的路径
 const ALERT_RATE_LIMIT_MESSAGES = CONSTANTS.DOMAIN.ALERT.MESSAGES.RATE_LIMIT;
 
 import {

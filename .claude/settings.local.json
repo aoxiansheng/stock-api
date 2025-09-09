@@ -247,7 +247,9 @@
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/api-operations.constants.ts)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/monitoring-business.constants.ts)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/operation-limits.constants.ts)",
-      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/reference-data.constants.ts)"
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/reference-data.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/core/__tests__/numeric.constants.spec.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/core/numeric.constants.ts)"
     ],
     "deny": []
   }

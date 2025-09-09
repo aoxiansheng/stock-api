@@ -175,6 +175,9 @@
     "check-constants:verbose": "chmod +x scripts/check-constants-duplicates.sh && ./scripts/check-constants-duplicates.sh -v",
     "check-constants:ci": "chmod +x scripts/check-constants-duplicates.sh && ./scripts/check-constants-duplicates.sh -t 3.0",
     "check-constants:no-fail": "chmod +x scripts/check-constants-duplicates.sh && ./scripts/check-constants-duplicates.sh --no-fail",
+    "// ========== 新常量重复检测工具 ==========": "",
+    "detect-constants-duplicates": "bun run tools/constants-duplicate-detector.ts",
+    "detect-constants-duplicates:report": "bun run tools/constants-duplicate-detector.ts ./src/common/constants ./docs/constants-duplicate-detector-report.md",
     "// ========== 测试工具完整工作流 ==========": "",
     "tools:analyze-all": "npm run tools:structure-validator && npm run tools:naming-validator && npm run tools:find-duplicates && npm run tools:clean-duplicates:universal && npm run check-constants",
     "tools:fix-all": "npm run tools:structure-validator:execute && npm run tools:find-duplicates:execute && npm run tools:clean-duplicates:universal:execute",
@@ -205,14 +208,11 @@
     "// ========== 其他工具 ==========": "",
     "cli": "bun src/providers/cli/index.ts",
     "typecheck:file": "node scripts/tsc-single-file.js",
-    "// ========== 常量系统优化命令 ==========": "",
-    "optimize:constants": "bun tools/constants-validator/optimize.ts optimize",
-    "optimize:constants:dry-run": "bun tools/constants-validator/optimize.ts preview",
-    "optimize:constants:phase": "bun tools/constants-validator/optimize.ts optimize --phase",
-    "optimize:constants:validate": "bun tools/constants-validator/optimize.ts validate",
-    "optimize:constants:cleanup": "bun tools/constants-validator/system-cleaner.ts optimize",
-    "validate:constants": "bun tools/constants-validator/constants-validator.util.ts",
-    "validate:constants:report": "bun tools/constants-validator/system-cleaner.ts report"
+ 
+    "// ========== 常量使用分析工具 ==========": "",
+    "analyze:constants-usage": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts",
+    "analyze:constants-usage:report": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts docs/constants-usage-analysis.md",
+    "analyze:constants-usage:custom": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts"
   },
   "overrides": {
     "form-data": "^4.0.0"

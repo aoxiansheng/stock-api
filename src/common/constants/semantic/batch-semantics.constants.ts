@@ -4,6 +4,7 @@
  * 📦 基于Foundation层构建，解决MAX_BATCH_SIZE等重复定义问题
  */
 
+import { NUMERIC_CONSTANTS } from '../core';
 import { CORE_VALUES, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation';
 
 /**
@@ -31,16 +32,16 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
     // 缓存操作
     
     // 消息处理
-    NOTIFICATION_BATCH: CORE_VALUES.SIZES.SMALL,                      // 50 - 通知批量发送
+    NOTIFICATION_BATCH: NUMERIC_CONSTANTS.N_50,                      // 50 - 通知批量发送
   },
 
   // 性能优化分级批量大小
   PERFORMANCE: {
-    MICRO_BATCH: CORE_VALUES.SIZES.TINY,                             // 6 - 微批量（超快处理）
-    SMALL_BATCH: CORE_VALUES.SIZES.SMALL / 2,                        // 25 - 小批量（快速处理）
+    MICRO_BATCH: NUMERIC_CONSTANTS.N_6,                             // 6 - 微批量（超快处理）
+    SMALL_BATCH: NUMERIC_CONSTANTS.N_50 / 2,                        // 25 - 小批量（快速处理）
     MEDIUM_BATCH: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,       // 50 - 中批量（平衡处理）
     LARGE_BATCH: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,        // 100 - 大批量（高吞吐）
-    HUGE_BATCH: CORE_VALUES.SIZES.LARGE,                             // 500 - 巨批量（最大吞吐）
+    HUGE_BATCH: NUMERIC_CONSTANTS.N_500,                             // 500 - 巨批量（最大吞吐）
   },
 });
 
@@ -63,7 +64,7 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
     
     // CPU密集型操作
     CPU_INTENSIVE: {
-      WORKERS: CORE_VALUES.SIZES.TINY / 2,  // 3 - CPU密集型较少工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6 / 2,  // 3 - CPU密集型较少工作进程数
     },
     
     // 网络请求
@@ -73,19 +74,19 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
     
     // 数据库连接
     DATABASE_CONNECTION: {
-      WORKERS: CORE_VALUES.SIZES.TINY,  // 6 - 数据库连接工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6,  // 6 - 数据库连接工作进程数
     },
   },
 
   // 资源限制分级
   RESOURCE_LIMITS: {
     LOW_RESOURCE: {
-      BATCH_SIZE: CORE_VALUES.SIZES.TINY,                      // 6 - 低资源批量大小
+      BATCH_SIZE: NUMERIC_CONSTANTS.N_6,                      // 6 - 低资源批量大小
       WORKERS: CORE_LIMITS.CONCURRENCY.MIN_WORKERS,            // 1 - 低资源工作进程数
     },
     MEDIUM_RESOURCE: {
       BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE, // 50 - 中等资源批量大小
-      WORKERS: CORE_VALUES.SIZES.TINY,                         // 6 - 中等资源工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6,                         // 6 - 中等资源工作进程数
     },
     HIGH_RESOURCE: {
       BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE, // 100 - 高资源批量大小
@@ -115,11 +116,11 @@ export const BATCH_TIMEOUT_SEMANTICS = Object.freeze({
 
   // 批量大小相关超时策略（毫秒）
   SIZE_BASED: {
-    MICRO_BATCH_MS: CORE_VALUES.TIME_MS.ONE_SECOND,            // 1000ms - 微批量超时
-    SMALL_BATCH_MS: CORE_VALUES.TIME_MS.FIVE_SECONDS,          // 5000ms - 小批量超时
+    MICRO_BATCH_MS: NUMERIC_CONSTANTS.N_1000,            // 1000ms - 微批量超时
+    SMALL_BATCH_MS: NUMERIC_CONSTANTS.N_5000,          // 5000ms - 小批量超时
     MEDIUM_BATCH_MS: CORE_TIMEOUTS.OPERATION.STANDARD_MS,      // 10000ms - 中批量超时
-    LARGE_BATCH_MS: CORE_VALUES.TIME_MS.THIRTY_SECONDS,        // 30000ms - 大批量超时
-    HUGE_BATCH_MS: CORE_VALUES.TIME_MS.ONE_MINUTE,             // 60000ms - 巨批量超时
+    LARGE_BATCH_MS: NUMERIC_CONSTANTS.N_30000,        // 30000ms - 大批量超时
+    HUGE_BATCH_MS: NUMERIC_CONSTANTS.N_60000,             // 60000ms - 巨批量超时
   },
 });
 
@@ -211,13 +212,13 @@ export class BatchSemanticsUtil {
    * 根据数据量推荐批量大小
    */
   static getRecommendedBatchSize(totalItems: number): number {
-    if (totalItems <= CORE_VALUES.SIZES.SMALL) {
+    if (totalItems <= NUMERIC_CONSTANTS.N_50) {
       return BATCH_SIZE_SEMANTICS.PERFORMANCE.MICRO_BATCH;
-    } else if (totalItems <= CORE_VALUES.SIZES.MEDIUM) {
+    } else if (totalItems <= NUMERIC_CONSTANTS.N_100) {
       return BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH;
-    } else if (totalItems <= CORE_VALUES.SIZES.LARGE) {
+    } else if (totalItems <= NUMERIC_CONSTANTS.N_500) {
       return BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH;
-    } else if (totalItems <= CORE_VALUES.SIZES.HUGE) {
+    } else if (totalItems <= NUMERIC_CONSTANTS.N_1000) {
       return BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH;
     } else {
       return BATCH_SIZE_SEMANTICS.PERFORMANCE.HUGE_BATCH;
@@ -270,7 +271,7 @@ export class BatchSemanticsUtil {
   /**
    * 获取推荐的批量处理配置
    */
-  static getRecommendedConfig(template: keyof typeof BATCH_CONFIG_TEMPLATES): typeof BATCH_CONFIG_TEMPLATES.HIGH_PERFORMANCE {
+  static getRecommendedConfig(template: keyof typeof BATCH_CONFIG_TEMPLATES) {
     return BATCH_CONFIG_TEMPLATES[template];
   }
 

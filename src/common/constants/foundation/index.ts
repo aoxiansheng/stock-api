@@ -58,6 +58,7 @@ export type {
 } from './processing-base.constants';
 
 // 导入用于对象定义
+import { NUMERIC_CONSTANTS } from '../core';
 import { CORE_VALUES } from './core-values.constants';
 import { CORE_TIMEOUTS, CORE_TTL } from './core-timeouts.constants';
 import { CORE_LIMITS } from './core-limits.constants';
@@ -82,16 +83,16 @@ export class FoundationUtils {
   /**
    * 检查数值是否在合理范围内
    */
-  static isValidSize(value: number, category: keyof typeof CORE_VALUES.SIZES): boolean {
-    return value > 0 && value <= CORE_VALUES.SIZES[category];
+  static isValidSize(value: number, maxSize: number): boolean {
+    return value > 0 && value <= maxSize;
   }
 
   /**
    * 检查超时配置是否合理
    */
   static isValidTimeout(timeoutMs: number): boolean {
-    return timeoutMs >= CORE_VALUES.TIME_MS.ONE_SECOND && 
-           timeoutMs <= CORE_VALUES.TIME_MS.ONE_HOUR;
+    return timeoutMs >= NUMERIC_CONSTANTS.N_1000 && 
+           timeoutMs <= NUMERIC_CONSTANTS.N_3600000;
   }
 
   /**
@@ -105,9 +106,9 @@ export class FoundationUtils {
    * 根据数据大小获取推荐的超时时间
    */
   static getRecommendedTimeout(dataSize: number): number {
-    if (dataSize <= CORE_VALUES.SIZES.SMALL) {
+    if (dataSize <= NUMERIC_CONSTANTS.N_50) {
       return CORE_TIMEOUTS.OPERATION.QUICK_MS;
-    } else if (dataSize <= CORE_VALUES.SIZES.LARGE) {
+    } else if (dataSize <= NUMERIC_CONSTANTS.N_500) {
       return CORE_TIMEOUTS.OPERATION.STANDARD_MS;
     } else {
       return CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS;

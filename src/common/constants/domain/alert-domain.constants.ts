@@ -213,6 +213,7 @@ export const ALERT_MESSAGES = Object.freeze({
 
   // 频率限制消息
   RATE_LIMIT: {
+    TRIGGER_RATE_EXCEEDED: "手动触发告警评估频率超出限制，请稍后再试",
   },
 });
 

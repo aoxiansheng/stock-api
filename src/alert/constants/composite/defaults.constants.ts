@@ -262,7 +262,7 @@ export class AlertDefaultsUtil {
    * 获取环境相关的默认值配置
    */
   static getEnvironmentDefaults(environment: 'development' | 'production' | 'test'): Partial<AlertDefaults> {
-    const baseDefaults = {
+    const baseDefaults: Record<string, any> = {
       development: {
         PERFORMANCE: {
           ...ALERT_DEFAULTS.PERFORMANCE,

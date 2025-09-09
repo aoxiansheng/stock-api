@@ -1,4 +1,0 @@
-// global-services.module.spec.ts - 测试占位代码
-// 路径: unit/app/modules/global-services.module.spec.ts
-
-// TODO: 实现具体的测试用例
