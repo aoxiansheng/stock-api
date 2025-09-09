@@ -5,7 +5,7 @@
  */
 
 import { NUMERIC_CONSTANTS } from '../core';
-import { CORE_VALUES, CORE_TIMEOUTS, CORE_LIMITS } from '../foundation';
+import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
 
 /**
  * 重试延迟语义配置
@@ -42,9 +42,9 @@ export const RETRY_DELAY_SEMANTICS = Object.freeze({
 export const RETRY_COUNT_SEMANTICS = Object.freeze({
   // 基础重试次数
   BASIC: {
-    DEFAULT: CORE_LIMITS.RATE_LIMITS.DEFAULT_RETRIES,           // 3 - 默认重试次数
-    MIN: CORE_LIMITS.RATE_LIMITS.MIN_RETRIES,                   // 0 - 最小重试次数
-    MAX: CORE_LIMITS.RATE_LIMITS.MAX_RETRIES,                   // 6 - 最大重试次数
+    DEFAULT: NUMERIC_CONSTANTS.N_3,                             // 3 - 默认重试次数
+    MIN: NUMERIC_CONSTANTS.N_0,                                 // 0 - 最小重试次数
+    MAX: NUMERIC_CONSTANTS.N_6,                                 // 6 - 最大重试次数
   },
 
   // 场景特定重试次数

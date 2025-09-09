@@ -4,7 +4,8 @@
  * 🌐 基于Foundation层构建，专注于HTTP协议语义
  */
 
-import { CORE_VALUES, CORE_TIMEOUTS, CORE_LIMITS } from '../foundation';
+import { NUMERIC_CONSTANTS } from '../core';
+import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
 import { MESSAGE_SEMANTICS, MESSAGE_TEMPLATE_SEMANTICS } from './message-semantics.constants';
 
 /**
@@ -79,19 +80,19 @@ export const HTTP_TIMEOUTS = Object.freeze({
 export const HTTP_BATCH_SEMANTICS = Object.freeze({
   // API请求批量处理
   REQUEST_BATCHING: {
-    MAX_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,          // 1000 - 最大批量大小
+    MAX_SIZE: NUMERIC_CONSTANTS.N_1000,                         // 1000 - 最大批量大小
   },
 
   // 并发请求控制
   CONCURRENT_REQUESTS: {
-    DEFAULT: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,           // 6 - 默认并发数
-    MAX: CORE_LIMITS.CONCURRENCY.MAX_WORKERS,                   // 50 - 最大并发数
-    MIN: CORE_LIMITS.CONCURRENCY.MIN_WORKERS,                   // 1 - 最小并发数
+    DEFAULT: NUMERIC_CONSTANTS.N_6,                             // 6 - 默认并发数
+    MAX: NUMERIC_CONSTANTS.N_50,                                // 50 - 最大并发数
+    MIN: NUMERIC_CONSTANTS.N_1,                                 // 1 - 最小并发数
   },
 
   // 分页处理
   PAGINATION: {
-    DEFAULT_PAGE_SIZE: CORE_LIMITS.PAGINATION.DEFAULT_PAGE_SIZE, // 6 - 默认分页大小
+    DEFAULT_PAGE_SIZE: NUMERIC_CONSTANTS.N_6,                   // 6 - 默认分页大小
   },
 });
 

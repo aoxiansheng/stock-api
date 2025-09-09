@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { CONSTANTS } from "@common/constants";
+import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
 import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 // import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 // Market enum is now provided by cache-request.utils via the new four-layer architecture
@@ -997,12 +998,12 @@ export class ReceiverService {
   private calculateStorageCacheTTL(symbols: string[]): number {
     // 根据市场开盘状态调整缓存时间
     // 开盘时间使用短缓存(1-5秒)，闭市使用长缓存(30-300秒)
-    const defaultTTL = CONSTANTS.SEMANTIC.CACHE.TTL.DATA_TYPE.FREQUENT_UPDATE_SEC; // 默认缓存
+    const defaultTTL = SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S; // 默认缓存
 
     // 使用 symbols 数量做简单 TTL 调整示例（避免未使用变量警告）
     const symbolCount = symbols?.length || 0;
     if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
-      return Math.max(defaultTTL, CONSTANTS.SEMANTIC.CACHE.TTL.BASIC.SHORT_SEC / CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE * 2); // 大批量请求给更长 TTL
+      return Math.max(defaultTTL, SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S / CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE * 2); // 大批量请求给更长 TTL
     }
 
     // 这里可以根据symbols判断市场，然后设置不同的TTL

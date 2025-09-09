@@ -1,4 +1,4 @@
-import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { MONITORING_BUSINESS } from '../../../../monitoring/constants/business';
 import { REFERENCE_DATA } from '@common/constants/domain';
 import { API_OPERATIONS
 } from '@common/constants/domain';

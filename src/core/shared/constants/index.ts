@@ -21,3 +21,16 @@ export {
   CoreLimitsUtil,
   type CoreLimits 
 } from './limits';
+
+// 市场相关常量
+export * from './market.constants';
+export {
+  Market,
+  MarketStatus,
+  MARKET_DOMAIN_CONFIG,
+  MARKET_CACHE_CONFIG,
+  MARKET_TRADING_HOURS,
+  MarketDomainUtil,
+  type MarketTradingHours,
+  type TradingSession
+} from './market.constants';

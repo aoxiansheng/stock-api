@@ -14,9 +14,9 @@ import {
   MarketStatus,
   MarketTradingHours,
   MARKET_TRADING_HOURS,
-  CACHE_TTL_BY_MARKET_STATUS
-} from "../../../common/constants/domain/market-domain.constants";
-import type { TradingSession } from "../../../common/constants/domain/market-domain.constants";
+  CACHE_TTL_BY_MARKET_STATUS,
+  type TradingSession
+} from "../constants/market.constants";
 
 /**
  * 市场状态检测结果

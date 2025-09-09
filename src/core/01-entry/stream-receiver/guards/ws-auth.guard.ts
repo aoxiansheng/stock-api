@@ -6,9 +6,10 @@ import { Socket } from "socket.io";
 import { Permission } from "../../../../auth/enums/user-role.enum";
 import { STREAM_PERMISSIONS, hasStreamPermissions } from '../constants/stream-permissions.constants';
 import { CONSTANTS } from "@common/constants";
+import { RateLimitStrategy } from "../../../../auth/constants/rate-limit";
 
 // Extract rate limit strategy for backward compatibility
-const { RateLimitStrategy } = CONSTANTS.DOMAIN.RATE_LIMIT.ENUMS;
+// const { RateLimitStrategy } = CONSTANTS.DOMAIN.RATE_LIMIT.ENUMS;
 
 /**
  * WebSocket 认证守卫

@@ -6,7 +6,6 @@
 // 导出所有基础常量
 export { CORE_VALUES } from './core-values.constants';
 export { CORE_TIMEOUTS, CORE_TTL } from './core-timeouts.constants';
-export { CORE_LIMITS } from './core-limits.constants';
 export { CORE_TIMEZONES, CORE_TRADING_TIMES, TimezoneUtil } from './core-timezones.constants';
 export { 
   PROCESSING_BASE_CONSTANTS,
@@ -26,7 +25,6 @@ export type {
 import { NUMERIC_CONSTANTS } from '../core';
 import { CORE_VALUES } from './core-values.constants';
 import { CORE_TIMEOUTS, CORE_TTL } from './core-timeouts.constants';
-import { CORE_LIMITS } from './core-limits.constants';
 import { CORE_TIMEZONES, CORE_TRADING_TIMES } from './core-timezones.constants';
 import { PROCESSING_BASE_CONSTANTS } from './processing-base.constants';
 // Foundation层统一常量对象
@@ -34,7 +32,6 @@ export const FOUNDATION_CONSTANTS = Object.freeze({
   VALUES: CORE_VALUES,
   TIMEOUTS: CORE_TIMEOUTS,
   TTL: CORE_TTL,
-  LIMITS: CORE_LIMITS,
   TIMEZONES: CORE_TIMEZONES,
   TRADING_TIMES: CORE_TRADING_TIMES,
   PROCESSING_BASE: PROCESSING_BASE_CONSTANTS,
@@ -55,12 +52,6 @@ export class FoundationUtils {
   static isValidTimeout(timeoutMs: number): boolean {
     return timeoutMs >= NUMERIC_CONSTANTS.N_1000 && 
            timeoutMs <= NUMERIC_CONSTANTS.N_3600000;
-  }
-  /**
-   * 获取推荐的批量大小
-   */
-  static getOptimalBatchSize(): number {
-    return CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE;
   }
   /**
    * 根据数据大小获取推荐的超时时间

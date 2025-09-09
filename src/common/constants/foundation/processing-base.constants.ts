@@ -8,29 +8,28 @@
 import { NUMERIC_CONSTANTS } from '../core';
 import { BATCH_SIZE_SEMANTICS } from '../semantic';
 import { CORE_TIMEOUTS } from './core-timeouts.constants';
-import { CORE_LIMITS } from './core-limits.constants';
 
 /**
  * 基础批量处理配置
- * 🎯 整合并扩展CORE_LIMITS.BATCH_LIMITS，提供更详细的配置
+ * 🎯 提供标准化的批量处理配置
  */
 export const PROCESSING_BATCH_SETTINGS = Object.freeze({
   // 通用批量配置 - 基于Foundation层核心值
-  DEFAULT_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,    // 100
-  MIN_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE,            // 1
-  MAX_BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,            // 1000
+  DEFAULT_BATCH_SIZE: NUMERIC_CONSTANTS.N_100,                         // 100
+  MIN_BATCH_SIZE: NUMERIC_CONSTANTS.N_1,                               // 1
+  MAX_BATCH_SIZE: NUMERIC_CONSTANTS.N_1000,                            // 1000
 
   // 并发控制配置 - 基于Foundation层核心值
 
   // 分页配置 - 基于Foundation层核心值
-  DEFAULT_PAGE_SIZE: CORE_LIMITS.PAGINATION.DEFAULT_PAGE_SIZE,        // 6
+  DEFAULT_PAGE_SIZE: NUMERIC_CONSTANTS.N_6,                            // 6
 
   // 性能和资源限制 - 基于Foundation层核心值
 });
 
 /**
  * 基础重试配置
- * 🎯 整合并扩展CORE_LIMITS.RATE_LIMITS，提供详细的重试策略
+ * 🎯 提供详细的重试策略配置
  */
 export const PROCESSING_RETRY_SETTINGS = Object.freeze({
   // 重试次数配置 - 基于Foundation层核心值

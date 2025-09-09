@@ -16,7 +16,6 @@ import {
 // 导入核心常量用于QUICK配置
 import { NUMERIC_CONSTANTS } from '../core/numeric.constants';
 import { CORE_VALUES } from '../foundation/core-values.constants';
-import { CACHE_TTL_SEMANTICS } from '../semantic/cache-semantics.constants';
 import { HTTP_TIMEOUTS } from '../semantic/http-semantics.constants';
 import { BATCH_SIZE_SEMANTICS } from '../semantic/batch-semantics.constants';
 import { HTTP_STATUS_CODES } from '../semantic/http-semantics.constants';
@@ -322,9 +321,9 @@ export const CONFIG = {
     
     // 缓存TTL配置
     CACHE_TTL: {
-      REALTIME_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,    // 5秒
-      FREQUENT_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.FREQUENT_UPDATE_SEC, // 1分钟
-      STATIC_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,        // 1天
+      REALTIME_SEC: NUMERIC_CONSTANTS.N_5,                  // 5秒
+      FREQUENT_SEC: NUMERIC_CONSTANTS.N_60,                 // 60秒 (1分钟)
+      STATIC_SEC: NUMERIC_CONSTANTS.N_86400,                // 86400秒 (1天)
     },
     
     // HTTP状态码

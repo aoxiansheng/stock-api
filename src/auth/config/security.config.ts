@@ -1,4 +1,4 @@
-import { RATE_LIMIT_CONFIG } from "../../common/constants/domain/rate-limit-domain.constants";
+import { RATE_LIMIT_CONFIG } from "@auth/constants/rate-limit";
 import { PASSWORD_CONSTRAINTS } from "../constants/validation.constants";
 
 /**

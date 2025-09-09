@@ -18,7 +18,6 @@ export {
 } from './http-semantics.constants';
 
 export {
-  CACHE_TTL_SEMANTICS,
   CACHE_KEY_SEMANTICS,
   CACHE_STRATEGY_SEMANTICS,
   CACHE_SIZE_SEMANTICS,
@@ -92,7 +91,6 @@ import {
 } from './http-semantics.constants';
 
 import {
-  CACHE_TTL_SEMANTICS,
   CACHE_KEY_SEMANTICS,
   CACHE_STRATEGY_SEMANTICS,
   CACHE_SIZE_SEMANTICS,
@@ -140,7 +138,6 @@ export const SEMANTIC_CONSTANTS = Object.freeze({
   
   // 缓存语义
   CACHE: {
-    TTL: CACHE_TTL_SEMANTICS,
     KEYS: CACHE_KEY_SEMANTICS,
     SIZES: CACHE_SIZE_SEMANTICS,
     PERFORMANCE: CACHE_PERFORMANCE_SEMANTICS,
@@ -220,19 +217,16 @@ export class SemanticUtils {
     const recommendations: Record<string, any> = {
       'high-performance': {
         http: HTTP_TIMEOUTS.REQUEST.FAST_MS,
-        cache: CACHE_TTL_SEMANTICS.BASIC.SHORT_SEC,
         retry: RETRY_CONFIG_TEMPLATES.CRITICAL_OPERATION,
         batch: BATCH_CONFIG_TEMPLATES.HIGH_PERFORMANCE,
       },
       'high-reliability': {
         http: HTTP_TIMEOUTS.REQUEST.SLOW_MS,
-        cache: CACHE_TTL_SEMANTICS.BASIC.MEDIUM_SEC,
         retry: RETRY_CONFIG_TEMPLATES.NETWORK_OPERATION,
         batch: BATCH_CONFIG_TEMPLATES.HIGH_RELIABILITY,
       },
       'resource-efficient': {
         http: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,
-        cache: CACHE_TTL_SEMANTICS.BASIC.LONG_SEC,
         retry: RETRY_CONFIG_TEMPLATES.DATABASE_OPERATION,
         batch: BATCH_CONFIG_TEMPLATES.RESOURCE_EFFICIENT,
       },

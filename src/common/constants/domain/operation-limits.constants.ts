@@ -13,7 +13,7 @@
  */
 
 import { NUMERIC_CONSTANTS } from '../core';
-import { CORE_TIMEOUTS, CORE_LIMITS } from '../foundation';
+import { CORE_TIMEOUTS } from '../foundation';
 
 /**
  * 操作限制配置常量
@@ -110,7 +110,7 @@ export const OPERATION_LIMITS = Object.freeze({
    */
   RETRY_LIMITS: {
     // 基础重试配置
-    MAX_RETRIES: CORE_LIMITS.RATE_LIMITS.MAX_RETRIES,         // 最大重试次数 - 6
+    MAX_RETRIES: NUMERIC_CONSTANTS.N_6,                        // 最大重试次数 - 6
     RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS,            // 重试延迟 - 1000ms
     MAX_RETRY_DELAY_MS: NUMERIC_CONSTANTS.N_10000,    // 最大重试延迟 - 10000ms
     BACKOFF_MULTIPLIER: NUMERIC_CONSTANTS.N_2,             // 退避乘数 - 2

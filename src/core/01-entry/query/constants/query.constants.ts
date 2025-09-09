@@ -6,6 +6,7 @@ import { API_OPERATIONS } from '@common/constants/domain';
 
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 import { CONSTANTS } from "@common/constants";
+import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
 
 /**
  * 查询错误消息常量
@@ -100,7 +101,7 @@ export const QUERY_CONFIG = Object.freeze({
   DEFAULT_STORAGE_KEY_SEPARATOR: ":", // 默认存储键分隔符
   QUERY_ID_LENGTH: 8, // 查询ID长度
   MAX_QUERY_LIMIT: CONSTANTS.SEMANTIC.BATCH.SIZES.PERFORMANCE.LARGE_BATCH, // 最大查询限制 (100)
-  MIN_QUERY_LIMIT: CONSTANTS.FOUNDATION.LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE, // 最小查询限制 (1)
+  MIN_QUERY_LIMIT: 1, // 最小查询限制 (1)
   DEFAULT_DATA_TYPE: API_OPERATIONS.STOCK_DATA.GET_QUOTE, // 默认数据类型
   DEFAULT_PROVIDER: "unknown", // 默认提供商
   DEFAULT_MARKET: "unknown", // 默认市场
@@ -223,8 +224,8 @@ export const QUERY_TIMEOUT_CONFIG = Object.freeze({
  * 合并了之前在多个地方重复定义的缓存TTL设置
  */
 export const QUERY_CACHE_TTL_CONFIG = Object.freeze({
-  DEFAULT_SECONDS: CONSTANTS.SEMANTIC.CACHE.TTL.BASIC.LONG_SEC, // 统一默认TTL（1小时）
-  MAX_AGE_SECONDS: CONSTANTS.SEMANTIC.CACHE.TTL.BASIC.SHORT_SEC, // 统一最大年龄（5分钟）
+  DEFAULT_SECONDS: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S, // 统一默认TTL（1小时）
+  MAX_AGE_SECONDS: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S, // 统一最大年龄（5分钟）
 } as const);
 
 /**

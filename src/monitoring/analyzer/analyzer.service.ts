@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { createLogger } from "../../app/config/logger.config";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 
-import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { MONITORING_BUSINESS } from '../constants/business';
 import {
   IAnalyzer,
   AnalysisOptions,

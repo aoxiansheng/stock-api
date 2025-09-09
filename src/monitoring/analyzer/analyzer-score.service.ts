@@ -4,7 +4,7 @@ import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
-import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { MONITORING_BUSINESS } from '../constants/business';
 
 /**
  * 健康分计算器

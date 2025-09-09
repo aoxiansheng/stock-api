@@ -1,18 +1,17 @@
 /**
- * 市场领域常量
- * 🏢 Domain层 - 市场相关的业务领域专用常量
- * 📈 基于Semantic层构建，专注于金融市场业务逻辑
+ * 市场常量
+ * 🏢 Core模块 - 市场相关的核心常量
+ * 📈 市场交易时间、状态、配置等核心定义
  */
 
 import { 
   HTTP_TIMEOUTS,
-  CACHE_TTL_SEMANTICS,
   BATCH_SIZE_SEMANTICS 
-} from '../semantic';
+} from '../../../common/constants/semantic';
 import { 
   CORE_TIMEZONES, 
   CORE_TRADING_TIMES 
-} from '../foundation';
+} from '../../../common/constants/foundation';
 
 /**
  * 市场枚举
@@ -94,17 +93,17 @@ export const MARKET_DOMAIN_CONFIG = Object.freeze({
 export const MARKET_CACHE_CONFIG = Object.freeze({
   // 实时数据缓存TTL（秒）
   REALTIME_DATA: {
-    QUOTE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,        // 5秒 - 股价数据
+    QUOTE_TTL_SEC: 5,        // 5秒 - 股价数据（实时数据）
   },
 
   // 基础信息缓存TTL（秒）
   BASIC_INFO: {
-    COMPANY_INFO_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,   // 1天 - 公司基本信息
+    COMPANY_INFO_TTL_SEC: 86400,   // 1天 - 公司基本信息（静态数据）
   },
 
   // 历史数据缓存TTL（秒）
   HISTORICAL: {
-    DAILY_KLINE_TTL_SEC: CACHE_TTL_SEMANTICS.DATA_TYPE.STATIC_SEC,    // 1天 - 日K线数据
+    DAILY_KLINE_TTL_SEC: 86400,    // 1天 - 日K线数据（静态数据）
   },
 });
 

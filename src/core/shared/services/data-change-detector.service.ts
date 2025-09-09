@@ -13,7 +13,7 @@ import {
   Market,
   MarketStatus,
   CHANGE_DETECTION_THRESHOLDS
-} from "../../../common/constants/domain/market-domain.constants";
+} from "../constants/market.constants";
 import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
 
 /**

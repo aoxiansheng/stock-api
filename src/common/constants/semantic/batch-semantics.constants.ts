@@ -5,7 +5,7 @@
  */
 
 import { NUMERIC_CONSTANTS } from '../core';
-import { CORE_VALUES, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation';
+import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
 
 /**
  * 批量大小语义配置
@@ -14,18 +14,18 @@ import { CORE_VALUES, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation';
 export const BATCH_SIZE_SEMANTICS = Object.freeze({
   // 基础批量大小配置
   BASIC: {
-    MIN_SIZE: CORE_LIMITS.BATCH_LIMITS.MIN_BATCH_SIZE,          // 1 - 最小批量大小
-    OPTIMAL_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,  // 50 - 最优批量大小
-    MAX_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,          // 1000 - 最大批量大小 🎯
+    MIN_SIZE: NUMERIC_CONSTANTS.N_1,                             // 1 - 最小批量大小
+    OPTIMAL_SIZE: NUMERIC_CONSTANTS.N_50,                        // 50 - 最优批量大小
+    MAX_SIZE: NUMERIC_CONSTANTS.N_1000,                          // 1000 - 最大批量大小 🎯
   },
 
   // 场景特定批量大小
   SCENARIO: {
     // 数据库操作
-    DATABASE_INSERT: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,     // 50 - 数据库插入
+    DATABASE_INSERT: NUMERIC_CONSTANTS.N_50,                          // 50 - 数据库插入
     
     // API请求处理
-    API_REQUEST_PROCESSING: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE, // 100 - API请求处理
+    API_REQUEST_PROCESSING: NUMERIC_CONSTANTS.N_100,                  // 100 - API请求处理
     
     // 文件操作
     
@@ -39,8 +39,8 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
   PERFORMANCE: {
     MICRO_BATCH: NUMERIC_CONSTANTS.N_6,                             // 6 - 微批量（超快处理）
     SMALL_BATCH: NUMERIC_CONSTANTS.N_50 / 2,                        // 25 - 小批量（快速处理）
-    MEDIUM_BATCH: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,       // 50 - 中批量（平衡处理）
-    LARGE_BATCH: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE,        // 100 - 大批量（高吞吐）
+    MEDIUM_BATCH: NUMERIC_CONSTANTS.N_50,                             // 50 - 中批量（平衡处理）
+    LARGE_BATCH: NUMERIC_CONSTANTS.N_100,                             // 100 - 大批量（高吞吐）
     HUGE_BATCH: NUMERIC_CONSTANTS.N_500,                             // 500 - 巨批量（最大吞吐）
   },
 });
@@ -52,14 +52,14 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
 export const CONCURRENCY_SEMANTICS = Object.freeze({
   // 基础并发配置
   BASIC: {
-    DEFAULT_WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,  // 6 - 默认工作进程数
+    DEFAULT_WORKERS: NUMERIC_CONSTANTS.N_6,                     // 6 - 默认工作进程数
   },
 
   // 场景特定并发配置
   SCENARIO: {
     // I/O密集型操作
     IO_INTENSIVE: {
-      WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,  // 6 - I/O密集型默认工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6,                    // 6 - I/O密集型默认工作进程数
     },
     
     // CPU密集型操作
@@ -69,7 +69,7 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
     
     // 网络请求
     NETWORK_REQUEST: {
-      WORKERS: CORE_LIMITS.CONCURRENCY.DEFAULT_WORKERS,  // 6 - 网络请求默认工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6,                    // 6 - 网络请求默认工作进程数
     },
     
     // 数据库连接
@@ -82,15 +82,15 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
   RESOURCE_LIMITS: {
     LOW_RESOURCE: {
       BATCH_SIZE: NUMERIC_CONSTANTS.N_6,                      // 6 - 低资源批量大小
-      WORKERS: CORE_LIMITS.CONCURRENCY.MIN_WORKERS,            // 1 - 低资源工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_1,                           // 1 - 低资源工作进程数
     },
     MEDIUM_RESOURCE: {
-      BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE, // 50 - 中等资源批量大小
+      BATCH_SIZE: NUMERIC_CONSTANTS.N_50,                       // 50 - 中等资源批量大小
       WORKERS: NUMERIC_CONSTANTS.N_6,                         // 6 - 中等资源工作进程数
     },
     HIGH_RESOURCE: {
-      BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.DEFAULT_BATCH_SIZE, // 100 - 高资源批量大小
-      WORKERS: CORE_LIMITS.CONCURRENCY.MAX_WORKERS,            // 50 - 高资源工作进程数
+      BATCH_SIZE: NUMERIC_CONSTANTS.N_100,                      // 100 - 高资源批量大小
+      WORKERS: NUMERIC_CONSTANTS.N_50,                          // 50 - 高资源工作进程数
     },
   },
 });

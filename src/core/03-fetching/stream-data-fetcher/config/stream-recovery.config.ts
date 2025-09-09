@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { RATE_LIMIT_CONFIG } from "@common/constants/domain/rate-limit-domain.constants";
+import { RATE_LIMIT_CONFIG } from "@auth/constants/rate-limit";
 
 /**
  * StreamRecovery 配置类 - Phase 3 Critical Fix

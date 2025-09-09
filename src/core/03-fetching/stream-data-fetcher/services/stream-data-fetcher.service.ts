@@ -1,4 +1,4 @@
-import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { MONITORING_BUSINESS } from '../../../../monitoring/constants/business';
 import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   Injectable,

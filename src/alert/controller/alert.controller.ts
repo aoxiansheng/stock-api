@@ -17,11 +17,21 @@ import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
 import { createLogger } from "@app/config/logger.config";
 import { CONSTANTS } from "@common/constants";
+import { 
+  ALERT_MESSAGES 
+} from "../../alert/constants";
 
-// Extract alert constants for backward compatibility
-const ALERT_RATE_LIMIT = CONSTANTS.DOMAIN.ALERT.RATE_LIMIT;
+// Extract alert constants for backward compatibility - use defaults for rate limiting
+const ALERT_RATE_LIMIT = {
+  TRIGGER_EVALUATION: {
+    MAX_REQUESTS_PER_MINUTE: 5,
+    WINDOW_MS: 60000,
+  }
+};
 // 修复ALERT_RATE_LIMIT_MESSAGES引用，使用正确的路径
-const ALERT_RATE_LIMIT_MESSAGES = CONSTANTS.DOMAIN.ALERT.MESSAGES.RATE_LIMIT;
+const ALERT_RATE_LIMIT_MESSAGES = {
+  TRIGGER_RATE_EXCEEDED: "手动触发告警评估频率超出限制，请稍后再试"
+};
 
 import {
   ApiSuccessResponse,

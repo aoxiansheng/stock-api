@@ -8,7 +8,7 @@ import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
-import { MONITORING_BUSINESS } from '@common/constants/domain';
+import { MONITORING_BUSINESS } from '../constants/business';
 
 /**
  * 趋势分析服务

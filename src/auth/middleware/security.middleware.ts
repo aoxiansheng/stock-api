@@ -4,10 +4,11 @@ import { Request, Response, NextFunction } from "express";
 import { createLogger } from "@app/config/logger.config";
 import { CONSTANTS } from "@common/constants";
 import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
-import { SECURITY_LIMITS } from "@common/constants/domain/rate-limit-domain.constants";
+import { SECURITY_LIMITS } from "@auth/constants/rate-limit";
 
 // Extract rate limit and security constants for backward compatibility
-const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
+// const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
+import { RATE_LIMIT_CONFIG } from "../constants/rate-limit";
 // 修复IP_RATE_LIMIT_CONFIG引用，提供默认值
 const IP_RATE_LIMIT_CONFIG = {
   ENABLED: process.env.IP_RATE_LIMIT_ENABLED !== 'false', // 默认启用

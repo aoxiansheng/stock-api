@@ -44,7 +44,7 @@
 
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
 import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
-import { CORE_LIMITS } from "@common/constants/foundation";
+import { CORE_LIMITS } from "../../../shared/constants/limits";
 
 /**
  * 数据映射错误消息常量

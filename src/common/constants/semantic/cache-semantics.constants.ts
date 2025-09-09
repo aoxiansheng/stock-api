@@ -6,39 +6,7 @@
  */
 
 import { NUMERIC_CONSTANTS } from '../core';
-import { CORE_VALUES, CORE_TTL, CORE_LIMITS, CORE_TIMEOUTS } from '../foundation';
-
-/**
- * 缓存TTL语义分类
- * 🎯 解决TTL配置重复和命名不一致问题
- */
-export const CACHE_TTL_SEMANTICS = Object.freeze({
-  // 基础TTL分类（秒）
-  BASIC: {
-    SHORT_SEC: NUMERIC_CONSTANTS.N_300,               // 5分钟 - 短期
-    MEDIUM_SEC: NUMERIC_CONSTANTS.N_600,               // 10分钟 - 中期
-    LONG_SEC: NUMERIC_CONSTANTS.N_3600,                    // 1小时 - 长期
-    VERY_LONG_SEC: NUMERIC_CONSTANTS.N_86400,                // 1天 - 极长期
-  },
-
-  // 数据类型特定TTL（秒）
-  DATA_TYPE: {
-    REALTIME_SEC: NUMERIC_CONSTANTS.N_5,            // 5秒 - 实时数据
-    FREQUENT_UPDATE_SEC: NUMERIC_CONSTANTS.N_60,       // 1分钟 - 频繁更新
-    NORMAL_UPDATE_SEC: NUMERIC_CONSTANTS.N_600,        // 10分钟 - 普通更新
-    SLOW_UPDATE_SEC: NUMERIC_CONSTANTS.N_3600,             // 1小时 - 缓慢更新
-    STATIC_SEC: NUMERIC_CONSTANTS.N_86400,                   // 1天 - 静态数据
-  },
-
-  // 业务场景特定TTL（秒）
-  BUSINESS: {
-    USER_SESSION_SEC: NUMERIC_CONSTANTS.N_1800,      // 30分钟 - 用户会话
-    API_RESPONSE_SEC: NUMERIC_CONSTANTS.N_300,        // 5分钟 - API响应
-    DATABASE_QUERY_SEC: NUMERIC_CONSTANTS.N_600,       // 10分钟 - 数据库查询
-    COMPUTATION_RESULT_SEC: NUMERIC_CONSTANTS.N_3600,      // 1小时 - 计算结果
-    FILE_CONTENT_SEC: NUMERIC_CONSTANTS.N_86400,             // 1天 - 文件内容
-  },
-});
+import { CORE_VALUES, CORE_TTL, CORE_TIMEOUTS } from '../foundation';
 
 /**
  * 缓存键语义规范
@@ -116,12 +84,12 @@ export const CACHE_SIZE_SEMANTICS = Object.freeze({
   ENTRY_SIZE: {
     SMALL_BYTES: NUMERIC_CONSTANTS.N_50 * 1024,                // 50KB - 小项
     MEDIUM_BYTES: NUMERIC_CONSTANTS.N_100 * 1024,              // 100KB - 中项
-    MAX_BYTES: CORE_LIMITS.STORAGE.MAX_JSON_SIZE_BYTES,         // 1MB - 最大项
+    MAX_BYTES: NUMERIC_CONSTANTS.N_1000 * 1024,                // 1MB - 最大项
   },
 
   // 批量操作大小
   BATCH_OPERATIONS: {
-    MAX_SIZE: CORE_LIMITS.BATCH_LIMITS.MAX_BATCH_SIZE,          // 1000 - 最大批量
+    MAX_SIZE: NUMERIC_CONSTANTS.N_1000,                         // 1000 - 最大批量
   },
 });
 
@@ -178,12 +146,6 @@ export const CACHE_OPERATIONS = Object.freeze({
  * 缓存语义工具函数
  */
 export class CacheSemanticsUtil {
-  /**
-   * 根据数据更新频率推荐TTL
-   */
-  static getRecommendedTTL(updateFrequency: 'realtime' | 'frequent' | 'normal' | 'slow' | 'static'): number {
-    return CACHE_TTL_SEMANTICS.DATA_TYPE[`${updateFrequency.toUpperCase()}_SEC`];
-  }
 
   /**
    * 构建标准化缓存键
@@ -310,7 +272,7 @@ export const CACHE_KEY_PREFIX_SEMANTICS = Object.freeze({
 export const CACHE_ADVANCED_STRATEGY_SEMANTICS = Object.freeze({
   // 预热配置
   WARMUP: {
-    BATCH_SIZE: CORE_LIMITS.BATCH_LIMITS.OPTIMAL_BATCH_SIZE,       // 50 - 预热批量大小
+    BATCH_SIZE: NUMERIC_CONSTANTS.N_50,                         // 50 - 预热批量大小
   },
 
   // 压缩配置
@@ -346,22 +308,6 @@ export class EnhancedCacheSemanticsUtil {
     const prefix = prefixGroup[module as keyof typeof prefixGroup] || module;
     const separator = CACHE_KEY_SEMANTICS.SEPARATORS.NAMESPACE;
     return [prefix, identifier, ...parts].join(separator);
-  }
-
-  /**
-   * 获取业务场景推荐的TTL
-   */
-  static getBusinessScenarioTTL(scenario: string): number {
-    const scenarioMap: Record<string, number> = {
-      'realtime_data': CACHE_TTL_SEMANTICS.DATA_TYPE.REALTIME_SEC,
-      'user_session': CACHE_TTL_SEMANTICS.BUSINESS.USER_SESSION_SEC,
-      'api_response': CACHE_TTL_SEMANTICS.BUSINESS.API_RESPONSE_SEC,
-      'database_query': CACHE_TTL_SEMANTICS.BUSINESS.DATABASE_QUERY_SEC,
-      'computation_result': CACHE_TTL_SEMANTICS.BUSINESS.COMPUTATION_RESULT_SEC,
-      'file_content': CACHE_TTL_SEMANTICS.BUSINESS.FILE_CONTENT_SEC,
-    };
-    
-    return scenarioMap[scenario] || CACHE_TTL_SEMANTICS.BASIC.MEDIUM_SEC;
   }
 
   /**
@@ -414,7 +360,6 @@ export class EnhancedCacheSemanticsUtil {
 /**
  * 类型定义
  */
-export type CacheTTLSemantics = typeof CACHE_TTL_SEMANTICS;
 export type CacheKeySemantics = typeof CACHE_KEY_SEMANTICS;
 export type CacheStrategySemantics = typeof CACHE_STRATEGY_SEMANTICS;
 export type CacheConnectionSemantics = typeof CACHE_CONNECTION_SEMANTICS;

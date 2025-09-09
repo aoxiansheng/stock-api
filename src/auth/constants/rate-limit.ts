@@ -8,6 +8,9 @@
  * 频率限制策略枚举
  * 🎯 统一频率限制算法类型
  */
+
+
+
 export enum RateLimitStrategy {
   FIXED_WINDOW = "fixed_window",         // 固定窗口
   SLIDING_WINDOW = "sliding_window",     // 滑动窗口
@@ -38,6 +41,236 @@ export enum RateLimitScope {
   PER_API_KEY = "per_api_key", // 按API Key限制
   PER_ENDPOINT = "per_endpoint", // 按端点限制
 }
+
+
+
+
+/**
+ * 全局频率限制配置
+ * 🎯 应用级别的频率限制设置
+ */
+export const RATE_LIMIT_CONFIG = Object.freeze({
+  // 全局节流配置
+ GLOBAL_THROTTLE: {
+   TTL: 60000,           // 时间窗口：60秒
+   LIMIT: 100,           // 请求限制：100次/分钟
+ },
+
+ // Redis连接配置
+ REDIS: {
+   MAX_RETRIES: 3,                  // 最大重试次数
+   CONNECTION_TIMEOUT: 10000,       // 连接超时：10秒
+   COMMAND_TIMEOUT: 5000,           // 命令超时：5秒
+   EXPIRE_BUFFER_SECONDS: 10,       // 过期缓冲时间：10秒
+ },
+
+ // 性能测试配置
+ PERFORMANCE: {
+   TEST_MODE: false,                // 是否启用测试模式
+   MULTIPLIER: 1,                   // 速率乘数
+ },
+});
+
+
+/**
+ * 频率限制错误消息模板
+ * 🎯 支持变量替换的错误消息模板
+ */
+export const RATE_LIMIT_ERROR_TEMPLATES = Object.freeze({
+  UNSUPPORTED_STRATEGY: "不支持的频率限制策略: {strategy}",
+  INVALID_WINDOW_FORMAT: "无效的时间窗口格式: {window}，期望格式如: 1s, 5m, 1h, 1d",
+  UNSUPPORTED_TIME_UNIT: "不支持的时间单位: {unit}，支持的单位: s(秒), m(分), h(时), d(天)",
+  RATE_LIMIT_EXCEEDED: "API Key {appKey} 超过频率限制: {current}/{limit} 请求",
+  REDIS_KEY_CONFLICT: "Redis键冲突: {key}",
+  INVALID_LIMIT_VALUE: "无效的限制值: {limit}，必须是正整数",
+  WINDOW_TOO_LARGE: "时间窗口过大: {window}，最大支持 {maxWindow}",
+  WINDOW_TOO_SMALL: "时间窗口过小: {window}，最小支持 {minWindow}",
+});
+
+
+/**
+ * 安全中间件相关限制常量
+ * 🎯 请求安全和负载保护
+ */
+export const SECURITY_LIMITS = Object.freeze({
+  MAX_PAYLOAD_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
+  MAX_PAYLOAD_SIZE_STRING: "10MB",
+  MAX_STRING_LENGTH_SANITIZE: 10000,
+  MAX_OBJECT_DEPTH_COMPLEXITY: 50,
+  MAX_OBJECT_FIELDS_COMPLEXITY: 10000,
+  MAX_STRING_LENGTH_COMPLEXITY: 100000,
+  MAX_QUERY_PARAMS: 100,
+  MAX_RECURSION_DEPTH: 100,
+  FIND_LONG_STRING_THRESHOLD: 1000,
+});
+
+
+/**
+ * 频率限制操作常量
+ * 🎯 统一操作名称标识符
+ */
+export const RATE_LIMIT_OPERATIONS = Object.freeze({
+  CHECK_RATE_LIMIT: "checkRateLimit",
+  CHECK_FIXED_WINDOW: "checkFixedWindow",
+  CHECK_SLIDING_WINDOW: "checkSlidingWindow",
+  RESET_RATE_LIMIT: "resetRateLimit",
+});
+
+
+/**
+ * 时间单位常量
+ * 🎯 统一时间单位标识符
+ */
+export const RATE_LIMIT_TIME_UNITS = Object.freeze({
+  SECOND: "s",
+  MINUTE: "m",
+  HOUR: "h",
+  DAY: "d",
+  WEEK: "w",
+  MONTH: "M",
+});
+
+/**
+ * 时间倍数常量
+ * 🎯 时间单位到秒的转换倍数
+ */
+export const RATE_LIMIT_TIME_MULTIPLIERS = Object.freeze({
+  [RATE_LIMIT_TIME_UNITS.SECOND]: 1,
+  [RATE_LIMIT_TIME_UNITS.MINUTE]: 60,
+  [RATE_LIMIT_TIME_UNITS.HOUR]: 60 * 60,
+  [RATE_LIMIT_TIME_UNITS.DAY]: 24 * 60 * 60,
+  [RATE_LIMIT_TIME_UNITS.WEEK]: 7 * 24 * 60 * 60,
+  [RATE_LIMIT_TIME_UNITS.MONTH]: 30 * 24 * 60 * 60, // 近似值
+});
+
+/**
+ * 频率限制验证规则
+ * 🎯 输入验证和格式检查
+ */
+export const RATE_LIMIT_VALIDATION_RULES = Object.freeze({
+  WINDOW_PATTERN: /^(\d+)([smhdwM])$/,
+  APP_KEY_PATTERN: /^[a-zA-Z0-9_-]+$/,
+  MIN_APP_KEY_LENGTH: 3,
+  MAX_APP_KEY_LENGTH: 64,
+});
+
+/**
+ * 频率限制模板工具函数
+ * 🎯 Domain层专用工具函数，整合了原有的RateLimitTemplateUtil功能
+ */
+export class RateLimitTemplateUtil {
+  /**
+   * 替换错误消息模板中的占位符
+   */
+  static replaceErrorTemplate(template: string, params: Record<string, any>): string {
+    return template.replace(/\{(\w+)\}/g, (match, key) => {
+      const value = params[key];
+      return value !== undefined ? String(value) : match;
+    });
+  }
+
+  /**
+   * 生成错误消息
+   */
+  static generateErrorMessage(
+    templateKey: keyof typeof RATE_LIMIT_ERROR_TEMPLATES,
+    params: Record<string, any>,
+  ): string {
+    const template = RATE_LIMIT_ERROR_TEMPLATES[templateKey];
+    return this.replaceErrorTemplate(template, params);
+  }
+
+  /**
+   * 验证时间窗口格式
+   */
+  static isValidWindowFormat(window: string): boolean {
+    return RATE_LIMIT_VALIDATION_RULES.WINDOW_PATTERN.test(window);
+  }
+
+  /**
+   * 验证应用键格式
+   */
+  static isValidAppKey(appKey: string): boolean {
+    return (
+      RATE_LIMIT_VALIDATION_RULES.APP_KEY_PATTERN.test(appKey) &&
+      appKey.length >= RATE_LIMIT_VALIDATION_RULES.MIN_APP_KEY_LENGTH &&
+      appKey.length <= RATE_LIMIT_VALIDATION_RULES.MAX_APP_KEY_LENGTH
+    );
+  }
+
+  /**
+   * 计算重试延迟
+   */
+  static calculateRetryDelay(attempt: number): number {
+    const INITIAL_DELAY_MS = 100;
+    const BACKOFF_MULTIPLIER = 2;
+    const MAX_DELAY_MS = 5000;
+    const JITTER_FACTOR = 0.1;
+
+    const baseDelay = Math.min(
+      INITIAL_DELAY_MS * Math.pow(BACKOFF_MULTIPLIER, attempt),
+      MAX_DELAY_MS,
+    );
+
+    // 添加抖动
+    const jitter = baseDelay * JITTER_FACTOR * Math.random();
+    return Math.floor(baseDelay + jitter);
+  }
+
+  /**
+   * 格式化使用统计
+   */
+  static formatStatistic(value: number, precision: number = 2): number {
+    return Math.round(value * Math.pow(10, precision)) / Math.pow(10, precision);
+  }
+}
+
+
+
+/**
+ * 频率限制消息模板
+ * 🎯 统一频率限制相关的提示消息
+ */
+export const RATE_LIMIT_MESSAGES = Object.freeze({
+  // 限制触发消息
+  LIMIT_EXCEEDED: {
+    PER_MINUTE: "每分钟请求次数超出限制，请等待 {remaining} 秒后再试",
+    PER_HOUR: "每小时请求次数超出限制，请等待 {remaining} 分钟后再试",
+    PER_DAY: "每日请求次数超出限制，请明天再试",
+    CONCURRENT: "并发请求数超出限制，请等待当前请求完成",
+  },
+
+  // 锁定相关消息
+  LOCKOUT: {
+    IP_LOCKED: "您的IP地址已被锁定 {duration} 分钟，请稍后再试",
+    USER_LOCKED: "您的账户已被锁定 {duration} 分钟，请稍后再试",
+    API_KEY_LOCKED: "您的API Key已被锁定 {duration} 分钟，请稍后再试",
+  },
+
+  // 警告消息
+  WARNINGS: {
+    APPROACHING_LIMIT: "您即将达到频率限制，剩余 {remaining} 次请求",
+    BURST_USED: "已使用突发配额，请控制请求频率",
+    TIER_LIMIT_INFO: "当前 {tier} 用户每分钟限制 {limit} 次请求",
+  },
+
+  // 成功消息
+  SUCCESS: {
+    LIMIT_RESET: "频率限制已重置",
+    WHITELIST_ADDED: "已添加到白名单",
+    CONFIG_UPDATED: "频率限制配置已更新",
+  },
+
+  // 服务消息
+  RATE_LIMIT_CHECK_STARTED: "开始频率限制检查",
+  RATE_LIMIT_CHECK_FAILED: "频率限制检查失败",
+  FIXED_WINDOW_CHECK: "固定窗口检查",
+  FIXED_WINDOW_EXCEEDED: "固定窗口超出限制",
+  SLIDING_WINDOW_CHECK: "滑动窗口检查",
+  SLIDING_WINDOW_EXCEEDED: "滑动窗口超出限制",
+  UNSUPPORTED_STRATEGY_RESET: "不支持的策略重置",
+  RATE_LIMIT_RESET: "频率限制已重置",
+});
 
 /**
  * 频率限制配置常量
