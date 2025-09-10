@@ -6,11 +6,11 @@ import { Strategy } from "passport-custom";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
 import { ApiKeyDocument } from "../schemas/apikey.schema";
-import { AuthService } from "../services/auth.service";
+import { AuthFacadeService } from "../services/facade/auth-facade.service";
 
 @Injectable()
 export class ApiKeyStrategy extends PassportStrategy(Strategy, "apikey") {
-  constructor(private authService: AuthService) {
+  constructor(private authFacade: AuthFacadeService) {
     super();
   }
 
@@ -21,7 +21,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, "apikey") {
         HttpHeadersUtil.validateApiCredentials(req);
 
       // 调用认证服务验证凭证
-      const apiKey = await this.authService.validateApiKey(appKey, accessToken);
+      const apiKey = await this.authFacade.validateApiKey(appKey, accessToken);
       return apiKey;
     } catch (error) {
       // 如果是工具类抛出的凭证缺失错误

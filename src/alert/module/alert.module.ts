@@ -8,17 +8,27 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 试点测试
 import { AuthModule } from "../../auth/module/auth.module";
 import { CacheModule } from "../../cache/module/cache.module";
+import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { alertConfig } from "@alert/config/alert.config";
 import { AlertConstantsValidator } from "../utils/constants-validator.util";
+import { OPERATION_LIMITS } from '@common/constants/domain';
 
 import { AlertController } from "../controller/alert.controller";
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
 import { AlertRuleRepository } from "../repositories/alert-rule.repository";
-import { OPERATION_LIMITS } from '@common/constants/domain';
-import {
-  NotificationLog,
-  NotificationLogSchema,
-} from "../schemas/notification-log.schema";
+import { AlertEventAdapterService } from "../services/alert-event-adapter.service";
+
+// 🆕 新服务层架构
+import { AlertRuleService } from "../services/alert-rule.service";
+import { AlertEvaluationService } from "../services/alert-evaluation.service";
+import { AlertLifecycleService } from "../services/alert-lifecycle.service";
+import { AlertQueryService } from "../services/alert-query.service";
+import { AlertCacheService } from "../services/alert-cache.service";
+import { AlertEventPublisher } from "../services/alert-event-publisher.service";
+import { AlertOrchestratorService } from "../services/alert-orchestrator.service";
+import { AlertRuleValidator } from "../validators/alert-rule.validator";
+import { RuleEvaluator } from "../evaluators/rule.evaluator";
+// NotificationLog schema has been moved to notification module
 import { AlertRule, AlertRuleSchema } from "../schemas/alert-rule.schema";
 import {
   AlertHistory,
@@ -27,16 +37,9 @@ import {
 import {
   AlertHistoryService,
   AlertingService,
-  NotificationService,
   RuleEngineService,
 } from "../services/";
-import {
-  DingTalkSender,
-  EmailSender,
-  LogSender,
-  SlackSender,
-  WebhookSender,
-} from "../services/notification-senders";
+// Notification senders have been moved to the notification module
 
 @Module({
   imports: [
@@ -74,25 +77,20 @@ import {
   providers: [
     AlertingService,
     RuleEngineService,
-    NotificationService,
     AlertHistoryService,
     AlertRuleRepository,
     AlertHistoryRepository,
-    // Senders
-    EmailSender,
-    WebhookSender,
-    SlackSender,
-    LogSender,
-    DingTalkSender,
+    AlertEventAdapterService,  // 事件适配器服务
+    // Notification service and senders have been moved to notification module
   ],
 
   exports: [
     AlertingService,
     RuleEngineService,
-    NotificationService,
     AlertHistoryService,
     AlertRuleRepository,
     AlertHistoryRepository,
+    // NotificationService has been moved to notification module
   ],
 })
 export class AlertModule implements OnModuleInit {

@@ -52,7 +52,6 @@ export type { SemanticValues } from './semantic-mapping.constants';
 export { 
   ALERT_BUSINESS_CONFIG,
   RULE_CONFIG,
-  NOTIFICATION_CONFIG,
   PERFORMANCE_CONFIG,
   SECURITY_CONFIG,
   DATA_MANAGEMENT_CONFIG,
@@ -60,6 +59,8 @@ export {
   MONITORING_CONFIG,
   BusinessConfigUtil,
 } from './business-config.constants';
+
+// NOTE: NOTIFICATION_CONFIG 已迁移到 notification module
 export type { AlertBusinessConfig } from './business-config.constants';
 
 // ================================
@@ -69,20 +70,22 @@ export type { AlertBusinessConfig } from './business-config.constants';
 // 枚举定义
 export { AlertSeverity, AlertStatus, AlertType, NotificationChannel } from './enums';
 
-// 消息模板
+// 消息模板（通知相关已迁移）
 export { 
   ALERT_MESSAGES, 
-  ALERT_NOTIFICATION_TEMPLATES,
   ALERT_HISTORY_MESSAGES,
   AlertMessageUtil,
-  NOTIFICATION_OPERATIONS,
-  NOTIFICATION_MESSAGES,
   ALERT_OPERATIONS,
   ALERT_METRICS,
   OPERATOR_SYMBOLS,
-  NOTIFICATION_CONSTANTS,
-  NOTIFICATION_ERROR_TEMPLATES,
 } from './messages';
+
+// NOTE: 以下常量已迁移到 notification/constants/notification.constants.ts
+// - ALERT_NOTIFICATION_TEMPLATES
+// - NOTIFICATION_OPERATIONS  
+// - NOTIFICATION_MESSAGES
+// - NOTIFICATION_CONSTANTS
+// - NOTIFICATION_ERROR_TEMPLATES
 
 // 工具类
 export { AlertRuleUtil } from '../utils/rule.utils';

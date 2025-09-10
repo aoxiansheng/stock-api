@@ -15,7 +15,17 @@ import {
 import { AlertSeverity } from "../types/alert.types";
 import { VALID_OPERATORS, type Operator, VALIDATION_LIMITS, ALERT_DEFAULTS } from "../constants";
 
-import { NotificationChannelDto } from "./notification-channel.dto";
+// NotificationChannelDto has been moved to notification module
+// Create a temporary class for validation decorators
+class NotificationChannelDto {
+  id?: string;
+  name: string;
+  type: string;
+  config: Record<string, any>;
+  enabled: boolean;
+  retryCount?: number;
+  timeout?: number;
+}
 
 export class CreateAlertRuleDto {
   @ApiProperty({ description: "告警规则名称" })

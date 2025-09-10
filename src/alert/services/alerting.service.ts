@@ -23,13 +23,14 @@ import { IMetricData, IRuleEvaluationResult } from "../interfaces";
 // 🎯 引入统一的类型定义
 import { AlertRuleRepository } from "../repositories/alert-rule.repository";
 import { AlertStatus, Alert } from "../types/alert.types";
+import { AlertFiredEvent, AlertContext } from "../events/alert.events";
 
 // 🎯 复用 common 模块的日志配置
 // 🎯 引入告警服务常量
 
 import { AlertHistoryService } from "./alert-history.service";
-import { NotificationService } from "./notification.service";
 import { RuleEngineService } from "./rule-engine.service";
+import { AlertEventAdapterService } from "./alert-event-adapter.service";
 
 @Injectable()
 export class AlertingService implements OnModuleInit {
@@ -44,11 +45,11 @@ export class AlertingService implements OnModuleInit {
     // 🎯 使用仓储层
     private readonly alertRuleRepository: AlertRuleRepository,
     private readonly ruleEngine: RuleEngineService,
-    private readonly notificationService: NotificationService,
     private readonly alertHistoryService: AlertHistoryService,
     private readonly eventEmitter: EventEmitter2,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    private readonly alertEventAdapter: AlertEventAdapterService,
   ) {
     this.config = this.configService.get("alert.cache");
   }
@@ -571,25 +572,41 @@ export class AlertingService implements OnModuleInit {
         });
       }
 
-      // 通知发送 - 错误时记录但不中断流程
+      // 发出警告触发事件，由Notification模块监听并处理
       try {
         // 将IAlert转换为Alert类型
-        const alertForNotification: Alert = {
+        const alertForEvent: Alert = {
           ...alert,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
 
-        await this.notificationService.sendBatchNotifications(
-          alertForNotification,
-          rule,
-        );
-      } catch (notificationError) {
-        this.logger.error("告警通知发送失败", {
+        // 构建事件上下文
+        const alertContext = {
+          metricValue: result.value,
+          threshold: result.threshold,
+          triggeredAt: new Date(),
+          tags: rule.tags,
+          triggerCondition: {
+            operator: rule.operator || '>',
+            duration: rule.duration || 300,
+          },
+        };
+
+        // 使用事件适配器发出双重格式事件（原生+通用）
+        await this.alertEventAdapter.emitAlertFiredEvent(alertForEvent, rule, alertContext);
+
+        this.logger.debug("警告触发事件已发出（双重格式）", {
           operation,
           ruleName: rule.name,
           alertId: alert.id,
-          error: notificationError.message,
+        });
+      } catch (eventError) {
+        this.logger.error("警告事件发出失败", {
+          operation,
+          ruleName: rule.name,
+          alertId: alert.id,
+          error: eventError.message,
         });
       }
 

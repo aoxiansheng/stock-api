@@ -136,17 +136,11 @@ export const ALERT_HISTORY_MESSAGES = Object.freeze({
  * 通知操作常量
  * 🎯 通知服务操作标识
  */
-export const NOTIFICATION_OPERATIONS = Object.freeze({
-  SEND_NOTIFICATION: "send_notification",
-  SEND_BATCH_NOTIFICATIONS: "send_batch_notifications",
-  TEST_CHANNEL: "test_channel",
-  GENERATE_TEMPLATE: "generate_template",
-  INITIALIZE_SENDERS: "initialize_senders",
-});
-
 /**
  * 告警操作常量
  * 🎯 告警相关操作标识
+ * 
+ * @note 通知相关操作已迁移到 notification/constants/notification.constants.ts
  */
 export const ALERT_OPERATIONS = Object.freeze({
   RULES: {
@@ -183,103 +177,8 @@ export const OPERATOR_SYMBOLS = Object.freeze({
   "regex": "正则匹配",
 });
 
-/**
- * 通知常量
- * 🎯 通知系统的各种配置常量
- */
-export const NOTIFICATION_CONSTANTS = Object.freeze({
-  TEMPLATE: {
-    VARIABLE_PATTERN: /\{(\w+)\}/g,
-    VARIABLES: {
-      ALERT_ID: "alertId",
-      RULE_NAME: "ruleName",
-      METRIC: "metric",
-      VALUE: "value",
-      THRESHOLD: "threshold",
-      SEVERITY: "severity",
-      STATUS: "status",
-      MESSAGE: "message",
-      START_TIME: "startTime",
-      END_TIME: "endTime",
-      DURATION: "duration",
-      TAGS: "tags",
-      RULE_ID: "ruleId",
-      RULE_DESCRIPTION: "ruleDescription",
-    },
-  },
-  VALIDATION: {
-    VARIABLE_NAME_PATTERN_SOURCE: "^[a-zA-Z_][a-zA-Z0-9_]*$",
-    VARIABLE_NAME_PATTERN_FLAGS: "i",
-    VARIABLE_NAME_MIN_LENGTH: 1,
-    VARIABLE_NAME_MAX_LENGTH: 50,
-    MIN_TEMPLATE_LENGTH: 1,
-    MAX_TEMPLATE_LENGTH: 10000,
-    EMAIL_PATTERN_SOURCE: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-    EMAIL_PATTERN_FLAGS: "i",
-    URL_PATTERN_SOURCE: "^https?:\\/\\/[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-\\.,@?^=%&:\\/~\\+#]*[\\w\\-\\@?^=%&\\/~\\+#])?$",
-    URL_PATTERN_FLAGS: "i",
-  },
-  RETRY: {
-    maxRetries: 3,
-    initialDelay: 1000,
-    maxDelay: 30000,
-    backoffFactor: 2,
-    INITIAL_DELAY_MS: 1000,
-    BACKOFF_MULTIPLIER: 2,
-    MAX_DELAY_MS: 30000,
-    JITTER_FACTOR: 0.1,
-  },
-});
-
-/**
- * 通知错误模板
- * 🎯 通知错误的标准化模板
- */
-export const NOTIFICATION_ERROR_TEMPLATES = Object.freeze({
-  SEND_FAILED: "通知发送失败: {error}",
-  CHANNEL_UNAVAILABLE: "通知渠道不可用: {channel}",
-  TEMPLATE_ERROR: "模板错误: {details}",
-  VALIDATION_ERROR: "验证错误: {field} - {message}",
-  TIMEOUT_ERROR: "发送超时: {timeout}ms",
-  RETRY_EXHAUSTED: "重试次数已用尽: {attempts}次",
-  UNSUPPORTED_TYPE: "不支持的通知类型: {type}",
-  SEND_FAILED_WITH_REASON: "通知发送失败: {reason}",
-});
-
-/**
- * 通知消息常量
- * 🎯 通知相关的消息模板
- */
-export const NOTIFICATION_MESSAGES = Object.freeze({
-  // Success messages
-  NOTIFICATION_SENT: "通知发送成功",
-  BATCH_NOTIFICATIONS_SENT: "批量通知发送成功",
-  CHANNEL_TESTED: "通道测试成功",
-  TEMPLATE_GENERATED: "模板生成成功",
-  SENDERS_INITIALIZED: "发送器初始化成功",
-  CHANNEL_TEST_PASSED: "通道测试通过",
-  BATCH_NOTIFICATIONS_COMPLETED: "批量通知完成",
-  
-  // Error messages
-  NOTIFICATION_FAILED: "通知发送失败",
-  BATCH_NOTIFICATIONS_FAILED: "批量通知发送失败",
-  CHANNEL_TEST_FAILED: "通道测试失败",
-  TEMPLATE_GENERATION_FAILED: "模板生成失败",
-  SENDERS_INITIALIZATION_FAILED: "发送器初始化失败",
-  INVALID_CHANNEL_CONFIG: "通道配置无效",
-  TEMPLATE_NOT_FOUND: "模板未找到",
-  BATCH_NOTIFICATION_FAILED: "批量通知中的单个通知失败",
-  
-  // Status messages
-  SENDING: "发送中...",
-  TESTING: "测试中...",
-  GENERATING: "生成中...",
-  INITIALIZING: "初始化中...",
-  NOTIFICATION_PROCESSING_STARTED: "通知处理已开始",
-  BATCH_PROCESSING_STARTED: "批量处理已开始",
-  CHANNEL_TEST_STARTED: "通道测试已开始",
-  TEMPLATE_GENERATION_STARTED: "模板生成已开始",
-});
+// NOTE: 通知相关常量已迁移到 notification/constants/notification.constants.ts
+// 包括: NOTIFICATION_CONSTANTS, NOTIFICATION_ERROR_TEMPLATES, NOTIFICATION_MESSAGES
 
 /**
  * 消息工具类
@@ -295,29 +194,7 @@ export class AlertMessageUtil {
     });
   }
 
-  /**
-   * 格式化通知消息
-   */
-  static formatNotification(
-    channel: 'email' | 'sms' | 'webhook' | 'push' | 'in_app',
-    type: string,
-    variables: Record<string, any>
-  ): string {
-    const templates = ALERT_NOTIFICATION_TEMPLATES[channel.toUpperCase() as keyof typeof ALERT_NOTIFICATION_TEMPLATES];
-    const template = (templates as any)[type.toUpperCase()];
-    
-    if (typeof template === 'string') {
-      return this.formatMessage(template, variables);
-    }
-    
-    if (typeof template === 'object') {
-      return JSON.stringify(template).replace(/\{(\w+)\}/g, (match, key) => {
-        return variables[key] !== undefined ? String(variables[key]) : match;
-      });
-    }
-    
-    return '';
-  }
+  // NOTE: formatNotification 方法已迁移到 notification module
 
   /**
    * 获取严重程度对应的颜色

@@ -4,12 +4,13 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 
 import { User } from "../schemas/user.schema";
-import { TokenService, JwtPayload } from "../services/token.service";
+import { SessionManagementService } from "../services/domain/session-management.service";
+import { JwtPayload } from "../services/infrastructure/token.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private readonly tokenService: TokenService,
+    private readonly sessionService: SessionManagementService,
     private readonly configService: ConfigService,
   ) {
     super({
@@ -21,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<User> {
     try {
-      const user = await this.tokenService.validateUserFromPayload(payload);
+      const user = await this.sessionService.validateJwtPayload(payload);
       return user;
     } catch {
       throw new UnauthorizedException("JWT令牌无效或用户不存在");

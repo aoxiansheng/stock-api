@@ -314,6 +314,16 @@ CONSTANTS.QUICK.HTTP_STATUS.INTERNAL_ERROR      // 500
 export default CONSTANTS;
 
 /**
+ * 验证常量导出
+ * 🎯 跨模块共享的验证限制常量
+ */
+export {
+  VALIDATION_LIMITS,
+  NOTIFICATION_VALIDATION_LIMITS,
+  ValidationLimitsUtil,
+} from './validation.constants';
+
+/**
  * 类型定义导出
  */
 export type CompleteConstantsSystem = typeof COMPLETE_CONSTANTS_SYSTEM;

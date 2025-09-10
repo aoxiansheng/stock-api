@@ -44,7 +44,7 @@ import {
   PaginatedUsersDto,
 } from "../dto/auth.dto";
 import { UserRole } from "../enums/user-role.enum";
-import { AuthService } from "../services/auth.service";
+import { AuthFacadeService } from "../services/facade/auth-facade.service";
 
 @ApiTags("🔐 认证管理")
 @Controller("auth")
@@ -52,7 +52,7 @@ export class AuthController {
   private readonly logger = createLogger(AuthController.name);
 
   constructor(
-    private readonly authService: AuthService,
+    private readonly authFacade: AuthFacadeService,
     private readonly paginationService: PaginationService,
   ) {}
 
@@ -100,7 +100,7 @@ export class AuthController {
   @ApiStandardResponses()
   async register(@Body(ValidationPipe) createUserDto: CreateUserDto) {
     this.logger.log(`用户注册请求: ${createUserDto.username}`);
-    const user = await this.authService.register(createUserDto);
+    const user = await this.authFacade.register(createUserDto);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return user;
   }
@@ -155,7 +155,7 @@ export class AuthController {
   @ApiStandardResponses()
   async login(@Body(ValidationPipe) loginDto: LoginDto) {
     this.logger.log(`用户登录请求: ${loginDto.username}`);
-    const result = await this.authService.login(loginDto);
+    const result = await this.authFacade.login(loginDto);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }
@@ -241,7 +241,7 @@ export class AuthController {
     this.logger.log(
       `创建API Key请求: ${createApiKeyDto.name}, 用户: ${req.user.username}`,
     );
-    const apiKey = await this.authService.createApiKey(
+    const apiKey = await this.authFacade.createApiKey(
       req.user.id,
       createApiKeyDto,
     );
@@ -278,7 +278,7 @@ export class AuthController {
   })
   @ApiBearerAuth()
   async getUserApiKeys(@Request() req) {
-    const apiKeys = await this.authService.getUserApiKeys(req.user.id);
+    const apiKeys = await this.authFacade.getUserApiKeys(req.user.id);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return apiKeys;
   }
@@ -304,7 +304,7 @@ export class AuthController {
   @ApiBearerAuth()
   async revokeApiKey(@Request() req, @Param("appKey") appKey: string) {
     this.logger.log(`撤销API Key请求: ${appKey}, 用户: ${req.user.username}`);
-    await this.authService.revokeApiKey(appKey, req.user.id);
+    await this.authFacade.revokeApiKey(appKey, req.user.id);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return { success: true };
   }
@@ -335,11 +335,9 @@ export class AuthController {
       `获取API Key使用统计: ${appKey}, 用户: ${req.user.username}`,
     );
 
-    // 这里需要注入RateLimitService，稍后会处理
+    const usage = await this.authFacade.getApiKeyUsage(appKey, req.user.id);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
-    return {
-      message: "功能开发中，即将上线",
-    };
+    return usage;
   }
 
   /**
@@ -366,9 +364,9 @@ export class AuthController {
       `重置API Key频率限制: ${appKey}, 用户: ${req.user.username}`,
     );
 
-    // 这里需要注入RateLimitService，稍后会处理
+    const result = await this.authFacade.resetApiKeyRateLimit(appKey, req.user.id);
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
-    return { success: true };
+    return result;
   }
 
   /**
@@ -484,7 +482,7 @@ export class AuthController {
     });
 
     try {
-      const result = await this.authService.getAllUsers(
+      const result = await this.authFacade.getAllUsers(
         page,
         limit,
         includeInactive,

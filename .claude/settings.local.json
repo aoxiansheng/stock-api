@@ -249,7 +249,10 @@
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/operation-limits.constants.ts)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/domain/reference-data.constants.ts)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/core/__tests__/numeric.constants.spec.ts)",
-      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/core/numeric.constants.ts)"
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/core/numeric.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:*)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest *)",
+      "Bash(npm run test:*)"
     ],
     "deny": []
   }

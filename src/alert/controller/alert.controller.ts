@@ -54,13 +54,18 @@ import {
   ResolveAlertDto,
   AlertStatsDto,
   AlertResponseDto,
-  TestNotificationChannelDto,
   TriggerAlertDto,
+  // TestNotificationChannelDto has been moved to notification module
 } from "../dto";
 import { IAlertRule, IAlert, IAlertStats, IMetricData } from "../interfaces";
 import { AlertHistoryService } from "../services/alert-history.service";
 import { AlertingService } from "../services/alerting.service";
-import { NotificationService } from "../services/notification.service";
+// 🆕 New service imports
+import { AlertOrchestratorService } from "../services/alert-orchestrator.service";
+import { AlertQueryService } from "../services/alert-query.service";
+import { AlertRuleService } from "../services/alert-rule.service";
+import { AlertLifecycleService } from "../services/alert-lifecycle.service";
+// NotificationService has been moved to notification module
 import { NotificationChannelType } from "../types/alert.types";
 
 // 使用标准化认证装饰器 - 告警管理需要管理员权限
@@ -82,7 +87,12 @@ export class AlertController {
   constructor(
     private readonly alertingService: AlertingService,
     private readonly alertHistoryService: AlertHistoryService,
-    private readonly notificationService: NotificationService,
+    // 🆕 New service architecture
+    private readonly alertOrchestrator: AlertOrchestratorService,
+    private readonly alertQueryService: AlertQueryService,
+    private readonly alertRuleService: AlertRuleService,
+    private readonly alertLifecycleService: AlertLifecycleService,
+    // notificationService has been moved to notification module
     private readonly paginationService: PaginationService,
   ) {}
 
@@ -144,7 +154,8 @@ export class AlertController {
   async createRule(
     @Body() createRuleDto: CreateAlertRuleDto,
   ): Promise<IAlertRule> {
-    return await this.alertingService.createRule(createRuleDto);
+    // 🆕 Use new orchestrator service for rule creation
+    return await this.alertOrchestrator.createRule(createRuleDto);
   }
 
   @Get("rules")
@@ -190,7 +201,8 @@ export class AlertController {
   @ApiStandardResponses()
   @JwtAuthResponses()
   async getRules(): Promise<IAlertRule[]> {
-    return await this.alertingService.getRules();
+    // 🆕 Use new rule service for fetching rules
+    return await this.alertRuleService.getAllRules();
   }
 
   @Get("rules/:ruleId")
@@ -202,7 +214,8 @@ export class AlertController {
   async getRuleById(
     @Param("ruleId") ruleId: string,
   ): Promise<IAlertRule | null> {
-    return await this.alertingService.getRuleById(ruleId);
+    // 🆕 Use new rule service for fetching rule by ID
+    return await this.alertRuleService.getRuleById(ruleId);
   }
 
   @Put("rules/:ruleId")
@@ -215,7 +228,8 @@ export class AlertController {
     @Param("ruleId") ruleId: string,
     @Body() updateRuleDto: UpdateAlertRuleDto,
   ): Promise<IAlertRule | null> {
-    return await this.alertingService.updateRule(ruleId, updateRuleDto);
+    // 🆕 Use new orchestrator service for rule updates
+    return await this.alertOrchestrator.updateRule(ruleId, updateRuleDto);
   }
 
   @Delete("rules/:ruleId")
@@ -225,7 +239,8 @@ export class AlertController {
   @ApiSuccessResponse()
   @JwtAuthResponses()
   async deleteRule(@Param("ruleId") ruleId: string): Promise<void> {
-    await this.alertingService.deleteRule(ruleId);
+    // 🆕 Use new orchestrator service for rule deletion (includes cache cleanup)
+    await this.alertOrchestrator.deleteRule(ruleId);
   }
 
   @Post("rules/:ruleId/toggle")
@@ -238,7 +253,8 @@ export class AlertController {
     @Param("ruleId") ruleId: string,
     @Body() body: { enabled: boolean },
   ): Promise<void> {
-    await this.alertingService.toggleRule(ruleId, body.enabled);
+    // 🆕 Use new rule service for toggling rule status
+    await this.alertRuleService.updateRule(ruleId, { enabled: body.enabled } as any);
   }
 
   // ==================== 告警管理 ====================
@@ -295,11 +311,11 @@ export class AlertController {
   async getActiveAlerts(
     @Query() query?: AlertQueryDto,
   ): Promise<AlertResponseDto[]> {
-    // 获取活跃告警，可选择性应用查询过滤
+    // 🆕 TODO: Implement getAlerts method in AlertQueryService
+    // For now, fall back to old service with filtering
     const alerts = await this.alertHistoryService.getActiveAlerts();
     let filteredAlerts = alerts;
 
-    // 如果提供了查询参数，进行过滤
     if (query) {
       filteredAlerts = alerts.filter((alert) => {
         if (query.ruleId && alert.ruleId !== query.ruleId) return false;
@@ -320,15 +336,19 @@ export class AlertController {
   async getAlertHistory(
     @Query() query: AlertQueryDto,
   ): Promise<PaginatedDataDto<AlertResponseDto>> {
-    // 转换字符串日期为 Date 对象
+    // 🆕 TODO: Implement getAlertHistory method in AlertQueryService
+    // For now, fall back to old service
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+
+    // Convert string dates to Date objects
     const convertedQuery = {
       ...query,
       startTime: query.startTime ? new Date(query.startTime) : undefined,
       endTime: query.endTime ? new Date(query.endTime) : undefined,
     };
+
     const result = await this.alertHistoryService.queryAlerts(convertedQuery);
-    const page = query.page || 1;
-    const limit = query.limit || 20;
 
     return this.paginationService.createPaginatedResponse(
       result.alerts.map(AlertResponseDto.fromEntity),
@@ -344,6 +364,8 @@ export class AlertController {
   @ApiSuccessResponse({ type: AlertStatsDto })
   @JwtAuthResponses()
   async getAlertStats(): Promise<IAlertStats> {
+    // 🆕 TODO: Implement getAlertStatistics method in AlertQueryService
+    // For now, fall back to old service
     return await this.alertingService.getStats();
   }
 
@@ -356,6 +378,8 @@ export class AlertController {
   async getAlertById(
     @Param("alertId") alertId: string,
   ): Promise<AlertResponseDto | null> {
+    // 🆕 TODO: Implement getAlerts method in AlertQueryService
+    // For now, fall back to old service
     const alert = await this.alertHistoryService.getAlertById(alertId);
     return alert ? AlertResponseDto.fromEntity(alert) : null;
   }
@@ -370,6 +394,8 @@ export class AlertController {
     @Param("alertId") alertId: string,
     @Body() body: AcknowledgeAlertDto,
   ): Promise<AlertResponseDto> {
+    // 🆕 TODO: Use new lifecycle service after implementing proper method signatures
+    // For now, fall back to old service
     const updatedAlert = await this.alertingService.acknowledgeAlert(
       alertId,
       body.acknowledgedBy,
@@ -387,12 +413,14 @@ export class AlertController {
     @Param("alertId") alertId: string,
     @Body() body: ResolveAlertDto,
   ): Promise<void> {
-    // 先获取告警信息来获取 ruleId
+    // 🆕 TODO: Use new lifecycle service after implementing proper method signatures
+    // For now, fall back to old service
     const alerts = await this.alertHistoryService.queryAlerts({
       page: 1,
       limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
     });
     const alert = alerts.alerts.find((a: any) => a.id === alertId);
+    
     if (!alert) {
       throw new NotFoundException(`未找到ID为 ${alertId} 的告警`);
     }
@@ -405,25 +433,25 @@ export class AlertController {
   }
 
   // ==================== 通知渠道测试 ====================
-
-  @Post("channels/test")
-  @Auth([UserRole.ADMIN])
-  @ApiOperation({ summary: "测试通知渠道" })
-  @ApiSuccessResponse()
-  @JwtAuthResponses()
-  async testNotificationChannel(
-    @Body()
-    testDto: TestNotificationChannelDto & {
-      type: NotificationChannelType;
-      config: Record<string, any>;
-    },
-  ): Promise<{ success: boolean }> {
-    const success = await this.notificationService.testChannel(
-      testDto.type,
-      testDto.config,
-    );
-    return { success };
-  }
+  // NOTE: Notification channel testing has been moved to the NotificationController
+  // Use POST /notifications/test with { channelType, config } body instead
+  
+  // @Post("channels/test")
+  // @Auth([UserRole.ADMIN])
+  // @ApiOperation({ summary: "测试通知渠道 - 已迁移到NotificationController" })
+  // @ApiSuccessResponse()
+  // @JwtAuthResponses()
+  // async testNotificationChannel(
+  //   @Body()
+  //   testDto: TestNotificationChannelDto & {
+  //     type: NotificationChannelType;
+  //     config: Record<string, any>;
+  //   },
+  // ): Promise<{ success: boolean }> {
+  //   // This endpoint has been moved to NotificationController
+  //   // Use POST /notifications/test instead
+  //   throw new Error("This endpoint has been moved to NotificationController. Use POST /notifications/test instead.");
+  // }
 
   // ==================== 手动触发 ====================
 
@@ -496,15 +524,16 @@ export class AlertController {
       this.triggerRateLimit.set(clientKey, { count: 1, lastReset: now });
     }
 
-    // 如果指定了规则ID，验证其存在性
+    // 🆕 Use new orchestrator service for evaluation
     if (triggerDto?.ruleId) {
-      const rule = await this.alertingService.getRuleById(triggerDto.ruleId);
+      // Validate rule exists
+      const rule = await this.alertRuleService.getRuleById(triggerDto.ruleId);
       if (!rule) {
         throw new BadRequestException("指定的告警规则不存在");
       }
     }
 
-    // 准备指标数据：如果提供了metrics则使用，否则使用空数组
+    // Prepare metric data
     const metricsData: IMetricData[] = triggerDto?.metrics
       ? triggerDto.metrics.map((metric) => ({
           metric: metric.metric,
@@ -514,7 +543,8 @@ export class AlertController {
         }))
       : [];
 
-    // 手动触发告警评估，使用实际的指标数据
+    // 🆕 TODO: Use new orchestrator service after implementing evaluateAllRules method
+    // For now, fall back to old service
     await this.alertingService.processMetrics(metricsData);
 
     return {
@@ -539,6 +569,8 @@ export class AlertController {
     const succeeded: string[] = [];
     const failed: string[] = [];
 
+    // 🆕 TODO: Use new lifecycle service after implementing proper method signatures
+    // For now, fall back to old service
     await Promise.all(
       body.alertIds.map(async (alertId) => {
         try {
@@ -568,7 +600,8 @@ export class AlertController {
     const succeeded: string[] = [];
     const failed: string[] = [];
 
-    // 获取所有告警信息
+    // 🆕 TODO: Use new query and lifecycle services after implementing proper method signatures
+    // For now, fall back to old service
     const { alerts } = await this.alertHistoryService.queryAlerts({
       page: 1,
       limit: 1000,
