@@ -1,8 +1,5 @@
 import crypto from "crypto";
-import { CONSTANTS } from "@common/constants";
-
-// Extract Market enum for backward compatibility
-const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
+import { Market } from "../../../shared/constants/market.constants";
 import {
   CacheStrategy,
   CacheOrchestratorRequest,

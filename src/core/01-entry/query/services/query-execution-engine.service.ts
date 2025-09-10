@@ -5,7 +5,7 @@ import { createLogger, sanitizeLogData } from "@app/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
-import { Market } from "@common/constants/domain";
+import { Market } from "../../../shared/constants/market.constants";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
 

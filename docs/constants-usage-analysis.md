@@ -1,48 +1,48 @@
 # Constants Usage Analysis Report
 
-Generated: 2025-09-09T13:12:41.129Z
+Generated: 2025-09-09T16:12:02.560Z
 
 ## 📊 Executive Summary
 
 | Metric | Value |
 |--------|-------|
-| **Total Constants** | 156 |
-| **Total Usages** | 2485 |
-| **Internal References** | 1280 |
-| **External References** | 1205 |
-| **Multi-use Constants** | 113 |
-| **Single-use Constants** | 40 |
-| **Unused Constants** | 3 |
-| **Average Usage per Constant** | 15.93 |
+| **Total Constants** | 105 |
+| **Total Usages** | 1743 |
+| **Internal References** | 856 |
+| **External References** | 887 |
+| **Multi-use Constants** | 73 |
+| **Single-use Constants** | 30 |
+| **Unused Constants** | 2 |
+| **Average Usage per Constant** | 16.60 |
 
 ### File Statistics
-- **Constant Files**: 28
-- **Source Files Analyzed**: 194
-- **Files Using Constants**: 194
+- **Constant Files**: 23
+- **Source Files Analyzed**: 166
+- **Files Using Constants**: 166
 - **Files Without Constants**: 0
 
 ## 🎯 Key Recommendations
 
-🗑️ **Remove 3 unused constants** to reduce codebase bloat
+🗑️ **Remove 2 unused constants** to reduce codebase bloat
 
-   - Consider removing: NUMERIC_VALUE_MAP, RATE_LIMIT_LUA_SCRIPT_NAMES, CIRCUIT_BREAKER_CONSTANTS
+   - Consider removing: NUMERIC_VALUE_MAP, CIRCUIT_BREAKER_CONSTANTS
 
-⚡ **Review 40 single-use constants** for potential inlining or consolidation
+⚡ **Review 30 single-use constants** for potential inlining or consolidation
 
    - Single-use: TimezoneUtil, PROCESSING_BASE_CONSTANTS, FOUNDATION_CONSTANTS, HTTP_BATCH_SEMANTICS, HTTP_SUCCESS_MESSAGES
 
-✅ **47 constants are heavily used (10+ references)** - good centralization
+✅ **31 constants are heavily used (10+ references)** - good centralization
 
 📁 **Constants are spread across 6 subdirectories** - consider reorganization if needed
 
 ## 📈 Most Used Constants (Top 10)
 
 
-### 1. `NUMERIC_CONSTANTS` (252 usages)
+### 1. `NUMERIC_CONSTANTS` (337 usages)
 - **Source**: `common/constants/core/index.ts`
-- **Referenced by**: 22 files
-- **Internal references**: 231
-- **External references**: 21
+- **Referenced by**: 23 files
+- **Internal references**: 226
+- **External references**: 111
 
 ### 2. `REFERENCE_DATA` (239 usages)
 - **Source**: `common/constants/domain/index.ts`
@@ -50,68 +50,62 @@ Generated: 2025-09-09T13:12:41.129Z
 - **Internal references**: 44
 - **External references**: 195
 
-### 3. `Market` (184 usages)
-- **Source**: `common/constants/domain/index.ts`
-- **Referenced by**: 27 files
-- **Internal references**: 59
-- **External references**: 125
-
-### 4. `default` (166 usages)
+### 3. `default` (171 usages)
 - **Source**: `common/constants/application/index.ts`
-- **Referenced by**: 75 files
-- **Internal references**: 18
-- **External references**: 148
+- **Referenced by**: 73 files
+- **Internal references**: 12
+- **External references**: 159
 
-### 5. `CONSTANTS` (109 usages)
+### 4. `CONSTANTS` (81 usages)
 - **Source**: `common/constants/index.ts`
-- **Referenced by**: 24 files
+- **Referenced by**: 19 files
 - **Internal references**: 21
-- **External references**: 88
+- **External references**: 60
 
-### 6. `CORE_LIMITS` (71 usages)
-- **Source**: `common/constants/foundation/core-limits.constants.ts`
-- **Referenced by**: 14 files
-- **Internal references**: 34
-- **External references**: 37
-
-### 7. `MarketStatus` (64 usages)
-- **Source**: `common/constants/domain/index.ts`
-- **Referenced by**: 7 files
-- **Internal references**: 35
-- **External references**: 29
-
-### 8. `OPERATION_LIMITS` (61 usages)
+### 5. `OPERATION_LIMITS` (61 usages)
 - **Source**: `common/constants/domain/index.ts`
 - **Referenced by**: 14 files
 - **Internal references**: 28
 - **External references**: 33
 
-### 9. `API_OPERATIONS` (61 usages)
+### 6. `API_OPERATIONS` (61 usages)
 - **Source**: `common/constants/domain/index.ts`
 - **Referenced by**: 20 files
 - **Internal references**: 6
 - **External references**: 55
 
-### 10. `AlertSeverity` (57 usages)
-- **Source**: `common/constants/domain/index.ts`
-- **Referenced by**: 10 files
-- **Internal references**: 27
-- **External references**: 30
+### 7. `BATCH_SIZE_SEMANTICS` (49 usages)
+- **Source**: `common/constants/semantic/index.ts`
+- **Referenced by**: 12 files
+- **Internal references**: 23
+- **External references**: 26
+
+### 8. `HTTP_TIMEOUTS` (40 usages)
+- **Source**: `common/constants/semantic/index.ts`
+- **Referenced by**: 13 files
+- **Internal references**: 20
+- **External references**: 20
+
+### 9. `AUTH_ERROR_MESSAGES` (35 usages)
+- **Source**: `common/constants/semantic/index.ts`
+- **Referenced by**: 3 files
+- **Internal references**: 4
+- **External references**: 31
+
+### 10. `HTTP_STATUS_SEMANTICS` (31 usages)
+- **Source**: `common/constants/semantic/status-codes-semantics.constants.ts`
+- **Referenced by**: 2 files
+- **Internal references**: 31
+- **External references**: 0
 
 
-## 🚨 Unused Constants (3 total)
+## 🚨 Unused Constants (2 total)
 
 
 ### File: `common/constants/core/numeric.constants.ts`
 - **NUMERIC_VALUE_MAP**
   - Line: 112
   - Type: CallExpression
-  - Export: named
-
-### File: `common/constants/domain/index.ts`
-- **RATE_LIMIT_LUA_SCRIPT_NAMES**
-  - Line: 91
-  - Type: unknown
   - Export: named
 
 ### File: `common/constants/domain/circuit-breaker-domain.constants.ts`
@@ -121,26 +115,26 @@ Generated: 2025-09-09T13:12:41.129Z
   - Export: named
 
 
-## ⚠️ Single-use Constants (40 total)
+## ⚠️ Single-use Constants (30 total)
 
 
 ### `TimezoneUtil`
 - **Defined in**: `common/constants/foundation/index.ts`
 - **Used in**: `common/constants/foundation/core-timezones.constants.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 10
+- **Line**: 9
 
 ### `PROCESSING_BASE_CONSTANTS`
 - **Defined in**: `common/constants/foundation/processing-base.constants.ts`
 - **Used in**: `common/constants/foundation/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 132
+- **Line**: 131
 
 ### `FOUNDATION_CONSTANTS`
 - **Defined in**: `common/constants/foundation/index.ts`
 - **Used in**: `common/constants/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 33
+- **Line**: 31
 
 ### `HTTP_BATCH_SEMANTICS`
 - **Defined in**: `common/constants/semantic/index.ts`
@@ -154,65 +148,11 @@ Generated: 2025-09-09T13:12:41.129Z
 - **Usage type**: Internal (within constants system)
 - **Line**: 16
 
-### `RATE_LIMIT_TIMEOUTS`
+### `DOMAIN_CONSTANTS`
 - **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
+- **Used in**: `common/constants/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 85
-
-### `RATE_LIMIT_RETRY_CONFIG`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 86
-
-### `RATE_LIMIT_ERROR_TEMPLATES`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/rate-limit-domain.constants.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 90
-
-### `MARKET_DOMAIN_CONFIG`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 11
-
-### `MARKET_API_TIMEOUTS`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 13
-
-### `MarketDomainUtil`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 19
-
-### `MonitoringBusinessUtil`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 29
-
-### `OperationLimitsUtil`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 37
-
-### `ReferenceDataUtil`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 47
-
-### `ApiOperationsUtil`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 51
+- **Line**: 53
 
 ### `CIRCUIT_BREAKER_PERFORMANCE_LEVELS`
 - **Defined in**: `common/constants/domain/circuit-breaker-domain.constants.ts`
@@ -242,13 +182,13 @@ Generated: 2025-09-09T13:12:41.129Z
 - **Defined in**: `common/constants/foundation/index.ts`
 - **Used in**: `common/constants/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 20
+- **Line**: 19
 
 ### `CoreTimeouts`
 - **Defined in**: `common/constants/foundation/index.ts`
 - **Used in**: `alert/constants/core/timeouts.constants.ts`
 - **Usage type**: External
-- **Line**: 23
+- **Line**: 22
 
 ### `OPERATION_TYPE_SEMANTICS`
 - **Defined in**: `common/constants/semantic/message-semantics.constants.ts`
@@ -278,79 +218,73 @@ Generated: 2025-09-09T13:12:41.129Z
 - **Defined in**: `common/constants/semantic/index.ts`
 - **Used in**: `common/constants/semantic/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 27
+- **Line**: 26
 
 ### `RetrySemanticsUtil`
 - **Defined in**: `common/constants/semantic/index.ts`
 - **Used in**: `common/constants/semantic/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 36
+- **Line**: 35
 
 ### `BatchSemanticsUtil`
 - **Defined in**: `common/constants/semantic/index.ts`
 - **Used in**: `common/constants/semantic/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 45
+- **Line**: 44
 
 ### `StatusCodeSemanticsUtil`
 - **Defined in**: `common/constants/semantic/index.ts`
 - **Used in**: `common/constants/semantic/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 51
+- **Line**: 50
 
 ### `ErrorMessageUtil`
 - **Defined in**: `common/constants/semantic/index.ts`
 - **Used in**: `common/constants/semantic/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 70
+- **Line**: 69
 
 ### `EnvironmentConfigUtil`
 - **Defined in**: `common/constants/application/index.ts`
 - **Used in**: `common/constants/application/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 45
+- **Line**: 44
 
-### `RATE_LIMIT_STRATEGY_DESCRIPTIONS`
+### `OperationLimitsUtil`
 - **Defined in**: `common/constants/domain/index.ts`
 - **Used in**: `common/constants/domain/index.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 80
-
-### `RATE_LIMIT_STRATEGY_USE_CASES`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 81
-
-### `RATE_LIMIT_STATISTICS`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 88
-
-### `MARKET_DATA_QUALITY`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Used in**: `common/constants/domain/index.ts`
-- **Usage type**: Internal (within constants system)
-- **Line**: 16
+- **Line**: 11
 
 ### `CacheDataType`
 - **Defined in**: `common/constants/domain/index.ts`
 - **Used in**: `common/constants/domain/operation-limits.constants.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 42
+- **Line**: 16
+
+### `ReferenceDataUtil`
+- **Defined in**: `common/constants/domain/index.ts`
+- **Used in**: `common/constants/domain/index.ts`
+- **Usage type**: Internal (within constants system)
+- **Line**: 21
+
+### `ApiOperationsUtil`
+- **Defined in**: `common/constants/domain/index.ts`
+- **Used in**: `common/constants/domain/index.ts`
+- **Usage type**: Internal (within constants system)
+- **Line**: 25
 
 ### `ApiBusinessScenario`
 - **Defined in**: `common/constants/domain/index.ts`
 - **Used in**: `common/constants/domain/api-operations.constants.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 57
+- **Line**: 31
 
 ### `ApiCacheStrategy`
 - **Defined in**: `common/constants/domain/index.ts`
 - **Used in**: `common/constants/domain/api-operations.constants.ts`
 - **Usage type**: Internal (within constants system)
-- **Line**: 58
+- **Line**: 32
 
 ### `CIRCUIT_BREAKER_KEY_CONFIG`
 - **Defined in**: `common/constants/domain/circuit-breaker-domain.constants.ts`
@@ -375,10 +309,10 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/constants/core/numeric.constants.ts`
   - `common/constants/foundation/core-timeouts.constants.ts`
   - `common/constants/foundation/index.ts`
-  - `common/constants/foundation/core-limits.constants.ts`
   - `common/constants/foundation/processing-base.constants.ts`
   - `common/constants/semantic/message-semantics.constants.ts`
   - `common/constants/semantic/cache-semantics.constants.ts`
+  - `common/constants/semantic/http-semantics.constants.ts`
   - `common/constants/semantic/batch-semantics.constants.ts`
   - `common/constants/semantic/retry-semantics.constants.ts`
   - `common/constants/semantic/status-codes-semantics.constants.ts`
@@ -386,7 +320,7 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/constants/application/index.ts`
   - `common/constants/domain/operation-limits.constants.ts`
   - `common/constants/domain/circuit-breaker-domain.constants.ts`
-- **Total internal references**: 231
+- **Total internal references**: 226
 
 #### `REFERENCE_DATA`
 - **Defined in**: `common/constants/domain/index.ts`
@@ -395,57 +329,24 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/constants/domain/index.ts`
 - **Total internal references**: 44
 
-#### `Market`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 4 internal file(s)**:
-  - `common/constants/index.ts`
-  - `common/constants/application/index.ts`
-  - `common/constants/domain/market-domain.constants.ts`
-  - `common/constants/domain/index.ts`
-- **Total internal references**: 59
-
 #### `default`
 - **Defined in**: `common/constants/application/index.ts`
-- **Referenced by 13 internal file(s)**:
+- **Referenced by 8 internal file(s)**:
   - `common/constants/semantic/error-messages.constants.ts`
   - `common/constants/semantic/cache-semantics.constants.ts`
   - `common/constants/semantic/batch-semantics.constants.ts`
   - `common/constants/application/environment-config.constants.ts`
   - `common/constants/application/index.ts`
   - `common/constants/domain/operation-limits.constants.ts`
-  - `common/constants/domain/rate-limit-domain.constants.ts`
   - `common/constants/domain/api-operations.constants.ts`
-  - `common/constants/domain/market-domain.constants.ts`
   - `common/constants/domain/reference-data.constants.ts`
-  - `common/constants/domain/monitoring-business.constants.ts`
-  - `common/constants/domain/index.ts`
-  - `common/constants/domain/alert-domain.constants.ts`
-- **Total internal references**: 18
+- **Total internal references**: 12
 
 #### `CONSTANTS`
 - **Defined in**: `common/constants/index.ts`
 - **Referenced by 1 internal file(s)**:
   - `common/constants/index.ts`
 - **Total internal references**: 21
-
-#### `CORE_LIMITS`
-- **Defined in**: `common/constants/foundation/core-limits.constants.ts`
-- **Referenced by 7 internal file(s)**:
-  - `common/constants/foundation/index.ts`
-  - `common/constants/foundation/processing-base.constants.ts`
-  - `common/constants/semantic/cache-semantics.constants.ts`
-  - `common/constants/semantic/http-semantics.constants.ts`
-  - `common/constants/semantic/batch-semantics.constants.ts`
-  - `common/constants/semantic/retry-semantics.constants.ts`
-  - `common/constants/domain/operation-limits.constants.ts`
-- **Total internal references**: 34
-
-#### `MarketStatus`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 2 internal file(s)**:
-  - `common/constants/domain/market-domain.constants.ts`
-  - `common/constants/domain/index.ts`
-- **Total internal references**: 35
 
 #### `OPERATION_LIMITS`
 - **Defined in**: `common/constants/domain/index.ts`
@@ -461,49 +362,24 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/constants/domain/index.ts`
 - **Total internal references**: 6
 
-#### `AlertSeverity`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 2 internal file(s)**:
-  - `common/constants/domain/index.ts`
-  - `common/constants/domain/alert-domain.constants.ts`
-- **Total internal references**: 27
-
 #### `BATCH_SIZE_SEMANTICS`
 - **Defined in**: `common/constants/semantic/index.ts`
-- **Referenced by 7 internal file(s)**:
+- **Referenced by 4 internal file(s)**:
   - `common/constants/foundation/processing-base.constants.ts`
   - `common/constants/semantic/batch-semantics.constants.ts`
   - `common/constants/semantic/index.ts`
   - `common/constants/application/index.ts`
-  - `common/constants/domain/rate-limit-domain.constants.ts`
-  - `common/constants/domain/market-domain.constants.ts`
-  - `common/constants/domain/alert-domain.constants.ts`
-- **Total internal references**: 33
-
-#### `ALERT_MESSAGES`
-- **Defined in**: `common/constants/domain/alert-domain.constants.ts`
-- **Referenced by 1 internal file(s)**:
-  - `common/constants/domain/index.ts`
-- **Total internal references**: 3
-
-#### `AlertStatus`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 1 internal file(s)**:
-  - `common/constants/domain/index.ts`
-- **Total internal references**: 3
+- **Total internal references**: 23
 
 #### `HTTP_TIMEOUTS`
 - **Defined in**: `common/constants/semantic/index.ts`
-- **Referenced by 8 internal file(s)**:
+- **Referenced by 5 internal file(s)**:
   - `common/constants/semantic/http-semantics.constants.ts`
   - `common/constants/semantic/index.ts`
   - `common/constants/index.ts`
   - `common/constants/application/index.ts`
-  - `common/constants/domain/rate-limit-domain.constants.ts`
-  - `common/constants/domain/market-domain.constants.ts`
-  - `common/constants/domain/alert-domain.constants.ts`
   - `common/constants/domain/circuit-breaker-domain.constants.ts`
-- **Total internal references**: 23
+- **Total internal references**: 20
 
 #### `AUTH_ERROR_MESSAGES`
 - **Defined in**: `common/constants/semantic/index.ts`
@@ -519,13 +395,6 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/constants/semantic/status-codes-semantics.constants.ts`
 - **Total internal references**: 31
 
-#### `MONITORING_BUSINESS`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 2 internal file(s)**:
-  - `common/constants/domain/monitoring-business.constants.ts`
-  - `common/constants/domain/index.ts`
-- **Total internal references**: 18
-
 #### `RETRY_DELAY_SEMANTICS`
 - **Defined in**: `common/constants/semantic/retry-semantics.constants.ts`
 - **Referenced by 2 internal file(s)**:
@@ -533,39 +402,92 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/constants/semantic/retry-semantics.constants.ts`
 - **Total internal references**: 30
 
-#### `RateLimitStrategy`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 2 internal file(s)**:
-  - `common/constants/domain/rate-limit-domain.constants.ts`
-  - `common/constants/domain/index.ts`
-- **Total internal references**: 12
-
-#### `CACHE_TTL_SEMANTICS`
+#### `HTTP_METHODS`
 - **Defined in**: `common/constants/semantic/index.ts`
-- **Referenced by 6 internal file(s)**:
-  - `common/constants/semantic/cache-semantics.constants.ts`
+- **Referenced by 2 internal file(s)**:
+  - `common/constants/semantic/http-semantics.constants.ts`
   - `common/constants/semantic/index.ts`
+- **Total internal references**: 28
+
+#### `CORE_TIMEOUTS`
+- **Defined in**: `common/constants/foundation/index.ts`
+- **Referenced by 7 internal file(s)**:
+  - `common/constants/foundation/index.ts`
+  - `common/constants/foundation/processing-base.constants.ts`
+  - `common/constants/semantic/cache-semantics.constants.ts`
+  - `common/constants/semantic/http-semantics.constants.ts`
+  - `common/constants/semantic/batch-semantics.constants.ts`
+  - `common/constants/semantic/retry-semantics.constants.ts`
+  - `common/constants/domain/operation-limits.constants.ts`
+- **Total internal references**: 25
+
+#### `ERROR_MESSAGES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 2 internal file(s)**:
+  - `common/constants/semantic/error-messages.constants.ts`
+  - `common/constants/semantic/index.ts`
+- **Total internal references**: 5
+
+#### `CONFIG`
+- **Defined in**: `common/constants/application/index.ts`
+- **Referenced by 4 internal file(s)**:
+  - `common/constants/semantic/message-semantics.constants.ts`
+  - `common/constants/semantic/cache-semantics.constants.ts`
+  - `common/constants/index.ts`
+  - `common/constants/domain/operation-limits.constants.ts`
+- **Total internal references**: 9
+
+#### `HTTP_STATUS_CODES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 3 internal file(s)**:
+  - `common/constants/semantic/index.ts`
+  - `common/constants/semantic/retry-semantics.constants.ts`
   - `common/constants/application/index.ts`
-  - `common/constants/domain/rate-limit-domain.constants.ts`
-  - `common/constants/domain/market-domain.constants.ts`
-  - `common/constants/domain/alert-domain.constants.ts`
-- **Total internal references**: 26
+- **Total internal references**: 8
+
+#### `CORE_TRADING_TIMES`
+- **Defined in**: `common/constants/foundation/index.ts`
+- **Referenced by 1 internal file(s)**:
+  - `common/constants/foundation/index.ts`
+- **Total internal references**: 1
+
+#### `VALIDATION_MESSAGES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 2 internal file(s)**:
+  - `common/constants/semantic/error-messages.constants.ts`
+  - `common/constants/semantic/index.ts`
+- **Total internal references**: 3
+
+#### `HTTP_ERROR_MESSAGES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 2 internal file(s)**:
+  - `common/constants/semantic/error-messages.constants.ts`
+  - `common/constants/semantic/index.ts`
+- **Total internal references**: 5
+
+#### `RETRY_COUNT_SEMANTICS`
+- **Defined in**: `common/constants/semantic/retry-semantics.constants.ts`
+- **Referenced by 2 internal file(s)**:
+  - `common/constants/semantic/index.ts`
+  - `common/constants/semantic/retry-semantics.constants.ts`
+- **Total internal references**: 18
 
 
 ### External Components Referencing Constants System
 
 #### `NUMERIC_CONSTANTS`
 - **Defined in**: `common/constants/core/index.ts`
-- **Referenced by 8 external component(s)**:
+- **Referenced by 9 external component(s)**:
   - `core/03-fetching/data-fetcher/constants/data-fetcher.constants.ts`
   - `core/01-entry/receiver/constants/validation.constants.ts`
   - `core/01-entry/receiver/constants/config.constants.ts`
   - `core/00-prepare/data-mapper/constants/data-mapper.constants.ts`
   - `core/00-prepare/symbol-mapper/constants/symbol-mapper.constants.ts`
+  - `core/shared/constants/limits.ts`
   - `core/02-processing/transformer/constants/data-transformer.constants.ts`
   - `core/04-storage/storage/constants/storage.constants.ts`
   - `common/dto/base-query.dto.ts`
-- **Total external references**: 21
+- **Total external references**: 111
 
 #### `REFERENCE_DATA`
 - **Defined in**: `common/constants/domain/index.ts`
@@ -608,37 +530,9 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/utils/symbol-validation.util.ts`
 - **Total external references**: 195
 
-#### `Market`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 23 external component(s)**:
-  - `core/01-entry/stream-receiver/services/stream-receiver.service.ts`
-  - `core/01-entry/receiver/utils/market.util.ts`
-  - `core/01-entry/receiver/services/receiver.service.ts`
-  - `core/01-entry/query/controller/query.controller.ts`
-  - `core/01-entry/query/factories/executors/market-query.executor.ts`
-  - `core/01-entry/query/services/query-execution-engine.service.ts`
-  - `core/05-caching/smart-cache/utils/smart-cache-request.utils.ts`
-  - `core/05-caching/smart-cache/services/smart-cache-orchestrator.service.ts`
-  - `core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface.ts`
-  - `core/shared/services/market-status.service.ts`
-  - `core/shared/services/data-change-detector.service.ts`
-  - `core/04-storage/storage/dto/storage-metadata.dto.ts`
-  - `core/04-storage/storage/dto/storage-request.dto.ts`
-  - `providers/longport/capabilities/get-stock-quote.ts`
-  - `providers/longport/capabilities/get-index-quote.ts`
-  - `providers/longport/capabilities/get-stock-basic-info.ts`
-  - `providers/longport/capabilities/stream-stock-quote.ts`
-  - `providers/longport-sg/capabilities/get-stock-quote.ts`
-  - `providers/longport-sg/capabilities/get-index-quote.ts`
-  - `providers/longport-sg/capabilities/get-stock-basic-info.ts`
-  - `providers/longport-sg/capabilities/stream-stock-quote.ts`
-  - `common/utils/symbol-validation.util.ts`
-  - `monitoring/infrastructure/metrics/metrics-registry.service.ts`
-- **Total external references**: 125
-
 #### `default`
 - **Defined in**: `common/constants/application/index.ts`
-- **Referenced by 62 external component(s)**:
+- **Referenced by 65 external component(s)**:
   - `core/03-fetching/stream-data-fetcher/config/stream-recovery.config.ts`
   - `core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service.ts`
   - `core/01-entry/stream-receiver/dto/stream-unsubscribe.dto.ts`
@@ -661,6 +555,8 @@ Generated: 2025-09-09T13:12:41.129Z
   - `core/00-prepare/symbol-mapper/dto/create-symbol-mapping.dto.ts`
   - `core/00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema.ts`
   - `core/shared/types/storage-classification.enum.ts`
+  - `core/shared/constants/market.constants.ts`
+  - `core/shared/constants/limits.ts`
   - `core/02-processing/transformer/dto/data-transform-preview.dto.ts`
   - `core/02-processing/symbol-transformer/constants/symbol-transformer-enhanced.constants.ts`
   - `core/04-storage/storage/dto/storage-request.dto.ts`
@@ -696,31 +592,27 @@ Generated: 2025-09-09T13:12:41.129Z
   - `monitoring/cache/monitoring-cache.service.ts`
   - `monitoring/config/monitoring.config.ts`
   - `monitoring/constants/config/monitoring-health.constants.ts`
+  - `monitoring/constants/business.ts`
   - `monitoring/presenter/presenter.controller.ts`
   - `monitoring/presenter/presenter-error.service.ts`
   - `monitoring/collector/collector.service.ts`
   - `monitoring/infrastructure/bridge/monitoring-event-bridge.service.ts`
   - `monitoring/analyzer/analyzer.service.ts`
-- **Total external references**: 148
+- **Total external references**: 159
 
 #### `CONSTANTS`
 - **Defined in**: `common/constants/index.ts`
-- **Referenced by 23 external component(s)**:
+- **Referenced by 18 external component(s)**:
   - `core/01-entry/stream-receiver/guards/ws-auth.guard.ts`
-  - `core/01-entry/receiver/utils/market.util.ts`
   - `core/01-entry/receiver/services/receiver.service.ts`
   - `core/01-entry/query/constants/query.constants.ts`
   - `core/01-entry/query/services/query-execution-engine.service.ts`
-  - `core/05-caching/smart-cache/utils/smart-cache-request.utils.ts`
-  - `core/05-caching/smart-cache/services/smart-cache-orchestrator.service.ts`
-  - `core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface.ts`
   - `core/02-processing/symbol-transformer/constants/symbol-transformer-enhanced.constants.ts`
   - `auth/middleware/security.middleware.ts`
   - `auth/constants/permission.constants.ts`
   - `auth/guards/rate-limit.guard.ts`
   - `alert/controller/alert.controller.ts`
   - `providers/longport/capabilities/get-stock-quote.ts`
-  - `providers/longport/capabilities/get-index-quote.ts`
   - `providers/longport/capabilities/get-stock-basic-info.ts`
   - `providers/longport/capabilities/stream-stock-quote.ts`
   - `providers/longport-sg/capabilities/get-stock-quote.ts`
@@ -729,29 +621,7 @@ Generated: 2025-09-09T13:12:41.129Z
   - `providers/longport-sg/capabilities/stream-stock-quote.ts`
   - `common/core/filters/global-exception.filter.ts`
   - `common/utils/symbol-validation.util.ts`
-- **Total external references**: 88
-
-#### `CORE_LIMITS`
-- **Defined in**: `common/constants/foundation/core-limits.constants.ts`
-- **Referenced by 7 external component(s)**:
-  - `core/00-prepare/data-mapper/constants/data-mapper.constants.ts`
-  - `core/02-processing/transformer/constants/data-transformer.constants.ts`
-  - `alert/constants/core/limits.constants.ts`
-  - `alert/constants/core/index.ts`
-  - `alert/constants/composite/templates.constants.ts`
-  - `alert/constants/composite/defaults.constants.ts`
-  - `alert/constants/index.ts`
-- **Total external references**: 37
-
-#### `MarketStatus`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 5 external component(s)**:
-  - `core/01-entry/receiver/services/receiver.service.ts`
-  - `core/01-entry/query/factories/executors/market-query.executor.ts`
-  - `core/05-caching/smart-cache/services/smart-cache-orchestrator.service.ts`
-  - `core/shared/services/market-status.service.ts`
-  - `core/shared/services/data-change-detector.service.ts`
-- **Total external references**: 29
+- **Total external references**: 60
 
 #### `OPERATION_LIMITS`
 - **Defined in**: `common/constants/domain/index.ts`
@@ -793,94 +663,37 @@ Generated: 2025-09-09T13:12:41.129Z
   - `providers/interfaces/stream-capability.interface.ts`
 - **Total external references**: 55
 
-#### `AlertSeverity`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 8 external component(s)**:
-  - `alert/dto/alert-rule.dto.ts`
-  - `alert/dto/alert.dto.ts`
-  - `alert/types/alert.types.ts`
-  - `alert/constants/composite/defaults.constants.ts`
-  - `alert/schemas/alert-history.schema.ts`
-  - `alert/schemas/alert-rule.schema.ts`
-  - `alert/services/notification-senders/slack.sender.ts`
-  - `alert/interfaces/alert.interface.ts`
-- **Total external references**: 30
-
 #### `BATCH_SIZE_SEMANTICS`
 - **Defined in**: `common/constants/semantic/index.ts`
-- **Referenced by 7 external component(s)**:
+- **Referenced by 8 external component(s)**:
   - `core/03-fetching/data-fetcher/constants/data-fetcher.constants.ts`
   - `core/01-entry/receiver/constants/validation.constants.ts`
   - `core/00-prepare/data-mapper/constants/data-mapper.constants.ts`
   - `core/00-prepare/symbol-mapper/constants/symbol-mapper.constants.ts`
+  - `core/shared/constants/market.constants.ts`
   - `core/02-processing/transformer/constants/data-transformer.constants.ts`
   - `core/04-storage/storage/constants/storage.constants.ts`
   - `common/dto/base-query.dto.ts`
-- **Total external references**: 21
-
-#### `ALERT_MESSAGES`
-- **Defined in**: `common/constants/domain/alert-domain.constants.ts`
-- **Referenced by 3 external component(s)**:
-  - `alert/constants/composite/index.ts`
-  - `alert/services/alerting.service.ts`
-  - `alert/services/rule-engine.service.ts`
-- **Total external references**: 49
-
-#### `AlertStatus`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 8 external component(s)**:
-  - `alert/dto/alert-history-internal.dto.ts`
-  - `alert/dto/alert.dto.ts`
-  - `alert/types/alert.types.ts`
-  - `alert/repositories/alert-history.repository.ts`
-  - `alert/schemas/alert-history.schema.ts`
-  - `alert/services/alerting.service.ts`
-  - `alert/services/alert-history.service.ts`
-  - `alert/interfaces/alert.interface.ts`
-- **Total external references**: 40
+- **Total external references**: 26
 
 #### `HTTP_TIMEOUTS`
 - **Defined in**: `common/constants/semantic/index.ts`
-- **Referenced by 7 external component(s)**:
+- **Referenced by 8 external component(s)**:
   - `core/03-fetching/data-fetcher/constants/data-fetcher.constants.ts`
   - `core/01-entry/receiver/constants/validation.constants.ts`
   - `core/01-entry/receiver/constants/config.constants.ts`
   - `core/00-prepare/data-mapper/constants/data-mapper.constants.ts`
   - `core/00-prepare/symbol-mapper/constants/symbol-mapper.constants.ts`
+  - `core/shared/constants/market.constants.ts`
   - `core/02-processing/transformer/constants/data-transformer.constants.ts`
   - `core/04-storage/storage/constants/storage.constants.ts`
-- **Total external references**: 18
+- **Total external references**: 20
 
 #### `AUTH_ERROR_MESSAGES`
 - **Defined in**: `common/constants/semantic/index.ts`
 - **Referenced by 1 external component(s)**:
   - `common/core/filters/global-exception.filter.ts`
 - **Total external references**: 31
-
-#### `MONITORING_BUSINESS`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 5 external component(s)**:
-  - `core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service.ts`
-  - `core/01-entry/stream-receiver/services/stream-receiver.service.ts`
-  - `monitoring/analyzer/analyzer-score.service.ts`
-  - `monitoring/analyzer/analyzer-trend.service.ts`
-  - `monitoring/analyzer/analyzer.service.ts`
-- **Total external references**: 13
-
-#### `RateLimitStrategy`
-- **Defined in**: `common/constants/domain/index.ts`
-- **Referenced by 4 external component(s)**:
-  - `core/01-entry/stream-receiver/guards/ws-auth.guard.ts`
-  - `auth/services/rate-limit.service.ts`
-  - `auth/guards/rate-limit.guard.ts`
-  - `auth/interfaces/rate-limit.interface.ts`
-- **Total external references**: 18
-
-#### `CACHE_TTL_SEMANTICS`
-- **Defined in**: `common/constants/semantic/index.ts`
-- **Referenced by 1 external component(s)**:
-  - `cache/constants/cache.constants.ts`
-- **Total external references**: 2
 
 #### `CORE_TIMEOUTS`
 - **Defined in**: `common/constants/foundation/index.ts`
@@ -898,25 +711,92 @@ Generated: 2025-09-09T13:12:41.129Z
   - `common/core/filters/global-exception.filter.ts`
 - **Total external references**: 22
 
+#### `CONFIG`
+- **Defined in**: `common/constants/application/index.ts`
+- **Referenced by 5 external component(s)**:
+  - `core/02-processing/symbol-transformer/constants/injection-tokens.constants.ts`
+  - `core/02-processing/symbol-transformer/constants/symbol-transformer-enhanced.constants.ts`
+  - `core/02-processing/symbol-transformer/services/symbol-transformer.service.ts`
+  - `cache/constants/config/cache-keys.constants.ts`
+  - `cache/constants/cache.constants.ts`
+- **Total external references**: 17
+
+#### `HTTP_STATUS_CODES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 2 external component(s)**:
+  - `auth/middleware/security.middleware.ts`
+  - `auth/controller/auth.controller.ts`
+- **Total external references**: 14
+
+#### `CORE_TRADING_TIMES`
+- **Defined in**: `common/constants/foundation/index.ts`
+- **Referenced by 1 external component(s)**:
+  - `core/shared/constants/market.constants.ts`
+- **Total external references**: 17
+
+#### `VALIDATION_MESSAGES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 4 external component(s)**:
+  - `alert/constants/index.ts`
+  - `alert/constants/domain/validation.constants.ts`
+  - `alert/constants/domain/index.ts`
+  - `common/core/filters/global-exception.filter.ts`
+- **Total external references**: 15
+
+#### `HTTP_ERROR_MESSAGES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 1 external component(s)**:
+  - `common/core/filters/global-exception.filter.ts`
+- **Total external references**: 13
+
+#### `CORE_TIMEZONES`
+- **Defined in**: `common/constants/foundation/index.ts`
+- **Referenced by 1 external component(s)**:
+  - `core/shared/constants/market.constants.ts`
+- **Total external references**: 14
+
+#### `RETRY_BUSINESS_SCENARIOS`
+- **Defined in**: `common/constants/semantic/retry-semantics.constants.ts`
+- **Referenced by 4 external component(s)**:
+  - `core/03-fetching/data-fetcher/constants/data-fetcher.constants.ts`
+  - `core/01-entry/receiver/constants/config.constants.ts`
+  - `core/00-prepare/symbol-mapper/constants/symbol-mapper.constants.ts`
+  - `core/04-storage/storage/constants/storage.constants.ts`
+- **Total external references**: 10
+
+#### `SYSTEM_ERROR_MESSAGES`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 1 external component(s)**:
+  - `common/core/filters/global-exception.filter.ts`
+- **Total external references**: 6
+
+#### `CACHE_OPERATIONS`
+- **Defined in**: `common/constants/semantic/index.ts`
+- **Referenced by 3 external component(s)**:
+  - `core/05-caching/common-cache/index.ts`
+  - `core/05-caching/smart-cache/constants/smart-cache.component.constants.ts`
+  - `cache/services/cache.service.ts`
+- **Total external references**: 10
+
 
 ## 📊 Detailed Usage Statistics
 
 ### Usage Distribution
-- **Heavily Used** (10+ usages): 47 constants
-- **Moderately Used** (3-9 usages): 64 constants
-- **Lightly Used** (1-2 usages): 42 constants
-- **Unused**: 3 constants
+- **Heavily Used** (10+ usages): 31 constants
+- **Moderately Used** (3-9 usages): 40 constants
+- **Lightly Used** (1-2 usages): 32 constants
+- **Unused**: 2 constants
 
 ### File Distribution
-- **Single File Usage**: 66 constants
-- **Multiple Files Usage**: 87 constants
-- **Widely Used** (5+ files): 26 constants
+- **Single File Usage**: 42 constants
+- **Multiple Files Usage**: 61 constants
+- **Widely Used** (5+ files): 14 constants
 
 ## 📋 Action Items
 
 ### Immediate Actions
-1. **Remove unused constants** - 3 constants can be safely removed
-2. **Review single-use constants** - Consider inlining 40 constants
+1. **Remove unused constants** - 2 constants can be safely removed
+2. **Review single-use constants** - Consider inlining 30 constants
 3. **Document heavily used constants** - Ensure proper documentation
 
 ### Medium-term Improvements
@@ -931,5 +811,5 @@ Generated: 2025-09-09T13:12:41.129Z
 
 ---
 
-*Analysis completed on 2025-09-09T13:12:41.129Z*
+*Analysis completed on 2025-09-09T16:12:02.560Z*
 *Tool: Constants Usage Analyzer v1.0*

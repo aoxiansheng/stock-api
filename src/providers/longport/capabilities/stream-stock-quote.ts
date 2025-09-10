@@ -3,7 +3,7 @@ import { CONSTANTS } from "@common/constants";
 import { REFERENCE_DATA } from '@common/constants/domain';
 
 // Extract Market enum for backward compatibility
-const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
+import { Market } from '../../../core/shared/constants/market.constants';
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { IStreamCapability } from "../../interfaces/stream-capability.interface";
 import { LongportStreamContextService } from "../services/longport-stream-context.service";

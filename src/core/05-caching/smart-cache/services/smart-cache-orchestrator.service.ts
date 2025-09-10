@@ -14,14 +14,7 @@ import {
   MarketStatusResult,
 } from "../../../shared/services/market-status.service";
 import { BackgroundTaskService } from "../../../../app/services/infrastructure/background-task.service";
-import { CONSTANTS } from "@common/constants";
-
-// Extract types and constants from the new Market Domain layer
-const { 
-  Market,
-  MarketStatus
-} = CONSTANTS.DOMAIN.MARKET.ENUMS;
-type Market = typeof Market[keyof typeof Market];
+import { Market, MarketStatus } from "../../../shared/constants/market.constants";
 import {
   CacheStrategy,
   CacheOrchestratorRequest,

@@ -236,7 +236,3 @@ export class TimeValidator {
  * 类型定义
  */
 export type AlertCoreTimeouts = typeof ALERT_CORE_TIMEOUTS;
-
-// 向后兼容性导出 - 让Alert组件内部代码继续使用CORE_TIMEOUTS名称
-//export const CORE_TIMEOUTS = ALERT_CORE_TIMEOUTS;
-//export type CoreTimeouts = AlertCoreTimeouts;

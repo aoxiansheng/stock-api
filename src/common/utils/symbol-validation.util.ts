@@ -1,8 +1,6 @@
 import { CONSTANTS } from "@common/constants";
 import { REFERENCE_DATA } from '@common/constants/domain';
-
-// Extract Market enum for backward compatibility
-const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
+import { Market } from '../../core/shared/constants/market.constants';
 import {
   MARKET_RECOGNITION_RULES,
   RECEIVER_VALIDATION_RULES,

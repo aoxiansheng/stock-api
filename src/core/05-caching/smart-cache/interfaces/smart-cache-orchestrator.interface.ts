@@ -1,8 +1,4 @@
-import { CONSTANTS } from "@common/constants";
-
-// Extract Market enum from the new four-layer architecture
-const { Market } = CONSTANTS.DOMAIN.MARKET.ENUMS;
-type Market = typeof Market[keyof typeof Market];
+import { Market } from "../../../shared/constants/market.constants";
 import { MarketStatusResult } from "../../../shared/services/market-status.service";
 
 /**
