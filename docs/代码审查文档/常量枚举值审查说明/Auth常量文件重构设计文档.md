@@ -68,80 +68,184 @@ src/auth/constants/
 
 ### 1. 核心文件：business-values.constants.ts
 
-这是所有业务数值的**单一来源**，按业务语义分组：
+这是所有业务数值的**单一来源**，使用英文字段名+详细注释：
 
 ```typescript
-// business-values.constants.ts - 🎯 核心业务数值，单一来源
+/**
+ * Auth模块业务数值常量 - 单一真实来源
+ * 🎯 所有数字配置的统一定义，避免重复和不一致
+ * 
+ * 命名规范：
+ * - 使用大写下划线命名
+ * - 单位作为后缀（_SECONDS, _MS, _MINUTES等）
+ * - 分组按业务功能而非技术实现
+ */
 export const BUSINESS_VALUES = deepFreeze({
   
-  // ⏰ 时间策略 - 所有时间相关配置的单一来源
+  /**
+   * 时间策略配置
+   * 统一管理所有时间相关的业务数值
+   */
   TIME_STRATEGY: {
-    标准缓存有效期_秒: 300,         // 5分钟：权限缓存、统计更新、指标收集
-    Token刷新周期_天: 7,           // 7天：refresh token、API key到期警告
-    标准操作超时_毫秒: 5000,       // 5秒：API调用、权限检查、Redis命令
-    日常清理周期_小时: 24,         // 24小时：过期数据清理、token过期检查
-    快速超时_毫秒: 3000,          // 3秒：敏感验证操作，快速失败
-    长期缓存刷新_分钟: 10,         // 10分钟：不频繁变更的数据缓存
-    短期频率窗口_秒: 60,          // 1分钟：频率限制时间窗口
+    // 缓存策略
+    STANDARD_CACHE_TTL_SECONDS: 300,        // 5分钟 - 权限缓存、统计更新、指标收集的标准有效期
+    SHORT_CACHE_TTL_SECONDS: 30,            // 30秒 - 热点数据的短期缓存
+    LONG_CACHE_TTL_SECONDS: 1800,           // 30分钟 - 配置数据等不常变更内容
+    
+    // Token生命周期
+    TOKEN_REFRESH_CYCLE_DAYS: 7,            // 7天 - refresh token有效期、API key到期警告提前天数
+    ACCESS_TOKEN_EXPIRY_HOURS: 24,          // 24小时 - 访问令牌有效期
+    SESSION_TIMEOUT_MINUTES: 60,            // 60分钟 - 用户会话超时时间
+    
+    // 操作超时设置
+    STANDARD_TIMEOUT_MS: 5000,              // 5秒 - API调用、权限检查、Redis命令的标准超时
+    FAST_TIMEOUT_MS: 3000,                  // 3秒 - 敏感验证操作的快速超时
+    CONNECTION_TIMEOUT_MS: 10000,           // 10秒 - 网络连接超时
+    
+    // 维护周期
+    DAILY_CLEANUP_HOURS: 24,                // 24小时 - 过期数据清理、token过期检查周期
+    CACHE_REFRESH_MINUTES: 10,              // 10分钟 - 不频繁变更数据的缓存刷新间隔
+    STATS_UPDATE_MINUTES: 5,                // 5分钟 - 统计数据更新间隔
+    
+    // 频率限制时间窗口
+    RATE_LIMIT_WINDOW_SECONDS: 60,          // 60秒 - 标准频率限制时间窗口
+    RATE_LIMIT_LOCKOUT_MINUTES: 30,         // 30分钟 - 账户锁定时长
   },
   
-  // 📊 数量限制策略 - 所有数量相关配置的单一来源  
+  /**
+   * 数量限制策略
+   * 统一管理所有数量相关的业务限制
+   */
   QUANTITY_LIMITS: {
-    权限处理上限: 50,              // 单次权限检查数量、API key权限上限、清理批次
-    标准批次大小: 100,             // 批量更新、缓存失效、用户使用统计
-    登录安全尝试上限: 5,           // 登录失败锁定阈值、频率限制
-    标准重试次数: 3,               // Redis连接、网络操作重试
-    日常操作限制: 200,             // API key默认频率限制、常规请求量
-    大数据处理上限: 1000000,       // API key最大频率限制
-    角色检查上限: 10,              // 单次角色权限检查数量
+    // 权限相关
+    MAX_PERMISSIONS_PER_CHECK: 50,          // 单次权限检查最大数量、API key权限上限
+    MAX_ROLES_PER_CHECK: 10,                // 单次角色权限检查最大数量
+    
+    // 批处理配置
+    STANDARD_BATCH_SIZE: 100,               // 标准批处理大小 - 批量更新、缓存失效、用户使用统计
+    SMALL_BATCH_SIZE: 50,                   // 小批次处理大小 - 权限清理等轻量操作
+    
+    // 登录安全
+    MAX_LOGIN_ATTEMPTS: 5,                  // 登录失败锁定阈值、频率限制触发值
+    
+    // 系统限制
+    MAX_RETRY_ATTEMPTS: 3,                  // Redis连接、网络操作的最大重试次数
+    DEFAULT_RATE_LIMIT: 200,                // API key默认频率限制、常规请求量
+    MAX_RATE_LIMIT: 1000000,                // API key最大频率限制 - 系统容量上限
+    
+    // API配额
+    DAILY_API_KEY_CREATION_LIMIT: 10,       // 每日API密钥创建限制
+    MAX_API_KEYS_PER_USER: 20,              // 每用户最大API密钥数量
   },
   
-  // 📏 长度约束策略 - 所有长度相关配置的单一来源
+  /**
+   * 长度约束策略
+   * 统一管理所有字符串长度相关的限制
+   */
   LENGTH_CONSTRAINTS: {
-    API密钥标准长度: 32,           // API key生成和验证的统一长度
-    用户名合理范围: { min: 3, max: 20 },      // 用户体验和数据库优化平衡
-    密码安全范围: { min: 8, max: 128 },       // 安全性和实用性平衡  
-    API密钥扩展范围: { min: 32, max: 64 },    // 支持不同安全等级
-    缓存键安全长度: 250,                      // Redis键长度限制
-    邮箱标准长度: 254,                        // RFC标准邮箱长度
-    通用名称长度: 100,                        // API key名称、角色名称等
+    // API密钥配置
+    API_KEY_STANDARD_LENGTH: 32,            // API key生成和验证的标准长度（256位安全强度）
+    API_KEY_MIN_LENGTH: 32,                 // API key最小长度
+    API_KEY_MAX_LENGTH: 64,                 // API key最大长度（支持扩展安全等级）
+    
+    // 用户标识符
+    USERNAME_MIN_LENGTH: 3,                 // 用户名最小长度 - 保证可识别性
+    USERNAME_MAX_LENGTH: 20,                // 用户名最大长度 - 用户体验和数据库优化平衡
+    
+    // 密码安全
+    PASSWORD_MIN_LENGTH: 8,                 // 密码最小长度 - 基础安全要求
+    PASSWORD_MAX_LENGTH: 128,               // 密码最大长度 - 安全性和实用性平衡
+    
+    // 系统限制
+    CACHE_KEY_MAX_LENGTH: 250,              // Redis键长度限制
+    EMAIL_MAX_LENGTH: 254,                  // RFC 5321标准邮箱长度
+    GENERIC_NAME_MAX_LENGTH: 100,           // 通用名称长度 - API key名称、角色名称等
+    
+    // 权限和角色
+    PERMISSION_NAME_MIN_LENGTH: 1,          // 权限名称最小长度
+    PERMISSION_NAME_MAX_LENGTH: 50,         // 权限名称最大长度
+    ROLE_NAME_MIN_LENGTH: 1,                // 角色名称最小长度
+    ROLE_NAME_MAX_LENGTH: 30,               // 角色名称最大长度
+    SUBJECT_ID_MIN_LENGTH: 1,               // 主体ID最小长度
+    SUBJECT_ID_MAX_LENGTH: 100,             // 主体ID最大长度
   },
   
-  // 🔒 安全策略 - 所有安全相关配置的单一来源
+  /**
+   * 安全策略配置
+   * 统一管理所有安全相关的阈值和限制
+   */
   SECURITY_STRATEGY: {
-    账户锁定时长_分钟: 30,         // 登录失败后锁定时间
-    会话标准时长_分钟: 60,         // 用户会话有效期
-    Token访问时长_小时: 24,        // 访问token有效期
-    慢操作警告阈值_毫秒: 100,      // 性能监控告警
-    缓存过期缓冲_秒: 10,          // 避免缓存雪崩的安全时间
+    // 账户安全
+    ACCOUNT_LOCKOUT_MINUTES: 30,            // 登录失败后的账户锁定时间
+    PASSWORD_EXPIRY_WARNING_DAYS: 7,        // 密码过期提前警告天数
+    
+    // 性能监控
+    SLOW_OPERATION_THRESHOLD_MS: 100,       // 慢操作警告阈值 - 性能监控告警
+    
+    // 缓存安全
+    CACHE_EXPIRE_BUFFER_SECONDS: 10,        // 缓存过期缓冲时间 - 避免缓存雪崩
+    
+    // 负载保护
+    MAX_PAYLOAD_SIZE_MB: 10,                // 最大请求负载大小（MB）
+    MAX_QUERY_PARAMS: 100,                  // 最大查询参数数量
+    MAX_RECURSION_DEPTH: 100,               // 最大递归深度
   }
 });
 
-// 🔧 便捷计算工具 - 避免重复计算
+/**
+ * 预计算值 - 避免重复的单位转换
+ * 提供常用的毫秒转换，避免在各处重复计算
+ */
 export const COMPUTED_VALUES = deepFreeze({
-  // 毫秒换算
-  时间_毫秒: {
-    标准缓存有效期: BUSINESS_VALUES.TIME_STRATEGY.标准缓存有效期_秒 * 1000,
-    Token刷新周期: BUSINESS_VALUES.TIME_STRATEGY.Token刷新周期_天 * 24 * 60 * 60 * 1000,
-    日常清理周期: BUSINESS_VALUES.TIME_STRATEGY.日常清理周期_小时 * 60 * 60 * 1000,
-    长期缓存刷新: BUSINESS_VALUES.TIME_STRATEGY.长期缓存刷新_分钟 * 60 * 1000,
-    短期频率窗口: BUSINESS_VALUES.TIME_STRATEGY.短期频率窗口_秒 * 1000,
-    会话标准时长: BUSINESS_VALUES.SECURITY_STRATEGY.会话标准时长_分钟 * 60 * 1000,
-    账户锁定时长: BUSINESS_VALUES.SECURITY_STRATEGY.账户锁定时长_分钟 * 60 * 1000,
+  /**
+   * 时间值的毫秒转换
+   * 预先计算好常用的时间转换，提高代码可读性
+   */
+  TIME_IN_MS: {
+    // 缓存相关
+    STANDARD_CACHE_TTL: BUSINESS_VALUES.TIME_STRATEGY.STANDARD_CACHE_TTL_SECONDS * 1000,
+    SHORT_CACHE_TTL: BUSINESS_VALUES.TIME_STRATEGY.SHORT_CACHE_TTL_SECONDS * 1000,
+    LONG_CACHE_TTL: BUSINESS_VALUES.TIME_STRATEGY.LONG_CACHE_TTL_SECONDS * 1000,
+    
+    // Token相关
+    TOKEN_REFRESH_CYCLE: BUSINESS_VALUES.TIME_STRATEGY.TOKEN_REFRESH_CYCLE_DAYS * 24 * 60 * 60 * 1000,
+    ACCESS_TOKEN_EXPIRY: BUSINESS_VALUES.TIME_STRATEGY.ACCESS_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000,
+    SESSION_TIMEOUT: BUSINESS_VALUES.TIME_STRATEGY.SESSION_TIMEOUT_MINUTES * 60 * 1000,
+    
+    // 维护相关
+    DAILY_CLEANUP: BUSINESS_VALUES.TIME_STRATEGY.DAILY_CLEANUP_HOURS * 60 * 60 * 1000,
+    CACHE_REFRESH: BUSINESS_VALUES.TIME_STRATEGY.CACHE_REFRESH_MINUTES * 60 * 1000,
+    STATS_UPDATE: BUSINESS_VALUES.TIME_STRATEGY.STATS_UPDATE_MINUTES * 60 * 1000,
+    
+    // 频率限制相关
+    RATE_LIMIT_WINDOW: BUSINESS_VALUES.TIME_STRATEGY.RATE_LIMIT_WINDOW_SECONDS * 1000,
+    ACCOUNT_LOCKOUT: BUSINESS_VALUES.TIME_STRATEGY.RATE_LIMIT_LOCKOUT_MINUTES * 60 * 1000,
   },
   
-  // 频率限制配置
-  频率限制配置: {
-    登录限制: {
-      每分钟最大次数: BUSINESS_VALUES.QUANTITY_LIMITS.登录安全尝试上限,
-      锁定时长_毫秒: BUSINESS_VALUES.SECURITY_STRATEGY.账户锁定时长_分钟 * 60 * 1000,
+  /**
+   * 组合配置
+   * 将相关配置组合在一起，方便使用
+   */
+  RATE_LIMIT_CONFIG: {
+    LOGIN: {
+      MAX_ATTEMPTS: BUSINESS_VALUES.QUANTITY_LIMITS.MAX_LOGIN_ATTEMPTS,
+      LOCKOUT_DURATION_MS: BUSINESS_VALUES.TIME_STRATEGY.RATE_LIMIT_LOCKOUT_MINUTES * 60 * 1000,
+      WINDOW_MS: BUSINESS_VALUES.TIME_STRATEGY.RATE_LIMIT_WINDOW_SECONDS * 1000,
     },
-    API调用限制: {
-      标准限制: BUSINESS_VALUES.QUANTITY_LIMITS.标准批次大小,
-      时间窗口_毫秒: BUSINESS_VALUES.TIME_STRATEGY.短期频率窗口_秒 * 1000,
+    API_CALLS: {
+      DEFAULT_LIMIT: BUSINESS_VALUES.QUANTITY_LIMITS.DEFAULT_RATE_LIMIT,
+      MAX_LIMIT: BUSINESS_VALUES.QUANTITY_LIMITS.MAX_RATE_LIMIT,
+      WINDOW_MS: BUSINESS_VALUES.TIME_STRATEGY.RATE_LIMIT_WINDOW_SECONDS * 1000,
     }
   }
 });
+
+/**
+ * 类型定义导出
+ * 提供TypeScript类型支持
+ */
+export type BusinessValues = typeof BUSINESS_VALUES;
+export type ComputedValues = typeof COMPUTED_VALUES;
 ```
 
 ### 2. 重构后的文件引用方式

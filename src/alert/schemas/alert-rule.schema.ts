@@ -29,31 +29,31 @@ export class AlertRule implements IAlertRule {
     type: String,
     required: true,
     enum: VALID_OPERATORS,
-    default: ALERT_DEFAULTS.RULE.operator,
+    default: ALERT_DEFAULTS.operator,
   })
   operator: Operator;
 
   @Prop({ required: true })
   threshold: number;
 
-  @Prop({ required: true, default: ALERT_DEFAULTS.RULE.duration })
+  @Prop({ required: true, default: ALERT_DEFAULTS.duration })
   duration: number; // 持续时间（秒）
 
   @Prop({
     required: true,
     type: String,
     enum: Object.values(AlertSeverity),
-    default: ALERT_DEFAULTS.RULE.severity,
+    default: ALERT_DEFAULTS.severity,
   })
   severity: AlertSeverity;
 
-  @Prop({ default: ALERT_DEFAULTS.RULE.enabled })
+  @Prop({ default: ALERT_DEFAULTS.enabled })
   enabled: boolean;
 
   @Prop({ type: [Object], default: [] })
   channels: NotificationChannel[];
 
-  @Prop({ default: ALERT_DEFAULTS.RULE.cooldown })
+  @Prop({ default: ALERT_DEFAULTS.cooldown })
   cooldown: number; // 冷却时间（秒）
 
   @Prop({ type: Object, default: {} })

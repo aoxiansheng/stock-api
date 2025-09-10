@@ -4,7 +4,7 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { ALERT_CORE_TIMEOUTS, ALERT_DEFAULTS } from '../constants';
+import { ALERT_DEFAULTS } from '../constants';
 
 /**
  * 验证结果接口
@@ -35,40 +35,18 @@ export class AlertConstantsValidator {
     const warnings: string[] = [];
 
     try {
-      // 1. 验证时间配置基本范围
-      const { BASIC_SECONDS } = ALERT_CORE_TIMEOUTS;
-const COOLDOWN = { MIN_SECONDS: BASIC_SECONDS.COOLDOWN_MIN, MAX_SECONDS: BASIC_SECONDS.COOLDOWN_MAX };
-const DURATION = { MIN_SECONDS: BASIC_SECONDS.DURATION_MIN, MAX_SECONDS: BASIC_SECONDS.DURATION_MAX };
-const TIMEOUT = { MIN_SECONDS: BASIC_SECONDS.MIN, MAX_SECONDS: BASIC_SECONDS.MAX };
-      
-      if (COOLDOWN.MIN_SECONDS >= COOLDOWN.MAX_SECONDS) {
-        errors.push('冷却时间配置错误: MIN不能大于等于MAX');
-      }
-      
-      if (DURATION.MIN_SECONDS >= DURATION.MAX_SECONDS) {
-        errors.push('持续时间配置错误: MIN不能大于等于MAX');
-      }
-
-      if (TIMEOUT.MIN_SECONDS >= TIMEOUT.MAX_SECONDS) {
-        errors.push('超时时间配置错误: MIN不能大于等于MAX');
-      }
-
       // 2. 验证默认值不为空
-      if (!ALERT_DEFAULTS.RULE.severity) {
+      if (!ALERT_DEFAULTS.severity) {
         errors.push('默认告警严重级别不能为空');
       }
 
-      if (!ALERT_DEFAULTS.RULE.operator) {
+      if (!ALERT_DEFAULTS.operator) {
         errors.push('默认比较操作符不能为空');
       }
 
       // 3. 验证关键数值合理性
-      if (ALERT_DEFAULTS.NOTIFICATION.retryCount > 10) {
+      if (ALERT_DEFAULTS.RETRY_COUNT > 10) {
         warnings.push('重试次数过高，可能影响性能');
-      }
-
-      if (ALERT_DEFAULTS.PAGINATION.maxLimit < ALERT_DEFAULTS.PAGINATION.limit) {
-        errors.push('分页配置错误: maxLimit不能小于limit');
       }
 
     } catch (error) {

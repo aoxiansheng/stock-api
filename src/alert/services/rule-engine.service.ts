@@ -6,12 +6,12 @@ import { createLogger, sanitizeLogData } from "../../app/config/logger.config";
 import { CacheService } from "../../cache/services/cache.service";
 import {
   VALID_OPERATORS,
-  OPERATOR_SYMBOLS,
   type Operator,
+  ALERT_DEFAULTS,
   ALERT_OPERATIONS,
   ALERT_MESSAGES,
   ALERT_METRICS,
-  ALERT_DEFAULTS,
+  OPERATOR_SYMBOLS,
   AlertRuleUtil,
 } from "../constants";
 import {
@@ -381,13 +381,10 @@ export class RuleEngineService implements IRuleEngine {
     // 🎯 使用标准化的时间常量进行警告检查
     if (
       rule.cooldown &&
-      rule.cooldown > ALERT_DEFAULTS.RETENTION.historyDays * 86400
+      rule.cooldown > 90 * 86400
     ) {
       warnings.push(
-        AlertRuleUtil.formatAlertMessage(
-          "冷却时间超过{hours}小时，可能会延迟重要告警",
-          { hours: ALERT_DEFAULTS.RETENTION.historyDays * 86400 / 3600 },
-        ),
+        `冷却时间超过${90 * 86400 / 3600}小时，可能会延迟重要告警`,
       );
     }
 
@@ -423,17 +420,17 @@ export class RuleEngineService implements IRuleEngine {
     threshold: number,
   ): boolean {
     switch (operator) {
-      case "gt":
+      case ">":
         return value > threshold;
-      case "gte":
+      case ">=":
         return value >= threshold;
-      case "lt":
+      case "<":
         return value < threshold;
-      case "lte":
+      case "<=":
         return value <= threshold;
-      case "eq":
+      case "==":
         return value === threshold;
-      case "ne":
+      case "!=":
         return value !== threshold;
       default:
         // 这行代码理论上不可达，因为有类型和 validateRule 的保护

@@ -59,15 +59,15 @@ export class NotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COUNT_LIMITS.RETRIES_MIN)
-  @Max(VALIDATION_LIMITS.COUNT_LIMITS.RETRIES_MAX)
+  @Min(VALIDATION_LIMITS.RETRIES_MIN)
+  @Max(VALIDATION_LIMITS.RETRIES_MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（秒）", default: 30 })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.TIMEOUT_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.TIMEOUT_MAX)
+  @Min(VALIDATION_LIMITS.TIMEOUT_MIN)
+  @Max(VALIDATION_LIMITS.TIMEOUT_MAX)
   timeout?: number;
 }
 
@@ -99,15 +99,15 @@ export class CreateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COUNT_LIMITS.RETRIES_MIN)
-  @Max(VALIDATION_LIMITS.COUNT_LIMITS.RETRIES_MAX)
+  @Min(VALIDATION_LIMITS.RETRIES_MIN)
+  @Max(VALIDATION_LIMITS.RETRIES_MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（秒）", default: 30 })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.TIMEOUT_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.TIMEOUT_MAX)
+  @Min(VALIDATION_LIMITS.TIMEOUT_MIN)
+  @Max(VALIDATION_LIMITS.TIMEOUT_MAX)
   timeout?: number;
 
   @ApiPropertyOptional({ description: "优先级", default: 1 })
@@ -152,15 +152,15 @@ export class UpdateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COUNT_LIMITS.RETRIES_MIN)
-  @Max(VALIDATION_LIMITS.COUNT_LIMITS.RETRIES_MAX)
+  @Min(VALIDATION_LIMITS.RETRIES_MIN)
+  @Max(VALIDATION_LIMITS.RETRIES_MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.TIMEOUT_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.TIMEOUT_MAX)
+  @Min(VALIDATION_LIMITS.TIMEOUT_MIN)
+  @Max(VALIDATION_LIMITS.TIMEOUT_MAX)
   timeout?: number;
 }
 

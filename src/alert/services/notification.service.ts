@@ -1,5 +1,8 @@
 import { Injectable, OnModuleInit, BadRequestException } from "@nestjs/common";
-import { createLogger } from "@app/config/logger.config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+
+import { createLogger, sanitizeLogData } from "@app/config/logger.config";
+import { CacheService } from "../../cache/services/cache.service";
 
 import { notificationConfig } from "@app/config/notification.config";
 // 更新导入路径，从utils导入NotificationTemplateUtil

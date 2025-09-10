@@ -50,6 +50,13 @@ export const ALERT_MESSAGES = Object.freeze({
     INTERVAL_TOO_SHORT: "时间间隔不能小于30秒",
     INTERVAL_TOO_LONG: "时间间隔不能超过24小时",
   },
+
+  // 规则消息
+  RULES: {
+    RULE_EVALUATION_FAILED: "规则评估失败",
+    RULE_EVALUATION_STARTED: "规则评估开始",
+    METRICS_PROCESSED: "指标处理完成",
+  },
 });
 
 /**
@@ -123,6 +130,155 @@ export const ALERT_HISTORY_MESSAGES = Object.freeze({
     AUTO_TRIGGERED: "系统自动触发",
     THRESHOLD_EXCEEDED: "超过阈值触发",
   },
+});
+
+/**
+ * 通知操作常量
+ * 🎯 通知服务操作标识
+ */
+export const NOTIFICATION_OPERATIONS = Object.freeze({
+  SEND_NOTIFICATION: "send_notification",
+  SEND_BATCH_NOTIFICATIONS: "send_batch_notifications",
+  TEST_CHANNEL: "test_channel",
+  GENERATE_TEMPLATE: "generate_template",
+  INITIALIZE_SENDERS: "initialize_senders",
+});
+
+/**
+ * 告警操作常量
+ * 🎯 告警相关操作标识
+ */
+export const ALERT_OPERATIONS = Object.freeze({
+  RULES: {
+    EVALUATE_RULES_SCHEDULED: "evaluate_rules_scheduled",
+    HANDLE_RULE_EVALUATION: "handle_rule_evaluation",
+    CREATE_RULE: "create_rule",
+  },
+});
+
+/**
+ * 告警指标常量
+ * 🎯 告警相关的性能指标
+ */
+export const ALERT_METRICS = Object.freeze({
+  RULES: {
+    RULE_EVALUATION_COUNT: "rule_evaluation_count",
+    AVERAGE_RULE_EVALUATION_TIME: "average_rule_evaluation_time",
+  },
+});
+
+/**
+ * 操作符符号映射
+ * 🎯 操作符的可读性符号
+ */
+export const OPERATOR_SYMBOLS = Object.freeze({
+  ">": "大于",
+  ">=": "大于等于",
+  "<": "小于",
+  "<=": "小于等于",
+  "==": "等于",
+  "!=": "不等于",
+  "contains": "包含",
+  "not_contains": "不包含",
+  "regex": "正则匹配",
+});
+
+/**
+ * 通知常量
+ * 🎯 通知系统的各种配置常量
+ */
+export const NOTIFICATION_CONSTANTS = Object.freeze({
+  TEMPLATE: {
+    VARIABLE_PATTERN: /\{(\w+)\}/g,
+    VARIABLES: {
+      ALERT_ID: "alertId",
+      RULE_NAME: "ruleName",
+      METRIC: "metric",
+      VALUE: "value",
+      THRESHOLD: "threshold",
+      SEVERITY: "severity",
+      STATUS: "status",
+      MESSAGE: "message",
+      START_TIME: "startTime",
+      END_TIME: "endTime",
+      DURATION: "duration",
+      TAGS: "tags",
+      RULE_ID: "ruleId",
+      RULE_DESCRIPTION: "ruleDescription",
+    },
+  },
+  VALIDATION: {
+    VARIABLE_NAME_PATTERN_SOURCE: "^[a-zA-Z_][a-zA-Z0-9_]*$",
+    VARIABLE_NAME_PATTERN_FLAGS: "i",
+    VARIABLE_NAME_MIN_LENGTH: 1,
+    VARIABLE_NAME_MAX_LENGTH: 50,
+    MIN_TEMPLATE_LENGTH: 1,
+    MAX_TEMPLATE_LENGTH: 10000,
+    EMAIL_PATTERN_SOURCE: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+    EMAIL_PATTERN_FLAGS: "i",
+    URL_PATTERN_SOURCE: "^https?:\\/\\/[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-\\.,@?^=%&:\\/~\\+#]*[\\w\\-\\@?^=%&\\/~\\+#])?$",
+    URL_PATTERN_FLAGS: "i",
+  },
+  RETRY: {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 30000,
+    backoffFactor: 2,
+    INITIAL_DELAY_MS: 1000,
+    BACKOFF_MULTIPLIER: 2,
+    MAX_DELAY_MS: 30000,
+    JITTER_FACTOR: 0.1,
+  },
+});
+
+/**
+ * 通知错误模板
+ * 🎯 通知错误的标准化模板
+ */
+export const NOTIFICATION_ERROR_TEMPLATES = Object.freeze({
+  SEND_FAILED: "通知发送失败: {error}",
+  CHANNEL_UNAVAILABLE: "通知渠道不可用: {channel}",
+  TEMPLATE_ERROR: "模板错误: {details}",
+  VALIDATION_ERROR: "验证错误: {field} - {message}",
+  TIMEOUT_ERROR: "发送超时: {timeout}ms",
+  RETRY_EXHAUSTED: "重试次数已用尽: {attempts}次",
+  UNSUPPORTED_TYPE: "不支持的通知类型: {type}",
+  SEND_FAILED_WITH_REASON: "通知发送失败: {reason}",
+});
+
+/**
+ * 通知消息常量
+ * 🎯 通知相关的消息模板
+ */
+export const NOTIFICATION_MESSAGES = Object.freeze({
+  // Success messages
+  NOTIFICATION_SENT: "通知发送成功",
+  BATCH_NOTIFICATIONS_SENT: "批量通知发送成功",
+  CHANNEL_TESTED: "通道测试成功",
+  TEMPLATE_GENERATED: "模板生成成功",
+  SENDERS_INITIALIZED: "发送器初始化成功",
+  CHANNEL_TEST_PASSED: "通道测试通过",
+  BATCH_NOTIFICATIONS_COMPLETED: "批量通知完成",
+  
+  // Error messages
+  NOTIFICATION_FAILED: "通知发送失败",
+  BATCH_NOTIFICATIONS_FAILED: "批量通知发送失败",
+  CHANNEL_TEST_FAILED: "通道测试失败",
+  TEMPLATE_GENERATION_FAILED: "模板生成失败",
+  SENDERS_INITIALIZATION_FAILED: "发送器初始化失败",
+  INVALID_CHANNEL_CONFIG: "通道配置无效",
+  TEMPLATE_NOT_FOUND: "模板未找到",
+  BATCH_NOTIFICATION_FAILED: "批量通知中的单个通知失败",
+  
+  // Status messages
+  SENDING: "发送中...",
+  TESTING: "测试中...",
+  GENERATING: "生成中...",
+  INITIALIZING: "初始化中...",
+  NOTIFICATION_PROCESSING_STARTED: "通知处理已开始",
+  BATCH_PROCESSING_STARTED: "批量处理已开始",
+  CHANNEL_TEST_STARTED: "通道测试已开始",
+  TEMPLATE_GENERATION_STARTED: "模板生成已开始",
 });
 
 /**

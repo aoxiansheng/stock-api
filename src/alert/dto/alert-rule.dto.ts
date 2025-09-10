@@ -34,7 +34,7 @@ export class CreateAlertRuleDto {
   @ApiProperty({
     description: "比较操作符",
     enum: VALID_OPERATORS,
-    default: ALERT_DEFAULTS.RULE.operator,
+    default: ALERT_DEFAULTS.operator,
   })
   @IsEnum(VALID_OPERATORS)
   operator: Operator;
@@ -45,24 +45,24 @@ export class CreateAlertRuleDto {
 
   @ApiProperty({ 
     description: "持续时间（秒）", 
-    default: ALERT_DEFAULTS.RULE.duration 
+    default: ALERT_DEFAULTS.duration 
   })
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MAX)
+  @Min(VALIDATION_LIMITS.DURATION_MIN)
+  @Max(VALIDATION_LIMITS.DURATION_MAX)
   duration: number;
 
   @ApiProperty({
     description: "告警严重级别",
     enum: AlertSeverity,
-    default: ALERT_DEFAULTS.RULE.severity,
+    default: ALERT_DEFAULTS.severity,
   })
   @IsEnum(AlertSeverity)
   severity: AlertSeverity;
 
   @ApiProperty({ 
     description: "是否启用", 
-    default: ALERT_DEFAULTS.RULE.enabled 
+    default: ALERT_DEFAULTS.enabled 
   })
   @IsBoolean()
   enabled: boolean;
@@ -75,11 +75,11 @@ export class CreateAlertRuleDto {
 
   @ApiProperty({ 
     description: "冷却时间（秒）", 
-    default: ALERT_DEFAULTS.RULE.cooldown 
+    default: ALERT_DEFAULTS.cooldown 
   })
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MAX)
+  @Min(VALIDATION_LIMITS.COOLDOWN_MIN)
+  @Max(VALIDATION_LIMITS.COOLDOWN_MAX)
   cooldown: number;
 
   @ApiPropertyOptional({
@@ -123,8 +123,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "持续时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.DURATION_MAX)
+  @Min(VALIDATION_LIMITS.DURATION_MIN)
+  @Max(VALIDATION_LIMITS.DURATION_MAX)
   duration?: number;
 
   @ApiPropertyOptional({
@@ -153,8 +153,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "冷却时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MIN)
-  @Max(VALIDATION_LIMITS.TIME_SECONDS.COOLDOWN_MAX)
+  @Min(VALIDATION_LIMITS.COOLDOWN_MIN)
+  @Max(VALIDATION_LIMITS.COOLDOWN_MAX)
   cooldown?: number;
 
   @ApiPropertyOptional({

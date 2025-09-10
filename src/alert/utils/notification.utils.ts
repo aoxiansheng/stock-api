@@ -1,11 +1,10 @@
 /**
- * 通知模板工具函数
- * 提供通知相关的模板处理和格式化功能
+ * 通知工具类
+ * 🎯 提供通知相关的通用工具函数
  */
-import {
-  NOTIFICATION_ERROR_TEMPLATES,
-  NOTIFICATION_CONSTANTS,
-} from "../constants";
+
+import { Logger } from '@nestjs/common';
+import { ALERT_NOTIFICATION_TEMPLATES, NOTIFICATION_CONSTANTS, NOTIFICATION_ERROR_TEMPLATES } from '../constants';
 
 /**
  * 通知模板工具函数类

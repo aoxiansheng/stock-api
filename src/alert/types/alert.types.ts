@@ -71,6 +71,19 @@ export type NotificationChannelType =
   (typeof NotificationChannelType)[keyof typeof NotificationChannelType];
 
 /**
+ * 通知状态枚举
+ */
+export const NotificationStatus = {
+  PENDING: "pending",
+  SENT: "sent",
+  DELIVERED: "delivered",
+  FAILED: "failed",
+  RETRY: "retry",
+} as const;
+
+export type NotificationStatus = (typeof NotificationStatus)[keyof typeof NotificationStatus];
+
+/**
  * 通知渠道接口 - 解决循环依赖的核心接口
  */
 export interface NotificationChannel {
