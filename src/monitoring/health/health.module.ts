@@ -6,7 +6,7 @@
 import { Module } from "@nestjs/common";
 
 import { ValidationModule } from "@appcore/validation";
-import { HealthCheckService } from "@appcore/infrastructure/health/health-check.service";
+import { HealthCheckService } from "./health-check.service";
 import { ExtendedHealthService } from "./extended-health.service";
 
 /**

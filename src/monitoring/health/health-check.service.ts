@@ -135,4 +135,4 @@ export class HealthCheckService {
       message: `内存使用: ${heapUsedMB}MB / ${heapTotalMB}MB (${usagePercent}%)`,
     };
   }
-}
+} 

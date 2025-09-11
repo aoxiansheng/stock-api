@@ -12,10 +12,7 @@ import {
   ValidationService,
   FullValidationResult,
 } from "@appcore/validation/services/validation.service";
-import {
-  HealthCheckService,
-  HealthCheckResult,
-} from "@appcore/infrastructure/health/health-check.service";
+import { HealthCheckService, HealthCheckResult } from "./health-check.service";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 
 export interface ExtendedHealthReport {
