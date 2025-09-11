@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createLogger } from "../../../../app/config/logger.config";
+import { createLogger } from "../../../../appcore/config/logger.config";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
 /**

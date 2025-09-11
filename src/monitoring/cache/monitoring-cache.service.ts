@@ -1,6 +1,6 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "../../app/config/logger.config";
+import { createLogger } from "../../appcore/config/logger.config";
 import { CacheService } from "@cache/services/cache.service";
 import {
   MonitoringConfig,

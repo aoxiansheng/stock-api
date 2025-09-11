@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from "@app/config/logger.config";
+import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
 
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";

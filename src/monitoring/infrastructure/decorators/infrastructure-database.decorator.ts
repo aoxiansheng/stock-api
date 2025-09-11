@@ -3,7 +3,7 @@
  * 基于重构后的三层架构，集成到现有的监控体系中
  */
 
-import { createLogger } from "../../../app/config/logger.config";
+import { createLogger } from "../../../appcore/config/logger.config";
 import { EventEmitter } from "events";
 
 const logger = createLogger("PerformanceDecorators");

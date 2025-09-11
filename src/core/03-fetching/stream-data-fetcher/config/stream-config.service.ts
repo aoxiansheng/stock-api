@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 
 /**
  * 流数据获取器配置接口

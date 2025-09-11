@@ -5,7 +5,7 @@ import {
   OnModuleDestroy,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { CommonCacheService } from "../../common-cache/services/common-cache.service"; // Phase 5.2 重构：直接使用CommonCacheService
 import { DataChangeDetectorService } from "../../../shared/services/data-change-detector.service";
@@ -13,7 +13,7 @@ import {
   MarketStatusService,
   MarketStatusResult,
 } from "../../../shared/services/market-status.service";
-import { BackgroundTaskService } from "@app/infrastructure/services/background-task.service";
+import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
 import { Market, MarketStatus } from "../../../shared/constants/market.constants";
 import {
   CacheStrategy,

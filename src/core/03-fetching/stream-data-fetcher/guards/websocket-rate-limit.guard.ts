@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 
 /**
  * WebSocket连接速率限制配置

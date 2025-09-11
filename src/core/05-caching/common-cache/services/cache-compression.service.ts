@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { gzip, gunzip } from "zlib";
 import { promisify } from "util";
-import { createLogger } from "../../../../app/config/logger.config";
+import { createLogger } from "../../../../appcore/config/logger.config";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 import { CacheMetadata } from "../interfaces/cache-metadata.interface";
 

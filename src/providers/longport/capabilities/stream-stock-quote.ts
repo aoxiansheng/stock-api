@@ -1,4 +1,4 @@
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 import { CONSTANTS } from "@common/constants";
 import { REFERENCE_DATA } from '@common/constants/domain';
 

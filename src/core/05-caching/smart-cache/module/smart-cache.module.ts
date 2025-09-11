@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 import { CommonCacheModule } from "../../common-cache/module/common-cache.module";

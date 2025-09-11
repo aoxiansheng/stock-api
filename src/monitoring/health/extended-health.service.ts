@@ -1,18 +1,22 @@
-import { Injectable } from "@nestjs/common";
-import { createLogger } from "@app/config/logger.config";
+import {
+  Injectable,
+  Inject,
+} from "@nestjs/common";
+import { createLogger } from "@appcore/config/logger.config";
 import Redis from "ioredis";
 import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
 import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
-  ConfigValidatorService,
+  ValidationService,
   FullValidationResult,
-} from "../../app/config/validation/config-validator.service";
+} from "@appcore/validation/services/validation.service";
 import {
   HealthCheckService,
   HealthCheckResult,
-} from "../../app/infrastructure/health/health-check.service";
+} from "@appcore/infrastructure/health/health-check.service";
+import { InjectRedis } from "@nestjs-modules/ioredis";
 
 export interface ExtendedHealthReport {
   status: ExtendedHealthStatus;
@@ -86,11 +90,12 @@ export interface ExtendedHealthReport {
 export class ExtendedHealthService {
   private readonly logger = createLogger(ExtendedHealthService.name);
   private lastHealthCheck: HealthCheckResult | null = null;
-  private lastConfigValidation: FullValidationResult | null = null;
+  private lastValidation: FullValidationResult | null = null;
 
   constructor(
-    private readonly configValidator: ConfigValidatorService,
     private readonly healthCheckService: HealthCheckService,
+    private readonly validationService: ValidationService,
+    @InjectRedis() private readonly redisClient: Redis,
   ) {}
 
   /**
@@ -187,19 +192,19 @@ export class ExtendedHealthService {
     validatedAt: string;
   }> {
     try {
-      if (!this.lastConfigValidation || this.isValidationStale()) {
-        this.lastConfigValidation = await this.configValidator.validateAll({
+      if (!this.lastValidation || this.isValidationStale()) {
+        this.lastValidation = await this.validationService.validateAll({
           timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
           ignoreWarnings: false,
         });
       }
 
       return {
-        isValid: this.lastConfigValidation.overall.isValid,
-        errors: this.lastConfigValidation.overall.errors,
-        warnings: this.lastConfigValidation.overall.warnings,
+        isValid: this.lastValidation.overall.isValid,
+        errors: this.lastValidation.overall.errors,
+        warnings: this.lastValidation.overall.warnings,
         validatedAt:
-          this.lastConfigValidation.overall.validatedAt.toISOString(),
+          this.lastValidation.overall.validatedAt.toISOString(),
       };
     } catch (error) {
       return {
@@ -237,13 +242,13 @@ export class ExtendedHealthService {
    * 获取配置健康状态（内部方法）
    */
   private async getConfigurationHealth(): Promise<FullValidationResult> {
-    if (!this.lastConfigValidation || this.isValidationStale()) {
-      this.lastConfigValidation = await this.configValidator.validateAll({
+    if (!this.lastValidation || this.isValidationStale()) {
+      this.lastValidation = await this.validationService.validateAll({
         timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
         ignoreWarnings: false,
       });
     }
-    return this.lastConfigValidation;
+    return this.lastValidation;
   }
 
   /**
@@ -511,12 +516,12 @@ export class ExtendedHealthService {
    * 检查验证结果是否过期
    */
   private isValidationStale(): boolean {
-    if (!this.lastConfigValidation) return true;
+    if (!this.lastValidation) return true;
 
     const staleTime = MONITORING_SYSTEM_LIMITS.MONITORING_CACHE_STALE_TIME_MS; // 5分钟过期
     const now = Date.now();
     const validatedTime =
-      this.lastConfigValidation.overall.validatedAt.getTime();
+      this.lastValidation.overall.validatedAt.getTime();
 
     return now - validatedTime > staleTime;
   }

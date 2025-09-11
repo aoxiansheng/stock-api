@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger, sanitizeLogData } from "@app/config/logger.config";
+import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import { NotFoundException } from "@nestjs/common";
 

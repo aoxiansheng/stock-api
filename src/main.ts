@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import express from "express";
 
-import { CustomLogger, getLogLevels } from "@app/config/logger.config";
+import { CustomLogger, getLogLevels } from "@appcore/config/logger.config";
 import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,
@@ -17,7 +17,7 @@ import { InfrastructureInterceptor } from "./monitoring/infrastructure/intercept
 import { ApiMonitoringInterceptor } from "./monitoring/infrastructure/interceptors/api-monitoring.interceptor";
 // 完全事件驱动架构，移除CollectorService直接依赖
 import { SecurityMiddleware } from "./auth/middleware/security.middleware";
-import { ApplicationService } from "./app/core/services/application.service";
+import { ApplicationService } from "./appcore/core/services/application.service";
 
 async function bootstrap() {
   const nodeEnv = process.env.NODE_ENV || "development";

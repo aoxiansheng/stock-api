@@ -3,7 +3,7 @@ import { Injectable, NotImplementedException } from "@nestjs/common";
 import { QueryRequestDto } from "../../dto/query-request.dto";
 import { QueryExecutionResultDto } from "../../dto/query-internal.dto";
 import { QueryExecutor } from "../../interfaces/query-executor.interface";
-import { createLogger } from "../../../../../app/config/logger.config";
+import { createLogger } from "../../../../../appcore/config/logger.config";
 
 /**
  * 基于市场的查询执行器

@@ -10,7 +10,7 @@ import {
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
 
-import { createLogger, sanitizeLogData } from "@app/config/logger.config";
+import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
 

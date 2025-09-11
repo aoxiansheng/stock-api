@@ -6,8 +6,8 @@
  */
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "../../../app/config/logger.config";
-import { FeatureFlags } from "@app/config/feature-flags.config";
+import { createLogger } from "../../../appcore/config/logger.config";
+import { FeatureFlags } from "@appcore/config/feature-flags.config";
 import {
   Counter,
   Gauge,

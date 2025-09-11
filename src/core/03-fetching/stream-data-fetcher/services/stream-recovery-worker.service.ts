@@ -8,7 +8,7 @@ import { Queue, Worker, Job, QueueEvents, JobsOptions } from "bullmq";
 import { AsyncLocalStorage } from "async_hooks";
 import { Server } from "socket.io";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { StreamCacheService } from "../../../05-caching/stream-cache/services/stream-cache.service";
 import { StreamDataPoint } from "../../../05-caching/stream-cache/interfaces/stream-cache.interface";

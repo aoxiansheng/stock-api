@@ -9,7 +9,7 @@
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 
-import { createLogger } from '@app/config/logger.config';
+import { createLogger } from '@appcore/config/logger.config';
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from '../dto';
 import { IAlert, IAlertRule, IAlertQuery, IAlertStats, IMetricData } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';

@@ -6,7 +6,7 @@
 
 import { Module } from "@nestjs/common";
 import { MetricsRegistryService } from "./metrics-registry.service";
-import { FeatureFlags } from "@app/config/feature-flags.config";
+import { FeatureFlags } from "@appcore/config/feature-flags.config";
 
 @Module({
   providers: [

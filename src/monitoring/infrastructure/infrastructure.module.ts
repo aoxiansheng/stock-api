@@ -11,14 +11,18 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { RedisModule } from "@nestjs-modules/ioredis";
 import { MetricsModule } from "./metrics/metrics.module";
 import { MonitoringEventBridgeService } from "./bridge/monitoring-event-bridge.service";
 import { ApiMonitoringInterceptor } from "./interceptors/api-monitoring.interceptor";
 // import { MetricsRegistryService } from './metrics/metrics-registry.service'; // 🔧 Phase 1: 移除未使用的 import
-import { FeatureFlags } from "@app/config/feature-flags.config";
+import { FeatureFlags } from "@appcore/config/feature-flags.config";
 
 @Module({
-  imports: [MetricsModule],
+  imports: [
+    RedisModule,
+    MetricsModule
+  ],
   providers: [
     FeatureFlags, // 🔧 Phase 2.4: 集中提供 FeatureFlags（满足 MetricsRegistryService 依赖）
     MonitoringEventBridgeService, // 🎯 新增：事件桥接服务
@@ -40,6 +44,7 @@ import { FeatureFlags } from "@app/config/feature-flags.config";
     },
   ],
   exports: [
+    RedisModule,
     MetricsModule, // 🔧 导出 MetricsModule
     FeatureFlags, // 🔧 Phase 2.4: 导出 FeatureFlags 供其他模块使用
     MonitoringEventBridgeService, // 🎯 导出事件桥接服务供其他模块使用

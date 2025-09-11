@@ -6,7 +6,7 @@ import { CACHE_CONFIG } from "../constants/cache-config.constants";
 import { REDIS_SPECIAL_VALUES } from "../constants/cache.constants";
 import { RedisValueUtils } from "../utils/redis-value.utils";
 import { CacheCompressionService } from "./cache-compression.service";
-import { createLogger } from "../../../../app/config/logger.config";
+import { createLogger } from "../../../../appcore/config/logger.config";
 import { AdaptiveDecompressionService } from "./adaptive-decompression.service";
 import { BatchMemoryOptimizerService } from "./batch-memory-optimizer.service";
 import {

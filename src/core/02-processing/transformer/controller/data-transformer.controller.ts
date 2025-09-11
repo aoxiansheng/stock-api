@@ -1,6 +1,6 @@
 import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 
 import { REFERENCE_DATA } from '@common/constants/domain';
 import {

@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { MetricsRegistryService } from "../metrics/metrics-registry.service";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
-import { createLogger } from "../../../app/config/logger.config";
+import { createLogger } from "../../../appcore/config/logger.config";
 import { EventBatcher, BatchResult } from "./event-batcher";
 import { performanceDecoratorBus } from "../decorators/infrastructure-database.decorator";
 import { MonitoringSerializer } from "../../utils/monitoring-serializer";

@@ -8,7 +8,7 @@
 
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 
 // 使用Notification模块的类型
 import {

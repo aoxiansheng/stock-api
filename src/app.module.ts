@@ -9,7 +9,7 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { DatabaseModule } from "./database/database.module"; // 🆕 统一数据库模块
 
 // 应用服务层模块
-import { ApplicationModule } from "./app/core/application.module";
+import { ApplicationModule } from "./appcore/core/application.module";
 
 // 核心业务层模块 - 准备阶段
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";

@@ -14,7 +14,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Observable, tap } from "rxjs";
 import { Request, Response } from "express";
 
-import { createLogger } from "../../../app/config/logger.config";
+import { createLogger } from "../../../appcore/config/logger.config";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
 import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 // 完全事件驱动架构，移除CollectorService直接依赖

@@ -371,7 +371,7 @@ export class DuplicateAnalyzer {
       '@nestjs/common', '@nestjs/core', '@nestjs/swagger', '@nestjs/platform-express',
       '@nestjs/event-emitter', '@nestjs/config', '@nestjs/testing', '@nestjs/mongoose',
       'class-validator', 'class-transformer', 'rxjs', 'lodash',
-      '@app/config/logger.config', '@common/constants', '../constants', './constants',
+      '@app/logging/logger.factory', '@common/constants', '../constants', './constants',
       '../../constants', '../../../constants', '@app/config', '@common/utils'
     ];
     

@@ -8,7 +8,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { createLogger } from '@app/config/logger.config';
+import { createLogger } from '@appcore/config/logger.config';
 
 // 导入Alert相关类型（用于接收事件数据）- 保持向后兼容
 import { Alert, AlertRule, NotificationChannel as AlertNotificationChannel } from '../../alert/types/alert.types';

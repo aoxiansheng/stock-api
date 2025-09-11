@@ -11,7 +11,7 @@ import {
 } from "@nestjs/websockets";
 import { UsePipes, ValidationPipe, Optional } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 import { StreamReceiverService } from "../services/stream-receiver.service";
 import { StreamSubscribeDto, StreamUnsubscribeDto } from "../dto";
 import { Permission } from "../../../../auth/enums/user-role.enum";

@@ -5,8 +5,8 @@
 
 import { Module } from "@nestjs/common";
 
-import { ConfigValidationModule } from "../../app/config/validation/config-validation.module";
-import { HealthCheckService } from "../../app/infrastructure/health/health-check.service";
+import { ValidationModule } from "@appcore/validation";
+import { HealthCheckService } from "@appcore/infrastructure/health/health-check.service";
 import { ExtendedHealthService } from "./extended-health.service";
 
 /**
@@ -27,8 +27,16 @@ import { ExtendedHealthService } from "./extended-health.service";
  * - 提供更详细的应用级健康信息
  */
 @Module({
-  imports: [ConfigValidationModule],
-  providers: [HealthCheckService, ExtendedHealthService],
-  exports: [ExtendedHealthService],
+  imports: [
+    ValidationModule,
+  ],
+  providers: [
+    ExtendedHealthService,
+    HealthCheckService,
+  ],
+  exports: [
+    ExtendedHealthService,
+    HealthCheckService,
+  ],
 })
 export class HealthModule {}

@@ -4,7 +4,7 @@ import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
 import { AnalyzerService } from "../analyzer/analyzer.service";
 import { PresenterErrorHandlerService } from "./presenter-error.service";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
-import { createLogger } from "../../app/config/logger.config";
+import { createLogger } from "../../appcore/config/logger.config";
 
 /**
  * 展示层业务服务

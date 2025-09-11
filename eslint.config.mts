@@ -139,5 +139,36 @@ export default defineConfig([
         }
       ]
     }
+  },
+  {
+    name: "prevent-old-app-paths",
+    files: ["src/**/*.{ts,js}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "@app/configuration", message: "已移除，请使用 @app/config/*" },
+            { name: "@app/infrastructure/health", message: "已合并到 monitoring/health" },
+            { name: "@app/infrastructure/services", message: "请使用 @app/runtime/*" },
+            { name: "@app/core/services", message: "请使用 @app/runtime/*" },
+            { name: "./app/configuration", message: "已移除，请使用 ./app/config/*" },
+            { name: "./app/infrastructure/health", message: "已合并到 monitoring/health" },
+            { name: "./app/infrastructure/services", message: "请使用 ./app/runtime/*" },
+            { name: "./app/core/services", message: "请使用 ./app/runtime/*" },
+          ],
+          patterns: [
+            { group: ["@app/configuration/*"], message: "已移除，请使用 @app/config/*" },
+            { group: ["@app/infrastructure/health/*"], message: "已合并到 monitoring/health" },
+            { group: ["@app/infrastructure/services/*"], message: "请使用 @app/runtime/*" },
+            { group: ["@app/core/services/*"], message: "请使用 @app/runtime/*" },
+            { group: ["./app/configuration/*"], message: "已移除，请使用 ./app/config/*" },
+            { group: ["./app/infrastructure/health/*"], message: "已合并到 monitoring/health" },
+            { group: ["./app/infrastructure/services/*"], message: "请使用 ./app/runtime/*" },
+            { group: ["./app/core/services/*"], message: "请使用 ./app/runtime/*" },
+          ],
+        },
+      ],
+    },
   }
 ]);

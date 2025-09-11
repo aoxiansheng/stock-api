@@ -3,7 +3,7 @@ import { join } from "path";
 
 import { Injectable, OnModuleInit } from "@nestjs/common";
 
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 
 import { ICapability } from "../interfaces/capability.interface";
 import { ICapabilityRegistration } from "../interfaces/provider.interface";

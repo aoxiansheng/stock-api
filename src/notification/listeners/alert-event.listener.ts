@@ -9,7 +9,7 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
-import { createLogger } from '@app/config/logger.config';
+import { createLogger } from '@appcore/config/logger.config';
 
 // 导入Alert事件类型
 import {

@@ -18,7 +18,7 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 
-import { createLogger } from "@app/config/logger.config";
+import { createLogger } from "@appcore/config/logger.config";
 import {
   ApiSuccessResponse,
   ApiStandardResponses,
