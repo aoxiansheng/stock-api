@@ -21,7 +21,8 @@ import {
   ApiParam,
   ApiQuery,
 } from "@nestjs/swagger";
-import { HTTP_STATUS_CODES } from "../constants/http-status.constants";
+// HTTP状态码直接使用NestJS提供的HttpStatus枚举
+import { HttpStatus } from "@nestjs/common";
 
 import { createLogger } from "@app/config/logger.config";
 import {
@@ -140,11 +141,11 @@ export class AuthController {
     },
   })
   @ApiResponse({
-    status: HTTP_STATUS_CODES.UNAUTHORIZED,
+    status: HttpStatus.UNAUTHORIZED,
     description: "用户名或密码错误",
     schema: {
       example: {
-        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+        statusCode: HttpStatus.UNAUTHORIZED,
         message: "用户名或密码错误，请检查后重试",
         error: "Unauthorized",
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,

@@ -30,6 +30,56 @@ export class AlertQueryService {
   ) {}
 
   /**
+   * 通用告警查询方法 - Controller适配器
+   */
+  async getAlerts(filter: {
+    alertId?: string;
+    ruleId?: string;
+    status?: string;
+    severity?: string;
+    metric?: string;
+  }): Promise<IAlert[]> {
+    const operation = 'GET_ALERTS';
+    
+    this.logger.debug('通用告警查询', {
+      operation,
+      filter,
+    });
+
+    try {
+      // Convert filter to query format
+      const query: IAlertQuery = {
+        page: 1,
+        limit: 1000, // Large limit for general queries
+      };
+
+      if (filter.alertId) {
+        // For single alert lookup
+        const alert = await this.alertHistoryRepository.findById(filter.alertId);
+        return alert ? [alert] : [];
+      }
+
+      if (filter.ruleId) query.ruleId = filter.ruleId;
+      if (filter.status) query.status = filter.status as AlertStatus;
+      if (filter.severity) query.severity = filter.severity as any; // Type conversion for flexibility
+      if (filter.metric) query.metric = filter.metric;
+
+      const { alerts } = await this.alertHistoryRepository.find(query);
+      return alerts;
+    } catch (error) {
+      this.logger.error('通用告警查询失败', { operation, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * 查询告警历史 - Controller适配器
+   */
+  async getAlertHistory(query: IAlertQuery): Promise<AlertQueryResultDto> {
+    return this.queryAlerts(query);
+  }
+
+  /**
    * 查询告警记录（分页）
    */
   async queryAlerts(query: IAlertQuery): Promise<AlertQueryResultDto> {
@@ -325,12 +375,14 @@ export class AlertQueryService {
     this.logger.debug('获取状态统计', { operation });
 
     try {
-      // TODO: 仓储层需要实现按状态统计的方法
+      const rawCounts = await this.alertHistoryRepository.getCountByStatus();
+      
+      // 转换为规范化的状态统计格式
       const statusCounts: Record<AlertStatus, number> = {
-        [AlertStatus.FIRING]: 0,
-        [AlertStatus.ACKNOWLEDGED]: 0,
-        [AlertStatus.RESOLVED]: 0,
-        [AlertStatus.SUPPRESSED]: 0,
+        [AlertStatus.FIRING]: rawCounts[AlertStatus.FIRING] || 0,
+        [AlertStatus.ACKNOWLEDGED]: rawCounts[AlertStatus.ACKNOWLEDGED] || 0,
+        [AlertStatus.RESOLVED]: rawCounts[AlertStatus.RESOLVED] || 0,
+        [AlertStatus.SUPPRESSED]: rawCounts[AlertStatus.SUPPRESSED] || 0,
       };
 
       this.logger.debug('状态统计完成', {

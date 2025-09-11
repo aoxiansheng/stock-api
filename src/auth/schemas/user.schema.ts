@@ -3,7 +3,7 @@ import { Document } from "mongoose";
 
 import { UserRole } from "../enums/user-role.enum";
 import { CommonStatus } from "../enums/common-status.enum";
-import { PASSWORD_CONSTRAINTS, USERNAME_CONSTRAINTS } from "../constants/validation.constants";
+import { USER_REGISTRATION } from "../constants/user-operations.constants";
 
 export type UserDocument = User & Document;
 
@@ -12,14 +12,14 @@ export type UserDocument = User & Document;
   collection: "users",
 })
 export class User {
-  id?: string;
+  id: string;
 
   @Prop({
     required: true,
     unique: true,
     trim: true,
-    minlength: USERNAME_CONSTRAINTS.MIN_LENGTH,
-    maxlength: USERNAME_CONSTRAINTS.MAX_LENGTH,
+    minlength: USER_REGISTRATION.USERNAME_MIN_LENGTH,
+    maxlength: USER_REGISTRATION.USERNAME_MAX_LENGTH,
   })
   username: string;
 
@@ -28,7 +28,7 @@ export class User {
 
   @Prop({ 
     required: true, 
-    minlength: PASSWORD_CONSTRAINTS.MIN_LENGTH 
+    minlength: USER_REGISTRATION.PASSWORD_MIN_LENGTH 
   })
   passwordHash: string;
 

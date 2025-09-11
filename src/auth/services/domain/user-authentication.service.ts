@@ -4,7 +4,8 @@ import { User } from "../../schemas/user.schema";
 import { UserRepository } from "../../repositories/user.repository";
 import { PasswordService } from "../infrastructure/password.service";
 import { CommonStatus } from "../../enums/common-status.enum";
-import { AUTH_DEFAULTS } from "../../constants/auth.constants";
+import { UserRole } from "../../enums/user-role.enum";
+import { ACCOUNT_DEFAULTS } from "../../constants/user-operations.constants";
 import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-messages.constants";
 
 /**
@@ -26,7 +27,7 @@ export class UserAuthenticationService {
    * 专注于用户创建的核心逻辑，不包含审计、通知等
    */
   async registerUser(createUserDto: CreateUserDto): Promise<User> {
-    const { username, email, password, role = AUTH_DEFAULTS.NEW_USER.role } = createUserDto;
+    const { username, email, password, role = UserRole.DEVELOPER } = createUserDto;
 
     this.logger.log('开始创建用户', { username, email, role });
 

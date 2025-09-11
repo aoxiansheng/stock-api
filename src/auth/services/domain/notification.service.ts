@@ -176,7 +176,7 @@ export class NotificationService {
    * 发送API密钥创建事件
    */
   async sendApiKeyCreationEvent(userId: string, apiKey: ApiKey): Promise<void> {
-    this.logger.debug('发送API密钥创建通知', { userId, apiKeyId: apiKey._id });
+    this.logger.debug('发送API密钥创建通知', { userId, apiKeyId: (apiKey as any)._id });
 
     try {
       // 1. 发送业务监控事件
@@ -189,7 +189,7 @@ export class NotificationService {
       // 2. 发送用户通知事件
       await this.emitUserNotification('API_KEY_CREATED', {
         userId,
-        apiKeyId: apiKey._id?.toString(),
+        apiKeyId: (apiKey as any)._id?.toString(),
         apiKeyName: apiKey.name,
         appKey: apiKey.appKey,
         permissions: apiKey.permissions,
@@ -201,7 +201,7 @@ export class NotificationService {
         this.sendApiKeyCreatedEmail(userId, apiKey).catch(error =>
           this.logger.error('发送API密钥创建邮件失败', { 
             userId, 
-            apiKeyId: apiKey._id, 
+            apiKeyId: (apiKey as any)._id, 
             error: error.message 
           })
         );
@@ -456,7 +456,7 @@ export class NotificationService {
    */
   private async sendApiKeyCreatedEmail(userId: string, apiKey: ApiKey): Promise<void> {
     // 实际实现中应该发送包含API密钥信息的邮件
-    this.logger.debug('发送API密钥创建邮件', { userId, apiKeyId: apiKey._id });
+    this.logger.debug('发送API密钥创建邮件', { userId, apiKeyId: (apiKey as any)._id });
   }
 
   /**

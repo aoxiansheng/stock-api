@@ -100,6 +100,16 @@ export class UserRepository {
   }
 
   /**
+   * 更新用户最后登录时间
+   * @param userId - 用户ID
+   */
+  async updateLastLoginTime(userId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, {
+      lastAccessedAt: new Date(),
+    }).exec();
+  }
+
+  /**
    * 获取用户统计信息
    * @returns 用户统计数据
    */

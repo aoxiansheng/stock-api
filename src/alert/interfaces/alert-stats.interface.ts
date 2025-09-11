@@ -1,7 +1,7 @@
 /**
  * Alert模块共享统计接口
  * 🎯 消除统计结构重复定义，提供统一的统计数据接口
- * 🔧 用于alerting.constants.ts和alert-history.constants.ts的统计结构复用
+ * 🔧 用于告警系统各模块的统计结构复用
  */
 
 /**

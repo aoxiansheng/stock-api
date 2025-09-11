@@ -1,9 +1,9 @@
 /**
- * 缓存服务常量 - 向后兼容接口
+ * 缓存服务常量 - 现代化统一导出
  * 🎯 统一定义缓存相关的常量，确保系统一致性
- * ⚠️  本文件保持向后兼容，推荐使用模块化导入
+ * ✅ 已现代化：移除冗余兼容层，推荐使用直接模块化导入
  * 
- * 新的模块化结构：
+ * 现代化模块结构（推荐直接导入）：
  * - config/ : 配置相关常量（数据格式、TTL、键值）
  * - operations/ : 操作相关常量（核心、扩展、内部）
  * - status/ : 状态相关常量（缓存状态、健康状态）
@@ -49,7 +49,7 @@ import { CACHE_METRICS } from './metrics/cache-metrics.constants';
 export { SIMPLIFIED_TTL_CONFIG as CACHE_TTL_CONFIG, TTL_VALUES as CACHE_TTL } from './config/simplified-ttl-config.constants';
 
 // 重新导出操作常量
-export { CACHE_CORE_OPERATIONS, CACHE_EXTENDED_OPERATIONS, CACHE_INTERNAL_OPERATIONS };
+export { CACHE_EXTENDED_OPERATIONS, CACHE_INTERNAL_OPERATIONS };
 
 // 重新导出状态相关常量和类型
 export { CACHE_STATUS };
@@ -101,11 +101,6 @@ export { MODULAR_CACHE_KEYS as CACHE_KEYS };
 
 // 重新导出消息常量
 export { CACHE_MESSAGES };
-export const { 
-  ERRORS: CACHE_ERROR_MESSAGES, 
-  WARNINGS: CACHE_WARNING_MESSAGES, 
-  SUCCESS: CACHE_SUCCESS_MESSAGES 
-} = CACHE_MESSAGES;
 
-// 向后兼容操作常量导出
-export { CACHE_CORE_OPERATIONS as CACHE_OPERATIONS };
+// 直接导出操作常量 - 推荐使用 CACHE_CORE_OPERATIONS
+export { CACHE_CORE_OPERATIONS };

@@ -4,7 +4,7 @@ import { Document } from "mongoose";
 import { IAlert } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
 import type { AlertContext } from "../types/context.types";
-import { ALERT_QUICK_ACCESS } from "../constants";
+import { DATA_RETENTION } from "../constants";
 
 export type AlertHistoryDocument = AlertHistory & Document;
 
@@ -117,5 +117,5 @@ AlertHistorySchema.index({ "tags.service": 1 });
 // TTL 索引 - 自动删除告警历史 (使用预计算常量值优化性能)
 AlertHistorySchema.index(
   { startTime: 1 },
-  { expireAfterSeconds: ALERT_QUICK_ACCESS.RETENTION.ALERT_HISTORY_DAYS * 86400 }, // 90天，预计算值
+  { expireAfterSeconds: DATA_RETENTION.ALERT_HISTORY * 86400 }, // 90天，预计算值
 );

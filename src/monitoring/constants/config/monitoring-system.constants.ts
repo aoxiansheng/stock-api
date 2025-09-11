@@ -5,6 +5,7 @@
  * @since 2025-09-05
  * @author Claude Code
  */
+// 零抽象架构：移除对抽象层的依赖
 
 export const MONITORING_SYSTEM_LIMITS = {
   // ========================= HTTP状态码阈值 =========================
@@ -22,38 +23,29 @@ export const MONITORING_SYSTEM_LIMITS = {
   
   // ========================= 性能阈值（毫秒） =========================
   /**
-   * 慢查询阈值
+   * 慢查询阈值 - 零抽象架构
    * @description 数据库查询超过此值视为慢查询
    */
-  SLOW_QUERY_THRESHOLD_MS: 1000 as const,
+  SLOW_QUERY_THRESHOLD_MS: 500, // 500ms - 数据库查询慢查询阈值
   
   /**
-   * 慢请求阈值
+   * 慢请求阈值 - 零抽象架构
    * @description HTTP请求超过此值视为慢请求
    */
-  SLOW_REQUEST_THRESHOLD_MS: 1000 as const,
+  SLOW_REQUEST_THRESHOLD_MS: 1000, // 1000ms - HTTP请求慢请求阈值
   
   /**
-   * 缓存响应阈值
+   * 缓存响应阈值 - 零抽象架构
    * @description 缓存操作超过此值需要优化
    */
-  CACHE_RESPONSE_THRESHOLD_MS: 100 as const,
+  CACHE_RESPONSE_THRESHOLD_MS: 50, // 50ms - 缓存操作响应时间阈值
   
   /**
-   * API响应时间阈值
+   * API响应时间阈值 - 零抽象架构
    * @description API响应时间基准阈值
    */
-  API_RESPONSE_TIME_MS: 100 as const,
+  API_RESPONSE_TIME_MS: 100, // 100ms - API优秀响应时间阈值
   
-  /**
-   * 数据库查询时间阈值
-   * @description 数据库查询时间基准阈值
-   */
-  
-  /**
-   * 性能监控慢请求阈值
-   * @description 性能装饰器默认慢请求阈值
-   */
   
   // ========================= 系统限制 =========================
   /**
@@ -105,17 +97,7 @@ export const MONITORING_SYSTEM_LIMITS = {
    */
   PERCENTAGE_MULTIPLIER: 100 as const,
   
-  // ========================= 时间窗口（秒） =========================
-  /**
-   * 小时秒数
-   * @description 一小时的秒数
-   */
-  
-  /**
-   * 天秒数
-   * @description 一天的秒数
-   */
-  
+  // ========================= 时间常量（毫秒） =========================
   /**
    * 分钟毫秒数
    * @description 一分钟的毫秒数
@@ -140,21 +122,6 @@ export const MONITORING_SYSTEM_LIMITS = {
    * @description 健康评分、性能评分的满分基数
    */
   FULL_SCORE: 100 as const,
-  
-  /**
-   * 缓存命中率最小值
-   * @description 缓存命中率合格最小值
-   */
-  
-  /**
-   * 错误率最大值
-   * @description 系统错误率警告阈值
-   */
-  
-  /**
-   * 内存使用最大MB
-   * @description 内存使用警告阈值
-   */
   
   // ========================= 批处理配置 =========================
   /**
@@ -182,21 +149,6 @@ export const MONITORING_SYSTEM_LIMITS = {
   FORCE_FLUSH_INTERVAL_MS: 5000 as const,
   
   // ========================= 监控指标配置 =========================
-  /**
-   * P99关键阈值
-   * @description P99响应时间关键阈值（毫秒）
-   */
-  
-  /**
-   * 数据库阈值
-   * @description 数据库监控装饰器默认阈值（毫秒）
-   */
-  
-  /**
-   * 系统正常运行时间阈值
-   * @description 系统正常运行时间阈值（秒）
-   */
-  
   /**
    * 监控缓存过期时间
    * @description 监控缓存数据过期时间（毫秒）

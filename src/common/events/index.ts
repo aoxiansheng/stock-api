@@ -12,6 +12,8 @@ export {
   GenericAlertSeverity,
   GenericAlertStatus,
   GenericAlertEventType,
+} from './generic-alert-event.interface';
+export type {
   GenericNotificationChannel,
   GenericAlert,
   GenericAlertRule,
@@ -22,7 +24,7 @@ export {
 } from './generic-alert-event.interface';
 
 // 事件总线接口
-export {
+export type {
   EventBusMessage,
   EventHandleResult,
   EventHandler,
@@ -31,8 +33,8 @@ export {
 } from './event-bus.interface';
 
 // 类型工具
-import { GenericAlertEvent } from './generic-alert-event.interface';
-import { EventBusMessage } from './event-bus.interface';
+import type { GenericAlertEvent } from './generic-alert-event.interface';
+import type { EventBusMessage } from './event-bus.interface';
 
 export type AlertEventPayload = GenericAlertEvent;
 export type NotificationEventPayload = EventBusMessage<any>;

@@ -1,10 +1,6 @@
 import { IsString, IsEmail, MinLength, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AUTH_VALIDATION_RULES } from '../constants/auth.constants';
-import { 
-  PASSWORD_CONSTRAINTS, 
-  USERNAME_CONSTRAINTS 
-} from '../constants/validation.constants';
+import { USER_REGISTRATION } from '../constants/user-operations.constants';
 
 /**
  * 基础认证DTO类
@@ -14,13 +10,13 @@ export abstract class BaseAuthDto {
   @ApiProperty({
     description: '用户名',
     example: 'admin',
-    minLength: USERNAME_CONSTRAINTS.MIN_LENGTH,
-    maxLength: USERNAME_CONSTRAINTS.MAX_LENGTH,
+    minLength: USER_REGISTRATION.USERNAME_MIN_LENGTH,
+    maxLength: USER_REGISTRATION.USERNAME_MAX_LENGTH,
   })
   @IsString()
-  @MinLength(USERNAME_CONSTRAINTS.MIN_LENGTH)
-  @MaxLength(USERNAME_CONSTRAINTS.MAX_LENGTH)
-  @Matches(AUTH_VALIDATION_RULES.USERNAME_PATTERN, {
+  @MinLength(USER_REGISTRATION.USERNAME_MIN_LENGTH)
+  @MaxLength(USER_REGISTRATION.USERNAME_MAX_LENGTH)
+  @Matches(USER_REGISTRATION.USERNAME_PATTERN, {
     message: '用户名只能包含字母、数字、下划线和连字符',
   })
   username: string;
@@ -34,14 +30,14 @@ export abstract class BasePasswordDto extends BaseAuthDto {
   @ApiProperty({
     description: '密码',
     example: 'password123',
-    minLength: PASSWORD_CONSTRAINTS.MIN_LENGTH,
+    minLength: USER_REGISTRATION.PASSWORD_MIN_LENGTH,
   })
   @IsString()
-  @MinLength(PASSWORD_CONSTRAINTS.MIN_LENGTH, {
-    message: `密码长度不能少于 ${PASSWORD_CONSTRAINTS.MIN_LENGTH} 位`,
+  @MinLength(USER_REGISTRATION.PASSWORD_MIN_LENGTH, {
+    message: `密码长度不能少于 ${USER_REGISTRATION.PASSWORD_MIN_LENGTH} 位`,
   })
-  @MaxLength(PASSWORD_CONSTRAINTS.MAX_LENGTH)
-  @Matches(AUTH_VALIDATION_RULES.PASSWORD_PATTERN, {
+  @MaxLength(USER_REGISTRATION.PASSWORD_MAX_LENGTH)
+  @Matches(USER_REGISTRATION.PASSWORD_PATTERN, {
     message: '密码必须包含至少一个字母和一个数字',
   })
   password: string;
@@ -57,7 +53,7 @@ export abstract class BaseEmailDto extends BaseAuthDto {
     example: 'admin@example.com',
   })
   @IsEmail()
-  @Matches(AUTH_VALIDATION_RULES.EMAIL_PATTERN, {
+  @Matches(USER_REGISTRATION.EMAIL_PATTERN, {
     message: '邮箱格式不正确',
   })
   email: string;
@@ -73,7 +69,7 @@ export abstract class BaseUserDto extends BasePasswordDto {
     example: 'admin@example.com',
   })
   @IsEmail()
-  @Matches(AUTH_VALIDATION_RULES.EMAIL_PATTERN, {
+  @Matches(USER_REGISTRATION.EMAIL_PATTERN, {
     message: '邮箱格式不正确',
   })
   email: string;

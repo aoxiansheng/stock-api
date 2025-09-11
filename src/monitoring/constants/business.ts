@@ -1,27 +1,33 @@
 /**
- * Monitoring 业务常量
+ * Monitoring 业务常量 - 零抽象架构
  * 🎯 从 common/constants/domain/monitoring-business.constants.ts 剥离的监控业务配置
  * 专用于 Monitoring 模块的业务常量
+ * 
+ * ✅ 零抽象原则：所有数值直观可见，无复杂嵌套结构
+ * ✅ 直观优先：常量名称直接体现业务含义
+ * ✅ 就近原则：相关常量组织在一起
+ * 
+ * 注意: 兼容性层(compatibility.ts)已移除，这是唯一的MONITORING_BUSINESS定义
  */
 
 /**
- * 监控业务配置常量
+ * 监控业务配置常量 - 零抽象架构
  * 🎯 解决监控系统中大量重复的阈值和配置数字
  */
 export const MONITORING_BUSINESS = Object.freeze({
   /**
-   * 错误率阈值配置
-   * 🔥 解决 0.05 在错误率判断中的重复
+   * 错误率阈值配置 - 直观数值
+   * 🔥 所有数值直观可见，无抽象层引用
    */
   ERROR_THRESHOLDS: {
-    ACCEPTABLE_RATE: 0.05,         // 5% - 可接受错误率
-    WARNING_RATE: 0.1,             // 10% - 警告错误率  
-    CRITICAL_RATE: 0.2,            // 20% - 严重错误率
-    EMERGENCY_RATE: 0.3,           // 30% - 紧急错误率
+    ACCEPTABLE_RATE: 0.05,     // 5% - 可接受错误率
+    WARNING_RATE: 0.1,         // 10% - 警告错误率  
+    CRITICAL_RATE: 0.2,        // 20% - 严重错误率
+    EMERGENCY_RATE: 0.3,       // 30% - 紧急错误率
   },
   
   /**
-   * 变化检测配置
+   * 变化检测配置 - 直观数值
    * 🔥 解决数字在变化百分比判断中的重复
    */
   CHANGE_DETECTION: {
@@ -32,7 +38,7 @@ export const MONITORING_BUSINESS = Object.freeze({
   },
   
   /**
-   * 采样和数据处理配置
+   * 采样和数据处理配置 - 直观数值
    * 🔥 解决 slice(-5) 和数据点数量的重复
    */
   SAMPLING_CONFIG: {
@@ -45,7 +51,7 @@ export const MONITORING_BUSINESS = Object.freeze({
   },
   
   /**
-   * 性能评分阈值
+   * 性能评分阈值 - 直观数值
    * 🔥 解决 90, 95 等评分阈值的重复
    */
   PERFORMANCE_BENCHMARKS: {
@@ -55,116 +61,116 @@ export const MONITORING_BUSINESS = Object.freeze({
     EXCELLENT_SCORE_THRESHOLD: 90, // 90分以上为优秀
     PERFECT_SCORE_THRESHOLD: 95,   // 95分以上为完美
     
-    // 缓存命中率阈值
-    CACHE_HIT_RATE_EXCELLENT: 0.9, // 90% - 优秀命中率
-    CACHE_HIT_RATE_GOOD: 0.8,      // 80% - 良好命中率
-    CACHE_HIT_RATE_FAIR: 0.6,      // 60% - 一般命中率
-    CACHE_HIT_RATE_POOR: 0.4,      // 40% - 较差命中率
+    // 缓存命中率阈值 - 直观数值
+    CACHE_HIT_RATE_EXCELLENT: 0.95,  // 95% - 优秀命中率
+    CACHE_HIT_RATE_GOOD: 0.8,        // 80% - 良好命中率
+    CACHE_HIT_RATE_FAIR: 0.7,        // 70% - 一般命中率
+    CACHE_HIT_RATE_POOR: 0.5,        // 50% - 较差命中率
   },
   
   /**
-   * 健康检查阈值
-   * 🔥 统一健康状态判断标准
+   * 健康检查阈值 - 直观数值
+   * 🔥 所有阈值直观可见，确保阈值一致性
    */
   HEALTH_THRESHOLDS: {
-    // 响应时间阈值 (毫秒)
-    RESPONSE_TIME_EXCELLENT: 100,  // 100ms 以下为优秀
-    RESPONSE_TIME_GOOD: 300,       // 300ms 以下为良好
-    RESPONSE_TIME_FAIR: 1000,      // 1000ms 以下为一般
-    RESPONSE_TIME_POOR: 3000,      // 3000ms 以下为较差
+    // 响应时间阈值 (毫秒) - 直观数值
+    RESPONSE_TIME_EXCELLENT: 100,  // 100ms
+    RESPONSE_TIME_GOOD: 300,       // 300ms
+    RESPONSE_TIME_FAIR: 1000,      // 1000ms
+    RESPONSE_TIME_POOR: 2000,      // 2000ms
     
-    // CPU使用率阈值
-    CPU_USAGE_LOW: 30,             // 30% 以下为低使用率
-    CPU_USAGE_MEDIUM: 60,          // 60% 以下为中等使用率
-    CPU_USAGE_HIGH: 80,            // 80% 以下为高使用率
-    CPU_USAGE_CRITICAL: 95,        // 95% 以下为临界使用率
+    // CPU使用率阈值 - 直观数值
+    CPU_USAGE_LOW: 0.3,      // 30%
+    CPU_USAGE_MEDIUM: 0.5,   // 50%
+    CPU_USAGE_HIGH: 0.7,     // 70%
+    CPU_USAGE_CRITICAL: 0.9, // 90%
     
-    // 内存使用率阈值
-    MEMORY_USAGE_LOW: 40,          // 40% 以下为低使用率
-    MEMORY_USAGE_MEDIUM: 70,       // 70% 以下为中等使用率
-    MEMORY_USAGE_HIGH: 85,         // 85% 以下为高使用率
-    MEMORY_USAGE_CRITICAL: 95,     // 95% 以下为临界使用率
+    // 内存使用率阈值 - 直观数值
+    MEMORY_USAGE_LOW: 0.4,      // 40%
+    MEMORY_USAGE_MEDIUM: 0.6,   // 60%
+    MEMORY_USAGE_HIGH: 0.75,    // 75%
+    MEMORY_USAGE_CRITICAL: 0.95, // 95%
   },
   
   /**
-   * 告警频率控制
+   * 告警频率控制 - 直观数值
    * 🔥 统一告警触发和频率限制
    */
   ALERT_FREQUENCY: {
-    MAX_ALERTS_PER_MINUTE: 5,      // 每分钟最大告警数
-    MAX_ALERTS_PER_HOUR: 60,       // 每小时最大告警数
-    MAX_ALERTS_PER_DAY: 500,       // 每天最大告警数
+    MAX_ALERTS_PER_MINUTE: 5,      // 5次/分钟
+    MAX_ALERTS_PER_HOUR: 60,       // 60次/小时
+    MAX_ALERTS_PER_DAY: 500,       // 500次/天
     
-    // 不同级别告警的冷却时间 (秒)
-    COOLDOWN_EMERGENCY: 60,        // 紧急告警冷却1分钟
-    COOLDOWN_CRITICAL: 300,        // 严重告警冷却5分钟
-    COOLDOWN_WARNING: 900,         // 警告告警冷却15分钟
-    COOLDOWN_INFO: 1800,           // 信息告警冷却30分钟
+    // 不同级别告警的冷却时间 (秒) - 直观数值
+    COOLDOWN_EMERGENCY: 60,        // 60秒 - 紧急告警冷却
+    COOLDOWN_CRITICAL: 300,        // 300秒 - 严重告警冷却
+    COOLDOWN_WARNING: 900,         // 900秒 - 警告告警冷却
+    COOLDOWN_INFO: 1800,           // 1800秒 - 信息告警冷却
   },
   
   /**
-   * 趋势分析配置
+   * 趋势分析配置 - 直观数值
    * 🔥 统一趋势判断标准
    */
   TREND_ANALYSIS: {
-    // 时间窗口 (秒)
+    // 时间窗口 (秒) - 直观数值
     SHORT_TERM_WINDOW: 300,        // 5分钟短期趋势
     MEDIUM_TERM_WINDOW: 1800,      // 30分钟中期趋势
     LONG_TERM_WINDOW: 3600,        // 1小时长期趋势
     
-    // 趋势强度阈值
+    // 趋势强度阈值 - 直观数值
     TREND_STRENGTH_WEAK: 0.3,      // 弱趋势
     TREND_STRENGTH_MODERATE: 0.6,  // 中等趋势
     TREND_STRENGTH_STRONG: 0.8,    // 强趋势
   },
 
   /**
-   * 数据收集配置
+   * 数据收集配置 - 直观数值
    * 🔥 统一数据收集频率和批量处理
    */
   DATA_COLLECTION: {
-    // 收集频率 (秒)
-    REALTIME_INTERVAL: 1,          // 实时数据1秒
-    HIGH_FREQUENCY_INTERVAL: 5,    // 高频数据5秒
-    NORMAL_INTERVAL: 30,           // 普通数据30秒
-    LOW_FREQUENCY_INTERVAL: 300,   // 低频数据5分钟
+    // 收集频率 (秒) - 直观数值
+    REALTIME_INTERVAL: 1,          // 1秒 - 实时采集
+    HIGH_FREQUENCY_INTERVAL: 5,    // 5秒 - 高频采集
+    NORMAL_INTERVAL: 30,           // 30秒 - 常规采集
+    LOW_FREQUENCY_INTERVAL: 300,   // 300秒 - 低频采集
     
-    // 批量处理大小
+    // 批量处理大小 - 直观数值
     BATCH_SIZE_SMALL: 10,          // 小批量
     BATCH_SIZE_MEDIUM: 50,         // 中等批量
     BATCH_SIZE_LARGE: 100,         // 大批量
     
-    // 数据保留时间 (秒)
-    RETENTION_REALTIME: 3600,      // 实时数据保留1小时
-    RETENTION_HOURLY: 86400 * 7,   // 小时数据保留7天
-    RETENTION_DAILY: 86400 * 30,   // 日数据保留30天
-    RETENTION_MONTHLY: 86400 * 365, // 月数据保留1年
+    // 数据保留时间 (秒) - 直观数值
+    RETENTION_REALTIME: 3600,      // 1小时 - 实时数据保留
+    RETENTION_HOURLY: 604800,      // 7天 - 小时数据保留
+    RETENTION_DAILY: 2592000,      // 30天 - 日数据保留
+    RETENTION_MONTHLY: 31536000,   // 365天 - 月数据保留
   },
 
   /**
-   * 系统资源监控配置
+   * 系统资源监控配置 - 直观数值
    * 🔥 系统资源监控的阈值和限制
    */
   SYSTEM_RESOURCES: {
-    // 磁盘使用率阈值
-    DISK_USAGE_WARNING: 70,        // 70% 磁盘使用率警告
-    DISK_USAGE_CRITICAL: 85,       // 85% 磁盘使用率严重
-    DISK_USAGE_EMERGENCY: 95,      // 95% 磁盘使用率紧急
+    // 磁盘使用率阈值 - 直观数值
+    DISK_USAGE_WARNING: 0.8,       // 80% - 磁盘使用率警告
+    DISK_USAGE_CRITICAL: 0.9,      // 90% - 磁盘使用率严重
+    DISK_USAGE_EMERGENCY: 0.95,    // 95% - 磁盘使用率紧急
     
-    // 网络连接数阈值
-    CONNECTION_COUNT_WARNING: 1000,  // 1000个连接警告
-    CONNECTION_COUNT_CRITICAL: 5000, // 5000个连接严重
-    CONNECTION_COUNT_EMERGENCY: 10000, // 10000个连接紧急
+    // 网络连接数阈值 - 直观数值
+    CONNECTION_COUNT_WARNING: 1000,     // 1000 - 连接数警告
+    CONNECTION_COUNT_CRITICAL: 5000,    // 5000 - 连接数严重
+    CONNECTION_COUNT_EMERGENCY: 10000,  // 10000 - 连接数紧急
     
-    // 文件描述符使用率阈值
-    FD_USAGE_WARNING: 70,          // 70% 文件描述符警告
-    FD_USAGE_CRITICAL: 85,         // 85% 文件描述符严重
-    FD_USAGE_EMERGENCY: 95,        // 95% 文件描述符紧急
+    // 文件描述符使用率阈值 - 直观数值
+    FD_USAGE_WARNING: 0.7,         // 70% 文件描述符警告
+    FD_USAGE_CRITICAL: 0.85,       // 85% 文件描述符严重
+    FD_USAGE_EMERGENCY: 0.95,      // 95% 文件描述符紧急
   },
 } as const);
 
 /**
- * 监控业务工具类
+ * 监控业务工具类 - 零抽象架构
  * 🛠️ 提供基于常量的业务逻辑判断
  */
 export class MonitoringBusinessUtil {
@@ -312,7 +318,7 @@ export class MonitoringBusinessUtil {
 }
 
 /**
- * 类型定义
+ * 类型定义 - 零抽象架构
  */
 export type ErrorRateLevel = 'normal' | 'warning' | 'critical' | 'emergency';
 export type ChangeLevel = 'minimal' | 'significant' | 'major' | 'critical';

@@ -9,7 +9,7 @@ import { UserRepository } from "../../repositories/user.repository";
 import { ApiKeyUtil } from "../../utils/apikey.utils";
 import { RolePermissions, Permission } from "../../enums/user-role.enum";
 import { CommonStatus } from "../../enums/common-status.enum";
-import { APIKEY_DEFAULTS, APIKEY_OPERATIONS, APIKEY_MESSAGES } from "../../constants/apikey.constants";
+import { API_KEY_DEFAULTS, API_KEY_OPERATIONS, API_KEY_VALIDATION } from "../../constants/api-security.constants";
 import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-messages.constants";
 
 /**
@@ -45,7 +45,10 @@ export class ApiKeyManagementService {
       name,
       userId,
       permissions,
-      rateLimit: rateLimit || APIKEY_DEFAULTS.DEFAULT_RATE_LIMIT,
+      rateLimit: rateLimit || { 
+        requestLimit: API_KEY_DEFAULTS.DEFAULT_RATE_LIMIT_REQUESTS, 
+        window: API_KEY_DEFAULTS.DEFAULT_RATE_LIMIT_WINDOW 
+      },
       status: CommonStatus.ACTIVE,
       expiresAt,
       totalRequestCount: 0,
@@ -232,7 +235,7 @@ export class ApiKeyManagementService {
         failedRequests: Math.ceil((apiKey.totalRequestCount || 0) * 0.05), // 估算5%失败率
         averageResponseTimeMs: 150, // 默认估值
         lastAccessedAt: apiKey.lastAccessedAt,
-        createdAt: apiKey.createdAt || new Date(),
+        createdAt: (apiKey as any).createdAt || new Date(),
       };
 
       this.logger.log('API密钥使用统计获取成功', { appKey, userId });

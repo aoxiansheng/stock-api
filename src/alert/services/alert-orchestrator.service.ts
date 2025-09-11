@@ -2,7 +2,7 @@
  * Alert编排服务
  * 🎯 协调所有Alert服务，提供统一的高级接口
  * 
- * @description 门面模式，简化复杂的服务交互，向后兼容旧接口
+ * @description 门面模式，简化复杂的服务交互，提供统一的告警管理接口
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
@@ -123,6 +123,19 @@ export class AlertOrchestratorService implements OnModuleInit {
   }
 
   /**
+   * 评估所有规则 - Controller适配器
+   */
+  async evaluateAllRules(metricData: IMetricData[] = []): Promise<void> {
+    // 如果有指标数据，先处理指标
+    if (metricData.length > 0) {
+      await this.processMetrics(metricData);
+    } else {
+      // 否则强制评估所有规则
+      await this.forceEvaluateAllRules();
+    }
+  }
+
+  /**
    * 评估单个规则
    */
   async evaluateRule(ruleId: string, metricData: IMetricData[]) {
@@ -238,6 +251,14 @@ export class AlertOrchestratorService implements OnModuleInit {
    */
   async searchAlerts(keyword: string, filters: Partial<IAlertQuery> = {}, limit: number = 50): Promise<IAlert[]> {
     return await this.queryService.searchAlerts(keyword, filters, limit);
+  }
+
+  /**
+   * 根据ID获取告警
+   */
+  async getAlertById(alertId: string): Promise<IAlert | null> {
+    const alerts = await this.queryService.getAlerts({ alertId });
+    return alerts.length > 0 ? alerts[0] : null;
   }
 
   // ==================== 统计接口 ====================
@@ -441,21 +462,4 @@ export class AlertOrchestratorService implements OnModuleInit {
     }
   }
 
-  // ==================== 向后兼容接口 ====================
-
-  /**
-   * @deprecated 使用 processMetrics 替代
-   */
-  async handleSystemEvent(event: any): Promise<void> {
-    this.logger.warn('使用了已废弃的 handleSystemEvent 方法，建议使用 processMetrics');
-    // 可以保留一些兼容逻辑
-  }
-
-  /**
-   * @deprecated 使用相应的新服务方法替代  
-   */
-  async loadActiveAlerts(): Promise<void> {
-    this.logger.warn('使用了已废弃的 loadActiveAlerts 方法，现在由 AlertCacheService 自动处理');
-    // 兼容性处理
-  }
 }

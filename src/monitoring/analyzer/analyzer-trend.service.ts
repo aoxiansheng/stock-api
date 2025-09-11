@@ -8,7 +8,10 @@ import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { MonitoringCacheService } from "../cache/monitoring-cache.service";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
-import { MONITORING_BUSINESS } from '../constants/business';
+// 零抽象架构：移除对抽象层的依赖，直接使用数值
+
+// 定义采样配置常量
+const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
 
 /**
  * 趋势分析服务
@@ -480,7 +483,7 @@ export class TrendAnalyzerService {
     throughput: { value: number; confidence: number };
   } {
     // 简化实现：基于最近的趋势进行线性外推
-    const recentMetrics = historicalMetrics.slice(-MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT); // 使用最近5个数据点
+    const recentMetrics = historicalMetrics.slice(-RECENT_METRICS_COUNT); // 使用最近5个数据点
 
     if (recentMetrics.length < 2) {
       const latest = historicalMetrics[historicalMetrics.length - 1];

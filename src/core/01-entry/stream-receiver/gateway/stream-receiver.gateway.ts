@@ -15,7 +15,7 @@ import { createLogger } from "@app/config/logger.config";
 import { StreamReceiverService } from "../services/stream-receiver.service";
 import { StreamSubscribeDto, StreamUnsubscribeDto } from "../dto";
 import { Permission } from "../../../../auth/enums/user-role.enum";
-import { ApiKeyService } from "../../../../auth/services/apikey.service";
+import { ApiKeyManagementService } from "../../../../auth/services/domain/apikey-management.service";
 import { StreamRecoveryWorkerService } from "../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service";
 import {
   WebSocketServerProvider,
@@ -44,7 +44,7 @@ export class StreamReceiverGateway
 
   constructor(
     private readonly streamReceiverService: StreamReceiverService,
-    private readonly apiKeyService: ApiKeyService,
+    private readonly apiKeyService: ApiKeyManagementService,
     @Optional()
     private readonly streamRecoveryWorker?: StreamRecoveryWorkerService,
     @Inject(WEBSOCKET_SERVER_TOKEN)

@@ -156,7 +156,7 @@ export class AuditService {
       eventType: 'API_KEY_CREATION_SUCCESS',
       timestamp: new Date().toISOString(),
       userId,
-      apiKeyId: apiKey._id?.toString(),
+      apiKeyId: (apiKey as any)._id?.toString(),
       apiKeyName: apiKey.name,
       appKey: apiKey.appKey,
       permissions: apiKey.permissions,
@@ -201,7 +201,7 @@ export class AuditService {
     const auditEvent = {
       eventType: 'API_KEY_USAGE',
       timestamp: new Date().toISOString(),
-      apiKeyId: apiKey._id?.toString(),
+      apiKeyId: (apiKey as any)._id?.toString(),
       appKey: apiKey.appKey,
       userId: apiKey.userId,
       metadata: {

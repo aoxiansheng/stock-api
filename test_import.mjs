@@ -1,0 +1,1 @@
+import { BASE_PERFORMANCE_THRESHOLDS } from '../src/monitoring/constants/core/base-thresholds.constants'; console.log('BASE_PERFORMANCE_THRESHOLDS imported successfully:', typeof BASE_PERFORMANCE_THRESHOLDS);

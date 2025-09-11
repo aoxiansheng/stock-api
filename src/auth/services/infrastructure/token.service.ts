@@ -184,7 +184,7 @@ export class TokenService {
   /**
    * 验证自定义载荷的令牌
    */
-  async verifyCustomPayload<T = Record<string, any>>(token: string): Promise<T> {
+  async verifyCustomPayload<T extends object = Record<string, any>>(token: string): Promise<T> {
     this.logger.debug('验证自定义载荷令牌');
 
     try {
@@ -209,7 +209,7 @@ export class TokenService {
   } {
     return {
       algorithm: 'HS256', // JWT默认算法
-      defaultExpiresIn: securityConfig.session.accessTokenDefaultExpiry || '1h',
+      defaultExpiresIn: securityConfig.session.jwtDefaultExpiry || '15m',
       refreshTokenExpiresIn: securityConfig.session.refreshTokenDefaultExpiry || '7d',
     };
   }

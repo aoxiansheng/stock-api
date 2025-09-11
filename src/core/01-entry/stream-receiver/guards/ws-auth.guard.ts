@@ -1,12 +1,12 @@
 import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
 import { createLogger } from "@app/config/logger.config";
-import { ApiKeyService } from "../../../../auth/services/apikey.service";
-import { RateLimitService } from "../../../../auth/services/rate-limit.service";
+import { ApiKeyManagementService } from "../../../../auth/services/domain/apikey-management.service";
+import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
 import { Socket } from "socket.io";
 import { Permission } from "../../../../auth/enums/user-role.enum";
 import { STREAM_PERMISSIONS, hasStreamPermissions } from '../constants/stream-permissions.constants';
 import { CONSTANTS } from "@common/constants";
-import { RateLimitStrategy } from "../../../../auth/constants/rate-limit";
+import { RateLimitStrategy } from "../../../../auth/constants";
 
 // Extract rate limit strategy for backward compatibility
 // const { RateLimitStrategy } = CONSTANTS.DOMAIN.RATE_LIMIT.ENUMS;
@@ -21,7 +21,7 @@ export class WsAuthGuard implements CanActivate {
   private readonly logger = createLogger(WsAuthGuard.name);
 
   constructor(
-    private readonly apiKeyService: ApiKeyService,
+    private readonly apiKeyService: ApiKeyManagementService,
     private readonly rateLimitService: RateLimitService,
   ) {}
 

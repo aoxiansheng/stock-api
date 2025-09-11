@@ -2,7 +2,7 @@
  * Alert事件发布服务  
  * 🎯 专门负责告警事件的发布和通用事件转换
  * 
- * @description 单一职责：事件发布，替代原来的AlertEventAdapterService
+ * @description 单一职责：专业化的告警事件发布服务
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
@@ -61,7 +61,7 @@ export class AlertEventPublisher {
 
       // 发出双重格式事件
       await Promise.all([
-        this.emitLegacyEvent(alertForEvent, ruleForEvent, contextForEvent, 'alert.fired'),
+        this.emitNativeEvent(alertForEvent, ruleForEvent, contextForEvent, 'alert.fired'),
         this.emitGenericEvent(alertForEvent, ruleForEvent, contextForEvent, GenericAlertEventType.FIRED),
       ]);
 
@@ -104,7 +104,7 @@ export class AlertEventPublisher {
       const eventData = { resolvedAt, resolvedBy, resolutionComment: comment };
 
       await Promise.all([
-        this.emitLegacyEvent(alertForEvent, null, eventData, 'alert.resolved'),
+        this.emitNativeEvent(alertForEvent, null, eventData, 'alert.resolved'),
         this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.RESOLVED, eventData),
       ]);
 
@@ -145,7 +145,7 @@ export class AlertEventPublisher {
       const eventData = { acknowledgedBy, acknowledgedAt, acknowledgmentComment: comment };
 
       await Promise.all([
-        this.emitLegacyEvent(alertForEvent, null, eventData, 'alert.acknowledged'),
+        this.emitNativeEvent(alertForEvent, null, eventData, 'alert.acknowledged'),
         this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ACKNOWLEDGED, eventData),
       ]);
 
@@ -188,7 +188,7 @@ export class AlertEventPublisher {
       const eventData = { suppressedBy, suppressedAt, suppressionDuration, suppressionReason: reason };
 
       await Promise.all([
-        this.emitLegacyEvent(alertForEvent, null, eventData, 'alert.suppressed'),
+        this.emitNativeEvent(alertForEvent, null, eventData, 'alert.suppressed'),
         this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.SUPPRESSED, eventData),
       ]);
 
@@ -236,7 +236,7 @@ export class AlertEventPublisher {
       };
 
       await Promise.all([
-        this.emitLegacyEvent(alertForEvent, null, { previousSeverity, newSeverity, escalatedAt, escalationReason }, 'alert.escalated'),
+        this.emitNativeEvent(alertForEvent, null, { previousSeverity, newSeverity, escalatedAt, escalationReason }, 'alert.escalated'),
         this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ESCALATED, eventData),
       ]);
 
@@ -257,9 +257,9 @@ export class AlertEventPublisher {
   }
 
   /**
-   * 发出原生事件（向后兼容）
+   * 发出原生事件格式
    */
-  private async emitLegacyEvent(
+  private async emitNativeEvent(
     alert: Alert,
     rule: AlertRule | null,
     context: any,

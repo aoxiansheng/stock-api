@@ -62,10 +62,10 @@ export class AlertRuleService {
       const ruleData = {
         ...createRuleDto,
         id: this.generateRuleId(),
-        // Convert NotificationChannelDto to NotificationChannel if needed
+        // Convert AlertNotificationChannelDto to internal format
         channels: createRuleDto.channels?.map(channel => ({
           ...channel,
-          type: channel.type as any, // Type conversion handled at runtime
+          type: channel.type, // Alert domain channel type
         })) || [],
       };
       

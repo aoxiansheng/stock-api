@@ -83,7 +83,7 @@ export class AlertRule implements IAlertRule {
   }
 
   get ruleOperator(): string | undefined {
-    return this.createdBy; // 规则只有创建者概念
+    return this.operator; // 返回操作符而非创建者
   }
 }
 

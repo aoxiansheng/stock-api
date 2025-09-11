@@ -4,11 +4,11 @@
  */
 import { v4 as uuidv4 } from "uuid";
 import {
-  APIKEY_DEFAULTS,
-  APIKEY_CONFIG,
-  APIKEY_VALIDATION_RULES,
-  APIKEY_TIME_CONFIG,
-} from "../constants/apikey.constants";
+  API_KEY_DEFAULTS,
+  API_KEY_FORMAT,
+  API_KEY_VALIDATION,
+  API_KEY_TIMING,
+} from "../constants/api-security.constants";
 
 /**
  * API Key 工具函数类
@@ -21,7 +21,7 @@ export class ApiKeyUtil {
    */
   static generateAppKey(): string {
     const uuid = uuidv4();
-    return `${APIKEY_DEFAULTS.APP_KEY_PREFIX}${uuid}`;
+    return `${API_KEY_FORMAT.PREFIX}${uuid}`;
   }
 
   /**
@@ -30,9 +30,9 @@ export class ApiKeyUtil {
    * @returns 访问令牌字符串
    */
   static generateAccessToken(
-    length: number = APIKEY_DEFAULTS.ACCESS_TOKEN_LENGTH,
+    length: number = API_KEY_FORMAT.DEFAULT_LENGTH,
   ): string {
-    const charset = APIKEY_CONFIG.ACCESS_TOKEN_CHARSET;
+    const charset = API_KEY_FORMAT.CHARSET;
     let result = "";
     for (let i = 0; i < length; i++) {
       result += charset.charAt(Math.floor(Math.random() * charset.length));
@@ -46,7 +46,7 @@ export class ApiKeyUtil {
    * @returns 是否有效
    */
   static isValidAppKey(appKey: string): boolean {
-    return APIKEY_VALIDATION_RULES.APP_KEY_PATTERN.test(appKey);
+    return API_KEY_FORMAT.APP_KEY_PATTERN.test(appKey);
   }
 
   /**
@@ -55,7 +55,7 @@ export class ApiKeyUtil {
    * @returns 是否有效
    */
   static isValidAccessToken(accessToken: string): boolean {
-    return APIKEY_VALIDATION_RULES.ACCESS_TOKEN_PATTERN.test(accessToken);
+    return API_KEY_FORMAT.ACCESS_TOKEN_PATTERN.test(accessToken);
   }
 
   /**
@@ -67,9 +67,9 @@ export class ApiKeyUtil {
     return (
       name !== null &&
       name !== undefined &&
-      APIKEY_VALIDATION_RULES.NAME_PATTERN.test(name) &&
-      name.length >= APIKEY_CONFIG.MIN_NAME_LENGTH &&
-      name.length <= APIKEY_CONFIG.MAX_NAME_LENGTH
+      API_KEY_VALIDATION.NAME_PATTERN.test(name) &&
+      name.length >= API_KEY_VALIDATION.MIN_NAME_LENGTH &&
+      name.length <= API_KEY_VALIDATION.MAX_NAME_LENGTH
     );
   }
 
@@ -91,7 +91,7 @@ export class ApiKeyUtil {
    */
   static isNearExpiry(
     expiresAt: Date | null,
-    warningDays: number = APIKEY_TIME_CONFIG.EXPIRY_WARNING_DAYS,
+    warningDays: number = API_KEY_TIMING.EXPIRY_WARNING_DAYS,
   ): boolean {
     if (!expiresAt) return false;
     const warningDate = new Date();
@@ -116,7 +116,7 @@ export class ApiKeyUtil {
    * @returns 默认名称
    */
   static generateDefaultName(index: number = 1): string {
-    return `${APIKEY_DEFAULTS.DEFAULT_NAME_PREFIX} ${index}`;
+    return `${API_KEY_DEFAULTS.NAME_PREFIX} ${index}`;
   }
 
   /**

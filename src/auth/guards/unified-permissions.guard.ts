@@ -14,7 +14,7 @@ import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { ROLES_KEY } from "../decorators/roles.decorator";
 import { Permission, UserRole } from "../enums/user-role.enum";
 import { AuthSubjectType } from "../interfaces/auth-subject.interface";
-import { PermissionService } from "../services/permission.service";
+import { PermissionService } from "../services/infrastructure/permission.service";
 import { AuthSubjectFactory } from "../subjects/auth-subject.factory";
 import { PERMISSION_MESSAGES } from "@common/constants/semantic/message-semantics.constants";
 

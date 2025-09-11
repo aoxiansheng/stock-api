@@ -99,40 +99,72 @@ export class AlertLifecycleService {
   }
 
   /**
-   * 确认告警
+   * 确认告警 - 对象参数重载（Controller适配器）
+   */
+  async acknowledgeAlert(params: {
+    id: string;
+    acknowledgedBy: string;
+    comment?: string;
+  }): Promise<IAlert>;
+  
+  /**
+   * 确认告警 - 传统参数重载
    */
   async acknowledgeAlert(
     alertId: string,
     acknowledgedBy: string,
     comment?: string
+  ): Promise<IAlert>;
+
+  /**
+   * 确认告警 - 实现
+   */
+  async acknowledgeAlert(
+    alertIdOrParams: string | { id: string; acknowledgedBy: string; comment?: string },
+    acknowledgedBy?: string,
+    comment?: string
   ): Promise<IAlert> {
+    // 参数适配
+    let alertId: string;
+    let ackBy: string;
+    let ackComment: string | undefined;
+
+    if (typeof alertIdOrParams === 'string') {
+      alertId = alertIdOrParams;
+      ackBy = acknowledgedBy!;
+      ackComment = comment;
+    } else {
+      alertId = alertIdOrParams.id;
+      ackBy = alertIdOrParams.acknowledgedBy;
+      ackComment = alertIdOrParams.comment;
+    }
     const operation = 'ACKNOWLEDGE_ALERT';
     
     this.logger.debug('确认告警', {
       operation,
       alertId,
-      acknowledgedBy,
+      acknowledgedBy: ackBy,
     });
 
     try {
       const alert = await this.updateAlertStatus(
         alertId,
         AlertStatus.ACKNOWLEDGED,
-        acknowledgedBy
+        ackBy
       );
 
       // 发布告警确认事件
       await this.alertEventPublisher.publishAlertAcknowledgedEvent(
         alert,
-        acknowledgedBy,
+        ackBy,
         new Date(),
-        comment
+        ackComment
       );
 
       this.logger.log('告警确认成功', {
         operation,
         alertId,
-        acknowledgedBy,
+        acknowledgedBy: ackBy,
       });
 
       return alert;
@@ -148,45 +180,82 @@ export class AlertLifecycleService {
   }
 
   /**
-   * 解决告警
+   * 解决告警 - 对象参数重载（Controller适配器）
+   */
+  async resolveAlert(params: {
+    id: string;
+    resolvedBy: string;
+    ruleId: string;
+    comment?: string;
+  }): Promise<IAlert>;
+
+  /**
+   * 解决告警 - 传统参数重载
    */
   async resolveAlert(
     alertId: string,
     resolvedBy: string,
     ruleId: string,
     comment?: string
+  ): Promise<IAlert>;
+
+  /**
+   * 解决告警 - 实现
+   */
+  async resolveAlert(
+    alertIdOrParams: string | { id: string; resolvedBy: string; ruleId: string; comment?: string },
+    resolvedBy?: string,
+    ruleId?: string,
+    comment?: string
   ): Promise<IAlert> {
+    // 参数适配
+    let alertId: string;
+    let resBy: string;
+    let resRuleId: string;
+    let resComment: string | undefined;
+
+    if (typeof alertIdOrParams === 'string') {
+      alertId = alertIdOrParams;
+      resBy = resolvedBy!;
+      resRuleId = ruleId!;
+      resComment = comment;
+    } else {
+      alertId = alertIdOrParams.id;
+      resBy = alertIdOrParams.resolvedBy;
+      resRuleId = alertIdOrParams.ruleId;
+      resComment = alertIdOrParams.comment;
+    }
     const operation = 'RESOLVE_ALERT';
     
     this.logger.debug('解决告警', {
       operation,
       alertId,
-      resolvedBy,
-      ruleId,
+      resolvedBy: resBy,
+      ruleId: resRuleId,
     });
 
     try {
       const alert = await this.updateAlertStatus(
         alertId,
         AlertStatus.RESOLVED,
-        resolvedBy
+        resBy
       );
 
       // 清除活跃告警缓存
-      await this.alertCacheService.clearActiveAlert(ruleId);
+      await this.alertCacheService.clearActiveAlert(resRuleId);
 
       // 发布告警解决事件
       await this.alertEventPublisher.publishAlertResolvedEvent(
         alert,
         new Date(),
-        resolvedBy,
-        comment
+        resBy,
+        resComment
       );
 
       this.logger.log('告警解决成功', {
         operation,
         alertId,
-        resolvedBy,
+        resolvedBy: resBy,
       });
 
       return alert;
@@ -427,6 +496,54 @@ export class AlertLifecycleService {
     }
 
     return alert;
+  }
+
+  /**
+   * 处理告警（通用入口）
+   */
+  async processAlert(alertData: {
+    id?: string;
+    ruleId: string;
+    data?: any;
+    triggeredAt?: Date;
+    [key: string]: any;
+  }): Promise<void> {
+    const operation = 'PROCESS_ALERT';
+    
+    this.logger.debug('处理告警', {
+      operation,
+      alertId: alertData.id,
+      ruleId: alertData.ruleId,
+    });
+
+    try {
+      // 这里可以根据需要处理告警数据
+      // 例如：通知发送、状态更新、数据存储等
+      
+      // 添加到时序数据
+      if (alertData.id) {
+        const alert = await this.getAlertById(alertData.id);
+        if (alert) {
+          await this.alertCacheService.addToTimeseries(alert);
+        }
+      }
+      
+      this.logger.debug('告警处理完成', {
+        operation,
+        alertId: alertData.id,
+        ruleId: alertData.ruleId,
+      });
+      
+    } catch (error) {
+      this.logger.error('告警处理失败', {
+        operation,
+        alertId: alertData.id,
+        ruleId: alertData.ruleId,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw error;
+    }
   }
 
   /**

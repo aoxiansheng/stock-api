@@ -12,7 +12,7 @@ import {
 
 import { UserRole } from "../enums/user-role.enum";
 import { CommonStatus } from "../enums/common-status.enum";
-import { AUTH_CONFIG, AUTH_VALIDATION_RULES } from "../constants/auth.constants";
+// Note: AUTH_CONFIG and AUTH_VALIDATION_RULES are no longer needed in this file
 import { BaseUserDto, BasePasswordDto } from "./base-auth.dto";
 
 /**

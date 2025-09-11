@@ -155,7 +155,7 @@ export class AuthFacadeService {
       // 4. 发送通知事件
       await this.notificationService.sendApiKeyCreationEvent(userId, apiKey);
 
-      this.logger.log('API密钥创建成功', { userId, apiKeyId: apiKey._id });
+      this.logger.log('API密钥创建成功', { userId, apiKeyId: (apiKey as any)._id });
       return apiKey;
     } catch (error) {
       // 记录失败审计日志

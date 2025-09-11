@@ -2,7 +2,7 @@
  * 规则评估器
  * 🎯 专门负责规则评估的核心逻辑
  * 
- * @description 从RuleEngineService中提取的评估功能
+ * @description 专业化的规则评估引擎
  * @author Claude Code Assistant
  * @date 2025-09-10
  */

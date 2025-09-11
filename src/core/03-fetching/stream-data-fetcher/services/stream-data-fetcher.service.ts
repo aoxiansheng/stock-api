@@ -1,4 +1,5 @@
-import { MONITORING_BUSINESS } from '../../../../monitoring/constants/business';
+// 定义采样配置常量
+const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
 import { OPERATION_LIMITS } from '@common/constants/domain';
 import {
   Injectable,
@@ -606,7 +607,7 @@ export class StreamDataFetcherService
         triggeredAt: this.concurrencyControl.circuitBreaker.triggeredAt,
         recoveryDelay: this.concurrencyControl.circuitBreaker.recoveryDelay,
       },
-      recentAdjustments: this.performanceMetrics.concurrencyHistory.slice(-MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT),
+      recentAdjustments: this.performanceMetrics.concurrencyHistory.slice(-RECENT_METRICS_COUNT),
       lastUpdate: new Date(
         this.performanceMetrics.lastMetricsUpdate,
       ).toISOString(),

@@ -1,31 +1,30 @@
 import { registerAs } from "@nestjs/config";
-import { ALERT_QUICK_ACCESS } from "../constants";
 
 export const alertConfig = registerAs("alert", () => {
   const parsedInterval =
     process.env.ALERT_EVALUATION_INTERVAL !== undefined
       ? parseInt(process.env.ALERT_EVALUATION_INTERVAL, 10)
-      : ALERT_QUICK_ACCESS.TIME.EVALUATION_CYCLE; // 直接使用秒数
+      : 60; // 60秒 - 默认评估周期
 
   return {
-    // Configuration for AlertingService - 使用新的统一时间配置
-    evaluationInterval: isNaN(parsedInterval) ? ALERT_QUICK_ACCESS.TIME.EVALUATION_CYCLE : parsedInterval,
+    // Configuration for AlertEvaluationService - 评估间隔配置
+    evaluationInterval: isNaN(parsedInterval) ? 60 : parsedInterval, // 60秒 - 默认评估周期
 
-    // Configuration for RuleEngineService - 使用新的常量系统
+    // Configuration for AlertRuleService - 规则验证配置
     validation: {
       duration: {
-        min: ALERT_QUICK_ACCESS.TIME.NORMAL_RESPONSE,           // 30秒
-        max: ALERT_QUICK_ACCESS.TIME.EVALUATION_CYCLE * 10,     // 600秒
+        min: 30,                      // 30秒 - 最小持续时间
+        max: 600,                     // 600秒 - 最大持续时间 (60 * 10)
       },
       cooldown: {
-        min: ALERT_QUICK_ACCESS.TIME.COOLDOWN_PERIOD,           // 300秒
-        max: ALERT_QUICK_ACCESS.TIME.COOLDOWN_PERIOD * 10,      // 3000秒
+        min: 300,                     // 300秒 - 最小冷却期
+        max: 3000,                    // 3000秒 - 最大冷却期 (300 * 10)
       },
     },
     cache: {
       cooldownPrefix: "alert:cooldown:",
       activeAlertPrefix: "active-alert", 
-      activeAlertTtlSeconds: ALERT_QUICK_ACCESS.TIME.CONFIG_CACHE_TTL, // 1800秒
+      activeAlertTtlSeconds: 1800,    // 1800秒 - 缓存TTL (30分钟)
     },
   };
 });

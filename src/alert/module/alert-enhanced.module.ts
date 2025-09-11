@@ -1,8 +1,8 @@
 /**
  * 增强版Alert模块配置
- * 🎯 同时支持新旧服务架构，实现平滑过渡
+ * 🎯 基于单一职责原则的专业化服务架构
  * 
- * @description 渐进式迁移方案，新旧服务并存
+ * @description 无历史包袱的清洁架构实现
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
@@ -45,13 +45,7 @@ import { AlertOrchestratorService } from "../services/alert-orchestrator.service
 import { AlertRuleValidator } from "../validators/alert-rule.validator";
 import { RuleEvaluator } from "../evaluators/rule.evaluator";
 
-// ⚠️ 旧服务（保持向后兼容）
-import {
-  AlertHistoryService,
-  AlertingService,
-  RuleEngineService,
-} from "../services/";
-import { AlertEventAdapterService } from "../services/alert-event-adapter.service";
+// 旧服务已被移除，无历史包袱
 
 @Module({
   imports: [
@@ -87,33 +81,29 @@ import { AlertEventAdapterService } from "../services/alert-event-adapter.servic
   ],
 
   providers: [
-    // ========== 🆕 新服务架构 ==========
+    // ========== 🎯 专业化服务架构 ==========
+    AlertOrchestratorService,   // 主编排服务
     AlertRuleService,
     AlertEvaluationService,
     AlertLifecycleService,
     AlertQueryService,
     AlertCacheService,
     AlertEventPublisher,
-    AlertOrchestratorService,
     
     // 支持组件
     AlertRuleValidator,
     RuleEvaluator,
     
-    // ========== ⚠️ 旧服务（向后兼容） ==========
-    AlertingService,
-    RuleEngineService,
-    AlertHistoryService,
-    AlertEventAdapterService,
-    
-    // ========== 仓储层 ==========
+    // ========== 数据访问层 ==========
     AlertRuleRepository,
     AlertHistoryRepository,
   ],
 
   exports: [
-    // ========== 🆕 优先导出新服务 ==========
-    AlertOrchestratorService, // 推荐使用
+    // ========== 🚀 主要服务接口 ==========
+    AlertOrchestratorService, // 推荐使用的主入口
+    
+    // ========== 🎯 专业化服务 ==========
     AlertRuleService,
     AlertEvaluationService,
     AlertLifecycleService,
@@ -121,23 +111,18 @@ import { AlertEventAdapterService } from "../services/alert-event-adapter.servic
     AlertCacheService,
     AlertEventPublisher,
     
-    // ========== ⚠️ 兼容性导出 ==========
-    AlertingService,
-    RuleEngineService,
-    AlertHistoryService,
-    
-    // ========== 仓储层导出 ==========
+    // ========== 📊 数据访问 ==========
     AlertRuleRepository,
     AlertHistoryRepository,
   ],
 })
 export class AlertEnhancedModule implements OnModuleInit {
   private readonly logger = new Logger('AlertEnhancedModule');
-  private migrationPhase = 'Phase 1';
+  private architectureVersion = 'v2.0';
 
   async onModuleInit(): Promise<void> {
     this.logger.log('🚀 Alert模块（增强版）初始化中...');
-    this.logger.log(`📊 迁移阶段: ${this.migrationPhase} - 新旧服务并存`);
+    this.logger.log(`🎯 架构版本: ${this.architectureVersion} - 专业化服务架构`);
     
     try {
       // 执行常量验证
@@ -149,7 +134,7 @@ export class AlertEnhancedModule implements OnModuleInit {
       }
 
       // 记录服务架构状态
-      this.logServiceArchitectureStatus();
+      this.logCleanArchitectureStatus();
       
       this.logger.log('✅ Alert模块（增强版）初始化完成');
       
@@ -160,37 +145,38 @@ export class AlertEnhancedModule implements OnModuleInit {
   }
 
   /**
-   * 记录服务架构状态
+   * 记录清洁架构状态
    */
-  private logServiceArchitectureStatus(): void {
+  private logCleanArchitectureStatus(): void {
     const stats = {
-      newServices: [
-        'AlertRuleService',
-        'AlertEvaluationService',
-        'AlertLifecycleService',
-        'AlertQueryService',
-        'AlertCacheService',
-        'AlertEventPublisher',
-        'AlertOrchestratorService',
-      ],
-      legacyServices: [
-        'AlertingService',
-        'RuleEngineService',
-        'AlertHistoryService',
-        'AlertEventAdapterService',
+      coreServices: [
+        'AlertOrchestratorService 🎭',
+        'AlertRuleService 📋', 
+        'AlertEvaluationService ⚖️',
+        'AlertLifecycleService 🔄',
+        'AlertQueryService 🔍',
+        'AlertCacheService 💾',
+        'AlertEventPublisher 📢',
       ],
       supportComponents: [
-        'AlertRuleValidator',
-        'RuleEvaluator',
+        'AlertRuleValidator ✅',
+        'RuleEvaluator 📊',
       ],
+      repositories: [
+        'AlertRuleRepository',
+        'AlertHistoryRepository',
+      ]
     };
 
-    this.logger.log('📈 服务架构状态:');
-    this.logger.log(`  ✅ 新服务: ${stats.newServices.length} 个已激活`);
-    this.logger.log(`  ⚠️  旧服务: ${stats.legacyServices.length} 个保持兼容`);
+    this.logger.log('📈 专业化架构状态:');
+    this.logger.log(`  🎯 核心服务: ${stats.coreServices.length} 个`);
     this.logger.log(`  🔧 支持组件: ${stats.supportComponents.length} 个`);
+    this.logger.log(`  📊 数据仓储: ${stats.repositories.length} 个`);
     this.logger.log('');
-    this.logger.log('💡 建议: 新功能请使用 AlertOrchestratorService');
-    this.logger.log('📝 迁移指南: 参见 new-index.ts 中的详细说明');
+    this.logger.log('🎭 主入口: AlertOrchestratorService');
+    this.logger.log('📋 单一职责: 每个服务专注于特定领域');
+    this.logger.log('🚀 清洁架构: 无历史包袱，性能优化');
+    this.logger.log('');
+    this.logger.log('📚 文档: 参见 ARCHITECTURE.md');
   }
 }

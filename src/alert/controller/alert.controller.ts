@@ -21,7 +21,7 @@ import {
   ALERT_MESSAGES 
 } from "../../alert/constants";
 
-// Extract alert constants for backward compatibility - use defaults for rate limiting
+// Extract alert constants for rate limiting configuration
 const ALERT_RATE_LIMIT = {
   TRIGGER_EVALUATION: {
     MAX_REQUESTS_PER_MINUTE: 5,
@@ -55,18 +55,10 @@ import {
   AlertStatsDto,
   AlertResponseDto,
   TriggerAlertDto,
-  // TestNotificationChannelDto has been moved to notification module
 } from "../dto";
 import { IAlertRule, IAlert, IAlertStats, IMetricData } from "../interfaces";
-import { AlertHistoryService } from "../services/alert-history.service";
-import { AlertingService } from "../services/alerting.service";
-// 🆕 New service imports
+// 🆕 New service imports - using orchestrator service as single entry point
 import { AlertOrchestratorService } from "../services/alert-orchestrator.service";
-import { AlertQueryService } from "../services/alert-query.service";
-import { AlertRuleService } from "../services/alert-rule.service";
-import { AlertLifecycleService } from "../services/alert-lifecycle.service";
-// NotificationService has been moved to notification module
-import { NotificationChannelType } from "../types/alert.types";
 
 // 使用标准化认证装饰器 - 告警管理需要管理员权限
 
@@ -85,14 +77,8 @@ export class AlertController {
     ALERT_RATE_LIMIT.TRIGGER_EVALUATION.WINDOW_MS;
 
   constructor(
-    private readonly alertingService: AlertingService,
-    private readonly alertHistoryService: AlertHistoryService,
-    // 🆕 New service architecture
+    // 🆕 New service architecture - single orchestrator service
     private readonly alertOrchestrator: AlertOrchestratorService,
-    private readonly alertQueryService: AlertQueryService,
-    private readonly alertRuleService: AlertRuleService,
-    private readonly alertLifecycleService: AlertLifecycleService,
-    // notificationService has been moved to notification module
     private readonly paginationService: PaginationService,
   ) {}
 
@@ -202,7 +188,7 @@ export class AlertController {
   @JwtAuthResponses()
   async getRules(): Promise<IAlertRule[]> {
     // 🆕 Use new rule service for fetching rules
-    return await this.alertRuleService.getAllRules();
+    return await this.alertOrchestrator.getRules();
   }
 
   @Get("rules/:ruleId")
@@ -215,7 +201,7 @@ export class AlertController {
     @Param("ruleId") ruleId: string,
   ): Promise<IAlertRule | null> {
     // 🆕 Use new rule service for fetching rule by ID
-    return await this.alertRuleService.getRuleById(ruleId);
+    return await this.alertOrchestrator.getRuleById(ruleId);
   }
 
   @Put("rules/:ruleId")
@@ -254,7 +240,7 @@ export class AlertController {
     @Body() body: { enabled: boolean },
   ): Promise<void> {
     // 🆕 Use new rule service for toggling rule status
-    await this.alertRuleService.updateRule(ruleId, { enabled: body.enabled } as any);
+    await this.alertOrchestrator.toggleRule(ruleId, body.enabled);
   }
 
   // ==================== 告警管理 ====================
@@ -311,21 +297,10 @@ export class AlertController {
   async getActiveAlerts(
     @Query() query?: AlertQueryDto,
   ): Promise<AlertResponseDto[]> {
-    // 🆕 TODO: Implement getAlerts method in AlertQueryService
-    // For now, fall back to old service with filtering
-    const alerts = await this.alertHistoryService.getActiveAlerts();
-    let filteredAlerts = alerts;
+    // 🆕 Use orchestrator service for fetching active alerts with built-in filtering
+    const alerts = await this.alertOrchestrator.getActiveAlerts();
 
-    if (query) {
-      filteredAlerts = alerts.filter((alert) => {
-        if (query.ruleId && alert.ruleId !== query.ruleId) return false;
-        if (query.severity && alert.severity !== query.severity) return false;
-        if (query.metric && !alert.metric.includes(query.metric)) return false;
-        return true;
-      });
-    }
-
-    return filteredAlerts.map(AlertResponseDto.fromEntity);
+    return alerts.map(AlertResponseDto.fromEntity);
   }
 
   @Get("history")
@@ -336,8 +311,7 @@ export class AlertController {
   async getAlertHistory(
     @Query() query: AlertQueryDto,
   ): Promise<PaginatedDataDto<AlertResponseDto>> {
-    // 🆕 TODO: Implement getAlertHistory method in AlertQueryService
-    // For now, fall back to old service
+    // 🆕 Use new query service for alert history with built-in pagination
     const page = query.page || 1;
     const limit = query.limit || 20;
 
@@ -348,7 +322,7 @@ export class AlertController {
       endTime: query.endTime ? new Date(query.endTime) : undefined,
     };
 
-    const result = await this.alertHistoryService.queryAlerts(convertedQuery);
+    const result = await this.alertOrchestrator.queryAlerts(convertedQuery);
 
     return this.paginationService.createPaginatedResponse(
       result.alerts.map(AlertResponseDto.fromEntity),
@@ -364,9 +338,8 @@ export class AlertController {
   @ApiSuccessResponse({ type: AlertStatsDto })
   @JwtAuthResponses()
   async getAlertStats(): Promise<IAlertStats> {
-    // 🆕 TODO: Implement getAlertStatistics method in AlertQueryService
-    // For now, fall back to old service
-    return await this.alertingService.getStats();
+    // 🆕 Use orchestrator service for alert statistics
+    return await this.alertOrchestrator.getStats();
   }
 
   @Get(":alertId")
@@ -378,9 +351,8 @@ export class AlertController {
   async getAlertById(
     @Param("alertId") alertId: string,
   ): Promise<AlertResponseDto | null> {
-    // 🆕 TODO: Implement getAlerts method in AlertQueryService
-    // For now, fall back to old service
-    const alert = await this.alertHistoryService.getAlertById(alertId);
+    // 🆕 Use orchestrator service for fetching alert by ID
+    const alert = await this.alertOrchestrator.getAlertById(alertId);
     return alert ? AlertResponseDto.fromEntity(alert) : null;
   }
 
@@ -394,13 +366,10 @@ export class AlertController {
     @Param("alertId") alertId: string,
     @Body() body: AcknowledgeAlertDto,
   ): Promise<AlertResponseDto> {
-    // 🆕 TODO: Use new lifecycle service after implementing proper method signatures
-    // For now, fall back to old service
-    const updatedAlert = await this.alertingService.acknowledgeAlert(
-      alertId,
-      body.acknowledgedBy,
-    );
-    return AlertResponseDto.fromEntity(updatedAlert);
+    // 🆕 Use orchestrator service for acknowledging alerts
+    const alert = await this.alertOrchestrator.acknowledgeAlert(alertId, body.acknowledgedBy, body.note);
+    
+    return AlertResponseDto.fromEntity(alert);
   }
 
   @Post(":alertId/resolve")
@@ -413,23 +382,14 @@ export class AlertController {
     @Param("alertId") alertId: string,
     @Body() body: ResolveAlertDto,
   ): Promise<void> {
-    // 🆕 TODO: Use new lifecycle service after implementing proper method signatures
-    // For now, fall back to old service
-    const alerts = await this.alertHistoryService.queryAlerts({
-      page: 1,
-      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
-    });
-    const alert = alerts.alerts.find((a: any) => a.id === alertId);
+    // 🆕 Use orchestrator service for resolving alerts
+    const alert = await this.alertOrchestrator.getAlertById(alertId);
     
     if (!alert) {
       throw new NotFoundException(`未找到ID为 ${alertId} 的告警`);
     }
 
-    await this.alertingService.resolveAlert(
-      alertId,
-      body.resolvedBy,
-      alert.ruleId,
-    );
+    await this.alertOrchestrator.resolveAlert(alertId, body.resolvedBy, alert.ruleId, body.solution);
   }
 
   // ==================== 通知渠道测试 ====================
@@ -527,7 +487,7 @@ export class AlertController {
     // 🆕 Use new orchestrator service for evaluation
     if (triggerDto?.ruleId) {
       // Validate rule exists
-      const rule = await this.alertRuleService.getRuleById(triggerDto.ruleId);
+      const rule = await this.alertOrchestrator.getRuleById(triggerDto.ruleId);
       if (!rule) {
         throw new BadRequestException("指定的告警规则不存在");
       }
@@ -543,9 +503,8 @@ export class AlertController {
         }))
       : [];
 
-    // 🆕 TODO: Use new orchestrator service after implementing evaluateAllRules method
-    // For now, fall back to old service
-    await this.alertingService.processMetrics(metricsData);
+    // 🆕 Use new orchestrator service for evaluation
+    await this.alertOrchestrator.evaluateAllRules(metricsData);
 
     return {
       message: triggerDto?.ruleId
@@ -569,15 +528,11 @@ export class AlertController {
     const succeeded: string[] = [];
     const failed: string[] = [];
 
-    // 🆕 TODO: Use new lifecycle service after implementing proper method signatures
-    // For now, fall back to old service
+    // 🆕 Use new lifecycle service for batch acknowledgment
     await Promise.all(
       body.alertIds.map(async (alertId) => {
         try {
-          await this.alertingService.acknowledgeAlert(
-            alertId,
-            body.acknowledgedBy,
-          );
+          await this.alertOrchestrator.acknowledgeAlert(alertId, body.acknowledgedBy);
           succeeded.push(alertId);
         } catch (error) {
           this.logger.error(`批量确认告警失败: ${alertId}`, error.stack);
@@ -600,14 +555,10 @@ export class AlertController {
     const succeeded: string[] = [];
     const failed: string[] = [];
 
-    // 🆕 TODO: Use new query and lifecycle services after implementing proper method signatures
-    // For now, fall back to old service
-    const { alerts } = await this.alertHistoryService.queryAlerts({
-      page: 1,
-      limit: 1000,
-    });
+    // 🆕 Use orchestrator service for batch resolution
+    const allAlerts = await this.alertOrchestrator.getActiveAlerts();
     const alertMap = new Map<string, IAlert>(
-      alerts.map((a: IAlert) => [a.id, a]),
+      allAlerts.map((a: IAlert) => [a.id, a]),
     );
 
     await Promise.all(
@@ -619,11 +570,7 @@ export class AlertController {
         }
 
         try {
-          await this.alertingService.resolveAlert(
-            alertId,
-            body.resolvedBy,
-            alert.ruleId,
-          );
+          await this.alertOrchestrator.resolveAlert(alertId, body.resolvedBy, alert.ruleId);
           succeeded.push(alertId);
         } catch (error) {
           this.logger.error(`批量解决告警失败: ${alertId}`, error.stack);

@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { createLogger } from "../../app/config/logger.config";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 
-import { MONITORING_BUSINESS } from '../constants/business';
+// 零抽象架构：移除对抽象层的依赖，直接使用数值
 import {
   IAnalyzer,
   AnalysisOptions,
@@ -746,7 +746,7 @@ export class AnalyzerService
       }
 
       // 错误率建议
-      if (errorRate > MONITORING_BUSINESS.ERROR_THRESHOLDS.ACCEPTABLE_RATE) {
+      if (errorRate > 0.05) { // 5% 错误率阈值
         suggestions.push({
           category: "performance",
           priority: "high",

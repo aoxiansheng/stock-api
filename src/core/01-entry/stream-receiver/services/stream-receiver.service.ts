@@ -1,4 +1,5 @@
-import { MONITORING_BUSINESS } from '../../../../monitoring/constants/business';
+// 定义采样配置常量
+const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
 import { REFERENCE_DATA } from '@common/constants/domain';
 import { API_OPERATIONS
 } from '@common/constants/domain';
@@ -38,7 +39,7 @@ import {
 } from '../constants/stream-receiver-metrics.constants';
 import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { RateLimitService } from "../../../../auth/services/rate-limit.service";
+import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
 import { bufferTime, filter, mergeMap } from "rxjs/operators";
 import {
   StreamReceiverConfig,
@@ -748,7 +749,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       loadState: {
         isHighLoad: this.dynamicBatchingState.isHighLoad,
         isLowLoad: this.dynamicBatchingState.isLowLoad,
-        recentLoadSamples: this.dynamicBatchingState.loadSamples.slice(-MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT),
+        recentLoadSamples: this.dynamicBatchingState.loadSamples.slice(-RECENT_METRICS_COUNT),
       },
       metrics: {
         totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,

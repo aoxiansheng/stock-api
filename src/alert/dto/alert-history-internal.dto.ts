@@ -137,7 +137,7 @@ export class AlertQueryParamsDto extends BaseQueryDto {
 export class AlertQueryResultDto {
   @ApiProperty({ description: "告警列表" })
   @IsArray()
-  alerts: any[]; // 🎯 保持与接口兼容，支持IAlert[]
+  alerts: any[]; // 🎯 支持IAlert[]类型
 
   @ApiProperty({ description: "总数量" })
   @IsNumber()

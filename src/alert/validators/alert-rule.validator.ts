@@ -2,7 +2,7 @@
  * Alert规则验证器
  * 🎯 专门负责告警规则的验证逻辑
  * 
- * @description 从RuleEngineService中提取的验证功能
+ * @description 专业化的规则验证器，确保告警规则配置的正确性和安全性
  * @author Claude Code Assistant
  * @date 2025-09-10
  */

@@ -157,29 +157,30 @@ export const MONITORING_METRIC_UNITS = Object.freeze({
 } as const);
 
 /**
- * 指标阈值配置
+ * 指标阈值配置 - 零抽象架构
  * 🎯 定义各指标的警告和严重阈值
+ * 所有数值直观可见，确保阈值一致性
  */
 export const MONITORING_METRIC_THRESHOLDS = Object.freeze({
   [MONITORING_METRICS.RESPONSE_TIME]: {
-    warning: MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS,  // 1秒
-    critical: 5000  // 5秒
+    warning: 1000,  // 1000ms - 响应时间警告阈值
+    critical: 3000  // 3000ms - 响应时间严重阈值
   },
   [MONITORING_METRICS.CPU_USAGE]: {
-    warning: 70,    // 70%
-    critical: 90    // 90%
+    warning: 70,    // 70% - CPU使用率警告阈值
+    critical: 90    // 90% - CPU使用率严重阈值
   },
   [MONITORING_METRICS.MEMORY_USAGE]: {
-    warning: 80,    // 80%
-    critical: 95    // 95%
+    warning: 70,    // 70% - 内存使用率警告阈值
+    critical: 90    // 90% - 内存使用率严重阈值
   },
   [MONITORING_METRICS.ERROR_RATE]: {
-    warning: 1,     // 1%
-    critical: 5     // 5%
+    warning: 5,     // 5% - 错误率警告阈值(百分比整数)
+    critical: 20    // 20% - 错误率严重阈值(百分比整数)
   },
   [MONITORING_METRICS.CACHE_HIT_RATE]: {
-    warning: 80,    // 低于80%警告
-    critical: 60    // 低于60%严重
+    warning: 70,    // 70% - 缓存命中率警告阈值(百分比整数)
+    critical: 50    // 50% - 缓存命中率严重阈值(百分比整数)
   }
 } as const);
 
@@ -197,9 +198,9 @@ export const MONITORING_AGGREGATION_TYPES = Object.freeze({
 /**
  * 时间窗口定义
  * 🎯 标准化时间窗口，用于指标聚合
+ * 注意：已迁移到 core/time-constants.ts 中的 COLLECTION_INTERVALS
  */
-export const MONITORING_TIME_WINDOWS = Object.freeze({
-} as const);
+// export const MONITORING_TIME_WINDOWS - 已迁移到核心时间常量
 
 /**
  * 指标优先级定义

@@ -42,10 +42,3 @@ export {
   NotificationEventMapper,
 } from './notification-event.types';
 
-// 类型别名（便于迁移）
-export type {
-  NotificationAlert as IndependentAlert,
-  NotificationAlertRule as IndependentAlertRule,
-  NotificationAlertContext as IndependentAlertContext,
-  NotificationAlertChannel as IndependentNotificationChannel,
-};
