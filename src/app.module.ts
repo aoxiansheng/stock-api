@@ -5,44 +5,55 @@ import { APP_GUARD } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
+// 基础设施层模块
 import { DatabaseModule } from "./database/database.module"; // 🆕 统一数据库模块
 import { AppConfigModule } from "./app/config/config.module"; // 🆕 统一配置模块
-import { AlertModule } from "./alert/module/alert.module";
+
+// 应用服务层模块
+import { AppCoreModule } from "./app";
+
+// 核心业务层模块 - 准备阶段
+import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
+import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
+
+// 核心业务层模块 - 入口阶段
+import { ReceiverModule } from "./core/01-entry/receiver/module/receiver.module";
+import { StreamReceiverModule } from "./core/01-entry/stream-receiver/module/stream-receiver.module";
+import { QueryModule } from "./core/01-entry/query/module/query.module";
+
+// 核心业务层模块 - 处理阶段
+import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
+
+// 核心业务层模块 - 存储阶段
+import { StorageModule } from "./core/04-storage/storage/module/storage.module";
+
+// 核心业务层模块 - 缓存阶段
+import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cache.module";
+
+// 领域模块
 import { AuthModule } from "./auth/module/auth.module";
+import { MonitoringModule } from "./monitoring/monitoring.module";
+import { AlertEnhancedModule } from "./alert/module/alert-enhanced.module";
+import { ProvidersModule } from "./providers/module/providers-sg.module";
+import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
+import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
+
+// 安全防护守卫
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { ApiKeyAuthGuard } from "./auth/guards/apikey-auth.guard";
 import { UnifiedPermissionsGuard } from "./auth/guards/unified-permissions.guard";
 import { RateLimitGuard } from "./auth/guards/rate-limit.guard";
-import { QueryModule } from "./core/01-entry/query/module/query.module";
-import { ReceiverModule } from "./core/01-entry/receiver/module/receiver.module";
-import { StreamReceiverModule } from "./core/01-entry/stream-receiver/module/stream-receiver.module";
-import { StorageModule } from "./core/04-storage/storage/module/storage.module";
-import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cache.module";
-import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
-import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapper.module";
-import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
-import { MonitoringModule } from "./monitoring/monitoring.module";
-import { ProvidersModule } from "./providers/module/providers-sg.module";
-import { AutoInitModule } from "./scripts/module/auto-init-on-startup.module";
 
-import { RATE_LIMIT_CONFIG } from "@auth/constants/rate-limit";
-import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
-import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
-import { AppCoreModule } from "./app";
+import { RATE_LIMIT_CONFIG } from "@auth/constants";
 
 @Global() // ✅ 添加全局装饰器，使RedisModule全局可用
 @Module({
   imports: [
+    // ========================================
+    // 基础设施层 (Infrastructure Layer)
+    // ========================================
     // ✅ 完整的统一配置模块 (包含所有应用级配置)
     AppConfigModule,
-
-    // 速率限制模块
-    ThrottlerModule.forRoot([
-      {
-        ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
-        limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
-      },
-    ]),
 
     // 统一数据库模块 (替换原有MongooseModule.forRoot)
     DatabaseModule,
@@ -73,45 +84,63 @@ import { AppCoreModule } from "./app";
     // 事件发射器
     EventEmitterModule.forRoot(),
 
-    // 通用模块
-    PaginationModule,
+    // ========================================
+    // 应用服务层 (Application Services Layer)
+    // ========================================
     AppCoreModule,
-    // 核心模块
-    ReceiverModule,
-    StreamReceiverModule, // WebSocket 流接收器
+    PaginationModule, // 通用模块
+
+    // ========================================
+    // 核心业务层 (Core Business Layer)
+    // ========================================
+    
+    // 准备阶段模块
     SymbolMapperModule,
     DataMapperModule,
-    TransformerModule,
-    StorageModule,
-    SmartCacheModule, // 智能缓存编排器模块（可选导入，不影响DI可见性）
+
+    // 入口阶段模块
+    ReceiverModule,
+    StreamReceiverModule, // WebSocket 流接收器
     QueryModule,
 
-    // 数据源模块
-    ProvidersModule,
+    // 处理阶段模块
+    TransformerModule,
 
-    // 自动初始化模块
-    AutoInitModule,
+    // 存储阶段模块
+    StorageModule,
 
-    // 认证模块
+    // 缓存阶段模块
+    SmartCacheModule, // 智能缓存编排器模块（可选导入，不影响DI可见性）
+
+    // ========================================
+    // 领域模块 (Domain Modules)
+    // ========================================
     AuthModule,
-
-    // 统一监控模块 (包含原 PresenterModule 和 AnalyzerModule)
     MonitoringModule,
-
-    // 告警模块
-    AlertModule,
-
-    // 权限验证模块
+    AlertEnhancedModule,
+    ProvidersModule,
     PermissionValidationModule,
+    
+    // ========================================
+    // 安全防护层 (Security Layer)
+    // ========================================
+    // 速率限制模块
+    ThrottlerModule.forRoot([
+      {
+        ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
+        limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
+      },
+    ]),
   ],
   exports: [
     // ✅ 导出 RedisModule 使其他模块可以使用全局Redis连接
     RedisModule,
   ],
   providers: [
+    // 安全防护守卫按执行顺序排列
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ThrottlerGuard, // 速率限制守卫
     },
     {
       provide: APP_GUARD,
